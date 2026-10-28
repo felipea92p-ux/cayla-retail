@@ -88,3 +88,32 @@ export function motivoParaNoAnularLaVenta(v: VentaDelComprobante): RechazoDeBaja
 export function motivoDeAnulacionDeVenta(serie: string, numero: number, motivo: string): string {
   return `Comprobante ${serie}-${String(numero).padStart(6, "0")} dado de baja: ${motivo.trim()}`;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Chaos del PR #1094 (2026-10-27): el motivo de la baja no tenía tope (5000 letras se guardaban completas en el comprobante y en la
+// venta y viajaban a Lucode) y el aviso de «la baja quedó guardada pero la venta no se anuló» mandaba a Historial, que con la caja
+// cerrada también la rechaza. Esto es solo texto y largo; la ventana real (la caja que cierra mientras Lucode responde) es de la base.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+/** Lo que cabe en el motivo de la baja. Es el mismo tope de las demás notas libres del ERP (`cuadrar_piso`: 300). */
+export const MAX_MOTIVO_BAJA = 300;
+
+/** `null` si el motivo sirve; si no, el aviso que ve quien anula (la ruta lo devuelve como 400, antes de llamar a Lucode). */
+export function motivoDeBajaInvalido(motivo: string): string | null {
+  const limpio = motivo.trim();
+  if (limpio.length < 3) return "La anulación necesita un motivo — queda registrado en el comprobante.";
+  if (limpio.length > MAX_MOTIVO_BAJA) return `El motivo admite hasta ${MAX_MOTIVO_BAJA} letras (llevas ${limpio.length}).`;
+  return null;
+}
+
+/**
+ * El aviso cuando la baja ya se pidió a SUNAT y quedó guardada, pero `anular_venta` no pudo anular la venta. Nunca se pide la baja otra
+ * vez. Si la causa es que la venta YA estaba anulada (una segunda petición llegó antes), no es una falla: se dice así.
+ */
+export function mensajeBajaSinAnularLaVenta(estadoSunat: string, causa: string): string {
+  const ya = /ya est[aá] anulada/i.test(causa);
+  if (ya) {
+    return `La baja se pidió a SUNAT (${estadoSunat}) y la venta ya estaba anulada: otra petición llegó antes. Revisa el estado del comprobante en la fila; no vuelvas a pedir la baja.`;
+  }
+  return `La baja se pidió a SUNAT (${estadoSunat}) y quedó guardada, pero la venta no se pudo anular: ${causa}. Si la caja ya cerró, la salida es una Devolución de esa venta; si no, avisa a quien administra el sistema o a quien ve Devoluciones. No vuelvas a pedir la baja.`;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { laBajaAnulaLaVenta, motivoDeAnulacionDeVenta, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja, type DatosParaPedirBaja, type VentaDelComprobante } from "./anular-comprobante-reglas";
+import { MAX_MOTIVO_BAJA, laBajaAnulaLaVenta, mensajeBajaSinAnularLaVenta, motivoDeAnulacionDeVenta, motivoDeBajaInvalido, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja, type DatosParaPedirBaja, type VentaDelComprobante } from "./anular-comprobante-reglas";
 
 const listo: DatosParaPedirBaja = { veFacturacion: true, estado: "aceptado", anulacion_solicitada_at: null, notasVigentes: 0 };
 
@@ -88,5 +88,51 @@ describe("la baja anula la venta en el mismo acto (ADR-0016, act. 2026-10-14)", 
 
   it("el motivo de la venta anulada nombra el comprobante con su número completo y el motivo de la baja", () => {
     expect(motivoDeAnulacionDeVenta("B005", 202, "  era factura, no boleta ")).toBe("Comprobante B005-000202 dado de baja: era factura, no boleta");
+  });
+});
+
+// Chaos del PR #1094 (2026-10-27): un motivo de 5000 letras se guardaba completo en el comprobante y en la venta, y el aviso de «la venta no se pudo anular»
+// mandaba a Historial, que con la caja cerrada también la rechaza.
+describe("motivoDeBajaInvalido — el motivo tiene piso y tope antes de llamar a Lucode", () => {
+  it("un motivo normal pasa", () => {
+    expect(motivoDeBajaInvalido("era factura, no boleta")).toBeNull();
+  });
+
+  it("menos de 3 letras, 400 con el aviso de siempre", () => {
+    expect(motivoDeBajaInvalido("ab")).toMatch(/necesita un motivo/);
+    expect(motivoDeBajaInvalido("")).toMatch(/necesita un motivo/);
+  });
+
+  it("justo en el tope pasa; una letra más, no", () => {
+    expect(motivoDeBajaInvalido("ñ".repeat(MAX_MOTIVO_BAJA))).toBeNull();
+    expect(motivoDeBajaInvalido("ñ".repeat(MAX_MOTIVO_BAJA + 1))).toMatch(new RegExp(`${MAX_MOTIVO_BAJA}`));
+  });
+
+  it("el motivo con el que queda la venta (con el prefijo del comprobante) sigue cabiendo en el tope de la baja más su encabezado", () => {
+    const venta = motivoDeAnulacionDeVenta("B005", 202, "ñ".repeat(MAX_MOTIVO_BAJA));
+    expect(venta.length).toBeLessThan(MAX_MOTIVO_BAJA + 60);
+  });
+});
+
+describe("mensajeBajaSinAnularLaVenta — cuando la baja ya quedó guardada y la venta no se anuló", () => {
+  it("con la caja cerrada manda a Devolución, no a Historial (que también la rechaza)", () => {
+    const m = mensajeBajaSinAnularLaVenta("PENDIENTE", "La caja de esta venta ya cerró — a partir de ahí, usa Cambio o Devolución");
+    expect(m).toMatch(/Devolución/);
+    expect(m).not.toMatch(/Historial/);
+    expect(m).toMatch(/no vuelvas a pedir la baja/i);
+    expect(m).toMatch(/PENDIENTE/);
+  });
+
+  it("si la venta ya estaba anulada (otra petición llegó antes) no suena a alarma: dice que ya quedó anulada", () => {
+    const m = mensajeBajaSinAnularLaVenta("PENDIENTE", "Esta venta ya está anulada");
+    expect(m).toMatch(/ya estaba anulada/);
+    expect(m).not.toMatch(/no se pudo anular/);
+    expect(m).toMatch(/no vuelvas a pedir la baja/i);
+  });
+
+  it("con cualquier otra causa dice la causa tal cual y no promete nada que no sabe", () => {
+    const m = mensajeBajaSinAnularLaVenta("ACEPTADO", "Stock insuficiente");
+    expect(m).toMatch(/Stock insuficiente/);
+    expect(m).toMatch(/Devoluciones/);
   });
 });

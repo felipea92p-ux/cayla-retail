@@ -33,7 +33,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { laBajaAnulaLaVenta } from "@/lib/anular-comprobante-reglas";
+import { laBajaAnulaLaVenta, MAX_MOTIVO_BAJA } from "@/lib/anular-comprobante-reglas";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -540,6 +540,7 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
             }
             required
             minLength={3}
+            maxLength={MAX_MOTIVO_BAJA}
             value={motivoAnulacion}
             onChange={(e) => setMotivoAnulacion(e.target.value)}
             placeholder="Se emitió por error, la venta no se hizo"

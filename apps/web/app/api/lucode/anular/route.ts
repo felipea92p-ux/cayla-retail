@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { anularBoletaLucode, anularDocumentoLucode, entornoLucode } from "@/lib/lucode";
 import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
 import { capturarError } from "@/lib/errores";
-import { laBajaAnulaLaVenta, motivoDeAnulacionDeVenta, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja } from "@/lib/anular-comprobante-reglas";
+import { laBajaAnulaLaVenta, mensajeBajaSinAnularLaVenta, motivoDeAnulacionDeVenta, motivoDeBajaInvalido, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja } from "@/lib/anular-comprobante-reglas";
 import type { EstadoComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 
@@ -47,9 +47,8 @@ export async function POST(request: Request) {
   const comprobanteId = body.comprobante_id;
   const motivo = (body.motivo ?? "").trim();
   if (!comprobanteId) return Response.json({ error: "Falta comprobante_id" }, { status: 400 });
-  if (motivo.length < 3) {
-    return Response.json({ error: "La anulación necesita un motivo — queda registrado en el comprobante." }, { status: 400 });
-  }
+  const motivoMalo = motivoDeBajaInvalido(motivo);
+  if (motivoMalo) return Response.json({ error: motivoMalo }, { status: 400 });
 
   // La firma del combo «Responsable» (ADR-0161) que mandó la pantalla viaja en cada consulta de este cliente, así
   // `anular_comprobante` queda firmada por quien eligió el combo (mismo patrón que /api/lucode/emitir).
@@ -224,7 +223,7 @@ export async function POST(request: Request) {
       });
       return Response.json(
         {
-          error: `La baja se pidió a SUNAT (${resultado.estado}) y quedó guardada, pero la venta no se pudo anular: ${errVenta.message}. Anúlala desde Ventas ▸ Historial o avisa a quien administra el sistema; no vuelvas a pedir la baja.`,
+          error: mensajeBajaSinAnularLaVenta(resultado.estado, errVenta.message),
           resultado,
         },
         { status: 500 }
