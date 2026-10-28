@@ -18,7 +18,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { LineasPago, lineaPagoVacia, type LineaPago } from "@/components/LineasPago";
-import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { PROPUESTA_DEL_TALLER, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { MarcaCampo } from "@/components/alta-producto/guia";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
@@ -158,8 +158,9 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
 
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
-  // Las cuentas de la empresa para «Sale de» (como el comprobante del Taller: sin tienda) y, primero, el fondo de quien paga si tiene uno.
-  const cuentas = useCuentasParaElegir("pago", null, condicion === "contado", { conMiFondo: true });
+  // Las cuentas para «Sale de», pedidas con la sede a la que llega la orden (el Taller): propone la cuenta que el líder eligió para
+  // sus transferencias y, primero, el fondo de quien paga si tiene uno.
+  const cuentas = useCuentasParaElegir("pago", orden.destino.id, condicion === "contado", { conMiFondo: true, propuestaSoloDe: PROPUESTA_DEL_TALLER });
 
   const plazoDias = orden.plazoCreditoDias;
   const sugerido = vencimientoSugerido(emision, plazoDias);

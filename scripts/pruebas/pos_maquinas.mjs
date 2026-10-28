@@ -23,9 +23,17 @@
  * USO
  *   pnpm pruebas:pos-maquinas                                    → contra el local compartido
  *   pnpm pruebas:pos-maquinas -- --contenedor supabase_db_<pila> → contra una pila propia
+ *   pnpm pruebas:pos-maquinas -- --con-migracion supabase/migrations/<archivo>.sql
+ *                                  → prueba una migración que el local aún no tiene, dentro de cada transacción (se deshace)
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+// `--con-migracion <archivo>`: se aplica DENTRO de la transacción de cada escenario y se deshace con su ROLLBACK (como en
+// `cuentas_dinero.mjs`, ADR-0548). Sirve para comprobar que una migración posterior no rompe lo que prometen las máquinas.
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_EN_LA_TRANSACCION = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
@@ -73,6 +81,7 @@ $f$;
  *  de sobra y una variante `:v` a S/ 100. */
 const ESCENA = `
 begin;
+${MIGRACION_EN_LA_TRANSACCION}
 ${INTENTO}
 ${AYUDAS}
 ${cambiaA(FELIPE)}
