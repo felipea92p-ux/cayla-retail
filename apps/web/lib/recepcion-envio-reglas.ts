@@ -131,6 +131,8 @@ export type EnvioPorAbrir = {
   numero: string;
   numeroGuia: string | null;
   estado: Extract<EstadoEnvio, "en_camino" | "abierto">;
+  /** El INSTANTE en que salió el envío (`despachado_en`, ISO): la tabla lo lee en Lima y ordena por él. `null` si la base no lo manda. */
+  despachadoEn: string | null;
   unidades: number;
   lineas: number;
   ordenes: string[];
@@ -155,6 +157,7 @@ export function leerEnviosPorAbrir(data: unknown): EnvioPorAbrir[] {
         numero,
         numeroGuia: texto(r.numero_guia),
         estado,
+        despachadoEn: texto(r.despachado_en),
         unidades: Math.max(0, cifra(r.unidades) ?? 0),
         lineas: Math.max(0, cifra(r.lineas) ?? 0),
         ordenes: lista(r.ordenes).map(numeroDeOrden).filter((x): x is string => !!x),
