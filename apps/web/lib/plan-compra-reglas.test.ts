@@ -45,7 +45,6 @@ import {
   argsEditarCampana,
   borradorDeEdicion,
   campanaQueAbre,
-  campanasActivas,
   campanasDelSelector,
   campanasArchivadas,
   edicionCambio,
@@ -1008,12 +1007,11 @@ describe("editar, quitar y restaurar una campaña (ADR-0372, B5: borrar si está
 
   it("lee si cada una está archivada y si tiene tope; la base nueva se reconoce por esas claves", () => {
     expect(leidas.edicion).toBe(true);
-    expect(campanasActivas(leidas).map((c) => c.id)).toEqual(["a", "b"]);
     expect(campanasArchivadas(leidas).map((c) => c.id)).toEqual(["c"]);
     // La base de antes (sin B5) no manda `archivado`: nada se archiva y no se ofrece editar.
     const vieja = leerCampanas({ planes: [{ id: "a", nombre: "X", desde: "2026-12-01", hasta: "2026-12-31", con_plan: 0 }], etiquetas: [] })!;
     expect(vieja.edicion).toBe(false);
-    expect(campanasActivas(vieja)).toHaveLength(1);
+    expect(vieja.planes).toHaveLength(1);
   });
 
   it("«Quitar» borra solo si está vacía (sin categorías ni tope); si no, archiva, y lo dice en palabras de tienda", () => {

@@ -13,7 +13,6 @@
 
 import { leerCantidad, limpiarCantidad } from "./alta-producto";
 import { esFalloDeRed, traducirError } from "./error-escritura";
-import { diaLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 import { leerNumero, aTexto } from "./orden-compra-alta";
 import {
@@ -53,6 +52,8 @@ export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
 /** Felipe 2026-10-14: el número de guía se escribe o corrige al cerrar (`20261014205000`). */
 export const RPC_CORREGIR_GUIA = "corregir_guia_envio";
+/** Felipe 2026-10-27: la foto de un papel de la compra que llegó sin ella, desde «Los papeles de la compra» (`20261027210000`). Solo agrega. */
+export const RPC_FOTO_PAPEL = "agregar_foto_papel";
 
 export const TOPES_CONTEO = { contadas: 99999, descripcionNueva: 200, nota: 300, notaEnvio: 500, motivo: 300, guia: 40 } as const;
 
@@ -1465,28 +1466,6 @@ export type PendientesDeLaSede = {
 };
 
 export const SIN_PENDIENTES: PendientesDeLaSede = { porSeparar: 0, porDetallar: 0, porCrear: 0, total: 0, desde: null, envios: [] };
-
-/**
- * «Llegó esta semana» lee los lotes, y un envío cerrado sin nada en el stock no tiene lote: la prueba ciega creyó que no había llegado nada
- * (formidable, lista aparte del 2026-10-14; Felipe mandó resolverla). Lo que quedó por terminar de los envíos cerrados desde `desde` (un día
- * de Lima): cuántos envíos y cuántas prendas. Esas filas ya están en el aviso de arriba; aquí solo se cuentan para no decir «no llegó nada».
- */
-export function guardadoDesde(p: PendientesDeLaSede | null, desde: string): { envios: number; prendas: number } {
-  const envios = (p?.envios ?? []).filter((e) => {
-    const dia = diaLima(e.cerradoEn);
-    return dia != null && dia >= desde;
-  });
-  return { envios: envios.length, prendas: envios.reduce((a, e) => a + e.porSeparar + e.porDetallar + e.porCrear, 0) };
-}
-
-/** Lo que dice «Llegó esta semana» de lo guardado: el vacío (si no entró nada al stock) o la línea de abajo (si algo entró). `null` si no hay. */
-export function textoGuardadoEstaSemana(g: { envios: number; prendas: number }, sede: string, hayEnElStock: boolean): string | null {
-  if (g.prendas === 0) return null;
-  const cuantas = `${g.prendas.toLocaleString("es-PE")} ${g.prendas === 1 ? "prenda" : "prendas"}`;
-  return hayEnElStock
-    ? `Además llegaron ${cuantas} que todavía no están en el stock: arriba, en lo que falta terminar.`
-    : `Esta semana no entró nada al stock de ${sede}, pero llegaron ${cuantas} que todavía están por terminar: arriba, en lo que falta terminar.`;
-}
 
 export function leerPendientesDeLaSede(data: unknown): PendientesDeLaSede {
   const r = objeto(Array.isArray(data) ? data[0] : data);

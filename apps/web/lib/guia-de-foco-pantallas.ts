@@ -100,9 +100,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- finanzas ----
   "/finanzas": PENDIENTE,
   "/finanzas/cierre": PENDIENTE,
-  "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: los frascos de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
+  "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: el círculo que reparte la plata, las cuentas de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
   "/finanzas/dinero/conciliacion": { estado: "aplicada", evidencia: ["components/finanzas/CuentasDinero.tsx"] },
-  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: los frascos dicen el efectivo de hoy)." },
+  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: las cuentas de Dónde está dicen el efectivo de hoy)." },
   "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
@@ -313,7 +313,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/historial-prenda/CorregirCostoModal.tsx": { estado: "aplicada", evidencia: ["components/historial-prenda/CorregirCostoModal.tsx"] },
   "components/EliminarProductoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el texto ya dice qué se borra y por qué; no hay camino que indicar." },
   "components/EtiquetasLista.tsx": { estado: "aplicada", evidencia: ["components/EtiquetasLista.tsx"] },
-  "components/sellos/CambiarDibujoModal.tsx": { estado: "aplicada", evidencia: ["components/sellos/CambiarDibujoModal.tsx"] },
+  "components/sellos/EditarEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/sellos/EditarEtiquetaModal.tsx"] },
   // «Tres preguntas» (Felipe 2026-10-23): una pregunta por pantalla, los pasos con su ✓, la etiqueta que dice «de fábrica» / «por elegir» y
   // el «Falta: …» tocable al pie (`FaltanDelPaso`) que lleva a la pregunta que lo arregla. Sale de lo mismo que apaga «Guardar»
   // (`problemasDeOferta` y haber elegido qué se da), sin reglas nuevas.
@@ -330,6 +330,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  "components/recepcion-conteo/LlegoSinAviso.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/LlegoSinAviso.tsx"] },
   // Registrar proveedor desde Nueva orden (2026-10-21): el RUC y la razón social (un solo campo: la consulta los pinta juntos), o solo el nombre con
   // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
   // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).
@@ -350,6 +351,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/liquidacion/PiezaLiquidacionModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).
   "components/ficha-producto/PrecioSedeModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/PrecioSedeModal.tsx"] },
+  // «Agregar color» y «Agregar talla» (ADR-0494, actividad 3): dos pasos, con su guía de foco y las unidades de partida de lo que nace.
+  "components/ficha-producto/AgregarColoresModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/AgregarColoresModal.tsx"] },
+  "components/ficha-producto/AgregarTallasModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/AgregarTallasModal.tsx"] },
   "components/GastoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/GastoRapidoModal.tsx"] },
   "components/IngresoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/IngresoRapidoModal.tsx"] },
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
@@ -390,6 +394,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EditarTelaModal.tsx"] },
   "components/orden-produccion/FichaDeConsumoHoja.tsx": { estado: "aplicada", evidencia: ["components/orden-produccion/FichaDeConsumoHoja.tsx"] },
   "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
+  "components/orden-pagina/QuitarPasoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién quita el paso): el título dice qué paso sale de la orden y la bajada avisa que no se puede volver a agregar; la base rechaza el resto." },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
@@ -518,6 +523,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/recepcion-conteo/AgregarFueraDeGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/AgregarFueraDeGuia.tsx"] },
   // ADR-0393: «Hacer ahora». Separar pide al menos una prenda y nunca más de lo que queda; las tallas y la prenda nueva son las hojas de
   // siempre (HojaTallas, HojaPrenda), con su guía.
+  "components/recepcion-conteo/PapelesDeLaCompra.tsx": { estado: "no-aplica", motivo: "Su hoja solo muestra la foto del papel en grande: nada que llenar. El único control de archivo es el botón «Subir foto» de un papel sin foto: un toque que abre la cámara o la galería, sin campos ni pasos." },
   "components/recepcion-conteo/ConfirmarPrecios.tsx": { estado: "no-aplica", motivo: "La hoja de confirmación solo lista los precios que cambian (compra y venta) y pide confirmar: no tiene campos. Los campos del cierre ya traen su guía en la página y los de «Hacer ahora», en su hoja. La usan el cierre y «Hacer ahora»." },
   "components/recepcion-conteo/HacerAhora.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/HacerAhora.tsx"] },
   // ADR-0393: las tallas y colores de una prenda separada: qué prenda es, cuántas de cada talla y color y, si llegaron dañadas, cuántas y

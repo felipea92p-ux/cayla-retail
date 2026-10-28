@@ -3,7 +3,9 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
+import type { DuenoDeStock } from "@/lib/stock-por-dueno-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
 import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
@@ -256,6 +258,9 @@ export type FilaExistencias = FilaStock & {
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;
+  /** De quién son las unidades de esta talla en esta sede (ADR-0542), solo donde conviven dos empresas y solo si alguien que no es la casa
+   *  tiene unidades. La pone la página con `conDuenos`, de una lectura aparte y tolerante. Ausente = nada que decir, o no se pudo leer. */
+  duenos?: DuenoDeStock[];
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
@@ -369,6 +374,22 @@ export async function getExistencias(
     });
   }
   return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
+}
+
+/**
+ * La fila en cero de UNA talla que esta sede nunca tuvo (ni una fila de `stock`), para abrir «Ajustar stock» en ella.
+ *
+ * Existencias arma sus filas desde `stock`, y una fila de `stock` nace de un movimiento: una prenda recién creada (o una talla que nunca llegó a
+ * esta tienda) no tiene ninguna, así que `?variante=<id>&ajustar=1` —el candado de Editar producto, ADR-0494— no encontraba nada y la pantalla
+ * no abría nada: justo la prenda a la que hay que cargarle su primer stock. El ajuste no necesita la fila (`AjustarInventarioModal` lee las
+ * tallas del producto de la base y marca «sin historia» la que nunca se movió, ADR-0235): solo necesita saber de qué prenda se habla.
+ * `null` si la variante no existe o está apagada. Mismo cuerpo que la fila «en camino» de `getExistencias`.
+ */
+export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("variantes").select(COLUMNAS_FILA_EN_CERO).eq("id", varianteId).eq("activo", true).maybeSingle();
+  if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
+  return filaEnCero(data, separaPisoAlmacen);
 }
 
 export type ResumenExistencias = ResumenInventario & {

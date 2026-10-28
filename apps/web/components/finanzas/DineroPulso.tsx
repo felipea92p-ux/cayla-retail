@@ -5,7 +5,7 @@ import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
 import type { Alcanza } from "@/lib/dinero-pulso-reglas";
 
-// Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): los frascos de cada sede y, debajo, «¿Me alcanza?» (la semana que
+// Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): las cuentas de cada sede y, debajo, «¿Me alcanza?» (la semana que
 // baja del mínimo y qué pasa si depositas lo guardado). «Tienes S/ X» es la respuesta de la cabecera (`RespuestaTelar`) y lo que se
 // debe es su propia cara. No calcula: lo deciden `lib/dinero-pulso-reglas.ts` y las funciones de la base de siempre. Sin estado.
 
@@ -14,18 +14,18 @@ const entra = (clase: string, i: number) => ({ className: `${clase} anim-entra`,
 export function DineroPulso({
   alcanza,
   deCaylaEntera,
-  frascos,
+  grupos,
 }: {
   alcanza: Alcanza;
   /** Se mira una sede: la proyección de «¿Me alcanza?» es de toda la empresa y lo dice (no se parte por sede, ADR-0433). */
   deCaylaEntera: boolean;
-  /** Las repisas de frascos (El telar), entre la respuesta y las preguntas. */
-  frascos: ReactNode;
+  /** Las cuentas agrupadas por sede (El telar), entre la respuesta y las preguntas. */
+  grupos: ReactNode;
 }) {
   return (
     <>
 
-      {frascos}
+      {grupos}
 
       <section>
         <div {...entra("", 5)}>
@@ -56,7 +56,7 @@ export function DineroPulso({
                   </Chip>
                 )}
                 {alcanza.provisional && <FaltanProyeccion provisional faltan={alcanza.faltan} className="mt-3" />}
-                {alcanza.siDepositas && <p className="nota-cayla mt-3">{alcanza.siDepositas.frase}</p>}
+                {alcanza.guardadoYaCuenta && <p className="nota-cayla mt-3">{alcanza.guardadoYaCuenta.frase}</p>}
                 <p className="fin-dinero-ver">
                   <Link href="/finanzas/reportes/flujo" className="btn-cayla btn-enlace">
                     Ver el flujo semana a semana

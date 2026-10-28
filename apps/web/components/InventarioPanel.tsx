@@ -18,6 +18,7 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { Modal } from "@/components/ui/Modal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { avisar } from "@/components/ui/Avisos";
 import { BuscarPrendaParaAjustar } from "@/components/existencias/BuscarPrendaParaAjustar";
 import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
@@ -61,6 +62,8 @@ import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
 import { clavePercha, ordenarPorModeloColorTalla } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
+import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
+import { createClient } from "@/lib/supabase/client";
 // Solo el TIPO: `lib/sububicaciones.ts` importa el cliente de servidor (`next/headers`) y este archivo es "use client";
 // importar un valor de ahí rompe el build de Vercel (Turbopack lo rechaza aunque `tsc` y vitest pasen).
 import type { Sububicacion } from "@/lib/sububicaciones";
@@ -192,6 +195,9 @@ export function InventarioPanel({
   danadosPendientes,
   abrirDanados = false,
   abrirVariante = null,
+  abrirAjustar = false,
+  abrirSinFila = null,
+  volverAEditar = null,
   apartados,
   editaCatalogo = false,
   puedeAjustar,
@@ -229,6 +235,13 @@ export function InventarioPanel({
   abrirDanados?: boolean;
   /** La talla a abrir al llegar (`?variante=`, desde Movimientos: ADR-0241). */
   abrirVariante?: string | null;
+  /** Abrir esa talla directo en la planilla de «Ajustar stock» (`?ajustar=1`, desde el candado de Editar producto: ADR-0494). */
+  abrirAjustar?: boolean;
+  /** La talla de `?variante=` cuando esta sede nunca la movió (sin fila de `stock`): la página arma su fila en cero y, con `?ajustar=1`, el panel abre
+   *  el modal de su prenda directo en la planilla de «Ajustar stock» (el mismo de cualquier talla), que es donde se le carga su primer stock. */
+  abrirSinFila?: FilaExistencias | null;
+  /** A dónde vuelve la planilla si se llegó desde Editar producto (`?de=`): «Volver a Editar producto». */
+  volverAEditar?: string | null;
   /** Apartados ABIERTOS de esta ubicación (ADR-0141), ya ordenados por fecha límite. Vacía en Taller. */
   apartados: Apartado[];
   /** Edita el catálogo (`puede(persona, "editarCatalogo")`): ve «Eliminar el producto» en el detalle, como en Catálogo (ADR-0252; `permisosDelDetalle`). */
@@ -295,6 +308,9 @@ export function InventarioPanel({
   // Colgar, Colgar varias y Subir se hacen DENTRO del panel de la talla (`PanelTalla` + `FlujoTalla`, maqueta 2026-10-06): las ventanas
   // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
   // (varias tallas a la vez, enlazar con un conteo).
+  // Un producto que esta sede nunca movió (sin ninguna fila de `stock`), elegido en «¿Qué prenda vas a ajustar?»: se lee una de sus tallas y su
+  // fila en cero entra al modal de la prenda (`stockDelModal`), el mismo de cualquier otra.
+  const [filaElegida, setFilaElegida] = useState<FilaExistencias | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
   const pedidoDeAjuste = usePedidoDeAjuste();
@@ -333,14 +349,20 @@ export function InventarioPanel({
   // «Vista: Por prenda / Por talla». `orden` solo ordena las tarjetas: la tabla conserva su orden. El cajón de la prenda vive en la
   // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
   // (`abrirPorCodigo`) entra por la tabla.
-  const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante));
+  // Llegar desde el candado de Editar (`abrirAjustar`) NO fuerza la tabla: el modal de la prenda y su planilla de «Ajustar stock» se abren sobre
+  // la vista de siempre (tarjetas), igual que con el botón «Ajustar stock» de la cabecera; la persona no debe aterrizar en «Vista: Tabla» sin pedirla.
+  const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante) && !(abrirAjustar && puedeAjustar));
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
   // `origen`: la miniatura de la tarjeta desde la que se abrió, para que la foto cruce hasta el modal (ADR-0391).
-  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; origen?: HTMLElement | null } | null>(() => {
-    const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
-    return f ? { clave: agruparPorPrenda([f])[0].clave, varianteId: f.varianteId } : null;
+  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; origen?: HTMLElement | null; deEditar?: boolean } | null>(() => {
+    // Desde el candado de Editar, una talla que la sede nunca movió no está en `stock`: su fila en cero (`abrirSinFila`) abre el MISMO modal de la prenda.
+    const f = abrirVariante ? (stock.find((x) => x.varianteId === abrirVariante) ?? (abrirAjustar && puedeAjustar && abrirSinFila?.varianteId === abrirVariante ? abrirSinFila : null)) : null;
+    if (!f) return null;
+    const clave = agruparPorPrenda([f])[0].clave;
+    // Desde el candado de Editar: directo en la planilla. Quien no puede ajustar (o mira otra sede) ve la talla, no la planilla: `puedeAjustarAqui` lo vuelve a exigir al montar.
+    return abrirAjustar && puedeAjustar ? { clave, varianteId: f.varianteId, flujo: { tipo: "ajustar" }, deEditar: Boolean(volverAEditar) } : { clave, varianteId: f.varianteId };
   });
   // Las tallas marcadas para actuar sobre varias a la vez (la barra de abajo). Por talla y no por prenda: una prenda
   // marcada son todas sus tallas, y así el filtro «Talla» no cambia lo que se lleva.
@@ -543,7 +565,23 @@ export function InventarioPanel({
       };
     return null;
   }, [filtros.hoy, filtros.condicion]);
-  const prendaAbierta = useMemo(() => (abierta ? (agruparPorPrenda(stock).find((p) => p.clave === abierta.clave) ?? null) : null), [abierta, stock]);
+  // Mientras la talla sin movimientos esté abierta, su fila en cero se suma SOLO para el modal (la lista de atrás no la muestra): al guardar,
+  // la fila real llega en `stock` y esta deja de hacer falta.
+  const stockDelModal = useMemo(() => {
+    const sumar = [abrirSinFila, filaElegida].filter((f): f is FilaExistencias => !!f && !stock.some((x) => x.varianteId === f.varianteId));
+    return sumar.length ? [...stock, ...sumar] : stock;
+  }, [stock, abrirSinFila, filaElegida]);
+  const prendaAbierta = useMemo(() => (abierta ? (agruparPorPrenda(stockDelModal).find((p) => p.clave === abierta.clave) ?? null) : null), [abierta, stockDelModal]);
+  async function abrirProductoSinFilas(productoId: string) {
+    const { data } = await createClient().from("variantes").select(COLUMNAS_FILA_EN_CERO).eq("producto_id", productoId).eq("activo", true).order("codigo").limit(1).maybeSingle();
+    if (!data) {
+      avisar.error("No se pudo abrir esa prenda. Prueba otra vez.");
+      return;
+    }
+    const fila = filaEnCero(data, separa);
+    setFilaElegida(fila);
+    setAbierta({ clave: agruparPorPrenda([fila])[0].clave, varianteId: fila.varianteId, flujo: { tipo: "ajustar" } });
+  }
   // Marcar varias y llevarlas a otra pantalla (Bajar al piso, Trasladar, Etiquetas) solo en la sede activa: esas pantallas
   // trabajan siempre sobre la sede de quien las abre, y lo marcado mirando otra se perdería en silencio al llegar.
   const conSeleccion = enSedeActiva;
@@ -1370,20 +1408,27 @@ export function InventarioPanel({
         <BuscarPrendaParaAjustar
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
+          ubicacionId={ubicacionId}
+          sinStock={sinStock}
           onClose={() => setBuscandoAjuste(false)}
           onElegir={(clave, varianteId) => {
             setBuscandoAjuste(false);
             setAbierta({ clave, varianteId, flujo: { tipo: "ajustar" } });
+          }}
+          onElegirSinStock={(productoId) => {
+            setBuscandoAjuste(false);
+            void abrirProductoSinFilas(productoId);
           }}
         />
       )}
 
       {prendaAbierta && (
         <PanelTalla
-          colores={coloresDelModelo(stock, prendaAbierta.productoId)}
+          colores={coloresDelModelo(stockDelModal, prendaAbierta.productoId)}
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
-          flujoInicial={abierta?.flujo ?? null}
+          flujoInicial={abierta?.flujo?.tipo === "ajustar" && !puedeAjustarAqui ? null : (abierta?.flujo ?? null)}
+          volverAEditar={abierta?.deEditar ? volverAEditar : null}
           ubicacionId={ubicacionId}
           sedeNombre={sedeNombre}
           separa={separa}

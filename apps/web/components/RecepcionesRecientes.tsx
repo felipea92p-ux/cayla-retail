@@ -6,6 +6,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, type RecepcionReciente } from "@/lib/compras-reglas";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { paginar } from "@/lib/paginacion";
 
 const PLANTILLA = "sm:grid-cols-[6rem_1fr_7rem]";
 // Con la columna de costo (Ingreso sin comprobante, ADR-0111): fecha · proveedor/nota · unidades · costo.
@@ -27,8 +29,22 @@ const PLANTILLA_DETALLE = "sm:grid-cols-[1fr_5rem]";
  * `getRecepcionesRecientes` (mismo query, sin round-trip al abrir) — con
  * ≤30 lotes por página no vale la pena pedirlo aparte.
  */
-export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepciones: RecepcionReciente[]; vacio: string; costos?: Record<string, CostoRecepcion> }) {
+export function RecepcionesRecientes({
+  recepciones,
+  vacio,
+  costos,
+  porPagina,
+}: {
+  recepciones: RecepcionReciente[];
+  vacio: string;
+  costos?: Record<string, CostoRecepcion>;
+  /** Con un número, la tabla pinta esa cantidad de filas y el resto va paginado (sin ir a la base). Sin él, todas, como siempre. */
+  porPagina?: number;
+}) {
   const [abierta, setAbierta] = useState<RecepcionReciente | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const actual = porPagina ? paginar(recepciones, pagina, porPagina) : null;
+  const visibles = actual ? actual.filas : recepciones;
   const plantilla = costos ? PLANTILLA_CON_COSTO : PLANTILLA;
 
   if (recepciones.length === 0) {
@@ -38,7 +54,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
     <>
       <Tabla>
         <Encabezado plantilla={plantilla} columnas={[{ titulo: "Fecha" }, { titulo: costos ? "Proveedor / nota · guía" : "Proveedor · guía" }, { titulo: "Unidades", alinear: "der" }, ...(costos ? [{ titulo: "Costo" }] : [])]} />
-        {recepciones.map((r) => (
+        {visibles.map((r) => (
           <button
             key={r.loteId}
             type="button"
@@ -76,6 +92,14 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
             )}
           </button>
         ))}
+        {actual && actual.totalPaginas > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+            <span>
+              Mostrando {actual.desde}–{actual.hasta} de {recepciones.length}
+            </span>
+            <PaginacionLocal pagina={actual.pagina} totalPaginas={actual.totalPaginas} onPagina={setPagina} />
+          </div>
+        )}
       </Tabla>
 
       {abierta && (

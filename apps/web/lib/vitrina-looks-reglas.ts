@@ -315,6 +315,73 @@ export function avisoDelLook(salida: readonly SalidaEnTienda[], piezas: readonly
   return { tono: "atencion", titulo: "Con estas prendas el look no saldría en ninguna tienda.", detalle: `${salida.map(falta).join("; ")}.` };
 }
 
+/* ---------------- Qué se puede elegir: solo lo que coincide en alguna tienda (Felipe 2026-10-27) ---------------- */
+
+// «Si no hay, o un color ya no hay, no debería poder seleccionarse»: al armar un look no se ofrece una prenda ni un color que no hay en ninguna tienda, ni uno que no
+// está en NINGUNA de las tiendas donde ya están las prendas elegidas (con él, el look no saldría en ninguna). Es la regla de «hay» de la base (`PrendasPorTienda`);
+// aquí solo se cruza. Sin tiendas leídas (cargando, o la base no respondió) no se bloquea nada: se arma como antes y el aviso de arriba lo dice. Esto limita lo que se
+// ELIGE hoy, no lo que se guarda: un look ya guardado al que después se le acabó una prenda conserva sus prendas, y el aviso le dice qué le falta.
+
+/** Las tiendas (ids) donde hay esa prenda en ese color. */
+export const tiendasDePrenda = (d: PrendasPorTienda, productoId: string, color: string): string[] => d.en[clavePrenda(productoId, color)] ?? [];
+
+/**
+ * Las tiendas donde están TODAS las prendas dadas: las únicas donde el look saldría. Sin prendas, todas las tiendas de la web. `null` = no se sabe (no hay tiendas
+ * leídas), y entonces nada se bloquea.
+ */
+export function tiendasEnComun(d: PrendasPorTienda, piezas: readonly PiezaElegida[]): string[] | null {
+  if (d.tiendas.length === 0) return null;
+  return d.tiendas.map((t) => t.id).filter((id) => piezas.every((p) => hayPrendaEnTienda(d, p.productoId, p.color, id)));
+}
+
+/** ¿Se puede elegir esa prenda en ese color? Sí si hay en alguna de las tiendas `comun` (o si no se sabe cuáles). */
+export const colorElegible = (d: PrendasPorTienda, comun: readonly string[] | null, productoId: string, color: string): boolean =>
+  comun === null || tiendasDePrenda(d, productoId, color).some((id) => comun.includes(id));
+
+/** ¿Se puede elegir el modelo? Sí si alguno de sus colores se puede. */
+export const modeloElegible = (d: PrendasPorTienda, comun: readonly string[] | null, m: Pick<ModeloParaLook, "id" | "colores">): boolean =>
+  m.colores.some((c) => colorElegible(d, comun, m.id, c.codigo));
+
+/** Por qué no se puede elegir un color: no hay en ninguna tienda, o sí hay pero no donde están las demás prendas; `null` si se puede. */
+export function motivoDelColor(d: PrendasPorTienda, comun: readonly string[] | null, productoId: string, color: string): "sin_stock" | "no_coincide" | null {
+  if (colorElegible(d, comun, productoId, color)) return null;
+  return tiendasDePrenda(d, productoId, color).length === 0 ? "sin_stock" : "no_coincide";
+}
+
+/** El texto corto de un color que no se puede elegir, para su opción del desplegable. */
+export const TEXTO_DEL_COLOR_BLOQUEADO = { sin_stock: "sin stock", no_coincide: "no coincide en tienda" } as const;
+
+/** Lo que se dice de un modelo que no se puede elegir: `corto` en la propia prenda y `largo` al pasar el mouse o para el lector. `null` si se puede. */
+export function porQueNoSeElige(
+  d: PrendasPorTienda,
+  comun: readonly string[] | null,
+  m: Pick<ModeloParaLook, "id" | "colores">,
+): { corto: string; largo: string } | null {
+  if (modeloElegible(d, comun, m)) return null;
+  const nombreDe = (id: string) => nombreCortoDeTienda(d.tiendas.find((t) => t.id === id)?.nombre ?? id);
+  const suyas = [...new Set(m.colores.flatMap((c) => tiendasDePrenda(d, m.id, c.codigo)))];
+  if (suyas.length === 0) return { corto: "Sin stock", largo: "No hay stock de esta prenda en ninguna tienda." };
+  if (comun !== null && comun.length === 0) {
+    return { corto: "No coincide", largo: "Las prendas elegidas ya no coinciden en ninguna tienda: quita una para seguir." };
+  }
+  return {
+    corto: `Solo en ${listaDeNombres(suyas.map(nombreDe))}`,
+    largo: `Tus prendas están juntas en ${listaDeNombres((comun ?? []).map(nombreDe))}; esta solo hay en ${listaDeNombres(suyas.map(nombreDe))}.`,
+  };
+}
+
+/**
+ * El color con que entra un modelo al look: de los que se pueden elegir, uno que haya en la tienda por la que se filtra (si la hay), y entre ellos el primero con foto
+ * propia (se ve mejor en la lámina) o, si ninguno tiene, el primero. `null` si ninguno se puede elegir. Sin tiendas leídas es `colorInicial`.
+ */
+export function colorInicialElegible(m: ModeloParaLook, d: PrendasPorTienda, comun: readonly string[] | null, tiendaPreferida: string | null): string | null {
+  const posibles = m.colores.filter((c) => colorElegible(d, comun, m.id, c.codigo));
+  if (posibles.length === 0) return null;
+  const ahi = tiendaPreferida === null ? [] : posibles.filter((c) => hayPrendaEnTienda(d, m.id, c.codigo, tiendaPreferida));
+  const base = ahi.length > 0 ? ahi : posibles;
+  return (base.find((c) => c.foto) ?? base[0]).codigo;
+}
+
 /* ---------------- Lo que dice cada fila ---------------- */
 
 /** «S/ 304.70»: con un espacio que no se parte, para que «S/» no quede sola al final de un renglón (ADR-0413). */
@@ -402,11 +469,6 @@ export function filtrarLooks(looks: readonly Look[], filtro: FiltroLooks): Look[
 
 /** Una prenda elegida en la hoja: el modelo y su color. */
 export type PiezaElegida = { productoId: string; color: string };
-
-/** El color con que entra un modelo al look: el primero con foto propia (se ve mejor en la lámina) o, si ninguno tiene, el primero. */
-export function colorInicial(m: ModeloParaLook): string {
-  return (m.colores.find((c) => c.foto) ?? m.colores[0]).codigo;
-}
 
 /* ---------------- Elegir las prendas mirándolas (Felipe 2026-10-26) ---------------- */
 

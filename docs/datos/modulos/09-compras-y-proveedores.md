@@ -1,6 +1,37 @@
 # 09 · Compras y proveedores
 > **Pájaro:** PELÍCANO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
 
+> **Sección histórica (2026-09-12).** Lo que sigue describe el módulo como estaba el 2026-09-12: «órdenes de compra» como tabla muerta, sin
+> deuda, sin facturas de compra. **Hoy no es así:** producción corre «facturas de compra» (ADR-0035), órdenes de compra nuevas (ADR-0362) y,
+> desde el 2026-10-22, **Compras simple (ADR-0480)**: la compra nace en el celular de quien compra, en «Mis compras» (`/compras/mi-plata`).
+> Para lo vivo, mira la sección «Compras simple (ADR-0480)» de abajo y `generado/DICCIONARIO-RETAIL.md` (los nombres de columna que no estén aquí
+> salen de ese diccionario, que se escribe desde la base). El resto de este archivo se conserva como historia y no se corrige línea por línea.
+
+## Compras simple (ADR-0480, 2026-10-22 en adelante)
+
+El problema que resuelve: quien compra en la calle (Gamarra, un proveedor en la puerta) no tiene tiempo de llenar una orden. Anota **plata, compra y
+gasto desde el celular, dentro de una ronda**, y Compras revisa y completa después. Todo cuelga de la persona que compra (`persona_id`, de Dynamic) y
+de su **ronda** (`ronda_id`). El módulo de acceso es `ordenes_compra`, reusado con el nombre «Mis compras» en el menú y en Roles y accesos.
+
+| Tabla (`retail.`) | Qué guarda | Lo que la base hace imposible |
+|---|---|---|
+| `compra_rondas` | La salida a comprar: se abre, se anota, se cierra. Número de serie (`RC-000012`), `persona_id`, `abierta_en`, `cerrada_en`, `cierre_id` | Una sola ronda abierta por persona (`compra_rondas_una_abierta`); cerrada ⇔ tiene cierre |
+| `fondo_plata_anotada` | La plata que le dieron a quien compra: `medio` (transferencia, yape_plin, efectivo, ya_tenia), `monto`, `foto_ruta` del voucher, `estado` (por_confirmar → confirmada), `cuenta_indicada_id` (el banco que dijo la compradora; solo transferencias) y, al confirmar, `cuenta_origen_id`, `monto_confirmado` y `movimiento_id` (el movimiento de dinero) | Monto de 0.01 a 1 000 000; «ya tenía» una sola vez por persona; confirmada lleva sus datos de confirmación |
+| `compra_papeles` | Lo comprado: proveedor, `tipo` de papel (factura, boleta, nota_venta, sin_comprobante), `monto`, `pagado` y `medio_pago`, `foto_ruta` (`papeles/…`), `estado` (por_completar → completado, o anulado). Cada papel arma una o más órdenes de compra (`ordenes_compra.papel_id`) | Monto de 0.01 a 1 000 000; `pagado` entre 0 y el monto; con pago, un medio válido |
+| `compra_gastos` | Gasto en otra cosa (taxi, cargador, comida, envío, bolsas, otro): `concepto`, `nota` (obligatoria con «otro»), `monto`, `foto_ruta` (`gastos/…`), `estado` | Monto de 0.01 a 100 000; «otro» siempre dice qué fue |
+| `compra_cierres` | Cómo cerró la ronda: `decision` (se_queda, devuelve, le_deben), `monto`, quién y cuándo lo resolvió. Uno por ronda | Una decisión conocida; «se queda» nunca se «resuelve» |
+
+**Cómo se lee:** `fn_mi_plata_compras()` devuelve de una vez la plata, las compras, los gastos, lo que falta mandar y la ronda; `fn_mi_plata_tiene()` es la
+**única** cuenta de lo que tiene para comprar (fondo + plata por confirmar − compras y gastos por completar). La compra se guarda con
+`registrar_compra_rapida`; Compras la completa y confirma desde «Revisar compras» (`/compras/fondos`: `fn_revisar_compras`, `confirmar_plata_compras`,
+`completar_papel_compra`, `revisar_gasto_compra`, `recibir_cierre_compras`), y lo comprado se manda a la tienda con `mandar_compras_a_tienda`, que arma el
+envío que Recibir ya entiende (`fn_mis_envios()` lista esos envíos con su código para quien compró). Mapa de rutas, componentes y funciones: `docs/ARQUITECTURA.md`,
+sección Compras. Decisiones y su porqué: `docs/adr/0480-compras-simple-en-cuatro-pasos.md`.
+
+---
+
+_Lo que sigue es la sección histórica._
+
 ## Para qué existe
 
 CAYLA le compra a mucha gente distinta y casi siempre por WhatsApp: se pacta un fardo,

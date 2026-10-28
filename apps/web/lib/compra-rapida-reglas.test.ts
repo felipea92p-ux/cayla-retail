@@ -5,6 +5,7 @@ import {
   categoriasDeHabituales,
   faltaEnPaso,
   faltaNombreNuevo,
+  conMarcas,
   filtrarProveedores,
   camposPrendaNueva,
   habitualDeNuevo,
@@ -21,6 +22,7 @@ import {
   leerCantidad,
   leerHabituales,
   leerPrecio,
+  leerPrecioVenta,
   leerProveedoresParaComprar,
   lineasParaBase,
   marcasDeHabituales,
@@ -65,13 +67,13 @@ import {
 // `soles()` une «S/» y la cifra con un espacio que no se parte (ADR-0413): las frases se comparan con espacios comunes.
 const plano = (s: string | null) => s?.replace(/ /g, " ") ?? null;
 
-const PROVEEDORES = leerProveedoresParaComprar([
+const PROVEEDORES = conMarcas(leerProveedoresParaComprar([
   { id: "rosa", nombre: "Textiles Rosa E.I.R.L.", ruc: "20123456789", categorias: ["blusas", "polos"], compras: 4, ultima: "2026-10-16" },
   { id: "lupe", nombre: "Confecciones Lupe", ruc: null, categorias: ["jeans"], compras: 1, ultima: "2026-10-01" },
   { id: "andinos", nombre: "Tejidos Andinos", categorias: [], compras: 0 },
   { id: "x" },
   null,
-]);
+]), { rosa: ["Kero", "Ámbar"] });
 
 describe("proveedores para comprar", () => {
   it("lee cada uno y descarta lo ilegible", () => {
@@ -88,6 +90,13 @@ describe("proveedores para comprar", () => {
     expect(filtrarProveedores(PROVEEDORES, "", "jeans").map((p) => p.id)).toEqual(["lupe"]);
     expect(filtrarProveedores(PROVEEDORES, "rosa", "jeans")).toEqual([]);
     expect(filtrarProveedores(PROVEEDORES, "", null)).toHaveLength(3);
+  });
+  it("también se busca por la marca con que se conoce al proveedor, sin tildes", () => {
+    expect(PROVEEDORES.find((p) => p.id === "rosa")?.marcas).toEqual(["Kero", "Ámbar"]);
+    expect(filtrarProveedores(PROVEEDORES, "kero", null).map((p) => p.id)).toEqual(["rosa"]);
+    expect(filtrarProveedores(PROVEEDORES, "ambar", null).map((p) => p.id)).toEqual(["rosa"]);
+    expect(filtrarProveedores(PROVEEDORES, "kero", "jeans")).toEqual([]);
+    expect(conMarcas(PROVEEDORES, null).every((p) => p.marcas.length === 0)).toBe(true);
   });
   it("las píldoras son solo las categorías que alguien vende, en el orden del catálogo", () => {
     const cats = [
@@ -138,6 +147,33 @@ describe("los números de cada paso (la regla de las líneas de una orden)", () 
     expect(leerPrecio("1,250.50")).toBe(1250.5);
     expect(leerPrecio("0")).toBe(0);
     for (const malo of ["", "abc", "-1", "100000", "1.234"]) expect(leerPrecio(malo), malo).toBeNull();
+  });
+  it("precio de VENTA: como lo acota la base (de S/ 0 a S/ 5 000; el 0 solo en bolsas, cajas y empaque)", () => {
+    expect(leerPrecioVenta("39.90")).toBe(39.9);
+    expect(leerPrecioVenta("5000")).toBe(5000);
+    expect(leerPrecioVenta("5000.01")).toBeNull();
+    expect(leerPrecioVenta("99999.99")).toBeNull();
+    // El costo, en cambio, llega hasta S/ 99 999.99 (la regla de las líneas de una orden).
+    expect(leerPrecio("5000.01")).toBe(5000.01);
+    // El 0: sin decir la categoría se acepta como siempre; con una que no lo admite, no.
+    expect(leerPrecioVenta("0")).toBe(0);
+    expect(leerPrecioVenta("0", true)).toBe(0);
+    expect(leerPrecioVenta("0", false)).toBeNull();
+    expect(leerPrecioVenta("0.01", false)).toBe(0.01);
+    for (const malo of ["", "abc", "-1", "1.234"]) expect(leerPrecioVenta(malo), malo).toBeNull();
+  });
+  it("la venta fuera de rango se dice bajo el botón, no al guardar los tres pasos", () => {
+    expect(faltaEnPaso("venta", "6000")).toBe("El precio de venta llega hasta S/\u00a05,000.00");
+    expect(faltaEnPaso("venta", "0", false)).toBe("Escribe un precio mayor que 0: solo las bolsas, cajas y empaque se regalan");
+    expect(faltaEnPaso("venta", "0", true)).toBeNull();
+    expect(faltaEnPaso("venta", "")).toBe("Escribe el precio");
+    // El costo no pasa por ese tope.
+    expect(faltaEnPaso("costo", "6000")).toBeNull();
+  });
+  it("el papel de una compra llega hasta S/ 1 000 000 (la base): más, se dice en el campo", () => {
+    const monto = (m: string) => camposPapel({ tipo: "boleta", conFoto: false, monto: m }, { esPersona: true, listo: true, motivo: null }).find((c) => c.id === "monto");
+    expect(monto("1000000")?.hecho).toBe(true);
+    expect(monto("1000000.01")?.hecho).toBe(false);
   });
   it("bajo el botón gris, qué falta", () => {
     expect(faltaEnPaso("cantidad", "")).toBe("Escribe cuántas compraste");
@@ -384,7 +420,7 @@ describe("los proveedores, de 10 en 10", () => {
 });
 
 describe("el proveedor, como la maqueta (compras-formidable-2026-10)", () => {
-  const P = (id: string, compras: number, ultima: string | null) => ({ id, nombre: id, ruc: null, categorias: [], compras, ultima });
+  const P = (id: string, compras: number, ultima: string | null) => ({ id, nombre: id, ruc: null, categorias: [], compras, ultima, marcas: [] });
   it("los recientes: solo a quienes ya se les compró, el más reciente primero, hasta el máximo", () => {
     const lista = [P("a", 3, "2026-10-01"), P("b", 0, null), P("c", 1, "2026-10-20"), P("d", 9, "2026-10-20"), P("e", 2, "2026-09-01")];
     expect(proveedoresRecientes(lista).map((p) => p.id)).toEqual(["d", "c", "a", "e"]);

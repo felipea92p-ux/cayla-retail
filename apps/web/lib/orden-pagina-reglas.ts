@@ -24,6 +24,10 @@ export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
 export const RPC_REGISTRAR_AVANCE = "registrar_avance";
 export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
+/** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
+export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
+export const RPC_REGISTRAR_PROVEEDOR_DE_FASE = "registrar_proveedor_de_fase";
+export const RPC_QUITAR_PASO = "quitar_paso_orden";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
 export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 export const RPC_REGISTRAR_SALIDA = "registrar_salida";
@@ -544,9 +548,25 @@ export function previaQueCuenta(fases: readonly FasePagina[], indice: number): F
   return null;
 }
 
-/** Quién la hace, en una palabra: «Taller» o el nombre del servicio. */
+/** Sale afuera pero todavía no se sabe con quién (ADR-0551 pendiente de registrar): un servicio sin proveedor. Puede llevar su costo, que se devenga igual; sin costo, no suma nada hasta que se registre. */
+export function esPendienteDeRegistrar(f: Pick<FasePagina, "quien" | "proveedorId">): boolean {
+  return f.quien === "servicio" && f.proveedorId === null;
+}
+
+/** Quién la hace, en una palabra: «Taller», el nombre del servicio o «Pendiente de registrar». */
 export function quienDeFase(f: FasePagina): string {
-  return f.quien === "servicio" ? (f.proveedorNombre ?? "Un servicio") : "Taller";
+  if (f.quien !== "servicio") return "Taller";
+  return f.proveedorNombre ?? (esPendienteDeRegistrar(f) ? "Pendiente de registrar" : "Un servicio");
+}
+
+/** Las fases que salieron afuera sin registrar quién, en el orden de la ruta (con o sin costo escrito). */
+export function fasesSinRegistrar(fases: readonly FasePagina[]): FasePagina[] {
+  return fases.filter(esPendienteDeRegistrar);
+}
+
+/** ¿Una fase pendiente lleva costo escrito (tarifa por prenda o fijo por orden)? Con costo se devenga como cualquier servicio (ADR-0551); sin él no suma nada hasta que se escriba o se registre. */
+export function pendienteConCosto(f: Pick<FasePagina, "tarifaPrenda" | "fijoOrden">): boolean {
+  return (f.tarifaPrenda ?? 0) > 0 || f.fijoOrden > 0;
 }
 
 /** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
@@ -633,6 +653,19 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
 /** ¿Se puede cambiar quién hace esta fase? Solo mientras no empezó y la orden sigue en proceso (la base lo exige: `fase_empezada`, `orden_cerrada`). */
 export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
   return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
+}
+
+/** ¿Se puede registrar quién hizo esta fase? Una fase pendiente, en cualquier momento (aunque ya empezó) mientras la orden siga en proceso (la base: `fase_no_pendiente`, `orden_cerrada`). */
+export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && esPendienteDeRegistrar(f);
+}
+
+/**
+ * ¿Se ofrece «Quitar este paso»? Solo un paso OPCIONAL (no de la espina de su ruta), mientras no empezó y la orden sigue en proceso y quien mira puede operar. La base repite las tres
+ * cosas (`quitar_paso_orden`: `fase_empezada`, `orden_cerrada`, `paso_fijo`) y manda: esto solo evita ofrecer un botón que ya se sabe que va a rechazar.
+ */
+export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return puedeCambiarQuien(f, p) && FASES.some((c) => c.clave === f.clave && !c.siempre);
 }
 
 /** El aviso de la cantidad mínima del servicio: «Confecciones del Norte cobra desde 150 prendas; esta orden lleva 48». No bloquea (ADR-0400, decisión 5). */
@@ -1023,6 +1056,22 @@ export function cantidadesQuePuedenSalir(f: FasePagina): Record<string, number> 
   const salida: Record<string, number> = {};
   for (const v of f.porVariante) {
     const n = Math.max(v.entrada - v.salieron, 0);
+    if (n > 0) salida[v.varianteId] = n;
+  }
+  return salida;
+}
+
+/**
+ * Lo que «Salida» trae escrito de fábrica. Es lo que puede salir, salvo en la primera fase (Corte): ahí lo que la base deja mandar es el plan más un 10 % redondeado hacia arriba en cada talla
+ * y color (el margen por si se corta de más), y precargarlo entero hacía que 57 prendas pedidas salieran como 72. De fábrica parte del plan (menos lo que ya salió), que es lo que se pidió;
+ * el margen sigue como tope en `cantidadesQuePuedenSalir` y quien cortó de más lo escribe a mano. Es el mismo criterio de `cantidadesQueFaltan` para «Terminé».
+ */
+export function cantidadesDeFabricaDeSalida(f: FasePagina, fases: readonly FasePagina[]): Record<string, number> {
+  const tope = cantidadesQuePuedenSalir(f);
+  if (!esPrimeraFase(f, fases)) return tope;
+  const salida: Record<string, number> = {};
+  for (const v of f.porVariante) {
+    const n = Math.min(tope[v.varianteId] ?? 0, Math.max((v.plan ?? v.entrada) - v.salieron, 0));
     if (n > 0) salida[v.varianteId] = n;
   }
   return salida;

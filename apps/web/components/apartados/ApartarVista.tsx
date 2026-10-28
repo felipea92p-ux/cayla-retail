@@ -1,5 +1,8 @@
 "use client";
 
+import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno } from "@/lib/dueno-reglas";
+import { useStockPorDueno } from "@/lib/useStockPorDueno";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Volver } from "@/components/ui/Volver";
 import { BotonBuscar } from "@/components/ui/BotonBuscar";
@@ -209,6 +212,10 @@ export function ApartarVista({
   const [recientes, setRecientes] = useState<string[]>([]);
   // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
   const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : (guardado?.lineas ?? desdeTicket.lineas)));
+  // ADR-0542: de quién es lo que se aparta cuando hay unidades de las dos empresas (Lima). Sin respuesta de fábrica.
+  const duenosPorVariante = useStockPorDueno(ubicacionId);
+  const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
+  const faltaDuenoEn = variantesSinDueno(lineas.map((l) => l.varianteId), duenosPorVariante, duenoDeLinea);
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
@@ -521,13 +528,20 @@ export function ApartarVista({
 
   async function confirmar() {
     setIntento(true);
-    if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo) return;
+    if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo || faltaDuenoEn.length > 0) return;
     const supabase = createClient();
     const args = {
       p_ubicacion_id: ubicacionId,
       p_items: lineas.map((l) => {
         const p = porId.get(l.varianteId)!;
-        return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoCampana(p) };
+        return {
+          variante_id: l.varianteId,
+          // ADR-0542: solo cuando había de quién elegir; viaja en `x-dueno-lineas`, la función lo ignora.
+          empresa_id: duenosParaElegir(duenosPorVariante?.[l.varianteId]) ? duenoDeLinea[l.varianteId] : undefined,
+          cantidad: l.cantidad,
+          precio_unitario: p.precio,
+          descuento_unitario: descuentoCampana(p),
+        };
       }),
       p_pagos: pagosParaRpcApartado(f.pagos),
       p_clienta_nombres: f.nombres.trim(),
@@ -546,9 +560,12 @@ export function ApartarVista({
     };
     const r = await envio.enviar(huellaDe(pedido ? [pedido.id, args] : args), (token, senal) =>
       firmar(
-        pedido
-          ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: { ...args, p_token: token } })
-          : supabase.rpc("separar_prendas", { ...args, p_token: token }),
+        conDuenoPorLineas(
+          pedido
+            ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: { ...args, p_token: token } })
+            : supabase.rpc("separar_prendas", { ...args, p_token: token }),
+          duenoDeLasLineas(args.p_items),
+        ),
         responsable.firma(),
       ).abortSignal(senal),
     );
@@ -822,6 +839,18 @@ export function ApartarVista({
                           <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
                           <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([{ cantidad: l.cantidad, precioUnitario: pr.precio, descuentoUnitario: descuentoCampana(pr) }]))}</span>
                         </div>
+                        {duenosParaElegir(duenosPorVariante?.[l.varianteId]) && (
+                          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/65">
+                            <span>¿De quién es?</span>
+                            <ElegirDueno
+                              empresas={duenosParaElegir(duenosPorVariante?.[l.varianteId])!}
+                              duenoId={duenoDeLinea[l.varianteId] ?? ""}
+                              onElegir={(id) => setDuenoDeLinea((d) => ({ ...d, [l.varianteId]: id }))}
+                              chico
+                              guia="apartar.dueno"
+                            />
+                          </div>
+                        )}
                         <p className="mt-2 text-[11px] text-taupe-profundo">
                           {pedido && l.varianteId === pedido.varianteId
                             ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
@@ -850,7 +879,7 @@ export function ApartarVista({
                   <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(total)}</p>
                 </div>
               </div>
-              <button type="button" disabled={lineas.length === 0} onClick={() => irAPaso("clienta")} className={BOTON_PRINCIPAL}>
+              <button type="button" disabled={lineas.length === 0 || faltaDuenoEn.length > 0} title={faltaDuenoEn.length > 0 ? "Marca de quién es lo que apartas." : undefined} onClick={() => irAPaso("clienta")} className={BOTON_PRINCIPAL}>
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> Apartar</span>
                 <span className="font-display text-xl tabular-nums">{money(total)}</span>
               </button>

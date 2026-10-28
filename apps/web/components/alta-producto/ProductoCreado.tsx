@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fraseStockCreado, type SubidaSinConexion } from "@/lib/alta-producto";
 import { etiquetasDelAlta } from "@/lib/etiqueta-precio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { SelloStockInicial } from "./SelloStockInicial";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { hrefOrdenDesdeAlta, textoAbrirOrden, tipoDeParametro, vieneDeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 import { BotonVer } from "@/components/ui/BotonDescargar";
@@ -169,6 +170,8 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
             </p>
           )}
         </div>
+        {/* El stock inicial queda SELLADO: desde ahora se ajusta solo en Existencias (ADR-0494). Solo si ya entró (con conexión). */}
+        {creado.stock && creado.stock.unidades > 0 && !sinConexion && <SelloStockInicial unidades={creado.stock.unidades} />}
       </div>
 
       {abrirOrden && subida !== "descartada" && (

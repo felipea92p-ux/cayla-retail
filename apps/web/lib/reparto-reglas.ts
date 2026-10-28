@@ -32,13 +32,6 @@ export function estadoDeMiTienda(c: CifrasDeTienda): "sin_recibir" | "parcial" |
   return entero(c.recibido) + entero(c.cerrado) === 0 ? "sin_recibir" : "parcial";
 }
 
-/** «Te toca 12 · Recibidas aquí 4 · Faltan 8» (y «· Cerradas 2» si hubo faltante cerrado). */
-export function textoTeToca(c: CifrasDeTienda): string {
-  const partes = [`Te toca ${entero(c.asignado)}`, `Recibidas aquí ${entero(c.recibido)}`, `Faltan ${pendienteDeMiTienda(c)}`];
-  if (entero(c.cerrado) > 0) partes.push(`Cerradas ${entero(c.cerrado)}`);
-  return partes.join(" · ");
-}
-
 /**
  * Para un líder: cómo va el resto de las tiendas en una línea. Solo cuentan las que aún tienen algo pendiente;
  * si ninguna, se dice que las demás ya recibieron lo suyo.

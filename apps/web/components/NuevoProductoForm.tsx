@@ -9,7 +9,7 @@ import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
-import { empresaPorMarca } from "@/lib/empresas-de-sede-reglas";
+import { conDueno } from "@/lib/dueno-reglas";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -204,16 +204,14 @@ export function NuevoProductoForm({
   );
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
-  // ADR-0463: a qué tienda pertenece el producto — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo = Trujillo,
-  // Arequipa o una base sin tiendas: el producto nace en CAYLA. Desde el 2026-10-26 (ADR-0532, Felipe: «todo lo que se registre en Lima y
-  // no sea de la marca CAYLA pasa a ser CLAURE») ya no se pregunta: la decide la marca (`empresaPorMarca`). Solo si la base no dice cuál
-  // es la marca de CAYLA se vuelve a preguntar, como antes, sin ninguna marcada.
+  // ADR-0463 y ADR-0542: de quién es lo que se crea — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo = Trujillo,
+  // Arequipa o una base sin tiendas: el producto nace en CAYLA. Lo indica la persona (Felipe, 2026-10-27): ni la marca ni el proveedor
+  // deciden (ADR-0532 queda reemplazada). Ninguna opción viene marcada. La respuesta es la ficha Y el dueño de su stock inicial (`x-dueno`).
   const [empresaElegida, setEmpresaId] = useState("");
   const empresas = contexto.empresas;
   const exigeEmpresa = Boolean(empresas && empresas.length > 0);
-  const decideLaMarca = Boolean(empresas?.find((t) => t.clave === "cayla")?.marcaId);
-  const empresaId = decideLaMarca ? (empresaPorMarca(marcaId, empresas)?.id ?? "") : empresaElegida;
-  const preguntaEmpresa = exigeEmpresa && !decideLaMarca;
+  const empresaId = empresaElegida;
+  const preguntaEmpresa = exigeEmpresa;
   const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
   const faltaEmpresa = preguntaEmpresa && !empresaId;
   const [proveedorId, setProveedorId] = useState("");
@@ -647,7 +645,10 @@ export function NuevoProductoForm({
     const rpcAlta = exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
     const paramsAlta = exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
     const { data: productoId, error, status } = await firmar(
-      exigeEmpresa ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId }) : supabase.rpc("crear_producto_con_stock_inicial", params),
+      conDueno(
+        exigeEmpresa ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId }) : supabase.rpc("crear_producto_con_stock_inicial", params),
+        exigeEmpresa ? empresaId : null,
+      ),
       firma,
     );
 
@@ -663,6 +664,7 @@ export function NuevoProductoForm({
         rpc: rpcAlta,
         params: paramsAlta,
         firma: firmaCola,
+        dueno: exigeEmpresa ? empresaId : null,
         resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"}${conStock ? ` · ${stock.total} u.` : ""} · ${categoria?.nombre ?? ""}`,
       });
       if (!colaOffline.encolar(op)) {
@@ -1171,7 +1173,7 @@ export function NuevoProductoForm({
         {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
         <FilaAlta
           etiqueta="Unidades de hoy"
-          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Si no tienes, márcalo abajo`}
+          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Se escribe una sola vez: al crear, queda sellado y después se ajusta en Existencias. Si no tienes, márcalo abajo`}
           campo="stock"
           estado={est.stock}
         >

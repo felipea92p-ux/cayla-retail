@@ -328,7 +328,8 @@ select pg_temp.huella(:'va');`);
     "favoritos_web", "esperas_web", "vitrina_look_piezas", "look_web_piezas",
     // ADR-0513: la ficha de consumo (la tela declarada y los avíos del modelo) es configuración suya, como sus fotos, y la escribe Producción SIN orden:
     // se va con la ficha por su `on delete cascade` (la prueba de forma de `produccion_ficha_consumo.mjs` lo exige).
-    "producto_consumos", "producto_avios"];
+    // ADR-0551: si el modelo lleva ojales y botones (`producto_taller`) es configuración suya, como su ficha de consumo: la escribe Producción SIN orden y se va con él por su `on delete cascade`.
+    "producto_consumos", "producto_avios", "producto_taller"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
@@ -371,11 +372,13 @@ select pg_temp.huella(:'va');`);
   // una línea de traslado de la misma prenda.
   // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
   // Y lo contado de más al recibir un traslado (`traslado_sobrantes`, ADR-0404), de la recepción de la misma prenda.
+  // Y el reparto por dueño del stock de Lima (`stock_dueno`, ADR-0542): solo tiene filas donde hay stock, y el stock (que cuenta como unidades en stock)
+  // ya frena el borrado; su llave a `variantes` es en cascada.
   // Y lo del rediseño de Producción (ADR-0400): el avance, las líneas de una Salida y de una Vuelta cuelgan de una fase de una orden y
   // solo se anotan contra una línea de ESA orden (`registrar_avance`, `registrar_salida` y `registrar_vuelta` lo piden), así que son de
   // la misma prenda que la orden; y lo medido de una orden cerrada (`producto_consumo_medido`, ADR-0513) cuelga de ESA orden. La orden
   // (`producciones`) es historia y frena el borrado, y ninguna se borra nunca.
-  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
+  const POR_SU_MADRE = ["stock_dueno", "produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
     "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumo_medido"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')

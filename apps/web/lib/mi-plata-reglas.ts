@@ -1,6 +1,6 @@
 import { diaLima, diaMes, horaLima } from "./fechas-lima";
 import { soles } from "./compras-reglas";
-import { campoResponsable, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
+import { MONTO_MAXIMO_GASTO, MONTO_MAXIMO_PLATA, campoResponsable, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
 
@@ -115,15 +115,13 @@ export type PorMandar = {
 
 export type DecisionCierre = "se_queda" | "devuelve" | "le_deben";
 
-/** Lo de hoy, para «Terminé de comprar hoy». */
+/**
+ * El día de hoy en Lima, como lo dice la base («2026-10-23»): separa lo de hoy de lo de antes en la lista y dice desde cuándo va la ronda. Antes
+ * traía también lo dado, comprado y gastado de hoy y el cierre del día (de «Terminé de comprar hoy»); desde que todo va por ronda esas cifras
+ * viven en `ronda.abierta` y nadie las leía de aquí (auditoría 2026-10-27).
+ */
 export type Hoy = {
-  /** El día de hoy en Lima, como lo dice la base («2026-10-23»): separa lo de hoy de lo de antes en la lista. */
   fecha: string;
-  dieron: number;
-  compraste: number;
-  compras: number;
-  gastaste: number;
-  cierre: { decision: DecisionCierre; monto: number; resuelto: boolean } | null;
 };
 
 /**
@@ -257,16 +255,7 @@ const DECISIONES: readonly DecisionCierre[] = ["se_queda", "devuelve", "le_deben
 
 function leerHoy(x: unknown): Hoy {
   const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
-  const c = o.cierre && typeof o.cierre === "object" ? (o.cierre as Record<string, unknown>) : null;
-  const decision = c && DECISIONES.includes(c.decision as DecisionCierre) ? (c.decision as DecisionCierre) : null;
-  return {
-    fecha: texto(o.fecha)?.slice(0, 10) ?? "",
-    dieron: numero(o.dieron) ?? 0,
-    compraste: numero(o.compraste) ?? 0,
-    compras: Math.max(0, Math.trunc(numero(o.compras) ?? 0)),
-    gastaste: numero(o.gastaste) ?? 0,
-    cierre: c && decision ? { decision, monto: numero(c.monto) ?? 0, resuelto: c.resuelto === true } : null,
-  };
+  return { fecha: texto(o.fecha)?.slice(0, 10) ?? "" };
 }
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
@@ -331,10 +320,18 @@ export function leerMiPlata(data: unknown): MiPlata | null {
       ronda: leerRondas(null),
     };
   }
-  const saldo = numero(o.saldo) ?? 0;
-  const porConfirmar = numero(o.por_confirmar) ?? 0;
-  const comprasPorCompletar = numero(o.compras_por_completar) ?? 0;
-  const gastosPorCompletar = numero(o.gastos_por_completar) ?? 0;
+  // Principio 9: «tienes» se arma con cuatro cifras, y una que no llega NO es cero: mostrar «tienes S/ 330» cuando faltaba restar lo comprado
+  // y gastado engaña a quien está en la calle con la plata. `saldo` y `por_confirmar` salen de la primera versión de la función (20261022235000):
+  // sin ellas la respuesta está dañada. `compras_por_completar` (20261023005000) y `gastos_por_completar` (20261023114000) vinieron después,
+  // pero antes de la ronda (20261023183000): una base que ya manda la `ronda` tiene que mandarlas; si no, es una lectura rota, no un cero.
+  const saldo = numero(o.saldo);
+  const porConfirmar = numero(o.por_confirmar);
+  if (saldo === null || porConfirmar === null) return null;
+  const compras = numero(o.compras_por_completar);
+  const gastos = numero(o.gastos_por_completar);
+  if (o.ronda !== undefined && (compras === null || gastos === null)) return null;
+  const comprasPorCompletar = compras ?? 0;
+  const gastosPorCompletar = gastos ?? 0;
   return {
     persona: true,
     saldo,
@@ -429,7 +426,7 @@ export function camposAnotar(
   r: Responsable,
 ): CampoDeGuia[] {
   const medioOk = v.medio !== null && mediosParaAnotar(puedeYaTenia).includes(v.medio);
-  const monto = problemaDeMonto(v.monto);
+  const monto = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
   return [
     { id: "medio", nombre: "Cómo te llegó", requerido: true, hecho: medioOk, pendiente: "Elige cómo te llegó la plata." },
     // Solo una transferencia sale de un banco; sin bancos configurados no hay nada que elegir y no bloquea.
@@ -444,7 +441,7 @@ export function camposAnotar(
 
 /** Los campos de «Confirmar la plata». «Ya tenía» no sale de ninguna cuenta: solo pide el monto. */
 export function camposConfirmar(v: { monto: string; cuentaId: string }, medio: MedioPlata, cuentas: readonly CuentaOpcion[], r: Responsable): CampoDeGuia[] {
-  const monto = problemaDeMonto(v.monto);
+  const monto = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
   const cuentaOk = medio === "ya_tenia" || cuentas.some((c) => c.id === v.cuentaId);
   return [
     { id: "monto", nombre: "Cuánto llegó", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
@@ -512,7 +509,7 @@ export function textoMontoAnotado(a: Pick<PlataAnotada, "monto" | "montoConfirma
 
 /** Los campos de «Gasté en otra cosa», en el orden de la hoja: qué fue (con «Otro», escrito), cuánto y la foto (opcional). */
 export function camposGasto(v: { concepto: ConceptoGasto | null; nota: string; monto: string; conFoto?: boolean }): CampoDeGuia[] {
-  const monto = problemaDeMonto(v.monto);
+  const monto = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_GASTO);
   const nota = v.nota.trim();
   return [
     { id: "concepto", nombre: "En qué gastaste", requerido: true, hecho: v.concepto !== null, pendiente: "Elige en qué gastaste." },
@@ -836,6 +833,35 @@ export type EntradaHistorial =
       /** Cómo cerró, dicho al pie del detalle («Te quedaste S/ 405.50 para tu próxima ronda»). Sin el cierre, null. */
       cierre: string | null;
     };
+
+/**
+ * «Tu última ronda» (Felipe 2026-10-27: sin ronda abierta, la columna de la derecha era un «0» y un «Ver 2» plegado): la ronda cerrada más
+ * nueva, destacada, con cómo cerró y en qué va. `cierre` es lo que devolvió (o lo que CAYLA le devuelve), que el historial trae como fila
+ * aparte; aquí se pega a su ronda y `resto` queda sin ambas, para no decir lo mismo dos veces. Sin ninguna ronda cerrada, `null`.
+ */
+export type UltimaRondaVista = {
+  ronda: Extract<EntradaHistorial, { tipo: "ronda" }>;
+  cierre: Extract<EntradaHistorial, { tipo: "cierre" }> | null;
+  /** Qué falta de su lado: la plata por entregar o recibir manda; si no, que Compras todavía pase algo a los libros; si no, al día. */
+  estado: { texto: string; detalle: string; pendiente: boolean };
+  /** «Devolviste en caja S/ 80.00», «Te quedaste S/ 200.00 para tu próxima ronda.», o lo que corresponda cuando no hubo plata que mover. */
+  comoCerro: string;
+  resto: EntradaHistorial[];
+};
+
+export function ultimaRondaDelHistorial(historial: readonly EntradaHistorial[]): UltimaRondaVista | null {
+  const ronda = historial.find((e): e is Extract<EntradaHistorial, { tipo: "ronda" }> => e.tipo === "ronda" && e.clave !== `ronda-${SIN_RONDA}`);
+  if (!ronda) return null;
+  const id = ronda.clave.slice("ronda-".length);
+  const cierre = historial.find((e): e is Extract<EntradaHistorial, { tipo: "cierre" }> => e.tipo === "cierre" && e.clave === `cierre-${id}`) ?? null;
+  const estado = cierre
+    ? cierre.estado
+    : ronda.pendiente
+      ? { texto: "Compras la revisa", detalle: "Compras todavía pasa algo de esta ronda a los libros", pendiente: true }
+      : { texto: "Todo al día", detalle: "Compras ya pasó todo de esta ronda a los libros", pendiente: false };
+  const comoCerro = cierre ? `${cierre.titulo} ${cierre.monto}` : (ronda.cierre ?? "No hubo plata que mover.");
+  return { ronda, cierre, estado, comoCerro, resto: historial.filter((e) => e !== ronda && e !== cierre) };
+}
 
 /** «23/10» o «21/10 al 23/10»: los días de Lima en que estuvo abierta. */
 function diasDeRonda(abiertaEn: string, cerradaEn: string): string {

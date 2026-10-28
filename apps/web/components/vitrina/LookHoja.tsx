@@ -21,7 +21,7 @@ import { useQueHayPorTienda } from "@/lib/useQueHayPorTienda";
 import { camposDeLook } from "@/lib/vitrina-looks-guia";
 import { ideasParaLook, ventanaDeIdeas } from "@/lib/vitrina-looks-ideas";
 import {
-  colorInicial,
+  colorInicialElegible,
   errorDeLook,
   fraseLimpia,
   lookDeJson,
@@ -31,6 +31,7 @@ import {
   MAX_NOMBRE_LOOK,
   MAX_PRENDAS_LOOK,
   MIN_PRENDAS_LOOK,
+  motivoDelColor,
   nombreLimpio,
   opcionesDeLugar,
   piezasElegidasDe,
@@ -39,6 +40,8 @@ import {
   prendasQueNoSeVen,
   salidaDelLook,
   SIN_PRENDAS_POR_TIENDA,
+  TEXTO_DEL_COLOR_BLOQUEADO,
+  tiendasEnComun,
   type Look,
   type ModeloParaLook,
   type PiezaElegida,
@@ -113,10 +116,13 @@ export function LookHoja({
     { nombres: otros.map((l) => l.nombre), frases: otros.map((l) => l.frase) },
   );
 
-  const agregar = (id: string) => {
+  const agregar = (id: string, tiendaPreferida: string | null) => {
     const m = porId.get(id);
     if (!m || piezas.length >= MAX_PRENDAS_LOOK || piezas.some((p) => p.productoId === id)) return;
-    setPiezas((ps) => [...ps, { productoId: id, color: colorInicial(m) }]);
+    // Entra en un color que haya en alguna de las tiendas donde están las demás prendas; si ninguno, no entra (la grilla ya no la deja tocar).
+    const color = colorInicialElegible(m, datosPorTienda, tiendasEnComun(datosPorTienda, piezas), tiendaPreferida);
+    if (color === null) return;
+    setPiezas((ps) => [...ps, { productoId: id, color }]);
   };
   const quitarPorId = (id: string) => setPiezas((ps) => ps.filter((p) => p.productoId !== id));
   const cambiarColor = (i: number, color: string) => setPiezas((ps) => ps.map((p, k) => (k === i ? { ...p, color } : p)));
@@ -220,6 +226,8 @@ export function LookHoja({
                   const color = m?.colores.find((c) => c.codigo === p.color);
                   const nombrePrenda = m?.nombre ?? antes?.nombre ?? "Prenda";
                   const seVe = Boolean(m && color);
+                  // Un color que no hay en ninguna tienda donde estén las OTRAS prendas se ve pero no se elige (el actual se queda, aunque ya no haya).
+                  const comunOtras = tiendasEnComun(datosPorTienda, piezas.filter((_, k) => k !== i));
                   return (
                     <li key={p.productoId} className="flex items-center gap-3 px-3 py-2.5">
                       <MiniaturaPrenda
@@ -239,7 +247,11 @@ export function LookHoja({
                           <Desplegable
                             valor={p.color}
                             onValor={(c) => cambiarColor(i, c)}
-                            opciones={m.colores.map((c) => ({ valor: c.codigo, texto: c.foto ? c.nombre : `${c.nombre} (sin foto propia)` }))}
+                            opciones={m.colores.map((c) => {
+                              const motivo = c.codigo === p.color ? null : motivoDelColor(datosPorTienda, comunOtras, m.id, c.codigo);
+                              const base = c.foto ? c.nombre : `${c.nombre} (sin foto propia)`;
+                              return { valor: c.codigo, texto: motivo ? `${base} · ${TEXTO_DEL_COLOR_BLOQUEADO[motivo]}` : base, deshabilitada: motivo !== null };
+                            })}
                             etiquetaAccesible={`Color de ${nombrePrenda}`}
                             deshabilitado={guardando}
                             className="max-w-[16rem]"
@@ -284,6 +296,7 @@ export function LookHoja({
             <ElegirPrendasLook
               modelos={modelos}
               elegidos={idsElegidos}
+              piezas={piezas}
               lleno={piezas.length >= MAX_PRENDAS_LOOK}
               deshabilitado={guardando}
               porTienda={datosPorTienda}

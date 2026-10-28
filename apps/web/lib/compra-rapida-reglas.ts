@@ -1,6 +1,6 @@
 import { soles } from "./compras-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
-import { problemaDeMonto } from "./fondos-reglas";
+import { MONTO_MAXIMO_PLATA, problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { nombresParecidos } from "./nombres-parecidos";
 import { diasEntreFechas } from "./fechas-lima";
@@ -48,7 +48,8 @@ const numero = (v: unknown): number | null => {
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
-export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null };
+/** `marcas`: con las que se conoce al proveedor (ADR-0140); el nombre es su razón social y el equipo lo busca por «Kero». Vacía si no hay o no se pudieron leer. */
+export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null; marcas: string[] };
 
 /** Lo que manda `fn_proveedores_para_comprar`: el más comprado primero, como viene. */
 export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[] {
@@ -67,15 +68,21 @@ export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[
         categorias: Array.isArray(o.categorias) ? o.categorias.filter((c): c is string => typeof c === "string") : [],
         compras: Math.max(0, Math.trunc(numero(o.compras) ?? 0)),
         ultima: texto(o.ultima),
+        marcas: [],
       };
     })
     .filter((x): x is ProveedorParaComprar => x !== null);
 }
 
-/** Buscar un proveedor: por su nombre (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
+/** Suma a cada proveedor sus marcas (`marcasPorProveedor`, por id). Sin mapa (la lectura falló) la lista queda como vino. */
+export function conMarcas(lista: readonly ProveedorParaComprar[], marcas: Readonly<Record<string, readonly string[]>> | null): ProveedorParaComprar[] {
+  return lista.map((p) => ({ ...p, marcas: [...(marcas?.[p.id] ?? [])] }));
+}
+
+/** Buscar un proveedor: por su nombre o por alguna de sus marcas (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
 export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: string, categoriaId: string | null): ProveedorParaComprar[] {
   const n = normalizar(q);
-  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n)) && (!categoriaId || p.categorias.includes(categoriaId)));
+  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n) || p.marcas.some((m) => normalizar(m).includes(n))) && (!categoriaId || p.categorias.includes(categoriaId)));
 }
 
 /**
@@ -225,10 +232,28 @@ export function leerPrecio(t: string): number | null {
   return n;
 }
 
+/**
+ * El precio al que se VENDE la prenda: la base lo guarda como «precio de venta sugerido» de la línea y lo acota más que al costo — de S/ 0 a S/ 5 000
+ * (`orden_compra_items.precio_venta_sugerido`, 20261022080000; `fn_orden_compra_validar_sugerido`), y el 0 solo en una categoría que lo admite (bolsas,
+ * cajas y empaque: `fn_categoria_admite_precio_cero`, ADR-0384). Sin saberlo aquí, «Se vende a 6 000» se veía bien y la base lo rechazaba recién al guardar
+ * los tres pasos. `admitePrecioCero` sale de la categoría (`CategoriaParaComprar.admitePrecioCero`); sin decirlo, el cero se acepta como siempre.
+ */
+export const PRECIO_VENTA_MAXIMO = 5000;
+
+export function leerPrecioVenta(t: string, admitePrecioCero = true): number | null {
+  const n = leerPrecio(t);
+  if (n == null || n > PRECIO_VENTA_MAXIMO) return null;
+  return n === 0 && !admitePrecioCero ? null : n;
+}
+
 /** Lo que dice bajo el botón gris de un paso de la prenda (la maqueta: el botón dice qué falta). */
-export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string): string | null {
+export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string, admitePrecioCero = true): string | null {
   if (paso === "cantidad") return leerCantidad(t) == null ? "Escribe cuántas compraste" : null;
-  return leerPrecio(t) == null ? "Escribe el precio" : null;
+  if (paso === "costo") return leerPrecio(t) == null ? "Escribe el precio" : null;
+  if (leerPrecioVenta(t, admitePrecioCero) !== null) return null;
+  const n = leerPrecio(t);
+  if (n == null) return "Escribe el precio";
+  return n > PRECIO_VENTA_MAXIMO ? `El precio de venta llega hasta ${soles(PRECIO_VENTA_MAXIMO)}` : "Escribe un precio mayor que 0: solo las bolsas, cajas y empaque se regalan";
 }
 
 // ---------- La hoja de la prenda (rediseño, maqueta compras-formidable-2026-10, Felipe 2026-10-23) ----------
@@ -281,11 +306,11 @@ export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" 
 }
 
 /** Los campos de la hoja, en su orden, para la guía de foco. */
-export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
+export function camposPrenda(b: BorradorPrenda, admitePrecioCero = true): CampoDeGuia[] {
   return [
     { id: "cantidad", nombre: "Cuántas", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas compraste." },
     { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
-    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta) === null, pendiente: "Escribe a cuánto se vende." },
+    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta, admitePrecioCero) === null, pendiente: faltaEnPaso("venta", b.venta, admitePrecioCero) ?? "Escribe a cuánto se vende." },
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinos.length > 0, pendiente: "Elige a qué tienda va." },
     ...(b.destinos.length >= 2
       ? [{ id: "reparto", nombre: "Reparto", requerido: true, hecho: problemaReparto(b) === null, pendiente: problemaReparto(b) ?? "" }]
@@ -294,9 +319,9 @@ export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
 }
 
 /** «Por cada una ganas S/ 22.40»: la venta menos el costo, si los dos se leen. */
-export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">): number | null {
+export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">, admitePrecioCero = true): number | null {
   const costo = leerPrecio(b.costo);
-  const venta = leerPrecio(b.venta);
+  const venta = leerPrecioVenta(b.venta, admitePrecioCero);
   return costo == null || venta == null ? null : Math.round((venta - costo) * 100) / 100;
 }
 
@@ -312,10 +337,10 @@ export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">
  * Las líneas que entran a la compra desde la hoja: una por tienda, con su parte (la base arma una orden por tienda). Vacío si falta algo
  * (el botón ya está apagado).
  */
-export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda): LineaCompra[] {
+export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda, admitePrecioCero = true): LineaCompra[] {
   const cantidad = leerCantidad(b.cantidad);
   const costo = leerPrecio(b.costo);
-  const venta = leerPrecio(b.venta);
+  const venta = leerPrecioVenta(b.venta, admitePrecioCero);
   if (cantidad == null || costo == null || venta == null || b.destinos.length === 0 || problemaReparto(b) !== null) return [];
   const comun = { clave: h.clave, productoId: h.productoId, categoriaId: h.categoriaId, marcaId: h.marcaId, nombre: h.nombre, categoria: h.categoria, marca: h.marca, costo, venta };
   if (b.destinos.length === 1) return [{ ...comun, cantidad, destinoId: b.destinos[0] }];
@@ -463,7 +488,7 @@ type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null }
  * ella, Compras copia la serie y el número del papel en la mano—, nunca frena el guardado. Sin papel, ni se ofrece.
  */
 export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra }, r: Responsable): CampoDeGuia[] {
-  const monto = problemaDeMonto(v.monto);
+  const monto = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
   const conPapel = v.tipo !== null && v.tipo !== "sin_comprobante";
   // Sin `pago` (las pantallas que no lo preguntan) no entran sus campos.
   const pago = v.pago;
@@ -559,7 +584,14 @@ export function lineaDeAvance(p: PasoCompra, proveedor: string | null): string {
 // cuando la tienda la recibe (Recibir), que es donde se cuentan el color y las tallas. La próxima vez sale entre sus habituales por su nombre.
 // ---------------------------------------------------------------------------------------------------------------------
 
-export type CategoriaParaComprar = { id: string; nombre: string; prefijo: string | null; familia: string | null };
+export type CategoriaParaComprar = {
+  id: string;
+  nombre: string;
+  prefijo: string | null;
+  familia: string | null;
+  /** ¿Se puede vender a S/ 0 (bolsas, cajas, empaque)? La familia fuera de los motores de decisión (ADR-0377, ADR-0384). Sin dato, no. */
+  admitePrecioCero?: boolean;
+};
 
 /** Una opción del combo, con su grupo (la `Opcion` de `Desplegable`). */
 type OpcionConGrupo = { valor: string; texto: string; grupo?: string };
@@ -674,7 +706,7 @@ function habitualNuevo(
 }
 
 /** Los campos de la hoja de una prenda nueva, en su orden: lo que la describe y después lo de siempre. */
-export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: BorradorPrenda): CampoDeGuia[] {
+export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: BorradorPrenda, admitePrecioCero = true): CampoDeGuia[] {
   const nombre = faltaNombreNuevo(n.nombre);
   return [
     { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null, pendiente: "Elige qué es." },
@@ -682,7 +714,7 @@ export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: Bor
       ? { id: "marca", nombre: "Marca", requerido: true, hecho: faltaMarcaNueva(n.marcaNueva) === null, pendiente: "Escribe la marca, como dice su etiqueta." }
       : { id: "marca", nombre: "Marca", requerido: true, hecho: n.marcaId !== null, pendiente: "Elige la marca, como dice su etiqueta." },
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre === null && !hayParecido, pendiente: nombre ? "Escribe cómo se llama." : "Dinos si es la misma prenda." },
-    ...camposPrenda(b),
+    ...camposPrenda(b, admitePrecioCero),
   ];
 }
 

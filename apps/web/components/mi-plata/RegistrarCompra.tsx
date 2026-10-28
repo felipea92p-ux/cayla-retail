@@ -16,6 +16,8 @@ import { Volver } from "@/components/ui/Volver";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { BotonVerMas } from "@/components/ui/VerMas";
+import { BarraDeAbajo, BarraDeAbajoResumen } from "@/components/ui/BarraDeAbajo";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
@@ -144,6 +146,10 @@ function firmaHoja(e: EnCurso): string {
   return JSON.stringify({ c: e.cantidad, k: e.costo, v: e.venta, d: e.destinos, r: e.reparto, n: e.nueva ? { ...e.nueva, descartadas: [...e.nueva.descartadas] } : null });
 }
 
+/** La fila punteada que ofrece algo que no está en la lista («Es un proveedor nuevo», «Algo nuevo», «Otra prenda de …»): una sola raya, la de lo que se toca. */
+// unificar-fijo: la misma fila punteada en tres lugares de «Compré ropa» (ofrece lo que no está en la lista); un solo borde de control para las tres
+const FILA_PUNTEADA = "border-dashed border-borde-control";
+
 const ANTERIOR: Partial<Record<PasoCompra, PasoCompra>> = {
   habituales: "proveedor",
   revisar: "habituales",
@@ -212,6 +218,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const deCategoria = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
+  // Lo que dice la barra de abajo: el total grande y, debajo, cuántas prendas y modelos lleva.
+  const detalleCarrito = `${prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`} · ${resumenCarrito(lineas).detalle}`;
   const pagoAhora: PagoCompra = { ...pago, pagado: pagadoPropio ? pago.pagado : monto };
   // Con el monto escondido, lo pagado es todo lo del papel: no hay nada que la guía pida ahí.
   const verParte = pagoParcial || pagadoPropio;
@@ -249,7 +257,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   }
 
   function alRegistrarProveedor(p: ProveedorRegistrado) {
-    const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null };
+    const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null, marcas: [] };
     setProveedores((ps) => (ps.some((x) => x.id === p.id) ? ps : [...ps, elegido]));
     setRegistrando(false);
     void elegirProveedor(elegido);
@@ -316,7 +324,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   function agregarPrenda() {
     if (!enCurso || hojaHecha.current === enCurso) return;
     const h = enCurso.nueva ? habitualDeNuevo(`nuevo:${crypto.randomUUID()}`, enCurso.nueva, datos.categorias, datos.marcas) : enCurso.habitual;
-    const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso) : [];
+    const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso, deCategoria.get(h.categoriaId)?.admitePrecioCero === true) : [];
     if (nuevas.length === 0) return;
     hojaHecha.current = enCurso;
     const clave = enCurso.edita;
@@ -433,14 +441,17 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const fase = faseDePaso(paso);
   const cabecera = paso !== "listo" && (
     <div
-      className="sticky top-[3.625rem] z-20 -mx-4 flex flex-col gap-2.5 bg-crema/95 px-4 pb-2.5 pt-3 backdrop-blur sm:-mx-8 sm:px-8"
+      // Cuelga bajo la cabecera fija de la app (~58 px más la muesca del celular) y llega de borde a borde del <main>, que desde `sm` deja
+      // 20 px a la izquierda y 40 a la derecha (AppShell): los mismos márgenes negativos que su relleno, para que ninguna prenda se vea pasar
+      // en los costados. El alto de la cabecera y el de esta caja (~105 px) los sigue `lg:top-40` de «Tu compra»: si uno cambia, el otro también.
+      className="sticky top-[calc(3.625rem+env(safe-area-inset-top))] z-20 -mx-4 flex flex-col gap-2.5 bg-crema/95 px-4 pb-2.5 pt-3 backdrop-blur sm:-ml-5 sm:-mr-[max(2.5rem,env(safe-area-inset-right))] sm:pl-5 sm:pr-[max(2.5rem,env(safe-area-inset-right))]"
       data-guia="compra.avance"
     >
       <div className="flex items-center gap-3">
-        {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
+        {atras ? <Volver onClick={() => setPaso(atras)} a="Volver al paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
         <div className="min-w-0 flex-1">
           <div role="heading" aria-level={1} className="font-serif text-[28px] leading-none text-tinta">
-            Compré ropa
+            Apunte de compras
           </div>
           <div className="mt-1 truncate text-xs text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</div>
         </div>
@@ -490,9 +501,19 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               : "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo»."}
           </p>
           {habituales === "cargando" ? (
-            <p className="text-sm text-taupe" role="status">
-              Buscando lo que le compras…
-            </p>
+            // El lugar de la grilla, con sus tarjetas por dibujar (sin movimiento: no hay bucle en ADR-0136), para que la pantalla no salte al llegar.
+            <div role="status" aria-label="Buscando lo que le compras">
+              <ul aria-hidden className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
+                {[0, 1, 2, 3].map((i) => (
+                  <li key={i} className="card-cayla flex flex-col gap-2 rounded-[18px] p-2.5">
+                    <span className="block aspect-[4/3] w-full rounded-xl bg-hueso" />
+                    <span className="block h-3 w-3/4 rounded bg-hueso" />
+                    <span className="block h-2.5 w-1/2 rounded bg-hueso" />
+                  </li>
+                ))}
+              </ul>
+              <span className="sr-only">Buscando lo que le compras…</span>
+            </div>
           ) : habituales === null ? (
             <Aviso tono="error" titulo="No se pudieron leer sus prendas">
               Vuelve atrás y elige otra vez al proveedor.
@@ -522,8 +543,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                 type="button"
                 onClick={() => algoNuevo()}
                 data-guia="compra.algo-nuevo"
-                /* unificar-fijo: la misma fila punteada de «Es un proveedor nuevo», en chico, para que «Algo nuevo» se vea sin competir con la barra */
-                className="card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] border-dashed border-tinta/50 bg-papel px-3 py-2 text-left"
+                className={`card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] ${FILA_PUNTEADA} bg-papel px-3 py-2 text-left`}
               >
                 <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
                   <Plus className="h-4 w-4" />
@@ -537,20 +557,19 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               </button>
             )}
             {lineas.length > 0 ? (
-              <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema" data-guia="compra.carrito">
-                <span className="min-w-0 flex-1">
-                  <b className="block truncate text-[15px] font-medium tabular-nums">{resumenCarrito(lineas).titulo}</b>
-                  <span className="block text-xs text-crema/75">{resumenCarrito(lineas).detalle}</span>
-                </span>
-                {/* Sobre la barra negra el secundario (transparente) quedaba tinta sobre tinta: lleva el fondo crema de la maqueta, que en
-                    modo oscuro se invierte con la barra. */}
-                <Boton peso="fantasma" className="border-transparent bg-crema" onClick={() => setPaso("revisar")} data-guia="compra.revisar">
-                  <span className="inline-flex items-center gap-2">
-                    Seguir
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                  </span>
-                </Boton>
-              </div>
+              // La Isla oscura del sistema (`<BarraDeAbajo>`, ADR-0479): lo que llevas elegido a la izquierda y «Seguir» a la derecha; su botón
+              // principal ya va en crema sobre la barra y, en modo oscuro, se invierte con ella.
+              <BarraDeAbajo tono="tinta" pegada data-guia="compra.carrito">
+                <BarraDeAbajoResumen cifra={soles(total)} detalle={detalleCarrito} />
+                <div className="barra-abajo-acciones">
+                  <Boton peso="primario" onClick={() => setPaso("revisar")} data-guia="compra.revisar">
+                    <span className="inline-flex items-center gap-2">
+                      Seguir
+                      <ArrowRight className="h-4 w-4" aria-hidden />
+                    </span>
+                  </Boton>
+                </div>
+              </BarraDeAbajo>
             ) : (
               <p className="text-center text-sm text-taupe">Elige al menos una prenda para seguir</p>
             )}
@@ -606,8 +625,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           <button
             type="button"
             onClick={() => setPaso("habituales")}
-            /* unificar-fijo: la misma fila punteada de «Es un proveedor nuevo» y «Algo nuevo», en chico */
-            className="card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] border-dashed border-tinta/50 bg-papel px-3 py-2 text-left"
+            className={`card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] ${FILA_PUNTEADA} bg-papel px-3 py-2 text-left`}
           >
             <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
               <Plus className="h-4 w-4" />
@@ -649,18 +667,17 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             </div>
           )}
           <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur lg:col-span-2">
-            <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema">
-              <span className="min-w-0 flex-1">
-                <b className="block truncate text-[15px] font-medium tabular-nums">{resumenCarrito(lineas).titulo}</b>
-                <span className="block text-xs text-crema/75">{resumenCarrito(lineas).detalle}</span>
-              </span>
-              <Boton peso="fantasma" className="border-transparent bg-crema" onClick={alPapel} disabled={lineas.length === 0} data-guia="compra.al-papel">
-                <span className="inline-flex items-center gap-2">
-                  Sigue: el papel
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </span>
-              </Boton>
-            </div>
+            <BarraDeAbajo tono="tinta" pegada>
+              <BarraDeAbajoResumen cifra={soles(total)} detalle={detalleCarrito} />
+              <div className="barra-abajo-acciones">
+                <Boton peso="primario" onClick={alPapel} disabled={lineas.length === 0} data-guia="compra.al-papel">
+                  <span className="inline-flex items-center gap-2">
+                    Sigue: el papel
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </span>
+                </Boton>
+              </div>
+            </BarraDeAbajo>
           </div>
         </section>
       )}
@@ -677,7 +694,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           {/* En PC el papel va a la izquierda y el pago a la derecha; en el celular las dos cajas «desaparecen» (`contents`) y todo sigue en fila. */}
           <div className="contents xl:flex xl:flex-col xl:gap-5">
           <CampoGuiado id="tipo" guia={guia} titulo="¿Qué papel te dieron?">
-            <div role="group" aria-label="¿Qué te dio el proveedor?" className="grid grid-cols-2 gap-2" data-guia="compra.tipo">
+            <div role="group" aria-label="¿Qué papel te dieron?" className="grid grid-cols-2 gap-2" data-guia="compra.tipo">
               {(Object.keys(TIPOS_PAPEL) as TipoPapel[]).map((k) => (
                 <button
                   key={k}
@@ -802,7 +819,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-1.5 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
                   <button
                     type="button"
-                    className="btn-cayla btn-enlace mt-1 self-start"
+                    className="btn-cayla btn-enlace mt-1 min-h-7 self-start max-sm:min-h-11 pointer-coarse:min-h-11"
                     onClick={() => {
                       setPagoParcial(false);
                       setPagadoPropio(false);
@@ -812,7 +829,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   </button>
                 </CampoGuiado>
               ) : (
-                <button type="button" className="btn-cayla btn-enlace -mt-2 self-start" data-guia="compra.parte" onClick={() => setPagoParcial(true)}>
+                <button type="button" className="btn-cayla btn-enlace -mt-2 min-h-7 self-start max-sm:min-h-11 pointer-coarse:min-h-11" data-guia="compra.parte" onClick={() => setPagoParcial(true)}>
                   Pagué solo una parte
                 </button>
               )}
@@ -882,6 +899,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           tiendas={datos.tiendas}
           tiendaAnterior={tiendaAnterior(lineas)}
           corrige={enCurso.edita != null}
+          admitePrecioCero={deCategoria.get(enCurso.habitual.categoriaId)?.admitePrecioCero === true}
           tocada={hojaTocada}
           onAgregar={agregarPrenda}
           onQuitar={quitarPrenda}
@@ -910,7 +928,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           <span className="trazo-dibuja grid h-24 w-24 place-items-center rounded-full bg-verde text-crema" aria-hidden>
             <Check className="h-11 w-11" />
           </span>
-          <h2 className="compra-pregunta">Compra guardada</h2>
+          {/* La cabecera del paso ya no está: este es el título de nivel 1 de la pantalla. */}
+          <h1 className="compra-pregunta">Compra guardada</h1>
           <p className="-mt-2 text-sm text-tinta/70">
             {guardada.prendas === 1 ? "1 prenda" : `${guardada.prendas} prendas`} a {nombreCorto} por {soles(guardada.monto)}.
             {guardada.tieneAntes != null && (
@@ -1014,7 +1033,14 @@ function PasoProveedor({
         </span>
         <span className="min-w-0">
           <span className="block truncate font-medium text-tinta">{p.nombre}</span>
-          <span className="block truncate text-xs text-taupe">
+          {p.marcas.length > 0 && (
+            <span className="block truncate text-xs text-tinta/70">
+              {p.marcas.length === 1 ? "Marca" : "Marcas"}: {p.marcas.slice(0, 3).join(", ")}
+              {p.marcas.length > 3 ? ` y ${p.marcas.length - 3} más` : ""}
+            </span>
+          )}
+          {/* Hasta dos líneas: a 375 px «Le compraste hace una semana · 4 compras» se cortaba en «4 c…». */}
+          <span className="line-clamp-2 block text-xs text-taupe">
             {p.compras > 0
               ? detalleProveedor(p, hoy)
               : p.categorias.length
@@ -1034,7 +1060,7 @@ function PasoProveedor({
         onCambio={setQ}
         tamano="mostrador"
         etiqueta="Busca el proveedor"
-        placeholder="Nombre del proveedor" // sugerir-fijo: se busca un proveedor por su nombre; no depende de nada elegido antes
+        placeholder="Nombre o marca del proveedor" // sugerir-fijo: se busca un proveedor por su nombre o su marca; no depende de nada elegido antes
         guia="compra.buscador"
       />
       {/* Registrar un proveedor nuevo, a la vista bajo el buscador (Felipe 2026-10-23: «no se nota que tiene esa opción»; antes era un
@@ -1043,7 +1069,7 @@ function PasoProveedor({
         type="button"
         onClick={alNuevo}
         data-guia="compra.proveedor-nuevo"
-        className="card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border-dashed border-tinta/40 px-3.5 py-3 text-left"
+        className={`card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] ${FILA_PUNTEADA} px-3.5 py-3 text-left`}
       >
         <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
           <Plus className="h-5 w-5" />
@@ -1074,14 +1100,14 @@ function PasoProveedor({
         <div className="flex flex-col gap-2" data-guia="compra.proveedores">
           {verRecientes.length > 0 && (
             <>
-              <span className="label-cayla text-[11px] text-taupe">Les compraste hace poco</span>
-              <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2 2xl:grid-cols-3">{verRecientes.map(fila)}</ul>
+              <TituloGrupo>Les compraste hace poco</TituloGrupo>
+              <ul className="flex flex-col gap-2 xl:grid xl:grid-cols-2 2xl:grid-cols-3">{verRecientes.map(fila)}</ul>
             </>
           )}
           {verResto.length > 0 && (
             <>
-              {verRecientes.length > 0 && <span className="label-cayla pt-2 text-[11px] text-taupe">Los demás</span>}
-              <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2 2xl:grid-cols-3">{verResto.map(fila)}</ul>
+              {verRecientes.length > 0 && <TituloGrupo className="pt-2">Los demás</TituloGrupo>}
+              <ul className="flex flex-col gap-2 xl:grid xl:grid-cols-2 2xl:grid-cols-3">{verResto.map(fila)}</ul>
             </>
           )}
           {/* Sin IntersectionObserver (navegador viejo), el centinela es un botón que trae la tanda siguiente. */}
@@ -1099,7 +1125,7 @@ function PasoProveedor({
       )}
       {categorias.length > 1 && (
         <div className="flex flex-col gap-2">
-          <span className="label-cayla text-[11px] text-taupe">O busca por lo que vende</span>
+          <TituloGrupo>O busca por lo que vende</TituloGrupo>
           <div className="flex flex-wrap gap-2" data-guia="compra.categorias">
             {categorias.map((c) => (
               <BotonFiltro key={c.id} activo={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)} cuenta={proveedores.filter((p) => p.categorias.includes(c.id)).length}>
@@ -1172,7 +1198,7 @@ function ListaHabituales({
           {linea && <Globito n={prendasDeLineas(suyas)} esquina etiqueta="en la compra" className="absolute right-4 top-4" />}
           <span className="text-[13.5px] font-medium leading-tight text-tinta">{nombre}</span>
           {(linea || abajo) && (
-            <span className="text-[11.5px] leading-snug text-taupe">
+            <span className="text-xs leading-snug text-taupe">
               {linea ? textoPrendaEnCompra(suyas, nombresTienda) : abajo}
             </span>
           )}
@@ -1194,7 +1220,7 @@ function ListaHabituales({
           ))}
         </div>
       )}
-      <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6" data-guia="compra.habituales">
+      <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6" data-guia="compra.habituales">
         {nuevas.map(({ l, i }) => tarjeta(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
         {ver.map((h) =>
           tarjeta(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),

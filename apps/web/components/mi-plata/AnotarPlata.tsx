@@ -186,7 +186,8 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
             {/* En PC: cómo te llegó y de qué banco, a la izquierda; cuánto y la foto, a la derecha. En el celular las cajas «desaparecen» (`contents`). */}
             <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
             <div className="contents lg:flex lg:flex-col lg:gap-5">
-            <CampoGuiado id="medio" guia={guia} titulo="¿Cómo te llegó?">
+            {/* Con «Ya tenía de antes» no hay cómo te llegó (no hay fichas): el título lo dice en vez de preguntar algo que ya no se contesta. */}
+            <CampoGuiado id="medio" guia={guia} titulo={yaTenia ? "Plata de antes" : "¿Cómo te llegó?"}>
               {!yaTenia && (
                 <FichasMedio<Ficha>
                   etiqueta="¿Cómo te llegó?"

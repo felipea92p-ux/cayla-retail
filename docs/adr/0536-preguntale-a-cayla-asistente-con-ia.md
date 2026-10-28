@@ -236,7 +236,155 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   página), y las de la cabecera con su módulo (`pantallasDelAsistente`). Con eso, 4 equivalencias de tienda y 3 ajustes a las instrucciones,
   pasó de 35 a **38 de 40**.
 
+## Acompañar una tarea (Felipe 2026-10-27, segunda vuelta)
+
+**El problema.** Felipe probó el asistente y pidió más que una demo larga: «Quiero vender un short mom color rojo talla S» tiene que llevarte
+paso a paso hasta los métodos de pago y la boleta; las guías tenían «mucho texto pequeño que nadie lee»; y la pregunta llega con faltas
+(«kiero bender»). Una respuesta que te deja en el botón de Cobrar sin decir qué sigue no ayuda en una venta de verdad.
+
+**Lo que eligió Felipe** (dos preguntas, 2026-10-27): **la persona hace los clics y CAYLA la guía** (no un piloto que vende solo), con **una
+barra fija abajo, como un GPS**.
+
+**Cómo quedó.**
+- **La IA arma la tarea** (`pasos` en la salida estructurada): hasta 10 pasos en orden, cada uno un paso de una guía con su `data-guia`, con una
+  orden de 2 a 8 palabras con los datos de la persona («Toca Negro · talla M en la lista»). El servidor no le cree (`lib/asistente/tarea.ts`,
+  `revisarTarea`): solo pasos de las guías que vio, con ancla, sin repetir, y menos de 2 pasos no es tarea (queda el recorrido de siempre).
+- **Lo fijo no se le pide a la IA, se completa en el servidor** (`completarTarea`, `CIERRES`): una venta siempre termina en «Revisa y
+  confirma tú el cobro», pasando por quién atiende, Cobrar, cómo paga y Boleta o Factura, cada uno insertado en su lugar aunque la IA lo
+  saltara. Y en Vender, si la tarea busca, se elige **en la lista del buscador** (cada fila es un color y una talla): los pasos de la tarjeta
+  o de su hoja de tallas no aparecen por ese camino y la guía se quedaba esperando. El color y la talla salen de la pregunta tal como los
+  escribió la persona (`ordenDeLaLista`), porque la IA a veces dejaba uno afuera. Para el celular se agregan la lupa (el buscador vive tras ella)
+  y «Ver ticket» (el ticket vive en la barra de abajo).
+- **El Acompañante** (`components/asistente/Acompanante.tsx`, montado una vez en `AppShell` con el asistente encendido): un anillo que respira
+  alrededor de la pieza **sin taparla** (se toca a través), y la barra de abajo (la Isla, `BarraDeAbajo`, dentro de `DismissableLayer.Branch`
+  para que tocarla no cierre la hoja de cobro) con la orden en letra de 19 px, «¿Por qué?» (el texto de la guía, que ya existe y está vigilado),
+  «Saltar» y la ×. Pasa solo: cuando la persona toca un control de la pieza; cuando aparece o se enciende una pieza de más adelante (la hoja de
+  cobro al abrirse, Cobrar al entrar la prenda); cuando un campo tiene lo escrito 1,6 s; o cuando la pieza de este paso no existe en esta
+  pantalla y una de más adelante ya se puede usar (la lupa en escritorio, «quién atiende» en una cuenta personal). La barra sube arriba si la
+  pieza está en el borde de abajo. La tarea viaja en la pestaña (`sessionStorage`, 20 min), así sigue al cambiar de pantalla, con «Llévame».
+- **Nunca hace un clic ni guarda.** Lo único que escribe es el nombre de la prenda en el buscador `rellenable` (la lista blanca de la
+  actividad 6). El último paso, confirmar el cobro, lo confirma la persona.
+- **Faltas de ortografía** (`preseleccion.ts`): la búsqueda local compara también por cómo suena (b/v, c/s/z, k/qu, h muda, ll/y) y por
+  distancia de edición, con la mitad del peso de una coincidencia exacta; la IA recibe la pregunta tal cual y se le dice que la entienda.
+- **Sin pensamiento.** Con el pensamiento de fábrica de Haiku 5.5, una tarea de 6 pasos escribía ~1 500 tokens y tardaba 7,5 s, al borde del
+  tope de 8 s (fallaba una de cada dos). Con `thinking: {type: "disabled"}` (válido en Haiku 5.5 con esfuerzo `low`) salen ~450 tokens en ~5 s.
+
+**Verificado** en el ERP local con la cuenta de la terminal de Tienda Lima, a 1440 y a 375 px: «kiero bender una blusa emma color negro
+talla m, me paga con yape y quiere boleta» llega, tocando una sola cosa por paso, hasta «Revisa y confirma tú el cobro» con Yape y Boleta
+marcados (9 pasos en el celular, 7 en escritorio). Para encender Cobrar en local hubo que crear un momento la asistencia de Dynamic
+(`public.marcajes`, que la base local no tiene), y se quitó al terminar.
+
+**La evaluación** (50 preguntas, 10 de ellas con faltas) con la IA sin pensamiento: **49 de 50**. La que fallaba, «¿Como mando ropa a la
+tienda de trujiyo?», iba siempre a Mis compras (su guía dice «lo que mandas a la tienda»): una línea en las instrucciones dice que mover ropa
+entre sedes es un traslado, y desde ahí va a Nuevo traslado, con su tarea de 5 pasos hasta «Enviar la caja».
+
+**Cualquier tarea, no solo vender (Felipe 2026-10-27, tras ver el PR #1404: «lo de venta era un ejemplo, eso debe ser así para todo»).**
+- **Pantallas que se abren desde otra.** Editar producto (`/productos/[id]/editar`) no tiene entrada en el menú: se abre tocando una
+  prenda y «Editar». La IA ahora recibe esas pantallas (`pantallasQueSeAbrenDesde`, en `<se_abren_desde>`, solo para los pasos de una
+  tarea, nunca para un tramo), las que cuelgan con un id de una candidata, menos las que piden otro módulo (`PIDEN_OTRO_MODULO`, que su
+  prueba ahora calcula también para las de id). El Acompañante no ofrece «Llévame» a una pantalla así: se llega con el paso anterior.
+- **Los puentes** (`lib/asistente/puentes.ts`): cómo se abre cada pantalla con id desde su madre (Productos: busca, toca la prenda, toca
+  Editar). La IA suele saltarlos o ponerlos desordenados; el servidor los deja en su orden, antes del primer paso de la pantalla con id.
+  La búsqueda de la IA se conserva si trae el nombre; si no, se usa el que dio en otra parte de su respuesta (tal cual de la pregunta).
+  `puentes.test.ts` falla si una guía o un paso del mapa deja de existir.
+- **Toda tarea termina guardando.** `pasoGuarda` reconoce el paso que guarda por el nombre de su pieza (`….guardar`, `….confirmar`,
+  `….enviar`, `….registrar`, el pie de una hoja…); la IA lo ve marcado `[guarda]`. Si cortó antes, se agrega el que guarda después de su
+  último paso; si guardó una hoja («Agregar» de Agregar color, que solo suma a la tabla) y la pantalla guarda aparte, se agrega también el
+  de la pantalla. Editar producto explicaba su guardado sobre un texto: tiene un ancla nueva en el botón de verdad
+  (`editar.barra-guardar`, paso opcional de su guía, `PASO_QUE_GUARDA`).
+- **Verificado** a 1440 y 375 px con la cuenta de Felipe: «quiero agregar un color a la blusa catalina siete» va de Inicio a Productos,
+  busca, abre la prenda, entra a Editar, abre Agregar color, elige, suma (la fila «Crudo · NUEVA») y termina en «Revisa y guarda tú los
+  cambios» con «Revisar y guardar» encendido, sin guardar nada. La venta de siempre, otra vez, llega a confirmar el cobro.
+
+- **Otras tareas, por la API** (cuenta de Felipe): cambiar el precio de una prenda (6 pasos, de buscarla a «Revisar y guardar»),
+  registrar un gasto (7, hasta su botón de registrar), crear un cliente (5, hasta «Registrar») y un cambio de talla (5, hasta confirmar).
+- **La evaluación** con estas instrucciones: 49 de 50. La que fallaba («¿Dónde veo cómo cambió el precio de una prenda?») elegía como
+  destino el Historial de una prenda, que se abre desde otra: ahora ese tramo va a Productos, su pantalla madre (3 de 3).
+
+**Lo que aprendí del Acompañante al probarlo con una tarea larga.**
+- La foto de «qué había a la vista» se toma cuando aparece la pieza del paso, no cuando el paso empieza: tras tocar «Editar», la pantalla
+  nueva todavía carga y lo que aparece al cargar no es que la persona avanzó (saltaba hasta «guardar»).
+- En una pieza con varios botones manda el principal (el de enviar o el último): el pie de una hoja trae «Cancelar» siempre encendido.
+- «Cancelar», «Descartar», «Cerrar» o «Volver» no avanzan el paso.
+- El dato del buscador se reintenta hasta 3 veces si el campo queda vacío (una pantalla que termina de armarse lo borraba).
+
+**El diseño del resaltado (Felipe 2026-10-27: «se ve muy pobre y feo si solo es una línea roja»).** El Acompañante habla el idioma de las
+guías interactivas (ADR-0389): un velo suave con un recorte alrededor de la pieza, filo rojo, el halo que respira y la onda que sale una
+vez al llegar, más una **etiqueta pegada a la pieza** con el número del paso en rojo y la orden, con su pico hacia ella
+(`app/estilos/acompanante.css`). El velo no bloquea nada (todo se toca a través), se aparta si hay una lista abierta encima y sigue a la
+pieza cuadro a cuadro sin pasarse. La barra de abajo sigue siendo el GPS. Sin rebote; se apaga con `prefers-reduced-motion`.
+
+**La evaluación de tareas (tercera vuelta, Felipe 2026-10-27: «¿ya es robusto?»).** La de 50 preguntas mide si la IA elige la pantalla,
+no si la tarea llega. `lib/asistente/evaluacion/recorrer-tareas.mjs` (`pnpm --filter web asistente:tareas`, solo local) le pregunta 22
+pedidos de `tareas.json` y los recorre en el navegador como una persona (escribe, toca lo que dice la orden, elige de una lista) hasta el
+primer paso que guarda, sin tocarlo. La primera corrida dio **6 de 22 (27 %)**. Cada vuelta mostró una causa general, y se arregló en el
+sistema, no en la pregunta:
+- **Lo que abre cada paso.** Las guías ya lo dicen: el `preparar` de un paso (lo que la demo toca para que la pieza aparezca), también el
+  de los pasos sin pieza que van justo antes. Si la IA lo saltó, se agrega («Toca Registrar gasto», «Toca Nuevo cliente», «Cambiar» antes
+  del cambio). Un toque de `preparar` nunca guarda: la demo tiene prohibido guardar.
+- **Los «Continuar» de en medio.** Entre dos pasos de la misma guía, los que solo hacen avanzar (un pie de paso, «Continuar», abrir la fila
+  o la tarjeta de algo).
+- **Una tarea mínima** si la IA no armó ninguna y la pregunta pide hacer algo (`pideHacer`): desde su paso (o el que encontró la búsqueda
+  local) hasta el que guarda. Y en las instrucciones, que una pregunta de hacer nunca lleva «pasos» vacío, con tres ejemplos en palabras.
+- **El cierre general, acotado**: solo un guardar de la misma pieza o de la pantalla (antes agregaba el del costo, en el Historial).
+- **El tope de 12 pasos** no cuenta los del celular y, si sobran, recorta del medio: nunca el cierre (antes se perdían Boleta y confirmar).
+- **El buscador busca por el nombre**: sin el color ni la talla que la IA a veces copia (`sinColorNiTalla`); si igual no sale nada, prueba
+  más corto, sin la última palabra, y lo dice.
+- **El Acompañante**: un combo cuenta como hecho cuando cambia lo que muestra (se elige en una lista que flota afuera); tocar lo que tiene
+  la manito cuenta (una fila, una tarjeta); una pieza sin nada que tocar ni escribir se da por hecha («queda a tu nombre»); el nombre de la
+  pieza completa una orden sin título propio («Toca «Agregar color»»); y **nunca salta hasta un paso que guarda** porque apareció
+  encendido (al volver del cobro se encendía el «Confirmar cobro» del ticket y saltaba el pago y la boleta).
+- **Recalcular si la persona se desvía**: si la pieza estaba y se fue (cerró la hoja del cobro), vuelve al paso que la abre y lo dice
+  («Se cerró lo que estabas usando: vuelve a tocar aquí»); si nunca apareció y la del paso anterior sigue ahí, «No se abrió: vuelve a tocar
+  aquí». Probado: cerrar el cobro, recargar a mitad, irse a Caja y volver con «Llévame», salir con la ×.
+- **Anclas nuevas** (pasos opcionales que la demo salta): el flujo de devolución (prendas, motivo, revisar, quién, registrar) y el pie de
+  las hojas de Gasto e Ingreso de Caja, que ya guían campo por campo (la tarea termina en «Llena la hoja y registra el ingreso»).
+
+Las corridas, arreglo a arreglo, fueron 27 %, 27 %, 36 %, 55 % y 73 %; las tres últimas, **con el mismo código**, dieron 73 %, 64 % y
+**45 %**. Esa diferencia ya no es del sistema sino de la IA: para la misma pregunta arma pasos distintos de una vez a otra (agregar una talla,
+el conteo o cerrar la caja salen con pasos una vez y sin pasos la siguiente; el gasto mezcla la hoja rápida con el formulario largo). Lo que
+el sistema puede arreglar solo, lo arregla; lo que no, es la elección de la IA. El siguiente paso de fondo es decidir si las tareas más
+comunes se escriben como **recetas fijas** (la IA solo elige cuál y pone los datos) en vez de pedirle cada camino: ver el backlog.
+
+**Lo que no está.** Los cierres fijos existen solo para Vender; las demás tareas (un cambio, un traslado) siguen lo que propone la IA, revisado.
+
+## Recetas (Felipe 2026-10-28: «Sí, recetas»)
+
+**El problema.** Con el mismo código, la evaluación de tareas daba entre 45 % y 73 %: la IA arma pasos distintos para la misma pregunta
+(una vez con pasos, la siguiente sin; un paso de otra hoja). Para las tareas de todos los días el camino ya se sabe; pedírselo cada vez a
+la IA es ponerlo a la suerte.
+
+**Cómo quedó** (`lib/asistente/recetas.ts`). Diez recetas escritas una vez, paso a paso sobre las guías: vender (hasta confirmar el cobro),
+cambio, devolución, gasto e ingreso del cajón, traslado, cliente nuevo, agregar un color, agregar una talla y cambiar un precio. La IA
+recibe en `<recetas>` solo las que esa cuenta puede hacer entera (`pantallasAlcanzables`, sacada de la preselección, más los puentes:
+Editar producto se abre desde Productos) y, si la pregunta es una de ellas, devuelve su id y los datos que la persona dijo (prenda, color,
+talla, medio de pago, comprobante, monto, destino). El servidor arma la tarea con el camino de la receta y pasa por la misma revisión de
+siempre (`revisarTarea`: la lista del buscador, el celular, los cierres). **Un dato solo entra si la persona lo dijo** (`datoDicho`: está en
+la pregunta, sin tildes ni mayúsculas); si no, la orden usa su texto sin dato («Elige cómo paga»). Lo que no tiene receta sigue igual que
+antes. `recetas.test.ts` falla si un paso deja de existir o pierde su pieza, si una receta no termina en el paso que guarda o si una orden
+nombra un dato desconocido.
+
+**Lo que se movió para que las recetas terminen bien.** «Agregar talla» tiene ancla en su pie (`agregar-talla.pie`, paso opcional) como
+«Agregar color»; y el ancla de «Registrar devolución» pasó de `devolucion.registrar` a `devolucion.confirmar`, porque `registrar` a secas
+es en otras guías el botón que ABRE una hoja y no cuenta como paso que guarda.
+
+**Lo que salió al probarlo.**
+- Con receta, la IA a veces escribía «receta» en `tipo`, que era una lista cerrada, y el SDK tiraba la respuesta entera (la venta, cambiar
+  un precio y el cliente salían sin IA). Ahora `tipo` se lee como texto y `tipoDe` lo normaliza: lo desconocido cuenta como «guia» solo
+  si eligió una receta ofrecida. Y un fallo rápido que no es por tiempo se reintenta una vez, con lo que queda de los 8 s.
+- «Úsala siempre» llevó a la IA a elegir una receta para preguntas de reglas («el cliente no quiere boleta, ¿qué hago?»): la instrucción
+  ahora dice que la receta es para cuando la persona pide HACER la tarea, y que una pregunta de regla va a su regla.
+- La IA decía «Te llevo a la receta…»: «receta» es una palabra interna y no se le dice a la persona.
+
+**Medido** (local, cuenta de Felipe, `asistente:tareas`): **9 de las 10 tareas con receta llegan al paso que guarda** (venta, cambio,
+devolución, gasto, ingreso, traslado, agregar color, agregar talla, cambiar precio). La décima, cliente nuevo, se detiene donde debe: en
+local el padrón de SUNAT no responde y la hoja no deja registrar sin el nombre (la evaluación la informa aparte, como la asistencia).
+En total, 14 de 22; las que faltan no tienen receta. La de 50 preguntas: **49 de 50**.
+
+**Lo que no tiene receta, a propósito.** El apartado (su guía no tiene un paso de confirmar: «¿de quién es?» solo sale en Lima), el cierre
+de caja (la hoja del cierre no tiene anclas) y prenda nueva (un formulario largo con su propia guía de foco).
+
 ## Producción
 
-Nada todavía. Cuando toque: las migraciones esperan el OK de Felipe (cambio de esquema en producción), la `ANTHROPIC_API_KEY` la pone Felipe en
-Vercel, y la sede del piloto la elige Felipe.
+Las cuatro migraciones del asistente se aplicaron el 2026-10-27 (ver el backlog). La `ANTHROPIC_API_KEY` está en Vercel y la sede del piloto
+la elige Felipe en Configuración ▸ Tiendas y caja. La segunda vuelta (Acompañar) no tiene migración.

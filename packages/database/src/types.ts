@@ -2751,6 +2751,7 @@ export type Database = {
           conteo_item_id: string | null
           created_at: string
           devolucion_item_id: string | null
+          empresa_id: string | null
           id: string
           lote_id: string | null
           motivo: string | null
@@ -2774,6 +2775,7 @@ export type Database = {
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           motivo?: string | null
@@ -2797,6 +2799,7 @@ export type Database = {
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           motivo?: string | null
@@ -5396,15 +5399,6 @@ export type Database = {
         Args: { p_persona_id: string; p_terminal: string; p_ubicacion_id: string }
         Returns: undefined
       }
-      ajustar_insumo_por_conteo: {
-        Args: {
-          p_cantidad_contada: number
-          p_insumo_id: string
-          p_motivo: string
-          p_ubicacion_id: string
-        }
-        Returns: string
-      }
       anular_compra: {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: undefined
@@ -6832,9 +6826,10 @@ export type Database = {
           ventas: number
         }[]
       }
-      fn_marcas_de_empresas: {
-        Args: Record<PropertyKey, never>
-        Returns: { empresa_id: string; marca_id: string | null }[]
+      // ADR-0542: de quién son las unidades de cada prenda en una sede con dos empresas (solo las prendas con unidades de alguien que no es la casa).
+      fn_stock_por_dueno: {
+        Args: { p_ubicacion_id: string }
+        Returns: { variante_id: string; empresa_id: string; clave: string; cantidad: number; cantidad_apartada: number }[]
       }
       fn_empresa_de_ventas: {
         Args: { p_ventas: string[] }
@@ -7273,24 +7268,6 @@ export type Database = {
           faltaron: number
           pendientes: number
           variante_id: string
-        }[]
-      }
-      fn_costo_historial: {
-        Args: { p_variante_id: string }
-        Returns: {
-          cantidad_nueva: number
-          compra_documento: string
-          costo_anterior: number
-          costo_resultante: number
-          costo_unitario_nuevo: number
-          created_at: string
-          id: string
-          lote_guia: string
-          origen: string
-          produccion_referencia: string
-          proveedor_nombre: string
-          stock_previo: number
-          usuario_nombre: string
         }[]
       }
       fn_cotizacion_maquila_vigente: {

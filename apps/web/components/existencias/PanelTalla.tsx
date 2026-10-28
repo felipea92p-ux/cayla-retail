@@ -32,6 +32,7 @@ import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencia
 import { celdaTarjeta, tallasSinColgar } from "@/lib/existencias-tarjeta-compacta";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
+import { CLAVE_CASA, lineaDeDuenos, textoDeDueno } from "@/lib/stock-por-dueno-reglas";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
 import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
@@ -123,6 +124,7 @@ export function PanelTalla({
   claveInicial,
   varianteInicial,
   flujoInicial = null,
+  volverAEditar = null,
   ubicacionId,
   sedeNombre,
   separa,
@@ -153,6 +155,8 @@ export function PanelTalla({
   varianteInicial?: string;
   /** Abrir directamente en un paso (acción rápida de la tarjeta, «Colgar primero»). Cambia con cada pedido. */
   flujoInicial?: FlujoPedido | null;
+  /** La ficha de Editar producto de donde se llegó (candado → «Ajustar stock»): la vuelta de la planilla va ahí, no a la talla. */
+  volverAEditar?: string | null;
   ubicacionId: string;
   sedeNombre: string;
   separa: boolean;
@@ -407,6 +411,8 @@ export function PanelTalla({
   const codigo = fila.codigosBarras?.[0] ?? fila.sku ?? null;
   // Cuánto tiene cada otra sede de esta talla.
   const otrasSedes = (fila.enRed ?? []).map((s) => `${nombreCortoSede(s.sede)} ${s.cantidad}`).join(" · ");
+  // De quién son las unidades de esta talla aquí (ADR-0542): solo donde conviven dos empresas y solo si alguien que no es la casa tiene.
+  const duenosDeLaTalla = lineaDeDuenos(fila.duenos);
   const insignia = insigniaDeTalla(queToca);
   // «Todas»: las sumas del modelo entero (todos los colores) y cuántas tallas faltan colgar o se acabaron.
   const tallasModelo = colores.flatMap((c) => c.tallas);
@@ -483,6 +489,10 @@ export function PanelTalla({
   // Volver a la talla: si hay algo tocado sin guardar, primero «¿Salir sin guardar?».
   const volverDeAjuste = () =>
     pedirAccion(() => {
+      if (volverAEditar) {
+        router.push(volverAEditar);
+        return;
+      }
       setFlujo(null);
       setFocoAjuste(null);
       setListoAjuste(null);
@@ -896,6 +906,7 @@ export function PanelTalla({
                     foco={focoAjuste}
                     onApagarFoco={() => setFocoAjuste(null)}
                     onVolver={volverDeAjuste}
+                    volverA={volverAEditar ? "Editar producto" : undefined}
                     onAbrirConteo={(id) => {
                       // Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza a ese conteo.
                       const f = colores.flatMap((c) => c.tallas).find((t) => t.varianteId === id);
@@ -981,6 +992,16 @@ export function PanelTalla({
                               Otras sedes: <b className="font-semibold text-tinta">{otrasSedes || "ninguna la tiene"}</b>
                             </span>
                           </p>
+                          {duenosDeLaTalla && (
+                            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-taupe">
+                              <span>De quién es:</span>
+                              {duenosDeLaTalla.map((d) => (
+                                <Chip key={d.empresaId} tono={d.clave === CLAVE_CASA ? "tinta" : "pizarra"} versalitas={false} title={`${d.cantidad} de ${d.nombre} en esta tienda`}>
+                                  {textoDeDueno(d)}
+                                </Chip>
+                              ))}
+                            </p>
+                          )}
                         </div>
 
                         {/* «Ajustar stock» (ADR-0494, Felipe: la banda bajo los números): justo bajo lo que se corrige. Abre la planilla del modelo
