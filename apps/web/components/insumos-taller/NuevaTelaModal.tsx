@@ -10,7 +10,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
@@ -253,19 +253,21 @@ export function NuevaTelaModal({
                   </Aviso>
                 )}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <CampoGuiado id="tejido" guia={guia} titulo="Tejido">
-                    {leyoVocabulario ? (
-                      <ComboBuscable
-                        valor={tejidoId}
-                        onValor={setTejidoId}
-                        opciones={tejidos.map((t) => ({ valor: t.id, texto: t.nombre }))}
-                        marcador="Busca o escribe el tejido"
-                        etiquetaAccesible="Tejido de la tela"
-                        crear={{ etiqueta: (t) => `+ Crear el tejido «${t.trim()}»`, onCrear: (t) => void crearTejido(t), pista: "¿Es nuevo? Escribe su nombre arriba" }}
-                      />
-                    ) : (
-                      <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
-                    )}
+                  <CampoGuiado id="tejido" guia={guia}>
+                    <Campo etiqueta={guia.etiqueta("tejido", "Tejido")} sinPie>
+                      {leyoVocabulario ? (
+                        <ComboBuscable
+                          valor={tejidoId}
+                          onValor={setTejidoId}
+                          opciones={tejidos.map((t) => ({ valor: t.id, texto: t.nombre }))}
+                          marcador="Busca o escribe el tejido"
+                          etiquetaAccesible="Tejido de la tela"
+                          crear={{ etiqueta: (t) => `+ Crear el tejido «${t.trim()}»`, onCrear: (t) => void crearTejido(t), pista: "¿Es nuevo? Escribe su nombre arriba" }}
+                        />
+                      ) : (
+                        <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
+                      )}
+                    </Campo>
                   </CampoGuiado>
                   <CampoGuiado id="composicion" guia={guia}>
                     <CampoTexto
@@ -404,7 +406,17 @@ export function NuevaTelaModal({
                 Cancelar
               </Boton>
               <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-                {agregarA ? `Agregar ${n} ${n === 1 ? "color" : "colores"}` : n > 0 ? `Crear la tela con ${n} ${n === 1 ? "color" : "colores"}` : "Crear la tela"}
+                {agregarA ? (
+                  n > 0 ? `Agregar ${n} ${n === 1 ? "color" : "colores"}` : "Agregar colores"
+                ) : n > 0 ? (
+                  // En el celular el botón es media fila: la cuenta de colores ya está en el título de la sección.
+                  <>
+                    <span className="sm:hidden">Crear la tela</span>
+                    <span className="hidden sm:inline">{`Crear la tela con ${n} ${n === 1 ? "color" : "colores"}`}</span>
+                  </>
+                ) : (
+                  "Crear la tela"
+                )}
               </Boton>
             </div>
           </div>
