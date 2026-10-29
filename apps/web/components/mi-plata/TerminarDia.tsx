@@ -2,21 +2,21 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Flag, PackageCheck, Truck } from "lucide-react";
+import { Check, Flag, Truck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { Vacio } from "@/components/ui/Vacio";
 import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { terminarDia } from "@/lib/mi-plata-acciones";
-import { EVENTO_MANDAR, decisionesCierre, puedeCerrarLaRonda, resumenRonda, textoCierre, textoFaltaMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
+import { EVENTO_MANDAR, decisionesCierre, faltaCuentaDeLaDevolucion, puedeCerrarLaRonda, resumenRonda, textoCierre, textoFaltaMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
 import { resumenDeEnvios, type EnvioMio } from "@/lib/mis-envios-reglas";
-import { FilaEnvio } from "./FilaEnvio";
+import { FichasCuenta } from "@/components/fondos/FichasCuenta";
+import type { CuentaOpcion } from "@/lib/fondos-reglas";
 import { FranjaFaltaMandar } from "./MandarATienda";
 
 // Compras simple (ADR-0480): «Cerrar mi ronda» (antes «Terminé de comprar hoy», al que reemplaza desde 20261023183000; Felipe 2026-10-23).
@@ -29,13 +29,15 @@ import { FranjaFaltaMandar } from "./MandarATienda";
 
 type Plata = Pick<MiPlata, "tiene" | "hoy" | "ronda" | "porMandar">;
 
-const OPCIONES: Record<Exclude<DecisionCierre, "le_deben">, { nombre: string; detalle: string }> = {
-  se_queda: { nombre: "Me lo quedo para mi próxima ronda", detalle: "Sigue siendo plata de CAYLA para comprar" },
-  devuelve: { nombre: "Lo devuelvo al cerrar", detalle: "Lo entregas en caja y Compras lo recibe" },
+// Dos palabras cada una (opción A de docs/maquetas/mis-compras-cerrar-ronda-2026-10/, Felipe 2026-10-29: «hay mucho texto, se explican cosas que no
+// son necesarias»): lo que sigue a cada elección ya lo dice el aviso al cerrar (`textoCierre`) y la bandeja de Compras.
+const OPCIONES: Record<Exclude<DecisionCierre, "le_deben">, string> = {
+  se_queda: "Me lo quedo",
+  devuelve: "Lo devuelvo",
 };
 
 /** `envios`: los de la ronda abierta, para verlos antes de cerrarla (Felipe 2026-10-26); `null` si no se pudieron leer. */
-export function TerminarDia({ plata, envios, hoy }: { plata: Plata; envios: EnvioMio[] | null; hoy?: string }) {
+export function TerminarDia({ plata, envios, hoy, cuentasDevolver = [] }: { plata: Plata; envios: EnvioMio[] | null; hoy?: string; cuentasDevolver?: CuentaOpcion[] }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   const ronda = plata.ronda.abierta;
@@ -86,30 +88,47 @@ export function TerminarDia({ plata, envios, hoy }: { plata: Plata; envios: Envi
           Cerrar mi ronda {ronda.texto}
         </span>
       </Boton>
-      {abierta && <TerminarModal plata={plata} envios={envios} hoy={hoy} onClose={() => setAbierta(false)} volverA={origen} />}
+      {abierta && <TerminarModal plata={plata} envios={envios} hoy={hoy} cuentasDevolver={cuentasDevolver} onClose={() => setAbierta(false)} volverA={origen} />}
     </section>
   );
 }
 
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
-function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata; envios: EnvioMio[] | null; hoy?: string; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
+function TerminarModal({
+  plata,
+  envios,
+  hoy,
+  cuentasDevolver,
+  onClose,
+  volverA,
+}: {
+  plata: Plata;
+  envios: EnvioMio[] | null;
+  hoy?: string;
+  cuentasDevolver: CuentaOpcion[];
+  onClose: () => void;
+  volverA: RefObject<HTMLElement | null>;
+}) {
   const router = useRouter();
   const opciones = decisionesCierre(plata.tiene);
   const sinElegir = opciones.length === 1;
   const [decision, setDecision] = useState<DecisionCierre | null>(sinElegir ? opciones[0] : null);
+  // La cuenta de CAYLA a la que devolvió (Felipe 2026-10-29): solo con «Lo devuelvo»; no llega elegida, la compradora sabe dónde entregó.
+  const [cuentaId, setCuentaId] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
   const d = resumenRonda(plata);
   const texto = plata.ronda.abierta?.texto ?? "";
   const falta = textoFaltaMandar(plata.porMandar);
   const sePuedeCerrar = puedeCerrarLaRonda(plata.porMandar);
+  const faltaCuenta = faltaCuentaDeLaDevolucion(decision, cuentasDevolver, cuentaId);
 
   async function confirmar() {
-    if (guardando || !decision || !sePuedeCerrar) return;
+    if (guardando || !decision || !sePuedeCerrar || faltaCuenta) return;
     setRechazo(null);
     setGuardando(true);
-    const { error } = await terminarDia({ p_decision: decision }, firmaOmitida("compra_terminar_dia"));
+    const { error } = await terminarDia({ p_decision: decision, p_cuenta_indicada_id: decision === "devuelve" ? cuentaId : null }, firmaOmitida("compra_terminar_dia"));
     setGuardando(false);
     if (error) {
       return setRechazo(
@@ -118,7 +137,8 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
           : { titulo: "No se guardó", texto: traducirError(error, "cerrar tu ronda"), tono: "error" },
       );
     }
-    avisar.exito(`Cerraste tu ronda ${texto}`, { detalle: textoCierre({ decision, monto: Math.abs(plata.tiene) }) });
+    const cuenta = decision === "devuelve" ? cuentasDevolver.find((c) => c.id === cuentaId)?.nombre : null;
+    avisar.exito(`Cerraste tu ronda ${texto}`, { detalle: `${textoCierre({ decision, monto: Math.abs(plata.tiene) })}${cuenta ? ` Cuenta: ${cuenta}.` : ""}` });
     onClose();
     router.refresh();
   }
@@ -137,7 +157,6 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
   return (
     <Modal
       titulo={`Cerrar mi ronda ${texto}`}
-      subtitulo="Revisa tu plata y di qué haces con lo que te queda."
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}
@@ -186,7 +205,7 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
           ) : (
             <div className="flex flex-col gap-2" data-guia="mi-plata.decision">
               <TituloSeccion nivel={3}>¿Qué haces con lo que te queda?</TituloSeccion>
-              <div role="group" aria-label="¿Qué haces con lo que te queda?" className="flex flex-col gap-2">
+              <div role="group" aria-label="¿Qué haces con lo que te queda?" className="grid grid-cols-2 gap-2">
                 {(["se_queda", "devuelve"] as const).map((k) => (
                   <button
                     key={k}
@@ -197,20 +216,27 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
                       setRechazo(null);
                       setDecision(k);
                     }}
-                    className={`card-cayla mov-boton grid grid-cols-[22px_minmax(0,1fr)] gap-3 rounded-2xl p-3.5 text-left ${decision === k ? "border-tinta ring-1 ring-inset ring-tinta" : ""}`}
+                    className={`card-cayla mov-boton rounded-2xl px-3 py-4 text-center font-medium text-tinta ${decision === k ? "border-tinta ring-1 ring-inset ring-tinta" : ""}`}
                   >
-                    {/* El círculo de una respuesta de radio (la maqueta): se llena de tinta al elegirla. */}
-                    <span
-                      aria-hidden
-                      className={`mt-0.5 h-[22px] w-[22px] rounded-full border-borde-control transition-[border-width] duration-200 ${decision === k ? "border-[7px] border-tinta" : "border-[1.5px]"}`}
-                    />
-                    <span className="min-w-0">
-                      <span className="block font-medium text-tinta">{OPCIONES[k].nombre}</span>
-                      <span className="block text-[12.5px] text-taupe">{OPCIONES[k].detalle}</span>
-                    </span>
+                    {OPCIONES[k]}
                   </button>
                 ))}
               </div>
+              {decision === "devuelve" && cuentasDevolver.length > 0 && (
+                <div className="mt-2 flex flex-col gap-2" data-guia="mi-plata.cuenta-devolucion">
+                  <TituloSeccion nivel={3}>¿A qué cuenta?</TituloSeccion>
+                  <FichasCuenta
+                    etiqueta="¿A qué cuenta de CAYLA lo devuelves?"
+                    cuentas={cuentasDevolver}
+                    valor={cuentaId ?? ""}
+                    onValor={(id) => {
+                      setRechazo(null);
+                      setCuentaId(id);
+                    }}
+                    deshabilitado={guardando}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -222,7 +248,11 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
           {!sePuedeCerrar ? (
             <p className="text-xs text-taupe">Manda las prendas a la tienda y después cierras tu ronda.</p>
           ) : (
-            !decision && <p className="text-xs text-taupe">Elige qué haces con lo que te queda.</p>
+            (!decision ? (
+              <p className="text-xs text-taupe">Elige qué haces con lo que te queda.</p>
+            ) : (
+              faltaCuenta && <p className="text-xs text-taupe">Elige a qué cuenta de CAYLA lo devuelves.</p>
+            ))
           )}
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
@@ -233,7 +263,7 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
               peso="primario"
               cargando={guardando}
               textoCargando="Guardando…"
-              disabled={!decision || !sePuedeCerrar}
+              disabled={!decision || !sePuedeCerrar || faltaCuenta}
               title={!sePuedeCerrar ? "Antes, manda las prendas a la tienda" : undefined}
               data-guia="mi-plata.terminar"
             >
@@ -246,28 +276,24 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
   );
 }
 
-/** «Tus envíos de la ronda»: cada uno con su código y en qué va, y cómo va la ronda en un chip. Solo se lee. */
+/**
+ * Los envíos de la ronda, en UNA línea (opción A de la maqueta, Felipe 2026-10-29): con uno o dos, sus códigos para avisarle a la tienda si hace
+ * falta; con más, cuántos y cuántas prendas. El chip dice cómo va. Uno «en camino» no frena el cierre y se sigue viendo en Mis envíos. Solo se lee.
+ */
 function EnviosAntesDeCerrar({ envios, hoy }: { envios: EnvioMio[]; hoy?: string }) {
   const resumen = resumenDeEnvios(envios, hoy);
+  const vivos = envios.filter((e) => e.estado !== "anulado");
+  const prendas = vivos.reduce((t, e) => t + e.prendas, 0);
+  const frase =
+    vivos.length === 0
+      ? "Sin envíos en esta ronda"
+      : vivos.length <= 2
+        ? `${vivos.map((e) => `${e.numero} ${e.destino.replace(/^Tienda /, "")}`).join(" · ")} · ${prendas} ${prendas === 1 ? "prenda" : "prendas"}`
+        : resumen.texto;
   return (
-    <div className="flex flex-col gap-1" data-guia="mi-plata.cerrar-envios">
-      <TituloSeccion nivel={3} cuenta={envios.length} accion={resumen.chip ? <Chip tono={resumen.chip.tono}>{resumen.chip.texto}</Chip> : undefined}>
-        Tus envíos de la ronda
-      </TituloSeccion>
-      {envios.length > 0 ? (
-        <>
-          <ul className="divide-y divide-sand">
-            {envios.map((e) => (
-              <FilaEnvio key={e.id} e={e} hoy={hoy} soloLeer />
-            ))}
-          </ul>
-          <p className="text-xs text-taupe">Los que sigan «en camino» los puedes seguir viendo en Mis envíos después de cerrar.</p>
-        </>
-      ) : (
-        <Vacio icono={<PackageCheck aria-hidden />} titulo="No mandaste nada" tamano="chico" alinear="izquierda">
-          No mandaste nada en esta ronda.
-        </Vacio>
-      )}
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-sand px-3.5 py-3 text-sm" data-guia="mi-plata.cerrar-envios">
+      <span className="min-w-0 text-tinta">{frase}</span>
+      {resumen.chip && <Chip tono={resumen.chip.tono}>{resumen.chip.texto}</Chip>}
     </div>
   );
 }

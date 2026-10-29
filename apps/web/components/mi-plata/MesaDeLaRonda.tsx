@@ -32,6 +32,7 @@ export function MesaDeLaRonda({
   plata,
   ronda,
   bancos,
+  cuentasDevolver,
   actuales,
   anteriores,
   envios,
@@ -42,6 +43,8 @@ export function MesaDeLaRonda({
   plata: MiPlata;
   ronda: RondaAbierta;
   bancos: CuentaOpcion[];
+  /** Los bancos y cajas fuertes de CAYLA a los que se puede devolver lo que sobró al cerrar la ronda. */
+  cuentasDevolver: CuentaOpcion[];
   /** Lo anotado en esta ronda, lo más nuevo primero. */
   actuales: MovimientoCompradora[];
   /** Lo de antes: la plata anotada sin ronda y una fila por ronda cerrada. */
@@ -95,7 +98,7 @@ export function MesaDeLaRonda({
         </div>
       </div>
       {rondaVacia && <RondaVacia texto={ronda.texto} />}
-      <TerminarDia plata={plata} envios={enviosRonda} hoy={hoy} />
+      <TerminarDia plata={plata} envios={enviosRonda} hoy={hoy} cuentasDevolver={cuentasDevolver} />
       {anteriores.length > 0 && <RondasAnteriores historial={anteriores} envios={rondasEnvios} hoy={hoy} tarjetas />}
     </div>
   );

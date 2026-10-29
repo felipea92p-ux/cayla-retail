@@ -541,8 +541,8 @@ $f$;
 select pg_temp.tiene('compra_ronda:' || :'micaela'), pg_temp.tiene('compra_mandar:' || :'micaela'), pg_temp.tiene('compra_papel:${ID}'),
        -- Las funciones que compiten por esa plata usan las MISMAS claves.
        (select pg_get_functiondef('retail.mandar_compras_a_tienda(uuid,integer,uuid)'::regprocedure) like '%''compra_mandar:'' || v_actor::text%'),
-       (select pg_get_functiondef('retail.terminar_dia_compras(text)'::regprocedure) like '%fn_ronda_compras_candado%'
-            or pg_get_functiondef('retail.terminar_dia_compras(text)'::regprocedure) like '%compra_ronda:%'),
+       (select pg_get_functiondef(coalesce(to_regprocedure('retail.terminar_dia_compras(text,uuid)'), to_regprocedure('retail.terminar_dia_compras(text)'))) like '%fn_ronda_compras_candado%'
+            or pg_get_functiondef(coalesce(to_regprocedure('retail.terminar_dia_compras(text,uuid)'), to_regprocedure('retail.terminar_dia_compras(text)'))) like '%compra_ronda:%'),
        (select pg_get_functiondef('retail.completar_papel_compra(uuid,uuid,text,text,numeric)'::regprocedure) like '%for update%'
             or pg_get_functiondef('retail.completar_papel_compra(uuid,uuid,text,text,numeric)'::regprocedure) like '%compra_papel:%');`,
   "t|t|t|t|t|t",
