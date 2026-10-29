@@ -159,7 +159,9 @@ export type MiPlata = {
   comprasPorCompletar: number;
   /** Lo que gastó en otras cosas y Compras todavía no revisa: también ya bajó. */
   gastosPorCompletar: number;
-  /** Lo que tiene para comprar: su fondo más lo por confirmar, menos lo comprado y lo gastado por completar. */
+  /** Lo que ya decidió devolver al cerrar su ronda y Compras todavía no recibió en caja: ya no es suyo (ADR-0574). */
+  devolucionPorEntregar: number;
+  /** Lo que tiene para comprar: su fondo más lo por confirmar, menos lo comprado, lo gastado por completar y lo que ya decidió devolver. */
   tiene: number;
   puedeYaTenia: boolean;
   anotada: PlataAnotada[];
@@ -314,6 +316,7 @@ export function leerMiPlata(data: unknown): MiPlata | null {
       porConfirmar: 0,
       comprasPorCompletar: 0,
       gastosPorCompletar: 0,
+      devolucionPorEntregar: 0,
       tiene: 0,
       puedeYaTenia: false,
       anotada: [],
@@ -336,14 +339,17 @@ export function leerMiPlata(data: unknown): MiPlata | null {
   if (o.ronda !== undefined && (compras === null || gastos === null)) return null;
   const comprasPorCompletar = compras ?? 0;
   const gastosPorCompletar = gastos ?? 0;
+  // Lo que ya decidió devolver (20261029191000, ADR-0574). Una base que todavía no lo manda deja la cuenta como era: no es una lectura rota.
+  const devolucionPorEntregar = numero(o.devolucion_por_entregar) ?? 0;
   return {
     persona: true,
     saldo,
     porConfirmar,
     comprasPorCompletar,
     gastosPorCompletar,
+    devolucionPorEntregar,
     // La misma cuenta que `fn_mi_plata_tiene` en la base (la que guarda el cierre del día).
-    tiene: redondear(saldo + porConfirmar - comprasPorCompletar - gastosPorCompletar),
+    tiene: redondear(saldo + porConfirmar - comprasPorCompletar - gastosPorCompletar - devolucionPorEntregar),
     puedeYaTenia: o.puede_ya_tenia === true,
     anotada: (Array.isArray(o.anotada) ? o.anotada : []).map(leerAnotada).filter((a): a is PlataAnotada => a !== null),
     compras: (Array.isArray(o.compras) ? o.compras : []).map(leerCompra).filter((c): c is CompraAnotada => c !== null),
@@ -936,7 +942,7 @@ export type UltimaRondaVista = {
   cierre: Extract<EntradaHistorial, { tipo: "cierre" }> | null;
   /** Qué falta de su lado: la plata por entregar o recibir manda; si no, que Compras todavía pase algo a los libros; si no, al día. */
   estado: { texto: string; detalle: string; pendiente: boolean };
-  /** «Devolviste en caja S/ 80.00», «Te quedaste S/ 200.00 para tu próxima ronda.», o lo que corresponda cuando no hubo plata que mover. */
+  /** «Por devolver en caja S/ 80.00» (ya «Devolviste…» cuando Compras lo recibió), «Te quedaste S/ 200.00 para tu próxima ronda.», o lo que corresponda cuando no hubo plata que mover. */
   comoCerro: string;
   resto: EntradaHistorial[];
 };
@@ -1011,7 +1017,8 @@ export function historialDeLaCompradora(antes: readonly MovimientoCompradora[], 
           tipo: "cierre",
           clave: `cierre-${r.id}`,
           decision: r.decision,
-          titulo: devuelve ? "Devolviste en caja" : "Pusiste de tu bolsillo",
+          // Mientras Compras no lo recibe no «devolviste» todavía (ADR-0574): la plata ya no cuenta como suya, pero falta entregarla en caja.
+          titulo: devuelve ? (r.resuelto ? "Devolviste en caja" : "Por devolver en caja") : "Pusiste de tu bolsillo",
           detalle: [r.texto, diaLima(r.cerradaEn) ? diaMes(diaLima(r.cerradaEn)!) : null].filter(Boolean).join(" · "),
           entra: !devuelve,
           monto: soles(r.monto),

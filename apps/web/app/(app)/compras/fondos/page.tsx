@@ -359,6 +359,11 @@ export default async function FondosPage() {
         </Aviso>
       )}
       {!falla && (
+        <p className="nota-cayla text-sm">
+          Lo que anotan las compradoras pasa solo a los libros. Aquí queda lo que no pudo y lo de antes; lo demás está en el historial.
+        </p>
+      )}
+      {!falla && (
         <BandejaRevisar
           plata={plataAnotada ?? []}
           papeles={revisar?.papeles ?? []}
