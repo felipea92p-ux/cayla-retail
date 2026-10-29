@@ -222,6 +222,26 @@ export function conPrendaAgregada(lineas: readonly LineaCompra[], nuevas: readon
   return [...lineas, ...nuevas];
 }
 
+/**
+ * El candado de un envío (/chaos 2026-10-29): cinco clics en «Guardar» en el mismo instante mandaban cinco pedidos iguales, porque la guardia
+ * `if (guardando)` leía el estado de antes del primero. Este candado vive fuera del estado de React: `tomar()` es verdadero solo la primera vez
+ * y hasta que `soltar()` (al terminar el envío, bien o mal) vuelve a dejar pasar un clic. La base ya devolvía lo mismo por el identificador de la
+ * compra; esto evita además los pedidos de más.
+ */
+export function candadoDeEnvio() {
+  let tomado = false;
+  return {
+    tomar(): boolean {
+      if (tomado) return false;
+      tomado = true;
+      return true;
+    },
+    soltar(): void {
+      tomado = false;
+    },
+  };
+}
+
 /** Cuántas se le compraron la vez pasada: lo que ofrece el botón «+ 9 como la vez pasada». Sin compras de antes, no hay atajo. */
 export function cantidadDeAtajo(h: Pick<Habitual, "veces" | "ultimaCantidad">): number | null {
   return h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;

@@ -64,6 +64,7 @@ import {
   cantidadDeAtajo,
   borradorDeAtajo,
   conPrendaAgregada,
+  candadoDeEnvio,
   textoPlataDespues,
   tiendaAnterior,
   tiendasDeLineas,
@@ -160,6 +161,19 @@ describe("habituales", () => {
   });
   // /chaos 2026-10-28, hallazgo 1: cinco toques en el mismo instante agregaban la prenda cinco veces (45 unidades en vez de 9), porque cada
   // uno veía la compra de antes del primero. Agregar a la compra nunca repite una prenda que ya va.
+  // /chaos 2026-10-29: cinco clics en «Guardar» en el mismo instante mandaban cinco pedidos iguales (la guardia leía el estado de antes del
+  // primero). La base respondía lo mismo y quedaba una sola compra, pero salían cinco pedidos: el candado deja pasar solo el primero.
+  it("el candado del envío deja pasar solo el primer clic hasta que el envío termina", () => {
+    const c = candadoDeEnvio();
+    const pasaron = [c.tomar(), c.tomar(), c.tomar(), c.tomar(), c.tomar()].filter(Boolean).length;
+    expect(pasaron).toBe(1);
+    c.soltar();
+    expect(c.tomar()).toBe(true); // tras un corte o un rechazo se puede volver a tocar «Guardar»
+    expect(c.tomar()).toBe(false);
+    c.soltar();
+    c.soltar(); // soltar de más no rompe nada
+    expect(c.tomar()).toBe(true);
+  });
   it("agregar la misma prenda varias veces seguidas la deja una sola vez", () => {
     const nuevas = lineasDeBorrador(HABITUALES[0], borradorDeAtajo(HABITUALES[0], "tru")!);
     const agregar = (ls: readonly LineaCompra[]) => conPrendaAgregada(ls, nuevas);

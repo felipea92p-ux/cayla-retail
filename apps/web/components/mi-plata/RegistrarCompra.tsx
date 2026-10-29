@@ -79,6 +79,7 @@ import {
   borradorDeAtajo,
   cantidadDeAtajo,
   conPrendaAgregada,
+  candadoDeEnvio,
   pagoParaBase,
   textoLoQueFalta,
   textoPlataDespues,
@@ -182,6 +183,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [volando, setVolando] = useState<ReadonlySet<string>>(new Set());
   const [llegaron, setLlegaron] = useState<ReadonlySet<string>>(new Set());
   // Las prendas que el «+ N» ya agregó: se sueltan cuando salen de la compra, para poder agregarlas otra vez.
+  // El candado de «Guardar»: fuera del estado de React, para que dos clics del mismo instante no pasen los dos.
+  const [candadoEnvio] = useState(candadoDeEnvio);
   const atajosHechos = useRef<Set<string>>(new Set());
   const pendientesDeVuelo = useRef<{ clave: string; cantidad: number; salida: ReturnType<typeof salidaDelVuelo> }[]>([]);
   // Cómo llegó la hoja abierta: si lo escrito ya no es eso, cerrarla (o salir de la pantalla) pregunta antes de perderlo.
@@ -443,6 +446,16 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       if (ahora) guia.ir(ahora);
       return;
     }
+    // Cinco clics en el mismo instante pasaban todos la guardia de arriba (`guardando` es el de antes del primero): solo el primero sigue.
+    if (!candadoEnvio.tomar()) return;
+    try {
+      await enviarCompra(proveedor);
+    } finally {
+      candadoEnvio.soltar();
+    }
+  }
+
+  async function enviarCompra(proveedor: ProveedorParaComprar) {
     setRechazo(null);
     setGuardando(true);
     let ruta: string | null = null;
