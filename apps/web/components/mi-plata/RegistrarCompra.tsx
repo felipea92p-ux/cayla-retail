@@ -74,6 +74,7 @@ import {
   piezasDeFila,
   borradorDeAtajo,
   cantidadDeAtajo,
+  conPrendaAgregada,
   pagoParaBase,
   textoLoQueFalta,
   textoPlataDespues,
@@ -176,6 +177,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // acaban de aterrizar (su línea se ilumina una vez). Lo que dice «Tu compra» y la barra de abajo se cuenta sin las que vuelan.
   const [volando, setVolando] = useState<ReadonlySet<string>>(new Set());
   const [llegaron, setLlegaron] = useState<ReadonlySet<string>>(new Set());
+  // Las prendas que el «+ N» ya agregó: se sueltan cuando salen de la compra, para poder agregarlas otra vez.
+  const atajosHechos = useRef<Set<string>>(new Set());
   const pendientesDeVuelo = useRef<{ clave: string; cantidad: number; salida: ReturnType<typeof salidaDelVuelo> }[]>([]);
   // Cómo llegó la hoja abierta: si lo escrito ya no es eso, cerrarla (o salir de la pantalla) pregunta antes de perderlo.
   const [hojaInicial, setHojaInicial] = useState<string | null>(null);
@@ -260,6 +263,10 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
         },
       });
     }
+  }, [lineas]);
+
+  useEffect(() => {
+    for (const clave of [...atajosHechos.current]) if (!lineas.some((l) => l.clave === clave)) atajosHechos.current.delete(clave);
   }, [lineas]);
 
   /** Anota que esta prenda va a volar a «Tu compra»: se guarda de dónde sale ANTES de cambiar la compra (la hoja se cierra y su botón deja de existir). */
@@ -391,6 +398,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // anterior. Si no alcanza para agregarla (la primera prenda no tiene tienda anterior, o falta un precio), abre la hoja con eso ya escrito: nunca
   // adivina una tienda. Una que ya va en la compra se corrige, no se agrega dos veces.
   function agregarConAtajo(h: Habitual) {
+    // Dos toques en el mismo instante (antes de que la fila se rehaga) agregaban la prenda dos veces (/chaos 2026-10-28): la segunda no hace nada.
+    if (atajosHechos.current.has(h.clave)) return;
     const ya = lineas.findIndex((l) => l.clave === h.clave);
     if (ya >= 0) return corregir(ya);
     const b = borradorDeAtajo(h, tiendaAnterior(lineas));
@@ -400,8 +409,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       abrirHoja({ habitual: h, ...b, edita: null });
       return;
     }
+    atajosHechos.current.add(h.clave);
     iniciarVuelo(h.clave, prendasDeLineas(nuevas), null);
-    setLineas((ls) => [...ls, ...nuevas]);
+    setLineas((ls) => conPrendaAgregada(ls, nuevas));
   }
 
   function quitarPrenda() {
