@@ -21,7 +21,11 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIG_TOKEN = readFileSync(join(RAIZ, "supabase/migrations/20261014162000_inventario_token_sigue_al_contenido.sql"), "utf8");
+// `arreglar_prenda_danada` cambió de firma después de esta migración (ADR-0564, 20261029033000: ganó `p_destino`, `p_costo` y `p_medio_pago`, y su huella los
+// incluye). Para probar que el candado sigue protegiendo a la función de HOY, la migración se lee apuntando a la firma y a la huella vigentes.
+const MIG_TOKEN = readFileSync(join(RAIZ, "supabase/migrations/20261014162000_inventario_token_sigue_al_contenido.sql"), "utf8")
+  .replaceAll("retail.arreglar_prenda_danada(uuid, text, uuid)", "retail.arreglar_prenda_danada(uuid, text, uuid, text, numeric, text)")
+  .replaceAll("md5(jsonb_build_array(p_id, p_nota)::text)", "md5(jsonb_build_array(p_id, p_nota, v_destino, p_costo, v_medio)::text)");
 const MIG_TEXTOS = readFileSync(join(RAIZ, "supabase/migrations/20261014163000_inventario_textos_y_fechas.sql"), "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const ARGS = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Globito } from "@/components/ui/Globito";
 import Link from "next/link";
-import { ArrowUpDown, Bookmark, FileText, History, LayoutGrid, Undo2, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowUpDown, Bandage, Bookmark, FileText, History, LayoutGrid, Undo2, Wallet, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { accesosDeMas, type AccesoVenta, type IconoAcceso } from "@/lib/vender-accesos";
 
@@ -14,6 +14,7 @@ const ICONO: Record<IconoAcceso, LucideIcon> = {
   devoluciones: Undo2,
   historial: History,
   proformas: FileText,
+  danada: Bandage,
 };
 
 const BOTON =
@@ -65,6 +66,19 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
         </Modal>
       )}
     </>
+  );
+}
+
+/**
+ * «Separé una dañada» a la vista (ADR-0564, actividad 3): la prenda que se ve dañada en el piso se separa en el momento. Lleva a
+ * Existencias con el buscador de «¿Qué prenda está dañada?» abierto; el ticket en curso se queda guardado como con cualquier otro acceso.
+ */
+export function BotonSepararDanada({ href }: { href: string }) {
+  return (
+    <Link href={href} data-guia="vender.danada" className={BOTON}>
+      <Bandage className="h-4 w-4" aria-hidden />
+      Separé una dañada
+    </Link>
   );
 }
 

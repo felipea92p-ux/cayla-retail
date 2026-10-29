@@ -25,7 +25,14 @@ describe("accesos del Punto de venta", () => {
     expect(visibles.map((a) => a.texto)).toEqual(["Caja", "Cambios"]);
   });
 
-  it("«Más» lleva todo menos Apartados, que se queda a la vista", () => {
+  it("«Separé una dañada» sale solo si el rol ve Existencias, y va a la vista (no en «Más»)", () => {
+    expect(accesosVisibles(["vender"]).map((a) => a.texto)).toEqual([]);
+    const conExistencias = accesosVisibles(["vender", "existencias"]);
+    expect(conExistencias.map((a) => [a.texto, a.href])).toEqual([["Separé una dañada", "/inventario?danada=1"]]);
+    expect(accesosDeMas(conExistencias)).toEqual([]);
+  });
+
+  it("«Más» lleva todo menos Apartados y «Separé una dañada», que se quedan a la vista", () => {
     expect(accesosDeMas(accesosVisibles(ACCESOS_VENTA.map((a) => a.modulo))).map((a) => a.texto)).toEqual([
       "Caja",
       "Cambios",
@@ -36,7 +43,7 @@ describe("accesos del Punto de venta", () => {
   });
 
   it("sin ningún módulo de ventas, nada", () => {
-    expect(accesosVisibles(["existencias"])).toEqual([]);
+    expect(accesosVisibles(["productos"])).toEqual([]);
   });
 });
 
