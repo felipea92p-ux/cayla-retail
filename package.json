@@ -306,6 +306,7 @@
     "pruebas:compras-simple-revisar": "node scripts/pruebas/compras_simple_revisar.mjs",
     "pruebas:compras-simple-marca": "node scripts/pruebas/compras_simple_marca_nueva.mjs",
     "pruebas:compras-simple-corregir": "node scripts/pruebas/compras_simple_corregir.mjs",
+    "pruebas:compras-simple-reabrir": "node scripts/pruebas/compras_simple_reabrir.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:plan-compra-descuento": "node scripts/pruebas/plan_compra_descuento.mjs",
     "pruebas:plan-compra-historial-lineas": "node scripts/pruebas/plan_compra_historial_lineas.mjs",

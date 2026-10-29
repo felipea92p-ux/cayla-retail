@@ -1611,6 +1611,7 @@ export const PRUEBAS = [
   // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",
+  "pruebas:compras-simple-reabrir",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

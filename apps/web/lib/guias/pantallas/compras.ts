@@ -2387,6 +2387,13 @@ export const GUIA_MI_PLATA: Guia = {
       texto: "Cada salida a comprar es una ronda, con su número (RC-…). Ábrela al salir: lo que compres y gastes queda en ella. Sin ronda, solo anotas la plata que te dieron.",
     },
     {
+      id: "reabrir-ronda",
+      ancla: "mi-plata.reabrir-ronda",
+      opcional: true,
+      titulo: "Reabre tu última ronda",
+      texto: "Si se te olvidó anotar un gasto o quieres cambiar qué hiciste con lo que te quedó, reabre la ronda que cerraste, anótalo y ciérrala otra vez. Solo mientras Compras no haya recibido tu cierre. En la demo no la reabrimos.",
+    },
+    {
       id: "ultima",
       ancla: "mi-plata.ultima",
       opcional: true,

@@ -1569,7 +1569,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
-  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
+  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres). El 2026-10-29 `reabrir_ronda_compras` (`20261029150000`, ADR-0569; `reabrirRonda` en `lib/mi-plata-acciones.ts`, botón en `AbrirRonda.tsx`, regla
+  `puedeReabrirLaRonda`) vuelve a abrir la última ronda cerrada mientras Compras no recibió su cierre; el cierre se archiva en `compra_cierres_reabiertos`.
   El 2026-10-24 «Algo nuevo» también se reparte entre tiendas y su marca se puede escribir con «+» (`HojaPrenda.tsx`); la marca escrita se crea al
   guardar con la RPC `registrar_marca_de_compra` (`20261024214000`, vía `registrarMarcaDeCompra` de `lib/compra-rapida-acciones.ts`), unida al proveedor.
   **Mis envíos, el banco de la plata y la pantalla en tres columnas (2026-10-26/27, sin cambio de módulo):**

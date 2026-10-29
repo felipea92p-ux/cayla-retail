@@ -10,6 +10,7 @@ import {
   estadoParaLaCompradora,
   textoCierre,
   puedeCerrarLaRonda,
+  puedeReabrirLaRonda,
   fraseGasto,
   camposConfirmar,
   cuentaSugerida,
@@ -40,6 +41,7 @@ import {
   detalleEnvio,
 } from "./mi-plata-reglas";
 import type { CuentaOpcion } from "./fondos-reglas";
+import type { RondaCerrada } from "./mi-plata-reglas";
 import { soles } from "./compras-reglas";
 
 // `soles()` une «S/» y la cifra con un espacio que no se parte (ADR-0413): las frases se comparan con espacios comunes.
@@ -675,5 +677,19 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
     const sinLista = historialDeLaCompradora(movimientosDeLaCompradora(p).antes, []);
     expect(sinLista.filter((e) => e.tipo === "ronda").map((e) => e.tipo === "ronda" && e.titulo)).toEqual(["Ronda RC-000002", "Ronda RC-000001", "Antes de las rondas"]);
     expect(sinLista.some((e) => e.tipo === "cierre")).toBe(false);
+  });
+});
+
+describe("reabrir la última ronda (ADR-0569)", () => {
+  const cerrada = (extra: Partial<RondaCerrada> = {}): RondaCerrada => ({ texto: "RC-000012", cerradaEn: "2026-10-29T15:00:00Z", decision: "se_queda", monto: 40, resuelto: false, ...extra });
+  it("se ofrece con la última ronda cerrada que Compras no recibió y sin otra abierta", () => {
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: cerrada() })).toBe(true);
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: cerrada({ decision: "devuelve" }) })).toBe(true);
+  });
+  it("no se ofrece si Compras ya recibió el cierre, si no hay ronda cerrada o si ya hay una abierta", () => {
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: cerrada({ decision: "devuelve", resuelto: true }) })).toBe(false);
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: null })).toBe(false);
+    const abierta = { id: "r", texto: "RC-000013", abiertaEn: "2026-10-29T16:00:00Z", compras: 0, prendas: 0, dieron: 0, compraste: 0, gastaste: 0 };
+    expect(puedeReabrirLaRonda({ abierta, ultimaCerrada: cerrada() })).toBe(false);
   });
 });
