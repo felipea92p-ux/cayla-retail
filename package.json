@@ -269,6 +269,7 @@
     "pruebas:ordenes-insumo": "node scripts/pruebas/ordenes_insumo.mjs",
     "pruebas:produccion-fases": "node scripts/pruebas/produccion_fases.mjs",
     "pruebas:produccion-editar-tela": "node scripts/pruebas/produccion_editar_tela.mjs",
+    "pruebas:produccion-complementos": "node scripts/pruebas/produccion_complementos.mjs",
     "pruebas:produccion-consumo-por-talla": "node scripts/pruebas/produccion_consumo_por_talla.mjs",
     "pruebas:produccion-avios-modelo": "node scripts/pruebas/produccion_avios_modelo.mjs",
     "pruebas:produccion-ficha-consumo": "node scripts/pruebas/produccion_ficha_consumo.mjs",

@@ -1610,6 +1610,9 @@ export const PRUEBAS = [
   // Los avíos del MODELO (ADR-0513, actividad 3): la primera orden los declara, una posterior no los pisa, el líder los corrige (los anteriores se archivan, no se borran), quien no edita el catálogo no, y Nueva orden los recibe. ROLLBACK.
   "pruebas:produccion-avios-modelo",
 
+  // Los complementos de la prenda en la orden (ADR-0563, actividad 1): un forro o una segunda tela se marca por fila, no declara el consumo del modelo ni suma a lo medido al pasar al stock, su costo sí entra a la orden, cambiar solo el rol no mueve el plan, y las migraciones de antes se pueden volver a cargar encima. ROLLBACK.
+  "pruebas:produccion-complementos",
+
   // La FICHA de consumo del modelo (ADR-0513, actividad 4): Producción la escribe sin abrir una orden (tela por talla y avíos, todo o nada), guardar lo mismo no cambia nada ni reinicia lo medido, Catálogo la lee y no la escribe. ROLLBACK.
   "pruebas:produccion-ficha-consumo",
 
