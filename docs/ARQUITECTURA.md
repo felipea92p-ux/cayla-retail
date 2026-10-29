@@ -1971,6 +1971,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     «Máquinas de cobro» (`fn_pos_maquinas`) y `TarifaMaquinaModal.tsx` → `guardar_pos_tarifa`. Migraciones `20261016173000` (con
     `fn_pos_sembrar_maquinas_en_tiendas`, que también llama `seed.sql`), `182000`, `190000`, `191000` y la de datos `193000`
     (`fn_resellar_cobros_a_maquinas`, solo desde una migración).
+  - **La salida del banco de la planilla que Dynamic paga (ADR-0567, 2026-10-29; migraciones `20261029052000`, `053000`, `054000`, sin pegar):**
+    `fn_planilla_salidas_por_registrar` (lee `public.v_planilla_pagada`, `periodo_grupo_pago` y `datos_personales.entidad_bancaria` con
+    `fn_banco_del_colaborador`; líder que ve la planilla en Dynamic) → `lib/cuentas-dinero.ts` (`getPlanillaPorRegistrar`,
+    `getPlanillaParaElInicio`, `getPlanillaParaElObservatorio`, una sola lectura) → `lib/planilla-salidas-reglas.ts` (`avisosDePlanilla`,
+    `planillaParaElInicio`, la hoja) → el aviso de `CuentasPanel` (`CuentasDinero.tsx`), «Te toca» del Inicio (`lib/inicio-avisos.ts`, clave
+    `planillaSalidas`) y «Por revisar» del Observatorio (`avisoPlanillaObs`). La hoja `components/finanzas/dinero/SalidasPlanillaModal.tsx` →
+    `registrar_salidas_planilla` (llama a `registrar_movimiento_dinero` y enlaza en `planilla_salidas`) y `fn_planilla_salidas_sueltas`.
+    Configuración ▸ Cuentas y cobros ▸ «De qué cuenta sale la planilla» → `guardar_cuenta_planilla` / `fn_planilla_cuentas` (tabla
+    `planilla_cuentas`).
   - Configuración ▸ Cuentas y cobros ▸ «Editar» (`components/finanzas/EditarCuentaModal.tsx`, `lib/cuenta-editar-reglas.ts`;
     migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
     foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
