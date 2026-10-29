@@ -313,7 +313,80 @@
   }
 }
 
+/* ---------- Hasta dónde llega la gente (actividad 3): 100 puntos por paso ----------
+   Cada punto es una persona de cada 100 que entraron; se encienden los que llegaron hasta ese paso, UNA vez al llegar, paso tras paso
+   (`--k`) y punto tras punto (`--d`). El paso donde se pierde más gente de lo de costumbre va en ámbar, con su globo encima. */
+@layer components {
+  .trafico-recorrido {
+    container: recorrido / inline-size;
+  }
+  .trafico-pasos {
+    --trafico-punto-apagado: color-mix(in srgb, var(--color-tinta) 11%, var(--color-hueso));
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Entre filas cabe el globo del paso de abajo, sin pisar el «de cada 100» del de arriba. */
+    gap: 40px 18px;
+    padding-top: 28px;
+  }
+  @container recorrido (min-width: 560px) {
+    .trafico-pasos {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @container recorrido (min-width: 1000px) {
+    .trafico-pasos {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+  .trafico-paso {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .trafico-puntos {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 3px;
+    padding: 9px;
+    border-radius: 14px;
+    background: var(--color-hueso);
+  }
+  .trafico-puntos > i {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--trafico-punto-apagado);
+  }
+  .trafico-puntos > .trafico-punto-on {
+    background: var(--color-tinta);
+    animation: trafico-enciende 360ms var(--ease-cayla) both;
+    animation-delay: calc(var(--k, 0) * 90ms + var(--d, 0) * 6ms);
+  }
+  .trafico-paso[data-fuga] .trafico-puntos {
+    outline: 2.5px solid var(--color-ambar);
+    outline-offset: 2px;
+  }
+  .trafico-paso[data-fuga] .trafico-puntos > .trafico-punto-on {
+    background: var(--color-ambar);
+  }
+  .trafico-paso-globo {
+    position: absolute;
+    top: -28px;
+    right: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+  }
+  @keyframes trafico-enciende {
+    from {
+      background-color: var(--trafico-punto-apagado);
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .trafico-puntos > .trafico-punto-on,
   .trafico-punto-vivo::after,
   .trafico-pieza,
   .trafico-etiqueta,

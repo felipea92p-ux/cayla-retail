@@ -25,3 +25,8 @@
   **Verificado:** `pruebas:tienda-trafico-resumen` 54/54, vitest de reglas 61/61, guías, unificar, colores, movimiento, ancho, tsc y eslint; en el navegador a
   1440 (claro y oscuro) y a 375 px sin scroll lateral. **Ojo base local compartida:** otra sesión puso la base al día con `main` y recreó la función vieja de 4
   parámetros; se reaplicaron las dos migraciones de esta rama.
+- **Actividad 3 · Hasta dónde llega la gente:** el recorrido pasó de seis barras a 100 puntos por paso (cada punto, una persona de cada 100 que entraron;
+  se encienden una vez, paso tras paso). El paso donde más gente se pierde se compara con lo de costumbre (`atoraContraCostumbre`, mismo peso de 30
+  personas que `dondeSeAtora`): solo si va peor que siempre por más de 4 de cada 100 —y nunca con poca gente— se pinta en ámbar con su globo; si no, la
+  frase lo dice con «Como de costumbre». Sin cambio en la base. **Verificado:** vitest de reglas 65/65, movimiento 20/20, guías, unificar, colores, tsc y
+  eslint; en el navegador a 1440 (claro y oscuro, con y sin fuga) y a 375 px sin scroll lateral.

@@ -1420,15 +1420,15 @@ export const GUIA_TRAFICO: Guia = {
       id: "recorrido",
       ancla: "trafico.recorrido",
       opcional: true,
-      titulo: "El recorrido",
-      texto: "Cada paso dice cuántas personas llegaron hasta ahí y cuántas son de cada 100 que entraron. Lo que baja de un paso a otro es la gente que se fue.",
+      titulo: "Hasta dónde llega la gente",
+      texto: "Cada punto es una persona de cada 100 que entraron. Paso a paso se apagan los que se fueron: lo que ves encendido es quienes llegaron hasta ahí.",
     },
     {
       id: "veredicto",
       ancla: "trafico.veredicto",
       opcional: true,
       titulo: "Dónde se atora",
-      texto: "El paso donde más gente se va, de la que le llega. Ese es el lugar donde mejorar la tienda: más fotos, la talla más clara, cómo separar.",
+      texto: "El paso donde más gente se pierde, comparado con lo de costumbre. Si va peor que siempre, se pinta en ámbar: ahí conviene mejorar la tienda.",
     },
     {
       id: "porque",

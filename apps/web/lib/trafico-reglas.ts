@@ -405,6 +405,25 @@ export function fraseAtora(a: Atora): { titular: string; frase: string } {
   return { titular, frase: `de cada 100 que ${antes.frase}, ${a.seFueronDe100} se fueron ${paso.seFueron}.` };
 }
 
+/** Cuánto peor que de costumbre tiene que dejar pasar un paso para decir «aquí se atora» (4 de cada 100 de lo que pasa siempre). */
+const MARGEN_PEOR = 0.04;
+
+/**
+ * El paso donde más gente se pierde, contra lo de costumbre: «de cada 100 que la pusieron en la bolsa, siguen 38; de costumbre, 52».
+ * `peor` solo si estos días deja pasar claramente menos que siempre, mirado con el mismo peso de 30 personas que `dondeSeAtora`, y nunca
+ * con poca gente (entonces es una pista, no una alarma). Sin costumbre (los primeros días), no se compara.
+ */
+export function atoraContraCostumbre(a: Atora, base: readonly number[]): { siguen: number; costumbre: number | null; peor: boolean } {
+  const siguen = de100(a.siguieron, a.llegaron);
+  const c = base[a.i - 1] > 0 ? base[a.i] / base[a.i - 1] : null;
+  if (c === null) return { siguen, costumbre: null, peor: false };
+  const pasa = (a.siguieron + PESO_DE_LA_COSTUMBRE * c) / (a.llegaron + PESO_DE_LA_COSTUMBRE);
+  return { siguen, costumbre: Math.round(c * 100), peor: !a.pocas && pasa < c * (1 - MARGEN_PEOR) };
+}
+
+/** Cuántos de los 100 puntos se encienden en cada paso: de cada 100 que entraron, cuántos llegaron hasta ahí. */
+export const puntosDelPaso = (pasos: readonly number[], i: number) => (i === 0 ? (pasos[0] > 0 ? 100 : 0) : de100(pasos[i], pasos[0]));
+
 /** Lo que dice el «¿Por qué?»: qué mide el veredicto y, con poca gente, que es una pista. */
 export function explicaAtora(a: Atora): string {
   const paso = PASOS[a.i];

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  atoraContraCostumbre,
+  puntosDelPaso,
   cambio,
   cambioDeLaPrenda,
   de100,
@@ -122,6 +124,32 @@ describe("dondeSeAtora: el paso que deja pasar a menos gente de la que le llega"
   it("singular y plural en la explicación", () => {
     expect(explicaAtora({ i: 4, llegaron: 1, siguieron: 0, seFueronDe100: 100, pocas: true })).toContain("de 1 persona que la puso en la bolsa, 0 separaron.");
     expect(explicaAtora({ i: 4, llegaron: 394, siguieron: 1, seFueronDe100: 100, pocas: false })).toContain("de 394 personas que la pusieron en la bolsa, 1 separó.");
+  });
+
+  it("contra lo de costumbre: 45 de cada 100 separan, como siempre (690 de 1530): no se enciende", () => {
+    const a = dondeSeAtora(DE_LA_BASE.pasos, DE_LA_BASE.base)!;
+    expect(atoraContraCostumbre(a, DE_LA_BASE.base)).toEqual({ siguen: 45, costumbre: 45, peor: false });
+  });
+
+  it("contra lo de costumbre: 38 de cada 100 cuando siempre son 52, se enciende; con 2 personas, no", () => {
+    const base = [1000, 800, 500, 400, 208, 150];
+    const a = dondeSeAtora([1000, 820, 520, 400, 152, 120], base)!;
+    expect(a.i).toBe(4);
+    expect(atoraContraCostumbre(a, base)).toEqual({ siguen: 38, costumbre: 52, peor: true });
+    expect(atoraContraCostumbre({ i: 4, llegaron: 2, siguieron: 0, seFueronDe100: 100, pocas: true }, base).peor).toBe(false);
+  });
+
+  it("sin costumbre, no se compara", () => {
+    expect(atoraContraCostumbre({ i: 1, llegaron: 100, siguieron: 30, seFueronDe100: 70, pocas: false }, [0, 0, 0, 0, 0, 0])).toEqual({
+      siguen: 30,
+      costumbre: null,
+      peor: false,
+    });
+  });
+
+  it("los 100 puntos: el primer paso los enciende todos (si entró alguien) y los demás, de cada 100 que entraron", () => {
+    expect([0, 1, 2, 3, 4, 5].map((i) => puntosDelPaso(DE_LA_BASE.pasos, i))).toEqual([100, 66, 33, 21, 9, 7]);
+    expect(puntosDelPaso([0, 0, 0, 0, 0, 0], 0)).toBe(0);
   });
 
   it("sin costumbre (los primeros días), manda lo de estos días", () => {
