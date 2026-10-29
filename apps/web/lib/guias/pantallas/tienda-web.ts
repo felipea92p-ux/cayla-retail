@@ -1475,12 +1475,26 @@ export const GUIA_TRAFICO: Guia = {
       texto: "Cuánta gente la miró, hasta qué paso llegó con ella, qué tallas y colores eligieron y por dónde llegaron. Con las flechas pasas a la siguiente, y «Ver en la vitrina» te lleva a decidir qué modelos se ven en la tienda online.",
     },
     {
+      id: "tallas",
+      ancla: "trafico.tallas",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Tallas que piden y no hay",
+      texto: "Cada cuadro es una talla: el número grande es cuánta gente la eligió y «u.» lo que queda en las tiendas. En ámbar, la que piden mucho y casi no hay: gente que se fue sin su talla. Conviene reponerla.",
+    },
+    {
+      id: "quienes",
+      ancla: "trafico.quienes",
+      opcional: true,
+      titulo: "Quién entra",
+      texto: "Cuántos entran por primera vez y cuántos ya habían venido, y cuántos de cada grupo separan. Quien vuelve suele separar más.",
+    },
+    {
       id: "vista",
       ancla: "trafico.vista",
       opcional: true,
-      preparar: [{ tipo: "escape" }],
       titulo: "Gráfico o tabla",
-      texto: "Los mismos números en filas: para leer cada cifra o ver todas las prendas que miraron, no solo las de la vitrina.",
+      texto: "Los mismos números en filas: para leer cada cifra, cada tramo de horas y las cinco cifras de cada prenda.",
     },
     {
       id: "vacio",

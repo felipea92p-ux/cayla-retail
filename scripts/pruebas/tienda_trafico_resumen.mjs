@@ -39,6 +39,7 @@ const MIGRACION_PERIODOS = readFileSync("supabase/migrations/20261029015000_traf
 const MIGRACION_SERIE = readFileSync("supabase/migrations/20261029040000_trafico_web_serie.sql", "utf8");
 const MIGRACION_CALOR = readFileSync("supabase/migrations/20261029042000_trafico_web_calor.sql", "utf8");
 const MIGRACION_REGIONES = readFileSync("supabase/migrations/20261029050000_trafico_web_regiones.sql", "utf8");
+const MIGRACION_TALLAS = readFileSync("supabase/migrations/20261029120000_trafico_web_tallas_y_quienes.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -330,6 +331,41 @@ esperarValor(
 );
 esperarValor("con Trujillo puesto, separan solo los de Trujillo", escenario(`${resumen("null", "'trujillo'")} -> 'caminos_separan';`), '{"instagram": 1}');
 esperar("la migración de los departamentos se puede pegar dos veces", correr(`begin;\n${MIGRACION_REGIONES}\n${MIGRACION_REGIONES}\nrollback;`).ok, "falló al pegar dos veces");
+
+// ---- 15. Tallas que piden y no hay, y quién entra ----
+// La prenda de la escena se publica en la tienda online; la 1 y la 2 eligieron su talla (pasos 2 y 3). La 1 ya había entrado el 5.
+const PUBLICAR = `insert into retail.vitrina_productos (producto_id, publicado, publicado_en) values (:'prenda', true, now()) on conflict (producto_id) do update set publicado = true, publicado_en = coalesce(retail.vitrina_productos.publicado_en, now());`;
+const LA_TALLA = `(select f -> 'tallas' from jsonb_array_elements(:'r'::jsonb -> 'tallas' -> 'filas') f
+  where f ->> 'categoria' = (select c.nombre from retail.productos p join retail.categorias c on c.id = p.categoria_id where p.id = :'prenda'))`;
+const VALOR_TALLA = `(select ta.valor from retail.variantes x join retail.tallas ta on ta.id = x.talla_id where x.id = :'talla')`;
+esperarValor(
+  "piden: 2 personas eligieron esa talla de esa categoría (la 1 en la ficha, la 2 desde la tarjeta)",
+  escenario(`${PUBLICAR}
+  ${resumen()} as r \\gset
+  ${COMO_POSTGRES}select t ->> 1 from jsonb_array_elements(${LA_TALLA}) t where t ->> 0 = ${VALOR_TALLA};`),
+  "2",
+);
+esperarValor(
+  "quedan: las unidades libres de esa talla en las tiendas (cantidad menos lo apartado) de las prendas publicadas",
+  escenario(`${PUBLICAR}
+  ${resumen()} as r \\gset
+  ${COMO_POSTGRES}select (select t ->> 2 from jsonb_array_elements(${LA_TALLA}) t where t ->> 0 = ${VALOR_TALLA})::int = (
+    select coalesce(sum(greatest(st.cantidad - st.cantidad_apartada, 0)), 0)::int
+    from retail.stock st join retail.variantes x on x.id = st.variante_id join retail.vitrina_productos vp on vp.producto_id = x.producto_id and vp.publicado
+    join retail.productos p on p.id = x.producto_id join retail.ubicaciones u on u.id = st.ubicacion_id and u.tipo = 'tienda' and u.activo
+    where x.activo and x.talla_id = (select talla_id from retail.variantes where id = :'talla')
+      and p.categoria_id = (select categoria_id from retail.productos where id = :'prenda'));`),
+  "t",
+);
+esperarValor("una ventana de 4 semanas, como el mapa de calor", escenario(`${resumen()} -> 'tallas' ->> 'desde';`), "2024-12-14");
+esperarValor(
+  "quién entra: 3 nuevos (separó 1, la 6) y 1 que vuelve (la 1, que entró el 5, y recogió)",
+  escenario(`${paso(1, "2025-01-05 10:00", 0, { camino: "instagram" })}
+  ${resumen()} -> 'quienes';`),
+  '{"nuevos": 3, "vuelven": 1, "nuevos_separan": 1, "vuelven_separan": 1}',
+);
+esperarValor("sin nadie de antes, todos son nuevos", escenario(`${resumen()} -> 'quienes' ->> 'vuelven';`), "0");
+esperar("la migración de tallas y quién entra se puede pegar dos veces", correr(`begin;\n${MIGRACION_TALLAS}\n${MIGRACION_TALLAS}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);

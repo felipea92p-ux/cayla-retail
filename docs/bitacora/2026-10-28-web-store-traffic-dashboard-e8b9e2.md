@@ -53,3 +53,11 @@
   ordenar por «Separan», las de menos de 10 personas van al final (1 de 8 no es una estrella). Se fueron `VitrinaTrafico`, su CSS y las funciones del
   mosaico (queda `franjasDe`). Sin cambio en la base. **Verificado:** vitest de reglas 80/80, mosaico 4/4, movimiento 20/20 (sin la baldosa), guías
   (huella aceptada), unificar, colores, tokens, sin foto, ancho, tsc, eslint y knip; en el navegador a 1440 (ordenar, abrir el cajón) y a 375 px en oscuro.
+- **Actividad 7 · Tallas que piden y no hay, y Quién entra:** junto a «Qué prendas miran» (dos tercios y un tercio, como la maqueta), por categoría
+  cada talla que ofrecen sus prendas publicadas: cuántas personas la eligieron en 4 semanas, cuántas unidades libres quedan en las tiendas (cantidad menos
+  lo apartado, como la vitrina web) y cuántos modelos ya no la tienen. En ámbar, la que piden mucho (3 de cada 10 de la más pedida y 5 personas o más) y
+  le queda menos de 1 unidad por cada 10 personas; la frase nombra las tres primeras. Cada categoría muestra SUS tallas (letras, numeración o única), no
+  una grilla fija. Debajo, «Quién entra»: nuevos contra los que ya habían entrado en los 180 días de antes (la cookie del aparato), con cuántos de cada
+  grupo separan. Base: `20261029120000_trafico_web_tallas_y_quienes.sql` suma `tallas` y `quienes` al resumen (misma firma). **Verificado:**
+  `pruebas:tienda-trafico-resumen` 72/72, vitest de reglas 84/84, guías (dos pasos nuevos), unificar, tokens, movimiento, ancho, tsc, eslint y knip; en
+  el navegador a 1440 en claro y a 375 px en oscuro sin scroll lateral. **No está en producción.**

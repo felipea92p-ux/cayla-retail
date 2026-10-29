@@ -1,3 +1,4 @@
+import { compararTallas } from "./tallas";
 // Tienda web ▸ Tráfico (ADR-0495): lo puro de la pantalla — leer lo que devuelve `retail.resumen_trafico_web`, el período, «de cada 100»,
 // el cambio contra los días de antes, dónde se atora el recorrido y si la tienda dejó de mandar visitas. Sin React y sin base: se prueba
 // en `trafico-reglas.test.ts`. La base cuenta (personas por el paso más lejano al que llegaron); aquí solo se traduce a lo que se lee.
@@ -45,6 +46,10 @@ export type ResumenTrafico = {
   regiones: Record<string, number>;
   /** Cuántos de cada camino separaron (actividad 5), con el filtro de ciudad. */
   caminosSeparan: Record<Camino, number>;
+  /** Tallas que piden y no hay, por categoría (actividad 7); `null` con una base de antes que no lo trae. */
+  tallas: TallasTrafico | null;
+  /** Quién entra: nuevos contra los que vuelven (actividad 7); `null` con una base de antes. */
+  quienes: QuienesTrafico | null;
 };
 
 /** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
@@ -175,6 +180,8 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     calor: leerCalor(d.calor),
     regiones: leerRegiones(d.regiones),
     caminosSeparan: conteoPor(Object.keys(CAMINOS) as Camino[], d.caminos_separan),
+    tallas: leerTallas(d.tallas),
+    quienes: leerQuienes(d.quienes),
   };
 }
 
@@ -802,3 +809,69 @@ export const barraDeSeparan = (p: PrendaTrafico, promedio: number) => (promedio 
 
 /** «12 de cada 100» que la miraron la separaron. */
 export const separanDe100 = (p: PrendaTrafico) => de100(p.recorrido[3], p.recorrido[0]);
+
+// ---------- Tallas que piden y no hay, y quién entra (actividad 7) ----------
+
+/** Una talla de una categoría: cuántas personas la eligieron, cuántas unidades libres quedan y cuántos modelos ya no la tienen. */
+export type TallaPedida = { talla: string; piden: number; quedan: number; sin: number };
+export type CategoriaTallas = { categoria: string; prefijo: string | null; familia: string | null; modelos: number; tallas: TallaPedida[] };
+export type TallasTrafico = { desde: string; hasta: string; filas: CategoriaTallas[] };
+export type QuienesTrafico = { nuevos: number; nuevosSeparan: number; vuelven: number; vuelvenSeparan: number };
+
+const tallaPedida = (v: unknown): TallaPedida | null =>
+  Array.isArray(v) && v.length === 4 && typeof v[0] === "string" && v.slice(1).every(esCifra)
+    ? { talla: v[0], piden: v[1] as number, quedan: v[2] as number, sin: v[3] as number }
+    : null;
+
+function leerTallas(v: unknown): TallasTrafico | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const d = v as Record<string, unknown>;
+  if (typeof d.desde !== "string" || !FECHA.test(d.desde) || typeof d.hasta !== "string" || !FECHA.test(d.hasta)) return null;
+  const filas = lista(d.filas)
+    .map((f): CategoriaTallas | null => {
+      if (!texto(f.categoria) || !esCifra(f.modelos)) return null;
+      const tallas = (Array.isArray(f.tallas) ? f.tallas : []).map(tallaPedida).filter((t): t is TallaPedida => t !== null);
+      tallas.sort((a, b) => compararTallas(a.talla, b.talla));
+      return { categoria: f.categoria as string, prefijo: texto(f.prefijo), familia: texto(f.familia), modelos: f.modelos, tallas };
+    })
+    .filter((f): f is CategoriaTallas => f !== null && f.tallas.length > 0);
+  return { desde: d.desde, hasta: d.hasta, filas };
+}
+
+function leerQuienes(v: unknown): QuienesTrafico | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const d = v as Record<string, unknown>;
+  if (![d.nuevos, d.nuevos_separan, d.vuelven, d.vuelven_separan].every(esCifra)) return null;
+  return { nuevos: d.nuevos as number, nuevosSeparan: d.nuevos_separan as number, vuelven: d.vuelven as number, vuelvenSeparan: d.vuelven_separan as number };
+}
+
+/** Con menos personas que esto pidiendo una talla, que no haya no es noticia todavía. */
+const MINIMO_PARA_FALTAR = 5;
+
+/**
+ * Una talla «falta» si la piden mucho (al menos 3 de cada 10 de la talla más pedida de todas, y 5 personas o más) y queda menos de 1
+ * unidad por cada 10 personas que la eligieron. Es lo que se marca en ámbar: gente que quería esa talla y se fue sin ella.
+ */
+export function tallaFalta(t: TallaPedida, maxPiden: number): boolean {
+  return t.piden >= MINIMO_PARA_FALTAR && t.piden >= maxPiden * 0.3 && t.quedan * 10 < t.piden;
+}
+
+/** Las tallas que faltan, de la más pedida a la menos, con su categoría. */
+export function tallasQueFaltan(filas: readonly CategoriaTallas[]): (TallaPedida & { categoria: string; modelos: number })[] {
+  const max = Math.max(0, ...filas.flatMap((f) => f.tallas.map((t) => t.piden)));
+  return filas
+    .flatMap((f) => f.tallas.filter((t) => tallaFalta(t, max)).map((t) => ({ ...t, categoria: f.categoria, modelos: f.modelos })))
+    .sort((a, b) => b.piden - a.piden || a.categoria.localeCompare(b.categoria, "es"));
+}
+
+/** «68 de cada 100 entran por primera vez; de ellos, 5 de cada 100 separan»: las dos partes de «Quién entra». */
+export function quienesEntran(q: QuienesTrafico): { nuevos: number; vuelven: number; nuevosSeparan: number; vuelvenSeparan: number } | null {
+  const total = q.nuevos + q.vuelven;
+  if (!total) return null;
+  return {
+    nuevos: de100(q.nuevos, total),
+    vuelven: 100 - de100(q.nuevos, total),
+    nuevosSeparan: de100(q.nuevosSeparan, q.nuevos),
+    vuelvenSeparan: de100(q.vuelvenSeparan, q.vuelven),
+  };
+}

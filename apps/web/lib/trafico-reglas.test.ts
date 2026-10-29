@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  quienesEntran,
+  tallaFalta,
+  tallasQueFaltan,
   barraDeSeparan,
   estadoDePrenda,
   ordenarPrendas,
@@ -77,6 +80,8 @@ describe("leerResumen: lo que devuelve la base", () => {
       calor: null,
       regiones: {},
       caminosSeparan: { instagram: 0, directo: 0, whatsapp: 0, tiktok: 0, google: 0, qr: 0, otros: 0 },
+      tallas: null,
+      quienes: null,
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -596,5 +601,42 @@ describe("Qué prendas miran: la tabla que se ordena", () => {
     expect(barraDeSeparan(prenda("X", 1000, Math.round(prom * 1000)), prom)).toBe(50);
     expect(barraDeSeparan(lista[1], prom)).toBe(100);
     expect(separanDe100(lista[1])).toBe(30);
+  });
+});
+
+describe("Tallas que piden y no hay, y quién entra", () => {
+  const tallas = {
+    desde: "2026-09-30",
+    hasta: "2026-10-27",
+    filas: [
+      { categoria: "Blusas", prefijo: "BLU", familia: "SUP", modelos: 14, tallas: [["XL", 30, 9, 1], ["M", 120, 4, 5], ["S", 80, 30, 0], ["L", 90, 6, 4]] },
+      { categoria: "Pantalones", prefijo: "PAN", familia: "INF", modelos: 10, tallas: [["30", 40, 2, 3], ["28", 20, 12, 0]] },
+      { categoria: "Vacía", prefijo: null, familia: null, modelos: 2, tallas: [] },
+    ],
+  };
+
+  it("lee las tallas en orden de talla y deja fuera la categoría sin tallas", () => {
+    const r = leerResumen({ ...DE_LA_BASE, tallas, quienes: { nuevos: 68, nuevos_separan: 4, vuelven: 32, vuelven_separan: 5 } })!;
+    expect(r.tallas!.filas.map((f) => f.categoria)).toEqual(["Blusas", "Pantalones"]);
+    expect(r.tallas!.filas[0].tallas.map((t) => t.talla)).toEqual(["S", "M", "L", "XL"]);
+    expect(r.tallas!.filas[1].tallas.map((t) => t.talla)).toEqual(["28", "30"]);
+    expect(r.quienes).toEqual({ nuevos: 68, nuevosSeparan: 4, vuelven: 32, vuelvenSeparan: 5 });
+  });
+
+  it("falta si la piden mucho y queda menos de 1 unidad por cada 10 personas", () => {
+    expect(tallaFalta({ talla: "M", piden: 120, quedan: 4, sin: 5 }, 120)).toBe(true);
+    expect(tallaFalta({ talla: "S", piden: 80, quedan: 30, sin: 0 }, 120)).toBe(false);
+    expect(tallaFalta({ talla: "XL", piden: 30, quedan: 1, sin: 1 }, 120)).toBe(false); // 30 < 36: no la piden tanto
+    expect(tallaFalta({ talla: "M", piden: 4, quedan: 0, sin: 1 }, 4)).toBe(false); // 4 personas no son noticia
+  });
+
+  it("las que faltan, de la más pedida a la menos, con su categoría", () => {
+    const r = leerResumen({ ...DE_LA_BASE, tallas })!;
+    expect(tallasQueFaltan(r.tallas!.filas).map((t) => `${t.talla} de ${t.categoria}`)).toEqual(["M de Blusas", "L de Blusas", "30 de Pantalones"]);
+  });
+
+  it("quién entra: de cada 100, nuevos y que vuelven, y cuántos de cada grupo separan", () => {
+    expect(quienesEntran({ nuevos: 68, nuevosSeparan: 4, vuelven: 32, vuelvenSeparan: 5 })).toEqual({ nuevos: 68, vuelven: 32, nuevosSeparan: 6, vuelvenSeparan: 16 });
+    expect(quienesEntran({ nuevos: 0, nuevosSeparan: 0, vuelven: 0, vuelvenSeparan: 0 })).toBeNull();
   });
 });

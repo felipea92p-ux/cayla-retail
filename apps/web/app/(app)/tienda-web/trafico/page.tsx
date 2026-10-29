@@ -13,6 +13,7 @@ import { DeDondeVienen } from "@/components/trafico/DeDondeVienen";
 import { PrendasTrafico } from "@/components/trafico/PrendasTrafico";
 import { PulsoTrafico } from "@/components/trafico/PulsoTrafico";
 import { RecorridoTrafico } from "@/components/trafico/RecorridoTrafico";
+import { TallasTrafico } from "@/components/trafico/TallasTrafico";
 import { TablasTrafico } from "@/components/trafico/TablasTrafico";
 
 // Tienda web ▸ Tráfico (ADR-0495; «Observatorio», maqueta docs/maquetas/trafico-decisiones-2026-10/): cuánta gente entra a la tienda online, qué mira, de dónde
@@ -111,7 +112,13 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                 </div>
               </div>
               <RecorridoTrafico r={r} />
-              <PrendasTrafico prendas={r.prendas} vieron={r.pasos[1]} base={r.base} periodo={periodo.nombre} antes={antes} />
+              {/* Qué prendas miran y, a su lado, qué tallas piden y no hay (maqueta: dos tercios y un tercio). */}
+              <div className="trafico-cuerpo">
+                <div className="trafico-rejilla-prendas">
+                  <PrendasTrafico prendas={r.prendas} vieron={r.pasos[1]} base={r.base} periodo={periodo.nombre} antes={antes} />
+                  {r.tallas && <TallasTrafico tallas={r.tallas} quienes={r.quienes} ampliado={r.tallas.desde < periodo.desde} />}
+                </div>
+              </div>
             </>
               )}
             </>

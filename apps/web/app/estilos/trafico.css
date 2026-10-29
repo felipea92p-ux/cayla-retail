@@ -371,6 +371,105 @@
   }
 }
 
+/* ---------- Qué prendas miran y Tallas que piden y no hay (actividades 6 y 7), lado a lado ----------
+   Desde 1180 px de cuerpo, la tabla de prendas toma dos tercios y las tallas, uno (como la maqueta); antes, una debajo de la otra. Cada
+   celda de talla es una barrita que crece con la gente que la eligió; la que falta va en ámbar. */
+@layer components {
+  .trafico-rejilla-prendas {
+    display: grid;
+    gap: 16px;
+    align-items: start;
+  }
+  @container trafico (min-width: 1180px) {
+    .trafico-rejilla-prendas {
+      grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    }
+  }
+  .trafico-tallas-fila {
+    display: grid;
+    grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+  }
+  .trafico-tallas-tarjeta {
+    container: tallas / inline-size;
+  }
+  @container tallas (max-width: 380px) {
+    .trafico-tallas-fila {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+  }
+  .trafico-tallas-celdas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: 6px;
+  }
+  .trafico-talla-celda {
+    position: relative;
+    display: flex;
+    height: 78px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+    padding: 0 2px 6px;
+    border-radius: 9px;
+    background: var(--color-hueso);
+  }
+  .trafico-talla-celda > i {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: color-mix(in srgb, var(--color-tinta) 18%, var(--color-hueso));
+  }
+  .trafico-talla-celda > b,
+  .trafico-talla-celda > small {
+    position: relative;
+    line-height: 1.15;
+  }
+  .trafico-talla-nombre {
+    position: absolute;
+    top: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-talla-celda > b {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .trafico-talla-celda > small {
+    font-size: 10.5px;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-talla-celda[data-falta] {
+    background: color-mix(in srgb, var(--color-ambar) 22%, var(--color-papel));
+    outline: 2px solid var(--color-ambar);
+    outline-offset: -2px;
+  }
+  .trafico-talla-celda[data-falta] > i {
+    background: color-mix(in srgb, var(--color-ambar) 40%, var(--color-hueso));
+  }
+  .trafico-talla-celda[data-falta] > small {
+    color: var(--color-tinta);
+    font-weight: 700;
+  }
+  .trafico-talla-muestra {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    outline: 2px solid var(--color-ambar);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--color-ambar) 22%, var(--color-papel));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trafico-calor-celda,
   .trafico-camino,
