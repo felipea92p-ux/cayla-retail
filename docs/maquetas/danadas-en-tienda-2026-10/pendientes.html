@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dañadas en tienda · pendientes</title>
+<meta name="description" content="Lo que queda por hacer después de construir el flujo de prendas dañadas en tienda (ADR-0564).">
+<style>
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --rojo: #b8412d; --rojo-p: #8b2a1f;
+    --sand: #e8e0d0; --taupe: #805c4c; --hueso: #eae1d2; --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e;
+    --borde: #96786a; --sombra: rgba(26, 26, 24, .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --crema: #1c1a17; --papel: #26241f; --tinta: #f5f0e8; --rojo: #e8806a; --rojo-p: #f0a090;
+      --sand: #403b34; --taupe: #c4a898; --hueso: #302d27; --verde: #9ccb8d; --ambar: #f0c35a; --pizarra: #9fb3c6;
+      --borde: #7d6a5f; --sombra: rgba(0, 0, 0, .3);
+    }
+  }
+  :root[data-tema="oscuro"] {
+    --crema: #1c1a17; --papel: #26241f; --tinta: #f5f0e8; --rojo: #e8806a; --rojo-p: #f0a090;
+    --sand: #403b34; --taupe: #c4a898; --hueso: #302d27; --verde: #9ccb8d; --ambar: #f0c35a; --pizarra: #9fb3c6;
+    --borde: #7d6a5f; --sombra: rgba(0, 0, 0, .3);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 16px/1.5 "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .pagina { max-width: 1180px; margin: 0 auto; padding: 28px 16px 72px; }
+  .serif { font-family: "EB Garamond", Georgia, "Times New Roman", serif; }
+  .sobre { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin: 0 0 8px; }
+  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; margin: 0 0 10px; font-weight: 500; }
+  .bajada { max-width: 62ch; color: var(--taupe); margin: 0 0 22px; font-size: 17px; }
+  .barra-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .tema { border: 1px solid var(--borde); background: var(--papel); color: var(--tinta); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 13px; cursor: pointer; min-height: 40px; }
+  .tema:focus-visible, .item input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+  .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 0 0 28px; }
+  .cifra { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 16px 18px; }
+  .cifra b { display: block; font-size: 38px; line-height: 1; font-weight: 500; }
+  .cifra span { display: block; margin-top: 6px; font-size: 13px; color: var(--taupe); }
+  .cifra.alerta b { color: var(--rojo); }
+  .cifra.ok b { color: var(--verde); }
+  .progreso { height: 8px; background: var(--sand); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  .progreso i { display: block; height: 100%; background: var(--verde); border-radius: 99px; width: 100%; }
+
+  h2 { font-size: 26px; font-weight: 500; margin: 38px 0 4px; }
+  .sub { margin: 0 0 14px; color: var(--taupe); font-size: 14px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .grupo { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 18px 18px 8px; }
+  .grupo h3 { margin: 0 0 2px; font-size: 18px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
+  .grupo > p { margin: 0 0 10px; font-size: 13.5px; color: var(--taupe); }
+  .punto { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .p-rojo { background: var(--rojo); } .p-ambar { background: var(--ambar); } .p-pizarra { background: var(--pizarra); } .p-verde { background: var(--verde); }
+
+  .item { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--sand); }
+  .item input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--verde); cursor: pointer; }
+  .item label { cursor: pointer; display: block; }
+  .item strong { font-weight: 600; }
+  .item small { display: block; margin-top: 3px; color: var(--taupe); font-size: 13.5px; line-height: 1.45; }
+  .item input:checked ~ div strong, .item input:checked + div strong { text-decoration: line-through; color: var(--taupe); }
+  .quien { display: inline-block; margin-left: 6px; padding: 1px 9px; border-radius: 99px; font-size: 11.5px; letter-spacing: .02em; border: 1px solid var(--sand); background: var(--hueso); color: var(--tinta); white-space: nowrap; vertical-align: 1px; }
+  code { font: 12.5px/1.4 ui-monospace, "SF Mono", Menlo, monospace; background: var(--hueso); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+
+  .orden { counter-reset: paso; list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+  .orden li { counter-increment: paso; display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; padding: 11px 14px; }
+  .orden li::before { content: counter(paso); width: 28px; height: 28px; border-radius: 50%; background: var(--tinta); color: var(--crema); display: grid; place-items: center; font-weight: 600; font-size: 14px; }
+  .orden li span { font-size: 14px; }
+  .orden li em { font-style: normal; font-size: 12px; color: var(--taupe); text-align: right; }
+  .orden li.aparte { border-color: var(--rojo); }
+  .orden li.aparte em { color: var(--rojo-p); font-weight: 600; }
+
+  .hecho { columns: 2 320px; column-gap: 14px; margin-top: 12px; }
+  .hecho div { break-inside: avoid; background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 14px; margin: 0 0 10px; }
+  .hecho b { display: block; font-size: 14px; }
+  .hecho span { font-size: 13px; color: var(--taupe); }
+  .hecho .ok { color: var(--verde); font-weight: 700; margin-right: 6px; }
+
+  .nota { margin-top: 30px; padding: 14px 16px; border-left: 3px solid var(--borde); background: var(--hueso); border-radius: 0 12px 12px 0; font-size: 14px; }
+  footer { margin-top: 34px; color: var(--taupe); font-size: 13px; }
+  @media (max-width: 560px) {
+    .orden li { grid-template-columns: 34px 1fr; }
+    .orden li em { grid-column: 2; text-align: left; }
+  }
+  @media print { .tema { display: none; } body { background: #fff; color: #000; } }
+</style>
+</head>
+<body>
+<main class="pagina">
+  <div class="barra-top">
+    <div>
+      <p class="sobre">CAYLA Retail · ADR-0564 · 28 de octubre de 2026</p>
+      <h1 class="serif">Prendas dañadas en tienda: lo que queda</h1>
+      <p class="bajada">Las 8 actividades están construidas y probadas en local. Nada está en producción todavía: aquí está todo lo que falta para que las chicas lo usen, lo que no se pudo probar y lo que quedó como decisión tuya.</p>
+    </div>
+    <button class="tema" id="tema" type="button" aria-pressed="false">Cambiar a modo oscuro</button>
+  </div>
+
+  <section class="cifras" aria-label="Resumen">
+    <div class="cifra ok"><b>8 de 8</b><span>actividades construidas, cada una con su commit</span><div class="progreso" role="img" aria-label="Construido al 100 %"><i></i></div></div>
+    <div class="cifra alerta"><b>0 de 6</b><span>migraciones pegadas en producción</span></div>
+    <div class="cifra"><b>66</b><span>pruebas de Postgres en verde (más las de reglas)</span></div>
+    <div class="cifra"><b id="quedan">—</b><span>pendientes sin marcar en esta hoja</span></div>
+  </section>
+
+  <h2 class="serif">1 · Para que funcione de verdad en producción</h2>
+  <p class="sub">En este orden. Sin esto, las chicas no ven nada de lo nuevo.</p>
+  <ol class="orden" aria-label="Orden para pegar las migraciones">
+    <li><span>Pegar <code>20261029024000_danadas_tipo_de_dano.sql</code> en el SQL Editor</span><em>una parte · antes de la web</em></li>
+    <li><span>Pegar <code>20261029031000_danadas_lugar_de_la_sede.sql</code></span><em>una parte</em></li>
+    <li><span>Pegar <code>20261029032000_danadas_salio_a_arreglar.sql</code></span><em>una parte</em></li>
+    <li><span>Pegar <code>20261029033000_danadas_se_arreglo_o_no_se_pudo.sql</code></span><em>una parte</em></li>
+    <li><span>Pegar <code>20261029034000_danadas_foto_del_dano.sql</code> (tabla y funciones, sin políticas)</span><em>una parte</em></li>
+    <li class="aparte"><span>Pegar <b>SOLA</b> <code>20261029045000_danadas_foto_bucket.sql</code> (bucket y políticas)</span><em>por separado (ADR-0195)</em></li>
+    <li><span>Recién entonces publicar la web (el PR)</span><em>después de las 6</em></li>
+  </ol>
+
+  <div class="cols" style="margin-top:18px">
+    <section class="grupo">
+      <h3><span class="punto p-rojo"></span>Bloquea el uso</h3>
+      <p>Sin esto la caja no ve el botón o la base queda a medias.</p>
+      <div class="item"><input type="checkbox" id="p1" data-k="p1"><div><label for="p1"><strong>Darle el módulo Existencias al rol de la terminal de ventas</strong><span class="quien">Felipe</span></label><small>Colaboradores ▸ Roles y accesos. Hoy ese rol no lo trae en la base local, y el botón «Separé una dañada» solo sale a quien ve Existencias. Ojo: esa cuenta pasaría a ver toda Existencias, no solo el botón. El rol de almacén ya lo tiene.</small></div></div>
+      <div class="item"><input type="checkbox" id="p2" data-k="p2"><div><label for="p2"><strong>Pegar las 6 migraciones, en el orden de arriba</strong><span class="quien">Felipe</span></label><small>Es un cambio de esquema en producción: lo haces tú o lo ordenas. Cada archivo es idempotente y trae su sonda de verificación en la cabecera.</small></div></div>
+      <div class="item"><input type="checkbox" id="p3" data-k="p3"><div><label for="p3"><strong>Abrir el PR con <code>/abrir-pr</code></strong><span class="quien">Claude, con tu OK</span></label><small>8 commits locales, rama <code>claude/damaged-items-store-process-88b6c0</code>. No se abrió: el PR trae esquema de producción y, según tu regla, esperaba a que todo estuviera terminado.</small></div></div>
+      <div class="item"><input type="checkbox" id="p4" data-k="p4"><div><label for="p4"><strong>Refrescar el diccionario de datos</strong><span class="quien">Claude</span></label><small>Cuando las migraciones estén en producción: <code>pnpm datos:refrescar</code> (la tabla <code>prendas_danadas_fotos</code> y las columnas nuevas todavía no están en <code>docs/datos/generado/</code>).</small></div></div>
+    </section>
+
+    <section class="grupo">
+      <h3><span class="punto p-ambar"></span>Sin probar</h3>
+      <p>Lo que se verificó fue con la cuenta de Felipe y el navegador local.</p>
+      <div class="item"><input type="checkbox" id="q1" data-k="q1"><div><label for="q1"><strong>Probar con una terminal real</strong><span class="quien">Felipe + una colaboradora</span></label><small>Caja y almacén de Trujillo y de Lima, con su responsable de turno: reportar, sacar a arreglar y marcar «Se arregló». El botón y el reporte se vieron con la cuenta de Felipe (Admin), que no pide responsable.</small></div></div>
+      <div class="item"><input type="checkbox" id="q2" data-k="q2"><div><label for="q2"><strong>La foto con una cámara real y en producción</strong><span class="quien">Felipe</span></label><small>En el navegador local se subió y se leyó (200, <code>image/png</code>, 1 063 bytes). Falta HEIC de un iPhone, un archivo de 10 MB y el bucket <code>retail-danadas</code> ya pegado en producción.</small></div></div>
+      <div class="item"><input type="checkbox" id="q3" data-k="q3"><div><label for="q3"><strong><code>/chaos</code> completo</strong><span class="quien">Claude, con tu OK</span></label><small>Doble clic, dos pestañas, corte de red y concurrencia entre cuentas. Solo se corrió la parte de Postgres (candados, idempotencia, <code>for update</code>). <code>danadas_concurrencia.mjs</code> pide una base desechable, no la local compartida.</small></div></div>
+      <div class="item"><input type="checkbox" id="q4" data-k="q4"><div><label for="q4"><strong><code>/formidable</code> sobre los pasos nuevos</strong><span class="quien">Claude</span></label><small>«Reportar dañada», «Dónde se dejan», «Salió a arreglar» y «Se arregló»: la regla pide la prueba ciega con alguien sin contexto. No se corrió.</small></div></div>
+    </section>
+
+    <section class="grupo">
+      <h3><span class="punto p-pizarra"></span>Decisiones que quedaron abiertas</h3>
+      <p>Se construyó lo mínimo; esto lo decides tú cuando quieras.</p>
+      <div class="item"><input type="checkbox" id="d1" data-k="d1"><div><label for="d1"><strong>¿El costo del arreglo genera un asiento en Finanzas?</strong><span class="quien">Felipe · dinero</span></label><small>Hoy solo se anota en la prenda (<code>arreglo_costo</code>). Sumarlo al diario es otra decisión y otra migración.</small></div></div>
+      <div class="item"><input type="checkbox" id="d2" data-k="d2"><div><label for="d2"><strong>¿El aviso de los 7 días también en el Inicio del líder?</strong><span class="quien">Felipe</span></label><small>Hoy vive en «Para hoy» de Existencias, como los apartados vencidos. El Inicio pide otra lectura.</small></div></div>
+      <div class="item"><input type="checkbox" id="d3" data-k="d3"><div><label for="d3"><strong>¿Una cifra «fuera de la tienda» para las prendas en arreglo?</strong><span class="quien">Felipe</span></label><small>Una dañada «en arreglo» sigue contando en la cuarentena de la sede. Es lo que evita tocar Frescura, Movimientos y el conteo. Si quieres verla aparte, es una decisión de modelo.</small></div></div>
+      <div class="item"><input type="checkbox" id="d4" data-k="d4"><div><label for="d4"><strong>Confirmar que «Salió a arreglar» lo haga cualquiera con Existencias</strong><span class="quien">Felipe</span></label><small>El plan decía «solo el líder»; lo cambié porque las cuentas de almacén y de caja —las que llevan la prenda— nunca son líder y ADR-0534 ya quitó esa validación a resolver y liquidar.</small></div></div>
+    </section>
+
+    <section class="grupo">
+      <h3><span class="punto p-verde"></span>Deuda menor</h3>
+      <p>Nada de esto frena el uso.</p>
+      <div class="item"><input type="checkbox" id="m1" data-k="m1"><div><label for="m1"><strong>Un paso de guía para la foto y los paneles nuevos</strong><span class="quien">Claude</span></label><small>Las guías de Inventario, Inicio y Vender mencionan lo nuevo, pero el botón de foto y los paneles dentro de la ventana de dañadas no tienen su propio paso interactivo.</small></div></div>
+      <div class="item"><input type="checkbox" id="m2" data-k="m2"><div><label for="m2"><strong><code>pnpm pruebas:perdidas</code> falla 1 de 116 en la base local</strong><span class="quien">Claude</span></label><small>Caso M5 (Estado de resultados antes y después de la cuenta 659→6951). No toca dañadas y la base local tiene unas 80 migraciones sin aplicar (por ejemplo <code>fn_valor_inventario</code>); no se investigó más.</small></div></div>
+      <div class="item"><input type="checkbox" id="m3" data-k="m3"><div><label for="m3"><strong>Un archivo de prueba de 1 KB en el bucket local</strong><span class="quien">Claude</span></label><small>Las tablas se restauraron a su foto, pero Storage no entra en esa foto. Es solo local.</small></div></div>
+      <div class="item"><input type="checkbox" id="m4" data-k="m4"><div><label for="m4"><strong>Documentar la regla en las guías de Roles y accesos</strong><span class="quien">Felipe</span></label><small>Cuando des Existencias a la caja, conviene decir a las chicas que «Separé una dañada» sale ahí; la guía de Vender ya lo explica.</small></div></div>
+    </section>
+  </div>
+
+  <h2 class="serif">2 · Lo que ya está hecho</h2>
+  <p class="sub">Cada actividad, con su commit y su prueba.</p>
+  <div class="hecho">
+    <div><b><span class="ok">✓</span>1 · Tipo de daño</b><span>Mancha, descosido, botón o cierre, rotura, otro; la nota es opcional salvo en «Otro». La web vieja sigue valiendo.</span></div>
+    <div><b><span class="ok">✓</span>2 · Lugar de las dañadas</b><span>Cada tienda marca dónde las deja y «Reportar dañada» lo repite.</span></div>
+    <div><b><span class="ok">✓</span>3 · «Separé una dañada»</b><span>A la vista en Vender y en el Inicio de almacén, sin teléfono. Probado también a 375 px.</span></div>
+    <div><b><span class="ok">✓</span>4 · «Salió a arreglar»</b><span>Cerca o Taller, sin mover stock: «En arreglo · Taller · hace 3 días».</span></div>
+    <div><b><span class="ok">✓</span>5 · «Se arregló» o «No se pudo»</b><span>Al piso o al almacén, costo opcional. Al piso son dos traslados en una transacción: Frescura cuenta desde ahí.</span></div>
+    <div><b><span class="ok">✓</span>6 · Aviso a los 7 días</b><span>La fila de dañadas de «Para hoy» sube a rojo si alguna lleva 7 días sin salir a arreglar.</span></div>
+    <div><b><span class="ok">✓</span>7 · Foto opcional</b><span>Se sube después de reportar; si falla, la prenda queda reportada. Bucket privado, enlaces de 1 hora.</span></div>
+    <div><b><span class="ok">✓</span>8 · Cierre</b><span>ADR-0564, bitácora, backlog, 4 escenarios de modo oscuro (0 hallazgos solo en oscuro) y verificación en el navegador.</span></div>
+  </div>
+
+  <p class="nota"><b>Dónde está todo:</b> decisiones y orden de pegado en <code>docs/adr/0564-prendas-danadas-en-tienda-del-perchero-al-arreglo.md</code>; la lista viva en <code>docs/backlog/2026-10-28-damaged-items-store-process-88b6c0.md</code>. Esta hoja guarda tus casillas solo en este navegador.</p>
+  <footer>Marcar una casilla no cambia nada en el sistema: es solo tu lista.</footer>
+</main>
+<script>
+(function () {
+  var raiz = document.documentElement, boton = document.getElementById("tema");
+  function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function aplicarTema(t) {
+    if (t) raiz.setAttribute("data-tema", t); else raiz.removeAttribute("data-tema");
+    var oscuro = t === "oscuro" || (!t && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+    boton.textContent = oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+    boton.setAttribute("aria-pressed", oscuro ? "true" : "false");
+  }
+  aplicarTema(leer("danadas-pendientes-tema"));
+  boton.addEventListener("click", function () {
+    var oscuro = boton.getAttribute("aria-pressed") === "true";
+    var nuevo = oscuro ? "claro" : "oscuro";
+    guardar("danadas-pendientes-tema", nuevo); aplicarTema(nuevo);
+  });
+  var cajas = Array.prototype.slice.call(document.querySelectorAll("input[data-k]"));
+  function contar() { document.getElementById("quedan").textContent = String(cajas.filter(function (c) { return !c.checked; }).length); }
+  cajas.forEach(function (c) {
+    c.checked = leer("danadas-pendientes-" + c.dataset.k) === "1";
+    c.addEventListener("change", function () { guardar("danadas-pendientes-" + c.dataset.k, c.checked ? "1" : "0"); contar(); });
+  });
+  contar();
+})();
+</script>
+</body>
+</html>
