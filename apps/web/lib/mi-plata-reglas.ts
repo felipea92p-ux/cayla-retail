@@ -737,6 +737,8 @@ export type MovimientoCompradora = {
   ronda: string | null;
   /** Solo en una compra: el papel (`compra_papeles.id`), para corregirla (ADR-0561). */
   compraId?: string;
+  /** Solo en un gasto de «otra cosa»: su identificador (`compra_gastos.id`), para corregirlo (ADR-0572). */
+  gastoId?: string;
 };
 
 const TITULO_PLATA: Record<MedioPlata, string> = {
@@ -809,6 +811,7 @@ export function movimientosDeLaCompradora(
       const e = estadoParaLaCompradora("gasto", g.porCompletar);
       return {
         clave: `gasto-${g.id}`,
+        gastoId: g.id,
         tipo: "gasto",
         icono: g.concepto,
         titulo: nombreGasto(g),
