@@ -1,9 +1,11 @@
 "use client";
 
+import { NombreDelProveedor } from "@/components/ficha-producto/NombreDelProveedor";
+import { avisosDeReferencia, otrosTipos, tiposDeCategoria } from "@/lib/nombre-de-prenda";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, Lightbulb, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -214,7 +216,7 @@ import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-to
    talla que ADR-0258 ponía en las filas «sin historia» se retiraron.
    ==================================================================== */
 
-type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean; admitePrecioCero: boolean };
+type Categoria = { id: string; nombre: string; prefijo: string | null; familia?: string | null; exigeTejidoPatron: boolean; admitePrecioCero: boolean };
 
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
@@ -307,6 +309,7 @@ export function ProductoForm({
   preciosSede = null,
   producto,
   volverA = "/productos",
+  nombreProveedor,
 }: {
   categorias: Categoria[];
   /** Vocabulario de colores activo, con familia y sinónimos (lo mismo que ve el alta). */
@@ -354,6 +357,8 @@ export function ProductoForm({
   producto?: ProductoDetalle;
   /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
   volverA?: string;
+  /** Cómo lo llama el proveedor (ADR-0556). `undefined` = la base todavía no tiene la columna: la fila no se dibuja. */
+  nombreProveedor?: string | null;
 }) {
   const router = useRouter();
   const editando = !!producto;
@@ -455,6 +460,15 @@ export function ProductoForm({
   const parecidos = useParecidos({ nombre: nombreNuevo, activo: nombreCambio, excluirId: producto?.id, marcaId });
   const parejaCambio = !!producto && (marcaId !== producto.marcaId || proveedorId !== producto.proveedorId);
   const categoriaActual = categorias.find((c) => c.id === categoriaId);
+  // El estándar de nombres (ADR-0556): al renombrar se avisa lo que no lo sigue (un color, una talla, «oferta»…). Solo avisa; un nombre
+  // viejo que no se toca no dice nada.
+  const avisosNombre = nombreCambio
+    ? avisosDeReferencia(referencia, {
+        tipos: tiposDeCategoria({ prefijo: categoriaActual?.prefijo, familia: categoriaActual?.familia }),
+        colores: colores.flatMap((c) => [c.nombre, ...(c.sinonimos ?? [])]),
+        otrosTipos: otrosTipos(categoriaActual?.prefijo),
+      })
+    : [];
   // Al EDITAR la regla es «no empeora» (ADR-0109, cuarta parte; Felipe, 2026-09-19): en Indumentaria un producto activo que
   // YA tenía tejido o patrón no puede quedarse sin él; uno que nunca los tuvo se guarda igual. Hoy son 38 de los 39 activos: nacieron
   // cuando ninguna categoría tenía tejidos habilitados, y exigirlos habría impedido hasta cambiar un precio. Nuevo producto sí los exige.
@@ -1536,6 +1550,16 @@ export function ProductoForm({
                     Se guardará como <strong className="text-tinta">{nombreNuevo}</strong>
                   </p>
                 )}
+                {avisosNombre.length > 0 && (
+                  <ul className="mb-2 space-y-1" aria-live="polite">
+                    {avisosNombre.map((a) => (
+                      <li key={a.regla} className="flex items-start gap-1.5 text-[13px] text-tinta">
+                        <Lightbulb aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ambar" />
+                        {a.texto}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <AvisoParecidos parecidos={parecidos.items} confirmo={parecidos.confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
               </div>
             )}
@@ -1560,6 +1584,16 @@ export function ProductoForm({
                 />
               </Campo>
             </div>
+            {producto && nombreProveedor !== undefined && (
+              <div className="@lg:col-span-2">
+                <NombreDelProveedor
+                  productoId={producto.id}
+                  valor={nombreProveedor}
+                  firma={() => stock.responsable.firma()}
+                  motivoSinFirma={stock.responsable.motivo}
+                />
+              </div>
+            )}
             {/* El ancho completo va en una caja propia: `CampoTexto` le pasa `className` al <input>, no a la celda de la grilla,
                 y con la clase ahí la descripción quedaba en media fila con el texto de ayuda cortado. */}
             <div className="@lg:col-span-2">

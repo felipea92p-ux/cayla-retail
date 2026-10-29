@@ -1,7 +1,7 @@
 # ADR-0553 — El Taller tiene su cuenta de pago por defecto: la de sus transferencias
 
 - **Fecha:** 2026-10-28 · **Estado:** **construido en la rama `claude/sales-account-reconciliation-6b2908`**; la migración
-  `20261028065000_taller_cuenta_de_pago_por_defecto.sql` **no está en producción** (la pega Felipe, una sola parte, **después** de publicar la web).
+  `20261028065000_taller_cuenta_de_pago_por_defecto.sql` **en producción desde el 2026-10-28** (aplicada por Claude con el OK de Felipe, archivo tal cual por la línea de comandos de Supabase; verificada).
 - **Nace de:** el cuadre de cuentas del 27-28 de octubre (ADR-0552). Felipe va a cargar en el Taller telas y avíos pagados por transferencia y no quiere
   elegir el banco a mano en cada pago.
 - **Complementa:** ADR-0195 F3b (la cuenta sellada en cada cobro y pago), ADR-0429 (las máquinas y el destino por tienda), ADR-0370 (reemplazos anclados).

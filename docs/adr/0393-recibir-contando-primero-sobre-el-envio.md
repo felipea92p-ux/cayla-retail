@@ -670,7 +670,7 @@ quiera el precio general lo elige a propósito. (2) **«Aplicar validaciones; da
 se ignoraba en silencio y uno bajo el costo se descubría recién después de la confirmación. Ahora, al guardar: un precio mal escrito (no es número, cero, más de
 S/ 5 000) se dice y se lleva el cursor al campo; luego la base responde si cada precio se podría guardar y, si no, **por qué**, junto al campo y a todo el
 ancho, y la confirmación ni se abre; recién entonces se pide confirmar. Lo mismo al cerrar el envío (su fila se abre y el cursor va al campo).
-En la base, `validar_precio_en_recepcion(envío, prenda, precio, alcance)` (en `20261026180000`, aún sin pegar) **corre la función real
+En la base, `validar_precio_en_recepcion(envío, prenda, precio, alcance)` (en `20261026180000`, en producción desde el 2026-10-28) **corre la función real
 `cambiar_precio_en_recepcion` dentro de una subtransacción que siempre se deshace**: las reglas son las mismas porque es el mismo código (piso del costo sin
 decir cuánto cuesta —ADR-0183—, tope, tienda abierta, «ya es el precio de la grilla»…), sin duplicarlas ni que un día digan cosas distintas. Una marca de
 transacción que solo esa función enciende y apaga salta únicamente la pregunta «¿es de este envío?», porque la prenda que se acaba de identificar todavía no
@@ -691,7 +691,7 @@ liquidar usa una campaña…» antes de la confirmación, 105 pasa y queda **sol
 entraba al stock con el costo de su LÍNEA. Si había costado otra cosa, solo se corregía desde Catálogo cuando ya había entrado. Felipe (2026-10-26/27): «se debe
 poder cambiar tanto el precio de venta (ya está) como el costo (falta)». Esperó a que ADR-0519 estuviera en `main` para no tener dos formas de costo por prenda.
 
-**Qué se hizo** (`20261026210000_costo_por_prenda_en_hacer_ahora.sql`, aún sin pegar en producción; se pega DESPUÉS de `20261026163000` y `20261026180000`).
+**Qué se hizo** (`20261026210000_costo_por_prenda_en_hacer_ahora.sql`, en producción desde el 2026-10-28, pegada después de `20261026163000` y `20261026180000`).
 En la hoja de la prenda (Tallas y colores, y Separar) el bloque «Costo y precio de venta · opcional» trae el costo con el que la prenda entraría (el suyo propio si
 ya lo tiene, el que se le puso por su descripción si era una nueva, o el de su línea) y se confirma con la misma ventana del precio («Vas a cambiar costos y
 precios»). El costo viaja dentro de lo separado (`p_separado -> 'costos'`, `{producto: costo}`): `resolver_pendiente_envio` mantiene su firma, y la huella del doble clic ya lo

@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 115,
+  "total": 121,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -18,10 +18,11 @@
       "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
       "button «Seguir»",
       "button «{responsable.motivo ?? undefined}»",
-      "CampoTexto «Nombre»",
-      "CampoTexto «Descripción»",
+      "CampoTexto «Cómo lo llama el proveedor»",
+      "CampoTexto «Detalle»",
       "CampoMonto «Precio de venta»",
       "CampoMonto «Costo»",
+      "button «Elegir proveedor»",
       "button «{quienRegistra ? \"Cambiar\" : \"Elegir\"}»"
     ],
     "components/SelectorColor.tsx": [
@@ -118,6 +119,10 @@
       "button «Quitar»",
       "button «Listo»"
     ],
+    "components/alta-producto/NombreDePrenda.tsx": [
+      "button «{libre ? `Volver a «${tipos[0]}»",
+      "CampoTexto «{libre ? \"Nombre\" : `Nombre de la ${tipo.toLocaleLowerCase(\"es\")}»"
+    ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
       "ComboBuscable «nm-marca»",
@@ -170,6 +175,11 @@
     "components/alta-producto/TiraParecidas.tsx": [
       "Link «{interior}»",
       "button «{interior}»"
+    ],
+    "components/alta-producto/YaExiste.tsx": [
+      "button «{`Ver ${c.referencia}»",
+      "button «Cambiar»",
+      "button «Ninguna, es un diseño nuevo»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
