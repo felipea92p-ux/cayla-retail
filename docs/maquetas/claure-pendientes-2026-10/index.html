@@ -95,7 +95,7 @@
   <header>
     <p class="ojo">CAYLA · ADR-0560 · actualizado el 29 de octubre de 2026</p>
     <h1 class="serif">CLAURE: lo que queda por decidir, pegar y mirar</h1>
-    <p class="sub">Las 16 actividades vigentes están construidas y probadas (la 15 se retiró: ya la hace tu ADR-0558), también sobre una copia de la base de <code>main</code> con la 0558 puesta. <b>Nada está en producción</b> y no se abrió ningún PR: lo que sigue es tuyo. Marca lo que vayas cerrando; el tablero lo recuerda en este navegador.</p>
+    <p class="sub">Las 16 actividades vigentes están construidas y probadas (la 15 se retiró: ya la hace tu ADR-0558), también sobre una copia de la base de <code>main</code> con la 0558 puesta. <b>El SQL ya está en producción</b> (las 17 migraciones, pegadas el 29-oct con tu OK); <b>la web no está publicada y no se abrió ningún PR</b>: lo que sigue es tuyo. Marca lo que vayas cerrando; el tablero lo recuerda en este navegador.</p>
     <div class="barra" role="group" aria-label="Filtros">
       <button class="chip" data-filtro="todo" aria-pressed="true">Todo</button>
       <button class="chip" data-filtro="decision" aria-pressed="false">Decisiones tuyas</button>
@@ -256,11 +256,11 @@ const CASOS = [
   {
     "id": "p1",
     "tipo": "produccion",
-    "prio": "alta",
-    "titulo": "Pegar las 17 migraciones, en orden y una por una",
-    "por": "Ninguna está en producción. Varias llevan reemplazos anclados sobre funciones vivas cuyo texto no pude leer: si una no coincide, aborta sin cambiar nada y dice cuál.",
-    "hoy": "Probadas en la base local (con rollback) y verificadas contra una mutación.",
-    "falta": "Tu OK y el SQL Editor. Orden: ver «Cómo pegarlo en producción»."
+    "prio": "baja",
+    "titulo": "Las 17 migraciones ya están en producción (hecho el 29-oct)",
+    "por": "Las pegué con tu OK, en orden y una por una; ninguna abortó, ni siquiera las de reemplazos anclados (la 041000 y la 144000).",
+    "hoy": "Comprobado en solo lectura: el Diario reclasifica las 5 ventas de CLAURE (20 líneas, cuadradas a 0,00), la 4699 quedó sin líneas, y la pantalla dice que se le debe S/ 246,69. La 479 muestra S/ 279,66 porque incluye el efectivo que ya tiene Claudia.",
+    "falta": "Nada del SQL. Faltan el PR de la web, refrescar el diccionario de datos y mirar el Balance cuando se carguen los saldos de arranque."
   },
   {
     "id": "p2",
@@ -268,8 +268,8 @@ const CASOS = [
     "prio": "alta",
     "titulo": "La web va después de todo el SQL",
     "por": "Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto: sin las migraciones 044000, 153000 y 161000, fallan.",
-    "hoy": "—",
-    "falta": "Pegar las 17 antes de fusionar."
+    "hoy": "Las 17 migraciones están en producción desde el 29-oct.",
+    "falta": "El SQL ya está pegado: la web puede fusionarse cuando abras el PR."
   },
   {
     "id": "p3",
