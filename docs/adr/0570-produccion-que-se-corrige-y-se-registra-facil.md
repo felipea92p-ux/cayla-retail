@@ -162,6 +162,30 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
   - eliminar y restaurar Habilitado;
   - una nota.
 
+### Actividad 4: la tela al cortar, «Encontré tela» y el candado de «Pasar al stock» (migración `20261029190000`, web)
+
+**DECIDÍ:**
+- **Se pregunta lo que quedó, no lo que se usó.** En el Taller nadie mide lo cortado: mide lo que queda en el rollo. «¿Cuánto quedó en el estante?» trae todos los colores de la orden en una hoja (`AnotarLoUsadoModal`), y la base resta lo que quedó de lo que la pantalla muestra como «en el estante» (`fn_insumo_saldo_en`, el libro de movimientos). El número que la persona ve antes de medir es el mismo que usa la base.
+- **Todo o nada, en una sola llamada:** `anotar_insumos_de_la_orden(orden, líneas)`. Lo usado sale de los lotes del más antiguo al más nuevo (PEPS, `fn_insumo_consumir_peps`) dentro de la base. Antes la pantalla partía entre lotes y hacía una llamada por lote: si la segunda fallaba, quedaba la mitad. El partido del navegador se borró.
+- **Corte de afuera:** la tela sale con la salida (`AnotarSalidaModal` la pide con «usado») y lo que sobra vuelve con «Devolver lo que sobró», que ya existía.
+- **«Encontré tela»** (`encontre_tela`): un retazo o una tela que nunca se registró entra como un lote más con origen `encontrada`, al precio escrito o al del último lote de ese color. Solo telas: un avío entra con su compra. No toca caja ni comprobantes.
+- **El candado de «Pasar al stock»:** si la orden declaró tela (también un forro) y algún color no tiene nada anotado, `cerrar_produccion` no la deja entrar (`fn_produccion_exigir_tela`). Solo un líder (o un Admin, que aquí también es líder) la deja pasar con su motivo (`permitir_pasar_sin_tela`), y el permiso queda en la historia de la orden (`produccion_cambios`, acción `sin_tela`). Una muestra no lo pide.
+
+**DESCARTÉ:**
+- **Exigir tela también a una orden que no declaró ninguna.** Es la lectura literal de «sin tela no pasa», pero 20 suites de otros módulos (Frescura, el plan del piso, costos) cierran órdenes sin tela para armar su escena, y toda orden abierta sin tela declarada quedaría trabada. La pantalla sigue avisando y ofrece «Declarar la tela». **Volverlo candado es decisión de Felipe** y sería otra migración.
+- **Seguir preguntando «¿cuánto usaste?».** Es un número que nadie midió; por eso se anotaba cero o no se anotaba.
+- **Una compra inventada para un retazo.** Ensucia Compras y Por pagar con algo que nadie compró.
+
+**SE ROMPE SI:**
+- Alguien anota «quedó» de un color que se cortó para dos órdenes en una sola medición: la base le carga todo a la orden que anota. Se corrige devolviendo lo que no era suyo («Devolver lo que sobró»).
+- El estante tiene un ajuste que los lotes no ven (el saldo de un lote ignora los `ajuste`, actividad 6): lo que quedó puede pedir más de lo que los lotes tienen. La base lo rechaza con «Avisa al líder» en vez de dejar un lote negativo.
+
+**Lo que se probó:**
+- `pnpm pruebas:produccion-tela-al-cortar`: 16 casos (quedó por color, todo o nada, PEPS entre lotes, pasarse, repetidos, ajeno, «Encontré tela» con y sin precio, avío rechazado, el candado con tela y con forro, el permiso solo de líder, la muestra y la orden sin tela que pasan, y que se pueda pegar otra vez).
+- Las 26 suites de Producción y las 13 de otros módulos que cierran órdenes, en una base desde cero.
+- `tsc`, las reglas de la orden y las guardas de pantalla (guías, guía de foco, `unificar`, tema, `sugerir`, módulos): 478 en verde.
+- **Sin probar en el navegador:** el permiso de líder, la tela del corte de afuera y «Encontré tela», también a 375 px. La sesión que lo terminó corrió en un contenedor sin base local; queda para la actividad 10 junto con `/chaos`.
+
 ## Consecuencias
 
 - La ruta pasa de `RutaDeFases.tsx` a `RutaViva.tsx`, que también arma las dos columnas. La página le pasa la tela y el costo (`izquierda`) y la ficha y la historia (`derecha`).

@@ -186,7 +186,6 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
       avisar.error(traducirError(error, `anotar lo que terminaste en ${nombreMinuscula}`, { confirmarAntesDeRepetir: true }));
       return;
     }
-    // La tela, si se escribió: después del avance, cada una con su RPC. Si una falla, el corte ya quedó anotado y se dice.
     // La tela, si se escribió: después del avance, en UNA llamada para todos los colores (todo o nada). Si falla, el corte ya quedó anotado y se dice.
     let anotada: string | null = null;
     let falloDeTela: string | null = null;

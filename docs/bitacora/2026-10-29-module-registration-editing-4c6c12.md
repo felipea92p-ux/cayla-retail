@@ -87,3 +87,24 @@
   - eliminar y restaurar Habilitado;
   - una nota.
 - **Ojo:** el primer intento agregaba `deshace_id` a las filas de la línea de tiempo con reemplazos anclados, y volver a pegar la migración de la actividad 2 duplicaba el bloque de fallas. Ahora la orden manda dos claves aparte y las filas de la línea de tiempo no se tocan.
+
+## 2026-10-29 (Producción: la tela al cortar, «Encontré tela» y el candado de «Pasar al stock» — ADR-0570, actividad 4 de 10)
+
+**Qué hice:**
+- **Base** (`20261029190000_produccion_tela_al_cortar.sql`):
+  - `anotar_insumos_de_la_orden`: lo que quedó de cada tela o lo usado de cada avío, PEPS en la base, todo o nada.
+  - `encontre_tela`: un lote con origen «encontrada», al precio escrito o al último.
+  - `permitir_pasar_sin_tela`: solo un líder, con motivo, y queda en la historia de la orden.
+  - `cerrar_produccion` pide la tela (también un forro) de una orden que la declaró.
+- **Web:**
+  - «¿Cuánto quedó en el estante?» con todos los colores en una hoja; el partido de lotes del navegador se borró.
+  - «Encontré tela», la tela que sale con un corte de afuera y el candado en «Pasar al stock» con el permiso de líder.
+
+**Por qué así:** una prenda entró al stock a S/ 4,50 en vez de S/ 22,38 porque nadie anotó la tela. Además se preguntaba lo usado, un número que nadie mide: en el Taller se mide lo que quedó en el rollo.
+
+**Estado:**
+- **Migración SIN pegar en producción.** Va después de `20261029173000`, y antes de publicar la web.
+- 16 casos nuevos; las 26 suites de Producción y 13 de otros módulos que cierran órdenes, en una base desde cero.
+- `tsc` y 478 pruebas de reglas y guardas en verde.
+- **Sin probar en el navegador** el permiso de líder, el corte de afuera y «Encontré tela» (también a 375 px): el contenedor del cierre no tenía base local. Queda para la actividad 10.
+- **Decisión propia que Felipe tiene que confirmar:** el candado no aplica a una orden que no declaró tela (bloquearla rompía 20 suites de otros módulos y trababa toda orden sin tela). Si la quiere bloqueada, es otra migración.
