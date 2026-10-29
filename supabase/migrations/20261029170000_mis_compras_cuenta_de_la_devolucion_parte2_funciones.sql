@@ -39,8 +39,10 @@ do $mig$
 declare
   v_def text;
 begin
-  -- Ya hecho: la función de dos parámetros existe.
+  -- Ya hecho: la función de dos parámetros existe. Si volvió a aparecer la de un parámetro (alguien re-pegó una migración vieja que la crea), se retira:
+  -- dos con el mismo nombre y un parámetro opcional dejan ambigua toda llamada con un solo argumento.
   if to_regprocedure('retail.terminar_dia_compras(text,uuid)') is not null then
+    drop function if exists retail.terminar_dia_compras(text);
     return;
   end if;
   v_def := pg_get_functiondef('retail.terminar_dia_compras(text)'::regprocedure);
