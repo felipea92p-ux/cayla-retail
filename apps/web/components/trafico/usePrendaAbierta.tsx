@@ -5,7 +5,7 @@ import type { PrendaTrafico } from "@/lib/trafico-reglas";
 import { CajonPrendaTrafico } from "./CajonPrendaTrafico";
 
 /**
- * El cajón de una prenda de Tráfico, igual desde la vitrina y desde la tabla: cuál está abierta, ↑ ↓ para pasar a la de al lado (en el
+ * El cajón de una prenda de Tráfico, igual desde «Qué prendas miran» y desde la vista de tabla: cuál está abierta, ↑ ↓ para pasar a la de al lado (en el
  * orden de la lista) y, al cerrar, el foco de vuelta al control de la última prenda que se miró (`data-prenda` dentro de `contenedor`).
  * Radix lo deja en el `body` cuando la hoja se desmonta sola tras su salida: se espera a que termine y, si nadie tomó el foco, se pone.
  */

@@ -2,9 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Candado de los límites de ADR-0136 para Tienda web ▸ Tráfico (act. 2026-10-23 (d), ADR-0495): Felipe eligió la maqueta C «La vitrina»
-// con su movimiento. Las baldosas entran en cascada, su etiqueta se cuelga y una luz cruza la vitrina UNA vez; con la curva del sistema,
-// solo colores del tema y apagado con «reducir movimiento». El único bucle es una señal: el punto verde de «Ahora, N mirando».
+// Candado de los límites de ADR-0136 para Tienda web ▸ Tráfico (act. 2026-10-23 (d), ADR-0495; «Observatorio» desde 2026-10-28): los 100
+// puntos de «Hasta dónde llega la gente» se encienden UNA vez; con la curva del sistema, solo colores del tema y apagado con «reducir
+// movimiento». El único bucle es una señal: el punto verde de «N mirando ahora». (La vitrina de baldosas, con su cascada, su etiqueta que
+// se cuelga y su luz, se fue en la actividad 6.)
 
 const hoja = readFileSync(join(__dirname, "../app/estilos/trafico.css"), "utf8");
 const css = hoja.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -41,12 +42,12 @@ describe("trafico.css — los límites del movimiento (ADR-0136, excepción de T
   it("todo lo que se mueve se apaga con prefers-reduced-motion", () => {
     const reducido = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
     const animadas = [...antesDeReducir.matchAll(/(\.trafico-[\w-]+(?:::?[\w-]+)?)\s*\{[^}]*\banimation\s*:/g)].map((m) => m[1]!);
-    expect(animadas.length).toBeGreaterThanOrEqual(4);
+    expect(animadas.length).toBeGreaterThanOrEqual(2);
     for (const c of new Set(animadas)) expect(reducido, `${c} no se apaga con «reducir movimiento»`).toContain(c);
   });
 
-  it("el hover de una baldosa vive dentro de (hover: hover)", () => {
-    expect(antesDeReducir).toMatch(/@media \(hover: hover\)\s*\{\s*\.trafico-pieza:hover/);
+  it("el hover de una celda del mapa de calor vive dentro de (hover: hover)", () => {
+    expect(antesDeReducir).toMatch(/@media \(hover: hover\)\s*\{\s*\.trafico-calor-celda:hover/);
   });
 });
 

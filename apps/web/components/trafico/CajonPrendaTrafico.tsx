@@ -23,9 +23,9 @@ import {
 } from "@/lib/trafico-reglas";
 
 /**
- * El cajón de una prenda de la vitrina de Tráfico (ADR-0495, actividad 5): cuántas personas la miraron y contra los días de antes, su
+ * El cajón de una prenda de Tráfico (ADR-0495, actividad 5), abierto desde la tabla «Qué prendas miran»: cuántas personas la miraron y contra los días de antes, su
  * recorrido (de mirarla a recogerla), las tallas y los colores que eligieron y por dónde llegaron. ↑ ↓ pasan a la prenda de al lado,
- * en el orden de la vitrina. Solo lee: no hay nada que guardar aquí.
+ * en el orden de la tabla. Solo lee: no hay nada que guardar aquí.
  */
 export function CajonPrendaTrafico({
   p,
@@ -90,8 +90,8 @@ export function CajonPrendaTrafico({
           <span className="text-[15px] text-tinta/70">{miraron === 1 ? "persona la miró" : "personas la miraron"}</span>
         </p>
         <p className="mt-1 text-[13.5px] text-tinta/70">
-          De cada 100 que vieron una prenda, <b className="font-semibold text-tinta">{de100QueVieron(p, vieron)} miraron esta</b>. {antes}:{" "}
-          {personas(p.anterior)}.
+          De cada 100 que vieron una prenda, <b className="font-semibold text-tinta">{de100QueVieron(p, vieron)} miraron esta</b>.
+          {p.anterior !== null && ` ${antes}: ${personas(p.anterior)}.`}
         </p>
       </div>
 

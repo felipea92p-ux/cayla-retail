@@ -1,0 +1,229 @@
+"use client";
+
+import { useState, type CSSProperties } from "react";
+import { Check, Equal, TriangleAlert } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
+import { Linea } from "@/components/ui/Linea";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { Sparkline } from "@/components/ui/Sparkline";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import {
+  CAMINOS,
+  METRICAS,
+  PASOS,
+  cambio,
+  cambioDe,
+  cifraTexto,
+  de100,
+  dondeSeAtora,
+  graficoDe,
+  horaRedonda,
+  lider,
+  marcasDelTiempo,
+  miles,
+  picoDeHoras,
+  totalDe,
+  tramoTexto,
+  valoresDe,
+  veredictoDe,
+  type ClavePeriodo,
+  type MetricaTrafico,
+  type ResumenTrafico,
+} from "@/lib/trafico-reglas";
+
+/**
+ * El pulso de Tráfico («Observatorio», actividad 2; maqueta `docs/maquetas/trafico-decisiones-2026-10/`): cinco cifras que eligen el
+ * gráfico principal (patrón de Plausible: la cifra puesta es la que se dibuja), la línea de estos días contra los de antes (Hoy, por hora
+ * contra ayer; varios días, día por día) y, al costado, la respuesta en una frase con cuatro datos. Acumulado, la línea de Hoy sigue
+ * punteada hasta el cierre esperado. La cifra y la forma elegidas viven en la pantalla, no en la dirección: no cambian lo que se lee.
+ */
+export function PulsoTrafico({
+  r,
+  periodo,
+  hastaX,
+}: {
+  r: ResumenTrafico;
+  periodo: { clave: ClavePeriodo; nombre: string; antes: string; desde: string };
+  /** Hasta dónde llega lo de hoy: en Hoy, la hora de Lima de ahora; en varios días que terminan hoy, el número del día de hoy. */
+  hastaX: number | null;
+}) {
+  const [metrica, setMetrica] = useState<MetricaTrafico>("entraron");
+  const [acumulado, setAcumulado] = useState(false);
+  const porHora = r.serie.por === "hora";
+  const largo = porHora ? 24 : Math.max(1, ...r.serie.actual.map((f) => f[0] + 1), diasDelRango(r.desde, r.hasta));
+  const largoAntes = porHora ? 24 : diasDelRango(r.anteriorDesde, r.anteriorHasta);
+  const acum = acumulado && metrica !== "de100";
+  const g = graficoDe(r.serie, metrica, { largo, largoAntes, hastaX, acumulado: acum });
+  const m = METRICAS.find((x) => x.clave === metrica)!;
+  const hoy = periodo.clave === "hoy";
+  const nombreAntes = hoy ? "Ayer" : periodo.antes.charAt(0).toUpperCase() + periodo.antes.slice(1);
+  const ultimo = g.serie.at(-1)?.y ?? 0;
+
+  return (
+    <section className="space-y-4" aria-label="El pulso de la tienda web">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" data-guia="trafico.cifra">
+        {METRICAS.map((x, i) => {
+          const t = totalDe(r, x.clave, hastaX);
+          const c = cambioDe(x.clave, t.valor, t.antes);
+          return (
+            <TarjetaCifra
+              key={x.clave}
+              etiqueta={x.nombre}
+              valor={cifraTexto(x.clave, t.valor)}
+              onClick={() => setMetrica(x.clave)}
+              activa={metrica === x.clave}
+              className={`anim-sube ${i === 4 ? "col-span-2 md:col-span-1" : ""}`}
+              style={{ "--i": i } as CSSProperties}
+              pie={
+                <span className="flex items-center justify-between gap-2">
+                  {c ? (
+                    <Chip tono={c.tono} versalitas={false}>
+                      {c.texto}
+                    </Chip>
+                  ) : (
+                    <span className="text-[12px] text-tinta/60">Sin comparar</span>
+                  )}
+                  <Sparkline serie={valoresDe(r.serie.actual, x.clave, hastaX !== null ? Math.max(1, hastaX) : largo, false)} indice={i} />
+                </span>
+              }
+            />
+          );
+        })}
+      </div>
+
+      <div className="card-cayla anim-sube grid min-w-0 lg:grid-cols-[minmax(0,1fr)_320px]" style={{ "--i": 5 } as CSSProperties} data-guia="trafico.pulso">
+        <div className="min-w-0 p-4 sm:px-5">
+          <TituloSeccion
+            className="mb-2"
+            accion={
+              metrica !== "de100" ? (
+                <SegmentoDeslizante
+                  forma="modo"
+                  etiqueta="Cómo contar"
+                  valor={acumulado ? "acumulado" : "cada"}
+                  onCambio={(v) => setAcumulado(v === "acumulado")}
+                  opciones={[
+                    { clave: "cada", etiqueta: porHora ? "Por hora" : "Por día" },
+                    { clave: "acumulado", etiqueta: "Acumulado" },
+                  ]}
+                />
+              ) : undefined
+            }
+          >
+            {m.nombre}
+            {acum ? ", acumulado" : ""}
+          </TituloSeccion>
+          <Linea
+            serie={g.serie}
+            referencia={g.referencia}
+            proyeccion={g.proyeccion}
+            desde={0}
+            hasta={largo - 1}
+            alto={260}
+            marcasX={marcasDelTiempo(r.serie.por, largo, periodo.desde)}
+            formatoY={(v) => cifraTexto(metrica, v)}
+            ahora={hoy && hastaX !== null ? { x: hastaX, texto: `ahora · ${horaRedonda(hastaX)}` } : null}
+            cifra={cifraTexto(metrica, ultimo)}
+            cifraReferencia={g.cierre !== null ? { valor: miles(g.cierre), texto: "cierre esperado" } : null}
+            leer={(x) => {
+              const i = Math.round(x);
+              const a = g.serie.find((p) => p.x === i)?.y;
+              const b = g.referencia.find((p) => p.x === i)?.y;
+              const cuando = porHora ? horaRedonda(i) : marcaDia(periodo.desde, i);
+              return (
+                <span>
+                  <b>{cuando}</b>
+                  {a !== undefined && <span className="block">{hoy ? "Hoy" : periodo.nombre}: {cifraTexto(metrica, a)}</span>}
+                  {b !== undefined && <span className="block">{nombreAntes}: {cifraTexto(metrica, b)}</span>}
+                </span>
+              );
+            }}
+            etiqueta={`${m.nombre}, ${porHora ? "hora por hora" : "día por día"}, comparado con ${periodo.antes}`}
+            vacio="Todavía no entró nadie en estos días"
+          />
+          <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-tinta/70">
+            <span>
+              <span aria-hidden className="mr-1.5 inline-block h-0.5 w-5 bg-tinta align-middle" />
+              {hoy ? "Hoy" : periodo.nombre}
+            </span>
+            <span>
+              <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dotted border-taupe align-middle" />
+              {nombreAntes}
+            </span>
+            {g.proyeccion && (
+              <span>
+                <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dashed border-tinta/50 align-middle" />
+                Lo que se espera
+              </span>
+            )}
+          </p>
+        </div>
+        <Lectura r={r} periodo={periodo} cierre={hoy ? graficoDe(r.serie, "entraron", { largo, largoAntes, hastaX, acumulado: true }).cierre : null} />
+      </div>
+    </section>
+  );
+}
+
+/** El panel de lectura: la respuesta en una frase y cuatro datos que la explican. */
+function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: ClavePeriodo; nombre: string; antes: string }; cierre: number | null }) {
+  const c = cambio(r.pasos[0], r.anterior);
+  const v = veredictoDe(periodo, c);
+  const Icono = v.tono === "verde" ? Check : v.tono === "ambar" ? TriangleAlert : Equal;
+  const pico = picoDeHoras(r.horas);
+  const camino = lider(r.caminos);
+  const atora = dondeSeAtora(r.pasos, r.base);
+  const estrella = r.prendas
+    .filter((p) => p.recorrido[0] >= 10)
+    .sort((a, b) => b.recorrido[3] / b.recorrido[0] - a.recorrido[3] / a.recorrido[0])[0];
+  const tonoMedalla = v.tono === "verde" ? "bg-verde/15 text-verde" : v.tono === "ambar" ? "bg-ambar/15 text-ambar" : "bg-hueso text-tinta/70";
+  const datos: [string, string][] = [
+    ["Hora más fuerte", pico ? tramoTexto(pico.desde, pico.hasta) : "Muy poca gente"],
+    ["Camino que más trae", camino ? `${CAMINOS[camino]} · ${de100(r.caminos[camino], r.pasos[0])} de 100` : "—"],
+    ["Dónde se pierde más gente", atora ? PASOS[atora.i].donde : "—"],
+    ["Prenda que mejor funciona", estrella?.nombre ?? "Aún pocas personas"],
+  ];
+  return (
+    <aside className="flex flex-col gap-3 border-t border-sand p-4 sm:px-5 lg:border-l lg:border-t-0" aria-label="Lo que dice el período">
+      <div className="flex items-center gap-3">
+        <span aria-hidden className={`grid h-11 w-11 place-items-center rounded-xl ${tonoMedalla}`}>
+          <Icono className="h-5 w-5" />
+        </span>
+        {periodo.clave === "hoy" && r.ahora > 0 && (
+          <Chip tono="verde" versalitas={false}>
+            <span aria-hidden className="trafico-punto-vivo" />
+            {r.ahora === 1 ? "1 persona mirando" : `${miles(r.ahora)} mirando ahora`}
+          </Chip>
+        )}
+      </div>
+      <h3 className="font-display text-[26px] leading-[1.15] text-balance">{v.titulo}</h3>
+      <p className="text-[14px] text-tinta/70">
+        Entraron <b className="font-semibold text-tinta">{miles(r.pasos[0])} {r.pasos[0] === 1 ? "persona" : "personas"}</b>.
+        {cierre !== null && (
+          <>
+            {" "}
+            Al ritmo de hoy cerrarías cerca de <b className="font-semibold text-tinta">{miles(cierre)}</b>.
+          </>
+        )}
+      </p>
+      <dl className="mt-auto grid gap-2 border-t border-sand pt-3 text-[13.5px]">
+        {datos.map(([k, val]) => (
+          <div key={k} className="flex items-baseline justify-between gap-3">
+            <dt className="text-tinta/70">{k}</dt>
+            <dd className="text-right font-semibold">{val}</dd>
+          </div>
+        ))}
+      </dl>
+    </aside>
+  );
+}
+
+const MES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+function marcaDia(desde: string, i: number): string {
+  const d = new Date(`${desde}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + i);
+  return `${d.getUTCDate()} ${MES_CORTO[d.getUTCMonth()]}`;
+}
+function diasDelRango(desde: string, hasta: string): number {
+  return Math.round((Date.parse(`${hasta}T12:00:00Z`) - Date.parse(`${desde}T12:00:00Z`)) / 864e5) + 1;
+}
