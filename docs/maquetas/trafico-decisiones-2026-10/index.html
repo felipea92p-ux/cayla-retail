@@ -201,7 +201,7 @@ kbd { font: 500 10.5px var(--sans); border: 1px solid var(--sand); border-bottom
 .cal .d { min-height: 52px; border-radius: 9px; padding: 5px 7px; font-size: 11px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; line-height: 1.1; }
 .cal .d b { font: 500 14px/1 var(--serif); text-align: right; font-variant-numeric: tabular-nums; }
 .cal .d.off { opacity: .5; } .cal .d.fut { border: 1px dashed var(--sand); color: var(--tinta60); }
-.cal .d.hoy { background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / .22) 0 3px, transparent 3px 7px); outline: 2px solid var(--tinta); outline-offset: 1px; }
+.cal .d.hoy { background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / .22) 0 3px, transparent 3px 7px); outline: 2px solid var(--rojo2); outline-offset: 1px; }
 .nota-hueso { margin-top: 26px; font-size: 12.5px; color: var(--tinta60); text-align: center; }
 .entra .card { animation: sube .55s var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms); }
 @keyframes sube { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
@@ -700,7 +700,7 @@ kbd { font: 500 10.5px var(--sans); border: 1px solid var(--sand); border-bottom
       if (v == null) { out += `<div class="d fut"><span>${d}</span></div>`; continue; }
       por[wd] += v; cnt[wd]++;
       const q = Math.round(8 + v / mx * 80), hoyC = !sep && d === 27;
-      out += `<div class="d${sel(d) ? "" : " off"}${hoyC ? " hoy" : ""}" title="${d} ${MES[sep ? 8 : 9]}: ${fmt(v)} personas" style="background:color-mix(in srgb,var(--tinta) ${q}%,var(--hueso));color:${q > 48 ? "var(--crema)" : "var(--tinta)"}"><span>${d}</span><b>${fmt(v)}</b></div>`;
+      out += `<div class="d${sel(d) ? "" : " off"}${hoyC ? " hoy" : ""}" title="${d} ${MES[sep ? 8 : 9]}: ${fmt(v)} personas" style="background:color-mix(in srgb,var(--rojo) ${q}%,var(--hueso));color:${q > 48 ? "var(--papel)" : "var(--tinta)"}"><span>${d}</span><b>${fmt(v)}</b></div>`;
     }
     const avg = por.map((a, w) => (cnt[w] ? a / cnt[w] : 0)), ord = [0, 1, 2, 3, 4, 5, 6].sort((a, b) => avg[b] - avg[a]);
     return `<section class="card" style="--i:8" data-nuevo><div class="cab"><h3>${sep ? "Septiembre" : "Octubre"}, día por día</h3><small>Más oscuro, más gente</small></div><div class="cuerpo"><p style="margin:0 0 12px;font-size:14px;color:var(--tinta60)">Entra más gente los <b style="color:var(--tinta)">${DIAN[ord[0]]} y ${DIAN[ord[1]]}</b>.</p><div class="cal">${out}</div></div></section>`;
