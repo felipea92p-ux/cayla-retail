@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fuenteVentasDeHoy, mostrarHoy, nombreDiaLima, resumirHoy } from "./inicio-reglas";
+import { fuenteVentasDeHoy, leerClaureDeHoy, mostrarHoy, nombreDiaLima, notaClaureDeHoy, resumirHoy, semanaSinClaure, sinClaure } from "./inicio-reglas";
 
 describe("mostrarHoy", () => {
   it("solo las tiendas venden", () => {
@@ -72,5 +72,61 @@ describe("resumirHoy", () => {
   it("una meta en cero o ausente se trata como «sin meta»", () => {
     expect(resumirHoy([100], null, 0, "viernes").meta).toBeNull();
     expect(resumirHoy([100], null, null, "viernes").meta).toBeNull();
+  });
+});
+
+// Lo mismo que comprueba `scripts/pruebas/claure_inicio_y_observatorio.mjs` contra Postgres: la base dice qué parte de cada venta de hoy es de CLAURE y aquí se resta.
+describe("lo de CLAURE no suma en «Hoy» (ADR-0560, actividad 6a)", () => {
+  const respuesta = {
+    hay_claure: true,
+    hoy: [
+      { venta_id: "a1", de_claure: "118.00", lineas_de_casa: 1 },
+      { venta_id: "a2", de_claure: "177.00", lineas_de_casa: 0 },
+    ],
+    semana_pasada: "50.00",
+  };
+  const ventas = [
+    { id: "a1", total: 236 }, // mixta: 118 de CLAURE + 118 de CAYLA
+    { id: "a2", total: 177 }, // solo de CLAURE
+    { id: "a3", total: 100 }, // solo de CAYLA
+  ];
+
+  it("lee la respuesta de la base; sin CLAURE en la sede (o sin respuesta) no hay nada que restar", () => {
+    expect(leerClaureDeHoy(respuesta)).toEqual({
+      hoy: [
+        { ventaId: "a1", deClaure: 118, lineasDeCasa: 1 },
+        { ventaId: "a2", deClaure: 177, lineasDeCasa: 0 },
+      ],
+      semanaPasada: 50,
+    });
+    expect(leerClaureDeHoy({ hay_claure: false, hoy: [], semana_pasada: 0 })).toBeNull();
+    expect(leerClaureDeHoy(null)).toBeNull();
+    expect(leerClaureDeHoy("x")).toBeNull();
+  });
+
+  it("una venta solo de CLAURE no cuenta como venta; la mixta cuenta por sus líneas de CAYLA; la de CAYLA queda igual", () => {
+    const r = sinClaure(ventas, leerClaureDeHoy(respuesta));
+    expect(r.totales).toEqual([118, 100]);
+    expect(r.excluido).toBe(295);
+    // Así «Hoy» dice 2 ventas y S/ 218 (valor medio 109), no 3 ventas y S/ 513.
+    expect(r.totales.reduce((a, t) => a + t, 0)).toBe(218);
+  });
+
+  it("sin nada de CLAURE hoy, las ventas quedan como llegan de Caja", () => {
+    expect(sinClaure(ventas, null)).toEqual({ totales: [236, 177, 100], excluido: 0 });
+    expect(sinClaure(ventas, { hoy: [], semanaPasada: 0 })).toEqual({ totales: [236, 177, 100], excluido: 0 });
+  });
+
+  it("la semana pasada también se compara sin lo de CLAURE (nunca bajo cero; sin base sigue sin ella)", () => {
+    const c = leerClaureDeHoy(respuesta);
+    expect(semanaSinClaure(300, c)).toBe(250);
+    expect(semanaSinClaure(30, c)).toBe(0);
+    expect(semanaSinClaure(null, c)).toBeNull();
+    expect(semanaSinClaure(300, null)).toBe(300);
+  });
+
+  it("la línea bajo «Hoy» dice cuánto se dejó fuera y que Caja sí lo cuenta; sin nada fuera, no se dibuja", () => {
+    expect(notaClaureDeHoy(295)).toBe("No incluye S/\u00a0295.00 de lo que se vendió de CLAURE: Caja sí lo cuenta.");
+    expect(notaClaureDeHoy(0)).toBeNull();
   });
 });

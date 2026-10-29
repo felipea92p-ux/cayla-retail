@@ -294,6 +294,13 @@ export const GUIA_INICIO: Guia = {
       texto: "Cómo va la venta de hoy en tu tienda: lo vendido, el ticket y cuánto falta para la meta (o, si tienes meta propia, cómo vas tú). Si la caja está cerrada, aquí te lo dice.",
     },
     {
+      id: "claure",
+      ancla: "inicio.claure",
+      opcional: true,
+      titulo: "Lo de CLAURE no está en «Hoy»",
+      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). «Hoy» cuenta solo lo de CAYLA y esta línea dice cuánto se dejó fuera. Caja sí lo cuenta todo, porque ahí está la plata del cajón.",
+    },
+    {
       id: "aviso-cierre",
       ancla: "inicio.aviso-cierre",
       opcional: true,

@@ -1973,6 +1973,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     SUNAT queda entero) y el Estado de resultados la nota «No incluye lo vendido de CLAURE» (`notaResultadosClaure`, `EstadoResultadosPanel`). `fn_flujo_lineas` cuenta el pago a CLAURE como salida
     (`pago_claure`, `TEXTO_CATEGORIA`). La 479 acumula la parte sin IGV de TODO lo vendido de CLAURE (también el efectivo, que tiene Claudia): es provisional hasta el contador. Prueba:
     `pnpm pruebas:claure-fuera-de-las-cifras`.
+    **CLAURE fuera del Inicio y del Observatorio (actividad 6a, 20261029023000):** `fn_item_es_de_claure(línea, sede, fecha)` (interna) es la regla de «esta línea de venta es de CLAURE» —la misma de
+    `fn_claure_ventas`: sede donde opera CLAURE, venta desde `empresas.cuenta_corriente_desde`, dueño real de la línea (`fn_dueno_de_la_linea`)— y la reusan 6b, 6c y 6d. `fn_observatorio` (todas las tiendas) y
+    `fn_observatorio_tienda` (una tienda) suman solo lo de CAYLA (reemplazos anclados: una venta solo de CLAURE no cuenta ni como ticket, la mixta cuenta por sus líneas de CAYLA, y las prendas «quietas» miden solo
+    las unidades de CAYLA, restando `stock_dueno`). El Inicio de la líder (`getHoyDeLaSede`, bloque «Hoy») NO cambia `fn_ventas_del_dia` —Caja y Vender necesitan el día completo—: lee además
+    `fn_claure_de_hoy(sede)` (cuánto de cada venta de hoy es de CLAURE y cuántas líneas de CAYLA le quedan; y lo de CLAURE de hace una semana a esta hora) y `sinClaure` / `semanaSinClaure`
+    (`lib/inicio-reglas.ts`) lo restan; una línea `nota-cayla` dice cuánto se dejó fuera (`notaClaureDeHoy`). Si esa lectura falla, «Hoy» sale como antes. Prueba: `pnpm pruebas:claure-inicio-y-observatorio`;
+    la huella de `fn_observatorio_tienda` de `pruebas:arreglos-en-vivo-roles-observatorio` pasa a la de esta migración.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

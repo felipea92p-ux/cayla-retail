@@ -7,7 +7,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, getMiMeta, type HoyDeLaSede } from "@/lib/inicio";
-import { mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
+import { mostrarHoy, notaClaureDeHoy, resumirHoy } from "@/lib/inicio-reglas";
 import { pisoQueSeVe } from "@/lib/inicio-piso-reglas";
 import type { MiMeta } from "@/lib/mi-meta-reglas";
 import {
@@ -294,6 +294,11 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
             {esLider && r.meta ? ` · meta ${formatoSoles(r.meta.meta)}` : ""}.
           </p>
         </div>
+        {esLider && notaClaureDeHoy(hoy.deClaure) && (
+          <p className="nota-cayla mt-3" data-guia="inicio.claure">
+            {notaClaureDeHoy(hoy.deClaure)}
+          </p>
+        )}
       </section>
     );
   }
@@ -334,6 +339,12 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
           </TarjetaCifra>
         )}
       </div>
+      {/* Caja cuenta todo lo cobrado en la sede; el «Hoy» solo lo de CAYLA. Si se dejó algo fuera, se dice cuánto (ADR-0560, 6a). */}
+      {esLider && notaClaureDeHoy(hoy.deClaure) && (
+        <p className="nota-cayla mt-3" data-guia="inicio.claure">
+          {notaClaureDeHoy(hoy.deClaure)}
+        </p>
+      )}
     </section>
   );
 }

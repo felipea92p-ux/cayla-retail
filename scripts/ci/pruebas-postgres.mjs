@@ -714,6 +714,12 @@ export const PRUEBAS = [
   // neto y solo lo lee quien ve Finanzas; el Flujo cuenta el pago a CLAURE como salida; las migraciones se repegan. Cada caso: ROLLBACK.
   "pruebas:claure-fuera-de-las-cifras",
 
+  // CLAURE fuera del Inicio y del Observatorio (ADR-0560, actividad 6a): fn_item_es_de_claure es la regla de «esta línea es de CLAURE» (la de la actividad 5);
+  // fn_claure_de_hoy dice cuánto de las ventas de hoy y de la semana pasada es de CLAURE (el Inicio lo resta de lo que lee de Caja); el Observatorio de todas
+  // las tiendas y el de una tienda suman solo lo de CAYLA (una venta solo de CLAURE no cuenta ni como ticket; las prendas quietas, solo sus unidades);
+  // lo anterior al arranque y la sede sin CLAURE no cambian; los candados; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-inicio-y-observatorio",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

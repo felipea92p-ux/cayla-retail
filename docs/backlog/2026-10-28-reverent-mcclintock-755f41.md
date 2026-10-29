@@ -62,7 +62,12 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [x] **3. Aviso en el cierre de caja de Lima** — migración `20261029013000` (`fn_claure_cierre`), bloque «Cuentas con Claudia» en el modal de cierre (neto, lo de hoy, detalle plegado, «Copiar resumen», «Pagar a CLAURE» para el líder) y el efectivo partido CAYLA/CLAURE en el paso de contar. Pruebas: `pnpm pruebas:claure-cierre` (10 casos). Se partió `fn_claure_cuenta` en `fn_claure_filas` (interna) + la lectura con candado, en la migración 1.
 - [x] **4. Disponible real** — sin migración: «De eso, S/ X es de Claudia · Disponible real S/ Y» bajo «¿Cuánta plata tienes hoy?» (Dónde está) y en «¿Cuánto tienes?» del Resumen, más una tarjeta «¿Cuánto le debes a CLAURE?» en el Resumen que lleva a su pantalla. Los saldos de los bancos no se tocan.
 - [x] **5. CLAURE fuera de Finanzas** — migración `20261029020000`: el Diario reclasifica lo vendido de CLAURE (7011 y el costo) a lo que se le debe (479), así que el Estado de resultados, el Resumen, el Balance y el Cierre de mes dejan de contarlo sin cambiar; Impuestos sigue con el IGV real de SUNAT y dice «de ese IGV, S/ X es de CLAURE»; el Estado de resultados lleva la nota «No incluye lo vendido de CLAURE»; el Flujo cuenta el pago a CLAURE como salida.
-- [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
+- [ ] 6. CLAURE fuera del resto de pantallas — **partida en cuatro cortes por Felipe (2026-10-29): eran ~40 funciones de la base y varias lecturas directas de la web, con reglas distintas**:
+  - [x] **6a. Inicio y Observatorio** — migración `20261029023000`: `fn_item_es_de_claure` (la regla común, la de la actividad 5), `fn_claure_de_hoy` (el Inicio de la líder resta lo de CLAURE de lo que lee de Caja, con su nota «No incluye S/ X de lo que se vendió de CLAURE») y dos reemplazos anclados en `fn_observatorio` y `fn_observatorio_tienda` (solo lo de CAYLA; prendas quietas solo con sus unidades).
+  - [ ] 6b. Rendimiento, metas, Comercial y «Mis ventas» (`fn_rendimiento_*`, `fn_metas_equipo`, `fn_comercial_*`, `fn_mis_ventas_*`).
+  - [ ] 6c. Club y clientes (`fn_club_*`, `fn_ledger_puntos`, `fn_clienta_*`, `unirse_al_club`; aquí mandan los puntos: decisión de Felipe).
+  - [ ] 6d. Análisis y motores (`fn_analisis_sede`, Frescura, demanda, Plan del piso, plan de compra, Calidad, rentabilidad: unas 20 funciones; puede pedir dos commits).
+- [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
 
 **Decisiones tomadas en la actividad 2 (sin preguntar, con su porqué):**
 - La cuenta contable de lo que se le debe es la **479 «Otras cuentas por pagar — relacionadas»**, **provisional hasta el contador**: el Diario se arma al leer, así que cambiarla es una línea de `fn_asientos_dinero_y_caja`.
@@ -108,3 +113,14 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [ ] **«¿Me alcanza?» y la proyección de caja** (`fn_flujo_caja_proyeccion`) siguen contando la plata de Claudia como disponible.
 - [ ] **Al pegar `20261029020000` en producción**: sus dos reemplazos anclados abortan sin cambiar nada si `fn_asientos` o `fn_flujo_lineas` de producción no tienen el texto esperado (no pude leer las funciones vivas). Orden: `20261029004000` → `20261029011000` → `20261029013000` → `20261029020000`.
 - [ ] **Falla ajena que salió al correr las suites:** `pruebas:estado-resultados` (N2, N7) y `pruebas:perdidas` (M5) fallan en la base local también SIN este cambio: el detalle de mermas del Estado de resultados se ordena por monto (`order by q.monto desc`, `fn_estado_resultados`) sin desempate, y con dos reglas empatadas en el mismo monto el orden cambia de una corrida a otra. Una coma (`, q.regla`) lo hace estable. `pruebas:finanzas-montos-y-caja-fuerte` falla de noche (después de las 19:00 de Lima, `current_date` del contenedor ya es mañana: «La fecha no puede ser futura»).
+
+**Decisiones tomadas en la actividad 6a (sin preguntar, con su porqué):**
+- **Caja, Vender, Historial, Movimientos e Impuestos siguen mostrando todo** (decisión de Felipe). Por eso `fn_ventas_del_dia` NO se toca: el Inicio de la líder le resta lo de CLAURE con una función hermana, y así Caja y Vender no cambian.
+- **Una venta solo de CLAURE no cuenta como venta ni como ticket** en «Hoy» ni en el Observatorio; una mixta cuenta por sus líneas de CAYLA. Cambia el valor medio, a propósito.
+- **Desde el 23-oct** (`cuenta_corriente_desde`), igual que Finanzas, para que todas las pantallas cuadren. La primera semana, «vs. el mismo día de la semana pasada» compara un hoy sin CLAURE con un ayer que no lo separaba; se corrige solo desde el 30-oct.
+- **La meta del día no se toca**: sigue siendo la de la sede (`fn_parametros_caja`), contra lo de CAYLA solamente. Si Lima debe tener una meta distinta para CAYLA sola, es decisión de Felipe.
+- **No agregué ninguna nota al Observatorio**: su diseño es una decisión propia (ADR-0322) y «Toda CAYLA» ya dice de qué empresa habla.
+
+**Pendientes que dejó la actividad 6a:**
+- [ ] **Al pegar `20261029023000` en producción:** sus dos reemplazos anclados abortan sin cambiar nada si `fn_observatorio` o `fn_observatorio_tienda` de producción no tienen el texto esperado (la de la tienda se leyó el 2026-10-22; su huella está en `pruebas:arreglos-en-vivo-roles-observatorio`, que la migración actualiza). Orden: `20261029004000` → … → `20261029020000` → `20261029023000`.
+- [ ] `fn_mis_ventas_del_dia` (el «Tu día» de una integrante en el Inicio) sigue sumando lo de CLAURE: va con 6b.

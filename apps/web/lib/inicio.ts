@@ -4,7 +4,7 @@ import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { fuenteVentasDeHoy, nombreDiaLima } from "@/lib/inicio-reglas";
+import { fuenteVentasDeHoy, leerClaureDeHoy, nombreDiaLima, semanaSinClaure, sinClaure } from "@/lib/inicio-reglas";
 import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo } from "@/lib/inicio-avisos";
 import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";
 import { getApartadosAbiertos } from "@/lib/apartados";
@@ -36,6 +36,8 @@ export type HoyDeLaSede = {
   /** Solo la líder ve el comparativo y la meta: son cifras de toda la sede. null = no aplica o falló. */
   semanaAnterior: number | null;
   metaVentaDiaria: number | null;
+  /** Cuánto de lo vendido hoy es de CLAURE y se dejó fuera de `totales` y de la comparación (solo la líder; 0 si la sede no tiene CLAURE). ADR-0560. */
+  deClaure: number;
   /** «viernes»: el día de hoy en Lima, para decir «vs. viernes pasado». Se calcula acá (no en el componente) porque
    *  `Date.now()` es impuro y un componente no debe llamarlo. */
   nombreDia: string;
@@ -52,7 +54,7 @@ export async function tolerarLectura<T>(que: string, leer: () => Promise<T>): Pr
 
 export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Promise<HoyDeLaSede> {
   const supabase = await createClient();
-  const [caja, totales, semanaAnterior, ubicaciones, parametros] = await Promise.all([
+  const [caja, ventas, claure, semanaAnterior, ubicaciones, parametros] = await Promise.all([
     // `getCajaAbierta` devuelve null cuando NO hay caja abierta: no es un fallo. Un fallo real (lanza) se vuelve null
     // acá, y por eso se separan: abierta = true, cerrada = false, no se pudo leer = null.
     getCajaAbierta(ubicacionId).then(
@@ -69,18 +71,30 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
           ? await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId })
           : await supabase.rpc("fn_mis_ventas_del_dia");
       if (res.error) throw new Error(res.error.message);
-      return (res.data ?? []).map((v) => Number(v.total));
+      return (res.data ?? []).map((v) => ({ id: v.venta_id, total: Number(v.total) }));
     }),
+    // Lo de CLAURE que Caja sí cuenta y el «Hoy» no (ADR-0560, 6a). Si no se puede leer, el «Hoy» sale como antes, con todo lo cobrado: es un dato de apoyo.
+    esLider
+      ? tolerarLectura("lo de CLAURE de hoy", async () => {
+          const res = await supabase.rpc("fn_claure_de_hoy" as never, { p_ubicacion_id: ubicacionId } as never);
+          if (res.error) throw new Error(res.error.message);
+          return leerClaureDeHoy(res.data);
+        })
+      : Promise.resolve(null),
     esLider ? tolerarLectura("las ventas de la semana pasada", () => getVentasMismaHoraSemanaAnterior(ubicacionId)) : Promise.resolve(null),
     esLider ? tolerarLectura("la meta de la sede", () => getUbicaciones()) : Promise.resolve(null),
     // La meta de hoy con las campañas (ADR-0195 F1): la misma regla que Caja. `null` = base sin fn_parametros_caja.
     esLider ? getParametrosCaja(ubicacionId, hoyLima()) : Promise.resolve(null),
   ]);
 
+  // Solo la líder lee el día de toda la sede (donde está lo de CLAURE): una integrante lee lo que ella atendió.
+  const deCasa = ventas === null ? null : esLider ? sinClaure(ventas, claure) : { totales: ventas.map((v) => v.total), excluido: 0 };
+
   return {
     cajaAbierta: caja,
-    totales,
-    semanaAnterior,
+    totales: deCasa === null ? null : deCasa.totales,
+    deClaure: deCasa === null ? 0 : deCasa.excluido,
+    semanaAnterior: esLider ? semanaSinClaure(semanaAnterior, claure) : semanaAnterior,
     metaVentaDiaria: parametros ? parametros.meta : (ubicaciones?.find((u) => u.id === ubicacionId)?.metaVentaDiaria ?? null),
     nombreDia: nombreDiaLima(Date.now()),
   };
