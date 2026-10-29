@@ -8,7 +8,8 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Encabezado, Tabla, celda, fila, type Columna, type OrdenTabla } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import { Modal } from "@/components/ui/Modal";
+import { BotonVerMas } from "@/components/ui/VerMas";
 import { franjasDe } from "@/lib/trafico-mosaico";
 import {
   barraDeSeparan,
@@ -41,7 +42,8 @@ const COLUMNAS: Columna[] = [
  * «Qué prendas miran» (actividad 6; maqueta `docs/maquetas/trafico-decisiones-2026-10/`): reemplaza la vitrina de baldosas por una tabla
  * que se ordena por miradas, por cuántos de cada 100 la separan o por cuántos la separaron. Cada fila dice su recorrido en cuatro barras
  * (el paso donde se atora, en ámbar), su «separan» contra la raya del promedio y su estado: Estrella, Normal o Revisar (la miran y no la
- * llevan). Se ven 8; el resto, con «Ver más». Tocar una abre su cajón, que pasa a la de al lado en el orden de la tabla.
+ * llevan). Se ven 8; «Ver más» abre una hoja con todas (Felipe, 2026-10-29). Tocar una abre su cajón, que pasa a la de al lado en el orden de
+ * la tabla.
  */
 export function PrendasTrafico({
   prendas,
@@ -64,7 +66,14 @@ export function PrendasTrafico({
   const promedio = separanEnPromedio(prendas);
   const { contenedor, abrir, cajon } = usePrendaAbierta({ prendas: lista, vieron, base, periodo, antes });
   const ordenar = (campo: string) => setOrden((o) => (o.campo === campo ? { campo, dir: o.dir === "desc" ? "asc" : "desc" } : { campo, dir: "desc" }));
-  const filaDe = (p: PrendaTrafico, i: number) => <FilaPrenda key={p.id} p={p} i={i} promedio={promedio} base={base} onAbrir={() => abrir(i)} />;
+  const tabla = (filas: PrendaTrafico[], enHoja: boolean) => (
+    <>
+      <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} orden={orden} onOrden={ordenar} />
+      {filas.map((p, i) => (
+        <FilaPrenda key={p.id} p={p} guia={!enHoja && i === 0} promedio={promedio} base={base} onAbrir={() => abrir(i)} />
+      ))}
+    </>
+  );
 
   return (
     <section
@@ -78,28 +87,34 @@ export function PrendasTrafico({
         Qué prendas miran
       </TituloSeccion>
       <Tabla className="mt-2">
-        <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} orden={orden} onOrden={ordenar} />
-        {lista.length === 0 && (
+        {lista.length === 0 ? (
           <Vacio icono={<Shirt />} titulo="Nadie miró una prenda en estos días" tamano="chico">
             Entraron a la tienda, pero se fueron sin abrir ninguna.
           </Vacio>
+        ) : (
+          tabla(lista.slice(0, A_LA_VISTA), false)
         )}
-        {lista.slice(0, A_LA_VISTA).map(filaDe)}
         {lista.length > A_LA_VISTA && (
-          <>
-            <FilasDeMas abierto={todas} id="trafico-prendas-mas">
-              {lista.slice(A_LA_VISTA).map((p, k) => filaDe(p, A_LA_VISTA + k))}
-            </FilasDeMas>
-            <BotonVerMas abierto={todas} onCambiar={setTodas} controla="trafico-prendas-mas" texto={`Ver ${lista.length - A_LA_VISTA} más`} />
-          </>
+          <BotonVerMas abierto={false} onCambiar={() => setTodas(true)} texto={`Ver ${lista.length - A_LA_VISTA} más`} />
         )}
       </Tabla>
+      {todas && (
+        <Modal
+          titulo="Qué prendas miran"
+          subtitulo={`Las ${miles(lista.length)} prendas que miraron · ${periodo}`}
+          ancho="max-w-5xl" /* unificar-fijo: la tabla de prendas tiene 6 columnas (la de la tarjeta); en la «ancha» de 768 px se corta «Estado» */
+          conCerrar
+          onClose={() => setTodas(false)}
+        >
+          <Tabla>{tabla(lista, true)}</Tabla>
+        </Modal>
+      )}
       {cajon}
     </section>
   );
 }
 
-function FilaPrenda({ p, i, promedio, base, onAbrir }: { p: PrendaTrafico; i: number; promedio: number; base: number[]; onAbrir: () => void }) {
+function FilaPrenda({ p, guia, promedio, base, onAbrir }: { p: PrendaTrafico; guia: boolean; promedio: number; base: number[]; onAbrir: () => void }) {
   const estado = estadoDePrenda(p, promedio);
   const cambio = p.anterior === null ? null : cambioDe("entraron", p.recorrido[0], p.anterior);
   return (
@@ -108,7 +123,7 @@ function FilaPrenda({ p, i, promedio, base, onAbrir }: { p: PrendaTrafico; i: nu
         <button
           type="button"
           data-prenda={p.id}
-          data-guia={i === 0 ? "trafico.prenda" : undefined}
+          data-guia={guia ? "trafico.prenda" : undefined}
           onClick={onAbrir}
           className="inline-flex max-w-full items-center gap-3 text-left"
         >

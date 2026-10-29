@@ -16,11 +16,10 @@ import { PrendasTrafico } from "@/components/trafico/PrendasTrafico";
 import { PulsoTrafico } from "@/components/trafico/PulsoTrafico";
 import { RecorridoTrafico } from "@/components/trafico/RecorridoTrafico";
 import { TallasTrafico } from "@/components/trafico/TallasTrafico";
-import { TablasTrafico } from "@/components/trafico/TablasTrafico";
 
 // Tienda web ▸ Tráfico (ADR-0495; «Observatorio», maqueta docs/maquetas/trafico-decisiones-2026-10/): cuánta gente entra a la tienda online, qué mira, de dónde
 // viene y en qué paso se va, contado por persona anónima (`retail.resumen_trafico_web`, que pide el módulo «trafico»). Es de toda la tienda
-// online: la cabecera dice «Todas las tiendas». El período, los filtros y la vista viven en la dirección (`?periodo=30&camino=instagram`).
+// online: la cabecera dice «Todas las tiendas». El período y los filtros viven en la dirección (`?periodo=mes&camino=instagram`).
 export default async function TraficoPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   await exigirModulo("trafico");
@@ -96,10 +95,6 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                       : null
                 }
               />
-              {filtros.vista === "tabla" ? (
-            <TablasTrafico r={r} filtros={filtros} periodo={periodo.nombre} antes={antes} />
-          ) : (
-            <>
               {/* Cuándo entra la gente, y a su lado de dónde viene (Felipe, en la maqueta: «De dónde vienen» va junto al mapa de calor). */}
               <div className="trafico-cuerpo">
                 <div className="trafico-cuerpo-rejilla">
@@ -128,8 +123,6 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                   {r.calendario && <CalendarioTrafico calendario={r.calendario} periodo={periodo} hoy={hoy} />}
                 </div>
               </div>
-            </>
-              )}
             </>
           )}
         </>

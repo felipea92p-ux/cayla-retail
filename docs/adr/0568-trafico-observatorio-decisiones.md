@@ -76,3 +76,13 @@ antes sigue funcionando (los otros tres tienen valor de fábrica).
   «sin datos locales» en `guias/ejemplos.mjs`. Falta mirarla con visitas de producción y correr `/formidable` ahí.
 - **Velocidad en producción:** `resumen_trafico_web` ahora lee más (4 semanas para el mapa y las tallas, 180 días para «Quién entra»). Con el
   volumen de hoy es instantáneo; si la tabla crece mucho, «Quién entra» pide un índice por visitante.
+
+## Actualización 2026-10-29 — más igual a la maqueta (Felipe, mirando la pantalla publicada)
+
+- **La primera parte va en UNA tarjeta**, como la maqueta: la franja de cinco cifras arriba (una por cifra, la elegida con fondo y su raya de
+  3 px, la línea chica a todo el ancho con su área: `Sparkline lleno`), el gráfico con su leyenda bajo el título y la lectura al costado sobre un
+  degradado de hueso. Ya no son `TarjetaCifra` sueltas: Felipe pidió verlo como la maqueta.
+- **Se fue «Gráfico / Tabla»** (y `TablasTrafico`): la maqueta no lo tiene. Un enlace viejo con `?vista=tabla` cae en la pantalla de siempre.
+- **«Ver más» abre una hoja** en «Qué prendas miran» (la tabla entera, con su orden) y en «Tallas que piden y no hay» (todas las categorías). Las
+  tallas muestran las 8 categorías donde más gente eligió talla, con celdas más chicas, para que midan lo mismo que las 8 prendas de al lado.
+- **El paso donde más gente se pierde se marca siempre**, también con pocas personas (entonces la frase dice que es una pista).

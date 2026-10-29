@@ -10,17 +10,18 @@ const CIEN = Array.from({ length: 100 }, (_, j) => j);
  * «Hasta dónde llega la gente» (actividad 3; maqueta `docs/maquetas/trafico-decisiones-2026-10/`): los seis pasos —entraron, vieron una
  * prenda, eligieron talla, a la bolsa, separaron, recogieron— como 100 puntos cada uno, de los que se encienden los que llegaron hasta ahí
  * de cada 100 que entraron. Ver antes que leer: lo que se apaga de un paso a otro es la gente que se fue. El paso donde más gente se pierde
- * se marca en ámbar solo si va peor que de costumbre; si no, la frase lo dice sin alarma. Lo difícil, bajo «¿Por qué?».
+ * se marca siempre en ámbar con su globo (también con pocas personas: entonces la frase dice que es una pista); el chip dice si además va
+ * peor que de costumbre. Lo difícil, bajo «¿Por qué?».
  */
 export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
   const atora = dondeSeAtora(r.pasos, r.base);
   const vs = atora ? atoraContraCostumbre(atora, r.base) : null;
-  const fuga = atora && vs?.peor ? atora.i : null;
+  // El paso donde más gente se pierde se marca SIEMPRE, aunque sean pocas personas (Felipe, 2026-10-29): con poca gente, la frase dice que
+  // es una pista. El chip dice si además va peor que de costumbre.
+  const fuga = atora ? atora.i : null;
   const chip = !atora || !vs ? null : vs.peor ? (
     <Chip tono="ambar">Aquí se atora</Chip>
-  ) : atora.pocas ? (
-    <Chip tono="neutro">Pocas personas</Chip>
-  ) : vs.costumbre !== null ? (
+  ) : !atora.pocas && vs.costumbre !== null ? (
     <Chip tono="verde">Como de costumbre</Chip>
   ) : null;
 
@@ -47,6 +48,7 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
               {vs.peor ? " siguen" : ""}.{vs.costumbre !== null && ` De costumbre, ${vs.costumbre}.`}
             </>
           )}
+          {atora?.pocas && " Son pocas personas: tómalo como una pista."}
           {atora && <PorQue guia="trafico.porque">{explicaAtora(atora)}</PorQue>}
         </p>
       </div>

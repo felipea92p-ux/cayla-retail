@@ -1,4 +1,3 @@
-import { BarChart3, Rows3 } from "lucide-react";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import {
   CAMINOS,
@@ -15,7 +14,8 @@ import { FiltrosPuestosTrafico } from "./FiltrosPuestosTrafico";
 
 /**
  * La fila de controles de Tráfico (ADR-0495, actividad 6; «Observatorio», actividad 1): el período (Hoy, Ayer, 7 días, Este mes, Mes pasado
- * o la campaña), qué días son y contra cuáles se comparan, los filtros puestos y cómo verlo (gráfico o tabla). Todo vive en la dirección: se puede compartir y «atrás» vuelve.
+ * o la campaña), qué días son y contra cuáles se comparan, y los filtros puestos. Todo vive en la dirección: se puede compartir y «atrás» vuelve.
+ * Sin «Gráfico / Tabla»: la maqueta no lo tiene (Felipe, 2026-10-29).
  */
 export function ControlesTrafico({
   filtros,
@@ -63,16 +63,6 @@ export function ControlesTrafico({
         camino={filtros.camino ? { nombre: CAMINOS[filtros.camino], sinEl: hrefTrafico(filtros, { camino: null }) } : null}
         ciudad={filtros.ciudad ? { nombre: CIUDADES[filtros.ciudad].nombre, sinEl: hrefTrafico(filtros, { ciudad: null }) } : null}
         limpiar={hrefTrafico(filtros, { camino: null, ciudad: null })}
-      />
-      <SegmentoEnlaces
-        className="sm:ml-auto"
-        etiquetaAccesible="Cómo verlo"
-        activo={filtros.vista}
-        guia="trafico.vista"
-        opciones={[
-          { valor: "grafico", etiqueta: "Gráfico", href: hrefTrafico(filtros, { vista: "grafico" }), icono: <BarChart3 aria-hidden /> },
-          { valor: "tabla", etiqueta: "Tabla", href: hrefTrafico(filtros, { vista: "tabla" }), icono: <Rows3 aria-hidden /> },
-        ]}
       />
     </div>
   );
