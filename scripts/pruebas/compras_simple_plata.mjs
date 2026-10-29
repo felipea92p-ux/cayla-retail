@@ -65,6 +65,12 @@ const AUDITORIA = readFileSync(join(RAIZ, "supabase", "migrations", "20261027231
 // al lado de la nueva y toda llamada con un argumento es ambigua). Rebobinada, la prueba corre en el mundo para el que se escribió.
 const REBOBINAR = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_terminar_dia.sql"), "utf8");
 
+// La plata que anota la compradora entra sola a su fondo cuando ya se sabe de qué cuenta sale (20261029192000, ADR-0574): va DESPUÉS de todo lo anterior.
+const ENTRA_SOLA = readFileSync(join(RAIZ, "supabase", "migrations", "20261029192000_mis_compras_la_plata_anotada_entra_sola.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 const SANDRA = "22222222-2222-4222-8222-000000000005"; // líder
@@ -91,6 +97,8 @@ ${PARTES_DEL_BANCO}
 ${PARTES_DEL_BANCO}
 ${AUDITORIA}
 ${AUDITORIA}
+${ENTRA_SOLA}
+${ENTRA_SOLA}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -311,16 +319,56 @@ const anotaConBanco = (nombre, medio, monto, token, banco) =>
   `${como(MICAELA, "plata_anotar")}select retail.anotar_plata_compras('${medio}', ${monto}, null, '${token}', ${banco}) as ${nombre} \\gset\n`;
 
 caso(
-  "con una transferencia, el banco queda indicado y «Revisar compras» lo ve con su nombre; la plata sigue por confirmar y sin mover nada",
-  `${rolDeMicaela("ordenes_compra")}${anotaConBanco("a", "transferencia", 500, T1, ":'banco'")}
+  "con una transferencia y su banco indicado, la plata entra SOLA a su fondo: confirmada por ella misma, el banco baja lo mismo y el fondo sube (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}reset role;
+select pg_temp.saldo(:'banco') as banco_antes \\gset
+${anotaConBanco("a", "transferencia", 500, T1, ":'banco'")}
 reset role;
-select nombre as nombre_banco from retail.cuentas_dinero where id = :'banco' \\gset
-select (select cuenta_indicada_id = :'banco' from retail.fondo_plata_anotada where id = :'a'),
-       (select estado || ':' || coalesce(cuenta_origen_id::text, 'sin') from retail.fondo_plata_anotada where id = :'a');
+select (select estado = 'confirmada' and monto_confirmado = 500 and cuenta_origen_id = :'banco' and movimiento_id is not null and confirmada_por = persona_id and cuenta_indicada_id = :'banco'
+          from retail.fondo_plata_anotada where id = :'a'),
+       pg_temp.saldo(:'banco') = :'banco_antes'::numeric - 500,
+       retail.fn_fondo_saldo(retail.fn_fondo_de(:'micaela', false)) = 500;
 ${como(FELIPE, "plata_confirmar")}
-select x ->> 'cuenta_indicada' = :'nombre_banco', x ->> 'cuenta_indicada_id' = :'banco'::text
-  from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where x ->> 'id' = :'a'::text;`,
-  "t|por_confirmar:sin / t|t",
+select count(*) from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where x ->> 'id' = :'a'::text;`,
+  "t|t|t / 0",
+);
+
+caso(
+  "lo que no dice de qué cuenta sale sigue por confirmar para Compras y no mueve nada: efectivo, Yape o Plin, y una transferencia sin banco (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}reset role;
+select pg_temp.saldo(:'banco') as banco_antes \\gset
+${anota("a", "efectivo", 40, T1)}${anota("b", "yape_plin", 30, T2)}${anota("c", "transferencia", 20, T3)}
+reset role;
+select (select count(*) from retail.fondo_plata_anotada where id in (:'a', :'b', :'c') and estado = 'por_confirmar' and movimiento_id is null and confirmada_por is null),
+       pg_temp.saldo(:'banco') = :'banco_antes'::numeric;
+${como(FELIPE, "plata_confirmar")}
+select count(*) from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where (x ->> 'id')::uuid in (:'a', :'b', :'c');`,
+  "3|t / 3",
+);
+
+caso(
+  "«ya tenía plata» entra sola como saldo inicial de su fondo: no toca ningún banco, y solo la primera vez (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}reset role;
+select pg_temp.saldo(:'banco') as banco_antes \\gset
+${anota("a", "ya_tenia", 150, T1)}
+reset role;
+select (select estado = 'confirmada' and monto_confirmado = 150 and cuenta_origen_id is null and movimiento_id is null and confirmada_por = persona_id
+          from retail.fondo_plata_anotada where id = :'a'),
+       pg_temp.saldo(:'banco') = :'banco_antes'::numeric,
+       retail.fn_mi_plata_tiene(:'micaela') = 150,
+       split_part(pg_temp.intento(format($q$select retail.anotar_plata_compras('ya_tenia', 60, null, %L)$q$, '${T2}')), '|', 2);`,
+  "t|t|t|ya_tenia_solo_primera_vez",
+);
+
+caso(
+  "volver a pasar sola una plata que ya entró no la duplica: no mueve nada y dice que no hizo nada (ADR-0574)",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "plata_anotar")}
+select retail.anotar_plata_compras('transferencia', 200, null, '${T1}', :'banco') as a \\gset
+reset role;
+select retail.fn_plata_confirmar_sola(:'a') as otra_vez \\gset
+select :'otra_vez' = 'f', (select estado from retail.fondo_plata_anotada where id = :'a'),
+       (select count(*) from retail.movimientos_dinero where cuenta_destino_id = retail.fn_fondo_de(:'micaela', false) and tipo = 'entrega_fondo');`,
+  "t|confirmada|1",
 );
 
 caso(
@@ -355,7 +403,7 @@ select retail.anotar_plata_compras('transferencia', 70, null, '${T1}', :'banco')
 );
 
 caso(
-  "confirmar elige la cuenta de la que sale la plata (la indicación no manda) y lo que indicó la compradora queda tal cual",
+  "una transferencia con banco que ya entró sola no se vuelve a confirmar con otros datos, y lo que indicó la compradora queda tal cual",
   `${rolDeMicaela("ordenes_compra")}${anotaConBanco("a", "transferencia", 300, T1, ":'banco'")}
 ${como(FELIPE, "plata_confirmar")}
 select retail.confirmar_plata_compras(:'a', null, :'banco') \\g /dev/null
