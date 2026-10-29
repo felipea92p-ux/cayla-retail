@@ -125,7 +125,7 @@
       "Boton «{combinaciones.length === 1 ? `Cambiar el ${palabra}»",
       "CampoTexto «{`${cifraActiva === \"costo\" ? \"Costo\" : \"Precio de venta\"}»",
       "BotonDeshacer «→() => onQuitar(cifraActiva, cambiadas)»",
-      "SegmentoDeslizante «Dónde vale este precio»",
+      "SegmentoDeslizante «Dónde vale este precio: solo en esta tienda o en todas las sedes»",
       "Boton «Cancelar»",
       "Boton «Aplicar»"
     ],

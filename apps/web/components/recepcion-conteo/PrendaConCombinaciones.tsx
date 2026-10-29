@@ -8,6 +8,7 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
+import { nombreCorto } from "@/lib/precio-sede-reglas";
 import {
   type Alcance,
   type Cifra,
@@ -200,10 +201,10 @@ function Matriz({
     if (!origen) return [];
     const n = (a: Alcance) => destinosDelAlcance(combinaciones, origen.varianteId, a).length;
     const todas = n("todas");
-    const r: { valor: Alcance; texto: string }[] = [{ valor: "esta", texto: "Solo esta" }];
-    if (n("color") > 1 && n("color") < todas) r.push({ valor: "color", texto: `Todo ${origen.color?.trim() || "Sin color"} (${n("color")})` });
-    if (n("talla") > 1 && n("talla") < todas) r.push({ valor: "talla", texto: `Toda talla ${origen.talla?.trim() || "Única"} (${n("talla")})` });
-    if (todas > 1) r.push({ valor: "todas", texto: `Las ${todas}` });
+    const r: { valor: Alcance; texto: string }[] = [{ valor: "esta", texto: "Esta" }];
+    if (n("color") > 1 && n("color") < todas) r.push({ valor: "color", texto: `${origen.color?.trim() || "Sin color"} (${n("color")})` });
+    if (n("talla") > 1 && n("talla") < todas) r.push({ valor: "talla", texto: `Talla ${origen.talla?.trim() || "Única"} (${n("talla")})` });
+    if (todas > 1) r.push({ valor: "todas", texto: `Todas (${todas})` });
     return r;
   })();
   const alcanceVigente: Alcance = opcionesAlcance.some((o) => o.valor === alcance) ? alcance : "esta";
@@ -258,7 +259,7 @@ function Matriz({
   const palabra = cifraActiva === "costo" ? "costo" : "precio";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {puedeCosto && (
           <SegmentoDeslizante
@@ -275,10 +276,7 @@ function Matriz({
             ]}
           />
         )}
-        <p className="min-w-0 basis-full text-xs text-taupe sm:flex-1 sm:basis-0">
-          {cifraActiva === "costo" ? "Costo de cada combinación, en soles." : "Precio de venta de cada combinación, en soles."} Lo que escribas pide primero hasta dónde llega.
-        </p>
-        <Boton type="button" peso="discreto" className="btn-chico" onClick={paraTodas}>
+        <Boton type="button" peso="discreto" className="btn-chico ml-auto" onClick={paraTodas}>
           {combinaciones.length === 1 ? `Cambiar el ${palabra}` : `Mismo ${palabra} para las ${combinaciones.length}`}
         </Boton>
       </div>
@@ -329,51 +327,43 @@ function Matriz({
       )}
 
       {borrador && origen && (
-        <div className="rc-comb-barra space-y-3" data-comb-barra>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="rc-comb-barra space-y-1.5" data-comb-barra>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <p className="text-[13px] text-tinta">
-              <b>{etiquetaDe(origen)}</b> · {palabra}
-              {valorDe(origen) !== null ? ` de ${montoTexto(valorDe(origen) as number)}` : ""} a <b>{lectura?.valor != null ? montoTexto(lectura.valor) : "…"}</b>
+              <b>{etiquetaDe(origen)}</b>
+              {valorDe(origen) !== null ? ` ${montoTexto(valorDe(origen) as number)}` : ""} a <b>{lectura?.valor != null ? montoTexto(lectura.valor) : "…"}</b>
             </p>
             {cifraActiva === "precio" && !soloSede && (
               <SegmentoDeslizante
                 forma="modo"
-                etiqueta="Dónde vale este precio"
+                etiqueta="Dónde vale este precio: solo en esta tienda o en todas las sedes"
                 valor={valeEnVigente}
                 onCambio={(v) => setValeEn(v as ValeEn)}
                 opciones={[
-                  { clave: "sede", etiqueta: `Solo ${sede}` },
-                  { clave: "todas", etiqueta: "Todas las sedes" },
+                  { clave: "sede", etiqueta: `Solo ${nombreCorto(sede)}` },
+                  { clave: "todas", etiqueta: "Todas" },
                 ]}
               />
             )}
-            {cifraActiva === "precio" && soloSede && <span className="text-xs text-taupe">Vale solo en {sede}.</span>}
+            {cifraActiva === "precio" && soloSede && <span className="text-xs text-taupe">Vale solo en {nombreCorto(sede)}.</span>}
+            {opcionesAlcance.length > 1 && <span className="label-cayla text-[11px] text-taupe">Aplicar a</span>}
+            {opcionesAlcance.length > 1 && <ElegirOpcion chico etiqueta="Aplicar a: hasta dónde llega lo que escribiste" opciones={opcionesAlcance} valor={alcanceVigente} onValor={(v) => setAlcance(v as Alcance)} />}
+            <span className="ml-auto flex gap-2">
+              <Boton type="button" peso="fantasma" className="btn-chico" onClick={cancelar}>
+                Cancelar
+              </Boton>
+              <Boton type="button" peso="primario" className="btn-chico" onClick={aplicar} disabled={!valido || !descripcion || descripcion.cuantas === 0}>
+                Aplicar
+              </Boton>
+            </span>
           </div>
-          {opcionesAlcance.length > 1 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="label-cayla text-[11px] text-taupe">Aplicar a</span>
-              <ElegirOpcion chico etiqueta="Hasta dónde llega lo que escribiste" opciones={opcionesAlcance} valor={alcanceVigente} onValor={(v) => setAlcance(v as Alcance)} />
-            </div>
-          )}
           {lectura?.problema && <Aviso tono="error" chico titulo={lectura.problema} />}
-          {descripcion && (
-            <Aviso tono="atencion" titulo={descripcion.titulo}>
-              {descripcion.detalle}
-              {descripcion.avisos.map((a) => (
-                <span key={a} className="mt-1 block text-xs">
-                  {a}
-                </span>
-              ))}
-            </Aviso>
+          {/* Lo que cambia, en una línea de texto: solo cuando dice algo que la primera línea no dice (varias casillas, o una tienda con su propio precio). */}
+          {descripcion && (descripcion.cuantas > 1 || descripcion.avisos.length > 0) && (
+            <p className="text-xs text-taupe" data-comb-resumen>
+              {descripcion.cuantas > 1 ? `${descripcion.titulo} ${descripcion.detalle}` : ""} {descripcion.avisos.join(" ")}
+            </p>
           )}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Boton type="button" peso="fantasma" className="btn-chico" onClick={cancelar}>
-              Cancelar
-            </Boton>
-            <Boton type="button" peso="primario" className="btn-chico" onClick={aplicar} disabled={!valido || !descripcion || descripcion.cuantas === 0}>
-              Aplicar
-            </Boton>
-          </div>
         </div>
       )}
 
