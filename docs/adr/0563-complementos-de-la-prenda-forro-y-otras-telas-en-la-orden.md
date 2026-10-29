@@ -1,6 +1,6 @@
 # ADR-0563 — Una prenda lleva su tela y también forro u otras telas: los complementos de la orden
 
-**Estado:** aceptada; **actividad 1 (la base) construida y probada en local, migración `20261029021000` SIN pegar en producción** · **Fecha:** 2026-10-29 ·
+**Estado:** aceptada; **la base y la web construidas y probadas en local; migración `20261029021000` SIN pegar en producción (va antes de publicar la web)** · **Fecha:** 2026-10-29 ·
 **Decidió:** Felipe (opción A, aprobada el 2026-10-29) · **Sigue a:** ADR-0510 (editar la tela y los avíos de una orden abierta) y ADR-0513 (la ficha de consumo del modelo)
 
 ## Contexto
@@ -41,6 +41,15 @@ El límite estaba solo en la pantalla, no en la base:
 - **Un complemento llega sin la marca** (una pantalla vieja abierta antes de publicar, o la API directa): se guarda como tela principal y vuelve el problema de arriba para esa orden. La pantalla vieja no puede agregar complementos (una sola tela por color), así que solo pasa por la API directa.
 - **El rol se marca en un avío:** no se lee (un avío no entra a lo medido ni declara el modelo por su tipo). Es inerte, no un error.
 - **Las anclas de producción no coinciden** con las de local (alguien parchó en vivo una de las cuatro funciones): la migración se detiene sin cambiar nada y dice cuál. Se regenera desde la definición real.
+
+## La web (actividad 2)
+
+- **Una sola pieza para las dos hojas:** `TelaDeLaOrden` (la de «Nueva orden» y la de «Editar tela y avíos») deja de tener «avíos» y pasa a tener **«Forro y otros materiales»**: «+ Agregar material» ofrece cualquier tela o avío del Taller (en dos grupos) y «Para» sigue eligiendo toda la orden o un color. Elegir una tela ahí la marca como complemento; elegir un avío, no (`TelaBorrador.complemento`, que viaja a la base solo cuando es verdad).
+- **La tela de un color sigue siendo UNA**, en su fila de arriba: la fila de color nunca toma a un complemento por su tela (`telasDeLaHoja`, `porColor`). «Dejar este consumo como el del modelo» también lo ignora.
+- **La orden lo muestra:** la tabla pone la tela principal primero, luego los complementos con su etiqueta «Complemento» y al final los avíos. Un forro sin anotar avisa como cualquier tela (su costo también falta en el costo por prenda); una orden con SOLO un forro sigue avisando «no declaró qué tela lleva».
+- **El «se rompe si» se avisa a quien lo provoca:** si la misma tela es la de un color y complemento de otro, la hoja dice que esa orden no aportará a lo que el modelo aprende.
+- **Guía interactiva** de Producción al día (textos de «Órdenes» y de la orden; huellas aceptadas).
+- Verificado en el navegador contra Postgres local: agregar el forro, guardar (`agregaste 1`), reabrir (vuelve al bloque correcto), abrir una orden nueva con tela + forro (la base lo guarda como complemento y el modelo conserva 1.200), 375 px y modo oscuro.
 
 ## Lo que queda fuera (y por qué)
 
