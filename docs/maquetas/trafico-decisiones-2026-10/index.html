@@ -220,14 +220,14 @@ kbd { font: 500 10.5px var(--sans); border: 1px solid var(--sand); border-bottom
 .hh { font-size: 11.5px; color: var(--tinta60); text-align: center; white-space: nowrap; overflow: visible; height: 18px; }
 .hd { font-size: 12px; color: var(--tinta60); font-weight: 500; }
 .hc { position: relative; height: 46px; border-radius: 5px; transition: transform .15s var(--ease); }
-@media (hover: hover) { .hc:hover { transform: scale(1.18); z-index: 2; outline: 2px solid var(--tinta); } }
-.hc.pk { outline: 2px solid var(--tinta); outline-offset: -2px; }
-.hc u { position: absolute; inset: 0; margin: auto; width: 9px; height: 9px; border-radius: 50%; background: var(--rojo); box-shadow: 0 0 0 2px var(--papel); text-decoration: none; }
-.ht { display: grid; gap: 3px; padding-left: 10px; font-size: 12px; font-variant-numeric: tabular-nums; } .ht span { font-weight: 600; } .ht i { display: block; height: 4px; border-radius: 4px; background: var(--tinta); opacity: .55; }
-.hf { height: 38px; display: flex; align-items: flex-end; } .hf i { display: block; width: 100%; border-radius: 3px 3px 0 0; background: color-mix(in srgb, var(--tinta) 28%, var(--hueso)); }
+@media (hover: hover) { .hc:hover { transform: scale(1.18); z-index: 2; outline: 2px solid var(--rojo2); } }
+.hc.pk { outline: 2px solid var(--rojo2); outline-offset: -2px; }
+.hc u { position: absolute; inset: 0; margin: auto; width: 9px; height: 9px; border-radius: 50%; background: var(--tinta); box-shadow: 0 0 0 2px var(--papel); text-decoration: none; }
+.ht { display: grid; gap: 3px; padding-left: 10px; font-size: 12px; font-variant-numeric: tabular-nums; } .ht span { font-weight: 600; } .ht i { display: block; height: 4px; border-radius: 4px; background: var(--rojo); opacity: .6; }
+.hf { height: 38px; display: flex; align-items: flex-end; } .hf i { display: block; width: 100%; border-radius: 3px 3px 0 0; background: color-mix(in srgb, var(--rojo) 30%, var(--hueso)); }
 .hleg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 14px; font-size: 12px; color: var(--tinta60); }
-.hleg > i { width: 110px; height: 8px; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--tinta) 6%, var(--hueso)), var(--tinta)); }
-.hleg .sep2 { width: 1px; height: 14px; background: var(--sand); } .hleg .pkl { display: inline-flex; align-items: center; gap: 6px; } .hleg .pkl i { width: 14px; height: 14px; border-radius: 4px; outline: 2px solid var(--tinta); outline-offset: -2px; background: color-mix(in srgb, var(--tinta) 50%, var(--hueso)); } .hleg .pkl u { width: 9px; height: 9px; border-radius: 50%; background: var(--rojo); }
+.hleg > i { width: 110px; height: 8px; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--rojo) 6%, var(--hueso)), var(--rojo)); }
+.hleg .sep2 { width: 1px; height: 14px; background: var(--sand); } .hleg .pkl { display: inline-flex; align-items: center; gap: 6px; } .hleg .pkl i { width: 14px; height: 14px; border-radius: 4px; outline: 2px solid var(--rojo2); outline-offset: -2px; background: color-mix(in srgb, var(--rojo) 50%, var(--hueso)); } .hleg .pkl u { width: 9px; height: 9px; border-radius: 50%; background: var(--tinta); }
 /* por dónde llegan */
 .cm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; width: 100%; padding: 12px 10px; border: 0; border-top: 1px solid var(--sand); border-radius: 0; background: transparent; text-align: left; }
 .cm:first-child { border-top: 0; }
@@ -591,10 +591,10 @@ kbd { font: 500 10.5px var(--sans); border: 1px solid var(--sand); border-bottom
     let g = '<div></div>' + HW.map((_, h) => `<div class="hh">${lab(h)}</div>`).join("") + '<div class="hh tot" style="text-align:right">Total</div>';
     c.forEach((r, d) => {
       g += `<div class="hd">${nm[d]}</div>`;
-      r.forEach((v, h) => { const q = Math.round(6 + v / maxC * 86), ahora = hoy && hoy.d === d && hoy.h === h; g += `<div class="hc${peak.has(d + "-" + h) ? " pk" : ""}" data-t="${DIAN[d].replace(/^./, (x) => x.toUpperCase())}, ${hLabel(h)}|${Math.round(v)} personas por hora, en promedio" style="background:color-mix(in srgb,var(--tinta) ${q}%,var(--hueso))">${ahora ? '<u title="Ahora"></u>' : ""}</div>`; });
+      r.forEach((v, h) => { const q = Math.round(6 + v / maxC * 86), ahora = hoy && hoy.d === d && hoy.h === h; g += `<div class="hc${peak.has(d + "-" + h) ? " pk" : ""}" data-t="${DIAN[d].replace(/^./, (x) => x.toUpperCase())}, ${hLabel(h)}|${Math.round(v)} personas por hora, en promedio" style="background:color-mix(in srgb,var(--rojo) ${q}%,var(--hueso))">${ahora ? '<u title="Ahora"></u>' : ""}</div>`; });
       g += `<div class="ht"><span>${fmt(tot[d])}</span><i style="width:${(tot[d] / maxTot * 100).toFixed(0)}%"></i></div>`;
     });
-    g += '<div class="hd" style="font-size:11px;align-self:end">Por hora</div>' + colTot.map((v, h) => `<div class="hf"><i style="height:${Math.max(3, v / maxCol * 34).toFixed(0)}px;${h >= 19 && h <= 21 ? "background:var(--tinta)" : ""}" title="${hLabel(h)}: ${fmt(v)} por día de la semana"></i></div>`).join("") + '<div class="ht"></div>';
+    g += '<div class="hd" style="font-size:11px;align-self:end">Por hora</div>' + colTot.map((v, h) => `<div class="hf"><i style="height:${Math.max(3, v / maxCol * 34).toFixed(0)}px;${h >= 19 && h <= 21 ? "background:var(--rojo)" : ""}" title="${hLabel(h)}: ${fmt(v)} por día de la semana"></i></div>`).join("") + '<div class="ht"></div>';
     return `<section class="card" style="--i:3" id="c-hm" data-nuevo><div class="cab"><h3>Cuándo entra la gente</h3><small>Personas por hora, en promedio${D.p.tipo === "h" ? " · últimas 4 semanas" : ""}</small></div><div class="cuerpo"><div class="ins2"><span class="chip ok">Hora pico</span><p>Entra más gente los <b>${DIAN[ord[0]]} y ${DIAN[ord[1]]}</b>, de <b>7 a 10 pm</b>. La madrugada es lo más tranquilo.</p></div><div class="hm">${g}</div><div class="hleg"><span>Menos gente</span><i></i><span>Más gente</span><span class="sep2"></span><span class="pkl"><i></i>Las 6 horas más fuertes</span>${hoy ? '<span class="pkl"><u></u>Ahora</span>' : ""}</div><div class="tip" id="tip-hm"></div></div></section>`;
   }
   /* ---------- por dónde llegan (simple, con filtro) ---------- */
