@@ -19,6 +19,9 @@
 --     dato. Un costo en 0 es «sin costo cargado» (el valor de fábrica): no entra al rango, y si ninguna variante tiene costo
 --     el modelo sale con `null` y la pantalla dice «Sin costo».
 --
+--   · `variantes`: lo que entró de cada color y talla del modelo (solo las que entraron), para abrir el modelo y ver su
+--     matriz. La suma de sus unidades es siempre la del modelo.
+--
 -- QUÉ NO HACE. Escribir. Es una lectura: no toca `movimientos` ni `stock` (principio 4: el libro es la única verdad).
 -- Tampoco RESTA lo que se ajustó después: cuenta lo que entró, no lo que quedó; la pantalla lo dice en una nota.
 --
@@ -87,6 +90,12 @@ begin
       from e
      group by e.producto_id
   ),
+  -- Lo que entró de cada color y talla: el detalle que se abre debajo de cada modelo.
+  por_variante as (
+    select e.producto_id, e.variante_id, sum(e.cantidad)::integer as unidades
+      from e
+     group by e.producto_id, e.variante_id
+  ),
   -- Precio y costo de las variantes que entraron (no de todas las del modelo): lo que se está recibiendo.
   vars as (
     select distinct e.producto_id, e.variante_id from e
@@ -135,6 +144,23 @@ begin
                         'de_recepcion', l.de_recepcion,
                         'primer_dia', l.primer_dia,
                         'ultimo_dia', l.ultimo_dia,
+                        'variantes', coalesce((
+                          select jsonb_agg(
+                                   jsonb_build_object(
+                                     'variante_id', pv.variante_id,
+                                     'color', co.nombre,
+                                     'color_hex', co.hex,
+                                     'talla', ta.valor,
+                                     'unidades', pv.unidades
+                                   )
+                                   order by co.nombre, ta.valor, pv.variante_id
+                                 )
+                            from por_variante pv
+                            join retail.variantes vv on vv.id = pv.variante_id
+                            left join retail.colores co on co.codigo = vv.color_codigo
+                            left join retail.tallas ta on ta.id = vv.talla_id
+                           where pv.producto_id = l.producto_id
+                        ), '[]'::jsonb),
                         'es_nuevo', l.es_nuevo,
                         'precio_min', l.precio_min,
                         'precio_max', l.precio_max,

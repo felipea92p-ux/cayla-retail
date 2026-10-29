@@ -9,6 +9,7 @@ import {
   filtrarPorNovedad,
   hrefIngresos,
   leerResumenIngresos,
+  matrizDeVariantes,
   modelosTexto,
   precioDelModelo,
   prendasTexto,
@@ -109,6 +110,10 @@ describe("leerResumenIngresos", () => {
         de_recepcion: 9,
         primer_dia: "2026-10-24",
         ultimo_dia: "2026-10-26",
+        variantes: [
+          { variante_id: "v1a", color: "Negro", color_hex: "#111111", talla: "M", unidades: 19 },
+          { variante_id: "v1b", color: "Negro", color_hex: "#111111", talla: "S", unidades: 5 },
+        ],
         es_nuevo: false,
         precio_min: 50,
         precio_max: 70,
@@ -149,6 +154,10 @@ describe("leerResumenIngresos", () => {
       deRecepcion: 9,
       primerDia: "2026-10-24",
       ultimoDia: "2026-10-26",
+      variantes: [
+        { varianteId: "v1a", color: "Negro", colorHex: "#111111", talla: "M", unidades: 19 },
+        { varianteId: "v1b", color: "Negro", colorHex: "#111111", talla: "S", unidades: 5 },
+      ],
       esNuevo: false,
       precioMin: 50,
       precioMax: 70,
@@ -223,6 +232,55 @@ describe("precio, costo y novedad", () => {
     expect(cuentaNovedad([{ esNuevo: true }, { esNuevo: true }]).hayDeLasDos).toBe(false);
     expect(cuentaNovedad([{ esNuevo: false }]).hayDeLasDos).toBe(false);
     expect(cuentaNovedad([]).hayDeLasDos).toBe(false);
+  });
+});
+
+describe("matrizDeVariantes", () => {
+  const v = (color: string | null, talla: string | null, unidades: number, colorHex: string | null = null) => ({ color, colorHex, talla, unidades });
+
+  it("un color por fila y una talla por columna, en el orden de la curva, con sus totales", () => {
+    const m = matrizDeVariantes([v("Negro", "M", 5), v("Negro", "S", 2), v("Rojo", "S", 3), v("Negro", "L", 1), v("Rojo", "XL", 4)]);
+    expect(m.tallas).toEqual(["S", "M", "L", "XL"]);
+    expect(m.filas.map((f) => f.color)).toEqual(["Negro", "Rojo"]);
+    expect(m.filas[0]).toMatchObject({ total: 8, porTalla: { S: 2, M: 5, L: 1 } });
+    expect(m.filas[1]).toMatchObject({ total: 7, porTalla: { S: 3, XL: 4 } });
+    expect(m.totalPorTalla).toEqual({ S: 5, M: 5, L: 1, XL: 4 });
+    expect(m.total).toBe(15);
+  });
+
+  it("la suma de las filas, la de las columnas y el total son la misma cifra", () => {
+    const m = matrizDeVariantes([v("Negro", "38", 5), v("Negro", "36", 2), v("Rojo", "40", 3), v(null, "36", 6)]);
+    const porFilas = m.filas.reduce((s, f) => s + f.total, 0);
+    const porColumnas = Object.values(m.totalPorTalla).reduce((s, n) => s + n, 0);
+    expect(porFilas).toBe(m.total);
+    expect(porColumnas).toBe(m.total);
+    expect(m.tallas).toEqual(["36", "38", "40"]);
+  });
+
+  it("el que no tiene color va al final y el que no tiene talla, después de las tallas", () => {
+    const m = matrizDeVariantes([v(null, "M", 1), v("Azul", null, 2), v("Beige", "S", 3)]);
+    expect(m.filas.map((f) => f.color)).toEqual(["Azul", "Beige", null]);
+    expect(m.tallas).toEqual(["S", "M", "Sin talla"]);
+  });
+
+  it("dos variantes del mismo color y talla se suman en una celda; dos colores con el mismo nombre y otro hex no se mezclan", () => {
+    const m = matrizDeVariantes([v("Rojo", "M", 2, "#aa0000"), v("Rojo", "M", 3, "#aa0000"), v("Rojo", "M", 4, "#ff0000")]);
+    expect(m.filas).toHaveLength(2);
+    expect(m.filas.find((f) => f.colorHex === "#aa0000")?.porTalla.M).toBe(5);
+  });
+
+  it("sin variantes es una matriz vacía, no un error", () => {
+    expect(matrizDeVariantes([])).toEqual({ tallas: [], filas: [], totalPorTalla: {}, total: 0 });
+  });
+
+  it("lee las variantes de la base y descarta las que no traen id", () => {
+    const r = leerResumenIngresos({
+      desde: "2026-10-23",
+      hasta: "2026-10-29",
+      modelos: [{ producto_id: "p1", referencia: "Blusa", variantes: [{ variante_id: "x", color: "Azul", talla: "S", unidades: "2" }, { unidades: 4 }, null] }],
+      totales: {},
+    });
+    expect(r?.modelos[0].variantes).toEqual([{ varianteId: "x", color: "Azul", colorHex: null, talla: "S", unidades: 2 }]);
   });
 });
 

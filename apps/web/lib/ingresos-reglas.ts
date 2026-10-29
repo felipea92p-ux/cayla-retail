@@ -1,5 +1,6 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { restarDias } from "./movimientos-reglas";
+import { compararTallas } from "./tallas";
 
 // Ingresos (pestaña de Movimientos): «qué prendas entraron» a la sede entre dos fechas, UNA línea por modelo. La suma la
 // hace la base (`retail.fn_ingresos_por_modelo`); acá vive lo que la web decide: el rango que se pide, cómo se dice, la
@@ -7,6 +8,15 @@ import { restarDias } from "./movimientos-reglas";
 //
 // Cuenta lo que ENTRÓ (stock inicial y mercadería recibida), no lo que quedó: un ajuste posterior no lo resta. Lo dice la
 // nota de la pantalla, no esta lógica.
+
+/** Lo que entró de UN color y talla del modelo. */
+export type VarianteIngresada = {
+  varianteId: string;
+  color: string | null;
+  colorHex: string | null;
+  talla: string | null;
+  unidades: number;
+};
 
 export type ModeloIngresado = {
   productoId: string;
@@ -18,6 +28,8 @@ export type ModeloIngresado = {
   deRecepcion: number;
   primerDia: string;
   ultimoDia: string;
+  /** Lo que entró de cada color y talla (solo las variantes que entraron). Su suma es `unidades`. */
+  variantes: VarianteIngresada[];
   /** Ningún ingreso antes del rango, en ninguna sede: un modelo que llega por primera vez. Si no, es un «Reingreso». */
   esNuevo: boolean;
   /** Lo que se cobra en ESTA sede por lo que entró: un solo precio (min = max) o un rango por tallas. */
@@ -62,6 +74,13 @@ export function leerResumenIngresos(data: unknown): ResumenIngresos | null {
     const productoId = texto(m.producto_id);
     const referencia = texto(m.referencia);
     if (!productoId || !referencia) continue;
+    const variantes: VarianteIngresada[] = [];
+    for (const v of Array.isArray(m.variantes) ? m.variantes : []) {
+      if (!esObjeto(v)) continue;
+      const varianteId = texto(v.variante_id);
+      if (!varianteId) continue;
+      variantes.push({ varianteId, color: texto(v.color), colorHex: texto(v.color_hex), talla: texto(v.talla), unidades: entero(v.unidades) });
+    }
     modelos.push({
       productoId,
       referencia,
@@ -72,6 +91,7 @@ export function leerResumenIngresos(data: unknown): ResumenIngresos | null {
       deRecepcion: entero(m.de_recepcion),
       primerDia: texto(m.primer_dia) ?? desde,
       ultimoDia: texto(m.ultimo_dia) ?? hasta,
+      variantes,
       esNuevo: m.es_nuevo === true,
       precioMin: montoONulo(m.precio_min),
       precioMax: montoONulo(m.precio_max),
@@ -212,4 +232,40 @@ export function cuentaNovedad(modelos: readonly Pick<ModeloIngresado, "esNuevo">
   const nuevos = modelos.filter((m) => m.esNuevo).length;
   const reingresos = modelos.length - nuevos;
   return { nuevos, reingresos, hayDeLasDos: nuevos > 0 && reingresos > 0 };
+}
+
+// ── La matriz de color y talla ─────────────────────────────────────────────────────────────────────────────────────────
+
+/** Los nombres que se leen cuando una variante no trae talla o color (una prenda de talla única o sin color cargado). */
+export const SIN_TALLA = "Sin talla";
+
+export type FilaMatriz = { color: string | null; colorHex: string | null; porTalla: Record<string, number>; total: number };
+export type MatrizIngreso = { tallas: string[]; filas: FilaMatriz[]; totalPorTalla: Record<string, number>; total: number };
+
+/** Las variantes de un modelo como una matriz: un color por fila, una talla por columna (en su orden de curva, S · M · L o
+ *  36 · 38 · 40), con el total de cada fila y de cada columna. Los colores van por nombre, y el que no tiene color al final;
+ *  «Sin talla» va después de las tallas. Lo que entró es lo único que suma: una celda vacía es un color que no trajo esa talla. */
+export function matrizDeVariantes(variantes: readonly Pick<VarianteIngresada, "color" | "colorHex" | "talla" | "unidades">[]): MatrizIngreso {
+  const filas = new Map<string, FilaMatriz>();
+  const totalPorTalla: Record<string, number> = {};
+  let total = 0;
+  for (const v of variantes) {
+    const talla = v.talla ?? SIN_TALLA;
+    const clave = `${v.color ?? ""}|${v.colorHex ?? ""}`;
+    const fila = filas.get(clave) ?? { color: v.color, colorHex: v.colorHex, porTalla: {}, total: 0 };
+    fila.porTalla[talla] = (fila.porTalla[talla] ?? 0) + v.unidades;
+    fila.total += v.unidades;
+    filas.set(clave, fila);
+    totalPorTalla[talla] = (totalPorTalla[talla] ?? 0) + v.unidades;
+    total += v.unidades;
+  }
+  const tallas = Object.keys(totalPorTalla).sort((a, b) => {
+    if (a === SIN_TALLA || b === SIN_TALLA) return a === SIN_TALLA ? 1 : -1;
+    return compararTallas(a, b);
+  });
+  const ordenadas = [...filas.values()].sort((a, b) => {
+    if (a.color === null || b.color === null) return a.color === null ? 1 : -1;
+    return a.color.localeCompare(b.color, "es");
+  });
+  return { tallas, filas: ordenadas, totalPorTalla, total };
 }

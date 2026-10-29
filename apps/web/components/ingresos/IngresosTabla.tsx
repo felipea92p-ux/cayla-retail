@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
+import { MatrizIngreso } from "./MatrizIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import type { Apariencia } from "@/lib/ingresos";
@@ -32,6 +33,15 @@ export function IngresosTabla({
   rangoTexto: string;
 }) {
   const [filtro, setFiltro] = useState<FiltroNovedad>("todos");
+  // Los modelos abiertos (por si compras quiere comparar el detalle de dos): se abren y se cierran con un toque.
+  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
+  function alternar(productoId: string) {
+    setAbiertos((antes) => {
+      const ahora = new Set(antes);
+      if (!ahora.delete(productoId)) ahora.add(productoId);
+      return ahora;
+    });
+  }
   const cuenta = cuentaNovedad(modelos);
   // Con una sola clase de modelos el filtro no filtra nada: no se ofrece, y si estaba puesto se vuelve a «todos».
   const activo: FiltroNovedad = cuenta.hayDeLasDos ? filtro : "todos";
@@ -72,39 +82,63 @@ export function IngresosTabla({
         {visibles.map((m, i) => {
           const a = apariencia[m.productoId];
           const detalle = [m.codigo, m.categoria].filter(Boolean).join(" · ");
+          const abierto = abiertos.has(m.productoId);
           return (
-            <div key={m.productoId} role="row" className={fila(plantilla, "items-center")}>
-              <div className={celda("izq", "flex items-center gap-3")}>
-                <MiniaturaPrenda tamano="lg" fotoUrl={a?.fotoUrl ?? null} prefijo={a?.prefijo} familia={a?.familia} categoria={a?.categoria} />
-                <span className="min-w-0">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-medium text-tinta">{m.referencia}</span>
-                    <span data-guia={i === 0 ? "movimientos.ingresos-etiqueta" : undefined} className="shrink-0">
-                      <Chip tono={m.esNuevo ? "verde" : "pizarra"} versalitas={false} title={m.esNuevo ? "Es la primera vez que entra este modelo" : "Este modelo ya había entrado antes"}>
-                        {m.esNuevo ? "Nuevo" : "Reingreso"}
-                      </Chip>
-                    </span>
-                  </span>
-                  {detalle && <span className="block truncate text-xs text-taupe">{detalle}</span>}
-                </span>
-              </div>
-              <span
-                className={celda("der", "text-sm font-semibold text-tinta")}
-                title={`${m.deStockInicial.toLocaleString("es-PE")} de stock inicial · ${m.deRecepcion.toLocaleString("es-PE")} de mercadería recibida`}
+            <Fragment key={m.productoId}>
+              {/* Toda la fila se toca con el mouse; el botón del nombre es lo que usan el teclado y el lector de pantalla (su Enter
+                  sube hasta la fila). Abierta, la fila queda marcada con `aria-current`, como las demás del sistema. */}
+              <div
+                role="row"
+                data-guia={i === 0 ? "movimientos.ingresos-fila" : undefined}
+                aria-current={abierto ? "true" : undefined}
+                onClick={() => alternar(m.productoId)}
+                className={fila(plantilla, "cursor-pointer items-center")}
               >
-                {m.unidades.toLocaleString("es-PE")}
-              </span>
-              <span data-guia={i === 0 ? "movimientos.ingresos-precio" : undefined} className={celda("der", "text-sm text-tinta")}>
-                <Etiqueta>Precio </Etiqueta>
-                {precioDelModelo(m)}
-              </span>
-              {veCosto && (
-                <span className={celda("der", "text-sm text-tinta/75")}>
-                  <Etiqueta>Costo </Etiqueta>
-                  {costoDelModelo(m)}
+                <div className={celda("izq", "flex items-center gap-3")}>
+                  <MiniaturaPrenda tamano="lg" fotoUrl={a?.fotoUrl ?? null} prefijo={a?.prefijo} familia={a?.familia} categoria={a?.categoria} />
+                  <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        aria-expanded={abierto}
+                        aria-controls={`ingreso-${m.productoId}`}
+                        className="truncate text-left text-sm font-medium text-tinta"
+                      >
+                        {m.referencia}
+                        <span className="sr-only">{abierto ? ". Ocultar colores y tallas" : ". Ver colores y tallas"}</span>
+                      </button>
+                      <span data-guia={i === 0 ? "movimientos.ingresos-etiqueta" : undefined} className="shrink-0">
+                        <Chip tono={m.esNuevo ? "verde" : "pizarra"} versalitas={false} title={m.esNuevo ? "Es la primera vez que entra este modelo" : "Este modelo ya había entrado antes"}>
+                          {m.esNuevo ? "Nuevo" : "Reingreso"}
+                        </Chip>
+                      </span>
+                    </span>
+                    {detalle && <span className="block truncate text-xs text-taupe">{detalle}</span>}
+                  </span>
+                </div>
+                <span
+                  className={celda("der", "text-sm font-semibold text-tinta")}
+                  title={`${m.deStockInicial.toLocaleString("es-PE")} de stock inicial · ${m.deRecepcion.toLocaleString("es-PE")} de mercadería recibida`}
+                >
+                  {m.unidades.toLocaleString("es-PE")}
                 </span>
+                <span data-guia={i === 0 ? "movimientos.ingresos-precio" : undefined} className={celda("der", "text-sm text-tinta")}>
+                  <Etiqueta>Precio </Etiqueta>
+                  {precioDelModelo(m)}
+                </span>
+                {veCosto && (
+                  <span className={celda("der", "text-sm text-tinta/75")}>
+                    <Etiqueta>Costo </Etiqueta>
+                    {costoDelModelo(m)}
+                  </span>
+                )}
+              </div>
+              {abierto && (
+                <div id={`ingreso-${m.productoId}`} data-guia={i === 0 ? "movimientos.ingresos-detalle" : undefined} className="anim-revelar bg-hueso/60 px-5 py-3 sm:pl-[5.25rem]">
+                  <MatrizIngreso variantes={m.variantes} />
+                </div>
               )}
-            </div>
+            </Fragment>
           );
         })}
       </Tabla>

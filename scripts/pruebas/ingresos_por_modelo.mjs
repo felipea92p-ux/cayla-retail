@@ -10,6 +10,8 @@
  *         00:10 del día siguiente no); y el total cuadra con una cuenta directa sobre el libro `movimientos`;
  *   · N — Nuevo o Reingreso (un traslado anulado no es un ingreso; haber entrado antes en OTRA sede también cuenta), el precio de
  *         la SEDE (no el de la grilla) y su rango por tallas, el costo solo para quien ve el dinero y un costo en 0 como «sin costo»;
+ *   · T — el detalle por color y talla de cada modelo: lo que entró de cada variante, con su talla y su color con nombre, y su
+ *         suma es SIEMPRE la del modelo;
  *   · V — un rango al revés o de más de un año se rechaza con un mensaje que lo dice;
  *   · P — permisos: una integrante ve su sede y no otra; sin el módulo Movimientos, nada; `anon` no ejecuta.
  *
@@ -128,6 +130,8 @@ insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo
 insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo) values (:'p1', :'col', :'ta2', 70, 30) returning id as v1b \\gset
 insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo) values (:'p2', :'col', :'ta1', 40, 0) returning id as v2 \\gset
 insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo) values (:'p3', :'col', :'ta1', 60, 15) returning id as v3 \\gset
+-- Una talla de p3 que NO entra (con un costo muy distinto): ni sale en el detalle ni cuenta para su costo.
+insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo) values (:'p3', :'col', :'ta2', 60, 99);
 -- T le pone un precio propio a p3: es lo que se cobra ahí, no el de la grilla.
 insert into retail.precios_sede_prenda (producto_id, ubicacion_id, precio, motivo) values (:'p3', :'t', 99, 'precio de prueba');
 
@@ -212,9 +216,29 @@ select 'PR3 el precio es el de la SEDE cuando tiene uno propio: p3 = 99, no los 
 select 'CO1 el líder ve el costo: ve_costo, p1 de 20 a 30 y p3 = 15',
   (select (j ->> 've_costo')::boolean
       and (pg_temp.modelo(j, :'p1'::uuid) ->> 'costo_min')::numeric = 20 and (pg_temp.modelo(j, :'p1'::uuid) ->> 'costo_max')::numeric = 30
-      and (pg_temp.modelo(j, :'p3'::uuid) ->> 'costo_min')::numeric = 15 from r);
+      and (pg_temp.modelo(j, :'p3'::uuid) ->> 'costo_min')::numeric = 15 and (pg_temp.modelo(j, :'p3'::uuid) ->> 'costo_max')::numeric = 15 from r);
 select 'CO2 un costo en 0 es «sin costo»: p2 sale con costo null, no con 0 (ni para el líder)',
   (select pg_temp.modelo(j, :'p2'::uuid) -> 'costo_min' = 'null'::jsonb and pg_temp.modelo(j, :'p2'::uuid) -> 'costo_max' = 'null'::jsonb from r);
+`;
+
+// A3 · El detalle por color y talla que se abre debajo de cada modelo.
+const CASOS_VARIANTES = `
+select 'T1 cada modelo trae lo que entró de cada color y talla: p1 = 19 de su primera talla y 5 de la segunda',
+  (select jsonb_array_length(m -> 'variantes') = 2
+      and (select count(*) = 1 from jsonb_array_elements(m -> 'variantes') x where x ->> 'variante_id' = :'v1a' and (x ->> 'unidades')::int = 19)
+      and (select count(*) = 1 from jsonb_array_elements(m -> 'variantes') x where x ->> 'variante_id' = :'v1b' and (x ->> 'unidades')::int = 5)
+     from (select pg_temp.modelo(j, :'p1'::uuid) as m from r) q);
+select 'T2 la suma del detalle es siempre la del modelo (en los tres)',
+  (select count(*) = 3 and bool_and((select sum((v ->> 'unidades')::int) from jsonb_array_elements(x -> 'variantes') v) = (x ->> 'unidades')::int)
+     from r, jsonb_array_elements(r.j -> 'modelos') x);
+select 'T3 cada variante dice su talla y su color con su nombre, no un id',
+  (select bool_and(v ->> 'talla' is not null and v ->> 'color' is not null)
+     from r, jsonb_array_elements(r.j -> 'modelos') x, jsonb_array_elements(x -> 'variantes') v);
+select 'T4 la talla que dice es la de la variante (la primera de p1 es la de la talla 1)',
+  (select count(*) = 1 from r, jsonb_array_elements(pg_temp.modelo(r.j, :'p1'::uuid) -> 'variantes') v
+    where v ->> 'variante_id' = :'v1a' and v ->> 'talla' = (select valor from retail.tallas where id = :'ta1'));
+select 'T5 solo salen las variantes que entraron: p3 tiene dos tallas pero solo una entró',
+  (select jsonb_array_length(pg_temp.modelo(j, :'p3'::uuid) -> 'variantes') = 1 from r);
 `;
 
 const CASOS_RANGO = `
@@ -248,6 +272,7 @@ select 'P4 anon no ejecuta; authenticated sí',
 
 verificar("L · lectura", correr(`${ESCENA}${CASOS_LECTURA}`), casosDe(CASOS_LECTURA));
 verificar("N · nuevo, precio y costo", correr(`${ESCENA}${CASOS_VALORES}`), casosDe(CASOS_VALORES));
+verificar("T · color y talla", correr(`${ESCENA}${CASOS_VARIANTES}`), casosDe(CASOS_VARIANTES));
 verificar("V · rango", correr(`${ESCENA}${CASOS_RANGO}`), casosDe(CASOS_RANGO));
 verificar("P · permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));
 
