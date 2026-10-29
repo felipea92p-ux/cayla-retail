@@ -242,7 +242,9 @@ describe("redondeo del efectivo al entregar el saldo (ADR-0311)", () => {
       expect(ef === undefined || Math.round(ef.monto * 100) % 10 === 0).toBe(true);
       expect(red === undefined || (red.monto > 0 && red.monto < 0.1)).toBe(true);
     }
-  });
+    // 29.999 saldos, uno por uno: menos de 1 s con la máquina libre, pero más de 5 s (el límite de vitest) con ~665 archivos de prueba a la vez
+    // en el gancho de commits o en el CI, o con la máquina cargada: rechazó un commit el 2026-10-28 sin que nada estuviera mal.
+  }, 30_000);
 });
 
 describe("búsqueda y textos", () => {
