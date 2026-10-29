@@ -195,10 +195,10 @@
       "button «Una cifra para todas las tallas»",
       "button «Separar por talla»",
       "Casilla «Dejar este consumo como el del modelo»",
-      "CampoSelect «Avío»",
+      "CampoSelect «Material»",
       "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
       "CampoSelect «Para»",
-      "Boton «+ Agregar avío»",
+      "Boton «+ Agregar material»",
       "Casilla «Dejar estos avíos como los del modelo»"
     ]
   }

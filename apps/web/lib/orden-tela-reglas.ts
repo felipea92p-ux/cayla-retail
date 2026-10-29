@@ -46,6 +46,11 @@ export type TelaBorrador = {
   consumoPorPrenda: string;
   /** Una cifra por talla (talla → texto). Nulo o ausente = una sola cifra para todas las tallas (aproximado). Si está, `consumoPorPrenda` no manda. */
   porTalla?: Record<string, string> | null;
+  /**
+   * Un complemento de la prenda (forro, otra tela de contraste) y no la tela principal de su color (ADR-0563). Solo se marca en una TELA: un avío es complemento por su tipo y no lo lleva. Un complemento
+   * no declara el consumo del modelo ni suma a lo medido; su costo sí entra a la orden. Ausente o falso = la tela de siempre.
+   */
+  complemento?: boolean;
 };
 
 export type TallaDeLaOrden = { talla: string; cantidad: number };
@@ -199,7 +204,7 @@ export function consumoPorTallaSugerido(declarado: ConsumoDelModelo | null): Rec
  *  · `ninguna`: no hay tela con consumo escrito, o lo escrito es lo mismo que dice el modelo: no hay nada que ofrecer.
  *  · `primera`: el modelo todavía no dice nada; esta orden lo deja declarado sola (sin interruptor ni permiso: es lo de siempre).
  *  · `corregir`: el modelo dice otra cosa. Corregirlo es de quien edita el catálogo; a los demás se les dice que solo esta orden usa lo escrito.
- * Solo cuenta la PRIMERA tela (la base escribe una sola, `producto_consumos.tela_por_prenda`); un avío no cuenta.
+ * Solo cuenta la PRIMERA tela (la base escribe una sola, `producto_consumos.tela_por_prenda`); un avío o un complemento (forro, otra tela: ADR-0563) no cuentan.
  */
 export type OfertaDeConsumo =
   | { tipo: "ninguna" }
@@ -214,7 +219,7 @@ export function ofertaDeConsumoDelModelo(
 ): OfertaDeConsumo {
   for (const t of telas) {
     const insumo = t.insumoId ? insumos.find((i) => i.id === t.insumoId) : undefined;
-    if (!insumo || insumo.tipo !== "tela") continue;
+    if (!insumo || insumo.tipo !== "tela" || t.complemento) continue;
     const tallas = tallasDeLaFila(t.colorCodigo, colores);
     const nuevo = consumoPromedio(t, tallas);
     if (nuevo === null) continue;
@@ -393,7 +398,7 @@ export function problemasTela(telas: readonly TelaBorrador[], ctx: { insumos: re
 
 // ---------- Lo que viaja a la base ----------
 
-export type InsumoRpc = { insumo_id: string; color_codigo: string | null; consumo_por_prenda?: string; consumo_por_talla?: Record<string, string> };
+export type InsumoRpc = { insumo_id: string; color_codigo: string | null; consumo_por_prenda?: string; consumo_por_talla?: Record<string, string>; complemento?: true };
 
 /** El `p_insumos` de `abrir_orden_produccion`: solo las filas con tela elegida; el consumo viaja como texto, tal cual se escribió (recortado), para que la
  *  base lo lea con su propia regla y nunca se «arregle» en silencio. Una fila por talla manda `consumo_por_talla` (solo las tallas que la fila fabrica) y NO
@@ -404,10 +409,12 @@ export function insumosParaRpc(telas: readonly TelaBorrador[], colores: readonly
     if (!t.insumoId) continue;
     const color = colorLimpio(t.colorCodigo);
     const tallas = tallasDeLaFila(color, colores);
+    // Solo viaja cuando es verdad: sin la marca la base la toma como la tela de siempre (ADR-0563).
+    const rol = t.complemento === true ? { complemento: true as const } : {};
     if (usaPorTalla(t, tallas)) {
-      salida.push({ insumo_id: t.insumoId, color_codigo: color, consumo_por_talla: Object.fromEntries(tallas.map((x) => [x.talla, (t.porTalla?.[x.talla] ?? "").trim()])) });
+      salida.push({ insumo_id: t.insumoId, color_codigo: color, consumo_por_talla: Object.fromEntries(tallas.map((x) => [x.talla, (t.porTalla?.[x.talla] ?? "").trim()])), ...rol });
     } else {
-      salida.push({ insumo_id: t.insumoId, color_codigo: color, consumo_por_prenda: t.consumoPorPrenda.trim() });
+      salida.push({ insumo_id: t.insumoId, color_codigo: color, consumo_por_prenda: t.consumoPorPrenda.trim(), ...rol });
     }
   }
   return salida;
@@ -419,18 +426,23 @@ const esAvioElegido = (t: TelaBorrador, insumos: readonly InsumoDelTaller[]): bo
 
 /**
  * La lista de tela y avíos que dibuja la hoja de «Nueva orden» (ADR-0510): una fila por color de la orden —lo que la persona tocó, o la tela sugerida si no ha tocado
- * nada de ese color— y después los avíos. Un avío se reconoce por su TIPO en Insumos, no por no tener color: puede ser de toda la orden (color vacío) o de UN color (el hilo
- * del beige), y una fila de avío todavía sin elegir (`insumoId` nulo, recién agregada) sigue ahí para que la persona la llene. Una fila que no es de ningún color de la orden
- * (la tela de un color que ya no se fabrica) se descarta, como una de avío cuyo color ya no se fabrica.
+ * nada de ese color— y después «forro y otros materiales» (ADR-0563): los avíos y los complementos (una tela que no es la principal de su color). Un avío se reconoce por su TIPO
+ * en Insumos, no por no tener color: puede ser de toda la orden (color vacío) o de UN color (el hilo del beige); un complemento, por su marca. Una fila todavía sin elegir
+ * (`insumoId` nulo, recién agregada) sigue ahí para que la persona la llene. Una fila que no es de ningún color de la orden (la tela de un color que ya no se fabrica) se
+ * descarta, como una de avío o de complemento cuyo color ya no se fabrica.
  */
 export function telasDeLaHoja(o: { sugeridas: readonly TelaBorrador[]; manual: readonly TelaBorrador[] | null; insumos: readonly InsumoDelTaller[]; avios?: readonly TelaBorrador[] }): TelaBorrador[] {
   // Mientras la persona no toca nada, los avíos que el modelo ya tiene (`aviosSugeridos`) van detrás de la tela. Al tocar, `manual` los trae ya copiados: lo que quitó no vuelve.
   if (o.manual === null) return [...o.sugeridas, ...(o.avios ?? [])];
-  const filasDeColor = o.sugeridas.map((s) => o.manual?.find((p) => !esAvioElegido(p, o.insumos) && p.colorCodigo === s.colorCodigo) ?? s);
+  // La tela de un color es la que NO es un avío ni un complemento (un forro puesto «para un color» no es la tela de ese color: ADR-0563).
+  const filasDeColor = o.sugeridas.map((s) => o.manual?.find((p) => !esAvioElegido(p, o.insumos) && !p.complemento && p.colorCodigo === s.colorCodigo) ?? s);
   const elegidas = new Set<TelaBorrador>(filasDeColor);
   const coloresDeLaOrden = new Set(o.sugeridas.map((s) => s.colorCodigo));
-  const avios = o.manual.filter((p) => !elegidas.has(p) && (p.insumoId === null ? p.colorCodigo === null : esAvioElegido(p, o.insumos) && (p.colorCodigo === null || coloresDeLaOrden.has(p.colorCodigo))));
-  return [...filasDeColor, ...avios];
+  // Lo que sobra es «forro y otros materiales»: avíos, complementos (telas) y filas recién agregadas que todavía no eligen nada.
+  const extras = o.manual.filter(
+    (p) => !elegidas.has(p) && (p.insumoId === null ? p.colorCodigo === null : (esAvioElegido(p, o.insumos) || p.complemento === true) && (p.colorCodigo === null || coloresDeLaOrden.has(p.colorCodigo)))
+  );
+  return [...filasDeColor, ...extras];
 }
 
 /** Cuántas prendas lleva una fila: las de su color, o todas las de la orden si es de toda la orden (color vacío). Un color que la orden no fabrica no lleva ninguna. */

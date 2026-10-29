@@ -19,6 +19,8 @@ export type TelaDeLaOrden = {
   insumoId: string;
   nombre: string;
   tipo: "tela" | "avio";
+  /** Una tela que es complemento de la prenda (forro, otra tela) en TODOS sus colores (ADR-0563): no cuenta como «la tela» de la orden. Un avío nunca. */
+  complemento: boolean;
   unidad: string;
   /** Lo que pide el plan: la suma de sus colores. */
   plan: number;
@@ -38,7 +40,7 @@ export function telasDeLaOrden(insumos: readonly InsumoPagina[]): TelaDeLaOrden[
     const base = filas[0];
     const plan = filas.reduce((s, f) => s + f.cantidadPlan, 0);
     const usado = Math.max(...filas.map((f) => f.usado));
-    return { insumoId: base.insumoId, nombre: base.nombre, tipo: base.tipo, unidad: base.unidad, plan, usado, falta: Math.max(redondear(plan - usado), 0), saldo: base.saldo };
+    return { insumoId: base.insumoId, nombre: base.nombre, tipo: base.tipo, complemento: filas.every((f) => f.esComplemento), unidad: base.unidad, plan, usado, falta: Math.max(redondear(plan - usado), 0), saldo: base.saldo };
   });
 }
 

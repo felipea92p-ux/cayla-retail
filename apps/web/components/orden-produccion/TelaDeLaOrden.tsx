@@ -36,7 +36,11 @@ import {
 // fabrica: la muestra del color y cuántas prendas son, la tela del estante (primero las del tejido del modelo, las demás bajo «Otras telas»), cuánto
 // lleva cada prenda (el modelo lo dice: `producto_consumos`) y, derivado, los metros a pedir con «Alcanza» o «Faltan N m» contra lo que queda libre
 // en el estante (saldo − lo que otras órdenes abiertas ya comprometieron − lo que otra fila de ESTA orden pide de la misma tela). Debajo, los avíos
-// (botones, cierres, etiquetas, hilo), de toda la orden o de UN color (el hilo del beige: «Para»), plegados bajo «+ Agregar avío». Es opcional: una orden sin tela declarada se abre igual.
+// (botones, cierres, etiquetas, hilo), de toda la orden o de UN color (el hilo del beige: «Para»), plegados bajo «+ Agregar material». Es opcional: una orden sin tela declarada se abre igual.
+//
+// FORRO Y OTROS MATERIALES (ADR-0563). Una prenda no lleva una sola tela: ese mismo bloque de abajo ofrece CUALQUIER material del Taller —una tela (el forro, una tela de contraste) o un avío—. Una
+// tela que se agrega ahí es un COMPLEMENTO (`complemento` en su fila): no es la tela principal de ningún color, no declara cuánta tela lleva el modelo ni suma a lo que el modelo aprende al cerrar la
+// orden, pero se pide, se descuenta del estante y cuesta como cualquier material. La tela de cada color sigue siendo UNA, en su fila de arriba.
 //
 // No tiene estado de negocio: el formulario es el dueño de `telas` (nace con `telasSugeridas`), lee las faltas con `problemasTela` y las pasa en
 // `problemas` (por índice de fila); acá solo se dibuja lo que dice `lib/orden-tela-reglas.ts` y se llama a `onTelas` con la lista entera. Una fila de
@@ -122,10 +126,10 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
   const porId = new Map(insumos.map((i) => [i.id, i] as const));
   const esAvio = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "avio" : false);
 
-  // Qué fila de `telas` es de cada color (la primera que calza y no es un avío); lo que sobra son los avíos (los sin tela elegida incluidos).
+  // Qué fila de `telas` es de cada color (la primera que calza y no es un avío ni un complemento); lo que sobra son los materiales de «forro y otros» (los sin elegir incluidos).
   const reclamadas = new Set<number>();
   const porColor = colores.map((color) => {
-    const indice = telas.findIndex((t, i) => !reclamadas.has(i) && t.colorCodigo === color.codigo && !esAvio(t));
+    const indice = telas.findIndex((t, i) => !reclamadas.has(i) && t.colorCodigo === color.codigo && !esAvio(t) && !t.complemento);
     if (indice >= 0) reclamadas.add(indice);
     return { color, indice: indice >= 0 ? indice : null, tela: indice >= 0 ? telas[indice] : FILA_VACIA(color.codigo) };
   });
@@ -133,6 +137,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
 
   const telasDelEstante = insumos.filter((i) => i.tipo === "tela" && !i.archivado);
   const aviosDelEstante = insumos.filter((i) => i.tipo === "avio" && !i.archivado);
+  const hayMateriales = telasDelEstante.length + aviosDelEstante.length > 0;
   const delTejido = tejidoId ? telasDelEstante.filter((i) => i.tejidoId === tejidoId) : [];
   const nombreTejido = tejidoNombre?.toLocaleLowerCase("es") ?? null;
   const algunaElegida = telas.some((t) => t.insumoId);
@@ -165,7 +170,12 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
   function ponerAvio(indice: number, parche: Partial<TelaBorrador>) {
     onTelas(telas.map((t, i) => (i === indice ? { ...t, ...parche } : t)));
   }
-  /** Las filas de color que aún no existen nacen primero: así un avío vacío nunca se confunde con la tela de un modelo sin color. */
+  /** Elegir el material de una fila extra: una TELA es un complemento (ADR-0563), un avío no lleva la marca. Al cambiar de material se descarta una cifra por talla que ya no es de él. */
+  function elegirMaterial(indice: number, insumoId: string) {
+    const tipo = insumoId ? porId.get(insumoId)?.tipo : undefined;
+    onTelas(telas.map((t, i) => (i === indice ? { ...t, insumoId: insumoId || null, complemento: tipo === "tela", porTalla: null } : t)));
+  }
+  /** Las filas de color que aún no existen nacen primero: así un material vacío nunca se confunde con la tela de un modelo sin color. */
   function agregarAvio() {
     const faltantes = porColor.filter((f) => f.indice === null).map((f) => f.tela);
     const primerAvio = avios.length > 0 ? avios[0].indice : telas.length;
@@ -199,12 +209,21 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
     { valor: "todas", texto: `Toda la orden · ${totalPrendas} prendas` },
     ...colores.filter((c) => c.codigo !== null).map((c) => ({ valor: c.codigo as string, texto: `${c.nombre} · ${c.prendas} prendas` })),
   ];
-  function opcionesAvio(tela: TelaBorrador): Opcion<string>[] {
-    const opciones: Opcion<string>[] = aviosDelEstante.map((i) => ({ valor: i.id, texto: `${i.nombre} · hay ${cantidad(i.saldo, i.unidad)}` }));
+  /** Todo lo que el Taller tiene para una prenda además de la tela de su color: las telas (el forro) y los avíos; con las dos clases, en dos grupos. */
+  function opcionesMaterial(tela: TelaBorrador): Opcion<string>[] {
+    const texto = (i: InsumoDelTaller) => `${i.nombre} · hay ${cantidad(i.saldo, i.unidad)}`;
+    const conGrupos = telasDelEstante.length > 0 && aviosDelEstante.length > 0;
+    const opciones: Opcion<string>[] = [
+      ...telasDelEstante.map((i) => ({ valor: i.id, texto: texto(i), grupo: conGrupos ? "Telas" : undefined })),
+      ...aviosDelEstante.map((i) => ({ valor: i.id, texto: texto(i), grupo: conGrupos ? "Avíos" : undefined })),
+    ];
     const elegido = tela.insumoId ? porId.get(tela.insumoId) : undefined;
     if (elegido && !opciones.some((o) => o.valor === elegido.id)) opciones.unshift({ valor: elegido.id, texto: `${elegido.nombre} · archivado`, deshabilitada: true });
     return opciones;
   }
+  const esTela = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "tela" : false);
+  // Una misma tela que es la de un color y también complemento de otro: lo que se gasta se anota por material, no por color, así que esa orden no puede aportar a lo que el modelo aprende.
+  const mezclados = [...new Set(avios.filter((x) => x.tela.complemento && x.tela.insumoId && telas.some((t, i) => !t.complemento && t.insumoId === x.tela.insumoId && !esAvio(t) && reclamadas.has(i))).map((x) => porId.get(x.tela.insumoId as string)?.nombre ?? "esa tela"))];
 
   return (
     <section aria-label={titulo} data-guia="prod-orden-nueva.tela">
@@ -362,9 +381,12 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
             </div>
           )}
 
-          {/* Los avíos van para toda la orden o para un color (si la orden fabrica más de uno), plegados: casi siempre la pregunta es solo la tela. */}
-          {(avios.length > 0 || aviosDelEstante.length > 0) && (
+          {/* Forro y otros materiales (ADR-0563): una tela que no es la de ningún color —el forro, una tela de contraste— o un avío (botones, cierres, hilo), para toda la orden o para UN color. Plegado: casi siempre la pregunta es solo la tela. */}
+          {(avios.length > 0 || hayMateriales) && (
             <div className="space-y-3 px-3.5 py-3">
+              <span className={`${campoEtiqueta} block`}>
+                Forro y otros materiales {!edicion && <span className="font-normal normal-case text-tinta/45">· opcional</span>}
+              </span>
               {avios.map(({ tela, indice }) => {
                 const insumo = tela.insumoId ? porId.get(tela.insumoId) : undefined;
                 const plan = planPorIndice.get(indice) ?? 0;
@@ -372,17 +394,17 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                 const veredicto = insumo && plan > 0 && usado === 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, indice), enCamino.get(insumo.id) ?? 0) : null;
                 const costo = conCostos && insumo && plan > 0 ? costoPorMetro.get(insumo.id) : undefined;
                 const pies = piesDe(problemasDe(indice), tela);
-                const opciones = opcionesAvio(tela);
+                const opciones = opcionesMaterial(tela);
                 return (
                   <div key={indice} className="space-y-1">
                     <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_auto] items-start gap-x-3 gap-y-1">
                       <CampoSelect
                         id={`avio-${indice}`}
-                        etiqueta="Avío"
+                        etiqueta="Material"
                         valor={tela.insumoId ?? ""}
-                        onValor={(v) => ponerAvio(indice, { insumoId: v || null })}
+                        onValor={(v) => elegirMaterial(indice, v)}
                         opciones={opciones}
-                        marcador="Elegir el avío"
+                        marcador="Elegir el material"
                         {...pies.tela}
                       />
                       <CampoTexto
@@ -390,14 +412,14 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                         etiqueta={`${insumo ? unidadCorta(insumo.unidad) : "unid."} por prenda`}
                         mono
                         inputMode="decimal"
-                        placeholder="0"
+                        placeholder={insumo?.tipo === "tela" ? "0.000" : "0"}
                         value={tela.consumoPorPrenda}
                         onChange={(e) => ponerAvio(indice, { consumoPorPrenda: e.target.value })}
                         {...pies.consumo}
                       />
                       {/* A la altura de la caja (la etiqueta mide 11 px + 6 px de aire). */}
                       <div className="pt-[1.625rem]">
-                        <QuitarColor nombre={insumo?.nombre ?? "este avío"} onQuitar={() => quitarAvio(indice)} />
+                        <QuitarColor nombre={insumo?.nombre ?? "este material"} onQuitar={() => quitarAvio(indice)} />
                       </div>
                     </div>
                     {insumo && colores.length > 1 && (
@@ -416,13 +438,21 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   </div>
                 );
               })}
-              {aviosDelModelo > 0 && avios.length > 0 && <p className="text-[12.5px] text-tinta/70">Estos avíos los lleva ya el modelo: quita o cambia los que esta orden no use.</p>}
-              {aviosDelEstante.length > 0 && (
+              {aviosDelModelo > 0 && avios.some((x) => !esTela(x.tela)) && <p className="text-[12.5px] text-tinta/70">Los avíos de esta lista los lleva ya el modelo: quita o cambia los que esta orden no use.</p>}
+              {avios.some((x) => esTela(x.tela)) && (
+                <p className="text-[12.5px] text-tinta/70">Un forro o una segunda tela se pide y se descuenta del estante aparte, y su costo entra al de la orden. No cambia cuánta tela lleva el modelo.</p>
+              )}
+              {mezclados.length > 0 && (
+                <p className="text-[12.5px] text-tinta/70">
+                  {mezclados.length === 1 ? `«${mezclados[0]}» ya es la tela de otro color` : `«${mezclados.join("», «")}» ya son la tela de otro color`}: lo que se gasta se anota por material, no por color, así que esta orden no aportará a lo que el modelo aprende de cuánta tela lleva.
+                </p>
+              )}
+              {hayMateriales && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <Boton type="button" peso="fantasma" onClick={agregarAvio}>
-                    + Agregar avío
+                    + Agregar material
                   </Boton>
-                  {avios.length === 0 && <span className="text-[12.5px] text-tinta/70">Botones, cierres, etiquetas o hilo, si quieres que la orden los cuente.</span>}
+                  {avios.length === 0 && <span className="text-[12.5px] text-tinta/70">Forro, otra tela, botones, cierres, etiquetas o hilo, si quieres que la orden los cuente.</span>}
                 </div>
               )}
               {ofertaAvios.tipo === "primera" && (

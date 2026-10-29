@@ -17,11 +17,12 @@ import type { InsumoPagina } from "./orden-pagina-reglas";
 /** Una fila de la lista, ya sin formato: la llave es la misma que usa el índice único de la base (tela + color, con «sin color» = vacío). */
 const llave = (insumoId: string, colorCodigo: string | null) => `${insumoId}\u0000${colorCodigo ?? ""}`;
 
-type FilaDeConsumo = { insumoId: string; consumo: number | null; forma: string | null };
+type FilaDeConsumo = { insumoId: string; consumo: number | null; forma: string | null; complemento: boolean };
 
 /**
  * Las filas con tela elegida y su consumo en milésimas (null = el consumo no se lee todavía: se trata como una fila distinta de cualquiera guardada). Una fila por talla compara su
- * FORMA («M=1500;S=1000») y no su promedio: la base corrige una fila cuando cambia su cifra por talla aunque el promedio quede igual.
+ * FORMA («M=1500;S=1000») y no su promedio: la base corrige una fila cuando cambia su cifra por talla aunque el promedio quede igual. También su rol (ADR-0563): pasar el forro de tela a complemento
+ * es una corrección aunque el consumo no cambie.
  */
 function filasConTela(telas: readonly TelaBorrador[]): Map<string, FilaDeConsumo> {
   const filas = new Map<string, FilaDeConsumo>();
@@ -32,41 +33,47 @@ function filasConTela(telas: readonly TelaBorrador[]): Map<string, FilaDeConsumo
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([talla, v]) => `${talla}=${leerConsumo(v) === null ? "?" : aMilesimas(leerConsumo(v) as number)}`)
         .join(";");
-      filas.set(llave(t.insumoId, t.colorCodigo), { insumoId: t.insumoId, consumo: null, forma });
+      filas.set(llave(t.insumoId, t.colorCodigo), { insumoId: t.insumoId, consumo: null, forma, complemento: t.complemento === true });
       continue;
     }
     const consumo = leerConsumo(t.consumoPorPrenda);
-    filas.set(llave(t.insumoId, t.colorCodigo), { insumoId: t.insumoId, consumo: consumo === null ? null : aMilesimas(consumo), forma: null });
+    filas.set(llave(t.insumoId, t.colorCodigo), { insumoId: t.insumoId, consumo: consumo === null ? null : aMilesimas(consumo), forma: null, complemento: t.complemento === true });
   }
   return filas;
 }
 
-/** La lista de la orden tal como está guardada: primero la tela, luego los avíos (la hoja los acomoda sola por color). El consumo con tres decimales, como lo muestra «Nueva orden». */
+/**
+ * La lista de la orden tal como está guardada: primero la tela de cada color, luego los complementos (forro, otra tela: ADR-0563) y al final los avíos (la hoja los acomoda sola por color).
+ * La tela principal va SIEMPRE antes que los complementos: la base declara el consumo del modelo con la primera tela de la lista. El consumo con tres decimales, como lo muestra «Nueva orden».
+ */
 export function telasIniciales(insumos: readonly InsumoPagina[]): TelaBorrador[] {
   const fila = (i: InsumoPagina): TelaBorrador => ({
     insumoId: i.insumoId,
     colorCodigo: i.colorCodigo,
     consumoPorPrenda: i.consumoPorPrenda.toFixed(3),
     ...(i.consumoPorTalla && Object.keys(i.consumoPorTalla).length > 0 ? { porTalla: Object.fromEntries(Object.entries(i.consumoPorTalla).map(([talla, v]) => [talla, v.toFixed(3)])) } : {}),
+    // Solo una tela lleva la marca: el rol de un avío no se lee (es complemento por su tipo).
+    ...(i.tipo === "tela" && i.esComplemento ? { complemento: true } : {}),
   });
-  return [...insumos.filter((i) => i.tipo === "tela").map(fila), ...insumos.filter((i) => i.tipo === "avio").map(fila)];
+  const telas = insumos.filter((i) => i.tipo === "tela");
+  return [...telas.filter((i) => !i.esComplemento).map(fila), ...telas.filter((i) => i.esComplemento).map(fila), ...insumos.filter((i) => i.tipo === "avio").map(fila)];
 }
 
-/** ¿Lo que hay en la hoja es distinto de lo guardado? Cuenta una tela agregada, una quitada o un consumo cambiado; una fila sin tela elegida no cuenta. */
+/** ¿Lo que hay en la hoja es distinto de lo guardado? Cuenta una tela agregada, una quitada, un consumo cambiado o un rol cambiado (tela ↔ complemento); una fila sin tela elegida no cuenta. */
 export function hayCambios(inicial: readonly TelaBorrador[], actual: readonly TelaBorrador[]): boolean {
   const a = filasConTela(inicial);
   const b = filasConTela(actual);
   if (a.size !== b.size) return true;
   for (const [k, fila] of b) {
     const antes = a.get(k);
-    if (!antes || antes.consumo !== fila.consumo || antes.forma !== fila.forma) return true;
+    if (!antes || antes.consumo !== fila.consumo || antes.forma !== fila.forma || antes.complemento !== fila.complemento) return true;
   }
   return false;
 }
 
 export type CambiosDeTela = { agregadas: number; corregidas: number; quitadas: number };
 
-/** Lo mismo que cuenta la base: filas nuevas, filas con otro consumo y filas que ya no están. Una fila con el consumo sin leer cuenta como corregida. */
+/** Lo mismo que cuenta la base: filas nuevas, filas con otro consumo u otro rol y filas que ya no están. Una fila con el consumo sin leer cuenta como corregida. */
 export function contarCambios(inicial: readonly TelaBorrador[], actual: readonly TelaBorrador[]): CambiosDeTela {
   const a = filasConTela(inicial);
   const b = filasConTela(actual);
@@ -76,7 +83,7 @@ export function contarCambios(inicial: readonly TelaBorrador[], actual: readonly
   for (const [k, fila] of b) {
     const antes = a.get(k);
     if (!antes) agregadas += 1;
-    else if (antes.consumo !== fila.consumo || antes.forma !== fila.forma) corregidas += 1;
+    else if (antes.consumo !== fila.consumo || antes.forma !== fila.forma || antes.complemento !== fila.complemento) corregidas += 1;
   }
   for (const k of a.keys()) if (!b.has(k)) quitadas += 1;
   return { agregadas, corregidas, quitadas };

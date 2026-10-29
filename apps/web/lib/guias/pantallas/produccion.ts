@@ -311,7 +311,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela",
       opcional: true,
       titulo: "La tela de la orden",
-      texto: "Por cada color eliges la tela y cuántos metros lleva cada prenda (el modelo ya lo sugiere). «Separar por talla» deja escribir cada talla; con una sola cifra el pedido sale «Aproximado». La orden te dice cuántos pedir y si alcanza. «Ficha del modelo» guarda tela y avíos para las próximas; «+ Agregar avío» suma otro.",
+      texto: "Por cada color eliges la tela y cuántos metros lleva cada prenda (el modelo ya lo sugiere). «Separar por talla» deja escribir cada talla; con una sola cifra el pedido sale «Aproximado». Te dice cuántos pedir y si alcanza. «Ficha del modelo» guarda tela y avíos; «+ Agregar material» suma un forro, otra tela o un avío.",
     },
     {
       id: "consumo-modelo",
@@ -516,14 +516,14 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.tela",
       preparar: [{ tipo: "escape" }],
       titulo: "La tela y los avíos",
-      texto: "Por cada tela y avío: cuánto pide el plan, cuánto se usó y cuánto hay en el estante. «Alcanza» o «Faltan N» te dice si se puede terminar la orden con lo que hay. Los avíos llevan su etiqueta «Avío».",
+      texto: "Por cada tela y avío: cuánto pide el plan, cuánto se usó y cuánto hay en el estante. «Alcanza» o «Faltan N» te dice si se puede terminar la orden con lo que hay. Los avíos llevan su etiqueta «Avío»; el forro y otras telas, «Complemento».",
     },
     {
       id: "editar-tela",
       ancla: "prod-orden.editar-tela",
       opcional: true,
       titulo: "Declarar o cambiar la tela",
-      texto: "Si la orden se abrió sin tela, o el consumo salió mal calculado, aquí lo arreglas: agregas, corriges o quitas la tela y los avíos. Lo que ya se usó se queda: no se quita, solo se corrige cuánto lleva cada prenda.",
+      texto: "Si la orden se abrió sin tela, o el consumo salió mal calculado, aquí lo arreglas: agregas, corriges o quitas la tela, el forro y los avíos. Lo que ya se usó se queda: no se quita, solo se corrige cuánto lleva cada prenda.",
     },
     {
       id: "ficha-modelo",
@@ -537,8 +537,8 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden-editar-tela.lista",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.editar-tela" }],
-      titulo: "Tela por color y avíos",
-      texto: "Por cada color eliges la tela y cuánto lleva cada prenda, por talla si quieres («Separar por talla»); la hoja calcula cuántos metros pedir y si alcanzan. Abajo, «+ Agregar avío» para botones, cierres, etiquetas o hilo. En la demo no guardamos nada.",
+      titulo: "Tela por color, forro y avíos",
+      texto: "Por cada color eliges la tela y cuánto lleva cada prenda, por talla si quieres («Separar por talla»); la hoja calcula cuántos metros pedir y si alcanzan. Abajo, «+ Agregar material» para el forro, otra tela, botones, cierres, etiquetas o hilo. En la demo no guardamos nada.",
     },
     {
       id: "editar-tela-cierre",

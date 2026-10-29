@@ -121,6 +121,8 @@ export type InsumoPagina = {
   consumoPorPrenda: number;
   /** Una cifra por talla (talla → metros o unidades), si la orden la declaró así; ausente o nulo = una sola cifra para todas las tallas (ADR-0513). */
   consumoPorTalla?: Record<string, number> | null;
+  /** Un complemento de la prenda (forro, otra tela) y no la tela principal de su color (ADR-0563): no cuenta como «la tela del modelo» y se muestra aparte. Un avío siempre es falso: lo es por su tipo. */
+  esComplemento: boolean;
   cantidadPlan: number;
   usado: number;
   saldo: number;
@@ -371,7 +373,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       const insumoId = texto(i.insumo_id);
       if (!idInsumo || !insumoId) return [];
       const pendiente = pendientes.get(insumoId);
-      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, consumoPorTalla: porTallaLeida(i.consumo_por_talla), cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
+      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, consumoPorTalla: porTallaLeida(i.consumo_por_talla), esComplemento: i.tipo !== "avio" && i.es_complemento === true, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
     }),
     costos: costos
       ? {
@@ -738,6 +740,8 @@ export type FilaDeTela = {
   id: string;
   /** Una tela o un avío (botones, cierres, hilo): la sección los muestra juntos, la tela primero, y dice cuál es cuál. */
   tipo: "tela" | "avio";
+  /** Una tela que es complemento de la prenda (forro, otra tela) en todos sus colores (ADR-0563): va después de la tela principal y lo dice. Un avío nunca. */
+  complemento: boolean;
   nombre: string;
   detalle: string;
   plan: string;
@@ -797,6 +801,7 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
     return {
       id: base.insumoId,
       tipo: base.tipo,
+      complemento: filas.every((f) => f.esComplemento),
       nombre: unColor && !base.nombre.toLocaleLowerCase("es").includes(color(base) as string) ? `${base.nombre} · ${color(base)}` : base.nombre,
       detalle,
       plan: cantidadConUnidad(plan, base.unidad),
@@ -812,8 +817,11 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
       yaCortada,
       pedidos: base.pedidos.map(textoDePedido),
     };
-  }).sort((a, b) => Number(a.tipo === "avio") - Number(b.tipo === "avio"));
+  }).sort((a, b) => lugarEnLaTabla(a) - lugarEnLaTabla(b));
 }
+
+/** La tela principal primero, luego los complementos (forro, otra tela) y los avíos al final (el orden de la base queda dentro de cada grupo: el `sort` conserva el orden). */
+const lugarEnLaTabla = (f: Pick<FilaDeTela, "tipo" | "complemento">): number => (f.tipo === "avio" ? 2 : f.complemento ? 1 : 0);
 
 // ---------- El costo ----------
 

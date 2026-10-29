@@ -1262,3 +1262,32 @@ describe("la tela de la orden con consumo por talla", () => {
     expect(filasDeTela(orden({ insumos: [lino({})] }).insumos)[0].detalle).toBe("1.33 m por prenda");
   });
 });
+
+// ---------- Los complementos de la prenda en la página de la orden (ADR-0563) ----------
+
+describe("los complementos (forro, otras telas) en la página de la orden", () => {
+  const material = (extra: Record<string, unknown>) => ({ id: "pi-1", insumo_id: "i-1", nombre: "Lino", tipo: "tela", unidad: "metro", color_codigo: "NEG", consumo_por_prenda: 1.2, cantidad_plan: 42, usado: 0, saldo: 100, ...extra });
+  it("lee `es_complemento` de una tela; sin la llave, o con otra cosa que `true`, es la tela de siempre; un avío nunca es complemento", () => {
+    expect(orden({ insumos: [material({ es_complemento: true })] }).insumos[0].esComplemento).toBe(true);
+    expect(orden({ insumos: [material({})] }).insumos[0].esComplemento).toBe(false);
+    expect(orden({ insumos: [material({ es_complemento: "true" })] }).insumos[0].esComplemento).toBe(false);
+    expect(orden({ insumos: [material({ tipo: "avio", es_complemento: true })] }).insumos[0].esComplemento).toBe(false);
+  });
+  it("la tabla de la orden pone la tela principal primero, luego el forro y los avíos al final, y dice cuál es complemento", () => {
+    const insumos = [
+      material({ id: "pi-b", insumo_id: "i-boton", nombre: "Botón", tipo: "avio", unidad: "unidad", color_codigo: null, consumo_por_prenda: 4, cantidad_plan: 96 }),
+      material({ id: "pi-f", insumo_id: "i-forro", nombre: "Forro popelina", color_codigo: null, consumo_por_prenda: 0.9, cantidad_plan: 43.2, es_complemento: true }),
+      material({ id: "pi-l", insumo_id: "i-lino", nombre: "Lino" }),
+    ];
+    const filas = filasDeTela(orden({ insumos }).insumos);
+    expect(filas.map((f) => [f.nombre, f.tipo, f.complemento])).toEqual([
+      ["Lino", "tela", false],
+      ["Forro popelina", "tela", true],
+      ["Botón", "avio", false],
+    ]);
+  });
+  it("una misma tela que es complemento en un color y principal en otro NO se marca como complemento en la tabla (solo si lo es en todos sus colores)", () => {
+    const mezcla = [material({ id: "pi-a", color_codigo: "NEG", es_complemento: true }), material({ id: "pi-b", color_codigo: "CRU" })];
+    expect(filasDeTela(orden({ insumos: mezcla }).insumos)[0].complemento).toBe(false);
+  });
+});
