@@ -123,6 +123,21 @@ describe("avisosInicio", () => {
     expect(avisosInicio({})).toEqual([]);
   });
 
+  // ADR-0567: la planilla que Dynamic pagó sin su salida del banco registrada. No se oculta.
+  it("la planilla sin su salida del banco avisa al líder, dice cuánto y no se puede ocultar", () => {
+    const [a] = avisosInicio({ planillaSalidas: { salidas: 2, total: 18258.12, cambios: 0 } });
+    expect(a).toMatchObject({ clave: "planillaSalidas", grupo: "Finanzas", cantidad: 2, nivel: "toca", href: "/finanzas/dinero", ocultable: false });
+    expect(a!.titulo).toBe("Planilla pagada sin su salida del banco");
+    expect(a!.ahora).toContain("Registra de qué banco salió la planilla");
+    expect(a!.detalle).toContain("2 salidas por registrar");
+    expect(avisosVisibles([a!], { planillaSalidas: false }, true).activos.map((x) => x.clave)).toEqual(["planillaSalidas"]);
+    // Solo un cambio de Dynamic después de registrar: otro título y otra tarea.
+    const [c] = avisosInicio({ planillaSalidas: { salidas: 0, total: 0, cambios: 1 } });
+    expect(c!.titulo).toBe("Dynamic cambió una planilla ya registrada");
+    expect(c!.ahora).toBe("Revisa la planilla que Dynamic cambió");
+    expect(avisosInicio({ planillaSalidas: null })[0]!.nivel).toBe("sinleer");
+  });
+
   // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta.
   it("las prendas de factura que no llegaron llevan a la ficha del proveedor (o al directorio) y no se ocultan", () => {
     const [a] = avisosInicio({ prendasSinLlegar: { prendas: 3, facturas: 1, igv: 10.8, proveedores: 1, proveedorId: "p1" } });

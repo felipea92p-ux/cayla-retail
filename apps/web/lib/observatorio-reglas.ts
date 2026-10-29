@@ -12,6 +12,7 @@
 import { siglaSede } from "./inicio-almacen-reglas";
 import { esSiglaConMapa, type SiglaConMapa } from "./observatorio-mapa";
 import { fraseRepeticion, hrefPerdidas, type Repeticion } from "./perdidas-reglas";
+import { avisosDePlanilla, planillaParaElInicio, TEXTO_BANCO, type CuentaPlanilla, type TramoPlanilla } from "./planilla-salidas-reglas";
 
 export type Periodo = "hoy" | "7d" | "30d";
 export type Ventana = "hoy" | "d7" | "d30";
@@ -381,6 +382,37 @@ const ORDEN_REPETICION: Record<Repeticion["tipo"], number> = { resta_grande: 0, 
  *  la tienda, y el enlace a la pestaña «Pérdidas» (de la sede elegida arriba, como todo aviso de aquí: la sede la decide solo
  *  el selector de la cabecera). ASUME: `lecturas` null = alguna tienda no se pudo leer, y entonces el aviso entero dice «no se
  *  pudo leer»: una cuenta parcial diría «al día» de una tienda que nadie miró. */
+/** «Planilla pagada sin su salida del banco» en el Observatorio (ADR-0567): el Admin que paga la planilla en Dynamic entra aquí y no al
+ *  Inicio del líder. La MISMA regla del Inicio (`planillaParaElInicio`). `undefined` = no hay nada que registrar (el aviso no se dibuja);
+ *  `null` = no se pudo leer. El aro mide los días desde que Dynamic pagó lo más viejo que falta. */
+export function avisoPlanillaObs(planilla: { tramos: readonly TramoPlanilla[]; cuentas: readonly CuentaPlanilla[] } | null, ahora: Date): AvisoObs | undefined {
+  const resumen = planilla === null ? null : planillaParaElInicio(planilla.tramos);
+  if (planilla !== null && resumen === null) return undefined;
+  const n = resumen === null ? null : resumen.salidas + resumen.cambios;
+  const lineas = planilla === null ? [] : avisosDePlanilla(planilla.tramos, planilla.cuentas).flatMap((a) => a.tramos.filter((t) => t.estado !== "registrado"));
+  return {
+    clave: "planilla",
+    nivel: nivelPorCuenta(n, "hoy"),
+    n,
+    icono: "dolar",
+    titulo: resumen && resumen.salidas === 0 ? "Dynamic cambió una planilla ya registrada" : "Planilla pagada sin su salida del banco",
+    corto: "salidas de la planilla",
+    porTienda: null,
+    edad: lineas.length ? Math.max(...lineas.map((t) => diasDesde(`${t.pagadoEl}T12:00:00-05:00`, ahora))) : null,
+    href: "/finanzas/dinero?sede=empresa",
+    detalle: lineas.length
+      ? {
+          tipo: "lista",
+          filas: lineas.slice(0, 6).map((t) => ({
+            titulo: `${TEXTO_BANCO[t.banco]} · ${t.personas === 1 ? "1 persona" : `${t.personas} personas`}`,
+            detalle: t.texto.slice(t.texto.indexOf("— ") + 2),
+            chip: t.estado === "por_registrar" ? "Falta" : "Cambió",
+          })),
+        }
+      : null,
+  };
+}
+
 export function avisoPerdidasObs(
   lecturas: readonly { tienda: Pick<TiendaObs, "id" | "sigla">; repeticiones: readonly Repeticion[] }[] | null,
   hoy: string

@@ -26,7 +26,8 @@ import {
 } from "@/lib/cuentas-dinero-reglas";
 import { deudaConDueno } from "@/lib/cuentas-dinero-reglas";
 import { leerVer, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
-import { leerCuentaPlanilla, leerTramo, type CuentaPlanilla, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
+import { leerCuentaPlanilla, leerTramo, planillaParaElInicio, type CuentaPlanilla, type PlanillaParaElInicio, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
+import { esFuncionAusente } from "@/lib/compras-reglas";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_cuentas_dinero_ubicaciones`: el líder, todas; con el módulo, su sede). Los saldos los SUMA la base. Si una lectura
@@ -98,13 +99,38 @@ export async function getAlertasPos(): Promise<AlertaPos[]> {
   return ((data ?? []) as Fila[]).map(leerAlertaPos);
 }
 
-/** La planilla que Dynamic marcó pagada y todavía no dice de qué banco salió (ADR-0567). Solo el líder que ve la planilla en Dynamic; si la
- *  base no tiene la función o Dynamic no responde, no hay aviso y la pantalla sigue igual. */
-export async function getPlanillaPorRegistrar(): Promise<TramoPlanilla[]> {
+/** La planilla que Dynamic marcó pagada y todavía no dice de qué banco salió (ADR-0567): `undefined` si la base todavía no tiene la función
+ *  (falta pegar 20261029052000); si no responde, lanza. Solo el líder que ve la planilla en Dynamic recibe filas. */
+async function leerTramosPlanilla(): Promise<TramoPlanilla[] | undefined> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_planilla_salidas_por_registrar" as never);
-  if (error) return [];
+  if (error) {
+    if (esFuncionAusente(error)) return undefined;
+    throw new Error(`No se pudo leer la planilla por registrar: ${error.message}`);
+  }
   return ((data ?? []) as Fila[]).map(leerTramo);
+}
+
+/** Para Cuentas y dinero: si no se puede leer, no hay aviso y la pantalla sigue igual. */
+export async function getPlanillaPorRegistrar(): Promise<TramoPlanilla[]> {
+  try {
+    return (await leerTramosPlanilla()) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** El aviso del Inicio del líder: `undefined` si no hay nada que registrar o la base no tiene la función (el aviso no existe); si la base
+ *  no responde, lanza y `tolerarLectura` lo vuelve «no se pudo leer». */
+export async function getPlanillaParaElInicio(): Promise<PlanillaParaElInicio | undefined> {
+  const tramos = await leerTramosPlanilla();
+  return tramos ? (planillaParaElInicio(tramos) ?? undefined) : undefined;
+}
+
+/** El aviso del Observatorio del Admin: los tramos y la cuenta de cada banco; `undefined` si la base no tiene la función; lanza si no responde. */
+export async function getPlanillaParaElObservatorio(): Promise<{ tramos: TramoPlanilla[]; cuentas: CuentaPlanilla[] } | undefined> {
+  const [tramos, cuentas] = await Promise.all([leerTramosPlanilla(), getPlanillaCuentas()]);
+  return tramos ? { tramos, cuentas: cuentas ?? [] } : undefined;
 }
 
 /** De qué cuenta sale la planilla de quienes cobran en BCP y en Interbank (ADR-0567). Nulo = la base todavía no lo sabe (falta pegar

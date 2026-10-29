@@ -17,6 +17,7 @@ import { ahoraSinRespuesta, leAvisaSinRespuesta, pedidosSinRespuesta, textoSinRe
 import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 import { getIgvEnEspera } from "@/lib/igv-en-espera";
+import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -124,11 +125,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar" | "planillaSalidas">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv, planillaLeida] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -176,14 +177,18 @@ export async function getFuentesAvisos(
     // ADR-0362 fase 5b, actividad 4: el IGV de lo que no llegó. Una lectura para los dos avisos; la base manda nula la parte que no le
     // toca a quien mira. Sin la función (la base sin su migración), los avisos no existen.
     ve("proveedores") ? tolerarLectura("el IGV en espera", () => getIgvEnEspera()) : undefined,
+    // ADR-0567: la planilla que Dynamic pagó y no dice de qué banco salió, para el líder que ve Cuentas y dinero. Sin nada que registrar (o sin
+    // la función en la base), el aviso no existe.
+    cuenta.esLider && ve("cuentas_dinero") ? tolerarLectura("la planilla por registrar", () => getPlanillaParaElInicio()) : undefined,
   ]);
+  const planillaSalidas = planillaLeida === null ? null : (planillaLeida ?? undefined);
   const prendasSinLlegar =
     !ve("proveedores") || igv === undefined ? undefined
       : igv === null ? null
         : igv.faltantes
           ? { prendas: igv.faltantes.prendas, facturas: igv.faltantes.facturas, igv: igv.faltantes.igv, proveedores: igv.faltantes.proveedores, proveedorId: igv.faltantes.proveedorId }
           : undefined;
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar, planillaSalidas };
 }
 
 /** Lo que entrega `fn_actividad` por llamada (su tope duro) y cuántas llamadas como máximo se hacen para recorrer el día (2.000 filas). */

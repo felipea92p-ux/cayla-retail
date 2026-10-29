@@ -10,6 +10,7 @@ import {
   leerSalidaSuelta,
   leerTramo,
   notaAntesDelSaldo,
+  planillaParaElInicio,
   queSePago,
   textoRegistrar,
   textoSuelta,
@@ -198,5 +199,20 @@ describe("la hoja «Registrar la salida»", () => {
     expect(notaAntesDelSaldo("2026-10-27", { nombre: "BCP Empresa", saldoDesde: "2026-10-28" })).toContain("desde el 28/10");
     expect(notaAntesDelSaldo("2026-10-28", { nombre: "BCP Empresa", saldoDesde: "2026-10-28" })).toBeNull();
     expect(notaAntesDelSaldo("2026-10-27", { nombre: "BCP Empresa", saldoDesde: null })).toBeNull();
+  });
+});
+
+describe("el aviso del Inicio", () => {
+  it("cuenta las salidas que faltan y lo que suman, y los cambios de Dynamic; sin nada, nulo", () => {
+    expect(
+      planillaParaElInicio([
+        tramo({}),
+        tramo({ banco: "interbank", neto: 5512.96 }),
+        tramo({ banco: "sin_banco", movimientoId: "m", netoAlRegistrar: 300, neto: 300 }),
+      ]),
+    ).toEqual({ salidas: 2, total: 18258.12, cambios: 0 });
+    expect(planillaParaElInicio([tramo({ movimientoId: "m", netoAlRegistrar: 100, neto: 110 })])).toEqual({ salidas: 0, total: 0, cambios: 1 });
+    expect(planillaParaElInicio([tramo({ movimientoId: "m", netoAlRegistrar: 12745.16 })])).toBeNull();
+    expect(planillaParaElInicio([])).toBeNull();
   });
 });

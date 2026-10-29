@@ -173,6 +173,19 @@ export function avisosDePlanilla(tramos: readonly TramoPlanilla[], cuentas: read
   });
 }
 
+// ---- El aviso del Inicio del líder (actividad 4) ------------------------------------------------------------------------
+
+/** Lo que el Inicio dice: cuántas salidas faltan registrar, cuánto suman, y cuántas cambió Dynamic después de registrarlas. */
+export type PlanillaParaElInicio = { salidas: number; total: number; cambios: number };
+/** Nulo si no hay nada que hacer: el aviso solo existe cuando hay algo (quien no ve la planilla en Dynamic tampoco recibe nunca nada, y un
+ *  «al día» le mentiría). */
+export function planillaParaElInicio(tramos: readonly TramoPlanilla[]): PlanillaParaElInicio | null {
+  const faltan = tramos.filter((t) => estadoTramo(t) === "por_registrar");
+  const cambios = tramos.filter((t) => estadoTramo(t) === "cambio_en_dynamic").length;
+  if (faltan.length === 0 && cambios === 0) return null;
+  return { salidas: faltan.length, total: Math.round(faltan.reduce((a, t) => a + t.neto, 0) * 100) / 100, cambios };
+}
+
 // ---- La hoja «Registrar la salida» (actividad 3) ------------------------------------------------------------------------
 
 /** Un «Pago de la planilla» registrado a mano que no está enlazado a ningún tramo: se puede enlazar en vez de crear otro. */
