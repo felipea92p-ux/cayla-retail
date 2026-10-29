@@ -10,7 +10,8 @@ import { telasDeLaOrden, type TelaDeLaOrden } from "./orden-tela-usada-reglas";
 // CONTRATO
 //   PROMETE: que una tela cuenta como «sin anotar» solo si el plan le pide algo (plan > 0) y la orden no tiene NADA descontado (usado = 0); que un avío nunca cuenta (los botones y los cierres se
 //            pueden usar después del corte); que una tela en varios colores es UNA sola; que una muestra (no entra al stock ni deja costo) no avisa nada; y que una orden que NO declaró ninguna tela
-//            (un avío solo no es tela) avisa aparte, con `avisoSinTelaDeclarada` (ADR-0510): antes era «legítimo» porque no había cómo declararla después; ahora sí lo hay.
+//            (un avío solo no es tela, ni un forro solo: un complemento no es la tela de la prenda, ADR-0563) avisa aparte, con `avisoSinTelaDeclarada` (ADR-0510): antes era «legítimo» porque no
+//            había cómo declararla después; ahora sí lo hay. Un forro sin anotar SÍ cuenta en `telasSinAnotar`: su costo también falta en el costo por prenda.
 //   ASUME:   `telasDeLaOrden` junta los colores de un mismo insumo y toma como «usado» lo que dice el libro, que no sabe de colores.
 //   NO HACE: no bloquea (es un aviso, nunca un candado: «Pasar al stock» sigue disponible), no calcula el costo ni toca la base, y no decide si la tela «debería» estar anotada por completo.
 
@@ -49,7 +50,7 @@ export type AvisoSinTelaDeclarada = {
  */
 export function avisoSinTelaDeclarada(insumos: readonly InsumoPagina[], esMuestra: boolean): AvisoSinTelaDeclarada | null {
   if (esMuestra) return null;
-  if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela")) return null;
+  if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela" && !t.complemento)) return null;
   return { texto: "Esta orden no declaró qué tela lleva: el costo por prenda saldría sin tela." };
 }
 
@@ -59,6 +60,6 @@ export function avisoSinTelaDeclarada(insumos: readonly InsumoPagina[], esMuestr
  */
 export function avisoCorteSinTela(insumos: readonly InsumoPagina[], completaElCorte: boolean): AvisoSinTelaDeclarada | null {
   if (!completaElCorte) return null;
-  if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela")) return null;
+  if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela" && !t.complemento)) return null;
   return { texto: "Esta orden no declaró qué tela lleva, así que no se descuenta nada del estante. Antes de terminar, cierra esta hoja y usa «Declarar tela y avíos» en la sección Tela y avíos." };
 }

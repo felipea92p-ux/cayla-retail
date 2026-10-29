@@ -79,6 +79,11 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
                       Avío
                     </Chip>
                   )}
+                  {f.tipo === "tela" && f.complemento && (
+                    <Chip versalitas={false} title="Forro u otra tela: se pide y se descuenta aparte y cuesta como cualquier material, pero no es la tela del modelo">
+                      Complemento
+                    </Chip>
+                  )}
                 </span>
                 {f.detalle && <span className="op-sub">{f.detalle}</span>}
                 <span className="mt-1.5 flex flex-wrap items-center gap-2">

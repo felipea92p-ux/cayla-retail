@@ -5,6 +5,7 @@ import { Check, House, ListChecks, Truck } from "lucide-react";
 import { AnotarAvanceModal } from "@/components/orden-pagina/AnotarAvanceModal";
 import { AnotarSalidaModal } from "@/components/orden-pagina/AnotarSalidaModal";
 import { AnotarVueltaModal } from "@/components/orden-pagina/AnotarVueltaModal";
+import { AgregarPasoModal } from "@/components/orden-pagina/AgregarPasoModal";
 import { CambiarQuienModal } from "@/components/orden-pagina/CambiarQuienModal";
 import { QuitarPasoModal } from "@/components/orden-pagina/QuitarPasoModal";
 import { MarcarFaseModal } from "@/components/orden-pagina/MarcarFaseModal";
@@ -21,6 +22,7 @@ import {
   cuandoTerminoLaFase,
   faltaTerminar,
   previaQueCuenta,
+  pasosAgregables,
   puedeCambiarQuien,
   puedeRegistrarQuien,
   puedeQuitarPaso,
@@ -32,13 +34,15 @@ import {
 // La ruta de fases de la orden (ADR-0400, decisiones 1–3 y 7; vista D de la lámina): las fases en fila, cosidas por un hilo — hecha ✓ · actual encendida · pendiente —, cada una con
 // quién la hace (el Taller o un servicio de afuera), cuántas van, lo que prometió y su acción: «Terminé N» en el Taller; «Salida» y «Vuelta» en un servicio. «Cambiar quién» aparece
 // solo mientras la fase no empezó; «Quitar este paso», además, solo en un paso opcional (ADR-0551, actividad 1b). Nada se calcula aquí: el estado de cada fase viene derivado de la base (`fn_fases_de_orden`) y los textos de `lib/orden-pagina-reglas.ts`.
-// «Salida» y «Vuelta» abren sus hojas (actividad 4): lo que sale a un servicio y lo que regresa, por talla y color. En la fase actual, la que toca primero lleva el botón principal: «Vuelta»
+// «Agregar un paso» (ADR-0566), en la cabecera de la sección: suma a la orden un paso opcional que se abrió sin él (hoy, Ojales y botones) mientras ningún paso de después haya empezado; si hay uno que no
+// se puede, lo dice debajo en vez de esconderlo. «Salida» y «Vuelta» abren sus hojas (actividad 4): lo que sale a un servicio y lo que regresa, por talla y color. En la fase actual, la que toca primero lleva el botón principal: «Vuelta»
 // si hay prendas afuera, «Salida» si no.
 
 type Hoja = { tipo: "terminar" | "quien" | "salida" | "vuelta" | "marcar" | "desmarcar" | "quitar"; faseId: string };
 
 export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opciones: Tolerado<OpcionesNuevaOrden> | null; hoy: string }) {
   const [hoja, setHoja] = useState<Hoja | null>(null);
+  const [agregando, setAgregando] = useState(false);
   const { fases, orden, lineaDeTiempo } = datos;
   const hechas = fases.filter((f) => f.estado === "hecha").length;
   // La guía interactiva (ADR-0389) ancla «Terminé» en la fase actual y «Cambiar quién» en la primera que lo permite: una sola pieza por ancla.
@@ -50,6 +54,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
   const idDeLaQueRecibe = fases.find((f) => accionesDeFase(f, datos).includes("vuelta"))?.id ?? null;
   // «Ploteo hecho» y su «Deshacer» (una fase que se marca en vez de contar prendas): una sola pieza por ancla.
   const idDeLaQueMarca = fases.find((f) => accionesDeFase(f, datos).includes("marcar"))?.id ?? null;
+  const { ofrecidos: pasosPorAgregar, bloqueados: pasosBloqueados } = pasosAgregables(datos);
   const faseDeLaHoja = hoja ? (fases.find((f) => f.id === hoja.faseId) ?? null) : null;
   const dato = fases.every((f) => f.estado === "hecha")
     ? "las fases terminaron"
@@ -71,7 +76,19 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
 
   return (
     <section aria-label="Fases de la orden" className="space-y-3">
-      <TituloSeccion dato={dato}>Fases</TituloSeccion>
+      <TituloSeccion
+        dato={dato}
+        accion={
+          pasosPorAgregar.length > 0 ? (
+            <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.agregar-paso" onClick={() => setAgregando(true)}>
+              + Agregar un paso
+            </Boton>
+          ) : undefined
+        }
+      >
+        Fases
+      </TituloSeccion>
+      {pasosPorAgregar.length === 0 && pasosBloqueados.length > 0 && <p className="op-sub">{pasosBloqueados.map((p) => `${p.nombre} ya no se puede agregar: ${p.porQue}.`).join(" ")}</p>}
       <ol className="op-ruta m-0 list-none p-0" data-n={fases.length} data-guia="prod-orden.fases">
         {fases.map((fase, i) => {
           // De quién espera: la fase de antes QUE CUENTA prendas (una que se marca, como Ploteo, no le da nada a la siguiente).
@@ -166,6 +183,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
       {hoja?.tipo === "salida" && faseDeLaHoja && <AnotarSalidaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "quitar" && faseDeLaHoja && <QuitarPasoModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
+      {agregando && pasosPorAgregar.length > 0 && <AgregarPasoModal datos={datos} pasos={pasosPorAgregar} opciones={opciones} hoy={hoy} onClose={() => setAgregando(false)} />}
       {hoja?.tipo === "quien" && faseDeLaHoja && <CambiarQuienModal datos={datos} fase={faseDeLaHoja} opciones={opciones} hoy={hoy} onClose={() => setHoja(null)} />}
     </section>
   );

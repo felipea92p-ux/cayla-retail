@@ -3,7 +3,7 @@ import { avisoCorteSinTela, avisoSinTelaDeclarada, avisoTelaSinAnotar, telasSinA
 import type { InsumoPagina } from "./orden-pagina-reglas";
 
 const insumo = (parche: Partial<InsumoPagina> = {}): InsumoPagina => ({
-  id: "pi-1", insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", colorCodigo: "NEG", colorNombre: "Negro", consumoPorPrenda: 1.5, cantidadPlan: 36, usado: 0, saldo: 40, comprometidoOtras: 0, enCamino: 0, atrasado: 0, pedidos: [], ...parche,
+  id: "pi-1", insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", colorCodigo: "NEG", colorNombre: "Negro", consumoPorPrenda: 1.5, esComplemento: false, cantidadPlan: 36, usado: 0, saldo: 40, comprometidoOtras: 0, enCamino: 0, atrasado: 0, pedidos: [], ...parche,
 });
 const avio = (parche: Partial<InsumoPagina> = {}) => insumo({ id: "pi-9", insumoId: "i-9", nombre: "Botón", tipo: "avio", unidad: "unidad", colorCodigo: null, colorNombre: null, cantidadPlan: 96, usado: 0, ...parche });
 
@@ -97,5 +97,21 @@ describe("avisoCorteSinTela — al terminar Corte sin tela declarada", () => {
   });
   it("vale también para una muestra: de ella sale el consumo del modelo", () => {
     expect(avisoCorteSinTela([], true)).not.toBeNull();
+  });
+});
+
+describe("el forro y los avisos de tela (ADR-0563)", () => {
+  const forro = (parche: Partial<InsumoPagina> = {}) => insumo({ id: "pi-f", insumoId: "i-forro", nombre: "Forro popelina", colorCodigo: null, esComplemento: true, usado: 0, ...parche });
+  it("una orden con SOLO un forro no declaró «qué tela lleva»: el forro no es la tela de la prenda (avisa en el lote y en Corte)", () => {
+    expect(avisoSinTelaDeclarada([forro()], false)).not.toBeNull();
+    expect(avisoCorteSinTela([forro()], true)).not.toBeNull();
+  });
+  it("con la tela principal y un forro ya no avisa de «sin tela declarada»", () => {
+    expect(avisoSinTelaDeclarada([insumo(), forro()], false)).toBeNull();
+    expect(avisoCorteSinTela([insumo(), forro()], true)).toBeNull();
+  });
+  it("un forro sin anotar SÍ cuenta como tela sin anotar: su costo también falta en el costo por prenda", () => {
+    expect(telasSinAnotar([insumo({ usado: 10 }), forro()]).map((t) => t.insumoId)).toEqual(["i-forro"]);
+    expect(avisoTelaSinAnotar([insumo({ usado: 10 }), forro()], false)?.texto).toContain("Forro popelina");
   });
 });

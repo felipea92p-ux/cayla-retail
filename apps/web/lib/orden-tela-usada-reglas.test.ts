@@ -12,9 +12,9 @@ import {
 import type { InsumoPagina } from "./orden-pagina-reglas";
 
 const insumo = (parche: Partial<InsumoPagina> = {}): InsumoPagina => ({
-  id: "pi-1", insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", colorCodigo: "NEG", colorNombre: "Negro", consumoPorPrenda: 1.5, cantidadPlan: 36, usado: 10, saldo: 40, comprometidoOtras: 0, enCamino: 0, atrasado: 0, pedidos: [], ...parche,
+  id: "pi-1", insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", colorCodigo: "NEG", colorNombre: "Negro", consumoPorPrenda: 1.5, esComplemento: false, cantidadPlan: 36, usado: 10, saldo: 40, comprometidoOtras: 0, enCamino: 0, atrasado: 0, pedidos: [], ...parche,
 });
-const tela = (parche: Partial<TelaDeLaOrden> = {}): TelaDeLaOrden => ({ insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", plan: 72, usado: 10, falta: 62, saldo: 40, ...parche });
+const tela = (parche: Partial<TelaDeLaOrden> = {}): TelaDeLaOrden => ({ insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", complemento: false, unidad: "metro", plan: 72, usado: 10, falta: 62, saldo: 40, ...parche });
 
 describe("telasDeLaOrden — una fila por insumo", () => {
   it("una tela en dos colores es UNA fila: se suman los planes y lo usado no se suma (el libro no sabe de colores)", () => {
@@ -115,5 +115,16 @@ describe("textoAnotasteTela", () => {
   it("dice qué se anotó o se devolvió, con su unidad", () => {
     expect(textoAnotasteTela({ nombre: "Lino lavado", unidad: "metro" }, 12.5, "usar")).toBe("Anotaste 12.5 m de Lino lavado");
     expect(textoAnotasteTela({ nombre: "Lino lavado", unidad: "metro" }, 2, "devolver")).toBe("Devolviste 2 m de Lino lavado");
+  });
+});
+
+describe("telasDeLaOrden — los complementos (ADR-0563)", () => {
+  it("una tela es complemento solo si lo es en TODOS sus colores; un avío nunca", () => {
+    const solo = telasDeLaOrden([insumo({ esComplemento: true })]);
+    expect(solo[0].complemento).toBe(true);
+    const mezcla = telasDeLaOrden([insumo({ id: "pi-a", colorCodigo: "NEG", esComplemento: true }), insumo({ id: "pi-b", colorCodigo: "CRU" })]);
+    expect(mezcla).toHaveLength(1);
+    expect(mezcla[0].complemento).toBe(false);
+    expect(telasDeLaOrden([insumo({ tipo: "avio", insumoId: "i-9", nombre: "Botón" })])[0].complemento).toBe(false);
   });
 });
