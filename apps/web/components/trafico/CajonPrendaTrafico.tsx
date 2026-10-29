@@ -90,8 +90,8 @@ export function CajonPrendaTrafico({
           <span className="text-[15px] text-tinta/70">{miraron === 1 ? "persona la miró" : "personas la miraron"}</span>
         </p>
         <p className="mt-1 text-[13.5px] text-tinta/70">
-          De cada 100 que vieron una prenda, <b className="font-semibold text-tinta">{de100QueVieron(p, vieron)} miraron esta</b>. {antes}:{" "}
-          {personas(p.anterior)}.
+          De cada 100 que vieron una prenda, <b className="font-semibold text-tinta">{de100QueVieron(p, vieron)} miraron esta</b>.
+          {p.anterior !== null && ` ${antes}: ${personas(p.anterior)}.`}
         </p>
       </div>
 

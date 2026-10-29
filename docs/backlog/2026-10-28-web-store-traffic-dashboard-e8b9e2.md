@@ -6,3 +6,11 @@ Hecho: maqueta aprobada en lo grueso (`docs/maquetas/trafico-decisiones-2026-10/
 - Decisión abierta: colores de los caminos (la maqueta reutiliza los de método de pago).
 - Decisión abierta: el mapa de Perú de la maqueta es esquemático; la versión final necesita un contorno real.
 - Revisar a 375 px la maqueta final y correr `/formidable` cuando se construya.
+
+## Estado de la construcción (actividades aprobadas el 2026-10-28)
+- [x] 1 · Períodos y comparación. **Pegar en producción `20261029015000_trafico_web_periodos.sql` (con OK de Felipe) ANTES de publicar la web:** la pantalla
+  nueva llama a `resumen_trafico_web` con 7 parámetros y la base de producción solo tiene la de 4.
+- [ ] 2 · Cifras que eligen el gráfico · [ ] 3 · 100 puntos · [ ] 4 · Mapa de calor · [ ] 5 · De dónde vienen · [ ] 6 · Prendas en tabla
+- [ ] 7 · Tallas por categoría y Quién entra · [ ] 8 · Necesita tu atención · [ ] 9 · Calendario · [ ] 10 · Cierre
+- Decisión tomada al construir: el control de período usa `SegmentoEnlaces` (la pieza de «modo», pensada para 2–3 opciones) porque Felipe pidió que se vea
+  como la maqueta; ADR-0358 dice «período = `pildora-cayla`». Confirmarlo con Felipe en `/unificar` si molesta.

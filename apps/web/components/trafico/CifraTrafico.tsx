@@ -1,17 +1,15 @@
 import type { CSSProperties } from "react";
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
-import { diasEntreFechas } from "@/lib/fechas-lima";
 import { cambio, miles, type ResumenTrafico } from "@/lib/trafico-reglas";
 
 /**
  * La cifra de la cabecera de Tráfico (ADR-0495; maqueta C «La vitrina»): cuánta gente entró a la tienda online en el período, el cambio
  * contra los días de antes (con su flecha y en palabras: nunca solo con color) y cuántas personas la están mirando ahora.
  */
-export function CifraTrafico({ r }: { r: ResumenTrafico }) {
+export function CifraTrafico({ r, antes }: { r: ResumenTrafico; antes: string }) {
   const total = r.pasos[0];
   const c = cambio(total, r.anterior);
-  const dias = diasEntreFechas(r.anteriorDesde, r.anteriorHasta) + 1;
   const tono = c === null || c === 0 ? "neutro" : c > 0 ? "verde" : "ambar";
   const Icono = c === null || c === 0 ? Minus : c > 0 ? TrendingUp : TrendingDown;
   const texto = c === null ? "Pocas personas para comparar" : c === 0 ? "Igual" : `${Math.abs(c)} % ${c > 0 ? "más" : "menos"}`;
@@ -35,7 +33,7 @@ export function CifraTrafico({ r }: { r: ResumenTrafico }) {
           {texto}
         </Chip>
         <span>
-          que {dias === 1 ? "el día anterior" : `los ${dias} días anteriores`} ({miles(r.anterior)})
+          que {antes} ({miles(r.anterior)})
         </span>
       </p>
     </div>

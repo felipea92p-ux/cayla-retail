@@ -8,8 +8,8 @@
       "BotonLimpiar «Limpiar filtros»"
     ],
     "components/trafico/ControlesTrafico.tsx": [
-      "Link «{p.title}»",
-      "SegmentoEnlaces «(sin nombre)»"
+      "SegmentoEnlaces «(sin nombre)»",
+      "SegmentoEnlaces «(sin nombre)» #2"
     ],
     "components/trafico/DeDondeVienen.tsx": [
       "Link «{`${f.nombre}»"

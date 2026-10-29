@@ -1400,7 +1400,7 @@ export const GUIA_TRAFICO: Guia = {
       ancla: "trafico.periodo",
       opcional: true,
       titulo: "Los días que miras",
-      texto: "Elige los últimos 7 días, los últimos 30 o la campaña que rige. Cada cifra se compara con los mismos días de antes.",
+      texto: "Elige Hoy, Ayer, 7 días, Este mes, el mes pasado o la campaña. Hoy se compara con ayer a esta hora y Este mes con los mismos días del mes anterior. Con el teclado: H, A, 7, M, P y C.",
     },
     {
       id: "filtros",

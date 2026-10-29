@@ -16,6 +16,8 @@
  *      primera entrada, en Lima (actividad 6).
  *   9. «Ahora» y «último dato».
  *  10. La migración se puede pegar dos veces.
+ *  11. Los días con los que se compara (20261029015000, «Observatorio» actividad 1): a mano (el día anterior pedido, no el de atrás del
+ *      mismo largo), con corte de hora («ayer a esta hora»), y lo que no vale se rechaza (22023); sin pedirlos, todo sigue igual.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y escribe sus pasos en enero de 2025, lejos de lo que haya en la base local.
  *
@@ -32,6 +34,7 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = readFileSync("supabase/migrations/20261023231000_trafico_web_lectura.sql", "utf8");
+const MIGRACION_PERIODOS = readFileSync("supabase/migrations/20261029015000_trafico_web_periodos.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -223,6 +226,41 @@ esperarValor("la base del veredicto son 6 cifras que nunca crecen", escenario(`$
 // ---- 10. Se puede pegar dos veces ----
 const dosVeces = correr(`begin;\n${MIGRACION}\n${MIGRACION}\nrollback;`);
 esperar("la migración se puede pegar dos veces", dosVeces.ok, dosVeces.mensaje);
+
+// ---- 11. Los días con los que se compara ----
+const comparar = (extra) => `${COMO(FELIPE)}select retail.resumen_trafico_web('2025-01-10', '2025-01-10', null, null${extra})`;
+esperarValor("sin pedirlos, «antes» sigue siendo el día de atrás del mismo largo", escenario(`${comparar("")} ->> 'anterior';`), "1");
+esperarValor("los días de antes se pueden pedir a mano (el 9)", escenario(`${comparar(", '2025-01-09', '2025-01-09'")} ->> 'anterior';`), "1");
+esperarValor("pedidos a mano, se devuelven tal cual", escenario(`${comparar(", '2025-01-02', '2025-01-03'")} ->> 'anterior_desde';`), "2025-01-02");
+esperarValor("pedir otros días sin ninguna visita en ellos da 0", escenario(`${comparar(", '2025-01-02', '2025-01-03'")} ->> 'anterior';`), "0");
+esperarValor(
+  "con corte, solo cuenta a quien entró hasta esa hora de ayer (a las 11 p. m. aún nadie)",
+  escenario(`${comparar(`, '2025-01-09', '2025-01-09', ${lima("2025-01-09 23:00")}`)} ->> 'anterior';`),
+  "0",
+);
+esperarValor(
+  "con corte, quien entró antes de esa hora sí cuenta (a las 11:55 p. m. ya entró la persona 5)",
+  escenario(`${comparar(`, '2025-01-09', '2025-01-09', ${lima("2025-01-09 23:55")}`)} ->> 'anterior';`),
+  "1",
+);
+esperarValor("sin corte, «anterior_corte» sale vacío", escenario(`${comparar("")} ->> 'anterior_corte' is null;`), "t");
+esperarValor(
+  "con corte, «anterior_corte» dice cuál fue",
+  escenario(`${comparar(`, '2025-01-09', '2025-01-09', ${lima("2025-01-09 23:00")}`)} ->> 'anterior_corte' is not null;`),
+  "t",
+);
+for (const [nombre, extra] of [
+  ["solo la mitad de los días de antes no vale", ", '2025-01-09', null"],
+  ["los días de antes al revés no valen", ", '2025-01-09', '2025-01-08'"],
+  ["los días de antes que tocan el período no valen", ", '2025-01-09', '2025-01-10'"],
+  ["un corte sin días de antes no vale", `, null, null, ${lima("2025-01-09 23:00")}`],
+]) {
+  const r = escenario(`${comparar(extra)};`);
+  esperar(`${nombre} (22023)`, !r.ok && /días con los que se compara/.test(r.mensaje), r.ok ? "se leyó" : r.mensaje);
+}
+esperar("la migración de períodos se puede pegar dos veces", correr(`begin;\n${MIGRACION_PERIODOS}\n${MIGRACION_PERIODOS}\nrollback;`).ok, "falló al pegar dos veces");
+const un = correr(`select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'resumen_trafico_web';`);
+esperarValor("queda UNA sola `resumen_trafico_web` (sin sobrecarga que haga ambigua la llamada con nombres)", un, "1");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);

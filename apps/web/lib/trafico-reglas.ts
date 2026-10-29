@@ -21,8 +21,10 @@ export type ResumenTrafico = {
   anteriorHasta: string;
   /** Personas que llegaron AL MENOS hasta cada paso (6 cifras que nunca crecen). */
   pasos: number[];
-  /** Personas que entraron en los días de antes, del mismo largo. */
+  /** Personas que entraron en los días de antes (con los que se compara el período; de fábrica, del mismo largo). */
   anterior: number;
+  /** Si los días de antes se cuentan solo hasta una hora (la de ahora, de ayer), cuál es; si no, `null`. */
+  anteriorCorte: string | null;
   /** Los mismos 6 pasos de los últimos 90 días de toda la tienda: el «de costumbre» de dónde se atora. */
   base: number[];
   ahora: number;
@@ -92,8 +94,9 @@ export type PrendaTrafico = {
   coloresCatalogo: ColorTrafico[];
   /** La miraron · eligieron talla · a la bolsa · la separaron · la recogieron. */
   recorrido: [number, number, number, number, number];
-  /** Cuántas personas la miraron en los días de antes, del mismo largo. */
-  anterior: number;
+  /** Cuántas personas la miraron en los días de antes, del mismo largo. `null`: no se compara (Hoy contra «ayer a esta hora»: las prendas
+   *  solo se leen por días completos, y un día entero contra la mitad de otro dice «cayó» cuando no cayó). */
+  anterior: number | null;
   tallas: { talla: string; n: number }[];
   colores: (ColorTrafico & { n: number })[];
   caminos: { camino: Camino; n: number }[];
@@ -142,6 +145,8 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
   if (!fechas.every((f) => typeof f === "string" && FECHA.test(f))) return null;
   if (!seisCifras(d.pasos) || !seisCifras(d.base) || !esCifra(d.anterior) || !esCifra(d.ahora)) return null;
   const ultimo = typeof d.ultimo_dato === "string" && !Number.isNaN(Date.parse(d.ultimo_dato)) ? d.ultimo_dato : null;
+  const corte = typeof d.anterior_corte === "string" && !Number.isNaN(Date.parse(d.anterior_corte)) ? d.anterior_corte : null;
+  const prendas = lista(d.prendas).map(leerPrenda).filter((p): p is PrendaTrafico => p !== null);
   return {
     desde: d.desde as string,
     hasta: d.hasta as string,
@@ -149,11 +154,12 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     anteriorHasta: d.anterior_hasta as string,
     pasos: d.pasos,
     anterior: d.anterior,
+    anteriorCorte: corte,
     base: d.base,
     ahora: d.ahora,
     ultimoDato: ultimo,
     // Una base de antes de la actividad 5 no trae prendas, ni una de antes de la 6 sus caminos y horas: sale vacío, no roto.
-    prendas: lista(d.prendas).map(leerPrenda).filter((p): p is PrendaTrafico => p !== null),
+    prendas: corte ? prendas.map((p) => ({ ...p, anterior: null })) : prendas,
     caminos: conteoPor(Object.keys(CAMINOS) as Camino[], d.caminos),
     ciudades: conteoPor(Object.keys(CIUDADES) as Ciudad[], d.ciudades),
     horas: Array.isArray(d.horas) && d.horas.length === 24 && d.horas.every(esCifra) ? d.horas : Array.from({ length: 24 }, () => 0),
@@ -178,19 +184,87 @@ export function campanaDelPeriodo(campanas: readonly CampanaDelCatalogo[], hoy: 
   return pasada ? { nombre: pasada.nombre, desde: pasada.desde, hasta: pasada.hasta, vigente: false } : null;
 }
 
-export const PERIODOS = ["7", "30", "campana"] as const;
+export const PERIODOS = ["hoy", "ayer", "7", "mes", "mes-pasado", "campana"] as const;
 export type ClavePeriodo = (typeof PERIODOS)[number];
 
-export type Periodo = { clave: ClavePeriodo; desde: string; hasta: string; nombre: string; antes: string };
+/** Un período y contra qué se compara. `antDesde`/`antHasta` vacíos: los días de atrás del mismo largo (lo de fábrica de la base). */
+export type Periodo = {
+  clave: ClavePeriodo;
+  desde: string;
+  hasta: string;
+  nombre: string;
+  /** «ayer a esta hora», «los 7 días anteriores»: va tras «Se compara con». */
+  antes: string;
+  antDesde: string | null;
+  antHasta: string | null;
+  /** Solo en Hoy: cuenta a quien entró hasta esta hora de ayer (un instante, ISO). */
+  corte: string | null;
+};
 
 /** «Los 7 días anteriores» / «el día anterior»: contra qué se compara un período de `dias` días. */
 export const antesDe = (dias: number) => (dias === 1 ? "el día anterior" : `los ${dias} días anteriores`);
 
-/** El período que se lee: los últimos 7 días (de fábrica), los últimos 30 o la campaña (si no hay campaña, los 7 días). */
-export function periodoDe(clave: ClavePeriodo, hoy: string, campana: CampanaDelPeriodo | null): Periodo {
-  const de = (c: ClavePeriodo, desde: string, hasta: string, nombre: string): Periodo => ({ clave: c, desde, hasta, nombre, antes: antesDe(diasEntreFechas(desde, hasta) + 1) });
+const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const diaSemana = (iso: string) => DIAS_SEMANA[new Date(`${iso}T12:00:00Z`).getUTCDay()];
+const aIso = (anio: number, mes: number, dia: number) => `${anio}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+const diasDelMes = (anio: number, mes: number) => new Date(Date.UTC(anio, mes + 1, 0)).getUTCDate();
+/** El mes (0 a 11) de una fecha, corrido `delta` meses: cruza el año sin que nadie cuente. */
+function mesCorrido(iso: string, delta: number): { anio: number; mes: number } {
+  const d = new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1 + delta, 1));
+  return { anio: d.getUTCFullYear(), mes: d.getUTCMonth() };
+}
+const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * El período que se lee y contra qué se compara (Felipe, 2026-10-28: «Observatorio»):
+ *  · Hoy, contra ayer A ESTA HORA (hoy a las 3 p. m. contra un ayer completo siempre «va peor»);
+ *  · Ayer, contra el mismo día de la semana pasada (un lunes contra un domingo no dice nada);
+ *  · 7 días y la campaña, contra los días de atrás del mismo largo;
+ *  · Este mes, contra los mismos días del mes anterior; Mes pasado, contra el mes de antes.
+ * `ahora` solo sirve para el corte de Hoy.
+ */
+export function periodoDe(clave: ClavePeriodo, hoy: string, campana: CampanaDelPeriodo | null, ahora: Date = new Date()): Periodo {
+  const de = (c: ClavePeriodo, desde: string, hasta: string, nombre: string, resto: Partial<Periodo> = {}): Periodo => ({
+    clave: c,
+    desde,
+    hasta,
+    nombre,
+    antes: antesDe(diasEntreFechas(desde, hasta) + 1),
+    antDesde: null,
+    antHasta: null,
+    corte: null,
+    ...resto,
+  });
+  if (clave === "hoy") {
+    const ayer = sumarDias(hoy, -1);
+    return de("hoy", hoy, hoy, "Hoy", { antes: "ayer a esta hora", antDesde: ayer, antHasta: ayer, corte: new Date(ahora.getTime() - 24 * 60 * 60 * 1000).toISOString() });
+  }
+  if (clave === "ayer") {
+    const ayer = sumarDias(hoy, -1);
+    const semanaAntes = sumarDias(ayer, -7);
+    return de("ayer", ayer, ayer, "Ayer", { antes: `el ${diaSemana(semanaAntes)} de antes`, antDesde: semanaAntes, antHasta: semanaAntes });
+  }
+  if (clave === "mes") {
+    const { anio, mes } = mesCorrido(hoy, 0);
+    const antes = mesCorrido(hoy, -1);
+    const dia = Number(hoy.slice(8, 10));
+    const hastaAnt = Math.min(dia, diasDelMes(antes.anio, antes.mes));
+    return de("mes", aIso(anio, mes, 1), hoy, "Este mes", {
+      antes: dia === 1 ? `el 1 de ${MESES[antes.mes]}` : `los mismos ${hastaAnt} días de ${MESES[antes.mes]}`,
+      antDesde: aIso(antes.anio, antes.mes, 1),
+      antHasta: aIso(antes.anio, antes.mes, hastaAnt),
+    });
+  }
+  if (clave === "mes-pasado") {
+    const m = mesCorrido(hoy, -1);
+    const antes = mesCorrido(hoy, -2);
+    return de("mes-pasado", aIso(m.anio, m.mes, 1), aIso(m.anio, m.mes, diasDelMes(m.anio, m.mes)), mayuscula(MESES[m.mes]), {
+      antes: MESES[antes.mes],
+      antDesde: aIso(antes.anio, antes.mes, 1),
+      antHasta: aIso(antes.anio, antes.mes, diasDelMes(antes.anio, antes.mes)),
+    });
+  }
   if (clave === "campana" && campana) return de("campana", campana.desde, campana.hasta, campana.nombre);
-  if (clave === "30") return de("30", sumarDias(hoy, -29), hoy, "Últimos 30 días");
   return de("7", sumarDias(hoy, -6), hoy, "Últimos 7 días");
 }
 
@@ -361,6 +435,7 @@ export const de100QueVieron = (p: PrendaTrafico, vieron: number) => de100(p.reco
 
 /** «12 % más que antes», «Igual que antes» o «Sin comparación» (con menos de 20 antes, un porcentaje engaña). */
 export function cambioDeLaPrenda(p: PrendaTrafico): { tono: "verde" | "ambar" | "neutro"; texto: string; sube: number | null } {
+  if (p.anterior === null) return { tono: "neutro", texto: "Sin comparar prenda por prenda", sube: null };
   const c = cambio(p.recorrido[0], p.anterior);
   if (c === null) return { tono: "neutro", texto: "Pocas personas para comparar", sube: null };
   if (c === 0) return { tono: "neutro", texto: "Igual que antes", sube: 0 };

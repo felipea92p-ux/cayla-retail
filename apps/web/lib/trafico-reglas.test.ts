@@ -44,6 +44,7 @@ describe("leerResumen: lo que devuelve la base", () => {
       anteriorHasta: "2026-10-16",
       pasos: [1920, 1274, 633, 394, 178, 139],
       anterior: 2027,
+      anteriorCorte: null,
       base: [7700, 5100, 2480, 1530, 690, 540],
       ahora: 9,
       ultimoDato: "2026-10-23T21:40:00+00:00",
@@ -66,7 +67,16 @@ describe("leerResumen: lo que devuelve la base", () => {
 
 describe("el período y las cifras", () => {
   it("7 días cuenta hoy", () =>
-    expect(periodoDe("7", "2026-10-23", null)).toEqual({ clave: "7", desde: "2026-10-17", hasta: "2026-10-23", nombre: "Últimos 7 días", antes: "los 7 días anteriores" }));
+    expect(periodoDe("7", "2026-10-23", null)).toEqual({
+      clave: "7",
+      desde: "2026-10-17",
+      hasta: "2026-10-23",
+      nombre: "Últimos 7 días",
+      antes: "los 7 días anteriores",
+      antDesde: null,
+      antHasta: null,
+      corte: null,
+    }));
   it("de cada 100", () => {
     expect(de100(1274, 1920)).toBe(66);
     expect(de100(5, 0)).toBe(0);
@@ -274,10 +284,58 @@ describe("el período y los filtros", () => {
     const c = campanaDelPeriodo(CAMPANAS, "2026-10-23");
     expect(periodoDe("campana", "2026-10-23", c)).toMatchObject({ desde: "2026-10-17", hasta: "2026-10-23", nombre: "Halloween", antes: "los 7 días anteriores" });
     expect(periodoDe("campana", "2026-10-23", null).clave).toBe("7");
-    expect(periodoDe("30", "2026-10-23", null)).toMatchObject({ desde: "2026-09-24", nombre: "Últimos 30 días" });
+    expect(periodoDe("campana", "2026-10-23", c)).toMatchObject({ antDesde: null, antHasta: null, corte: null });
+  });
+  describe("contra qué se compara cada período (Observatorio)", () => {
+    const AHORA = new Date("2026-10-27T20:40:00.000Z"); // las 3:40 p. m. en Lima
+    it("Hoy se compara con ayer a esta hora", () => {
+      expect(periodoDe("hoy", "2026-10-27", null, AHORA)).toEqual({
+        clave: "hoy",
+        desde: "2026-10-27",
+        hasta: "2026-10-27",
+        nombre: "Hoy",
+        antes: "ayer a esta hora",
+        antDesde: "2026-10-26",
+        antHasta: "2026-10-26",
+        corte: "2026-10-26T20:40:00.000Z",
+      });
+    });
+    it("Ayer se compara con el mismo día de la semana pasada, nombrado", () => {
+      // 27 de octubre de 2026 es martes: ayer fue lunes 26, y el lunes de antes, el 19.
+      expect(periodoDe("ayer", "2026-10-27", null)).toMatchObject({ desde: "2026-10-26", hasta: "2026-10-26", antDesde: "2026-10-19", antHasta: "2026-10-19", antes: "el lunes de antes", corte: null });
+    });
+    it("Este mes se compara con los mismos días del mes anterior", () => {
+      expect(periodoDe("mes", "2026-10-27", null)).toMatchObject({ desde: "2026-10-01", hasta: "2026-10-27", antDesde: "2026-09-01", antHasta: "2026-09-27", antes: "los mismos 27 días de setiembre" });
+    });
+    it("Este mes, el último día de un mes largo no se pasa del mes corto de antes (31 de octubre contra setiembre de 30)", () => {
+      expect(periodoDe("mes", "2026-10-31", null)).toMatchObject({ antHasta: "2026-09-30", antes: "los mismos 30 días de setiembre" });
+    });
+    it("el primer día del mes se compara con el primer día del anterior", () => {
+      expect(periodoDe("mes", "2026-11-01", null)).toMatchObject({ desde: "2026-11-01", hasta: "2026-11-01", antDesde: "2026-10-01", antHasta: "2026-10-01", antes: "el 1 de octubre" });
+    });
+    it("enero mira diciembre del año anterior", () => {
+      expect(periodoDe("mes", "2027-01-15", null)).toMatchObject({ antDesde: "2026-12-01", antHasta: "2026-12-15" });
+    });
+    it("Mes pasado es el mes entero, contra el mes de antes", () => {
+      expect(periodoDe("mes-pasado", "2026-10-27", null)).toMatchObject({ desde: "2026-09-01", hasta: "2026-09-30", nombre: "Setiembre", antDesde: "2026-08-01", antHasta: "2026-08-31", antes: "agosto" });
+      expect(periodoDe("mes-pasado", "2026-03-10", null)).toMatchObject({ desde: "2026-02-01", hasta: "2026-02-28", antDesde: "2026-01-01", antHasta: "2026-01-31" });
+    });
+    it("los días con los que se compara siempre quedan antes del período (lo exige la base)", () => {
+      for (const clave of ["hoy", "ayer", "mes", "mes-pasado"] as const) {
+        const p = periodoDe(clave, "2026-10-27", null, AHORA);
+        expect((p.antHasta ?? "") < p.desde).toBe(true);
+      }
+    });
+  });
+  it("sin comparar prenda por prenda: con corte, ninguna prenda se compara (un día entero contra la mitad de otro)", () => {
+    const r = leerResumen({ ...DE_LA_BASE, anterior_corte: "2026-10-26T20:40:00+00:00", prendas: [{ id: "a", nombre: "Blusa", miraron: 5, talla: 3, bolsa: 2, separaron: 1, recogieron: 0, anterior: 40 }] });
+    expect(r?.anteriorCorte).toBe("2026-10-26T20:40:00+00:00");
+    expect(r?.prendas[0]?.anterior).toBeNull();
+    expect(cambioDeLaPrenda(r!.prendas[0]).texto).toBe("Sin comparar prenda por prenda");
   });
   it("lee la dirección e ignora lo que no conoce", () => {
-    expect(leerFiltros({ periodo: "30", camino: "instagram", ciudad: "trujillo", vista: "tabla" })).toEqual({ periodo: "30", camino: "instagram", ciudad: "trujillo", vista: "tabla" });
+    expect(leerFiltros({ periodo: "mes-pasado", camino: "instagram", ciudad: "trujillo", vista: "tabla" })).toEqual({ periodo: "mes-pasado", camino: "instagram", ciudad: "trujillo", vista: "tabla" });
+    expect(leerFiltros({ periodo: "30" }).periodo).toBe("7"); // el de 30 días ya no existe: un enlace viejo cae en lo de fábrica
     expect(leerFiltros({ periodo: "99", camino: "fax", ciudad: ["lima", "cusco"] })).toEqual({ periodo: "7", camino: null, ciudad: "lima", vista: "grafico" });
   });
   it("la dirección con un cambio; lo de fábrica no se escribe", () => {

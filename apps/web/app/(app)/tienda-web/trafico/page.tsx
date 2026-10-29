@@ -34,10 +34,13 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
     .eq("estado", "aprobado")
     .not("vigente_desde", "is", null);
   const campana = campanaDelPeriodo((campanas ?? []).map((c) => ({ nombre: c.nombre, desde: c.vigente_desde, hasta: c.vigente_hasta })), hoy);
-  const periodo = periodoDe(filtros.periodo, hoy, campana);
+  const periodo = periodoDe(filtros.periodo, hoy, campana, new Date());
   const { data, error } = await supabase.rpc("resumen_trafico_web", {
     p_desde: periodo.desde,
     p_hasta: periodo.hasta,
+    // Contra qué se compara (Hoy, Ayer, Este mes…); sin esto, la base compara con los días de atrás del mismo largo.
+    ...(periodo.antDesde && periodo.antHasta ? { p_ant_desde: periodo.antDesde, p_ant_hasta: periodo.antHasta } : {}),
+    ...(periodo.corte ? { p_ant_corte: periodo.corte } : {}),
     ...(filtros.camino ? { p_camino: filtros.camino } : {}),
     ...(filtros.ciudad ? { p_ciudad: filtros.ciudad } : {}),
   });
@@ -50,7 +53,7 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-5">
       <EncabezadoPagina sede="Todas las tiendas" detalle="Tienda web" titulo="Tráfico" subtitulo="Qué prendas mira la gente, de dónde viene y dónde se va.">
-        {r && total > 0 ? <CifraTrafico r={r} /> : undefined}
+        {r && total > 0 ? <CifraTrafico r={r} antes={periodo.antes} /> : undefined}
       </EncabezadoPagina>
       {r === null ? (
         <Aviso tono="error" titulo="No se pudo leer el tráfico de la tienda web">
