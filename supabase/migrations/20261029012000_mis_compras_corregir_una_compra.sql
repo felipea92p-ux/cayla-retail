@@ -24,7 +24,9 @@
 --   5. `corregir_compra_rapida(papel, lote, cambios)`: corrige unidades, costo y precio de venta de las prendas y, en una prenda de «Algo nuevo» (la que no se
 --      eligió del catálogo), su nombre, categoría y marca. Las del catálogo no cambian ni nombre, ni categoría ni marca desde aquí: eso es de Catálogo.
 --      Una prenda de la que todavía no salió nada puede cambiar de TIENDA: pasa a la orden de la otra tienda (se crea si no existía) y la orden que
---      se queda sin prendas se anula con su motivo. Todo o nada. Después recalcula el papel:
+--      se queda sin prendas se anula con su motivo. Todo o nada.
+--      Además, `p_papel` deja corregir a mano «cuánto dice el papel», lo que pagó y cómo (cualquiera de los tres): lo que viene ahí manda sobre la cuenta
+--      automática. Lo pagado nunca pasa del monto; con 0 pagado no hay método; con algo pagado, uno de Yape, efectivo o transferencia. Después recalcula el papel:
 --      si ya cuadraba con las prendas, sigue cuadrando; lo pagado acompaña (pagó todo → paga el nuevo monto; pagó una parte → no pasa del nuevo
 --      monto). Una prenda no baja de lo que ya salió en un envío. Dos toques con el mismo `lote` no corrigen dos veces.
 --
@@ -207,8 +209,9 @@ grant execute on function retail.fn_compra_para_corregir(uuid) to authenticated;
 
 -- ---------- 5. Corregir la compra ----------
 -- `p_cambios`: una lista de objetos `{ "item_id": uuid, "cantidad": 8, "costo": 22.00, "precio_venta": 39.90 }`. Solo cambia lo que viene en el objeto
--- (`precio_venta: null` lo quita). `p_lote`: lo genera la hoja al abrirse; el mismo lote dos veces devuelve lo que ya quedó.
-create or replace function retail.corregir_compra_rapida(p_papel_id uuid, p_lote uuid, p_cambios jsonb)
+-- (`precio_venta: null` lo quita). `p_papel`: `{ "monto": 264, "pagado": 264, "medio_pago": "yape" }`, cualquiera de los tres; manda sobre la cuenta
+-- automática del papel. `p_lote`: lo genera la hoja al abrirse; el mismo lote dos veces devuelve lo que ya quedó.
+create or replace function retail.corregir_compra_rapida(p_papel_id uuid, p_lote uuid, p_cambios jsonb, p_papel jsonb default null)
 returns jsonb
 language plpgsql
 security definer
@@ -241,6 +244,7 @@ declare
   v_monto numeric;
   v_pagado numeric;
   v_medio text;
+  v_pagado_old_todo boolean;
   v_n integer := 0;
   v_vistos uuid[] := '{}';
   v_ordenes uuid[] := '{}';
@@ -259,7 +263,13 @@ begin
   if p_papel_id is null or p_lote is null then
     raise exception 'Falta el identificador de la corrección: vuelve a abrir la compra' using errcode = 'P0001', hint = 'compra_corregir_sin_id';
   end if;
-  if p_cambios is null or jsonb_typeof(p_cambios) <> 'array' or jsonb_array_length(p_cambios) = 0 then
+  if p_cambios is null or jsonb_typeof(p_cambios) <> 'array' then
+    raise exception 'No hay nada que corregir' using errcode = 'P0001', hint = 'compra_corregir_sin_cambios';
+  end if;
+  if p_papel is not null and jsonb_typeof(p_papel) <> 'object' then
+    raise exception 'El papel y el pago no se entienden' using errcode = 'P0001', hint = 'compra_corregir_papel';
+  end if;
+  if jsonb_array_length(p_cambios) = 0 and (p_papel is null or p_papel = '{}'::jsonb) then
     raise exception 'No hay nada que corregir' using errcode = 'P0001', hint = 'compra_corregir_sin_cambios';
   end if;
   if jsonb_array_length(p_cambios) > 100 then
@@ -471,10 +481,6 @@ begin
     end if;
   end loop;
 
-  if v_n = 0 then
-    raise exception 'No cambiaste nada' using errcode = 'P0001', hint = 'compra_corregir_sin_cambios';
-  end if;
-
   -- Cada orden tocada vuelve a pasar por la regla de líneas de las órdenes (con sus categorías y marcas de antes, que no cambian aquí).
   foreach v_o in array v_ordenes loop
     v_destino := (select o.ubicacion_destino_id from retail.ordenes_compra o where o.id = v_o);
@@ -501,11 +507,38 @@ begin
   v_suma_despues := coalesce((select sum(i.subtotal) from retail.ordenes_compra o join retail.orden_compra_items i on i.orden_compra_id = o.id
                                where o.papel_id = p_papel_id), 0);
   v_monto := case when abs(v_papel.monto - v_suma_antes) < 0.005 then v_suma_despues else v_papel.monto end;
-  if v_monto is null or v_monto <= 0 or v_monto > 1000000 then
-    raise exception 'La compra corregida tiene que sumar más de cero y hasta S/ 1 000 000' using errcode = 'P0001', hint = 'monto_invalido';
+  v_pagado_old_todo := abs(v_papel.pagado - v_papel.monto) < 0.005;
+  -- Lo escrito a mano manda sobre la cuenta automática.
+  begin
+    if p_papel ? 'monto' then
+      v_monto := (p_papel ->> 'monto')::numeric;
+    end if;
+  exception when others then
+    raise exception 'Lo que dice el papel no se entiende: escribe solo el monto' using errcode = 'P0001', hint = 'monto_invalido';
+  end;
+  if v_monto is null or v_monto = 'NaN'::numeric or v_monto <= 0 or v_monto > 1000000 or v_monto <> round(v_monto, 2) then
+    raise exception 'El papel tiene que decir más de cero y hasta S/ 1 000 000, con hasta dos decimales' using errcode = 'P0001', hint = 'monto_invalido';
   end if;
-  v_pagado := case when v_papel.pagado = v_papel.monto then v_monto else least(v_papel.pagado, v_monto) end;
+  v_monto := round(v_monto, 2);
+  v_pagado := case when v_pagado_old_todo then v_monto else least(v_papel.pagado, v_monto) end;
+  begin
+    if p_papel ? 'pagado' then
+      v_pagado := (p_papel ->> 'pagado')::numeric;
+    end if;
+  exception when others then
+    raise exception 'Lo que pagaste no se entiende: escribe solo el monto' using errcode = 'P0001', hint = 'compra_rapida_pagado';
+  end;
+  if v_pagado is null or v_pagado = 'NaN'::numeric or v_pagado < 0 or v_pagado > v_monto or v_pagado <> round(v_pagado, 2) then
+    raise exception 'Lo que pagaste va de S/ 0 a lo que dice el papel, con hasta dos decimales' using errcode = 'P0001', hint = 'compra_rapida_pagado';
+  end if;
+  v_pagado := round(v_pagado, 2);
   v_medio := case when v_pagado = 0 then null else v_papel.medio_pago end;
+  if p_papel ? 'medio_pago' then
+    v_medio := case when v_pagado = 0 then null else nullif(lower(btrim(coalesce(p_papel ->> 'medio_pago', ''))), '') end;
+  end if;
+  if v_pagado > 0 and (v_medio is null or v_medio not in ('yape', 'efectivo', 'transferencia')) then
+    raise exception 'Elige cómo pagaste: Yape, efectivo o transferencia' using errcode = 'P0001', hint = 'compra_rapida_medio';
+  end if;
   if (v_monto, v_pagado, v_medio) is distinct from (v_papel.monto, v_papel.pagado, v_papel.medio_pago) then
     perform set_config('retail.compra_corrigiendo', 'si', true);
     update retail.compra_papeles set monto = v_monto, pagado = v_pagado, medio_pago = v_medio where id = p_papel_id;
@@ -524,11 +557,15 @@ begin
     end if;
   end if;
 
+  if v_n = 0 and (v_monto, v_pagado, v_medio) is not distinct from (v_papel.monto, v_papel.pagado, v_papel.medio_pago) then
+    raise exception 'No cambiaste nada' using errcode = 'P0001', hint = 'compra_corregir_sin_cambios';
+  end if;
+
   -- Actividad (ADR-0207), sin montos. Si falla, la corrección igual queda.
   begin
     perform retail.fn_actividad_anotar('ordenes_compra', 'compra_corregida',
       'corrigió una compra a ' || (select pr.nombre from retail.proveedores pr where pr.id = v_papel.proveedor_id) || ': '
-        || retail.fn_actividad_cuantas(v_n, 'prenda', 'prendas'),
+        || case when v_n = 0 then 'el papel y el pago' else retail.fn_actividad_cuantas(v_n, 'prenda', 'prendas') end,
       v_actor, retail.fn_actividad_terminal_ahora(), null, null, 'compra_papeles', p_papel_id::text, now(),
       jsonb_build_object('papel_id', p_papel_id, 'lote', p_lote, 'prendas', v_n), 'vivo');
   exception when others then
@@ -538,10 +575,10 @@ begin
   v_tiene := retail.fn_mi_plata_tiene(v_actor);
   return jsonb_build_object('papel_id', p_papel_id, 'lote', p_lote, 'ya_estaba', false, 'prendas', v_n, 'monto', v_monto, 'pagado', v_pagado, 'tiene', v_tiene);
 end $$;
-comment on function retail.corregir_compra_rapida(uuid, uuid, jsonb) is
+comment on function retail.corregir_compra_rapida(uuid, uuid, jsonb, jsonb) is
   'ADR-0561: corrige unidades, costo y precio de venta de las prendas de una compra anotada, mientras Compras no la complete y su ronda siga abierta. Recalcula el papel y lo pagado; deja el rastro.';
-revoke all on function retail.corregir_compra_rapida(uuid, uuid, jsonb) from public, anon;
-grant execute on function retail.corregir_compra_rapida(uuid, uuid, jsonb) to authenticated;
+revoke all on function retail.corregir_compra_rapida(uuid, uuid, jsonb, jsonb) from public, anon;
+grant execute on function retail.corregir_compra_rapida(uuid, uuid, jsonb, jsonb) to authenticated;
 
 -- Firma sin combo con la cuenta de una persona (desde una terminal, el combo), como anotar la compra.
 insert into retail.acciones_sin_responsable (clave, descripcion) values

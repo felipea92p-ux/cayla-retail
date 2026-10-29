@@ -5,7 +5,11 @@ import {
   cambiosParaLaBase,
   cuentaDeLaCorreccion,
   leerCompraParaCorregir,
+  papelBorradorDe,
+  papelConProblema,
+  papelParaLaBase,
   prendaConProblema,
+  problemasDePapel,
   problemasDePrenda,
   puedeCambiarDeTienda,
   textoDeCambios,
@@ -249,6 +253,47 @@ describe("cambiar de tienda", () => {
       tiendas: [{ id: "t1", nombre: "Tienda Trujillo" }],
     })!;
     expect(c.tiendas).toEqual([{ id: "t1", nombre: "Tienda Trujillo" }]);
+  });
+});
+
+describe("el papel y el pago a mano", () => {
+  it("se abre con lo que saldría solo, y el medio de fábrica es Yape si ya pagó algo", () => {
+    expect(papelBorradorDe(420, 420, null)).toEqual({ monto: "420.00", pagado: "420.00", medio: "yape" });
+    expect(papelBorradorDe(420, 0, null)).toEqual({ monto: "420.00", pagado: "0.00", medio: "" });
+    expect(papelBorradorDe(420, 100, "efectivo").medio).toBe("efectivo");
+  });
+
+  it("dice qué arreglar: el papel de más de cero, lo pagado de cero al papel, y cómo si pagó algo", () => {
+    expect(papelConProblema({ monto: "450", pagado: "400", medio: "efectivo" })).toBe(false);
+    expect(problemasDePapel({ monto: "", pagado: "0", medio: "" }).monto).toMatch(/papel/);
+    expect(problemasDePapel({ monto: "0", pagado: "0", medio: "" }).monto).toMatch(/papel/);
+    expect(problemasDePapel({ monto: "2000000", pagado: "0", medio: "" }).monto).toMatch(/papel/);
+    expect(problemasDePapel({ monto: "10.123", pagado: "0", medio: "" }).monto).toMatch(/dos decimales|No se entiende|papel/);
+    expect(problemasDePapel({ monto: "100", pagado: "150", medio: "yape" }).pagado).toMatch(/más que lo que dice/);
+    expect(problemasDePapel({ monto: "100", pagado: "", medio: "yape" }).pagado).toMatch(/cuánto pagaste/);
+    expect(problemasDePapel({ monto: "100", pagado: "40", medio: "" }).medio).toMatch(/cómo pagaste/);
+    expect(problemasDePapel({ monto: "100", pagado: "0", medio: "" }).medio).toBeNull();
+  });
+
+  it("lo que se manda: los tres datos leídos, sin método si pagó cero", () => {
+    expect(papelParaLaBase({ monto: "450,50", pagado: "400", medio: "efectivo" })).toEqual({ monto: 450.5, pagado: 400, medio_pago: "efectivo" });
+    expect(papelParaLaBase({ monto: "450", pagado: "0", medio: "yape" })).toEqual({ monto: 450, pagado: 0, medio_pago: null });
+  });
+
+  it("lo escrito manda sobre la cuenta automática, y cuenta como cambio solo lo que se aparta de ella", () => {
+    const c = compra();
+    const prendas = borradores(c, { a: { costo: "40" } });
+    // Sin escribir nada: el papel acompaña (480 → 420).
+    expect(cuentaDeLaCorreccion(c, prendas)).toMatchObject({ datos: 1, monto: 420, pagado: 420 });
+    // Escrito igual a lo automático: nada más que contar.
+    expect(cuentaDeLaCorreccion(c, prendas, { monto: "420", pagado: "420", medio: "efectivo" })).toMatchObject({ datos: 1, monto: 420, pagado: 420 });
+    // Escrito distinto: el papel se queda en 480 y pagó 0.
+    expect(cuentaDeLaCorreccion(c, prendas, { monto: "480", pagado: "0", medio: "" })).toMatchObject({ datos: 3, monto: 480, pagado: 0, plata: 480, falta: 480 });
+  });
+
+  it("un papel mal escrito no manda: se sigue con la cuenta automática", () => {
+    const c = compra();
+    expect(cuentaDeLaCorreccion(c, borradores(c, { a: { costo: "40" } }), { monto: "", pagado: "", medio: "" })).toMatchObject({ monto: 420, pagado: 420 });
   });
 });
 

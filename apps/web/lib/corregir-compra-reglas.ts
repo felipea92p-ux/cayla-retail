@@ -1,4 +1,5 @@
-import { faltaEnPaso, leerCantidad, leerPrecio, leerPrecioVenta } from "./compra-rapida-reglas";
+import { faltaEnPaso, leerCantidad, leerPrecio, leerPrecioVenta, type MedioPagoCompra } from "./compra-rapida-reglas";
+import { leerMontoPlata } from "./monto-plata-reglas";
 import { soles } from "./compras-reglas";
 
 // «Corregir una compra» (ADR-0561, maqueta docs/maquetas/mis-compras-corregir-2026-10/, Felipe 2026-10-28): la compradora cambia lo que anotó mal de
@@ -268,6 +269,52 @@ export function cambiosParaLaBase(prendas: readonly PrendaParaCorregir[], borrad
   return lista;
 }
 
+// ---------- El papel y el pago ----------
+// Por defecto el papel acompaña a las prendas (si ya cuadraba) y lo pagado acompaña al papel: la persona no hace nada. Si el papel o el pago están mal
+// anotados, los escribe a mano y lo escrito manda sobre esa cuenta (`p_papel` de `corregir_compra_rapida`).
+
+/** Lo que escribe: cuánto dice el papel, cuánto pagó y cómo. Siempre texto, como se ve mientras se escribe. */
+export type PapelBorrador = { monto: string; pagado: string; medio: MedioPagoCompra | "" };
+
+/** El tope del papel (`monto <= 1000000` de `compra_papeles`). */
+export const PAPEL_MAXIMO = 1_000_000;
+
+const MEDIOS: readonly string[] = ["yape", "efectivo", "transferencia"];
+
+/** Con qué se abre la pantalla del papel: lo que saldría solo (la cuenta automática). */
+export function papelBorradorDe(monto: number, pagado: number, medio: string | null): PapelBorrador {
+  return { monto: monto.toFixed(2), pagado: pagado.toFixed(2), medio: medio && MEDIOS.includes(medio) ? (medio as MedioPagoCompra) : pagado > 0 ? "yape" : "" };
+}
+
+/** Lo que hay que arreglar del papel y del pago, o nada. Lo mismo que rechaza la base: el papel de más de cero a S/ 1 000 000, lo pagado de cero al
+ *  papel (cero = lo paga Compras) y, si pagó algo, cómo. */
+export function problemasDePapel(b: PapelBorrador): { monto: string | null; pagado: string | null; medio: string | null } {
+  const monto = leerMontoPlata(b.monto);
+  const pagado = leerMontoPlata(b.pagado);
+  const montoMal =
+    monto == null || monto <= 0 || monto > PAPEL_MAXIMO || Math.abs(Math.round(monto * 100) - monto * 100) > 1e-6
+      ? "Escribe lo que dice el papel, con hasta dos decimales"
+      : null;
+  const pagadoMal =
+    pagado == null || pagado < 0
+      ? "Escribe cuánto pagaste (0 si se lo paga Compras)"
+      : monto != null && pagado > monto + 1e-9
+        ? "No puede ser más que lo que dice el papel"
+        : null;
+  const medioMal = pagado != null && pagado > 0 && b.medio === "" ? "Elige cómo pagaste: Yape, efectivo o transferencia" : null;
+  return { monto: montoMal, pagado: pagadoMal, medio: medioMal };
+}
+
+export function papelConProblema(b: PapelBorrador): boolean {
+  return Object.values(problemasDePapel(b)).some((v) => v !== null);
+}
+
+/** Lo que se manda como `p_papel`: los tres datos leídos. Con cero pagado, sin método. */
+export function papelParaLaBase(b: PapelBorrador): { monto: number; pagado: number; medio_pago: MedioPagoCompra | null } {
+  const pagado = leerMontoPlata(b.pagado) ?? 0;
+  return { monto: leerMontoPlata(b.monto) ?? 0, pagado, medio_pago: pagado > 0 && b.medio !== "" ? b.medio : null };
+}
+
 export type CuentaDeLaCorreccion = {
   /** Cuántos datos cambian (unidades, costo y venta de cada prenda cuentan por separado). */
   datos: number;
@@ -280,11 +327,18 @@ export type CuentaDeLaCorreccion = {
   /** Lo que le falta pagar a Compras después de corregir. */
   falta: number;
   papelAcompana: boolean;
+  /** Lo que suman las prendas con lo escrito (para decir si cuadra con el papel). */
+  prendasSuman: number;
 };
 
 /** La cuenta de `corregir_compra_rapida`: el papel acompaña si ya cuadraba con las prendas; lo pagado acompaña (pagó todo → todo el monto nuevo;
  *  una parte → no pasa del monto nuevo). */
-export function cuentaDeLaCorreccion(c: CompraParaCorregir, borradores: ReadonlyMap<string, Borrador>): CuentaDeLaCorreccion {
+export function cuentaDeLaCorreccion(
+  c: CompraParaCorregir,
+  borradores: ReadonlyMap<string, Borrador>,
+  /** Lo que la persona escribió del papel y el pago: si está bien escrito, manda sobre la cuenta automática. */
+  papel?: PapelBorrador | null,
+): CuentaDeLaCorreccion {
   let datos = 0;
   let prendas = 0;
   let despues = 0;
@@ -298,10 +352,18 @@ export function cuentaDeLaCorreccion(c: CompraParaCorregir, borradores: Readonly
     despues += (cambios.cantidad ?? p.cantidad) * (cambios.costo ?? p.costo);
   }
   const papelAcompana = c.cuadra;
-  const monto = papelAcompana ? redondear(despues) : c.monto;
+  let monto = papelAcompana ? redondear(despues) : c.monto;
   const pagoTodo = Math.abs(c.pagado - c.monto) < 0.005;
-  const pagado = redondear(pagoTodo ? monto : Math.min(c.pagado, monto));
-  return { datos, prendas, monto, pagado, plata: redondear(c.pagado - pagado), falta: redondear(monto - pagado), papelAcompana };
+  let pagado = redondear(pagoTodo ? monto : Math.min(c.pagado, monto));
+  if (papel && !papelConProblema(papel)) {
+    // Lo escrito manda; cuenta como cambio de la persona lo que se aparta de lo que habría salido solo (y el método, si cambia).
+    const escrito = papelParaLaBase(papel);
+    datos += (Math.abs(escrito.monto - monto) > 0.005 ? 1 : 0) + (Math.abs(escrito.pagado - pagado) > 0.005 ? 1 : 0);
+    datos += escrito.pagado > 0 && escrito.medio_pago !== c.medioPago ? 1 : 0;
+    monto = escrito.monto;
+    pagado = escrito.pagado;
+  }
+  return { datos, prendas, monto, pagado, plata: redondear(c.pagado - pagado), falta: redondear(monto - pagado), papelAcompana, prendasSuman: redondear(despues) };
 }
 
 /** Lo que pasa con su plata, dicho en una frase. */

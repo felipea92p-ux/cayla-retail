@@ -124,6 +124,10 @@ select id as marca2 from retail.marcas where activo and id <> :'marca1' order by
 select set_config('t.nu1', :'nu1', true), set_config('t.cat2', :'cat2', true), set_config('t.marca2', :'marca2', true) \\g /dev/null
 `;
 const cambioNuevo = (campos) => `jsonb_build_object('item_id', current_setting('t.nu1'), ${campos})`;
+// Corregir con el papel y el pago escritos a mano (`p_papel`).
+const CORREGIR_PAPEL = (cambios, papel, lote, id = ID) => `select retail.corregir_compra_rapida('${id}', '${lote}', ${cambios}, ${papel})`;
+const PAPEL = (campos) => `jsonb_build_object(${campos})`;
+const L = (n) => `bbbbbbbb-0561-4000-8000-0000000000${String(n).padStart(2, "0")}`;
 const intento = (sql) => `pg_temp.intento($q$${sql}$q$)`;
 const hint = (sql) => `split_part(${intento(sql)}, '|', 2)`;
 const TIENE = `retail.fn_mi_plata_tiene(:'micaela')`;
@@ -452,6 +456,52 @@ select ${hint(CORREGIR(CAMBIOS(cambio(1, A_LIMA)), "bbbbbbbb-0561-4000-8000-0000
 reset role;
 select ${ORDENES}, (select count(*) from retail.compra_correcciones);`,
   "compra_corregir_tienda_con_envio|compra_rapida_destino|compra_corregir_cambio / Tienda Lima=generada:1,Tienda Trujillo=generada:1|0",
+);
+
+caso(
+  "el papel y el pago se corrigen a mano (sin tocar prendas): monto, lo pagado y cómo; la plata sigue a lo pagado y queda el rastro",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+reset role;
+select ${TIENE} as antes \\gset
+${como(MICAELA, "c")}
+${CORREGIR_PAPEL("'[]'::jsonb", PAPEL("'monto', 450, 'pagado', 400, 'medio_pago', 'efectivo'"), L(30))} \\g /dev/null
+reset role;
+select ${TIENE} - :'antes', (select monto || '/' || pagado || '/' || medio_pago from retail.compra_papeles where id = '${ID}'),
+       (select string_agg(campo || ':' || antes || '>' || despues, ',' order by campo) from retail.compra_correcciones where papel_id = '${ID}'),
+       (select count(*) from retail.orden_compra_items i join retail.ordenes_compra o on o.id = i.orden_compra_id where o.papel_id = '${ID}' and i.precio_unitario in (50, 45));`,
+  "80.00|450.00/400.00/efectivo|monto:480.00>450.00,pagado:480.00>400.00|2",
+);
+
+caso(
+  "lo escrito a mano manda sobre la cuenta automática: el papel se queda en lo que dice aunque las prendas bajen; pagar 0 deja a Compras pagando todo y sin método",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${ITEMS()}
+select ${TIENE} as antes \\gset
+${como(MICAELA, "c")}
+${CORREGIR_PAPEL(CAMBIOS(cambio(1, "'costo', 40")), PAPEL("'monto', 480, 'pagado', 0"), L(31))} \\g /dev/null
+reset role;
+select ${TIENE} - :'antes', (select monto || '/' || pagado || '/' || coalesce(medio_pago, 'sin') from retail.compra_papeles where id = '${ID}');`,
+  "480.00|480.00/0.00/sin",
+);
+
+caso(
+  "papel y pago mal escritos se rechazan sin dejar nada: pagado de más, monto cero, método que no es, método faltante, o nada que cambiar",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${como(MICAELA, "c")}
+select ${hint(CORREGIR_PAPEL("'[]'::jsonb", PAPEL("'pagado', 500"), L(32)))},
+       ${hint(CORREGIR_PAPEL("'[]'::jsonb", PAPEL("'monto', 0"), L(33)))},
+       ${hint(CORREGIR_PAPEL("'[]'::jsonb", PAPEL("'monto', 12.345"), L(34)))},
+       ${hint(CORREGIR_PAPEL("'[]'::jsonb", PAPEL("'pagado', 100, 'medio_pago', 'cheque'"), L(35)))},
+       ${hint(CORREGIR_PAPEL("'[]'::jsonb", PAPEL("'pagado', 100, 'medio_pago', ''"), L(36)))},
+       ${hint(CORREGIR_PAPEL("'[]'::jsonb", PAPEL("'monto', 480, 'pagado', 480, 'medio_pago', 'efectivo'"), L(37)))},
+       ${hint(CORREGIR_PAPEL("'[]'::jsonb", "'{}'::jsonb", L(38)))},
+       ${hint(CORREGIR_PAPEL("'[]'::jsonb", "'[1]'::jsonb", L(39)))};
+reset role;
+select (select monto || '/' || pagado from retail.compra_papeles where id = '${ID}'), (select count(*) from retail.compra_correcciones);`,
+  "compra_rapida_pagado|monto_invalido|monto_invalido|compra_rapida_medio|compra_rapida_medio|compra_corregir_sin_cambios|compra_corregir_sin_cambios|compra_corregir_papel / 480.00/480.00|0",
 );
 
 caso(

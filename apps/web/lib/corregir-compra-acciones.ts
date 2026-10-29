@@ -21,7 +21,8 @@ export async function cargarCompraParaCorregir(papelId: string): Promise<{ compr
 }
 
 export async function corregirCompra(
-  args: { p_papel_id: string; p_lote: string; p_cambios: Record<string, unknown>[] },
+  // `p_papel`: el papel y el pago escritos a mano; sin él, la cuenta automática (el papel acompaña a las prendas).
+  args: { p_papel_id: string; p_lote: string; p_cambios: Record<string, unknown>[]; p_papel?: { monto: number; pagado: number; medio_pago: string | null } },
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_CORREGIR_COMPRA as never, args as never), firmaOmitida("compra_corregir"));
   return { error: error ?? null };
