@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { problemasAlta, type EstadoAlta, type PasoAlta } from "./alta-producto";
+import { problemasAlta, TEXTO_FALTA_PROVEEDOR_LLEGADA, type EstadoAlta, type PasoAlta } from "./alta-producto";
 import { campoAhora, camposDelAlta, estadosDeCampos, faltanDelPaso, faltanHastaElPaso, pasoConfirmado, resumenFaltan, siguienteDelHilo, type ExtraGuia } from "./alta-producto-guia";
 
 // Una prenda completa: nada falta. Cada prueba parte de ella y le quita lo que quiere probar.
@@ -25,7 +25,7 @@ const completo: EstadoAlta = {
   separaPiso: true,
   lugarCarga: "almacen",
 };
-const extraCompleto: ExtraGuia = { coloresElegidos: 2, descripcionEscrita: false, marcaElegida: true, responsableListo: true };
+const extraCompleto: ExtraGuia = { coloresElegidos: 2, descripcionEscrita: false, marcaElegida: true, responsableListo: true, existeAplica: false, existeRespondido: false };
 
 const guia = (e: Partial<EstadoAlta> = {}, x: Partial<ExtraGuia> = {}) => camposDelAlta({ ...completo, ...e }, { ...extraCompleto, ...x });
 const idsPorHacer = (campos: ReturnType<typeof guia>, paso: PasoAlta) => faltanDelPaso(campos, paso).map((c) => c.id);
@@ -48,7 +48,7 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(est.patron).toBe("falta");
   });
 
-  it("al hacer el nombre, «ahora» salta lo opcional (descripción, marca) y pasa al tejido", () => {
+  it("con el nombre hecho, «ahora» salta lo opcional (detalle, marca) y vuelve al tejido", () => {
     const est = estadosDeCampos(guia({ tejidoId: "", patronId: "" }, { marcaElegida: false }), 2);
     expect(est.nombre).toBe("hecho");
     expect(est.descripcion).toBe("opcional");
@@ -65,21 +65,37 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(estadosDeCampos(guia({}, { marcaElegida: true }), 2).marca).toBe("hecho");
   });
 
-  it("la marca va ANTES del nombre en pantalla y la guía pasa por ahí antes de saltar al nombre (Felipe, 2026-10-02)", () => {
+  it("la marca va PRIMERO en pantalla y la guía pasa por ahí antes de seguir (Felipe, 2026-10-02)", () => {
     const campos = guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false });
     const ids = campos.filter((c) => c.paso === 2).map((c) => c.id);
-    expect(ids.indexOf("marca")).toBeLessThan(ids.indexOf("nombre"));
-    // Paso 2 recién abierto, nada tocado todavía: la pausa en marca y proveedor va ANTES que «Sigue aquí» llegue al nombre.
+    expect(ids.indexOf("marca")).toBeLessThan(ids.indexOf("tejido"));
+    // Paso 2 recién abierto, nada tocado todavía: la pausa en marca y proveedor va ANTES que «Sigue aquí» llegue a lo que falta.
     expect(campoAhora(campos, 2)).toBe("marca");
     expect(estadosDeCampos(campos, 2).marca).toBe("ahora");
     expect(estadosDeCampos(campos, 2).nombre).toBe("falta");
     // Apenas la persona teclea en el nombre, la pausa termina: la luz no le gana a la persona.
     expect(campoAhora(campos, 2, "nombre")).toBe("nombre");
     expect(estadosDeCampos(campos, 2, "nombre").marca).toBe("opcional");
-    // Con la marca ya elegida no hay pausa: la guía va directa al nombre, como antes de esta excepción.
-    expect(campoAhora(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: true }), 2)).toBe("nombre");
+    // Con la marca ya elegida no hay pausa: la guía va directa a lo primero que falta (el tejido, desde ADR-0556).
+    expect(campoAhora(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: true }), 2)).toBe("tejido");
     // Y el orden no cambia lo que falta ni lo que bloquea: la marca nunca está por hacer ni se lista como «falta».
-    expect(idsPorHacer(campos, 2)).toEqual(["nombre", "tejido", "patron"]);
+    expect(idsPorHacer(campos, 2)).toEqual(["tejido", "patron", "nombre"]);
+  });
+
+  it("ADR-0556: el paso 2 va marca → ¿ya existe? → tejido → patrón → detalle → nombre, y «¿Ya existe?» es sugerido (no frena)", () => {
+    const campos = guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false, existeAplica: true });
+    expect(campos.filter((c) => c.paso === 2).map((c) => c.id)).toEqual(["marca", "existe", "tejido", "patron", "descripcion", "nombre"]);
+    const existe = campos.find((c) => c.id === "existe");
+    expect(existe).toMatchObject({ requerido: false, sugerido: true, hecho: false, nombre: "¿Ya existe?" });
+    // Nada contestado: la pausa sigue en la marca; con la marca elegida, la luz va a «¿Ya existe?».
+    expect(campoAhora(campos, 2)).toBe("marca");
+    expect(campoAhora(guia({ referencia: "", tejidoId: "", patronId: "" }, { existeAplica: true }), 2)).toBe("existe");
+    // Respondido, la luz sigue al tejido y la pausa en la marca ya no vuelve (algo del paso está contestado).
+    expect(campoAhora(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false, existeAplica: true, existeRespondido: true }), 2)).toBe("tejido");
+    // Sin prendas que mirar (o sin red), la pregunta no está.
+    expect(guia({}, { existeAplica: false }).some((c) => c.id === "existe")).toBe(false);
+    // Y nunca cambia lo que bloquea: con todo lo demás hecho y «¿Ya existe?» sin responder, crear ya se puede.
+    expect(siguienteDelHilo(guia({}, { existeAplica: true }))?.bloquea).toBe(false);
   });
 
   it("mientras se comprueba el nombre (o es un duplicado) el nombre sigue siendo «ahora», no «hecho»", () => {
@@ -116,6 +132,17 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     const conPrecio = estadosDeCampos(guia({ stockTotal: 0 }, { responsableListo: false }), 4);
     expect(conPrecio.precio).toBe("hecho");
     expect(conPrecio.stock).toBe("ahora");
+  });
+
+  it("carga cerrada (ADR-0328 act. 2026-10-28): «Unidades que llegaron», sin preguntar piso o almacén, y sin proveedor dice dónde elegirlo", () => {
+    const sinProveedor = guia({ llegada: true, proveedorElegido: false, lugarCarga: null }).find((c) => c.id === "stock");
+    expect(sinProveedor?.nombre).toBe("Unidades que llegaron");
+    expect(sinProveedor?.hecho).toBe(false);
+    expect(sinProveedor?.pendiente).toBe(TEXTO_FALTA_PROVEEDOR_LLEGADA);
+    expect(guia({ llegada: true, proveedorElegido: true, lugarCarga: null }).find((c) => c.id === "stock")?.hecho).toBe(true);
+    expect(guia({ llegada: true, stockTotal: 0, sinStock: false }).find((c) => c.id === "stock")?.pendiente).toBe(
+      "Escribe cuántas llegaron, o marca que todavía no tienes."
+    );
   });
 
   it("«todavía no tengo unidades» también cuenta como decidido; una cantidad inválida no", () => {
@@ -187,6 +214,10 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["con unidades y sin decir dónde están", { lugarCarga: null }, {}],
     ["sin decir dónde están, en una tienda sin piso y almacén", { lugarCarga: null, separaPiso: false }, {}],
     ["sin decir dónde están y sin unidades", { lugarCarga: null, stockTotal: 0, sinStock: true }, {}],
+    ["carga cerrada: llegaron unidades con proveedor (ADR-0328 act. 2026-10-28)", { llegada: true, proveedorElegido: true, lugarCarga: null }, {}],
+    ["carga cerrada: llegaron unidades SIN proveedor", { llegada: true, proveedorElegido: false }, {}],
+    ["carga cerrada: sin proveedor pero sin unidades (no hace falta)", { llegada: true, proveedorElegido: false, stockTotal: 0, sinStock: true }, {}],
+    ["carga cerrada: sin decidir cuántas llegaron", { llegada: true, proveedorElegido: true, stockTotal: 0 }, {}],
     ["familia sin tela y sin tejido", { exigeTejidoPatron: false, tejidoId: "", patronId: "" }, {}],
     ["sin categoría", { categoriaId: "" }, {}],
   ];

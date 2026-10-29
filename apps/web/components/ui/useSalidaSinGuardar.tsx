@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
-import { destinoQueSaleDeLaPantalla } from "@/lib/salida-sin-guardar";
+import { destinoQueSaleDeLaPantalla, registrarGuardia } from "@/lib/salida-sin-guardar";
 import { MARCA_HOJA } from "@/lib/hojas-atras";
 import { cuandoSinHojas, hojasEnElHistorial, useHojasEnElHistorial } from "@/components/ui/useAtrasCierraLaHoja";
 
@@ -24,7 +24,7 @@ import { cuandoSinHojas, hojasEnElHistorial, useHojasEnElHistorial } from "@/com
    Quien guarda y NAVEGA llama a `soltar()` antes, para que su propia salida no pregunte ni toque el historial.
 
    `{ soloAlCerrar: true }`: solo la puerta 3, para una hoja que vive dentro de una pantalla que ya cuida el «atrás» con su propia
-   guardia (la hoja de la prenda de «Compré ropa»). Dos guardias en el historial a la vez preguntaban dos veces por el mismo gesto.
+   guardia (la hoja de la prenda de «Apunte de compras»). Dos guardias en el historial a la vez preguntaban dos veces por el mismo gesto.
 
    La puerta 4 cede ante las hojas del teléfono (ADR-0528): mientras haya una hoja que cierra con «atrás» (toda `<Modal>` y `<Cajon>`
    bajo 640 px) o una entrada suya en el historial, la guardia no se pone ni se retira, y su `popstate` no pregunta. Así un formulario
@@ -122,6 +122,9 @@ export function useSalidaSinGuardar(
     },
     [debePreguntar]
   );
+
+  // 6. Lo que rehace la pantalla sin navegar (el selector de sede) pregunta a esta guardia antes (`antesDeRehacerLaPantalla`).
+  useEffect(() => registrarGuardia({ debePreguntar, pedirAccion }), [debePreguntar, pedirAccion]);
 
   // 5. Cerrar o recargar la pestaña.
   useEffect(() => {

@@ -25,6 +25,13 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Toca «Colgadas» o «Guardadas» y la lista deja solo las prendas que tienen algo ahí; tócala otra vez y vuelve todo. Si dice «por cuadrar», el piso todavía no se contó.",
     },
     {
+      id: "valor",
+      ancla: "existencias.valor",
+      opcional: true,
+      titulo: "Cuánto vale lo que hay",
+      texto: "«Ver el valor a costo» muestra cuánto vale lo que hay en la sede, a lo que costó cada prenda. Lo ven el líder y quien ve el dinero de Compras. Las prendas sin costo no suman: la pantalla dice cuántas son y «Ver cuáles» te las lista para ponerles su costo. En la demo no lo abrimos.",
+    },
+    {
       id: "ajustar-stock",
       ancla: "existencias.ajustar-stock",
       opcional: true,
@@ -1519,7 +1526,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.reciente",
       opcional: true,
       titulo: "Cada llegada",
-      texto: "Toca una llegada para ver qué prendas trajo (te la abrimos).",
+      texto: "Cada fila es un envío (con todos sus proveedores). Tócala para ver qué prendas trajo (te la abrimos).",
     },
     {
       id: "detalle",
@@ -1527,7 +1534,15 @@ export const GUIA_RECIBIR: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "recibir.reciente" }],
       titulo: "Lo que trajo",
-      texto: "Cada prenda con su talla, color y cuántas llegaron, y la nota si la hubo.",
+      texto: "Cada prenda del envío con cuántas llegaron, y la nota si la hubo.",
+    },
+    {
+      id: "desplegar",
+      ancla: "recibir.desplegar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "recibir.reciente" }],
+      titulo: "Ver por color y talla",
+      texto: "Toca una prenda del envío para ver cuántas contaste de cada color y talla, y el costo con el que entró. Vuelve a tocarla para cerrarla.",
     },
     {
       id: "ver-todo",
@@ -1618,6 +1633,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       titulo: "Cuántas vienen y cuántas van",
       texto: "Cuántos fardos vienen (si Compras lo dijo), cuántas prendas dijeron que venían y, mientras cuentas, la balanza: a un lado lo que dijeron, al otro lo que llevas. Se inclina hacia donde hay más y te dice si cuadra, si faltan o si sobran.",
+    },
+    {
+      id: "hacer-dueno",
+      ancla: "recibir.hacer-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que entra?",
+      texto: "Al meter al stock lo que quedó «para después» en Tienda Lima, marca si es de CAYLA o de CLAURE: sin eso no se puede guardar. En otras tiendas no se pregunta. En la demo no se toca.",
     },
     {
       id: "otra-sede",

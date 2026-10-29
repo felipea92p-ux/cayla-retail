@@ -30,6 +30,91 @@ export function cantidadTexto(n: number, unidad: UnidadInsumo): string {
   return `${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: u.decimales })} ${u.corta}`;
 }
 
+/** En qué unidades se puede llevar el libro de cada tipo (ADR-0554). Una TELA va siempre en metros: el kilo y el rollo son unidades de COMPRA que se convierten al recibir, porque lo que el
+ *  sistema aprende del consumo (Audaces, el cierre de la orden) habla en metros. Un avío, en la unidad que se elija. Es el mismo candado que `insumos_tela_en_metros` en la base. */
+export function unidadesPermitidas(tipo: TipoInsumo): UnidadInsumo[] {
+  return tipo === "tela" ? ["metro"] : (Object.keys(UNIDADES_INSUMO) as UnidadInsumo[]);
+}
+
+/** Lo que dice la hoja cuando una cantidad escrita no se entiende. */
+export const CANTIDAD_ILEGIBLE = "No se entiende la cantidad: escríbela así, 48.2 o 48,2.";
+
+/**
+ * Una cantidad escrita a mano (metros, un mínimo, una merma en %): «48,2» y «48.2» son lo mismo, con uno o dos decimales.
+ *
+ * EL PROBLEMA. `Number("48,2")` es `NaN`: «Ingresar insumo» no dejaba guardar una cantidad con coma (se apagaba el botón sin decir por qué) y, peor, un COSTO con coma («2,5») se leía como 0 y la hoja
+ * lo daba por bueno: el lote se abría a costo cero. El costo (es plata) se lee con la regla única `numeroDeMonto`; una cantidad no admite miles ni tres decimales a propósito.
+ *
+ * LA REGLA. Solo cifras y UN separador (punto o coma) con 0, 1 o 2 decimales («12,» mientras se escribe es 12). Todo lo demás es `null` y la hoja dice cómo escribirlo:
+ * «1.200» ¿son mil doscientos o uno con dos? No se adivina, igual que `leerMontoPlata`. Vacío es `null` (quien llama decide si «vacío» es 0 o falta).
+ */
+export function leerCantidad(texto: string): number | null {
+  const t = texto.replace(/\s/g, "");
+  if (!/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
+  return Number(t.replace(",", "."));
+}
+
+/** Cómo se COMPRA una tela (ADR-0554). El libro va siempre en metros: el kilo y el rollo se convierten al recibir. */
+export type CompraDeTela = "metro" | "kilo" | "rollo";
+
+/** La tela (o el avío): lo que es y cómo se compra. Sus colores son los `InsumoVista` con su `materialId`. */
+export type MaterialVista = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: TipoInsumo;
+  tejidoId: string | null;
+  composicion: string | null;
+  /** La unidad del libro (una tela, siempre metro). */
+  unidad: UnidadInsumo;
+  /** 0 a 0,5. */
+  merma: number;
+  /** Cómo se compra: una tela, metro / kilo / rollo; un avío, su unidad. */
+  compra: UnidadInsumo | "rollo";
+  ancho: number | null;
+  gramaje: number | null;
+  metrosPorRollo: number | null;
+  /** Su `updated_at` tal como lo devolvió la base (texto, sin pasarlo por `Date`: pierde los microsegundos). «Editar tela» lo manda de vuelta y la base rechaza el guardado si otra persona cambió la tela entretanto (ADR-0193). */
+  version: string;
+};
+
+/** Metros que salen de un kilo: `1000 ÷ (gramaje en g/m² × ancho en m)`. `null` si falta el ancho o el gramaje. */
+export function metrosPorKilo(anchoCm: number | null, gramaje: number | null): number | null {
+  if (anchoCm === null || gramaje === null || !(anchoCm > 0) || !(gramaje > 0)) return null;
+  return 1000 / (gramaje * (anchoCm / 100));
+}
+
+/** Lo que se dice de cómo se compra una tela: «Se compra por kilo · rinde ≈ 3,47 m/kg». */
+export function textoDeCompra(m: Pick<MaterialVista, "tipo" | "compra" | "ancho" | "gramaje" | "metrosPorRollo">): string {
+  if (m.tipo === "avio") return `Se cuenta en ${m.compra === "unidad" ? "unidades" : UNIDADES_INSUMO[m.compra as UnidadInsumo].larga.toLowerCase()}`;
+  if (m.compra === "kilo") {
+    const r = metrosPorKilo(m.ancho, m.gramaje);
+    return r === null ? "Se compra por kilo" : `Se compra por kilo · rinde ≈ ${r.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m/kg`;
+  }
+  if (m.compra === "rollo") return m.metrosPorRollo ? `Se compra por rollo · ≈ ${m.metrosPorRollo.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m cada uno` : "Se compra por rollo";
+  return "Se compra por metro";
+}
+
+/** Los insumos de una lista juntados por tela, en el orden en que aparece cada una. Un insumo sin tela (o con una tela que no se leyó) queda solo, sin encabezado. */
+export function agruparPorTela<I extends { materialId?: string | null }>(lista: readonly I[], materiales: readonly MaterialVista[]): { material: MaterialVista | null; insumos: I[] }[] {
+  const porId = new Map(materiales.map((m) => [m.id, m]));
+  const grupos: { material: MaterialVista | null; insumos: I[] }[] = [];
+  const lugar = new Map<string, number>();
+  for (const i of lista) {
+    const m = i.materialId ? (porId.get(i.materialId) ?? null) : null;
+    if (!m) {
+      grupos.push({ material: null, insumos: [i] });
+      continue;
+    }
+    const k = lugar.get(m.id);
+    if (k === undefined) {
+      lugar.set(m.id, grupos.length);
+      grupos.push({ material: m, insumos: [i] });
+    } else grupos[k].insumos.push(i);
+  }
+  return grupos;
+}
+
 export type MovimientoInsumo = {
   id: string;
   insumoId: string;

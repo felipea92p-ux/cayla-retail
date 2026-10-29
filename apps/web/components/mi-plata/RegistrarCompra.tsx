@@ -20,10 +20,10 @@ import { BarraDeAbajo, BarraDeAbajoResumen } from "@/components/ui/BarraDeAbajo"
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { TuCompra } from "./TuCompra";
+import { destinoDelVuelo, salidaDelVuelo, volarATuCompra } from "./vuelo";
+import { useCifraQueCuenta } from "@/components/ui/useCifraQueCuenta";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { Globito } from "@/components/ui/Globito";
 import { HojaPrenda } from "@/components/mi-plata/HojaPrenda";
 import { TarjetaFoto } from "@/components/mi-plata/TarjetaFoto";
 import { RegistrarProveedorOrden } from "@/components/ordenes-compra/RegistrarProveedorOrden";
@@ -37,7 +37,6 @@ import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { cargarFotosDeHabituales, cargarHabituales, registrarCompraRapida, registrarMarcaDeCompra, subirFotoPapel } from "@/lib/compra-rapida-acciones";
-import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import {
   HABITUALES_A_LA_VISTA,
   PROVEEDORES_POR_TANDA,
@@ -72,7 +71,9 @@ import {
   textoAvance,
   lineaDeAvance,
   PASOS_DE_LA_COMPRA,
-  textoHabitual,
+  piezasDeFila,
+  borradorDeAtajo,
+  cantidadDeAtajo,
   pagoParaBase,
   textoLoQueFalta,
   textoPlataDespues,
@@ -171,6 +172,11 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [catHabitual, setCatHabitual] = useState<string | null>(null);
   const [verTodos, setVerTodos] = useState(false);
   const [enCurso, setEnCurso] = useState<EnCurso | null>(null);
+  // El vuelo de la prenda a «Tu compra» (Felipe 2026-10-28): las que van en el aire (su línea ya tiene lugar pero no cuenta todavía) y las que
+  // acaban de aterrizar (su línea se ilumina una vez). Lo que dice «Tu compra» y la barra de abajo se cuenta sin las que vuelan.
+  const [volando, setVolando] = useState<ReadonlySet<string>>(new Set());
+  const [llegaron, setLlegaron] = useState<ReadonlySet<string>>(new Set());
+  const pendientesDeVuelo = useRef<{ clave: string; cantidad: number; salida: ReturnType<typeof salidaDelVuelo> }[]>([]);
   // Cómo llegó la hoja abierta: si lo escrito ya no es eso, cerrarla (o salir de la pantalla) pregunta antes de perderlo.
   const [hojaInicial, setHojaInicial] = useState<string | null>(null);
   const [lineas, setLineas] = useState<LineaCompra[]>([]);
@@ -218,8 +224,49 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const deCategoria = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
+  // Lo que se VE en «Tu compra» y en la barra de abajo: sin las prendas que todavía vuelan; al aterrizar, el total cuenta hasta la cifra nueva.
+  const lineasMostradas = useMemo(() => (volando.size === 0 ? lineas : lineas.filter((l) => !volando.has(l.clave))), [lineas, volando]);
+  const totalMostrado = useCifraQueCuenta(totalDeLineas(lineasMostradas));
+  const unidadesMostradas = prendasDeLineas(lineasMostradas);
   // Lo que dice la barra de abajo: el total grande y, debajo, cuántas prendas y modelos lleva.
-  const detalleCarrito = `${prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`} · ${resumenCarrito(lineas).detalle}`;
+  const detalleCarrito = `${unidadesMostradas === 1 ? "1 prenda" : `${unidadesMostradas} prendas`} · ${resumenCarrito(lineasMostradas).detalle}`;
+
+  // Las prendas que se agregaron en este cambio salen volando cuando ya existe su lugar en pantalla (después de pintar, antes de que se vea).
+  useLayoutEffect(() => {
+    const pendientes = pendientesDeVuelo.current;
+    if (pendientes.length === 0) return;
+    pendientesDeVuelo.current = [];
+    for (const p of pendientes) {
+      volarATuCompra({
+        salida: p.salida,
+        cantidad: p.cantidad,
+        destino: destinoDelVuelo(p.clave),
+        alLlegar: () => {
+          setVolando((v) => {
+            const n = new Set(v);
+            n.delete(p.clave);
+            return n;
+          });
+          setLlegaron((l) => new Set(l).add(p.clave));
+          window.setTimeout(
+            () =>
+              setLlegaron((l) => {
+                const n = new Set(l);
+                n.delete(p.clave);
+                return n;
+              }),
+            950,
+          );
+        },
+      });
+    }
+  }, [lineas]);
+
+  /** Anota que esta prenda va a volar a «Tu compra»: se guarda de dónde sale ANTES de cambiar la compra (la hoja se cierra y su botón deja de existir). */
+  function iniciarVuelo(clave: string, cantidad: number, boton: Element | null) {
+    pendientesDeVuelo.current.push({ clave, cantidad, salida: salidaDelVuelo(clave, boton) });
+    setVolando((v) => new Set(v).add(clave));
+  }
   const pagoAhora: PagoCompra = { ...pago, pagado: pagadoPropio ? pago.pagado : monto };
   // Con el monto escondido, lo pagado es todo lo del papel: no hay nada que la guía pida ahí.
   const verParte = pagoParcial || pagadoPropio;
@@ -257,7 +304,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   }
 
   function alRegistrarProveedor(p: ProveedorRegistrado) {
-    const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null };
+    const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null, marcas: [] };
     setProveedores((ps) => (ps.some((x) => x.id === p.id) ? ps : [...ps, elegido]));
     setRegistrando(false);
     void elegirProveedor(elegido);
@@ -328,6 +375,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     if (nuevas.length === 0) return;
     hojaHecha.current = enCurso;
     const clave = enCurso.edita;
+    // Una prenda nueva en la compra vuela a «Tu compra»; corregir una que ya iba solo cambia su línea.
+    if (clave == null) iniciarVuelo(nuevas[0].clave, prendasDeLineas(nuevas), document.querySelector("[data-vuelo-origen]"));
     setLineas((ls) => {
       if (clave == null) return [...ls, ...nuevas];
       // Corrige: las líneas de esa prenda se reemplazan en su lugar (pueden ser más o menos que antes, si cambió el reparto).
@@ -336,6 +385,23 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       return [...resto.slice(0, desde), ...nuevas, ...resto.slice(desde)];
     });
     setEnCurso(null);
+  }
+
+  // «+ 9 como la vez pasada» (Felipe 2026-10-28): agrega de un toque con lo de la vez pasada —cantidad, costo y venta— a la tienda de la prenda
+  // anterior. Si no alcanza para agregarla (la primera prenda no tiene tienda anterior, o falta un precio), abre la hoja con eso ya escrito: nunca
+  // adivina una tienda. Una que ya va en la compra se corrige, no se agrega dos veces.
+  function agregarConAtajo(h: Habitual) {
+    const ya = lineas.findIndex((l) => l.clave === h.clave);
+    if (ya >= 0) return corregir(ya);
+    const b = borradorDeAtajo(h, tiendaAnterior(lineas));
+    if (!b) return elegirHabitual(h);
+    const nuevas = lineasDeBorrador(h, b, deCategoria.get(h.categoriaId)?.admitePrecioCero === true);
+    if (nuevas.length === 0) {
+      abrirHoja({ habitual: h, ...b, edita: null });
+      return;
+    }
+    iniciarVuelo(h.clave, prendasDeLineas(nuevas), null);
+    setLineas((ls) => [...ls, ...nuevas]);
   }
 
   function quitarPrenda() {
@@ -451,7 +517,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
         {atras ? <Volver onClick={() => setPaso(atras)} a="Volver al paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
         <div className="min-w-0 flex-1">
           <div role="heading" aria-level={1} className="font-serif text-[28px] leading-none text-tinta">
-            Compré ropa
+            Apunte de compras
           </div>
           <div className="mt-1 truncate text-xs text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</div>
         </div>
@@ -529,6 +595,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               verTodos={verTodos}
               setVerTodos={setVerTodos}
               alElegir={elegirHabitual}
+              alAtajo={agregarConAtajo}
               alCorregir={corregir}
               fotos={fotos}
             />
@@ -559,8 +626,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             {lineas.length > 0 ? (
               // La Isla oscura del sistema (`<BarraDeAbajo>`, ADR-0479): lo que llevas elegido a la izquierda y «Seguir» a la derecha; su botón
               // principal ya va en crema sobre la barra y, en modo oscuro, se invierte con ella.
-              <BarraDeAbajo tono="tinta" pegada data-guia="compra.carrito">
-                <BarraDeAbajoResumen cifra={soles(total)} detalle={detalleCarrito} />
+              <BarraDeAbajo tono="tinta" pegada data-guia="compra.carrito" data-vuelo-barra>
+                <BarraDeAbajoResumen cifra={soles(totalMostrado)} detalle={detalleCarrito} />
                 <div className="barra-abajo-acciones">
                   <Boton peso="primario" onClick={() => setPaso("revisar")} data-guia="compra.revisar">
                     <span className="inline-flex items-center gap-2">
@@ -875,9 +942,11 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           nombresTienda={nombresTienda}
           fotos={fotos}
           categorias={deCategoria}
-          total={total}
-          unidades={prendasDeLineas(lineas)}
-          ganancia={ganancia}
+          total={totalMostrado}
+          unidades={unidadesMostradas}
+          ganancia={gananciaDeCompra(lineasMostradas)}
+          enVuelo={volando}
+          llegaron={llegaron}
           siguiente={
             paso === "proveedor"
               ? "Sigue: elegir a quién le compraste"
@@ -1033,6 +1102,12 @@ function PasoProveedor({
         </span>
         <span className="min-w-0">
           <span className="block truncate font-medium text-tinta">{p.nombre}</span>
+          {p.marcas.length > 0 && (
+            <span className="block truncate text-xs text-tinta/70">
+              {p.marcas.length === 1 ? "Marca" : "Marcas"}: {p.marcas.slice(0, 3).join(", ")}
+              {p.marcas.length > 3 ? ` y ${p.marcas.length - 3} más` : ""}
+            </span>
+          )}
           {/* Hasta dos líneas: a 375 px «Le compraste hace una semana · 4 compras» se cortaba en «4 c…». */}
           <span className="line-clamp-2 block text-xs text-taupe">
             {p.compras > 0
@@ -1054,7 +1129,7 @@ function PasoProveedor({
         onCambio={setQ}
         tamano="mostrador"
         etiqueta="Busca el proveedor"
-        placeholder="Nombre del proveedor" // sugerir-fijo: se busca un proveedor por su nombre; no depende de nada elegido antes
+        placeholder="Nombre o marca del proveedor" // sugerir-fijo: se busca un proveedor por su nombre o su marca; no depende de nada elegido antes
         guia="compra.buscador"
       />
       {/* Registrar un proveedor nuevo, a la vista bajo el buscador (Felipe 2026-10-23: «no se nota que tiene esa opción»; antes era un
@@ -1133,6 +1208,9 @@ function PasoProveedor({
   );
 }
 
+// «¿Qué le compraste?» como lista de filas (Felipe 2026-10-28, maqueta docs/maquetas/mis-compras-prendas-2026-10/): cada prenda con su miniatura, lo que
+// te costó, a cuánto la vendes y cuántas fueron la vez pasada. Si ya se le compró, «+ 9 como la vez pasada» la agrega de un toque; si ya va en la
+// compra, dice cuántas. Tocar la fila abre la hoja (o la corrige). Sin cambiar qué se guarda ni las reglas: solo cómo se ve y cómo se agrega.
 function ListaHabituales({
   habituales,
   lineas,
@@ -1143,6 +1221,7 @@ function ListaHabituales({
   verTodos,
   setVerTodos,
   alElegir,
+  alAtajo,
   alCorregir,
   fotos,
 }: {
@@ -1155,6 +1234,8 @@ function ListaHabituales({
   verTodos: boolean;
   setVerTodos: (v: boolean) => void;
   alElegir: (h: Habitual) => void;
+  /** «+ 9 como la vez pasada»: agrega con lo de la vez pasada (o abre la hoja si no alcanza). */
+  alAtajo: (h: Habitual) => void;
   alCorregir: (i: number) => void;
   /** La foto de cada prenda del catálogo, por `producto_id`. */
   fotos: ReadonlyMap<string, string>;
@@ -1165,38 +1246,61 @@ function ListaHabituales({
   // La miniatura sin foto es el ícono de su categoría sobre su tono (ADR-0333): el prefijo y la familia salen de la categoría.
   const deCategoria = new Map(categorias.map((c) => [c.id, c]));
   const claves = new Set(habituales.map((h) => h.clave));
-  // Las prendas nuevas que ya van en la compra también son tarjetas: así se corrigen igual que las de siempre (una por prenda).
+  // Las prendas nuevas que ya van en la compra también son filas: así se corrigen igual que las de siempre (una por prenda).
   const nuevas = lineas.map((l, i) => ({ l, i })).filter(({ l, i }) => !claves.has(l.clave) && lineas.findIndex((x) => x.clave === l.clave) === i);
-  const tarjeta = (clave: string, productoId: string | null, nombre: string, categoriaId: string, categoria: string, abajo: string | null, onClick: () => void) => {
+  // La guía interactiva ancla al primer atajo (nunca a clases ni a textos).
+  const primerAtajo = ver.find((h) => !lineas.some((l) => l.clave === h.clave) && cantidadDeAtajo(h) != null)?.clave;
+  const fila = (clave: string, productoId: string | null, nombre: string, categoriaId: string, categoria: string, h: Habitual | null, onClick: () => void) => {
     const c = deCategoria.get(categoriaId);
-    const mosaico = <MosaicoPrenda forma="grilla" prefijo={c?.prefijo} familia={c?.familia as never} categoria={categoria} conNombre={false} className="w-full aspect-[4/3]!" />;
-    const foto = productoId ? fotos.get(productoId) : undefined;
-    // Repartida entre tiendas, una prenda son varias líneas: la tarjeta suma todas.
+    // Repartida entre tiendas, una prenda son varias líneas: la fila suma todas.
     const suyas = lineas.filter((l) => l.clave === clave);
-    const linea = suyas.length > 0;
+    const enCompra = suyas.length > 0;
+    const piezas = piezasDeFila(h, suyas);
+    const atajo = h && !enCompra ? cantidadDeAtajo(h) : null;
     return (
-      <li key={clave}>
-        <button
-          type="button"
-          onClick={onClick}
-          className={`card-cayla mov-boton relative flex h-full w-full flex-col gap-2 rounded-[18px] p-2.5 text-left ${linea ? "border-tinta ring-1 ring-inset ring-tinta" : ""}`}
-        >
-          {/* La foto de la prenda, servida al tamaño en que se ve; sin foto (o si no carga), su categoría sobre su tono (ADR-0333). */}
-          {foto ? (
-            <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-xl border border-tinta/10 bg-sand/50">
-              <ImagenDePrenda src={foto} alt="" fill sizes="(min-width: 640px) 140px, 45vw" className="object-cover" fallback={mosaico} />
+      <li key={clave} className="flex items-center gap-3 border-t border-sand px-3.5 py-2.5 first:border-t-0 hover:bg-hueso/50">
+        <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${nombre}${enCompra ? `, ${prendasDeLineas(suyas)} en la compra` : ""}`}>
+          <span data-vuelo-miniatura={clave} className="shrink-0">
+            <MiniaturaPrenda fotoUrl={(productoId && fotos.get(productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={categoria} tamano="lg" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[14.5px] font-semibold leading-tight text-tinta">{nombre}</span>
+            <span className="mt-0.5 block text-[12.5px] leading-snug text-taupe">
+              {piezas.length > 0
+                ? piezas.map((p, i) => (
+                    <span key={p.etiqueta}>
+                      {i > 0 && " · "}
+                      <span className="whitespace-nowrap">
+                        {p.etiqueta} <b className="font-semibold tabular-nums text-tinta">{p.valor}</b>
+                      </span>
+                    </span>
+                  ))
+                : `${categoria}${h?.marca ? ` · ${h.marca}` : ""}`}
+              {enCompra && <span className="sr-only"> · {textoPrendaEnCompra(suyas, nombresTienda)}</span>}
             </span>
-          ) : (
-            mosaico
-          )}
-          {linea && <Globito n={prendasDeLineas(suyas)} esquina etiqueta="en la compra" className="absolute right-4 top-4" />}
-          <span className="text-[13.5px] font-medium leading-tight text-tinta">{nombre}</span>
-          {(linea || abajo) && (
-            <span className="text-xs leading-snug text-taupe">
-              {linea ? textoPrendaEnCompra(suyas, nombresTienda) : abajo}
-            </span>
-          )}
+          </span>
         </button>
+        {enCompra ? (
+          <Chip tono="verde" versalitas={false} title={textoPrendaEnCompra(suyas, nombresTienda)}>
+            {prendasDeLineas(suyas)} en la compra
+          </Chip>
+        ) : atajo != null && h ? (
+          <Boton
+            type="button"
+            peso="fantasma"
+            onClick={() => alAtajo(h)}
+            title={`Agregar ${atajo} como la vez pasada`}
+            aria-label={`Agregar ${atajo} de ${nombre}, como la vez pasada`}
+            data-guia={clave === primerAtajo ? "compra.atajo" : undefined}
+            className="shrink-0 !px-3 sm:!px-4"
+          >
+            <span className="flex flex-col items-center leading-tight">
+              <span className="font-semibold tabular-nums">+ {atajo}</span>
+              <span className="hidden text-[10.5px] font-normal text-taupe sm:block">como la vez pasada</span>
+            </span>
+          </Boton>
+        ) : null}
+        <ChevronRight className="hidden h-4 w-4 shrink-0 text-taupe sm:block" aria-hidden />
       </li>
     );
   };
@@ -1214,11 +1318,9 @@ function ListaHabituales({
           ))}
         </div>
       )}
-      <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6" data-guia="compra.habituales">
-        {nuevas.map(({ l, i }) => tarjeta(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
-        {ver.map((h) =>
-          tarjeta(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),
-        )}
+      <ul className="card-cayla overflow-hidden rounded-[18px]" data-guia="compra.habituales">
+        {nuevas.map(({ l, i }) => fila(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
+        {ver.map((h) => fila(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, h, () => alElegir(h)))}
       </ul>
       {!verTodos && !cat && habituales.length > HABITUALES_A_LA_VISTA && (
         <BotonVerMas forma="enlace" abierto={false} onCambiar={() => setVerTodos(true)} texto={`Ver todos los suyos (${habituales.length})`} className="self-center" />

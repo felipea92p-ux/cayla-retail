@@ -225,7 +225,9 @@ flowchart TB
 
 **Catálogo / inventario**
 - `/inventario` (Existencias; rediseño 2026-10-04, ADR-0331) → `app/(app)/inventario/page.tsx` lee `lib/inventario-v2.ts`
-  (`getExistencias`, RPC `fn_stock_por_sede_json`), `lib/por-regularizar-cuenta.ts` (`contarPorRegularizar`, tabla
+  (`getExistencias`, RPC `fn_stock_por_sede_json`), `lib/valor-inventario.ts` (`getValorInventario`, RPC `fn_valor_inventario_existencias`: «Ver el
+  valor a costo» de `components/existencias/ValorInventarioExistencias.tsx`, solo si la cuenta ve el dinero de Compras; su «Ver cuáles» pide
+  `fn_tallas_sin_costo` desde el navegador; reglas en `lib/valor-inventario-reglas.ts`, ADR-0557), `lib/por-regularizar-cuenta.ts` (`contarPorRegularizar`, tabla
   `prendas_por_regularizar`; su fila de «Para hoy» lleva a `/inventario/por-regularizar?ubicacion=`), `lib/capacidad-piso-servidor.ts`
   (`getCapacidadPiso`, RPC `fn_capacidad_piso`, tabla `capacidad_piso`, ADR-0329: la nota «de 600» de «Colgadas en el piso», con
   «por cuadrar» mientras la sede no tenga cuadre —`cuadrado_en`, leído de `cuadres_piso` si existe—; esa tarjeta cuenta solo la ropa
@@ -968,6 +970,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin
   copiar su cuerpo y, si el paso 5 trae cantidades, a `fn_cargar_stock_inicial` (entradas `carga_inicial` al almacén) y
   a `bajar_al_piso` («colgadas en el piso»). El paso 5 es `components/alta-producto/MatrizCantidades.tsx`.
+  **Con la carga inicial de la sede cerrada (ADR-0328 act. 2026-10-28)** la tabla pasa a «Cuántas llegaron» y, si hay unidades, el alta va por
+  `crear_producto_con_llegada` (`20261028221000`): el alta de siempre sin cantidades + `recibir_lote` del proveedor elegido, en una transacción
+  (reglas `faltaProveedorLlegada` / `textoFaltaStock` en `lib/alta-producto.ts`).
+  **Estándar de nombres (ADR-0556, 2026-10-28):** el paso 2 va marca → «¿Ya existe?» (`components/alta-producto/YaExiste.tsx`, las prendas de la
+  categoría que trae `useParecidasAlta().existentes`; cada una abre la hoja «Ver y comparar») → tejido → patrón → detalle → nombre. El nombre es
+  «<Tipo> <Nombre propio>» (`components/alta-producto/NombreDePrenda.tsx`, reglas puras en `lib/nombre-de-prenda.ts`): el tipo sale de la categoría,
+  se sugiere primero el nombre del proveedor si sirve y luego las flores libres (`contexto.nombresPorCategoria`). «Cómo lo llama el proveedor» se
+  guarda aparte, después de crear, con `fijar_nombre_proveedor` (`20261028184000`); en `/productos/[id]/editar` es la fila
+  `components/ficha-producto/NombreDelProveedor.tsx`, que guarda sola con la misma función.
   Con `?desde=produccion&tipo=…` (ADR-0361) la persona viene de una orden: la flecha de vuelta lleva a `/produccion/ordenes` y la pantalla de éxito
   (`ProductoCreado.tsx`) ofrece «Abrir la orden» → `/produccion/ordenes?nueva=<producto>&tipo=…`. Los enlaces de ida y vuelta son puros: `lib/modelo-nuevo-orden-reglas.ts`.
   Es el camino de la **alta completa** (con fotos, tejido y patrón); el modelo que el Taller necesita de inmediato se crea dentro de «Nueva orden ▸ Modelo nuevo»
@@ -1034,7 +1045,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   lee `fn_nueva_orden_opciones` (servicios con su lista de precios, consumo por modelo, tela comprometida) por `lib/produccion.ts:getOpcionesNuevaOrden`.
 - `/produccion/insumos` → `lib/insumos.ts:getInsumosDelTaller` (saldo derivado del ledger `movimientos_insumo`; el costo de cada lote llega a quien ve Producción en el Taller —`veCostos`, de `fn_costos_insumos_taller`— y el capital solo al líder) +
   `lib/insumos-reglas.ts` (puro) + `lib/telas-vocabulario.ts` (tejidos y colores de la prenda) → `InsumosPanel.tsx`, `InsumoModales.tsx` (RPC `recibir_insumo`), y desde ADR-0400 actividad 8e `insumos-taller/NuevoInsumoModal.tsx` (INSERT en `insumos`, con su guía de foco y
-  ejemplos de `lib/sugerencias-insumos.ts`) y `insumos-taller/FichaDeLaTelaModal.tsx` (UPDATE de `tejido_id` y `color_codigo`, política `insumos_update_lider`; reglas en `lib/insumos-ficha-reglas.ts` y `lib/insumos-guia.ts`): la ficha es de donde «Nueva orden» saca su sugerencia de tela. Desde la orden,
+  ejemplos de `lib/sugerencias-insumos.ts`) y `insumos-taller/FichaDeLaTelaModal.tsx` (UPDATE de `tejido_id` y `color_codigo`, política `insumos_update_lider`; reglas en `lib/insumos-ficha-reglas.ts` y `lib/insumos-guia.ts`): la ficha es de donde «Nueva orden» saca su sugerencia de tela. **La tela con sus colores (ADR-0554, actividades 1 y 2):** `lib/insumos.ts` también lee `materiales` (la tela: código, tejido, compra por metro, kilo o rollo, ancho, gramaje, metros por rollo; sin la migración cae a la lista plana) y `InsumosPanel` junta los colores bajo cada tela (`agruparPorTela`); `insumos-taller/NuevaTelaModal.tsx` crea la tela con sus colores en una hoja (`crear_material`) o le suma colores (`agregar_colores_a_material`), con las reglas puras de `lib/tela-nueva-reglas.ts`; el avío sigue en `NuevoInsumoModal` (`soloAvios`). **Actividad 3 (y la revisión del 28-oct):** `insumos-taller/EditarTelaModal.tsx` (el lápiz del encabezado de cada tela; solo el líder) llama a `editar_material` —nombre, tejido, composición, merma y cómo se compra— y los colores la siguen en la misma transacción (`materiales_propaga_a_colores`); sus reglas puras están en `lib/editar-tela-reglas.ts` y las piezas que comparte con «Nueva tela» (tejido y composición, cómo se compra con sus avisos), en `insumos-taller/PiezasDeLaTela.tsx`. `editar_material` recibe la `version` que la hoja leyó (`MaterialVista.version`, el `updated_at` de la tela como texto): si otra persona guardó antes responde PT409 y la hoja ofrece «Recargar» (`esVersionCambiada`); y `coloresConNombreDesfasado` (`lib/editar-tela-reglas.ts`) detecta los colores cuyo nombre ya no sigue al de Catálogo, con lo que el botón pasa a «Poner al día los nombres». `fn_materializar_insumos_sueltos(aplicar)` convierte lo suelto sin abortar (ensaya por defecto y guarda su respaldo). El camino de vuelta, ensayado, vive en `supabase/migrations/pegar-en-produccion-deshacer-materiales-2026-10-28.sql`. Una tela solo se lleva en metros (`insumos_tela_en_metros`) y un código no se repite (`insumos_codigo_clave_unico`). Desde la orden,
   `OrdenInsumos.tsx` llama `registrar_consumo_insumo`. Devolver: RPC `devolver_insumo_de_produccion` (vuelve al último lote del que salió la orden, F3b); `anular_produccion` devuelve lo descontado; el costo de tela/avíos de la orden es neto (`fn_recalcular_costo_insumos_produccion`).
 - `/produccion/proveedores` (solo líder) → `lib/proveedores-produccion.ts:getProveedoresProduccion` (RPC `fn_proveedores_produccion`) + `lib/proveedores-produccion-reglas.ts` (puro) →
   `ProveedoresProduccionPanel.tsx`, `ProveedorProduccionModal.tsx` (RPC `guardar_proveedor_produccion`, `cambiar_estado_proveedor_produccion`). **Segunda pestaña «Servicios y tarifas» (ADR-0400, actividad 8c):**
@@ -1520,6 +1531,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   que arma las líneas pendientes de esa tienda y llama a `crear_envio`; `despachos.bultos`) y «Terminé de comprar hoy» (`TerminarDia.tsx` →
   `terminar_dia_compras`). `fn_mi_plata_compras` lee también `gastos`, `por_mandar` y `hoy`; `fn_mi_plata_tiene` es la única cuenta de lo
   que tiene. `?mandar=1` (desde «Listo» de la compra) abre «Mandar a la tienda».
+  ADR-0559 (2026-10-28, sin migración): con la ronda abierta, `/compras/mi-plata` se coloca en `components/mi-plata/MesaDeLaRonda.tsx` (camino · plata y
+  acciones · `TablaDeLaRonda`/`ListaDelDia` y `ParaMandar` · `TerminarDia` como franja · `RondasAnteriores` en tarjetas); `lib/mi-plata-reglas.ts` suma
+  `usoDeLaPlata` y `totalesDeLaLista`, y `lib/mis-envios-reglas.ts`, `avanceDeEnvios`. La hoja «Mandar a la tienda» se abre con `EVENTO_MANDAR`.
   Actividad 6 (migración `20261023121000`): `/recibir/envio/[id]` muestra los papeles de lo comprado desde el celular
   (`components/recepcion-conteo/PapelesDeLaCompra.tsx`; `fn_envio_detalle` → `papeles`, foto firmada en `lib/recepcion-envio.ts`) y
   la prenda que eligió la compradora viaja en cada línea (`lineas[].producto`), pero el atajo «Son estas» de `SepararPrendas` se retiró el 2026-10-26 (ADR-0480): quien cuenta separa buscando la prenda.
@@ -1557,7 +1571,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `rondasConEnvios`, `codigosPorCompra`, buscador y filtros «Sin recibir / Recibidos», resumen y estado de cada envío) → `components/mi-plata/MisEnvios.tsx`
     (pestañas «Esta ronda» / «Rondas anteriores», `TablaEnvios.tsx` y `FilaEnvio.tsx`, el detalle en `HojaEnvio.tsx` —hoja en celular, cajón en escritorio— con
     `CodigoDeEnvio.tsx`: copiar el código y compartirlo por WhatsApp). «Mandar a la tienda» (`MandarATienda.tsx`) muestra ese mismo código al salir el envío
-    y `EnviosDeLaRonda.tsx` lo trae a Mis compras. Si la lectura falla la pantalla lo dice; Mis compras sigue sin los envíos (principio 9).
+    y `ParaMandar.tsx` (la tarjeta «Para mandar», que reemplazó a `EnviosDeLaRonda.tsx`, ADR-0559) lo trae a Mis compras. Si la lectura falla la pantalla lo dice; Mis compras sigue sin los envíos (principio 9).
   - **El banco de la plata anotada:** en una transferencia, «Me dieron plata» pregunta de qué banco salió. `fn_bancos_para_plata_compras()` (`20261026170000`;
     `getBancosParaPlata` en `lib/mi-plata.ts`, `leerBancosDePlata`) llena el combo y la columna `fondo_plata_anotada.cuenta_indicada_id` (`20261026165000`, solo
     con `medio = 'transferencia'`) guarda la indicación; la cuenta de verdad la elige Compras al confirmar (`PlataPorConfirmar.tsx` muestra el banco que indicó; no mueve plata). Sin bancos

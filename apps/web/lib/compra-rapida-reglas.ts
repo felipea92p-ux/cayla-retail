@@ -48,7 +48,8 @@ const numero = (v: unknown): number | null => {
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
-export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null };
+/** `marcas`: con las que se conoce al proveedor (ADR-0140); el nombre es su razón social y el equipo lo busca por «Kero». Vacía si no hay o no se pudieron leer. */
+export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null; marcas: string[] };
 
 /** Lo que manda `fn_proveedores_para_comprar`: el más comprado primero, como viene. */
 export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[] {
@@ -67,15 +68,21 @@ export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[
         categorias: Array.isArray(o.categorias) ? o.categorias.filter((c): c is string => typeof c === "string") : [],
         compras: Math.max(0, Math.trunc(numero(o.compras) ?? 0)),
         ultima: texto(o.ultima),
+        marcas: [],
       };
     })
     .filter((x): x is ProveedorParaComprar => x !== null);
 }
 
-/** Buscar un proveedor: por su nombre (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
+/** Suma a cada proveedor sus marcas (`marcasPorProveedor`, por id). Sin mapa (la lectura falló) la lista queda como vino. */
+export function conMarcas(lista: readonly ProveedorParaComprar[], marcas: Readonly<Record<string, readonly string[]>> | null): ProveedorParaComprar[] {
+  return lista.map((p) => ({ ...p, marcas: [...(marcas?.[p.id] ?? [])] }));
+}
+
+/** Buscar un proveedor: por su nombre o por alguna de sus marcas (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
 export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: string, categoriaId: string | null): ProveedorParaComprar[] {
   const n = normalizar(q);
-  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n)) && (!categoriaId || p.categorias.includes(categoriaId)));
+  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n) || p.marcas.some((m) => normalizar(m).includes(n))) && (!categoriaId || p.categorias.includes(categoriaId)));
 }
 
 /**
@@ -180,13 +187,51 @@ export function categoriasDeHabituales(lista: readonly Habitual[]): { id: string
   return porId.size > 1 ? [...porId.values()] : [];
 }
 
-/** La línea chica de una tarjeta de habitual: lo de la vez pasada, o lo que dice el catálogo si nunca se le compró aquí. */
-export function textoHabitual(h: Habitual): string | null {
-  if (h.veces > 0 && h.ultimaCantidad != null && h.costo != null) {
-    return `La vez pasada: ${h.ultimaCantidad} a ${soles(h.costo)}${h.venta != null ? ` · se vendió a ${soles(h.venta)}` : ""}`;
+/**
+ * Lo que dice cada fila de «¿Qué le compraste?» (Felipe 2026-10-28): «Te costó S/ 20.00 · vendes S/ 35.90 · antes: 5». Cada pieza es una
+ * etiqueta y su valor, para dibujar el valor en negrita. Una prenda que ya va en la compra dice lo que se anotó (sin «antes»); una que
+ * nunca se le compró aquí dice solo el precio del catálogo; sin ninguno, vacío (la fila pone su categoría y su marca).
+ */
+export function piezasDeFila(h: Habitual | null, suyas: readonly LineaCompra[]): { etiqueta: string; valor: string }[] {
+  const primera = suyas[0];
+  if (primera) {
+    return [
+      { etiqueta: "Te costó", valor: soles(primera.costo) },
+      ...(primera.venta != null ? [{ etiqueta: "vendes", valor: soles(primera.venta) }] : []),
+    ];
   }
-  if (h.venta != null) return `En el catálogo: se vende a ${soles(h.venta)}`;
-  return null;
+  if (!h) return [];
+  const antes = cantidadDeAtajo(h);
+  if (antes != null && h.costo != null) {
+    return [
+      { etiqueta: "Te costó", valor: soles(h.costo) },
+      ...(h.venta != null ? [{ etiqueta: "vendes", valor: soles(h.venta) }] : []),
+      { etiqueta: "antes:", valor: String(antes) },
+    ];
+  }
+  return h.venta != null ? [{ etiqueta: "Se vende a", valor: soles(h.venta) }] : [];
+}
+
+/** Cuántas se le compraron la vez pasada: lo que ofrece el botón «+ 9 como la vez pasada». Sin compras de antes, no hay atajo. */
+export function cantidadDeAtajo(h: Pick<Habitual, "veces" | "ultimaCantidad">): number | null {
+  return h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
+}
+
+/**
+ * El borrador del botón «+ 9 como la vez pasada»: la cantidad de la vez pasada con su costo y su venta, a la tienda de la prenda anterior.
+ * `null` si no hay vez pasada. Puede quedar incompleto (sin costo, venta o tienda): quien lo usa lo prueba con `lineasDeBorrador` y, si
+ * no alcanza para agregarla, abre la hoja con esto ya escrito en vez de adivinar.
+ */
+export function borradorDeAtajo(h: Habitual, destinoId: string | null): BorradorPrenda | null {
+  const cantidad = cantidadDeAtajo(h);
+  if (cantidad == null) return null;
+  return {
+    cantidad: String(cantidad),
+    costo: h.costo != null ? h.costo.toFixed(2) : "",
+    venta: h.venta != null ? h.venta.toFixed(2) : "",
+    destinos: destinoId ? [destinoId] : [],
+    reparto: {},
+  };
 }
 
 export type LineaCompra = {

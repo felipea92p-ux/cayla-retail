@@ -41,7 +41,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha, resNombreProveedor] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -76,6 +76,8 @@ export default async function EditarProductoPage({
     supabase.rpc("campanas_sedes"),
     // La ficha de consumo del modelo (ADR-0513): el Taller y los avíos para su hoja. Tolerante: si falla, la tarjeta no se dibuja.
     getPuertaDeLaFicha(),
+    // Cómo lo llama el proveedor (ADR-0556). Tolerante: sin la columna (la web llega antes que la migración) la fila no se dibuja.
+    supabase.from("productos").select("nombre_proveedor").eq("id", id).maybeSingle(),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const filasFamilias = exigir(familias, "las familias del catálogo");
@@ -176,6 +178,7 @@ export default async function EditarProductoPage({
           id: c.id,
           nombre: c.nombre,
           prefijo: c.prefijo,
+          familia: c.familia,
           exigeTejidoPatron: c.familia !== null && exigen.has(c.familia),
           admitePrecioCero: c.familia !== null && admitenPrecioCero.has(c.familia),
         }))}
@@ -211,6 +214,7 @@ export default async function EditarProductoPage({
           soloAqui: persona.terminal,
         }}
         producto={producto}
+        nombreProveedor={resNombreProveedor.error ? undefined : (resNombreProveedor.data?.nombre_proveedor ?? null)}
         volverA={volverA}
       />
     </div>
