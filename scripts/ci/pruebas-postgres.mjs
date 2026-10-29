@@ -773,6 +773,10 @@ export const PRUEBAS = [
   // la historia); lo que ya lee la tabla (fn_claure_gastos) toma el cambio solo; rango, nulo y categoría inexistente se rechazan; anon no ejecuta; la migración se repega. Cada caso: ROLLBACK.
   "pruebas:claure-reparto-pantalla",
 
+  // El motor de demanda con CIFRA (ADR-0560, deuda de la actividad 6d): fn_motor_demanda_preparacion no cuenta lo vendido de CLAURE (una venta solo de CLAURE deja el resultado igual que sin venta; la misma con una prenda de CAYLA
+  // sí aparece; un ticket mixto cuenta solo la línea de CAYLA; sin el parche de 6d sí contaba). Cada caso: ROLLBACK.
+  "pruebas:claure-motores-con-cifra",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 
