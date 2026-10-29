@@ -70,12 +70,14 @@ select distinct c.persona_id, c.persona_id from retail.colaboradores c
  where not exists (select 1 from retail.compra_rondas r where r.persona_id = c.persona_id and r.cerrada_en is null);
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as micaela from public.personas where auth_user_id = '${MICAELA}' \\gset
-select p.proveedor_id as prov from retail.productos p where p.proveedor_id is not null and p.estado = 'activo' and not p.es_prueba
- group by p.proveedor_id order by count(*) desc limit 1 \\gset
-select p.proveedor_id as otro_prov from retail.productos p where p.proveedor_id is not null and p.estado = 'activo' and not p.es_prueba and p.proveedor_id <> :'prov'
- group by p.proveedor_id order by count(*) desc limit 1 \\gset
-select id as p1 from retail.productos where proveedor_id = :'prov' and estado = 'activo' and not es_prueba order by referencia limit 1 \\gset
-select set_config('t.prov', :'prov', true), set_config('t.otro', coalesce(:'otro_prov', :'prov'), true), set_config('t.p1', :'p1', true), set_config('t.tru', :'tru', true) \\g /dev/null
+-- Lo que la prueba necesita, inventado aquí (la base del CI no trae un catálogo con proveedor): dos proveedores y una prenda del primero.
+insert into retail.proveedores (nombre) values ('Proveedor Historial Prueba') returning id as prov \\gset
+insert into retail.proveedores (nombre) values ('Otro Proveedor Historial Prueba') returning id as otro_prov \\gset
+insert into retail.marcas (nombre) values ('Marca Historial Prueba') returning id as marca \\gset
+insert into retail.categorias (nombre, familia) values ('Polos Historial', 'accesorios') returning id as cat \\gset
+insert into retail.marca_proveedores (marca_id, proveedor_id) values (:'marca', :'prov');
+insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat', 'Polo Historial', :'marca', :'prov') returning id as p1 \\gset
+select set_config('t.prov', :'prov', true), set_config('t.otro', :'otro_prov', true), set_config('t.p1', :'p1', true), set_config('t.tru', :'tru', true) \\g /dev/null
 `;
 
 const rolDeMicaela = (...modulos) => `
