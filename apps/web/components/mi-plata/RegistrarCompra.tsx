@@ -65,6 +65,10 @@ import {
   marcasPorCrear,
   conMarcasCreadas,
   marcasDeHabituales,
+  categoriasDeLasLineas,
+  marcasDeLasLineas,
+  marcasParaNueva,
+  marcasConProvisionales,
   prendasDeLineas,
   prendasDeLaCompra,
   totalesPorTienda,
@@ -264,12 +268,17 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   }
 
   const habitualesLeidos = Array.isArray(habituales) ? habituales : [];
-  const marcasDelProveedor = marcasDeHabituales(habitualesLeidos);
+  // «Algo nuevo» ofrece como habitual lo que ya se anotó en ESTA compra (Felipe 2026-10-28): un proveedor recién creado, o una prenda nueva todavía sin
+  // guardar, no está en el catálogo ni en compras de antes, y pedir otra vez la misma categoría o marca era repetir lo que se acababa de contestar.
+  // Va primero lo último anotado; después, lo que ya trae el proveedor.
+  const marcasDeLaCompra = marcasDeLasLineas(lineas);
+  const marcasDelProveedor = marcasParaNueva(marcasDeLaCompra, marcasDeHabituales(habitualesLeidos));
+  const marcasDeLaHoja = marcasConProvisionales(datos.marcas, marcasDeLaCompra);
 
   // «Algo nuevo»: la misma hoja, con qué es, la marca y el nombre arriba. `suyos`: los habituales recién leídos (al elegir un proveedor
   // sin prendas, el estado todavía no los tiene).
   function algoNuevo(suyos: Habitual[] = habitualesLeidos) {
-    abrirHoja({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", ...destinosDeEntrada(), edita: null, nueva: nuevoVacio(marcasDeHabituales(suyos)) });
+    abrirHoja({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", ...destinosDeEntrada(), edita: null, nueva: nuevoVacio(marcasParaNueva(marcasDeLaCompra, marcasDeHabituales(suyos))) });
   }
 
   // La tienda llega marcada con la de la prenda anterior; el reparto, vacío hasta que se marque otra.
@@ -323,7 +332,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // «Agregar» de la hoja: la prenda entra a la compra (o se corrige) y se vuelve a donde se estaba, la grilla o el resumen.
   function agregarPrenda() {
     if (!enCurso || hojaHecha.current === enCurso) return;
-    const h = enCurso.nueva ? habitualDeNuevo(`nuevo:${crypto.randomUUID()}`, enCurso.nueva, datos.categorias, datos.marcas) : enCurso.habitual;
+    const h = enCurso.nueva ? habitualDeNuevo(`nuevo:${crypto.randomUUID()}`, enCurso.nueva, datos.categorias, marcasDeLaHoja) : enCurso.habitual;
     const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso, deCategoria.get(h.categoriaId)?.admitePrecioCero === true) : [];
     if (nuevas.length === 0) return;
     hojaHecha.current = enCurso;
@@ -911,8 +920,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   cambiar: (cambio) => setEnCurso((e) => (e?.nueva ? { ...e, nueva: { ...e.nueva, ...cambio } } : e)),
                   proveedor: nombreCorto,
                   categorias: datos.categorias,
-                  suyas: new Set(habitualesLeidos.map((x) => x.categoriaId)),
-                  marcas: datos.marcas,
+                  suyas: new Set([...categoriasDeLasLineas(lineas), ...habitualesLeidos.map((x) => x.categoriaId)]),
+                  marcas: marcasDeLaHoja,
                   marcasDelProveedor,
                   habituales: habitualesLeidos,
                   usar: elegirHabitual,

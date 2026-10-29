@@ -2732,14 +2732,14 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.categoria-nueva",
       opcional: true,
       titulo: "Qué es",
-      texto: "La categoría de la prenda. Los botones son las que ya le compras a este proveedor; «Otra…» abre todas las demás, con su buscador. Si es un proveedor nuevo, no hay botones: eliges de la lista.",
+      texto: "La categoría de la prenda. Los botones son las que ya le compras a este proveedor y las que ya anotaste en esta compra; «Otra…» abre todas las demás, con su buscador. Si es un proveedor nuevo y aún no anotas nada, no hay botones: eliges de la lista.",
     },
     {
       id: "marca-nueva",
       ancla: "compra.marca-nueva",
       opcional: true,
       titulo: "La marca",
-      texto: "Como dice la etiqueta. Los botones son las marcas que trae este proveedor; «Otra…» abre todas las del catálogo. Si trae una sola, ya viene puesta.",
+      texto: "Como dice la etiqueta. Los botones son las marcas que trae este proveedor y las que ya anotaste en esta compra (también las que escribiste con «+»); «Otra…» abre todas las del catálogo. Si hay una sola, ya viene puesta.",
     },
     {
       id: "marca-mas",
@@ -2759,8 +2759,8 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       id: "cantidad",
       ancla: "compra.cantidad",
       opcional: true,
-      titulo: "Cuántas",
-      texto: "Cuántas compraste, con − y + o escribiéndolo. Los colores y las tallas los cuenta la tienda cuando llega.",
+      titulo: "Cuántas unidades",
+      texto: "Cuántas unidades compraste, con − y + o escribiéndolo. Los colores y las tallas los cuenta la tienda cuando llega.",
     },
     {
       id: "igual",
@@ -2794,7 +2794,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       id: "reparto",
       ancla: "compra.reparto",
       opcional: true,
-      titulo: "¿Cuántas a cada una?",
+      titulo: "¿Cuántas unidades a cada una?",
       texto: "Con dos o más tiendas, el total llega repartido parejo. Corrígelo con − y +: abajo te dice si cuadra con lo que compraste.",
     },
     {

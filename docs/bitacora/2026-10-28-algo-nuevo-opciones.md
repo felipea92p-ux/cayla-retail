@@ -1,0 +1,4 @@
+## 2026-10-28 · «Algo nuevo» ofrece lo que ya anotaste en la compra, y la cantidad dice «unidades»
+- **Qué se hizo:** en la hoja «Algo nuevo» de «Apunte de compras», las categorías y marcas que ya anotaste en la misma compra (también una marca escrita con «+») salen como botones habituales, lo último anotado primero; antes, un proveedor recién creado no ofrecía nada y había que volver a elegir lo mismo. El campo ahora dice «¿Cuántas unidades?» (también en el reparto entre tiendas y en la guía). Solo web, sin migración.
+- **Por qué pasaba:** los botones salían de lo que ya está en el catálogo o en compras guardadas del proveedor; una prenda nueva todavía sin guardar no estaba en ninguno de los dos.
+- **Cómo se verifica:** pruebas nuevas de `categoriasDeLasLineas`, `marcasDeLasLineas`, `marcasParaNueva` y `marcasConProvisionales`; la hoja real con los datos de ejemplo a 375 y 900 px.

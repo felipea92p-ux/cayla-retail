@@ -60,7 +60,7 @@ export type PrendaNuevaDeHoja = {
   cambiar: (cambio: Partial<BorradorNuevo>) => void;
   proveedor: string;
   categorias: CategoriaParaComprar[];
-  /** Las categorías que ya le compras: van primero. */
+  /** Las categorías que ya le compras y las que ya anotaste en esta compra: van primero, en este orden (lo último anotado, antes). */
   suyas: ReadonlySet<string>;
   marcas: { id: string; nombre: string }[];
   /** Las marcas que trae este proveedor: van primero. */
@@ -150,7 +150,7 @@ export function HojaPrenda({
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col items-start gap-1">
                 <span className="text-[13px] font-semibold text-tinta">
-                  <ConMarca estado={guia.estado("cantidad")}>¿Cuántas?</ConMarca>
+                  <ConMarca estado={guia.estado("cantidad")}>¿Cuántas unidades?</ConMarca>
                 </span>
                 {laVezPasada != null && (
                   <Atajo elegido={cantidad === laVezPasada} onClick={() => ponerCantidad(String(laVezPasada))} guia="compra.igual">
@@ -166,7 +166,7 @@ export function HojaPrenda({
                   value: b.cantidad,
                   inputMode: "numeric",
                   autoComplete: "off",
-                  "aria-label": "¿Cuántas compraste?",
+                  "aria-label": "¿Cuántas unidades compraste?",
                   onChange: (e) => ponerCantidad(e.target.value),
                 }}
               />
@@ -243,7 +243,7 @@ export function HojaPrenda({
 
           {/* Repartida entre tiendas: cuántas va a cada una, parejo de entrada; abajo, si cuadra con lo comprado. */}
           {repartidas && (
-            <CampoGuiado id="reparto" guia={guia} titulo="¿Cuántas a cada una?">
+            <CampoGuiado id="reparto" guia={guia} titulo="¿Cuántas unidades a cada una?">
               <ul className="flex flex-col gap-2" data-guia="compra.reparto">
                 {b.destinos.map((d) => {
                   const n = leerCantidad(b.reparto[d] ?? "") ?? 0;
@@ -258,7 +258,7 @@ export function HojaPrenda({
                           value: b.reparto[d] ?? "",
                           inputMode: "numeric",
                           autoComplete: "off",
-                          "aria-label": `Cuántas van a ${nombreTienda.get(d) ?? "la tienda"}`,
+                          "aria-label": `Cuántas unidades van a ${nombreTienda.get(d) ?? "la tienda"}`,
                           onChange: (e) => ponerParte(e.target.value),
                         }}
                       />
@@ -350,7 +350,7 @@ function DescribirNueva({
             etiqueta="¿Qué es?"
             marcadorSinChips="Elige una categoría"
             todas={nueva.categorias}
-            habituales={nueva.categorias.filter((c) => nueva.suyas.has(c.id)).map((c) => c.id)}
+            habituales={[...nueva.suyas].filter((id) => nueva.categorias.some((c) => c.id === id))}
             valor={n.categoriaId}
             onValor={(v) => nueva.cambiar({ categoriaId: v || null })}
             opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
