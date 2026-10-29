@@ -1,6 +1,6 @@
 # ADR-0571 — La cuenta de la devolución al cerrar la ronda, y «Reabrir» en «Tu última ronda» (Mis compras)
 
-- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; las migraciones `20261029165000` y `20261029170000` **NO están en producción** (esperan el OK de Felipe, tocan una función que mueve dinero).
+- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; las migraciones `20261029165000` y `20261029170000` **están en producción desde el 2026-10-29** (pegadas con `apply_migration` con el OK de Felipe, en orden y antes de fusionar la web; verificadas por objeto).
 - **Continúa a:** [ADR-0569](0569-reabrir-la-ultima-ronda-de-compras.md) (reabrir la última ronda) y [ADR-0480](0480-compras-simple-en-cuatro-pasos.md) (la ronda de compras).
 - **Origen:** Felipe, 2026-10-29, mirando Mis compras: «por el botón de reabrir no colocaste por aquí, ya que aquí se ve la última ronda» (la tarjeta «Tu última ronda») y, viendo la hoja «Cerrar mi ronda»:
   «cuando se devuelve no dice a qué cuenta de CAYLA se está devolviendo». Al preguntarle cómo, eligió: «que indique la cuenta a la que devolvió y allí le debe listar las cuentas de la empresa».
@@ -36,4 +36,4 @@ sin subtítulo; el cuaderno igual (las cifras son lo esencial); los envíos en *
 
 ## Cómo se pega en producción (con el OK de Felipe)
 Dos partes, en orden (ADR-0195: un `alter` de una tabla en uso va aparte): `20261029165000` (la columna) y `20261029170000` (las funciones; reemplazos anclados e idempotentes). `pnpm pruebas:compras-simple-cuenta-devolucion` (6 casos).
-**Mientras la parte 2 no esté en producción, la web que llama con el parámetro nuevo falla al cerrar una ronda: la web NO se publica antes que las migraciones.**
+Ya están las dos en producción, así que la web puede publicarse. (Si algún día se vuelve a una base sin la parte 2, la web que llama con el parámetro nuevo falla al cerrar una ronda.)
