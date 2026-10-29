@@ -3117,52 +3117,79 @@ export type Database = {
       prendas_danadas: {
         Row: {
           cambio_id: string | null
+          arreglo_costo: number | null
+          arreglo_no_se_pudo_motivo: string | null
+          arreglo_resultado: string | null
+          arreglo_volvio_en: string | null
           cantidad: number
           created_at: string
           devolucion_item_id: string | null
+          en_arreglo_desde: string | null
           estado: string
           id: string
           motivo_reporte: string | null
           movimiento_entrada_id: string
           movimiento_salida_id: string | null
           nota: string | null
+          nota_arreglo: string | null
           proveedor_id: string | null
           resuelto_en: string | null
           resuelto_por: string | null
+          ruta_arreglo: string | null
+          sacada_por: string | null
+          tipo_dano: string | null
           ubicacion_id: string
           variante_id: string
         }
         Insert: {
           cambio_id?: string | null
+          arreglo_costo?: number | null
+          arreglo_no_se_pudo_motivo?: string | null
+          arreglo_resultado?: string | null
+          arreglo_volvio_en?: string | null
           cantidad: number
           created_at?: string
           devolucion_item_id?: string | null
+          en_arreglo_desde?: string | null
           estado?: string
           id?: string
           motivo_reporte?: string | null
           movimiento_entrada_id: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          nota_arreglo?: string | null
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          ruta_arreglo?: string | null
+          sacada_por?: string | null
+          tipo_dano?: string | null
           ubicacion_id: string
           variante_id: string
         }
         Update: {
           cambio_id?: string | null
+          arreglo_costo?: number | null
+          arreglo_no_se_pudo_motivo?: string | null
+          arreglo_resultado?: string | null
+          arreglo_volvio_en?: string | null
           cantidad?: number
           created_at?: string
           devolucion_item_id?: string | null
+          en_arreglo_desde?: string | null
           estado?: string
           id?: string
           motivo_reporte?: string | null
           movimiento_entrada_id?: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          nota_arreglo?: string | null
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          ruta_arreglo?: string | null
+          sacada_por?: string | null
+          tipo_dano?: string | null
           ubicacion_id?: string
           variante_id?: string
         }
@@ -4098,6 +4125,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          lugar: string | null
+          lugar_en: string | null
+          lugar_por: string | null
           nombre: string
           tipo: string | null
           ubicacion_id: string
@@ -4105,6 +4135,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          lugar?: string | null
+          lugar_en?: string | null
+          lugar_por?: string | null
           nombre: string
           tipo?: string | null
           ubicacion_id: string
@@ -4112,6 +4145,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          lugar?: string | null
+          lugar_en?: string | null
+          lugar_por?: string | null
           nombre?: string
           tipo?: string | null
           ubicacion_id?: string
@@ -5944,6 +5980,15 @@ export type Database = {
       fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
       guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
       programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      // ADR-0564 (20261029034000): la foto opcional del daño de una prenda dañada (registrar una ya subida / leer las rutas visibles).
+      registrar_foto_danada: { Args: { p_bytes: number; p_danada_id: string; p_nombre: string; p_ruta: string; p_tipo: string }; Returns: Json }
+      fotos_de_danadas: { Args: { p_ids: string[] }; Returns: { danada_id: string; ruta: string }[] }
+      // ADR-0564 (20261029033000): la prenda que salió a arreglarse volvió SIN arreglo.
+      no_se_pudo_arreglar: { Args: { p_id: string; p_motivo?: string }; Returns: Json }
+      // ADR-0564 (20261029032000): «Salió a arreglar»: marca que una dañada en cuarentena salió de la tienda a arreglarse.
+      sacar_danada_a_arreglar: { Args: { p_id: string; p_nota?: string; p_ruta: string }; Returns: Json }
+      // ADR-0564 (20261029031000): marca (o borra, con texto vacío) el lugar físico donde la tienda deja las prendas dañadas.
+      definir_lugar_danadas: { Args: { p_lugar: string; p_ubicacion_id: string }; Returns: Json }
       desprogramar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
       crear_campana_vista_previa: { Args: { p_etiqueta_id: string }; Returns: Json }
       // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; 20261015030000): lo que esperan los clientes, sin datos personales.
@@ -6689,7 +6734,7 @@ export type Database = {
       }
       // ADR-0328 act. 10 (20261005140000): «Se arregló» — la dañada vuelve al almacén de su sede. Solo el líder.
       arreglar_prenda_danada: {
-        Args: { p_id: string; p_nota: string; p_token: string }
+        Args: { p_costo?: number; p_destino?: string; p_id: string; p_medio_pago?: string; p_nota: string; p_token: string }
         Returns: Json
       }
       asignar_temporada_categoria: {
@@ -9343,12 +9388,13 @@ export type Database = {
         }
         Returns: string
       }
-      // ADR-0328 act. 10 (20261005140000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena).
+      // ADR-0328 act. 10 (20261005140000) + ADR-0564 (20261029024000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena), con su tipo de daño.
       reportar_danada: {
         Args: {
           p_cantidad: number
           p_desde: string
           p_motivo: string
+          p_tipo?: string
           p_token: string
           p_ubicacion_id: string
           p_variante_id: string

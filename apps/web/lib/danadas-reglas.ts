@@ -20,20 +20,48 @@
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import type { CampoDeGuia } from "./guia-campos";
+import { fraseDejarEn } from "./danadas-lugar";
 
 /** Las RPC y sus parámetros en un solo lugar: `danadas-reglas.test.ts` los fija contra la migración. */
 export const RPC_REPORTAR_DANADA = "reportar_danada";
 /** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
-export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token"] as const;
+export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token", "p_tipo"] as const;
 export const RPC_ARREGLAR_DANADA = "arreglar_prenda_danada";
 /** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
-export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token"] as const;
+export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token", "p_destino", "p_costo", "p_medio_pago"] as const;
 
 /** Lo que tiene la prenda y lo que se le arregló: entre 3 y 200 caracteres (la base exige lo mismo). */
 export const MIN_TEXTO_DANADA = 3;
 export const MAX_TEXTO_DANADA = 200;
 
 export type DesdeDanada = "piso" | "almacen";
+
+/**
+ * Qué tiene la prenda, de una lista corta (ADR-0564, Felipe 2026-10-28): tocar un botón es lo que se puede hacer con la tienda abierta
+ * y una clienta esperando; escribir es lo que se salta. Los valores son los de `prendas_danadas.tipo_dano` (20261029024000) y el
+ * orden es el de la ventana. «Otro» es el único que obliga a escribir una nota.
+ */
+export const TIPOS_DANO = [
+  { valor: "mancha", etiqueta: "Mancha" },
+  { valor: "descosido", etiqueta: "Descosido" },
+  { valor: "boton_cierre", etiqueta: "Botón o cierre" },
+  { valor: "rotura", etiqueta: "Rotura" },
+  { valor: "otro", etiqueta: "Otro" },
+] as const;
+export type TipoDano = (typeof TIPOS_DANO)[number]["valor"];
+
+/** @internal Lo lee solo su prueba, que lo cruza con la lista de la migración. */
+export const VALORES_TIPO_DANO: readonly TipoDano[] = TIPOS_DANO.map((x) => x.valor);
+
+/** El nombre del tipo tal como se dice en pantalla (lo mismo que la base escribe cuando no hay nota). */
+export function etiquetaDeTipo(tipo: TipoDano): string {
+  return TIPOS_DANO.find((x) => x.valor === tipo)?.etiqueta ?? tipo;
+}
+
+/** ¿El texto que llegó de la base es uno de los tipos? (una fila de antes, o una web más vieja que la base, trae null o algo raro). */
+export function leerTipoDano(valor: unknown): TipoDano | null {
+  return VALORES_TIPO_DANO.find((v) => v === valor) ?? null;
+}
 
 /** Una talla de la prenda tal como la ve la ventana: lo LIBRE de hoy en el piso y en el almacén de la sede. */
 export type TallaReportable = { varianteId: string; talla: string | null; piso: number; almacen: number };
@@ -72,8 +100,8 @@ export function cantidadAjustada(cantidad: number, libre: number): number {
 
 const largoUtil = (texto: string) => texto.trim().length;
 
-export type EstadoReporte = { talla: TallaReportable | null; desde: DesdeDanada | null; cantidad: number; motivo: string };
-export type CampoReporte = "talla" | "desde" | "cantidad" | "motivo";
+export type EstadoReporte = { talla: TallaReportable | null; desde: DesdeDanada | null; cantidad: number; tipo: TipoDano | null; motivo: string };
+export type CampoReporte = "talla" | "desde" | "cantidad" | "tipo" | "motivo";
 export type ProblemaReporte = { campo: CampoReporte; texto: string };
 
 /**
@@ -90,15 +118,67 @@ export function problemasReporte(e: EstadoReporte): ProblemaReporte[] {
   const libre = libreEn(e.talla, e.desde);
   if (!Number.isInteger(e.cantidad) || e.cantidad < 1) out.push({ campo: "cantidad", texto: "Reporta al menos 1 prenda." });
   else if (libre > 0 && e.cantidad > libre) out.push({ campo: "cantidad", texto: `Solo hay ${libre} libre${libre === 1 ? "" : "s"} ahí.` });
+  if (!e.tipo) out.push({ campo: "tipo", texto: "Elige qué tiene la prenda." });
+  // La nota es un complemento: solo «Otro» obliga a escribirla. Si la hay, vale lo mismo que en la base (3 a 200).
   const largo = largoUtil(e.motivo);
-  if (largo < MIN_TEXTO_DANADA) out.push({ campo: "motivo", texto: "Escribe qué tiene la prenda." });
+  if (e.tipo === "otro" && largo < MIN_TEXTO_DANADA) out.push({ campo: "motivo", texto: "Cuenta qué tiene la prenda." });
+  else if (largo > 0 && largo < MIN_TEXTO_DANADA) out.push({ campo: "motivo", texto: "Escribe al menos 3 letras, o déjalo vacío." });
   else if (largo > MAX_TEXTO_DANADA) out.push({ campo: "motivo", texto: `Lo que tiene admite hasta ${MAX_TEXTO_DANADA} caracteres.` });
   return out;
 }
 
-/** La guía del panel «Se arregló»: qué se le hizo (lo exige la base) y quién lo hace. */
-export function camposGuiaArreglo(nota: string, responsableListo: boolean): CampoDeGuia[] {
+/**
+ * A dónde vuelve una prenda arreglada (ADR-0564, Felipe 2026-10-28): quien decide elige. El almacén es de fábrica (lo de siempre: para venderla
+ * se cuelga después); el piso la deja lista para vender y Frescura cuenta su edad desde ese momento. Los valores son los de `p_destino`.
+ */
+export const DESTINOS_ARREGLO = [
+  { valor: "almacen", etiqueta: "Al almacén" },
+  { valor: "piso", etiqueta: "Al piso, lista para vender" },
+] as const;
+export type DestinoArreglo = (typeof DESTINOS_ARREGLO)[number]["valor"];
+
+/** @internal Lo lee solo su prueba, que lo cruza con la lista de la migración. */
+export const VALORES_DESTINO_ARREGLO: readonly DestinoArreglo[] = DESTINOS_ARREGLO.map((d) => d.valor);
+
+/**
+ * Cómo se pagó el arreglo (Felipe, 2026-10-29: un costo genera su gasto en Finanzas). Son los medios de «Caja ▸ Gasto» —lo que una caja o una
+ * terminal puede registrar—: del cajón, con Yape o con Plin. Los valores son los de `p_medio_pago`.
+ */
+export const MEDIOS_ARREGLO = [
+  { valor: "efectivo", etiqueta: "Del cajón (efectivo)" },
+  { valor: "yape", etiqueta: "Con Yape" },
+  { valor: "plin", etiqueta: "Con Plin" },
+] as const;
+export type MedioArreglo = (typeof MEDIOS_ARREGLO)[number]["valor"];
+
+/** @internal Lo lee solo su prueba, que lo cruza con la lista de la migración. */
+export const VALORES_MEDIO_ARREGLO: readonly MedioArreglo[] = MEDIOS_ARREGLO.map((m) => m.valor);
+
+/** ¿El texto del costo trae plata? (mayor que cero): solo entonces hay gasto y la persona tiene que decir cómo se pagó. 0 es «no costó». */
+export function costoConPlata(texto: string): boolean {
+  const c = leerCostoArreglo(texto);
+  return typeof c === "number" && c > 0;
+}
+
+/** El tope del costo de un arreglo (la base: numeric(10,2), con la función en 99,999.99). */
+export const MAX_COSTO_ARREGLO = 99999.99;
+
+/**
+ * Lo que costó el arreglo, escrito por la persona: vacío es «no se anotó» (null, el costo es opcional: a veces no se cobra); un número con
+ * hasta 2 decimales, coma o punto, de 0 a 99,999.99. `"invalido"` si no calza; nunca lanza.
+ */
+export function leerCostoArreglo(texto: string): number | null | "invalido" {
+  const t = texto.trim().replace(",", ".");
+  if (t === "") return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return "invalido";
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 && n <= MAX_COSTO_ARREGLO ? n : "invalido";
+}
+
+/** La guía del panel «Se arregló»: qué se le hizo (lo exige la base), a dónde vuelve, cuánto costó (opcional) y quién lo hace. */
+export function camposGuiaArreglo(nota: string, responsableListo: boolean, destinoConfirmado = true, costo = "", medio: MedioArreglo | "" = ""): CampoDeGuia[] {
   const largo = largoUtil(nota);
+  const costoLeido = leerCostoArreglo(costo);
   return [
     {
       id: "arreglo",
@@ -107,6 +187,12 @@ export function camposGuiaArreglo(nota: string, responsableListo: boolean): Camp
       hecho: largo >= MIN_TEXTO_DANADA && largo <= MAX_TEXTO_DANADA,
       pendiente: largo > MAX_TEXTO_DANADA ? `Admite hasta ${MAX_TEXTO_DANADA} caracteres.` : "Escribe qué se le hizo a la prenda.",
     },
+    // Viene en «Al almacén»: importa (decide si queda lista para vender), así que la guía pasa por él como sugerido, sin bloquear (ADR-0284 act. h).
+    { id: "destino", nombre: "A dónde vuelve", requerido: false, sugerido: true, hecho: destinoConfirmado, pendiente: "Confirma a dónde vuelve la prenda." },
+    // El costo es opcional, pero si se escribe tiene que ser un monto válido: la base lo rechazaría.
+    { id: "costo", nombre: "Lo que costó", requerido: costoLeido === "invalido", hecho: costoLeido !== null && costoLeido !== "invalido", pendiente: "Escribe un monto válido, o déjalo vacío (por ejemplo 12.50)." },
+    // Un costo con plata es un gasto de Finanzas: pide cómo se pagó (la base lo rechaza sin eso).
+    ...(costoConPlata(costo) ? [{ id: "medio", nombre: "Cómo se pagó", requerido: true, hecho: medio !== "", pendiente: "Elige cómo se pagó el arreglo." }] : []),
     { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsableListo, pendiente: "Elige quién decide." },
   ];
 }
@@ -118,17 +204,36 @@ export type ArgumentosDeReporte = {
   p_desde: DesdeDanada;
   p_motivo: string;
   p_token: string;
+  p_tipo: TipoDano;
 };
 
 /** El objeto que recibe `rpc(RPC_REPORTAR_DANADA, …)`: la pantalla no escribe los nombres de los parámetros a mano. */
-export function argumentosDeReporte(ubicacionId: string, varianteId: string, desde: DesdeDanada, cantidad: number, motivo: string, token: string): ArgumentosDeReporte {
-  return { p_ubicacion_id: ubicacionId, p_variante_id: varianteId, p_cantidad: cantidad, p_desde: desde, p_motivo: motivo.trim(), p_token: token };
+export function argumentosDeReporte(
+  ubicacionId: string,
+  varianteId: string,
+  desde: DesdeDanada,
+  cantidad: number,
+  motivo: string,
+  token: string,
+  tipo: TipoDano
+): ArgumentosDeReporte {
+  return { p_ubicacion_id: ubicacionId, p_variante_id: varianteId, p_cantidad: cantidad, p_desde: desde, p_motivo: motivo.trim(), p_token: token, p_tipo: tipo };
 }
 
-export type ArgumentosDeArreglo = { p_id: string; p_nota: string; p_token: string };
+export type ArgumentosDeArreglo = { p_id: string; p_nota: string; p_token: string; p_destino: DestinoArreglo; p_costo?: number; p_medio_pago?: MedioArreglo };
 
-export function argumentosDeArreglo(id: string, nota: string, token: string): ArgumentosDeArreglo {
-  return { p_id: id, p_nota: nota.trim(), p_token: token };
+export function argumentosDeArreglo(
+  id: string,
+  nota: string,
+  token: string,
+  destino: DestinoArreglo = "almacen",
+  costo: number | null = null,
+  medio: MedioArreglo | null = null
+): ArgumentosDeArreglo {
+  const base = { p_id: id, p_nota: nota.trim(), p_token: token, p_destino: destino };
+  // Sin costo (o en 0) no hay gasto ni medio: no se manda ninguno de los dos.
+  if (costo === null || costo === 0) return base;
+  return medio === null ? { ...base, p_costo: costo } : { ...base, p_costo: costo, p_medio_pago: medio };
 }
 
 export type RespuestaDanada = { ya_registrada: boolean; id: string; unidades: number };
@@ -172,6 +277,8 @@ export function interpretarErrorDeDanada(error: ErrorEscritura, contexto: string
 
 // Los rechazos que la base levanta DESPUÉS de mirar la marca: prueban que esa marca no guardó nada, o ya la tenía.
 const HINTS_DESPUES_DE_LA_MARCA = new Set([
+  "arreglo_caja_cerrada",
+  "arreglo_gasto_sin_permiso",
   "danada_sin_alcance",
   "arreglo_ya_resuelta",
   "arreglo_sede_sin_almacen",
@@ -215,8 +322,9 @@ export function tituloExitoReporte(unidades: number): string {
   return unidades === 1 ? "Prenda reportada como dañada" : `${unidades} prendas reportadas como dañadas`;
 }
 
-export function tituloExitoArreglo(unidades: number): string {
-  return unidades === 1 ? "Volvió al almacén" : `${unidades} prendas volvieron al almacén`;
+export function tituloExitoArreglo(unidades: number, destino: DestinoArreglo = "almacen"): string {
+  const donde = destino === "piso" ? "al piso" : "al almacén";
+  return unidades === 1 ? `Volvió ${donde}` : `${unidades} prendas volvieron ${donde}`;
 }
 
 export const TEXTO_ARREGLO_YA_ESTABA = "Esta prenda ya había vuelto al almacén. No se repitió.";
@@ -296,13 +404,17 @@ export function quePasaAlReportar(desde: DesdeDanada | null): string {
 }
 
 /** Lo que el aviso de éxito recuerda hacer con la prenda en la mano (el sistema ya la movió; la percha todavía no). */
-export function recordatorioAlReportar(desde: DesdeDanada): string {
-  return desde === "piso" ? "Sácala del perchero y guárdala aparte con su nota." : "Guárdala aparte con su nota, lejos de lo que se cuelga en el piso.";
+export function recordatorioAlReportar(desde: DesdeDanada, lugar?: string | null): string {
+  const base = desde === "piso" ? "Sácala del perchero y guárdala aparte con su nota." : "Guárdala aparte con su nota, lejos de lo que se cuelga en el piso.";
+  const donde = fraseDejarEn(lugar);
+  return donde ? `${base} ${donde}` : base;
 }
 
 /** Lo que pasa con «Se arregló»: vuelve al almacén y, para venderla, se cuelga en el piso (así Frescura cuenta su edad desde ahí). */
-export function quePasaAlArreglar(sede: string): string {
-  const donde = sede.trim() ? `al almacén de ${sede.trim()}` : "al almacén";
+export function quePasaAlArreglar(sede: string, destino: DestinoArreglo = "almacen"): string {
+  const s = sede.trim();
+  if (destino === "piso") return `Vuelve al piso${s ? ` de ${s}` : ""}, lista para vender: ya no hace falta colgarla. Frescura cuenta su edad desde hoy.`;
+  const donde = s ? `al almacén de ${s}` : "al almacén";
   return `Vuelve ${donde}. Para venderla, cuélgala en el piso desde Existencias.`;
 }
 
@@ -344,14 +456,29 @@ export function origenDeDanada(f: { motivoReporte: string | null; cambioId: stri
   return "devolucion";
 }
 
+/**
+ * Lo que tiene la prenda, para la lista de Dañadas: el tipo y, si quien la reportó escribió algo más, su nota («Mancha · cerca del
+ * cuello»). Sin nota, la base ya escribió el nombre del tipo en `motivo_reporte`, así que no se repite. «Otro» es solo su nota. Una
+ * fila de antes de los tipos trae solo el texto.
+ */
+export function textoDeLoQueTiene(tipo: TipoDano | null, motivoReporte: string | null): string | null {
+  const nota = motivoReporte?.trim() || null;
+  if (!tipo || tipo === "otro") return nota ?? (tipo ? etiquetaDeTipo(tipo) : null);
+  const etiqueta = etiquetaDeTipo(tipo);
+  return !nota || nota === etiqueta ? etiqueta : `${etiqueta} · ${nota}`;
+}
+
 /** La línea que dice de dónde llegó: «Reportada en la tienda: mancha en la manga», «Volvió en una devolución», «Llegó dañada en
  *  ENV-000302 · Textiles Andina · sin arreglo»… */
-export function textoOrigenDanada(origen: OrigenDanada, motivoReporte: string | null, devolucion: DevolucionPosible | null = null): string {
+export function textoOrigenDanada(origen: OrigenDanada, motivoReporte: string | null, devolucion: DevolucionPosible | null = null, tipoDano: TipoDano | null = null): string {
   if (origen === "recepcion") {
     if (!devolucion) return motivoReporte ?? "Llegó dañada en una recepción";
     const arreglo = devolucion.arreglo ? ` · ${devolucion.arreglo.toLowerCase()}` : "";
     return `Llegó dañada en ${devolucion.envio ?? "una recepción"} · ${devolucion.proveedor}${arreglo}`;
   }
-  if (origen === "reporte") return motivoReporte ? `Reportada en la tienda: ${motivoReporte}` : "Reportada en la tienda";
+  if (origen === "reporte") {
+    const queTiene = textoDeLoQueTiene(tipoDano, motivoReporte);
+    return queTiene ? `Reportada en la tienda: ${queTiene}` : "Reportada en la tienda";
+  }
   return origen === "cambio" ? "Volvió en un cambio" : "Volvió en una devolución";
 }

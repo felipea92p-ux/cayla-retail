@@ -33,6 +33,19 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ apartados: { vencidos: 0, hoy: 0, manana: 0, primeraClienta: null } })[0]!.nivel).toBe("aldia");
   });
 
+  it("ADR-0564: las dañadas de 7 días o más sin decidirse son urgentes para el líder, llevan a la lista de Dañadas y salen aunque las oculte; con cero, «al día»; sin leer, no es 0", () => {
+    const con = avisosInicio({ danadasViejas: 2 })[0]!;
+    expect([con.clave, con.nivel, con.cantidad, con.href]).toEqual(["danadas", "urgente", 2, "/inventario?danados=1"]);
+    expect(con.detalle).toBe("2 llevan 7 días o más separadas sin que nadie las lleve a arreglar.");
+    expect(con.ahora).toBe("Decide 2 prendas dañadas");
+    expect(avisosInicio({ danadasViejas: 1 })[0]!.detalle).toMatch(/^1 lleva 7 días/);
+    expect(avisosInicio({ danadasViejas: 0 })[0]!.nivel).toBe("aldia");
+    const sinLeer = avisosInicio({ danadasViejas: null })[0]!;
+    expect([sinLeer.nivel, sinLeer.cantidad]).toEqual(["sinleer", null]);
+    expect(avisosInicio({}).some((a) => a.clave === "danadas")).toBe(false);
+    expect(avisosVisibles(avisosInicio({ danadasViejas: 2 }), { danadas: false }, true).activos[0]).toMatchObject({ clave: "danadas", forzado: true });
+  });
+
   it("ADR-0328 act. 17: un pedido entre sedes con 48 h sin respuesta es urgente para el líder y sale aunque lo oculte", () => {
     const [a] = avisosInicio({ pedidosSinRespuesta: { tePiden: 1, pediste: 1, detalle: "Tienda Lima te pidió hace 50 h y nadie respondió.", ahora: "Responde 1 pedido de otra sede" } });
     expect(a).toMatchObject({ clave: "pedidosSede", cantidad: 2, nivel: "urgente", href: "/inventario/traslados", ahora: "Responde 1 pedido de otra sede" });

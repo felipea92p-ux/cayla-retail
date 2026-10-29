@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { PencilLine, SearchX } from "lucide-react";
+import { Bandage, PencilLine, SearchX } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
@@ -23,6 +23,7 @@ import type { FilaExistencias } from "@/lib/inventario-v2";
 // entra como stock inicial (ADR-0235). Es donde se le carga su primer stock: sin esto, «Polo Venus» no aparecía.
 
 export function BuscarPrendaParaAjustar({
+  modo = "ajustar",
   indice,
   sedeNombre,
   ubicacionId,
@@ -31,6 +32,9 @@ export function BuscarPrendaParaAjustar({
   onElegirSinStock,
   onClose,
 }: {
+  /** «ajustar» (de la cabecera) o «danada» (el botón «Separé una dañada» de las cuentas de caja y almacén, ADR-0564): esta última solo ofrece
+   *  prendas con stock aquí (algo se puede separar de lo que existe) y lleva directo a «Reportar dañada». */
+  modo?: "ajustar" | "danada";
   indice: IndiceBusquedaEspecial<FilaExistencias>;
   sedeNombre: string;
   /** La sede que se mira: «dónde más hay» de una prenda sin movimientos aquí se lee desde ella. */
@@ -48,7 +52,7 @@ export function BuscarPrendaParaAjustar({
   const idLista = useId();
   const modelos = modelosParaAjustar(indice, texto);
   // Los que la sede nunca movió van después de los que sí, y entre los dos no pasan del tope de la lista.
-  const sinFila = texto.trim() ? sinStockQueCoincide(texto, indice.vocabulario, sinStock, { limite: Math.max(0, TOPE_MODELOS - modelos.length) }).productos : [];
+  const sinFila = texto.trim() && modo === "ajustar" ? sinStockQueCoincide(texto, indice.vocabulario, sinStock, { limite: Math.max(0, TOPE_MODELOS - modelos.length) }).productos : [];
   const total = modelos.length + sinFila.length;
   // Dónde más hay lo que esta sede nunca movió: una lectura por lo que se ve (a lo más 8 productos), con la misma cifra de Productos
   // (`fn_existencias_productos`). Hasta que vuelve, la línea dice solo «Sin stock aquí todavía»; si falla, se queda así: nunca inventa.
@@ -85,7 +89,7 @@ export function BuscarPrendaParaAjustar({
   }
 
   return (
-    <Modal variante="hoja" tamano="mediana" conCerrar titulo="¿Qué prenda vas a ajustar?" subtitulo="Escribe su nombre o su código, o escanea su etiqueta." onClose={onClose}>
+    <Modal variante="hoja" tamano="mediana" conCerrar titulo={modo === "danada" ? "¿Qué prenda está dañada?" : "¿Qué prenda vas a ajustar?"} subtitulo="Escribe su nombre o su código, o escanea su etiqueta." onClose={onClose}>
       {() => (
         <div className="grid gap-3">
           <Buscador
@@ -95,7 +99,7 @@ export function BuscarPrendaParaAjustar({
               setActiva(0);
             }}
             autoFocus
-            etiqueta="Buscar la prenda que vas a ajustar"
+            etiqueta={modo === "danada" ? "Buscar la prenda dañada" : "Buscar la prenda que vas a ajustar"}
             // sugerir-fijo: dice qué se puede buscar; no depende de nada elegido antes
             placeholder="Nombre, código o color"
             {...ariaDelBuscador(idLista, abierta, abierta ? activa : null)}
@@ -111,8 +115,10 @@ export function BuscarPrendaParaAjustar({
             }}
           />
           {!texto.trim() ? (
-            <Vacio tamano="chico" alinear="izquierda" icono={<PencilLine aria-hidden className="h-5 w-5" />}>
-              Elige una prenda y se abre su planilla, con todos sus colores y tallas en {sedeNombre}.
+            <Vacio tamano="chico" alinear="izquierda" icono={modo === "danada" ? <Bandage aria-hidden className="h-5 w-5" /> : <PencilLine aria-hidden className="h-5 w-5" />}>
+              {modo === "danada"
+                ? `Elige la prenda y te pregunto la talla, dónde estaba y qué tiene. La sacamos del stock de ${sedeNombre} y queda separada, sin perderse.`
+                : `Elige una prenda y se abre su planilla, con todos sus colores y tallas en ${sedeNombre}.`}
             </Vacio>
           ) : abierta ? (
             <ListaSugerencias

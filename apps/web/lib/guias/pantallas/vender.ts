@@ -285,6 +285,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Para separar prendas a un cliente que vuelve después. Con prendas en el ticket, este botón se las lleva a Apartados ya cargadas.",
     },
     {
+      id: "danada",
+      ancla: "vender.danada",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Separé una dañada",
+      texto: "Si ves una prenda dañada en el piso, la separas aquí en el momento: eliges la prenda, la talla y qué tiene, y deja de venderse. En la demo no se toca.",
+    },
+    {
       id: "hoy",
       ancla: "vender.hoy",
       opcional: true,
