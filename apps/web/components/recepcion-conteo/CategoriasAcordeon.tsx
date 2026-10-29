@@ -19,7 +19,7 @@ const MAX_PUNTOS = 14;
 function EstadoPrenda({ p }: { p: PrendaDelAcordeon }) {
   if (p.estado === "fuera") return <Chip tono="pizarra">{`${p.identificadas} · no estaba anotada`}</Chip>;
   if (p.estado === "lista") return <Chip tono="verde">Identificadas</Chip>;
-  if (p.estado === "a-medias") return <Chip tono="ambar">{`${p.identificadas} de ${p.esperadas}`}</Chip>;
+  if (p.estado === "a-medias") return <Chip tono="ambar">{`${p.identificadas} de ${p.esperadas} identificadas`}</Chip>;
   return <Chip tono="neutro">Por identificar</Chip>;
 }
 

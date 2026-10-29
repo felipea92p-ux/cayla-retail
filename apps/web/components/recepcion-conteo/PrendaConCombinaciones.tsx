@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -470,22 +470,27 @@ function Vitrina({
           <b className="block truncate text-[15px] text-tinta">{nombre}</b>
           <span className="block truncate text-[13px] text-taupe">{sub}</span>
         </span>
-        <label key={cara.precio ?? "rango"} className="rc-vitrina-etiqueta" data-cambio={hayPrecioCambiado ? "" : undefined}>
-          <small>S/</small>
-          <input // unificar-fijo: la etiqueta de precio de la Vitrina se escribe en su lugar, sin caja de campo (Felipe 2026-10-29)
-            inputMode="decimal"
-            autoComplete="off"
-            disabled={sinCombinaciones}
-            aria-label={`Precio de venta de ${nombre}, para todas sus tallas y colores`}
-            value={precioEscrito ?? (cara.precio !== null ? cara.precio.toFixed(2) : "")}
-            // sugerir-fijo: un monto de soles no depende de nada elegido antes
-            placeholder={cara.precio === null && cara.precioTexto ? "varía" : "0.00"}
-            onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => setPrecioEscrito(e.target.value)}
-            onBlur={() => dejar("precio", precioEscrito)}
-            onKeyDown={teclas("precio", precioEscrito)}
-          />
-        </label>
+        {/* La etiqueta con su título a la vista (Formidable 2026-10-29: la ciega no la reconocía como el precio). No se vuelve a montar al cambiar
+            el precio: así Enter no saca el cursor de la caja ni la etiqueta parpadea; el cambio se nota en su color. */}
+        <span className="rc-vitrina-precio">
+          <label className="rc-vitrina-etiqueta" data-cambio={hayPrecioCambiado ? "" : undefined}>
+            <small>S/</small>
+            <input // unificar-fijo: la etiqueta de precio de la Vitrina se escribe en su lugar, sin caja de campo (Felipe 2026-10-29)
+              inputMode="decimal"
+              autoComplete="off"
+              disabled={sinCombinaciones}
+              aria-label={`Precio de venta de ${nombre}, para todas sus tallas y colores`}
+              value={precioEscrito ?? (cara.precio !== null ? cara.precio.toFixed(2) : "")}
+              // sugerir-fijo: un monto de soles no depende de nada elegido antes
+              placeholder={cara.precio === null && cara.precioTexto ? "varía" : "0.00"}
+              onFocus={(e) => e.currentTarget.select()}
+              onChange={(e) => setPrecioEscrito(e.target.value)}
+              onBlur={() => dejar("precio", precioEscrito)}
+              onKeyDown={teclas("precio", precioEscrito)}
+            />
+          </label>
+          <span className="rc-vitrina-precio-tit">Precio de venta</span>
+        </span>
       </div>
 
       <div className="rc-vitrina-info">
@@ -523,16 +528,6 @@ function Vitrina({
         ) : (
           <div className="space-y-2">
             <span className="label-cayla block text-[11px] text-taupe">El precio vale en</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rc-vitrina-sede" data-on="">
-                <MapPin aria-hidden className="h-3.5 w-3.5" />
-                {nombreCorto(sede)}
-              </span>
-              <span className="rc-vitrina-sede" data-on={valeEn === "todas" ? "" : undefined}>
-                <MapPin aria-hidden className="h-3.5 w-3.5" />
-                Las demás sedes
-              </span>
-            </div>
             {soloSede ? (
               <p className="text-[13px] text-taupe">Desde esta terminal, el precio vale solo en {nombreCorto(sede)}.</p>
             ) : (
@@ -547,6 +542,7 @@ function Vitrina({
                 ]}
               />
             )}
+            <p className="text-[13px] text-taupe">{hayPrecioCambiado ? "Precio nuevo: se guarda al cerrar el envío." : "Lo que cambies se guarda al cerrar el envío."}</p>
           </div>
         )}
         <button type="button" className="rc-vitrina-abrir btn-cayla btn-enlace" onClick={onAlternar} aria-expanded={abierta}>

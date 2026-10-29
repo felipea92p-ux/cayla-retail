@@ -1887,7 +1887,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez («Otro» te deja escribirlo; un regalo entra a costo cero). Al abrir la fila salen sus prendas, y cada una se abre para ver su costo y su precio. En la demo no escribimos.",
+      texto: "Una fila por categoría: lo que dijeron, lo que contaste, lo que se puede vender y lo que queda para después. Si no cuadró, eliges qué pasó. Las que tienen prendas identificadas vienen abiertas con su precio y su costo; «Precio y costo» las abre o esconde. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-28: el costo y el precio se ponen por combinación (color y talla). La fila de la primera prenda solo existe con la categoría abierta.

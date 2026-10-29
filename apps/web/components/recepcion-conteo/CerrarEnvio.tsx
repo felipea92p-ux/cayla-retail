@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
-import { Balanza, BaldosaCategoria } from "./piezas";
+import { BaldosaCategoria } from "./piezas";
 import { FilaDeCosto } from "./PrecioDePrenda";
 import { PodioCategoria } from "./PodioCategoria";
 import { PrendaConCombinaciones } from "./PrendaConCombinaciones";
@@ -61,7 +61,7 @@ import {
 // En columnas, toda celda pone su primera línea en la franja de 40 px de la caja del costo (`FRANJA`): el nombre, las cifras, el chip y la
 // diferencia quedan a la misma altura aunque «Para después» o la causa sumen líneas abajo.
 // Las cuatro cifras (dijeron, contaste, se pueden vender, para después) son el Podio de la categoría (rediseño «B», Felipe 2026-10-29): una columna de 17 rem.
-const PLANTILLA_CIERRE = "@min-[1000px]:grid-cols-[minmax(0,1.3fr)_17rem_minmax(0,1.3fr)_minmax(0,1.6fr)_2rem]";
+const PLANTILLA_CIERRE = "@min-[1000px]:grid-cols-[minmax(0,1.3fr)_17rem_minmax(0,1.3fr)_minmax(0,1.6fr)_8.5rem]";
 const FRANJA = "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center";
 
 export function CerrarEnvio({
@@ -140,9 +140,15 @@ export function CerrarEnvio({
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
   // Las filas con el costo y el precio de venta de sus prendas a la vista. Una categoría de fuera de la guía arranca abierta (su costo se pide y no
-  // viene de ninguna orden), pero se puede esconder (Felipe 2026-10-28): cerrada, dice «Falta el costo» mientras no lo escriban.
+  // viene de ninguna orden), pero se puede esconder (Felipe 2026-10-28): cerrada, dice «Falta el costo» mientras no lo escriban. Desde el
+  // 2026-10-29 (Formidable) también arranca abierta la que ya tiene prendas identificadas: la prueba ciega no encontraba dónde poner el precio.
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(
-    () => new Set(agruparLineas(visibles).filter((g) => !g.principal.linea && g.contadas > 0 && !(sinAviso && !veDinero)).map((g) => g.clave)),
+    () =>
+      new Set(
+        agruparLineas(visibles)
+          .filter((g) => (!g.principal.linea && g.contadas > 0 && !(sinAviso && !veDinero)) || g.separado.prendas.length > 0)
+          .map((g) => g.clave),
+      ),
   );
   const alternarFila = (clave: string) =>
     setAbiertas((a) => {
@@ -661,9 +667,10 @@ export function CerrarEnvio({
                       onClick={() => alternarFila(g.clave)}
                       aria-expanded={abierta}
                       aria-controls={`precios-${idFila}`}
-                      aria-label={`${abierta ? "Esconder" : "Ver"} las prendas y los precios de ${nombreGrupo}`}
-                      className="grid h-8 w-8 place-items-center rounded-full text-taupe transition-colors hover:text-tinta"
+                      aria-label={`${abierta ? "Esconder" : "Ver"} precio y costo de ${nombreGrupo}`}
+                      className="rc-fila-precios"
                     >
+                      Precio y costo
                       <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
                     </button>
                   </div>
@@ -779,7 +786,7 @@ export function CerrarEnvio({
         </p>
       )}
 
-      <Balanza dijeron={visibles.some((l) => l.dijeron != null) ? visibles.reduce((a, l) => a + (l.dijeron ?? 0), 0) : null} contadas={contadas} />
+      {/* La balanza de todo el envío se fue (Formidable 2026-10-29): el Podio de cada categoría y la barra de abajo ya dicen cuánto dijeron y cuánto se contó. */}
 
       <div className="card-cayla grid gap-4 p-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:p-5">
         <CampoGuiado id="guia" guia={guia}>

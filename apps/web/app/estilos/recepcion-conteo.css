@@ -101,17 +101,6 @@ button.rc-parada:disabled { cursor: default; }
 @media (max-width: 639px) { .rc-cierre .rc-cierre-cifras { order: -1; flex-basis: 100%; } .rc-cierre .barra-abajo-acciones { margin-left: auto; } }
 
 /* ---- La balanza «Dijeron / Contaste» ---- */
-.rc-balanza { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; gap: 8px 14px; padding: 14px 18px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-papel); }
-.rc-balanza .rc-lado { display: flex; flex-direction: column; gap: 2px; }
-.rc-balanza .rc-lado:last-of-type { align-items: flex-end; text-align: right; }
-.rc-balanza .rc-lado b { font-family: var(--font-serif); font-size: 40px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
-.rc-balanza svg { width: 120px; height: 70px; fill: none; stroke: color-mix(in srgb, var(--color-tinta) 45%, transparent); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-.rc-balanza .rc-brazo { transform: rotate(var(--ang, 0deg)); transform-origin: 60px 22px; transition: transform 450ms var(--ease-cayla); }
-.rc-balanza .rc-brazo circle { fill: var(--color-tinta); stroke: none; }
-.rc-balanza[data-estado="verde"] svg { stroke: var(--color-verde); }
-.rc-balanza[data-estado="ambar"] svg { stroke: var(--color-ambar); }
-.rc-balanza .rc-veredicto { display: flex; grid-column: 1 / -1; justify-content: center; }
-@media (max-width: 639px) { .rc-balanza { grid-template-columns: 1fr 80px 1fr; } .rc-balanza .rc-lado b { font-size: 28px; } .rc-balanza svg { width: 80px; height: 47px; } }
 
 
 /* ---- Lo que queda para después ---- */
@@ -133,6 +122,6 @@ button.rc-parada:disabled { cursor: default; }
 @keyframes rc-trazo { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-agregar, .rc-anotada-chip, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
+  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-agregar, .rc-anotada-chip, .rc-rapidos button { transition: none; }
   .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo { animation: none; }
 }

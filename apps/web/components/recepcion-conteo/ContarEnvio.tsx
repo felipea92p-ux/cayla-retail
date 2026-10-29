@@ -331,45 +331,45 @@ export function ContarEnvio({
 
             <PieGuia guia={guia} listo="Todas las categorías tienen su número y sus prendas identificadas." />
 
-            {/* La barra de cierre (opción A, Felipe 2026-10-28): lo que dijeron contra lo contado de TODO el envío y la acción que sigue, en una sola
-                barra que se queda al pie mientras se baja. Reemplaza a la balanza de dibujo, que sigue en «Cerrar». */}
-            <BarraDeAbajo pegada className="rc-cierre" data-guia="recepcion.cifra">
-              <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
-                <span className="inline-flex items-center gap-1.5">
-                  <ArrowLeft aria-hidden className="h-4 w-4" />
-                  Anterior
-                </span>
-              </Boton>
-              <CifrasDelEnvio dijeron={totalDijeron} contadas={totalContadas} identificadas={totalIdentificadas} />
-              <div className="barra-abajo-acciones">
-                {/* Con todas las categorías contadas (o al reabrir), lo que sigue es cerrar, esté donde esté la persona en la lista. */}
-                {siguiente && !guia.puedeConfirmar ? (
-                  <Boton type="button" peso="primario" onClick={() => elegir(siguiente)}>
-                    <span className="inline-flex items-center gap-1.5">
-                      Listo, sigue {siguiente.principal.categoria?.nombre ?? "la siguiente"}
-                      <ArrowRight aria-hidden className="h-4 w-4" />
-                    </span>
-                  </Boton>
-                ) : (
-                  <Boton
-                    type="button"
-                    peso="primario"
-                    onClick={onCerrar}
-                    disabled={visibles.length === 0 || faltanIdentificar.length > 0}
-                    title={faltanIdentificar.length > 0 ? `Falta identificar las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}` : undefined}
-                    data-guia="recepcion.pasar-a-cerrar"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      Pasar a cerrar
-                      <ArrowRight aria-hidden className="h-4 w-4" />
-                    </span>
-                  </Boton>
-                )}
-              </div>
-            </BarraDeAbajo>
           </section>
         </div>
        </div>
+        {/* La barra de cierre (opción A, Felipe 2026-10-28; bajo la mesa entera desde el 2026-10-29, Formidable: en la columna del Dial se partía en 4 filas): lo que dijeron contra lo contado de TODO el envío y la acción que sigue, en una sola
+            barra que se queda al pie mientras se baja. Reemplaza a la balanza de dibujo, que sigue en «Cerrar». */}
+        <BarraDeAbajo pegada className="rc-cierre" data-guia="recepcion.cifra">
+          <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
+            <span className="inline-flex items-center gap-1.5">
+              <ArrowLeft aria-hidden className="h-4 w-4" />
+              Anterior
+            </span>
+          </Boton>
+          <CifrasDelEnvio dijeron={totalDijeron} contadas={totalContadas} identificadas={totalIdentificadas} />
+          <div className="barra-abajo-acciones">
+            {/* Con todas las categorías contadas (o al reabrir), lo que sigue es cerrar, esté donde esté la persona en la lista. */}
+            {siguiente && !guia.puedeConfirmar ? (
+              <Boton type="button" peso="primario" onClick={() => elegir(siguiente)}>
+                <span className="inline-flex items-center gap-1.5">
+                  Listo, sigue {siguiente.principal.categoria?.nombre ?? "la siguiente"}
+                  <ArrowRight aria-hidden className="h-4 w-4" />
+                </span>
+              </Boton>
+            ) : (
+              <Boton
+                type="button"
+                peso="primario"
+                onClick={onCerrar}
+                disabled={visibles.length === 0 || faltanIdentificar.length > 0}
+                title={faltanIdentificar.length > 0 ? `Falta identificar las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}` : undefined}
+                data-guia="recepcion.pasar-a-cerrar"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  Pasar a cerrar
+                  <ArrowRight aria-hidden className="h-4 w-4" />
+                </span>
+              </Boton>
+            )}
+          </div>
+        </BarraDeAbajo>
       </div>
 
       {hoja?.tipo === "agregar" && (
@@ -547,7 +547,10 @@ function ContadorDeGrupo({
         {/* El Dial (rediseño «B», Felipe 2026-10-29): el aro con lo contado y, al lado, los atajos y el veredicto. Reemplaza al número suelto con
             su − y + y a la barra de «cuadra» de la franja (opción A): el aro ya dice cuánto falta. Junto al papel la tarjeta es angosta y se apila. */}
         <div className="rc-franja rc-franja--dial" data-guia="recepcion.numero">
-          <Dial contadas={contadas} dijeron={grupo.dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} onPoner={poner} />
+          <div className="rc-dial-col">
+            <Dial contadas={contadas} dijeron={grupo.dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} onPoner={poner} />
+            <p className="rc-dial-pista">Toca el número para escribirlo</p>
+          </div>
           <div className="rc-franja-lado">
             <div className="rc-rapidos">
               <button type="button" onClick={() => poner(contadas + 5)}>
@@ -575,10 +578,8 @@ function ContadorDeGrupo({
               )}
             </div>
             <div className="rc-franja-cuadra">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <Chip tono={v.tono === "neutro" ? "neutro" : v.tono}>{v.texto}</Chip>
-                {grupo.dijeron != null && <span className="text-xs text-taupe">Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</span>}
-              </div>
+              {/* El aro ya dice si cuadra, faltan o sobran (Formidable 2026-10-29: el veredicto se decía 4 veces): aquí solo lo que hacer si no cuadra. */}
+              {v.tono === "ambar" && <p className="text-[14px] text-taupe">Si no coincide, al cerrar dices por qué.</p>}
               {grupo.enStock > 0 && <p className="text-xs text-taupe">Ya entraron {textoPrendas(grupo.enStock)} al stock: lo contado no baja de ahí.</p>}
             </div>
           </div>
