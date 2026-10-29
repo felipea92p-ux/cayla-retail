@@ -19,6 +19,8 @@ import { paginar } from "@/lib/paginacion";
 import { FiltrosDeEnvios } from "./FiltrosDeEnvios";
 import { RecibirSinGuia } from "./RecibirSinGuia";
 import { DetalleEnvioPorRecibir } from "./DetalleEnvioPorRecibir";
+import { Trayecto } from "./Trayecto";
+import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 
 // La tarjeta de la puerta de Recibir (ADR-0362, fase 4): arriba del formulario «Sin Aviso», lo que viene de una orden de compra para ESTA sede,
 // en una tabla (número, fecha de envío, estado, proveedor, guía, prendas y la acción) con un buscador y filtros (estado, proveedor, fechas) para
@@ -30,8 +32,9 @@ import { DetalleEnvioPorRecibir } from "./DetalleEnvioPorRecibir";
 // «Enviado» es la primera columna y sale desde @3xl, y la guía tiene la suya desde @5xl (el ancho de la TARJETA, no de la ventana: con el
 // menú abierto la tarjeta es más angosta). Antes, la fecha de envío se lee bajo el número del envío y la guía bajo el proveedor, sin quitarle
 // espacio al proveedor.
+// El estado es el Trayecto compacto (rediseño «B», Felipe 2026-10-29): necesita 8,5 rem para que sus cinco paradas se lean.
 const PLANTILLA =
-  "sm:grid-cols-[7rem_6rem_minmax(0,1fr)_5rem_11rem] @3xl:grid-cols-[5.5rem_7rem_6rem_minmax(0,1fr)_5rem_11rem] @5xl:grid-cols-[5.5rem_7.5rem_6.5rem_minmax(0,1fr)_8rem_5.5rem_13rem]";
+  "sm:grid-cols-[7rem_8.5rem_minmax(0,1fr)_5rem_11rem] @3xl:grid-cols-[5.5rem_7rem_8.5rem_minmax(0,1fr)_5rem_11rem] @5xl:grid-cols-[5.5rem_7.5rem_9rem_minmax(0,1fr)_8rem_5.5rem_13rem]";
 const COLUMNAS: Columna[] = [
   { titulo: "Enviado", ayuda: "El día en que salió el envío", clase: "hidden @3xl:block" },
   { titulo: "Envío" },
@@ -146,6 +149,7 @@ export function EnviosParaRecibir({
           }
           const e = f.envio;
           const salio = fechaDeEnvioParaTabla(e.despachadoEn, hoy);
+          const etapa = etapaDelEnvio(e.estado);
           const sinAviso = porCategoria && esEnvioSinAviso(e);
           const proveedor = sinAviso ? (proveedoresSinAviso[e.id] ?? "Por confirmar") : e.proveedores.length > 0 ? e.proveedores.join(", ") : "—";
           return (
@@ -177,7 +181,13 @@ export function EnviosParaRecibir({
                 )}
               </span>
               <span className={celda("izq", "pointer-events-none relative overflow-visible")}>
-                <Chip tono={ESTADO_ENVIO[e.estado].tono}>{ESTADO_ENVIO[e.estado].texto}</Chip>
+                {etapa ? (
+                  <span className="block max-w-[14rem]">
+                    <Trayecto etapa={etapa} forma="compacta" />
+                  </span>
+                ) : (
+                  <Chip tono={ESTADO_ENVIO[e.estado].tono}>{ESTADO_ENVIO[e.estado].texto}</Chip>
+                )}
               </span>
               <span className={celda("izq", "pointer-events-none relative text-sm text-tinta")} title={proveedor}>
                 {proveedor}
