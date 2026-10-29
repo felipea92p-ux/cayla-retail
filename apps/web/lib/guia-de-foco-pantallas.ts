@@ -498,6 +498,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/mi-plata/AnotarGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarGasto.tsx"] },
   // La hoja de la prenda de «Compré ropa» (rediseño 2026-10-23): cuántas, costo, venta y tienda; falta lo que antes frenaba cada paso.
   "components/mi-plata/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaPrenda.tsx"] },
+  // Corregir una compra ya anotada (ADR-0561): todos los datos ya están llenos; la persona solo cambia los que están mal. La luz de «sigue aquí» no
+  // tiene a dónde llevar y una marca de «falta» sería mentira. Lo que no se puede guardar lo dice cada dato bajo su campo y el botón queda apagado.
+  "components/mi-plata/HojaCorregirCompra.tsx": { estado: "no-aplica", motivo: "ADR-0561: corrige una compra que ya está completa; ningún campo falta ni hay pasos que seguir, solo se cambian los datos que están mal. Cada dato dice bajo su caja qué no se entiende y el botón queda apagado hasta que todo se lea." },
   "components/mi-plata/TerminarDia.tsx": { estado: "no-aplica", motivo: "ADR-0480: una sola pregunta (qué haces con lo que te queda), con el botón apagado y su frase hasta elegir; sin plata no hay nada que elegir." },
   // La rendición (ADR-0362 fase 6 · actividad 5): «Rendir tu fondo» (el efectivo; la explicación, sugerida si falta plata) y «Revisar la
   // rendición» (quién asume lo que falta, cuando hay explicación; la nota; desde una terminal, quién aprueba).

@@ -1542,6 +1542,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`completar_papel_compra`: el comprobante pagado desde el fondo de quien compró; tabla `compra_item_recibido_antes`) y
   `CierresPorRecibir.tsx` (`recibir_cierre_compras` → `devolver_fondo` o `entregar_fondo`) y `GastosPorRevisar.tsx`
   (`revisar_gasto_compra` → `registrar_gasto_viaje`, fotos de `gastos/` firmadas).
+  Corregir una compra (ADR-0561, migración `20261029012000`): el detalle de una compra pendiente (`ListaDelDia.tsx`) abre
+  `components/mi-plata/HojaCorregirCompra.tsx` (prendas → formulario → «Papel y pago» → «Revisa lo que cambias») →
+  `lib/corregir-compra-acciones.ts` (`fn_compra_para_corregir`, `corregir_compra_rapida`, firma `compra_corregir`) + `lib/corregir-compra-reglas.ts`
+  (puro). El rastro (`compra_correcciones`, `fn_compra_correcciones`) se ve en `CorreccionesDeCompra.tsx`, en ese detalle y en el de `PapelesPorCompletar.tsx`.
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
