@@ -1,7 +1,7 @@
 import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
-import { FASES, type FaseClave, type Posicion, type Quien } from "./orden-fases-reglas";
+import { FASES, secuenciaDe, type FaseClave, type Posicion, type Quien } from "./orden-fases-reglas";
 import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
@@ -28,6 +28,8 @@ export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
 export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
 export const RPC_REGISTRAR_PROVEEDOR_DE_FASE = "registrar_proveedor_de_fase";
 export const RPC_QUITAR_PASO = "quitar_paso_orden";
+/** Suma UN paso a una orden en proceso (ADR-0566, migración 20261029051000). */
+export const RPC_AGREGAR_PASO = "agregar_paso_orden";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
 export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 export const RPC_REGISTRAR_SALIDA = "registrar_salida";
@@ -668,6 +670,32 @@ export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" 
  */
 export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
   return puedeCambiarQuien(f, p) && FASES.some((c) => c.clave === f.clave && !c.siempre);
+}
+
+export type PasoAgregable = { clave: FaseClave; nombre: string; ayuda: string };
+export type PasoNoAgregable = { clave: FaseClave; nombre: string; porQue: string };
+
+/**
+ * Los pasos opcionales que una orden en proceso todavía puede sumar (ADR-0566): los que la hoja «Nueva orden» ofrece (`enLaHoja`, hoy solo Ojales y botones), que no están ya en la ruta y que
+ * no se mezclan con la ruta anterior. Uno al que ya empezó un paso POSTERIOR no se ofrece —iría antes de esas prendas— y sale en `bloqueados` con su porqué, para decirlo en vez de esconderlo.
+ * La base repite todo (`agregar_paso_orden`: `fase_repetida`, `fases_mezcla`, `paso_despues_empezado`, `orden_cerrada`) y manda; esto solo evita ofrecer un botón que ya se sabe que va a rechazar
+ * (no mira lo que se anotó y se deshizo: eso solo lo ve la base).
+ */
+export function pasosAgregables(p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): { ofrecidos: PasoAgregable[]; bloqueados: PasoNoAgregable[] } {
+  const ofrecidos: PasoAgregable[] = [];
+  const bloqueados: PasoNoAgregable[] = [];
+  if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso" || p.fases.length === 0) return { ofrecidos, bloqueados };
+  const enLaRuta = new Set(p.fases.map((f) => f.clave));
+  const rutaAnterior = p.fases.some((f) => FASES.find((c) => c.clave === f.clave)?.ruta === "anterior");
+  for (const c of FASES) {
+    if (c.siempre || !c.enLaHoja || enLaRuta.has(c.clave) || (rutaAnterior && c.ruta === "nueva")) continue;
+    const lugar = secuenciaDe(c.clave, null);
+    if (lugar === null) continue;
+    const tarde = p.fases.find((f) => f.secuencia > lugar && (f.empezada || f.estado === "hecha"));
+    if (tarde) bloqueados.push({ clave: c.clave, nombre: c.nombre, porQue: `${tarde.nombre} ya empezó, y ${c.nombre} iría antes` });
+    else ofrecidos.push({ clave: c.clave, nombre: c.nombre, ayuda: c.ayuda });
+  }
+  return { ofrecidos, bloqueados };
 }
 
 /** El aviso de la cantidad mínima del servicio: «Confecciones del Norte cobra desde 150 prendas; esta orden lleva 48». No bloquea (ADR-0400, decisión 5). */

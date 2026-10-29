@@ -10,6 +10,7 @@ import {
   RPC_CERRAR_PRODUCCION,
   RPC_DESHACER_MARCA,
   RPC_MARCAR_FASE,
+  RPC_AGREGAR_PASO,
   RPC_QUITAR_PASO,
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
@@ -53,6 +54,7 @@ import {
   esPendienteDeRegistrar,
   fasesSinRegistrar,
   pendienteConCosto,
+  pasosAgregables,
   puedeQuitarPaso,
   queSigue,
   quedanAfuera,
@@ -1289,5 +1291,57 @@ describe("los complementos (forro, otras telas) en la página de la orden", () =
   it("una misma tela que es complemento en un color y principal en otro NO se marca como complemento en la tabla (solo si lo es en todos sus colores)", () => {
     const mezcla = [material({ id: "pi-a", color_codigo: "NEG", es_complemento: true }), material({ id: "pi-b", color_codigo: "CRU" })];
     expect(filasDeTela(orden({ insumos: mezcla }).insumos)[0].complemento).toBe(false);
+  });
+});
+
+// ---------- Agregar un paso a una orden abierta (ADR-0566) ----------
+
+describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () => {
+  const base = orden();
+  const fase = (clave: FasePagina["clave"], nombre: string, secuencia: number, extra: Partial<FasePagina> = {}): FasePagina => ({ ...base.fases[0], id: `f-${clave}`, clave, nombre, secuencia, estado: "pendiente", actual: false, empezada: false, hechas: 0, ...extra });
+  const NUEVA = [fase("ploteo", "Ploteo", 5, { estado: "hecha", empezada: true }), fase("corte", "Corte", 10, { estado: "hecha", empezada: true }), fase("habilitado", "Habilitado", 15, { estado: "hecha", empezada: true }), fase("costura", "Costura", 30, { estado: "hecha", empezada: true }), fase("planchado", "Planchado", 65)];
+  const q = (fases: FasePagina[], parche: Partial<Pick<OrdenPagina, "permisos">> & { estado?: string } = {}) => ({
+    orden: { ...base.orden, estado: (parche.estado ?? "en_proceso") as OrdenPagina["orden"]["estado"] },
+    permisos: parche.permisos ?? { puedeOperar: true, veCostos: true },
+    fases,
+  });
+
+  it("la orden del Chaleco (Costura hecha, Planchado sin empezar) puede sumar Ojales y botones, que entra entre los dos", () => {
+    const { ofrecidos, bloqueados } = pasosAgregables(q(NUEVA));
+    expect(ofrecidos.map((x) => x.clave)).toEqual(["ojales_botones"]);
+    expect(ofrecidos[0].nombre).toBe("Ojales y botones");
+    expect(bloqueados).toEqual([]);
+  });
+  it("no se ofrece lo que ya está en la ruta", () => {
+    const con = [...NUEVA.slice(0, 4), fase("ojales_botones", "Ojales y botones", 35), NUEVA[4]];
+    expect(pasosAgregables(q(con))).toEqual({ ofrecidos: [], bloqueados: [] });
+  });
+  it("si un paso POSTERIOR ya empezó no se ofrece, y se dice por qué en vez de esconderlo", () => {
+    const planchando = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "en_curso" as const }];
+    const r = pasosAgregables(q(planchando));
+    expect(r.ofrecidos).toEqual([]);
+    expect(r.bloqueados).toEqual([{ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes" }]);
+  });
+  it("un paso ANTERIOR empezado no frena nada (Costura a medias)", () => {
+    const a_medias = [...NUEVA.slice(0, 3), { ...NUEVA[3], estado: "en_curso" as const, actual: true, hechas: 10 }, NUEVA[4]];
+    expect(pasosAgregables(q(a_medias)).ofrecidos.map((x) => x.clave)).toEqual(["ojales_botones"]);
+  });
+  it("una orden de la ruta anterior (Acabado) no mezcla con las fases nuevas: no se ofrece nada", () => {
+    const anterior = [fase("corte", "Corte", 10), fase("costura", "Costura", 30), fase("acabado", "Acabado", 60)];
+    expect(pasosAgregables(q(anterior))).toEqual({ ofrecidos: [], bloqueados: [] });
+  });
+  it("sin permiso de operar, con la orden cerrada o sin fases, no se ofrece nada", () => {
+    expect(pasosAgregables(q(NUEVA, { permisos: { puedeOperar: false, veCostos: true } }))).toEqual({ ofrecidos: [], bloqueados: [] });
+    expect(pasosAgregables(q(NUEVA, { estado: "terminada" }))).toEqual({ ofrecidos: [], bloqueados: [] });
+    expect(pasosAgregables(q([]))).toEqual({ ofrecidos: [], bloqueados: [] });
+  });
+  it("paridad con la migración 20261029051000: la RPC existe, sus argumentos son los que manda la hoja y sus motivos son los que la pantalla ya conoce", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261029051000_produccion_agregar_paso_a_la_orden.sql"), "utf8");
+    expect(sql).toContain(`create or replace function retail.${RPC_AGREGAR_PASO}(`);
+    for (const arg of ["p_produccion_id", "p_clave", "p_quien", "p_proveedor_id", "p_tarifa_prenda", "p_fijo_orden", "p_cantidad_minima", "p_fecha_prometida", "p_proveedor_pendiente", "p_posicion"]) expect(sql, arg).toContain(arg);
+    for (const hint of ["paso_despues_empezado", "orden_cerrada", "orden_inexistente", "responsable_requerido"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    // La ruta completa pasa la validación de abrir y el candado es el de las demás escrituras de la orden.
+    expect(sql).toContain("retail.fn_produccion_fases_normalizar(");
+    expect(sql).toContain("pg_advisory_xact_lock(hashtextextended('produccion:'");
   });
 });

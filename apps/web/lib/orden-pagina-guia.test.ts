@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar, siguienteDe } from "./guia-campos";
-import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeEditarTela, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
+import { camposDeAgregarPaso, camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeEditarTela, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
 import { problemaDeAnulacion } from "./orden-pagina-reglas";
 import { problemasFases, type FaseBorrador, type ProveedorServicio, type TarifaDeLista } from "./orden-fases-reglas";
 
@@ -166,5 +166,19 @@ describe("camposDeEditarTela — la guía coincide con lo que guardar_insumos_or
     const campos = camposDeEditarTela({ faltas: [], hayCambios: true, responsableListo: false });
     expect(estadosDe(campos).tela).toBe("hecho");
     expect(siguienteDe(campos)?.id).toBe("quien");
+  });
+});
+
+describe("camposDeAgregarPaso — la guía de «Agregar un paso» dice lo mismo que la de «Cambiar quién»", () => {
+  it("la fila entera es UN campo y después quién lo anota: nada se puede confirmar con una falta o sin responsable", () => {
+    for (const faltas of [[], ["Si «Ojales y botones» sale afuera, elige a quién."]]) {
+      for (const responsableListo of [true, false]) {
+        expect(sePuedeConfirmar(camposDeAgregarPaso({ faltas, responsableListo })), JSON.stringify({ faltas, responsableListo })).toBe(faltas.length === 0 && responsableListo);
+      }
+    }
+  });
+  it("dice lo primero que falta con sus palabras, y sin faltas pasa a quién lo anota", () => {
+    expect(siguienteDe(camposDeAgregarPaso({ faltas: ["Si «Ojales y botones» sale afuera, elige a quién."], responsableListo: true }))).toMatchObject({ id: "fase", pendiente: "Si «Ojales y botones» sale afuera, elige a quién." });
+    expect(estadosDe(camposDeAgregarPaso({ faltas: [], responsableListo: false }))).toEqual({ fase: "hecho", quien: "ahora" });
   });
 });

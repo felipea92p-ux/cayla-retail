@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 137,
+  "total": 142,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -49,6 +49,12 @@
       "Boton «prod-orden.anular-orden»",
       "Boton «prod-orden.pasar-al-stock»",
       "Boton «prod-orden.revertir»"
+    ],
+    "components/orden-pagina/AgregarPasoModal.tsx": [
+      "CampoSelect «Qué paso»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarAvanceModal.tsx": [
       "CampoTexto «{`${t.nombre}»",
@@ -130,6 +136,7 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/RutaDeFases.tsx": [
+      "Boton «prod-orden.agregar-paso»",
       "Boton «{fase.id === idDeLaQueMarca ? \"prod-orden.marcar\" : undefined}»",
       "BotonDeshacer «→() => setHoja({ tipo: \"desmarcar\", faseId: fase.id»",
       "Boton «{fase.actual ? \"prod-orden.terminar\" : undefined}»",

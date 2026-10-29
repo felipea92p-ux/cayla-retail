@@ -37,6 +37,14 @@ export function camposDeCambiarQuien(e: EleccionCambioDeQuien): CampoDeGuia[] {
   ];
 }
 
+/** «Agregar un paso» (ADR-0566): igual que «Cambiar quién» —el paso entero es UN campo: quién lo hace, a quién y a cuánto— y después quién lo anota. */
+export function camposDeAgregarPaso(e: EleccionCambioDeQuien): CampoDeGuia[] {
+  return [
+    { id: "fase", nombre: "Quién lo hace", requerido: true, hecho: e.faltas.length === 0, pendiente: e.faltas[0] ?? "Elige quién hace este paso." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este paso." },
+  ];
+}
+
 export type EleccionSalida = {
   /** Cuántas prendas se mandan en total. */
   total: number;
