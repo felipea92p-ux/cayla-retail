@@ -1,6 +1,6 @@
 # Maqueta · «¿Quieres volver a agregar esta prenda?» (2026-10-28)
 
-**Estado: maqueta para elegir. Nada construido, sin migración.** Abrir `index.html` con doble clic (o desde el servidor `maqueta-referentes`).
+**Estado: Felipe eligió la dirección A, solo con el total de esa prenda (2026-10-28). Construida en Bajar al piso y Cuadrar el piso: ADR-0562.** Abrir `index.html` con doble clic (o desde el servidor `maqueta-referentes`).
 La barra negra de arriba no es parte del diseño: elige la dirección (A/B/C), la pantalla (escritorio con pistola · celular con cámara),
 el tema y la «Cámara lenta». `?sinmov` apaga el movimiento. Todo se puede tocar; nada se guarda. Datos inventados.
 
