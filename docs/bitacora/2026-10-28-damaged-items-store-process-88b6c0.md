@@ -8,3 +8,10 @@ Por qué así: nada de lo nuevo frena a una colaboradora con la tienda abierta (
 momento; el costo solo se anota (el asiento en Finanzas es otra decisión, de dinero). Las funciones cambiaron de firma con parámetros por defecto para que la web vieja siga valiendo.
 Felipe se lleva: nada está en producción. Hay que pegar 6 archivos de `supabase/migrations/20261029*` (orden en el ADR-0564) y, para que el botón aparezca en la caja, darle el módulo
 Existencias al rol de la terminal de ventas en Roles y accesos (hoy no lo tiene). Quedan pendientes dichos en `docs/backlog/2026-10-28-damaged-items-store-process-88b6c0.md`.
+
+## 2026-10-29 (Dañadas en tienda: el costo del arreglo va a Finanzas, el Inicio del líder avisa y las migraciones quedaron en producción)
+Qué hice: con las respuestas de Felipe, (1) el costo de un arreglo registra su gasto en Finanzas con `registrar_gasto` en la misma transacción (Mantenimiento y reparaciones, del cajón, Yape o Plin); (2) el Inicio
+del líder suma «Dañadas sin decidir» (7 días); y (3) pegué las 6 migraciones en producción por el MCP, una por una, comparando el md5 de cada función con el de la base local y verificando después firmas, columnas, RLS y bucket.
+Por qué así: el gasto usa la puerta que ya usa Caja (una sola fuente de verdad: el cajón y el diario lo ven sin una regla nueva) y es todo o nada; las migraciones llevan parámetros por defecto, así que la web que
+está publicada sigue funcionando mientras la nueva espera su PR.
+Felipe se lleva: falta darle Existencias al rol `terminal_ventas` en Roles y accesos (en producción no lo trae; lo intenté por SQL y el sistema lo frenó) y abrir el PR para publicar la web. Las versiones registradas en producción están en el ADR-0564.

@@ -1,6 +1,7 @@
 # ADR-0564 — Prendas dañadas en tienda: separarlas con un botón, saber dónde están y volver al piso arregladas
 
-- **Fecha:** 2026-10-28 · **Estado:** construido y probado en local (6 migraciones, ninguna pegada en producción todavía). Rama
+- **Fecha:** 2026-10-28 (actualizado 2026-10-29) · **Estado:** construido, probado en local y **las 6 migraciones están en producción desde el 2026-10-29**; la web
+  sigue sin publicar (PR sin abrir). Rama
   `claude/damaged-items-store-process-88b6c0`; el número y las versiones de migración están reservados (`pnpm reservar`).
 - **Relacionados:** ADR-0071 (cuarentena de dañadas), ADR-0328 act. 10 (`reportar_danada` y «Se arregló»), ADR-0534 (quien ve Existencias
   resuelve las dañadas), ADR-0195 (políticas aparte), ADR-0306 (un módulo es una entrada del menú), ADR-0160/0162 (cuentas terminal),
@@ -97,3 +98,35 @@ al usarse. `docs/datos/generado/` se refresca cuando se apliquen en producción 
 - alguien llama a `reportar_danada` o `arreglar_prenda_danada` con parámetros posicionales en otro orden (se llama siempre por nombre);
 - el bucket `retail-danadas` no existe donde se publica: subir la foto avisa «La prenda quedó reportada, pero la foto no se pudo subir» y sigue;
 - una cuenta con el módulo Existencias retirado intenta el botón: la base contesta 42501 y la pantalla lo dice (no se ofrece el botón sin el módulo).
+
+## Actualización 2026-10-29 — lo que Felipe decidió al ver los pendientes
+
+1. **El costo del arreglo SÍ genera su gasto en Finanzas.** `arreglar_prenda_danada` gana `p_medio_pago` (efectivo, yape o plin: los medios de Caja ▸ Gasto). Con un
+   costo mayor que cero registra, en la MISMA transacción y antes de mover nada, un gasto con `registrar_gasto` (la misma puerta de Caja): categoría «Mantenimiento y
+   reparaciones», descripción «Arreglo de prenda — <prenda> · <qué se arregló>», fecha de hoy, ligado a la dañada (`arreglo_gasto_id`). Así el cajón, «Gastos del turno» y el
+   diario de Finanzas (`fn_asientos`, regla «gasto») lo ven como cualquier otro gasto: no hay una segunda copia. Todo o nada: con la caja cerrada (en efectivo) o sin
+   permiso para registrar gastos, no se arregla nada y lo dice. Un costo en 0 es «no costó»: ni gasto ni medio.
+   **DESCARTÉ** un asiento propio en `fn_asientos`: dos reglas para el mismo dinero es cómo nacen números distintos (ADR-0198).
+2. **El Inicio del líder avisa de las dañadas de 7 días** («Dañadas sin decidir», urgente, lleva a la lista; solo el líder que ve Existencias, en el Inicio de su sede).
+3. **Cualquier cuenta de terminal puede hacerlo, poniendo el responsable que lo hace** (el combo «Responsable» que ya tienen todas las funciones de tienda). Para que la
+   terminal de ventas (la caja) pueda, su rol tiene que ver Existencias. **No lo di de alta yo:** en producción el rol `terminal_ventas` NO trae `existencias` (sí
+   `terminal_administrativa`) y dar un módulo a un rol es de Felipe, en Colaboradores ▸ Roles y accesos (ADR-0161: nunca desde el código). El sistema que bloquea ese cambio lo
+   frenó cuando intenté hacerlo por SQL; se deja como paso suyo.
+
+### En producción (2026-10-29, por el MCP de Supabase, proyecto `vovjyyiafkxteijimpuy`)
+
+Aplicadas con `apply_migration` en este orden y cada una verificada (md5 de la definición de cada función IGUAL al de la base local):
+
+| Archivo del repo | Versión registrada en producción |
+|---|---|
+| `20261029024000_danadas_tipo_de_dano` | `20261029140739` |
+| `20261029031000_danadas_lugar_de_la_sede` | `20261029140819` |
+| `20261029032000_danadas_salio_a_arreglar` | `20261029140853` |
+| `20261029033000_danadas_se_arreglo_o_no_se_pudo` | `20261029140945` |
+| `20261029034000_danadas_foto_del_dano` | `20261029141014` |
+| `20261029045000_danadas_foto_bucket` (SOLA, ADR-0195) | `20261029141031` |
+
+`apply_migration` registra la hora de aplicación como versión (no la del archivo): esta tabla es el puente. Antes de pegar se comprobó que `reportar_danada` y
+`arreglar_prenda_danada` de producción eran idénticas (md5) a las que las migraciones reemplazan, que hay 3 tiendas con su cuarentena, la categoría «mantenimiento» y Storage.
+Después: una sola firma de cada función, las 7 funciones nuevas, las columnas, RLS encendido y 0 políticas en `prendas_danadas_fotos`, el bucket privado con sus 2
+políticas, y `anon` sin permiso de ejecutar. La dañada que ya existía quedó intacta. La web vieja sigue valiendo (llama con los parámetros de antes).
