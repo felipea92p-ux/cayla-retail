@@ -172,6 +172,91 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
 .hacer{counter-reset:paso}.hacer .fila{counter-increment:paso}.hacer .fila .n::before{content:counter(paso)}
 .hacer .fila .n{width:26px;height:26px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--tinta) 35%,transparent);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
 
+/* B+ (D): lo que B dejaba fuera */
+.vendiste{display:flex;align-items:baseline;justify-content:space-between;gap:6px 18px;flex-wrap:wrap;padding:14px 20px}
+.vendiste .valor-v{font-family:var(--serif);font-size:clamp(24px,3vw,30px);font-variant-numeric:tabular-nums;line-height:1.1}
+.frase{display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:14px}
+.frase svg.i{color:var(--ambar)}
+.fila-btn{width:100%;background:none;border:0;border-bottom:1px solid var(--sand);cursor:pointer;text-align:left;color:inherit;font:inherit;padding-inline:0}
+.fila-btn:last-child{border-bottom:0}
+.fila-btn .ir{color:color-mix(in srgb,var(--tinta) 50%,transparent);transition:transform .2s var(--ease-cayla)}
+.fila-btn:hover .ir{transform:translateX(3px)}
+.fila-btn .m small{display:block;font-family:var(--sans);font-size:11px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.limite-nums{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.limite-nums .valor-v{font-family:var(--serif);font-size:28px;font-variant-numeric:tabular-nums;line-height:1}
+.pista.limite{height:12px;overflow:visible}
+.pista.limite i{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.pista.limite .proy{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ambar) 45%,transparent) 0 4px,transparent 4px 8px);background-color:var(--hueso)}
+.pista.limite .real{background:var(--ambar)}
+.escala{position:relative;height:30px;margin-top:6px;font-size:11.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.escala span{position:absolute;top:0;white-space:nowrap;transform:translateX(-50%)}
+.escala span:first-child{transform:none}
+.escala span:last-child{transform:translateX(-100%)}
+.escala span:nth-child(2){transform:translateX(-100%)}
+.escala span:nth-child(2)::before{left:100%}
+.escala span::before{content:"";position:absolute;left:50%;top:-9px;width:1px;height:6px;background:var(--taupe)}
+.meses.barras button{flex:1 0 74px;gap:4px}
+.meses .barra{width:100%;height:60px;display:flex;align-items:flex-end}
+.meses .barra i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:var(--c);height:var(--h);min-height:3px}
+.meses .en-curso .barra i{background:transparent;border:1.5px dashed var(--taupe)}
+.meses .monto{font-family:var(--serif);font-size:16px;font-variant-numeric:tabular-nums;line-height:1}
+.animar .meses .barra i{animation:sube .8s var(--ease-cayla) backwards;animation-delay:.3s}
+@keyframes sube{from{height:0}}
+
+/* B++ (E): una sola respuesta grande; la cuenta en líneas; pendientes, límite y meses en una fila */
+.e-arriba{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.e-pagas{display:flex;flex-direction:column;gap:12px;padding:26px 28px;justify-content:space-between}
+.e-pagas .valor-g{font-family:var(--serif);font-size:clamp(56px,7.4vw,88px);line-height:1;font-variant-numeric:lining-nums tabular-nums}
+.e-pagas .frase-e{font-size:14.5px;line-height:1.45;color:color-mix(in srgb,var(--crema) 86%,transparent);max-width:46ch}
+.e-pagas .chip{align-self:flex-start;background:color-mix(in srgb,var(--crema) 16%,transparent);color:var(--crema)}
+.e-cuenta{display:flex;flex-direction:column;padding:20px 24px}
+.e-linea{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--sand);font-size:14.5px}
+.e-linea .v{font-family:var(--serif);font-size:21px;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.e-linea small{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.e-linea.base{padding-top:2px}
+.e-linea.base .v{font-size:26px}
+.e-linea.total{border-bottom:0;border-top:2px solid var(--tinta);margin-top:2px;font-weight:600;padding-bottom:0}
+.e-linea.total .v{font-size:26px}
+.e-det{display:flex;flex-direction:column;gap:3px;font-size:12.5px;padding:8px 0 8px 14px;border-bottom:1px solid var(--sand);color:color-mix(in srgb,var(--tinta) 80%,transparent)}
+.e-det div{display:flex;justify-content:space-between;gap:12px}
+.e-fila3{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.25fr);gap:14px;align-items:stretch}
+.e-fila3>.tarjeta{padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.e-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.e-pend{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--sand);padding:9px 0;cursor:pointer;color:inherit;font:inherit;font-size:13.5px;text-align:left}
+.e-pend:last-of-type{border-bottom:0}
+.e-pend i{width:8px;height:8px;border-radius:50%;background:var(--ambar);flex:none}
+.e-pend i.frena{background:var(--rojo-p)}
+.e-pend i.info{background:var(--pizarra)}
+.e-pend .t{flex:1;min-width:0}
+.e-pend .m{font-variant-numeric:tabular-nums;font-family:var(--serif);font-size:16px}
+.e-pend:hover .t{text-decoration:underline}
+.mini-barras{display:flex;gap:6px;align-items:flex-end;flex:1;min-height:150px}
+.mini-barras button{flex:1 1 0;min-width:0;border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;color:inherit;font:inherit}
+.mini-barras .cif{font-size:11px;font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--tinta) 66%,transparent);height:14px}
+.mini-barras button[aria-current="true"] .cif{color:var(--tinta);font-weight:600}
+.mini-barras .col{width:100%;max-width:28px;height:84px;display:flex;align-items:flex-end}
+.mini-barras .col i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:color-mix(in srgb,var(--taupe) 30%,var(--sand));height:var(--h);min-height:3px;transition:background .2s}
+.mini-barras button:hover .col i{background:color-mix(in srgb,var(--taupe) 55%,var(--sand))}
+.mini-barras button[aria-current="true"] .col i{background:var(--tinta)}
+.mini-barras .en-curso .col i{background:transparent;border:1.5px dashed var(--taupe)}
+.mini-barras small{font-size:11.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.mini-barras .est{width:6px;height:6px;border-radius:50%;background:var(--c)}
+.animar .mini-barras .col i{animation:sube .8s var(--ease-cayla) backwards;animation-delay:.3s}
+@media (max-width:1000px){.e-arriba,.e-fila3{grid-template-columns:1fr}}
+
+/* Menú «Descargar» (B, D y E): todo el paquete o un solo archivo */
+.desc{position:relative;display:inline-block}
+.desc .chev{width:14px;height:14px;transition:transform .25s var(--ease-cayla)}
+.desc [aria-expanded="true"] .chev{transform:rotate(180deg)}
+.desc-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:30;min-width:268px;padding:8px;border-radius:14px;background:var(--papel);border:1px solid var(--sand);box-shadow:0 14px 34px -12px color-mix(in srgb,var(--tinta) 38%,transparent);animation:entra .24s var(--ease-cayla)}
+.desc-menu .versalita{padding:6px 10px 8px}
+.desc-item{display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:9px;cursor:pointer;font-size:14px}
+.desc-item small{font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.desc-item:hover,.desc-item:focus-visible{background:var(--hueso)}
+.desc-item:first-of-type{border-bottom:1px solid var(--sand);border-radius:9px 9px 0 0;margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:var(--tinta);color:var(--crema);padding:10px 16px;border-radius:999px;font-size:13.5px;max-width:calc(100vw - 32px);animation:entra .3s var(--ease-cayla)}
+@media (max-width:480px){.desc-menu{right:auto;left:0;min-width:min(268px,calc(100vw - 32px))}}
+
 /* Meses */
 .meses{display:flex;gap:8px;overflow-x:auto;padding:2px}
 .meses button{flex:1 0 62px;border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;gap:6px;align-items:center;cursor:pointer;font-size:13px;transition:transform .2s var(--ease-cayla),border-color .2s}
@@ -221,8 +306,9 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
 }
 @media (max-width:480px){
   .pagina{padding-inline:16px}.mq-barra{padding:8px 16px}.mq-ejemplo{display:none}
-  .mq-selector button{padding:6px 9px;font-size:11.5px}
+  .mq-selector button{padding:6px 7px;font-size:11px;letter-spacing:0}
   .lugar{grid-template-columns:70px 1fr 74px}
+  .cuenta{grid-template-columns:1fr}
   .ruta li{flex:1 1 100%}
 }
 </style>
@@ -236,6 +322,7 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7V3zM14 3v4h4M10 12h5m-5 4h5"/></symbol>
   <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8m4-8v8m6-8v8m4-8v8M3 20h18"/></symbol>
   <symbol id="i-izq" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-abajo" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
   <symbol id="i-der" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
   <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14m-5-5l5 5-5 5"/></symbol>
   <symbol id="i-mas" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></symbol>
@@ -251,6 +338,8 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
     <button data-v="a" aria-pressed="true">A · Ruta</button>
     <button data-v="b" aria-pressed="false">B · Cuenta</button>
     <button data-v="c" aria-pressed="false">C · Vistazo</button>
+    <button data-v="d" aria-pressed="false">D · B+</button>
+    <button data-v="e" aria-pressed="false">E · B++</button>
   </div>
   <span class="mq-grupo" id="estados" role="group" aria-label="Estado del mes">
     <button class="mq-btn" data-e="pagar" aria-pressed="true">Por pagar</button>
@@ -261,8 +350,8 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
   <button class="mq-btn" id="btnTema">Claro / oscuro</button>
 </header>
 
-<p class="mq-intro tenue">Tres formas de ordenar la misma pantalla, con el mínimo de palabras. Los <b>círculos rojos</b> numeran cada pieza y se explican abajo de cada dirección. Toca los pasos, los meses y las sedes: <b>nada se guarda</b>. Arriba, <b>«Por pagar / A favor / Sin movimiento»</b> cambia la cifra para ver cómo responde cada estado. Debajo de las tres: lo que falta para concluir el módulo.</p>
-<p class="recomienda"><b>Mi recomendación:</b> C como base, porque responde lo esencial sin sugerir un orden que el sistema no hace cumplir, y de A tomar el paso «Al contador», que es lo que de verdad se hace cada mes.</p>
+<p class="mq-intro tenue">Cuatro formas de ordenar la misma pantalla (A, B, C y la nueva D = B+), con el mínimo de palabras. Los <b>círculos rojos</b> numeran cada pieza y se explican abajo de cada dirección. Toca los pasos, los meses y las sedes: <b>nada se guarda</b>. Arriba, <b>«Por pagar / A favor / Sin movimiento»</b> cambia la cifra para ver cómo responde cada estado. Debajo de las tres: lo que falta para concluir el módulo.</p>
+<p class="recomienda"><b>Más nueva (2026-10-28): E · B++</b> es D con la jerarquía corregida: una sola respuesta grande («Pagas»), la cuenta en líneas a su lado, y pendientes, límite y meses en una fila que cabe en la primera pantalla de un laptop. <b>Antes:</b> <b>D · B+</b> es la cuenta de B con lo que le faltaba: cuánto vendiste, si ya toca pagar, el límite con proyección, pendientes con monto y meses con importe. <b>Antes de eso, mi recomendación era:</b> C como base, porque responde lo esencial sin sugerir un orden que el sistema no hace cumplir, y de A tomar el paso «Al contador», que es lo que de verdad se hace cada mes.</p>
 
 <main class="pagina">
 
@@ -376,7 +465,7 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
     <div><div class="linea-sede versalita">CAYLA · todas las sedes</div><h1>Impuestos</h1></div>
     <div class="acciones">
       <span class="inline-pt"><i class="pt">1</i><span class="mes"><button aria-label="Mes anterior"><svg class="i"><use href="#i-izq"/></svg></button><span>Septiembre 2026</span><button aria-label="Mes siguiente"><svg class="i"><use href="#i-der"/></svg></button></span></span>
-      <span class="inline-pt"><i class="pt">2</i><button class="btn primario"><svg class="i"><use href="#i-down"/></svg> Paquete del contador</button></span>
+      <span class="inline-pt"><i class="pt">2</i><span class="desc"><button class="btn primario" data-desc aria-haspopup="menu" aria-expanded="false"><svg class="i"><use href="#i-down"/></svg> Descargar <svg class="i chev"><use href="#i-abajo"/></svg></button><div class="desc-menu" role="menu" hidden><p class="versalita">Para el contador · septiembre</p><button class="desc-item" role="menuitem" data-baja="Todo el paquete (ZIP con los 3 archivos)"><b>Todo el paquete</b><small>3 archivos · ZIP</small></button><button class="desc-item" role="menuitem" data-baja="Registro de ventas (CSV)"><b>Registro de ventas</b><small>214 comprobantes · CSV</small></button><button class="desc-item" role="menuitem" data-baja="Registro de compras (CSV)"><b>Registro de compras</b><small>86 facturas · CSV</small></button><button class="desc-item" role="menuitem" data-baja="Resumen del IGV (CSV)"><b>Resumen del IGV</b><small>1 hoja · CSV</small></button></div></span></span>
       <button class="btn sutil" aria-label="Más"><svg class="i"><use href="#i-mas"/></svg></button>
     </div>
   </div>
@@ -427,7 +516,7 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
     <h2>Qué significa cada punto · B</h2>
     <ol class="leyenda">
       <li><span class="n">1</span><div><b>Mes.</b> El período; las flechas lo cambian.</div></li>
-      <li><span class="n">2</span><div><b>Paquete del contador.</b> Un clic baja los dos registros y el resumen. «Más» guarda cada archivo por separado.</div></li>
+      <li><span class="n">2</span><div><b>Descargar.</b> Abre un menú: todo el paquete (ZIP) o un solo archivo: ventas, compras o resumen del IGV.</div></li>
       <li><span class="n">3</span><div><b>Cobraste.</b> El IGV que sumaron tus ventas del mes, ya restadas las notas de crédito.</div></li>
       <li><span class="n">4</span><div><b>IGV de tus compras.</b> Lo que te dejan restar de lo que cobraste, de tus compras con factura: mercadería, gastos, máquinas y Taller. Las notas de crédito y el IGV que no se descuenta (facturas de S/ 2,000 o más pagadas en efectivo) restan. Si traías saldo a favor del mes anterior, entra aquí.</div></li>
       <li><span class="n">5</span><div><b>Renta.</b> El pago a cuenta del impuesto a la renta: 1 % de lo vendido sin IGV.</div></li>
@@ -497,6 +586,187 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
   </div>
 </section>
 
+<!-- ============================ D · B+ ============================ -->
+<section class="variante" id="v-d" hidden>
+  <p class="idea"><b>D · B+.</b> La cuenta de B, con lo que le faltaba: cuánto vendiste (de ahí sale todo), si ya toca pagar, qué te falta hacer, pendientes con su monto, el límite con proyección y cada mes con su importe.</p>
+
+  <div class="encabezado">
+    <div><div class="linea-sede versalita">CAYLA · todas las sedes</div><h1>Impuestos</h1></div>
+    <div class="acciones">
+      <span class="inline-pt"><i class="pt">1</i><span class="mes"><button aria-label="Mes anterior"><svg class="i"><use href="#i-izq"/></svg></button><span>Septiembre 2026</span><button aria-label="Mes siguiente"><svg class="i"><use href="#i-der"/></svg></button></span></span>
+      <span class="inline-pt"><i class="pt">2</i><span class="desc"><button class="btn primario" data-desc aria-haspopup="menu" aria-expanded="false"><svg class="i"><use href="#i-down"/></svg> Descargar <svg class="i chev"><use href="#i-abajo"/></svg></button><div class="desc-menu" role="menu" hidden><p class="versalita">Para el contador · septiembre</p><button class="desc-item" role="menuitem" data-baja="Todo el paquete (ZIP con los 3 archivos)"><b>Todo el paquete</b><small>3 archivos · ZIP</small></button><button class="desc-item" role="menuitem" data-baja="Registro de ventas (CSV)"><b>Registro de ventas</b><small>214 comprobantes · CSV</small></button><button class="desc-item" role="menuitem" data-baja="Registro de compras (CSV)"><b>Registro de compras</b><small>86 facturas · CSV</small></button><button class="desc-item" role="menuitem" data-baja="Resumen del IGV (CSV)"><b>Resumen del IGV</b><small>1 hoja · CSV</small></button></div></span></span>
+      <button class="btn sutil" aria-label="Más"><svg class="i"><use href="#i-mas"/></svg></button>
+    </div>
+  </div>
+
+  <div class="tarjeta hundida vendiste" data-entra style="--i:1"><i class="pt">3</i>
+    <div><span class="versalita">Vendiste en el mes · sin IGV</span><div class="valor-v num">S/ <span data-k="dvend">122,000</span></div></div>
+    <span class="tenue" style="font-size:13px" data-k="dcomp">214 comprobantes · 8 % más que agosto</span>
+  </div>
+
+  <div class="cuenta" data-entra style="--i:2">
+    <div class="tarjeta caja"><i class="pt">4</i><span class="versalita">IGV de tus ventas</span><span class="valor num" data-k="cob">21,960</span><span class="tenue" style="font-size:12.5px">18 % de lo vendido</span></div>
+    <div class="op">−</div>
+    <div class="tarjeta caja"><i class="pt">5</i><span class="versalita">IGV de tus compras</span><span class="valor num" data-k="desb">14,200</span>
+      <button class="ver-det solo-mov tenue" data-sig="mismo" aria-expanded="false" style="font-size:12.5px;align-self:flex-start">Ver de dónde</button>
+      <div class="trozos solo-mov" data-k="trozos" hidden><span>Mercadería 11,300</span><span>Gastos 1,900</span><span>Taller 1,000</span></div></div>
+    <div class="op">+</div>
+    <div class="tarjeta caja"><i class="pt">6</i><span class="versalita">Renta</span><span class="valor num" data-k="ren">1,220</span><span class="tenue" style="font-size:12.5px">1 % de S/ <span data-k="dvend">122,000</span></span></div>
+    <div class="op">=</div>
+    <div class="tarjeta negra caja res"><i class="pt">7</i><span class="versalita" data-k="lab">Pagas</span><span class="valor num" data-k="valn">8,980</span>
+      <span class="chip c-ambar late" data-k="dchip" style="align-self:flex-start;background:color-mix(in srgb,var(--crema) 16%,transparent);color:var(--crema)">Vence en 5 días · 20 oct</span>
+      <button class="btn claro chico solo-mov" style="align-self:flex-start"><svg class="i"><use href="#i-bank"/></svg> Registrar pago</button></div>
+  </div>
+
+  <div class="tarjeta hundida frase" data-entra style="--i:3"><i class="pt">8</i><svg class="i"><use href="#i-alert"/></svg><span data-k="dfrase">Falta: revisar 5 pendientes, mandar el paquete al contador y registrar el pago antes del 20 oct.</span></div>
+
+  <div class="rejilla" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));align-items:start">
+    <div class="tarjeta" data-entra style="--i:4"><i class="pt">9</i>
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px"><b>Pendientes</b><span class="chip c-ambar solo-pend">5 por revisar</span><span class="chip c-verde solo-aldia">Al día</span></div>
+      <div class="solo-pend">
+        <button class="fila fila-btn"><span class="ico" style="--c:var(--rojo-p)"><svg class="i"><use href="#i-alert"/></svg></span><span class="txt"><b>1 comprobante rechazado por SUNAT</b><small>Reenviar o anular</small></span><span class="m num">S/ 350</span><svg class="i ir"><use href="#i-der"/></svg></button>
+        <button class="fila fila-btn"><span class="ico" style="--c:var(--ambar)"><svg class="i"><use href="#i-doc"/></svg></span><span class="txt"><b>2 ventas sin boleta ni factura</b><small>Emitir el comprobante</small></span><span class="m num">S/ 1,180</span><svg class="i ir"><use href="#i-der"/></svg></button>
+        <button class="fila fila-btn"><span class="ico" style="--c:var(--ambar)"><svg class="i"><use href="#i-recibo"/></svg></span><span class="txt"><b>3 compras con boleta</b><small>No dan IGV: pide factura</small></span><span class="m num">S/ 640</span><svg class="i ir"><use href="#i-der"/></svg></button>
+        <button class="fila fila-btn"><span class="ico" style="--c:var(--rojo-p)"><svg class="i"><use href="#i-alert"/></svg></span><span class="txt"><b>IGV que no se descuenta</b><small>Facturas de S/ 2,000 o más pagadas en efectivo</small></span><span class="m num">S/ 360</span><svg class="i ir"><use href="#i-der"/></svg></button>
+        <button class="fila fila-btn"><span class="ico" style="--c:var(--pizarra)"><svg class="i"><use href="#i-recibo"/></svg></span><span class="txt"><b>2 recibos por honorarios</b><small>Retención 8 %: lo confirma el contador</small></span><span class="m num">S/ 1,600</span></button>
+      </div>
+      <p class="solo-aldia tenue" style="padding:12px 0;font-size:14px">Nada que revisar este mes.</p>
+    </div>
+
+    <div class="tarjeta" data-entra style="--i:5"><i class="pt">10</i>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><b>Límite del año</b><span class="chip c-ambar">75 %</span></div>
+      <div class="limite-nums"><span class="valor-v num">S/ 1,237,500</span><span class="tenue" style="font-size:13px">de S/ 1,650,000 · 300 UIT</span></div>
+      <div class="pista limite" data-crece><i class="proy" style="width:98%"></i><i class="real" style="width:75%"></i><span class="marca-aviso" style="left:83.3%"></span></div>
+      <div class="escala"><span style="left:0">Hoy 75 %</span><span style="left:83.3%">Aviso · 250 UIT</span><span style="left:100%">300 UIT</span></div>
+      <p style="font-size:14px;margin-top:4px">A este ritmo pasas las 250 UIT en <b>octubre</b> y cierras diciembre en <b>S/ 1,610,000</b> (98 %).</p>
+    </div>
+  </div>
+
+  <div class="tarjeta" data-entra style="--i:6"><i class="pt">11</i>
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:10px"><b>Lo que pagaste cada mes</b><span class="tenue" style="font-size:12.5px">A pagar a SUNAT, IGV + renta</span></div>
+    <div class="meses barras" data-meses-d></div>
+  </div>
+
+  <div class="rejilla" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))">
+    <div class="tarjeta dashed" data-entra style="--i:7"><i class="pt">12</i>
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px"><b>Por lugar</b><span class="chip c-taupe">Próximamente</span></div>
+      <div class="lugar"><span>Trujillo</span><span class="bar"><i class="pone" style="width:22%"></i></span><span class="m">+3,100</span></div>
+      <div class="lugar"><span>Arequipa</span><span class="bar"><i class="pone" style="width:14%"></i></span><span class="m">+1,950</span></div>
+      <div class="lugar"><span>Lima</span><span class="bar"><i class="baja" style="width:9%"></i></span><span class="m">−1,250</span></div>
+      <div class="lugar"><span>Taller</span><span class="bar"><i class="baja" style="width:7%"></i></span><span class="m">−1,000</span></div>
+      <div class="lugar"><span>Empresa</span><span class="bar"><i class="baja" style="width:5%"></i></span><span class="m">−900</span></div>
+    </div>
+    <div class="tarjeta dashed" data-entra style="--i:8"><i class="pt">13</i>
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px"><b>Lo que viene en el año</b><span class="chip c-taupe">Próximamente</span></div>
+      <div class="fila"><span class="txt"><b>Renta anual</b><small>Estimar el impuesto del año y compararlo con lo pagado a cuenta</small></span><span class="chip c-pizarra">Confirmar con el contador</span></div>
+      <div class="fila"><span class="txt"><b>ITAN</b><small>Solo si los activos pasan de S/ 1 000 000</small></span><span class="chip c-pizarra">Confirmar con el contador</span></div>
+      <div class="fila"><span class="txt"><b>SIRE</b><small>Comparar tus registros con la propuesta de SUNAT</small></span><span class="chip c-pizarra">Confirmar con el contador</span></div>
+    </div>
+  </div>
+
+  <div class="seccion" style="margin-top:6px">
+    <h2>Qué significa cada punto · D (B+)</h2>
+    <ol class="leyenda">
+      <li><span class="n">1</span><div><b>Mes.</b> El período; las flechas lo cambian.</div></li>
+      <li><span class="n">2</span><div><b>Descargar.</b> Abre un menú: todo el paquete (ZIP) o un solo archivo: ventas, compras o resumen del IGV.</div></li>
+      <li><span class="n">3</span><div><b>Vendiste.</b> <i>Nuevo.</i> Lo vendido del mes sin IGV, con cuántos comprobantes y cómo va contra el mes anterior. Es la base de la cuenta: de aquí salen el IGV de tus ventas y la renta.</div></li>
+      <li><span class="n">4</span><div><b>IGV de tus ventas.</b> Antes «Cobraste». Ahora no se confunde con el total vendido.</div></li>
+      <li><span class="n">5</span><div><b>IGV de tus compras.</b> Lo que te dejan restar, de tus compras con factura. «Ver de dónde» muestra mercadería, gastos, máquinas, Taller, notas de crédito, IGV que no se descuenta y el saldo que traías.</div></li>
+      <li><span class="n">6</span><div><b>Renta.</b> 1 % de lo vendido sin IGV, y ahora se ve esa base.</div></li>
+      <li><span class="n">7</span><div><b>Pagas.</b> El resultado, <i>cuántos días faltan</i> y el botón «Registrar pago». Con IGV a favor dice cuánto pasa al mes siguiente. <i>Falta:</i> unir cada pago con su mes (decisión tuya) para que diga «Pagado el 18 oct».</div></li>
+      <li><span class="n">8</span><div><b>Lo que falta hacer.</b> <i>Nuevo.</i> Una sola frase con lo que queda por hacer y la fecha. Si no queda nada, lo dice.</div></li>
+      <li><span class="n">9</span><div><b>Pendientes.</b> Ahora con los cinco tipos de hoy (rechazados por SUNAT, ventas sin comprobante, compras con boleta, IGV perdido, honorarios) y el monto de cada uno. Rojo frena, ámbar avisa, gris informa.</div></li>
+      <li><span class="n">10</span><div><b>Límite del año.</b> Soles vendidos contra las 300 UIT, con la marca de las 250 UIT y la franja rayada de lo proyectado a diciembre. La frase dice cuándo cruzarías.</div></li>
+      <li><span class="n">11</span><div><b>Lo que pagaste cada mes.</b> Una barra por mes con su importe y su estado: se ve la tendencia, no solo un punto.</div></li>
+      <li><span class="n">12</span><div><b>Por lugar.</b> Quién pone y quién baja el pago. <i>Falta:</i> la función «IGV del mes por lugar».</div></li>
+      <li><span class="n">13</span><div><b>Lo que viene en el año.</b> <i>Nuevo, a la vista pero apagado.</i> Renta anual, ITAN y SIRE: no se construyen hasta que el contador confirme que le tocan a CAYLA.</div></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================ E · B++ ============================ -->
+<section class="variante" id="v-e" hidden>
+  <p class="idea"><b>E · B++.</b> Lo mismo que B+ pero con jerarquía: arriba, una sola respuesta grande con lo que falta hacer; a su lado, la cuenta en líneas; y debajo, en una fila, lo que se revisa (pendientes), cómo vas en el año (límite) y la tendencia (meses).</p>
+
+  <div class="encabezado">
+    <div><div class="linea-sede versalita">CAYLA · todas las sedes</div><h1>Impuestos</h1></div>
+    <div class="acciones">
+      <span class="inline-pt"><i class="pt">1</i><span class="mes"><button aria-label="Mes anterior"><svg class="i"><use href="#i-izq"/></svg></button><span>Septiembre 2026</span><button aria-label="Mes siguiente"><svg class="i"><use href="#i-der"/></svg></button></span></span>
+      <span class="inline-pt"><i class="pt">2</i><span class="desc"><button class="btn primario" data-desc aria-haspopup="menu" aria-expanded="false"><svg class="i"><use href="#i-down"/></svg> Descargar <svg class="i chev"><use href="#i-abajo"/></svg></button><div class="desc-menu" role="menu" hidden><p class="versalita">Para el contador · septiembre</p><button class="desc-item" role="menuitem" data-baja="Todo el paquete (ZIP con los 3 archivos)"><b>Todo el paquete</b><small>3 archivos · ZIP</small></button><button class="desc-item" role="menuitem" data-baja="Registro de ventas (CSV)"><b>Registro de ventas</b><small>214 comprobantes · CSV</small></button><button class="desc-item" role="menuitem" data-baja="Registro de compras (CSV)"><b>Registro de compras</b><small>86 facturas · CSV</small></button><button class="desc-item" role="menuitem" data-baja="Resumen del IGV (CSV)"><b>Resumen del IGV</b><small>1 hoja · CSV</small></button></div></span></span>
+      <button class="btn sutil" aria-label="Más"><svg class="i"><use href="#i-mas"/></svg></button>
+    </div>
+  </div>
+
+  <div class="e-arriba">
+    <div class="tarjeta negra e-pagas" data-entra style="--i:1"><i class="pt">3</i>
+      <span class="versalita" data-k="lab">Pagas</span>
+      <span class="valor-g num">S/ <span data-k="valn">8,980</span></span>
+      <span class="chip c-ambar late" data-k="dchip">Vence en 5 días · 20 oct</span>
+      <p class="frase-e" data-k="dfrase">Antes del 20 oct: revisar 5 pendientes, descargar y pagar.</p>
+      <div class="acciones solo-mov"><button class="btn claro"><svg class="i"><use href="#i-bank"/></svg> Registrar pago</button></div>
+    </div>
+
+    <div class="tarjeta e-cuenta" data-entra style="--i:2"><i class="pt">4</i>
+      <div class="e-linea base"><span><span class="versalita">Vendiste · sin IGV</span><small data-k="dcomp">214 comprobantes · 8 % más que agosto</small></span><span class="v num">S/ <span data-k="dvend">122,000</span></span></div>
+      <div class="e-linea"><span>IGV de tus ventas <small>18 % de lo vendido</small></span><span class="v num" data-k="cob">21,960</span></div>
+      <div class="e-linea"><button class="ver-det solo-mov" aria-expanded="false">− IGV de tus compras</button><span class="v num" data-k="des">14,200</span></div>
+      <div class="e-det solo-mov" data-k="det" hidden></div>
+      <div class="e-linea solo-favor"><span>− Saldo que traías</span><span class="v num" data-k="sal">1,500</span></div>
+      <div class="e-linea"><span>+ Renta <small>1 % de S/ <span data-k="dvend">122,000</span></small></span><span class="v num" data-k="ren">1,220</span></div>
+      <div class="e-linea solo-favor"><span>IGV a favor, pasa a octubre</span><span class="v num" data-k="fav">9,700</span></div>
+      <div class="e-linea total"><span>= Pagas</span><span class="v num">S/ <span data-k="valn">8,980</span></span></div>
+    </div>
+  </div>
+
+  <div class="e-fila3">
+    <div class="tarjeta" data-entra style="--i:3"><i class="pt">5</i>
+      <div class="e-cab"><b>Pendientes</b><span class="chip c-ambar solo-pend">5 por revisar</span><span class="chip c-verde solo-aldia">Al día</span></div>
+      <div class="solo-pend">
+        <button class="e-pend" title="Reenviar o anular"><i class="frena"></i><span class="t">1 rechazado por SUNAT</span><span class="m num">S/ 350</span></button>
+        <button class="e-pend" title="Emitir el comprobante"><i></i><span class="t">2 ventas sin comprobante</span><span class="m num">S/ 1,180</span></button>
+        <button class="e-pend" title="No dan IGV: pide factura"><i></i><span class="t">3 compras con boleta</span><span class="m num">S/ 640</span></button>
+        <button class="e-pend" title="Facturas de S/ 2,000 o más pagadas en efectivo"><i></i><span class="t">IGV que no se descuenta</span><span class="m num">S/ 360</span></button>
+        <button class="e-pend" title="Retención 8 %: lo confirma el contador"><i class="info"></i><span class="t">2 recibos por honorarios</span><span class="m num">S/ 1,600</span></button>
+      </div>
+      <p class="solo-aldia tenue" style="font-size:14px;padding:10px 0">Nada que revisar este mes.</p>
+    </div>
+
+    <div class="tarjeta" data-entra style="--i:4"><i class="pt">6</i>
+      <div class="e-cab"><b>Límite del año</b><span class="chip c-ambar">75 %</span></div>
+      <div class="limite-nums" style="margin:6px 0 12px"><span class="valor-v num">S/ 1,237,500</span></div>
+      <div class="pista limite" data-crece><i class="proy" style="width:98%"></i><i class="real" style="width:75%"></i><span class="marca-aviso" style="left:83.3%"></span></div>
+      <div class="escala"><span style="left:0">Hoy</span><span style="left:83.3%">Aviso · 250 UIT</span></div>
+      <p style="font-size:13.5px;margin-top:auto">Cruzas el aviso en <b>octubre</b>. Cierras el año en <b>S/ 1,610,000</b> de 1,650,000 (300 UIT).</p>
+    </div>
+
+    <div class="tarjeta" data-entra style="--i:5"><i class="pt">7</i>
+      <div class="e-cab"><b>Lo que pagas cada mes</b><span class="tenue" style="font-size:12px">IGV + renta · toca uno</span></div>
+      <div class="mini-barras" data-meses-e></div>
+    </div>
+  </div>
+
+  <div class="seccion" style="margin-top:6px">
+    <h2>Qué significa cada punto · E (B++)</h2>
+    <ol class="leyenda">
+      <li><span class="n">1</span><div><b>Mes.</b> Las flechas lo cambian.</div></li>
+      <li><span class="n">2</span><div><b>Descargar.</b> Menú: todo el paquete (ZIP) o un solo archivo.</div></li>
+      <li><span class="n">3</span><div><b>Pagas.</b> Cifra, fecha y lo que falta. «Registrar pago» va a Cuentas y dinero. Con IGV a favor, solo la renta.</div></li>
+      <li><span class="n">4</span><div><b>La cuenta.</b> Vendiste → IGV de ventas − IGV de compras + renta = Pagas. «Ver de dónde» desglosa las compras.</div></li>
+      <li><span class="n">5</span><div><b>Pendientes.</b> Una línea por tema, con su monto. Rojo frena, ámbar avisa, gris informa. Tocar lleva a arreglarlo.</div></li>
+      <li><span class="n">6</span><div><b>Límite del año.</b> Lo vendido contra 300 UIT, con marca en 250 y proyección a diciembre.</div></li>
+      <li><span class="n">7</span><div><b>Lo que pagas cada mes.</b> IGV de ventas − IGV de compras + renta de cada mes: el «Pagas» de ese mes. Tocar cambia de mes.</div></li>
+    </ol>
+    <h3 style="font-size:20px;margin-top:8px">Qué cambia frente a D (B+)</h3>
+    <ul style="margin:0;padding-left:20px;font-size:14px;display:flex;flex-direction:column;gap:4px">
+      <li>Una sola respuesta grande; la cuenta deja de ser cuatro tarjetas iguales y pasa a líneas.</li>
+      <li>«Vendiste» y la frase de «lo que falta» ya no son franjas sueltas: entran en la cuenta y en «Pagas».</li>
+      <li>Pendientes, límite y meses van en una fila, a la vista sin bajar en un laptop.</li>
+      <li>Los meses pierden peso: arena y uno solo en tinta, en vez de siete bloques verdes.</li>
+      <li>Se quitan «Por lugar» y «Lo que viene en el año» de la pantalla: siguen siendo pendientes de decisión (ver «Qué falta»).</li>
+    </ul>
+  </div>
+</section>
+
 <!-- ============================ QUÉ CAMBIA / QUÉ FALTA ============================ -->
 <section class="seccion">
   <h2>Qué cambia frente a hoy</h2>
@@ -509,7 +779,7 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
         <tr><td>Aviso de «se declara ahora» + balanza + lista + límite + sobres + nota de pie</td><td>Una respuesta, un camino (ruta, cuenta o tres acciones) y dos tarjetas chicas</td></tr>
         <tr><td>Nota de 3 líneas sobre cómo pagar a SUNAT</td><td>Paso «Pagar» con su botón; la explicación va en «¿Por qué?»</td></tr>
         <tr><td>Límite con 4 frases (proyección, UIT, alcance, ajuste)</td><td>Barra o anillo con 3 palabras: porcentaje, «Aviso oct», 300 UIT. El detalle, en un «¿Por qué?»</td></tr>
-        <tr><td>Descargas escondidas en «Más» y el dock</td><td>Un solo botón «Paquete del contador»; los archivos sueltos en «Más»</td></tr>
+        <tr><td>Descargas escondidas en «Más» y el dock; el resumen del IGV solo bajaba dentro del zip</td><td>Un botón «Descargar» que abre un menú: todo el paquete o un solo archivo (ventas, compras, resumen)</td></tr>
       </tbody>
     </table>
   </div>
@@ -564,12 +834,12 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
   function pos(){var b=$('.mq-selector button[aria-pressed="true"]');pildora.style.left=b.offsetLeft+'px';pildora.style.width=b.offsetWidth+'px'}
   function ir(v){
     botones.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.v===v)});
-    ['a','b','c'].forEach(function(x){$('#v-'+x).hidden=x!==v});
+    ['a','b','c','d','e'].forEach(function(x){$('#v-'+x).hidden=x!==v});
     pos();document.body.classList.remove('animar');void document.body.offsetWidth;document.body.classList.add('animar');
     try{history.replaceState(null,'','#'+v)}catch(e){}
   }
   botones.forEach(function(b){b.addEventListener('click',function(){ir(b.dataset.v)})});
-  ir((location.hash||'#a').slice(1).replace(/[^abc]/g,'')||'a');
+  ir((location.hash||'#a').slice(1).replace(/[^abcde]/g,'')||'a');
   window.addEventListener('resize',pos);
 
   /* Puntos y tema */
@@ -590,22 +860,24 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
 
   /* Sedes: el mismo selector en A, B y C */
   var baseSedes=$('#v-a .sedes');
-  ['b','c'].forEach(function(v){var c=baseSedes.cloneNode(true),p=c.querySelector('.pt');if(p)p.remove();$('#v-'+v+' .encabezado').after(c)});
+  ['b','c','d','e'].forEach(function(v){var c=baseSedes.cloneNode(true),p=c.querySelector('.pt');if(p)p.remove();$('#v-'+v+' .encabezado').after(c)});
   $$('.sedes').forEach(function(g){
     var ps=$$('.pildora',g),av=$('[data-aviso-sede]',g);
     ps.forEach(function(s,i){s.addEventListener('click',function(){ps.forEach(function(x){x.setAttribute('aria-pressed',x===s)});av.classList.toggle('ver',i>0)})});
   });
 
   /* Estado del mes: por pagar / a favor / sin movimiento */
+  var MD=null;
   var E={
-    pagar:{sal:'0',desb:'14,200',det:[['Mercadería','11,300'],['Gastos','1,900'],['Máquinas y muebles','600'],['Taller','1,000'],['− Notas de crédito','240'],['− IGV no deducible','360']],lab:'Pagas',vence:'vence 20 oct',val:'S/ 8,980',valn:'8,980',cob:'21,960',des:'14,200',ren:'1,220',fav:'',chip:'Vence 20 oct',trozos:['Mercadería 11,300','Gastos 1,900','Máquinas y muebles 600','Taller 1,000','−|Notas de crédito 240','−|IGV no deducible 360']},
-    favor:{sal:'1,500',desb:'19,100',det:[['Mercadería','15,100'],['Gastos','1,500'],['Máquinas y muebles','1,000'],['Taller','1,000'],['− Notas de crédito','640'],['− IGV no deducible','360']],lab:'Pagas',vence:'solo la renta',val:'S/ 520',valn:'520',cob:'9,400',des:'17,600',ren:'520',fav:'9,700',chip:'IGV a favor 9,700',trozos:['Mercadería 15,100','Gastos 1,500','Máquinas y muebles 1,000','Taller 1,000','−|Notas de crédito 640','−|IGV no deducible 360','+|Saldo que traías 1,500']},
-    vacio:{sal:'0',desb:'0',det:[],lab:'Sin movimiento',vence:'nada que pagar',val:'S/ 0',valn:'0',cob:'0',des:'0',ren:'0',fav:'',chip:'Sin ventas ni compras',trozos:[]}
+    pagar:{dvend:'122,000',dcomp:'214 comprobantes · 8 % más que agosto',dchip:'Vence en 5 días · 20 oct',dfrase:'Antes del 20 oct: revisar 5 pendientes, descargar y pagar.',sepn:8980,sal:'0',desb:'14,200',det:[['Mercadería','11,300'],['Gastos','1,900'],['Máquinas y muebles','600'],['Taller','1,000'],['− Notas de crédito','240'],['− IGV no deducible','360']],lab:'Pagas',vence:'vence 20 oct',val:'S/ 8,980',valn:'8,980',cob:'21,960',des:'14,200',ren:'1,220',fav:'',chip:'Vence 20 oct',trozos:['Mercadería 11,300','Gastos 1,900','Máquinas y muebles 600','Taller 1,000','−|Notas de crédito 240','−|IGV no deducible 360']},
+    favor:{dvend:'52,200',dcomp:'96 comprobantes · 57 % menos que agosto',dchip:'IGV a favor 9,700 → octubre',dfrase:'Solo pagas la renta antes del 20 oct. El IGV a favor pasa a octubre.',sepn:520,sal:'1,500',desb:'19,100',det:[['Mercadería','15,100'],['Gastos','1,500'],['Máquinas y muebles','1,000'],['Taller','1,000'],['− Notas de crédito','640'],['− IGV no deducible','360']],lab:'Pagas',vence:'solo la renta',val:'S/ 520',valn:'520',cob:'9,400',des:'17,600',ren:'520',fav:'9,700',chip:'IGV a favor 9,700',trozos:['Mercadería 15,100','Gastos 1,500','Máquinas y muebles 1,000','Taller 1,000','−|Notas de crédito 640','−|IGV no deducible 360','+|Saldo que traías 1,500']},
+    vacio:{dvend:'0',dcomp:'Sin comprobantes este mes',dchip:'Sin ventas ni compras',dfrase:'Nada que declarar: sin ventas ni compras.',sepn:0,sal:'0',desb:'0',det:[],lab:'Sin movimiento',vence:'nada que pagar',val:'S/ 0',valn:'0',cob:'0',des:'0',ren:'0',fav:'',chip:'Sin ventas ni compras',trozos:[]}
   };
   function estado(e){
     document.body.dataset.estado=e;var d=E[e];
     $$('#estados .mq-btn').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.e===e)});
     $$('[data-k]').forEach(function(n){var k=n.dataset.k;if(k==='trozos')n.innerHTML=d.trozos.map(function(t){var m=t.match(/^([−+])\|(.*)$/);return m?'<span class="resta">'+(m[1]==='+'?'+ ':'− ')+m[2]+'</span>':'<span>'+t+'</span>'}).join('');else if(k==='det')n.innerHTML=d.det.map(function(x){return '<div><span>'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('');else n.textContent=d[k]});
+    if(MD){mesesD(d.sepn);mesesE(d.sepn)}
   }
   $$('#estados .mq-btn').forEach(function(b){b.addEventListener('click',function(){estado(b.dataset.e)})});
   var eq=(location.search.match(/estado=(pagar|favor|vacio)/)||[])[1];if(eq)estado(eq);
@@ -618,6 +890,33 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
     $$('button',c).forEach(function(b){b.addEventListener('click',function(){$$('button',c).forEach(function(x){x.removeAttribute('aria-current')});b.setAttribute('aria-current','true')})});
   });
 
+  /* Meses con importe (D): una barra por mes; septiembre sigue el estado elegido arriba */
+  var MD=[['Abr',7900,'pagado','verde'],['May',8400,'pagado','verde'],['Jun',7100,'pagado','verde'],['Jul',9300,'pagado','verde'],['Ago',8200,'pagado','verde'],['Sep',8980,'por declarar','ambar',1],['Oct',3100,'en curso','taupe']];
+  var actD='Sep';
+  function mesesD(sep){
+    var c=$('[data-meses-d]');if(!c)return;
+    var datos=MD.map(function(m){return m[0]==='Sep'?[m[0],sep,m[2],m[3],m[4]]:m});
+    var max=Math.max.apply(null,datos.map(function(m){return m[1]}).concat([1]));
+    c.innerHTML=datos.map(function(m){
+      return '<button class="'+(m[2]==='en curso'?'en-curso':'')+'" '+(m[0]===actD?'aria-current="true"':'')+' data-m="'+m[0]+'" style="--c:'+col[m[3]]+'"><span class="monto">'+(m[1]?m[1].toLocaleString('en-US'):'0')+'</span><span class="barra"><i style="--h:'+Math.round(m[1]/max*100)+'%"></i></span><b>'+m[0]+'</b><small>'+m[2]+'</small></button>';
+    }).join('');
+    $$('button',c).forEach(function(b){b.addEventListener('click',function(){actD=b.dataset.m;$$('button',c).forEach(function(x){x.removeAttribute('aria-current')});b.setAttribute('aria-current','true')})});
+  }
+  mesesD(E[document.body.dataset.estado].sepn);
+
+  /* Meses de B++ (E): barras en arena, el mes que se mira en tinta; cifra arriba y estado abajo */
+  var actE='Sep';
+  function mesesE(sep){
+    var c=$('[data-meses-e]');if(!c)return;
+    var datos=MD.map(function(m){return m[0]==='Sep'?[m[0],sep,m[2],m[3]]:m});
+    var max=Math.max.apply(null,datos.map(function(m){return m[1]}).concat([1]));
+    c.innerHTML=datos.map(function(m){
+      return '<button class="'+(m[2]==='en curso'?'en-curso':'')+'" '+(m[0]===actE?'aria-current="true"':'')+' data-m="'+m[0]+'" style="--c:'+col[m[3]]+'" title="'+m[0]+' · '+m[2]+'"><span class="cif">'+(m[1]?(m[1]/1000).toFixed(1).replace('.',',')+' mil':'0')+'</span><span class="col"><i style="--h:'+Math.round(m[1]/max*100)+'%"></i></span><b style="font-size:12.5px;font-weight:600">'+m[0]+'</b><span class="est"></span></button>';
+    }).join('');
+    $$('button',c).forEach(function(b){b.addEventListener('click',function(){actE=b.dataset.m;$$('button',c).forEach(function(x){x.removeAttribute('aria-current')});b.setAttribute('aria-current','true')})});
+  }
+  mesesE(E[document.body.dataset.estado].sepn);
+
   /* Detalle de «IGV de tus compras» (A y C) */
   $$('.ver-det').forEach(function(b){b.addEventListener('click',function(){
     var abierto=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',!abierto);
@@ -626,6 +925,18 @@ body[data-estado="vacio"] .solo-mov{display:none!important}
 
   /* ¿Por qué? (C) */
   $$('[data-porque]').forEach(function(b){b.addEventListener('click',function(){var p=b.parentNode.querySelector('[data-porque-panel]');p.hidden=!p.hidden;b.textContent=p.hidden?'¿Por qué? ▾':'¿Por qué? ▴'})});
+
+  /* Menú «Descargar»: abre, cierra con clic fuera o Escape, y avisa qué se descargaría (la maqueta no descarga nada) */
+  function cerrarMenus(){$$('.desc-menu').forEach(function(m){m.hidden=true});$$('[data-desc]').forEach(function(b){b.setAttribute('aria-expanded','false')})}
+  $$('[data-desc]').forEach(function(b){b.addEventListener('click',function(e){
+    e.stopPropagation();var m=b.nextElementSibling,abrir=m.hidden;cerrarMenus();m.hidden=!abrir;b.setAttribute('aria-expanded',abrir);
+  })});
+  $$('.desc-item').forEach(function(i){i.addEventListener('click',function(){
+    cerrarMenus();var t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent='Se descargaría: '+i.dataset.baja+'. (Maqueta: no baja nada.)';
+    document.body.appendChild(t);setTimeout(function(){t.remove()},3200);
+  })});
+  document.addEventListener('click',function(e){if(!e.target.closest('.desc'))cerrarMenus()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarMenus()});
 
   /* Onda donde se toca */
   document.addEventListener('pointerdown',function(e){
