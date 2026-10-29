@@ -282,6 +282,11 @@ describe("el resto del día de compras (actividad 5)", () => {
     ]);
   });
 
+  it("lo que ya decidió devolver y Compras no recibió ya no es suyo: baja de «tienes» (ADR-0574); sin ese dato, la cuenta es la de antes", () => {
+    expect(leerMiPlata({ ...BASE, compras_por_completar: 0, saldo: 1400, devolucion_por_entregar: 1400 })).toMatchObject({ tiene: 0, devolucionPorEntregar: 1400 });
+    expect(leerMiPlata({ ...BASE, compras_por_completar: 0, saldo: 1400 })).toMatchObject({ tiene: 1400, devolucionPorEntregar: 0 });
+  });
+
   it("lo que falta mandar: una tarjeta por tienda con sus prendas; descarta lo ilegible y una tienda sin prendas", () => {
     const p = leerMiPlata({
       ...BASE,
@@ -632,7 +637,7 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
   it("lo que devolvió dice cuánto, dónde y si Compras ya lo recibió", () => {
     const c = h[0];
     expect(c.tipo === "cierre" && [c.titulo, c.detalle, c.entra, c.monto, c.estado.texto, c.estado.pendiente]).toEqual([
-      "Devolviste en caja",
+      "Por devolver en caja",
       "RC-000002 · 22/10",
       false,
       soles(80),
@@ -655,7 +660,7 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
     const u = ultimaRondaDelHistorial(h)!;
     expect(u.ronda.clave).toBe("ronda-r2");
     // Devolvió S/ 80 y Compras todavía no lo recibe: manda la plata, no el estado de los libros.
-    expect([u.cierre?.clave, u.estado.texto, u.estado.pendiente, u.comoCerro]).toEqual(["cierre-r2", "Entrégalo en caja", true, `Devolviste en caja ${soles(80)}`]);
+    expect([u.cierre?.clave, u.estado.texto, u.estado.pendiente, u.comoCerro]).toEqual(["cierre-r2", "Entrégalo en caja", true, `Por devolver en caja ${soles(80)}`]);
     expect(u.resto.map((e) => e.clave)).toEqual(["plata-a2", "ronda-r1", "plata-a1", "ronda-sin-ronda"]);
   });
 
