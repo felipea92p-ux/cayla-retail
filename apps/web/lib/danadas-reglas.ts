@@ -28,7 +28,7 @@ export const RPC_REPORTAR_DANADA = "reportar_danada";
 export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token", "p_tipo"] as const;
 export const RPC_ARREGLAR_DANADA = "arreglar_prenda_danada";
 /** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
-export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token", "p_destino", "p_costo"] as const;
+export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token", "p_destino", "p_costo", "p_medio_pago"] as const;
 
 /** Lo que tiene la prenda y lo que se le arregló: entre 3 y 200 caracteres (la base exige lo mismo). */
 export const MIN_TEXTO_DANADA = 3;
@@ -140,6 +140,26 @@ export type DestinoArreglo = (typeof DESTINOS_ARREGLO)[number]["valor"];
 /** @internal Lo lee solo su prueba, que lo cruza con la lista de la migración. */
 export const VALORES_DESTINO_ARREGLO: readonly DestinoArreglo[] = DESTINOS_ARREGLO.map((d) => d.valor);
 
+/**
+ * Cómo se pagó el arreglo (Felipe, 2026-10-29: un costo genera su gasto en Finanzas). Son los medios de «Caja ▸ Gasto» —lo que una caja o una
+ * terminal puede registrar—: del cajón, con Yape o con Plin. Los valores son los de `p_medio_pago`.
+ */
+export const MEDIOS_ARREGLO = [
+  { valor: "efectivo", etiqueta: "Del cajón (efectivo)" },
+  { valor: "yape", etiqueta: "Con Yape" },
+  { valor: "plin", etiqueta: "Con Plin" },
+] as const;
+export type MedioArreglo = (typeof MEDIOS_ARREGLO)[number]["valor"];
+
+/** @internal Lo lee solo su prueba, que lo cruza con la lista de la migración. */
+export const VALORES_MEDIO_ARREGLO: readonly MedioArreglo[] = MEDIOS_ARREGLO.map((m) => m.valor);
+
+/** ¿El texto del costo trae plata? (mayor que cero): solo entonces hay gasto y la persona tiene que decir cómo se pagó. 0 es «no costó». */
+export function costoConPlata(texto: string): boolean {
+  const c = leerCostoArreglo(texto);
+  return typeof c === "number" && c > 0;
+}
+
 /** El tope del costo de un arreglo (la base: numeric(10,2), con la función en 99,999.99). */
 export const MAX_COSTO_ARREGLO = 99999.99;
 
@@ -156,7 +176,7 @@ export function leerCostoArreglo(texto: string): number | null | "invalido" {
 }
 
 /** La guía del panel «Se arregló»: qué se le hizo (lo exige la base), a dónde vuelve, cuánto costó (opcional) y quién lo hace. */
-export function camposGuiaArreglo(nota: string, responsableListo: boolean, destinoConfirmado = true, costo = ""): CampoDeGuia[] {
+export function camposGuiaArreglo(nota: string, responsableListo: boolean, destinoConfirmado = true, costo = "", medio: MedioArreglo | "" = ""): CampoDeGuia[] {
   const largo = largoUtil(nota);
   const costoLeido = leerCostoArreglo(costo);
   return [
@@ -171,6 +191,8 @@ export function camposGuiaArreglo(nota: string, responsableListo: boolean, desti
     { id: "destino", nombre: "A dónde vuelve", requerido: false, sugerido: true, hecho: destinoConfirmado, pendiente: "Confirma a dónde vuelve la prenda." },
     // El costo es opcional, pero si se escribe tiene que ser un monto válido: la base lo rechazaría.
     { id: "costo", nombre: "Lo que costó", requerido: costoLeido === "invalido", hecho: costoLeido !== null && costoLeido !== "invalido", pendiente: "Escribe un monto válido, o déjalo vacío (por ejemplo 12.50)." },
+    // Un costo con plata es un gasto de Finanzas: pide cómo se pagó (la base lo rechaza sin eso).
+    ...(costoConPlata(costo) ? [{ id: "medio", nombre: "Cómo se pagó", requerido: true, hecho: medio !== "", pendiente: "Elige cómo se pagó el arreglo." }] : []),
     { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsableListo, pendiente: "Elige quién decide." },
   ];
 }
@@ -198,10 +220,20 @@ export function argumentosDeReporte(
   return { p_ubicacion_id: ubicacionId, p_variante_id: varianteId, p_cantidad: cantidad, p_desde: desde, p_motivo: motivo.trim(), p_token: token, p_tipo: tipo };
 }
 
-export type ArgumentosDeArreglo = { p_id: string; p_nota: string; p_token: string; p_destino: DestinoArreglo; p_costo?: number };
+export type ArgumentosDeArreglo = { p_id: string; p_nota: string; p_token: string; p_destino: DestinoArreglo; p_costo?: number; p_medio_pago?: MedioArreglo };
 
-export function argumentosDeArreglo(id: string, nota: string, token: string, destino: DestinoArreglo = "almacen", costo: number | null = null): ArgumentosDeArreglo {
-  return costo === null ? { p_id: id, p_nota: nota.trim(), p_token: token, p_destino: destino } : { p_id: id, p_nota: nota.trim(), p_token: token, p_destino: destino, p_costo: costo };
+export function argumentosDeArreglo(
+  id: string,
+  nota: string,
+  token: string,
+  destino: DestinoArreglo = "almacen",
+  costo: number | null = null,
+  medio: MedioArreglo | null = null
+): ArgumentosDeArreglo {
+  const base = { p_id: id, p_nota: nota.trim(), p_token: token, p_destino: destino };
+  // Sin costo (o en 0) no hay gasto ni medio: no se manda ninguno de los dos.
+  if (costo === null || costo === 0) return base;
+  return medio === null ? { ...base, p_costo: costo } : { ...base, p_costo: costo, p_medio_pago: medio };
 }
 
 export type RespuestaDanada = { ya_registrada: boolean; id: string; unidades: number };
@@ -245,6 +277,8 @@ export function interpretarErrorDeDanada(error: ErrorEscritura, contexto: string
 
 // Los rechazos que la base levanta DESPUÉS de mirar la marca: prueban que esa marca no guardó nada, o ya la tenía.
 const HINTS_DESPUES_DE_LA_MARCA = new Set([
+  "arreglo_caja_cerrada",
+  "arreglo_gasto_sin_permiso",
   "danada_sin_alcance",
   "arreglo_ya_resuelta",
   "arreglo_sede_sin_almacen",

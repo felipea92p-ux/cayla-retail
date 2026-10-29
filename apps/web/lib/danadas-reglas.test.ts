@@ -6,9 +6,12 @@ import {
   argumentosDeDevolucion,
   argumentosDeReporte,
   camposGuiaArreglo,
+  costoConPlata,
   DESTINOS_ARREGLO,
   leerCostoArreglo,
+  MEDIOS_ARREGLO,
   VALORES_DESTINO_ARREGLO,
+  VALORES_MEDIO_ARREGLO,
   camposGuiaDevolucion,
   cantidadAjustada,
   desdeInicial,
@@ -91,11 +94,13 @@ describe("el contrato con la base", () => {
     const r = argumentosDeReporte("tru", "v1", "piso", 2, "  Mancha en la manga ", "marca", "mancha");
     expect(r).toEqual({ p_ubicacion_id: "tru", p_variante_id: "v1", p_cantidad: 2, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca", p_tipo: "mancha" });
     expect(Object.keys(r).sort()).toEqual([...PARAMETROS_RPC_REPORTAR].sort());
-    const a = argumentosDeArreglo("d1", " Se cosió el botón  ", "m2", "piso", 12.5);
-    expect(a).toEqual({ p_id: "d1", p_nota: "Se cosió el botón", p_token: "m2", p_destino: "piso", p_costo: 12.5 });
+    const a = argumentosDeArreglo("d1", " Se cosió el botón  ", "m2", "piso", 12.5, "yape");
+    expect(a).toEqual({ p_id: "d1", p_nota: "Se cosió el botón", p_token: "m2", p_destino: "piso", p_costo: 12.5, p_medio_pago: "yape" });
     expect(Object.keys(a).sort()).toEqual([...PARAMETROS_RPC_ARREGLAR].sort());
     // Sin costo no se manda (es opcional); sin destino, al almacén como siempre.
     expect(argumentosDeArreglo("d1", "x y z", "m2")).toEqual({ p_id: "d1", p_nota: "x y z", p_token: "m2", p_destino: "almacen" });
+    // Un costo en 0 es «no costó»: ni costo ni medio (no hay gasto).
+    expect(argumentosDeArreglo("d1", "x y z", "m2", "almacen", 0, "yape")).toEqual({ p_id: "d1", p_nota: "x y z", p_token: "m2", p_destino: "almacen" });
   });
 
   it("la respuesta se lee solo si calza con el contrato", () => {
@@ -237,8 +242,23 @@ describe("«Se arregló» al piso o al almacén, con el costo (ADR-0564)", () =>
     for (const h of ["arreglo_destino_invalido", "arreglo_costo_invalido", "arreglo_sede_sin_piso"]) expect(MIGRACION_REGRESO, h).toContain(`'${h}'`);
   });
 
+  it("un costo con plata es un gasto de Finanzas: pide cómo se pagó (los medios de Caja), y sin costo no pide nada", () => {
+    const enLaBase = [...(/v_medio not in \(([^)]*)\)/.exec(MIGRACION_REGRESO)?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+    expect(enLaBase).toEqual([...VALORES_MEDIO_ARREGLO]);
+    expect(MEDIOS_ARREGLO.map((m) => m.valor)).toEqual(["efectivo", "yape", "plin"]);
+    for (const h of ["arreglo_pago_invalido", "arreglo_caja_cerrada", "arreglo_gasto_sin_permiso"]) expect(MIGRACION_REGRESO, h).toContain(`'${h}'`);
+    expect(MIGRACION_REGRESO).toContain("registrar_gasto(");
+    expect(costoConPlata("12.50")).toBe(true);
+    for (const no of ["", "0", "0.00", "abc", "-1"]) expect(costoConPlata(no), no).toBe(false);
+    const guia = (costo: string, medio: "" | "yape") => camposGuiaArreglo("Se cosió el botón", true, true, costo, medio);
+    expect(guia("", "").some((c) => c.id === "medio")).toBe(false);
+    expect(sePuedeConfirmar(guia("12.50", ""))).toBe(false);
+    expect(sePuedeConfirmar(guia("12.50", "yape"))).toBe(true);
+    expect(sePuedeConfirmar(guia("0", ""))).toBe(true);
+  });
+
   it("la guía pasa por el destino como sugerido y el costo mal escrito bloquea (la base lo rechazaría); vacío no", () => {
-    const base = (costo: string, confirmado = true) => camposGuiaArreglo("Se cosió el botón", true, confirmado, costo);
+    const base = (costo: string, confirmado = true) => camposGuiaArreglo("Se cosió el botón", true, confirmado, costo, "yape");
     expect(sePuedeConfirmar(base(""))).toBe(true);
     expect(sePuedeConfirmar(base("12.50"))).toBe(true);
     expect(sePuedeConfirmar(base("abc"))).toBe(false);

@@ -18,8 +18,11 @@ import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
   argumentosDeArreglo,
   argumentosDeDevolucion,
+  costoConPlata,
   DESTINOS_ARREGLO,
   leerCostoArreglo,
+  MEDIOS_ARREGLO,
+  type MedioArreglo,
   type DestinoArreglo,
   camposGuiaArreglo,
   camposGuiaDevolucion,
@@ -154,6 +157,8 @@ export function ResolverDanadosModal({
   const [destinoArreglo, setDestinoArreglo] = useState<DestinoArreglo>("almacen");
   const [destinoConfirmado, setDestinoConfirmado] = useState(false);
   const [costoArreglo, setCostoArreglo] = useState("");
+  // Con un costo, su gasto en Finanzas (2026-10-29): cómo se pagó (del cajón, Yape o Plin).
+  const [medioArreglo, setMedioArreglo] = useState<MedioArreglo | "">("");
   // «No se pudo» (ADR-0564): la prenda que volvió de arreglarse sin arreglo, y por qué.
   const [noPudo, setNoPudo] = useState<string | null>(null);
   const [motivoNoPudo, setMotivoNoPudo] = useState("");
@@ -181,7 +186,7 @@ export function ResolverDanadosModal({
     : devolviendo
     ? camposGuiaDevolucion(notaDevolucion, responsable.listo)
     : arreglando
-    ? camposGuiaArreglo(notaArreglo, responsable.listo, destinoConfirmado, costoArreglo)
+    ? camposGuiaArreglo(notaArreglo, responsable.listo, destinoConfirmado, costoArreglo, medioArreglo)
     : liquidando
       ? [
           { id: "precio", nombre: "Precio", requerido: true, hecho: Number.isFinite(precioLiquidando) && precioLiquidando > 0, pendiente: "Escribe el precio de liquidación." },
@@ -376,6 +381,7 @@ export function ResolverDanadosModal({
     setDestinoArreglo("almacen");
     setDestinoConfirmado(false);
     setCostoArreglo("");
+    setMedioArreglo("");
     tokenArreglo.current = crypto.randomUUID();
   }
 
@@ -388,7 +394,7 @@ export function ResolverDanadosModal({
     let data: unknown = null;
     let error: ErrorEscritura = null;
     try {
-      const r = await firmar(createClient().rpc(RPC_ARREGLAR_DANADA, argumentosDeArreglo(p.id, notaArreglo, tokenArreglo.current, destinoArreglo, costo)), responsable.firma());
+      const r = await firmar(createClient().rpc(RPC_ARREGLAR_DANADA, argumentosDeArreglo(p.id, notaArreglo, tokenArreglo.current, destinoArreglo, costo, medioArreglo === "" ? null : medioArreglo)), responsable.firma());
       data = r.data;
       error = r.error;
     } catch (excepcion) {
@@ -405,7 +411,11 @@ export function ResolverDanadosModal({
     }
     const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: p.id, unidades: p.cantidad };
     if (r.ya_registrada) avisar.aviso(TEXTO_ARREGLO_YA_ESTABA, { detalle: p.referencia });
-    else avisar.exito(tituloExitoArreglo(r.unidades, destinoArreglo), { detalle: destinoArreglo === "piso" ? `${p.referencia} · ya está en el piso, lista para vender` : `${p.referencia} · cuélgala en el piso para venderla` });
+    else avisar.exito(tituloExitoArreglo(r.unidades, destinoArreglo), {
+        detalle:
+          (destinoArreglo === "piso" ? `${p.referencia} · ya está en el piso, lista para vender` : `${p.referencia} · cuélgala en el piso para venderla`) +
+          (costo !== null && costo > 0 ? " · el costo quedó anotado como gasto en Finanzas" : ""),
+      });
     setArreglando(null);
     router.refresh();
   }
@@ -780,6 +790,21 @@ export function ResolverDanadosModal({
                           disabled={resolviendo !== null || arregloEnDuda}
                         />
                       </CampoGuiado>
+                      {costoConPlata(costoArreglo) && (
+                        <CampoGuiado id="medio" guia={guia}>
+                          <CampoSelect
+                            etiqueta={guia.etiqueta("medio", "¿Cómo se pagó?")}
+                            valor={medioArreglo}
+                            onValor={(v) => {
+                              setMedioArreglo(v);
+                              setErrorArreglo(null);
+                            }}
+                            opciones={MEDIOS_ARREGLO.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+                            marcador="Elige cómo se pagó"
+                            deshabilitado={resolviendo !== null || arregloEnDuda}
+                          />
+                        </CampoGuiado>
+                      )}
                       {errorArreglo && (
                         <Aviso tono="error">{errorArreglo}</Aviso>
                       )}

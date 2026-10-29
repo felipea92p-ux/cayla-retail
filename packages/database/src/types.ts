@@ -6734,7 +6734,7 @@ export type Database = {
       }
       // ADR-0328 act. 10 (20261005140000): «Se arregló» — la dañada vuelve al almacén de su sede. Solo el líder.
       arreglar_prenda_danada: {
-        Args: { p_costo?: number; p_destino?: string; p_id: string; p_nota: string; p_token: string }
+        Args: { p_costo?: number; p_destino?: string; p_id: string; p_medio_pago?: string; p_nota: string; p_token: string }
         Returns: Json
       }
       asignar_temporada_categoria: {
