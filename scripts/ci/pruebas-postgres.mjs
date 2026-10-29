@@ -535,6 +535,11 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:alta-con-stock-inicial",
 
+  // Nuevo producto con la carga inicial cerrada (ADR-0328 act. 2026-10-28): las unidades entran como llegada del proveedor
+  // (recibir_lote) en la misma transacción que el alta; sin proveedor, sin unidades o con un nombre repetido no queda nada; el
+  // mismo token no recibe dos veces; los permisos de la sede son los de recibir. Cada caso termina en ROLLBACK.
+  "pruebas:alta-con-llegada",
+
   // Temporadas como atributo (ADR-0246): la lista cerrada de 9, el calendario de SENAMHI (lo que ya empezó no se mueve;
   // solo el líder corre una fecha futura), una temporada por prenda (color → producto → categoría), asignar todo o
   // nada con firma y rastro, el alta con p_temporada, el año por fecha de llegada y la guarda de la migración.
@@ -715,6 +720,16 @@ export const PRUEBAS = [
   // tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
   // Cada caso termina en ROLLBACK.
   "pruebas:insumos-devolucion",
+
+  // Candados de unidad de Insumos (ADR-0554, actividad 0): una tela se mide en metros, un insumo con historia no cambia de
+  // tipo ni de unidad (la historia se lee del catálogo, así que una tabla nueva queda cubierta sola), un código no se repite
+  // aunque cambien mayúsculas o espacios, y la propia migración se detiene si ya hay datos que la contradicen. ROLLBACK.
+  "pruebas:insumos-candados",
+
+  // La tela con sus colores (ADR-0554, actividad 1): `crear_material` y `agregar_colores_a_material` arman la tela y sus colores todo o nada, con el código
+  // que pone la base y el saldo inicial solo del líder; un reintento con el mismo token no duplica nada; una tela repetida AVISA y dice cuál; el nombre, el
+  // código, el tejido y la merma de un color son los de su tela; y los estados imposibles (un color dos veces, kilo sin medidas, NaN, unidad cambiada) no caben. ROLLBACK.
+  "pruebas:materiales",
 
   // Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
   // RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin

@@ -948,3 +948,42 @@ describe("club: editar los mensajes de los avisos", () => {
     }
   });
 });
+
+describe("«una tela con sus colores» (ADR-0554, revisión del 28-oct): ningún candado de la tela sale como «Vuelve a intentar»", () => {
+  it("lo que la función levanta con su propio mensaje pasa tal cual (P0001), también lo que llega con otro código por su hint", () => {
+    expect(traducirError({ message: "Ya existe «Milano Melange» (MM-01): ponle otro nombre a esta tela.", code: "P0001", hint: "material_ya_existe" }, "guardar los cambios de la tela")).toBe("Ya existe «Milano Melange» (MM-01): ponle otro nombre a esta tela.");
+    expect(traducirError({ message: "Editar una tela es del líder.", code: "42501", hint: "editar_material_sin_lider" }, "guardar los cambios de la tela")).toBe("Editar una tela es del líder.");
+    expect(traducirError({ message: "El saldo inicial, con su costo, lo anota el líder.", code: "42501", hint: "saldo_sin_lider" }, "crear la tela")).toBe("El saldo inicial, con su costo, lo anota el líder.");
+    expect(traducirError({ message: "El tejido y la merma son de la tela, no de cada color: cámbialos en la tela.", code: "23514", hint: "copia_de_la_tela" }, "guardar la ficha")).toContain("cámbialos en la tela");
+  });
+  it("las restricciones sin mensaje propio se explican sin citar el índice", () => {
+    const casos: [string, string, string][] = [
+      ['new row for relation "insumos" violates check constraint "insumos_tela_en_metros"', "23514", "se lleva en metros"],
+      ['duplicate key value violates unique constraint "insumos_codigo_clave_unico"', "23505", "Ya hay un insumo con ese código"],
+      ['duplicate key value violates unique constraint "materiales_nombre_tipo_unico"', "23505", "Ya existe una tela con ese nombre"],
+      ['duplicate key value violates unique constraint "insumos_material_color_unico"', "23505", "Ese color ya está en la tela"],
+      ['new row for relation "materiales" violates check constraint "materiales_medidas_plausibles"', "23514", "El ancho va en centímetros"],
+    ];
+    for (const [message, code, esperado] of casos) {
+      const salida = traducirError({ message, code }, "guardar la tela");
+      expect(salida, message).toContain(esperado);
+      expect(salida, message).not.toContain("Vuelve a intentar");
+      expect(salida, message).not.toMatch(/insumos_|materiales_/);
+    }
+  });
+  it("con el deshacer pegado (las funciones ya no son de `authenticated`) NO dice que se cerró la sesión: dice que crear o editar telas está desactivado", () => {
+    for (const [funcion, esperado] of [["crear_material", "Crear telas está desactivado"], ["agregar_colores_a_material", "Sumar colores a una tela está desactivado"], ["editar_material", "Editar telas está desactivado"]] as const) {
+      const salida = traducirError({ message: `permission denied for function ${funcion}`, code: "42501" }, "guardar la tela");
+      expect(salida, funcion).toContain(esperado);
+      expect(salida, funcion).toContain("No se guardó nada");
+      expect(salida, funcion).not.toMatch(/sesión|entrar/i);
+    }
+    // Y las demás funciones siguen diciendo lo de siempre.
+    expect(traducirError({ message: "permission denied for function registrar_venta", code: "42501" }, "registrar la venta")).toContain("vuelve a entrar");
+  });
+  it("un choque de versión al editar la tela dice lo que la base dice, para ofrecer «Recargar»", () => {
+    const error = { message: "Otra persona cambió esta tela mientras la editabas. Actualiza la pantalla para ver sus cambios.", code: "PT409", hint: "version_cambiada" };
+    expect(esVersionCambiada(error)).toBe(true);
+    expect(traducirError(error, "guardar los cambios de la tela")).toBe("Otra persona cambió esta tela mientras la editabas. Actualiza la pantalla para ver sus cambios.");
+  });
+});

@@ -1,7 +1,8 @@
 import { HandCoins } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { soloNumero } from "./montos";
-import { cuentaDeLaBilletera, detalleTienes, textoPorConfirmar, type MiPlata } from "@/lib/mi-plata-reglas";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { cuentaDeLaBilletera, detalleTienes, textoPorConfirmar, usoDeLaPlata, type MiPlata } from "@/lib/mi-plata-reglas";
 
 // La billetera de Mis compras (maqueta docs/maquetas/mis-compras-rediseno-2026-10/, Felipe 2026-10-24): una cifra grande —lo que tienes para
 // comprar— y debajo la cuenta de la ronda en tres columnas: te dieron, compraste, gastaste. Sin ronda abierta no hay nada que contar y
@@ -17,6 +18,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
   const revisando = textoPorConfirmar(plata.porConfirmar);
   const negativa = detalleTienes(plata.tiene);
   const antes = cuenta && Math.abs(cuenta.antes) >= 0.005 ? cuenta.antes : null;
+  const uso = usoDeLaPlata(cuenta);
   return (
     <section aria-label="Tu plata para compras" data-guia="mi-plata.tienes" className="flex flex-col gap-2.5 rounded-[22px] bg-tinta px-5 pb-4 pt-[18px] text-crema">
       <span className="flex items-baseline justify-between gap-3">
@@ -31,6 +33,13 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
         <span className="mr-1 align-[0.35em] text-2xl text-crema/70">S/</span>
         {soloNumero(Math.abs(plata.tiene))}
       </p>
+      {uso && (
+        // Cuánto de lo que te dieron ya usaste (maqueta mis-compras-pc-mesa, Felipe 2026-10-28): la barra y, debajo, lo dicho en palabras.
+        <div className="flex flex-col gap-1.5">
+          <BarraAvance pct={uso.pct} sobreTinta etiqueta="Lo usado de tu plata para comprar" texto={`${soles(uso.usado)} de ${soles(uso.base)}`} />
+          <p className="text-xs text-crema/75">{uso.texto}</p>
+        </div>
+      )}
       {negativa && <p className="rounded-[10px] bg-crema/10 px-2.5 py-2 text-[12.5px]">{negativa}</p>}
       {cuenta && (
         <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-xs">

@@ -79,6 +79,9 @@ export type ContextoAlta = CatalogoMarcas & {
    *  (Lima). `null` = una sola (Trujillo, Arequipa) o la base todavía no las tiene (la migración se pega antes o después de la web): el
    *  alta sigue como siempre y el producto nace en CAYLA, nunca se cae por eso. */
   empresas: EmpresaAlta[] | null;
+  /** categoriaId → los nombres de sus prendas: de aquí sale la flor que sigue libre (ADR-0556). Sin respuesta, vacío: la flor se sugiere
+   *  igual (la primera de la lista) y la base sigue frenando el nombre idéntico. */
+  nombresPorCategoria: Record<string, string[]>;
 };
 
 /** Las tiendas que operan en la sede desde donde se registra (ADR-0463). Con UNA sola (Trujillo, Arequipa: solo CAYLA) o sin respuesta,
@@ -91,10 +94,28 @@ async function getEmpresasAlta(sedeId: string): Promise<EmpresaAlta[] | null> {
 }
 
 const VENTANA_VARIANTES = 1000;
+const NOMBRES_POR_TANDA = 1000;
+
+/** Los nombres de las prendas de cada categoría, en tandas (la API corta en 1 000 filas). Un fallo no tumba el alta: vacío. */
+async function getNombresPorCategoria(): Promise<Record<string, string[]>> {
+  const supabase = await createClient();
+  const salida: Record<string, string[]> = {};
+  for (let desde = 0; ; desde += NOMBRES_POR_TANDA) {
+    const { data, error } = await supabase
+      .from("productos")
+      .select("referencia, categoria_id")
+      .neq("estado_alta", "rechazado")
+      .order("id")
+      .range(desde, desde + NOMBRES_POR_TANDA - 1);
+    if (error || !data) return salida;
+    for (const p of data) if (p.categoria_id && p.referencia) (salida[p.categoria_id] ??= []).push(p.referencia);
+    if (data.length < NOMBRES_POR_TANDA) return salida;
+  }
+}
 
 export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
   const supabase = await createClient();
-  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes, empresas] =
+  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes, empresas, nombresPorCategoria] =
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
@@ -120,6 +141,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       getTemporadasCatalogo(),
       getImagenesMuestra(),
       getEmpresasAlta(sedeId),
+      getNombresPorCategoria(),
     ]);
 
   const categoriasCrudas = exigir(resCategorias, "las categorías del catálogo");
@@ -202,5 +224,6 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
     imagenes,
     temporadas,
     empresas,
+    nombresPorCategoria,
   };
 }

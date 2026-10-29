@@ -56,7 +56,9 @@ import {
   proveedoresRecientes,
   detalleProveedor,
   inicialesProveedor,
-  textoHabitual,
+  piezasDeFila,
+  cantidadDeAtajo,
+  borradorDeAtajo,
   textoPlataDespues,
   tiendaAnterior,
   tiendasDeLineas,
@@ -121,10 +123,35 @@ describe("habituales", () => {
       ["b", 0, 12, 29.9, null],
     ]);
   });
-  it("la línea chica dice lo de la vez pasada, o el precio del catálogo si nunca se le compró aquí", () => {
-    expect(plano(textoHabitual(HABITUALES[0]))).toBe("La vez pasada: 12 a S/ 17.50 · se vendió a S/ 39.90");
-    expect(plano(textoHabitual(HABITUALES[1]))).toBe("En el catálogo: se vende a S/ 29.90");
-    expect(textoHabitual({ ...HABITUALES[1], venta: null })).toBeNull();
+  it("la fila dice lo que te costó, a cuánto vendes y cuántas fueron la vez pasada", () => {
+    const f = (pz: { etiqueta: string; valor: string }[]) => pz.map((x) => plano(`${x.etiqueta} ${x.valor}`));
+    expect(f(piezasDeFila(HABITUALES[0], []))).toEqual(["Te costó S/ 17.50", "vendes S/ 39.90", "antes: 12"]);
+    // Nunca se le compró aquí: solo el precio del catálogo.
+    expect(f(piezasDeFila(HABITUALES[1], []))).toEqual(["Se vende a S/ 29.90"]);
+    expect(piezasDeFila({ ...HABITUALES[1], venta: null }, [])).toEqual([]);
+    expect(piezasDeFila(null, [])).toEqual([]);
+  });
+  it("una prenda que ya va en la compra dice lo que se anotó, sin «antes»", () => {
+    const l = { clave: "a", productoId: "p1", categoriaId: "blusas", marcaId: null, nombre: "Blusa", categoria: "Blusas", marca: null, costo: 38, venta: 69.9, cantidad: 2, destinoId: "tru" };
+    expect(piezasDeFila(HABITUALES[0], [l]).map((x) => plano(`${x.etiqueta} ${x.valor}`))).toEqual(["Te costó S/ 38.00", "vendes S/ 69.90"]);
+    expect(piezasDeFila(HABITUALES[0], [{ ...l, venta: null }]).map((x) => x.etiqueta)).toEqual(["Te costó"]);
+  });
+  it("el botón «+ 9» existe solo si ya se le compró y se sabe cuántas", () => {
+    expect(cantidadDeAtajo(HABITUALES[0])).toBe(12);
+    expect(cantidadDeAtajo(HABITUALES[1])).toBeNull();
+    expect(cantidadDeAtajo({ veces: 2, ultimaCantidad: 0 })).toBeNull();
+    expect(cantidadDeAtajo({ veces: 2, ultimaCantidad: null })).toBeNull();
+  });
+  it("el atajo arma el borrador con lo de la vez pasada, a la tienda de la prenda anterior", () => {
+    const b = borradorDeAtajo(HABITUALES[0], "tru");
+    expect(b).toEqual({ cantidad: "12", costo: "17.50", venta: "39.90", destinos: ["tru"], reparto: {} });
+    expect(lineasDeBorrador(HABITUALES[0], b!)).toHaveLength(1);
+    // Sin tienda anterior queda incompleto: no se agrega solo, se abre la hoja para elegirla.
+    const sinTienda = borradorDeAtajo(HABITUALES[0], null)!;
+    expect(sinTienda.destinos).toEqual([]);
+    expect(lineasDeBorrador(HABITUALES[0], sinTienda)).toEqual([]);
+    // Sin vez pasada no hay atajo.
+    expect(borradorDeAtajo(HABITUALES[1], "tru")).toBeNull();
   });
   it("las píldoras de sus habituales cuentan cuántos hay en cada categoría; con una sola categoría no hay píldoras", () => {
     expect(categoriasDeHabituales(HABITUALES)).toEqual([
@@ -372,7 +399,7 @@ describe("algo nuevo de este proveedor", () => {
     const n = { categoriaId: "blusas", marcaId: "m1", marcaNueva: null, nombre: "  Casaca   corta ", descartadas: new Set<string>() };
     const h = habitualDeNuevo("nuevo:1", n, CATS, marcas);
     expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
-    expect(textoHabitual(h!)).toBeNull();
+    expect(piezasDeFila(h!, [])).toEqual([]);
     // Sin qué es, sin marca o sin nombre no se arma.
     expect(habitualDeNuevo("x", { ...n, categoriaId: null }, CATS, marcas)).toBeNull();
     expect(habitualDeNuevo("x", { ...n, marcaId: "otra" }, CATS, marcas)).toBeNull();

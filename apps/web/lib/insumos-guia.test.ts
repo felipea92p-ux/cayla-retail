@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar } from "./guia-campos";
 import { camposDeFichaDeLaTela, camposDeIngresoDeInsumo, camposDeInsumoNuevo, ingresoListo, problemasDeInsumoNuevo, type EntradaInsumoNuevo } from "./insumos-guia";
+import { CANTIDAD_ILEGIBLE } from "./insumos-reglas";
+import { COSTO_UNITARIO_ILEGIBLE } from "./monto-plata-reglas";
 
 // La guía de las hojas de Insumos dice lo mismo que la hoja: se puede guardar exactamente cuando `problemasDeInsumoNuevo` no encuentra nada y alguien firma.
 
@@ -15,6 +17,20 @@ describe("problemasDeInsumoNuevo", () => {
     for (const m of ["0", "5", "49.9"]) expect(problemasDeInsumoNuevo({ ...base, merma: m }), m).toEqual([]);
     for (const m of ["-3", "abc"]) expect(problemasDeInsumoNuevo({ ...base, minimo: m }), m).toEqual(["El mínimo es un número desde 0 (o déjalo vacío si no hay)."]);
     for (const m of ["0", "12.5"]) expect(problemasDeInsumoNuevo({ ...base, minimo: m }), m).toEqual([]);
+  });
+
+  it("la coma decimal se entiende en la merma y en el mínimo («2,5»)", () => {
+    expect(problemasDeInsumoNuevo({ ...base, merma: "2,5", minimo: "12,5" })).toEqual([]);
+    expect(problemasDeInsumoNuevo({ ...base, merma: "49,9" })).toEqual([]);
+    expect(problemasDeInsumoNuevo({ ...base, merma: "50,0" })).toEqual(["La merma va de 0 % a menos de 50 %."]);
+  });
+
+  it("una tela se lleva en metros: otra unidad se rechaza; un avío, en cualquiera (ADR-0554)", () => {
+    for (const u of ["kilo", "unidad", "par", "cono", "docena"] as const) {
+      expect(problemasDeInsumoNuevo({ ...base, tipo: "tela", unidad: u }), `tela en ${u}`).toEqual(["Una tela se lleva siempre en metros."]);
+      expect(problemasDeInsumoNuevo({ ...base, tipo: "avio", unidad: u }), `avío en ${u}`).toEqual([]);
+    }
+    expect(problemasDeInsumoNuevo({ ...base, tipo: "tela", unidad: "metro" })).toEqual([]);
   });
 });
 
@@ -91,5 +107,30 @@ describe("la guía de «Ingresar insumo»", () => {
   it("un costo de cero escrito es válido (un regalo), un costo vacío no", () => {
     expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo: "0" })).toBe(true);
     expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo: " " })).toBe(false);
+  });
+
+  it("la coma decimal se entiende en la cantidad y en el costo", () => {
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "48,2", costo: "2,5" })).toBe(true);
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "48.2", costo: "2.5" })).toBe(true);
+    // Un botón a S/ 0.045 (G13 de la revisión de «una tela con sus colores»): el costo por unidad admite hasta 4 decimales.
+    for (const costo of ["0.045", "0,045", "0.0451"]) expect(ingresoListo({ tieneInsumo: true, cantidad: "288", costo }), costo).toBe(true);
+  });
+
+  it("un costo que no se entiende NO se lee como cero: la hoja no deja guardar (antes «2,5,5» abría el lote gratis)", () => {
+    for (const costo of ["abc", "2,5,5", "1e3", "S/ x"]) expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo }), costo).toBe(false);
+  });
+
+  it("una cantidad ambigua no se adivina: «1,299» ¿mil doscientos noventa y nueve o uno con tres?", () => {
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "1,299", costo: "2" })).toBe(false);
+  });
+
+  it("la guía dice QUÉ no se entendió, no solo que falta", () => {
+    const campos = camposDeIngresoDeInsumo({ tieneInsumo: true, cantidad: "1,299", costo: "abc", responsableListo: true });
+    expect(campos.find((c) => c.id === "cantidad")?.pendiente).toBe(CANTIDAD_ILEGIBLE);
+    expect(campos.find((c) => c.id === "costo")?.pendiente).toBe(COSTO_UNITARIO_ILEGIBLE);
+    // Vacío no es «ilegible»: dice lo que falta.
+    const vacios = camposDeIngresoDeInsumo({ tieneInsumo: true, cantidad: "", costo: "", responsableListo: true });
+    expect(vacios.find((c) => c.id === "cantidad")?.pendiente).toBe("Escribe cuánto llegó (más de cero).");
+    expect(vacios.find((c) => c.id === "costo")?.pendiente).toBe("Escribe el costo por unidad, sin IGV (0 si fue un regalo).");
   });
 });

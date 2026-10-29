@@ -558,6 +558,29 @@ having c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_un
     corrompe: `insert into retail.stock_dueno (variante_id, ubicacion_id, sububicacion_id, empresa_id, cantidad)
 select variante_id, ubicacion_id, sububicacion_id, 'c1a07e00-0000-4000-8000-000000000002', cantidad + 5 from retail.stock where cantidad > 0 limit 1;`,
   },
+  {
+    id: "INV-24",
+    nombre: "copias_del_color_iguales_a_su_tela",
+    gravedad: 2,
+    nivel: "cruzada",
+    dice: "Cada color de una tela (un insumo con `material_id`, ADR-0554) es el reflejo de su tela: mismo tipo y unidad (una tela siempre en metros), mismo tejido, misma merma, el código «código de la tela-código del color» y un nombre que empieza por el de la tela. Si no, la orden pide una merma que la tela ya no tiene, el plan sugiere el tejido equivocado o dos colores de una misma tela se llaman distinto. Un disparador las copia en cada guardado; esto vigila lo que se cuele por un camino que lo salte (un arreglo a mano con los disparadores apagados, o una migración). El nombre se compara solo hasta el de la tela: el color puede haberse renombrado en Catálogo y el insumo no se entera hasta que se guarda su tela (se corrige guardándola desde «Editar tela»).",
+    sql: `
+select i.id as insumo_id, i.codigo, i.nombre, m.codigo as tela_codigo, m.nombre as tela,
+       i.tipo as tipo_del_color, m.tipo as tipo_de_la_tela, i.unidad_medida as unidad_del_color, m.unidad_medida as unidad_de_la_tela,
+       i.tejido_id as tejido_del_color, m.tejido_id as tejido_de_la_tela, i.merma_pct as merma_del_color, m.merma_pct as merma_de_la_tela
+  from retail.insumos i
+  join retail.materiales m on m.id = i.material_id
+ where i.tipo is distinct from m.tipo
+    or i.unidad_medida is distinct from m.unidad_medida
+    or i.tejido_id is distinct from m.tejido_id
+    or i.merma_pct is distinct from m.merma_pct
+    or i.codigo is distinct from m.codigo || coalesce('-' || i.color_codigo, '')
+    or not (i.nombre = m.nombre or starts_with(i.nombre, m.nombre || ' · '))`,
+    // El disparador `insumos_copias_de_la_tela` (BEFORE) las volvería a copiar: dentro de la transacción revertida se apagan los disparadores de usuario, y sin eso no se podría probar que el detector lo ve.
+    corrompe: `set local session_replication_role = replica;
+update retail.insumos set merma_pct = case when merma_pct < 0.4 then merma_pct + 0.05 else merma_pct - 0.05 end
+ where ctid = (select ctid from retail.insumos where material_id is not null limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────
