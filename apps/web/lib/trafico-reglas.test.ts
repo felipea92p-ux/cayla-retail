@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  barraDeSeparan,
+  estadoDePrenda,
+  ordenarPrendas,
+  separanDe100,
+  separanEnPromedio,
   ciudadDeRegion,
   ciudadSinTienda,
   rindeElCamino,
@@ -248,7 +253,7 @@ describe("las prendas del período", () => {
     expect(r?.prendas[0].precio).toBe(89.9);
   });
 
-  it("una base de antes, sin prendas, da la vitrina vacía", () => {
+  it("una base de antes, sin prendas, da la tabla de prendas vacía", () => {
     expect(leerResumen(DE_LA_BASE)?.prendas).toEqual([]);
   });
 
@@ -557,5 +562,39 @@ describe("De dónde vienen: el mapa pintado y cuánto rinde cada camino", () => 
   it("la ciudad sin tienda desde la que más miran", () => {
     expect(ciudadSinTienda({ trujillo: 900, lima: 700, arequipa: 380, chiclayo: 120, piura: 150, cusco: 0, otras: 90, fuera: 3, sin_dato: 40 })).toBe("piura");
     expect(ciudadSinTienda({ trujillo: 9, lima: 0, arequipa: 0, chiclayo: 0, piura: 0, cusco: 0, otras: 0, fuera: 0, sin_dato: 0 })).toBeNull();
+  });
+});
+
+describe("Qué prendas miran: la tabla que se ordena", () => {
+  const prenda = (nombre: string, miraron: number, separaron: number) => ({ ...leerResumen({ ...DE_LA_BASE, prendas: [PRENDA_DE_LA_BASE] })!.prendas[0], id: nombre, nombre, recorrido: [miraron, 0, 0, separaron, 0] as [number, number, number, number, number] });
+  const lista = [prenda("Blusa", 100, 10), prenda("Casaca", 40, 12), prenda("Falda", 200, 4), prenda("Polo", 6, 3)];
+
+  it("ordena por miradas, por cuántos de cada 100 separan o por cuántos separaron, sin tocar la lista que llega", () => {
+    expect(ordenarPrendas(lista, "miraron", "desc").map((p) => p.nombre)).toEqual(["Falda", "Blusa", "Casaca", "Polo"]);
+    // El Polo (3 de 6) separa más que todas, pero con 6 personas va al final.
+    expect(ordenarPrendas(lista, "separan", "desc").map((p) => p.nombre)).toEqual(["Casaca", "Blusa", "Falda", "Polo"]);
+    expect(ordenarPrendas(lista, "separan", "asc").map((p) => p.nombre)).toEqual(["Falda", "Blusa", "Casaca", "Polo"]);
+    expect(ordenarPrendas(lista, "separaron", "asc").map((p) => p.nombre)).toEqual(["Polo", "Falda", "Blusa", "Casaca"]);
+    expect(lista[0].nombre).toBe("Blusa");
+  });
+
+  it("el promedio de la tienda: de 346 que miraron una prenda, 29 la separaron", () => {
+    expect(separanEnPromedio(lista)).toBeCloseTo(29 / 346);
+    expect(separanEnPromedio([])).toBe(0);
+  });
+
+  it("estrella si separa un 30 % más que el promedio; revisar si menos de la mitad; con poca gente no se juzga", () => {
+    const prom = separanEnPromedio(lista);
+    expect(estadoDePrenda(lista[1], prom)).toEqual({ tono: "verde", texto: "Estrella" });
+    expect(estadoDePrenda(lista[2], prom)).toEqual({ tono: "ambar", texto: "Revisar" });
+    expect(estadoDePrenda(lista[0], prom)).toEqual({ tono: "neutro", texto: "Normal" });
+    expect(estadoDePrenda(lista[3], prom).texto).toBe("Pocas personas");
+  });
+
+  it("la barra de separan: el promedio en la mitad, el doble la llena", () => {
+    const prom = separanEnPromedio(lista);
+    expect(barraDeSeparan(prenda("X", 1000, Math.round(prom * 1000)), prom)).toBe(50);
+    expect(barraDeSeparan(lista[1], prom)).toBe(100);
+    expect(separanDe100(lista[1])).toBe(30);
   });
 });

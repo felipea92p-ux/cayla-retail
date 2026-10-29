@@ -755,3 +755,50 @@ export function ciudadSinTienda(ciudades: Record<Ciudad, number>): Ciudad | null
   const candidatas = (["chiclayo", "piura", "cusco"] as const).filter((c) => ciudades[c] > 0).sort((a, b) => ciudades[b] - ciudades[a]);
   return candidatas[0] ?? null;
 }
+
+// ---------- Qué prendas miran: la tabla que se ordena (actividad 6) ----------
+
+/** Con menos gente que esto mirando una prenda, no se le pone «Estrella» ni «Revisar»: cuatro personas no hacen una prenda buena o mala. */
+const POCAS_PARA_UNA_PRENDA = 10;
+
+/** Por qué se ordena la tabla de prendas: cuántos la miraron, cuántos de cada 100 la separan o cuántos la separaron. */
+export type CampoPrenda = "miraron" | "separan" | "separaron";
+const tasaDe = (p: PrendaTrafico) => (p.recorrido[0] > 0 ? p.recorrido[3] / p.recorrido[0] : 0);
+
+/**
+ * La tabla ordenada (sin tocar la lista que llega). A igual cifra, la más mirada primero; después, por nombre. Por «separan», las prendas
+ * con muy poca gente van al final en cualquier sentido: 1 de 8 es «12 de cada 100» y no es una estrella.
+ */
+export function ordenarPrendas(prendas: readonly PrendaTrafico[], campo: CampoPrenda, dir: "asc" | "desc"): PrendaTrafico[] {
+  const valor = (p: PrendaTrafico) => (campo === "separan" ? tasaDe(p) : campo === "separaron" ? p.recorrido[3] : p.recorrido[0]);
+  const pocas = (p: PrendaTrafico) => (campo === "separan" && p.recorrido[0] < POCAS_PARA_UNA_PRENDA ? 1 : 0);
+  const signo = dir === "desc" ? -1 : 1;
+  return [...prendas].sort(
+    (a, b) => pocas(a) - pocas(b) || signo * (valor(a) - valor(b)) || b.recorrido[0] - a.recorrido[0] || a.nombre.localeCompare(b.nombre, "es"),
+  );
+}
+
+/** De cada persona que miró una prenda, cuántas la separaron: el promedio de la tienda contra el que se mide cada prenda (0 a 1). */
+export function separanEnPromedio(prendas: readonly PrendaTrafico[]): number {
+  const miraron = prendas.reduce((a, p) => a + p.recorrido[0], 0);
+  return miraron > 0 ? prendas.reduce((a, p) => a + p.recorrido[3], 0) / miraron : 0;
+}
+
+
+/**
+ * El estado de una prenda contra el promedio: «Estrella» si la separan un 30 % más que el promedio, «Revisar» si la separan menos de la
+ * mitad (la miran y no la llevan: precio, fotos, tallas), «Normal» entre medio. Con poca gente, «Pocas personas».
+ */
+export function estadoDePrenda(p: PrendaTrafico, promedio: number): { tono: "verde" | "ambar" | "neutro"; texto: string } {
+  if (p.recorrido[0] < POCAS_PARA_UNA_PRENDA || promedio === 0) return { tono: "neutro", texto: "Pocas personas" };
+  const tasa = tasaDe(p);
+  if (tasa > promedio * 1.3) return { tono: "verde", texto: "Estrella" };
+  if (tasa < promedio * 0.55) return { tono: "ambar", texto: "Revisar" };
+  return { tono: "neutro", texto: "Normal" };
+}
+
+/** Cuánto se llena la barra de «separan»: el promedio queda justo en la mitad (la raya), y el doble del promedio la llena. */
+export const barraDeSeparan = (p: PrendaTrafico, promedio: number) => (promedio > 0 ? Math.min(100, Math.round((tasaDe(p) / (2 * promedio)) * 100)) : 0);
+
+/** «12 de cada 100» que la miraron la separaron. */
+export const separanDe100 = (p: PrendaTrafico) => de100(p.recorrido[3], p.recorrido[0]);

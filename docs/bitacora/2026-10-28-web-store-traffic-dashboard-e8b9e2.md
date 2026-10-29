@@ -46,3 +46,10 @@
   **Verificado:** `pruebas:tienda-trafico-resumen` 66/66, `pruebas:tienda-trafico` 21/21, vitest de reglas 76/76, guías (huella aceptada tras revisar la
   guía), unificar, colores, tokens, movimiento, tsc, eslint y knip; en el navegador a 1440 (claro y oscuro, globito y filtro al tocar un departamento) y a
   375 px sin scroll lateral. **No está en producción.**
+- **Actividad 6 · Qué prendas miran:** la vitrina de baldosas pasó a una tabla (`<Tabla>` + `<Encabezado orden>`) que se ordena por Miraron, Separan o
+  Separaron: cada fila con su miniatura, el cambio contra los días de antes, su recorrido en cuatro barras (el paso donde se atora en ámbar), «N de cada
+  100» la separan con la raya del promedio de la tienda y su estado (Estrella si separa un 30 % más que el promedio, Revisar si menos de la mitad, Pocas
+  personas con menos de 10). Se ven 8 y el resto con «Ver más»; el cajón de cada prenda sigue igual y pasa de una a otra en el orden de la tabla. Al
+  ordenar por «Separan», las de menos de 10 personas van al final (1 de 8 no es una estrella). Se fueron `VitrinaTrafico`, su CSS y las funciones del
+  mosaico (queda `franjasDe`). Sin cambio en la base. **Verificado:** vitest de reglas 80/80, mosaico 4/4, movimiento 20/20 (sin la baldosa), guías
+  (huella aceptada), unificar, colores, tokens, sin foto, ancho, tsc, eslint y knip; en el navegador a 1440 (ordenar, abrir el cajón) y a 375 px en oscuro.

@@ -10,12 +10,12 @@ import { Vacio } from "@/components/ui/Vacio";
 import { CalorTrafico } from "@/components/trafico/CalorTrafico";
 import { ControlesTrafico } from "@/components/trafico/ControlesTrafico";
 import { DeDondeVienen } from "@/components/trafico/DeDondeVienen";
+import { PrendasTrafico } from "@/components/trafico/PrendasTrafico";
 import { PulsoTrafico } from "@/components/trafico/PulsoTrafico";
 import { RecorridoTrafico } from "@/components/trafico/RecorridoTrafico";
 import { TablasTrafico } from "@/components/trafico/TablasTrafico";
-import { VitrinaTrafico } from "@/components/trafico/VitrinaTrafico";
 
-// Tienda web ▸ Tráfico (ADR-0495; maqueta C «La vitrina», Felipe 2026-10-23): cuánta gente entra a la tienda online, qué mira, de dónde
+// Tienda web ▸ Tráfico (ADR-0495; «Observatorio», maqueta docs/maquetas/trafico-decisiones-2026-10/): cuánta gente entra a la tienda online, qué mira, de dónde
 // viene y en qué paso se va, contado por persona anónima (`retail.resumen_trafico_web`, que pide el módulo «trafico»). Es de toda la tienda
 // online: la cabecera dice «Todas las tiendas». El período, los filtros y la vista viven en la dirección (`?periodo=30&camino=instagram`).
 export default async function TraficoPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -111,7 +111,7 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                 </div>
               </div>
               <RecorridoTrafico r={r} />
-              <VitrinaTrafico prendas={r.prendas} vieron={r.pasos[1]} base={r.base} periodo={periodo.nombre} antes={antes} />
+              <PrendasTrafico prendas={r.prendas} vieron={r.pasos[1]} base={r.base} periodo={periodo.nombre} antes={antes} />
             </>
               )}
             </>
