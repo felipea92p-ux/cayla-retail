@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 136,
+  "total": 137,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -73,9 +73,6 @@
       "Boton «Anterior»",
       "Boton «Listo, sigue»",
       "Boton «recepcion.pasar-a-cerrar»",
-      "button «Una menos»",
-      "input «{`Cuántas ${nombre}»",
-      "button «Una más»",
       "button «+5»",
       "button «+10»",
       "button «Llegaron las»",
@@ -86,6 +83,12 @@
       "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/Dial.tsx": [
+      "input «{`Cuántas ${nombre}»",
+      "button «{`Escribir cuántas ${nombre}»",
+      "button «Una menos»",
+      "button «Una más»"
     ],
     "components/recepcion-conteo/EnvioCerrado.tsx": [
       "Boton «{veredicto.accion}»",

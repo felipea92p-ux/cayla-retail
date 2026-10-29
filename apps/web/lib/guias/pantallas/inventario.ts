@@ -1837,7 +1837,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Cuántas llegaron",
-      texto: "Cuenta las de esa categoría y escribe el número, o súmalas con + y −, +5 y +10. «Llegaron las N» pone lo que dijeron de un toque. Se guarda solo, al dejar de tocar. Si no coincide, no pasa nada: al cerrar dirás por qué.",
+      texto: "El aro se llena con lo que cuentas: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y −, +5 y +10; «Llegaron las N» pone lo que dijeron de un toque. Se guarda solo. Si no coincide, no pasa nada: al cerrar dirás por qué.",
     },
     {
       // ADR-0507: «Anotar observación» abre una hoja que guarda; la guía la explica sin tocarla.

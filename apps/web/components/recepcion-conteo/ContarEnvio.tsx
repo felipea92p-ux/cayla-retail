@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarraAvance } from "@/components/ui/BarraAvance";
-import { ArrowLeft, ArrowRight, Info, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Info, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -12,6 +11,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { EtiquetaAhora, MarcaCampo } from "@/components/alta-producto/guia";
 import { BaldosaCategoria } from "./piezas";
+import { Dial } from "./Dial";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
@@ -24,7 +24,6 @@ import {
   contadasDe,
   idCampoConteo,
   ID_CAMPO_AGREGAR,
-  leerContadas,
   lineasALaVista,
   ponerTallas,
   prendaCreadaDeNueva,
@@ -552,17 +551,9 @@ function ContadorDeGrupo({
   const p = grupo.principal;
   const hayConteo = grupo.lineas.some((l) => l.conteo !== null);
   const contadas = grupo.contadas;
-  // Mientras se escribe, la caja muestra lo escrito; fuera de ella, siempre lo contado (que también cambia al separar más de lo contado,
-  // o cuando otra persona guardó la misma línea).
-  const [escribiendo, setEscribiendo] = useState<string | null>(null);
-  const texto = escribiendo ?? (hayConteo ? String(contadas) : "");
   const minimo = minimoDelGrupo(grupo);
   const v = veredictoDelGrupo(grupo);
-  const poner = (n: number) => {
-    setEscribiendo(null);
-    onTotal(Math.max(minimo, Math.max(0, n)));
-  };
-  const fraccion = grupo.dijeron ? Math.min(1, contadas / grupo.dijeron) : contadas > 0 ? 1 : 0;
+  const poner = (n: number) => onTotal(Math.max(minimo, Math.max(0, n)));
 
   const contoNombre = grupo.lineas
     .map((l) => l.conteo)
@@ -601,68 +592,43 @@ function ContadorDeGrupo({
           )}
         </div>
 
-        {/* La franja (opción A, Felipe 2026-10-28): el número con su − y +, los atajos y la barra de «cuadra» en UNA fila cuando hay ancho
-            (la tarjeta decide, no la ventana: junto al papel la columna es angosta); si no, la barra baja debajo. */}
-        <div className="rc-franja" data-guia="recepcion.numero">
-          <div className="rc-numero">
-            <button type="button" onClick={() => poner(contadas - 1)} disabled={contadas <= minimo} aria-label="Una menos" className="rc-paso-btn">
-              <Minus aria-hidden className="h-5 w-5" />
-            </button>
-            <input // unificar-fijo: el número protagonista de la maqueta A (Felipe 2026-10-13), sin caja: se lee como una cifra
-              type="text"
-              inputMode="numeric"
-              value={texto}
-              placeholder="0"
-              aria-label={`Cuántas ${nombre} llegaron`}
-              onChange={(e) => {
-                // Solo dígitos: lo que se ve es lo que se guarda. Vacío es «todavía escribiendo», no 0.
-                const { texto: limpio, contadas: n } = leerContadas(e.target.value);
-                setEscribiendo(limpio);
-                if (n !== null && n >= minimo) onTotal(n);
-              }}
-              onBlur={() => setEscribiendo(null)}
-              onFocus={(e) => {
-                setEscribiendo(e.currentTarget.value);
-                e.currentTarget.select();
-              }}
-            />
-            <button type="button" onClick={() => poner(contadas + 1)} aria-label="Una más" className="rc-paso-btn">
-              <Plus aria-hidden className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="rc-rapidos">
-            <button type="button" onClick={() => poner(contadas + 5)}>
-              +5
-            </button>
-            <button type="button" onClick={() => poner(contadas + 10)}>
-              +10
-            </button>
-            {grupo.dijeron != null && grupo.dijeron >= minimo && (
-              <button type="button" onClick={() => poner(grupo.dijeron ?? 0)}>
-                Llegaron las {grupo.dijeron}
+        {/* El Dial (rediseño «B», Felipe 2026-10-29): el aro con lo contado y, al lado, los atajos y el veredicto. Reemplaza al número suelto con
+            su − y + y a la barra de «cuadra» de la franja (opción A): el aro ya dice cuánto falta. Junto al papel la tarjeta es angosta y se apila. */}
+        <div className="rc-franja rc-franja--dial" data-guia="recepcion.numero">
+          <Dial contadas={contadas} dijeron={grupo.dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} onPoner={poner} />
+          <div className="rc-franja-lado">
+            <div className="rc-rapidos">
+              <button type="button" onClick={() => poner(contadas + 5)}>
+                +5
               </button>
-            )}
-            {!hayConteo && p.linea ? (
-              <button type="button" onClick={() => poner(0)}>
-                No llegó nada
+              <button type="button" onClick={() => poner(contadas + 10)}>
+                +10
               </button>
-            ) : (
-              contadas > 0 &&
-              minimo === 0 && (
-                <button type="button" onClick={() => poner(0)}>
-                  Poner en cero
+              {grupo.dijeron != null && grupo.dijeron >= minimo && (
+                <button type="button" onClick={() => poner(grupo.dijeron ?? 0)}>
+                  Llegaron las {grupo.dijeron}
                 </button>
-              )
-            )}
-          </div>
-          <div className="rc-franja-cuadra">
-            {/* El color lo pone el veredicto de la categoría (coincide o no con lo que dijeron), no el avance. */}
-            <BarraAvance pct={fraccion * 100} alto="gruesa" tono={v.tono === "verde" ? "verde" : v.tono === "ambar" ? "ambar" : "tinta"} decorativa className="w-full" />
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <Chip tono={v.tono === "neutro" ? "neutro" : v.tono}>{v.texto}</Chip>
-              {grupo.dijeron != null && <span className="text-xs text-taupe">Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</span>}
+              )}
+              {!hayConteo && p.linea ? (
+                <button type="button" onClick={() => poner(0)}>
+                  No llegó nada
+                </button>
+              ) : (
+                contadas > 0 &&
+                minimo === 0 && (
+                  <button type="button" onClick={() => poner(0)}>
+                    Poner en cero
+                  </button>
+                )
+              )}
             </div>
-            {grupo.enStock > 0 && <p className="text-xs text-taupe">Ya entraron {textoPrendas(grupo.enStock)} al stock: lo contado no baja de ahí.</p>}
+            <div className="rc-franja-cuadra">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Chip tono={v.tono === "neutro" ? "neutro" : v.tono}>{v.texto}</Chip>
+                {grupo.dijeron != null && <span className="text-xs text-taupe">Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</span>}
+              </div>
+              {grupo.enStock > 0 && <p className="text-xs text-taupe">Ya entraron {textoPrendas(grupo.enStock)} al stock: lo contado no baja de ahí.</p>}
+            </div>
           </div>
         </div>
         {error && (
