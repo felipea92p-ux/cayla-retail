@@ -112,7 +112,7 @@ export function CuentaClaure({ filas, pagos, gastos, desde, esLider }: { filas: 
                           <td className="fin-ancha" data-l="Qué">
                             <b>{textoOrigenClaure(f.origen)}</b>
                             <span className="fin-sub">
-                              {textoMedioClaure(f.medio)} · {plural(f.nPagos, f.origen === "devolucion" ? "devolución" : "pago", f.origen === "devolucion" ? "devoluciones" : "pagos")}
+                              {textoMedioClaure(f.medio)} · {plural(f.nPagos, f.origen === "devolucion" ? "devolución" : f.origen === "cambio" ? "cambio" : "pago", f.origen === "devolucion" ? "devoluciones" : f.origen === "cambio" ? "cambios" : "pagos")}
                             </span>
                           </td>
                           <td data-l="Cuenta">{f.cuentaNombre ?? "Sin cuenta asignada"}</td>

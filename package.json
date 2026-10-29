@@ -394,6 +394,7 @@
     "pruebas:claure-proyeccion": "node scripts/pruebas/claure_proyeccion.mjs",
     "pruebas:claure-reparto-pantalla": "node scripts/pruebas/claure_reparto_pantalla.mjs",
     "pruebas:claure-motores-con-cifra": "node scripts/pruebas/claure_motores_con_cifra.mjs",
+    "pruebas:claure-cambios": "node scripts/pruebas/claure_cambios.mjs",
     "pruebas:stock-dueno": "node scripts/pruebas/stock_dueno.mjs",
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",

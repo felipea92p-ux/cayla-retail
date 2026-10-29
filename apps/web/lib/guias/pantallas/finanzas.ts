@@ -815,7 +815,7 @@ export const GUIA_FIN_CLAURE: Guia = {
       ancla: "fin-claure.tabla",
       opcional: true,
       titulo: "Día por día",
-      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó; «Se le debe» ya viene sin IGV ni comisión. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
+      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó; «Se le debe» ya viene sin IGV ni comisión. En un cambio, la plata sigue a la prenda que se lleva el cliente. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
     },
     {
       id: "gastos",

@@ -91,6 +91,20 @@ describe("resumenClaure", () => {
     expect(r.igv).toBe(9);
     expect(r.saldo).toBe(50);
   });
+  it("un cambio cuenta como cobrado si sube lo que se le debe y como devuelto si baja (la plata sigue a la prenda), con su IGV", () => {
+    const filas = [
+      fila({ origen: "venta", monto: 100, igv: 15.25 }),
+      fila({ origen: "cambio", monto: 120, igv: 18.31, medio: "yape" }),
+      fila({ origen: "cambio", monto: -100, igv: -15.25, medio: "cambio" }),
+    ];
+    const r = resumenClaure(filas);
+    expect(r.cobrado).toBe(220);
+    expect(r.devuelto).toBe(100);
+    expect(r.igv).toBe(18.31);
+    expect(r.saldo).toBe(101.69); // 220 cobrado − 100 devuelto − 18.31 de IGV neto (15.25 + 18.31 − 15.25) − 0 de comisión
+    expect(r.cambios).toEqual({ n: 0, monto: 0 });
+    expect(textoOrigenClaure("cambio")).toBe("Cambio");
+  });
   it("un cobro de tarjeta o QR sin tarifa no inventa comisión y se cuenta aparte", () => {
     expect(resumenClaure(FILAS).sinTarifa).toBe(1);
   });

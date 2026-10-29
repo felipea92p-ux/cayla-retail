@@ -142,7 +142,8 @@ export function resumenClaure(filas: readonly FilaClaure[], pagos: readonly Pago
       montoCambios += Math.abs(f.monto);
       continue;
     }
-    if (f.origen === "devolucion") devuelto += -f.monto;
+    // Un cambio (20261029162000) mueve la plata hacia el dueño de la prenda que se lleva la clienta: si sube lo que se le debe cuenta como cobrado; si baja, como devuelto.
+    if (f.origen === "devolucion" || f.monto < 0) devuelto += -f.monto;
     else cobrado += f.monto;
     igv += f.igv ?? 0;
     if (f.comision === null) sinTarifa += 1;
@@ -178,7 +179,7 @@ export function seLeDebeDeFila(f: FilaClaure): number {
   return redondear(f.monto - (f.igv ?? 0) - (f.comision ?? 0));
 }
 
-const TEXTO_MEDIO: Record<string, string> = { yape: "Yape", plin: "Plin", tarjeta: "Tarjeta", transferencia: "Transferencia", qr: "QR" };
+const TEXTO_MEDIO: Record<string, string> = { yape: "Yape", plin: "Plin", tarjeta: "Tarjeta", transferencia: "Transferencia", qr: "QR", cambio: "Sin diferencia" };
 export function textoMedioClaure(medio: string): string {
   return TEXTO_MEDIO[medio] ?? medio;
 }
@@ -242,7 +243,7 @@ export function fraseClaure(desde: string | null): string {
 
 /** La nota al pie: cómo se calcula lo que no se ve en la tabla. */
 export const NOTA_CLAURE =
-  "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Cuentas y cobros) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA, que lo declara y lo paga, así que se descuenta a Claudia. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no.";
+  "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Cuentas y cobros) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA, que lo declara y lo paga, así que se descuenta a Claudia. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no. En un cambio la plata sigue a la prenda que se lleva el cliente: si se lleva una de CAYLA, baja lo que se le debe; si pasa de una de CAYLA a una de CLAURE, sube.";
 
 /** Bajo los pagos: dónde se anula uno equivocado. */
 /** Bajo los gastos: de dónde sale la parte de cada uno. */
