@@ -55,6 +55,9 @@ export const AVIARIO = [
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
       "precios_sede_prenda",
+      // ADR-0370 (act. 2026-10-28): la excepción de precio de UNA talla en una tienda, encima del precio de la prenda. Pegada en producción
+      // el 2026-10-29 (20261028230000-234000). Asignada en el refresco del volcado del 2026-10-29.
+      "precios_sede_variante",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
@@ -104,6 +107,9 @@ export const AVIARIO = [
   { n: "05", pajaro: "Halcón", modulo: "Inventario y movimientos",
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
+      // Las fotos del daño de una prenda dañada (ADR de «Dañadas», 20261029140739-141031): cuelgan de `prendas_danadas`, que ya es de Halcón.
+      // Asignada en el refresco del volcado del 2026-10-29.
+      "prendas_danadas_fotos",
       // ADR-0542: lo de CLAURE del stock de una sede con dos empresas (Lima); CAYLA es el resto. Refresco del 2026-10-28.
       "stock_dueno",
       "transferencias", "transferencia_items", "transferencia_recepciones",
@@ -310,7 +316,7 @@ export const AVIARIO = [
       // (`fondo_plata_anotada`: nace «por confirmar» y Compras la confirma en «Revisar compras»). Todas se leen y escriben desde las pantallas de
       // Compras. Al confirmar una plata, la entrega al fondo pasa por `entregar_fondo` y escribe en los libros de Garza, pero escribir allí no
       // hace a Compras dueño de ellos (como escribir en `movimientos`). Asignadas en el refresco del volcado del 2026-10-23.
-      "compra_papeles", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
+      "compra_papeles", "compra_correcciones", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
       // ADR-0480: la ronda de compras de una compradora (RC-000001): la abre, anota sus compras y gastos y la cierra. Se maneja desde
       // Compras. Asignada en el refresco del volcado del 2026-10-26.
       "compra_rondas"] },
