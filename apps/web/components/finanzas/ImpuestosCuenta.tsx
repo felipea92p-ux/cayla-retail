@@ -94,7 +94,7 @@ export function CuentaLineas({ cuenta, guia }: { cuenta: CuentaImpuestos; guia?:
         <span>
           + Renta a cuenta
           <small>
-            {c.renta.tasa ? `Adelanto del impuesto a la renta: ${c.renta.tasa} de ${mas(c.renta.base)}${c.renta.provisional ? " (tasa por confirmar)" : ""}` : "Falta la tasa del año en Configuración"}
+            {c.renta.tasa ? `${c.renta.tasa} de ${mas(c.renta.base)}` : "Falta la tasa del año en Configuración"}
           </small>
         </span>
         <span className="fin-cuenta-monto">{c.renta.monto === null ? "—" : mas(c.renta.monto)}</span>

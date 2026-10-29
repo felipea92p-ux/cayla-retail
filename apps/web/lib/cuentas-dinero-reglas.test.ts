@@ -232,10 +232,16 @@ describe("el formulario «Registrar movimiento»", () => {
       valor: { p_tipo: "pago_planilla", p_monto: 25400, p_cuenta_origen_id: "bcp", p_cuenta_destino_id: null, p_fecha: hoy, p_referencia: "Planilla de octubre", p_comision: 0, p_caja_id: null, p_caja_movimiento_id: null },
     });
     expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "bcp", destino: "", monto: "9,290" }, ctx)).toMatchObject({ ok: true, valor: { p_tipo: "pago_sunat", p_monto: 9290, p_cuenta_destino_id: null } });
+    // El pago a CLAURE (ADR-0560) es de la misma familia: sale de un banco, sin destino, con su n.º de operación.
+    expect(validarMovimiento({ ...base, que: "pago_claure", origen: "bcp", destino: "", monto: "234.34", referencia: "OP-12345" }, ctx)).toMatchObject({
+      ok: true,
+      valor: { p_tipo: "pago_claure", p_monto: 234.34, p_cuenta_origen_id: "bcp", p_cuenta_destino_id: null, p_referencia: "OP-12345" },
+    });
+    expect(validarMovimiento({ ...base, que: "pago_claure", origen: "cTRU", destino: "" }, ctx)).toEqual({ ok: false, error: "Esa cuenta no sirve de origen para este movimiento." });
     // Desde el cajón o la caja fuerte no: solo un banco.
     expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "cTRU", destino: "" }, ctx)).toEqual({ ok: false, error: "Esa cuenta no sirve de origen para este movimiento." });
     // Y son solo del líder.
-    expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat").every((o) => o.soloLider && o.destino === null)).toBe(true);
+    expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat" || o.valor === "pago_claure").every((o) => o.soloLider && o.destino === null)).toBe(true);
   });
 
   it("depósito del cajón con la caja abierta: sale de esa caja (su egreso lo crea la base), sin fecha (es hoy)", () => {

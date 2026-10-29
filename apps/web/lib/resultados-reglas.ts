@@ -399,10 +399,15 @@ export const TEXTO_REGLA: Record<string, string> = {
   merma_cuarentena: "Prendas dañadas botadas o donadas",
   merma_conteo: "Faltantes de conteo",
   merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
-  // ADR-0558: la mercadería de CLAURE no es de CAYLA; lo que de ella se vende, anula, devuelve o pierde se le debe a CLAURE (cuenta 4699).
-  claure_venta: "Ventas de mercadería de CLAURE (se le debe a su costo)",
-  claure_anulacion: "Ventas anuladas de mercadería de CLAURE",
-  claure_devolucion: "Devoluciones de mercadería de CLAURE",
+  // ADR-0560: lo cobrado de prendas de CLAURE no es ingreso de CAYLA: se reclasifica a lo que se le debe a Claudia (cuenta 479). Manda sobre el ADR-0558.
+  claure_venta: "Ventas de CLAURE (se le debe a Claudia lo cobrado, sin IGV)",
+  claure_anulacion: "Ventas anuladas de CLAURE",
+  claure_devolucion: "Devoluciones de CLAURE",
+  claure_cambio: "Cambios con prendas de CLAURE (la plata sigue a la prenda que se lleva el cliente)",
+  claure_gasto: "Gastos de CLAURE que pagó CAYLA (su parte)",
+  pago_claure: "Pagos a CLAURE",
+  traslado_claudia: "Efectivo del cajón que se quedó con Claudia",
+  // Un mes cerrado antes del ADR-0560 conserva lo que congeló con el ADR-0558 (mercadería de CLAURE a su costo, cuenta 4699).
   claure_merma: "Pérdidas de mercadería de CLAURE (las responde CAYLA)",
   anticipo: "Adelantos de separaciones",
   anticipo_devuelto: "Adelantos devueltos",

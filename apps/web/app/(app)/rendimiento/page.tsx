@@ -55,7 +55,10 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
               : `Las ventas de cada persona de ${elegida?.nombre ?? persona.ubicacionEtiqueta}, contra su meta.`}{" "}
             Para reconocer y acompañar — sin comisión ni bono.
             <Ayuda titulo="Cómo se lee Rendimiento">
-              <span className="block">Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta.</span>
+              <span className="block">
+                Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta. No cuenta lo que se vendió
+                de CLAURE (de Claudia, en Tienda Lima): no es venta de CAYLA.
+              </span>
               <span className="mt-2 block">
                 La meta es para <b>reconocer y acompañar</b>: no se usa para pagar ni para evaluar.
               </span>

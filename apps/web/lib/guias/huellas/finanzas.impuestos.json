@@ -2,10 +2,11 @@
   "guia": "finanzas.impuestos",
   "ruta": "/finanzas/impuestos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 11,
+  "total": 12,
   "controles": {
     "components/ImpuestosPanel.tsx": [
-      "button «fin-impuestos.ir-a-declarar»"
+      "button «fin-impuestos.ir-a-declarar»",
+      "Link «Ver la cuenta con CLAURE»"
     ],
     "components/finanzas/ImpuestosCuenta.tsx": [
       "BotonEnlace «Anota el pago que hiciste desde un banco, en Cuentas y dinero»",

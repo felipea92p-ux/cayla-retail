@@ -92,6 +92,7 @@ describe("el saldo día por día", () => {
     expect(c.entra).toBe(p.semanas[0]!.entra + p.semanas[1]!.entra);
     expect(c.sale).toBe(p.semanas[0]!.sale + p.semanas[1]!.sale);
     expect(c.saldoHoy + c.entra - c.sale).toBe(c.queda);
+    expect(c.deClaudia).toBe(0);
   });
 
   it("cada día dice qué pasó ese día y cuál fue la salida que más pesó", () => {

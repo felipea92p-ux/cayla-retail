@@ -727,6 +727,90 @@ export const PRUEBAS = [
   // fn_resumen_caja; sin sesión no se lee; anon no ejecuta; aplicarla dos veces es inocuo. Cada caso: ROLLBACK.
   "pruebas:vendido-por-empresa",
 
+  // La cuenta con CLAURE (ADR-0560): lo que una venta de CLAURE cobró en una cuenta de CAYLA, por día, medio y cuenta. Reparte cada pago en
+  // proporción a las líneas de cada empresa; el efectivo, lo anterior al arranque, lo anulado y lo de una cuenta de CLAURE no entran; la
+  // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
+  "pruebas:claure-cuenta",
+
+  // Pagar a CLAURE (ADR-0560, actividad 2): un tipo más de movimiento de dinero, como el pago a SUNAT. Sale de un banco, sin destino, sin
+  // comisión, de la empresa; solo el líder; el mismo token no lo duplica; baja el banco; el Diario lo asienta 479 | banco; el Flujo real lo
+  // cuenta como salida; fn_claure_pagos lo lista y lo quita al anularlo; sin el módulo no se lee y anon no ejecuta. Cada caso: ROLLBACK.
+  "pruebas:claure-pago",
+
+  // El cierre de caja de Lima y CLAURE (ADR-0560, actividad 3): fn_claure_cierre da el saldo con Claudia al terminar el día de esa caja, lo del día
+  // por medio y el efectivo de las ventas de la caja partido entre CAYLA y CLAURE (suma exacta de lo que espera la caja; la anulada no cuenta);
+  // lo lee quien cierra esa caja aunque no tenga Finanzas, y solo el líder puede pagar; una caja de otra sede dice que no hay. Cada caso: ROLLBACK.
+  "pruebas:claure-cierre",
+
+  // CLAURE fuera de las cifras de CAYLA (ADR-0560, actividad 5): el Diario reclasifica lo vendido de CLAURE (7011 y el costo) a lo que se le debe
+  // (479), así que el Estado de resultados, el Resumen y el Balance dejan de contarlo sin cambiar; cada asiento cuadra; una anulación o una devolución
+  // lo deshacen en su día; el IGV y los cobros no se tocan; lo anterior al arranque, otra sede y lo de CAYLA tampoco; fn_claure_ventas_en lo dice
+  // neto y solo lo lee quien ve Finanzas; el Flujo cuenta el pago a CLAURE como salida; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-fuera-de-las-cifras",
+
+  // CLAURE fuera del Inicio y del Observatorio (ADR-0560, actividad 6a): fn_item_es_de_claure es la regla de «esta línea es de CLAURE» (la de la actividad 5);
+  // fn_claure_de_hoy dice cuánto de las ventas de hoy y de la semana pasada es de CLAURE (el Inicio lo resta de lo que lee de Caja); el Observatorio de todas
+  // las tiendas y el de una tienda suman solo lo de CAYLA (una venta solo de CLAURE no cuenta ni como ticket; las prendas quietas, solo sus unidades);
+  // lo anterior al arranque y la sede sin CLAURE no cambian; los candados; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-inicio-y-observatorio",
+
+  // CLAURE fuera de Rendimiento, metas y Comercial (ADR-0560, actividad 6b): once funciones suman solo lo de CAYLA con la regla de 6a (una venta solo de CLAURE no cuenta
+  // como venta, la mixta por su línea de CAYLA, una devolución de una prenda de CLAURE no resta); lo anterior al arranque y la sede sin CLAURE no cambian. Cada caso: ROLLBACK.
+  "pruebas:claure-rendimiento-y-metas",
+
+  // CLAURE fuera del Club y de la ficha de la cliente (ADR-0560, actividad 6c): una prenda de CLAURE no da puntos del club (fn_club_monto_neto_venta), una compra solo de CLAURE no
+  // cuenta como compra del club (fn_club_compras_netas) y la ficha (fn_clienta_compras/cambios/devoluciones) no la lista; la mixta y una devolución mixta sí; lo anterior al
+  // arranque y la sede sin CLAURE no cambian. Cada caso: ROLLBACK.
+  "pruebas:claure-club-y-clientes",
+
+  // CLAURE fuera de Análisis y de los motores de decisión (ADR-0560, actividad 6d): trece funciones leen solo lo vendido de CAYLA con la regla de 6a (Análisis, Plan del piso, demanda,
+  // plan de compra y su historial, rentabilidad, calidad por origen, costo estimado del Resumen, vitrina de la tienda web); lo anterior al arranque y la sede sin CLAURE no
+  // cambian; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-analisis-y-motores",
+
+  // Apartados y pedidos web con prendas de CLAURE (ADR-0560, actividad 7): el adelanto de un apartado entregado (abonos de separacion_pagos) y el pago aprobado de un pedido web
+  // despachado se le deben a Claudia desde que la prenda sale (el día de la venta), por su parte de CLAURE y en la cuenta donde cayeron; el efectivo no entra; mientras la prenda no
+  // sale no se debe nada; lo cobrado de siempre no cambia; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-apartados-y-pedidos-web",
+
+  // Gastos por empresa (ADR-0560, actividad 8): la parte de CLAURE de un gasto de Lima (reparto por categoría: alquiler, luz, servicios básicos y mantenimiento 50 %; limpieza y bolsas 100 %) baja
+  // lo que se le debe a Claudia (fn_claure_gastos, el aviso del cierre de caja) y sale del gasto de CAYLA en el Diario (479 al debe) y en el Estado de resultados; no cuenta el gasto de otra sede,
+  // el anulado, el de una categoría sin reparto ni el de antes del arranque; los candados; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-gastos-por-empresa",
+
+  // El IGV de lo vendido de CLAURE se le descuenta a Claudia (ADR-0560, actividad 10): la boleta sale con el RUC de CAYLA y CAYLA paga ese IGV; el saldo del aviso del cierre de caja es cobrado − devuelto − IGV −
+  // comisión − pagado − gastos suyos, con el IGV neto de devoluciones; la caja de otra sede sigue sin aviso; la migración se repega y, con un texto distinto en la función, aborta sin cambiar nada. Cada caso: ROLLBACK.
+  "pruebas:claure-igv",
+
+  // «Se queda con Claudia» al cerrar la caja (ADR-0560, actividad 11): el efectivo de CAYLA que ella guarda sale del cajón (traslado `claudia`, solo donde opera CLAURE), no llega a ninguna cuenta,
+  // baja lo que se le debe (aviso del cierre y pantalla CLAURE), se asienta 479 al debe / 101 al haber, el libro no lo trata como depósito y el flujo lo cuenta como pago a CLAURE; los demás
+  // destinos no cambian; la migración se repega y aborta con un texto distinto. Parte del estado de ANTES de la migración. Cada caso: ROLLBACK.
+  "pruebas:claure-efectivo-claudia",
+
+  // Servicios al 100 % de CLAURE (ADR-0560, actividad 12): la luz sigue 50/50; agua, internet y baño (servicios básicos, agua, internet) van 100 % a CLAURE; solo cambia el reparto (datos);
+  // respeta un porcentaje cambiado a mano; la migración se repega. Parte del reparto de la actividad 8. Cada caso: ROLLBACK.
+  "pruebas:claure-servicios-100",
+
+  // Pérdidas y dañadas por dueño (ADR-0560, actividad 14): la merma, la anulación y la devolución dañada de una prenda de CLAURE no son de CAYLA (Pérdidas, calidad de dañadas, el Diario 6951 y las
+  // mermas sin costo del Estado de resultados); lo de antes del arranque y lo de otra sede sigue siendo de CAYLA; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
+  "pruebas:claure-perdidas-y-danadas",
+
+  // «¿Me alcanza?» sin la plata de Claudia (ADR-0560, actividad 16): fn_claure_saldo_a (lo que se le debe a una fecha: la misma cuenta que la pestaña CLAURE) y la proyección de caja que parte de lo que hay menos eso
+  // (y lo dice en de_claudia); no suma si se le pagó de más; sin prendas de CLAURE da lo de antes; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
+  "pruebas:claure-proyeccion",
+
+  // La pantalla del reparto de gastos con CLAURE (ADR-0560, actividad 17): fn_reparto_claure (todas las categorías activas con su parte) y guardar_reparto_claure (solo el líder; firma al responsable, deja el antes y el después en
+  // la historia); lo que ya lee la tabla (fn_claure_gastos) toma el cambio solo; rango, nulo y categoría inexistente se rechazan; anon no ejecuta; la migración se repega. Cada caso: ROLLBACK.
+  "pruebas:claure-reparto-pantalla",
+
+  // El motor de demanda con CIFRA (ADR-0560, deuda de la actividad 6d): fn_motor_demanda_preparacion no cuenta lo vendido de CLAURE (una venta solo de CLAURE deja el resultado igual que sin venta; la misma con una prenda de CAYLA
+  // sí aparece; un ticket mixto cuenta solo la línea de CAYLA; sin el parche de 6d sí contaba). Cada caso: ROLLBACK.
+  "pruebas:claure-motores-con-cifra",
+
+  // Los cambios con prendas de CLAURE (ADR-0560, actividad 13): la plata sigue a la prenda que se lleva la clienta (CLAURE→CAYLA baja lo que se le debe, CAYLA→CLAURE sube con la diferencia, CLAURE→CLAURE solo la diferencia; el
+  // efectivo y CAYLA con CAYLA no mueven nada); la pestaña, la proyección y el aviso del cierre dicen lo mismo; el Diario lo mueve entre 7011 y 479, cuadrado por cambio; la migración se repega y aborta con un texto distinto. Cada caso: ROLLBACK.
+  "pruebas:claure-cambios",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

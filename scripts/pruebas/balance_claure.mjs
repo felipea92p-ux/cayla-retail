@@ -13,7 +13,8 @@
  *
  * QUÉ CUBRE
  *   · Entrada de CLAURE: no mueve la mercadería de CAYLA ni las causas de la 201.
- *   · Venta, anulación, devolución y merma de CLAURE: la 201 del diario y la mercadería del Balance se mueven igual; lo debido queda en la 4699.
+ *   · Venta, anulación, devolución y merma de CLAURE: la 201 del diario y la mercadería del Balance se mueven igual; lo debido (lo COBRADO sin IGV,
+ *     ADR-0560) queda en la 479 y la 4699 del ADR-0558 (a costo) queda en cero: Felipe decidió el 2026-10-29 que manda lo cobrado.
  *   · Un corte en el pasado (antes de la escena) devuelve lo que había, también para lo ajeno.
  *   · Una venta de CAYLA en Trujillo no genera reclasificaciones; cada asiento de reclasificación cuadra solo.
  *   · AUTOPRUEBA: si se deshace una mitad del arreglo, la propiedad se rompe (la prueba no está ciega).
@@ -27,7 +28,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 const M_DUENO = leer("20261027222000_stock_dueno_en_sedes_con_dos_empresas.sql");
@@ -38,13 +39,17 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", process.env.BASE_PG ?? "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] },
   ).trim();
 }
 
-/** Las migraciones, sin imprimir su resultado. Con `sinArreglo` solo las de ADR-0542 (para ver el «antes» donde el arreglo no está pegado). */
-const MIGRACIONES = `\\o /dev/null\n${M_DUENO}\n${M_LECTURAS}\n${M_ARREGLO}\n\\o\n`;
+/**
+ * Las migraciones de la que parte, sin imprimir su resultado. NO se re-aplica la de ADR-0558 (`M_ARREGLO`): lo que se prueba es el estado
+ * al que se llega pegando todo EN ORDEN (la base del CI y la de producción ya la tienen), y volver a pegarla devolvería su
+ * `fn_asientos_claure` (la deuda a COSTO en la 4699) por encima de la de ADR-0560 (la deuda es lo COBRADO, en la 479; Felipe, 2026-10-29).
+ */
+const MIGRACIONES = `\\o /dev/null\n${M_DUENO}\n${M_LECTURAS}\n\\o\n`;
 
 /** Las sedes, las dos empresas, un lugar de almacén por sede, una categoría con talla, un color y una marca con su proveedor. */
 const SEDES = `
@@ -107,6 +112,9 @@ const D201 = (ids) => `coalesce((select sum(a.debe - a.haber) from retail.fn_asi
    where a.cuenta = '201' and a.origen_id in (${ids})), 0)`;
 const D4699 = (ids) => `coalesce((select sum(a.haber - a.debe) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) a
    where a.cuenta = '4699' and a.origen_id in (${ids})), 0)`;
+/** Lo que se le debe a CLAURE (ADR-0560): lo cobrado de sus prendas sin IGV, en la 479. */
+const D479 = (ids) => `coalesce((select sum(a.haber - a.debe) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) a
+   where a.cuenta = '479' and a.origen_id in (${ids})), 0)`;
 
 const COMPRADAS = `${CREAR("c", "Prueba Balance CAYLA", "cayla", "lim", 3, 26)}`;
 /** Una prenda de CLAURE con su stock inicial de CLAURE: el dueño llega por el encabezado `x-dueno`, como lo manda la web (ADR-0542). */
@@ -178,8 +186,12 @@ caso("venta + anulación + devolución + merma de CLAURE: la mercadería del Bal
 caso("la mercadería del Balance solo se movió por lo de CAYLA (una blusa de costo 26 vendida)", () =>
   igual(num(dentro(`${CICLO}\nselect :'s_f'::numeric - :'s_b'::numeric;`)), -26, "Δ mercadería:"));
 
-caso("lo debido a CLAURE (4699) = 2×30 + 1×30 − 30 (anulada) − 30 (devuelta) + 30 (perdida)", () =>
-  igual(num(dentro(`${CICLO}\nselect ${D4699(IDS)};`)), 60, "4699:"));
+// Precio 59 con IGV = 50 sin IGV por unidad: 2 vendidas de CLAURE (100) − 1 devuelta (50) = 50; la vendida y anulada, la pérdida y su costo no mueven la deuda.
+caso("lo debido a CLAURE es lo COBRADO sin IGV y vive en la 479: 2×50 − 50 (devuelta) = 50; la 4699 (a costo, ADR-0558) queda en cero", () => {
+  const debida = num(dentro(`${CICLO}\nselect ${D479(IDS)};`));
+  const aCosto = num(dentro(`${CICLO}\nselect ${D4699(IDS)};`));
+  return igual(debida, 50, "479:") ?? igual(aCosto, 0, "4699:");
+});
 
 caso("cada asiento de reclasificación cuadra solo (debe = haber)", () => {
   const r = dentro(`${CICLO}
@@ -189,11 +201,11 @@ caso("cada asiento de reclasificación cuadra solo (debe = haber)", () => {
   return igual(num(r), 0, "asientos que no cuadran:");
 });
 
-caso("hay 4 clases de reclasificación y cada una está ligada a su origen", () => {
+caso("hay 3 clases de reclasificación (venta, anulación, devolución) y cada una está ligada a su origen; la pérdida no es deuda", () => {
   const r = dentro(`${CICLO}
     select count(distinct a.regla) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) a
      where a.regla like 'claure\\_%' and a.origen_id in (${IDS});`);
-  return igual(num(r), 4, "reglas distintas:");
+  return igual(num(r), 3, "reglas distintas:");
 });
 
 caso("un corte en el pasado (antes de la escena) devuelve lo mismo antes y después, también con lo ajeno", () => {
