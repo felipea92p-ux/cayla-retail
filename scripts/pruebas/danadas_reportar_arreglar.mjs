@@ -850,5 +850,55 @@ select concat_ws(',', :'a', :'b', :'c', :'d');`,
   "23514,23514,23514,23514"
 );
 
+// ===========================================================================
+// D13 · La foto OPCIONAL del daño (ADR-0564, `20261029034000`): solo la fila; el archivo va al bucket desde el navegador
+// ===========================================================================
+
+const foto = (did, ruta, bytes = 1000) => `pg_temp.intento(format('select retail.registrar_foto_danada(%L, %L, %L, %L, %s)', ${did}, ${ruta}, 'foto.jpg', 'image/jpeg', ${bytes}))`;
+caso(
+  "D13 · el líder registra la foto de su dañada; repetir la MISMA ruta devuelve ya_registrada; la 4.ª foto se rechaza; una ruta de otra dañada, también",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select ${foto(":'did'", ":'did'::text || '/a-foto.jpg'")} as a \\gset
+select ${foto(":'did'", ":'did'::text || '/a-foto.jpg'")} as a2 \\gset
+select ${foto(":'did'", ":'did'::text || '/b-foto.jpg'")} as b \\gset
+select ${foto(":'did'", ":'did'::text || '/c-foto.jpg'")} as c \\gset
+select ${foto(":'did'", ":'did'::text || '/d-foto.jpg'")} as d \\gset
+select ${foto(":'did'", "gen_random_uuid()::text || '/x-foto.jpg'")} as ajena \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb ->> 'ok', (:'a2')::jsonb ->> 'ok', (:'d')::jsonb ->> 'hint', (:'ajena')::jsonb ->> 'hint',
+  (select count(*) from retail.prendas_danadas_fotos where danada_id = :'did'));`,
+  "true,true,foto_demasiadas,foto_ruta_invalida,3"
+);
+caso(
+  "D13 · sin Existencias → 42501; con Existencias en OTRA tienda → «no es tu sede»; la foto de una dañada que no existe se rechaza",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select ${reportar("va", 1, "'piso'", "'Mancha'", ":'tok2'", "lim")} as replim \\gset
+${COMO_POSTGRES}select (:'replim')::jsonb -> 'res' ->> 'id' as did_lim \\gset
+${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select ${foto(":'did_lim'", ":'did_lim'::text || '/a-foto.jpg'")} as otra \\gset
+select ${foto("gen_random_uuid()", "'x/y.jpg'")} as nada \\gset
+${SIN_EXISTENCIAS_EN_NINGUN_ROL}${sesion(MICAELA)}${COMO_API}select ${foto(":'did'", ":'did'::text || '/a-foto.jpg'")} as sinmod \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'otra')::jsonb ->> 'hint', (:'nada')::jsonb ->> 'hint', (:'sinmod')::jsonb ->> 'hint', (:'sinmod')::jsonb ->> 'estado');`,
+  "foto_sin_tienda,foto_no_existe,foto_sin_modulo,42501"
+);
+caso(
+  "D13 · cada quien ve las fotos de SU sede: la integrante de Trujillo ve las de Trujillo y no las de Lima; el líder ve las dos; sin políticas, la tabla no se lee directo",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select ${reportar("va", 1, "'piso'", "'Mancha'", ":'tok2'", "lim")} as replim \\gset
+${COMO_POSTGRES}select (:'replim')::jsonb -> 'res' ->> 'id' as did_lim \\gset
+${sesion(FELIPE)}${COMO_API}select ${foto(":'did'", ":'did'::text || '/a-foto.jpg'")} as _a \\gset
+select ${foto(":'did_lim'", ":'did_lim'::text || '/a-foto.jpg'")} as _b \\gset
+select count(*) as lider from retail.fotos_de_danadas(array[:'did', :'did_lim']::uuid[]) \\gset
+${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select count(*) as micaela from retail.fotos_de_danadas(array[:'did', :'did_lim']::uuid[]) \\gset
+select retail.fn_puede_ver_foto_danada(:'did'::text || '/a-foto.jpg') as ve_suya \\gset
+select retail.fn_puede_ver_foto_danada(:'did_lim'::text || '/a-foto.jpg') as ve_ajena \\gset
+select count(*) as directo from retail.prendas_danadas_fotos \\gset
+${COMO_POSTGRES}select concat_ws(',', :lider, :micaela, :'ve_suya', :'ve_ajena', :directo);`,
+  "2,1,t,f,0"
+);
+caso(
+  "D13 · los candados del esquema: una ruta de otra dañada, un archivo de más de 10 MB o un tipo que no es imagen se rechazan (23514)",
+  `${REPORTE_DE_VA}select pg_temp.intento(format('insert into retail.prendas_danadas_fotos (danada_id, ruta, nombre, tipo, bytes) values (%L, %L, ''f'', ''image/jpeg'', 10)', :'did', 'otra/x.jpg')) ->> 'estado' as a \\gset
+select pg_temp.intento(format('insert into retail.prendas_danadas_fotos (danada_id, ruta, nombre, tipo, bytes) values (%L, %L, ''f'', ''image/jpeg'', 10485761)', :'did', :'did'::text || '/x.jpg')) ->> 'estado' as b \\gset
+select pg_temp.intento(format('insert into retail.prendas_danadas_fotos (danada_id, ruta, nombre, tipo, bytes) values (%L, %L, ''f'', ''application/pdf'', 10)', :'did', :'did'::text || '/y.pdf')) ->> 'estado' as c \\gset
+select concat_ws(',', :'a', :'b', :'c');`,
+  "23514,23514,23514"
+);
+
 console.log(`\n${total - fallos}/${total} pruebas en verde.`);
 process.exit(fallos ? 1 : 0);

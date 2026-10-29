@@ -60,6 +60,7 @@ import {
   type RutaArreglo,
 } from "@/lib/danadas-arreglo";
 import { Chip } from "@/components/ui/Chip";
+import { textoVerFotos } from "@/lib/danadas-foto";
 import { argumentosDeLugar, camposGuiaLugar, MAX_LUGAR_DANADAS, RPC_DEFINIR_LUGAR_DANADAS } from "@/lib/danadas-lugar";
 import { Aviso } from "@/components/ui/Aviso";
 import { Check } from "lucide-react";
@@ -530,6 +531,24 @@ export function ResolverDanadosModal({
                     </p>
                     {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que se necesita para decidir. */}
                     <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion, p.tipoDano)}</p>
+                    {p.fotos.length > 0 && (
+                      <p className="mt-1 flex flex-wrap items-center gap-x-3 text-xs">
+                        {p.fotos.length === 1 ? (
+                          <a href={p.fotos[0]} target="_blank" rel="noopener noreferrer" className="btn-cayla btn-enlace">
+                            {textoVerFotos(1)}
+                          </a>
+                        ) : (
+                          <>
+                            <span className="text-taupe">{textoVerFotos(p.fotos.length)}:</span>
+                            {p.fotos.map((u, i) => (
+                              <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="btn-cayla btn-enlace">
+                                Foto {i + 1}
+                              </a>
+                            ))}
+                          </>
+                        )}
+                      </p>
+                    )}
                     {p.noSePudo && (
                       <p className="mt-1">
                         <Chip tono="ambar" versalitas={false} title="Volvió de arreglarse sin arreglo. Decide su destino: liquidar, botar, donar o volver a sacarla.">

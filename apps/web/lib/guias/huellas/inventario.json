@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 185,
+  "total": 189,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -96,6 +96,8 @@
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "button «{lugar ? \"Cambiar\" : \"Marcar el lugar\"}»",
+      "a «{textoVerFotos(1)}»",
+      "a «Foto»",
       "CampoTexto «Nota (opcional)»",
       "Boton «{responsable.motivo ?? \"Anota que la prenda sale de la tienda a arreglarse\"}»",
       "Boton «{responsable.motivo ?? \"Volvió de arreglarse, pero no se pudo arreglar\"}»",
@@ -199,6 +201,8 @@
       "input «Celular»",
       "button «{x.etiqueta}»",
       "textarea «{pistaDeNota(d.tipoDano)}»",
+      "input «(sin nombre)»",
+      "button «Quitar»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Volver «→atras»",

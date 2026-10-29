@@ -23,6 +23,8 @@ import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, TIPOS_DANO, tituloExitoReporte } from "@/lib/danadas-reglas";
 import { pistaDeNota } from "@/lib/sugerencias-danadas";
 import { fraseDejarEn } from "@/lib/danadas-lugar";
+import { objecionDeFoto, textoFotoNoSubio, TIPOS_FOTO_DANADA } from "@/lib/danadas-foto";
+import { subirFotoDanada } from "@/lib/danadas-foto-subida";
 import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -276,6 +278,10 @@ export function FlujoTalla({
   const [relleno, setRelleno] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // La foto OPCIONAL del daño (ADR-0564): se elige aquí y se sube DESPUÉS de reportar, con la dañada ya guardada; si falla, la prenda queda
+  // reportada igual. No cuenta como «cambio sin guardar» ni cambia la marca del intento: reintentar el reporte no la repite.
+  const [foto, setFoto] = useState<File | null>(null);
+  const [objecionFoto, setObjecionFoto] = useState<string | null>(null);
   // Lo que ya traía el paso al abrirse (una acción rápida entra armada): solo lo que la persona toca después cuenta como «cambios».
   const [huellaInicial] = useState(() => JSON.stringify(d));
   // Tras una respuesta incierta los datos quedan fijos: cambiarlos sería otro intento y podría mover dos veces.
@@ -392,6 +398,15 @@ export function FlujoTalla({
     }
     enviadoEn.current = null;
     const yaEstaba = llamada.yaEstaba(data);
+    // La foto del daño, ya con la dañada guardada: lo que falle aquí NO deshace el reporte, solo se avisa.
+    let avisoFoto: string | null = null;
+    const idDeLaDanada = tipo === "danada" && foto ? leerRespuestaDanada(data)?.id : undefined;
+    if (idDeLaDanada && foto) {
+      setEnviando(true);
+      const subida = await subirFotoDanada(createClient(), idDeLaDanada, foto, responsable.firma());
+      setEnviando(false);
+      if (!subida.ok) avisoFoto = textoFotoNoSubio(subida.motivo);
+    }
     const esBajada = tipo === "colgar" || tipo === "colgarVarias";
     const esSubida = tipo === "subir" || tipo === "subirVarias";
     if (yaEstaba) {
@@ -422,6 +437,7 @@ export function FlujoTalla({
         detalle: llamada.recordatorio ?? `${prenda.referencia}${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`,
       });
     }
+    if (avisoFoto) avisar.aviso(avisoFoto, { detalle: prenda.referencia });
     // Si el panel se cierra (bajar al piso, subir al almacén), refresca él, cuando ya retiró la guardia de «¿Salir sin guardar?»
     // (PanelTalla).
     const cerrar = (esBajada || esSubida) && !yaEstaba;
@@ -908,6 +924,36 @@ export function FlujoTalla({
               onChange={(e) => poner({ nota: e.target.value })}
               className={CLASE_TEXTO}
             />
+            {/* La foto del daño es un extra (ADR-0564): nunca frena el reporte. */}
+            <div className="mt-3">
+              <label className="btn-cayla btn-secundario cursor-pointer">
+                <input
+                  type="file"
+                  accept={TIPOS_FOTO_DANADA.join(",")}
+                  capture="environment"
+                  className="sr-only"
+                  disabled={enviando || incierto}
+                  onChange={(e) => {
+                    const elegido = e.target.files?.[0] ?? null;
+                    e.target.value = "";
+                    if (!elegido) return;
+                    const objecion = objecionDeFoto(elegido);
+                    setObjecionFoto(objecion);
+                    setFoto(objecion ? null : elegido);
+                  }}
+                />
+                {foto ? "Cambiar la foto" : "Agregar una foto del daño (opcional)"}
+              </label>
+              {foto && (
+                <p className="mt-1.5 flex items-center gap-2 text-[13px] text-taupe">
+                  <span className="min-w-0 truncate">{foto.name}</span>
+                  <button type="button" className="btn-cayla btn-enlace" onClick={() => setFoto(null)} disabled={enviando || incierto}>
+                    Quitar
+                  </button>
+                </p>
+              )}
+              {objecionFoto && <p className="mt-1.5 text-[13px] text-ambar-profundo">{objecionFoto}</p>}
+            </div>
             {/* Lo que pasa al reportar, ANTES de confirmar: el acto físico primero (si sigue colgada, se puede vender). */}
             <p className="mt-3 rounded-xl bg-hueso px-3 py-2.5 text-[13px] text-tinta">{quePasaAlReportar(d.lugar ?? null)}{fraseDejarEn(lugarDanadas) ? ` ${fraseDejarEn(lugarDanadas)}` : ""}</p>
           </>

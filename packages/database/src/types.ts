@@ -5980,6 +5980,9 @@ export type Database = {
       fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
       guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
       programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      // ADR-0564 (20261029034000): la foto opcional del daño de una prenda dañada (registrar una ya subida / leer las rutas visibles).
+      registrar_foto_danada: { Args: { p_bytes: number; p_danada_id: string; p_nombre: string; p_ruta: string; p_tipo: string }; Returns: Json }
+      fotos_de_danadas: { Args: { p_ids: string[] }; Returns: { danada_id: string; ruta: string }[] }
       // ADR-0564 (20261029033000): la prenda que salió a arreglarse volvió SIN arreglo.
       no_se_pudo_arreglar: { Args: { p_id: string; p_motivo?: string }; Returns: Json }
       // ADR-0564 (20261029032000): «Salió a arreglar»: marca que una dañada en cuarentena salió de la tienda a arreglarse.
