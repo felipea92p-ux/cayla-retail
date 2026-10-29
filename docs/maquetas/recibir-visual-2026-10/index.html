@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recibir mercadería · 3 direcciones</title>
+<link rel="stylesheet" href="comun.css">
+<style>
+  .pagina{max-width:1280px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:clamp(38px,5vw,60px);line-height:1.05;margin:0 0 10px}
+  .lead{font-size:21px;color:var(--tinta-60);max-width:44ch;margin:0 0 36px}
+  .tres{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .op{display:grid;gap:16px;text-decoration:none;color:inherit;background:var(--papel);border:1.5px solid var(--borde-control);border-radius:26px;padding:26px;transition:transform .3s var(--ease),border-color .3s,box-shadow .3s}
+  @media (hover:hover){.op:hover{transform:translateY(-5px);border-color:var(--tinta);box-shadow:0 26px 44px -26px color-mix(in srgb,var(--sombra) 55%,transparent)}.op:hover .ir svg{transform:translateX(6px)}}
+  .letra{width:54px;height:54px;border-radius:16px;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font:500 30px "EB Garamond",Georgia,serif}
+  .op h2{font-size:34px;line-height:1.05}
+  .op p{margin:0;font-size:19px;color:var(--tinta-60)}
+  .op ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:18px;font-weight:600}
+  .op li{display:flex;gap:10px;align-items:center}.op li svg{width:20px;height:20px;color:var(--verde-profundo);flex:none}
+  .ir{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--rojo-profundo);margin-top:4px}
+  .ir svg{width:22px;height:22px;transition:transform .25s var(--ease)}
+  .boceto{height:150px;border-radius:18px;background:var(--hueso);display:flex;gap:10px;padding:14px;overflow:hidden}
+  .boceto .c{flex:1;border-radius:12px;background:var(--papel);display:grid;gap:8px;padding:10px;align-content:start}
+  .boceto .c i{display:block;height:34px;border-radius:9px;background:var(--sand)}
+  .boceto .c i.k{background:var(--tinta)}
+  .b2{align-items:center;justify-content:center;gap:14px}.b2 .p{width:70px;height:70px;border-radius:18px;background:var(--dato-rosado)}.b2 .n{font:500 74px/1 "EB Garamond",serif}
+  .b2 .q{display:flex;gap:7px}.b2 .q i{width:26px;height:26px;border-radius:8px;border:2px dashed var(--borde-control)}.b2 .q i.o{background:var(--dato-rosado);border:0}
+  .b3{flex-direction:column;justify-content:center;gap:18px}.b3 .l{height:6px;border-radius:99px;background:var(--sand);position:relative}.b3 .l::after{content:"";position:absolute;left:0;top:0;bottom:0;width:70%;background:var(--pizarra);border-radius:99px}
+  .b3 .s{display:flex;justify-content:space-between}.b3 .s i{width:36px;height:36px;border-radius:99px;border:2px solid var(--borde-control);background:var(--papel)}.b3 .s i.v{background:var(--verde);border-color:var(--verde)}
+  .nota{margin-top:30px;font-size:18px;color:var(--tinta-60);max-width:70ch}
+  @media (max-width:980px){.tres{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="barra-spike"><strong>Recibir mercadería · 3 direcciones</strong><div class="quien"><button class="tema" aria-label="Modo oscuro"></button></div></div>
+<main class="pagina">
+  <h1 class="cae">Tres formas de recibir</h1>
+  <p class="lead cae" style="--i:1">Todas se tocan y funcionan: abre un fardo y recíbelo hasta el final. Prueba también el modo oscuro y la pantalla de celular.</p>
+  <div class="tres">
+    <a class="op cae" style="--i:2" href="a-mesa.html"><div class="boceto"><div class="c"><i></i><i class="k"></i></div><div class="c"><i></i></div><div class="c"><i></i></div><div class="c"></div></div>
+      <span class="letra">A</span><h2>La mesa de fardos</h2><p>Cuatro carriles. Cada fardo avanza de uno a otro.</p>
+      <ul><li>'+ico+'Ves todo de un vistazo</li></ul><span class="ir">Probar <span id="f1"></span></span></a>
+    <a class="op cae" style="--i:3" href="b-manos.html"><div class="boceto b2"><div class="p"></div><div class="n">3</div><div class="q"><i class="o"></i><i class="o"></i><i></i></div></div>
+      <span class="letra">B</span><h2>Contar con las manos</h2><p>Una pregunta por pantalla. La prenda vuela a su casilla.</p>
+      <ul><li>'+ico+'Nadie se pierde</li></ul><span class="ir">Probar <span id="f2"></span></span></a>
+    <a class="op cae" style="--i:4" href="c-ruta.html"><div class="boceto b3"><div class="l"></div><div class="s"><i class="v"></i><i class="v"></i><i></i><i></i></div></div>
+      <span class="letra">C</span><h2>La ruta del fardo</h2><p>El camión llega, cuatro pasos grandes y el almacén se llena.</p>
+      <ul><li>'+ico+'Se ve el avance</li></ul><span class="ir">Probar <span id="f3"></span></span></a>
+  </div>
+  <p class="nota cae" style="--i:5">Los tres usan los colores de CAYLA, letra de 16 px o más y poco texto. Los datos son los del envío que probamos en local (ENV-003035).</p>
+</main>
+<script src="comun.js"></script>
+<script>
+  document.querySelectorAll('.op ul li').forEach(function(l){l.innerHTML=R.ico('ok')+l.textContent.replace("'+ico+'","")});
+  ['f1','f2','f3'].forEach(function(i){document.getElementById(i).innerHTML=R.ico('flecha')});
+</script>
+</body>
+</html>
