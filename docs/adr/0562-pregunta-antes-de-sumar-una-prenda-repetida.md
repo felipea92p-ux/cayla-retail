@@ -54,3 +54,31 @@ ningún cuadro: una mano que tiembla la hace salir y entrar, y suma otra vez. El
 - **Preguntar solo si la repetición llega en menos de N segundos.** Distingue mejor una pila de iguales de una etiqueta quieta, pero Felipe pidió
   preguntar en toda repetición; queda como ajuste si en la tienda resulta molesto (y es la opción natural para Conteo).
 - **Confirmar con Enter.** Más rápido con teclado, pero la pistola lo manda sola tras cada código.
+
+## Actualización 2026-10-29 — «Ya está en la lista · ¿Sumar otra?»: la franja chica y la cámara tapada
+
+**Origen:** Felipe, mirando el aviso construido: los textos («lecturas repetidas ignoradas», «Son varias iguales», «Esc = No») no se entendían
+a la primera y la caja amarilla se parecía a una alerta. Eligió mirando la «franja chica» y pidió que, en la cámara del celular, el mensaje
+**tape la cámara** para que nadie crea que se sumó solo porque la cámara sigue a la vista.
+
+1. **Una sola cara, dos tamaños** (`components/ui/AvisoRepetida.tsx`, ya no es un `<Aviso>`): la prenda (su foto o su color), su nombre,
+   «Ya está en la lista · ¿Sumar otra?», «1 → 2» y dos respuestas con su palabra, **Sumar** y **No**. `variante="franja"` (bajo el campo; en
+   pantalla ancha, una línea) y `variante="camara"` (botones de 54 px).
+2. **«Sumar» y «No» siguen pesando igual** (decisión 4): si «Sumar» fuera el negro, empujaría justo al error que esta pieza evita.
+3. **«Son varias iguales» → «Cambiar cantidad»**, que abre «Cantidad total · máx. N» con «Guardar N». La prenda sigue pasando a «Varias iguales»
+   (pila) y deja de preguntar.
+4. **Salió lo que no ayudaba a decidir:** el triángulo, la caja del contador, la píldora «N lecturas repetidas ignoradas» (`textoIgnoradas` se
+   borró; la regla sigue ignorando la misma etiqueta mientras se pregunta) y el «Esc = No». Lo único que se perdía con eso, que escanear otra
+   prenda cuenta como «No», pasó a la ayuda de la pantalla (Bajar al piso y Cuadrar el piso).
+5. **La cámara se tapa y se pausa** (`EscanerConteo`, prop `pregunta`): un velo `bg-sombra/80` cubre el visor, la tarjeta va abajo y la cámara
+   no lee hasta que se responde. No se toca `huboHueco`: la etiqueta que siga quieta frente a la cámara al responder no vuelve a contar.
+   La bandeja de abajo conserva su prenda y su − / +; `aviso` (un guardado que falló) ya no se pisa con la pregunta.
+
+6. **Tras `/formidable` (2026-10-29, `docs/formidable/inventario-bajar.md`, con el OK de Felipe):** con la pregunta abierta, la bandeja de la
+   cámara no tiene − / + («Responde arriba para seguir.»: tocar «+» y luego «Sumar» sumaba 2, y en Cuadrar el − / + actuaba sobre otra prenda);
+   la tarjeta topa en 48 rem, el nombre pasa a dos líneas y «Cambiar cantidad» va junto a Sumar y No; y escanear otra prenda con la pregunta
+   abierta deja el rastro «No se sumó: …» con «Deshacer» (`avisarNoSumo`), que vuelve a abrir la pregunta. La ayuda bajo el campo ya no
+   repite la regla de «otra prenda = No».
+
+Probado en el navegador con una página temporal (datos inventados, sin cámara real: el panel la bloquea): franja a 394 px y a 1440 px,
+cámara con velo, «Cambiar cantidad» → «Guardar 3». Falta verlo con la cámara del teléfono y con la pistola en una tienda.

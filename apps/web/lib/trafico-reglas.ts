@@ -392,20 +392,28 @@ export type Atora = {
 };
 
 /**
- * Dónde se atora el recorrido: el paso que deja pasar a menos gente de la que le llega. Para no saltar con dos personas, cada paso se
- * mira contraído hacia lo de costumbre (los últimos 90 días de toda la tienda), con el peso de 30 personas: (siguieron + 30 · costumbre) /
- * (llegaron + 30). Lo que se DICE es lo que pasó en estos días. Sin nadie que haya entrado, no hay veredicto.
+ * Dónde se atora el recorrido: el paso donde, de la gente que llegó, MÁS se fue en estos días (Felipe, 2026-10-29: el globo debe coincidir
+ * con lo que se ve en los 100 puntos). Solo cuentan los pasos a los que llegaron al menos `POCAS_PERSONAS`: con 4 personas, «0 de 4» no es
+ * donde se pierde la gente. Si ningún paso llegó a tanto (muy pocas personas), manda lo de costumbre: cada paso se mira contraído hacia los
+ * últimos 90 días de toda la tienda, con el peso de 30 personas: (siguieron + 30 · costumbre) / (llegaron + 30), y el veredicto se dice
+ * como pista. Lo que se DICE siempre es lo que pasó en estos días. Sin nadie que haya entrado, no hay veredicto.
  */
 export function dondeSeAtora(pasos: readonly number[], base: readonly number[]): Atora | null {
   if (!pasos[0]) return null;
-  let mejor: { i: number; pasa: number } | null = null;
+  let suficientes: { i: number; pasa: number } | null = null;
+  let contraidos: { i: number; pasa: number } | null = null;
   for (let i = 1; i < pasos.length; i++) {
     const llegaron = pasos[i - 1];
     const costumbre = base[i - 1] > 0 ? base[i] / base[i - 1] : null;
+    if (llegaron >= POCAS_PERSONAS) {
+      const pasa = pasos[i] / llegaron;
+      if (!suficientes || pasa < suficientes.pasa) suficientes = { i, pasa };
+    }
     if (llegaron === 0 && costumbre === null) continue;
     const pasa = costumbre === null ? pasos[i] / llegaron : (pasos[i] + PESO_DE_LA_COSTUMBRE * costumbre) / (llegaron + PESO_DE_LA_COSTUMBRE);
-    if (!mejor || pasa < mejor.pasa) mejor = { i, pasa };
+    if (!contraidos || pasa < contraidos.pasa) contraidos = { i, pasa };
   }
+  const mejor = suficientes ?? contraidos;
   if (!mejor) return null;
   const llegaron = pasos[mejor.i - 1];
   const siguieron = pasos[mejor.i];
@@ -755,6 +763,32 @@ export function rindeElCamino(llegaron: number, separaron: number, total: number
   if (propia >= promedio * 1.25) return { de100: tasa, tono: "verde" };
   if (propia <= promedio * 0.75 && de100(llegaron, total) >= 8) return { de100: tasa, tono: "ambar" };
   return { de100: tasa, tono: "neutro" };
+}
+
+/**
+ * Cómo se ve un departamento en el mapa: su nombre y cuánta gente mira desde ahí. Lima provincias, Lima Metropolitana y el Callao son UNA
+ * ciudad en la pantalla («Lima»): los tres dicen «Lima» con la cifra de los tres juntos y se pintan igual (Felipe, 2026-10-29).
+ */
+export function regionEnElMapa(iso: string, nombre: string, regiones: Record<string, number>): { nombre: string; n: number } {
+  if (ciudadDeRegion(iso) !== "lima") return { nombre, n: regiones[iso] ?? 0 };
+  return { nombre: "Lima", n: Object.entries(regiones).reduce((a, [r, n]) => (ciudadDeRegion(r) === "lima" ? a + n : a), 0) };
+}
+
+/** Las ciudades con nombre propio en la lista; «Otras ciudades», «Del extranjero» y «Sin dato» van siempre en el grupo del final. */
+const CIUDADES_NOMBRADAS = ["trujillo", "lima", "arequipa", "chiclayo", "piura", "cusco"] as const;
+const A_LA_VISTA_CIUDADES = 5;
+
+/**
+ * La lista bajo el mapa: las 5 ciudades con más gente y, al final, «Otras ciudades» con todo lo demás (otras ciudades del Perú, el extranjero y
+ * sin dato). La ciudad filtrada siempre se ve, aunque no esté entre las 5. `grupo` dice qué ciudades suma «Otras ciudades» (para iluminarlas).
+ */
+export function ciudadesDeLaLista(ciudades: Record<Ciudad, number>, elegida: Ciudad | null): { top: Ciudad[]; otras: number; grupo: Ciudad[] } {
+  const top: Ciudad[] = CIUDADES_NOMBRADAS.filter((c) => ciudades[c] > 0)
+    .sort((a, b) => ciudades[b] - ciudades[a])
+    .slice(0, A_LA_VISTA_CIUDADES);
+  if (elegida && !top.includes(elegida) && (CIUDADES_NOMBRADAS as readonly string[]).includes(elegida)) top.push(elegida);
+  const grupo = (Object.keys(ciudades) as Ciudad[]).filter((c) => !top.includes(c));
+  return { top, otras: grupo.reduce((a, c) => a + ciudades[c], 0), grupo };
 }
 
 /** La ciudad SIN tienda desde la que más gente mira (Chiclayo, Piura, Cusco): la pista de dónde abrir o a quién mandar más. */

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  ciudadesDeLaLista,
+  regionEnElMapa,
   filasDelGlobito,
   ordenarCategorias,
   tinteDelDia,
@@ -152,6 +154,11 @@ describe("dondeSeAtora: el paso que deja pasar a menos gente de la que le llega"
     expect(a.i).toBe(4);
     expect(a.pocas).toBe(true);
     expect(explicaAtora(a)).toContain("tómalo como una pista");
+  });
+
+  it("el globo cae donde se ve que se fue más gente: 126 entraron, 41 vieron, 4 eligieron talla, 0 a la bolsa → «al elegir talla», no «a la bolsa» (solo 4 llegaron)", () => {
+    const a = dondeSeAtora([126, 41, 4, 0, 0, 0], DE_LA_BASE.base)!;
+    expect(a).toEqual({ i: 2, llegaron: 41, siguieron: 4, seFueronDe100: 90, pocas: false });
   });
 
   it("singular y plural en la explicación", () => {
@@ -741,5 +748,25 @@ describe("el globito del gráfico: qué momento es y con cuál se compara", () =
   it("hoy y ayer, hora por hora", () => {
     expect(filasDelGlobito({ por: "hora", clave: "hoy", desde: "2026-10-27", antDesde: "2026-10-26" }, 15)).toEqual({ actual: "Hoy · 3 p. m.", antes: "Ayer · 3 p. m." });
     expect(filasDelGlobito({ por: "hora", clave: "ayer", desde: "2026-10-26", antDesde: "2026-10-19" }, 20)).toEqual({ actual: "Ayer · 8 p. m.", antes: "Lunes pasado · 19 oct · 8 p. m." });
+  });
+});
+
+describe("el mapa y la lista de ciudades", () => {
+  const regiones = { "PE-LIM": 3, "PE-LMA": 25, "PE-CAL": 4, "PE-ARE": 36, "PE-LOR": 1 };
+  it("Lima provincias, Lima Metropolitana y el Callao se ven como un solo «Lima» con la cifra de los tres", () => {
+    expect(regionEnElMapa("PE-LMA", "Lima Metropolitana", regiones)).toEqual({ nombre: "Lima", n: 32 });
+    expect(regionEnElMapa("PE-CAL", "Callao", regiones)).toEqual({ nombre: "Lima", n: 32 });
+    expect(regionEnElMapa("PE-ARE", "Arequipa", regiones)).toEqual({ nombre: "Arequipa", n: 36 });
+    expect(regionEnElMapa("PE-TAC", "Tacna", regiones)).toEqual({ nombre: "Tacna", n: 0 });
+  });
+  const ciudades = { trujillo: 34, lima: 32, arequipa: 36, chiclayo: 2, piura: 3, cusco: 16, otras: 1, fuera: 7, sin_dato: 4 };
+  it("la lista: las 5 con más gente y el resto (otras, el extranjero, sin dato) en «Otras ciudades»", () => {
+    const l = ciudadesDeLaLista(ciudades, null);
+    expect(l.top).toEqual(["arequipa", "trujillo", "lima", "cusco", "piura"]);
+    expect(l.otras).toBe(2 + 1 + 7 + 4);
+    expect(l.grupo).toEqual(["chiclayo", "otras", "fuera", "sin_dato"]);
+  });
+  it("la ciudad filtrada siempre se ve, aunque no esté entre las 5", () => {
+    expect(ciudadesDeLaLista(ciudades, "chiclayo").top).toEqual(["arequipa", "trujillo", "lima", "cusco", "piura", "chiclayo"]);
   });
 });
