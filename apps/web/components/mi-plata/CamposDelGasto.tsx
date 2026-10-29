@@ -6,6 +6,8 @@ import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { CONCEPTOS_GASTO, type ConceptoGasto } from "@/lib/mi-plata-reglas";
+import { papelesParaGasto, type PapelGasto } from "@/lib/revisar-compras-reglas";
+import { FichasDePapel } from "./FichasDePapel";
 
 // Los campos de un gasto que no es ropa: en qué gastó (con «Otro», qué fue), cuánto y la foto del papel. Son los de «Gasté en otra cosa»
 // (ADR-0480) y los de corregirlo (ADR-0572): una sola pieza, para que anotar y corregir se vean y se sientan igual (ADR-0358). En PC, dos
@@ -19,6 +21,10 @@ export function CamposDelGasto({
   archivo,
   guardando,
   yaTieneFoto = false,
+  papel,
+  ruc = "",
+  alPapel,
+  alRuc,
   alConcepto,
   alNota,
   alMonto,
@@ -32,6 +38,11 @@ export function CamposDelGasto({
   guardando: boolean;
   /** Al corregir: el gasto ya tiene su foto; elegir otra la cambia. */
   yaTieneFoto?: boolean;
+  /** Al anotar (ADR-0574): el papel que le dieron y su RUC. Al corregir no se piden (el papel que dijo no cambia): sin `alPapel`, no se dibujan. */
+  papel?: PapelGasto | null;
+  ruc?: string;
+  alPapel?: (p: PapelGasto) => void;
+  alRuc?: (t: string) => void;
   alConcepto: (c: ConceptoGasto) => void;
   alNota: (t: string) => void;
   alMonto: (t: string) => void;
@@ -89,6 +100,28 @@ export function CamposDelGasto({
             onArchivo={alArchivo}
           />
         </CampoGuiado>
+        {alPapel && concepto !== null && (
+          <>
+            <CampoGuiado id="papel" guia={guia} titulo="¿Qué papel te dieron?" ayuda="· así pasa solo a los libros">
+              <FichasDePapel etiqueta="¿Qué papel te dieron?" opciones={papelesParaGasto(concepto)} valor={papel ?? null} alElegir={alPapel} deshabilitadas={guardando} guia="mi-plata.papel-gasto" />
+            </CampoGuiado>
+            {papel === "factura" && alRuc && (
+              <CampoGuiado id="ruc" guia={guia} titulo="RUC de la factura" ayuda="· separa el IGV">
+                <CampoTexto
+                  etiqueta="RUC"
+                  caja
+                  autoComplete="off"
+                  inputMode="numeric"
+                  maxLength={11}
+                  placeholder="11 números" // sugerir-fijo: el formato de un RUC no depende de nada elegido antes
+                  value={ruc}
+                  disabled={guardando}
+                  onChange={(e) => alRuc(e.target.value)}
+                />
+              </CampoGuiado>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -13,6 +13,12 @@
  *   · Un reintento con el mismo id y lo mismo devuelve lo mismo; con otra serie, `compra_rapida_otros_datos`.
  *   · Lo que escribió no cambia (ni como postgres).
  *
+ * QUÉ PROMETE (actividad 5: los gastos que no son ropa)
+ *   · Un gasto se anota con el papel que le dieron (y su RUC): sin papel solo el taxi y el cargador; el RUC, 11 números; sin papel (una pantalla de
+ *     antes) también se anota.
+ *   · Al cerrar la ronda, los gastos con papel pasan solos a los gastos del viaje (pagados de su fondo, a su compra del día); los de antes, sin papel,
+ *     se quedan para Compras. Si uno no puede pasar (no hay una compra a la que ir), el cierre NO se cae y queda con su motivo.
+ *
  * USO
  *   node scripts/pruebas/compras_simple_historial.mjs                        → contra el Postgres local (supabase_db_cayla-retail)
  *   node scripts/pruebas/compras_simple_historial.mjs --contenedor <otro> [--base <nombre>]
@@ -182,6 +188,66 @@ select has_function_privilege('anon', 'retail.registrar_compra_rapida(uuid, uuid
        to_regprocedure('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb,numeric,text)') is null,
        (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_compra_rapida');`,
   "f|t|1",
+);
+
+// ---------- Los gastos (actividad 5) ----------
+const GASTO = (n, concepto, papel, ruc = null, foto = null) =>
+  `select retail.registrar_gasto_rapido('${ID(n)}', '${concepto}', null, 18.50, ${foto === null ? "null" : `'${foto}'`}, ${papel === null ? "null" : `'${papel}'`}, ${ruc === null ? "null" : `'${ruc}'`})`;
+
+caso(
+  "un gasto se anota con su papel y su RUC; sin papel solo el taxi y el cargador; el RUC, 11 números; sin papel dicho (una pantalla de antes) también se anota",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "gasto_rapido")}
+${GASTO(1, "taxi", "planilla_movilidad")} \\g /dev/null
+${GASTO(2, "envio", "factura", "20123456789", "gastos/f.jpg")} \\g /dev/null
+${GASTO(3, "comida", null)} \\g /dev/null
+select ${hint(GASTO(4, "comida", "planilla_movilidad"))}, ${hint(GASTO(5, "taxi", "recibo"))}, ${hint(GASTO(6, "envio", "factura", "123", "gastos/f.jpg"))},
+       ${hint(GASTO(7, "taxi", "planilla_movilidad", "20123456789"))};
+reset role;
+select (select papel from retail.compra_gastos where id = '${ID(1)}'), (select papel || ':' || ruc from retail.compra_gastos where id = '${ID(2)}'),
+       (select papel is null from retail.compra_gastos where id = '${ID(3)}'), (select count(*) from retail.compra_gastos where id in ('${ID(4)}', '${ID(5)}', '${ID(6)}', '${ID(7)}'));`,
+  "gasto_rapido_papel|gasto_rapido_papel|gasto_rapido_ruc|gasto_rapido_ruc / planilla_movilidad|factura:20123456789|t|0",
+);
+
+caso(
+  "repetir el mismo gasto devuelve lo mismo; con otro papel, gasto_rapido_otros_datos; lo que dijo no cambia ni como postgres",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "gasto_rapido")}
+${GASTO(1, "taxi", "planilla_movilidad")} \\g /dev/null
+${GASTO(1, "taxi", "planilla_movilidad")} \\g /dev/null
+select ${hint(GASTO(1, "taxi", "boleta", null, "gastos/b.jpg"))};
+reset role;
+select split_part(pg_temp.intento($q$update retail.compra_gastos set papel = 'ticket' where id = '${ID(1)}'$q$), '|', 3), (select count(*) from retail.compra_gastos where id = '${ID(1)}');`,
+  "gasto_rapido_otros_datos / Lo que anotó la compradora no cambia: Compras lo corrige al revisarlo.|1",
+);
+
+// Cierra la ronda de Micaela: con lo que tenga decide solo (negativo: le deben).
+const CIERRA = `${como(MICAELA, "compra_terminar_dia")}select retail.terminar_dia_compras('se_queda') ->> 'ronda' is not null;`;
+
+caso(
+  "al cerrar la ronda, los gastos con papel pasan solos a los gastos del viaje (de su fondo, a su compra del día); el de antes se queda para Compras",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "compra_rapida")}
+${COMPRA(1, "boleta", "B001", "4001")} \\g /dev/null
+${como(MICAELA, "gasto_rapido")}
+${GASTO(1, "taxi", "planilla_movilidad")} \\g /dev/null
+${GASTO(2, "cargador", "ticket", null, "gastos/t.jpg")} \\g /dev/null
+${GASTO(3, "comida", null)} \\g /dev/null
+${CIERRA}
+reset role;
+select g.id = '${ID(1)}' and g.estado = 'completado', count(*) filter (where g.estado = 'completado'), count(*) filter (where g.estado = 'por_completar'),
+       count(*) filter (where g.pasa_sola_error is not null)
+  from retail.compra_gastos g where g.persona_id = :'micaela' and g.id in ('${ID(1)}', '${ID(2)}', '${ID(3)}') group by g.id = '${ID(1)}' and g.estado = 'completado' order by 1 desc;
+select (select count(*) from retail.gastos x where x.token_cliente in ('${ID(1)}', '${ID(2)}')), (select count(*) from retail.gastos x where x.token_cliente = '${ID(3)}');`,
+  "t / t|1|0|0 / f|1|1|0 / 2|0",
+);
+
+caso(
+  "si un gasto no puede pasar (todavía no hay una compra a la que ir), cerrar la ronda NO se cae: queda por revisar con su motivo",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "gasto_rapido")}
+${GASTO(1, "taxi", "planilla_movilidad")} \\g /dev/null
+${CIERRA}
+reset role;
+select estado, pasa_sola_error ~ 'compra' from retail.compra_gastos where id = '${ID(1)}';
+select (select count(*) from retail.compra_rondas where persona_id = :'micaela' and cerrada_en is not null) >= 1;`,
+  "t / por_completar|t / t",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

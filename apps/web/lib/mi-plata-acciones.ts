@@ -74,7 +74,8 @@ export async function confirmarPlata(
 // del envío (`crear_envio` la reconoce). Terminar el día se puede repetir: el mismo día reemplaza el cierre anterior.
 
 export async function registrarGastoRapido(
-  args: { p_id: string; p_concepto: ConceptoGasto; p_nota: string | null; p_monto: number; p_foto_ruta: string | null },
+  // `p_papel` y `p_ruc` (20261029195000) solo viajan si los dijo: una base de antes no los conoce.
+  args: { p_id: string; p_concepto: ConceptoGasto; p_nota: string | null; p_monto: number; p_foto_ruta: string | null; p_papel?: string; p_ruc?: string },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_GASTO_RAPIDO as never, args as never), firma);

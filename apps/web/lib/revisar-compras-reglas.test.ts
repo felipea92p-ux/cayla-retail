@@ -35,6 +35,8 @@ import {
   siguienteDeBandeja,
   leerRevisarCompras,
   problemaNumero,
+  papelAlAnotar,
+  camposPapelAlAnotar,
   problemaSerie,
   textoFaltan,
   textoLlegada,
@@ -342,5 +344,26 @@ describe("las rondas en Revisar compras (20261023210000)", () => {
     expect(d.rondasAbiertas).toHaveLength(1);
     expect(d.rondasAbiertas[0]).toMatchObject({ texto: "RC-000012", cuenta: { compras: 3, prendas: 47, compraste: 0 } });
     expect(leerRevisarCompras({ papeles: [], cierres: [{ id: "k", decision: "devuelve", monto: 1 }] })?.cierres[0]).toMatchObject({ tienda: null, cuaderno: null });
+  });
+});
+
+describe("el papel de un gasto al anotarlo (ADR-0574)", () => {
+  it("sin foto, un taxi o un cargador se proponen sin papel; lo demás lo dice quien anota", () => {
+    expect(papelAlAnotar("taxi", false)).toBe("planilla_movilidad");
+    expect(papelAlAnotar("cargador", false)).toBe("planilla_movilidad");
+    expect(papelAlAnotar("taxi", true)).toBeNull();
+    expect(papelAlAnotar("comida", false)).toBeNull();
+    expect(papelAlAnotar(null, false)).toBeNull();
+  });
+  it("el papel es sugerido (sin decirlo lo revisa Compras) y el RUC aparece solo con una factura: frena si está mal escrito", () => {
+    expect(camposPapelAlAnotar({ concepto: null, papel: null, ruc: "" })).toEqual([]);
+    const sinPapel = camposPapelAlAnotar({ concepto: "comida", papel: null, ruc: "" });
+    expect(sinPapel).toHaveLength(1);
+    expect(sinPapel[0]).toMatchObject({ id: "papel", requerido: false, sugerido: true, hecho: false });
+    expect(camposPapelAlAnotar({ concepto: "comida", papel: "boleta", ruc: "" }).map((c) => [c.id, c.hecho])).toEqual([["papel", true]]);
+    expect(camposPapelAlAnotar({ concepto: "envio", papel: "factura", ruc: "123" }).find((c) => c.id === "ruc")).toMatchObject({ requerido: true, hecho: false });
+    expect(camposPapelAlAnotar({ concepto: "envio", papel: "factura", ruc: "20123456789" }).find((c) => c.id === "ruc")).toMatchObject({ requerido: false, hecho: true });
+    // Sin papel solo vale para un taxi o un cargador: en una comida, «sin papel» no cuenta como hecho.
+    expect(camposPapelAlAnotar({ concepto: "comida", papel: "planilla_movilidad", ruc: "" })[0]).toMatchObject({ hecho: false });
   });
 });

@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 58,
+  "total": 60,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -32,7 +32,8 @@
     "components/mi-plata/CamposDelGasto.tsx": [
       "button «{CONCEPTOS_GASTO[k].ejemplo}»",
       "CampoTexto «¿Qué fue?»",
-      "CampoMonto «mi-plata.monto-gasto»"
+      "CampoMonto «mi-plata.monto-gasto»",
+      "CampoTexto «RUC»"
     ],
     "components/mi-plata/CodigoDeEnvio.tsx": [
       "BotonCopiar «el código del envío»",
@@ -43,6 +44,9 @@
     ],
     "components/mi-plata/DetalleDeFila.tsx": [
       "BotonEditar «{corregible ? \"Corregir esta compra\" : \"Corregir este gasto\"}»"
+    ],
+    "components/mi-plata/FichasDePapel.tsx": [
+      "button «{PAPELES_GASTO[k].ayuda}»"
     ],
     "components/mi-plata/FilaEnvio.tsx": [
       "button «{abierta && <HojaEnvio e={e}»"

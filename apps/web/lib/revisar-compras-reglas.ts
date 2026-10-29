@@ -479,6 +479,30 @@ export function problemaRuc(ruc: string): string | null {
   return !r || /^[0-9]{11}$/.test(r) ? null : "El RUC tiene 11 números.";
 }
 
+/**
+ * El papel que se propone al anotar un gasto (ADR-0574): sin foto, un taxi o un cargador van sin papel (la planilla de movilidad); lo demás lo dice
+ * quien anota, que es quien tiene el papel en la mano. La compradora puede cambiarlo; sin elegir ninguno, el gasto lo revisa Compras como siempre.
+ */
+export function papelAlAnotar(concepto: ConceptoGasto | null, conFoto: boolean): PapelGasto | null {
+  return concepto !== null && !conFoto && papelesParaGasto(concepto).includes("planilla_movilidad") ? "planilla_movilidad" : null;
+}
+
+/**
+ * Los campos del papel de un gasto al anotarlo: el papel mismo (sugerido: sin decirlo, lo revisa Compras) y el RUC con una factura (opcional: con él
+ * se separa el IGV; si lo escribe mal, frena). Van después de la foto, en el orden de la hoja.
+ */
+export function camposPapelAlAnotar(v: { concepto: ConceptoGasto | null; papel: PapelGasto | null; ruc: string }): CampoDeGuia[] {
+  if (v.concepto === null) return [];
+  const papelOk = v.papel !== null && papelesParaGasto(v.concepto).includes(v.papel);
+  const ruc = problemaRuc(v.ruc);
+  return [
+    { id: "papel", nombre: "Qué papel te dieron", requerido: false, sugerido: true, hecho: papelOk, pendiente: "Di qué papel te dieron: así el gasto pasa solo a los libros." },
+    ...(v.papel === "factura"
+      ? [{ id: "ruc", nombre: "El RUC de la factura", requerido: ruc !== null, sugerido: ruc === null, hecho: v.ruc.trim() !== "" && ruc === null, pendiente: ruc ?? "Con el RUC de la factura se separa el IGV." }]
+      : []),
+  ];
+}
+
 /** Los campos de «Revisar el gasto»: el papel (obligatorio); la serie y el número y el RUC, opcionales (el RUC separa el IGV). */
 export function camposRevisarGasto(
   v: { papel: PapelGasto | null; serieNumero: string; ruc: string },

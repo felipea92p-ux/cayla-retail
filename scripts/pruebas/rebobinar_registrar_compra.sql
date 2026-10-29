@@ -58,3 +58,21 @@ end $f$;
   drop function retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb, numeric, text, text, text);
 end
 $mig$;
+
+-- ---------- También `registrar_gasto_rapido` (20261029195000, ADR-0574) ----------
+-- Las pruebas viejas pegan 20261023114000, que recrea `registrar_gasto_rapido` de cinco parámetros: junto a la de siete (con el papel) toda llamada
+-- con cinco argumentos sería ambigua. Se rebobina igual: la de siete se retira y el cuerpo interno vuelve a llamarse como antes. Las pruebas
+-- que necesitan lo nuevo pegan DESPUÉS 20261029195000. Idempotente.
+do $mig$
+begin
+  if to_regprocedure('retail.registrar_gasto_rapido(uuid,text,text,numeric,text,text,text)') is null then
+    return;
+  end if;
+  drop function retail.registrar_gasto_rapido(uuid, text, text, numeric, text, text, text);
+  if to_regprocedure('retail.fn_registrar_gasto_rapido_base(uuid,text,text,numeric,text)') is not null
+     and to_regprocedure('retail.registrar_gasto_rapido(uuid,text,text,numeric,text)') is null then
+    alter function retail.fn_registrar_gasto_rapido_base(uuid, text, text, numeric, text) rename to registrar_gasto_rapido;
+    grant execute on function retail.registrar_gasto_rapido(uuid, text, text, numeric, text) to authenticated;
+  end if;
+end
+$mig$;

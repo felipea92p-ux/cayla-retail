@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CameraOff, Check, FileText, FileX, Receipt, ReceiptText, ZoomIn, type LucideIcon } from "lucide-react";
+import { CameraOff, Check, FileText, ZoomIn } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -29,6 +29,7 @@ import {
 } from "@/lib/revisar-compras-reglas";
 import type { GastoConFoto } from "@/lib/revisar-compras";
 import { ICONO_GASTO } from "./iconos";
+import { FichasDePapel } from "./FichasDePapel";
 import { PanelDetalle } from "./PanelDetalle";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ lo que las compradoras gastaron en otra cosa (taxi, cargador, comida…).
@@ -60,14 +61,6 @@ export function MiniFotoGasto({ gasto }: { gasto: GastoConFoto }) {
     </span>
   );
 }
-
-/** El ícono de cada papel en su ficha. */
-const ICONO_PAPEL: Record<PapelGasto, LucideIcon> = {
-  planilla_movilidad: FileX,
-  boleta: Receipt,
-  factura: FileText,
-  ticket: ReceiptText,
-};
 
 /** La foto del papel en grande, a la izquierda del detalle (se abre entera al tocarla); sin foto, el dibujo de lo que fue. */
 function FotoGasto({ gasto }: { gasto: GastoConFoto }) {
@@ -188,33 +181,14 @@ export function DetalleGasto({ gasto, alTerminar }: { gasto: GastoConFoto; alTer
               className="flex min-w-0 flex-col gap-5"
             >
               <CampoGuiado id="papel" guia={guia} titulo="¿Qué papel le dieron?">
-                <div role="group" aria-label="¿Qué papel le dieron?" className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2" data-guia="fondos.gasto-papel">
-                  {opciones.map((k) => {
-                    const elegido = papel === k;
-                    const Icono = ICONO_PAPEL[k];
-                    return (
-                      <button
-                        key={k}
-                        type="button"
-                        aria-pressed={elegido}
-                        disabled={guardando}
-                        title={PAPELES_GASTO[k].ayuda}
-                        onClick={() => limpiar(setPapel)(k)}
-                        className={`card-cayla mov-boton relative flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-[14px] px-2 py-3 text-center ${
-                          elegido ? "border-tinta" : ""
-                        }`}
-                      >
-                        {elegido && (
-                          <span aria-hidden className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-tinta text-crema">
-                            <Check className="h-3 w-3" />
-                          </span>
-                        )}
-                        <Icono className={`h-5 w-5 ${elegido ? "text-tinta" : "text-taupe"}`} aria-hidden />
-                        <span className="text-sm font-medium leading-tight text-tinta">{PAPELES_GASTO[k].nombre}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <FichasDePapel
+                  etiqueta="¿Qué papel le dieron?"
+                  opciones={opciones}
+                  valor={papel}
+                  alElegir={(k) => limpiar(setPapel)(k)}
+                  deshabilitadas={guardando}
+                  guia="fondos.gasto-papel"
+                />
                 {!opciones.includes("planilla_movilidad") && !gasto.fotoRuta && (
                   <p className="mt-1.5 text-xs text-taupe">Pídele el papel a {nombre}: no subió foto.</p>
                 )}
