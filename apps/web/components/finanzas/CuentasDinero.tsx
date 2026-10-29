@@ -59,6 +59,8 @@ import {
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
+import { textoRegistrar, type AvisoPlanilla } from "@/lib/planilla-salidas-reglas";
+import { SalidasPlanillaModal } from "@/components/finanzas/dinero/SalidasPlanillaModal";
 import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
@@ -191,6 +193,7 @@ export function CuentasPanel({
   plata,
   sinCuenta,
   alertas,
+  planilla,
   ver,
   esLider,
 }: {
@@ -201,12 +204,15 @@ export function CuentasPanel({
   sinCuenta: SinCuenta[];
   /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
   alertas?: AlertaPos[];
+  /** La planilla que Dynamic pagó y no dice de qué banco salió, partida por el banco de quien cobra (ADR-0567; solo el líder). */
+  planilla?: AvisoPlanilla[];
   ver: Ver;
   esLider: boolean;
 }) {
   const abrir = useContext(ContextoMovimiento);
   const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
   const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
+  const [salidasDe, setSalidasDe] = useState<AvisoPlanilla | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
   // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: la plata del dueño y lo que no dice su cuenta. Lo que se explica
@@ -231,6 +237,31 @@ export function CuentasPanel({
             </button>
           }
         >
+          {a.detalle}
+        </Aviso>
+      ))}
+
+      {/* La planilla que Dynamic pagó (ADR-0567): una línea por banco de quien cobra, y la hoja que registra sus salidas de un toque. */}
+      {salidasDe && <SalidasPlanillaModal aviso={salidasDe} cuentas={cuentas} onCerrar={() => setSalidasDe(null)} />}
+      {(planilla ?? []).map((a) => (
+        <Aviso
+          key={a.clave}
+          tono="atencion"
+          titulo={a.titulo}
+          guia="fin-dinero.aviso-planilla"
+          accion={
+            a.porRegistrar.length > 0 ? (
+              <button type="button" className="btn-cayla btn-enlace" onClick={() => setSalidasDe(a)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-planilla-registrar">
+                {textoRegistrar(a.porRegistrar.length)}
+              </button>
+            ) : undefined
+          }
+        >
+          <ul className="mb-1 space-y-0.5 tabular-nums">
+            {a.tramos.map((t) => (
+              <li key={t.banco}>{t.texto}</li>
+            ))}
+          </ul>
           {a.detalle}
         </Aviso>
       ))}

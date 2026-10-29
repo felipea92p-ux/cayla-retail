@@ -38,6 +38,7 @@ import { CreditCard, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { LapizEditar } from "@/components/ui/BotonEditar";
+import { BANCOS_CON_CUENTA, TEXTO_BANCO, type CuentaPlanilla } from "@/lib/planilla-salidas-reglas";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
@@ -53,12 +54,15 @@ export function ConfiguracionCuentas({
   cuentas,
   medios,
   maquinas,
+  planilla = null,
   hoy,
 }: {
   cuentas: CuentaDinero[];
   medios: FilaMedio[];
   /** Nulo = la base todavía no conoce las máquinas (falta pegar 20261016173000): la tarjeta no se dibuja. */
   maquinas: MaquinaPos[] | null;
+  /** De qué cuenta sale la planilla de cada banco (ADR-0567). Nulo = la base todavía no lo sabe (falta pegar 20261029053000). */
+  planilla?: CuentaPlanilla[] | null;
   hoy: string;
 }) {
   const router = useRouter();
@@ -217,6 +221,40 @@ export function ConfiguracionCuentas({
         </PieTabla>
       </Superficie>
 
+      {planilla && (
+        <Superficie className="anim-sube" guia="config.planilla-cuentas">
+          <TituloDeTarjeta
+            titulo="De qué cuenta sale la planilla"
+            bajada="Dynamic le paga a cada persona en el banco donde cobra. Elige de qué cuenta de CAYLA sale lo de quienes cobran en cada uno: Cuentas y dinero la propone al registrar la salida."
+          />
+          {/* Dos campos y no una tabla: las tablas de Finanzas piden 900 px y aquí solo hay dos filas. */}
+          <div className="grid gap-4 p-[14px] sm:grid-cols-2">
+            {BANCOS_CON_CUENTA.map((banco) => (
+              <CampoFin key={banco} etiqueta={`Quienes cobran en ${TEXTO_BANCO[banco]}`} htmlFor={`planilla-${banco}`}>
+                <CasillaPlanilla
+                  banco={banco}
+                  actual={planilla.find((p) => p.banco === banco)?.cuentaId ?? ""}
+                  bancos={activas.filter((c) => c.tipo === "banco")}
+                  deshabilitada={guardando}
+                  alCambiar={(cuentaId) =>
+                    guardar(
+                      () => createClient().rpc("guardar_cuenta_planilla" as never, { p_banco: banco, p_cuenta_id: cuentaId || null } as never),
+                      "cambiar de qué cuenta sale la planilla",
+                      cuentaId
+                        ? `La planilla de quienes cobran en ${TEXTO_BANCO[banco]} sale de ${activas.find((c) => c.id === cuentaId)?.nombre ?? "esa cuenta"}.`
+                        : `La planilla de quienes cobran en ${TEXTO_BANCO[banco]} ya no propone cuenta.`,
+                    )
+                  }
+                />
+              </CampoFin>
+            ))}
+          </div>
+          <PieTabla>
+            <span>Quien no tiene banco anotado en Dynamic sale aparte: eliges la cuenta al registrar su salida. Cambiar esto no mueve lo ya registrado.</span>
+          </PieTabla>
+        </Superficie>
+      )}
+
       {maquinas && (
         <Superficie className="anim-sube" guia="config.maquinas">
           <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra con tarjeta y QR en cada tienda, y en qué cuenta espera lo cobrado hasta que la máquina lo deposita, sin su comisión." />
@@ -279,6 +317,41 @@ export function ConfiguracionCuentas({
       {agregar && <AgregarCuentaModal hoy={hoy} onCerrar={() => setAgregar(false)} />}
       {editar && <EditarCuentaModal cuenta={editar} hoy={hoy} onCerrar={() => setEditar(null)} />}
     </>
+  );
+}
+
+/** La cuenta de donde sale la planilla de un banco: se guarda al elegir. Si el guardado falla, vuelve a lo de antes. */
+function CasillaPlanilla({
+  banco,
+  actual,
+  bancos,
+  deshabilitada,
+  alCambiar,
+}: {
+  banco: CuentaPlanilla["banco"];
+  actual: string;
+  bancos: CuentaDinero[];
+  deshabilitada: boolean;
+  alCambiar: (cuentaId: string) => Promise<boolean>;
+}) {
+  const [valor, setValor] = useState(actual);
+  const [antes, setAntes] = useState(actual);
+  if (actual !== antes) {
+    setAntes(actual);
+    setValor(actual);
+  }
+  return (
+    <SelectFin
+      id={`planilla-${banco}`}
+      valor={valor}
+      deshabilitado={deshabilitada}
+      onValor={async (nuevo) => {
+        setValor(nuevo);
+        const ok = await alCambiar(nuevo);
+        if (!ok) setValor(actual);
+      }}
+      opciones={[{ valor: "", texto: "Sin cuenta" }, ...bancos.map((c) => ({ valor: c.id, texto: nombreCorto(c.nombre) }))]}
+    />
   );
 }
 
