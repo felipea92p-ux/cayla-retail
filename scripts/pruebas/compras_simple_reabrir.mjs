@@ -40,6 +40,11 @@ const MIGRACIONES = [
   "20261029150000_mis_compras_reabrir_la_ultima_ronda.sql",
 ].map(migracion);
 
+// Esta función se rebobina antes de pegar las migraciones viejas (`rebobinar_terminar_dia.sql`): en una base que ya pasó por 20261029170000 solo existe la de
+// dos parámetros, y las migraciones de octubre que esta prueba pega crean o parchan la de UNO (el parche falla con «does not exist», o la recreada queda
+// al lado de la nueva y toda llamada con un argumento es ambigua). Rebobinada, la prueba corre en el mundo para el que se escribió.
+const REBOBINAR = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_terminar_dia.sql"), "utf8");
+
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
 function psql(sql) {
@@ -56,6 +61,7 @@ const como = (auth, clave) =>
 
 const PRELUDIO = `
 begin;
+${REBOBINAR}
 ${MIGRACIONES.map((m) => `${m}\n${m}`).join("\n")}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$

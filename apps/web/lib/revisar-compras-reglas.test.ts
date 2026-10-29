@@ -86,6 +86,19 @@ describe("leerRevisarCompras", () => {
     expect(r?.proveedores).toEqual([{ id: "pr", nombre: "Confecciones Lupe", ruc: null }]);
   });
 
+  it("lee la cuenta que indicó la compradora en un cierre, y sin ella (o con la base sin la migración) queda vacía", () => {
+    const r = leerRevisarCompras({
+      papeles: [],
+      gastos: [],
+      cierres: [
+        { id: "k1", persona: "Marisol", decision: "devuelve", monto: 200, cuenta_indicada_id: "bcp", cuenta_indicada: "BCP" },
+        { id: "k2", persona: "Rosa", decision: "devuelve", monto: 50 },
+      ],
+      proveedores: [],
+    });
+    expect(r?.cierres.map((c) => [c.cuentaIndicadaId, c.cuentaIndicada])).toEqual([["bcp", "BCP"], [null, null]]);
+  });
+
   it("una respuesta que no es la esperada es null (la base sin la migración)", () => {
     expect(leerRevisarCompras(null)).toBeNull();
     expect(leerRevisarCompras({ papeles: [] })).toBeNull();
