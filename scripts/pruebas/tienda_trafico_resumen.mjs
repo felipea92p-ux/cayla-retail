@@ -40,6 +40,7 @@ const MIGRACION_SERIE = readFileSync("supabase/migrations/20261029040000_trafico
 const MIGRACION_CALOR = readFileSync("supabase/migrations/20261029042000_trafico_web_calor.sql", "utf8");
 const MIGRACION_REGIONES = readFileSync("supabase/migrations/20261029050000_trafico_web_regiones.sql", "utf8");
 const MIGRACION_TALLAS = readFileSync("supabase/migrations/20261029120000_trafico_web_tallas_y_quienes.sql", "utf8");
+const MIGRACION_ATENCION = readFileSync("supabase/migrations/20261029123000_trafico_web_atencion.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -366,6 +367,45 @@ esperarValor(
 );
 esperarValor("sin nadie de antes, todos son nuevos", escenario(`${resumen()} -> 'quienes' ->> 'vuelven';`), "0");
 esperar("la migración de tallas y quién entra se puede pegar dos veces", correr(`begin;\n${MIGRACION_TALLAS}\n${MIGRACION_TALLAS}\nrollback;`).ok, "falló al pegar dos veces");
+
+// ---- 16. Necesita tu atención ----
+// Es de las últimas 4 semanas hasta HOY, sin filtros: tres personas miran hoy la prenda publicada; y hay un pedido pagado sin recoger.
+const MIRAN_HOY = `${PUBLICAR}
+insert into retail.trafico_web (visitante, ocurrio_en, paso, camino, producto_id)
+select ('0c0c0c0c-0000-4000-8000-0000000001' || n)::uuid, now() - interval '1 minute', p, case when p = 0 then 'directo' end, case when p = 1 then :'prenda'::uuid end
+from generate_series(10, 12) n, generate_series(0, 1) p;`;
+const PEDIDO_PAGADO = "0c0c0c0c-0000-4000-8000-0000000000e3";
+const PAGADO = `insert into retail.pedidos_web (id, clienta_id, ubicacion_id, estado, total, pagado, confirmado_en, confirmado_por, pagado_en, creado_en)
+select '${PEDIDO_PAGADO}', (select id from retail.clientas order by id limit 1), (select id from retail.ubicaciones where tipo = 'tienda' order by id limit 1),
+  'pagado', 100, 100, now() - interval '9 days', :'felipe_p', now() - interval '9 days', now() - interval '10 days';`;
+const ATENCION = (expr) => `${resumen()} as r \\gset
+  ${COMO_POSTGRES}select ${expr};`;
+esperarValor("de las últimas 4 semanas hasta hoy, sea cual sea el período", escenario(ATENCION(`(:'r'::jsonb -> 'atencion' ->> 'desde')::date = retail.fn_hoy_lima() - 27`)), "t");
+esperarValor(
+  "la prenda publicada que miraron 3 personas hoy, con lo que queda libre y lo vendido en 4 semanas",
+  escenario(`${MIRAN_HOY}
+  ${ATENCION(`(select concat_ws(' ', e ->> 'miraron', (e ->> 'quedan')::int = (
+      select coalesce(sum(greatest(st.cantidad - st.cantidad_apartada, 0)), 0)::int from retail.stock st
+      join retail.variantes v on v.id = st.variante_id and v.activo join retail.ubicaciones u on u.id = st.ubicacion_id and u.tipo = 'tienda' and u.activo
+      where v.producto_id = :'prenda'), (e ->> 'vendidas')::int >= 0)
+    from jsonb_array_elements(:'r'::jsonb -> 'atencion' -> 'prendas') e where e ->> 'id' = :'prenda')`)}`),
+  "3 t t",
+);
+esperarValor(
+  "con 2 personas no entra (hace falta 3 para decir algo)",
+  escenario(`${MIRAN_HOY.replace("generate_series(10, 12)", "generate_series(10, 11)")}
+  ${ATENCION(`(select count(*) from jsonb_array_elements(:'r'::jsonb -> 'atencion' -> 'prendas') e where e ->> 'id' = :'prenda')`)}`),
+  "0",
+);
+esperarValor(
+  "el pedido pagado que nadie recoge, con su sede y cuántos hay en total",
+  escenario(`${PAGADO}
+  ${ATENCION(`(select count(*) from jsonb_array_elements(:'r'::jsonb -> 'atencion' -> 'recoger') e where e ->> 'id' = '${PEDIDO_PAGADO}' and e ->> 'sede' is not null)
+    || ' ' || ((:'r'::jsonb -> 'atencion' ->> 'recoger_total')::int = (select count(*) from retail.pedidos_web where estado = 'pagado'))`)}`),
+  "1 true",
+);
+esperarValor("el plazo de aviso es el de Configuración de la tienda web", escenario(ATENCION(`(:'r'::jsonb -> 'atencion' ->> 'dias_aviso')::int = coalesce((select dias_aviso_sin_recoger from retail.configuracion_tienda_web limit 1), 7)`)), "t");
+esperar("la migración de «Necesita tu atención» se puede pegar dos veces", correr(`begin;\n${MIGRACION_ATENCION}\n${MIGRACION_ATENCION}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);

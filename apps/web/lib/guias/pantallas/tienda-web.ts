@@ -1490,6 +1490,13 @@ export const GUIA_TRAFICO: Guia = {
       texto: "Cuántos entran por primera vez y cuántos ya habían venido, y cuántos de cada grupo separan. Quien vuelve suele separar más.",
     },
     {
+      id: "atencion",
+      ancla: "trafico.atencion",
+      opcional: true,
+      titulo: "Necesita tu atención",
+      texto: "Lo que conviene hacer hoy. Reponer: las que miran y se acaban pronto. Recoger: pedidos pagados que nadie recoge. Empujar: las que miran y no salen.",
+    },
+    {
       id: "vista",
       ancla: "trafico.vista",
       opcional: true,

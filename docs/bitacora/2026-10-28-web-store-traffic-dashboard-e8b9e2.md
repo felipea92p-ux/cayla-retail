@@ -61,3 +61,10 @@
   grupo separan. Base: `20261029120000_trafico_web_tallas_y_quienes.sql` suma `tallas` y `quienes` al resumen (misma firma). **Verificado:**
   `pruebas:tienda-trafico-resumen` 72/72, vitest de reglas 84/84, guías (dos pasos nuevos), unificar, tokens, movimiento, ancho, tsc, eslint y knip; en
   el navegador a 1440 en claro y a 375 px en oscuro sin scroll lateral. **No está en producción.**
+- **Actividad 8 · Necesita tu atención:** el tráfico cruzado con el stock y los pedidos, de las últimas 4 semanas hasta hoy (no del período ni de
+  los filtros: es lo que hay que hacer ahora), en tres pestañas (`<Pestanas>` con su conteo). Reponer: las prendas que miran 10 personas o más y se
+  agotan en menos de 14 días al ritmo de venta (todas las salidas por venta, en tienda u online), la agotada primero. Recoger: los pedidos pagados que
+  nadie recoge, del más antiguo, en ámbar desde el mismo plazo de «sin recoger» de Configuración de la tienda web, con «Ver pedidos». Empujar: las que
+  miran y tienen stock para más de 40 días (o sin ventas) con 5 unidades o más. Solo lee. Base: `20261029123000_trafico_web_atencion.sql` suma
+  `atencion` al resumen (misma firma). **Verificado:** `pruebas:tienda-trafico-resumen` 78/78, vitest de reglas 89/89, guías (paso nuevo), unificar,
+  tokens, movimiento, sin foto, tsc, eslint y knip; en el navegador a 1440 (las tres pestañas) y a 375 px en oscuro. **No está en producción.**

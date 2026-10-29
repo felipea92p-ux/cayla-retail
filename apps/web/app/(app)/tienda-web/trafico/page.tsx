@@ -7,6 +7,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 import { Vacio } from "@/components/ui/Vacio";
+import { AtencionTrafico } from "@/components/trafico/AtencionTrafico";
 import { CalorTrafico } from "@/components/trafico/CalorTrafico";
 import { ControlesTrafico } from "@/components/trafico/ControlesTrafico";
 import { DeDondeVienen } from "@/components/trafico/DeDondeVienen";
@@ -119,6 +120,7 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                   {r.tallas && <TallasTrafico tallas={r.tallas} quienes={r.quienes} ampliado={r.tallas.desde < periodo.desde} />}
                 </div>
               </div>
+              {r.atencion && <AtencionTrafico atencion={r.atencion} hoy={hoy} />}
             </>
               )}
             </>

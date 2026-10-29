@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  diasDeStock,
+  diasDeStockTexto,
+  esperaDelPedido,
+  paraEmpujar,
+  paraReponer,
   quienesEntran,
   tallaFalta,
   tallasQueFaltan,
@@ -82,6 +87,7 @@ describe("leerResumen: lo que devuelve la base", () => {
       caminosSeparan: { instagram: 0, directo: 0, whatsapp: 0, tiktok: 0, google: 0, qr: 0, otros: 0 },
       tallas: null,
       quienes: null,
+      atencion: null,
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -638,5 +644,42 @@ describe("Tallas que piden y no hay, y quién entra", () => {
   it("quién entra: de cada 100, nuevos y que vuelven, y cuántos de cada grupo separan", () => {
     expect(quienesEntran({ nuevos: 68, nuevosSeparan: 4, vuelven: 32, vuelvenSeparan: 5 })).toEqual({ nuevos: 68, vuelven: 32, nuevosSeparan: 6, vuelvenSeparan: 16 });
     expect(quienesEntran({ nuevos: 0, nuevosSeparan: 0, vuelven: 0, vuelvenSeparan: 0 })).toBeNull();
+  });
+});
+
+describe("Necesita tu atención: reponer, recoger, empujar", () => {
+  const p = (nombre: string, miraron: number, quedan: number, vendidas: number) => ({
+    id: nombre, nombre, categoria: "Blusas", prefijo: "BLU", familia: "SUP", foto: null, hex: null, miraron, separaron: 2, quedan, vendidas,
+  });
+  const prendas = [p("Emma", 420, 18, 56), p("Mía", 310, 9, 30), p("Lía", 290, 40, 4), p("Aura", 180, 0, 12), p("Sara", 160, 26, 0), p("Noa", 6, 1, 20), p("Ámbar", 120, 3, 0)];
+
+  it("días de stock al ritmo de las últimas 4 semanas; sin ventas no se agota", () => {
+    expect(diasDeStock(prendas[0])).toBe(9);
+    expect(diasDeStock(prendas[4])).toBeNull();
+    expect([diasDeStockTexto(9), diasDeStockTexto(0), diasDeStockTexto(null), diasDeStockTexto(1)]).toEqual(["9 días", "Agotada", "Sin ventas", "1 día"]);
+  });
+
+  it("reponer: las que miran y se agotan en menos de 14 días, la agotada primero; con poca gente, no", () => {
+    expect(paraReponer(prendas).map((x) => `${x.nombre} ${Math.round(x.dias)}`)).toEqual(["Aura 0", "Mía 8", "Emma 9"]);
+  });
+
+  it("empujar: las que miran y no salen (más de 40 días o sin ventas) con 5 unidades o más", () => {
+    expect(paraEmpujar(prendas).map((x) => x.nombre)).toEqual(["Lía", "Sara"]);
+  });
+
+  it("un pedido pagado espera en días de Lima y se atrasa al llegar al plazo de aviso", () => {
+    const w = { id: "w", codigo: "W-1043", numero: 1043, sede: "Trujillo", pagadoEn: "2026-10-21T04:30:00Z", prendas: 1, prenda: "Blusa Emma", talla: "M" };
+    expect(esperaDelPedido(w, 7, "2026-10-27")).toEqual({ dias: 7, atrasado: true });
+    expect(esperaDelPedido(w, 7, "2026-10-26")).toEqual({ dias: 6, atrasado: false });
+  });
+
+  it("lee lo que manda la base", () => {
+    const r = leerResumen({
+      ...DE_LA_BASE,
+      atencion: { desde: "2026-09-30", hasta: "2026-10-27", dias_aviso: 7, recoger_total: 3, prendas: [{ ...prendas[0] }, { id: "x" }], recoger: [{ id: "w", codigo: "W-1", numero: 1, sede: "Lima", pagado_en: "2026-10-20T15:00:00Z", prendas: 2, prenda: "Casaca", talla: "S" }] },
+    })!;
+    expect(r.atencion!.prendas).toHaveLength(1);
+    expect(r.atencion!.recoger[0]).toMatchObject({ sede: "Lima", pagadoEn: "2026-10-20T15:00:00Z", prendas: 2 });
+    expect(r.atencion!.recogerTotal).toBe(3);
   });
 });

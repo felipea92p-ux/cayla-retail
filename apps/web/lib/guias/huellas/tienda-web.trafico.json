@@ -2,10 +2,13 @@
   "guia": "tienda-web.trafico",
   "ruta": "/tienda-web/trafico",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 16,
+  "total": 17,
   "controles": {
     "app/(app)/tienda-web/trafico/page.tsx": [
       "BotonLimpiar «Limpiar filtros»"
+    ],
+    "components/trafico/AtencionTrafico.tsx": [
+      "Pestanas «→(c) => setVista(c as Vista)»"
     ],
     "components/trafico/ControlesTrafico.tsx": [
       "SegmentoEnlaces «(sin nombre)»",

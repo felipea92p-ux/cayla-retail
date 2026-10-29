@@ -50,6 +50,8 @@ export type ResumenTrafico = {
   tallas: TallasTrafico | null;
   /** Quién entra: nuevos contra los que vuelven (actividad 7); `null` con una base de antes. */
   quienes: QuienesTrafico | null;
+  /** Necesita tu atención: reponer, recoger, empujar (actividad 8); `null` con una base de antes. */
+  atencion: AtencionTrafico | null;
 };
 
 /** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
@@ -182,6 +184,7 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     caminosSeparan: conteoPor(Object.keys(CAMINOS) as Camino[], d.caminos_separan),
     tallas: leerTallas(d.tallas),
     quienes: leerQuienes(d.quienes),
+    atencion: leerAtencion(d.atencion),
   };
 }
 
@@ -875,3 +878,101 @@ export function quienesEntran(q: QuienesTrafico): { nuevos: number; vuelven: num
     vuelvenSeparan: de100(q.vuelvenSeparan, q.vuelven),
   };
 }
+
+// ---------- Necesita tu atención: reponer, recoger, empujar (actividad 8) ----------
+
+/** Una prenda publicada que miraron en las últimas 4 semanas, con lo que le queda libre en las tiendas y lo que se vendió. */
+export type PrendaAtencion = {
+  id: string;
+  nombre: string;
+  categoria: string | null;
+  prefijo: string | null;
+  familia: string | null;
+  foto: string | null;
+  hex: string | null;
+  miraron: number;
+  separaron: number;
+  quedan: number;
+  vendidas: number;
+};
+/** Un pedido pagado que espera que lo recojan. */
+export type PedidoRecoger = { id: string; codigo: string | null; numero: number | null; sede: string; pagadoEn: string; prendas: number; prenda: string | null; talla: string | null };
+export type AtencionTrafico = { desde: string; hasta: string; diasAviso: number; prendas: PrendaAtencion[]; recogerTotal: number; recoger: PedidoRecoger[] };
+
+const DIAS_DE_LA_VENTANA = 28;
+
+function leerAtencion(v: unknown): AtencionTrafico | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const d = v as Record<string, unknown>;
+  if (typeof d.desde !== "string" || !FECHA.test(d.desde) || typeof d.hasta !== "string" || !FECHA.test(d.hasta) || !esCifra(d.dias_aviso)) return null;
+  const prendas = lista(d.prendas)
+    .filter((p) => texto(p.id) && texto(p.nombre) && [p.miraron, p.separaron, p.quedan, p.vendidas].every(esCifra))
+    .map((p) => ({
+      id: p.id as string,
+      nombre: p.nombre as string,
+      categoria: texto(p.categoria),
+      prefijo: texto(p.prefijo),
+      familia: texto(p.familia),
+      foto: texto(p.foto),
+      hex: texto(p.hex),
+      miraron: p.miraron as number,
+      separaron: p.separaron as number,
+      quedan: p.quedan as number,
+      vendidas: p.vendidas as number,
+    }));
+  const recoger = lista(d.recoger)
+    .filter((w) => texto(w.id) && texto(w.sede) && typeof w.pagado_en === "string" && !Number.isNaN(Date.parse(w.pagado_en)))
+    .map((w) => ({
+      id: w.id as string,
+      codigo: texto(w.codigo),
+      numero: esCifra(w.numero) ? w.numero : null,
+      sede: w.sede as string,
+      pagadoEn: w.pagado_en as string,
+      prendas: esCifra(w.prendas) ? w.prendas : 0,
+      prenda: texto(w.prenda),
+      talla: texto(w.talla),
+    }));
+  return { desde: d.desde, hasta: d.hasta, diasAviso: d.dias_aviso, prendas, recogerTotal: esCifra(d.recoger_total) ? d.recoger_total : recoger.length, recoger };
+}
+
+/** Para cuántos días alcanza lo que queda, al ritmo de venta de las últimas 4 semanas; `null` si no se vendió nada (no se agota). */
+export const diasDeStock = (p: PrendaAtencion) => (p.vendidas > 0 ? (p.quedan * DIAS_DE_LA_VENTANA) / p.vendidas : null);
+
+/** Con menos gente que esto mirándola, una prenda no se manda a reponer ni a empujar. */
+const MIRADAS_PARA_ATENDER = 10;
+/** Menos de esto, se agota pronto: hay que reponerla antes de empujarla. */
+const DIAS_PARA_REPONER = 14;
+/** Más de esto (o sin ventas), sobra: hay que empujarla. */
+const DIAS_PARA_EMPUJAR = 40;
+/** Con menos unidades que esto, aunque no se venda, no vale la pena empujarla. */
+const UNIDADES_PARA_EMPUJAR = 5;
+const A_LA_VISTA_ATENCION = 6;
+
+/** Las que se agotan primero entre las que miran: menos de 14 días de stock (o ya agotadas), de la más urgente a la menos. */
+export function paraReponer(prendas: readonly PrendaAtencion[]): (PrendaAtencion & { dias: number })[] {
+  return prendas
+    .filter((p) => p.miraron >= MIRADAS_PARA_ATENDER)
+    .map((p) => ({ ...p, dias: p.quedan === 0 ? 0 : diasDeStock(p) }))
+    .filter((p): p is PrendaAtencion & { dias: number } => p.dias !== null && p.dias < DIAS_PARA_REPONER)
+    .sort((a, b) => a.dias - b.dias || b.miraron - a.miraron)
+    .slice(0, A_LA_VISTA_ATENCION);
+}
+
+/** Las que miran y casi no salen: stock para más de 40 días (o sin ventas) y 5 unidades o más, de la más mirada a la menos. */
+export function paraEmpujar(prendas: readonly PrendaAtencion[]): (PrendaAtencion & { dias: number | null })[] {
+  return prendas
+    .filter((p) => p.miraron >= MIRADAS_PARA_ATENDER && p.quedan >= UNIDADES_PARA_EMPUJAR)
+    .map((p) => ({ ...p, dias: diasDeStock(p) }))
+    .filter((p) => p.dias === null || p.dias > DIAS_PARA_EMPUJAR)
+    .sort((a, b) => b.miraron - a.miraron || a.nombre.localeCompare(b.nombre, "es"))
+    .slice(0, A_LA_VISTA_ATENCION);
+}
+
+/** Cuántos días lleva esperando un pedido pagado (días de calendario en Lima) y si ya pasó el plazo de aviso. */
+export function esperaDelPedido(w: PedidoRecoger, diasAviso: number, hoy: string): { dias: number; atrasado: boolean } {
+  const dias = Math.max(0, diasEntreFechas(diaLima(w.pagadoEn) ?? hoy, hoy));
+  return { dias, atrasado: dias >= diasAviso };
+}
+
+/** «18 días» de stock, «Agotada» o «Sin ventas». */
+export const diasDeStockTexto = (dias: number | null) => (dias === null ? "Sin ventas" : dias < 1 ? "Agotada" : `${Math.round(dias)} ${Math.round(dias) === 1 ? "día" : "días"}`);
