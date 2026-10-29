@@ -1456,7 +1456,7 @@ export const GUIA_TRAFICO: Guia = {
       ancla: "trafico.prendas",
       opcional: true,
       titulo: "Qué prendas miran",
-      texto: "Cada fila es una prenda: cuántos la miraron, hasta dónde llegaron con ella y cuántos de cada 100 la separan contra la raya del promedio. Toca «Miraron» o «Separan» para ordenar; «Revisar» es la que miran y no se llevan.",
+      texto: "Cada fila es una prenda: cuántos la miraron, hasta dónde llegaron con ella y cuántos de cada 100 la separan contra la raya del promedio. Toca «Miraron» o «Separan» para ordenar; «Revisar» es la que miran y no se llevan. «Ver más» abre la lista entera.",
     },
     {
       id: "prenda",
@@ -1480,7 +1480,7 @@ export const GUIA_TRAFICO: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Tallas que piden y no hay",
-      texto: "Cada cuadro es una talla: el número grande es cuánta gente la eligió y «u.» lo que queda en las tiendas. En ámbar, la que piden mucho y casi no hay: gente que se fue sin su talla. Conviene reponerla.",
+      texto: "Cada cuadro es una talla: el número grande es cuánta gente la eligió y «u.» lo que queda en las tiendas. En ámbar, la que piden mucho y casi no hay: gente que se fue sin su talla. «Ver más» muestra todas las categorías.",
     },
     {
       id: "quienes",
@@ -1502,13 +1502,6 @@ export const GUIA_TRAFICO: Guia = {
       opcional: true,
       titulo: "El mes, día por día",
       texto: "Cada cuadro es un día: mientras más rojo, más gente entró. Los días que elegiste van fuertes y el de hoy, con borde. Sirve para ver qué días de la semana conviene publicar.",
-    },
-    {
-      id: "vista",
-      ancla: "trafico.vista",
-      opcional: true,
-      titulo: "Gráfico o tabla",
-      texto: "Los mismos números en filas: para leer cada cifra, cada tramo de horas y las cinco cifras de cada prenda.",
     },
     {
       id: "vacio",
