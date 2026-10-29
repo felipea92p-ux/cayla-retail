@@ -59,6 +59,7 @@ import {
   piezasDeFila,
   cantidadDeAtajo,
   borradorDeAtajo,
+  conPrendaAgregada,
   textoPlataDespues,
   tiendaAnterior,
   tiendasDeLineas,
@@ -152,6 +153,19 @@ describe("habituales", () => {
     expect(lineasDeBorrador(HABITUALES[0], sinTienda)).toEqual([]);
     // Sin vez pasada no hay atajo.
     expect(borradorDeAtajo(HABITUALES[1], "tru")).toBeNull();
+  });
+  // /chaos 2026-10-28, hallazgo 1: cinco toques en el mismo instante agregaban la prenda cinco veces (45 unidades en vez de 9), porque cada
+  // uno veía la compra de antes del primero. Agregar a la compra nunca repite una prenda que ya va.
+  it("agregar la misma prenda varias veces seguidas la deja una sola vez", () => {
+    const nuevas = lineasDeBorrador(HABITUALES[0], borradorDeAtajo(HABITUALES[0], "tru")!);
+    const agregar = (ls: readonly LineaCompra[]) => conPrendaAgregada(ls, nuevas);
+    const despues = [agregar, agregar, agregar, agregar, agregar].reduce<readonly LineaCompra[]>((ls, f) => f(ls), []);
+    expect(despues).toHaveLength(1);
+    expect(prendasDeLineas(despues)).toBe(12);
+    // Otra prenda sí entra, y una lista vacía de líneas no cambia nada.
+    const otra = lineasDeBorrador(HABITUALES[1], { cantidad: "3", costo: "12.00", venta: "29.90", destinos: ["tru"], reparto: {} });
+    expect(conPrendaAgregada(despues, otra)).toHaveLength(2);
+    expect(conPrendaAgregada(despues, [])).toEqual(despues);
   });
   it("las píldoras de sus habituales cuentan cuántos hay en cada categoría; con una sola categoría no hay píldoras", () => {
     expect(categoriasDeHabituales(HABITUALES)).toEqual([
