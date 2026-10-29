@@ -1,6 +1,6 @@
 # ADR-0574 — Compras solo ve historial: lo que anota la compradora pasa solo a los libros
 
-- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; las seis migraciones (`20261029191000` a `20261029196000`) **NO están en producción** (esperan el OK de Felipe).
+- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; las seis migraciones (`20261029191000` a `20261029200000`) **NO están en producción** (esperan el OK de Felipe).
 - **Continúa a:** [ADR-0480](0480-compras-simple-en-cuatro-pasos.md) (Compras simple: la compradora anota, Compras revisa), [ADR-0571](0571-la-cuenta-de-la-devolucion-y-reabrir-en-tu-ultima-ronda.md) (la cuenta de la devolución) y [ADR-0569](0569-reabrir-la-ultima-ronda-de-compras.md) (reabrir la ronda).
 - **Origen:** Felipe, 2026-10-29, mirando Mis compras: «ya devolví, ¿por qué me sigue apareciendo que tengo 1,400?» y, al explicarle por qué: «Compras no tiene que revisar y confirmar estos movimientos, solo lo puede ver como historial, no tiene que estar confirmándolo a cada rato». Y sobre la serie y el número: «también debe estar en el formulario del que compra, y este mismo elige el proveedor: no entiendo la necesidad de que Compras elija el proveedor».
 
@@ -18,7 +18,7 @@ El proveedor ya lo elige la compradora (`compra_papeles.proveedor_id not null`; 
 3. **Serie y número al comprar** (`20261029193000`). `compra_papeles.serie` y `.numero`; `registrar_compra_rapida` con `p_serie` y `p_numero` (de fábrica null), las mismas reglas que `completar_papel_compra` y rechazo del mismo comprobante del mismo proveedor (`papel_repetido`). La de ocho parámetros se retira. El formulario de «Registrar compra» los pide (guía de foco incluida).
 4. **El papel pasa solo a los libros al cerrar el conteo** (`20261029194000`). Un disparador en `despachos` (`trg_despacho_recibido_z_papel_a_libros`, después del de «recibido por quien compró») llama a `fn_papel_pasa_solo`, que usa la MISMA `completar_papel_compra` en modo «pasa solo» (configuración `retail.papel_pasa_sola`, solo dentro de la función interna): sin el módulo «Revisar compras» y a nombre de la compradora. Si falta mandar o cerrar otro envío, o es una factura o boleta de antes (sin serie), no hace nada. Si algo falla, el cierre del conteo NO se cae y el motivo queda en `compra_papeles.pasa_sola_error`.
 5. **Los gastos pasan solos al cerrar la ronda** (`20261029195000`). La compradora dice el papel (y el RUC con una factura) al anotar «Gasté en otra cosa» (`registrar_gasto_rapido` con `p_papel` y `p_ruc`; el cuerpo de siempre queda como `fn_registrar_gasto_rapido_base`). `terminar_dia_compras` llama a `fn_gastos_pasan_solos`, que usa la misma `revisar_gasto_compra` en modo «pasa solo» (`retail.gasto_pasa_solo`). Pasan al CERRAR la ronda, no al anotar, para que puedan corregirse mientras tanto (ADR-0572). Un gasto sin papel (de antes) lo revisa Compras.
-6. **Compras ve por qué algo no pasó** (`20261029196000`). `fn_revisar_compras` trae lo que escribió la compradora y el motivo; el detalle lo muestra ya lleno (Compras solo corrige) con un aviso; la pantalla explica que lo normal pasa solo.
+6. **Compras ve por qué algo no pasó** (`20261029200000`). `fn_revisar_compras` trae lo que escribió la compradora y el motivo; el detalle lo muestra ya lleno (Compras solo corrige) con un aviso; la pantalla explica que lo normal pasa solo.
 7. Este ADR, la bitácora y el backlog.
 
 ## Lo que se pierde (dicho sin adornos)
@@ -38,4 +38,4 @@ El proveedor ya lo elige la compradora (`compra_papeles.proveedor_id not null`; 
 
 ## Por pegar en producción (esperan el OK de Felipe)
 
-Orden: `20261029191000`, `…192000`, `…193000`, `…194000`, `…195000`, `…196000`, cada una pegada entera y sola, **antes** de publicar la web (la web manda `p_serie`, `p_numero`, `p_papel` y `p_ruc`, que una base sin las migraciones no conoce). Ninguna mezcla `alter` de tablas en uso con políticas (ADR-0195). Reservada y sin usar: `20261029200000` (un hueco no rompe nada).
+Orden: `20261029191000`, `…192000`, `…193000`, `…194000`, `…195000`, `…200000`, cada una pegada entera y sola, **antes** de publicar la web (la web manda `p_serie`, `p_numero`, `p_papel` y `p_ruc`, que una base sin las migraciones no conoce). Ninguna mezcla `alter` de tablas en uso con políticas (ADR-0195).
