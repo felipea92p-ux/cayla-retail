@@ -25,6 +25,8 @@ import {
   textoMontoAnotado,
   textoPorConfirmar,
   cuentaDeLaBilletera,
+  usoDeLaPlata,
+  totalesDeLaLista,
   desdeRonda,
   horaDeMovimiento,
   queHaraCompras,
@@ -413,6 +415,33 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect(andina.detalle).toBe("1 prenda · Boleta · falta mandar a LIM");
   });
 
+  it("en la lista, lo del envío va en un chip (ámbar si falta mandar, verde si ya salió) y el resumen no lo repite; la hoja sigue con el detalle completo", () => {
+    const codigos = new Map([["c1", ["ENV-000118", "ENV-000119"]]]);
+    const { actuales } = movimientosDeLaCompradora(p, codigos);
+    const [andina, yape, rosa, taxi] = actuales;
+    expect([andina.envio, andina.resumen, andina.detalle]).toEqual([{ texto: "Falta mandar a LIM", tono: "ambar" }, "1 prenda · Boleta", "1 prenda · Boleta · falta mandar a LIM"]);
+    expect([rosa.envio, rosa.resumen]).toEqual([{ texto: "Enviada · ENV-000118, ENV-000119", tono: "verde" }, "35 prendas · Factura"]);
+    // Sin envío que decir (ni por mandar ni enviada con código), las tiendas se quedan en el resumen; la plata y el gasto no llevan chip de envío.
+    const sinCodigos = movimientosDeLaCompradora(p).actuales[2];
+    expect([sinCodigos.envio, sinCodigos.resumen]).toEqual([null, "35 prendas · Factura · AQP"]);
+    expect([yape.envio, yape.resumen, taxi.envio, taxi.resumen]).toEqual([null, "Yape o Plin · con foto", null, "Sin papel"]);
+  });
+
+  it("el pie de la lista suma lo que entró y lo que salió de la plata (no el texto de cada fila)", () => {
+    expect(totalesDeLaLista([])).toEqual({ entro: 0, salio: 0 });
+    expect(
+      totalesDeLaLista([
+        { entra: true, valor: 5700 },
+        { entra: false, valor: 198 },
+        { entra: false, valor: 0.1 },
+        { entra: false, valor: 0.2 },
+      ]),
+    ).toEqual({ entro: 5700, salio: 198.3 });
+    const { actuales } = movimientosDeLaCompradora(p);
+    const t = totalesDeLaLista(actuales);
+    expect(t.entro).toBeCloseTo(actuales.filter((m) => m.entra).reduce((s, m) => s + m.valor, 0), 2);
+  });
+
   it("sin ronda: lo anotado después del último cierre va arriba; sin ningún cierre, lo de hoy; sin el día de la base, todo", () => {
     const sinRonda = { ...p, compras: p.compras.map((c) => ({ ...c, rondaId: null })), gastos: p.gastos.map((g) => ({ ...g, rondaId: null })), anotada: p.anotada.map((a) => ({ ...a, rondaId: null })) };
     const r = (abierta: typeof p.ronda.abierta, cerradaEn: string | null) => ({ abierta, ultimaCerrada: cerradaEn ? { ...p.ronda.ultimaCerrada!, cerradaEn } : null });
@@ -435,6 +464,26 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     // 1000 de fondo + 500 por confirmar − 624 − 12 = 864; la ronda recibió 500, así que ya tenía 1000 al abrirla.
     expect(cuentaDeLaBilletera(p)).toEqual({ dieron: 500, compraste: 624, gastaste: 12, antes: p.tiene - 500 + 624 + 12 });
     expect(cuentaDeLaBilletera({ tiene: -40, ronda: { abierta: null, ultimaCerrada: null } })).toBeNull();
+  });
+
+  it("la barra de uso: lo usado contra lo que te dieron (y lo que ya tenías), redondeado hacia abajo, y sin base no se dibuja", () => {
+    // Los datos de la maqueta: te dieron 5,700, compraste 198, no gastaste: 3,47 % → «3 %».
+    expect(usoDeLaPlata({ dieron: 5700, compraste: 198, gastaste: 0, antes: 0 })).toEqual({ pct: 3, usado: 198, base: 5700, texto: "Usaste el 3 % de lo que te dieron" });
+    // Lo que ya tenías al abrir la ronda suma a la base y el texto lo dice.
+    expect(usoDeLaPlata({ dieron: 500, compraste: 624, gastaste: 12, antes: 1000 })).toEqual({ pct: 42, usado: 636, base: 1500, texto: "Usaste el 42 % de lo que tenías" });
+    // Si al abrir te debían (antes negativo), eso no suma a la base: no inventa plata.
+    expect(usoDeLaPlata({ dieron: 1000, compraste: 250, gastaste: 0, antes: -300 })?.base).toBe(1000);
+    // Hacia abajo: 99,9 % no es «100 %».
+    expect(usoDeLaPlata({ dieron: 1000, compraste: 999, gastaste: 0, antes: 0 })?.pct).toBe(99);
+    // Nada usado, casi nada, todo y de más.
+    expect(usoDeLaPlata({ dieron: 800, compraste: 0, gastaste: 0, antes: 0 })).toMatchObject({ pct: 0, texto: "Todavía no usas nada de lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 5000, compraste: 10, gastaste: 0, antes: 0 })).toMatchObject({ pct: 0, texto: "Usaste menos del 1 % de lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 100, compraste: 100, gastaste: 0, antes: 0 })).toMatchObject({ pct: 100, texto: "Ya usaste todo lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 100, compraste: 130, gastaste: 20, antes: 0 })).toMatchObject({ pct: 100, texto: "Ya usaste todo lo que te dieron" });
+    // Sin ronda (la cuenta es null) o sin nada dado ni de antes: no hay qué medir.
+    expect(usoDeLaPlata(null)).toBeNull();
+    expect(usoDeLaPlata({ dieron: 0, compraste: 50, gastaste: 0, antes: 0 })).toBeNull();
+    expect(usoDeLaPlata({ dieron: 0, compraste: 0, gastaste: 0, antes: -40 })).toBeNull();
   });
 
   it("el camino de la ronda: sin ronda 1.º; por mandar, 3.º; con compras y nada por mandar, 4.º; si no, 2.º", () => {
