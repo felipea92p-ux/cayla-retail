@@ -66,6 +66,9 @@ select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\g
 select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
 reset role;
 set local session_replication_role = replica;
+-- Lo que otra prueba o el seed de la base dejó (ventas y devoluciones reales) no entra a estas cuentas: la prueba mide SOLO su escena. Va antes de crearla, y todo termina en ROLLBACK.
+update retail.ventas set es_prueba = true where not coalesce(es_prueba, false);
+update retail.devoluciones set estado = 'rechazada' where estado = 'aprobada';
 ${conClaure ? `update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';` : ""}
 delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where cuenta_id = :'izipay');
 insert into retail.pos_maquinas (nombre, cuenta_id) select 'Izipay prueba', :'izipay' where not exists (select 1 from retail.pos_maquinas m where m.cuenta_id = :'izipay');
