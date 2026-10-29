@@ -399,6 +399,11 @@ export const TEXTO_REGLA: Record<string, string> = {
   merma_cuarentena: "Prendas dañadas botadas o donadas",
   merma_conteo: "Faltantes de conteo",
   merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
+  // ADR-0558: la mercadería de CLAURE no es de CAYLA; lo que de ella se vende, anula, devuelve o pierde se le debe a CLAURE (cuenta 4699).
+  claure_venta: "Ventas de mercadería de CLAURE (se le debe a su costo)",
+  claure_anulacion: "Ventas anuladas de mercadería de CLAURE",
+  claure_devolucion: "Devoluciones de mercadería de CLAURE",
+  claure_merma: "Pérdidas de mercadería de CLAURE (las responde CAYLA)",
   anticipo: "Adelantos de separaciones",
   anticipo_devuelto: "Adelantos devueltos",
   // ADR-0408 act. 10: lo que un cliente paga por su pedido web antes de que sea una venta (y lo que se anula).
