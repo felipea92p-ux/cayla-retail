@@ -757,6 +757,14 @@ export const PRUEBAS = [
   // respeta un porcentaje cambiado a mano; la migración se repega. Parte del reparto de la actividad 8. Cada caso: ROLLBACK.
   "pruebas:claure-servicios-100",
 
+  // Pérdidas y dañadas por dueño (ADR-0560, actividad 14): la merma, la anulación y la devolución dañada de una prenda de CLAURE no son de CAYLA (Pérdidas, calidad de dañadas, el Diario 6951 y las
+  // mermas sin costo del Estado de resultados); lo de antes del arranque y lo de otra sede sigue siendo de CAYLA; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
+  "pruebas:claure-perdidas-y-danadas",
+
+  // El Balance sin el stock de CLAURE (ADR-0560, actividad 15): fn_bal_stock resta las unidades de CLAURE al corte (hoy y a una fecha pasada, deshaciendo lo que movió después) y su costo; las causas de la mercadería
+  // no cuentan sus movimientos; sin prendas de CLAURE devuelven lo de antes; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
+  "pruebas:claure-balance-sin-su-stock",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

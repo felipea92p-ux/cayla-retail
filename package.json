@@ -389,6 +389,8 @@
     "pruebas:claure-igv": "node scripts/pruebas/claure_igv.mjs",
     "pruebas:claure-efectivo-claudia": "node scripts/pruebas/claure_efectivo_claudia.mjs",
     "pruebas:claure-servicios-100": "node scripts/pruebas/claure_servicios_100.mjs",
+    "pruebas:claure-perdidas-y-danadas": "node scripts/pruebas/claure_perdidas_y_danadas.mjs",
+    "pruebas:claure-balance-sin-su-stock": "node scripts/pruebas/claure_balance_sin_su_stock.mjs",
     "pruebas:stock-dueno": "node scripts/pruebas/stock_dueno.mjs",
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",

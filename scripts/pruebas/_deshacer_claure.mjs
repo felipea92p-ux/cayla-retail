@@ -26,9 +26,12 @@ export function anclados(archivo, firmas) {
   return hallados;
 }
 
-/** El SQL que devuelve esas funciones a como estaban antes de la migración (con `reset role`: se ejecuta como dueño). */
-export function sqlDeshacer(archivo, firmas) {
-  const lista = anclados(archivo, firmas);
+/**
+ * El SQL que devuelve esas funciones a como estaban antes de la migración (con `reset role`: se ejecuta como dueño). `reverso: true` los deshace en el orden CONTRARIO al que la migración los
+ * aplicó: hace falta cuando un reemplazo usa lo que agregó otro de la misma función (una consulta que apunta a un CTE nuevo no se puede dejar sin él, ni siquiera un instante).
+ */
+export function sqlDeshacer(archivo, firmas, { reverso = false } = {}) {
+  const lista = reverso ? [...anclados(archivo, firmas)].reverse() : anclados(archivo, firmas);
   if (!lista.length) return "";
   return `reset role;\ndo $deshacer_claure$\nbegin\n${lista
     .map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`)
