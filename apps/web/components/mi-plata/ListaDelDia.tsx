@@ -12,6 +12,8 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { diaMes } from "@/lib/fechas-lima";
 import { enviosDeLaFila, resumenDeEnvios, type EnvioMio, type RondaConEnvios } from "@/lib/mis-envios-reglas";
 import { FilaEnvio } from "./FilaEnvio";
+import { HojaCorregirCompra } from "./HojaCorregirCompra";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 import { horaDeMovimiento, queHaraCompras, type EntradaHistorial, type MovimientoCompradora } from "@/lib/mi-plata-reglas";
 
 // La lista de Mis compras (maqueta docs/maquetas/mis-compras-rediseno-2026-10/, Felipe 2026-10-24): lo que compró, gastó y anotó en UNA
@@ -71,8 +73,9 @@ function Cara({
 
 /** Una compra, un gasto o una plata. `prefijo`: lo que va antes del detalle (la hora, o la ronda y el día). `conDetalle`: se toca y abre su
  *  hoja (no dentro de la hoja de una ronda: una hoja sobre otra). */
-function Fila({ m, prefijo = [], conDetalle = false }: { m: MovimientoCompradora; prefijo?: (string | null)[]; conDetalle?: boolean }) {
+function Fila({ m, prefijo = [], conDetalle = false, corregible = false }: { m: MovimientoCompradora; prefijo?: (string | null)[]; conDetalle?: boolean; corregible?: boolean }) {
   const [abierta, setAbierta] = useState(false);
+  const [corrigiendo, setCorrigiendo] = useState(false);
   const origen = useRef<HTMLButtonElement>(null);
   const antes = prefijo.filter(Boolean).map((x) => `${x} · `).join("");
   const cara = <Cara icono={ICONO[m.icono]} titulo={m.titulo} detalle={`${antes}${m.detalle}`} entra={m.entra} monto={m.monto} estado={m.estado} />;
@@ -82,13 +85,33 @@ function Fila({ m, prefijo = [], conDetalle = false }: { m: MovimientoCompradora
       <button ref={origen} type="button" aria-haspopup="dialog" onClick={() => setAbierta(true)} className="grid w-full grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 py-2.5 text-left">
         {cara}
       </button>
-      {abierta && <DetalleDeFila m={m} onClose={() => setAbierta(false)} volverA={origen} />}
+      {abierta && (
+        <DetalleDeFila
+          m={m}
+          onClose={() => setAbierta(false)}
+          volverA={origen}
+          // «Corregir» cierra este detalle y abre su propia hoja: nunca una hoja sobre otra (el «atrás» del teléfono cierra de a una).
+          onCorregir={corregible && m.compraId ? () => { setAbierta(false); setCorrigiendo(true); } : undefined}
+        />
+      )}
+      {corrigiendo && m.compraId && <HojaCorregirCompra papelId={m.compraId} onClose={() => setCorrigiendo(false)} volverA={origen} />}
     </li>
   );
 }
 
 /** La hoja de una fila: la cuenta como en un cuaderno (hora, detalle, monto), su estado y qué hará Compras. Solo se lee: se cierra con la ×. */
-function DetalleDeFila({ m, onClose, volverA }: { m: MovimientoCompradora; onClose: () => void; volverA: RefObject<HTMLButtonElement | null> }) {
+function DetalleDeFila({
+  m,
+  onClose,
+  volverA,
+  onCorregir,
+}: {
+  m: MovimientoCompradora;
+  onClose: () => void;
+  volverA: RefObject<HTMLButtonElement | null>;
+  /** Solo una compra que Compras aún no completa y es de la ronda abierta: la base vuelve a decidir al abrir la hoja. */
+  onCorregir?: () => void;
+}) {
   const hora = horaDeMovimiento(m);
   const filas: [string, string][] = [...(hora ? ([["Hora", hora]] as [string, string][]) : []), ["Detalle", m.detalle]];
   return (
@@ -110,6 +133,13 @@ function DetalleDeFila({ m, onClose, volverA }: { m: MovimientoCompradora; onClo
           {m.estado.texto}
         </Chip>
         <p className="text-sm text-taupe">{queHaraCompras(m)}</p>
+        {onCorregir && (
+          <div className="pie-acciones pt-1">
+            <BotonEditar onClick={onCorregir}>
+              Corregir esta compra
+            </BotonEditar>
+          </div>
+        )}
       </div>
     </Modal>
   );
@@ -229,7 +259,7 @@ export function ListaDelDia({
       ) : (
         <ul className="divide-y divide-sand">
           {actuales.map((m) => (
-            <Fila key={m.clave} m={m} prefijo={[horaDeMovimiento(m)]} conDetalle />
+            <Fila key={m.clave} m={m} prefijo={[horaDeMovimiento(m)]} conDetalle corregible={m.tipo === "compra" && m.estado.pendiente} />
           ))}
         </ul>
       )}

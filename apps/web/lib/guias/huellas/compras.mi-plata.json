@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 33,
+  "total": 41,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -39,8 +39,18 @@
     "components/mi-plata/FilaEnvio.tsx": [
       "button «{abierta && <HojaEnvio e={e}»"
     ],
+    "components/mi-plata/HojaCorregirCompra.tsx": [
+      "button «{p.nombre}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar los cambios»",
+      "Volver «→alVolver»",
+      "CampoMonto «Costo c/u»",
+      "CampoMonto «Se vende a»",
+      "button «Dejar esta prenda como estaba»"
+    ],
     "components/mi-plata/ListaDelDia.tsx": [
       "button «{cara}»",
+      "BotonEditar «Corregir esta compra»",
       "button «→() => setAbierta(true)»",
       "BotonVerMas «{`Ver ${historial.length}»",
       "BotonVerMas «{`Ver ${guardadas.length}»"
