@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  avanceDeEnvios,
   avisosDeEnvio,
   codigosPorCompra,
   coincideEnvio,
@@ -250,5 +251,23 @@ describe("los códigos de cada compra", () => {
     ]);
     expect(m.get("p1")).toEqual(["ENV-000118", "ENV-000119"]);
     expect(m.get("p2")).toEqual(["ENV-000119"]);
+  });
+});
+
+describe("el avance de «Para mandar»", () => {
+  it("cuenta lo mandado (sin los anulados) contra lo que falta, y el porcentaje solo llega a 100 al final", () => {
+    // Tu captura: 9 prendas por mandar a TRU y ningún envío todavía.
+    expect(avanceDeEnvios([{ unidades: 9 }], [])).toEqual({ mandadas: 0, total: 9, pct: 0, texto: "0 de 9 prendas mandadas" });
+    // Ya salió un envío de 6 y faltan 3 (otra tienda); uno anulado de 40 no cuenta.
+    const e = [envio({ prendas: 6, estado: "en_camino" }), envio({ prendas: 40, estado: "anulado" })];
+    expect(avanceDeEnvios([{ unidades: 3 }], e)).toEqual({ mandadas: 6, total: 9, pct: 66, texto: "6 de 9 prendas mandadas" });
+    // Todo mandado: 100 %.
+    expect(avanceDeEnvios([], [envio({ prendas: 9 })])).toMatchObject({ pct: 100, texto: "9 de 9 prendas mandadas" });
+    // Hacia abajo: 99 de 100 no es 100.
+    expect(avanceDeEnvios([{ unidades: 1 }], [envio({ prendas: 99 })])?.pct).toBe(99);
+    expect(avanceDeEnvios([{ unidades: 1 }], [])?.texto).toBe("0 de 1 prenda mandada");
+    // Sin nada que medir (ni mandado ni por mandar), no se dibuja.
+    expect(avanceDeEnvios([], [])).toBeNull();
+    expect(avanceDeEnvios([{ unidades: 0 }], [envio({ prendas: 5, estado: "anulado" })])).toBeNull();
   });
 });
