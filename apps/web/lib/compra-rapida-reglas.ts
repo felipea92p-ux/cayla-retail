@@ -222,6 +222,26 @@ export function conPrendaAgregada(lineas: readonly LineaCompra[], nuevas: readon
   return [...lineas, ...nuevas];
 }
 
+/**
+ * El candado de un envío (/chaos 2026-10-29): cinco clics en «Guardar» en el mismo instante mandaban cinco pedidos iguales, porque la guardia
+ * `if (guardando)` leía el estado de antes del primero. Este candado vive fuera del estado de React: `tomar()` es verdadero solo la primera vez
+ * y hasta que `soltar()` (al terminar el envío, bien o mal) vuelve a dejar pasar un clic. La base ya devolvía lo mismo por el identificador de la
+ * compra; esto evita además los pedidos de más.
+ */
+export function candadoDeEnvio() {
+  let tomado = false;
+  return {
+    tomar(): boolean {
+      if (tomado) return false;
+      tomado = true;
+      return true;
+    },
+    soltar(): void {
+      tomado = false;
+    },
+  };
+}
+
 /** Cuántas se le compraron la vez pasada: lo que ofrece el botón «+ 9 como la vez pasada». Sin compras de antes, no hay atajo. */
 export function cantidadDeAtajo(h: Pick<Habitual, "veces" | "ultimaCantidad">): number | null {
   return h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
@@ -296,7 +316,7 @@ export function leerPrecioVenta(t: string, admitePrecioCero = true): number | nu
 
 /** Lo que dice bajo el botón gris de un paso de la prenda (la maqueta: el botón dice qué falta). */
 export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string, admitePrecioCero = true): string | null {
-  if (paso === "cantidad") return leerCantidad(t) == null ? "Escribe cuántas compraste" : null;
+  if (paso === "cantidad") return leerCantidad(t) == null ? "Escribe cuántas unidades compraste" : null;
   if (paso === "costo") return leerPrecio(t) == null ? "Escribe el precio" : null;
   if (leerPrecioVenta(t, admitePrecioCero) !== null) return null;
   const n = leerPrecio(t);
@@ -345,7 +365,7 @@ export function conCantidad(b: BorradorPrenda, cantidad: string): Pick<BorradorP
 export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" | "reparto">): string | null {
   if (b.destinos.length < 2) return null;
   const total = leerCantidad(b.cantidad);
-  if (total == null) return "Primero escribe cuántas compraste.";
+  if (total == null) return "Primero escribe cuántas unidades compraste.";
   const partes = b.destinos.map((d) => leerCantidad(b.reparto[d] ?? ""));
   if (partes.some((n) => n == null)) return "Cada tienda lleva al menos 1: si no va a una, apágala.";
   const suma = partes.reduce<number>((s, n) => s + (n ?? 0), 0);
@@ -356,7 +376,7 @@ export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" 
 /** Los campos de la hoja, en su orden, para la guía de foco. */
 export function camposPrenda(b: BorradorPrenda, admitePrecioCero = true): CampoDeGuia[] {
   return [
-    { id: "cantidad", nombre: "Cuántas", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas compraste." },
+    { id: "cantidad", nombre: "Cuántas unidades", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas unidades compraste." },
     { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
     { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta, admitePrecioCero) === null, pendiente: faltaEnPaso("venta", b.venta, admitePrecioCero) ?? "Escribe a cuánto se vende." },
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinos.length > 0, pendiente: "Elige a qué tienda va." },
@@ -730,6 +750,38 @@ export function marcasDeHabituales(habituales: readonly Habitual[]): { id: strin
     porId.set(h.marcaId, m);
   }
   return [...porId.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, "es")).map(({ id, nombre }) => ({ id, nombre }));
+}
+
+/**
+ * Lo que ya se anotó en ESTA compra, para «Algo nuevo» (Felipe 2026-10-28: «si ya registro una prenda con una marca y categoría para ese proveedor,
+ * en la próxima debe aparecerme lo anterior como opciones»). Un proveedor recién creado, o una prenda nueva que todavía no se guarda, no está en
+ * el catálogo ni en compras de antes: lo único que la hoja sabe es lo que se acaba de anotar. Va primero lo último anotado.
+ */
+export function categoriasDeLasLineas(lineas: readonly Pick<LineaCompra, "categoriaId">[]): string[] {
+  return [...new Set([...lineas].reverse().map((l) => l.categoriaId))];
+}
+
+/** Las marcas de las prendas de esta compra (también las escritas con «+», con su id provisional), la última anotada primero. */
+export function marcasDeLasLineas(lineas: readonly Pick<LineaCompra, "marcaId" | "marca">[]): { id: string; nombre: string }[] {
+  const vistas = new Map<string, string>();
+  for (const l of [...lineas].reverse()) if (l.marcaId && l.marca && !vistas.has(l.marcaId)) vistas.set(l.marcaId, l.marca);
+  return [...vistas].map(([id, nombre]) => ({ id, nombre }));
+}
+
+/** Las marcas que se ofrecen como habituales en «Algo nuevo»: primero las de esta compra, después las que ya trae el proveedor, sin repetir. */
+export function marcasParaNueva(
+  deLaCompra: readonly { id: string; nombre: string }[],
+  delProveedor: readonly { id: string; nombre: string }[],
+): { id: string; nombre: string }[] {
+  return [...deLaCompra, ...delProveedor.filter((m) => !deLaCompra.some((x) => x.id === m.id))];
+}
+
+/** La lista de marcas con las provisionales de esta compra (`nueva:…`, todavía sin crear en la base): así se pueden volver a elegir y se encuentran al armar la prenda. */
+export function marcasConProvisionales(
+  marcas: readonly { id: string; nombre: string }[],
+  deLaCompra: readonly { id: string; nombre: string }[],
+): { id: string; nombre: string }[] {
+  return [...marcas, ...deLaCompra.filter((m) => m.id.startsWith(MARCA_NUEVA_PREFIJO) && !marcas.some((x) => x.id === m.id))];
 }
 
 /** La prenda nueva, con la forma de un habitual (sin compras ni precios de antes): así sigue por los mismos pasos que las de siempre. */

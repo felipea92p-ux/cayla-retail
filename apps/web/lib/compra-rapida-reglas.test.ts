@@ -26,6 +26,10 @@ import {
   leerProveedoresParaComprar,
   lineasParaBase,
   marcasDeHabituales,
+  categoriasDeLasLineas,
+  marcasDeLasLineas,
+  marcasParaNueva,
+  marcasConProvisionales,
   prendasDeLineas,
   textoAvance,
   lineaDeAvance,
@@ -60,6 +64,7 @@ import {
   cantidadDeAtajo,
   borradorDeAtajo,
   conPrendaAgregada,
+  candadoDeEnvio,
   textoPlataDespues,
   tiendaAnterior,
   tiendasDeLineas,
@@ -156,6 +161,19 @@ describe("habituales", () => {
   });
   // /chaos 2026-10-28, hallazgo 1: cinco toques en el mismo instante agregaban la prenda cinco veces (45 unidades en vez de 9), porque cada
   // uno veía la compra de antes del primero. Agregar a la compra nunca repite una prenda que ya va.
+  // /chaos 2026-10-29: cinco clics en «Guardar» en el mismo instante mandaban cinco pedidos iguales (la guardia leía el estado de antes del
+  // primero). La base respondía lo mismo y quedaba una sola compra, pero salían cinco pedidos: el candado deja pasar solo el primero.
+  it("el candado del envío deja pasar solo el primer clic hasta que el envío termina", () => {
+    const c = candadoDeEnvio();
+    const pasaron = [c.tomar(), c.tomar(), c.tomar(), c.tomar(), c.tomar()].filter(Boolean).length;
+    expect(pasaron).toBe(1);
+    c.soltar();
+    expect(c.tomar()).toBe(true); // tras un corte o un rechazo se puede volver a tocar «Guardar»
+    expect(c.tomar()).toBe(false);
+    c.soltar();
+    c.soltar(); // soltar de más no rompe nada
+    expect(c.tomar()).toBe(true);
+  });
   it("agregar la misma prenda varias veces seguidas la deja una sola vez", () => {
     const nuevas = lineasDeBorrador(HABITUALES[0], borradorDeAtajo(HABITUALES[0], "tru")!);
     const agregar = (ls: readonly LineaCompra[]) => conPrendaAgregada(ls, nuevas);
@@ -217,7 +235,7 @@ describe("los números de cada paso (la regla de las líneas de una orden)", () 
     expect(monto("1000000.01")?.hecho).toBe(false);
   });
   it("bajo el botón gris, qué falta", () => {
-    expect(faltaEnPaso("cantidad", "")).toBe("Escribe cuántas compraste");
+    expect(faltaEnPaso("cantidad", "")).toBe("Escribe cuántas unidades compraste");
     expect(faltaEnPaso("cantidad", "4")).toBeNull();
     expect(faltaEnPaso("costo", "")).toBe("Escribe el precio");
     expect(faltaEnPaso("venta", "39.90")).toBeNull();
@@ -382,6 +400,47 @@ describe("algo nuevo de este proveedor", () => {
       { id: "m2", nombre: "Mias" },
     ]);
     expect(marcasDeHabituales([])).toEqual([]);
+  });
+  it("«Algo nuevo» ofrece lo que ya anotaste en esta compra: categorías y marcas, la última anotada primero, sin repetir", () => {
+    const anotadas = [
+      L({ categoriaId: "polos", marcaId: "m1", marca: "CAYLA" }),
+      L({ categoriaId: "casacas", marcaId: "nueva:moda sol", marca: "Moda Sol" }),
+      L({ categoriaId: "polos", marcaId: "m1", marca: "CAYLA" }),
+      L({ categoriaId: "faldas", marcaId: null, marca: null }),
+    ];
+    expect(categoriasDeLasLineas(anotadas)).toEqual(["faldas", "polos", "casacas"]);
+    expect(marcasDeLasLineas(anotadas)).toEqual([
+      { id: "m1", nombre: "CAYLA" },
+      { id: "nueva:moda sol", nombre: "Moda Sol" },
+    ]);
+    expect(categoriasDeLasLineas([])).toEqual([]);
+    expect(marcasDeLasLineas([])).toEqual([]);
+  });
+
+  it("las marcas habituales de «Algo nuevo»: primero las de esta compra, después las del proveedor, sin repetir", () => {
+    const compra = [{ id: "m1", nombre: "CAYLA" }, { id: "nueva:moda sol", nombre: "Moda Sol" }];
+    const proveedor = [{ id: "m2", nombre: "Mias" }, { id: "m1", nombre: "CAYLA" }];
+    expect(marcasParaNueva(compra, proveedor)).toEqual([
+      { id: "m1", nombre: "CAYLA" },
+      { id: "nueva:moda sol", nombre: "Moda Sol" },
+      { id: "m2", nombre: "Mias" },
+    ]);
+    expect(marcasParaNueva([], proveedor)).toEqual(proveedor);
+    expect(marcasParaNueva(compra, [])).toEqual(compra);
+    // Un proveedor recién creado con UNA sola marca anotada: llega ya puesta, como la que trae un proveedor de una sola marca.
+    expect(nuevoVacio(marcasParaNueva([{ id: "nueva:moda sol", nombre: "Moda Sol" }], [])).marcaId).toBe("nueva:moda sol");
+  });
+
+  it("la marca escrita con «+» en una prenda anterior se puede volver a elegir, y no se duplica si ya está en la lista", () => {
+    const base = [{ id: "m1", nombre: "CAYLA" }];
+    const compra = [{ id: "m1", nombre: "CAYLA" }, { id: "nueva:moda sol", nombre: "Moda Sol" }];
+    expect(marcasConProvisionales(base, compra)).toEqual([...base, { id: "nueva:moda sol", nombre: "Moda Sol" }]);
+    expect(marcasConProvisionales(base, [])).toEqual(base);
+    // Al armar la prenda con esa marca provisional se encuentra (antes, «Moda Sol» elegida otra vez no armaba la prenda).
+    const categorias = [{ id: "polos", nombre: "Polos", prefijo: "POL", familia: null }];
+    const n = { categoriaId: "polos", marcaId: "nueva:moda sol", marcaNueva: null, nombre: "Polo Venus", descartadas: new Set<string>() };
+    expect(habitualDeNuevo("nuevo:1", n, categorias, marcasConProvisionales(base, compra))?.marcaId).toBe("nueva:moda sol");
+    expect(habitualDeNuevo("nuevo:1", n, categorias, base)).toBeNull();
   });
   it("la marca: primero las que trae el proveedor; si trae una sola, la hoja llega con ella puesta", () => {
     const marcas = [

@@ -695,6 +695,8 @@ export type MovimientoCompradora = {
   creadoEn: string;
   rondaId: string | null;
   ronda: string | null;
+  /** Solo en una compra: el papel (`compra_papeles.id`), para corregirla (ADR-0561). */
+  compraId?: string;
 };
 
 const TITULO_PLATA: Record<MedioPlata, string> = {
@@ -745,6 +747,7 @@ export function movimientosDeLaCompradora(
       const d = detalleCompra(c, codigos);
       return {
         clave: `compra-${c.id}`,
+        compraId: c.id,
         tipo: "compra",
         icono: "compra",
         titulo: `Compra a ${c.proveedor}`,

@@ -1405,6 +1405,21 @@ ESCENARIOS.push(
     await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
     await esperar(pagina, 600);
   }, clicRol("button", /Completar tejido y color|Completar el color|Editar la ficha/i)) },
+  // «Retirar color» (ADR-0554): la hoja que esconde de la lista un color de tela elegido por error. Dos estados: sin saldo (la nota y el botón rojo) y con saldo (el aviso y el botón apagado). Se abre la fila que corresponde antes de pulsar (el botón de una fila cerrada está recortado).
+  { id: "produccion.color-retirar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Retirar color» (sin saldo: se puede)", preparar: secuencia(async (pagina) => {
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasNotText: /saldo inicial|compra · / }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
+  { id: "produccion.color-retirar-con-saldo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Retirar color» con saldo (el aviso y el botón apagado)", preparar: secuencia(async (pagina) => {
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasText: /saldo inicial|compra · / }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
   { id: "produccion.cotizacion", ruta: "/produccion/cotizaciones-maquila", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva cotización» de maquila", preparar: clicRol("button", /Nueva cotización/i) },
   { id: "produccion.factura-nueva", ruta: "/produccion/comprobantes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva factura»", preparar: clicRol("button", /Nueva factura/i) },
   { id: "produccion.proveedor-nuevo", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo proveedor»", preparar: clicRol("button", /Nuevo proveedor/i) },

@@ -565,3 +565,10 @@ Al agregar una prenda a una compra (Compras ▸ Mis compras ▸ Apunte de compra
   `components/ui/useCifraQueCuenta.ts` y la forma en `app/estilos/compra-celular.css`. Maqueta elegida por Felipe mirando:
   `docs/maquetas/mis-compras-prendas-2026-10/`.
 - **Se rompe si:** el vuelo se usa en una pantalla donde agregar es frecuente y rápido (un escáner, Vender): ahí sería ruido, no una señal. Esta excepción es solo de «Apunte de compras».
+
+## Actualización 2026-10-29 — Tienda web ▸ Tráfico, «Observatorio» (ADR-0568)
+
+La vitrina de baldosas de Tráfico (act. 2026-10-23 (d)) se fue: su cascada, la etiqueta que se cuelga y la luz que cruza ya no existen. Lo que
+queda propio de la pantalla: **los 100 puntos de «Hasta dónde llega la gente» se encienden una vez**, paso tras paso (90 ms) y punto tras punto
+(6 ms), 360 ms cada uno con `--ease-cayla`, sin rebote; y el único bucle sigue siendo la señal del punto verde de «N mirando ahora», que respira
+solo mientras alguien mira. Todo quieto con `prefers-reduced-motion`. Lo vigila `lib/trafico-movimiento.test.ts`.

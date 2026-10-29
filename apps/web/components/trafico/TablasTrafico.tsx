@@ -48,7 +48,7 @@ const C_HORAS: Columna[] = [{ titulo: "Tramo" }, { titulo: "Personas", alinear: 
 
 /**
  * La vista de tabla de Tráfico (ADR-0495, actividad 6): los mismos números que el gráfico, en filas, para quien prefiere leer cifras o
- * usa un lector de pantalla. Las prendas son TODAS las que se miraron (la vitrina dibuja 24) y abren el mismo cajón; los caminos y las
+ * usa un lector de pantalla. Las prendas son TODAS las que se miraron, con las cinco cifras de su recorrido, y abren el mismo cajón; los caminos y las
  * ciudades filtran como en «De dónde vienen».
  */
 export function TablasTrafico({ r, filtros, periodo, antes }: { r: ResumenTrafico; filtros: FiltrosTrafico; periodo: string; antes: string }) {

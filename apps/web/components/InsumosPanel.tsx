@@ -12,6 +12,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
 import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
+import { RetirarColorModal } from "@/components/insumos-taller/RetirarColorModal";
 import { NuevaTelaModal } from "@/components/insumos-taller/NuevaTelaModal";
 import { NuevoInsumoModal } from "@/components/insumos-taller/NuevoInsumoModal";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -82,6 +83,8 @@ export function InsumosPanel({
   const [nuevaTela, setNuevaTela] = useState<{ agregarA: MaterialVista | null } | null>(null);
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
   const [fichando, setFichando] = useState<InsumoVista | null>(null);
+  // «Retirar color» (solo el líder): el color de tela que se está retirando de la lista.
+  const [retirando, setRetirando] = useState<InsumoVista | null>(null);
   // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
   const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number; desfasados: number } | null>(null);
   const [verCapital, setVerCapital] = useState(false);
@@ -217,6 +220,7 @@ export function InsumosPanel({
                           onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
                           onIngresar={() => setIngresando({ insumoId: i.id })}
                           onFicha={() => setFichando(i)}
+                          onRetirar={() => setRetirando(i)}
                         />
                       ))}
                     </div>
@@ -287,6 +291,7 @@ export function InsumosPanel({
         />
       )}
       {fichando && <FichaDeLaTelaModal insumo={fichando} vocabulario={vocabulario} leyo={leyoVocabulario} onClose={() => setFichando(null)} />}
+      {retirando && <RetirarColorModal key={retirando.id} insumo={retirando} tallerId={tallerId} onClose={() => setRetirando(null)} />}
       {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
     </div>
   );
@@ -302,6 +307,7 @@ function FilaInsumo({
   onAlternar,
   onIngresar,
   onFicha,
+  onRetirar,
 }: {
   insumo: InsumoVista;
   indice: number;
@@ -312,6 +318,7 @@ function FilaInsumo({
   onAlternar: () => void;
   onIngresar: () => void;
   onFicha: () => void;
+  onRetirar: () => void;
 }) {
   const { llenado, marcaMinimo } = tramoDeSaldo(i.saldo, i.minimo);
   const primero = loteMasAntiguoConSaldo(i.lotes);
@@ -400,6 +407,12 @@ function FilaInsumo({
                 {!i.materialId && (
                   <Boton peso="discreto" className="!px-3 !py-2" data-guia={indice === 0 ? "prod-insumos.editar-ficha" : undefined} onClick={onFicha}>
                     {ficha.completa ? "Editar la ficha" : i.tipo === "tela" ? "Completar tejido y color" : "Completar el color"}
+                  </Boton>
+                )}
+                {/* Un color elegido por error se retira (se esconde, no se borra): solo el color de una tela, y la base se niega si tiene saldo u órdenes abiertas (ADR-0554). Abre una hoja: es una ventana, no guarda. */}
+                {i.materialId && (
+                  <Boton peso="peligro" className="!px-3 !py-2" data-guia={indice === 0 ? "prod-insumos.retirar-color" : undefined} aria-haspopup="dialog" onClick={onRetirar}>
+                    Retirar color
                   </Boton>
                 )}
               </div>

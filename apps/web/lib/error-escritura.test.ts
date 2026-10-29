@@ -956,6 +956,17 @@ describe("«una tela con sus colores» (ADR-0554, revisión del 28-oct): ningún
     expect(traducirError({ message: "El saldo inicial, con su costo, lo anota el líder.", code: "42501", hint: "saldo_sin_lider" }, "crear la tela")).toBe("El saldo inicial, con su costo, lo anota el líder.");
     expect(traducirError({ message: "El tejido y la merma son de la tela, no de cada color: cámbialos en la tela.", code: "23514", hint: "copia_de_la_tela" }, "guardar la ficha")).toContain("cámbialos en la tela");
   });
+  it("retirar un color (20261029014000): lo que la base dice de saldo, órdenes, recetas y permiso llega tal cual, también con el código de restricción", () => {
+    const casos: [string, string, string][] = [
+      ["Este color todavía tiene 9 m en Taller: solo se retira un color sin saldo.", "23514", "retirar_color_con_compromisos"],
+      ["Este color está en la orden OP-000009, que sigue en proceso: termínala o quítalo de ella primero.", "23514", "retirar_color_con_compromisos"],
+      ["Retirar un color es del líder.", "42501", "retirar_color_sin_lider"],
+      ["Ese color ya no existe. Actualiza la pantalla.", "P0001", "retirar_color_no_existe"],
+      ["Solo se retira el color de una tela. Este insumo no es el color de ninguna.", "23514", "retirar_color_sin_tela"],
+      ["El color CAR-01-ALB está retirado: no se le ingresa tela. Si lo necesitas otra vez, avisa al líder.", "23514", "insumo_retirado"],
+    ];
+    for (const [message, code, hint] of casos) expect(traducirError({ message, code, hint }, "retirar el color")).toBe(message);
+  });
   it("las restricciones sin mensaje propio se explican sin citar el índice", () => {
     const casos: [string, string, string][] = [
       ['new row for relation "insumos" violates check constraint "insumos_tela_en_metros"', "23514", "se lleva en metros"],

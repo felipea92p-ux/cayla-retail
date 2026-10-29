@@ -528,7 +528,7 @@ export function frasesDeErrores(): { marca: string; frase: string }[] {
  * confirmar la plata «Ya tenía» es del líder; llega con `42501` y una frase que dice a quién pedírselo.
  */
 const HINT_EN_CASTELLANO =
-  /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion|plata_ya_tenia_solo_lider|saldo_sin_lider|editar_material_sin_lider|avio_sin_lider|copia_de_la_tela|insumo_otra_unidad|insumo_otra_tela|insumo_sin_tela|insumo_unidad_firme|material_tipo_firme)$/;
+  /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion|plata_ya_tenia_solo_lider|saldo_sin_lider|editar_material_sin_lider|avio_sin_lider|copia_de_la_tela|insumo_otra_unidad|insumo_otra_tela|insumo_sin_tela|insumo_unidad_firme|material_tipo_firme|retirar_color_[a-z_]+|insumo_retirado)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano

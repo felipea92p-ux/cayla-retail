@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis compras · corregir una compra ya guardada</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* «Corregir una compra ya guardada» (Felipe 2026-10-28: «quizás me confundí en algo»; y después: «ver todas las prendas de esa compra y, al tocar una,
+   recién poder modificar descripción, categoría, marca, costo…»). Maqueta tocable en PC y celular, claro y oscuro. Datos de la mesa de la ronda (Compra a
+   Moda Mia, 9 prendas, S/ 198.00, falta mandar a TRU). Las REGLAS de abajo son una propuesta: tocan dinero y el historial de la compra, las decide Felipe. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --sand: #e8e0d0; --hueso: #eae1d2; --taupe: #805c4c; --borde-control: #a89a86;
+  --rojo: #b8412d; --verde: #48603f; --verde-suave: #e3e4d9; --ambar: #74501a; --ambar-suave: #ece0cf; --pizarra: #4c5d6e; --pizarra-suave: #e1e1dc; --sobre: #f5f0e8;
+  --serif: "EB Garamond", Georgia, "Times New Roman", serif; --sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894; --borde-control: #7a7064;
+  --rojo: #d9674f; --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022; --pizarra: #a9b8c6; --pizarra-suave: #2b2f33; --sobre: #1c1a17; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.45; padding: 24px 20px 56px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.mini { font-size: 12px; color: var(--taupe); }
+.tab { font-variant-numeric: tabular-nums; }
+.marco { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.marco h1 { font-family: var(--serif); font-weight: 400; font-size: 38px; line-height: 1.05; margin: 4px 0; }
+.marco .bajada { color: var(--taupe); max-width: 84ch; margin: 0; }
+.mando { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 10px 16px; }
+.mando .grupo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mando .grupo > span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--hueso); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: transparent; border-radius: 9px; min-height: 34px; padding: 0 14px; font-weight: 500; font-size: 13.5px; }
+.seg button[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); }
+.nota-op { font-size: 13.5px; background: var(--hueso); border-radius: 14px; padding: 12px 16px; display: grid; gap: 4px; }
+.nota-op b.t { font-family: var(--serif); font-weight: 400; font-size: 21px; }
+.nota-op ul { margin: 2px 0 0; padding-left: 18px; color: var(--taupe); display: grid; gap: 3px; }
+.nota-op ul b { color: var(--tinta); font-weight: 600; }
+.ajuste { width: 100%; max-width: 1160px; margin: 0 auto; border: 1px solid var(--sand); border-radius: 18px; background: var(--crema); overflow: hidden; container-type: inline-size; container-name: pantalla; position: relative; }
+.ajuste.cel { max-width: 375px; border-radius: 32px; border-width: 2px; }
+.pc { padding: 26px 30px 36px; display: flex; flex-direction: column; gap: 18px; min-height: 760px; }
+.solo body { padding: 12px 0; } .solo .marco > :not(.ajuste) { display: none; }
+
+.card { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; }
+.tit { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tit h3 { font-family: var(--serif); font-weight: 400; font-size: 21px; margin: 0; display: flex; align-items: center; gap: 8px; }
+.globo { min-width: 22px; height: 22px; border-radius: 11px; background: var(--hueso); color: var(--taupe); font: 600 12px var(--sans); display: inline-grid; place-items: center; padding: 0 6px; }
+.btn { border: 1px solid var(--borde-control); background: transparent; border-radius: 12px; min-height: 40px; padding: 0 16px; font-weight: 500; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.pri { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.btn.pel { border-color: color-mix(in srgb, var(--rojo) 60%, transparent); color: var(--rojo); }
+.btn.enl { border: 0; padding: 0; text-align: left; min-height: 32px; color: var(--rojo); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--rojo) 40%, transparent); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; background: var(--pizarra-suave); color: var(--pizarra); }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.ambar { background: var(--ambar-suave); color: var(--ambar); } .chip.verde { background: var(--verde-suave); color: var(--verde); }
+.chip.nolleva::before { display: none; }
+.pill { border: 1px solid var(--borde-control); border-radius: 999px; padding: 6px 14px; background: transparent; font-size: 13.5px; font-weight: 500; }
+.pill[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.pill.cambio[aria-pressed="true"] { background: var(--ambar); color: var(--sobre); border-color: var(--ambar); }
+.circulo { width: 40px; height: 40px; border-radius: 50%; background: var(--hueso); color: var(--tinta); display: grid; place-items: center; flex: none; }
+.muestra { width: 48px; height: 48px; border-radius: 12px; flex: none; }
+.aviso { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--hueso); font-size: 13.5px; }
+.aviso.ambar { background: var(--ambar-suave); } .aviso b { font-weight: 600; }
+.campo { display: grid; gap: 6px; align-content: start; } .campo > .lab { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.caja { min-height: 44px; border-radius: 12px; background: var(--hueso); border: 1px solid transparent; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 15px; }
+.caja.cambio { background: var(--ambar-suave); border-color: color-mix(in srgb, var(--ambar) 45%, transparent); }
+.caja.cerrada { background: transparent; border: 1px dashed var(--borde-control); color: var(--taupe); }
+.antes { text-decoration: line-through; color: var(--taupe); font-size: 12.5px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.stepper { display: inline-flex; align-items: center; background: var(--hueso); border-radius: 12px; justify-self: start; width: fit-content; }
+.stepper.cambio { background: var(--ambar-suave); border: 1px solid color-mix(in srgb, var(--ambar) 45%, transparent); }
+.stepper button { width: 40px; height: 44px; border: 0; background: transparent; font-size: 18px; } .stepper b { min-width: 46px; text-align: center; font-size: 16px; }
+.cambio-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 10px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--sand); font-size: 14px; }
+.cambio-fila:first-child { border-top: 0; } .cambio-fila .k { color: var(--taupe); } .cambio-fila .a { color: var(--taupe); text-decoration: line-through; text-align: right; } .cambio-fila .n { font-weight: 600; text-align: right; } .arrow { color: var(--taupe); }
+.sombra { position: absolute; inset: 0; background: color-mix(in srgb, #000 38%, transparent); z-index: 4; }
+.hoja { position: absolute; z-index: 5; left: 50%; top: 40px; transform: translateX(-50%); width: min(600px, calc(100% - 32px)); max-height: calc(100% - 60px); overflow: auto; background: var(--crema); border: 1px solid var(--sand); border-radius: 22px; padding: 22px; display: grid; gap: 14px; box-shadow: 0 24px 60px color-mix(in srgb, #000 35%, transparent); align-content: start; }
+.hoja h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0; }
+.lista-fondo { padding: 26px 30px; display: grid; gap: 12px; opacity: .9; }
+.fila-hoy { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--sand); }
+.fila-hoy .q { flex: 1; min-width: 0; } .fila-hoy .q b { display: block; font-weight: 600; } .fila-hoy .q span { font-size: 12.5px; color: var(--taupe); }
+.rejilla3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.motivo { padding: 18px; display: grid; gap: 10px; align-content: start; } .motivo h4 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 19px; } .motivo p { margin: 0; font-size: 13.5px; color: var(--taupe); }
+.cabeza h2 { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1.05; margin: 6px 0; } .cabeza p { margin: 0; color: var(--taupe); font-size: 13.5px; }
+.volver { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; flex: none; }
+.camp2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* la tarjeta de una prenda de la compra (solo se lee; al tocarla se abre) */
+.prenda { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; width: 100%; text-align: left; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; }
+.prenda:hover { border-color: var(--tinta); }
+.prenda.cambiada { border-color: color-mix(in srgb, var(--ambar) 55%, transparent); background: color-mix(in srgb, var(--ambar-suave) 45%, var(--papel)); }
+.prenda b { font-weight: 600; } .prenda .d { font-size: 12.5px; color: var(--taupe); }
+.prenda .der { text-align: right; display: grid; gap: 4px; justify-items: end; }
+.res-papel { border: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--hueso); font-size: 14px; width: 100%; text-align: left; }
+.pie-ed { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--sand); padding-top: 14px; }
+.pie-ed .res b { display: block; font-size: 14px; } .pie-ed .res span { font-size: 12.5px; color: var(--taupe); }
+.atras { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--rojo); font-size: 13.5px; font-weight: 500; padding: 0; min-height: 32px; }
+.nota-forma { font-size: 12.5px; color: var(--taupe); padding: 10px 12px; border: 1px dashed var(--borde-control); border-radius: 12px; }
+
+@container pantalla (max-width: 760px) {
+  .pc { padding: 18px 16px 28px; gap: 14px; min-height: 900px; }
+  .rejilla3, .camp2 { grid-template-columns: 1fr; }
+  .cabeza h2 { font-size: 32px; }
+  .btn { min-height: 44px; }
+  .hoja { top: auto; bottom: 0; left: 0; transform: none; width: 100%; border-radius: 24px 24px 0 0; max-height: 94%; padding: 18px 16px 22px; }
+  .lista-fondo { padding: 18px 16px; }
+  .prenda { grid-template-columns: auto minmax(0, 1fr); } .prenda .der { grid-column: 1 / -1; justify-items: start; text-align: left; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+}
+</style>
+</head>
+<body>
+<div class="marco">
+  <div>
+    <div class="eyebrow">Maqueta · Mis compras · corregir una compra ya guardada</div>
+    <h1>«Me equivoqué»: corregir una compra</h1>
+    <p class="bajada">Primero ves las prendas de la compra; solo al tocar una se abre su formulario. Tócala por pasos. Datos de la mesa de la ronda. Las reglas de abajo son una propuesta por decidir; nada de esto está en la app.</p>
+  </div>
+  <div class="mando">
+    <div class="grupo"><span>Paso</span><div class="seg" id="seg-paso"></div></div>
+    <div class="grupo" id="g-tipo"><span>Prenda que abres</span><div class="seg" id="seg-tipo"></div></div>
+    <div class="grupo"><span>Ancho</span><div class="seg" id="seg-ancho"></div></div>
+    <div class="grupo"><span>Tema</span><div class="seg" id="seg-tema"><button data-t="light" aria-pressed="true">Claro</button><button data-t="dark" aria-pressed="false">Oscuro</button></div></div>
+  </div>
+  <div class="nota-op" id="nota"></div>
+  <div class="ajuste" id="ajuste"><div class="pc" id="pc"></div></div>
+</div>
+<script>
+const I = {
+  bolsa: '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+  mano: '<svg viewBox="0 0 24 24"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 16 6 6"/><circle cx="16" cy="9" r="2.9"/><circle cx="6" cy="5" r="3"/></svg>',
+  lapiz: '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  candado: '<svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  flecha: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+  mas: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
+  atras: '<svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>',
+  ok: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+  camion: '<svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>',
+  flag: '<svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>',
+  baja: '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
+};
+const S = (n) => 'S/ ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let paso = 1, ancho = 'pc', tipo = 'nuevo';
+const el = (id) => document.getElementById(id);
+const cabeza = (titulo, sub, volver) => `<div class="cabeza"><div class="eyebrow" style="display:flex;align-items:center;gap:10px">${volver ? `<span class="volver">${I.atras}</span>` : ''}Tu sede <i style="display:block;width:36px;height:1px;background:var(--taupe)"></i> miércoles 28 de octubre</div><h2>${titulo}</h2><p>${sub}</p></div>`;
+
+/* ---------- el fondo: la lista de la ronda ---------- */
+const fondo = () => `<div class="lista-fondo"><div class="tit"><h3>En esta ronda <span class="globo">2</span></h3><span class="mini">desde hoy 17:36</span></div>
+  <div class="fila-hoy" style="border-top:0"><span class="circulo">${I.bolsa}</span><div class="q"><b>Compra a Moda Mia</b><span>9 prendas · Nota de venta</span></div><div style="text-align:right"><b class="tab">− ${S(198)}</b><div class="mini">17:44</div></div></div>
+  <div class="fila-hoy"><span class="circulo">${I.mano}</span><div class="q"><b>Te transfirieron</b><span>Transferencia · con foto</span></div><div style="text-align:right"><b class="tab" style="color:var(--verde)">+ ${S(5700)}</b><div class="mini">17:38</div></div></div></div>`;
+const conHoja = (html) => fondo() + '<div class="sombra"></div>' + `<div class="hoja" role="dialog">${html}</div>`;
+
+/* ---------- 1 · dónde se abre ---------- */
+function p1() {
+  return conHoja(`<div class="tit"><h3>Compra a Moda Mia</h3><span class="mini">× cerrar</span></div>
+    <div class="card" style="padding:4px 16px"><div class="cambio-fila" style="grid-template-columns:1fr auto"><span class="k">Hora</span><span class="n">17:44</span></div><div class="cambio-fila" style="grid-template-columns:1fr auto"><span class="k">Detalle</span><span class="n">9 prendas · Nota de venta</span></div><div class="cambio-fila" style="grid-template-columns:1fr auto;border-top:2px solid var(--tinta)"><span class="n" style="text-align:left">Pagaste</span><span class="n tab">${S(198)}</span></div></div>
+    <div class="chips"><span class="chip ambar">Falta mandar a TRU</span><span class="chip">Compras la revisa</span></div>
+    <p style="margin:0;font-size:13.5px;color:var(--taupe)">Compras la revisa y la pasa a los libros. Hasta entonces la puedes corregir.</p>
+    <button class="btn pri" style="width:100%" data-ir="2"><span style="display:inline-flex;gap:8px;align-items:center">${I.lapiz} Corregir esta compra</span></button>
+    <p class="mini" style="margin:0;text-align:center">¿Te equivocaste de proveedor? <button class="btn enl" data-ir="7" style="display:inline;min-height:0">Mira qué se puede hacer</button></p>`);
+}
+
+/* ---------- 2 y 4 · las prendas de la compra ---------- */
+const tarjeta = (o) => `<button class="prenda ${o.cambiada ? 'cambiada' : ''}" data-ir="3" data-tipo="${o.tipo}" aria-label="Cambiar ${o.nombre}">
+  <i class="muestra" style="background:${o.color}"></i>
+  <div><b>${o.nombre}</b> ${o.cambiada ? '<span class="antes tab">antes «Polo Venus»</span>' : ''}<div class="d">${o.cat} · ${o.marca}</div><div class="d tab">${o.un} unidades${o.cambiada ? ' <span class="antes">antes 5</span>' : ''} · ${S(o.costo)} c/u · va a ${o.tienda}</div></div>
+  <div class="der"><span class="chip nolleva ${o.tipo === 'nuevo' ? '' : 'verde'}">${o.tipo === 'nuevo' ? 'Algo nuevo' : 'Del catálogo'}</span>${o.cambiada ? '<span class="chip ambar nolleva">Cambiaste</span>' : `<span style="display:inline-flex;gap:6px;align-items:center;color:var(--rojo);font-size:13px;font-weight:500">Cambiar ${I.mas}</span>`}</div></button>`;
+function p2(conCambios) {
+  const venus = { nombre: conCambios ? 'Polo Venus manga larga' : 'Polo Venus', cat: 'Polos', marca: 'CAYLA', un: conCambios ? 8 : 5, costo: 22, tienda: 'TRU', color: '#8f4a3c', tipo: 'nuevo', cambiada: conCambios };
+  const emma = { nombre: 'Blusa Emma', cat: 'Blusas', marca: 'Mias', un: 4, costo: 22, tienda: 'TRU', color: '#c9b99b', tipo: 'catalogo', cambiada: false };
+  const total = conCambios ? 264 : 198;
+  return conHoja(`<div class="tit"><div><h3>Corregir compra a Moda Mia</h3><div class="mini" style="margin-top:4px">Toca una prenda para cambiarla. Nada cambia hasta que guardes.</div></div><span class="mini">× cerrar</span></div>
+    <div style="display:grid;gap:10px"><div class="tit"><span class="eyebrow">Las prendas de esta compra · 2</span><button class="btn enl" style="min-height:28px;text-decoration:none">+ Agregar otra</button></div>${tarjeta(venus)}${tarjeta(emma)}</div>
+    <button class="res-papel" aria-label="Cambiar el papel y el pago"><span><b>Papel y pago</b><br><span class="mini tab">Nota de venta · ${S(total)}${conCambios ? ` <span class="antes">${S(198)}</span>` : ''} · pagaste ${S(total)} en efectivo</span></span><span style="display:inline-flex;gap:6px;align-items:center;color:var(--rojo);font-size:13px;font-weight:500">Cambiar ${I.mas}</span></button>
+    <p class="mini" style="margin:0">Proveedor: <b style="color:var(--tinta)">Moda Mia</b> · no se cambia. Si es otro, <button class="btn enl" data-ir="7" style="display:inline;min-height:0">anula la compra</button> y anótala otra vez.</p>
+    <div class="pie-ed"><div class="res"><b class="tab">${conCambios ? '3 cambios · baja tu plata ' + S(66) : 'Sin cambios todavía'}</b><span class="tab">${conCambios ? 'Tienes para comprar ' + S(5502) + ' → ' + S(5436) : 'Tienes para comprar ' + S(5502)}</span></div><div style="display:flex;gap:8px"><button class="btn" data-ir="1">Cancelar</button><button class="btn pri" ${conCambios ? 'data-ir="5"' : 'disabled'}>Revisar y guardar</button></div></div>`);
+}
+
+/* ---------- 3 · cambiar una prenda ---------- */
+function p3() {
+  const nuevo = tipo === 'nuevo';
+  const nombre = nuevo ? 'Polo Venus' : 'Blusa Emma';
+  const bloqueo = nuevo ? `
+    <div class="campo"><div class="lab">¿Qué es?</div><div class="chips"><button class="pill" aria-pressed="true">Polos</button><button class="pill" aria-pressed="false">Casacas</button><button class="pill" aria-pressed="false">Faldas</button><button class="pill" aria-pressed="false">Otra… ${I.baja}</button></div></div>
+    <div class="campo"><div class="lab">¿De qué marca?</div><div class="chips"><button class="pill" aria-pressed="true">CAYLA</button><button class="pill" aria-pressed="false">Moda Sol</button><button class="pill" aria-pressed="false">Otra… ${I.baja}</button><button class="pill" aria-label="Escribir una marca nueva" style="padding:6px 12px">+</button></div></div>
+    <div class="campo"><div class="lab">¿Cómo se llama? <span class="antes tab">antes «Polo Venus»</span></div><div class="caja cambio">Polo Venus manga larga</div></div>`
+  : `
+    <div class="aviso">${I.candado}<div><b>Es una prenda del catálogo.</b> Su nombre, su categoría y su marca se cambian en <b>Catálogo ▸ Productos</b>: aquí cambias lo de esta compra.</div></div>
+    <div class="camp2"><div class="campo"><div class="lab">Nombre</div><div class="caja cerrada"><span>Blusa Emma</span>${I.candado}</div></div><div class="campo"><div class="lab">Categoría · marca</div><div class="caja cerrada"><span>Blusas · Mias</span>${I.candado}</div></div></div>`;
+  const un = nuevo ? '8' : '4';
+  return conHoja(`<div class="tit"><button class="atras" data-ir="2">${I.atras} Prendas de la compra</button><span class="mini">× cerrar</span></div>
+    <div style="display:flex;gap:12px;align-items:center"><i class="muestra" style="background:${nuevo ? '#8f4a3c' : '#c9b99b'}"></i><div><h3>${nombre}</h3><div class="mini">${nuevo ? 'Algo nuevo · solo una referencia de la compra' : 'Del catálogo · Moda Mia'}</div></div></div>
+    ${bloqueo}
+    <div class="camp2"><div class="campo"><div class="lab">¿Cuántas unidades? ${nuevo ? '<span class="antes tab">antes 5</span>' : ''}</div><div class="stepper ${nuevo ? 'cambio' : ''}"><button>−</button><b class="tab">${un}</b><button>+</button></div></div><div class="campo"><div class="lab">Costo c/u</div><div class="caja tab">S/ 22.00</div></div></div>
+    <div class="camp2"><div class="campo"><div class="lab">Se vende a</div><div class="caja tab">${nuevo ? 'S/ 49.90' : 'S/ 59.90'}</div></div><div class="campo"><div class="lab">¿A qué tienda va?</div><div class="chips"><button class="pill" aria-pressed="true">TRU</button><button class="pill" aria-pressed="false">AQP</button></div></div></div>
+    <div class="pie-ed"><button class="btn enl" style="text-decoration:none">Quitar esta prenda</button><div style="display:flex;gap:8px"><button class="btn" data-ir="2">Cancelar</button><button class="btn pri" data-ir="4">Guardar esta prenda</button></div></div>
+    <p class="mini" style="margin:-4px 0 0">«Guardar esta prenda» vuelve a la lista. Nada se guarda en la base hasta «Revisar y guardar».</p>`);
+}
+
+/* ---------- 5 · revisar y guardar ---------- */
+function p5() {
+  const filas = [['Polo Venus · nombre', '«Polo Venus»', '«Polo Venus manga larga»'], ['Polo Venus · unidades', '5', '8'], ['Total del papel', S(198), S(264)], ['Lo que pagaste', S(198), S(264)], ['Tienes para comprar', S(5502), S(5436)]];
+  return conHoja(`<div class="tit"><h3>Revisa lo que cambia</h3><span class="mini">× cerrar</span></div>
+    <div class="card" style="padding:4px 16px">${filas.map(([k, a, n]) => `<div class="cambio-fila"><span class="k">${k}</span><span class="a tab">${a}</span><span class="arrow">→</span><span class="n tab">${n}</span></div>`).join('')}</div>
+    <div class="campo"><div class="lab">¿Qué pasó? <span style="text-transform:none;letter-spacing:0;font-weight:400">· opcional, ayuda a Compras</span></div><div class="chips"><button class="pill" aria-pressed="true">Me equivoqué en las unidades</button><button class="pill" aria-pressed="false">En el nombre o la marca</button><button class="pill" aria-pressed="false">En el precio</button><button class="pill" aria-pressed="false">Otra cosa…</button></div></div>
+    <div class="aviso">${I.info}<div>Queda registrado: <b>quién</b> la corrigió, <b>cuándo</b> y <b>qué cambió</b>. En la lista aparece con «Corregida».</div></div>
+    <div style="display:grid;gap:10px"><button class="btn pri" style="width:100%" data-ir="6">Guardar cambios</button><button class="btn" style="width:100%" data-ir="4">Volver a las prendas</button></div>`);
+}
+
+/* ---------- 6 · listo ---------- */
+function p6() {
+  return `<div class="cabeza"><div class="eyebrow">Tu sede · miércoles 28 de octubre</div><h2>Mis compras</h2></div>
+    <div class="aviso" style="background:var(--verde-suave);color:var(--verde)">${I.ok}<div><b>Compra corregida.</b> Compras ya ve el cambio y tu plata se ajustó.</div></div>
+    <div class="tit"><h3>En esta ronda <span class="globo">2</span></h3><span class="mini">desde hoy 17:36</span></div>
+    <div class="fila-hoy" style="border-top:0"><span class="circulo">${I.bolsa}</span><div class="q"><b>Compra a Moda Mia</b><span>12 prendas · Nota de venta</span><div class="chips" style="margin-top:6px"><span class="chip ambar">Falta mandar a TRU</span><span class="chip">Compras la revisa</span><span class="chip verde nolleva">Corregida 18:05</span></div></div><div style="text-align:right"><b class="tab">− ${S(264)}</b><div class="mini">17:44</div></div></div>
+    <div class="fila-hoy"><span class="circulo">${I.mano}</span><div class="q"><b>Te transfirieron</b><span>Transferencia · con foto</span></div><div style="text-align:right"><b class="tab" style="color:var(--verde)">+ ${S(5700)}</b><div class="mini">17:38</div></div></div>
+    <p class="mini" style="margin:0">Tócala otra vez para ver qué cambió: «Antes → Ahora», quién y cuándo.</p>
+    <button class="btn" data-ir="1" style="align-self:flex-start">Volver al paso 1</button>`;
+}
+
+/* ---------- 7 · cuándo no se puede ---------- */
+function p7() {
+  const m = (ic, t, tx, bt) => `<div class="card motivo"><span class="circulo">${ic}</span><h4>${t}</h4><p>${tx}</p>${bt}</div>`;
+  return cabeza('¿Y si no se puede corregir?', 'En cada caso la pantalla dice por qué y qué hacer: nunca un botón apagado sin explicación.', true) +
+    `<div class="rejilla3">
+    ${m(I.ok, 'Compras ya la completó', 'Ya pasó a los libros: cambiarla desde tu celular dejaría tu plata y los libros distintos. Pídele a Compras que la corrija.', '<button class="btn">Avisar a Compras</button>')}
+    ${m(I.camion, 'Ya salió una parte', 'Las prendas que van en un envío (ENV-000012) llevan un candado: la tienda las cuenta. Sí puedes cambiar lo que todavía falta mandar.', `<div class="prenda" style="cursor:default"><i class="muestra" style="background:#44574a;width:40px;height:40px"></i><div><b>Polo Ivana</b><div class="d tab">6 unidades</div></div><span class="chip verde nolleva" style="gap:4px">${I.candado.replace('<svg','<svg style="width:12px;height:12px"')} Ya salió</span></div>`)}
+    ${m(I.flag, 'Tu ronda ya está cerrada', 'Una ronda cerrada ya tiene su cuenta. Si algo no cuadra, díselo a Compras desde «Rondas anteriores».', '<button class="btn">Ver la ronda</button>')}</div>
+    <div class="card" style="padding:18px;display:grid;gap:10px"><h4 style="margin:0;font-family:var(--serif);font-weight:400;font-size:19px">¿Y si el error es el proveedor, o la compra entera sobra?</h4><p class="mini" style="margin:0">Hoy una compra guardada no tiene salida (auditoría H5). Propuesta: <b>Anular esta compra</b>, solo mientras Compras no la complete y no haya salido nada. Quita la compra y devuelve la plata a tu fondo; desde ahí la anotas bien. <b>La decides tú</b>: es dinero.</p><div class="chips"><button class="btn pel" style="align-self:flex-start">Anular esta compra</button><span class="chip nolleva">propuesta, sin decidir</span></div></div>`;
+}
+
+/* ---------- mando ---------- */
+const NOTAS = {
+  1: `<b class="t">1 · Dónde se abre</b><ul><li>Es el detalle de la fila que ya existe en «En esta ronda»; solo se suma <b>«Corregir esta compra»</b>, mientras Compras la revisa.</li></ul>`,
+  2: `<b class="t">2 · Ver las prendas de la compra</b><ul><li><b>Solo se leen</b>: una tarjeta por prenda, con lo que ya conoces (foto, nombre, categoría, marca, unidades, costo, tienda). <b>No hay campos para editar a la vista.</b></li><li>Cada tarjeta dice si es «Algo nuevo» o «Del catálogo». Al tocarla se abre su formulario (paso 3).</li><li>Abajo, el papel y el pago (se tocan igual) y la cuenta: «Sin cambios todavía».</li></ul>`,
+  3: `<b class="t">3 · Cambiar una prenda</b><ul><li>El formulario de <b>una</b> prenda, dentro de la misma hoja y con «‹ Prendas de la compra» para volver (no una hoja sobre otra): la misma de «Algo nuevo», con lo anotado.</li><li><b>«Algo nuevo» (solo una referencia):</b> se cambia todo —nombre, categoría, marca, unidades, costo, venta y tienda—. <b>«Del catálogo»:</b> nombre, categoría y marca llevan candado (se cambian en Catálogo); el resto, sí.</li><li>«Guardar esta prenda» vuelve a la lista; <b>nada llega a la base</b> hasta «Revisar y guardar». Cada campo cambiado se ve en ámbar con su «antes».</li></ul>`,
+  4: `<b class="t">4 · Vuelves a la lista, con lo que cambiaste</b><ul><li>La prenda queda con borde ámbar, el chip «Cambiaste» y su «antes». El pie ya cuenta: «3 cambios · baja tu plata S/ 66.00».</li><li>Puedes abrir otra prenda y repetir.</li></ul>`,
+  5: `<b class="t">5 · Revisar y guardar</b><ul><li>Un «Antes → Ahora» de solo lo que cambió, y una razón opcional. <b>Queda registrado quién, cuándo y qué cambió</b>; nada se borra.</li></ul>`,
+  6: `<b class="t">Listo</b><ul><li>La fila queda con el chip verde <b>«Corregida»</b> y la plata ajustada. Compras ve el cambio en «Revisar compras» con lo de antes.</li></ul>`,
+  7: `<b class="t">7 · Cuándo no se puede</b><ul><li>Cada caso dice por qué y a dónde ir. <b>Solo se puede mientras Compras no la complete</b> y la ronda siga abierta.</li></ul>`,
+};
+const REGLAS = `<b class="t">Reglas que propongo — las decides tú</b><ul>
+  <li><b>Cuándo:</b> solo si Compras no la ha completado y tu ronda sigue abierta.</li>
+  <li><b>Qué:</b> de cada prenda lo anotado en la compra (unidades, costo, venta, tienda); en una prenda «Algo nuevo», también nombre, categoría y marca; agregar o quitar prendas; el papel y el pago. <b>No:</b> el proveedor, lo que ya salió en un envío, ni el nombre/categoría/marca de una prenda del catálogo.</li>
+  <li><b>Rastro y plata:</b> quién, cuándo y qué cambió, con lo de antes (Compras lo ve); tu «Tienes para comprar» se recalcula sola.</li>
+  <li><b>Qué hay que construir (toca dinero y el historial):</b> una función nueva en la base con candados y su prueba, el rastro de cambios y que «Revisar compras» muestre «Antes → Ahora». Va con migración: tu OK antes de pegarla en producción.</li></ul>`;
+const PASOS = [[1, '1 · Dónde se abre'], [2, '2 · Ver las prendas'], [3, '3 · Cambiar una prenda'], [4, '4 · Con cambios'], [5, '5 · Revisar y guardar'], [6, 'Listo'], [7, 'Cuándo no se puede']];
+function pinta() {
+  el('ajuste').classList.toggle('cel', ancho === 'cel');
+  el('pc').innerHTML = { 1: p1, 2: () => p2(false), 3: p3, 4: () => p2(true), 5: p5, 6: p6, 7: p7 }[paso]();
+  el('g-tipo').style.display = paso === 3 ? '' : 'none';
+  el('nota').innerHTML = NOTAS[paso] + '<hr style="border:0;border-top:1px solid var(--sand);margin:8px 0">' + REGLAS;
+  [['seg-paso', PASOS, paso, (v) => (paso = Number(v))],
+   ['seg-tipo', [['nuevo', 'Algo nuevo'], ['catalogo', 'Del catálogo']], tipo, (v) => (tipo = v)],
+   ['seg-ancho', [['pc', 'PC'], ['cel', 'Celular (375 px)']], ancho, (v) => (ancho = v)]].forEach(([id, ops, act, set]) => {
+    el(id).innerHTML = ops.map(([k, t]) => `<button data-k="${k}" aria-pressed="${String(k) === String(act)}">${t}</button>`).join('');
+    el(id).querySelectorAll('button').forEach(b => b.onclick = () => { set(b.dataset.k); pinta(); });
+  });
+  el('pc').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { if (b.dataset.tipo) tipo = b.dataset.tipo; paso = Number(b.dataset.ir); pinta(); });
+}
+document.querySelectorAll('#seg-tema button').forEach(b => b.onclick = () => {
+  document.documentElement.dataset.theme = b.dataset.t;
+  document.querySelectorAll('#seg-tema button').forEach(x => x.setAttribute('aria-pressed', x === b));
+});
+const q = new URLSearchParams(location.search);
+if (q.get('tipo')) tipo = q.get('tipo'); if (q.get('paso')) paso = Number(q.get('paso')); if (q.get('ancho')) ancho = q.get('ancho'); if (q.get('solo')) document.documentElement.classList.add('solo'); if (q.get('tema')) document.documentElement.dataset.theme = q.get('tema');
+pinta();
+</script>
+</body>
+</html>
