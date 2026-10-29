@@ -510,6 +510,16 @@
   "tablename": "compra_cierres"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX compra_correcciones_lote_dato ON retail.compra_correcciones USING btree (lote, papel_id, COALESCE(orden_compra_item_id, '00000000-0000-0000-0000-000000000000'::uuid), campo)",
+  "indexname": "compra_correcciones_lote_dato",
+  "tablename": "compra_correcciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compra_correcciones_pkey ON retail.compra_correcciones USING btree (id)",
+  "indexname": "compra_correcciones_pkey",
+  "tablename": "compra_correcciones"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX compra_gastos_pkey ON retail.compra_gastos USING btree (id)",
   "indexname": "compra_gastos_pkey",
   "tablename": "compra_gastos"
@@ -1320,6 +1330,11 @@
   "tablename": "insumo_lotes"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX insumos_codigo_clave_unico ON retail.insumos USING btree (retail.fn_clave_texto(codigo))",
+  "indexname": "insumos_codigo_clave_unico",
+  "tablename": "insumos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX insumos_codigo_key ON retail.insumos USING btree (codigo)",
   "indexname": "insumos_codigo_key",
   "tablename": "insumos"
@@ -1890,6 +1905,16 @@
   "tablename": "precios_sede_prenda"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX precios_sede_variante_pkey ON retail.precios_sede_variante USING btree (id)",
+  "indexname": "precios_sede_variante_pkey",
+  "tablename": "precios_sede_variante"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX precios_sede_variante_vigente_unico ON retail.precios_sede_variante USING btree (variante_id, ubicacion_id) WHERE (archivado_en IS NULL)",
+  "indexname": "precios_sede_variante_vigente_unico",
+  "tablename": "precios_sede_variante"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX preferencias_colaborador_pkey ON retail.preferencias_colaborador USING btree (persona_id)",
   "indexname": "preferencias_colaborador_pkey",
   "tablename": "preferencias_colaborador"
@@ -1913,6 +1938,16 @@
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_pkey ON retail.prendas_danadas USING btree (id)",
   "indexname": "prendas_danadas_pkey",
   "tablename": "prendas_danadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_danadas_fotos_pkey ON retail.prendas_danadas_fotos USING btree (id)",
+  "indexname": "prendas_danadas_fotos_pkey",
+  "tablename": "prendas_danadas_fotos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_danadas_fotos_ruta_key ON retail.prendas_danadas_fotos USING btree (ruta)",
+  "indexname": "prendas_danadas_fotos_ruta_key",
+  "tablename": "prendas_danadas_fotos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX prendas_para_enviar_pkey ON retail.prendas_para_enviar USING btree (id)",

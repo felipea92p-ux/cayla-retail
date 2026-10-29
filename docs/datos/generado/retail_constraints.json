@@ -2460,6 +2460,36 @@
   "tabla": "retail.compra_cierres"
  },
  {
+  "conname": "compra_correcciones_cambia",
+  "definicion": "CHECK ((antes IS DISTINCT FROM despues))",
+  "tabla": "retail.compra_correcciones"
+ },
+ {
+  "conname": "compra_correcciones_campo_check",
+  "definicion": "CHECK ((campo = ANY (ARRAY['cantidad'::text, 'costo'::text, 'precio_venta'::text, 'nombre'::text, 'categoria'::text, 'marca'::text, 'tienda'::text, 'monto'::text, 'pagado'::text, 'medio_pago'::text])))",
+  "tabla": "retail.compra_correcciones"
+ },
+ {
+  "conname": "compra_correcciones_corregida_por_fkey",
+  "definicion": "FOREIGN KEY (corregida_por) REFERENCES personas(id)",
+  "tabla": "retail.compra_correcciones"
+ },
+ {
+  "conname": "compra_correcciones_orden_compra_item_id_fkey",
+  "definicion": "FOREIGN KEY (orden_compra_item_id) REFERENCES retail.orden_compra_items(id)",
+  "tabla": "retail.compra_correcciones"
+ },
+ {
+  "conname": "compra_correcciones_papel_id_fkey",
+  "definicion": "FOREIGN KEY (papel_id) REFERENCES retail.compra_papeles(id)",
+  "tabla": "retail.compra_correcciones"
+ },
+ {
+  "conname": "compra_correcciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_correcciones"
+ },
+ {
   "conname": "compra_gastos_concepto_check",
   "definicion": "CHECK ((concepto = ANY (ARRAY['taxi'::text, 'cargador'::text, 'comida'::text, 'envio'::text, 'bolsas'::text, 'otro'::text])))",
   "tabla": "retail.compra_gastos"
@@ -4466,7 +4496,7 @@
  },
  {
   "conname": "despacho_diferencias_causa",
-  "definicion": "CHECK ((((tipo = 'faltante'::text) AND (causa = ANY (ARRAY['no_vino'::text, 'se_perdio'::text, 'otra_sede'::text, 'devuelta'::text]))) OR ((tipo = 'sobrante'::text) AND (causa = ANY (ARRAY['regalo'::text, 'cobra_aparte'::text, 'proxima_compra'::text, 'reposicion_faltante'::text])))))",
+  "definicion": "CHECK ((((tipo = 'faltante'::text) AND (causa = ANY (ARRAY['no_vino'::text, 'se_perdio'::text, 'otra_sede'::text, 'devuelta'::text]))) OR ((tipo = 'sobrante'::text) AND (causa = ANY (ARRAY['regalo'::text, 'cobra_aparte'::text, 'proxima_compra'::text, 'reposicion_faltante'::text, 'otro'::text])))))",
   "tabla": "retail.despacho_diferencias"
  },
  {
@@ -6355,6 +6385,11 @@
   "tabla": "retail.insumos"
  },
  {
+  "conname": "insumos_codigo_no_vacio",
+  "definicion": "CHECK ((retail.fn_clave_texto(codigo) IS NOT NULL))",
+  "tabla": "retail.insumos"
+ },
+ {
   "conname": "insumos_color_codigo_fkey",
   "definicion": "FOREIGN KEY (color_codigo) REFERENCES retail.colores(codigo)",
   "tabla": "retail.insumos"
@@ -6397,6 +6432,11 @@
  {
   "conname": "insumos_tejido_id_fkey",
   "definicion": "FOREIGN KEY (tejido_id) REFERENCES retail.tejidos(id)",
+  "tabla": "retail.insumos"
+ },
+ {
+  "conname": "insumos_tela_en_metros",
+  "definicion": "CHECK (((tipo <> 'tela'::text) OR (unidad_medida = 'metro'::text)))",
   "tabla": "retail.insumos"
  },
  {
@@ -6566,12 +6606,17 @@
  },
  {
   "conname": "materiales_kilo_pide_ancho_y_gramaje",
-  "definicion": "CHECK (((unidad_compra <> 'kilo'::text) OR ((ancho_cm IS NOT NULL) AND (gramaje_gm2 IS NOT NULL))))",
+  "definicion": "CHECK (((tipo = 'avio'::text) OR (unidad_compra <> 'kilo'::text) OR ((ancho_cm IS NOT NULL) AND (gramaje_gm2 IS NOT NULL))))",
   "tabla": "retail.materiales"
  },
  {
   "conname": "materiales_medidas_con_tope",
   "definicion": "CHECK ((((ancho_cm IS NULL) OR ((ancho_cm > (0)::numeric) AND (ancho_cm < (1000)::numeric))) AND ((gramaje_gm2 IS NULL) OR ((gramaje_gm2 > (0)::numeric) AND (gramaje_gm2 < (5000)::numeric))) AND ((metros_por_rollo IS NULL) OR ((metros_por_rollo > (0)::numeric) AND (metros_por_rollo < (100000)::numeric)))))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_medidas_plausibles",
+  "definicion": "CHECK ((((ancho_cm IS NULL) OR ((ancho_cm >= (20)::numeric) AND (ancho_cm <= (400)::numeric))) AND ((gramaje_gm2 IS NULL) OR ((gramaje_gm2 >= (30)::numeric) AND (gramaje_gm2 <= (1500)::numeric)))))",
   "tabla": "retail.materiales"
  },
  {
@@ -9100,6 +9145,41 @@
   "tabla": "retail.precios_sede_prenda"
  },
  {
+  "conname": "precios_sede_variante_archivado_por_fkey",
+  "definicion": "FOREIGN KEY (archivado_por) REFERENCES personas(id)",
+  "tabla": "retail.precios_sede_variante"
+ },
+ {
+  "conname": "precios_sede_variante_creado_por_fkey",
+  "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
+  "tabla": "retail.precios_sede_variante"
+ },
+ {
+  "conname": "precios_sede_variante_motivo_no_vacio",
+  "definicion": "CHECK ((length(btrim(motivo)) >= 3))",
+  "tabla": "retail.precios_sede_variante"
+ },
+ {
+  "conname": "precios_sede_variante_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.precios_sede_variante"
+ },
+ {
+  "conname": "precios_sede_variante_precio_con_tope",
+  "definicion": "CHECK (((precio > (0)::numeric) AND (precio <= (5000)::numeric)))",
+  "tabla": "retail.precios_sede_variante"
+ },
+ {
+  "conname": "precios_sede_variante_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.precios_sede_variante"
+ },
+ {
+  "conname": "precios_sede_variante_variante_id_fkey",
+  "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
+  "tabla": "retail.precios_sede_variante"
+ },
+ {
   "conname": "preferencias_colaborador_mensaje_pedidos_web_check",
   "definicion": "CHECK (((mensaje_pedidos_web IS NULL) OR ((length(mensaje_pedidos_web) >= 1) AND (length(mensaje_pedidos_web) <= 600))))",
   "tabla": "retail.preferencias_colaborador"
@@ -9117,6 +9197,31 @@
  {
   "conname": "prendas_danadas_arreglo_con_nota",
   "definicion": "CHECK (((estado <> 'se_arreglo'::text) OR (char_length(btrim(COALESCE(nota, ''::text))) >= 3)))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_arreglo_costo_valido",
+  "definicion": "CHECK (((arreglo_costo IS NULL) OR ((arreglo_costo >= (0)::numeric) AND (COALESCE(arreglo_resultado, ''::text) = 'arreglada'::text))))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_arreglo_gasto_id_fkey",
+  "definicion": "FOREIGN KEY (arreglo_gasto_id) REFERENCES retail.gastos(id)",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_arreglo_motivo_valido",
+  "definicion": "CHECK (((arreglo_no_se_pudo_motivo IS NULL) OR ((COALESCE(arreglo_resultado, ''::text) = 'no_se_pudo'::text) AND ((char_length(btrim(arreglo_no_se_pudo_motivo)) >= 3) AND (char_length(btrim(arreglo_no_se_pudo_motivo)) <= 200)))))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_arreglo_resultado_valido",
+  "definicion": "CHECK (((arreglo_resultado IS NULL) OR (arreglo_resultado = ANY (ARRAY['arreglada'::text, 'no_se_pudo'::text]))))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_arreglo_volvio_exige_salida",
+  "definicion": "CHECK (((arreglo_volvio_en IS NULL) OR (en_arreglo_desde IS NOT NULL)))",
   "tabla": "retail.prendas_danadas"
  },
  {
@@ -9165,6 +9270,11 @@
   "tabla": "retail.prendas_danadas"
  },
  {
+  "conname": "prendas_danadas_nota_arreglo_valida",
+  "definicion": "CHECK (((nota_arreglo IS NULL) OR ((char_length(btrim(nota_arreglo)) >= 3) AND (char_length(btrim(nota_arreglo)) <= 200))))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
   "conname": "prendas_danadas_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.prendas_danadas"
@@ -9190,6 +9300,16 @@
   "tabla": "retail.prendas_danadas"
  },
  {
+  "conname": "prendas_danadas_ruta_arreglo_valida",
+  "definicion": "CHECK ((((en_arreglo_desde IS NULL) = (ruta_arreglo IS NULL)) AND ((ruta_arreglo IS NULL) OR (ruta_arreglo = ANY (ARRAY['cerca'::text, 'taller'::text])))))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_tipo_dano_valido",
+  "definicion": "CHECK (((tipo_dano IS NULL) OR (tipo_dano = ANY (ARRAY['mancha'::text, 'descosido'::text, 'boton_cierre'::text, 'rotura'::text, 'otro'::text]))))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
   "conname": "prendas_danadas_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.prendas_danadas"
@@ -9203,6 +9323,41 @@
   "conname": "prendas_danadas_variante_id_fkey",
   "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
   "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_fotos_bytes_check",
+  "definicion": "CHECK (((bytes > 0) AND (bytes <= ((10 * 1024) * 1024))))",
+  "tabla": "retail.prendas_danadas_fotos"
+ },
+ {
+  "conname": "prendas_danadas_fotos_danada_id_fkey",
+  "definicion": "FOREIGN KEY (danada_id) REFERENCES retail.prendas_danadas(id)",
+  "tabla": "retail.prendas_danadas_fotos"
+ },
+ {
+  "conname": "prendas_danadas_fotos_nombre_check",
+  "definicion": "CHECK (((char_length(btrim(nombre)) >= 1) AND (char_length(btrim(nombre)) <= 200)))",
+  "tabla": "retail.prendas_danadas_fotos"
+ },
+ {
+  "conname": "prendas_danadas_fotos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.prendas_danadas_fotos"
+ },
+ {
+  "conname": "prendas_danadas_fotos_ruta_de_la_danada",
+  "definicion": "CHECK ((ruta ~~ ((danada_id)::text || '/%'::text)))",
+  "tabla": "retail.prendas_danadas_fotos"
+ },
+ {
+  "conname": "prendas_danadas_fotos_ruta_key",
+  "definicion": "UNIQUE (ruta)",
+  "tabla": "retail.prendas_danadas_fotos"
+ },
+ {
+  "conname": "prendas_danadas_fotos_tipo_check",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['image/jpeg'::text, 'image/png'::text, 'image/webp'::text, 'image/heic'::text, 'image/heif'::text])))",
+  "tabla": "retail.prendas_danadas_fotos"
  },
  {
   "conname": "prendas_para_enviar_cancelacion_coherente",
@@ -11592,6 +11747,11 @@
  {
   "conname": "sububicaciones_id_ubicacion_unique",
   "definicion": "UNIQUE (id, ubicacion_id)",
+  "tabla": "retail.sububicaciones"
+ },
+ {
+  "conname": "sububicaciones_lugar_valido",
+  "definicion": "CHECK (((lugar IS NULL) OR ((char_length(btrim(lugar)) >= 3) AND (char_length(btrim(lugar)) <= 80))))",
   "tabla": "retail.sububicaciones"
  },
  {

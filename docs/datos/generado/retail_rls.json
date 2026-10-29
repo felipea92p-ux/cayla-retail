@@ -319,6 +319,11 @@
   "relkind": "r",
   "rls": true
  },
+ "compra_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "compra_gastos": {
   "forzado": false,
   "relkind": "r",
@@ -1044,12 +1049,22 @@
   "relkind": "r",
   "rls": true
  },
+ "precios_sede_variante": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "preferencias_colaborador": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "prendas_danadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_danadas_fotos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
