@@ -9,16 +9,29 @@
 import type { CampoDeGuia } from "./guia-campos";
 
 export type EleccionAvance = {
-  /** Cuántas prendas se anotaron en total (la suma de las celdas, enteras y mayores que cero). */
+  /** Cuántas prendas buenas se anotaron (la suma de las celdas, enteras y mayores que cero). */
   total: number;
   /** Ya hay quién anota (el combo «Responsable», ADR-0161/0162). */
   responsableListo: boolean;
+  /** Cuántas con falla se anotaron (ADR-0570): una anotación de solo fallas también vale. */
+  conFalla?: number;
+  /** Hay filas de prendas con falla en la hoja (aunque estén a medias): entonces son un campo más. */
+  hayFallas?: boolean;
+  /** Lo primero que impide anotar las fallas (`problemasDeFallas`), o `null`. */
+  problemaFallas?: string | null;
+  /** Lo que impide el día elegido (`problemaDeDia`), o `null`. */
+  problemaDia?: string | null;
 };
 
-/** «Terminé»: lo único que falta es escribir cuántas (ya viene precargado con lo que falta) y elegir quién lo anota. */
+/**
+ * «Terminé»: escribir cuántas (ya viene precargado con lo que falta), las prendas con falla si las hay, el día (hoy de fábrica) y quién lo anota. `anotar_termine` rechaza una anotación
+ * sin buenas ni fallas, una falla a medias o sin motivo, un día futuro o anterior a la apertura, y la falta de alguien que firme: los campos son exactamente esos.
+ */
 export function camposDeAvance(e: EleccionAvance): CampoDeGuia[] {
   return [
-    { id: "cantidades", nombre: "Cuántas terminaste", requerido: true, hecho: e.total > 0, pendiente: "Escribe cuántas terminaste en cada talla y color." },
+    { id: "cantidades", nombre: "Cuántas terminaste", requerido: true, hecho: e.total + (e.conFalla ?? 0) > 0, pendiente: "Escribe cuántas terminaste en cada talla y color." },
+    ...(e.hayFallas ? [{ id: "fallas", nombre: "Las prendas con falla", requerido: true, hecho: !e.problemaFallas, pendiente: e.problemaFallas ?? "" }] : []),
+    { id: "dia", nombre: "Cuándo lo terminaste", requerido: true, hecho: !e.problemaDia, pendiente: e.problemaDia ?? "Elige el día en que lo terminaste." },
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esto." },
   ];
 }

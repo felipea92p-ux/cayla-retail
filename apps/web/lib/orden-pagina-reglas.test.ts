@@ -83,6 +83,17 @@ import {
   faseAbiertaDeLaRuta,
   subtituloEnRuta,
   tonoDeEntrada,
+  MAX_MOTIVO_FALLA,
+  buenasConFallas,
+  diaParaLaBase,
+  fallasNuevas,
+  fallasQueCierran,
+  lineasDeFallas,
+  problemaDeDia,
+  problemasDeFallas,
+  textoFallas,
+  totalFallas,
+  type FallaBorrador,
   type FasePagina,
   type OrdenPagina,
   type TipoEvento,
@@ -1401,5 +1412,118 @@ describe("la ruta viva (ADR-0570): un color por paso y un paso abierto", () => {
     expect(filasDeTela(orden().insumos, true)[0].porAnotar).toBe(false);
     // Sin cortar todavía, no hay nada que anotar.
     expect(filasDeTela(sinNadaUsado, false)[0].porAnotar).toBe(false);
+  });
+});
+
+describe("«Terminé» con falla y con fecha (ADR-0570, actividad 2)", () => {
+  const p = orden();
+  const [corte, , acabado] = p.fases;
+  const nombreDe = (id: string) => `la variante ${id}`;
+  const falla = (varianteId: string, cantidad: string, destino: FallaBorrador["destino"] = "segunda"): FallaBorrador => ({ varianteId, cantidad, destino });
+
+  it("lo que falta terminar descuenta las segundas y las perdidas ya anotadas (un arreglo sigue faltando)", () => {
+    const enCurso: FasePagina = { ...acabado, estado: "en_curso", porVariante: acabado.porVariante.map((v) => ({ ...v, entrada: 8, hechas: 3, fallasSegundas: v.varianteId === "n28" ? 2 : 0, fallasPerdidas: v.varianteId === "n28" ? 1 : 0 })) };
+    const faltan = cantidadesQueFaltan(enCurso, p.fases);
+    expect(faltan.n28).toBe(2);
+    expect(faltan.c30).toBe(5);
+  });
+
+  it("en el Taller lo que no salió bien se dice «perdida»; en un servicio sigue siendo «faltante»", () => {
+    const tallerHecho: FasePagina = { ...corte, segundas: 1, faltantes: 2 };
+    expect(textoDeFase(tallerHecho, { previa: null, terminoEl: null, totalPlan: 48 }).detalle).toBe("Hecha · 1 segunda · 2 perdidas");
+  });
+
+  it("buenasConFallas: anotar 2 con falla baja las buenas de esa talla y color; nunca las sube", () => {
+    const faltan = { n28: 8, c28: 8 };
+    expect(buenasConFallas(faltan, { n28: "8", c28: "8" }, [falla("n28", "2")])).toEqual({ n28: "6", c28: "8" });
+    // Lo que la persona ya había bajado a mano se respeta.
+    expect(buenasConFallas(faltan, { n28: "3", c28: "8" }, [falla("n28", "2")])).toEqual({ n28: "3", c28: "8" });
+    // Dos filas de la misma talla y color se suman.
+    expect(buenasConFallas(faltan, { n28: "8" }, [falla("n28", "2"), falla("n28", "1", "perdida")])).toEqual({ n28: "5" });
+  });
+
+  it("totales: todas las fallas, y solo las que cierran la fase (segunda y perdida, no el arreglo)", () => {
+    const filas = [falla("n28", "2"), falla("c28", "1", "arreglo"), falla("", "4"), falla("n30", "x")];
+    expect(totalFallas(filas)).toBe(3);
+    expect(fallasQueCierran(filas)).toBe(2);
+  });
+
+  it("problemasDeFallas: sin talla, sin cantidad, pasarse de lo que falta y sin motivo, cada uno en una frase", () => {
+    const faltan = { n28: 8 };
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "2")], "Mancha", nombreDe)).toEqual([]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("", "1")], "Mancha", nombreDe)).toEqual(["Elige la talla y el color de cada prenda con falla."]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "0")], "Mancha", nombreDe)).toEqual(["Escribe cuántas con falla hay en la variante n28."]);
+    expect(problemasDeFallas(faltan, { n28: "8" }, [falla("n28", "1")], "Mancha", nombreDe)).toEqual(["En la variante n28 faltan 8: entre buenas y con falla anotaste 9."]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "2")], "  ", nombreDe)).toEqual(["Cuenta qué pasó con las prendas con falla."]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "2")], "x".repeat(MAX_MOTIVO_FALLA + 1), nombreDe)).toHaveLength(1);
+    // Sin fallas no se pide motivo.
+    expect(problemasDeFallas(faltan, { n28: "8" }, [], "", nombreDe)).toEqual([]);
+  });
+
+  it("lineasDeFallas: una línea por talla, color y destino (las repetidas se suman), con el motivo; las vacías no viajan", () => {
+    expect(lineasDeFallas([falla("n28", "2"), falla("n28", "1"), falla("n28", "1", "perdida"), falla("", "3"), falla("c28", "0")], " Mancha ")).toEqual([
+      { variante_id: "n28", cantidad: 3, destino: "segunda", motivo: "Mancha" },
+      { variante_id: "n28", cantidad: 1, destino: "perdida", motivo: "Mancha" },
+    ]);
+  });
+
+  it("textoFallas: «2 segundas · 1 perdida · 1 se arregla», sin los ceros", () => {
+    expect(textoFallas({ segunda: 2, perdida: 1, arreglo: 1 })).toBe("2 segundas · 1 perdida · 1 se arregla");
+    expect(textoFallas({ segunda: 0, perdida: 0, arreglo: 2 })).toBe("2 se arreglan");
+  });
+
+  it("el día: hoy de fábrica; nunca futuro ni antes de abrir la orden; a la base viaja nulo si es hoy", () => {
+    expect(problemaDeDia("2026-10-19", "2026-10-19", "2026-10-13")).toBeNull();
+    expect(problemaDeDia("2026-10-15", "2026-10-19", "2026-10-13")).toBeNull();
+    expect(problemaDeDia("2026-10-20", "2026-10-19", "2026-10-13")).toMatch(/todavía no llega/);
+    expect(problemaDeDia("2026-10-12", "2026-10-19", "2026-10-13")).toMatch(/se abrió el mar 13 oct/);
+    expect(problemaDeDia("", "2026-10-19", "2026-10-13")).toMatch(/Elige el día/);
+    expect(diaParaLaBase("2026-10-19", "2026-10-19")).toBeNull();
+    expect(diaParaLaBase("2026-10-15", "2026-10-19")).toBe("2026-10-15");
+  });
+
+  it("la línea de tiempo: las fallas de una anotación son UNA entrada roja, con su resumen, su porqué y su Deshacer; otro día dice cuándo se anotó", () => {
+    const conFallas = orden({
+      linea_de_tiempo: [
+        { id: "fa-1", cuando: "2026-10-17T17:00:00+00:00", registrado_en: "2026-10-19T14:12:00.001+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 2, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-1" },
+        { id: "fa-2", cuando: "2026-10-17T17:00:00+00:00", registrado_en: "2026-10-19T14:12:00.002+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 1, destino: "perdida", motivo: "Mancha", variante_id: "c28", falla_id: "fa-2" },
+      ],
+    });
+    const [dia] = lineaDeTiempoAgrupada(conFallas, HOY);
+    expect(dia.dia).toBe("2026-10-17");
+    expect(dia.entradas).toHaveLength(1);
+    expect(dia.entradas[0]).toMatchObject({
+      titulo: "Con falla en Acabado",
+      cuanto: "3 prendas",
+      detalle: "2 segundas · 1 perdida: Mancha",
+      fallaIds: ["fa-1", "fa-2"],
+      avanceIds: null,
+      anotado: "anotó el lun 19 oct a las 09:12",
+    });
+    expect(tonoDeEntrada("falla")).toBe("problema");
+    expect(tonoDeEntrada("falla_deshecha")).toBe("cambio");
+  });
+
+  it("fallasNuevas: las que se anotaron después de `antes` en esa fase y todavía se pueden deshacer", () => {
+    const despues = orden({
+      linea_de_tiempo: [
+        { id: "fa-1", cuando: "2026-10-19T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 2, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-1" },
+        { id: "fa-0", cuando: "2026-10-18T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 1, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-0" },
+      ],
+    }).lineaDeTiempo;
+    expect(fallasNuevas(despues.filter((e) => e.id === "fa-0"), despues, "acabado")).toEqual(["fa-1"]);
+    expect(fallasNuevas([], despues, "corte")).toEqual([]);
+  });
+
+  it("paridad con la migración 20261029164000: los mismos rechazos (hints), el mismo tope del motivo y las llaves que la página lee", () => {
+    const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20261029164000_produccion_termine_con_falla_y_fecha.sql"), "utf8");
+    for (const hint of ["falla_sin_motivo", "falla_destino_invalido", "falla_cantidad_invalida", "falla_repetida", "avance_excede", "avance_fecha_futura", "avance_fecha_antes_de_abrir", "deshacer_ya_hecho"]) {
+      expect(mig, hint).toContain(`'${hint}'`);
+    }
+    expect(mig).toContain(`length(motivo) <= ${MAX_MOTIVO_FALLA}`);
+    expect(mig).toContain("destino in ('segunda', 'perdida', 'arreglo')");
+    for (const k of ["fallas_segundas", "fallas_perdidas", "falla_id", "registrado_en", "destino"]) expect(mig, k).toContain(`'${k}'`);
+    expect(mig).toContain("create or replace function retail.anotar_termine(p_fase_id uuid, p_lineas jsonb, p_nota text default null, p_hecho_en date default null, p_fallas jsonb default null)");
+    expect(mig).toContain("create or replace function retail.deshacer_falla(p_falla_id uuid)");
   });
 });

@@ -18,7 +18,8 @@ import { lineaDeTiempoAgrupada, tonoDeEntrada, type EntradaDeTiempo, type OrdenP
 // Las dos acciones son piezas del sistema (ADR-0358): «Anular» borra algo que ya pasó, así que es el botón de peligro, rojo desde el principio (`accion.eliminar`), en su medida compacta; «Deshacer» es
 // `<BotonDeshacer>` (`accion.deshacer`), el enlace con la flecha curva. Ambos abren su hoja de confirmación.
 // Desde la «Ruta viva» (ADR-0570, actividad 1) se llama «Historia» —la palabra con que Felipe la pidió— y el punto de cada entrada lleva la regla de color de Producción
-// (`tonoDeEntrada`): verde lo hecho, pizarra lo que salió a un servicio, ámbar lo que se deshizo o anuló.
+// (`tonoDeEntrada`): verde lo hecho, pizarra lo que salió a un servicio, ámbar lo que se deshizo o anuló, rojo una prenda con falla. Cada entrada con falla trae su «Deshacer»
+// (no van en cadena, ADR-0570), y lo anotado otro día que el que pasó dice cuándo se anotó en vez de una hora inventada.
 
 export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string }) {
   const [deshaciendo, setDeshaciendo] = useState<EntradaDeTiempo | null>(null);
@@ -49,8 +50,7 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
                   return (
                     <li key={e.ids.join("-")} data-tono={tonoDeEntrada(e.tipo)} data-anulada={e.anulada ? "true" : undefined}>
                       <div className="op-tiempo-cuando">
-                        {e.hora}
-                        {e.quien ? ` · ${e.quien}` : ""}
+                        {e.anotado ? `${e.quien ?? "Alguien"} ${e.anotado}` : `${e.hora}${e.quien ? ` · ${e.quien}` : ""}`}
                       </div>
                       <div className="op-tiempo-que">
                         <span>
@@ -77,7 +77,7 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
                           Anular
                         </Boton>
                       )}
-                      {deshacible === e && <BotonDeshacer onClick={() => setDeshaciendo(e)} className="op-tiempo-deshacer" />}
+                      {(deshacible === e || (puedeDeshacer && e.fallaIds !== null)) && <BotonDeshacer onClick={() => setDeshaciendo(e)} className="op-tiempo-deshacer" />}
                     </li>
                   );
                 })}

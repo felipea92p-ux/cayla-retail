@@ -1,6 +1,9 @@
 # ADR-0570: Producción que se corrige y se registra fácil (las 34 decisiones del Taller y la «Ruta viva»)
 
-**Estado:** aceptada. La actividad 1 (la «Ruta viva», solo web) está construida y probada en local; las actividades 2 a 10 siguen sin construir, en el orden de abajo.
+**Estado:** aceptada.
+- Actividad 1 (la «Ruta viva», solo web): construida y probada en local.
+- Actividad 2 («Terminé» con falla y con fecha): construida y probada en local. Su migración `20261029164000` está SIN pegar en producción: va después de `20261029021000` y `20261029051000`.
+- Actividades 3 a 10: sin construir, en el orden de abajo.
 **Fecha:** 2026-10-29.
 **Decidió:** Felipe, con 34 preguntas en 9 rondas, el 29-oct. Eligió la versión A de la orden y la A de Insumos mirando la maqueta `docs/maquetas/produccion-taller-2026-10/index.html`.
 **Sigue a:** ADR-0400 (la orden y sus fases), ADR-0551 (cinco pasos fijos), ADR-0554 (una tela con sus colores), ADR-0563 (forro y complementos) y ADR-0566 (agregar un paso).
@@ -96,6 +99,35 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
 - El paso que la persona abre vale mientras la fase actual no cambie. Al anotar y pasar a la siguiente, la ruta vuelve a abrir la que toca.
 - La franja se quita solo dentro de `.op-pagina`, con una regla más específica que la de la Tabla oficial. Llevarlo a todo el ERP lo decide `/unificar` con Felipe.
 - El texto secundario de la orden es `--op-tenue` (tinta al 72 %, sobre el piso de contraste de ADR-0336).
+
+### Actividad 2: «Terminé» con falla y con fecha (migración `20261029164000`, web)
+
+**DECIDÍ:**
+- Una tabla aparte, `produccion_fallas`, de solo agregar como `produccion_avances`. Cada fila es talla y color, cuántas, destino (`segunda`, `perdida` o `arreglo`) y motivo. Un Deshacer es una fila negativa con `deshace_id`, una sola vez (`unique`).
+- **Segunda y perdida cierran la fase y NO pasan a la siguiente.** Se suman a las segundas y faltantes que `fn_fases_de_orden` ya contaba de la Vuelta: la misma regla de cierre de ADR-0400, que ahora alcanza al Taller.
+- **«Se arregla» no reabre la fase anterior.** La prenda sigue pendiente en ESTA fase y la historia dice adónde fue. Cuando vuelve buena, se anota y la fase cierra.
+- El día real va en `produccion_avances.hecho_en`, como en la marca de Ploteo. Va desde la apertura y nunca es futuro, y `created_at` sigue diciendo cuándo se anotó.
+- Una función nueva, `anotar_termine`, lleva buenas, fallas y día en una llamada, todo o nada, bajo el candado de la orden.
+- `registrar_avance` conserva su firma y la llama. Así hay una sola regla, y la web publicada antes que la base sigue andando.
+- En la hoja, al anotar una falla, las buenas de esa talla y color bajan solas.
+
+**DESCARTÉ:**
+- **Un `origen` nuevo en `produccion_avances`.** Lo que suma esa tabla es lo que pasa a la fase siguiente: mezclar ahí prendas que no pasan obligaba a filtrar 9 lecturas.
+- **Más argumentos en `registrar_avance`.** 9 suites recargan las migraciones que la definen con 3 argumentos, y dos versiones vuelven ambiguas todas las llamadas.
+- **Que el arreglo reste de la fase anterior.** Si esa fase la hizo un servicio, la prenda tendría que volver a salir y se le pagaría otra vez.
+
+**SE ROMPE SI:**
+- Un arreglo se paga aparte por prenda: hoy no se anota quién arregla, y Felipe dijo que no importa quién hizo cada paso.
+- Alguien elige un día anterior al del paso de antes: se acepta y la historia lo muestra tal cual.
+
+**Lo que se probó:**
+- `pnpm pruebas:produccion-termine-con-falla`: 21 casos.
+- Las 24 suites de Producción en una base hecha desde cero con las 933 migraciones de la rama. Eso destapó dos cosas:
+  - Un ancla que no existía en `main`: la copia de la base compartida traía una migración de otra rama sin fusionar.
+  - Que la suite del Ploteo tiene que deshacer estos parches. Ahora los lee de la migración.
+- En el navegador, sobre una orden de prueba:
+  - 98 buenas y 2 segundas con fecha de ayer cierran Habilitado, a Costura le entran 98, y la historia muestra «Con falla» en rojo y «anotó el jue 29».
+  - Deshacer la falla reabre la fase sin borrar nada.
 
 ## Consecuencias
 

@@ -44,10 +44,33 @@ const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sq
 // 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco) y 20261028064000 le quitó la comprobación de la fecha prometida pasada
 // (ADR-0537). Esta suite recarga 20261019192000 en cada caso y esa migración tiene su candado de md5 sobre la función tal como ella la dejó: se deshacen los dos parches antes de cargarla
 // (lo mismo que los `DESHACER_*` de otras suites).
+// 20261029164000 (ADR-0570, «Terminé» con falla y con fecha) insertó tres bloques en `fn_fases_de_orden`. Su inverso exacto se LEE de la misma migración (así no se desencuentran) y va
+// primero: es lo más nuevo.
+const PARCHES_FALLAS = [
+  ...leer("20261029164000_produccion_termine_con_falla_y_fecha.sql").matchAll(
+    /select pg_temp\.reemplazar_anclado\(\s*'retail\.fn_fases_de_orden\(uuid\)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$\s*\);/g
+  ),
+].map(([, viejo, nuevo]) => ({ viejo, nuevo }));
+if (PARCHES_FALLAS.length !== 3) throw new Error(`20261029164000 debería tener 3 reemplazos de fn_fases_de_orden y tiene ${PARCHES_FALLAS.length}: revisa el inverso de esta suite`);
+const DESHACER_FALLAS = PARCHES_FALLAS.map(
+  ({ viejo, nuevo }) => `  v_def := pg_get_functiondef('retail.fn_fases_de_orden(uuid)'::regprocedure);
+  execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
+).join("\n");
+// Y `registrar_avance`, que ADR-0570 volvió un envoltorio de `anotar_termine`: vuelve a ser la de 20261014155000 (leída de esa migración), donde 20261019192000 inserta su regla
+// «una fase que se marca no lleva Terminé» como la primera vez.
+const REGISTRAR_AVANCE_DE_ANTES = (() => {
+  const texto = leer("20261014155000_produccion_avance_salida_y_vuelta.sql");
+  const desde = texto.indexOf("create or replace function retail.registrar_avance(");
+  const hasta = texto.indexOf("\n$$;", desde);
+  if (desde < 0 || hasta < 0) throw new Error("no encontré registrar_avance en 20261014155000: revisa el inverso de esta suite");
+  return texto.slice(desde, hasta + 4);
+})();
 const DESHACER_CINCO_PASOS = `
+${REGISTRAR_AVANCE_DE_ANTES}
 do $deshacer_cinco$
 declare v_def text;
 begin
+${DESHACER_FALLAS}
   v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
   execute replace(v_def,
     $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'planchado']) then

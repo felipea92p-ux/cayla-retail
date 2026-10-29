@@ -6,13 +6,45 @@ import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { CampoFecha } from "@/components/ui/CampoFecha";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { cantidadesQueFaltan, avancesNuevos, cantidadConUnidad, esPrimeraFase, faltaTerminar, leerOrdenPagina, RPC_DESHACER_AVANCE, RPC_ORDEN_PRODUCCION, RPC_REGISTRAR_AVANCE, textoTermine, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import {
+  DESTINOS_FALLA,
+  MAX_MOTIVO_FALLA,
+  MOTIVOS_FALLA,
+  RPC_ANOTAR_TERMINE,
+  RPC_DESHACER_AVANCE,
+  RPC_DESHACER_FALLA,
+  RPC_ORDEN_PRODUCCION,
+  avancesNuevos,
+  buenasConFallas,
+  cantidadConUnidad,
+  cantidadesQueFaltan,
+  diaParaLaBase,
+  esPrimeraFase,
+  fallasNuevas,
+  fallasQueCierran,
+  faltaTerminar,
+  fechaLimaDe,
+  leerOrdenPagina,
+  lineasDeFallas,
+  problemaDeDia,
+  problemasDeFallas,
+  textoTermine,
+  totalFallas,
+  type DestinoFalla,
+  type FallaBorrador,
+  type FasePagina,
+  type OrdenPagina,
+} from "@/lib/orden-pagina-reglas";
 import { RPC_REGISTRAR_CONSUMO, anotarConsumoEnLotes, cantidadDeFabrica, leerCantidad, problemaDeTelaUsada, telasDeLaOrden, textoAnotasteTela } from "@/lib/orden-tela-usada-reglas";
 import { camposDeAvance } from "@/lib/orden-pagina-guia";
 import { avisoCorteSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
@@ -24,14 +56,18 @@ import { useResponsable } from "@/lib/useResponsable";
 
 // «Terminé N» (ADR-0400, decisión 7; vista D): la hoja donde se anota cuántas prendas se terminaron en una fase del Taller, por talla y color, con la misma tabla de Nuevo producto y de
 // Nueva orden (`MatrizCantidades` en modo cantidades). Nace PRECARGADA con lo que falta (`cantidadesQueFaltan`): un clic y están todas; lo que no se terminó, se baja a mano.
-// Solo las buenas avanzan a la fase siguiente, y la base no deja terminar más de lo que entró (`registrar_avance`, candado por talla y color bajo el candado de la orden).
+// Solo las buenas avanzan a la fase siguiente, y la base no deja terminar más de lo que entró (`anotar_termine`, candado por talla y color bajo el candado de la orden).
+//
+// Con falla y con fecha (ADR-0570, actividad 2; Felipe 2026-10-29, ronda 6): «+ Anotar prendas con falla» abre las filas de lo que no salió bien —talla y color, cuántas y qué pasa
+// con ellas: se arregla (vuelve a quien la arregla y sigue pendiente aquí), segunda o se perdió— con el porqué a un toque. Segunda y perdida cierran la fase sin pasar a la siguiente:
+// antes una sola prenda manchada trababa la orden. Al anotar una falla, las buenas de esa talla y color bajan solas. «¿Cuándo lo terminaste?» viene en hoy; la base guarda aparte
+// cuándo se anotó. Todo viaja en UNA llamada (`anotar_termine`): buenas, fallas y día, todo o nada.
 //
 // Al terminar el corte se pregunta la tela (actividad 7): cuando lo que se anota completa el lote, la hoja ofrece anotar de una vez los metros usados de cada tela (precargados con lo que
-// falta según el plan; vacío = «después, desde Tela»). Primero se anota el avance y después la tela: si la tela falla, el corte queda anotado y la hoja lo dice (no se mezclan en una sola RPC
-// para no tocar la firma de `registrar_avance`).
+// falta según el plan; vacío = «después, desde Tela»). Primero se anota el avance y después la tela: si la tela falla, el corte queda anotado y la hoja lo dice.
 //
-// Se anota con quien se elige en «Responsable» (ADR-0161/0162). El aviso de éxito trae «Deshacer» (ADR-0400): `registrar_avance` no devuelve los ids de lo que escribió, así que se leen de
-// la orden recién traída (`avancesNuevos`) y se deshacen con la misma firma. Un doble clic no escribe dos veces: una marca síncrona corta la segunda llamada.
+// Se anota con quien se elige en «Responsable» (ADR-0161/0162). El aviso de éxito trae «Deshacer» (ADR-0400): `anotar_termine` no devuelve los ids de lo que escribió, así que se leen de
+// la orden recién traída (`avancesNuevos`, `fallasNuevas`) y se deshacen con la misma firma. Un doble clic no escribe dos veces: una marca síncrona corta la segunda llamada.
 
 type Respuesta = PromiseLike<{ data: unknown; error: { message: string } | null }>;
 
@@ -42,6 +78,11 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(faltan).map(([id, n]) => [id, String(n)])));
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [hoy] = useState(() => hoyLima());
+  const apertura = fechaLimaDe(datos.orden.creadoEn);
+  const [dia, setDia] = useState(hoy);
+  const [fallas, setFallas] = useState<FallaBorrador[]>([]);
+  const [motivo, setMotivo] = useState("");
   // La tela de la orden (solo telas, no avíos: los avíos viajan con la salida o se anotan desde «Tela») con lo que falta usar según el plan.
   const telas = useMemo(() => telasDeLaOrden(datos.insumos).filter((t) => t.tipo === "tela"), [datos.insumos]);
   const [telaUsada, setTelaUsada] = useState<Record<string, string>>(() => Object.fromEntries(telas.map((t) => [t.insumoId, cantidadDeFabrica(t)])));
@@ -53,17 +94,42 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   const total = lineas.reduce((s, l) => s + l.cantidad, 0);
   const nombreMinuscula = fase.nombre.toLocaleLowerCase("es");
 
-  // ¿Esto completa el corte? Entonces se pregunta la tela. Solo en la primera fase, y solo si hay una tela que anotar y se puede operar.
-  const completaElCorte = esPrimeraFase(fase, datos.fases) && total > 0 && total >= faltaTerminar(fase, datos.fases);
+  // Las tallas y colores donde todavía falta algo: de ahí sale una prenda con falla.
+  const nombreDe = (id: string) => {
+    const l = lineasPorId.get(id);
+    return l ? `${l.colorNombre ?? "Sin color"} · ${l.talla ?? "Única"}` : "esa talla y color";
+  };
+  const opcionesVariante = datos.lineas.filter((l) => (faltan[l.varianteId] ?? 0) > 0).map((l) => ({ valor: l.varianteId, texto: `${nombreDe(l.varianteId)} (faltan ${faltan[l.varianteId]})` }));
+  const conFalla = totalFallas(fallas);
+  const problemasFallas = problemasDeFallas(faltan, cantidades, fallas, motivo, nombreDe);
+  const problemaDia = problemaDeDia(dia, hoy, apertura);
+
+  // ¿Esto completa el corte? Entonces se pregunta la tela. Solo en la primera fase, y solo si hay una tela que anotar y se puede operar. Las segundas y perdidas del corte también cuentan.
+  const cuentan = total + fallasQueCierran(fallas);
+  const completaElCorte = esPrimeraFase(fase, datos.fases) && cuentan > 0 && cuentan >= faltaTerminar(fase, datos.fases);
   const preguntaLaTela = completaElCorte && telas.some((t) => t.falta > 0 || t.usado === 0);
   // Con el corte completo y ninguna tela declarada no hay nada que preguntar ni descontar: se avisa, no se bloquea (ADR-0510).
   const sinTela = avisoCorteSinTela(datos.insumos, completaElCorte);
   const problemasDeTela = preguntaLaTela ? telas.flatMap((t) => (telaUsada[t.insumoId]?.trim() ? [problemaDeTelaUsada(t, telaUsada[t.insumoId], "usar")] : [])).filter((p): p is string => p !== null) : [];
 
-  const guia = useGuiaCampos(camposDeAvance({ total, responsableListo: responsable.listo }));
+  const guia = useGuiaCampos(
+    camposDeAvance({ total, responsableListo: responsable.listo, conFalla, hayFallas: fallas.length > 0, problemaFallas: problemasFallas[0] ?? null, problemaDia })
+  );
+
+  // Una falla nueva baja sola las buenas de su talla y color (nunca las sube): la hoja nace con todo como bueno.
+  function cambiarFallas(nuevas: FallaBorrador[]) {
+    setFallas(nuevas);
+    setCantidades((c) => buenasConFallas(faltan, c, nuevas));
+  }
+  function cambiarFila(i: number, cambio: Partial<FallaBorrador>) {
+    cambiarFallas(fallas.map((f, j) => (j === i ? { ...f, ...cambio } : f)));
+  }
+  function agregarFila() {
+    cambiarFallas([...fallas, { varianteId: opcionesVariante.length === 1 ? opcionesVariante[0].valor : "", cantidad: "1", destino: "arreglo" }]);
+  }
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
-  const fotoActual = fotoFormulario({ cantidades, nota, telaUsada });
+  const fotoActual = fotoFormulario({ cantidades, nota, telaUsada, dia, fallas, motivo });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Cambiaste lo que ibas a anotar y todavía no se guardó. Si cierras ahora, se pierde lo que cambiaste.");
   function cerrarTrasGuardar() {
@@ -75,8 +141,16 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enVuelo.current) return;
-    if (total <= 0) {
+    if (total + conFalla <= 0) {
       avisar.error("Escribe cuántas terminaste en al menos una talla y color.");
+      return;
+    }
+    if (problemasFallas.length > 0) {
+      avisar.error(problemasFallas[0]);
+      return;
+    }
+    if (problemaDia) {
+      avisar.error(problemaDia);
       return;
     }
     if (!responsable.listo) {
@@ -92,10 +166,20 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
     // «Deshacer» firma con la misma persona que anotó: el combo pudo volver a vacío entre tanto.
     const firma = responsable.firma();
     const antes = datos.lineaDeTiempo;
+    const lineasFalla = lineasDeFallas(fallas, motivo);
     let resultado;
     try {
       resultado = await firmar(
-        createClient().rpc(RPC_REGISTRAR_AVANCE as never, { p_fase_id: fase.id, p_lineas: lineas, p_nota: nota.trim() === "" ? null : nota.trim() } as never),
+        createClient().rpc(
+          RPC_ANOTAR_TERMINE as never,
+          {
+            p_fase_id: fase.id,
+            p_lineas: lineas,
+            p_nota: nota.trim() === "" ? null : nota.trim(),
+            p_hecho_en: diaParaLaBase(dia, hoy),
+            p_fallas: lineasFalla.length > 0 ? lineasFalla : null,
+          } as never
+        ),
         firma
       );
     } finally {
@@ -105,7 +189,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      // La base pudo guardar y la respuesta perderse: «No se guardó nada» sería mentira. Se dice que no se sabe y se pide revisar la línea de tiempo antes de repetir.
+      // La base pudo guardar y la respuesta perderse: «No se guardó nada» sería mentira. Se dice que no se sabe y se pide revisar la historia antes de repetir.
       avisar.error(traducirError(error, `anotar lo que terminaste en ${nombreMinuscula}`, { confirmarAntesDeRepetir: true }));
       return;
     }
@@ -123,8 +207,8 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
       }
     }
     if (falloDeTela) avisar.error(`El corte quedó anotado, pero la tela no: ${falloDeTela} Anótala desde «Tela».`);
-    avisar.exito(textoTermine(total, fase.nombre), {
-      detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}${anotadas.length > 0 ? ` · tela anotada: ${anotadas.join(", ")} (Deshacer no la devuelve)` : ""}`,
+    avisar.exito(total > 0 ? textoTermine(total, fase.nombre) : `Anotaste ${conFalla} con falla en ${fase.nombre}`, {
+      detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}${total > 0 && conFalla > 0 ? ` · ${conFalla} con falla` : ""}${anotadas.length > 0 ? ` · tela anotada: ${anotadas.join(", ")} (Deshacer no la devuelve)` : ""}`,
       accion: {
         texto: "Deshacer",
         onClick: async () => {
@@ -132,14 +216,16 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
           const leida = await (cliente.rpc(RPC_ORDEN_PRODUCCION as never, { p_produccion_id: datos.orden.id } as never) as unknown as Respuesta);
           const fresca = leida.error ? null : leerOrdenPagina(leida.data);
           const ids = fresca ? avancesNuevos(antes, fresca.lineaDeTiempo, fase.clave) : [];
-          if (ids.length === 0) {
-            avisar.error("No se pudo deshacer desde aquí. Si ya no aparece «Deshacer» en la línea de tiempo, otra anotación ya lo cambió.");
+          const idsFalla = fresca ? fallasNuevas(antes, fresca.lineaDeTiempo, fase.clave) : [];
+          if (ids.length === 0 && idsFalla.length === 0) {
+            avisar.error("No se pudo deshacer desde aquí. Si ya no aparece «Deshacer» en la historia, otra anotación ya lo cambió.");
             router.refresh();
             return;
           }
           let fallo = false;
-          for (const id of ids) {
-            const { error: e2 } = await firmar(cliente.rpc(RPC_DESHACER_AVANCE as never, { p_avance_id: id } as never), firma);
+          const pasos = [...ids.map((id) => ({ rpc: RPC_DESHACER_AVANCE, args: { p_avance_id: id } })), ...idsFalla.map((id) => ({ rpc: RPC_DESHACER_FALLA, args: { p_falla_id: id } }))];
+          for (const paso of pasos) {
+            const { error: e2 } = await firmar(cliente.rpc(paso.rpc as never, paso.args as never), firma);
             if (e2) {
               avisar.error(traducirError(e2, "deshacer lo que anotaste"));
               fallo = true;
@@ -154,6 +240,8 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
     cerrarTrasGuardar();
   }
 
+  const destinoDe = (d: DestinoFalla) => DESTINOS_FALLA.find((x) => x.valor === d);
+
   return (
     <Modal
       titulo={`¿Cuántas terminaste en ${nombreMinuscula}?`}
@@ -166,7 +254,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
       <form onSubmit={onSubmit} className="mt-3.5 space-y-5">
         <div data-guia="prod-orden-terminar.cantidades">
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
-            <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas terminaste por talla y color")}</span>
+            <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas salieron bien, por talla y color")}</span>
             <MatrizCantidades
               soloCantidades
               teclado
@@ -187,6 +275,56 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
             />
             <p className="text-xs text-tinta/65">Solo las prendas buenas pasan a la fase que sigue. Una raya (—) es una combinación que este modelo no tiene.</p>
           </CampoGuiado>
+        </div>
+
+        {/* Lo que no salió bien (ADR-0570): se abre a pedido; sin filas, la hoja es la de siempre. */}
+        <div data-guia="prod-orden-terminar.fallas">
+          {fallas.length === 0 ? (
+            opcionesVariante.length > 0 && (
+              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={agregarFila}>
+                + Anotar prendas con falla
+              </button>
+            )
+          ) : (
+            <CampoGuiado id="fallas" guia={guia} className="space-y-3 rounded-xl bg-hueso px-4 py-3">
+              <span className={campoEtiqueta}>{guia.etiqueta("fallas", "Prendas con falla")}</span>
+              {fallas.map((f, i) => (
+                <div key={i} className="space-y-2 border-b border-sand pb-3 last:border-b-0 last:pb-0">
+                  <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_1.5rem] items-end gap-x-3">
+                    <CampoSelect etiqueta="Talla y color" id={`falla-variante-${i}`} valor={f.varianteId} onValor={(v) => cambiarFila(i, { varianteId: v })} opciones={opcionesVariante} marcador="Elige" />
+                    <CampoTexto etiqueta="Cuántas" id={`falla-cantidad-${i}`} inputMode="numeric" value={f.cantidad} onChange={(e) => cambiarFila(i, { cantidad: e.target.value.replace(/\D/g, "") })} maxLength={5} />
+                    <div className="pb-2.5">
+                      <QuitarColor nombre={`esta fila de prendas con falla`} onQuitar={() => cambiarFallas(fallas.filter((_, j) => j !== i))} />
+                    </div>
+                  </div>
+                  <SegmentoDeslizante
+                    etiqueta={`Qué pasa con las de ${f.varianteId ? nombreDe(f.varianteId) : "esta fila"}`}
+                    opciones={DESTINOS_FALLA.map((d) => ({ clave: d.valor, etiqueta: d.texto }))}
+                    valor={f.destino}
+                    onCambio={(v) => cambiarFila(i, { destino: v as DestinoFalla })}
+                  />
+                  <p className="text-xs text-tinta/65">{destinoDe(f.destino)?.ayuda}</p>
+                </div>
+              ))}
+              {opcionesVariante.length > 1 && (
+                <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={agregarFila}>
+                  + Otra talla o color
+                </button>
+              )}
+              <div className="space-y-2">
+                <span className={campoEtiqueta}>¿Qué pasó?</span>
+                <div className="flex flex-wrap gap-2">
+                  {MOTIVOS_FALLA.map((m) => (
+                    <button key={m} type="button" className="pildora-cayla" aria-pressed={motivo === m} onClick={() => setMotivo(m)}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <CampoTexto etiqueta="O cuéntalo con tus palabras" id="falla-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={MAX_MOTIVO_FALLA} />
+              </div>
+              {problemasFallas[0] && <p className="text-xs text-tinta/75">{problemasFallas[0]}</p>}
+            </CampoGuiado>
+          )}
         </div>
 
         {preguntaLaTela && (
@@ -214,7 +352,19 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
 
         {sinTela && <Aviso tono="atencion">{sinTela.texto}</Aviso>}
 
-        <CampoTexto id="avance-nota" etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
+        <div data-guia="prod-orden-terminar.dia" className="grid gap-4 sm:grid-cols-2">
+          <CampoGuiado id="dia" guia={guia}>
+            <CampoFecha
+              etiqueta={guia.etiqueta("dia", "¿Cuándo lo terminaste?")}
+              id="avance-dia"
+              valor={dia}
+              onValor={setDia}
+              tono={problemaDia ? "error" : "neutro"}
+              pie={problemaDia ?? (dia === hoy ? "Hoy. Si fue otro día, cámbialo: se guarda aparte cuándo lo anotaste." : "Se guarda aparte cuándo lo anotaste.")}
+            />
+          </CampoGuiado>
+          <CampoTexto id="avance-nota" etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
+        </div>
 
         <div data-guia="prod-orden-terminar.cierre" className="space-y-3">
           <CampoGuiado id="quien" guia={guia}>
@@ -228,8 +378,16 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar || problemasDeTela.length > 0} title={guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-              {total > 0 ? `Terminé ${total}` : "Terminé"}
+            <Boton
+              type="submit"
+              peso="primario"
+              cargando={cargando}
+              textoCargando="Anotando…"
+              disabled={!guia.puedeConfirmar || problemasDeTela.length > 0}
+              title={guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}
+              className={guia.claseConfirmar}
+            >
+              {conFalla > 0 ? `Anotar ${total + conFalla}` : total > 0 ? `Terminé ${total}` : "Terminé"}
             </Boton>
           </div>
         </div>

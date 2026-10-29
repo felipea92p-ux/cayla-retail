@@ -14,12 +14,31 @@ describe("camposDeAvance — la guía coincide con lo que registrar_avance exige
   it("al abrir la hoja precargada con lo que falta, solo sigue «quién lo anota»", () => {
     const campos = camposDeAvance({ total: 48, responsableListo: false });
     expect(siguienteDe(campos)?.id).toBe("quien");
-    expect(estadosDe(campos)).toEqual({ cantidades: "hecho", quien: "ahora" });
+    expect(estadosDe(campos)).toEqual({ cantidades: "hecho", dia: "hecho", quien: "ahora" });
   });
   it("si se borra todo, sigue «cuántas» y dice qué hacer", () => {
     const campos = camposDeAvance({ total: 0, responsableListo: true });
     expect(siguienteDe(campos)).toMatchObject({ id: "cantidades", pendiente: "Escribe cuántas terminaste en cada talla y color." });
     expect(faltanDe(camposDeAvance({ total: 0, responsableListo: false })).map((c) => c.id)).toEqual(["cantidades", "quien"]);
+  });
+});
+
+describe("camposDeAvance con falla y con fecha (ADR-0570) — la guía coincide con lo que anotar_termine exige", () => {
+  it("una anotación de solo fallas vale: «cuántas» queda hecha con 0 buenas y 2 con falla", () => {
+    const campos = camposDeAvance({ total: 0, conFalla: 2, hayFallas: true, problemaFallas: null, responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(true);
+    expect(estadosDe(campos)).toMatchObject({ cantidades: "hecho", fallas: "hecho" });
+  });
+  it("una falla a medias detiene la hoja y dice qué falta; sin filas de falla, el campo no existe", () => {
+    const campos = camposDeAvance({ total: 6, conFalla: 2, hayFallas: true, problemaFallas: "Cuenta qué pasó con las prendas con falla.", responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(siguienteDe(campos)).toMatchObject({ id: "fallas", pendiente: "Cuenta qué pasó con las prendas con falla." });
+    expect(camposDeAvance({ total: 6, responsableListo: true }).map((c) => c.id)).toEqual(["cantidades", "dia", "quien"]);
+  });
+  it("un día que no vale detiene la hoja con su frase", () => {
+    const campos = camposDeAvance({ total: 6, problemaDia: "Ese día todavía no llega: elige hoy o un día anterior.", responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(siguienteDe(campos)?.id).toBe("dia");
   });
 });
 

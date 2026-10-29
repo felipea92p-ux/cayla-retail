@@ -8,7 +8,7 @@ import { Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { traducirError } from "@/lib/error-escritura";
-import { RPC_DESHACER_AVANCE, type EntradaDeTiempo, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { RPC_DESHACER_AVANCE, RPC_DESHACER_FALLA, type EntradaDeTiempo, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
@@ -25,7 +25,7 @@ export function DeshacerAvanceModal({ datos, entrada, onClose }: { datos: OrdenP
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (enVuelo.current || !entrada.avanceIds) return;
+    if (enVuelo.current || (!entrada.avanceIds && !entrada.fallaIds)) return;
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -36,8 +36,10 @@ export function DeshacerAvanceModal({ datos, entrada, onClose }: { datos: OrdenP
     let fallo: Parameters<typeof traducirError>[0] = null;
     try {
       const cliente = createClient();
-      for (const id of entrada.avanceIds) {
-        const { error } = await firmar(cliente.rpc(RPC_DESHACER_AVANCE as never, { p_avance_id: id } as never), firma);
+      // Un «Terminé» son sus avances; una entrada con falla, sus prendas con falla (ADR-0570): cada una con su fila contraria.
+      const pasos = [...(entrada.avanceIds ?? []).map((id) => ({ rpc: RPC_DESHACER_AVANCE, args: { p_avance_id: id } })), ...(entrada.fallaIds ?? []).map((id) => ({ rpc: RPC_DESHACER_FALLA, args: { p_falla_id: id } }))];
+      for (const paso of pasos) {
+        const { error } = await firmar(cliente.rpc(paso.rpc as never, paso.args as never), firma);
         responsable.despues(error);
         if (error) {
           fallo = error;

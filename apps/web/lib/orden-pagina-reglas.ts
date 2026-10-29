@@ -21,7 +21,6 @@ import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 
 export const RPC_ORDEN_PRODUCCION = "fn_orden_produccion";
 export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
-export const RPC_REGISTRAR_AVANCE = "registrar_avance";
 export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
 /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
@@ -48,7 +47,7 @@ export const DIAS_SIN_MOVERSE = 4;
 
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
-export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca";
+export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
 
 export type ProductoPagina = {
   id: string;
@@ -70,7 +69,20 @@ export type LineaPagina = {
   cantidadBuenas: number | null;
 };
 
-export type FaseVariante = { varianteId: string; plan: number | null; entrada: number; hechas: number; salieron: number; volvieronBuenas: number; segundas: number; faltantes: number; afuera: number };
+export type FaseVariante = {
+  varianteId: string;
+  plan: number | null;
+  entrada: number;
+  hechas: number;
+  salieron: number;
+  volvieronBuenas: number;
+  segundas: number;
+  faltantes: number;
+  afuera: number;
+  /** En el Taller (ADR-0570): las segundas y las perdidas que se anotaron en «Terminé». Cierran la fase y no pasan a la siguiente. */
+  fallasSegundas: number;
+  fallasPerdidas: number;
+};
 
 export type FasePagina = {
   id: string;
@@ -194,6 +206,12 @@ export type EventoTiempo = {
   /** Solo en una anulación: qué anuló, y por qué. */
   anula: "salida" | "vuelta" | null;
   motivo: string | null;
+  /** Solo en una prenda con falla (ADR-0570): qué pasa con ella. */
+  destino: DestinoFalla | null;
+  /** Solo en una prenda con falla que todavía se puede deshacer. */
+  fallaId: string | null;
+  /** Cuándo se anotó, si no fue el mismo día en que pasó (`cuando` es el día real que eligió quien anotó). */
+  registradoEn: string | null;
 };
 
 export type OrdenPagina = {
@@ -231,7 +249,7 @@ function numero(x: unknown): number | null {
 }
 const entero = (x: unknown, defecto = 0): number => Math.round(numero(x) ?? defecto);
 const claves = new Set<string>(FASES.map((f) => f.clave));
-const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion", "marca", "desmarca"]);
+const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion", "marca", "desmarca", "falla", "falla_deshecha"]);
 
 function leerFase(crudo: unknown): FasePagina | null {
   if (!esObjeto(crudo)) return null;
@@ -244,7 +262,21 @@ function leerFase(crudo: unknown): FasePagina | null {
         if (!esObjeto(v)) return [];
         const varianteId = texto(v.variante_id);
         if (!varianteId) return [];
-        return [{ varianteId, plan: numero(v.plan), entrada: entero(v.entrada), hechas: entero(v.hechas), salieron: entero(v.salieron), volvieronBuenas: entero(v.volvieron_buenas), segundas: entero(v.segundas), faltantes: entero(v.faltantes), afuera: entero(v.afuera) }];
+        return [
+          {
+            varianteId,
+            plan: numero(v.plan),
+            entrada: entero(v.entrada),
+            hechas: entero(v.hechas),
+            salieron: entero(v.salieron),
+            volvieronBuenas: entero(v.volvieron_buenas),
+            segundas: entero(v.segundas),
+            faltantes: entero(v.faltantes),
+            afuera: entero(v.afuera),
+            fallasSegundas: entero(v.fallas_segundas),
+            fallasPerdidas: entero(v.fallas_perdidas),
+          },
+        ];
       })
     : [];
   return {
@@ -301,6 +333,9 @@ function leerEvento(crudo: unknown): EventoTiempo | null {
     anulable: crudo.anulable === true,
     anula: crudo.anula === "salida" || crudo.anula === "vuelta" ? crudo.anula : null,
     motivo: texto(crudo.motivo),
+    destino: crudo.destino === "segunda" || crudo.destino === "perdida" || crudo.destino === "arreglo" ? crudo.destino : null,
+    fallaId: texto(crudo.falla_id),
+    registradoEn: texto(crudo.registrado_en),
   };
 }
 
@@ -581,14 +616,15 @@ export function esPrimeraFase(f: FasePagina, fases: readonly FasePagina[]): bool
 
 /**
  * Lo que falta terminar en una fase del Taller, por talla y color (solo las que faltan algo): en la primera fase, el plan menos lo ya cortado; en las demás, lo que entró de la
- * fase anterior menos lo ya terminado. Es el valor de fábrica de «Terminé»: un clic y están todas. Nunca pasa de lo que `registrar_avance` acepta.
+ * fase anterior menos lo ya terminado. Las segundas y las perdidas de «Terminé» ya no faltan (ADR-0570); un arreglo sí sigue faltando. Es el valor de fábrica de «Terminé»: un clic
+ * y están todas. Nunca pasa de lo que `anotar_termine` acepta.
  */
 export function cantidadesQueFaltan(f: FasePagina, fases: readonly FasePagina[]): Record<string, number> {
   const primera = esPrimeraFase(f, fases);
   const salida: Record<string, number> = {};
   for (const v of f.porVariante) {
     const tope = primera ? (v.plan ?? v.entrada) : v.entrada;
-    const falta = Math.max(tope - v.hechas, 0);
+    const falta = Math.max(tope - v.hechas - v.fallasSegundas - v.fallasPerdidas, 0);
     if (falta > 0) salida[v.varianteId] = falta;
   }
   return salida;
@@ -713,7 +749,11 @@ export type TextoDeFase = { cifra: string; de: string; detalle: string };
 export function textoDeFase(f: FasePagina, ctx: { previa: FasePagina | null; terminoEl: string | null; totalPlan: number }): TextoDeFase {
   const total = Math.max(ctx.totalPlan, f.entrada, f.hechas);
   const previa = ctx.previa ? ctx.previa.nombre : "la fase anterior";
-  const extras = [f.segundas > 0 ? cuantas(f.segundas, "segunda", "segundas") : null, f.faltantes > 0 ? cuantas(f.faltantes, "faltante", "faltantes") : null].filter((x): x is string => x !== null);
+  // En el Taller lo que no salió bien «se perdió» (ADR-0570); en un servicio, «faltó» (no volvió).
+  const extras = [
+    f.segundas > 0 ? cuantas(f.segundas, "segunda", "segundas") : null,
+    f.faltantes > 0 ? (f.quien === "taller" ? cuantas(f.faltantes, "perdida", "perdidas") : cuantas(f.faltantes, "faltante", "faltantes")) : null,
+  ].filter((x): x is string => x !== null);
   const conExtras = (base: string) => [base, ...extras].join(" · ");
   const servicio = f.quien === "servicio";
   if (f.hito) return textoDeHito(f, ctx.terminoEl);
@@ -779,8 +819,9 @@ export function subtituloEnRuta(f: FasePagina, terminoEl: string | null, totalPl
   return f.quien === "servicio" ? `Afuera · ${quienDeFase(f)}` : "Taller";
 }
 
-/** El color del punto de cada entrada de la historia: lo hecho en verde, lo que salió a un servicio en pizarra (en camino), lo que se deshizo o anuló en ámbar y la apertura en tinta. */
-export type TonoDeEntrada = "hecho" | "camino" | "cambio" | "inicio";
+/** El color del punto de cada entrada de la historia: lo hecho en verde, lo que salió a un servicio en pizarra (en camino), lo que se deshizo o anuló en ámbar, una prenda con falla en
+ *  rojo (lo único rojo: un problema) y la apertura en tinta. */
+export type TonoDeEntrada = "hecho" | "camino" | "cambio" | "problema" | "inicio";
 
 export function tonoDeEntrada(tipo: TipoEvento): TonoDeEntrada {
   switch (tipo) {
@@ -790,9 +831,12 @@ export function tonoDeEntrada(tipo: TipoEvento): TonoDeEntrada {
       return "hecho";
     case "salida":
       return "camino";
+    case "falla":
+      return "problema";
     case "deshacer":
     case "anulacion":
     case "desmarca":
+    case "falla_deshecha":
       return "cambio";
     default:
       return "inicio";
@@ -803,7 +847,7 @@ export function tonoDeEntrada(tipo: TipoEvento): TonoDeEntrada {
 export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiempo[]): string | null {
   let ultimo: string | null = null;
   for (const e of linea) {
-    if (e.faseClave !== clave || (e.tipo !== "avance" && e.tipo !== "vuelta" && e.tipo !== "marca")) continue;
+    if (e.faseClave !== clave || (e.tipo !== "avance" && e.tipo !== "vuelta" && e.tipo !== "marca" && e.tipo !== "falla")) continue;
     if (ultimo === null || Date.parse(e.cuando) > Date.parse(ultimo)) ultimo = e.cuando;
   }
   return ultimo;
@@ -965,7 +1009,11 @@ export type CausaRoja = { clave: "entrega_pasada" | "tela_no_llega" | "sin_mover
 /** El último día (de Lima) en que alguien anotó algo en la orden: abrirla, terminar, deshacer, mandar o recibir. */
 function ultimoMovimiento(linea: readonly EventoTiempo[]): string | null {
   let ultimo: string | null = null;
-  for (const e of linea) if (ultimo === null || Date.parse(e.cuando) > Date.parse(ultimo)) ultimo = e.cuando;
+  // Cuándo se ANOTÓ (ADR-0570): anotar hoy algo que pasó hace tres días es anotar hoy.
+  for (const e of linea) {
+    const anotado = e.registradoEn ?? e.cuando;
+    if (ultimo === null || Date.parse(anotado) > Date.parse(ultimo)) ultimo = anotado;
+  }
   return ultimo ? fechaLimaDe(ultimo) : null;
 }
 
@@ -1021,6 +1069,10 @@ export type EntradaDeTiempo = {
   anulable: { id: string; que: "salida" | "vuelta" } | null;
   /** Una salida o una vuelta que ya se anuló: se ve apagada, con su chip. */
   anulada: boolean;
+  /** Las prendas con falla que «Deshacer» deshace (ADR-0570): solo si todas las de esta entrada se pueden deshacer. `null`: no hay Deshacer. */
+  fallaIds: string[] | null;
+  /** «anotó el jue 29 a las 09:12» cuando se anotó otro día que el que pasó; `null` si fue el mismo día (y entonces vale `hora`). */
+  anotado: string | null;
 };
 
 export type DiaDeTiempo = { dia: string; etiqueta: string; hoy: boolean; entradas: EntradaDeTiempo[] };
@@ -1068,7 +1120,15 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
   for (const e of ordenados) {
     const previo = grupos[grupos.length - 1];
     const ref = previo?.[0];
-    const mismo = ref && (e.tipo === "avance" || e.tipo === "deshacer") && ref.tipo === e.tipo && ref.faseClave === e.faseClave && ref.quienNombre === e.quienNombre && Math.abs(Date.parse(ref.cuando) - Date.parse(e.cuando)) <= MARGEN_MS;
+    // Lo anotado de una vez: se compara cuándo se ANOTÓ (con el día real elegido, dos tallas de la misma anotación tienen el mismo «cuando» de mediodía).
+    const anotadoEn = (x: EventoTiempo) => Date.parse(x.registradoEn ?? x.cuando);
+    const mismo =
+      ref &&
+      (e.tipo === "avance" || e.tipo === "deshacer" || e.tipo === "falla" || e.tipo === "falla_deshecha") &&
+      ref.tipo === e.tipo &&
+      ref.faseClave === e.faseClave &&
+      ref.quienNombre === e.quienNombre &&
+      Math.abs(anotadoEn(ref) - anotadoEn(e)) <= MARGEN_MS;
     if (mismo) previo.push(e);
     else grupos.push([e]);
   }
@@ -1087,6 +1147,14 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       const resumen = g.length > 1 ? resumenPorColor(g, p.lineas) : null;
       const nota = g.map((x) => x.nota).find((n): n is string => n !== null) ?? null;
       detalle = g.length > 1 ? [resumen, nota].filter(Boolean).join(" · ") || null : (e.detalle ?? null);
+    } else if (e.tipo === "falla" || e.tipo === "falla_deshecha") {
+      // ADR-0570: «2 segundas · 1 perdida» y el porqué; un Deshacer dice qué deshizo.
+      titulo = e.tipo === "falla" ? `Con falla en ${nombreFase}` : `Deshizo lo anotado con falla en ${nombreFase}`;
+      cuanto = cuantas(total, "prenda", "prendas");
+      const porDestino = { arreglo: 0, segunda: 0, perdida: 0 } as Record<DestinoFalla, number>;
+      for (const x of g) if (x.destino) porDestino[x.destino] += x.cantidad;
+      const motivos = [...new Set(g.map((x) => x.motivo).filter((m): m is string => m !== null))];
+      detalle = `${textoFallas(porDestino)}${motivos.length > 0 ? `: ${motivos.join("; ")}` : ""}`;
     } else if (e.tipo === "marca") {
       titulo = `Marcó ${nombreFase} como hecho`;
       detalle = e.nota;
@@ -1098,10 +1166,13 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       detalle = e.motivo ? `Por qué: ${e.motivo}` : null;
     } else titulo = `Vuelta de ${nombreFase}`;
     const todosDeshacibles = e.tipo === "avance" && g.every((x) => x.avanceId !== null);
+    const fallasDeshacibles = e.tipo === "falla" && g.every((x) => x.fallaId !== null);
+    // Anotado otro día que el que pasó (ADR-0570): la hora de «cuando» sería el mediodía puesto por la base; se dice cuándo se anotó.
+    const anotado = e.registradoEn && fechaLimaDe(e.registradoEn) !== fechaLimaDe(e.cuando) ? `anotó el ${diaCorto(fechaLimaDe(e.registradoEn))} a las ${horaLima(e.registradoEn)}` : null;
     const entrada: EntradaDeTiempo = {
       ids: g.map((x) => x.id),
       cuando: e.cuando,
-      hora: horaLima(e.cuando),
+      hora: horaLima(e.registradoEn ?? e.cuando),
       quien: e.quienNombre,
       tipo: e.tipo,
       titulo,
@@ -1110,6 +1181,8 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       avanceIds: todosDeshacibles ? g.map((x) => x.avanceId as string) : null,
       anulable: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulable && !e.anulada ? { id: e.id, que: e.tipo } : null,
       anulada: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulada,
+      fallaIds: fallasDeshacibles ? g.map((x) => x.fallaId as string) : null,
+      anotado,
     };
     const dia = fechaLimaDe(e.cuando);
     const ultimo = dias_[dias_.length - 1];
@@ -1131,6 +1204,125 @@ export function avancesNuevos(antes: readonly EventoTiempo[], despues: readonly 
 /** El texto del aviso de éxito: «Terminaste 120 prendas de Corte». */
 export function textoTermine(total: number, faseNombre: string): string {
   return `Terminaste ${cuantas(total, "prenda", "prendas")} de ${faseNombre}`;
+}
+
+// ---------- «Terminé» con falla y con fecha (ADR-0570, actividad 2) ----------
+// Lo que no salió bien en una fase del Taller: «se arregla» (vuelve a quien la arregla y sigue pendiente aquí), «segunda» (no entra al stock) o «se perdió». Segunda y perdida cierran la
+// fase y no pasan a la siguiente; el arreglo solo se cuenta en la historia. Y el día real de lo anotado. Nada de esto decide algo nuevo: los rechazos son los de `anotar_termine`
+// (20261029164000), con sus mismos hints.
+
+export const RPC_ANOTAR_TERMINE = "anotar_termine";
+export const RPC_DESHACER_FALLA = "deshacer_falla";
+
+export type DestinoFalla = "arreglo" | "segunda" | "perdida";
+
+/** Las tres salidas de una prenda con falla, en el orden en que se ofrecen (la que no se pierde, primero). */
+export const DESTINOS_FALLA: readonly { valor: DestinoFalla; texto: string; ayuda: string }[] = [
+  { valor: "arreglo", texto: "Se arregla", ayuda: "Vuelve a quien la arregla y sigue pendiente aquí." },
+  { valor: "segunda", texto: "Segunda", ayuda: "No entra al stock; su costo lo cargan las buenas." },
+  { valor: "perdida", texto: "Se perdió", ayuda: "No se vende ni se arregla." },
+];
+
+/** Lo que pasa casi siempre, a un toque; lo demás se escribe. */
+export const MOTIVOS_FALLA = ["Mancha", "Quemadura de plancha", "Costura abierta", "Medida equivocada", "Tela fallada"] as const;
+export const MAX_MOTIVO_FALLA = 200;
+
+/** Una fila de prendas con falla en la hoja «Terminé», tal como la escribe la persona. */
+export type FallaBorrador = { varianteId: string; cantidad: string; destino: DestinoFalla };
+
+const enteroDe = (s: string): number => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : 0);
+
+/** Cuántas con falla en total (una celda vacía o que no es un entero cuenta 0). */
+export function totalFallas(fallas: readonly FallaBorrador[]): number {
+  return fallas.reduce((s, f) => s + (f.varianteId ? enteroDe(f.cantidad) : 0), 0);
+}
+
+/** Las que cierran la fase (segunda y perdida): un arreglo sigue pendiente. */
+export function fallasQueCierran(fallas: readonly FallaBorrador[]): number {
+  return fallas.reduce((s, f) => s + (f.varianteId && f.destino !== "arreglo" ? enteroDe(f.cantidad) : 0), 0);
+}
+
+function fallasPorVariante(fallas: readonly FallaBorrador[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const f of fallas) if (f.varianteId) m.set(f.varianteId, (m.get(f.varianteId) ?? 0) + enteroDe(f.cantidad));
+  return m;
+}
+
+/**
+ * Las buenas con las fallas descontadas: la hoja nace con todo lo que falta como bueno, así que al anotar 2 con falla en una talla y color, sus buenas bajan solas para que buenas +
+ * fallas no pasen de lo que falta. Nunca suben: lo que la persona bajó a mano se respeta (como «Segundas» en la Vuelta).
+ */
+export function buenasConFallas(faltan: Readonly<Record<string, number>>, cantidades: Readonly<Record<string, string>>, fallas: readonly FallaBorrador[]): Record<string, string> {
+  const salida: Record<string, string> = { ...cantidades };
+  for (const [id, conFalla] of fallasPorVariante(fallas)) {
+    const tope = Math.max((faltan[id] ?? 0) - conFalla, 0);
+    if (enteroDe(salida[id] ?? "0") > tope) salida[id] = String(tope);
+  }
+  return salida;
+}
+
+/** Lo que impide anotar las prendas con falla, en el orden en que la persona lo arregla. Vacío = la base lo aceptaría. */
+export function problemasDeFallas(
+  faltan: Readonly<Record<string, number>>,
+  cantidades: Readonly<Record<string, string>>,
+  fallas: readonly FallaBorrador[],
+  motivo: string,
+  nombreDe: (varianteId: string) => string
+): string[] {
+  const problemas: string[] = [];
+  if (fallas.some((f) => !f.varianteId)) problemas.push("Elige la talla y el color de cada prenda con falla.");
+  for (const f of fallas) if (f.varianteId && enteroDe(f.cantidad) <= 0) problemas.push(`Escribe cuántas con falla hay en ${nombreDe(f.varianteId)}.`);
+  for (const [id, conFalla] of fallasPorVariante(fallas)) {
+    const buenas = enteroDe(cantidades[id] ?? "0");
+    const falta = faltan[id] ?? 0;
+    if (buenas + conFalla > falta) problemas.push(`En ${nombreDe(id)} faltan ${falta}: entre buenas y con falla anotaste ${buenas + conFalla}.`);
+  }
+  if (fallas.length > 0 && motivo.trim() === "") problemas.push("Cuenta qué pasó con las prendas con falla.");
+  if (motivo.trim().length > MAX_MOTIVO_FALLA) problemas.push(`Lo que cuentas de la falla es muy largo: hasta ${MAX_MOTIVO_FALLA} letras.`);
+  return problemas;
+}
+
+/** Lo que viaja a `anotar_termine` (`p_fallas`): una línea por talla, color y destino (dos filas iguales se suman), con el mismo motivo. */
+export function lineasDeFallas(fallas: readonly FallaBorrador[], motivo: string): { variante_id: string; cantidad: number; destino: DestinoFalla; motivo: string }[] {
+  const juntas = new Map<string, { variante_id: string; cantidad: number; destino: DestinoFalla; motivo: string }>();
+  for (const f of fallas) {
+    const n = enteroDe(f.cantidad);
+    if (!f.varianteId || n <= 0) continue;
+    const clave = `${f.varianteId}:${f.destino}`;
+    const previa = juntas.get(clave);
+    if (previa) previa.cantidad += n;
+    else juntas.set(clave, { variante_id: f.varianteId, cantidad: n, destino: f.destino, motivo: motivo.trim() });
+  }
+  return [...juntas.values()];
+}
+
+/** «2 segundas · 1 perdida · 1 se arregla», en el orden de los destinos y sin los que están en cero. */
+export function textoFallas(porDestino: Readonly<Record<DestinoFalla, number>>): string {
+  const partes = [
+    porDestino.segunda > 0 ? cuantas(porDestino.segunda, "segunda", "segundas") : null,
+    porDestino.perdida > 0 ? cuantas(porDestino.perdida, "perdida", "perdidas") : null,
+    porDestino.arreglo > 0 ? `${porDestino.arreglo} ${porDestino.arreglo === 1 ? "se arregla" : "se arreglan"}` : null,
+  ].filter((p): p is string => p !== null);
+  return partes.join(" · ");
+}
+
+/** El día de lo anotado: hoy de fábrica; nunca futuro ni antes de abrir la orden (la base repite: `avance_fecha_futura`, `avance_fecha_antes_de_abrir`). `null` = se puede. */
+export function problemaDeDia(dia: string, hoy: string, apertura: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return "Elige el día en que lo terminaste.";
+  if (dia > hoy) return "Ese día todavía no llega: elige hoy o un día anterior.";
+  if (dia < apertura) return `La orden se abrió el ${diaCorto(apertura)}: no puede ser antes.`;
+  return null;
+}
+
+/** El día que viaja a la base: `null` si es hoy (vale la hora en que se anota). */
+export function diaParaLaBase(dia: string, hoy: string): string | null {
+  return dia === hoy ? null : dia;
+}
+
+/** Las prendas con falla anotadas después de `antes` en una fase, que todavía se pueden deshacer: lo que el «Deshacer» del aviso tiene que deshacer (como `avancesNuevos`). */
+export function fallasNuevas(antes: readonly EventoTiempo[], despues: readonly EventoTiempo[], fase: FaseClave): string[] {
+  const conocidos = new Set(antes.map((e) => e.id));
+  return despues.flatMap((e) => (e.tipo === "falla" && e.faseClave === fase && e.fallaId !== null && !conocidos.has(e.id) ? [e.fallaId] : []));
 }
 
 // ---------- Salida y Vuelta de un servicio (ADR-0400, decisión 4; actividad 4) ----------
