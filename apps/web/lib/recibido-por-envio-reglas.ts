@@ -13,6 +13,8 @@ export type EnvioRecibido = {
   /** «ENV-000254»; `null` en una llegada sin envío. */
   numero: string | null;
   fecha: string;
+  /** Cuándo la sede abrió el envío para recibirlo (`despachos.abierto_en`); `null` en una llegada sin envío o si la base no lo dio. */
+  llegoEn: string | null;
   ubicacion: string;
   /** Sin repetir, en el orden en que aparecen. */
   proveedores: string[];
@@ -33,6 +35,7 @@ export function agruparPorEnvio(recepciones: readonly RecepcionReciente[]): Envi
         clave,
         numero: r.despachoId ? r.envioNumero : null,
         fecha: r.fecha,
+        llegoEn: r.llegoEn ?? null,
         ubicacion: r.ubicacion,
         proveedores: [nombre],
         recibidoPor: r.recibidoPor,
@@ -44,6 +47,7 @@ export function agruparPorEnvio(recepciones: readonly RecepcionReciente[]): Envi
     }
     if (!e.proveedores.includes(nombre)) e.proveedores.push(nombre);
     if (r.fecha > e.fecha) e.fecha = r.fecha;
+    if (r.llegoEn && (!e.llegoEn || r.llegoEn < e.llegoEn)) e.llegoEn = r.llegoEn;
     e.recibidoPor ??= r.recibidoPor;
     e.unidades += r.unidades;
     e.lineas += r.lineas;
