@@ -48,6 +48,8 @@ export type ConceptoGasto = {
   nombre: string;
   /** El código de `retail.categorias_gasto` al que va. */
   categoria: string;
+  /** Las categorías donde se anotó este concepto ANTES de tener la suya (20261029044000: «Bolsas» y «Limpieza» iban a «suministros»; 20261029153000: «Luz» iba a «servicios básicos»): así los gastos de antes se siguen reconociendo. */
+  categoriasDeAntes?: readonly string[];
   /** Palabras con las que se reconoce un gasto ya registrado (sin tildes, en minúsculas; basta el comienzo de la palabra). */
   palabras: readonly string[];
 };
@@ -55,7 +57,14 @@ export type ConceptoGasto = {
 /** El orden de fábrica: el que se usa para desempatar cuando dos conceptos tienen la misma frecuencia. */
 export const CONCEPTOS: readonly ConceptoGasto[] = [
   { clave: "agua", nombre: "Agua", categoria: "servicios_basicos", palabras: ["agua", "sedapal", "sedalib", "sedapar", "epsel"] },
-  { clave: "luz", nombre: "Luz", categoria: "servicios_basicos", palabras: ["luz", "hidrandina", "enel", "seal", "electricidad", "electro"] },
+  // La luz tiene su categoría (ADR-0560, actividad 12): en Tienda Lima es 50/50 con CLAURE; agua, internet y baño (servicios básicos) son 100 % de CLAURE. Los «Luz» anotados antes en servicios básicos se siguen reconociendo.
+  {
+    clave: "luz",
+    nombre: "Luz",
+    categoria: "luz",
+    categoriasDeAntes: ["servicios_basicos"],
+    palabras: ["luz", "hidrandina", "enel", "seal", "electricidad", "electro"],
+  },
   {
     clave: "internet",
     nombre: "Internet y celular",
@@ -70,11 +79,13 @@ export const CONCEPTOS: readonly ConceptoGasto[] = [
     palabras: ["movilidad", "mototaxi", "moto", "taxi", "colectivo", "pasaje", "combi", "carrera", "uber"],
   },
   { clave: "envio", nombre: "Envío", categoria: "transporte", palabras: ["envio", "encomienda", "olva", "shalom", "courier", "delivery", "agencia"] },
-  { clave: "bolsas", nombre: "Bolsas", categoria: "suministros", palabras: ["bolsa", "empaque"] },
+  // «Bolsas» y «Limpieza» tienen su categoría propia (20261029044000, ADR-0560): en Tienda Lima son 100 % de CLAURE y la base las reparte por categoría.
+  { clave: "bolsas", nombre: "Bolsas", categoria: "bolsas", categoriasDeAntes: ["suministros"], palabras: ["bolsa", "empaque"] },
   {
     clave: "limpieza",
     nombre: "Limpieza",
-    categoria: "suministros",
+    categoria: "limpieza",
+    categoriasDeAntes: ["suministros"],
     palabras: ["limpieza", "lejia", "detergente", "trapeador", "escoba", "desinfectante", "ambientador", "papel higienico", "jabon"],
   },
   {
@@ -126,7 +137,7 @@ function posicionDePalabra(texto: string, palabra: string): number {
  */
 export function conceptoDeGasto(g: { descripcion: string; categoria: string }): ClaveConcepto | typeof CLAVE_OTRO {
   const texto = normalizar(g.descripcion);
-  const candidatos = CONCEPTOS.filter((c) => c.categoria === g.categoria);
+  const candidatos = CONCEPTOS.filter((c) => c.categoria === g.categoria || c.categoriasDeAntes?.includes(g.categoria));
   const porNombre = candidatos.find((c) => posicionDePalabra(texto, normalizar(c.nombre)) === 0);
   if (porNombre) return porNombre.clave;
   let mejor: { clave: ClaveConcepto; pos: number; largo: number } | null = null;

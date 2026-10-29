@@ -555,7 +555,10 @@ type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null }
  * Los campos del paso del papel. La foto es opcional (Felipe 2026-10-23, 20261023180000): con un papel (factura, boleta o nota) se SUGIERE —sin
  * ella, Compras copia la serie y el número del papel en la mano—, nunca frena el guardado. Sin papel, ni se ofrece.
  */
-export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra }, r: Responsable): CampoDeGuia[] {
+export function camposPapel(
+  v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra; serie?: string; numero?: string },
+  r: Responsable,
+): CampoDeGuia[] {
   const monto = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
   const conPapel = v.tipo !== null && v.tipo !== "sin_comprobante";
   // Sin `pago` (las pantallas que no lo preguntan) no entran sus campos.
@@ -563,6 +566,8 @@ export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto
   const pagado = pago?.forma === "ahora" ? problemaPagado(pago.pagado, v.monto) : null;
   return [
     { id: "tipo", nombre: "Qué te dieron", requerido: true, hecho: v.tipo !== null, pendiente: "Elige qué papel te dio el proveedor." },
+    // La serie y el número van antes que la foto: son lo que la compra necesita para pasar sola a los libros; la foto es de respaldo.
+    ...camposSerieNumero(v),
     ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
     { id: "monto", nombre: "Cuánto dice el papel", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
     ...(pago?.forma === "ahora"
@@ -573,6 +578,27 @@ export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto
       : []),
     ...(r.esPersona ? [] : [{ id: "responsable", nombre: "Quién compró", requerido: true, hecho: r.listo, pendiente: r.motivo ?? "Elige quién compró." }]),
   ];
+}
+
+/**
+ * La serie y el número que la compradora copia del papel (ADR-0574). Lo mismo que rechaza la base: factura y boleta piden los dos; una nota de
+ * venta, solo el número y si lo tiene (no cuenta como «falta»). Una pantalla que no los pregunta (`serie` sin definir) no los trae.
+ */
+function camposSerieNumero(v: { tipo: TipoPapel | null; serie?: string; numero?: string }): CampoDeGuia[] {
+  if (v.tipo === null || v.serie === undefined || v.numero === undefined) return [];
+  if (pideSerie(v.tipo)) {
+    const s = problemaSerie(v.serie);
+    const n = problemaNumero(v.numero, v.tipo);
+    return [
+      { id: "serie", nombre: "La serie del papel", requerido: true, hecho: s === null, pendiente: s ?? "" },
+      { id: "numero", nombre: "El número del papel", requerido: true, hecho: n === null, pendiente: n ?? "" },
+    ];
+  }
+  if (v.tipo === "nota_venta") {
+    const n = problemaNumero(v.numero, v.tipo);
+    return [{ id: "numero", nombre: "El número del papel", requerido: n !== null, sugerido: n === null, hecho: n === null && v.numero.trim() !== "", pendiente: n ?? "Si el papel trae número, cópialo." }];
+  }
+  return [];
 }
 
 // ---------- Pagar ahora o después (20261023181000; Felipe 2026-10-23) ----------
@@ -874,4 +900,43 @@ export function marcasPorCrear(lineas: readonly Pick<LineaCompra, "marcaId" | "m
 /** Las prendas con el id de verdad de cada marca recién creada. */
 export function conMarcasCreadas<T extends Pick<LineaCompra, "marcaId">>(lineas: readonly T[], creadas: ReadonlyMap<string, string>): T[] {
   return lineas.map((l) => (l.marcaId && creadas.has(l.marcaId) ? { ...l, marcaId: creadas.get(l.marcaId)! } : l));
+}
+
+/**
+ * La serie y el número tal como los pide la base al registrar la compra: factura y boleta, los dos (la serie en mayúsculas); nota de venta, solo
+ * su número si lo escribió; sin papel, ninguno. Lo que no se manda no viaja: una base de antes no los conoce (y se registra sin ellos).
+ */
+export function serieYNumeroParaBase(tipo: TipoPapel, serie: string, numero: string): { p_serie?: string; p_numero?: string } {
+  const s = serie.trim().toUpperCase();
+  const n = numero.trim();
+  if (pideSerie(tipo)) return { p_serie: s, p_numero: n };
+  if (tipo === "nota_venta" && n) return { p_numero: n };
+  return {};
+}
+
+// ---------- La serie y el número del papel (ADR-0574; antes vivían en `revisar-compras-reglas`) ----------
+// La compradora los escribe al comprar y, si algo no cuadra, Compras los corrige al completar. Son las mismas reglas que exige la base
+// (`registrar_compra_rapida` y `completar_papel_compra`).
+
+/** ¿Este papel pide serie y número? Factura y boleta, sí; nota de venta, solo el número y si lo tiene; sin papel, nada. */
+export function pideSerie(tipo: TipoPapel): boolean {
+  return tipo === "factura" || tipo === "boleta";
+}
+
+export function problemaSerie(serie: string): string | null {
+  const s = serie.trim().toUpperCase();
+  if (!s) return "Copia la serie como está en el papel.";
+  return /^[A-Z0-9]{1,8}$/.test(s) ? null : "La serie lleva letras y números, hasta 8 (F001, B002…).";
+}
+
+export function problemaNumero(numeroPapel: string, tipo: TipoPapel): string | null {
+  const n = numeroPapel.trim();
+  if (tipo === "nota_venta") return !n || /^[0-9A-Za-z-]{1,20}$/.test(n) ? null : "El número lleva letras, números o guiones, hasta 20.";
+  if (!n) return "Copia el número como está en el papel.";
+  return /^[0-9]{1,12}$/.test(n) ? null : "El número lleva solo números, hasta 12.";
+}
+
+/** La serie de ejemplo sigue al papel: «F001» en una factura, «B001» en una boleta (ADR-0290). */
+export function ejemploSerie(tipo: TipoPapel): string {
+  return tipo === "factura" ? "Ej. F001" : "Ej. B001";
 }

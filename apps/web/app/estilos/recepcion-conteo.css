@@ -47,14 +47,7 @@ button.rc-parada:disabled { cursor: default; }
 /* La chica vive en filas de cebra (papel y hueso): un tinte de tinta se ve igual sobre las dos; papel desaparecía en una y hueso en la otra. */
 .rc-cat-ic[data-tamano="chico"] { width: 32px; height: 32px; border-radius: 9px; background: color-mix(in srgb, var(--color-tinta) 6%, transparent); }
 
-/* ---- Las categorías del envío, en una fila de píldoras (opción A, Felipe 2026-10-28) ---- */
-/* Una píldora por categoría: su ícono, el nombre, lo contado (y «/lo que dijeron») y la marca de la guía de foco (✓ hecha, ● sigue aquí, ○ falta).
-   La que se cuenta lleva el borde de tinta y un poco más de cuerpo. Sin rebote (ADR-0136): el borde y el fondo cambian en 200 ms. */
-.rc-cat-pildora { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 14px 6px 8px; border: 1px solid var(--color-sand); border-radius: 999px; background: var(--color-papel); text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
-@media (hover: hover) {
-  .rc-cat-pildora:hover { border-color: var(--color-borde-control); }
-}
-.rc-cat-pildora[aria-current="true"] { border-color: var(--color-tinta); box-shadow: inset 0 0 0 0.5px var(--color-tinta); }
+/* ---- «Agregar categoría», al pie del acordeón de categorías (recepcion-viva.css) ---- */
 .rc-cat-agregar { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 6px 18px; border: 1px dashed var(--color-borde-control); border-radius: 999px; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-cat-agregar:hover { border-color: var(--color-tinta); color: var(--color-tinta); }
@@ -73,7 +66,6 @@ button.rc-parada:disabled { cursor: default; }
 /* ---- El contador ---- */
 /* La tarjeta de la categoría que se cuenta: encendida, como el campo que sigue en la guía de foco (ADR-0284). */
 .rc-contador { container-type: inline-size; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--color-hueso) 70%, var(--color-papel)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-sand) 55%, transparent); }
-.rc-numero { display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 2px 0; }
 /* La franja del contador (opción A): número, atajos y barra de «cuadra». Angosta (la tarjeta, no la ventana: junto al papel queda de ~650 px):
    el número y los atajos van en una fila y la barra baja debajo. Ancha: las tres cosas en una sola fila. */
 .rc-franja { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 24px; }
@@ -83,22 +75,12 @@ button.rc-parada:disabled { cursor: default; }
   .rc-franja { grid-template-columns: auto auto minmax(0, 1fr); }
   .rc-franja-cuadra { grid-column: auto; }
 }
-@media (max-width: 639px) { .rc-franja { grid-template-columns: minmax(0, 1fr); } .rc-franja .rc-numero { justify-content: center; } .rc-franja .rc-rapidos { justify-content: center; } }
-/* unificar-fijo: el número del contador es el protagonista de la cara A (la maqueta que eligió Felipe): sin caja, como una cifra. */
-.rc-numero input { width: 128px; border: 0; background: transparent; color: var(--color-tinta); outline: 0; text-align: center; font-family: var(--font-serif); font-size: 72px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
-.rc-numero input:focus-visible { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); text-decoration-thickness: 2px; text-underline-offset: 10px; }
-.rc-paso-btn { display: grid; place-items: center; width: 48px; height: 48px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
-@media (hover: hover) {
-  .rc-paso-btn:hover:not(:disabled) { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -2px; }
-}
-.rc-paso-btn:active:not(:disabled) { scale: 0.94; translate: 0 0; }
-.rc-paso-btn:disabled { opacity: 0.3; }
+@media (max-width: 639px) { .rc-franja { grid-template-columns: minmax(0, 1fr); } .rc-franja .rc-rapidos { justify-content: center; } }
 .rc-rapidos { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .rc-rapidos button { padding: 5px 14px; border: 1px solid var(--color-sand); border-radius: 999px; color: var(--color-taupe); font-size: 13px; font-weight: 600; transition: background-color 150ms var(--ease-cayla), border-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-rapidos button:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
 }
-@media (max-width: 639px) { .rc-numero input { width: 110px; font-size: 60px; } }
 
 /* ---- Lo separado: una fila por prenda ---- */
 .rc-fila-sep { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 8px 12px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); }
@@ -114,29 +96,12 @@ button.rc-parada:disabled { cursor: default; }
 /* Anterior · lo dicho contra lo contado · la acción que sigue. Es la Isla del sistema (`barra-abajo`, pegada al flujo: sube con la página y se
    queda al pie). Angosta: las cifras ocupan su propia fila arriba y los botones quedan debajo, uno a cada lado. */
 .rc-cierre-cifras { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 18px; min-width: 0; }
-.rc-cierre-cifras b { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .rc-cierre-cifras > :last-child { align-self: center; }
 .rc-cierre { padding-left: 0.625rem; }
 @media (max-width: 639px) { .rc-cierre .rc-cierre-cifras { order: -1; flex-basis: 100%; } .rc-cierre .barra-abajo-acciones { margin-left: auto; } }
 
 /* ---- La balanza «Dijeron / Contaste» ---- */
-.rc-balanza { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; gap: 8px 14px; padding: 14px 18px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-papel); }
-.rc-balanza .rc-lado { display: flex; flex-direction: column; gap: 2px; }
-.rc-balanza .rc-lado:last-of-type { align-items: flex-end; text-align: right; }
-.rc-balanza .rc-lado b { font-family: var(--font-serif); font-size: 40px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
-.rc-balanza svg { width: 120px; height: 70px; fill: none; stroke: color-mix(in srgb, var(--color-tinta) 45%, transparent); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-.rc-balanza .rc-brazo { transform: rotate(var(--ang, 0deg)); transform-origin: 60px 22px; transition: transform 450ms var(--ease-cayla); }
-.rc-balanza .rc-brazo circle { fill: var(--color-tinta); stroke: none; }
-.rc-balanza[data-estado="verde"] svg { stroke: var(--color-verde); }
-.rc-balanza[data-estado="ambar"] svg { stroke: var(--color-ambar); }
-.rc-balanza .rc-veredicto { display: flex; grid-column: 1 / -1; justify-content: center; }
-@media (max-width: 639px) { .rc-balanza { grid-template-columns: 1fr 80px 1fr; } .rc-balanza .rc-lado b { font-size: 28px; } .rc-balanza svg { width: 80px; height: 47px; } }
 
-/* ---- El sello del envío cerrado: el aro y el visto se dibujan una vez ---- */
-.rc-sello { position: relative; display: grid; flex: none; place-items: center; width: 88px; height: 88px; }
-.rc-sello svg { position: absolute; inset: 0; width: 88px; height: 88px; }
-.rc-sello .rc-aro { fill: none; stroke: var(--color-verde); stroke-width: 2.5; stroke-dasharray: 264; animation: rc-trazo-aro 500ms var(--ease-cayla) 80ms backwards; }
-.rc-sello .rc-visto { fill: none; stroke: var(--color-verde); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; animation: rc-trazo-visto 350ms var(--ease-cayla) 450ms backwards; }
 
 /* ---- Lo que queda para después ---- */
 .rc-pendientes-caja { border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; }
@@ -155,10 +120,8 @@ button.rc-parada:disabled { cursor: default; }
 
 @keyframes rc-pulso { from { transform: scale(0.85); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
 @keyframes rc-trazo { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
-@keyframes rc-trazo-aro { from { stroke-dashoffset: 264; } to { stroke-dashoffset: 0; } }
-@keyframes rc-trazo-visto { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-pildora, .rc-cat-agregar, .rc-anotada-chip, .rc-paso-btn, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
-  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo, .rc-sello .rc-aro, .rc-sello .rc-visto { animation: none; }
+  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-agregar, .rc-anotada-chip, .rc-rapidos button { transition: none; }
+  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo { animation: none; }
 }

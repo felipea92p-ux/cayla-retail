@@ -14,10 +14,12 @@ import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 import { getParametrosTributarios } from "@/lib/impuestos";
 import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 import { ConfiguracionCuentas } from "@/components/finanzas/ConfiguracionCuentas";
-import { getMaquinasPos, getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
+import { getMaquinasPos, getMediosDeCobro, getPlanillaCuentas, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPresupuesto";
 import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
+import { getRepartoClaure } from "@/lib/reparto-claure";
+import { ConfiguracionRepartoClaure } from "@/components/ConfiguracionRepartoClaure";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
@@ -33,12 +35,15 @@ const PESTANAS = [
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos", guia: "config.tab-fijos" },
   { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto", guia: "config.tab-presupuesto" },
   { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos", guia: "config.tab-impuestos" },
+  // Solo del líder (ADR-0560, actividad 17): mueve plata (lo que se le debe a Claudia).
+  { clave: "claure", etiqueta: "Gastos con CLAURE", href: "/configuracion?tab=claure", guia: "config.tab-claure" },
 ] as const;
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string; mes?: string }> }) {
   const persona = await exigirModulo("configuracion");
   const { tab, mes } = await searchParams;
-  const pestana = PESTANAS.find((p) => p.clave === tab)?.clave ?? "tiendas";
+  const pestanasDeEsteLider = PESTANAS.filter((p) => p.clave !== "claure" || persona.rol === "lider");
+  const pestana = pestanasDeEsteLider.find((p) => p.clave === tab)?.clave ?? "tiendas";
 
   return (
     <div className="space-y-6">
@@ -48,7 +53,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
         titulo="Configuración"
         subtitulo="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
       />
-      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
+      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...pestanasDeEsteLider]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
       {pestana === "tiendas" && <SeccionTiendas esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
       {pestana === "cuentas" && <SeccionCuentas />}
@@ -56,6 +61,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
       {pestana === "fijos" && <SeccionFijos />}
       {pestana === "presupuesto" && <SeccionPresupuesto mes={mes} />}
       {pestana === "impuestos" && <SeccionImpuestos />}
+      {pestana === "claure" && <ConfiguracionRepartoClaure filas={await getRepartoClaure()} />}
     </div>
   );
 }
@@ -77,7 +83,7 @@ async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin:
 // Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base), a qué cuenta entra cada cobro y las
 // máquinas de cobro (ADR-0429; la tarjeta no se dibuja si la base todavía no las conoce).
 async function SeccionCuentas() {
-  const [cuentas, medios, maquinas] = await Promise.all([getSaldos(null), getMediosDeCobro(), getMaquinasPos()]);
+  const [cuentas, medios, maquinas, planilla] = await Promise.all([getSaldos(null), getMediosDeCobro(), getMaquinasPos(), getPlanillaCuentas()]);
   return (
     <>
       {[cuentas.falla, medios.falla]
@@ -87,7 +93,7 @@ async function SeccionCuentas() {
             {f}
           </p>
         ))}
-      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} maquinas={maquinas} hoy={hoyLima()} />
+      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} maquinas={maquinas} planilla={planilla} hoy={hoyLima()} />
     </>
   );
 }

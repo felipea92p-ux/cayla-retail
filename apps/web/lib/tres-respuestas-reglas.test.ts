@@ -3,7 +3,7 @@ import fixture from "./resumen-finanzas.fixture.json";
 import { estadoDeCaja, type CajaCayla, type CajaProxima } from "./caja-proxima-reglas";
 import { debesPronto, leerResumen } from "./resumen-finanzas-reglas";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { desgloseDeTienes, tresRespuestas } from "./tres-respuestas-reglas";
+import { desgloseDeTienes, respuestaDeClaure, tresRespuestas } from "./tres-respuestas-reglas";
 
 // Las tres respuestas de arriba del Resumen: lo que tienes, lo que debes pagar pronto y lo que te deja el mes. Ninguna calcula plata:
 // cada una repite la cifra de donde ya vive, y aquí se prueba que no se desvíen.
@@ -34,6 +34,32 @@ describe("tresRespuestas", () => {
     expect(t.chips).toEqual([{ texto: estadoDeCaja(caja as CajaCayla)!.texto, tono: "ambar" }]);
     expect(t.chips[0]!.texto).toBe("Bajo tu mínimo");
     expect(armar(cajaCayla())[0].chips).toEqual([{ texto: "Te alcanza", tono: "verde" }]);
+  });
+
+  it("si se le debe algo a CLAURE, «¿Cuánto tienes?» dice cuánto es de Claudia y cuánto queda disponible (la cifra no cambia)", () => {
+    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: "/finanzas/dinero", hrefPorPagar: "/finanzas/dinero/por-pagar", claure: { saldo: 500 } });
+    expect(t.valor).toBe(21500);
+    expect(t.chips.map((c) => texto(c.texto))).toEqual(["Te alcanza", "De eso, S/ 500.00 es de Claudia", "Disponible real S/ 21,000.00"]);
+  });
+
+  it("sin deuda con CLAURE (o con saldo a favor de CAYLA) no agrega nada; mirando una sede tampoco", () => {
+    const sin = (claure: { saldo: number } | null) => tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure })[0].chips.map((c) => c.texto);
+    expect(sin(null)).toEqual(["Te alcanza"]);
+    expect(sin({ saldo: 0 })).toEqual(["Te alcanza"]);
+    expect(sin({ saldo: -30 })).toEqual(["Te alcanza"]);
+    const sede = { tipo: "sede", nombre: "Lima", vende: true, hoy: "2026-10-15", hasta: "2026-10-29", efectivo: 1200, entra: 0, sale: 0, mayores: [], titular: "", sinPlanilla: false } as unknown as CajaProxima;
+    expect(tresRespuestas({ r: leerResumen(fixture.todas), caja: sede, deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure: { saldo: 500 } })[0].chips).toEqual([]);
+  });
+
+  it("lo que se le debe a Claudia pasa de lo que hay: el disponible real sale en rojo", () => {
+    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla({ saldoHoy: 300 }), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure: { saldo: 500 } });
+    expect(t.chips.at(-1)).toEqual({ texto: "Disponible real S/\u00a0-200.00", tono: "rojo" });
+  });
+
+  it("la tarjeta de CLAURE dice lo que se le debe y lleva a su pantalla; si se le pagó de más, lo que ella le debe; sin lectura, lo dice", () => {
+    expect(respuestaDeClaure(234.34, "/finanzas/dinero/claure")).toMatchObject({ clave: "claure", pregunta: "¿Cuánto le debes a CLAURE?", valor: 234.34, href: "/finanzas/dinero/claure" });
+    expect(respuestaDeClaure(-12, null)).toMatchObject({ pregunta: "¿Cuánto te debe CLAURE?", valor: 12 });
+    expect(respuestaDeClaure(null, null)).toMatchObject({ valor: null, noSePudoLeer: true });
   });
 
   it("una caja provisional lo dice primero; sin plata gana sobre «bajo tu mínimo»", () => {

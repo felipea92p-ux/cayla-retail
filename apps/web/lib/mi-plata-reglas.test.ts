@@ -10,6 +10,7 @@ import {
   estadoParaLaCompradora,
   textoCierre,
   puedeCerrarLaRonda,
+  puedeReabrirLaRonda,
   fraseGasto,
   camposConfirmar,
   cuentaSugerida,
@@ -18,6 +19,9 @@ import {
   leerMiPlata,
   leerPlataPorConfirmar,
   leerBancosDePlata,
+  leerCuentasParaDevolver,
+  faltaCuentaDeLaDevolucion,
+  textoCuentaDevuelta,
   bancoSugerido,
   cuentaAlConfirmar,
   textoBancoIndicado,
@@ -40,6 +44,7 @@ import {
   detalleEnvio,
 } from "./mi-plata-reglas";
 import type { CuentaOpcion } from "./fondos-reglas";
+import type { RondaCerrada } from "./mi-plata-reglas";
 import { soles } from "./compras-reglas";
 
 // `soles()` une «S/» y la cifra con un espacio que no se parte (ADR-0413): las frases se comparan con espacios comunes.
@@ -275,6 +280,11 @@ describe("el resto del día de compras (actividad 5)", () => {
       ["g", "Taxi", true, false],
       ["o", "Candado", false, true],
     ]);
+  });
+
+  it("lo que ya decidió devolver y Compras no recibió ya no es suyo: baja de «tienes» (ADR-0574); sin ese dato, la cuenta es la de antes", () => {
+    expect(leerMiPlata({ ...BASE, compras_por_completar: 0, saldo: 1400, devolucion_por_entregar: 1400 })).toMatchObject({ tiene: 0, devolucionPorEntregar: 1400 });
+    expect(leerMiPlata({ ...BASE, compras_por_completar: 0, saldo: 1400 })).toMatchObject({ tiene: 1400, devolucionPorEntregar: 0 });
   });
 
   it("lo que falta mandar: una tarjeta por tienda con sus prendas; descarta lo ilegible y una tienda sin prendas", () => {
@@ -627,7 +637,7 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
   it("lo que devolvió dice cuánto, dónde y si Compras ya lo recibió", () => {
     const c = h[0];
     expect(c.tipo === "cierre" && [c.titulo, c.detalle, c.entra, c.monto, c.estado.texto, c.estado.pendiente]).toEqual([
-      "Devolviste en caja",
+      "Por devolver en caja",
       "RC-000002 · 22/10",
       false,
       soles(80),
@@ -650,7 +660,7 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
     const u = ultimaRondaDelHistorial(h)!;
     expect(u.ronda.clave).toBe("ronda-r2");
     // Devolvió S/ 80 y Compras todavía no lo recibe: manda la plata, no el estado de los libros.
-    expect([u.cierre?.clave, u.estado.texto, u.estado.pendiente, u.comoCerro]).toEqual(["cierre-r2", "Entrégalo en caja", true, `Devolviste en caja ${soles(80)}`]);
+    expect([u.cierre?.clave, u.estado.texto, u.estado.pendiente, u.comoCerro]).toEqual(["cierre-r2", "Entrégalo en caja", true, `Por devolver en caja ${soles(80)}`]);
     expect(u.resto.map((e) => e.clave)).toEqual(["plata-a2", "ronda-r1", "plata-a1", "ronda-sin-ronda"]);
   });
 
@@ -675,5 +685,49 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
     const sinLista = historialDeLaCompradora(movimientosDeLaCompradora(p).antes, []);
     expect(sinLista.filter((e) => e.tipo === "ronda").map((e) => e.tipo === "ronda" && e.titulo)).toEqual(["Ronda RC-000002", "Ronda RC-000001", "Antes de las rondas"]);
     expect(sinLista.some((e) => e.tipo === "cierre")).toBe(false);
+  });
+});
+
+describe("reabrir la última ronda (ADR-0569)", () => {
+  const cerrada = (extra: Partial<RondaCerrada> = {}): RondaCerrada => ({ texto: "RC-000012", cerradaEn: "2026-10-29T15:00:00Z", decision: "se_queda", monto: 40, resuelto: false, ...extra });
+  it("se ofrece con la última ronda cerrada que Compras no recibió y sin otra abierta", () => {
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: cerrada() })).toBe(true);
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: cerrada({ decision: "devuelve" }) })).toBe(true);
+  });
+  it("no se ofrece si Compras ya recibió el cierre, si no hay ronda cerrada o si ya hay una abierta", () => {
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: cerrada({ decision: "devuelve", resuelto: true }) })).toBe(false);
+    expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: null })).toBe(false);
+    const abierta = { id: "r", texto: "RC-000013", abiertaEn: "2026-10-29T16:00:00Z", compras: 0, prendas: 0, dieron: 0, compraste: 0, gastaste: 0 };
+    expect(puedeReabrirLaRonda({ abierta, ultimaCerrada: cerrada() })).toBe(false);
+  });
+});
+
+describe("la cuenta de CAYLA a la que devuelve al cerrar la ronda", () => {
+  const cuentas = leerCuentasParaDevolver([
+    { id: "bcp", nombre: "BCP", tipo: "banco", sede: null },
+    { id: "cf", nombre: "Caja fuerte Trujillo", tipo: "caja_fuerte", sede: "Trujillo" },
+  ]);
+  it("lee las cuentas con su tipo y su sede, y descarta lo ilegible o lo que no es banco ni caja fuerte", () => {
+    expect(cuentas).toEqual([
+      { id: "bcp", nombre: "BCP", tipo: "banco", sede: null },
+      { id: "cf", nombre: "Caja fuerte Trujillo", tipo: "caja_fuerte", sede: "Trujillo" },
+    ]);
+    expect(leerCuentasParaDevolver([{ id: "x", nombre: "Cajón", tipo: "cajon" }, { nombre: "sin id", tipo: "banco" }, null, "texto"])).toEqual([]);
+    expect(leerCuentasParaDevolver(null)).toEqual([]);
+  });
+  it("falta elegirla solo con «Lo devuelvo» y mientras haya cuentas y ninguna esté elegida", () => {
+    expect(faltaCuentaDeLaDevolucion("devuelve", cuentas, null)).toBe(true);
+    expect(faltaCuentaDeLaDevolucion("devuelve", cuentas, "otra")).toBe(true);
+    expect(faltaCuentaDeLaDevolucion("devuelve", cuentas, "bcp")).toBe(false);
+  });
+  it("no bloquea si no devuelve, si aún no eligió qué hacer o si no hay cuentas configuradas", () => {
+    expect(faltaCuentaDeLaDevolucion("se_queda", cuentas, null)).toBe(false);
+    expect(faltaCuentaDeLaDevolucion("le_deben", cuentas, null)).toBe(false);
+    expect(faltaCuentaDeLaDevolucion(null, cuentas, null)).toBe(false);
+    expect(faltaCuentaDeLaDevolucion("devuelve", [], null)).toBe(false);
+  });
+  it("Compras lee quién dijo a qué cuenta devolvió, y nada si no la indicó", () => {
+    expect(textoCuentaDevuelta("Marisol", "BCP")).toBe("Marisol dijo que lo devolvió a BCP.");
+    expect(textoCuentaDevuelta("Marisol", null)).toBeNull();
   });
 });

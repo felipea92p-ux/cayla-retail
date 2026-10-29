@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 55,
+  "total": 60,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -19,9 +19,6 @@
       "button «{guia}»"
     ],
     "components/mi-plata/AnotarGasto.tsx": [
-      "button «{CONCEPTOS_GASTO[k].ejemplo}»",
-      "CampoTexto «¿Qué fue?»",
-      "CampoMonto «mi-plata.monto-gasto»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -32,6 +29,12 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/mi-plata/CamposDelGasto.tsx": [
+      "button «{CONCEPTOS_GASTO[k].ejemplo}»",
+      "CampoTexto «¿Qué fue?»",
+      "CampoMonto «mi-plata.monto-gasto»",
+      "CampoTexto «RUC»"
+    ],
     "components/mi-plata/CodigoDeEnvio.tsx": [
       "BotonCopiar «el código del envío»",
       "BotonAncla «Compartir por WhatsApp»"
@@ -40,7 +43,10 @@
       "BotonVerMas «Ver qué cambió»"
     ],
     "components/mi-plata/DetalleDeFila.tsx": [
-      "BotonEditar «Corregir esta compra»"
+      "BotonEditar «{corregible ? \"Corregir esta compra\" : \"Corregir este gasto\"}»"
+    ],
+    "components/mi-plata/FichasDePapel.tsx": [
+      "button «{PAPELES_GASTO[k].ayuda}»"
     ],
     "components/mi-plata/FilaEnvio.tsx": [
       "button «{abierta && <HojaEnvio e={e}»"
@@ -63,6 +69,10 @@
       "CampoMonto «Lo que pagaste»",
       "button «Que siga a las prendas otra vez»"
     ],
+    "components/mi-plata/HojaCorregirGasto.tsx": [
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/mi-plata/ListaDelDia.tsx": [
       "button «{cara}»",
       "button «{e.titulo}»",
@@ -80,6 +90,9 @@
     "components/mi-plata/ParaMandar.tsx": [
       "Boton «mi-plata.mandar»"
     ],
+    "components/mi-plata/ReabrirRonda.tsx": [
+      "Boton «Reabrir»"
+    ],
     "components/mi-plata/TablaDeLaRonda.tsx": [
       "button «{horaDeMovimiento(m) ?? \"—\"}»"
     ],
@@ -88,7 +101,7 @@
     ],
     "components/mi-plata/TerminarDia.tsx": [
       "Boton «mi-plata.termine»",
-      "button «(sin nombre)»",
+      "button «{OPCIONES[k]}»",
       "Boton «Cancelar»",
       "Boton «mi-plata.terminar»"
     ],

@@ -62,6 +62,7 @@ export function EscanerConteo({
   onDarDeAlta,
   onEscribir,
   aviso,
+  pregunta,
   textos: propios,
   onClose,
 }: {
@@ -81,6 +82,9 @@ export function EscanerConteo({
    *  botones, un guardado que falló). Tiene prioridad sobre la prenda que se está contando: es lo urgente. Lo arma la
    *  pantalla de Contar, que es la misma que lo muestra en su barra de abajo. */
   aviso?: ReactNode;
+  /** Una pregunta que hay que responder antes de seguir («Ya está en la lista · ¿Sumar otra?», ADR-0562): tapa el visor con un
+   *  velo y la cámara deja de leer hasta que se responde, así nadie cree que se sumó solo porque la cámara sigue a la vista. */
+  pregunta?: ReactNode;
   /** Las palabras de la hoja, si no es Conteo. */
   textos?: Partial<TextosEscaner>;
   onClose: () => void;
@@ -96,6 +100,13 @@ export function EscanerConteo({
   useEffect(() => {
     onCodigoRef.current = onCodigo;
   }, [onCodigo]);
+
+  // Con una pregunta abierta el visor está tapado: no se lee nada. No se toca `huboHueco`, así la etiqueta que sigue quieta
+  // frente a la cámara al responder no vuelve a contar (solo cuenta si salió del cuadro).
+  const enPausaRef = useRef(false);
+  useEffect(() => {
+    enPausaRef.current = Boolean(pregunta);
+  }, [pregunta]);
 
   useEffect(() => {
     let vivo = true;
@@ -140,6 +151,10 @@ export function EscanerConteo({
       const ciclo = async () => {
         if (!vivo) return;
         try {
+          if (enPausaRef.current) {
+            reloj = window.setTimeout(ciclo, 120);
+            return;
+          }
           const crudo = lienzoRef.current ? await leer(video, lienzoRef.current) : null;
           const codigo = crudo ? normalizarLectura(crudo) : "";
           if (!codigo) huboHueco = true;
@@ -173,6 +188,9 @@ export function EscanerConteo({
             <canvas ref={lienzoRef} className="hidden" aria-hidden />
           </div>
 
+          {/* El velo de la pregunta: tapa el visor entero (la barra de arriba y la bandeja quedan por encima). */}
+          {pregunta && <div aria-hidden data-sin-cascada className="anim-revelar absolute inset-0 z-[5] bg-sombra/80 backdrop-blur-sm" />}
+
           <div className="papel-fijo relative z-10 flex items-center justify-between bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
@@ -183,8 +201,10 @@ export function EscanerConteo({
             </span>
           </div>
 
-          <div className="papel-fijo relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
-            {sinCamara ? (
+          <div className={`papel-fijo relative flex min-h-0 flex-1 flex-col items-center gap-5 ${pregunta ? "z-10 justify-end px-3 pb-4" : "justify-center px-6"}`}>
+            {pregunta ? (
+              <div className="w-full max-w-md">{pregunta}</div>
+            ) : sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
                 <p className="text-[15px] leading-relaxed">
                   {estado === "sin-permiso"
@@ -224,7 +244,10 @@ export function EscanerConteo({
               (ADR-0185): no salta al llegar la primera lectura. */}
           <div className="relative z-10 rounded-t-[28px] bg-crema dark:border-t dark:border-sand px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
             <div aria-live="polite" className="min-h-[4.75rem]">
-              {aviso ? (
+              {pregunta ? (
+                // Con la pregunta abierta la bandeja no se toca: su − / + sumaría o restaría sin responder (en Cuadrar, a otra prenda).
+                <p className="grid h-[4.75rem] place-items-center text-center text-[13px] text-tinta/55">Responde arriba para seguir.</p>
+              ) : aviso ? (
                 <div className="flex min-h-[4.75rem] items-center">{aviso}</div>
               ) : desconocido ? (
                 <div className="flex items-center gap-3">

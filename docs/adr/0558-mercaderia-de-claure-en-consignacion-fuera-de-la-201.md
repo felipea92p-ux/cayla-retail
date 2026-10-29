@@ -1,6 +1,7 @@
 # ADR-0558 — La mercadería de CLAURE en Lima es consignación: no es de CAYLA en el Balance y lo que se le debe nace al vender
 
 - **Fecha:** 2026-10-28 · **Decidió:** Felipe · **Estado:** aceptada; la migración `20261028212000_balance_mercaderia_de_claure_en_consignacion.sql` **no está en producción** (la pega Felipe, una sola parte, **antes de cerrar octubre**).
+- **Actualización 2026-10-29 (ADR-0560, Felipe: «manda lo cobrado»):** la migración **sí está pegada en producción** (verificado en solo lectura). Se conserva lo de la mercadería (`fn_bal_stock`, `fn_bal_causas_mercaderia`, `fn_dueno_del_movimiento`), pero **la deuda con CLAURE ya no es «a costo en la 4699»**: la cadena de CLAURE (ADR-0560, va después) redefine `fn_asientos_claure` y la deuda es lo cobrado sin IGV, en la 479; la 4699 queda sin movimiento.
 - **Relacionados:** ADR-0542 (el stock de Lima se parte por dueño), ADR-0463 (empresas CAYLA y CLAURE), ADR-0532 (lo vendido por empresa; «la liquidación, a costo, es otra cosa»), ADR-0198 (el Balance no se dibuja si un chequeo que bloquea no cuadra), ADR-0195 (Finanzas), ADR-0408 (pedidos web en Finanzas).
 
 ## El problema

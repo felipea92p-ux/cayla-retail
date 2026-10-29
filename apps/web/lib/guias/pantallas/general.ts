@@ -210,6 +210,13 @@ export const GUIA_INICIO: Guia = {
       texto: "«Crear producto» abre la ficha de una prenda nueva (también con la tecla N, desde cualquier parte del Inicio). Si la sede tiene piso, «Colgar en tandas» escanea con la cámara el lote que tienes en la mano y lo cuelga de una vez. Te llevan a otra pantalla: en la demo no los tocamos.",
     },
     {
+      id: "almacen-danada",
+      ancla: "inicio.almacen-danada",
+      opcional: true,
+      titulo: "Separé una dañada",
+      texto: "Si ves una prenda dañada en el piso, la separas aquí en el momento: eliges la prenda, la talla y qué tiene, y deja de venderse. En la demo no se toca.",
+    },
+    {
       id: "almacen-ultimos",
       ancla: "inicio.almacen-ultimos",
       opcional: true,
@@ -292,6 +299,13 @@ export const GUIA_INICIO: Guia = {
       opcional: true,
       titulo: "Tu día",
       texto: "Cómo va la venta de hoy en tu tienda: lo vendido, el ticket y cuánto falta para la meta (o, si tienes meta propia, cómo vas tú). Si la caja está cerrada, aquí te lo dice.",
+    },
+    {
+      id: "claure",
+      ancla: "inicio.claure",
+      opcional: true,
+      titulo: "Lo de CLAURE no está en «Hoy»",
+      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). «Hoy» cuenta solo lo de CAYLA y esta línea dice cuánto se dejó fuera. Caja sí lo cuenta todo, porque ahí está la plata del cajón.",
     },
     {
       id: "aviso-cierre",
@@ -955,8 +969,8 @@ export const GUIA_CONFIGURACION: Guia = {
     {
       id: "pestanas",
       ancla: "config.pestanas",
-      titulo: "Siete secciones",
-      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto e Impuestos. Te las mostramos una por una, empezando por Tiendas y caja.",
+      titulo: "Las secciones",
+      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos y, solo para el líder, Gastos con CLAURE. Te las mostramos una por una, empezando por Tiendas y caja.",
     },
     {
       id: "guardado",
@@ -1035,6 +1049,13 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       titulo: "A qué cuenta entra cada cobro",
       texto: "Si en una tienda se cobra con Yape, tarjeta o QR, a qué cuenta llega esa plata: un banco, o la cuenta «por depositar» de la máquina. El Taller no cobra: solo tiene Transferencia, la cuenta de donde paga, y «Sale de» la propone. Si lo cambias, cuenta desde hoy; lo pasado no se mueve.",
+    },
+    {
+      id: "planilla-cuentas",
+      ancla: "config.planilla-cuentas",
+      opcional: true,
+      titulo: "De qué cuenta sale la planilla",
+      texto: "Dynamic le paga a cada persona en el banco donde cobra. Aquí eliges de qué cuenta de CAYLA sale lo de quienes cobran en BCP y lo de quienes cobran en Interbank; Cuentas y dinero la propone cuando registras la salida de una planilla pagada.",
     },
     {
       id: "maquinas",
@@ -1189,6 +1210,14 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       titulo: "El régimen de renta",
       texto: "En qué régimen tributa CAYLA cada año, su límite de ventas y el aviso que salta antes del límite, para hablar con el contador a tiempo. Rige desde el 1 de enero; vacío sigue lo del año anterior.",
+    },
+    {
+      id: "claure-reparto",
+      ancla: "config.claure-reparto",
+      opcional: true,
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-claure" }],
+      titulo: "Gastos con CLAURE",
+      texto: "Solo el líder la ve. Qué parte de cada gasto de la tienda es de Claudia: 0 es todo de CAYLA y 100, todo de CLAURE. Esa parte baja lo que se le debe y sale del gasto de CAYLA. Cada casilla se guarda sola, firmada; en la demo no cambiamos ninguna.",
     },
     {
       id: "empresa",

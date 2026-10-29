@@ -59,6 +59,8 @@ import {
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
+import { textoRegistrar, type AvisoPlanilla } from "@/lib/planilla-salidas-reglas";
+import { SalidasPlanillaModal } from "@/components/finanzas/dinero/SalidasPlanillaModal";
 import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
@@ -82,8 +84,13 @@ type Consulta = PromiseLike<{ error: unknown }>;
 // ---- La pantalla: cabecera, «Ver» y el modal de registrar, compartidos por las tres pestañas ------------------------------
 
 /** `origenId`: la cuenta de la que sale la plata, si quien abre ya lo sabe (el aviso de una máquina atrasada abre SU depósito). */
-type AbrirMovimiento = (que?: QuePaso, origenId?: string) => void;
+type AbrirMovimiento = (que?: QuePaso, origenId?: string, monto?: string) => void;
 const ContextoMovimiento = createContext<AbrirMovimiento>(() => {});
+
+/** Abre «Registrar movimiento» desde una pieza de adentro de la pantalla (`monto`: lo que ya viene escrito, p. ej. el saldo con CLAURE). */
+export function useAbrirMovimiento(): AbrirMovimiento {
+  return useContext(ContextoMovimiento);
+}
 
 export function PantallaDinero({
   pestana,
@@ -121,7 +128,7 @@ export function PantallaDinero({
 }) {
   const params = useSearchParams();
   const ruta = usePathname();
-  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string } | null>(null);
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string } | null>(null);
   // El dock de las otras caras lleva aquí con `?registrar=1`: la hoja abre sola, como si se hubiera tocado el botón, y el parámetro
   // sale de la dirección (recargar no la vuelve a abrir).
   const pideRegistrar = params.get("registrar") === "1";
@@ -135,7 +142,7 @@ export function PantallaDinero({
   }, [pideRegistrar, ruta]);
 
   return (
-    <ContextoMovimiento.Provider value={(que, origenId) => setModal({ que: que ?? "deposito", origenId })}>
+    <ContextoMovimiento.Provider value={(que, origenId, monto) => setModal({ que: que ?? "deposito", origenId, monto })}>
       <div className="space-y-6">
         <CabeceraDinero
           pestana={pestana}
@@ -164,6 +171,7 @@ export function PantallaDinero({
         <RegistrarMovimientoModal
           inicial={modal.que}
           origenInicial={modal.origenId}
+          montoInicial={modal.monto}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -185,6 +193,7 @@ export function CuentasPanel({
   plata,
   sinCuenta,
   alertas,
+  planilla,
   ver,
   esLider,
 }: {
@@ -195,12 +204,15 @@ export function CuentasPanel({
   sinCuenta: SinCuenta[];
   /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
   alertas?: AlertaPos[];
+  /** La planilla que Dynamic pagó y no dice de qué banco salió, partida por el banco de quien cobra (ADR-0567; solo el líder). */
+  planilla?: AvisoPlanilla[];
   ver: Ver;
   esLider: boolean;
 }) {
   const abrir = useContext(ContextoMovimiento);
   const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
   const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
+  const [salidasDe, setSalidasDe] = useState<AvisoPlanilla | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
   // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: la plata del dueño y lo que no dice su cuenta. Lo que se explica
@@ -225,6 +237,31 @@ export function CuentasPanel({
             </button>
           }
         >
+          {a.detalle}
+        </Aviso>
+      ))}
+
+      {/* La planilla que Dynamic pagó (ADR-0567): una línea por banco de quien cobra, y la hoja que registra sus salidas de un toque. */}
+      {salidasDe && <SalidasPlanillaModal aviso={salidasDe} cuentas={cuentas} onCerrar={() => setSalidasDe(null)} />}
+      {(planilla ?? []).map((a) => (
+        <Aviso
+          key={a.clave}
+          tono="atencion"
+          titulo={a.titulo}
+          guia="fin-dinero.aviso-planilla"
+          accion={
+            a.porRegistrar.length > 0 ? (
+              <button type="button" className="btn-cayla btn-enlace" onClick={() => setSalidasDe(a)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-planilla-registrar">
+                {textoRegistrar(a.porRegistrar.length)}
+              </button>
+            ) : undefined
+          }
+        >
+          <ul className="mb-1 space-y-0.5 tabular-nums">
+            {a.tramos.map((t) => (
+              <li key={t.banco}>{t.texto}</li>
+            ))}
+          </ul>
           {a.detalle}
         </Aviso>
       ))}
@@ -697,6 +734,7 @@ export function ConciliacionPanel({
 function RegistrarMovimientoModal({
   inicial,
   origenInicial,
+  montoInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -707,6 +745,8 @@ function RegistrarMovimientoModal({
   inicial: QuePaso;
   /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
   origenInicial?: string;
+  /** El monto con que arranca, si una pantalla ya lo sabe (el saldo con CLAURE); la persona lo puede cambiar. */
+  montoInicial?: string;
   cuentas: CuentaDinero[];
   esLider: boolean;
   ubicacionId: string | null;
@@ -721,7 +761,7 @@ function RegistrarMovimientoModal({
   const [guardando, setGuardando] = useState(false);
   const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
   const [b, setB] = useState<BorradorMovimiento>(() => {
-    const base = inicialDe(inicial, cuentas, ubicacionId, deuda, hoy);
+    const base = { ...inicialDe(inicial, cuentas, ubicacionId, deuda, hoy), ...(montoInicial ? { monto: montoInicial } : {}) };
     const origenDelAviso = origenDeArranque(inicial, origenInicial, cuentas);
     return origenDelAviso ? { ...base, origen: origenDelAviso.id, fuente: fuenteInicial(origenDelAviso) } : base;
   });

@@ -28,7 +28,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+const REBOBINAR_COMPRA = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_registrar_compra.sql"), "utf8");
 const arg = (nombre, porDefecto) => {
   const i = process.argv.indexOf(nombre);
   return i > 0 ? process.argv[i + 1] : porDefecto;
@@ -59,6 +61,11 @@ const AUDITORIA = readFileSync(join(RAIZ, "supabase", "migrations", "20261027231
   /^set lock_timeout.*$/gm,
   "",
 );
+
+// Esta función se rebobina antes de pegar las migraciones viejas (`rebobinar_terminar_dia.sql`): en una base que ya pasó por 20261029170000 solo existe la de
+// dos parámetros, y las migraciones de octubre que esta prueba pega crean o parchan la de UNO (el parche falla con «does not exist», o la recreada queda
+// al lado de la nueva y toda llamada con un argumento es ambigua). Rebobinada, la prueba corre en el mundo para el que se escribió.
+const REBOBINAR = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_terminar_dia.sql"), "utf8");
 const RONDAS_ABIERTAS = `
 insert into retail.compra_rondas (persona_id, abierta_por)
 select distinct c.persona_id, c.persona_id from retail.colaboradores c
@@ -78,6 +85,8 @@ const como = (auth, clave) =>
 
 const PRELUDIO = `
 begin;
+${REBOBINAR_COMPRA}
+${REBOBINAR}
 ${MIGRACION}
 ${MIGRACION}
 ${RONDA}

@@ -14,6 +14,7 @@ import {
   RPC_MANDAR_A_TIENDA,
   RPC_TERMINAR_DIA,
   RPC_ABRIR_RONDA,
+  RPC_REABRIR_RONDA,
   type ConceptoGasto,
   type DecisionCierre,
   type MedioPlata,
@@ -73,7 +74,8 @@ export async function confirmarPlata(
 // del envío (`crear_envio` la reconoce). Terminar el día se puede repetir: el mismo día reemplaza el cierre anterior.
 
 export async function registrarGastoRapido(
-  args: { p_id: string; p_concepto: ConceptoGasto; p_nota: string | null; p_monto: number; p_foto_ruta: string | null },
+  // `p_papel` y `p_ruc` (20261029195000) solo viajan si los dijo: una base de antes no los conoce.
+  args: { p_id: string; p_concepto: ConceptoGasto; p_nota: string | null; p_monto: number; p_foto_ruta: string | null; p_papel?: string; p_ruc?: string },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_GASTO_RAPIDO as never, args as never), firma);
@@ -95,8 +97,17 @@ export async function abrirRonda(firma: Firma | FirmaOmitida | null): Promise<{ 
   return { error: error ?? null };
 }
 
+/**
+ * Vuelve a abrir la última ronda cerrada (ADR-0569): con ella abierta se anota lo que se olvidó y se cierra otra vez eligiendo de nuevo qué hacer
+ * con lo que queda. Dos toques no la reabren dos veces (la base devuelve la misma).
+ */
+export async function reabrirRonda(firma: Firma | FirmaOmitida | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = await firmar(createClient().rpc(RPC_REABRIR_RONDA as never), firma);
+  return { error: error ?? null };
+}
+
 export async function terminarDia(
-  args: { p_decision: DecisionCierre | null },
+  args: { p_decision: DecisionCierre | null; p_cuenta_indicada_id?: string | null },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_TERMINAR_DIA as never, args as never), firma);

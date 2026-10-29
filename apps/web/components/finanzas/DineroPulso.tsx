@@ -57,6 +57,7 @@ export function DineroPulso({
                 )}
                 {alcanza.provisional && <FaltanProyeccion provisional faltan={alcanza.faltan} className="mt-3" />}
                 {alcanza.guardadoYaCuenta && <p className="nota-cayla mt-3">{alcanza.guardadoYaCuenta.frase}</p>}
+                {alcanza.deClaudia && <p className="nota-cayla mt-3">{alcanza.deClaudia.frase}</p>}
                 <p className="fin-dinero-ver">
                   <Link href="/finanzas/reportes/flujo" className="btn-cayla btn-enlace">
                     Ver el flujo semana a semana

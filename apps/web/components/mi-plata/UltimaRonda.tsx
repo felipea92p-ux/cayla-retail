@@ -5,15 +5,28 @@ import { Chip } from "@/components/ui/Chip";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { resumenDeEnvios, type EnvioMio } from "@/lib/mis-envios-reglas";
-import type { UltimaRondaVista } from "@/lib/mi-plata-reglas";
+import type { RondaCerrada, UltimaRondaVista } from "@/lib/mi-plata-reglas";
 import { HojaDeRonda } from "./ListaDelDia";
+import { ReabrirRonda } from "./ReabrirRonda";
 
 // «Tu última ronda» (Felipe 2026-10-27: «cuando la ronda no está abierta se ve muy básico, hay que hacerlo más profesional»). Sin ronda abierta
 // la columna de la derecha era un «Antes de abrir tu ronda 0» con una frase y un «Ver 2» plegado: la pantalla parecía vacía aunque la
 // compradora tuviera rondas. Ahora lo primero que ve es cómo terminó la última —cuánto salió de su plata, cómo cerró y en qué van sus
 // envíos—, con UN estado dicho por quién lo hace (lo que falta lo hace Compras, o ella al entregar en caja), y a un toque, la hoja con lo
-// que compró y gastó. Solo se lee: abrir una ronda nueva está a la izquierda. El armado de los datos: `ultimaRondaDelHistorial`.
-export function UltimaRonda({ u, envios, hoy }: { u: UltimaRondaVista; envios: EnvioMio[] | null; hoy?: string }) {
+// que compró y gastó. Abrir una ronda nueva está a la izquierda; reabrir ESTA, si Compras todavía no recibió su cierre, va en la misma fila de acciones, a la derecha
+// (Felipe 2026-10-29). El armado de los datos: `ultimaRondaDelHistorial`.
+export function UltimaRonda({
+  u,
+  envios,
+  hoy,
+  ultimaCerrada = null,
+}: {
+  u: UltimaRondaVista;
+  envios: EnvioMio[] | null;
+  hoy?: string;
+  /** La última ronda cerrada de la compradora: con ella, la tarjeta ofrece «Reabrir» si Compras todavía no recibió su cierre. */
+  ultimaCerrada?: RondaCerrada | null;
+}) {
   const [abierta, setAbierta] = useState(false);
   const resumen = envios ? resumenDeEnvios(envios, hoy) : null;
   return (
@@ -53,6 +66,7 @@ export function UltimaRonda({ u, envios, hoy }: { u: UltimaRondaVista; envios: E
           Ver lo que anoté
         </BotonVer>
         {envios && envios.length > 0 && <EnlaceVer href="/compras/mi-plata/envios">Mis envíos</EnlaceVer>}
+        <ReabrirRonda ultimaCerrada={ultimaCerrada} />
       </div>
       {abierta && <HojaDeRonda e={u.ronda} envios={envios ?? []} hoy={hoy} onClose={() => setAbierta(false)} />}
     </section>

@@ -74,8 +74,8 @@ import { CifrasCuadre, AntesDespues, ListasCuadre } from "./RevisarCuadre";
 import { ResultadoCuadre } from "./ResultadoCuadre";
 import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { AvisoRepetida } from "@/components/ui/AvisoRepetida";
-import { ESTADO_REPETIDA_VACIO, declararPila, decidirLectura, soltarPila, type EstadoRepetida } from "@/lib/lectura-repetida";
+import { AvisoRepetida, avisarNoSumo } from "@/components/ui/AvisoRepetida";
+import { ESTADO_REPETIDA_VACIO, declararPila, decidirLectura, soltarPila, type EstadoRepetida, type PreguntaRepetida } from "@/lib/lectura-repetida";
 
 /*
  * «Cuadrar el piso» (ADR-0328, decisión técnica 4). Tres pasos y el resultado:
@@ -181,7 +181,7 @@ export function CuadrarPisoForm({
   const [borrador, setBorrador] = useState<BorradorCuadre | null>(null);
   const [descartar, setDescartar] = useState(false);
   const [aviso, setAviso] = useState<Aviso | null>(null);
-  // «¿Quieres volver a agregar esta prenda?» (ADR-0562): la pregunta abierta y las pilas «Son varias iguales», también en un ref
+  // «¿Quieres volver a agregar esta prenda?» (ADR-0562): la pregunta abierta y las pilas de «Cambiar cantidad», también en un ref
   // para la ráfaga de la pistola.
   const repetidaRef = useRef<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
   const [repetida, setRepetida] = useState<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
@@ -328,6 +328,14 @@ export function CuadrarPisoForm({
     if (repetidaRef.current.pregunta) cambiarRepetida({ ...repetidaRef.current, pregunta: null });
   }
 
+  // Otra prenda escaneada con la pregunta abierta es «No» (ADR-0562, decisión 5); con la pistola se mira el rack, no la pantalla,
+  // así que se deja el rastro, con «Deshacer» que vuelve a preguntar por la anterior.
+  function dejarRastroDelNo(anterior: PreguntaRepetida | null) {
+    const prenda = anterior ? porId.get(anterior.varianteId) : undefined;
+    if (!anterior || !prenda) return;
+    avisarNoSumo(nombreDe(prenda), () => cambiarRepetida({ ...repetidaRef.current, pregunta: { varianteId: anterior.varianteId, ignoradas: 0 } }));
+  }
+
   /** Una lectura (pistola, cámara o lo escrito). Devuelve lo que la cámara muestra en su bandeja. */
   function leer(texto: string): LecturaConteo {
     if (!texto.trim()) return { encontrada: false, codigo: texto };
@@ -349,13 +357,17 @@ export function CuadrarPisoForm({
         return enBandeja;
       }
       if (decision.tipo === "pregunta") {
+        if (decision.cierraPregunta) dejarRastroDelNo(repetidaRef.current.pregunta);
         cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
         avisarLectura("desconocida");
         setAviso(null);
         setAnuncio(`${nombreDe(p)} ya está en lo escaneado: llevas ${yaEnLista}. ¿Quieres volver a agregarla?`);
         return enBandeja;
       }
-      if (decision.cierraPregunta) cerrarPregunta();
+      if (decision.cierraPregunta) {
+        dejarRastroDelNo(repetidaRef.current.pregunta);
+        cerrarPregunta();
+      }
     }
     return sumarLeida(lectura, texto);
   }
@@ -433,7 +445,7 @@ export function CuadrarPisoForm({
     volverAlEscaner();
   }
 
-  // «Son varias iguales»: el total de esa prenda de una vez, y esa prenda deja de preguntar.
+  // «Cambiar cantidad»: el total de esa prenda de una vez, y esa prenda deja de preguntar.
   function ponerVarias(total: number) {
     const pregunta = repetidaRef.current.pregunta;
     if (!pregunta) return;
@@ -672,16 +684,17 @@ export function CuadrarPisoForm({
   const arriba = datos.lineas[0];
   const prendaArriba = arriba ? porId.get(arriba.varianteId) : undefined;
   const nombreMovida = (id: string) => movidas.find((m) => m.varianteId === id)?.prenda ?? nombreDe(porId.get(id));
-  // «¿Quieres volver a agregar esta prenda?» (ADR-0562): bajo el campo, o en la bandeja de la cámara si está abierta. Sin tope:
+  // «Ya está en la lista · ¿Sumar otra?» (ADR-0562): bajo el campo, o sobre el velo que tapa la cámara si está abierta. Sin tope:
   // el cuadre cuenta lo que hay, aunque el sistema diga menos.
   const preguntaRepetida = repetida.pregunta;
   const avisoRepetida = preguntaRepetida ? (
     <AvisoRepetida
       key={preguntaRepetida.varianteId}
       nombre={nombreDe(porId.get(preguntaRepetida.varianteId))}
+      miniatura={<MiniaturaPrenda fotoUrl={porId.get(preguntaRepetida.varianteId)?.fotoUrl ?? null} tamano="lg" />}
       lleva={datos.lineas.find((l) => l.varianteId === preguntaRepetida.varianteId)?.cantidad ?? 0}
-      ignoradas={preguntaRepetida.ignoradas}
       tope={null}
+      variante={camara ? "camara" : "franja"}
       onSi={responderSi}
       onNo={responderNo}
       onVarias={ponerVarias}
@@ -770,7 +783,7 @@ export function CuadrarPisoForm({
             </CampoGuiado>
           )}
 
-          <CampoGuiado id="guardado" guia={guiaEscaneo} titulo="Lo guardado" ayuda="La primera lectura de una prenda suma 1; si se repite, te pregunto. Si tienes 12 iguales, elige «Son varias iguales» o cambia el número.">
+          <CampoGuiado id="guardado" guia={guiaEscaneo} titulo="Lo guardado" ayuda="La primera lectura de una prenda suma 1; si se repite, te pregunto. Si tienes 12 iguales, toca «Cambiar cantidad».">
             <section data-guia="cuadrar.escaner" className="card-cayla p-4 sm:p-5">
               <label htmlFor="cuadre-escaner" className="sr-only">
                 Escanear prenda guardada
@@ -862,7 +875,7 @@ export function CuadrarPisoForm({
                             {deMas > 0 && <Chip tono="ambar">{deMas === 1 ? "1 no cargada" : `${deMas} no cargadas`}</Chip>}
                             {repetida.pilas.includes(l.varianteId) && (
                               <>
-                                <Chip tono="pizarra" title="Elegiste «Son varias iguales»: esta prenda suma sin preguntar.">
+                                <Chip tono="pizarra" title="Cambiaste la cantidad total: esta prenda suma sin preguntar.">
                                   Varias iguales
                                 </Chip>
                                 <button
@@ -1086,7 +1099,8 @@ export function CuadrarPisoForm({
             setCamara(false);
             requestAnimationFrame(volverAlEscaner);
           }}
-          aviso={avisoRepetida ?? (aviso ? <span className="text-sm text-tinta">{aviso.texto}</span> : undefined)}
+          aviso={aviso ? <span className="text-sm text-tinta">{aviso.texto}</span> : undefined}
+          pregunta={avisoRepetida}
           onClose={() => setCamara(false)}
         />
       )}

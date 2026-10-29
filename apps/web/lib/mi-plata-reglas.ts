@@ -20,8 +20,12 @@ export const RPC_MANDAR_A_TIENDA = "mandar_compras_a_tienda";
 // Cerrar la ronda (20261023183000): la función conserva su nombre de «Terminé por hoy», al que reemplaza.
 export const RPC_TERMINAR_DIA = "terminar_dia_compras";
 export const RPC_ABRIR_RONDA = "abrir_ronda_compras";
+// Reabrir la última ronda cerrada (20261029150000, ADR-0569): para anotar lo que se olvidó o cambiar cómo se cerró.
+export const RPC_REABRIR_RONDA = "reabrir_ronda_compras";
 // «¿De qué banco salió?» (20261026170000): los bancos de la empresa, para quien anota plata por transferencia.
 export const RPC_BANCOS_PLATA = "fn_bancos_para_plata_compras";
+// «¿A qué cuenta de CAYLA devolviste?» al cerrar la ronda (20261029170000): los bancos y cajas fuertes a los que Compras puede recibir lo devuelto.
+export const RPC_CUENTAS_DEVOLVER = "fn_cuentas_para_devolver_compras";
 
 /** La carpeta de los vouchers dentro del depósito de las fotos de los gastos del viaje (la base exige que la ruta empiece así). */
 export const CARPETA_VOUCHERS = "plata/";
@@ -155,7 +159,9 @@ export type MiPlata = {
   comprasPorCompletar: number;
   /** Lo que gastó en otras cosas y Compras todavía no revisa: también ya bajó. */
   gastosPorCompletar: number;
-  /** Lo que tiene para comprar: su fondo más lo por confirmar, menos lo comprado y lo gastado por completar. */
+  /** Lo que ya decidió devolver al cerrar su ronda y Compras todavía no recibió en caja: ya no es suyo (ADR-0574). */
+  devolucionPorEntregar: number;
+  /** Lo que tiene para comprar: su fondo más lo por confirmar, menos lo comprado, lo gastado por completar y lo que ya decidió devolver. */
   tiene: number;
   puedeYaTenia: boolean;
   anotada: PlataAnotada[];
@@ -310,6 +316,7 @@ export function leerMiPlata(data: unknown): MiPlata | null {
       porConfirmar: 0,
       comprasPorCompletar: 0,
       gastosPorCompletar: 0,
+      devolucionPorEntregar: 0,
       tiene: 0,
       puedeYaTenia: false,
       anotada: [],
@@ -332,14 +339,17 @@ export function leerMiPlata(data: unknown): MiPlata | null {
   if (o.ronda !== undefined && (compras === null || gastos === null)) return null;
   const comprasPorCompletar = compras ?? 0;
   const gastosPorCompletar = gastos ?? 0;
+  // Lo que ya decidió devolver (20261029191000, ADR-0574). Una base que todavía no lo manda deja la cuenta como era: no es una lectura rota.
+  const devolucionPorEntregar = numero(o.devolucion_por_entregar) ?? 0;
   return {
     persona: true,
     saldo,
     porConfirmar,
     comprasPorCompletar,
     gastosPorCompletar,
+    devolucionPorEntregar,
     // La misma cuenta que `fn_mi_plata_tiene` en la base (la que guarda el cierre del día).
-    tiene: redondear(saldo + porConfirmar - comprasPorCompletar - gastosPorCompletar),
+    tiene: redondear(saldo + porConfirmar - comprasPorCompletar - gastosPorCompletar - devolucionPorEntregar),
     puedeYaTenia: o.puede_ya_tenia === true,
     anotada: (Array.isArray(o.anotada) ? o.anotada : []).map(leerAnotada).filter((a): a is PlataAnotada => a !== null),
     compras: (Array.isArray(o.compras) ? o.compras : []).map(leerCompra).filter((c): c is CompraAnotada => c !== null),
@@ -465,6 +475,34 @@ export function bancoSugerido(bancos: readonly { id: string; nombre: string }[])
   return (bancos.find((c) => /\bbcp\b/.test(normalizar(c.nombre))) ?? bancos[0])?.id ?? null;
 }
 
+/** Las cuentas de CAYLA a las que se puede devolver lo que sobró (`fn_cuentas_para_devolver_compras`): bancos y cajas fuertes. Lo ilegible se descarta. */
+export function leerCuentasParaDevolver(data: unknown): CuentaOpcion[] {
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((x): CuentaOpcion | null => {
+      if (!x || typeof x !== "object") return null;
+      const o = x as Record<string, unknown>;
+      const id = texto(o.id);
+      const nombre = texto(o.nombre);
+      if (!id || !nombre || (o.tipo !== "banco" && o.tipo !== "caja_fuerte")) return null;
+      return { id, nombre, tipo: o.tipo, sede: texto(o.sede) };
+    })
+    .filter((x): x is CuentaOpcion => x !== null);
+}
+
+/**
+ * ¿Falta decir a qué cuenta de CAYLA devolvió? Solo con «Lo devuelvo» y solo si hay cuentas que elegir: sin ninguna configurada no hay nada que
+ * indicar y no bloquea (la elige Compras al recibir, como siempre). La base acepta el cierre sin cuenta; esto es la regla de la pantalla.
+ */
+export function faltaCuentaDeLaDevolucion(decision: DecisionCierre | null, cuentas: readonly CuentaOpcion[], cuentaId: string | null): boolean {
+  return decision === "devuelve" && cuentas.length > 0 && !cuentas.some((c) => c.id === cuentaId);
+}
+
+/** «Marisol dijo que lo devolvió a BCP.»: lo que ve Compras al recibir un cierre cuando la compradora indicó la cuenta. */
+export function textoCuentaDevuelta(persona: string, cuenta: string | null): string | null {
+  return cuenta ? `${persona} dijo que lo devolvió a ${cuenta}.` : null;
+}
+
 /**
  * La cuenta con la que llega «Revisar compras» al confirmar: la que indicó la compradora si sigue entre las cuentas que se pueden elegir
  * (puede haberse archivado); si no, la de siempre (el BCP). Compras la puede cambiar: la indicación no mueve plata.
@@ -538,6 +576,14 @@ export function fraseGasto(monto: number | null): string {
  */
 export function puedeCerrarLaRonda(porMandar: readonly PorMandar[]): boolean {
   return !porMandar.some((t) => t.unidades > 0);
+}
+
+/**
+ * ¿Se puede reabrir la última ronda cerrada? Sí mientras Compras no haya recibido su cierre (lo que devolvió o le pagaron ya movió plata de
+ * verdad) y no haya otra abierta. La base es la que lo exige (`reabrir_ronda_compras`); la pantalla solo decide si ofrece el botón.
+ */
+export function puedeReabrirLaRonda(rondas: Pick<Rondas, "abierta" | "ultimaCerrada">): boolean {
+  return rondas.abierta === null && rondas.ultimaCerrada !== null && !rondas.ultimaCerrada.resuelto;
 }
 
 /** El aviso con el que «Cerrar mi ronda» le pide a «Mandar a la tienda» que se abra (están en celdas distintas de la pantalla). */
@@ -697,6 +743,8 @@ export type MovimientoCompradora = {
   ronda: string | null;
   /** Solo en una compra: el papel (`compra_papeles.id`), para corregirla (ADR-0561). */
   compraId?: string;
+  /** Solo en un gasto de «otra cosa»: su identificador (`compra_gastos.id`), para corregirlo (ADR-0572). */
+  gastoId?: string;
 };
 
 const TITULO_PLATA: Record<MedioPlata, string> = {
@@ -769,6 +817,7 @@ export function movimientosDeLaCompradora(
       const e = estadoParaLaCompradora("gasto", g.porCompletar);
       return {
         clave: `gasto-${g.id}`,
+        gastoId: g.id,
         tipo: "gasto",
         icono: g.concepto,
         titulo: nombreGasto(g),
@@ -893,7 +942,7 @@ export type UltimaRondaVista = {
   cierre: Extract<EntradaHistorial, { tipo: "cierre" }> | null;
   /** Qué falta de su lado: la plata por entregar o recibir manda; si no, que Compras todavía pase algo a los libros; si no, al día. */
   estado: { texto: string; detalle: string; pendiente: boolean };
-  /** «Devolviste en caja S/ 80.00», «Te quedaste S/ 200.00 para tu próxima ronda.», o lo que corresponda cuando no hubo plata que mover. */
+  /** «Por devolver en caja S/ 80.00» (ya «Devolviste…» cuando Compras lo recibió), «Te quedaste S/ 200.00 para tu próxima ronda.», o lo que corresponda cuando no hubo plata que mover. */
   comoCerro: string;
   resto: EntradaHistorial[];
 };
@@ -968,7 +1017,8 @@ export function historialDeLaCompradora(antes: readonly MovimientoCompradora[], 
           tipo: "cierre",
           clave: `cierre-${r.id}`,
           decision: r.decision,
-          titulo: devuelve ? "Devolviste en caja" : "Pusiste de tu bolsillo",
+          // Mientras Compras no lo recibe no «devolviste» todavía (ADR-0574): la plata ya no cuenta como suya, pero falta entregarla en caja.
+          titulo: devuelve ? (r.resuelto ? "Devolviste en caja" : "Por devolver en caja") : "Pusiste de tu bolsillo",
           detalle: [r.texto, diaLima(r.cerradaEn) ? diaMes(diaLima(r.cerradaEn)!) : null].filter(Boolean).join(" · "),
           entra: !devuelve,
           monto: soles(r.monto),

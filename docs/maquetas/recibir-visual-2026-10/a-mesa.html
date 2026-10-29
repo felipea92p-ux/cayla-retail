@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A · La mesa de fardos</title>
+<link rel="stylesheet" href="comun.css">
+<style>
+  .pagina{max-width:1600px;margin:0 auto;padding:28px 24px 80px}
+  .cab{display:flex;align-items:end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+  .cab .sede{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;display:flex;align-items:center;gap:12px}
+  .cab .sede::before{content:"";width:34px;height:1px;background:var(--taupe);transform-origin:left;animation:hilo .8s var(--ease) both}
+  @keyframes hilo{from{transform:scaleX(0)}}
+  .cab h1{font-size:clamp(38px,5vw,56px);line-height:1.05;margin-top:6px}
+  .resumen{display:flex;gap:28px}
+  .resumen div{text-align:right}
+  .resumen .num{font-size:44px;line-height:1;display:block}
+  .resumen small{font-size:15px;color:var(--tinta-60)}
+
+  /* ---- el camino: 4 carriles unidos por un hilo ---- */
+  .mesa{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;position:relative}
+  .carril{background:var(--papel);border:1px solid var(--sand);border-radius:22px;padding:18px;min-height:380px;display:flex;flex-direction:column;gap:14px;position:relative}
+  .carril header{display:flex;align-items:center;gap:12px}
+  .carril header .i{width:46px;height:46px;border-radius:14px;background:var(--hueso);display:grid;place-items:center;color:var(--tinta)}
+  .carril header .i svg{width:24px;height:24px}
+  .carril header h2{font-size:25px;flex:1}
+  .globo{min-width:34px;height:34px;border-radius:99px;background:var(--hueso);display:grid;place-items:center;font-weight:700;font-size:17px;padding:0 10px;transition:background .3s,color .3s}
+  .globo.pide{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar)}
+  .carril.activo{border-color:var(--tinta)}
+  .vacio{margin:auto;text-align:center;color:var(--tinta-60);font-size:17px;display:grid;gap:10px;justify-items:center;padding:20px}
+  .vacio svg{width:38px;height:38px;opacity:.6}
+  .flecha-carril{position:absolute;right:-18px;top:44px;width:18px;height:2px;background:var(--sand);z-index:1}
+
+  /* ---- el fardo (la tarjeta) ---- */
+  .fardo{position:relative;text-align:left;width:100%;border:1px solid var(--borde-control);background:var(--crema);border-radius:18px;padding:16px;display:grid;gap:12px;transition:transform .25s var(--ease),box-shadow .25s var(--ease);will-change:transform}
+  @media (hover:hover){.fardo:hover{transform:translateY(-3px);box-shadow:0 14px 28px -16px color-mix(in srgb,var(--sombra) 50%,transparent)}}
+  .fardo .fila{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .fardo .id{font-weight:700;font-size:20px}
+  .fardo .de{font-size:16px;color:var(--tinta-60)}
+  .mosaico{display:flex;gap:8px}
+  .mosaico .prenda{width:46px;border-radius:12px}
+  .mas-n{width:46px;aspect-ratio:1;border-radius:12px;background:var(--hueso);display:grid;place-items:center;font-weight:700;font-size:16px}
+  .fardo .barra{height:10px;border-radius:99px;background:var(--hueso);overflow:hidden}
+  .fardo .barra i{display:block;height:100%;width:var(--w,0%);background:var(--tinta);border-radius:99px;transition:width .7s var(--ease)}
+  .fardo .toque{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px;color:var(--rojo-profundo)}
+  .fardo .toque svg{width:18px;height:18px;transition:transform .25s var(--ease)}
+  @media (hover:hover){.fardo:hover .toque svg{transform:translateX(4px)}}
+  .fardo.llega::after{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--verde) 28%,transparent) 50%,transparent 70%);transform:translateX(-100%);animation:barrido 1s var(--ease) .15s forwards}
+  @keyframes barrido{to{transform:translateX(100%);opacity:0}}
+  .camion{position:relative;height:6px;border-radius:99px;background:var(--hueso)}
+  .camion::before{content:"";position:absolute;inset:0;width:var(--w,60%);border-radius:99px;background:var(--pizarra);transform-origin:left;animation:crece 1.1s var(--ease) both}
+  @keyframes crece{from{transform:scaleX(0)}}
+
+  /* ---- la hoja del conteo / detalle ---- */
+  .velo{position:fixed;inset:0;background:color-mix(in srgb,var(--sombra) 35%,transparent);backdrop-filter:blur(6px);z-index:40;opacity:0;animation:velo .3s var(--ease) forwards;display:grid;place-items:center;padding:20px}
+  :root[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 60%,transparent)}
+  @keyframes velo{to{opacity:1}}
+  .hoja{background:var(--papel);width:min(760px,100%);max-height:calc(100dvh - 40px);overflow:auto;border-radius:24px;padding:28px;transform:translateY(18px) scale(.98);opacity:0;animation:hoja .45s var(--ease) .05s forwards;position:relative}
+  @keyframes hoja{to{transform:none;opacity:1}}
+  .hoja.sale{animation:sale .25s var(--ease) forwards}
+  @keyframes sale{to{opacity:0;transform:translateY(10px)}}
+  .hoja h3{font-size:34px;line-height:1.1}
+  .hoja .sub{font-size:18px;color:var(--tinta-60);margin:6px 0 20px}
+  .x{position:absolute;right:16px;top:16px;width:48px;height:48px;border-radius:99px;border:1px solid var(--borde-control);background:var(--papel);display:grid;place-items:center}
+  .x svg{width:20px;height:20px}
+  .tapa{height:0;border-radius:14px 14px 0 0;background:var(--hueso);margin:-6px 0 14px;transform-origin:bottom;overflow:hidden;animation:tapa .7s var(--ease) .2s both}
+  @keyframes tapa{from{height:56px;transform:perspective(500px) rotateX(0)}to{height:0;transform:perspective(500px) rotateX(70deg);opacity:0}}
+  .lineas{display:grid;gap:14px}
+  .linea{display:grid;grid-template-columns:96px 1fr auto;gap:18px;align-items:center;padding:16px;border-radius:18px;background:var(--crema);border:1px solid var(--sand);transition:border-color .3s,background .3s}
+  .linea.hecha{border-color:var(--verde)}
+  .linea .prenda{width:96px;cursor:pointer;transition:transform .2s var(--ease)}
+  .linea .prenda:active{transform:scale(.94)}
+  .linea h4{margin:0;font-size:22px;font-weight:600}
+  .linea p{margin:2px 0 10px;font-size:16px;color:var(--tinta-60)}
+  .puntos{display:flex;flex-wrap:wrap;gap:6px}
+  .puntos i{width:18px;height:18px;border-radius:99px;border:2px solid var(--borde-control);transition:all .35s var(--ease)}
+  .puntos i.on{background:var(--tinta);border-color:var(--tinta);transform:scale(1)}
+  .linea.hecha .puntos i.on{background:var(--verde);border-color:var(--verde)}
+  .cant{display:flex;align-items:center;gap:10px}
+  .cant .num{font-size:44px;min-width:2ch;text-align:center;line-height:1}
+  .cant small{font-size:18px;color:var(--tinta-60);white-space:nowrap}
+  .redondo{width:52px;height:52px;border-radius:99px;border:1px solid var(--borde-control);background:var(--papel);display:grid;place-items:center}
+  .redondo svg{width:22px;height:22px}
+  .redondo.fuerte{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .pie{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+  .pie .falta{font-size:18px;font-weight:600}
+  /* tallas */
+  .tallas{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .talla{min-width:84px;height:68px;border-radius:16px;border:1.5px solid var(--borde-control);background:var(--papel);display:grid;place-items:center;padding:0 12px;position:relative;font-weight:700;font-size:24px;line-height:1}
+  .talla small{position:absolute;right:-8px;top:-10px;min-width:30px;height:30px;border-radius:99px;background:var(--tinta);color:var(--crema);font-size:16px;display:grid;place-items:center;transform:scale(0);transition:transform .25s var(--ease)}
+  .talla.tiene small{transform:scale(1)}
+  .talla.tiene{border-color:var(--tinta);background:var(--hueso)}
+  .linea.talles{grid-template-columns:96px 1fr}
+  .hecho-sello{display:grid;place-items:center;gap:12px;padding:20px 0 6px;text-align:center}
+  .hecho-sello h3{font-size:30px}
+  .stock{display:grid;gap:10px;width:100%;max-width:420px;margin-top:6px}
+  .stock .b{display:grid;grid-template-columns:130px 1fr 40px;gap:12px;align-items:center;font-size:17px;font-weight:600;text-align:left}
+  .stock .b i{display:block;height:14px;border-radius:99px;background:var(--hueso);position:relative;overflow:hidden}
+  .stock .b i::after{content:"";position:absolute;inset:0;width:var(--w);background:var(--verde);border-radius:99px;transform-origin:left;animation:crece 1s var(--ease) .3s both}
+
+  @media (max-width:1100px){.mesa{grid-template-columns:repeat(4,min(82vw,360px));overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:12px;margin:0 -24px;padding:0 24px 12px}.carril{scroll-snap-align:start}.flecha-carril{display:none}}
+  @media (max-width:640px){
+    .pagina{padding:18px 16px 80px}
+    .resumen .num{font-size:34px}
+    .velo{place-items:end;padding:0}.hoja{border-radius:24px 24px 0 0;padding:22px 18px 28px;max-height:92dvh}
+    .hoja h3{font-size:28px;padding-right:56px}
+    .linea{grid-template-columns:72px 1fr;gap:12px}.linea .prenda{width:72px}.linea .cant{grid-column:1/-1;justify-content:space-between}
+    .mesa{margin:0 -16px;padding:0 16px 12px}
+  }
+</style>
+</head>
+<body>
+<div class="barra-spike"><a href="index.html">← Los 3 diseños</a><strong>A · La mesa de fardos</strong>
+  <div class="quien"><span>Micaela · Tienda Trujillo</span><button class="tema" aria-label="Modo oscuro"></button></div></div>
+
+<main class="pagina">
+  <div class="cab cae">
+    <div><div class="sede">Tienda Trujillo · jueves 29</div><h1>Recibir mercadería</h1></div>
+    <div class="resumen" id="resumen"></div>
+  </div>
+  <div class="mesa" id="mesa"></div>
+</main>
+
+<script src="comun.js"></script>
+<script>
+(function(){
+  var ETAPAS=[{k:'camino',t:'En camino',i:'camion'},{k:'contar',t:'Para contar',i:'caja'},{k:'detallar',t:'Poner tallas',i:'etiqueta'},{k:'almacen',t:'En el almacén',i:'piso'}];
+  var E=R.ENVIOS.map(function(e){return{id:e.id,cuando:e.cuando,prov:e.prov,fardos:e.fardos,etapa:e.id==='ENV-003035'?0:0,
+    lineas:e.lineas.map(function(l){return{m:l.m,esp:l.esp,cont:0,t:{}}})}});
+  var mesa=document.getElementById('mesa'),primera=true,recien=null;
+  function tot(e,k){return e.lineas.reduce(function(a,l){return a+(k==='esp'?l.esp:k==='cont'?l.cont:Object.keys(l.t).reduce(function(s,x){return s+l.t[x]},0))},0)}
+  function pct(e){var et=e.etapa;return et===1?tot(e,'cont')/tot(e,'esp'):et===2?tot(e,'tal')/tot(e,'esp'):et===3?1:0}
+
+  function fardo(e){
+    var mos=e.lineas.map(function(l){return R.tile(l.m)}).join('');
+    var et=e.etapa,cta={0:'Abrir el fardo',1:'Abrir el fardo',2:'Ponerles talla',3:'Listo'}[et];
+    var pie=et===0?'<div class="camion" style="--w:'+(e.id==='ENV-003035'?'88%':'60%')+'"></div>':'<div class="barra"><i style="--w:'+Math.round(pct(e)*100)+'%"></i></div>';
+    return '<button class="fardo'+(recien===e.id?' llega':'')+'" data-id="'+e.id+'">'+
+      '<div class="fila"><span class="id">'+e.id.replace('ENV-','Envío ')+'</span><span class="de">'+e.cuando+'</span></div>'+
+      '<div class="fila"><div class="mosaico">'+mos+'</div><span class="num" style="font-size:38px">'+tot(e,'esp')+'<small style="font-size:16px;font-family:inherit"> prendas</small></span></div>'+pie+
+      (et===3?'<div class="toque" style="color:var(--verde-profundo)">'+R.ico('ok')+'En el almacén</div>':'<div class="toque">'+cta+R.ico('flecha')+'</div>')+'</button>';
+  }
+  function render(){
+    var antes={};mesa.querySelectorAll('.fardo').forEach(function(n){antes[n.dataset.id]=n.getBoundingClientRect()});
+    mesa.innerHTML=ETAPAS.map(function(et,k){
+      var lst=E.filter(function(e){return e.etapa===k});
+      var pide=(k===1||k===2)&&lst.length;
+      return '<section class="carril '+(lst.length&&k<3?'activo':'')+' '+(primera?'cae':'')+'" style="--i:'+k+'"><header><span class="i">'+R.ico(et.i)+'</span><h2>'+et.t+'</h2><span class="globo '+(pide?'pide':'')+'">'+lst.length+'</span></header>'+
+        (lst.length?lst.map(fardo).join(''):'<div class="vacio">'+R.ico(et.i)+'<span>'+(k===3?'Aquí llega lo terminado':'Nada por aquí')+'</span></div>')+
+        (k<3?'<span class="flecha-carril"></span>':'')+'</section>'}).join('');
+    mesa.querySelectorAll('.fardo').forEach(function(n){
+      var a=antes[n.dataset.id];if(a&&!matchMedia('(prefers-reduced-motion:reduce)').matches){var b=n.getBoundingClientRect();
+        n.animate([{transform:'translate('+(a.left-b.left)+'px,'+(a.top-b.top)+'px)'},{transform:'none'}],{duration:700,easing:'cubic-bezier(.32,.72,.24,1)'})}
+      n.addEventListener('click',function(){abre(n.dataset.id)})});
+    var r=document.getElementById('resumen'),por=E.filter(function(e){return e.etapa<3}).reduce(function(a,e){return a+tot(e,'esp')},0),ya=E.filter(function(e){return e.etapa===3}).reduce(function(a,e){return a+tot(e,'esp')},0);
+    r.innerHTML='<div><span class="num" id="n1">'+por+'</span><small>por recibir</small></div><div><span class="num" id="n2" style="color:var(--verde-profundo)">'+ya+'</span><small>ya en el almacén</small></div>';
+    if(primera){R.cuenta(document.getElementById('n1'),0,por,800);primera=false}
+    recien=null;
+  }
+
+  /* ---- hoja ---- */
+  var velo=null;
+  function cierra(){if(!velo)return;var h=velo.querySelector('.hoja');h.classList.add('sale');var v=velo;velo=null;setTimeout(function(){v.remove()},230)}
+  function abre(id){
+    var e=E.find(function(x){return x.id===id});if(e.etapa===3){R.toast(id.replace('ENV-','Envío ')+' ya está en el almacén');return}
+    velo=document.createElement('div');velo.className='velo';velo.innerHTML='<div class="hoja" role="dialog" aria-modal="true"><button class="x" aria-label="Cerrar">'+R.ico('x')+'</button><div id="cont"></div></div>';
+    document.body.appendChild(velo);velo.addEventListener('click',function(ev){if(ev.target===velo)cierra()});velo.querySelector('.x').onclick=cierra;
+    if(e.etapa===0){e.etapa=1}
+    paso(e,true);
+  }
+  function paso(e,nuevo){e.etapa===1?contar(e,nuevo):detallar(e)}
+
+  function contar(e,nuevo){
+    var c=velo.querySelector('#cont');
+    c.innerHTML=(nuevo?'<div class="tapa"></div>':'')+'<h3>Cuenta lo que llegó</h3><p class="sub">Toca la prenda por cada una que saques.</p><div class="lineas">'+
+      e.lineas.map(function(l,i){var m=R.MODELOS[l.m];
+        return '<div class="linea cae" style="--i:'+i+'" data-i="'+i+'"><div class="prenda" data-color-dato data-mas style="--c:'+m.hex+';'+(m.cat==='casaca'?'color:var(--crema-fija)':'')+'">'+R.ico(m.cat)+'</div>'+
+        '<div><h4>'+m.n+'</h4><p>'+m.color+'</p><div class="puntos"></div></div>'+
+        '<div class="cant"><button class="redondo" data-menos aria-label="Una menos">'+R.ico('menos')+'</button><span class="num">0</span><small>de '+l.esp+'</small><button class="redondo fuerte" data-mas aria-label="Una más">'+R.ico('mas')+'</button><button class="btn" data-todas style="min-height:52px">Todas</button></div></div>'}).join('')+
+      '</div><div class="pie"><span class="falta" id="falta"></span><button class="btn primario grande" id="sig" disabled>Cerrar el conteo '+R.ico('flecha')+'</button></div>';
+    c.querySelectorAll('.linea').forEach(function(n){var i=+n.dataset.i,l=e.lineas[i];
+      function pinta(){var num=n.querySelector('.num');num.textContent=l.cont;
+        n.querySelector('.puntos').innerHTML=Array.from({length:l.esp},function(_,k){return '<i class="'+(k<l.cont?'on':'')+'"></i>'}).join('');
+        n.classList.toggle('hecha',l.cont===l.esp);fin()}
+      n.querySelectorAll('[data-mas]').forEach(function(b){b.onclick=function(){if(l.cont<l.esp){l.cont++;pinta()}}});
+      n.querySelector('[data-menos]').onclick=function(){if(l.cont>0){l.cont--;pinta()}};
+      n.querySelector('[data-todas]').onclick=function(){l.cont=l.esp;pinta()};pinta()});
+    function fin(){var f=tot(e,'esp')-tot(e,'cont');c.querySelector('#falta').textContent=f?'Faltan '+f:'Llegó todo';c.querySelector('#falta').style.color=f?'var(--tinta)':'var(--verde-profundo)';c.querySelector('#sig').disabled=f>0}
+    c.querySelector('#sig').onclick=function(){e.etapa=2;recien=e.id;cierra();render();R.toast('Contado. Ahora ponles talla')}
+  }
+
+  function detallar(e){
+    var c=velo.querySelector('#cont');
+    c.innerHTML='<h3>¿De qué talla es cada una?</h3><p class="sub">Toca la talla por cada prenda.</p><div class="lineas">'+
+      e.lineas.map(function(l,i){var m=R.MODELOS[l.m];
+        return '<div class="linea talles cae" style="--i:'+i+'" data-i="'+i+'"><div class="prenda" data-color-dato style="--c:'+m.hex+';'+(m.cat==='casaca'?'color:var(--crema-fija)':'')+'">'+R.ico(m.cat)+'</div>'+
+        '<div><h4>'+m.n+' <span class="chip pizarra" style="font-size:15px;margin-left:6px">'+m.color+'</span></h4><p class="r"></p><div class="tallas">'+m.tallas.map(function(t){return '<button class="talla" data-t="'+t+'">'+t+'<small>0</small></button>'}).join('')+'<button class="redondo" data-reset aria-label="Borrar" style="align-self:center">'+R.ico('x')+'</button></div></div></div>'}).join('')+
+      '</div><div class="pie"><span class="falta" id="falta"></span><button class="btn primario grande" id="sig" disabled>Meter al almacén '+R.ico('flecha')+'</button></div>';
+    c.querySelectorAll('.linea').forEach(function(n){var l=e.lineas[+n.dataset.i];
+      function usadas(){return Object.keys(l.t).reduce(function(s,x){return s+l.t[x]},0)}
+      function pinta(){n.querySelectorAll('.talla').forEach(function(b){var k=l.t[b.dataset.t]||0;b.classList.toggle('tiene',k>0);b.querySelector('small').textContent=k});
+        var r=l.esp-usadas();n.querySelector('.r').textContent=r?'Faltan '+r:'Listo';n.querySelector('.r').style.color=r?'':'var(--verde-profundo)';n.classList.toggle('hecha',!r);fin()}
+      n.querySelectorAll('.talla').forEach(function(b){b.onclick=function(){if(usadas()<l.esp){l.t[b.dataset.t]=(l.t[b.dataset.t]||0)+1;pinta()}}});
+      n.querySelector('[data-reset]').onclick=function(){l.t={};pinta()};pinta()});
+    function fin(){var f=e.lineas.reduce(function(a,l){return a+l.esp-Object.keys(l.t).reduce(function(s,x){return s+l.t[x]},0)},0);c.querySelector('#falta').textContent=f?'Faltan '+f:'Todo con talla';c.querySelector('#falta').style.color=f?'var(--tinta)':'var(--verde-profundo)';c.querySelector('#sig').disabled=f>0}
+    c.querySelector('#sig').onclick=function(){listo(e)}
+  }
+
+  function listo(e){
+    var c=velo.querySelector('#cont');
+    c.innerHTML='<div class="hecho-sello"><span class="sello" id="s">'+R.ico('ok')+'</span><h3>Entró al almacén</h3><div class="stock">'+
+      e.lineas.map(function(l){var m=R.MODELOS[l.m];return '<div class="b"><span>'+m.n.split(' ')[1]+'</span><i style="--w:'+Math.max(20,Math.round(l.esp/tot(e,'esp')*100))+'%"></i><span>+'+l.esp+'</span></div>'}).join('')+
+      '</div><div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:12px"><button class="btn primario">'+R.ico('etiqueta')+'Imprimir etiquetas</button><button class="btn">'+R.ico('piso')+'Bajar al piso</button></div></div>';
+    requestAnimationFrame(function(){c.querySelector('#s').classList.add('ya')});
+    e.etapa=3;recien=e.id;
+    setTimeout(function(){render()},900);
+    c.querySelectorAll('.btn').forEach(function(b){b.onclick=function(){R.toast('Esto lo hace el ERP real');cierra()}});
+  }
+  document.addEventListener('keydown',function(ev){if(ev.key==='Escape')cierra()});
+  render();
+})();
+</script>
+</body>
+</html>

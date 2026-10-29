@@ -65,15 +65,18 @@ create table public.personas (
   updated_at timestamptz not null default now()
 );
 
--- Solo las dos columnas que retail toca de verdad: `retail.fn_mi_perfil()` hace
+-- Solo las columnas que retail toca de verdad: `retail.fn_mi_perfil()` hace
 -- `left join public.datos_personales dp on dp.persona_id = p.id` y lee
--- `dp.celular`. La tabla real de Dynamic tiene 24 columnas (DNI, dirección,
--- cuenta bancaria, CUSPP, discapacidad…) y NINGUNA le importa a retail —
--- copiarlas acá solo invitaría a llenarlas con datos de prueba realistas, que es
--- justo lo que `docs/datos/06-DATOS-PERSONALES.md` pide no hacer.
+-- `dp.celular`; `retail.fn_planilla_salidas_por_registrar()` lee el banco donde
+-- cobra cada persona (`entidad_bancaria`, ADR-0567), nunca su número de cuenta.
+-- La tabla real de Dynamic tiene 24 columnas (DNI, dirección, cuenta bancaria,
+-- CUSPP, discapacidad…) y las demás no le importan a retail — copiarlas acá solo
+-- invitaría a llenarlas con datos de prueba realistas, que es justo lo que
+-- `docs/datos/06-DATOS-PERSONALES.md` pide no hacer.
 create table public.datos_personales (
   persona_id uuid primary key references public.personas(id),
-  celular text
+  celular text,
+  entidad_bancaria text
 );
 
 -- Copia exacta del cuerpo real (cayla-dynamic, public.fn_rol_actual(), verificado 2026-09-12).

@@ -259,7 +259,7 @@ flowchart TB
   para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en «Qué hago» de la talla:
   el paso «Reportar dañada» de `FlujoTalla`, con la validación de `lib/danadas-reglas.ts`; ADR-0328 act. 10; la ventana `ReportarDanadaModal.tsx` ya no existe). La lista de Dañadas
   (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
-  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
+  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén o, con `p_destino = piso`, al piso en dos traslados internos; `p_costo` opcional), `liquidar_prenda_danada` y `resolver_prenda_danada`. **Desde el 2026-10-28 (ADR-0564)** `reportar_danada` lleva `p_tipo` (lista corta: `TIPOS_DANO` en `lib/danadas-reglas.ts`) y la foto opcional (`registrar_foto_danada`, `fotos_de_danadas`, bucket `retail-danadas`, `lib/danadas-foto.ts`); la lista marca dónde las dejan (`definir_lugar_danadas`, `lib/danadas-lugar.ts`), cuáles salieron a arreglar (`sacar_danada_a_arreglar`: cerca o Taller, sin mover stock) y cuáles volvieron sin arreglo (`no_se_pudo_arreglar`; `lib/danadas-arreglo.ts`); «Para hoy» sube a rojo las que llevan 7 días separadas (`contarDanadasViejas`); y `/inventario?danada=1` (el botón «Separé una dañada» de Vender, `punto-de-venta/AccesosVenta.tsx`, y del Inicio de almacén, `inicio-almacen/CabinaAlmacen.tsx`) abre `BuscarPrendaParaAjustar modo="danada"` y de ahí el mismo paso «Reportar dañada». La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
   `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
   `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`
@@ -345,6 +345,11 @@ flowchart TB
   («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
   (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
   «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
+  **2026-10-28 (ADR-0565, pestaña «Ingresos»):** `?vista=ingresos` (como Pérdidas, sin módulo): qué prendas entraron por modelo. `app/(app)/inventario/movimientos/page.tsx`
+  (`PaginaIngresos`) → `lib/ingresos.ts` (`getIngresosPorModelo`, foto y categoría por lotes) → RPC `fn_ingresos_por_modelo` (solo lectura; migración
+  `20261029022000`; **en producción desde el 2026-10-29** como `20261029135109`); reglas puras en `lib/ingresos-reglas.ts` (rango, Nuevo/Reingreso, precio y costo, matriz de color y talla, orden y búsqueda) y
+  `lib/ingresos-exportar.ts` (los dos CSV); piezas en `components/ingresos/` (`IngresosVista`, `IngresosTabla`, `SelectorRangoIngresos`, `MatrizIngreso`, `HojaIngresos`) y
+  `app/estilos/ingresos-impresion.css` (la hoja A4). El costo solo para quien pasa `fn_puede_ver_dinero_de_compras()`.
   **2026-10-05 (ADR-0353, los tipos que se ven):** cada fila se dibuja con su **tipo** (`lib/movimientos-tipos.ts`: `tipoVisual`, `TIPOS_VISUALES`,
   `GRUPOS_TIPO`, `rotuloDeMovimiento`, `kindDeLugar`) con su sello (`components/movimientos/SelloTipo.tsx`) y su trayecto (`TrayectoMovimiento.tsx`); estilos en
   `app/estilos/movimientos-sellos.css` (`mv-*`). **Los siete botones de tipo en una columna a la derecha** (`TiposMovimiento.tsx`) son el filtro Y la cifra: reemplazan
@@ -1384,20 +1389,23 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/club-avisos.ts:getTextosDeAvisos`) y guarda con `guardar_mensajes_avisos(tienda, …)` (`lib/club-avisos-acciones.ts`) en
   `club_avisos_textos_sede`. Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
   (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
-- `/tienda-web/trafico` (ADR-0495, Felipe 2026-10-23; módulo **`trafico`**, nace solo para el líder; migraciones `20261023230000` y
-  `20261023231000`, **sin pegar en producción**): cuánta gente entra a la tienda online, qué mira y en qué paso se va, contado por persona
-  anónima (maqueta C «La vitrina», `docs/maquetas/trafico-cero-2026-10/`). Séptima hija de Tienda web (excepción `tiendaWeb: 7` en
-  `menu.test.ts`), `soloConModulo`. `layout.tsx` y `page.tsx` piden `trafico` → RPC `resumen_trafico_web(desde, hasta, camino, ciudad)`
-  (personas por su paso más lejano, desde `fn_trafico_web_personas`; la ciudad de cada departamento, `fn_trafico_web_ciudad`; cada prenda
-  con su recorrido, tallas, colores y caminos, `fn_trafico_web_prendas`) →
-  `lib/trafico-reglas.ts` (puro: lectura, «de cada 100», el cambio contra los días de antes, dónde se atora con poca gente contraído hacia
-  lo de costumbre, y el aviso de «la tienda no manda visitas»; el mosaico de la vitrina, `lib/trafico-mosaico.ts`) → `components/trafico/`
-  (`CifraTrafico`, `RecorridoTrafico`, `PorQue`, `VitrinaTrafico` y su `CajonPrendaTrafico` —abierto con `usePrendaAbierta`, también desde
-  la tabla—, con «Ver en la vitrina» → `/tienda-web/vitrina`; `ControlesTrafico` con el período, los filtros puestos y la vista;
-  `DeDondeVienen`, `HorasTrafico` y `TablasTrafico`). El período, los filtros y la vista van en la dirección (`leerFiltros`/`hrefTrafico`);
-  la campaña del tercer período se lee de `etiquetas` (estilo «campaña», `campanaDelPeriodo`). Lo
-  escribe la TIENDA (`apps/tienda`): `POST /api/visita` y las acciones de la bolsa → `retail.tienda_anotar_pasos` → `retail.trafico_web`
-  (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y `pnpm pruebas:tienda-trafico-resumen`.
+- `/tienda-web/trafico` (ADR-0495, Felipe 2026-10-23; «Observatorio» ADR-0568, 2026-10-29; módulo **`trafico`**, nace solo para el líder;
+  migraciones `20261023230000` y `20261023231000`, y las siete del Observatorio `20261029015000`…`20261029132000`, **en producción desde el
+  2026-10-29**, verificado por la huella de las funciones):
+  cuánta gente entra a la tienda online, qué mira, dónde se va y qué conviene hacer, contado por persona anónima (maqueta
+  `docs/maquetas/trafico-decisiones-2026-10/`). Séptima hija de Tienda web (excepción `tiendaWeb: 7` en `menu.test.ts`), `soloConModulo`.
+  `layout.tsx` y `page.tsx` piden `trafico` → RPC `resumen_trafico_web(desde, hasta, camino, ciudad, ant_desde, ant_hasta, ant_corte)` (personas
+  por su paso más lejano y su departamento, `fn_trafico_web_personas`; la ciudad de cada departamento, `fn_trafico_web_ciudad`; cada prenda,
+  `fn_trafico_web_prendas`; más `serie`, `calor`, `regiones`, `caminos_separan`, `tallas`, `quienes`, `atencion` y `calendario`) →
+  `lib/trafico-reglas.ts` (puro: períodos y contra qué se comparan, el gráfico, dónde se atora y si va peor que de costumbre, el mapa de calor,
+  cuánto rinde cada camino, la tabla de prendas, las tallas que faltan, qué reponer y empujar, el calendario; las franjas de color,
+  `lib/trafico-mosaico.ts`; el Perú por departamento, `lib/peru-departamentos.ts`) → `components/trafico/` (`ControlesTrafico` con
+  `AtajosPeriodo`, `PulsoTrafico`, `CalorTrafico`, `DeDondeVienen`, `RecorridoTrafico` con `PorQue`, `PrendasTrafico` y su `CajonPrendaTrafico`
+  —abierto con `usePrendaAbierta`, también desde la tabla—, `TallasTrafico`, `AtencionTrafico` → `/tienda-web/pedidos?pestana=entregar`,
+  `CalendarioTrafico` y `TablasTrafico`). El período, los filtros y la vista van en la dirección (`leerFiltros`/`hrefTrafico`); la campaña se lee
+  de `etiquetas` (estilo «campaña», `campanaDelPeriodo`). Lo escribe la TIENDA (`apps/tienda`): `POST /api/visita` y las acciones de la bolsa →
+  `retail.tienda_anotar_pasos` → `retail.trafico_web` (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y
+  `pnpm pruebas:tienda-trafico-resumen`.
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y
@@ -1546,6 +1554,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/mi-plata/HojaCorregirCompra.tsx` (prendas → formulario → «Papel y pago» → «Revisa lo que cambias») →
   `lib/corregir-compra-acciones.ts` (`fn_compra_para_corregir`, `corregir_compra_rapida`, firma `compra_corregir`) + `lib/corregir-compra-reglas.ts`
   (puro). El rastro (`compra_correcciones`, `fn_compra_correcciones`) se ve en `CorreccionesDeCompra.tsx`, en ese detalle y en el de `PapelesPorCompletar.tsx`.
+  Corregir un gasto de «otra cosa» (ADR-0572, migración `20261029171000`): el detalle de una fila de gasto pendiente (`DetalleDeFila.tsx`) abre
+  `components/mi-plata/HojaCorregirGasto.tsx` (los campos de «Gasté en otra cosa», que son la pieza `CamposDelGasto.tsx`, con lo anotado puesto) →
+  `lib/corregir-gasto-acciones.ts` (`fn_gasto_para_corregir`, `corregir_gasto_rapido`, firma `gasto_corregir`) + `lib/corregir-gasto-reglas.ts` (puro). Solo con el gasto `por_completar`
+  y su ronda abierta (una cerrada se reabre antes, ADR-0569). El rastro (`compra_gasto_correcciones`, `fn_gasto_correcciones`) se ve con `CorreccionesDeCompra gastoId`.
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
@@ -1566,7 +1578,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
-  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
+  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres). El 2026-10-29 `reabrir_ronda_compras` (`20261029150000`, ADR-0569; `reabrirRonda` en `lib/mi-plata-acciones.ts`, botón en `AbrirRonda.tsx`, regla
+  `puedeReabrirLaRonda`) vuelve a abrir la última ronda cerrada mientras Compras no recibió su cierre; el cierre se archiva en `compra_cierres_reabiertos`.
   El 2026-10-24 «Algo nuevo» también se reparte entre tiendas y su marca se puede escribir con «+» (`HojaPrenda.tsx`); la marca escrita se crea al
   guardar con la RPC `registrar_marca_de_compra` (`20261024214000`, vía `registrarMarcaDeCompra` de `lib/compra-rapida-acciones.ts`), unida al proveedor.
   **Mis envíos, el banco de la plata y la pantalla en tres columnas (2026-10-26/27, sin cambio de módulo):**
@@ -1580,6 +1593,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `getBancosParaPlata` en `lib/mi-plata.ts`, `leerBancosDePlata`) llena el combo y la columna `fondo_plata_anotada.cuenta_indicada_id` (`20261026165000`, solo
     con `medio = 'transferencia'`) guarda la indicación; la cuenta de verdad la elige Compras al confirmar (`PlataPorConfirmar.tsx` muestra el banco que indicó; no mueve plata). Sin bancos
     o sin migración, la hoja no pregunta y se anota igual.
+  - **La cuenta de la devolución (ADR-0571, `20261029165000` + `20261029170000`, NO en producción):** al cerrar la ronda con «Lo devuelvo», `TerminarDia.tsx` pregunta «¿A qué cuenta de CAYLA lo devuelves?»
+    con `fn_cuentas_para_devolver_compras()` (`getCuentasParaDevolver` en `lib/mi-plata.ts`, `leerCuentasParaDevolver`; solo bancos y cajas fuertes). `terminar_dia_compras(p_decision, p_cuenta_indicada_id)` la guarda en
+    `compra_cierres.cuenta_indicada_id` (indicación, no mueve plata); `fn_revisar_compras()` la trae y `CierresPorRecibir.tsx` la deja elegida al recibir (Compras la cambia). «Reabrir» vive en `ReabrirRonda.tsx`, dentro de `UltimaRonda.tsx`.
   - **Pantalla de escritorio en tres columnas** (`app/(app)/compras/mi-plata/page.tsx`; maqueta `docs/maquetas/mis-compras-envios-pc-2026-10/`): con la ronda abierta,
     «tu plata y lo que haces» (camino, billetera, acciones, «Cerrar mi ronda» debajo) · «Manda» (falta mandar y los envíos de la ronda) · el registro de la ronda y las
     anteriores. En el celular es una sola columna en el mismo orden del DOM.
@@ -1960,6 +1976,89 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - **La cuenta con CLAURE (ADR-0560, 2026-10-29; actividad 1, solo lectura):** `/finanzas/dinero/claure` (la cuarta cara de Cuentas y dinero, «CLAURE») →
+    `lib/cuenta-claure.ts` → `fn_claure_cuenta()` y `fn_claure_cuenta_desde()` (20261029004000) → `lib/cuenta-claure-reglas.ts` (`resumenClaure`) →
+    `components/finanzas/dinero/CuentaClaure.tsx`. Lo que CLAURE (Claudia) cobró en **cuentas de CAYLA** (tarjeta, QR, Yape…; el efectivo no, lo tiene ella), por día, medio y
+    cuenta, desde `empresas.cuenta_corriente_desde`. Cada cuenta dice de quién es (`cuentas_dinero.empresa_id`); cada pago de una venta se reparte por el valor de las líneas
+    de cada empresa (`fn_dueno_de_la_linea`, ADR-0542); la comisión del POS sale de `pos_tarifas`; una devolución pagada desde una cuenta de CAYLA resta; un cambio se
+    lista sin contar. El saldo no se guarda: se suma de las filas. Prueba: `pnpm pruebas:claure-cuenta`.
+    **Pagar a CLAURE (actividad 2, 20261029011000):** tipo `pago_claure` de `movimientos_dinero` (como `pago_sunat`: sale de un banco, sin destino ni comisión, de la empresa; solo el
+    líder) registrado con `registrar_movimiento_dinero` desde el mismo modal «Registrar movimiento» (`QuePaso = pago_claure`; `BotonPagarClaure` lo abre con el saldo escrito vía
+    `useAbrirMovimiento`) y anulado con `anular_movimiento_dinero`. El Diario lo asienta 479 (provisional) | banco, el Flujo real lo cuenta como salida «Pago a CLAURE» (actividad 5) y `fn_claure_pagos()` lo lista:
+    saldo = `resumenClaure(filas, pagos)`. Prueba: `pnpm pruebas:claure-pago`.
+    **El cierre de caja de Lima (actividad 3, 20261029013000):** `fn_claure_cierre(caja)` (candado de `fn_esperado_caja`: quien cierra esa caja o el líder, sin pedir el módulo
+    Finanzas) → `components/CuentasConClaudia.tsx` (`useCierreClaure`) montado en `CerrarCajaModalV2`: en el paso de contar dice cuánto del efectivo es de CLAURE (informativo; CAYLA + CLAURE =
+    `ventas_efectivo` exacto) y, tras cerrar, el bloque «Cuentas con Claudia» (neto, lo de hoy, detalle plegado, «Copiar resumen» para WhatsApp y, para el líder, «Pagar a CLAURE» →
+    `/finanzas/dinero/claure?pagar=1`, que abre la hoja de pago con el saldo escrito: `AbrirPagoDesdeUrl`). El cálculo es `fn_claure_filas(sedes)`, interno, que también lee `fn_claure_cuenta`.
+    Prueba: `pnpm pruebas:claure-cierre`.
+    **El disponible real (actividad 4, sin migración):** `chipsDisponible(total, saldo)` (`cuenta-claure-reglas.ts`) parte lo que hay en las cuentas de CAYLA en «De eso, S/ X es de Claudia» y «Disponible real S/ Y». Sale
+    bajo «¿Cuánta plata tienes hoy?» de Dónde está (`/finanzas/dinero`, solo el líder y solo con «Todas» o «Empresa»: una sede no lleva los bancos) y en «¿Cuánto tienes?» del Resumen
+    (`tresRespuestas({ claure })`), donde además una tarjeta aparte, «¿Cuánto le debes a CLAURE?» (`respuestaDeClaure`), lleva a `/finanzas/dinero/claure`. Lee `getCuentaClaure()`, que distingue
+    «no tienes acceso» (`42501`, la tarjeta no se dibuja) de «se cayó» (la tarjeta lo dice). El saldo de los bancos no se toca: sigue cuadrando con el estado de cuenta.
+    **CLAURE fuera de las cifras de CAYLA (actividad 5, 20261029020000):** lo vendido de CLAURE en sus sedes (`empresa_sedes`; hoy solo Tienda LIM), desde `empresas.cuenta_corriente_desde`, deja de
+    contar como ingreso, costo y mercadería de CAYLA **en el Diario**: `fn_claure_ventas` (interna: por documento —venta, anulación, devolución—, valorada como el Diario y repartida por línea según su
+    dueño real, `fn_dueno_de_la_linea`) alimenta `fn_asientos_claure` (interna), una RECLASIFICACIÓN con un asiento por documento que cuadra solo (venta: D 7011 base / H 479 base; D 201 costo / H 691 costo;
+    anulación y devolución la deshacen en su día), que `fn_asientos` suma al final con UN reemplazo anclado. Como el Estado de resultados, el Resumen, el Balance y el Cierre de mes leen el Diario, ninguno
+    cambió. El IGV (4011) y los cobros NO se tocan —la boleta sale con el RUC de CAYLA— y los meses ya cerrados conservan su foto. `fn_claure_ventas_en(desde, hasta, sede)` (candado del Diario) dice lo vendido de
+    CLAURE neto de anulaciones y devoluciones (`getVentasClaure()` → `VentasClaure`): Impuestos muestra el aviso «De ese IGV, S/ X es de ventas de CLAURE» (`lineaImpuestosClaure`, `ImpuestosPanel`; el IGV de
+    SUNAT queda entero) y el Estado de resultados la nota «No incluye lo vendido de CLAURE» (`notaResultadosClaure`, `EstadoResultadosPanel`). `fn_flujo_lineas` cuenta el pago a CLAURE como salida
+    (`pago_claure`, `TEXTO_CATEGORIA`). La 479 acumula la parte sin IGV de TODO lo vendido de CLAURE (también el efectivo, que tiene Claudia): es provisional hasta el contador. Prueba:
+    `pnpm pruebas:claure-fuera-de-las-cifras`.
+    **CLAURE fuera del Inicio y del Observatorio (actividad 6a, 20261029023000):** `fn_item_es_de_claure(línea, sede, fecha)` (interna) es la regla de «esta línea de venta es de CLAURE» —la misma de
+    `fn_claure_ventas`: sede donde opera CLAURE, venta desde `empresas.cuenta_corriente_desde`, dueño real de la línea (`fn_dueno_de_la_linea`)— y la reusan 6b, 6c y 6d. `fn_observatorio` (todas las tiendas) y
+    `fn_observatorio_tienda` (una tienda) suman solo lo de CAYLA (reemplazos anclados: una venta solo de CLAURE no cuenta ni como ticket, la mixta cuenta por sus líneas de CAYLA, y las prendas «quietas» miden solo
+    las unidades de CAYLA, restando `stock_dueno`). El Inicio de la líder (`getHoyDeLaSede`, bloque «Hoy») NO cambia `fn_ventas_del_dia` —Caja y Vender necesitan el día completo—: lee además
+    `fn_claure_de_hoy(sede)` (cuánto de cada venta de hoy es de CLAURE y cuántas líneas de CAYLA le quedan; y lo de CLAURE de hace una semana a esta hora) y `sinClaure` / `semanaSinClaure`
+    (`lib/inicio-reglas.ts`) lo restan; una línea `nota-cayla` dice cuánto se dejó fuera (`notaClaureDeHoy`). Si esa lectura falla, «Hoy» sale como antes. Prueba: `pnpm pruebas:claure-inicio-y-observatorio`;
+    la huella de `fn_observatorio_tienda` de `pruebas:arreglos-en-vivo-roles-observatorio` pasa a la de esta migración.
+    **CLAURE fuera de Rendimiento, metas y Comercial (actividad 6b, 20261029030000):** once reemplazos anclados filtran la línea con `fn_item_es_de_claure` (el patrón es siempre `and not retail.fn_item_es_de_claure(vi.id, <sede>, <fecha de la venta>)`
+    antes del `group by`): Rendimiento (`fn_rendimiento_equipo`, `_detalle`, `_serie`), Metas (`fn_metas_equipo`), Comercial (`fn_comercial_sedes` —también lo devuelto—, `fn_comercial_colaboradoras`, `fn_comercial_horas`) y el «Tu día»
+    de cada integrante (`fn_mis_ventas_del_dia`: una venta solo de CLAURE no sale y la mixta trae su parte; `fn_mis_ventas_por_dia`). Las pantallas no cambian: su «Ayuda» dice que lo de CLAURE no cuenta (`rendimiento/page.tsx`,
+    `PanelComercialVista.tsx`). Las metas (`fn_metas_por_dia`, `fn_parametros_caja`) NO se tocan. Prueba: `pnpm pruebas:claure-rendimiento-y-metas`.
+    **CLAURE fuera del Club y de la ficha de la cliente (actividad 6c, 20261029035000):** cinco reemplazos anclados con la misma regla. `fn_club_monto_neto_venta` calcula los PUNTOS solo sobre las líneas de CAYLA (la usan
+    `fn_club_puntos_por_venta`, la conciliación de una devolución o anulación `fn_club_puntos_conciliar_venta`, el resumen del club y el aniversario); `fn_club_compras_netas` no cuenta una compra solo de CLAURE (la mixta sí);
+    la ficha (`fn_clienta_compras`, `fn_clienta_cambios`, `fn_clienta_devoluciones`) no lista las líneas de CLAURE ni lo que es solo de CLAURE. NO cambian `fn_club_conservacion_hasta` (plazo legal) ni `fn_club_avisos_pendientes`
+    (deduce la talla de lo que compró). Las pruebas viejas que fijan el md5 de esas funciones (`club_lista_y_ficha`, `club_registro_cartel`, `clientas_por_modulo_y_anonimizar`) deshacen el reemplazo dentro de su transacción
+    con `scripts/pruebas/_deshacer_claure.mjs`. Prueba: `pnpm pruebas:claure-club-y-clientes`.
+    **CLAURE fuera de Análisis y de los motores de decisión (actividad 6d, 20261029041000):** veinte reemplazos anclados sobre trece funciones, siempre `and not retail.fn_item_es_de_claure(vi.id, <sede>, <fecha>)` en la lectura de líneas
+    vendidas: Análisis (`fn_analisis_sede`), lo que leen el plan de compra, su propuesta y sus resultados (`fn_unidades_vendidas`, `fn_plan_compra` con sus seis lecturas, `fn_historial_ventas`), los motores del piso
+    (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`, `fn_frescura_decisiones`), `fn_rentabilidad`, `fn_calidad`, `fn_costo_estimado_resumen` (el costo que estima el Resumen de Finanzas: la actividad 5 lo había dejado
+    pasar) y lo más vendido de la tienda web (`fn_vitrina_probador`, `fn_vitrina_recortes`). NO cambian los que miran el libro de movimientos o el stock por dueño (Frescura del piso, `fn_resumen_*`, Pérdidas, calidad de dañadas,
+    reparto por proveedor, capacidad del Plan del piso): quedan como pendiente de Felipe. Prueba: `pnpm pruebas:claure-analisis-y-motores`.
+    **Apartados y pedidos web con prendas de CLAURE (actividad 7, 20261029043000):** al entregar un apartado (`entregar_separacion`) o despachar un pedido web (`fn_pedido_web_vender`), el adelanto queda en la venta como un
+    pago de medio `anticipo` SIN cuenta, así que `fn_claure_filas` (A1) no lo veía. Ahora suma también, por la parte de CLAURE de la venta, los abonos de `separacion_pagos` (no efectivo) y los pagos `aprobado` y no anulados de
+    `pedido_web_pagos`, en la cuenta donde cayó cada uno y fechados el día de la venta: se le debe a Claudia desde que la prenda sale, no desde el abono. Mientras no hay venta no se debe nada. Lo leen la pantalla CLAURE,
+    `fn_claure_cuenta` y el aviso del cierre de caja sin cambiar. Prueba: `pnpm pruebas:claure-apartados-y-pedidos-web`.
+    **Gastos por empresa (actividad 8, 20261029044000):** `gasto_reparto_claure(categoria, pct_claure)` (tabla con RLS y sin políticas: se lee por funciones) dice qué parte de cada categoría de gasto de una sede donde opera CLAURE es de
+    CLAURE; de fábrica alquileres, luz, servicios básicos y mantenimiento 50 %, y las categorías nuevas `limpieza` y `bolsas` 100 %. `fn_claure_gastos_base` (interna) saca la parte de cada gasto vigente desde el arranque de la
+    cuenta; `fn_claure_gastos()` (candado de `fn_claure_cuenta`) la lista para la web (`getCuentaClaure` → `GastoClaure`, `resumenClaure(filas, pagos, gastos)`: la suma BAJA el saldo; tarjeta «Gastos suyos» y tabla en la pantalla
+    CLAURE). El Diario (`fn_asientos_claure`, redefinida) reclasifica la parte sin IGV del gasto de CAYLA a la 479 al debe, así que el Estado de resultados la deja fuera; el aviso del cierre (`fn_claure_cierre`, parchada) la resta y la dice
+    en `hoy.gastos` (`cierre-claure-reglas.ts`, `CuentasConClaudia`). Gasto rápido: «Bolsas» y «Limpieza» van a sus categorías propias (`categoriasDeAntes: ["suministros"]` reconoce los de antes). Prueba:
+    `pnpm pruebas:claure-gastos-por-empresa`.
+    **El IGV se le descuenta a Claudia (actividad 10, 20261029142000; Felipe 2026-10-29):** la boleta sale con el RUC de CAYLA, que declara y paga ese IGV, así que lo que se le debe es
+    cobrado − devuelto − **IGV** − comisión − pagado − gastos suyos. En la web, `resumenClaure` y `seLeDebeDeFila` (`cuenta-claure-reglas.ts`) restan el IGV neto (el de una devolución viene en
+    negativo); en la base, `fn_claure_cierre` (cinco reemplazos anclados) lo resta del saldo y del saldo anterior y trae `hoy.igv`. Cuadra con el Diario: la 479 ya era la parte sin IGV.
+    `pnpm pruebas:claure-igv`.
+    **Servicios al 100 % (actividad 12, 20261029153000):** solo datos de `gasto_reparto_claure`: `servicios_basicos` pasa de 50 a 100 (si sigue en 50) y `agua` e `internet` nacen en 100; `luz`, `alquileres` y `mantenimiento` siguen en 50. Gasto rápido manda «Luz»
+    a la categoría `luz` (`categoriasDeAntes: ["servicios_basicos"]` reconoce los de antes) y agua, internet y baño a `servicios_basicos`. `pnpm pruebas:claure-servicios-100`.
+    **Pérdidas y dañadas por dueño (actividad 14, 20261029154000):** `fn_movimiento_es_de_claure(empresa_id, sede, cuándo)` (interna; la regla de `fn_item_es_de_claure` pero para el libro: dueño `movimientos.empresa_id` = CLAURE, sede de CLAURE y desde el
+    arranque de su cuenta). Pérdidas (`fn_perdidas_hechos`: el movimiento y la anulación), la calidad de dañadas (`fn_calidad_danadas`: devoluciones y anulaciones), el Diario (`fn_asientos`, 6951 de mermas) y las mermas sin costo del Estado de resultados
+    (`fn_estado_resultados`) apartan lo de CLAURE. NO cambian las pérdidas en traslados (`fn_perdidas_de_traslados`), Frescura del piso, el Resumen por variante ni el piso. `pnpm pruebas:claure-perdidas-y-danadas`.
+    **El Balance sin el stock de CLAURE (actividad 15, RETIRADA):** lo hace el ADR-0558 (`20261028212000`, ya en producción: `fn_bal_stock` resta las unidades de otro dueño y `fn_bal_causas_mercaderia` no cuenta sus movimientos). La cadena de CLAURE va después y solo cambia la deuda: `fn_asientos_claure` reclasifica a la 479 (lo cobrado sin IGV) y la 4699 queda sin movimiento. `balance_claure.mjs` prueba que el Balance y la 201 del Diario se mueven igual.
+    **«¿Me alcanza?» sin la plata de Claudia (actividad 16, 20261029160000):** `fn_claure_saldo_a(corte)` (interna: lo que se le debe a esa fecha en todas las sedes donde opera, la misma cuenta que la pestaña CLAURE) y `fn_flujo_caja_proyeccion` parte de
+    `fn_flujo_disponible − max(saldo, 0)` y trae `de_claudia`. NO cambia `fn_flujo_disponible` (lo usa el flujo real, que debe cuadrar con las cuentas) ni los cobros futuros. Web: `Proyeccion.deClaudia`, la nota de «¿Me alcanza?» (`alcanzaPulso`) y
+    la tarjeta «Hoy tienes» de la caja próxima. `pnpm pruebas:claure-proyeccion`.
+    **La pantalla del reparto (actividad 17, 20261029161000):** Configuración ▸ «Gastos con CLAURE» (`/configuracion?tab=claure`, solo el líder; módulo `configuracion`, sin módulo nuevo): `fn_reparto_claure()` lista las categorías de gasto activas con su parte y `guardar_reparto_claure(categoria, pct)` la fija (0 a 100),
+    firma al responsable, guarda `actualizado_por` y deja el antes y el después en `configuracion_historial` (`que = 'reparto_claure'`). Web: `lib/reparto-claure.ts` (carga), `lib/reparto-claure-reglas.ts` (lee, valida, dice en palabras de tienda) y `components/ConfiguracionRepartoClaure.tsx`
+    (cada casilla se guarda sola al salir de ella, como «Caja y avisos»). Un cambio de porcentaje vale también para los gastos de antes (la parte se calcula al leer). `pnpm pruebas:claure-reparto-pantalla`.
+    **Los cambios con prendas de CLAURE (actividad 13, 20261029162000; Felipe 2026-10-29: «la plata sigue a la prenda que se lleva la clienta», en la deuda y en el Diario):** `fn_claure_cambios(desde, hasta, sedes)` (interna) dice cuánto le suma o resta cada cambio
+    a lo que se le debe: la plata de lo que se devolvió (la parte pagada en cuentas de CAYLA, por la proporción de los pagos de la venta original; el efectivo no cuenta) pasa del dueño de ESA prenda a los dueños de lo que se lleva (el dueño de cada movimiento
+    de salida, a lo que valga cada una), y la diferencia pagada o devuelta en una cuenta de CAYLA va a los dueños de lo que se lleva. `fn_claure_filas` los lista CONTADOS (antes «por revisar»; `fn_claure_saldo_a`, la proyección y la pestaña los toman solos),
+    `fn_claure_cierre` los suma como cobrado (si suben) o devuelto (si bajan) y `fn_asientos_claure` mueve la parte sin IGV entre 7011 y 479 (`claure_cambio`). No toca el costo (el Diario sigue ajustando solo la diferencia de costo). `pnpm pruebas:claure-cambios`.
+    **«Se queda con Claudia» (actividad 11, 20261029144000; Felipe 2026-10-29):** un destino más del traslado del cierre de caja (`caja_traslados.destino = 'claudia'`, solo en una tienda donde opera CLAURE; `cerrar_caja` lo exige) para el
+    efectivo de CAYLA que ella guarda. Sale del cajón y baja lo que se le debe: `fn_claure_cierre` lo resta del saldo y trae `hoy.efectivo_claudia`, `fn_claure_pagos` lo lista («Efectivo del cajón · tienda»), el Diario lo asienta 479 al debe / 101 al
+    haber (`traslado_claudia`, en `fn_asientos_dinero_y_caja`), el libro (`fn_dinero_libro`) lo deja sin cuenta y el flujo (`fn_flujo_lineas`) lo cuenta como `pago_claure`. Web: `destinosDelCierre` (`caja-cierre-reglas.ts`) y la vista previa
+    `vistaPreviaSeQueda` (`cierre-claure-reglas.ts`) en `CerrarCajaModalV2`. `pnpm pruebas:claure-efectivo-claudia`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en
@@ -1971,6 +2070,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     «Máquinas de cobro» (`fn_pos_maquinas`) y `TarifaMaquinaModal.tsx` → `guardar_pos_tarifa`. Migraciones `20261016173000` (con
     `fn_pos_sembrar_maquinas_en_tiendas`, que también llama `seed.sql`), `182000`, `190000`, `191000` y la de datos `193000`
     (`fn_resellar_cobros_a_maquinas`, solo desde una migración).
+  - **La salida del banco de la planilla que Dynamic paga (ADR-0567, 2026-10-29; migraciones `20261029052000`, `053000`, `054000`, sin pegar):**
+    `fn_planilla_salidas_por_registrar` (lee `public.v_planilla_pagada`, `periodo_grupo_pago` y `datos_personales.entidad_bancaria` con
+    `fn_banco_del_colaborador`; líder que ve la planilla en Dynamic) → `lib/cuentas-dinero.ts` (`getPlanillaPorRegistrar`,
+    `getPlanillaParaElInicio`, `getPlanillaParaElObservatorio`, una sola lectura) → `lib/planilla-salidas-reglas.ts` (`avisosDePlanilla`,
+    `planillaParaElInicio`, la hoja) → el aviso de `CuentasPanel` (`CuentasDinero.tsx`), «Te toca» del Inicio (`lib/inicio-avisos.ts`, clave
+    `planillaSalidas`) y «Por revisar» del Observatorio (`avisoPlanillaObs`). La hoja `components/finanzas/dinero/SalidasPlanillaModal.tsx` →
+    `registrar_salidas_planilla` (llama a `registrar_movimiento_dinero` y enlaza en `planilla_salidas`) y `fn_planilla_salidas_sueltas`.
+    Configuración ▸ Cuentas y cobros ▸ «De qué cuenta sale la planilla» → `guardar_cuenta_planilla` / `fn_planilla_cuentas` (tabla
+    `planilla_cuentas`).
   - Configuración ▸ Cuentas y cobros ▸ «Editar» (`components/finanzas/EditarCuentaModal.tsx`, `lib/cuenta-editar-reglas.ts`;
     migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
     foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que

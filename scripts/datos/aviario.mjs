@@ -55,6 +55,9 @@ export const AVIARIO = [
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
       "precios_sede_prenda",
+      // ADR-0370 (act. 2026-10-28): la excepción de precio de UNA talla en una tienda, encima del precio de la prenda. Pegada en producción
+      // el 2026-10-29 (20261028230000-234000). Asignada en el refresco del volcado del 2026-10-29.
+      "precios_sede_variante",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
@@ -104,6 +107,9 @@ export const AVIARIO = [
   { n: "05", pajaro: "Halcón", modulo: "Inventario y movimientos",
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
+      // Las fotos del daño de una prenda dañada (ADR de «Dañadas», 20261029140739-141031): cuelgan de `prendas_danadas`, que ya es de Halcón.
+      // Asignada en el refresco del volcado del 2026-10-29.
+      "prendas_danadas_fotos",
       // ADR-0542: lo de CLAURE del stock de una sede con dos empresas (Lima); CAYLA es el resto. Refresco del 2026-10-28.
       "stock_dueno",
       "transferencias", "transferencia_items", "transferencia_recepciones",
@@ -310,10 +316,13 @@ export const AVIARIO = [
       // (`fondo_plata_anotada`: nace «por confirmar» y Compras la confirma en «Revisar compras»). Todas se leen y escriben desde las pantallas de
       // Compras. Al confirmar una plata, la entrega al fondo pasa por `entregar_fondo` y escribe en los libros de Garza, pero escribir allí no
       // hace a Compras dueño de ellos (como escribir en `movimientos`). Asignadas en el refresco del volcado del 2026-10-23.
-      "compra_papeles", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
+      "compra_papeles", "compra_correcciones", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
       // ADR-0480: la ronda de compras de una compradora (RC-000001): la abre, anota sus compras y gastos y la cierra. Se maneja desde
       // Compras. Asignada en el refresco del volcado del 2026-10-26.
-      "compra_rondas"] },
+      "compra_rondas",
+      // Las dos de «Mis compras» (la compradora): el cierre de una ronda que se reabrió para seguir anotando (`compra_cierres_reabiertos`, de «Reabrir» en «Tu última ronda»)
+      // y lo que se corrigió de un gasto ya anotado (`compra_gasto_correcciones`). Son de Compras, que revisa ambas. Asignadas en el refresco del volcado del 2026-10-29.
+      "compra_cierres_reabiertos", "compra_gasto_correcciones"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
     tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos",
       // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de
@@ -379,7 +388,13 @@ export const AVIARIO = [
       // ADR-0452: lo que se sabe de un gasto fijo para poder pagarlo sin quien lo cargó (a quién, cómo, el recibo, el contrato) y su historia de
       // cambios. Es de los gastos fijos: el mismo pájaro. Asignadas en el refresco del volcado del 2026-10-21.
       "gastos_fijos_ficha", "gastos_fijos_ficha_cambios",
-      "pos_maquinas", "pos_maquinas_sedes", "pos_tarifas", "pos_abonos_lotes", "cobros_resellados"] },
+      "pos_maquinas", "pos_maquinas_sedes", "pos_tarifas", "pos_abonos_lotes", "cobros_resellados",
+      // ADR-0560: qué parte de cada categoría de gasto de una sede donde opera CLAURE es de CLAURE (alquiler 50 %, limpieza 100 %…). Es lo que se hace con un gasto, como
+      // `categorias_gasto`: el mismo pájaro. Asignada en el refresco del volcado del 2026-10-29.
+      "gasto_reparto_claure",
+      // La cuenta donde se le paga a cada persona de la planilla y las salidas de planilla que se registran (`guardar_cuenta_planilla`, `registrar_salidas_planilla`). Están en
+      // producción (sus migraciones aún no están en main) y las asignó el refresco del volcado del 2026-10-29, junto a `planilla_por_sede`. Finanzas (Felipe) confirma la asignación.
+      "planilla_cuentas", "planilla_salidas"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
     tablas: ["activos_fijos",
       // El plan de cuentas (PCGE, F2a) y la lista cerrada de tipos de activo, que trae su cuenta y su vida útil (F2b).

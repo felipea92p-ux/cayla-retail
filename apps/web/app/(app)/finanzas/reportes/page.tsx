@@ -4,6 +4,7 @@ import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { getEstadoResultados, getUnidadesCerradas } from "@/lib/resultados";
 import { getParametrosFinanzas } from "@/lib/configuracion";
+import { getVentasClaure } from "@/lib/cuenta-claure";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
 import { verDeLaVista } from "@/lib/vista-global";
@@ -23,12 +24,14 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const { desde, hasta } = rangoMes(mes);
   const antes = rangoMes(previo);
 
-  const [actual, anterior, parametros, cerradas] = await Promise.all([
+  const [actual, anterior, parametros, cerradas, claure] = await Promise.all([
     getEstadoResultados(desde, hasta),
     comparar ? getEstadoResultados(antes.desde, antes.hasta) : Promise.resolve(null),
     getParametrosFinanzas(),
     // El mes en curso no se cierra: no hay nada que preguntar.
     mes < mesDe(hoy) ? getUnidadesCerradas(mes) : Promise.resolve([] as string[]),
+    // Lo vendido de CLAURE no suma a nada de esta pantalla: la nota dice cuánto se dejó fuera (apoyo; sin permiso o sin CLAURE llega `null`).
+    getVentasClaure(desde, hasta),
   ]);
   // ADR-0332: un mes anterior a la fecha desde la que cuenta Finanzas sale vacío; se dice por qué en vez de dejar ceros mudos.
   const inicio = parametros?.inicioFinanzas ?? null;
@@ -46,6 +49,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
       mesPrevio={previo}
       hoy={hoy}
       comparar={comparar}
+      claure={claure}
       fallas={[avisoCorte, actual.falla, anterior?.falla ?? null].filter((f): f is string => !!f)}
     />
   );

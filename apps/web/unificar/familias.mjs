@@ -1355,7 +1355,7 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": [
       { "archivo": "components/EscanerConteo.tsx", "motivo": "las teclas grandes de contar (56 px, el número enorme): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
-      { "archivo": "components/recepcion-conteo/ContarEnvio.tsx", "motivo": "las teclas grandes de Contar el envío (56 px, el número de 84): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
+      { "archivo": "components/recepcion-conteo/Dial.tsx", "motivo": "el Dial de Recibir (teclas de 56 px alrededor del aro y el número de 78 que se toca para escribirlo): un teclado de contar, aparte por decisión de Felipe (ronda 17; rediseño «B» del 2026-10-29)" },
       { "archivo": "components/existencias/FlujoTalla.tsx", "motivo": "el paso a paso táctil de Existencias (`Stepper`, teclas de 56 px y el número serif): la misma anatomía de las teclas grandes de contar; sus celdas de matriz sí usan la pieza (ronda 17)" },
       { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "ADR-0355: los pases de Traslados tienen su diseño por decisión (`tp-contador`)" }
     ]

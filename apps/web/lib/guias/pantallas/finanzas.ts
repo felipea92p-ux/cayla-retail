@@ -77,8 +77,8 @@ const EXCEL: PasoGuia = {
 const PESTANAS_DINERO: PasoGuia = {
   id: "pestanas",
   ancla: "fin-dinero.pestanas",
-  titulo: "Las tres partes",
-  texto: "Cuentas: dónde está la plata, repartida por sede, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+  titulo: "Las cuatro partes",
+  texto: "Dónde está: la plata, por sede, con el efectivo de hoy. Qué debes: las facturas por pagar. CLAURE: lo que CLAURE cobró en tus cuentas y se le debe a Claudia. Cuadrar con el banco (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
 };
 
 /** El orillo y el dock de Cuentas y dinero (El telar): lo mismo en sus tres caras. */
@@ -122,6 +122,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.respuestas",
       titulo: "Las tres preguntas de siempre",
       texto: "Tres respuestas de un vistazo: cuánto tienes hoy entre cajones, cajas fuertes y bancos; cuánto debes pagar pronto (lo vencido y lo de esta semana); y cuánto te deja el mes, contra el mes pasado a la misma fecha. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
+    },
+    {
+      id: "claure",
+      ancla: "fin-resumen.claure",
+      opcional: true,
+      titulo: "Lo que se le debe a CLAURE",
+      texto: "Si CLAURE (la empresa de Claudia) cobró en cuentas de CAYLA, aquí ves cuánto se le debe. Es plata que está en tus bancos pero no es tuya: en «¿Cuánto tienes?» dice cuánto de eso es suyo y cuánto te queda disponible. Tocarla lleva a CLAURE.",
     },
     {
       id: "confianza",
@@ -545,7 +552,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "¿Cuánta plata tienes hoy?",
-      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está y lo que debes en la tarjeta.",
+      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está, lo que debes en la tarjeta y cuánto de eso es de Claudia (CLAURE).",
     },
     ORILLO_DINERO,
     {
@@ -609,6 +616,35 @@ export const GUIA_FIN_CUENTAS: Guia = {
       opcional: true,
       titulo: "Una máquina se atrasó",
       texto: "Si Izipay o Vendemás no depositó un día dentro de su plazo (el de su tarifa; sin tarifa, 3 días hábiles), aparece aquí: cuántos días esperan, cuánto suman y desde cuándo. «Registrar el depósito» abre el movimiento con esa máquina.",
+    },
+    {
+      id: "aviso-planilla",
+      ancla: "fin-dinero.aviso-planilla",
+      opcional: true,
+      titulo: "La planilla que pagó Dynamic",
+      texto: "Cuando Dynamic marca pagada la planilla, aquí ves cuánto salió hacia cada banco: lo que reciben quienes cobran en BCP y quienes cobran en Interbank, y de qué cuenta sale cada uno. El aviso se va solo al registrar sus salidas.",
+    },
+    {
+      id: "aviso-planilla-registrar",
+      ancla: "fin-dinero.aviso-planilla-registrar",
+      opcional: true,
+      titulo: "Registrar de un toque",
+      texto: "Abre una hoja con una fila por banco, ya llena: la cuenta de Configuración, lo que dice Dynamic y el día que lo pagó. Normalmente solo confirmas.",
+    },
+    {
+      id: "salida-fila",
+      ancla: "fin-dinero.salida-fila",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-dinero.aviso-planilla-registrar", siEsta: true }],
+      titulo: "Una fila por banco",
+      texto: "De qué cuenta salió, cuánto y qué día. Si del banco salió otro monto, escríbelo: queda lo real, y te avisa si no se parece a lo de Dynamic. Si ya la habías registrado a mano, la hoja la propone sola cuando el monto calza; si no, elige «Ya la registré a mano».",
+    },
+    {
+      id: "salida-botones",
+      ancla: "fin-dinero.salida-botones",
+      opcional: true,
+      titulo: "Se registran juntas",
+      texto: "El botón registra todas las salidas de la hoja juntas: si una falla, no queda ninguna a medias. En la demo no registramos.",
     },
     {
       id: "mov-lotes",
@@ -776,6 +812,70 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
   ],
 };
 
+export const GUIA_FIN_CLAURE: Guia = {
+  id: "finanzas.dinero.claure",
+  ruta: "/finanzas/dinero/claure",
+  titulo: "CLAURE (Finanzas)",
+  resumen: "Lo que CLAURE cobró en cuentas de CAYLA y, por eso, lo que se le debe a Claudia.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que se le debe a CLAURE",
+      texto: "El POS y los Yape de Lima caen en cuentas de CAYLA, pero parte de lo que se vende es de CLAURE, la empresa de Claudia. Aquí ves cuánto de lo cobrado es suyo, día por día. Es una demo: no se paga nada.",
+    },
+    ...TELAR,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto le debes a CLAURE?",
+      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto, el IGV, la comisión del POS y lo que ya se le pagó. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
+    },
+    PESTANAS_DINERO,
+    {
+      id: "cifras",
+      ancla: "fin-claure.cifras",
+      opcional: true,
+      titulo: "De dónde sale la cifra",
+      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, el IGV (lo declara y paga CAYLA, así que se descuenta), la comisión del POS (estimada con su tarifa; la asume CLAURE) y lo que ya se le pagó. Se le debe: cobrado menos todo eso.",
+    },
+    {
+      id: "tabla",
+      ancla: "fin-claure.tabla",
+      opcional: true,
+      titulo: "Día por día",
+      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó; «Se le debe» ya viene sin IGV ni comisión. En un cambio, la plata sigue a la prenda que se lleva el cliente. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
+    },
+    {
+      id: "gastos",
+      ancla: "fin-claure.gastos",
+      opcional: true,
+      titulo: "Gastos de CLAURE que pagó CAYLA",
+      texto: "El alquiler, la luz, la limpieza… los paga CAYLA, pero una parte (o todo) es de CLAURE. Cada categoría tiene su parte (de fábrica: alquiler, luz y mantenimiento, la mitad; agua, internet, baño, limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA.",
+    },
+    {
+      id: "pagos",
+      ancla: "fin-claure.pagos",
+      opcional: true,
+      titulo: "Lo que ya se le pagó",
+      texto: "Cada pago a Claudia: el día, el banco de donde salió, su número de operación y quién lo registró. Lo pagado baja lo que se le debe. Un pago equivocado se anula en Dónde está ▸ Movimientos y el saldo vuelve a subir.",
+    },
+    {
+      id: "pagar",
+      ancla: "fin-claure.pagar",
+      opcional: true,
+      titulo: "Pagar a CLAURE",
+      texto: "Abre «Registrar movimiento» con el pago ya elegido: de qué banco sale, cuánto (viene escrito lo que se le debe; puedes bajarlo si pagas una parte) y el número de operación. Solo el líder. En la demo no lo tocamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes cuánto le debes a CLAURE, de dónde sale y cómo se le paga. Para repasarlo: Mi perfil ▸ Demo ▸ CLAURE (Finanzas).",
+    },
+  ],
+};
+
 export const GUIA_FIN_CONCILIACION: Guia = {
   id: "finanzas.dinero.conciliacion",
   ruta: "/finanzas/dinero/conciliacion",
@@ -912,6 +1012,14 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que hay que revisar",
       texto: "Si algo no cuadra (un cobro que no suma lo vendido, por ejemplo), aquí avisa: hasta revisarlo, esas cifras no son confiables.",
+    },
+    {
+      id: "claure",
+      ancla: "fin-resultados.claure",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo de CLAURE no está aquí",
+      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). Esas ventas no son ingreso ni costo de CAYLA: aquí no suman, y la nota dice cuánto se dejó fuera. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.",
     },
     {
       id: "notas",
@@ -1384,13 +1492,13 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
   id: "finanzas.impuestos",
   ruta: "/finanzas/impuestos",
   titulo: "Impuestos",
-  resumen: "El IGV del mes: lo cobrado al vender menos lo pagado al comprar con factura.",
+  resumen: "Lo que le pagas a SUNAT por el mes: el IGV de tus ventas menos el de tus compras, más la renta.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "El IGV del mes",
-      texto: "Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. El contador presenta los libros a SUNAT con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
+      titulo: "Lo que le pagas a SUNAT",
+      texto: "El IGV de tus ventas, menos el de tus compras con factura, más la renta a cuenta. El contador presenta la declaración con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
     },
     ...TELAR,
     {
@@ -1401,72 +1509,57 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Mientras miras el mes en curso, este aviso te recuerda el mes anterior, el que se declara ahora, con lo que quedó. «Ver» te lleva a él.",
     },
     {
-      id: "balanza",
-      ancla: "fin-impuestos.balanza",
-      titulo: "La balanza del IGV",
-      texto: "En un plato, el IGV que cobraste al vender; en el otro, el de tus compras con factura. La balanza se inclina hacia el que pesa más y abajo queda la cuenta: cobraste, menos tus compras, más la renta a cuenta, es lo que pagas. Si pesan más las compras, el IGV queda a favor para el mes que viene.",
+      id: "pagas",
+      ancla: "fin-impuestos.pagas",
+      titulo: "Lo que pagas",
+      texto: "La cifra que sale hacia SUNAT por este mes, cuándo se paga y lo que falta hacer. «Registrar pago» te lleva a Cuentas y dinero. Si el IGV queda a favor, solo pagas la renta.",
+    },
+    {
+      id: "cuenta",
+      ancla: "fin-impuestos.cuenta",
+      titulo: "La cuenta, línea por línea",
+      texto: "Lo que vendiste, el IGV de tus ventas, menos el IGV de tus compras con factura (ábrelo para ver de dónde sale), más la renta. El porcentaje de la renta es el de Configuración ▸ Impuestos.",
+    },
+    {
+      id: "claure",
+      ancla: "fin-impuestos.claure",
+      opcional: true,
+      titulo: "El IGV de lo de CLAURE",
+      texto: "Las boletas de lo que vende CLAURE en Tienda Lima salen con el RUC de CAYLA, así que SUNAT las cuenta en este IGV. Esta línea dice cuánto de él es de CLAURE; el IGV de arriba sigue siendo el real.",
     },
     {
       id: "por-hacer",
       ancla: "fin-impuestos.por-hacer",
       opcional: true,
-      titulo: "Antes de declarar",
-      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo. Cada cosa lleva a donde se arregla.",
-    },
-    {
-      id: "registros",
-      ancla: "fin-impuestos.registros",
-      titulo: "Los registros, en «Más»",
-      texto: "El registro de ventas (todas las boletas y facturas del mes) y el de compras (las facturas de compras y gastos, con su IGV), en Excel, como los pide el contador.",
+      titulo: "Pendientes",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe, con su monto: rechazados, ventas sin comprobante, compras con boleta, IGV que no se descuenta y honorarios. Cada línea lleva a donde se arregla.",
     },
     {
       id: "paquete",
       ancla: "fin-impuestos.paquete",
-      titulo: "Paquete para el contador",
-      texto: "Los dos registros y el resumen del mes juntos, listos para mandarle al contador. En la demo no descargamos nada.",
+      titulo: "Descargar para el contador",
+      texto: "Abre un menú: todo el paquete en un ZIP, o un solo archivo: registro de ventas, de compras o resumen del IGV. En la demo no descargamos nada.",
     },
     {
       id: "limite",
       ancla: "fin-impuestos.limite",
-      titulo: "El límite de ventas",
-      texto: "Lo vendido en el año, de enero a hoy, contra el límite del régimen (y el aviso que salta antes, para hablar con el contador). Al cruzarlo, SUNAT pide llevar más libros. La franja rayada es a dónde llegarías a diciembre a este ritmo. Cuenta lo registrado en el sistema: puede quedar por debajo de la cifra real.",
+      titulo: "El límite del año",
+      texto: "Lo vendido de enero a hoy contra el límite del régimen, con la marca del aviso y la franja rayada de lo que llegarías a diciembre. Pasado el límite, el pago a cuenta cambia: habla con el contador antes. Cuenta lo registrado en el sistema.",
     },
     {
       id: "historial",
       ancla: "fin-impuestos.historial",
-      titulo: "Cada mes, su sobre",
-      texto: "Un sobre por mes con lo que tocó pagar o lo que quedó a favor. Abierto si falta algo (el mes que se declara, o un pago que no se registró); punteado si el mes todavía corre. Al tocar un sobre, la pantalla sube y pasa a ese mes (te lo mostramos).",
-    },
-    {
-      id: "mes-en-curso",
-      ancla: "fin-impuestos.balanza",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "fin-impuestos.mes-en-curso" }],
-      titulo: "El mes en curso",
-      texto: "Ahora la balanza es de este mes, a la fecha: sirve para ver venir el IGV antes de que termine. El que se declara ahora es el mes anterior.",
-    },
-    {
-      id: "mes-a-declarar",
-      ancla: "fin-impuestos.mes-a-declarar",
-      opcional: true,
-      titulo: "Volver al mes que se declara",
-      texto: "Su sobre te devuelve al mes que le toca declarar al contador (te lo dejamos como estaba). Un mes más viejo se elige con el mes de la barra de arriba.",
-      demostrar: [{ tipo: "clic", ancla: "fin-impuestos.mes-a-declarar" }],
-    },
-    {
-      id: "nota",
-      ancla: "fin-impuestos.nota",
-      titulo: "El pago a SUNAT",
-      texto: "El pago del impuesto todavía no se registra aquí: llegará con Cuentas y dinero, porque sale de una cuenta de CAYLA.",
+      titulo: "El IGV a pagar de cada mes",
+      texto: "Una barra por mes con su IGV a pagar (en verde, el que quedó a favor). La del mes que miras va en oscuro. Al tocar una barra, la pantalla pasa a ese mes.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes cuánto IGV toca y qué revisar antes de declarar. Para repasarlo: Mi perfil ▸ Demo ▸ Impuestos.",
+      texto: "Ya sabes cuánto toca pagar y qué revisar antes de declarar. Para repasarlo: Mi perfil ▸ Demo ▸ Impuestos.",
     },
   ],
-  alSalir: [{ tipo: "clic", ancla: "fin-impuestos.mes-a-declarar" }],
+  alSalir: [{ tipo: "escape" }],
 };
 
 export const GUIA_FIN_CIERRE: Guia = {

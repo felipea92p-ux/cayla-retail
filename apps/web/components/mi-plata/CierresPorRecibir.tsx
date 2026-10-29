@@ -20,7 +20,7 @@ import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
-import { cuentaSugerida } from "@/lib/mi-plata-reglas";
+import { cuentaAlConfirmar, cuentaSugerida, textoCuentaDevuelta } from "@/lib/mi-plata-reglas";
 import { recibirCierre } from "@/lib/revisar-compras-acciones";
 import { botonCierre, camposCierre, renglonesCuaderno, type CierrePorRecibir } from "@/lib/revisar-compras-reglas";
 import { PanelDetalle } from "./PanelDetalle";
@@ -41,7 +41,8 @@ type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierrePorRecibir; cuentas: CuentaOpcion[]; alTerminar: () => void }) {
   const router = useRouter();
   const devuelve = cierre.decision === "devuelve";
-  const [cuentaId, setCuentaId] = useState(cuentaSugerida(cuentas) ?? "");
+  // La cuenta que indicó la compradora llega elegida si sigue entre las que se pueden recibir; si no, la de siempre. Compras la puede cambiar.
+  const [cuentaId, setCuentaId] = useState(devuelve ? cuentaAlConfirmar(cierre, cuentas) : (cuentaSugerida(cuentas) ?? ""));
   const [monto, setMonto] = useState(cierre.monto.toFixed(2));
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
@@ -153,6 +154,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
               }}
               deshabilitado={guardando}
             />
+            {devuelve && textoCuentaDevuelta(nombre, cierre.cuentaIndicada) && <p className="mt-1.5 text-xs text-taupe">{textoCuentaDevuelta(nombre, cierre.cuentaIndicada)}</p>}
           </CampoGuiado>
           <CampoGuiado id="monto" guia={guia} titulo={devuelve ? "¿Cuánto trajo?" : "¿Cuánto le pagas?"} ayuda={devuelve ? "Cuéntala antes" : undefined} className="max-w-xs">
             <CampoMonto
