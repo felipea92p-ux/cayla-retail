@@ -165,14 +165,35 @@ export type EleccionCierre = {
   /** Lo que `problemasDeCierre` dice de lo escrito (vacío = la base lo aceptaría). */
   problemas: readonly string[];
   responsableListo: boolean;
+  /** ADR-0570, actividad 4: la tela sin anotar frena el paso al stock. `null` o ausente: no frena (no hay tela pendiente, o un líder ya lo permitió). Si frena: si ya está resuelto (un líder
+   *  escribió su porqué) y, si no, lo que falta. */
+  tela?: { hecho: boolean; pendiente: string } | null;
 };
 
-/** «Pasar al stock»: cuántas salieron buenas (precargado con lo terminado en la última fase) y quién lo anota. La guía y el botón dicen lo mismo que `cerrar_produccion`. */
+/** «Pasar al stock»: cuántas salieron buenas (precargado con lo terminado en la última fase), la tela si falta y quién lo anota. La guía y el botón dicen lo mismo que `cerrar_produccion`. */
 export function camposDeCierre(e: EleccionCierre): CampoDeGuia[] {
   const malas = e.total <= 0 || e.problemas.length > 0;
   return [
     { id: "cantidades", nombre: "Cuántas salieron buenas", requerido: true, hecho: !malas, pendiente: e.problemas[0] ?? "Escribe cuántas salieron buenas en cada talla y color." },
+    ...(e.tela ? [{ id: "tela", nombre: "La tela", requerido: true, hecho: e.tela.hecho, pendiente: e.tela.pendiente }] : []),
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién pasa esto al stock." },
+  ];
+}
+
+/** «Anotar lo usado» (ADR-0570, actividad 4): lo que quedó de cada tela y lo que se usó de cada avío, y quién lo anota. `anotar_insumos_de_la_orden` rechaza lo mismo. */
+export function camposDeLoUsado(e: EleccionTelaUsada): CampoDeGuia[] {
+  return [
+    { id: "cantidades", nombre: "Lo que quedó o se usó", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? "Escribe lo que quedó de cada tela." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esto." },
+  ];
+}
+
+/** «Encontré tela»: qué color, cuánta y quién lo anota. El precio es opcional (sin él va el último de ese color): no entra a la guía. */
+export function camposDeTelaEncontrada(e: EleccionTelaUsada & { colorElegido: boolean }): CampoDeGuia[] {
+  return [
+    { id: "color", nombre: "Qué tela", requerido: true, hecho: e.colorElegido, pendiente: "Elige qué tela encontraste." },
+    { id: "cantidad", nombre: "Cuánta encontraste", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? "Escribe cuánta tela encontraste." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esto." },
   ];
 }
 

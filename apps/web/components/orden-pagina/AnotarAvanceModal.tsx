@@ -40,7 +40,7 @@ import {
   type FasePagina,
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
-import { RPC_REGISTRAR_CONSUMO, anotarConsumoEnLotes, cantidadDeFabrica, leerCantidad, problemaDeTelaUsada, telasDeLaOrden, textoAnotasteTela } from "@/lib/orden-tela-usada-reglas";
+import { RPC_ANOTAR_INSUMOS, lineasDeUso, problemaDeLoUsado, telasDeLaOrden, textoDeLoUsado, usoDeLaFila, valorDeFabrica } from "@/lib/orden-tela-usada-reglas";
 import { camposDeAvance } from "@/lib/orden-pagina-guia";
 import { avisoCorteSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
 import { lineasDeModeloExistente, tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
@@ -78,9 +78,10 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   const [dia, setDia] = useState(hoy);
   const [fallas, setFallas] = useState<FallaBorrador[]>([]);
   const [motivo, setMotivo] = useState("");
-  // La tela de la orden (solo telas, no avíos: los avíos viajan con la salida o se anotan desde «Tela») con lo que falta usar según el plan.
+  // La tela de la orden (solo telas, no avíos: los avíos viajan con la salida o se anotan desde «Tela»). Se pregunta lo que QUEDÓ en el estante (ADR-0570, actividad 4): viene con lo que
+  // quedaría si se usó lo que pide el plan, y lo usado es lo que había menos eso.
   const telas = useMemo(() => telasDeLaOrden(datos.insumos).filter((t) => t.tipo === "tela"), [datos.insumos]);
-  const [telaUsada, setTelaUsada] = useState<Record<string, string>>(() => Object.fromEntries(telas.map((t) => [t.insumoId, cantidadDeFabrica(t)])));
+  const [telaUsada, setTelaUsada] = useState<Record<string, string>>(() => Object.fromEntries(telas.map((t) => [t.insumoId, valorDeFabrica(t)])));
   const enVuelo = useRef(false);
 
   const tabla = useMemo(() => tablaDeModeloExistente(datos.lineas.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [datos.lineas]);
@@ -105,7 +106,10 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   const preguntaLaTela = completaElCorte && telas.some((t) => t.falta > 0 || t.usado === 0);
   // Con el corte completo y ninguna tela declarada no hay nada que preguntar ni descontar: se avisa, no se bloquea (ADR-0510).
   const sinTela = avisoCorteSinTela(datos.insumos, completaElCorte);
-  const problemasDeTela = preguntaLaTela ? telas.flatMap((t) => (telaUsada[t.insumoId]?.trim() ? [problemaDeTelaUsada(t, telaUsada[t.insumoId], "usar")] : [])).filter((p): p is string => p !== null) : [];
+  // Vacío en todas = «después, desde Tela» (no se pregunta nada); algo escrito tiene que tener sentido.
+  const escribioTela = preguntaLaTela && telas.some((t) => (telaUsada[t.insumoId] ?? "").trim() !== "");
+  const problemaDeTela = escribioTela ? problemaDeLoUsado(telas, telaUsada) : null;
+  const problemasDeTela = problemaDeTela ? [problemaDeTela] : [];
 
   const guia = useGuiaCampos(
     camposDeAvance({ total, responsableListo: responsable.listo, conFalla, hayFallas: fallas.length > 0, problemaFallas: problemasFallas[0] ?? null, problemaDia })
@@ -183,21 +187,20 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
       return;
     }
     // La tela, si se escribió: después del avance, cada una con su RPC. Si una falla, el corte ya quedó anotado y se dice.
-    const anotadas: string[] = [];
+    // La tela, si se escribió: después del avance, en UNA llamada para todos los colores (todo o nada). Si falla, el corte ya quedó anotado y se dice.
+    let anotada: string | null = null;
     let falloDeTela: string | null = null;
-    if (preguntaLaTela) {
-      const cliente = createClient();
-      for (const t of telas) {
-        const n = leerCantidad(telaUsada[t.insumoId] ?? "");
-        if (n === null || falloDeTela) continue;
-        const r = await anotarConsumoEnLotes(n, (c) => firmar(cliente.rpc(RPC_REGISTRAR_CONSUMO as never, { p_produccion_id: datos.orden.id, p_insumo_id: t.insumoId, p_cantidad: c, p_nota: "al terminar el corte" } as never), firma));
-        if (r.anotado > 0) anotadas.push(textoAnotasteTela(t, r.anotado, "usar").replace(/^Anotaste /, ""));
-        if (r.error) falloDeTela = `${traducirError(r.error, "anotar la tela usada")}${r.anotado > 0 ? ` (se anotaron ${cantidadConUnidad(r.anotado, t.unidad)} de ${cantidadConUnidad(n, t.unidad)})` : ""}`;
-      }
+    if (escribioTela) {
+      const { error: errorTela } = await firmar(
+        createClient().rpc(RPC_ANOTAR_INSUMOS as never, { p_produccion_id: datos.orden.id, p_lineas: lineasDeUso(telas, telaUsada), p_nota: "al terminar el corte" } as never),
+        firma
+      );
+      if (errorTela) falloDeTela = traducirError(errorTela, "anotar la tela", { confirmarAntesDeRepetir: true });
+      else anotada = textoDeLoUsado(telas, telaUsada);
     }
     if (falloDeTela) avisar.error(`El corte quedó anotado, pero la tela no: ${falloDeTela} Anótala desde «Tela».`);
     avisar.exito(total > 0 ? textoTermine(total, fase.nombre) : `Anotaste ${conFalla} con falla en ${fase.nombre}`, {
-      detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}${total > 0 && conFalla > 0 ? ` · ${conFalla} con falla` : ""}${anotadas.length > 0 ? ` · tela anotada: ${anotadas.join(", ")} (Deshacer no la devuelve)` : ""}`,
+      detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}${total > 0 && conFalla > 0 ? ` · ${conFalla} con falla` : ""}${anotada ? ` · ${anotada.toLocaleLowerCase("es")} (Deshacer no la devuelve)` : ""}`,
       accion: {
         texto: "Deshacer",
         onClick: async () => {
@@ -228,6 +231,13 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
     });
     cerrarTrasGuardar();
   }
+
+  // «Había 45 m · usaste 33 m (el plan pedía 32,45 m)»: lo que dice lo escrito, mientras se escribe.
+  const queUsaste = (t: (typeof telas)[number]) => {
+    const { usado } = usoDeLaFila(t, telaUsada[t.insumoId] ?? "");
+    const base = `Había ${cantidadConUnidad(t.saldo, t.unidad)} en el estante`;
+    return usado === null ? `${base} · el plan pide ${cantidadConUnidad(t.falta, t.unidad)}` : `${base} · usaste ${cantidadConUnidad(usado, t.unidad)} (el plan pedía ${cantidadConUnidad(t.falta, t.unidad)})`;
+  };
 
   return (
     <Modal
@@ -281,23 +291,23 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
         {preguntaLaTela && (
           <div data-guia="prod-orden-terminar.tela" className="space-y-3 rounded-xl bg-hueso px-4 py-3">
             <p className="text-sm text-tinta">
-              <b className="font-semibold">Con esto queda cortado todo el lote.</b> ¿Cuánta tela usaste? Sale del estante y queda en la orden.
+              <b className="font-semibold">Con esto queda cortado todo el lote.</b> ¿Cuánta tela quedó en el estante? Mide lo que quedó de cada rollo: lo usado sale de ahí.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               {telas.map((t) => (
                 <CampoTexto
                   key={t.insumoId}
                   id={`avance-tela-${t.insumoId}`}
-                  etiqueta={`${t.nombre} (${t.unidad === "metro" ? "metros" : t.unidad})`}
+                  etiqueta={`Quedó de ${t.nombre} (${t.unidad === "metro" ? "metros" : t.unidad})`}
                   inputMode="decimal"
-                  pie={`El plan pide ${cantidadConUnidad(t.plan, t.unidad)} · en el estante hay ${cantidadConUnidad(t.saldo, t.unidad)}`}
+                  pie={queUsaste(t)}
                   value={telaUsada[t.insumoId] ?? ""}
                   onChange={(e) => setTelaUsada((u) => ({ ...u, [t.insumoId]: e.target.value }))}
                   maxLength={12}
                 />
               ))}
             </div>
-            <p className="text-xs text-tinta/65">{problemasDeTela[0] ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela»."}</p>
+            <p className="text-xs text-tinta/65">{problemasDeTela[0] ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela». Si apareció tela que no estaba anotada, anótala allí con «Encontré tela»."}</p>
           </div>
         )}
 

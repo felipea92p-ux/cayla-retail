@@ -36,6 +36,9 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
     ["orden-pagina/CorregirAnotacionModal.tsx", "lo terminado en"],
     ["orden-pagina/CambioConMotivoModal.tsx", "quitar la marca"],
     ["orden-pagina/NotaDeLaOrdenModal.tsx", "escribir la nota"],
+    // ADR-0570, actividad 4: lo usado de la orden y la tela encontrada.
+    ["orden-pagina/AnotarLoUsadoModal.tsx", "anotar lo usado"],
+    ["orden-pagina/EncontreTelaModal.tsx", "anotar la tela que encontraste"],
     ["orden-pagina/PasarAlStockModal.tsx", "pasar la orden al stock"],
     ["orden-pagina/AnularLaOrdenModal.tsx", "anular la orden"],
     ["orden-pagina/RevertirLaOrdenModal.tsx", "revertir el cierre"],

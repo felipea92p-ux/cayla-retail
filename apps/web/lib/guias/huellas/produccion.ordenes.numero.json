@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 168,
+  "total": 183,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -57,19 +57,26 @@
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarAvanceModal.tsx": [
-      "CampoTexto «{`${t.nombre}»",
+      "CampoTexto «{`Quedó de ${t.nombre}»",
       "CampoFecha «{guia.etiqueta(\"dia\", \"¿Cuándo lo terminaste?\")}»",
       "CampoTexto «Nota»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}»"
     ],
+    "components/orden-pagina/AnotarLoUsadoModal.tsx": [
+      "CampoTexto «{comoSeAnota(t) === \"quedo\" ? `Quedó de ${t.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
     "components/orden-pagina/AnotarSalidaModal.tsx": [
+      "CampoTexto «{`Mandas de ${t.nombre}»",
       "CampoTexto «N.º de guía»",
       "CampoTexto «Nota»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? problemaTela ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarVueltaModal.tsx": [
       "SegmentoDeslizante «Qué anotas»",
@@ -118,6 +125,15 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
+    "components/orden-pagina/EncontreTelaModal.tsx": [
+      "CampoSelect «{guia.etiqueta(\"color\", \"Qué tela\")}»",
+      "CampoTexto «encontre-cantidad»",
+      "CampoTexto «Precio por metro»",
+      "CampoTexto «Dónde estaba»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
     "components/orden-pagina/FilasDeFalla.tsx": [
       "button «+ Anotar prendas con falla»",
       "CampoSelect «Talla y color»",
@@ -147,7 +163,9 @@
     ],
     "components/orden-pagina/PasarAlStockModal.tsx": [
       "Boton «Declarar la tela»",
-      "Boton «Anotarla ahora»",
+      "button «Anotar cuánto quedó»",
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
@@ -183,11 +201,12 @@
       "Boton «prod-orden.editar-tela»",
       "BotonEnlace «{i === 0 ? \"prod-orden.pedir-tela\" : undefined}»",
       "Boton «prod-orden.anotar-tela»",
+      "Boton «prod-orden.encontre-tela»",
       "Boton «prod-orden.devolver-tela»"
     ],
     "components/orden-pagina/TelaUsadaModal.tsx": [
       "CampoSelect «Qué tela o avío»",
-      "CampoTexto «{guia.etiqueta(\"cantidad\", devuelve ? `Cuántos ${unidad}»",
+      "CampoTexto «{guia.etiqueta(\"cantidad\", `Cuántos ${unidad}»",
       "CampoTexto «Nota»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",

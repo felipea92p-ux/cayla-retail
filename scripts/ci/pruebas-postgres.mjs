@@ -1664,6 +1664,9 @@ export const PRUEBAS = [
   // Corregir, eliminar y restaurar cualquier anotación de una orden, con su historia (ADR-0570, actividad 3): uno que no es el último, el día, lo que la fase siguiente ya usó, la marca
   // de Ploteo, restaurar una sola vez y sin pasarse, notas del equipo; nada se borra y cada cambio queda en produccion_cambios en la misma transacción. ROLLBACK.
   "pruebas:produccion-correcciones",
+  // La tela al cortar (ADR-0570, actividad 4): «¿cuánto quedó?» descuenta de los lotes del más antiguo al más nuevo, todo o nada; «Encontré tela» entra como lote «encontrada» al último
+  // precio; sin tela anotada (también un forro) no pasa al stock salvo el permiso de un líder, que queda en la historia; una muestra y una orden sin tela declarada pasan. ROLLBACK.
+  "pruebas:produccion-tela-al-cortar",
   // «Lleva ojales y botones», un dato del MODELO (ADR-0551, migración 20261028053000): sin fila = nadie lo ha preguntado; guardar lo mismo no escribe ni anota; solo quien opera ese Taller guarda;
   // la tabla no se lee ni se escribe directo; la fila se va con el modelo. ROLLBACK.
   "pruebas:producto-taller",

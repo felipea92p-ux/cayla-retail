@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
-  anotarConsumoEnLotes,
   cantidadDeFabrica,
+  comoSeAnota,
   leerCantidad,
+  leerQuedo,
+  lineasDeTelaQueSale,
+  lineasDeUso,
+  pendientesDeAnotar,
+  problemaDeLoUsado,
+  problemaDeTelaEncontrada,
+  problemaDeTelaQueSale,
   problemaDeTelaUsada,
-  saldoDelLoteMasAntiguo,
   telasDeLaOrden,
   textoAnotasteTela,
+  textoDeLoUsado,
+  usoDeLaFila,
+  valorDeFabrica,
   type TelaDeLaOrden,
 } from "./orden-tela-usada-reglas";
 import type { InsumoPagina } from "./orden-pagina-reglas";
@@ -65,52 +74,6 @@ describe("problemaDeTelaUsada", () => {
   });
 });
 
-describe("saldoDelLoteMasAntiguo — el mensaje de la base cuando una orden cruza de lote", () => {
-  it("lee cuánto queda en el lote más antiguo", () => {
-    expect(saldoDelLoteMasAntiguo("El lote más antiguo con saldo tiene 40.000 y pediste 69 — si de verdad necesitas cruzar de lote, registra el consumo en dos llamadas")).toBe(40);
-    expect(saldoDelLoteMasAntiguo("El lote más antiguo con saldo tiene 12,5 y pediste 30")).toBe(12.5);
-  });
-  it("otro mensaje, o un saldo en cero, no es esto", () => {
-    expect(saldoDelLoteMasAntiguo("No hay stock de este insumo en esta ubicación")).toBeNull();
-    expect(saldoDelLoteMasAntiguo("El lote más antiguo con saldo tiene 0 y pediste 5")).toBeNull();
-  });
-});
-
-describe("anotarConsumoEnLotes — parte la cantidad entre lotes cuando el más antiguo no alcanza", () => {
-  const llamadas: number[] = [];
-  const base = (lotes: number[]) => {
-    llamadas.length = 0;
-    const saldos = [...lotes];
-    return async (cantidad: number) => {
-      llamadas.push(cantidad);
-      const saldo = saldos[0] ?? 0;
-      if (saldo <= 0) return { error: { message: "No hay stock de este insumo en esta ubicación" } };
-      if (saldo < cantidad) return { error: { message: `El lote más antiguo con saldo tiene ${saldo}.000 y pediste ${cantidad} — registra el consumo en dos llamadas` } };
-      saldos[0] = saldo - cantidad;
-      if (saldos[0] <= 0) saldos.shift();
-      return { error: null };
-    };
-  };
-  it("si el primer lote alcanza, una sola llamada", async () => {
-    expect(await anotarConsumoEnLotes(30, base([40, 100]))).toEqual({ anotado: 30, falta: 0, error: null });
-    expect(llamadas).toEqual([30]);
-  });
-  it("si no alcanza, anota lo que queda del lote y después el resto (69 = 40 + 29)", async () => {
-    expect(await anotarConsumoEnLotes(69, base([40, 100]))).toEqual({ anotado: 69, falta: 0, error: null });
-    expect(llamadas).toEqual([69, 40, 29]);
-  });
-  it("si se acaba la tela a mitad, lo anotado queda anotado y dice cuánto falta y por qué", async () => {
-    const r = await anotarConsumoEnLotes(69, base([40]));
-    expect(r.anotado).toBe(40);
-    expect(r.falta).toBe(29);
-    expect(r.error?.message).toContain("No hay stock");
-  });
-  it("un error que no es de lotes se devuelve tal cual, sin reintentar", async () => {
-    const r = await anotarConsumoEnLotes(5, async () => ({ error: { message: "No tienes permiso para registrar consumo de insumos en esa producción" } }));
-    expect(r).toEqual({ anotado: 0, falta: 5, error: { message: "No tienes permiso para registrar consumo de insumos en esa producción" } });
-  });
-});
-
 describe("textoAnotasteTela", () => {
   it("dice qué se anotó o se devolvió, con su unidad", () => {
     expect(textoAnotasteTela({ nombre: "Lino lavado", unidad: "metro" }, 12.5, "usar")).toBe("Anotaste 12.5 m de Lino lavado");
@@ -126,5 +89,66 @@ describe("telasDeLaOrden — los complementos (ADR-0563)", () => {
     expect(mezcla).toHaveLength(1);
     expect(mezcla[0].complemento).toBe(false);
     expect(telasDeLaOrden([insumo({ tipo: "avio", insumoId: "i-9", nombre: "Botón" })])[0].complemento).toBe(false);
+  });
+});
+
+describe("«¿cuánto quedó?» (ADR-0570, actividad 4): una tela se anota con lo que quedó en el estante; un avío, con cuántos se usaron", () => {
+  const boton = tela({ insumoId: "i-2", nombre: "Botón", tipo: "avio", unidad: "unidad", plan: 96, usado: 0, falta: 96, saldo: 500 });
+  it("cómo se anota cada uno", () => {
+    expect(comoSeAnota(tela())).toBe("quedo");
+    expect(comoSeAnota(boton)).toBe("usado");
+  });
+  it("lo que queda por anotar: lo que tiene plan por usar y la tela sin nada anotado", () => {
+    const insumos = [insumo({ usado: 36 }), insumo({ id: "pi-2", insumoId: "i-2", nombre: "Algodón", usado: 0, cantidadPlan: 10 }), insumo({ id: "pi-3", insumoId: "i-3", nombre: "Botón", tipo: "avio", unidad: "unidad", usado: 0 })];
+    expect(pendientesDeAnotar(insumos).map((t) => t.nombre)).toEqual(["Algodón", "Botón"]);
+  });
+  it("el valor de fábrica de una tela es lo que quedaría si se usó lo que pide el plan (nunca negativo); el de un avío, lo que falta; sin estante, vacío", () => {
+    expect(valorDeFabrica(tela({ falta: 32.45, saldo: 45 }))).toBe("12.55");
+    expect(valorDeFabrica(tela({ falta: 62, saldo: 40 }))).toBe("0");
+    expect(valorDeFabrica(boton)).toBe("96");
+    expect(valorDeFabrica(tela({ saldo: 0 }))).toBe("");
+  });
+  it("lo que quedó puede ser cero (se acabó el rollo), con punto o coma; lo demás no se entiende", () => {
+    expect(leerQuedo("0")).toBe(0);
+    expect(leerQuedo("12,5")).toBe(12.5);
+    expect(leerQuedo("-1")).toBeNull();
+    expect(leerQuedo("doce")).toBeNull();
+  });
+  it("lo usado de una tela es lo que había menos lo que quedó; no pudo quedar más de lo que había", () => {
+    expect(usoDeLaFila(tela({ saldo: 45 }), "12")).toEqual({ usado: 33, problema: null });
+    expect(usoDeLaFila(tela({ saldo: 45 }), "0")).toEqual({ usado: 45, problema: null });
+    expect(usoDeLaFila(tela({ saldo: 45 }), "50").problema).toMatch(/no pudo quedar 50 m.*Encontré tela/);
+    expect(usoDeLaFila(tela({ saldo: 45 }), "")).toEqual({ usado: null, problema: null });
+    expect(usoDeLaFila(boton, "12")).toEqual({ usado: 12, problema: null });
+    expect(usoDeLaFila(boton, "600").problema).toMatch(/solo hay 500/);
+  });
+  it("viaja una línea por fila escrita: «quedo» de la tela, «usado» del avío", () => {
+    const filas = [tela({ saldo: 45 }), boton, tela({ insumoId: "i-3", saldo: 10 })];
+    expect(lineasDeUso(filas, { "i-1": "12", "i-2": "40", "i-3": "" })).toEqual([
+      { insumo_id: "i-1", quedo: 12 },
+      { insumo_id: "i-2", usado: 40 },
+    ]);
+  });
+  it("lo que impide anotar: el problema de una fila, o que con eso no se use nada (la base repite: uso_nada)", () => {
+    expect(problemaDeLoUsado([tela({ saldo: 45 })], { "i-1": "12" })).toBeNull();
+    expect(problemaDeLoUsado([tela({ saldo: 45 })], { "i-1": "45" })).toMatch(/no se usó nada/);
+    expect(problemaDeLoUsado([tela({ saldo: 45 })], { "i-1": "" })).toMatch(/no se usó nada/);
+    expect(problemaDeLoUsado([tela({ saldo: 45 })], { "i-1": "60" })).toMatch(/no pudo quedar/);
+  });
+  it("lo que se va a anotar, en palabras", () => {
+    expect(textoDeLoUsado([tela({ saldo: 45 }), boton], { "i-1": "12", "i-2": "40" })).toBe("Usaste 33 m de Lino lavado y 40 und de Botón");
+    expect(textoDeLoUsado([tela({ saldo: 45 })], { "i-1": "45" })).toBeNull();
+  });
+  it("la tela que se manda a cortar afuera sale como «usado»; una fila vacía no sale y lo de más se dice", () => {
+    const telas = [tela({ saldo: 40 }), tela({ insumoId: "i-3", saldo: 10 })];
+    expect(lineasDeTelaQueSale(telas, { "i-1": "30", "i-3": "" })).toEqual([{ insumo_id: "i-1", usado: 30 }]);
+    expect(problemaDeTelaQueSale(telas, { "i-1": "30", "i-3": "" })).toBeNull();
+    expect(problemaDeTelaQueSale(telas, { "i-1": "50" })).toMatch(/solo hay 40/);
+  });
+  it("«Encontré tela»: cuánta, mayor que cero; el precio, vacío (el último) o un número", () => {
+    expect(problemaDeTelaEncontrada("2,5", "")).toBeNull();
+    expect(problemaDeTelaEncontrada("2,5", "18,50")).toBeNull();
+    expect(problemaDeTelaEncontrada("0", "")).toMatch(/cuánta tela encontraste/);
+    expect(problemaDeTelaEncontrada("2", "barato")).toMatch(/precio/);
   });
 });

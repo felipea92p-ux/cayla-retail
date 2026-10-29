@@ -395,6 +395,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/RevertirLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo revierte): el texto dice qué pasa con el stock; no hay camino que indicar." },
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
+  // ADR-0570, actividad 4: «¿Cuánto quedó en el estante?» y «Encontré tela».
+  "components/orden-pagina/AnotarLoUsadoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarLoUsadoModal.tsx"] },
+  "components/orden-pagina/EncontreTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EncontreTelaModal.tsx"] },
   "components/orden-pagina/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EditarTelaModal.tsx"] },
   "components/orden-produccion/FichaDeConsumoHoja.tsx": { estado: "aplicada", evidencia: ["components/orden-produccion/FichaDeConsumoHoja.tsx"] },
   "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },

@@ -1,7 +1,11 @@
-import type { InsumoPagina } from "./orden-pagina-reglas";
+import type { CambioOrden, InsumoPagina } from "./orden-pagina-reglas";
 import { telasDeLaOrden, type TelaDeLaOrden } from "./orden-tela-usada-reglas";
 
-// El aviso de «Pasar al stock» cuando la tela del lote todavía no se anotó (ADR-0400, «Tela y costo honestos» parte b; OK de Felipe, 2026-10-16). Sin React ni Supabase.
+// «Pasar al stock» cuando la tela del lote todavía no se anotó (ADR-0400, «Tela y costo honestos» parte b; OK de Felipe, 2026-10-16). Sin React ni Supabase.
+//
+// DESDE EL 2026-10-29 ES UN CANDADO (ADR-0570, actividad 4; Felipe: «sin tela anotada no pasa al stock, salvo el Líder o el Admin con motivo»): `cerrar_produccion` lo rechaza
+// (`cierre_sin_tela`) salvo que un líder lo haya permitido (`permitir_pasar_sin_tela`, que queda en la historia). Lo de abajo que dice «aviso, nunca un candado» vale todavía para
+// la orden que NO declaró ninguna tela: esa sigue con su aviso.
 //
 // EL PROBLEMA: `cerrar_produccion` toma el costo de la tela del libro de insumos (lo realmente descontado del estante). Si nadie anotó «lo que usaste», el lote entra al stock con un costo por
 // prenda SIN tela (la OP-343 entró a S/ 4.50 en vez de S/ 22.38) y ese costo alimenta el promedio de la prenda en todas las sedes. La base no lo frena (es el primer lote del modelo, o el costo
@@ -35,7 +39,10 @@ export function avisoTelaSinAnotar(insumos: readonly InsumoPagina[], esMuestra: 
   const telas = telasSinAnotar(insumos);
   if (telas.length === 0) return null;
   const quienes = nombres([...new Set(telas.map((t) => t.nombre))]);
-  const texto = telas.length === 1 ? `Todavía no anotaste la tela de este lote (${quienes}): el costo por prenda saldría sin tela.` : `Todavía no anotaste las telas de este lote (${quienes}): el costo por prenda saldría sin ellas.`;
+  const texto =
+    telas.length === 1
+      ? `Falta anotar la tela de este lote (${quienes}): sin ella no pasa al stock, porque el costo por prenda saldría sin tela.`
+      : `Falta anotar las telas de este lote (${quienes}): sin ellas no pasa al stock, porque el costo por prenda saldría sin tela.`;
   return { insumoId: telas[0].insumoId, texto };
 }
 
@@ -63,3 +70,11 @@ export function avisoCorteSinTela(insumos: readonly InsumoPagina[], completaElCo
   if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela" && !t.complemento)) return null;
   return { texto: "Esta orden no declaró qué tela lleva, así que no se descuenta nada del estante. Antes de terminar, cierra esta hoja y usa «Declarar tela y avíos» en la sección Tela y avíos." };
 }
+
+/** El permiso de un líder de pasar esta orden al stock sin tela (ADR-0570, actividad 4), si lo hay: con él, el candado no frena. */
+export function permisoSinTela(cambios: readonly CambioOrden[]): CambioOrden | null {
+  return cambios.find((c) => c.accion === "sin_tela") ?? null;
+}
+
+/** Atajos del porqué, cuando un líder deja pasar una orden sin tela. */
+export const MOTIVOS_SIN_TELA = ["Es una orden de antes del sistema", "La tela se anotó en otra orden", "Se cortó con retazos sin registrar"] as const;

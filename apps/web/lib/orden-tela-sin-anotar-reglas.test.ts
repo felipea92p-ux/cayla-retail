@@ -41,12 +41,12 @@ describe("avisoTelaSinAnotar — lo que dice la hoja «Pasar al stock»", () => 
     const aviso = avisoTelaSinAnotar([insumo()], false);
     expect(aviso).not.toBeNull();
     expect(aviso?.insumoId).toBe("i-1");
-    expect(aviso?.texto).toBe("Todavía no anotaste la tela de este lote (Lino lavado): el costo por prenda saldría sin tela.");
+    expect(aviso?.texto).toBe("Falta anotar la tela de este lote (Lino lavado): sin ella no pasa al stock, porque el costo por prenda saldría sin tela.");
   });
   it("con dos telas sin anotar, las nombra a las dos, en plural, y abre la primera", () => {
     const aviso = avisoTelaSinAnotar([insumo(), insumo({ id: "pi-3", insumoId: "i-2", nombre: "Algodón pima" })], false);
     expect(aviso?.insumoId).toBe("i-1");
-    expect(aviso?.texto).toBe("Todavía no anotaste las telas de este lote (Lino lavado y Algodón pima): el costo por prenda saldría sin ellas.");
+    expect(aviso?.texto).toBe("Falta anotar las telas de este lote (Lino lavado y Algodón pima): sin ellas no pasa al stock, porque el costo por prenda saldría sin tela.");
   });
   it("con tres telas las separa con comas y la última con «y»", () => {
     const aviso = avisoTelaSinAnotar([insumo(), insumo({ id: "pi-3", insumoId: "i-2", nombre: "Algodón pima" }), insumo({ id: "pi-4", insumoId: "i-3", nombre: "Drill" })], false);

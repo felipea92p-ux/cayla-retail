@@ -48,8 +48,8 @@ export const DIAS_SIN_MOVERSE = 4;
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
 export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
-/** Lo que se cambió de la orden (ADR-0570, actividad 3): cada corrección, eliminación, restauración y nota, con quién, cuándo y el motivo. */
-export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota";
+/** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4): cada corrección, eliminación, restauración y nota, y el permiso de un líder de pasar al stock sin tela, con quién, cuándo y el motivo. */
+export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela";
 /** Una entrada de la historia: lo que pasó en la orden o un cambio que se le hizo. */
 export type TipoEntrada = TipoEvento | AccionCambio;
 
@@ -401,7 +401,7 @@ function leerCambio(crudo: unknown): CambioOrden | null {
   const id = texto(crudo.id);
   const cuando = texto(crudo.cuando);
   const accion = crudo.accion;
-  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota")) return null;
+  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "sin_tela")) return null;
   const faseClave = texto(crudo.fase_clave);
   return {
     id,
@@ -926,6 +926,7 @@ export function tonoDeEntrada(tipo: TipoEntrada): TonoDeEntrada {
     case "corregir":
     case "eliminar":
     case "restaurar":
+    case "sin_tela":
       return "cambio";
     // Una nota del equipo no es un hecho de la orden: punto neutro.
     case "nota":
@@ -1452,6 +1453,8 @@ export const RPC_CORREGIR_ANOTACION = "corregir_anotacion_orden";
 export const RPC_ELIMINAR_ANOTACION = "eliminar_anotacion_orden";
 export const RPC_RESTAURAR_ANOTACION = "restaurar_anotacion_orden";
 export const RPC_COMENTAR_ORDEN = "comentar_orden";
+/** ADR-0570, actividad 4: un líder deja pasar al stock una orden con tela declarada y sin anotar (queda en la historia como un cambio «sin_tela»). */
+export const RPC_PERMITIR_SIN_TELA = "permitir_pasar_sin_tela";
 export const MAX_MOTIVO_CAMBIO = 300;
 export const MAX_NOTA_ORDEN = 500;
 /** Lo que pasa casi siempre, a un toque; lo demás se escribe. */
@@ -1523,6 +1526,8 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
   if (c.accion === "nota") {
     titulo = "Nota";
     detalle = c.texto;
+  } else if (c.accion === "sin_tela") {
+    titulo = "Dejó pasar al stock sin tela";
   } else if (c.objeto === "marca") {
     titulo = c.accion === "restaurar" ? `Volvió a marcar ${fase} como hecho` : `Quitó la marca de ${fase}`;
   } else if (c.accion === "corregir") {
