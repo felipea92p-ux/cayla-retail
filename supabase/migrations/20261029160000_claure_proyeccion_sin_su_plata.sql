@@ -12,7 +12,7 @@
 --   NO HACE: no cambia `fn_flujo_disponible` (lo usa también el flujo real, que debe cuadrar con las cuentas) ni los cobros futuros de la proyección: lo que CLAURE venda desde mañana
 --            seguirá entrando a «lo que se espera cobrar» (queda en el backlog).
 --
--- CÓMO SE PEGA EN PRODUCCIÓN — UNA SOLA EJECUCIÓN, después de 20261029155000. Una función nueva y tres reemplazos anclados sobre `fn_flujo_caja_proyeccion`: ABORTAN SIN CAMBIAR NADA si el texto no es el
+-- CÓMO SE PEGA EN PRODUCCIÓN — UNA SOLA EJECUCIÓN, después de 20261029154000. Una función nueva y tres reemplazos anclados sobre `fn_flujo_caja_proyeccion`: ABORTAN SIN CAMBIAR NADA si el texto no es el
 -- esperado y dicen cuál. Sin políticas ni `alter table`; idempotente. SE ROMPE SI: otra migración reescribe la proyección y cambia esos textos.
 -- ============================================================================
 set search_path = retail, public, extensions;

@@ -1,7 +1,7 @@
 # ADR-0560 — Las cuentas con Claudia: lo de CLAURE no suma a CAYLA y se le debe aparte
 
-**Fecha:** 2026-10-28 · **Estado:** construido y verificado en la base local (17 actividades); **nada está en producción** (las 18 migraciones se pegan solo con OK de Felipe) · **Decide:** Felipe Alvarez (20 preguntas del 2026-10-28 y 14 respuestas del 2026-10-29)
-**Relacionados:** ADR-0463 (CAYLA y CLAURE son dos empresas), ADR-0505 (CLAURE solo existe en Lima), ADR-0532 y ADR-0542 (de quién es lo vendido y el stock de Lima), ADR-0195 y ADR-0493 (Finanzas), ADR-0377 (familias fuera de los motores).
+**Fecha:** 2026-10-28 · **Estado:** construido y verificado en la base local (16 actividades vigentes; la 15 se retiró por el ADR-0558) y, encima de una copia de `main` con el ADR-0558, con sus 17 migraciones; **nada de esto está en producción** (las 17 migraciones se pegan solo con OK de Felipe) · **Decide:** Felipe Alvarez (20 preguntas del 2026-10-28 y 14 respuestas del 2026-10-29)
+**Relacionados:** ADR-0463 (CAYLA y CLAURE son dos empresas), ADR-0505 (CLAURE solo existe en Lima), ADR-0532 y ADR-0542 (de quién es lo vendido y el stock de Lima), ADR-0195 y ADR-0493 (Finanzas), ADR-0377 (familias fuera de los motores), **ADR-0558 (consignación a costo, cuenta 4699: esta decisión manda sobre su parte de la deuda)**.
 
 ## El problema primero
 
@@ -31,7 +31,7 @@ En Tienda LIM se vende lo de CAYLA y lo de CLAURE (la empresa de Claudia, herman
 
 Resueltas con obra (actividades 10 a 17, en la misma rama y un solo PR):
 - **IGV:** se le descuenta a Claudia (actividad 10). **Efectivo:** destino «Se queda con Claudia» al cerrar la caja (11). **Servicios:** luz, alquiler y mantenimiento 50/50; agua, internet y baño 100 % de CLAURE (12; solo datos y la categoría de «Luz» en Gasto rápido).
-- **Cambios:** «la plata sigue a la prenda que se lleva el cliente», en la deuda y en el Diario, revisado con él antes de tocar nada (13). **Pérdidas y dañadas por dueño** (14), **el Balance sin el stock de CLAURE** (15), **«¿Me alcanza?» sin la plata de Claudia** (16) y **una pantalla para cambiar los porcentajes** de reparto, solo del líder (17).
+- **Cambios:** «la plata sigue a la prenda que se lleva el cliente», en la deuda y en el Diario, revisado con él antes de tocar nada (13). **Pérdidas y dañadas por dueño** (14), **el Balance sin el stock de CLAURE** (15, retirada: ya lo hace el ADR-0558), **«¿Me alcanza?» sin la plata de Claudia** (16) y **una pantalla para cambiar los porcentajes** de reparto, solo del líder (17).
 - Frescura del piso, el Resumen por variante y la capacidad del piso **NO** se separan por dueño (decisión suya).
 
 Resueltas sin código: la 479 sigue provisional hasta el contador; la meta de Lima para CAYLA sola la carga él; los puntos del club ya dados y la ficha de una clienta solo-CLAURE se quedan; la planilla no tiene nada que separar (la trabajadora de CLAURE no está en Dynamic y Claudia le paga); los gastos de «suministros» de antes se quedan como CAYLA; sin nota en el Observatorio.
@@ -47,9 +47,25 @@ Diecinueve suites de Postgres propias (`pnpm pruebas:claure-*`), cada caso en su
 - **Una columna `empresa_id` en cada línea de venta**: toca el núcleo (`venta_items`, tabla caliente) y producción; el dueño real ya se sabe por el libro y la ficha de la prenda.
 - **Un módulo nuevo para la pantalla**: «CLAURE» es una pestaña de Cuentas y dinero, no una entrada del menú (ADR-0306).
 
+## Convivencia con el ADR-0558 (2026-10-29): manda lo cobrado
+
+**El choque.** `main` trae el ADR-0558 (Felipe, 2026-10-28): la mercadería de CLAURE es consignación y lo que CAYLA le debe nace al vender, **a costo, en la 4699**. Esta obra dice otra cosa: se le debe **lo cobrado en cuentas de CAYLA, sin IGV y sin comisión, en la 479**. Las dos definen `fn_asientos_claure` con la misma firma y las dos reclasifican la misma venta. **Felipe decidió (2026-10-29): «manda lo cobrado: Claudia vende, CAYLA le cobra».**
+
+**Lo que se verificó en producción (solo lectura, 2026-10-29).** El ADR-0558 **sí está pegado** (la cuenta 4699, `fn_dueno_del_movimiento`, `fn_asientos_claure` y los filtros de `fn_bal_stock` / `fn_bal_causas_mercaderia`); la 479 y las funciones de esta obra no. CLAURE tiene 6 líneas vendidas, todas desde el 24-oct, ninguna antes del arranque (23-oct), y **no hay ningún mes cerrado ni línea congelada en `diario_cerrado`**: reemplazar la reclasificación no reescribe historia.
+
+**Lo que se hizo.**
+1. La cadena de CLAURE va **después** de la 0558, y `20261029020000` redefine `fn_asientos_claure` (misma firma): la última que se pega gana, así que el Diario reclasifica a la 479 y la **4699 queda sin movimiento** (sin saldo no aparece en el Balance; su rótulo se queda en la web por si un mes cerrado antes la congelara). El enganche de `fn_asientos` es condicional: la 0558 ya une `fn_asientos_claure` y una segunda unión duplicaría los asientos.
+2. **Se retira la actividad 15** (`20261029155000`, el Balance sin el stock de CLAURE): la 0558 ya resta ese stock (`fn_bal_stock`, `fn_bal_causas_mercaderia`), y restarlo otra vez lo descontaría dos veces. El número queda reservado y sin archivo.
+3. Web: rótulo y nota de la 479 en el Balance y los textos de las reglas del Diario (`claure_venta`, `claure_anulacion`, `claure_devolucion`, `claure_cambio`, `claure_gasto`, `pago_claure`, `traslado_claudia`).
+4. `scripts/pruebas/balance_claure.mjs` (la suite del ADR-0558) ya no re-aplica la 0558 dentro de cada caso —devolvería su `fn_asientos_claure`— y prueba el estado final: **el Balance y la 201 del Diario se mueven igual** con una venta, anulación, devolución y pérdida de CLAURE, la deuda queda en la 479 (lo cobrado sin IGV) y la 4699 en cero. Es la propiedad que decide si el Balance se dibuja (ADR-0198).
+
+**Cómo se verificó.** En una copia de la base de `main` (con la 0558) con las 17 migraciones aplicadas encima: las 18 suites `pnpm pruebas:claure-*` y `balance_claure` (16/16) en verde; las suites aceptan `CONTENEDOR_PG` y `BASE_PG` para apuntar a otra base.
+
+**Lo que queda a propósito.** (a) La pérdida de una prenda de CLAURE ya no es deuda (el ADR-0558 la llevaba a la 4699 «porque la responde CAYLA»): ahora ni el Diario ni Pérdidas la cuentan como de CAYLA (actividad 14). Si Felipe quiere que CAYLA la responda, es otra decisión. (b) Una venta de CLAURE **anterior al arranque** (23-oct) volvería a bajar la 201 sin que el Balance la siga y la comprobación de la 201 no cuadraría; en producción hoy no hay ninguna. (c) Para el contador: si la deuda con Claudia es la 479 (relacionada) o la 4699 (tercero); ambas son provisionales.
+
 ## Orden de pegado en producción (solo con OK de Felipe; cada paso es una ejecución aparte)
 
-`20261029004000` → `011000` → `013000` → `020000` → `023000` → `030000` → `035000` → `041000` → `043000` → `044000` → `142000` → `144000` → `153000` → `154000` → `155000` → `160000` → `161000` → `162000`, y recién ahí la web. Las partes con reemplazos anclados (`020000`, `023000`, `030000`, `035000`, `041000`) **abortan sin cambiar nada** si una función de producción no tiene el texto que esperan; no pude leer los textos vivos de producción, así que el aborto es el aviso. `044000` crea una tabla y dos categorías y va **antes** que la web. Después de pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+`20261029004000` → `011000` → `013000` → `020000` → `023000` → `030000` → `035000` → `041000` → `043000` → `044000` → `142000` → `144000` → `153000` → `154000` → `160000` → `161000` → `162000`, y recién ahí la web. **Producción ya tiene la `20261028212000` (ADR-0558): esta cadena va después y reemplaza su `fn_asientos_claure`.** (La `155000` se retiró: ver arriba.) Las partes con reemplazos anclados (`020000`, `023000`, `030000`, `035000`, `041000`) **abortan sin cambiar nada** si una función de producción no tiene el texto que esperan; no pude leer los textos vivos de producción, así que el aborto es el aviso. `044000` crea una tabla y dos categorías y va **antes** que la web. Después de pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
 
 ## Qué queda abierto
 

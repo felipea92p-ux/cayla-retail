@@ -12,7 +12,7 @@
 --            (4) el Diario (`fn_asientos`, la cuenta 6951) y el Estado de resultados (las mermas sin costo) no cuentan la merma de CLAURE. Lo demás de cada función es EXACTAMENTE lo de antes.
 --   ASUME:   `movimientos.empresa_id` dice de quién era la unidad que salió (lo escribe el libro desde ADR-0542); un movimiento sin dueño es de CAYLA.
 --   NO HACE: no toca las pérdidas en traslados entre sedes (`fn_perdidas_de_traslados`: el traslado no dice de quién era lo que se perdió), Frescura del piso, el Resumen por variante, el
---            Balance (eso es la actividad 15) ni ninguna tabla.
+--            Balance (su stock lo saca el ADR-0558) ni ninguna tabla.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN — UNA SOLA EJECUCIÓN, después de 20261029153000. Una función nueva y seis reemplazos anclados sobre funciones vivas (`fn_perdidas_hechos`, `fn_calidad_danadas`,
 -- `fn_asientos`, `fn_estado_resultados`): si una no tiene el texto esperado ABORTA SIN CAMBIAR NADA y dice cuál. Sin políticas ni `alter table`; idempotente. SE ROMPE SI: otra migración reescribe

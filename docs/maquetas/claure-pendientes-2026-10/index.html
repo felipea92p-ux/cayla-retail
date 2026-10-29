@@ -95,7 +95,7 @@
   <header>
     <p class="ojo">CAYLA · ADR-0560 · actualizado el 29 de octubre de 2026</p>
     <h1 class="serif">CLAURE: lo que queda por decidir, pegar y mirar</h1>
-    <p class="sub">Las 17 actividades están construidas y probadas en la base local, con tus decisiones del 29 de octubre ya dentro. <b>Nada está en producción</b> y no se abrió ningún PR: lo que sigue es tuyo. Marca lo que vayas cerrando; el tablero lo recuerda en este navegador.</p>
+    <p class="sub">Las 16 actividades vigentes están construidas y probadas (la 15 se retiró: ya la hace tu ADR-0558), también sobre una copia de la base de <code>main</code> con la 0558 puesta. <b>Nada está en producción</b> y no se abrió ningún PR: lo que sigue es tuyo. Marca lo que vayas cerrando; el tablero lo recuerda en este navegador.</p>
     <div class="barra" role="group" aria-label="Filtros">
       <button class="chip" data-filtro="todo" aria-pressed="true">Todo</button>
       <button class="chip" data-filtro="decision" aria-pressed="false">Decisiones tuyas</button>
@@ -110,7 +110,7 @@
     <div class="cifra dec"><b id="n-dec">0</b><span>decisiones o validaciones tuyas abiertas</span></div>
     <div class="cifra pro"><b id="n-pro">0</b><span>pasos de producción</span></div>
     <div class="cifra tec"><b id="n-tec">0</b><span>pendientes técnicos</span></div>
-    <div class="cifra ok"><b>17 de 17</b><span>actividades construidas y probadas</span></div>
+    <div class="cifra ok"><b>16 de 16</b><span>actividades vigentes, probadas sobre main</span></div>
   </section>
 
   <h2>Lo construido</h2>
@@ -133,7 +133,7 @@
     <li class="paso"><b>12 · Servicios</b>agua, internet, baño 100 %<small>0c54b0af3</small></li>
     <li class="paso"><b>13 · Cambios</b>la plata sigue a la prenda<small>e57168629</small></li>
     <li class="paso"><b>14 · Pérdidas</b>y dañadas por dueño<small>d7853738c</small></li>
-    <li class="paso"><b>15 · Balance</b>sin stock de CLAURE<small>d7853738c</small></li>
+    <li class="paso"><b>15 · Balance</b>retirada: ya la hace la 0558<small>d7853738c</small></li>
     <li class="paso"><b>16 · ¿Me alcanza?</b>sin la plata de Claudia<small>a8fac8343</small></li>
     <li class="paso"><b>17 · Porcentajes</b>pantalla en Configuración<small>1ecd0e212</small></li>
     <li class="paso"><b>+ Motor</b>demanda, con cifra<small>a8facd1af</small></li>
@@ -145,7 +145,7 @@
     <li><div><b>20261029004000</b> · la cuenta con CLAURE<small>Columnas nuevas y funciones propias.</small></div></li>
     <li><div><b>20261029011000</b> · pagar a CLAURE<small>4 reemplazos anclados.</small></div></li>
     <li><div><b>20261029013000</b> · aviso en el cierre de caja<small>Función nueva.</small></div></li>
-    <li><div><b>20261029020000</b> · Finanzas fuera de las cifras<small>2 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029020000</b> · Finanzas fuera de las cifras<small>1 reemplazo anclado y un enganche condicional. <b>Reemplaza la <code>fn_asientos_claure</code> de la 0558</b> (misma firma): desde aquí la deuda es lo cobrado, en la 479.</small></div></li>
     <li><div><b>20261029023000</b> · Inicio y Observatorio<small>2 reemplazos anclados; define la regla común.</small></div></li>
     <li><div><b>20261029030000</b> · Rendimiento, metas y Comercial<small>11 reemplazos anclados.</small></div></li>
     <li><div><b>20261029035000</b> · Club y ficha del cliente<small>5 reemplazos anclados.</small></div></li>
@@ -156,11 +156,10 @@
     <li><div><b>20261029144000</b> · «Se queda con Claudia»<small>Un <code>alter table</code> y 11 reemplazos sobre el cierre de caja, el libro, el flujo y el Diario: la más delicada junto con la 041000.</small></div></li>
     <li><div><b>20261029153000</b> · servicios 100 %<small>Solo datos. Antes que la web (Gasto rápido manda «Luz» a su categoría).</small></div></li>
     <li><div><b>20261029154000</b> · pérdidas y dañadas por dueño<small>6 reemplazos sobre Pérdidas, calidad, el Diario y el Estado de resultados.</small></div></li>
-    <li><div><b>20261029155000</b> · Balance sin el stock de CLAURE<small>3 reemplazos sobre el Balance.</small></div></li>
     <li><div><b>20261029160000</b> · «¿Me alcanza?» sin su plata<small>3 reemplazos sobre la proyección de caja.</small></div></li>
     <li><div><b>20261029161000</b> · pantalla de porcentajes<small>Una columna y dos funciones. Antes que la web (la pestaña las llama).</small></div></li>
     <li><div><b>20261029162000</b> · los cambios con prendas de CLAURE<small>6 reemplazos sobre la cuenta, el cierre y el Diario.</small></div></li>
-    <li class="web"><div><b>La web</b> (Vercel, al fusionar) <small>Después de las 18: Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto.</small></div></li>
+    <li class="web"><div><b>La web</b> (Vercel, al fusionar) <small>Después de las 17: Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto.</small></div></li>
   </ol>
 
   <h2>Lo que queda abierto</h2>
@@ -177,10 +176,10 @@ const CASOS = [
     "id": "d0",
     "tipo": "decision",
     "prio": "alta",
-    "titulo": "Choque con main: tu ADR-0558 (consignación a costo) y esta rama reclasifican la misma venta de CLAURE",
-    "por": "En <code>main</code> está la migración <code>20261028212000</code> (ADR-0558, tuya del 28-oct): la mercadería de CLAURE es consignación y lo que se le debe nace al vender, a costo, en la cuenta 4699. Esta rama dice que se le debe lo cobrado menos IGV y comisión, en la 479. Las dos tocan <code>fn_asientos</code>, <code>fn_asientos_claure</code>, <code>fn_bal_stock</code> y <code>fn_bal_causas_mercaderia</code>: juntas contarían la misma venta dos veces en el Diario y el Balance.",
-    "hoy": "Ya decidiste que manda lo cobrado (esta rama). Git no marca choque (solo un archivo de huellas), pero el choque es de significado, no de texto. NO toqué esa migración porque no sabemos si ya está pegada en producción.",
-    "falta": "Que confirmes si la <code>20261028212000</code> ya se pegó en producción. Si NO: la retiro de la rama y reemplazo su parte útil (el Balance sin stock de CLAURE ya está en mi actividad 15). Si SÍ: escribo una migración que la deshaga (saca la 4699 y su reclasificación). En los dos casos traigo <code>main</code> a la rama y repruebo las 18 migraciones en una base limpia (la aislada que dejó la otra sesión, puerto 57422) <b>antes de abrir el PR</b>."
+    "titulo": "Tu ADR-0558 y esta rama: resuelto, manda lo cobrado; mira qué cambia en octubre",
+    "por": "La 0558 (consignación a costo, cuenta 4699) <b>sí está pegada en producción</b>; lo revisé en solo lectura. Esta rama dice que se le debe lo cobrado sin IGV ni comisión, en la 479. Las dos definen <code>fn_asientos_claure</code>: la que se pega última gana, y la cadena de CLAURE va después.",
+    "hoy": "Listo en el código: las 17 migraciones se aplican limpias sobre una copia de main con la 0558, retiré la actividad 15 (la 0558 ya saca el stock de CLAURE del Balance; restarlo otra vez lo descontaría dos veces) y la 4699 queda sin movimiento. Las 18 suites de CLAURE y la del Balance (16/16) pasan; en producción no hay meses cerrados, y CLAURE tiene 6 líneas vendidas, todas desde el 24-oct.",
+    "falta": "Tu OK para pegar. Dos cosas que cambian y que quiero que sepas: (1) las 6 líneas de octubre pasan de la 4699 (a costo) a la 479 (lo cobrado); (2) una pérdida de prenda de CLAURE ya no la responde CAYLA (la 0558 la dejaba como gasto de CAYLA y deuda con CLAURE; tú lo decidiste así en la actividad 14). Si prefieres el criterio de la 0558 para las pérdidas, dímelo."
   },
   {
     "id": "d1",
@@ -258,7 +257,7 @@ const CASOS = [
     "id": "p1",
     "tipo": "produccion",
     "prio": "alta",
-    "titulo": "Pegar las 18 migraciones, en orden y una por una",
+    "titulo": "Pegar las 17 migraciones, en orden y una por una",
     "por": "Ninguna está en producción. Varias llevan reemplazos anclados sobre funciones vivas cuyo texto no pude leer: si una no coincide, aborta sin cambiar nada y dice cuál.",
     "hoy": "Probadas en la base local (con rollback) y verificadas contra una mutación.",
     "falta": "Tu OK y el SQL Editor. Orden: ver «Cómo pegarlo en producción»."
@@ -270,7 +269,7 @@ const CASOS = [
     "titulo": "La web va después de todo el SQL",
     "por": "Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto: sin las migraciones 044000, 153000 y 161000, fallan.",
     "hoy": "—",
-    "falta": "Pegar las 18 antes de fusionar."
+    "falta": "Pegar las 17 antes de fusionar."
   },
   {
     "id": "p3",
@@ -297,7 +296,7 @@ const CASOS = [
     "titulo": "Abrir el PR con /abrir-pr",
     "por": "El repo es público y subir la rama publica el trabajo. No lo hice sin tu orden.",
     "hoy": "La rama está solo en esta máquina.",
-    "falta": "Que digas «abre el PR»; <b>antes se resuelve el choque con main (la tarjeta de arriba)</b>. Después: trae main, revisa las reservas (los 18 números ya son de esta rama) y busca choques."
+    "falta": "Que digas «abre el PR»; el choque con main ya está resuelto en el código (la tarjeta de arriba). Después: trae main, revisa las reservas (los 18 números ya son de esta rama; el de la retirada queda sin archivo) y busca choques."
   },
   {
     "id": "t1",
