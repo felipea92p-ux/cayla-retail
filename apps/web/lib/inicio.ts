@@ -10,6 +10,7 @@ import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import { getAvisoPerdidas } from "@/lib/perdidas";
+import { DIAS_AVISO_DANADA } from "@/lib/danadas-arreglo";
 import type { ClaveModulo } from "@/lib/modulos";
 import { getPedidosPorAtender, leerParaEnviar, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { paraEnviarAtrasadas } from "@/lib/para-enviar-reglas";
@@ -124,11 +125,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "danadasViejas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, igv] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -151,6 +152,9 @@ export async function getFuentesAvisos(
       : undefined,
     // ADR-0328 act. 14: «se repite», solo del líder y con el módulo de la pestaña a la que lleva (Movimientos).
     cuenta.esLider && ve("movimientos") ? tolerarLectura("las pérdidas que se repiten", () => getAvisoPerdidas(ubicacionId)) : undefined,
+    // ADR-0564: las dañadas que llevan 7 días o más sin que nadie las saque a arreglar ni decida: solo del líder, en el Inicio de su sede, y con
+    // el módulo de la pantalla a la que lleva (Existencias).
+    cuenta.esLider && ve("existencias") ? tolerarLectura("las dañadas sin decidir", () => contarDanadasViejasDeSede(supabase, ubicacionId)) : undefined,
     // ADR-0328 act. 17: a las 48 h sin respuesta, aviso a los líderes de las DOS sedes (la que pidió y la que debe enviar),
     // cada uno en el Inicio de SU sede (decisión del 2026-10-04: «los que tienen esa sede»; un líder parado en otra no lo
     // recibe por ella). El Admin los ve todos en el Observatorio.
@@ -183,7 +187,22 @@ export async function getFuentesAvisos(
         : igv.faltantes
           ? { prendas: igv.faltantes.prendas, facturas: igv.faltantes.facturas, igv: igv.faltantes.igv, proveedores: igv.faltantes.proveedores, proveedorId: igv.faltantes.proveedorId }
           : undefined;
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, danadasViejas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar };
+}
+
+/**
+ * Cuántas dañadas de la sede llevan `DIAS_AVISO_DANADA` días o más en la cuarentena SIN haber salido a arreglar (ADR-0564). Sin la columna de la
+ * salida (la web publicada antes que su migración) cuenta todas las de ese tiempo; lanza solo si la base de verdad no responde.
+ */
+async function contarDanadasViejasDeSede(supabase: Supabase, ubicacionId: string): Promise<number> {
+  const limite = new Date(Date.now() - DIAS_AVISO_DANADA * 86_400_000).toISOString();
+  const base = () => supabase.from("prendas_danadas").select("id", { count: "exact", head: true }).eq("ubicacion_id", ubicacionId).eq("estado", "en_cuarentena").lte("created_at", limite);
+  const con = await base().is("en_arreglo_desde", null);
+  if (!con.error) return con.count ?? 0;
+  if (con.error.code !== "42703") throw new Error(con.error.message);
+  const sin = await base();
+  if (sin.error) throw new Error(sin.error.message);
+  return sin.count ?? 0;
 }
 
 /** Lo que entrega `fn_actividad` por llamada (su tope duro) y cuántas llamadas como máximo se hacen para recorrer el día (2.000 filas). */

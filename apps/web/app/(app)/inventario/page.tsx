@@ -3,7 +3,7 @@ import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
-import { getExistencias, getFilaSinStockDeVariante, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
+import { getExistencias, getFilaSinStockDeVariante, resumirExistencias, getPrendasDanadasPendientes, getLugarDeDanadas } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
@@ -32,6 +32,8 @@ import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 import { ValorInventarioExistencias } from "@/components/existencias/ValorInventarioExistencias";
 import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
+import { pideSepararDanada } from "@/lib/danadas-lugar";
+import { contarDanadasViejas } from "@/lib/danadas-arreglo";
 import { desdeDeParams } from "@/lib/vuelta-productos";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -49,14 +51,14 @@ import { desdeDeParams } from "@/lib/vuelta-productos";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string; danados?: string; variante?: string; ajustar?: string; de?: string; desde?: string }>;
+  searchParams: Promise<{ ubicacion?: string; danados?: string; danada?: string; variante?: string; ajustar?: string; de?: string; desde?: string }>;
 }) {
   const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   // `danados=1`: llegar desde el aviso de cuarentena de Devoluciones abre la cola de dañadas (ADR-0232).
   // `variante=<id>`: llegar desde un movimiento («Ver en Existencias», ADR-0241) abre el detalle de ESA prenda en esa talla.
   // `ajustar=1&de=<producto>`: llegar desde el candado de Editar producto (ADR-0494, actividad 3) abre la planilla de «Ajustar stock» en esa talla y
   // ofrece «Volver a Editar producto» (`lib/existencias-ajustar-desde-editar.ts`).
-  const { ubicacion: ubicacionQuery, danados, variante, ajustar, de, desde } = await searchParams;
+  const { ubicacion: ubicacionQuery, danados, danada, variante, ajustar, de, desde } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -73,7 +75,7 @@ export default async function InventarioPage({
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui, lugarDanadas] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -113,6 +115,8 @@ export default async function InventarioPage({
     vende ? leerPlanDelPiso(ubicacionActivaId) : Promise.resolve(null),
     // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
     getEmpresasAqui(ubicacionActivaId).catch(() => null),
+    // Dónde deja esta tienda las prendas dañadas (ADR-0564). Nunca lanza: sin dato, la pantalla sigue como antes.
+    getLugarDeDanadas(ubicacionActivaId),
   ]);
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
   // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Corre en paralelo con el ritmo de abajo;
@@ -285,7 +289,12 @@ export default async function InventarioPage({
         sububicacionPiso={sububicacionPiso}
         sububicacionAlmacen={sububicacionAlmacen}
         danadosPendientes={danadosPendientes}
+        lugarDanadas={lugarDanadas}
+        // Las que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida: «Para hoy» sube la fila a rojo (ADR-0564).
+        danadasViejas={contarDanadasViejas(danadosPendientes)}
         abrirDanados={danados === "1"}
+        // `?danada=1`: el botón «Separé una dañada» de las cuentas de caja y de almacén (ADR-0564) abre el buscador de la prenda dañada.
+        abrirSepararDanada={pideSepararDanada(danada)}
         abrirVariante={variante ?? null}
         abrirAjustar={pideAjustar(ajustar)}
         abrirSinFila={filaSinStock}

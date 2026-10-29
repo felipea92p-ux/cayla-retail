@@ -157,7 +157,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.pendientes" }],
       titulo: "Pendientes de hoy",
-      texto: "Cuadrar el piso, ventas sin registrar, prendas dañadas (se arreglan, se liquidan, se botan o se donan; si llegaron así en un envío, se devuelven al proveedor), apartados vencidos… Cada tarea tiene su botón que te lleva a resolverla.",
+      texto: "Cuadrar el piso, ventas sin registrar, prendas dañadas (salen a arreglar y vuelven al piso o al almacén, o se liquidan, botan, donan o devuelven al proveedor; cada tienda marca dónde las deja; un arreglo con costo queda como gasto), apartados vencidos… Cada tarea tiene su botón que te lleva a resolverla.",
     },
     {
       id: "atajos",
