@@ -7,6 +7,7 @@ import {
   leerCompraParaCorregir,
   prendaConProblema,
   problemasDePrenda,
+  puedeCambiarDeTienda,
   textoDeCambios,
   textoDeLaPlata,
   textoMotivo,
@@ -54,6 +55,10 @@ const compra = (o: Partial<CompraParaCorregir> = {}): CompraParaCorregir => ({
   marcas: [
     { id: "m1", nombre: "Moda Mia" },
     { id: "m2", nombre: "Nueva Era" },
+  ],
+  tiendas: [
+    { id: "t1", nombre: "Tienda Trujillo" },
+    { id: "t2", nombre: "Tienda Lima" },
   ],
   ...o,
 });
@@ -213,6 +218,37 @@ describe("nombre, categoría y marca (solo de «Algo nuevo»)", () => {
     expect(c.categorias).toEqual([{ id: "c1", nombre: "Polos" }]);
     expect(c.marcas).toEqual([{ id: "m1", nombre: "Moda Mia" }]);
     expect(c.prendas[0]).toMatchObject({ categoriaId: "c1", marcaId: "m1" });
+  });
+});
+
+describe("cambiar de tienda", () => {
+  it("se cambia solo si todavía no salió nada de la prenda, y se manda como destino_id", () => {
+    const p = prenda("a");
+    expect(puedeCambiarDeTienda(p)).toBe(true);
+    expect(cambiosDePrenda(p, { ...borradorDe(p), destinoId: "t2" })).toEqual({ destinoId: "t2" });
+    const c = compra({ prendas: [p] });
+    expect(cambiosParaLaBase(c.prendas, new Map([["a", { ...borradorDe(p), destinoId: "t2" }]]))).toEqual([{ item_id: "a", destino_id: "t2" }]);
+  });
+
+  it("con algo ya enviado, o una orden «por repartir», no se cambia", () => {
+    const enviada = prenda("a", { enviadas: 1 });
+    expect(puedeCambiarDeTienda(enviada)).toBe(false);
+    expect(cambiosDePrenda(enviada, { ...borradorDe(enviada), destinoId: "t2" })).toEqual({});
+    const sinTienda = prenda("b", { destinoId: null, destino: null });
+    expect(puedeCambiarDeTienda(sinTienda)).toBe(false);
+    expect(prendaConProblema(sinTienda, borradorDe(sinTienda))).toBe(false);
+  });
+
+  it("sin tienda elegida es un problema; la lectura trae las tiendas", () => {
+    const p = prenda("a");
+    expect(problemasDePrenda(p, { ...borradorDe(p), destinoId: "" }).tienda).toMatch(/tienda/);
+    const c = leerCompraParaCorregir({
+      papel: { id: "p", monto: 1, pagado: 1 },
+      total_prendas: 1,
+      lineas: [],
+      tiendas: [{ id: "t1", nombre: "Tienda Trujillo" }],
+    })!;
+    expect(c.tiendas).toEqual([{ id: "t1", nombre: "Tienda Trujillo" }]);
   });
 });
 

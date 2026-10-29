@@ -22,6 +22,7 @@ import {
   NOMBRE_MAXIMO,
   prendaConProblema,
   problemasDePrenda,
+  puedeCambiarDeTienda,
   textoDeCambios,
   textoDeLaPlata,
   textoMotivo,
@@ -137,6 +138,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                   prenda={prenda}
                   categorias={compra.categorias}
                   marcas={compra.marcas}
+                  tiendas={compra.tiendas}
                   borrador={borradores.get(prenda.id) ?? borradorDe(prenda)}
                   alCambiar={(campo, valor) => cambiar(prenda, campo, valor)}
                   alDescartar={() => setBorradores((m) => new Map(m).set(prenda.id, borradorDe(prenda)))}
@@ -152,6 +154,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                     const nombre = !p.esCatalogo && b.nombre.trim() !== "" ? b.nombre.trim() : p.nombre;
                     const categoria = compra.categorias.find((c) => c.id === b.categoriaId)?.nombre ?? p.categoria;
                     const marca = compra.marcas.find((m) => m.id === b.marcaId)?.nombre ?? p.marca;
+                    const tienda = compra.tiendas.find((t) => t.id === b.destinoId)?.nombre ?? p.destino;
                     return (
                       <li key={p.id}>
                         <button
@@ -167,7 +170,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-medium text-tinta">{nombre}</span>
                             <span className="block truncate text-xs text-taupe">
-                              {[categoria, marca, p.destino].filter(Boolean).join(" · ")}
+                              {[categoria, marca, tienda].filter(Boolean).join(" · ")}
                             </span>
                             <span className="block text-xs tabular-nums text-taupe">
                               {cantidad === 1 ? "1 unidad" : `${cantidad} unidades`} · {soles(leerPrecioDe(b, p))} c/u
@@ -241,6 +244,7 @@ function FormularioDePrenda({
   prenda,
   categorias,
   marcas,
+  tiendas,
   borrador,
   alCambiar,
   alDescartar,
@@ -250,6 +254,7 @@ function FormularioDePrenda({
   prenda: PrendaParaCorregir;
   categorias: readonly Opcion[];
   marcas: readonly Opcion[];
+  tiendas: readonly Opcion[];
   borrador: Borrador;
   alCambiar: (campo: keyof Borrador, valor: string) => void;
   alDescartar: () => void;
@@ -307,6 +312,20 @@ function FormularioDePrenda({
           </div>
         </div>
       )}
+
+      {puedeCambiarDeTienda(prenda) ? (
+        <CampoSelect
+          etiqueta="Tienda a la que va"
+          valor={borrador.destinoId}
+          onValor={(v) => alCambiar("destinoId", v)}
+          opciones={opcionesDe(tiendas, prenda.destinoId ?? "", prenda.destino ?? "")}
+          deshabilitado={bloqueado}
+          tono={problemas.tienda ? "error" : cambios.destinoId !== undefined ? "aviso" : "neutro"}
+          pie={problemas.tienda ?? (cambios.destinoId !== undefined ? `Antes: ${prenda.destino ?? "sin tienda"}` : undefined)}
+        />
+      ) : prenda.enviadas > 0 ? (
+        <p className="nota-cayla">Ya salió algo de esta prenda en un envío: no se cambia de tienda.</p>
+      ) : null}
 
       <div className="space-y-1.5">
         <span className="campo-etiqueta">¿Cuántas unidades?</span>

@@ -22,7 +22,9 @@
 --   4. `fn_compra_para_corregir(papel)`: lo que la hoja necesita para dibujarse: el papel, cada prenda con lo que ya salió en un envío, si cuadra
 --      con el papel y si se puede corregir.
 --   5. `corregir_compra_rapida(papel, lote, cambios)`: corrige unidades, costo y precio de venta de las prendas y, en una prenda de «Algo nuevo» (la que no se
---      eligió del catálogo), su nombre, categoría y marca. Las del catálogo no cambian ni nombre, ni categoría ni marca desde aquí: eso es de Catálogo. Todo o nada. Después recalcula el papel:
+--      eligió del catálogo), su nombre, categoría y marca. Las del catálogo no cambian ni nombre, ni categoría ni marca desde aquí: eso es de Catálogo.
+--      Una prenda de la que todavía no salió nada puede cambiar de TIENDA: pasa a la orden de la otra tienda (se crea si no existía) y la orden que
+--      se queda sin prendas se anula con su motivo. Todo o nada. Después recalcula el papel:
 --      si ya cuadraba con las prendas, sigue cuadrando; lo pagado acompaña (pagó todo → paga el nuevo monto; pagó una parte → no pasa del nuevo
 --      monto). Una prenda no baja de lo que ya salió en un envío. Dos toques con el mismo `lote` no corrigen dos veces.
 --
@@ -121,7 +123,9 @@ as $$
     when p.estado <> 'por_completar' then 'anulada'
     when p.ronda_id is null then 'sin_ronda'
     when exists (select 1 from retail.compra_rondas r where r.id = p.ronda_id and r.cerrada_en is not null) then 'ronda_cerrada'
-    when exists (select 1 from retail.ordenes_compra o where o.papel_id = p.id and o.estado <> 'generada') then 'orden_anulada'
+    -- Una orden que se quedó sin prendas porque se movieron a otra tienda al corregir (su motivo lo dice) no bloquea: es parte de corregir.
+    when exists (select 1 from retail.ordenes_compra o where o.papel_id = p.id and o.estado <> 'generada'
+                    and coalesce(o.motivo_anulacion, '') not like 'Corrección de la compra:%') then 'orden_anulada'
     when exists (select 1 from retail.ordenes_compra o
                    join retail.orden_compra_items i on i.orden_compra_id = o.id
                    join retail.compra_items ci on ci.orden_compra_item_id = i.id
@@ -173,6 +177,8 @@ begin
     -- Para elegir categoría y marca de una prenda de «Algo nuevo»: las activas.
     'categorias', case when v_motivo is not null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'nombre', c.nombre) order by c.nombre)
                                                                                     from retail.categorias c where c.activo), '[]'::jsonb) end,
+    'tiendas', case when v_motivo is not null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('id', u.id, 'nombre', u.nombre) order by u.nombre)
+                                                                                 from retail.ubicaciones u where u.tipo in ('tienda', 'almacen') and u.activo), '[]'::jsonb) end,
     'marcas', case when v_motivo is not null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'nombre', m.nombre) order by m.nombre)
                                                                                 from retail.marcas m where m.activo), '[]'::jsonb) end,
     'cuadra', abs(v_papel.monto - v_total) < 0.005,
@@ -225,6 +231,11 @@ declare
   v_marca uuid;
   v_nombre_cat text;
   v_nombre_marca text;
+  v_destino_actual uuid;
+  v_destino_nuevo uuid;
+  v_orden_destino uuid;
+  v_pos integer;
+  v_cuantas integer;
   v_suma_antes numeric;
   v_suma_despues numeric;
   v_monto numeric;
@@ -343,6 +354,19 @@ begin
       end if;
     end if;
 
+    -- La tienda: solo si de esta prenda todavía no salió nada (lo que ya salió va a la tienda a la que salió).
+    v_destino_actual := (select o.ubicacion_destino_id from retail.ordenes_compra o where o.id = v_item.orden_compra_id);
+    begin
+      v_destino_nuevo := case when v_cambio ? 'destino_id' then nullif(v_cambio ->> 'destino_id', '')::uuid else v_destino_actual end;
+    exception when others then
+      raise exception 'La tienda de «%» no se entiende', v_nombre using errcode = 'P0001', hint = 'compra_corregir_cambio';
+    end;
+    if v_destino_nuevo is distinct from v_destino_actual then
+      if v_destino_nuevo is null or not exists (select 1 from retail.ubicaciones u where u.id = v_destino_nuevo and u.tipo in ('tienda', 'almacen') and u.activo) then
+        raise exception 'Elige a qué tienda va «%»', v_nombre using errcode = 'P0001', hint = 'compra_rapida_destino';
+      end if;
+    end if;
+
     begin
       v_cantidad := case when v_cambio ? 'cantidad' then (v_cambio ->> 'cantidad')::numeric::integer else v_item.cantidad end;
       if v_cambio ? 'cantidad' and (v_cambio ->> 'cantidad')::numeric <> trunc((v_cambio ->> 'cantidad')::numeric) then
@@ -375,12 +399,15 @@ begin
       raise exception '«%» ya salió en un envío con % unidades: no puede quedar en menos', v_nombre, v_enviadas
         using errcode = 'P0001', hint = 'compra_corregir_menos_de_lo_enviado';
     end if;
+    if v_destino_nuevo is distinct from v_destino_actual and v_enviadas > 0 then
+      raise exception 'De «%» ya salió algo en un envío: no se cambia de tienda', v_nombre using errcode = 'P0001', hint = 'compra_corregir_tienda_con_envio';
+    end if;
     -- El precio de venta, con la misma regla de las órdenes (de 0 a 5 000, y el 0 solo donde el catálogo lo admite).
     perform retail.fn_orden_compra_validar_sugerido(v_n + 1, jsonb_build_object('precio_venta_sugerido', v_venta), v_categoria);
     v_venta := round(v_venta, 2);
 
-    if (v_cantidad, v_costo, v_venta, v_descripcion, v_categoria, v_marca)
-       is not distinct from (v_item.cantidad, v_item.precio_unitario, v_item.precio_venta_sugerido, v_item.descripcion, v_item.categoria_id, v_item.marca_id) then
+    if (v_cantidad, v_costo, v_venta, v_descripcion, v_categoria, v_marca, v_destino_nuevo)
+       is not distinct from (v_item.cantidad, v_item.precio_unitario, v_item.precio_venta_sugerido, v_item.descripcion, v_item.categoria_id, v_item.marca_id, v_destino_actual) then
       continue;
     end if;
     v_n := v_n + 1;
@@ -420,6 +447,28 @@ begin
     if not (v_item.orden_compra_id = any (v_ordenes)) then
       v_ordenes := v_ordenes || v_item.orden_compra_id;
     end if;
+
+    -- Cambiar de tienda: la prenda pasa a la orden de la otra tienda de ESTA compra (la misma que habría creado al anotarla; se crea, o se
+    -- reabre si una corrección la había anulado por quedar sin prendas).
+    if v_destino_nuevo is distinct from v_destino_actual then
+      v_orden_destino := md5(p_papel_id::text || ':' || v_destino_nuevo::text)::uuid;
+      if not exists (select 1 from retail.ordenes_compra o where o.id = v_orden_destino) then
+        insert into retail.ordenes_compra (id, proveedor_id, ubicacion_destino_id, creada_por, papel_id)
+        values (v_orden_destino, v_papel.proveedor_id, v_destino_nuevo, v_actor, p_papel_id);
+      else
+        update retail.ordenes_compra
+           set estado = 'generada', anulada_por = null, anulada_en = null, motivo_anulacion = null
+         where id = v_orden_destino and estado = 'anulada' and papel_id = p_papel_id;
+      end if;
+      v_pos := coalesce((select max(i.posicion) from retail.orden_compra_items i where i.orden_compra_id = v_orden_destino), 0) + 1;
+      insert into retail.compra_correcciones (lote, papel_id, orden_compra_item_id, campo, antes, despues, corregida_por)
+      values (p_lote, p_papel_id, v_item.id, 'tienda', (select u.nombre from retail.ubicaciones u where u.id = v_destino_actual),
+              (select u.nombre from retail.ubicaciones u where u.id = v_destino_nuevo), v_actor);
+      update retail.orden_compra_items set orden_compra_id = v_orden_destino, posicion = v_pos where id = v_item.id;
+      if not (v_orden_destino = any (v_ordenes)) then
+        v_ordenes := v_ordenes || v_orden_destino;
+      end if;
+    end if;
   end loop;
 
   if v_n = 0 then
@@ -429,6 +478,16 @@ begin
   -- Cada orden tocada vuelve a pasar por la regla de líneas de las órdenes (con sus categorías y marcas de antes, que no cambian aquí).
   foreach v_o in array v_ordenes loop
     v_destino := (select o.ubicacion_destino_id from retail.ordenes_compra o where o.id = v_o);
+    v_cuantas := (select count(*) from retail.orden_compra_items i where i.orden_compra_id = v_o);
+    if v_cuantas = 0 then
+      -- Sin prendas, la orden no sirve: se anula con su motivo (nada se borra). Su motivo es lo que la deja fuera del bloqueo de «orden anulada».
+      update retail.ordenes_compra
+         set estado = 'anulada', anulada_por = v_actor, anulada_en = now(),
+             motivo_anulacion = 'Corrección de la compra: se movieron todas sus prendas a otra tienda',
+             version = version + 1, actualizada_por = v_actor, actualizada_en = now()
+       where id = v_o;
+      continue;
+    end if;
     v_lineas := (select jsonb_agg(jsonb_build_object('categoria_id', i.categoria_id, 'marca_id', i.marca_id, 'descripcion', i.descripcion,
                                                      'cantidad', i.cantidad, 'precio_unitario', i.precio_unitario, 'descuento', i.descuento)
                                   order by i.posicion)

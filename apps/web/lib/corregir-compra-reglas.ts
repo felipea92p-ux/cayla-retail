@@ -47,6 +47,8 @@ export type CompraParaCorregir = {
   /** Las activas, para elegir la categoría y la marca de una prenda de «Algo nuevo». */
   categorias: Opcion[];
   marcas: Opcion[];
+  /** Las tiendas activas, para cambiar a qué tienda va una prenda que todavía no salió. */
+  tiendas: Opcion[];
 };
 
 export type Opcion = { id: string; nombre: string };
@@ -108,6 +110,7 @@ export function leerCompraParaCorregir(data: unknown): CompraParaCorregir | null
     prendas,
     categorias: leerOpciones(data.categorias),
     marcas: leerOpciones(data.marcas),
+    tiendas: leerOpciones(data.tiendas),
   };
 }
 
@@ -140,7 +143,10 @@ export function textoMotivo(motivo: string | null): string {
 }
 
 /** Lo que la persona escribe de una prenda (siempre texto: así se ve mientras se escribe). */
-export type Borrador = { cantidad: string; costo: string; venta: string; nombre: string; categoriaId: string; marcaId: string };
+export type Borrador = { cantidad: string; costo: string; venta: string; nombre: string; categoriaId: string; marcaId: string; destinoId: string };
+
+/** ¿Se puede cambiar a qué tienda va? Solo si todavía no salió nada de la prenda y la orden dice a cuál va (las de antes pueden ir «por repartir»). */
+export const puedeCambiarDeTienda = (p: PrendaParaCorregir): boolean => p.enviadas === 0 && p.destinoId !== null;
 
 /** El nombre más largo que admite una línea de una orden (`fn_orden_compra_validar`). */
 export const NOMBRE_MAXIMO = 200;
@@ -155,6 +161,7 @@ export function borradorDe(p: PrendaParaCorregir): Borrador {
     nombre: p.nombre,
     categoriaId: p.categoriaId,
     marcaId: p.marcaId,
+    destinoId: p.destinoId ?? "",
   };
 }
 
@@ -163,7 +170,15 @@ export function borradorDe(p: PrendaParaCorregir): Borrador {
 export function problemasDePrenda(
   p: PrendaParaCorregir,
   b: Borrador,
-): { cantidad: string | null; costo: string | null; venta: string | null; nombre: string | null; categoria: string | null; marca: string | null } {
+): {
+  cantidad: string | null;
+  costo: string | null;
+  venta: string | null;
+  nombre: string | null;
+  categoria: string | null;
+  marca: string | null;
+  tienda: string | null;
+} {
   const cantidad = leerCantidad(b.cantidad);
   const venta = b.venta.trim() === "" ? (p.precioVenta == null ? "sin-cambio" : null) : leerPrecioVenta(b.venta, p.admitePrecioCero);
   // El nombre, la categoría y la marca son de «Algo nuevo»: las del catálogo no se tocan desde aquí.
@@ -172,6 +187,7 @@ export function problemasDePrenda(
     nombre: p.esCatalogo ? null : nombre === "" ? "Escribe el nombre de la prenda" : nombre.length > NOMBRE_MAXIMO ? `El nombre llega hasta ${NOMBRE_MAXIMO} letras` : null,
     categoria: p.esCatalogo || b.categoriaId !== "" ? null : "Elige la categoría",
     marca: p.esCatalogo || b.marcaId !== "" ? null : "Elige la marca",
+    tienda: !puedeCambiarDeTienda(p) || b.destinoId !== "" ? null : "Elige a qué tienda va",
     cantidad:
       cantidad == null
         ? "Escribe cuántas unidades: un número entero, desde 1"
@@ -201,10 +217,12 @@ export type CambiosDePrenda = {
   descripcion?: string;
   categoriaId?: string;
   marcaId?: string;
+  destinoId?: string;
 };
 
 export function cambiosDePrenda(p: PrendaParaCorregir, b: Borrador): CambiosDePrenda {
   const cambios: CambiosDePrenda = {};
+  if (puedeCambiarDeTienda(p) && b.destinoId !== "" && b.destinoId !== p.destinoId) cambios.destinoId = b.destinoId;
   if (!p.esCatalogo) {
     const nombre = b.nombre.trim();
     if (nombre !== "" && nombre !== p.nombre) cambios.descripcion = nombre;
@@ -244,6 +262,7 @@ export function cambiosParaLaBase(prendas: readonly PrendaParaCorregir[], borrad
       ...(c.descripcion !== undefined ? { descripcion: c.descripcion } : {}),
       ...(c.categoriaId !== undefined ? { categoria_id: c.categoriaId } : {}),
       ...(c.marcaId !== undefined ? { marca_id: c.marcaId } : {}),
+      ...(c.destinoId !== undefined ? { destino_id: c.destinoId } : {}),
     });
   }
   return lista;

@@ -391,6 +391,69 @@ select jsonb_array_length(retail.fn_compra_para_corregir('${ID}') -> 'categorias
   "t|t / 0|0",
 );
 
+const OTRA_TIENDA = `
+reset role;
+insert into retail.ubicaciones (nombre, tipo) values ('Tienda de prueba ADR-0561', 'tienda') returning id as otra \\gset
+select set_config('t.otra', :'otra', true) \\g /dev/null
+`;
+const A_LIMA = `'destino_id', current_setting('t.lima')`;
+const ORDENES = `(select string_agg(u.nombre || '=' || o.estado || ':' || (select count(*) from retail.orden_compra_items i where i.orden_compra_id = o.id), ',' order by u.nombre)
+                    from retail.ordenes_compra o join retail.ubicaciones u on u.id = o.ubicacion_destino_id where o.papel_id = '${ID}')`;
+
+caso(
+  "cambiar de tienda: la prenda pasa a la orden de la otra tienda; la orden que se queda sin prendas se anula con su motivo y la compra se sigue corrigiendo",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${ITEMS()}
+${como(MICAELA, "c")}
+select (${CORREGIR(CAMBIOS(cambio(1, A_LIMA)))}) ->> 'prendas';
+${CORREGIR(CAMBIOS(cambio(1, "'costo', 40")), "bbbbbbbb-0561-4000-8000-000000000020")} \\g /dev/null
+reset role;
+select ${ORDENES},
+       (select string_agg(antes || '>' || despues, ',') from retail.compra_correcciones where papel_id = '${ID}' and campo = 'tienda'),
+       (select motivo_anulacion like 'Corrección de la compra:%' from retail.ordenes_compra o join retail.ubicaciones u on u.id = o.ubicacion_destino_id
+         where o.papel_id = '${ID}' and u.nombre = 'Tienda Trujillo'),
+       retail.fn_compra_corregible('${ID}') is null;`,
+  "1 / Tienda Lima=generada:2,Tienda Trujillo=anulada:0|Tienda Trujillo>Tienda Lima|t|t",
+);
+
+caso(
+  "una tienda sin orden en esta compra recibe una orden nueva (la misma que habría creado al anotarla); volver a una tienda anulada la reabre",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${ITEMS()}
+${OTRA_TIENDA}
+${como(MICAELA, "c")}
+${CORREGIR(CAMBIOS(cambio(2, "'destino_id', current_setting('t.otra')")), "bbbbbbbb-0561-4000-8000-000000000021")} \\g /dev/null
+reset role;
+select (select count(*) from retail.ordenes_compra where papel_id = '${ID}' and estado = 'generada'),
+       (select count(*) from retail.ordenes_compra where papel_id = '${ID}' and estado = 'anulada'),
+       (select count(*) from retail.ordenes_compra where id = md5('${ID}:' || :'otra')::uuid and papel_id = '${ID}' and creada_por = :'micaela');
+${como(MICAELA, "c")}
+${CORREGIR(CAMBIOS(cambio(2, "'destino_id', current_setting('t.lima')")), "bbbbbbbb-0561-4000-8000-000000000022")} \\g /dev/null
+reset role;
+select (select count(*) from retail.ordenes_compra where papel_id = '${ID}' and estado = 'generada'),
+       (select count(*) from retail.ordenes_compra where papel_id = '${ID}' and estado = 'anulada' and anulada_en is not null);`,
+  "2|1|1 / 2|1",
+);
+
+caso(
+  "una prenda de la que ya salió algo no cambia de tienda; una tienda que no existe o no es de la empresa se rechaza",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${ITEMS()}
+insert into retail.despachos (ubicacion_destino_id, despachado_por) values (:'tru', :'micaela') returning id as desp \\gset
+insert into retail.despacho_items (despacho_id, orden_compra_item_id, cantidad, categoria_id, marca_id, precio_unitario)
+select :'desp', i.id, 2, i.categoria_id, i.marca_id, i.precio_unitario from retail.orden_compra_items i where i.id = :'it1';
+${como(MICAELA, "c")}
+select ${hint(CORREGIR(CAMBIOS(cambio(1, A_LIMA)), "bbbbbbbb-0561-4000-8000-000000000023"))},
+       ${hint(CORREGIR(CAMBIOS(cambio(2, "'destino_id', gen_random_uuid()")), "bbbbbbbb-0561-4000-8000-000000000024"))},
+       ${hint(CORREGIR(CAMBIOS(cambio(2, "'destino_id', 'no-es-un-uuid'")), "bbbbbbbb-0561-4000-8000-000000000025"))};
+reset role;
+select ${ORDENES}, (select count(*) from retail.compra_correcciones);`,
+  "compra_corregir_tienda_con_envio|compra_rapida_destino|compra_corregir_cambio / Tienda Lima=generada:1,Tienda Trujillo=generada:1|0",
+);
+
 caso(
   "queda la actividad de la corrección, sin montos; anon no ejecuta nada y la tabla no se lee directo",
   `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
