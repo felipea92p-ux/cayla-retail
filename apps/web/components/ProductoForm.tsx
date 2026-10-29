@@ -69,6 +69,7 @@ import {
   marcarEtiquetasGuardadas,
   moverTemporadas,
   mudanzasAlGuardar,
+  nombreVariante,
   NACEN_SIN_UNIDADES,
   payloadVariantes,
   precioYCostoPorDefecto,
@@ -95,6 +96,7 @@ import { usePreciosDeTienda } from "@/components/ficha-producto/usePreciosDeTien
 import {
   MOTIVO_DESDE_LA_TABLA,
   cambioPrecioAqui,
+  excepcionesDeLaTienda,
   nombreCorto,
   problemaPrecioAqui,
   soles,
@@ -610,7 +612,10 @@ export function ProductoForm({
   const preciosTienda = usePreciosDeTienda(preciosSede ? producto?.id : null);
   // El precio propio de la tienda de quien edita, para la cabecera de «Variantes y precios» («S/ 69.90 en TRU»).
   const propioAqui = preciosSede ? preciosTienda.precios?.find((p) => p.ubicacionId === preciosSede.ubicacionId) : undefined;
-  const precioPropioAqui = propioAqui ? { sede: nombreCorto(propioAqui.sede), precio: propioAqui.precio } : null;
+  // Las tallas con otro precio en esta tienda (excepciones por combinación, 2026-10-28): ganan al precio de la prenda ahí. Con alguna, «S/ 69.90 en TRU» o
+  // «lo que cobra la caja» dejarían de ser ciertos para toda la prenda: no se dicen (el bloque «Precio por tienda» dice talla por talla).
+  const excepcionesAqui = preciosSede ? excepcionesDeLaTienda(preciosTienda.excepciones ?? [], preciosSede.ubicacionId) : [];
+  const precioPropioAqui = propioAqui && excepcionesAqui.length === 0 ? { sede: nombreCorto(propioAqui.sede), precio: propioAqui.precio } : null;
   // El precio de esta tienda después del último guardado (o null: el de la prenda), para la vista previa de las etiquetas.
   const precioAquiTras = useRef<number | null>(null);
   // Los precios propios que siguen después del último guardado (los igualados se van), para ver en qué tiendas cambió el precio en caja.
@@ -622,6 +627,8 @@ export function ProductoForm({
   const tiendaTerminal = preciosSede?.soloAqui ? (preciosSede.tiendas[0] ?? null) : null;
   const [precioAquiEscrito, setPrecioAquiEscrito] = useState<string | null>(null);
   const propioTerminal = tiendaTerminal ? preciosTienda.precios?.find((p) => p.ubicacionId === tiendaTerminal.id) : undefined;
+  // Las tallas de la tienda de la terminal con otro precio: cada fila de la tabla muestra el suyo (no el de la prenda en la tienda).
+  const tallasTerminal = new Map((tiendaTerminal ? excepcionesDeLaTienda(preciosTienda.excepciones ?? [], tiendaTerminal.id) : []).map((e) => [e.varianteId, e.precio] as const));
   // Mientras se leen los precios de la tienda no se sabe a cuánto vende: la celda espera (sin caja) y nada cuenta como cambio.
   const precioAquiListo = !!tiendaTerminal && preciosTienda.precios !== null;
   const cambioAqui: CambioPrecioAqui =
@@ -670,7 +677,7 @@ export function ProductoForm({
   // CAYLA» y guardar parecía no hacer nada (Felipe, 2026-10-21). Lo guardado es lo que la caja cobra ahora; lo que está en pantalla, lo
   // que cobrará al guardar. Con precio propio de esta tienda, su caja cobra desde ese (es uno para toda la prenda, ADR-0370).
   const precioCajaAqui = propioAqui?.precio ?? null;
-  const fraseCampana = producto && campanas ? fraseDeLaFicha(campanas, filas, enLaBase.datos.categoriaId, categoriaId, precioCajaAqui, propioAqui ? nombreCorto(propioAqui.sede) : null) : null;
+  const fraseCampana = producto && campanas && excepcionesAqui.length === 0 ? fraseDeLaFicha(campanas, filas, enLaBase.datos.categoriaId, categoriaId, precioCajaAqui, propioAqui ? nombreCorto(propioAqui.sede) : null) : null;
   // Lo guardado al empezar un guardado (variantes, categoría y precios propios de cada tienda): al terminar se compara el precio en caja
   // de antes y de después, tienda por tienda, y si cambió (una campaña que entra o sale, otro precio) el aviso ofrece reimprimir sus
   // etiquetas de papel (ADR-0180: el papel dice lo que cobra la caja el día que se imprime). Se toma una vez y sobrevive a los reintentos
@@ -1179,7 +1186,12 @@ export function ProductoForm({
     // El precio de la tienda es de la PRENDA (2026-10-10): vale para toda talla, también la que nació en este guardado (que no estaba en
     // el mapa leído al abrir). Sin precio propio vigente, el de cada talla.
     const precioAqui = precioAquiTras.current;
-    const preciosAquiTras = precioAqui !== null ? Object.fromEntries(filasFinales.filter((f) => f.id).map((f) => [f.id!, precioAqui])) : {};
+    // Una talla con otro precio en esta tienda (excepción por combinación) lleva el suyo, no el de la prenda: la etiqueta de papel dice lo que cobra la caja.
+    const tallasAqui = new Map(excepcionesAqui.map((e) => [e.varianteId, e.precio] as const));
+    const preciosAquiTras =
+      precioAqui !== null || tallasAqui.size > 0
+        ? Object.fromEntries(filasFinales.filter((f) => f.id && (tallasAqui.has(f.id) || precioAqui !== null)).map((f) => [f.id!, tallasAqui.get(f.id!) ?? precioAqui!]))
+        : {};
     // ADR-0472: si el precio que cobra la caja HOY cambió en alguna variante que ya existía (una campaña que entra o sale, otro precio),
     // sus etiquetas de papel dicen el de antes. Se ofrecen esas (y lo que entró, que también necesita la suya), en vez de la hoja de
     // «lo que entró», que solo imprimiría las nuevas. Tienda por tienda (ADR-0486, ADR-0370): si cambió solo en otras tiendas, el aviso las
@@ -1846,7 +1858,7 @@ export function ProductoForm({
                 tiendaTerminal && precioAquiListo
                   ? {
                       sede: nombreCorto(tiendaTerminal.nombre),
-                      valor: (f) => precioAquiEscrito ?? (propioTerminal ? propioTerminal.precio.toFixed(2) : f.precio),
+                      valor: (f) => precioAquiEscrito ?? (f.id && tallasTerminal.has(f.id) ? tallasTerminal.get(f.id)!.toFixed(2) : propioTerminal ? propioTerminal.precio.toFixed(2) : f.precio),
                       cambiado: cambioAqui.que !== "nada",
                       antes: propioTerminal?.precio ?? preciosSede?.general ?? null,
                       onCambio: setPrecioAquiEscrito,
@@ -1860,6 +1872,7 @@ export function ProductoForm({
               <PrecioAquiTerminal
                 sede={tiendaTerminal.nombre}
                 propio={propioTerminal}
+                tallasConOtroPrecio={tallasTerminal.size}
                 cambio={cambioAqui}
                 general={preciosSede?.general ?? null}
                 costoMaximo={veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null}
@@ -1876,6 +1889,11 @@ export function ProductoForm({
               <PreciosPorSede
                 productoId={producto.id}
                 precios={preciosTienda.precios}
+                excepciones={preciosTienda.excepciones}
+                etiquetaDeVariante={(id) => {
+                  const fila = filas.find((x) => x.id === id);
+                  return fila ? nombreVariante(fila, nombres) : "Esa talla";
+                }}
                 onCambio={preciosTienda.recargar}
                 precioPrenda={preciosSede.general}
                 todas={preciosSede.todas}

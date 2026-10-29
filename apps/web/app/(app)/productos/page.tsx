@@ -176,14 +176,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
   // CAYLA Global no hay tienda: el de la prenda.
   const preciosTienda = preciosDeTiendaPorProducto(
-    resultado.productos.map((p) => {
-      const precios = variantesQueSeVenden(p.variantes).map((v) => v.precio).filter((n) => n > 0);
-      return {
-        productoId: p.productoId,
-        varianteIds: p.variantes.map((v) => v.varianteId),
-        preciosPrenda: precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null,
-      };
-    }),
+    // Cada talla que se vende y su precio de la prenda: el precio de una tienda se arma talla por talla (una excepción por combinación, 2026-10-28).
+    resultado.productos.map((p) => ({
+      productoId: p.productoId,
+      precios: Object.fromEntries(variantesQueSeVenden(p.variantes).filter((v) => v.precio > 0).map((v) => [v.varianteId, v.precio])),
+    })),
     preciosTiendas.porSede,
     preciosTiendas.nombres,
   );
