@@ -76,6 +76,9 @@ export type CierrePorRecibir = {
   tienda: string | null;
   /** Lo que pasó en su ronda (20261023210000). Un cierre de antes de las rondas no lo trae. */
   cuaderno: CuadernoRonda | null;
+  /** La cuenta de CAYLA a la que la compradora dijo que devolvió (20261029170000): una indicación, Compras elige la de verdad al recibir. */
+  cuentaIndicadaId: string | null;
+  cuentaIndicada: string | null;
 };
 
 /** Lo que pasó en una ronda de compras (`fn_ronda_compras_cuenta`): le dieron, compró (lo pagado de su plata), gastó. */
@@ -232,6 +235,8 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
     plataPorConfirmar: numero(o.plata_por_confirmar) ?? 0,
     tienda: texto(o.tienda),
     cuaderno: leerCuaderno(o.cuaderno),
+    cuentaIndicadaId: texto(o.cuenta_indicada_id),
+    cuentaIndicada: texto(o.cuenta_indicada),
   };
 }
 

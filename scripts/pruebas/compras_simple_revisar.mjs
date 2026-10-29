@@ -40,6 +40,11 @@ const MIGRACIONES = [
   leer("20261023183000_compras_simple_ronda_de_compras.sql"),
 ].join("\n");
 
+// Esta función se rebobina antes de pegar las migraciones viejas (`rebobinar_terminar_dia.sql`): en una base que ya pasó por 20261029170000 solo existe la de
+// dos parámetros, y las migraciones de octubre que esta prueba pega crean o parchan la de UNO (el parche falla con «does not exist», o la recreada queda
+// al lado de la nueva y toda llamada con un argumento es ambigua). Rebobinada, la prueba corre en el mundo para el que se escribió.
+const REBOBINAR = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_terminar_dia.sql"), "utf8");
+
 // La ronda de compras (20261023183000, en MIGRACIONES): sin una abierta, la base no deja anotar. Cada persona de la semilla empieza con la suya.
 const RONDAS_ABIERTAS = `
 insert into retail.compra_rondas (persona_id, abierta_por)
@@ -84,6 +89,7 @@ grant execute on function pg_temp.intento(text) to authenticated;`;
 const COMPRA = `
 set client_min_messages = warning;
 begin;
+${REBOBINAR}
 ${MIGRACIONES}
 ${MIGRACIONES}
 ${RONDAS_ABIERTAS}

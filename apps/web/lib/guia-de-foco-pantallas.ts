@@ -497,7 +497,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (cómo le llegó, cuánto; la foto del voucher, opcional) y «Confirmar la plata»
   // (cuánto llegó y, salvo «ya tenía», de qué cuenta salió; desde una terminal, quién confirma).
   "components/mi-plata/AnotarPlata.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarPlata.tsx"] },
-  "components/mi-plata/AnotarGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarGasto.tsx"] },
+  "components/mi-plata/AnotarGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarGasto.tsx", "components/mi-plata/CamposDelGasto.tsx"] },
+  // Corregir un gasto de «otra cosa» (ADR-0572): los mismos campos de «Gasté en otra cosa» (`CamposDelGasto`) con lo anotado ya puesto; la luz solo
+  // se queda en lo que de verdad falta («Otro» sin su nota) y el botón dice cuántos cambios guarda.
+  "components/mi-plata/HojaCorregirGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaCorregirGasto.tsx", "components/mi-plata/CamposDelGasto.tsx"] },
   // La hoja de la prenda de «Compré ropa» (rediseño 2026-10-23): cuántas, costo, venta y tienda; falta lo que antes frenaba cada paso.
   "components/mi-plata/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaPrenda.tsx"] },
   // Corregir una compra ya anotada (ADR-0561): todos los datos ya están llenos; la persona solo cambia los que están mal. La luz de «sigue aquí» no

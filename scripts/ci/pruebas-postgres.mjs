@@ -1621,6 +1621,9 @@ export const PRUEBAS = [
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",
   "pruebas:compras-simple-reabrir",
+  "pruebas:compras-simple-corregir-gasto",
+  // «¿A qué cuenta de CAYLA devolviste?» al cerrar la ronda (Felipe 2026-10-29): la compradora indica la cuenta, la base valida que Compras pueda recibirla.
+  "pruebas:compras-simple-cuenta-devolucion",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

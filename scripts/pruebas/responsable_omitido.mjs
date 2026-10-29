@@ -194,13 +194,14 @@ caso(
 // Y una más: abrir la ronda de compras (`compra_ronda_abrir`, 20261023183000; ADR-0480).
 // Y una más: corregir una compra ya anotada (`compra_corregir`, 20261029012000; ADR-0561).
 // Y una más: reabrir la última ronda de compras (`compra_ronda_reabrir`, 20261029150000; ADR-0569).
-const TOTAL = EN_SECO ? "28" : "66";
+// Y una más: corregir un gasto de «otra cosa» ya anotado (`gasto_corregir`, 20261029171000; ADR-0572).
+const TOTAL = EN_SECO ? "28" : "67";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 // El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
 // la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`). Su reemplazo en Compras simple,
 // «Gasté en otra cosa» (`gasto_rapido`), se anota en el mismo lugar; y su revisión (`gasto_revisar`) la hace Revisar compras con su cuenta,
 // como confirmar la plata (ADR-0480; la misma excepción que `apps/web/lib/responsable-omitido.test.ts`).
-caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave not in ('gasto_viaje_registrar', 'gasto_viaje_foto', 'gasto_rapido', 'gasto_revisar');`, "0");
+caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave not in ('gasto_viaje_registrar', 'gasto_viaje_foto', 'gasto_rapido', 'gasto_corregir', 'gasto_revisar');`, "0");
 caso(
   "la API no lee ni escribe la lista (RLS sin políticas, sin permisos)",
   `set local role authenticated;\nselect pg_temp.intento('select * from retail.acciones_sin_responsable') || ',' || pg_temp.intento($$delete from retail.acciones_sin_responsable$$);`,

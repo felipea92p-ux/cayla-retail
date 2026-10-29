@@ -3,9 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
 import {
   RPC_BANCOS_PLATA,
+  RPC_CUENTAS_DEVOLVER,
   RPC_MI_PLATA,
   RPC_PLATA_POR_CONFIRMAR,
   leerBancosDePlata,
+  leerCuentasParaDevolver,
   leerMiPlata,
   leerPlataPorConfirmar,
   type MiPlata,
@@ -43,6 +45,17 @@ export async function getBancosParaPlata(): Promise<CuentaOpcion[]> {
     return [];
   }
   return leerBancosDePlata(r.data);
+}
+
+/** Las cuentas de CAYLA a las que se puede devolver lo que sobró al cerrar la ronda. Sin lectura, vacía: la cuenta la elige Compras al recibir. */
+export async function getCuentasParaDevolver(): Promise<CuentaOpcion[]> {
+  const supabase = await createClient();
+  const r = (await supabase.rpc(RPC_CUENTAS_DEVOLVER as never)) as unknown as Awaited<Respuesta>;
+  if (r.error) {
+    console.error(`cuentas para devolver de compras: ${r.error.message}`);
+    return [];
+  }
+  return leerCuentasParaDevolver(r.data);
 }
 
 export type PlataPorConfirmarConFoto = PlataPorConfirmar & {
