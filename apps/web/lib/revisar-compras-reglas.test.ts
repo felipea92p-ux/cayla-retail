@@ -288,6 +288,7 @@ describe("la bandeja de Revisar compras (rediseño)", () => {
     expect(filaPlata({ id: "a", persona: "M", medio: "efectivo", monto: 1, fecha: "", fotoRuta: "plata/x.jpg", fotoNoAbrio: true }).titulo).toBe("Efectivo · no se pudo abrir la foto");
     expect(filaPapel({ id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, fecha: "2026-10-22", ronda: "RC-000003", llego: true, lineas: [linea(35)], envios: [] })).toMatchObject({ titulo: "Textiles Rosa · Factura", cuando: "22/10 · RC-000003", chip: { tono: "verde" } });
     expect(filaGasto({ id: "g", persona: "M", concepto: "taxi", nota: null, monto: 12, fecha: "2026-10-23", ronda: null, fotoRuta: null }).titulo).toBe("Taxi · sin papel");
+    expect(filaGasto({ id: "g", persona: "M", concepto: "comida", nota: null, monto: 12, fecha: "2026-10-23", ronda: null, fotoRuta: null, papel: "boleta" }).titulo).toBe("Comida · Boleta");
     expect(filaCierre({ id: "c", persona: "L", decision: "le_deben", monto: 20, fecha: "2026-10-22", ronda: "RC-000002" }).chip).toEqual({ tono: "ambar", texto: "Le debemos" });
     // Lo de antes de las rondas, solo el día.
     expect(diaYRonda("2026-10-22", null)).toBe("22/10");

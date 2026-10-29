@@ -824,20 +824,6 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               ))}
             </div>
           </CampoGuiado>
-          {tipo !== null && tipo !== "sin_comprobante" && (
-            <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
-              <TarjetaFoto
-                guia="compra.foto"
-                archivo={archivo}
-                deshabilitada={guardando}
-                ayuda="Opcional: queda guardada con tu compra"
-                onArchivo={(f) => {
-                  setRechazo(null);
-                  setArchivo(f);
-                }}
-              />
-            </CampoGuiado>
-          )}
           {/* Lo que dice arriba el papel: Compras ya no lo copia después, así que pasa solo a los libros (ADR-0574). */}
           {tipo !== null && pideSerie(tipo) && (
             <div className="grid grid-cols-2 gap-3" data-guia="compra.serie">
@@ -887,6 +873,20 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                 onChange={(e) => {
                   setRechazo(null);
                   setNumero(e.target.value);
+                }}
+              />
+            </CampoGuiado>
+          )}
+          {tipo !== null && tipo !== "sin_comprobante" && (
+            <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
+              <TarjetaFoto
+                guia="compra.foto"
+                archivo={archivo}
+                deshabilitada={guardando}
+                ayuda="Opcional: queda guardada con tu compra"
+                onArchivo={(f) => {
+                  setRechazo(null);
+                  setArchivo(f);
                 }}
               />
             </CampoGuiado>

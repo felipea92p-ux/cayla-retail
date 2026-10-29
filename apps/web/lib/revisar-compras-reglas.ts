@@ -611,10 +611,12 @@ export function filaPapel(p: Pick<PapelPorCompletar, "id" | "persona" | "proveed
   };
 }
 
-export function filaGasto(g: Pick<GastoPorRevisar, "id" | "persona" | "concepto" | "nota" | "monto" | "fecha" | "ronda" | "fotoRuta">): FilaBandeja {
+export function filaGasto(g: Pick<GastoPorRevisar, "id" | "persona" | "concepto" | "nota" | "monto" | "fecha" | "ronda" | "fotoRuta"> & { papel?: PapelGasto | null }): FilaBandeja {
+  // Lo que dijo la compradora al anotar (ADR-0574) manda; de antes, solo se sabe si hay foto.
+  const papel = g.papel ? PAPELES_GASTO[g.papel].nombre : g.fotoRuta ? "con foto" : "sin papel";
   return {
     id: g.id,
-    titulo: `${nombreGasto(g)} · ${g.fotoRuta ? "con foto" : "sin papel"}`,
+    titulo: `${nombreGasto(g)} · ${papel}`,
     quien: g.persona,
     cuando: diaYRonda(g.fecha, g.ronda),
     monto: g.monto,

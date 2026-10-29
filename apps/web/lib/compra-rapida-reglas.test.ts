@@ -306,9 +306,9 @@ describe("el paso del papel: lo que falta es lo que rechaza registrar_compra_rap
       expect(faltan({ tipo: "nota_venta", conFoto: false, monto: "80", serie: "", numero: "" })).toEqual([]);
       expect(faltan({ tipo: "nota_venta", conFoto: false, monto: "80", serie: "", numero: "12 34" })).toEqual(["numero"]);
     });
-    it("sin papel, nada; y van entre la foto y el monto, en el orden de la hoja", () => {
+    it("sin papel, nada; y van antes que la foto y el monto, en el orden de la hoja", () => {
       expect(camposPapel({ tipo: "sin_comprobante", conFoto: false, monto: "80", serie: "", numero: "" }, PERSONA).some((c) => c.id === "serie")).toBe(false);
-      expect(camposPapel({ tipo: "boleta", conFoto: false, monto: "80", serie: "", numero: "" }, PERSONA).map((c) => c.id)).toEqual(["tipo", "foto", "serie", "numero", "monto"]);
+      expect(camposPapel({ tipo: "boleta", conFoto: false, monto: "80", serie: "", numero: "" }, PERSONA).map((c) => c.id)).toEqual(["tipo", "serie", "numero", "foto", "monto"]);
     });
     it("a la base viaja solo lo que corresponde: la serie en mayúsculas; sin papel, nada", () => {
       expect(serieYNumeroParaBase("boleta", " b001 ", " 000123 ")).toEqual({ p_serie: "B001", p_numero: "000123" });

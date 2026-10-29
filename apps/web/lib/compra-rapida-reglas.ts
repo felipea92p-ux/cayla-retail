@@ -566,8 +566,9 @@ export function camposPapel(
   const pagado = pago?.forma === "ahora" ? problemaPagado(pago.pagado, v.monto) : null;
   return [
     { id: "tipo", nombre: "Qué te dieron", requerido: true, hecho: v.tipo !== null, pendiente: "Elige qué papel te dio el proveedor." },
-    ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
+    // La serie y el número van antes que la foto: son lo que la compra necesita para pasar sola a los libros; la foto es de respaldo.
     ...camposSerieNumero(v),
+    ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
     { id: "monto", nombre: "Cuánto dice el papel", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
     ...(pago?.forma === "ahora"
       ? [
