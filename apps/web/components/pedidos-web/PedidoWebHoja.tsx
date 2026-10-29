@@ -791,9 +791,8 @@ function BloqueCliente({ pedido: p, whatsapp }: { pedido: PedidoDetalle; whatsap
   );
 }
 
-/** Imprimir el ticket de la boleta del pedido (se abre el detalle de su venta, que ya sabe imprimir ticket y A4) y mandárselo al cliente
- *  por WhatsApp (lo manda la persona desde wa.me: el texto lleva la boleta y el total; el PDF lo pide el cliente o se imprime). Una boleta
- *  anulada o liberada no se ofrece. */
+/** Imprimir el ticket de la boleta del pedido (se abre el detalle de su venta, que ya sabe imprimir ticket y A4; ahí también se guarda
+ *  como PDF). Por WhatsApp no se manda: wa.me no adjunta archivos (Felipe 2026-10-29). Una boleta anulada o liberada no se ofrece. */
 function AccionesTicket({ pedido: p }: { pedido: PedidoDetalle }) {
   const [abierto, setAbierto] = useState(false);
   if (!p.ventaId || !p.boleta || p.boleta.estado === "anulado" || p.boleta.estado === "no_emitido") return null;
@@ -802,10 +801,6 @@ function AccionesTicket({ pedido: p }: { pedido: PedidoDetalle }) {
       <BotonImprimir chico onClick={() => setAbierto(true)}>
         Imprimir ticket
       </BotonImprimir>
-      <BotonAncla href={enlaceWhatsappPedido(p, "boleta")} target="_blank" rel="noopener noreferrer" className="btn-chico">
-        <MessageCircle aria-hidden className="h-4 w-4" />
-        Enviar por WhatsApp
-      </BotonAncla>
       {abierto && <DetalleVentaModal ventaId={p.ventaId} vendedor={p.entregadoPor} ubicacionNombre={p.tienda} onClose={() => setAbierto(false)} />}
     </>
   );

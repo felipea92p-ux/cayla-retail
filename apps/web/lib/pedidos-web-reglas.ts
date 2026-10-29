@@ -1218,7 +1218,7 @@ export function errorDeEntrega(
 // WhatsApp (se abre en wa.me: lo manda la persona, nunca el sistema)
 // ---------------------------------------------------------------------------------------------------------------------------
 
-export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | "devolucion" | "listo" | "norecoge" | "boleta";
+export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | "devolucion" | "listo" | "norecoge";
 
 const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0] ?? nombre;
 
@@ -1234,7 +1234,7 @@ export function cuponAMedias(codigo: string): string {
 
 /** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Tienda web ▸ Ajustes. */
 export function mensajeWhatsapp(
-  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb"> & { cupon?: CuponDelPedidoWeb | null; boleta?: BoletaWeb | null },
+  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb"> & { cupon?: CuponDelPedidoWeb | null },
   plantilla: PlantillaWhatsapp,
 ): string {
   const n = primerNombre(p.cliente.nombre);
@@ -1244,8 +1244,6 @@ export function mensajeWhatsapp(
   const conCupon = cupon ? `, ya con tu cupón ${cuponAMedias(cupon.codigo)} de − ${soles(cupon.descuento)}` : "";
   if (plantilla === "confirmado")
     return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}${conCupon}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
-  if (plantilla === "boleta")
-    return `Hola ${n}, gracias por tu compra en ${tienda}. Tu boleta${p.boleta ? ` ${p.boleta.texto}` : ""} por ${soles(p.total)} corresponde a tu pedido ${p.codigo}. Si necesitas que te la reenviemos en PDF, escríbenos por aquí.`;
   if (plantilla === "cobro") return `Hola ${n}, te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}. ¿Te pasamos los datos para el Yape?`;
   if (plantilla === "devolucion")
     return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}: quedó anulado y te devolvemos ${soles(p.pagado)}. ¿Cómo prefieres recibirlo?`;

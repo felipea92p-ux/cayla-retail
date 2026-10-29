@@ -2,7 +2,7 @@
   "guia": "tienda-web.pedidos",
   "ruta": "/tienda-web/pedidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 86,
+  "total": 85,
   "controles": {
     "components/CorregirPagoModal.tsx": [
       "button «{NOMBRE_METODO[m]}»",
@@ -77,7 +77,6 @@
       "BotonAncla «Escribirle por WhatsApp» #4",
       "BotonAncla «WhatsApp» #4",
       "BotonImprimir «Imprimir ticket»",
-      "BotonAncla «Enviar por WhatsApp»",
       "Boton «pedido-web.anular-pagado»",
       "BotonDeshacer «→() => onDecision(decisionDeFabrica(l, tiendaId))»",
       "button «(sin nombre)» #2",
