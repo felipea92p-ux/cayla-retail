@@ -793,7 +793,7 @@ export const GUIA_FIN_CLAURE: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "¿Cuánto le debes a CLAURE?",
-      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto y la comisión del POS. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
+      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto, la comisión del POS y lo que ya se le pagó. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
     },
     PESTANAS_DINERO,
     {
@@ -801,7 +801,7 @@ export const GUIA_FIN_CLAURE: Guia = {
       ancla: "fin-claure.cifras",
       opcional: true,
       titulo: "De dónde sale la cifra",
-      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, la comisión del POS (estimada con su tarifa; la asume CLAURE) y el IGV que va incluido. Se le debe: cobrado menos devuelto menos comisión.",
+      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, la comisión del POS (estimada con su tarifa; la asume CLAURE), lo que ya se le pagó y el IGV que va incluido. Se le debe: cobrado menos todo eso, sin el IGV.",
     },
     {
       id: "tabla",
@@ -811,10 +811,24 @@ export const GUIA_FIN_CLAURE: Guia = {
       texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
     },
     {
+      id: "pagos",
+      ancla: "fin-claure.pagos",
+      opcional: true,
+      titulo: "Lo que ya se le pagó",
+      texto: "Cada pago a Claudia: el día, el banco de donde salió, su número de operación y quién lo registró. Lo pagado baja lo que se le debe. Un pago equivocado se anula en Dónde está ▸ Movimientos y el saldo vuelve a subir.",
+    },
+    {
+      id: "pagar",
+      ancla: "fin-claure.pagar",
+      opcional: true,
+      titulo: "Pagar a CLAURE",
+      texto: "Abre «Registrar movimiento» con el pago ya elegido: de qué banco sale, cuánto (viene escrito lo que se le debe; puedes bajarlo si pagas una parte) y el número de operación. Solo el líder. En la demo no lo tocamos.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes cuánto le debes a CLAURE y de dónde sale. Para repasarlo: Mi perfil ▸ Demo ▸ CLAURE (Finanzas).",
+      texto: "Ya sabes cuánto le debes a CLAURE, de dónde sale y cómo se le paga. Para repasarlo: Mi perfil ▸ Demo ▸ CLAURE (Finanzas).",
     },
   ],
 };

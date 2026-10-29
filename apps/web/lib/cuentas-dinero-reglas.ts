@@ -25,7 +25,7 @@ export const TIPOS_QUE_SE_AGREGAN: readonly { tipo: TipoCuenta; texto: string }[
   { tipo: "tarjeta_credito", texto: "Tarjeta de crédito de CAYLA (451)" },
 ];
 
-export type TipoMovimiento = "aporte" | "prestamo" | "retiro" | "devolucion_prestamo" | "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat";
+export type TipoMovimiento = "aporte" | "prestamo" | "retiro" | "devolucion_prestamo" | "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure";
 export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   aporte: "Aporte del dueño",
   prestamo: "Préstamo del dueño",
@@ -38,6 +38,8 @@ export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   // ADR-0417, situaciones 15 y 16: salen de un banco y bajan una deuda (sueldos por pagar · IGV), no van a otra cuenta.
   pago_planilla: "Pago de la planilla",
   pago_sunat: "Pago a SUNAT (IGV)",
+  // ADR-0560: sale de un banco y baja lo que se le debe a CLAURE (la empresa de Claudia).
+  pago_claure: "Pago a CLAURE",
 };
 
 /** En el orden de la tabla de Configuración y de `fn_medios_de_cobro` (ADR-0429: el QR tiene su fila, como la tarjeta). */
@@ -571,7 +573,7 @@ export function deudaConDueno(movs: readonly MovimientoDueno[]): { deuda: number
 // ---- El modal «Registrar movimiento» ----------------------------------------------------------------------------------
 
 /** «Qué pasó» en palabras del negocio. Poner y sacar plata del dueño se abren en dos (aporte o préstamo; devolución o retiro). */
-export type QuePaso = "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "dueno_pone" | "dueno_saca";
+export type QuePaso = "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure" | "dueno_pone" | "dueno_saca";
 export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLider: boolean; origen: readonly TipoCuenta[] | null; destino: readonly TipoCuenta[] | null }[] = [
   { valor: "deposito", texto: "Depósito al banco", soloLider: false, origen: ["cajon", "caja_fuerte", "por_rendir"], destino: ["banco"] },
   { valor: "abono_tarjeta", texto: "Depósito de la máquina (tarjeta y QR)", soloLider: true, origen: ["por_abonar"], destino: ["banco"] },
@@ -579,6 +581,7 @@ export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLi
   { valor: "entre_cuentas", texto: "Entre cuentas", soloLider: true, origen: ["banco"], destino: ["banco"] },
   { valor: "pago_planilla", texto: "Pagar la planilla", soloLider: true, origen: ["banco"], destino: null },
   { valor: "pago_sunat", texto: "Pagar a SUNAT (el IGV)", soloLider: true, origen: ["banco"], destino: null },
+  { valor: "pago_claure", texto: "Pagar a CLAURE", soloLider: true, origen: ["banco"], destino: null },
   { valor: "dueno_pone", texto: "Poner plata del dueño", soloLider: true, origen: null, destino: ["banco", "caja_fuerte", "por_rendir"] },
   { valor: "dueno_saca", texto: "Sacar plata del dueño", soloLider: true, origen: ["banco", "cajon", "caja_fuerte", "por_rendir"], destino: null },
 ];

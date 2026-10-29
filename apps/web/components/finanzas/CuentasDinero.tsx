@@ -82,8 +82,13 @@ type Consulta = PromiseLike<{ error: unknown }>;
 // ---- La pantalla: cabecera, «Ver» y el modal de registrar, compartidos por las tres pestañas ------------------------------
 
 /** `origenId`: la cuenta de la que sale la plata, si quien abre ya lo sabe (el aviso de una máquina atrasada abre SU depósito). */
-type AbrirMovimiento = (que?: QuePaso, origenId?: string) => void;
+type AbrirMovimiento = (que?: QuePaso, origenId?: string, monto?: string) => void;
 const ContextoMovimiento = createContext<AbrirMovimiento>(() => {});
+
+/** Abre «Registrar movimiento» desde una pieza de adentro de la pantalla (`monto`: lo que ya viene escrito, p. ej. el saldo con CLAURE). */
+export function useAbrirMovimiento(): AbrirMovimiento {
+  return useContext(ContextoMovimiento);
+}
 
 export function PantallaDinero({
   pestana,
@@ -121,7 +126,7 @@ export function PantallaDinero({
 }) {
   const params = useSearchParams();
   const ruta = usePathname();
-  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string } | null>(null);
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string } | null>(null);
   // El dock de las otras caras lleva aquí con `?registrar=1`: la hoja abre sola, como si se hubiera tocado el botón, y el parámetro
   // sale de la dirección (recargar no la vuelve a abrir).
   const pideRegistrar = params.get("registrar") === "1";
@@ -135,7 +140,7 @@ export function PantallaDinero({
   }, [pideRegistrar, ruta]);
 
   return (
-    <ContextoMovimiento.Provider value={(que, origenId) => setModal({ que: que ?? "deposito", origenId })}>
+    <ContextoMovimiento.Provider value={(que, origenId, monto) => setModal({ que: que ?? "deposito", origenId, monto })}>
       <div className="space-y-6">
         <CabeceraDinero
           pestana={pestana}
@@ -164,6 +169,7 @@ export function PantallaDinero({
         <RegistrarMovimientoModal
           inicial={modal.que}
           origenInicial={modal.origenId}
+          montoInicial={modal.monto}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -697,6 +703,7 @@ export function ConciliacionPanel({
 function RegistrarMovimientoModal({
   inicial,
   origenInicial,
+  montoInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -707,6 +714,8 @@ function RegistrarMovimientoModal({
   inicial: QuePaso;
   /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
   origenInicial?: string;
+  /** El monto con que arranca, si una pantalla ya lo sabe (el saldo con CLAURE); la persona lo puede cambiar. */
+  montoInicial?: string;
   cuentas: CuentaDinero[];
   esLider: boolean;
   ubicacionId: string | null;
@@ -721,7 +730,7 @@ function RegistrarMovimientoModal({
   const [guardando, setGuardando] = useState(false);
   const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
   const [b, setB] = useState<BorradorMovimiento>(() => {
-    const base = inicialDe(inicial, cuentas, ubicacionId, deuda, hoy);
+    const base = { ...inicialDe(inicial, cuentas, ubicacionId, deuda, hoy), ...(montoInicial ? { monto: montoInicial } : {}) };
     const origenDelAviso = origenDeArranque(inicial, origenInicial, cuentas);
     return origenDelAviso ? { ...base, origen: origenDelAviso.id, fuente: fuenteInicial(origenDelAviso) } : base;
   });

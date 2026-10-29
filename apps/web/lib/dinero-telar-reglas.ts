@@ -255,13 +255,12 @@ export function detalleCajon(f: Pick<EfectivoFila, "abierta" | "abiertaEn" | "ve
 
 // ---- La respuesta de la cabecera (El telar): una pregunta y su cifra por cara, con sus chips -------------------------------
 
-export type CaraDinero = "donde" | "debes" | "cuadrar" | "claure";
+export type CaraDinero = "donde" | "debes" | "cuadrar";
 export type ChipRespuesta = { texto: string; tono: TonoChip };
 
 /** La pregunta de cada cara, con la sede que se mira («Trujillo»), o sin ella con todas. Cuadrar es siempre de CAYLA entera. */
 export function preguntaDeDinero(cara: CaraDinero, sede: string | null): string {
   if (cara === "cuadrar") return "¿Cuánto dicen tus bancos?";
-  if (cara === "claure") return "¿Cuánto le debes a CLAURE?";
   if (cara === "debes") return sede ? `¿Cuánto debe ${sede}?` : "¿Cuánto debes?";
   return sede ? `¿Cuánta plata tiene ${sede} hoy?` : "¿Cuánta plata tienes hoy?";
 }

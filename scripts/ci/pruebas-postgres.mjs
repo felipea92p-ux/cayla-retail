@@ -698,6 +698,11 @@ export const PRUEBAS = [
   // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
   "pruebas:claure-cuenta",
 
+  // Pagar a CLAURE (ADR-0560, actividad 2): un tipo más de movimiento de dinero, como el pago a SUNAT. Sale de un banco, sin destino, sin
+  // comisión, de la empresa; solo el líder; el mismo token no lo duplica; baja el banco; el Diario lo asienta 479 | banco; el Flujo real lo
+  // cuenta como salida; fn_claure_pagos lo lista y lo quita al anularlo; sin el módulo no se lee y anon no ejecuta. Cada caso: ROLLBACK.
+  "pruebas:claure-pago",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

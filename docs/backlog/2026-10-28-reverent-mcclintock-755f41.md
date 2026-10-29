@@ -54,3 +54,21 @@ El POS de Tienda LIM cobra en cuentas de CAYLA. Claudia (dueña de CLAURE) admin
 ## Siguiente paso
 
 Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo del saldo · cierre de caja · pantalla CLAURE · exclusión en las pantallas de CAYLA · gastos por empresa), a aprobar por Felipe. Dinero, migraciones y cualquier cambio a producción esperan su OK. Memoria: `cuentas-con-claudia-decisiones`.
+
+## Avance de la obra (`/construir`, 9 actividades aprobadas el 2026-10-28)
+
+- [x] **1. La cuenta con CLAURE (solo lectura)** — `7814315c6`. Migración `20261029004000`, pestaña «CLAURE» en Cuentas y dinero, guía y pruebas.
+- [x] **2. Pagar a CLAURE** — migración `20261029011000`, tipo `pago_claure` (como `pago_sunat`: sale de un banco, de la empresa, solo el líder, con su n.º de operación), «Pagar a CLAURE» en la pestaña (abre «Registrar movimiento» con el saldo escrito), `fn_claure_pagos()`, saldo = cobrado − devuelto − comisión − pagado. Pruebas: `pnpm pruebas:claure-pago` (14 casos).
+- [ ] 3. Aviso en el cierre de caja de Lima · [ ] 4. Disponible real · [ ] 5. CLAURE fuera de Finanzas · [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
+
+**Decisiones tomadas en la actividad 2 (sin preguntar, con su porqué):**
+- La cuenta contable de lo que se le debe es la **479 «Otras cuentas por pagar — relacionadas»**, **provisional hasta el contador**: el Diario se arma al leer, así que cambiarla es una línea de `fn_asientos_dinero_y_caja`.
+- **Solo el líder** registra el pago (sale de un banco: la regla de siempre de `registrar_movimiento_dinero`). El cierre de caja (actividad 3) mostrará el botón solo al líder.
+- **Pagar de más se permite**: el saldo pasa a negativo y la pantalla dice «¿Cuánto te debe CLAURE?» («queda a favor de CAYLA», decisión 19). La base no lo impide.
+- **Anular un pago** se hace en Dónde está ▸ Movimientos (el líder), y el saldo vuelve a subir. No se duplicó ese botón en la pestaña CLAURE.
+
+**Pendientes que dejó la actividad 2:**
+- [ ] **El Flujo real todavía no cuenta el pago a CLAURE** (lo trata como «entre cuentas»). Contarlo como salida y sacarlo del «día normal» de la proyección toca `fn_flujo_lineas` y `fn_flujo_caja_proyeccion`, cuyos textos guardan pruebas viejas (`pruebas:flujo-caja`): va con la actividad 5, donde se decide cómo cuenta CLAURE el Flujo entero.
+- [ ] **Al pegar `20261029011000` en producción**: sus cuatro reemplazos anclados abortan sin cambiar nada si una función de producción no tiene el texto esperado. No pude leer las funciones vivas de producción (el permiso del MCP lo rechazó); en la base local, con el mismo código de main, las cuatro calzan.
+- [ ] Orden de pegado en producción: primero `20261029004000`, después `20261029011000`. Las dos con lock_timeout; ninguna con políticas.
+- [ ] `pruebas:cuentas-dinero` (16 casos) y `pruebas:cuenta-sellada` (6) fallan en la base local por «Esa tienda no existe o no está activa» (el Taller en `guardar_medio_de_cobro`) y por la migración #1419 que la base local no tiene aplicada: ya fallaban antes de esta obra.

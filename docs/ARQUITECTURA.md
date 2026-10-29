@@ -1951,6 +1951,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     cuenta, desde `empresas.cuenta_corriente_desde`. Cada cuenta dice de quién es (`cuentas_dinero.empresa_id`); cada pago de una venta se reparte por el valor de las líneas
     de cada empresa (`fn_dueno_de_la_linea`, ADR-0542); la comisión del POS sale de `pos_tarifas`; una devolución pagada desde una cuenta de CAYLA resta; un cambio se
     lista sin contar. El saldo no se guarda: se suma de las filas. Prueba: `pnpm pruebas:claure-cuenta`.
+    **Pagar a CLAURE (actividad 2, 20261029011000):** tipo `pago_claure` de `movimientos_dinero` (como `pago_sunat`: sale de un banco, sin destino ni comisión, de la empresa; solo el
+    líder) registrado con `registrar_movimiento_dinero` desde el mismo modal «Registrar movimiento» (`QuePaso = pago_claure`; `BotonPagarClaure` lo abre con el saldo escrito vía
+    `useAbrirMovimiento`) y anulado con `anular_movimiento_dinero`. El Diario lo asienta 479 (provisional) | banco, el Flujo real todavía lo trata como «entre cuentas» (actividad 5) y `fn_claure_pagos()` lo lista:
+    saldo = `resumenClaure(filas, pagos)`. Prueba: `pnpm pruebas:claure-pago`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

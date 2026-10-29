@@ -3,7 +3,7 @@ import type { ChipRespuesta } from "./dinero-telar-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ CLAURE (ADR-0560, actividad 1): lógica pura, sin servidor ni navegador. La base calcula qué parte de lo que
 // se cobró en cuentas de CAYLA es de CLAURE (`fn_claure_cuenta`, 20261029004000); aquí solo se leen sus filas, se suman y se explican.
-// El saldo NO se guarda: sale de sumar estas filas (principio 4).
+// El saldo NO se guarda: sale de sumar estas filas y restar los pagos a CLAURE (`fn_claure_pagos`, actividad 2; principio 4).
 
 export type OrigenClaure = "venta" | "devolucion" | "cambio";
 
@@ -50,6 +50,32 @@ export function leerFilaClaure(r: Record<string, unknown>): FilaClaure {
   };
 }
 
+/** Un pago a CLAURE: plata que salió de un banco de CAYLA para pagarle a Claudia (`movimientos_dinero.tipo = 'pago_claure'`). */
+export type PagoClaure = {
+  id: string;
+  /** El día del pago (`aaaa-mm-dd`). */
+  fecha: string;
+  cuentaId: string | null;
+  /** El banco de donde salió. */
+  cuentaNombre: string | null;
+  monto: number;
+  /** El n.º de operación, si se anotó. */
+  referencia: string | null;
+  registradoPor: string | null;
+};
+
+export function leerPagoClaure(r: Record<string, unknown>): PagoClaure {
+  return {
+    id: String(r.id ?? ""),
+    fecha: String(r.fecha ?? "").slice(0, 10),
+    cuentaId: r.cuenta_id ? String(r.cuenta_id) : null,
+    cuentaNombre: r.cuenta_nombre ? String(r.cuenta_nombre) : null,
+    monto: numero(r.monto),
+    referencia: r.referencia ? String(r.referencia) : null,
+    registradoPor: r.registrado_por ? String(r.registrado_por) : null,
+  };
+}
+
 export type ResumenClaure = {
   /** Lo que las ventas de CLAURE cobraron en cuentas de CAYLA. */
   cobrado: number;
@@ -59,7 +85,9 @@ export type ResumenClaure = {
   comision: number;
   /** Cuántas filas de tarjeta o QR no tienen tarifa: su comisión no está en `comision`. */
   sinTarifa: number;
-  /** Lo que se le debe a CLAURE: cobrado − devuelto − comisión. */
+  /** Lo que ya se le pagó a CLAURE (pagos vigentes). */
+  pagado: number;
+  /** Lo que se le debe a CLAURE: cobrado − devuelto − comisión − pagado. Negativo si se le pagó de más: queda a favor de CAYLA. */
   saldo: number;
   /** El IGV que va incluido en lo cobrado menos lo devuelto (la boleta sale con el RUC de CAYLA). */
   igv: number;
@@ -67,7 +95,7 @@ export type ResumenClaure = {
   cambios: { n: number; monto: number };
 };
 
-export function resumenClaure(filas: readonly FilaClaure[]): ResumenClaure {
+export function resumenClaure(filas: readonly FilaClaure[], pagos: readonly PagoClaure[] = []): ResumenClaure {
   let cobrado = 0;
   let devuelto = 0;
   let comision = 0;
@@ -87,12 +115,14 @@ export function resumenClaure(filas: readonly FilaClaure[]): ResumenClaure {
     if (f.comision === null) sinTarifa += 1;
     else comision += f.comision;
   }
+  const pagado = pagos.reduce((a, p) => a + p.monto, 0);
   return {
     cobrado: redondear(cobrado),
     devuelto: redondear(devuelto),
     comision: redondear(comision),
     sinTarifa,
-    saldo: redondear(cobrado - devuelto - comision),
+    pagado: redondear(pagado),
+    saldo: redondear(cobrado - devuelto - comision - pagado),
     igv: redondear(igv),
     cambios: { n: nCambios, monto: redondear(montoCambios) },
   };
@@ -128,15 +158,27 @@ export function solesConSigno(n: number): string {
   return n < 0 ? `− ${soles(-n)}` : soles(n);
 }
 
-/** Bajo «¿Cuánto le debes a CLAURE?»: de dónde sale la cifra y lo que pide atención. */
-export function chipsClaure(r: ResumenClaure, hayFilas: boolean): ChipRespuesta[] {
-  if (!hayFilas) return [{ texto: "Sin cobros todavía", tono: "pizarra" }];
+/** La pregunta de la cabecera y su cifra: lo que se le debe a CLAURE o, si se le pagó de más, lo que CLAURE le debe a CAYLA (siempre en positivo). */
+export function respuestaClaure(saldo: number): { pregunta: string; valor: number } {
+  return saldo < 0 ? { pregunta: "¿Cuánto te debe CLAURE?", valor: -saldo } : { pregunta: "¿Cuánto le debes a CLAURE?", valor: saldo };
+}
+
+/** Bajo la pregunta: de dónde sale la cifra y lo que pide atención. */
+export function chipsClaure(r: ResumenClaure, hayDatos: boolean): ChipRespuesta[] {
+  if (!hayDatos) return [{ texto: "Sin cobros todavía", tono: "pizarra" }];
   const chips: ChipRespuesta[] = [{ texto: `Cobrado ${soles(r.cobrado)}`, tono: "pizarra" }];
   if (r.devuelto > 0) chips.push({ texto: `Devuelto ${soles(r.devuelto)}`, tono: "pizarra" });
   if (r.comision > 0) chips.push({ texto: `Comisión del POS ${soles(r.comision)}`, tono: "pizarra" });
+  if (r.pagado > 0) chips.push({ texto: `Ya pagado ${soles(r.pagado)}`, tono: "verde" });
+  if (r.saldo < 0) chips.push({ texto: "Se le pagó de más: queda a favor de CAYLA", tono: "ambar" });
   if (r.sinTarifa > 0) chips.push({ texto: `${r.sinTarifa} ${r.sinTarifa === 1 ? "cobro" : "cobros"} sin tarifa`, tono: "ambar" });
   if (r.cambios.n > 0) chips.push({ texto: `${r.cambios.n} ${r.cambios.n === 1 ? "cambio" : "cambios"} por revisar`, tono: "ambar" });
   return chips;
+}
+
+/** El monto con que arranca «Pagar a CLAURE»: todo lo que se le debe, en el formato del campo; vacío si no se le debe nada. */
+export function montoSugeridoPago(saldo: number): string {
+  return saldo > 0 ? saldo.toFixed(2) : "";
 }
 
 /** La frase de arriba: desde cuándo se cuenta y qué entra. */
@@ -148,3 +190,6 @@ export function fraseClaure(desde: string | null): string {
 /** La nota al pie: cómo se calcula lo que no se ve en la tabla. */
 export const NOTA_CLAURE =
   "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Cuentas y cobros) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no.";
+
+/** Bajo los pagos: dónde se anula uno equivocado. */
+export const NOTA_PAGOS_CLAURE = "Un pago equivocado se anula en Dónde está ▸ Movimientos, y el saldo vuelve a subir.";
