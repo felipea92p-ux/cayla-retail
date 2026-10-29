@@ -233,6 +233,17 @@
   --color-reparto-arcilla: #e3ab8d;
   --color-reparto-ocre: #d7a44a;
   --color-reparto-pizarra-claro: #9db2c6;
+  /* Los caminos de Tráfico (Felipe 2026-10-29, maqueta docs/maquetas/trafico-decisiones-2026-10/): color de DATO, uno por camino por el que llega
+     la gente a la tienda online (Instagram, Directo, WhatsApp, TikTok, Google, el QR de la tienda, otros). Toman los tonos de la maqueta; varios
+     coinciden con los de un método de pago, pero tienen nombre propio para que un cambio en uno no mueva al otro. Son relleno (el punto y la
+     barra), no texto: el nombre del camino va siempre escrito al lado. */
+  --color-camino-instagram: #6d3fa3;
+  --color-camino-directo: #525a64;
+  --color-camino-whatsapp: #1c6b56;
+  --color-camino-tiktok: #2f6aa3;
+  --color-camino-google: #b88410;
+  --color-camino-qr: #805c4c;
+  --color-camino-otros: #9a8b7b;
   /* El redondeo del efectivo (ADR-0311) tampoco es un medio ni dinero que entró: es lo que no se cobró por llegar a la moneda
      de S/ 0.10. En «Cómo se pagó» (Historial) va en taupe, como el anticipo, para que no salga sin punto. */
   --color-metodo-redondeo: var(--color-taupe);

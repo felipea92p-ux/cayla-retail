@@ -67,6 +67,8 @@ export const CAMINOS = {
   otros: "Otros",
 } as const;
 export type Camino = keyof typeof CAMINOS;
+/** El color de cada camino (token `--color-camino-*`, Felipe 2026-10-29): el punto y la barra de «De dónde vienen», como la maqueta. */
+export const colorDeCamino = (c: Camino) => `var(--color-camino-${c})`;
 /** Lo que no se entiende solo con el nombre del camino (va en su `title`). */
 export const AYUDA_CAMINO: Partial<Record<Camino, string>> = {
   directo: "Escribieron la dirección o la tenían guardada",

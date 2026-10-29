@@ -4,7 +4,7 @@ import { useState, type CSSProperties, type PointerEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { BarraAvance } from "@/components/ui/BarraAvance";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -16,6 +16,7 @@ import {
   ciudadDeRegion,
   ciudadesDeLaLista,
   ciudadSinTienda,
+  colorDeCamino,
   de100,
   hrefTrafico,
   miles,
@@ -84,18 +85,24 @@ function PorCamino({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
               title={AYUDA_CAMINO[c]}
               aria-label={`${CAMINOS[c]}: ${personas(n)}, ${rinde.de100} de cada 100 separan. ${elegido ? "Quitar el filtro" : "Ver solo a esta gente"}`}
             >
-              <span className="flex min-w-0 items-center gap-1.5 font-semibold">
+              <span className="flex min-w-0 items-center gap-2 font-semibold">
                 {elegido && <X aria-hidden className="h-3 w-3 shrink-0" />}
+                {/* El color del camino, como la maqueta: el punto y la barra (es dato: el nombre va escrito al lado). */}
+                <i aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colorDeCamino(c) }} />
                 <span className="truncate">{CAMINOS[c]}</span>
               </span>
               <span className="text-right font-semibold tabular-nums">
                 {miles(n)} <small className="ml-1 font-normal text-tinta/70">{de100(n, total)} de 100</small>
               </span>
-              <BarraAvance className="col-span-2" pct={(n / max) * 100} alto="normal" tono="tinta" decorativa />
+              <BarraApilada
+                className="col-span-2"
+                alto={8}
+                total={max}
+                decorativa
+                segmentos={[{ clave: c, nombre: CAMINOS[c], valor: n, color: colorDeCamino(c) }]}
+              />
               <span className="col-span-2">
-                <Chip tono={rinde.tono} versalitas={false}>
-                  {rinde.de100} de cada 100 separan
-                </Chip>
+                <Chip tono={rinde.tono}>{rinde.de100} de cada 100 separan</Chip>
               </span>
             </Link>
           </li>
