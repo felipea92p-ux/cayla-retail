@@ -259,7 +259,7 @@ flowchart TB
   para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en «Qué hago» de la talla:
   el paso «Reportar dañada» de `FlujoTalla`, con la validación de `lib/danadas-reglas.ts`; ADR-0328 act. 10; la ventana `ReportarDanadaModal.tsx` ya no existe). La lista de Dañadas
   (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
-  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
+  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén o, con `p_destino = piso`, al piso en dos traslados internos; `p_costo` opcional), `liquidar_prenda_danada` y `resolver_prenda_danada`. **Desde el 2026-10-28 (ADR-0564)** `reportar_danada` lleva `p_tipo` (lista corta: `TIPOS_DANO` en `lib/danadas-reglas.ts`) y la foto opcional (`registrar_foto_danada`, `fotos_de_danadas`, bucket `retail-danadas`, `lib/danadas-foto.ts`); la lista marca dónde las dejan (`definir_lugar_danadas`, `lib/danadas-lugar.ts`), cuáles salieron a arreglar (`sacar_danada_a_arreglar`: cerca o Taller, sin mover stock) y cuáles volvieron sin arreglo (`no_se_pudo_arreglar`; `lib/danadas-arreglo.ts`); «Para hoy» sube a rojo las que llevan 7 días separadas (`contarDanadasViejas`); y `/inventario?danada=1` (el botón «Separé una dañada» de Vender, `punto-de-venta/AccesosVenta.tsx`, y del Inicio de almacén, `inicio-almacen/CabinaAlmacen.tsx`) abre `BuscarPrendaParaAjustar modo="danada"` y de ahí el mismo paso «Reportar dañada». La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
   `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
   `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`
@@ -345,6 +345,11 @@ flowchart TB
   («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
   (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
   «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
+  **2026-10-28 (ADR-0565, pestaña «Ingresos»):** `?vista=ingresos` (como Pérdidas, sin módulo): qué prendas entraron por modelo. `app/(app)/inventario/movimientos/page.tsx`
+  (`PaginaIngresos`) → `lib/ingresos.ts` (`getIngresosPorModelo`, foto y categoría por lotes) → RPC `fn_ingresos_por_modelo` (solo lectura; migración
+  `20261029022000`; **en producción desde el 2026-10-29** como `20261029135109`); reglas puras en `lib/ingresos-reglas.ts` (rango, Nuevo/Reingreso, precio y costo, matriz de color y talla, orden y búsqueda) y
+  `lib/ingresos-exportar.ts` (los dos CSV); piezas en `components/ingresos/` (`IngresosVista`, `IngresosTabla`, `SelectorRangoIngresos`, `MatrizIngreso`, `HojaIngresos`) y
+  `app/estilos/ingresos-impresion.css` (la hoja A4). El costo solo para quien pasa `fn_puede_ver_dinero_de_compras()`.
   **2026-10-05 (ADR-0353, los tipos que se ven):** cada fila se dibuja con su **tipo** (`lib/movimientos-tipos.ts`: `tipoVisual`, `TIPOS_VISUALES`,
   `GRUPOS_TIPO`, `rotuloDeMovimiento`, `kindDeLugar`) con su sello (`components/movimientos/SelloTipo.tsx`) y su trayecto (`TrayectoMovimiento.tsx`); estilos en
   `app/estilos/movimientos-sellos.css` (`mv-*`). **Los siete botones de tipo en una columna a la derecha** (`TiposMovimiento.tsx`) son el filtro Y la cifra: reemplazan
@@ -1569,7 +1574,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
-  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
+  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres). El 2026-10-29 `reabrir_ronda_compras` (`20261029150000`, ADR-0569; `reabrirRonda` en `lib/mi-plata-acciones.ts`, botón en `AbrirRonda.tsx`, regla
+  `puedeReabrirLaRonda`) vuelve a abrir la última ronda cerrada mientras Compras no recibió su cierre; el cierre se archiva en `compra_cierres_reabiertos`.
   El 2026-10-24 «Algo nuevo» también se reparte entre tiendas y su marca se puede escribir con «+» (`HojaPrenda.tsx`); la marca escrita se crea al
   guardar con la RPC `registrar_marca_de_compra` (`20261024214000`, vía `registrarMarcaDeCompra` de `lib/compra-rapida-acciones.ts`), unida al proveedor.
   **Mis envíos, el banco de la plata y la pantalla en tres columnas (2026-10-26/27, sin cambio de módulo):**

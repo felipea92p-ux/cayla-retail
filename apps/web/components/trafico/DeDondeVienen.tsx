@@ -27,12 +27,8 @@ import {
   type ResumenTrafico,
 } from "@/lib/trafico-reglas";
 
-/** Las tiendas CAYLA en el mapa: su nombre va sobre el departamento. */
-const TIENDAS: { iso: string; nombre: string }[] = [
-  { iso: "PE-LAL", nombre: "Trujillo" },
-  { iso: "PE-LMA", nombre: "Lima" },
-  { iso: "PE-ARE", nombre: "Arequipa" },
-];
+/** Las tiendas CAYLA en el mapa: un punto sobre su departamento. El nombre no se escribe (Felipe 2026-10-29): sale solo al pasar el mouse. */
+const TIENDAS: string[] = ["PE-LAL", "PE-LMA", "PE-ARE"];
 
 /**
  * «De dónde vienen» (actividad 5; maqueta `docs/maquetas/trafico-decisiones-2026-10/`): por qué camino llega la gente y cuántos de ellos
@@ -156,16 +152,9 @@ function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
               />
             );
           })}
-          {TIENDAS.map((t) => {
-            const d = DEPARTAMENTOS.find((x) => x.iso === t.iso)!;
-            return (
-              <g key={t.iso} className="pointer-events-none" aria-hidden>
-                <circle cx={d.x} cy={d.y} r={5} className="trafico-mapa-tienda" />
-                <text x={d.x + 10} y={d.y + 5} className="trafico-mapa-nombre">
-                  {t.nombre}
-                </text>
-              </g>
-            );
+          {TIENDAS.map((iso) => {
+            const d = DEPARTAMENTOS.find((x) => x.iso === iso)!;
+            return <circle key={iso} cx={d.x} cy={d.y} r={5} className="trafico-mapa-tienda pointer-events-none" aria-hidden />;
           })}
         </svg>
         {tip && (
