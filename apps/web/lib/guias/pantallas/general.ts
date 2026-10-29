@@ -1037,6 +1037,13 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "Si en una tienda se cobra con Yape, tarjeta o QR, a qué cuenta llega esa plata: un banco, o la cuenta «por depositar» de la máquina. El Taller no cobra: solo tiene Transferencia, la cuenta de donde paga, y «Sale de» la propone. Si lo cambias, cuenta desde hoy; lo pasado no se mueve.",
     },
     {
+      id: "planilla-cuentas",
+      ancla: "config.planilla-cuentas",
+      opcional: true,
+      titulo: "De qué cuenta sale la planilla",
+      texto: "Dynamic le paga a cada persona en el banco donde cobra. Aquí eliges de qué cuenta de CAYLA sale lo de quienes cobran en BCP y lo de quienes cobran en Interbank; Cuentas y dinero la propone cuando registras la salida de una planilla pagada.",
+    },
+    {
       id: "maquinas",
       ancla: "config.maquinas",
       opcional: true,

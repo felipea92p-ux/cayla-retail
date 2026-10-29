@@ -15,6 +15,8 @@
  *   5. Un grupo con todos sus tramos registrados con el mismo monto deja de aparecer; con otro monto, aparece y dice cuánto se registró;
  *      si su salida se anula, el tramo vuelve a pedirla.
  *   6. Un tramo no puede tener dos salidas enlazadas; la migración se puede pegar dos veces.
+ *   7. De qué cuenta sale cada banco (20261029053000): solo un banco activo, solo el líder o Configuración, firma y deja historia, repetir
+ *      lo mismo no escribe, una cuenta archivada deja de proponerse, y ni una escritura directa mete una cuenta que no es banco.
  *
  * USO
  *   pnpm pruebas:planilla-salidas   → necesita el stack local (`npx supabase start`)
@@ -34,6 +36,7 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261029052000_planilla_salidas_por_registrar.sql"), "utf8");
+const CUENTAS = readFileSync(join(RAIZ, "supabase", "migrations", "20261029053000_planilla_cuenta_por_banco.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(
@@ -77,7 +80,9 @@ const P0 = "00000000-0000-4000-8000-0000000005a0"; // may-2019, antes del inicio
 
 // Las piezas de Dynamic que se leen, como tablas de ensayo (solo las columnas que se usan).
 const DYNAMIC = `
-create table if not exists public.periodos_planilla (id uuid primary key, fecha_ini date, fecha_fin date, estado text);
+-- Si la base ya trae una Dynamic de ensayo (o la de producción), se reemplaza dentro de la transacción: solo cuenta lo de la escena.
+drop table if exists public.periodos_planilla, public.periodo_grupo_pago, public.v_planilla_pagada cascade;
+create table public.periodos_planilla (id uuid primary key, fecha_ini date, fecha_fin date, estado text);
 create table public.periodo_grupo_pago (periodo_id uuid, grupo text, estado text, pagado_at timestamptz);
 -- \`datos_personales\` ya existe en el stub local (con \`entidad_bancaria\`); sin la llave a \`personas\` para no sembrar personas.
 alter table public.datos_personales add column if not exists entidad_bancaria text;
@@ -202,6 +207,7 @@ select 'tabla_cerrada|' || has_table_privilege('authenticated', 'retail.planilla
   // Sin las tablas de Dynamic (la base local pura): vacío, sin error.
   const sin = correr(`
 begin;
+drop table if exists public.periodos_planilla, public.periodo_grupo_pago, public.v_planilla_pagada cascade;
 create or replace function public.fn_es_admin_o_lider() returns boolean language sql stable as $f$ select true $f$;
 do $d$ begin
   if to_regclass('retail.planilla_por_sede') is null then execute 'create view retail.planilla_por_sede as select 1 as ensayo'; end if;
@@ -269,6 +275,70 @@ ${MIGRACION}
 select 'dos_veces|' || (to_regclass('retail.planilla_salidas') is not null);
 `);
   verificar("se puede pegar dos veces", r, { dos_veces: "true" });
+}
+
+// ---------- Escena 6: de qué cuenta sale cada banco ----------
+{
+  const debeFallar = (nombre, sql, codigo) => `
+do $$
+begin
+  ${sql};
+  -- Un código propio: si fuera P0001 (el de \`raise\` a secas) se confundiría con el rechazo esperado.
+  raise exception '${nombre}: tendría que haber fallado' using errcode = 'XX991';
+exception when others then
+  if sqlstate <> '${codigo}' then raise; end if;
+end $$;
+select '${nombre}|ok';`;
+  const r = correr(`
+begin;
+${MIGRACION}
+${CUENTAS}
+${cambiaA(FELIPE)}
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('BCP de prueba', 'banco', '104') returning id as bcp \\gset
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('Interbank de prueba', 'banco', '104') returning id as ibk \\gset
+select 'antes|' || string_agg(banco || ':' || coalesce(cuenta_nombre, '-'), ',' order by banco) from retail.fn_planilla_cuentas();
+select count(*) as h0 from retail.configuracion_historial where que = 'planilla_cuenta' \\gset
+select retail.guardar_cuenta_planilla('bcp', :'bcp');
+select retail.guardar_cuenta_planilla('interbank', :'ibk');
+select retail.guardar_cuenta_planilla('bcp', :'bcp');
+select 'guardadas|' || string_agg(banco || ':' || coalesce(cuenta_nombre, '-'), ',' order by banco) from retail.fn_planilla_cuentas();
+select 'historia|' || (count(*) - :h0) from retail.configuracion_historial where que = 'planilla_cuenta';
+select 'firmada|' || (guardada_por = (select p.id from public.personas p where p.auth_user_id = '${FELIPE}')) from retail.planilla_cuentas where banco = 'bcp';
+${debeFallar("caja_fuerte", "perform retail.guardar_cuenta_planilla('bcp', (select id from retail.cuentas_dinero where tipo = 'caja_fuerte' and archivada_en is null limit 1))", "P0001")}
+${debeFallar("otro_banco", "perform retail.guardar_cuenta_planilla('bbva', null)", "P0001")}
+${debeFallar("directo_no_banco", "update retail.planilla_cuentas set cuenta_id = (select id from retail.cuentas_dinero where tipo = 'caja_fuerte' limit 1) where banco = 'bcp'", "P0001")}
+-- Archivada: deja de proponerse. Quitada: nula.
+update retail.cuentas_dinero set archivada_en = now(), archivada_por = (select p.id from public.personas p where p.auth_user_id = '${FELIPE}') where id = :'ibk';
+select 'archivada|' || coalesce(cuenta_nombre, '-') from retail.fn_planilla_cuentas() where banco = 'interbank';
+${debeFallar("guardar_archivada", "perform retail.guardar_cuenta_planilla('interbank', (select id from retail.cuentas_dinero where nombre = 'Interbank de prueba'))", "P0001")}
+select retail.guardar_cuenta_planilla('bcp', null);
+select 'quitada|' || coalesce(cuenta_nombre, '-') from retail.fn_planilla_cuentas() where banco = 'bcp';
+${cambiaA(MICAELA)}
+${debeFallar("colaboradora", "perform retail.guardar_cuenta_planilla('bcp', null)", "42501")}
+select 'colaboradora_lee|' || count(*) from retail.fn_planilla_cuentas();
+`);
+  verificar("de qué cuenta sale cada banco", r, {
+    antes: "bcp:-,interbank:-",
+    guardadas: "bcp:BCP de prueba,interbank:Interbank de prueba",
+    historia: "2",
+    firmada: "true",
+    caja_fuerte: "ok",
+    otro_banco: "ok",
+    directo_no_banco: "ok",
+    archivada: "-",
+    guardar_archivada: "ok",
+    quitada: "-",
+    colaboradora: "ok",
+    colaboradora_lee: "0",
+  });
+  const dos = correr(`
+begin;
+${MIGRACION}
+${CUENTAS}
+${CUENTAS}
+select 'cuentas_dos_veces|' || (to_regclass('retail.planilla_cuentas') is not null);
+`);
+  verificar("la cuenta por banco se puede pegar dos veces", dos, { cuentas_dos_veces: "true" });
 }
 
 console.log(`\n${casos - fallos}/${casos} casos en verde`);

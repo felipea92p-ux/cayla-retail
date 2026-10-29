@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { soles } from "./compras-reglas";
-import { avisosDePlanilla, estadoTramo, leerTramo, queSePago, type TramoPlanilla } from "./planilla-salidas-reglas";
+import { avisosDePlanilla, cuentaPropuesta, estadoTramo, leerCuentaPlanilla, leerTramo, queSePago, type CuentaPlanilla, type TramoPlanilla } from "./planilla-salidas-reglas";
 
 const P = "00000000-0000-4000-8000-0000000000a1";
 const tramo = (o: Partial<TramoPlanilla>): TramoPlanilla => ({
@@ -71,7 +71,7 @@ describe("avisosDePlanilla", () => {
     expect(a.titulo).toBe("Falta registrar de qué banco salió la planilla del 28/09 al 28/10");
     expect(a.detalle).toContain("Pagado en Dynamic el 30/10");
     expect(a.tramos.map((t) => t.banco)).toEqual(["bcp", "interbank", "sin_banco"]);
-    expect(a.tramos[0].texto).toBe("BCP · 13 personas · S/ 12,745.16 — falta registrar".replace("12,745.16", (12745.16).toLocaleString("es-PE", { minimumFractionDigits: 2 })));
+    expect(a.tramos[0].texto).toBe(`BCP · 13 personas · ${soles(12745.16)} — falta registrar · elige su cuenta en Configuración`);
     expect(a.tramos[2].texto).toContain("1 persona ·");
     expect(a.total).toBe(18558.12);
   });
@@ -97,7 +97,31 @@ describe("avisosDePlanilla", () => {
     expect(a.titulo).toBe("Lo que registraste del pago de los recibos por honorarios del 28/09 al 28/10 no cuadra con Dynamic");
   });
 
+  it("con la cuenta de cada banco guardada, dice de dónde sale; quien no tiene banco la elige al registrar", () => {
+    const cuentas: CuentaPlanilla[] = [
+      { banco: "bcp", cuentaId: "c1", cuentaNombre: "BCP Empresa" },
+      { banco: "interbank", cuentaId: null, cuentaNombre: null },
+    ];
+    const [a] = avisosDePlanilla([tramo({}), tramo({ banco: "interbank", personas: 5, neto: 5512.96 }), tramo({ banco: "sin_banco", personas: 1, neto: 300 })], cuentas);
+    expect(a.tramos[0].texto).toMatch(/— falta registrar · sale de BCP Empresa$/);
+    expect(a.tramos[0].propuesta?.cuentaId).toBe("c1");
+    expect(a.tramos[1].texto).toMatch(/— falta registrar · elige su cuenta en Configuración$/);
+    expect(a.tramos[1].propuesta).toBeNull();
+    expect(a.tramos[2].texto).toMatch(/— falta registrar · eliges la cuenta al registrarla$/);
+  });
+
   it("sin tramos, sin avisos", () => {
     expect(avisosDePlanilla([])).toEqual([]);
+  });
+});
+
+describe("la cuenta de cada banco", () => {
+  it("lee la fila y solo propone una cuenta guardada", () => {
+    const c = leerCuentaPlanilla({ banco: "interbank", cuenta_id: "c2", cuenta_nombre: "Interbank Empresas" });
+    expect(c).toEqual({ banco: "interbank", cuentaId: "c2", cuentaNombre: "Interbank Empresas" });
+    expect(cuentaPropuesta("interbank", [c])?.cuentaNombre).toBe("Interbank Empresas");
+    expect(cuentaPropuesta("bcp", [c])).toBeNull();
+    expect(cuentaPropuesta("sin_banco", [c])).toBeNull();
+    expect(cuentaPropuesta("interbank", [{ ...c, cuentaId: null }])).toBeNull();
   });
 });

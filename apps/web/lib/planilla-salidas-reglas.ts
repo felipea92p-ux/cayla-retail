@@ -54,6 +54,20 @@ export function leerTramo(f: Fila): TramoPlanilla {
   };
 }
 
+/** De qué cuenta de CAYLA sale la planilla de quienes cobran en un banco (Configuración ▸ Cuentas y cobros). */
+export type CuentaPlanilla = { banco: Exclude<BancoColaborador, "sin_banco">; cuentaId: string | null; cuentaNombre: string | null };
+export const BANCOS_CON_CUENTA: readonly CuentaPlanilla["banco"][] = ["bcp", "interbank"];
+
+export function leerCuentaPlanilla(f: Fila): CuentaPlanilla {
+  return { banco: f.banco === "interbank" ? "interbank" : "bcp", cuentaId: texto(f.cuenta_id), cuentaNombre: texto(f.cuenta_nombre) };
+}
+
+/** La cuenta que se propone para un tramo: la guardada para su banco; quien no tiene banco en Dynamic no tiene ninguna. */
+export function cuentaPropuesta(banco: BancoColaborador, cuentas: readonly CuentaPlanilla[]): CuentaPlanilla | null {
+  const c = cuentas.find((x) => x.banco === banco);
+  return c?.cuentaId ? c : null;
+}
+
 export type EstadoTramo = "por_registrar" | "registrado" | "otro_monto";
 export function estadoTramo(t: Pick<TramoPlanilla, "movimientoId" | "registrado" | "neto">): EstadoTramo {
   if (!t.movimientoId || t.registrado === null) return "por_registrar";
@@ -82,7 +96,7 @@ const personas = (n: number) => (n === 1 ? "1 persona" : `${n} personas`);
 /** «de la planilla», «del pago a los practicantes». */
 const de = (que: string) => (que.startsWith("el ") ? `del ${que.slice(3)}` : `de ${que}`);
 
-export type LineaTramo = TramoPlanilla & { estado: EstadoTramo; texto: string };
+export type LineaTramo = TramoPlanilla & { estado: EstadoTramo; texto: string; propuesta: CuentaPlanilla | null };
 export type AvisoPlanilla = {
   clave: string;
   periodoId: string;
@@ -95,30 +109,38 @@ export type AvisoPlanilla = {
   total: number;
 };
 
-function lineaDe(t: TramoPlanilla): LineaTramo {
+/** Lo que falta, con la cuenta de donde sale si ya se sabe: «falta registrar · sale de BCP Empresa». */
+function falta(t: TramoPlanilla, propuesta: CuentaPlanilla | null): string {
+  if (propuesta) return `falta registrar · sale de ${propuesta.cuentaNombre}`;
+  if (t.banco === "sin_banco") return "falta registrar · eliges la cuenta al registrarla";
+  return "falta registrar · elige su cuenta en Configuración";
+}
+
+function lineaDe(t: TramoPlanilla, cuentas: readonly CuentaPlanilla[]): LineaTramo {
   const estado = estadoTramo(t);
+  const propuesta = cuentaPropuesta(t.banco, cuentas);
   const base = `${TEXTO_BANCO[t.banco]} · ${personas(t.personas)} · ${soles(t.neto)}`;
   const cola =
     estado === "por_registrar"
-      ? "falta registrar"
+      ? falta(t, propuesta)
       : estado === "registrado"
         ? `registrado desde ${t.cuentaNombre ?? "su cuenta"} el ${diaMes(t.fechaRegistrada)}`
         : `registraste ${soles(t.registrado ?? 0)} desde ${t.cuentaNombre ?? "su cuenta"}: no cuadra`;
-  return { ...t, estado, texto: `${base} — ${cola}` };
+  return { ...t, estado, texto: `${base} — ${cola}`, propuesta };
 }
 
 /**
  * Un aviso por grupo pagado (período + grupo), con una línea por banco. El título dice lo que falta; si nada falta pero un monto no
  * cuadra, dice eso. El día en que Dynamic lo pagó va en el detalle, con lo que este monto es y lo que no es.
  */
-export function avisosDePlanilla(tramos: readonly TramoPlanilla[]): AvisoPlanilla[] {
+export function avisosDePlanilla(tramos: readonly TramoPlanilla[], cuentas: readonly CuentaPlanilla[] = []): AvisoPlanilla[] {
   const grupos = new Map<string, TramoPlanilla[]>();
   for (const t of tramos) {
     const clave = `${t.periodoId}:${t.grupo}`;
     grupos.set(clave, [...(grupos.get(clave) ?? []), t]);
   }
   return [...grupos.entries()].map(([clave, del]) => {
-    const lineas = [...del].sort((a, b) => ORDEN_BANCO[a.banco] - ORDEN_BANCO[b.banco]).map(lineaDe);
+    const lineas = [...del].sort((a, b) => ORDEN_BANCO[a.banco] - ORDEN_BANCO[b.banco]).map((t) => lineaDe(t, cuentas));
     const [primero] = lineas;
     const periodo = `del ${diaMes(primero.fechaIni)} al ${diaMes(primero.fechaFin)}`;
     const faltan = lineas.some((l) => l.estado === "por_registrar");
