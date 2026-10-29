@@ -134,6 +134,11 @@ export const PRUEBAS = [
   // tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
   "pruebas:balance",
 
+  // La mercadería de CLAURE en Lima no es de CAYLA en el Balance (ADR-0558): entrar, vender, anular, devolver y perder mercadería de
+  // CLAURE mueve la mercadería del Balance (fn_bal_stock) igual que la 201 del diario; lo debido va a la 4699; un corte pasado; la
+  // autoprueba (deshecha una mitad, la propiedad se rompe); pegar dos veces y permisos. ROLLBACK.
+  "pruebas:balance-claure",
+
   // La reversa de un cobro sale por su cuenta (ADR-0120 act. 2026-10-17): anulación, devolución, diferencia de un cambio y
   // adelanto devuelto van a la cuenta por la que entró el cobro (tarjeta: 105) y nunca a la 451, con cada medio; el parche de
   // F7 sobre fn_asientos no se pierde al recrearla (autoprueba con la versión original). ROLLBACK.
@@ -232,6 +237,16 @@ export const PRUEBAS = [
   // Precio propio por sede (Felipe 2026-10-09): cambia solo en esa tienda, deja historial firmado, solo tu propia sede,
   // sin el módulo Productos nada, se archiva y nunca se borra ni se edita. ROLLBACK.
   "pruebas:precio-sede",
+
+  // La capa de precio por combinación en la tienda (Felipe 2026-10-28, ADR-0370 act.): con la capa vacía el precio de toda combinación en toda
+  // sede es el de ayer (se compara una a una, con su mutante); la excepción gana a la prenda solo en su tienda y su combinación; archivada no
+  // vale, el obsequio sigue en 0; no se borra ni se edita; Apartar y las proformas cobran el de la combinación. ROLLBACK.
+  "pruebas:precio-sede-variante",
+
+  // El costo y el precio por combinación al cerrar un envío (Felipe 2026-10-28, ADR-0393/0519/0370 act.): el costo de UNA combinación gana
+  // al de su prenda y al de su línea; el precio vale para todas las sedes o solo para la tienda (la prenda entera si se eligieron todas
+  // las tallas al mismo precio, excepciones por combinación si no); todo o nada; solo combinaciones contadas de este envío abierto. ROLLBACK.
+  "pruebas:recepcion-combinaciones",
 
   // El precio de venta desde la recepción (Felipe 2026-10-24): quien recibe cambia el precio de una prenda de SU envío (todas las
   // sedes o solo la suya) sin Productos; otra sede, quien hizo la orden, un envío sin abrir, una prenda ajena y un precio malo o
