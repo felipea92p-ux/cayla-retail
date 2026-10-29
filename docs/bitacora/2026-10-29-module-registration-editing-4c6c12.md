@@ -127,3 +127,8 @@
 - **Sin probar en el navegador:** no hay sesiones ni API de Supabase en este contenedor.
 - **Número sin reserva:** el proxy de git no deja subir etiquetas.
 - **Decisión propia que Felipe tiene que confirmar:** Lavandería se renombró en vez de sembrar «Lavado o teñido» aparte.
+
+## 2026-10-29 (Producción: las seis migraciones de la obra, en producción)
+
+- Felipe pegó en el SQL Editor, en orden, `20261029021000`, `051000`, `164000`, `173000`, `190000` y `210000`.
+- Falta refrescar el volcado y el diccionario, y publicar la web de esta rama: el candado de «Pasar al stock» ya rige y la pantalla publicada todavía no tiene el permiso de líder.
