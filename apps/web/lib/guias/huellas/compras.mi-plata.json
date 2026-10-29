@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 58,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -20,9 +20,6 @@
       "button «{guia}»"
     ],
     "components/mi-plata/AnotarGasto.tsx": [
-      "button «{CONCEPTOS_GASTO[k].ejemplo}»",
-      "CampoTexto «¿Qué fue?»",
-      "CampoMonto «mi-plata.monto-gasto»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -33,6 +30,11 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/mi-plata/CamposDelGasto.tsx": [
+      "button «{CONCEPTOS_GASTO[k].ejemplo}»",
+      "CampoTexto «¿Qué fue?»",
+      "CampoMonto «mi-plata.monto-gasto»"
+    ],
     "components/mi-plata/CodigoDeEnvio.tsx": [
       "BotonCopiar «el código del envío»",
       "BotonAncla «Compartir por WhatsApp»"
@@ -41,7 +43,7 @@
       "BotonVerMas «Ver qué cambió»"
     ],
     "components/mi-plata/DetalleDeFila.tsx": [
-      "BotonEditar «Corregir esta compra»"
+      "BotonEditar «{corregible ? \"Corregir esta compra\" : \"Corregir este gasto\"}»"
     ],
     "components/mi-plata/FilaEnvio.tsx": [
       "button «{abierta && <HojaEnvio e={e}»"
@@ -63,6 +65,10 @@
       "CampoMonto «Cuánto dice el papel»",
       "CampoMonto «Lo que pagaste»",
       "button «Que siga a las prendas otra vez»"
+    ],
+    "components/mi-plata/HojaCorregirGasto.tsx": [
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/mi-plata/ListaDelDia.tsx": [
       "button «{cara}»",

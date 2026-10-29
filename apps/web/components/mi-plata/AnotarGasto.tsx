@@ -1,24 +1,23 @@
 "use client";
 
 import { AccionDelDia } from "./AccionDelDia";
-import { ICONO_GASTO } from "./iconos";
-import { TarjetaFoto } from "./TarjetaFoto";
+import { CamposDelGasto } from "./CamposDelGasto";
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Receipt } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { registrarGastoRapido, subirFotoGasto } from "@/lib/mi-plata-acciones";
-import { CONCEPTOS_GASTO, camposGasto, fraseGasto, type ConceptoGasto } from "@/lib/mi-plata-reglas";
+import { camposGasto, fraseGasto, type ConceptoGasto } from "@/lib/mi-plata-reglas";
 
 // Compras simple (ADR-0480, actividad 5): «Gasté en otra cosa». La compradora anota lo que pagó con su plata de compras y no es ropa (taxi,
 // cargador, comida, la encomienda, bolsas u otra cosa), cuánto y, si le dieron un papel, su foto. Como una compra: en su celular baja al
@@ -134,71 +133,21 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
           }}
           className="space-y-5"
         >
-          {/* En PC: ¿en qué gastaste? a la izquierda; cuánto y la foto, a la derecha. En el celular las cajas «desaparecen» (`contents`). */}
-          <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
-          <div className="contents lg:flex lg:flex-col lg:gap-5">
-          <CampoGuiado id="concepto" guia={guia} titulo="¿En qué gastaste?">
-            <div role="group" aria-label="¿En qué gastaste?" className="grid grid-cols-3 gap-2" data-guia="mi-plata.concepto">
-              {(Object.keys(CONCEPTOS_GASTO) as ConceptoGasto[]).map((k) => {
-                const Icono = ICONO_GASTO[k];
-                return (
-                  <button
-                    key={k}
-                    type="button"
-                    aria-pressed={concepto === k}
-                    title={CONCEPTOS_GASTO[k].ejemplo}
-                    disabled={guardando}
-                    onClick={() => limpiar(setConcepto)(k)}
-                    className={`card-cayla mov-boton flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-[14px] p-2 text-center text-sm text-tinta ${concepto === k ? "border-tinta bg-sand/40" : ""}`}
-                  >
-                    <Icono className="h-5 w-5" aria-hidden />
-                    {CONCEPTOS_GASTO[k].nombre}
-                  </button>
-                );
-              })}
-            </div>
-          </CampoGuiado>
-          {concepto === "otro" && (
-            <CampoGuiado id="nota" guia={guia} titulo="¿Qué fue?">
-              <CampoTexto
-                etiqueta="¿Qué fue?"
-                caja
-                autoComplete="off"
-                maxLength={120}
-                value={nota}
-                disabled={guardando}
-                onChange={(e) => limpiar(setNota)(e.target.value)}
-              />
-            </CampoGuiado>
-          )}
-          </div>
-          <div className="contents lg:flex lg:flex-col lg:gap-5">
-          <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto fue?">
-            <CampoMonto
-              etiqueta="¿Cuánto fue?"
-              etiquetaOculta
-              data-guia="mi-plata.monto-gasto"
-              inputMode="decimal"
-              autoComplete="off"
-              value={monto}
-              disabled={guardando}
-              onChange={(e) => limpiar(setMonto)(e.target.value)}
-            />
-          </CampoGuiado>
-          <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
-            <TarjetaFoto
-              titulo="Foto del papel, si te dieron"
-              ayuda="Un taxi o un cargador pueden ir sin papel"
-              archivo={archivo}
-              deshabilitada={guardando}
-              onArchivo={(f) => {
-                setRechazo(null);
-                setArchivo(f);
-              }}
-            />
-          </CampoGuiado>
-          </div>
-          </div>
+          <CamposDelGasto
+            guia={guia}
+            concepto={concepto}
+            nota={nota}
+            monto={monto}
+            archivo={archivo}
+            guardando={guardando}
+            alConcepto={limpiar(setConcepto)}
+            alNota={limpiar(setNota)}
+            alMonto={limpiar(setMonto)}
+            alArchivo={(f) => {
+              setRechazo(null);
+              setArchivo(f);
+            }}
+          />
           {rechazo && (
             <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
               {rechazo.texto}
