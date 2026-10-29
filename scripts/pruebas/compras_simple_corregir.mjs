@@ -119,8 +119,8 @@ const COMPRA_NUEVA = `select retail.registrar_compra_rapida('${NUEVA}', current_
 const ITEM_NUEVO = `
 reset role;
 select i.id as nu1, i.categoria_id as cat1, i.marca_id as marca1 from retail.orden_compra_items i join retail.ordenes_compra o on o.id = i.orden_compra_id where o.papel_id = '${NUEVA}' \\gset
-select id as cat2 from retail.categorias where activo and id <> :'cat1' order by nombre limit 1 \\gset
-select id as marca2 from retail.marcas where activo and id <> :'marca1' order by nombre limit 1 \\gset
+insert into retail.categorias (nombre) values ('ZZ Categoría de prueba ADR-0561') returning id as cat2 \\gset
+insert into retail.marcas (nombre) values ('ZZ Marca de prueba ADR-0561') returning id as marca2 \\gset
 select set_config('t.nu1', :'nu1', true), set_config('t.cat2', :'cat2', true), set_config('t.marca2', :'marca2', true) \\g /dev/null
 `;
 const cambioNuevo = (campos) => `jsonb_build_object('item_id', current_setting('t.nu1'), ${campos})`;
@@ -245,7 +245,7 @@ select :'desp', i.id, 4, i.categoria_id, i.marca_id, i.precio_unitario from reta
 ${como(MICAELA, "c")}
 select ${hint(CORREGIR(CAMBIOS(cambio(1, "'cantidad', 3")), "bbbbbbbb-0561-4000-8000-000000000002"))},
        ${intento(CORREGIR(CAMBIOS(cambio(1, "'cantidad', 4")), "bbbbbbbb-0561-4000-8000-000000000003"))},
-       (retail.fn_compra_para_corregir('${ID}') -> 'lineas' -> 0 ->> 'enviadas');`,
+       (select x ->> 'enviadas' from jsonb_array_elements(retail.fn_compra_para_corregir('${ID}') -> 'lineas') x where x ->> 'id' = current_setting('t.it1'));`,
   "compra_corregir_menos_de_lo_enviado|SIN_ERROR|4",
 );
 
