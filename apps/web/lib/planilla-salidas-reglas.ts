@@ -228,6 +228,42 @@ export function filasDeSalidas(aviso: Pick<AvisoPlanilla, "porRegistrar" | "paga
   }));
 }
 
+/**
+ * /chaos 2026-10-29, hallazgo 1: si una salida ya se registró a mano, confirmar «Registrarla ahora» sin mirar la duplicaba. Una suelta con el
+ * MISMO monto que el neto de un banco se propone sola para ese banco (pasa a «Ya la registré a mano»). Si dos sueltas tienen ese monto no se
+ * elige ninguna: la persona decide, y `avisoDeSueltas` le dice que existen.
+ */
+export function proponerSueltas(filas: readonly FilaSalida[], sueltas: readonly SalidaSuelta[]): FilaSalida[] {
+  const usadas = new Set(filas.filter((f) => f.modo === "ya").map((f) => f.movimientoId));
+  return filas.map((f) => {
+    if (f.modo !== "nueva") return f;
+    const iguales = sueltas.filter((x) => !usadas.has(x.movimientoId) && centimos(x.monto) === centimos(f.neto));
+    if (iguales.length !== 1) return f;
+    usadas.add(iguales[0].movimientoId);
+    return { ...f, modo: "ya", movimientoId: iguales[0].movimientoId };
+  });
+}
+
+/** Las sueltas que ninguna fila enlaza todavía: si alguna es de este grupo y se registra otra, quedan dos salidas. */
+export function avisoDeSueltas(filas: readonly FilaSalida[], sueltas: readonly SalidaSuelta[]): string | null {
+  const usadas = new Set(filas.filter((f) => f.modo === "ya").map((f) => f.movimientoId));
+  const libres = sueltas.filter((x) => !usadas.has(x.movimientoId));
+  if (libres.length === 0) return null;
+  const cuantas = libres.length === 1 ? "1 «Pago de la planilla» registrado a mano que no está enlazado" : `${libres.length} «Pago de la planilla» registrados a mano que no están enlazados`;
+  return `Hay ${cuantas} (${libres.slice(0, 3).map(textoSuelta).join("; ")}). Si es de este grupo, elige «Ya la registré a mano» en su banco para no contarla dos veces.`;
+}
+
+/**
+ * /chaos 2026-10-29, hallazgo 2: un monto con un cero de más se registraba sin aviso. No bloquea (del banco pudo salir otra cosa: un pago a
+ * mano, una comisión), pero lo dice desde S/ 1 de diferencia; los céntimos de un cargo bancario no avisan.
+ */
+export function notaMontoDistinto(f: FilaSalida): string | null {
+  if (f.modo !== "nueva") return null;
+  const monto = leerMontoPlata(f.monto);
+  if (monto === null || monto <= 0 || Math.abs(monto - f.neto) < 1) return null;
+  return `Dynamic dice ${soles(f.neto)} y vas a registrar ${soles(monto)}. Revisa que sea lo que salió del banco.`;
+}
+
 type Problemas = { cuenta?: string; monto?: string; fecha?: string; ya?: string };
 /** Lo que impide guardar una fila, campo por campo: la misma regla dice el error y enciende la guía. */
 function problemasDe(f: FilaSalida, filas: readonly FilaSalida[], hoy: string): Problemas {

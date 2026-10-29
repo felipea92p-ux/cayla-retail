@@ -20,11 +20,14 @@ import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { nombreCorto, type CuentaDinero } from "@/lib/cuentas-dinero-reglas";
 import {
   TEXTO_BANCO,
+  avisoDeSueltas,
   camposDeSalidas,
   filasDeSalidas,
   idCampoSalida,
   leerSalidaSuelta,
   notaAntesDelSaldo,
+  notaMontoDistinto,
+  proponerSueltas,
   queSePago,
   textoRegistrar,
   textoSuelta,
@@ -52,7 +55,12 @@ export function SalidasPlanillaModal({ aviso, cuentas, onCerrar }: { aviso: Avis
     createClient()
       .rpc("fn_planilla_salidas_sueltas" as never)
       .then(({ data, error }) => {
-        if (vivo && !error) setSueltas(((data ?? []) as Record<string, unknown>[]).map(leerSalidaSuelta));
+        if (!vivo || error) return;
+        const leidas = ((data ?? []) as Record<string, unknown>[]).map(leerSalidaSuelta);
+        setSueltas(leidas);
+        // Una suelta con el mismo monto que un banco ya es esa salida: se propone sola (/chaos, hallazgo 1). Solo al llegar: lo que la
+        // persona elija después manda.
+        setFilas((xs) => proponerSueltas(xs, leidas));
       });
     return () => {
       vivo = false;
@@ -102,9 +110,15 @@ export function SalidasPlanillaModal({ aviso, cuentas, onCerrar }: { aviso: Avis
       onClose={onCerrar}
       tamano="mediana"
     >
+      {avisoDeSueltas(filas, sueltas) && (
+        <Aviso tono="atencion" chico className="mb-4">
+          {avisoDeSueltas(filas, sueltas)}
+        </Aviso>
+      )}
       {filas.map((f, i) => {
         const cuenta = bancos.find((c) => c.id === f.cuentaId);
         const nota = f.modo === "nueva" ? notaAntesDelSaldo(f.fecha, cuenta) : null;
+        const otroMonto = notaMontoDistinto(f);
         return (
           <section key={f.banco} className="mb-5" data-guia={i === 0 ? "fin-dinero.salida-fila" : undefined}>
             <TituloGrupo nota={`${f.personas === 1 ? "1 persona" : `${f.personas} personas`} · ${soles(f.neto)} según Dynamic`} retraso={120 + i * 60}>
@@ -163,6 +177,11 @@ export function SalidasPlanillaModal({ aviso, cuentas, onCerrar }: { aviso: Avis
                     </CampoFin>
                   </CampoGuiado>
                 </div>
+                {otroMonto && (
+                  <Aviso tono="atencion" chico className="mt-2">
+                    {otroMonto}
+                  </Aviso>
+                )}
                 {nota && (
                   <Aviso tono="info" chico className="mt-2">
                     {nota}

@@ -630,7 +630,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-dinero.aviso-planilla-registrar", siEsta: true }],
       titulo: "Una fila por banco",
-      texto: "De qué cuenta salió, cuánto y qué día. Si del banco salió otro monto, escríbelo: queda lo real. Si ya la habías registrado a mano, elige «Ya la registré a mano» y dinos cuál, para no contarla dos veces.",
+      texto: "De qué cuenta salió, cuánto y qué día. Si del banco salió otro monto, escríbelo: queda lo real, y te avisa si no se parece a lo de Dynamic. Si ya la habías registrado a mano, la hoja la propone sola cuando el monto calza; si no, elige «Ya la registré a mano».",
     },
     {
       id: "salida-botones",

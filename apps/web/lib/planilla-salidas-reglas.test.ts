@@ -9,14 +9,18 @@ import {
   leerCuentaPlanilla,
   leerSalidaSuelta,
   leerTramo,
+  avisoDeSueltas,
   notaAntesDelSaldo,
+  notaMontoDistinto,
   planillaParaElInicio,
+  proponerSueltas,
   queSePago,
   textoRegistrar,
   textoSuelta,
   validarSalidas,
   type CuentaPlanilla,
   type FilaSalida,
+  type SalidaSuelta,
   type TramoPlanilla,
 } from "./planilla-salidas-reglas";
 
@@ -214,5 +218,55 @@ describe("el aviso del Inicio", () => {
     expect(planillaParaElInicio([tramo({ movimientoId: "m", netoAlRegistrar: 100, neto: 110 })])).toEqual({ salidas: 0, total: 0, cambios: 1 });
     expect(planillaParaElInicio([tramo({ movimientoId: "m", netoAlRegistrar: 12745.16 })])).toBeNull();
     expect(planillaParaElInicio([])).toBeNull();
+  });
+});
+
+// /chaos 2026-10-29 (semilla 567), hallazgo 1: con una salida registrada a mano y suelta, la hoja arrancaba en «Registrarla ahora» y
+// confirmar sin mirar duplicaba la salida del banco.
+describe("las salidas registradas a mano (hallazgo 1 de /chaos)", () => {
+  const [aviso] = avisosDePlanilla([tramo({}), tramo({ banco: "interbank", personas: 5, neto: 5512.96 })], CUENTAS);
+  const suelta = (o: Partial<SalidaSuelta>): SalidaSuelta => ({
+    movimientoId: "s1",
+    fecha: "2026-10-30",
+    monto: 12745.16,
+    cuentaId: "c1",
+    cuentaNombre: "BCP Empresa",
+    referencia: "Planilla a mano",
+    ...o,
+  });
+
+  it("una suelta con el mismo monto que un banco se propone sola para ese banco", () => {
+    const filas = proponerSueltas(filasDeSalidas(aviso), [suelta({}), suelta({ movimientoId: "s2", monto: 999 })]);
+    expect(filas[0]).toMatchObject({ banco: "bcp", modo: "ya", movimientoId: "s1" });
+    expect(filas[1]).toMatchObject({ banco: "interbank", modo: "nueva", movimientoId: "" });
+  });
+
+  it("si dos sueltas tienen ese monto no elige ninguna: la persona decide", () => {
+    const filas = proponerSueltas(filasDeSalidas(aviso), [suelta({}), suelta({ movimientoId: "s2" })]);
+    expect(filas[0]).toMatchObject({ modo: "nueva", movimientoId: "" });
+  });
+
+  it("avisa de las sueltas que quedan sin enlazar, y calla cuando no queda ninguna", () => {
+    const filas = proponerSueltas(filasDeSalidas(aviso), [suelta({}), suelta({ movimientoId: "s2", monto: 999, cuentaNombre: "Interbank Empresas" })]);
+    const aviso1 = avisoDeSueltas(filas, [suelta({}), suelta({ movimientoId: "s2", monto: 999, cuentaNombre: "Interbank Empresas" })]);
+    expect(aviso1).toContain("1 «Pago de la planilla» registrado a mano");
+    expect(aviso1).toContain(`30/10 · ${soles(999)} · Interbank Empresas`);
+    expect(avisoDeSueltas(filas, [suelta({})])).toBeNull();
+    expect(avisoDeSueltas(filasDeSalidas(aviso), [])).toBeNull();
+  });
+});
+
+// /chaos 2026-10-29 (semilla 567), hallazgo 2: un monto con un cero de más se registraba sin aviso y el aviso de la planilla desaparecía.
+describe("un monto que no se parece al de Dynamic (hallazgo 2 de /chaos)", () => {
+  const [f] = filasDeSalidas(avisosDePlanilla([tramo({ neto: 12740 })], CUENTAS)[0]);
+  it("dice cuánto dice Dynamic y cuánto se va a registrar, sin bloquear", () => {
+    expect(notaMontoDistinto({ ...f, monto: "127400" })).toBe(`Dynamic dice ${soles(12740)} y vas a registrar ${soles(127400)}. Revisa que sea lo que salió del banco.`);
+    expect(validarSalidas({ periodoId: P, grupo: "planilla" }, [{ ...f, monto: "127400" }], HOY).ok).toBe(true);
+  });
+  it("calla con el mismo monto, con céntimos de diferencia, con un monto ilegible o si la salida ya estaba registrada", () => {
+    expect(notaMontoDistinto(f)).toBeNull();
+    expect(notaMontoDistinto({ ...f, monto: "12739.40" })).toBeNull();
+    expect(notaMontoDistinto({ ...f, monto: "doce" })).toBeNull();
+    expect(notaMontoDistinto({ ...f, modo: "ya", monto: "1" })).toBeNull();
   });
 });

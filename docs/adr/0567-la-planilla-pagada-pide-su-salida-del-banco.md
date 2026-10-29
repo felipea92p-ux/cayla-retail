@@ -49,8 +49,8 @@ DESCARTÉ:
 - **Que la hoja aprenda la cuenta de la última vez:** una excepción (pagar una vez desde el otro banco) cambiaría la regla sin que nadie lo decida.
 
 SE ROMPE SI:
-1. Alguien registra a mano un «Pago de la planilla» y además la registra desde la hoja con «Registrarla ahora»: quedan dos salidas, una suelta. La hoja
-   ofrece «Ya la registré a mano» cuando hay sueltas, pero no la elige sola (hallazgo de /chaos, abajo).
+1. Alguien registra a mano un «Pago de la planilla» con OTRO monto que el de Dynamic y además la registra desde la hoja con «Registrarla ahora»: la
+   hoja no puede saber que es la misma (solo propone sola la suelta del mismo monto) y quedan dos salidas, una suelta. Lo avisa arriba de la hoja.
 2. Dynamic renombra `entidad_bancaria`, `periodo_grupo_pago.pagado_at` o `v_planilla_pagada.total`: la lectura falla en voz alta (el Inicio dice «no
    se pudo leer»; Cuentas y dinero no muestra el aviso).
 3. Se escribe en Dynamic un banco nuevo para quien sí cobra en BCP o Interbank: sale como «sin banco» y la cuenta se elige a mano.
@@ -72,6 +72,11 @@ SE ROMPE SI:
 
 La base local compartida no tiene las tablas de planilla de Dynamic: el ataque corrió en un Postgres privado con datos inventados. Resistieron
 ENT-01, ENT-07, DC-01, NAV-03, RS-01, RS-03, RS-09 y TEC-01; PER-01/02 en la capa de base (la prueba). CON-02/CON-03 no aplican (son de caja). Dos
-hallazgos de gravedad 2 (dato malo en silencio), sin arreglar hasta el OK de Felipe:
-1. Con una salida registrada a mano y suelta, la hoja arranca en «Registrarla ahora»: confirmar sin mirar duplica la salida.
-2. Un monto con un cero de más (127400 por 12740) se registra sin aviso y el aviso de Cuentas y dinero desaparece.
+hallazgos de gravedad 2 (dato malo en silencio), **cerrados el mismo día con el OK de Felipe**, primero con su prueba (que falló) y después el
+arreglo, solo de pantalla (el SQL no cambió):
+1. Con una salida registrada a mano y suelta, la hoja arrancaba en «Registrarla ahora»: confirmar sin mirar duplicaba la salida. Ahora una suelta
+   con el mismo monto que un banco se propone sola para ese banco (`proponerSueltas`; si dos calzan, no elige) y las demás se avisan arriba
+   (`avisoDeSueltas`). Repetido en el navegador: BCP quedó enlazada a la registrada a mano y no se creó otra.
+2. Un monto con un cero de más (127400 por 12740) se registraba sin aviso y el aviso de Cuentas y dinero desaparecía. Ahora, desde S/ 1 de
+   diferencia, la hoja dice «Dynamic dice … y vas a registrar …» bajo el monto, sin bloquear (`notaMontoDistinto`): del banco pudo salir otra
+   cosa de verdad.
