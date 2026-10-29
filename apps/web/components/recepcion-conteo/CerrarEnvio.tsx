@@ -707,6 +707,7 @@ export function CerrarEnvio({
                                 <PrendaConCombinaciones
                                   nombre={pr.nombre ?? pr.codigo ?? "La prenda"}
                                   unidades={pr.cantidad}
+                                  categoria={{ prefijo: p.categoria?.prefijo ?? null, familia: p.categoria?.familia ?? null, categoria: p.categoria?.nombre ?? null }}
                                   combinaciones={combinacionesContadas(pr, hoy.porVariante, costoHeredadoDe(v, pr.productoId))}
                                   abierta={prendasAbiertas.has(clave)}
                                   onAlternar={() =>

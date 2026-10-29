@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { ChevronRight, Shirt } from "lucide-react";
+import { ChevronRight, MapPin } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -9,6 +9,9 @@ import { Chip } from "@/components/ui/Chip";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import { nombreCorto } from "@/lib/precio-sede-reglas";
+import { caraDeVitrina } from "@/lib/recepcion-vitrina-reglas";
+import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
+import { SinFoto } from "@/components/ui/PrendaCelda";
 import {
   type Alcance,
   type Cifra,
@@ -26,7 +29,6 @@ import {
   MENSAJE_SIN_CONTEO,
   montoTexto,
   precioEfectivo,
-  textoDeRango,
 } from "@/lib/recepcion-combinaciones-reglas";
 
 // El costo y el precio de venta de UNA prenda, por color y talla (Felipe 2026-10-28, ADR-0393): la fila de la prenda dice cuánto cuesta y a cuánto se
@@ -40,6 +42,7 @@ const dosDecimales = (n: number | null): string => (n === null ? "" : n.toFixed(
 export function PrendaConCombinaciones({
   nombre,
   unidades,
+  categoria,
   combinaciones,
   abierta,
   onAlternar,
@@ -57,6 +60,8 @@ export function PrendaConCombinaciones({
 }: {
   nombre: string;
   unidades: number;
+  /** La categoría de la prenda: sin foto, la cara de la vitrina dibuja su ícono (ADR-0333). */
+  categoria: CategoriaDePrenda;
   /** Lo contado por color y talla; vacío si todavía no se contó así (se dice, sin cajas). */
   combinaciones: readonly Combinacion[];
   abierta: boolean;
@@ -87,41 +92,29 @@ export function PrendaConCombinaciones({
   const precioCambia = (c: Combinacion) => cambiosPrecio[c.varianteId] !== undefined && cambiosPrecio[c.varianteId].valor !== c.precioSede;
   const hayCostoCambiado = combinaciones.some(costoCambia);
   const hayPrecioCambiado = combinaciones.some(precioCambia);
-  const costos = textoDeRango(combinaciones.map((c) => costoEfectivo(c, cambiosCosto)));
-  const precios = textoDeRango(combinaciones.map((c) => precioEfectivo(c, cambiosPrecio)));
 
   return (
-    <div className="border-t border-sand first:border-t-0" data-prenda-comb={nombre}>
-      <button
-        type="button"
-        onClick={onAlternar}
-        aria-expanded={abierta}
-        data-guia={guia}
-        className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-3 text-left @min-[1000px]:grid-cols-[minmax(0,1fr)_9rem_9rem_2rem]"
-      >
-        <span className="flex min-w-0 items-center gap-2.5">
-          <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-hueso text-taupe">
-            <Shirt aria-hidden className="h-4 w-4" />
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-tinta">{nombre}</span>
-            <span className="block truncate text-xs text-taupe">{sub}</span>
-          </span>
-        </span>
-        <span className="col-start-1 flex flex-wrap items-center gap-1.5 text-xs @min-[1000px]:col-start-auto @min-[1000px]:flex-col @min-[1000px]:items-start @min-[1000px]:gap-0">
-          <span className="text-taupe">Costo</span>
-          <span className="tabular-nums text-tinta">{puedeCosto ? (costos ?? "—") : "—"}</span>
-          {hayCostoCambiado && <Chip tono="ambar" versalitas={false}>cambiado</Chip>}
-        </span>
-        <span className="col-start-1 flex flex-wrap items-center gap-1.5 text-xs @min-[1000px]:col-start-auto @min-[1000px]:flex-col @min-[1000px]:items-start @min-[1000px]:gap-0">
-          <span className="text-taupe">Precio de venta</span>
-          <span className="tabular-nums text-tinta">{precios ?? "—"}</span>
-          {hayPrecioCambiado && <Chip tono="ambar" versalitas={false}>cambiado</Chip>}
-        </span>
-        <ChevronRight aria-hidden className={`col-start-2 row-start-1 h-4 w-4 justify-self-end text-taupe transition-transform duration-300 ease-cayla @min-[1000px]:col-start-auto @min-[1000px]:row-start-auto ${abierta ? "rotate-90" : ""}`} />
-      </button>
+    <div className="rc-vitrina" data-prenda-comb={nombre}>
+      <Vitrina
+        nombre={nombre}
+        sub={sub}
+        categoria={categoria}
+        combinaciones={combinaciones}
+        cambiosCosto={cambiosCosto}
+        cambiosPrecio={cambiosPrecio}
+        puedeCosto={puedeCosto}
+        sede={sede}
+        soloSede={soloSede}
+        hayCostoCambiado={hayCostoCambiado}
+        hayPrecioCambiado={hayPrecioCambiado}
+        abierta={abierta}
+        onAlternar={onAlternar}
+        onCosto={onCosto}
+        onPrecio={onPrecio}
+        guia={guia}
+      />
       {abierta && (
-        <div className="pb-4 pl-0 @min-[1000px]:pl-10">
+        <div className="rc-vitrina-matriz">
           {combinaciones.length === 0 ? (
             <p className="text-xs text-taupe" data-sin-conteo-combinaciones>
               {MENSAJE_SIN_CONTEO}
@@ -383,5 +376,184 @@ function FilaDeMatriz({ color, children }: { color: string; children: React.Reac
       <span className="rc-comb-color flex min-h-10 items-center text-[13px] font-semibold text-tinta">{color}</span>
       {children}
     </>
+  );
+}
+
+/**
+ * La Vitrina (rediseño «B», Felipe 2026-10-29): la cara de la prenda en el cierre. La tarjeta con su etiqueta de precio y, al lado, el costo,
+ * lo que se gana por prenda y dónde vale el precio. Lo escrito aquí cambia TODAS sus combinaciones a la vez —lo mismo que «Mismo precio para
+ * las N» de la matriz— y se aplica al dejar la caja o con Enter (Escape lo devuelve); «Distinto por talla o color» abre la matriz. Nada se
+ * guarda todavía: viaja con el cierre, que confirma los precios antes de guardar, como siempre.
+ */
+function Vitrina({
+  nombre,
+  sub,
+  categoria,
+  combinaciones,
+  cambiosCosto,
+  cambiosPrecio,
+  puedeCosto,
+  sede,
+  soloSede,
+  hayCostoCambiado,
+  hayPrecioCambiado,
+  abierta,
+  onAlternar,
+  onCosto,
+  onPrecio,
+  guia,
+}: {
+  nombre: string;
+  sub: string;
+  categoria: CategoriaDePrenda;
+  combinaciones: readonly Combinacion[];
+  cambiosCosto: CambiosDeCosto;
+  cambiosPrecio: CambiosDePrecio;
+  puedeCosto: boolean;
+  sede: string;
+  soloSede: boolean;
+  hayCostoCambiado: boolean;
+  hayPrecioCambiado: boolean;
+  abierta: boolean;
+  onAlternar: () => void;
+  onCosto: (ids: string[], valor: number) => void;
+  onPrecio: (ids: string[], valor: number, valeEn: ValeEn) => void;
+  guia?: string;
+}) {
+  const cara = caraDeVitrina(combinaciones, cambiosCosto, cambiosPrecio);
+  const [elegido, setElegido] = useState<ValeEn>("sede");
+  const valeEn: ValeEn = soloSede ? "sede" : (cara.valeEn ?? elegido);
+  const [precioEscrito, setPrecioEscrito] = useState<string | null>(null);
+  const [costoEscrito, setCostoEscrito] = useState<string | null>(null);
+  const [problema, setProblema] = useState<string | null>(null);
+  const ids = combinaciones.map((c) => c.varianteId);
+  const sinCombinaciones = combinaciones.length === 0;
+
+  /** Deja lo escrito en la caja: si es un número que vale, va a todas las combinaciones; si no, dice por qué y no cambia nada. */
+  function dejar(cifra: Cifra, texto: string | null) {
+    if (texto === null) return;
+    if (cifra === "precio") setPrecioEscrito(null);
+    else setCostoEscrito(null);
+    const l = leerCifra(cifra, texto);
+    if (l.problema) return setProblema(l.problema);
+    setProblema(null);
+    if (l.valor === null || ids.length === 0) return;
+    if (cifra === "precio" && l.valor !== cara.precio) onPrecio(ids, l.valor, valeEn);
+    if (cifra === "costo" && l.valor !== cara.costo) onCosto(ids, l.valor);
+  }
+  const teclas = (cifra: Cifra, texto: string | null) => (e: KeyboardEvent<HTMLInputElement>) => {
+    // La caja vive dentro del formulario del cierre: Enter deja lo escrito, nunca cierra el envío.
+    if (e.key === "Enter") {
+      e.preventDefault();
+      dejar(cifra, texto);
+    } else if (e.key === "Escape" && texto !== null) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (cifra === "precio") setPrecioEscrito(null);
+      else setCostoEscrito(null);
+      setProblema(null);
+    }
+  };
+  /** Cambiar dónde vale: si ya se escribió un precio para todas, se vuelve a dejar con el lugar nuevo. */
+  function cambiarDonde(v: ValeEn) {
+    setElegido(v);
+    if (hayPrecioCambiado && cara.precio !== null) onPrecio(ids, cara.precio, v);
+  }
+
+  return (
+    <div className="rc-vitrina-cara" data-guia={guia}>
+      <div className="rc-vitrina-tarjeta">
+        <span className="rc-vitrina-foto">
+          <SinFoto tamano="h-full w-full" {...categoria} />
+        </span>
+        <span className="min-w-0">
+          <b className="block truncate text-[15px] text-tinta">{nombre}</b>
+          <span className="block truncate text-[13px] text-taupe">{sub}</span>
+        </span>
+        <label key={cara.precio ?? "rango"} className="rc-vitrina-etiqueta" data-cambio={hayPrecioCambiado ? "" : undefined}>
+          <small>S/</small>
+          <input // unificar-fijo: la etiqueta de precio de la Vitrina se escribe en su lugar, sin caja de campo (Felipe 2026-10-29)
+            inputMode="decimal"
+            autoComplete="off"
+            disabled={sinCombinaciones}
+            aria-label={`Precio de venta de ${nombre}, para todas sus tallas y colores`}
+            value={precioEscrito ?? (cara.precio !== null ? cara.precio.toFixed(2) : "")}
+            // sugerir-fijo: un monto de soles no depende de nada elegido antes
+            placeholder={cara.precio === null && cara.precioTexto ? "varía" : "0.00"}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => setPrecioEscrito(e.target.value)}
+            onBlur={() => dejar("precio", precioEscrito)}
+            onKeyDown={teclas("precio", precioEscrito)}
+          />
+        </label>
+      </div>
+
+      <div className="rc-vitrina-info">
+        <div className="rc-vitrina-linea">
+          <span className="text-[14px] text-taupe">Costo c/u {hayCostoCambiado && <Chip tono="ambar" versalitas={false}>cambiado</Chip>}</span>
+          {puedeCosto ? (
+            <CampoTexto
+              caja
+              sinPie
+              antes="S/"
+              etiqueta={`Costo de ${nombre}, para todas sus tallas y colores`}
+              inputMode="decimal"
+              disabled={sinCombinaciones}
+              value={costoEscrito ?? (cara.costo !== null ? cara.costo.toFixed(2) : "")}
+              // sugerir-fijo: un monto de soles no depende de nada elegido antes
+              placeholder={cara.costo === null && cara.costoTexto ? "varía" : "0.00"}
+              className="w-24 text-right tabular-nums"
+              onChange={(e) => setCostoEscrito(e.target.value)}
+              onBlur={() => dejar("costo", costoEscrito)}
+              onKeyDown={teclas("costo", costoEscrito)}
+            />
+          ) : (
+            <b className="text-[15px] text-tinta">—</b>
+          )}
+        </div>
+        <div className="rc-vitrina-linea">
+          <span className="text-[14px] text-taupe">Ganas por prenda</span>
+          <b className="rc-vitrina-gana" data-pierde={cara.pierde ? "" : undefined}>
+            {puedeCosto && cara.ganaTexto ? cara.ganaTexto : "—"}
+          </b>
+        </div>
+        {problema && <Aviso tono="error" chico titulo={problema} />}
+        {sinCombinaciones ? (
+          <p className="text-[13px] text-taupe">{MENSAJE_SIN_CONTEO} Su precio se pone cuando tenga tallas y colores.</p>
+        ) : (
+          <div className="space-y-2">
+            <span className="label-cayla block text-[11px] text-taupe">El precio vale en</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rc-vitrina-sede" data-on="">
+                <MapPin aria-hidden className="h-3.5 w-3.5" />
+                {nombreCorto(sede)}
+              </span>
+              <span className="rc-vitrina-sede" data-on={valeEn === "todas" ? "" : undefined}>
+                <MapPin aria-hidden className="h-3.5 w-3.5" />
+                Las demás sedes
+              </span>
+            </div>
+            {soloSede ? (
+              <p className="text-[13px] text-taupe">Desde esta terminal, el precio vale solo en {nombreCorto(sede)}.</p>
+            ) : (
+              <SegmentoDeslizante
+                forma="modo"
+                etiqueta={`Dónde vale el precio de ${nombre}: solo en esta tienda o en todas las sedes`}
+                valor={valeEn}
+                onCambio={(v) => cambiarDonde(v as ValeEn)}
+                opciones={[
+                  { clave: "sede", etiqueta: `Solo ${nombreCorto(sede)}` },
+                  { clave: "todas", etiqueta: "Todas" },
+                ]}
+              />
+            )}
+          </div>
+        )}
+        <button type="button" className="rc-vitrina-abrir btn-cayla btn-enlace" onClick={onAlternar} aria-expanded={abierta}>
+          Distinto por talla o color
+          <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
+        </button>
+      </div>
+    </div>
   );
 }

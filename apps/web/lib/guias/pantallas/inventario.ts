@@ -1895,8 +1895,8 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.prenda-fila",
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
-      titulo: "Costo y precio por color y talla",
-      texto: "Abre una prenda y verás una matriz como la del conteo, con un número por color y talla. «Costo | Precio de venta» elige qué cifra cambias. Al escribir, eliges si llega a esa casilla, a todo el color, a toda la talla o a todas, y te decimos qué va a cambiar. En la demo no escribimos.",
+      titulo: "La etiqueta de cada prenda",
+      texto: "Cada prenda tiene su etiqueta: el precio que escribas ahí, o el costo, vale para todas sus tallas y colores, y debajo eliges si vale solo en tu tienda o en todas. «Distinto por talla o color» abre la matriz para cambiar una casilla, un color o una talla. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.

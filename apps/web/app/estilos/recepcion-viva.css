@@ -203,3 +203,40 @@
   .rc-podio-barra, .rc-podio-llave { animation: none; }
   .rc-podio-barra { transition: none; }
 }
+
+/* ── La Vitrina: la cara de cada prenda en el cierre ── */
+.rc-vitrina { container-type: inline-size; padding: 16px 0; border-top: 1px solid var(--color-sand); }
+.rc-vitrina:first-child { border-top: 0; padding-top: 4px; }
+.rc-vitrina-cara { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.rc-vitrina-tarjeta { position: relative; display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--color-sand); border-radius: 18px; background: var(--color-papel); animation: cayla-entrada 450ms var(--ease-cayla) both; }
+.rc-vitrina-foto { display: block; overflow: hidden; width: 64px; height: 64px; border-radius: 12px; }
+.rc-vitrina-etiqueta { display: grid; place-items: center; align-content: center; width: 76px; height: 76px; border-radius: 50%; background: var(--color-rojo); color: var(--color-crema-fija); rotate: -8deg; box-shadow: 0 10px 18px -12px color-mix(in srgb, var(--color-sombra) 70%, transparent); animation: rc-vitrina-sella 520ms var(--ease-cayla) 200ms both; cursor: text; }
+.rc-vitrina-etiqueta small { font-size: 12px; font-weight: 700; line-height: 1; opacity: 0.85; }
+.rc-vitrina-etiqueta input { width: 64px; padding: 0; border: 0; background: transparent; color: inherit; outline: 0; text-align: center; font-family: var(--font-serif); font-size: 20px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.rc-vitrina-etiqueta input::placeholder { color: color-mix(in srgb, var(--color-crema-fija) 75%, transparent); /* contraste: no aplica — marcador sobre el rojo de la etiqueta */ }
+.rc-vitrina-etiqueta:focus-within { outline: 3px solid var(--color-tinta); outline-offset: 3px; }
+.rc-vitrina-etiqueta[data-cambio] { background: var(--color-rojo-profundo); }
+/* En oscuro el rojo se aclara: la cifra pasa a tinta fija para seguir leyéndose. */
+:root[data-tema="oscuro"] .rc-vitrina-etiqueta { color: var(--color-tinta-fija); }
+:root[data-tema="oscuro"] .rc-vitrina-etiqueta input::placeholder { color: color-mix(in srgb, var(--color-tinta-fija) 70%, transparent); /* contraste: no aplica — marcador sobre el rojo de la etiqueta */ }
+@keyframes rc-vitrina-sella { from { opacity: 0; scale: 1.35; rotate: -24deg; } }
+.rc-vitrina-info { display: grid; align-content: start; gap: 12px; min-width: 0; }
+.rc-vitrina-linea { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-sand); }
+.rc-vitrina-gana { color: var(--color-verde-profundo); font-family: var(--font-serif); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc-vitrina-gana[data-pierde] { color: var(--color-ambar-profundo); }
+.rc-vitrina-sede { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 12px; border: 1px solid var(--color-borde-control); border-radius: 999px; background: var(--color-papel); color: var(--color-taupe); font-size: 14px; font-weight: 600; transition: background-color 300ms var(--ease-cayla), color 300ms var(--ease-cayla), border-color 300ms var(--ease-cayla); }
+.rc-vitrina-sede + .rc-vitrina-sede { transition-delay: 120ms; }
+.rc-vitrina-sede[data-on] { border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
+.rc-vitrina-abrir { justify-self: start; display: inline-flex; align-items: center; gap: 4px; }
+.rc-vitrina-matriz { padding-top: 16px; }
+@container (min-width: 620px) {
+  .rc-vitrina-cara { grid-template-columns: 230px minmax(0, 1fr); gap: 28px; }
+  .rc-vitrina-tarjeta { grid-template-columns: minmax(0, 1fr); align-items: start; padding: 12px; }
+  .rc-vitrina-foto { width: 100%; height: 150px; }
+  .rc-vitrina-etiqueta { position: absolute; top: -10px; right: -10px; width: 84px; height: 84px; }
+  .rc-vitrina-etiqueta input { width: 72px; font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc-vitrina-tarjeta, .rc-vitrina-etiqueta { animation: none; }
+  .rc-vitrina-sede { transition: none; }
+}
