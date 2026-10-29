@@ -48,7 +48,8 @@ const numero = (v: unknown): number | null => {
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
-export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null };
+/** `marcas`: con las que se conoce al proveedor (ADR-0140); el nombre es su razón social y el equipo lo busca por «Kero». Vacía si no hay o no se pudieron leer. */
+export type ProveedorParaComprar = { id: string; nombre: string; ruc: string | null; categorias: string[]; compras: number; ultima: string | null; marcas: string[] };
 
 /** Lo que manda `fn_proveedores_para_comprar`: el más comprado primero, como viene. */
 export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[] {
@@ -67,15 +68,21 @@ export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[
         categorias: Array.isArray(o.categorias) ? o.categorias.filter((c): c is string => typeof c === "string") : [],
         compras: Math.max(0, Math.trunc(numero(o.compras) ?? 0)),
         ultima: texto(o.ultima),
+        marcas: [],
       };
     })
     .filter((x): x is ProveedorParaComprar => x !== null);
 }
 
-/** Buscar un proveedor: por su nombre (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
+/** Suma a cada proveedor sus marcas (`marcasPorProveedor`, por id). Sin mapa (la lectura falló) la lista queda como vino. */
+export function conMarcas(lista: readonly ProveedorParaComprar[], marcas: Readonly<Record<string, readonly string[]>> | null): ProveedorParaComprar[] {
+  return lista.map((p) => ({ ...p, marcas: [...(marcas?.[p.id] ?? [])] }));
+}
+
+/** Buscar un proveedor: por su nombre o por alguna de sus marcas (sin tildes ni mayúsculas) y, si se eligió una categoría, solo los que la venden. */
 export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: string, categoriaId: string | null): ProveedorParaComprar[] {
   const n = normalizar(q);
-  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n)) && (!categoriaId || p.categorias.includes(categoriaId)));
+  return lista.filter((p) => (!n || normalizar(p.nombre).includes(n) || p.marcas.some((m) => normalizar(m).includes(n))) && (!categoriaId || p.categorias.includes(categoriaId)));
 }
 
 /**

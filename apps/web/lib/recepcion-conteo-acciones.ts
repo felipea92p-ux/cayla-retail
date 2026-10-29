@@ -1,3 +1,4 @@
+import { conDueno } from "@/lib/dueno-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { ErrorDeBase } from "@/lib/recepcion-envio-acciones";
@@ -108,8 +109,9 @@ export async function validarPrecioEnRecepcion(
 }
 
 /** «Hacer ahora»: termina un pendiente o separa lo que quedó sin separar. */
-export async function resolverPendiente(args: ArgsResolverPendiente, firma: Firma | null): Promise<{ resuelto: ReturnType<typeof leerResuelto>; error: ErrorDeBase }> {
-  const { data, error } = (await firmar(createClient().rpc(RPC_RESOLVER_PENDIENTE as never, args as never), firma)) as Respuesta;
+export async function resolverPendiente(args: ArgsResolverPendiente, firma: Firma | null, duenoId: string | null = null): Promise<{ resuelto: ReturnType<typeof leerResuelto>; error: ErrorDeBase }> {
+  // En una sede con dos empresas, lo que entra al stock lleva su dueño (ADR-0542); en las demás, `null` no manda nada.
+  const { data, error } = (await firmar(conDueno(createClient().rpc(RPC_RESOLVER_PENDIENTE as never, args as never), duenoId), firma)) as Respuesta;
   return { resuelto: error ? null : leerResuelto(data), error: error ?? null };
 }
 

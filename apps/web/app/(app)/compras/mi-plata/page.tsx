@@ -111,7 +111,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
                   grande
                   href="/compras/mi-plata/compra"
                   guia="mi-plata.compre"
-                  titulo="Compré ropa"
+                  titulo="Apunte de compras"
                   detalle="A un proveedor, en la calle o por pedido"
                   icono={<ShoppingBag className="h-5 w-5" aria-hidden />}
                 />
