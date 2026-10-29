@@ -21,7 +21,8 @@
 --      anulada), o NULL si se puede. Una sola regla para la lectura y para el guardado.
 --   4. `fn_compra_para_corregir(papel)`: lo que la hoja necesita para dibujarse: el papel, cada prenda con lo que ya salió en un envío, si cuadra
 --      con el papel y si se puede corregir.
---   5. `corregir_compra_rapida(papel, lote, cambios)`: corrige unidades, costo y precio de venta de las prendas. Todo o nada. Después recalcula el papel:
+--   5. `corregir_compra_rapida(papel, lote, cambios)`: corrige unidades, costo y precio de venta de las prendas y, en una prenda de «Algo nuevo» (la que no se
+--      eligió del catálogo), su nombre, categoría y marca. Las del catálogo no cambian ni nombre, ni categoría ni marca desde aquí: eso es de Catálogo. Todo o nada. Después recalcula el papel:
 --      si ya cuadraba con las prendas, sigue cuadrando; lo pagado acompaña (pagó todo → paga el nuevo monto; pagó una parte → no pasa del nuevo
 --      monto). Una prenda no baja de lo que ya salió en un envío. Dos toques con el mismo `lote` no corrigen dos veces.
 --
@@ -169,6 +170,11 @@ begin
       'tipo', v_papel.tipo, 'monto', v_papel.monto, 'pagado', v_papel.pagado, 'medio_pago', v_papel.medio_pago, 'fecha', v_papel.fecha),
     'se_puede', v_motivo is null,
     'motivo', v_motivo,
+    -- Para elegir categoría y marca de una prenda de «Algo nuevo»: las activas.
+    'categorias', case when v_motivo is not null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'nombre', c.nombre) order by c.nombre)
+                                                                                    from retail.categorias c where c.activo), '[]'::jsonb) end,
+    'marcas', case when v_motivo is not null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'nombre', m.nombre) order by m.nombre)
+                                                                                from retail.marcas m where m.activo), '[]'::jsonb) end,
     'cuadra', abs(v_papel.monto - v_total) < 0.005,
     'total_prendas', v_total,
     'lineas', coalesce((
@@ -214,6 +220,11 @@ declare
   v_costo numeric;
   v_venta numeric;
   v_nombre text;
+  v_descripcion text;
+  v_categoria uuid;
+  v_marca uuid;
+  v_nombre_cat text;
+  v_nombre_marca text;
   v_suma_antes numeric;
   v_suma_despues numeric;
   v_monto numeric;
@@ -303,6 +314,35 @@ begin
     end if;
     v_nombre := coalesce(nullif(btrim(v_item.descripcion), ''), 'la prenda');
 
+    -- El nombre, la categoría y la marca: solo de una prenda de «Algo nuevo». Las del catálogo son de Catálogo ▸ Productos.
+    begin
+      v_descripcion := case when v_cambio ? 'descripcion' then nullif(btrim(coalesce(v_cambio ->> 'descripcion', '')), '') else v_item.descripcion end;
+      v_categoria := case when v_cambio ? 'categoria_id' then nullif(v_cambio ->> 'categoria_id', '')::uuid else v_item.categoria_id end;
+      v_marca := case when v_cambio ? 'marca_id' then nullif(v_cambio ->> 'marca_id', '')::uuid else v_item.marca_id end;
+    exception when others then
+      raise exception 'El nombre, la categoría o la marca de «%» no se entiende', v_nombre using errcode = 'P0001', hint = 'compra_corregir_cambio';
+    end;
+    if (v_descripcion, v_categoria, v_marca) is distinct from (v_item.descripcion, v_item.categoria_id, v_item.marca_id) then
+      if v_item.producto_id is not null then
+        raise exception 'El nombre, la categoría y la marca de «%» son del catálogo: se cambian en Catálogo ▸ Productos', v_nombre
+          using errcode = 'P0001', hint = 'compra_corregir_del_catalogo';
+      end if;
+      if v_descripcion is null then
+        raise exception 'Escribe el nombre de la prenda' using errcode = 'P0001', hint = 'compra_corregir_nombre';
+      end if;
+      if length(v_descripcion) > 200 then
+        raise exception 'El nombre de «%» es muy largo: hasta 200 letras', v_nombre using errcode = 'P0001', hint = 'orden_compra_descripcion';
+      end if;
+      if v_categoria is distinct from v_item.categoria_id
+         and not exists (select 1 from retail.categorias c where c.id = v_categoria and c.activo) then
+        raise exception 'Elige una categoría activa para «%»', v_nombre using errcode = 'P0001', hint = 'orden_compra_categoria';
+      end if;
+      if v_marca is distinct from v_item.marca_id
+         and not exists (select 1 from retail.marcas m where m.id = v_marca and m.activo) then
+        raise exception 'Elige una marca activa para «%»', v_nombre using errcode = 'P0001', hint = 'orden_compra_marca';
+      end if;
+    end if;
+
     begin
       v_cantidad := case when v_cambio ? 'cantidad' then (v_cambio ->> 'cantidad')::numeric::integer else v_item.cantidad end;
       if v_cambio ? 'cantidad' and (v_cambio ->> 'cantidad')::numeric <> trunc((v_cambio ->> 'cantidad')::numeric) then
@@ -336,10 +376,11 @@ begin
         using errcode = 'P0001', hint = 'compra_corregir_menos_de_lo_enviado';
     end if;
     -- El precio de venta, con la misma regla de las órdenes (de 0 a 5 000, y el 0 solo donde el catálogo lo admite).
-    perform retail.fn_orden_compra_validar_sugerido(v_n + 1, jsonb_build_object('precio_venta_sugerido', v_venta), v_item.categoria_id);
+    perform retail.fn_orden_compra_validar_sugerido(v_n + 1, jsonb_build_object('precio_venta_sugerido', v_venta), v_categoria);
     v_venta := round(v_venta, 2);
 
-    if (v_cantidad, v_costo, v_venta) is not distinct from (v_item.cantidad, v_item.precio_unitario, v_item.precio_venta_sugerido) then
+    if (v_cantidad, v_costo, v_venta, v_descripcion, v_categoria, v_marca)
+       is not distinct from (v_item.cantidad, v_item.precio_unitario, v_item.precio_venta_sugerido, v_item.descripcion, v_item.categoria_id, v_item.marca_id) then
       continue;
     end if;
     v_n := v_n + 1;
@@ -357,8 +398,24 @@ begin
       values (p_lote, p_papel_id, v_item.id, 'precio_venta', v_item.precio_venta_sugerido::text, v_venta::text, v_actor);
     end if;
 
+    if v_descripcion is distinct from v_item.descripcion then
+      insert into retail.compra_correcciones (lote, papel_id, orden_compra_item_id, campo, antes, despues, corregida_por)
+      values (p_lote, p_papel_id, v_item.id, 'nombre', v_item.descripcion, v_descripcion, v_actor);
+    end if;
+    if v_categoria is distinct from v_item.categoria_id then
+      v_nombre_cat := (select c.nombre from retail.categorias c where c.id = v_item.categoria_id);
+      insert into retail.compra_correcciones (lote, papel_id, orden_compra_item_id, campo, antes, despues, corregida_por)
+      values (p_lote, p_papel_id, v_item.id, 'categoria', v_nombre_cat, (select c.nombre from retail.categorias c where c.id = v_categoria), v_actor);
+    end if;
+    if v_marca is distinct from v_item.marca_id then
+      v_nombre_marca := (select m.nombre from retail.marcas m where m.id = v_item.marca_id);
+      insert into retail.compra_correcciones (lote, papel_id, orden_compra_item_id, campo, antes, despues, corregida_por)
+      values (p_lote, p_papel_id, v_item.id, 'marca', v_nombre_marca, (select m.nombre from retail.marcas m where m.id = v_marca), v_actor);
+    end if;
+
     update retail.orden_compra_items
-       set cantidad = v_cantidad, precio_unitario = v_costo, precio_venta_sugerido = v_venta
+       set cantidad = v_cantidad, precio_unitario = v_costo, precio_venta_sugerido = v_venta,
+           descripcion = v_descripcion, categoria_id = v_categoria, marca_id = v_marca
      where id = v_item.id;
     if not (v_item.orden_compra_id = any (v_ordenes)) then
       v_ordenes := v_ordenes || v_item.orden_compra_id;

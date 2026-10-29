@@ -18,7 +18,9 @@ import {
 const prenda = (id: string, o: Partial<PrendaParaCorregir> = {}): PrendaParaCorregir => ({
   id,
   nombre: "Polo Venus",
+  categoriaId: "c1",
   categoria: "Polos",
+  marcaId: "m1",
   marca: "Moda Mia",
   destinoId: "t1",
   destino: "Tienda Trujillo",
@@ -45,6 +47,14 @@ const compra = (o: Partial<CompraParaCorregir> = {}): CompraParaCorregir => ({
   cuadra: true,
   totalPrendas: 480,
   prendas: [prenda("a"), prenda("b", { cantidad: 4, costo: 45, precioVenta: 149.9 })],
+  categorias: [
+    { id: "c1", nombre: "Polos" },
+    { id: "c2", nombre: "Blusas" },
+  ],
+  marcas: [
+    { id: "m1", nombre: "Moda Mia" },
+    { id: "m2", nombre: "Nueva Era" },
+  ],
   ...o,
 });
 
@@ -135,12 +145,12 @@ describe("cambiosDePrenda y cambiosParaLaBase", () => {
   const c = compra();
 
   it("solo cuenta lo que cambió, con los números ya leídos", () => {
-    expect(cambiosDePrenda(c.prendas[0]!, { cantidad: "6", costo: "40,00", venta: "129.90" })).toEqual({ costo: 40 });
-    expect(cambiosDePrenda(c.prendas[0]!, { cantidad: "8", costo: "50.00", venta: "119.9" })).toEqual({ cantidad: 8, precioVenta: 119.9 });
+    expect(cambiosDePrenda(c.prendas[0]!, { ...borradorDe(c.prendas[0]!), costo: "40,00" })).toEqual({ costo: 40 });
+    expect(cambiosDePrenda(c.prendas[0]!, { ...borradorDe(c.prendas[0]!), cantidad: "8", venta: "119.9" })).toEqual({ cantidad: 8, precioVenta: 119.9 });
   });
 
   it("un dato mal escrito no cuenta como cambio", () => {
-    expect(cambiosDePrenda(c.prendas[0]!, { cantidad: "x", costo: "", venta: "129.90" })).toEqual({});
+    expect(cambiosDePrenda(c.prendas[0]!, { ...borradorDe(c.prendas[0]!), cantidad: "x", costo: "" })).toEqual({});
   });
 
   it("lo que se manda lleva solo las prendas con cambios y solo sus campos", () => {
@@ -157,6 +167,52 @@ describe("cambiosDePrenda y cambiosParaLaBase", () => {
     expect(cambiosParaLaBase(sinVenta.prendas, borradores(sinVenta))).toEqual([]);
     const lista = cambiosParaLaBase(c.prendas, borradores(c, { a: { venta: "" } }));
     expect(lista).toEqual([{ item_id: "a", precio_venta: null }]);
+  });
+});
+
+describe("nombre, categoría y marca (solo de «Algo nuevo»)", () => {
+  const nueva = prenda("n");
+  const catalogo = prenda("c", { esCatalogo: true, productoId: "pp" });
+
+  it("se cambian en una prenda de «Algo nuevo» y se mandan con sus nombres de campo", () => {
+    const b = { ...borradorDe(nueva), nombre: "  Polo Venus manga larga ", categoriaId: "c2", marcaId: "m2" };
+    expect(cambiosDePrenda(nueva, b)).toEqual({ descripcion: "Polo Venus manga larga", categoriaId: "c2", marcaId: "m2" });
+    const c = compra({ prendas: [nueva] });
+    expect(cambiosParaLaBase(c.prendas, new Map([["n", b]]))).toEqual([
+      { item_id: "n", descripcion: "Polo Venus manga larga", categoria_id: "c2", marca_id: "m2" },
+    ]);
+  });
+
+  it("en una prenda del catálogo no cuentan, aunque el borrador los traiga distintos", () => {
+    const b = { ...borradorDe(catalogo), nombre: "Otro", categoriaId: "c2", marcaId: "m2" };
+    expect(cambiosDePrenda(catalogo, b)).toEqual({});
+    expect(problemasDePrenda(catalogo, { ...b, nombre: "" }).nombre).toBeNull();
+  });
+
+  it("el nombre no queda vacío ni pasa de 200 letras, y hay categoría y marca", () => {
+    const b = borradorDe(nueva);
+    expect(problemasDePrenda(nueva, { ...b, nombre: "   " }).nombre).toMatch(/nombre/);
+    expect(problemasDePrenda(nueva, { ...b, nombre: "x".repeat(201) }).nombre).toMatch(/200/);
+    expect(problemasDePrenda(nueva, { ...b, categoriaId: "" }).categoria).toMatch(/categoría/);
+    expect(problemasDePrenda(nueva, { ...b, marcaId: "" }).marca).toMatch(/marca/);
+    expect(prendaConProblema(nueva, b)).toBe(false);
+  });
+
+  it("un nombre vacío no cuenta como cambio (no se manda nada)", () => {
+    expect(cambiosDePrenda(nueva, { ...borradorDe(nueva), nombre: "" })).toEqual({});
+  });
+
+  it("la lectura trae las categorías y las marcas para elegir", () => {
+    const c = leerCompraParaCorregir({
+      papel: { id: "p", monto: 1, pagado: 1 },
+      total_prendas: 1,
+      lineas: [{ id: "l", cantidad: 1, costo: 1, categoria_id: "c1", marca_id: "m1" }],
+      categorias: [{ id: "c1", nombre: "Polos" }, { id: "x" }],
+      marcas: [{ id: "m1", nombre: "Moda Mia" }],
+    })!;
+    expect(c.categorias).toEqual([{ id: "c1", nombre: "Polos" }]);
+    expect(c.marcas).toEqual([{ id: "m1", nombre: "Moda Mia" }]);
+    expect(c.prendas[0]).toMatchObject({ categoriaId: "c1", marcaId: "m1" });
   });
 });
 

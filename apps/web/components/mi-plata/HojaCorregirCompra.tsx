@@ -10,14 +10,16 @@ import { Volver } from "@/components/ui/Volver";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoMonto } from "@/components/ui/campos";
+import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { cargarCompraParaCorregir, corregirCompra } from "@/lib/corregir-compra-acciones";
 import {
   borradorDe,
+  cambiosDePrenda,
   cambiosParaLaBase,
   cuentaDeLaCorreccion,
   prendaCambio,
+  NOMBRE_MAXIMO,
   prendaConProblema,
   problemasDePrenda,
   textoDeCambios,
@@ -25,6 +27,7 @@ import {
   textoMotivo,
   type Borrador,
   type CompraParaCorregir,
+  type Opcion,
   type PrendaParaCorregir,
 } from "@/lib/corregir-compra-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -132,6 +135,8 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
               {prenda ? (
                 <FormularioDePrenda
                   prenda={prenda}
+                  categorias={compra.categorias}
+                  marcas={compra.marcas}
                   borrador={borradores.get(prenda.id) ?? borradorDe(prenda)}
                   alCambiar={(campo, valor) => cambiar(prenda, campo, valor)}
                   alDescartar={() => setBorradores((m) => new Map(m).set(prenda.id, borradorDe(prenda)))}
@@ -144,6 +149,9 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                     const b = borradores.get(p.id) ?? borradorDe(p);
                     const cambio = prendaCambio(p, b);
                     const cantidad = leerCantidad(b.cantidad) ?? p.cantidad;
+                    const nombre = !p.esCatalogo && b.nombre.trim() !== "" ? b.nombre.trim() : p.nombre;
+                    const categoria = compra.categorias.find((c) => c.id === b.categoriaId)?.nombre ?? p.categoria;
+                    const marca = compra.marcas.find((m) => m.id === b.marcaId)?.nombre ?? p.marca;
                     return (
                       <li key={p.id}>
                         <button
@@ -155,11 +163,11 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                             cambio ? "border-ambar bg-ambar/10" : "border-sand bg-papel"
                           } ${compra.sePuede ? "hover:bg-hueso" : ""}`}
                         >
-                          <MiniaturaPrenda fotoUrl={null} categoria={p.categoria} />
+                          <MiniaturaPrenda fotoUrl={null} categoria={categoria} />
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-tinta">{p.nombre}</span>
+                            <span className="block truncate text-sm font-medium text-tinta">{nombre}</span>
                             <span className="block truncate text-xs text-taupe">
-                              {[p.categoria, p.marca, p.destino].filter(Boolean).join(" · ")}
+                              {[categoria, marca, p.destino].filter(Boolean).join(" · ")}
                             </span>
                             <span className="block text-xs tabular-nums text-taupe">
                               {cantidad === 1 ? "1 unidad" : `${cantidad} unidades`} · {soles(leerPrecioDe(b, p))} c/u
@@ -231,6 +239,8 @@ function leerPrecioDe(b: Borrador, p: PrendaParaCorregir): number {
 
 function FormularioDePrenda({
   prenda,
+  categorias,
+  marcas,
   borrador,
   alCambiar,
   alDescartar,
@@ -238,6 +248,8 @@ function FormularioDePrenda({
   bloqueado,
 }: {
   prenda: PrendaParaCorregir;
+  categorias: readonly Opcion[];
+  marcas: readonly Opcion[];
   borrador: Borrador;
   alCambiar: (campo: keyof Borrador, valor: string) => void;
   alDescartar: () => void;
@@ -247,6 +259,7 @@ function FormularioDePrenda({
   const problemas = problemasDePrenda(prenda, borrador);
   const cantidad = leerCantidad(borrador.cantidad);
   const cambio = prendaCambio(prenda, borrador);
+  const cambios = cambiosDePrenda(prenda, borrador);
   const antes = (texto: string, cambioEsteDato: boolean) => (cambioEsteDato ? `Antes: ${texto}` : undefined);
   return (
     <div className="space-y-4">
@@ -259,6 +272,41 @@ function FormularioDePrenda({
           {prenda.esCatalogo ? "Del catálogo" : "Algo nuevo"}
         </Chip>
       </div>
+
+      {!prenda.esCatalogo && (
+        <div className="space-y-3">
+          <CampoTexto
+            etiqueta="Nombre"
+            value={borrador.nombre}
+            maxLength={NOMBRE_MAXIMO}
+            autoComplete="off"
+            disabled={bloqueado}
+            onChange={(e) => alCambiar("nombre", e.target.value)}
+            tono={problemas.nombre ? "error" : borrador.nombre.trim() !== prenda.nombre ? "aviso" : "neutro"}
+            pie={problemas.nombre ?? (borrador.nombre.trim() !== prenda.nombre ? `Antes: ${prenda.nombre}` : undefined)}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <CampoSelect
+              etiqueta="Categoría"
+              valor={borrador.categoriaId}
+              onValor={(v) => alCambiar("categoriaId", v)}
+              opciones={opcionesDe(categorias, prenda.categoriaId, prenda.categoria)}
+              deshabilitado={bloqueado}
+              tono={problemas.categoria ? "error" : borrador.categoriaId !== prenda.categoriaId ? "aviso" : "neutro"}
+              pie={problemas.categoria ?? (borrador.categoriaId !== prenda.categoriaId ? `Antes: ${prenda.categoria}` : undefined)}
+            />
+            <CampoSelect
+              etiqueta="Marca"
+              valor={borrador.marcaId}
+              onValor={(v) => alCambiar("marcaId", v)}
+              opciones={opcionesDe(marcas, prenda.marcaId, prenda.marca)}
+              deshabilitado={bloqueado}
+              tono={problemas.marca ? "error" : borrador.marcaId !== prenda.marcaId ? "aviso" : "neutro"}
+              pie={problemas.marca ?? (borrador.marcaId !== prenda.marcaId ? `Antes: ${prenda.marca}` : undefined)}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <span className="campo-etiqueta">¿Cuántas unidades?</span>
@@ -279,7 +327,7 @@ function FormularioDePrenda({
           }}
           tono={problemas.cantidad ? "error" : undefined}
         />
-        <p className={`min-h-4 text-xs ${problemas.cantidad ? "text-rojo-profundo" : "text-taupe"}`}>
+        <p className={`min-h-4 text-xs ${problemas.cantidad ? "text-rojo-profundo" : cambios.cantidad !== undefined ? "text-ambar" : "text-taupe"}`}>
           {problemas.cantidad ??
             antes(`${prenda.cantidad} ${prenda.cantidad === 1 ? "unidad" : "unidades"}`, cantidad !== null && cantidad !== prenda.cantidad) ??
             (prenda.enviadas > 0 ? `Ya salieron ${prenda.enviadas} en un envío: no puede quedar en menos.` : "")}
@@ -294,7 +342,7 @@ function FormularioDePrenda({
           disabled={bloqueado}
           value={borrador.costo}
           onChange={(e) => alCambiar("costo", e.target.value)}
-          tono={problemas.costo ? "error" : "neutro"}
+          tono={problemas.costo ? "error" : cambios.costo !== undefined ? "aviso" : "neutro"}
           pie={problemas.costo ?? antes(soles(prenda.costo), borrador.costo.trim() !== "" && Math.abs(Number(borrador.costo.replace(",", ".")) - prenda.costo) > 0.001)}
         />
         <CampoMonto
@@ -304,7 +352,7 @@ function FormularioDePrenda({
           disabled={bloqueado}
           value={borrador.venta}
           onChange={(e) => alCambiar("venta", e.target.value)}
-          tono={problemas.venta ? "error" : "neutro"}
+          tono={problemas.venta ? "error" : cambios.precioVenta !== undefined ? "aviso" : "neutro"}
           pie={problemas.venta ?? antes(prenda.precioVenta == null ? "sin precio" : soles(prenda.precioVenta), borrador.venta.trim() !== (prenda.precioVenta == null ? "" : prenda.precioVenta.toFixed(2)))}
         />
       </div>
@@ -320,4 +368,11 @@ function FormularioDePrenda({
       )}
     </div>
   );
+}
+
+/** Las opciones del combo: las activas y, si la que tiene la prenda ya no está entre ellas (se desactivó), también esa, para que se vea qué tenía. */
+function opcionesDe(lista: readonly Opcion[], actualId: string, actualNombre: string): { valor: string; texto: string }[] {
+  const opciones = lista.map((o) => ({ valor: o.id, texto: o.nombre }));
+  if (actualId && !lista.some((o) => o.id === actualId)) opciones.unshift({ valor: actualId, texto: `${actualNombre} (inactiva)` });
+  return opciones;
 }

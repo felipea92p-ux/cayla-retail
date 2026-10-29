@@ -110,6 +110,20 @@ const CAMBIOS = (...cambios) => `jsonb_build_array(${cambios.join(", ")})`;
 const cambio = (n, campos) => `jsonb_build_object('item_id', current_setting('t.it${n}'), ${campos})`;
 const CORREGIR = (cambios, lote = "bbbbbbbb-0561-4000-8000-000000000001", papel = ID) =>
   `select retail.corregir_compra_rapida('${papel}', '${lote}', ${cambios})`;
+// Una compra con UNA prenda de «Algo nuevo» (sin prenda del catálogo): 5 a S/ 22 en Trujillo, con la categoría y la marca de p1.
+const NUEVA = "aaaaaaaa-0561-4000-8000-0000000000c3";
+const LINEA_NUEVA = `jsonb_build_array(jsonb_build_object('descripcion', 'Polo Venus', 'categoria_id', (select categoria_id from retail.productos where id = current_setting('t.p1')::uuid),
+  'marca_id', (select marca_id from retail.productos where id = current_setting('t.p1')::uuid), 'cantidad', 5, 'costo', 22, 'precio_venta', 39.90, 'destino_id', current_setting('t.tru')::uuid))`;
+const COMPRA_NUEVA = `select retail.registrar_compra_rapida('${NUEVA}', current_setting('t.prov')::uuid, 'boleta', 110, 'papeles/x.jpg', ${LINEA_NUEVA})`;
+// Deja en `t.nu1` la línea de «Algo nuevo», y en `t.cat2` y `t.marca2` otra categoría y otra marca activas.
+const ITEM_NUEVO = `
+reset role;
+select i.id as nu1, i.categoria_id as cat1, i.marca_id as marca1 from retail.orden_compra_items i join retail.ordenes_compra o on o.id = i.orden_compra_id where o.papel_id = '${NUEVA}' \\gset
+select id as cat2 from retail.categorias where activo and id <> :'cat1' order by nombre limit 1 \\gset
+select id as marca2 from retail.marcas where activo and id <> :'marca1' order by nombre limit 1 \\gset
+select set_config('t.nu1', :'nu1', true), set_config('t.cat2', :'cat2', true), set_config('t.marca2', :'marca2', true) \\g /dev/null
+`;
+const cambioNuevo = (campos) => `jsonb_build_object('item_id', current_setting('t.nu1'), ${campos})`;
 const intento = (sql) => `pg_temp.intento($q$${sql}$q$)`;
 const hint = (sql) => `split_part(${intento(sql)}, '|', 2)`;
 const TIENE = `retail.fn_mi_plata_tiene(:'micaela')`;
@@ -327,6 +341,54 @@ select set_config('retail.compra_corrigiendo', 'si', true) \\g /dev/null
 select left(${intento(`update retail.compra_papeles set tipo = 'factura' where id = '${ID}'`)}, 14),
        ${intento(`update retail.compra_papeles set monto = 300, pagado = 300 where id = '${ID}'`)};`,
   "P0001||Lo que  / P0001||Lo que |SIN_ERROR",
+);
+
+caso(
+  "una prenda de «Algo nuevo» cambia su nombre, su categoría y su marca, con su rastro; la de catálogo no (compra_corregir_del_catalogo)",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${COMPRA_NUEVA} \\g /dev/null
+${ITEMS()}
+${ITEM_NUEVO}
+${como(MICAELA, "c")}
+select ${hint(CORREGIR(CAMBIOS(cambio(1, "'descripcion', 'Otro nombre'")), "bbbbbbbb-0561-4000-8000-000000000010"))},
+       ${hint(CORREGIR(CAMBIOS(cambio(1, "'categoria_id', current_setting('t.cat2')")), "bbbbbbbb-0561-4000-8000-000000000011"))},
+       ${intento(CORREGIR(CAMBIOS(cambio(1, "'costo', 40")), "bbbbbbbb-0561-4000-8000-000000000012"))};
+select (${CORREGIR(CAMBIOS(cambioNuevo("'descripcion', 'Polo Venus manga larga', 'categoria_id', current_setting('t.cat2'), 'marca_id', current_setting('t.marca2')")), "bbbbbbbb-0561-4000-8000-000000000013", NUEVA)}) ->> 'prendas';
+reset role;
+select (select i.descripcion || '/' || (i.categoria_id = :'cat2') || '/' || (i.marca_id = :'marca2') from retail.orden_compra_items i where i.id = :'nu1'),
+       (select string_agg(campo, ',' order by campo) from retail.compra_correcciones where papel_id = '${NUEVA}');`,
+  "compra_corregir_del_catalogo|compra_corregir_del_catalogo|SIN_ERROR / 1 / Polo Venus manga larga/true/true|categoria,marca,nombre",
+);
+
+caso(
+  "nombre vacío o muy largo, categoría o marca inactiva o que no existe: se rechazan sin dejar nada",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA_NUEVA} \\g /dev/null
+${ITEM_NUEVO}
+reset role;
+update retail.marcas set activo = false where id = :'marca2';
+${como(MICAELA, "c")}
+select ${hint(CORREGIR(CAMBIOS(cambioNuevo("'descripcion', '   '")), "bbbbbbbb-0561-4000-8000-000000000014", NUEVA))},
+       ${hint(CORREGIR(CAMBIOS(cambioNuevo("'descripcion', repeat('x', 201)")), "bbbbbbbb-0561-4000-8000-000000000015", NUEVA))},
+       ${hint(CORREGIR(CAMBIOS(cambioNuevo("'categoria_id', gen_random_uuid()")), "bbbbbbbb-0561-4000-8000-000000000016", NUEVA))},
+       ${hint(CORREGIR(CAMBIOS(cambioNuevo("'marca_id', current_setting('t.marca2')")), "bbbbbbbb-0561-4000-8000-000000000017", NUEVA))},
+       ${hint(CORREGIR(CAMBIOS(cambioNuevo("'marca_id', 'no-es-un-uuid'")), "bbbbbbbb-0561-4000-8000-000000000018", NUEVA))};
+reset role;
+select (select descripcion from retail.orden_compra_items where id = :'nu1'), (select count(*) from retail.compra_correcciones);`,
+  "compra_corregir_nombre|orden_compra_descripcion|orden_compra_categoria|orden_compra_marca|compra_corregir_cambio / Polo Venus|0",
+);
+
+caso(
+  "la lectura trae las categorías y marcas activas para elegir, y nada si ya no se puede corregir",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+select jsonb_array_length(retail.fn_compra_para_corregir('${ID}') -> 'categorias') > 0, jsonb_array_length(retail.fn_compra_para_corregir('${ID}') -> 'marcas') > 0;
+reset role;
+update retail.compra_papeles set estado = 'completado' where id = '${ID}';
+${como(MICAELA, "c")}
+select jsonb_array_length(retail.fn_compra_para_corregir('${ID}') -> 'categorias'), jsonb_array_length(retail.fn_compra_para_corregir('${ID}') -> 'marcas');`,
+  "t|t / 0|0",
 );
 
 caso(

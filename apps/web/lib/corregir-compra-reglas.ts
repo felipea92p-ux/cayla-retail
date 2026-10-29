@@ -13,7 +13,9 @@ export type PrendaParaCorregir = {
   /** La línea de la orden (`orden_compra_items.id`): lo que se manda para corregirla. */
   id: string;
   nombre: string;
+  categoriaId: string;
   categoria: string;
+  marcaId: string;
   marca: string;
   destinoId: string | null;
   destino: string | null;
@@ -42,7 +44,12 @@ export type CompraParaCorregir = {
   cuadra: boolean;
   totalPrendas: number;
   prendas: PrendaParaCorregir[];
+  /** Las activas, para elegir la categoría y la marca de una prenda de «Algo nuevo». */
+  categorias: Opcion[];
+  marcas: Opcion[];
 };
+
+export type Opcion = { id: string; nombre: string };
 
 const redondear = (n: number): number => Math.round(n * 100) / 100;
 const num = (v: unknown): number | null => {
@@ -71,7 +78,9 @@ export function leerCompraParaCorregir(data: unknown): CompraParaCorregir | null
     prendas.push({
       id: lid,
       nombre: texto(l.descripcion) ?? texto(l.categoria) ?? "Prenda",
+      categoriaId: texto(l.categoria_id) ?? "",
       categoria: texto(l.categoria) ?? "",
+      marcaId: texto(l.marca_id) ?? "",
       marca: texto(l.marca) ?? "",
       destinoId: texto(l.destino_id),
       destino: texto(l.destino),
@@ -97,7 +106,21 @@ export function leerCompraParaCorregir(data: unknown): CompraParaCorregir | null
     cuadra: data.cuadra === true,
     totalPrendas,
     prendas,
+    categorias: leerOpciones(data.categorias),
+    marcas: leerOpciones(data.marcas),
   };
+}
+
+function leerOpciones(v: unknown): Opcion[] {
+  if (!Array.isArray(v)) return [];
+  const lista: Opcion[] = [];
+  for (const o of v) {
+    if (!esObjeto(o)) continue;
+    const id = texto(o.id);
+    const nombre = texto(o.nombre);
+    if (id && nombre) lista.push({ id, nombre });
+  }
+  return lista;
 }
 
 /** Por qué una compra ya no se corrige, en palabras de tienda (las claves son las de `fn_compra_corregible`). */
@@ -117,20 +140,38 @@ export function textoMotivo(motivo: string | null): string {
 }
 
 /** Lo que la persona escribe de una prenda (siempre texto: así se ve mientras se escribe). */
-export type Borrador = { cantidad: string; costo: string; venta: string };
+export type Borrador = { cantidad: string; costo: string; venta: string; nombre: string; categoriaId: string; marcaId: string };
+
+/** El nombre más largo que admite una línea de una orden (`fn_orden_compra_validar`). */
+export const NOMBRE_MAXIMO = 200;
 
 const dosDecimales = (n: number): string => n.toFixed(2);
 
 export function borradorDe(p: PrendaParaCorregir): Borrador {
-  return { cantidad: String(p.cantidad), costo: dosDecimales(p.costo), venta: p.precioVenta == null ? "" : dosDecimales(p.precioVenta) };
+  return {
+    cantidad: String(p.cantidad),
+    costo: dosDecimales(p.costo),
+    venta: p.precioVenta == null ? "" : dosDecimales(p.precioVenta),
+    nombre: p.nombre,
+    categoriaId: p.categoriaId,
+    marcaId: p.marcaId,
+  };
 }
 
 /** Lo que hay que arreglar de cada dato, o nada. Lo mismo que rechaza la base: cantidad entera de 1 a 99 999 y no menos de lo enviado, costo
  *  de S/ 0 a S/ 99 999.99, y el precio de venta de S/ 0 a S/ 5 000 (el 0 solo donde el catálogo lo admite). */
-export function problemasDePrenda(p: PrendaParaCorregir, b: Borrador): { cantidad: string | null; costo: string | null; venta: string | null } {
+export function problemasDePrenda(
+  p: PrendaParaCorregir,
+  b: Borrador,
+): { cantidad: string | null; costo: string | null; venta: string | null; nombre: string | null; categoria: string | null; marca: string | null } {
   const cantidad = leerCantidad(b.cantidad);
   const venta = b.venta.trim() === "" ? (p.precioVenta == null ? "sin-cambio" : null) : leerPrecioVenta(b.venta, p.admitePrecioCero);
+  // El nombre, la categoría y la marca son de «Algo nuevo»: las del catálogo no se tocan desde aquí.
+  const nombre = b.nombre.trim();
   return {
+    nombre: p.esCatalogo ? null : nombre === "" ? "Escribe el nombre de la prenda" : nombre.length > NOMBRE_MAXIMO ? `El nombre llega hasta ${NOMBRE_MAXIMO} letras` : null,
+    categoria: p.esCatalogo || b.categoriaId !== "" ? null : "Elige la categoría",
+    marca: p.esCatalogo || b.marcaId !== "" ? null : "Elige la marca",
     cantidad:
       cantidad == null
         ? "Escribe cuántas unidades: un número entero, desde 1"
@@ -149,12 +190,27 @@ export function problemasDePrenda(p: PrendaParaCorregir, b: Borrador): { cantida
 
 export function prendaConProblema(p: PrendaParaCorregir, b: Borrador): boolean {
   const x = problemasDePrenda(p, b);
-  return x.cantidad !== null || x.costo !== null || x.venta !== null;
+  return Object.values(x).some((v) => v !== null);
 }
 
 /** Lo que cambió respecto a lo guardado. Un dato mal escrito no cuenta como cambio (la hoja no deja guardar mientras haya uno). */
-export function cambiosDePrenda(p: PrendaParaCorregir, b: Borrador): { cantidad?: number; costo?: number; precioVenta?: number | null } {
-  const cambios: { cantidad?: number; costo?: number; precioVenta?: number | null } = {};
+export type CambiosDePrenda = {
+  cantidad?: number;
+  costo?: number;
+  precioVenta?: number | null;
+  descripcion?: string;
+  categoriaId?: string;
+  marcaId?: string;
+};
+
+export function cambiosDePrenda(p: PrendaParaCorregir, b: Borrador): CambiosDePrenda {
+  const cambios: CambiosDePrenda = {};
+  if (!p.esCatalogo) {
+    const nombre = b.nombre.trim();
+    if (nombre !== "" && nombre !== p.nombre) cambios.descripcion = nombre;
+    if (b.categoriaId !== "" && b.categoriaId !== p.categoriaId) cambios.categoriaId = b.categoriaId;
+    if (b.marcaId !== "" && b.marcaId !== p.marcaId) cambios.marcaId = b.marcaId;
+  }
   const cantidad = leerCantidad(b.cantidad);
   if (cantidad != null && cantidad !== p.cantidad) cambios.cantidad = cantidad;
   const costo = leerPrecio(b.costo);
@@ -185,6 +241,9 @@ export function cambiosParaLaBase(prendas: readonly PrendaParaCorregir[], borrad
       ...(c.cantidad !== undefined ? { cantidad: c.cantidad } : {}),
       ...(c.costo !== undefined ? { costo: c.costo } : {}),
       ...(c.precioVenta !== undefined ? { precio_venta: c.precioVenta } : {}),
+      ...(c.descripcion !== undefined ? { descripcion: c.descripcion } : {}),
+      ...(c.categoriaId !== undefined ? { categoria_id: c.categoriaId } : {}),
+      ...(c.marcaId !== undefined ? { marca_id: c.marcaId } : {}),
     });
   }
   return lista;
