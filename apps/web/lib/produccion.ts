@@ -15,7 +15,7 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
 import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
-import { leerOjalesBotones } from "@/lib/orden-fases-reglas";
+import { FASES, RPC_PROCESOS, leerProcesos, leerProcesosDeModelos, type FaseClave, type FaseDelCatalogo } from "@/lib/orden-fases-reglas";
 import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
 
 export type LineaOrden = {
@@ -274,6 +274,10 @@ export type OpcionesNuevaOrden = {
   enCamino: Record<string, number>;
   /** Por modelo que ya contestó: si lleva ojales y botones (ADR-0551). Un modelo que NO sale acá es uno que nadie ha preguntado, distinto de «no lleva». Sin lectura, ninguno contesta. */
   ojalesBotones: Record<string, boolean>;
+  /** Por modelo: lo que dijo de cada proceso (`producto_procesos`, ADR-0570 actividad 5). «El modelo sugiere y la orden manda». */
+  procesosDelModelo: Record<string, Record<FaseClave, boolean>>;
+  /** El catálogo de procesos (`fn_procesos_produccion`); si no se pudo leer, el de respaldo. */
+  procesos: ReadonlyArray<FaseDelCatalogo>;
 };
 
 type OpcionesLeidas = {
@@ -292,8 +296,8 @@ type OpcionesLeidas = {
 };
 
 export const RPC_NUEVA_ORDEN_OPCIONES = "fn_nueva_orden_opciones";
-/** Los modelos que ya dijeron si llevan ojales y botones (ADR-0551, migración 20261028053000). */
-export const RPC_OJALES_BOTONES_DE_MODELOS = "fn_ojales_botones_de_modelos";
+/** Lo que cada modelo dijo de cada proceso (ADR-0570, actividad 5; reemplaza a `fn_ojales_botones_de_modelos`). */
+export const RPC_PROCESOS_DE_MODELOS = "fn_procesos_de_modelos";
 
 /** Los avíos vigentes de cada modelo, en el orden en que la base los entrega; una cantidad que no se lee no entra. */
 function aviosPorModelo(filas: NonNullable<OpcionesLeidas["avios_modelo"]>): Record<string, AvioDelModelo[]> {
@@ -335,9 +339,12 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
       // Lo que viene en camino es dato SECUNDARIO de lo secundario: si la lectura falla, la hoja sigue (sin contar nada en camino).
       const camino = await (supabase.rpc(RPC_TELA_EN_CAMINO as never, { p_ubicacion_id: tallerId } as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
       const enCamino = camino.error ? null : leerTelaEnCamino(camino.data);
-      // Lo que cada modelo dijo de ojales y botones también es secundario: si la función aún no está en la base o falla, ningún modelo contesta y la hoja pregunta (nunca prende el paso a ciegas).
-      const botones = await (supabase.rpc(RPC_OJALES_BOTONES_DE_MODELOS as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
-      const ojalesBotones = botones.error ? {} : leerOjalesBotones(botones.data);
+      // Lo que cada modelo dijo de sus procesos también es secundario: si la función aún no está en la base o falla, ningún modelo contesta y la hoja pregunta (nunca prende un paso a ciegas).
+      const delModelo = await (supabase.rpc(RPC_PROCESOS_DE_MODELOS as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
+      const procesosDelModelo = delModelo.error ? {} : leerProcesosDeModelos(delModelo.data);
+      const ojalesBotones = Object.fromEntries(Object.entries(procesosDelModelo).flatMap(([id, p]) => (typeof p.ojales_botones === "boolean" ? [[id, p.ojales_botones] as const] : [])));
+      // El catálogo de procesos: sin él, la hoja ofrece los de respaldo (los de siempre).
+      const catalogo = await (supabase.rpc(RPC_PROCESOS as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
       return {
         proveedores: (o.proveedores ?? []).map((p) => ({
           id: p.id,
@@ -357,6 +364,8 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
         comprometido: Object.fromEntries((o.comprometido ?? []).map((c) => [c.insumo_id, Number(c.cantidad)])),
         enCamino: Object.fromEntries([...(enCamino ?? [])].filter(([, c]) => c.cuenta > 0).map(([id, c]) => [id, c.cuenta])),
         ojalesBotones,
+        procesosDelModelo,
+        procesos: (catalogo.error ? null : leerProcesos(catalogo.data)) ?? FASES,
       } satisfies OpcionesNuevaOrden;
     })(),
     "los servicios y las telas de la orden",

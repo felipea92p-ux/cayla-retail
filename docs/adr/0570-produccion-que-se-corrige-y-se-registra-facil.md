@@ -186,6 +186,34 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
 - `tsc`, las reglas de la orden y las guardas de pantalla (guías, guía de foco, `unificar`, tema, `sugerir`, módulos): 478 en verde.
 - **Sin probar en el navegador:** el permiso de líder, la tela del corte de afuera y «Encontré tela», también a 375 px. La sesión que lo terminó corrió en un contenedor sin base local; queda para la actividad 10 junto con `/chaos`.
 
+### Actividad 5: el catálogo de procesos (migración `20261029210000`, web)
+
+**DECIDÍ:**
+- **Una tabla, `procesos_produccion`, en vez de listas escritas a mano.** Las claves de los pasos estaban en dos CHECK y en siete funciones. Ahora `produccion_fases.clave` y `proveedor_tarifas.fase_clave` apuntan al catálogo con llave foránea, y `fn_fase_secuencia` y `fn_fase_nombre` lo leen.
+- **Los doce de siempre conservan su número en la ruta** (5, 10, 15… 70). Así la CHECK `secuencia = fn_fase_secuencia(...)` sigue valiendo para las órdenes ya abiertas.
+- **Un proceso nuevo se pide como «va después de …»** y cae en un número entre sus vecinos. Su lugar no cambia nunca: lo ya abierto lo lleva guardado. Si no queda hueco, la base dice que elijas otro de al lado.
+- **Nada se borra:** un proceso se apaga. Lo de la espina (Corte, Costura…) no se apaga. Lo apagado no entra a una orden nueva, a «+ Agregar un paso» ni a una tarifa.
+- **Solo un líder** da de alta, renombra o apaga (`guardar_proceso_produccion`), en Proveedores ▸ Servicios y tarifas ▸ «Procesos del Taller» o con «Otro proceso…» dentro de «+ Agregar un paso».
+- **Se siembra «Pegar cierre»** (después de Costura) y **Lavandería pasa a llamarse «Lavado o teñido»** y vuelve a ofrecerse.
+- **«El modelo sugiere y la orden manda»:** `producto_procesos` guarda qué procesos lleva cada modelo y reemplaza a `producto_taller.lleva_ojales_botones`, que se copia y ya no se lee. Nueva orden prende los procesos del modelo, y la casilla «Recordar en la ficha del modelo» (marcada de fábrica) guarda lo elegido. `guardar_ojales_botones_modelo` y `fn_ojales_botones_de_modelos` siguen con su firma y sus avisos, y pasan por la tabla nueva.
+- **Un proceso propio es de las dos rutas** y no cambia la forma de la ruta: no es de la espina, no se marca de un toque y no va sobre pieza ni prenda. Eso sigue siendo código (ADR-0400).
+
+**DESCARTÉ:**
+- **Sembrar «Lavado o teñido» como un proceso aparte.** Lavandería ya era eso (su ayuda decía «Lavado o teñido de la prenda armada»): dos procesos partirían las tarifas y las órdenes en dos. **Felipe lo puede revertir** si los quería separados.
+- **Una clave numérica.** La clave en texto es la que ya guardan las órdenes y las tarifas; la de un proceso nuevo sale de su nombre.
+- **Que cualquiera dé de alta un proceso.** Felipe: «los da de alta el líder». Quien no es líder ve que se lo tiene que pedir.
+
+**SE ROMPE SI:**
+- Alguien edita a mano la secuencia de un proceso con órdenes abiertas: la CHECK de `produccion_fases` deja de cuadrar. La función de guardar no la cambia nunca.
+- Una migración vieja que se vuelve a pegar reescribe `fn_fase_secuencia` o `fn_fase_nombre` con su lista fija: los procesos propios se quedan sin lugar. Si alguna vez se vuelve a pegar `20261019191000`, se pega esta después.
+
+**Lo que se probó:**
+- `pnpm pruebas:produccion-catalogo-de-procesos`: 15 casos (lo sembrado con sus números, la llave foránea, la lista para la web, el alta entre vecinos y sin lugar, la clave que sale del nombre, repetido sin tildes ni mayúsculas, solo líder, renombrar y apagar, la espina, una orden con Pegar cierre, un proceso propio agregado, uno apagado rechazado, la tarifa de un proceso propio, lo que lleva cada modelo, y que se pueda pegar otra vez).
+- La suite del Ploteo deshace estos seis reemplazos leyéndolos de la migración; la de `producto-taller` vigila lo mismo de siempre sobre la tabla nueva.
+- 45 suites de Producción y de módulos vecinos en una base desde cero, con Postgres 17 y las 938 migraciones.
+- `tsc`, Knip y las 164 329 pruebas de la web en verde (prueba nueva: `lib/procesos-reglas.test.ts`).
+- **Sin probar en el navegador:** el contenedor de esta sesión tiene Postgres, pero no el resto de Supabase (sesiones y API). Queda para la actividad 10, junto con lo de la actividad 4.
+
 ## Consecuencias
 
 - La ruta pasa de `RutaDeFases.tsx` a `RutaViva.tsx`, que también arma las dos columnas. La página le pasa la tela y el costo (`izquierda`) y la ficha y la historia (`derecha`).

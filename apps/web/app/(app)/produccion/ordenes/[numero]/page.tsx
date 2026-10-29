@@ -80,6 +80,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
         datos={datos}
         opciones={opciones}
         hoy={hoy}
+        esLider={persona.rol === "lider"}
         izquierda={
           <>
             <TelaDeLaOrdenVista datos={datos} puedePedir={persona.modulos.some((m) => m.clave === "ordenes_insumos")} edicion={edicionDeTela.datos} edicionFalla={edicionDeTela.falla} />

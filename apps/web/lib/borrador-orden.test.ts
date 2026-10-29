@@ -217,8 +217,8 @@ describe("lo leído se valida: un borrador malo se ignora, no rompe nada", () =>
     delete sinNota.nota;
     expect(leerBorrador(JSON.stringify({ v: 1, guardadoEn: "2026-10-25T15:00:00.000Z", foto: sinNota }))).toBeNull();
   });
-  it("una fase de una clave que ya no existe, o una cantidad que no es texto, dan null", () => {
-    const fases = [...fasesIniciales(), { ...fasesIniciales()[0], clave: "fase_inventada" }];
+  it("una fase sin forma de clave, o una cantidad que no es texto, dan null (una clave bien formada que el líder apagó la rechaza la base al abrir, con su motivo)", () => {
+    const fases = [...fasesIniciales(), { ...fasesIniciales()[0], clave: "Fase inventada!" }];
     expect(leerBorrador(JSON.stringify({ v: 1, guardadoEn: "2026-10-25T15:00:00.000Z", foto: foto({ fases: fases as never }) }))).toBeNull();
     expect(leerBorrador(JSON.stringify({ v: 1, guardadoEn: "2026-10-25T15:00:00.000Z", foto: foto({ cantidades: { "v-1": 12 } as never }) }))).toBeNull();
   });

@@ -1,4 +1,4 @@
-import { FASES, fasesIniciales, type FaseBorrador } from "./orden-fases-reglas";
+import { fasesIniciales, type FaseBorrador } from "./orden-fases-reglas";
 import type { TelaBorrador } from "./orden-tela-reglas";
 
 // El borrador de «Nueva orden» (ADR-0509): lo escrito sobrevive a salir de la pantalla. Un compositor sobre la lista se abandona con más facilidad que una hoja (basta tocar el menú) y
@@ -82,12 +82,13 @@ const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === "obj
 const esTexto = (x: unknown): x is string => typeof x === "string";
 const esListaDeTextos = (x: unknown): x is string[] => Array.isArray(x) && x.every(esTexto);
 const esTextoONulo = (x: unknown): x is string | null => x === null || esTexto(x);
-const CLAVES_DE_FASE = new Set<string>(FASES.map((f) => f.clave));
+// Una clave con forma de proceso del catálogo (ADR-0570, actividad 5): un proceso propio del borrador que el líder apagó después lo rechaza la base al abrir, con su motivo.
+const esClaveDeFase = (c: string) => /^[a-z][a-z0-9_]{1,39}$/.test(c);
 
 function esFase(x: unknown): x is FaseBorrador {
   if (!esObjeto(x)) return false;
   return (
-    esTexto(x.clave) && CLAVES_DE_FASE.has(x.clave) && typeof x.encendida === "boolean" && (x.quien === "taller" || x.quien === "servicio") && esTextoONulo(x.proveedorId) &&
+    esTexto(x.clave) && esClaveDeFase(x.clave) && typeof x.encendida === "boolean" && (x.quien === "taller" || x.quien === "servicio") && esTextoONulo(x.proveedorId) &&
     esTexto(x.tarifa) && esTexto(x.fijo) && esTexto(x.minimo) && esTexto(x.fechaPrometida) && (x.posicion === null || x.posicion === "pieza" || x.posicion === "prenda")
   );
 }

@@ -384,6 +384,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Actividad 4b: «Anular» una salida o una vuelta mal anotada. «Falta» = el porqué (la base lo exige, `anular_sin_motivo`) y quién lo anota.
   "components/orden-pagina/AnularSalidaOVueltaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnularSalidaOVueltaModal.tsx"] },
   "components/proveedores-produccion/TarifaServicioModal.tsx": { estado: "aplicada", evidencia: ["components/proveedores-produccion/TarifaServicioModal.tsx"] },
+  "components/proveedores-produccion/ProcesoModal.tsx": { estado: "aplicada", evidencia: ["components/proveedores-produccion/ProcesoModal.tsx"] },
   "components/insumos-taller/NuevaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx"] },
   "components/insumos-taller/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/EditarTelaModal.tsx"] },
   "components/insumos-taller/NuevoInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx"] },

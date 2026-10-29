@@ -56,6 +56,18 @@ const DESHACER_FALLAS = PARCHES_FALLAS.map(
   ({ viejo, nuevo }) => `  v_def := pg_get_functiondef('retail.fn_fases_de_orden(uuid)'::regprocedure);
   execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
 ).join("\n");
+// 20261029210000 (ADR-0570, el catálogo de procesos) cambió líneas de `fn_produccion_fases_normalizar`, `guardar_tarifa_servicio`, `fn_tarifas_de_servicios` y `agregar_paso_orden`
+// por consultas al catálogo. Su inverso exacto también se LEE de la migración (de la última a la primera) y va antes que todo lo demás: es lo más nuevo.
+const PARCHES_CATALOGO = [
+  ...leer("20261029210000_produccion_catalogo_de_procesos.sql").matchAll(
+    /select pg_temp\.reemplazar_anclado\('([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$\);/g
+  ),
+].map(([, firma, viejo, nuevo]) => ({ firma, viejo, nuevo }));
+if (PARCHES_CATALOGO.length !== 6) throw new Error(`20261029210000 debería tener 6 reemplazos anclados y tiene ${PARCHES_CATALOGO.length}: revisa el inverso de esta suite`);
+const DESHACER_CATALOGO = [...PARCHES_CATALOGO].reverse().map(
+  ({ firma, viejo, nuevo }) => `  v_def := pg_get_functiondef('${firma}'::regprocedure);
+  execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
+).join("\n");
 // Y `registrar_avance`, que ADR-0570 volvió un envoltorio de `anotar_termine`: vuelve a ser la de 20261014155000 (leída de esa migración), donde 20261019192000 inserta su regla
 // «una fase que se marca no lleva Terminé» como la primera vez.
 const REGISTRAR_AVANCE_DE_ANTES = (() => {
@@ -70,6 +82,7 @@ ${REGISTRAR_AVANCE_DE_ANTES}
 do $deshacer_cinco$
 declare v_def text;
 begin
+${DESHACER_CATALOGO}
 ${DESHACER_FALLAS}
   v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
   execute replace(v_def,

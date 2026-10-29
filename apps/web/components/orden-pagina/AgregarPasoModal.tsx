@@ -9,12 +9,14 @@ import { FilaFase } from "@/components/orden-produccion/FasesDeLaOrden";
 import { useAltaDeProveedorServicio } from "@/components/orden-produccion/useAltaDeProveedorServicio";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoSelect } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Casilla } from "@/components/ui/Casilla";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { fasesParaRpc, problemasFases, proveedoresQueSirven, secuenciaDe, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type Quien, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import { camposDeAgregarPaso } from "@/lib/orden-pagina-guia";
+import { OTRO_PROCESO, RPC_GUARDAR_PROCESO, despuesDeEnLaRuta, problemaDeNombreDeProceso } from "@/lib/procesos-reglas";
 import { RPC_AGREGAR_PASO, RPC_QUITAR_PASO, type OrdenPagina, type PasoAgregable } from "@/lib/orden-pagina-reglas";
 import type { OpcionesNuevaOrden } from "@/lib/produccion";
 import { firmar } from "@/lib/responsable-reglas";
@@ -28,26 +30,53 @@ import { useResponsable } from "@/lib/useResponsable";
 // `problemasFases`, que dice lo mismo que la base rechazaría (`agregar_paso_orden` → `fn_produccion_fases_normalizar`); la base vuelve a validar y pone el candado de «un paso de después ya empezó»
 // (`paso_despues_empezado`). Un servicio que todavía no está en el directorio se registra desde aquí, o queda «pendiente de registrar».
 //
-// Lo del MODELO: Ojales y botones es un dato del modelo (ADR-0551). Si nadie ha dicho si este modelo los lleva, agregar el paso lo deja anotado como «sí lleva» y las próximas órdenes nacen con el paso
-// prendido; si el modelo ya decía que no, el paso vale solo para esta orden y la hoja lo dice. Anotarlo es secundario: si falla, el paso ya quedó agregado.
+// Lo del MODELO (ADR-0551, ADR-0570 actividad 5): lo que lleva cada modelo es un dato del modelo. «Recordar en la ficha» (marcada si el modelo no decía que no) deja anotado que lo lleva y las
+// próximas órdenes nacen con el paso prendido; desmarcada, el paso vale solo para esta orden. Anotarlo es secundario: si falla, el paso ya quedó agregado.
+//
+// «Otro proceso…» (ADR-0570, actividad 5): un líder da de alta un proceso que el catálogo no tiene (nombre y después de qué paso de esta orden va) y lo agrega en el mismo guardado; quien no es
+// líder ve que se lo tiene que pedir. El alta va primero: si después falla agregarlo, el proceso ya queda en el catálogo para la próxima vez.
 //
 // El aviso de éxito trae «Deshacer»: mientras el paso no tenga nada anotado, quitarlo es la misma llamada de «Quitar este paso» (`quitar_paso_orden`).
 
-const RPC_GUARDAR_OJALES_BOTONES = "guardar_ojales_botones_modelo";
+const RPC_GUARDAR_PROCESO_MODELO = "guardar_proceso_modelo";
 
-/** El paso como lo entiende la fila de Nueva orden: encendido, en el Taller y sin números escritos. */
-function borradorNuevo(clave: FaseClave): FaseBorrador {
-  return { clave, encendida: true, quien: "taller", proveedorId: null, tarifa: "", fijo: "", minimo: "", fechaPrometida: "", posicion: null };
+/** El paso como lo entiende la fila de Nueva orden: encendido, sin números escritos y con quién lo hace de costumbre. Un proceso que de costumbre va afuera nace afuera, pendiente de elegir con quién. */
+function borradorNuevo(clave: FaseClave, quien: Quien = "taller"): FaseBorrador {
+  return { clave, encendida: true, quien, proveedorId: null, tarifa: "", fijo: "", minimo: "", fechaPrometida: "", posicion: null };
 }
 
-export function AgregarPasoModal({ datos, pasos, opciones, hoy, onClose }: { datos: OrdenPagina; pasos: readonly PasoAgregable[]; opciones: Tolerado<OpcionesNuevaOrden> | null; hoy: string; onClose: () => void }) {
+export function AgregarPasoModal({
+  datos,
+  pasos,
+  opciones,
+  hoy,
+  esLider = false,
+  onClose,
+}: {
+  datos: OrdenPagina;
+  pasos: readonly PasoAgregable[];
+  opciones: Tolerado<OpcionesNuevaOrden> | null;
+  hoy: string;
+  /** Un líder puede dar de alta «Otro proceso…» desde aquí (la base lo vuelve a exigir: `proceso_solo_lider`). */
+  esLider?: boolean;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId: datos.orden.ubicacionId, etiqueta: datos.orden.ubicacionNombre });
-  const [clave, setClave] = useState<FaseClave>(pasos[0].clave);
-  const [borrador, setBorrador] = useState<FaseBorrador>(() => borradorNuevo(pasos[0].clave));
+  const primero = pasos[0]?.clave ?? OTRO_PROCESO;
+  const [clave, setClave] = useState<FaseClave>(primero);
+  const [borrador, setBorrador] = useState<FaseBorrador>(() => borradorNuevo(primero, pasos[0]?.quienSugerido));
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
-  const paso = pasos.find((p) => p.clave === clave) ?? pasos[0];
+  // «Otro proceso…»: el nombre y después de qué paso de esta orden va.
+  const esOtro = clave === OTRO_PROCESO;
+  const [nombreOtro, setNombreOtro] = useState("");
+  const rutaOrdenada = useMemo(() => [...datos.fases].sort((a, b) => a.secuencia - b.secuencia), [datos.fases]);
+  const [despuesDe, setDespuesDe] = useState<string>(() => despuesDeEnLaRuta(datos.fases));
+  const problemaNombre = esOtro ? problemaDeNombreDeProceso(nombreOtro, datos.procesos) : null;
+  const paso: PasoAgregable = esOtro
+    ? { clave: OTRO_PROCESO, nombre: nombreOtro.trim() || "Otro proceso", ayuda: "", lugar: (rutaOrdenada.find((f) => f.clave === despuesDe)?.secuencia ?? 0) + 0.5, quienSugerido: "taller" }
+    : (pasos.find((p) => p.clave === clave) ?? pasos[0]);
   const nombreMinuscula = paso.nombre.toLocaleLowerCase("es");
 
   const proveedoresDelDirectorio = useMemo(() => proveedoresQueSirven(opciones?.datos?.proveedores ?? []), [opciones]);
@@ -59,23 +88,26 @@ export function AgregarPasoModal({ datos, pasos, opciones, hoy, onClose }: { dat
     () => (opciones?.datos?.proveedores ?? []).flatMap((p) => p.tarifas.map((t) => ({ proveedorId: p.id, faseClave: t.faseClave as FaseClave, tarifa: t.tarifa, minimo: t.minimo, fijo: t.fijo, vigenteDesde: t.vigenteDesde }))),
     [opciones]
   );
-  const problemas = useMemo(() => problemasFases([borrador], { hoy, proveedores, lista }), [borrador, hoy, proveedores, lista]);
-  const guia = useGuiaCampos(camposDeAgregarPaso({ faltas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
+  // La fila de un proceso nuevo todavía no tiene clave: se valida con la de un proceso del Taller cualquiera (las reglas de quién lo hace no dependen del proceso, salvo el Ploteo).
+  const problemas = useMemo(() => problemasFases([esOtro ? { ...borrador, clave: "pegar_cierre" } : borrador], { hoy, proveedores, lista, catalogo: datos.procesos }), [borrador, esOtro, hoy, proveedores, lista, datos.procesos]);
+  const faltas = [...(esOtro && !esLider ? ["Solo un líder da de alta un proceso nuevo. Pídeselo, o elige uno de la lista."] : []), ...(problemaNombre ? [problemaNombre] : []), ...problemas.map((p) => p.texto)];
+  const guia = useGuiaCampos(camposDeAgregarPaso({ faltas, responsableListo: responsable.listo }));
 
   // Entre qué pasos de la ruta cae: lo dice la bajada para que se entienda qué cambia en la orden.
   const entre = useMemo(() => {
-    const lugar = secuenciaDe(paso.clave, null) ?? 0;
-    const antes = [...datos.fases].filter((f) => f.secuencia < lugar).sort((a, b) => b.secuencia - a.secuencia)[0];
-    const despues = [...datos.fases].filter((f) => f.secuencia > lugar).sort((a, b) => a.secuencia - b.secuencia)[0];
-    return antes && despues ? `Entra entre ${antes.nombre} y ${despues.nombre}.` : "";
-  }, [datos.fases, paso.clave]);
+    const antes = rutaOrdenada.filter((f) => f.secuencia < paso.lugar).at(-1);
+    const despues = rutaOrdenada.find((f) => f.secuencia > paso.lugar);
+    return antes && despues ? `Entra entre ${antes.nombre} y ${despues.nombre}.` : antes ? `Entra después de ${antes.nombre}.` : "";
+  }, [rutaOrdenada, paso.lugar]);
 
-  // Lo que el modelo dijo de ojales y botones (ADR-0551): `undefined` = nadie lo ha preguntado, o no se pudo leer la lista (entonces no se toca nada).
-  const esOjales = paso.clave === "ojales_botones";
-  const respuestaDelModelo: boolean | undefined = esOjales && opciones?.datos ? opciones.datos.ojalesBotones[datos.orden.producto.id] : undefined;
-  const dejaAnotadoElModelo = esOjales && !!opciones?.datos && respuestaDelModelo === undefined;
+  // Lo que el modelo dijo de este proceso (ADR-0551, ADR-0570): `undefined` = nadie lo ha dicho, o no se pudo leer la lista.
+  const respuestaDelModelo: boolean | undefined = !esOtro && opciones?.datos ? opciones.datos.procesosDelModelo[datos.orden.producto.id]?.[paso.clave] : undefined;
+  // Marcada de fábrica, salvo que la ficha diga que el modelo NO lo lleva (entonces vale solo para esta orden hasta que alguien la marque). Se recuerda por proceso.
+  const [recordarPor, setRecordarPor] = useState<Record<string, boolean>>({});
+  const recordarMarcada = recordarPor[clave] ?? respuestaDelModelo !== false;
+  const sePuedeRecordar = !!opciones?.datos || esOtro;
 
-  const fotoActual = fotoFormulario({ clave, borrador });
+  const fotoActual = fotoFormulario({ clave, borrador, nombreOtro, despuesDe });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Elegiste cómo se hace el paso y todavía no se guardó. Si cierras ahora, se pierde lo que elegiste.");
   function cerrarTrasGuardar() {
@@ -98,7 +130,23 @@ export function AgregarPasoModal({ datos, pasos, opciones, hoy, onClose }: { dat
     enVuelo.current = true;
     setCargando(true);
     const firma = responsable.firma();
-    const r = fasesParaRpc([borrador], lista, hoy)[0];
+    // «Otro proceso…»: primero el alta en el catálogo (solo un líder); con su clave, el paso entra como cualquier otro.
+    let claveFinal = paso.clave;
+    if (esOtro) {
+      const alta = (await firmar(
+        createClient().rpc(RPC_GUARDAR_PROCESO as never, { p_nombre: nombreOtro.trim(), p_clave: null, p_despues_de: despuesDe, p_ayuda: null, p_quien_sugerido: borrador.quien, p_activo: null } as never),
+        firma
+      )) as { data: unknown; error: { message: string; code?: string; hint?: string; details?: string } | null };
+      if (alta.error || typeof alta.data !== "string") {
+        enVuelo.current = false;
+        responsable.despues(alta.error);
+        setCargando(false);
+        avisar.error(traducirError(alta.error ?? { message: "sin respuesta" }, `dar de alta ${nombreMinuscula}`, { confirmarAntesDeRepetir: true }));
+        return;
+      }
+      claveFinal = alta.data;
+    }
+    const r = fasesParaRpc([{ ...borrador, clave: claveFinal }], lista, hoy)[0];
     let resultado;
     try {
       resultado = await firmar(
@@ -130,12 +178,12 @@ export function AgregarPasoModal({ datos, pasos, opciones, hoy, onClose }: { dat
       return;
     }
     // Lo que la base devuelve es la ruta entera (`fn_fases_de_orden`): de ahí sale el id del paso nuevo, que es lo que «Deshacer» necesita.
-    const idDelNuevo = (Array.isArray(data) ? (data as { id?: string; clave?: string }[]) : []).find((f) => f.clave === paso.clave)?.id;
-    if (dejaAnotadoElModelo) {
+    const idDelNuevo = (Array.isArray(data) ? (data as { id?: string; clave?: string }[]) : []).find((f) => f.clave === claveFinal)?.id;
+    if (sePuedeRecordar && recordarMarcada && respuestaDelModelo !== true) {
       try {
-        await firmar(createClient().rpc(RPC_GUARDAR_OJALES_BOTONES as never, { p_ubicacion_id: datos.orden.ubicacionId, p_producto_id: datos.orden.producto.id, p_lleva: true } as never), firma);
+        await firmar(createClient().rpc(RPC_GUARDAR_PROCESO_MODELO as never, { p_ubicacion_id: datos.orden.ubicacionId, p_producto_id: datos.orden.producto.id, p_clave: claveFinal, p_lleva: true } as never), firma);
       } catch {
-        // Sin respuesta (corte de red): el paso ya está en la orden; el modelo queda sin contestar y la próxima orden vuelve a preguntar.
+        // Sin respuesta (corte de red): el paso ya está en la orden; el modelo queda como estaba y la próxima orden no lo sugiere.
       }
     }
     const nombreDelServicio = proveedores.find((p) => p.id === borrador.proveedorId)?.nombre;
@@ -160,25 +208,53 @@ export function AgregarPasoModal({ datos, pasos, opciones, hoy, onClose }: { dat
 
   return (
     <Modal
-      titulo={pasos.length === 1 ? `Agregar ${paso.nombre}` : "Agregar un paso"}
-      subtitulo={`${entre} ${paso.ayuda}.`.trim()}
+      titulo="Agregar un paso"
+      subtitulo={[entre, paso.ayuda ? `${paso.ayuda}.` : ""].filter(Boolean).join(" ")}
       variante="hoja"
       tamano="mediana"
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
       <form onSubmit={onSubmit} className="mt-3.5 space-y-5">
-        {pasos.length > 1 && (
-          <CampoSelect
-            id="agregar-paso-cual"
-            etiqueta="Qué paso"
-            valor={clave}
-            onValor={(v) => {
-              setClave(v as FaseClave);
-              setBorrador(borradorNuevo(v as FaseClave));
-            }}
-            opciones={pasos.map((p) => ({ valor: p.clave, texto: p.nombre }))}
-          />
+        <CampoSelect
+          id="agregar-paso-cual"
+          etiqueta="Qué paso"
+          valor={clave}
+          onValor={(v) => {
+            setClave(v as FaseClave);
+            setBorrador(borradorNuevo(v as FaseClave, pasos.find((p) => p.clave === v)?.quienSugerido));
+          }}
+          opciones={[...pasos.map((p) => ({ valor: p.clave, texto: p.nombre })), { valor: OTRO_PROCESO, texto: "Otro proceso…" }]}
+        />
+        {esOtro && (
+          <div className="space-y-3" data-guia="prod-orden-agregar.otro">
+            {esLider ? (
+              <>
+                <CampoTexto
+                  id="agregar-paso-nombre"
+                  etiqueta="Nombre del proceso"
+                  value={nombreOtro}
+                  onChange={(e) => setNombreOtro(e.target.value)}
+                  placeholder="Ej. Teñido en frío" // sugerir-fijo: el nombre de un proceso del Taller no depende de nada elegido antes en la hoja
+                  maxLength={40}
+                  pie={problemaNombre ?? "Queda en el catálogo del Taller para las próximas órdenes."}
+                  tono={problemaNombre && nombreOtro.trim() !== "" ? "error" : undefined}
+                  caja
+                />
+                <CampoSelect
+                  id="agregar-paso-despues"
+                  etiqueta="Va después de"
+                  valor={despuesDe}
+                  onValor={setDespuesDe}
+                  opciones={rutaOrdenada.map((f) => ({ valor: f.clave, texto: f.nombre }))}
+                />
+              </>
+            ) : (
+              <Aviso tono="info" chico>
+                Solo un líder da de alta un proceso nuevo, en Producción ▸ Proveedores ▸ Servicios y tarifas. Pídeselo, o elige uno de la lista.
+              </Aviso>
+            )}
+          </div>
         )}
         <div data-guia="prod-orden-agregar.fila">
           {/* `retiene="fila"`: el bloque tiene varios controles; la luz de la guía espera mientras la persona siga eligiendo dentro de él. */}
@@ -202,13 +278,18 @@ export function AgregarPasoModal({ datos, pasos, opciones, hoy, onClose }: { dat
                 {opciones?.fallo ?? "No se pudo leer la lista de servicios."}
               </Aviso>
             )}
-            {dejaAnotadoElModelo && (
-              <p className="text-[12.5px] text-tinta/70">Esto también deja anotado que «{datos.orden.producto.referencia}» lleva ojales y botones: las próximas órdenes nacen con este paso.</p>
-            )}
-            {esOjales && respuestaDelModelo === false && (
-              <Aviso tono="atencion" chico>
-                El modelo dice que NO lleva ojales y botones: este paso vale solo para esta orden y el modelo no cambia.
-              </Aviso>
+            {sePuedeRecordar && respuestaDelModelo !== true && (
+              <label className="flex items-start gap-2.5 text-[13px] text-tinta" data-guia="prod-orden-agregar.recordar">
+                <Casilla marcada={recordarMarcada} onCambio={() => setRecordarPor((r) => ({ ...r, [clave]: !recordarMarcada }))} etiqueta="Recordar en la ficha del modelo" />
+                <span>
+                  Recordar en la ficha del modelo
+                  <span className="block text-[12.5px] text-tinta/70">
+                    {respuestaDelModelo === false
+                      ? `La ficha de «${datos.orden.producto.referencia}» dice que no lleva ${nombreMinuscula}: márcala si de ahora en adelante sí lo lleva.`
+                      : `Las próximas órdenes de «${datos.orden.producto.referencia}» nacen con este paso.`}
+                  </span>
+                </span>
+              </label>
             )}
           </CampoGuiado>
         </div>
@@ -225,7 +306,7 @@ export function AgregarPasoModal({ datos, pasos, opciones, hoy, onClose }: { dat
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar || (esOtro && (!esLider || problemaNombre !== null))} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               Agregar el paso
             </Boton>
           </div>

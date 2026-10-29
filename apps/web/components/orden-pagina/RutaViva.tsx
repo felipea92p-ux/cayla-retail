@@ -52,8 +52,11 @@ export function RutaViva({
   hoy,
   izquierda,
   derecha,
+  esLider = false,
 }: {
   datos: OrdenPagina;
+  /** Un líder ve «+ Agregar un paso» aunque el catálogo no tenga nada más que ofrecer: puede dar de alta «Otro proceso…» (ADR-0570, actividad 5). */
+  esLider?: boolean;
   opciones: Tolerado<OpcionesNuevaOrden> | null;
   hoy: string;
   /** La tela y el costo: van debajo del paso abierto. */
@@ -70,6 +73,7 @@ export function RutaViva({
   const abierta = (elegida && elegida.conActual === idActual ? fases.find((f) => f.id === elegida.id) : undefined) ?? faseAbiertaDeLaRuta(fases);
   const hechas = fases.filter((f) => f.estado === "hecha").length;
   const { ofrecidos: pasosPorAgregar, bloqueados: pasosBloqueados } = pasosAgregables(datos);
+  const sePuedeAgregar = pasosPorAgregar.length > 0 || (esLider && datos.permisos.puedeOperar && orden.estado === "en_proceso" && fases.length > 0);
   const faseDeLaHoja = hoja ? (fases.find((f) => f.id === hoja.faseId) ?? null) : null;
   const dato =
     fases.length === 0
@@ -84,7 +88,7 @@ export function RutaViva({
         <TituloSeccion
           dato={dato}
           accion={
-            pasosPorAgregar.length > 0 ? (
+            sePuedeAgregar ? (
               <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.agregar-paso" onClick={() => setAgregando(true)}>
                 + Agregar un paso
               </Boton>
@@ -93,7 +97,7 @@ export function RutaViva({
         >
           Ruta de la orden
         </TituloSeccion>
-        {pasosPorAgregar.length === 0 && pasosBloqueados.length > 0 && <p className="op-sub">{pasosBloqueados.map((p) => `${p.nombre} ya no se puede agregar: ${p.porQue}.`).join(" ")}</p>}
+        {!sePuedeAgregar && pasosBloqueados.length > 0 && <p className="op-sub">{pasosBloqueados.map((p) => `${p.nombre} ya no se puede agregar: ${p.porQue}.`).join(" ")}</p>}
         {fases.length === 0 ? (
           // Una orden abierta antes de que existieran las fases (solo en una base que ya tenía órdenes) no trae ninguna: se dice, no se dibuja una ruta vacía.
           <div className="card-cayla" data-guia="prod-orden.fases">
@@ -150,7 +154,7 @@ export function RutaViva({
       {hoja?.tipo === "salida" && faseDeLaHoja && <AnotarSalidaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "quitar" && faseDeLaHoja && <QuitarPasoModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
-      {agregando && pasosPorAgregar.length > 0 && <AgregarPasoModal datos={datos} pasos={pasosPorAgregar} opciones={opciones} hoy={hoy} onClose={() => setAgregando(false)} />}
+      {agregando && sePuedeAgregar && <AgregarPasoModal datos={datos} pasos={pasosPorAgregar} opciones={opciones} hoy={hoy} esLider={esLider} onClose={() => setAgregando(false)} />}
       {hoja?.tipo === "quien" && faseDeLaHoja && <CambiarQuienModal datos={datos} fase={faseDeLaHoja} opciones={opciones} hoy={hoy} onClose={() => setHoja(null)} />}
     </>
   );

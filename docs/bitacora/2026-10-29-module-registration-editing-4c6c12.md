@@ -108,3 +108,22 @@
 - `tsc` y 478 pruebas de reglas y guardas en verde.
 - **Sin probar en el navegador** el permiso de líder, el corte de afuera y «Encontré tela» (también a 375 px): el contenedor del cierre no tenía base local. Queda para la actividad 10.
 - **Decisión propia que Felipe tiene que confirmar:** el candado no aplica a una orden que no declaró tela (bloquearla rompía 20 suites de otros módulos y trababa toda orden sin tela). Si la quiere bloqueada, es otra migración.
+
+## 2026-10-29 (Producción: el catálogo de procesos — ADR-0570, actividad 5 de 10)
+
+**Qué hice:**
+- **Base** (`20261029210000_produccion_catalogo_de_procesos.sql`): la tabla `procesos_produccion`, con los doce de siempre (sus mismos números) más «Pegar cierre», y Lavandería renombrada a «Lavado o teñido». Las fases de las órdenes y las tarifas apuntan a ella con llave foránea. El líder da de alta, renombra o apaga (`guardar_proceso_produccion`). `producto_procesos` guarda lo que lleva cada modelo y reemplaza a `lleva_ojales_botones`.
+- **Web:**
+  - Nueva orden ofrece el catálogo, prende lo que lleva el modelo y trae la casilla «Recordar en la ficha del modelo».
+  - «+ Agregar un paso» ofrece todos los procesos activos, trae «Otro proceso…» para el líder y su propia casilla «Recordar en la ficha».
+  - Servicios y tarifas suma «Procesos del Taller», con su hoja.
+
+**Por qué así:** para que el Taller pegue un cierre o mande a lavar había que programar; las claves estaban escritas a mano en 9 lugares de la base.
+
+**Estado:**
+- **Migración SIN pegar en producción.** Va después de `20261029190000`.
+- 15 casos nuevos y 45 suites en una base desde cero, con Postgres 17.
+- Toda la web en verde, con `tsc` y Knip limpios.
+- **Sin probar en el navegador:** no hay sesiones ni API de Supabase en este contenedor.
+- **Número sin reserva:** el proxy de git no deja subir etiquetas.
+- **Decisión propia que Felipe tiene que confirmar:** Lavandería se renombró en vez de sembrar «Lavado o teñido» aparte.

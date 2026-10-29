@@ -4,7 +4,7 @@ import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { ProduccionSoloLider } from "@/components/ProduccionSoloLider";
 import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
-import { getTarifasDeServicios } from "@/lib/tarifas-servicios";
+import { getProcesosDelTaller, getTarifasDeServicios } from "@/lib/tarifas-servicios";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ProveedoresProduccionPanel } from "@/components/ProveedoresProduccionPanel";
 
@@ -22,10 +22,10 @@ export default async function ProveedoresProduccionPage({ searchParams }: { sear
   }
   if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Proveedores" />;
 
-  const [proveedores, tarifas] = await Promise.all([getProveedoresProduccion(), getTarifasDeServicios()]);
+  const [proveedores, tarifas, procesos] = await Promise.all([getProveedoresProduccion(), getTarifasDeServicios(), getProcesosDelTaller()]);
   return (
     <div className="space-y-6">
-      <ProveedoresProduccionPanel sede={persona.ubicacionEtiqueta} proveedores={proveedores} tarifas={tarifas} hoy={hoyLima()} vistaInicial={sp.vista === "tarifas" ? "tarifas" : "proveedores"} />
+      <ProveedoresProduccionPanel sede={persona.ubicacionEtiqueta} proveedores={proveedores} tarifas={tarifas} hoy={hoyLima()} vistaInicial={sp.vista === "tarifas" ? "tarifas" : "proveedores"} procesos={procesos} />
     </div>
   );
 }

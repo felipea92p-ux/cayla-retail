@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 183,
+  "total": 187,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -52,6 +52,9 @@
     ],
     "components/orden-pagina/AgregarPasoModal.tsx": [
       "CampoSelect «Qué paso»",
+      "CampoTexto «Nombre del proceso»",
+      "CampoSelect «Va después de»",
+      "Casilla «Recordar en la ficha del modelo»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
@@ -217,6 +220,7 @@
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
     ],
     "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "Casilla «Recordar en la ficha del modelo»",
       "CampoSelect «Proveedor»",
       "button «+ Registrar proveedor nuevo»",
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",

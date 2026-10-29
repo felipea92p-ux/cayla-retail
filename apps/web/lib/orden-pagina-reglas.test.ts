@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { FASES, faseDe } from "./orden-fases-reglas";
 import {
   DIAS_SIN_MOVERSE,
   MAX_MOTIVO_ANULACION,
@@ -248,7 +249,7 @@ describe("leerOrdenPagina — lee lo que manda fn_orden_produccion", () => {
 
   it("descarta lo suelto sin romper: una fase de clave desconocida, un evento sin fecha", () => {
     const c = crudo();
-    c.fases.push({ ...faseCruda({ clave: "zzz", secuencia: 70, quien: "taller" }) });
+    c.fases.push({ ...faseCruda({ clave: "ZZ-1", secuencia: 70, quien: "taller" }) });
     c.linea_de_tiempo.push({ id: "roto", tipo: "avance" } as never);
     const p = leerOrdenPagina(c)!;
     expect(p.fases).toHaveLength(3);
@@ -1328,35 +1329,44 @@ describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () 
   const base = orden();
   const fase = (clave: FasePagina["clave"], nombre: string, secuencia: number, extra: Partial<FasePagina> = {}): FasePagina => ({ ...base.fases[0], id: `f-${clave}`, clave, nombre, secuencia, estado: "pendiente", actual: false, empezada: false, hechas: 0, ...extra });
   const NUEVA = [fase("ploteo", "Ploteo", 5, { estado: "hecha", empezada: true }), fase("corte", "Corte", 10, { estado: "hecha", empezada: true }), fase("habilitado", "Habilitado", 15, { estado: "hecha", empezada: true }), fase("costura", "Costura", 30, { estado: "hecha", empezada: true }), fase("planchado", "Planchado", 65)];
-  const q = (fases: FasePagina[], parche: Partial<Pick<OrdenPagina, "permisos">> & { estado?: string } = {}) => ({
+  const q = (fases: FasePagina[], parche: Partial<Pick<OrdenPagina, "permisos" | "procesos">> & { estado?: string } = {}) => ({
     orden: { ...base.orden, estado: (parche.estado ?? "en_proceso") as OrdenPagina["orden"]["estado"] },
     permisos: parche.permisos ?? { puedeOperar: true, veCostos: true },
     fases,
+    procesos: parche.procesos ?? FASES,
   });
 
-  it("la orden del Chaleco (Costura hecha, Planchado sin empezar) puede sumar Ojales y botones, que entra entre los dos", () => {
+  it("la orden del Chaleco (Costura hecha, Planchado sin empezar) puede sumar Pegar cierre, Ojales y botones y Lavado o teñido, en el orden de la ruta", () => {
     const { ofrecidos, bloqueados } = pasosAgregables(q(NUEVA));
-    expect(ofrecidos.map((x) => x.clave)).toEqual(["ojales_botones"]);
-    expect(ofrecidos[0].nombre).toBe("Ojales y botones");
+    expect(ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
+    expect(ofrecidos.map((x) => x.nombre)).toEqual(["Pegar cierre", "Ojales y botones", "Lavado o teñido"]);
+    expect(ofrecidos.map((x) => x.quienSugerido)).toEqual(["taller", "taller", "servicio"]);
     expect(bloqueados).toEqual([]);
   });
   it("no se ofrece lo que ya está en la ruta", () => {
     const con = [...NUEVA.slice(0, 4), fase("ojales_botones", "Ojales y botones", 35), NUEVA[4]];
-    expect(pasosAgregables(q(con))).toEqual({ ofrecidos: [], bloqueados: [] });
+    expect(pasosAgregables(q(con)).ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "lavanderia"]);
   });
   it("si un paso POSTERIOR ya empezó no se ofrece, y se dice por qué en vez de esconderlo", () => {
     const planchando = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "en_curso" as const }];
     const r = pasosAgregables(q(planchando));
     expect(r.ofrecidos).toEqual([]);
-    expect(r.bloqueados).toEqual([{ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes" }]);
+    expect(r.bloqueados[1]).toEqual({ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes" });
+    expect(r.bloqueados.map((b) => b.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
   });
   it("un paso ANTERIOR empezado no frena nada (Costura a medias)", () => {
     const a_medias = [...NUEVA.slice(0, 3), { ...NUEVA[3], estado: "en_curso" as const, actual: true, hechas: 10 }, NUEVA[4]];
-    expect(pasosAgregables(q(a_medias)).ofrecidos.map((x) => x.clave)).toEqual(["ojales_botones"]);
+    expect(pasosAgregables(q(a_medias)).ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
   });
-  it("una orden de la ruta anterior (Acabado) no mezcla con las fases nuevas: no se ofrece nada", () => {
+  it("una orden de la ruta anterior (Acabado) no mezcla con las fases nuevas: solo se ofrece lo que es de las dos rutas", () => {
     const anterior = [fase("corte", "Corte", 10), fase("costura", "Costura", 30), fase("acabado", "Acabado", 60)];
-    expect(pasosAgregables(q(anterior))).toEqual({ ofrecidos: [], bloqueados: [] });
+    expect(pasosAgregables(q(anterior)).ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "lavanderia"]);
+  });
+  it("un proceso que dio de alta el líder se ofrece en su lugar; uno apagado no (ADR-0570, actividad 5)", () => {
+    const propio = { ...faseDe("pegar_cierre"), clave: "tenido_en_frio", nombre: "Teñido en frío", ayuda: "", secuencia: 31, delSistema: false };
+    const apagado = { ...faseDe("lavanderia"), activo: false };
+    const procesos = [...FASES.filter((f) => f.clave !== "lavanderia"), propio, apagado];
+    expect(pasosAgregables(q(NUEVA, { procesos })).ofrecidos.map((x) => `${x.clave}@${x.lugar}`)).toEqual(["tenido_en_frio@31", "pegar_cierre@32", "ojales_botones@35"]);
   });
   it("sin permiso de operar, con la orden cerrada o sin fases, no se ofrece nada", () => {
     expect(pasosAgregables(q(NUEVA, { permisos: { puedeOperar: false, veCostos: true } }))).toEqual({ ofrecidos: [], bloqueados: [] });

@@ -1667,6 +1667,9 @@ export const PRUEBAS = [
   // La tela al cortar (ADR-0570, actividad 4): «¿cuánto quedó?» descuenta de los lotes del más antiguo al más nuevo, todo o nada; «Encontré tela» entra como lote «encontrada» al último
   // precio; sin tela anotada (también un forro) no pasa al stock salvo el permiso de un líder, que queda en la historia; una muestra y una orden sin tela declarada pasan. ROLLBACK.
   "pruebas:produccion-tela-al-cortar",
+  // El catálogo de procesos (ADR-0570, actividad 5): los doce de siempre con su mismo lugar en la ruta, Pegar cierre y Lavado o teñido, la llave foránea en fases y tarifas;
+  // solo un líder da de alta o apaga (el nuevo cae entre sus vecinos; la espina no se apaga; lo apagado no entra a una orden ni a una tarifa); lo que lleva cada modelo. ROLLBACK.
+  "pruebas:produccion-catalogo-de-procesos",
   // «Lleva ojales y botones», un dato del MODELO (ADR-0551, migración 20261028053000): sin fila = nadie lo ha preguntado; guardar lo mismo no escribe ni anota; solo quien opera ese Taller guarda;
   // la tabla no se lee ni se escribe directo; la fila se va con el modelo. ROLLBACK.
   "pruebas:producto-taller",

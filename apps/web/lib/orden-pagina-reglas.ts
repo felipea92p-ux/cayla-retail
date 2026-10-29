@@ -1,7 +1,7 @@
 import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
-import { FASES, secuenciaDe, type FaseClave, type Posicion, type Quien } from "./orden-fases-reglas";
+import { FASES, faseDe, leerProcesos, secuenciaDe, type FaseClave, type FaseDelCatalogo, type Posicion, type Quien } from "./orden-fases-reglas";
 import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
@@ -276,6 +276,8 @@ export type OrdenPagina = {
   /** Los ids de lo anotado que ya tiene su Deshacer (por un cambio o por «Deshacer»): ya no se corrige. */
   deshechos: string[];
   permisos: { puedeOperar: boolean; veCostos: boolean };
+  /** El catálogo de procesos (`fn_procesos_produccion`, ADR-0570 actividad 5); si no se pudo leer, el de respaldo. */
+  procesos: ReadonlyArray<FaseDelCatalogo>;
 };
 
 const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
@@ -285,14 +287,15 @@ function numero(x: unknown): number | null {
   return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
 const entero = (x: unknown, defecto = 0): number => Math.round(numero(x) ?? defecto);
-const claves = new Set<string>(FASES.map((f) => f.clave));
+// Una clave de proceso del catálogo (`procesos_produccion`): la base garantiza que existe (llave foránea); acá solo se descarta lo que no tiene forma de clave.
+const esClaveDeProceso = (c: string) => /^[a-z][a-z0-9_]{1,39}$/.test(c);
 const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion", "marca", "desmarca", "falla", "falla_deshecha"]);
 
 function leerFase(crudo: unknown): FasePagina | null {
   if (!esObjeto(crudo)) return null;
   const id = texto(crudo.id);
   const clave = texto(crudo.clave);
-  if (!id || !clave || !claves.has(clave)) return null;
+  if (!id || !clave || !esClaveDeProceso(clave)) return null;
   const estado = crudo.estado === "hecha" || crudo.estado === "en_curso" ? crudo.estado : "pendiente";
   const porVariante = Array.isArray(crudo.por_variante)
     ? crudo.por_variante.flatMap((v): FaseVariante[] => {
@@ -319,7 +322,7 @@ function leerFase(crudo: unknown): FasePagina | null {
   return {
     id,
     clave: clave as FaseClave,
-    nombre: texto(crudo.nombre) ?? FASES.find((f) => f.clave === clave)?.nombre ?? clave,
+    nombre: texto(crudo.nombre) ?? faseDe(clave).nombre,
     secuencia: entero(crudo.secuencia),
     posicion: crudo.posicion === "pieza" || crudo.posicion === "prenda" ? crudo.posicion : null,
     quien: crudo.quien === "servicio" ? "servicio" : "taller",
@@ -359,7 +362,7 @@ function leerEvento(crudo: unknown): EventoTiempo | null {
     cuando,
     quienNombre: texto(crudo.quien_nombre),
     tipo: tipo as TipoEvento,
-    faseClave: faseClave && claves.has(faseClave) ? (faseClave as FaseClave) : null,
+    faseClave: faseClave && esClaveDeProceso(faseClave) ? (faseClave as FaseClave) : null,
     faseNombre: texto(crudo.fase_nombre),
     cantidad: entero(crudo.cantidad),
     detalle: texto(crudo.detalle),
@@ -407,7 +410,7 @@ function leerCambio(crudo: unknown): CambioOrden | null {
     id,
     accion,
     objeto: crudo.objeto === "termine" || crudo.objeto === "marca" ? crudo.objeto : null,
-    faseClave: faseClave && claves.has(faseClave) ? (faseClave as FaseClave) : null,
+    faseClave: faseClave && esClaveDeProceso(faseClave) ? (faseClave as FaseClave) : null,
     faseNombre: texto(crudo.fase_nombre),
     quitaIds: idsDe(crudo.quita_ids),
     poneIds: idsDe(crudo.pone_ids),
@@ -514,6 +517,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       .filter((c): c is CambioOrden => c !== null),
     deshechos: lista(crudo.deshechos).flatMap((x) => (typeof x === "string" ? [x] : [])),
     permisos: { puedeOperar: permisos.puede_operar === true, veCostos: permisos.ve_costos === true && costos !== null },
+    procesos: leerProcesos(crudo.procesos) ?? FASES,
   };
 }
 
@@ -790,11 +794,11 @@ export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" 
  * ¿Se ofrece «Quitar este paso»? Solo un paso OPCIONAL (no de la espina de su ruta), mientras no empezó y la orden sigue en proceso y quien mira puede operar. La base repite las tres
  * cosas (`quitar_paso_orden`: `fase_empezada`, `orden_cerrada`, `paso_fijo`) y manda: esto solo evita ofrecer un botón que ya se sabe que va a rechazar.
  */
-export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
-  return puedeCambiarQuien(f, p) && FASES.some((c) => c.clave === f.clave && !c.siempre);
+export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "procesos">): boolean {
+  return puedeCambiarQuien(f, p) && !faseDe(f.clave, p.procesos).siempre;
 }
 
-export type PasoAgregable = { clave: FaseClave; nombre: string; ayuda: string };
+export type PasoAgregable = { clave: FaseClave; nombre: string; ayuda: string; lugar: number; quienSugerido: Quien };
 export type PasoNoAgregable = { clave: FaseClave; nombre: string; porQue: string };
 
 /**
@@ -803,20 +807,21 @@ export type PasoNoAgregable = { clave: FaseClave; nombre: string; porQue: string
  * La base repite todo (`agregar_paso_orden`: `fase_repetida`, `fases_mezcla`, `paso_despues_empezado`, `orden_cerrada`) y manda; esto solo evita ofrecer un botón que ya se sabe que va a rechazar
  * (no mira lo que se anotó y se deshizo: eso solo lo ve la base).
  */
-export function pasosAgregables(p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): { ofrecidos: PasoAgregable[]; bloqueados: PasoNoAgregable[] } {
+export function pasosAgregables(p: Pick<OrdenPagina, "orden" | "permisos" | "fases" | "procesos">): { ofrecidos: PasoAgregable[]; bloqueados: PasoNoAgregable[] } {
   const ofrecidos: PasoAgregable[] = [];
   const bloqueados: PasoNoAgregable[] = [];
   if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso" || p.fases.length === 0) return { ofrecidos, bloqueados };
   const enLaRuta = new Set(p.fases.map((f) => f.clave));
-  const rutaAnterior = p.fases.some((f) => FASES.find((c) => c.clave === f.clave)?.ruta === "anterior");
-  for (const c of FASES) {
-    if (c.siempre || !c.enLaHoja || enLaRuta.has(c.clave) || (rutaAnterior && c.ruta === "nueva")) continue;
-    const lugar = secuenciaDe(c.clave, null);
+  const rutaAnterior = p.fases.some((f) => faseDe(f.clave, p.procesos).ruta === "anterior");
+  for (const c of p.procesos) {
+    if (c.siempre || !c.enLaHoja || !c.activo || enLaRuta.has(c.clave) || (rutaAnterior && c.ruta === "nueva")) continue;
+    const lugar = secuenciaDe(c.clave, null, p.procesos);
     if (lugar === null) continue;
     const tarde = p.fases.find((f) => f.secuencia > lugar && (f.empezada || f.estado === "hecha"));
     if (tarde) bloqueados.push({ clave: c.clave, nombre: c.nombre, porQue: `${tarde.nombre} ya empezó, y ${c.nombre} iría antes` });
-    else ofrecidos.push({ clave: c.clave, nombre: c.nombre, ayuda: c.ayuda });
+    else ofrecidos.push({ clave: c.clave, nombre: c.nombre, ayuda: c.ayuda, lugar, quienSugerido: c.quienSugerido });
   }
+  ofrecidos.sort((a, b) => a.lugar - b.lugar);
   return { ofrecidos, bloqueados };
 }
 
