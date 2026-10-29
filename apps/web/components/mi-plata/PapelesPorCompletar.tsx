@@ -10,6 +10,7 @@ import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
+import { CorreccionesDeCompra } from "./CorreccionesDeCompra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -459,6 +460,7 @@ export function DetallePapel({
         </div>
       )}
       <Prendas papel={papel} />
+      <CorreccionesDeCompra papelId={papel.id} />
     </div>
   );
 

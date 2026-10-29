@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 37,
+  "total": 55,
   "controles": {
     "app/(app)/compras/mi-plata/page.tsx": [
       "BotonVer «Mis envíos»"
@@ -36,8 +36,32 @@
       "BotonCopiar «el código del envío»",
       "BotonAncla «Compartir por WhatsApp»"
     ],
+    "components/mi-plata/CorreccionesDeCompra.tsx": [
+      "BotonVerMas «Ver qué cambió»"
+    ],
+    "components/mi-plata/DetalleDeFila.tsx": [
+      "BotonEditar «Corregir esta compra»"
+    ],
     "components/mi-plata/FilaEnvio.tsx": [
       "button «{abierta && <HojaEnvio e={e}»"
+    ],
+    "components/mi-plata/HojaCorregirCompra.tsx": [
+      "button «{nombre}»",
+      "button «Papel y pago»",
+      "Boton «{revisando ? \"Seguir corrigiendo\" : \"Cancelar\"}»",
+      "Boton «{revisando ? \"Guardar la corrección\" : \"Revisar los cambios\"}»",
+      "Volver «→alVolver»",
+      "CampoTexto «Nombre»",
+      "CampoSelect «Categoría»",
+      "CampoSelect «Marca»",
+      "CampoSelect «Tienda a la que va»",
+      "CampoMonto «Costo c/u»",
+      "CampoMonto «Se vende a»",
+      "button «Dejar esta prenda como estaba»",
+      "Volver «→alVolver» #2",
+      "CampoMonto «Cuánto dice el papel»",
+      "CampoMonto «Lo que pagaste»",
+      "button «Que siga a las prendas otra vez»"
     ],
     "components/mi-plata/ListaDelDia.tsx": [
       "button «{cara}»",

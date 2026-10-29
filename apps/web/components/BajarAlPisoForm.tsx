@@ -16,6 +16,8 @@ import { avisarLectura } from "@/lib/sonido-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { usePistola } from "@/components/ui/usePistola";
+import { AvisoRepetida } from "@/components/ui/AvisoRepetida";
+import { ESTADO_REPETIDA_VACIO, declararPila, decidirLectura, soltarPila, type EstadoRepetida } from "@/lib/lectura-repetida";
 import {
   BOTON_COMPROBAR,
   BOTON_CONFIRMAR_DE_NUEVO,
@@ -113,13 +115,16 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
 /** Las palabras de la cámara en ráfaga (la misma hoja de Conteo) cuando se usa para bajar. */
 const TEXTOS_CAMARA: Omit<TextosEscaner, "contador"> = {
   titulo: "Bajar con la cámara",
-  subtitulo: "Pasa las etiquetas una tras otra: cada una suma 1.",
-  etiqueta: "Bajar · cada lectura suma 1",
+  subtitulo: "Pasa las etiquetas una tras otra. Si una se repite, te pregunto antes de sumarla.",
+  etiqueta: "Bajar · si se repite, te pregunto",
   ayuda: "Pasa las etiquetas una tras otra · suena y vibra en cada una",
   enCurso: "Estás bajando",
   vacio: "Lo que escanees aparece aquí, con − / + para corregir.",
 };
 const MS_PAUSA_BUSQUEDA = 250;
+
+/** Una lectura ya aplicada: la de siempre, o la misma prenda otra vez (ADR-0562): se pregunta, o se ignora mientras se pregunta. */
+type ResultadoLectura = Lectura | { tipo: "pregunta"; prenda: PrendaBajable } | { tipo: "ignorada"; prenda: PrendaBajable };
 
 type Problema = { hay: number; motivo: string };
 
@@ -227,6 +232,10 @@ export function BajarAlPisoForm({
   const [camara, setCamara] = useState(false);
   const [ultimaLeida, setUltimaLeida] = useState<string | null>(null);
   const [avisoCamara, setAvisoCamara] = useState<ReactNode>(null);
+  // «¿Quieres volver a agregar esta prenda?» (ADR-0562): la pregunta abierta y las prendas declaradas «Son varias iguales». En
+  // un ref también: una ráfaga de la pistola (la etiqueta quieta) decide sobre la pregunta real, no la del último render.
+  const repetidaRef = useRef<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
+  const [repetida, setRepetida] = useState<EstadoRepetida>(ESTADO_REPETIDA_VACIO);
 
   // Solo sin el detalle de la base (una base anterior al contrato): no se sabe qué se guardó y esa lista no se reenvía.
   const bloqueada = errorConfirmar?.tipo === "token_reusado";
@@ -373,6 +382,15 @@ export function BajarAlPisoForm({
     escaner.current?.focus({ preventScroll: true });
   }
 
+  function cambiarRepetida(siguiente: EstadoRepetida) {
+    repetidaRef.current = siguiente;
+    setRepetida(siguiente);
+  }
+
+  function cerrarPregunta() {
+    if (repetidaRef.current.pregunta) cambiarRepetida({ ...repetidaRef.current, pregunta: null });
+  }
+
   function guardarBorrador(siguientes: readonly LineaBajada[]) {
     if (siguientes.length === 0) {
       creadoEn.current = null;
@@ -437,10 +455,31 @@ export function BajarAlPisoForm({
 
   // Una lectura, venga de la pistola, de la cámara o de la lista por nombre: suena SIEMPRE (con la pistola se mira el rack, no
   // la pantalla) y, si el almacén del sistema está en 0, abre la salida «La tengo en la mano» en vez de un aviso sin salida.
-  function aplicarLectura(lectura: Lectura, base: LineaBajada[], conservarExito: boolean): Lectura {
+  function aplicarLectura(lectura: Lectura, base: LineaBajada[], conservarExito: boolean, { repetible = true }: { repetible?: boolean } = {}): ResultadoLectura {
     // Lo que se leyó mientras se guardaba llega después del éxito: la tarjeta sigue a la vista.
     if (!conservarExito) setExito(null);
     setSugerencias([]);
+    // La misma prenda otra vez no suma sola (ADR-0562): se pregunta; y mientras se pregunta, su etiqueta se ignora.
+    if (repetible && "prenda" in lectura) {
+      const p = lectura.prenda;
+      const yaEnLista = base.find((l) => l.varianteId === p.varianteId)?.cantidad ?? 0;
+      const decision = decidirLectura(p.varianteId, yaEnLista, lectura.tipo === "suma", repetidaRef.current);
+      if (decision.tipo === "ignora") {
+        cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
+        return { tipo: "ignorada", prenda: p };
+      }
+      if (decision.tipo === "pregunta") {
+        cambiarRepetida({ ...repetidaRef.current, pregunta: decision.pregunta });
+        // El tono grave de siempre: «mira la pantalla».
+        avisarLectura("desconocida");
+        setAviso(null);
+        setEnMano(null);
+        setUltimaLeida(p.varianteId);
+        setAnuncio(`${nombreDePrenda(p)} ya está en la lista: llevas ${yaEnLista}. ¿Quieres volver a agregarla?`);
+        return { tipo: "pregunta", prenda: p };
+      }
+      if (decision.cierraPregunta) cerrarPregunta();
+    }
     const sonido = sonidoDeLecturaBajada(lectura);
     if (sonido) avisarLectura(sonido);
     if (lectura.tipo === "suma") {
@@ -463,7 +502,7 @@ export function BajarAlPisoForm({
     return lectura;
   }
 
-  function leerEscaneo(texto: string, { conservarExito = false }: { conservarExito?: boolean } = {}): Lectura | null {
+  function leerEscaneo(texto: string, { conservarExito = false }: { conservarExito?: boolean } = {}): ResultadoLectura | null {
     if (!texto.trim()) return null;
     const base = baseParaLeer();
     return base ? aplicarLectura(leerCodigo(texto, prendasConTope, base), base, conservarExito) : null;
@@ -474,10 +513,57 @@ export function BajarAlPisoForm({
   function elegirPorNombre(prenda: PrendaBajable) {
     const base = baseParaLeer();
     if (!base) return;
-    aplicarLectura(leerPrenda(porIdConTope.get(prenda.varianteId) ?? prenda, base), base, false);
+    // Tocarla en la lista es elegirla a propósito: no es una etiqueta que se leyó dos veces (ADR-0562).
+    cerrarPregunta();
+    aplicarLectura(leerPrenda(porIdConTope.get(prenda.varianteId) ?? prenda, base), base, false, { repetible: false });
     if (escaner.current) escaner.current.value = "";
     volverAlEscaner();
   }
+
+  // Las tres respuestas a «¿Quieres volver a agregar esta prenda?». Sí: la lectura de siempre, ya sin preguntar.
+  function responderSi() {
+    const pregunta = repetidaRef.current.pregunta;
+    cerrarPregunta();
+    const prenda = pregunta ? porIdConTope.get(pregunta.varianteId) : undefined;
+    const base = prenda ? baseParaLeer() : null;
+    if (prenda && base) aplicarLectura(leerPrenda(prenda, base), base, false, { repetible: false });
+    volverAlEscaner();
+  }
+
+  function responderNo() {
+    const pregunta = repetidaRef.current.pregunta;
+    cerrarPregunta();
+    const prenda = pregunta ? porId.get(pregunta.varianteId) : undefined;
+    if (prenda) setAnuncio(`No se sumó: ${nombreDePrenda(prenda)} sigue igual.`);
+    volverAlEscaner();
+  }
+
+  // «Son varias iguales»: el total de esa prenda de una vez, y esa prenda deja de preguntar.
+  function ponerVarias(total: number) {
+    const pregunta = repetidaRef.current.pregunta;
+    const prenda = pregunta ? porIdConTope.get(pregunta.varianteId) : undefined;
+    if (!prenda) return cerrarPregunta();
+    cambiarRepetida({ pregunta: null, pilas: declararPila(repetidaRef.current.pilas, prenda.varianteId) });
+    cambiarLineas(fijarCantidad(lineasRef.current, prenda, total));
+    avisarLectura("suma");
+    setDestello((d) => ({ id: prenda.varianteId, n: (d?.n ?? 0) + 1 }));
+    setAnuncio(`${nombreDePrenda(prenda)}, ahora ${total}`);
+    volverAlEscaner();
+  }
+
+  // Esc = «No», salvo con una ventana abierta (la cámara y la de la prenda en la mano usan su propio Escape).
+  const escapeEsNo = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key !== "Escape" || e.defaultPrevented || !repetidaRef.current.pregunta || hayVentana) return;
+    e.preventDefault();
+    responderNo();
+  });
+  const hayPregunta = repetida.pregunta !== null;
+  useEffect(() => {
+    if (!hayPregunta) return;
+    const alTeclear = (e: KeyboardEvent) => escapeEsNo(e);
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [hayPregunta]);
 
   // Mientras ella teclea (no la pistola: la pistola termina el código y su Enter en menos de 250 ms), la lista por nombre. Lee
   // el campo al vencer la pausa, no el texto de la tecla: si la pistola ya lo vació con su Enter, no muestra nada.
@@ -558,6 +644,11 @@ export function BajarAlPisoForm({
     const p = lectura.prenda;
     const enLista = lineasRef.current.find((l) => l.varianteId === p.varianteId)?.cantidad ?? 0;
     const leida = { encontrada: true as const, referencia: p.referencia, detalle: [p.talla, p.color].filter(Boolean).join(" · "), sku: p.sku, cantidad: enLista };
+    // La pregunta la pinta la bandeja desde el estado (cuenta las ignoradas en vivo): el destello sale ámbar.
+    if (lectura.tipo === "pregunta" || lectura.tipo === "ignorada") {
+      setAvisoCamara(null);
+      return { ...leida, atencion: true };
+    }
     if (lectura.tipo === "suma") {
       setAvisoCamara(null);
       return leida;
@@ -650,6 +741,8 @@ export function BajarAlPisoForm({
 
   function quitar(varianteId: string) {
     cambiarLineas(quitarLinea(lineasRef.current, varianteId));
+    const { pregunta, pilas } = repetidaRef.current;
+    cambiarRepetida({ pregunta: pregunta?.varianteId === varianteId ? null : pregunta, pilas: soltarPila(pilas, varianteId) });
     volverAlEscaner();
   }
 
@@ -678,6 +771,7 @@ export function BajarAlPisoForm({
     if (!puedeConfirmar || enviandoRef.current || enviadas.length === 0) return;
     enviandoRef.current = true;
     setEnviando(true);
+    cerrarPregunta();
     setErrorConfirmar(null);
     setAvisoConfirmar(null);
     setAviso(null);
@@ -806,12 +900,33 @@ export function BajarAlPisoForm({
     borrarTexto(clave);
     setBorrador(null);
     setDescartarBorrador(false);
+    cambiarRepetida(ESTADO_REPETIDA_VACIO);
     // Empezar de nuevo es empezar con lo marcado en Existencias, si vino algo (tarea #11), no con la lista vacía.
     const deExistencias = unirConIniciales([], iniciales);
     lineasRef.current = deExistencias;
     setLineas(deExistencias);
     volverAlEscaner();
   }
+
+  // «¿Quieres volver a agregar esta prenda?» (ADR-0562): bajo el campo, o en la bandeja de la cámara si está abierta.
+  const prendaRepetida = repetida.pregunta ? porIdConTope.get(repetida.pregunta.varianteId) : undefined;
+  const avisoRepetida =
+    repetida.pregunta && prendaRepetida ? (
+      <AvisoRepetida
+        key={prendaRepetida.varianteId}
+        nombre={nombreDePrenda(prendaRepetida)}
+        lleva={lineas.find((l) => l.varianteId === prendaRepetida.varianteId)?.cantidad ?? 0}
+        ignoradas={repetida.pregunta.ignoradas}
+        tope={prendaRepetida.almacenDisponible}
+        onSi={responderSi}
+        onNo={responderNo}
+        onVarias={ponerVarias}
+        onCodigo={(codigo) => {
+          leerEscaneo(codigo);
+          volverAlEscaner();
+        }}
+      />
+    ) : null;
 
   return (
     <div className="space-y-4">
@@ -903,8 +1018,8 @@ export function BajarAlPisoForm({
           </button>
         </div>
         <p id="bajar-ayuda" className="mt-2 text-xs text-taupe">
-          Cada lectura suma 1. Si tienes 12 iguales, escanea una y cambia el número. Si la etiqueta no se lee, escribe el modelo, la talla
-          o el color y elígela de la lista.
+          La primera lectura de una prenda suma 1; si la misma vuelve a leerse, te pregunto antes de sumarla. Si tienes 12 iguales, elige
+          «Son varias iguales» o cambia el número. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista.
         </p>
         {sugerencias.length > 0 && (
           <div id="bajar-por-nombre" className="anim-revelar mt-3">
@@ -974,6 +1089,7 @@ export function BajarAlPisoForm({
             {aviso}
           </Aviso>
         )}
+        {!camara && avisoRepetida && <div className="mt-3">{avisoRepetida}</div>}
         <p className="sr-only" aria-live="polite">
           {anuncio}
         </p>
@@ -1085,6 +1201,23 @@ export function BajarAlPisoForm({
                                 <span className="tabular-nums">En almacén: {tope}</span>
                               )}
                               {porEscanear(l) && <Chip tono="pizarra">Por escanear</Chip>}
+                              {repetida.pilas.includes(l.varianteId) && (
+                                <>
+                                  <Chip tono="pizarra" title="Elegiste «Son varias iguales»: esta prenda suma sin preguntar.">
+                                    Varias iguales
+                                  </Chip>
+                                  <button
+                                    type="button"
+                                    className="btn-enlace text-xs"
+                                    onClick={() => {
+                                      cambiarRepetida({ ...repetidaRef.current, pilas: soltarPila(repetidaRef.current.pilas, l.varianteId) });
+                                      volverAlEscaner();
+                                    }}
+                                  >
+                                    Preguntar de nuevo
+                                  </button>
+                                </>
+                              )}
                             </p>
                           </div>
                         </div>
@@ -1196,7 +1329,7 @@ export function BajarAlPisoForm({
             if (ultimaLeida) cambiarCantidad(ultimaLeida, (l?.cantidad ?? 0) + paso);
           }}
           onEscribir={buscarPorNombreDesdeCamara}
-          aviso={avisoCamara}
+          aviso={avisoRepetida ?? avisoCamara}
           textos={{ ...TEXTOS_CAMARA, contador: String(resumen.prendas) }}
           onClose={cerrarCamara}
         />
