@@ -154,6 +154,11 @@ describe("dondeSeAtora: el paso que deja pasar a menos gente de la que le llega"
     expect(explicaAtora(a)).toContain("tómalo como una pista");
   });
 
+  it("el globo cae donde se ve que se fue más gente: 126 entraron, 41 vieron, 4 eligieron talla, 0 a la bolsa → «al elegir talla», no «a la bolsa» (solo 4 llegaron)", () => {
+    const a = dondeSeAtora([126, 41, 4, 0, 0, 0], DE_LA_BASE.base)!;
+    expect(a).toEqual({ i: 2, llegaron: 41, siguieron: 4, seFueronDe100: 90, pocas: false });
+  });
+
   it("singular y plural en la explicación", () => {
     expect(explicaAtora({ i: 4, llegaron: 1, siguieron: 0, seFueronDe100: 100, pocas: true })).toContain("de 1 persona que la puso en la bolsa, 0 separaron.");
     expect(explicaAtora({ i: 4, llegaron: 394, siguieron: 1, seFueronDe100: 100, pocas: false })).toContain("de 394 personas que la pusieron en la bolsa, 1 separó.");

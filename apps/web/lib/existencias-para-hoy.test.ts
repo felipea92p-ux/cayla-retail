@@ -138,6 +138,18 @@ describe("lo que encontró la revisión (2026-10-04)", () => {
     expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: true })[0].detalle).toMatch(/tu decisión/);
     expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: false })[0].detalle).toMatch(/en su sede se decide/);
   });
+
+  it("dañadas de 7 días o más sin decidirse (ADR-0564): la fila sube a rojo y lo dice; sin viejas, ámbar como siempre", () => {
+    const sin = tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 0 })[0];
+    expect([sin.tono, sin.detalle]).toEqual(["ambar", expect.stringMatching(/tu decisión/)]);
+    const una = tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 1 })[0];
+    expect(una.tono).toBe("rojo");
+    expect(una.detalle).toBe("1 lleva 7 días o más separadas sin decidirse: sácalas a arreglar o decide su destino.");
+    expect(tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 2 })[0].detalle).toMatch(/^2 llevan 7 días/);
+    // Mirando otra sede, informa sin mandar a hacer; y nunca dice más viejas que dañadas.
+    expect(tareasParaHoy({ ...vacia, danadas: 3, danadasViejas: 2, resuelveDanadas: false })[0].detalle).toMatch(/en su sede se decide/);
+    expect(tareasParaHoy({ ...vacia, danadas: 1, danadasViejas: 5 })[0].detalle).toMatch(/^1 lleva/);
+  });
 });
 
 describe("resumenPlegado (la línea del celular)", () => {

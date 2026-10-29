@@ -392,20 +392,28 @@ export type Atora = {
 };
 
 /**
- * Dónde se atora el recorrido: el paso que deja pasar a menos gente de la que le llega. Para no saltar con dos personas, cada paso se
- * mira contraído hacia lo de costumbre (los últimos 90 días de toda la tienda), con el peso de 30 personas: (siguieron + 30 · costumbre) /
- * (llegaron + 30). Lo que se DICE es lo que pasó en estos días. Sin nadie que haya entrado, no hay veredicto.
+ * Dónde se atora el recorrido: el paso donde, de la gente que llegó, MÁS se fue en estos días (Felipe, 2026-10-29: el globo debe coincidir
+ * con lo que se ve en los 100 puntos). Solo cuentan los pasos a los que llegaron al menos `POCAS_PERSONAS`: con 4 personas, «0 de 4» no es
+ * donde se pierde la gente. Si ningún paso llegó a tanto (muy pocas personas), manda lo de costumbre: cada paso se mira contraído hacia los
+ * últimos 90 días de toda la tienda, con el peso de 30 personas: (siguieron + 30 · costumbre) / (llegaron + 30), y el veredicto se dice
+ * como pista. Lo que se DICE siempre es lo que pasó en estos días. Sin nadie que haya entrado, no hay veredicto.
  */
 export function dondeSeAtora(pasos: readonly number[], base: readonly number[]): Atora | null {
   if (!pasos[0]) return null;
-  let mejor: { i: number; pasa: number } | null = null;
+  let suficientes: { i: number; pasa: number } | null = null;
+  let contraidos: { i: number; pasa: number } | null = null;
   for (let i = 1; i < pasos.length; i++) {
     const llegaron = pasos[i - 1];
     const costumbre = base[i - 1] > 0 ? base[i] / base[i - 1] : null;
+    if (llegaron >= POCAS_PERSONAS) {
+      const pasa = pasos[i] / llegaron;
+      if (!suficientes || pasa < suficientes.pasa) suficientes = { i, pasa };
+    }
     if (llegaron === 0 && costumbre === null) continue;
     const pasa = costumbre === null ? pasos[i] / llegaron : (pasos[i] + PESO_DE_LA_COSTUMBRE * costumbre) / (llegaron + PESO_DE_LA_COSTUMBRE);
-    if (!mejor || pasa < mejor.pasa) mejor = { i, pasa };
+    if (!contraidos || pasa < contraidos.pasa) contraidos = { i, pasa };
   }
+  const mejor = suficientes ?? contraidos;
   if (!mejor) return null;
   const llegaron = pasos[mejor.i - 1];
   const siguieron = pasos[mejor.i];

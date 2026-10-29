@@ -61,6 +61,8 @@ export type EntradaParaHoy = {
   /** `null`: la sede no es una tienda (las ventas sin registrar nacen en Vender) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
   sinRegistrar: { pendientes: number; vencidas: number } | "fallo" | null;
   danadas: number;
+  /** De esas, cuántas llevan 7 días o más sin que nadie las saque a arreglar ni decida su destino (ADR-0564). Ausente = 0. */
+  danadasViejas?: number;
   /** Quien mira puede decidir qué se hace con las dañadas (quien ve Existencias, en su sede: ADR-0534). Si no —mirando otra sede—, la
    *  fila solo informa. */
   resuelveDanadas: boolean;
@@ -192,14 +194,19 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
   }
 
   if (e.danadas > 0) {
+    const viejas = Math.min(e.danadasViejas ?? 0, e.danadas);
     tareas.push({
       tipo: "danadas",
       cifra: e.danadas,
       texto: plural(e.danadas, "prenda dañada", "prendas dañadas"),
-      detalle: e.resuelveDanadas
-        ? "Están fuera de la venta y esperan tu decisión: se arregló, liquidar, botar o donar."
-        : "Están fuera de la venta: en su sede se decide si se arreglan, se liquidan, se botan o se donan.",
-      tono: "ambar",
+      // Con alguna de 7 días o más (ADR-0564), la fila sube a rojo y lo dice: una prenda separada que nadie lleva a arreglar es plata parada.
+      detalle:
+        viejas > 0
+          ? `${viejas} ${plural(viejas, "lleva", "llevan")} 7 días o más separadas sin decidirse: ${e.resuelveDanadas ? "sácalas a arreglar o decide su destino" : "en su sede se decide qué hacer con ellas"}.`
+          : e.resuelveDanadas
+            ? "Están fuera de la venta y esperan tu decisión: se arregló, liquidar, botar o donar."
+            : "Están fuera de la venta: en su sede se decide si se arreglan, se liquidan, se botan o se donan.",
+      tono: viejas > 0 ? "rojo" : "ambar",
     });
   }
 

@@ -34,6 +34,7 @@ export type ClaveAviso =
   | "paraEnviar"
   | "conteo"
   | "perdidas"
+  | "danadas"
   | "regularizar"
   | "porPagar"
   | "cuentasBancarias"
@@ -88,6 +89,9 @@ export type FuentesAvisos = {
   conteoAbierto?: boolean | null;
   /** Pérdidas que se repiten en los últimos 30 días (ADR-0328 act. 14): solo del líder, con la regla de `perdidas-reglas`. */
   perdidas?: AvisoPerdidas | null;
+  /** ADR-0564: dañadas de ESTA sede que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida (`contarDanadasViejas`).
+   *  Solo para el líder que ve Existencias. */
+  danadasViejas?: number | null;
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
@@ -317,6 +321,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
   // ADR-0328 act. 14 (Felipe, 2026-10-04): se avisa CUANDO SE REPITE —la misma prenda o la misma zona pierde en dos días
   // distintos de los últimos 30, o se quitaron muchas sin nota—, no cada faltante. Sin un tope en % inventado. Lleva a la
   // pestaña «Pérdidas» de Movimientos, filtrada si es un solo hallazgo. Por hacer, no urgente: no es plata que no cuadra.
+  // ADR-0564: las prendas dañadas que nadie lleva a arreglar. A los 7 días ya es plata parada: urgente, como en «Para hoy» de Existencias,
+  // y lleva a la lista de Dañadas para sacarlas a arreglar o decidir su destino.
+  if (f.danadasViejas !== undefined) {
+    const n = f.danadasViejas;
+    avisos.push({
+      clave: "danadas",
+      grupo: "Inventario",
+      titulo: "Dañadas sin decidir",
+      cantidad: n,
+      nivel: n === null ? "sinleer" : n > 0 ? "urgente" : "aldia",
+      ahora: n ? `Decide ${n} ${plural(n, "prenda dañada", "prendas dañadas")}` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna lleva 7 días separada sin decidirse." : `${n} ${plural(n, "lleva", "llevan")} 7 días o más separadas sin que nadie las lleve a arreglar.`,
+      href: "/inventario?danados=1",
+      ocultable: true,
+      urgenteSi: "Cuando una lleva 7 días o más separada",
+    });
+  }
   if (f.perdidas !== undefined) {
     const p = f.perdidas;
     const n = p === null ? null : p.cantidad;
