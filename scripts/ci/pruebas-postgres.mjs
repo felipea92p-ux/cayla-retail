@@ -769,6 +769,10 @@ export const PRUEBAS = [
   // (y lo dice en de_claudia); no suma si se le pagó de más; sin prendas de CLAURE da lo de antes; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
   "pruebas:claure-proyeccion",
 
+  // La pantalla del reparto de gastos con CLAURE (ADR-0560, actividad 17): fn_reparto_claure (todas las categorías activas con su parte) y guardar_reparto_claure (solo el líder; firma al responsable, deja el antes y el después en
+  // la historia); lo que ya lee la tabla (fn_claure_gastos) toma el cambio solo; rango, nulo y categoría inexistente se rechazan; anon no ejecuta; la migración se repega. Cada caso: ROLLBACK.
+  "pruebas:claure-reparto-pantalla",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

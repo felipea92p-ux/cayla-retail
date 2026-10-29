@@ -962,8 +962,8 @@ export const GUIA_CONFIGURACION: Guia = {
     {
       id: "pestanas",
       ancla: "config.pestanas",
-      titulo: "Siete secciones",
-      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto e Impuestos. Te las mostramos una por una, empezando por Tiendas y caja.",
+      titulo: "Las secciones",
+      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos y, solo para el líder, Gastos con CLAURE. Te las mostramos una por una, empezando por Tiendas y caja.",
     },
     {
       id: "guardado",
@@ -1196,6 +1196,14 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       titulo: "El régimen de renta",
       texto: "En qué régimen tributa CAYLA cada año, su límite de ventas y el aviso que salta antes del límite, para hablar con el contador a tiempo. Rige desde el 1 de enero; vacío sigue lo del año anterior.",
+    },
+    {
+      id: "claure-reparto",
+      ancla: "config.claure-reparto",
+      opcional: true,
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-claure" }],
+      titulo: "Gastos con CLAURE",
+      texto: "Solo el líder la ve. Qué parte de cada gasto de la tienda es de Claudia: 0 es todo de CAYLA y 100, todo de CLAURE. Esa parte baja lo que se le debe y sale del gasto de CAYLA. Cada casilla se guarda sola, firmada; en la demo no cambiamos ninguna.",
     },
     {
       id: "empresa",
