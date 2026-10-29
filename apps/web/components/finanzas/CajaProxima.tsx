@@ -134,7 +134,7 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
       <div className="sm:hidden">
         <div className="grid gap-3">
           <TarjetaCifra etiqueta="Hoy tienes" valor={soles(c.saldoHoy)} {...entra(1)}>
-            Cajones, cajas fuertes y bancos.
+            Cajones, cajas fuertes y bancos{c.deClaudia > 0 ? `, sin los ${soles(c.deClaudia)} que son de Claudia` : ""}.
           </TarjetaCifra>
           <TarjetaCifra etiqueta={`Hasta el ${fechaEnPalabras(c.hasta)} sale`} valor={soles(c.sale)} {...entra(2)}>
             {c.entra > 0 ? `Y esperas cobrar ${soles(c.entra)}.` : "No se espera cobrar nada."}

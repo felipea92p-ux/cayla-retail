@@ -52,6 +52,13 @@ const PROY: Proyeccion = {
 };
 
 describe("alcanzaPulso", () => {
+  it("lo que es de Claudia ya está restado de lo que tienes, y lo dice (ADR-0560, actividad 16)", () => {
+    const a = alcanzaPulso({ ...PROY, deClaudia: 291.69 }, 0);
+    expect(a.estado === "sin_dato" ? null : a.deClaudia).toMatchObject({ monto: 291.69 });
+    expect(a.estado === "sin_dato" ? "" : a.deClaudia!.frase).toContain("S/ 292 que son de Claudia");
+    // Sin deuda con ella (o una base más vieja que esta web) no dice nada.
+    for (const sin of [null, 0, undefined]) expect(alcanzaPulso({ ...PROY, deClaudia: sin }, 0).estado === "sin_dato" ? null : (alcanzaPulso({ ...PROY, deClaudia: sin }, 0) as { deClaudia: unknown }).deClaudia).toBeNull();
+  });
   it("la primera semana bajo el mínimo, y lo guardado ya cuenta en ese saldo (depositar no lo aumenta)", () => {
     const a = alcanzaPulso(PROY, 10100);
     expect(a.estado).toBe("baja");

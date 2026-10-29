@@ -38,6 +38,8 @@ export type CajaCayla = {
   /** El último día que cuenta (hoy + 14, o antes si la proyección es más corta). */
   hasta: string;
   saldoHoy: number;
+  /** Lo que es de Claudia y ya no cuenta en `saldoHoy` (0 si no hay). */
+  deClaudia: number;
   minimo: number;
   entra: number;
   sale: number;
@@ -323,6 +325,7 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
     hoy: p.hoy,
     hasta,
     saldoHoy: r2(p.saldoHoy),
+    deClaudia: r2(p.deClaudia ?? 0),
     minimo,
     entra,
     sale,
