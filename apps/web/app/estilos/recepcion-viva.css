@@ -141,3 +141,46 @@
   .rc-cierre .rc-cierre-cifras { order: -1; flex-basis: 100%; }
   .rc-cierre .barra-abajo-acciones { margin-left: auto; }
 }
+
+/* ── El Trayecto del envío: cinco paradas y la bola en la actual ── */
+.rc-tray { --tc: var(--color-pizarra); --bola: 48px; --parada: 18px; --via: 6px; min-width: 0; }
+.rc-tray[data-tono="trabaja"] { --tc: var(--color-ambar); }
+.rc-tray[data-tono="listo"] { --tc: var(--color-verde); }
+.rc-tray[data-forma="compacta"] { --bola: 28px; --parada: 12px; --via: 4px; display: grid; gap: 4px; }
+.rc-tray-camino { position: relative; height: var(--bola); margin: 0 calc(var(--bola) / 2); }
+.rc-tray[data-forma="completa"] .rc-tray-camino { height: 84px; }
+.rc-tray-via { position: absolute; left: 0; right: 0; top: calc((var(--bola) - var(--via)) / 2); height: var(--via); overflow: hidden; border-radius: 99px; background: var(--color-hueso); }
+.rc-tray-lleno { position: absolute; inset: 0 auto 0 0; overflow: hidden; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 55%, transparent), var(--tc)); transition: width 1s var(--ease-cayla); animation: rc-tray-crece 1.2s var(--ease-cayla) 150ms both; }
+@keyframes rc-tray-crece { from { width: 0; } }
+.rc-tray-lleno::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-crema-fija) 70%, transparent), transparent); transform: translateX(-120%); animation: rc-tray-brillo 1.4s var(--ease-cayla) 900ms both; }
+@keyframes rc-tray-brillo { to { transform: translateX(320%); } }
+.rc-tray-parada { position: absolute; top: calc((var(--bola) - var(--parada)) / 2); display: grid; place-items: center; width: var(--parada); height: var(--parada); margin-left: calc(var(--parada) / -2); border: 2px dashed var(--color-borde-control); border-radius: 50%; background: var(--color-papel); color: var(--color-crema-fija); animation: rc-tray-aparece 450ms var(--ease-cayla) both; animation-delay: calc(250ms + var(--j) * 110ms); }
+.rc-tray-parada[data-hecha] { border-style: solid; border-color: var(--tc); background: var(--tc); }
+.rc-tray-parada > svg { width: 60%; height: 60%; }
+@keyframes rc-tray-aparece { from { opacity: 0; transform: scale(0); } }
+.rc-tray-parada em { position: absolute; top: calc(var(--parada) + 6px); color: var(--color-taupe); font-size: 13px; font-style: normal; font-weight: 600; white-space: nowrap; opacity: 0; transition: opacity 250ms var(--ease-cayla); }
+.rc-tray-parada[data-extremo] em { opacity: 1; }
+@media (hover: hover) {
+  .rc-tray:hover .rc-tray-parada em { opacity: 1; }
+}
+.rc-tray-marca { position: absolute; top: 0; z-index: 1; display: grid; justify-items: center; gap: 4px; transform: translateX(-50%); transition: left 1s var(--ease-cayla); animation: rc-tray-viaja 1.2s var(--ease-cayla) 150ms both; }
+@keyframes rc-tray-viaja { from { left: 0; opacity: 0.3; } }
+.rc-tray-bola { position: relative; display: grid; place-items: center; width: var(--bola); height: var(--bola); border-radius: 50%; background: conic-gradient(var(--tc) calc(var(--pp) * 1%), color-mix(in srgb, var(--tc) 25%, var(--color-hueso)) 0); }
+.rc-tray-bola::before { content: ""; position: absolute; inset: calc(var(--bola) / 10); border-radius: 50%; background: var(--tc); }
+.rc-tray-bola > svg { position: relative; width: 45%; height: 45%; color: var(--color-crema-fija); }
+:root[data-tema="oscuro"] .rc-tray-bola > svg, :root[data-tema="oscuro"] .rc-tray-parada { color: var(--color-tinta-fija); }
+.rc-tray-halo { position: absolute; top: 0; left: 50%; width: var(--bola); height: var(--bola); margin-left: calc(var(--bola) / -2); border: 2px solid var(--tc); border-radius: 50%; opacity: 0; pointer-events: none; animation: rc-tray-halo 1.2s var(--ease-cayla) 900ms both; }
+@keyframes rc-tray-halo { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
+.rc-tray-texto { display: grid; white-space: nowrap; line-height: 1.25; }
+.rc-tray-texto b { color: var(--color-tinta); font-size: 15px; }
+.rc-tray-texto small { color: var(--color-taupe); font-size: 13px; }
+.rc-tray[data-forma="completa"] .rc-tray-texto { justify-items: center; text-align: center; animation: cayla-entrada 500ms var(--ease-cayla) 700ms both; }
+.rc-tray[data-forma="compacta"] .rc-tray-texto b { font-size: 14px; }
+/* La cabecera: el camino ocupa todo lo que le da su caja (26 rem, o el ancho de la pantalla si es menos). */
+.rc-tray-cabecera { width: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-tray-lleno, .rc-tray-lleno::after, .rc-tray-parada, .rc-tray-marca, .rc-tray-halo, .rc-tray-texto { animation: none; }
+  .rc-tray-lleno, .rc-tray-marca, .rc-tray-parada em { transition: none; }
+  .rc-tray-halo, .rc-tray-lleno::after { display: none; }
+}
