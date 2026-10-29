@@ -260,6 +260,176 @@
   "tabla": "retail.apartados_opciones"
  },
  {
+  "conname": "asistente_informes_check",
+  "definicion": "CHECK ((hasta > desde))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_cifras_check",
+  "definicion": "CHECK ((jsonb_typeof(cifras) = 'object'::text))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_costo_usd_check",
+  "definicion": "CHECK (((costo_usd >= (0)::numeric) AND (costo_usd <= (1)::numeric)))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_mejoras_check",
+  "definicion": "CHECK (((jsonb_typeof(mejoras) = 'array'::text) AND (jsonb_array_length(mejoras) <= 5)))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_modelo_check",
+  "definicion": "CHECK ((char_length(modelo) <= 60))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_pedido_por_fkey",
+  "definicion": "FOREIGN KEY (pedido_por) REFERENCES personas(id)",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_semana_check",
+  "definicion": "CHECK ((EXTRACT(isodow FROM semana) = (1)::numeric))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_semana_key",
+  "definicion": "UNIQUE (semana)",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_tokens_entrada_check",
+  "definicion": "CHECK ((tokens_entrada >= 0))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_informes_tokens_salida_check",
+  "definicion": "CHECK ((tokens_salida >= 0))",
+  "tabla": "retail.asistente_informes"
+ },
+ {
+  "conname": "asistente_preguntas_check",
+  "definicion": "CHECK (((comentario IS NULL) OR (sirvio IS FALSE)))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_comentario_check",
+  "definicion": "CHECK (((char_length(comentario) >= 1) AND (char_length(comentario) <= 300)))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_costo_usd_check",
+  "definicion": "CHECK (((costo_usd >= (0)::numeric) AND (costo_usd <= 0.05)))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_guia_id_check",
+  "definicion": "CHECK ((guia_id ~ '^[a-z0-9][a-z0-9._-]{0,79}$'::text))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_modelo_check",
+  "definicion": "CHECK ((char_length(modelo) <= 60))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_modulo_check",
+  "definicion": "CHECK ((char_length(modulo) <= 60))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['sin_clave'::text, 'sin_respuesta'::text, 'respuesta_invalida'::text, 'rechazo'::text, 'tope'::text])))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_ms_check",
+  "definicion": "CHECK ((ms >= 0))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_pregunta_check",
+  "definicion": "CHECK (((char_length(pregunta) >= 2) AND (char_length(pregunta) <= 300)))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_referencia_check",
+  "definicion": "CHECK ((char_length(referencia) <= 80))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_ruta_check",
+  "definicion": "CHECK (((ruta ~ '^/'::text) AND (char_length(ruta) <= 300)))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_tema_check",
+  "definicion": "CHECK ((tema = ANY (ARRAY['como_hacer'::text, 'regla'::text, 'por_que'::text, 'otro'::text])))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_tipo_check",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['guia'::text, 'sin_acceso'::text, 'regla'::text, 'error'::text, 'no_existe'::text, 'fuera_de_tema'::text, 'basico'::text])))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_tokens_cache_check",
+  "definicion": "CHECK ((tokens_cache >= 0))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_tokens_entrada_check",
+  "definicion": "CHECK ((tokens_entrada >= 0))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_tokens_salida_check",
+  "definicion": "CHECK ((tokens_salida >= 0))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_tramos_check",
+  "definicion": "CHECK (((jsonb_typeof(tramos) = 'array'::text) AND (jsonb_array_length(tramos) <= 3)))",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_preguntas_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.asistente_preguntas"
+ },
+ {
+  "conname": "asistente_sedes_cambiado_por_fkey",
+  "definicion": "FOREIGN KEY (cambiado_por) REFERENCES personas(id)",
+  "tabla": "retail.asistente_sedes"
+ },
+ {
+  "conname": "asistente_sedes_pkey",
+  "definicion": "PRIMARY KEY (ubicacion_id)",
+  "tabla": "retail.asistente_sedes"
+ },
+ {
+  "conname": "asistente_sedes_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.asistente_sedes"
+ },
+ {
   "conname": "avisos_bandeja_cuenta_web_id_fkey",
   "definicion": "FOREIGN KEY (cuenta_web_id) REFERENCES retail.cuentas_web(id) ON DELETE CASCADE",
   "tabla": "retail.avisos_bandeja"
@@ -5060,6 +5230,11 @@
   "tabla": "retail.empresas"
  },
  {
+  "conname": "empresas_marca_id_fkey",
+  "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)",
+  "tabla": "retail.empresas"
+ },
+ {
   "conname": "empresas_nombre_check",
   "definicion": "CHECK ((btrim(nombre) <> ''::text))",
   "tabla": "retail.empresas"
@@ -6190,6 +6365,11 @@
   "tabla": "retail.insumos"
  },
  {
+  "conname": "insumos_material_fk",
+  "definicion": "FOREIGN KEY (material_id, tipo, unidad_medida) REFERENCES retail.materiales(id, tipo, unidad_medida)",
+  "tabla": "retail.insumos"
+ },
+ {
   "conname": "insumos_merma_pct_check",
   "definicion": "CHECK (((merma_pct >= (0)::numeric) AND (merma_pct < 0.5)))",
   "tabla": "retail.insumos"
@@ -6360,6 +6540,101 @@
   "tabla": "retail.marcas"
  },
  {
+  "conname": "materiales_codigo_no_vacio",
+  "definicion": "CHECK ((retail.fn_clave_texto(codigo) IS NOT NULL))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_compra_de_la_tela",
+  "definicion": "CHECK (((tipo = 'avio'::text) OR (unidad_compra = ANY (ARRAY['metro'::text, 'kilo'::text, 'rollo'::text]))))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_compra_del_avio",
+  "definicion": "CHECK (((tipo = 'tela'::text) OR (unidad_compra = unidad_medida)))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_creado_por_fkey",
+  "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_id_tipo_unidad_unico",
+  "definicion": "UNIQUE (id, tipo, unidad_medida)",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_kilo_pide_ancho_y_gramaje",
+  "definicion": "CHECK (((unidad_compra <> 'kilo'::text) OR ((ancho_cm IS NOT NULL) AND (gramaje_gm2 IS NOT NULL))))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_medidas_con_tope",
+  "definicion": "CHECK ((((ancho_cm IS NULL) OR ((ancho_cm > (0)::numeric) AND (ancho_cm < (1000)::numeric))) AND ((gramaje_gm2 IS NULL) OR ((gramaje_gm2 > (0)::numeric) AND (gramaje_gm2 < (5000)::numeric))) AND ((metros_por_rollo IS NULL) OR ((metros_por_rollo > (0)::numeric) AND (metros_por_rollo < (100000)::numeric)))))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_merma_pct_check",
+  "definicion": "CHECK (((merma_pct >= (0)::numeric) AND (merma_pct < 0.5)))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_nombre_no_vacio",
+  "definicion": "CHECK ((retail.fn_clave_texto(nombre) IS NOT NULL))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_rollo_pide_metros",
+  "definicion": "CHECK (((unidad_compra <> 'rollo'::text) OR (metros_por_rollo IS NOT NULL)))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_tejido_id_fkey",
+  "definicion": "FOREIGN KEY (tejido_id) REFERENCES retail.tejidos(id)",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_tejido_solo_tela",
+  "definicion": "CHECK (((tipo = 'tela'::text) OR (tejido_id IS NULL)))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_tela_en_metros",
+  "definicion": "CHECK (((tipo <> 'tela'::text) OR (unidad_medida = 'metro'::text)))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_textos_con_tope",
+  "definicion": "CHECK (((length(nombre) <= 120) AND (length(codigo) <= 20) AND (length(COALESCE(composicion, ''::text)) <= 160)))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_tipo_check",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['tela'::text, 'avio'::text])))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_token_cliente_key",
+  "definicion": "UNIQUE (token_cliente)",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_unidad_compra_check",
+  "definicion": "CHECK ((unidad_compra = ANY (ARRAY['metro'::text, 'kilo'::text, 'rollo'::text, 'unidad'::text, 'cono'::text, 'par'::text, 'docena'::text])))",
+  "tabla": "retail.materiales"
+ },
+ {
+  "conname": "materiales_unidad_medida_check",
+  "definicion": "CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))",
+  "tabla": "retail.materiales"
+ },
+ {
   "conname": "medios_de_cobro_cuenta_id_fkey",
   "definicion": "FOREIGN KEY (cuenta_id) REFERENCES retail.cuentas_dinero(id)",
   "tabla": "retail.medios_de_cobro"
@@ -6482,6 +6757,11 @@
  {
   "conname": "movimientos_devolucion_item_fkey",
   "definicion": "FOREIGN KEY (devolucion_item_id) REFERENCES retail.devolucion_items(id)",
+  "tabla": "retail.movimientos"
+ },
+ {
+  "conname": "movimientos_empresa_id_fkey",
+  "definicion": "FOREIGN KEY (empresa_id) REFERENCES retail.empresas(id)",
   "tabla": "retail.movimientos"
  },
  {
@@ -7560,6 +7840,121 @@
   "tabla": "retail.pedido_web_pagos"
  },
  {
+  "conname": "pedidos_campana_actualizado_con_autor",
+  "definicion": "CHECK (((actualizado_por IS NULL) = (actualizado_en IS NULL)))",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_costo_unitario_check",
+  "definicion": "CHECK ((costo_unitario >= (0)::numeric))",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_cuando_coherente",
+  "definicion": "CHECK ((((cuando = 'ya'::text) AND (fecha_prevista IS NULL)) OR ((cuando = 'fecha'::text) AND (fecha_prevista IS NOT NULL))))",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_enviado_por_fkey",
+  "definicion": "FOREIGN KEY (enviado_por) REFERENCES personas(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_estado_coherente",
+  "definicion": "CHECK (\nCASE estado\n    WHEN 'pendiente'::text THEN ((orden_compra_id IS NULL) AND (pedido_por IS NULL) AND (pedido_en IS NULL) AND (rectificado_por IS NULL) AND (rectificado_en IS NULL) AND (motivo IS NULL))\n    WHEN 'pedido'::text THEN ((orden_compra_id IS NOT NULL) AND (pedido_por IS NOT NULL) AND (pedido_en IS NOT NULL) AND (rectificado_por IS NULL) AND (rectificado_en IS NULL) AND (motivo IS NULL))\n    WHEN 'rectificado'::text THEN ((orden_compra_id IS NULL) AND (pedido_por IS NULL) AND (pedido_en IS NULL) AND (rectificado_por IS NOT NULL) AND (rectificado_en IS NOT NULL) AND (btrim(COALESCE(motivo, ''::text)) <> ''::text))\n    ELSE NULL::boolean\nEND)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_estado_valido",
+  "definicion": "CHECK ((estado = ANY (ARRAY['pendiente'::text, 'pedido'::text, 'rectificado'::text])))",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_motivo_con_tope",
+  "definicion": "CHECK (((motivo IS NULL) OR (length(motivo) <= 200)))",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_orden_compra_id_fkey",
+  "definicion": "FOREIGN KEY (orden_compra_id) REFERENCES retail.ordenes_compra(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_paso_2_version_check",
+  "definicion": "CHECK ((paso_2_version >= 1))",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_pedido_por_fkey",
+  "definicion": "FOREIGN KEY (pedido_por) REFERENCES personas(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_plan_id_fkey",
+  "definicion": "FOREIGN KEY (plan_id) REFERENCES retail.planes_compra(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_rectificado_por_fkey",
+  "definicion": "FOREIGN KEY (rectificado_por) REFERENCES personas(id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_una_orden",
+  "definicion": "UNIQUE (orden_compra_id)",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_unidades_check",
+  "definicion": "CHECK ((unidades >= 1))",
+  "tabla": "retail.pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_lineas_cantidad_check",
+  "definicion": "CHECK (((cantidad >= 1) AND (cantidad <= 100000)))",
+  "tabla": "retail.pedidos_campana_lineas"
+ },
+ {
+  "conname": "pedidos_campana_lineas_pedido_id_fkey",
+  "definicion": "FOREIGN KEY (pedido_id) REFERENCES retail.pedidos_campana(id)",
+  "tabla": "retail.pedidos_campana_lineas"
+ },
+ {
+  "conname": "pedidos_campana_lineas_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.pedidos_campana_lineas"
+ },
+ {
+  "conname": "pedidos_campana_lineas_producto_id_fkey",
+  "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id)",
+  "tabla": "retail.pedidos_campana_lineas"
+ },
+ {
+  "conname": "pedidos_campana_lineas_talla_id_fkey",
+  "definicion": "FOREIGN KEY (talla_id) REFERENCES retail.tallas(id)",
+  "tabla": "retail.pedidos_campana_lineas"
+ },
+ {
   "conname": "pedidos_no_atendidos_atendido_por_fkey",
   "definicion": "FOREIGN KEY (atendido_por) REFERENCES personas(id)",
   "tabla": "retail.pedidos_no_atendidos"
@@ -7940,6 +8335,91 @@
   "tabla": "retail.piezas_liquidacion_etiquetas"
  },
  {
+  "conname": "plan_compra_calendario_actualizada_por_fkey",
+  "definicion": "FOREIGN KEY (actualizada_por) REFERENCES personas(id)",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_anio_unico_check",
+  "definicion": "CHECK (((anio_unico IS NULL) OR ((anio_unico >= 2000) AND (anio_unico <= 2100))))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_creada_por_fkey",
+  "definicion": "FOREIGN KEY (creada_por) REFERENCES personas(id)",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_de_insignia_sin_nombre",
+  "definicion": "CHECK (((etiqueta_id IS NULL) OR (nombre IS NULL)))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_desde_md_check",
+  "definicion": "CHECK (((desde_md IS NULL) OR (desde_md ~ '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'::text)))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id)",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_hasta_md_check",
+  "definicion": "CHECK (((hasta_md IS NULL) OR (hasta_md ~ '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'::text)))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_las_dos_fechas",
+  "definicion": "CHECK (((desde_md IS NULL) = (hasta_md IS NULL)))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_nombre_check",
+  "definicion": "CHECK (((nombre IS NULL) OR ((btrim(nombre) <> ''::text) AND (char_length(nombre) <= 80))))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_propia_completa",
+  "definicion": "CHECK (((etiqueta_id IS NOT NULL) OR ((nombre IS NOT NULL) AND (desde_md IS NOT NULL) AND (hasta_md IS NOT NULL))))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_quitada_con_autor",
+  "definicion": "CHECK (((quitada_en IS NULL) = (quitada_por IS NULL)))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_quitada_por_fkey",
+  "definicion": "FOREIGN KEY (quitada_por) REFERENCES personas(id)",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_regreso_solo_pausada",
+  "definicion": "CHECK (((pausa_hasta IS NULL) OR (uso = 'pausada'::text)))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_repite_check",
+  "definicion": "CHECK ((repite = ANY (ARRAY['anual'::text, 'unica'::text])))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_unica_con_anio",
+  "definicion": "CHECK (((repite = 'unica'::text) = (anio_unico IS NOT NULL)))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_uso_check",
+  "definicion": "CHECK ((uso = ANY (ARRAY['activa'::text, 'pausada'::text, 'no'::text])))",
+  "tabla": "retail.plan_compra_calendario"
+ },
+ {
   "conname": "planes_compra_archivado_con_autor",
   "definicion": "CHECK (((archivado_en IS NULL) = (archivado_por IS NULL)))",
   "tabla": "retail.planes_compra"
@@ -7947,6 +8427,11 @@
  {
   "conname": "planes_compra_archivado_por_fkey",
   "definicion": "FOREIGN KEY (archivado_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_calendario_id_fkey",
+  "definicion": "FOREIGN KEY (calendario_id) REFERENCES retail.plan_compra_calendario(id)",
   "tabla": "retail.planes_compra"
  },
  {
@@ -7972,6 +8457,11 @@
  {
   "conname": "planes_compra_fechas",
   "definicion": "CHECK ((hasta >= desde))",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_insignia_o_propia",
+  "definicion": "CHECK (((etiqueta_id IS NULL) OR (calendario_id IS NULL)))",
   "tabla": "retail.planes_compra"
  },
  {
@@ -8010,6 +8500,11 @@
   "tabla": "retail.planes_compra"
  },
  {
+  "conname": "planes_compra_precio_de_la_plata_check",
+  "definicion": "CHECK (((precio_de_la_plata >= ('-1'::integer)::numeric) AND (precio_de_la_plata <= (50)::numeric)))",
+  "tabla": "retail.planes_compra"
+ },
+ {
   "conname": "planes_compra_recupero_actualizado_por_fkey",
   "definicion": "FOREIGN KEY (recupero_actualizado_por) REFERENCES personas(id)",
   "tabla": "retail.planes_compra"
@@ -8037,6 +8532,16 @@
  {
   "conname": "planes_compra_tope_inversion_check",
   "definicion": "CHECK (((tope_inversion IS NULL) OR (tope_inversion > (0)::numeric)))",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_visibilidad_finanzas_por_fkey",
+  "definicion": "FOREIGN KEY (visibilidad_finanzas_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra"
+ },
+ {
+  "conname": "planes_compra_visibilidad_finanzas_valida",
+  "definicion": "CHECK (((visibilidad_finanzas = ANY (ARRAY['todo'::text, 'escenarios'::text, 'nada'::text])) AND ((visibilidad_finanzas_por IS NULL) = (visibilidad_finanzas_en IS NULL))))",
   "tabla": "retail.planes_compra"
  },
  {
@@ -8115,6 +8620,181 @@
   "tabla": "retail.planes_compra_lineas"
  },
  {
+  "conname": "planes_compra_lineas_historial_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_costo_check",
+  "definicion": "CHECK ((costo >= (0)::numeric))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_curva_check",
+  "definicion": "CHECK ((jsonb_typeof(curva) = 'object'::text))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_descuento_pct_check",
+  "definicion": "CHECK (((descuento_pct >= (0)::numeric) AND (descuento_pct < (100)::numeric)))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_escenarios",
+  "definicion": "CHECK (((flojo <= normal) AND (normal <= bueno)))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_flojo_check",
+  "definicion": "CHECK ((flojo >= 0))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_guardado_por_fkey",
+  "definicion": "FOREIGN KEY (guardado_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_margen",
+  "definicion": "CHECK ((costo < precio))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_nota_check",
+  "definicion": "CHECK (((nota IS NULL) OR (btrim(nota) <> ''::text)))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_plan_id_fkey",
+  "definicion": "FOREIGN KEY (plan_id) REFERENCES retail.planes_compra(id)",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_precio_check",
+  "definicion": "CHECK ((precio > (0)::numeric))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_propuesta_check",
+  "definicion": "CHECK (((propuesta IS NULL) OR ((jsonb_typeof(propuesta) = 'object'::text) AND (octet_length((propuesta)::text) <= 8192))))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_recupero_pct_check",
+  "definicion": "CHECK (((recupero_pct >= 0) AND (recupero_pct <= 100)))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_una_por_version",
+  "definicion": "UNIQUE (plan_id, categoria_id, version)",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_lineas_historial_version_check",
+  "definicion": "CHECK ((version >= 1))",
+  "tabla": "retail.planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_pagos_igv_lista",
+  "definicion": "CHECK (((jsonb_typeof(igv_incluido) = 'array'::text) AND (jsonb_array_length(igv_incluido) <= 500)))",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_pagos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_pagos_plan_id_fkey",
+  "definicion": "FOREIGN KEY (plan_id) REFERENCES retail.planes_compra(id)",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_pagos_por_fkey",
+  "definicion": "FOREIGN KEY (por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_pagos_suman_cien",
+  "definicion": "CHECK (retail.fn_pagos_de_compra_validos(pagos))",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_pagos_tandas_tope",
+  "definicion": "CHECK (((jsonb_typeof(tandas) = ANY (ARRAY['array'::text, 'object'::text])) AND (octet_length((tandas)::text) <= 16384)))",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_pagos_una_por_version",
+  "definicion": "UNIQUE (plan_id, version)",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_pagos_version_check",
+  "definicion": "CHECK ((version >= 1))",
+  "tabla": "retail.planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_paso_2_cabe_en_el_total",
+  "definicion": "CHECK ((unidades <= total))",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_items_check",
+  "definicion": "CHECK (((jsonb_typeof(items) = 'array'::text) AND (jsonb_array_length(items) <= 5000) AND (octet_length((items)::text) <= 1048576)))",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_pct_check",
+  "definicion": "CHECK (((pct >= 0) AND (pct <= 100)))",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_plan_id_fkey",
+  "definicion": "FOREIGN KEY (plan_id) REFERENCES retail.planes_compra(id)",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_por_fkey",
+  "definicion": "FOREIGN KEY (por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_total_check",
+  "definicion": "CHECK ((total >= 0))",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_una_por_version",
+  "definicion": "UNIQUE (plan_id, categoria_id, version)",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_unidades_check",
+  "definicion": "CHECK ((unidades >= 0))",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
+  "conname": "planes_compra_paso_2_version_check",
+  "definicion": "CHECK ((version >= 1))",
+  "tabla": "retail.planes_compra_paso_2"
+ },
+ {
   "conname": "planes_compra_reparto_actualizado_por_fkey",
   "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
   "tabla": "retail.planes_compra_reparto"
@@ -8138,6 +8818,81 @@
   "conname": "planes_compra_reparto_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.planes_compra_reparto"
+ },
+ {
+  "conname": "planes_compra_versiones_creada_por_fkey",
+  "definicion": "FOREIGN KEY (creada_por) REFERENCES personas(id)",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_inversion_check",
+  "definicion": "CHECK (((inversion IS NULL) OR (inversion >= (0)::numeric)))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_lineas_check",
+  "definicion": "CHECK (((jsonb_typeof(lineas) = 'array'::text) AND (octet_length((lineas)::text) <= 262144)))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_nota_check",
+  "definicion": "CHECK ((char_length(nota) <= 120))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_numero_check",
+  "definicion": "CHECK ((numero >= 1))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_origen_check",
+  "definicion": "CHECK ((origen = ANY (ARRAY['manual'::text, 'plan_con_tope'::text, 'restauracion'::text, 'automatica'::text])))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_plan_id_fkey",
+  "definicion": "FOREIGN KEY (plan_id) REFERENCES retail.planes_compra(id)",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_precio_de_la_plata_check",
+  "definicion": "CHECK (((precio_de_la_plata >= ('-1'::integer)::numeric) AND (precio_de_la_plata <= (50)::numeric)))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_prendas_check",
+  "definicion": "CHECK (((prendas IS NULL) OR (prendas >= 0)))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_restauracion",
+  "definicion": "CHECK (((origen = 'restauracion'::text) = (restaurada_de IS NOT NULL)))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_restaurada_de_check",
+  "definicion": "CHECK (((restaurada_de IS NULL) OR (restaurada_de >= 1)))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_tope_check",
+  "definicion": "CHECK (((tope IS NULL) OR (tope > (0)::numeric)))",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_una_por_numero",
+  "definicion": "UNIQUE (plan_id, numero)",
+  "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planes_compra_versiones_vuelve_a_una_anterior",
+  "definicion": "CHECK (((restaurada_de IS NULL) OR (restaurada_de < numero)))",
+  "tabla": "retail.planes_compra_versiones"
  },
  {
   "conname": "pos_abonos_lotes_clave_check",
@@ -8831,7 +9586,7 @@
  },
  {
   "conname": "produccion_fases_quien",
-  "definicion": "CHECK (\nCASE\n    WHEN (quien = 'servicio'::text) THEN ((proveedor_id IS NOT NULL) AND ((tarifa_prenda IS NOT NULL) OR ((clave = 'ploteo'::text) AND (fijo_orden > (0)::numeric))))\n    ELSE ((proveedor_id IS NULL) AND (tarifa_prenda IS NULL) AND (fecha_prometida IS NULL) AND (cantidad_minima IS NULL))\nEND)",
+  "definicion": "CHECK (\nCASE\n    WHEN (quien = 'servicio'::text) THEN (((proveedor_id IS NOT NULL) AND ((tarifa_prenda IS NOT NULL) OR ((clave = 'ploteo'::text) AND (fijo_orden > (0)::numeric)))) OR ((proveedor_id IS NULL) AND ((clave <> 'ploteo'::text) OR (tarifa_prenda IS NULL))))\n    ELSE ((proveedor_id IS NULL) AND (tarifa_prenda IS NULL) AND (fecha_prometida IS NULL) AND (cantidad_minima IS NULL))\nEND)",
   "tabla": "retail.produccion_fases"
  },
  {
@@ -9275,6 +10030,21 @@
   "tabla": "retail.producto_origen"
  },
  {
+  "conname": "producto_taller_declarado_por_fkey",
+  "definicion": "FOREIGN KEY (declarado_por) REFERENCES personas(id)",
+  "tabla": "retail.producto_taller"
+ },
+ {
+  "conname": "producto_taller_pkey",
+  "definicion": "PRIMARY KEY (producto_id)",
+  "tabla": "retail.producto_taller"
+ },
+ {
+  "conname": "producto_taller_producto_id_fkey",
+  "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE",
+  "tabla": "retail.producto_taller"
+ },
+ {
   "conname": "productos_aprobado_por_fkey",
   "definicion": "FOREIGN KEY (aprobado_por) REFERENCES personas(id)",
   "tabla": "retail.productos"
@@ -9312,6 +10082,11 @@
  {
   "conname": "productos_marca_proveedor_fk",
   "definicion": "FOREIGN KEY (marca_id, proveedor_id) REFERENCES retail.marca_proveedores(marca_id, proveedor_id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_nombre_proveedor_check",
+  "definicion": "CHECK (((nombre_proveedor IS NULL) OR ((btrim(nombre_proveedor) <> ''::text) AND (char_length(nombre_proveedor) <= 80))))",
   "tabla": "retail.productos"
  },
  {
@@ -10745,6 +11520,11 @@
   "tabla": "retail.stock"
  },
  {
+  "conname": "stock_cuadra_con_dueno",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.stock"
+ },
+ {
   "conname": "stock_sububicacion_pertenece_fk",
   "definicion": "FOREIGN KEY (sububicacion_id, ubicacion_id) REFERENCES retail.sububicaciones(id, ubicacion_id)",
   "tabla": "retail.stock"
@@ -10763,6 +11543,51 @@
   "conname": "stock_variante_ubicacion_sububicacion_key",
   "definicion": "UNIQUE NULLS NOT DISTINCT (variante_id, ubicacion_id, sububicacion_id)",
   "tabla": "retail.stock"
+ },
+ {
+  "conname": "stock_dueno_apartada_valida",
+  "definicion": "CHECK (((cantidad_apartada >= 0) AND (cantidad_apartada <= cantidad)))",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_cantidad_no_negativa",
+  "definicion": "CHECK ((cantidad >= 0))",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_clave",
+  "definicion": "UNIQUE NULLS NOT DISTINCT (variante_id, ubicacion_id, sububicacion_id, empresa_id)",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_cuadra_con_stock",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_empresa_id_fkey",
+  "definicion": "FOREIGN KEY (empresa_id) REFERENCES retail.empresas(id)",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_no_es_la_casa",
+  "definicion": "CHECK ((empresa_id <> 'ca71a000-0000-4000-8000-000000000001'::uuid))",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_sububicacion_pertenece_fk",
+  "definicion": "FOREIGN KEY (sububicacion_id, ubicacion_id) REFERENCES retail.sububicaciones(id, ubicacion_id)",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.stock_dueno"
+ },
+ {
+  "conname": "stock_dueno_variante_id_fkey",
+  "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id) ON DELETE CASCADE",
+  "tabla": "retail.stock_dueno"
  },
  {
   "conname": "sububicaciones_id_ubicacion_unique",

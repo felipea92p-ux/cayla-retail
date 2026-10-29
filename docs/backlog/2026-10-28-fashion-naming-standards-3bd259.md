@@ -21,4 +21,4 @@
 - [x] **Cambiar de sede con el alta a medias la borra sin preguntar.** Heredado.
 - [x] **«S/ 59» pegado en un monto** queda inválido sin decir por qué en el campo (`CampoMonto`). Heredado.
 - [ ] «2,5» **tecleado letra por letra** en una cantidad sigue dando 25: la coma no llega a la caja (`inputMode="numeric"`) y el 5 se suma. Pegado o de un tirón ya queda en 2. Baja prioridad: nadie cuenta media prenda.
-- [ ] **Refrescar el volcado de producción** (`docs/datos/generado/`, ver `COMO-REFRESCAR.md`) y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar`: el último es del 2026-10-26 y no trae estas dos ni las cinco de `main` aplicadas el mismo día.
+- [x] **Refrescar el volcado de producción** (hecho el 2026-10-28: 1.936 huellas iguales a producción, 13 tablas nuevas con su pájaro) (`docs/datos/generado/`, ver `COMO-REFRESCAR.md`) y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar`: el último es del 2026-10-26 y no trae estas dos ni las cinco de `main` aplicadas el mismo día.

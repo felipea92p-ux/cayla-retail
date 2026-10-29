@@ -27,3 +27,8 @@ Felipe se lleva: los cuatro ataques repetidos con la semilla 2810 en el navegado
 Qué hice: una consulta de solo lectura comparó con producción las 37 migraciones desde el 26-oct; faltaban 7. Las apliqué una por una y en orden, cada archivo tal cual, por la línea de comandos de Supabase (`supabase db query --linked -f`; nunca `db push`, que reintentaría las registradas con otra versión): `20261026163000`, `20261026180000`, `20261026210000`, `20261026214000`, `20261028065000` (de `main`) y `20261028184000`, `20261028221000` (de esta rama).
 Por qué así: Felipe pidió «aplícalas tú»; el conector de Supabase no ve CAYLA Dynamic, así que Felipe inició sesión en la línea de comandos.
 Felipe se lleva: la verificación da 37 de 37 «ya está» y cada una se comprobó por su marca; la carpeta quedó desvinculada de producción. Falta refrescar el volcado (`docs/datos/generado/`) y anotar las cinco de `main` en sus propios documentos.
+
+## 2026-10-28 (La foto de producción, al día)
+Qué hice: refresqué `docs/datos/generado/` con `pnpm datos:refrescar` contra producción (124 grupos nuevos o cambiados; las 1.936 huellas coinciden; 300 relaciones y 1.750 funciones), regeneré el diccionario, les di pájaro a las 13 tablas nuevas en `scripts/datos/aviario.mjs` y marqué como pegadas las cinco migraciones de `main` en sus ADR y pendientes.
+Por qué así: la foto era del 26-oct y no traía las siete migraciones aplicadas hoy; `datos:comparar` dice que ninguna pantalla llama a una función con parámetros que producción no acepte.
+Felipe se lleva: `materiales` e `insumos.material_id` están en producción pero su migración (ADR-0554, insumos) todavía no llegó a `main`: alguien la pegó desde su rama.
