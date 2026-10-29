@@ -62,7 +62,11 @@ export const HINT_QUIEN_COMPRO = "recibir_quien_compro";
 
 export type CausaFaltante = "no_vino" | "se_perdio" | "otra_sede";
 /** `reposicion` (fase 5a): lo de más es lo que el proveedor debía de una recepción anterior. Solo se ofrece si lo debe (`opcionesSobrante`). */
-export type CausaSobrante = "regalo" | "cobra_aparte" | "proxima_compra" | typeof VALOR_REPOSICION;
+export type CausaSobrante = "regalo" | "cobra_aparte" | "proxima_compra" | typeof VALOR_REPOSICION | typeof VALOR_OTRO;
+/** «Otro» (Felipe 2026-10-28): lo de más tuvo una causa que no está en la lista; quien cierra la cuenta en una línea (la nota de la línea, hasta 300 letras). Solo se
+ *  ofrece al CERRAR un conteo (`cerrar_conteo_envio`); el formulario de la fase 4 (`recibir_despacho`) sigue con las tres de siempre. */
+export const VALOR_OTRO = "otro";
+export const OPCION_OTRO = { valor: VALOR_OTRO, texto: "Otro", ayuda: "Pasó otra cosa: cuéntala en una línea." } as const;
 /** Una dañada con arreglo queda en cuarentena esperando; sin arreglo, en cuarentena para liquidar, regalar, desechar o devolver. */
 export type SolucionDanada = "pendiente" | "sin_solucion";
 
@@ -88,7 +92,7 @@ export const SOLUCIONES_DANADA: readonly { valor: SolucionDanada; texto: string;
 export const textoCausa = (causa: string | null | undefined): string | null =>
   causa === VALOR_REPOSICION
     ? "Reposición de lo que faltó"
-    : ([...CAUSAS_FALTANTE, ...CAUSAS_SOBRANTE].find((c) => c.valor === causa)?.texto ?? (causa ? causa.replace(/_/g, " ") : null));
+    : ([...CAUSAS_FALTANTE, ...CAUSAS_SOBRANTE, OPCION_OTRO].find((c) => c.valor === causa)?.texto ?? (causa ? causa.replace(/_/g, " ") : null));
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Lectores tolerantes

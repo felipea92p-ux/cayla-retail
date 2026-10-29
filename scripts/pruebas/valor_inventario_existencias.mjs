@@ -20,7 +20,8 @@
  *   D  Lo dañado va aparte y no entra al valor de CAYLA.
  *   E  Lo de CLAURE va aparte: CAYLA sigue siendo el resto, y las unidades de CLAURE no suman a su valor.
  *   H  La historia del costo: el valor de una prenda con compra/Producción se separa del que solo salió del alta.
- *   B  Cuadre con el Balance: lo que sube `fn_bal_stock` es exactamente valor + dañado + CLAURE de esta función.
+ *   B  Cuadre con el Balance: lo que sube `fn_bal_stock` es exactamente valor + dañado de esta función. Lo de CLAURE no entra al Balance
+ *      (ADR-0558: consignación) y esta función lo muestra aparte, así que los dos coinciden.
  *   L  «Ver cuáles»: `fn_tallas_sin_costo` lista las tallas sin costo con las mismas reglas que la suma (sin dañadas ni CLAURE), con la
  *      misma puerta y sede (sin permiso, NULL), y su total es el mismo número que cuenta la suma.
  *   I  La migración se puede pegar dos veces.
@@ -38,6 +39,9 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 const DUENO = leer("20261027222000_stock_dueno_en_sedes_con_dos_empresas.sql");
 const MIGRACION = leer("20261028211000_valor_inventario_existencias.sql");
+// ADR-0558: el Balance deja a CLAURE fuera de la Mercadería de CAYLA; el caso del cuadre las necesita puestas (en el CI ya están: no cambia nada).
+const LECTURAS = leer("20261028153000_dueno_real_en_caja_historial_y_movimientos.sql");
+const BALANCE_CLAURE = leer("20261028212000_balance_mercaderia_de_claure_en_consignacion.sql");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora fija a Tienda Trujillo
 const CENTINELA = "22222222-2222-4222-8222-222222222222";
@@ -100,7 +104,7 @@ const DELTA_BAL = (sede) =>
   `(coalesce((select valor from retail.fn_bal_stock(retail.fn_hoy_lima()) where ubicacion_id = :'${sede}'), 0) - coalesce((select valor from antes_bal where ubicacion_id = :'${sede}'), 0))`;
 
 const dentro = (cuerpo, { dosVeces = false } = {}) =>
-  psql(`begin;\n${DUENO}\n${MIGRACION}\n${dosVeces ? MIGRACION : ""}\n${SEDES}\n${ANTES}\n${PRENDAS}\n${cuerpo}\nrollback;`);
+  psql(`begin;\n${DUENO}\n${LECTURAS}\n${BALANCE_CLAURE}\n${MIGRACION}\n${dosVeces ? MIGRACION : ""}\n${SEDES}\n${ANTES}\n${PRENDAS}\n${cuerpo}\nrollback;`);
 
 /** Entrada de CLAURE en el almacén de Lima, por el camino real de los movimientos. */
 const ENTRADA_CLAURE = (cantidad) => `
@@ -254,11 +258,16 @@ caso(
   pasa(`select ${DELTA_BAL("lim")} = ${DELTA("lim", "valor")} and ${DELTA_BAL("tru")} = ${DELTA("tru", "valor")};`),
 );
 caso(
-  "con dañadas y con CLAURE, el Balance sube justo valor + dañado + CLAURE: las diferencias son esas y no otras",
+  "con dañadas y con CLAURE, el Balance sube justo valor + dañado: lo de CLAURE no es de CAYLA (ADR-0558) y esta función lo muestra aparte",
   pasa(`${DANADAS(2)}
 ${ENTRADA_CLAURE(2)}
-select ${DELTA_BAL("lim")} = ${DELTA("lim", "valor")} + ${DELTA("lim", "valor_danadas")} + ${DELTA("lim", "valor_claure")}
+select ${DELTA_BAL("lim")} = ${DELTA("lim", "valor")} + ${DELTA("lim", "valor_danadas")}
    and ${DELTA("lim", "valor_danadas")} = 52 and ${DELTA("lim", "valor_claure")} = 52;`),
+);
+caso(
+  "entrar mercadería de CLAURE sola no mueve la Mercadería del Balance, pero sí el valor_claure de esta función",
+  pasa(`${ENTRADA_CLAURE(2)}
+select ${DELTA_BAL("lim")} = ${DELTA("lim", "valor")} and ${DELTA("lim", "valor_claure")} = 52 and ${DELTA("lim", "unidades_claure")} = 2;`),
 );
 
 console.log("— L · Ver cuáles —");
