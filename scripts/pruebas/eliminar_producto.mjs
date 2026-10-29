@@ -329,7 +329,8 @@ select pg_temp.huella(:'va');`);
     // ADR-0513: la ficha de consumo (la tela declarada y los avíos del modelo) es configuración suya, como sus fotos, y la escribe Producción SIN orden:
     // se va con la ficha por su `on delete cascade` (la prueba de forma de `produccion_ficha_consumo.mjs` lo exige).
     // ADR-0551: si el modelo lleva ojales y botones (`producto_taller`) es configuración suya, como su ficha de consumo: la escribe Producción SIN orden y se va con él por su `on delete cascade`.
-    "producto_consumos", "producto_avios", "producto_taller"];
+    // ADR-0570 (actividad 5): `producto_procesos` (qué procesos lleva el modelo) reemplaza a `producto_taller.lleva_ojales_botones`: la misma configuración, con `on delete cascade`.
+    "producto_consumos", "producto_avios", "producto_taller", "producto_procesos"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
@@ -383,7 +384,9 @@ select pg_temp.huella(:'va');`);
   // la misma prenda que la orden; y lo medido de una orden cerrada (`producto_consumo_medido`, ADR-0513) cuelga de ESA orden. La orden
   // (`producciones`) es historia y frena el borrado, y ninguna se borra nunca.
   const POR_SU_MADRE = ["stock_dueno", "produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
-    "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumo_medido"];
+    "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumo_medido",
+    // ADR-0570 (actividad 2): una falla de «Terminé» es de una fase de una orden; la orden ya frena el borrado (`producciones`).
+    "produccion_fallas"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c
