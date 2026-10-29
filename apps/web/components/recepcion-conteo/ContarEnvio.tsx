@@ -13,6 +13,7 @@ import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { BaldosaCategoria } from "./piezas";
 import { Dial } from "./Dial";
 import { CategoriasAcordeon } from "./CategoriasAcordeon";
+import { Odometro } from "./Odometro";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
@@ -49,6 +50,7 @@ import {
   minimoDelGrupo,
   repartirSeparado,
   repartirTotal,
+  sinIdentificarDelGrupo,
   veredictoDelGrupo,
   type AnotadaDelGrupo,
   type GrupoDeLineas,
@@ -231,6 +233,8 @@ export function ContarEnvio({
   const conGuia = visibles.some((l) => l.dijeron != null);
   const totalDijeron = conGuia ? visibles.reduce((a, l) => a + (l.dijeron ?? 0), 0) : null;
   const totalContadas = visibles.reduce((a, l) => a + (l.conteo ? contadasDe(l) : 0), 0);
+  // Las que ya se sabe qué prenda son, de todo el envío (lo contado menos lo que falta identificar, categoría por categoría).
+  const totalIdentificadas = grupos.reduce((a, g) => a + (g.lineas.some((l) => l.conteo !== null) ? g.contadas - sinIdentificarDelGrupo(g) : 0), 0);
 
   return (
     <div className="space-y-5">
@@ -336,7 +340,7 @@ export function ContarEnvio({
                   Anterior
                 </span>
               </Boton>
-              <CifrasDelEnvio dijeron={totalDijeron} contadas={totalContadas} />
+              <CifrasDelEnvio dijeron={totalDijeron} contadas={totalContadas} identificadas={totalIdentificadas} />
               <div className="barra-abajo-acciones">
                 {/* Con todas las categorías contadas (o al reabrir), lo que sigue es cerrar, esté donde esté la persona en la lista. */}
                 {siguiente && !guia.puedeConfirmar ? (
@@ -598,18 +602,29 @@ function ContadorDeGrupo({
   );
 }
 
-/** «Dijeron 11 | Contadas 11 · Cuadra»: lo dicho contra lo contado de todo el envío, en la barra de abajo. Sin aviso, no hay con qué comparar. */
-function CifrasDelEnvio({ dijeron, contadas }: { dijeron: number | null; contadas: number }) {
+/**
+ * Los totales que ruedan (rediseño «B», Felipe 2026-10-29): lo que dijeron, lo contado y lo identificado de todo el envío, con el número que
+ * rueda al cambiar, y al pie de la barra una línea de dos tonos —verde lo identificado, tinta lo contado que falta identificar— sobre lo que
+ * dijeron. Sin aviso no hay «Dijeron»: no hay con qué comparar.
+ */
+function CifrasDelEnvio({ dijeron, contadas, identificadas }: { dijeron: number | null; contadas: number; identificadas: number }) {
   const v = veredictoDeLaBalanza(dijeron, contadas);
+  const base = Math.max(1, dijeron ?? 0, contadas);
+  const cifras: [string, number][] = [...(dijeron == null ? [] : ([["Dijeron", dijeron]] as [string, number][])), ["Contadas", contadas], ["Identificadas", identificadas]];
   return (
-    <div className="rc-cierre-cifras" aria-live="polite">
-      <span>
-        <span className="label-cayla text-[11px] text-taupe">Dijeron</span> <b>{dijeron == null ? "—" : dijeron.toLocaleString("es-PE")}</b>
+    <>
+      <div className="rc-cierre-cifras" aria-live="polite">
+        {cifras.map(([t, n]) => (
+          <span key={t} className="rc-cierre-cifra">
+            <span className="label-cayla text-[11px] text-taupe">{t}</span> <Odometro valor={n} />
+          </span>
+        ))}
+        <Chip tono={v.estado}>{v.texto}</Chip>
+      </div>
+      <span aria-hidden className="rc-cierre-linea">
+        <i className="rc-cierre-linea-id" style={{ width: `${(Math.min(identificadas, contadas) / base) * 100}%` }} />
+        <i className="rc-cierre-linea-cont" style={{ width: `${(Math.max(0, contadas - identificadas) / base) * 100}%` }} />
       </span>
-      <span>
-        <span className="label-cayla text-[11px] text-taupe">Contadas</span> <b>{contadas.toLocaleString("es-PE")}</b>
-      </span>
-      <Chip tono={v.estado}>{v.texto}</Chip>
-    </div>
+    </>
   );
 }

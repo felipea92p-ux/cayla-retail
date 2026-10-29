@@ -1742,7 +1742,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.cifra",
       opcional: true,
       titulo: "Cuántas dijeron y cuántas llevas",
-      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas prendas dijeron que venían (si Compras lo dijo), cuántas llevas contadas de todo el envío y si cuadra, faltan o sobran. A los lados, «Anterior» y la acción que sigue.",
+      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas dijeron que venían (si Compras lo dijo), cuántas llevas contadas, cuántas ya identificaste y si cuadra. La línea del pie se llena: verde lo identificado. A los lados, «Anterior» y lo que sigue.",
     },
     {
       id: "hacer-dueno",

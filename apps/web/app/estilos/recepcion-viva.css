@@ -126,3 +126,18 @@
   .rc-acord-grupo, .rc-acord-flecha, .rc-acord-cuerpo, .rc-acord-puntos i { transition: none; }
   .rc-acord-grupo, .rc-acord-grupo[data-abierta] .rc-acord-prenda { animation: none; }
 }
+
+/* ── Los totales que ruedan, en la barra de abajo del conteo ── */
+.rc-cierre-cifra { display: inline-flex; align-items: center; gap: 6px; }
+.rc-cierre-cifra .rc-odo { color: var(--color-tinta); font-family: var(--font-serif); font-size: 1.75rem; font-weight: 600; }
+.rc-cierre-linea { position: absolute; left: 18px; right: 18px; bottom: 0; display: flex; height: 4px; overflow: hidden; border-radius: 4px 4px 0 0; pointer-events: none; }
+.rc-cierre-linea i { display: block; height: 100%; transition: width 700ms var(--ease-cayla); }
+.rc-cierre-linea-id { background: var(--color-verde); }
+.rc-cierre-linea-cont { background: var(--color-tinta); }
+@media (max-width: 639px) { .rc-cierre-cifra .rc-odo { font-size: 1.5rem; } }
+@media (prefers-reduced-motion: reduce) { .rc-cierre-linea i { transition: none; } }
+/* Con la mesa angosta (junto al papel, una laptop) los totales van en su propia fila arriba y «Anterior» y la acción, debajo: dos filas, no tres. */
+@container (max-width: 760px) {
+  .rc-cierre .rc-cierre-cifras { order: -1; flex-basis: 100%; }
+  .rc-cierre .barra-abajo-acciones { margin-left: auto; }
+}
