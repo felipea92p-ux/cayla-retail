@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { PencilLine, SearchX } from "lucide-react";
+import { Bandage, PencilLine, SearchX } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
@@ -115,7 +115,7 @@ export function BuscarPrendaParaAjustar({
             }}
           />
           {!texto.trim() ? (
-            <Vacio tamano="chico" alinear="izquierda" icono={<PencilLine aria-hidden className="h-5 w-5" />}>
+            <Vacio tamano="chico" alinear="izquierda" icono={modo === "danada" ? <Bandage aria-hidden className="h-5 w-5" /> : <PencilLine aria-hidden className="h-5 w-5" />}>
               {modo === "danada"
                 ? `Elige la prenda y te pregunto la talla, dónde estaba y qué tiene. La sacamos del stock de ${sedeNombre} y queda separada, sin perderse.`
                 : `Elige una prenda y se abre su planilla, con todos sus colores y tallas en ${sedeNombre}.`}
