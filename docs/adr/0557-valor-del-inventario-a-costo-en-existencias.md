@@ -51,7 +51,7 @@ espera que esta cifra siga cuadrando con ella; o si una sede llega a miles de ta
   conteos, estado vacío, panel, tarjetas rápidas) y no funcionaba en el Taller, que no separa piso y almacén. La lista dentro de la tarjeta llega al
   mismo lugar. Si Felipe prefiere el filtro, es una actividad aparte.
 - **No se tocó el Balance.** Que cuente a CLAURE como de CAYLA es una decisión contable (¿activo con deuda por liquidar, o consignación?) que va
-  aparte, antes del cierre de octubre.
+  aparte, antes del cierre de octubre. **Resuelto el 2026-10-28 en [ADR-0558](0558-mercaderia-de-claure-en-consignacion-fuera-de-la-201.md): consignación, el Balance ya no cuenta a CLAURE y coincide con esta tarjeta.**
 - **No se separa el IGV.** El costo promedio mezcla boletas (con IGV) y facturas (sin IGV, ADR-0120 / ADR-0035): el total hereda esa mezcla.
 
 ## Pendiente de Felipe
