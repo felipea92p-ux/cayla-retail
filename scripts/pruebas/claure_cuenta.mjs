@@ -55,6 +55,9 @@ select va.id as va_b, va.producto_id as p_b from retail.variantes va where va.pr
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 set local session_replication_role = replica;
+-- Lo que otra prueba o el seed de la base dejó (ventas y devoluciones reales de hoy) no entra a estas cuentas: la prueba mide SOLO su escena. Va antes de crearla, y todo termina en ROLLBACK.
+update retail.ventas set es_prueba = true where not coalesce(es_prueba, false);
+update retail.devoluciones set estado = 'rechazada' where estado = 'aprobada';
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 update retail.productos set empresa_id = ${CAYLA} where id = :'p_b';
 insert into retail.cuentas_dinero (id, nombre, tipo, cuenta_contable, empresa_id) values ('00000000-0000-4000-8000-0000000000c1', 'Yape de Claudia', 'banco', '104', ${CLAURE});

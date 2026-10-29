@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { CAJERA_AUTH, escenaCajera } from "./_claure_cajera.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -23,7 +24,7 @@ const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 const MIGRACIONES = `${leer("20261029004000_cuenta_con_claure.sql")}\n${leer("20261029013000_cierre_de_caja_con_claudia.sql")}`;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo (seed)
-const LUCIA = "22222222-2222-4222-8222-0000000000b1"; // cierra la caja de Tienda Lima y no es líder (seed)
+const LUCIA = CAJERA_AUTH; // cierra la caja de Tienda Lima y no es líder (la crea cada caso: `_claure_cajera.mjs`)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'";
 const CLAURE = "'c1a07e00-0000-4000-8000-000000000002'";
 
@@ -45,7 +46,7 @@ const sede = (nombres) => {
 const LIMA = sede("'Tienda LIM', 'Tienda Lima'");
 const TRUJILLO = sede("'Tienda TRU', 'Tienda Trujillo'");
 const ESCENA_EMPRESAS = `insert into retail.empresa_sedes (empresa_id, ubicacion_id) select ${CAYLA}, u.id from retail.ubicaciones u on conflict do nothing;
-insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, ${LIMA}) on conflict do nothing;`;
+insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, ${LIMA}) on conflict do nothing;` + escenaCajera(LIMA, FELIPE);
 
 const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 // Tres cajas cerradas: la de hoy y la de ayer en Lima, y una de Trujillo. A = prenda de CLAURE, B = de CAYLA.
