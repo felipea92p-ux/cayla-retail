@@ -34,17 +34,15 @@ import {
   llegadaDePapel,
   siguienteDeBandeja,
   leerRevisarCompras,
-  problemaNumero,
   papelAlAnotar,
   camposPapelAlAnotar,
-  problemaSerie,
   textoFaltan,
   textoLlegada,
   recibioQuienCompro,
   veredictoPapel,
   type LineaPapel,
 } from "./revisar-compras-reglas";
-import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
+import { TIPOS_PAPEL, problemaNumero, problemaSerie, type TipoPapel } from "./compra-rapida-reglas";
 import { CONCEPTOS_GASTO, type ConceptoGasto } from "./mi-plata-reglas";
 
 const linea = (o: Partial<LineaPapel> = {}): LineaPapel => ({

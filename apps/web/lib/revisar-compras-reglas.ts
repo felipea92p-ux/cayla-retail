@@ -406,7 +406,7 @@ export function textoFaltan(l: Pick<LineaPapel, "faltan">): string | null {
 // ---------- Completar el papel: lo que falta (lo mismo que rechaza la base) ----------
 
 // La serie y el número (reglas, errores y ejemplo) viven en `compra-rapida-reglas`: la compradora los escribe al comprar (ADR-0574) y Compras los corrige aquí.
-export { ejemploSerie, pideSerie, problemaNumero, problemaSerie } from "./compra-rapida-reglas";
+export { ejemploSerie, pideSerie } from "./compra-rapida-reglas";
 import { pideSerie, problemaNumero, problemaSerie } from "./compra-rapida-reglas";
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
