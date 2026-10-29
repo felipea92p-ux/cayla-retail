@@ -1984,6 +1984,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     antes del `group by`): Rendimiento (`fn_rendimiento_equipo`, `_detalle`, `_serie`), Metas (`fn_metas_equipo`), Comercial (`fn_comercial_sedes` —también lo devuelto—, `fn_comercial_colaboradoras`, `fn_comercial_horas`) y el «Tu día»
     de cada integrante (`fn_mis_ventas_del_dia`: una venta solo de CLAURE no sale y la mixta trae su parte; `fn_mis_ventas_por_dia`). Las pantallas no cambian: su «Ayuda» dice que lo de CLAURE no cuenta (`rendimiento/page.tsx`,
     `PanelComercialVista.tsx`). Las metas (`fn_metas_por_dia`, `fn_parametros_caja`) NO se tocan. Prueba: `pnpm pruebas:claure-rendimiento-y-metas`.
+    **CLAURE fuera del Club y de la ficha de la cliente (actividad 6c, 20261029035000):** cinco reemplazos anclados con la misma regla. `fn_club_monto_neto_venta` calcula los PUNTOS solo sobre las líneas de CAYLA (la usan
+    `fn_club_puntos_por_venta`, la conciliación de una devolución o anulación `fn_club_puntos_conciliar_venta`, el resumen del club y el aniversario); `fn_club_compras_netas` no cuenta una compra solo de CLAURE (la mixta sí);
+    la ficha (`fn_clienta_compras`, `fn_clienta_cambios`, `fn_clienta_devoluciones`) no lista las líneas de CLAURE ni lo que es solo de CLAURE. NO cambian `fn_club_conservacion_hasta` (plazo legal) ni `fn_club_avisos_pendientes`
+    (deduce la talla de lo que compró). Las pruebas viejas que fijan el md5 de esas funciones (`club_lista_y_ficha`, `club_registro_cartel`, `clientas_por_modulo_y_anonimizar`) deshacen el reemplazo dentro de su transacción
+    con `scripts/pruebas/_deshacer_claure.mjs`. Prueba: `pnpm pruebas:claure-club-y-clientes`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

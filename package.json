@@ -382,6 +382,7 @@
     "pruebas:claure-fuera-de-las-cifras": "node scripts/pruebas/claure_fuera_de_las_cifras.mjs",
     "pruebas:claure-inicio-y-observatorio": "node scripts/pruebas/claure_inicio_y_observatorio.mjs",
     "pruebas:claure-rendimiento-y-metas": "node scripts/pruebas/claure_rendimiento_y_metas.mjs",
+    "pruebas:claure-club-y-clientes": "node scripts/pruebas/claure_club_y_clientes.mjs",
     "pruebas:stock-dueno": "node scripts/pruebas/stock_dueno.mjs",
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",

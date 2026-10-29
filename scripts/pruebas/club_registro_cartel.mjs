@@ -44,6 +44,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DESHACER_POSTERIORES } from "./registrar-venta-antes-de-precio-sede.mjs";
+import { anclados } from "./_deshacer_claure.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -110,9 +111,11 @@ ANCLADOS_AVISOS_SEDE.push({
   viejo: "retail.campanas_vigentes() cv",
   nuevo: "retail.campanas_vigentes(p_ubicacion_id) cv",
 });
+// 20261029035000 (ADR-0560, 6c): una prenda de CLAURE no da puntos del club: otro reemplazo anclado, ahora en fn_club_monto_neto_venta.
+const ANCLADOS_CLAURE = anclados("20261029035000_claure_fuera_del_club_y_las_clientes.sql", ["retail.fn_club_monto_neto_venta(uuid)"]);
 const DESHACER_PUNTOS = `do $deshacer_puntos$
 begin
-${[...ANCLADOS_PUNTOS, ...ANCLADOS_AVISOS_SEDE].map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+${[...ANCLADOS_PUNTOS, ...ANCLADOS_AVISOS_SEDE, ...ANCLADOS_CLAURE].map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
 end $deshacer_puntos$;
 `;
 const ENTERAS_PUNTOS = [

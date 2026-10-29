@@ -724,6 +724,11 @@ export const PRUEBAS = [
   // como venta, la mixta por su línea de CAYLA, una devolución de una prenda de CLAURE no resta); lo anterior al arranque y la sede sin CLAURE no cambian. Cada caso: ROLLBACK.
   "pruebas:claure-rendimiento-y-metas",
 
+  // CLAURE fuera del Club y de la ficha de la cliente (ADR-0560, actividad 6c): una prenda de CLAURE no da puntos del club (fn_club_monto_neto_venta), una compra solo de CLAURE no
+  // cuenta como compra del club (fn_club_compras_netas) y la ficha (fn_clienta_compras/cambios/devoluciones) no la lista; la mixta y una devolución mixta sí; lo anterior al
+  // arranque y la sede sin CLAURE no cambian. Cada caso: ROLLBACK.
+  "pruebas:claure-club-y-clientes",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

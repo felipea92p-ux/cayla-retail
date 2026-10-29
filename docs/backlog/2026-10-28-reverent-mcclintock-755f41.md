@@ -65,7 +65,7 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [ ] 6. CLAURE fuera del resto de pantallas — **partida en cuatro cortes por Felipe (2026-10-29): eran ~40 funciones de la base y varias lecturas directas de la web, con reglas distintas**:
   - [x] **6a. Inicio y Observatorio** — migración `20261029023000`: `fn_item_es_de_claure` (la regla común, la de la actividad 5), `fn_claure_de_hoy` (el Inicio de la líder resta lo de CLAURE de lo que lee de Caja, con su nota «No incluye S/ X de lo que se vendió de CLAURE») y dos reemplazos anclados en `fn_observatorio` y `fn_observatorio_tienda` (solo lo de CAYLA; prendas quietas solo con sus unidades).
   - [x] **6b. Rendimiento, metas, Comercial y «Mis ventas»** — migración `20261029030000`: once reemplazos anclados (`fn_rendimiento_*`, `fn_metas_equipo`, `fn_comercial_*`, `fn_mis_ventas_*`) con la regla de 6a; sus «Ayuda» dicen que lo de CLAURE no cuenta.
-  - [ ] 6c. Club y clientes (`fn_club_*`, `fn_ledger_puntos`, `fn_clienta_*`, `unirse_al_club`; aquí mandan los puntos: decisión de Felipe).
+  - [x] **6c. Club y clientes** — migración `20261029035000`: una prenda de CLAURE no da puntos (`fn_club_monto_neto_venta`), una compra solo de CLAURE no cuenta (`fn_club_compras_netas`) y la ficha de la cliente no la lista (`fn_clienta_compras/cambios/devoluciones`). Decidido por defecto (Felipe pidió seguir sin parar): ver pendientes.
   - [ ] 6d. Análisis y motores (`fn_analisis_sede`, Frescura, demanda, Plan del piso, plan de compra, Calidad, rentabilidad: unas 20 funciones; puede pedir dos commits).
 - [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
 
@@ -133,3 +133,15 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 **Pendientes que dejó la actividad 6b:**
 - [ ] **Al pegar `20261029030000` en producción:** sus once reemplazos anclados abortan sin cambiar nada si una de las nueve funciones no tiene el texto esperado (no pude leer las vivas; el mensaje dice cuál). Va después de `20261029023000`.
 - [ ] Verificación visual de Rendimiento y Comercial con datos de CLAURE: se hace junto con las demás pantallas en el cierre (actividad 9).
+
+**Decisiones tomadas en la actividad 6c (por defecto, para que Felipe las confirme o cambie):**
+- **Una prenda de CLAURE no da puntos del club de CAYLA.** El club es de CAYLA; los puntos se canjean por beneficios de CAYLA.
+- **Los puntos ya dados no se quitan solos.** Si una compra con prendas de CLAURE ya dio puntos (entre el 23-oct y el día que se pegue esto), seguirán ahí; pero si esa venta se devuelve o se anula, la conciliación descuenta la parte de CLAURE.
+- **La ficha de la cliente muestra solo lo de CAYLA**: una cliente que solo compró lo de CLAURE no tiene «compras» en su ficha. Una devolución con prendas de las dos empresas se lista entera (su reembolso es de las dos).
+- **No cambian** `fn_club_conservacion_hasta` (cuánto se guarda la ficha, por su última compra: es un plazo legal) ni `fn_club_avisos_pendientes` (deduce la talla de lo que compró).
+
+**Pendientes que dejó la actividad 6c:**
+- [ ] **Decisión de Felipe:** ¿se quitan los puntos ya dados por prendas de CLAURE (23-oct hasta hoy)? Hoy no.
+- [ ] **Decisión de Felipe:** ¿una clienta que solo compra lo de CLAURE cuenta como «compra» para conservar su ficha (3 años)? Hoy sí (no se tocó).
+- [ ] **Al pegar `20261029035000` en producción:** cinco reemplazos anclados; abortan sin cambiar nada si una función de producción no tiene el texto esperado. Va después de `20261029030000`. Las migraciones del club que fijan el md5 de estas funciones (`20260930210000`, `20261001210700`, `20260928190000`) abortarían si alguien las vuelve a pegar encima: es su candado de versión y avisa bien.
+- [ ] **Falla ajena que salió al correr las suites del club:** `pruebas:tienda-mi-cuenta` tumba el servidor de Postgres local (con o sin este cambio: «connection to server was lost», el servidor entra en recuperación); `pruebas:club-puntos-pedido-web` (0/13), `club-venta-ligada` (1) y `club-permisos` (2) fallan igual sin este cambio.
