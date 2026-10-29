@@ -800,7 +800,7 @@ export const GUIA_FIN_CLAURE: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "¿Cuánto le debes a CLAURE?",
-      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto, la comisión del POS y lo que ya se le pagó. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
+      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto, el IGV, la comisión del POS y lo que ya se le pagó. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
     },
     PESTANAS_DINERO,
     {
@@ -808,14 +808,14 @@ export const GUIA_FIN_CLAURE: Guia = {
       ancla: "fin-claure.cifras",
       opcional: true,
       titulo: "De dónde sale la cifra",
-      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, la comisión del POS (estimada con su tarifa; la asume CLAURE), lo que ya se le pagó y el IGV que va incluido. Se le debe: cobrado menos todo eso, sin el IGV.",
+      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, el IGV (lo declara y paga CAYLA, así que se descuenta), la comisión del POS (estimada con su tarifa; la asume CLAURE) y lo que ya se le pagó. Se le debe: cobrado menos todo eso.",
     },
     {
       id: "tabla",
       ancla: "fin-claure.tabla",
       opcional: true,
       titulo: "Día por día",
-      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
+      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó; «Se le debe» ya viene sin IGV ni comisión. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
     },
     {
       id: "gastos",

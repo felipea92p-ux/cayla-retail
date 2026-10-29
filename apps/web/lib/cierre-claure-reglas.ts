@@ -17,7 +17,7 @@ export type CierreClaure = {
   /** Lo que se le debía al empezar ese día. */
   saldoAnterior: number;
   /** `gastos`: la parte de CLAURE de los gastos que pagó CAYLA ese día (alquiler, limpieza…): también baja lo que se le debe. */
-  hoy: { cobrado: number; devuelto: number; comision: number; pagado: number; gastos: number };
+  hoy: { cobrado: number; devuelto: number; igv: number; comision: number; pagado: number; gastos: number };
   porMedio: { medio: string; monto: number; comision: number }[];
   /** El efectivo de las ventas de esa caja: lo de CAYLA y lo de CLAURE suman lo que espera la caja. */
   efectivo: { total: number; cayla: number; claure: number };
@@ -42,7 +42,7 @@ export function leerCierreClaure(crudo: unknown): CierreClaure | null {
     puedePagar: j.puede_pagar === true,
     saldo: num(j.saldo),
     saldoAnterior: num(j.saldo_anterior),
-    hoy: { cobrado: num(hoy.cobrado), devuelto: num(hoy.devuelto), comision: num(hoy.comision), pagado: num(hoy.pagado), gastos: num(hoy.gastos) },
+    hoy: { cobrado: num(hoy.cobrado), devuelto: num(hoy.devuelto), igv: num(hoy.igv), comision: num(hoy.comision), pagado: num(hoy.pagado), gastos: num(hoy.gastos) },
     porMedio: (Array.isArray(j.por_medio) ? (j.por_medio as unknown[]) : []).map((m) => {
       const o = objeto(m);
       return { medio: String(o.medio ?? ""), monto: num(o.monto), comision: num(o.comision) };
@@ -63,6 +63,7 @@ export function lineaDeHoy(c: CierreClaure): string {
   const medios = c.porMedio.filter((m) => m.monto > 0).map((m) => `${textoMedioClaure(m.medio)} ${soles(m.monto)}`);
   const partes = [`Hoy se cobró ${soles(c.hoy.cobrado)} de CLAURE en tus cuentas${medios.length ? ` (${medios.join(" · ")})` : ""}`];
   if (c.hoy.devuelto > 0) partes.push(`se devolvió ${soles(c.hoy.devuelto)}`);
+  if (c.hoy.igv > 0) partes.push(`${soles(c.hoy.igv)} es IGV, que paga CAYLA`);
   if (c.hoy.comision > 0) partes.push(`la comisión del POS es ${soles(c.hoy.comision)}`);
   if (c.hoy.gastos > 0) partes.push(`se restan ${soles(c.hoy.gastos)} de gastos suyos que pagó CAYLA`);
   return `${partes.join(", ")}.`;
@@ -78,8 +79,9 @@ export function mensajeParaClaudia(c: CierreClaure): string {
   const lineas: string[] = [`Hola Claudia, el resumen del cierre de caja de ${c.sede} (${fechaCorta(c.fecha)}):`, ""];
   const medios = c.porMedio.filter((m) => m.monto > 0).map((m) => `${textoMedioClaure(m.medio)} ${soles(m.monto)}`);
   lineas.push(`• Cobrado de CLAURE en cuentas de CAYLA: ${soles(c.hoy.cobrado)}${medios.length ? ` (${medios.join(", ")})` : ""}`);
-  if (c.hoy.comision > 0) lineas.push(`• Comisión del POS: ${soles(c.hoy.comision)}`);
   if (c.hoy.devuelto > 0) lineas.push(`• Devuelto: ${soles(c.hoy.devuelto)}`);
+  if (c.hoy.igv > 0) lineas.push(`• IGV de esas ventas (lo declara y paga CAYLA, se descuenta): ${soles(c.hoy.igv)}`);
+  if (c.hoy.comision > 0) lineas.push(`• Comisión del POS: ${soles(c.hoy.comision)}`);
   if (c.hoy.pagado > 0) lineas.push(`• Ya se te pagó hoy: ${soles(c.hoy.pagado)}`);
   if (c.hoy.gastos > 0) lineas.push(`• Gastos tuyos que pagó CAYLA hoy (se restan): ${soles(c.hoy.gastos)}`);
   if (c.efectivo.claure > 0) lineas.push(`• Efectivo de CLAURE de hoy (lo tienes tú): ${soles(c.efectivo.claure)}`);

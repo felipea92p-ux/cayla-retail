@@ -81,6 +81,7 @@ export function CuentasConClaudia({ cierre }: { cierre: CierreClaure }) {
               </div>
             ))}
           {hoy.devuelto > 0 && <Fila etiqueta="− Devuelto hoy" valor={hoy.devuelto} />}
+          {hoy.igv !== 0 && <Fila etiqueta="− IGV (lo paga CAYLA)" valor={hoy.igv} />}
           {hoy.comision > 0 && <Fila etiqueta="− Comisión del POS (estimada)" valor={hoy.comision} />}
           {hoy.pagado > 0 && <Fila etiqueta="− Ya pagado hoy" valor={hoy.pagado} />}
           {hoy.gastos > 0 && <Fila etiqueta="− Gastos suyos que pagó CAYLA hoy" valor={hoy.gastos} />}
@@ -90,7 +91,7 @@ export function CuentasConClaudia({ cierre }: { cierre: CierreClaure }) {
           </div>
         </dl>
         <p className="mt-2 text-[11px] leading-snug text-tinta/55">
-          La comisión del POS es una estimación con la tarifa de la máquina y la asume CLAURE. El efectivo de CLAURE no entra a lo que se le debe: lo tiene Claudia.
+          El IGV de la boleta lo declara y paga CAYLA, así que se le descuenta a Claudia. La comisión del POS es una estimación con la tarifa de la máquina y la asume CLAURE. El efectivo de CLAURE no entra a lo que se le debe: lo tiene Claudia.
         </p>
       </details>
       <div className="mt-3 flex flex-wrap items-center gap-2">

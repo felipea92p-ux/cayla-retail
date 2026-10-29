@@ -188,3 +188,28 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [x] **Invariantes de la base** (`scripts/chaos/invariantes.mjs`): la autoprueba comprobó 16 de 23 vivas (7 no se pueden probar con esta base, dichas arriba; 0 ciegas). Sobre la base limpia: **INV-09** (la venta `aaaaaaaa-…-a1`, 6-oct, sin pagos y con 29,90 en líneas), **INV-10** (8 movimientos de octubre sin responsable) e **INV-11** (10 sospechas de doble cobro) siguen rojas, todas de antes del 23-oct y sin relación con CLAURE; las otras 20 en verde, incluida la nueva de «stock por dueño».
 - [ ] **No se corrió `/chaos` completo** (los 69 ataques del catálogo, ni el azar con semilla) ni se probó el **paso 3 del cierre de caja** en esta ronda: cerrar la caja escribe en la base local compartida con otras sesiones. El bloque de cierre se vio en la actividad 3 y sus cifras tienen prueba de Postgres (`pruebas:claure-cierre`).
 - [ ] **Nada de esto está en producción ni en un PR**: las 10 migraciones se pegan solo con el OK de Felipe (orden en el tablero) y el PR se abre con `/abrir-pr` cuando él lo diga. Después de pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+
+## Respuestas de Felipe a lo que quedó abierto (2026-10-29) y obra nueva
+
+Felipe contestó una por una las decisiones del tablero. **Resueltas sin código:**
+- **Cuenta 479:** se queda provisional hasta que la valide el contador.
+- **Meta de Lima para CAYLA sola:** la carga él en Configuración cuando quiera (no se construye nada).
+- **Puntos del club ya dados por prendas de CLAURE:** se dejan; solo cuenta hacia adelante.
+- **Ficha de una clienta que solo compró lo de CLAURE:** se deja como está (cuenta para el plazo legal de 3 años).
+- **Planilla:** la trabajadora de CLAURE en Lima no está en Dynamic y Claudia le paga directo; no hay nada que separar.
+- **Gastos de «suministros» de antes (bolsas y limpieza desde el 23-oct):** se dejan como gasto de CAYLA.
+- **Observatorio:** sin nota de «solo CAYLA».
+
+**Decididas, con obra (lista aprobada por Felipe el 2026-10-29: «Aprobada; sigue sin parar y un solo PR al final»; se pausa solo en la 13, que toca dinero y stock):**
+- [x] **10 · IGV descontado del saldo** (migración `20261029142000`, `pnpm pruebas:claure-igv`, la pantalla CLAURE, el cierre de caja y el Resumen): el IGV de lo vendido de CLAURE lo declara y paga CAYLA, así que se le descuenta a Claudia (lo que se le debe pasa a ser la parte sin IGV, igual que la 479 del Diario). Validar con el contador.
+- [ ] **11 · «Se queda con Claudia» en el cierre de caja:** un destino del traslado del efectivo que baja lo que se le debe (el efectivo de CAYLA que ella guarda).
+- [ ] **12 · Servicios:** luz, alquiler y mantenimiento 50/50; **agua, internet y baño 100 % de CLAURE** (tal cual lo escribió: «lo demás lo asume Claudia»). La luz pasa a su propia categoría y «servicios básicos» deja de ir 50/50.
+- [ ] **13 · Cambios con prendas de CLAURE como devolución + venta nueva:** la prenda que vuelve se devuelve a su dueño y la que sale se vende con su dueño. **Se revisa con Felipe antes de tocar nada** (dinero y stock).
+- [ ] **14 · Pérdidas y calidad de dañadas por dueño:** una merma de ropa de Claudia no es pérdida de CAYLA. Frescura del piso, Resumen por variante y la capacidad del Plan del piso NO se separan.
+- [ ] **15 · Balance sin el stock de CLAURE** (`fn_bal_stock`): depende de si esas prendas tienen costo cargado.
+- [ ] **16 · «¿Me alcanza?» y la proyección de caja sin la plata de Claudia.**
+- [ ] **17 · Pantalla para cambiar los porcentajes del reparto de gastos** (Configuración): escritura nueva, con responsable, módulo, guía y caos.
+- [ ] **Pruebas con cifra** de los cuatro motores parchados (plan de compra, decisiones de Frescura, preparación del motor de demanda, vitrina).
+- [ ] **`/chaos` al final**, una sola pasada sobre todo lo que guarda («Pagar a CLAURE», «Se queda con Claudia», la pantalla de porcentajes), cuando nadie más escriba en la base local.
+- [x] **Sesión aparte para las pruebas de la base local que ya fallaban** (`pruebas-rotas-local`): arranca desde `origin/main`, no toca nada de CLAURE y termina con un reporte.
+- [ ] **Un solo PR al final** con `/abrir-pr`; las migraciones nuevas se pegan en producción en la misma tanda, en orden.

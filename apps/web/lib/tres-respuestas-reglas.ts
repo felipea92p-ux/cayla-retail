@@ -138,5 +138,5 @@ export function respuestaDeClaure(saldo: number | null, href: string | null): Re
   const base = { clave: "claure" as const, chips: [] as Chip[], ...(href ? { href } : {}) };
   if (saldo === null) return { ...base, pregunta: "¿Cuánto le debes a CLAURE?", valor: null, noSePudoLeer: true, motivo: "No se pudo leer lo que se le debe a CLAURE. Vuelve a cargar la página en un rato." };
   const r = respuestaClaure(saldo);
-  return { ...base, pregunta: r.pregunta, valor: r.valor, detalle: "Lo que CLAURE cobró en tus cuentas, menos lo devuelto, la comisión del POS y lo que ya se le pagó." };
+  return { ...base, pregunta: r.pregunta, valor: r.valor, detalle: "Lo que CLAURE cobró en tus cuentas, menos lo devuelto, el IGV, la comisión del POS y lo que ya se le pagó." };
 }

@@ -72,8 +72,8 @@ export function CuentaClaure({ filas, pagos, gastos, desde, esLider }: { filas: 
                 {plural(gastos.length, "gasto", "gastos")} que pagó CAYLA
               </TarjetaCifra>
             )}
-            <TarjetaCifra etiqueta="IGV incluido" valor={soles(r.igv)} {...entra(5)}>
-              de lo cobrado menos lo devuelto
+            <TarjetaCifra etiqueta="IGV (lo paga CAYLA)" valor={soles(r.igv)} {...entra(5)}>
+              de lo cobrado menos lo devuelto; se descuenta
             </TarjetaCifra>
           </section>
 

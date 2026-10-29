@@ -71,16 +71,25 @@ describe("leerFilaClaure", () => {
 });
 
 describe("resumenClaure", () => {
-  it("cobrado − devuelto − comisión = lo que se le debe; el cambio no entra", () => {
+  it("cobrado − devuelto − IGV − comisión = lo que se le debe; el cambio no entra", () => {
     const r = resumenClaure(FILAS);
     expect(r.cobrado).toBe(267);
     expect(r.devuelto).toBe(168);
     expect(r.comision).toBe(1.4);
-    expect(r.saldo).toBe(97.6);
+    // 267 − 168 − 15.10 (el IGV neto: lo declara y paga CAYLA) − 1.40 = 82.50
+    expect(r.saldo).toBe(82.5);
     expect(r.cambios).toEqual({ n: 1, monto: 20 });
   });
-  it("el IGV va incluido en lo cobrado menos lo devuelto", () => {
+  it("el IGV va incluido en lo cobrado menos lo devuelto, y se le descuenta", () => {
     expect(resumenClaure(FILAS).igv).toBe(15.1);
+    const sinIgv = FILAS.map((f) => ({ ...f, igv: f.contado ? 0 : f.igv }));
+    expect(resumenClaure(sinIgv).saldo).toBe(97.6);
+    expect(resumenClaure(sinIgv).saldo - resumenClaure(FILAS).saldo).toBeCloseTo(15.1, 2);
+  });
+  it("una devolución resta su IGV: el IGV neto puede ser menor que el de las ventas", () => {
+    const r = resumenClaure([fila({ monto: 118, igv: 18 }), fila({ origen: "devolucion", monto: -59, igv: -9 })]);
+    expect(r.igv).toBe(9);
+    expect(r.saldo).toBe(50);
   });
   it("un cobro de tarjeta o QR sin tarifa no inventa comisión y se cuenta aparte", () => {
     expect(resumenClaure(FILAS).sinTarifa).toBe(1);
@@ -91,11 +100,11 @@ describe("resumenClaure", () => {
   it("lo ya pagado baja el saldo (varios pagos, también parciales)", () => {
     const r = resumenClaure(FILAS, [pago(50), pago(20.5)]);
     expect(r.pagado).toBe(70.5);
-    expect(r.saldo).toBe(27.1); // 97.60 − 70.50
+    expect(r.saldo).toBe(12); // 82.50 − 70.50
     expect(r.cobrado).toBe(267); // lo cobrado no se toca: el pago no es una devolución
   });
   it("pagar de más deja el saldo negativo: queda a favor de CAYLA", () => {
-    expect(resumenClaure(FILAS, [pago(100)]).saldo).toBe(-2.4);
+    expect(resumenClaure(FILAS, [pago(100)]).saldo).toBe(-17.5);
   });
   it("los centavos no se arrastran como ruido de coma flotante", () => {
     const r = resumenClaure([fila({ monto: 0.1 }), fila({ monto: 0.2 })]);
@@ -124,10 +133,10 @@ describe("filas", () => {
     expect(filasContadas(FILAS)).toHaveLength(4);
     expect(cambiosPorRevisar(FILAS)).toHaveLength(1);
   });
-  it("lo que se le debe de una fila resta su comisión; sin tarifa resta cero", () => {
-    expect(seLeDebeDeFila(FILAS[3])).toBe(48.6);
-    expect(seLeDebeDeFila(FILAS[2])).toBe(40);
-    expect(seLeDebeDeFila(FILAS[1])).toBe(-168);
+  it("lo que se le debe de una fila resta su IGV y su comisión; sin tarifa resta cero de comisión; una devolución devuelve su IGV", () => {
+    expect(seLeDebeDeFila(FILAS[3])).toBe(40.97);
+    expect(seLeDebeDeFila(FILAS[2])).toBe(33.9);
+    expect(seLeDebeDeFila(FILAS[1])).toBe(-142.37);
   });
 });
 
@@ -143,7 +152,7 @@ describe("textos", () => {
   });
   it("las chips dicen de dónde sale la cifra y lo que pide atención", () => {
     const textos = chipsClaure(resumenClaure(FILAS), true).map((c) => c.texto);
-    expect(textos).toEqual(["Cobrado S/ 267.00", "Devuelto S/ 168.00", "Comisión del POS S/ 1.40", "1 cobro sin tarifa", "1 cambio por revisar"]);
+    expect(textos).toEqual(["Cobrado S/ 267.00", "Devuelto S/ 168.00", "IGV S/ 15.10 (lo paga CAYLA)", "Comisión del POS S/ 1.40", "1 cobro sin tarifa", "1 cambio por revisar"]);
   });
   it("lo pagado sale en verde, y pagar de más avisa en ámbar", () => {
     const aldia = chipsClaure(resumenClaure(FILAS, [pago(50)]), true);
@@ -152,7 +161,7 @@ describe("textos", () => {
     expect(demas).toContain("Se le pagó de más: queda a favor de CAYLA");
   });
   it("la pregunta dice lo que se le debe, o lo que CLAURE le debe a CAYLA si se le pagó de más (siempre en positivo)", () => {
-    expect(respuestaClaure(97.6)).toEqual({ pregunta: "¿Cuánto le debes a CLAURE?", valor: 97.6 });
+    expect(respuestaClaure(82.5)).toEqual({ pregunta: "¿Cuánto le debes a CLAURE?", valor: 82.5 });
     expect(respuestaClaure(0)).toEqual({ pregunta: "¿Cuánto le debes a CLAURE?", valor: 0 });
     expect(respuestaClaure(-2.4)).toEqual({ pregunta: "¿Cuánto te debe CLAURE?", valor: 2.4 });
   });
@@ -167,6 +176,7 @@ describe("textos", () => {
   it("la frase dice desde cuándo se cuenta y que el efectivo no entra", () => {
     expect(fraseClaure("2026-10-23")).toContain("23/10/2026");
     expect(fraseClaure("2026-10-23")).toContain("El efectivo no entra");
+    expect(fraseClaure("2026-10-23")).toContain("se le descuenta");
     expect(fraseClaure(null)).not.toContain("Se cuenta desde");
   });
 });

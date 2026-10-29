@@ -120,9 +120,9 @@ export type ResumenClaure = {
   pagado: number;
   /** La parte de CLAURE de los gastos que pagó CAYLA (alquiler, luz, limpieza…): también baja lo que se le debe. */
   gastos: number;
-  /** Lo que se le debe a CLAURE: cobrado − devuelto − comisión − pagado − gastos suyos que pagó CAYLA. Negativo si se le pagó de más: queda a favor de CAYLA. */
+  /** Lo que se le debe a CLAURE: cobrado − devuelto − IGV − comisión − pagado − gastos suyos que pagó CAYLA. Negativo si se le pagó de más: queda a favor de CAYLA. */
   saldo: number;
-  /** El IGV que va incluido en lo cobrado menos lo devuelto (la boleta sale con el RUC de CAYLA). */
+  /** El IGV que va incluido en lo cobrado menos lo devuelto. La boleta sale con el RUC de CAYLA: lo declara y lo paga CAYLA, así que se le descuenta a CLAURE (Felipe, 2026-10-29; actividad 10). */
   igv: number;
   /** Los cambios con prendas de CLAURE: no entran al saldo, se revisan a mano. */
   cambios: { n: number; monto: number };
@@ -157,7 +157,7 @@ export function resumenClaure(filas: readonly FilaClaure[], pagos: readonly Pago
     sinTarifa,
     pagado: redondear(pagado),
     gastos: redondear(deGastos),
-    saldo: redondear(cobrado - devuelto - comision - pagado - deGastos),
+    saldo: redondear(cobrado - devuelto - igv - comision - pagado - deGastos),
     igv: redondear(igv),
     cambios: { n: nCambios, monto: redondear(montoCambios) },
   };
@@ -173,9 +173,9 @@ export function cambiosPorRevisar(filas: readonly FilaClaure[]): FilaClaure[] {
   return filas.filter((f) => !f.contado);
 }
 
-/** Lo que de esa fila se le debe a CLAURE: lo cobrado (o devuelto, en negativo) menos la comisión estimada. */
+/** Lo que de esa fila se le debe a CLAURE: lo cobrado (o devuelto, en negativo) menos su IGV (lo paga CAYLA) y la comisión estimada. */
 export function seLeDebeDeFila(f: FilaClaure): number {
-  return redondear(f.monto - (f.comision ?? 0));
+  return redondear(f.monto - (f.igv ?? 0) - (f.comision ?? 0));
 }
 
 const TEXTO_MEDIO: Record<string, string> = { yape: "Yape", plin: "Plin", tarjeta: "Tarjeta", transferencia: "Transferencia", qr: "QR" };
@@ -203,6 +203,7 @@ export function chipsClaure(r: ResumenClaure, hayDatos: boolean): ChipRespuesta[
   if (!hayDatos) return [{ texto: "Sin cobros todavía", tono: "pizarra" }];
   const chips: ChipRespuesta[] = [{ texto: `Cobrado ${soles(r.cobrado)}`, tono: "pizarra" }];
   if (r.devuelto > 0) chips.push({ texto: `Devuelto ${soles(r.devuelto)}`, tono: "pizarra" });
+  if (r.igv > 0) chips.push({ texto: `IGV ${soles(r.igv)} (lo paga CAYLA)`, tono: "pizarra" });
   if (r.comision > 0) chips.push({ texto: `Comisión del POS ${soles(r.comision)}`, tono: "pizarra" });
   if (r.pagado > 0) chips.push({ texto: `Ya pagado ${soles(r.pagado)}`, tono: "verde" });
   if (r.gastos > 0) chips.push({ texto: `Gastos suyos que pagó CAYLA ${soles(r.gastos)}`, tono: "pizarra" });
@@ -236,12 +237,12 @@ export function chipsDisponible(total: number, saldo: number): { texto: string; 
 /** La frase de arriba: desde cuándo se cuenta y qué entra. */
 export function fraseClaure(desde: string | null): string {
   const cuando = desde ? `Se cuenta desde el ${fechaCorta(desde)}. ` : "";
-  return `${cuando}Entra lo que una venta de CLAURE cobró en una cuenta de CAYLA (tarjeta, QR, Yape, transferencia). El efectivo no entra: lo tiene Claudia.`;
+  return `${cuando}Entra lo que una venta de CLAURE cobró en una cuenta de CAYLA (tarjeta, QR, Yape, transferencia). El efectivo no entra: lo tiene Claudia. El IGV de esas ventas lo declara y paga CAYLA, así que se le descuenta.`;
 }
 
 /** La nota al pie: cómo se calcula lo que no se ve en la tabla. */
 export const NOTA_CLAURE =
-  "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Cuentas y cobros) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no.";
+  "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Cuentas y cobros) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA, que lo declara y lo paga, así que se descuenta a Claudia. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no.";
 
 /** Bajo los pagos: dónde se anula uno equivocado. */
 /** Bajo los gastos: de dónde sale la parte de cada uno. */
