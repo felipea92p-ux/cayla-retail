@@ -39,3 +39,20 @@ export function valorDeLaCuenta(de: number, a: number, x: number): number {
   const t = entre(x, 0, 1);
   return de + (a - de) * (1 - Math.pow(1 - t, 3));
 }
+
+/**
+ * Cuánto se espera, como máximo, a que el vuelo termine por su cuenta antes de darlo por aterrizado: su duración y un margen. Si el navegador
+ * cancela la animación o la congela (página en segundo plano, una pestaña que se duerme), la prenda no puede quedar para siempre en el aire con
+ * su línea oculta y un total más bajo de lo que lleva (/chaos 2026-10-28).
+ */
+export const topeDelVuelo = (ms: number): number => ms + 800;
+
+/** Una función que corre una sola vez, por el final de la animación, por su cancelación o por el tope: lo que llegue primero. */
+export function unaSolaVez(fn: () => void): () => void {
+  let hecha = false;
+  return () => {
+    if (hecha) return;
+    hecha = true;
+    fn();
+  };
+}

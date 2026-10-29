@@ -1,4 +1,4 @@
-import { trayectoDelVuelo, type Caja } from "@/lib/vuelo-reglas";
+import { topeDelVuelo, trayectoDelVuelo, unaSolaVez, type Caja } from "@/lib/vuelo-reglas";
 
 // El vuelo de la prenda a «Tu compra» (Felipe 2026-10-28): lo que hace el navegador. La cuenta (a dónde, cuánto tarda) está en
 // `lib/vuelo-reglas.ts`, con su prueba; la forma, en `app/estilos/compra-celular.css`. Una vez, sin rebote ni bucle. Con
@@ -79,8 +79,14 @@ export function volarATuCompra({ salida, cantidad, destino, alLlegar }: { salida
     ],
     { duration: t.ms, easing: "cubic-bezier(0.55, 0, 0.3, 1)", fill: "forwards" },
   );
-  horizontal.onfinish = () => {
+  // Aterriza por el final de la animación, por su cancelación o por el tope de tiempo: lo que llegue primero, y una sola vez.
+  let tope = 0;
+  const aterrizar = unaSolaVez(() => {
+    window.clearTimeout(tope);
     x.remove();
     alLlegar();
-  };
+  });
+  horizontal.onfinish = aterrizar;
+  horizontal.oncancel = aterrizar;
+  tope = window.setTimeout(aterrizar, topeDelVuelo(t.ms));
 }
