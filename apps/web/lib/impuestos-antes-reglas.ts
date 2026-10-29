@@ -23,6 +23,38 @@ export type PendienteImpuesto = {
 
 const COMPROBANTES = "/vender/comprobantes";
 
+/** Una línea de la lista compacta de Impuestos (versión «E · B++», ADR-0573): lo que falta, con su monto. El detalle va al pasar el mouse. */
+export type LineaPendiente = {
+  id: string;
+  /** «rojo» frena, «ambar» avisa, «gris» informa. */
+  tono: "rojo" | "ambar" | "gris";
+  texto: string;
+  monto: number;
+  detalle: string;
+  /** Dónde se arregla; null: se conversa con el contador. */
+  href: string | null;
+};
+
+/** Lo que hay que ver antes de declarar, en una línea por tema y con su monto. Mismas cuentas de `antesDeDeclarar`, con menos palabras; el aviso de las 250 UIT va en la tarjeta del límite, no aquí. */
+export function pendientesCompactos(p: PanelImpuestos): LineaPendiente[] {
+  const r = p.revisar;
+  const gastos = `/finanzas/gastos?mes=${p.mes}&ver=todas`;
+  const lista: LineaPendiente[] = [];
+  if (r.rechazados.n > 0)
+    lista.push({ id: "rechazados", tono: "rojo", texto: `${plural(r.rechazados.n, "rechazado", "rechazados")} por SUNAT`, monto: r.rechazados.total, detalle: "No entran al IGV hasta volver a emitirlos.", href: COMPROBANTES });
+  if (r.sinAceptar.n > 0)
+    lista.push({ id: "sin_aceptar", tono: "ambar", texto: `${plural(r.sinAceptar.n, "venta", "ventas")} sin aceptar`, monto: r.sinAceptar.total, detalle: "Se reintentan solos; si siguen así, revísalos.", href: COMPROBANTES });
+  if (r.sinComprobante.n > 0)
+    lista.push({ id: "sin_comprobante", tono: "ambar", texto: `${plural(r.sinComprobante.n, "venta", "ventas")} sin comprobante`, monto: r.sinComprobante.total, detalle: "Su IGV no está en esta cuenta: díselo al contador.", href: COMPROBANTES });
+  if (r.boletas.n > 0)
+    lista.push({ id: "boletas", tono: "ambar", texto: `${plural(r.boletas.n, "compra", "compras")} con boleta`, monto: r.boletas.total, detalle: "Una boleta no da IGV: pide factura.", href: r.boletas.gastos > 0 ? gastos : null });
+  if (r.igvPerdido.n > 0)
+    lista.push({ id: "igv_perdido", tono: "rojo", texto: "IGV que no se descuenta", monto: r.igvPerdido.igv, detalle: "Facturas de S/ 2,000 o más pagadas en efectivo: págalas por banco.", href: gastos });
+  if (r.honorarios.n > 0)
+    lista.push({ id: "honorarios", tono: "gris", texto: plural(r.honorarios.n, "recibo de honorarios", "recibos de honorarios"), monto: r.honorarios.total, detalle: "Retener el 8 % o no: lo decide el contador.", href: null });
+  return lista;
+}
+
 export function antesDeDeclarar(p: PanelImpuestos): PendienteImpuesto[] {
   const r = p.revisar;
   const mes = nombreMes(p.mes);

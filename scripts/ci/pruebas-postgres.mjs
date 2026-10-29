@@ -1700,6 +1700,7 @@ export const PRUEBAS = [
   // enviado, todo o nada, rastro que no se borra.
   "pruebas:compras-simple-corregir",
   "pruebas:compras-simple-reabrir",
+  "pruebas:compras-simple-corregir-gasto",
   // «¿A qué cuenta de CAYLA devolviste?» al cerrar la ronda (Felipe 2026-10-29): la compradora indica la cuenta, la base valida que Compras pueda recibirla.
   "pruebas:compras-simple-cuenta-devolucion",
 
