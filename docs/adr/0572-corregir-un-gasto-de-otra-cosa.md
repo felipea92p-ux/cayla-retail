@@ -1,6 +1,6 @@
 # ADR-0572 — Corregir un gasto de «otra cosa» (Mis compras)
 
-- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; la migración `20261029171000` **NO está en producción** (corrige dinero de la compradora y deja rastro: la pega Felipe, con su OK puntual).
+- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; la migración `20261029171000` está pegada en producción el 2026-10-29, verificada por objeto (tabla `compra_gasto_correcciones` con RLS, disparador de rastro, `fn_compra_gastos_inmutable` con la marca, `corregir_gasto_rapido`, `fn_gasto_para_corregir`, `fn_gasto_correcciones`, `fn_compra_gasto_corregible`, acción `gasto_corregir`; los 2 gastos existentes intactos) (la pegó Felipe con su OK puntual: corrige dinero de la compradora y deja rastro).
 - **Continúa a:** [ADR-0561](0561-corregir-una-compra-ya-anotada.md) (el modelo: corregir mientras Compras no revisa, la plata vuelve sola, todo o nada, rastro que no se borra) y [ADR-0480](0480-compras-simple-en-cuatro-pasos.md) («Gasté en otra cosa»). Se apoya en [ADR-0569](0569-reabrir-la-ultima-ronda-de-compras.md) para las rondas cerradas.
 - **Origen:** Felipe, 2026-10-29, viendo la lista de la ronda con «Comida · Sin papel · Compras lo revisa · − S/ 4.00» y «Saco Piñata · … · − S/ 3.00»: «se deben poder editar, igual que ya se pueden corregir las compras ya anotadas».
 
@@ -57,6 +57,6 @@ Una plata que no vuelve (o baja dos veces) en «Tienes para comprar»; un cierre
 - **El chip «Corregida» en la fila de la lista** (igual que las compras, ADR-0561): se ve al abrir el detalle.
 - **`/formidable` y `/chaos`** de la hoja nueva, y verla con una cuenta de compradora real en el navegador: la prueba fue con la base simulada, así que «Corregida · Ver qué cambió» (que lee `fn_gasto_correcciones`) no se vio con datos reales; su lectura sí está probada en la base y en `lib/corregir-gasto-reglas.test.ts`.
 
-## Para pegar en producción (con el OK de Felipe)
+## Producción
 
-Una sola parte (tabla nueva vacía con RLS, una función de disparador reemplazada y funciones nuevas; sin `alter` de tablas en uso, sin políticas ni `drop trigger`), después de `20261029150000`. Idempotente. El deploy de la web puede ir antes: sin la función, la hoja dice «No se pudo leer el gasto» y nada más se rompe.
+Pegada el 2026-10-29 (con el OK de Felipe). Era una sola parte (tabla nueva vacía con RLS, una función de disparador reemplazada y funciones nuevas; sin `alter` de tablas en uso, sin políticas ni `drop trigger`), después de `20261029150000`. Idempotente. El deploy de la web puede ir antes: sin la función, la hoja dice «No se pudo leer el gasto» y nada más se rompe.
