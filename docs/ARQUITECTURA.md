@@ -1980,6 +1980,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_claure_de_hoy(sede)` (cuánto de cada venta de hoy es de CLAURE y cuántas líneas de CAYLA le quedan; y lo de CLAURE de hace una semana a esta hora) y `sinClaure` / `semanaSinClaure`
     (`lib/inicio-reglas.ts`) lo restan; una línea `nota-cayla` dice cuánto se dejó fuera (`notaClaureDeHoy`). Si esa lectura falla, «Hoy» sale como antes. Prueba: `pnpm pruebas:claure-inicio-y-observatorio`;
     la huella de `fn_observatorio_tienda` de `pruebas:arreglos-en-vivo-roles-observatorio` pasa a la de esta migración.
+    **CLAURE fuera de Rendimiento, metas y Comercial (actividad 6b, 20261029030000):** once reemplazos anclados filtran la línea con `fn_item_es_de_claure` (el patrón es siempre `and not retail.fn_item_es_de_claure(vi.id, <sede>, <fecha de la venta>)`
+    antes del `group by`): Rendimiento (`fn_rendimiento_equipo`, `_detalle`, `_serie`), Metas (`fn_metas_equipo`), Comercial (`fn_comercial_sedes` —también lo devuelto—, `fn_comercial_colaboradoras`, `fn_comercial_horas`) y el «Tu día»
+    de cada integrante (`fn_mis_ventas_del_dia`: una venta solo de CLAURE no sale y la mixta trae su parte; `fn_mis_ventas_por_dia`). Las pantallas no cambian: su «Ayuda» dice que lo de CLAURE no cuenta (`rendimiento/page.tsx`,
+    `PanelComercialVista.tsx`). Las metas (`fn_metas_por_dia`, `fn_parametros_caja`) NO se tocan. Prueba: `pnpm pruebas:claure-rendimiento-y-metas`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

@@ -720,6 +720,10 @@ export const PRUEBAS = [
   // lo anterior al arranque y la sede sin CLAURE no cambian; los candados; las migraciones se repegan. Cada caso: ROLLBACK.
   "pruebas:claure-inicio-y-observatorio",
 
+  // CLAURE fuera de Rendimiento, metas y Comercial (ADR-0560, actividad 6b): once funciones suman solo lo de CAYLA con la regla de 6a (una venta solo de CLAURE no cuenta
+  // como venta, la mixta por su línea de CAYLA, una devolución de una prenda de CLAURE no resta); lo anterior al arranque y la sede sin CLAURE no cambian. Cada caso: ROLLBACK.
+  "pruebas:claure-rendimiento-y-metas",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

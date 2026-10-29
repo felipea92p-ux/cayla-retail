@@ -64,7 +64,7 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [x] **5. CLAURE fuera de Finanzas** — migración `20261029020000`: el Diario reclasifica lo vendido de CLAURE (7011 y el costo) a lo que se le debe (479), así que el Estado de resultados, el Resumen, el Balance y el Cierre de mes dejan de contarlo sin cambiar; Impuestos sigue con el IGV real de SUNAT y dice «de ese IGV, S/ X es de CLAURE»; el Estado de resultados lleva la nota «No incluye lo vendido de CLAURE»; el Flujo cuenta el pago a CLAURE como salida.
 - [ ] 6. CLAURE fuera del resto de pantallas — **partida en cuatro cortes por Felipe (2026-10-29): eran ~40 funciones de la base y varias lecturas directas de la web, con reglas distintas**:
   - [x] **6a. Inicio y Observatorio** — migración `20261029023000`: `fn_item_es_de_claure` (la regla común, la de la actividad 5), `fn_claure_de_hoy` (el Inicio de la líder resta lo de CLAURE de lo que lee de Caja, con su nota «No incluye S/ X de lo que se vendió de CLAURE») y dos reemplazos anclados en `fn_observatorio` y `fn_observatorio_tienda` (solo lo de CAYLA; prendas quietas solo con sus unidades).
-  - [ ] 6b. Rendimiento, metas, Comercial y «Mis ventas» (`fn_rendimiento_*`, `fn_metas_equipo`, `fn_comercial_*`, `fn_mis_ventas_*`).
+  - [x] **6b. Rendimiento, metas, Comercial y «Mis ventas»** — migración `20261029030000`: once reemplazos anclados (`fn_rendimiento_*`, `fn_metas_equipo`, `fn_comercial_*`, `fn_mis_ventas_*`) con la regla de 6a; sus «Ayuda» dicen que lo de CLAURE no cuenta.
   - [ ] 6c. Club y clientes (`fn_club_*`, `fn_ledger_puntos`, `fn_clienta_*`, `unirse_al_club`; aquí mandan los puntos: decisión de Felipe).
   - [ ] 6d. Análisis y motores (`fn_analisis_sede`, Frescura, demanda, Plan del piso, plan de compra, Calidad, rentabilidad: unas 20 funciones; puede pedir dos commits).
 - [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
@@ -124,3 +124,12 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 **Pendientes que dejó la actividad 6a:**
 - [ ] **Al pegar `20261029023000` en producción:** sus dos reemplazos anclados abortan sin cambiar nada si `fn_observatorio` o `fn_observatorio_tienda` de producción no tienen el texto esperado (la de la tienda se leyó el 2026-10-22; su huella está en `pruebas:arreglos-en-vivo-roles-observatorio`, que la migración actualiza). Orden: `20261029004000` → … → `20261029020000` → `20261029023000`.
 - [ ] `fn_mis_ventas_del_dia` (el «Tu día» de una integrante en el Inicio) sigue sumando lo de CLAURE: va con 6b.
+
+**Decisiones tomadas en la actividad 6b (Felipe pidió seguir sin parar: se decidió con el valor por defecto de abajo y queda como pendiente suyo):**
+- **La meta de cada persona y de la sede no se toca** (`fn_metas_por_dia`, `fn_parametros_caja`): lo de CLAURE ya no la llena. Si Lima necesita una meta distinta para CAYLA sola, la carga Felipe en Configuración.
+- **Una devolución de una prenda de CLAURE no resta a CAYLA** en el panel Comercial (la de una de CAYLA sí).
+- **Sin comisión ni bono**: Rendimiento «es para reconocer y acompañar»; no hay pago que recalcular.
+
+**Pendientes que dejó la actividad 6b:**
+- [ ] **Al pegar `20261029030000` en producción:** sus once reemplazos anclados abortan sin cambiar nada si una de las nueve funciones no tiene el texto esperado (no pude leer las vivas; el mensaje dice cuál). Va después de `20261029023000`.
+- [ ] Verificación visual de Rendimiento y Comercial con datos de CLAURE: se hace junto con las demás pantallas en el cierre (actividad 9).
