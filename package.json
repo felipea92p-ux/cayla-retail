@@ -378,6 +378,7 @@
     "pruebas:vendido-por-empresa": "node scripts/pruebas/vendido_por_empresa.mjs",
     "pruebas:claure-cuenta": "node scripts/pruebas/claure_cuenta.mjs",
     "pruebas:claure-pago": "node scripts/pruebas/claure_pago.mjs",
+    "pruebas:claure-cierre": "node scripts/pruebas/claure_cierre.mjs",
     "pruebas:stock-dueno": "node scripts/pruebas/stock_dueno.mjs",
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",

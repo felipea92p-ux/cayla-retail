@@ -16,6 +16,7 @@
 --            de cada empresa (`fn_dueno_de_la_linea`, ADR-0542), igual que el libro de dinero (`fn_dinero_libro`) ubica el pago en su cuenta
 --            (la sellada, o la que rige ese día). Resta lo devuelto por devoluciones aprobadas pagadas desde una cuenta de CAYLA. Estima la
 --            comisión del POS con la tarifa que regía ese día (`pos_tarifas`, ADR-0429), nula si no hay tarifa. Calcula el IGV incluido.
+--            (3b) `fn_claure_filas(sedes)`: ese mismo cálculo, interno y sin candado, para que lo lea también el cierre de caja (actividad 3).
 --            (4) `fn_claure_cuenta_desde()`: esa fecha de arranque, para que la pantalla la diga (`empresas` no se lee directo).
 --   ASUME:   las ventas son de precio con IGV incluido (boleta) y la tasa del día es `fn_tasa_igv`; el efectivo cae al cajón y no entra;
 --            un pago sin cuenta asignada se cuenta (cae en una cuenta de CAYLA que todavía no se nombró); lo ve el líder (todas las sedes)
@@ -48,20 +49,19 @@ comment on column retail.empresas.cuenta_corriente_desde is
 update retail.empresas set cuenta_corriente_desde = date '2026-10-23' where clave = 'claure' and cuenta_corriente_desde is null;
 
 -- ---------- 3. Lo cobrado por CLAURE en cuentas de CAYLA ----------
-create or replace function retail.fn_claure_cuenta()
+-- El cálculo, para las sedes que le pasen. INTERNA: sin candado (quien la llama decide qué sedes ve la persona). La leen `fn_claure_cuenta`
+-- (Finanzas, con el módulo Cuentas y dinero) y `fn_claure_cierre` (el cierre de caja, con el permiso de cerrar esa caja).
+create or replace function retail.fn_claure_filas(p_ubics uuid[])
 returns table (fecha date, origen text, medio text, cuenta_id uuid, cuenta_nombre text, ubicacion_id uuid,
                n_pagos integer, monto numeric, igv numeric, comision numeric, contado boolean)
 language plpgsql stable security definer set search_path = retail, public, extensions as $$
 #variable_conflict use_column
 declare
-  v_ubics uuid[] := retail.fn_cuentas_dinero_ubicaciones();
+  v_ubics uuid[] := p_ubics;
   v_casa uuid := retail.fn_empresa_casa_id();
   v_claure uuid;
   v_desde date;
 begin
-  if not retail.fn_es_lider() and coalesce(cardinality(v_ubics), 0) = 0 then
-    raise exception 'Ver la cuenta con CLAURE necesita el módulo Cuentas y dinero en tu rol.' using errcode = '42501';
-  end if;
   select e.id, e.cuenta_corriente_desde into v_claure, v_desde from retail.empresas e where e.clave = 'claure' and e.activo;
   if v_claure is null or v_desde is null then
     return;
@@ -154,8 +154,26 @@ begin
   order by 1 desc, 2, 3;
 end $$;
 
+comment on function retail.fn_claure_filas(uuid[]) is
+  'ADR-0560 (interna, sin candado): lo cobrado por CLAURE en cuentas de CAYLA desde empresas.cuenta_corriente_desde, por día, medio y cuenta, en las sedes que le pasen (ventas +, devoluciones −), con el IGV incluido y la comisión estimada del POS. Los cambios con prendas de CLAURE salen con contado = false (no entran al saldo). Solo lee.';
+revoke all on function retail.fn_claure_filas(uuid[]) from public, anon, authenticated;
+
+-- La lectura de Finanzas: lo que ve la cuenta con el módulo Cuentas y dinero (el líder, todo; si no, su sede).
+create or replace function retail.fn_claure_cuenta()
+returns table (fecha date, origen text, medio text, cuenta_id uuid, cuenta_nombre text, ubicacion_id uuid,
+               n_pagos integer, monto numeric, igv numeric, comision numeric, contado boolean)
+language plpgsql stable security definer set search_path = retail, public, extensions as $$
+declare
+  v_ubics uuid[] := retail.fn_cuentas_dinero_ubicaciones();
+begin
+  if not retail.fn_es_lider() and coalesce(cardinality(v_ubics), 0) = 0 then
+    raise exception 'Ver la cuenta con CLAURE necesita el módulo Cuentas y dinero en tu rol.' using errcode = '42501';
+  end if;
+  return query select * from retail.fn_claure_filas(v_ubics);
+end $$;
+
 comment on function retail.fn_claure_cuenta() is
-  'ADR-0560: lo cobrado por CLAURE en cuentas de CAYLA desde empresas.cuenta_corriente_desde, por día, medio y cuenta (ventas +, devoluciones −), con el IGV incluido y la comisión estimada del POS. Los cambios con prendas de CLAURE salen con contado = false (no entran al saldo). Solo lee.';
+  'ADR-0560: lo cobrado por CLAURE en cuentas de CAYLA (fn_claure_filas) en las sedes que ve la cuenta con el módulo Cuentas y dinero. Solo lee.';
 
 revoke all on function retail.fn_claure_cuenta() from public, anon;
 grant execute on function retail.fn_claure_cuenta() to authenticated;

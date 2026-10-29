@@ -1,0 +1,87 @@
+import { fechaCorta, soles } from "./compras-reglas";
+import { textoMedioClaure } from "./cuenta-claure-reglas";
+
+// El cierre de caja de Lima y CLAURE (ADR-0560, actividad 3): lógica pura, sin servidor ni navegador. La base calcula todo lo que el cierre muestra
+// (`fn_claure_cierre`, 20261029013000: el saldo con Claudia al terminar el día de la caja, lo del día por medio y el efectivo de las ventas partido
+// entre CAYLA y CLAURE); aquí solo se lee ese jsonb, se dice en palabras de tienda y se arma el mensaje para pasárselo a Claudia.
+// Nada de esto bloquea ni cambia el cierre: si no se puede leer, el cierre sigue como siempre (principio 9).
+
+export type CierreClaure = {
+  sede: string;
+  /** El día del cierre (`aaaa-mm-dd`, hora de Lima). */
+  fecha: string;
+  /** Solo el líder registra el pago (sale de un banco). */
+  puedePagar: boolean;
+  /** Lo que se le debe a Claudia al terminar ese día; negativo si se le pagó de más. */
+  saldo: number;
+  /** Lo que se le debía al empezar ese día. */
+  saldoAnterior: number;
+  hoy: { cobrado: number; devuelto: number; comision: number; pagado: number };
+  porMedio: { medio: string; monto: number; comision: number }[];
+  /** El efectivo de las ventas de esa caja: lo de CAYLA y lo de CLAURE suman lo que espera la caja. */
+  efectivo: { total: number; cayla: number; claure: number };
+  cambiosPorRevisar: number;
+};
+
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+const objeto = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+
+/** Lee lo que devuelve la base. `null` si CLAURE no opera en la sede de esa caja (o si lo recibido no es un cierre): entonces el cierre no dice nada. */
+export function leerCierreClaure(crudo: unknown): CierreClaure | null {
+  const j = objeto(crudo);
+  if (j.hay_claure !== true) return null;
+  const hoy = objeto(j.hoy);
+  const efectivo = objeto(j.efectivo);
+  return {
+    sede: String(j.sede ?? ""),
+    fecha: String(j.fecha ?? "").slice(0, 10),
+    puedePagar: j.puede_pagar === true,
+    saldo: num(j.saldo),
+    saldoAnterior: num(j.saldo_anterior),
+    hoy: { cobrado: num(hoy.cobrado), devuelto: num(hoy.devuelto), comision: num(hoy.comision), pagado: num(hoy.pagado) },
+    porMedio: (Array.isArray(j.por_medio) ? (j.por_medio as unknown[]) : []).map((m) => {
+      const o = objeto(m);
+      return { medio: String(o.medio ?? ""), monto: num(o.monto), comision: num(o.comision) };
+    }),
+    efectivo: { total: num(efectivo.total), cayla: num(efectivo.cayla), claure: num(efectivo.claure) },
+    cambiosPorRevisar: num(j.cambios_por_revisar),
+  };
+}
+
+/** La frase grande del bloque: lo que se le debe a Claudia o, si se le pagó de más, lo que ella le debe a CAYLA (siempre en positivo). */
+export function titularDelCierre(c: CierreClaure): { frase: string; monto: number } {
+  return c.saldo < 0 ? { frase: "Claudia te debe", monto: -c.saldo } : { frase: "Se le debe a Claudia", monto: c.saldo };
+}
+
+/** La línea de «hoy»: «Hoy se sumó S/ 164.60: Tarjeta S/ 50.00 · Yape S/ 118.00, menos S/ 3.31 de comisión». */
+export function lineaDeHoy(c: CierreClaure): string {
+  if (c.hoy.cobrado <= 0 && c.hoy.devuelto <= 0) return "Hoy no se cobró nada de CLAURE en tus cuentas.";
+  const medios = c.porMedio.filter((m) => m.monto > 0).map((m) => `${textoMedioClaure(m.medio)} ${soles(m.monto)}`);
+  const partes = [`Hoy se cobró ${soles(c.hoy.cobrado)} de CLAURE en tus cuentas${medios.length ? ` (${medios.join(" · ")})` : ""}`];
+  if (c.hoy.devuelto > 0) partes.push(`se devolvió ${soles(c.hoy.devuelto)}`);
+  if (c.hoy.comision > 0) partes.push(`la comisión del POS es ${soles(c.hoy.comision)}`);
+  return `${partes.join(", ")}.`;
+}
+
+/** El efectivo de Claudia, partido del de CAYLA: lo dice el bloque y, en el paso de contar, bajo «Ventas en efectivo». */
+export function lineaDelEfectivo(c: CierreClaure): string {
+  return `Del efectivo de hoy, ${soles(c.efectivo.claure)} es de CLAURE (lo tiene Claudia, no suma a lo que se le debe) y ${soles(c.efectivo.cayla)} es de CAYLA.`;
+}
+
+/** El resumen para pasárselo a Claudia por WhatsApp. Texto plano; el sistema no lo envía solo. */
+export function mensajeParaClaudia(c: CierreClaure): string {
+  const lineas: string[] = [`Hola Claudia, el resumen del cierre de caja de ${c.sede} (${fechaCorta(c.fecha)}):`, ""];
+  const medios = c.porMedio.filter((m) => m.monto > 0).map((m) => `${textoMedioClaure(m.medio)} ${soles(m.monto)}`);
+  lineas.push(`• Cobrado de CLAURE en cuentas de CAYLA: ${soles(c.hoy.cobrado)}${medios.length ? ` (${medios.join(", ")})` : ""}`);
+  if (c.hoy.comision > 0) lineas.push(`• Comisión del POS: ${soles(c.hoy.comision)}`);
+  if (c.hoy.devuelto > 0) lineas.push(`• Devuelto: ${soles(c.hoy.devuelto)}`);
+  if (c.hoy.pagado > 0) lineas.push(`• Ya se te pagó hoy: ${soles(c.hoy.pagado)}`);
+  if (c.efectivo.claure > 0) lineas.push(`• Efectivo de CLAURE de hoy (lo tienes tú): ${soles(c.efectivo.claure)}`);
+  lineas.push("");
+  const t = titularDelCierre(c);
+  lineas.push(c.saldo < 0 ? `Saldo: se te pagó de más, ${soles(t.monto)} quedan a favor de CAYLA.` : `Saldo que te debemos: ${soles(t.monto)}`);
+  return lineas.join("\n");
+}

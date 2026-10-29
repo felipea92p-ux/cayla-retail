@@ -1955,6 +1955,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     líder) registrado con `registrar_movimiento_dinero` desde el mismo modal «Registrar movimiento» (`QuePaso = pago_claure`; `BotonPagarClaure` lo abre con el saldo escrito vía
     `useAbrirMovimiento`) y anulado con `anular_movimiento_dinero`. El Diario lo asienta 479 (provisional) | banco, el Flujo real todavía lo trata como «entre cuentas» (actividad 5) y `fn_claure_pagos()` lo lista:
     saldo = `resumenClaure(filas, pagos)`. Prueba: `pnpm pruebas:claure-pago`.
+    **El cierre de caja de Lima (actividad 3, 20261029013000):** `fn_claure_cierre(caja)` (candado de `fn_esperado_caja`: quien cierra esa caja o el líder, sin pedir el módulo
+    Finanzas) → `components/CuentasConClaudia.tsx` (`useCierreClaure`) montado en `CerrarCajaModalV2`: en el paso de contar dice cuánto del efectivo es de CLAURE (informativo; CAYLA + CLAURE =
+    `ventas_efectivo` exacto) y, tras cerrar, el bloque «Cuentas con Claudia» (neto, lo de hoy, detalle plegado, «Copiar resumen» para WhatsApp y, para el líder, «Pagar a CLAURE» →
+    `/finanzas/dinero/claure?pagar=1`, que abre la hoja de pago con el saldo escrito: `AbrirPagoDesdeUrl`). El cálculo es `fn_claure_filas(sedes)`, interno, que también lee `fn_claure_cuenta`.
+    Prueba: `pnpm pruebas:claure-cierre`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

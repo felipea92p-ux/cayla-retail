@@ -3,6 +3,7 @@ import { Handshake } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
+import { AbrirPagoDesdeUrl } from "@/components/finanzas/dinero/AbrirPagoDesdeUrl";
 import { BotonPagarClaure } from "@/components/finanzas/dinero/BotonPagarClaure";
 import { Herramientas, PieTabla, Superficie } from "@/components/finanzas/kit";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
@@ -36,6 +37,7 @@ export function CuentaClaure({ filas, pagos, desde, esLider }: { filas: FilaClau
 
   return (
     <div className="space-y-6">
+      {esLider && <AbrirPagoDesdeUrl montoSugerido={montoSugeridoPago(r.saldo)} />}
       <p className="din-debes-frase anim-entra" style={{ ["--i" as string]: 0 } as CSSProperties}>
         {fraseClaure(desde)}
       </p>

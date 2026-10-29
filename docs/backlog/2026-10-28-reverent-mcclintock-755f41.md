@@ -59,7 +59,8 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 
 - [x] **1. La cuenta con CLAURE (solo lectura)** — `7814315c6`. Migración `20261029004000`, pestaña «CLAURE» en Cuentas y dinero, guía y pruebas.
 - [x] **2. Pagar a CLAURE** — migración `20261029011000`, tipo `pago_claure` (como `pago_sunat`: sale de un banco, de la empresa, solo el líder, con su n.º de operación), «Pagar a CLAURE» en la pestaña (abre «Registrar movimiento» con el saldo escrito), `fn_claure_pagos()`, saldo = cobrado − devuelto − comisión − pagado. Pruebas: `pnpm pruebas:claure-pago` (14 casos).
-- [ ] 3. Aviso en el cierre de caja de Lima · [ ] 4. Disponible real · [ ] 5. CLAURE fuera de Finanzas · [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
+- [x] **3. Aviso en el cierre de caja de Lima** — migración `20261029013000` (`fn_claure_cierre`), bloque «Cuentas con Claudia» en el modal de cierre (neto, lo de hoy, detalle plegado, «Copiar resumen», «Pagar a CLAURE» para el líder) y el efectivo partido CAYLA/CLAURE en el paso de contar. Pruebas: `pnpm pruebas:claure-cierre` (10 casos). Se partió `fn_claure_cuenta` en `fn_claure_filas` (interna) + la lectura con candado, en la migración 1.
+- [ ] 4. Disponible real · [ ] 5. CLAURE fuera de Finanzas · [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
 
 **Decisiones tomadas en la actividad 2 (sin preguntar, con su porqué):**
 - La cuenta contable de lo que se le debe es la **479 «Otras cuentas por pagar — relacionadas»**, **provisional hasta el contador**: el Diario se arma al leer, así que cambiarla es una línea de `fn_asientos_dinero_y_caja`.
@@ -72,3 +73,13 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [ ] **Al pegar `20261029011000` en producción**: sus cuatro reemplazos anclados abortan sin cambiar nada si una función de producción no tiene el texto esperado. No pude leer las funciones vivas de producción (el permiso del MCP lo rechazó); en la base local, con el mismo código de main, las cuatro calzan.
 - [ ] Orden de pegado en producción: primero `20261029004000`, después `20261029011000`. Las dos con lock_timeout; ninguna con políticas.
 - [ ] `pruebas:cuentas-dinero` (16 casos) y `pruebas:cuenta-sellada` (6) fallan en la base local por «Esa tienda no existe o no está activa» (el Taller en `guardar_medio_de_cobro`) y por la migración #1419 que la base local no tiene aplicada: ya fallaban antes de esta obra.
+
+**Decisiones tomadas en la actividad 3 (sin preguntar, con su porqué):**
+- **El neto del cierre es el saldo con Claudia** (cobrado en cuentas de CAYLA − devuelto − comisión estimada − pagado). **El efectivo de CAYLA que Claudia se quede NO se resta**: no hay una regla aprobada para saber cuánto es (lo que se traslada al cierre es del cajón entero, no de una empresa). El cierre lo muestra aparte, informativo: «S/ X es de CLAURE (lo tiene Claudia) y S/ Y es de CAYLA».
+- **«Registrar el pago desde el cierre» = un enlace** a `/finanzas/dinero/claure?pagar=1`, que abre la hoja de pago con el saldo escrito. Registrar un pago dentro del propio modal de cierre habría duplicado el formulario de pago; el líder llega en un clic.
+- **Quien cierra y no es líder** ve el aviso (neto, detalle y resumen para copiar) pero no el botón de pagar. No necesita el módulo Finanzas: `fn_claure_cierre` usa el candado de `fn_esperado_caja`.
+- El aviso **nunca bloquea ni cambia el cierre**: si CLAURE no opera en esa sede o la lectura falla, no se dibuja nada.
+
+**Pendientes que dejó la actividad 3:**
+- [ ] **Decisión de Felipe:** ¿cómo se resta del neto el efectivo de CAYLA que queda en poder de Claudia? (por ejemplo, un destino del traslado «Se queda con Claudia»). Mientras no se decida, el neto es solo lo cobrado en cuentas de CAYLA.
+- [ ] El bloque sale en el modal de cierre (Caja y Vender); **todavía no en el detalle de un cierre pasado** (`CierreCajaDetalle`, `UltimoCierreCaja`). La función ya lee la caja y el día que se le pidan.

@@ -26,6 +26,7 @@ import { dejaMenosDelFondo, trasladoParaDejarFondo } from "@/lib/configuracion-r
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { CuentasConClaudia, EfectivoDeClaure, useCierreClaure } from "@/components/CuentasConClaudia";
 
 function money(n: number) {
   return (n < 0 ? "-S/\u00a0" : "S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -75,6 +76,8 @@ export function CerrarCajaModalV2({
 }) {
   const router = useRouter();
   const [paso, setPaso] = useState<"contar" | "trasladar">("contar");
+  // CLAURE (ADR-0560, actividad 3): en Lima, lo del efectivo de cada empresa y lo que se le debe a Claudia. Solo informa: nunca cambia ni bloquea el cierre.
+  const cierreClaure = useCierreClaure(cajaId);
   const [esperado, setEsperado] = useState<Esperado | null>(null);
   const [falloEsperado, setFalloEsperado] = useState(false);
   const [contadoTexto, setContadoTexto] = useState("");
@@ -316,6 +319,7 @@ export function CerrarCajaModalV2({
                 el sistema todavía no las sumó. No es un error tuyo: suben solas apenas vuelva el internet.
               </p>
             )}
+            {cierreClaure && <CuentasConClaudia cierre={cierreClaure} />}
             <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
               Listo
             </button>
@@ -375,6 +379,7 @@ export function CerrarCajaModalV2({
                         <dd className="tabular-nums">{money(esperado.esperado)}</dd>
                       </div>
                     </dl>
+                    {cierreClaure && <EfectivoDeClaure cierre={cierreClaure} />}
                   </>
                 ) : falloEsperado ? (
                   <p className="mt-2 text-xs text-tinta/65">

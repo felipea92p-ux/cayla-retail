@@ -703,6 +703,11 @@ export const PRUEBAS = [
   // cuenta como salida; fn_claure_pagos lo lista y lo quita al anularlo; sin el módulo no se lee y anon no ejecuta. Cada caso: ROLLBACK.
   "pruebas:claure-pago",
 
+  // El cierre de caja de Lima y CLAURE (ADR-0560, actividad 3): fn_claure_cierre da el saldo con Claudia al terminar el día de esa caja, lo del día
+  // por medio y el efectivo de las ventas de la caja partido entre CAYLA y CLAURE (suma exacta de lo que espera la caja; la anulada no cuenta);
+  // lo lee quien cierra esa caja aunque no tenga Finanzas, y solo el líder puede pagar; una caja de otra sede dice que no hay. Cada caso: ROLLBACK.
+  "pruebas:claure-cierre",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

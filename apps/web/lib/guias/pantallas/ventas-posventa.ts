@@ -585,7 +585,7 @@ export const GUIA_CAJA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cerrar la caja",
-      texto: "Esta barra se queda a la vista y te avisa cuándo toca cerrar. «Cerrar caja» pide contar el efectivo, dice cuánto dejar para el próximo turno y anota la diferencia. Lo hace un líder. En la demo no la cerramos.",
+      texto: "Esta barra se queda a la vista y te avisa cuándo toca cerrar. «Cerrar caja» pide contar el efectivo, dice cuánto dejar para el próximo turno y anota la diferencia. Lo hace un líder. En Lima, al terminar también dice cuánto se le debe a Claudia (CLAURE). En la demo no la cerramos.",
     },
     {
       id: "barra-movil",
