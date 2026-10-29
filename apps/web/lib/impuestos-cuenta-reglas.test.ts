@@ -42,7 +42,7 @@ describe("cuentaImpuestos", () => {
     expect(c.pagas).toBe(9230); // IGV 7,400 + renta 1,830
     expect(c.renta).toEqual({ monto: 1830, base: 122000, tasa: "1.5 %", provisional: true });
     expect(c.chip).toBe("Se paga en octubre");
-    expect(c.frase).toBe("Se paga en octubre: revisar 5 pendientes, descargar y pagar.");
+    expect(c.frase).toBe("Falta: revisar 5 pendientes, descargar y pagar.");
     expect(c.vendiste).toBe(122000);
     expect(c.comprobantes).toBe(214);
     expect(c.tasaIgv).toBe(18);
@@ -52,7 +52,7 @@ describe("cuentaImpuestos", () => {
     const c = cuentaImpuestos({ ...PANEL, renta: { base: 122000, tasa: 0.01, monto: 1220 } }, { enCurso: false, pendientes: 0 });
     if (c.estado !== "a_pagar") throw new Error("a pagar");
     expect(c.renta.tasa).toBe("1 %");
-    expect(c.frase).toBe("Se paga en octubre: descargar y pagar.");
+    expect(c.frase).toBe("Falta: descargar y pagar.");
   });
 
   it("sin tasa configurada para el año, la renta queda sin porcentaje y la cifra es solo el IGV", () => {
@@ -129,6 +129,7 @@ describe("limiteImpuestos", () => {
     expect(l.titulo).toBe("El límite de 300 UIT");
     expect(l.vendido).toBe(1237500);
     expect(l.avisoPct).toBe(83); // 250 de 300 UIT
+    expect(l.avisoUit).toBe(250);
     expect(l.proyectadoPct).toBeGreaterThanOrEqual(75);
     expect(l.frase).toMatch(/^(A este ritmo lo cruzas en [a-záéíóú]+|A este ritmo no lo cruzas este año)\. Cierras el año en S\/\s/);
   });

@@ -63,11 +63,11 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
   if (b.compras.resta > 0) lineasCompras.push({ clave: "notas", nombre: "Notas de crédito", monto: b.compras.resta, resta: true });
 
   const pagas = pulso.estado === "a_pagar" ? pulso.total : (pulso.renta ?? 0);
-  const hacer = opciones.pendientes > 0 ? `revisar ${plural(opciones.pendientes, "pendiente", "pendientes")}, descargar y pagar.` : "descargar y pagar.";
+  const hacer = opciones.pendientes > 0 ? `Falta: revisar ${plural(opciones.pendientes, "pendiente", "pendientes")}, descargar y pagar.` : "Falta: descargar y pagar.";
   const frase = opciones.enCurso
     ? "El mes sigue abierto: la cifra cambia hasta que cierre."
     : pulso.estado === "a_pagar"
-      ? `Se paga en ${siguiente}: ${hacer}`
+      ? hacer
       : pulso.renta !== null && pulso.renta > 0
         ? `Solo pagas la renta. El IGV a favor pasa a ${siguiente}.`
         : `No pagas IGV. El saldo a favor pasa a ${siguiente}.`;
@@ -108,6 +108,8 @@ export type LimiteImpuestos =
       proyectadoPct: number;
       /** Dónde cae el aviso (250 UIT) sobre la barra, de 0 a 100; null si no hay. */
       avisoPct: number | null;
+      /** Las UIT del aviso (250), para rotular la marca. */
+      avisoUit: number | null;
       /** Una o dos frases cortas: cuándo se cruza y cómo cierra el año. */
       frase: string;
       uit: { anio: number; valor: number; provisional: boolean };
@@ -133,6 +135,7 @@ export function limiteImpuestos(p: PanelImpuestos): LimiteImpuestos {
     tono: tonoAvance(umbral.avance),
     proyectadoPct: Math.min(100, Math.max(0, Math.round((proy.proyectadoDiciembre / umbral.umbralSoles) * 100))),
     avisoPct: umbral.avisoSoles !== null ? Math.min(100, Math.round((umbral.avisoSoles / umbral.umbralSoles) * 100)) : null,
+    avisoUit: umbral.avisoSoles !== null ? (parametros.avisoUmbralUit?.valor ?? null) : null,
     frase: `${cruce} Cierras el año en ${solesRedondo(proy.proyectadoDiciembre)}.`,
     uit: { anio: parametros.uit.anio, valor: parametros.uit.valor, provisional: parametros.uit.provisional || parametros.umbralUit?.provisional === true },
   };
