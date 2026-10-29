@@ -339,7 +339,7 @@ export const GUIA_BAJAR_AL_PISO: Guia = {
       id: "escaner",
       ancla: "bajar.escaner",
       titulo: "Escanea cada prenda",
-      texto: "La primera lectura de una prenda suma 1. Si la misma vuelve a leerse, te pregunto antes de sumarla; con 12 iguales, elige «Son varias iguales». Si la etiqueta no se lee, escribe el modelo, la talla o el color.",
+      texto: "La primera lectura de una prenda suma 1. Si la misma vuelve a leerse, te pregunto antes de sumarla; con 12 iguales, toca «Cambiar cantidad». Si la etiqueta no se lee, escribe el modelo, la talla o el color.",
     },
     {
       id: "camara",
@@ -407,7 +407,7 @@ export const GUIA_CUADRAR_PISO: Guia = {
       id: "escaner",
       ancla: "cuadrar.escaner",
       titulo: "Escanea lo guardado",
-      texto: "La primera lectura de una prenda suma 1; si la misma se repite, te pregunto antes de sumarla. Con 12 iguales, elige «Son varias iguales». Lo escaneado aparece debajo con su talla y su cantidad.",
+      texto: "La primera lectura de una prenda suma 1; si la misma se repite, te pregunto antes de sumarla. Con 12 iguales, toca «Cambiar cantidad». Lo escaneado aparece debajo con su talla y su cantidad.",
     },
     {
       id: "camara",

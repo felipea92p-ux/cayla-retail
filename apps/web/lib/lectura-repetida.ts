@@ -1,5 +1,5 @@
 /**
- * Lectura repetida: «¿Quieres volver a agregar esta prenda?» (ADR-0562, Felipe 2026-10-28; maqueta
+ * Lectura repetida: «Ya está en la lista · ¿Sumar otra?» (ADR-0562, Felipe 2026-10-28; maqueta
  * `docs/maquetas/escaneo-repetido-2026-10/`, dirección A).
  *
  * El problema, en palabras de la tienda: la colaboradora deja la etiqueta frente al lector (la pistola o la cámara) más de la
@@ -10,7 +10,7 @@
  *  · la misma prenda otra vez NO suma sola: se pregunta, con lo que lleva de esa prenda (1 → 2);
  *  · mientras se pregunta, la misma etiqueta se ignora (solo se cuenta: es lo que antes duplicaba);
  *  · otra prenda mientras se pregunta es un «No» a la anterior, y esa otra se lee como siempre;
- *  · «Son varias iguales» declara una PILA: esa prenda deja de preguntar hasta que se pida otra vez.
+ *  · «Cambiar cantidad» declara una PILA: esa prenda deja de preguntar hasta que se pida otra vez.
  * Se responde tocando, nunca con Enter (la pistola remata cada código con Enter: diría «Sí» sola). Eso lo cuida la pieza
  * (`components/ui/AvisoRepetida.tsx`), no esta función. Sin red y sin React, para probarla.
  */
@@ -20,7 +20,7 @@ export type PreguntaRepetida = { varianteId: string; ignoradas: number };
 
 export type EstadoRepetida = {
   pregunta: PreguntaRepetida | null;
-  /** Las prendas declaradas «Son varias iguales»: no preguntan. */
+  /** Las prendas declaradas con «Cambiar cantidad»: no preguntan. */
   pilas: readonly string[];
 };
 
@@ -48,7 +48,7 @@ export function decidirLectura(varianteId: string, yaEnLista: number, sumaria: b
   return { tipo: "pregunta", cierraPregunta, pregunta: { varianteId, ignoradas: 0 } };
 }
 
-/** «Son varias iguales»: esa prenda deja de preguntar. */
+/** «Cambiar cantidad»: esa prenda deja de preguntar. */
 export function declararPila(pilas: readonly string[], varianteId: string): string[] {
   return pilas.includes(varianteId) ? [...pilas] : [...pilas, varianteId];
 }
@@ -59,8 +59,8 @@ export function soltarPila(pilas: readonly string[], varianteId: string): string
 }
 
 /**
- * Los números que admite «¿Cuántas tienes en total?»: desde una más de las que lleva hasta el tope (lo libre en el almacén,
- * o sin tope). `null` si no cabe ni una más: entonces «Son varias iguales» no se ofrece.
+ * Los números que admite «Cantidad total»: desde una más de las que lleva hasta el tope (lo libre en el almacén,
+ * o sin tope). `null` si no cabe ni una más: entonces «Cambiar cantidad» no se ofrece.
  */
 export function rangoDeVarias(yaEnLista: number, tope: number | null): { min: number; max: number } | null {
   const min = Math.max(1, yaEnLista + 1);
@@ -68,13 +68,8 @@ export function rangoDeVarias(yaEnLista: number, tope: number | null): { min: nu
   return max >= min ? { min, max } : null;
 }
 
-/** El número escrito o tocado en «¿Cuántas tienes en total?», dentro del rango; lo que no es un número queda en el mínimo. */
+/** El número escrito o tocado en «Cantidad total», dentro del rango; lo que no es un número queda en el mínimo. */
 export function acotarVarias(n: number, rango: { min: number; max: number }): number {
   if (!Number.isFinite(n)) return rango.min;
   return Math.min(rango.max, Math.max(rango.min, Math.floor(n)));
-}
-
-/** «3 lecturas repetidas ignoradas»: lo que la etiqueta quieta habría sumado. */
-export function textoIgnoradas(n: number): string {
-  return n === 1 ? "1 lectura repetida ignorada" : `${n} lecturas repetidas ignoradas`;
 }
