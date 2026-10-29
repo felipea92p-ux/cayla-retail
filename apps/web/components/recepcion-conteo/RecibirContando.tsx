@@ -40,6 +40,8 @@ import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { siguienteAnotada } from "@/lib/recibir-papel-reglas";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
+import { Trayecto } from "@/components/recepcion-envio/Trayecto";
+import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 
 // «Recibir ENV-000061» contando primero (ADR-0393, la cara A; maqueta `docs/maquetas/recibir-fardo-2026-10/a-camino.html`). Tres pasos:
 // ¿Qué llegó? (en camino: «Empezar a recibir»), Contar (por categoría: un número por línea y, si se quiere, qué prendas son) y Cerrar (lo que
@@ -282,6 +284,8 @@ export function RecibirContando({
   // lleva contado van en el riel y en la balanza.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
   const insignia = insigniaDelEnvio(estado, pendientesDelEnvio);
+  // El Trayecto (rediseño «B», Felipe 2026-10-29) reemplaza al chip de estado; un envío anulado no tiene camino y sigue con su chip.
+  const etapa = etapaDelEnvio(estado, { pendientes: pendientesDelEnvio, contadas: estado === "abierto" ? cifras.contadas : undefined, dijeron: cifras.dijeron });
   const subtitulos = subtitulosDelRiel({
     estado,
     numero: detalle.numero,
@@ -295,8 +299,14 @@ export function RecibirContando({
   return (
     <div className="space-y-6">
       <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería" subtitulo={frase} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
-        <div className="anim-sube" style={{ "--i": 1 } as React.CSSProperties}>
-          <Chip tono={insignia.tono}>{insignia.texto}</Chip>
+        <div className={etapa ? "anim-sube w-[26rem] max-w-full" : "anim-sube"} style={{ "--i": 1 } as React.CSSProperties}>
+          {etapa ? (
+            <div className="rc-tray-cabecera">
+              <Trayecto etapa={etapa} />
+            </div>
+          ) : (
+            <Chip tono={insignia.tono}>{insignia.texto}</Chip>
+          )}
         </div>
       </EncabezadoPagina>
 

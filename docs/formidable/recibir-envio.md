@@ -196,6 +196,94 @@ responde que es de Confecciones del Sur».
 queda bajo el pliegue a 900 px de alto; el costo vacío en un envío sin aviso podría decir «llega con la factura» también a quien ve el
 dinero (hoy dice «S/ sin costo»).
 
+## Re-análisis 2026-10-29 — las piezas «B» (ADR-0575)
+
+- **Fecha / SHA:** 2026-10-29 · `2a4e72e55` · **Dispositivo que manda:** escritorio (1440 × 900), con 1024 × 768 y 375 × 812 medidos.
+- **Pregunta:** «¿Qué llegó en esta caja, cuadra con lo que dijeron y a cuánto lo vendo?» · **Protagonista:** el número de cada categoría (Contar) y la prenda con su precio (Cerrar).
+- **Veredicto en una línea:** «Contar se entiende y se termina sola; el precio casi no se encuentra, y con el papel de la compra al lado el Dial queda bajo el pliegue.»
+
+### Notas (0–10)
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 6 | [Observado] ciega (Opus, 1440): terminó contar e identificar; 16 toques, 1 vuelta atrás y 2 toques perdidos; **no encontró el precio** hasta volver a Contar y abrir la «›» · real: sin probar |
+| 2 Una pregunta, una respuesta | 6 | [Medido] una sola primaria por paso; pero el Dial empieza en y = 901 a 1440 × 900 con el papel al lado (y = 1359 a 1024 × 768) y arriba hay dos rieles de avance seguidos (Trayecto y «1 Contar — 2 Cerrar») |
+| 3 Simplicidad profunda | 7 | [Medido] los veredictos están («cuadra · 2», «faltan 1 de 2»), pero el mismo veredicto se dice 4 veces en Contar (aro, chip, frase, barra) |
+| 4 Lenguaje de tienda | 7 | [Observado] «1 de 2» del chip de la prenda (identificadas) se leyó como lo contado; «Nada» bajo «Después» confundió; «Identificadas» y «Dijeron» se entendieron |
+| 5 Contenido primero | 6 | [Medido] el contador queda bajo el acordeón y «Quién cuenta» cuando la tarjeta es angosta; en Cerrar la Vitrina nace plegada |
+| 6 Lo difícil, a un toque | 7 | [Observado] el ⓘ de «Quién cuenta» y «Distinto por talla o color» funcionan; el problema no es lo difícil, es lo principal escondido (ley 1) |
+| 7 Perdonar antes que preguntar | 7 | [Observado] el Dial devuelve con Escape; al cambiar 1 → 2 una prenda pierde su talla en silencio (de antes del rediseño); Enter en el precio saca el cursor de la caja |
+| 8 Quitar antes de agregar | 5 | [Medido] alfileres de sede y segmento preguntan lo mismo; la Balanza repite el Podio; veredicto ×4; dos rieles |
+| 9 De punta a punta | 6 | [Observado] un toque en «Pasar a cerrar» se perdió por un salto de la página; la etiqueta de precio parpadea al cambiarlo; nada dice que el precio se guarda al cerrar |
+| **Leyes (promedio)** | **6,3** | una baja: la ley 8 en 5 |
+| **Oficio visual** | **7** | [Medido] nuevas del rediseño: «Distinto por talla o color» de 172 × 20 px (bajo 24), cabecera del acordeón 1 px corrida, huecos de 11 y 21,2 px en Podio y Vitrina. Heredadas del sistema: versalitas de 11 px, 16 radios, «Cambiar» de 20 px. Contraste: 0 fallas reales (el «Salió» 1,22:1 es un falso positivo: el script toma el fondo de la parada) |
+
+### Los 3 cambios de mayor impacto (esperan tu OK; todos de presentación)
+1. **El Dial a la vista sin bajar.** **Antes →** con el papel al lado, el acordeón apilado y «Quién cuenta» empujan el contador bajo el pliegue
+   (y = 901 a 1440 × 900). **Después →** acordeón al lado del Dial desde 680 px de tarjeta (cabe junto al papel); apilado, solo la categoría abierta
+   muestra sus prendas y «Quién cuenta» va en una línea; bajo el número, «Toca el número para escribirlo». **Ley:** 2 y 5. **Se verifica:** el
+   Dial empieza antes de y = 600 a 1440 × 900 y antes de y = 768 a 1024 × 768. **Esfuerzo:** S.
+2. **El precio se encuentra y se entiende.** **Antes →** la Vitrina está en una fila plegada que se abre con una «›» sin texto; la etiqueta roja no
+   dice «Precio de venta»; alfileres y segmento preguntan lo mismo; nada dice que se guarda al cerrar; la etiqueta parpadea y Enter saca el cursor.
+   **Después →** las categorías con prendas identificadas nacen abiertas en Cerrar (la «›» dice «Precio y costo»); «Precio de venta» sobre la
+   etiqueta; solo el segmento «Solo Trujillo | Todas» (sin alfileres); bajo el precio, «Se guarda al cerrar el envío»; la etiqueta ya no se vuelve
+   a montar; «Distinto por talla o color» de 32 px. **Ley:** 1, 4, 8 y 9. **Se verifica:** repetir la misma ciega: encuentra el precio sin volver
+   atrás. **Esfuerzo:** M. **Decide:** Felipe (presentación; no cambia qué se guarda ni cuándo).
+3. **Decir cada cosa una vez.** **Antes →** en Contar el veredicto se repite 4 veces; el chip de la prenda dice «1 de 2» sin decir de qué; en Cerrar
+   la Balanza repite el Podio. **Después →** el aro dice el veredicto y queda una sola frase corta al lado («Si no coincide, al cerrar dices por
+   qué»); el chip dice «1 de 2 identificadas»; en Cerrar se quita la Balanza (el Podio y la barra de abajo ya lo dicen). **Ley:** 8, 3 y 4.
+   **Se verifica:** contar las veces que aparece el veredicto (1 + la barra) y la ciega no confunde los «1 de 2». **Esfuerzo:** S.
+
+### Lo que sobra (ley 8)
+Los alfileres de sede (el segmento ya lo dice) · la Balanza de Cerrar (el Podio por categoría y la barra lo dicen) · el chip largo del veredicto en Contar.
+
+### Lo que no pediste y importa más
+Al cambiar la cantidad de una prenda que ya tiene tallas (1 → 2), sus tallas se borran sin avisar (`cambiarCantidadPrenda`, de antes del
+rediseño): la persona pierde trabajo y no lo nota hasta Cerrar, donde el precio ya no se puede poner. Debería preguntar o conservar las tallas
+que siguen valiendo; toca qué se guarda, así que lo decides tú.
+
+### Lista aparte (no se ejecuta)
+- El salto que hizo perder un toque en «Pasar a cerrar» (candidatos: «Faltan: …» del pie de la guía que se acorta, «Guardando…», el acordeón): reproducirlo antes de arreglarlo.
+- Dos rieles arriba (Trayecto y «1 Contar — 2 Cerrar»): decidir si los pasos pasan a ser parte del Trayecto.
+- Elegir «Todas» sin haber escrito un precio enciende «Las demás sedes» aunque todavía no cambió nada (se va con el cambio 2, al quitar los alfileres).
+- La hoja de tallas dice «Todo listo» con «Contaste 1 de 2» (de antes).
+- «Nada» bajo «Después» en Cerrar: «No queda nada para después».
+
+### Prueba ciega (2026-10-29, Opus, cuenta de Felipe —Admin— en Tienda Trujillo, base local, 1440 × 900)
+| Medida | Resultado |
+|---|---|
+| Lectura de 5 s | ✓ «la hoja para recibir el envío; contar la falda que falta y pasar a cerrar» (no vio dónde va el precio) |
+| Primer intento | ✗ volvió una vez de Cerrar a Contar para poner tallas y poder poner el precio |
+| Pasos | 16 toques (14 útiles, 2 perdidos) |
+| Dudas | «1 de 2» (¿contadas o identificadas?), la «›» sin texto, la etiqueta roja como campo, alfileres contra segmento, si el precio quedó guardado |
+| Palabras no entendidas | ninguna del todo; «Nada» y «Para después» las interpretó bien con dudas |
+| Errores evitables | 1: subir la prenda de 1 a 2 le borró la talla |
+
+**Escéptico (Opus, solo código):** 9 confirmados, 4 matizados, 1 no verificable (el salto), 0 refutados; de antes del rediseño: el pliegue de la
+fila, la talla borrada, «Todo listo» y la Balanza.
+
+### Antes de decir «listo»
+- **Concurrencia:** el Dial guarda por la misma función con versión (`guardar_conteo_envio`): dos personas en la misma categoría no se pisan en silencio; no se probó a mano en esta pasada.
+- **Caída externa:** si la base no responde, guardar el número vuelve a intentarlo al volver la red (`RefrescoTrasCorte`); el precio no se guarda hasta cerrar.
+- **Persona sin contexto:** ciega ✓ · real: sin probar.
+
+## Los 3 cambios del 2026-10-29, aplicados con el OK de Felipe («Sí, haz los 3 cambios»), `02b2ef6fe`
+
+| Cambio | Antes | Después (medido a 1440 × 900, cuenta Admin) |
+|---|---|---|
+| 1 · El Dial a la vista | Dial en y = 901 (bajo el pliegue); a 1024 × 768, y = 1359 | Dial en y = 623 y el número termina en y = 759, sobre la barra (y = 782). El acordeón va al lado desde 640 px de tarjeta y el aro baja a 224 px en una tarjeta angosta; a 1024 × 768, y = 1080: **no llega a la meta (< 768)** porque bajo 1280 px el papel de la compra va arriba (decisión del 2026-10-28) |
+| 2 · El precio se encuentra | la Vitrina en una fila plegada con «›» sin texto; la etiqueta sin título; alfileres + segmento; parpadeo y Enter que sacaba el cursor; «Distinto por talla o color» de 20 px | nace abierta en Cerrar, «Precio y costo» con nombre, «Precio de venta» bajo la etiqueta, solo el segmento, «se guarda al cerrar el envío» a la vista, sin parpadeo, Enter deja el cursor en la caja, los dos enlaces de 32 px |
+| 3 · Cada cosa una vez | el veredicto 4 veces en Contar; «1 de 2» sin decir de qué; la Balanza repetía el Podio | el veredicto 2 veces (el aro y la barra) y una frase corta solo si no cuadra; «1 de 2 identificadas»; sin Balanza |
+
+**Segunda ciega (Opus, misma cuenta y envío, 1440 × 900):** encontró el precio sola, **5 clics y 0 vueltas atrás** (la primera: 16 toques y 1 vuelta). Dudas que quedan:
+la etiqueta roja «parecía decorativa» (la tocó para probar), «Solo Trujillo | Todas» no deja ver cuál está elegido (pieza del sistema, `SegmentoDeslizante`),
+«Ganas por prenda» se actualiza al salir de la caja y no mientras se escribe, «Seguir recibiendo» tarda ~3 s en abrir el envío.
+
+**Notas nuevas:** leyes **7,2** (1: 7 · 2: 7 · 3: 8 · 4: 7 · 5: 7 · 6: 7 · 7: 8 · 8: 7 · 9: 7) · oficio **7,5** (quedan los huecos de 11 y 21,2 px en Podio y Vitrina y la cabecera del acordeón 1 px corrida).
+
+**Lista aparte nueva (no se ejecuta):** que la etiqueta de precio se vea escribible (un lápiz o el borde de una caja al pasar el mouse); que
+«Ganas por prenda» siga lo que se escribe; el contraste de lo elegido en `SegmentoDeslizante` (pieza del sistema: pasa por `/unificar`); el papel
+de la compra bajo 1280 px (¿abajo o plegado?) para que el Dial llegue a la vista en una laptop.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
@@ -203,3 +291,5 @@ dinero (hoy dice «S/ sin costo»).
 | 2026-10-13 | `claude/formidable-compras-oc-9b0c82` | sin volver a medir (falta una nueva prueba ciega) | sin medir | los 3 (el 2, ya resuelto) |
 | 2026-10-13 | `69df902e6` (cara A, ADR-0393) | 7,2 (9 leyes) · leyes 3 y 4: 6 | 8 | el 3 de la fase 4 (un F5 borraba lo contado), por diseño |
 | 2026-10-14 | los 3 cambios de la cara A | 7,6 · ley 1: 8 (tope sin real) | 8,5 | los 3 del 2026-10-13 |
+| 2026-10-29 | `2a4e72e55` (piezas «B», ADR-0575) | 6,3 · ley 8: 5 · ley 1: 6 | 7 | — (3 propuestos, esperan el OK) |
+| 2026-10-29 | `02b2ef6fe` (los 3 cambios) | 7,2 · ley 1: 7 (tope sin real) | 7,5 | los 3 del 2026-10-29 (el 1, a medias a 1024 × 768) |

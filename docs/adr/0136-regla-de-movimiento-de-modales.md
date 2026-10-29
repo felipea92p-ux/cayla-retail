@@ -572,3 +572,19 @@ La vitrina de baldosas de Tráfico (act. 2026-10-23 (d)) se fue: su cascada, la 
 queda propio de la pantalla: **los 100 puntos de «Hasta dónde llega la gente» se encienden una vez**, paso tras paso (90 ms) y punto tras punto
 (6 ms), 360 ms cada uno con `--ease-cayla`, sin rebote; y el único bucle sigue siendo la señal del punto verde de «N mirando ahora», que respira
 solo mientras alguien mira. Todo quieto con `prefers-reduced-motion`. Lo vigila `lib/trafico-movimiento.test.ts`.
+
+## Actualización 2026-10-29 (b) — Recibir mercadería «B», piezas vivas (ADR-0575)
+
+Felipe pidió Recibir «más visual, con full animaciones» y eligió mirando cada pieza en `docs/maquetas/recibir-b-2026-10/`. Todo corre una vez,
+sin rebote ni bucle, con `--ease-cayla`, y se apaga con `prefers-reduced-motion` (`app/estilos/recepcion-viva.css`):
+
+- **Trayecto:** al llegar, el camino se llena (1,2 s) con una luz que lo cruza una vez, las paradas aparecen en cascada (110 ms), la bola viaja a
+  su parada y suelta un halo (1,2 s).
+- **Dial:** el aro se llena al abrir la categoría (1,1 s) con sus cortes en cascada; al sumar, el arco avanza (600 ms) y la perilla suelta una chispa;
+  al cuadrar, un brillo recorre el aro, un halo verde se abre y el visto se dibuja. El número rueda cifra por cifra (600 ms).
+- **Acordeón:** la categoría se abre (400 ms) y sus prendas entran en cascada (55 ms); los puntos se llenan al identificar.
+- **Totales que ruedan:** las cifras de la barra ruedan al cambiar y la línea de dos tonos avanza (700 ms).
+- **Podio:** las columnas crecen en cascada (130 ms) y la llave aparece después.
+- **Vitrina:** la etiqueta de precio se estampa al llegar y al cambiar el precio (520 ms); los alfileres de sede se encienden en cascada.
+- **Sello de lacre:** el lacre cae y se asienta (600 ms) y las cuatro cifras ruedan desde 0.
+- **Se rompe si:** alguna de estas se pone en bucle o se copia a otra pantalla sin pasar por `/unificar`.

@@ -1742,7 +1742,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.cifra",
       opcional: true,
       titulo: "Cuántas dijeron y cuántas llevas",
-      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas prendas dijeron que venían (si Compras lo dijo), cuántas llevas contadas de todo el envío y si cuadra, faltan o sobran. A los lados, «Anterior» y la acción que sigue.",
+      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas dijeron que venían (si Compras lo dijo), cuántas llevas contadas, cuántas ya identificaste y si cuadra. La línea del pie se llena: verde lo identificado. A los lados, «Anterior» y lo que sigue.",
     },
     {
       id: "hacer-dueno",
@@ -1822,14 +1822,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "En la fila de arriba, lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número y todas sus prendas identificadas.",
+      texto: "Lo que dijeron que venía, por tipo de prenda. Toca una para contarla: se abre y muestra las prendas que se anotaron al comprar, con un punto por prenda que se llena al identificarla. Con su ✓ ya tiene su número y todas sus prendas identificadas.",
     },
     {
       id: "quien-cuenta",
       ancla: "recepcion.quien-cuenta",
       requiere: ["recepcion.categorias"],
       titulo: "Quién cuenta",
-      texto: "A la derecha de la fila, elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra. El ⓘ te lo explica.",
+      texto: "Debajo de las categorías, elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra. El ⓘ te lo explica.",
     },
     {
       id: "numero",
@@ -1837,7 +1837,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Cuántas llegaron",
-      texto: "Cuenta las de esa categoría y escribe el número, o súmalas con + y −, +5 y +10. «Llegaron las N» pone lo que dijeron de un toque. Se guarda solo, al dejar de tocar. Si no coincide, no pasa nada: al cerrar dirás por qué.",
+      texto: "El aro se llena con lo que cuentas: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y −, +5 y +10; «Llegaron las N» pone lo que dijeron de un toque. Se guarda solo. Si no coincide, no pasa nada: al cerrar dirás por qué.",
     },
     {
       // ADR-0507: «Anotar observación» abre una hoja que guarda; la guía la explica sin tocarla.
@@ -1887,7 +1887,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez («Otro» te deja escribirlo; un regalo entra a costo cero). Al abrir la fila salen sus prendas, y cada una se abre para ver su costo y su precio. En la demo no escribimos.",
+      texto: "Una fila por categoría: lo que dijeron, lo que contaste, lo que se puede vender y lo que queda para después. Si no cuadró, eliges qué pasó. Las que tienen prendas identificadas vienen abiertas con su precio y su costo; «Precio y costo» las abre o esconde. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-28: el costo y el precio se ponen por combinación (color y talla). La fila de la primera prenda solo existe con la categoría abierta.
@@ -1895,8 +1895,8 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.prenda-fila",
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
-      titulo: "Costo y precio por color y talla",
-      texto: "Abre una prenda y verás una matriz como la del conteo, con un número por color y talla. «Costo | Precio de venta» elige qué cifra cambias. Al escribir, eliges si llega a esa casilla, a todo el color, a toda la talla o a todas, y te decimos qué va a cambiar. En la demo no escribimos.",
+      titulo: "La etiqueta de cada prenda",
+      texto: "Cada prenda tiene su etiqueta: el precio que escribas ahí, o el costo, vale para todas sus tallas y colores, y debajo eliges si vale solo en tu tienda o en todas. «Distinto por talla o color» abre la matriz para cambiar una casilla, un color o una talla. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
