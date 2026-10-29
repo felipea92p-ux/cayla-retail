@@ -77,8 +77,8 @@ const EXCEL: PasoGuia = {
 const PESTANAS_DINERO: PasoGuia = {
   id: "pestanas",
   ancla: "fin-dinero.pestanas",
-  titulo: "Las tres partes",
-  texto: "Cuentas: dónde está la plata, repartida por sede, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+  titulo: "Las cuatro partes",
+  texto: "Dónde está: la plata, por sede, con el efectivo de hoy. Qué debes: las facturas por pagar. CLAURE: lo que CLAURE cobró en tus cuentas y se le debe a Claudia. Cuadrar con el banco (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
 };
 
 /** El orillo y el dock de Cuentas y dinero (El telar): lo mismo en sus tres caras. */
@@ -772,6 +772,49 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes qué debe CAYLA y qué vence primero. Para repasarlo: Mi perfil ▸ Demo ▸ Por pagar (Finanzas).",
+    },
+  ],
+};
+
+export const GUIA_FIN_CLAURE: Guia = {
+  id: "finanzas.dinero.claure",
+  ruta: "/finanzas/dinero/claure",
+  titulo: "CLAURE (Finanzas)",
+  resumen: "Lo que CLAURE cobró en cuentas de CAYLA y, por eso, lo que se le debe a Claudia.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que se le debe a CLAURE",
+      texto: "El POS y los Yape de Lima caen en cuentas de CAYLA, pero parte de lo que se vende es de CLAURE, la empresa de Claudia. Aquí ves cuánto de lo cobrado es suyo, día por día. Es una demo: no se paga nada.",
+    },
+    ...TELAR,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto le debes a CLAURE?",
+      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto y la comisión del POS. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
+    },
+    PESTANAS_DINERO,
+    {
+      id: "cifras",
+      ancla: "fin-claure.cifras",
+      opcional: true,
+      titulo: "De dónde sale la cifra",
+      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, la comisión del POS (estimada con su tarifa; la asume CLAURE) y el IGV que va incluido. Se le debe: cobrado menos devuelto menos comisión.",
+    },
+    {
+      id: "tabla",
+      ancla: "fin-claure.tabla",
+      opcional: true,
+      titulo: "Día por día",
+      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes cuánto le debes a CLAURE y de dónde sale. Para repasarlo: Mi perfil ▸ Demo ▸ CLAURE (Finanzas).",
     },
   ],
 };

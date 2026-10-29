@@ -693,6 +693,11 @@ export const PRUEBAS = [
   // fn_resumen_caja; sin sesión no se lee; anon no ejecuta; aplicarla dos veces es inocuo. Cada caso: ROLLBACK.
   "pruebas:vendido-por-empresa",
 
+  // La cuenta con CLAURE (ADR-0560): lo que una venta de CLAURE cobró en una cuenta de CAYLA, por día, medio y cuenta. Reparte cada pago en
+  // proporción a las líneas de cada empresa; el efectivo, lo anterior al arranque, lo anulado y lo de una cuenta de CLAURE no entran; la
+  // comisión del POS sale de su tarifa (nula sin ella); una devolución pagada desde una cuenta de CAYLA resta; un cambio se lista sin contar.
+  "pruebas:claure-cuenta",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

@@ -1945,6 +1945,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - **La cuenta con CLAURE (ADR-0560, 2026-10-29; actividad 1, solo lectura):** `/finanzas/dinero/claure` (la cuarta cara de Cuentas y dinero, «CLAURE») →
+    `lib/cuenta-claure.ts` → `fn_claure_cuenta()` y `fn_claure_cuenta_desde()` (20261029004000) → `lib/cuenta-claure-reglas.ts` (`resumenClaure`) →
+    `components/finanzas/dinero/CuentaClaure.tsx`. Lo que CLAURE (Claudia) cobró en **cuentas de CAYLA** (tarjeta, QR, Yape…; el efectivo no, lo tiene ella), por día, medio y
+    cuenta, desde `empresas.cuenta_corriente_desde`. Cada cuenta dice de quién es (`cuentas_dinero.empresa_id`); cada pago de una venta se reparte por el valor de las líneas
+    de cada empresa (`fn_dueno_de_la_linea`, ADR-0542); la comisión del POS sale de `pos_tarifas`; una devolución pagada desde una cuenta de CAYLA resta; un cambio se
+    lista sin contar. El saldo no se guarda: se suma de las filas. Prueba: `pnpm pruebas:claure-cuenta`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

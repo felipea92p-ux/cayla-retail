@@ -16,11 +16,12 @@ import type { ChipRespuesta } from "@/lib/dinero-telar-reglas";
 // `app/(app)/finanzas/layout.tsx`: aquí no hay selector de sede propio. Cada cara es una ruta propia bajo /finanzas/dinero, y al
 // pasar de una a otra se conserva la sede de la URL.
 
-export type PestanaDinero = "cuentas" | "porpagar" | "conciliacion";
+export type PestanaDinero = "cuentas" | "porpagar" | "claure" | "conciliacion";
 
 const PESTANAS: { clave: PestanaDinero; etiqueta: string; href: string; soloLider?: boolean }[] = [
   { clave: "cuentas", etiqueta: "Dónde está", href: "/finanzas/dinero" },
   { clave: "porpagar", etiqueta: "Qué debes", href: "/finanzas/dinero/por-pagar" },
+  { clave: "claure", etiqueta: "CLAURE", href: "/finanzas/dinero/claure" },
   { clave: "conciliacion", etiqueta: "Cuadrar con el banco", href: "/finanzas/dinero/conciliacion", soloLider: true },
 ];
 

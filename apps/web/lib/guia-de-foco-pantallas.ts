@@ -103,6 +103,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: el círculo que reparte la plata, las cuentas de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
   "/finanzas/dinero/conciliacion": { estado: "aplicada", evidencia: ["components/finanzas/CuentasDinero.tsx"] },
   "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: las cuentas de Dónde está dicen el efectivo de hoy)." },
+  "/finanzas/dinero/claure": { estado: "no-aplica", motivo: "CLAURE (Cuentas y dinero) solo mira: lo que CLAURE cobró en cuentas de CAYLA y lo que se le debe. No hay campos ni pasos; el pago a Claudia y el aviso del cierre vienen en otra actividad y traerán su guía." },
   "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
