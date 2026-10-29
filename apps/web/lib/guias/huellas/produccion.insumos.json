@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 33,
+  "total": 70,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -17,20 +17,63 @@
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/InsumosPanel.tsx": [
+      "Boton «prod-insumos.nueva-tela»",
       "Boton «prod-insumos.nuevo»",
       "Boton «prod-insumos.ingresar»",
       "button «Ocultar»",
       "button «Ver el capital en insumos»",
-      "Boton «Agregar el primero»",
+      "Boton «→() => (datos.hayTelas ? setNuevaTela({ agregarA: null»",
+      "button «{g.material.id === primeraTelaId ? \"prod-insumos.agregar-colores\" : undefined}»",
+      "LapizEditar «{`la tela ${g.material.nombre}»",
       "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
       "Boton «+ Ingresar lote»",
       "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «(sin nombre)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «{familia}»",
+      "CampoTexto «Código»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
     ],
     "components/insumos-taller/CamposDeLaFicha.tsx": [
       "CampoSelect «{foco.etiqueta(\"tejido\", \"Tejido\")}»",
       "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
     ],
+    "components/insumos-taller/EditarTelaModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
     "components/insumos-taller/FichaDeLaTelaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/insumos-taller/NuevaTelaModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
+      "Boton «Agregar colores a esa»",
+      "CampoTexto «{`Cuánto hay de ${nombreColor}»",
+      "CampoTexto «{`Costo de ${nombreColor}»",
+      "CampoTexto «{`Mínimo de ${nombreColor}»",
+      "button «{`Quitar ${nombreColor}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
@@ -46,6 +89,14 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/insumos-taller/PiezasDeLaTela.tsx": [
+      "ComboBuscable «{tejidoId}»",
+      "CampoTexto «{guia.etiqueta(\"composicion\", \"Composición\")}»",
+      "CampoTexto «Ancho abierto (cm)»",
+      "CampoTexto «Gramaje (g/m²)»",
+      "CampoTexto «¿Cuántos metros trae un rollo?»",
+      "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»"
     ]
   }
 }

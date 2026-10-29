@@ -1,0 +1,149 @@
+# ADR-0554 — Insumos: una tela con sus colores, llevada en metros, comprada por metro, kilo o rollo
+
+- **Fecha:** 2026-10-28 · **Estado:** **decidido por Felipe el 2026-10-28** (cuatro decisiones, abajo). **Construido en la rama `claude/insumos-module-improvements-2097ef`: actividades 0 a 3.** **En producción (28-oct, confirmado con la sonda de solo lectura que Felipe corrió):** las dos partes de `20261028175000` —la tabla de telas y su política de lectura; el conversor devolvió 1: el insumo `MM-01` pasó a ser la tela `MM-01` con su color Arena (`MM-01-ARN`), y esa tela ya tiene tejido— y el respaldo `estado-tras-conversion-2026-10-28` (1 tela y 1 insumo). **También lo están `20261028172000` (candados de unidad) y `20261028203000` (endurecimiento y «Editar tela»):** Felipe las pegó la noche del 28-oct, cada una entera y en una sola pegada, y el check «SQL pegado» (ADR-0251) miró producción y encontró las tres. **La web nueva sale al fusionar el PR #1456.** Las actividades 4 a 6 no están construidas.
+- **Nace de:** Felipe, 2026-10-28: «la parte de Insumos es demasiado tediosa de completar». Seis ideas: una tela con varios colores; metro o kilo; el rollo y cuántos metros trae; la carta de colores de Catálogo; «agregar material»; código sugerido y sin repetir. Investigación de cinco agentes + lectura directa: `docs/investigacion/2026-10-28-insumos-tela-colores-y-compra.md`.
+- **Reabre y completa:** R-25 (`docs/datos/15-COMO-OPERA-CAYLA.md`: «metro, kilo y rollo entero. Las tres»), ADR-0400 d.6 (que dejó la conversión kilo → metro fuera por alcance) y las respuestas P-19 y N-2 de Felipe del 2026-10-16 («también punto, por kilo»; «Audaces en metros, convierto»: hay que guardar gramaje y ancho de cada tela). **Complementa:** ADR-0090 (el esquema de insumos se adoptó tal cual de un esquema huérfano de Dynamic y nunca se adaptó a la tela), ADR-0358 (una función, una pieza) y ADR-0284 (guía de foco).
+
+## El problema
+
+Hoy un insumo es **un color y una unidad** (`insumos.color_codigo`, `insumos.unidad_medida`): una tela en cinco colores son cinco altas de diez campos y otras cinco hojas para ingresar el lote (≈ 65–85 acciones, hasta 40 de ellas datos que se vuelven a teclear). El esquema no sabe qué es un kilo ni un rollo (no existe ancho, gramaje, composición, rollo ni unidad de compra), el color y el tejido se eligen en combos de nombres sin carta ni «agregar», y el código es un texto libre con un placeholder. Además hay tres huecos de datos que ya existen hoy: una tela se puede crear «en Kilos» y el cierre de la orden la ignora al calcular «lo medido» (solo suma `metro`); un líder puede cambiar la unidad de un insumo con historia; y un costo escrito con coma («2,5») se leía como 0 y abría el lote gratis.
+
+## Decisiones (Felipe, 2026-10-28)
+
+1. **DECIDÍ: una tabla nueva `materiales` (la tela: qué es y cómo se compra) y los insumos de hoy quedan como la línea de stock por color.** `insumos` conserva su `id`, sus lotes, su ledger y las ~40 funciones que lo nombran; `tipo`, `unidad_medida`, `tejido_id` y `merma_pct` siguen en `insumos` como copias que mantiene un disparador (nadie las escribe a mano). Catálogo ya modela producto → variantes: dos formas de resolver lo mismo en el mismo sistema es el defecto que se evita.
+   **DESCARTÉ:** (a) N insumos sueltos con un grupo de texto: ancho y gramaje se copian por color (dos verdades); (b) solo maquillar la pantalla: no puede representar kilos ni evitar duplicados; (c) `tejidos` como padre: es núcleo de Catálogo.
+   **SE ROMPE SI:** Felipe decide que ancho, gramaje y composición no se guardan (solo se miden al recibir): ahí la tabla sobra y gana «insumos sueltos en lote»; o si dos proveedores venden la misma tela con anchos distintos (por eso el factor se congela en el lote y el de la tela es solo el nominal).
+2. **DECIDÍ: el libro de la tela va en metros; el kilo y el rollo son unidades de COMPRA que se convierten al recibir.** Cada lote guarda lo que se compró, el factor que se usó (medido al llegar si se puede; el de la ficha, `1000 ÷ (gramaje × ancho)`, si no) y los metros que entraron. Si el factor medido se aparta más de 5 % del de la ficha: aviso, no bloqueo.
+   **DESCARTÉ:** llevar el punto en kilos en el libro (lo propuso el agente de dominio): obliga a rehacer el cierre de producción y ~12 funciones, y Audaces y el corte hablan en metros.
+   **SE ROMPE SI:** el corte del punto se anota en kilos (no se pudo verificar).
+3. **DECIDÍ: quien ve Producción en el Taller puede crear telas y colores; los ingresos con costo siguen siendo del líder.** Crear una tela no mueve dinero; ingresar un lote sí.
+   **DESCARTÉ:** solo el líder como hoy: la carga seguiría dependiendo de una persona. **SE ROMPE SI:** alguien crea telas basura (hoy cualquiera ya crea colores y tejidos desde ADR-0534 y el único candado es el nombre único por `fn_clave_texto`).
+4. **DECIDÍ: el primer paso es cerrar los candados de unidad (actividad 0) y elegir la cara de «Nueva tela» mirando maquetas.** **DESCARTÉ:** construir directo sin maqueta (en el ERP las pantallas se eligen mirando, ADR-0358).
+
+## Lo construido (actividad 0)
+
+- **Base** (`20261028172000_insumos_candados_de_unidad.sql`, sin tablas, sin políticas, sin tocar filas): CHECK `insumos_tela_en_metros`; disparador `insumos_unidad_firme` (ni `unidad_medida` ni `tipo` cambian si CUALQUIER tabla apunta al insumo con una llave foránea: la lista sale del catálogo de Postgres, así que `producto_avios` y las tablas que vengan quedan cubiertas solas); índice único `insumos_codigo_clave_unico` sobre `fn_clave_texto(codigo)` y CHECK `insumos_codigo_no_vacio`. La migración se **detiene y dice qué corregir** si ya hay una tela en otra unidad o códigos que se leen igual. Prueba: `pnpm pruebas:insumos-candados` (24 casos; con los tres candados rotos, 13 se ponen en rojo).
+- **Web:** una tela solo ofrece «Metros» (`unidadesPermitidas`); la coma decimal se entiende en cantidad, mínimo y merma (`leerCantidad`) y el costo se lee con la regla única de plata (`numeroDeMonto`): lo que no se entiende ya no es 0, se dice y no deja guardar. Guía interactiva actualizada.
+- **Maquetas** (`docs/maquetas/insumos-nueva-tela-2026-10/`): «Nueva tela» en dos caras (A una hoja; B paso a paso con ficha viva), «Llegó tela» (kilo, metro y rollo) y la lista por tela, en claro y oscuro.
+
+## Lo construido (actividades 1 y 2)
+
+- **Base** (`20261028175000_materiales_tela_con_colores.sql`, **pegada en producción el 28-oct**, en dos partes: la 1 trae tabla, columnas, disparadores y funciones; la 2, la política y el `grant select`). `retail.materiales` es la tela (código, nombre, tipo, tejido, composición, unidad de libro = metro, merma, cómo se compra —metro, kilo o rollo—, ancho, gramaje y metros por rollo); cada insumo-color apunta a ella con `insumos.material_id` y una llave compuesta `(material_id, tipo, unidad_medida)` que impide que un color cambie de unidad aparte de su tela. El nombre («Tela · Color»), el código (`MIL-01-ARN`), el tejido, la merma, el tipo y la unidad de cada color son **copias** que mantiene un disparador desde la tela. `crear_material` y `agregar_colores_a_material` son todo-o-nada, con `p_token` contra el doble clic, candado por tela, `fn_produccion_exigir_operar` (quien ve Producción en el Taller crea telas y colores) y `fn_es_lider()` para el saldo inicial. El insumo que ya existía (`MM-01`) pasa a ser el color «Arena» de «Milano Melange» y su código pasa a `MM-01-ARN`. Prueba: `pnpm pruebas:materiales` (hoy 98 casos, con mutaciones que la ponen en rojo).
+- **Web:** `lib/insumos.ts` lee las telas (y si la migración no está pegada, cae a la lista plana de antes sin romper); `lib/insumos-reglas.ts` agrupa los colores por tela (`agruparPorTela`) y dice cómo se compra (`textoDeCompra`, `metrosPorKilo`); `lib/tela-nueva-reglas.ts` (puro, 48 pruebas) arma el código, detecta la tela repetida o parecida, convierte kilo y rollo a metros y arma lo que viaja a `crear_material`. **La hoja «Nueva tela»** (`components/insumos-taller/NuevaTelaModal.tsx`, cara A, una sola hoja) pide qué tela es (tejido que se puede crear ahí mismo), cómo se compra y los colores con la carta de Catálogo; avisa si ya hay una tela así y deja sumarle colores en vez de repetirla. «+ Nuevo insumo» pasó a «+ Nuevo avío» cuando hay telas (`soloAvios`). Guía de foco, guía interactiva (siete anclas nuevas), huella y escenario de modo oscuro al día.
+- **Degradación:** si la migración todavía no se pegó, `hayTelas` es falso: no aparece «+ Nueva tela» y la pantalla se ve y funciona como antes.
+
+## Plan (cada actividad, con su OK de Felipe)
+
+| # | Corte | Estado |
+|---|---|---|
+| 0 | Candados de unidad e índices; coma decimal | **construida y en producción** (`20261028172000`, pegada el 28-oct) |
+| 1 | Base «tela con colores»: `materiales`, `insumos.material_id`, `crear_material` / `agregar_colores_a_material`, códigos generados (`MIL-01`, `MIL-01-ARN`), migrar el insumo existente. `editar_material` pasa a la actividad 3 | **PARTE 1 y PARTE 2 en producción desde el 28-oct** |
+| 2 | Hoja «Nueva tela» (carta de Catálogo, tejido al vuelo, parecidos) y lista por tela | **construida con la cara A**; falta verla corriendo y que Felipe elija A o B |
+| 3 | «Editar tela» (`editar_material` + propagar a los colores) y el endurecimiento que pidió la revisión | **construida; el SQL ya está en producción** (`20261028203000`, pegada el 28-oct); la web con `EditarTelaModal.tsx` sale al fusionar el PR #1456 |
+| 4 | «Llegó tela» con kilo y rollo → metros (envoltorio de `recibir_insumo`; las otras dos puertas de lotes, facturas y órdenes de insumos, no cambian) | pendiente |
+| 5 | Conexión con Nueva orden y enlaces «Regístralas ahí» | pendiente |
+| 6 | Cierre: `/formidable` con una persona sin contexto, `/chaos`, `tema:auditar`, guías | pendiente |
+
+## La revisión adversarial y lo que cambió (actividad 3, 2026-10-28)
+
+Con la PARTE 1 ya pegada se corrió una revisión de 7 lentes sobre el repo (compatibilidad con quien ya escribe `insumos`, dependencias en ejecución, concurrencia, seguridad, datos y bordes, la web de la rama y el experto del negocio): 29 hallazgos crudos → 16 fusionados → cada uno atacado por dos escépticos, **ninguno refutado**, más 14 que aparecieron al preguntar «qué falta» (el estado base nueva + web vieja, el pegado desde una rama sin PR, los arreglos solo hacia adelante y el aviario): **30 confirmados**. Lo más grave: **una tela ya creada no se podía corregir** (el disparador rechazaba el tejido y la merma de un color y `editar_material` no existía). Resolución, con los códigos del informe:
+
+| Hallazgo | Qué era | Resolución |
+|---|---|---|
+| G1, H2-03, H1-03 | no se podía corregir una tela; la ficha de la web vieja falla y la nueva la esconde | `editar_material` + la hoja «Editar tela» (lápiz del encabezado, solo el líder) |
+| G2 | las copias no se propagaban y bloqueaban el UPDATE siguiente | AFTER UPDATE `materiales_propaga_a_colores`; el disparador de copias compara contra lo que el UPDATE **cambia** y cura un color desfasado |
+| G3, H1-04, H3-02 | la PARTE 1 «re-ejecutable» no lo era: repegarla quitaba la lectura de la web y volvía a correr el conversor | el `revoke` solo quita lo que escribe, la llamada al conversor ya no vive en el archivo; todo arreglo va en `20261028203000` (el cuerpo pegado no se edita más) |
+| H1-01, H1-02 | el conversor abortaba entero por un suelto que chocara; la web no veía los sueltos | `fn_materializar_insumos_sueltos(aplicar)`: ensaya por defecto, agrupa, adopta a la tela existente, limpia el « · Color», deja suelto lo que no puede (diciendo por qué) y guarda su respaldo; `crear_material` avisa si hay un suelto con ese nombre y agregar un color avisa si su código lo ocupa otro insumo |
+| G4, H1-05 | colgar un suelto de una tela con otra unidad esquivaba el candado de unidad | `insumo_otra_unidad`; el candado ya no mira columnas |
+| G6 | un color repetido con token, o el mismo token en otra tela, perdía un saldo **en silencio** | un color va una vez (con y sin token); el token incluye la tela |
+| G7 | candados de quién crea qué y dónde | cerrado en `20261028203000` |
+| G8 | el correlativo se recortaba al llegar a 100 | `lpad` ya no recorta |
+| G9 | un ancho en metros («1.60») inflaba el saldo en kilos ×100 | cotas 20–400 cm y 30–1500 g/m² en la hoja y en la base (`materiales_medidas_plausibles`); «ancho abierto» con su ayuda de tubo; avisos de rinde raro; la nota del saldo guarda lo contado y el factor |
+| G10, G12, G14, G15 | código de vista previa equivocado al agregar colores; cambiar «Se compra» reinterpretaba cantidades; la tabla recortaba el ×; «¿es la misma tela?» ignoraba el número | arreglados en la web (con pruebas y verificación en el navegador) |
+| G13 | «0,045» se leía S/ 45 y «0.045» se rechazaba (avíos de céntimos) | `leerMontoPlata` no toma un grupo de miles que empieza en 0 y el costo por unidad tiene su lector de hasta 4 decimales |
+| H3-01, H3-03 | no había camino de vuelta escrito, y el atajo natural lo rompía todo | respaldo de hoy + script de deshacer **ensayado** (ver abajo) |
+| H2-05, H4-01 | los documentos decían «sin pegar»; `materiales` no tenía pájaro | este documento; `materiales` es de Gallito en el aviario |
+| G11 | el nombre copiado del color no sigue a un color renombrado | se cura guardando la tela: la hoja avisa «un color tiene un nombre que ya no sigue al de Catálogo» y el botón pasa a «Poner al día los nombres»; **no** se agregó un disparador en `colores` (es del núcleo de Catálogo); el reintento ya no falla por un color desactivado después |
+| H2-01, H2-02, H2-04 | el pegado vive en una rama sin PR; la casilla «SQL pegado» es por PR, no por parte; el CI corrió 13 de 356 suites | Felipe autorizó subir la rama («Sí, súbela», 28-oct): PR en borrador con `/abrir-pr`; se corrieron en local las suites que tocan insumos y las 4 globales del catálogo |
+| **G16** y una cuestión de permisos | **decisiones tuyas**, abajo | pendientes |
+
+### La segunda revisión (28-oct, tarde)
+
+Con esos arreglos hechos se corrió una **segunda revisión independiente** (otros revisores, sin ver el informe de la primera, y escépticos para refutar): **28 hallazgos confirmados (1 alto) y 3 huecos de cobertura**. Lo más grave: **el camino de vuelta fallaba entero con lo que hay hoy en producción** (revocaba `editar_material`, que no existe hasta pegar `20261028203000`), y la sonda de Felipe mostró que `20261028172000` tampoco estaba pegada, aunque `20261028203000` la necesita. Todo lo corregible se corrigió, en SQL y en la web:
+
+- **El deshacer** sirve con o sin `20261028203000`, ensaya por defecto y nombra al insumo que choca; el conversor deja su respaldo antes de tocar cada fila y **frena** una adopción que cambiaría una merma o un tejido distintos.
+- **`editar_material` pide la versión que la hoja leyó** (ADR-0193): si otra persona guardó antes, responde «Otra persona cambió esta tela mientras la editabas» (PT409) y la hoja ofrece «Recargar» sin cerrarse. Anota en Actividad lo que cambió (antes y después, sin cifras de dinero) y exige el responsable.
+- **Guardar una tela, aunque no cambie nada, pone al día los nombres de color desfasados** (un color renombrado en Catálogo): la hoja lo avisa y el botón pasa a «Poner al día los nombres».
+- **`20261028175000` lleva una guardia:** si `20261028203000` ya está, se detiene («repegado_peligroso») en vez de regresar las funciones en silencio.
+- **«Editar tela» dice lo que un cambio NO hace** (el nombre no corrige lo ya impreso; la merma nueva no recalcula las órdenes abiertas), no dice «Todo listo» con el botón apagado, y reclama el rango del ancho y el gramaje al salir del campo, no mientras se teclea. La lista de lotes muestra el costo por unidad con sus decimales.
+- **Con el deshacer pegado**, crear o editar telas dice «está desactivado por ahora. No se guardó nada», no «se cerró tu sesión».
+- **`/chaos`:** invariante nueva **INV-24** (cada color es el reflejo de su tela: tipo, unidad, tejido, merma, código y el comienzo del nombre); su autoprueba detecta la corrupción.
+
+## Lo construido (actividad 3)
+
+- **Base** (`20261028203000_materiales_endurecimiento_y_editar_tela.sql`, una sola parte, solo `create or replace` y candados nuevos; no toca lo ya pegado). `editar_material(tela, taller, datos)`: corrige nombre, tejido, composición, merma y cómo se compra; los colores la siguen en la misma transacción; **solo el líder** (lo era la ficha de un insumo: `insumos_update_lider`); el tipo y la unidad no se cambian; dos sesiones sobre la misma tela van una a una (se midió con dos `psql`: la segunda espera ~2 s y su color nace ya con el nombre y la merma nuevos). `fn_material_leer` es la única lectura y validación de los datos de una tela (la usan `crear_material` y `editar_material`).
+- **Web:** `EditarTelaModal.tsx` es la **misma hoja** con que se creó (las piezas compartidas viven en `PiezasDeLaTela.tsx`), con lo que la tela ya dice; el botón espera a que cambies algo; sin ancho en metros, sin merma fuera de rango; mensajes de la base en castellano (`error-escritura.ts`). Guía interactiva (3 pasos), guía de foco, huella y escenario de modo oscuro.
+- **Conversor.** Después de publicar la web: `select * from retail.fn_materializar_insumos_sueltos();` (ensaya y dice qué haría con cada insumo suelto de tela) y, si el informe es lo esperado, `select * from retail.fn_materializar_insumos_sueltos(true);`. Los avíos sueltos se quedan sueltos a propósito. Al aplicar, cada fila se respalda antes en `respaldo_purgas.filas`.
+
+## Orden de entrega (la ventana base nueva + web vieja)
+
+Estado del 28-oct (noche): el PR #1456 está abierto y producción ya tiene `20261028172000`, `20261028175000` (PARTE 1 y 2), `20261028203000` y el respaldo `estado-tras-conversion-2026-10-28`. Lo hecho y lo que falta, **en este orden**:
+
+1. *(hecho)* **Subir la rama y abrir el PR en borrador con `/abrir-pr`**, para que lo que corre en producción deje de vivir solo en un worktree y la deriva diaria tenga un PR que lo declare.
+2. *(hecho)* **Pegar `20261028172000` entera, en una sola pegada** (la migración se detiene y dice qué corregir si hubiera una tela en otra unidad o códigos que se leen igual). Después, la sonda corta de abajo debe dar `2 | t | t | t | t | 1 | 1 | 1 | 0`.
+3. *(hecho)* **Pegar `20261028203000`, también entera y en una sola pegada, antes de publicar la web:** la web nueva llama a `editar_material` y esconde la ficha de un color de tela. Si `20261028172000` falta, se detiene con «Primero pega 20261028172000».
+4. **Publicar la web** (fusionar el PR).
+5. **Correr el conversor** para absorber lo que el Taller haya cargado suelto mientras tanto: `select * from retail.fn_materializar_insumos_sueltos();` (ensaya) y, si el informe es lo esperado, `select * from retail.fn_materializar_insumos_sueltos(true);`.
+
+**Cómo se comprueba que quedó pegado (check «SQL pegado», ADR-0251).** El check compara con producción la huella FINAL de cada objeto que dejan las tres migraciones. Emulado con su mismo código sobre las huellas que el CI dejó para este PR: con lo que hay hoy en producción las tres salen «falta»; tras pegar `20261028172000` y luego `20261028203000` las tres salen «pegada» y el informe dice «se puede fusionar». Mientras `20261028203000` no esté pegada, `20261028175000` sale «falta» aunque lo esté: 8 de sus funciones las redefine `20261028203000` y se exige la versión final. **Resultado real (28-oct, noche):** con las tres pegadas y solo la casilla «SQL pegado en producción» marcada, el check miró producción y dio ✓ en las tres («se puede fusionar»). Tres cuidados:
+- **Marcar solo la casilla «SQL pegado en producción».** La otra («se pega después de fusionar») deja el check en verde **sin mirar producción**, y Vercel publicaría la web nueva contra una base sin `editar_material`.
+- **Congelar las tres migraciones desde que se peguen.** Un cambio en un texto entre comillas (un mensaje de error) cambia la huella y el check sale rojo; los comentarios no cuentan. Cualquier corrección va en un archivo nuevo.
+- **Pegar con el cursor sin selección** (el editor corre solo lo seleccionado) y, si el check sale rojo con las tres pegadas, **no repegar**: el detalle de qué objeto falta se lee en privado con `node scripts/migraciones/sql-en-produccion.mjs <huellas-del-pr.json> <huellas de producción> --detalle` (el repo es público: el check solo dice el nombre del archivo).
+
+**Nunca repegar `20261028175000` después de `20261028203000`** (sus `create or replace` regresarían las funciones a la versión vieja en silencio; con la guardia nueva se detiene, y si pasara por otra vía, se arregla repegando `20261028203000`).
+
+**Sonda corta de solo lectura** (la corre quien tenga el SQL Editor; el conector de Supabase de esta sesión no tiene permiso sobre producción):
+
+```sql
+select (select count(*) from pg_constraint where conrelid = 'retail.insumos'::regclass and conname in ('insumos_tela_en_metros', 'insumos_codigo_no_vacio')) as candados_172000,
+       exists (select 1 from pg_indexes where schemaname = 'retail' and indexname = 'insumos_codigo_clave_unico') as indice_172000,
+       exists (select 1 from pg_trigger where tgrelid = 'retail.insumos'::regclass and tgname = 'insumos_unidad_firme') as disparador_172000,
+       exists (select 1 from pg_policies where schemaname = 'retail' and tablename = 'materiales') as politica_parte2,
+       coalesce(has_table_privilege('authenticated', to_regclass('retail.materiales')::oid, 'select'), false) as lectura_parte2,
+       (select count(*) from retail.materiales) as telas,
+       (select count(*) from retail.insumos where material_id is not null) as colores_con_tela,
+       (select count(*) from retail.materiales where tejido_id is not null) as telas_con_tejido,
+       (select count(*) from retail.materiales where unidad_medida <> 'metro') as telas_fuera_de_metros;
+```
+
+Lo que dio el 28-oct, antes de pegar `20261028172000`: `0 | f | f | t | t | 1 | 1 | 1 | 0`.
+
+- **Mientras la web vieja siga publicada:** que el Taller no cree insumos nuevos de tela y que escriba los costos con punto. «Editar la ficha» de `MM-01-ARN` funciona para el color; solo **cambiar su tejido** se rechaza («el tejido es de la tela»), y esa tela ya tiene tejido. Si hay que corregirlo antes de publicar: `update retail.materiales set tejido_id = '<id>' where codigo = 'MM-01';` (los colores la siguen solos desde `20261028203000`).
+- **Un color que quedó con el nombre desfasado** (alguien renombró el color en Catálogo): se pone al día guardando la tela desde «Editar tela»; en bloque, `update retail.insumos set material_id = material_id where material_id is not null;`.
+
+## Si hay que volver atrás
+
+Volver a «un insumo suelto con su nombre y su código» **no se puede con SQL corriente** (el disparador de copias reescribe nombre y código en cada UPDATE) y el atajo natural, `drop column material_id`, **deja el disparador vivo y rompe todo INSERT y UPDATE de insumos**. El camino que sí funciona está en `supabase/migrations/pegar-en-produccion-deshacer-materiales-2026-10-28.sql`: la PARTE A (todo o nada, sin `drop`, **ensaya por defecto** y termina en un error «ENSAYO_OK» que dice cuántos colores volverían) devuelve cada color a insumo suelto con su nombre y su código de antes (del respaldo del conversor; de la foto de su tela del día de la conversión si nació de él; o con los suyos si se sumó después) y le quita a `authenticated` las funciones de telas que existan (**sirve con o sin `20261028203000`**); la PARTE B (abandonar el diseño) neutraliza el disparador, quita la columna, las funciones y la tabla, en ese orden y cada paso por separado. Las dos se corren tal cual en `pnpm pruebas:materiales` (grupo R). **Lo que no se pudo medir aquí:** si `drop function … cascade` y `drop table` toman los candados de `auth` y `storage` del Supabase real (la base local no trae sus disparadores de eventos): mídelo en la pila Supabase antes de pegar la PARTE B.
+
+## Lo que queda abierto
+
+- **Decisiones tuyas que salieron de la revisión:**
+  - **Una cuestión de permisos** (detalle y opciones en el chat del 28-oct; no se documentan aquí porque el repo es público): decide Felipe.
+  - **G16 — los avíos.** «Nueva tela» (colores en bloque, código generado, compra por rollo) existe solo para la tela; hilo, cierres, botones y elástico siguen siendo un alta por color. Hacerlo es un modo avío en la misma hoja y, si compran por gruesa, ciento o caja, una unidad de compra con factor.
+  - **Editar una tela es del líder** (como la ficha). Si quien ve Producción también debe poder, es una línea en `editar_material`.
+  - **Archivar una tela o un color** no existe todavía (un color con saldo no se archiva); queda para cuando lo pidas.
+  - **La merma de una tela editada y las órdenes abiertas.** La hoja avisa que la merma nueva cuenta desde las órdenes que se abran y que el plan de las ya abiertas no se recalcula solo; si quieres que se recalcule, es una decisión tuya (cambia cuánta tela se pide).
+- **Elegir la cara de «Nueva tela»** (A o B) mirando las maquetas.
+- **«Agregar material»** se leyó como «crear un tejido al vuelo»; falta que Felipe lo confirme.
+- **Otra decisión, de dinero y fuera de este trabajo:** hoy una orden pasa al stock sin tela anotada (solo avisa, ADR-0510) y el costo promedio se envenena (en la prueba local, S/ 4,50 en vez de S/ 22,38). Bloquear, marcar «costo sin medir» o restaurar al revertir lo decide Felipe.
+- **El costo del lote de 9 m cargado el 28-oct** pudo caer en el error de la coma (no se pudo leer: la consulta a producción se rechazó por permiso). Lo mira Felipe.
+- **Tres puertas escriben lotes** (`recibir_insumo`, `recibir_comprobante_produccion`, `recibir_orden_insumo`): convertir órdenes y facturas a kilos (R4) pide unificarlas antes; esta decisión no lo hace.
+- **Una sola regla para leer números:** hay ~10 `replace(",", ".")` sueltos en `lib/`; la regla única de plata es `monto-plata-reglas.ts`. No se tocó.
+
+## Cómo se verificó
+
+Actividades 1 y 2: `20261028175000` aplicada en una base privada con todas las migraciones del repo y repegada; `pnpm pruebas:materiales` 40/40 y con mutaciones en rojo; la hoja «Nueva tela» se vio en el navegador con datos inventados y sin base (escritorio, 375 px, claro y oscuro; también «Agregar colores»), y la lógica está cubierta por pruebas; **el guardado real desde la pantalla no se probó** (faltan `tema:auditar`, `guias:recorrer`, `/formidable` y `/chaos`). Actividad 0: migración aplicada en una base privada con las 913 migraciones del repo y una fila previa como la de producción, en una sola transacción (`psql -1`) y repegada; `pnpm pruebas:insumos-candados` 24/24 y, con los candados quitados, 13 casos en rojo; vitest (insumos, guías, unificar, sugerir, paridad del CI y guía de foco) 321 pruebas en verde; `tsc` limpio; maquetas probadas en el navegador (claro y oscuro, sin errores de consola).
+
+**Actividad 3 y la revisión (28-oct):** base privada con las 915 migraciones del repo y seed, `20261028203000` aplicada dos veces (y el archivo 175000 editado repegado encima: la web conserva su lectura); `pnpm pruebas:materiales` 40 → **77 casos** (mutaciones: con el disparador viejo se ponen en rojo K6 y L1, con el token viejo M3); `pnpm pruebas:insumos-candados` 24/24; **las 39 suites que tocan insumos** pasan (una estaba en rojo por la política de lectura de `materiales`: se registró en la prueba de «la puerta»); las 4 pruebas globales del catálogo (una sola firma, huellas, cobertura de roles, actor); `knip`, `tsc`, `eslint` y los **713 archivos de prueba de la web (164 155 casos)**; `tema:auditar` de Insumos con sus 7 escenarios (0 hallazgos en oscuro); `guias:recorrer` (26 pasos, sin escrituras); el navegador en escritorio y a 375 px (editar una tela con tres colores: tejido, composición y merma llegaron a los tres; «Agregar colores» muestra `JER-01-BLA`; el ancho `1.60` se rechaza); y la carrera real de editar y sumar un color desde dos sesiones. **No verificado:** la consulta de solo lectura a producción (el conector se negó), `/chaos` formal sobre las pantallas, `/formidable` con una persona sin contexto, `pnpm datos:generar:produccion` y `datos:comparar` (piden el volcado de producción) y los candados de `drop function`/`drop table` en la pila Supabase.
+
+**La segunda revisión y sus arreglos (28-oct, noche):** base privada con las 915 migraciones del repo, `20261028172000` y `20261028203000` (las versiones finales) aplicadas dos veces y en el orden real de producción (PARTE 1 y PARTE 2 de `20261028175000` primero); `pnpm pruebas:materiales` **98/98** y `pnpm pruebas:insumos-candados` 24/24, con mutaciones de cada arreglo en rojo; el deshacer ensayado con y sin `20261028203000` (grupo R); **los 713 archivos de prueba de la web (164 167 casos)**, `tsc`, `eslint`, `knip` y `knip:produccion` limpios; `tema:auditar` de Insumos con sus 7 escenarios (0 hallazgos en oscuro); y un recorrido real de «Editar tela» en el navegador contra la base privada (20 comprobaciones: sin cambios no dice «Todo listo», los avisos de nombre y de merma, el choque de versión con «Recargar» —la base no pisa nada—, guardar con la versión al día y que el color siga a la tela, y un color renombrado en Catálogo que se pone al día con «Poner al día los nombres»). INV-24 sale limpia y su autoprueba detecta la corrupción. **Sigue sin verificarse:** la sonda completa contra producción (la de 9 columnas la corrió Felipe), `/chaos` formal sobre las hojas, `/formidable` con una persona sin contexto, `pnpm datos:generar:produccion` y `datos:comparar` (piden el volcado de producción) y los candados de `drop function`/`drop table` en la pila Supabase.
