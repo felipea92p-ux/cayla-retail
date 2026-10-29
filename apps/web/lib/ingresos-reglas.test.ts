@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { MAXIMO_DIAS_INGRESOS, conPreposicion, diaLargo, esFechaIso, hrefIngresos, leerResumenIngresos, modelosTexto, prendasTexto, rangoIngresos } from "./ingresos-reglas";
+import {
+  MAXIMO_DIAS_INGRESOS,
+  conPreposicion,
+  costoDelModelo,
+  cuentaNovedad,
+  diaLargo,
+  esFechaIso,
+  filtrarPorNovedad,
+  hrefIngresos,
+  leerResumenIngresos,
+  modelosTexto,
+  precioDelModelo,
+  prendasTexto,
+  rangoIngresos,
+  rangoSolesTexto,
+  solesTexto,
+} from "./ingresos-reglas";
 
 const HOY = "2026-10-29";
 
@@ -81,16 +97,48 @@ describe("leerResumenIngresos", () => {
   const bueno = {
     desde: "2026-10-23",
     hasta: "2026-10-29",
+    ve_costo: true,
     modelos: [
-      { producto_id: "p1", referencia: "Blusa Emma", codigo: "BLU-0042", categoria: "Blusas", unidades: 24, de_stock_inicial: 15, de_recepcion: 9, primer_dia: "2026-10-24", ultimo_dia: "2026-10-26" },
-      { producto_id: "p2", referencia: "Casaca Lola", codigo: null, categoria: null, unidades: 4, de_stock_inicial: 0, de_recepcion: 4, primer_dia: "2026-10-25", ultimo_dia: "2026-10-25" },
+      {
+        producto_id: "p1",
+        referencia: "Blusa Emma",
+        codigo: "BLU-0042",
+        categoria: "Blusas",
+        unidades: 24,
+        de_stock_inicial: 15,
+        de_recepcion: 9,
+        primer_dia: "2026-10-24",
+        ultimo_dia: "2026-10-26",
+        es_nuevo: false,
+        precio_min: 50,
+        precio_max: 70,
+        costo_min: 20,
+        costo_max: 30,
+      },
+      {
+        producto_id: "p2",
+        referencia: "Casaca Lola",
+        codigo: null,
+        categoria: null,
+        unidades: 4,
+        de_stock_inicial: 0,
+        de_recepcion: 4,
+        primer_dia: "2026-10-25",
+        ultimo_dia: "2026-10-25",
+        es_nuevo: true,
+        precio_min: 40,
+        precio_max: 40,
+        costo_min: null,
+        costo_max: null,
+      },
     ],
-    totales: { modelos: 2, unidades: 28, de_stock_inicial: 15, de_recepcion: 13 },
+    totales: { modelos: 2, unidades: 28, de_stock_inicial: 15, de_recepcion: 13, nuevos: 1 },
   };
 
   it("lee la respuesta de la base", () => {
     const r = leerResumenIngresos(bueno);
-    expect(r?.totales).toEqual({ modelos: 2, unidades: 28, deStockInicial: 15, deRecepcion: 13 });
+    expect(r?.totales).toEqual({ modelos: 2, unidades: 28, deStockInicial: 15, deRecepcion: 13, nuevos: 1 });
+    expect(r?.veCosto).toBe(true);
     expect(r?.modelos[0]).toEqual({
       productoId: "p1",
       referencia: "Blusa Emma",
@@ -101,8 +149,13 @@ describe("leerResumenIngresos", () => {
       deRecepcion: 9,
       primerDia: "2026-10-24",
       ultimoDia: "2026-10-26",
+      esNuevo: false,
+      precioMin: 50,
+      precioMax: 70,
+      costoMin: 20,
+      costoMax: 30,
     });
-    expect(r?.modelos[1]).toMatchObject({ codigo: null, categoria: null });
+    expect(r?.modelos[1]).toMatchObject({ codigo: null, categoria: null, esNuevo: true, costoMin: null, costoMax: null });
   });
 
   it("una respuesta que no tiene la forma es `null`, nunca un 0", () => {
@@ -122,6 +175,54 @@ describe("leerResumenIngresos", () => {
   it("una cantidad que viene como texto numérico se lee como número", () => {
     const r = leerResumenIngresos({ ...bueno, modelos: [{ ...bueno.modelos[0], unidades: "24" }] });
     expect(r?.modelos[0].unidades).toBe(24);
+  });
+});
+
+describe("precio, costo y novedad", () => {
+  it("un monto redondo no lleva decimales y uno con centavos sí (formato de Perú: punto decimal); el espacio no se corta", () => {
+    expect(solesTexto(59)).toBe("S/\u00a059");
+    expect(solesTexto(59.9)).toBe("S/\u00a059.90");
+    expect(solesTexto(1234.5)).toBe("S/\u00a01,234.50");
+  });
+
+  it("un solo valor o un rango por tallas; sin monto no inventa uno", () => {
+    expect(rangoSolesTexto(40, 40)).toBe("S/\u00a040");
+    expect(rangoSolesTexto(50, 70)).toBe("S/\u00a050 – 70");
+    expect(rangoSolesTexto(null, null)).toBeNull();
+    expect(rangoSolesTexto(50, null)).toBeNull();
+  });
+
+  it("el precio sin dato es un guion; el costo sin dato es «Sin costo», nunca S/ 0", () => {
+    expect(precioDelModelo({ precioMin: null, precioMax: null })).toBe("—");
+    expect(precioDelModelo({ precioMin: 59, precioMax: 59 })).toBe("S/\u00a059");
+    expect(costoDelModelo({ costoMin: null, costoMax: null })).toBe("Sin costo");
+    expect(costoDelModelo({ costoMin: 20, costoMax: 30 })).toBe("S/\u00a020 – 30");
+  });
+
+  it("un monto que falta se lee como `null`, no como 0", () => {
+    const r = leerResumenIngresos({
+      desde: "2026-10-23",
+      hasta: "2026-10-29",
+      ve_costo: false,
+      modelos: [{ producto_id: "p1", referencia: "Blusa", unidades: 1, precio_min: "59", precio_max: "59", costo_min: null }],
+      totales: {},
+    });
+    expect(r?.veCosto).toBe(false);
+    expect(r?.modelos[0]).toMatchObject({ precioMin: 59, precioMax: 59, costoMin: null, costoMax: null, esNuevo: false });
+  });
+
+  it("filtra por Nuevo o Reingreso y cuenta cada clase", () => {
+    const modelos = [{ esNuevo: true }, { esNuevo: false }, { esNuevo: false }];
+    expect(filtrarPorNovedad(modelos, "todos")).toHaveLength(3);
+    expect(filtrarPorNovedad(modelos, "nuevo")).toEqual([{ esNuevo: true }]);
+    expect(filtrarPorNovedad(modelos, "reingreso")).toHaveLength(2);
+    expect(cuentaNovedad(modelos)).toEqual({ nuevos: 1, reingresos: 2, hayDeLasDos: true });
+  });
+
+  it("el filtro solo se ofrece si hay de las dos clases", () => {
+    expect(cuentaNovedad([{ esNuevo: true }, { esNuevo: true }]).hayDeLasDos).toBe(false);
+    expect(cuentaNovedad([{ esNuevo: false }]).hayDeLasDos).toBe(false);
+    expect(cuentaNovedad([]).hayDeLasDos).toBe(false);
   });
 });
 

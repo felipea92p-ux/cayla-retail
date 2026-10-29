@@ -18,13 +18,23 @@ export type ModeloIngresado = {
   deRecepcion: number;
   primerDia: string;
   ultimoDia: string;
+  /** Ningún ingreso antes del rango, en ninguna sede: un modelo que llega por primera vez. Si no, es un «Reingreso». */
+  esNuevo: boolean;
+  /** Lo que se cobra en ESTA sede por lo que entró: un solo precio (min = max) o un rango por tallas. */
+  precioMin: number | null;
+  precioMax: number | null;
+  /** Lo que costó. `null` si la cuenta no ve el dinero (ver `ResumenIngresos.veCosto`) o si no hay costo cargado (en 0). */
+  costoMin: number | null;
+  costoMax: number | null;
 };
 
 export type ResumenIngresos = {
   desde: string;
   hasta: string;
+  /** La cuenta ve el costo (permiso de dinero de compras, ADR-0183). Sin él la columna ni se dibuja: nunca un 0. */
+  veCosto: boolean;
   modelos: ModeloIngresado[];
-  totales: { modelos: number; unidades: number; deStockInicial: number; deRecepcion: number };
+  totales: { modelos: number; unidades: number; deStockInicial: number; deRecepcion: number; nuevos: number };
 };
 
 type Crudo = Record<string, unknown>;
@@ -32,6 +42,12 @@ type Crudo = Record<string, unknown>;
 const esObjeto = (v: unknown): v is Crudo => typeof v === "object" && v !== null && !Array.isArray(v);
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
 const entero = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : Number(v) || 0);
+/** Un monto o `null`: lo que falta NO se vuelve 0 (un 0 parece un dato). */
+const montoONulo = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
 
 /** Lo que devuelve `fn_ingresos_por_modelo`, ya validado. `null` si no tiene la forma (la pantalla dice «no se pudo leer»,
  *  nunca dibuja un 0 que parezca un dato). Un modelo sin id o sin nombre se descarta: no se puede mostrar ni abrir. */
@@ -56,14 +72,26 @@ export function leerResumenIngresos(data: unknown): ResumenIngresos | null {
       deRecepcion: entero(m.de_recepcion),
       primerDia: texto(m.primer_dia) ?? desde,
       ultimoDia: texto(m.ultimo_dia) ?? hasta,
+      esNuevo: m.es_nuevo === true,
+      precioMin: montoONulo(m.precio_min),
+      precioMax: montoONulo(m.precio_max),
+      costoMin: montoONulo(m.costo_min),
+      costoMax: montoONulo(m.costo_max),
     });
   }
   const t = data.totales;
   return {
     desde,
     hasta,
+    veCosto: data.ve_costo === true,
     modelos,
-    totales: { modelos: entero(t.modelos), unidades: entero(t.unidades), deStockInicial: entero(t.de_stock_inicial), deRecepcion: entero(t.de_recepcion) },
+    totales: {
+      modelos: entero(t.modelos),
+      unidades: entero(t.unidades),
+      deStockInicial: entero(t.de_stock_inicial),
+      deRecepcion: entero(t.de_recepcion),
+      nuevos: entero(t.nuevos),
+    },
   };
 }
 
@@ -144,4 +172,44 @@ export function prendasTexto(n: number): string {
 
 export function modelosTexto(n: number): string {
   return `${n.toLocaleString("es-PE")} ${n === 1 ? "modelo" : "modelos"}`;
+}
+
+// ── Precio, costo y «Nuevo» ────────────────────────────────────────────────────────────────────────────────────────────
+
+/** «S/ 59» o «S/ 59,90»: sin decimales si el monto es redondo. El espacio es de no-cortar: un monto no se parte en dos líneas. */
+export function solesTexto(n: number): string {
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })}`;
+}
+
+/** «S/ 59» si es uno solo, «S/ 59 – 69» si varía por talla, o `null` si no hay monto. */
+export function rangoSolesTexto(min: number | null, max: number | null): string | null {
+  if (min === null || max === null) return null;
+  if (min === max) return solesTexto(min);
+  return `${solesTexto(min)} – ${solesTexto(max).replace("S/\u00a0", "")}`;
+}
+
+/** El precio de un modelo en pantalla: su monto o un guion. */
+export function precioDelModelo(m: Pick<ModeloIngresado, "precioMin" | "precioMax">): string {
+  return rangoSolesTexto(m.precioMin, m.precioMax) ?? "—";
+}
+
+/** El costo de un modelo en pantalla: su monto, o «Sin costo» si nadie lo cargó (el 0 de fábrica no es un costo). Solo se llama
+ *  cuando la cuenta ve el costo: sin permiso la columna no existe. */
+export function costoDelModelo(m: Pick<ModeloIngresado, "costoMin" | "costoMax">): string {
+  return rangoSolesTexto(m.costoMin, m.costoMax) ?? "Sin costo";
+}
+
+export type FiltroNovedad = "todos" | "nuevo" | "reingreso";
+
+export function filtrarPorNovedad<T extends Pick<ModeloIngresado, "esNuevo">>(modelos: readonly T[], filtro: FiltroNovedad): T[] {
+  if (filtro === "nuevo") return modelos.filter((m) => m.esNuevo);
+  if (filtro === "reingreso") return modelos.filter((m) => !m.esNuevo);
+  return [...modelos];
+}
+
+/** Cuántos hay de cada clase; el filtro solo se ofrece si hay de las dos (con una sola, no filtra nada). */
+export function cuentaNovedad(modelos: readonly Pick<ModeloIngresado, "esNuevo">[]): { nuevos: number; reingresos: number; hayDeLasDos: boolean } {
+  const nuevos = modelos.filter((m) => m.esNuevo).length;
+  const reingresos = modelos.length - nuevos;
+  return { nuevos, reingresos, hayDeLasDos: nuevos > 0 && reingresos > 0 };
 }

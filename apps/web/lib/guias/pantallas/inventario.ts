@@ -566,6 +566,27 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Su foto, su nombre y su código, y cuántas prendas entraron sumando todos sus colores y tallas. El modelo con más prendas va primero. Pasa el mouse sobre la cifra y te dice cuántas fueron de stock inicial y cuántas de mercadería recibida.",
     },
     {
+      id: "ingresos-etiqueta",
+      ancla: "movimientos.ingresos-etiqueta",
+      opcional: true,
+      titulo: "Nuevo o Reingreso",
+      texto: "«Nuevo» es un modelo que llega por primera vez. «Reingreso» es uno que ya había entrado antes y recibió más prendas. Así ves de un vistazo qué es novedad para compras.",
+    },
+    {
+      id: "ingresos-novedad",
+      ancla: "movimientos.ingresos-novedad",
+      opcional: true,
+      titulo: "Solo los nuevos",
+      texto: "Cuando llegaron de las dos clases, aquí dejas solo los nuevos o solo los reingresos. El total de arriba se ajusta a lo que estás viendo.",
+    },
+    {
+      id: "ingresos-precio",
+      ancla: "movimientos.ingresos-precio",
+      opcional: true,
+      titulo: "Precio y costo",
+      texto: "El precio es el que se cobra en esta sede; si las tallas valen distinto, sale un rango. El costo solo lo ven quienes tienen permiso de dinero, y «Sin costo» quiere decir que nadie lo ha cargado todavía.",
+    },
+    {
       id: "ingresos-nota",
       ancla: "movimientos.ingresos-nota",
       opcional: true,

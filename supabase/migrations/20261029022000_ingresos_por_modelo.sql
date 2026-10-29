@@ -9,6 +9,16 @@
 -- se carga en Nuevo producto) y la mercadería recibida (`recepcion`, Llegó mercadería). Nada más: ni traslados, ni
 -- ajustes, ni anulaciones de venta. Es la misma lectura que Movimientos filtrado por esos dos procesos, sumada por modelo.
 --
+-- POR CADA MODELO TAMBIÉN DICE:
+--   · `es_nuevo`: el modelo no tenía NINGÚN ingreso (stock inicial o mercadería recibida, en cualquier sede) antes del rango.
+--     Un modelo que ya había entrado antes y vuelve a recibir stock es un «Reingreso».
+--   · `precio_min` / `precio_max`: lo que se cobra en ESA sede (`fn_precio_en_sede`: el precio propio de la tienda y, sin él, el
+--     de la grilla) por las variantes que entraron. Un solo precio si todas valen lo mismo; un rango si varían por talla.
+--   · `costo_min` / `costo_max`: lo que costó, SOLO para quien pasa `fn_puede_ver_dinero_de_compras()` (ADR-0183: la columna
+--     `variantes.costo` está cerrada para el resto). Sin permiso es `null` y `ve_costo` es false: nunca un 0, que parece un
+--     dato. Un costo en 0 es «sin costo cargado» (el valor de fábrica): no entra al rango, y si ninguna variante tiene costo
+--     el modelo sale con `null` y la pantalla dice «Sin costo».
+--
 -- QUÉ NO HACE. Escribir. Es una lectura: no toca `movimientos` ni `stock` (principio 4: el libro es la única verdad).
 -- Tampoco RESTA lo que se ajustó después: cuenta lo que entró, no lo que quedó; la pantalla lo dice en una nota.
 --
@@ -34,6 +44,8 @@ as $$
 declare
   v_ini timestamptz;
   v_fin timestamptz;
+  -- El costo por prenda es dinero: lo ve quien ve el dinero de compras, y la columna está cerrada para el resto (ADR-0183).
+  v_ve_costo boolean := coalesce(retail.fn_puede_ver_dinero_de_compras(), false);
   v_resultado jsonb;
 begin
   if p_ubicacion_id is null then
@@ -56,7 +68,7 @@ begin
   v_fin := ((p_hasta + 1)::timestamp at time zone 'America/Lima');
 
   with e as (
-    select va.producto_id, m.motivo, m.cantidad, (m.created_at at time zone 'America/Lima')::date as dia
+    select va.producto_id, m.variante_id, m.motivo, m.cantidad, (m.created_at at time zone 'America/Lima')::date as dia
       from retail.movimientos m
       join retail.variantes va on va.id = m.variante_id
      where m.ubicacion_id = p_ubicacion_id
@@ -75,15 +87,42 @@ begin
       from e
      group by e.producto_id
   ),
+  -- Precio y costo de las variantes que entraron (no de todas las del modelo): lo que se está recibiendo.
+  vars as (
+    select distinct e.producto_id, e.variante_id from e
+  ),
+  valores as (
+    select v.producto_id,
+           min(retail.fn_precio_en_sede(v.variante_id, p_ubicacion_id)) as precio_min,
+           max(retail.fn_precio_en_sede(v.variante_id, p_ubicacion_id)) as precio_max,
+           case when v_ve_costo then min(va.costo) filter (where va.costo > 0) end as costo_min,
+           case when v_ve_costo then max(va.costo) filter (where va.costo > 0) end as costo_max
+      from vars v
+      join retail.variantes va on va.id = v.variante_id
+     group by v.producto_id
+  ),
   lista as (
-    select pm.*, pr.referencia, pr.codigo, ca.nombre as categoria
+    select pm.*, pr.referencia, pr.codigo, ca.nombre as categoria,
+           va.precio_min, va.precio_max, va.costo_min, va.costo_max,
+           -- «Nuevo»: ningún ingreso antes del rango, en ninguna sede. Un traslado anulado o un ajuste no son un ingreso.
+           not exists (
+             select 1
+               from retail.movimientos m2
+               join retail.variantes v2 on v2.id = m2.variante_id
+              where v2.producto_id = pm.producto_id
+                and m2.tipo = 'entrada'
+                and m2.motivo in ('carga_inicial', 'recepcion')
+                and m2.created_at < v_ini
+           ) as es_nuevo
       from por_modelo pm
       join retail.productos pr on pr.id = pm.producto_id
       left join retail.categorias ca on ca.id = pr.categoria_id
+      left join valores va on va.producto_id = pm.producto_id
   )
   select jsonb_build_object(
            'desde', p_desde,
            'hasta', p_hasta,
+           've_costo', v_ve_costo,
            'modelos', coalesce((
              select jsonb_agg(
                       jsonb_build_object(
@@ -95,7 +134,12 @@ begin
                         'de_stock_inicial', l.de_stock_inicial,
                         'de_recepcion', l.de_recepcion,
                         'primer_dia', l.primer_dia,
-                        'ultimo_dia', l.ultimo_dia
+                        'ultimo_dia', l.ultimo_dia,
+                        'es_nuevo', l.es_nuevo,
+                        'precio_min', l.precio_min,
+                        'precio_max', l.precio_max,
+                        'costo_min', l.costo_min,
+                        'costo_max', l.costo_max
                       )
                       order by l.unidades desc, l.referencia, l.producto_id
                     )
@@ -105,7 +149,8 @@ begin
              'modelos', (select count(*) from lista),
              'unidades', coalesce((select sum(unidades) from lista), 0),
              'de_stock_inicial', coalesce((select sum(de_stock_inicial) from lista), 0),
-             'de_recepcion', coalesce((select sum(de_recepcion) from lista), 0)
+             'de_recepcion', coalesce((select sum(de_recepcion) from lista), 0),
+             'nuevos', (select count(*) from lista where es_nuevo)
            )
          )
     into v_resultado;
