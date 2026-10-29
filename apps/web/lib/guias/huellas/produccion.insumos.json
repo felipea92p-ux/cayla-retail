@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 70,
+  "total": 74,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -27,7 +27,8 @@
       "LapizEditar «{`la tela ${g.material.nombre}»",
       "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
       "Boton «+ Ingresar lote»",
-      "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»"
+      "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»",
+      "Boton «{indice === 0 ? \"prod-insumos.retirar-color\" : undefined}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -97,6 +98,11 @@
       "CampoTexto «Gramaje (g/m²)»",
       "CampoTexto «¿Cuántos metros trae un rollo?»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»"
+    ],
+    "components/insumos-taller/RetirarColorModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{motivoSaldo ?? responsable.motivo ?? undefined}»"
     ]
   }
 }
