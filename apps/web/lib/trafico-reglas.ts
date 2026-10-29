@@ -41,6 +41,10 @@ export type ResumenTrafico = {
   serie: SerieTrafico;
   /** El mapa de calor día de la semana × hora (actividad 4); `null` con una base de antes que no lo trae. */
   calor: CalorTrafico | null;
+  /** Cuántas personas miraron desde cada departamento (ISO 3166-2, «PE-LAL»), como las ciudades: con el filtro de camino (actividad 5). */
+  regiones: Record<string, number>;
+  /** Cuántos de cada camino separaron (actividad 5), con el filtro de ciudad. */
+  caminosSeparan: Record<Camino, number>;
 };
 
 /** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
@@ -169,6 +173,8 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     horas: Array.isArray(d.horas) && d.horas.length === 24 && d.horas.every(esCifra) ? d.horas : Array.from({ length: 24 }, () => 0),
     serie: leerSerie(d.serie),
     calor: leerCalor(d.calor),
+    regiones: leerRegiones(d.regiones),
+    caminosSeparan: conteoPor(Object.keys(CAMINOS) as Camino[], d.caminos_separan),
   };
 }
 
@@ -706,3 +712,46 @@ export const diasTexto = (dias: readonly [number, number]) => `${DIAS_PLURAL[dia
 
 /** El día de la semana (0 = lunes) de una fecha «2026-10-28». */
 export const diaDeLaSemana = (iso: string) => (new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7;
+
+// ---------- De dónde vienen: el mapa pintado y cuántos separan por camino (actividad 5) ----------
+
+const REGION = /^PE-[A-Z]{3}$/;
+function leerRegiones(v: unknown): Record<string, number> {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter((e): e is [string, number] => REGION.test(e[0]) && esCifra(e[1])));
+}
+
+/** Qué ciudad de la pantalla es cada departamento: lo mismo que `retail.fn_trafico_web_ciudad` (tocar un departamento filtra por ella). */
+export function ciudadDeRegion(iso: string): Ciudad {
+  if (iso === "PE-LAL") return "trujillo";
+  if (iso === "PE-LIM" || iso === "PE-LMA" || iso === "PE-CAL") return "lima";
+  if (iso === "PE-ARE") return "arequipa";
+  if (iso === "PE-LAM") return "chiclayo";
+  if (iso === "PE-PIU") return "piura";
+  if (iso === "PE-CUS") return "cusco";
+  return iso.startsWith("PE") ? "otras" : "fuera";
+}
+
+/** Cuánto tinte lleva un departamento en el mapa: de 6 % (nadie) a 92 % (el que más), sobre hueso. Lo mismo que el mapa de calor. */
+export const tinteDeRegion = (n: number, max: number) => Math.round(6 + (max > 0 ? n / max : 0) * 86);
+
+/**
+ * Cuántos de cada 100 que llegan por un camino separan, y si ese camino rinde: «bien» si separa un cuarto más que el promedio de todos,
+ * «poco» si separa un cuarto menos y además trae a 8 de cada 100 o más (un camino chico que separa poco no es noticia). Con menos de 20
+ * personas por ese camino no se juzga.
+ */
+export function rindeElCamino(llegaron: number, separaron: number, total: number, separaronTodos: number): { de100: number; tono: "verde" | "ambar" | "neutro" } {
+  const tasa = de100(separaron, llegaron);
+  if (llegaron < MINIMO_PARA_COMPARAR || separaronTodos === 0) return { de100: tasa, tono: "neutro" };
+  const promedio = separaronTodos / total;
+  const propia = separaron / llegaron;
+  if (propia >= promedio * 1.25) return { de100: tasa, tono: "verde" };
+  if (propia <= promedio * 0.75 && de100(llegaron, total) >= 8) return { de100: tasa, tono: "ambar" };
+  return { de100: tasa, tono: "neutro" };
+}
+
+/** La ciudad SIN tienda desde la que más gente mira (Chiclayo, Piura, Cusco): la pista de dónde abrir o a quién mandar más. */
+export function ciudadSinTienda(ciudades: Record<Ciudad, number>): Ciudad | null {
+  const candidatas = (["chiclayo", "piura", "cusco"] as const).filter((c) => ciudades[c] > 0).sort((a, b) => ciudades[b] - ciudades[a]);
+  return candidatas[0] ?? null;
+}

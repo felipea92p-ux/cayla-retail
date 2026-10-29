@@ -504,8 +504,75 @@
   }
 }
 
+/* ---------- De dónde vienen (actividad 5): cada camino con cuántos separan, y el Perú pintado por departamento ----------
+   El tinte de cada departamento va en línea (el mismo rojo sobre hueso del mapa de calor); el filo es papel, para que se lean los
+   límites. El departamento de la ciudad filtrada lleva el filo en tinta. */
+@layer components {
+  .trafico-camino {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    align-items: center;
+    padding: 12px 8px;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13.5px;
+    transition: background-color 180ms var(--ease-cayla);
+  }
+  li:first-child > .trafico-camino {
+    border-top: 0;
+  }
+  @media (hover: hover) {
+    .trafico-camino:hover {
+      background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+    }
+  }
+  .trafico-camino[aria-current="true"] {
+    background: var(--color-hueso);
+  }
+  .trafico-mapa-dep {
+    cursor: pointer;
+    stroke: var(--color-papel);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    transition: stroke 160ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .trafico-mapa-dep:hover {
+      stroke: var(--color-rojo-profundo);
+      stroke-width: 2;
+    }
+  }
+  .trafico-mapa-dep[data-elegido] {
+    stroke: var(--color-tinta);
+    stroke-width: 2;
+  }
+  .trafico-mapa-tienda {
+    fill: var(--color-tinta);
+    stroke: var(--color-papel);
+    stroke-width: 2;
+  }
+  .trafico-mapa-nombre {
+    fill: var(--color-tinta);
+    font-size: 17px;
+    font-weight: 600;
+    paint-order: stroke;
+    stroke: var(--color-papel);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+  }
+  .trafico-mapa-muestra {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .trafico-calor-celda {
+  .trafico-calor-celda,
+  .trafico-camino,
+  .trafico-mapa-dep {
     transition: none;
   }
   .trafico-puntos > .trafico-punto-on,

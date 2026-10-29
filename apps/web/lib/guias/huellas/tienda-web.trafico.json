@@ -2,7 +2,7 @@
   "guia": "tienda-web.trafico",
   "ruta": "/tienda-web/trafico",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 15,
   "controles": {
     "app/(app)/tienda-web/trafico/page.tsx": [
       "BotonLimpiar «Limpiar filtros»"
@@ -12,7 +12,9 @@
       "SegmentoEnlaces «(sin nombre)» #2"
     ],
     "components/trafico/DeDondeVienen.tsx": [
-      "Link «{`${f.nombre}»"
+      "SegmentoDeslizante «Ver por»",
+      "Link «{`${CAMINOS[c]}»",
+      "Link «{`${CIUDADES[c].nombre}»"
     ],
     "components/trafico/FiltrosPuestosTrafico.tsx": [
       "FiltroPuesto «{`Quitar el filtro ${camino.nombre}»",

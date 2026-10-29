@@ -1428,7 +1428,7 @@ export const GUIA_TRAFICO: Guia = {
       ancla: "trafico.donde",
       opcional: true,
       titulo: "De dónde vienen",
-      texto: "Por qué camino llegan (Instagram, WhatsApp, el QR de la tienda) y desde qué ciudad miran. Toca uno y toda la pantalla muestra solo a esa gente; tócalo otra vez para quitarlo.",
+      texto: "Por camino: cuánta gente trae Instagram, WhatsApp o el QR, y cuántos de ellos separan. Por ciudad: el Perú pintado, más rojo donde más miran. Toca uno y toda la pantalla muestra solo a esa gente.",
     },
     {
       id: "recorrido",

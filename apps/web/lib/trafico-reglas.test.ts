@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  ciudadDeRegion,
+  ciudadSinTienda,
+  rindeElCamino,
+  tinteDeRegion,
   celdaTexto,
   diaDeLaSemana,
   diasTexto,
@@ -66,6 +70,8 @@ describe("leerResumen: lo que devuelve la base", () => {
       horas: Array.from({ length: 24 }, () => 0),
       serie: { por: "dia", actual: [], antes: [] },
       calor: null,
+      regiones: {},
+      caminosSeparan: { instagram: 0, directo: 0, whatsapp: 0, tiktok: 0, google: 0, qr: 0, otros: 0 },
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -521,5 +527,35 @@ describe("el mapa de calor: día de la semana × hora", () => {
     expect(celdaTexto(5, 20)).toBe("Sábado, 8 p. m.");
     expect(diaDeLaSemana("2026-10-28")).toBe(2);
     expect(diaDeLaSemana("2026-10-25")).toBe(6);
+  });
+});
+
+describe("De dónde vienen: el mapa pintado y cuánto rinde cada camino", () => {
+  it("cada departamento es la ciudad de la base (Lima junta Lima, Lima Metropolitana y el Callao)", () => {
+    expect(["PE-LAL", "PE-LMA", "PE-CAL", "PE-LIM", "PE-ARE", "PE-LAM", "PE-PIU", "PE-CUS", "PE-LOR", "US"].map(ciudadDeRegion)).toEqual([
+      "trujillo", "lima", "lima", "lima", "arequipa", "chiclayo", "piura", "cusco", "otras", "fuera",
+    ]);
+  });
+
+  it("el tinte va de 6 (nadie) a 92 (el que más)", () => {
+    expect([tinteDeRegion(0, 400), tinteDeRegion(200, 400), tinteDeRegion(400, 400), tinteDeRegion(3, 0)]).toEqual([6, 49, 92, 6]);
+  });
+
+  it("lee los departamentos y descarta lo que no es un código del Perú o una cifra", () => {
+    const r = leerResumen({ ...DE_LA_BASE, regiones: { "PE-LAL": 412, "PE-LMA": 300, US: 4, "PE-XX": 2, "PE-ARE": -1 } })!;
+    expect(r.regiones).toEqual({ "PE-LAL": 412, "PE-LMA": 300 });
+  });
+
+  it("un camino rinde si separa un cuarto más que el promedio; poco, si separa un cuarto menos y trae 8 de cada 100 o más", () => {
+    // Entre todos: 2000 entraron, 160 separaron (8 de cada 100).
+    expect(rindeElCamino(400, 48, 2000, 160)).toEqual({ de100: 12, tono: "verde" });
+    expect(rindeElCamino(800, 40, 2000, 160)).toEqual({ de100: 5, tono: "ambar" });
+    expect(rindeElCamino(100, 4, 2000, 160).tono).toBe("neutro");
+    expect(rindeElCamino(12, 0, 2000, 160).tono).toBe("neutro");
+  });
+
+  it("la ciudad sin tienda desde la que más miran", () => {
+    expect(ciudadSinTienda({ trujillo: 900, lima: 700, arequipa: 380, chiclayo: 120, piura: 150, cusco: 0, otras: 90, fuera: 3, sin_dato: 40 })).toBe("piura");
+    expect(ciudadSinTienda({ trujillo: 9, lima: 0, arequipa: 0, chiclayo: 0, piura: 0, cusco: 0, otras: 0, fuera: 0, sin_dato: 0 })).toBeNull();
   });
 });

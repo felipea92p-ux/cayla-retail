@@ -37,3 +37,12 @@
   la actividad 6. Base: `20261029042000_trafico_web_calor.sql` suma `calor` a `resumen_trafico_web` (misma firma). **Verificado:**
   `pruebas:tienda-trafico-resumen` 60/60 (6 nuevos), vitest de reglas 71/71, guías, unificar, colores, tokens, movimiento, ancho, tsc, eslint y knip; en el
   navegador a 1440 (claro y oscuro, con el globito de cada celda) y a 375 px sin scroll lateral. **No está en producción.**
+- **Actividad 5 · De dónde vienen:** una tarjeta con «Por camino» (cuántos llegan, cuántos de 100 y cuántos de cada 100 separan; el chip va en verde si
+  el camino separa un cuarto más que el promedio y en ámbar si separa un cuarto menos y trae 8 de cada 100 o más) y «Por ciudad»: el contorno real del
+  Perú con cada departamento más rojo mientras más gente mira desde ahí (Felipe pidió pintar el departamento en vez de un círculo que crece), las tres
+  tiendas marcadas, la ciudad sin tienda que más mira y la lista. Tocar una fila o un departamento filtra la pantalla. El contorno sale de geoBoundaries
+  (PER ADM1, dominio público; Felipe aprobó bajarlo), proyectado y simplificado a 21 KB en `lib/peru-departamentos.ts`. Base:
+  `20261029050000_trafico_web_regiones.sql` hace que `fn_trafico_web_personas` devuelva el departamento y suma `regiones` y `caminos_separan` al resumen.
+  **Verificado:** `pruebas:tienda-trafico-resumen` 66/66, `pruebas:tienda-trafico` 21/21, vitest de reglas 76/76, guías (huella aceptada tras revisar la
+  guía), unificar, colores, tokens, movimiento, tsc, eslint y knip; en el navegador a 1440 (claro y oscuro, globito y filtro al tocar un departamento) y a
+  375 px sin scroll lateral. **No está en producción.**

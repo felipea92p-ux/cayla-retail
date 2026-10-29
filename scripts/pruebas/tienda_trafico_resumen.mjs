@@ -38,6 +38,7 @@ const MIGRACION = readFileSync("supabase/migrations/20261023231000_trafico_web_l
 const MIGRACION_PERIODOS = readFileSync("supabase/migrations/20261029015000_trafico_web_periodos.sql", "utf8");
 const MIGRACION_SERIE = readFileSync("supabase/migrations/20261029040000_trafico_web_serie.sql", "utf8");
 const MIGRACION_CALOR = readFileSync("supabase/migrations/20261029042000_trafico_web_calor.sql", "utf8");
+const MIGRACION_REGIONES = readFileSync("supabase/migrations/20261029050000_trafico_web_regiones.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -310,6 +311,25 @@ esperarValor(
   "2024-11-01 71",
 );
 esperar("la migración del mapa de calor se puede pegar dos veces", correr(`begin;\n${MIGRACION_CALOR}\n${MIGRACION_CALOR}\nrollback;`).ok, "falló al pegar dos veces");
+
+// ---- 14. Los departamentos y cuántos separan por camino ----
+// Del 10: la 1 desde La Libertad por Instagram (recogió), la 2 desde Lima Metropolitana por TikTok, la 3 sin departamento, la 6 desde el
+// Callao por Google (separó; su segunda entrada desde La Libertad no cuenta).
+esperarValor(
+  "personas por departamento, por la primera entrada; sin departamento no entra",
+  escenario(`${resumen()} -> 'regiones';`),
+  '{"PE-CAL": 1, "PE-LAL": 1, "PE-LMA": 1}',
+);
+esperarValor("el mapa no se filtra por ciudad (como las ciudades)", escenario(`${resumen("null", "'lima'")} -> 'regiones' ->> 'PE-LAL';`), "1");
+esperarValor("pero sí por camino", escenario(`${resumen("'instagram'")} -> 'regiones';`), '{"PE-LAL": 1}');
+esperarValor(
+  "cuántos separan por camino: Instagram 1 (recogió), Google 1, TikTok 0",
+  escenario(`${resumen()} as r \\gset
+  ${COMO_POSTGRES}select concat_ws(' ', :'r'::jsonb -> 'caminos_separan' ->> 'instagram', :'r'::jsonb -> 'caminos_separan' ->> 'google', :'r'::jsonb -> 'caminos_separan' ->> 'tiktok');`),
+  "1 1 0",
+);
+esperarValor("con Trujillo puesto, separan solo los de Trujillo", escenario(`${resumen("null", "'trujillo'")} -> 'caminos_separan';`), '{"instagram": 1}');
+esperar("la migración de los departamentos se puede pegar dos veces", correr(`begin;\n${MIGRACION_REGIONES}\n${MIGRACION_REGIONES}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);
