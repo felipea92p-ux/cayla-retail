@@ -968,6 +968,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin
   copiar su cuerpo y, si el paso 5 trae cantidades, a `fn_cargar_stock_inicial` (entradas `carga_inicial` al almacén) y
   a `bajar_al_piso` («colgadas en el piso»). El paso 5 es `components/alta-producto/MatrizCantidades.tsx`.
+  **Con la carga inicial de la sede cerrada (ADR-0328 act. 2026-10-28)** la tabla pasa a «Cuántas llegaron» y, si hay unidades, el alta va por
+  `crear_producto_con_llegada` (`20261028221000`): el alta de siempre sin cantidades + `recibir_lote` del proveedor elegido, en una transacción
+  (reglas `faltaProveedorLlegada` / `textoFaltaStock` en `lib/alta-producto.ts`).
+  **Estándar de nombres (ADR-0556, 2026-10-28):** el paso 2 va marca → «¿Ya existe?» (`components/alta-producto/YaExiste.tsx`, las prendas de la
+  categoría que trae `useParecidasAlta().existentes`; cada una abre la hoja «Ver y comparar») → tejido → patrón → detalle → nombre. El nombre es
+  «<Tipo> <Nombre propio>» (`components/alta-producto/NombreDePrenda.tsx`, reglas puras en `lib/nombre-de-prenda.ts`): el tipo sale de la categoría,
+  se sugiere primero el nombre del proveedor si sirve y luego las flores libres (`contexto.nombresPorCategoria`). «Cómo lo llama el proveedor» se
+  guarda aparte, después de crear, con `fijar_nombre_proveedor` (`20261028184000`); en `/productos/[id]/editar` es la fila
+  `components/ficha-producto/NombreDelProveedor.tsx`, que guarda sola con la misma función.
   Con `?desde=produccion&tipo=…` (ADR-0361) la persona viene de una orden: la flecha de vuelta lleva a `/produccion/ordenes` y la pantalla de éxito
   (`ProductoCreado.tsx`) ofrece «Abrir la orden» → `/produccion/ordenes?nueva=<producto>&tipo=…`. Los enlaces de ida y vuelta son puros: `lib/modelo-nuevo-orden-reglas.ts`.
   Es el camino de la **alta completa** (con fotos, tejido y patrón); el modelo que el Taller necesita de inmediato se crea dentro de «Nueva orden ▸ Modelo nuevo»
@@ -1520,6 +1529,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   que arma las líneas pendientes de esa tienda y llama a `crear_envio`; `despachos.bultos`) y «Terminé de comprar hoy» (`TerminarDia.tsx` →
   `terminar_dia_compras`). `fn_mi_plata_compras` lee también `gastos`, `por_mandar` y `hoy`; `fn_mi_plata_tiene` es la única cuenta de lo
   que tiene. `?mandar=1` (desde «Listo» de la compra) abre «Mandar a la tienda».
+  ADR-0559 (2026-10-28, sin migración): con la ronda abierta, `/compras/mi-plata` se coloca en `components/mi-plata/MesaDeLaRonda.tsx` (camino · plata y
+  acciones · `TablaDeLaRonda`/`ListaDelDia` y `ParaMandar` · `TerminarDia` como franja · `RondasAnteriores` en tarjetas); `lib/mi-plata-reglas.ts` suma
+  `usoDeLaPlata` y `totalesDeLaLista`, y `lib/mis-envios-reglas.ts`, `avanceDeEnvios`. La hoja «Mandar a la tienda» se abre con `EVENTO_MANDAR`.
   Actividad 6 (migración `20261023121000`): `/recibir/envio/[id]` muestra los papeles de lo comprado desde el celular
   (`components/recepcion-conteo/PapelesDeLaCompra.tsx`; `fn_envio_detalle` → `papeles`, foto firmada en `lib/recepcion-envio.ts`) y
   la prenda que eligió la compradora viaja en cada línea (`lineas[].producto`), pero el atajo «Son estas» de `SepararPrendas` se retiró el 2026-10-26 (ADR-0480): quien cuenta separa buscando la prenda.
@@ -1557,7 +1569,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `rondasConEnvios`, `codigosPorCompra`, buscador y filtros «Sin recibir / Recibidos», resumen y estado de cada envío) → `components/mi-plata/MisEnvios.tsx`
     (pestañas «Esta ronda» / «Rondas anteriores», `TablaEnvios.tsx` y `FilaEnvio.tsx`, el detalle en `HojaEnvio.tsx` —hoja en celular, cajón en escritorio— con
     `CodigoDeEnvio.tsx`: copiar el código y compartirlo por WhatsApp). «Mandar a la tienda» (`MandarATienda.tsx`) muestra ese mismo código al salir el envío
-    y `EnviosDeLaRonda.tsx` lo trae a Mis compras. Si la lectura falla la pantalla lo dice; Mis compras sigue sin los envíos (principio 9).
+    y `ParaMandar.tsx` (la tarjeta «Para mandar», que reemplazó a `EnviosDeLaRonda.tsx`, ADR-0559) lo trae a Mis compras. Si la lectura falla la pantalla lo dice; Mis compras sigue sin los envíos (principio 9).
   - **El banco de la plata anotada:** en una transferencia, «Me dieron plata» pregunta de qué banco salió. `fn_bancos_para_plata_compras()` (`20261026170000`;
     `getBancosParaPlata` en `lib/mi-plata.ts`, `leerBancosDePlata`) llena el combo y la columna `fondo_plata_anotada.cuenta_indicada_id` (`20261026165000`, solo
     con `medio = 'transferencia'`) guarda la indicación; la cuenta de verdad la elige Compras al confirmar (`PlataPorConfirmar.tsx` muestra el banco que indicó; no mueve plata). Sin bancos
