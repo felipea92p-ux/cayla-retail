@@ -52,6 +52,8 @@ export type ResumenTrafico = {
   quienes: QuienesTrafico | null;
   /** Necesita tu atención: reponer, recoger, empujar (actividad 8); `null` con una base de antes. */
   atencion: AtencionTrafico | null;
+  /** El mes del último día del período, día por día (actividad 9); `null` con una base de antes. */
+  calendario: CalendarioTrafico | null;
 };
 
 /** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
@@ -185,6 +187,7 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     tallas: leerTallas(d.tallas),
     quienes: leerQuienes(d.quienes),
     atencion: leerAtencion(d.atencion),
+    calendario: leerCalendario(d.calendario),
   };
 }
 
@@ -976,3 +979,56 @@ export function esperaDelPedido(w: PedidoRecoger, diasAviso: number, hoy: string
 
 /** «18 días» de stock, «Agotada» o «Sin ventas». */
 export const diasDeStockTexto = (dias: number | null) => (dias === null ? "Sin ventas" : dias < 1 ? "Agotada" : `${Math.round(dias)} ${Math.round(dias) === 1 ? "día" : "días"}`);
+
+// ---------- El calendario: el mes, día por día (actividad 9) ----------
+
+export type CalendarioTrafico = { mes: string; dias: (readonly [number, number])[] };
+
+function leerCalendario(v: unknown): CalendarioTrafico | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const d = v as Record<string, unknown>;
+  if (typeof d.mes !== "string" || !FECHA.test(d.mes)) return null;
+  const dias = (Array.isArray(d.dias) ? d.dias : []).filter(
+    (x): x is [number, number] => Array.isArray(x) && x.length === 2 && x.every(esCifra) && x[0] >= 1 && x[0] <= 31,
+  );
+  return { mes: d.mes, dias };
+}
+
+export type DiaCalendario = { dia: number; fecha: string; n: number | null; enPeriodo: boolean; hoy: boolean };
+
+/**
+ * Las celdas del calendario, de lunes a domingo: cuántas vacías van antes del 1 y cada día con su gente (`null` si todavía no llega),
+ * si es del período elegido y si es hoy. Los días del mes que no son del período se ven tenues.
+ */
+export function celdasDelCalendario(c: CalendarioTrafico, p: { desde: string; hasta: string }, hoy: string): { antes: number; dias: DiaCalendario[] } {
+  const n = new Map(c.dias.map(([d, x]) => [d, x]));
+  const largo = diasEntreFechas(c.mes, sumarDias(c.mes.slice(0, 8) + "28", 4).slice(0, 8) + "01");
+  return {
+    antes: diaDeLaSemana(c.mes),
+    dias: Array.from({ length: largo }, (_, i) => {
+      const fecha = sumarDias(c.mes, i);
+      return { dia: i + 1, fecha, n: fecha > hoy ? null : (n.get(i + 1) ?? 0), enPeriodo: fecha >= p.desde && fecha <= p.hasta, hoy: fecha === hoy };
+    }),
+  };
+}
+
+/** Los dos días de la semana con más gente en promedio en el mes (solo los días que ya pasaron); `null` con menos de 10 personas. */
+export function diasFuertesDelMes(dias: readonly DiaCalendario[]): readonly [number, number] | null {
+  const suma = Array(7).fill(0);
+  const veces = Array(7).fill(0);
+  let total = 0;
+  for (const d of dias) {
+    if (d.n === null) continue;
+    const s = diaDeLaSemana(d.fecha);
+    suma[s] += d.n;
+    veces[s] += 1;
+    total += d.n;
+  }
+  if (total < MINIMO_PARA_LA_HORA) return null;
+  const prom = suma.map((x, i) => (veces[i] ? x / veces[i] : 0));
+  const [a, b] = [0, 1, 2, 3, 4, 5, 6].sort((x, y) => prom[y] - prom[x] || x - y);
+  return [Math.min(a, b), Math.max(a, b)];
+}
+
+/** «Octubre», «Setiembre»: el nombre del mes, con mayúscula. */
+export const mesTexto = (mes: string) => `${MESES[Number(mes.slice(5, 7)) - 1].charAt(0).toUpperCase()}${MESES[Number(mes.slice(5, 7)) - 1].slice(1)}`;

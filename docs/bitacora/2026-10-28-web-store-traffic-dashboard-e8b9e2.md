@@ -68,3 +68,9 @@
   miran y tienen stock para más de 40 días (o sin ventas) con 5 unidades o más. Solo lee. Base: `20261029123000_trafico_web_atencion.sql` suma
   `atencion` al resumen (misma firma). **Verificado:** `pruebas:tienda-trafico-resumen` 78/78, vitest de reglas 89/89, guías (paso nuevo), unificar,
   tokens, movimiento, sin foto, tsc, eslint y knip; en el navegador a 1440 (las tres pestañas) y a 375 px en oscuro. **No está en producción.**
+- **Actividad 9 · El mes, día por día:** junto a «Necesita tu atención» (mitad y mitad, como la maqueta), el mes del último día del período en un
+  calendario de lunes a domingo: cada día más rojo mientras más gente entró (el mismo rojo del mapa de calor, sobre su máximo), los del período plenos
+  y los demás tenues, hoy con filo en rojo profundo y rayas, y los que no llegan solo con su número. Arriba, los dos días de la semana con más gente en
+  promedio. Base: `20261029132000_trafico_web_calendario.sql` suma `calendario` al resumen (misma firma). **Verificado:**
+  `pruebas:tienda-trafico-resumen` 83/83, vitest de reglas 92/92, guías (paso nuevo), unificar, tokens, movimiento, ancho, tsc, eslint y knip; en el
+  navegador a 1440 en claro y a 375 px en oscuro sin scroll lateral. **No está en producción.**

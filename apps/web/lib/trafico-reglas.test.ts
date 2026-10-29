@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  celdasDelCalendario,
+  diasFuertesDelMes,
+  mesTexto,
   diasDeStock,
   diasDeStockTexto,
   esperaDelPedido,
@@ -88,6 +91,7 @@ describe("leerResumen: lo que devuelve la base", () => {
       tallas: null,
       quienes: null,
       atencion: null,
+      calendario: null,
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -681,5 +685,31 @@ describe("Necesita tu atención: reponer, recoger, empujar", () => {
     expect(r.atencion!.prendas).toHaveLength(1);
     expect(r.atencion!.recoger[0]).toMatchObject({ sede: "Lima", pagadoEn: "2026-10-20T15:00:00Z", prendas: 2 });
     expect(r.atencion!.recogerTotal).toBe(3);
+  });
+});
+
+describe("el calendario del mes", () => {
+  // Octubre de 2026 empieza en jueves (3 vacías antes) y tiene 31 días; hoy es el 27.
+  const cal = { mes: "2026-10-01", dias: [[3, 40], [4, 46], [10, 50], [11, 52], [17, 44], [18, 48], [20, 12], [27, 9]] as [number, number][] };
+
+  it("arma el mes de lunes a domingo, con el período resaltado, hoy marcado y los días que no llegan vacíos", () => {
+    const c = celdasDelCalendario(cal, { desde: "2026-10-21", hasta: "2026-10-27" }, "2026-10-27");
+    expect(c.antes).toBe(3);
+    expect(c.dias).toHaveLength(31);
+    expect(c.dias[2]).toEqual({ dia: 3, fecha: "2026-10-03", n: 40, enPeriodo: false, hoy: false });
+    expect(c.dias[1].n).toBe(0);
+    expect(c.dias[26]).toMatchObject({ dia: 27, n: 9, enPeriodo: true, hoy: true });
+    expect(c.dias[27].n).toBeNull();
+  });
+
+  it("febrero de un año no bisiesto tiene 28 días", () => {
+    expect(celdasDelCalendario({ mes: "2027-02-01", dias: [] }, { desde: "2027-02-01", hasta: "2027-02-28" }, "2027-03-05").dias).toHaveLength(28);
+  });
+
+  it("los dos días de la semana con más gente: aquí, sábados y domingos", () => {
+    const c = celdasDelCalendario(cal, { desde: "2026-10-01", hasta: "2026-10-27" }, "2026-10-27");
+    expect(diasFuertesDelMes(c.dias)).toEqual([5, 6]);
+    expect(diasFuertesDelMes(celdasDelCalendario({ mes: "2026-10-01", dias: [[3, 4]] }, { desde: "2026-10-01", hasta: "2026-10-27" }, "2026-10-27").dias)).toBeNull();
+    expect(mesTexto("2026-09-01")).toBe("Setiembre");
   });
 });

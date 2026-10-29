@@ -470,6 +470,78 @@
   }
 }
 
+/* ---------- Necesita tu atención y el calendario (actividades 8 y 9), lado a lado ----------
+   Desde 1180 px de cuerpo, mitad y mitad (como la maqueta). Cada día del calendario lleva su rojo en línea, como el mapa de calor; el día
+   fuera del período, tenue; hoy, con su filo en rojo profundo y unas rayas; el que no llega, solo su número sobre una línea punteada. */
+@layer components {
+  .trafico-rejilla-mitades {
+    display: grid;
+    gap: 16px;
+    align-items: start;
+  }
+  @container trafico (min-width: 1180px) {
+    .trafico-rejilla-mitades {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .trafico-cal {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .trafico-cal-dia-semana {
+    padding-bottom: 2px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-cal-dia {
+    display: flex;
+    min-width: 0;
+    min-height: 52px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 5px 7px;
+    border-radius: 9px;
+    font-size: 11px;
+    line-height: 1.1;
+    color: var(--color-tinta);
+  }
+  .trafico-cal-dia > b {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .trafico-cal-dia[data-oscuro] {
+    color: var(--color-crema-fija);
+  }
+  .trafico-cal-dia[data-fuera] {
+    opacity: 0.5;
+  }
+  .trafico-cal-dia[data-futuro] {
+    border: 1px dashed var(--color-sand);
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-cal-dia[data-hoy] {
+    background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-crema-fija) 22%, transparent) 0 3px, transparent 3px 7px);
+    outline: 2px solid var(--color-rojo-profundo);
+    outline-offset: 1px;
+  }
+  @media (max-width: 420px) {
+    .trafico-cal-dia {
+      min-height: 46px;
+      padding: 4px 5px;
+    }
+    .trafico-cal-dia > b {
+      font-size: 12.5px;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trafico-calor-celda,
   .trafico-camino,

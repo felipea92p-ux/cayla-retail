@@ -8,6 +8,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 import { Vacio } from "@/components/ui/Vacio";
 import { AtencionTrafico } from "@/components/trafico/AtencionTrafico";
+import { CalendarioTrafico } from "@/components/trafico/CalendarioTrafico";
 import { CalorTrafico } from "@/components/trafico/CalorTrafico";
 import { ControlesTrafico } from "@/components/trafico/ControlesTrafico";
 import { DeDondeVienen } from "@/components/trafico/DeDondeVienen";
@@ -120,7 +121,13 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                   {r.tallas && <TallasTrafico tallas={r.tallas} quienes={r.quienes} ampliado={r.tallas.desde < periodo.desde} />}
                 </div>
               </div>
-              {r.atencion && <AtencionTrafico atencion={r.atencion} hoy={hoy} />}
+              {/* Lo que conviene hacer hoy y, a su lado, el mes día por día (maqueta: mitad y mitad). */}
+              <div className="trafico-cuerpo">
+                <div className="trafico-rejilla-mitades">
+                  {r.atencion && <AtencionTrafico atencion={r.atencion} hoy={hoy} />}
+                  {r.calendario && <CalendarioTrafico calendario={r.calendario} periodo={periodo} hoy={hoy} />}
+                </div>
+              </div>
             </>
               )}
             </>

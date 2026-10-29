@@ -41,6 +41,7 @@ const MIGRACION_CALOR = readFileSync("supabase/migrations/20261029042000_trafico
 const MIGRACION_REGIONES = readFileSync("supabase/migrations/20261029050000_trafico_web_regiones.sql", "utf8");
 const MIGRACION_TALLAS = readFileSync("supabase/migrations/20261029120000_trafico_web_tallas_y_quienes.sql", "utf8");
 const MIGRACION_ATENCION = readFileSync("supabase/migrations/20261029123000_trafico_web_atencion.sql", "utf8");
+const MIGRACION_CALENDARIO = readFileSync("supabase/migrations/20261029132000_trafico_web_calendario.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -406,6 +407,14 @@ esperarValor(
 );
 esperarValor("el plazo de aviso es el de Configuración de la tienda web", escenario(ATENCION(`(:'r'::jsonb -> 'atencion' ->> 'dias_aviso')::int = coalesce((select dias_aviso_sin_recoger from retail.configuracion_tienda_web limit 1), 7)`)), "t");
 esperar("la migración de «Necesita tu atención» se puede pegar dos veces", correr(`begin;\n${MIGRACION_ATENCION}\n${MIGRACION_ATENCION}\nrollback;`).ok, "falló al pegar dos veces");
+
+// ---- 17. El calendario del mes ----
+// Enero de 2025: el 9 entró la 5; el 10, las otras 4 (la 7 no es una persona).
+esperarValor("el mes es el del último día del período", escenario(`${resumen()} -> 'calendario' ->> 'mes';`), "2025-01-01");
+esperarValor("cada día del mes con su gente, aunque el período sea un solo día", escenario(`${resumen()} -> 'calendario' -> 'dias';`), "[[9, 1], [10, 4]]");
+esperarValor("con un camino puesto, solo ese camino", escenario(`${resumen("'whatsapp'")} -> 'calendario' -> 'dias';`), "[[9, 1]]");
+esperarValor("un período que cruza de mes mira el mes de su último día", escenario(`${resumen("null", "null", "2024-12-28", "2025-01-03")} -> 'calendario' ->> 'mes';`), "2025-01-01");
+esperar("la migración del calendario se puede pegar dos veces", correr(`begin;\n${MIGRACION_CALENDARIO}\n${MIGRACION_CALENDARIO}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);

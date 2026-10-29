@@ -1497,6 +1497,13 @@ export const GUIA_TRAFICO: Guia = {
       texto: "Lo que conviene hacer hoy. Reponer: las que miran y se acaban pronto. Recoger: pedidos pagados que nadie recoge. Empujar: las que miran y no salen.",
     },
     {
+      id: "calendario",
+      ancla: "trafico.calendario",
+      opcional: true,
+      titulo: "El mes, día por día",
+      texto: "Cada cuadro es un día: mientras más rojo, más gente entró. Los días que elegiste van fuertes y el de hoy, con borde. Sirve para ver qué días de la semana conviene publicar.",
+    },
+    {
       id: "vista",
       ancla: "trafico.vista",
       opcional: true,
