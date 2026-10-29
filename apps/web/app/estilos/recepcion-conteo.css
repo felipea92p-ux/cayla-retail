@@ -113,11 +113,6 @@ button.rc-parada:disabled { cursor: default; }
 .rc-balanza .rc-veredicto { display: flex; grid-column: 1 / -1; justify-content: center; }
 @media (max-width: 639px) { .rc-balanza { grid-template-columns: 1fr 80px 1fr; } .rc-balanza .rc-lado b { font-size: 28px; } .rc-balanza svg { width: 80px; height: 47px; } }
 
-/* ---- El sello del envío cerrado: el aro y el visto se dibujan una vez ---- */
-.rc-sello { position: relative; display: grid; flex: none; place-items: center; width: 88px; height: 88px; }
-.rc-sello svg { position: absolute; inset: 0; width: 88px; height: 88px; }
-.rc-sello .rc-aro { fill: none; stroke: var(--color-verde); stroke-width: 2.5; stroke-dasharray: 264; animation: rc-trazo-aro 500ms var(--ease-cayla) 80ms backwards; }
-.rc-sello .rc-visto { fill: none; stroke: var(--color-verde); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; animation: rc-trazo-visto 350ms var(--ease-cayla) 450ms backwards; }
 
 /* ---- Lo que queda para después ---- */
 .rc-pendientes-caja { border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; }
@@ -136,10 +131,8 @@ button.rc-parada:disabled { cursor: default; }
 
 @keyframes rc-pulso { from { transform: scale(0.85); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
 @keyframes rc-trazo { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
-@keyframes rc-trazo-aro { from { stroke-dashoffset: 264; } to { stroke-dashoffset: 0; } }
-@keyframes rc-trazo-visto { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-agregar, .rc-anotada-chip, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
-  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo, .rc-sello .rc-aro, .rc-sello .rc-visto { animation: none; }
+  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo { animation: none; }
 }

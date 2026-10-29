@@ -4,10 +4,11 @@
 
 const DIGITOS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-export function Odometro({ valor, className }: { valor: number; className?: string }) {
+/** `entra`: al aparecer, cada cifra rueda desde el 0 hasta la suya (una vez); sin él, se dibuja quieta y solo rueda al cambiar. */
+export function Odometro({ valor, entra = false, className }: { valor: number; entra?: boolean; className?: string }) {
   const cifras = String(Math.max(0, Math.round(valor))).split("");
   return (
-    <span className={`rc-odo ${className ?? ""}`}>
+    <span className={`rc-odo ${entra ? "rc-odo--entra" : ""} ${className ?? ""}`}>
       <span className="sr-only">{valor.toLocaleString("es-PE")}</span>
       <span aria-hidden className="rc-odo-cifras">
         {cifras.map((c, i) => (

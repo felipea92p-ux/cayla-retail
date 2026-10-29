@@ -63,15 +63,3 @@ export function Balanza({ dijeron, contadas, guia }: { dijeron: number | null; c
     </div>
   );
 }
-
-/** El sello del envío cerrado: el aro y el visto se dibujan una vez. */
-export function Sello() {
-  return (
-    <span className="rc-sello" aria-hidden>
-      <svg viewBox="0 0 88 88">
-        <circle className="rc-aro" cx="44" cy="44" r="42" />
-        <path className="rc-visto" d="M27 45l11 11 23-25" />
-      </svg>
-    </span>
-  );
-}

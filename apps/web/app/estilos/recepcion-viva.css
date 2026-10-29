@@ -41,10 +41,10 @@
 .rc-dial--cuadra .rc-dial-perilla-punto { fill: var(--color-verde); }
 .rc-dial--sobra .rc-dial-perilla-borde { stroke: var(--color-ambar); }
 .rc-dial--sobra .rc-dial-perilla-punto { fill: var(--color-ambar); }
-.rc-dial-chispa { fill: var(--color-tinta); opacity: 0; transform-box: fill-box; transform-origin: center; animation: rc-dial-chispa 600ms var(--ease-cayla) both; }
+.rc-dial-chispa { fill: var(--color-tinta); opacity: 0; transform-box: fill-box; transform-origin: center; animation: rc-dial-chispa 600ms var(--ease-cayla) backwards; }
 @keyframes rc-dial-chispa { from { opacity: 0.45; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
 
-.rc-dial-halo { position: absolute; inset: 12px; border: 3px solid var(--color-verde); border-radius: 50%; opacity: 0; pointer-events: none; animation: rc-dial-halo 1s var(--ease-cayla) both; }
+.rc-dial-halo { position: absolute; inset: 12px; border: 3px solid var(--color-verde); border-radius: 50%; opacity: 0; pointer-events: none; animation: rc-dial-halo 1s var(--ease-cayla) backwards; }
 @keyframes rc-dial-halo { from { opacity: 0.8; transform: scale(0.92); } to { opacity: 0; transform: scale(1.18); } }
 
 .rc-dial-centro { position: absolute; inset: 58px; display: grid; place-items: center; align-content: center; gap: 2px; text-align: center; }
@@ -169,7 +169,7 @@
 .rc-tray-bola::before { content: ""; position: absolute; inset: calc(var(--bola) / 10); border-radius: 50%; background: var(--tc); }
 .rc-tray-bola > svg { position: relative; width: 45%; height: 45%; color: var(--color-crema-fija); }
 :root[data-tema="oscuro"] .rc-tray-bola > svg, :root[data-tema="oscuro"] .rc-tray-parada { color: var(--color-tinta-fija); }
-.rc-tray-halo { position: absolute; top: 0; left: 50%; width: var(--bola); height: var(--bola); margin-left: calc(var(--bola) / -2); border: 2px solid var(--tc); border-radius: 50%; opacity: 0; pointer-events: none; animation: rc-tray-halo 1.2s var(--ease-cayla) 900ms both; }
+.rc-tray-halo { position: absolute; top: 0; left: 50%; width: var(--bola); height: var(--bola); margin-left: calc(var(--bola) / -2); border: 2px solid var(--tc); border-radius: 50%; opacity: 0; pointer-events: none; animation: rc-tray-halo 1.2s var(--ease-cayla) 900ms backwards; }
 @keyframes rc-tray-halo { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
 .rc-tray-texto { display: grid; white-space: nowrap; line-height: 1.25; }
 .rc-tray-texto b { color: var(--color-tinta); font-size: 15px; }
@@ -239,4 +239,27 @@
 @media (prefers-reduced-motion: reduce) {
   .rc-vitrina-tarjeta, .rc-vitrina-etiqueta { animation: none; }
   .rc-vitrina-sede { transition: none; }
+}
+
+/* ── El sello de lacre del envío cerrado ── */
+.rc-odo--entra .rc-odo-tira { animation: rc-odo-entra 900ms var(--ease-cayla) 350ms both; }
+@keyframes rc-odo-entra { from { transform: translateY(0); } }
+.rc-lacre { position: relative; container-type: inline-size; display: grid; gap: 10px; padding: 24px; border: 1px solid var(--color-sand); border-radius: 22px; background: var(--color-papel); animation: cayla-entrada 450ms var(--ease-cayla) both; }
+.rc-lacre-sello { position: absolute; top: -18px; right: 18px; width: 92px; height: 92px; filter: drop-shadow(0 8px 10px color-mix(in srgb, var(--color-sombra) 35%, transparent)); animation: rc-lacre-cae 600ms var(--ease-cayla) 250ms both; }
+@keyframes rc-lacre-cae { from { opacity: 0; transform: translateY(-14px) scale(1.5) rotate(-20deg); } }
+.rc-lacre-cera { fill: var(--color-rojo); }
+.rc-lacre-aro { fill: none; stroke: color-mix(in srgb, var(--color-crema-fija) 40%, transparent); stroke-width: 2; }
+.rc-lacre-letra { fill: var(--color-crema-fija); font-family: var(--font-serif); font-size: 34px; font-weight: 600; }
+:root[data-tema="oscuro"] .rc-lacre-letra { fill: var(--color-tinta-fija); }
+:root[data-tema="oscuro"] .rc-lacre-aro { stroke: color-mix(in srgb, var(--color-tinta-fija) 35%, transparent); }
+.rc-lacre-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 8px 0 4px; }
+.rc-lacre-cifras > div { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--color-hueso); animation: cayla-entrada 420ms var(--ease-cayla) backwards; animation-delay: calc(200ms + var(--i) * 70ms); }
+.rc-lacre-cifras dt { color: var(--color-taupe); font-size: 13px; font-weight: 600; }
+.rc-lacre-cifras dd { color: var(--color-tinta); font-family: var(--font-serif); font-size: 34px; font-weight: 600; line-height: 1.15; }
+.rc-lacre-cifras [data-tono="verde"] dd { color: var(--color-verde-profundo); }
+.rc-lacre-cifras [data-tono="ambar"] dd { color: var(--color-ambar-profundo); }
+@container (min-width: 600px) { .rc-lacre-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 639px) { .rc-lacre { padding: 20px 16px; } .rc-lacre-sello { width: 72px; height: 72px; right: 10px; } .rc-lacre-cifras dd { font-size: 28px; } }
+@media (prefers-reduced-motion: reduce) {
+  .rc-lacre, .rc-lacre-sello, .rc-lacre-cifras > div, .rc-odo--entra .rc-odo-tira { animation: none; }
 }
