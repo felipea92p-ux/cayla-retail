@@ -40,6 +40,8 @@ const MIGRACIONES = [
   leer("20261023143000_compras_simple_revisar.sql"),
   leer("20261023181000_compras_simple_pagar_ahora_o_despues.sql"),
   leer("20261023183000_compras_simple_ronda_de_compras.sql"),
+  // El papel pasa solo a los libros al cerrar el conteo (ADR-0574): parcha `completar_papel_compra`, así que va después de todo lo anterior.
+  leer("20261029194000_mis_compras_el_papel_pasa_solo_a_los_libros.sql"),
 ].join("\n");
 
 // Esta función se rebobina antes de pegar las migraciones viejas (`rebobinar_terminar_dia.sql`): en una base que ya pasó por 20261029170000 solo existe la de
@@ -421,6 +423,54 @@ values ('aaaaaaaa-0480-4000-8000-0000000007c3', :'micaela_p', 'taxi', 10, retail
 ${REVISA("gasto_revisar")}
 select split_part(pg_temp.intento($q$select ${REVISA_GASTO("aaaaaaaa-0480-4000-8000-0000000007c3", "planilla_movilidad")}$q$), '|', 1);`,
   "gasto_viaje_sin_papel / fondo_propio / gasto_sin_compra",
+);
+
+// ---------- El papel pasa solo a los libros (ADR-0574, 20261029194000) ----------
+// La compradora escribió la serie y el número al comprar (20261029193000, que esta prueba no pega): se simulan en el papel.
+const CON_SERIE = (serie, numero) => `
+reset role;
+update retail.compra_papeles set serie = '${serie}', numero = '${numero}' where id = :'papel';
+`;
+
+caso(
+  "al cerrar el conteo, la compra con serie y número pasa sola a los libros: comprobante, pagado del fondo, sin que nadie la complete",
+  `${COMPRA}${CON_SERIE("F001", "777")}${MANDA}
+select retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false)) as saldo0 \\gset
+${RECIBE}
+select p.estado, p.pasa_sola_error is null, c.documento, c.tipo, c.total, c.pagado, c.estado_pago, c.recibido_cantidad || '/' || c.facturado_cantidad,
+       retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false)) - :'saldo0'::numeric
+  from retail.compra_papeles p join retail.compras c on c.token_cliente = p.id where p.id = :'papel';
+select a.descripcion ~ 'pasó solo a los libros', a.modulo from retail.actividad a where a.accion = 'papel_completado' and a.registro_id = :'papel'::text;`,
+  "completado|t|F001-777|factura|300.00|300.00|pagada|7/8|-300.00 / t|fondos",
+);
+
+caso(
+  "una compra de antes (sin serie ni número) no pasa sola: espera a Compras como siempre, y no es un error",
+  `${COMPRA}${MANDA}${RECIBE}
+select estado, pasa_sola_error is null from retail.compra_papeles where id = :'papel';
+select count(*) from retail.compras where token_cliente = :'papel';`,
+  "por_completar|t / 0",
+);
+
+caso(
+  "si al pasar sola algo falla, el cierre del conteo NO se cae: la compra queda por completar con su motivo, y Compras la corrige",
+  `${COMPRA}${CON_SERIE("F-1", "1")}${MANDA}${RECIBE}
+select (select estado from retail.despachos where id = :'envio'), p.estado, p.pasa_sola_error ~ 'serie'
+  from retail.compra_papeles p where p.id = :'papel';
+${REVISA("papel_completar")}
+select (retail.completar_papel_compra(:'papel', null, 'F001', '778') ->> 'compra_id') is not null;
+reset role;
+select estado, pasa_sola_error is null from retail.compra_papeles where id = :'papel';`,
+  "cerrado|por_completar|t / t / completado|t",
+);
+
+caso(
+  "mientras falte mandar o cerrar un envío no pasa: solo el último en cerrarse la pasa; y la función interna no la ejecuta nadie de afuera",
+  `${COMPRA}${CON_SERIE("F001", "779")}${MANDA}
+select retail.fn_papel_pasa_solo(:'papel');
+select estado from retail.compra_papeles where id = :'papel';
+select has_function_privilege('authenticated', 'retail.fn_papel_pasa_solo(uuid)', 'execute'), has_function_privilege('anon', 'retail.fn_despacho_pasa_papeles_a_libros()', 'execute');`,
+  "f / por_completar / f|f",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);
