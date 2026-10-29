@@ -527,6 +527,103 @@ select left(${intento(`select retail.fn_compra_correcciones('${ID}')`)}, 5);`,
 );
 
 caso(
+  "los candados: corregir toma, en este orden, el de la ronda, el de mandar y el del papel (los mismos que cierran la ronda y mandan a la tienda)",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${ITEMS()}
+${CORREGIR(CAMBIOS(cambio(1, "'costo', 40")))} \\g /dev/null
+reset role;
+create function pg_temp.tiene(p_clave text) returns boolean language sql as $f$
+  select exists (select 1 from pg_locks l where l.locktype = 'advisory' and l.pid = pg_backend_pid() and l.granted
+                    and ((l.classid::bigint::numeric * 4294967296) + l.objid::bigint::numeric)
+                        = (hashtextextended(p_clave, 0)::numeric + case when hashtextextended(p_clave, 0) < 0 then 18446744073709551616 else 0 end))
+$f$;
+select pg_temp.tiene('compra_ronda:' || :'micaela'), pg_temp.tiene('compra_mandar:' || :'micaela'), pg_temp.tiene('compra_papel:${ID}'),
+       -- Las funciones que compiten por esa plata usan las MISMAS claves.
+       (select pg_get_functiondef('retail.mandar_compras_a_tienda(uuid,integer,uuid)'::regprocedure) like '%''compra_mandar:'' || v_actor::text%'),
+       (select pg_get_functiondef('retail.terminar_dia_compras(text)'::regprocedure) like '%fn_ronda_compras_candado%'
+            or pg_get_functiondef('retail.terminar_dia_compras(text)'::regprocedure) like '%compra_ronda:%'),
+       (select pg_get_functiondef('retail.completar_papel_compra(uuid,uuid,text,text,numeric)'::regprocedure) like '%for update%'
+            or pg_get_functiondef('retail.completar_papel_compra(uuid,uuid,text,text,numeric)'::regprocedure) like '%compra_papel:%');`,
+  "t|t|t|t|t|t",
+);
+
+// El ataque: 60 correcciones al azar (semilla fija; buenas y malas, con envío ya hecho de una prenda) y, después de CADA una, las invariantes de la
+// compra. Una corrección rechazada no puede dejar nada; una aceptada no puede dejar un estado imposible.
+const ATAQUE = (semilla) => `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${ITEMS()}
+reset role;
+insert into retail.despachos (ubicacion_destino_id, despachado_por) values (:'tru', :'micaela') returning id as desp \\gset
+insert into retail.despacho_items (despacho_id, orden_compra_item_id, cantidad, categoria_id, marca_id, precio_unitario)
+select :'desp', i.id, 2, i.categoria_id, i.marca_id, i.precio_unitario from retail.orden_compra_items i where i.id = :'it1';
+select count(*) as movs_antes from retail.movimientos_dinero \\gset
+select retail.fn_mi_plata_tiene(:'micaela') as tiene_antes, (select pagado from retail.compra_papeles where id = '${ID}') as pagado_antes \\gset
+create function pg_temp.invariantes() returns text language plpgsql security definer as $f$
+declare v_m numeric; v_p numeric; v_suma numeric; v_mal text := '';
+begin
+  select monto, pagado into v_m, v_p from retail.compra_papeles where id = '${ID}';
+  select coalesce(sum(i.subtotal), 0) into v_suma from retail.ordenes_compra o join retail.orden_compra_items i on i.orden_compra_id = o.id
+   where o.papel_id = '${ID}' and o.estado = 'generada';
+  if v_p < 0 or v_p > v_m then v_mal := v_mal || ' pagado_fuera_de_rango'; end if;
+  if abs(v_m - v_suma) > 0.005 then v_mal := v_mal || ' papel_no_cuadra(' || v_m || '/' || v_suma || ')'; end if;
+  if exists (select 1 from retail.ordenes_compra o where o.papel_id = '${ID}' and o.estado = 'generada'
+              and not exists (select 1 from retail.orden_compra_items i where i.orden_compra_id = o.id)) then v_mal := v_mal || ' orden_vacia'; end if;
+  if exists (select 1 from retail.orden_compra_items i join retail.ordenes_compra o on o.id = i.orden_compra_id
+              where o.papel_id = '${ID}' and i.cantidad < (select coalesce(sum(di.cantidad), 0) from retail.despacho_items di where di.orden_compra_item_id = i.id))
+    then v_mal := v_mal || ' menos_de_lo_enviado'; end if;
+  if exists (select 1 from retail.orden_compra_items i join retail.ordenes_compra o on o.id = i.orden_compra_id
+              where o.papel_id = '${ID}' and (i.cantidad < 1 or i.precio_unitario < 0 or i.precio_venta_sugerido > 5000 or i.precio_venta_sugerido < 0))
+    then v_mal := v_mal || ' linea_fuera_de_regla'; end if;
+  if (select count(*) from retail.movimientos_dinero) <> current_setting('t.movs_antes')::bigint then v_mal := v_mal || ' movio_dinero'; end if;
+  if abs(retail.fn_mi_plata_tiene(current_setting('t.micaela')::uuid) - (current_setting('t.tiene_antes')::numeric + (current_setting('t.pagado_antes')::numeric - v_p))) > 0.005 then v_mal := v_mal || ' plata_no_sigue_a_lo_pagado'; end if;
+  if exists (select 1 from retail.orden_compra_items i join retail.productos p on p.id = i.producto_id
+              where i.id = current_setting('t.it2')::uuid and (i.categoria_id <> p.categoria_id or i.marca_id is distinct from p.marca_id)) then v_mal := v_mal || ' catalogo_tocado'; end if;
+  return nullif(btrim(v_mal), '');
+end $f$;
+grant execute on function pg_temp.invariantes() to authenticated;
+select set_config('t.lima2', :'lima', true), set_config('t.movs_antes', :'movs_antes', true), set_config('t.micaela', :'micaela', true),
+       set_config('t.tiene_antes', :'tiene_antes', true), set_config('t.pagado_antes', :'pagado_antes', true) \\g /dev/null
+${como(MICAELA, "c")}
+select setseed(${semilla});
+do $a$
+declare i integer; v_n integer := 0; v_ok integer := 0; v_mal text; v_c jsonb; v_cambios jsonb; v_sin_cambios text;
+begin
+  for i in 1..60 loop
+    v_cambios := jsonb_build_array(
+      jsonb_strip_nulls(jsonb_build_object('item_id', current_setting('t.it1'),
+        'cantidad', case when random() < 0.6 then (floor(random() * 15) - 2)::int end,
+        'costo', case when random() < 0.6 then round((random() * 140 - 10)::numeric, case when random() < 0.2 then 3 else 2 end) end,
+        'precio_venta', case when random() < 0.4 then round((random() * 7000)::numeric, 2) end,
+        'destino_id', case when random() < 0.2 then current_setting('t.lima2') end)),
+      jsonb_strip_nulls(jsonb_build_object('item_id', current_setting('t.it2'),
+        'cantidad', case when random() < 0.6 then (floor(random() * 15) - 2)::int end,
+        'costo', case when random() < 0.6 then round((random() * 140 - 10)::numeric, 2) end,
+        'precio_venta', case when random() < 0.4 then round((random() * 7000)::numeric, 2) end,
+        'destino_id', case when random() < 0.3 then (array[current_setting('t.tru'), current_setting('t.lima2')])[1 + floor(random() * 2)::int] end,
+        'descripcion', case when random() < 0.2 then 'Otro nombre' end,
+        'categoria_id', case when random() < 0.1 then gen_random_uuid()::text end)));
+    v_n := v_n + 1;
+    begin
+      perform retail.corregir_compra_rapida('${ID}', gen_random_uuid(), v_cambios);
+      v_ok := v_ok + 1;
+    exception when others then
+      null; -- rechazada: no tiene que haber dejado nada (lo mira la invariante)
+    end;
+    v_mal := pg_temp.invariantes();
+    if v_mal is not null then
+      raise exception 'INVARIANTE ROTA en la vuelta % con %: %', i, v_cambios::text, v_mal;
+    end if;
+  end loop;
+  perform set_config('t.aceptadas', v_ok::text, true);
+end $a$;
+select case when current_setting('t.aceptadas')::int between 3 and 57 then 'sin invariantes rotas' else 'ataque sin filo: ' || current_setting('t.aceptadas') end;`;
+
+for (const semilla of ["0.561", "0.42", "-0.9", "0.07"]) {
+  caso(`ataque al azar (semilla ${semilla}): 60 correcciones buenas y malas, y tras cada una las invariantes de la compra (papel cuadra, pagado en rango, nada de lo enviado baja, la plata sigue a lo pagado, no mueve dinero, el catálogo no se toca)`, ATAQUE(semilla), "sin invariantes rotas");
+}
+
+caso(
   "queda la actividad de la corrección, sin montos; anon no ejecuta nada y la tabla no se lee directo",
   `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
 ${COMPRA()} \\g /dev/null
