@@ -1,12 +1,12 @@
 # Backlog · 2026-10-28 · Insumos: una tela con sus colores, en metros (ADR-0554)
 
-**Estado en producción (28-oct, confirmado con la sonda de solo lectura que corrió Felipe):** `20261028175000` está pegada entera (PARTE 1 y PARTE 2; el conversor devolvió 1 y esa tela ya tiene tejido) y el respaldo `estado-tras-conversion-2026-10-28` también. **`20261028172000` NO está** y `20261028203000` tampoco. La web publicada es la de antes: la rama se sube con PR en borrador (`/abrir-pr`).
+**Estado en producción (28-oct, confirmado con la sonda de solo lectura que corrió Felipe):** `20261028175000` está pegada entera (PARTE 1 y PARTE 2; el conversor devolvió 1 y esa tela ya tiene tejido) y el respaldo `estado-tras-conversion-2026-10-28` también. **`20261028172000` y `20261028203000` también están pegadas** (noche del 28-oct) y el check «SQL pegado» lo comprobó contra producción (las tres ✓). La web nueva sale al fusionar el PR #1456 (hoy en borrador).
 
 ## Felipe (en este orden)
-- [ ] **Revisar el PR en borrador** y dejarlo listo: producción ya corre SQL que antes solo vivía en un worktree.
-- [ ] **Pegar `20261028172000` entera, en una sola pegada** (se detiene y dice qué corregir si hay una tela en otra unidad o códigos repetidos). Después, la sonda corta (en el ADR-0554, «Orden de entrega») debe dar `2 | t | t | t | t | 1 | 1 | 1 | 0`.
-- [ ] **Pegar `20261028203000` entera, en una sola pegada, antes de publicar la web** nueva (necesita la anterior: si falta se detiene con «Primero pega 20261028172000»). Hace posible «Editar tela» y cierra lo que encontraron las dos revisiones. **Nunca repegar `20261028175000` después de ésta.**
-- [ ] **Marcar SOLO la casilla «SQL pegado en producción»** del cuerpo del PR (nunca la otra: dejaría el check verde sin mirar producción) y esperar las tres líneas ✓ del check «SQL pegado». Desde que se peguen, las tres migraciones **no se editan** (un texto entre comillas cambia la huella; los comentarios no).
+- [x] **Revisar el PR en borrador** y dejarlo listo: producción ya corre SQL que antes solo vivía en un worktree.
+- [x] **Pegar `20261028172000` entera, en una sola pegada** (se detiene y dice qué corregir si hay una tela en otra unidad o códigos repetidos). Después, la sonda corta (en el ADR-0554, «Orden de entrega») debe dar `2 | t | t | t | t | 1 | 1 | 1 | 0`.
+- [x] **Pegar `20261028203000` entera, en una sola pegada, antes de publicar la web** nueva (necesita la anterior: si falta se detiene con «Primero pega 20261028172000»). Hace posible «Editar tela» y cierra lo que encontraron las dos revisiones. **Nunca repegar `20261028175000` después de ésta.**
+- [x] **Marcar SOLO la casilla «SQL pegado en producción»** del cuerpo del PR (nunca la otra: dejaría el check verde sin mirar producción) y esperar las tres líneas ✓ del check «SQL pegado». Desde que se peguen, las tres migraciones **no se editan** (un texto entre comillas cambia la huella; los comentarios no).
 - [ ] **Publicar la web: fusionar el PR a mano** (sin auto-merge) cuando los tres checks estén verdes en el mismo commit y la rama no diga BEHIND (si `main` se movió: «Update branch» una vez y esperar ~9 min; no hay que repegar ni volver a marcar).
 - [ ] **Correr el conversor:** `select * from retail.fn_materializar_insumos_sueltos();` (ensaya) y, si cuadra, `…(true)`.
 - [ ] **Mirar el costo del lote de 9 m de `MM-01`:** el error de la coma pudo dejarlo en S/ 0.00 (es dinero).
