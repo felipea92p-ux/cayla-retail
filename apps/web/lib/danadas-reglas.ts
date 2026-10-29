@@ -28,7 +28,7 @@ export const RPC_REPORTAR_DANADA = "reportar_danada";
 export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token", "p_tipo"] as const;
 export const RPC_ARREGLAR_DANADA = "arreglar_prenda_danada";
 /** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
-export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token"] as const;
+export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token", "p_destino", "p_costo"] as const;
 
 /** Lo que tiene la prenda y lo que se le arregló: entre 3 y 200 caracteres (la base exige lo mismo). */
 export const MIN_TEXTO_DANADA = 3;
@@ -127,9 +127,38 @@ export function problemasReporte(e: EstadoReporte): ProblemaReporte[] {
   return out;
 }
 
-/** La guía del panel «Se arregló»: qué se le hizo (lo exige la base) y quién lo hace. */
-export function camposGuiaArreglo(nota: string, responsableListo: boolean): CampoDeGuia[] {
+/**
+ * A dónde vuelve una prenda arreglada (ADR-0564, Felipe 2026-10-28): quien decide elige. El almacén es de fábrica (lo de siempre: para venderla
+ * se cuelga después); el piso la deja lista para vender y Frescura cuenta su edad desde ese momento. Los valores son los de `p_destino`.
+ */
+export const DESTINOS_ARREGLO = [
+  { valor: "almacen", etiqueta: "Al almacén" },
+  { valor: "piso", etiqueta: "Al piso, lista para vender" },
+] as const;
+export type DestinoArreglo = (typeof DESTINOS_ARREGLO)[number]["valor"];
+
+/** @internal Lo lee solo su prueba, que lo cruza con la lista de la migración. */
+export const VALORES_DESTINO_ARREGLO: readonly DestinoArreglo[] = DESTINOS_ARREGLO.map((d) => d.valor);
+
+/** El tope del costo de un arreglo (la base: numeric(10,2), con la función en 99,999.99). */
+export const MAX_COSTO_ARREGLO = 99999.99;
+
+/**
+ * Lo que costó el arreglo, escrito por la persona: vacío es «no se anotó» (null, el costo es opcional: a veces no se cobra); un número con
+ * hasta 2 decimales, coma o punto, de 0 a 99,999.99. `"invalido"` si no calza; nunca lanza.
+ */
+export function leerCostoArreglo(texto: string): number | null | "invalido" {
+  const t = texto.trim().replace(",", ".");
+  if (t === "") return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return "invalido";
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 && n <= MAX_COSTO_ARREGLO ? n : "invalido";
+}
+
+/** La guía del panel «Se arregló»: qué se le hizo (lo exige la base), a dónde vuelve, cuánto costó (opcional) y quién lo hace. */
+export function camposGuiaArreglo(nota: string, responsableListo: boolean, destinoConfirmado = true, costo = ""): CampoDeGuia[] {
   const largo = largoUtil(nota);
+  const costoLeido = leerCostoArreglo(costo);
   return [
     {
       id: "arreglo",
@@ -138,6 +167,10 @@ export function camposGuiaArreglo(nota: string, responsableListo: boolean): Camp
       hecho: largo >= MIN_TEXTO_DANADA && largo <= MAX_TEXTO_DANADA,
       pendiente: largo > MAX_TEXTO_DANADA ? `Admite hasta ${MAX_TEXTO_DANADA} caracteres.` : "Escribe qué se le hizo a la prenda.",
     },
+    // Viene en «Al almacén»: importa (decide si queda lista para vender), así que la guía pasa por él como sugerido, sin bloquear (ADR-0284 act. h).
+    { id: "destino", nombre: "A dónde vuelve", requerido: false, sugerido: true, hecho: destinoConfirmado, pendiente: "Confirma a dónde vuelve la prenda." },
+    // El costo es opcional, pero si se escribe tiene que ser un monto válido: la base lo rechazaría.
+    { id: "costo", nombre: "Lo que costó", requerido: costoLeido === "invalido", hecho: costoLeido !== null && costoLeido !== "invalido", pendiente: "Escribe un monto válido, o déjalo vacío (por ejemplo 12.50)." },
     { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsableListo, pendiente: "Elige quién decide." },
   ];
 }
@@ -165,10 +198,10 @@ export function argumentosDeReporte(
   return { p_ubicacion_id: ubicacionId, p_variante_id: varianteId, p_cantidad: cantidad, p_desde: desde, p_motivo: motivo.trim(), p_token: token, p_tipo: tipo };
 }
 
-export type ArgumentosDeArreglo = { p_id: string; p_nota: string; p_token: string };
+export type ArgumentosDeArreglo = { p_id: string; p_nota: string; p_token: string; p_destino: DestinoArreglo; p_costo?: number };
 
-export function argumentosDeArreglo(id: string, nota: string, token: string): ArgumentosDeArreglo {
-  return { p_id: id, p_nota: nota.trim(), p_token: token };
+export function argumentosDeArreglo(id: string, nota: string, token: string, destino: DestinoArreglo = "almacen", costo: number | null = null): ArgumentosDeArreglo {
+  return costo === null ? { p_id: id, p_nota: nota.trim(), p_token: token, p_destino: destino } : { p_id: id, p_nota: nota.trim(), p_token: token, p_destino: destino, p_costo: costo };
 }
 
 export type RespuestaDanada = { ya_registrada: boolean; id: string; unidades: number };
@@ -255,8 +288,9 @@ export function tituloExitoReporte(unidades: number): string {
   return unidades === 1 ? "Prenda reportada como dañada" : `${unidades} prendas reportadas como dañadas`;
 }
 
-export function tituloExitoArreglo(unidades: number): string {
-  return unidades === 1 ? "Volvió al almacén" : `${unidades} prendas volvieron al almacén`;
+export function tituloExitoArreglo(unidades: number, destino: DestinoArreglo = "almacen"): string {
+  const donde = destino === "piso" ? "al piso" : "al almacén";
+  return unidades === 1 ? `Volvió ${donde}` : `${unidades} prendas volvieron ${donde}`;
 }
 
 export const TEXTO_ARREGLO_YA_ESTABA = "Esta prenda ya había vuelto al almacén. No se repitió.";
@@ -343,8 +377,10 @@ export function recordatorioAlReportar(desde: DesdeDanada, lugar?: string | null
 }
 
 /** Lo que pasa con «Se arregló»: vuelve al almacén y, para venderla, se cuelga en el piso (así Frescura cuenta su edad desde ahí). */
-export function quePasaAlArreglar(sede: string): string {
-  const donde = sede.trim() ? `al almacén de ${sede.trim()}` : "al almacén";
+export function quePasaAlArreglar(sede: string, destino: DestinoArreglo = "almacen"): string {
+  const s = sede.trim();
+  if (destino === "piso") return `Vuelve al piso${s ? ` de ${s}` : ""}, lista para vender: ya no hace falta colgarla. Frescura cuenta su edad desde hoy.`;
+  const donde = s ? `al almacén de ${s}` : "al almacén";
   return `Vuelve ${donde}. Para venderla, cuélgala en el piso desde Existencias.`;
 }
 

@@ -8,7 +8,7 @@ import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
-import { leerEnArreglo, type EnArreglo } from "@/lib/danadas-arreglo";
+import { leerEnArreglo, type EnArreglo, type NoSePudo } from "@/lib/danadas-arreglo";
 import { leerDevolvibles, leerTipoDano, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada, type TipoDano } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
@@ -438,6 +438,8 @@ export type PrendaDanada = {
   tipoDano: TipoDano | null;
   /** ADR-0564: si ya salió de la tienda a arreglarse (cuándo y hacia dónde), o null si sigue en la tienda. */
   enArreglo: EnArreglo | null;
+  /** ADR-0564: si volvió de arreglarse SIN arreglo (con su motivo), o null. Sigue en cuarentena, esperando que se decida su destino. */
+  noSePudo: NoSePudo | null;
   /** Si llegó dañada en una recepción, a qué proveedor se devuelve (ADR-0362, fase 5b, actividad 6a); si no, null (sin el botón). */
   devolucion: DevolucionPosible | null;
 };
@@ -506,7 +508,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
   const devolvibles = filas.length === 0 ? new Map<string, DevolucionPosible>() : await leerDevolviblesDeSede(supabase, ubicacionId);
   // Cuáles ya salieron a arreglarse (ADR-0564): una lectura aparte, opcional como la anterior. Sin las columnas (la web salió antes que
   // `20261029032000`) o sin respuesta, ninguna sale marcada y la lista es la de antes.
-  const enArreglo = filas.length === 0 ? new Map<string, EnArreglo>() : await leerEnArregloDeSede(supabase, ubicacionId);
+  const salidas = filas.length === 0 ? new Map<string, SalidaDeArreglo>() : await leerEnArregloDeSede(supabase, ubicacionId);
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -520,7 +522,8 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
     motivoReporte: f.motivo_reporte,
     tipoDano: leerTipoDano(f.tipo_dano),
-    enArreglo: enArreglo.get(f.id) ?? null,
+    enArreglo: salidas.get(f.id)?.enArreglo ?? null,
+    noSePudo: salidas.get(f.id)?.noSePudo ?? null,
     devolucion: devolvibles.get(f.id) ?? null,
   }));
 }
@@ -538,18 +541,25 @@ export async function getLugarDeDanadas(ubicacionId: string): Promise<string | n
   return data?.[0]?.lugar?.trim() || null;
 }
 
-async function leerEnArregloDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, EnArreglo>> {
+type SalidaDeArreglo = { enArreglo: EnArreglo | null; noSePudo: NoSePudo | null };
+
+async function leerEnArregloDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, SalidaDeArreglo>> {
   const { data, error } = await supabase
     .from("prendas_danadas")
-    .select("id, en_arreglo_desde, ruta_arreglo")
+    .select("id, en_arreglo_desde, ruta_arreglo, arreglo_volvio_en, arreglo_resultado, arreglo_no_se_pudo_motivo")
     .eq("ubicacion_id", ubicacionId)
     .eq("estado", "en_cuarentena")
     .not("en_arreglo_desde", "is", null);
-  const salidas = new Map<string, EnArreglo>();
+  const salidas = new Map<string, SalidaDeArreglo>();
   if (error) return salidas;
   for (const f of data ?? []) {
-    const e = leerEnArreglo(f.en_arreglo_desde, f.ruta_arreglo);
-    if (e) salidas.set(f.id, e);
+    // Fuera de la tienda: salió y todavía no volvió. Volvió sin arreglo: lo dice su resultado (y su motivo, si lo hay).
+    if (f.arreglo_volvio_en === null) {
+      const e = leerEnArreglo(f.en_arreglo_desde, f.ruta_arreglo);
+      if (e) salidas.set(f.id, { enArreglo: e, noSePudo: null });
+    } else if (f.arreglo_resultado === "no_se_pudo") {
+      salidas.set(f.id, { enArreglo: null, noSePudo: { motivo: f.arreglo_no_se_pudo_motivo?.trim() || null } });
+    }
   }
   return salidas;
 }

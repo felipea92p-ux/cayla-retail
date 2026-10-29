@@ -86,10 +86,19 @@ exception when others then
   return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg, 'detail', nullif(v_detail, ''));
 end;
 $f$;
-create function pg_temp.arreglar(p_id uuid, p_nota text, p_token uuid) returns jsonb language plpgsql as $f$
+create function pg_temp.arreglar(p_id uuid, p_nota text, p_token uuid, p_destino text default null, p_costo numeric default null) returns jsonb language plpgsql as $f$
 declare v_estado text; v_msg text; v_hint text;
 begin
-  return jsonb_build_object('ok', true, 'res', retail.arreglar_prenda_danada(p_id, p_nota, p_token));
+  return jsonb_build_object('ok', true, 'res', retail.arreglar_prenda_danada(p_id, p_nota, p_token, p_destino, p_costo));
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
+  return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg);
+end;
+$f$;
+create function pg_temp.no_pudo(p_id uuid, p_motivo text default null) returns jsonb language plpgsql as $f$
+declare v_estado text; v_msg text; v_hint text;
+begin
+  return jsonb_build_object('ok', true, 'res', retail.no_se_pudo_arreglar(p_id, p_motivo));
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
   return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg);
@@ -230,7 +239,7 @@ caso(
   "D1 · una sola versión de cada función, con la firma del contrato",
   `select string_agg(proname || '(' || pg_get_function_identity_arguments(oid) || ')', ';' order by proname)
      from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('reportar_danada', 'arreglar_prenda_danada');`,
-  "arreglar_prenda_danada(p_id uuid, p_nota text, p_token uuid);reportar_danada(p_ubicacion_id uuid, p_variante_id uuid, p_cantidad integer, p_desde text, p_motivo text, p_token uuid, p_tipo text)"
+  "arreglar_prenda_danada(p_id uuid, p_nota text, p_token uuid, p_destino text, p_costo numeric);reportar_danada(p_ubicacion_id uuid, p_variante_id uuid, p_cantidad integer, p_desde text, p_motivo text, p_token uuid, p_tipo text)"
 );
 caso(
   "D1 · anon no las ejecuta, authenticated sí; security definer con el search_path fijo de la casa",
@@ -263,7 +272,7 @@ select pg_temp.intento(${"$"}m$${TEXTO_MIGRACION_TIPO.replace(/\\/g, "\\\\")}${"
 select concat_ws(',', :'p1', :'p2',
   (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('reportar_danada', 'arreglar_prenda_danada')),
   (select count(*) from pg_constraint where conrelid = 'retail.prendas_danadas'::regclass and contype = 'c'));`,
-  "true,true,2,10"
+  "true,true,2,14"
 );
 {
   const sinComentarios = TEXTO_MIGRACION_TIPO.replace(/--[^\n]*/g, "");
@@ -765,6 +774,80 @@ select pg_temp.intento(format('update retail.prendas_danadas set en_arreglo_desd
 select pg_temp.intento(format('update retail.prendas_danadas set en_arreglo_desde = now(), ruta_arreglo = %L where id = %L', 'luna', :'did')) ->> 'estado' as c \\gset
 select concat_ws(',', :'a', :'b', :'c');`,
   "23514,23514,23514"
+);
+
+// ===========================================================================
+// D12 · «Se arregló» con destino y costo, y «No se pudo» (ADR-0564, `20261029033000`)
+// ===========================================================================
+
+const SALE = `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select ${sacar("'taller'")} as _s \\gset
+`;
+caso(
+  "D12 · «Se arregló» AL PISO con costo: cuarentena −2, el piso recupera las 2 y el almacén queda igual; DOS traslados internos nuevos; costo y resultado anotados",
+  `${SALE}${COMO_POSTGRES}select ${cant("va", "piso_t")} as piso0, ${cant("va", "alm_t")} as alm0, (select count(*) from retail.movimientos where variante_id = :'va' and tipo = 'traslado') as mov0 \\gset
+${sesion(FELIPE)}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3', 'piso', 12.5) as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', (:'r')::jsonb -> 'res' ->> 'destino',
+  ${cant("va", "cua_t")}, ${cant("va", "piso_t")} - :piso0, ${cant("va", "alm_t")} - :alm0,
+  (select count(*) from retail.movimientos where variante_id = :'va' and tipo = 'traslado') - :mov0,
+  (select concat_ws('/', estado, arreglo_costo, arreglo_resultado, arreglo_volvio_en is not null) from retail.prendas_danadas where id = :'did'),
+  (select bool_and(sububicacion_id = :'alm_t' and sububicacion_destino_id = :'piso_t') from retail.movimientos where variante_id = :'va' and tipo = 'traslado' and created_at >= now() - interval '1 minute' and sububicacion_id = :'alm_t'));`,
+  "true,piso,0,2,0,2,se_arreglo/12.50/arreglada/t,t"
+);
+caso(
+  "D12 · sin destino ni costo (una web vieja) vuelve al ALMACÉN como siempre; sin salida previa, no queda «volvió»",
+  `${REPORTE_DE_VA}select ${cant("va", "piso_t")} as piso0, ${cant("va", "alm_t")} as alm0 \\gset
+${sesion(FELIPE)}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3') as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', (:'r')::jsonb -> 'res' ->> 'destino', ${cant("va", "piso_t")} - :piso0, ${cant("va", "alm_t")} - :alm0,
+  (select concat_ws('/', arreglo_costo is null, arreglo_resultado, arreglo_volvio_en is null) from retail.prendas_danadas where id = :'did'));`,
+  "true,almacen,0,2,t/arreglada/t"
+);
+caso(
+  "D12 · un destino que no es piso ni almacén y un costo negativo o de 100 mil se rechazan; nada se mueve",
+  `${REPORTE_DE_VA}select ${CONTADORES} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3', 'sótano') as a \\gset
+select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3', 'piso', -1) as b \\gset
+select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3', 'piso', 100000) as c \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb ->> 'hint', (:'b')::jsonb ->> 'hint', (:'c')::jsonb ->> 'hint', ${CONTADORES} = :'antes');`,
+  "arreglo_destino_invalido,arreglo_costo_invalido,arreglo_costo_invalido,t"
+);
+caso(
+  "D12 · el reintento con la misma marca y los mismos datos devuelve ya_registrada (sin mover otra vez); la misma marca con OTRO destino se rechaza",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3', 'piso', 5) as a \\gset
+${COMO_POSTGRES}select (select count(*) from retail.movimientos where variante_id = :'va' and tipo = 'traslado') as mov1 \\gset
+${sesion(FELIPE)}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3', 'piso', 5) as b \\gset
+select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok3', 'almacen', 5) as c \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'b')::jsonb -> 'res' ->> 'ya_registrada', (:'c')::jsonb ->> 'ok',
+  (select count(*) from retail.movimientos where variante_id = :'va' and tipo = 'traslado') = :mov1);`,
+  "true,false,t"
+);
+caso(
+  "D12 · «No se pudo»: la prenda sigue en cuarentena, ya no «en arreglo», con su motivo; repetirlo devuelve ya_registrada; sin salida previa no se puede",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select pg_temp.no_pudo(:'did') as sin_salida \\gset
+select ${sacar("'cerca'")} as _s \\gset
+select pg_temp.no_pudo(:'did', 'La mancha no sale') as a \\gset
+select pg_temp.no_pudo(:'did', 'La mancha no sale') as b \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'sin_salida')::jsonb ->> 'hint', (:'a')::jsonb ->> 'ok', (:'b')::jsonb -> 'res' ->> 'ya_registrada',
+  (select concat_ws('/', estado, arreglo_resultado, arreglo_no_se_pudo_motivo, arreglo_volvio_en is not null) from retail.prendas_danadas where id = :'did'), ${cant("va", "cua_t")});`,
+  "arreglo_no_esta_fuera,true,true,en_cuarentena/no_se_pudo/La mancha no sale/t,2"
+);
+caso(
+  "D12 · tras «No se pudo» puede volver a salir a arreglar (otra vuelta limpia); y «No se pudo» exige el módulo y la tienda",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select ${sacar("'cerca'")} as _s \\gset
+select pg_temp.no_pudo(:'did') as _n \\gset
+select ${sacar("'taller'")} as de_nuevo \\gset
+${SIN_EXISTENCIAS_EN_NINGUN_ROL}${sesion(MICAELA)}${COMO_API}select pg_temp.no_pudo(:'did') as sinmod \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'de_nuevo')::jsonb ->> 'ok', (:'sinmod')::jsonb ->> 'hint',
+  (select concat_ws('/', ruta_arreglo, arreglo_volvio_en is null, arreglo_resultado is null) from retail.prendas_danadas where id = :'did'));`,
+  "true,arreglo_sin_modulo,taller/t/t"
+);
+caso(
+  "D12 · los candados del esquema: un costo en una prenda no arreglada, un costo negativo, «volvió» sin haber salido y un motivo de «no se pudo» sin ese resultado se rechazan (23514)",
+  `${REPORTE_DE_VA}select pg_temp.intento(format('update retail.prendas_danadas set arreglo_costo = 5 where id = %L', :'did')) ->> 'estado' as a \\gset
+select pg_temp.intento(format('update retail.prendas_danadas set arreglo_volvio_en = now() where id = %L', :'did')) ->> 'estado' as b \\gset
+select pg_temp.intento(format('update retail.prendas_danadas set arreglo_resultado = %L, arreglo_costo = -3 where id = %L', 'arreglada', :'did')) ->> 'estado' as c \\gset
+select pg_temp.intento(format('update retail.prendas_danadas set arreglo_no_se_pudo_motivo = %L where id = %L', 'sin resultado', :'did')) ->> 'estado' as d \\gset
+select concat_ws(',', :'a', :'b', :'c', :'d');`,
+  "23514,23514,23514,23514"
 );
 
 console.log(`\n${total - fallos}/${total} pruebas en verde.`);

@@ -8,6 +8,12 @@ import {
   leerEnArreglo,
   leerRespuestaSalida,
   leerRutaArreglo,
+  argumentosDeNoSePudo,
+  camposGuiaNoSePudo,
+  leerRespuestaNoSePudo,
+  PARAMETROS_RPC_NO_SE_PUDO,
+  problemaDeNoSePudo,
+  RPC_NO_SE_PUDO,
   PARAMETROS_RPC_SACAR,
   problemaDeSalida,
   RPC_SACAR_A_ARREGLAR,
@@ -71,6 +77,34 @@ describe("qué falta para marcar la salida", () => {
     expect(sePuedeConfirmar(camposGuiaSalida("taller", "", false))).toBe(false);
     expect(sePuedeConfirmar(camposGuiaSalida("taller", "", true))).toBe(true);
     expect(camposGuiaSalida("taller", "", true).find((c) => c.id === "nota")?.requerido).toBe(false);
+  });
+});
+
+describe("«No se pudo» (el contrato con la base y sus reglas)", () => {
+  const REGRESO = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261029033000_danadas_se_arreglo_o_no_se_pudo.sql"), "utf8").replace(/--[^\n]*/g, "");
+
+  it("la RPC y sus parámetros son los de la migración, y los hints que la pantalla lee existen", () => {
+    const m = new RegExp(`create or replace function retail\\.${RPC_NO_SE_PUDO}\\(([^)]*)\\)`).exec(REGRESO);
+    expect(m).not.toBeNull();
+    expect(m![1].split(",").map((p) => p.trim().split(/\s+/)[0])).toEqual([...PARAMETROS_RPC_NO_SE_PUDO]);
+    for (const h of ["arreglo_no_esta_fuera", "arreglo_ya_volvio", "arreglo_ya_resuelta", "arreglo_nota_invalida"]) expect(REGRESO, h).toContain(`'${h}'`);
+  });
+
+  it("los argumentos llevan el motivo solo si se escribió; el motivo vale 3 a 200 y nunca bloquea vacío", () => {
+    expect(argumentosDeNoSePudo("d1", "  La mancha no sale ")).toEqual({ p_id: "d1", p_motivo: "La mancha no sale" });
+    expect(argumentosDeNoSePudo("d1", "   ")).toEqual({ p_id: "d1" });
+    expect(problemaDeNoSePudo("")).toBeNull();
+    expect(problemaDeNoSePudo("ab")).not.toBeNull();
+    expect(problemaDeNoSePudo("x".repeat(201))).not.toBeNull();
+    expect(sePuedeConfirmar(camposGuiaNoSePudo("", true))).toBe(true);
+    expect(sePuedeConfirmar(camposGuiaNoSePudo("ab", true))).toBe(false);
+    expect(sePuedeConfirmar(camposGuiaNoSePudo("", false))).toBe(false);
+  });
+
+  it("la respuesta se lee solo si calza", () => {
+    expect(leerRespuestaNoSePudo({ ya_registrada: true, id: "d1" })).toEqual({ ya_registrada: true, id: "d1" });
+    expect(leerRespuestaNoSePudo({ ya_registrada: "si", id: "d1" })).toBeNull();
+    expect(leerRespuestaNoSePudo(null)).toBeNull();
   });
 });
 

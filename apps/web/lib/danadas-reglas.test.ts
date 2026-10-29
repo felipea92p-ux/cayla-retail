@@ -6,6 +6,9 @@ import {
   argumentosDeDevolucion,
   argumentosDeReporte,
   camposGuiaArreglo,
+  DESTINOS_ARREGLO,
+  leerCostoArreglo,
+  VALORES_DESTINO_ARREGLO,
   camposGuiaDevolucion,
   cantidadAjustada,
   desdeInicial,
@@ -55,10 +58,12 @@ const leerMigracion = (archivo: string) => readFileSync(join(__dirname, "..", ".
 const MIGRACION_ARREGLO = leerMigracion("20261005140000_danadas_reportar_y_se_arreglo.sql");
 // ADR-0564: `reportar_danada` pasó a 7 parámetros (p_tipo al final); su definición vigente vive en la migración del tipo de daño.
 const MIGRACION_TIPO = leerMigracion("20261029024000_danadas_tipo_de_dano.sql");
-const MIGRACION = MIGRACION_ARREGLO + MIGRACION_TIPO;
+// ADR-0564: `arreglar_prenda_danada` pasó a 5 parámetros (p_destino y p_costo al final); su definición vigente vive en la migración del regreso.
+const MIGRACION_REGRESO = leerMigracion("20261029033000_danadas_se_arreglo_o_no_se_pudo.sql");
+const MIGRACION = MIGRACION_ARREGLO + MIGRACION_TIPO + MIGRACION_REGRESO;
 
 function firmaDe(nombre: string): string[] {
-  const m = new RegExp(`create or replace function retail\\.${nombre}\\(([^)]*)\\)`).exec(nombre === RPC_REPORTAR_DANADA ? MIGRACION_TIPO : MIGRACION_ARREGLO);
+  const m = new RegExp(`create or replace function retail\\.${nombre}\\(([^)]*)\\)`).exec(nombre === RPC_REPORTAR_DANADA ? MIGRACION_TIPO : MIGRACION_REGRESO);
   expect(m, nombre).not.toBeNull();
   return m![1].split(",").map((p) => p.trim().split(/\s+/)[0]);
 }
@@ -78,7 +83,7 @@ describe("el contrato con la base", () => {
   it("los mínimos y máximos de texto son los de la base (3 a 200)", () => {
     expect(MIGRACION_ARREGLO).toContain("between 3 and 200");
     expect(MIGRACION_TIPO).toContain("char_length(v_nota) < 3");
-    expect(MIGRACION_ARREGLO).toContain("char_length(v_nota) < 3");
+    expect(MIGRACION_REGRESO).toContain("char_length(v_nota) < 3");
     expect(MAX_TEXTO_DANADA).toBe(200);
   });
 
@@ -86,9 +91,11 @@ describe("el contrato con la base", () => {
     const r = argumentosDeReporte("tru", "v1", "piso", 2, "  Mancha en la manga ", "marca", "mancha");
     expect(r).toEqual({ p_ubicacion_id: "tru", p_variante_id: "v1", p_cantidad: 2, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca", p_tipo: "mancha" });
     expect(Object.keys(r).sort()).toEqual([...PARAMETROS_RPC_REPORTAR].sort());
-    const a = argumentosDeArreglo("d1", " Se cosió el botón  ", "m2");
-    expect(a).toEqual({ p_id: "d1", p_nota: "Se cosió el botón", p_token: "m2" });
+    const a = argumentosDeArreglo("d1", " Se cosió el botón  ", "m2", "piso", 12.5);
+    expect(a).toEqual({ p_id: "d1", p_nota: "Se cosió el botón", p_token: "m2", p_destino: "piso", p_costo: 12.5 });
     expect(Object.keys(a).sort()).toEqual([...PARAMETROS_RPC_ARREGLAR].sort());
+    // Sin costo no se manda (es opcional); sin destino, al almacén como siempre.
+    expect(argumentosDeArreglo("d1", "x y z", "m2")).toEqual({ p_id: "d1", p_nota: "x y z", p_token: "m2", p_destino: "almacen" });
   });
 
   it("la respuesta se lee solo si calza con el contrato", () => {
@@ -208,6 +215,42 @@ describe("qué falta para reportar", () => {
     expect(problemasReporte({ ...base, motivo: "x".repeat(201) }).map((p) => p.campo)).toEqual(["motivo"]);
   });
 
+});
+
+describe("«Se arregló» al piso o al almacén, con el costo (ADR-0564)", () => {
+  it("los destinos de la pantalla son EXACTAMENTE los que acepta la base", () => {
+    const enLaBase = [...(/v_destino not in \(([^)]*)\)/.exec(MIGRACION_REGRESO)?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+    expect(enLaBase).toEqual([...VALORES_DESTINO_ARREGLO]);
+    expect(DESTINOS_ARREGLO.map((d) => d.valor)).toEqual(["almacen", "piso"]);
+  });
+
+  it("el costo es opcional; si se escribe, de 0 a 99,999.99 con hasta 2 decimales (punto o coma)", () => {
+    expect(leerCostoArreglo("")).toBeNull();
+    expect(leerCostoArreglo("   ")).toBeNull();
+    expect(leerCostoArreglo("12.50")).toBe(12.5);
+    expect(leerCostoArreglo("12,5")).toBe(12.5);
+    expect(leerCostoArreglo("0")).toBe(0);
+    expect(leerCostoArreglo("99999.99")).toBe(99999.99);
+    for (const malo of ["-1", "100000", "1.234", "abc", "12.", "1e3", "1 2"]) expect(leerCostoArreglo(malo), malo).toBe("invalido");
+    // La función de la base rechaza lo mismo (los hints que la pantalla lee existen).
+    expect(MIGRACION_REGRESO).toContain("99999.99");
+    for (const h of ["arreglo_destino_invalido", "arreglo_costo_invalido", "arreglo_sede_sin_piso"]) expect(MIGRACION_REGRESO, h).toContain(`'${h}'`);
+  });
+
+  it("la guía pasa por el destino como sugerido y el costo mal escrito bloquea (la base lo rechazaría); vacío no", () => {
+    const base = (costo: string, confirmado = true) => camposGuiaArreglo("Se cosió el botón", true, confirmado, costo);
+    expect(sePuedeConfirmar(base(""))).toBe(true);
+    expect(sePuedeConfirmar(base("12.50"))).toBe(true);
+    expect(sePuedeConfirmar(base("abc"))).toBe(false);
+    expect(sePuedeConfirmar(base("", false))).toBe(true); // el destino sin confirmar nunca es un candado
+    expect(base("", false).find((c) => c.id === "destino")?.sugerido).toBe(true);
+  });
+
+  it("dice a dónde vuelve, y al piso aclara que Frescura cuenta desde hoy", () => {
+    expect(quePasaAlArreglar("Tienda TRU", "piso")).toBe("Vuelve al piso de Tienda TRU, lista para vender: ya no hace falta colgarla. Frescura cuenta su edad desde hoy.");
+    expect(tituloExitoArreglo(1, "piso")).toBe("Volvió al piso");
+    expect(tituloExitoArreglo(2, "piso")).toBe("2 prendas volvieron al piso");
+  });
 });
 
 describe("«Se arregló»", () => {

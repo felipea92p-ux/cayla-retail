@@ -18,6 +18,9 @@ import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
   argumentosDeArreglo,
   argumentosDeDevolucion,
+  DESTINOS_ARREGLO,
+  leerCostoArreglo,
+  type DestinoArreglo,
   camposGuiaArreglo,
   camposGuiaDevolucion,
   interpretarErrorDeDanada,
@@ -35,9 +38,17 @@ import {
   tituloExitoDevolucion,
 } from "@/lib/danadas-reglas";
 import {
+  argumentosDeNoSePudo,
   argumentosDeSalida,
+  camposGuiaNoSePudo,
   camposGuiaSalida,
+  leerRespuestaNoSePudo,
   leerRespuestaSalida,
+  QUE_PASA_AL_NO_PUDO,
+  RPC_NO_SE_PUDO,
+  TEXTO_NO_SE_PUDO_YA_ESTABA,
+  TEXTO_RED_NO_SE_PUDO,
+  TITULO_EXITO_NO_SE_PUDO,
   MAX_NOTA_ARREGLO,
   QUE_PASA_AL_SACAR,
   RPC_SACAR_A_ARREGLAR,
@@ -138,6 +149,14 @@ export function ResolverDanadosModal({
   const [notaArreglo, setNotaArreglo] = useState("");
   const [errorArreglo, setErrorArreglo] = useState<string | null>(null);
   const [arregloEnDuda, setArregloEnDuda] = useState(false);
+  // A dónde vuelve y cuánto costó (ADR-0564): el almacén es de fábrica y la guía pide confirmarlo; el costo es opcional.
+  const [destinoArreglo, setDestinoArreglo] = useState<DestinoArreglo>("almacen");
+  const [destinoConfirmado, setDestinoConfirmado] = useState(false);
+  const [costoArreglo, setCostoArreglo] = useState("");
+  // «No se pudo» (ADR-0564): la prenda que volvió de arreglarse sin arreglo, y por qué.
+  const [noPudo, setNoPudo] = useState<string | null>(null);
+  const [motivoNoPudo, setMotivoNoPudo] = useState("");
+  const [errorNoPudo, setErrorNoPudo] = useState<string | null>(null);
   const tokenArreglo = useRef<string>("");
   // «Devolver al proveedor»: la prenda abierta, la nota, su marca de reintento y si quedó en duda tras un corte de red.
   const [devolviendo, setDevolviendo] = useState<string | null>(null);
@@ -156,10 +175,12 @@ export function ResolverDanadosModal({
     ? camposGuiaLugar(textoLugar, responsable.listo)
     : sacando
     ? camposGuiaSalida(rutaSalida, notaSalida, responsable.listo)
+    : noPudo
+    ? camposGuiaNoSePudo(motivoNoPudo, responsable.listo)
     : devolviendo
     ? camposGuiaDevolucion(notaDevolucion, responsable.listo)
     : arreglando
-    ? camposGuiaArreglo(notaArreglo, responsable.listo)
+    ? camposGuiaArreglo(notaArreglo, responsable.listo, destinoConfirmado, costoArreglo)
     : liquidando
       ? [
           { id: "precio", nombre: "Precio", requerido: true, hecho: Number.isFinite(precioLiquidando) && precioLiquidando > 0, pendiente: "Escribe el precio de liquidación." },
@@ -261,6 +282,7 @@ export function ResolverDanadosModal({
   }
 
   function abrirSalida(id: string) {
+    setNoPudo(null);
     setLiquidando(null);
     setDevolviendo(null);
     setArreglando(null);
@@ -301,7 +323,47 @@ export function ResolverDanadosModal({
     router.refresh();
   }
 
+  function abrirNoPudo(id: string) {
+    setLiquidando(null);
+    setDevolviendo(null);
+    setArreglando(null);
+    setSacando(null);
+    setNoPudo(id);
+    setMotivoNoPudo("");
+    setErrorNoPudo(null);
+  }
+
+  async function confirmarNoPudo(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null) return;
+    setResolviendo(p.id);
+    setErrorNoPudo(null);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_NO_SE_PUDO, argumentosDeNoSePudo(p.id, motivoNoPudo)), responsable.firma());
+      data = r.data;
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "anotar que no se pudo arreglar");
+      // Repetirlo es seguro (el mismo resultado devuelve «ya estaba»): tras un corte basta volver a tocar.
+      setErrorNoPudo(fallo.tipo === "red" ? TEXTO_RED_NO_SE_PUDO : fallo.mensaje);
+      if (error.hint === "arreglo_ya_volvio" || error.hint === "arreglo_ya_resuelta" || error.hint === "arreglo_no_esta_fuera") router.refresh();
+      return;
+    }
+    const r = leerRespuestaNoSePudo(data) ?? { ya_registrada: false, id: p.id };
+    if (r.ya_registrada) avisar.aviso(TEXTO_NO_SE_PUDO_YA_ESTABA, { detalle: p.referencia });
+    else avisar.exito(TITULO_EXITO_NO_SE_PUDO, { detalle: p.referencia });
+    setNoPudo(null);
+    router.refresh();
+  }
+
   function abrirArreglo(id: string) {
+    setNoPudo(null);
     setSacando(null);
     setLiquidando(null);
     setDevolviendo(null);
@@ -310,17 +372,22 @@ export function ResolverDanadosModal({
     setNotaArreglo(notas[id] ?? "");
     setErrorArreglo(null);
     setArregloEnDuda(false);
+    setDestinoArreglo("almacen");
+    setDestinoConfirmado(false);
+    setCostoArreglo("");
     tokenArreglo.current = crypto.randomUUID();
   }
 
   async function confirmarArreglo(p: PrendaDanada) {
     if (!guia.puedeConfirmar || resolviendo !== null) return;
+    const costo = leerCostoArreglo(costoArreglo);
+    if (costo === "invalido") return;
     setResolviendo(p.id);
     setErrorArreglo(null);
     let data: unknown = null;
     let error: ErrorEscritura = null;
     try {
-      const r = await firmar(createClient().rpc(RPC_ARREGLAR_DANADA, argumentosDeArreglo(p.id, notaArreglo, tokenArreglo.current)), responsable.firma());
+      const r = await firmar(createClient().rpc(RPC_ARREGLAR_DANADA, argumentosDeArreglo(p.id, notaArreglo, tokenArreglo.current, destinoArreglo, costo)), responsable.firma());
       data = r.data;
       error = r.error;
     } catch (excepcion) {
@@ -337,12 +404,13 @@ export function ResolverDanadosModal({
     }
     const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: p.id, unidades: p.cantidad };
     if (r.ya_registrada) avisar.aviso(TEXTO_ARREGLO_YA_ESTABA, { detalle: p.referencia });
-    else avisar.exito(tituloExitoArreglo(r.unidades), { detalle: `${p.referencia} · cuélgala en el piso para venderla` });
+    else avisar.exito(tituloExitoArreglo(r.unidades, destinoArreglo), { detalle: destinoArreglo === "piso" ? `${p.referencia} · ya está en el piso, lista para vender` : `${p.referencia} · cuélgala en el piso para venderla` });
     setArreglando(null);
     router.refresh();
   }
 
   function abrirDevolucion(id: string) {
+    setNoPudo(null);
     setSacando(null);
     setLiquidando(null);
     setArreglando(null);
@@ -462,6 +530,13 @@ export function ResolverDanadosModal({
                     </p>
                     {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que se necesita para decidir. */}
                     <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion, p.tipoDano)}</p>
+                    {p.noSePudo && (
+                      <p className="mt-1">
+                        <Chip tono="ambar" versalitas={false} title="Volvió de arreglarse sin arreglo. Decide su destino: liquidar, botar, donar o volver a sacarla.">
+                          {p.noSePudo.motivo ? `No se pudo arreglar · ${p.noSePudo.motivo}` : "No se pudo arreglar"}
+                        </Chip>
+                      </p>
+                    )}
                     {p.enArreglo && (
                       <p className="mt-1">
                         <Chip tono="pizarra" versalitas={false} title="La prenda salió de la tienda a arreglarse. Cuando vuelva, marca «Se arregló».">
@@ -470,7 +545,7 @@ export function ResolverDanadosModal({
                       </p>
                     )}
                   </div>
-                  {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && sacando !== p.id && (
+                  {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && sacando !== p.id && noPudo !== p.id && (
                     <>
                       <CampoTexto
                         etiqueta="Nota (opcional)"
@@ -490,6 +565,18 @@ export function ResolverDanadosModal({
                             className="flex-1"
                           >
                             Salió a arreglar
+                          </Boton>
+                        )}
+                        {/* Volvió de arreglarse sin arreglo (ADR-0564): solo tiene sentido si salió. */}
+                        {p.enArreglo && (
+                          <Boton
+                            type="button"
+                            onClick={() => abrirNoPudo(p.id)}
+                            disabled={resolviendo !== null || !responsable.listo}
+                            title={responsable.motivo ?? "Volvió de arreglarse, pero no se pudo arreglar"}
+                            className="flex-1"
+                          >
+                            No se pudo
                           </Boton>
                         )}
                         {/* Un arreglo menor vuelve a la venta (ADR-0328): primero, porque es lo que no pierde la prenda. */}
@@ -517,6 +604,7 @@ export function ResolverDanadosModal({
                         <Boton
                           type="button"
                           onClick={() => {
+                            setNoPudo(null);
                             setSacando(null);
                             setArreglando(null);
                             setDevolviendo(null);
@@ -595,9 +683,46 @@ export function ResolverDanadosModal({
                       </div>
                     </div>
                   )}
+                  {puedeDecidir && noPudo === p.id && (
+                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <p className="text-xs text-tinta/65">{QUE_PASA_AL_NO_PUDO}</p>
+                      <CampoGuiado id="motivo" guia={guia}>
+                        <CampoTexto
+                          etiqueta={guia.etiqueta("motivo", "¿Por qué no se pudo? (opcional)")}
+                          // sugerir-fijo: es un dato libre de lo que pasó con el arreglo; no depende de nada elegido antes
+                          placeholder="Ej. la mancha no sale"
+                          maxLength={MAX_NOTA_ARREGLO}
+                          value={motivoNoPudo}
+                          onChange={(e) => {
+                            setMotivoNoPudo(e.target.value);
+                            setErrorNoPudo(null);
+                          }}
+                          disabled={resolviendo !== null}
+                        />
+                      </CampoGuiado>
+                      {errorNoPudo && <Aviso tono="error">{errorNoPudo}</Aviso>}
+                      <PieGuia guia={guia} listo="Todo listo: se anota que no se pudo." />
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setNoPudo(null)} disabled={resolviendo !== null}>
+                          Cancelar
+                        </Boton>
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => confirmarNoPudo(p)}
+                          cargando={resolviendo === p.id}
+                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          title={responsable.motivo ?? guia.frase ?? undefined}
+                          className={`flex-1 ${guia.claseConfirmar}`}
+                        >
+                          Anotar que no se pudo
+                        </Boton>
+                      </div>
+                    </div>
+                  )}
                   {puedeDecidir && arreglando === p.id && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">
-                      <p className="text-xs text-tinta/65">{quePasaAlArreglar(sede)}</p>
+                      <p className="text-xs text-tinta/65">{quePasaAlArreglar(sede, destinoArreglo)}</p>
                       <CampoGuiado id="arreglo" guia={guia}>
                         <CampoTexto
                           etiqueta={guia.etiqueta("arreglo", "¿Qué se arregló?")}
@@ -611,10 +736,35 @@ export function ResolverDanadosModal({
                           disabled={resolviendo !== null || arregloEnDuda}
                         />
                       </CampoGuiado>
+                      <CampoGuiado id="destino" guia={guia}>
+                        <CampoSelect
+                          etiqueta={guia.etiqueta("destino", "¿A dónde vuelve?")}
+                          valor={destinoArreglo}
+                          onValor={(v) => {
+                            setDestinoArreglo(v);
+                            setDestinoConfirmado(true);
+                          }}
+                          opciones={DESTINOS_ARREGLO.map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
+                          deshabilitado={resolviendo !== null || arregloEnDuda}
+                        />
+                      </CampoGuiado>
+                      <CampoGuiado id="costo" guia={guia}>
+                        <CampoMonto
+                          etiqueta={guia.etiqueta("costo", "¿Cuánto costó el arreglo? (opcional)")}
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          value={costoArreglo}
+                          onChange={(e) => {
+                            setCostoArreglo(e.target.value);
+                            setErrorArreglo(null);
+                          }}
+                          disabled={resolviendo !== null || arregloEnDuda}
+                        />
+                      </CampoGuiado>
                       {errorArreglo && (
                         <Aviso tono="error">{errorArreglo}</Aviso>
                       )}
-                      <PieGuia guia={guia} listo="Todo listo: vuelve al almacén." />
+                      <PieGuia guia={guia} listo={`Todo listo: vuelve al ${destinoArreglo === "piso" ? "piso" : "almacén"}.`} />
                       <div className="pie-acciones">
                         <Boton type="button" onClick={() => setArreglando(null)} disabled={resolviendo !== null}>
                           Cancelar
@@ -628,7 +778,7 @@ export function ResolverDanadosModal({
                           title={responsable.motivo ?? guia.frase ?? undefined}
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >
-                          {arregloEnDuda ? "Confirmar de nuevo" : "Volver al almacén"}
+                          {arregloEnDuda ? "Confirmar de nuevo" : destinoArreglo === "piso" ? "Volver al piso" : "Volver al almacén"}
                         </Boton>
                       </div>
                     </div>

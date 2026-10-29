@@ -3117,6 +3117,10 @@ export type Database = {
       prendas_danadas: {
         Row: {
           cambio_id: string | null
+          arreglo_costo: number | null
+          arreglo_no_se_pudo_motivo: string | null
+          arreglo_resultado: string | null
+          arreglo_volvio_en: string | null
           cantidad: number
           created_at: string
           devolucion_item_id: string | null
@@ -3139,6 +3143,10 @@ export type Database = {
         }
         Insert: {
           cambio_id?: string | null
+          arreglo_costo?: number | null
+          arreglo_no_se_pudo_motivo?: string | null
+          arreglo_resultado?: string | null
+          arreglo_volvio_en?: string | null
           cantidad: number
           created_at?: string
           devolucion_item_id?: string | null
@@ -3161,6 +3169,10 @@ export type Database = {
         }
         Update: {
           cambio_id?: string | null
+          arreglo_costo?: number | null
+          arreglo_no_se_pudo_motivo?: string | null
+          arreglo_resultado?: string | null
+          arreglo_volvio_en?: string | null
           cantidad?: number
           created_at?: string
           devolucion_item_id?: string | null
@@ -5968,6 +5980,8 @@ export type Database = {
       fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
       guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
       programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      // ADR-0564 (20261029033000): la prenda que salió a arreglarse volvió SIN arreglo.
+      no_se_pudo_arreglar: { Args: { p_id: string; p_motivo?: string }; Returns: Json }
       // ADR-0564 (20261029032000): «Salió a arreglar»: marca que una dañada en cuarentena salió de la tienda a arreglarse.
       sacar_danada_a_arreglar: { Args: { p_id: string; p_nota?: string; p_ruta: string }; Returns: Json }
       // ADR-0564 (20261029031000): marca (o borra, con texto vacío) el lugar físico donde la tienda deja las prendas dañadas.
@@ -6717,7 +6731,7 @@ export type Database = {
       }
       // ADR-0328 act. 10 (20261005140000): «Se arregló» — la dañada vuelve al almacén de su sede. Solo el líder.
       arreglar_prenda_danada: {
-        Args: { p_id: string; p_nota: string; p_token: string }
+        Args: { p_costo?: number; p_destino?: string; p_id: string; p_nota: string; p_token: string }
         Returns: Json
       }
       asignar_temporada_categoria: {

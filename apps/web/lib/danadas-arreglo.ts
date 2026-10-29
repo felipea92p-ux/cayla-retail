@@ -9,7 +9,8 @@
  *   PROMETE: la lista de rutas (los valores del CHECK de la base), los argumentos de la RPC (sus nombres viven aquí y la prueba los fija
  *            contra la migración), la lectura segura de lo que trae la base y la frase «En arreglo · Taller · hace 3 días».
  *   ASUME:   quien la usa ve Existencias en la sede de la prenda (la base lo exige).
- *   NO HACE: no decide a dónde vuelve ni si se pudo arreglar (eso es de «Se arregló», actividad 5) ni toca stock.
+ *   NO HACE: no decide a dónde vuelve ni cuánto costó (eso es de «Se arregló», `danadas-reglas.ts`); sí dice cómo vuelve SIN arreglo («No se pudo»,
+ *            actividad 5). Ninguna de las dos toca stock aquí: lo hace la base.
  */
 
 import type { CampoDeGuia } from "./guia-campos";
@@ -38,6 +39,13 @@ export function leerRutaArreglo(valor: unknown): RutaArreglo | null {
 
 /** Dónde está una prenda que salió a arreglarse (null: sigue en la tienda). */
 export type EnArreglo = { desde: string; ruta: RutaArreglo };
+
+/** Una prenda que volvió de arreglarse SIN arreglo (`arreglo_resultado = 'no_se_pudo'`), con el motivo si lo dijeron. */
+export type NoSePudo = { motivo: string | null };
+
+export const RPC_NO_SE_PUDO = "no_se_pudo_arreglar";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
+export const PARAMETROS_RPC_NO_SE_PUDO = ["p_id", "p_motivo"] as const;
 
 /** Lo que trae la lectura de la salida: las dos columnas juntas o ninguna (la base lo garantiza con un CHECK). */
 export function leerEnArreglo(desde: unknown, ruta: unknown): EnArreglo | null {
@@ -108,6 +116,43 @@ export function tituloExitoSalida(ruta: RutaArreglo): string {
 
 /** Tras un corte de red no se sabe si se anotó: repetir es seguro (la misma ruta devuelve «ya estaba»). */
 export const TEXTO_RED_SALIDA = "Se cortó la conexión y no sabemos si se anotó. Lo que escribiste sigue aquí: vuelve a tocar «Anotar la salida». Si ya se había guardado, no se repite.";
+
+export type ArgumentosNoSePudo = { p_id: string; p_motivo?: string };
+
+export function argumentosDeNoSePudo(id: string, motivo: string): ArgumentosNoSePudo {
+  const m = motivo.trim();
+  return m ? { p_id: id, p_motivo: m } : { p_id: id };
+}
+
+/** El motivo es opcional; si se escribe, de 3 a 200 como en la base. */
+export function problemaDeNoSePudo(motivo: string): string | null {
+  const largo = motivo.trim().length;
+  if (largo > 0 && largo < MIN_NOTA_ARREGLO) return "Escribe al menos 3 letras, o déjalo vacío.";
+  if (largo > MAX_NOTA_ARREGLO) return `Admite hasta ${MAX_NOTA_ARREGLO} caracteres.`;
+  return null;
+}
+
+export function camposGuiaNoSePudo(motivo: string, responsableListo: boolean): CampoDeGuia[] {
+  const problema = problemaDeNoSePudo(motivo);
+  return [
+    { id: "motivo", nombre: "Por qué no se pudo", requerido: problema !== null, hecho: problema === null && motivo.trim().length >= MIN_NOTA_ARREGLO, pendiente: problema ?? "" },
+    { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsableListo, pendiente: "Elige quién decide." },
+  ];
+}
+
+export type RespuestaNoSePudo = { ya_registrada: boolean; id: string };
+
+export function leerRespuestaNoSePudo(data: unknown): RespuestaNoSePudo | null {
+  if (typeof data !== "object" || data === null) return null;
+  const { ya_registrada, id } = data as Record<string, unknown>;
+  return typeof ya_registrada === "boolean" && typeof id === "string" && id ? { ya_registrada, id } : null;
+}
+
+export const TITULO_EXITO_NO_SE_PUDO = "Anotado: volvió sin arreglo";
+export const TEXTO_NO_SE_PUDO_YA_ESTABA = "Esta prenda ya estaba marcada como «No se pudo arreglar». No se repitió.";
+/** Lo que pasa al marcarla: sigue en la cuarentena de la tienda; ahora se decide su destino. */
+export const QUE_PASA_AL_NO_PUDO = "La prenda vuelve a la lista como «No se pudo arreglar». Sigue sin venderse: decide si se liquida, se bota, se dona o vuelve a salir a arreglar.";
+export const TEXTO_RED_NO_SE_PUDO = "Se cortó la conexión y no sabemos si se anotó. Lo que escribiste sigue aquí: vuelve a tocar «Anotar que no se pudo». Si ya se había guardado, no se repite.";
 
 export const TEXTO_SALIDA_YA_ESTABA = "Esta prenda ya estaba marcada como «En arreglo». No se repitió.";
 
