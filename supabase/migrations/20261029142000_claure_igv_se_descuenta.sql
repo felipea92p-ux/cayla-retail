@@ -14,7 +14,8 @@
 --   NO HACE: no cambia `fn_claure_filas`, el Diario ni ninguna tabla; la pantalla CLAURE y el Resumen se corrigen en la web (el saldo se calcula allí).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN — UNA SOLA EJECUCIÓN, después de 20261029044000 (que dejó a `fn_claure_cierre` con los gastos). Son cinco reemplazos anclados sobre una función
--- propia; ABORTAN SIN CAMBIAR NADA si el texto no es el esperado (dice cuál). Sin políticas ni `alter table`; idempotente (si el nuevo texto ya está, no hace nada).
+-- propia; ABORTAN SIN CAMBIAR NADA si el texto no es el esperado (dice cuál). Sin políticas ni `alter table`; idempotente (si el nuevo texto ya está, no hace nada), SALVO que ya se haya pegado
+-- 20261029144000, que vuelve a reescribir esas mismas líneas del saldo: en ese caso no se vuelve a pegar esta (aborta, sin cambiar nada).
 -- ============================================================================
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';

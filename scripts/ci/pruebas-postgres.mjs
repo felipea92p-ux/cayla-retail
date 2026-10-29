@@ -753,6 +753,10 @@ export const PRUEBAS = [
   // destinos no cambian; la migración se repega y aborta con un texto distinto. Parte del estado de ANTES de la migración. Cada caso: ROLLBACK.
   "pruebas:claure-efectivo-claudia",
 
+  // Servicios al 100 % de CLAURE (ADR-0560, actividad 12): la luz sigue 50/50; agua, internet y baño (servicios básicos, agua, internet) van 100 % a CLAURE; solo cambia el reparto (datos);
+  // respeta un porcentaje cambiado a mano; la migración se repega. Parte del reparto de la actividad 8. Cada caso: ROLLBACK.
+  "pruebas:claure-servicios-100",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

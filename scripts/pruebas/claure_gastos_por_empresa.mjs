@@ -60,6 +60,8 @@ const PRELUDIO = `
 begin;
 \\o /dev/null
 ${PREVIAS}
+-- Parte del reparto de FÁBRICA de esta actividad, no del que dejaron las posteriores (actividad 12 cambió servicios básicos): la tabla se vacía y 044000 la siembra.
+delete from retail.gasto_reparto_claure;
 ${MIGRACION}
 \\o
 insert into retail.empresa_sedes (empresa_id, ubicacion_id) select ${CAYLA}, u.id from retail.ubicaciones u on conflict do nothing;

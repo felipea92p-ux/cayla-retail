@@ -16,7 +16,7 @@ En Tienda LIM se vende lo de CAYLA y lo de CLAURE (la empresa de Claudia, herman
 5. **Una sola regla de «esta línea es de CLAURE»** (`fn_item_es_de_claure`): la sede es de las que CLAURE opera (`empresa_sedes`), la venta es del arranque de su cuenta (`empresas.cuenta_corriente_desde`) o después, y el dueño real de la línea (`fn_dueno_de_la_linea`, ADR-0542) es CLAURE. Todo lo demás la reusa.
 6. **Lo de CLAURE no suma en las pantallas de CAYLA** (Felipe: Finanzas, Análisis, Rendimiento, metas, Inicio, Observatorio, Club y clientes) **pero Caja, Historial, Movimientos e Impuestos lo muestran todo** (es lo que hay en el cajón y lo que se declara). Un ticket solo de CLAURE no cuenta como venta; uno mixto cuenta por sus líneas de CAYLA.
 7. **Se debe cuando la prenda sale**: el adelanto de un apartado o de un pedido web, que la venta guarda como `anticipo` sin cuenta, entra por la cuenta de cada abono y con la fecha de la venta.
-8. **Gastos por empresa**: alquiler, luz, servicios básicos y mantenimiento, 50/50; limpieza y bolsas, 100 % de CLAURE; reparto por categoría (`gasto_reparto_claure`). La planilla de CLAURE no se toca (no hay a quién atribuirla).
+8. **Gastos por empresa**: alquiler, luz y mantenimiento, 50/50; agua, internet, baño, limpieza y bolsas, 100 % de CLAURE (Felipe, 2026-10-29: «lo demás lo asume Claudia»); reparto por categoría (`gasto_reparto_claure`). La planilla de CLAURE no se toca (no hay a quién atribuirla).
 
 ## Cómo quedó construido
 

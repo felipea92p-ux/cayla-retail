@@ -2008,6 +2008,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     cobrado − devuelto − **IGV** − comisión − pagado − gastos suyos. En la web, `resumenClaure` y `seLeDebeDeFila` (`cuenta-claure-reglas.ts`) restan el IGV neto (el de una devolución viene en
     negativo); en la base, `fn_claure_cierre` (cinco reemplazos anclados) lo resta del saldo y del saldo anterior y trae `hoy.igv`. Cuadra con el Diario: la 479 ya era la parte sin IGV.
     `pnpm pruebas:claure-igv`.
+    **Servicios al 100 % (actividad 12, 20261029153000):** solo datos de `gasto_reparto_claure`: `servicios_basicos` pasa de 50 a 100 (si sigue en 50) y `agua` e `internet` nacen en 100; `luz`, `alquileres` y `mantenimiento` siguen en 50. Gasto rápido manda «Luz»
+    a la categoría `luz` (`categoriasDeAntes: ["servicios_basicos"]` reconoce los de antes) y agua, internet y baño a `servicios_basicos`. `pnpm pruebas:claure-servicios-100`.
     **«Se queda con Claudia» (actividad 11, 20261029144000; Felipe 2026-10-29):** un destino más del traslado del cierre de caja (`caja_traslados.destino = 'claudia'`, solo en una tienda donde opera CLAURE; `cerrar_caja` lo exige) para el
     efectivo de CAYLA que ella guarda. Sale del cajón y baja lo que se le debe: `fn_claure_cierre` lo resta del saldo y trae `hoy.efectivo_claudia`, `fn_claure_pagos` lo lista («Efectivo del cajón · tienda»), el Diario lo asienta 479 al debe / 101 al
     haber (`traslado_claudia`, en `fn_asientos_dinero_y_caja`), el libro (`fn_dinero_libro`) lo deja sin cuenta y el flujo (`fn_flujo_lineas`) lo cuenta como `pago_claure`. Web: `destinosDelCierre` (`caja-cierre-reglas.ts`) y la vista previa

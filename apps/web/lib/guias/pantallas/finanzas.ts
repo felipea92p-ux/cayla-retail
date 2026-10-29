@@ -822,7 +822,7 @@ export const GUIA_FIN_CLAURE: Guia = {
       ancla: "fin-claure.gastos",
       opcional: true,
       titulo: "Gastos de CLAURE que pagó CAYLA",
-      texto: "El alquiler, la luz, la limpieza… los paga CAYLA, pero una parte (o todo) es de CLAURE. Cada categoría tiene su parte (de fábrica: alquiler, luz, servicios básicos y mantenimiento, la mitad; limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA.",
+      texto: "El alquiler, la luz, la limpieza… los paga CAYLA, pero una parte (o todo) es de CLAURE. Cada categoría tiene su parte (de fábrica: alquiler, luz y mantenimiento, la mitad; agua, internet, baño, limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA.",
     },
     {
       id: "pagos",
