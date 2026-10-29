@@ -3431,6 +3431,7 @@ export type Database = {
           estado_alta: string
           id: string
           marca_id: string | null
+          nombre_proveedor: string | null
           patron_id: string | null
           permitir_venta_sin_stock: boolean
           propuesto_por: string | null
@@ -3455,6 +3456,7 @@ export type Database = {
           estado_alta?: string
           id?: string
           marca_id?: string | null
+          nombre_proveedor?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
@@ -3479,6 +3481,7 @@ export type Database = {
           estado_alta?: string
           id?: string
           marca_id?: string | null
+          nombre_proveedor?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
@@ -6728,6 +6731,10 @@ export type Database = {
         Args: { p_fecha: string | null; p_ubicacion_id: string }
         Returns: Json
       }
+      fijar_nombre_proveedor: {
+        Args: { p_nombre: string; p_producto_id: string }
+        Returns: undefined
+      }
       fn_carga_inicial_sedes: { Args: never; Returns: Json }
       fijar_meta_persona: {
         Args: {
@@ -6831,6 +6838,24 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: { variante_id: string; empresa_id: string; clave: string; cantidad: number; cantidad_apartada: number }[]
       }
+      fn_tallas_sin_costo: { Args: { p_ubicacion_id: string }; Returns: Json }
+      fn_valor_inventario_existencias: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          ubicacion_id: string
+          sede: string
+          tipo: string
+          unidades: number
+          valor: number
+          unidades_sin_costo: number
+          prendas_sin_costo: number
+          valor_con_costo_de_compra: number
+          unidades_danadas: number
+          valor_danadas: number
+          unidades_claure: number
+          valor_claure: number
+        }[]
+      }
       fn_empresa_de_ventas: {
         Args: { p_ventas: string[] }
         Returns: { empresa_id: string; monto: number; venta_id: string }[]
@@ -6865,6 +6890,25 @@ export type Database = {
           p_empresa_id: string
           p_token?: string
           p_ubicacion_id?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
+      crear_producto_con_llegada: {
+        Args: {
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_empresa_id?: string
+          p_etiqueta_ids?: string[]
+          p_marca_id?: string
+          p_patron_id?: string
+          p_proveedor_id: string
+          p_referencia: string
+          p_tejido_id?: string
+          p_temporada?: string
+          p_token?: string
+          p_ubicacion_id: string
           p_variantes: Json
         }
         Returns: string

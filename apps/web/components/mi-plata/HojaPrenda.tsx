@@ -294,6 +294,7 @@ export function HojaPrenda({
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               data-guia="compra.agregar"
+              data-vuelo-origen
             >
               {textoAgregarPrenda(b, corrige)}
             </Boton>

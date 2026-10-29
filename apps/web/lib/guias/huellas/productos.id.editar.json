@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 145,
+  "total": 149,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -137,6 +137,12 @@
       "input «{`Precio de ${etiqueta}»",
       "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»"
     ],
+    "components/ficha-producto/NombreDelProveedor.tsx": [
+      "BotonEditar «Editar»",
+      "CampoTexto «Cómo lo llama el proveedor»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
+    ],
     "components/ficha-producto/PanelDelTaller.tsx": [
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
       "input «(sin nombre)»",
@@ -154,13 +160,18 @@
       "CampoTexto «Por qué (opcional)»",
       "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar» #2",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
+      "CampoTexto «Por qué (opcional)» #2",
+      "ComboResponsable «{responsable}» #3",
+      "Boton «Cancelar» #3",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #3"
     ],
     "components/ficha-producto/PreciosPorSede.tsx": [
       "Boton «{textoPoner}»",
       "Boton «{`Cambiar el precio de ${f.sede}»",
       "Boton «{`Quitar el precio de ${f.sede}»",
-      "Boton «{`Poner un precio propio en ${f.sede}»"
+      "Boton «{`Poner un precio propio en ${f.sede}»",
+      "Boton «{`Quitar el precio de ${etiquetaDeVariante(t.varianteId)}»"
     ],
     "components/ficha-producto/PuertaAjustarStock.tsx": [
       "Boton «Cancelar»",

@@ -11,6 +11,9 @@ import {
   prendasConOtroPrecio,
   insigniaPrecios,
   preciosDeTiendaPorProducto,
+  leerExcepcionesDeSede,
+  excepcionesDeLaTienda,
+  precioDeLaTiendaPorTalla,
   etiquetaPrecioDeSede,
   leerPreciosEnSede,
   desdeHace,
@@ -150,8 +153,8 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
   it("da el precio en CADA tienda abierta: el propio o el de la prenda", () => {
     const r = preciosDeTiendaPorProducto(
       [
-        { productoId: "blusa", varianteIds: ["b1", "b2"], preciosPrenda: { desde: 119.9, hasta: 119.9 } },
-        { productoId: "falda", varianteIds: ["f1"], preciosPrenda: { desde: 59.9, hasta: 59.9 } },
+        { productoId: "blusa", precios: { b1: 119.9, b2: 119.9 } },
+        { productoId: "falda", precios: { f1: 59.9 } },
       ],
       { aqp: { b1: 129.9, b2: 129.9 }, tru: {} },
       nombres,
@@ -166,7 +169,7 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
   });
   it("con precio por talla, la tienda sin precio propio es un rango y cuenta aparte (no se esconde detrás del más barato)", () => {
     const r = preciosDeTiendaPorProducto(
-      [{ productoId: "falda", varianteIds: ["s", "xl"], preciosPrenda: { desde: 79.9, hasta: 89.9 } }],
+      [{ productoId: "falda", precios: { s: 79.9, xl: 89.9 } }],
       { aqp: { xl: 79.9 } },
       nombres,
     );
@@ -408,5 +411,51 @@ describe("cambioPrecioAqui: lo que una terminal escribe en la tabla de Precios",
     expect(problemaPrecioAqui({ que: "poner", precio: 9000, antes: 89.9 }, "Tienda TRU", 89.9, null)).not.toBeNull();
     expect(problemaPrecioAqui({ que: "poner", precio: 79.9, antes: 89.9 }, "Tienda TRU", 89.9, 40)).toBeNull();
     expect(problemaPrecioAqui({ que: "quitar", antes: 79.9, general: 89.9 }, "Tienda TRU", 89.9, 95)).toBeNull();
+  });
+});
+
+describe("«N precios» con excepciones por combinación (Felipe 2026-10-28)", () => {
+  const nombres = new Map([["aqp", "Tienda AQP"], ["tru", "Tienda TRU"]]);
+  it("una tienda con una sola talla distinta vende «de menor a mayor», no el precio de la primera talla que se encuentre", () => {
+    // La blusa vale 119.90 en sus tres tallas; en TRU solo la M tiene otro precio (129.90).
+    const r = preciosDeTiendaPorProducto([{ productoId: "blusa", precios: { s: 119.9, m: 119.9, l: 119.9 } }], { tru: { m: 129.9 } }, nombres);
+    expect(r.blusa).toEqual([{ sede: "AQP", precio: 119.9 }, { sede: "TRU", precio: 119.9, hasta: 129.9 }]);
+    expect(insigniaPrecios(r.blusa)).toEqual({ texto: "2 precios", detalle: "AQP S/\u00a0119.90 · TRU S/\u00a0119.90–129.90" });
+  });
+  it("el precio de la primera talla que se encuentre ya no decide por toda la prenda (el orden de las tallas no cambia el resultado)", () => {
+    const a = preciosDeTiendaPorProducto([{ productoId: "p", precios: { s: 100, m: 100 } }], { tru: { m: 120 } }, nombres);
+    const b = preciosDeTiendaPorProducto([{ productoId: "p", precios: { m: 100, s: 100 } }], { tru: { m: 120 } }, nombres);
+    expect(a).toEqual(b);
+    expect(a.p.find((t) => t.sede === "TRU")).toEqual({ sede: "TRU", precio: 100, hasta: 120 });
+  });
+  it("todas las tallas con precio propio en la tienda siguen siendo UN precio (el precio de la prenda en esa tienda)", () => {
+    const r = preciosDeTiendaPorProducto([{ productoId: "p", precios: { s: 100, m: 100 } }], { tru: { s: 90, m: 90 } }, nombres);
+    expect(r.p).toEqual([{ sede: "AQP", precio: 100 }, { sede: "TRU", precio: 90 }]);
+  });
+  it("sin ningún precio propio, la prenda no aparece; una talla que no se vende no cuenta", () => {
+    expect(preciosDeTiendaPorProducto([{ productoId: "p", precios: { s: 100 } }], { tru: {} }, nombres)).toEqual({});
+    expect(preciosDeTiendaPorProducto([{ productoId: "p", precios: { s: 100 } }], { tru: { inactiva: 50 } }, nombres)).toEqual({});
+    expect(preciosDeTiendaPorProducto([{ productoId: "p", precios: {} }], { tru: { s: 50 } }, nombres)).toEqual({});
+  });
+});
+
+describe("las excepciones por combinación de la ficha", () => {
+  const fila = { variante_id: "v1", ubicacion_id: "tru", sede: "Tienda TRU", precio: "159.90", desde: "2026-10-28T10:00:00Z", motivo: "Recepción ENV-001282", creado_por_nombre: "Ana Pérez" };
+  it("se leen tal cual y se descartan las filas sin combinación, sin tienda o con un precio que no es un monto", () => {
+    expect(leerExcepcionesDeSede([fila])).toEqual([{ varianteId: "v1", ubicacionId: "tru", sede: "Tienda TRU", precio: 159.9, desde: "2026-10-28T10:00:00Z", motivo: "Recepción ENV-001282", creadoPor: "Ana Pérez" }]);
+    expect(leerExcepcionesDeSede([{ ...fila, variante_id: "" }, { ...fila, ubicacion_id: "" }, { ...fila, precio: "abc" }, { ...fila, precio: 0 }])).toEqual([]);
+    expect(leerExcepcionesDeSede(null)).toEqual([]);
+    expect(leerExcepcionesDeSede(undefined)).toEqual([]);
+  });
+  it("las de una tienda", () => {
+    const todas = leerExcepcionesDeSede([fila, { ...fila, variante_id: "v2", ubicacion_id: "aqp" }]);
+    expect(excepcionesDeLaTienda(todas, "tru").map((e) => e.varianteId)).toEqual(["v1"]);
+    expect(excepcionesDeLaTienda(todas, "lim")).toEqual([]);
+  });
+  it("con excepciones, el precio de la tienda ya no es uno solo («según la talla»); sin ellas es el de la prenda", () => {
+    const e = leerExcepcionesDeSede([fila]);
+    expect(precioDeLaTiendaPorTalla(119.9, e)).toEqual({ unico: false, precio: null });
+    expect(precioDeLaTiendaPorTalla(119.9, [])).toEqual({ unico: true, precio: 119.9 });
+    expect(precioDeLaTiendaPorTalla(null, [])).toEqual({ unico: false, precio: null });
   });
 });

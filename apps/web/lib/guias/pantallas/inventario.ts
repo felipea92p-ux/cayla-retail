@@ -25,6 +25,13 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Toca «Colgadas» o «Guardadas» y la lista deja solo las prendas que tienen algo ahí; tócala otra vez y vuelve todo. Si dice «por cuadrar», el piso todavía no se contó.",
     },
     {
+      id: "valor",
+      ancla: "existencias.valor",
+      opcional: true,
+      titulo: "Cuánto vale lo que hay",
+      texto: "«Ver el valor a costo» muestra cuánto vale lo que hay en la sede, a lo que costó cada prenda. Lo ven el líder y quien ve el dinero de Compras. Las prendas sin costo no suman: la pantalla dice cuántas son y «Ver cuáles» te las lista para ponerles su costo. En la demo no lo abrimos.",
+    },
+    {
       id: "ajustar-stock",
       ancla: "existencias.ajustar-stock",
       opcional: true,
@@ -332,7 +339,7 @@ export const GUIA_BAJAR_AL_PISO: Guia = {
       id: "escaner",
       ancla: "bajar.escaner",
       titulo: "Escanea cada prenda",
-      texto: "Con el lector, cada lectura suma una prenda. Si tienes 12 iguales, escanea una y cambia el número. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista.",
+      texto: "La primera lectura de una prenda suma 1. Si la misma vuelve a leerse, te pregunto antes de sumarla; con 12 iguales, elige «Son varias iguales». Si la etiqueta no se lee, escribe el modelo, la talla o el color.",
     },
     {
       id: "camara",
@@ -400,7 +407,7 @@ export const GUIA_CUADRAR_PISO: Guia = {
       id: "escaner",
       ancla: "cuadrar.escaner",
       titulo: "Escanea lo guardado",
-      texto: "Cada lectura suma 1. Si tienes 12 iguales, escanea una y cambia el número. Lo escaneado aparece debajo con su talla y su cantidad.",
+      texto: "La primera lectura de una prenda suma 1; si la misma se repite, te pregunto antes de sumarla. Con 12 iguales, elige «Son varias iguales». Lo escaneado aparece debajo con su talla y su cantidad.",
     },
     {
       id: "camara",
@@ -1624,8 +1631,8 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "cifra",
       ancla: "recepcion.cifra",
       opcional: true,
-      titulo: "Cuántas vienen y cuántas van",
-      texto: "Cuántos fardos vienen (si Compras lo dijo), cuántas prendas dijeron que venían y, mientras cuentas, la balanza: a un lado lo que dijeron, al otro lo que llevas. Se inclina hacia donde hay más y te dice si cuadra, si faltan o si sobran.",
+      titulo: "Cuántas dijeron y cuántas llevas",
+      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas prendas dijeron que venían (si Compras lo dijo), cuántas llevas contadas de todo el envío y si cuadra, faltan o sobran. A los lados, «Anterior» y la acción que sigue.",
     },
     {
       id: "hacer-dueno",
@@ -1701,28 +1708,18 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
     },
     // ---- Abierto, contando primero (ADR-0393): un número por categoría, lo demás para después ----
     {
-      id: "quien-cuenta",
-      ancla: "recepcion.quien-cuenta",
-      requiere: ["recepcion.categorias"],
-      titulo: "Quién cuenta",
-      texto: "Elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra.",
-    },
-    {
       id: "categorias",
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número y todas sus prendas identificadas; si no, te dice cuántas faltan por identificar.",
+      texto: "En la fila de arriba, lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número y todas sus prendas identificadas.",
     },
     {
-      // Solo si alguna categoría trae prendas anotadas al comprar. El «+» pasa la prenda a «¿Qué … son?»: es un cambio que se guarda solo,
-      // así que la demo explica la flecha sin tocarla.
-      id: "desplegar",
-      ancla: "recepcion.desplegar",
-      opcional: true,
+      id: "quien-cuenta",
+      ancla: "recepcion.quien-cuenta",
       requiere: ["recepcion.categorias"],
-      titulo: "Lo que se anotó al comprar",
-      texto: "Si la compra anotó qué prendas eran, la flecha de la categoría las muestra con cuántas eran. Toca el «+» de una y pasa a «¿Qué prendas son?» con esa cantidad; si ya habías contado menos, lo contado sube y un aviso te dice cuántas se agregaron. Allí puedes cambiar el número, también escribiéndolo.",
+      titulo: "Quién cuenta",
+      texto: "A la derecha de la fila, elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra. El ⓘ te lo explica.",
     },
     {
       id: "numero",
@@ -1750,6 +1747,16 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Di qué prenda es cada una de las que contaste: busca la del catálogo y pon cuántas eran. Si es nueva, anótala con un nombre corto y cuántas. Tienen que sumar lo contado: sin eso no se pasa a «Cerrar». Las tallas y los colores pueden esperar.",
     },
     {
+      // Solo si la categoría trae prendas anotadas al comprar que todavía no pasaron a la lista. Tocar un chip pasa la prenda a «¿Qué … son?»:
+      // es un cambio que se guarda solo, así que la demo lo explica sin tocarlo.
+      id: "anotadas",
+      ancla: "recepcion.anotadas",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que se anotó al comprar",
+      texto: "Si la compra anotó qué prendas eran, aquí salen con cuántas eran. Toca una y pasa a la lista de abajo con esa cantidad; si ya habías contado menos, lo contado sube y un aviso te dice cuántas se agregaron. Allí puedes cambiar el número, también escribiéndolo.",
+    },
+    {
       id: "agregar",
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],
@@ -1770,7 +1777,16 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría, con sus prendas juntas: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez. Al abrir la fila, cada prenda identificada con su costo (el de la orden; corrígelo si la factura dice otro) y su precio. En la demo no escribimos.",
+      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez («Otro» te deja escribirlo; un regalo entra a costo cero). Al abrir la fila salen sus prendas, y cada una se abre para ver su costo y su precio. En la demo no escribimos.",
+    },
+    {
+      // Felipe 2026-10-28: el costo y el precio se ponen por combinación (color y talla). La fila de la primera prenda solo existe con la categoría abierta.
+      id: "prenda-fila",
+      ancla: "recepcion.prenda-fila",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Costo y precio por color y talla",
+      texto: "Abre una prenda y verás una matriz como la del conteo, con un número por color y talla. «Costo | Precio de venta» elige qué cifra cambias. Al escribir, eliges si llega a esa casilla, a todo el color, a toda la talla o a todas, y te decimos qué va a cambiar. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.

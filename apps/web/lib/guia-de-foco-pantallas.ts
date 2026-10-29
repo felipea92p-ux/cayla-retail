@@ -182,7 +182,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/comprobantes": PENDIENTE,
   "/produccion/cotizaciones-maquila": PENDIENTE,
   "/produccion/eficiencia": PENDIENTE,
-  "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/InsumoModales.tsx"] },
+  "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx", "components/insumos-taller/EditarTelaModal.tsx", "components/insumos-taller/NuevoInsumoModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/InsumoModales.tsx"] },
   "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "/produccion/ordenes/[numero]": { estado: "no-aplica", motivo: "Una orden se lee, no se llena: la ruta de fases, la tela, el costo y la línea de tiempo. Lo que se anota vive en sus hojas «Terminé» y «Cambiar quién», cada una con su guía en el registro de modales." },
   "/produccion/por-pagar": PENDIENTE,
@@ -383,6 +383,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Actividad 4b: «Anular» una salida o una vuelta mal anotada. «Falta» = el porqué (la base lo exige, `anular_sin_motivo`) y quién lo anota.
   "components/orden-pagina/AnularSalidaOVueltaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnularSalidaOVueltaModal.tsx"] },
   "components/proveedores-produccion/TarifaServicioModal.tsx": { estado: "aplicada", evidencia: ["components/proveedores-produccion/TarifaServicioModal.tsx"] },
+  "components/insumos-taller/NuevaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx"] },
+  "components/insumos-taller/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/EditarTelaModal.tsx"] },
   "components/insumos-taller/NuevoInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx"] },
   "components/insumos-taller/FichaDeLaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/FichaDeLaTelaModal.tsx"] },
   // Actividad 6: pasar la orden al stock (cuántas salieron buenas, precargado con lo terminado, y quién lo anota; «falta» sale de los candados de `cerrar_produccion`), anular la orden y revertir el cierre.

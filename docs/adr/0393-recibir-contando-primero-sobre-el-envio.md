@@ -670,7 +670,7 @@ quiera el precio general lo elige a propósito. (2) **«Aplicar validaciones; da
 se ignoraba en silencio y uno bajo el costo se descubría recién después de la confirmación. Ahora, al guardar: un precio mal escrito (no es número, cero, más de
 S/ 5 000) se dice y se lleva el cursor al campo; luego la base responde si cada precio se podría guardar y, si no, **por qué**, junto al campo y a todo el
 ancho, y la confirmación ni se abre; recién entonces se pide confirmar. Lo mismo al cerrar el envío (su fila se abre y el cursor va al campo).
-En la base, `validar_precio_en_recepcion(envío, prenda, precio, alcance)` (en `20261026180000`, aún sin pegar) **corre la función real
+En la base, `validar_precio_en_recepcion(envío, prenda, precio, alcance)` (en `20261026180000`, en producción desde el 2026-10-28) **corre la función real
 `cambiar_precio_en_recepcion` dentro de una subtransacción que siempre se deshace**: las reglas son las mismas porque es el mismo código (piso del costo sin
 decir cuánto cuesta —ADR-0183—, tope, tienda abierta, «ya es el precio de la grilla»…), sin duplicarlas ni que un día digan cosas distintas. Una marca de
 transacción que solo esa función enciende y apaga salta únicamente la pregunta «¿es de este envío?», porque la prenda que se acaba de identificar todavía no
@@ -691,7 +691,7 @@ liquidar usa una campaña…» antes de la confirmación, 105 pasa y queda **sol
 entraba al stock con el costo de su LÍNEA. Si había costado otra cosa, solo se corregía desde Catálogo cuando ya había entrado. Felipe (2026-10-26/27): «se debe
 poder cambiar tanto el precio de venta (ya está) como el costo (falta)». Esperó a que ADR-0519 estuviera en `main` para no tener dos formas de costo por prenda.
 
-**Qué se hizo** (`20261026210000_costo_por_prenda_en_hacer_ahora.sql`, aún sin pegar en producción; se pega DESPUÉS de `20261026163000` y `20261026180000`).
+**Qué se hizo** (`20261026210000_costo_por_prenda_en_hacer_ahora.sql`, en producción desde el 2026-10-28, pegada después de `20261026163000` y `20261026180000`).
 En la hoja de la prenda (Tallas y colores, y Separar) el bloque «Costo y precio de venta · opcional» trae el costo con el que la prenda entraría (el suyo propio si
 ya lo tiene, el que se le puso por su descripción si era una nueva, o el de su línea) y se confirma con la misma ventana del precio («Vas a cambiar costos y
 precios»). El costo viaja dentro de lo separado (`p_separado -> 'costos'`, `{producto: costo}`): `resolver_pendiente_envio` mantiene su firma, y la huella del doble clic ya lo
@@ -729,4 +729,66 @@ S/ 18.50 con el costo de la línea intacto (S/ 19.80) y la prenda anotada en el 
 que valía de S/ 69.90 a S/ 79.90. Ahora el cambio trae el rango (`CambioDePrecio.rango`): «S/ 69.90 a S/ 79.90 → S/ 75.00 · solo Tienda Lima», con la línea «Hoy las tallas valen distinto: en Tienda Lima
 todas pasan a venderse a este precio» (`textoIgualaTallas`). La base no cambia. Además, bajo el campo del precio sale «Antes S/ …» cuando el precio escrito es válido y distinto del de hoy (uno solo), y en la
 hoja de una sola prenda no se repite su nombre ni el precio de hoy cuando el campo ya lo trae.
+
+
+### «Contar» se rediseña en una mesa de trabajo (Felipe, 2026-10-28; opción A de `docs/maquetas/recibir-contar-2026-10/`)
+La pestaña tenía tres columnas desiguales (el papel de la compra, un riel con «Quién cuenta» y las categorías, y el contador) y dos quedaban cortas junto a la tercera: espacio vacío
+a los lados y «¿Qué … son?» tres pantallas más abajo. Felipe pidió tres propuestas solo en imagen y eligió la A. Es solo web, sin migración, y no cambia qué se guarda: el reparto de
+lo contado entre las líneas (`repartirTotal`, `repartirSeparado`) y las reglas de «Cerrar» son las mismas. Seis actividades, cada una con su commit:
+1. **El papel va a la derecha** (columna fija de 25 rem, en Contar, Cerrar y lo cerrado; bajo `xl` sigue arriba). El trabajo ocupa el ancho.
+2. **«Anotado en la compra» pasa a «¿Qué … son?»** como chips con «+» (`recepcion.anotadas`). Antes se desplegaban bajo la categoría en el riel; sin riel necesitaban otro lugar. Tocar uno
+   hace lo mismo de antes (`separarAnotadaDe`).
+3. **Las categorías son píldoras en una fila** (`rc-cat-pildora`, con la marca de la guía de foco) y «Quién cuenta» queda a su derecha con un ⓘ que abre la ayuda con un toque.
+4. **El contador es una franja**: número con − y +, atajos y barra de «cuadra» en una fila cuando la tarjeta es ancha (container query sobre la tarjeta, no la ventana: junto al
+   papel la columna mide ~650 px y la barra baja debajo). «¿Qué … son?» tiene su propia tarjeta debajo.
+5. **Una barra de cierre al pie** (`BarraDeAbajo pegada`, clase `rc-cierre`): «Anterior», «Dijeron N · Contadas N · veredicto» de todo el envío y la acción que sigue. Reemplaza a la
+   balanza de dibujo en Contar; en Cerrar la balanza se queda.
+6. Cierre: 375 px, modo oscuro y 1024/1440/1920 verificados; guía de «Recibir un envío» y su huella al día.
+
+**Lo que se decidió por el camino.** La clase de la barra no puede llamarse `rc-barra`: es una firma de `grafico.avance` en `unificar/familias.mjs` (la barra de avance vieja de «Recibir
+contando»). En el celular el papel sigue ARRIBA del contador, como antes: no se cambió para no mezclar dos decisiones. Probado en el navegador con ENV-000685 (con papel y dos prendas
+anotadas), restaurando la base local con `scripts/flujo-de-negocio/estado.mjs` tras contar.
+
+### «Cerrar»: «Otro», el regalo a S/ 0 y una tabla menos ruidosa (Felipe, 2026-10-28)
+Felipe cerró un envío con 3 Aretes que no venían en el papel y encontró cinco cosas raras en la tabla de «Cerrar».
+- **Mensajes.** Debajo de la tabla había tres. Quedó uno: lo que pasa al cerrar (las prendas «para después» y qué se puede vender hoy), con la frase de «sin aviso». Se quitaron «El costo de cada prenda se
+  puede corregir aquí» (la fila abierta ya muestra «Antes S/ …» y la confirmación lista lo que cambia) y «¿Alguna llegó dañada?» (eso se anota al contar, en «Anotar observación», ADR-0507).
+- **La categoría de fuera de la guía se puede esconder.** Siempre estuvo abierta y sin flecha porque su costo es obligatorio. Ahora arranca abierta pero se contrae; cerrada, dice «Falta el costo»
+  y «Falta: Costo · Aretes» de la guía la reabre.
+- **Una sola caja de costo.** Si una prenda ya identificada o descrita cubre TODO lo que llegó de esa categoría, «Toda la línea» y la caja de la prenda mandaban sobre las mismas unidades. Queda la de
+  la prenda y lo que se escribe vale también para la línea (la base sigue pidiendo el de la línea: es lo mismo que escribir los dos iguales).
+- **«Otro» en «¿Qué pasó?».** Solo para lo de más (los faltantes crean o no una deuda con el proveedor y esa decisión no se tomó). Pide escribir qué fue (hasta 300 letras) en la nota de la línea
+  (`despacho_diferencias.nota` ya existía); sin ella la base no cierra (`recepcion_sobrante_otro`). No crea deuda ni saldo a favor.
+- **Un regalo de fuera de la guía entra a S/ 0 (obsequio) sin pedir costo.** Felipe eligió S/ 0 y no «sin costo»: `despacho_diferencias.costo_unitario` es NOT NULL, una prenda sin costo no entra al
+  promedio y distorsiona el margen, y Compras ya trata un costo 0 como obsequio. La base ignora lo que mande la pantalla (el costo de la línea y los de sus prendas) y `fn_recepcion_entrar` no revisa
+  ese S/ 0 como costo atípico (si no, se lo negaba a quien no ve los costos de Compras). Un regalo de una línea DE la guía conserva el costo de su orden.
+Migración `20261028182000_recepcion_otro_y_regalo_sin_costo.sql`: **SIN PEGAR EN PRODUCCIÓN** (espera el OK de Felipe; una sola parte). Casos O1–O5 de `pruebas:pendientes-de-envio` (C5 ajustado).
+**Pendiente de decisión:** «el precio de venta sería opcional» para una prenda que se creó completa al contar. Hoy el catálogo no deja crear una prenda sin precio (ADR-0384: solo las bolsas pueden ir en 0);
+cambiarlo toca el núcleo del catálogo. Se espera la respuesta de Felipe a qué quiso decir.
+
+## Actualización 2026-10-28 (c) — «Cerrar» pone el costo y el precio de venta por color y talla
+
+**El problema.** La fila de una prenda en «Cerrar» tenía UNA caja de costo y UNA de precio, y lo escrito valía para todos sus colores y tallas; pero cuestan y se venden distinto según el color y la talla.
+
+**Lo que Felipe pidió y eligió (2026-10-28).** Al abrir una categoría salen sus prendas identificadas, **sin cajas**; cada prenda se abre a una matriz de lo que se contó (colores en filas, tallas en columnas, como al contar), con **una caja por
+casilla** y un interruptor **Costo | Precio de venta**; lo escrito pide hasta dónde llega (**esta combinación, ese color, esa talla o todas**) en una barra bajo la matriz que dice qué cambia, y el precio, dónde vale (todas las sedes
+o solo esta tienda). Una prenda sin conteo por color y talla dice «Aún no se realizó el conteo por color y talla de esta prenda». Elegida entre cuatro maquetas (`docs/maquetas/recibir-cerrar-combinaciones-2026-10/`): la
+matriz con interruptor de A y la barra de alcance de B (opción D). El precio por tienda por combinación obligó a la capa de excepciones de ADR-0370 (act. 2026-10-28).
+
+**Cómo viaja.** Costo: `costos_prendas` acepta `{ variante_id: costo }` (manda la combinación, luego la prenda, luego la línea; el mismo costo en TODAS las combinaciones de una prenda se manda como el de la prenda, para que lo
+que se detalle después lo herede). Precio: `validar_precios_en_recepcion` (sin guardar) y `cambiar_precios_en_recepcion(envío, prenda, {combinación: precio}, 'todas' | 'sede')`, todo o nada, con el envío abierto y solo combinaciones
+CONTADAS en él; «solo esta tienda» con TODAS las tallas activas al mismo precio queda como el precio de la PRENDA en esa tienda, y si no, excepciones por combinación. Las reglas de la matriz son puras
+(`lib/recepcion-combinaciones-reglas.ts`, 40 pruebas y 7 mutantes); la pantalla es `PrendaConCombinaciones.tsx`. Migración `20261028234000` (SIN PEGAR EN PRODUCCIÓN), prueba `pnpm pruebas:recepcion-combinaciones` (19 casos).
+
+**Lo que reemplaza.** «Una sola caja de costo» de la categoría de fuera de la guía (2026-10-28): ya no hay caja en la prenda, así que «Toda la línea» queda siempre como el costo base obligatorio y cada combinación lo hereda
+hasta que se le escribe otro. Las prendas nuevas aún sin crear no tienen combinaciones: siguen con su caja de costo, y su precio se pone al crearlas. «Hacer ahora» (Para después) no cambió: sigue por prenda.
+
+**Lo que se vio.** Probado en un navegador sin ventana (la sesión no estaba abierta en una ventana, y el panel no hidrata así): escribir, alcance de color, aplicar, confirmación con cada combinación y «antes → después», 375 px sin desborde (el
+color queda pegado a la izquierda) y modo oscuro; con la base local el cierre real se detuvo en una regla ajena (`fn_dueno_de_entrada_sin_elegir`: elegir la empresa dueña de lo que entra), después de aplicar el precio y de que el costo por
+combinación llegara a la entrada al stock (saltó la revisión de costo atípico). Lo completo de punta a punta lo cubren las pruebas de Postgres.
+
+**Pantallas que decían un precio falso** (revisadas todas las que muestran el precio de una tienda): las de Vender, caja, Apartados, Cambios, Proformas, Buscar, Inicio de almacén, Frescura, Inventario, Análisis y etiquetas ya leían
+por talla. Se corrigieron la insignia «N precios» de Productos (tomaba el precio de la primera talla con precio propio) y la ficha de la prenda: «Precio por tienda» dice «según la talla» y lista cada talla con «Quitar»,
+la cabecera y la frase de «lo que cobra la caja» no afirman un precio único, las etiquetas de lo que entró llevan el precio de cada talla y la tabla de una terminal muestra el de cada una. No se tocó
+`cambianEnCajaAlGuardar` (el aviso de reimprimir etiquetas sigue mirando el precio por prenda).
 

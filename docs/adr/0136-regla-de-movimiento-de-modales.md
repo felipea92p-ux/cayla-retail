@@ -548,3 +548,20 @@ excepción a «sin rebote»: **la única pieza del ERP con un rebote, y es uno s
 - **Lo que lo mantiene discreto:** una vez, menos de 2,5 s, nunca en bucle, y con `prefers-reduced-motion` aparece y se va ya hecha.
 - **Se rompe si:** se publican muchas versiones por hora y la gota deja de ser una señal y pasa a ser ruido (ver ADR-0422, «Opciones»); o si alguien reutiliza
   el rebote en otra pieza: esta excepción es solo del aviso. Pruebas: `lib/version-nueva-reglas.test.ts`.
+
+## Actualización 2026-10-28 (b) — El vuelo de la prenda a «Tu compra» en «Apunte de compras», pedido por Felipe
+
+Al agregar una prenda a una compra (Compras ▸ Mis compras ▸ Apunte de compras, paso «¿Qué le compraste?»), su miniatura sale de donde se tocó
+(el botón «Agregar» de la hoja, o su lugar en la lista si fue el «+ 9 como la vez pasada»), cruza en arco y aterriza en su línea de «Tu compra»
+(en el celular, en la barra negra de abajo). Es la respuesta a una acción del contenido, como el sello al guardar, pero **sale de la franja de
+200–500 ms** (dura 520–680 ms según la distancia), por eso se escribe aquí:
+
+- **Una vez, sin rebote, sin bucle.** Curva del sistema (`cubic-bezier(0.32, 0.72, 0.24, 1)` para lo que entra; el arco usa dos curvas suaves, una por eje).
+- **Mientras vuela**, «Tu compra» y la barra siguen diciendo lo de antes y la línea de la prenda ya tiene su lugar (nada se corre); **al aterrizar**,
+  la línea se ilumina una vez (900 ms), el recuadro hace un pulso (800 ms) y el total cuenta hasta la cifra nueva (520 ms).
+- **Corregir** una prenda que ya iba no vuela: solo cambia su línea.
+- **Con `prefers-reduced-motion` no vuela**: la línea y el total aparecen ya hechos.
+- **Dónde vive:** la trayectoria en `lib/vuelo-reglas.ts` (con prueba), el navegador en `components/mi-plata/vuelo.ts`, la cifra que cuenta en
+  `components/ui/useCifraQueCuenta.ts` y la forma en `app/estilos/compra-celular.css`. Maqueta elegida por Felipe mirando:
+  `docs/maquetas/mis-compras-prendas-2026-10/`.
+- **Se rompe si:** el vuelo se usa en una pantalla donde agregar es frecuente y rápido (un escáner, Vender): ahí sería ruido, no una señal. Esta excepción es solo de «Apunte de compras».

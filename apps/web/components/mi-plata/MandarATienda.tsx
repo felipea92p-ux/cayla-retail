@@ -31,7 +31,18 @@ import { EVENTO_MANDAR, detalleEnvio, resumenPrendas, siglaTienda, textoFaltaMan
 // base devuelve el envío que ya salió en vez de armar otro. Solo con la cuenta de una persona (firma ella, sin combo).
 
 // La pantalla que la usa la deja siempre montada (aunque no falte mandar nada): al salir el último envío, la hoja sigue abierta mostrando su código.
-export function MandarATienda({ porMandar, abrirAlCargar = false, className }: { porMandar: PorMandar[]; abrirAlCargar?: boolean; className?: string }) {
+export function MandarATienda({
+  porMandar,
+  abrirAlCargar = false,
+  className,
+  sinFranja = false,
+}: {
+  porMandar: PorMandar[];
+  abrirAlCargar?: boolean;
+  className?: string;
+  /** La pantalla ya trae su propio botón (la tarjeta «Para mandar» de Mis compras): aquí solo vive la hoja, que se abre con `EVENTO_MANDAR`. */
+  sinFranja?: boolean;
+}) {
   const [abierta, setAbierta] = useState(abrirAlCargar && porMandar.length > 0);
   const origen = useRef<HTMLElement | null>(null);
   const router = useRouter();
@@ -46,10 +57,10 @@ export function MandarATienda({ porMandar, abrirAlCargar = false, className }: {
     window.addEventListener(EVENTO_MANDAR, abrir);
     return () => window.removeEventListener(EVENTO_MANDAR, abrir);
   }, []);
-  if (!falta && !abierta) return null;
+  if ((!falta || sinFranja) && !abierta) return null;
   return (
     <>
-      {falta && (
+      {falta && !sinFranja && (
         <div className={className}>
           <FranjaFaltaMandar
             falta={falta}
