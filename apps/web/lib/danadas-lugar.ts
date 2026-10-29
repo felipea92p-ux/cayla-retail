@@ -51,6 +51,18 @@ export function argumentosDeLugar(ubicacionId: string, texto: string): Argumento
   return { p_ubicacion_id: ubicacionId, p_lugar: texto.trim() };
 }
 
+/**
+ * El botón «Separé una dañada» de las cuentas de caja y de almacén (ADR-0564, actividad 3): lleva a Existencias con el buscador de
+ * «¿Qué prenda está dañada?» ya abierto. Esas cuentas no usan el teléfono en horario de trabajo: el botón tiene que estar a la vista
+ * en la pantalla que sí usan, y desde ahí el flujo es el mismo «Reportar dañada» de siempre (un solo camino, una sola regla).
+ */
+export const HREF_SEPARAR_DANADA = "/inventario?danada=1";
+
+/** `?danada=1` tal como llega de `searchParams`. Cualquier otro valor es «no». */
+export function pideSepararDanada(danada: string | string[] | undefined): boolean {
+  return (Array.isArray(danada) ? danada[0] : danada) === "1";
+}
+
 /** La frase que sigue a la prenda en la mano: «Déjala en: perchero detrás de caja.» Sin lugar marcado, null (no se inventa uno). */
 export function fraseDejarEn(lugar: string | null | undefined): string | null {
   const l = lugar?.trim();

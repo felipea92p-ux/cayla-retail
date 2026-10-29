@@ -195,6 +195,7 @@ export function InventarioPanel({
   danadosPendientes,
   lugarDanadas,
   abrirDanados = false,
+  abrirSepararDanada = false,
   abrirVariante = null,
   abrirAjustar = false,
   abrirSinFila = null,
@@ -236,6 +237,8 @@ export function InventarioPanel({
   lugarDanadas: string | null;
   /** Abrir la cola de dañadas al entrar (`?danados=1`, aviso de cuarentena de Devoluciones). */
   abrirDanados?: boolean;
+  /** Abrir el buscador de «¿Qué prenda está dañada?» (`?danada=1`, ADR-0564): lo piden los botones «Separé una dañada» de caja y almacén. */
+  abrirSepararDanada?: boolean;
   /** La talla a abrir al llegar (`?variante=`, desde Movimientos: ADR-0241). */
   abrirVariante?: string | null;
   /** Abrir esa talla directo en la planilla de «Ajustar stock» (`?ajustar=1`, desde el candado de Editar producto: ADR-0494). */
@@ -319,6 +322,8 @@ export function InventarioPanel({
   const pedidoDeAjuste = usePedidoDeAjuste();
   const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
   const [buscandoAjuste, setBuscandoAjuste] = useState(false);
+  // «Separé una dañada» (ADR-0564): el mismo buscador, que lleva directo a «Reportar dañada» de la talla elegida.
+  const [buscandoDanada, setBuscandoDanada] = useState(abrirSepararDanada);
   if (pedidoDeAjuste !== pedidoVisto) {
     setPedidoVisto(pedidoDeAjuste);
     setBuscandoAjuste(true);
@@ -1409,6 +1414,22 @@ export function InventarioPanel({
           El cajón de la prenda (diseño aprobado, 2026-09-28): el MISMO desde «Por prenda» y «Por talla». Sus acciones no abren un
           modal encima del cajón: lo cierran y abren el suyo (Reponer, Ajustar, Eliminar), que al guardar refresca la pantalla. Sin
           `key`: al tocar otra fila el cajón se queda y solo cambia su contenido. */}
+      {buscandoDanada && permisos.reportarDanada && (
+        <BuscarPrendaParaAjustar
+          modo="danada"
+          indice={indiceBusqueda}
+          sedeNombre={sedeNombre}
+          ubicacionId={ubicacionId}
+          sinStock={sinStock}
+          onClose={() => setBuscandoDanada(false)}
+          onElegir={(clave, varianteId) => {
+            setBuscandoDanada(false);
+            setAbierta({ clave, varianteId, flujo: { tipo: "danada" } });
+          }}
+          onElegirSinStock={() => setBuscandoDanada(false)}
+        />
+      )}
+
       {buscandoAjuste && puedeAjustarAqui && (
         <BuscarPrendaParaAjustar
           indice={indiceBusqueda}

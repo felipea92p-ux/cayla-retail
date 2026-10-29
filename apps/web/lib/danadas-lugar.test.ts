@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { argumentosDeLugar, camposGuiaLugar, fraseDejarEn, MAX_LUGAR_DANADAS, MIN_LUGAR_DANADAS, PARAMETROS_RPC_LUGAR, problemaDeLugar, RPC_DEFINIR_LUGAR_DANADAS } from "./danadas-lugar";
+import { argumentosDeLugar, camposGuiaLugar, fraseDejarEn, HREF_SEPARAR_DANADA, pideSepararDanada, MAX_LUGAR_DANADAS, MIN_LUGAR_DANADAS, PARAMETROS_RPC_LUGAR, problemaDeLugar, RPC_DEFINIR_LUGAR_DANADAS } from "./danadas-lugar";
 import { sePuedeConfirmar } from "./guia-campos";
 
 const MIGRACION = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261029031000_danadas_lugar_de_la_sede.sql"), "utf8").replace(/--[^\n]*/g, "");
@@ -41,6 +41,15 @@ describe("qué falta para guardar el lugar", () => {
     expect(sePuedeConfirmar(camposGuiaLugar("perchero", false))).toBe(false);
     expect(sePuedeConfirmar(camposGuiaLugar("perchero", true))).toBe(true);
     expect(sePuedeConfirmar(camposGuiaLugar("ab", true))).toBe(false);
+  });
+});
+
+describe("«Separé una dañada» (actividad 3)", () => {
+  it("el enlace lleva a Existencias con el buscador pedido, y solo `danada=1` lo pide", () => {
+    expect(HREF_SEPARAR_DANADA).toBe("/inventario?danada=1");
+    expect(pideSepararDanada("1")).toBe(true);
+    expect(pideSepararDanada(["1", "0"])).toBe(true);
+    for (const raro of [undefined, "", "0", "true", "si", ["0"]]) expect(pideSepararDanada(raro)).toBe(false);
   });
 });
 

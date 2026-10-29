@@ -32,6 +32,7 @@ import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 import { ValorInventarioExistencias } from "@/components/existencias/ValorInventarioExistencias";
 import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
+import { pideSepararDanada } from "@/lib/danadas-lugar";
 import { desdeDeParams } from "@/lib/vuelta-productos";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -49,14 +50,14 @@ import { desdeDeParams } from "@/lib/vuelta-productos";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string; danados?: string; variante?: string; ajustar?: string; de?: string; desde?: string }>;
+  searchParams: Promise<{ ubicacion?: string; danados?: string; danada?: string; variante?: string; ajustar?: string; de?: string; desde?: string }>;
 }) {
   const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   // `danados=1`: llegar desde el aviso de cuarentena de Devoluciones abre la cola de dañadas (ADR-0232).
   // `variante=<id>`: llegar desde un movimiento («Ver en Existencias», ADR-0241) abre el detalle de ESA prenda en esa talla.
   // `ajustar=1&de=<producto>`: llegar desde el candado de Editar producto (ADR-0494, actividad 3) abre la planilla de «Ajustar stock» en esa talla y
   // ofrece «Volver a Editar producto» (`lib/existencias-ajustar-desde-editar.ts`).
-  const { ubicacion: ubicacionQuery, danados, variante, ajustar, de, desde } = await searchParams;
+  const { ubicacion: ubicacionQuery, danados, danada, variante, ajustar, de, desde } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -289,6 +290,8 @@ export default async function InventarioPage({
         danadosPendientes={danadosPendientes}
         lugarDanadas={lugarDanadas}
         abrirDanados={danados === "1"}
+        // `?danada=1`: el botón «Separé una dañada» de las cuentas de caja y de almacén (ADR-0564) abre el buscador de la prenda dañada.
+        abrirSepararDanada={pideSepararDanada(danada)}
         abrirVariante={variante ?? null}
         abrirAjustar={pideAjustar(ajustar)}
         abrirSinFila={filaSinStock}

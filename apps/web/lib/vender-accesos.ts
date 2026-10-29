@@ -1,3 +1,4 @@
+import { HREF_SEPARAR_DANADA } from "./danadas-lugar";
 import type { ClaveModulo } from "./modulos";
 
 /**
@@ -8,7 +9,7 @@ import type { ClaveModulo } from "./modulos";
  * Cada acceso sale SOLO si la cuenta ve su módulo (ADR-0161): la regla la hace cumplir `exigirModulo` en cada ruta,
  * y acá solo evita ofrecer una puerta que diría «Sin acceso».
  */
-export type IconoAcceso = "caja" | "apartados" | "cambios" | "devoluciones" | "historial" | "proformas";
+export type IconoAcceso = "caja" | "apartados" | "cambios" | "devoluciones" | "historial" | "proformas" | "danada";
 
 export type AccesoVenta = {
   modulo: ClaveModulo;
@@ -24,6 +25,9 @@ export const ACCESOS_VENTA: readonly AccesoVenta[] = [
   { modulo: "devoluciones", texto: "Devoluciones", href: "/devoluciones", icono: "devoluciones" },
   { modulo: "historial", texto: "Historial", href: "/vender/historial", icono: "historial" },
   { modulo: "facturacion", texto: "Proformas", href: "/vender/comprobantes/proformas", icono: "proformas" },
+  // «Separé una dañada» (ADR-0564, Felipe 2026-10-28): se separa en el momento y la caja no usa el teléfono. Va a la vista, como
+  // Apartados (no en «Más»), y solo si el rol de la caja ve Existencias, donde vive «Reportar dañada».
+  { modulo: "existencias", texto: "Separé una dañada", href: HREF_SEPARAR_DANADA, icono: "danada" },
 ];
 
 /** Los accesos que esta cuenta puede abrir, en el orden de la cabecera. */
@@ -35,5 +39,5 @@ export function accesosVisibles(modulos: readonly ClaveModulo[]): AccesoVenta[] 
  *  vista porque es el único que se lleva el ticket (`BotonApartados`). La franja de arriba ya no existe: le quitaba alto
  *  al ticket. */
 export function accesosDeMas(visibles: readonly AccesoVenta[]): AccesoVenta[] {
-  return visibles.filter((a) => a.modulo !== "apartados");
+  return visibles.filter((a) => a.modulo !== "apartados" && a.modulo !== "existencias");
 }

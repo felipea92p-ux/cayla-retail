@@ -24,6 +24,8 @@ const TRAZOS = {
   tag: "M3 12V4h8l10 10-8 8zM7.5 8.5h.01",
   rotulo: "M12 3v3M12 14v7M8 21h8M4 6h13l3 4-3 4H4z",
   conteo: TRAZOS_MENU[ICONO_DEL_ACCESO_ALMACEN.conteo],
+  // La venda sobre la prenda: «Separé una dañada» (ADR-0564).
+  danada: "M5 9l10-4 4 10-10 4zM9 10.5l5-2M10.5 14l5-2",
   scan: "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16",
 } as const;
 
