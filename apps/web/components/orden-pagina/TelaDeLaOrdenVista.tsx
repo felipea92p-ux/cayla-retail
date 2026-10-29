@@ -7,6 +7,7 @@ import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumo
 import { TelaUsadaModal } from "@/components/orden-pagina/TelaUsadaModal";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
@@ -21,6 +22,8 @@ import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 // «Alcanza» cuenta también lo que otras órdenes abiertas ya reservan y lo que viene en camino (`fn_tela_pendiente_de_la_orden`: lo que falta recibir de los pedidos, sin los atrasados; regla de
 // Felipe del 2026-10-16). Con el corte terminado, la tela que sobra de su plan ya no se va a usar: no falta nada por usar. Si falta, «Pedir N m» lleva a Órdenes de insumos (solo a quien ve ese módulo).
 // Debajo, «Anotar lo que usaste» y «Devolver lo que sobró» (actividad 7): lo que se usa sale del estante y queda en la orden; el costo de la tela lo calcula la base. Solo se ofrecen a quien puede operar la orden.
+// Con la regla de color de Producción (ADR-0570, actividad 1): el verde dice solo «Anotada»; ya cortada y sin nada descontado, la tela dice «Falta anotar» en ámbar y un aviso arriba de la
+// tabla lleva su botón (antes decía «Ya se cortó» en verde junto a «Usado 0 m»: lo que faltaba se leía como hecho). «Alcanza» es neutro: informa, no felicita.
 
 const PLANTILLA = "@min-[28rem]:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_7rem]";
 const EN_COLUMNAS = "hidden @min-[28rem]:block";
@@ -28,14 +31,22 @@ const EN_COLUMNAS = "hidden @min-[28rem]:block";
 export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, edicionFalla = false }: { datos: OrdenPagina; /** La cuenta ve el módulo «Órdenes de insumos»: puede pedir lo que falta. */ puedePedir?: boolean; /** Lo que la hoja «Editar tela y avíos» necesita; null si la cuenta no puede operar la orden o la orden ya no está en proceso. */ edicion?: DatosEditarTela | null; /** No se pudo preparar la edición (no se leyó el estante de Insumos): se dice, en vez de esconder el botón. */ edicionFalla?: boolean }) {
   const filas = filasDeTela(datos.insumos, corteTerminado(datos));
   const [hoja, setHoja] = useState<ModoDeTela | null>(null);
+  // La tela que el aviso «Falta anotar» deja elegida en «Anotar lo que usaste».
+  const [telaId, setTelaId] = useState<string | undefined>(undefined);
   const [editando, setEditando] = useState(false);
   const [fichaAbierta, setFichaAbierta] = useState(false);
   const telas = telasDeLaOrden(datos.insumos);
   const puedeAnotar = datos.permisos.puedeOperar && datos.orden.estado === "en_proceso" && telas.length > 0;
   const hayQueDevolver = telas.some((t) => t.usado > 0);
+  const porAnotar = filas.filter((f) => f.porAnotar);
+  const avisarPorAnotar = puedeAnotar && porAnotar.length > 0;
+  const anotar = (insumoId?: string) => {
+    setTelaId(insumoId);
+    setHoja("usar");
+  };
   return (
     <section data-guia="prod-orden.tela" aria-label="Tela y avíos de la orden" className="@container op-bloque">
-      <TituloSeccion dato={datos.orden.producto.tejidoNombre ?? undefined} accion={
+      <TituloSeccion accion={
           edicion ? (
             <span className="flex flex-wrap items-center gap-2">
               <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.ficha-modelo" onClick={() => setFichaAbierta(true)}>
@@ -51,6 +62,19 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
         }>
         Tela y avíos
       </TituloSeccion>
+      {avisarPorAnotar && (
+        <Aviso
+          tono="atencion"
+          titulo={porAnotar.length === 1 ? `Falta anotar la tela del corte: ${porAnotar[0].nombre}` : `Falta anotar la tela del corte · ${porAnotar.length} colores`}
+          accion={
+            <button type="button" className="btn-cayla btn-enlace" aria-haspopup="dialog" data-guia="prod-orden.anotar-tela" onClick={() => anotar(porAnotar[0].id)}>
+              Anotar lo que usaste
+            </button>
+          }
+        >
+          {datos.orden.esMuestra ? "De la muestra sale cuánta tela lleva el modelo: anótala para que la ficha aprenda." : "Sin ese dato, las prendas pasan al stock sin el costo de la tela."}
+        </Aviso>
+      )}
       {filas.length === 0 ? (
         <div className="card-cayla">
           <Vacio tamano="chico" icono={<Scissors />}>
@@ -67,7 +91,7 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
       ) : (
         <Tabla>
           <div className={EN_COLUMNAS}>
-            <Encabezado plantilla={PLANTILLA} visible="grid" columnas={[{ titulo: "Tela" }, { titulo: "Plan", alinear: "der" }, { titulo: "Usado", alinear: "der" }, { titulo: "Estante", alinear: "der" }]} />
+            <Encabezado plantilla={PLANTILLA} visible="grid" columnas={[{ titulo: "Tela" }, { titulo: "Plan", alinear: "der" }, { titulo: "Usado", alinear: "der" }, { titulo: "En el estante", alinear: "der" }]} />
           </div>
           {filas.map((f, i) => (
             <div key={f.id} className={fila(PLANTILLA)}>
@@ -87,17 +111,25 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
                 </span>
                 {f.detalle && <span className="op-sub">{f.detalle}</span>}
                 <span className="mt-1.5 flex flex-wrap items-center gap-2">
-                  {f.alcanza && f.conLoQueViene ? (
+                  {f.porAnotar ? (
                     <Chip tono="ambar" versalitas={false}>
-                      Alcanza si llega lo pedido
+                      Falta anotar
                     </Chip>
-                  ) : f.alcanza ? (
+                  ) : f.yaCortada ? (
                     <Chip tono="verde" versalitas={false}>
-                      {f.yaCortada ? "Ya se cortó" : "Alcanza"}
+                      Anotada
                     </Chip>
-                  ) : (
+                  ) : !f.alcanza ? (
                     <Chip tono="ambar" versalitas={false}>
                       Faltan {f.faltan}
+                    </Chip>
+                  ) : f.conLoQueViene ? (
+                    <Chip tono="pizarra" versalitas={false}>
+                      Alcanza si llega lo pedido
+                    </Chip>
+                  ) : (
+                    <Chip tono="neutro" versalitas={false}>
+                      Alcanza
                     </Chip>
                   )}
                   {!f.alcanza && puedePedir && datos.orden.estado === "en_proceso" && (
@@ -114,21 +146,27 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
                 ))}
               </span>
               <span className={celda("der", `${EN_COLUMNAS}`)}>{f.plan}</span>
-              <span className={celda("der", `${EN_COLUMNAS}`)}>{f.usado}</span>
-              <span className={celda("der", `${EN_COLUMNAS}`)}>{f.saldo}</span>
+              <span className={celda("der", `${EN_COLUMNAS}`)}>{f.porAnotar ? <span className="op-por-anotar">por anotar</span> : f.usado}</span>
+              <span className={celda("der", `${EN_COLUMNAS}`)}>
+                {f.saldo}
+                {f.porAnotar && <span className="op-sub">sin descontar el corte</span>}
+              </span>
               <span className="op-sub @min-[28rem]:hidden">
-                plan {f.plan} · usado {f.usado} · estante {f.saldo}
+                plan {f.plan} · usado {f.porAnotar ? "por anotar" : f.usado} · en el estante {f.saldo}
               </span>
             </div>
           ))}
         </Tabla>
       )}
       {edicionFalla && <p className="op-sub">No se pudo preparar la edición de la tela: recarga la página para volver a intentarlo.</p>}
-      {puedeAnotar && (
+      {puedeAnotar && (!avisarPorAnotar || hayQueDevolver) && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.anotar-tela" onClick={() => setHoja("usar")}>
-            Anotar lo que usaste
-          </Boton>
+          {/* Con el aviso «Falta anotar» a la vista, su botón es el de anotar: no se repite aquí. */}
+          {!avisarPorAnotar && (
+            <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.anotar-tela" onClick={() => anotar()}>
+              Anotar lo que usaste
+            </Boton>
+          )}
           {hayQueDevolver && (
             <Boton peso="discreto" aria-haspopup="dialog" data-guia="prod-orden.devolver-tela" onClick={() => setHoja("devolver")}>
               Devolver lo que sobró
@@ -136,7 +174,7 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
           )}
         </div>
       )}
-      {hoja && <TelaUsadaModal datos={datos} modo={hoja} onClose={() => setHoja(null)} />}
+      {hoja && <TelaUsadaModal datos={datos} modo={hoja} insumoId={hoja === "usar" ? telaId : undefined} onClose={() => setHoja(null)} />}
       {editando && edicion && <EditarTelaModal datos={datos} edicion={edicion} onClose={() => setEditando(false)} />}
       {fichaAbierta && edicion && (
         <FichaDeConsumoHoja tallerId={datos.orden.ubicacionId} tallerNombre={datos.orden.ubicacionNombre} productoId={datos.orden.producto.id} referencia={datos.orden.producto.referencia} insumos={edicion.insumos} onClose={() => setFichaAbierta(false)} />

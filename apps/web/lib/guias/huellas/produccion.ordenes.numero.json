@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 142,
+  "total": 144,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -135,19 +135,21 @@
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
-    "components/orden-pagina/RutaDeFases.tsx": [
+    "components/orden-pagina/RutaViva.tsx": [
       "Boton «prod-orden.agregar-paso»",
-      "Boton «{fase.id === idDeLaQueMarca ? \"prod-orden.marcar\" : undefined}»",
-      "BotonDeshacer «→() => setHoja({ tipo: \"desmarcar\", faseId: fase.id»",
-      "Boton «{fase.actual ? \"prod-orden.terminar\" : undefined}»",
-      "Boton «{fase.id === idDeLaQueRecibe ? \"prod-orden.vuelta\" : undefined}»",
-      "Boton «{fase.id === idDeLaQueSale ? \"prod-orden.salida\" : undefined}»",
-      "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»",
-      "button «{fase.id === idDeLaQueSeQuita ? \"prod-orden.quitar-paso\" : undefined}»"
+      "button «{estado === \"hecha\" && <Check />}»",
+      "Boton «prod-orden.marcar»",
+      "BotonDeshacer «→() => alAbrirHoja(\"desmarcar\")»",
+      "Boton «prod-orden.terminar»",
+      "Boton «prod-orden.vuelta»",
+      "Boton «prod-orden.salida»",
+      "button «prod-orden.cambiar-quien»",
+      "button «prod-orden.quitar-paso»"
     ],
     "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
       "Boton «prod-orden.ficha-modelo»",
       "BotonEditar «Editar»",
+      "button «prod-orden.anotar-tela»",
       "Boton «prod-orden.editar-tela»",
       "BotonEnlace «{i === 0 ? \"prod-orden.pedir-tela\" : undefined}»",
       "Boton «prod-orden.anotar-tela»",

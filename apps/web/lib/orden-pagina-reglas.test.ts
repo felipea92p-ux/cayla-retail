@@ -79,8 +79,13 @@ import {
   textoTermine,
   textoVolvieron,
   todasLasQueCuentanHechas,
+  estadoEnRuta,
+  faseAbiertaDeLaRuta,
+  subtituloEnRuta,
+  tonoDeEntrada,
   type FasePagina,
   type OrdenPagina,
+  type TipoEvento,
 } from "./orden-pagina-reglas";
 
 // La respuesta de `fn_orden_produccion` tal como la escribe la migración 20261014155000: una orden de 48 pantalones (negro y caqui, tallas 28/30/32, 8 de cada una).
@@ -1343,5 +1348,58 @@ describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () 
     // La ruta completa pasa la validación de abrir y el candado es el de las demás escrituras de la orden.
     expect(sql).toContain("retail.fn_produccion_fases_normalizar(");
     expect(sql).toContain("pg_advisory_xact_lock(hashtextextended('produccion:'");
+  });
+});
+
+describe("la ruta viva (ADR-0570): un color por paso y un paso abierto", () => {
+  const p = orden();
+  const [corte, costura, acabado] = p.fases;
+
+  it("estadoEnRuta: verde lo hecho, ámbar lo que toca (la actual o una que ya empezó), gris lo que falta", () => {
+    expect(estadoEnRuta(corte)).toBe("hecha");
+    expect(estadoEnRuta(costura)).toBe("toca");
+    expect(estadoEnRuta(acabado)).toBe("pendiente");
+    // Una fase que empezó en paralelo con la actual también pide que alguien anote.
+    expect(estadoEnRuta({ ...acabado, estado: "en_curso" })).toBe("toca");
+  });
+
+  it("faseAbiertaDeLaRuta: la actual; sin actual, la primera sin terminar; todo hecho, la última; sin pasos, nada", () => {
+    expect(faseAbiertaDeLaRuta(p.fases)?.clave).toBe("costura");
+    expect(faseAbiertaDeLaRuta(p.fases.map((f) => ({ ...f, actual: false })))?.clave).toBe("costura");
+    expect(faseAbiertaDeLaRuta(p.fases.map((f) => ({ ...f, estado: "hecha" as const, actual: false })))?.clave).toBe("acabado");
+    expect(faseAbiertaDeLaRuta([])).toBeNull();
+  });
+
+  it("subtituloEnRuta: cuántas y cuándo si está hecha, «Te toca» en la actual, quién la hará si falta", () => {
+    expect(subtituloEnRuta(corte, "2026-10-15T22:40:00+00:00", 48)).toBe("48 · jue 15 oct");
+    expect(subtituloEnRuta(corte, null, 48)).toBe("48 hechas");
+    expect(subtituloEnRuta(costura, null, 48)).toBe("Te toca");
+    expect(subtituloEnRuta({ ...acabado, estado: "en_curso", hechas: 12, entrada: 30 }, null, 48)).toBe("12 de 48");
+    expect(subtituloEnRuta(acabado, null, 48)).toBe("Taller");
+    expect(subtituloEnRuta({ ...acabado, quien: "servicio", proveedorNombre: "Ojalería Lima" }, null, 48)).toBe("Afuera · Ojalería Lima");
+  });
+
+  it("subtituloEnRuta: un paso que se marca (Ploteo) dice «Hecho» con su día, sin contar prendas", () => {
+    const ploteo: FasePagina = { ...corte, clave: "ploteo", nombre: "Ploteo", hito: true, marcada: true, hechas: 0 };
+    expect(subtituloEnRuta(ploteo, "2026-10-13T15:00:00+00:00", 48)).toBe("Hecho · mar 13 oct");
+    expect(subtituloEnRuta(ploteo, null, 48)).toBe("Hecho");
+  });
+
+  it("tonoDeEntrada: lo hecho en verde, lo que salió en camino, lo deshecho o anulado como cambio, la apertura aparte", () => {
+    expect((["avance", "vuelta", "marca"] as TipoEvento[]).map(tonoDeEntrada)).toEqual(["hecho", "hecho", "hecho"]);
+    expect(tonoDeEntrada("salida")).toBe("camino");
+    expect((["deshacer", "anulacion", "desmarca"] as TipoEvento[]).map(tonoDeEntrada)).toEqual(["cambio", "cambio", "cambio"]);
+    expect(tonoDeEntrada("apertura")).toBe("inicio");
+  });
+
+  it("la tela «por anotar»: ya se cortó y la orden no tiene nada descontado; con algo anotado ya no; un avío nunca", () => {
+    const sinNadaUsado = orden().insumos.map((i) => ({ ...i, usado: 0 }));
+    const [tela, boton] = filasDeTela(sinNadaUsado, true);
+    expect(tela).toMatchObject({ yaCortada: true, porAnotar: true });
+    expect(boton.porAnotar).toBe(false);
+    // 35 m ya anotados: no falta anotar aunque sea menos que el plan.
+    expect(filasDeTela(orden().insumos, true)[0].porAnotar).toBe(false);
+    // Sin cortar todavía, no hay nada que anotar.
+    expect(filasDeTela(sinNadaUsado, false)[0].porAnotar).toBe(false);
   });
 });

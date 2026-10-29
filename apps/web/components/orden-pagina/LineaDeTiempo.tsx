@@ -9,7 +9,7 @@ import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { SeparadorDia, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
-import { lineaDeTiempoAgrupada, type EntradaDeTiempo, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { lineaDeTiempoAgrupada, tonoDeEntrada, type EntradaDeTiempo, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 
 // La línea de tiempo de la orden (ADR-0400, vista D): quién, cuándo y cuánto, del más reciente al más viejo, agrupada por día. Lo que se anotó de una vez es UNA entrada. «Deshacer» aparece
 // como enlace solo en la anotación más reciente que todavía se puede deshacer (la base manda `avance_id` solo en esas), y solo a quien puede operar la orden.
@@ -17,6 +17,8 @@ import { lineaDeTiempoAgrupada, type EntradaDeTiempo, type OrdenPagina } from "@
 // otra entrada («Anuló la salida de Costura · por qué»). Nada se borra: la línea de tiempo cuenta todo.
 // Las dos acciones son piezas del sistema (ADR-0358): «Anular» borra algo que ya pasó, así que es el botón de peligro, rojo desde el principio (`accion.eliminar`), en su medida compacta; «Deshacer» es
 // `<BotonDeshacer>` (`accion.deshacer`), el enlace con la flecha curva. Ambos abren su hoja de confirmación.
+// Desde la «Ruta viva» (ADR-0570, actividad 1) se llama «Historia» —la palabra con que Felipe la pidió— y el punto de cada entrada lleva la regla de color de Producción
+// (`tonoDeEntrada`): verde lo hecho, pizarra lo que salió a un servicio, ámbar lo que se deshizo o anuló.
 
 export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string }) {
   const [deshaciendo, setDeshaciendo] = useState<EntradaDeTiempo | null>(null);
@@ -28,10 +30,9 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
   const puedeAnular = puedeDeshacer;
   // La guía interactiva ancla en la primera «Anular» que haya (las demás son iguales).
   const primeraAnulable = puedeAnular ? (dias.flatMap((d) => d.entradas).find((e) => e.anulable !== null) ?? null) : null;
-  let primera = true;
   return (
-    <section data-guia="prod-orden.linea-de-tiempo" aria-label="Línea de tiempo de la orden" className="space-y-3">
-      <TituloSeccion dato="quién · cuándo · cuánto">Línea de tiempo</TituloSeccion>
+    <section data-guia="prod-orden.linea-de-tiempo" aria-label="Historia de la orden" className="space-y-3">
+      <TituloSeccion>Historia</TituloSeccion>
       <div className="card-cayla p-5">
         {dias.length === 0 ? (
           <Vacio tamano="chico" icono={<Hourglass />}>
@@ -45,10 +46,8 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
               </SeparadorDia>
               <ol className="op-tiempo">
                 {dia.entradas.map((e) => {
-                  const esPrimero = primera;
-                  primera = false;
                   return (
-                    <li key={e.ids.join("-")} data-primero={esPrimero ? "true" : "false"} data-anulada={e.anulada ? "true" : undefined}>
+                    <li key={e.ids.join("-")} data-tono={tonoDeEntrada(e.tipo)} data-anulada={e.anulada ? "true" : undefined}>
                       <div className="op-tiempo-cuando">
                         {e.hora}
                         {e.quien ? ` · ${e.quien}` : ""}

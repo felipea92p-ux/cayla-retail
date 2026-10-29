@@ -752,6 +752,53 @@ function textoDeHito(f: FasePagina, terminoEl: string | null): TextoDeFase {
   return { cifra: "Por hacer", de: "", detalle: f.quien === "servicio" ? `Con ${quien}${prometido}${cobra}` : "Se marca con un toque cuando la marcada esté lista" };
 }
 
+// ---------- La ruta viva (ADR-0570, actividad 1) ----------
+//
+// La ruta de la orden como una fila de pasos con un color cada uno —la regla de color de Producción: verde solo lo hecho, ámbar lo que toca ahora, gris lo que falta— y, debajo,
+// UN paso abierto con sus botones. Antes eran siete tarjetas iguales en una grilla: el paso hecho y el que tocaba se veían casi igual.
+
+/** Cómo se pinta un paso en la ruta. «toca» es la fase actual o una que ya empezó (en paralelo con la actual): las dos piden que alguien anote. */
+export type EstadoEnRuta = "hecha" | "toca" | "pendiente";
+
+export function estadoEnRuta(f: Pick<FasePagina, "estado" | "actual">): EstadoEnRuta {
+  if (f.estado === "hecha") return "hecha";
+  return f.actual || f.estado === "en_curso" ? "toca" : "pendiente";
+}
+
+/** El paso que la ruta muestra abierto al entrar: el actual; si ninguno lo es, el primero sin terminar; si todos terminaron, el último. `null` sin pasos. */
+export function faseAbiertaDeLaRuta<T extends Pick<FasePagina, "estado" | "actual">>(fases: readonly T[]): T | null {
+  return fases.find((f) => f.actual) ?? fases.find((f) => f.estado !== "hecha") ?? fases[fases.length - 1] ?? null;
+}
+
+/** El renglón chico bajo el nombre de cada paso en la ruta: «57 · mié 28 oct» si está hecho, «Te toca» o «12 de 57» si toca, y quién lo hará si falta. */
+export function subtituloEnRuta(f: FasePagina, terminoEl: string | null, totalPlan: number): string {
+  const estado = estadoEnRuta(f);
+  const dia = terminoEl ? diaCorto(fechaLimaDe(terminoEl)) : null;
+  if (estado === "hecha") return f.hito ? (dia ? `Hecho · ${dia}` : "Hecho") : dia ? `${f.hechas} · ${dia}` : `${f.hechas} hechas`;
+  if (estado === "toca") return f.actual ? "Te toca" : `${f.hechas} de ${Math.max(totalPlan, f.entrada, f.hechas)}`;
+  return f.quien === "servicio" ? `Afuera · ${quienDeFase(f)}` : "Taller";
+}
+
+/** El color del punto de cada entrada de la historia: lo hecho en verde, lo que salió a un servicio en pizarra (en camino), lo que se deshizo o anuló en ámbar y la apertura en tinta. */
+export type TonoDeEntrada = "hecho" | "camino" | "cambio" | "inicio";
+
+export function tonoDeEntrada(tipo: TipoEvento): TonoDeEntrada {
+  switch (tipo) {
+    case "avance":
+    case "vuelta":
+    case "marca":
+      return "hecho";
+    case "salida":
+      return "camino";
+    case "deshacer":
+    case "anulacion":
+    case "desmarca":
+      return "cambio";
+    default:
+      return "inicio";
+  }
+}
+
 /** El instante en que se anotó lo último de una fase (avance, Salida o Vuelta), para decir «Hecha el jue 15». `null` si nunca se anotó nada. */
 export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiempo[]): string | null {
   let ultimo: string | null = null;
@@ -789,6 +836,8 @@ export type FilaDeTela = {
   conLoQueViene: boolean;
   /** Es una tela y el corte ya terminó: lo que sobra de su plan ya no se va a usar, no falta nada por usar. */
   yaCortada: boolean;
+  /** Ya se cortó y la orden todavía no tiene nada descontado de esta tela: falta anotar lo que se usó (ADR-0570). Sin eso el costo de la prenda sale sin tela. */
+  porAnotar: boolean;
   /** Los pedidos de esta tela con lo que falta recibir de cada uno: «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct». */
   pedidos: string[];
 };
@@ -843,6 +892,7 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
       atrasado: atrasado > 0 ? cantidadConUnidad(atrasado, base.unidad) : null,
       conLoQueViene: v.conLoQueViene,
       yaCortada,
+      porAnotar: yaCortada && usado === 0,
       pedidos: base.pedidos.map(textoDePedido),
     };
   }).sort((a, b) => lugarEnLaTabla(a) - lugarEnLaTabla(b));

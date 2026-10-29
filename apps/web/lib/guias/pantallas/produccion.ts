@@ -374,7 +374,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "ficha",
       ancla: "prod-orden.ficha",
       titulo: "Qué se fabrica y cómo va",
-      texto: "La prenda, dónde está la orden, sus colores y tallas, a cuánto se vende y quién la abrió. Debajo dice qué sigue. Arriba, a la derecha, van las cifras: cuántas prendas, para cuándo y cuánto ha costado hasta hoy.",
+      texto: "La prenda, dónde está la orden, sus colores y tallas, a cuánto se vende y quién la abrió. Arriba, a la derecha de la cabecera, van las cifras: cuántas prendas, para cuándo y cuánto ha costado hasta hoy.",
     },
     {
       id: "atencion",
@@ -386,15 +386,15 @@ export const GUIA_PROD_ORDEN: Guia = {
     {
       id: "fases",
       ancla: "prod-orden.fases",
-      titulo: "Las fases del lote",
-      texto: "Ploteo, Corte, Habilitado, Costura y Planchado, y Ojales y botones si la orden los lleva (una orden más antigua puede traer también Limpiar hilos y Etiquetar). Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
+      titulo: "La ruta de la orden",
+      texto: "Los pasos del lote en fila: Ploteo, Corte, Habilitado, Costura y Planchado, y Ojales y botones si la orden los lleva. Verde es hecho, ámbar el que te toca y gris lo que falta. Toca un paso para abrirlo debajo con sus botones; un punto ámbar dice que ahí también hay algo para anotar.",
     },
     {
       id: "fase-actual",
       ancla: "prod-orden.fase-actual",
       opcional: true,
-      titulo: "La fase en que se está",
-      texto: "Es la que toca ahora. Si la hace el Taller, aquí anotas «Terminé N». Si la hace un servicio de afuera, se anota lo que sale (Salida) y lo que vuelve (Vuelta), con las buenas, las segundas y las que faltan.",
+      titulo: "Lo que te toca",
+      texto: "Debajo de la ruta viene abierto el paso que toca ahora. Si lo hace el Taller, aquí anotas «Terminé N». Si lo hace un servicio de afuera, se anota lo que sale (Salida) y lo que vuelve (Vuelta), con las buenas, las segundas y las que faltan.",
     },
     {
       id: "marcar",
@@ -432,7 +432,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden-terminar.cierre",
       opcional: true,
       titulo: "Quién lo anota",
-      texto: "Eliges quién anota y guardas con el botón de abajo. Si te equivocas, «Deshacer» en el aviso o en la línea de tiempo lo vuelve atrás sin borrar el historial. En la demo cerramos la hoja sin anotar.",
+      texto: "Eliges quién anota y guardas con el botón de abajo. Si te equivocas, «Deshacer» en el aviso o en la historia lo vuelve atrás sin borrar nada. En la demo cerramos la hoja sin anotar.",
     },
     {
       id: "salida",
@@ -448,7 +448,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.salida" }],
       titulo: "Cuántas mandas",
-      texto: "Ya viene escrito lo que puede salir de cada talla y color: si mandas todo, no cambias nada; si no, bajas lo que todavía no sale. El N.º de guía es opcional. Una salida no se borra: si te equivocas, la anulas desde «Todo lo que pasó».",
+      texto: "Ya viene escrito lo que puede salir de cada talla y color: si mandas todo, no cambias nada; si no, bajas lo que todavía no sale. El N.º de guía es opcional. Una salida no se borra: si te equivocas, la anulas desde la historia.",
     },
     {
       id: "salida-cierre",
@@ -532,7 +532,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.tela",
       preparar: [{ tipo: "escape" }],
       titulo: "La tela y los avíos",
-      texto: "Por cada tela y avío: cuánto pide el plan, cuánto se usó y cuánto hay en el estante. «Alcanza» o «Faltan N» te dice si se puede terminar la orden con lo que hay. Los avíos llevan su etiqueta «Avío»; el forro y otras telas, «Complemento».",
+      texto: "Por tela y avío: cuánto pide el plan, cuánto se usó y cuánto hay en el estante. Antes del corte, «Faltan N» avisa si no alcanza. Después, «Falta anotar» recuerda la tela usada (sin ella la prenda pasa al stock sin su costo). Los avíos llevan «Avío»; el forro y otras telas, «Complemento».",
     },
     {
       id: "editar-tela",
@@ -577,7 +577,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Anotar lo que usaste",
-      texto: "Cuando se gasta tela o avíos, «Anotar lo que usaste» lo descuenta del estante y lo deja en la orden: de ahí sale el costo real. Te abrimos la hoja para mostrártela; no se anota nada.",
+      texto: "Cuando se gasta tela o avíos, «Anotar lo que usaste» lo descuenta del estante y lo deja en la orden: de ahí sale el costo real. Si ya se cortó y falta anotar, el botón viene en el aviso de arriba de la tabla. Te abrimos la hoja para mostrártela; no se anota nada.",
     },
     {
       id: "tela-cantidad",
@@ -612,8 +612,8 @@ export const GUIA_PROD_ORDEN: Guia = {
     {
       id: "linea-de-tiempo",
       ancla: "prod-orden.linea-de-tiempo",
-      titulo: "Todo lo que pasó",
-      texto: "Quién anotó qué y cuándo, del más reciente al más viejo y agrupado por día. Lo que se anotó de una vez va junto. «Deshacer» aparece en la última anotación y la vuelve atrás.",
+      titulo: "La historia",
+      texto: "Quién anotó qué y cuándo, del más reciente al más viejo y agrupado por día. El punto dice qué fue: verde lo hecho, gris azulado lo que salió a un servicio, ámbar lo que se deshizo o anuló. Lo que se anotó de una vez va junto. «Deshacer» aparece en la última anotación y la vuelve atrás.",
     },
     {
       id: "anular",
@@ -628,7 +628,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.anular" }],
       titulo: "Por qué la anulas",
-      texto: "Cuéntalo con tus palabras («me equivoqué de taller», «la guía era de otra orden»). Lo anotado no se borra: la anulación queda en la línea de tiempo junto a lo que anuló, y puedes anotar la salida o la vuelta de nuevo.",
+      texto: "Cuéntalo con tus palabras («me equivoqué de taller», «la guía era de otra orden»). Lo anotado no se borra: la anulación queda en la historia junto a lo que anuló, y puedes anotar la salida o la vuelta de nuevo.",
     },
     {
       id: "anular-cierre",
