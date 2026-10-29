@@ -15,7 +15,9 @@
 --            «Pago de la planilla» que la registró; la clave primaria hace imposible dos enlaces para el mismo tramo. (3)
 --            `fn_planilla_salidas_por_registrar()`: por cada grupo PAGADO en Dynamic de un período que termina desde el inicio de
 --            Finanzas, el neto (lo que recibe cada persona que cobra algo) y cuántas personas cobran en cada banco, con el pago ya registrado si lo hay
---            y sigue vigente. Solo trae los grupos que piden atención: algún tramo sin registrar, o registrado con otro monto.
+--            y sigue vigente. Solo trae los grupos que piden atención: algún tramo sin registrar, o registrado cuando Dynamic decía otro neto
+--            (Dynamic reabrió y volvió a pagar). Que la salida registrada sea de otro monto que el neto NO pide atención: quien la registró
+--            escribió lo que de verdad salió del banco (`planilla_salidas.neto_dynamic` guarda lo que Dynamic decía en ese momento).
 --   ASUME:   Dynamic: `v_planilla_pagada` (la foto vigente, con `persona_id`, `grupo`, `total`), `periodo_grupo_pago` (estado y
 --            `pagado_at` por grupo), `periodos_planilla` y `datos_personales`. El neto es `total`: la AFP, el EsSalud y la renta de 4ª
 --            salen por otro lado (a la AFP y a SUNAT) y no van aquí.
@@ -67,6 +69,8 @@ create table if not exists retail.planilla_salidas (
   grupo text not null check (btrim(grupo) <> ''),
   banco text not null check (banco in ('bcp', 'interbank', 'sin_banco')),
   movimiento_id uuid not null unique references retail.movimientos_dinero (id),
+  -- Lo que Dynamic decía que salía de este tramo cuando se registró: si después cambia, el tramo vuelve a pedir atención.
+  neto_dynamic numeric not null check (neto_dynamic >= 0),
   registrada_por uuid references public.personas (id),
   registrada_en timestamptz not null default now(),
   primary key (periodo_id, grupo, banco)
@@ -89,6 +93,7 @@ returns table (
   neto numeric,
   movimiento_id uuid,
   registrado numeric,
+  neto_al_registrar numeric,
   cuenta_id uuid,
   cuenta_nombre text,
   fecha_registrada date
@@ -125,7 +130,8 @@ begin
     select t.periodo_id, p.fecha_ini, p.fecha_fin, t.grupo,
            (g.pagado_at at time zone 'America/Lima')::date as pagado_el,
            t.banco, t.personas, t.neto,
-           m.id as movimiento_id, m.monto as registrado, m.cuenta_origen_id as cuenta_id, c.nombre as cuenta_nombre, m.fecha as fecha_registrada
+           m.id as movimiento_id, m.monto as registrado, case when m.id is not null then s.neto_dynamic end as neto_al_registrar,
+           m.cuenta_origen_id as cuenta_id, c.nombre as cuenta_nombre, m.fecha as fecha_registrada
       from tramos t
       join public.periodo_grupo_pago g on g.periodo_id = t.periodo_id and g.grupo = t.grupo and g.estado = 'pagado'
       join public.periodos_planilla p on p.id = t.periodo_id
@@ -136,15 +142,15 @@ begin
        and (v_desde is null or p.fecha_fin >= v_desde)
   )
   select f.periodo_id, f.fecha_ini, f.fecha_fin, f.grupo, f.pagado_el, f.banco, f.personas, f.neto,
-         f.movimiento_id, f.registrado, f.cuenta_id, f.cuenta_nombre, f.fecha_registrada
+         f.movimiento_id, f.registrado, f.neto_al_registrar, f.cuenta_id, f.cuenta_nombre, f.fecha_registrada
     from filas f
    where exists (
      select 1 from filas o
       where o.periodo_id = f.periodo_id and o.grupo = f.grupo
-        and (o.movimiento_id is null or o.registrado is distinct from o.neto))
+        and (o.movimiento_id is null or o.neto_al_registrar is distinct from o.neto))
    order by f.fecha_fin, f.pagado_el, f.grupo, f.banco;
 end $$;
 comment on function retail.fn_planilla_salidas_por_registrar() is
-  'ADR-0567: por cada grupo pagado en Dynamic desde el inicio de Finanzas, el neto y las personas por banco del colaborador, con su salida registrada si la hay. Solo los grupos con algo por registrar o con otro monto. Líder que ve la planilla en Dynamic; si no, vacío.';
+  'ADR-0567: por cada grupo pagado en Dynamic desde el inicio de Finanzas, el neto y las personas por banco del colaborador, con su salida registrada si la hay. Solo los grupos con algo por registrar o que Dynamic cambió después de registrar. Líder que ve la planilla en Dynamic; si no, vacío.';
 revoke all on function retail.fn_planilla_salidas_por_registrar() from public, anon;
 grant execute on function retail.fn_planilla_salidas_por_registrar() to authenticated;

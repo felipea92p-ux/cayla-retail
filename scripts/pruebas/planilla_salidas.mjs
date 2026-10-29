@@ -12,11 +12,15 @@
  *      va a «sin_banco»; quien no cobra nada, o queda en negativo, no suma ni resta; un tramo sin plata no pide salida.
  *   3. Un grupo congelado pero sin pagar, o de un período que terminó antes del inicio de Finanzas, no aparece.
  *   4. Sin ser líder o sin ver la planilla en Dynamic, vacío; sin las tablas de Dynamic, vacío y sin error.
- *   5. Un grupo con todos sus tramos registrados con el mismo monto deja de aparecer; con otro monto, aparece y dice cuánto se registró;
- *      si su salida se anula, el tramo vuelve a pedirla.
+ *   5. Un grupo con todos sus tramos registrados deja de aparecer, aunque una salida sea de otro monto (lo que de verdad salió del banco);
+ *      si Dynamic cambia el neto después de registrar, vuelve y dice cuánto decía; si su salida se anula, el tramo vuelve a pedirla.
  *   6. Un tramo no puede tener dos salidas enlazadas; la migración se puede pegar dos veces.
  *   7. De qué cuenta sale cada banco (20261029053000): solo un banco activo, solo el líder o Configuración, firma y deja historia, repetir
  *      lo mismo no escribe, una cuenta archivada deja de proponerse, y ni una escritura directa mete una cuenta que no es banco.
+ *   8. Registrar las salidas de un grupo (20261029054000): crea un «Pago de la planilla» por banco con su referencia y la fecha de pago de
+ *      Dynamic si no se da otra; reintentar con el mismo token no duplica; un tramo con salida no recibe otra; si un banco falla no queda
+ *      ninguno; enlaza una registrada a mano (y nada que no sea un «Pago de la planilla» suelto); deshecha, se vuelve a registrar; un
+ *      grupo sin pagar, una fecha antes del inicio, un monto cero, quien no es líder o no ve la planilla: rechazados sin escribir.
  *
  * USO
  *   pnpm pruebas:planilla-salidas   → necesita el stack local (`npx supabase start`)
@@ -37,6 +41,7 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261029052000_planilla_salidas_por_registrar.sql"), "utf8");
 const CUENTAS = readFileSync(join(RAIZ, "supabase", "migrations", "20261029053000_planilla_cuenta_por_banco.sql"), "utf8");
+const REGISTRAR = readFileSync(join(RAIZ, "supabase", "migrations", "20261029054000_registrar_salidas_planilla.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(
@@ -221,7 +226,8 @@ select 'sin_dynamic|' || count(*) from retail.fn_planilla_salidas_por_registrar(
 
 // ---------- Escena 4: registrado, con otro monto, anulado; un tramo, una salida ----------
 {
-  const enlazar = (banco, mov) => `insert into retail.planilla_salidas (periodo_id, grupo, banco, movimiento_id) values ('${P1}', 'planilla', '${banco}', :'${mov}');\n`;
+  const enlazar = (banco, mov, neto) =>
+    `insert into retail.planilla_salidas (periodo_id, grupo, banco, movimiento_id, neto_dynamic) values ('${P1}', 'planilla', '${banco}', :'${mov}', ${neto});\n`;
   const r = correr(`
 begin;
 ${DYNAMIC}
@@ -232,14 +238,15 @@ ${cambiaA(FELIPE)}
 insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('Banco de prueba', 'banco', '104') returning id as banco \\gset
 select retail.registrar_movimiento_dinero('pago_planilla', 3000, :'banco', null, '2019-07-30', 'Planilla BCP') as m_bcp \\gset
 select retail.registrar_movimiento_dinero('pago_planilla', 999, :'banco', null, '2019-07-30', 'Planilla Interbank') as m_ibk \\gset
-${enlazar("bcp", "m_bcp")}${enlazar("interbank", "m_ibk")}
-${LEER}
-select 'cuenta_registrada|' || string_agg(distinct cuenta_nombre || ' ' || fecha_registrada, ',') from retail.fn_planilla_salidas_por_registrar();
--- Se corrige el de Interbank: anular y registrar el monto bueno, enlazado al mismo tramo.
-select retail.anular_movimiento_dinero(:'m_ibk', 'Monto equivocado');
-select retail.registrar_movimiento_dinero('pago_planilla', 1000, :'banco', null, '2019-07-30', 'Planilla Interbank') as m_ibk2 \\gset
-update retail.planilla_salidas set movimiento_id = :'m_ibk2' where periodo_id = '${P1}' and grupo = 'planilla' and banco = 'interbank';
+${enlazar("bcp", "m_bcp", 3000)}${enlazar("interbank", "m_ibk", 1000)}
+-- Interbank se registró por 999 cuando Dynamic decía 1000: es lo que salió del banco y no pide atención.
 select 'todo_registrado|' || count(*) from retail.fn_planilla_salidas_por_registrar();
+-- Dynamic reabre y vuelve a pagar con otro neto para Interbank: el grupo vuelve, con lo que decía al registrar.
+update public.v_planilla_pagada set total = 550 where persona_id in (select persona_id from public.datos_personales where entidad_bancaria = 'Interbank');
+${LEER}
+select 'antes_decia|' || neto_al_registrar from retail.fn_planilla_salidas_por_registrar() where banco = 'interbank';
+select 'cuenta_registrada|' || string_agg(distinct cuenta_nombre || ' ' || fecha_registrada, ',') from retail.fn_planilla_salidas_por_registrar();
+update public.v_planilla_pagada set total = 500 where persona_id in (select persona_id from public.datos_personales where entidad_bancaria = 'Interbank');
 -- Se anula el de BCP: el tramo vuelve a pedir su salida.
 select retail.anular_movimiento_dinero(:'m_bcp', 'Se registró en la cuenta equivocada');
 select 'vuelve_bcp|' || coalesce(movimiento_id::text, 'sin') || ',' || personas from retail.fn_planilla_salidas_por_registrar() where banco = 'bcp';
@@ -247,20 +254,21 @@ select 'sigue_interbank|' || registrado from retail.fn_planilla_salidas_por_regi
 -- Un tramo, una salida: un segundo enlace al mismo tramo se rechaza.
 do $$
 begin
-  insert into retail.planilla_salidas (periodo_id, grupo, banco, movimiento_id)
-  values ('${P1}', 'planilla', 'interbank', (select id from retail.movimientos_dinero where referencia = 'Planilla BCP'));
+  insert into retail.planilla_salidas (periodo_id, grupo, banco, movimiento_id, neto_dynamic)
+  values ('${P1}', 'planilla', 'interbank', (select id from retail.movimientos_dinero where referencia = 'Planilla BCP'), 1000);
   raise exception 'tendría que haber fallado';
 exception when unique_violation then null;
 end $$;
 select 'dos_enlaces|rechazado';
 `);
   verificar("registrado, con otro monto y anulado", r, {
-    bcp: "3,3000.00,3000.00",
-    interbank: "2,1000.00,999.00",
-    cuenta_registrada: "Banco de prueba 2019-07-30",
     todo_registrado: "0",
+    bcp: "3,3000.00,3000.00",
+    interbank: "2,1100.00,999.00",
+    antes_decia: "1000",
+    cuenta_registrada: "Banco de prueba 2019-07-30",
     vuelve_bcp: "sin,3",
-    sigue_interbank: "1000.00",
+    sigue_interbank: "999.00",
     dos_enlaces: "rechazado",
   });
 }
@@ -293,6 +301,8 @@ select '${nombre}|ok';`;
 begin;
 ${MIGRACION}
 ${CUENTAS}
+-- Lo que la base ya traiga guardado no cuenta: la escena parte de cero (se deshace con el ROLLBACK).
+delete from retail.planilla_cuentas;
 ${cambiaA(FELIPE)}
 insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('BCP de prueba', 'banco', '104') returning id as bcp \\gset
 insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('Interbank de prueba', 'banco', '104') returning id as ibk \\gset
@@ -339,6 +349,122 @@ ${CUENTAS}
 select 'cuentas_dos_veces|' || (to_regclass('retail.planilla_cuentas') is not null);
 `);
   verificar("la cuenta por banco se puede pegar dos veces", dos, { cuentas_dos_veces: "true" });
+}
+
+// ---------- Escena 7: registrar las salidas de un grupo ----------
+{
+  const debeFallar = (nombre, sql, codigo) => `
+do $$
+begin
+  ${sql};
+  raise exception '${nombre}: tendría que haber fallado' using errcode = 'XX991';
+exception when others then
+  if sqlstate <> '${codigo}' then raise; end if;
+end $$;
+select '${nombre}|ok';`;
+  const salidas = (lista) => `'${JSON.stringify(lista)}'::jsonb`;
+  const T1 = "00000000-0000-4000-8000-0000000007a1";
+  const T2 = "00000000-0000-4000-8000-0000000007a2";
+  const T3 = "00000000-0000-4000-8000-0000000007a3";
+  const T4 = "00000000-0000-4000-8000-0000000007a4";
+  const contar = `(select count(*) from retail.movimientos_dinero where tipo = 'pago_planilla')`;
+  const r = correr(`
+begin;
+${DYNAMIC}
+${MIGRACION}
+${CUENTAS}
+${REGISTRAR}
+-- Los enlaces que la base ya traiga no cuentan: la escena parte de cero (se deshace con el ROLLBACK).
+delete from retail.planilla_salidas;
+${PERSONAS(3, P1, "planilla", "BCP", 1000)}${PERSONAS(2, P1, "planilla", "Interbank", 500)}${PERSONAS(1, P1, "planilla", "Scotiabank", 300)}
+${PAGADO(P1, "planilla", "2019-07-31 03:00:00+00")}
+${PERSONAS(2, P1, "rxh", "BCP", 800)}
+insert into public.periodo_grupo_pago values ('${P1}', 'rxh', 'abierto', null);
+${cambiaA(FELIPE)}
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('BCP de prueba', 'banco', '104') returning id as bcp \\gset
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable) values ('Interbank de prueba', 'banco', '104') returning id as ibk \\gset
+select ${contar} as antes \\gset
+-- Dos bancos de un toque; Interbank sin fecha toma la de pago de Dynamic (30/07 en Lima).
+select jsonb_array_length(retail.registrar_salidas_planilla('${P1}', 'planilla',
+  jsonb_build_array(jsonb_build_object('banco', 'bcp', 'cuenta_id', :'bcp', 'monto', 3000, 'fecha', '2019-08-01'),
+                    jsonb_build_object('banco', 'interbank', 'cuenta_id', :'ibk', 'monto', 999)), '${T1}')) as hechas \\gset
+select 'hechas|' || :hechas || ',' || (${contar} - :antes);
+select 'interbank_mov|' || m.monto || ',' || m.fecha || ',' || m.referencia from retail.planilla_salidas s join retail.movimientos_dinero m on m.id = s.movimiento_id where s.banco = 'interbank';
+select 'neto_guardado|' || string_agg(banco || ':' || neto_dynamic, ',' order by banco) from retail.planilla_salidas;
+select 'falta_solo|' || string_agg(banco || ':' || coalesce(movimiento_id::text, 'sin'), ',' order by banco) from retail.fn_planilla_salidas_por_registrar() where movimiento_id is null;
+-- El mismo token otra vez: devuelve lo mismo y no escribe.
+select retail.registrar_salidas_planilla('${P1}', 'planilla',
+  jsonb_build_array(jsonb_build_object('banco', 'bcp', 'cuenta_id', :'bcp', 'monto', 3000, 'fecha', '2019-08-01'),
+                    jsonb_build_object('banco', 'interbank', 'cuenta_id', :'ibk', 'monto', 999)), '${T1}');
+select 'reintento|' || (${contar} - :antes);
+-- Otra hoja para un tramo con salida: rechazada. Y si un banco falla, no queda ninguno (sin_banco no se crea).
+${debeFallar("bcp_otra_vez", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', ${salidas([{ banco: "bcp", cuenta_id: null, monto: 1 }])}, '${T2}')`, "P0001")}
+${debeFallar("todo_o_nada", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', jsonb_build_array(jsonb_build_object('banco', 'sin_banco', 'cuenta_id', (select id from retail.cuentas_dinero where nombre = 'BCP de prueba'), 'monto', 300), jsonb_build_object('banco', 'bcp', 'cuenta_id', (select id from retail.cuentas_dinero where nombre = 'BCP de prueba'), 'monto', 3000)), '${T2}')`, "P0001")}
+select 'sin_rastro|' || (${contar} - :antes);
+-- Enlazar una registrada a mano.
+select retail.registrar_movimiento_dinero('pago_planilla', 300, :'bcp', null, '2019-07-30', 'Planilla a mano') as manual \\gset
+select 'suelta|' || count(*) from retail.fn_planilla_salidas_sueltas() where movimiento_id = :'manual';
+-- Un movimiento que no es «Pago de la planilla» (un traspaso entre bancos) no se enlaza.
+select retail.registrar_movimiento_dinero('entre_cuentas', 10, :'bcp', :'ibk', '2019-07-30', 'Traspaso de prueba') as traspaso \\gset
+${debeFallar("enlazar_no_planilla", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', jsonb_build_array(jsonb_build_object('banco', 'sin_banco', 'movimiento_id', (select id from retail.movimientos_dinero where referencia = 'Traspaso de prueba'))), '${T3}')`, "P0001")}
+select retail.registrar_salidas_planilla('${P1}', 'planilla', jsonb_build_array(jsonb_build_object('banco', 'sin_banco', 'movimiento_id', :'manual')), '${T3}');
+select 'enlazada|' || (select count(*) from retail.fn_planilla_salidas_sueltas() where movimiento_id = :'manual') || ',' || (select count(*) from retail.fn_planilla_salidas_por_registrar());
+-- Deshecha la de BCP, el tramo vuelve y se registra de nuevo con otra hoja.
+select retail.anular_movimiento_dinero((select movimiento_id from retail.planilla_salidas where banco = 'bcp'), 'Cuenta equivocada');
+select 'vuelve|' || count(*) from retail.fn_planilla_salidas_por_registrar() where banco = 'bcp' and movimiento_id is null;
+select retail.registrar_salidas_planilla('${P1}', 'planilla', jsonb_build_array(jsonb_build_object('banco', 'bcp', 'cuenta_id', :'ibk', 'monto', 3000)), '${T4}');
+select 'rehecha|' || c.nombre || ',' || (select count(*) from retail.fn_planilla_salidas_por_registrar())
+  from retail.planilla_salidas s join retail.movimientos_dinero m on m.id = s.movimiento_id join retail.cuentas_dinero c on c.id = m.cuenta_origen_id where s.banco = 'bcp';
+-- Lo que se rechaza sin escribir.
+select ${contar} as antes2 \\gset
+${debeFallar("sin_pagar", `perform retail.registrar_salidas_planilla('${P1}', 'rxh', ${salidas([{ banco: "bcp", cuenta_id: null, monto: 1600 }])}, gen_random_uuid())`, "P0001")}
+${debeFallar("banco_repetido", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', ${salidas([{ banco: "bcp" }, { banco: "bcp" }])}, gen_random_uuid())`, "P0001")}
+${debeFallar("banco_raro", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', ${salidas([{ banco: "bbva" }])}, gen_random_uuid())`, "P0001")}
+update retail.parametros_finanzas set inicio_finanzas = '2019-07-01' where id;
+delete from retail.planilla_salidas where banco = 'interbank';
+${debeFallar("antes_del_inicio", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', jsonb_build_array(jsonb_build_object('banco', 'interbank', 'cuenta_id', (select id from retail.cuentas_dinero where nombre = 'Interbank de prueba'), 'monto', 1000, 'fecha', '2019-06-15')), gen_random_uuid())`, "P0001")}
+${debeFallar("monto_cero", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', jsonb_build_array(jsonb_build_object('banco', 'interbank', 'cuenta_id', (select id from retail.cuentas_dinero where nombre = 'Interbank de prueba'), 'monto', 0)), gen_random_uuid())`, "P0001")}
+set local prueba.dynamic_admin = 'no';
+${debeFallar("sin_ver_dynamic", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', ${salidas([{ banco: "interbank" }])}, gen_random_uuid())`, "42501")}
+set local prueba.dynamic_admin = 'si';
+${cambiaA(MICAELA)}
+${debeFallar("colaboradora", `perform retail.registrar_salidas_planilla('${P1}', 'planilla', ${salidas([{ banco: "interbank" }])}, gen_random_uuid())`, "42501")}
+select 'colaboradora_sueltas|' || count(*) from retail.fn_planilla_salidas_sueltas();
+select 'nada_escrito|' || (${contar} - :antes2);
+`);
+  verificar("registrar las salidas de un grupo", r, {
+    hechas: "2,2",
+    interbank_mov: "999.00,2019-07-30,Planilla del 29/06 al 28/07 · quienes cobran en Interbank",
+    neto_guardado: "bcp:3000.00,interbank:1000.00",
+    falta_solo: "sin_banco:sin",
+    reintento: "2",
+    bcp_otra_vez: "ok",
+    todo_o_nada: "ok",
+    sin_rastro: "2",
+    suelta: "1",
+    enlazar_no_planilla: "ok",
+    enlazada: "0,0",
+    vuelve: "1",
+    rehecha: "Interbank de prueba,0",
+    sin_pagar: "ok",
+    banco_repetido: "ok",
+    banco_raro: "ok",
+    antes_del_inicio: "ok",
+    monto_cero: "ok",
+    sin_ver_dynamic: "ok",
+    colaboradora: "ok",
+    colaboradora_sueltas: "0",
+    nada_escrito: "0",
+  });
+  const dos = correr(`
+begin;
+${MIGRACION}
+${CUENTAS}
+${REGISTRAR}
+${REGISTRAR}
+select 'registrar_dos_veces|' || (to_regprocedure('retail.registrar_salidas_planilla(uuid, text, jsonb, uuid)') is not null);
+`);
+  verificar("registrar se puede pegar dos veces", dos, { registrar_dos_veces: "true" });
 }
 
 console.log(`\n${casos - fallos}/${casos} casos en verde`);
