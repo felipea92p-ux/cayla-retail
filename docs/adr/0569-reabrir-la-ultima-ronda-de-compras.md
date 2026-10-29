@@ -1,6 +1,6 @@
 # ADR-0569 — Reabrir la última ronda de compras (Mis compras)
 
-- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; la migración `20261029150000` **no está en producción** (la pega Felipe).
+- **Fecha:** 2026-10-29 · **Estado:** construido y probado en local; la migración `20261029150000` **está en producción desde el 2026-10-29** (pegada con `apply_migration` antes de fusionar y verificada por objeto).
 - **Continúa a:** [ADR-0480](0480-compras-simple-en-cuatro-pasos.md) (la ronda de compras) y [ADR-0559](0559-la-mesa-de-la-ronda-mis-compras-con-la-ronda-abierta.md).
 - **Origen:** Felipe, 2026-10-29, usando Mis compras: «quiero agregar un gasto de bebidas de 4 soles y la ronda está cerrada, ¿cómo hago? Además puse que ese dinero lo
   usaría para la siguiente ronda, pero se tomó otra decisión y se quiere devolver, y no lo permite». Y, al ver dos funciones propuestas: «lo más fácil puede ser reabrir la ronda».
@@ -42,5 +42,4 @@ transacción (`retail.reabriendo_ronda` = el id de esa ronda) que solo la funci�
 dos toques, el gasto de S/ 4 en su ronda y cierre nuevo con «devuelvo» por S/ 36 (de S/ 40), solo la última, cierre recibido por Compras que no se reabre, los disparadores siguen cerrados fuera de la
 función, permisos. En la web: la regla `puedeReabrirLaRonda`, la clave de firma `compra_ronda_reabrir` (web y base con las mismas 66), la guía interactiva con su paso y la huella, `tsc` y `knip`.
 
-**Falta:** pegar la migración en producción (UNA parte: una tabla nueva sin políticas, dos funciones de disparador reemplazadas, una función y una fila de datos; sin `alter` de tablas en uso),
-ver el botón en el navegador con una cuenta de compradora real (en esta sesión no se probó la pantalla), y `/formidable`.
+**Falta:** ver el botón en el navegador con una cuenta de compradora real (en esta sesión no se probó la pantalla), y `/formidable`.
