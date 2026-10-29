@@ -93,9 +93,9 @@
 <body>
 <div class="pagina">
   <header>
-    <p class="ojo">CAYLA · ADR-0560 · actualizado el 28 de octubre de 2026</p>
+    <p class="ojo">CAYLA · ADR-0560 · actualizado el 29 de octubre de 2026</p>
     <h1 class="serif">CLAURE: lo que queda por decidir, pegar y mirar</h1>
-    <p class="sub">Las nueve actividades están construidas y probadas en la base local. <b>Nada está en producción</b> y no se abrió ningún PR: lo que sigue es tuyo. Marca lo que vayas cerrando; el tablero lo recuerda en este navegador.</p>
+    <p class="sub">Las 17 actividades están construidas y probadas en la base local, con tus decisiones del 29 de octubre ya dentro. <b>Nada está en producción</b> y no se abrió ningún PR: lo que sigue es tuyo. Marca lo que vayas cerrando; el tablero lo recuerda en este navegador.</p>
     <div class="barra" role="group" aria-label="Filtros">
       <button class="chip" data-filtro="todo" aria-pressed="true">Todo</button>
       <button class="chip" data-filtro="decision" aria-pressed="false">Decisiones tuyas</button>
@@ -107,14 +107,14 @@
   </header>
 
   <section class="cifras" aria-label="Resumen">
-    <div class="cifra dec"><b id="n-dec">0</b><span>decisiones tuyas abiertas</span></div>
+    <div class="cifra dec"><b id="n-dec">0</b><span>decisiones o validaciones tuyas abiertas</span></div>
     <div class="cifra pro"><b id="n-pro">0</b><span>pasos de producción</span></div>
     <div class="cifra tec"><b id="n-tec">0</b><span>pendientes técnicos</span></div>
-    <div class="cifra ok"><b>9 de 9</b><span>actividades construidas y probadas</span></div>
+    <div class="cifra ok"><b>17 de 17</b><span>actividades construidas y probadas</span></div>
   </section>
 
   <h2>Lo construido</h2>
-  <p>Un commit por actividad, en la rama <code>claude/reverent-mcclintock-755f41</code>.</p>
+  <p>Un commit por actividad (la 14 y la 15 van juntas), en la rama <code>claude/reverent-mcclintock-755f41</code>.</p>
   <ol class="pasos">
     <li class="paso"><b>1 · La cuenta</b>pestaña CLAURE<small>7814315c6</small></li>
     <li class="paso"><b>2 · Pagar</b>pago a Claudia<small>01fc850bd</small></li>
@@ -127,23 +127,40 @@
     <li class="paso"><b>6d · Análisis</b>y motores<small>f43335f12</small></li>
     <li class="paso"><b>7 · Apartados</b>y pedidos web<small>16326e26d</small></li>
     <li class="paso"><b>8 · Gastos</b>por empresa<small>2e1892ff1</small></li>
-    <li class="paso"><b>9 · Cierre</b>ADR, caos y tablero<small>este commit</small></li>
+    <li class="paso"><b>9 · Cierre</b>ADR, caos y tablero<small>2b39a2816</small></li>
+    <li class="paso"><b>10 · IGV</b>se le descuenta<small>cc79735eb</small></li>
+    <li class="paso"><b>11 · Efectivo</b>«Se queda con Claudia»<small>95028c305</small></li>
+    <li class="paso"><b>12 · Servicios</b>agua, internet, baño 100 %<small>0c54b0af3</small></li>
+    <li class="paso"><b>13 · Cambios</b>la plata sigue a la prenda<small>e57168629</small></li>
+    <li class="paso"><b>14 · Pérdidas</b>y dañadas por dueño<small>d7853738c</small></li>
+    <li class="paso"><b>15 · Balance</b>sin stock de CLAURE<small>d7853738c</small></li>
+    <li class="paso"><b>16 · ¿Me alcanza?</b>sin la plata de Claudia<small>a8fac8343</small></li>
+    <li class="paso"><b>17 · Porcentajes</b>pantalla en Configuración<small>1ecd0e212</small></li>
+    <li class="paso"><b>+ Motor</b>demanda, con cifra<small>a8facd1af</small></li>
   </ol>
 
   <h2>Cómo pegarlo en producción</h2>
-  <p>Solo con tu OK. Cada paso es una ejecución aparte en el SQL Editor; la web va <b>después</b> de todas. Los pasos con reemplazos anclados abortan <b>sin cambiar nada</b> si la función de producción no tiene el texto esperado y dicen cuál: no pude leer los textos vivos, así que ese aborto es el aviso.</p>
+  <p>Solo con tu OK. Cada paso es una ejecución aparte en el SQL Editor y todas van <b>antes</b> de la web. Los pasos con reemplazos anclados <b>abortan sin cambiar nada</b> si la función de producción no tiene el texto esperado y dicen cuál: no pude leer los textos vivos, así que ese aborto es el aviso.</p>
   <ol class="orden">
-    <li><div><b>20261029004000</b> · la cuenta con CLAURE<small>Columnas nuevas y funciones propias. Sin reemplazos.</small></div></li>
-    <li><div><b>20261029011000</b> · pagar a CLAURE<small>Tipo de movimiento <code>pago_claure</code>; 4 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029004000</b> · la cuenta con CLAURE<small>Columnas nuevas y funciones propias.</small></div></li>
+    <li><div><b>20261029011000</b> · pagar a CLAURE<small>4 reemplazos anclados.</small></div></li>
     <li><div><b>20261029013000</b> · aviso en el cierre de caja<small>Función nueva.</small></div></li>
-    <li><div><b>20261029020000</b> · Finanzas fuera de las cifras<small>2 reemplazos anclados (<code>fn_asientos</code>, <code>fn_flujo_lineas</code>).</small></div></li>
-    <li><div><b>20261029023000</b> · Inicio y Observatorio<small>2 reemplazos anclados. Define la regla común <code>fn_item_es_de_claure</code>.</small></div></li>
-    <li><div><b>20261029030000</b> · Rendimiento, metas y Comercial<small>11 reemplazos anclados en 9 funciones.</small></div></li>
-    <li><div><b>20261029035000</b> · Club y ficha de la cliente<small>5 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029020000</b> · Finanzas fuera de las cifras<small>2 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029023000</b> · Inicio y Observatorio<small>2 reemplazos anclados; define la regla común.</small></div></li>
+    <li><div><b>20261029030000</b> · Rendimiento, metas y Comercial<small>11 reemplazos anclados.</small></div></li>
+    <li><div><b>20261029035000</b> · Club y ficha del cliente<small>5 reemplazos anclados.</small></div></li>
     <li><div><b>20261029041000</b> · Análisis y motores<small>20 reemplazos en 13 funciones: la que más probabilidad tiene de abortar.</small></div></li>
-    <li><div><b>20261029043000</b> · apartados y pedidos web<small><code>create or replace</code> de una función propia.</small></div></li>
-    <li><div><b>20261029044000</b> · gastos por empresa<small>Crea una tabla y dos categorías de gasto. Va <b>antes</b> que la web.</small></div></li>
-    <li class="web"><div><b>La web</b> (Vercel, al fusionar) <small>Después de todo lo de arriba: «Gasto rápido» manda las categorías <code>bolsas</code> y <code>limpieza</code>, que sin la última migración no existen.</small></div></li>
+    <li><div><b>20261029043000</b> · apartados y pedidos web<small>Una función propia.</small></div></li>
+    <li><div><b>20261029044000</b> · gastos por empresa<small>Una tabla, dos categorías y reemplazos. Antes que la web.</small></div></li>
+    <li><div><b>20261029142000</b> · el IGV se le descuenta<small>5 reemplazos sobre el cierre. Si ya pegaste 144000, esta no se repega.</small></div></li>
+    <li><div><b>20261029144000</b> · «Se queda con Claudia»<small>Un <code>alter table</code> y 11 reemplazos sobre el cierre de caja, el libro, el flujo y el Diario: la más delicada junto con la 041000.</small></div></li>
+    <li><div><b>20261029153000</b> · servicios 100 %<small>Solo datos. Antes que la web (Gasto rápido manda «Luz» a su categoría).</small></div></li>
+    <li><div><b>20261029154000</b> · pérdidas y dañadas por dueño<small>6 reemplazos sobre Pérdidas, calidad, el Diario y el Estado de resultados.</small></div></li>
+    <li><div><b>20261029155000</b> · Balance sin el stock de CLAURE<small>3 reemplazos sobre el Balance.</small></div></li>
+    <li><div><b>20261029160000</b> · «¿Me alcanza?» sin su plata<small>3 reemplazos sobre la proyección de caja.</small></div></li>
+    <li><div><b>20261029161000</b> · pantalla de porcentajes<small>Una columna y dos funciones. Antes que la web (la pestaña las llama).</small></div></li>
+    <li><div><b>20261029162000</b> · los cambios con prendas de CLAURE<small>6 reemplazos sobre la cuenta, el cierre y el Diario.</small></div></li>
+    <li class="web"><div><b>La web</b> (Vercel, al fusionar) <small>Después de las 18: Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto.</small></div></li>
   </ol>
 
   <h2>Lo que queda abierto</h2>
@@ -156,82 +173,177 @@
 
 <script>
 const CASOS = [
-  // ---- Decisiones tuyas ----
-  { id: "d1", tipo: "decision", prio: "alta", titulo: "El IGV de lo vendido de CLAURE: ¿se le cobra a Claudia o se le descuenta?",
-    por: "Las boletas de CLAURE salen con el RUC de CAYLA, así que SUNAT las cuenta en el IGV de CAYLA. Esa venta es de Claudia, pero el IGV lo declara CAYLA.",
-    hoy: "Queda en la cuenta 4011 de CAYLA. Impuestos lo dice con una franja («de ese IGV, S/ X es de ventas de CLAURE») y la pantalla CLAURE lo muestra aparte. No se cobra ni se descuenta nada.",
-    falta: "Tu decisión (y la del contador). Si se descuenta, es una línea más en el saldo." },
-  { id: "d2", tipo: "decision", prio: "alta", titulo: "El efectivo en poder de Claudia: ¿cómo se registra?",
-    por: "El efectivo de CLAURE no suma a lo que se le debe (lo tiene ella), pero la cuenta 479 sube por todo lo vendido de CLAURE, también por el efectivo. Y el efectivo de CAYLA que se queda Claudia en la caja no se resta del neto.",
-    hoy: "El neto es solo lo cobrado en cuentas de CAYLA menos lo pagado y los gastos. No resta ningún efectivo.",
-    falta: "Una regla: por ejemplo, un destino de traslado «Se queda con Claudia» que sí reste." },
-  { id: "d3", tipo: "decision", prio: "media", titulo: "La cuenta 479 es provisional hasta que la valide el contador",
-    por: "«Otras cuentas por pagar — relacionadas» es mi propuesta; cambiarla es una línea del Diario, pero conviene que la confirme quien lleva los libros.",
-    hoy: "Todo lo que se le debe a Claudia se asienta en la 479.", falta: "Que el contador diga la cuenta definitiva." },
-  { id: "d4", tipo: "decision", prio: "media", titulo: "La meta del día de Lima: ¿una meta distinta para CAYLA sola?",
-    por: "Ahora el Inicio, el Observatorio y Rendimiento comparan lo de CAYLA contra la meta de toda la sede: Lima parece vender menos de lo que cobra.",
-    hoy: "La meta no se tocó (es la de la sede).", falta: "Cargar la meta que corresponda en Configuración, si es otra." },
-  { id: "d5", tipo: "decision", prio: "media", titulo: "Puntos del club ya dados por prendas de CLAURE",
-    por: "Entre el 23-oct y el día que se pegue la migración, una miembro pudo ganar puntos por una prenda de CLAURE.",
-    hoy: "No se quitan solos. Si esa venta se devuelve o se anula, la conciliación descuenta la parte de CLAURE.", falta: "Decidir si se quitan ahora." },
-  { id: "d6", tipo: "decision", prio: "baja", titulo: "Una clienta que solo compra lo de CLAURE",
-    por: "Hoy su última compra (de CLAURE) alarga 3 años la conservación de su ficha, que es un plazo legal.",
-    hoy: "No se tocó.", falta: "Decidir si esa compra debe contar." },
-  { id: "d7", tipo: "decision", prio: "baja", titulo: "«Servicios básicos» 50/50 completo, o solo la luz",
-    por: "En Gasto rápido, «Luz», «Agua», «Internet» y «Baño» caen en la categoría «servicios básicos».",
-    hoy: "Toda la categoría va 50/50, además de alquiler, luz y mantenimiento.", falta: "Decirme si agua, internet y baño también se dividen." },
-  { id: "d8", tipo: "decision", prio: "media", titulo: "La planilla de las personas de CLAURE",
-    por: "Dijiste «la planilla solo es de CLAURE». La planilla viene de Dynamic y los colaboradores no tienen empresa: no hay a quién atribuirla.",
-    hoy: "No se tocó.", falta: "Una regla (¿qué colaboradores son de CLAURE?) y dónde se marca." },
-  { id: "d9", tipo: "decision", prio: "baja", titulo: "Gastos de «suministros» de antes (bolsas y limpieza)",
-    por: "«Bolsas» y «Limpieza» ahora tienen categoría propia y van 100 % a CLAURE. Los de antes quedaron en «suministros».",
-    hoy: "Siguen siendo 100 % de CAYLA; los de antes no se reclasifican.", falta: "Decidir si los de desde el 23-oct se pasan." },
-  { id: "d10", tipo: "decision", prio: "media", titulo: "Los cambios con prendas de CLAURE",
-    por: "Un cambio mueve plata sin mover cuentas y falta decidir cómo contarlo.",
-    hoy: "La pantalla CLAURE los lista aparte («por revisar»); en CAYLA siguen contando.", falta: "Una regla para el cambio entre una prenda de CLAURE y una de CAYLA." },
-  { id: "d11", tipo: "decision", prio: "media", titulo: "Lo que mira el libro de movimientos y el stock por dueño sigue sumando lo de CLAURE",
-    por: "Frescura del piso, el Resumen por variante y su comparación, Pérdidas y la calidad de dañadas, el reparto por proveedor y las unidades de CLAURE que ocupan el piso («110 de 600 prendas») no leen líneas de venta sino movimientos y estantes.",
-    hoy: "No cambian. El resto de Análisis y los motores ya cuentan solo lo de CAYLA.", falta: "Decidir qué pasa con las unidades de otro dueño en el mismo estante (ADR-0542)." },
-  { id: "d12", tipo: "decision", prio: "media", titulo: "El Balance valora el stock de CLAURE como si fuera de CAYLA",
-    por: "La mercadería de Lima incluye las prendas de CLAURE y el inventario del Balance las cuenta.", hoy: "Sin cambio (la reclasificación solo saca lo vendido).", falta: "Decidir cómo valorar el stock por dueño." },
-  { id: "d13", tipo: "decision", prio: "media", titulo: "«¿Me alcanza?» y la proyección de caja cuentan la plata de Claudia como disponible",
-    por: "El dinero en cuentas incluye lo que es de Claudia. El disponible real ya se dice en Dónde está y en el Resumen, pero la proyección de dos semanas no lo resta.",
-    hoy: "No cambia.", falta: "Decidir si la proyección resta lo que se le debe." },
-  { id: "d14", tipo: "decision", prio: "baja", titulo: "Una pantalla para cambiar los porcentajes del reparto de gastos",
-    por: "Los porcentajes (alquiler, luz, mantenimiento 50 %; limpieza y bolsas 100 %) viven en una tabla que hoy solo se cambia por SQL.",
-    hoy: "Funcionan con los de fábrica.", falta: "Construir la pantalla (una escritura nueva: pide responsable, módulo y guía)." },
-
-  // ---- Producción ----
-  { id: "p1", tipo: "produccion", prio: "alta", titulo: "Pegar las 10 migraciones, en orden y una por una",
-    por: "Ninguna está en producción. Son 5 reemplazos anclados sobre funciones vivas cuyo texto no pude leer: si una no coincide, la migración aborta sin cambiar nada y dice cuál.",
-    hoy: "Probadas en la base local (con rollback) y verificadas contra una mutación.", falta: "Tu OK y el SQL Editor. Orden: ver «Cómo pegarlo en producción»." },
-  { id: "p2", tipo: "produccion", prio: "alta", titulo: "La web va después del SQL, no antes",
-    por: "«Gasto rápido» manda las categorías <code>bolsas</code> y <code>limpieza</code>, y la pantalla CLAURE lee <code>fn_claure_gastos</code>: sin la última migración, fallan.", hoy: "—", falta: "Pegar toda la serie antes de fusionar." },
-  { id: "p3", tipo: "produccion", prio: "media", titulo: "Refrescar el diccionario de la base",
-    por: "Una migración no está terminada hasta que su tabla está en el diccionario (<code>gasto_reparto_claure</code>).", hoy: "No se pudo: depende de pegar antes en producción.", falta: "<code>pnpm datos:generar:produccion</code> y <code>pnpm datos:comparar</code> después de pegar." },
-  { id: "p4", tipo: "produccion", prio: "media", titulo: "Abrir el PR con /abrir-pr",
-    por: "El repo es público y subir la rama publica el trabajo. No lo hice sin tu orden.", hoy: "La rama está solo en esta máquina.", falta: "Que digas «abre el PR»: trae main, revisa las reservas (los 10 números ya están reservados a esta rama) y busca choques." },
-
-  // ---- Técnico ----
-  { id: "t1", tipo: "tecnico", prio: "media", titulo: "Pruebas de la base local que ya fallaban sin este trabajo",
-    por: "Salieron al correr las suites y se comprobó, deshaciendo mis cambios, que fallan igual sin ellos.",
-    hoy: "<code>estado-resultados</code> N2/N7 y <code>perdidas</code> M5 (el detalle de mermas se ordena sin desempate: una coma, <code>, q.regla</code>, lo arregla); <code>finanzas-montos-y-caja-fuerte</code> (de noche, la fecha UTC ya es mañana); <code>cuentas-dinero</code> (16) y <code>cuenta-sellada</code> (6); <code>plan-compra-envio/pagos/paso-2/versiones</code> (falta <code>fn_plan_compra_historial_inmutable</code>); <code>plan-compra-historia</code> (3), <code>plan-piso-foto</code> (2), <code>arreglos-en-vivo</code> (13); <code>club-puntos-pedido-web</code> (0/13), <code>club-venta-ligada</code> (1), <code>club-permisos</code> (2), <code>clientas-modulo</code> 7a; <code>roles-cobertura</code> (el módulo «tareas»).",
-    falta: "Una sesión aparte que las ordene. <b>Una tumba el servidor:</b> <code>tienda-mi-cuenta</code> hace caer Postgres local («connection to server was lost»)." },
-  { id: "t2", tipo: "tecnico", prio: "baja", titulo: "Sin prueba con cifra: plan de compra, decisiones de Frescura, motor de demanda y la vitrina",
-    por: "Sembrar su escena (un plan, una decisión, una vitrina publicada) es más grande que su cambio, que es la misma línea que las demás.",
-    hoy: "Los cubre el chequeo final de la migración y que se pueda volver a pegar.", falta: "Escenas de prueba propias, si quieres." },
-  { id: "t3", tipo: "tecnico", prio: "baja", titulo: "El Observatorio no dice que Lima cuenta solo lo de CAYLA",
-    por: "Su diseño es una decisión propia (ADR-0322) y «Toda CAYLA» ya dice de qué empresa habla.", hoy: "Sin nota.", falta: "Una línea discreta, si la quieres." },
-  { id: "t4", tipo: "tecnico", prio: "baja", titulo: "La comparación con «el mismo día de la semana pasada» (solo hasta el 30-oct)",
-    por: "Hoy ya no cuenta lo de CLAURE, pero la semana pasada aún no lo separaba.", hoy: "Se corrige sola: desde el 30-oct las dos semanas se separan igual.", falta: "Nada." },
-  { id: "t5", tipo: "tecnico", prio: "media", titulo: "Qué se miró en pantalla y qué no",
-    por: "Las cifras salen de pruebas de Postgres; las pantallas se vieron en el navegador con datos temporales (ya retirados).",
-    hoy: "Vistas en el navegador con datos temporales (ya retirados): la pestaña CLAURE en claro, oscuro y a 375 px, el Resumen, el Inicio y la hoja de cierre de caja hasta su paso 2. <code>tema:auditar</code> en CLAURE, Resumen, Rendimiento y Reportes: 0 hallazgos. La guía de CLAURE: 13 pasos sin que la demo escriba nada. <b>No se vio</b> el paso 3 del cierre (cerrar la caja escribe en la base local compartida; se vio en la actividad 3) ni Rendimiento y Comercial con cifras de CLAURE en pantalla (las cifras tienen prueba de Postgres).",
-    falta: "Una pasada tuya por Dónde está ▸ CLAURE, Caja (cerrar), Inicio, Rendimiento y Reportes con datos reales." },
-  { id: "t6", tipo: "tecnico", prio: "media", titulo: "Caos: la autoprueba y las invariantes, sí; los 69 ataques, no",
-    por: "El catálogo completo de <code>/chaos</code> (doble clic, dos pestañas, red caída…) escribe en la base local compartida con otras sesiones, y no se corrió.",
-    hoy: "<code>invariantes.mjs --autoprueba</code>: 16 de 23 comprobadas y vivas, 0 ciegas. Sobre la base limpia siguen rojas tres de antes del 23-oct, sin relación con CLAURE: INV-09 (una venta de prueba del 6-oct sin pagos que no cuadra en el Diario), INV-10 (8 movimientos de octubre sin responsable) e INV-11 (10 sospechas de doble cobro). Las otras 20, en verde.",
-    falta: "Correr <code>/chaos</code> sobre «Pagar a CLAURE» y el aviso del cierre cuando nadie más esté escribiendo en la base local." }
+  {
+    "id": "d1",
+    "tipo": "decision",
+    "prio": "alta",
+    "titulo": "Validar con el contador que el IGV se le descuente a Claudia",
+    "por": "Decidiste que se le descuente: la boleta sale con el RUC de CAYLA, que declara y paga ese IGV. Ahora lo que se le debe es lo cobrado sin IGV, igual que la cuenta 479 del Diario.",
+    "hoy": "Está construido y probado: la pestaña CLAURE, el aviso del cierre, el Resumen y la proyección restan el IGV.",
+    "falta": "El visto del contador, y avisarle a Claudia que recibe menos de lo que cobró (en el ejemplo, S/ 36 de S/ 295)."
+  },
+  {
+    "id": "d2",
+    "tipo": "decision",
+    "prio": "media",
+    "titulo": "La cuenta 479 sigue siendo provisional",
+    "por": "«Otras cuentas por pagar — relacionadas» es mi propuesta; la dejaste hasta que la valide el contador.",
+    "hoy": "Todo lo que se le debe a Claudia se asienta en la 479; cambiarla es una línea del Diario (los meses ya cerrados conservan la vieja).",
+    "falta": "Que el contador diga la cuenta definitiva."
+  },
+  {
+    "id": "d3",
+    "tipo": "decision",
+    "prio": "media",
+    "titulo": "Los «Luz» anotados antes en servicios básicos ahora cuentan 100 % de CLAURE",
+    "por": "La luz volvió a su categoría (50/50) y agua, internet y baño van 100 % a CLAURE. Un «Luz» que Gasto rápido anotó en servicios básicos desde el 23-oct hoy cuenta como 100 % de CLAURE en vez de 50 %.",
+    "hoy": "No se tocó ningún gasto ya registrado.",
+    "falta": "Decidir si los de «Luz» desde el 23-oct se pasan uno a uno a la categoría <code>luz</code> (yo te muestro la lista y tú apruebas)."
+  },
+  {
+    "id": "d4",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "La meta de Lima para CAYLA sola la cargas tú",
+    "por": "El Inicio y Rendimiento comparan lo de CAYLA contra la meta de toda la sede, así que Lima parece vender menos.",
+    "hoy": "La meta no se tocó.",
+    "falta": "Cargar la que corresponda en Configuración ▸ Tiendas y caja, cuando quieras."
+  },
+  {
+    "id": "d5",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "«¿Me alcanza?» resta lo que se le debe HOY, no lo que se le deberá",
+    "por": "La proyección parte de lo que hay menos lo que se le debe a Claudia, pero sus cobros esperados (lo que CLAURE venderá) siguen entrando como cobros futuros de CAYLA.",
+    "hoy": "El Flujo real y las cuentas no restan nada, a propósito (deben cuadrar con los saldos).",
+    "falta": "Decidir si los cobros futuros también se separan por dueño."
+  },
+  {
+    "id": "d6",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "Las pérdidas en traslados entre sedes siguen sumando prendas de CLAURE",
+    "por": "Un traslado no dice de quién era lo que se perdió en el camino, así que no se pudo separar.",
+    "hoy": "Pérdidas por movimiento, anulaciones, la calidad de dañadas, el Diario y el Balance sí están separados.",
+    "falta": "Decidir cómo atribuirlas (por ejemplo, por el dueño de cada prenda trasladada)."
+  },
+  {
+    "id": "d7",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "Un cambio no reasigna el costo ni la comisión del POS",
+    "por": "La plata de un cambio sí sigue a la prenda (deuda y Diario), pero el costo de la prenda se sigue ajustando solo por la diferencia, y la comisión del POS no se reparte entre el dueño viejo y el nuevo.",
+    "hoy": "Es lo que el sistema ya hacía con los cambios.",
+    "falta": "Decidir si hace falta (un apartado cambiado tampoco entra en la proporción pagada)."
+  },
+  {
+    "id": "d8",
+    "tipo": "decision",
+    "prio": "baja",
+    "titulo": "Cambiar un porcentaje de reparto cambia también lo de antes",
+    "por": "La parte de CLAURE de un gasto se calcula al leerlo, con el porcentaje de hoy.",
+    "hoy": "La pantalla lo dice. Cada cambio queda en la historia con quién lo hizo.",
+    "falta": "Si quieres congelar el reparto de cada mes cerrado, habría que guardarlo con el gasto."
+  },
+  {
+    "id": "p1",
+    "tipo": "produccion",
+    "prio": "alta",
+    "titulo": "Pegar las 18 migraciones, en orden y una por una",
+    "por": "Ninguna está en producción. Varias llevan reemplazos anclados sobre funciones vivas cuyo texto no pude leer: si una no coincide, aborta sin cambiar nada y dice cuál.",
+    "hoy": "Probadas en la base local (con rollback) y verificadas contra una mutación.",
+    "falta": "Tu OK y el SQL Editor. Orden: ver «Cómo pegarlo en producción»."
+  },
+  {
+    "id": "p2",
+    "tipo": "produccion",
+    "prio": "alta",
+    "titulo": "La web va después de todo el SQL",
+    "por": "Gasto rápido manda «bolsas», «limpieza» y «Luz» a sus categorías, y Configuración llama a las funciones del reparto: sin las migraciones 044000, 153000 y 161000, fallan.",
+    "hoy": "—",
+    "falta": "Pegar las 18 antes de fusionar."
+  },
+  {
+    "id": "p3",
+    "tipo": "produccion",
+    "prio": "media",
+    "titulo": "Qué mirar justo después de pegar",
+    "por": "La mayoría de las pruebas usan datos inventados.",
+    "hoy": "—",
+    "falta": "Cuenta y dinero ▸ CLAURE (el saldo), el Balance (la mercadería de Lima baja lo que valen las prendas de CLAURE y la tabla de causas no se descuadra), Reportes ▸ Estado de resultados y un cierre de caja de Lima."
+  },
+  {
+    "id": "p4",
+    "tipo": "produccion",
+    "prio": "media",
+    "titulo": "Refrescar el diccionario de la base",
+    "por": "Una migración no está terminada hasta que su tabla está en el diccionario.",
+    "hoy": "No se pudo: depende de pegar antes en producción.",
+    "falta": "<code>pnpm datos:generar:produccion</code> y <code>pnpm datos:comparar</code> después de pegar."
+  },
+  {
+    "id": "p5",
+    "tipo": "produccion",
+    "prio": "alta",
+    "titulo": "Abrir el PR con /abrir-pr",
+    "por": "El repo es público y subir la rama publica el trabajo. No lo hice sin tu orden.",
+    "hoy": "La rama está solo en esta máquina.",
+    "falta": "Que digas «abre el PR»: trae main, revisa las reservas (los 18 números ya son de esta rama) y busca choques."
+  },
+  {
+    "id": "t1",
+    "tipo": "tecnico",
+    "prio": "media",
+    "titulo": "Las pruebas de la base local que ya fallaban",
+    "por": "Salieron al correr las suites (plan de compra, estado de resultados, arreglos en vivo, club…) y fallan igual sin este trabajo.",
+    "hoy": "Una sesión aparte («Ordenar las pruebas de Postgres que ya fallaban») las está ordenando en su propia rama y con una base aislada; terminó su primer turno sin tocar la base compartida.",
+    "falta": "Su reporte (qué quedó en verde, qué migraciones nuevas pide pegar) y su PR, cuando tú lo pidas."
+  },
+  {
+    "id": "t2",
+    "tipo": "tecnico",
+    "prio": "baja",
+    "titulo": "Tres motores siguen sin escena con cifra",
+    "por": "El motor de demanda ya se prueba con cifra. <code>fn_plan_compra</code> (necesita una campaña con su plan), <code>fn_frescura_decisiones</code> (necesita decisiones de rebaja anteriores) y la vitrina (necesita el catálogo publicado) no.",
+    "hoy": "Su parche es la misma línea de siempre y lo cubre el chequeo final de la migración.",
+    "falta": "Armar sus escenas, que es más grande que el cambio."
+  },
+  {
+    "id": "t3",
+    "tipo": "tecnico",
+    "prio": "media",
+    "titulo": "Qué se miró en pantalla y qué no",
+    "por": "Las cifras salen de pruebas de Postgres; las pantallas se vieron en el navegador con datos temporales ya retirados.",
+    "hoy": "Vistas: la pestaña CLAURE (claro, oscuro, 375 px), el Resumen, el Inicio, Configuración ▸ Gastos con CLAURE (claro y oscuro, guardando y revirtiendo), el modal de cierre con «Se queda con Claudia» (su vista previa, sin confirmar), y las guías de CLAURE y de Configuración. <b>No se vio</b> el paso 3 del cierre de caja, Rendimiento y Comercial con cifras de CLAURE, ni la pestaña de porcentajes a 375 px.",
+    "falta": "Una pasada tuya por Dónde está ▸ CLAURE, un cierre de caja de Lima, Configuración y Reportes con datos reales."
+  },
+  {
+    "id": "t4",
+    "tipo": "tecnico",
+    "prio": "media",
+    "titulo": "Caos: se corrió a nivel de base, no en el navegador",
+    "por": "Dieciséis sesiones a la vez sobre el reparto (diez cambios válidos y seis hostiles), dos cierres simultáneos de la misma caja con «Se queda con Claudia», y tres pagos con el mismo token y con tokens distintos.",
+    "hoy": "Encontró UN defecto, ya arreglado: dos personas cambiando la misma categoría a la vez rompían la cadena «antes → después» de la historia (ahora se hacen en fila). Lo demás se portó bien: un solo cierre pasa y el otro dice «ya está cerrada», el mismo token no duplica el pago y los valores hostiles se rechazan. 0 violaciones nuevas en las invariantes.",
+    "falta": "No se corrieron los ataques del navegador (doble clic, recargar a mitad, dos pestañas, red caída, teclado, celular) ni los 69 del catálogo."
+  },
+  {
+    "id": "t5",
+    "tipo": "tecnico",
+    "prio": "baja",
+    "titulo": "Tres invariantes de la base local siguen rojas desde antes del 23-oct",
+    "por": "INV-09 (una venta de prueba del 6-oct sin pagos que no cuadra en el Diario), INV-10 (8 movimientos de octubre sin responsable) e INV-11 (10 sospechas de doble cobro).",
+    "hoy": "Sin relación con CLAURE; las otras 20 están en verde.",
+    "falta": "Revisarlas aparte."
+  },
+  {
+    "id": "t6",
+    "tipo": "tecnico",
+    "prio": "baja",
+    "titulo": "El aviso «cambios por revisar» ya casi no se usa",
+    "por": "Ahora todos los cambios con prendas de CLAURE cuentan, así que ese aviso de la pestaña no se dibuja nunca.",
+    "hoy": "Se dejó el código por si una fila llega sin contar.",
+    "falta": "Quitarlo si prefieres menos código."
+  }
 ];
 
 const KEY = "cayla-claure-pendientes";

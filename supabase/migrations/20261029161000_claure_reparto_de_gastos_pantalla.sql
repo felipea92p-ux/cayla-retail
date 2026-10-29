@@ -68,6 +68,8 @@ begin
     raise exception 'Esa categoría de gasto no existe o está desactivada.' using errcode = 'P0001';
   end if;
   v_pct := round(p_pct, 2);
+  -- Dos personas que cambian la misma categoría a la vez (el caos de 2026-10-29 lo encontró): sin esto, el «antes» de la historia podía leerse a medias y la cadena antes→después se rompía. Se hacen en fila.
+  perform pg_advisory_xact_lock(hashtext('reparto_claure:' || p_categoria));
   v_antes := coalesce((select r.pct_claure from retail.gasto_reparto_claure r where r.categoria = p_categoria), 0);
   insert into retail.gasto_reparto_claure (categoria, pct_claure, actualizado_en, actualizado_por)
   values (p_categoria, v_pct, now(), v_actor)

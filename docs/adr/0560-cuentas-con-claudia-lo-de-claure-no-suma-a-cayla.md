@@ -1,6 +1,6 @@
 # ADR-0560 — Las cuentas con Claudia: lo de CLAURE no suma a CAYLA y se le debe aparte
 
-**Fecha:** 2026-10-28 · **Estado:** construido y verificado en la base local; **nada está en producción** (las migraciones se pegan solo con OK de Felipe) · **Decide:** Felipe Alvarez (20 preguntas del 2026-10-28)
+**Fecha:** 2026-10-28 · **Estado:** construido y verificado en la base local (17 actividades); **nada está en producción** (las 18 migraciones se pegan solo con OK de Felipe) · **Decide:** Felipe Alvarez (20 preguntas del 2026-10-28 y 14 respuestas del 2026-10-29)
 **Relacionados:** ADR-0463 (CAYLA y CLAURE son dos empresas), ADR-0505 (CLAURE solo existe en Lima), ADR-0532 y ADR-0542 (de quién es lo vendido y el stock de Lima), ADR-0195 y ADR-0493 (Finanzas), ADR-0377 (familias fuera de los motores).
 
 ## El problema primero
@@ -27,6 +27,19 @@ En Tienda LIM se vende lo de CAYLA y lo de CLAURE (la empresa de Claudia, herman
 - **Candados**: lo nuevo lo ve el líder o quien tiene Cuentas y dinero (su sede); quien cierra una caja ve el aviso de esa caja sin pedir el módulo; el pago es solo del líder; `anon` no ejecuta nada.
 - **Pruebas**: 10 suites de Postgres propias (`pruebas:claure-*`), cada caso en su transacción con ROLLBACK y verificadas con una mutación (sin la migración, fallan). Las pruebas viejas que fijan el texto o el md5 de una función parchada la devuelven a su estado dentro de su transacción (`scripts/pruebas/_deshacer_claure.mjs`).
 
+## Segunda ronda (2026-10-29): lo que Felipe contestó a lo que quedó abierto
+
+Resueltas con obra (actividades 10 a 17, en la misma rama y un solo PR):
+- **IGV:** se le descuenta a Claudia (actividad 10). **Efectivo:** destino «Se queda con Claudia» al cerrar la caja (11). **Servicios:** luz, alquiler y mantenimiento 50/50; agua, internet y baño 100 % de CLAURE (12; solo datos y la categoría de «Luz» en Gasto rápido).
+- **Cambios:** «la plata sigue a la prenda que se lleva el cliente», en la deuda y en el Diario, revisado con él antes de tocar nada (13). **Pérdidas y dañadas por dueño** (14), **el Balance sin el stock de CLAURE** (15), **«¿Me alcanza?» sin la plata de Claudia** (16) y **una pantalla para cambiar los porcentajes** de reparto, solo del líder (17).
+- Frescura del piso, el Resumen por variante y la capacidad del piso **NO** se separan por dueño (decisión suya).
+
+Resueltas sin código: la 479 sigue provisional hasta el contador; la meta de Lima para CAYLA sola la carga él; los puntos del club ya dados y la ficha de una clienta solo-CLAURE se quedan; la planilla no tiene nada que separar (la trabajadora de CLAURE no está en Dynamic y Claudia le paga); los gastos de «suministros» de antes se quedan como CAYLA; sin nota en el Observatorio.
+
+## Cómo se verificó y qué no
+
+Diecinueve suites de Postgres propias (`pnpm pruebas:claure-*`), cada caso en su transacción con ROLLBACK y la mayoría verificadas con una mutación (sin la migración, fallan); las pantallas, en el navegador (claro, oscuro y 375 px donde importaba), con `tema:auditar` y `guias:recorrer`; el caos, **a nivel de base** (sesiones paralelas sobre el reparto, el cierre «Se queda con Claudia» y los pagos con el mismo token), que encontró y arregló un defecto (la historia del reparto bajo cambios simultáneos). **No** se corrió `/chaos` en el navegador ni sus 69 ataques, ni se vio el paso 3 del cierre de caja en esta ronda. Lo que sigue abierto vive en el tablero `docs/maquetas/claure-pendientes-2026-10/index.html`.
+
 ## Lo que se descartó
 
 - **Guardar el saldo en una tabla**: duplicaría la verdad que ya está en ventas, pagos y devoluciones (principio 4).
@@ -36,7 +49,7 @@ En Tienda LIM se vende lo de CAYLA y lo de CLAURE (la empresa de Claudia, herman
 
 ## Orden de pegado en producción (solo con OK de Felipe; cada paso es una ejecución aparte)
 
-`20261029004000` → `011000` → `013000` → `020000` → `023000` → `030000` → `035000` → `041000` → `043000` → `044000`, y recién ahí la web. Las partes con reemplazos anclados (`020000`, `023000`, `030000`, `035000`, `041000`) **abortan sin cambiar nada** si una función de producción no tiene el texto que esperan; no pude leer los textos vivos de producción, así que el aborto es el aviso. `044000` crea una tabla y dos categorías y va **antes** que la web. Después de pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+`20261029004000` → `011000` → `013000` → `020000` → `023000` → `030000` → `035000` → `041000` → `043000` → `044000` → `142000` → `144000` → `153000` → `154000` → `155000` → `160000` → `161000` → `162000`, y recién ahí la web. Las partes con reemplazos anclados (`020000`, `023000`, `030000`, `035000`, `041000`) **abortan sin cambiar nada** si una función de producción no tiene el texto que esperan; no pude leer los textos vivos de producción, así que el aborto es el aviso. `044000` crea una tabla y dos categorías y va **antes** que la web. Después de pegar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
 
 ## Qué queda abierto
 
