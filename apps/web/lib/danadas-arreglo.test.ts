@@ -4,6 +4,8 @@ import { join } from "node:path";
 import {
   argumentosDeSalida,
   camposGuiaSalida,
+  contarDanadasViejas,
+  DIAS_AVISO_DANADA,
   diasEnArreglo,
   leerEnArreglo,
   leerRespuestaSalida,
@@ -105,6 +107,23 @@ describe("«No se pudo» (el contrato con la base y sus reglas)", () => {
     expect(leerRespuestaNoSePudo({ ya_registrada: true, id: "d1" })).toEqual({ ya_registrada: true, id: "d1" });
     expect(leerRespuestaNoSePudo({ ya_registrada: "si", id: "d1" })).toBeNull();
     expect(leerRespuestaNoSePudo(null)).toBeNull();
+  });
+});
+
+describe("el aviso a los 7 días", () => {
+  const ahora = new Date("2026-10-30T15:00:00-05:00");
+  const hace = (dias: number) => new Date(ahora.getTime() - dias * 86_400_000).toISOString();
+
+  it("cuenta las que llevan 7 días o más separadas SIN salir a arreglar; las que alguien tiene afuera no", () => {
+    expect(DIAS_AVISO_DANADA).toBe(7);
+    const filas = [
+      { creadoEn: hace(6), enArreglo: null }, // aún no
+      { creadoEn: hace(7), enArreglo: null }, // justo
+      { creadoEn: hace(20), enArreglo: null },
+      { creadoEn: hace(20), enArreglo: { desde: hace(2), ruta: "taller" } }, // alguien la tiene
+    ];
+    expect(contarDanadasViejas(filas, ahora)).toBe(2);
+    expect(contarDanadasViejas([], ahora)).toBe(0);
   });
 });
 

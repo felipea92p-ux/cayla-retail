@@ -194,6 +194,7 @@ export function InventarioPanel({
   sububicacionAlmacen,
   danadosPendientes,
   lugarDanadas,
+  danadasViejas = 0,
   abrirDanados = false,
   abrirSepararDanada = false,
   abrirVariante = null,
@@ -235,6 +236,8 @@ export function InventarioPanel({
   danadosPendientes: PrendaDanada[];
   /** Dónde deja esta tienda las prendas dañadas (ADR-0564), o null si aún no lo marcó. */
   lugarDanadas: string | null;
+  /** Cuántas dañadas llevan 7 días o más sin que nadie las saque a arreglar ni decida (`contarDanadasViejas`, ADR-0564). */
+  danadasViejas?: number;
   /** Abrir la cola de dañadas al entrar (`?danados=1`, aviso de cuarentena de Devoluciones). */
   abrirDanados?: boolean;
   /** Abrir el buscador de «¿Qué prenda está dañada?» (`?danada=1`, ADR-0564): lo piden los botones «Separé una dañada» de caja y almacén. */
@@ -680,12 +683,13 @@ export function InventarioPanel({
         sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
         sinRegistrar,
         danadas: danadosPendientes.length,
+        danadasViejas,
         // Desde ADR-0534 las decide quien ve Existencias en su sede (antes, solo un líder).
         resuelveDanadas: enSedeActiva,
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, planFallo, stock, sinRegistrar, danadosPendientes.length, enSedeActiva, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, planFallo, stock, sinRegistrar, danadosPendientes.length, danadasViejas, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });

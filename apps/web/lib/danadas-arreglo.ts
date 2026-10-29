@@ -97,6 +97,18 @@ export function leerRespuestaSalida(data: unknown): RespuestaSalida | null {
 
 const DIA_MS = 86_400_000;
 
+/** A los cuántos días sin decidirse una dañada se avisa al líder de la sede (Felipe, 2026-10-28). */
+export const DIAS_AVISO_DANADA = 7;
+
+/**
+ * Cuántas dañadas llevan `DIAS_AVISO_DANADA` días o más separadas SIN salir a arreglar ni decidirse: las que nadie lleva. Una que ya salió a
+ * arreglarse no cuenta (alguien la tiene), y una que volvió sin arreglo sí (espera que se decida su destino). `creadoEn` es desde cuándo está en
+ * la cuarentena.
+ */
+export function contarDanadasViejas(filas: readonly { creadoEn: string; enArreglo: unknown | null }[], ahora: Date = new Date()): number {
+  return filas.filter((f) => f.enArreglo === null && diasEnArreglo(f.creadoEn, ahora) >= DIAS_AVISO_DANADA).length;
+}
+
 /** Cuántos días lleva fuera (0 si salió hoy; nunca negativo aunque el reloj del aparato esté atrasado). */
 export function diasEnArreglo(desde: string, ahora: Date = new Date()): number {
   return Math.max(0, Math.floor((ahora.getTime() - Date.parse(desde)) / DIA_MS));

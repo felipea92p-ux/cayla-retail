@@ -33,6 +33,7 @@ import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 import { ValorInventarioExistencias } from "@/components/existencias/ValorInventarioExistencias";
 import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
 import { pideSepararDanada } from "@/lib/danadas-lugar";
+import { contarDanadasViejas } from "@/lib/danadas-arreglo";
 import { desdeDeParams } from "@/lib/vuelta-productos";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -289,6 +290,8 @@ export default async function InventarioPage({
         sububicacionAlmacen={sububicacionAlmacen}
         danadosPendientes={danadosPendientes}
         lugarDanadas={lugarDanadas}
+        // Las que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida: «Para hoy» sube la fila a rojo (ADR-0564).
+        danadasViejas={contarDanadasViejas(danadosPendientes)}
         abrirDanados={danados === "1"}
         // `?danada=1`: el botón «Separé una dañada» de las cuentas de caja y de almacén (ADR-0564) abre el buscador de la prenda dañada.
         abrirSepararDanada={pideSepararDanada(danada)}
