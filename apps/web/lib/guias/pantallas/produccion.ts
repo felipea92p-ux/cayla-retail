@@ -881,6 +881,15 @@ export const GUIA_PROD_INSUMOS: Guia = {
       texto: "Eliges quién lo anota y tocas «Guardar la ficha». Cambiar la ficha no mueve stock ni costos. En la demo no guardamos: cerramos la ventana.",
     },
     {
+      // La fila de arriba ya quedó abierta por los pasos de la ficha (o por su primer clic, aunque la ficha no aplique a ese insumo): aquí solo se cierra la ventana de antes.
+      id: "retirar-color",
+      ancla: "prod-insumos.retirar-color",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Retirar un color elegido por error",
+      texto: "Al abrir un color de una tela, «Retirar color» lo saca de la lista sin borrar nada: conserva su código y su historial. Solo si no tiene saldo ni órdenes abiertas; si algo lo impide, la ventana te dice qué. En la demo no lo retiramos.",
+    },
+    {
       id: "fin",
       ancla: null,
       preparar: [{ tipo: "escape" }],

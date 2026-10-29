@@ -387,6 +387,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/insumos-taller/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/EditarTelaModal.tsx"] },
   "components/insumos-taller/NuevoInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx"] },
   "components/insumos-taller/FichaDeLaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/FichaDeLaTelaModal.tsx"] },
+  "components/insumos-taller/RetirarColorModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién retira el color): el título dice qué color sale de la lista, la bajada avisa que no se borra nada y el aviso de la hoja dice por qué no se puede si tiene saldo; la base rechaza el resto (orden en proceso, tela por recibir, receta) con su frase." },
   // Actividad 6: pasar la orden al stock (cuántas salieron buenas, precargado con lo terminado, y quién lo anota; «falta» sale de los candados de `cerrar_produccion`), anular la orden y revertir el cierre.
   "components/orden-pagina/PasarAlStockModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/PasarAlStockModal.tsx"] },
   "components/orden-pagina/AnularLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación con UN dato obligatorio (quién la anula): el título dice qué orden se anula, qué pasa con la tela y los avíos y, si hay prendas afuera, por qué no se puede; el motivo es opcional. No hay camino que indicar." },
