@@ -62,6 +62,8 @@ export type Alcanza =
       faltan: FaltaProy[];
       /** Lo guardado (cajas fuertes y lo del líder) ya está dentro del saldo de la proyección: depositarlo lo pasa al banco, no lo aumenta. */
       guardadoYaCuenta: { monto: number; frase: string } | null;
+      /** Lo que es de Claudia y la proyección ya no cuenta como tuyo (ADR-0560, actividad 16). */
+      deClaudia: { monto: number; frase: string } | null;
     };
 
 export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
@@ -88,6 +90,7 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
       provisional,
       faltan,
       guardadoYaCuenta,
+      deClaudia: aparteDeClaudia(p.deClaudia),
     };
   }
   return {
@@ -99,7 +102,14 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
     provisional,
     faltan,
     guardadoYaCuenta: null,
+    deClaudia: aparteDeClaudia(p.deClaudia),
   };
+}
+
+/** «Sin los S/ X que son de Claudia»: la proyección parte de lo que hay menos lo que se le debe, y lo dice. */
+function aparteDeClaudia(monto: number | null | undefined): { monto: number; frase: string } | null {
+  if (!monto || !(monto > 0)) return null;
+  return { monto, frase: `Sin los ${soles(monto)} que son de Claudia (CLAURE): ya están restados de lo que tienes.` };
 }
 
 // ---- 3. ¿Qué debes? ----------------------------------------------------------------------------------------------------

@@ -18,9 +18,12 @@ import {
 
 const CATEGORIAS_DE_LA_BASE = [
   "alquileres",
+  "luz",
   "servicios_basicos",
   "transporte",
   "suministros",
+  "bolsas",
+  "limpieza",
   "mantenimiento",
   "publicidad",
   "asesoria",
@@ -52,6 +55,13 @@ describe("conceptos", () => {
     expect(conceptoDeGasto({ descripcion: "Encomienda Olva a Lima", categoria: "transporte" })).toBe("envio");
     expect(conceptoDeGasto({ descripcion: "Lejía y trapeador", categoria: "suministros" })).toBe("limpieza");
     expect(conceptoDeGasto({ descripcion: "SS.HH. del mercado", categoria: "servicios_basicos" })).toBe("bano");
+  });
+
+  it("la luz va a su categoría (50/50 con CLAURE) y agua, internet y baño a servicios básicos (100 % de CLAURE); un «Luz» de antes en servicios básicos se sigue reconociendo (ADR-0560, actividad 12)", () => {
+    expect(CONCEPTOS.find((c) => c.clave === "luz")).toMatchObject({ categoria: "luz", categoriasDeAntes: ["servicios_basicos"] });
+    for (const clave of ["agua", "internet", "bano"]) expect(CONCEPTOS.find((c) => c.clave === clave)?.categoria).toBe("servicios_basicos");
+    expect(conceptoDeGasto({ descripcion: "Luz de octubre", categoria: "luz" })).toBe("luz");
+    expect(conceptoDeGasto({ descripcion: "Luz de septiembre", categoria: "servicios_basicos" })).toBe("luz");
   });
 
   it("a igual lugar gana la palabra más larga, y antes gana la que aparece primero", () => {

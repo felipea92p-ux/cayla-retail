@@ -58,6 +58,7 @@
  */
 
 import { execFileSync, spawn } from "node:child_process";
+import { sqlDeshacer } from "./_deshacer_claure.mjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -448,6 +449,12 @@ const DEL_APARTADO = (como = "sep") => `(a.modulo = 'apartados' and (split_part(
 
 const md5Norm = (expr) =>
   `md5(regexp_replace(regexp_replace(regexp_replace(${expr}, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))`;
+// 20261029035000 (ADR-0560, 6c) cambió a propósito la ficha de la cliente (no lista lo de CLAURE) con reemplazos anclados: se deshacen antes de medir.
+const DESHACER_CLAURE = sqlDeshacer("20261029035000_claure_fuera_del_club_y_las_clientes.sql", [
+  "retail.fn_clienta_compras(uuid)",
+  "retail.fn_clienta_cambios(uuid)",
+  "retail.fn_clienta_devoluciones(uuid)",
+]);
 /** Una línea por firma de la tabla de versiones: el md5 normalizado vivo (vacío si no existe). */
 const MD5_VIVOS = VERSIONES.map(
   (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
@@ -868,7 +875,7 @@ caso(
 );
 caso(
   "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las que las tandas 1a y 1b del club volvieron a cambiar, con el «después» de la última que las tocó (si alguien edita una sin actualizar su tabla, esto lo dice)",
-  MD5_VIVOS,
+  DESHACER_CLAURE + MD5_VIVOS,
   DESPUES_HOY.join("\n")
 );
 
@@ -942,7 +949,7 @@ caso(
   "(6) …y no pisa NADA: las 14 siguen con los md5 de hoy, y la registrar_clienta de hoy (la de la 1b) sigue siendo la única",
   // Sin ON_ERROR_STOP y dentro de un savepoint: si el candado aborta, se vuelve al savepoint para mirar qué quedó. Si NO
   // abortara, no se revierte nada y las funciones ya reemplazadas lo delatan.
-  `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE_1}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
+  DESHACER_CLAURE + `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE_1}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
     `set local search_path = retail, public, extensions;\n` +
     MD5_VIVOS +
     `select string_agg(p.oid::regprocedure::text, ',') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_clienta';\n`,

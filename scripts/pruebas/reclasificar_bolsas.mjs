@@ -79,15 +79,25 @@ const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local 
 // Cuatro ventas «sin registrar» de mentira en una sede nueva:
 //   r1 pendiente «BOLSA COMPRAS» S/ 0.50 anotada en Bolsos y Carteras · r2 cerrada «Bolsos y Carteras · Beige · Talla Única» S/ 0.50 (la automática)
 //   r3 anulada «bolsa papel» S/ 0.50 (no se corrige) · r4 pendiente «Blusa lino» S/ 79.90 en una categoría de ropa (NO es de la lista: testigo)
+// Las tres migraciones de las familias apagadas solo se vuelven a pegar si la base NO las tiene (una base atrasada). En la del CI y en producción ya están, y volver a
+// pegarlas falla en cuanto una migración POSTERIOR cambia el texto que sus anclas esperan (ADR-0560 parchó las mismas funciones con `fn_item_es_de_claure`).
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
+select to_regproc('retail.fn_categoria_entra_a_motores') is not null
+   and position('fn_categoria_entra_a_motores' in pg_get_functiondef('retail.fn_demanda_sede(uuid, integer)'::regprocedure)) > 0
+   and position('fn_categoria_entra_a_motores' in pg_get_functiondef('retail.fn_piso_plan_lectura(uuid)'::regprocedure)) > 0
+   and position('fn_categoria_entra_a_motores' in pg_get_functiondef('retail.fn_plan_compra(uuid)'::regprocedure)) > 0
+   and position('fn_categoria_entra_a_motores' in pg_get_functiondef('retail.fn_analisis_sede(uuid)'::regprocedure)) > 0 as base_al_dia \\gset
+\\if :base_al_dia
+\\else
 ${sinControl(MARCA)}
 set local search_path = retail, public, extensions;
 ${sinControl(MOTORES)}
 set local search_path = retail, public, extensions;
 ${sinControl(ANALISIS_FRESCURA)}
 set local search_path = retail, public, extensions;
+\\endif
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
 -- El stub local de Dynamic no trae el correo (producción sí): se agrega aquí, dentro de la transacción.

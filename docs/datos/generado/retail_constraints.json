@@ -616,7 +616,7 @@
  },
  {
   "conname": "caja_traslados_destino_check",
-  "definicion": "CHECK ((destino = ANY (ARRAY['caja_fuerte'::text, 'banco'::text, 'lider'::text])))",
+  "definicion": "CHECK ((destino = ANY (ARRAY['caja_fuerte'::text, 'banco'::text, 'lider'::text, 'claudia'::text])))",
   "tabla": "retail.caja_traslados"
  },
  {
@@ -2420,6 +2420,16 @@
   "tabla": "retail.compra_cierres"
  },
  {
+  "conname": "compra_cierres_cuenta_indicada",
+  "definicion": "CHECK (((cuenta_indicada_id IS NULL) OR (decision = 'devuelve'::text)))",
+  "tabla": "retail.compra_cierres"
+ },
+ {
+  "conname": "compra_cierres_cuenta_indicada_id_fkey",
+  "definicion": "FOREIGN KEY (cuenta_indicada_id) REFERENCES retail.cuentas_dinero(id)",
+  "tabla": "retail.compra_cierres"
+ },
+ {
   "conname": "compra_cierres_decision_check",
   "definicion": "CHECK ((decision = ANY (ARRAY['se_queda'::text, 'devuelve'::text, 'le_deben'::text])))",
   "tabla": "retail.compra_cierres"
@@ -2460,6 +2470,36 @@
   "tabla": "retail.compra_cierres"
  },
  {
+  "conname": "compra_cierres_reabiertos_decision_check",
+  "definicion": "CHECK ((decision = ANY (ARRAY['se_queda'::text, 'devuelve'::text, 'le_deben'::text])))",
+  "tabla": "retail.compra_cierres_reabiertos"
+ },
+ {
+  "conname": "compra_cierres_reabiertos_monto_check",
+  "definicion": "CHECK ((monto >= (0)::numeric))",
+  "tabla": "retail.compra_cierres_reabiertos"
+ },
+ {
+  "conname": "compra_cierres_reabiertos_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.compra_cierres_reabiertos"
+ },
+ {
+  "conname": "compra_cierres_reabiertos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_cierres_reabiertos"
+ },
+ {
+  "conname": "compra_cierres_reabiertos_reabierto_por_fkey",
+  "definicion": "FOREIGN KEY (reabierto_por) REFERENCES personas(id)",
+  "tabla": "retail.compra_cierres_reabiertos"
+ },
+ {
+  "conname": "compra_cierres_reabiertos_ronda_id_fkey",
+  "definicion": "FOREIGN KEY (ronda_id) REFERENCES retail.compra_rondas(id)",
+  "tabla": "retail.compra_cierres_reabiertos"
+ },
+ {
   "conname": "compra_correcciones_cambia",
   "definicion": "CHECK ((antes IS DISTINCT FROM despues))",
   "tabla": "retail.compra_correcciones"
@@ -2488,6 +2528,31 @@
   "conname": "compra_correcciones_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.compra_correcciones"
+ },
+ {
+  "conname": "compra_gasto_correcciones_cambia",
+  "definicion": "CHECK ((antes IS DISTINCT FROM despues))",
+  "tabla": "retail.compra_gasto_correcciones"
+ },
+ {
+  "conname": "compra_gasto_correcciones_campo_check",
+  "definicion": "CHECK ((campo = ANY (ARRAY['concepto'::text, 'nota'::text, 'monto'::text, 'foto'::text])))",
+  "tabla": "retail.compra_gasto_correcciones"
+ },
+ {
+  "conname": "compra_gasto_correcciones_corregida_por_fkey",
+  "definicion": "FOREIGN KEY (corregida_por) REFERENCES personas(id)",
+  "tabla": "retail.compra_gasto_correcciones"
+ },
+ {
+  "conname": "compra_gasto_correcciones_gasto_id_fkey",
+  "definicion": "FOREIGN KEY (gasto_id) REFERENCES retail.compra_gastos(id)",
+  "tabla": "retail.compra_gasto_correcciones"
+ },
+ {
+  "conname": "compra_gasto_correcciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_gasto_correcciones"
  },
  {
   "conname": "compra_gastos_concepto_check",
@@ -4122,6 +4187,11 @@
  {
   "conname": "cuentas_dinero_efectivo_en_cuenta",
   "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.cuentas_dinero"
+ },
+ {
+  "conname": "cuentas_dinero_empresa_id_fkey",
+  "definicion": "FOREIGN KEY (empresa_id) REFERENCES retail.empresas(id)",
   "tabla": "retail.cuentas_dinero"
  },
  {
@@ -5760,6 +5830,26 @@
   "tabla": "retail.frescura_vara_cayla"
  },
  {
+  "conname": "gasto_reparto_claure_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.gasto_reparto_claure"
+ },
+ {
+  "conname": "gasto_reparto_claure_categoria_fkey",
+  "definicion": "FOREIGN KEY (categoria) REFERENCES retail.categorias_gasto(codigo)",
+  "tabla": "retail.gasto_reparto_claure"
+ },
+ {
+  "conname": "gasto_reparto_claure_pct_claure_check",
+  "definicion": "CHECK (((pct_claure >= (0)::numeric) AND (pct_claure <= (100)::numeric)))",
+  "tabla": "retail.gasto_reparto_claure"
+ },
+ {
+  "conname": "gasto_reparto_claure_pkey",
+  "definicion": "PRIMARY KEY (categoria)",
+  "tabla": "retail.gasto_reparto_claure"
+ },
+ {
   "conname": "gasto_viaje_fotos_archivada_por_fkey",
   "definicion": "FOREIGN KEY (archivada_por) REFERENCES personas(id)",
   "tabla": "retail.gasto_viaje_fotos"
@@ -6971,7 +7061,7 @@
  },
  {
   "conname": "movimientos_dinero_puntas",
-  "definicion": "CHECK (\nCASE\n    WHEN (tipo = ANY (ARRAY['aporte'::text, 'prestamo'::text, 'pago_deuda_fondo'::text])) THEN ((cuenta_origen_id IS NULL) AND (cuenta_destino_id IS NOT NULL))\n    WHEN (tipo = ANY (ARRAY['retiro'::text, 'devolucion_prestamo'::text, 'faltante_fondo_asumido'::text, 'faltante_fondo_deuda'::text, 'pago_planilla'::text, 'pago_sunat'::text])) THEN ((cuenta_origen_id IS NOT NULL) AND (cuenta_destino_id IS NULL))\n    ELSE ((cuenta_origen_id IS NOT NULL) AND (cuenta_destino_id IS NOT NULL) AND (cuenta_origen_id <> cuenta_destino_id))\nEND)",
+  "definicion": "CHECK (\nCASE\n    WHEN (tipo = ANY (ARRAY['aporte'::text, 'prestamo'::text, 'pago_deuda_fondo'::text])) THEN ((cuenta_origen_id IS NULL) AND (cuenta_destino_id IS NOT NULL))\n    WHEN (tipo = ANY (ARRAY['retiro'::text, 'devolucion_prestamo'::text, 'faltante_fondo_asumido'::text, 'faltante_fondo_deuda'::text, 'pago_planilla'::text, 'pago_sunat'::text, 'pago_claure'::text])) THEN ((cuenta_origen_id IS NOT NULL) AND (cuenta_destino_id IS NULL))\n    ELSE ((cuenta_origen_id IS NOT NULL) AND (cuenta_destino_id IS NOT NULL) AND (cuenta_origen_id <> cuenta_destino_id))\nEND)",
   "tabla": "retail.movimientos_dinero"
  },
  {
@@ -6991,7 +7081,7 @@
  },
  {
   "conname": "movimientos_dinero_tipo_check",
-  "definicion": "CHECK ((tipo = ANY (ARRAY['aporte'::text, 'prestamo'::text, 'retiro'::text, 'devolucion_prestamo'::text, 'deposito'::text, 'abono_tarjeta'::text, 'pago_tarjeta'::text, 'entre_cuentas'::text, 'entrega_fondo'::text, 'devolucion_fondo'::text, 'faltante_fondo_asumido'::text, 'faltante_fondo_deuda'::text, 'pago_deuda_fondo'::text, 'pago_planilla'::text, 'pago_sunat'::text])))",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['aporte'::text, 'prestamo'::text, 'retiro'::text, 'devolucion_prestamo'::text, 'deposito'::text, 'abono_tarjeta'::text, 'pago_tarjeta'::text, 'entre_cuentas'::text, 'entrega_fondo'::text, 'devolucion_fondo'::text, 'faltante_fondo_asumido'::text, 'faltante_fondo_deuda'::text, 'pago_deuda_fondo'::text, 'pago_planilla'::text, 'pago_sunat'::text, 'pago_claure'::text])))",
   "tabla": "retail.movimientos_dinero"
  },
  {
@@ -8938,6 +9028,61 @@
   "conname": "planes_compra_versiones_vuelve_a_una_anterior",
   "definicion": "CHECK (((restaurada_de IS NULL) OR (restaurada_de < numero)))",
   "tabla": "retail.planes_compra_versiones"
+ },
+ {
+  "conname": "planilla_cuentas_banco_check",
+  "definicion": "CHECK ((banco = ANY (ARRAY['bcp'::text, 'interbank'::text])))",
+  "tabla": "retail.planilla_cuentas"
+ },
+ {
+  "conname": "planilla_cuentas_cuenta_id_fkey",
+  "definicion": "FOREIGN KEY (cuenta_id) REFERENCES retail.cuentas_dinero(id)",
+  "tabla": "retail.planilla_cuentas"
+ },
+ {
+  "conname": "planilla_cuentas_guardada_por_fkey",
+  "definicion": "FOREIGN KEY (guardada_por) REFERENCES personas(id)",
+  "tabla": "retail.planilla_cuentas"
+ },
+ {
+  "conname": "planilla_cuentas_pkey",
+  "definicion": "PRIMARY KEY (banco)",
+  "tabla": "retail.planilla_cuentas"
+ },
+ {
+  "conname": "planilla_salidas_banco_check",
+  "definicion": "CHECK ((banco = ANY (ARRAY['bcp'::text, 'interbank'::text, 'sin_banco'::text])))",
+  "tabla": "retail.planilla_salidas"
+ },
+ {
+  "conname": "planilla_salidas_grupo_check",
+  "definicion": "CHECK ((btrim(grupo) <> ''::text))",
+  "tabla": "retail.planilla_salidas"
+ },
+ {
+  "conname": "planilla_salidas_movimiento_id_fkey",
+  "definicion": "FOREIGN KEY (movimiento_id) REFERENCES retail.movimientos_dinero(id)",
+  "tabla": "retail.planilla_salidas"
+ },
+ {
+  "conname": "planilla_salidas_movimiento_id_key",
+  "definicion": "UNIQUE (movimiento_id)",
+  "tabla": "retail.planilla_salidas"
+ },
+ {
+  "conname": "planilla_salidas_neto_dynamic_check",
+  "definicion": "CHECK ((neto_dynamic >= (0)::numeric))",
+  "tabla": "retail.planilla_salidas"
+ },
+ {
+  "conname": "planilla_salidas_pkey",
+  "definicion": "PRIMARY KEY (periodo_id, grupo, banco)",
+  "tabla": "retail.planilla_salidas"
+ },
+ {
+  "conname": "planilla_salidas_registrada_por_fkey",
+  "definicion": "FOREIGN KEY (registrada_por) REFERENCES personas(id)",
+  "tabla": "retail.planilla_salidas"
  },
  {
   "conname": "pos_abonos_lotes_clave_check",

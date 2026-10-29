@@ -281,7 +281,7 @@ select count(*) from retail.fn_categorias_gasto();`);
   esperar("nadie lee `categorias_gasto` directo", r.ok && catDirecto.includes("permission denied"), r);
   // 13 desde los gastos del viaje (ADR-0362 fase 6 · actividad 3, 20261013221000): «Traer la mercadería» (609) y «Viaje de compra» (631).
   // 18 desde Luz, Agua, Internet, Telefonía y Software (ADR-0477, 20261022205000): son 5 filas nuevas del catálogo.
-  esperar("las 18 categorías se leen por su función", r.ok && Number(categorias) === 18, r);
+  esperar("las 20 categorías (las 18 de siempre y «limpieza» y «bolsas», 20261029044000) se leen por su función", r.ok && Number(categorias) === 20, r);
 }
 
 // 9. El gasto rápido de Caja pagado con el Yape o el Plin de la tienda (ADR-0368, act. 2026-10-12): lo que manda la hoja (sin caja y
@@ -344,7 +344,7 @@ select count(*) from retail.fn_categorias_gasto() where codigo = 'software' and 
   const [cuatro, otros, ordenes, lista, lasCuatro, cuentas, software, cuenta639, softwareEnLista] = lineas(a);
   esperar("Luz, Agua, Internet y Telefonía existen, activas y en la cuenta 636", a.ok && Number(cuatro) === 4, a);
   esperar("«servicios_basicos» conserva su código y su nombre, y sus ejemplos ya no prometen luz, agua, teléfono ni internet", a.ok && otros === "Servicios básicos|Baño, gas, vigilancia u otro servicio del local", a);
-  esperar("las 18 categorías conocidas tienen un orden cada una (ninguno repetido)", a.ok && Number(ordenes) === 18, a);
+  esperar("las 18 categorías conocidas (las de las listas de arriba) tienen un orden cada una (ninguno repetido)", a.ok && Number(ordenes) === 18, a);
   esperar("«Software y suscripciones» existe, activa y en la cuenta 639", a.ok && software === "639|true", a);
   esperar("la cuenta 639 ya no dice «(bancarios)»: la comparten las comisiones del banco y el software", a.ok && cuenta639 === "Otros servicios de terceros" && Number(softwareEnLista) === 1, a);
   esperar("la lista abre: Alquileres, Luz, Agua, Internet, Telefonía, Software, Servicios básicos", a.ok && lista === "alquileres,luz,agua,internet,telefonia,software,servicios_basicos", a);

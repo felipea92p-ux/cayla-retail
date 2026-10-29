@@ -1976,6 +1976,89 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - **La cuenta con CLAURE (ADR-0560, 2026-10-29; actividad 1, solo lectura):** `/finanzas/dinero/claure` (la cuarta cara de Cuentas y dinero, «CLAURE») →
+    `lib/cuenta-claure.ts` → `fn_claure_cuenta()` y `fn_claure_cuenta_desde()` (20261029004000) → `lib/cuenta-claure-reglas.ts` (`resumenClaure`) →
+    `components/finanzas/dinero/CuentaClaure.tsx`. Lo que CLAURE (Claudia) cobró en **cuentas de CAYLA** (tarjeta, QR, Yape…; el efectivo no, lo tiene ella), por día, medio y
+    cuenta, desde `empresas.cuenta_corriente_desde`. Cada cuenta dice de quién es (`cuentas_dinero.empresa_id`); cada pago de una venta se reparte por el valor de las líneas
+    de cada empresa (`fn_dueno_de_la_linea`, ADR-0542); la comisión del POS sale de `pos_tarifas`; una devolución pagada desde una cuenta de CAYLA resta; un cambio se
+    lista sin contar. El saldo no se guarda: se suma de las filas. Prueba: `pnpm pruebas:claure-cuenta`.
+    **Pagar a CLAURE (actividad 2, 20261029011000):** tipo `pago_claure` de `movimientos_dinero` (como `pago_sunat`: sale de un banco, sin destino ni comisión, de la empresa; solo el
+    líder) registrado con `registrar_movimiento_dinero` desde el mismo modal «Registrar movimiento» (`QuePaso = pago_claure`; `BotonPagarClaure` lo abre con el saldo escrito vía
+    `useAbrirMovimiento`) y anulado con `anular_movimiento_dinero`. El Diario lo asienta 479 (provisional) | banco, el Flujo real lo cuenta como salida «Pago a CLAURE» (actividad 5) y `fn_claure_pagos()` lo lista:
+    saldo = `resumenClaure(filas, pagos)`. Prueba: `pnpm pruebas:claure-pago`.
+    **El cierre de caja de Lima (actividad 3, 20261029013000):** `fn_claure_cierre(caja)` (candado de `fn_esperado_caja`: quien cierra esa caja o el líder, sin pedir el módulo
+    Finanzas) → `components/CuentasConClaudia.tsx` (`useCierreClaure`) montado en `CerrarCajaModalV2`: en el paso de contar dice cuánto del efectivo es de CLAURE (informativo; CAYLA + CLAURE =
+    `ventas_efectivo` exacto) y, tras cerrar, el bloque «Cuentas con Claudia» (neto, lo de hoy, detalle plegado, «Copiar resumen» para WhatsApp y, para el líder, «Pagar a CLAURE» →
+    `/finanzas/dinero/claure?pagar=1`, que abre la hoja de pago con el saldo escrito: `AbrirPagoDesdeUrl`). El cálculo es `fn_claure_filas(sedes)`, interno, que también lee `fn_claure_cuenta`.
+    Prueba: `pnpm pruebas:claure-cierre`.
+    **El disponible real (actividad 4, sin migración):** `chipsDisponible(total, saldo)` (`cuenta-claure-reglas.ts`) parte lo que hay en las cuentas de CAYLA en «De eso, S/ X es de Claudia» y «Disponible real S/ Y». Sale
+    bajo «¿Cuánta plata tienes hoy?» de Dónde está (`/finanzas/dinero`, solo el líder y solo con «Todas» o «Empresa»: una sede no lleva los bancos) y en «¿Cuánto tienes?» del Resumen
+    (`tresRespuestas({ claure })`), donde además una tarjeta aparte, «¿Cuánto le debes a CLAURE?» (`respuestaDeClaure`), lleva a `/finanzas/dinero/claure`. Lee `getCuentaClaure()`, que distingue
+    «no tienes acceso» (`42501`, la tarjeta no se dibuja) de «se cayó» (la tarjeta lo dice). El saldo de los bancos no se toca: sigue cuadrando con el estado de cuenta.
+    **CLAURE fuera de las cifras de CAYLA (actividad 5, 20261029020000):** lo vendido de CLAURE en sus sedes (`empresa_sedes`; hoy solo Tienda LIM), desde `empresas.cuenta_corriente_desde`, deja de
+    contar como ingreso, costo y mercadería de CAYLA **en el Diario**: `fn_claure_ventas` (interna: por documento —venta, anulación, devolución—, valorada como el Diario y repartida por línea según su
+    dueño real, `fn_dueno_de_la_linea`) alimenta `fn_asientos_claure` (interna), una RECLASIFICACIÓN con un asiento por documento que cuadra solo (venta: D 7011 base / H 479 base; D 201 costo / H 691 costo;
+    anulación y devolución la deshacen en su día), que `fn_asientos` suma al final con UN reemplazo anclado. Como el Estado de resultados, el Resumen, el Balance y el Cierre de mes leen el Diario, ninguno
+    cambió. El IGV (4011) y los cobros NO se tocan —la boleta sale con el RUC de CAYLA— y los meses ya cerrados conservan su foto. `fn_claure_ventas_en(desde, hasta, sede)` (candado del Diario) dice lo vendido de
+    CLAURE neto de anulaciones y devoluciones (`getVentasClaure()` → `VentasClaure`): Impuestos muestra el aviso «De ese IGV, S/ X es de ventas de CLAURE» (`lineaImpuestosClaure`, `ImpuestosPanel`; el IGV de
+    SUNAT queda entero) y el Estado de resultados la nota «No incluye lo vendido de CLAURE» (`notaResultadosClaure`, `EstadoResultadosPanel`). `fn_flujo_lineas` cuenta el pago a CLAURE como salida
+    (`pago_claure`, `TEXTO_CATEGORIA`). La 479 acumula la parte sin IGV de TODO lo vendido de CLAURE (también el efectivo, que tiene Claudia): es provisional hasta el contador. Prueba:
+    `pnpm pruebas:claure-fuera-de-las-cifras`.
+    **CLAURE fuera del Inicio y del Observatorio (actividad 6a, 20261029023000):** `fn_item_es_de_claure(línea, sede, fecha)` (interna) es la regla de «esta línea de venta es de CLAURE» —la misma de
+    `fn_claure_ventas`: sede donde opera CLAURE, venta desde `empresas.cuenta_corriente_desde`, dueño real de la línea (`fn_dueno_de_la_linea`)— y la reusan 6b, 6c y 6d. `fn_observatorio` (todas las tiendas) y
+    `fn_observatorio_tienda` (una tienda) suman solo lo de CAYLA (reemplazos anclados: una venta solo de CLAURE no cuenta ni como ticket, la mixta cuenta por sus líneas de CAYLA, y las prendas «quietas» miden solo
+    las unidades de CAYLA, restando `stock_dueno`). El Inicio de la líder (`getHoyDeLaSede`, bloque «Hoy») NO cambia `fn_ventas_del_dia` —Caja y Vender necesitan el día completo—: lee además
+    `fn_claure_de_hoy(sede)` (cuánto de cada venta de hoy es de CLAURE y cuántas líneas de CAYLA le quedan; y lo de CLAURE de hace una semana a esta hora) y `sinClaure` / `semanaSinClaure`
+    (`lib/inicio-reglas.ts`) lo restan; una línea `nota-cayla` dice cuánto se dejó fuera (`notaClaureDeHoy`). Si esa lectura falla, «Hoy» sale como antes. Prueba: `pnpm pruebas:claure-inicio-y-observatorio`;
+    la huella de `fn_observatorio_tienda` de `pruebas:arreglos-en-vivo-roles-observatorio` pasa a la de esta migración.
+    **CLAURE fuera de Rendimiento, metas y Comercial (actividad 6b, 20261029030000):** once reemplazos anclados filtran la línea con `fn_item_es_de_claure` (el patrón es siempre `and not retail.fn_item_es_de_claure(vi.id, <sede>, <fecha de la venta>)`
+    antes del `group by`): Rendimiento (`fn_rendimiento_equipo`, `_detalle`, `_serie`), Metas (`fn_metas_equipo`), Comercial (`fn_comercial_sedes` —también lo devuelto—, `fn_comercial_colaboradoras`, `fn_comercial_horas`) y el «Tu día»
+    de cada integrante (`fn_mis_ventas_del_dia`: una venta solo de CLAURE no sale y la mixta trae su parte; `fn_mis_ventas_por_dia`). Las pantallas no cambian: su «Ayuda» dice que lo de CLAURE no cuenta (`rendimiento/page.tsx`,
+    `PanelComercialVista.tsx`). Las metas (`fn_metas_por_dia`, `fn_parametros_caja`) NO se tocan. Prueba: `pnpm pruebas:claure-rendimiento-y-metas`.
+    **CLAURE fuera del Club y de la ficha de la cliente (actividad 6c, 20261029035000):** cinco reemplazos anclados con la misma regla. `fn_club_monto_neto_venta` calcula los PUNTOS solo sobre las líneas de CAYLA (la usan
+    `fn_club_puntos_por_venta`, la conciliación de una devolución o anulación `fn_club_puntos_conciliar_venta`, el resumen del club y el aniversario); `fn_club_compras_netas` no cuenta una compra solo de CLAURE (la mixta sí);
+    la ficha (`fn_clienta_compras`, `fn_clienta_cambios`, `fn_clienta_devoluciones`) no lista las líneas de CLAURE ni lo que es solo de CLAURE. NO cambian `fn_club_conservacion_hasta` (plazo legal) ni `fn_club_avisos_pendientes`
+    (deduce la talla de lo que compró). Las pruebas viejas que fijan el md5 de esas funciones (`club_lista_y_ficha`, `club_registro_cartel`, `clientas_por_modulo_y_anonimizar`) deshacen el reemplazo dentro de su transacción
+    con `scripts/pruebas/_deshacer_claure.mjs`. Prueba: `pnpm pruebas:claure-club-y-clientes`.
+    **CLAURE fuera de Análisis y de los motores de decisión (actividad 6d, 20261029041000):** veinte reemplazos anclados sobre trece funciones, siempre `and not retail.fn_item_es_de_claure(vi.id, <sede>, <fecha>)` en la lectura de líneas
+    vendidas: Análisis (`fn_analisis_sede`), lo que leen el plan de compra, su propuesta y sus resultados (`fn_unidades_vendidas`, `fn_plan_compra` con sus seis lecturas, `fn_historial_ventas`), los motores del piso
+    (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`, `fn_frescura_decisiones`), `fn_rentabilidad`, `fn_calidad`, `fn_costo_estimado_resumen` (el costo que estima el Resumen de Finanzas: la actividad 5 lo había dejado
+    pasar) y lo más vendido de la tienda web (`fn_vitrina_probador`, `fn_vitrina_recortes`). NO cambian los que miran el libro de movimientos o el stock por dueño (Frescura del piso, `fn_resumen_*`, Pérdidas, calidad de dañadas,
+    reparto por proveedor, capacidad del Plan del piso): quedan como pendiente de Felipe. Prueba: `pnpm pruebas:claure-analisis-y-motores`.
+    **Apartados y pedidos web con prendas de CLAURE (actividad 7, 20261029043000):** al entregar un apartado (`entregar_separacion`) o despachar un pedido web (`fn_pedido_web_vender`), el adelanto queda en la venta como un
+    pago de medio `anticipo` SIN cuenta, así que `fn_claure_filas` (A1) no lo veía. Ahora suma también, por la parte de CLAURE de la venta, los abonos de `separacion_pagos` (no efectivo) y los pagos `aprobado` y no anulados de
+    `pedido_web_pagos`, en la cuenta donde cayó cada uno y fechados el día de la venta: se le debe a Claudia desde que la prenda sale, no desde el abono. Mientras no hay venta no se debe nada. Lo leen la pantalla CLAURE,
+    `fn_claure_cuenta` y el aviso del cierre de caja sin cambiar. Prueba: `pnpm pruebas:claure-apartados-y-pedidos-web`.
+    **Gastos por empresa (actividad 8, 20261029044000):** `gasto_reparto_claure(categoria, pct_claure)` (tabla con RLS y sin políticas: se lee por funciones) dice qué parte de cada categoría de gasto de una sede donde opera CLAURE es de
+    CLAURE; de fábrica alquileres, luz, servicios básicos y mantenimiento 50 %, y las categorías nuevas `limpieza` y `bolsas` 100 %. `fn_claure_gastos_base` (interna) saca la parte de cada gasto vigente desde el arranque de la
+    cuenta; `fn_claure_gastos()` (candado de `fn_claure_cuenta`) la lista para la web (`getCuentaClaure` → `GastoClaure`, `resumenClaure(filas, pagos, gastos)`: la suma BAJA el saldo; tarjeta «Gastos suyos» y tabla en la pantalla
+    CLAURE). El Diario (`fn_asientos_claure`, redefinida) reclasifica la parte sin IGV del gasto de CAYLA a la 479 al debe, así que el Estado de resultados la deja fuera; el aviso del cierre (`fn_claure_cierre`, parchada) la resta y la dice
+    en `hoy.gastos` (`cierre-claure-reglas.ts`, `CuentasConClaudia`). Gasto rápido: «Bolsas» y «Limpieza» van a sus categorías propias (`categoriasDeAntes: ["suministros"]` reconoce los de antes). Prueba:
+    `pnpm pruebas:claure-gastos-por-empresa`.
+    **El IGV se le descuenta a Claudia (actividad 10, 20261029142000; Felipe 2026-10-29):** la boleta sale con el RUC de CAYLA, que declara y paga ese IGV, así que lo que se le debe es
+    cobrado − devuelto − **IGV** − comisión − pagado − gastos suyos. En la web, `resumenClaure` y `seLeDebeDeFila` (`cuenta-claure-reglas.ts`) restan el IGV neto (el de una devolución viene en
+    negativo); en la base, `fn_claure_cierre` (cinco reemplazos anclados) lo resta del saldo y del saldo anterior y trae `hoy.igv`. Cuadra con el Diario: la 479 ya era la parte sin IGV.
+    `pnpm pruebas:claure-igv`.
+    **Servicios al 100 % (actividad 12, 20261029153000):** solo datos de `gasto_reparto_claure`: `servicios_basicos` pasa de 50 a 100 (si sigue en 50) y `agua` e `internet` nacen en 100; `luz`, `alquileres` y `mantenimiento` siguen en 50. Gasto rápido manda «Luz»
+    a la categoría `luz` (`categoriasDeAntes: ["servicios_basicos"]` reconoce los de antes) y agua, internet y baño a `servicios_basicos`. `pnpm pruebas:claure-servicios-100`.
+    **Pérdidas y dañadas por dueño (actividad 14, 20261029154000):** `fn_movimiento_es_de_claure(empresa_id, sede, cuándo)` (interna; la regla de `fn_item_es_de_claure` pero para el libro: dueño `movimientos.empresa_id` = CLAURE, sede de CLAURE y desde el
+    arranque de su cuenta). Pérdidas (`fn_perdidas_hechos`: el movimiento y la anulación), la calidad de dañadas (`fn_calidad_danadas`: devoluciones y anulaciones), el Diario (`fn_asientos`, 6951 de mermas) y las mermas sin costo del Estado de resultados
+    (`fn_estado_resultados`) apartan lo de CLAURE. NO cambian las pérdidas en traslados (`fn_perdidas_de_traslados`), Frescura del piso, el Resumen por variante ni el piso. `pnpm pruebas:claure-perdidas-y-danadas`.
+    **El Balance sin el stock de CLAURE (actividad 15, RETIRADA):** lo hace el ADR-0558 (`20261028212000`, ya en producción: `fn_bal_stock` resta las unidades de otro dueño y `fn_bal_causas_mercaderia` no cuenta sus movimientos). La cadena de CLAURE va después y solo cambia la deuda: `fn_asientos_claure` reclasifica a la 479 (lo cobrado sin IGV) y la 4699 queda sin movimiento. `balance_claure.mjs` prueba que el Balance y la 201 del Diario se mueven igual.
+    **«¿Me alcanza?» sin la plata de Claudia (actividad 16, 20261029160000):** `fn_claure_saldo_a(corte)` (interna: lo que se le debe a esa fecha en todas las sedes donde opera, la misma cuenta que la pestaña CLAURE) y `fn_flujo_caja_proyeccion` parte de
+    `fn_flujo_disponible − max(saldo, 0)` y trae `de_claudia`. NO cambia `fn_flujo_disponible` (lo usa el flujo real, que debe cuadrar con las cuentas) ni los cobros futuros. Web: `Proyeccion.deClaudia`, la nota de «¿Me alcanza?» (`alcanzaPulso`) y
+    la tarjeta «Hoy tienes» de la caja próxima. `pnpm pruebas:claure-proyeccion`.
+    **La pantalla del reparto (actividad 17, 20261029161000):** Configuración ▸ «Gastos con CLAURE» (`/configuracion?tab=claure`, solo el líder; módulo `configuracion`, sin módulo nuevo): `fn_reparto_claure()` lista las categorías de gasto activas con su parte y `guardar_reparto_claure(categoria, pct)` la fija (0 a 100),
+    firma al responsable, guarda `actualizado_por` y deja el antes y el después en `configuracion_historial` (`que = 'reparto_claure'`). Web: `lib/reparto-claure.ts` (carga), `lib/reparto-claure-reglas.ts` (lee, valida, dice en palabras de tienda) y `components/ConfiguracionRepartoClaure.tsx`
+    (cada casilla se guarda sola al salir de ella, como «Caja y avisos»). Un cambio de porcentaje vale también para los gastos de antes (la parte se calcula al leer). `pnpm pruebas:claure-reparto-pantalla`.
+    **Los cambios con prendas de CLAURE (actividad 13, 20261029162000; Felipe 2026-10-29: «la plata sigue a la prenda que se lleva la clienta», en la deuda y en el Diario):** `fn_claure_cambios(desde, hasta, sedes)` (interna) dice cuánto le suma o resta cada cambio
+    a lo que se le debe: la plata de lo que se devolvió (la parte pagada en cuentas de CAYLA, por la proporción de los pagos de la venta original; el efectivo no cuenta) pasa del dueño de ESA prenda a los dueños de lo que se lleva (el dueño de cada movimiento
+    de salida, a lo que valga cada una), y la diferencia pagada o devuelta en una cuenta de CAYLA va a los dueños de lo que se lleva. `fn_claure_filas` los lista CONTADOS (antes «por revisar»; `fn_claure_saldo_a`, la proyección y la pestaña los toman solos),
+    `fn_claure_cierre` los suma como cobrado (si suben) o devuelto (si bajan) y `fn_asientos_claure` mueve la parte sin IGV entre 7011 y 479 (`claure_cambio`). No toca el costo (el Diario sigue ajustando solo la diferencia de costo). `pnpm pruebas:claure-cambios`.
+    **«Se queda con Claudia» (actividad 11, 20261029144000; Felipe 2026-10-29):** un destino más del traslado del cierre de caja (`caja_traslados.destino = 'claudia'`, solo en una tienda donde opera CLAURE; `cerrar_caja` lo exige) para el
+    efectivo de CAYLA que ella guarda. Sale del cajón y baja lo que se le debe: `fn_claure_cierre` lo resta del saldo y trae `hoy.efectivo_claudia`, `fn_claure_pagos` lo lista («Efectivo del cajón · tienda»), el Diario lo asienta 479 al debe / 101 al
+    haber (`traslado_claudia`, en `fn_asientos_dinero_y_caja`), el libro (`fn_dinero_libro`) lo deja sin cuenta y el flujo (`fn_flujo_lineas`) lo cuenta como `pago_claure`. Web: `destinosDelCierre` (`caja-cierre-reglas.ts`) y la vista previa
+    `vistaPreviaSeQueda` (`cierre-claure-reglas.ts`) en `CerrarCajaModalV2`. `pnpm pruebas:claure-efectivo-claudia`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en
