@@ -47,7 +47,7 @@ export type ResumenCreado = {
   /** Lo que el producto todavía no tiene («Sin marca ni proveedor», «Sin marca», «Sin proveedor»), o null si está completo (ADR-0283). */
   sinMarcaProveedor?: string | null;
   /** La carga inicial que entró con el producto (ADR-0212), o null si se creó sin stock. Sin conexión, entra al subir. */
-  stock: { unidades: number; donde: string } | null;
+  stock: { unidades: number; donde: string; llegadaDe?: string | null } | null;
   /** Sin conexión: cuántas fotos quedaron guardadas en este navegador para subir después del producto. */
   fotosEnEspera?: number;
   /** Sin conexión: el token de la operación en la cola, para seguirla hasta que suba. */
@@ -171,7 +171,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
           )}
         </div>
         {/* El stock inicial queda SELLADO: desde ahora se ajusta solo en Existencias (ADR-0494). Solo si ya entró (con conexión). */}
-        {creado.stock && creado.stock.unidades > 0 && !sinConexion && <SelloStockInicial unidades={creado.stock.unidades} />}
+        {creado.stock && creado.stock.unidades > 0 && !sinConexion && <SelloStockInicial unidades={creado.stock.unidades} llegada={Boolean(creado.stock.llegadaDe)} />}
       </div>
 
       {abrirOrden && subida !== "descartada" && (

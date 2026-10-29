@@ -162,6 +162,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   caja?: boolean;
   /** Sin el renglón del pie reservado: para una caja en una FILA de tabla junto a combos (ver `Campo`). */
   sinPie?: boolean;
+  /** Lo que va fijo a la izquierda, dentro de la caja y sin poder borrarse: el tipo de prenda en el nombre de Nuevo producto («Blusa ▢»). */
+  antes?: ReactNode;
 };
 
 /* Safari (macOS/iOS) dibuja el `type="date"` con su propio editor interno
@@ -173,7 +175,7 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, antes, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
@@ -187,6 +189,11 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
         data-trabajando={trabajando || undefined}
         data-tono={tono === "error" ? "error" : undefined}
       >
+        {antes != null && (
+          <span aria-hidden className="shrink-0 select-none pr-1.5 text-tinta/60">
+            {antes}
+          </span>
+        )}
         <input
           id={id}
           // Sin esto, Safari lee la etiqueta («Nombre», «Dirección», «Teléfono») y ofrece llenar el campo con la ficha

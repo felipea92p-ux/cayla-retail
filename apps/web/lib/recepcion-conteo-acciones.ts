@@ -13,6 +13,8 @@ import {
   RPC_CORREGIR_GUIA,
   RPC_FOTO_PAPEL,
   RPC_PRECIO_RECEPCION,
+  RPC_PRECIOS_RECEPCION,
+  RPC_VALIDAR_PRECIOS,
   resultadoDeLigar,
   RPC_GUARDAR_CONTEO,
   RPC_LIGAR_PRENDA,
@@ -40,6 +42,7 @@ import {
   type ObservacionDeEnvio,
 } from "@/lib/observaciones-envio-reglas";
 import { leerResultadoRecepcion, type ResultadoRecepcion } from "@/lib/recepcion-envio-reglas";
+import type { PrecioDeHoy } from "@/lib/recepcion-combinaciones-reglas";
 
 // Recibir contando primero (ADR-0393): lo que la cara A le pide a la base. Las reglas viven en cada función (el módulo Recibir, la sede, quien
 // hizo la orden no cuenta ni cierra, los candados de stock); aquí solo se arma la llamada con su firma. TODAS las que escriben firman con el
@@ -106,6 +109,58 @@ export async function validarPrecioEnRecepcion(
 ): Promise<ResultadoDeValidar> {
   const { data, error } = (await firmar(createClient().rpc(RPC_VALIDAR_PRECIO as never, args as never), firma)) as Respuesta;
   return leerValidacionDePrecio(data, error);
+}
+
+/** El precio de varias combinaciones (color y talla) de una prenda de este envío, todo o nada: `todas` = el general de cada una, `sede` = el de la tienda
+ *  que recibe (toda la prenda si se eligieron todas sus tallas al mismo precio; si no, una excepción por combinación). Con el envío abierto. */
+export async function cambiarPreciosEnRecepcion(
+  args: { p_despacho_id: string; p_producto_id: string; p_precios: Record<string, number>; p_alcance: "todas" | "sede" },
+  firma: Firma | null,
+): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_PRECIOS_RECEPCION as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
+}
+
+/** ¿Se podrían guardar esos precios por combinación? Con el motivo si no, sin guardar nada. Lectura. */
+export async function validarPreciosEnRecepcion(
+  args: { p_despacho_id: string; p_producto_id: string; p_precios: Record<string, number>; p_alcance: "todas" | "sede" },
+  firma: Firma | null,
+): Promise<ResultadoDeValidar> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_VALIDAR_PRECIOS as never, args as never), firma)) as Respuesta;
+  return leerValidacionDePrecio(data, error);
+}
+
+/**
+ * Lo que valen hoy las combinaciones de estas prendas: el precio general de cada variante y el que se cobra en ESTA tienda (su excepción, el precio de la
+ * prenda aquí o el general: `fn_precios_en_sede`, la misma regla que la caja), y cuántas tallas activas tiene cada prenda (para saber si «solo esta tienda»
+ * con todas queda como el precio de la prenda). Sin el costo: esa columna es de otro permiso. Si no se pudo leer, `null` y la pantalla sigue sin precios de hoy.
+ */
+export async function leerPreciosDeCombinaciones(
+  productoIds: readonly string[],
+  ubicacionId: string | null,
+): Promise<{ porVariante: Record<string, PrecioDeHoy>; activasPorPrenda: Record<string, number> } | null> {
+  if (productoIds.length === 0) return { porVariante: {}, activasPorPrenda: {} };
+  const supabase = createClient();
+  const { data, error } = await supabase.from("variantes").select("id, producto_id, precio, activo").in("producto_id", [...productoIds]);
+  if (error) return null;
+  const filas = (data ?? []).map((v) => {
+    const f = v as { id: string; producto_id: string; precio: number | string; activo: boolean };
+    return { id: f.id, productoId: f.producto_id, precio: Number(f.precio), activo: f.activo };
+  });
+  let propios = new Map<string, number>();
+  if (ubicacionId && filas.length > 0) {
+    const { data: ps, error: ep } = await leerPreciosPropiosDeVariantes(supabase, ubicacionId, filas.map((f) => f.id));
+    if (!ep) propios = leerPreciosEnSede(ps);
+  }
+  const porVariante: Record<string, PrecioDeHoy> = {};
+  const activasPorPrenda: Record<string, number> = {};
+  for (const f of filas) {
+    if (!Number.isFinite(f.precio)) continue;
+    porVariante[f.id] = { general: f.precio, sede: propios.get(f.id) ?? f.precio };
+    // Las tallas activas con precio: la de obsequio (S/ 0) no cuenta (es lo que decide la base para «toda la prenda»).
+    if (f.activo && f.precio > 0) activasPorPrenda[f.productoId] = (activasPorPrenda[f.productoId] ?? 0) + 1;
+  }
+  return { porVariante, activasPorPrenda };
 }
 
 /** «Hacer ahora»: termina un pendiente o separa lo que quedó sin separar. */

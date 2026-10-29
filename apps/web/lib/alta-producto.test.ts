@@ -256,7 +256,14 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
   it("limpiarCantidad: al tipear solo quedan dígitos, hasta 4 (una cantidad imposible ni se escribe)", () => {
     expect(limpiarCantidad("12")).toBe("12");
     expect(limpiarCantidad("-3")).toBe("3");
-    expect(limpiarCantidad("2.5")).toBe("25");
+    // /chaos 2026-10-28 (semilla 2810): «2,5» se guardaba como 25. Un decimal se corta en el entero; «1,200» con tres cifras es un millar.
+    expect(limpiarCantidad("2.5")).toBe("2");
+    expect(limpiarCantidad("2,5")).toBe("2");
+    expect(limpiarCantidad("12,50")).toBe("12");
+    expect(limpiarCantidad("1,200")).toBe("1200");
+    expect(limpiarCantidad("1.200")).toBe("1200");
+    expect(limpiarCantidad("1e3")).toBe("1");
+    expect(limpiarCantidad(" 12 u.")).toBe("12");
     expect(limpiarCantidad("abc")).toBe("");
     expect(limpiarCantidad("123456")).toBe("1234");
   });
@@ -492,5 +499,13 @@ describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-
     expect(fraseStockCreado(s, true, "descartada")).toMatch(/no se cargaron/);
     expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
     expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
+  });
+  it("con la carga cerrada (ADR-0328 act. 2026-10-28) dice que llegaron del proveedor, nunca «stock inicial»", () => {
+    const s = { unidades: 5, donde: "almacén de Tienda Trujillo", llegadaDe: "Confecciones del Sur EIRL" };
+    expect(fraseStockCreado(s, false, undefined)).toBe(
+      "5 unidades recibidas de Confecciones del Sur EIRL (almacén de Tienda Trujillo) como una llegada de hoy: ya aparecen en Existencias, donde desde ahora se ajustan."
+    );
+    expect(fraseStockCreado(s, false, undefined)).not.toMatch(/stock inicial/);
+    expect(fraseStockCreado(s, true, "esperando")).not.toMatch(/Existencias/);
   });
 });

@@ -210,6 +210,13 @@ export const GUIA_INICIO: Guia = {
       texto: "«Crear producto» abre la ficha de una prenda nueva (también con la tecla N, desde cualquier parte del Inicio). Si la sede tiene piso, «Colgar en tandas» escanea con la cámara el lote que tienes en la mano y lo cuelga de una vez. Te llevan a otra pantalla: en la demo no los tocamos.",
     },
     {
+      id: "almacen-danada",
+      ancla: "inicio.almacen-danada",
+      opcional: true,
+      titulo: "Separé una dañada",
+      texto: "Si ves una prenda dañada en el piso, la separas aquí en el momento: eliges la prenda, la talla y qué tiene, y deja de venderse. En la demo no se toca.",
+    },
+    {
       id: "almacen-ultimos",
       ancla: "inicio.almacen-ultimos",
       opcional: true,

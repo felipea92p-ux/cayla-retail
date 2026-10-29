@@ -348,7 +348,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "producto",
       ancla: "editar.seccion-producto",
       titulo: "1 · Producto",
-      texto: "Nombre, categoría, marca, proveedor y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
+      texto: "Nombre, categoría, marca, proveedor, cómo llama el proveedor a la prenda (para volver a pedirla) y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
     },
     {
       id: "producto-abierta",
@@ -402,7 +402,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.precio-tienda",
       opcional: true,
       titulo: "Precio por tienda",
-      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan al momento. En una terminal no sale: su precio se escribe en la tabla de «Precios» y se guarda con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su precio, y una talla otro: se dice talla por talla, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan. En una terminal no sale: su precio va en la tabla de «Precios». En la demo no lo tocamos.",
     },
     {
       id: "corregir-talla",
@@ -1470,7 +1470,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-2",
       ancla: "nuevo.punto-2",
       titulo: "2 · Cómo es",
-      texto: "Cuando eliges la categoría, pasas aquí: el nombre, la marca y quién la trae, la descripción, el tejido, el patrón y la temporada. Si ya hay prendas parecidas, te las muestra para que no crees la misma dos veces.",
+      texto: "Al elegir la categoría pasas aquí. Primero miras si ya existe: si es una de esas en otro color, no la creas, la abres y le agregas el color. Luego el tejido, el patrón y un detalle, y al final el nombre: el tipo lo pone la categoría y tú le sumas una flor de la lista, como «Blusa Dalia».",
     },
     {
       id: "punto-3",
@@ -1482,7 +1482,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El precio de venta y el costo (con el costo sugerido de la categoría), las insignias y campañas, y cuántas unidades llegaron de cada variante. Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El precio y el costo, las insignias y campañas, y cuántas llegaron de cada variante: con la carga inicial cerrada entran a nombre del proveedor que elegiste, sin ir a «Llegó mercadería». Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",

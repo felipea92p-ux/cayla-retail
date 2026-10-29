@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Recibir ▸ Cerrar — costo y precio por color y talla</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rojo:#b8412d; --crema:#f5f0e8; --tinta:#1a1a18; --sand:#e8e0d0; --taupe:#805c4c; --papel:#fbf8f2; --hueso:#eae1d2;
+  --verde:#48603f; --ambar:#74501a; --borde-control:#a99683;
+  --font-sans:'DM Sans',system-ui,sans-serif; --font-serif:'EB Garamond',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#d9d2c4;font-family:var(--font-sans);color:var(--tinta);padding:32px;display:flex;flex-direction:column;gap:40px;align-items:center}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+svg.i.g{width:20px;height:20px}
+svg.i.s{width:13px;height:13px}
+
+/* ---------- lámina ---------- */
+.lamina{width:1600px;background:var(--crema);position:relative;overflow:hidden}
+.banda{display:flex;align-items:baseline;gap:14px;padding:16px 28px;border-bottom:1px solid var(--sand);background:var(--papel)}
+.banda b{font-family:var(--font-serif);font-size:26px;font-weight:500}
+.banda span{font-size:13.5px;color:var(--taupe)}
+.banda .tag{margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe)}
+.lienzo{padding:20px 28px 22px}
+.pie{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--sand);background:var(--papel)}
+.pie div{padding:14px 28px 16px;font-size:13px;line-height:1.45;color:var(--tinta)}
+.pie div+div{border-left:1px solid var(--sand)}
+.pie b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--verde);margin-bottom:3px}
+
+/* ---------- piezas del sistema ---------- */
+.label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.serif{font-family:var(--font-serif)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:500;background:color-mix(in srgb,var(--verde) 12%,transparent);color:#44583a}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.nada::before{display:none}
+.chip.neutro{background:var(--hueso);color:var(--tinta)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 12%,transparent);color:var(--ambar)}
+.btn{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--borde-control);background:transparent;color:var(--tinta);font:500 13.5px var(--font-sans)}
+.btn.p{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.btn.chico{height:32px;padding:0 12px;font-size:12.5px}
+.btn.dis{opacity:.45}
+.caja{display:flex;align-items:center;gap:10px;height:44px;border-radius:12px;background:var(--hueso);border:1px solid var(--sand);padding:0 14px;font-size:14px;color:var(--taupe)}
+.mosaico{width:40px;height:40px;border-radius:12px;background:var(--hueso);display:grid;place-items:center;color:var(--taupe);flex-shrink:0}
+.mosaico.m{width:34px;height:34px;border-radius:10px}
+.mosaico.g{width:46px;height:46px}
+.paso{display:inline-flex;align-items:center;height:44px;border:1px solid var(--borde-control);border-radius:12px;background:var(--papel)}
+.paso i{width:40px;height:100%;display:grid;place-items:center;color:var(--tinta);font-style:normal}
+.paso b{min-width:46px;text-align:center;font-size:17px;font-weight:600}
+.paso.s{height:36px}.paso.s i{width:34px}.paso.s b{min-width:38px;font-size:15px}
+.num{font-family:var(--font-serif);font-weight:500;line-height:.9}
+.barra{height:10px;border-radius:999px;background:var(--sand);overflow:hidden}
+.barra i{display:block;height:100%;background:var(--verde);border-radius:999px}
+.marca{width:22px;height:22px;border-radius:50%;background:var(--verde);color:var(--crema);display:grid;place-items:center;flex-shrink:0}
+.marca .i{width:13px;height:13px;stroke-width:3}
+.pildora{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:999px;border:1px solid var(--borde-control);font-size:12.5px;font-weight:500;background:var(--papel)}
+.pildora.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+/* ---------- el stepper ---------- */
+.stepper{display:flex;align-items:flex-start;justify-content:center;gap:0;margin:0 auto 18px;width:760px}
+.stepper .p{display:flex;flex-direction:column;align-items:center;gap:6px;width:200px}
+.stepper .p .c{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:14px;border:2px solid var(--sand);background:var(--papel);color:var(--taupe)}
+.stepper .p.on .c{background:var(--tinta);border-color:var(--tinta);color:var(--crema);box-shadow:0 0 0 4px color-mix(in srgb,var(--tinta) 12%,transparent)}
+.stepper .p b{font-size:14px;font-weight:600}
+.stepper .p small{font-size:11.5px;color:var(--taupe)}
+.stepper .r{flex:1;height:2px;background:var(--sand);margin-top:18px}
+
+/* ---------- el papel (foto de la factura dibujada) ---------- */
+.foto{border-radius:12px;background:#fff;border:1px solid var(--sand);padding:14px 16px;position:relative;overflow:hidden}
+.foto .l{height:7px;border-radius:3px;background:#e9e4da;margin:7px 0}
+.foto .l.t{height:10px;width:46%;background:#cfc7b8;margin-bottom:12px}
+.foto .fila{display:flex;gap:10px}
+.foto .fila .l{flex:1}
+.foto .sello{position:absolute;right:14px;bottom:12px;border:2px solid color-mix(in srgb,var(--rojo) 55%,transparent);color:color-mix(in srgb,var(--rojo) 70%,transparent);font-size:11px;font-weight:700;letter-spacing:.12em;padding:2px 8px;border-radius:4px;transform:rotate(-8deg)}
+.nota{font-size:12.5px;color:var(--taupe);line-height:1.45}
+.fila-prenda{display:flex;align-items:center;gap:12px;padding:10px 0}
+.fila-prenda+.fila-prenda{border-top:1px solid var(--sand)}
+.fila-prenda b{display:block;font-size:14px;font-weight:600}
+.fila-prenda small{display:block;font-size:12px;color:var(--taupe)}
+.fila-prenda .chip{margin-left:auto}
+
+/* ---------- identificar ---------- */
+.ident{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:14px;background:var(--papel);border:1px solid var(--sand)}
+.ident+.ident{margin-top:8px}
+.ident .t b{display:block;font-size:14.5px;font-weight:600}
+.ident .t small{display:block;font-size:12px;color:var(--taupe)}
+.ident .acc{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--taupe)}
+.x{color:var(--taupe);display:grid;place-items:center;width:32px;height:32px}
+.barra-fija{display:flex;align-items:center;gap:18px;padding:12px 18px;border-radius:16px;background:var(--papel);border:1px solid var(--sand)}
+
+.tabla{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.th,.tr{display:grid;grid-template-columns:minmax(0,1fr) 120px 150px 150px 44px;align-items:center;column-gap:16px;padding:0 20px}
+.th{height:40px;background:var(--hueso)}
+.th span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.tr{min-height:62px;border-top:1px solid var(--sand)}
+.tr.cat{background:color-mix(in srgb,var(--hueso) 55%,var(--papel))}
+.tr .nom{display:flex;align-items:center;gap:12px;min-width:0}
+.tr .nom b{display:block;font-size:14.5px;font-weight:600}
+.tr .nom small{display:block;font-size:12px;color:var(--taupe)}
+.tr .cifra{font-size:14px;font-variant-numeric:tabular-nums}
+.tr .cifra.t{color:var(--taupe)}
+.tr .cifra small{display:block;font-size:11.5px;color:var(--taupe)}
+.sangria{padding-left:52px}
+.sangria2{padding-left:84px}
+.chev{width:32px;height:32px;display:grid;place-items:center;color:var(--taupe);border-radius:50%}
+.chev.on{color:var(--tinta);background:var(--hueso)}
+.panel{border-top:1px solid var(--sand);background:color-mix(in srgb,var(--tinta) 2%,var(--papel));padding:18px 24px 22px 104px;position:relative}
+.nota-panel{font-size:12.5px;color:var(--taupe);line-height:1.45}
+.seg{display:inline-flex;background:var(--hueso);border:1px solid var(--sand);border-radius:999px;padding:3px}
+.seg b{display:inline-flex;align-items:center;height:30px;padding:0 16px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--taupe)}
+.seg b.on{background:var(--tinta);color:var(--crema)}
+.punto{width:11px;height:11px;border-radius:50%;display:inline-block;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.mat{display:grid;gap:8px;align-items:center}
+.mat .cab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe);text-align:center}
+.mat .cab small{display:block;text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;margin-top:2px;color:var(--taupe)}
+.mat .fil{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600}
+.mat .fil small{display:block;font-weight:500;font-size:11px;color:var(--taupe)}
+.in{display:flex;align-items:center;justify-content:space-between;gap:6px;height:38px;border:1px solid var(--borde-control);border-radius:10px;background:var(--hueso);padding:0 11px;font-size:14px;font-variant-numeric:tabular-nums;position:relative}
+.in .pre{font-size:11.5px;color:var(--taupe)}
+.in.cambio{background:color-mix(in srgb,var(--ambar) 11%,var(--papel));border-color:var(--ambar)}
+.in.foco{background:var(--papel);border-color:var(--tinta);box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 12%,transparent)}
+.in.chico{height:30px;border-radius:8px;font-size:13px;padding:0 9px}
+.in.vacio{opacity:.5}
+.antes{font-size:11px;color:var(--taupe);text-decoration:line-through;position:absolute;right:11px;bottom:-16px;background:transparent}
+.pop{position:absolute;z-index:5;width:430px;background:var(--papel);border:1px solid var(--borde-control);border-radius:16px;padding:16px 18px 14px;box-shadow:0 14px 36px color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pop h4{font:500 21px var(--font-serif);margin-bottom:10px}
+.op{display:flex;align-items:flex-start;gap:11px;padding:9px 10px;border-radius:12px;font-size:13.5px}
+.op+.op{margin-top:2px}
+.op.on{background:var(--hueso)}
+.op .r{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--borde-control);flex-shrink:0;margin-top:1px;display:grid;place-items:center;background:var(--papel)}
+.op.on .r{border-color:var(--tinta)}
+.op.on .r::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--tinta)}
+.op b{display:block;font-weight:600}
+.op small{display:block;font-size:12px;color:var(--taupe);margin-top:1px}
+.avisa{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--ambar) 11%,var(--papel));color:#5c3f12;font-size:12.5px;line-height:1.4;margin-top:10px}
+.avisa .i{margin-top:1px;color:var(--ambar)}
+.cel2{display:flex;flex-direction:column;gap:5px}
+.lnk{font-size:11.5px;color:var(--taupe);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--taupe) 45%,transparent);text-underline-offset:3px}
+.barra-alcance{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 14px;border:1px solid var(--tinta);border-radius:14px;background:var(--papel);flex-wrap:wrap}
+.txtcel{display:flex;flex-direction:column;align-items:center;justify-content:center;height:38px;border-radius:10px;background:var(--papel);border:1px solid var(--sand);font-size:13px;font-variant-numeric:tabular-nums;line-height:1.15}
+.txtcel small{font-size:10.5px;color:var(--taupe)}
+.txtcel.exc{background:color-mix(in srgb,var(--ambar) 11%,var(--papel));border-color:var(--ambar)}
+.txtcel.edit{background:var(--papel);border:1.5px solid var(--tinta);box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 12%,transparent)}
+.pie strong{font-weight:700}
+.in.afecta{background:var(--papel);border:1.5px solid var(--tinta)}
+.cuenta-plegada{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--taupe)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="chev-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="arr-r" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></symbol>
+    <symbol id="arr-l" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></symbol>
+    <symbol id="shirt" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></symbol>
+    <symbol id="aretes" viewBox="0 0 24 24"><circle cx="8" cy="16.5" r="3"/><circle cx="16" cy="16.5" r="3"/><path d="M8 3v10.5M16 3v10.5"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="nota" viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M12 8v6M9 11h6"/></symbol>
+    <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="tallas" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+    <symbol id="papel" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+    <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol><symbol id="rows" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"/></symbol><symbol id="alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol></defs>
+</svg>
+<section class="lamina" id="a">
+  <div class="banda"><b>Opción A · Un interruptor</b><span>Una sola caja por casilla; un interruptor cambia entre costo y precio de venta</span><span class="tag">Cerrar · combinaciones</span></div>
+  <div class="lienzo">
+    <div class="tabla">
+      <div class="th"><span>Categoría y prendas</span><span>Unidades</span><span>Costo</span><span>Precio de venta</span><span></span></div>
+      <div class="tr cat"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestidos</b><small>CAYLA · 3 prendas identificadas</small></div></div><div class="cifra">12<small>dijeron 12</small></div><div class="cifra t">según cada prenda</div><div class="cifra t">según cada prenda</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Sofía</b><small>6 unidades · 2 colores × 3 tallas</small></div></div><div class="cifra">6</div><div class="cifra">S/ 45.00</div><div class="cifra">S/ 99.00</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Antonella</b><small>4 unidades · 3 colores × 4 tallas</small></div></div><div class="cifra">4</div><div class="cifra">S/ 45.00 – 52.00</div><div class="cifra">S/ 99.00 – 105.00</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="panel">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+        <span class="label">Por color y talla</span>
+        <div class="seg"><b>Costo</b><b class="on">Precio de venta</b></div>
+        <span class="nota-panel">Lo que escribas vale solo para esa casilla; al escribir te preguntamos si quieres más.</span>
+        <span class="btn chico" style="margin-left:auto">Mismo precio para las 12</span>
+      </div>
+      <div class="mat" style="grid-template-columns:150px repeat(4,150px)"><div></div><div class="cab">S</div><div class="cab">M</div><div class="cab">L</div><div class="cab">XL</div><div class="fil"><span class="punto" style="background:#1a1a18" data-color-dato></span><div>Negro<small>3 u.</small></div></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in foco"><span class="pre" style="text-decoration:line-through">99.00</span><span><b>109.00</b></span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="fil"><span class="punto" style="background:#26304f" data-color-dato></span><div>Azul marino<small>1 u.</small></div></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="fil"><span class="punto" style="background:#d9c7a8" data-color-dato></span><div>Beige<small>1 u.</small></div></div><div class="in cambio"><span class="pre">S/</span><span>105.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div></div>
+      <div class="pop" style="left:940px;top:70px;width:440px">
+      <h4>¿Dónde aplicas S/ 109.00?</h4>
+      <div class="op on"><span class="r"></span><div><b>Solo esta combinación</b><small>Negro · talla M</small></div></div>
+      <div class="op"><span class="r"></span><div><b>Este color en todas sus tallas</b><small>Negro · S, M, L, XL (4 combinaciones)</small></div></div>
+      <div class="op"><span class="r"></span><div><b>Esta talla en todos sus colores</b><small>Talla M · Negro, Azul marino, Beige (3 combinaciones)</small></div></div>
+      <div class="op"><span class="r"></span><div><b>Todas las combinaciones</b><small>Las 12 de este vestido</small></div></div>
+      <div class="avisa"><svg class="i "><use href="#alert"/></svg><div><b>Cambia 1 precio:</b> Negro · M pasa de S/ 99.00 a S/ 109.00. Los demás quedan como están.</div></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px"><span class="btn chico">Cancelar</span><span class="btn chico p">Aplicar</span></div>
+    </div>
+      <div style="height:260px"></div>
+    </div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Lucía</b><small>2 unidades</small></div></div><div class="cifra">2</div><div class="cifra">—</div><div class="cifra">—</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria2" style="min-height:46px;margin-left:0"><div class="nota-panel" style="grid-column:1 / span 5">Aún no se realizó el conteo por color y talla de esta prenda. Cuando se haga, aquí podrás ponerle costo y precio a cada combinación.</div></div>
+    </div>
+  </div>
+  <div class="pie"><div><b>Lo que ganas</b>Cada casilla tiene <strong>una sola caja</strong>: se lee igual que cuando se contó y cabe en pantallas angostas. Un toque cambia entre costo y precio.</div><div><b>Lo que pagas</b>Para ver costo y precio de una combinación hay que cambiar de pestaña; no se comparan las dos cifras a la vez.</div><div><b>Cuándo conviene</b>Prendas con muchas tallas o cuando casi siempre se corrige <strong>una cosa a la vez</strong> (el costo, o el precio).</div></div>
+</section>
+<section class="lamina" id="b">
+  <div class="banda"><b>Opción B · Las dos cifras a la vista</b><span>Cada casilla lleva costo y precio juntos; el alcance se elige en una barra al pie</span><span class="tag">Cerrar · combinaciones</span></div>
+  <div class="lienzo">
+    <div class="tabla">
+      <div class="th"><span>Categoría y prendas</span><span>Unidades</span><span>Costo</span><span>Precio de venta</span><span></span></div>
+      <div class="tr cat"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestidos</b><small>CAYLA · 3 prendas identificadas</small></div></div><div class="cifra">12<small>dijeron 12</small></div><div class="cifra t">según cada prenda</div><div class="cifra t">según cada prenda</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Sofía</b><small>6 unidades · 2 colores × 3 tallas</small></div></div><div class="cifra">6</div><div class="cifra">S/ 45.00</div><div class="cifra">S/ 99.00</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Antonella</b><small>4 unidades · 3 colores × 4 tallas</small></div></div><div class="cifra">4</div><div class="cifra">S/ 45.00 – 52.00</div><div class="cifra">S/ 99.00 – 105.00</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="panel">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+        <span class="label">Por color y talla</span>
+        <span class="nota-panel">Cada casilla muestra el costo y el precio de venta; toca una para cambiarla.</span>
+        <span class="btn chico" style="margin-left:auto">Mismo costo y precio para las 12</span>
+      </div>
+      <div class="mat" style="grid-template-columns:150px repeat(4,148px)"><div></div><div class="cab">S<small class="lnk">igualar columna</small></div><div class="cab">M<small class="lnk">igualar columna</small></div><div class="cab">L<small class="lnk">igualar columna</small></div><div class="cab">XL<small class="lnk">igualar columna</small></div><div class="fil"><span class="punto" style="background:#1a1a18" data-color-dato></span><div>Negro<small class="lnk">igualar fila</small></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="cel2"><div class="in chico foco"><span class="pre">Costo</span><span>47.00</span></div><div class="in chico foco"><span class="pre">Venta</span><span>109.00</span></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="cel2"><div class="in chico cambio"><span class="pre">Costo</span><span>52.00</span></div><div class="in chico cambio"><span class="pre">Venta</span><span>99.00</span></div></div><div class="fil"><span class="punto" style="background:#26304f" data-color-dato></span><div>Azul marino<small class="lnk">igualar fila</small></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="fil"><span class="punto" style="background:#d9c7a8" data-color-dato></span><div>Beige<small class="lnk">igualar fila</small></div></div><div class="cel2"><div class="in chico cambio"><span class="pre">Costo</span><span>45.00</span></div><div class="in chico cambio"><span class="pre">Venta</span><span>105.00</span></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div><div class="cel2"><div class="in chico "><span class="pre">Costo</span><span>45.00</span></div><div class="in chico "><span class="pre">Venta</span><span>99.00</span></div></div></div>
+      <div class="barra-alcance">
+      <div style="font-size:13px"><b>Negro · M</b> &nbsp;costo 45.00 → <b>47.00</b> &nbsp;·&nbsp; venta 99.00 → <b>109.00</b></div>
+      <span class="label" style="margin-left:8px">Aplicar a</span>
+      <span class="pildora on">Solo esta</span><span class="pildora">Todo Negro (4)</span><span class="pildora">Toda talla M (3)</span><span class="pildora">Las 12</span>
+      <span class="btn chico p" style="margin-left:auto">Aplicar</span>
+      <div class="avisa" style="width:100%;margin-top:0"><svg class="i "><use href="#alert"/></svg><div><b>Cambia 1 combinación:</b> Negro · M. Las otras 11 no se tocan.</div></div>
+    </div>
+    </div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Lucía</b><small>2 unidades</small></div></div><div class="cifra">2</div><div class="cifra">—</div><div class="cifra">—</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria2" style="min-height:46px;margin-left:0"><div class="nota-panel" style="grid-column:1 / span 5">Aún no se realizó el conteo por color y talla de esta prenda. Cuando se haga, aquí podrás ponerle costo y precio a cada combinación.</div></div>
+    </div>
+  </div>
+  <div class="pie"><div><b>Lo que ganas</b>Costo y precio <strong>a la vista a la vez</strong>: ves de un golpe qué combinación es distinta. Las filas y columnas se igualan con un toque.</div><div><b>Lo que pagas</b>Dobla las cajas en pantalla (24 en una prenda de 12 combinaciones). En el celular la matriz se desliza hacia un lado.</div><div><b>Cuándo conviene</b>Cuando quien cierra <strong>compara</strong> costo y precio entre tallas y colores (talla extra, color con otro proveedor).</div></div>
+</section>
+<section class="lamina" id="d1">
+  <div class="banda"><b>Opción D · A + B · Escribiendo en una casilla</b><span>Una caja por casilla con el interruptor de A y el alcance en la barra de B</span><span class="tag">Cerrar · combinaciones</span></div>
+  <div class="lienzo">
+    <div class="tabla">
+      <div class="th"><span>Categoría y prendas</span><span>Unidades</span><span>Costo</span><span>Precio de venta</span><span></span></div>
+      <div class="tr cat"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestidos</b><small>CAYLA · 3 prendas identificadas</small></div></div><div class="cifra">12<small>dijeron 12</small></div><div class="cifra t">según cada prenda</div><div class="cifra t">según cada prenda</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Sofía</b><small>6 unidades · 2 colores × 3 tallas</small></div></div><div class="cifra">6</div><div class="cifra">S/ 45.00</div><div class="cifra">S/ 99.00</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Antonella</b><small>4 unidades · 3 colores × 4 tallas</small></div></div><div class="cifra">4</div><div class="cifra">S/ 45.00 – 52.00</div><div class="cifra">S/ 99.00 – 105.00</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="panel">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+        <span class="label">Por color y talla</span>
+        <div class="seg"><b>Costo</b><b class="on">Precio de venta</b></div>
+        <span class="nota-panel">Las casillas en amarillo tienen un precio distinto al de la prenda.</span>
+        <span class="btn chico" style="margin-left:auto">Mismo precio para las 12</span>
+      </div>
+      <div class="mat" style="grid-template-columns:150px repeat(4,150px)"><div></div><div class="cab">S</div><div class="cab">M</div><div class="cab">L</div><div class="cab">XL</div><div class="fil"><span class="punto" style="background:#1a1a18" data-color-dato></span><div>Negro<small>3 u.</small></div></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in foco"><span class="pre" style="text-decoration:line-through">99.00</span><span><b>109.00</b></span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in cambio"><span class="pre">S/</span><span>105.00</span></div><div class="fil"><span class="punto" style="background:#26304f" data-color-dato></span><div>Azul marino<small>1 u.</small></div></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="fil"><span class="punto" style="background:#d9c7a8" data-color-dato></span><div>Beige<small>1 u.</small></div></div><div class="in cambio"><span class="pre">S/</span><span>105.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div></div>
+      <div class="barra-alcance" style="margin-top:22px">
+      <div style="font-size:13px"><b>Negro · M</b> &nbsp;precio de venta 99.00 → <b>109.00</b></div>
+      <span class="label" style="margin-left:8px">Aplicar a</span><span class="pildora on">Solo esta</span><span class="pildora">Todo Negro (4)</span><span class="pildora">Toda talla M (3)</span><span class="pildora">Las 12</span>
+      <span class="btn chico" style="margin-left:auto">Cancelar</span><span class="btn chico p">Aplicar</span>
+      <div class="avisa" style="width:100%;margin-top:0"><svg class="i "><use href="#alert"/></svg><div><b>Cambia 1 precio:</b> Negro · M pasa de S/ 99.00 a S/ 109.00. Las otras 11 combinaciones no se tocan.</div></div>
+    </div>
+    </div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Lucía</b><small>2 unidades</small></div></div><div class="cifra">2</div><div class="cifra">—</div><div class="cifra">—</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria2" style="min-height:46px;margin-left:0"><div class="nota-panel" style="grid-column:1 / span 5">Aún no se realizó el conteo por color y talla de esta prenda. Cuando se haga, aquí podrás ponerle costo y precio a cada combinación.</div></div>
+    </div>
+  </div>
+  <div class="pie"><div><b>Lo que ganas</b>Una <strong>sola caja por casilla</strong> y un interruptor, como en A; el alcance <strong>no abre ningún menú</strong>: es una barra fija bajo la matriz, como en B.</div><div><b>Lo que pagas</b>La barra ocupa una línea más cuando hay un cambio sin aplicar. Para ver el costo hay que pasar el interruptor a «Costo».</div><div><b>Cuándo conviene</b>«Solo esta» viene marcada por defecto: quien solo corrige una casilla escribe y aprieta Aplicar, sin elegir nada.</div></div>
+</section>
+<section class="lamina" id="d2">
+  <div class="banda"><b>Opción D · A + B · Eligiendo un alcance más amplio</b><span>Las casillas que cambiarán se marcan antes de aplicar</span><span class="tag">Cerrar · combinaciones</span></div>
+  <div class="lienzo">
+    <div class="tabla">
+      <div class="th"><span>Categoría y prendas</span><span>Unidades</span><span>Costo</span><span>Precio de venta</span><span></span></div>
+      <div class="tr cat"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestidos</b><small>CAYLA · 3 prendas identificadas</small></div></div><div class="cifra">12<small>dijeron 12</small></div><div class="cifra t">según cada prenda</div><div class="cifra t">según cada prenda</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Sofía</b><small>6 unidades · 2 colores × 3 tallas</small></div></div><div class="cifra">6</div><div class="cifra">S/ 45.00</div><div class="cifra">S/ 99.00</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Antonella</b><small>4 unidades · 3 colores × 4 tallas</small></div></div><div class="cifra">4</div><div class="cifra">S/ 45.00 – 52.00</div><div class="cifra">S/ 99.00 – 105.00</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="panel">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+        <span class="label">Por color y talla</span>
+        <div class="seg"><b>Costo</b><b class="on">Precio de venta</b></div>
+        <span class="nota-panel">Las casillas en amarillo tienen un precio distinto al de la prenda.</span>
+        <span class="btn chico" style="margin-left:auto">Mismo precio para las 12</span>
+      </div>
+      <div class="mat" style="grid-template-columns:150px repeat(4,150px)"><div></div><div class="cab">S</div><div class="cab">M</div><div class="cab">L</div><div class="cab">XL</div><div class="fil"><span class="punto" style="background:#1a1a18" data-color-dato></span><div>Negro<small>3 u.</small></div></div><div class="in afecta"><span class="pre" style="text-decoration:line-through">99.00</span><span><b>109.00</b></span></div><div class="in foco"><span class="pre" style="text-decoration:line-through">99.00</span><span><b>109.00</b></span></div><div class="in afecta"><span class="pre" style="text-decoration:line-through">99.00</span><span><b>109.00</b></span></div><div class="in afecta"><span class="pre" style="text-decoration:line-through">105.00</span><span><b>109.00</b></span></div><div class="fil"><span class="punto" style="background:#26304f" data-color-dato></span><div>Azul marino<small>1 u.</small></div></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="fil"><span class="punto" style="background:#d9c7a8" data-color-dato></span><div>Beige<small>1 u.</small></div></div><div class="in cambio"><span class="pre">S/</span><span>105.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div><div class="in"><span class="pre">S/</span><span>99.00</span></div></div>
+      <div class="barra-alcance" style="margin-top:22px">
+      <div style="font-size:13px"><b>Negro · M</b> &nbsp;precio de venta 99.00 → <b>109.00</b></div>
+      <span class="label" style="margin-left:8px">Aplicar a</span><span class="pildora">Solo esta</span><span class="pildora on">Todo Negro (4)</span><span class="pildora">Toda talla M (3)</span><span class="pildora">Las 12</span>
+      <span class="btn chico" style="margin-left:auto">Cancelar</span><span class="btn chico p">Aplicar</span>
+      <div class="avisa" style="width:100%;margin-top:0"><svg class="i "><use href="#alert"/></svg><div><b>Cambian 4 precios de Negro:</b> S, M y L pasan de S/ 99.00 a S/ 109.00, y XL pasa de S/ 105.00 a S/ 109.00 (tenía un precio propio). Las otras 8 no se tocan.</div></div>
+    </div>
+    </div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Lucía</b><small>2 unidades</small></div></div><div class="cifra">2</div><div class="cifra">—</div><div class="cifra">—</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria2" style="min-height:46px;margin-left:0"><div class="nota-panel" style="grid-column:1 / span 5">Aún no se realizó el conteo por color y talla de esta prenda. Cuando se haga, aquí podrás ponerle costo y precio a cada combinación.</div></div>
+    </div>
+  </div>
+  <div class="pie"><div><b>Lo que ganas</b>Al elegir un alcance más amplio, <strong>las casillas que cambiarán se marcan en la matriz</strong> con el precio de antes tachado y el nuevo: se ve qué se toca antes de aplicar.</div><div><b>Lo que pagas</b>Si una casilla tenía un precio propio (Negro · XL, S/ 105.00) el aviso la nombra aparte para que no se pise sin querer.</div><div><b>Cuándo conviene</b>El mismo gesto sirve para el costo: al pasar el interruptor a «Costo», la barra dice «costo» y todo funciona igual.</div></div>
+</section>
+<section class="lamina" id="c">
+  <div class="banda"><b>Opción C · Cifra base y excepciones</b><span>Una cifra para toda la prenda y solo se abren las combinaciones que se salen</span><span class="tag">Cerrar · combinaciones</span></div>
+  <div class="lienzo">
+    <div class="tabla">
+      <div class="th"><span>Categoría y prendas</span><span>Unidades</span><span>Costo</span><span>Precio de venta</span><span></span></div>
+      <div class="tr cat"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestidos</b><small>CAYLA · 3 prendas identificadas</small></div></div><div class="cifra">12<small>dijeron 12</small></div><div class="cifra t">según cada prenda</div><div class="cifra t">según cada prenda</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Sofía</b><small>6 unidades · 2 colores × 3 tallas</small></div></div><div class="cifra">6</div><div class="cifra">S/ 45.00</div><div class="cifra">S/ 99.00</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Antonella</b><small>4 unidades · 3 colores × 4 tallas</small></div></div><div class="cifra">4</div><div class="cifra">S/ 45.00 – 52.00</div><div class="cifra">S/ 99.00 – 105.00</div><div class="chev on"><svg class="i "><use href="#chev-up"/></svg></div></div>
+      <div class="panel">
+      <div class="card" style="display:flex;align-items:center;gap:18px;padding:14px 18px;margin-bottom:18px">
+        <div><div class="label">Cifra base de la prenda</div><div class="nota-panel" style="margin-top:3px">Vale para toda combinación que no tenga cifra propia</div></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-left:12px"><span class="label">Costo</span><div class="in" style="width:140px"><span class="pre">S/</span><span>45.00</span></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="label">Venta</span><div class="in" style="width:140px"><span class="pre">S/</span><span>99.00</span></div></div>
+        <span class="chip ambar nada" style="margin-left:auto">2 de 12 con cifra propia</span>
+        <span class="btn chico"><svg class="i s"><use href="#rows"/></svg>Ver por color y talla</span>
+      </div>
+      <div class="cuenta-plegada" style="margin-bottom:12px"><span class="label">Combinaciones</span><span>Toca una para darle su propio costo o precio. Las amarillas ya tienen cifra propia.</span><span class="lnk" style="margin-left:auto">Quitar las cifras propias</span></div>
+      <div class="mat" style="grid-template-columns:150px repeat(4,150px)"><div></div><div class="cab">S</div><div class="cab">M</div><div class="cab">L</div><div class="cab">XL</div><div class="fil"><span class="punto" style="background:#1a1a18" data-color-dato></span><div>Negro</div></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="txtcel exc"><span>52.00 · 99.00</span><small>cifra propia</small></div><div class="fil"><span class="punto" style="background:#26304f" data-color-dato></span><div>Azul marino</div></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="txtcel edit" style="position:relative"><span>45.00 · 99.00</span><small>editando</small></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="fil"><span class="punto" style="background:#d9c7a8" data-color-dato></span><div>Beige</div></div><div class="txtcel exc"><span>45.00 · 105.00</span><small>cifra propia</small></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div><div class="txtcel "><span>45.00 · 99.00</span><small>igual a la base</small></div></div>
+      <div class="pop" style="left:940px;top:120px;width:440px">
+      <h4>Azul marino · L</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div class="label" style="margin-bottom:5px">Costo</div><div class="in foco"><span class="pre">S/</span><span>48.00</span></div></div>
+        <div><div class="label" style="margin-bottom:5px">Precio de venta</div><div class="in"><span class="pre">S/</span><span>99.00</span></div></div>
+      </div>
+      <div class="label" style="margin:12px 0 6px">Aplicar a</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pildora on">Solo esta</span><span class="pildora">Todo Azul marino</span><span class="pildora">Toda talla L</span><span class="pildora">Las 12</span></div>
+      <div class="avisa"><svg class="i "><use href="#alert"/></svg><div><b>Cambia 1 combinación:</b> Azul marino · L pasa a costo S/ 48.00 y queda con cifra propia.</div></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px"><span class="btn chico">Cancelar</span><span class="btn chico p">Aplicar</span></div>
+    </div>
+      <div class="avisa" style="margin-top:16px;max-width:640px"><svg class="i "><use href="#alert"/></svg><div>Si cambias la <b>cifra base</b>, las 10 combinaciones que no tienen cifra propia cambian; las 2 amarillas se quedan como están.</div></div>
+      <div style="height:150px"></div>
+    </div>
+      <div class="tr sangria"><div class="nom"><span class="mosaico m"><svg class="i "><use href="#shirt"/></svg></span><div><b>Vestido Lucía</b><small>2 unidades</small></div></div><div class="cifra">2</div><div class="cifra">—</div><div class="cifra">—</div><div class="chev"><svg class="i "><use href="#chev"/></svg></div></div>
+      <div class="tr sangria2" style="min-height:46px;margin-left:0"><div class="nota-panel" style="grid-column:1 / span 5">Aún no se realizó el conteo por color y talla de esta prenda. Cuando se haga, aquí podrás ponerle costo y precio a cada combinación.</div></div>
+    </div>
+  </div>
+  <div class="pie"><div><b>Lo que ganas</b>Lo normal (todo igual) ocupa <strong>una sola línea</strong> con 2 cajas, sin importar cuántas combinaciones haya. Solo se abre la matriz para las excepciones.</div><div><b>Lo que pagas</b>Hay que entender «cifra base» y «cifra propia»: una idea más para quien cierra. La matriz queda de solo lectura hasta tocar una casilla.</div><div><b>Cuándo conviene</b>Cuando <strong>casi todas las combinaciones cuestan igual</strong> (lo más común) y solo una o dos se salen.</div></div>
+</section>
+</body>
+</html>

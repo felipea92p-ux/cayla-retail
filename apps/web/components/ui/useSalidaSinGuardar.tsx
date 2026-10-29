@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
-import { destinoQueSaleDeLaPantalla } from "@/lib/salida-sin-guardar";
+import { destinoQueSaleDeLaPantalla, registrarGuardia } from "@/lib/salida-sin-guardar";
 import { MARCA_HOJA } from "@/lib/hojas-atras";
 import { cuandoSinHojas, hojasEnElHistorial, useHojasEnElHistorial } from "@/components/ui/useAtrasCierraLaHoja";
 
@@ -122,6 +122,9 @@ export function useSalidaSinGuardar(
     },
     [debePreguntar]
   );
+
+  // 6. Lo que rehace la pantalla sin navegar (el selector de sede) pregunta a esta guardia antes (`antesDeRehacerLaPantalla`).
+  useEffect(() => registrarGuardia({ debePreguntar, pedirAccion }), [debePreguntar, pedirAccion]);
 
   // 5. Cerrar o recargar la pestaña.
   useEffect(() => {

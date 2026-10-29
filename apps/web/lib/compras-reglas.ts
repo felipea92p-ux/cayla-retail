@@ -208,6 +208,8 @@ export type RecepcionReciente = {
   /** «ENV-000254», o `null` sin envío. */
   envioNumero: string | null;
   fecha: string;
+  /** Cuándo la sede abrió el envío para recibirlo (`despachos.abierto_en`); null si el lote no viene de un envío. */
+  llegoEn?: string | null;
   ubicacion: string;
   /** De quién llegó: la puerta «Llegó mercadería» avisa si ese proveedor ya entró hoy en la sede (ADR-0330). */
   proveedorId: string | null;

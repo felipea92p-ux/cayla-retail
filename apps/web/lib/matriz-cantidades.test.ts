@@ -55,18 +55,18 @@ describe("el modo de siempre no cambia (golden)", () => {
     await expect(salida).toMatchFileSnapshot("./matriz-cantidades.default.golden.html");
   });
 
-  it("2 · la carga inicial ya se cerró: arranca en «Precios», con un precio distinto (ámbar) y uno inválido (aria-invalid)", async () => {
+  it("2 · la carga inicial ya se cerró: «Cuántas llegaron» (ADR-0328 act. 2026-10-28), con cantidades y precios distintos guardados", async () => {
     const celdas = construirCeldas(["t-s", "t-m"], ["NEG", "CRU"]);
     const salida = html({
       celdas,
       tallas: TALLAS.slice(0, 2),
       colores: COLORES.slice(0, 2),
       excluidas: new Set<string>(),
-      cantidades: {},
+      cantidades: { [claveCelda("t-s", "NEG")]: "2" },
       precios: { [claveCelda("t-s", "NEG")]: "95", [claveCelda("t-m", "NEG")]: "0" },
-      cantidadesCerradas: "La carga inicial ya se cerró.",
+      llegada: true,
     });
-    await expect(salida).toMatchFileSnapshot("./matriz-cantidades.default.cerradas.golden.html");
+    await expect(salida).toMatchFileSnapshot("./matriz-cantidades.default.llegada.golden.html");
   });
 
   it("3 · una talla y un color: sin totales que repitan la celda", async () => {

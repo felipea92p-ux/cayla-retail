@@ -139,3 +139,9 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».
+
+## Actualización 2026-10-29 — el «Observatorio» (ADR-0568)
+
+La pantalla se rehízo sobre la misma medición: períodos que se comparan como se piensa, cifras que eligen el gráfico, 100 puntos, mapa de calor,
+el Perú pintado por departamento, la tabla de prendas (la vitrina de baldosas se fue), tallas que faltan, «Necesita tu atención» y el calendario.
+`resumen_trafico_web` pasó a 7 parámetros. Las decisiones, lo que se apartó a propósito y el orden de pegado, en ADR-0568.

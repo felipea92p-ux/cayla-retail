@@ -8,10 +8,13 @@
 //   NO HACE: no pinta ni toca la base. El tejido y el color son SUGERIDOS en una tela (de ellos vive la sugerencia de «Nueva orden») y nunca un candado; un avío no pide tejido.
 
 import type { CampoDeGuia } from "./guia-campos";
-import type { TipoInsumo } from "./insumos-reglas";
+import { CANTIDAD_ILEGIBLE, leerCantidad, unidadesPermitidas, type TipoInsumo, type UnidadInsumo } from "./insumos-reglas";
+import { COSTO_UNITARIO_ILEGIBLE, numeroDeCostoUnitario } from "./monto-plata-reglas";
 
 export type EntradaInsumoNuevo = {
   tipo: TipoInsumo;
+  /** La unidad elegida; si falta no se revisa (la hoja siempre la trae). */
+  unidad?: UnidadInsumo;
   codigo: string;
   nombre: string;
   /** En porcentaje, como se escribe («5»). Vacío = 0. */
@@ -25,14 +28,17 @@ export type EntradaInsumoNuevo = {
 const MENSAJE_FALTA = "Ponle un código y un nombre al insumo.";
 const MENSAJE_MERMA = "La merma va de 0 % a menos de 50 %.";
 const MENSAJE_MINIMO = "El mínimo es un número desde 0 (o déjalo vacío si no hay).";
+const MENSAJE_UNIDAD = "Una tela se lleva siempre en metros.";
 
-/** Lo que la hoja rechaza de lo escrito, en el orden en que lo dice. Vacío = se puede guardar. */
-export function problemasDeInsumoNuevo(e: Pick<EntradaInsumoNuevo, "codigo" | "nombre" | "merma" | "minimo">): string[] {
+/** Lo que la hoja rechaza de lo escrito, en el orden en que lo dice. Vacío = se puede guardar. `tipo` y `unidad` son opcionales: el combo de la hoja ya no ofrece lo que la base rechazaría. */
+export function problemasDeInsumoNuevo(e: Pick<EntradaInsumoNuevo, "codigo" | "nombre" | "merma" | "minimo"> & Partial<Pick<EntradaInsumoNuevo, "tipo" | "unidad">>): string[] {
   const problemas: string[] = [];
   if (!e.codigo.trim() || !e.nombre.trim()) problemas.push(MENSAJE_FALTA);
-  const mermaPct = e.merma.trim() === "" ? 0 : Number(e.merma) / 100;
-  if (!(mermaPct >= 0 && mermaPct < 0.5)) problemas.push(MENSAJE_MERMA);
-  if (e.minimo.trim() !== "" && !(Number(e.minimo) >= 0)) problemas.push(MENSAJE_MINIMO);
+  // Se lee con `leerCantidad` (acepta «2,5»); lo que no se entiende es `null` y se rechaza, nunca se lee como 0.
+  const mermaPct = e.merma.trim() === "" ? 0 : leerCantidad(e.merma);
+  if (mermaPct === null || !(mermaPct >= 0 && mermaPct / 100 < 0.5)) problemas.push(MENSAJE_MERMA);
+  if (e.minimo.trim() !== "" && leerCantidad(e.minimo) === null) problemas.push(MENSAJE_MINIMO);
+  if (e.tipo && e.unidad && !unidadesPermitidas(e.tipo).includes(e.unidad)) problemas.push(MENSAJE_UNIDAD);
   return problemas;
 }
 
@@ -68,16 +74,35 @@ export function camposDeFichaDeLaTela(e: EntradaFichaDeLaTela): CampoDeGuia[] {
 
 export type EntradaIngresoDeInsumo = { tieneInsumo: boolean; cantidad: string; costo: string; responsableListo: boolean };
 
-/** «Ingresar insumo» abre un lote: qué llegó, cuánta cantidad (mayor que cero) y a qué costo (desde cero; se escribe, aunque sea 0). La hoja no guarda con menos. */
+/** «Ingresar insumo» abre un lote: qué llegó, cuánta cantidad (mayor que cero) y a qué costo (desde cero; se escribe, aunque sea 0). La hoja no guarda con menos.
+ *  La cantidad se lee con `leerCantidad` y el costo por unidad con `numeroDeCostoUnitario` (hasta 4 decimales: un botón a S/ 0.045): ambos aceptan la coma decimal, y lo que NO se entiende no es 0 sino «falta»
+ *  (antes un costo de «2,5» se leía como 0 y el lote se abría gratis). */
 export function ingresoListo(e: Pick<EntradaIngresoDeInsumo, "tieneInsumo" | "cantidad" | "costo">): boolean {
-  return e.tieneInsumo && (Number(e.cantidad) || 0) > 0 && e.costo.trim() !== "" && (Number(e.costo) || 0) >= 0;
+  const cantidad = leerCantidad(e.cantidad);
+  const costo = numeroDeCostoUnitario(e.costo);
+  return e.tieneInsumo && cantidad !== null && cantidad > 0 && e.costo.trim() !== "" && Number.isFinite(costo) && costo >= 0;
 }
 
 export function camposDeIngresoDeInsumo(e: EntradaIngresoDeInsumo): CampoDeGuia[] {
+  const cantidad = leerCantidad(e.cantidad);
+  const costo = numeroDeCostoUnitario(e.costo);
+  const costoLegible = Number.isFinite(costo);
   return [
     { id: "insumo", nombre: "Qué llegó", requerido: true, hecho: e.tieneInsumo, pendiente: "Elige qué insumo llegó." },
-    { id: "cantidad", nombre: "Cantidad", requerido: true, hecho: (Number(e.cantidad) || 0) > 0, pendiente: "Escribe cuánto llegó (más de cero)." },
-    { id: "costo", nombre: "Costo", requerido: true, hecho: e.costo.trim() !== "" && (Number(e.costo) || 0) >= 0, pendiente: "Escribe el costo por unidad, sin IGV (0 si fue un regalo)." },
+    {
+      id: "cantidad",
+      nombre: "Cantidad",
+      requerido: true,
+      hecho: cantidad !== null && cantidad > 0,
+      pendiente: e.cantidad.trim() !== "" && cantidad === null ? CANTIDAD_ILEGIBLE : "Escribe cuánto llegó (más de cero).",
+    },
+    {
+      id: "costo",
+      nombre: "Costo",
+      requerido: true,
+      hecho: e.costo.trim() !== "" && costoLegible && costo >= 0,
+      pendiente: e.costo.trim() !== "" && !costoLegible ? COSTO_UNITARIO_ILEGIBLE : "Escribe el costo por unidad, sin IGV (0 si fue un regalo).",
+    },
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién ingresa este lote." },
   ];
 }

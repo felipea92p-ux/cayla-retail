@@ -936,6 +936,10 @@ caso(
   "E9 la unidad (provisional): si el insumo cambió de unidad después de crear la orden, el detalle lo muestra y la edición copia la del día; el archivo guarda la de antes",
   `${UNA_ORDEN}
    reset role;
+   -- Hoy un insumo con historia ya no cambia de unidad y una tela solo va en metros (ADR-0554, 20261028172000): este caso simula DATOS ANTERIORES a esos candados, que
+   -- pudieron existir. Se quitan solo dentro de esta transacción (se deshace con el ROLLBACK del caso).
+   alter table retail.insumos disable trigger insumos_unidad_firme;
+   alter table retail.insumos drop constraint if exists insumos_tela_en_metros;
    update retail.insumos set unidad_medida = 'kilo' where id = :'lino';
    ${como(FELIPE)}
    select (select l ->> 'unidad_medida' || '→' || (l ->> 'unidad_actual') from jsonb_array_elements(retail.fn_orden_insumo(:'oc') -> 'lineas') l

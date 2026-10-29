@@ -23,6 +23,8 @@ export function TuCompra({
   unidades,
   ganancia,
   siguiente,
+  enVuelo,
+  llegaron,
 }: {
   proveedor: string | null;
   /** En qué tramo va: 1 el proveedor, 2 las prendas, 3 el papel. */
@@ -36,16 +38,22 @@ export function TuCompra({
   ganancia: { vendes: number; ganas: number } | null;
   /** Qué sigue, en palabras de tienda («Sigue: revisar las prendas»). */
   siguiente: string;
+  /** Las prendas que van volando hacia aquí (Felipe 2026-10-28): su línea ya tiene su lugar pero se ve vacía hasta que aterrizan. */
+  enVuelo: ReadonlySet<string>;
+  /** Las que acaban de aterrizar: su línea se ilumina una vez y el recuadro hace un pulso. */
+  llegaron: ReadonlySet<string>;
 }) {
+  // Los modelos y las tiendas cuentan lo que ya llegó: las que vuelan todavía no están aquí (el total y las prendas ya vienen igual).
+  const llegadas = prendas.filter((p) => !enVuelo.has(p.clave));
   // Cuántas van a cada tienda, de la que más recibe a la que menos.
   const porTienda = new Map<string, number>();
-  for (const p of prendas) for (const t of p.tiendas) porTienda.set(t.destinoId, (porTienda.get(t.destinoId) ?? 0) + t.cantidad);
+  for (const p of llegadas) for (const t of p.tiendas) porTienda.set(t.destinoId, (porTienda.get(t.destinoId) ?? 0) + t.cantidad);
   const tiendas = [...porTienda.entries()].sort((a, b) => b[1] - a[1]);
   return (
     <aside
       aria-label="Tu compra"
       data-guia="compra.tu-compra"
-      className="card-cayla sticky top-40 hidden flex-col gap-3 rounded-[22px] px-5 pb-4 pt-[18px] lg:flex"
+      className={`card-cayla sticky top-40 hidden flex-col gap-3 rounded-[22px] px-5 pb-4 pt-[18px] lg:flex ${llegaron.size > 0 ? "compra-pulso" : ""}`}
     >
       <span className="flex items-baseline justify-between gap-3">
         <span className="label-cayla text-[11px] text-taupe">Tu compra</span>
@@ -70,7 +78,7 @@ export function TuCompra({
               {unidades === 1 ? "1 prenda" : `${unidades} prendas`}
             </Chip>
             <Chip tono="neutro" versalitas={false}>
-              {prendas.length === 1 ? "1 modelo" : `${prendas.length} modelos`}
+              {llegadas.length === 1 ? "1 modelo" : `${llegadas.length} modelos`}
             </Chip>
             {tiendas.map(([id, n]) => (
               <Chip key={id} tono="neutro" versalitas={false}>
@@ -82,7 +90,11 @@ export function TuCompra({
             {prendas.map((p) => {
               const c = categorias.get(p.categoriaId);
               return (
-                <li key={p.clave} className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-sand py-2 text-[13.5px] text-tinta">
+                <li
+                  key={p.clave}
+                  data-vuelo-destino={p.clave}
+                  className={`grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-sand py-2 text-[13.5px] text-tinta ${enVuelo.has(p.clave) ? "compra-linea-vuela" : ""} ${llegaron.has(p.clave) ? "compra-linea-llega" : ""}`}
+                >
                   <MiniaturaPrenda fotoUrl={(p.productoId && fotos.get(p.productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={p.categoria} />
                   <span className="min-w-0">
                     <span className="block truncate">{p.nombre}</span>

@@ -47,47 +47,47 @@ button.rc-parada:disabled { cursor: default; }
 /* La chica vive en filas de cebra (papel y hueso): un tinte de tinta se ve igual sobre las dos; papel desaparecía en una y hueso en la otra. */
 .rc-cat-ic[data-tamano="chico"] { width: 32px; height: 32px; border-radius: 9px; background: color-mix(in srgb, var(--color-tinta) 6%, transparent); }
 
-/* ---- La lista de categorías del envío ---- */
-.rc-cat-item { position: relative; display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border: 1px solid transparent; border-radius: 16px; text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
+/* ---- Las categorías del envío, en una fila de píldoras (opción A, Felipe 2026-10-28) ---- */
+/* Una píldora por categoría: su ícono, el nombre, lo contado (y «/lo que dijeron») y la marca de la guía de foco (✓ hecha, ● sigue aquí, ○ falta).
+   La que se cuenta lleva el borde de tinta y un poco más de cuerpo. Sin rebote (ADR-0136): el borde y el fondo cambian en 200 ms. */
+.rc-cat-pildora { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 14px 6px 8px; border: 1px solid var(--color-sand); border-radius: 999px; background: var(--color-papel); text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
-  .rc-cat-item:hover { border-color: var(--color-sand); background: var(--color-papel); }
+  .rc-cat-pildora:hover { border-color: var(--color-borde-control); }
 }
-.rc-cat-item[aria-current="true"] { border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); background: var(--color-papel); }
-.rc-cat-item .rc-cat-marca { position: absolute; left: -9px; }
-/* Una categoría con prendas anotadas al comprar se despliega: la flecha vive dentro de su fila (a la derecha del número) y, abajo, cada
-   prenda con cuántas eran y su «+», que la pasa a «¿Qué … son?». La categoría que se cuenta se corre 4 px: el grupo entero, con su flecha
-   y lo desplegado. Sin rebote (ADR-0136): la flecha da media vuelta y lo desplegado baja una vez. */
-.rc-cat-grupo { transition: translate 200ms var(--ease-cayla); }
-.rc-cat-grupo[data-actual] { translate: 4px 0; }
-.rc-cat-fila { position: relative; }
-.rc-cat-item[data-desplegable] { padding-right: 46px; }
-.rc-cat-desplegar { position: absolute; top: 50%; right: 9px; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -14px; border-radius: 50%; color: var(--color-taupe); transition: background-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla); }
-.rc-cat-desplegar svg { transition: rotate 220ms var(--ease-cayla); }
-.rc-cat-desplegar[aria-expanded="true"] svg { rotate: 180deg; }
+.rc-cat-pildora[aria-current="true"] { border-color: var(--color-tinta); box-shadow: inset 0 0 0 0.5px var(--color-tinta); }
+.rc-cat-agregar { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 6px 18px; border: 1px dashed var(--color-borde-control); border-radius: 999px; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
-  .rc-cat-desplegar:hover { background: var(--color-hueso); color: var(--color-tinta); }
+  .rc-cat-agregar:hover { border-color: var(--color-tinta); color: var(--color-tinta); }
 }
-.rc-anotadas { display: grid; gap: 6px; margin: 4px 0 6px 20px; padding-left: 12px; border-left: 1px solid var(--color-sand); animation: rc-despliegue 220ms var(--ease-cayla) backwards; }
-.rc-anotada { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 6px 7px 6px 11px; border: 1px solid var(--color-sand); border-radius: 14px; background: var(--color-papel); }
-.rc-anotada-n { color: var(--color-tinta); font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rc-anotada-mas { display: grid; place-items: center; width: 32px; height: 32px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
+
+/* «Anotado en la compra» (Felipe 2026-10-28): cada prenda que la compra anotó y todavía no está en «¿Qué … son?» es un chip con su «+» y cuántas
+   eran; al tocarlo pasa a la lista. Sin rebote (ADR-0136): sube 1 px al apuntarlo y se encoge al presionarlo. */
+.rc-anotada-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 5px 13px 5px 9px; border: 1px solid var(--color-borde-control); border-radius: 999px; background: var(--color-papel); color: var(--color-tinta); font-size: 13.5px; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
+.rc-anotada-chip b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.rc-anotada-chip span { color: var(--color-taupe); font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (hover: hover) {
-  .rc-anotada-mas:hover { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -1px; }
+  .rc-anotada-chip:hover { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -1px; }
 }
-.rc-anotada-mas:active { scale: 0.92; translate: 0 0; }
-.rc-cat-agregar { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 11px 12px; border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 16px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
-@media (hover: hover) {
-  .rc-cat-agregar:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
-}
+.rc-anotada-chip:active { scale: 0.96; translate: 0 0; }
 
 /* ---- El contador ---- */
 /* La tarjeta de la categoría que se cuenta: encendida, como el campo que sigue en la guía de foco (ADR-0284). */
-.rc-contador { border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--color-hueso) 70%, var(--color-papel)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-sand) 55%, transparent); }
-.rc-numero { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 6px 0; }
+.rc-contador { container-type: inline-size; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--color-hueso) 70%, var(--color-papel)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-sand) 55%, transparent); }
+.rc-numero { display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 2px 0; }
+/* La franja del contador (opción A): número, atajos y barra de «cuadra». Angosta (la tarjeta, no la ventana: junto al papel queda de ~650 px):
+   el número y los atajos van en una fila y la barra baja debajo. Ancha: las tres cosas en una sola fila. */
+.rc-franja { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 24px; }
+.rc-franja .rc-rapidos { justify-content: flex-start; }
+.rc-franja-cuadra { display: flex; flex-direction: column; gap: 8px; min-width: 0; grid-column: 1 / -1; }
+@container (min-width: 820px) {
+  .rc-franja { grid-template-columns: auto auto minmax(0, 1fr); }
+  .rc-franja-cuadra { grid-column: auto; }
+}
+@media (max-width: 639px) { .rc-franja { grid-template-columns: minmax(0, 1fr); } .rc-franja .rc-numero { justify-content: center; } .rc-franja .rc-rapidos { justify-content: center; } }
 /* unificar-fijo: el número del contador es el protagonista de la cara A (la maqueta que eligió Felipe): sin caja, como una cifra. */
-.rc-numero input { width: 170px; border: 0; background: transparent; color: var(--color-tinta); outline: 0; text-align: center; font-family: var(--font-serif); font-size: 84px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.rc-numero input { width: 128px; border: 0; background: transparent; color: var(--color-tinta); outline: 0; text-align: center; font-family: var(--font-serif); font-size: 72px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .rc-numero input:focus-visible { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); text-decoration-thickness: 2px; text-underline-offset: 10px; }
-.rc-paso-btn { display: grid; place-items: center; width: 56px; height: 56px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
+.rc-paso-btn { display: grid; place-items: center; width: 48px; height: 48px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-paso-btn:hover:not(:disabled) { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -2px; }
 }
@@ -98,7 +98,7 @@ button.rc-parada:disabled { cursor: default; }
 @media (hover: hover) {
   .rc-rapidos button:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
 }
-@media (max-width: 639px) { .rc-numero input { width: 130px; font-size: 64px; } }
+@media (max-width: 639px) { .rc-numero input { width: 110px; font-size: 60px; } }
 
 /* ---- Lo separado: una fila por prenda ---- */
 .rc-fila-sep { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 8px 12px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); }
@@ -109,6 +109,15 @@ button.rc-parada:disabled { cursor: default; }
    aplastaba contra el borde (con «Crear ahora» y «Tallas y colores ahora» a la derecha). */
 .rc-filas-sep { container: filas-sep / inline-size; }
 @container filas-sep (max-width: 700px) { .rc-fila-sep { grid-template-columns: auto minmax(0, 1fr); } .rc-fila-sep .rc-fila-fin { grid-column: 1 / -1; } }
+
+/* ---- La barra de cierre de «Contar» (opción A) ---- */
+/* Anterior · lo dicho contra lo contado · la acción que sigue. Es la Isla del sistema (`barra-abajo`, pegada al flujo: sube con la página y se
+   queda al pie). Angosta: las cifras ocupan su propia fila arriba y los botones quedan debajo, uno a cada lado. */
+.rc-cierre-cifras { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 18px; min-width: 0; }
+.rc-cierre-cifras b { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.rc-cierre-cifras > :last-child { align-self: center; }
+.rc-cierre { padding-left: 0.625rem; }
+@media (max-width: 639px) { .rc-cierre .rc-cierre-cifras { order: -1; flex-basis: 100%; } .rc-cierre .barra-abajo-acciones { margin-left: auto; } }
 
 /* ---- La balanza «Dijeron / Contaste» ---- */
 .rc-balanza { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; gap: 8px 14px; padding: 14px 18px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-papel); }
@@ -134,13 +143,22 @@ button.rc-parada:disabled { cursor: default; }
 .rc-pend { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); }
 .rc-pend[data-tipo="crear"] { border-style: dashed; border-color: color-mix(in srgb, var(--color-pizarra) 45%, transparent); }
 
-@keyframes rc-despliegue { from { opacity: 0; translate: 0 -6px; } to { opacity: 1; translate: 0 0; } }
+/* ---- Costo y precio por combinación (Cerrar, Felipe 2026-10-28): la matriz de color × talla de una prenda y la barra que dice hasta dónde llega lo escrito ---- */
+.rc-matriz { display: grid; align-items: center; gap: 8px; min-width: max-content; }
+/* En el celular la matriz se desliza hacia un lado: el color se queda a la vista (pegado a la izquierda) y las tallas pasan por detrás. */
+.rc-comb-color { position: sticky; left: 0; z-index: 1; background: var(--color-papel); padding-right: 8px; }
+.rc-comb-vacia { display: grid; place-items: center; min-height: 40px; color: var(--color-taupe); }
+/* Ámbar: la casilla que ya tiene otro valor que el de hoy (lo escrito) o que se sale del normal de su prenda. Solo tokens (ADR-0169, ADR-0336). */
+.rc-comb-celda[data-estado] .caja-campo { background: color-mix(in srgb, var(--color-ambar) 11%, var(--color-papel)); border-color: var(--color-ambar); }
+.rc-comb-celda[data-estado="cambio"] .caja-campo { box-shadow: inset 0 0 0 1px var(--color-ambar); }
+.rc-comb-barra { padding: 8px 12px; border: 1px solid var(--color-tinta); border-radius: 12px; background: var(--color-papel); }
+
 @keyframes rc-pulso { from { transform: scale(0.85); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
 @keyframes rc-trazo { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 @keyframes rc-trazo-aro { from { stroke-dashoffset: 264; } to { stroke-dashoffset: 0; } }
 @keyframes rc-trazo-visto { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-item, .rc-cat-grupo, .rc-cat-desplegar, .rc-cat-desplegar svg, .rc-anotada-mas, .rc-paso-btn, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
-  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo, .rc-sello .rc-aro, .rc-sello .rc-visto, .rc-anotadas { animation: none; }
+  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-pildora, .rc-cat-agregar, .rc-anotada-chip, .rc-paso-btn, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
+  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo, .rc-sello .rc-aro, .rc-sello .rc-visto { animation: none; }
 }

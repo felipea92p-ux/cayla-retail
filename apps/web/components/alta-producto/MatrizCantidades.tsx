@@ -86,16 +86,16 @@ type ConPrecios = Comunes & {
   onCosto: (clave: string, valor: string) => void;
   /** Dónde entra el stock, en palabras de tienda: «TRU · Real Plaza». */
   destinoEtiqueta: string;
-  /** La carga inicial de la sede ya se cerró (ADR-0328): «Cuántas tienes hoy» no se ofrece —queda apagado, con esta frase al
-   *  pasar el mouse— y la tabla solo sirve para el precio y el costo distintos. `null` = abierta, como siempre. */
-  cantidadesCerradas?: string | null;
+  /** La carga inicial de la sede ya se cerró (ADR-0328 act. 2026-10-28): lo que se escribe no es «lo que tienes hoy» sino lo que
+   *  LLEGÓ del proveedor, y la tabla lo dice así («Cuántas llegaron»). De fábrica, `false`: la carga inicial, como siempre. */
+  llegada?: boolean;
 };
 
 /** «Nueva orden de producción» (ADR-0396, A2): solo cantidades, sin segmento ni precios ni costos, sin − y +, con «Llenar todas con» siempre a la vista. */
 type SoloCantidades = Comunes & { soloCantidades: true };
 
 export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
-  const { celdas, tallas, colores, excluidas, cantidades, onCantidad, preguntaCelda = "Cuántas tienes de", fantasma, tituloDe, teclado = false, accionFila } = props;
+  const { celdas, tallas, colores, excluidas, cantidades, onCantidad, preguntaCelda: preguntaPropia, fantasma, tituloDe, teclado = false, accionFila } = props;
   const solo = props.soloCantidades === true;
   const precioBase = props.soloCantidades ? "" : props.precioBase;
   const precios = props.soloCantidades ? {} : props.precios;
@@ -104,10 +104,10 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
   const costos = props.soloCantidades ? {} : props.costos;
   const onCosto = props.soloCantidades ? undefined : props.onCosto;
   const destinoEtiqueta = props.soloCantidades ? "" : props.destinoEtiqueta;
-  const cantidadesCerradas = props.soloCantidades ? null : (props.cantidadesCerradas ?? null);
+  const llegada = props.soloCantidades ? false : (props.llegada ?? false);
+  const preguntaCelda = preguntaPropia ?? (llegada ? "Cuántas llegaron de" : "Cuántas tienes de");
 
-  const [modoElegido, setModo] = useState<Modo>("cantidades");
-  const modo: Modo = cantidadesCerradas ? "precios" : modoElegido;
+  const [modo, setModo] = useState<Modo>("cantidades");
   const [relleno, setRelleno] = useState("");
   // Las cajas de las celdas, para que el teclado sepa a cuál llevar el cursor. Solo se llena con `teclado` (un ref no se dibuja: el HTML no cambia).
   const campos = useRef(new Map<string, HTMLInputElement>());
@@ -162,7 +162,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
             valor={modo}
             onCambio={(m) => setModo(m as typeof modo)}
             opciones={[
-              { clave: "cantidades", etiqueta: "Cuántas tienes hoy", deshabilitada: !!cantidadesCerradas, ayuda: cantidadesCerradas || undefined },
+              { clave: "cantidades", etiqueta: llegada ? "Cuántas llegaron" : "Cuántas tienes hoy" },
               { clave: "precios", etiqueta: "Precios" },
               { clave: "costos", etiqueta: "Costos" },
             ]}
@@ -198,7 +198,8 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
       {!solo && (
         <div className="grid text-[12.5px] text-taupe">
           <p className={`col-start-1 row-start-1 ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
-            Lo que hay hoy en {destinoEtiqueta}. Lo que no tengas, déjalo vacío. <span className="text-tinta/45">—</span> = no existe.
+            {llegada ? `Lo que llegó a ${destinoEtiqueta}.` : `Lo que hay hoy en ${destinoEtiqueta}.`} Lo que no tengas, déjalo vacío.{" "}
+            <span className="text-tinta/45">—</span> = no existe.
           </p>
           <p className={`col-start-1 row-start-1 ${modo === "precios" ? "" : "invisible"}`} aria-hidden={modo !== "precios"}>
             Escribe solo el precio que cambia. Vacía = {textoPrecioBase(precioBase)}.

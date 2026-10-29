@@ -18,6 +18,8 @@ import { leerNumero, aTexto } from "./orden-compra-alta";
 import {
   CAUSAS_FALTANTE,
   CAUSAS_SOBRANTE,
+  OPCION_OTRO,
+  VALOR_OTRO,
   type CausaFaltante,
   type CausaSobrante,
   type Conteo,
@@ -43,6 +45,9 @@ export const RPC_CERRAR_CONTEO = "cerrar_conteo_envio";
 export const RPC_PRECIO_RECEPCION = "cambiar_precio_en_recepcion";
 /** ¿Se podría guardar este precio?, con el motivo si no: la misma regla que `cambiar_precio_en_recepcion`, sin guardar nada (`20261026180000`). Lectura. */
 export const RPC_VALIDAR_PRECIO = "validar_precio_en_recepcion";
+/** El precio de varias combinaciones (color y talla) de una prenda del envío, todo o nada (20261028234000). */
+export const RPC_PRECIOS_RECEPCION = "cambiar_precios_en_recepcion";
+export const RPC_VALIDAR_PRECIOS = "validar_precios_en_recepcion";
 export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 /** «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26; migración `20261026163000`). */
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
@@ -802,6 +807,10 @@ export function resultadoDelPrecio(error: { message?: string | null; hint?: stri
   return { texto: mensajeAlGuardar(error, "cambiar el precio de venta") };
 }
 
+/** Un regalo de FUERA de la guía entra a S/ 0 (obsequio, Felipe 2026-10-28): no se pide ni se lee su costo, ni el de sus prendas. Lo que sobra de una línea
+ *  de la guía como regalo sigue con el costo de su orden. Es la regla de `cerrar_conteo_envio` (migración 20261028182000). */
+export const esRegaloFuera = (l: Pick<LineaParaContar, "linea">, d: Pick<DecisionCierre, "sobranteCausa">): boolean => !l.linea && d.sobranteCausa === "regalo";
+
 export type FaltaCierre = { clave: "contar" | "causa" | "costo" | "responsable"; linea: ClaveLinea | null; texto: string };
 
 /**
@@ -826,11 +835,15 @@ export function faltaParaCerrar(p: {
     const dif = diferenciaDe(l);
     if (dif != null && dif < 0 && !d.faltanteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di por qué faltan ${-dif} de ${nombre}` });
     if (dif != null && dif > 0 && !d.sobranteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di qué pasa con las ${dif} de más de ${nombre}` });
+    const sobra = (dif != null && dif > 0) || (!l.linea && !p.sinAviso && contadasDe(l) > 0);
+    // «Otro» se cuenta en una línea (la nota de la línea): sin ella la base no cierra (`recepcion_sobrante_otro`).
+    if (sobra && d.sobranteCausa === VALOR_OTRO && !d.nota.trim()) f.push({ clave: "causa", linea: l.clave, texto: `Cuenta qué fue lo de más de ${nombre}` });
+    const regalo = esRegaloFuera(l, d);
     if (!l.linea && !p.sinAviso && contadasDe(l) > 0) {
       if (!d.sobranteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di qué pasa con ${nombre} (no estaba en la guía)` });
-      if (leerCostoCierre(d.costo).valor == null) f.push({ clave: "costo", linea: l.clave, texto: `Escribe el costo de ${nombre}` });
+      if (!regalo && leerCostoCierre(d.costo).valor == null) f.push({ clave: "costo", linea: l.clave, texto: `Escribe el costo de ${nombre}` });
     }
-    if (leerCostoCierre(d.costo).problema) f.push({ clave: "costo", linea: l.clave, texto: `Corrige el costo de ${nombre}` });
+    if (!regalo && leerCostoCierre(d.costo).problema) f.push({ clave: "costo", linea: l.clave, texto: `Corrige el costo de ${nombre}` });
   }
   if (!p.responsable) f.push({ clave: "responsable", linea: null, texto: "Elige quién cierra" });
   return f;
@@ -861,7 +874,7 @@ export function camposDelCierre(
       const f = falta.find((x) => x.clave === "causa" && x.linea === l.clave);
       campos.push({ id: idCampoCierre("causa", l.clave), nombre: `Qué pasó · ${nombre}`, requerido: true, hecho: !f, pendiente: f ? `${f.texto}.` : "" });
     }
-    if (!l.linea && contadasDe(l) > 0) {
+    if (!l.linea && contadasDe(l) > 0 && !esRegaloFuera(l, p.decisiones[l.clave] ?? DECISION_VACIA)) {
       const f = falta.find((x) => x.clave === "costo" && x.linea === l.clave);
       campos.push({
         id: idCampoCierre("costo", l.clave),
@@ -900,7 +913,7 @@ export type LineaParaCerrar = {
   faltante_causa: CausaFaltante | null;
   sobrante_causa: CausaSobrante | null;
   nota: string | null;
-  /** ADR-0519: el costo propio de las prendas separadas de esta línea que cuestan distinto de la línea ({producto: costo}). Sin nada propio, no va. */
+  /** ADR-0519: el costo propio de las prendas (o, desde 2026-10-28, de las combinaciones) separadas de esta línea que cuestan distinto de la línea ({producto | variante: costo}). Sin nada propio, no va. */
   costos_prendas?: Record<string, number>;
 };
 
@@ -975,6 +988,8 @@ export function lineasParaCerrar(
   decisiones: Readonly<Record<string, DecisionCierre>>,
   sinAviso: boolean,
   costosPrendas: Readonly<Record<string, CostosDePrendas>> = {},
+  /** El costo propio de combinaciones (color y talla), por línea: `{ clave de línea: { variante_id | producto_id: costo } }` (`costosParaLinea`). */
+  costosCombinaciones: Readonly<Record<string, Readonly<Record<string, number>>>> = {},
 ): LineaParaCerrar[] {
   return lineas
     .filter((l) => l.conteo !== null)
@@ -983,16 +998,21 @@ export function lineasParaCerrar(
       const d = decisiones[l.clave] ?? DECISION_VACIA;
       const dif = diferenciaDe(l);
       const fuera = !l.linea;
-      const costo = leerCostoCierre(d.costo).valor;
-      const propios = costosPropiosParaCerrar(l, d.costo, costosPrendas[l.clave]);
+      const sobrante = (dif != null && dif > 0) || (fuera && !sinAviso && c.contadas > 0) ? d.sobranteCausa : null;
+      // Lo que llega sin aviso no pregunta la causa (`sobrante` null): ahí no hay regalo que valga.
+      const regalo = !l.linea && sobrante === "regalo";
+      // Un regalo de fuera de la guía entra a S/ 0: se manda 0 y ningún costo propio (la base los ignora igual).
+      const costo = regalo ? 0 : leerCostoCierre(d.costo).valor;
+      const propios = regalo ? {} : { ...costosPropiosParaCerrar(l, d.costo, costosPrendas[l.clave]), ...(costosCombinaciones[l.clave] ?? {}) };
       return {
         ...(l.linea ? { despacho_item_id: l.linea.id } : { extra_posicion: c.extraPosicion ?? 0 }),
         version: c.version,
         costo_unitario: fuera && sinAviso && costo == null ? null : costo,
-        confirma_costo: d.confirmaCosto,
+        confirma_costo: regalo ? false : d.confirmaCosto,
         faltante_causa: dif != null && dif < 0 ? d.faltanteCausa : null,
-        sobrante_causa: (dif != null && dif > 0) || (fuera && !sinAviso && c.contadas > 0) ? d.sobranteCausa : null,
-        nota: d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
+        sobrante_causa: sobrante,
+        // La nota de la línea solo es «lo que pasó» de un «Otro»: con otra causa no hay dónde escribirla y lo que quedó escrito antes no viaja.
+        nota: sobrante === VALOR_OTRO && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
         ...(Object.keys(propios).length > 0 ? { costos_prendas: propios } : {}),
       };
     });
@@ -1015,6 +1035,7 @@ export function causasDe(
       const r = opcionReposicion(deudaPendiente, l.proveedor?.nombre ?? null, { categoria: l.categoria?.nombre, marca: l.marca?.nombre });
       opciones.push({ valor: r.valor, texto: r.texto, ayuda: r.ayuda });
     }
+    opciones.push({ ...OPCION_OTRO });
     return { tipo: "sobrante", opciones };
   }
   return null;

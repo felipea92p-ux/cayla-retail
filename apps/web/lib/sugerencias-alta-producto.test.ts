@@ -84,11 +84,11 @@ describe("sugerencias de Nuevo producto — nombre y descripción siguen a la ca
 
   it("el caso que motivó la skill: elegir «Casacas» ya no sugiere «Blusa Aurora»", () => {
     const n = sugerirNombre({ familia: "indumentaria", prefijo: "CAS" });
-    expect(n.texto).toBe("Casaca Río");
+    expect(n.texto).toBe("Casaca Gardenia");
     expect(n.texto).not.toMatch(/blusa/i);
     expect(sugerirDescripcion({ familia: "indumentaria", prefijo: "CAS" }).texto).not.toMatch(/manga globo/i);
-    // «Camisas y Blusas» sí conserva el ejemplo de siempre: para ella era correcto.
-    expect(sugerirNombre({ familia: "indumentaria", prefijo: "CMS" }).texto).toBe("Blusa Aurora");
+    // «Camisas y Blusas» sigue empezando con su prenda, ahora con su flor (ADR-0556).
+    expect(sugerirNombre({ familia: "indumentaria", prefijo: "CMS" }).texto).toBe("Blusa Dalia");
   });
 
   it("SIN CONTEXTO → neutro: antes de elegir categoría no promete nada", () => {

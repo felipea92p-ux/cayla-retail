@@ -155,3 +155,104 @@
 .envio-tiempo > li[data-paso="ahora"]::before {
   background: var(--color-tinta);
 }
+
+/* El vuelo de la prenda a «Tu compra» (Felipe 2026-10-28, ADR-0136 act. 2026-10-28; maqueta docs/maquetas/mis-compras-prendas-2026-10/):
+   al agregar, la miniatura sale de donde se anotó, cruza en arco con la curva del sistema y aterriza en su línea (en el celular, en la
+   barra de abajo); su línea se ilumina UNA vez y el recuadro hace un solo pulso. Sin rebote, sin bucle. Lo mueve `components/mi-plata/vuelo.ts`
+   (la trayectoria sale de `lib/vuelo-reglas.ts`); sin movimiento (`prefers-reduced-motion`) no vuela, solo se ilumina la línea. */
+.vuelo-x {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 90; /* sobre las hojas (z-50) y los avisos */
+  pointer-events: none;
+  will-change: transform;
+}
+.vuelo-y {
+  position: relative;
+  will-change: transform;
+}
+.vuelo-cuerpo {
+  border-radius: 12px;
+  overflow: hidden;
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--color-sombra) 30%, transparent));
+}
+/* La cantidad que viaja con la prenda, fuera del cuerpo (que recorta) para que no se corte. */
+.vuelo-cant {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-verde);
+  color: var(--color-crema-fija);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* Sin miniatura a la vista (una prenda nueva): una bola con la cantidad, del mismo verde. */
+.vuelo-bola {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--color-verde);
+  color: var(--color-crema-fija);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* La línea de «Tu compra» a la que aterriza la prenda: oculta mientras vuela (su lugar ya está reservado, nada se corre) y, al llegar,
+   se ilumina una vez. */
+.compra-linea-vuela > * {
+  visibility: hidden;
+}
+.compra-linea-llega {
+  animation: compra-llega 900ms var(--ease-cayla) both;
+  border-radius: 8px;
+}
+.compra-linea-llega > * {
+  animation: compra-llega-texto 320ms var(--ease-cayla) both;
+}
+@keyframes compra-llega {
+  from {
+    background: color-mix(in srgb, var(--color-verde) 22%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+@keyframes compra-llega-texto {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* El pulso del recuadro de «Tu compra» (y de la barra de abajo) cuando aterriza una prenda: un anillo que sale y se va, una vez. */
+.compra-pulso {
+  animation: compra-pulso 800ms var(--ease-cayla) both;
+}
+@keyframes compra-pulso {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-verde) 38%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-verde) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .compra-linea-llega,
+  .compra-linea-llega > *,
+  .compra-pulso {
+    animation: none;
+  }
+}

@@ -1,0 +1,50 @@
+/* ==================================================================
+   Ingresos · la hoja que se imprime (pestaña «Ingresos» de Movimientos)
+
+   `#ingresos-print` la monta el botón «Imprimir la lista» pegada a <body> (portal) SOLO mientras se imprime, y en pantalla no se
+   ve. Al imprimir desaparece TODO lo demás con `display:none` —no `visibility:hidden`: lo oculto seguiría ocupando alto y saldrían
+   páginas en blanco— y queda una hoja A4 clara, con la foto de cada modelo. Es lo que se está viendo (con la búsqueda, el filtro,
+   el orden y los modelos abiertos). Las fotos y los colores de las muestras llevan `print-color-adjust: exact`: Chrome no
+   imprime fondos salvo que se lo pidan, y una muestra de color sin color no dice nada.
+
+   Es papel físico: lleva `.papel-fijo` (los tokens claros de siempre) aunque el ERP esté en oscuro (ADR-0336). El modo oscuro
+   vive en `@media screen`, así que impreso es siempre claro.
+   ================================================================== */
+#ingresos-print {
+  display: none;
+}
+
+@page ingresos-hoja {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  body:has(#ingresos-print) > *:not(#ingresos-print) {
+    display: none !important;
+  }
+  html:has(#ingresos-print),
+  body:has(#ingresos-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: var(--color-vidrio) !important;
+    margin: 0 !important;
+  }
+  #ingresos-print {
+    display: block;
+    page: ingresos-hoja;
+    box-sizing: border-box;
+    padding: 12mm;
+    background: var(--color-vidrio);
+    color: var(--color-tinta);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* El encabezado de la tabla se repite en cada página y una fila (con su detalle) no se parte entre dos. */
+  #ingresos-print thead.ing-encabezado {
+    display: table-header-group;
+  }
+  #ingresos-print tr {
+    break-inside: avoid;
+  }
+}

@@ -36,6 +36,7 @@ import {
   detallarPrenda,
   detalladas,
   diasDesde,
+  esRegaloFuera,
   faltaParaCerrar,
   leerConteosDelEnvio,
   leerCostoCierre,
@@ -313,10 +314,41 @@ describe("cerrar", () => {
       true,
     );
     expect(ls).toEqual([
-      { despacho_item_id: "i1", version: 3, costo_unitario: 30, confirma_costo: false, faltante_causa: "no_vino", sobrante_causa: null, nota: "bolsa rota" },
+      // La nota de la línea solo viaja con «Otro» (es lo que pasó): con otra causa, lo escrito antes no se manda.
+      { despacho_item_id: "i1", version: 3, costo_unitario: 30, confirma_costo: false, faltante_causa: "no_vino", sobrante_causa: null, nota: null },
       { despacho_item_id: "i2", version: 1, costo_unitario: 30, confirma_costo: false, faltante_causa: null, sobrante_causa: null, nota: null },
       { extra_posicion: 1, version: 1, costo_unitario: null, confirma_costo: false, faltante_causa: null, sobrante_causa: null, nota: null },
     ]);
+  });
+
+  it("«Otro» (2026-10-28): se ofrece solo para lo de más, pide su explicación y la lleva como nota de la línea", () => {
+    expect(causasDe(extra(1, 3))?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "otro"]);
+    expect(causasDe(contada("i1", 10, 12), 2)?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "reposicion_faltante", "otro"]);
+    expect(causasDe(contada("i1", 10, 8))?.opciones.some((o) => o.valor === "otro")).toBe(false); // lo que faltó no cambia
+    const sin = faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": dec({ sobranteCausa: "otro" }) }, sinAviso: false, responsable: true });
+    expect(sin.map((x) => x.texto)).toEqual(["Cuenta qué fue lo de más de Camisas · Marca Uno (fuera de la guía)"].map((t) => expect.stringContaining("Cuenta qué fue lo de más de")) as never);
+    const con = faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": dec({ sobranteCausa: "otro", nota: "Muestra del proveedor" }) }, sinAviso: false, responsable: true });
+    expect(con).toEqual([]);
+    const [l] = lineasParaCerrar([extra(1, 3)], { "extra:1": dec({ sobranteCausa: "otro", nota: "  Muestra del proveedor " }) }, false);
+    expect(l).toMatchObject({ sobrante_causa: "otro", nota: "Muestra del proveedor" });
+  });
+
+  it("un regalo de fuera de la guía no pide costo: entra a S/ 0 y no manda ni el de la línea ni el de sus prendas; uno de la guía sí lo conserva", () => {
+    const r = dec({ costo: "", sobranteCausa: "regalo" });
+    expect(esRegaloFuera(extra(1, 3), r)).toBe(true);
+    expect(esRegaloFuera(contada("i1", 10, 12), r)).toBe(false);
+    expect(faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": r }, sinAviso: false, responsable: true })).toEqual([]);
+    // Un costo mal escrito de un regalo tampoco frena: no se lee.
+    expect(faltaParaCerrar({ lineas: [extra(1, 3)], decisiones: { "extra:1": { ...r, costo: "doce" } }, sinAviso: false, responsable: true })).toEqual([]);
+    // La guía de foco no ofrece la caja de costo de un regalo, y sí la de otra causa.
+    const ids = (d: DecisionCierre) => camposDelCierre({ lineas: [extra(1, 3)], decisiones: { "extra:1": d }, sinAviso: false, responsable: true }).map((c) => c.id);
+    expect(ids(r).some((i) => i.includes("costo"))).toBe(false);
+    expect(ids(dec({ costo: "", sobranteCausa: "cobra_aparte" })).some((i) => i.includes("costo"))).toBe(true);
+    const [l] = lineasParaCerrar([extra(1, 3)], { "extra:1": { ...r, costo: "99", confirmaCosto: true } }, false, { "extra:1": { "prod-1": "55" } });
+    expect(l).toMatchObject({ costo_unitario: 0, confirma_costo: false, sobrante_causa: "regalo" });
+    expect(l).not.toHaveProperty("costos_prendas");
+    const [g] = lineasParaCerrar([contada("i1", 10, 12)], { "item:i1": dec({ sobranteCausa: "regalo" }) }, false);
+    expect(g).toMatchObject({ costo_unitario: 30, sobrante_causa: "regalo" });
   });
 
   it("las causas que se ofrecen: faltante, sobrante y la reposición solo si el proveedor debe", () => {
@@ -1052,6 +1084,16 @@ describe("ADR-0519: el costo propio de cada prenda al cerrar", () => {
     // Si la línea cambia de costo, lo propio sigue siendo lo propio y las demás siguen a la línea.
     const nueva = lineasParaCerrar([l], { "item:i1": dec({ costo: "60" }) }, false, { "item:i1": { "p-sofia": "55.50", "p-antonella": "60" } });
     expect(nueva[0]).toMatchObject({ costo_unitario: 60, costos_prendas: { "p-sofia": 55.5 } });
+  });
+
+  it("p_lineas suma el costo de las COMBINACIONES (color y talla) al de las prendas: la combinación va por su variante_id y gana a la prenda", () => {
+    const l = lineaCon();
+    const r = lineasParaCerrar([l], { "item:i1": dec() }, false, { "item:i1": { "p-sofia": "55.50" } }, { "item:i1": { "v-negro-s": 52, "p-sofia": 50 } });
+    expect(r[0].costos_prendas).toEqual({ "p-sofia": 50, "v-negro-s": 52 });
+    // Solo combinaciones, sin costos de prenda escritos.
+    expect(lineasParaCerrar([l], { "item:i1": dec() }, false, {}, { "item:i1": { "v-negro-s": 52 } })[0].costos_prendas).toEqual({ "v-negro-s": 52 });
+    // Otra línea no se mezcla, y sin nada no hay costos_prendas.
+    expect(lineasParaCerrar([l], { "item:i1": dec() }, false, {}, { "item:otra": { "v-x": 9 } })[0]).not.toHaveProperty("costos_prendas");
   });
 
   it("solo se costea lo que tiene nombre: las prendas identificadas y las nuevas ya descritas; lo demás se cuenta aparte como «sin identificar»", () => {

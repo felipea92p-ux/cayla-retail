@@ -356,15 +356,16 @@ export function RecibirContando({
         />
       )}
 
-      {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la izquierda mientras se cuenta (maqueta
-          compras-formidable-2026-10); sin papeles, todo sigue a lo ancho. */}
-      <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[21.25rem_minmax(0,1fr)]" : "space-y-6"}>
+      {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la DERECHA mientras se cuenta, se cierra y se
+          mira lo cerrado (rediseño de «Contar», opción A de `docs/maquetas/recibir-contar-2026-10`, Felipe 2026-10-28): el trabajo ocupa lo
+          ancho y el papel acompaña sin quitarle el primer lugar. Bajo `xl` el papel va arriba, como antes. Sin papeles, todo sigue a lo ancho. */}
+      <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]" : "space-y-6"}>
       {conPapel && (
-        <div className="xl:sticky xl:top-4">
+        <div className="xl:sticky xl:top-4 xl:order-2">
           <PapelesDeLaCompra papeles={papeles} lineas={lineas} alSubirFoto={subirFotoDelPapel} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />
         </div>
       )}
-      <div className={conPapel ? "min-w-0 space-y-6" : "space-y-6"}>
+      <div className={conPapel ? "min-w-0 space-y-6 xl:order-1" : "space-y-6"}>
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
         <EmpezarARecibir

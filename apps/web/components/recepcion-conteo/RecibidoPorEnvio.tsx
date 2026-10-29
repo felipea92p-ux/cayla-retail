@@ -17,7 +17,7 @@ import type { MatrizModelo } from "@/lib/recepcion-matriz-reglas";
 // «Terminados» por ENVÍO (Felipe 2026-10-28): una fila por envío, como «Por terminar» (un fardo con dos proveedores ya no sale partido en dos
 // filas); una llegada sin envío queda como fila propia. Tocar la fila abre el envío con cada prenda recibida; tocar una prenda despliega los
 // colores y tallas que se contaron, y ahí va el costo de lo que entró (antes era una columna de la lista).
-const PLANTILLA = "sm:grid-cols-[6rem_8rem_1fr_7rem]";
+const PLANTILLA = "sm:grid-cols-[6rem_6rem_8rem_1fr_7rem]";
 const PLANTILLA_DETALLE = "sm:grid-cols-[1.5rem_1fr_5rem]";
 const PLANTILLA_DETALLE_PROVEEDOR = "sm:grid-cols-[1.5rem_1fr_minmax(0,12rem)_5rem]";
 
@@ -33,9 +33,10 @@ export function RecibidoPorEnvio({ recepciones, vacio, costos, porPagina }: { re
   return (
     <>
       <Tabla>
-        <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Fecha" }, { titulo: "Envío" }, { titulo: "Proveedor" }, { titulo: "Unidades", alinear: "der" }]} />
+        <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Llegó" }, { titulo: "Terminado" }, { titulo: "Envío" }, { titulo: "Proveedor" }, { titulo: "Unidades", alinear: "der" }]} />
         {actual.filas.map((e) => (
           <button key={e.clave} type="button" data-guia="recibir.reciente" onClick={() => setAbierto(e)} className={`${fila(PLANTILLA)} w-full text-left`}>
+            <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{e.llegoEn ? fechaCorta(e.llegoEn) : "—"}</span>
             <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(e.fecha)}</span>
             <span className={celda("izq", "text-sm font-semibold tabular-nums text-tinta")}>{e.numero ?? <span className="font-normal text-taupe">Sin envío</span>}</span>
             <span className={celda("izq", "whitespace-normal")}>
@@ -87,7 +88,7 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
       conCerrar
       titulo={envio.numero ?? envio.proveedores.join(" · ")}
       subtitulo={[
-        fechaCorta(envio.fecha),
+        envio.llegoEn ? `Llegó el ${fechaCorta(envio.llegoEn)} · Terminado el ${fechaCorta(envio.fecha)}` : fechaCorta(envio.fecha),
         envio.numero && !variosProveedores ? envio.proveedores[0] : null,
         guias.length > 0 ? `Guía ${guias.join(", ")}` : "Sin guía",
         envio.ubicacion,
