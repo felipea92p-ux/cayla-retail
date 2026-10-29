@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { trayectoDelVuelo, valorDeLaCuenta } from "./vuelo-reglas";
+import { topeDelVuelo, trayectoDelVuelo, unaSolaVez, valorDeLaCuenta } from "./vuelo-reglas";
 
 const caja = (left: number, top: number, width: number, height = width) => ({ left, top, width, height });
 
@@ -30,5 +30,19 @@ describe("el vuelo de la prenda a Tu compra", () => {
     expect(valorDeLaCuenta(636, 1036, 0.5)).toBeGreaterThan(836); // arranca rápido
     expect(valorDeLaCuenta(636, 1036, 2)).toBe(1036);
     expect(valorDeLaCuenta(1036, 636, 0.5)).toBeLessThan(836); // y también hacia abajo
+  });
+  // /chaos 2026-10-28, hallazgo 2: si el navegador cancelaba la animación, el vuelo nunca «aterrizaba» (solo se esperaba su final normal):
+  // la miniatura quedaba en el aire, la línea oculta y Tu compra decía menos de lo que llevaba.
+  it("aterriza una sola vez, llegue por el final, por la cancelación o por el tope de tiempo", () => {
+    let llegadas = 0;
+    const aterrizar = unaSolaVez(() => llegadas++);
+    aterrizar(); // final normal
+    aterrizar(); // cancelación
+    aterrizar(); // tope de tiempo
+    expect(llegadas).toBe(1);
+  });
+  it("el tope le da al vuelo un margen y nunca menos que su duración", () => {
+    expect(topeDelVuelo(620)).toBeGreaterThan(620);
+    expect(topeDelVuelo(520)).toBeLessThan(2000);
   });
 });
