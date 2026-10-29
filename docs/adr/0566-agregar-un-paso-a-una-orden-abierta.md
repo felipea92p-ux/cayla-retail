@@ -1,6 +1,6 @@
 # ADR-0566 — Agregar un paso a una orden ya abierta (ojal y botón)
 
-**Estado:** aceptada; **actividad 1 (la base) construida y probada en local, migración `20261029051000` SIN pegar en producción** · **Fecha:** 2026-10-29 ·
+**Estado:** aceptada; **la base y la web construidas y probadas en local; migración `20261029051000` SIN pegar en producción (va antes de publicar la web, y después de `20261029021000`)** · **Fecha:** 2026-10-29 ·
 **Decidió:** Felipe (opción A, aprobada el 2026-10-29, con los tres defaults de abajo) · **Sigue a:** ADR-0551 (cinco pasos fijos y `quitar_paso_orden`)
 
 ## Contexto
@@ -31,6 +31,19 @@ iría antes de esas prendas y los conteos quedarían contradictorios (Planchado 
 **5. Quién puede: quien ve Producción**, igual que «Quitar este paso» (default aprobado: no pide líder). **Qué pasos ofrece la pantalla:** solo «Ojales y botones», como «Nueva orden»
 (la base acepta los demás opcionales; Limpiar hilos y Etiquetar los hace la tienda). **Qué hace con el modelo:** si nadie ha dicho si el modelo lleva ojales y botones, agregar el paso lo deja
 anotado como «sí lleva» (`guardar_ojales_botones_modelo`, que llama la web); si el modelo ya decía «no», el paso vale solo para esta orden y se avisa. (4 y 5 se construyen en la actividad 2.)
+
+## La web (actividad 2)
+
+- **«+ Agregar un paso»** en la cabecera de «Fases» (`RutaDeFases`), solo si hay algo que agregar (`pasosAgregables`: lo que ofrece «Nueva orden», que no esté ya en la ruta, que no mezcle con la ruta anterior y cuyos pasos
+  de después no hayan empezado). Si un paso no se puede por eso último, la sección **lo dice** («Ojales y botones ya no se puede agregar: Planchado ya empezó, y Ojales y botones iría antes») en vez de esconderlo.
+- **Hoja `AgregarPasoModal`:** la misma fila de «Cambiar quién» y de «Nueva orden» (`FilaFase`: Taller / Afuera, proveedor, tarifa de su lista de precios, mínimo, fecha, «pendiente de registrar» y alta de proveedor nuevo)
+  y quién lo anota; la bajada dice entre qué pasos entra. Guía de foco propia (`camposDeAgregarPaso`) y «¿Salir sin guardar?».
+- **El modelo:** si nadie había dicho si lleva ojales y botones, agregar el paso lo deja anotado como «sí lleva» (`guardar_ojales_botones_modelo`, firmado; si falla, el paso ya quedó); si el modelo decía «no», la hoja avisa que vale
+  solo para esta orden. Va escrito en la hoja ANTES de guardar, no después.
+- **«Deshacer»** en el aviso de éxito: quita el paso recién agregado con el mismo camino de «Quitar este paso» (`quitar_paso_orden`). «Quitar este paso» ya no dice «no se puede volver a agregar».
+- Guía interactiva de Producción al día (dos pasos nuevos: el botón y la fila) y la hoja registrada en la guía de foco.
+- Verificado en el navegador contra Postgres local: agregar afuera con la tarifa y el mínimo de la lista (1.80 · 20), agregar en el Taller, Deshacer, quitar y volver a agregar, y el caso de Planchado ya empezado; 375 px y modo oscuro.
+  El costo estimado de la orden ya muestra el paso nuevo («al volver»); lo real llega con la vuelta.
 
 ## DESCARTÉ
 
