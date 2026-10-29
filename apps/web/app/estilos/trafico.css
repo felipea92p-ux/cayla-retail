@@ -353,15 +353,6 @@
     stroke: var(--color-papel);
     stroke-width: 2;
   }
-  .trafico-mapa-nombre {
-    fill: var(--color-tinta);
-    font-size: 17px;
-    font-weight: 600;
-    paint-order: stroke;
-    stroke: var(--color-papel);
-    stroke-width: 4px;
-    stroke-linejoin: round;
-  }
   .trafico-mapa-muestra {
     display: inline-block;
     width: 9px;
