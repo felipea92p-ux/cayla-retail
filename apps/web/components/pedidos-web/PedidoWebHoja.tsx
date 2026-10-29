@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { MessageCircle, PackageSearch, ReceiptText, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -17,6 +17,8 @@ import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoInte
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { DetalleVentaModal } from "@/components/DetalleVentaModal";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { MiniPrenda } from "@/components/pedidos-web/PedidosWebPantalla";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
@@ -655,7 +657,7 @@ export function PedidoWebHoja({
               )}
               <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} onReservar={reservar} />
               <BloqueDinero pedido={p} ahora={ahora} />
-              <BloqueBoleta boleta={p.boleta} />
+              <BloqueBoleta boleta={p.boleta} acciones={<AccionesTicket pedido={p} />} />
               {faltan.length > 0 ? (
                 <>
                   <Aviso tono="info" titulo="Todavía no se puede entregar">
@@ -751,7 +753,7 @@ export function PedidoWebHoja({
               {lineasVivas.length > 0 && p.estado !== "vencido" && (
                 <BloqueDinero pedido={p} ahora={ahora} onAnularPago={p.estado === "anulado" ? onAnularPago : undefined} />
               )}
-              {p.estado === "entregado" && <BloqueBoleta boleta={p.boleta} />}
+              {p.estado === "entregado" && <BloqueBoleta boleta={p.boleta} acciones={<AccionesTicket pedido={p} />} />}
               {p.estado === "anulado" && p.ventaId && <BloqueBoleta boleta={p.boleta} nota={p.notaCredito} anulado />}
               <Aviso tono="info">
                 {p.estado === "entregado"
@@ -789,9 +791,40 @@ function BloqueCliente({ pedido: p, whatsapp }: { pedido: PedidoDetalle; whatsap
   );
 }
 
+/** Imprimir el ticket de la boleta del pedido (se abre el detalle de su venta, que ya sabe imprimir ticket y A4) y mandárselo al cliente
+ *  por WhatsApp (lo manda la persona desde wa.me: el texto lleva la boleta y el total; el PDF lo pide el cliente o se imprime). Una boleta
+ *  anulada o liberada no se ofrece. */
+function AccionesTicket({ pedido: p }: { pedido: PedidoDetalle }) {
+  const [abierto, setAbierto] = useState(false);
+  if (!p.ventaId || !p.boleta || p.boleta.estado === "anulado" || p.boleta.estado === "no_emitido") return null;
+  return (
+    <>
+      <BotonImprimir chico onClick={() => setAbierto(true)}>
+        Imprimir ticket
+      </BotonImprimir>
+      <BotonAncla href={enlaceWhatsappPedido(p, "boleta")} target="_blank" rel="noopener noreferrer" className="btn-chico">
+        <MessageCircle aria-hidden className="h-4 w-4" />
+        Enviar por WhatsApp
+      </BotonAncla>
+      {abierto && <DetalleVentaModal ventaId={p.ventaId} vendedor={p.entregadoPor} ubicacionNombre={p.tienda} onClose={() => setAbierto(false)} />}
+    </>
+  );
+}
+
 /** La boleta del pedido (salió sola al quedar pagado completo) y en qué va su envío a SUNAT. Sin boleta (una base sin la actividad 10),
  *  nada. `anulado`: el pedido se anuló después de pagarse; la boleta se liberó sin enviarla o la anuló su `nota` de crédito. */
-function BloqueBoleta({ boleta, nota = null, anulado = false }: { boleta: BoletaWeb | null; nota?: NotaCreditoWeb | null; anulado?: boolean }) {
+function BloqueBoleta({
+  boleta,
+  nota = null,
+  anulado = false,
+  acciones,
+}: {
+  boleta: BoletaWeb | null;
+  nota?: NotaCreditoWeb | null;
+  anulado?: boolean;
+  /** Imprimir el ticket y mandarlo por WhatsApp: solo de una boleta que sigue viva (no la del pedido anulado). */
+  acciones?: ReactNode;
+}) {
   if (!boleta) return null;
   const estado = estadoDeBoleta(boleta.estado);
   const estadoNota = nota ? estadoDeBoleta(nota.estado) : null;
@@ -807,6 +840,7 @@ function BloqueBoleta({ boleta, nota = null, anulado = false }: { boleta: Boleta
           {!anulado ? "Salió al quedar pagado completo." : nota ? "La anula su nota de crédito." : boleta.estado === "no_emitido" ? "Se liberó sin enviarla a SUNAT." : ""}
         </span>
       </p>
+      {acciones && <div className="flex flex-wrap gap-2 pl-6 pt-1">{acciones}</div>}
       {nota && estadoNota && (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-[13px] text-tinta">
           <span>
