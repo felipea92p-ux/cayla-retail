@@ -20,6 +20,7 @@ import {
   lineasParaRegistrar,
   nombreDeCuenta,
   solesBalance,
+  solesExactos,
   tituloCorte,
   valoresIniciales,
   type LineaPropuesta,
@@ -222,7 +223,7 @@ export function SaldosArranqueModal({
               <span className="text-verde">Cuadra</span>
             ) : (
               <span className="text-ambar">
-                {cuadre.diferencia > 0 ? "Falta explicar" : "Sobra"} {solesBalance(Math.abs(cuadre.diferencia))} en lo que era tuyo
+                {cuadre.diferencia > 0 ? "Falta explicar" : "Sobra"} {solesExactos(Math.abs(cuadre.diferencia))} en lo que era tuyo
               </span>
             )}
           </div>

@@ -255,3 +255,14 @@ describe("fechaCorta: una fecha o un instante, siempre el día de Lima", () => {
     expect(fechaCorta("2026-10-12T15:00:00.123+00:00")).toBe("12/10/2026");
   });
 });
+
+import { notaSinEnvio, numeroDeEnvioEnNota } from "./compras-reglas";
+describe("número de envío en la nota del lote", () => {
+  it("lo lee y lo quita de la nota", () => {
+    expect(numeroDeEnvioEnNota("Envío ENV-000254 · Costo atípico confirmado")).toBe("ENV-000254");
+    expect(notaSinEnvio("Envío ENV-000254 · Costo atípico confirmado")).toBe("Costo atípico confirmado");
+    expect(notaSinEnvio("Envío ENV-000254")).toBeNull();
+    expect(numeroDeEnvioEnNota("caja mojada")).toBeNull();
+    expect(notaSinEnvio("caja mojada")).toBe("caja mojada");
+  });
+});

@@ -73,7 +73,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Escanear con la cámara",
-      texto: "En el celular o la tablet no hay lector: este botón abre la cámara para leer el código de la etiqueta.",
+      texto: "En el celular o la tablet no hay lector: este botón abre la cámara para leer la etiqueta. Arriba tiene un interruptor: «Al ticket» agrega la prenda; «Existencias» solo mira y dice cuántas hay de cada talla y color, en el piso y en el almacén.",
     },
     {
       id: "sin-registrar",
@@ -283,6 +283,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       titulo: "Apartados",
       texto: "Para separar prendas a un cliente que vuelve después. Con prendas en el ticket, este botón se las lleva a Apartados ya cargadas.",
+    },
+    {
+      id: "danada",
+      ancla: "vender.danada",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Separé una dañada",
+      texto: "Si ves una prenda dañada en el piso, la separas aquí en el momento: eliges la prenda, la talla y qué tiene, y deja de venderse. En la demo no se toca.",
     },
     {
       id: "hoy",

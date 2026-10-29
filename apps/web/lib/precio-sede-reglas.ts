@@ -48,6 +48,48 @@ export function leerPreciosDeSede(filas: readonly FilaPrecioSede[] | null | unde
   }));
 }
 
+/** Una combinación (color y talla) con precio propio en UNA tienda (20261028230000, Felipe 2026-10-28): gana al precio de la prenda en esa tienda. */
+export type ExcepcionDeSede = {
+  varianteId: string;
+  ubicacionId: string;
+  sede: string;
+  precio: number;
+  desde: string;
+  motivo: string;
+  creadoPor: string | null;
+};
+
+export type FilaExcepcionDeSede = {
+  variante_id: string;
+  ubicacion_id: string;
+  sede: string;
+  precio: number | string;
+  desde: string;
+  motivo: string;
+  creado_por_nombre: string | null;
+};
+
+/** Las filas de `fn_precios_sede_variantes_producto`. Una fila sin combinación, sin tienda o sin un precio válido se descarta (no se inventa). */
+export function leerExcepcionesDeSede(filas: readonly FilaExcepcionDeSede[] | null | undefined): ExcepcionDeSede[] {
+  return (filas ?? []).flatMap((f) => {
+    const precio = Number(f.precio);
+    if (!f.variante_id || !f.ubicacion_id || !Number.isFinite(precio) || precio <= 0) return [];
+    return [{ varianteId: f.variante_id, ubicacionId: f.ubicacion_id, sede: f.sede, precio, desde: f.desde, motivo: f.motivo, creadoPor: f.creado_por_nombre }];
+  });
+}
+
+/** Las excepciones de UNA tienda, en el orden en que llegaron. */
+export const excepcionesDeLaTienda = (excepciones: readonly ExcepcionDeSede[], ubicacionId: string): ExcepcionDeSede[] => excepciones.filter((e) => e.ubicacionId === ubicacionId);
+
+/**
+ * El precio de cada combinación de una tienda con sus excepciones encima: la de la ficha de «Precio por tienda» dice «S/ 79.90 en todas las tallas»
+ * solo si de verdad es uno; con una excepción, «según la talla». `precioPrenda` es el de la prenda en esa tienda (el propio o el general).
+ */
+export function precioDeLaTiendaPorTalla(precioPrenda: number | null, excepciones: readonly ExcepcionDeSede[]): { unico: boolean; precio: number | null } {
+  if (excepciones.length === 0) return { unico: precioPrenda !== null, precio: precioPrenda };
+  return { unico: false, precio: null };
+}
+
 /** Por encima de esta diferencia con el general, la hoja pregunta «¿seguro?» (no bloquea; Felipe 2026-10-09). */
 export const AVISO_DIFERENCIA = 0.3;
 
@@ -155,34 +197,30 @@ export function precioEnLaSede(
  *  sin precio propio de una prenda con precio por talla vende de `precio` a `hasta` («S/ 69.90–79.90»). */
 export type PrecioDeTienda = { sede: string; precio: number; hasta?: number };
 
-/** Por prenda con algún precio propio, el precio en CADA tienda abierta: el propio (uno para toda la prenda) o, si no tiene, el de la
- *  prenda (`preciosPrenda`: de su talla más barata a la más cara; con precio por talla, un rango). Ordenado por tienda. Las prendas sin
- *  precios propios no aparecen. `porSede` es lo de `getPreciosPorSede` (solo las variantes que cambian de precio en esa tienda);
- *  `nombres`, las tiendas abiertas. */
+/** Por prenda con algún precio propio, el precio en CADA tienda abierta: lo que vale cada talla que se vende (su precio propio en esa tienda, o el de la
+ *  prenda si no lo tiene), de la más barata a la más cara. Una tienda donde todas valen lo mismo dice UN precio; si las tallas valen distinto (una excepción
+ *  por combinación, o una prenda con precio por talla) dice el rango, como siempre. Ordenado por tienda. Las prendas sin precios propios no aparecen.
+ *  `precios` = cada talla que se vende y su precio de la prenda (`variantes.precio`); `porSede` es lo de `getPreciosPorSede` (solo las variantes que cambian
+ *  de precio en esa tienda); `nombres`, las tiendas abiertas. */
 export function preciosDeTiendaPorProducto(
-  productos: readonly { productoId: string; varianteIds: readonly string[]; preciosPrenda: { desde: number; hasta: number } | null }[],
+  productos: readonly { productoId: string; precios: Readonly<Record<string, number>> }[],
   porSede: Readonly<Record<string, Readonly<Record<string, number>>>>,
   nombres: ReadonlyMap<string, string>,
 ): Record<string, PrecioDeTienda[]> {
   const out: Record<string, PrecioDeTienda[]> = {};
   for (const p of productos) {
-    const propioEn = (sedeId: string) => {
-      const precios = porSede[sedeId];
-      if (!precios) return undefined;
-      for (const id of p.varianteIds) if (precios[id] !== undefined) return precios[id];
-      return undefined;
-    };
+    const ids = Object.keys(p.precios);
+    if (ids.length === 0) continue;
     const sedes = new Set([...nombres.keys(), ...Object.keys(porSede)]);
-    if (![...sedes].some((s) => propioEn(s) !== undefined)) continue;
+    const tienePropio = (sedeId: string) => ids.some((id) => porSede[sedeId]?.[id] !== undefined);
+    if (![...sedes].some(tienePropio)) continue;
     const lista: PrecioDeTienda[] = [];
     for (const sedeId of sedes) {
       const sede = nombreCorto(nombres.get(sedeId) ?? "otra tienda");
-      const propio = propioEn(sedeId);
-      if (propio !== undefined) lista.push({ sede, precio: propio });
-      else if (p.preciosPrenda) {
-        const { desde, hasta } = p.preciosPrenda;
-        lista.push(hasta - desde >= 0.005 ? { sede, precio: desde, hasta } : { sede, precio: desde });
-      }
+      const valores = ids.map((id) => porSede[sedeId]?.[id] ?? p.precios[id]!);
+      const desde = Math.min(...valores);
+      const hasta = Math.max(...valores);
+      lista.push(hasta - desde >= 0.005 ? { sede, precio: desde, hasta } : { sede, precio: desde });
     }
     out[p.productoId] = lista.sort((a, b) => a.sede.localeCompare(b.sede, "es") || a.precio - b.precio);
   }

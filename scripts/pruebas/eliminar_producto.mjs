@@ -340,6 +340,10 @@ select pg_temp.huella(:'va');`);
     // 2026-10-10 es de la prenda (`precios_sede_prenda`); la tabla por variante quedó como historia.
     "precios_sede",
     "precios_sede_prenda",
+    // ADR-0370 (precio por combinación): la excepción de precio de UNA talla en una tienda tampoco se borra (solo se archiva: un disparador lo
+    // impide) y su llave a `variantes` es sin cascada, así que frena el borrado de una prenda que la tuvo. Pendiente aparte, como `trafico_web`:
+    // que `fn_producto_se_puede_eliminar` lo diga con su mensaje en vez del error de la llave.
+    "precios_sede_variante",
     // ADR-0362 fase 4: lo que una sede contó al recibir un envío de orden de compra (talla por talla) es historia de la prenda.
     "despacho_recibidos",
     // ADR-0393: lo contado al recibir que todavía no entró al stock (un pendiente «detalle») también: renglón 23 de

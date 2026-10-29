@@ -44,3 +44,22 @@ export function fotoFormulario(valor: unknown): string {
       : v
   );
 }
+
+/** Una guardia de «¿Salir sin guardar?» viva en la pantalla: si tiene algo que perder y cómo preguntarlo. */
+type GuardiaViva = { debePreguntar: () => boolean; pedirAccion: (hacer: () => void) => void };
+const guardiasVivas = new Set<GuardiaViva>();
+
+/** La anota `useSalidaSinGuardar` al montarse; lo que devuelve la saca al desmontarse. */
+export function registrarGuardia(g: GuardiaViva): () => void {
+  guardiasVivas.add(g);
+  return () => void guardiasVivas.delete(g);
+}
+
+/** Para lo que rehace la pantalla SIN navegar (el selector de sede, /chaos 2026-10-28): si alguna guardia tiene algo sin guardar, ella
+ *  pregunta «¿Salir sin guardar?» y `hacer` corre solo si la persona confirma; si no, corre ya. Ningún enlace pasa por aquí: esos los
+ *  frena la guardia sola. */
+export function antesDeRehacerLaPantalla(hacer: () => void): void {
+  const conCambios = [...guardiasVivas].find((g) => g.debePreguntar());
+  if (conCambios) conCambios.pedirAccion(hacer);
+  else hacer();
+}

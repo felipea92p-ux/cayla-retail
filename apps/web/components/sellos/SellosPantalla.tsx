@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Award, CalendarHeart, HandHeart, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
@@ -33,8 +34,8 @@ import { createClient } from "@/lib/supabase/client";
 import { subirImagenDeInsignia } from "@/lib/imagen-de-insignia";
 import { eleccionDeLoGuardado, type EleccionDeDibujo } from "@/lib/eleccion-de-dibujo";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
-import { chipDeTarjeta, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
-import { vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { avisoReimprimir, chipDeTarjeta, destinoReimprimir, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
+import { textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -126,6 +127,7 @@ export function SellosPantalla({
   reglasDisponibles: boolean;
 }) {
   const hoy = hoyLima();
+  const router = useRouter();
   const responsable = useResponsable();
   const [vista, setVista] = useState<VistaSellos>(vistaInicial);
   const [etiquetas, setEtiquetas] = useState(() => ordenarEtiquetas(etiquetasIniciales));
@@ -133,6 +135,8 @@ export function SellosPantalla({
   const [abiertoPorVista, setAbiertoPorVista] = useState<Partial<Record<VistaSellos, string>>>({});
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
+  // Cuándo rige la campaña que se está creando: opcional, vacías = rige siempre (Felipe 2026-10-28). Una insignia no las usa.
+  const [fechasNuevas, setFechasNuevas] = useState({ desde: "", hasta: "" });
   // El dibujo (o la imagen propia) elegido al crear (ADR-0490); `null` = todavía nada: se queda el que sugiere el nombre. Y el de una que ya
   // existe: su hoja y si está guardando.
   const [eleccion, setEleccion] = useState<EleccionDeDibujo | null>(null);
@@ -193,7 +197,12 @@ export function SellosPantalla({
       const res = await fetch("/api/productos/etiquetas", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, estilo, ...(eleccion?.tipo === "dibujo" ? { icono: eleccion.clave } : {}) }),
+        body: JSON.stringify({
+          nombre,
+          estilo,
+          ...(eleccion?.tipo === "dibujo" ? { icono: eleccion.clave } : {}),
+          ...(esCampanas ? { vigenteDesde: fechasNuevas.desde, vigenteHasta: fechasNuevas.hasta } : {}),
+        }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -210,8 +219,8 @@ export function SellosPantalla({
         icono: dibujoElegido(datos.etiqueta.icono),
         imagen: null,
         imagenSilueta: false,
-        vigenteDesde: null,
-        vigenteHasta: null,
+        vigenteDesde: datos.vigenteDesde ?? null,
+        vigenteHasta: datos.vigenteHasta ?? null,
         descuentoPct: null,
         categoriaIds: [],
         sedeIds: [],
@@ -232,11 +241,13 @@ export function SellosPantalla({
       const { titulo, detalle } = avisoEtiquetaAgregada(datos.etiqueta.nombre, datos.etiqueta.estado, esCampanas ? "campanas" : "sellos");
       avisar.exito(titulo, detalle ? { detalle } : undefined);
       // Una campaña se crea y su dibujo se fija después: si esa segunda escritura falló, la campaña quedó y se dice (se ve por su nombre).
+      if (datos.avisoFechas) avisar.aviso("Las fechas no se guardaron", { detalle: datos.avisoFechas });
       if (datos.avisoDibujo) avisar.aviso("El ícono no se guardó", { detalle: `${datos.avisoDibujo} Elígelo desde «Editar» en su pase.` });
       if (avisoImagen) avisar.aviso("La imagen no se guardó", { detalle: `${avisoImagen} Sube otra desde «Editar» en su pase.` });
       setAgregando(false);
       setNombre("");
       setEleccion(null);
+      setFechasNuevas({ desde: "", hasta: "" });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -366,13 +377,53 @@ export function SellosPantalla({
         dibujoCambiado = true;
       }
       if (dibujoCambiado) setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen, imagenSilueta } : x)));
+      // Las fechas de una campaña (Felipe 2026-10-28): la puerta de siempre guarda descuento, fechas y categorías juntos, así que se mandan los
+      // de hoy tal cual y solo cambian las fechas. Sin `sedeIds`: no se toca lo que esta hoja no vio.
+      let detalleFechas: string | undefined;
+      let reimprimir: ReturnType<typeof avisoReimprimir> = null;
+      let destino: string | null = null;
+      if (cambios.fechas !== null) {
+        const { desde, hasta } = cambios.fechas;
+        const yaQuedo = [cambios.nombre !== null ? `el nombre quedó como «${nombreFinal}»` : null, dibujoCambiado ? "el ícono ya cambió" : null].filter(Boolean).join(" y ");
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, campana: { descuentoPct: e.descuentoPct, vigenteDesde: desde, vigenteHasta: hasta, categoriaIds: e.categoriaIds } }),
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const motivo = datos.error ?? "No se pudieron guardar las fechas de la campaña.";
+          avisar.error(yaQuedo ? `Ya quedó guardado: ${yaQuedo}. Pero ${motivo.charAt(0).toLowerCase()}${motivo.slice(1)}` : motivo);
+          return;
+        }
+        // Si cambiar las fechas movió HOY el precio en caja de alguna prenda, su etiqueta de papel quedó vieja: el aviso lo dice y lleva a imprimir.
+        const cambian = prendasQueCambianDePrecioHoy(
+          e,
+          { descuentoPct: e.descuentoPct, vigenteDesde: desde, vigenteHasta: hasta, categoriaIds: e.categoriaIds, sedeIds: e.sedeIds },
+          prendasConCosto,
+          new Set(manuales[e.id] ?? []),
+          hoy,
+          { tiendas, aqui: sedeActualId },
+        );
+        destino = destinoReimprimir(cambian, e.id);
+        reimprimir = avisoReimprimir(cambian, destino !== null);
+        setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, vigenteDesde: desde, vigenteHasta: hasta } : x)));
+        detalleFechas = textoRango(desde, hasta) ? `Ahora rige ${textoRango(desde, hasta)}.` : "Ahora rige sin fechas.";
+      }
       responsable.despues(null);
       const detalleDibujo =
         nuevo?.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo?.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : nuevo?.tipo === "imagen" ? "Ahora lleva tu imagen." : undefined;
-      avisar.exito(
-        cambios.nombre !== null ? `${que === "la campaña" ? "Campaña" : "Insignia"} ahora se llama ${nombreFinal}` : `Ícono de ${nombreFinal} cambiado`,
-        detalleDibujo ? { detalle: detalleDibujo } : undefined,
-      );
+      const titulo =
+        cambios.nombre !== null
+          ? `${que === "la campaña" ? "Campaña" : "Insignia"} ahora se llama ${nombreFinal}`
+          : nuevo === null && cambios.fechas !== null
+            ? `Fechas de ${nombreFinal} guardadas`
+            : `Ícono de ${nombreFinal} cambiado`;
+      const detalle = [detalleDibujo, detalleFechas, reimprimir?.detalle].filter(Boolean).join(" ");
+      avisar.exito(titulo, {
+        ...(detalle ? { detalle } : {}),
+        ...(destino && reimprimir?.boton ? { accion: { texto: reimprimir.boton, onClick: () => router.push(destino as string) } } : {}),
+      });
       setEditandoId(null);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -469,7 +520,7 @@ export function SellosPantalla({
                       chico
                       onClick={() => setEditandoId(e.id)}
                       guia={esAbierto ? "sellos.editar" : undefined}
-                      title={`Corregir el nombre o cambiar el ícono ${e.estilo === "campana" ? "de la campaña" : "de la insignia"}`}
+                      title={e.estilo === "campana" ? "Corregir su nombre, cambiar su ícono o sus fechas" : "Corregir el nombre o cambiar el ícono de la insignia"}
                       className="ml-auto"
                     />
                   )}
@@ -565,11 +616,11 @@ export function SellosPantalla({
         <button
           type="button"
           onClick={() => (conOfertas ? setOfertandoId(e.id) : setConfigurando(e))}
-          title={conOfertas ? (boton.texto === "Repetir" ? boton.title : "Sus ofertas y sus fechas") : boton.title}
+          title={conOfertas ? "Sus ofertas: cuánto baja, en qué prendas y cuándo" : boton.title}
           data-guia={conGuia ? "sellos.configurar" : undefined}
           className="btn-cayla btn-sutil btn-chico"
         >
-          {boton.texto}
+          {conOfertas ? "Configurar" : boton.texto}
         </button>
         {imprimir && (
           <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico>
@@ -822,12 +873,14 @@ export function SellosPantalla({
           onNombre={setNombre}
           eleccion={eleccion}
           onEleccion={setEleccion}
+          {...(esCampanas ? { fechas: fechasNuevas, onFechas: setFechasNuevas } : {})}
           responsable={responsable}
           guardando={guardando}
           onGuardar={guardar}
           onClose={() => {
             setAgregando(false);
             setEleccion(null);
+            setFechasNuevas({ desde: "", hasta: "" });
           }}
         />
       )}
@@ -839,6 +892,8 @@ export function SellosPantalla({
           actual={eleccionDeLoGuardado({ nombre: editando.nombre, icono: editando.icono, imagen: editando.imagen, silueta: editando.imagenSilueta })}
           esDelNombre={!editando.icono && !esRutaDeImagenDeInsignia(editando.imagen)}
           esCampana={editando.estilo === "campana"}
+          fechas={editando.estilo === "campana" ? { desde: editando.vigenteDesde, hasta: editando.vigenteHasta } : undefined}
+          hoy={hoy}
           responsable={responsable}
           guardando={guardandoEdicion}
           onGuardar={(cambios) => guardarEdicion(editando, cambios)}

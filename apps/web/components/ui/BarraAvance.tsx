@@ -28,6 +28,7 @@ export function BarraAvance({
   etiqueta,
   texto,
   decorativa = false,
+  sobreTinta = false,
   indice,
   title,
   className = "",
@@ -45,6 +46,8 @@ export function BarraAvance({
   texto?: string;
   /** El texto de al lado ya dice lo mismo: la barra se oculta al lector. */
   decorativa?: boolean;
+  /** Sobre una superficie pintada de tinta (la billetera de Mis compras, que se invierte con el tema): pista y relleno en crema. Ignora el verde de «completo». */
+  sobreTinta?: boolean;
   /** Posición en una lista: desfasa la entrada (38 ms por fila). */
   indice?: number;
   title?: string;
@@ -58,7 +61,7 @@ export function BarraAvance({
     ? ({ "aria-hidden": true } as const)
     : ({ role: "progressbar", "aria-valuenow": Math.round(p), "aria-valuemin": 0, "aria-valuemax": 100, "aria-label": etiqueta, "aria-valuetext": texto } as const);
   return (
-    <span data-alto={alto} data-tono={color} title={title} className={`barra-avance ${className}`} style={estilo} {...lector}>
+    <span data-alto={alto} data-tono={color} data-sobre-tinta={sobreTinta || undefined} title={title} className={`barra-avance ${className}`} style={estilo} {...lector}>
       <span className="barra-avance-lleno" />
       {marcas.map((m, i) => (
         <span key={i} aria-hidden className="barra-avance-marca" style={{ "--m": `${acotar(m)}%` } as CSSProperties} />

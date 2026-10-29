@@ -523,7 +523,7 @@ export function DevolucionesFlujo({
             </Aviso>
           )}
 
-          <PieDelPaso aviso={null} guia="devolucion.registrar">
+          <PieDelPaso aviso={null} guia="devolucion.confirmar">
             <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
               <BotonSecundario onClick={onCerrar} disabled={enviando}>

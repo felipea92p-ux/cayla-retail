@@ -163,20 +163,23 @@ describe("las prendas de una insignia, por modelo y color", () => {
 });
 
 describe("lo que dice el pase abierto", () => {
-  it("lo que tiene una campaña: fechas y prendas la hacen funcionar; el descuento es opcional", () => {
+  it("lo que tiene una campaña: fechas y prendas la hacen funcionar; las ofertas y promociones son opcionales", () => {
     expect(loQueTiene(FILAS[0]!, 0, [], HOY).map((x) => [x.clave, x.hecho, x.opcional])).toEqual([
       ["fechas", true, false],
       ["prendas", false, false],
-      ["descuento", true, true],
     ]);
+    // Ya no hay fila «Descuento»: el descuento se arma con ofertas (ADR-0496).
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 0, borradores: 0 }).map((x) => x.clave)).not.toContain("descuento");
     expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY)[1]!.detalle).toBe("47 prendas de Maquillaje");
     expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY, 7)[1]!.detalle).toBe("47 prendas: 40 de Maquillaje y 7 marcadas a mano");
     expect(loQueTiene(FILAS[1]!, 0, ["Poleras"], HOY)[1]!.detalle).toBe("Poleras, todavía sin prendas a la venta");
     expect(loQueTiene(FILAS[5]!, 0, [], HOY)[0]).toMatchObject({ hecho: false, detalle: "sin fechas" });
-    // Sin ofertas conocidas la lista es la de siempre; con ellas suma una fila opcional.
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY)).toHaveLength(3);
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 0, borradores: 0 })[3]).toMatchObject({ clave: "ofertas", hecho: false, opcional: true, detalle: "ninguna todavía" });
-    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 3, borradores: 1 })[3]).toMatchObject({ hecho: true, detalle: "3 ofertas · 1 en borrador" });
+    // Sin ofertas conocidas la lista es la de siempre; con ellas suma dos filas opcionales: Ofertas y, debajo, Promociones.
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY)).toHaveLength(2);
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 0, borradores: 0 }).map((x) => x.clave)).toEqual(["fechas", "prendas", "ofertas", "promociones"]);
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 2, borradores: 0 })[3]).toMatchObject({ clave: "promociones", hecho: false, opcional: true, detalle: "ninguna todavía" });
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 0, borradores: 0 })[2]).toMatchObject({ clave: "ofertas", hecho: false, opcional: true, detalle: "ninguna todavía" });
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY, 0, { total: 3, borradores: 1 })[2]).toMatchObject({ hecho: true, detalle: "3 ofertas · 1 en borrador" });
   });
 });
 

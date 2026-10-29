@@ -572,3 +572,34 @@ migraciones de `main`: una sola petición por tarjeta, la marca solo en las lín
 Revisar y en Confirmar y 375 px sin desborde. Revisión independiente de solo lectura (tres lentes —SQL, web, integración con `main`— y un
 escéptico por hallazgo): ninguno bloquea ni corrompe; lo confirmado quedó en BAJA y se atendió aquí (respaldo quitado, frase,
 comentarios y referencias) o quedó listado arriba.
+
+## Actualización 2026-10-28 — Con la carga cerrada, Nuevo producto recibe lo que llegó (no lo manda a otro módulo)
+
+**El problema.** Desde el 15-oct Trujillo cerró su carga inicial, y Nuevo producto apagó la tabla entera («La carga inicial de Tienda Trujillo
+ya se cerró»): la prenda nacía sin unidades y quien la tenía en la mano tenía que ir a «Llegó mercadería», buscar la prenda recién creada y
+escribir otra vez lo mismo. Felipe (2026-10-28): «se debe poder ingresar unidades por ahí, ya que a veces pasa que lo usan y es engorroso
+tener que ir a otro módulo».
+
+**DECIDÍ:** la carga inicial sigue cerrada, pero la tabla no se apaga: pasa a «Cuántas llegaron», y lo que se escribe entra como una
+**llegada de mercadería del proveedor elegido en el paso 2**, con fecha de hoy, al almacén de entrada de la tienda (igual que
+«Llegó mercadería», ADR-0330). Una función nueva, `retail.crear_producto_con_llegada` (`20261028221000_alta_con_llegada.sql`), hace en
+UNA transacción el alta de siempre sin cantidades (`crear_producto_con_stock_inicial`, o `crear_producto_con_empresa` en Lima) y
+`recibir_lote` sin cambios. El proveedor pasa a ser obligatorio solo en ese caso (`lotes.proveedor_id` lo es): sin él, el paso 4 lo dice
+con «Elegir proveedor», que lleva al campo. No se pregunta «piso o almacén»: lo que llega entra al almacén y se baja al piso, como dice
+esta misma ADR («se cuenta allí y luego se cuelga»). La pantalla de éxito dice «recibidas de <proveedor>» y el sello, «Llegada».
+
+**DESCARTÉ:** reabrir la carga inicial (deshace el cierre del 15-oct: la prenda entraría sin fecha real de llegada ni proveedor, y Frescura
+la contaría como «al menos N días»); y hacer dos llamadas desde el navegador (alta y después `recibir_lote`), porque un corte de red entre
+las dos deja una prenda «con unidades» sin unidades. Con una sola función, el mismo token devuelve el mismo producto y el mismo lote.
+
+**SE ROMPE SI:** alguien cambia la firma de `crear_producto_con_stock_inicial`, `crear_producto_con_empresa` o `recibir_lote` sin tocar la
+nueva (`pnpm pruebas:alta-con-llegada` la llama de punta a punta en el CI); o se agrega otra puerta de alta que vuelva a apagar la tabla.
+
+**En producción desde el 2026-10-28:** `20261028221000` aplicada por Claude con el OK de Felipe (línea de comandos de Supabase, archivo tal cual,
+«QUEDÓ BIEN»), antes de publicar la web. Producción no tiene la lista de la hora declarada en `fn_actor_persona_id` (20261013155000), así que no
+hubo nada que sumar: la hora declarada vale en todas las funciones.
+
+**Corrección del mismo día (/chaos, semilla 2810):** la llegada ya **no le manda el costo a `recibir_lote`**. Con un costo igual o mayor
+que el precio (que el alta solo avisa), `recibir_lote` lo rechazaba como «costo fuera de lo normal» y el alta entera fallaba, o pedía a un
+líder confirmar algo que desde aquí nadie podía confirmar. El costo ya lo fija el alta en la variante y el promedio sobre stock cero da lo
+mismo; lo único que no queda es la línea «compra» del historial de costo de esa prenda. Lo vigila `pnpm pruebas:alta-con-llegada` (L2).

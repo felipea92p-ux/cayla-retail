@@ -2,17 +2,21 @@
   "guia": "tienda-web.trafico",
   "ruta": "/tienda-web/trafico",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 15,
   "controles": {
     "app/(app)/tienda-web/trafico/page.tsx": [
       "BotonLimpiar «Limpiar filtros»"
     ],
+    "components/trafico/AtencionTrafico.tsx": [
+      "Pestanas «→(c) => setVista(c as Vista)»"
+    ],
     "components/trafico/ControlesTrafico.tsx": [
-      "Link «{p.title}»",
       "SegmentoEnlaces «(sin nombre)»"
     ],
     "components/trafico/DeDondeVienen.tsx": [
-      "Link «{`${f.nombre}»"
+      "SegmentoDeslizante «Ver por»",
+      "Link «{`${CAMINOS[c]}»",
+      "Link «{`${CIUDADES[c].nombre}»"
     ],
     "components/trafico/FiltrosPuestosTrafico.tsx": [
       "FiltroPuesto «{`Quitar el filtro ${camino.nombre}»",
@@ -22,13 +26,16 @@
     "components/trafico/PorQue.tsx": [
       "button «{guia}»"
     ],
-    "components/trafico/TablasTrafico.tsx": [
-      "button «{p.nombre}»",
-      "Link «{CAMINOS[c]}»",
-      "Link «{CIUDADES[c].nombre}»"
+    "components/trafico/PrendasTrafico.tsx": [
+      "BotonVerMas «{`Ver ${lista.length - A_LA_VISTA}»",
+      "button «{guia ? \"trafico.prenda\" : undefined}»"
     ],
-    "components/trafico/VitrinaTrafico.tsx": [
-      "button «{k === 0 ? \"trafico.prenda\" : undefined}»"
+    "components/trafico/PulsoTrafico.tsx": [
+      "button «{x.nombre}»",
+      "SegmentoDeslizante «Cómo contar»"
+    ],
+    "components/trafico/TallasTrafico.tsx": [
+      "BotonVerMas «{`Ver ${filas.length - A_LA_VISTA}»"
     ]
   }
 }

@@ -47,7 +47,9 @@ export function leerMontoPlata(texto: string): number | null {
     }
   }
   if (/[.,]/.test(entera)) {
-    if (!/^\d{1,3}([.,]\d{3})+$/.test(entera)) return null; // los miles van de a 3 cifras
+    // Los miles van de a 3 cifras y el primer grupo no empieza en 0: «0,045» no es 0 + «045» = S/ 45 (mil veces más), es un decimal que esta
+    // hoja no admite (revisión de «una tela con sus colores», G13); el costo de un botón a S/ 0.045 se lee con `leerCostoUnitario`.
+    if (!/^[1-9]\d{0,2}([.,]\d{3})+$/.test(entera)) return null;
     if (new Set(entera.replace(/\d/g, "")).size > 1) return null; // y con un solo signo
   }
   const n = Number(`${entera.replace(/[.,]/g, "") || "0"}${centimos ? `.${centimos}` : ""}`);
@@ -72,4 +74,43 @@ export function numeroDeMonto(texto: string): number {
 /** El campo dice que no entendió lo escrito: hay algo y no se lee. */
 export function montoIlegible(texto: string): boolean {
   return lecturaCampoMonto(texto).ilegible;
+}
+
+/** Lo que dice la hoja cuando el costo por unidad escrito no se entiende. */
+export const COSTO_UNITARIO_ILEGIBLE = "No se entiende el costo: escríbelo así, 0.045 o 2,50.";
+
+/**
+ * El costo POR UNIDAD de un insumo (un botón a S/ 0.045, un cono de hilo a S/ 0.0451): la plata de una hoja va a céntimos, pero la base
+ * guarda `costo_unitario` con 4 decimales (numeric(12,4)) y un avío cuesta céntimos de sol. Con `leerMontoPlata`, «0.045» se rechazaba y
+ * «0,045» se leía S/ 45 (revisión de «una tela con sus colores», G13).
+ *   · Menor que 1, con 1 a 4 decimales: «0.045», «0,045», «.045», «0,5». Nunca miles: un grupo de miles no empieza en 0.
+ *   · Con parte entera y exactamente 4 decimales: «1.2345». Cuatro cifras no pueden ser miles.
+ *   · Lo demás se lee como plata (`leerMontoPlata`: céntimos, miles de a tres) y lo ambiguo («12.500») se pide de nuevo.
+ * Lo que no cumple, `null`.
+ */
+export function leerCostoUnitario(texto: string): number | null {
+  const t = texto.replace(/\s/g, "").replace(/^s\/\.?/i, "");
+  const menorQueUno = /^0?[.,](\d{1,4})$/.exec(t);
+  if (menorQueUno) return Number(`0.${menorQueUno[1]}`);
+  const cuatroDecimales = /^(\d+)[.,](\d{4})$/.exec(t);
+  if (cuatroDecimales) return Number(`${cuatroDecimales[1]}.${cuatroDecimales[2]}`);
+  return leerMontoPlata(texto);
+}
+
+/** El reemplazo de `numeroDeMonto` para un costo por unidad: vacío es 0, lo que no se entiende es `NaN` (ningún botón guarda un costo adivinado). */
+export function numeroDeCostoUnitario(texto: string): number {
+  if (texto.trim() === "") return 0;
+  return leerCostoUnitario(texto) ?? Number.NaN;
+}
+
+/** El campo dice que no entendió el costo por unidad: hay algo escrito y no se lee. */
+export function costoUnitarioIlegible(texto: string): boolean {
+  return texto.trim() !== "" && leerCostoUnitario(texto) === null;
+}
+
+/** Un costo por unidad para leer: a céntimos cuando alcanza («S/ 12.50») y con los decimales que hagan falta cuando no («S/ 0.0451»). */
+export function costoUnitarioTexto(n: number): string {
+  const aCentimos = Math.round(n * 100) / 100;
+  const opciones = Math.abs(n - aCentimos) < 1e-9 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { minimumFractionDigits: 3, maximumFractionDigits: 4 };
+  return `S/\u00a0${n.toLocaleString("es-PE", opciones)}`;
 }

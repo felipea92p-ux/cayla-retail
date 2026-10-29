@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "../app/api/version/route";
 import { clasificarPeticion, type PeticionEspera } from "./espera-reglas";
 import { esRutaPublica } from "./rutas-publicas";
-import { MIN_MS_ENTRE_PREGUNTAS, VERSION_SIN_DATO, hayVersionNueva, leerVersion, tocaPreguntar } from "./version-nueva-reglas";
+import { MIN_MS_ENTRE_PREGUNTAS, MS_SALIDA, VERSION_SIN_DATO, hayVersionNueva, leerVersion, tocaPreguntar } from "./version-nueva-reglas";
 
 const A = "98b9137f3a1c";
 const B = "11e335504d77";
@@ -125,5 +125,33 @@ describe("las tres piezas hablan del mismo nombre: si una lo cambia, el aviso se
     const recargas = componente.match(/location\.reload\(/g) ?? [];
     expect(recargas).toHaveLength(1);
     expect(componente).toMatch(/onClick=\{\(\) => window\.location\.reload\(\)\}/);
+  });
+});
+
+describe("la gota del aviso (ADR-0136, act. 2026-10-28): entra y sale con su movimiento, y se apaga con «reducir movimiento»", () => {
+  const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
+  const css = leer("app/estilos/avisos.css");
+
+  it("el componente y el CSS hablan del mismo filtro y de la misma salida", () => {
+    expect(leer("components/VersionNueva.tsx")).toContain('id="liquido"');
+    expect(css).toContain("filter: url(#liquido)");
+    expect(leer("components/VersionNueva.tsx")).toContain("cayla-version-cae-sale");
+    expect(css).toMatch(/@keyframes cayla-version-cae-sale/);
+  });
+
+  it("la salida dura lo que dice `MS_SALIDA`: 950 ms de recogerse y 500 ms de caer", () => {
+    expect(css).toMatch(/cayla-version-cae-sale 500ms [^;]* 950ms both/);
+    expect(MS_SALIDA).toBe(950 + 500);
+  });
+
+  it("con `prefers-reduced-motion` no hay gota ni salida animada", () => {
+    const bloque = css.slice(css.indexOf("/* ---- La salida"));
+    expect(bloque).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.version-nueva \{ animation: none;/);
+    expect(bloque).toMatch(/\.version-nueva-agua \{ display: none; \}/);
+  });
+
+  it("el único rebote es el de la gota de entrada, una vez y sin bucle: nada de `infinite` en la píldora", () => {
+    const pildora = css.slice(css.indexOf("«Hay una versión nueva de CAYLA» — la píldora flotante"));
+    expect(pildora).not.toMatch(/infinite/);
   });
 });

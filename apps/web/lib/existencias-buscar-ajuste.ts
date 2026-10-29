@@ -80,8 +80,19 @@ export function detalleDelModelo(m: Pick<ModeloParaAjustar<unknown>, "colores" |
   return `${colores} · ${m.piso} en piso · ${m.almacen} en almacén`;
 }
 
-/** La línea de un producto que esta sede nunca movió: dice que aquí no hay nada y que ahí se carga su primer stock. */
-export function detalleSinStock(p: { marca: string | null; categoria: string | null }): string {
+/** Dónde más tiene stock un producto que esta sede nunca movió: `undefined` mientras no se sabe (la lectura no ha vuelto o falló). */
+export type DondeHay = readonly { sede: string; disponible: number }[];
+
+/** Cuántas sedes se nombran en la línea; el resto va como «y N más». */
+export const TOPE_SEDES_EN_LINEA = 2;
+
+/** La línea de un producto que esta sede nunca movió: dice que aquí no hay nada y, si se sabe, dónde SÍ hay («Hay en Tienda AQP · 14»). */
+export function detalleSinStock(p: { marca: string | null; categoria: string | null }, dondeHay?: DondeHay): string {
   const de = [p.categoria, p.marca].filter((x): x is string => !!x).join(" · ");
-  return `${de ? `${de} · ` : ""}Sin stock aquí todavía`;
+  const base = `${de ? `${de} · ` : ""}Sin stock aquí todavía`;
+  if (!dondeHay) return base;
+  if (dondeHay.length === 0) return `${base} · Sin stock en otras tiendas`;
+  const nombradas = dondeHay.slice(0, TOPE_SEDES_EN_LINEA).map((d) => `${d.sede} ${d.disponible}`);
+  const mas = dondeHay.length - TOPE_SEDES_EN_LINEA;
+  return `${base} · Hay en ${nombradas.join(", ")}${mas > 0 ? ` y ${mas} más` : ""}`;
 }

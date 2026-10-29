@@ -2,7 +2,7 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Flag, PackageCheck } from "lucide-react";
+import { Check, Flag, PackageCheck, Truck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -40,11 +40,40 @@ export function TerminarDia({ plata, envios, hoy }: { plata: Plata; envios: Envi
   const origen = useRef<HTMLElement | null>(null);
   const ronda = plata.ronda.abierta;
   if (!ronda) return null;
+  // El último paso del camino (maqueta mis-compras-pc-mesa, Felipe 2026-10-28): una franja que dice en qué está —si falta mandar algo, qué; si
+  // no, que ya se puede cerrar— y el botón que abre la cuenta de la ronda. El botón siempre se puede tocar: la hoja es la que dice «Antes, manda».
+  const falta = textoFaltaMandar(plata.porMandar);
+  // Sin compras todavía, «todo está mandado» no dice nada: la ronda sigue abierta y se cierra cuando termine de comprar.
+  const sinCompras = !falta && ronda.compras === 0;
   return (
-    <section className="flex flex-col gap-2" aria-label="Tu ronda de compras">
+    <section aria-label="Tu ronda de compras" className="card-cayla flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-5 lg:px-5 lg:py-3.5">
+      <p className="flex items-start gap-2.5 text-[13.5px] text-taupe lg:items-center">
+        {falta ? (
+          <Truck className="mt-0.5 h-4 w-4 shrink-0 lg:mt-0" aria-hidden />
+        ) : sinCompras ? (
+          <Flag className="mt-0.5 h-4 w-4 shrink-0 lg:mt-0" aria-hidden />
+        ) : (
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-verde lg:mt-0" aria-hidden />
+        )}
+        <span>
+          {falta ? (
+            <>
+              <b className="font-semibold text-tinta">Último paso: cerrar la ronda.</b> Antes, manda: {falta.titulo.replace(/^Falta mandar /, "")}.
+            </>
+          ) : sinCompras ? (
+            <>
+              <b className="font-semibold text-tinta">Tu ronda sigue abierta.</b> Ciérrala cuando termines de comprar: Compras recibe la cuenta.
+            </>
+          ) : (
+            <>
+              <b className="font-semibold text-tinta">Todo está mandado.</b> Al cerrar, Compras recibe la cuenta de la ronda.
+            </>
+          )}
+        </span>
+      </p>
       <Boton
-        peso="fantasma"
-        className="w-full"
+        peso={falta ? "fantasma" : "primario"}
+        className="w-full lg:w-auto lg:min-w-60"
         data-guia="mi-plata.termine"
         onClick={(e) => {
           origen.current = e.currentTarget;

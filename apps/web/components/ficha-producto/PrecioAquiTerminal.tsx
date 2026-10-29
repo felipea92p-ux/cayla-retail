@@ -23,6 +23,7 @@ import {
 export function PrecioAquiTerminal({
   sede,
   propio,
+  tallasConOtroPrecio = 0,
   cambio,
   general,
   costoMaximo,
@@ -31,6 +32,8 @@ export function PrecioAquiTerminal({
   sede: string;
   /** El precio propio vigente de la tienda, si tiene uno. */
   propio: PrecioDeSede | undefined;
+  /** Cuántas tallas tienen otro precio en esta tienda (2026-10-28): la tabla muestra el de cada una; un precio nuevo de toda la prenda las reemplaza. */
+  tallasConOtroPrecio?: number;
   cambio: CambioPrecioAqui;
   /** El precio de la prenda guardado, si todas sus tallas valen igual. */
   general: number | null;
@@ -42,6 +45,11 @@ export function PrecioAquiTerminal({
 
   return (
     <div className="mt-3 space-y-2.5" data-campo="precio-por-tienda">
+      {tallasConOtroPrecio > 0 && (
+        <Aviso tono="atencion" chico titulo="Hay tallas con otro precio">
+          En {sede}, {tallasConOtroPrecio === 1 ? "1 talla tiene" : `${tallasConOtroPrecio} tallas tienen`} otro precio (la tabla muestra el de cada una). Si cambias el precio de toda la prenda, esas tallas pasan a ese precio.
+        </Aviso>
+      )}
       {detalle()}
       {/* La frase del bloque de antes, que Felipe pidió conservar (2026-10-27): deja claro que el cambio es SOLO de esta tienda. */}
       <p className="flex items-center gap-2 text-[12.5px] text-tinta/70">

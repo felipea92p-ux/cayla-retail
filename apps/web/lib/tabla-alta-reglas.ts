@@ -11,6 +11,7 @@
 
 import { leerCantidad, limpiarCantidad, type CeldaAlta } from "./alta-producto";
 import { precioValido } from "./variantes-ficha-reglas";
+import { leerMontoPlata } from "./monto-plata-reglas";
 
 /** Tope de una celda de cantidad (`leerCantidad`/`crear_producto_con_stock_inicial`): un entero de 4 dígitos. */
 const CANTIDAD_MAXIMA = 9999;
@@ -84,8 +85,15 @@ export function pasoCantidad(valor: string, delta: -1 | 1): string {
 }
 
 /** Lo que admite la caja de precio de una celda mientras se tipea: dígitos y UN separador decimal (la coma se vuelve
- *  punto, que es lo que lee `Number`), hasta 2 decimales. */
+ *  punto, que es lo que lee `Number`), hasta 2 decimales.
+ *  Un monto PEGADO entero —con «S/» adelante, con dos separadores o con una coma de miles («1,299»)— se lee primero con la regla de
+ *  la plata (`leerMontoPlata`, ADR-0419): antes «S/. 59» quedaba en 0.59 y «1.299,50» en 1.29, sin aviso (/chaos 2026-10-28). Lo que esa
+ *  regla no entiende («12.500», ambiguo) sigue por el camino de siempre. */
 export function limpiarPrecio(texto: string): string {
+  if (/^\s*s\/|[.,]\d*[.,]|,\d{3}$/i.test(texto.trim())) {
+    const leido = leerMontoPlata(texto);
+    if (leido !== null && leido >= 0) return limpiarPrecio(String(Math.round(leido * 100) / 100));
+  }
   const t = texto.replace(",", ".").replace(/[^0-9.]/g, "");
   const i = t.indexOf(".");
   if (i === -1) return t.slice(0, 7);

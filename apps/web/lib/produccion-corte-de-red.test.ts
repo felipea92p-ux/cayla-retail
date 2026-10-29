@@ -31,6 +31,7 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
     ["orden-pagina/QuitarPasoModal.tsx", "quitar"],
     ["insumos-taller/FichaDeLaTelaModal.tsx", "guardar la ficha"],
     ["insumos-taller/NuevoInsumoModal.tsx", "crear el insumo"],
+    ["insumos-taller/RetirarColorModal.tsx", "retirar el color"],
     ["orden-pagina/DeshacerAvanceModal.tsx", "deshacer lo que se anotó"],
     ["orden-pagina/PasarAlStockModal.tsx", "pasar la orden al stock"],
     ["orden-pagina/AnularLaOrdenModal.tsx", "anular la orden"],

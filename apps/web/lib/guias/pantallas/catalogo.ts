@@ -348,7 +348,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "producto",
       ancla: "editar.seccion-producto",
       titulo: "1 · Producto",
-      texto: "Nombre, categoría, marca, proveedor y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
+      texto: "Nombre, categoría, marca, proveedor, cómo llama el proveedor a la prenda (para volver a pedirla) y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
     },
     {
       id: "producto-abierta",
@@ -402,7 +402,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.precio-tienda",
       opcional: true,
       titulo: "Precio por tienda",
-      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan al momento. En una terminal no sale: su precio se escribe en la tabla de «Precios» y se guarda con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su precio, y una talla otro: se dice talla por talla, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan. En una terminal no sale: su precio va en la tabla de «Precios». En la demo no lo tocamos.",
     },
     {
       id: "corregir-talla",
@@ -478,6 +478,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       titulo: "Así quedará en la tabla",
       texto: "La columna nueva, en ámbar y con sus unidades, junto a lo que ya hay. Míralo antes de sumarla a la ficha.",
+    },
+    {
+      // El pie de «Agregar talla», como el de «Agregar color»: el asistente que acompaña una talla nueva lo enciende; la demo cierra la
+      // hoja antes, así que se salta (opcional).
+      id: "agregar-talla-pie",
+      ancla: "agregar-talla.pie",
+      opcional: true,
+      titulo: "Sumarlas a la ficha",
+      texto: "El botón de la derecha suma esas tallas a la tabla de la ficha, todavía sin guardar; «Cancelar» cierra sin tocar nada.",
     },
     {
       id: "foto",
@@ -922,7 +931,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.nuevo",
       opcional: true,
       titulo: "Una nueva",
-      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
+      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen y sus fechas de inicio y fin; nace en la pestaña donde estás. Después le pones sus ofertas y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
       id: "pestanas",
@@ -1052,14 +1061,14 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.ofertas-campana",
       opcional: true,
       titulo: "Las fechas de la campaña",
-      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. «Cambiar fechas» las mueve aquí mismo, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite con un toque: «Repetir».",
+      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. Las fechas se cambian desde «Editar», en su pase, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite ahí mismo, con «Repetir en» el año que viene.",
     },
     {
       id: "editar",
       ancla: "sellos.editar",
       opcional: true,
-      titulo: "Corregir su nombre y su ícono",
-      texto: "«Editar», a la derecha del estado, corrige el nombre (por si se escribió mal) y cambia el ícono de su sello: la calabaza, el pastel, el gato… o tu propia imagen; si es de un solo color, píntala con el color del sello y se verá bien en modo oscuro. En la demo no lo tocamos.",
+      titulo: "Corregir nombre, ícono y fechas",
+      texto: "«Editar», a la derecha del estado, corrige el nombre, cambia las fechas de una campaña y el ícono de su sello: la calabaza, el pastel, el gato… o tu propia imagen (si es de un solo color, píntala con el color del sello y se verá bien en modo oscuro). En la demo no lo tocamos.",
     },
     {
       id: "campana-form",
@@ -1109,7 +1118,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.listo",
       opcional: true,
       titulo: "Lo que ya tiene",
-      texto: "Fechas y prendas hacen que la campaña funcione; el descuento es opcional. Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
+      texto: "Fechas y prendas hacen que la campaña funcione; las ofertas y promociones son opcionales (el descuento se arma con ellas). Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
     },
     {
       id: "rotacion",
@@ -1461,7 +1470,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-2",
       ancla: "nuevo.punto-2",
       titulo: "2 · Cómo es",
-      texto: "Cuando eliges la categoría, pasas aquí: el nombre, la marca y quién la trae, la descripción, el tejido, el patrón y la temporada. Si ya hay prendas parecidas, te las muestra para que no crees la misma dos veces.",
+      texto: "Al elegir la categoría pasas aquí. Primero miras si ya existe: si es una de esas en otro color, no la creas, la abres y le agregas el color. Luego el tejido, el patrón y un detalle, y al final el nombre: el tipo lo pone la categoría y tú le sumas una flor de la lista, como «Blusa Dalia».",
     },
     {
       id: "punto-3",
@@ -1473,7 +1482,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El precio de venta y el costo (con el costo sugerido de la categoría), las insignias y campañas, y cuántas unidades llegaron de cada variante. Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El precio y el costo, las insignias y campañas, y cuántas llegaron de cada variante: con la carga inicial cerrada entran a nombre del proveedor que elegiste, sin ir a «Llegó mercadería». Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",

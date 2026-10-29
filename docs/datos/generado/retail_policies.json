@@ -712,6 +712,15 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "materiales_select_autenticado",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "materiales",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "modulos_select",
   "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{authenticated}",

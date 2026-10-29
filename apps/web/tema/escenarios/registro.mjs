@@ -1123,10 +1123,21 @@ ESCENARIOS.push(
   { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría»", preparar: secuencia(abrirPendientes, clicRol("button", /^Resumen por categoría/i)) },
   // Necesita una prenda dañada sin resolver en la sede (en la base local, una en Tienda Lima): sin ella, «Pendientes» no trae «Decidir».
   { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('Prendas dañadas')", nombre: "Existencias · «Decidir» sobre una prenda dañada", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i)) },
+  // ADR-0564 (prendas dañadas en tienda): lo nuevo de la ventana «Prendas dañadas» (se llega como «Decidir») y los paneles de cada paso, y el
+  // buscador de «Separé una dañada» (`?danada=1`, el botón de las cuentas de caja y almacén: la pantalla quita el parámetro al abrirlo, así que
+  // se navega desde `preparar`). Necesitan la dañada de Tienda Lima de la base local.
+  { id: "existencias.danadas-lugar", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿Dónde dejan las prendas dañadas?')", nombre: "Existencias · Dañadas · «Marcar el lugar» (dónde las dejan)", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i), clicRol("button", /^Marcar el lugar|^Cambiar/i)) },
+  { id: "existencias.danadas-salida", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿Quién la arregla?')", nombre: "Existencias · Dañadas · «Salió a arreglar» (cerca o Taller)", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i), clicRol("button", /^Salió a arreglar/i)) },
+  { id: "existencias.danadas-arreglo", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('¿A dónde vuelve?')", nombre: "Existencias · Dañadas · «Se arregló» (piso o almacén, y el costo)", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i), clicRol("button", /^Se arregló/i)) },
+  { id: "existencias.danada-buscar", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('¿Qué prenda está dañada?')", nombre: "Existencias · «Separé una dañada» (el buscador de la prenda)", preparar: async (pagina) => { await pagina.goto(new URL("/inventario?danada=1", pagina.url()).href); await esperar(pagina, 3500); } },
   { id: "movimientos.detalle", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento", preparar: verDetalle(/^Ver el detalle: Salida/) },
   { id: "movimientos.grupo", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento con varias prendas", preparar: verDetalle(/^Ver el detalle: las 3 prendas/) },
   { id: "movimientos.ajustes", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "nav[aria-label='Tipo de movimiento'] a[aria-current=true]", nombre: "Movimientos · el filtro «Ajustes y conteos»", preparar: tipoDeMovimiento(/^Ajustes/i) },
   { id: "movimientos.calendario", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=gridcell]", nombre: "Movimientos · «Personalizado» con el calendario abierto", preparar: secuencia(clicRol("button", /Personalizado/i), clicRol("button", /Abrir calendario/i)) },
+  // La pestaña «Ingresos» (qué prendas entraron, por modelo): sus 7 días de fábrica traen datos en Lima (admin y la terminal) y en Trujillo
+  // (integrante, sin permiso de dinero: su tabla no lleva la columna de costo). Abierto un modelo, su matriz de color y talla.
+  { id: "movimientos.ingresos", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[data-guia='movimientos.ingresos-tabla']", nombre: "Movimientos · la pestaña «Ingresos» (la lista por modelo)", preparar: clicRol("link", /^Ingresos$/i) },
+  { id: "movimientos.ingresos.detalle", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "table caption", nombre: "Movimientos · «Ingresos» con un modelo abierto (su matriz de color y talla)", preparar: secuencia(clicRol("link", /^Ingresos$/i), clicRol("button", /Ver colores y tallas/i)) },
   { id: "traslados.pedir", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Traslados · «Pedir a otra sede»", preparar: clicRol("button", /Pedir a otra sede/i) },
   // ADR-0355: la billetera de pases. Las pestañas, el reverso (el pase girado) y un pedido como pase.
   { id: "traslados.envias", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=tab][aria-selected=true]", nombre: "Traslados · la pestaña «Envías»", preparar: clicRol("tab", /^Envías/i) },
@@ -1383,11 +1394,36 @@ ESCENARIOS.push(
   { id: "produccion.resumen-porque", ruta: "/produccion", cuentas: ["admin-taller"], abre: '[data-guia="prod-resumen.porque"][aria-expanded="true"]', nombre: "Producción · Resumen · la cuenta de un modelo abierta bajo «¿Por qué?»", async preparar(pagina) { await pagina.locator('[data-guia="prod-resumen.porque"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); } },
   { id: "produccion.orden-nueva-red", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden-nueva.red-abrir"][aria-expanded="true"]', nombre: "Producción · «Nueva orden» con el consejo de la red abierto («¿Por qué?»: curva, cubrir y motor de demanda)", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); await pagina.locator('[data-guia="prod-orden-nueva.red-abrir"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); }) },
   { id: "produccion.ver-modelo", ruta: "/produccion", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · Resumen · «Ver el modelo» (la hoja de un modelo)", async preparar(pagina) { await pagina.locator('[data-guia="prod-resumen.modelo"]').first().click({ timeout: 8000 }); await esperar(pagina, 900); } },
-  { id: "produccion.insumo-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo insumo»", preparar: clicRol("button", /Nuevo insumo/i) },
+  { id: "produccion.insumo-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo insumo»", preparar: clicRol("button", /Nuevo (insumo|avío)/i) },
+  // «Nueva tela» (ADR-0554, actividad 2): la tela con todos sus colores en una sola hoja. Solo se dibuja con la migración de `materiales` pegada.
+  { id: "produccion.tela-nueva", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Nueva tela» (la tela con sus colores)", preparar: clicRol("button", /Nueva tela/i) },
+  // «Editar tela» (ADR-0554, actividad 3): la misma hoja con lo que la tela ya dice (el lápiz de su encabezado; solo el líder).
+  { id: "produccion.tela-editar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Editar tela» (corregir una tela que ya existe)", preparar: clicRol("button", /Editar la tela/i) },
   // La ficha de una tela (ADR-0400, actividad 8e): el capital pedido con un toque y la hoja «Ficha de la tela» (el primer insumo, abierto).
   { id: "produccion.insumo-ingresar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Ingresar insumo» (abre un lote)", preparar: clicRol("button", /Ingresar insumo/i) },
   { id: "produccion.insumos-capital", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: '[data-guia="prod-insumos.capital"]', nombre: "Producción · Insumos con el capital pedido con un toque", preparar: clicRol("button", /Ver el capital en insumos/i) },
-  { id: "produccion.insumo-ficha", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Ficha de la tela» (tejido y color)", preparar: secuencia(async (pagina) => { await pagina.locator('[data-guia="prod-insumos.fila-cabecera"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); }, clicRol("button", /Completar tejido y color|Editar la ficha/i)) },
+  // Desde ADR-0554 la ficha es solo de un insumo SUELTO (un avío, o una tela de antes de las telas): el color de una tela se corrige en «Editar tela». Se abre la fila que trae el botón (necesita un insumo suelto en la base local).
+  // El botón de una fila cerrada ya está en el árbol de accesibilidad pero recortado por la fila: hay que abrir ESA fila antes de pulsarlo.
+  { id: "produccion.insumo-ficha", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Ficha de la tela» (tejido y color)", preparar: secuencia(async (pagina) => {
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Completar tejido y color|Completar el color|Editar la ficha/i }) }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }, clicRol("button", /Completar tejido y color|Completar el color|Editar la ficha/i)) },
+  // «Retirar color» (ADR-0554): la hoja que esconde de la lista un color de tela elegido por error. Dos estados: sin saldo (la nota y el botón rojo) y con saldo (el aviso y el botón apagado). Se abre la fila que corresponde antes de pulsar (el botón de una fila cerrada está recortado).
+  { id: "produccion.color-retirar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Retirar color» (sin saldo: se puede)", preparar: secuencia(async (pagina) => {
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasNotText: /saldo inicial|compra · / }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
+  { id: "produccion.color-retirar-con-saldo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Retirar color» con saldo (el aviso y el botón apagado)", preparar: secuencia(async (pagina) => {
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /Retirar color/i }) }).filter({ hasText: /saldo inicial|compra · / }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
   { id: "produccion.cotizacion", ruta: "/produccion/cotizaciones-maquila", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva cotización» de maquila", preparar: clicRol("button", /Nueva cotización/i) },
   { id: "produccion.factura-nueva", ruta: "/produccion/comprobantes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva factura»", preparar: clicRol("button", /Nueva factura/i) },
   { id: "produccion.proveedor-nuevo", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo proveedor»", preparar: clicRol("button", /Nuevo proveedor/i) },

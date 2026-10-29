@@ -76,4 +76,20 @@ describe("detalleSinStock", () => {
     expect(detalleSinStock({ categoria: "Polos", marca: "Cayla" })).toBe("Polos · Cayla · Sin stock aquí todavía");
     expect(detalleSinStock({ categoria: null, marca: null })).toBe("Sin stock aquí todavía");
   });
+
+  it("si se sabe, dice dónde SÍ hay; si en ninguna otra tienda, lo dice; sin respuesta, no inventa", () => {
+    const p = { categoria: "Jeans", marca: "Jirish" };
+    expect(detalleSinStock(p, [{ sede: "Tienda AQP", disponible: 14 }])).toBe("Jeans · Jirish · Sin stock aquí todavía · Hay en Tienda AQP 14");
+    expect(detalleSinStock(p, [])).toBe("Jeans · Jirish · Sin stock aquí todavía · Sin stock en otras tiendas");
+    expect(detalleSinStock(p, undefined)).toBe("Jeans · Jirish · Sin stock aquí todavía");
+  });
+
+  it("nombra dos sedes y el resto va como «y N más»", () => {
+    const hay = [
+      { sede: "Tienda AQP", disponible: 14 },
+      { sede: "Tienda LIM", disponible: 3 },
+      { sede: "Tienda CUS", disponible: 1 },
+    ];
+    expect(detalleSinStock({ categoria: null, marca: null }, hay)).toBe("Sin stock aquí todavía · Hay en Tienda AQP 14, Tienda LIM 3 y 1 más");
+  });
 });

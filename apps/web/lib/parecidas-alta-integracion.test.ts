@@ -1830,22 +1830,22 @@ describe("7. sin precio ni costo, sin jerga y sin veredictos", () => {
 describe("8. la guía y `problemasAlta` dicen lo mismo, con la marca antes del nombre", () => {
   const BLOQUE_DE: Partial<Record<string, string>> = { categoria: "categoria", nombre: "nombre", tejido: "tela", patron: "tela", tallas: "tallas", precio: "precio", stock: "stock" };
 
-  it("el orden de pantalla: la marca va antes del nombre y nunca está por hacer; sin elegirla, la guía pausa ahí antes del nombre (Felipe, 2026-10-02)", () => {
+  it("el orden de pantalla: la marca va primero y nunca está por hacer; sin elegirla, la guía pausa ahí antes de seguir (Felipe, 2026-10-02; orden de ADR-0556)", () => {
     const estado: EstadoAlta = {
       categoriaId: "c", referencia: "", comprobandoNombre: false, nombreBloqueado: false, nombreSinConfirmar: false, categoriaSinTallas: false, tallasElegidas: 3, exigeTejidoPatron: true,
       hayTejidosEnCategoria: true, hayPatronesEnCategoria: true, tejidoId: "", patronId: "", celdasIncluidas: 3, precioBase: "", costoBase: "", stockTotal: 0, stockInvalidas: 0, sinStock: false, separaPiso: true, lugarCarga: null,
     };
     for (const marcaElegida of [false, true]) {
-      const campos = camposDelAlta(estado, { coloresElegidos: 0, descripcionEscrita: false, marcaElegida, responsableListo: false });
+      const campos = camposDelAlta(estado, { coloresElegidos: 0, descripcionEscrita: false, marcaElegida, responsableListo: false, existeAplica: false, existeRespondido: false });
       const paso2 = campos.filter((c) => c.paso === 2).map((c) => c.id);
-      expect(paso2.slice(0, 2)).toEqual(["marca", "nombre"]);
-      expect(faltanDelPaso(campos, 2).map((c) => c.id)).toEqual(["nombre", "tejido", "patron"]);
+      expect(paso2).toEqual(["marca", "tejido", "patron", "descripcion", "nombre"]);
+      expect(faltanDelPaso(campos, 2).map((c) => c.id)).toEqual(["tejido", "patron", "nombre"]);
       if (marcaElegida) {
-        // Ya elegida: no hay pausa, «Sigue aquí» va directo al nombre.
+        // Ya elegida: no hay pausa, «Sigue aquí» va directo a lo primero que falta (el tejido, desde ADR-0556).
         expect(estadosDeCampos(campos, 2).marca).toBe("hecho");
-        expect(estadosDeCampos(campos, 2).nombre).toBe("ahora");
+        expect(estadosDeCampos(campos, 2).tejido).toBe("ahora");
       } else {
-        // Sin elegir y el paso intacto: la guía se detiene en marca y proveedor antes de seguir al nombre.
+        // Sin elegir y el paso intacto: la guía se detiene en marca y proveedor antes de seguir.
         expect(estadosDeCampos(campos, 2).marca).toBe("ahora");
         expect(estadosDeCampos(campos, 2).nombre).toBe("falta");
         // Apenas se teclea en el nombre, la pausa termina: la luz no le gana a la persona.
@@ -1875,7 +1875,7 @@ describe("8. la guía y `problemasAlta` dicen lo mismo, con la marca antes del n
             if (categoriaSinTallas && tallasElegidas > 0) continue;
             total++;
             const estado: EstadoAlta = { categoriaId, referencia, comprobandoNombre, nombreBloqueado, nombreSinConfirmar, categoriaSinTallas, tallasElegidas, exigeTejidoPatron, hayTejidosEnCategoria, hayPatronesEnCategoria, tejidoId, patronId, celdasIncluidas, precioBase, costoBase, stockTotal, stockInvalidas, sinStock, separaPiso: true, lugarCarga };
-            const campos = camposDelAlta(estado, { coloresElegidos: 0, descripcionEscrita: false, marcaElegida: false, responsableListo: true });
+            const campos = camposDelAlta(estado, { coloresElegidos: 0, descripcionEscrita: false, marcaElegida: false, responsableListo: true, existeAplica: false, existeRespondido: false });
             const problemas = problemasAlta(estado);
             const guiaBloquea = campos.some((c) => c.requerido && !c.hecho);
             if (guiaBloquea !== problemas.length > 0) anotar(`la guía ${guiaBloquea ? "bloquea" : "no bloquea"} y problemasAlta ${problemas.length > 0 ? "sí" : "no"} (${problemas.map((p) => p.bloque).join("+") || "—"})`, estado);

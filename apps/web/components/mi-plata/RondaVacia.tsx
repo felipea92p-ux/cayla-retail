@@ -7,7 +7,7 @@ import { Vacio } from "@/components/ui/Vacio";
 // a la izquierda.
 const PASOS = [
   { n: 1, titulo: "Anota la plata", texto: "Lo que te dieron para comprar: «Me dieron plata»." },
-  { n: 2, titulo: "Registra lo que compras", texto: "«Compré ropa» y, si no es ropa, «Gasté en otra cosa»." },
+  { n: 2, titulo: "Registra lo que compras", texto: "«Apunte de compras» y, si no es ropa, «Gasté en otra cosa»." },
   { n: 3, titulo: "Manda a la tienda", texto: "Cada envío sale con su código para avisar a la tienda." },
 ] as const;
 

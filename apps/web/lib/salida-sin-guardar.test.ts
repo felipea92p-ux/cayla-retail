@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destinoQueSaleDeLaPantalla, fotoFormulario, type ClicEnEnlace } from "./salida-sin-guardar";
+import { antesDeRehacerLaPantalla, destinoQueSaleDeLaPantalla, fotoFormulario, registrarGuardia, type ClicEnEnlace } from "./salida-sin-guardar";
 
 const AQUI = "http://localhost:3010/productos/abc/editar";
 const clic = (cambio: Partial<ClicEnEnlace> = {}): ClicEnEnlace => ({
@@ -39,5 +39,31 @@ describe("fotoFormulario — hay cambios o no", () => {
   });
   it("un precio distinto sí", () => {
     expect(fotoFormulario({ precio: "80" })).not.toBe(fotoFormulario({ precio: "81" }));
+  });
+});
+
+// /chaos 2026-10-28 (semilla 2810, NAV-09): cambiar de sede rehace la pantalla sin navegar, y Nuevo producto perdía el alta a medias
+// sin preguntar. El selector de sede pregunta a las guardias vivas antes de cambiar.
+describe("antesDeRehacerLaPantalla — el selector de sede pregunta si hay algo sin guardar", () => {
+  it("sin guardias, o con guardias sin cambios, cambia de una", () => {
+    let hecho = 0;
+    antesDeRehacerLaPantalla(() => hecho++);
+    const fuera = registrarGuardia({ debePreguntar: () => false, pedirAccion: () => {} });
+    antesDeRehacerLaPantalla(() => hecho++);
+    fuera();
+    expect(hecho).toBe(2);
+  });
+  it("con una guardia con cambios, se le pide a ella (que pregunta) y no se cambia todavía", () => {
+    let pedido: (() => void) | null = null;
+    let hecho = 0;
+    const fuera = registrarGuardia({ debePreguntar: () => true, pedirAccion: (fn) => (pedido = fn) });
+    antesDeRehacerLaPantalla(() => hecho++);
+    expect(hecho).toBe(0);
+    expect(pedido).not.toBeNull();
+    pedido!();
+    expect(hecho).toBe(1);
+    fuera();
+    antesDeRehacerLaPantalla(() => hecho++);
+    expect(hecho).toBe(2);
   });
 });

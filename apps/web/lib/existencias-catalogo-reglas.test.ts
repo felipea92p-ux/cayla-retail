@@ -102,11 +102,23 @@ describe("productosSinStockEnSede", () => {
     expect(productosSinStockEnSede(CATALOGO, [{ productoId: "pantalon-cayla" }]).map((x) => x.id)).not.toContain("pantalon-cayla");
   });
 
-  it("devuelve solo lo necesario (id, nombre, marca, categoría) y en orden por nombre", () => {
+  it("devuelve solo lo necesario (id, nombre, marca, categoría y lo que dibuja la prenda: foto y familia) y en orden por nombre", () => {
     const [primero] = productosSinStockEnSede(CATALOGO, []);
-    expect(Object.keys(primero).sort()).toEqual(["categoria", "id", "marca", "referencia"]);
+    expect(Object.keys(primero).sort()).toEqual(["categoria", "familia", "fotoUrl", "id", "marca", "referencia"]);
     const nombres = productosSinStockEnSede(CATALOGO, []).map((x) => x.referencia);
     expect(nombres).toEqual([...nombres].sort((a, b) => a.localeCompare(b, "es")));
+  });
+
+  it("lleva la foto del producto para dibujarlo, y null si no tiene", () => {
+    const [conFoto, sinFoto] = productosSinStockEnSede(
+      [
+        { ...CATALOGO[1], id: "a", referencia: "A", fotoUrl: "https://x/a.jpg" },
+        { ...CATALOGO[1], id: "b", referencia: "B" },
+      ],
+      []
+    );
+    expect(conFoto.fotoUrl).toBe("https://x/a.jpg");
+    expect(sinFoto.fotoUrl).toBeNull();
   });
 
   it("sin catálogo (la lectura falló) no hay nada que ofrecer", () => {

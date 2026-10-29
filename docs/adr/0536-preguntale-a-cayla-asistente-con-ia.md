@@ -348,6 +348,42 @@ comunes se escriben como **recetas fijas** (la IA solo elige cuál y pone los da
 
 **Lo que no está.** Los cierres fijos existen solo para Vender; las demás tareas (un cambio, un traslado) siguen lo que propone la IA, revisado.
 
+## Recetas (Felipe 2026-10-28: «Sí, recetas»)
+
+**El problema.** Con el mismo código, la evaluación de tareas daba entre 45 % y 73 %: la IA arma pasos distintos para la misma pregunta
+(una vez con pasos, la siguiente sin; un paso de otra hoja). Para las tareas de todos los días el camino ya se sabe; pedírselo cada vez a
+la IA es ponerlo a la suerte.
+
+**Cómo quedó** (`lib/asistente/recetas.ts`). Diez recetas escritas una vez, paso a paso sobre las guías: vender (hasta confirmar el cobro),
+cambio, devolución, gasto e ingreso del cajón, traslado, cliente nuevo, agregar un color, agregar una talla y cambiar un precio. La IA
+recibe en `<recetas>` solo las que esa cuenta puede hacer entera (`pantallasAlcanzables`, sacada de la preselección, más los puentes:
+Editar producto se abre desde Productos) y, si la pregunta es una de ellas, devuelve su id y los datos que la persona dijo (prenda, color,
+talla, medio de pago, comprobante, monto, destino). El servidor arma la tarea con el camino de la receta y pasa por la misma revisión de
+siempre (`revisarTarea`: la lista del buscador, el celular, los cierres). **Un dato solo entra si la persona lo dijo** (`datoDicho`: está en
+la pregunta, sin tildes ni mayúsculas); si no, la orden usa su texto sin dato («Elige cómo paga»). Lo que no tiene receta sigue igual que
+antes. `recetas.test.ts` falla si un paso deja de existir o pierde su pieza, si una receta no termina en el paso que guarda o si una orden
+nombra un dato desconocido.
+
+**Lo que se movió para que las recetas terminen bien.** «Agregar talla» tiene ancla en su pie (`agregar-talla.pie`, paso opcional) como
+«Agregar color»; y el ancla de «Registrar devolución» pasó de `devolucion.registrar` a `devolucion.confirmar`, porque `registrar` a secas
+es en otras guías el botón que ABRE una hoja y no cuenta como paso que guarda.
+
+**Lo que salió al probarlo.**
+- Con receta, la IA a veces escribía «receta» en `tipo`, que era una lista cerrada, y el SDK tiraba la respuesta entera (la venta, cambiar
+  un precio y el cliente salían sin IA). Ahora `tipo` se lee como texto y `tipoDe` lo normaliza: lo desconocido cuenta como «guia» solo
+  si eligió una receta ofrecida. Y un fallo rápido que no es por tiempo se reintenta una vez, con lo que queda de los 8 s.
+- «Úsala siempre» llevó a la IA a elegir una receta para preguntas de reglas («el cliente no quiere boleta, ¿qué hago?»): la instrucción
+  ahora dice que la receta es para cuando la persona pide HACER la tarea, y que una pregunta de regla va a su regla.
+- La IA decía «Te llevo a la receta…»: «receta» es una palabra interna y no se le dice a la persona.
+
+**Medido** (local, cuenta de Felipe, `asistente:tareas`): **9 de las 10 tareas con receta llegan al paso que guarda** (venta, cambio,
+devolución, gasto, ingreso, traslado, agregar color, agregar talla, cambiar precio). La décima, cliente nuevo, se detiene donde debe: en
+local el padrón de SUNAT no responde y la hoja no deja registrar sin el nombre (la evaluación la informa aparte, como la asistencia).
+En total, 14 de 22; las que faltan no tienen receta. La de 50 preguntas: **49 de 50**.
+
+**Lo que no tiene receta, a propósito.** El apartado (su guía no tiene un paso de confirmar: «¿de quién es?» solo sale en Lima), el cierre
+de caja (la hoja del cierre no tiene anclas) y prenda nueva (un formulario largo con su propia guía de foco).
+
 ## Producción
 
 Las cuatro migraciones del asistente se aplicaron el 2026-10-27 (ver el backlog). La `ANTHROPIC_API_KEY` está en Vercel y la sede del piloto

@@ -62,15 +62,29 @@ async function hacerPaso(p, paso, tarea, orden) {
   const opcion = p.locator('[role="option"]:visible:not([aria-disabled="true"]):not([disabled])').filter({ hasNotText: /Crear|Ninguno|Todos/ }).first();
   if (await opcion.count()) return (await opcion.click({ timeout: 3000 }).then(() => true).catch(() => false)) ? "eligió de la lista" : null;
   if (!(await ancla.count())) return null;
+  // Opciones para elegir dentro de la pieza (el motivo de una devolución): se toca la primera, antes de escribir en su nota.
+  const opciones = ancla.locator("button[aria-pressed]:visible");
+  if ((await opciones.count()) && !(await ancla.locator('button[aria-pressed="true"]').count())) {
+    if (await opciones.first().click({ timeout: 3000 }).then(() => true).catch(() => false)) return "eligió una opción";
+  }
+  // Un campo de fecha u hora: una fecha válida (mañana al mediodía), como la pondría la persona.
+  const fecha = ancla.locator('input[type="date"]:visible, input[type="datetime-local"]:visible, input[type="time"]:visible').first();
+  if ((await fecha.count()) && !(await fecha.inputValue().catch(() => ""))) {
+    const tipo = await fecha.getAttribute("type");
+    const manana = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    const valor = tipo === "date" ? manana : tipo === "time" ? "12:00" : `${manana}T12:00`;
+    if (await fecha.fill(valor, { timeout: 3000 }).then(() => true).catch(() => false)) return `puso la fecha ${valor}`;
+  }
   // Un campo vacío: lo que la persona escribiría (el buscador, con el nombre; otro, con el número de la orden o una palabra).
-  const campo = ancla.locator("input:not([type=checkbox]):not([type=radio]):not([type=hidden]):visible, textarea:visible").first();
+  const campo = ancla.locator("input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([readonly]):not([disabled]):visible, textarea:visible").first();
   if (await campo.count()) {
     const valor = await campo.inputValue().catch(() => "");
     if (valor) return "espera (el campo ya tiene lo escrito)";
     if (/buscador/.test(paso.ancla) && paso.rellenar) return "espera (lo escribe CAYLA)";
     const numero = paso.orden.match(/\d+(?:[.,]\d+)?/)?.[0];
     const documento = /\bruc\b/i.test(paso.orden) ? "20123456789" : /\b(dni|documento|n[uú]mero)\b/i.test(paso.orden) ? "45678912" : null;
-    const texto = /buscador/.test(paso.ancla) ? tarea.escribe : numero ?? documento ?? (paso.orden.match(/[«"]([^»"]+)[»"]/)?.[1] || "Prueba");
+    const nombre = /\bnombre\b/i.test(orden) ? "Ana Prueba" : null;
+    const texto = /buscador/.test(paso.ancla) ? tarea.escribe : numero ?? documento ?? nombre ?? (paso.orden.match(/[«"]([^»"]+)[»"]/)?.[1] || "Prueba");
     if (texto && (await campo.fill(texto, { timeout: 3000 }).then(() => true).catch(() => false))) return `escribió «${texto}»`;
   }
   // Un combo en la pieza (el destino de un traslado, quién atiende): se abre, y la vuelta siguiente elige de su lista.
@@ -108,9 +122,10 @@ async function recorrer(contexto, tarea) {
     const pasosIA = await p.evaluate(async ([pregunta, ruta]) => {
       const r = await fetch("/api/asistente", { method: "POST", headers: { "content-type": "application/json", "x-espera": "no" }, body: JSON.stringify({ pregunta, ruta }) });
       const j = await r.json().catch(() => ({}));
-      return { tipo: j.resultado?.tipo ?? `http ${r.status}`, tarea: j.resultado?.tarea ?? null };
+      return { tipo: j.resultado?.tipo ?? `http ${r.status}`, tarea: j.resultado?.tarea ?? null, receta: j.resultado?.receta ?? null };
     }, [tarea.pregunta, tarea.inicio]);
     if (!pasosIA.tarea) return { estado: "sin-tarea", detalle: `respondió ${pasosIA.tipo}, sin pasos` };
+    const receta = pasosIA.receta ?? "—";
     // Como `empezarTarea`: en escritorio, sin los pasos que solo existen en el celular.
     const pasos = pasosIA.tarea.filter((x) => ancho < 640 || !x.soloCelular);
     await p.evaluate((t) => {
@@ -132,7 +147,7 @@ async function recorrer(contexto, tarea) {
           return null;
         }
       });
-      if (!g) return { estado: "llegó", pasos: pasos.length, hasta: pasos.length, detalle: "terminó la tarea", bitacora };
+      if (!g) return { estado: "llegó", pasos: pasos.length, hasta: pasos.length, detalle: "terminó la tarea", bitacora, receta };
       const paso = g.pasos[g.i];
       if (capturas) await p.screenshot({ path: join(capturas, `${tarea.id}-${ancho}-${String(vuelta).padStart(2, "0")}.png`) });
       if (g.i !== ultimo) {
@@ -143,19 +158,21 @@ async function recorrer(contexto, tarea) {
       // El primer paso que guarda es la meta: lo hace la persona (o el último, si ninguno guarda).
       if (paso.guarda || g.i === g.pasos.length - 1) {
         const seVe = await p.locator(`[data-guia="${paso.ancla}"]:visible`).count();
-        if (seVe) return { estado: "llegó", pasos: g.pasos.length, hasta: g.i + 1, detalle: `llegó a «${paso.orden}» con su pieza a la vista`, bitacora };
-        if (quieto >= VUELTAS_SIN_AVANCE) return { estado: "trabada", pasos: g.pasos.length, hasta: g.i + 1, detalle: `en el paso que guarda, sin su pieza a la vista [${paso.ancla}]`, bitacora };
+        if (seVe) return { estado: "llegó", pasos: g.pasos.length, hasta: g.i + 1, detalle: `llegó a «${paso.orden}» con su pieza a la vista`, bitacora, receta };
+        if (quieto >= VUELTAS_SIN_AVANCE) return { estado: "trabada", pasos: g.pasos.length, hasta: g.i + 1, detalle: `en el paso que guarda, sin su pieza a la vista [${paso.ancla}]`, bitacora, receta };
         continue;
       }
       if (quieto >= VUELTAS_SIN_AVANCE) {
         const seVe = await p.locator(`[data-guia="${paso.ancla}"]:visible`).count();
         const turno = await p.getByText(/Nadie de turno/).count();
+        const padron = await p.getByText(/padrón no respondió/i).count();
         return {
-          estado: tarea.asistencia && turno ? "sin-asistencia" : "trabada",
+          estado: tarea.asistencia && turno ? "sin-asistencia" : tarea.padron && padron ? "sin-padron" : "trabada",
           pasos: g.pasos.length,
           hasta: g.i + 1,
           detalle: `${seVe ? "la pieza está, pero el paso no avanzó" : "la pieza no aparece"} [${paso.ancla}] «${paso.orden}»`,
           bitacora,
+          receta,
         };
       }
       // La orden como la ve la persona en la barra (a veces la completa la pantalla: «Toca «Agregar color»»).
@@ -163,7 +180,7 @@ async function recorrer(contexto, tarea) {
       const hecho = await hacerPaso(p, paso, tarea, orden);
       if (hecho) bitacora.push(`   ${hecho}`);
     }
-    return { estado: "trabada", pasos: pasos.length, hasta: ultimo + 1, detalle: "se acabaron las vueltas", bitacora };
+    return { estado: "trabada", pasos: pasos.length, hasta: ultimo + 1, detalle: "se acabaron las vueltas", bitacora, receta };
   } finally {
     await p.close();
   }
@@ -180,8 +197,9 @@ try {
     }
     const r = await recorrer(contextos.get(tarea.cuenta), tarea).catch((e) => ({ estado: "error", detalle: String(e?.message ?? e).split("\n")[0] }));
     filas.push({ tarea, ...r });
-    const marca = r.estado === "llegó" ? "✓" : r.estado === "sin-asistencia" ? "·" : "✗";
-    console.log(`${marca} ${tarea.id.padEnd(18)} ${r.estado === "llegó" || r.hasta ? `${r.hasta ?? "?"}/${r.pasos ?? "?"}` : ""}  ${r.detalle}`);
+    const marca = r.estado === "llegó" ? "✓" : r.estado === "sin-asistencia" || r.estado === "sin-padron" ? "·" : "✗";
+    const conReceta = r.receta && r.receta !== "—" ? `[receta ${r.receta}${tarea.receta && tarea.receta !== r.receta ? ` ≠ ${tarea.receta}` : ""}]` : tarea.receta ? `[sin receta ≠ ${tarea.receta}]` : "";
+    console.log(`${marca} ${tarea.id.padEnd(18)} ${r.estado === "llegó" || r.hasta ? `${r.hasta ?? "?"}/${r.pasos ?? "?"}` : ""}  ${conReceta}  ${r.detalle}`);
     if (r.estado !== "llegó" && r.bitacora) for (const linea of r.bitacora) console.log(`      ${linea}`);
   }
 } finally {
@@ -189,9 +207,9 @@ try {
   if (conAsistencia) sql(ASISTENCIA_QUITA);
 }
 
-const contadas = filas.filter((f) => f.estado !== "sin-asistencia");
+const contadas = filas.filter((f) => f.estado !== "sin-asistencia" && f.estado !== "sin-padron");
 const llegaron = contadas.filter((f) => f.estado === "llegó").length;
 const pct = contadas.length ? Math.round((llegaron / contadas.length) * 100) : 0;
 const aparte = filas.length - contadas.length;
-console.log(`\n${llegaron} de ${contadas.length} tareas llegaron al paso que guarda (${pct} %) a ${ancho} px.${aparte ? ` ${aparte} sin contar: piden a alguien de turno (--con-asistencia).` : ""}`);
+console.log(`\n${llegaron} de ${contadas.length} tareas llegaron al paso que guarda (${pct} %) a ${ancho} px.${aparte ? ` ${aparte} sin contar: piden a alguien de turno (--con-asistencia) o el padrón de SUNAT, que en local no responde.` : ""}`);
 process.exit(pct >= minimo ? 0 : 1);

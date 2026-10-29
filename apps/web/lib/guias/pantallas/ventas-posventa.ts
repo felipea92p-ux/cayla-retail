@@ -982,8 +982,8 @@ export const GUIA_DEVOLUCIONES: Guia = {
       texto: "Elige quién atiende: la devolución queda a su nombre.",
     },
     {
-      id: "devolucion-registrar",
-      ancla: "devolucion.registrar",
+      id: "devolucion-confirmar",
+      ancla: "devolucion.confirmar",
       opcional: true,
       titulo: "Registrar la devolución",
       texto: "La deja por aprobar: el stock y el dinero no se mueven hasta que alguien la revisa y la aprueba. La registras tú.",

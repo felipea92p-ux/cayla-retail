@@ -11,7 +11,8 @@ import { Modal } from "@/components/ui/Modal";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { camposDeIngresoDeInsumo, ingresoListo } from "@/lib/insumos-guia";
-import { UNIDADES_INSUMO, cantidadTexto } from "@/lib/insumos-reglas";
+import { CANTIDAD_ILEGIBLE, UNIDADES_INSUMO, cantidadTexto, leerCantidad } from "@/lib/insumos-reglas";
+import { COSTO_UNITARIO_ILEGIBLE, costoUnitarioIlegible, costoUnitarioTexto, numeroDeCostoUnitario } from "@/lib/monto-plata-reglas";
 import type { InsumoVista } from "@/lib/insumos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -36,9 +37,14 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   const responsable = useResponsable();
 
   const insumo = insumos.find((i) => i.id === insumoId);
-  const q = Number(cantidad) || 0;
-  const c = Number(costo) || 0;
+  // Lo escrito se lee con las reglas únicas (coma o punto decimal). Lo que no se entiende NO es cero: la hoja lo dice y no deja guardar (`ingresoListo`);
+  // antes `Number("2,5")` daba NaN, luego 0, y el lote se abría a costo cero.
+  const q = leerCantidad(cantidad) ?? 0;
+  const costoLeido = numeroDeCostoUnitario(costo);
+  const c = Number.isFinite(costoLeido) ? costoLeido : 0;
   const total = q * c;
+  const cantidadIlegible = cantidad.trim() !== "" && leerCantidad(cantidad) === null;
+  const costoIlegible = costoUnitarioIlegible(costo);
   const unidad = insumo?.unidad ?? "unidad";
   const listo = ingresoListo({ tieneInsumo: !!insumo, cantidad, costo });
   const guia = useGuiaCampos(camposDeIngresoDeInsumo({ tieneInsumo: !!insumo, cantidad, costo, responsableListo: responsable.listo }));
@@ -69,7 +75,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
       return;
     }
     avisar.exito(`${cantidadTexto(q, unidad)} de ${insumo.nombre} entraron`, {
-      detalle: `Se abrió un lote a ${soles(c)} por ${UNIDADES_INSUMO[unidad].corta}.`,
+      detalle: `Se abrió un lote a ${costoUnitarioTexto(c)} por ${UNIDADES_INSUMO[unidad].corta}.`,
     });
     router.refresh();
     onClose();
@@ -88,10 +94,26 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
         </CampoGuiado>
         <div className="grid grid-cols-2 gap-3">
           <CampoGuiado id="cantidad" guia={guia}>
-            <CampoTexto etiqueta={guia.etiqueta("cantidad", `Cantidad (${UNIDADES_INSUMO[unidad].corta})`)} inputMode="decimal" placeholder="0" value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
+            <CampoTexto
+              etiqueta={guia.etiqueta("cantidad", `Cantidad (${UNIDADES_INSUMO[unidad].corta})`)}
+              inputMode="decimal"
+              placeholder="0"
+              value={cantidad}
+              onChange={(e) => setCantidad(e.target.value)}
+              tono={cantidadIlegible ? "error" : undefined}
+              pie={cantidadIlegible ? CANTIDAD_ILEGIBLE : undefined}
+            />
           </CampoGuiado>
           <CampoGuiado id="costo" guia={guia}>
-            <CampoMonto etiqueta={guia.etiqueta("costo", `Costo por ${UNIDADES_INSUMO[unidad].corta}`)} pie="sin IGV" inputMode="decimal" placeholder="0.00" value={costo} onChange={(e) => setCosto(e.target.value)} />
+            <CampoMonto
+              etiqueta={guia.etiqueta("costo", `Costo por ${UNIDADES_INSUMO[unidad].corta}`)}
+              pie={costoIlegible ? COSTO_UNITARIO_ILEGIBLE : "sin IGV"}
+              tono={costoIlegible ? "error" : undefined}
+              inputMode="decimal"
+              placeholder="0.00"
+              value={costo}
+              onChange={(e) => setCosto(e.target.value)}
+            />
           </CampoGuiado>
         </div>
         <div className="grid grid-cols-2 gap-3">

@@ -167,6 +167,20 @@ export function useParecidasAlta(p: EntradaParecidasAlta) {
 
   const resultadoHoja = estado.hoja?.alcance === "marca" ? resultadoMarca : resultado;
 
+  // «¿Ya existe?» (ADR-0556): lo que ya hay en ESTA categoría (de la marca elegida, si hay), en el mismo orden que la hoja, para mirarlo ANTES de
+  // escribir el nombre. Solo lo activo: una prenda descontinuada no se repone agregándole un color.
+  const existentes = useMemo(() => {
+    const lista = (resultado?.lista ?? []).map((x) => x.candidata).filter((c) => c.categoriaId === (p.categoriaId || null) && c.estado === "activo");
+    return {
+      lista,
+      cargando: lee && cand.cargando,
+      fallo: cand.fallo,
+      disponible: lee,
+      // En la hoja la persona dijo «No, es otro diseño» a cada una (o «Ninguna es mi prenda»): «¿Ya existe?» queda contestada igual.
+      todasRevisadas: lista.length > 0 && lista.every((c) => estado.revisadas.includes(c.id)),
+    };
+  }, [resultado, p.categoriaId, lee, cand.cargando, cand.fallo, estado.revisadas]);
+
   // Sin red, sin categoría o sin marca (en «toda la marca») no hay nada que comparar: la hoja se CIERRA, no solo se oculta. Si solo se ocultara,
   // `estado.hoja` seguiría abierto y la hoja reaparecería sola al volver la conexión, tapando el formulario sin que nadie la pidiera.
   const hojaAbierta = Boolean(estado.hoja);
@@ -236,5 +250,6 @@ export function useParecidasAlta(p: EntradaParecidasAlta) {
     resumenAvance: salida.resumenAvance,
     motivoBloqueo: reservado ? TEXTO_ALTA.nombreReservado(reservado) : salida.motivoBloqueo,
     abrirHoja,
+    existentes,
   };
 }

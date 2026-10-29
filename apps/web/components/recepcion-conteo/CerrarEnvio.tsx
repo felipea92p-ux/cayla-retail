@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Check, ChevronRight, Shirt } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
@@ -9,14 +9,14 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
 import { Balanza, BaldosaCategoria } from "./piezas";
-import { enfocarPrecio, FilaDeCosto, PrecioDePrenda } from "./PrecioDePrenda";
+import { FilaDeCosto } from "./PrecioDePrenda";
+import { PrendaConCombinaciones } from "./PrendaConCombinaciones";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
-import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
-import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { pendienteDe } from "@/lib/nos-debe-reglas";
@@ -29,8 +29,25 @@ import {
   type DetalleEnvio,
 } from "@/lib/recepcion-envio-reglas";
 import { agruparLineas, camposDelCierrePorGrupo, causasDelGrupo, lineaDeLaPrenda, lineaDelGrupo } from "@/lib/recepcion-grupos-reglas";
-import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, cambioDePrecioDeVenta, cambiosDeVentaDe, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, problemasDePrecio, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
-import { cambiarPrecioEnRecepcion, cerrarConteo, corregirGuiaEnvio, ponerProveedorEnvio } from "@/lib/recepcion-conteo-acciones";
+import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
+import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerPreciosDeCombinaciones, ponerProveedorEnvio, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
+import {
+  type CambiosDeCosto,
+  type CambiosDePrecio,
+  type Combinacion,
+  type Cifra,
+  type LlamadaDePrecio,
+  type PrecioDeHoy,
+  combinacionesContadas,
+  costosDeCombinacionesGuardados,
+  costosParaLinea,
+  etiquetaDe,
+  llamadasDePrecio,
+  ponerCosto,
+  ponerPrecio,
+  quitarCambios,
+} from "@/lib/recepcion-combinaciones-reglas";
 
 // Cerrar (ADR-0393, el paso 3 de la cara A): una fila por categoría —lo que dijeron, lo que se contó, lo que entra hoy al stock y lo que
 // queda para después—, el costo de cada una (decisión 6: quien cierra lo ve y lo corrige; en un envío sin aviso, solo quien ve el dinero de
@@ -96,13 +113,36 @@ export function CerrarEnvio({
     setAtipicos(null);
     setCostosPrenda((c) => ({ ...c, [clave]: { ...(c[clave] ?? {}), [productoId]: valor } }));
   };
-  // El precio de venta de cada prenda ya identificada (por producto): su precio de hoy, lo escrito, dónde vale y por qué la base no lo aceptaría.
-  // Se valida antes de confirmar y se aplica al cerrar.
-  const { ventas, ponerActual, cambiarVenta, rechazar, aplicado, validar } = usePreciosDeVenta();
+  // El costo y el precio de venta por COMBINACIÓN (color y talla) de cada prenda identificada (Felipe 2026-10-28): lo escrito vive aquí hasta cerrar
+  // (`lib/recepcion-combinaciones-reglas.ts`). Los costos arrancan con lo que ya quedó guardado en el conteo; los precios, vacíos. Lo que valen hoy
+  // (el general y el de esta tienda) se lee una vez; el precio se valida antes de confirmar y se aplica al cerrar.
+  const [hoy, setHoy] = useState<{ porVariante: Record<string, PrecioDeHoy>; activasPorPrenda: Record<string, number> }>({ porVariante: {}, activasPorPrenda: {} });
+  const [cambiosCosto, setCambiosCosto] = useState<CambiosDeCosto>(() =>
+    Object.assign({}, ...visibles.map((l) => costosDeCombinacionesGuardados(l.conteo?.separado.prendas ?? [], l.conteo?.costosPrendas ?? {}))),
+  );
+  const [cambiosPrecio, setCambiosPrecio] = useState<CambiosDePrecio>({});
+  /** Por qué la base no guardaría el precio de una prenda (`validar_precios_en_recepcion`), por producto: sale en su matriz y se borra al cambiar algo. */
+  const [rechazosPrecio, setRechazosPrecio] = useState<Record<string, string>>({});
+  const [prendasAbiertas, setPrendasAbiertas] = useState<ReadonlySet<string>>(new Set());
+  const idsDeProductos = [...new Set(visibles.flatMap((l) => (l.conteo?.separado.prendas ?? []).map((p) => p.productoId)))].sort();
+  useEffect(() => {
+    let vivo = true;
+    void leerPreciosDeCombinaciones(idsDeProductos, detalle.sede?.id ?? null).then((r) => {
+      if (vivo && r) setHoy(r);
+    });
+    return () => {
+      vivo = false;
+    };
+    // Se lee una vez por conjunto de prendas; `idsDeProductos` se arma en cada dibujo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsDeProductos.join(","), detalle.sede?.id]);
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
-  // Las filas con el costo y el precio de venta de sus prendas a la vista.
-  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(() => new Set());
+  // Las filas con el costo y el precio de venta de sus prendas a la vista. Una categoría de fuera de la guía arranca abierta (su costo se pide y no
+  // viene de ninguna orden), pero se puede esconder (Felipe 2026-10-28): cerrada, dice «Falta el costo» mientras no lo escriban.
+  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(
+    () => new Set(agruparLineas(visibles).filter((g) => !g.principal.linea && g.contadas > 0 && !(sinAviso && !veDinero)).map((g) => g.clave)),
+  );
   const alternarFila = (clave: string) =>
     setAbiertas((a) => {
       const n = new Set(a);
@@ -145,14 +185,111 @@ export function CerrarEnvio({
     }),
     grupos,
   );
-  const guia = useGuiaCampos(campos, { enModal: false });
+  const guiaBase = useGuiaCampos(campos, { enModal: false });
+  // La guía interactiva ancla su paso «prendas» a la fila de la primera prenda que se dibuje.
+  const primeraPrenda = grupos.flatMap((g) => g.separado.prendas.map((p) => `${g.clave}|${p.productoId}`))[0] ?? null;
+  // «Falta: costo de Aretes» con la fila escondida: primero se abre la fila y recién después se lleva al campo (que solo existe con la fila abierta).
+  const guia: GuiaCampos = {
+    ...guiaBase,
+    ir: (id) => {
+      const cerrada = grupos.find((g) => idCampoCierre("costo", g.principal.clave) === id && !abiertas.has(g.clave));
+      if (!cerrada) return guiaBase.ir(id);
+      alternarFila(cerrada.clave);
+      requestAnimationFrame(() => requestAnimationFrame(() => guiaBase.ir(id)));
+    },
+  };
   const contadas = visibles.reduce((a, l) => a + contadasDe(l), 0);
   // Lo que pasa al cerrar, dicho para la tienda (formidable 2026-10-13, cambio 3): cuántas se pueden vender ya y cuántas quedan guardadas.
   const resumen = resumenDelCierre(visibles);
   const porDetallar = resumen.guardadas;
 
-  /** Lo que cambió el precio de venta: una vez por prenda (aunque esté en dos líneas), con el nombre de la prenda. */
-  const cambiosDeVenta = () => cambiosDeVentaDe(visibles.flatMap((l) => l.conteo?.separado.prendas ?? []), ventas);
+  /** El costo de partida de una prenda: el suyo (guardado por prenda en un cierre anterior) o el de su línea. */
+  const costoHeredadoDe = (lineaClave: string, productoId: string): number | null =>
+    leerCostoCierre(costoDePrendaTexto(decisionDe(lineaClave).costo, costosPrenda[lineaClave], productoId)).valor;
+  /** Las prendas identificadas de las categorías, una vez cada una, con lo contado por color y talla: de ahí salen el precio y la confirmación. */
+  const prendasConCombinaciones = (): { productoId: string; nombre: string; combinaciones: Combinacion[] }[] =>
+    grupos.flatMap((g) =>
+      g.separado.prendas.map((pr) => ({
+        productoId: pr.productoId,
+        nombre: pr.nombre ?? pr.codigo ?? "La prenda",
+        combinaciones: combinacionesContadas(pr, hoy.porVariante, costoHeredadoDe(lineaDeLaPrenda(g, { productoId: pr.productoId }).clave, pr.productoId)),
+      })),
+    );
+  /** Lo que cambió el precio de venta, una combinación por renglón, con dónde vale. */
+  const cambiosDeVenta = (): CambioDePrecio[] => {
+    const r: CambioDePrecio[] = [];
+    for (const p of prendasConCombinaciones()) {
+      for (const c of p.combinaciones) {
+        const e = cambiosPrecio[c.varianteId];
+        const antes = e ? (e.valeEn === "sede" ? c.precioSede : c.precioGeneral) : null;
+        if (!e || antes === e.valor) continue;
+        r.push({ tipo: "venta", nombre: `${p.nombre} · ${etiquetaDe(c)}`, antes, despues: e.valor, alcance: e.valeEn });
+      }
+    }
+    return r;
+  };
+  /** El costo propio de cada combinación que quien cierra cambió, contra el de partida (el de su prenda o su línea). */
+  const cambiosDeCompraPorCombinacion = (): CambioDePrecio[] => {
+    const r: CambioDePrecio[] = [];
+    for (const l of visibles) {
+      if ((sinAviso && !l.linea && !veDinero) || esRegaloFuera(l, decisionDe(l.clave))) continue;
+      for (const pr of l.conteo?.separado.prendas ?? []) {
+        for (const c of combinacionesContadas(pr, hoy.porVariante, costoHeredadoDe(l.clave, pr.productoId))) {
+          const e = cambiosCosto[c.varianteId];
+          if (e === undefined || e === c.costoHeredado) continue;
+          r.push({ tipo: "compra", nombre: `${pr.nombre ?? pr.codigo ?? "La prenda"} · ${etiquetaDe(c)}`, antes: c.costoHeredado, despues: e, alcance: null });
+        }
+      }
+    }
+    return r;
+  };
+  /** Los costos por combinación (y por prenda, si todas llevan el mismo) de cada línea, como los espera `costos_prendas`. */
+  const costosCombinacionesPorLinea = (): Record<string, Record<string, number>> => {
+    const r: Record<string, Record<string, number>> = {};
+    for (const l of visibles) {
+      if (sinAviso && !l.linea && !veDinero) continue;
+      const prendas = (l.conteo?.separado.prendas ?? []).map((pr) => ({ productoId: pr.productoId, combinaciones: combinacionesContadas(pr, hoy.porVariante, costoHeredadoDe(l.clave, pr.productoId)) }));
+      const costos = costosParaLinea(prendas, cambiosCosto);
+      if (Object.keys(costos).length > 0) r[l.clave] = costos;
+    }
+    return r;
+  };
+  /** Una prenda y su categoría se ven abiertas (para llevar a quien cierra a lo que hay que corregir). */
+  const mostrarPrenda = (productoId: string) => {
+    const g = grupos.find((x) => x.separado.prendas.some((p) => p.productoId === productoId));
+    if (!g) return;
+    setAbiertas((a) => new Set([...a, g.clave]));
+    setPrendasAbiertas((a) => new Set([...a, `${g.clave}|${productoId}`]));
+    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(`[data-prenda-comb-id="${CSS.escape(productoId)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" })));
+  };
+  const cambiarCosto = (ids: string[], valor: number) => {
+    setAtipicos(null);
+    setCambiosCosto((c) => ponerCosto(c, ids, valor));
+  };
+  const cambiarPrecio = (productoId: string, ids: string[], valor: number, valeEn: "todas" | "sede") => {
+    setRechazosPrecio((r) => quitarCambios(r, [productoId]));
+    setCambiosPrecio((c) => ponerPrecio(c, ids, valor, valeEn));
+  };
+  const deshacerCambios = (productoId: string, cifra: Cifra, ids: string[]) => {
+    if (cifra === "costo") setCambiosCosto((c) => quitarCambios(c, ids));
+    else {
+      setRechazosPrecio((r) => quitarCambios(r, [productoId]));
+      setCambiosPrecio((c) => quitarCambios(c, ids));
+    }
+  };
+  /** La base ya aplicó estos precios: lo escrito pasa a ser lo que vale hoy y deja de ser un cambio (un reintento del cierre no lo manda otra vez). */
+  const precioAplicado = (l: LlamadaDePrecio) => {
+    setHoy((h) => ({
+      ...h,
+      porVariante: {
+        ...h.porVariante,
+        ...Object.fromEntries(
+          Object.entries(l.precios).map(([id, valor]) => [id, { general: l.alcance === "todas" ? valor : (h.porVariante[id]?.general ?? null), sede: l.alcance === "sede" ? valor : (h.porVariante[id]?.sede ?? valor) }]),
+        ),
+      },
+    }));
+    setCambiosPrecio((c) => quitarCambios(c, Object.keys(l.precios)));
+  };
   /** Todo lo que cambia de precio, de compra primero. */
   function cambiosDePrecio(): CambioDePrecio[] {
     const compra: CambioDePrecio[] = [];
@@ -161,7 +298,7 @@ export function CerrarEnvio({
       const c = cambioDePrecioDeCompra(nombreDeLinea(l), costoInicial[l.clave] ?? "", decisionDe(l.clave).costo);
       if (c) compra.push(c);
     }
-    return [...compra, ...cambiosDeCompraPorPrenda(), ...cambiosDeVenta()];
+    return [...compra, ...cambiosDeCompraPorPrenda(), ...cambiosDeCompraPorCombinacion(), ...cambiosDeVenta()];
   }
   /** Lo que ve el campo «Costo» de una prenda: lo suyo (o el de su línea), lo que decía al abrir y si está mal escrito. */
   const costoDePrenda = (clave: string, textoLinea: string, productoId: string) => {
@@ -203,26 +340,21 @@ export function CerrarEnvio({
   async function pedirCerrar() {
     if (!guia.puedeConfirmar || esperandoGuardar) return;
     if (hayCostoDePrendaMalo()) return;
-    const prendas = visibles.flatMap((l) => l.conteo?.separado.prendas ?? []);
-    const mostrar = (productoId: string) => {
-      // El precio vive en la fila de su categoría, que puede estar cerrada: se abre (con el motivo junto al campo) y el cursor va al campo.
-      const claves = grupos.filter((g) => g.separado.prendas.some((p) => p.productoId === productoId)).map((g) => g.clave);
-      setAbiertas((a) => new Set([...a, ...claves]));
-      requestAnimationFrame(() => requestAnimationFrame(() => enfocarPrecio(productoId)));
-    };
-    const mal = problemasDePrecio(prendas, ventas);
-    if (mal.length > 0) {
-      mostrar(mal[0].productoId);
-      return;
-    }
-    const venta = cambiosDeVenta();
-    if (venta.length > 0) {
+    const llamadas = llamadasDePrecio(prendasConCombinaciones(), cambiosPrecio);
+    if (llamadas.length > 0) {
       setGuardando(true);
       setError(null);
-      const rechazos = await validar(detalle.id, venta, responsable.firma());
+      const rechazos: Record<string, string> = {};
+      for (const l of llamadas) {
+        const r = await validarPreciosEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: l.productoId, p_precios: l.precios, p_alcance: l.alcance }, responsable.firma());
+        if (r.estado === "rechazado" && !rechazos[l.productoId]) rechazos[l.productoId] = r.texto;
+      }
       setGuardando(false);
-      if (rechazos.length > 0) {
-        mostrar(rechazos[0].productoId);
+      const primero = Object.keys(rechazos)[0];
+      if (primero) {
+        // La prenda cuyo precio la base no aceptaría se abre, con el motivo en su matriz.
+        setRechazosPrecio((r) => ({ ...r, ...rechazos }));
+        mostrarPrenda(primero);
         return;
       }
     }
@@ -268,27 +400,29 @@ export function CerrarEnvio({
       setVersionTrasGuia(v);
       versionParaCerrar = v;
     }
-    // El precio de venta de lo que cambió, antes de cerrar (la base lo pide con el envío abierto). Cada uno que queda aplicado deja de ser un cambio:
+    // El precio de venta de lo que cambió, antes de cerrar (la base lo pide con el envío abierto). Cada llamada que queda aplicada deja de ser un cambio:
     // si el cierre falla y se reintenta, no se vuelve a mandar.
-    for (const c of cambiosDeVenta()) {
-      const { error: epv } = await cambiarPrecioEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: c.productoId, p_precio: c.despues, p_alcance: c.alcance ?? "sede" }, responsable.firma());
+    for (const l of llamadasDePrecio(prendasConCombinaciones(), cambiosPrecio)) {
+      const { error: epv } = await cambiarPreciosEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: l.productoId, p_precios: l.precios, p_alcance: l.alcance }, responsable.firma());
       responsable.despues(epv);
       if (epv) {
         setGuardando(false);
         const motivo = mensajeAlGuardar(epv, "cambiar el precio de venta");
-        rechazar(c.productoId, motivo);
-        setError({ texto: avisoDePrecioRechazado(c.nombre, motivo, "No se cerró el envío."), recargar: false });
+        const nombre = prendasConCombinaciones().find((p) => p.productoId === l.productoId)?.nombre ?? "la prenda";
+        setRechazosPrecio((r) => ({ ...r, [l.productoId]: motivo }));
+        mostrarPrenda(l.productoId);
+        setError({ texto: avisoDePrecioRechazado(nombre, motivo, "No se cerró el envío."), recargar: false });
         requestAnimationFrame(() => avisoError.current?.focus());
         return;
       }
-      aplicado(c.productoId, c.despues, c.alcance ?? "sede");
+      precioAplicado(l);
     }
     const conConfirmados = Object.fromEntries(Object.entries(decisiones).map(([k, d]) => [k, confirmados.has(k) ? { ...d, confirmaCosto: true } : d]));
     const { resultado, error: e } = await cerrarConteo(
       {
         p_despacho_id: detalle.id,
         p_version: versionParaCerrar,
-        p_lineas: lineasParaCerrar(visibles, conConfirmados, sinAviso, costosPrenda),
+        p_lineas: lineasParaCerrar(visibles, conConfirmados, sinAviso, costosPrenda, costosCombinacionesPorLinea()),
         p_nota: nota.trim() ? nota.trim().slice(0, TOPES_CONTEO.notaEnvio) : null,
         p_token: token,
       },
@@ -358,7 +492,9 @@ export function CerrarEnvio({
               const causas = causasDelGrupo(g, deuda, sinAviso);
               const dP = decisionDe(p.clave);
               const costo = leerCostoCierre(dP.costo);
-              const editaCosto = !(sinAviso && !p.linea && !veDinero);
+              // Un regalo de fuera de la guía entra a S/ 0 (obsequio) sin pedir ningún costo (Felipe 2026-10-28; la base lo hace igual).
+              const regaloFuera = esRegaloFuera(p, dP);
+              const editaCosto = !(sinAviso && !p.linea && !veDinero) && !regaloFuera;
               const cambio = editaCosto && g.lineas.some((x) => decisionDe(x.clave).costo.trim() !== (costoInicial[x.clave] ?? "").trim());
               const prendas = g.separado.prendas;
               const alStock = g.enStock + detalladas(g.separado);
@@ -386,19 +522,26 @@ export function CerrarEnvio({
                         : `: cuestan lo que dice cada orden (de S/\u00a0${costoMin.toFixed(2)} a S/\u00a0${costoMax.toFixed(2)}).`
                       : ".")
                   : null;
-              const siempreAbierta = costoDeLaLineaObligatorio;
-              const abierta = siempreAbierta || abiertas.has(g.clave);
+              // Las prendas identificadas ya no llevan caja de costo ni de precio en su fila (Felipe 2026-10-28): se abren y su matriz por color y talla las tiene.
+              // La caja «Toda la línea» queda como el costo base de lo que no estaba en la guía (obligatorio); cada combinación hereda ese costo hasta que se le escriba otro.
+              const abierta = abiertas.has(g.clave);
+              // El costo de una categoría de fuera de la guía no viene de ninguna orden: mientras falte, la fila escondida lo dice (con aviso, es obligatorio).
+              const faltaCosto = costoDeLaLineaObligatorio && !sinAviso && costo.valor == null;
               const idFila = g.principal.clave.replace(":", "-");
               const nombreGrupo = [p.categoria?.nombre ?? "Categoría", p.categoria ? marcaDeLinea(p).nombre : null].filter(Boolean).join(" · ");
               const contaron = [...new Set(g.lineas.map((x) => x.conteo?.contadoPor?.nombre?.split(" ")[0]).filter((n): n is string => !!n))];
               // Lo que cambió en esta categoría y quedaría escondido: se avisa en la fila cerrada.
-              const cambiaVenta = prendas.some((pr) => {
-                const e = ventas[pr.productoId];
-                return !!e && cambioDePrecioDeVenta("", e.actual, e.valor, e.alcance) !== null;
-              });
+              const cambiaVenta = prendas.some((pr) =>
+                combinacionesContadas(pr, hoy.porVariante, 0).some((c) => cambiosPrecio[c.varianteId] !== undefined && cambiosPrecio[c.varianteId].valor !== (cambiosPrecio[c.varianteId].valeEn === "sede" ? c.precioSede : c.precioGeneral)),
+              );
               const cambiaCosto =
                 editaCosto &&
                 (cambio ||
+                  prendas.some((pr) => {
+                    const v = dondeVive({ clave: pr.productoId, nueva: false, nombre: pr.nombre ?? "" }).clave;
+                    const heredado = costoHeredadoDe(v, pr.productoId);
+                    return combinacionesContadas(pr, hoy.porVariante, heredado).some((c) => cambiosCosto[c.varianteId] !== undefined && cambiosCosto[c.varianteId] !== heredado);
+                  }) ||
                   conNombre.some((pr) => {
                     const v = dondeVive(pr).clave;
                     const ahora = costoDePrendaTexto(decisionDe(v).costo, costosPrenda[v], pr.clave);
@@ -411,10 +554,10 @@ export function CerrarEnvio({
               return (
                 <div key={g.clave}>
                 <div
-                  className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} @min-[1000px]:items-start ${siempreAbierta ? "" : "cursor-pointer"} ${abierta ? "bg-tinta/[0.03]" : ""}`}
+                  className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} @min-[1000px]:items-start cursor-pointer ${abierta ? "bg-tinta/[0.03]" : ""}`}
                   role="row"
                   onClick={(e) => {
-                    if (siempreAbierta || !(e.currentTarget.contains(e.target as Node))) return;
+                    if (!(e.currentTarget.contains(e.target as Node))) return;
                     if ((e.target as HTMLElement).closest("button, input, a, [role='group'], [role='radio']")) return;
                     alternarFila(g.clave);
                   }}
@@ -426,6 +569,7 @@ export function CerrarEnvio({
                     </span>
                     <span className="min-w-0 @min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:flex-col @min-[1000px]:justify-center">
                       <p className="font-medium text-tinta">{p.categoria?.nombre ?? "Categoría"}</p>
+                      {faltaCosto && !abierta && <Chip tono="ambar">Falta el costo</Chip>}
                       {conCambios && !abierta && <Chip tono="ambar">{textoCambios}</Chip>}
                       <p className="text-xs text-taupe">
                         {[p.categoria ? marcaDeLinea(p).nombre : null, contaron.length > 0 ? `contó ${contaron.join(" y ")}` : null, !p.linea && !sinAviso ? "no estaba en la guía" : null]
@@ -487,9 +631,24 @@ export function CerrarEnvio({
                                 opciones={c.opciones}
                                 valor={c.tipo === "faltante" ? decisionDe(c.lineas[0].clave).faltanteCausa : decisionDe(c.lineas[0].clave).sobranteCausa}
                                 onValor={(v) => {
-                                  for (const x of c.lineas) cambiar(x.clave, c.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante });
+                                  // «Otro» se explica con la nota de la línea; al dejarlo, lo escrito se suelta (no hay otro lugar donde escribirla).
+                                  for (const x of c.lineas)
+                                    cambiar(x.clave, c.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante, ...(v === VALOR_OTRO ? {} : { nota: "" }) });
                                 }}
                               />
+                              {c.tipo === "sobrante" && decisionDe(c.lineas[0].clave).sobranteCausa === VALOR_OTRO && (
+                                <CampoTexto
+                                  className="mt-2"
+                                  etiqueta="¿Qué pasó exactamente?"
+                                  value={decisionDe(c.lineas[0].clave).nota}
+                                  maxLength={TOPES_CONTEO.nota}
+                                  // sugerir-fijo: lo que pasó con lo de más no depende de nada elegido antes
+                                  placeholder="Ej. El proveedor mandó una muestra"
+                                  onChange={(e) => {
+                                    for (const x of c.lineas) cambiar(x.clave, { nota: e.target.value });
+                                  }}
+                                />
+                              )}
                             </div>
                           </CampoGuiado>
                         ))}
@@ -501,23 +660,26 @@ export function CerrarEnvio({
                     )}
                   </div>
                   <div className="flex min-w-0 @min-[1000px]:min-h-10 @min-[1000px]:items-center @min-[1000px]:justify-end" role="cell">
-                    {!siempreAbierta && (
-                      <button
-                        type="button"
-                        onClick={() => alternarFila(g.clave)}
-                        aria-expanded={abierta}
-                        aria-controls={`precios-${idFila}`}
-                        aria-label={`${abierta ? "Esconder" : "Ver"} las prendas y los precios de ${nombreGrupo}`}
-                        className="grid h-8 w-8 place-items-center rounded-full text-taupe transition-colors hover:text-tinta"
-                      >
-                        <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => alternarFila(g.clave)}
+                      aria-expanded={abierta}
+                      aria-controls={`precios-${idFila}`}
+                      aria-label={`${abierta ? "Esconder" : "Ver"} las prendas y los precios de ${nombreGrupo}`}
+                      className="grid h-8 w-8 place-items-center rounded-full text-taupe transition-colors hover:text-tinta"
+                    >
+                      <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
+                    </button>
                   </div>
                 </div>
                 {abierta && (
                   <div id={`precios-${idFila}`} className="border-t border-sand bg-tinta/[0.02] px-5 py-4" data-precios-de={g.clave}>
                     <div className="space-y-3">
+                      {regaloFuera && (
+                        <p className="text-xs text-taupe" data-regalo-sin-costo>
+                          Es un regalo: entra con costo S/&nbsp;0.00 (obsequio), sin que escribas nada.
+                        </p>
+                      )}
                       {costoDeLaLineaObligatorio && (
                         <CampoGuiado id={idCampoCierre("costo", p.clave)} guia={guia}>
                           <FilaDeCosto
@@ -542,20 +704,36 @@ export function CerrarEnvio({
                         <div className="space-y-3">
                           {prendas.map((pr) => {
                             const v = dondeVive({ clave: pr.productoId, nueva: false, nombre: pr.nombre ?? "" }).clave;
+                            const clave = `${g.clave}|${pr.productoId}`;
+                            const primera = clave === primeraPrenda;
                             return (
-                              <PrecioDePrenda
-                                key={`${g.clave}-${pr.productoId}`}
-                                prenda={pr}
-                                sede={sede}
-                                soloSede={soloSede}
-                                sedeId={detalle.sede?.id ?? null}
-                                editado={ventas[pr.productoId]}
-                                costo={editaCosto ? costoDePrenda(v, decisionDe(v).costo, pr.productoId) : undefined}
-                                onCosto={(valor) => cambiarCostoPrenda(v, pr.productoId, valor)}
-                                onActual={(general, enSede) => ponerActual(pr.productoId, general, enSede)}
-                                onValor={(valor) => cambiarVenta(pr.productoId, { valor })}
-                                onAlcance={(alcance) => cambiarVenta(pr.productoId, { alcance })}
-                              />
+                              <div key={clave} data-prenda-comb-id={pr.productoId}>
+                                <PrendaConCombinaciones
+                                  nombre={pr.nombre ?? pr.codigo ?? "La prenda"}
+                                  unidades={pr.cantidad}
+                                  combinaciones={combinacionesContadas(pr, hoy.porVariante, costoHeredadoDe(v, pr.productoId))}
+                                  abierta={prendasAbiertas.has(clave)}
+                                  onAlternar={() =>
+                                    setPrendasAbiertas((a) => {
+                                      const n = new Set(a);
+                                      if (n.has(clave)) n.delete(clave);
+                                      else n.add(clave);
+                                      return n;
+                                    })
+                                  }
+                                  cambiosCosto={cambiosCosto}
+                                  cambiosPrecio={cambiosPrecio}
+                                  puedeCosto={editaCosto}
+                                  sede={sede}
+                                  soloSede={soloSede}
+                                  totalActivas={hoy.activasPorPrenda[pr.productoId] ?? null}
+                                  rechazo={rechazosPrecio[pr.productoId] ?? null}
+                                  onCosto={(ids, valor) => cambiarCosto(ids, valor)}
+                                  onPrecio={(ids, valor, valeEn) => cambiarPrecio(pr.productoId, ids, valor, valeEn)}
+                                  onQuitar={(cifra, ids) => deshacerCambios(pr.productoId, cifra, ids)}
+                                  guia={primera ? "recepcion.prenda-fila" : undefined}
+                                />
+                              </div>
                             );
                           })}
                           {/* Las nuevas ya descritas todavía no existen: solo llevan costo; su precio se pone al crearlas. */}
@@ -593,22 +771,14 @@ export function CerrarEnvio({
             })}
       </Tabla>
 
-      <Aviso tono="atencion" titulo="El costo de cada prenda se puede corregir aquí">
-        {sinAviso
-          ? "Lo que llega sin aviso entra sin costo si lo dejas vacío; la factura lo trae después. "
-          : "Viene de la orden: si la factura dice otra cosa, corrígelo. "}
-        Cambia el costo de lo que entra en este envío; lo comprado y recibido antes no se toca. El costo y el precio de venta se cambian por prenda, solo de las que ya identificaste o describiste: abre la fila. El de venta rige
-        desde ahora: lo ya vendido guarda su precio. Los dos quedan en el historial de la prenda.
-      </Aviso>
-
-      <p className="nota-cayla">
-        {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : ""}
-        ¿Alguna llegó dañada? Márcala en «Tallas y colores» (va a la cuarentena), o repórtala después en Existencias.
-      </p>
-      {porDetallar > 0 && (
+      {/* UN solo mensaje debajo de la tabla (Felipe 2026-10-28): lo que pasa al apretar «Cerrar». Antes había otros dos: las reglas del costo (la fila abierta
+          ya muestra sus cajas con su «Antes» y la confirmación lista lo que cambia) y «¿Alguna llegó dañada?» (eso se anota al contar, en «Anotar observación»). */}
+      {(porDetallar > 0 || sinAviso) && (
         <p className="nota-cayla">
-          Cerrar el envío deja el conteo oficial y {porDetallar} {porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo
-          nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.
+          {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : ""}
+          {porDetallar > 0
+            ? `Cerrar el envío deja el conteo oficial y ${porDetallar} ${porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.`
+            : ""}
         </p>
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { almacenReleido, apartadoReleido, conStockReleido } from "@/lib/vender-stock-local";
 import { sumarCantidades } from "@/lib/inventario-reglas";
@@ -81,6 +81,11 @@ async function leerHuellaDeSede(ubicacionId: string): Promise<string | null> {
  * filas solo si cambió (o si cambió qué prendas conoce la pantalla): sin ventas ni reposiciones, una vuelta es un texto
  * de 32 letras en vez de todo el stock de la tienda (auditoría 2026-10-13, punto 20).
  *
+ * Devuelve `olvidarLoLeido`: la pantalla que cambia el stock POR SU CUENTA (Vender descuenta lo que acaba de vender) la llama
+ * para que el sondeo no dé por bueno lo que recordaba. Sin eso, la huella y el último stock avisado seguían diciendo «3» mientras
+ * la pantalla mostraba 0 por la venta; al volver el piso a 3 (la bajada del almacén), el sondeo veía «nada cambió» y la caja
+ * seguía diciendo «sin stock» hasta recargar (Felipe, 2026-10-28). Tras olvidar, la próxima vuelta relee y avisa sí o sí.
+ *
  * `conocidos` y `alLeer` se leen siempre en su versión más reciente por ref (mismo idioma que `onCodigoRef` en
  * `EscanerCamara`): así el intervalo no se resetea con cada render de quien los provee (una tecla del buscador,
  * por ejemplo) sin que haga falta memoizarlos del lado de quien llama.
@@ -103,6 +108,11 @@ export function useStockEnVivo(
   const ultimoRef = useRef<StockReleido | null>(null);
   // La huella de la sede en la última lectura completa (auditoría 2026-10-13, punto 20): si no cambió, no se baja nada.
   const huellaRef = useRef<UltimaHuella>(null);
+
+  const olvidarLoLeido = useCallback(() => {
+    ultimoRef.current = null;
+    huellaRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!activo) return;
@@ -142,4 +152,5 @@ export function useStockEnVivo(
       window.removeEventListener("online", sondear);
     };
   }, [ubicacionId, activo, cadaMs]);
+  return olvidarLoLeido;
 }

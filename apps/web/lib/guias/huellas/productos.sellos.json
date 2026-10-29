@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 142,
+  "total": 143,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -34,6 +34,8 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
+      "CampoFecha «Desde» #2",
+      "CampoFecha «Hasta» #2",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -90,6 +92,12 @@
     ],
     "components/sellos/EditarEtiquetaModal.tsx": [
       "CampoTexto «{`Nombre ${delUno}»",
+      "button «{`Repetir en ${repeticion.anio}»",
+      "BotonDeshacer «→volverAlAnio»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «{avisoDia.boton}»",
+      "BotonDeshacer «(sin nombre)»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -142,13 +150,6 @@
       "Boton «No» #2",
       "BotonVerMas «{`Ver ${resto}»",
       "button «Quitar el límite»",
-      "button «sellos.ofertas-campana»",
-      "CampoFecha «La campaña empieza»",
-      "CampoFecha «La campaña termina»",
-      "button «{avisoDia.boton}»",
-      "BotonDeshacer «(sin nombre)»",
-      "Boton «Cancelar» #2",
-      "Boton «Guardar fechas»",
       "button «Registrar otra en vez de editar»"
     ],
     "components/sellos/SellosPantalla.tsx": [

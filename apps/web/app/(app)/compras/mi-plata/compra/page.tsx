@@ -24,7 +24,7 @@ export default async function CompraRapidaPage() {
       {!enMarcha && (
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
-          titulo="Compré ropa"
+          titulo="Apunte de compras"
           subtitulo="A quién le compraste, qué prendas y el papel que te dieron."
           // Sin los pasos (no cargó, o falta abrir la ronda) no hay flecha del paso: sin esta, la única salida era el menú.
           volver={<Volver href="/compras/mi-plata" a="Mis compras" />}

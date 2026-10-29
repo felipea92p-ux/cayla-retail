@@ -2,7 +2,7 @@
   "guia": "inventario.movimientos",
   "ruta": "/inventario/movimientos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 58,
+  "total": 70,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
       "Pestanas «(sin nombre)»",
@@ -73,6 +73,22 @@
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",
       "Link «Siguiente página»"
+    ],
+    "components/ingresos/IngresosTabla.tsx": [
+      "BotonDescargar «Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo»",
+      "BotonDescargar «Lo mismo, con una línea por cada color y talla de cada modelo»",
+      "BotonImprimir «Imprime lo que estás viendo, con la foto de cada modelo. En el cuadro de impresión también puedes guardarlo como PDF»",
+      "Pastilla «Todos»",
+      "Pastilla «Nuevos»",
+      "Pastilla «Reingresos»",
+      "button «{i === 0 ? \"movimientos.ingresos-nombre\" : undefined}»",
+      "button «{children}»"
+    ],
+    "components/ingresos/SelectorRangoIngresos.tsx": [
+      "Link «{o.etiqueta}»",
+      "button «movimientos.ingresos-fechas»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»"
     ],
     "components/movimientos/EncabezadoDia.tsx": [
       "button «{`${op.hora}»"
