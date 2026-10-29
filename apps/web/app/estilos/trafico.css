@@ -387,8 +387,8 @@
   }
   .trafico-tallas-fila {
     display: grid;
-    grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: minmax(4.5rem, 6rem) minmax(0, 1fr);
+    gap: 8px;
     align-items: center;
   }
   .trafico-tallas-tarjeta {
@@ -402,19 +402,19 @@
   }
   .trafico-tallas-celdas {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 4px;
   }
   .trafico-talla-celda {
     position: relative;
     display: flex;
-    height: 78px;
+    height: 50px;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
     overflow: hidden;
-    padding: 0 2px 6px;
-    border-radius: 9px;
+    padding: 0 2px 5px;
+    border-radius: 8px;
     background: var(--color-hueso);
   }
   .trafico-talla-celda > i {
@@ -432,20 +432,26 @@
   /* La talla y las unidades pueden caer sobre la barra (más oscura en el tema oscuro): van en tinta plena, nunca tenues. */
   .trafico-talla-nombre {
     position: absolute;
-    top: 6px;
-    font-size: 10.5px;
+    top: 4px;
+    right: 2px;
+    left: 2px;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9.5px;
     font-weight: 600;
     letter-spacing: 0.06em;
     color: var(--color-tinta);
   }
   .trafico-talla-celda > b {
     font-family: var(--font-display);
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
   .trafico-talla-celda > small {
-    font-size: 10.5px;
+    font-size: 9.5px;
     color: var(--color-tinta);
   }
   .trafico-talla-celda[data-falta] {
@@ -538,7 +544,95 @@
   }
 }
 
+/* ---------- El pulso (actividad 2, ajustado a la maqueta el 2026-10-29) ----------
+   Una sola tarjeta: la franja de cinco cifras arriba (la elegida con fondo y su raya de 3 px), el gráfico y la lectura al costado sobre un
+   degradado de hueso. Bajo 1180 px de tarjeta, la franja va de a 3 y la lectura baja; bajo 640, de a 2. */
+@layer components {
+  .trafico-pulso {
+    container: pulso / inline-size;
+  }
+  .trafico-franja {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-bottom: 1px solid var(--color-sand);
+  }
+  .trafico-franja-cifra {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 18px 22px 14px;
+    border-right: 1px solid var(--color-sand);
+    text-align: left;
+    transition: background-color 200ms var(--ease-cayla);
+  }
+  .trafico-franja-cifra:last-child {
+    border-right: 0;
+  }
+  .trafico-franja-numero {
+    font-size: 40px;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+  @media (hover: hover) {
+    .trafico-franja-cifra:hover {
+      background: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+    }
+  }
+  .trafico-franja-cifra[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+  }
+  .trafico-franja-cifra[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 3px;
+    background: var(--color-tinta);
+  }
+  .trafico-pulso-cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+  .trafico-lectura {
+    border-left: 1px solid var(--color-sand);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 55%, transparent), transparent 70%);
+  }
+  @container pulso (max-width: 1180px) {
+    .trafico-franja {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .trafico-franja-cifra {
+      border-bottom: 1px solid var(--color-sand);
+    }
+    .trafico-pulso-cuerpo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .trafico-lectura {
+      border-top: 1px solid var(--color-sand);
+      border-left: 0;
+    }
+  }
+  @container pulso (max-width: 640px) {
+    .trafico-franja {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .trafico-franja-cifra {
+      padding: 14px 16px 10px;
+    }
+    .trafico-franja-cifra:last-child {
+      grid-column: 1 / -1;
+    }
+    .trafico-franja-numero {
+      font-size: 32px;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .trafico-franja-cifra,
   .trafico-calor-celda,
   .trafico-camino,
   .trafico-mapa-dep,

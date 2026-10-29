@@ -346,12 +346,11 @@ export function InventarioPanel({
   // una copia: tras reponer o apartar, el `router.refresh` trae las cifras nuevas y el detalle las muestra.
   const [vista, setVista] = useState<"prenda" | "talla">("prenda");
   // La lista de entrada son tarjetas (maqueta `existencias-tarjetas-2026-09`); «Ver detalle» pasa a la tabla de siempre, con su
-  // «Vista: Por prenda / Por talla». `orden` solo ordena las tarjetas: la tabla conserva su orden. El cajón de la prenda vive en la
-  // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
-  // (`abrirPorCodigo`) entra por la tabla.
-  // Llegar desde el candado de Editar (`abrirAjustar`) NO fuerza la tabla: el modal de la prenda y su planilla de «Ajustar stock» se abren sobre
-  // la vista de siempre (tarjetas), igual que con el botón «Ajustar stock» de la cabecera; la persona no debe aterrizar en «Vista: Tabla» sin pedirla.
-  const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante) && !(abrirAjustar && puedeAjustar));
+  // «Vista: Por prenda / Por talla». `orden` solo ordena las tarjetas: la tabla conserva su orden. Llegar con `abrirVariante`
+  // («Ver en Existencias» desde la vista rápida de Productos o desde Movimientos) NO fuerza la tabla: el modal de la prenda
+  // se monta fuera de las dos vistas, así que abre sobre las tarjetas y la persona no aterriza en «Vista: Tabla» sin pedirla
+  // (igual que con `abrirAjustar`).
+  const [verDetalle, setVerDetalle] = useState(false);
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
