@@ -504,6 +504,28 @@ select (select monto || '/' || pagado from retail.compra_papeles where id = '${I
   "compra_rapida_pagado|monto_invalido|monto_invalido|compra_rapida_medio|compra_rapida_medio|compra_corregir_sin_cambios|compra_corregir_sin_cambios|compra_corregir_papel / 480.00/480.00|0",
 );
 
+const SANDRA = "22222222-2222-4222-8222-000000000005"; // otra colaboradora
+
+caso(
+  "el rastro se lee: lo ve quien anotó la compra y quien revisa compras (un líder); otra persona con el módulo de compras, no; sin correcciones, vacío",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}
+${COMPRA()} \\g /dev/null
+${ITEMS()}
+select jsonb_array_length(retail.fn_compra_correcciones('${ID}'));
+${CORREGIR(CAMBIOS(cambio(1, "'costo', 40")))} \\g /dev/null
+select jsonb_array_length(retail.fn_compra_correcciones('${ID}')),
+       retail.fn_compra_correcciones('${ID}') -> 0 ->> 'quien',
+       jsonb_array_length(retail.fn_compra_correcciones('${ID}') -> 0 -> 'cambios'),
+       (select count(*) from jsonb_array_elements(retail.fn_compra_correcciones('${ID}') -> 0 -> 'cambios') x where x ->> 'prenda' is not null);
+${como(FELIPE, "c")}
+select jsonb_array_length(retail.fn_compra_correcciones('${ID}'));
+reset role;
+update retail.colaboradores set rol = 'colaborador', ubicacion_asignada_id = :'tru', rol_id = :'rol' where persona_id = (select id from public.personas where auth_user_id = '${SANDRA}');
+${como(SANDRA, "c")}
+select left(${intento(`select retail.fn_compra_correcciones('${ID}')`)}, 5);`,
+  "0 / 1|Micaela Vendedora|3|1 / 1 / 42501",
+);
+
 caso(
   "queda la actividad de la corrección, sin montos; anon no ejecuta nada y la tabla no se lee directo",
   `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "c")}

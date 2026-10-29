@@ -9,6 +9,7 @@ import { soles } from "./compras-reglas";
 
 export const RPC_COMPRA_PARA_CORREGIR = "fn_compra_para_corregir";
 export const RPC_CORREGIR_COMPRA = "corregir_compra_rapida";
+export const RPC_COMPRA_CORRECCIONES = "fn_compra_correcciones";
 
 export type PrendaParaCorregir = {
   /** La línea de la orden (`orden_compra_items.id`): lo que se manda para corregirla. */
@@ -375,4 +376,99 @@ export function textoDeLaPlata(plata: number): string {
 /** «3 cambios» o «1 cambio»: lo que cuenta el pie de la hoja. */
 export function textoDeCambios(datos: number): string {
   return datos === 1 ? "1 cambio" : `${datos} cambios`;
+}
+
+// ---------- Revisar antes de guardar: «Antes → Ahora» ----------
+
+export type LineaAntesAhora = { clave: string; titulo: string; antes: string; ahora: string };
+
+const unidades = (n: number): string => (n === 1 ? "1 unidad" : `${n} unidades`);
+
+/** Solo lo que cambió, una línea por dato, en el orden de la compra (las prendas primero, el papel y el pago al final), con la cuenta ya hecha. */
+export function lineasAntesAhora(
+  c: CompraParaCorregir,
+  borradores: ReadonlyMap<string, Borrador>,
+  papel: PapelBorrador | null,
+): LineaAntesAhora[] {
+  const lineas: LineaAntesAhora[] = [];
+  for (const p of c.prendas) {
+    const b = borradores.get(p.id);
+    if (!b || prendaConProblema(p, b)) continue;
+    const x = cambiosDePrenda(p, b);
+    const de = (campo: string) => `${p.nombre} · ${campo}`;
+    if (x.descripcion !== undefined) lineas.push({ clave: `${p.id}-nombre`, titulo: de("nombre"), antes: p.nombre, ahora: x.descripcion });
+    if (x.categoriaId !== undefined)
+      lineas.push({ clave: `${p.id}-categoria`, titulo: de("categoría"), antes: p.categoria, ahora: c.categorias.find((o) => o.id === x.categoriaId)?.nombre ?? "otra" });
+    if (x.marcaId !== undefined)
+      lineas.push({ clave: `${p.id}-marca`, titulo: de("marca"), antes: p.marca, ahora: c.marcas.find((o) => o.id === x.marcaId)?.nombre ?? "otra" });
+    if (x.destinoId !== undefined)
+      lineas.push({ clave: `${p.id}-tienda`, titulo: de("tienda"), antes: p.destino ?? "sin tienda", ahora: c.tiendas.find((o) => o.id === x.destinoId)?.nombre ?? "otra" });
+    if (x.cantidad !== undefined) lineas.push({ clave: `${p.id}-cantidad`, titulo: de("unidades"), antes: unidades(p.cantidad), ahora: unidades(x.cantidad) });
+    if (x.costo !== undefined) lineas.push({ clave: `${p.id}-costo`, titulo: de("costo"), antes: soles(p.costo), ahora: soles(x.costo) });
+    if (x.precioVenta !== undefined)
+      lineas.push({ clave: `${p.id}-venta`, titulo: de("se vende a"), antes: p.precioVenta == null ? "sin precio" : soles(p.precioVenta), ahora: x.precioVenta == null ? "sin precio" : soles(x.precioVenta) });
+  }
+  const cuenta = cuentaDeLaCorreccion(c, borradores, papel);
+  if (Math.abs(cuenta.monto - c.monto) > 0.005) lineas.push({ clave: "monto", titulo: "Lo que dice el papel", antes: soles(c.monto), ahora: soles(cuenta.monto) });
+  if (Math.abs(cuenta.pagado - c.pagado) > 0.005) lineas.push({ clave: "pagado", titulo: "Lo que pagaste", antes: soles(c.pagado), ahora: soles(cuenta.pagado) });
+  if (papel && !papelConProblema(papel)) {
+    const medio = papelParaLaBase(papel).medio_pago;
+    if (cuenta.pagado > 0 && medio !== c.medioPago) lineas.push({ clave: "medio", titulo: "Cómo pagaste", antes: textoMedio(c.medioPago), ahora: textoMedio(medio) });
+  }
+  return lineas;
+}
+
+function textoMedio(m: string | null): string {
+  return m === "yape" ? "Yape" : m === "efectivo" ? "Efectivo" : m === "transferencia" ? "Transferencia" : "Nada";
+}
+
+// ---------- El rastro, tal como lo manda `fn_compra_correcciones` ----------
+
+export type CambioHecho = { campo: string; antes: string | null; despues: string | null; prenda: string | null };
+export type CorreccionHecha = { lote: string; cuando: string; quien: string | null; cambios: CambioHecho[] };
+
+const NOMBRE_DE_CAMPO: Record<string, string> = {
+  cantidad: "unidades",
+  costo: "costo",
+  precio_venta: "se vende a",
+  nombre: "nombre",
+  categoria: "categoría",
+  marca: "marca",
+  tienda: "tienda",
+  monto: "lo que dice el papel",
+  pagado: "lo que pagó",
+  medio_pago: "cómo pagó",
+};
+
+/** Lo que manda la base; lo ilegible se descarta (nunca una corrección a medias). */
+export function leerCorrecciones(data: unknown): CorreccionHecha[] {
+  if (!Array.isArray(data)) return [];
+  const lista: CorreccionHecha[] = [];
+  for (const d of data) {
+    if (!esObjeto(d) || !Array.isArray(d.cambios)) continue;
+    const lote = texto(d.lote);
+    const cuando = texto(d.cuando);
+    if (!lote || !cuando) continue;
+    const cambios: CambioHecho[] = [];
+    for (const c of d.cambios) {
+      if (!esObjeto(c)) continue;
+      const campo = texto(c.campo);
+      if (campo) cambios.push({ campo, antes: typeof c.antes === "string" ? c.antes : null, despues: typeof c.despues === "string" ? c.despues : null, prenda: texto(c.prenda) });
+    }
+    if (cambios.length > 0) lista.push({ lote, cuando, quien: texto(d.quien), cambios });
+  }
+  return lista;
+}
+
+/** Un cambio del rastro en una frase: «Polo Venus · costo: S/ 22.00 → S/ 25.50». */
+export function textoDeCambio(c: CambioHecho): string {
+  const dinero = c.campo === "costo" || c.campo === "precio_venta" || c.campo === "monto" || c.campo === "pagado";
+  const ver = (v: string | null): string => {
+    if (v == null) return "nada";
+    if (dinero) return Number.isFinite(Number(v)) ? soles(Number(v)) : v;
+    if (c.campo === "medio_pago") return textoMedio(v);
+    return v;
+  };
+  const dato = NOMBRE_DE_CAMPO[c.campo] ?? c.campo;
+  return `${c.prenda ? `${c.prenda} · ` : ""}${dato}: ${ver(c.antes)} → ${ver(c.despues)}`;
 }

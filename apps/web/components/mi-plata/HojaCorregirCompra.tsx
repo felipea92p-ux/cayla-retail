@@ -20,6 +20,7 @@ import {
   cuentaDeLaCorreccion,
   prendaCambio,
   NOMBRE_MAXIMO,
+  lineasAntesAhora,
   papelBorradorDe,
   papelConProblema,
   papelParaLaBase,
@@ -64,6 +65,8 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
   // `abierta`: la prenda abierta, o `PAPEL` (la pantalla del papel y el pago). `papel`: lo escrito a mano; sin tocarlo (`null`) el papel acompaña solo.
   const [abierta, setAbierta] = useState<string | null>(null);
   const [papel, setPapel] = useState<PapelBorrador | null>(null);
+  // `revisando`: el último paso antes de guardar, con el «Antes → Ahora» de lo que cambió.
+  const [revisando, setRevisando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
   const primero = useRef<HTMLButtonElement | null>(null);
@@ -130,9 +133,11 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
 
   return (
     <Modal
-      titulo={prenda ? prenda.nombre : enElPapel ? "Papel y pago" : "Corregir esta compra"}
+      titulo={revisando ? "Revisa lo que cambias" : prenda ? prenda.nombre : enElPapel ? "Papel y pago" : "Corregir esta compra"}
       subtitulo={
-        prenda
+        revisando
+          ? "Esto es lo que va a cambiar. Si algo no es, sigue corrigiendo."
+          : prenda
           ? "Cambia solo lo que está mal. Lo demás se queda como lo anotaste."
           : enElPapel
             ? "Lo que dice el papel y lo que pagaste. Si no lo tocas, sigue a las prendas."
@@ -168,7 +173,9 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                 </Aviso>
               )}
 
-              {enElPapel && cuenta && automatica ? (
+              {revisando && cuenta ? (
+                <RevisarYGuardar lineas={lineasAntesAhora(compra, borradores, papel)} cuenta={cuenta} />
+              ) : enElPapel && cuenta && automatica ? (
                 <PantallaDelPapel
                   compra={compra}
                   papel={papel ?? papelBorradorDe(automatica.monto, automatica.pagado, compra.medioPago)}
@@ -240,7 +247,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                 </ul>
               )}
 
-              {!prenda && !enElPapel && cuenta && (
+              {!revisando && !prenda && !enElPapel && cuenta && (
                 <button
                   type="button"
                   disabled={!compra.sePuede}
@@ -272,16 +279,18 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
               )}
 
               <p className="text-sm text-taupe" aria-live="polite">
-                {conCambios && cuenta
-                  ? `${textoDeCambios(cuenta.datos)} · ${textoDeLaPlata(cuenta.plata)}`
-                  : compra.sePuede
-                    ? "Toca una prenda para corregirla."
-                    : ""}
+                {revisando
+                  ? ""
+                  : conCambios && cuenta
+                    ? `${textoDeCambios(cuenta.datos)} · ${textoDeLaPlata(cuenta.plata)}`
+                    : compra.sePuede
+                      ? "Toca una prenda para corregirla."
+                      : ""}
               </p>
 
               <div className="pie-hoja-fijo pie-acciones pt-1">
-                <Boton type="button" peso="fantasma" onClick={() => salida.pedirAccion(cerrar)} disabled={guardando}>
-                  Cancelar
+                <Boton type="button" peso="fantasma" onClick={() => (revisando ? setRevisando(false) : salida.pedirAccion(cerrar))} disabled={guardando}>
+                  {revisando ? "Seguir corrigiendo" : "Cancelar"}
                 </Boton>
                 {compra.sePuede && (
                   <Boton
@@ -290,9 +299,13 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                     textoCargando="Guardando…"
                     cargando={guardando}
                     disabled={!conCambios || hayProblema}
-                    onClick={() => void guardar()}
+                    onClick={() => {
+                      if (revisando) return void guardar();
+                      setAbierta(null);
+                      setRevisando(true);
+                    }}
                   >
-                    Guardar los cambios
+                    {revisando ? "Guardar la corrección" : "Revisar los cambios"}
                   </Boton>
                 )}
               </div>
@@ -544,6 +557,40 @@ function PantallaDelPapel({
           Que siga a las prendas otra vez
         </button>
       )}
+    </div>
+  );
+}
+
+/** El último paso: lo que cambió, dato por dato, con su antes y su ahora, y qué pasa con la plata. */
+function RevisarYGuardar({ lineas, cuenta }: { lineas: ReturnType<typeof lineasAntesAhora>; cuenta: NonNullable<ReturnType<typeof cuentaDeLaCorreccion>> }) {
+  return (
+    <div className="space-y-3.5">
+      <ul className="rounded-[14px] bg-hueso px-3.5 py-1.5 text-sm" aria-label="Lo que cambia">
+        {lineas.map((l) => (
+          <li key={l.clave} className="border-t border-sand py-2 first:border-t-0">
+            <span className="block text-xs text-taupe">{l.titulo}</span>
+            <span className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
+              <span className="text-taupe line-through">{l.antes}</span>
+              <span aria-hidden className="text-taupe">→</span>
+              <span className="sr-only">ahora</span>
+              <b className="font-semibold text-tinta">{l.ahora}</b>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <dl className="rounded-[14px] bg-hueso px-3.5 py-1.5 text-sm tabular-nums">
+        <div className="flex justify-between gap-4 border-t border-sand py-2 first:border-t-0">
+          <dt className="text-taupe">{textoDeLaPlata(cuenta.plata)}</dt>
+          <dd className="text-right font-semibold text-tinta">{cuenta.plata === 0 ? "" : `${cuenta.plata > 0 ? "+" : "−"} ${soles(Math.abs(cuenta.plata))}`}</dd>
+        </div>
+        {cuenta.falta > 0.005 && (
+          <div className="flex justify-between gap-4 border-t border-sand py-2">
+            <dt className="text-taupe">Lo que le falta pagar a Compras</dt>
+            <dd className="text-right text-tinta">{soles(cuenta.falta)}</dd>
+          </div>
+        )}
+      </dl>
+      <p className="nota-cayla">Queda anotado quién corrigió y qué cambió. Compras lo ve al revisar la compra.</p>
     </div>
   );
 }

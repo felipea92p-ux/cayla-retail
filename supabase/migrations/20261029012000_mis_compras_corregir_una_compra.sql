@@ -207,6 +207,51 @@ end $$;
 revoke all on function retail.fn_compra_para_corregir(uuid) from public, anon;
 grant execute on function retail.fn_compra_para_corregir(uuid) to authenticated;
 
+-- ---------- 4b. El rastro de una compra, para leerlo ----------
+-- Lo ve quien la anotó (con «Mi plata para compras») y quien revisa compras (módulo `fondos`): cada corrección (un lote = un guardado) con quién,
+-- cuándo y qué cambió, de la más nueva a la más vieja. No escribe nada.
+create or replace function retail.fn_compra_correcciones(p_papel_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_yo uuid := retail.fn_persona_de_la_cuenta();
+  v_duena uuid;
+begin
+  v_duena := (select p.persona_id from retail.compra_papeles p where p.id = p_papel_id);
+  if v_duena is null then
+    return '[]'::jsonb;
+  end if;
+  if not (retail.fn_ve_modulo('fondos') is true or (retail.fn_ve_modulo('ordenes_compra') is true and v_yo is not null and v_yo = v_duena)) then
+    raise exception 'Ver las correcciones de una compra necesita ser quien la anotó o tener el módulo Revisar compras' using errcode = '42501';
+  end if;
+  return coalesce((
+    select jsonb_agg(l.fila order by l.cuando desc)
+      from (
+        select max(c.corregida_en) as cuando,
+               jsonb_build_object(
+                 'lote', c.lote,
+                 'cuando', max(c.corregida_en),
+                 'quien', (select nullif(btrim(concat_ws(' ', pe.nombres, pe.apellidos)), '') from public.personas pe where pe.id = min(c.corregida_por::text)::uuid),
+                 'cambios', jsonb_agg(jsonb_build_object(
+                              'campo', c.campo, 'antes', c.antes, 'despues', c.despues,
+                              'prenda', (select coalesce(nullif(btrim(i.descripcion), ''), pp.referencia, ca.nombre)
+                                           from retail.orden_compra_items i
+                                           left join retail.productos pp on pp.id = i.producto_id
+                                           left join retail.categorias ca on ca.id = i.categoria_id
+                                          where i.id = c.orden_compra_item_id))
+                            order by c.corregida_en, c.id)) as fila
+          from retail.compra_correcciones c
+         where c.papel_id = p_papel_id
+         group by c.lote
+      ) l), '[]'::jsonb);
+end $$;
+revoke all on function retail.fn_compra_correcciones(uuid) from public, anon;
+grant execute on function retail.fn_compra_correcciones(uuid) to authenticated;
+
 -- ---------- 5. Corregir la compra ----------
 -- `p_cambios`: una lista de objetos `{ "item_id": uuid, "cantidad": 8, "costo": 22.00, "precio_venta": 39.90 }`. Solo cambia lo que viene en el objeto
 -- (`precio_venta: null` lo quita). `p_papel`: `{ "monto": 264, "pagado": 264, "medio_pago": "yape" }`, cualquiera de los tres; manda sobre la cuenta

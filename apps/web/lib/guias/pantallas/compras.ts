@@ -2965,7 +2965,7 @@ export const GUIA_FONDOS: Guia = {
       ancla: "fondos.papel-detalle",
       opcional: true,
       titulo: "Una compra por completar",
-      texto: "La foto del papel al lado de lo que se copia de ella: la serie y el número (la guía enciende el que sigue). Si el proveedor o el monto se anotaron mal, se cambian aquí.",
+      texto: "La foto del papel al lado de lo que se copia de ella: la serie y el número (la guía enciende el que sigue). Si el proveedor o el monto se anotaron mal, se cambian aquí. Si la compradora corrigió la compra, abajo dice qué cambió.",
     },
     {
       id: "papel-pago",

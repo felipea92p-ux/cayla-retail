@@ -2,7 +2,15 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import type { ErrorDeBase } from "@/lib/ordenes-compra-acciones";
-import { RPC_COMPRA_PARA_CORREGIR, RPC_CORREGIR_COMPRA, leerCompraParaCorregir, type CompraParaCorregir } from "@/lib/corregir-compra-reglas";
+import {
+  RPC_COMPRA_CORRECCIONES,
+  RPC_COMPRA_PARA_CORREGIR,
+  RPC_CORREGIR_COMPRA,
+  leerCompraParaCorregir,
+  leerCorrecciones,
+  type CompraParaCorregir,
+  type CorreccionHecha,
+} from "@/lib/corregir-compra-reglas";
 
 // «Corregir una compra» (ADR-0561): lo que la hoja le pide a la base desde el navegador. Leer es `fn_` (lectura: sin el loader a pantalla completa).
 // Corregir lleva un identificador que nace al abrir la hoja: un doble clic o un reintento tras un corte devuelve lo que ya quedó (`ya_estaba`).
@@ -26,4 +34,13 @@ export async function corregirCompra(
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_CORREGIR_COMPRA as never, args as never), firmaOmitida("compra_corregir"));
   return { error: error ?? null };
+}
+
+/** Lo que se corrigió de una compra (de la más nueva a la más vieja). Es un dato secundario: si no se puede leer, no se muestra nada. */
+export async function cargarCorrecciones(papelId: string): Promise<CorreccionHecha[]> {
+  const { data, error } = (await createClient().rpc(RPC_COMPRA_CORRECCIONES as never, { p_papel_id: papelId } as never)) as unknown as {
+    data: unknown;
+    error: ErrorDeBase;
+  };
+  return error ? [] : leerCorrecciones(data);
 }

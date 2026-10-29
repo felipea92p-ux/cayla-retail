@@ -5,6 +5,8 @@ import {
   cambiosParaLaBase,
   cuentaDeLaCorreccion,
   leerCompraParaCorregir,
+  leerCorrecciones,
+  lineasAntesAhora,
   papelBorradorDe,
   papelConProblema,
   papelParaLaBase,
@@ -12,6 +14,7 @@ import {
   problemasDePapel,
   problemasDePrenda,
   puedeCambiarDeTienda,
+  textoDeCambio,
   textoDeCambios,
   textoDeLaPlata,
   textoMotivo,
@@ -347,5 +350,46 @@ describe("textos del pie", () => {
     expect(textoDeLaPlata(-66)).toMatch(/^Tu plata baja S\/ 66\.00$/);
     expect(textoDeCambios(1)).toBe("1 cambio");
     expect(textoDeCambios(3)).toBe("3 cambios");
+  });
+});
+
+describe("lineasAntesAhora (revisar antes de guardar)", () => {
+  it("solo lo que cambió, con el papel y el pago al final", () => {
+    const c = compra();
+    const l = lineasAntesAhora(c, borradores(c, { a: { costo: "40", cantidad: "8", nombre: "Polo Venus manga larga" } }), null);
+    expect(l.map((x) => x.clave)).toEqual(["a-nombre", "a-cantidad", "a-costo", "monto", "pagado"]);
+    expect(l[1]).toMatchObject({ titulo: "Polo Venus · unidades", antes: "6 unidades", ahora: "8 unidades" });
+    expect(l.at(-2)).toMatchObject({ titulo: "Lo que dice el papel", antes: "S/\u00a0480.00", ahora: "S/\u00a0500.00" });
+  });
+
+  it("sin cambios no hay líneas, y una prenda con un dato malo no aparece", () => {
+    const c = compra({ prendas: [prenda("a", { enviadas: 3, cantidad: 6, costo: 50 }), prenda("b", { cantidad: 4, costo: 45 })] });
+    expect(lineasAntesAhora(c, borradores(c), null)).toEqual([]);
+    expect(lineasAntesAhora(c, borradores(c, { a: { cantidad: "2" } }), null)).toEqual([]);
+  });
+
+  it("el método de pago cuenta solo si pagó algo y cambió", () => {
+    const c = compra();
+    const l = lineasAntesAhora(c, borradores(c), { monto: "480", pagado: "480", medio: "yape" });
+    expect(l).toEqual([{ clave: "medio", titulo: "Cómo pagaste", antes: "Efectivo", ahora: "Yape" }]);
+  });
+});
+
+describe("el rastro", () => {
+  it("lee lo que manda la base y descarta lo ilegible", () => {
+    const r = leerCorrecciones([
+      { lote: "l1", cuando: "2026-10-28T10:00:00Z", quien: "Micaela V.", cambios: [{ campo: "costo", antes: "22.00", despues: "25.50", prenda: "Polo Venus" }, { sinCampo: 1 }] },
+      { lote: "l2", cuando: "x", cambios: [] },
+      "basura",
+    ]);
+    expect(r).toHaveLength(1);
+    expect(r[0]!.cambios).toEqual([{ campo: "costo", antes: "22.00", despues: "25.50", prenda: "Polo Venus" }]);
+    expect(leerCorrecciones(null)).toEqual([]);
+  });
+
+  it("cada cambio se dice en una frase", () => {
+    expect(textoDeCambio({ campo: "costo", antes: "22.00", despues: "25.50", prenda: "Polo Venus" })).toBe("Polo Venus · costo: S/\u00a022.00 → S/\u00a025.50");
+    expect(textoDeCambio({ campo: "medio_pago", antes: "efectivo", despues: "yape", prenda: null })).toBe("cómo pagó: Efectivo → Yape");
+    expect(textoDeCambio({ campo: "marca", antes: null, despues: "Nueva Era", prenda: "Blusa" })).toBe("Blusa · marca: nada → Nueva Era");
   });
 });

@@ -13,6 +13,7 @@ import { diaMes } from "@/lib/fechas-lima";
 import { enviosDeLaFila, resumenDeEnvios, type EnvioMio, type RondaConEnvios } from "@/lib/mis-envios-reglas";
 import { FilaEnvio } from "./FilaEnvio";
 import { HojaCorregirCompra } from "./HojaCorregirCompra";
+import { CorreccionesDeCompra } from "./CorreccionesDeCompra";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { horaDeMovimiento, queHaraCompras, type EntradaHistorial, type MovimientoCompradora } from "@/lib/mi-plata-reglas";
 
@@ -133,6 +134,7 @@ function DetalleDeFila({
           {m.estado.texto}
         </Chip>
         <p className="text-sm text-taupe">{queHaraCompras(m)}</p>
+        {m.compraId && <CorreccionesDeCompra papelId={m.compraId} />}
         {onCorregir && (
           <div className="pie-acciones pt-1">
             <BotonEditar onClick={onCorregir}>
