@@ -24,7 +24,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+const REBOBINAR_COMPRA = readFileSync(join(RAIZ, "scripts", "pruebas", "rebobinar_registrar_compra.sql"), "utf8");
 const arg = (nombre, porDefecto) => {
   const i = process.argv.indexOf(nombre);
   return i > 0 ? process.argv[i + 1] : porDefecto;
@@ -89,6 +91,7 @@ grant execute on function pg_temp.intento(text) to authenticated;`;
 const COMPRA = `
 set client_min_messages = warning;
 begin;
+${REBOBINAR_COMPRA}
 ${REBOBINAR}
 ${MIGRACIONES}
 ${MIGRACIONES}

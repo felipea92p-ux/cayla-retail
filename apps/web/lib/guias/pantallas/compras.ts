@@ -2872,14 +2872,21 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.tipo",
       opcional: true,
       titulo: "Qué papel te dieron",
-      texto: "Factura, boleta, nota de venta, o nada. La serie y el número los copia Compras de la foto.",
+      texto: "Factura, boleta, nota de venta, o nada. Con factura o boleta te pide la serie y el número: los copias tú y así la compra pasa sola a los libros.",
     },
     {
       id: "foto",
       ancla: "compra.foto",
       opcional: true,
       titulo: "La foto del papel",
-      texto: "Es opcional: ayuda a Compras a copiar el número. Con «Sin papel» ni aparece.",
+      texto: "Es opcional: queda guardada con tu compra por si hace falta mirar el papel. Con «Sin papel» ni aparece.",
+    },
+    {
+      id: "serie",
+      ancla: "compra.serie",
+      opcional: true,
+      titulo: "La serie y el número del papel",
+      texto: "Cópialos como están arriba del papel (F001, 000123). Con ellos la compra entra sola a los libros cuando la tienda la recibe, sin que Compras tenga que copiarlos.",
     },
     {
       id: "monto",

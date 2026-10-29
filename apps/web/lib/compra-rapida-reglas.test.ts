@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   camposPapel,
+  serieYNumeroParaBase,
   categoriasConProveedor,
   categoriasDeHabituales,
   faltaEnPaso,
@@ -290,6 +291,31 @@ describe("el paso del papel: lo que falta es lo que rechaza registrar_compra_rap
   });
   it("desde una terminal, falta quién compró", () => {
     expect(faltan({ tipo: "sin_comprobante", conFoto: false, monto: "80" }, { esPersona: false, listo: false, motivo: null })).toEqual(["responsable"]);
+  });
+
+  describe("la serie y el número que copia del papel (ADR-0574)", () => {
+    it("una pantalla que no los pregunta no los trae", () => {
+      expect(camposPapel({ tipo: "factura", conFoto: false, monto: "500" }, PERSONA).some((c) => c.id === "serie" || c.id === "numero")).toBe(false);
+    });
+    it("factura y boleta piden los dos, con lo mismo que rechaza la base", () => {
+      expect(faltan({ tipo: "boleta", conFoto: false, monto: "500", serie: "", numero: "" })).toEqual(["serie", "numero"]);
+      expect(faltan({ tipo: "factura", conFoto: false, monto: "500", serie: "F-001", numero: "12A" })).toEqual(["serie", "numero"]);
+      expect(faltan({ tipo: "factura", conFoto: false, monto: "500", serie: "f001", numero: "000123" })).toEqual([]);
+    });
+    it("una nota de venta pide solo el número y no lo exige: si lo escribe mal, sí frena", () => {
+      expect(faltan({ tipo: "nota_venta", conFoto: false, monto: "80", serie: "", numero: "" })).toEqual([]);
+      expect(faltan({ tipo: "nota_venta", conFoto: false, monto: "80", serie: "", numero: "12 34" })).toEqual(["numero"]);
+    });
+    it("sin papel, nada; y van entre la foto y el monto, en el orden de la hoja", () => {
+      expect(camposPapel({ tipo: "sin_comprobante", conFoto: false, monto: "80", serie: "", numero: "" }, PERSONA).some((c) => c.id === "serie")).toBe(false);
+      expect(camposPapel({ tipo: "boleta", conFoto: false, monto: "80", serie: "", numero: "" }, PERSONA).map((c) => c.id)).toEqual(["tipo", "foto", "serie", "numero", "monto"]);
+    });
+    it("a la base viaja solo lo que corresponde: la serie en mayúsculas; sin papel, nada", () => {
+      expect(serieYNumeroParaBase("boleta", " b001 ", " 000123 ")).toEqual({ p_serie: "B001", p_numero: "000123" });
+      expect(serieYNumeroParaBase("nota_venta", "zz", "NV-12")).toEqual({ p_numero: "NV-12" });
+      expect(serieYNumeroParaBase("nota_venta", "", "")).toEqual({});
+      expect(serieYNumeroParaBase("sin_comprobante", "F001", "9")).toEqual({});
+    });
   });
 });
 

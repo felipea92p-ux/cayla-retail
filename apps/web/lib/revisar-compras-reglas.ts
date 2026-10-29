@@ -389,28 +389,9 @@ export function textoFaltan(l: Pick<LineaPapel, "faltan">): string | null {
 
 // ---------- Completar el papel: lo que falta (lo mismo que rechaza la base) ----------
 
-/** ¿Este papel pide serie y número? Factura y boleta, sí; nota de venta, solo el número y si lo tiene; sin papel, nada. */
-export function pideSerie(tipo: TipoPapel): boolean {
-  return tipo === "factura" || tipo === "boleta";
-}
-
-export function problemaSerie(serie: string): string | null {
-  const s = serie.trim().toUpperCase();
-  if (!s) return "Copia la serie como está en el papel.";
-  return /^[A-Z0-9]{1,8}$/.test(s) ? null : "La serie lleva letras y números, hasta 8 (F001, B002…).";
-}
-
-export function problemaNumero(numeroPapel: string, tipo: TipoPapel): string | null {
-  const n = numeroPapel.trim();
-  if (tipo === "nota_venta") return !n || /^[0-9A-Za-z-]{1,20}$/.test(n) ? null : "El número lleva letras, números o guiones, hasta 20.";
-  if (!n) return "Copia el número como está en el papel.";
-  return /^[0-9]{1,12}$/.test(n) ? null : "El número lleva solo números, hasta 12.";
-}
-
-/** La serie de ejemplo sigue al papel: «F001» en una factura, «B001» en una boleta (ADR-0290). */
-export function ejemploSerie(tipo: TipoPapel): string {
-  return tipo === "factura" ? "Ej. F001" : "Ej. B001";
-}
+// La serie y el número (reglas, errores y ejemplo) viven en `compra-rapida-reglas`: la compradora los escribe al comprar (ADR-0574) y Compras los corrige aquí.
+export { ejemploSerie, pideSerie, problemaNumero, problemaSerie } from "./compra-rapida-reglas";
+import { pideSerie, problemaNumero, problemaSerie } from "./compra-rapida-reglas";
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
