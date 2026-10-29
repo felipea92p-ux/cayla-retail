@@ -345,6 +345,11 @@ flowchart TB
   («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
   (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
   «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
+  **2026-10-28 (ADR-0565, pestaña «Ingresos»):** `?vista=ingresos` (como Pérdidas, sin módulo): qué prendas entraron por modelo. `app/(app)/inventario/movimientos/page.tsx`
+  (`PaginaIngresos`) → `lib/ingresos.ts` (`getIngresosPorModelo`, foto y categoría por lotes) → RPC `fn_ingresos_por_modelo` (solo lectura; migración
+  `20261029022000`; **en producción desde el 2026-10-29** como `20261029135109`); reglas puras en `lib/ingresos-reglas.ts` (rango, Nuevo/Reingreso, precio y costo, matriz de color y talla, orden y búsqueda) y
+  `lib/ingresos-exportar.ts` (los dos CSV); piezas en `components/ingresos/` (`IngresosVista`, `IngresosTabla`, `SelectorRangoIngresos`, `MatrizIngreso`, `HojaIngresos`) y
+  `app/estilos/ingresos-impresion.css` (la hoja A4). El costo solo para quien pasa `fn_puede_ver_dinero_de_compras()`.
   **2026-10-05 (ADR-0353, los tipos que se ven):** cada fila se dibuja con su **tipo** (`lib/movimientos-tipos.ts`: `tipoVisual`, `TIPOS_VISUALES`,
   `GRUPOS_TIPO`, `rotuloDeMovimiento`, `kindDeLugar`) con su sello (`components/movimientos/SelloTipo.tsx`) y su trayecto (`TrayectoMovimiento.tsx`); estilos en
   `app/estilos/movimientos-sellos.css` (`mv-*`). **Los siete botones de tipo en una columna a la derecha** (`TiposMovimiento.tsx`) son el filtro Y la cifra: reemplazan
@@ -1569,7 +1574,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
-  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
+  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres). El 2026-10-29 `reabrir_ronda_compras` (`20261029150000`, ADR-0569; `reabrirRonda` en `lib/mi-plata-acciones.ts`, botón en `AbrirRonda.tsx`, regla
+  `puedeReabrirLaRonda`) vuelve a abrir la última ronda cerrada mientras Compras no recibió su cierre; el cierre se archiva en `compra_cierres_reabiertos`.
   El 2026-10-24 «Algo nuevo» también se reparte entre tiendas y su marca se puede escribir con «+» (`HojaPrenda.tsx`); la marca escrita se crea al
   guardar con la RPC `registrar_marca_de_compra` (`20261024214000`, vía `registrarMarcaDeCompra` de `lib/compra-rapida-acciones.ts`), unida al proveedor.
   **Mis envíos, el banco de la plata y la pantalla en tres columnas (2026-10-26/27, sin cambio de módulo):**

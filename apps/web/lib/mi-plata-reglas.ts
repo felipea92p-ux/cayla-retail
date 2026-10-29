@@ -20,6 +20,8 @@ export const RPC_MANDAR_A_TIENDA = "mandar_compras_a_tienda";
 // Cerrar la ronda (20261023183000): la función conserva su nombre de «Terminé por hoy», al que reemplaza.
 export const RPC_TERMINAR_DIA = "terminar_dia_compras";
 export const RPC_ABRIR_RONDA = "abrir_ronda_compras";
+// Reabrir la última ronda cerrada (20261029150000, ADR-0569): para anotar lo que se olvidó o cambiar cómo se cerró.
+export const RPC_REABRIR_RONDA = "reabrir_ronda_compras";
 // «¿De qué banco salió?» (20261026170000): los bancos de la empresa, para quien anota plata por transferencia.
 export const RPC_BANCOS_PLATA = "fn_bancos_para_plata_compras";
 
@@ -538,6 +540,14 @@ export function fraseGasto(monto: number | null): string {
  */
 export function puedeCerrarLaRonda(porMandar: readonly PorMandar[]): boolean {
   return !porMandar.some((t) => t.unidades > 0);
+}
+
+/**
+ * ¿Se puede reabrir la última ronda cerrada? Sí mientras Compras no haya recibido su cierre (lo que devolvió o le pagaron ya movió plata de
+ * verdad) y no haya otra abierta. La base es la que lo exige (`reabrir_ronda_compras`); la pantalla solo decide si ofrece el botón.
+ */
+export function puedeReabrirLaRonda(rondas: Pick<Rondas, "abierta" | "ultimaCerrada">): boolean {
+  return rondas.abierta === null && rondas.ultimaCerrada !== null && !rondas.ultimaCerrada.resuelto;
 }
 
 /** El aviso con el que «Cerrar mi ronda» le pide a «Mandar a la tienda» que se abra (están en celdas distintas de la pantalla). */

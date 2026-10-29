@@ -14,6 +14,7 @@ import {
   RPC_MANDAR_A_TIENDA,
   RPC_TERMINAR_DIA,
   RPC_ABRIR_RONDA,
+  RPC_REABRIR_RONDA,
   type ConceptoGasto,
   type DecisionCierre,
   type MedioPlata,
@@ -92,6 +93,15 @@ export async function mandarATienda(
 /** Abre la ronda de compras de quien la toca (o devuelve la que ya tenía abierta: dos toques no abren dos). */
 export async function abrirRonda(firma: Firma | FirmaOmitida | null): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_ABRIR_RONDA as never), firma);
+  return { error: error ?? null };
+}
+
+/**
+ * Vuelve a abrir la última ronda cerrada (ADR-0569): con ella abierta se anota lo que se olvidó y se cierra otra vez eligiendo de nuevo qué hacer
+ * con lo que queda. Dos toques no la reabren dos veces (la base devuelve la misma).
+ */
+export async function reabrirRonda(firma: Firma | FirmaOmitida | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = await firmar(createClient().rpc(RPC_REABRIR_RONDA as never), firma);
   return { error: error ?? null };
 }
 

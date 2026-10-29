@@ -109,6 +109,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   compra_terminar_dia: "Cerrar tu ronda de compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // La ronda de compras (ADR-0480; migración 20261023183000): la abre la compradora desde su celular. Cerrarla sigue con `compra_terminar_dia`.
   compra_ronda_abrir: "Abrir tu ronda de compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Reabrir la última ronda cerrada para anotar lo que se olvidó (ADR-0569; migración 20261029150000): solo mientras Compras no recibió su cierre.
+  compra_ronda_reabrir: "Reabrir tu última ronda de compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Revisar compras (ADR-0480, actividad 7; migración 20261023143000): completar el papel y recibir lo del cierre del día.
   papel_completar: "Completar el papel de una compra anotada desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   compra_cierre_recibir: "Recibir lo que devuelve una compradora al terminar el día, o pagarle lo que puso (con la cuenta de una persona firma ella, desde una terminal se elige quién)",

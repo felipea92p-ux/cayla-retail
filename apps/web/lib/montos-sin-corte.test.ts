@@ -132,5 +132,7 @@ describe("todo monto del ERP se escribe sin corte", () => {
         "base pásalo por `montosSinCorte`. Si de verdad va el espacio normal (se guarda, va a Lucode), escribe en esa línea " +
         "`// monto-partible: <por qué>`.",
     ).toEqual([]);
-  });
+    // Recorre ~2.000 archivos (app/, components/ y lib/): ~1 s con la máquina libre, pero más de 5 s (el límite de vitest) con ~665 archivos de
+    // prueba a la vez en el gancho de commits o en el CI, o con la máquina cargada: rechazó un commit el 2026-10-28 sin que nada estuviera mal.
+  }, 30_000);
 });
