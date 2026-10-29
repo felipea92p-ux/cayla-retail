@@ -55,8 +55,8 @@ export const AVIARIO = [
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
       "precios_sede_prenda",
-      // ADR-0370 (capa por combinación, 20261028230000): la excepción de precio de UNA talla y color en una tienda; sin fila, hereda el de su
-      // prenda. Es parte del precio propio por sede: mismo pájaro que `precios_sede_prenda`. Refresco del volcado del 2026-10-29.
+      // ADR-0370 (act. 2026-10-28): la excepción de precio de UNA talla en una tienda, encima del precio de la prenda. Pegada en producción
+      // el 2026-10-29 (20261028230000-234000). Asignada en el refresco del volcado del 2026-10-29.
       "precios_sede_variante",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
@@ -107,8 +107,8 @@ export const AVIARIO = [
   { n: "05", pajaro: "Halcón", modulo: "Inventario y movimientos",
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
-      // ADR-0564: las fotos de una prenda dañada (el daño al reportarla; en un bucket privado, con RLS sin políticas: se leen por
-      // `fotos_de_danadas`). Son de la dañada: mismo pájaro. Refresco del volcado del 2026-10-29.
+      // Las fotos del daño de una prenda dañada (ADR de «Dañadas», 20261029140739-141031): cuelgan de `prendas_danadas`, que ya es de Halcón.
+      // Asignada en el refresco del volcado del 2026-10-29.
       "prendas_danadas_fotos",
       // ADR-0542: lo de CLAURE del stock de una sede con dos empresas (Lima); CAYLA es el resto. Refresco del 2026-10-28.
       "stock_dueno",
@@ -310,16 +310,13 @@ export const AVIARIO = [
       // Cada cambio del CCI, la cuenta, el Yape o el titular de un proveedor (20261013161000): antes, después, quién y cuándo.
       // Refresco del volcado del 2026-10-16.
       "proveedores_cambios_bancarios",
-      // ADR-0561 (Corregir una compra ya anotada, 20261029012000): cada campo corregido de una compra rápida, con su antes, su después, quién y
-      // cuándo. Se escribe y se lee desde Compras. Refresco del volcado del 2026-10-29.
-      "compra_correcciones",
       // ADR-0480 (Compras simple, 2026-10-22 y 23): lo que la compradora anota desde el celular y Compras revisa. La compra rápida (`compra_papeles`:
       // boleta, factura o nota con su foto), el gasto de envío (`compra_gastos`), el cierre de lo que quedó sin resolver (`compra_cierres`), lo
       // que ya se había recibido antes de registrar la factura (`compra_item_recibido_antes`) y la plata que le dieron para comprar
       // (`fondo_plata_anotada`: nace «por confirmar» y Compras la confirma en «Revisar compras»). Todas se leen y escriben desde las pantallas de
       // Compras. Al confirmar una plata, la entrega al fondo pasa por `entregar_fondo` y escribe en los libros de Garza, pero escribir allí no
       // hace a Compras dueño de ellos (como escribir en `movimientos`). Asignadas en el refresco del volcado del 2026-10-23.
-      "compra_papeles", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
+      "compra_papeles", "compra_correcciones", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
       // ADR-0480: la ronda de compras de una compradora (RC-000001): la abre, anota sus compras y gastos y la cierra. Se maneja desde
       // Compras. Asignada en el refresco del volcado del 2026-10-26.
       "compra_rondas"] },

@@ -1,8 +1,8 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 882 llamadas `.rpc` de `apps/web` contra 1783 funciones del schema `retail` en producción: 575 con los parámetros leídos (se comparan uno por uno), 71 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 236 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-10-29 14:23 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 886 llamadas `.rpc` de `apps/web` contra 1783 funciones del schema `retail` en producción: 575 con los parámetros leídos (se comparan uno por uno), 71 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 240 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-10-29 14:25 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
@@ -11,7 +11,7 @@
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
 > funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (1237 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 355 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 882 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 357 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 880 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -73,9 +73,9 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:70` — no manda `p_texto`, `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:251` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 528
+## No analizadas — 536
 
-Estas 528 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
+Estas 536 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
 arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un `.rpc("…")` directo (un ternario, un
 ayudante, una constante), o usan `.rpc` como valor (`.bind`, `const { rpc } = x`). No se pueden revisar leyendo el texto.
 **No están aprobadas: están sin revisar.** Una llamada directa o de un ternario a una función que la foto no tiene también está arriba,
@@ -84,7 +84,7 @@ foto ni ninguna migración del repo conocen.
 
 - `fn_existencias` · `apps/web/app/(app)/buscar/page.tsx:104` — el objeto se arma con «...», no se puede leer entero
 - `(alias de rpc)` · `apps/web/app/(app)/productos/categorias/page.tsx:47` — `.rpc` se usa como valor (se llama con un cast: `(x.rpc as …)(…)`): la función que se llama por ahí no se ve
-- `resumen_trafico_web` · `apps/web/app/(app)/tienda-web/trafico/page.tsx:38` — el objeto se arma con «...», no se puede leer entero
+- `resumen_trafico_web` · `apps/web/app/(app)/tienda-web/trafico/page.tsx:41` — el objeto se arma con «...», no se puede leer entero
 - `fn_frescura_sede` · `apps/web/app/api/inventario/frescura-vara-cayla/route.ts:45` — los parámetros no van escritos ahí mismo
 - `(alias de rpc)` · `apps/web/app/api/lucode/anular/route.ts:64` — `.rpc` se usa como valor (.rpc.bind(…)): la función que se llama por ahí no se ve
 - `(alias de rpc)` · `apps/web/app/api/lucode/anular/route.ts:129` — `.rpc` se usa como valor (.rpc.bind(…)): la función que se llama por ahí no se ve
@@ -161,6 +161,7 @@ foto ni ninguna migración del repo conocen.
 - `editar_cuenta_dinero` · `apps/web/components/finanzas/EditarCuentaModal.tsx:92` — los parámetros no van escritos ahí mismo
 - `guardar_pos_tarifa` · `apps/web/components/finanzas/TarifaMaquinaModal.tsx:58` — los parámetros no van escritos ahí mismo
 - `registrar_gasto` · `apps/web/components/finanzas/gastos/HojaRegistrarGasto.tsx:227` — el objeto se arma con «...», no se puede leer entero
+- `(nombre calculado)` · `apps/web/components/insumos-taller/RetirarColorModal.tsx:43` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarAvanceModal.tsx:98` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarAvanceModal.tsx:120` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarAvanceModal.tsx:132` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -237,6 +238,9 @@ foto ni ninguna migración del repo conocen.
 - `listar_compras` · `apps/web/lib/compras.ts:223` — el objeto se arma con «...», no se puede leer entero
 - `lineas_compra_operativo` · `apps/web/lib/compras.ts:400` — el objeto se arma con «...», no se puede leer entero
 - `(alias de rpc)` · `apps/web/lib/consultar-comprobante.ts:72` — `.rpc` se usa como valor (.rpc.bind(…)): la función que se llama por ahí no se ve
+- `(nombre calculado)` · `apps/web/lib/corregir-compra-acciones.ts:24` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/lib/corregir-compra-acciones.ts:35` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/lib/corregir-compra-acciones.ts:41` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/cuadre-piso.ts:16` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/danadas-foto-subida.ts:26` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/fondos-acciones.ts:22` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -430,6 +434,9 @@ foto ni ninguna migración del repo conocen.
 - `registrar_marca_de_compra` · `apps/web/lib/compra-rapida-reglas.ts:17` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_llegada_de_lotes` · `apps/web/lib/compras.ts:646` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_confirmar_baja_sunat` · `apps/web/lib/consultar-comprobante.ts:76` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_compra_para_corregir` · `apps/web/lib/corregir-compra-reglas.ts:10` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `corregir_compra_rapida` · `apps/web/lib/corregir-compra-reglas.ts:11` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_compra_correcciones` · `apps/web/lib/corregir-compra-reglas.ts:12` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `cuadrar_piso` · `apps/web/lib/cuadre-piso-reglas.ts:23` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `previsualizar_cuadre_piso` · `apps/web/lib/cuadre-piso-reglas.ts:24` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_cuadre_piso_estado` · `apps/web/lib/cuadre-piso-reglas.ts:25` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -600,6 +607,7 @@ foto ni ninguna migración del repo conocen.
 - `fn_fotos_gasto_viaje` · `apps/web/lib/rendicion-reglas.ts:22` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_metas_historial` · `apps/web/lib/rendimiento-lectura.ts:29` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_rendimiento_detalle` · `apps/web/lib/rendimiento-lectura.ts:30` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `retirar_color_de_material` · `apps/web/lib/retirar-color-reglas.ts:11` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `retirar_del_piso` · `apps/web/lib/retiro-reglas.ts:21` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_revisar_compras` · `apps/web/lib/revisar-compras-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `completar_papel_compra` · `apps/web/lib/revisar-compras-reglas.ts:15` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -611,7 +619,7 @@ foto ni ninguna migración del repo conocen.
 - `fn_tela_en_camino` · `apps/web/lib/tela-del-taller-reglas.ts:70` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:16` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 160
+## Funciones sin llamada detectada desde `apps/web` — 158
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -657,7 +665,6 @@ select p.proname from pg_proc p
 - `club_intento`
 - `confirmar_invitacion_club`
 - `convertir_proforma_a_comprobante`
-- `corregir_compra_rapida`
 - `crear_campana_con_plan`
 - `crear_invitacion_club`
 - `crear_pedido_web`
@@ -690,7 +697,6 @@ select p.proname from pg_proc p
 - `registrar_pago_compra`
 - `registrarse_en_el_club`
 - `resumen_sin_comprobante`
-- `retirar_color_de_material`
 - `ticket_abrir`
 - `ticket_guardar`
 - `tienda_anotar_entrada`
