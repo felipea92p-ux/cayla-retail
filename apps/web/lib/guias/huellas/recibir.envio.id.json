@@ -50,6 +50,10 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/recepcion-conteo/CategoriasAcordeon.tsx": [
+      "button «{nombre}»",
+      "button «recepcion.agregar»"
+    ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
       "Boton «Contarla»",
       "CampoTexto «¿Qué pasó exactamente?»",
@@ -66,10 +70,8 @@
       "Boton «{textoConfirmar}»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
-      "button «{sub}»",
-      "button «recepcion.agregar»",
-      "ComboResponsable «{responsable}»",
       "button «Cómo se guarda quién cuenta»",
+      "ComboResponsable «{responsable}»",
       "Boton «Anterior»",
       "Boton «Listo, sigue»",
       "Boton «recepcion.pasar-a-cerrar»",

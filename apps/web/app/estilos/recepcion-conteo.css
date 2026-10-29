@@ -47,14 +47,7 @@ button.rc-parada:disabled { cursor: default; }
 /* La chica vive en filas de cebra (papel y hueso): un tinte de tinta se ve igual sobre las dos; papel desaparecía en una y hueso en la otra. */
 .rc-cat-ic[data-tamano="chico"] { width: 32px; height: 32px; border-radius: 9px; background: color-mix(in srgb, var(--color-tinta) 6%, transparent); }
 
-/* ---- Las categorías del envío, en una fila de píldoras (opción A, Felipe 2026-10-28) ---- */
-/* Una píldora por categoría: su ícono, el nombre, lo contado (y «/lo que dijeron») y la marca de la guía de foco (✓ hecha, ● sigue aquí, ○ falta).
-   La que se cuenta lleva el borde de tinta y un poco más de cuerpo. Sin rebote (ADR-0136): el borde y el fondo cambian en 200 ms. */
-.rc-cat-pildora { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 14px 6px 8px; border: 1px solid var(--color-sand); border-radius: 999px; background: var(--color-papel); text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
-@media (hover: hover) {
-  .rc-cat-pildora:hover { border-color: var(--color-borde-control); }
-}
-.rc-cat-pildora[aria-current="true"] { border-color: var(--color-tinta); box-shadow: inset 0 0 0 0.5px var(--color-tinta); }
+/* ---- «Agregar categoría», al pie del acordeón de categorías (recepcion-viva.css) ---- */
 .rc-cat-agregar { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 6px 18px; border: 1px dashed var(--color-borde-control); border-radius: 999px; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-cat-agregar:hover { border-color: var(--color-tinta); color: var(--color-tinta); }
@@ -148,6 +141,6 @@ button.rc-parada:disabled { cursor: default; }
 @keyframes rc-trazo-visto { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-pildora, .rc-cat-agregar, .rc-anotada-chip, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
+  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-agregar, .rc-anotada-chip, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
   .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo, .rc-sello .rc-aro, .rc-sello .rc-visto { animation: none; }
 }

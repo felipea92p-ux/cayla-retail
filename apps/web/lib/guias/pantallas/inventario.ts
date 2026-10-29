@@ -1822,14 +1822,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "En la fila de arriba, lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número y todas sus prendas identificadas.",
+      texto: "Lo que dijeron que venía, por tipo de prenda. Toca una para contarla: se abre y muestra las prendas que se anotaron al comprar, con un punto por prenda que se llena al identificarla. Con su ✓ ya tiene su número y todas sus prendas identificadas.",
     },
     {
       id: "quien-cuenta",
       ancla: "recepcion.quien-cuenta",
       requiere: ["recepcion.categorias"],
       titulo: "Quién cuenta",
-      texto: "A la derecha de la fila, elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra. El ⓘ te lo explica.",
+      texto: "Debajo de las categorías, elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra. El ⓘ te lo explica.",
     },
     {
       id: "numero",

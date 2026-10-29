@@ -89,3 +89,40 @@
   .rc-dial-arco, .rc-dial-corte, .rc-dial-perilla, .rc-dial-caja { animation: none; }
   .rc-dial-brillo, .rc-dial-chispa, .rc-dial-halo { display: none; }
 }
+
+/* ── La mesa del conteo: el acordeón de categorías al lado (tarjeta ancha) o encima (angosta) del Dial ── */
+.rc-mesa { container-type: inline-size; }
+.rc-mesa-grilla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+.rc-mesa-lado { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@container (min-width: 940px) {
+  .rc-mesa-grilla { grid-template-columns: 300px minmax(0, 1fr); gap: 24px; }
+  .rc-mesa-lado { position: sticky; top: 16px; }
+}
+.rc-quien { display: flex; flex-direction: column; gap: 6px; }
+
+/* ── El acordeón de categorías ── */
+.rc-acord { display: flex; flex-direction: column; gap: 8px; }
+.rc-acord-grupo { border: 1px solid var(--color-sand); border-radius: 18px; background: var(--color-papel); transition: border-color 250ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla); animation: cayla-entrada 420ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+.rc-acord-grupo[data-abierta] { border-color: var(--color-tinta); box-shadow: 0 14px 28px -24px color-mix(in srgb, var(--color-sombra) 70%, transparent); }
+.rc-acord-cabeza { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 12px 8px 8px; border-radius: 17px; text-align: left; }
+@media (hover: hover) {
+  .rc-acord-grupo:not([data-abierta]):hover { border-color: var(--color-borde-control); }
+}
+.rc-acord-cabeza:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-acord-flecha { transition: transform 300ms var(--ease-cayla); }
+.rc-acord-grupo[data-abierta] .rc-acord-flecha { transform: rotate(180deg); }
+.rc-acord-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }
+.rc-acord-grupo[data-abierta] .rc-acord-cuerpo { grid-template-rows: 1fr; }
+.rc-acord-dentro { overflow: hidden; min-height: 0; }
+.rc-acord-grupo[data-abierta] .rc-acord-dentro { padding: 0 6px 6px; }
+.rc-acord-prenda { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--color-hueso); }
+.rc-acord-grupo[data-abierta] .rc-acord-prenda { animation: cayla-entrada 380ms var(--ease-cayla) backwards; animation-delay: calc(120ms + var(--k, 0) * 55ms); }
+.rc-acord-puntos { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.rc-acord-puntos i { width: 10px; height: 10px; border: 1.5px solid var(--color-borde-control); border-radius: 50%; transition: background-color 300ms var(--ease-cayla), border-color 300ms var(--ease-cayla); }
+.rc-acord-puntos i[data-lleno] { border-color: var(--color-verde); background: var(--color-verde); }
+.rc-acord-agregar { width: 100%; border-radius: 18px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-acord-grupo, .rc-acord-flecha, .rc-acord-cuerpo, .rc-acord-puntos i { transition: none; }
+  .rc-acord-grupo, .rc-acord-grupo[data-abierta] .rc-acord-prenda { animation: none; }
+}
