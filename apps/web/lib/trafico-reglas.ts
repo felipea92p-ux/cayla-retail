@@ -293,9 +293,9 @@ export function periodoDe(clave: ClavePeriodo, hoy: string, campana: CampanaDelP
   return de("7", sumarDias(hoy, -6), hoy, "Últimos 7 días");
 }
 
-export type FiltrosTrafico = { periodo: ClavePeriodo; camino: Camino | null; ciudad: Ciudad | null; vista: "grafico" | "tabla" };
+export type FiltrosTrafico = { periodo: ClavePeriodo; camino: Camino | null; ciudad: Ciudad | null };
 
-/** Lo que pide la dirección (`?periodo=30&camino=instagram&ciudad=trujillo&vista=tabla`); lo que no se reconoce, se ignora. */
+/** Lo que pide la dirección (`?periodo=mes&camino=instagram&ciudad=trujillo`); lo que no se reconoce, se ignora (también el viejo `vista=tabla`). */
 export function leerFiltros(q: Record<string, string | string[] | undefined>): FiltrosTrafico {
   const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const periodo = uno(q.periodo);
@@ -303,18 +303,16 @@ export function leerFiltros(q: Record<string, string | string[] | undefined>): F
     periodo: (PERIODOS as readonly string[]).includes(periodo ?? "") ? (periodo as ClavePeriodo) : "7",
     camino: esCamino(uno(q.camino)) ? (uno(q.camino) as Camino) : null,
     ciudad: esCiudad(uno(q.ciudad)) ? (uno(q.ciudad) as Ciudad) : null,
-    vista: uno(q.vista) === "tabla" ? "tabla" : "grafico",
   };
 }
 
-/** La dirección de la pantalla con un cambio; lo de fábrica (7 días, gráfico, sin filtro) no ensucia la URL. */
+/** La dirección de la pantalla con un cambio; lo de fábrica (7 días, sin filtro) no ensucia la URL. */
 export function hrefTrafico(actual: FiltrosTrafico, cambio: Partial<FiltrosTrafico>): string {
   const f = { ...actual, ...cambio };
   const q = new URLSearchParams();
   if (f.periodo !== "7") q.set("periodo", f.periodo);
   if (f.camino) q.set("camino", f.camino);
   if (f.ciudad) q.set("ciudad", f.ciudad);
-  if (f.vista === "tabla") q.set("vista", "tabla");
   const s = q.toString();
   return `/tienda-web/trafico${s ? `?${s}` : ""}`;
 }
@@ -364,10 +362,6 @@ export function picoDeHoras(horas: readonly number[]): { desde: number; hasta: n
   }
   return { desde: mejor.desde, hasta: mejor.desde + 3, n: mejor.n, de100: de100(mejor.n, total) };
 }
-
-/** Las 24 horas en 8 tramos de 3 (la vista de tabla): 12 a 3 a. m., 3 a 6 a. m.… */
-export const tramosDeTres = (horas: readonly number[]) =>
-  Array.from({ length: 8 }, (_, i) => ({ desde: i * 3, hasta: i * 3 + 3, n: horas[i * 3] + horas[i * 3 + 1] + horas[i * 3 + 2] }));
 
 /** «De cada 100» redondeado; 0 si no hay de dónde contar. */
 export const de100 = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
@@ -868,6 +862,17 @@ export function tallasQueFaltan(filas: readonly CategoriaTallas[]): (TallaPedida
   return filas
     .flatMap((f) => f.tallas.filter((t) => tallaFalta(t, max)).map((t) => ({ ...t, categoria: f.categoria, modelos: f.modelos })))
     .sort((a, b) => b.piden - a.piden || a.categoria.localeCompare(b.categoria, "es"));
+}
+
+/**
+ * Las categorías de la tarjeta, de la que más gente eligió talla a la que menos (a igual gente, la que tiene una talla que falta primero; después
+ * por nombre): se ven las primeras 8 y el resto en «Ver más».
+ */
+export function ordenarCategorias(filas: readonly CategoriaTallas[]): CategoriaTallas[] {
+  const max = Math.max(0, ...filas.flatMap((f) => f.tallas.map((t) => t.piden)));
+  const piden = (f: CategoriaTallas) => f.tallas.reduce((a, t) => a + t.piden, 0);
+  const falta = (f: CategoriaTallas) => (f.tallas.some((t) => tallaFalta(t, max)) ? 1 : 0);
+  return [...filas].sort((a, b) => piden(b) - piden(a) || falta(b) - falta(a) || a.categoria.localeCompare(b.categoria, "es"));
 }
 
 /** «68 de cada 100 entran por primera vez; de ellos, 5 de cada 100 separan»: las dos partes de «Quién entra». */

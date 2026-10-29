@@ -6,7 +6,6 @@ import { Chip } from "@/components/ui/Chip";
 import { Linea } from "@/components/ui/Linea";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Sparkline } from "@/components/ui/Sparkline";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import {
   CAMINOS,
@@ -37,6 +36,9 @@ import {
  * gráfico principal (patrón de Plausible: la cifra puesta es la que se dibuja), la línea de estos días contra los de antes (Hoy, por hora
  * contra ayer; varios días, día por día) y, al costado, la respuesta en una frase con cuatro datos. Acumulado, la línea de Hoy sigue
  * punteada hasta el cierre esperado. La cifra y la forma elegidas viven en la pantalla, no en la dirección: no cambian lo que se lee.
+ * Todo en UNA tarjeta, como la maqueta: la franja de cifras arriba (una pestaña por cifra, la elegida con su raya), el gráfico con su leyenda
+ * junto al título y la lectura al costado. Las cifras no son `TarjetaCifra` sueltas porque Felipe pidió verlo igual a la maqueta
+ * (2026-10-29, ADR-0568).
  */
 export function PulsoTrafico({
   r,
@@ -60,42 +62,56 @@ export function PulsoTrafico({
   const nombreAntes = hoy ? "Ayer" : periodo.antes.charAt(0).toUpperCase() + periodo.antes.slice(1);
   const ultimo = g.serie.at(-1)?.y ?? 0;
 
+  const leyenda = (
+    <p className="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-tinta/70">
+      <span>
+        <span aria-hidden className="mr-1.5 inline-block h-0.5 w-5 bg-tinta align-middle" />
+        {hoy ? "Hoy" : periodo.nombre}
+      </span>
+      <span>
+        <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dotted border-taupe align-middle" />
+        {nombreAntes}
+      </span>
+      {g.proyeccion && (
+        <span>
+          <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dashed border-tinta/50 align-middle" />
+          Lo que se espera
+        </span>
+      )}
+    </p>
+  );
+
   return (
-    <section className="space-y-4" aria-label="El pulso de la tienda web">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" data-guia="trafico.cifra">
+    <section className="trafico-pulso card-cayla anim-sube min-w-0 overflow-hidden" style={{ "--i": 1 } as CSSProperties} aria-label="El pulso de la tienda web">
+      {/* La franja de cifras (maqueta: una pestaña por cifra, la elegida con su raya): tocar una la dibuja en el gráfico de abajo. */}
+      <div className="trafico-franja" role="group" aria-label="Qué medir" data-guia="trafico.cifra">
         {METRICAS.map((x, i) => {
           const t = totalDe(r, x.clave, hastaX);
           const c = cambioDe(x.clave, t.valor, t.antes);
+          const elegida = metrica === x.clave;
           return (
-            <TarjetaCifra
-              key={x.clave}
-              etiqueta={x.nombre}
-              valor={cifraTexto(x.clave, t.valor)}
-              onClick={() => setMetrica(x.clave)}
-              activa={metrica === x.clave}
-              className={`anim-sube ${i === 4 ? "col-span-2 md:col-span-1" : ""}`}
-              style={{ "--i": i } as CSSProperties}
-              pie={
-                <span className="flex items-center justify-between gap-2">
-                  {c ? (
-                    <Chip tono={c.tono} versalitas={false}>
-                      {c.texto}
-                    </Chip>
-                  ) : (
-                    <span className="text-[12px] text-tinta/60">Sin comparar</span>
-                  )}
-                  <Sparkline serie={valoresDe(r.serie.actual, x.clave, hastaX !== null ? Math.max(1, hastaX) : largo, false)} indice={i} />
-                </span>
-              }
-            />
+            <button key={x.clave} type="button" className="trafico-franja-cifra group" aria-pressed={elegida} onClick={() => setMetrica(x.clave)}>
+              <span className="label-cayla text-[11px] text-taupe-profundo">{x.nombre}</span>
+              <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <b className="trafico-franja-numero font-display font-medium tabular-nums">{cifraTexto(x.clave, t.valor)}</b>
+                {c ? (
+                  <Chip tono={c.tono} versalitas={false}>
+                    {c.texto}
+                  </Chip>
+                ) : (
+                  <span className="text-[12px] text-tinta/70">Sin comparar</span>
+                )}
+              </span>
+              <Sparkline lleno serie={valoresDe(r.serie.actual, x.clave, hastaX !== null ? Math.max(1, hastaX) : largo, false)} indice={i} className="mt-1" />
+            </button>
           );
         })}
       </div>
 
-      <div className="card-cayla anim-sube grid min-w-0 lg:grid-cols-[minmax(0,1fr)_320px]" style={{ "--i": 5 } as CSSProperties} data-guia="trafico.pulso">
-        <div className="min-w-0 p-4 sm:px-5">
+      <div className="trafico-pulso-cuerpo" data-guia="trafico.pulso">
+        <div className="min-w-0 px-4 pb-3.5 pt-4 sm:px-[22px]">
           <TituloSeccion
-            className="mb-2"
+            nivel={3}
             accion={
               metrica !== "de100" ? (
                 <SegmentoDeslizante
@@ -114,13 +130,14 @@ export function PulsoTrafico({
             {m.nombre}
             {acum ? ", acumulado" : ""}
           </TituloSeccion>
+          <div className="mb-1">{leyenda}</div>
           <Linea
             serie={g.serie}
             referencia={g.referencia}
             proyeccion={g.proyeccion}
             desde={0}
             hasta={largo - 1}
-            alto={260}
+            alto={300}
             marcasX={marcasDelTiempo(r.serie.por, largo, periodo.desde)}
             formatoY={(v) => cifraTexto(metrica, v)}
             ahora={hoy && hastaX !== null ? { x: hastaX, texto: `ahora · ${horaRedonda(hastaX)}` } : null}
@@ -142,22 +159,6 @@ export function PulsoTrafico({
             etiqueta={`${m.nombre}, ${porHora ? "hora por hora" : "día por día"}, comparado con ${periodo.antes}`}
             vacio="Todavía no entró nadie en estos días"
           />
-          <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-tinta/70">
-            <span>
-              <span aria-hidden className="mr-1.5 inline-block h-0.5 w-5 bg-tinta align-middle" />
-              {hoy ? "Hoy" : periodo.nombre}
-            </span>
-            <span>
-              <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dotted border-taupe align-middle" />
-              {nombreAntes}
-            </span>
-            {g.proyeccion && (
-              <span>
-                <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dashed border-tinta/50 align-middle" />
-                Lo que se espera
-              </span>
-            )}
-          </p>
         </div>
         <Lectura r={r} periodo={periodo} cierre={hoy ? graficoDe(r.serie, "entraron", { largo, largoAntes, hastaX, acumulado: true }).cierre : null} />
       </div>
@@ -184,9 +185,9 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
     ["Prenda que mejor funciona", estrella?.nombre ?? "Aún pocas personas"],
   ];
   return (
-    <aside className="flex flex-col gap-3 border-t border-sand p-4 sm:px-5 lg:border-l lg:border-t-0" aria-label="Lo que dice el período">
+    <aside className="trafico-lectura flex flex-col gap-3.5 p-[18px] sm:p-[22px]" aria-label="Lo que dice el período">
       <div className="flex items-center gap-3">
-        <span aria-hidden className={`grid h-11 w-11 place-items-center rounded-xl ${tonoMedalla}`}>
+        <span aria-hidden className={`grid h-[46px] w-[46px] place-items-center rounded-[14px] ${tonoMedalla}`}>
           <Icono className="h-5 w-5" />
         </span>
         {periodo.clave === "hoy" && r.ahora > 0 && (
@@ -196,8 +197,8 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
           </Chip>
         )}
       </div>
-      <h3 className="font-display text-[26px] leading-[1.15] text-balance">{v.titulo}</h3>
-      <p className="text-[14px] text-tinta/70">
+      <h3 className="font-display text-[24px] font-medium leading-[1.12] text-balance sm:text-[28px]" /* unificar-fijo: es la respuesta del período en una frase (la de la maqueta), no el título de una sección */>{v.titulo}</h3>
+      <p className="text-[14.5px] text-tinta/70">
         Entraron <b className="font-semibold text-tinta">{miles(r.pasos[0])} {r.pasos[0] === 1 ? "persona" : "personas"}</b>.
         {cierre !== null && (
           <>
@@ -206,7 +207,7 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
           </>
         )}
       </p>
-      <dl className="mt-auto grid gap-2 border-t border-sand pt-3 text-[13.5px]">
+      <dl className="mt-auto grid gap-2.5 border-t border-sand pt-3.5 text-[13.5px]">
         {datos.map(([k, val]) => (
           <div key={k} className="flex items-baseline justify-between gap-3">
             <dt className="text-tinta/70">{k}</dt>

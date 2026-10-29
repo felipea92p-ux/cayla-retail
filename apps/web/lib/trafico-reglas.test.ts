@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  ordenarCategorias,
   tinteDelDia,
   celdasDelCalendario,
   diasFuertesDelMes,
@@ -46,7 +47,6 @@ import {
   quienesTexto,
   rangoTexto,
   tramoTexto,
-  tramosDeTres,
   sinNoticias,
   cambioDe,
   graficoDe,
@@ -323,12 +323,6 @@ describe("de dónde vienen y a qué hora", () => {
     expect(tramoTexto(21, 24)).toBe("de 9 p. m. a 12 a. m.");
     expect(tramoTexto(0, 3)).toBe("de 12 a 3 a. m.");
   });
-  it("los 8 tramos de 3 horas suman todo el día", () => {
-    const horas = Array.from({ length: 24 }, (_, h) => h);
-    const t = tramosDeTres(horas);
-    expect(t).toHaveLength(8);
-    expect(t.reduce((a, x) => a + x.n, 0)).toBe(276);
-  });
 });
 
 describe("el período y los filtros", () => {
@@ -401,15 +395,15 @@ describe("el período y los filtros", () => {
     expect(cambioDeLaPrenda(r!.prendas[0]).texto).toBe("Sin comparar prenda por prenda");
   });
   it("lee la dirección e ignora lo que no conoce", () => {
-    expect(leerFiltros({ periodo: "mes-pasado", camino: "instagram", ciudad: "trujillo", vista: "tabla" })).toEqual({ periodo: "mes-pasado", camino: "instagram", ciudad: "trujillo", vista: "tabla" });
+    expect(leerFiltros({ periodo: "mes-pasado", camino: "instagram", ciudad: "trujillo", vista: "tabla" })).toEqual({ periodo: "mes-pasado", camino: "instagram", ciudad: "trujillo" });
     expect(leerFiltros({ periodo: "30" }).periodo).toBe("7"); // el de 30 días ya no existe: un enlace viejo cae en lo de fábrica
-    expect(leerFiltros({ periodo: "99", camino: "fax", ciudad: ["lima", "cusco"] })).toEqual({ periodo: "7", camino: null, ciudad: "lima", vista: "grafico" });
+    expect(leerFiltros({ periodo: "99", camino: "fax", ciudad: ["lima", "cusco"] })).toEqual({ periodo: "7", camino: null, ciudad: "lima" });
   });
   it("la dirección con un cambio; lo de fábrica no se escribe", () => {
     const f = leerFiltros({ camino: "instagram" });
     expect(hrefTrafico(f, { ciudad: "lima" })).toBe("/tienda-web/trafico?camino=instagram&ciudad=lima");
     expect(hrefTrafico(f, { camino: null })).toBe("/tienda-web/trafico");
-    expect(hrefTrafico(f, { periodo: "campana", vista: "tabla" })).toBe("/tienda-web/trafico?periodo=campana&camino=instagram&vista=tabla");
+    expect(hrefTrafico(f, { periodo: "campana" })).toBe("/tienda-web/trafico?periodo=campana&camino=instagram");
   });
   it("el rango en palabras", () => {
     expect(rangoTexto("2026-10-17", "2026-10-23")).toBe("Del 17 al 23 de octubre");
@@ -644,6 +638,17 @@ describe("Tallas que piden y no hay, y quién entra", () => {
   it("las que faltan, de la más pedida a la menos, con su categoría", () => {
     const r = leerResumen({ ...DE_LA_BASE, tallas })!;
     expect(tallasQueFaltan(r.tallas!.filas).map((t) => `${t.talla} de ${t.categoria}`)).toEqual(["M de Blusas", "L de Blusas", "30 de Pantalones"]);
+  });
+
+  it("las categorías van de la que más gente eligió talla a la que menos; a igual gente, la que tiene una talla que falta primero", () => {
+    const r = leerResumen({ ...DE_LA_BASE, tallas })!;
+    expect(ordenarCategorias(r.tallas!.filas).map((f) => f.categoria)).toEqual(["Blusas", "Pantalones"]);
+    const empate = [
+      { categoria: "A", prefijo: null, familia: null, modelos: 1, tallas: [{ talla: "M", piden: 10, quedan: 50, sin: 0 }] },
+      { categoria: "B", prefijo: null, familia: null, modelos: 1, tallas: [{ talla: "M", piden: 10, quedan: 0, sin: 1 }] },
+      { categoria: "C", prefijo: null, familia: null, modelos: 1, tallas: [{ talla: "S", piden: 0, quedan: 3, sin: 0 }] },
+    ];
+    expect(ordenarCategorias(empate).map((f) => f.categoria)).toEqual(["B", "A", "C"]);
   });
 
   it("quién entra: de cada 100, nuevos y que vuelven, y cuántos de cada grupo separan", () => {
