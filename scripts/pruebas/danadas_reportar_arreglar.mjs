@@ -95,6 +95,15 @@ exception when others then
   return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg);
 end;
 $f$;
+create function pg_temp.sacar(p_id uuid, p_ruta text, p_nota text default null) returns jsonb language plpgsql as $f$
+declare v_estado text; v_msg text; v_hint text;
+begin
+  return jsonb_build_object('ok', true, 'res', retail.sacar_danada_a_arreglar(p_id, p_ruta, p_nota));
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
+  return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg);
+end;
+$f$;
 create function pg_temp.intento(p_sql text) returns jsonb language plpgsql as $f$
 declare v_estado text; v_msg text; v_hint text;
 begin
@@ -254,7 +263,7 @@ select pg_temp.intento(${"$"}m$${TEXTO_MIGRACION_TIPO.replace(/\\/g, "\\\\")}${"
 select concat_ws(',', :'p1', :'p2',
   (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('reportar_danada', 'arreglar_prenda_danada')),
   (select count(*) from pg_constraint where conrelid = 'retail.prendas_danadas'::regclass and contype = 'c'));`,
-  "true,true,2,8"
+  "true,true,2,10"
 );
 {
   const sinComentarios = TEXTO_MIGRACION_TIPO.replace(/--[^\n]*/g, "");
@@ -704,6 +713,58 @@ caso(
   `select pg_temp.intento(format('update retail.sububicaciones set lugar = %L where id = %L', 'ab', :'cua_t')) ->> 'estado' as e \\gset
 select concat_ws(',', :'e', (select count(*) from retail.sububicaciones where lugar is not null and tipo <> 'cuarentena'));`,
   "23514,0"
+);
+
+// ===========================================================================
+// D11 · «Salió a arreglar» (ADR-0564, `20261029032000`)
+// ===========================================================================
+
+const sacar = (ruta, nota = "null") => `pg_temp.sacar(:'did', ${ruta}, ${nota})`;
+caso(
+  "D11 · el líder la saca a arreglar (Taller, con nota): queda la salida con quién y cuándo, y NO se mueve stock ni se escribe un movimiento",
+  `${REPORTE_DE_VA}select ${cant("va", "cua_t")} as cua_antes, (select count(*) from retail.movimientos) as mov_antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${sacar("'taller'", "'la lleva Rosa'")} as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', (:'r')::jsonb -> 'res' ->> 'ya_registrada',
+  (select concat_ws('/', ruta_arreglo, nota_arreglo, sacada_por = :'felipe_p', en_arreglo_desde is not null, estado) from retail.prendas_danadas where id = :'did'),
+  ${cant("va", "cua_t")} = :cua_antes, (select count(*) from retail.movimientos) = :mov_antes);`,
+  "true,false,taller/la lleva Rosa/t/t/en_cuarentena,t,t"
+);
+caso(
+  "D11 · repetir la MISMA ruta devuelve ya_registrada sin cambiar nada; otra ruta dice que ya está en arreglo",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select ${sacar("'taller'")} as a \\gset
+select ${sacar("'taller'")} as b \\gset
+select ${sacar("'cerca'")} as c \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'b')::jsonb -> 'res' ->> 'ya_registrada', (:'c')::jsonb ->> 'hint',
+  (select ruta_arreglo from retail.prendas_danadas where id = :'did'));`,
+  "true,arreglo_ya_en_arreglo,taller"
+);
+caso(
+  "D11 · ruta fuera de la lista y nota de 2 letras se rechazan, y la prenda sigue en la tienda",
+  `${REPORTE_DE_VA}${sesion(FELIPE)}${COMO_API}select ${sacar("'luna'")} as a \\gset
+select ${sacar("null")} as b \\gset
+select ${sacar("'cerca'", "'ab'")} as c \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb ->> 'hint', (:'b')::jsonb ->> 'hint', (:'c')::jsonb ->> 'hint',
+  (select en_arreglo_desde is null from retail.prendas_danadas where id = :'did'));`,
+  "arreglo_ruta_invalida,arreglo_ruta_invalida,arreglo_nota_invalida,t"
+);
+caso(
+  "D11 · sin Existencias → 42501; con Existencias en OTRA tienda → «no es tu sede»; una prenda ya resuelta no sale a arreglar",
+  `${REPORTE_DE_VA}${SIN_EXISTENCIAS_EN_NINGUN_ROL}${sesion(MICAELA)}${COMO_API}select ${sacar("'cerca'")} as sinmod \\gset
+${sesion(FELIPE)}${COMO_API}select ${reportar("va", 1, "'piso'", "'Mancha'", ":'tok2'", "lim")} as replim \\gset
+${COMO_POSTGRES}select (:'replim')::jsonb -> 'res' ->> 'id' as did_lim \\gset
+${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select pg_temp.sacar(:'did_lim', 'cerca') as otra \\gset
+${sesion(FELIPE)}${COMO_API}select pg_temp.intento(format('select retail.resolver_prenda_danada(%L, ''se_boto'', ''Sin arreglo'')', :'did')) as bot \\gset
+select ${sacar("'cerca'")} as resuelta \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'sinmod')::jsonb ->> 'hint', (:'sinmod')::jsonb ->> 'estado', (:'otra')::jsonb ->> 'hint', (:'resuelta')::jsonb ->> 'hint');`,
+  "arreglo_sin_modulo,42501,arreglo_sin_tienda,arreglo_ya_resuelta"
+);
+caso(
+  "D11 · el candado del esquema: una ruta sin fecha, o una fecha sin ruta, se rechaza (23514)",
+  `${REPORTE_DE_VA}select pg_temp.intento(format('update retail.prendas_danadas set ruta_arreglo = %L where id = %L', 'cerca', :'did')) ->> 'estado' as a \\gset
+select pg_temp.intento(format('update retail.prendas_danadas set en_arreglo_desde = now() where id = %L', :'did')) ->> 'estado' as b \\gset
+select pg_temp.intento(format('update retail.prendas_danadas set en_arreglo_desde = now(), ruta_arreglo = %L where id = %L', 'luna', :'did')) ->> 'estado' as c \\gset
+select concat_ws(',', :'a', :'b', :'c');`,
+  "23514,23514,23514"
 );
 
 console.log(`\n${total - fallos}/${total} pruebas en verde.`);

@@ -34,6 +34,21 @@ import {
   tituloExitoArreglo,
   tituloExitoDevolucion,
 } from "@/lib/danadas-reglas";
+import {
+  argumentosDeSalida,
+  camposGuiaSalida,
+  leerRespuestaSalida,
+  MAX_NOTA_ARREGLO,
+  QUE_PASA_AL_SACAR,
+  RPC_SACAR_A_ARREGLAR,
+  RUTAS_ARREGLO,
+  TEXTO_RED_SALIDA,
+  TEXTO_SALIDA_YA_ESTABA,
+  textoEnArreglo,
+  tituloExitoSalida,
+  type RutaArreglo,
+} from "@/lib/danadas-arreglo";
+import { Chip } from "@/components/ui/Chip";
 import { argumentosDeLugar, camposGuiaLugar, MAX_LUGAR_DANADAS, RPC_DEFINIR_LUGAR_DANADAS } from "@/lib/danadas-lugar";
 import { Aviso } from "@/components/ui/Aviso";
 import { Check } from "lucide-react";
@@ -104,6 +119,11 @@ export function ResolverDanadosModal({
   const router = useRouter();
   const [notas, setNotas] = useState<Record<string, string>>({});
   // «Dónde se dejan» (ADR-0564): el lugar físico de las dañadas de esta tienda, que cada sede marca y la pantalla repite.
+  // «Salió a arreglar» (ADR-0564): la prenda abierta, quién la arregla, con quién va y el error de la hoja.
+  const [sacando, setSacando] = useState<string | null>(null);
+  const [rutaSalida, setRutaSalida] = useState<RutaArreglo | "">("");
+  const [notaSalida, setNotaSalida] = useState("");
+  const [errorSalida, setErrorSalida] = useState<string | null>(null);
   const [editandoLugar, setEditandoLugar] = useState(false);
   const [textoLugar, setTextoLugar] = useState("");
   const [guardandoLugar, setGuardandoLugar] = useState(false);
@@ -134,6 +154,8 @@ export function ResolverDanadosModal({
   const precioLiquidando = liquidando ? Number(precios[liquidando]) : Number.NaN;
   const camposAbiertos: CampoDeGuia[] = editandoLugar
     ? camposGuiaLugar(textoLugar, responsable.listo)
+    : sacando
+    ? camposGuiaSalida(rutaSalida, notaSalida, responsable.listo)
     : devolviendo
     ? camposGuiaDevolucion(notaDevolucion, responsable.listo)
     : arreglando
@@ -238,7 +260,49 @@ export function ResolverDanadosModal({
     router.refresh();
   }
 
+  function abrirSalida(id: string) {
+    setLiquidando(null);
+    setDevolviendo(null);
+    setArreglando(null);
+    setSacando(id);
+    // Lo escrito en «Nota (opcional)» antes de tocar «Salió a arreglar» no se pierde: suele ser con quién va.
+    setNotaSalida(notas[id] ?? "");
+    setRutaSalida("");
+    setErrorSalida(null);
+  }
+
+  async function confirmarSalida(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null || rutaSalida === "") return;
+    setResolviendo(p.id);
+    setErrorSalida(null);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_SACAR_A_ARREGLAR, argumentosDeSalida(p.id, rutaSalida, notaSalida)), responsable.firma());
+      data = r.data;
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "anotar que salió a arreglar");
+      // Marcar la salida es repetible sin daño (la misma ruta devuelve «ya estaba»): tras un corte basta volver a tocar.
+      setErrorSalida(fallo.tipo === "red" ? TEXTO_RED_SALIDA : fallo.mensaje);
+      // Otra persona la sacó o la resolvió antes: la lista se relee para que no siga ofreciendo lo que ya no es.
+      if (error.hint === "arreglo_ya_en_arreglo" || error.hint === "arreglo_ya_resuelta") router.refresh();
+      return;
+    }
+    const r = leerRespuestaSalida(data) ?? { ya_registrada: false, id: p.id, ruta: rutaSalida };
+    if (r.ya_registrada) avisar.aviso(TEXTO_SALIDA_YA_ESTABA, { detalle: p.referencia });
+    else avisar.exito(tituloExitoSalida(r.ruta), { detalle: p.referencia });
+    setSacando(null);
+    router.refresh();
+  }
+
   function abrirArreglo(id: string) {
+    setSacando(null);
     setLiquidando(null);
     setDevolviendo(null);
     setArreglando(id);
@@ -279,6 +343,7 @@ export function ResolverDanadosModal({
   }
 
   function abrirDevolucion(id: string) {
+    setSacando(null);
     setLiquidando(null);
     setArreglando(null);
     setDevolviendo(id);
@@ -397,8 +462,15 @@ export function ResolverDanadosModal({
                     </p>
                     {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que se necesita para decidir. */}
                     <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion, p.tipoDano)}</p>
+                    {p.enArreglo && (
+                      <p className="mt-1">
+                        <Chip tono="pizarra" versalitas={false} title="La prenda salió de la tienda a arreglarse. Cuando vuelva, marca «Se arregló».">
+                          {textoEnArreglo(p.enArreglo)}
+                        </Chip>
+                      </p>
+                    )}
                   </div>
-                  {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && (
+                  {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && sacando !== p.id && (
                     <>
                       <CampoTexto
                         etiqueta="Nota (opcional)"
@@ -408,6 +480,18 @@ export function ResolverDanadosModal({
                         placeholder="Detalle de la resolución"
                       />
                       <div className="flex flex-wrap gap-2">
+                        {/* Antes de arreglarla, sale de la tienda (ADR-0564): una costurera cercana o el Taller. Solo una vez. */}
+                        {!p.enArreglo && (
+                          <Boton
+                            type="button"
+                            onClick={() => abrirSalida(p.id)}
+                            disabled={resolviendo !== null || !responsable.listo}
+                            title={responsable.motivo ?? "Anota que la prenda sale de la tienda a arreglarse"}
+                            className="flex-1"
+                          >
+                            Salió a arreglar
+                          </Boton>
+                        )}
                         {/* Un arreglo menor vuelve a la venta (ADR-0328): primero, porque es lo que no pierde la prenda. */}
                         <Boton
                           type="button"
@@ -433,6 +517,7 @@ export function ResolverDanadosModal({
                         <Boton
                           type="button"
                           onClick={() => {
+                            setSacando(null);
                             setArreglando(null);
                             setDevolviendo(null);
                             setLiquidando(p.id);
@@ -459,6 +544,56 @@ export function ResolverDanadosModal({
                         ))}
                       </div>
                     </>
+                  )}
+                  {puedeDecidir && sacando === p.id && (
+                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <p className="text-xs text-tinta/65">{QUE_PASA_AL_SACAR}</p>
+                      <CampoGuiado id="ruta" guia={guia}>
+                        <CampoSelect
+                          etiqueta={guia.etiqueta("ruta", "¿Quién la arregla?")}
+                          valor={rutaSalida}
+                          onValor={(v) => {
+                            setRutaSalida(v);
+                            setErrorSalida(null);
+                          }}
+                          opciones={RUTAS_ARREGLO.map((r) => ({ valor: r.valor, texto: r.etiqueta }))}
+                          marcador="Elige quién"
+                          deshabilitado={resolviendo !== null}
+                        />
+                      </CampoGuiado>
+                      <CampoGuiado id="nota" guia={guia}>
+                        <CampoTexto
+                          etiqueta={guia.etiqueta("nota", "¿Con quién va? (opcional)")}
+                          // sugerir-fijo: es un dato libre sobre quién la lleva; no depende de la ruta elegida
+                          placeholder="Ej. la lleva Rosa el jueves"
+                          maxLength={MAX_NOTA_ARREGLO}
+                          value={notaSalida}
+                          onChange={(e) => {
+                            setNotaSalida(e.target.value);
+                            setErrorSalida(null);
+                          }}
+                          disabled={resolviendo !== null}
+                        />
+                      </CampoGuiado>
+                      {errorSalida && <Aviso tono="error">{errorSalida}</Aviso>}
+                      <PieGuia guia={guia} listo="Todo listo: se anota la salida." />
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setSacando(null)} disabled={resolviendo !== null}>
+                          Cancelar
+                        </Boton>
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => confirmarSalida(p)}
+                          cargando={resolviendo === p.id}
+                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          title={responsable.motivo ?? guia.frase ?? undefined}
+                          className={`flex-1 ${guia.claseConfirmar}`}
+                        >
+                          Anotar la salida
+                        </Boton>
+                      </div>
+                    </div>
                   )}
                   {puedeDecidir && arreglando === p.id && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">

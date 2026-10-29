@@ -3120,15 +3120,19 @@ export type Database = {
           cantidad: number
           created_at: string
           devolucion_item_id: string | null
+          en_arreglo_desde: string | null
           estado: string
           id: string
           motivo_reporte: string | null
           movimiento_entrada_id: string
           movimiento_salida_id: string | null
           nota: string | null
+          nota_arreglo: string | null
           proveedor_id: string | null
           resuelto_en: string | null
           resuelto_por: string | null
+          ruta_arreglo: string | null
+          sacada_por: string | null
           tipo_dano: string | null
           ubicacion_id: string
           variante_id: string
@@ -3138,15 +3142,19 @@ export type Database = {
           cantidad: number
           created_at?: string
           devolucion_item_id?: string | null
+          en_arreglo_desde?: string | null
           estado?: string
           id?: string
           motivo_reporte?: string | null
           movimiento_entrada_id: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          nota_arreglo?: string | null
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          ruta_arreglo?: string | null
+          sacada_por?: string | null
           tipo_dano?: string | null
           ubicacion_id: string
           variante_id: string
@@ -3156,15 +3164,19 @@ export type Database = {
           cantidad?: number
           created_at?: string
           devolucion_item_id?: string | null
+          en_arreglo_desde?: string | null
           estado?: string
           id?: string
           motivo_reporte?: string | null
           movimiento_entrada_id?: string
           movimiento_salida_id?: string | null
           nota?: string | null
+          nota_arreglo?: string | null
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          ruta_arreglo?: string | null
+          sacada_por?: string | null
           tipo_dano?: string | null
           ubicacion_id?: string
           variante_id?: string
@@ -5956,6 +5968,8 @@ export type Database = {
       fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
       guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
       programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      // ADR-0564 (20261029032000): «Salió a arreglar»: marca que una dañada en cuarentena salió de la tienda a arreglarse.
+      sacar_danada_a_arreglar: { Args: { p_id: string; p_nota?: string; p_ruta: string }; Returns: Json }
       // ADR-0564 (20261029031000): marca (o borra, con texto vacío) el lugar físico donde la tienda deja las prendas dañadas.
       definir_lugar_danadas: { Args: { p_lugar: string; p_ubicacion_id: string }; Returns: Json }
       desprogramar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
