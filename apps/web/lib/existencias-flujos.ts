@@ -18,7 +18,7 @@
      adelanto, con la caja abierta, el comprobante y la ficha del cliente.
    ==================================================================== */
 
-import { problemasReporte, type CampoReporte } from "./danadas-reglas";
+import { etiquetaDeTipo, problemasReporte, type CampoReporte, type TipoDano } from "./danadas-reglas";
 import { cantidadEnSede, type SedeConStockId } from "./stock-por-sede";
 
 export type TipoFlujo = "colgar" | "colgarVarias" | "subir" | "subirVarias" | "enviar" | "pedir" | "danada";
@@ -38,6 +38,8 @@ export type DatosFlujo = {
   apellidos?: string;
   celular?: string;
   lugar?: "piso" | "almacen";
+  /** «Reportar dañada»: qué tiene la prenda, de la lista corta (ADR-0564). La nota (`nota`) es su complemento. */
+  tipoDano?: TipoDano;
 };
 
 export type SedeConCantidad = { id: string; nombre: string; cantidad: number };
@@ -146,13 +148,13 @@ const soloDigitos = (s: string | undefined) => (s ?? "").replace(/\D/g, "");
 export const celularValido = (s: string | undefined) => /^9\d{8}$/.test(soloDigitos(s));
 
 /** Reportar dañada pregunta a SU validación de siempre (`problemasReporte`, la de la base): el paso está completo si no tiene problema. */
-const CAMPO_DANADA: Partial<Record<PasoFlujo, CampoReporte>> = { lugar: "desde", cantidad: "cantidad", quetiene: "motivo" };
+const CAMPOS_DANADA: Partial<Record<PasoFlujo, readonly CampoReporte[]>> = { lugar: ["desde"], cantidad: ["cantidad"], quetiene: ["tipo", "motivo"] };
 function pasoDeDanadaCompleto(paso: PasoFlujo, d: DatosFlujo, c: ContextoFlujo): boolean | null {
-  const campo = CAMPO_DANADA[paso];
-  if (!campo) return null;
+  const campos = CAMPOS_DANADA[paso];
+  if (!campos) return null;
   const talla = { varianteId: "", talla: null, piso: c.separa ? c.piso : c.piso + c.almacen, almacen: c.separa ? c.almacen : 0 };
   const desde = c.separa ? (d.lugar ?? null) : "piso";
-  return !problemasReporte({ talla, desde, cantidad: d.n ?? 0, motivo: d.nota ?? "" }).some((p) => p.campo === campo);
+  return !problemasReporte({ talla, desde, cantidad: d.n ?? 0, tipo: d.tipoDano ?? null, motivo: d.nota ?? "" }).some((p) => campos.includes(p.campo));
 }
 
 export function pasoCompleto(paso: PasoFlujo, tipo: TipoFlujo, d: DatosFlujo, c: ContextoFlujo): boolean {
@@ -291,7 +293,7 @@ export function resumenDeFlujo(
     case "danada":
       return [
         ["Dañadas", unidades(n)],
-        ["Qué tiene", (d.nota ?? "").trim() || "—"],
+        ["Qué tiene", [d.tipoDano ? etiquetaDeTipo(d.tipoDano) : null, (d.nota ?? "").trim() || null].filter(Boolean).join(" · ") || "—"],
       ];
   }
 }

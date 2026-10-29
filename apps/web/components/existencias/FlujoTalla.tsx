@@ -20,7 +20,8 @@ import { Archive } from "lucide-react";
 import { argumentosDeBajada, formatearHoraLima, interpretarErrorDeBajada, itemsParaRpc, leerRespuestaDeBajada, respuestaResuelveLaMarca, RPC_BAJADA, textoMarcaSinResolver, type LineaBajada } from "@/lib/bajada-reglas";
 import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MAX_NOTA_RETIRO, respuestaResuelveLaMarcaDeRetiro, RPC_RETIRO, textoDelBloqueSubir, textoMarcaSinResolverDeRetiro, tituloDeExitoRetiro } from "@/lib/retiro-reglas";
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
-import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
+import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, TIPOS_DANO, tituloExitoReporte } from "@/lib/danadas-reglas";
+import { pistaDeNota } from "@/lib/sugerencias-danadas";
 import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -521,9 +522,10 @@ export function FlujoTalla({
       case "danada": {
         const desde = d.lugar === "almacen" ? "almacen" : "piso";
         const motivo = (d.nota ?? "").trim();
+        const tipo = d.tipoDano ?? "otro";
         return {
           rpc: RPC_REPORTAR_DANADA,
-          args: argumentosDeReporte(ubicacionId, fila.varianteId, desde, n, motivo, tokenPara(JSON.stringify(["danada", fila.varianteId, desde, n, motivo]))),
+          args: argumentosDeReporte(ubicacionId, fila.varianteId, desde, n, motivo, tokenPara(JSON.stringify(["danada", fila.varianteId, desde, n, tipo, motivo])), tipo),
           error: (e) => interpretarErrorDeDanada(e, "reportar la prenda dañada").mensaje,
           yaEstaba: (x) => leerRespuestaDanada(x)?.ya_registrada === true,
           resuelve: reporteResuelveLaMarca,
@@ -883,19 +885,21 @@ export function FlujoTalla({
         return (
           <>
             <Pregunta>¿Qué tiene?</Pregunta>
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {["Mancha", "Descosido", "Falta un botón", "Roto"].map((x) => (
-                <button key={x} type="button" aria-pressed={(d.nota ?? "") === x} onClick={() => poner({ nota: x })} className="rounded-full border border-sand bg-papel px-3 py-1.5 text-[13px] text-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel">
-                  {x}
+            <div role="group" aria-label="Qué tiene la prenda" className="mb-3 flex flex-wrap gap-1.5">
+              {TIPOS_DANO.map((x) => (
+                <button key={x.valor} type="button" aria-pressed={d.tipoDano === x.valor} onClick={() => poner({ tipoDano: x.valor })} className="rounded-full border border-sand bg-papel px-3 py-1.5 text-[13px] text-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel">
+                  {x.etiqueta}
                 </button>
               ))}
             </div>
+            <label htmlFor="flujo-quetiene" className="mb-1 block text-[13px] text-taupe">
+              {d.tipoDano === "otro" ? "Cuéntanos qué tiene" : "Algo más (opcional)"}
+            </label>
             <textarea
               id="flujo-quetiene"
               rows={2}
               maxLength={MAX_TEXTO_DANADA}
-              // sugerir-fijo: invita a escribir lo que se ve en la prenda; no depende de otro campo
-              placeholder="O escríbelo aquí"
+              placeholder={pistaDeNota(d.tipoDano)}
               value={d.nota ?? ""}
               onChange={(e) => poner({ nota: e.target.value })}
               className={CLASE_TEXTO}

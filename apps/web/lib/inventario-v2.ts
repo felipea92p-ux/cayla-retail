@@ -8,7 +8,7 @@ import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
-import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
+import { leerDevolvibles, leerTipoDano, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada, type TipoDano } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
 
@@ -433,6 +433,8 @@ export type PrendaDanada = {
   origen: OrigenDanada;
   /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
   motivoReporte: string | null;
+  /** Qué tiene, de la lista corta (ADR-0564). Null si llegó por una devolución, un cambio o una recepción, o si es de antes de los tipos. */
+  tipoDano: TipoDano | null;
   /** Si llegó dañada en una recepción, a qué proveedor se devuelve (ADR-0362, fase 5b, actividad 6a); si no, null (sin el botón). */
   devolucion: DevolucionPosible | null;
 };
@@ -440,11 +442,11 @@ export type PrendaDanada = {
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
   // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
-  const conMotivo = await leerTodas((desde, hasta) =>
+  const conTipo = await leerTodas((desde, hasta) =>
     supabase
       .from("prendas_danadas")
       .select(
-        `id, cantidad, created_at, motivo_reporte, cambio_id,
+        `id, cantidad, created_at, motivo_reporte, tipo_dano, cambio_id,
          variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("ubicacion_id", ubicacionId)
@@ -458,6 +460,23 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
   // la lista de Dañadas (pasó con #730: la web salió por auto-merge antes que su SQL). Sin la columna se relee sin ella y todo
   // queda como antes (ninguna dañada viene de un reporte); «Reportar dañada» y «Se arregló» solo fallan al usarse. Mismo patrón
   // que `getStockPorUbicacion` con `cantidad_apartada`. Retirar el reintento cuando la migración esté aplicada.
+  // Lo mismo con `tipo_dano` (20261029024000, ADR-0564): sin la columna se relee con el motivo y sin el tipo.
+  const conMotivo =
+    conTipo.error?.code === COLUMNA_INEXISTENTE
+      ? await leerTodas((desde, hasta) =>
+          supabase
+            .from("prendas_danadas")
+            .select(
+              `id, cantidad, created_at, motivo_reporte, cambio_id,
+               variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+            )
+            .eq("ubicacion_id", ubicacionId)
+            .eq("estado", "en_cuarentena")
+            .order("created_at")
+            .order("id")
+            .range(desde, hasta)
+        ).then((r) => ({ ...r, data: r.data?.map((f) => ({ ...f, tipo_dano: null as string | null })) ?? null }))
+      : conTipo;
   const filas =
     conMotivo.error?.code === COLUMNA_INEXISTENTE
       ? exigir(
@@ -475,7 +494,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
               .range(desde, hasta)
           ),
           "las prendas dañadas pendientes"
-        ).map((f) => ({ ...f, motivo_reporte: null as string | null }))
+        ).map((f) => ({ ...f, motivo_reporte: null as string | null, tipo_dano: null as string | null }))
       : exigir(conMotivo, "las prendas dañadas pendientes");
   // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
   const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
@@ -494,6 +513,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
     origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
     motivoReporte: f.motivo_reporte,
+    tipoDano: leerTipoDano(f.tipo_dano),
     devolucion: devolvibles.get(f.id) ?? null,
   }));
 }

@@ -24,7 +24,7 @@ import type { CampoDeGuia } from "./guia-campos";
 /** Las RPC y sus parámetros en un solo lugar: `danadas-reglas.test.ts` los fija contra la migración. */
 export const RPC_REPORTAR_DANADA = "reportar_danada";
 /** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
-export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token"] as const;
+export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token", "p_tipo"] as const;
 export const RPC_ARREGLAR_DANADA = "arreglar_prenda_danada";
 /** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token"] as const;
@@ -34,6 +34,33 @@ export const MIN_TEXTO_DANADA = 3;
 export const MAX_TEXTO_DANADA = 200;
 
 export type DesdeDanada = "piso" | "almacen";
+
+/**
+ * Qué tiene la prenda, de una lista corta (ADR-0564, Felipe 2026-10-28): tocar un botón es lo que se puede hacer con la tienda abierta
+ * y una clienta esperando; escribir es lo que se salta. Los valores son los de `prendas_danadas.tipo_dano` (20261029024000) y el
+ * orden es el de la ventana. «Otro» es el único que obliga a escribir una nota.
+ */
+export const TIPOS_DANO = [
+  { valor: "mancha", etiqueta: "Mancha" },
+  { valor: "descosido", etiqueta: "Descosido" },
+  { valor: "boton_cierre", etiqueta: "Botón o cierre" },
+  { valor: "rotura", etiqueta: "Rotura" },
+  { valor: "otro", etiqueta: "Otro" },
+] as const;
+export type TipoDano = (typeof TIPOS_DANO)[number]["valor"];
+
+/** @internal Lo lee solo su prueba, que lo cruza con la lista de la migración. */
+export const VALORES_TIPO_DANO: readonly TipoDano[] = TIPOS_DANO.map((x) => x.valor);
+
+/** El nombre del tipo tal como se dice en pantalla (lo mismo que la base escribe cuando no hay nota). */
+export function etiquetaDeTipo(tipo: TipoDano): string {
+  return TIPOS_DANO.find((x) => x.valor === tipo)?.etiqueta ?? tipo;
+}
+
+/** ¿El texto que llegó de la base es uno de los tipos? (una fila de antes, o una web más vieja que la base, trae null o algo raro). */
+export function leerTipoDano(valor: unknown): TipoDano | null {
+  return VALORES_TIPO_DANO.find((v) => v === valor) ?? null;
+}
 
 /** Una talla de la prenda tal como la ve la ventana: lo LIBRE de hoy en el piso y en el almacén de la sede. */
 export type TallaReportable = { varianteId: string; talla: string | null; piso: number; almacen: number };
@@ -72,8 +99,8 @@ export function cantidadAjustada(cantidad: number, libre: number): number {
 
 const largoUtil = (texto: string) => texto.trim().length;
 
-export type EstadoReporte = { talla: TallaReportable | null; desde: DesdeDanada | null; cantidad: number; motivo: string };
-export type CampoReporte = "talla" | "desde" | "cantidad" | "motivo";
+export type EstadoReporte = { talla: TallaReportable | null; desde: DesdeDanada | null; cantidad: number; tipo: TipoDano | null; motivo: string };
+export type CampoReporte = "talla" | "desde" | "cantidad" | "tipo" | "motivo";
 export type ProblemaReporte = { campo: CampoReporte; texto: string };
 
 /**
@@ -90,8 +117,11 @@ export function problemasReporte(e: EstadoReporte): ProblemaReporte[] {
   const libre = libreEn(e.talla, e.desde);
   if (!Number.isInteger(e.cantidad) || e.cantidad < 1) out.push({ campo: "cantidad", texto: "Reporta al menos 1 prenda." });
   else if (libre > 0 && e.cantidad > libre) out.push({ campo: "cantidad", texto: `Solo hay ${libre} libre${libre === 1 ? "" : "s"} ahí.` });
+  if (!e.tipo) out.push({ campo: "tipo", texto: "Elige qué tiene la prenda." });
+  // La nota es un complemento: solo «Otro» obliga a escribirla. Si la hay, vale lo mismo que en la base (3 a 200).
   const largo = largoUtil(e.motivo);
-  if (largo < MIN_TEXTO_DANADA) out.push({ campo: "motivo", texto: "Escribe qué tiene la prenda." });
+  if (e.tipo === "otro" && largo < MIN_TEXTO_DANADA) out.push({ campo: "motivo", texto: "Cuenta qué tiene la prenda." });
+  else if (largo > 0 && largo < MIN_TEXTO_DANADA) out.push({ campo: "motivo", texto: "Escribe al menos 3 letras, o déjalo vacío." });
   else if (largo > MAX_TEXTO_DANADA) out.push({ campo: "motivo", texto: `Lo que tiene admite hasta ${MAX_TEXTO_DANADA} caracteres.` });
   return out;
 }
@@ -118,11 +148,20 @@ export type ArgumentosDeReporte = {
   p_desde: DesdeDanada;
   p_motivo: string;
   p_token: string;
+  p_tipo: TipoDano;
 };
 
 /** El objeto que recibe `rpc(RPC_REPORTAR_DANADA, …)`: la pantalla no escribe los nombres de los parámetros a mano. */
-export function argumentosDeReporte(ubicacionId: string, varianteId: string, desde: DesdeDanada, cantidad: number, motivo: string, token: string): ArgumentosDeReporte {
-  return { p_ubicacion_id: ubicacionId, p_variante_id: varianteId, p_cantidad: cantidad, p_desde: desde, p_motivo: motivo.trim(), p_token: token };
+export function argumentosDeReporte(
+  ubicacionId: string,
+  varianteId: string,
+  desde: DesdeDanada,
+  cantidad: number,
+  motivo: string,
+  token: string,
+  tipo: TipoDano
+): ArgumentosDeReporte {
+  return { p_ubicacion_id: ubicacionId, p_variante_id: varianteId, p_cantidad: cantidad, p_desde: desde, p_motivo: motivo.trim(), p_token: token, p_tipo: tipo };
 }
 
 export type ArgumentosDeArreglo = { p_id: string; p_nota: string; p_token: string };
@@ -344,14 +383,29 @@ export function origenDeDanada(f: { motivoReporte: string | null; cambioId: stri
   return "devolucion";
 }
 
+/**
+ * Lo que tiene la prenda, para la lista de Dañadas: el tipo y, si quien la reportó escribió algo más, su nota («Mancha · cerca del
+ * cuello»). Sin nota, la base ya escribió el nombre del tipo en `motivo_reporte`, así que no se repite. «Otro» es solo su nota. Una
+ * fila de antes de los tipos trae solo el texto.
+ */
+export function textoDeLoQueTiene(tipo: TipoDano | null, motivoReporte: string | null): string | null {
+  const nota = motivoReporte?.trim() || null;
+  if (!tipo || tipo === "otro") return nota ?? (tipo ? etiquetaDeTipo(tipo) : null);
+  const etiqueta = etiquetaDeTipo(tipo);
+  return !nota || nota === etiqueta ? etiqueta : `${etiqueta} · ${nota}`;
+}
+
 /** La línea que dice de dónde llegó: «Reportada en la tienda: mancha en la manga», «Volvió en una devolución», «Llegó dañada en
  *  ENV-000302 · Textiles Andina · sin arreglo»… */
-export function textoOrigenDanada(origen: OrigenDanada, motivoReporte: string | null, devolucion: DevolucionPosible | null = null): string {
+export function textoOrigenDanada(origen: OrigenDanada, motivoReporte: string | null, devolucion: DevolucionPosible | null = null, tipoDano: TipoDano | null = null): string {
   if (origen === "recepcion") {
     if (!devolucion) return motivoReporte ?? "Llegó dañada en una recepción";
     const arreglo = devolucion.arreglo ? ` · ${devolucion.arreglo.toLowerCase()}` : "";
     return `Llegó dañada en ${devolucion.envio ?? "una recepción"} · ${devolucion.proveedor}${arreglo}`;
   }
-  if (origen === "reporte") return motivoReporte ? `Reportada en la tienda: ${motivoReporte}` : "Reportada en la tienda";
+  if (origen === "reporte") {
+    const queTiene = textoDeLoQueTiene(tipoDano, motivoReporte);
+    return queTiene ? `Reportada en la tienda: ${queTiene}` : "Reportada en la tienda";
+  }
   return origen === "cambio" ? "Volvió en un cambio" : "Volvió en una devolución";
 }

@@ -310,7 +310,7 @@ export function ResolverDanadosModal({
                       {new Date(p.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>
                     {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que se necesita para decidir. */}
-                    <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion)}</p>
+                    <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion, p.tipoDano)}</p>
                   </div>
                   {puedeDecidir && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && (
                     <>

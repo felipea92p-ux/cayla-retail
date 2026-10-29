@@ -9,9 +9,11 @@ import {
   camposGuiaDevolucion,
   cantidadAjustada,
   desdeInicial,
+  etiquetaDeTipo,
   interpretarErrorDeDanada,
   leerDevolvibles,
   leerRespuestaDanada,
+  leerTipoDano,
   libreEn,
   MAX_TEXTO_DANADA,
   origenDeDanada,
@@ -31,27 +33,32 @@ import {
   RPC_REPORTAR_DANADA,
   tallasReportables,
   textoBotonReportar,
+  textoDeLoQueTiene,
   textoErrorDeResolucion,
   textoOrigenDanada,
   TEXTO_RED_DANADA,
+  TIPOS_DANO,
   tituloExitoArreglo,
   tituloExitoDevolucion,
   tituloExitoReporte,
   type DesdeDanada,
   type EstadoReporte,
   type TallaReportable,
+  type TipoDano,
+  VALORES_TIPO_DANO,
 } from "./danadas-reglas";
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 
 // La migración es la fuente: si cambia el nombre o los parámetros de una RPC, la pantalla se entera aquí y no en producción.
-const MIGRACION = readFileSync(
-  join(__dirname, "..", "..", "..", "supabase", "migrations", "20261005140000_danadas_reportar_y_se_arreglo.sql"),
-  "utf8"
-).replace(/--[^\n]*/g, "");
+const leerMigracion = (archivo: string) => readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", archivo), "utf8").replace(/--[^\n]*/g, "");
+const MIGRACION_ARREGLO = leerMigracion("20261005140000_danadas_reportar_y_se_arreglo.sql");
+// ADR-0564: `reportar_danada` pasó a 7 parámetros (p_tipo al final); su definición vigente vive en la migración del tipo de daño.
+const MIGRACION_TIPO = leerMigracion("20261029024000_danadas_tipo_de_dano.sql");
+const MIGRACION = MIGRACION_ARREGLO + MIGRACION_TIPO;
 
 function firmaDe(nombre: string): string[] {
-  const m = new RegExp(`create or replace function retail\\.${nombre}\\(([^)]*)\\)`).exec(MIGRACION);
+  const m = new RegExp(`create or replace function retail\\.${nombre}\\(([^)]*)\\)`).exec(nombre === RPC_REPORTAR_DANADA ? MIGRACION_TIPO : MIGRACION_ARREGLO);
   expect(m, nombre).not.toBeNull();
   return m![1].split(",").map((p) => p.trim().split(/\s+/)[0]);
 }
@@ -69,15 +76,15 @@ describe("el contrato con la base", () => {
   });
 
   it("los mínimos y máximos de texto son los de la base (3 a 200)", () => {
-    expect(MIGRACION).toContain("between 3 and 200");
-    expect(MIGRACION).toContain("char_length(v_motivo) < 3");
-    expect(MIGRACION).toContain("char_length(v_nota) < 3");
+    expect(MIGRACION_ARREGLO).toContain("between 3 and 200");
+    expect(MIGRACION_TIPO).toContain("char_length(v_nota) < 3");
+    expect(MIGRACION_ARREGLO).toContain("char_length(v_nota) < 3");
     expect(MAX_TEXTO_DANADA).toBe(200);
   });
 
   it("los argumentos llevan los nombres del contrato y el texto sin espacios de más", () => {
-    const r = argumentosDeReporte("tru", "v1", "piso", 2, "  Mancha en la manga ", "marca");
-    expect(r).toEqual({ p_ubicacion_id: "tru", p_variante_id: "v1", p_cantidad: 2, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca" });
+    const r = argumentosDeReporte("tru", "v1", "piso", 2, "  Mancha en la manga ", "marca", "mancha");
+    expect(r).toEqual({ p_ubicacion_id: "tru", p_variante_id: "v1", p_cantidad: 2, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca", p_tipo: "mancha" });
     expect(Object.keys(r).sort()).toEqual([...PARAMETROS_RPC_REPORTAR].sort());
     const a = argumentosDeArreglo("d1", " Se cosió el botón  ", "m2");
     expect(a).toEqual({ p_id: "d1", p_nota: "Se cosió el botón", p_token: "m2" });
@@ -134,15 +141,52 @@ describe("lo libre de cada talla", () => {
   });
 });
 
+describe("el tipo de daño (ADR-0564)", () => {
+  it("la lista de la pantalla es EXACTAMENTE la que acepta la base (migración y candado)", () => {
+    const enLaBase = (re: RegExp) => [...(re.exec(MIGRACION_TIPO)?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+    expect(enLaBase(/tipo_dano in \(([^)]*)\)/)).toEqual([...VALORES_TIPO_DANO]);
+    expect(enLaBase(/v_tipo not in \(([^)]*)\)/)).toEqual([...VALORES_TIPO_DANO]);
+  });
+
+  it("el nombre que la base escribe cuando no hay nota es el de la pantalla", () => {
+    for (const x of TIPOS_DANO.filter((v) => v.valor !== "otro")) expect(MIGRACION_TIPO, x.valor).toContain(`when '${x.valor}' then '${x.etiqueta}'`);
+  });
+
+  it("solo se lee un tipo de la lista; lo raro (una fila de antes, una web vieja) es null", () => {
+    expect(leerTipoDano("boton_cierre")).toBe("boton_cierre");
+    for (const raro of [null, undefined, "", "polilla", "MANCHA", 3]) expect(leerTipoDano(raro)).toBeNull();
+    expect(etiquetaDeTipo("boton_cierre")).toBe("Botón o cierre");
+  });
+
+  it("la lista dice qué tiene: el tipo y, si hay, la nota; sin tipo, el texto de antes", () => {
+    expect(textoDeLoQueTiene("mancha", "Mancha")).toBe("Mancha");
+    expect(textoDeLoQueTiene("mancha", "cerca del cuello")).toBe("Mancha · cerca del cuello");
+    expect(textoDeLoQueTiene("boton_cierre", "Botón o cierre")).toBe("Botón o cierre");
+    expect(textoDeLoQueTiene("otro", "Tela pellizcada")).toBe("Tela pellizcada");
+    expect(textoDeLoQueTiene("otro", null)).toBe("Otro");
+    expect(textoDeLoQueTiene(null, "Mancha en la manga")).toBe("Mancha en la manga");
+    expect(textoDeLoQueTiene(null, null)).toBeNull();
+    expect(textoOrigenDanada("reporte", "cerca del cuello", null, "mancha")).toBe("Reportada en la tienda: Mancha · cerca del cuello");
+    expect(textoOrigenDanada("reporte", null, null, null)).toBe("Reportada en la tienda");
+  });
+});
+
 describe("qué falta para reportar", () => {
-  const base: EstadoReporte = { talla: talla("a", 2, 1), desde: "piso", cantidad: 1, motivo: "Mancha en la manga" };
+  const base: EstadoReporte = { talla: talla("a", 2, 1), desde: "piso", cantidad: 1, tipo: "mancha", motivo: "Mancha en la manga" };
 
   it("completo: nada falta", () => {
     expect(problemasReporte(base)).toEqual([]);
   });
 
-  it("sin talla, sin lugar o sin motivo: lo dice, en el orden de la ventana", () => {
-    expect(problemasReporte({ ...base, talla: null, desde: null, motivo: "" }).map((p) => p.campo)).toEqual(["talla", "desde", "motivo"]);
+  it("sin talla, sin lugar o sin tipo: lo dice, en el orden de la ventana", () => {
+    expect(problemasReporte({ ...base, talla: null, desde: null, tipo: null, motivo: "" }).map((p) => p.campo)).toEqual(["talla", "desde", "tipo"]);
+  });
+
+  it("con un tipo de la lista la nota es opcional; solo «Otro» obliga a escribirla (como la base)", () => {
+    for (const tipo of VALORES_TIPO_DANO.filter((v) => v !== "otro")) expect(problemasReporte({ ...base, tipo, motivo: "" }), tipo).toEqual([]);
+    expect(problemasReporte({ ...base, tipo: "otro", motivo: "" })).toEqual([{ campo: "motivo", texto: "Cuenta qué tiene la prenda." }]);
+    expect(problemasReporte({ ...base, tipo: "otro", motivo: "ab" }).map((p) => p.campo)).toEqual(["motivo"]);
+    expect(problemasReporte({ ...base, tipo: "otro", motivo: "Tela pellizcada" })).toEqual([]);
   });
 
   it("un lugar sin nada libre de esa talla no sirve", () => {
@@ -157,7 +201,7 @@ describe("qué falta para reportar", () => {
     expect(problemasReporte({ ...base, cantidad: 1.5 }).map((p) => p.campo)).toEqual(["cantidad"]);
   });
 
-  it("el motivo: 3 letras útiles como mínimo (los espacios no cuentan) y 200 como máximo, como la base", () => {
+  it("la nota, si se escribe: 3 letras útiles como mínimo (los espacios no cuentan) y 200 como máximo, como la base", () => {
     expect(problemasReporte({ ...base, motivo: "  ab  " }).map((p) => p.campo)).toEqual(["motivo"]);
     expect(problemasReporte({ ...base, motivo: " abc " })).toEqual([]);
     expect(problemasReporte({ ...base, motivo: "x".repeat(200) })).toEqual([]);
@@ -227,7 +271,7 @@ describe("tras una respuesta incierta: el paso no se traba", () => {
   // El caso del revisor: se reportó la ÚNICA libre del piso, la respuesta se perdió (502 sin código) y la pantalla se releyó.
   // Con las cifras nuevas el piso dice 0: si se validara eso, «Confirmar de nuevo» quedaría apagado y la persona solo podría
   // cerrar, sin saber si se guardó. El panel de la talla usa esta misma regla en todos sus pasos (`FlujoTalla`).
-  const enviado: EstadoReporte = { talla: talla("a", 1, 3), desde: "piso", cantidad: 1, motivo: "Mancha en la manga" };
+  const enviado: EstadoReporte = { talla: talla("a", 1, 3), desde: "piso", cantidad: 1, tipo: "mancha", motivo: "Mancha en la manga" };
   const releido: EstadoReporte = { ...enviado, talla: talla("a", 0, 3) };
 
   it("con las cifras releídas, lo elegido ya no pasaría la validación (por eso no se valida con ellas)", () => {
@@ -245,7 +289,7 @@ describe("tras una respuesta incierta: el paso no se traba", () => {
   });
 
   it("lo que se reenvía son los argumentos con la MISMA marca", () => {
-    expect(argumentosDeReporte("tru", "a", "piso", 1, "Mancha en la manga", "marca-1")).toEqual({ p_ubicacion_id: "tru", p_variante_id: "a", p_cantidad: 1, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca-1" });
+    expect(argumentosDeReporte("tru", "a", "piso", 1, "Mancha en la manga", "marca-1", "mancha")).toEqual({ p_ubicacion_id: "tru", p_variante_id: "a", p_cantidad: 1, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca-1", p_tipo: "mancha" });
   });
 });
 

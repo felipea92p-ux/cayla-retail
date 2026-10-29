@@ -3129,6 +3129,7 @@ export type Database = {
           proveedor_id: string | null
           resuelto_en: string | null
           resuelto_por: string | null
+          tipo_dano: string | null
           ubicacion_id: string
           variante_id: string
         }
@@ -3146,6 +3147,7 @@ export type Database = {
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          tipo_dano?: string | null
           ubicacion_id: string
           variante_id: string
         }
@@ -3163,6 +3165,7 @@ export type Database = {
           proveedor_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
+          tipo_dano?: string | null
           ubicacion_id?: string
           variante_id?: string
         }
@@ -9343,12 +9346,13 @@ export type Database = {
         }
         Returns: string
       }
-      // ADR-0328 act. 10 (20261005140000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena).
+      // ADR-0328 act. 10 (20261005140000) + ADR-0564 (20261029024000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena), con su tipo de daño.
       reportar_danada: {
         Args: {
           p_cantidad: number
           p_desde: string
           p_motivo: string
+          p_tipo?: string
           p_token: string
           p_ubicacion_id: string
           p_variante_id: string

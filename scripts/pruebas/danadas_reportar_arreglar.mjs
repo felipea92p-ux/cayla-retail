@@ -49,6 +49,9 @@ import { fileURLToPath } from "node:url";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MIGRACION = "20261005140000_danadas_reportar_y_se_arreglo.sql";
 const TEXTO_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", MIGRACION), "utf8");
+// ADR-0564: el tipo de daño. Su migración reemplaza la firma de reportar_danada (la de 6 parámetros pasa a 7, con p_tipo al final).
+const MIGRACION_TIPO = "20261029024000_danadas_tipo_de_dano.sql";
+const TEXTO_MIGRACION_TIPO = readFileSync(join(RAIZ, "supabase", "migrations", MIGRACION_TIPO), "utf8");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -73,11 +76,11 @@ function correr(sql) {
 
 const PRELUDIO = `
 begin;
-create function pg_temp.reportar(p_u uuid, p_v uuid, p_n integer, p_desde text, p_motivo text, p_token uuid) returns jsonb
+create function pg_temp.reportar(p_u uuid, p_v uuid, p_n integer, p_desde text, p_motivo text, p_token uuid, p_tipo text default null) returns jsonb
 language plpgsql as $f$
 declare v_estado text; v_msg text; v_hint text; v_detail text;
 begin
-  return jsonb_build_object('ok', true, 'res', retail.reportar_danada(p_u, p_v, p_n, p_desde, p_motivo, p_token));
+  return jsonb_build_object('ok', true, 'res', retail.reportar_danada(p_u, p_v, p_n, p_desde, p_motivo, p_token, p_tipo));
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint, v_detail = pg_exception_detail;
   return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg, 'detail', nullif(v_detail, ''));
@@ -172,7 +175,8 @@ const SIN_EXISTENCIAS_EN_NINGUN_ROL = `${COMO_POSTGRES}delete from retail.rol_mo
 const TERMINAL_CON_MODULO = `${COMO_POSTGRES}insert into retail.rol_modulos (rol_id, modulo)
   select retail.fn_rol_por_clave('terminal_administrativa'), 'existencias'
   where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'existencias');\n`;
-const reportar = (v, n, desde, motivo, tok, ubic = "tru") => `pg_temp.reportar(:'${ubic}', :'${v}', ${n}, ${desde}, ${motivo}, ${tok})`;
+const reportar = (v, n, desde, motivo, tok, ubic = "tru", tipo = null) =>
+  `pg_temp.reportar(:'${ubic}', :'${v}', ${n}, ${desde}, ${motivo}, ${tok}${tipo ? `, '${tipo}'` : ""})`;
 const cant = (v, sub, ubic = "tru") =>
   `coalesce((select cantidad from retail.stock where variante_id = :'${v}' and ubicacion_id = :'${ubic}' and sububicacion_id = :'${sub}'), 0)`;
 const CONTADORES = `concat_ws(',', (select count(*) from retail.movimientos), (select count(*) from retail.prendas_danadas), (select count(*) from retail.movimientos_internos_intentos))`;
@@ -217,7 +221,7 @@ caso(
   "D1 · una sola versión de cada función, con la firma del contrato",
   `select string_agg(proname || '(' || pg_get_function_identity_arguments(oid) || ')', ';' order by proname)
      from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('reportar_danada', 'arreglar_prenda_danada');`,
-  "arreglar_prenda_danada(p_id uuid, p_nota text, p_token uuid);reportar_danada(p_ubicacion_id uuid, p_variante_id uuid, p_cantidad integer, p_desde text, p_motivo text, p_token uuid)"
+  "arreglar_prenda_danada(p_id uuid, p_nota text, p_token uuid);reportar_danada(p_ubicacion_id uuid, p_variante_id uuid, p_cantidad integer, p_desde text, p_motivo text, p_token uuid, p_tipo text)"
 );
 caso(
   "D1 · anon no las ejecuta, authenticated sí; security definer con el search_path fijo de la casa",
@@ -244,14 +248,21 @@ caso(
   esperar("D1 · ningún `select … into` dentro de un texto entre comillas (ADR-0288)", !/'[^'\n]*\bselect\b[^'\n]*\binto\b[^'\n]*'/i.test(sinComentarios));
 }
 caso(
-  "D1 · pegada dos veces sobre la base de hoy: sin error, una sola firma de cada función y los mismos candados",
-  `select pg_temp.intento(${"$"}m$${TEXTO_MIGRACION.replace(/\\/g, "\\\\")}${"$"}m$) ->> 'ok' as p1 \\gset
-select pg_temp.intento(${"$"}m$${TEXTO_MIGRACION.replace(/\\/g, "\\\\")}${"$"}m$) ->> 'ok' as p2 \\gset
+  "D1 · el tipo de daño: su migración pegada dos veces sobre la base de hoy deja UNA firma de cada función y los mismos candados",
+  `select pg_temp.intento(${"$"}m$${TEXTO_MIGRACION_TIPO.replace(/\\/g, "\\\\")}${"$"}m$) ->> 'ok' as p1 \\gset
+select pg_temp.intento(${"$"}m$${TEXTO_MIGRACION_TIPO.replace(/\\/g, "\\\\")}${"$"}m$) ->> 'ok' as p2 \\gset
 select concat_ws(',', :'p1', :'p2',
   (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('reportar_danada', 'arreglar_prenda_danada')),
   (select count(*) from pg_constraint where conrelid = 'retail.prendas_danadas'::regclass and contype = 'c'));`,
-  "true,true,2,7"
+  "true,true,2,8"
 );
+{
+  const sinComentarios = TEXTO_MIGRACION_TIPO.replace(/--[^\n]*/g, "");
+  esperar(
+    "D1 · la migración del tipo no crea políticas ni quita disparadores (ADR-0195) ni deja un select … into entre comillas (ADR-0288)",
+    !/\bdrop\s+trigger\b|\b(create|drop)\s+policy\b/i.test(sinComentarios) && !/'[^'\n]*\bselect\b[^'\n]*\binto\b[^'\n]*'/i.test(sinComentarios)
+  );
+}
 caso(
   "D1 · la guarda: con dos dañadas que comparten movimiento de entrada, la migración aborta y lo dice",
   `drop index retail.prendas_danadas_movimiento_entrada_unico;
@@ -605,6 +616,61 @@ caso(
   "A2 · arreglar una dañada que no existe → «ya no está en la lista»",
   `${sesion(FELIPE)}${COMO_API}select pg_temp.arreglar(gen_random_uuid(), 'Se cosió el botón', :'tok2');`,
   (l) => error(l.at(-1), "arreglo_no_existe")
+);
+
+// ===========================================================================
+// D9 · El tipo de daño (ADR-0564): se elige de una lista corta y la nota es opcional salvo en «Otro»
+// ===========================================================================
+
+caso(
+  "D9 · un tipo de la lista SIN nota reporta: queda el tipo, y lo escrito (dañada y traslado) es el nombre del tipo",
+  `${sesion(FELIPE)}${COMO_API}select ${reportar("va", 1, "'piso'", "null", ":'tok1'", "tru", "boton_cierre")} as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok',
+  (select concat_ws('/', pd.tipo_dano, pd.motivo_reporte, m.nota)
+     from retail.prendas_danadas pd join retail.movimientos m on m.id = pd.movimiento_entrada_id
+    where pd.id = ((:'r')::jsonb -> 'res' ->> 'id')::uuid));`,
+  "true,boton_cierre/Botón o cierre/Botón o cierre"
+);
+caso(
+  "D9 · un tipo de la lista CON nota: lo escrito es la nota y el tipo queda aparte",
+  `${sesion(FELIPE)}${COMO_API}select ${reportar("va", 1, "'piso'", "'Mancha cerca del cuello'", ":'tok1'", "tru", "mancha")} as r \\gset
+${COMO_POSTGRES}select (select concat_ws('/', pd.tipo_dano, pd.motivo_reporte, m.nota)
+     from retail.prendas_danadas pd join retail.movimientos m on m.id = pd.movimiento_entrada_id
+    where pd.id = ((:'r')::jsonb -> 'res' ->> 'id')::uuid);`,
+  "mancha/Mancha cerca del cuello/Mancha cerca del cuello"
+);
+caso(
+  "D9 · «Otro» sin nota, o con una nota de 2 letras, no reporta (danada_sin_motivo); un tipo fuera de la lista tampoco (danada_tipo_invalido); nada se mueve",
+  `select ${CONTADORES} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${reportar("va", 1, "'piso'", "null", ":'tok1'", "tru", "otro")};
+select ${reportar("va", 1, "'piso'", "'ab'", ":'tok1'", "tru", "mancha")};
+select ${reportar("va", 1, "'piso'", "'Mancha'", ":'tok1'", "tru", "polilla")};
+${COMO_POSTGRES}select ${CONTADORES} = :'antes';`,
+  (l) => error(l.at(-4), "danada_sin_motivo") && error(l.at(-3), "danada_sin_motivo") && error(l.at(-2), "danada_tipo_invalido") && l.at(-1) === "t"
+);
+caso(
+  "D9 · una web vieja (sin tipo) sigue funcionando con la llamada de 6 parámetros: cuenta como «otro» y exige la nota",
+  `${sesion(FELIPE)}${COMO_API}select pg_temp.intento(format('select retail.reportar_danada(%L, %L, 1, ''piso'', ''Mancha'', %L)', :'tru', :'va', :'tok1')) as a \\gset
+select pg_temp.intento(format('select retail.reportar_danada(%L, %L, 1, ''piso'', null, %L)', :'tru', :'va', :'tok2')) as b \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb ->> 'ok', (:'b')::jsonb ->> 'ok', (:'b')::jsonb ->> 'hint',
+  (select tipo_dano from retail.prendas_danadas where variante_id = :'va' and motivo_reporte = 'Mancha'));`,
+  "true,false,danada_sin_motivo,otro"
+);
+caso(
+  "D9 · el reintento con la misma marca y el mismo tipo (sin nota) devuelve ya_registrada: una sola dañada, un solo traslado",
+  `${sesion(FELIPE)}${COMO_API}select ${reportar("va", 1, "'piso'", "null", ":'tok1'", "tru", "rotura")} as r1 \\gset
+select ${reportar("va", 1, "'piso'", "null", ":'tok1'", "tru", "rotura")} as r2 \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r1')::jsonb -> 'res' ->> 'ya_registrada', (:'r2')::jsonb -> 'res' ->> 'ya_registrada',
+  (select count(*) from retail.prendas_danadas where variante_id = :'va'),
+  (select count(*) from retail.movimientos where variante_id = :'va' and tipo = 'traslado'));`,
+  "false,true,1,1"
+);
+caso(
+  "D9 · el candado del esquema: un tipo de daño fuera de la lista se rechaza (23514) y las dañadas sin tipo (devolución, cambio, recepción) siguen valiendo",
+  `${REPORTE_DE_VA}select pg_temp.intento(format('update retail.prendas_danadas set tipo_dano = %L where id = %L', 'polilla', :'did')) as r \\gset
+select pg_temp.intento(format('update retail.prendas_danadas set tipo_dano = null where id = %L', :'did')) as n \\gset
+select concat_ws(',', (:'r')::jsonb ->> 'estado', (:'n')::jsonb ->> 'ok');`,
+  "23514,true"
 );
 
 console.log(`\n${total - fallos}/${total} pruebas en verde.`);
