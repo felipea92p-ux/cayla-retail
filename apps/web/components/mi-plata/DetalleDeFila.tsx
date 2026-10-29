@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { CorreccionesDeCompra } from "./CorreccionesDeCompra";
 import { HojaCorregirCompra } from "./HojaCorregirCompra";
+import { HojaCorregirGasto } from "./HojaCorregirGasto";
 import { horaDeMovimiento, queHaraCompras, type MovimientoCompradora } from "@/lib/mi-plata-reglas";
 
 /** La hoja de una fila: la cuenta como en un cuaderno (hora, detalle, monto), su estado y qué hará Compras. Solo se lee: se cierra con la ×. */
@@ -14,7 +15,10 @@ export function DetalleDeFila({ m, onClose, volverA }: { m: MovimientoCompradora
   // otra: el «atrás» del teléfono cierra de a una); la base vuelve a decidir al abrirla (ronda abierta, sin envíos que lo impidan…).
   const [corrigiendo, setCorrigiendo] = useState(false);
   const corregible = m.tipo === "compra" && m.estado.pendiente && m.compraId !== undefined;
+  // Y un gasto de «otra cosa» (ADR-0572): igual, mientras Compras no lo revise. La hoja le dice por qué si la base ya no lo deja (ronda cerrada…).
+  const gastoCorregible = m.tipo === "gasto" && m.estado.pendiente && m.gastoId !== undefined;
   if (corrigiendo && m.compraId) return <HojaCorregirCompra papelId={m.compraId} onClose={onClose} volverA={volverA} />;
+  if (corrigiendo && m.gastoId) return <HojaCorregirGasto gastoId={m.gastoId} onClose={onClose} volverA={volverA} />;
   const hora = horaDeMovimiento(m);
   const filas: [string, string][] = [...(hora ? ([["Hora", hora]] as [string, string][]) : []), ["Detalle", m.detalle]];
   return (
@@ -37,9 +41,10 @@ export function DetalleDeFila({ m, onClose, volverA }: { m: MovimientoCompradora
         </Chip>
         <p className="text-sm text-taupe">{queHaraCompras(m)}</p>
         {m.compraId && <CorreccionesDeCompra papelId={m.compraId} />}
-        {corregible && (
+        {m.gastoId && <CorreccionesDeCompra gastoId={m.gastoId} />}
+        {(corregible || gastoCorregible) && (
           <div className="pie-acciones pt-1">
-            <BotonEditar onClick={() => setCorrigiendo(true)}>Corregir esta compra</BotonEditar>
+            <BotonEditar onClick={() => setCorrigiendo(true)}>{corregible ? "Corregir esta compra" : "Corregir este gasto"}</BotonEditar>
           </div>
         )}
       </div>

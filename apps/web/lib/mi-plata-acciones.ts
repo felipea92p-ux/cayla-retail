@@ -106,7 +106,7 @@ export async function reabrirRonda(firma: Firma | FirmaOmitida | null): Promise<
 }
 
 export async function terminarDia(
-  args: { p_decision: DecisionCierre | null },
+  args: { p_decision: DecisionCierre | null; p_cuenta_indicada_id?: string | null },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_TERMINAR_DIA as never, args as never), firma);
