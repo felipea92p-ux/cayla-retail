@@ -2008,6 +2008,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     cobrado − devuelto − **IGV** − comisión − pagado − gastos suyos. En la web, `resumenClaure` y `seLeDebeDeFila` (`cuenta-claure-reglas.ts`) restan el IGV neto (el de una devolución viene en
     negativo); en la base, `fn_claure_cierre` (cinco reemplazos anclados) lo resta del saldo y del saldo anterior y trae `hoy.igv`. Cuadra con el Diario: la 479 ya era la parte sin IGV.
     `pnpm pruebas:claure-igv`.
+    **«Se queda con Claudia» (actividad 11, 20261029144000; Felipe 2026-10-29):** un destino más del traslado del cierre de caja (`caja_traslados.destino = 'claudia'`, solo en una tienda donde opera CLAURE; `cerrar_caja` lo exige) para el
+    efectivo de CAYLA que ella guarda. Sale del cajón y baja lo que se le debe: `fn_claure_cierre` lo resta del saldo y trae `hoy.efectivo_claudia`, `fn_claure_pagos` lo lista («Efectivo del cajón · tienda»), el Diario lo asienta 479 al debe / 101 al
+    haber (`traslado_claudia`, en `fn_asientos_dinero_y_caja`), el libro (`fn_dinero_libro`) lo deja sin cuenta y el flujo (`fn_flujo_lineas`) lo cuenta como `pago_claure`. Web: `destinosDelCierre` (`caja-cierre-reglas.ts`) y la vista previa
+    `vistaPreviaSeQueda` (`cierre-claure-reglas.ts`) en `CerrarCajaModalV2`. `pnpm pruebas:claure-efectivo-claudia`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

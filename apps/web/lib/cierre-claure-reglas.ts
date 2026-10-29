@@ -16,8 +16,8 @@ export type CierreClaure = {
   saldo: number;
   /** Lo que se le debía al empezar ese día. */
   saldoAnterior: number;
-  /** `gastos`: la parte de CLAURE de los gastos que pagó CAYLA ese día (alquiler, limpieza…): también baja lo que se le debe. */
-  hoy: { cobrado: number; devuelto: number; igv: number; comision: number; pagado: number; gastos: number };
+  /** `gastos`: la parte de CLAURE de los gastos que pagó CAYLA ese día (alquiler, limpieza…): también baja lo que se le debe. `efectivoClaudia`: el efectivo de CAYLA que se quedó con ella al cerrar la caja ese día. */
+  hoy: { cobrado: number; devuelto: number; igv: number; comision: number; pagado: number; efectivoClaudia: number; gastos: number };
   porMedio: { medio: string; monto: number; comision: number }[];
   /** El efectivo de las ventas de esa caja: lo de CAYLA y lo de CLAURE suman lo que espera la caja. */
   efectivo: { total: number; cayla: number; claure: number };
@@ -42,7 +42,7 @@ export function leerCierreClaure(crudo: unknown): CierreClaure | null {
     puedePagar: j.puede_pagar === true,
     saldo: num(j.saldo),
     saldoAnterior: num(j.saldo_anterior),
-    hoy: { cobrado: num(hoy.cobrado), devuelto: num(hoy.devuelto), igv: num(hoy.igv), comision: num(hoy.comision), pagado: num(hoy.pagado), gastos: num(hoy.gastos) },
+    hoy: { cobrado: num(hoy.cobrado), devuelto: num(hoy.devuelto), igv: num(hoy.igv), comision: num(hoy.comision), pagado: num(hoy.pagado), efectivoClaudia: num(hoy.efectivo_claudia), gastos: num(hoy.gastos) },
     porMedio: (Array.isArray(j.por_medio) ? (j.por_medio as unknown[]) : []).map((m) => {
       const o = objeto(m);
       return { medio: String(o.medio ?? ""), monto: num(o.monto), comision: num(o.comision) };
@@ -59,12 +59,13 @@ export function titularDelCierre(c: CierreClaure): { frase: string; monto: numbe
 
 /** La línea de «hoy»: «Hoy se sumó S/ 164.60: Tarjeta S/ 50.00 · Yape S/ 118.00, menos S/ 3.31 de comisión». */
 export function lineaDeHoy(c: CierreClaure): string {
-  if (c.hoy.cobrado <= 0 && c.hoy.devuelto <= 0 && c.hoy.gastos <= 0) return "Hoy no se cobró nada de CLAURE en tus cuentas.";
+  if (c.hoy.cobrado <= 0 && c.hoy.devuelto <= 0 && c.hoy.gastos <= 0 && c.hoy.efectivoClaudia <= 0) return "Hoy no se cobró nada de CLAURE en tus cuentas.";
   const medios = c.porMedio.filter((m) => m.monto > 0).map((m) => `${textoMedioClaure(m.medio)} ${soles(m.monto)}`);
   const partes = [`Hoy se cobró ${soles(c.hoy.cobrado)} de CLAURE en tus cuentas${medios.length ? ` (${medios.join(" · ")})` : ""}`];
   if (c.hoy.devuelto > 0) partes.push(`se devolvió ${soles(c.hoy.devuelto)}`);
   if (c.hoy.igv > 0) partes.push(`${soles(c.hoy.igv)} es IGV, que paga CAYLA`);
   if (c.hoy.comision > 0) partes.push(`la comisión del POS es ${soles(c.hoy.comision)}`);
+  if (c.hoy.efectivoClaudia > 0) partes.push(`se restan ${soles(c.hoy.efectivoClaudia)} de efectivo de CAYLA que se quedó con ella`);
   if (c.hoy.gastos > 0) partes.push(`se restan ${soles(c.hoy.gastos)} de gastos suyos que pagó CAYLA`);
   return `${partes.join(", ")}.`;
 }
@@ -83,10 +84,26 @@ export function mensajeParaClaudia(c: CierreClaure): string {
   if (c.hoy.igv > 0) lineas.push(`• IGV de esas ventas (lo declara y paga CAYLA, se descuenta): ${soles(c.hoy.igv)}`);
   if (c.hoy.comision > 0) lineas.push(`• Comisión del POS: ${soles(c.hoy.comision)}`);
   if (c.hoy.pagado > 0) lineas.push(`• Ya se te pagó hoy: ${soles(c.hoy.pagado)}`);
+  if (c.hoy.efectivoClaudia > 0) lineas.push(`• Efectivo de CAYLA que te quedaste hoy (se resta): ${soles(c.hoy.efectivoClaudia)}`);
   if (c.hoy.gastos > 0) lineas.push(`• Gastos tuyos que pagó CAYLA hoy (se restan): ${soles(c.hoy.gastos)}`);
   if (c.efectivo.claure > 0) lineas.push(`• Efectivo de CLAURE de hoy (lo tienes tú): ${soles(c.efectivo.claure)}`);
   lineas.push("");
   const t = titularDelCierre(c);
   lineas.push(c.saldo < 0 ? `Saldo: se te pagó de más, ${soles(t.monto)} quedan a favor de CAYLA.` : `Saldo que te debemos: ${soles(t.monto)}`);
   return lineas.join("\n");
+}
+
+/**
+ * Al elegir «Se queda con Claudia» en el paso de trasladar: cuánto se le debía y cuánto quedará. Solo informa; el efectivo que se queda con ella sale del cajón
+ * y baja lo que se le debe (`fn_claure_cierre`, 20261029144000). `null` si no hay monto.
+ */
+export function vistaPreviaSeQueda(c: CierreClaure, monto: number): { antes: number; despues: number; frase: string } | null {
+  if (!(monto > 0)) return null;
+  const antes = Math.round(c.saldo * 100) / 100;
+  const despues = Math.round((c.saldo - monto) * 100) / 100;
+  const frase =
+    despues < 0
+      ? `Se le debían ${soles(antes)}; con esto Claudia le debería ${soles(-despues)} a CAYLA.`
+      : `Se le debían ${soles(antes)}; con esto quedan ${soles(despues)}.`;
+  return { antes, despues, frase };
 }

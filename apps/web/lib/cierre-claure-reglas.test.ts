@@ -5,6 +5,7 @@ import {
   lineaDelEfectivo,
   mensajeParaClaudia,
   titularDelCierre,
+  vistaPreviaSeQueda,
   type CierreClaure,
 } from "./cierre-claure-reglas";
 
@@ -16,7 +17,7 @@ const CRUDO = {
   puede_pagar: true,
   saldo: 140.97,
   saldo_anterior: 40,
-  hoy: { cobrado: 168, devuelto: 0, igv: 25.63, comision: 1.4, pagado: 40, gastos: 0 },
+  hoy: { cobrado: 168, devuelto: 0, igv: 25.63, comision: 1.4, pagado: 40, efectivo_claudia: 0, gastos: 0 },
   por_medio: [
     { medio: "tarjeta", monto: 50, comision: 1.4 },
     { medio: "yape", monto: 118, comision: 0 },
@@ -34,7 +35,7 @@ describe("leerCierreClaure", () => {
       puedePagar: true,
       saldo: 140.97,
       saldoAnterior: 40,
-      hoy: { cobrado: 168, igv: 25.63, comision: 1.4, pagado: 40, gastos: 0 },
+      hoy: { cobrado: 168, igv: 25.63, comision: 1.4, pagado: 40, efectivoClaudia: 0, gastos: 0 },
       efectivo: { total: 200, claure: 150, cayla: 50 },
     });
     expect(leerCierreClaure(CRUDO)!.porMedio).toHaveLength(2);
@@ -62,8 +63,8 @@ describe("lo que dice el bloque", () => {
   });
   it("la línea de hoy dice cuánto y con qué medios; sin cobros lo dice", () => {
     expect(lineaDeHoy(cierre())).toBe("Hoy se cobró S/ 168.00 de CLAURE en tus cuentas (Tarjeta S/ 50.00 · Yape S/ 118.00), S/ 25.63 es IGV, que paga CAYLA, la comisión del POS es S/ 1.40.");
-    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, gastos: 0 }, porMedio: [] }))).toBe("Hoy no se cobró nada de CLAURE en tus cuentas.");
-    expect(lineaDeHoy(cierre({ hoy: { cobrado: 100, devuelto: 30, igv: 0, comision: 0, pagado: 0, gastos: 0 } }))).toContain("se devolvió S/ 30.00");
+    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, efectivoClaudia: 0, gastos: 0 }, porMedio: [] }))).toBe("Hoy no se cobró nada de CLAURE en tus cuentas.");
+    expect(lineaDeHoy(cierre({ hoy: { cobrado: 100, devuelto: 30, igv: 0, comision: 0, pagado: 0, efectivoClaudia: 0, gastos: 0 } }))).toContain("se devolvió S/ 30.00");
   });
   it("el efectivo se dice partido: lo de CLAURE no suma a lo que se le debe", () => {
     expect(lineaDelEfectivo(cierre())).toBe("Del efectivo de hoy, S/ 150.00 es de CLAURE (lo tiene Claudia, no suma a lo que se le debe) y S/ 50.00 es de CAYLA.");
@@ -87,7 +88,7 @@ describe("mensajeParaClaudia", () => {
     );
   });
   it("no pone renglones vacíos: sin comisión, devoluciones, pagos ni efectivo de CLAURE, solo lo cobrado y el saldo", () => {
-    const m = mensajeParaClaudia(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, gastos: 0 }, porMedio: [], efectivo: { total: 0, claure: 0, cayla: 0 } }));
+    const m = mensajeParaClaudia(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, efectivoClaudia: 0, gastos: 0 }, porMedio: [], efectivo: { total: 0, claure: 0, cayla: 0 } }));
     expect(m).not.toContain("Comisión");
     expect(m).not.toContain("IGV");
     expect(m).not.toContain("Devuelto");
@@ -101,7 +102,7 @@ describe("mensajeParaClaudia", () => {
 });
 
 describe("los gastos de CLAURE que pagó CAYLA (ADR-0560, actividad 8)", () => {
-  const conGastos = (gastos: number) => cierre({ hoy: { cobrado: 168, devuelto: 0, igv: 0, comision: 1.4, pagado: 0, gastos } });
+  const conGastos = (gastos: number) => cierre({ hoy: { cobrado: 168, devuelto: 0, igv: 0, comision: 1.4, pagado: 0, efectivoClaudia: 0, gastos } });
 
   it("el cierre lee `hoy.gastos` de la base (0 si no viene: una base sin la migración)", () => {
     expect(leerCierreClaure({ hay_claure: true, hoy: { cobrado: 100, gastos: 708 } })?.hoy.gastos).toBe(708);
@@ -110,12 +111,32 @@ describe("los gastos de CLAURE que pagó CAYLA (ADR-0560, actividad 8)", () => {
 
   it("la línea de hoy dice cuánto se restó, y un día solo con gastos ya no dice que no pasó nada", () => {
     expect(lineaDeHoy(conGastos(708))).toContain("se restan S/\u00a0708.00 de gastos suyos que pagó CAYLA");
-    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, gastos: 118 }, porMedio: [] }))).toContain("se restan");
+    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, efectivoClaudia: 0, gastos: 118 }, porMedio: [] }))).toContain("se restan");
     expect(lineaDeHoy(conGastos(0))).not.toContain("gastos suyos");
   });
 
   it("el mensaje para Claudia los dice aparte", () => {
     expect(mensajeParaClaudia(conGastos(118))).toContain("• Gastos tuyos que pagó CAYLA hoy (se restan): S/\u00a0118.00");
     expect(mensajeParaClaudia(conGastos(0))).not.toContain("Gastos tuyos");
+  });
+});
+
+describe("el efectivo que se queda con Claudia (actividad 11)", () => {
+  const conEfectivo = (n: number) => cierre({ hoy: { cobrado: 168, devuelto: 0, igv: 25.63, comision: 1.4, pagado: 0, efectivoClaudia: n, gastos: 0 } });
+  it("el cierre lo lee de la base (0 si no viene: una base sin la migración)", () => {
+    expect(leerCierreClaure({ hay_claure: true, hoy: { cobrado: 100, efectivo_claudia: 100 } })?.hoy.efectivoClaudia).toBe(100);
+    expect(leerCierreClaure({ hay_claure: true, hoy: { cobrado: 100 } })?.hoy.efectivoClaudia).toBe(0);
+  });
+  it("la línea de hoy y el mensaje para Claudia dicen cuánto efectivo se quedó, y un día solo con eso ya no dice que no pasó nada", () => {
+    expect(lineaDeHoy(conEfectivo(100))).toContain("se restan S/\u00a0100.00 de efectivo de CAYLA que se quedó con ella");
+    expect(mensajeParaClaudia(conEfectivo(100))).toContain("• Efectivo de CAYLA que te quedaste hoy (se resta): S/\u00a0100.00");
+    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, igv: 0, comision: 0, pagado: 0, efectivoClaudia: 50, gastos: 0 }, porMedio: [] }))).toContain("se restan");
+    expect(mensajeParaClaudia(conEfectivo(0))).not.toContain("te quedaste");
+  });
+  it("la vista previa del paso de trasladar dice cuánto se le debía y cuánto queda; con más de lo que se le debe, lo que ella le debe a CAYLA", () => {
+    expect(vistaPreviaSeQueda(cierre({ saldo: 140.97 }), 100)).toMatchObject({ antes: 140.97, despues: 40.97 });
+    expect(vistaPreviaSeQueda(cierre({ saldo: 140.97 }), 100)?.frase).toContain("quedan S/\u00a040.97");
+    expect(vistaPreviaSeQueda(cierre({ saldo: 30 }), 100)?.frase).toContain("Claudia le debería S/\u00a070.00 a CAYLA");
+    expect(vistaPreviaSeQueda(cierre(), 0)).toBeNull();
   });
 });

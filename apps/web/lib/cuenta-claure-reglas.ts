@@ -249,7 +249,8 @@ export const NOTA_CLAURE =
 export const NOTA_GASTOS_CLAURE =
   "Cada categoría de gasto tiene su parte de CLAURE (de fábrica: alquiler, luz, servicios básicos y mantenimiento, la mitad; limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA en Reportes.";
 
-export const NOTA_PAGOS_CLAURE = "Un pago equivocado se anula en Dónde está ▸ Movimientos, y el saldo vuelve a subir.";
+export const NOTA_PAGOS_CLAURE =
+  "Un pago equivocado se anula en Dónde está ▸ Movimientos, y el saldo vuelve a subir. El efectivo que se quedó con Claudia al cerrar la caja sale de ese cierre y no se anula desde aquí.";
 
 /**
  * Lo vendido de CLAURE en un período, neto de anulaciones y devoluciones (`fn_claure_ventas_en`, 20261029020000): `ventas` con IGV, `igv`, `base`

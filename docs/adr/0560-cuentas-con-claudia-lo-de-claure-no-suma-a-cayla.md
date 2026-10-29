@@ -11,11 +11,12 @@ En Tienda LIM se vende lo de CAYLA y lo de CLAURE (la empresa de Claudia, herman
 
 1. **Se le debe lo que sus ventas cobraron en cuentas de CAYLA** (la cuenta destino manda: el Yape de Lima cae en «BCP Empresa», una cuenta de CAYLA, y cuenta). Efectivo: no. Comisión del POS y descuentos: los asume Claudia.
 2. **El saldo se calcula, no se guarda** (principio 4): cobrado − devuelto − **IGV** − comisión − pagado − gastos suyos que pagó CAYLA. El IGV se le descuenta porque la boleta sale con el RUC de CAYLA, que lo declara y lo paga (Felipe, 2026-10-29: «se le descuenta»; falta el visto del contador). Los pagos a Claudia son un tipo más de `movimientos_dinero` (`pago_claure`, append-only, solo el líder, con su n.º de operación, como el pago a SUNAT).
-3. **Retroactivo desde el 23-oct**; el saldo de arranque sale solo de las ventas (≈ S/ 291,69 con datos de producción del 28-oct).
-4. **Una sola regla de «esta línea es de CLAURE»** (`fn_item_es_de_claure`): la sede es de las que CLAURE opera (`empresa_sedes`), la venta es del arranque de su cuenta (`empresas.cuenta_corriente_desde`) o después, y el dueño real de la línea (`fn_dueno_de_la_linea`, ADR-0542) es CLAURE. Todo lo demás la reusa.
-5. **Lo de CLAURE no suma en las pantallas de CAYLA** (Felipe: Finanzas, Análisis, Rendimiento, metas, Inicio, Observatorio, Club y clientes) **pero Caja, Historial, Movimientos e Impuestos lo muestran todo** (es lo que hay en el cajón y lo que se declara). Un ticket solo de CLAURE no cuenta como venta; uno mixto cuenta por sus líneas de CAYLA.
-6. **Se debe cuando la prenda sale**: el adelanto de un apartado o de un pedido web, que la venta guarda como `anticipo` sin cuenta, entra por la cuenta de cada abono y con la fecha de la venta.
-7. **Gastos por empresa**: alquiler, luz, servicios básicos y mantenimiento, 50/50; limpieza y bolsas, 100 % de CLAURE; reparto por categoría (`gasto_reparto_claure`). La planilla de CLAURE no se toca (no hay a quién atribuirla).
+3. **El efectivo de CAYLA que Claudia guarda baja lo que se le debe** (Felipe, 2026-10-29): al cerrar la caja de Lima hay un destino más, «Se queda con Claudia»; sale del cajón, se asienta 479 al debe y 101 al haber, y no cuenta como depósito.
+4. **Retroactivo desde el 23-oct**; el saldo de arranque sale solo de las ventas (≈ S/ 291,69 con datos de producción del 28-oct).
+5. **Una sola regla de «esta línea es de CLAURE»** (`fn_item_es_de_claure`): la sede es de las que CLAURE opera (`empresa_sedes`), la venta es del arranque de su cuenta (`empresas.cuenta_corriente_desde`) o después, y el dueño real de la línea (`fn_dueno_de_la_linea`, ADR-0542) es CLAURE. Todo lo demás la reusa.
+6. **Lo de CLAURE no suma en las pantallas de CAYLA** (Felipe: Finanzas, Análisis, Rendimiento, metas, Inicio, Observatorio, Club y clientes) **pero Caja, Historial, Movimientos e Impuestos lo muestran todo** (es lo que hay en el cajón y lo que se declara). Un ticket solo de CLAURE no cuenta como venta; uno mixto cuenta por sus líneas de CAYLA.
+7. **Se debe cuando la prenda sale**: el adelanto de un apartado o de un pedido web, que la venta guarda como `anticipo` sin cuenta, entra por la cuenta de cada abono y con la fecha de la venta.
+8. **Gastos por empresa**: alquiler, luz, servicios básicos y mantenimiento, 50/50; limpieza y bolsas, 100 % de CLAURE; reparto por categoría (`gasto_reparto_claure`). La planilla de CLAURE no se toca (no hay a quién atribuirla).
 
 ## Cómo quedó construido
 

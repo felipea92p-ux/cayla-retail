@@ -202,7 +202,7 @@ Felipe contestó una por una las decisiones del tablero. **Resueltas sin código
 
 **Decididas, con obra (lista aprobada por Felipe el 2026-10-29: «Aprobada; sigue sin parar y un solo PR al final»; se pausa solo en la 13, que toca dinero y stock):**
 - [x] **10 · IGV descontado del saldo** (migración `20261029142000`, `pnpm pruebas:claure-igv`, la pantalla CLAURE, el cierre de caja y el Resumen): el IGV de lo vendido de CLAURE lo declara y paga CAYLA, así que se le descuenta a Claudia (lo que se le debe pasa a ser la parte sin IGV, igual que la 479 del Diario). Validar con el contador.
-- [ ] **11 · «Se queda con Claudia» en el cierre de caja:** un destino del traslado del efectivo que baja lo que se le debe (el efectivo de CAYLA que ella guarda).
+- [x] **11 · «Se queda con Claudia» en el cierre de caja** (migración `20261029144000`: destino `claudia` en `caja_traslados`, `cerrar_caja`, libro, flujo, Diario, actividad y `fn_claure_*`; `pnpm pruebas:claure-efectivo-claudia`): un destino del traslado del efectivo que baja lo que se le debe (el efectivo de CAYLA que ella guarda).
 - [ ] **12 · Servicios:** luz, alquiler y mantenimiento 50/50; **agua, internet y baño 100 % de CLAURE** (tal cual lo escribió: «lo demás lo asume Claudia»). La luz pasa a su propia categoría y «servicios básicos» deja de ir 50/50.
 - [ ] **13 · Cambios con prendas de CLAURE como devolución + venta nueva:** la prenda que vuelve se devuelve a su dueño y la que sale se vende con su dueño. **Se revisa con Felipe antes de tocar nada** (dinero y stock).
 - [ ] **14 · Pérdidas y calidad de dañadas por dueño:** una merma de ropa de Claudia no es pérdida de CAYLA. Frescura del piso, Resumen por variante y la capacidad del Plan del piso NO se separan.

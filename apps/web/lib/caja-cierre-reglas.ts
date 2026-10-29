@@ -4,7 +4,7 @@
 
 import { leerMontoPlata } from "./monto-plata-reglas";
 
-export type DestinoTraslado = "caja_fuerte" | "banco" | "lider";
+export type DestinoTraslado = "caja_fuerte" | "banco" | "lider" | "claudia";
 
 export const DESTINOS_TRASLADO: {
   valor: DestinoTraslado;
@@ -17,7 +17,14 @@ export const DESTINOS_TRASLADO: {
   { valor: "caja_fuerte", etiqueta: "Caja fuerte de la sede", referencia: null, exigeReferencia: false },
   { valor: "banco", etiqueta: "Depósito bancario", referencia: "N.º de operación del voucher", exigeReferencia: false },
   { valor: "lider", etiqueta: "Entregado al líder de equipo", referencia: "¿A quién se lo entregaste?", exigeReferencia: true },
+  // Solo donde opera CLAURE (ADR-0560, actividad 11): el efectivo de CAYLA que Claudia guarda sale del cajón y baja lo que se le debe.
+  { valor: "claudia", etiqueta: "Se queda con Claudia", referencia: null, exigeReferencia: false },
 ];
+
+/** Los destinos que ofrece el cierre: «Se queda con Claudia» solo en una tienda donde opera CLAURE (la base lo exige igual). */
+export function destinosDelCierre(hayClaure: boolean): typeof DESTINOS_TRASLADO {
+  return DESTINOS_TRASLADO.filter((d) => d.valor !== "claudia" || hayClaure);
+}
 
 export function etiquetaDestino(destino: string): string {
   return DESTINOS_TRASLADO.find((d) => d.valor === destino)?.etiqueta ?? destino;
