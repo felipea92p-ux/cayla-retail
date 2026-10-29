@@ -230,9 +230,24 @@
   "src_table": "compra_cierres"
  },
  {
+  "conname": "compra_cierres_reabiertos_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres_reabiertos"
+ },
+ {
+  "conname": "compra_cierres_reabiertos_reabierto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres_reabiertos"
+ },
+ {
   "conname": "compra_correcciones_corregida_por_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_correcciones"
+ },
+ {
+  "conname": "compra_gasto_correcciones_corregida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_gasto_correcciones"
  },
  {
   "conname": "compra_gastos_persona_id_fkey",
@@ -565,6 +580,11 @@
   "src_table": "frescura_decisiones"
  },
  {
+  "conname": "gasto_reparto_claure_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_reparto_claure"
+ },
+ {
   "conname": "gasto_viaje_fotos_archivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gasto_viaje_fotos"
@@ -893,6 +913,16 @@
   "conname": "planes_compra_versiones_creada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "planes_compra_versiones"
+ },
+ {
+  "conname": "planilla_cuentas_guardada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planilla_cuentas"
+ },
+ {
+  "conname": "planilla_salidas_registrada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planilla_salidas"
  },
  {
   "conname": "pos_maquinas_creada_por_fkey",

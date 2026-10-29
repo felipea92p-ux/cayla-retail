@@ -291,8 +291,9 @@ export function DetallePapel({
   const router = useRouter();
   const [proveedorId, setProveedorId] = useState(papel.proveedorId);
   const [cambiaProveedor, setCambiaProveedor] = useState(false);
-  const [serie, setSerie] = useState("");
-  const [numero, setNumero] = useState("");
+  // Lo que la compradora copió al comprar (ADR-0574): Compras solo lo corrige. De antes, vacío: se copia de la foto.
+  const [serie, setSerie] = useState(papel.serie ?? "");
+  const [numero, setNumero] = useState(papel.numero ?? "");
   const [cambiaMonto, setCambiaMonto] = useState(false);
   const [monto, setMonto] = useState(papel.monto.toFixed(2));
   const [guardando, setGuardando] = useState(false);
@@ -426,6 +427,11 @@ export function DetallePapel({
         <Veredicto papel={papel} monto={montoLeido ?? papel.monto} />
         <Llegada papel={papel} />
         <Pago papel={papel} />
+        {papel.noPasoPor && (
+          <Aviso tono="atencion" titulo="No pasó sola a los libros">
+            {papel.noPasoPor}
+          </Aviso>
+        )}
         {papel.esMia && <p className="text-xs text-taupe">Que la complete otra persona de Compras.</p>}
         {campos && <div className="mt-2 flex flex-col gap-3">{campos}</div>}
       </div>

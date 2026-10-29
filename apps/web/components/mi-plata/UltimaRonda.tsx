@@ -13,7 +13,7 @@ import { ReabrirRonda } from "./ReabrirRonda";
 // la columna de la derecha era un «Antes de abrir tu ronda 0» con una frase y un «Ver 2» plegado: la pantalla parecía vacía aunque la
 // compradora tuviera rondas. Ahora lo primero que ve es cómo terminó la última —cuánto salió de su plata, cómo cerró y en qué van sus
 // envíos—, con UN estado dicho por quién lo hace (lo que falta lo hace Compras, o ella al entregar en caja), y a un toque, la hoja con lo
-// que compró y gastó. Abrir una ronda nueva está a la izquierda; reabrir ESTA, si Compras todavía no recibió su cierre, va al pie de la tarjeta
+// que compró y gastó. Abrir una ronda nueva está a la izquierda; reabrir ESTA, si Compras todavía no recibió su cierre, va en la misma fila de acciones, a la derecha
 // (Felipe 2026-10-29). El armado de los datos: `ultimaRondaDelHistorial`.
 export function UltimaRonda({
   u,
@@ -66,8 +66,8 @@ export function UltimaRonda({
           Ver lo que anoté
         </BotonVer>
         {envios && envios.length > 0 && <EnlaceVer href="/compras/mi-plata/envios">Mis envíos</EnlaceVer>}
+        <ReabrirRonda ultimaCerrada={ultimaCerrada} />
       </div>
-      <ReabrirRonda ultimaCerrada={ultimaCerrada} />
       {abierta && <HojaDeRonda e={u.ronda} envios={envios ?? []} hoy={hoy} onClose={() => setAbierta(false)} />}
     </section>
   );

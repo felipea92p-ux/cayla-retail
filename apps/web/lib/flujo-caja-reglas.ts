@@ -53,6 +53,7 @@ export const TEXTO_CATEGORIA: Record<string, string> = {
   pago_tarjeta: "Pago de la tarjeta de crédito",
   planilla: "Pago de la planilla",
   impuestos: "Pago a SUNAT (IGV)",
+  pago_claure: "Pago a CLAURE",
   comision_pos: "Comisión del POS",
   deposito_sin_cuenta: "Llevado al banco sin decir a cuál",
   por_clasificar: "Egresos de caja por clasificar",
@@ -229,6 +230,8 @@ export type Proyeccion = {
   desde: string;
   hasta: string;
   saldoHoy: number;
+  /** Lo que se le debe a Claudia (CLAURE) y ya se restó de `saldoHoy` (ADR-0560, actividad 16). `undefined`/`null`: una base más vieja que esta web, o nada que restar. */
+  deClaudia?: number | null;
   minimoCaja: number;
   salidasDiarias: number;
   diasDeCaja: number | null;
@@ -258,6 +261,7 @@ export function leerProyeccion(data: unknown): Proyeccion {
     desde: fecha(d.desde),
     hasta: fecha(d.hasta),
     saldoHoy: num(d.saldo_hoy),
+    deClaudia: d.de_claudia === null || d.de_claudia === undefined ? null : num(d.de_claudia),
     minimoCaja: num(d.minimo_caja),
     salidasDiarias: num(d.salidas_diarias),
     diasDeCaja: d.dias_de_caja === null || d.dias_de_caja === undefined ? null : num(d.dias_de_caja),

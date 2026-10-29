@@ -57,6 +57,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { sqlDeshacer } from "./_deshacer_claure.mjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,6 +73,8 @@ const MIGRACION = leerMigracion("20261005160100_piso_plan_cuenta_cerradas_sin_pr
 const MIGRACION_ANTERIOR = leerMigracion("20261004213000_piso_plan_lectura.sql");
 const HUELLA_ANTERIOR = "faff73d2a6db4c0692775c1f6d6e284d";
 // El parche por ancla de las bolsas de despacho, que también toca esta función: M7 prueba que el orden entre los dos no importa.
+// 20261029041000 (ADR-0560, 6d) parcha estas funciones DESPUÉS del parche de familias: M7 vuelve a cargar el de familias sobre la función viva, así que primero se deshace.
+const DESHACER_CLAURE = sqlDeshacer("20261029041000_claure_fuera_de_analisis_y_motores.sql", ["retail.fn_piso_plan_lectura(uuid)", "retail.fn_demanda_sede(uuid, integer)"]);
 const MIGRACION_FAMILIAS = leerMigracion("20261010232000_piso_demanda_y_plan_ignoran_familias_apagadas.sql");
 // La puerta ANTES de que ADR-0289 le enseñara la terminal (20260922170000): para probar la guarda.
 const PUERTA_SIN_TERMINAL = leerMigracion("20260922170000_alta_colaborador_requiere_aprobacion.sql").match(
@@ -894,7 +897,7 @@ caso(
 );
 caso(
   "M7 el orden con el parche de familias (20261010232000) no importa: antes o después de él, la función queda letra por letra igual (el CI aplica las migraciones de un PR después de las de main)",
-  `${MIGRACION_ANTERIOR}\n${MIGRACION}\n${MIGRACION_FAMILIAS}
+  `${DESHACER_CLAURE}\n${MIGRACION_ANTERIOR}\n${MIGRACION}\n${MIGRACION_FAMILIAS}
    select md5(prosrc) as primero_esta from pg_proc where oid = ${OID} \\gset
    ${MIGRACION_ANTERIOR}\n${MIGRACION_FAMILIAS}\n${MIGRACION}
    select concat_ws(',', (select md5(prosrc) = :'primero_esta' from pg_proc where oid = ${OID}),

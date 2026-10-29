@@ -8,7 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
 import { FichasMedio } from "@/components/ui/FichasMedio";
 import { CaminoDePasos } from "./CaminoDePasos";
-import { Boton, BotonEnlace, CampoMonto } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
@@ -45,6 +45,9 @@ import {
   PAGO_DE_FABRICA,
   TIPOS_PAPEL,
   camposPapel,
+  ejemploSerie,
+  pideSerie,
+  serieYNumeroParaBase,
   categoriasConProveedor,
   categoriasDeHabituales,
   cuadraElPapel,
@@ -194,6 +197,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [subida, setSubida] = useState<{ archivo: File; ruta: string } | null>(null);
   const [monto, setMonto] = useState("");
+  // La serie y el número que copia del papel al comprar (ADR-0574): Compras ya no los copia después, pasan solos a los libros.
+  const [serie, setSerie] = useState("");
+  const [numero, setNumero] = useState("");
   const [pago, setPago] = useState<PagoCompra>(PAGO_DE_FABRICA);
   // Lo pagado sigue a lo que dice el papel hasta que la persona lo cambia: así «Pagar ahora» de fábrica es todo.
   const [pagadoPropio, setPagadoPropio] = useState(false);
@@ -285,7 +291,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // Con el monto escondido, lo pagado es todo lo del papel: no hay nada que la guía pida ahí.
   const verParte = pagoParcial || pagadoPropio;
   const guia = useGuiaCampos(
-    camposPapel({ tipo, conFoto: archivo !== null, monto, pago: pagoAhora }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }).filter(
+    camposPapel({ tipo, conFoto: archivo !== null, monto, pago: pagoAhora, serie, numero }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }).filter(
       (c) => c.id !== "pagado" || verParte,
     ),
   );
@@ -497,6 +503,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
         p_foto_ruta: ruta,
         p_lineas: lineasParaBase(conMarcasCreadas(lineas, creadas)),
         ...pagoParaBase(pagoAhora),
+        ...serieYNumeroParaBase(tipo!, serie, numero),
       },
       firma,
     );
@@ -523,6 +530,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setArchivo(null);
     setSubida(null);
     setMonto("");
+    setSerie("");
+    setNumero("");
     setPago(PAGO_DE_FABRICA);
     setPagadoPropio(false);
     setPagoParcial(false);
@@ -815,13 +824,66 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               ))}
             </div>
           </CampoGuiado>
+          {/* Lo que dice arriba el papel: Compras ya no lo copia después, así que pasa solo a los libros (ADR-0574). */}
+          {tipo !== null && pideSerie(tipo) && (
+            <div className="grid grid-cols-2 gap-3" data-guia="compra.serie">
+              <CampoGuiado id="serie" guia={guia} titulo="Serie">
+                <CampoTexto
+                  etiqueta="Serie"
+                  caja
+                  autoComplete="off"
+                  maxLength={8}
+                  placeholder={ejemploSerie(tipo)}
+                  value={serie}
+                  disabled={guardando}
+                  onChange={(e) => {
+                    setRechazo(null);
+                    setSerie(e.target.value.toUpperCase());
+                  }}
+                />
+              </CampoGuiado>
+              <CampoGuiado id="numero" guia={guia} titulo="Número">
+                <CampoTexto
+                  etiqueta="Número"
+                  caja
+                  autoComplete="off"
+                  inputMode="numeric"
+                  maxLength={12}
+                  placeholder="Como dice el papel" // sugerir-fijo: el número de un papel no depende de nada elegido antes
+                  value={numero}
+                  disabled={guardando}
+                  onChange={(e) => {
+                    setRechazo(null);
+                    setNumero(e.target.value);
+                  }}
+                />
+              </CampoGuiado>
+            </div>
+          )}
+          {tipo === "nota_venta" && (
+            <CampoGuiado id="numero" guia={guia} titulo="Número del papel" ayuda="· si lo tiene">
+              <CampoTexto
+                etiqueta="Número"
+                caja
+                autoComplete="off"
+                maxLength={20}
+                placeholder="Como dice el papel" // sugerir-fijo: el número de un papel no depende de nada elegido antes
+                value={numero}
+                disabled={guardando}
+                onChange={(e) => {
+                  setRechazo(null);
+                  setNumero(e.target.value);
+                }}
+              />
+            </CampoGuiado>
+          )}
           {tipo !== null && tipo !== "sin_comprobante" && (
             <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
               <TarjetaFoto
                 guia="compra.foto"
                 archivo={archivo}
                 deshabilitada={guardando}
-                ayuda="Opcional: ayuda a Compras a copiar el número"
+                ayuda="Opcional: queda guardada con tu compra"
                 onArchivo={(f) => {
                   setRechazo(null);
                   setArchivo(f);

@@ -215,6 +215,8 @@ describe("cifras, fechas y nombres", () => {
     expect(notaLinea(linea({ cuenta: "4011", seccion: "pasivo" }))).toContain("SUNAT");
     expect(notaLinea(linea({ cuenta: "4699", seccion: "pasivo" }))).toContain("CLAURE");
     expect(nombreDeCuenta("4699", "x")).toContain("CLAURE");
+    expect(notaLinea(linea({ cuenta: "479", seccion: "pasivo" }))).toContain("se le pagó");
+    expect(nombreDeCuenta("479", "x")).toContain("Claudia");
   });
   it("agrupa y suma: lo que tiene contra lo que debe + lo tuyo", () => {
     const g = agrupar([

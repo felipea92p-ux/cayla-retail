@@ -383,6 +383,11 @@ describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => 
     });
     expect(p).toMatchObject({ historiaDias: 16, saldoInicialDeclarado: false, hayFacturasDeProveedor: false, incluyeImpuestos: true, diasDeCajaConfiable: false });
   });
+  it("lee lo que se le debe a Claudia y ya se restó del saldo (ADR-0560, actividad 16); una base más vieja no lo trae y no se inventa", () => {
+    expect(leerProyeccion({ ...base, de_claudia: "291.69" }).deClaudia).toBe(291.69);
+    expect(leerProyeccion({ ...base, de_claudia: 0 }).deClaudia).toBe(0);
+    expect(leerProyeccion(base).deClaudia).toBeNull();
+  });
   it("una base más vieja que la web (sin esos campos) no dice nada: ni provisional ni lista, no inventa", () => {
     const p = leerProyeccion(base);
     expect(p.diasDeCajaConfiable).toBeNull();

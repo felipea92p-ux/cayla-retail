@@ -2452,7 +2452,7 @@ export const GUIA_MI_PLATA: Guia = {
       preparar: [{ tipo: "clic", ancla: "mi-plata.me-dieron" }, { tipo: "clic", ancla: "mi-plata.transferencia" }],
       prepararSoloAlAvanzar: true,
       titulo: "¿De qué banco salió?",
-      texto: "Si te llegó por transferencia, di de cuál banco de la empresa salió (viene el BCP). Esa cuenta es la que baja en Finanzas; Compras la confirma y la puede cambiar.",
+      texto: "Si te llegó por transferencia, di de cuál banco de la empresa salió (viene el BCP). Esa cuenta es la que baja en Finanzas, y la plata entra sola a la tuya.",
     },
     {
       id: "ya-tenia",
@@ -2474,7 +2474,7 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.foto",
       opcional: true,
       titulo: "La foto del voucher",
-      texto: "Si tienes el voucher, tómale una foto: Compras la mira para confirmar. Si no la tienes, igual puedes anotar la plata. En la demo no anotamos nada.",
+      texto: "Si tienes el voucher, tómale una foto: queda guardada con la plata. Si no la tienes, igual puedes anotarla. En la demo no anotamos nada.",
     },
     {
       id: "gaste",
@@ -2501,6 +2501,13 @@ export const GUIA_MI_PLATA: Guia = {
       titulo: "¿Cuánto fue?",
       texto: "Lo que pagaste. Si te dieron un papel, tómale foto; si no, igual se guarda. En la demo no anotamos nada.",
       demostrar: [{ tipo: "escribir", ancla: "mi-plata.monto-gasto", texto: "15" }],
+    },
+    {
+      id: "papel-gasto",
+      ancla: "mi-plata.papel-gasto",
+      opcional: true,
+      titulo: "¿Qué papel te dieron?",
+      texto: "Boleta, factura, ticket, o nada (un taxi o un cargador pueden ir sin papel). Con eso el gasto pasa solo a los gastos del viaje cuando cierras tu ronda; si no lo dices, lo revisa Compras.",
     },
     {
       id: "mandar",
@@ -2872,14 +2879,21 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.tipo",
       opcional: true,
       titulo: "Qué papel te dieron",
-      texto: "Factura, boleta, nota de venta, o nada. La serie y el número los copia Compras de la foto.",
+      texto: "Factura, boleta, nota de venta, o nada. Con factura o boleta te pide la serie y el número: los copias tú y así la compra pasa sola a los libros.",
+    },
+    {
+      id: "serie",
+      ancla: "compra.serie",
+      opcional: true,
+      titulo: "La serie y el número del papel",
+      texto: "Cópialos como están arriba del papel (F001, 000123). Con ellos la compra entra sola a los libros cuando la tienda la recibe, sin que Compras tenga que copiarlos.",
     },
     {
       id: "foto",
       ancla: "compra.foto",
       opcional: true,
       titulo: "La foto del papel",
-      texto: "Es opcional: ayuda a Compras a copiar el número. Con «Sin papel» ni aparece.",
+      texto: "Es opcional: queda guardada con tu compra por si hace falta mirar el papel. Con «Sin papel» ni aparece.",
     },
     {
       id: "monto",

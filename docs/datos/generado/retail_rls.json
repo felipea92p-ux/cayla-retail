@@ -319,7 +319,17 @@
   "relkind": "r",
   "rls": true
  },
+ "compra_cierres_reabiertos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "compra_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_gasto_correcciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -704,6 +714,11 @@
   "relkind": "r",
   "rls": true
  },
+ "gasto_reparto_claure": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gasto_viaje_fotos": {
   "forzado": false,
   "relkind": "r",
@@ -1014,10 +1029,20 @@
   "relkind": "r",
   "rls": true
  },
+ "planilla_cuentas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planilla_por_sede": {
   "forzado": false,
   "relkind": "v",
   "rls": false
+ },
+ "planilla_salidas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
  },
  "pos_abonos_lotes": {
   "forzado": false,

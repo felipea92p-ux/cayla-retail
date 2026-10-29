@@ -77,8 +77,8 @@ const EXCEL: PasoGuia = {
 const PESTANAS_DINERO: PasoGuia = {
   id: "pestanas",
   ancla: "fin-dinero.pestanas",
-  titulo: "Las tres partes",
-  texto: "Cuentas: dónde está la plata, repartida por sede, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+  titulo: "Las cuatro partes",
+  texto: "Dónde está: la plata, por sede, con el efectivo de hoy. Qué debes: las facturas por pagar. CLAURE: lo que CLAURE cobró en tus cuentas y se le debe a Claudia. Cuadrar con el banco (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
 };
 
 /** El orillo y el dock de Cuentas y dinero (El telar): lo mismo en sus tres caras. */
@@ -122,6 +122,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.respuestas",
       titulo: "Las tres preguntas de siempre",
       texto: "Tres respuestas de un vistazo: cuánto tienes hoy entre cajones, cajas fuertes y bancos; cuánto debes pagar pronto (lo vencido y lo de esta semana); y cuánto te deja el mes, contra el mes pasado a la misma fecha. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
+    },
+    {
+      id: "claure",
+      ancla: "fin-resumen.claure",
+      opcional: true,
+      titulo: "Lo que se le debe a CLAURE",
+      texto: "Si CLAURE (la empresa de Claudia) cobró en cuentas de CAYLA, aquí ves cuánto se le debe. Es plata que está en tus bancos pero no es tuya: en «¿Cuánto tienes?» dice cuánto de eso es suyo y cuánto te queda disponible. Tocarla lleva a CLAURE.",
     },
     {
       id: "confianza",
@@ -545,7 +552,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "¿Cuánta plata tienes hoy?",
-      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está y lo que debes en la tarjeta.",
+      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está, lo que debes en la tarjeta y cuánto de eso es de Claudia (CLAURE).",
     },
     ORILLO_DINERO,
     {
@@ -805,6 +812,70 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
   ],
 };
 
+export const GUIA_FIN_CLAURE: Guia = {
+  id: "finanzas.dinero.claure",
+  ruta: "/finanzas/dinero/claure",
+  titulo: "CLAURE (Finanzas)",
+  resumen: "Lo que CLAURE cobró en cuentas de CAYLA y, por eso, lo que se le debe a Claudia.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que se le debe a CLAURE",
+      texto: "El POS y los Yape de Lima caen en cuentas de CAYLA, pero parte de lo que se vende es de CLAURE, la empresa de Claudia. Aquí ves cuánto de lo cobrado es suyo, día por día. Es una demo: no se paga nada.",
+    },
+    ...TELAR,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto le debes a CLAURE?",
+      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto, el IGV, la comisión del POS y lo que ya se le pagó. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
+    },
+    PESTANAS_DINERO,
+    {
+      id: "cifras",
+      ancla: "fin-claure.cifras",
+      opcional: true,
+      titulo: "De dónde sale la cifra",
+      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, el IGV (lo declara y paga CAYLA, así que se descuenta), la comisión del POS (estimada con su tarifa; la asume CLAURE) y lo que ya se le pagó. Se le debe: cobrado menos todo eso.",
+    },
+    {
+      id: "tabla",
+      ancla: "fin-claure.tabla",
+      opcional: true,
+      titulo: "Día por día",
+      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó; «Se le debe» ya viene sin IGV ni comisión. En un cambio, la plata sigue a la prenda que se lleva el cliente. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
+    },
+    {
+      id: "gastos",
+      ancla: "fin-claure.gastos",
+      opcional: true,
+      titulo: "Gastos de CLAURE que pagó CAYLA",
+      texto: "El alquiler, la luz, la limpieza… los paga CAYLA, pero una parte (o todo) es de CLAURE. Cada categoría tiene su parte (de fábrica: alquiler, luz y mantenimiento, la mitad; agua, internet, baño, limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA.",
+    },
+    {
+      id: "pagos",
+      ancla: "fin-claure.pagos",
+      opcional: true,
+      titulo: "Lo que ya se le pagó",
+      texto: "Cada pago a Claudia: el día, el banco de donde salió, su número de operación y quién lo registró. Lo pagado baja lo que se le debe. Un pago equivocado se anula en Dónde está ▸ Movimientos y el saldo vuelve a subir.",
+    },
+    {
+      id: "pagar",
+      ancla: "fin-claure.pagar",
+      opcional: true,
+      titulo: "Pagar a CLAURE",
+      texto: "Abre «Registrar movimiento» con el pago ya elegido: de qué banco sale, cuánto (viene escrito lo que se le debe; puedes bajarlo si pagas una parte) y el número de operación. Solo el líder. En la demo no lo tocamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes cuánto le debes a CLAURE, de dónde sale y cómo se le paga. Para repasarlo: Mi perfil ▸ Demo ▸ CLAURE (Finanzas).",
+    },
+  ],
+};
+
 export const GUIA_FIN_CONCILIACION: Guia = {
   id: "finanzas.dinero.conciliacion",
   ruta: "/finanzas/dinero/conciliacion",
@@ -941,6 +1012,14 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que hay que revisar",
       texto: "Si algo no cuadra (un cobro que no suma lo vendido, por ejemplo), aquí avisa: hasta revisarlo, esas cifras no son confiables.",
+    },
+    {
+      id: "claure",
+      ancla: "fin-resultados.claure",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo de CLAURE no está aquí",
+      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). Esas ventas no son ingreso ni costo de CAYLA: aquí no suman, y la nota dice cuánto se dejó fuera. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.",
     },
     {
       id: "notas",
@@ -1440,6 +1519,13 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.cuenta",
       titulo: "La cuenta, línea por línea",
       texto: "Lo que vendiste, el IGV de tus ventas, menos el IGV de tus compras con factura (ábrelo para ver de dónde sale), más la renta. El porcentaje de la renta es el de Configuración ▸ Impuestos.",
+    },
+    {
+      id: "claure",
+      ancla: "fin-impuestos.claure",
+      opcional: true,
+      titulo: "El IGV de lo de CLAURE",
+      texto: "Las boletas de lo que vende CLAURE en Tienda Lima salen con el RUC de CAYLA, así que SUNAT las cuenta en este IGV. Esta línea dice cuánto de él es de CLAURE; el IGV de arriba sigue siendo el real.",
     },
     {
       id: "por-hacer",

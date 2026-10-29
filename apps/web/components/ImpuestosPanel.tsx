@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
@@ -14,6 +15,7 @@ import { mesADeclarar, sobresIgv } from "@/lib/impuestos-sobres-reglas";
 import { pendientesCompactos } from "@/lib/impuestos-antes-reglas";
 import { barrasMeses, cuentaImpuestos, limiteImpuestos } from "@/lib/impuestos-cuenta-reglas";
 import { sedeDeLaCabecera } from "@/lib/impuestos-telar-reglas";
+import { lineaImpuestosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 import { hrefTelar, type ClaveSede, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
@@ -43,9 +45,9 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 
 type Descarga = "ventas" | "compras" | "resumen" | "paquete";
 
-type Contexto = { sede: ClaveSede; sedes: SedeTelar[] };
+type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null };
 
-export function ImpuestosPanel({ panel, falla, sede, sedes }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
+export function ImpuestosPanel({ panel, falla, sede, sedes, claure }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
   if (!panel) {
     return (
       <div className="space-y-6">
@@ -55,10 +57,10 @@ export function ImpuestosPanel({ panel, falla, sede, sedes }: { panel: PanelImpu
       </div>
     );
   }
-  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} />;
+  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} />;
 }
 
-function Pantalla({ panel, falla, sede, sedes }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
+function Pantalla({ panel, falla, sede, sedes, claure }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
   const router = useRouter();
   const sp = useSearchParams();
   const [bajando, setBajando] = useState<Descarga | null>(null);
@@ -117,6 +119,8 @@ function Pantalla({ panel, falla, sede, sedes }: { panel: PanelImpuestos; falla:
   const cuenta = cuentaImpuestos(panel, { enCurso: mes === mesActual, pendientes: pendientes.length });
   const limite = limiteImpuestos(panel);
   const { barras, destacada } = barrasMeses(sobres);
+  // El IGV de SUNAT es el real y queda entero; si parte de él es de ventas de CLAURE (la boleta sale con el RUC de CAYLA), se dice aparte (ADR-0560).
+  const deClaure = lineaImpuestosClaure(claure);
 
   return (
     <div className="space-y-6">
@@ -171,6 +175,22 @@ function Pantalla({ panel, falla, sede, sedes }: { panel: PanelImpuestos; falla:
         <PagasImpuestos cuenta={cuenta} guia="fin-impuestos.pagas" />
         <CuentaLineas cuenta={cuenta} guia="fin-impuestos.cuenta" />
       </section>
+
+      {deClaure && (
+        <Aviso
+          tono="info"
+          chico
+          titulo={deClaure.titulo}
+          guia="fin-impuestos.claure"
+          accion={
+            <Link href="/finanzas/dinero/claure" className="btn-cayla btn-enlace">
+              Ver la cuenta con CLAURE
+            </Link>
+          }
+        >
+          {deClaure.texto}
+        </Aviso>
+      )}
 
       <section className="fin-imp-fila">
         <PendientesImpuestos pendientes={pendientes} guia="fin-impuestos.por-hacer" />

@@ -71,9 +71,11 @@
     "components/mi-plata/CorreccionesDeCompra.tsx": [
       "BotonVerMas «Ver qué cambió»"
     ],
+    "components/mi-plata/FichasDePapel.tsx": [
+      "button «{PAPELES_GASTO[k].ayuda}»"
+    ],
     "components/mi-plata/GastosPorRevisar.tsx": [
       "a «{esPdf ? \"Abrir el PDF\" : \"Ver la foto en grande\"}»",
-      "button «{PAPELES_GASTO[k].ayuda}»",
       "CampoTexto «Serie y número»",
       "CampoTexto «RUC»",
       "ComboResponsable «{responsable}»",
