@@ -1,10 +1,13 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Chip } from "@/components/ui/Chip";
+import { HojaIngresos } from "./HojaIngresos";
 import { MatrizIngreso } from "./MatrizIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
@@ -77,6 +80,38 @@ export function IngresosTabla({
     setBusqueda("");
     setFiltro("todos");
   }
+  // Imprimir: la hoja (con foto) se monta pegada a <body> SOLO mientras se imprime —en pantalla no existe—, se espera a que carguen
+  // sus fotos y recién ahí se abre el cuadro de impresión. Al cerrarlo (imprimas o canceles) la hoja se quita.
+  const [imprimiendo, setImprimiendo] = useState(false);
+  const [preparando, setPreparando] = useState(false);
+  const [impresoEn, setImpresoEn] = useState("");
+  function imprimir() {
+    setImpresoEn(new Intl.DateTimeFormat("es-PE", { dateStyle: "long", timeStyle: "short", timeZone: "America/Lima" }).format(new Date()));
+    setPreparando(true);
+    setImprimiendo(true);
+  }
+  useEffect(() => {
+    if (!imprimiendo) return;
+    let cancelado = false;
+    const alTerminar = () => {
+      setImprimiendo(false);
+      setPreparando(false);
+    };
+    window.addEventListener("afterprint", alTerminar, { once: true });
+    (async () => {
+      // El portal se pinta en el siguiente cuadro; sus fotos tardan un poco más (con tope: una foto rota no frena la hoja).
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      await esperarImagenes(document.getElementById("ingresos-print"), 4000);
+      if (cancelado) return;
+      setPreparando(false);
+      window.print();
+    })();
+    return () => {
+      cancelado = true;
+      window.removeEventListener("afterprint", alTerminar);
+    };
+  }, [imprimiendo]);
+
   // Baja LO QUE SE VE (con la búsqueda, el filtro y el orden de la pantalla): armado acá, con lo que el rango ya trajo.
   function bajar(conDetalle: boolean) {
     const nombre = nombreArchivoIngresos({ sede, desde, hasta, detalle: conDetalle });
@@ -107,6 +142,9 @@ export function IngresosTabla({
             <BotonDescargar chico onClick={() => bajar(true)} title="Lo mismo, con una línea por cada color y talla de cada modelo">
               Descargar Excel con tallas
             </BotonDescargar>
+            <BotonImprimir chico onClick={imprimir} cargando={preparando} guia="movimientos.ingresos-imprimir" title="Imprime lo que estás viendo, con la foto de cada modelo. En el cuadro de impresión también puedes guardarlo como PDF">
+              Imprimir la lista
+            </BotonImprimir>
           </div>
         )}
       </div>
@@ -215,8 +253,31 @@ export function IngresosTabla({
           </div>
         )}
       </Tabla>
+      {imprimiendo &&
+        createPortal(
+          <HojaIngresos modelos={visibles} abiertos={abiertos} apariencia={apariencia} veCosto={veCosto} sede={sede} rangoTexto={rangoTexto} impresoEn={impresoEn} />,
+          document.body,
+        )}
     </>
   );
+}
+
+/** Espera a que carguen las fotos de la hoja (o a que pase `tope` ms): imprimir antes dejaba cuadros vacíos donde iba la foto. */
+function esperarImagenes(raiz: HTMLElement | null, tope: number): Promise<void> {
+  const pendientes = Array.from(raiz?.querySelectorAll("img") ?? []).filter((img) => !img.complete);
+  if (pendientes.length === 0) return Promise.resolve();
+  return new Promise((resolver) => {
+    let faltan = pendientes.length;
+    const uno = () => {
+      faltan -= 1;
+      if (faltan <= 0) resolver();
+    };
+    for (const img of pendientes) {
+      img.addEventListener("load", uno, { once: true });
+      img.addEventListener("error", uno, { once: true });
+    }
+    setTimeout(resolver, tope);
+  });
 }
 
 /** En el celular el encabezado de la tabla se esconde y cada fila apila sus datos: cada cifra dice qué es. */

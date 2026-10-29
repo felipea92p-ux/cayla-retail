@@ -566,6 +566,13 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo, o con una línea por cada color y talla. El archivo se abre directo en Excel. Así se lo pasas a compras.",
     },
     {
+      id: "ingresos-imprimir",
+      ancla: "movimientos.ingresos-imprimir",
+      opcional: true,
+      titulo: "O imprímelo con fotos",
+      texto: "Saca una hoja limpia con la foto de cada modelo, ideal para revisar el fardo con la mercadería al lado. Los modelos que dejaste abiertos salen con su detalle de colores y tallas. En el cuadro de impresión también puedes guardarla como PDF.",
+    },
+    {
       id: "ingresos-buscador",
       ancla: "movimientos.ingresos-buscador",
       opcional: true,
