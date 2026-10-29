@@ -765,6 +765,32 @@ export function rindeElCamino(llegaron: number, separaron: number, total: number
   return { de100: tasa, tono: "neutro" };
 }
 
+/**
+ * Cómo se ve un departamento en el mapa: su nombre y cuánta gente mira desde ahí. Lima provincias, Lima Metropolitana y el Callao son UNA
+ * ciudad en la pantalla («Lima»): los tres dicen «Lima» con la cifra de los tres juntos y se pintan igual (Felipe, 2026-10-29).
+ */
+export function regionEnElMapa(iso: string, nombre: string, regiones: Record<string, number>): { nombre: string; n: number } {
+  if (ciudadDeRegion(iso) !== "lima") return { nombre, n: regiones[iso] ?? 0 };
+  return { nombre: "Lima", n: Object.entries(regiones).reduce((a, [r, n]) => (ciudadDeRegion(r) === "lima" ? a + n : a), 0) };
+}
+
+/** Las ciudades con nombre propio en la lista; «Otras ciudades», «Del extranjero» y «Sin dato» van siempre en el grupo del final. */
+const CIUDADES_NOMBRADAS = ["trujillo", "lima", "arequipa", "chiclayo", "piura", "cusco"] as const;
+const A_LA_VISTA_CIUDADES = 5;
+
+/**
+ * La lista bajo el mapa: las 5 ciudades con más gente y, al final, «Otras ciudades» con todo lo demás (otras ciudades del Perú, el extranjero y
+ * sin dato). La ciudad filtrada siempre se ve, aunque no esté entre las 5. `grupo` dice qué ciudades suma «Otras ciudades» (para iluminarlas).
+ */
+export function ciudadesDeLaLista(ciudades: Record<Ciudad, number>, elegida: Ciudad | null): { top: Ciudad[]; otras: number; grupo: Ciudad[] } {
+  const top: Ciudad[] = CIUDADES_NOMBRADAS.filter((c) => ciudades[c] > 0)
+    .sort((a, b) => ciudades[b] - ciudades[a])
+    .slice(0, A_LA_VISTA_CIUDADES);
+  if (elegida && !top.includes(elegida) && (CIUDADES_NOMBRADAS as readonly string[]).includes(elegida)) top.push(elegida);
+  const grupo = (Object.keys(ciudades) as Ciudad[]).filter((c) => !top.includes(c));
+  return { top, otras: grupo.reduce((a, c) => a + ciudades[c], 0), grupo };
+}
+
 /** La ciudad SIN tienda desde la que más gente mira (Chiclayo, Piura, Cusco): la pista de dónde abrir o a quién mandar más. */
 export function ciudadSinTienda(ciudades: Record<Ciudad, number>): Ciudad | null {
   const candidatas = (["chiclayo", "piura", "cusco"] as const).filter((c) => ciudades[c] > 0).sort((a, b) => ciudades[b] - ciudades[a]);
