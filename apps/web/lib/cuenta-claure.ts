@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { leerFilaClaure, leerPagoClaure, type FilaClaure, type PagoClaure } from "@/lib/cuenta-claure-reglas";
+import { leerFilaClaure, leerPagoClaure, leerVentasClaure, type FilaClaure, type PagoClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 import type { Lectura } from "@/lib/cuentas-dinero";
 
 // Finanzas ▸ Cuentas y dinero ▸ CLAURE (ADR-0560, 20261029004000 y 20261029011000). Todo sale de `fn_claure_cuenta` (lo cobrado) y
@@ -9,6 +9,16 @@ import type { Lectura } from "@/lib/cuentas-dinero";
 // sería más alto de lo real, así que tampoco se muestra una cifra a medias.
 
 export type CuentaClaure = { filas: FilaClaure[]; pagos: PagoClaure[]; desde: string | null };
+
+/**
+ * Lo vendido de CLAURE entre dos días (`fn_claure_ventas_en`), para decir «de eso, CLAURE» en Impuestos y «no incluye» en el Estado de resultados.
+ * Es información de apoyo (principio 9): sin permiso, sin CLAURE o si la lectura falla devuelve `null` y la pantalla se ve como siempre.
+ */
+export async function getVentasClaure(desde: string, hasta: string): Promise<VentasClaure | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_claure_ventas_en" as never, { p_desde: desde, p_hasta: hasta } as never);
+  return error ? null : leerVentasClaure(data);
+}
 
 /** `sinAcceso`: la cuenta no tiene el módulo Cuentas y dinero (`42501`): no es una falla, solo no ve CLAURE. Las pantallas que la muestran de paso (el Resumen) la esconden. */
 export async function getCuentaClaure(): Promise<Lectura<CuentaClaure> & { sinAcceso: boolean }> {

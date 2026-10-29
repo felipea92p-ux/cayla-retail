@@ -61,7 +61,8 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [x] **2. Pagar a CLAURE** — migración `20261029011000`, tipo `pago_claure` (como `pago_sunat`: sale de un banco, de la empresa, solo el líder, con su n.º de operación), «Pagar a CLAURE» en la pestaña (abre «Registrar movimiento» con el saldo escrito), `fn_claure_pagos()`, saldo = cobrado − devuelto − comisión − pagado. Pruebas: `pnpm pruebas:claure-pago` (14 casos).
 - [x] **3. Aviso en el cierre de caja de Lima** — migración `20261029013000` (`fn_claure_cierre`), bloque «Cuentas con Claudia» en el modal de cierre (neto, lo de hoy, detalle plegado, «Copiar resumen», «Pagar a CLAURE» para el líder) y el efectivo partido CAYLA/CLAURE en el paso de contar. Pruebas: `pnpm pruebas:claure-cierre` (10 casos). Se partió `fn_claure_cuenta` en `fn_claure_filas` (interna) + la lectura con candado, en la migración 1.
 - [x] **4. Disponible real** — sin migración: «De eso, S/ X es de Claudia · Disponible real S/ Y» bajo «¿Cuánta plata tienes hoy?» (Dónde está) y en «¿Cuánto tienes?» del Resumen, más una tarjeta «¿Cuánto le debes a CLAURE?» en el Resumen que lleva a su pantalla. Los saldos de los bancos no se tocan.
-- [ ] 5. CLAURE fuera de Finanzas · [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
+- [x] **5. CLAURE fuera de Finanzas** — migración `20261029020000`: el Diario reclasifica lo vendido de CLAURE (7011 y el costo) a lo que se le debe (479), así que el Estado de resultados, el Resumen, el Balance y el Cierre de mes dejan de contarlo sin cambiar; Impuestos sigue con el IGV real de SUNAT y dice «de ese IGV, S/ X es de CLAURE»; el Estado de resultados lleva la nota «No incluye lo vendido de CLAURE»; el Flujo cuenta el pago a CLAURE como salida.
+- [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
 
 **Decisiones tomadas en la actividad 2 (sin preguntar, con su porqué):**
 - La cuenta contable de lo que se le debe es la **479 «Otras cuentas por pagar — relacionadas»**, **provisional hasta el contador**: el Diario se arma al leer, así que cambiarla es una línea de `fn_asientos_dinero_y_caja`.
@@ -70,7 +71,7 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - **Anular un pago** se hace en Dónde está ▸ Movimientos (el líder), y el saldo vuelve a subir. No se duplicó ese botón en la pestaña CLAURE.
 
 **Pendientes que dejó la actividad 2:**
-- [ ] **El Flujo real todavía no cuenta el pago a CLAURE** (lo trata como «entre cuentas»). Contarlo como salida y sacarlo del «día normal» de la proyección toca `fn_flujo_lineas` y `fn_flujo_caja_proyeccion`, cuyos textos guardan pruebas viejas (`pruebas:flujo-caja`): va con la actividad 5, donde se decide cómo cuenta CLAURE el Flujo entero.
+- [x] ~~El Flujo real no cuenta el pago a CLAURE~~ — resuelto en la actividad 5 (`fn_flujo_lineas` lo cuenta como `pago_claure`, salida). Falta sacarlo del «día normal» de la proyección (`fn_flujo_caja_proyeccion`), que sigue viendo la plata de Claudia como disponible: ver pendientes de la actividad 5.
 - [ ] **Al pegar `20261029011000` en producción**: sus cuatro reemplazos anclados abortan sin cambiar nada si una función de producción no tiene el texto esperado. No pude leer las funciones vivas de producción (el permiso del MCP lo rechazó); en la base local, con el mismo código de main, las cuatro calzan.
 - [ ] Orden de pegado en producción: primero `20261029004000`, después `20261029011000`. Las dos con lock_timeout; ninguna con políticas.
 - [ ] `pruebas:cuentas-dinero` (16 casos) y `pruebas:cuenta-sellada` (6) fallan en la base local por «Esa tienda no existe o no está activa» (el Taller en `guardar_medio_de_cobro`) y por la migración #1419 que la base local no tiene aplicada: ya fallaban antes de esta obra.
@@ -92,3 +93,18 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 
 **Pendientes que dejó la actividad 4:**
 - [ ] «¿Me alcanza?» (Flujo de caja) y «Tu caja en las próximas dos semanas» siguen usando lo que hay en las cuentas sin restar lo de Claudia: se decide con la actividad 5 (cómo cuenta CLAURE el Flujo).
+
+**Decisiones tomadas en la actividad 5 (sin preguntar, con su porqué):**
+- **Se reclasifica en el Diario, no en cada pantalla.** Todo Finanzas (Estado de resultados, Resumen, Balance, Cierre de mes) lee `fn_asientos`; tocarlo ahí lo arregla en un solo lugar y deja cuadrados los asientos (cada documento de CLAURE es un asiento que suma cero). Era la única forma de no tocar seis funciones cuyos textos guardan pruebas viejas.
+- **Lo que se le debe es la parte SIN IGV (la 479).** El IGV queda en 4011 porque la boleta sale con el RUC de CAYLA y SUNAT lo cuenta aquí; la pantalla de Impuestos lo dice con su línea «de ese IGV, S/ X es de CLAURE», y el saldo de la pestaña CLAURE ya lo muestra aparte. Si CAYLA se lo cobra a Claudia es decisión de Felipe.
+- **El efectivo entra en la 479** (aunque lo tenga Claudia) porque lo vendido de CLAURE no es ingreso de CAYLA se cobre como se cobre; por eso la 479 puede subir más que el saldo de la pestaña CLAURE (que solo cuenta lo cobrado en cuentas de CAYLA).
+- **La comisión del POS sigue siendo gasto de CAYLA** en el Diario (recobrársela a Claudia no se asienta todavía; el saldo de la pestaña sí la resta).
+- **Un mes ya cerrado conserva su foto**: la reclasificación solo se ve en meses abiertos. Los meses de antes del 23-oct no cambian.
+
+**Pendientes que dejó la actividad 5:**
+- [ ] **Decisión de Felipe y contador:** la 479 es provisional; ¿se cobra el IGV a Claudia o se le descuenta?; ¿cómo se registra el efectivo de CLAURE que ya tiene Claudia (hoy sube la 479 sin que baje nada)?
+- [ ] **Los CAMBIOS con prendas de CLAURE** (la actividad 1 ya los lista aparte) siguen contando en CAYLA hasta que se decida cómo contarlos.
+- [ ] **El Balance valora el stock de CLAURE como si fuera de CAYLA** (`fn_bal_stock`): la 201 que la reclasificación saca por lo vendido no corrige el inventario que queda en la tienda.
+- [ ] **«¿Me alcanza?» y la proyección de caja** (`fn_flujo_caja_proyeccion`) siguen contando la plata de Claudia como disponible.
+- [ ] **Al pegar `20261029020000` en producción**: sus dos reemplazos anclados abortan sin cambiar nada si `fn_asientos` o `fn_flujo_lineas` de producción no tienen el texto esperado (no pude leer las funciones vivas). Orden: `20261029004000` → `20261029011000` → `20261029013000` → `20261029020000`.
+- [ ] **Falla ajena que salió al correr las suites:** `pruebas:estado-resultados` (N2, N7) y `pruebas:perdidas` (M5) fallan en la base local también SIN este cambio: el detalle de mermas del Estado de resultados se ordena por monto (`order by q.monto desc`, `fn_estado_resultados`) sin desempate, y con dos reglas empatadas en el mismo monto el orden cambia de una corrida a otra. Una coma (`, q.regla`) lo hace estable. `pruebas:finanzas-montos-y-caja-fuerte` falla de noche (después de las 19:00 de Lima, `current_date` del contenedor ya es mañana: «La fecha no puede ser futura»).

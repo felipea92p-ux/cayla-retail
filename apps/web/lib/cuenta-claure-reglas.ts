@@ -209,3 +209,33 @@ export const NOTA_CLAURE =
 
 /** Bajo los pagos: dónde se anula uno equivocado. */
 export const NOTA_PAGOS_CLAURE = "Un pago equivocado se anula en Dónde está ▸ Movimientos, y el saldo vuelve a subir.";
+
+/**
+ * Lo vendido de CLAURE en un período, neto de anulaciones y devoluciones (`fn_claure_ventas_en`, 20261029020000): `ventas` con IGV, `igv`, `base`
+ * (sin IGV, lo que se le debe a Claudia y NO es ingreso de CAYLA) y `costo` de sus prendas. Sirve para decir «de eso, CLAURE» donde la cifra
+ * de CAYLA no lo incluye (el Estado de resultados) o lo incluye a la fuerza (el IGV de Impuestos: la boleta sale con el RUC de CAYLA).
+ */
+export type VentasClaure = { ventas: number; igv: number; base: number; costo: number };
+
+/** La base devuelve UNA fila; sin filas, sin CLAURE o sin ventas en el período no hay nada que decir (`null`). */
+export function leerVentasClaure(datos: unknown): VentasClaure | null {
+  const r = (Array.isArray(datos) ? datos[0] : datos) as Record<string, unknown> | null | undefined;
+  if (!r || typeof r !== "object") return null;
+  const v = { ventas: redondear(numero(r.ventas)), igv: redondear(numero(r.igv)), base: redondear(numero(r.base)), costo: redondear(numero(r.costo)) };
+  return v.ventas === 0 && v.igv === 0 && v.base === 0 ? null : v;
+}
+
+/** Impuestos: el IGV de SUNAT sigue entero, y esto dice cuánto de él viene de ventas de CLAURE. `null` si no hay IGV de CLAURE en el mes. */
+export function lineaImpuestosClaure(v: VentasClaure | null): { titulo: string; texto: string } | null {
+  if (!v || !(v.igv > 0)) return null;
+  return {
+    titulo: `De ese IGV, ${soles(v.igv)} es de ventas de CLAURE`,
+    texto: `Las boletas de CLAURE salen con el RUC de CAYLA, así que SUNAT las cuenta aquí. Lo que CLAURE vendió en el mes (${soles(v.ventas)} con IGV, de sus ventas) es de Claudia: si CAYLA le cobra ese IGV o se lo descuenta, es una decisión que todavía no está tomada.`,
+  };
+}
+
+/** Estado de resultados: lo vendido de CLAURE no suma al ingreso ni al costo de CAYLA; la nota lo dice con su cifra. `null` si no hubo. */
+export function notaResultadosClaure(v: VentasClaure | null): string | null {
+  if (!v || !(v.base > 0)) return null;
+  return `No incluye lo vendido de CLAURE (${soles(v.base)} sin IGV): es de Claudia, no es ingreso ni costo de CAYLA. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.`;
+}

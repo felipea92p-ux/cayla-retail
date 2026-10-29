@@ -708,6 +708,12 @@ export const PRUEBAS = [
   // lo lee quien cierra esa caja aunque no tenga Finanzas, y solo el líder puede pagar; una caja de otra sede dice que no hay. Cada caso: ROLLBACK.
   "pruebas:claure-cierre",
 
+  // CLAURE fuera de las cifras de CAYLA (ADR-0560, actividad 5): el Diario reclasifica lo vendido de CLAURE (7011 y el costo) a lo que se le debe
+  // (479), así que el Estado de resultados, el Resumen y el Balance dejan de contarlo sin cambiar; cada asiento cuadra; una anulación o una devolución
+  // lo deshacen en su día; el IGV y los cobros no se tocan; lo anterior al arranque, otra sede y lo de CAYLA tampoco; fn_claure_ventas_en lo dice
+  // neto y solo lo lee quien ve Finanzas; el Flujo cuenta el pago a CLAURE como salida; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-fuera-de-las-cifras",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

@@ -8,7 +8,10 @@ import {
   fraseClaure,
   leerFilaClaure,
   leerPagoClaure,
+  leerVentasClaure,
+  lineaImpuestosClaure,
   montoSugeridoPago,
+  notaResultadosClaure,
   respuestaClaure,
   resumenClaure,
   seLeDebeDeFila,
@@ -164,5 +167,43 @@ describe("textos", () => {
     expect(fraseClaure("2026-10-23")).toContain("23/10/2026");
     expect(fraseClaure("2026-10-23")).toContain("El efectivo no entra");
     expect(fraseClaure(null)).not.toContain("Se cuenta desde");
+  });
+});
+
+// Lo que `scripts/pruebas/claure_fuera_de_las_cifras.mjs` comprueba en Postgres (118 con IGV, 18 de IGV, 100 sin IGV, 10 de costo): aquí, cómo se lee y se dice.
+describe("lo vendido de CLAURE en un período (ADR-0560, actividad 5)", () => {
+  const fila5 = { ventas: "118.00", igv: "18.00", base: "100.00", costo: "10.00" };
+
+  it("la base devuelve una fila (o una lista de una fila): se lee con sus cuatro cifras", () => {
+    expect(leerVentasClaure([fila5])).toEqual({ ventas: 118, igv: 18, base: 100, costo: 10 });
+    expect(leerVentasClaure(fila5)).toEqual({ ventas: 118, igv: 18, base: 100, costo: 10 });
+  });
+
+  it("sin filas, sin ventas o con basura no hay nada que decir", () => {
+    expect(leerVentasClaure(null)).toBeNull();
+    expect(leerVentasClaure([])).toBeNull();
+    expect(leerVentasClaure("x")).toBeNull();
+    expect(leerVentasClaure([{ ventas: "0", igv: "0", base: "0", costo: "0" }])).toBeNull();
+  });
+
+  it("Impuestos: el IGV de SUNAT queda entero y se dice cuánto es de CLAURE", () => {
+    const l = lineaImpuestosClaure(leerVentasClaure([fila5]));
+    expect(l?.titulo).toBe("De ese IGV, S/\u00a018.00 es de ventas de CLAURE");
+    expect(l?.texto).toContain("S/\u00a0118.00 con IGV, de sus ventas");
+    expect(l?.texto).toContain("RUC de CAYLA");
+  });
+
+  it("Impuestos: sin IGV de CLAURE en el mes (o con un neto negativo) la línea no se dibuja", () => {
+    expect(lineaImpuestosClaure(null)).toBeNull();
+    expect(lineaImpuestosClaure({ ventas: 100, igv: 0, base: 100, costo: 0 })).toBeNull();
+    expect(lineaImpuestosClaure({ ventas: -118, igv: -18, base: -100, costo: -10 })).toBeNull();
+  });
+
+  it("Estado de resultados: la nota dice cuánto NO se incluyó, sin IGV", () => {
+    const n = notaResultadosClaure(leerVentasClaure([fila5]));
+    expect(n).toContain("No incluye lo vendido de CLAURE (S/\u00a0100.00 sin IGV)");
+    expect(n).toContain("Cuentas y dinero ▸ CLAURE");
+    expect(notaResultadosClaure(null)).toBeNull();
+    expect(notaResultadosClaure({ ventas: 0, igv: 0, base: 0, costo: 5 })).toBeNull();
   });
 });

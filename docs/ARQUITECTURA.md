@@ -1953,7 +1953,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     lista sin contar. El saldo no se guarda: se suma de las filas. Prueba: `pnpm pruebas:claure-cuenta`.
     **Pagar a CLAURE (actividad 2, 20261029011000):** tipo `pago_claure` de `movimientos_dinero` (como `pago_sunat`: sale de un banco, sin destino ni comisión, de la empresa; solo el
     líder) registrado con `registrar_movimiento_dinero` desde el mismo modal «Registrar movimiento» (`QuePaso = pago_claure`; `BotonPagarClaure` lo abre con el saldo escrito vía
-    `useAbrirMovimiento`) y anulado con `anular_movimiento_dinero`. El Diario lo asienta 479 (provisional) | banco, el Flujo real todavía lo trata como «entre cuentas» (actividad 5) y `fn_claure_pagos()` lo lista:
+    `useAbrirMovimiento`) y anulado con `anular_movimiento_dinero`. El Diario lo asienta 479 (provisional) | banco, el Flujo real lo cuenta como salida «Pago a CLAURE» (actividad 5) y `fn_claure_pagos()` lo lista:
     saldo = `resumenClaure(filas, pagos)`. Prueba: `pnpm pruebas:claure-pago`.
     **El cierre de caja de Lima (actividad 3, 20261029013000):** `fn_claure_cierre(caja)` (candado de `fn_esperado_caja`: quien cierra esa caja o el líder, sin pedir el módulo
     Finanzas) → `components/CuentasConClaudia.tsx` (`useCierreClaure`) montado en `CerrarCajaModalV2`: en el paso de contar dice cuánto del efectivo es de CLAURE (informativo; CAYLA + CLAURE =
@@ -1964,6 +1964,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     bajo «¿Cuánta plata tienes hoy?» de Dónde está (`/finanzas/dinero`, solo el líder y solo con «Todas» o «Empresa»: una sede no lleva los bancos) y en «¿Cuánto tienes?» del Resumen
     (`tresRespuestas({ claure })`), donde además una tarjeta aparte, «¿Cuánto le debes a CLAURE?» (`respuestaDeClaure`), lleva a `/finanzas/dinero/claure`. Lee `getCuentaClaure()`, que distingue
     «no tienes acceso» (`42501`, la tarjeta no se dibuja) de «se cayó» (la tarjeta lo dice). El saldo de los bancos no se toca: sigue cuadrando con el estado de cuenta.
+    **CLAURE fuera de las cifras de CAYLA (actividad 5, 20261029020000):** lo vendido de CLAURE en sus sedes (`empresa_sedes`; hoy solo Tienda LIM), desde `empresas.cuenta_corriente_desde`, deja de
+    contar como ingreso, costo y mercadería de CAYLA **en el Diario**: `fn_claure_ventas` (interna: por documento —venta, anulación, devolución—, valorada como el Diario y repartida por línea según su
+    dueño real, `fn_dueno_de_la_linea`) alimenta `fn_asientos_claure` (interna), una RECLASIFICACIÓN con un asiento por documento que cuadra solo (venta: D 7011 base / H 479 base; D 201 costo / H 691 costo;
+    anulación y devolución la deshacen en su día), que `fn_asientos` suma al final con UN reemplazo anclado. Como el Estado de resultados, el Resumen, el Balance y el Cierre de mes leen el Diario, ninguno
+    cambió. El IGV (4011) y los cobros NO se tocan —la boleta sale con el RUC de CAYLA— y los meses ya cerrados conservan su foto. `fn_claure_ventas_en(desde, hasta, sede)` (candado del Diario) dice lo vendido de
+    CLAURE neto de anulaciones y devoluciones (`getVentasClaure()` → `VentasClaure`): Impuestos muestra el aviso «De ese IGV, S/ X es de ventas de CLAURE» (`lineaImpuestosClaure`, `ImpuestosPanel`; el IGV de
+    SUNAT queda entero) y el Estado de resultados la nota «No incluye lo vendido de CLAURE» (`notaResultadosClaure`, `EstadoResultadosPanel`). `fn_flujo_lineas` cuenta el pago a CLAURE como salida
+    (`pago_claure`, `TEXTO_CATEGORIA`). La 479 acumula la parte sin IGV de TODO lo vendido de CLAURE (también el efectivo, que tiene Claudia): es provisional hasta el contador. Prueba:
+    `pnpm pruebas:claure-fuera-de-las-cifras`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

@@ -37,6 +37,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { CalendarX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { notaResultadosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-reportes.js` → `vistaResultados`): cabecera «¿Ganamos?» con «Ver» → pestañas → UNA tarjeta con el mes, «Comparar» y
@@ -61,6 +62,7 @@ export function EstadoResultadosPanel({
   hoy,
   comparar,
   cerradas,
+  claure,
   fallas,
 }: {
   filas: FilaER[];
@@ -74,12 +76,15 @@ export function EstadoResultadosPanel({
   comparar: boolean;
   /** Las unidades de este mes que ya están cerradas (llave de `claveUnidad`): su columna es la foto congelada. */
   cerradas: string[];
+  /** Lo vendido de CLAURE en el mes: no suma al ingreso ni al costo de CAYLA, y la nota dice cuánto se dejó fuera. */
+  claure: VentasClaure | null;
   fallas: string[];
 }) {
   const router = useRouter();
   const ruta = usePathname();
   const params = useSearchParams();
   const [origen, setOrigen] = useState<Origen | null>(null);
+  const notaClaure = notaResultadosClaure(claure);
 
   const ver = leerVerER(verParam, filas, veTodo, sedeActual);
   const columnas = useMemo(() => columnasER(filas, ver), [filas, ver]);
@@ -243,6 +248,12 @@ export function EstadoResultadosPanel({
           )}
         </Superficie>
       </div>
+
+      {notaClaure && (
+        <div {...entra(2, "nota-cayla")} data-guia="fin-resultados.claure">
+          {notaClaure}
+        </div>
+      )}
 
       {veTodo ? (
         <div {...entra(2, "fin-dos-col")} data-guia="fin-resultados.notas">

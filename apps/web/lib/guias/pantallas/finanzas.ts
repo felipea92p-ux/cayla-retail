@@ -978,6 +978,14 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       texto: "Si algo no cuadra (un cobro que no suma lo vendido, por ejemplo), aquí avisa: hasta revisarlo, esas cifras no son confiables.",
     },
     {
+      id: "claure",
+      ancla: "fin-resultados.claure",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo de CLAURE no está aquí",
+      texto: "En Tienda Lima también se vende lo de CLAURE (de Claudia). Esas ventas no son ingreso ni costo de CAYLA: aquí no suman, y la nota dice cuánto se dejó fuera. Lo que se le debe está en Cuentas y dinero ▸ CLAURE.",
+    },
+    {
       id: "notas",
       ancla: "fin-resultados.notas",
       preparar: [{ tipo: "escape" }],
@@ -1469,6 +1477,13 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.balanza",
       titulo: "La balanza del IGV",
       texto: "En un plato, el IGV que cobraste al vender; en el otro, el de tus compras con factura. La balanza se inclina hacia el que pesa más y abajo queda la cuenta: cobraste, menos tus compras, más la renta a cuenta, es lo que pagas. Si pesan más las compras, el IGV queda a favor para el mes que viene.",
+    },
+    {
+      id: "claure",
+      ancla: "fin-impuestos.claure",
+      opcional: true,
+      titulo: "El IGV de lo de CLAURE",
+      texto: "Las boletas de lo que vende CLAURE en Tienda Lima salen con el RUC de CAYLA, así que SUNAT las cuenta en este IGV. Esta línea dice cuánto de él es de CLAURE; el IGV de arriba sigue siendo el real.",
     },
     {
       id: "por-hacer",

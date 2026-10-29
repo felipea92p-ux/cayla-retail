@@ -53,6 +53,7 @@ export const TEXTO_CATEGORIA: Record<string, string> = {
   pago_tarjeta: "Pago de la tarjeta de crédito",
   planilla: "Pago de la planilla",
   impuestos: "Pago a SUNAT (IGV)",
+  pago_claure: "Pago a CLAURE",
   comision_pos: "Comisión del POS",
   deposito_sin_cuenta: "Llevado al banco sin decir a cuál",
   por_clasificar: "Egresos de caja por clasificar",

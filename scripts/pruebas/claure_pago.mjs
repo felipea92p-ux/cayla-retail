@@ -5,7 +5,7 @@
  *
  * Lo que importa: (1) el pago se registra con `registrar_movimiento_dinero`, es de la empresa, sin destino, y el mismo token no lo duplica;
  * (2) baja el saldo del banco de donde salió; (3) `fn_claure_pagos` lo lista (y lo quita al anularlo); (4) solo el líder lo registra;
- * (5) no sale de un cajón o una máquina, ni lleva destino ni comisión; (6) el Diario lo asienta 479 | banco; (7) el Flujo real no se rompe; (8) lleva su nombre; (9) quien no tiene el módulo no lo lee y `anon` no ejecuta; (10) la migración se puede volver
+ * (5) no sale de un cajón o una máquina, ni lleva destino ni comisión; (6) el Diario lo asienta 479 | banco; (7) el Flujo real lo cuenta como una salida «Pago a CLAURE» (desde la actividad 5); (8) lleva su nombre; (9) quien no tiene el módulo no lo lee y `anon` no ejecuta; (10) la migración se puede volver
  * a pegar. Cada caso corre en su transacción con la migración aplicada dentro y TERMINA EN ROLLBACK.
  *
  * USO: pnpm pruebas:claure-pago   (necesita el stack local: `npx supabase start`)
@@ -137,10 +137,10 @@ caso("el Diario lo asienta contra la 479 (debe) y el banco (haber)", () =>
   ),
 );
 
-caso("el Flujo real no se rompe con él (por ahora lo trata como «entre cuentas»: lo de CLAURE en el Flujo es de la actividad 5)", () =>
+caso("el Flujo real lo cuenta como una salida «pago_claure» (20261029020000, actividad 5) y no como plata entre cuentas", () =>
   igual(
-    dentro(`${PAGO()}\nreset role;\nselect count(*) filter (where categoria = 'entre_cuentas' and monto = -100) from retail.fn_flujo_lineas(:'hoy'::date, :'hoy'::date);`).split("\n").pop(),
-    "1",
+    dentro(`${PAGO()}\nreset role;\nselect count(*) filter (where categoria = 'pago_claure' and monto = -100)::text || ':' || count(*) filter (where categoria = 'entre_cuentas')::text from retail.fn_flujo_lineas(:'hoy'::date, :'hoy'::date);`).split("\n").pop(),
+    "1:0",
   ),
 );
 
