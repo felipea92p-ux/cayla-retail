@@ -55,6 +55,9 @@ export const AVIARIO = [
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
       "precios_sede_prenda",
+      // ADR-0370 (capa por combinación, 20261028230000): la excepción de precio de UNA talla y color en una tienda; sin fila, hereda el de su
+      // prenda. Es parte del precio propio por sede: mismo pájaro que `precios_sede_prenda`. Refresco del volcado del 2026-10-29.
+      "precios_sede_variante",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
@@ -104,6 +107,9 @@ export const AVIARIO = [
   { n: "05", pajaro: "Halcón", modulo: "Inventario y movimientos",
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
+      // ADR-0564: las fotos de una prenda dañada (el daño al reportarla; en un bucket privado, con RLS sin políticas: se leen por
+      // `fotos_de_danadas`). Son de la dañada: mismo pájaro. Refresco del volcado del 2026-10-29.
+      "prendas_danadas_fotos",
       // ADR-0542: lo de CLAURE del stock de una sede con dos empresas (Lima); CAYLA es el resto. Refresco del 2026-10-28.
       "stock_dueno",
       "transferencias", "transferencia_items", "transferencia_recepciones",
@@ -304,6 +310,9 @@ export const AVIARIO = [
       // Cada cambio del CCI, la cuenta, el Yape o el titular de un proveedor (20261013161000): antes, después, quién y cuándo.
       // Refresco del volcado del 2026-10-16.
       "proveedores_cambios_bancarios",
+      // ADR-0561 (Corregir una compra ya anotada, 20261029012000): cada campo corregido de una compra rápida, con su antes, su después, quién y
+      // cuándo. Se escribe y se lee desde Compras. Refresco del volcado del 2026-10-29.
+      "compra_correcciones",
       // ADR-0480 (Compras simple, 2026-10-22 y 23): lo que la compradora anota desde el celular y Compras revisa. La compra rápida (`compra_papeles`:
       // boleta, factura o nota con su foto), el gasto de envío (`compra_gastos`), el cierre de lo que quedó sin resolver (`compra_cierres`), lo
       // que ya se había recibido antes de registrar la factura (`compra_item_recibido_antes`) y la plata que le dieron para comprar
