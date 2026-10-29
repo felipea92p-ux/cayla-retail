@@ -14,11 +14,13 @@ import {
   CAMINOS,
   CIUDADES,
   ciudadDeRegion,
+  ciudadesDeLaLista,
   ciudadSinTienda,
   de100,
   hrefTrafico,
   miles,
   personas,
+  regionEnElMapa,
   rindeElCamino,
   tinteDeRegion,
   type Camino,
@@ -106,19 +108,27 @@ function PorCamino({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
 function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico }) {
   const router = useRouter();
   const [tip, setTip] = useState<{ x: number; y: number; titulo: string; texto: string } | null>(null);
-  const max = Math.max(0, ...Object.values(r.regiones));
+  // Al pasar el mouse (o el foco) por una ciudad de la lista, sus departamentos se iluminan en el mapa y los demás se apagan.
+  const [resaltadas, setResaltadas] = useState<readonly Ciudad[] | null>(null);
+  const enMapa = DEPARTAMENTOS.map((d) => ({ ...d, ciudad: ciudadDeRegion(d.iso), ...regionEnElMapa(d.iso, d.nombre, r.regiones) }));
+  const max = Math.max(0, ...enMapa.map((d) => d.n));
   const sinTienda = ciudadSinTienda(r.ciudades);
-  const ciudades = (Object.keys(CIUDADES) as Ciudad[]).filter((c) => r.ciudades[c] > 0 || filtros.ciudad === c).sort((a, b) => r.ciudades[b] - r.ciudades[a]);
-  const primeras = ciudades.slice(0, 6);
-  const resto = ciudades.slice(6);
+  const lista = ciudadesDeLaLista(r.ciudades, filtros.ciudad);
+  const resaltar = (c: readonly Ciudad[] | null) => ({
+    onPointerEnter: () => setResaltadas(c),
+    onPointerLeave: () => setResaltadas(null),
+    onFocus: () => setResaltadas(c),
+    onBlur: () => setResaltadas(null),
+  });
 
   const mostrar = (e: PointerEvent<SVGSVGElement>) => {
     const dep = (e.target as Element).closest<SVGPathElement>("[data-region]");
     if (!dep) return setTip(null);
     const caja = e.currentTarget.parentElement!.getBoundingClientRect();
     const b = dep.getBoundingClientRect();
-    const n = r.regiones[dep.dataset.region!] ?? 0;
-    setTip({ x: b.left - caja.left + b.width / 2, y: b.top - caja.top + b.height / 2, titulo: dep.dataset.nombre!, texto: n ? personas(n) : "Nadie todavía" });
+    const d = enMapa.find((x) => x.iso === dep.dataset.region);
+    if (!d) return setTip(null);
+    setTip({ x: b.left - caja.left + b.width / 2, y: b.top - caja.top + b.height / 2, titulo: d.nombre, texto: d.n ? personas(d.n) : "Nadie todavía" });
   };
 
   return (
@@ -132,26 +142,24 @@ function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
         <svg
           viewBox={`0 0 ${PERU_ANCHO} ${PERU_ALTO}`}
           className="block h-auto w-full"
+          data-resaltando={resaltadas ? "" : undefined}
           role="img"
           aria-label={`Mapa del Perú: mientras más rojo el departamento, más gente mira desde ahí.${sinTienda ? ` Fuera de las tiendas, la que más mira es ${CIUDADES[sinTienda].nombre}.` : ""}`}
           onPointerOver={mostrar}
           onPointerLeave={() => setTip(null)}
         >
-          {DEPARTAMENTOS.map((d) => {
-            const ciudad = ciudadDeRegion(d.iso);
-            return (
-              <path
-                key={d.iso}
-                d={d.d}
-                data-region={d.iso}
-                data-nombre={d.nombre}
-                data-elegido={filtros.ciudad === ciudad || undefined}
-                className="trafico-mapa-dep"
-                style={{ fill: `color-mix(in srgb, var(--color-rojo) ${tinteDeRegion(r.regiones[d.iso] ?? 0, max)}%, var(--color-hueso))` }}
-                onClick={() => router.push(hrefTrafico(filtros, { ciudad: filtros.ciudad === ciudad ? null : ciudad }), { scroll: false })}
-              />
-            );
-          })}
+          {enMapa.map((d) => (
+            <path
+              key={d.iso}
+              d={d.d}
+              data-region={d.iso}
+              data-elegido={filtros.ciudad === d.ciudad || undefined}
+              data-resaltado={resaltadas?.includes(d.ciudad) || undefined}
+              className="trafico-mapa-dep"
+              style={{ fill: `color-mix(in srgb, var(--color-rojo) ${tinteDeRegion(d.n, max)}%, var(--color-hueso))` }}
+              onClick={() => router.push(hrefTrafico(filtros, { ciudad: filtros.ciudad === d.ciudad ? null : d.ciudad }), { scroll: false })}
+            />
+          ))}
           {TIENDAS.map((iso) => {
             const d = DEPARTAMENTOS.find((x) => x.iso === iso)!;
             return <circle key={iso} cx={d.x} cy={d.y} r={5} className="trafico-mapa-tienda pointer-events-none" aria-hidden />;
@@ -174,7 +182,7 @@ function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
         </span>
       </p>
       <ul className="mt-3">
-        {primeras.map((c) => {
+        {lista.top.map((c) => {
           const elegida = filtros.ciudad === c;
           return (
             <li key={c}>
@@ -184,6 +192,7 @@ function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
                 className="trafico-fila"
                 aria-current={elegida ? "true" : undefined}
                 aria-label={`${CIUDADES[c].nombre}: ${personas(r.ciudades[c])}${CIUDADES[c].tienda ? ", hay una tienda CAYLA" : ""}. ${elegida ? "Quitar el filtro" : "Ver solo a esta gente"}`}
+                {...resaltar([c])}
               >
                 <span className="flex min-w-0 items-center gap-1.5">
                   {elegida && <X aria-hidden className="h-3 w-3 shrink-0" />}
@@ -200,10 +209,17 @@ function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
             </li>
           );
         })}
+        {lista.otras > 0 && (
+          // Suma ciudades distintas (y el extranjero): no es un filtro, solo se ilumina en el mapa.
+          <li>
+            <span className="trafico-fila" tabIndex={0} aria-label={`Otras ciudades: ${personas(lista.otras)}`} {...resaltar(lista.grupo)}>
+              <span className="truncate">Otras ciudades</span>
+              <span />
+              <span className="text-right tabular-nums">{miles(lista.otras)}</span>
+            </span>
+          </li>
+        )}
       </ul>
-      {resto.length > 0 && (
-        <p className="mt-2 text-[12.5px] text-tinta/70">También: {resto.map((c) => `${CIUDADES[c].nombre} ${miles(r.ciudades[c])}`).join(" · ")}</p>
-      )}
     </div>
   );
 }

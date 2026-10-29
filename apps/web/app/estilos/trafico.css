@@ -336,7 +336,9 @@
     stroke: var(--color-papel);
     stroke-width: 1;
     stroke-linejoin: round;
-    transition: stroke 160ms var(--ease-cayla);
+    transition:
+      stroke 160ms var(--ease-cayla),
+      opacity 200ms var(--ease-cayla);
   }
   @media (hover: hover) {
     .trafico-mapa-dep:hover {
@@ -345,6 +347,15 @@
     }
   }
   .trafico-mapa-dep[data-elegido] {
+    stroke: var(--color-tinta);
+    stroke-width: 2;
+  }
+  /* Con una ciudad de la lista bajo el mouse o el foco: sus departamentos plenos y con filo, los demás apagados. */
+  [data-resaltando] > .trafico-mapa-dep {
+    opacity: 0.35;
+  }
+  [data-resaltando] > .trafico-mapa-dep[data-resaltado] {
+    opacity: 1;
     stroke: var(--color-tinta);
     stroke-width: 2;
   }
