@@ -2150,6 +2150,9 @@ ESCENARIOS.push(
   { id: "vender.cobro-tarjeta-maquina", ruta: "/vender", cuentas: ["integrante"], ancho: "escritorio", abre: "[data-maquinas]", nombre: "Vender (Trujillo) · «¿Con qué máquina la tarjeta?» con Izipay marcada", preparar: secuencia(medio(/Tarjeta/i), marcarIzipay), limpiar: quitarAsesora },
   { id: "vender.m-cobro-tarjeta-maquina", ruta: "/vender", cuentas: ["integrante"], ancho: "celular", abre: "[data-maquinas]", nombre: "Vender (Trujillo, celular) · cobro con tarjeta y «¿Con qué máquina?»", preparar: secuencia(cobroCelular, clicRol("button", /^Tarjeta$/i), marcarIzipay), limpiar: quitarAsesora },
   { id: "dinero.deposito-maquina", ruta: "/finanzas/dinero", cuentas: FIN, abre: '[data-guia="fin-dinero.mov-lotes"]', nombre: "Cuentas y dinero · «Depósito de la máquina» con los días que cubre", preparar: secuencia(clicRol("button", /Registrar movimiento/i), elegirOpcion(/^Qué pasó/i, /Depósito de la máquina/i), elegirOpcion(/^De$/, /Vendemás/i)) },
+  // ADR-0567: la hoja de la planilla que Dynamic pagó. Pide una Dynamic con planilla pagada (la base local de siempre solo tiene el stub de
+  // Dynamic y el aviso no aparece: el escenario falla diciendo que no encontró el botón).
+  { id: "dinero.salidas-planilla", ruta: "/finanzas/dinero", cuentas: FIN, abre: '[data-guia="fin-dinero.salida-fila"]', nombre: "Cuentas y dinero · «Registrar de qué banco salió» la planilla que Dynamic pagó", preparar: clicRol("button", /^Registrar (la salida|las \d salidas)$/i) },
   { id: "configuracion.maquina-tarifa", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Cuentas y cobros · «Tarifa de Izipay»", preparar: secuencia(clicPestana(/Cuentas y cobros/i), clicRol("button", /Editar la tarifa de Izipay/i)) },
 );
 
