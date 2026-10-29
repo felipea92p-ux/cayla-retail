@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Repeticion } from "./perdidas-reglas";
+import type { TramoPlanilla } from "./planilla-salidas-reglas";
 import {
   avisoPerdidasObs,
+  avisoPlanillaObs,
   calcular,
   diasDesde,
   grillaPico,
@@ -250,5 +252,46 @@ describe("avisoPerdidasObs — pérdidas que se repiten, tienda por tienda (ADR-
     const a = avisoPerdidasObs([{ tienda: TRU, repeticiones: muchas }], HOY);
     expect(a.n).toBe(8);
     expect(a.detalle?.tipo === "lista" && a.detalle.filas.map((f) => f.titulo.split(" perdió")[0])).toEqual(["Prenda 7", "Prenda 6", "Prenda 5", "Prenda 4", "Prenda 3", "Prenda 2"]);
+  });
+});
+
+describe("avisoPlanillaObs — la planilla pagada sin su salida del banco (ADR-0567)", () => {
+  const tramo = (o: Partial<TramoPlanilla>): TramoPlanilla => ({
+    periodoId: "p",
+    fechaIni: "2026-09-28",
+    fechaFin: "2026-10-28",
+    grupo: "planilla",
+    pagadoEl: "2026-10-29",
+    banco: "bcp",
+    personas: 13,
+    neto: 12740,
+    movimientoId: null,
+    registrado: null,
+    netoAlRegistrar: null,
+    cuentaId: null,
+    cuentaNombre: null,
+    fechaRegistrada: null,
+    ...o,
+  });
+  const AHORA = new Date("2026-11-01T15:00:00-05:00");
+
+  it("con algo por registrar: cuántas, desde hace cuánto, una fila por banco con su cuenta, y lleva a Cuentas y dinero ▸ Empresa", () => {
+    const a = avisoPlanillaObs(
+      { tramos: [tramo({}), tramo({ banco: "interbank", personas: 5, neto: 5512.95 })], cuentas: [{ banco: "bcp", cuentaId: "c1", cuentaNombre: "BCP Empresa" }] },
+      AHORA,
+    )!;
+    expect(a).toMatchObject({ clave: "planilla", n: 2, nivel: "hoy", icono: "dolar", href: "/finanzas/dinero?sede=empresa", porTienda: null, edad: 3 });
+    expect(a.titulo).toBe("Planilla pagada sin su salida del banco");
+    expect(a.detalle).toMatchObject({ tipo: "lista" });
+    const filas = a.detalle?.tipo === "lista" ? a.detalle.filas : [];
+    expect(filas.map((f) => f.titulo)).toEqual(["BCP · 13 personas", "Interbank · 5 personas"]);
+    expect(filas[0].detalle).toBe("falta registrar · sale de BCP Empresa");
+    expect(filas[0].chip).toBe("Falta");
+  });
+
+  it("sin nada que registrar no hay aviso; sin leer, dice que no se pudo leer", () => {
+    expect(avisoPlanillaObs({ tramos: [tramo({ movimientoId: "m", netoAlRegistrar: 12740 })], cuentas: [] }, AHORA)).toBeUndefined();
+    expect(avisoPlanillaObs({ tramos: [], cuentas: [] }, AHORA)).toBeUndefined();
+    expect(avisoPlanillaObs(null, AHORA)).toMatchObject({ n: null, detalle: null });
   });
 });

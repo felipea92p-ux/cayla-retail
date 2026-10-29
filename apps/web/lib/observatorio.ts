@@ -8,6 +8,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 import { getIgvEnEspera } from "@/lib/igv-en-espera";
+import { getPlanillaParaElObservatorio } from "@/lib/cuentas-dinero";
 import { diasDeEspera, hrefPrendasSinLlegar } from "@/lib/igv-en-espera-reglas";
 import { exigir } from "@/lib/resultado";
 import { getAperturasPorRevisar } from "@/lib/caja";
@@ -30,6 +31,7 @@ import { DIAS_VENTANA_REPETICION, perdidasQueSeRepiten } from "@/lib/perdidas-re
 import { restarDias } from "@/lib/movimientos-reglas";
 import {
   avisoPerdidasObs,
+  avisoPlanillaObs,
   diasDesde,
   nivelPorCuenta,
   parsearObservatorio,
@@ -87,7 +89,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas, cuentasBancarias, igv] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas, cuentasBancarias, igv, planilla] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -128,6 +130,8 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     getCuentasBancariasCambiadas(),
     // ADR-0362 fase 5b, actividad 4: el IGV de lo que no llegó (undefined si la base todavía no tiene la función).
     tolerar("el IGV en espera", () => getIgvEnEspera()),
+    // ADR-0567: la planilla que Dynamic pagó sin su salida del banco (undefined si la base todavía no tiene la función).
+    tolerar("la planilla por registrar", () => getPlanillaParaElObservatorio()),
   ]);
 
   const contarPor = (ids: readonly string[]) => {
@@ -272,6 +276,11 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       href: n === 1 && c?.ultimoProveedorId ? `/compras/proveedores/${c.ultimoProveedorId}` : "/compras/proveedores",
       detalle: null,
     });
+  }
+  // ADR-0567: la planilla pagada en Dynamic sin su salida del banco. Solo existe si hay algo (o si no se pudo leer).
+  if (planilla !== undefined) {
+    const aviso = avisoPlanillaObs(planilla, ahora);
+    if (aviso) avisos.push(aviso);
   }
   // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. De toda la empresa: el IGV es
   // uno. «Notas de crédito por pedir» se retiró con su módulo (ADR-0480); queda resolver lo que no llegó.
