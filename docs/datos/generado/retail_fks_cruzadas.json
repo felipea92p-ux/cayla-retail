@@ -230,6 +230,11 @@
   "src_table": "compra_cierres"
  },
  {
+  "conname": "compra_correcciones_corregida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_correcciones"
+ },
+ {
   "conname": "compra_gastos_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_gastos"
@@ -918,6 +923,16 @@
   "conname": "precios_sede_prenda_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "precios_sede_prenda"
+ },
+ {
+  "conname": "precios_sede_variante_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede_variante"
+ },
+ {
+  "conname": "precios_sede_variante_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede_variante"
  },
  {
   "conname": "preferencias_colaborador_persona_id_fkey",
