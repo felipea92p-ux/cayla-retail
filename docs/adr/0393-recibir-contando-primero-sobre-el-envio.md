@@ -765,3 +765,30 @@ Felipe cerró un envío con 3 Aretes que no venían en el papel y encontró cinc
 Migración `20261028182000_recepcion_otro_y_regalo_sin_costo.sql`: **SIN PEGAR EN PRODUCCIÓN** (espera el OK de Felipe; una sola parte). Casos O1–O5 de `pruebas:pendientes-de-envio` (C5 ajustado).
 **Pendiente de decisión:** «el precio de venta sería opcional» para una prenda que se creó completa al contar. Hoy el catálogo no deja crear una prenda sin precio (ADR-0384: solo las bolsas pueden ir en 0);
 cambiarlo toca el núcleo del catálogo. Se espera la respuesta de Felipe a qué quiso decir.
+
+## Actualización 2026-10-28 (c) — «Cerrar» pone el costo y el precio de venta por color y talla
+
+**El problema.** La fila de una prenda en «Cerrar» tenía UNA caja de costo y UNA de precio, y lo escrito valía para todos sus colores y tallas; pero cuestan y se venden distinto según el color y la talla.
+
+**Lo que Felipe pidió y eligió (2026-10-28).** Al abrir una categoría salen sus prendas identificadas, **sin cajas**; cada prenda se abre a una matriz de lo que se contó (colores en filas, tallas en columnas, como al contar), con **una caja por
+casilla** y un interruptor **Costo | Precio de venta**; lo escrito pide hasta dónde llega (**esta combinación, ese color, esa talla o todas**) en una barra bajo la matriz que dice qué cambia, y el precio, dónde vale (todas las sedes
+o solo esta tienda). Una prenda sin conteo por color y talla dice «Aún no se realizó el conteo por color y talla de esta prenda». Elegida entre cuatro maquetas (`docs/maquetas/recibir-cerrar-combinaciones-2026-10/`): la
+matriz con interruptor de A y la barra de alcance de B (opción D). El precio por tienda por combinación obligó a la capa de excepciones de ADR-0370 (act. 2026-10-28).
+
+**Cómo viaja.** Costo: `costos_prendas` acepta `{ variante_id: costo }` (manda la combinación, luego la prenda, luego la línea; el mismo costo en TODAS las combinaciones de una prenda se manda como el de la prenda, para que lo
+que se detalle después lo herede). Precio: `validar_precios_en_recepcion` (sin guardar) y `cambiar_precios_en_recepcion(envío, prenda, {combinación: precio}, 'todas' | 'sede')`, todo o nada, con el envío abierto y solo combinaciones
+CONTADAS en él; «solo esta tienda» con TODAS las tallas activas al mismo precio queda como el precio de la PRENDA en esa tienda, y si no, excepciones por combinación. Las reglas de la matriz son puras
+(`lib/recepcion-combinaciones-reglas.ts`, 40 pruebas y 7 mutantes); la pantalla es `PrendaConCombinaciones.tsx`. Migración `20261028234000` (SIN PEGAR EN PRODUCCIÓN), prueba `pnpm pruebas:recepcion-combinaciones` (19 casos).
+
+**Lo que reemplaza.** «Una sola caja de costo» de la categoría de fuera de la guía (2026-10-28): ya no hay caja en la prenda, así que «Toda la línea» queda siempre como el costo base obligatorio y cada combinación lo hereda
+hasta que se le escribe otro. Las prendas nuevas aún sin crear no tienen combinaciones: siguen con su caja de costo, y su precio se pone al crearlas. «Hacer ahora» (Para después) no cambió: sigue por prenda.
+
+**Lo que se vio.** Probado en un navegador sin ventana (la sesión no estaba abierta en una ventana, y el panel no hidrata así): escribir, alcance de color, aplicar, confirmación con cada combinación y «antes → después», 375 px sin desborde (el
+color queda pegado a la izquierda) y modo oscuro; con la base local el cierre real se detuvo en una regla ajena (`fn_dueno_de_entrada_sin_elegir`: elegir la empresa dueña de lo que entra), después de aplicar el precio y de que el costo por
+combinación llegara a la entrada al stock (saltó la revisión de costo atípico). Lo completo de punta a punta lo cubren las pruebas de Postgres.
+
+**Pantallas que decían un precio falso** (revisadas todas las que muestran el precio de una tienda): las de Vender, caja, Apartados, Cambios, Proformas, Buscar, Inicio de almacén, Frescura, Inventario, Análisis y etiquetas ya leían
+por talla. Se corrigieron la insignia «N precios» de Productos (tomaba el precio de la primera talla con precio propio) y la ficha de la prenda: «Precio por tienda» dice «según la talla» y lista cada talla con «Quitar»,
+la cabecera y la frase de «lo que cobra la caja» no afirman un precio único, las etiquetas de lo que entró llevan el precio de cada talla y la tabla de una terminal muestra el de cada una. No se tocó
+`cambianEnCajaAlGuardar` (el aviso de reimprimir etiquetas sigue mirando el precio por prenda).
+
