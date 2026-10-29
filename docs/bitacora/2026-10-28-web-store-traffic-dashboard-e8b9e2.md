@@ -30,3 +30,10 @@
   personas que `dondeSeAtora`): solo si va peor que siempre por más de 4 de cada 100 —y nunca con poca gente— se pinta en ámbar con su globo; si no, la
   frase lo dice con «Como de costumbre». Sin cambio en la base. **Verificado:** vitest de reglas 65/65, movimiento 20/20, guías, unificar, colores, tsc y
   eslint; en el navegador a 1440 (claro y oscuro, con y sin fuga) y a 375 px sin scroll lateral.
+- **Actividad 4 · Cuándo entra la gente:** «A qué hora entran» (24 barras de todo el período) pasó a un mapa de calor día de la semana × hora en rojo
+  CAYLA, con las 6 horas más fuertes con filo, el total de cada día, cuánta gente entra en cada hora y, en Hoy, el punto de «ahora»; la frase dice los dos
+  días y el tramo de 3 horas con más gente y el más tranquilo. Mira el período, pero nunca menos de 4 semanas (con un día no hay patrón: lo dice el
+  subtítulo). Va junto a «De dónde vienen», como pidió Felipe en la maqueta; los 100 puntos bajan a la fila siguiente y la vitrina queda a lo ancho hasta
+  la actividad 6. Base: `20261029042000_trafico_web_calor.sql` suma `calor` a `resumen_trafico_web` (misma firma). **Verificado:**
+  `pruebas:tienda-trafico-resumen` 60/60 (6 nuevos), vitest de reglas 71/71, guías, unificar, colores, tokens, movimiento, ancho, tsc, eslint y knip; en el
+  navegador a 1440 (claro y oscuro, con el globito de cada celda) y a 375 px sin scroll lateral. **No está en producción.**

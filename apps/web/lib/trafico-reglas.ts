@@ -39,6 +39,8 @@ export type ResumenTrafico = {
   horas: number[];
   /** La serie del gráfico principal: por hora (un día) o por día (varios), de estos días y de los de antes (actividad 2). */
   serie: SerieTrafico;
+  /** El mapa de calor día de la semana × hora (actividad 4); `null` con una base de antes que no lo trae. */
+  calor: CalorTrafico | null;
 };
 
 /** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
@@ -166,6 +168,7 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     ciudades: conteoPor(Object.keys(CIUDADES) as Ciudad[], d.ciudades),
     horas: Array.isArray(d.horas) && d.horas.length === 24 && d.horas.every(esCifra) ? d.horas : Array.from({ length: 24 }, () => 0),
     serie: leerSerie(d.serie),
+    calor: leerCalor(d.calor),
   };
 }
 
@@ -621,3 +624,85 @@ export function marcasDelTiempo(por: "hora" | "dia", largo: number, desde: strin
     .filter((x) => x % paso === 0)
     .map((x) => ({ x, texto: corto(sumarDias(desde, x)) }));
 }
+
+// ---------- El mapa de calor: día de la semana × hora (actividad 4) ----------
+
+/** Lo que manda la base: la ventana (el período, pero nunca menos de 4 semanas), cuántas veces cae cada día de la semana en ella y
+ *  las celdas [día 0 = lunes … 6 = domingo, hora 0–23, personas que entraron por primera vez]. */
+export type CalorTrafico = { desde: string; hasta: string; dias: number[]; celdas: (readonly [number, number, number])[] };
+
+const celdaCalor = (v: unknown): v is readonly [number, number, number] =>
+  Array.isArray(v) && v.length === 3 && v.every(esCifra) && v[0] <= 6 && v[1] <= 23;
+function leerCalor(v: unknown): CalorTrafico | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const d = v as Record<string, unknown>;
+  if (typeof d.desde !== "string" || !FECHA.test(d.desde) || typeof d.hasta !== "string" || !FECHA.test(d.hasta)) return null;
+  if (!Array.isArray(d.dias) || d.dias.length !== 7 || !d.dias.every(esCifra)) return null;
+  return { desde: d.desde, hasta: d.hasta, dias: d.dias, celdas: Array.isArray(d.celdas) ? d.celdas.filter(celdaCalor) : [] };
+}
+
+export const DIAS_CORTOS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+const DIAS_LARGOS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"] as const;
+const DIAS_PLURAL = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábados", "domingos"] as const;
+/** «Sábado, 8 p. m.»: el nombre de una celda. */
+export const celdaTexto = (dia: number, hora: number) => `${DIAS_LARGOS[dia].charAt(0).toUpperCase()}${DIAS_LARGOS[dia].slice(1)}, ${horaRedonda(hora)}`;
+
+/** Cuántas celdas se marcan como «las horas más fuertes» de la semana. */
+const CELDAS_FUERTES = 6;
+
+export type LecturaCalor = {
+  /** Personas por hora, en promedio: [día][hora] (lo que entró en esa celda entre las veces que cae ese día en la ventana). */
+  prom: number[][];
+  maximo: number;
+  /** Personas en un día así, en promedio (la suma de sus 24 horas). */
+  porDia: number[];
+  /** Personas de cada hora en toda la ventana (las barras de abajo). */
+  porHora: number[];
+  /** Las celdas más fuertes, como `día * 24 + hora`; vacío con muy poca gente. */
+  fuertes: Set<number>;
+  /** Los dos días de la semana con más gente, en orden de la semana; `null` con muy poca gente. */
+  dias: readonly [number, number] | null;
+  pico: { desde: number; hasta: number } | null;
+  tranquilo: { desde: number; hasta: number } | null;
+};
+
+/** Del conteo de la base, lo que dibuja el mapa y lo que dice su frase. Con menos de 10 personas en toda la ventana, no hay veredicto. */
+export function lecturaDeCalor(c: CalorTrafico): LecturaCalor {
+  const cuenta = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
+  for (const [d, h, n] of c.celdas) cuenta[d][h] += n;
+  const prom = cuenta.map((fila, d) => fila.map((n) => (c.dias[d] > 0 ? n / c.dias[d] : 0)));
+  const porDia = prom.map((fila) => fila.reduce((a, b) => a + b, 0));
+  const porHora = Array.from({ length: 24 }, (_, h) => cuenta.reduce((a, fila) => a + fila[h], 0));
+  const total = porHora.reduce((a, b) => a + b, 0);
+  const maximo = Math.max(0, ...prom.flat());
+  const vacio = { prom, maximo, porDia, porHora, fuertes: new Set<number>(), dias: null, pico: null, tranquilo: null };
+  if (total < MINIMO_PARA_LA_HORA) return vacio;
+  const fuertes = new Set(
+    prom
+      .flatMap((fila, d) => fila.map((v, h) => ({ k: d * 24 + h, v })))
+      .filter((x) => x.v > 0)
+      .sort((a, b) => b.v - a.v || a.k - b.k)
+      .slice(0, CELDAS_FUERTES)
+      .map((x) => x.k),
+  );
+  const [a, b] = [0, 1, 2, 3, 4, 5, 6].sort((x, y) => porDia[y] - porDia[x] || x - y);
+  const pico = picoDeHoras(porHora);
+  let tranquilo = { desde: 0, n: Infinity };
+  for (let h = 0; h <= 21; h++) {
+    const n = porHora[h] + porHora[h + 1] + porHora[h + 2];
+    if (n < tranquilo.n) tranquilo = { desde: h, n };
+  }
+  return {
+    ...vacio,
+    fuertes,
+    dias: [Math.min(a, b), Math.max(a, b)],
+    pico: pico && { desde: pico.desde, hasta: pico.hasta },
+    tranquilo: { desde: tranquilo.desde, hasta: tranquilo.desde + 3 },
+  };
+}
+
+/** «sábados y domingos». */
+export const diasTexto = (dias: readonly [number, number]) => `${DIAS_PLURAL[dias[0]]} y ${DIAS_PLURAL[dias[1]]}`;
+
+/** El día de la semana (0 = lunes) de una fecha «2026-10-28». */
+export const diaDeLaSemana = (iso: string) => (new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7;

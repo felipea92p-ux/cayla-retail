@@ -2,14 +2,14 @@ import { Footprints } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { diasEntreFechas, horaLima, hoyLima } from "@/lib/fechas-lima";
-import { campanaDelPeriodo, hrefTrafico, leerFiltros, leerResumen, periodoDe, quienesTexto, sinNoticias } from "@/lib/trafico-reglas";
+import { campanaDelPeriodo, diaDeLaSemana, hrefTrafico, leerFiltros, leerResumen, periodoDe, quienesTexto, sinNoticias } from "@/lib/trafico-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 import { Vacio } from "@/components/ui/Vacio";
+import { CalorTrafico } from "@/components/trafico/CalorTrafico";
 import { ControlesTrafico } from "@/components/trafico/ControlesTrafico";
 import { DeDondeVienen } from "@/components/trafico/DeDondeVienen";
-import { HorasTrafico } from "@/components/trafico/HorasTrafico";
 import { PulsoTrafico } from "@/components/trafico/PulsoTrafico";
 import { RecorridoTrafico } from "@/components/trafico/RecorridoTrafico";
 import { TablasTrafico } from "@/components/trafico/TablasTrafico";
@@ -49,6 +49,7 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
   const total = r?.pasos[0] ?? 0;
   const conFiltro = !!(filtros.camino || filtros.ciudad);
   const antes = periodo.antes.charAt(0).toUpperCase() + periodo.antes.slice(1);
+  const horaDeAhora = Number((horaLima(new Date().toISOString()) ?? "0:00").split(":")[0]);
 
   return (
     <div className="space-y-5">
@@ -86,7 +87,7 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                 periodo={periodo}
                 hastaX={
                   periodo.clave === "hoy"
-                    ? Number((horaLima(new Date().toISOString()) ?? "0:00").split(":")[0])
+                    ? horaDeAhora
                     : periodo.hasta === hoy
                       ? diasEntreFechas(periodo.desde, hoy)
                       : null
@@ -96,16 +97,21 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
             <TablasTrafico r={r} filtros={filtros} periodo={periodo.nombre} antes={antes} />
           ) : (
             <>
-              <RecorridoTrafico r={r} />
+              {/* Cuándo entra la gente, y a su lado de dónde viene (Felipe, en la maqueta: «De dónde vienen» va junto al mapa de calor). */}
               <div className="trafico-cuerpo">
                 <div className="trafico-cuerpo-rejilla">
-                  <VitrinaTrafico prendas={r.prendas} vieron={r.pasos[1]} base={r.base} periodo={periodo.nombre} antes={antes} />
-                  <aside className="grid min-w-0 content-start gap-4" aria-label="De dónde vienen y a qué hora">
-                    <DeDondeVienen r={r} filtros={filtros} />
-                    <HorasTrafico r={r} />
-                  </aside>
+                  {r.calor && (
+                    <CalorTrafico
+                      calor={r.calor}
+                      ampliado={r.calor.desde < periodo.desde}
+                      ahora={periodo.clave === "hoy" ? { dia: diaDeLaSemana(hoy), hora: horaDeAhora } : null}
+                    />
+                  )}
+                  <DeDondeVienen r={r} filtros={filtros} />
                 </div>
               </div>
+              <RecorridoTrafico r={r} />
+              <VitrinaTrafico prendas={r.prendas} vieron={r.pasos[1]} base={r.base} periodo={periodo.nombre} antes={antes} />
             </>
               )}
             </>

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  celdaTexto,
+  diaDeLaSemana,
+  diasTexto,
+  lecturaDeCalor,
   puntosDelPaso,
   cambio,
   cambioDeLaPrenda,
@@ -61,6 +65,7 @@ describe("leerResumen: lo que devuelve la base", () => {
       ciudades: { trujillo: 0, lima: 0, arequipa: 0, chiclayo: 0, piura: 0, cusco: 0, otras: 0, fuera: 0, sin_dato: 0 },
       horas: Array.from({ length: 24 }, () => 0),
       serie: { por: "dia", actual: [], antes: [] },
+      calor: null,
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -455,5 +460,66 @@ describe("la serie del gráfico principal (Observatorio, actividad 2)", () => {
     const mes = marcasDelTiempo("dia", 27, "2026-10-01");
     expect(mes[0]).toEqual({ x: 0, texto: "1 oct" });
     expect(mes.length).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("el mapa de calor: día de la semana × hora", () => {
+  // 4 semanas: cada día cae 4 veces. Los sábados (5) y domingos (6) a las 8 p. m. entra más gente; el lunes a las 3 a. m., casi nadie.
+  const calor = {
+    desde: "2026-09-30",
+    hasta: "2026-10-27",
+    dias: [4, 4, 4, 4, 4, 4, 4],
+    celdas: [
+      [5, 20, 40],
+      [6, 20, 36],
+      [5, 21, 28],
+      [6, 19, 24],
+      [4, 20, 20],
+      [0, 12, 8],
+      [2, 12, 4],
+      [0, 3, 1],
+    ] as [number, number, number][],
+  };
+
+  it("personas por hora en promedio: lo que entró en la celda entre las veces que cae ese día", () => {
+    const l = lecturaDeCalor(calor);
+    expect(l.prom[5][20]).toBe(10);
+    expect(l.prom[0][3]).toBe(0.25);
+    expect(l.maximo).toBe(10);
+    expect(l.porDia[5]).toBe(17);
+    expect(l.porHora[20]).toBe(96);
+  });
+
+  it("los dos días con más gente, en orden de la semana; las horas fuertes; el tramo más tranquilo", () => {
+    const l = lecturaDeCalor(calor);
+    expect(l.dias).toEqual([5, 6]);
+    expect(diasTexto(l.dias!)).toBe("sábados y domingos");
+    expect(l.pico).toEqual({ desde: 19, hasta: 22 });
+    expect(l.tranquilo).toEqual({ desde: 0, hasta: 3 });
+    expect([...l.fuertes]).toEqual([5 * 24 + 20, 6 * 24 + 20, 5 * 24 + 21, 6 * 24 + 19, 4 * 24 + 20, 0 * 24 + 12]);
+  });
+
+  it("con menos de 10 personas en toda la ventana no hay veredicto, pero sí el dibujo", () => {
+    const l = lecturaDeCalor({ ...calor, celdas: [[5, 20, 3], [6, 20, 2]] });
+    expect(l.prom[5][20]).toBe(0.75);
+    expect(l.dias).toBeNull();
+    expect(l.pico).toBeNull();
+    expect(l.fuertes.size).toBe(0);
+  });
+
+  it("un día que no cae en la ventana no divide por cero", () => {
+    expect(lecturaDeCalor({ ...calor, dias: [0, 4, 4, 4, 4, 4, 4] }).prom[0][12]).toBe(0);
+  });
+
+  it("lee lo que manda la base y descarta celdas fuera de la semana; una base de antes no trae mapa", () => {
+    const r = leerResumen({ ...DE_LA_BASE, calor: { ...calor, celdas: [...calor.celdas, [7, 1, 3], [1, 24, 3]] } })!;
+    expect(r.calor!.celdas).toHaveLength(8);
+    expect(leerResumen(DE_LA_BASE)!.calor).toBeNull();
+  });
+
+  it("nombres: «Sábado, 8 p. m.» y el día de la semana de una fecha (el 28 de octubre de 2026 es miércoles)", () => {
+    expect(celdaTexto(5, 20)).toBe("Sábado, 8 p. m.");
+    expect(diaDeLaSemana("2026-10-28")).toBe(2);
+    expect(diaDeLaSemana("2026-10-25")).toBe(6);
   });
 });

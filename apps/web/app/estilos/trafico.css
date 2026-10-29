@@ -385,7 +385,129 @@
   }
 }
 
+/* ---------- Cuándo entra la gente (actividad 4): el mapa de calor día × hora, en rojo CAYLA ----------
+   Cada celda lleva su rojo en línea (de 6 a 92 % sobre hueso, según cuánta gente entra); las 6 más fuertes llevan su filo en rojo
+   profundo. A la derecha, el total del día; abajo, cuánta gente entra en cada hora. Bajo 640 px el total se va y las celdas se achican. */
+@layer components {
+  .trafico-calor-tarjeta {
+    container: calor / inline-size;
+  }
+  .trafico-calor {
+    display: grid;
+    grid-template-columns: 38px repeat(24, minmax(0, 1fr)) 84px;
+    gap: 3px;
+    align-items: center;
+  }
+  .trafico-calor-hora {
+    height: 18px;
+    overflow: visible;
+    font-size: 11.5px;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .trafico-calor-dia {
+    font-size: 12px;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-calor-celda {
+    position: relative;
+    height: 46px;
+    border-radius: 5px;
+    transition: transform 150ms var(--ease-cayla);
+  }
+  .trafico-calor-celda[data-fuerte] {
+    outline: 2px solid var(--color-rojo-profundo);
+    outline-offset: -2px;
+  }
+  @media (hover: hover) {
+    .trafico-calor-celda:hover {
+      z-index: 2;
+      outline: 2px solid var(--color-rojo-profundo);
+      transform: scale(1.18);
+    }
+  }
+  .trafico-calor-ahora {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+    box-shadow: 0 0 0 2px var(--color-papel);
+  }
+  .trafico-calor-celda > .trafico-calor-ahora {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+  }
+  .trafico-calor-suma {
+    display: grid;
+    gap: 3px;
+    padding-left: 10px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .trafico-calor-suma > b {
+    font-weight: 600;
+  }
+  .trafico-calor-suma > i {
+    display: block;
+    height: 4px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--color-rojo) 60%, transparent);
+  }
+  .trafico-calor-barra {
+    display: flex;
+    height: 38px;
+    align-items: flex-end;
+  }
+  .trafico-calor-barra > i {
+    display: block;
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    background: color-mix(in srgb, var(--color-rojo) 30%, var(--color-hueso));
+  }
+  .trafico-calor-barra > i[data-pico] {
+    background: var(--color-rojo);
+  }
+  .trafico-calor-escala {
+    display: inline-block;
+    width: 110px;
+    height: 8px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-rojo) 6%, var(--color-hueso)), var(--color-rojo));
+  }
+  .trafico-calor-muestra {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    outline: 2px solid var(--color-rojo-profundo);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--color-rojo) 50%, var(--color-hueso));
+  }
+  @container calor (max-width: 640px) {
+    .trafico-calor {
+      grid-template-columns: 30px repeat(24, minmax(0, 1fr));
+      gap: 2px;
+    }
+    .trafico-calor-total {
+      display: none;
+    }
+    .trafico-calor-celda {
+      height: 26px;
+    }
+    .trafico-calor-hora {
+      font-size: 9.5px;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .trafico-calor-celda {
+    transition: none;
+  }
   .trafico-puntos > .trafico-punto-on,
   .trafico-punto-vivo::after,
   .trafico-pieza,

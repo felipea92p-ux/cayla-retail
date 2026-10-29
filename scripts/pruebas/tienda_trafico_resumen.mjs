@@ -37,6 +37,7 @@ const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] :
 const MIGRACION = readFileSync("supabase/migrations/20261023231000_trafico_web_lectura.sql", "utf8");
 const MIGRACION_PERIODOS = readFileSync("supabase/migrations/20261029015000_trafico_web_periodos.sql", "utf8");
 const MIGRACION_SERIE = readFileSync("supabase/migrations/20261029040000_trafico_web_serie.sql", "utf8");
+const MIGRACION_CALOR = readFileSync("supabase/migrations/20261029042000_trafico_web_calor.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -291,6 +292,24 @@ esperarValor(
 );
 esperarValor("con un camino puesto, la serie es solo de ese camino", escenario(`${resumen("'instagram'")} -> 'serie' -> 'actual';`), "[[15, 1, 1, 1, 1]]");
 esperar("la migración de la serie se puede pegar dos veces", correr(`begin;\n${MIGRACION_SERIE}\n${MIGRACION_SERIE}\nrollback;`).ok, "falló al pegar dos veces");
+
+// ---- 13. El mapa de calor (día de la semana × hora) ----
+// El 10 de enero de 2025 es viernes (día 4) y el 9, jueves (día 3). Un día mira las 4 semanas que terminan en él: del 14 de diciembre al 10.
+esperarValor("un día mira 4 semanas: desde el 14 de diciembre", escenario(`${resumen()} -> 'calor' ->> 'desde';`), "2024-12-14");
+esperarValor("en 4 semanas, cada día de la semana cae 4 veces", escenario(`${resumen()} -> 'calor' -> 'dias';`), "[4, 4, 4, 4, 4, 4, 4]");
+esperarValor(
+  "las celdas son [día, hora, personas] por la primera entrada, en Lima (la 5 entró el jueves 9 a las 11:50 p. m.)",
+  escenario(`${resumen()} -> 'calor' -> 'celdas';`),
+  "[[3, 23, 1], [4, 9, 1], [4, 15, 1], [4, 20, 1], [4, 21, 1]]",
+);
+esperarValor("con un camino puesto, el mapa es solo de ese camino", escenario(`${resumen("'instagram'")} -> 'calor' -> 'celdas';`), "[[4, 15, 1]]");
+esperarValor(
+  "un período de más de 4 semanas se mira entero (del 1 de noviembre al 10 de enero: 71 días)",
+  escenario(`${resumen("null", "null", "2024-11-01", "2025-01-10")} -> 'calor' as c \\gset
+  ${COMO_POSTGRES}select (:'c'::jsonb ->> 'desde') || ' ' || (select sum(d::int) from jsonb_array_elements_text(:'c'::jsonb -> 'dias') d);`),
+  "2024-11-01 71",
+);
+esperar("la migración del mapa de calor se puede pegar dos veces", correr(`begin;\n${MIGRACION_CALOR}\n${MIGRACION_CALOR}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);
