@@ -212,6 +212,16 @@ export function piezasDeFila(h: Habitual | null, suyas: readonly LineaCompra[]):
   return h.venta != null ? [{ etiqueta: "Se vende a", valor: soles(h.venta) }] : [];
 }
 
+/**
+ * Agrega una prenda a la compra, y nunca dos veces: si su clave ya va, la compra queda como estaba. Se usa dentro de `setLineas((ls) => …)`,
+ * que ve la compra de ese momento: cinco toques en el mismo instante en «+ 9» dejaban 45 unidades porque cada uno veía la compra de antes del
+ * primero (/chaos 2026-10-28). Corregir una prenda que ya va es otra cosa (la hoja reemplaza sus líneas).
+ */
+export function conPrendaAgregada(lineas: readonly LineaCompra[], nuevas: readonly LineaCompra[]): LineaCompra[] {
+  if (nuevas.length === 0 || lineas.some((l) => l.clave === nuevas[0].clave)) return [...lineas];
+  return [...lineas, ...nuevas];
+}
+
 /** Cuántas se le compraron la vez pasada: lo que ofrece el botón «+ 9 como la vez pasada». Sin compras de antes, no hay atajo. */
 export function cantidadDeAtajo(h: Pick<Habitual, "veces" | "ultimaCantidad">): number | null {
   return h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
