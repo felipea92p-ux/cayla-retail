@@ -60,7 +60,8 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [x] **1. La cuenta con CLAURE (solo lectura)** — `7814315c6`. Migración `20261029004000`, pestaña «CLAURE» en Cuentas y dinero, guía y pruebas.
 - [x] **2. Pagar a CLAURE** — migración `20261029011000`, tipo `pago_claure` (como `pago_sunat`: sale de un banco, de la empresa, solo el líder, con su n.º de operación), «Pagar a CLAURE» en la pestaña (abre «Registrar movimiento» con el saldo escrito), `fn_claure_pagos()`, saldo = cobrado − devuelto − comisión − pagado. Pruebas: `pnpm pruebas:claure-pago` (14 casos).
 - [x] **3. Aviso en el cierre de caja de Lima** — migración `20261029013000` (`fn_claure_cierre`), bloque «Cuentas con Claudia» en el modal de cierre (neto, lo de hoy, detalle plegado, «Copiar resumen», «Pagar a CLAURE» para el líder) y el efectivo partido CAYLA/CLAURE en el paso de contar. Pruebas: `pnpm pruebas:claure-cierre` (10 casos). Se partió `fn_claure_cuenta` en `fn_claure_filas` (interna) + la lectura con candado, en la migración 1.
-- [ ] 4. Disponible real · [ ] 5. CLAURE fuera de Finanzas · [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
+- [x] **4. Disponible real** — sin migración: «De eso, S/ X es de Claudia · Disponible real S/ Y» bajo «¿Cuánta plata tienes hoy?» (Dónde está) y en «¿Cuánto tienes?» del Resumen, más una tarjeta «¿Cuánto le debes a CLAURE?» en el Resumen que lleva a su pantalla. Los saldos de los bancos no se tocan.
+- [ ] 5. CLAURE fuera de Finanzas · [ ] 6. CLAURE fuera del resto de pantallas · [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
 
 **Decisiones tomadas en la actividad 2 (sin preguntar, con su porqué):**
 - La cuenta contable de lo que se le debe es la **479 «Otras cuentas por pagar — relacionadas»**, **provisional hasta el contador**: el Diario se arma al leer, así que cambiarla es una línea de `fn_asientos_dinero_y_caja`.
@@ -83,3 +84,11 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 **Pendientes que dejó la actividad 3:**
 - [ ] **Decisión de Felipe:** ¿cómo se resta del neto el efectivo de CAYLA que queda en poder de Claudia? (por ejemplo, un destino del traslado «Se queda con Claudia»). Mientras no se decida, el neto es solo lo cobrado en cuentas de CAYLA.
 - [ ] El bloque sale en el modal de cierre (Caja y Vender); **todavía no en el detalle de un cierre pasado** (`CierreCajaDetalle`, `UltimoCierreCaja`). La función ya lee la caja y el día que se le pidan.
+
+**Decisiones tomadas en la actividad 4 (sin preguntar, con su porqué):**
+- **El disponible real es «lo que hay en las cuentas − lo que se le debe a Claudia»** y solo se dice mirando CAYLA entera o la Empresa, y solo al líder: una sede no lleva los bancos ni las máquinas, donde cae lo de Claudia, y quien no es líder no ve los saldos de los bancos. Con saldo a favor de CAYLA (se le pagó de más) o sin deuda no se dice nada.
+- **No se resta el efectivo de CLAURE que está en el cajón de Lima**: esa plata la tiene Claudia, pero el cajón la cuenta en su saldo. Es el mismo hueco del cierre (efectivo de CAYLA que se queda Claudia): falta la regla que decida cómo se reparte el efectivo.
+- **La tarjeta del Resumen** va aparte de las tres preguntas (no es una cuarta) y solo la ve quien ve las finanzas de todo y tiene el módulo Cuentas y dinero; si la base no responde, dice que no se pudo leer.
+
+**Pendientes que dejó la actividad 4:**
+- [ ] «¿Me alcanza?» (Flujo de caja) y «Tu caja en las próximas dos semanas» siguen usando lo que hay en las cuentas sin restar lo de Claudia: se decide con la actividad 5 (cómo cuenta CLAURE el Flujo).

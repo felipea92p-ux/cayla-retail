@@ -1,4 +1,5 @@
 import { estadoDeCaja, type CajaProxima } from "./caja-proxima-reglas";
+import { chipsDisponible, respuestaClaure } from "./cuenta-claure-reglas";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { soles } from "./flujo-caja-reglas";
 import { debesPronto, type ResumenFinanzas } from "./resumen-finanzas-reglas";
@@ -16,7 +17,7 @@ import type { RespuestaResumen } from "./resumen-telar-reglas";
 export type Tono = "verde" | "ambar" | "rojo" | "pizarra";
 export type Chip = { texto: string; tono: Tono };
 export type Respuesta = {
-  clave: "tienes" | "debes" | "deja";
+  clave: "tienes" | "debes" | "deja" | "claure";
   pregunta: string;
   /** `null`: no hay dato; entonces `motivo` dice por qué. */
   valor: number | null;
@@ -39,6 +40,8 @@ type Entrada = {
   hrefPorPagar: string | null;
   /** De qué está hecho «lo que tienes» (`desgloseDeTienes`); sin él, la tarjeta conserva su texto de siempre. */
   desglose?: DesgloseTienes | null;
+  /** Lo que se le debe a CLAURE (ADR-0560): «lo que tienes» incluye plata de Claudia, y la tarjeta dice cuánto es suya y cuánto queda disponible. */
+  claure?: { saldo: number } | null;
 };
 
 /** Lo que suma «¿Cuánto tienes?», agrupado por lo que una persona entiende: lo que está a mano, lo que las máquinas deben depositar y el resto. */
@@ -80,13 +83,15 @@ function detalleDeTienes(d: DesgloseTienes | null | undefined): string {
   return `En bancos, cajas fuertes y cajones: ${soles(d.enMano)}. Más ${aparte.join(" y ")}.`;
 }
 
-function tienes(caja: CajaProxima, href: string | null, desglose?: DesgloseTienes | null): Respuesta {
+function tienes(caja: CajaProxima, href: string | null, desglose?: DesgloseTienes | null, claure?: { saldo: number } | null): Respuesta {
   const base = { clave: "tienes" as const, chips: [] as Chip[], ...(href ? { href } : {}) };
   if (caja.tipo === "cayla") {
     const estado = estadoDeCaja(caja);
     const chips: Chip[] = [];
     if (caja.provisional) chips.push({ texto: "Provisional", tono: "pizarra" });
     if (estado) chips.push({ texto: estado.texto, tono: estado.tono });
+    // Solo CAYLA entera: una sede no lleva los bancos ni las máquinas, donde cae lo que se le debe a Claudia.
+    if (claure) chips.push(...chipsDisponible(caja.saldoHoy, claure.saldo));
     return { ...base, pregunta: "¿Cuánto tienes?", valor: caja.saldoHoy, detalle: detalleDeTienes(desglose), chips };
   }
   if (caja.tipo === "sede") {
@@ -121,6 +126,17 @@ function deja(resp: RespuestaResumen): Respuesta {
 }
 
 /** Las tres, en el orden en que una persona se las hace: lo que tiene, lo que debe, lo que gana. */
-export function tresRespuestas({ r, caja, deja: resp, hrefDinero, hrefPorPagar, desglose }: Entrada): [Respuesta, Respuesta, Respuesta] {
-  return [tienes(caja, hrefDinero, desglose), debes(r, hrefPorPagar), deja(resp)];
+export function tresRespuestas({ r, caja, deja: resp, hrefDinero, hrefPorPagar, desglose, claure }: Entrada): [Respuesta, Respuesta, Respuesta] {
+  return [tienes(caja, hrefDinero, desglose, claure), debes(r, hrefPorPagar), deja(resp)];
+}
+
+/**
+ * La tarjeta de saldo con CLAURE (ADR-0560, actividad 4): debajo de las tres, lo que se le debe a Claudia (o, si se le pagó de más, lo que ella le debe a CAYLA).
+ * No es una cuarta pregunta de las tres: solo aparece si hay algo de CLAURE y la cuenta lo ve. `null` en `saldo` = se cayó la lectura: lo dice, nunca un cero.
+ */
+export function respuestaDeClaure(saldo: number | null, href: string | null): Respuesta {
+  const base = { clave: "claure" as const, chips: [] as Chip[], ...(href ? { href } : {}) };
+  if (saldo === null) return { ...base, pregunta: "¿Cuánto le debes a CLAURE?", valor: null, noSePudoLeer: true, motivo: "No se pudo leer lo que se le debe a CLAURE. Vuelve a cargar la página en un rato." };
+  const r = respuestaClaure(saldo);
+  return { ...base, pregunta: r.pregunta, valor: r.valor, detalle: "Lo que CLAURE cobró en tus cuentas, menos lo devuelto, la comisión del POS y lo que ya se le pagó." };
 }

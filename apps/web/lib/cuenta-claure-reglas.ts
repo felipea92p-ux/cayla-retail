@@ -181,6 +181,22 @@ export function montoSugeridoPago(saldo: number): string {
   return saldo > 0 ? saldo.toFixed(2) : "";
 }
 
+/** Lo que hay en las cuentas de CAYLA se parte en lo que es de Claudia (lo que se le debe) y lo que queda disponible; `null` si no se le debe nada. */
+export function disponibleReal(total: number, saldo: number): { deClaudia: number; disponible: number } | null {
+  if (!(saldo > 0)) return null;
+  return { deClaudia: redondear(saldo), disponible: redondear(total - saldo) };
+}
+
+/** Bajo «¿Cuánta plata tienes?»: «De eso, S/ X es de Claudia» y «Disponible real S/ Y» (en rojo si lo que se le debe pasa de lo que hay). */
+export function chipsDisponible(total: number, saldo: number): { texto: string; tono: "verde" | "ambar" | "rojo" }[] {
+  const d = disponibleReal(total, saldo);
+  if (!d) return [];
+  return [
+    { texto: `De eso, ${soles(d.deClaudia)} es de Claudia`, tono: "ambar" },
+    { texto: `Disponible real ${soles(d.disponible)}`, tono: d.disponible < 0 ? "rojo" : "verde" },
+  ];
+}
+
 /** La frase de arriba: desde cuándo se cuenta y qué entra. */
 export function fraseClaure(desde: string | null): string {
   const cuando = desde ? `Se cuenta desde el ${fechaCorta(desde)}. ` : "";

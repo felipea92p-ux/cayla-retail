@@ -124,6 +124,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Tres respuestas de un vistazo: cuánto tienes hoy entre cajones, cajas fuertes y bancos; cuánto debes pagar pronto (lo vencido y lo de esta semana); y cuánto te deja el mes, contra el mes pasado a la misma fecha. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
     },
     {
+      id: "claure",
+      ancla: "fin-resumen.claure",
+      opcional: true,
+      titulo: "Lo que se le debe a CLAURE",
+      texto: "Si CLAURE (la empresa de Claudia) cobró en cuentas de CAYLA, aquí ves cuánto se le debe. Es plata que está en tus bancos pero no es tuya: en «¿Cuánto tienes?» dice cuánto de eso es suyo y cuánto te queda disponible. Tocarla lleva a CLAURE.",
+    },
+    {
       id: "confianza",
       ancla: "fin-resumen.confianza",
       opcional: true,
@@ -545,7 +552,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "¿Cuánta plata tienes hoy?",
-      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está y lo que debes en la tarjeta.",
+      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está, lo que debes en la tarjeta y cuánto de eso es de Claudia (CLAURE).",
     },
     ORILLO_DINERO,
     {

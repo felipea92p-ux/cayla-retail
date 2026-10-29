@@ -28,7 +28,7 @@ import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { deCadaCien } from "@/lib/de-cada-cien-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
-import { desgloseDeTienes, tresRespuestas } from "@/lib/tres-respuestas-reglas";
+import { desgloseDeTienes, respuestaDeClaure, tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
@@ -73,11 +73,13 @@ type Props = {
   /** La lectura del Plan de campaña se cayó (ADR-0527): el bloque no se dibuja y se dice, nunca un 0 que parezca un dato. */
   inversionFalla?: string | null;
   acceso: Acceso;
+  /** Lo que se le debe a CLAURE (ADR-0560): `null` = no se ve o no hay nada; `saldo: null` = se cayó la lectura. */
+  claure?: { saldo: number | null } | null;
 };
 
 const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -136,6 +138,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver, inversion: pagosDeCompra.length ? { pagos: pagosDeCompra, dias: 42 } : null });
   // «¿Cuánto tienes?» de CAYLA entera dice de qué está hecho; una sede no lleva los bancos ni lo que las máquinas deben, así que ahí no se reparte.
   const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, caja.saldoHoy) : null;
+  // Lo de CLAURE es de la empresa entera, como los bancos: mirando una sola sede no se reparte.
+  const saldoClaure = claure && r.ver.todas && claure.saldo !== null ? { saldo: claure.saldo } : null;
   // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
   const avisos = ordenarAvisos([
@@ -151,7 +155,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
     <div className="space-y-6">
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. */}
-      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose })} />
+      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure })} />
+      {claure && r.ver.todas && <TresRespuestas guia="fin-resumen.claure" respuestas={[respuestaDeClaure(claure.saldo, ir("/finanzas/dinero/claure"))]} />}
       {/* ADR-0417: qué tan cierto es el número que acaba de leer, y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
       {confianza.datos ? (
         <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />

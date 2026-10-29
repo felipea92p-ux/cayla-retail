@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   cambiosPorRevisar,
   chipsClaure,
+  chipsDisponible,
+  disponibleReal,
   filasContadas,
   fraseClaure,
   leerFilaClaure,
@@ -94,6 +96,22 @@ describe("resumenClaure", () => {
   it("los centavos no se arrastran como ruido de coma flotante", () => {
     const r = resumenClaure([fila({ monto: 0.1 }), fila({ monto: 0.2 })]);
     expect(r.cobrado).toBe(0.3);
+  });
+});
+
+describe("el disponible real", () => {
+  it("lo que hay se parte en lo de Claudia y lo disponible; sin deuda no hay nada que partir", () => {
+    expect(disponibleReal(21500, 500)).toEqual({ deClaudia: 500, disponible: 21000 });
+    expect(disponibleReal(21500, 0)).toBeNull();
+    expect(disponibleReal(21500, -30)).toBeNull();
+  });
+  it("las chips lo dicen con sus palabras; el disponible va en rojo si se le debe más de lo que hay", () => {
+    expect(chipsDisponible(1000, 291.69)).toEqual([
+      { texto: "De eso, S/\u00a0291.69 es de Claudia", tono: "ambar" },
+      { texto: "Disponible real S/\u00a0708.31", tono: "verde" },
+    ]);
+    expect(chipsDisponible(100, 291.69)[1]).toMatchObject({ tono: "rojo" });
+    expect(chipsDisponible(1000, 0)).toEqual([]);
   });
 });
 

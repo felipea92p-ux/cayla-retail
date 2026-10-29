@@ -9,6 +9,8 @@ import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
 import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { tiendasDeLaLinea, tramoDeComparacion, tramoDelMes, tramoDeSueldos } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
+import { getCuentaClaure } from "@/lib/cuenta-claure";
+import { resumenClaure } from "@/lib/cuenta-claure-reglas";
 
 // Finanzas ▸ Resumen en El telar (ADR-0195 F10; ADR-0493, Felipe 2026-10-23). La sede y el mes los elige la barra común (`?sede=`,
 // `?mes=`; mientras dure el cambio, `?ver=` gana). Lecturas, todas de solo lectura y a la vez cuando no dependen una de otra:
@@ -31,7 +33,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const sueldos = tramoDeSueldos(mes, hoy)!;
   const comparar = tramoDeComparacion(mes, hoy);
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
     getEstadoResultados(tramo.desde, tramo.hasta, sueldos.hasta),
@@ -39,7 +41,18 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     getSedesDelTelar(),
     getFlujoProximo(),
     getInversionMercaderia(hoy, sp.inversion === "ejemplo"),
+    // Lo que se le debe a CLAURE (ADR-0560, actividad 4): solo quien ve las finanzas de todo (los bancos son de la empresa) y con el módulo Cuentas y dinero.
+    veTodo ? getCuentaClaure() : Promise.resolve(null),
   ]);
+  // `null`: la cuenta no lo ve o CLAURE no tiene nada todavía (la tarjeta no se dibuja); `{ saldo: null }`: se cayó la lectura (se dice, no se inventa).
+  const claure =
+    !claureLeido || claureLeido.sinAcceso
+      ? null
+      : claureLeido.falla
+        ? { saldo: null }
+        : claureLeido.datos.filas.length || claureLeido.datos.pagos.length
+          ? { saldo: resumenClaure(claureLeido.datos.filas, claureLeido.datos.pagos).saldo }
+          : null;
   const tiendas = datos ? tiendasDeLaLinea(datos) : [];
   const ventas = veModulo(persona, "rendimiento") ? await getVentasPorDia(tiendas, tramo.desde, tramo.hasta) : null;
 
@@ -58,6 +71,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       inversion={inversion.datos}
       inversionFalla={inversion.falla}
       acceso={{ lider: veTodo, modulos: persona.modulos.map((m) => m.clave) }}
+      claure={claure}
     />
   );
 }

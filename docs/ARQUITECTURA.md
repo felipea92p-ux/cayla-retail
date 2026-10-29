@@ -1960,6 +1960,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `ventas_efectivo` exacto) y, tras cerrar, el bloque «Cuentas con Claudia» (neto, lo de hoy, detalle plegado, «Copiar resumen» para WhatsApp y, para el líder, «Pagar a CLAURE» →
     `/finanzas/dinero/claure?pagar=1`, que abre la hoja de pago con el saldo escrito: `AbrirPagoDesdeUrl`). El cálculo es `fn_claure_filas(sedes)`, interno, que también lee `fn_claure_cuenta`.
     Prueba: `pnpm pruebas:claure-cierre`.
+    **El disponible real (actividad 4, sin migración):** `chipsDisponible(total, saldo)` (`cuenta-claure-reglas.ts`) parte lo que hay en las cuentas de CAYLA en «De eso, S/ X es de Claudia» y «Disponible real S/ Y». Sale
+    bajo «¿Cuánta plata tienes hoy?» de Dónde está (`/finanzas/dinero`, solo el líder y solo con «Todas» o «Empresa»: una sede no lleva los bancos) y en «¿Cuánto tienes?» del Resumen
+    (`tresRespuestas({ claure })`), donde además una tarjeta aparte, «¿Cuánto le debes a CLAURE?» (`respuestaDeClaure`), lleva a `/finanzas/dinero/claure`. Lee `getCuentaClaure()`, que distingue
+    «no tienes acceso» (`42501`, la tarjeta no se dibuja) de «se cayó» (la tarjeta lo dice). El saldo de los bancos no se toca: sigue cuadrando con el estado de cuenta.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

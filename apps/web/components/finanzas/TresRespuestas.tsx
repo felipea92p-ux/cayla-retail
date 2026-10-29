@@ -10,9 +10,9 @@ import type { Respuesta } from "@/lib/tres-respuestas-reglas";
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
-export function TresRespuestas({ respuestas }: { respuestas: readonly Respuesta[] }) {
+export function TresRespuestas({ respuestas, guia = "fin-resumen.respuestas" }: { respuestas: readonly Respuesta[]; guia?: string }) {
   return (
-    <div className="grid gap-3 md:grid-cols-3" data-guia="fin-resumen.respuestas">
+    <div className="grid gap-3 md:grid-cols-3" data-guia={guia}>
       {respuestas.map((x, i) => {
         const contexto = (
           <>
