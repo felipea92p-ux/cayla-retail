@@ -39,7 +39,9 @@ const BASE = arg("--base", "postgres");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
 const SIN_CANDADO = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "");
-const MIGRACION = SIN_CANDADO(readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261029164000_produccion_termine_con_falla_y_fecha.sql", import.meta.url)), "utf8"));
+const leer = (nombre) => SIN_CANDADO(readFileSync(fileURLToPath(new URL(`../../supabase/migrations/${nombre}`, import.meta.url)), "utf8"));
+// Con la de la actividad 3 encima: «Terminé» usa desde ahí la regla compartida (`fn_produccion_escribir_termine`), y esta suite prueba que siga haciendo lo mismo.
+const MIGRACION = `${leer("20261029164000_produccion_termine_con_falla_y_fecha.sql")}\n${leer("20261029173000_produccion_corregir_y_eliminar_con_historia.sql")}`;
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function psql(sql) {

@@ -56,3 +56,34 @@
   - 98 buenas y 2 segundas con fecha de ayer: Habilitado cierra y a Costura le entran 98.
   - Deshacer la falla reabre la fase.
 - **Ojo:** la base local compartida (55990) trae una migración de otra rama sin fusionar (el día real de la marca de Ploteo). Probar en ella daba anclas falsas, así que se probó en una base desde cero.
+
+## 2026-10-29 (Producción: corregir, eliminar y restaurar cualquier anotación, con historia y notas — ADR-0570, actividad 3 de 10)
+
+**Qué hice:**
+- **Base** (`20261029173000_produccion_corregir_y_eliminar_con_historia.sql`):
+  - `produccion_cambios`, de solo agregar: cada corrección, eliminación, restauración y nota, con su motivo y el antes y el después, en la misma transacción que el cambio.
+  - `corregir_anotacion_orden`, `eliminar_anotacion_orden`, `restaurar_anotacion_orden` y `comentar_orden`.
+  - La regla de «Terminé» en una sola función (`fn_produccion_escribir_termine`), que usan «Terminé», corregir y restaurar.
+  - `fn_produccion_exigir_cadena`: ningún cambio deja a la fase siguiente con más prendas de las que le llegaron.
+  - `fn_orden_produccion` devuelve `cambios` y `deshechos`.
+- **Web:**
+  - Cada anotación viva de la historia lleva su lápiz. «Terminé» abre «Corregir»: cantidades, fallas, día y porqué, con «Eliminar» a la izquierda del pie. La marca de Ploteo abre «Quitar la marca». Una salida o una vuelta abre «Anular».
+  - Lo que un cambio quitó sale de la vista y en su lugar va el cambio con su motivo. Una eliminación trae «Restaurar».
+  - «Escribir una nota» arriba de la historia.
+  - Las filas de falla son una sola pieza para «Terminé» y «Corregir».
+
+**Por qué así:**
+- «Deshacer» solo alcanzaba a la última anotación de cada talla: un error del lunes con algo anotado el martes encima quedaba para siempre.
+- Una fecha mal puesta no se corregía, y lo que se deshacía no decía por qué.
+- Felipe lo pidió así: «editar con facilidad, eliminar con historial de cambio y comentario para entender qué pasó».
+
+**Estado:**
+- **Migración SIN pegar en producción.** Va después de `20261029164000`, y antes de publicar la web.
+- 28 casos nuevos. La suite de fallas ahora carga también esta migración. Las 25 suites de Producción, en una base desde cero.
+- 171 pruebas de reglas y las guardas de pantalla en verde; `tsc`, `eslint` y Knip limpios.
+- Probado en el navegador en escritorio y a 375 px:
+  - corregir 98 → 97;
+  - eliminar Corte con Habilitado ya anotado se rechaza con un mensaje claro;
+  - eliminar y restaurar Habilitado;
+  - una nota.
+- **Ojo:** el primer intento agregaba `deshace_id` a las filas de la línea de tiempo con reemplazos anclados, y volver a pegar la migración de la actividad 2 duplicaba el bloque de fallas. Ahora la orden manda dos claves aparte y las filas de la línea de tiempo no se tocan.

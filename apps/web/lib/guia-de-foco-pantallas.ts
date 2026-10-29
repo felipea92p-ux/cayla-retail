@@ -399,7 +399,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-produccion/FichaDeConsumoHoja.tsx": { estado: "aplicada", evidencia: ["components/orden-produccion/FichaDeConsumoHoja.tsx"] },
   "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
   "components/orden-pagina/QuitarPasoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién quita el paso): el título dice qué paso sale de la orden y la bajada avisa que se puede volver a agregar; la base rechaza el resto." },
-  "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
+  // ADR-0570, actividad 3: corregir o eliminar lo anotado, quitar la marca o restaurar, y la nota del equipo.
+  "components/orden-pagina/CorregirAnotacionModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CorregirAnotacionModal.tsx"] },
+  "components/orden-pagina/CambioConMotivoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CambioConMotivoModal.tsx"] },
+  "components/orden-pagina/NotaDeLaOrdenModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/NotaDeLaOrdenModal.tsx"] },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control propio + 8 del cierre y los insumos

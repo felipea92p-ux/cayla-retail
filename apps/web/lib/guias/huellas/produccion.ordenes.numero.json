@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 152,
+  "total": 168,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -57,13 +57,6 @@
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarAvanceModal.tsx": [
-      "button «+ Anotar prendas con falla»",
-      "CampoSelect «Talla y color»",
-      "CampoTexto «Cuántas»",
-      "SegmentoDeslizante «{`Qué pasa con las de ${f.varianteId ? nombreDe(f.varianteId) : \"esta fila\"}»",
-      "button «+ Otra talla o color»",
-      "button «{m}»",
-      "CampoTexto «O cuéntalo con tus palabras»",
       "CampoTexto «{`${t.nombre}»",
       "CampoFecha «{guia.etiqueta(\"dia\", \"¿Cuándo lo terminaste?\")}»",
       "CampoTexto «Nota»",
@@ -104,24 +97,53 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
-    "components/orden-pagina/DeshacerAvanceModal.tsx": [
+    "components/orden-pagina/CambioConMotivoModal.tsx": [
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/CorregirAnotacionModal.tsx": [
+      "CampoFecha «{guia.etiqueta(\"dia\", \"¿Cuándo lo terminaste?\")}»",
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
+      "ComboResponsable «{responsable}»",
+      "Boton «prod-orden-corregir.eliminar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/EditarTelaModal.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
+    "components/orden-pagina/FilasDeFalla.tsx": [
+      "button «+ Anotar prendas con falla»",
+      "CampoSelect «Talla y color»",
+      "CampoTexto «Cuántas»",
+      "SegmentoDeslizante «{`Qué pasa con las de ${f.varianteId ? nombreDe(f.varianteId) : \"esta fila\"}»",
+      "button «+ Otra talla o color»",
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»"
+    ],
     "components/orden-pagina/LineaDeTiempo.tsx": [
-      "Boton «{primeraAnulable === e ? \"prod-orden.anular\" : undefined}»",
-      "BotonDeshacer «→() => setDeshaciendo(e)»"
+      "Boton «prod-orden.nota»",
+      "BotonDeshacer «Restaurar»",
+      "LapizEditar «{`lo terminado en ${e.corregible.faseNombre.toLocaleLowerCase(\"es\")}»",
+      "LapizEditar «{`la marca de ${e.marcaViva.faseNombre.toLocaleLowerCase(\"es\")}»",
+      "LapizEditar «{e.titulo.toLocaleLowerCase(\"es\")}»"
     ],
     "components/orden-pagina/MarcarFaseModal.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/NotaDeLaOrdenModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"texto\", \"La nota\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/PasarAlStockModal.tsx": [
       "Boton «Declarar la tela»",

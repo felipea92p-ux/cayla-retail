@@ -48,6 +48,39 @@ export const DIAS_SIN_MOVERSE = 4;
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
 export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
+/** Lo que se cambió de la orden (ADR-0570, actividad 3): cada corrección, eliminación, restauración y nota, con quién, cuándo y el motivo. */
+export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota";
+/** Una entrada de la historia: lo que pasó en la orden o un cambio que se le hizo. */
+export type TipoEntrada = TipoEvento | AccionCambio;
+
+/** Un «Terminé» tal como quedó guardado en un cambio: sus buenas y sus fallas por talla y color, cuándo pasó y su nota. */
+export type TermineGuardado = {
+  buenas: { varianteId: string; cantidad: number }[];
+  fallas: { varianteId: string; destino: "arreglo" | "segunda" | "perdida"; cantidad: number; motivo: string }[];
+  hecho: string | null;
+  nota: string | null;
+};
+
+export type CambioOrden = {
+  id: string;
+  accion: AccionCambio;
+  /** «termine»: lo anotado con «Terminé»; «marca»: la marca de Ploteo; `null` en una nota. */
+  objeto: "termine" | "marca" | null;
+  faseClave: FaseClave | null;
+  faseNombre: string | null;
+  /** Lo que el cambio quitó (las filas originales) y lo que puso (las nuevas). */
+  quitaIds: string[];
+  poneIds: string[];
+  /** Los Deshacer que escribió: la historia los oculta y cuenta el cambio en su lugar. */
+  deshaceIds: string[];
+  antes: TermineGuardado | null;
+  despues: TermineGuardado | null;
+  /** El motivo de un cambio o el texto de una nota. */
+  texto: string;
+  restaurado: boolean;
+  quienNombre: string | null;
+  cuando: string;
+};
 
 export type ProductoPagina = {
   id: string;
@@ -238,6 +271,10 @@ export type OrdenPagina = {
   /** `null`: quien mira no ve los costos del Taller (o la base no los mandó). */
   costos: CostosPagina | null;
   lineaDeTiempo: EventoTiempo[];
+  /** Las correcciones, eliminaciones, restauraciones y notas de la orden (ADR-0570, actividad 3), de la más reciente a la más vieja. */
+  cambios: CambioOrden[];
+  /** Los ids de lo anotado que ya tiene su Deshacer (por un cambio o por «Deshacer»): ya no se corrige. */
+  deshechos: string[];
   permisos: { puedeOperar: boolean; veCostos: boolean };
 };
 
@@ -339,6 +376,51 @@ function leerEvento(crudo: unknown): EventoTiempo | null {
   };
 }
 
+const idsDe = (x: unknown): string[] => (Array.isArray(x) ? x.filter((i): i is string => typeof i === "string") : []);
+
+function leerTermineGuardado(crudo: unknown): TermineGuardado | null {
+  if (!esObjeto(crudo)) return null;
+  const filas = (x: unknown) => (Array.isArray(x) ? x.filter(esObjeto) : []);
+  return {
+    buenas: filas(crudo.buenas).flatMap((b) => {
+      const varianteId = texto(b.variante_id);
+      return varianteId ? [{ varianteId, cantidad: entero(b.cantidad) }] : [];
+    }),
+    fallas: filas(crudo.fallas).flatMap((f) => {
+      const varianteId = texto(f.variante_id);
+      const destino = f.destino === "segunda" || f.destino === "perdida" || f.destino === "arreglo" ? f.destino : null;
+      return varianteId && destino ? [{ varianteId, destino, cantidad: entero(f.cantidad), motivo: texto(f.motivo) ?? "" }] : [];
+    }),
+    hecho: texto(crudo.hecho),
+    nota: texto(crudo.nota),
+  };
+}
+
+function leerCambio(crudo: unknown): CambioOrden | null {
+  if (!esObjeto(crudo)) return null;
+  const id = texto(crudo.id);
+  const cuando = texto(crudo.cuando);
+  const accion = crudo.accion;
+  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota")) return null;
+  const faseClave = texto(crudo.fase_clave);
+  return {
+    id,
+    accion,
+    objeto: crudo.objeto === "termine" || crudo.objeto === "marca" ? crudo.objeto : null,
+    faseClave: faseClave && claves.has(faseClave) ? (faseClave as FaseClave) : null,
+    faseNombre: texto(crudo.fase_nombre),
+    quitaIds: idsDe(crudo.quita_ids),
+    poneIds: idsDe(crudo.pone_ids),
+    deshaceIds: idsDe(crudo.deshace_ids),
+    antes: leerTermineGuardado(crudo.antes),
+    despues: leerTermineGuardado(crudo.despues),
+    texto: texto(crudo.texto) ?? "",
+    restaurado: crudo.restaurado === true,
+    quienNombre: texto(crudo.quien_nombre),
+    cuando,
+  };
+}
+
 /**
  * La respuesta de `fn_orden_produccion` leída. `null` si no hay orden (la base responde NULL cuando no existe o no se puede leer) o si lo recibido no se parece a una
  * orden: la página dice «no encontramos esa orden» o «no se pudo leer», nunca dibuja a medias. Lo suelto (una fase con una clave desconocida, un evento roto) se descarta.
@@ -427,6 +509,10 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
     lineaDeTiempo: lista(crudo.linea_de_tiempo)
       .map(leerEvento)
       .filter((e): e is EventoTiempo => e !== null),
+    cambios: lista(crudo.cambios)
+      .map(leerCambio)
+      .filter((c): c is CambioOrden => c !== null),
+    deshechos: lista(crudo.deshechos).flatMap((x) => (typeof x === "string" ? [x] : [])),
     permisos: { puedeOperar: permisos.puede_operar === true, veCostos: permisos.ve_costos === true && costos !== null },
   };
 }
@@ -821,9 +907,9 @@ export function subtituloEnRuta(f: FasePagina, terminoEl: string | null, totalPl
 
 /** El color del punto de cada entrada de la historia: lo hecho en verde, lo que salió a un servicio en pizarra (en camino), lo que se deshizo o anuló en ámbar, una prenda con falla en
  *  rojo (lo único rojo: un problema) y la apertura en tinta. */
-export type TonoDeEntrada = "hecho" | "camino" | "cambio" | "problema" | "inicio";
+export type TonoDeEntrada = "hecho" | "camino" | "cambio" | "problema" | "inicio" | "neutro";
 
-export function tonoDeEntrada(tipo: TipoEvento): TonoDeEntrada {
+export function tonoDeEntrada(tipo: TipoEntrada): TonoDeEntrada {
   switch (tipo) {
     case "avance":
     case "vuelta":
@@ -837,7 +923,13 @@ export function tonoDeEntrada(tipo: TipoEvento): TonoDeEntrada {
     case "anulacion":
     case "desmarca":
     case "falla_deshecha":
+    case "corregir":
+    case "eliminar":
+    case "restaurar":
       return "cambio";
+    // Una nota del equipo no es un hecho de la orden: punto neutro.
+    case "nota":
+      return "neutro";
     default:
       return "inicio";
   }
@@ -1059,20 +1151,26 @@ export type EntradaDeTiempo = {
   cuando: string;
   hora: string;
   quien: string | null;
-  tipo: TipoEvento;
+  tipo: TipoEntrada;
   titulo: string;
   detalle: string | null;
   cuanto: string | null;
-  /** Los avances que «Deshacer» deshace: solo si TODOS los de esta entrada se pueden deshacer. `null`: no hay Deshacer. */
-  avanceIds: string[] | null;
   /** La salida o la vuelta que «Anular» anula (su id y cuál es): solo si la base dice que todavía se puede. `null`: no hay Anular. */
   anulable: { id: string; que: "salida" | "vuelta" } | null;
   /** Una salida o una vuelta que ya se anuló: se ve apagada, con su chip. */
   anulada: boolean;
-  /** Las prendas con falla que «Deshacer» deshace (ADR-0570): solo si todas las de esta entrada se pueden deshacer. `null`: no hay Deshacer. */
-  fallaIds: string[] | null;
   /** «anotó el jue 29 a las 09:12» cuando se anotó otro día que el que pasó; `null` si fue el mismo día (y entonces vale `hora`). */
   anotado: string | null;
+  /** Un «Terminé» (sus buenas o sus fallas) que todavía está vivo: se corrige o se elimina (ADR-0570, actividad 3). `null`: no se corrige. */
+  corregible: AnotacionCorregible | null;
+  /** La marca de una fase que no cuenta prendas (Ploteo), viva: se quita. */
+  marcaViva: { id: string; faseClave: FaseClave | null; faseNombre: string } | null;
+  /** Una eliminación que todavía no se restauró: su «Restaurar». */
+  restaurable: { cambioId: string } | null;
+  /** Una eliminación ya restaurada. */
+  restaurado: boolean;
+  /** Lo anotado que salió de una corrección. */
+  corregida: boolean;
 };
 
 export type DiaDeTiempo = { dia: string; etiqueta: string; hoy: boolean; entradas: EntradaDeTiempo[] };
@@ -1111,11 +1209,16 @@ function resumenPorColor(eventos: readonly EventoTiempo[], lineas: readonly Line
 }
 
 /**
- * La línea de tiempo agrupada por día (del más reciente al más viejo) y con lo que se anotó de una vez junto: un «Terminé» de varias tallas es UNA entrada, con su resumen por color
- * y un solo «Deshacer» si todos sus avances todavía se pueden deshacer. Salida, Vuelta y apertura van como los dice la base.
+ * La línea de tiempo agrupada por día (del más reciente al más viejo) y con lo que se anotó de una vez junto: un «Terminé» de varias tallas es UNA entrada, con su resumen por color.
+ * Salida, Vuelta y apertura van como los dice la base. Lo que un cambio quitó (y los Deshacer que escribió) sale de la vista y en su lugar va el cambio, con su motivo (ADR-0570,
+ * actividad 3): «Corrigió lo terminado en Costura · 25 → 23 · Por qué: …». Lo anotado que sigue vivo trae lo que hace falta para corregirlo.
  */
 export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[] {
-  const ordenados = [...p.lineaDeTiempo].sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando));
+  const ocultos = new Set(p.cambios.flatMap((c) => [...c.quitaIds, ...c.deshaceIds]));
+  const deshechos = new Set(p.deshechos);
+  const corregidos = new Set(p.cambios.filter((c) => c.accion === "corregir").flatMap((c) => c.poneIds));
+  const rehechos = new Set(p.cambios.filter((c) => c.accion === "corregir" || c.accion === "restaurar").flatMap((c) => c.poneIds));
+  const ordenados = p.lineaDeTiempo.filter((e) => !ocultos.has(e.id)).sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando));
   const grupos: EventoTiempo[][] = [];
   for (const e of ordenados) {
     const previo = grupos[grupos.length - 1];
@@ -1132,7 +1235,7 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
     if (mismo) previo.push(e);
     else grupos.push([e]);
   }
-  const dias_: DiaDeTiempo[] = [];
+  const entradas: EntradaDeTiempo[] = [];
   for (const g of grupos) {
     const e = g[0];
     const total = g.reduce((s, x) => s + x.cantidad, 0);
@@ -1165,26 +1268,41 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       cuanto = e.anula === "vuelta" ? cuantas(e.cantidad, "prenda buena", "prendas buenas") : cuantas(e.cantidad, "prenda", "prendas");
       detalle = e.motivo ? `Por qué: ${e.motivo}` : null;
     } else titulo = `Vuelta de ${nombreFase}`;
-    const todosDeshacibles = e.tipo === "avance" && g.every((x) => x.avanceId !== null);
-    const fallasDeshacibles = e.tipo === "falla" && g.every((x) => x.fallaId !== null);
-    // Anotado otro día que el que pasó (ADR-0570): la hora de «cuando» sería el mediodía puesto por la base; se dice cuándo se anotó.
-    const anotado = e.registradoEn && fechaLimaDe(e.registradoEn) !== fechaLimaDe(e.cuando) ? `anotó el ${diaCorto(fechaLimaDe(e.registradoEn))} a las ${horaLima(e.registradoEn)}` : null;
-    const entrada: EntradaDeTiempo = {
+    const vivos = g.every((x) => !deshechos.has(x.id));
+    const corregida = g.some((x) => corregidos.has(x.id));
+    const rehecha = g.some((x) => rehechos.has(x.id));
+    // Anotado otro día que el que pasó (ADR-0570): la hora de «cuando» sería el mediodía puesto por la base; se dice cuándo se anotó. Lo que salió de una corrección o una
+    // restauración lo dice con su verbo: «corrigió el jue 29…», nunca «anotó», que no sería cierto.
+    const anotado =
+      e.registradoEn && fechaLimaDe(e.registradoEn) !== fechaLimaDe(e.cuando)
+        ? `${corregida ? "corrigió" : rehecha ? "restauró" : "anotó"} el ${diaCorto(fechaLimaDe(e.registradoEn))} a las ${horaLima(e.registradoEn)}`
+        : null;
+    entradas.push({
       ids: g.map((x) => x.id),
       cuando: e.cuando,
-      hora: horaLima(e.registradoEn ?? e.cuando),
+      // Lo rehecho por un cambio conserva el momento de antes: su hora es la de entonces, no la del cambio.
+      hora: horaLima(rehecha ? e.cuando : (e.registradoEn ?? e.cuando)),
       quien: e.quienNombre,
       tipo: e.tipo,
       titulo,
       detalle,
       cuanto,
-      avanceIds: todosDeshacibles ? g.map((x) => x.avanceId as string) : null,
       anulable: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulable && !e.anulada ? { id: e.id, que: e.tipo } : null,
       anulada: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulada,
-      fallaIds: fallasDeshacibles ? g.map((x) => x.fallaId as string) : null,
       anotado,
-    };
-    const dia = fechaLimaDe(e.cuando);
+      corregible: (e.tipo === "avance" || e.tipo === "falla") && vivos && e.faseClave ? anotacionCorregible(g, e.faseClave, nombreFase) : null,
+      marcaViva: e.tipo === "marca" && vivos ? { id: e.id, faseClave: e.faseClave, faseNombre: nombreFase } : null,
+      restaurable: null,
+      restaurado: false,
+      corregida,
+    });
+  }
+  for (const c of p.cambios) entradas.push(entradaDeCambio(c, p.lineas));
+  // Lo que pasó y lo que se cambió, juntos y del más reciente al más viejo (un cambio va en el momento en que se hizo).
+  entradas.sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando));
+  const dias_: DiaDeTiempo[] = [];
+  for (const entrada of entradas) {
+    const dia = fechaLimaDe(entrada.cuando);
     const ultimo = dias_[dias_.length - 1];
     if (ultimo && ultimo.dia === dia) ultimo.entradas.push(entrada);
     else dias_.push({ dia, etiqueta: etiquetaDelDia(dia, hoy), hoy: dia === hoy, entradas: [entrada] });
@@ -1323,6 +1441,182 @@ export function diaParaLaBase(dia: string, hoy: string): string | null {
 export function fallasNuevas(antes: readonly EventoTiempo[], despues: readonly EventoTiempo[], fase: FaseClave): string[] {
   const conocidos = new Set(antes.map((e) => e.id));
   return despues.flatMap((e) => (e.tipo === "falla" && e.faseClave === fase && e.fallaId !== null && !conocidos.has(e.id) ? [e.fallaId] : []));
+}
+
+// ---------- Corregir, eliminar y restaurar, con su historia (ADR-0570, actividad 3) ----------
+// Felipe (2026-10-29): «editar con facilidad, eliminar con historial de cambio y comentario para entender qué pasó». Cualquier «Terminé» —de cualquier día, no solo el último— se
+// corrige (cantidades, fallas y día) o se elimina, siempre con su motivo, y lo eliminado se restaura. Nada se borra: la base deshace lo viejo y anota lo nuevo en un solo paso, y cada
+// cambio queda en `produccion_cambios`. Nada de esto decide algo nuevo: los rechazos son los de 20261029173000, con sus mismos hints.
+
+export const RPC_CORREGIR_ANOTACION = "corregir_anotacion_orden";
+export const RPC_ELIMINAR_ANOTACION = "eliminar_anotacion_orden";
+export const RPC_RESTAURAR_ANOTACION = "restaurar_anotacion_orden";
+export const RPC_COMENTAR_ORDEN = "comentar_orden";
+export const MAX_MOTIVO_CAMBIO = 300;
+export const MAX_NOTA_ORDEN = 500;
+/** Lo que pasa casi siempre, a un toque; lo demás se escribe. */
+export const MOTIVOS_CORREGIR = ["Cantidad equivocada", "Fecha equivocada", "Era de otra talla o color", "Se anotó dos veces"] as const;
+export const MOTIVOS_QUITAR_MARCA = ["Todavía no se hizo", "Se marcó por error"] as const;
+export const MOTIVOS_RESTAURAR = ["Se eliminó por error", "Sí se hizo"] as const;
+
+export type FallaGuardada = TermineGuardado["fallas"][number];
+
+/** Un «Terminé» vivo de la historia, listo para corregirlo: sus filas, su fase, cómo quedó y su día. */
+export type AnotacionCorregible = {
+  ids: string[];
+  faseClave: FaseClave;
+  faseNombre: string;
+  buenas: Record<string, number>;
+  fallas: FallaGuardada[];
+  dia: string;
+};
+
+function anotacionCorregible(g: readonly EventoTiempo[], faseClave: FaseClave, faseNombre: string): AnotacionCorregible {
+  const buenas: Record<string, number> = {};
+  const fallas: FallaGuardada[] = [];
+  for (const x of g) {
+    if (!x.varianteId) continue;
+    if (x.tipo === "avance") buenas[x.varianteId] = (buenas[x.varianteId] ?? 0) + x.cantidad;
+    else if (x.destino) fallas.push({ varianteId: x.varianteId, destino: x.destino, cantidad: x.cantidad, motivo: x.motivo ?? "" });
+  }
+  return { ids: g.map((x) => x.id), faseClave, faseNombre, buenas, fallas, dia: fechaLimaDe(g[0].cuando) };
+}
+
+const totalBuenas = (t: TermineGuardado | null): number => (t ? t.buenas.reduce((s, b) => s + b.cantidad, 0) : 0);
+const totalAnotado = (t: TermineGuardado | null): number => totalBuenas(t) + (t ? t.fallas.reduce((s, f) => s + f.cantidad, 0) : 0);
+
+function textoFallasGuardadas(fallas: readonly FallaGuardada[]): string {
+  const porDestino = { arreglo: 0, segunda: 0, perdida: 0 } as Record<DestinoFalla, number>;
+  for (const f of fallas) porDestino[f.destino] += f.cantidad;
+  return textoFallas(porDestino);
+}
+
+/** Qué cambió de un «Terminé» a otro, en palabras: «Negro M: 25 → 23 · con falla: 2 segundas · del mié 28 oct al jue 29 oct». `null` si no se ve diferencia. */
+export function queCambio(antes: TermineGuardado, despues: TermineGuardado, lineas: readonly LineaPagina[]): string | null {
+  const partes: string[] = [];
+  const orden = lineas.map((l) => l.varianteId);
+  const ids = [...new Set([...antes.buenas, ...despues.buenas].map((b) => b.varianteId))].sort((a, b) => orden.indexOf(a) - orden.indexOf(b));
+  const de = (t: TermineGuardado, id: string) => t.buenas.find((b) => b.varianteId === id)?.cantidad ?? 0;
+  for (const id of ids) {
+    const a = de(antes, id);
+    const d = de(despues, id);
+    if (a === d) continue;
+    const l = lineas.find((x) => x.varianteId === id);
+    partes.push(`${l ? `${l.colorNombre ?? "Sin color"} ${l.talla ?? "Única"}` : "Otra talla"}: ${a} → ${d}`);
+  }
+  const fa = textoFallasGuardadas(antes.fallas);
+  const fd = textoFallasGuardadas(despues.fallas);
+  if (fa !== fd) partes.push(fd ? `con falla: ${fd}` : "sin fallas");
+  const da = antes.hecho ? fechaLimaDe(antes.hecho) : null;
+  const dd = despues.hecho ? fechaLimaDe(despues.hecho) : null;
+  if (da && dd && da !== dd) partes.push(`del ${diaCorto(da)} al ${diaCorto(dd)}`);
+  return partes.length > 0 ? partes.join(" · ") : null;
+}
+
+/** Un cambio como entrada de la historia, en el momento en que se hizo: qué se cambió, de cuánto a cuánto y por qué. Una eliminación trae su «Restaurar». */
+function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): EntradaDeTiempo {
+  const fase = c.faseNombre ?? "";
+  const porque = c.texto ? `Por qué: ${c.texto}` : null;
+  let titulo: string;
+  let cuanto: string | null = null;
+  let detalle: string | null = porque;
+  if (c.accion === "nota") {
+    titulo = "Nota";
+    detalle = c.texto;
+  } else if (c.objeto === "marca") {
+    titulo = c.accion === "restaurar" ? `Volvió a marcar ${fase} como hecho` : `Quitó la marca de ${fase}`;
+  } else if (c.accion === "corregir") {
+    titulo = `Corrigió lo terminado en ${fase}`;
+    const a = totalBuenas(c.antes);
+    const d = totalBuenas(c.despues);
+    cuanto = a !== d ? `${a} → ${d}` : null;
+    detalle = [c.antes && c.despues ? queCambio(c.antes, c.despues, lineas) : null, porque].filter(Boolean).join(" · ") || null;
+  } else if (c.accion === "eliminar") {
+    titulo = `Eliminó lo terminado en ${fase}`;
+    cuanto = cuantas(totalAnotado(c.antes), "prenda", "prendas");
+    detalle = [c.antes?.hecho ? `del ${diaCorto(fechaLimaDe(c.antes.hecho))}` : null, porque].filter(Boolean).join(" · ") || null;
+  } else {
+    titulo = `Restauró lo terminado en ${fase}`;
+    cuanto = cuantas(totalAnotado(c.despues), "prenda", "prendas");
+  }
+  return {
+    ids: [c.id],
+    cuando: c.cuando,
+    hora: horaLima(c.cuando),
+    quien: c.quienNombre,
+    tipo: c.accion,
+    titulo,
+    detalle,
+    cuanto,
+    anulable: null,
+    anulada: false,
+    anotado: null,
+    corregible: null,
+    marcaViva: null,
+    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id } : null,
+    restaurado: c.accion === "eliminar" && c.restaurado,
+    corregida: false,
+  };
+}
+
+/** Lo que cabe en la corrección, por talla y color: lo que falta en la fase más lo que ocupaba esta anotación (sus buenas, segundas y perdidas; un arreglo no ocupaba lugar). */
+export function disponiblesParaCorregir(faltan: Readonly<Record<string, number>>, a: AnotacionCorregible): Record<string, number> {
+  const salida: Record<string, number> = { ...faltan };
+  for (const [id, n] of Object.entries(a.buenas)) salida[id] = (salida[id] ?? 0) + n;
+  for (const f of a.fallas) if (f.destino !== "arreglo") salida[f.varianteId] = (salida[f.varianteId] ?? 0) + f.cantidad;
+  return salida;
+}
+
+/** Las filas de falla de una anotación, como las escribe la hoja (y el motivo que comparten). */
+export function fallasDeLaAnotacion(a: AnotacionCorregible): { fallas: FallaBorrador[]; motivo: string } {
+  return { fallas: a.fallas.map((f) => ({ varianteId: f.varianteId, cantidad: String(f.cantidad), destino: f.destino })), motivo: a.fallas[0]?.motivo ?? "" };
+}
+
+/** Lo que impide guardar las cantidades corregidas: nada anotado (eso es «Eliminar») o más buenas de las que caben en una talla y color sin fallas (con fallas lo dice `problemasDeFallas`). */
+export function problemaDeCantidadesCorregidas(
+  disponibles: Readonly<Record<string, number>>,
+  cantidades: Readonly<Record<string, string>>,
+  fallas: readonly FallaBorrador[],
+  nombreDe: (varianteId: string) => string
+): string | null {
+  const conFalla = fallasPorVariante(fallas);
+  for (const [id, s] of Object.entries(cantidades)) {
+    const n = enteroDe(s ?? "0");
+    const tope = disponibles[id] ?? 0;
+    if (!conFalla.has(id) && n > tope) return `En ${nombreDe(id)} caben ${tope}: anotaste ${n}.`;
+  }
+  const total = Object.values(cantidades).reduce((s, x) => s + enteroDe(x ?? "0"), 0) + totalFallas(fallas);
+  return total === 0 ? "Si no quedó nada de esta anotación, usa «Eliminar»." : null;
+}
+
+/** ¿La corrección es igual a como estaba? Entonces no hay nada que guardar (la base repite: `corregir_sin_cambios`). */
+export function correccionSinCambios(a: AnotacionCorregible, cantidades: Readonly<Record<string, string>>, fallas: readonly FallaBorrador[], motivoFalla: string, dia: string): boolean {
+  if (dia !== a.dia) return false;
+  const ids = new Set([...Object.keys(a.buenas), ...Object.keys(cantidades)]);
+  for (const id of ids) if ((a.buenas[id] ?? 0) !== enteroDe(cantidades[id] ?? "0")) return false;
+  const clave = (f: { variante_id: string; destino: string; cantidad: number; motivo: string }) => `${f.variante_id}:${f.destino}:${f.cantidad}:${f.motivo}`;
+  const antes = a.fallas.map((f) => clave({ variante_id: f.varianteId, destino: f.destino, cantidad: f.cantidad, motivo: f.motivo })).sort();
+  const ahora = lineasDeFallas(fallas, motivoFalla).map(clave).sort();
+  return antes.length === ahora.length && antes.every((x, i) => x === ahora[i]);
+}
+
+/** El motivo de un cambio: obligatorio y de hasta 300 letras (la base repite: `cambio_sin_motivo`, `cambio_motivo_largo`). `null` = se puede. */
+export function problemaDeMotivoCambio(motivo: string): string | null {
+  if (motivo.trim() === "") return "Cuenta por qué: queda en la historia de la orden.";
+  if (motivo.trim().length > MAX_MOTIVO_CAMBIO) return `El motivo es muy largo: hasta ${MAX_MOTIVO_CAMBIO} letras.`;
+  return null;
+}
+
+/** Una nota del equipo: no vacía y de hasta 500 letras (la base repite: `nota_vacia`, `nota_larga`). */
+export function problemaDeNota(texto: string): string | null {
+  if (texto.trim() === "") return "Escribe la nota.";
+  if (texto.trim().length > MAX_NOTA_ORDEN) return `La nota es muy larga: hasta ${MAX_NOTA_ORDEN} letras.`;
+  return null;
+}
+
+/** La fase de una anotación de la historia, para abrir su hoja. */
+export function faseDeLaAnotacion(fases: readonly FasePagina[], faseClave: FaseClave | null): FasePagina | null {
+  return fases.find((f) => f.clave === faseClave) ?? null;
 }
 
 // ---------- Salida y Vuelta de un servicio (ADR-0400, decisión 4; actividad 4) ----------

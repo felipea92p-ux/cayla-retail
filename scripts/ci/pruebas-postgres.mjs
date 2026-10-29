@@ -1661,6 +1661,9 @@ export const PRUEBAS = [
   // «Terminé» con falla y con fecha (ADR-0570, actividad 2): segunda y perdida cierran la fase sin pasar a la siguiente; un arreglo no cierra hasta volver bueno; buenas + fallas
   // nunca pasan de lo que entró (tampoco por el registrar_avance de siempre); el día real, desde la apertura y nunca futuro; una falla se deshace una vez; nada se edita. ROLLBACK.
   "pruebas:produccion-termine-con-falla",
+  // Corregir, eliminar y restaurar cualquier anotación de una orden, con su historia (ADR-0570, actividad 3): uno que no es el último, el día, lo que la fase siguiente ya usó, la marca
+  // de Ploteo, restaurar una sola vez y sin pasarse, notas del equipo; nada se borra y cada cambio queda en produccion_cambios en la misma transacción. ROLLBACK.
+  "pruebas:produccion-correcciones",
   // «Lleva ojales y botones», un dato del MODELO (ADR-0551, migración 20261028053000): sin fila = nadie lo ha preguntado; guardar lo mismo no escribe ni anota; solo quien opera ese Taller guarda;
   // la tabla no se lee ni se escribe directo; la fila se va con el modelo. ROLLBACK.
   "pruebas:producto-taller",

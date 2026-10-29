@@ -1,4 +1,4 @@
-// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Cambiar quién», la «Salida» y la «Vuelta» de un servicio, «Anular» una de las dos, «Pasar al stock» y anotar la tela usada (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
+// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Corregir» lo anotado, quitar una marca o restaurar, una nota, «Cambiar quién», la «Salida» y la «Vuelta» de un servicio, «Anular» una de las dos, «Pasar al stock» y anotar la tela usada (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
 //
 // CONTRATO
 //   PROMETE: dado lo que la persona ya hizo en la hoja, la lista de campos con su «hecho» para que `useGuiaCampos` diga cuál está hecho, cuál sigue y qué falta antes del botón.
@@ -107,6 +107,55 @@ export function camposDeAnulacion(e: EleccionAnulacion): CampoDeGuia[] {
   return [
     { id: "motivo", nombre: "Por qué la anulas", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? "Cuéntanos por qué se anula." },
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esta anulación." },
+  ];
+}
+
+export type EleccionCorreccion = {
+  /** Lo que impide las cantidades (`problemaDeCantidadesCorregidas`), o `null`. */
+  problemaCantidades: string | null;
+  hayFallas: boolean;
+  problemaFallas: string | null;
+  problemaDia: string | null;
+  /** Lo que todavía no cambió nada (`correccionSinCambios`): las cantidades o el día tienen que moverse. */
+  sinCambios: boolean;
+  /** Lo que impide el motivo (`problemaDeMotivoCambio`), o `null`. */
+  problemaMotivo: string | null;
+  responsableListo: boolean;
+};
+
+/**
+ * «Corregir» un «Terminé» (ADR-0570, actividad 3): las cantidades y las fallas tal como debieron ser, el día, por qué se corrige y quién lo anota. `corregir_anotacion_orden` rechaza
+ * lo mismo que «Terminé» y además una corrección sin cambios o sin motivo: los campos son exactamente esos. «Eliminar» (en la misma hoja) solo pide el motivo y quién.
+ */
+export function camposDeCorreccion(e: EleccionCorreccion): CampoDeGuia[] {
+  return [
+    {
+      id: "cantidades",
+      nombre: "Cómo debió quedar",
+      requerido: true,
+      hecho: e.problemaCantidades === null && !e.sinCambios,
+      pendiente: e.problemaCantidades ?? "Cambia la cantidad o el día que estaba mal.",
+    },
+    ...(e.hayFallas ? [{ id: "fallas", nombre: "Las prendas con falla", requerido: true, hecho: !e.problemaFallas, pendiente: e.problemaFallas ?? "" }] : []),
+    { id: "dia", nombre: "Cuándo lo terminaste", requerido: true, hecho: !e.problemaDia, pendiente: e.problemaDia ?? "Elige el día en que lo terminaste." },
+    { id: "porque", nombre: "Por qué lo corriges", requerido: true, hecho: e.problemaMotivo === null, pendiente: e.problemaMotivo ?? "Cuenta por qué lo corriges." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este cambio." },
+  ];
+}
+
+/** Quitar la marca de Ploteo o restaurar lo eliminado: por qué (la base lo exige) y quién lo anota. */
+export function camposDeCambioConMotivo(e: EleccionAnulacion): CampoDeGuia[] {
+  return [
+    { id: "porque", nombre: "Por qué", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? "Cuenta por qué." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este cambio." },
+  ];
+}
+
+/** Una nota del equipo: qué quieres contar y quién la escribe. */
+export function camposDeNota(e: EleccionAnulacion): CampoDeGuia[] {
+  return [
+    { id: "texto", nombre: "La nota", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? "Escribe la nota." },
+    { id: "quien", nombre: "Quién la escribe", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién escribe la nota." },
   ];
 }
 

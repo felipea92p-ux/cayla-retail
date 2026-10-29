@@ -3,7 +3,8 @@
 **Estado:** aceptada.
 - Actividad 1 (la «Ruta viva», solo web): construida y probada en local.
 - Actividad 2 («Terminé» con falla y con fecha): construida y probada en local. Su migración `20261029164000` está SIN pegar en producción: va después de `20261029021000` y `20261029051000`.
-- Actividades 3 a 10: sin construir, en el orden de abajo.
+- Actividad 3 (corregir, eliminar y restaurar cualquier anotación, con historia y notas): construida y probada en local. Su migración `20261029173000` está SIN pegar: va después de `20261029164000`.
+- Actividades 4 a 10: sin construir, en el orden de abajo.
 **Fecha:** 2026-10-29.
 **Decidió:** Felipe, con 34 preguntas en 9 rondas, el 29-oct. Eligió la versión A de la orden y la A de Insumos mirando la maqueta `docs/maquetas/produccion-taller-2026-10/index.html`.
 **Sigue a:** ADR-0400 (la orden y sus fases), ADR-0551 (cinco pasos fijos), ADR-0554 (una tela con sus colores), ADR-0563 (forro y complementos) y ADR-0566 (agregar un paso).
@@ -129,9 +130,43 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
   - 98 buenas y 2 segundas con fecha de ayer cierran Habilitado, a Costura le entran 98, y la historia muestra «Con falla» en rojo y «anotó el jue 29».
   - Deshacer la falla reabre la fase sin borrar nada.
 
+### Actividad 3: corregir, eliminar y restaurar cualquier anotación, con historia y notas (migración `20261029173000`, web)
+
+**DECIDÍ:**
+- Una tabla nueva, `produccion_cambios`, de solo agregar: cada corrección, eliminación, restauración y nota de una orden, con quién, cuándo, el motivo y el antes y el después. Se escribe en la MISMA transacción que el cambio. La Actividad no alcanza como historia: si falla, falla en silencio.
+- **Corregir = deshacer lo viejo + anotar lo nuevo, en un solo paso.** Nada se edita ni se borra. El cambio guarda qué filas quitó y cuáles puso (`quita_ids`, `pone_ids`). Un Deshacer ya sabe qué deshace (`deshace_id`), así que no hace falta otra columna en lo anotado.
+- **La regla de «Terminé» sale a una sola función, `fn_produccion_escribir_termine`.** La usan «Terminé», corregir y restaurar. Una corrección valida exactamente lo mismo: nunca más buenas + segundas + perdidas que lo que entró.
+- **Ningún cambio deja a la fase siguiente con más prendas de las que le llegaron** (`fn_produccion_exigir_cadena`, la regla de `deshacer_avance` llevada a cualquier anotación, no solo a la última). Si la siguiente ya las usó, la base dice qué corregir primero.
+- Se corrige y se elimina un «Terminé» de cualquier día: sus buenas, sus fallas y su día. Si el día no cambia, se queda el momento de antes. La marca de Ploteo se quita y se restaura. Las salidas y vueltas siguen con su «Anular» de siempre, que ya pedía motivo.
+- Restaurar vuelve a anotar lo eliminado tal como era y con su día, con la misma regla. Si mientras tanto la fase se llenó, la base lo dice. Se restaura una sola vez (`restaura_id` único).
+- Las notas del equipo van en la misma tabla, valen en cualquier estado de la orden y no se borran: si algo cambió, se escribe otra.
+- **En la pantalla:** cada anotación viva lleva su lápiz (`<LapizEditar>`, la pieza de «editar» en una fila). El lápiz abre la hoja; «Eliminar» va dentro, a la izquierda del pie. Así el rojo no se repite en cada fila (antes había un «Anular» rojo por salida). Lo que un cambio quitó sale de la vista y en su lugar va el cambio: «Corrigió lo terminado en Habilitado 98 → 97 · Beige S: 8 → 7 · Por qué: Cantidad equivocada». Lo rehecho dice «corrigió el …» o «restauró el …», nunca «anotó». Las filas de falla son una sola pieza (`FilasDeFalla`) para «Terminé» y «Corregir».
+
+**DESCARTÉ:**
+- **Marcar cada fila con un `cambio_id` leído de una variable de la transacción (`set_config`).** Cualquier inserción del paso quedaría marcada sin que el código lo diga.
+- **Que restaurar solo vuelva a mostrar lo eliminado.** Las filas viejas ya están deshechas: restaurar es anotar de nuevo, con la misma regla.
+- **Agregar `deshace_id` a las filas de la línea de tiempo con reemplazos anclados.** Esas filas las reemplazan por su texto otras migraciones (la de las fallas, la de la marca de otra rama), y volver a pegar una de esas duplicaba el bloque. Se probó: la suite de fallas lo agarró. La orden manda los cambios y lo ya deshecho en dos claves aparte (`cambios`, `deshechos`).
+- **Borrar las notas.** Una nota mal escrita se corrige con otra; borrarla dejaría un hueco en lo que el equipo se contó.
+
+**SE ROMPE SI:**
+- Algún día otra función escribe en una fase sin tomar el candado de la orden. Hoy todas lo toman, y la prueba S3 lo vigila en las cuatro de esta obra.
+- Alguien vuelve a pegar `20261029164000` después de esta: «Terminé» queda con su copia de la regla. Hace lo mismo, pero ya no es una sola. Por eso, si se vuelve a pegar aquella, se pega esta después.
+
+**Lo que se probó:**
+- `pnpm pruebas:produccion-correcciones`: 28 casos. Cubren corregir uno que no es el último, el día, sin cambios, pasarse, lo que la fase siguiente ya usó, la marca, restaurar una sola vez y sin pasarse, notas, otra sede, una orden ya en el stock, la forma y que se pueda pegar otra vez.
+- La suite de fallas (21) ahora carga también esta migración: «Terminé» con la regla compartida hace lo mismo.
+- Las 25 suites de Producción, en la base hecha desde cero.
+- En el navegador (OP-000231), en escritorio y a 375 px:
+  - corregir Habilitado 98 → 97 deja el cambio en la historia y la entrada con «Corregida»;
+  - eliminar Corte con Habilitado ya anotado se rechaza con un mensaje que dice qué corregir primero;
+  - eliminar y restaurar Habilitado;
+  - una nota.
+
 ## Consecuencias
 
 - La ruta pasa de `RutaDeFases.tsx` a `RutaViva.tsx`, que también arma las dos columnas. La página le pasa la tela y el costo (`izquierda`) y la ficha y la historia (`derecha`).
 - Las anclas de la guía interactiva viven en un solo botón cada una. La huella de `produccion.ordenes.numero` se aceptó tras revisar la guía (144 controles).
 - **Pendiente fuera de esta actividad:** las cifras de la cabecera (`ResumenSede`, «S/ 0.00 de S/ …») se salen del ancho a 1024 px con el lateral abierto. No viene de este cambio.
+- «Deshacer» ya no está en la historia: lo reemplaza el lápiz, que corrige o elimina cualquier anotación con su porqué. Sigue en el aviso de éxito, para el error de recién. `DeshacerAvanceModal.tsx` se borró.
+- `fn_orden_produccion` devuelve dos claves más, `cambios` y `deshechos`. La huella de la guía se aceptó tras ponerla al día (168 controles).
 - **No se corrió todavía:** `tema:auditar`, `guias:recorrer`, `/chaos` y `/formidable`. Quedan para la actividad 10.
