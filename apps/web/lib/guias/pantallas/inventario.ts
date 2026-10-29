@@ -559,6 +559,13 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Cuántas prendas entraron y de cuántos modelos distintos en ese período. Es la cifra que compras suele pedir primero.",
     },
     {
+      id: "ingresos-descargar",
+      ancla: "movimientos.ingresos-descargar",
+      opcional: true,
+      titulo: "Bájalo a Excel",
+      texto: "Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo, o con una línea por cada color y talla. El archivo se abre directo en Excel. Así se lo pasas a compras.",
+    },
+    {
       id: "ingresos-buscador",
       ancla: "movimientos.ingresos-buscador",
       opcional: true,

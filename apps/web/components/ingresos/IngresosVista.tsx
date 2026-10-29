@@ -30,6 +30,9 @@ export function IngresosVista({ ingresos, rango, sede }: { ingresos: IngresosDeL
           apariencia={ingresos.apariencia}
           veCosto={ingresos.resumen.veCosto}
           rangoTexto={rango.texto}
+          sede={sede}
+          desde={rango.desde}
+          hasta={rango.hasta}
         />
       )}
       <p data-guia="movimientos.ingresos-nota" className="nota-cayla">

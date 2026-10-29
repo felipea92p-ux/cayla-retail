@@ -3,11 +3,14 @@
 import { Fragment, useState } from "react";
 import { SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { Chip } from "@/components/ui/Chip";
 import { MatrizIngreso } from "./MatrizIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
+import { descargarCsv } from "@/lib/exportar-csv";
+import { ENCABEZADOS_DETALLE, encabezadosPorModelo, filasPorColorYTalla, filasPorModelo, nombreArchivoIngresos } from "@/lib/ingresos-exportar";
 import type { Apariencia } from "@/lib/ingresos";
 import {
   ORDEN_INICIAL_INGRESOS,
@@ -35,11 +38,18 @@ export function IngresosTabla({
   apariencia,
   veCosto,
   rangoTexto,
+  sede,
+  desde,
+  hasta,
 }: {
   modelos: ModeloIngresado[];
   apariencia: Record<string, Apariencia>;
   veCosto: boolean;
   rangoTexto: string;
+  /** Para el nombre del archivo que se baja. */
+  sede: string;
+  desde: string;
+  hasta: string;
 }) {
   const [filtro, setFiltro] = useState<FiltroNovedad>("todos");
   const [busqueda, setBusqueda] = useState("");
@@ -67,6 +77,12 @@ export function IngresosTabla({
     setBusqueda("");
     setFiltro("todos");
   }
+  // Baja LO QUE SE VE (con la búsqueda, el filtro y el orden de la pantalla): armado acá, con lo que el rango ya trajo.
+  function bajar(conDetalle: boolean) {
+    const nombre = nombreArchivoIngresos({ sede, desde, hasta, detalle: conDetalle });
+    if (conDetalle) descargarCsv(nombre, ENCABEZADOS_DETALLE, filasPorColorYTalla(visibles));
+    else descargarCsv(nombre, encabezadosPorModelo(veCosto), filasPorModelo(visibles, veCosto));
+  }
 
   // Una plantilla para el encabezado y las filas (Tabla). El costo solo existe para quien lo ve: su columna no se dibuja vacía.
   const plantilla = veCosto ? "sm:grid-cols-[minmax(0,1fr)_5.5rem_8rem_8rem]" : "sm:grid-cols-[minmax(0,1fr)_5.5rem_8rem]";
@@ -79,9 +95,21 @@ export function IngresosTabla({
 
   return (
     <>
-      <p data-guia="movimientos.ingresos-total" className="text-sm text-taupe">
-        <b className="font-semibold text-tinta">{prendasTexto(prendas)}</b> en {modelosTexto(visibles.length)}, {rangoTexto}.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p data-guia="movimientos.ingresos-total" className="text-sm text-taupe">
+          <b className="font-semibold text-tinta">{prendasTexto(prendas)}</b> en {modelosTexto(visibles.length)}, {rangoTexto}.
+        </p>
+        {visibles.length > 0 && (
+          <div data-guia="movimientos.ingresos-descargar" className="flex flex-wrap items-center gap-2">
+            <BotonDescargar chico onClick={() => bajar(false)} title="Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo">
+              Descargar Excel
+            </BotonDescargar>
+            <BotonDescargar chico onClick={() => bajar(true)} title="Lo mismo, con una línea por cada color y talla de cada modelo">
+              Descargar Excel con tallas
+            </BotonDescargar>
+          </div>
+        )}
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Buscador
           valor={busqueda}

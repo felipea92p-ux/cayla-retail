@@ -2,7 +2,7 @@
   "guia": "inventario.movimientos",
   "ruta": "/inventario/movimientos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 66,
+  "total": 68,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
       "Pestanas «(sin nombre)»",
@@ -74,6 +74,8 @@
       "Link «Siguiente página»"
     ],
     "components/ingresos/IngresosTabla.tsx": [
+      "BotonDescargar «Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo»",
+      "BotonDescargar «Lo mismo, con una línea por cada color y talla de cada modelo»",
       "Pastilla «Todos»",
       "Pastilla «Nuevos»",
       "Pastilla «Reingresos»",
