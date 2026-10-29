@@ -51,7 +51,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       : claureLeido.falla
         ? { saldo: null }
         : claureLeido.datos.filas.length || claureLeido.datos.pagos.length
-          ? { saldo: resumenClaure(claureLeido.datos.filas, claureLeido.datos.pagos).saldo }
+          ? { saldo: resumenClaure(claureLeido.datos.filas, claureLeido.datos.pagos, claureLeido.datos.gastos).saldo }
           : null;
   const tiendas = datos ? tiendasDeLaLinea(datos) : [];
   const ventas = veModulo(persona, "rendimiento") ? await getVentasPorDia(tiendas, tramo.desde, tramo.hasta) : null;

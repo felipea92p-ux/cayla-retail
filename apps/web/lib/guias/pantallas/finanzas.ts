@@ -818,6 +818,13 @@ export const GUIA_FIN_CLAURE: Guia = {
       texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
     },
     {
+      id: "gastos",
+      ancla: "fin-claure.gastos",
+      opcional: true,
+      titulo: "Gastos de CLAURE que pagó CAYLA",
+      texto: "El alquiler, la luz, la limpieza… los paga CAYLA, pero una parte (o todo) es de CLAURE. Cada categoría tiene su parte (de fábrica: alquiler, luz, servicios básicos y mantenimiento, la mitad; limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA.",
+    },
+    {
       id: "pagos",
       ancla: "fin-claure.pagos",
       opcional: true,

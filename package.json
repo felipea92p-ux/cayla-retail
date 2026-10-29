@@ -385,6 +385,7 @@
     "pruebas:claure-club-y-clientes": "node scripts/pruebas/claure_club_y_clientes.mjs",
     "pruebas:claure-analisis-y-motores": "node scripts/pruebas/claure_analisis_y_motores.mjs",
     "pruebas:claure-apartados-y-pedidos-web": "node scripts/pruebas/claure_apartados_y_pedidos_web.mjs",
+    "pruebas:claure-gastos-por-empresa": "node scripts/pruebas/claure_gastos_por_empresa.mjs",
     "pruebas:stock-dueno": "node scripts/pruebas/stock_dueno.mjs",
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",

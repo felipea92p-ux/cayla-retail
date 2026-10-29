@@ -67,7 +67,7 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
   - [x] **6b. Rendimiento, metas, Comercial y «Mis ventas»** — migración `20261029030000`: once reemplazos anclados (`fn_rendimiento_*`, `fn_metas_equipo`, `fn_comercial_*`, `fn_mis_ventas_*`) con la regla de 6a; sus «Ayuda» dicen que lo de CLAURE no cuenta.
   - [x] **6c. Club y clientes** — migración `20261029035000`: una prenda de CLAURE no da puntos (`fn_club_monto_neto_venta`), una compra solo de CLAURE no cuenta (`fn_club_compras_netas`) y la ficha de la cliente no la lista (`fn_clienta_compras/cambios/devoluciones`). Decidido por defecto (Felipe pidió seguir sin parar): ver pendientes.
   - [x] **6d. Análisis y motores (la mitad que lee líneas de venta)** — migración `20261029041000`: 20 reemplazos anclados sobre 13 funciones (Análisis, `fn_unidades_vendidas` —lo que leen el plan de compra, su propuesta y sus resultados—, `fn_plan_compra`, `fn_historial_ventas`, Plan del piso, demanda, motor de demanda, `fn_frescura_decisiones`, rentabilidad, calidad por origen, costo estimado del Resumen y vitrina de la tienda web). La otra mitad (libro de movimientos y stock por dueño) queda como pendiente de Felipe, abajo.
-- [x] **7. Apartados y pedidos web** — migración `20261029043000`: el adelanto de un apartado (abonos) y el pago de un pedido web, que la venta guarda como `anticipo` sin cuenta, ahora entran a lo que se le debe, fechados el día que la prenda sale · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
+- [x] **7. Apartados y pedidos web** — migración `20261029043000`: el adelanto de un apartado (abonos) y el pago de un pedido web, que la venta guarda como `anticipo` sin cuenta, ahora entran a lo que se le debe, fechados el día que la prenda sale · [x] **8. Gastos por empresa** — migración `20261029044000`: reparto por categoría (`gasto_reparto_claure`), `fn_claure_gastos`, reclasificación en el Diario (479) y resta en el saldo y en el aviso del cierre; tarjeta y tabla en la pantalla CLAURE · [ ] 9. Cierre.
 
 **Decisiones tomadas en la actividad 2 (sin preguntar, con su porqué):**
 - La cuenta contable de lo que se le debe es la **479 «Otras cuentas por pagar — relacionadas»**, **provisional hasta el contador**: el Diario se arma al leer, así que cambiarla es una línea de `fn_asientos_dinero_y_caja`.
@@ -165,3 +165,16 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 **Pendientes que dejó la actividad 7:**
 - [ ] **Al pegar `20261029043000` en producción:** es un `create or replace` de `fn_claure_filas` (función propia): va después de `20261029004000`.
 - [ ] Un apartado cuyo adelanto se **devolvió** a la clienta después de entregar (caso raro) no se descuenta por separado; si pasa, el reembolso es una devolución normal.
+
+**Decisiones tomadas en la actividad 8 (por defecto, Felipe pidió seguir sin parar; las dos frases ambiguas se leyeron así):**
+- **«La planilla, la limpieza y las bolsas solo son de CLAURE»** = el 100 % de limpieza y de bolsas es de CLAURE. **La planilla NO se tocó**: viene de Dynamic y no hay a quién atribuirla (no hay colaboradores por empresa).
+- **«Mantenimiento, luz y alquiler se dividen entre los dos»** = 50/50 de fábrica, más servicios básicos (donde Gasto rápido anota «Luz», «Agua» e «Internet»). Se puede cambiar por categoría en `gasto_reparto_claure`.
+- **El reparto es por categoría** (la clave estable de un gasto en la base). «Bolsas» y «Limpieza» eran conceptos de Gasto rápido dentro de «suministros»: ahora tienen categoría propia (20 categorías, no 18); los gastos de antes no se reclasifican.
+- **El IGV de la factura del gasto sigue siendo de CAYLA**: solo la parte sin IGV pasa a la 479.
+
+**Pendientes que dejó la actividad 8:**
+- [ ] **Decisión de Felipe:** ¿«servicios básicos» (luz, agua, internet, baño) va 50/50 completo, o solo la luz? Hoy toda la categoría.
+- [ ] **Falta una pantalla para cambiar los porcentajes** (hoy se cambian por SQL en `gasto_reparto_claure`): es una escritura nueva y pide su responsable, módulo y guía.
+- [ ] **Planilla de las personas de CLAURE:** no hay a quién atribuirla (los colaboradores no tienen empresa).
+- [ ] **Al pegar `20261029044000` en producción:** crea una tabla, dos categorías y reemplaza `fn_asientos_claure` y `fn_claure_cierre` (funciones propias): va después de `20261029043000` y **antes que la web** (Gasto rápido manda «bolsas» y «limpieza», que sin la migración no existen).
+- [ ] Los gastos de «suministros» de antes (bolsas y limpieza) siguen siendo 100 % de CAYLA; si hay algunos desde el 23-oct, Felipe decide si se reclasifican.

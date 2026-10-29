@@ -739,6 +739,11 @@ export const PRUEBAS = [
   // sale no se debe nada; lo cobrado de siempre no cambia; las migraciones se repegan. Cada caso: ROLLBACK.
   "pruebas:claure-apartados-y-pedidos-web",
 
+  // Gastos por empresa (ADR-0560, actividad 8): la parte de CLAURE de un gasto de Lima (reparto por categoría: alquiler, luz, servicios básicos y mantenimiento 50 %; limpieza y bolsas 100 %) baja
+  // lo que se le debe a Claudia (fn_claure_gastos, el aviso del cierre de caja) y sale del gasto de CAYLA en el Diario (479 al debe) y en el Estado de resultados; no cuenta el gasto de otra sede,
+  // el anulado, el de una categoría sin reparto ni el de antes del arranque; los candados; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-gastos-por-empresa",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

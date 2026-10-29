@@ -2120,6 +2120,10 @@
   .fin-cifras.fin-cinco {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
+  /* Seis cifras (CLAURE, con «Gastos suyos» cuando CAYLA le pagó gastos). */
+  .fin-cifras.fin-seis {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 
   /* «Para decidir hoy»: lo que está en juego, en tinta, y de qué pantalla sale, en taupe. */
   .fin-decidir .fin-impacto {
@@ -2169,12 +2173,14 @@
   }
 
   @media (max-width: 1180px) {
-    .fin-cifras.fin-cinco {
+    .fin-cifras.fin-cinco,
+    .fin-cifras.fin-seis {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
   @media (max-width: 860px) {
-    .fin-cifras.fin-cinco {
+    .fin-cifras.fin-cinco,
+    .fin-cifras.fin-seis {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .fin-frase > b {
@@ -2182,7 +2188,8 @@
     }
   }
   @media (max-width: 480px) {
-    .fin-cifras.fin-cinco {
+    .fin-cifras.fin-cinco,
+    .fin-cifras.fin-seis {
       grid-template-columns: 1fr;
     }
   }

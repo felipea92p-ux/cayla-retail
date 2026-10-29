@@ -21,6 +21,8 @@ const CATEGORIAS_DE_LA_BASE = [
   "servicios_basicos",
   "transporte",
   "suministros",
+  "bolsas",
+  "limpieza",
   "mantenimiento",
   "publicidad",
   "asesoria",

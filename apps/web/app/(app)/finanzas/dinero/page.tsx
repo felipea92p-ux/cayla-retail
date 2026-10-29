@@ -78,7 +78,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       respuesta={{
         pregunta: preguntaDeDinero("donde", quien),
         valor: ctx.cuentas.falla ? null : tienes.total,
-        chips: [...chipsDondeEsta(tienes), ...(claure && !claure.falla ? chipsDisponible(tienes.total, resumenClaure(claure.datos.filas, claure.datos.pagos).saldo) : [])],
+        chips: [...chipsDondeEsta(tienes), ...(claure && !claure.falla ? chipsDisponible(tienes.total, resumenClaure(claure.datos.filas, claure.datos.pagos, claure.datos.gastos).saldo) : [])],
       }}
       orillo={{ porSede: orilloDeDinero(ctx.cuentas.datos), que: "en plata" }}
       sedes={telar.sedes}

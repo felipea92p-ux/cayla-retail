@@ -20,7 +20,7 @@ export default async function ClaureDineroPage({ searchParams }: { searchParams:
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sedeDeLaUrl(sp)));
   const [cuenta, telar] = await Promise.all([getCuentaClaure(), getSedesDelTelar()]);
-  const resumen = resumenClaure(cuenta.datos.filas, cuenta.datos.pagos);
+  const resumen = resumenClaure(cuenta.datos.filas, cuenta.datos.pagos, cuenta.datos.gastos);
   const respuesta = respuestaClaure(resumen.saldo);
   const nombres = new Set(cuenta.datos.filas.map((f) => ctx.ubicaciones.find((u) => u.id === f.ubicacionId)?.nombre).filter((n): n is string => !!n));
 
@@ -33,7 +33,7 @@ export default async function ClaureDineroPage({ searchParams }: { searchParams:
       respuesta={{
         pregunta: respuesta.pregunta,
         valor: cuenta.falla ? null : respuesta.valor,
-        chips: cuenta.falla ? [] : chipsClaure(resumen, cuenta.datos.filas.length > 0 || cuenta.datos.pagos.length > 0),
+        chips: cuenta.falla ? [] : chipsClaure(resumen, cuenta.datos.filas.length > 0 || cuenta.datos.pagos.length > 0 || cuenta.datos.gastos.length > 0),
       }}
       orillo={null}
       sedes={telar.sedes}
@@ -43,7 +43,7 @@ export default async function ClaureDineroPage({ searchParams }: { searchParams:
       hoy={hoy}
       fallas={[ctx.cuentas.falla, cuenta.falla].filter((f): f is string => !!f)}
     >
-      {!cuenta.falla && <CuentaClaure filas={cuenta.datos.filas} pagos={cuenta.datos.pagos} desde={cuenta.datos.desde} esLider={ctx.esLider} />}
+      {!cuenta.falla && <CuentaClaure filas={cuenta.datos.filas} pagos={cuenta.datos.pagos} gastos={cuenta.datos.gastos} desde={cuenta.datos.desde} esLider={ctx.esLider} />}
     </PantallaDinero>
   );
 }

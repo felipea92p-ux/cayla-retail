@@ -83,6 +83,7 @@ export function CuentasConClaudia({ cierre }: { cierre: CierreClaure }) {
           {hoy.devuelto > 0 && <Fila etiqueta="− Devuelto hoy" valor={hoy.devuelto} />}
           {hoy.comision > 0 && <Fila etiqueta="− Comisión del POS (estimada)" valor={hoy.comision} />}
           {hoy.pagado > 0 && <Fila etiqueta="− Ya pagado hoy" valor={hoy.pagado} />}
+          {hoy.gastos > 0 && <Fila etiqueta="− Gastos suyos que pagó CAYLA hoy" valor={hoy.gastos} />}
           <div className="flex justify-between gap-2 border-t border-sand pt-1 font-semibold text-tinta">
             <dt>{titular.frase}</dt>
             <dd className="tabular-nums">{soles(titular.monto)}</dd>

@@ -1998,6 +1998,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     pago de medio `anticipo` SIN cuenta, así que `fn_claure_filas` (A1) no lo veía. Ahora suma también, por la parte de CLAURE de la venta, los abonos de `separacion_pagos` (no efectivo) y los pagos `aprobado` y no anulados de
     `pedido_web_pagos`, en la cuenta donde cayó cada uno y fechados el día de la venta: se le debe a Claudia desde que la prenda sale, no desde el abono. Mientras no hay venta no se debe nada. Lo leen la pantalla CLAURE,
     `fn_claure_cuenta` y el aviso del cierre de caja sin cambiar. Prueba: `pnpm pruebas:claure-apartados-y-pedidos-web`.
+    **Gastos por empresa (actividad 8, 20261029044000):** `gasto_reparto_claure(categoria, pct_claure)` (tabla con RLS y sin políticas: se lee por funciones) dice qué parte de cada categoría de gasto de una sede donde opera CLAURE es de
+    CLAURE; de fábrica alquileres, luz, servicios básicos y mantenimiento 50 %, y las categorías nuevas `limpieza` y `bolsas` 100 %. `fn_claure_gastos_base` (interna) saca la parte de cada gasto vigente desde el arranque de la
+    cuenta; `fn_claure_gastos()` (candado de `fn_claure_cuenta`) la lista para la web (`getCuentaClaure` → `GastoClaure`, `resumenClaure(filas, pagos, gastos)`: la suma BAJA el saldo; tarjeta «Gastos suyos» y tabla en la pantalla
+    CLAURE). El Diario (`fn_asientos_claure`, redefinida) reclasifica la parte sin IGV del gasto de CAYLA a la 479 al debe, así que el Estado de resultados la deja fuera; el aviso del cierre (`fn_claure_cierre`, parchada) la resta y la dice
+    en `hoy.gastos` (`cierre-claure-reglas.ts`, `CuentasConClaudia`). Gasto rápido: «Bolsas» y «Limpieza» van a sus categorías propias (`categoriasDeAntes: ["suministros"]` reconoce los de antes). Prueba:
+    `pnpm pruebas:claure-gastos-por-empresa`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

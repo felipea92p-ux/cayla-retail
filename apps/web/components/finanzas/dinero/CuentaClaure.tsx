@@ -9,6 +9,7 @@ import { Herramientas, PieTabla, Superficie } from "@/components/finanzas/kit";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import {
   NOTA_CLAURE,
+  NOTA_GASTOS_CLAURE,
   NOTA_PAGOS_CLAURE,
   cambiosPorRevisar,
   filasContadas,
@@ -20,6 +21,7 @@ import {
   textoMedioClaure,
   textoOrigenClaure,
   type FilaClaure,
+  type GastoClaure,
   type PagoClaure,
 } from "@/lib/cuenta-claure-reglas";
 
@@ -29,10 +31,10 @@ import {
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function CuentaClaure({ filas, pagos, desde, esLider }: { filas: FilaClaure[]; pagos: PagoClaure[]; desde: string | null; esLider: boolean }) {
+export function CuentaClaure({ filas, pagos, gastos, desde, esLider }: { filas: FilaClaure[]; pagos: PagoClaure[]; gastos: GastoClaure[]; desde: string | null; esLider: boolean }) {
   const contadas = filasContadas(filas);
   const cambios = cambiosPorRevisar(filas);
-  const r = resumenClaure(filas, pagos);
+  const r = resumenClaure(filas, pagos, gastos);
   const nCobros = contadas.filter((f) => f.origen === "venta").reduce((a, f) => a + f.nPagos, 0);
 
   return (
@@ -42,7 +44,7 @@ export function CuentaClaure({ filas, pagos, desde, esLider }: { filas: FilaClau
         {fraseClaure(desde)}
       </p>
 
-      {contadas.length === 0 && cambios.length === 0 && pagos.length === 0 ? (
+      {contadas.length === 0 && cambios.length === 0 && pagos.length === 0 && gastos.length === 0 ? (
         <div {...entra(1)}>
           <Superficie>
             <Vacio icono={<Handshake />} titulo="Todavía no hay cobros de CLAURE en cuentas de CAYLA">
@@ -52,7 +54,7 @@ export function CuentaClaure({ filas, pagos, desde, esLider }: { filas: FilaClau
         </div>
       ) : (
         <>
-          <section className="fin-cifras fin-cinco" data-guia="fin-claure.cifras">
+          <section className={`fin-cifras ${gastos.length > 0 ? "fin-seis" : "fin-cinco"}`} data-guia="fin-claure.cifras">
             <TarjetaCifra etiqueta="Cobrado en tus cuentas" valor={soles(r.cobrado)} {...entra(1)}>
               {plural(nCobros, "pago", "pagos")} de prendas de CLAURE
             </TarjetaCifra>
@@ -65,6 +67,11 @@ export function CuentaClaure({ filas, pagos, desde, esLider }: { filas: FilaClau
             <TarjetaCifra etiqueta="Ya pagado" valor={soles(r.pagado)} {...entra(4)}>
               {plural(pagos.length, "pago", "pagos")} a CLAURE
             </TarjetaCifra>
+            {gastos.length > 0 && (
+              <TarjetaCifra etiqueta="Gastos suyos" valor={soles(r.gastos)} {...entra(5)}>
+                {plural(gastos.length, "gasto", "gastos")} que pagó CAYLA
+              </TarjetaCifra>
+            )}
             <TarjetaCifra etiqueta="IGV incluido" valor={soles(r.igv)} {...entra(5)}>
               de lo cobrado menos lo devuelto
             </TarjetaCifra>
@@ -131,7 +138,51 @@ export function CuentaClaure({ filas, pagos, desde, esLider }: { filas: FilaClau
             </div>
           )}
 
-          <div {...entra(8)}>
+          {gastos.length > 0 && (
+            <div {...entra(8)}>
+              <Superficie className="anim-sube" guia="fin-claure.gastos">
+                <Herramientas>
+                  <b className="text-sm font-semibold text-tinta">Gastos de CLAURE que pagó CAYLA</b>
+                </Herramientas>
+                <div className="fin-tabla-wrap">
+                  <table className="fin-tabla">{/* unificar-fijo: la tabla del kit de Finanzas (fin-tabla, ADR-0195 y El telar), como las demás caras de Cuentas y dinero; Felipe no la unió en la ronda 7 */}
+                    <thead>
+                      <tr>
+                        <th>Día</th>
+                        <th>Gasto</th>
+                        <th className="fin-num">Pagó CAYLA</th>
+                        <th className="fin-num">De CLAURE</th>
+                        <th className="fin-num">Se resta</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gastos.map((g) => (
+                        <tr key={g.gastoId}>
+                          <td data-l="Día">{fechaCorta(g.fecha)}</td>
+                          <td className="fin-ancha" data-l="Gasto">
+                            <b>{g.descripcion || g.categoriaNombre}</b>
+                            <span className="fin-sub">{g.categoriaNombre}</span>
+                          </td>
+                          <td className="fin-num" data-l="Pagó CAYLA">
+                            {soles(g.montoTotal)}
+                          </td>
+                          <td className="fin-num" data-l="De CLAURE">
+                            {Math.round(g.pct)} %
+                          </td>
+                          <td className="fin-num" data-l="Se resta">
+                            <b>{soles(g.parte)}</b>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <PieTabla>{NOTA_GASTOS_CLAURE}</PieTabla>
+              </Superficie>
+            </div>
+          )}
+
+          <div {...entra(9)}>
             <Superficie className="anim-sube" guia="fin-claure.pagos">
               <Herramientas>
                 <b className="text-sm font-semibold text-tinta">Lo que ya se le pagó</b>

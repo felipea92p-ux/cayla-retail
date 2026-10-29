@@ -16,7 +16,7 @@ const CRUDO = {
   puede_pagar: true,
   saldo: 175.6,
   saldo_anterior: 49,
-  hoy: { cobrado: 168, devuelto: 0, comision: 1.4, pagado: 40 },
+  hoy: { cobrado: 168, devuelto: 0, comision: 1.4, pagado: 40, gastos: 0 },
   por_medio: [
     { medio: "tarjeta", monto: 50, comision: 1.4 },
     { medio: "yape", monto: 118, comision: 0 },
@@ -34,7 +34,7 @@ describe("leerCierreClaure", () => {
       puedePagar: true,
       saldo: 175.6,
       saldoAnterior: 49,
-      hoy: { cobrado: 168, comision: 1.4, pagado: 40 },
+      hoy: { cobrado: 168, comision: 1.4, pagado: 40, gastos: 0 },
       efectivo: { total: 200, claure: 150, cayla: 50 },
     });
     expect(leerCierreClaure(CRUDO)!.porMedio).toHaveLength(2);
@@ -62,8 +62,8 @@ describe("lo que dice el bloque", () => {
   });
   it("la línea de hoy dice cuánto y con qué medios; sin cobros lo dice", () => {
     expect(lineaDeHoy(cierre())).toBe("Hoy se cobró S/ 168.00 de CLAURE en tus cuentas (Tarjeta S/ 50.00 · Yape S/ 118.00), la comisión del POS es S/ 1.40.");
-    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, comision: 0, pagado: 0 }, porMedio: [] }))).toBe("Hoy no se cobró nada de CLAURE en tus cuentas.");
-    expect(lineaDeHoy(cierre({ hoy: { cobrado: 100, devuelto: 30, comision: 0, pagado: 0 } }))).toContain("se devolvió S/ 30.00");
+    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, comision: 0, pagado: 0, gastos: 0 }, porMedio: [] }))).toBe("Hoy no se cobró nada de CLAURE en tus cuentas.");
+    expect(lineaDeHoy(cierre({ hoy: { cobrado: 100, devuelto: 30, comision: 0, pagado: 0, gastos: 0 } }))).toContain("se devolvió S/ 30.00");
   });
   it("el efectivo se dice partido: lo de CLAURE no suma a lo que se le debe", () => {
     expect(lineaDelEfectivo(cierre())).toBe("Del efectivo de hoy, S/ 150.00 es de CLAURE (lo tiene Claudia, no suma a lo que se le debe) y S/ 50.00 es de CAYLA.");
@@ -86,7 +86,7 @@ describe("mensajeParaClaudia", () => {
     );
   });
   it("no pone renglones vacíos: sin comisión, devoluciones, pagos ni efectivo de CLAURE, solo lo cobrado y el saldo", () => {
-    const m = mensajeParaClaudia(cierre({ hoy: { cobrado: 0, devuelto: 0, comision: 0, pagado: 0 }, porMedio: [], efectivo: { total: 0, claure: 0, cayla: 0 } }));
+    const m = mensajeParaClaudia(cierre({ hoy: { cobrado: 0, devuelto: 0, comision: 0, pagado: 0, gastos: 0 }, porMedio: [], efectivo: { total: 0, claure: 0, cayla: 0 } }));
     expect(m).not.toContain("Comisión");
     expect(m).not.toContain("Devuelto");
     expect(m).not.toContain("Ya se te pagó");
@@ -95,5 +95,25 @@ describe("mensajeParaClaudia", () => {
   });
   it("si se le pagó de más, el saldo dice que queda a favor de CAYLA", () => {
     expect(mensajeParaClaudia(cierre({ saldo: -2.4 }))).toContain("Saldo: se te pagó de más, S/ 2.40 quedan a favor de CAYLA.");
+  });
+});
+
+describe("los gastos de CLAURE que pagó CAYLA (ADR-0560, actividad 8)", () => {
+  const conGastos = (gastos: number) => cierre({ hoy: { cobrado: 168, devuelto: 0, comision: 1.4, pagado: 0, gastos } });
+
+  it("el cierre lee `hoy.gastos` de la base (0 si no viene: una base sin la migración)", () => {
+    expect(leerCierreClaure({ hay_claure: true, hoy: { cobrado: 100, gastos: 708 } })?.hoy.gastos).toBe(708);
+    expect(leerCierreClaure({ hay_claure: true, hoy: { cobrado: 100 } })?.hoy.gastos).toBe(0);
+  });
+
+  it("la línea de hoy dice cuánto se restó, y un día solo con gastos ya no dice que no pasó nada", () => {
+    expect(lineaDeHoy(conGastos(708))).toContain("se restan S/\u00a0708.00 de gastos suyos que pagó CAYLA");
+    expect(lineaDeHoy(cierre({ hoy: { cobrado: 0, devuelto: 0, comision: 0, pagado: 0, gastos: 118 }, porMedio: [] }))).toContain("se restan");
+    expect(lineaDeHoy(conGastos(0))).not.toContain("gastos suyos");
+  });
+
+  it("el mensaje para Claudia los dice aparte", () => {
+    expect(mensajeParaClaudia(conGastos(118))).toContain("• Gastos tuyos que pagó CAYLA hoy (se restan): S/\u00a0118.00");
+    expect(mensajeParaClaudia(conGastos(0))).not.toContain("Gastos tuyos");
   });
 });

@@ -7,6 +7,7 @@ import {
   filasContadas,
   fraseClaure,
   leerFilaClaure,
+  leerGastoClaure,
   leerPagoClaure,
   leerVentasClaure,
   lineaImpuestosClaure,
@@ -85,7 +86,7 @@ describe("resumenClaure", () => {
     expect(resumenClaure(FILAS).sinTarifa).toBe(1);
   });
   it("sin filas todo es cero", () => {
-    expect(resumenClaure([])).toEqual({ cobrado: 0, devuelto: 0, comision: 0, sinTarifa: 0, pagado: 0, saldo: 0, igv: 0, cambios: { n: 0, monto: 0 } });
+    expect(resumenClaure([])).toEqual({ cobrado: 0, devuelto: 0, comision: 0, sinTarifa: 0, pagado: 0, gastos: 0, saldo: 0, igv: 0, cambios: { n: 0, monto: 0 } });
   });
   it("lo ya pagado baja el saldo (varios pagos, también parciales)", () => {
     const r = resumenClaure(FILAS, [pago(50), pago(20.5)]);
@@ -205,5 +206,40 @@ describe("lo vendido de CLAURE en un período (ADR-0560, actividad 5)", () => {
     expect(n).toContain("Cuentas y dinero ▸ CLAURE");
     expect(notaResultadosClaure(null)).toBeNull();
     expect(notaResultadosClaure({ ventas: 0, igv: 0, base: 0, costo: 5 })).toBeNull();
+  });
+});
+
+// Lo mismo que comprueba `scripts/pruebas/claure_gastos_por_empresa.mjs` contra Postgres: la parte de CLAURE de cada gasto baja lo que se le debe.
+describe("los gastos de CLAURE que pagó CAYLA (ADR-0560, actividad 8)", () => {
+  const crudo = [
+    { gasto_id: "g1", fecha: "2026-10-28", ubicacion_id: "lim", categoria: "alquileres", categoria_nombre: "Alquileres", descripcion: "Alquiler de octubre", monto_total: "1180.00", pct: "50.00", parte: "590.00" },
+    { gasto_id: "g2", fecha: "2026-10-28", ubicacion_id: "lim", categoria: "limpieza", categoria_nombre: "Limpieza", descripcion: "Lejía", monto_total: "118.00", pct: "100.00", parte: "118.00" },
+  ].map(leerGastoClaure);
+
+  it("lee lo que devuelve la base", () => {
+    expect(crudo[0]).toEqual({
+      gastoId: "g1",
+      fecha: "2026-10-28",
+      ubicacionId: "lim",
+      categoria: "alquileres",
+      categoriaNombre: "Alquileres",
+      descripcion: "Alquiler de octubre",
+      montoTotal: 1180,
+      pct: 50,
+      parte: 590,
+    });
+  });
+
+  it("su parte baja el saldo, y se dice aparte (sin gastos, el saldo es el de siempre)", () => {
+    const sin = resumenClaure(FILAS);
+    const con = resumenClaure(FILAS, [], crudo);
+    expect(con.gastos).toBe(708);
+    expect(con.saldo).toBe(Math.round((sin.saldo - 708) * 100) / 100);
+    expect(sin.gastos).toBe(0);
+  });
+
+  it("un chip dice cuánto es de gastos suyos; sin gastos no hay chip", () => {
+    expect(chipsClaure(resumenClaure(FILAS, [], crudo), true).some((c) => c.texto.startsWith("Gastos suyos que pagó CAYLA"))).toBe(true);
+    expect(chipsClaure(resumenClaure(FILAS), true).some((c) => c.texto.includes("Gastos suyos"))).toBe(false);
   });
 });

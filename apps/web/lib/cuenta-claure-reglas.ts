@@ -50,6 +50,37 @@ export function leerFilaClaure(r: Record<string, unknown>): FilaClaure {
   };
 }
 
+/** Un gasto que CAYLA pagó y que en parte es de CLAURE (`fn_claure_gastos`, 20261029044000): su parte baja lo que se le debe a Claudia. */
+export type GastoClaure = {
+  gastoId: string;
+  /** El día del gasto (`aaaa-mm-dd`). */
+  fecha: string;
+  ubicacionId: string | null;
+  categoria: string;
+  categoriaNombre: string;
+  descripcion: string;
+  /** Lo que CAYLA pagó en total. */
+  montoTotal: number;
+  /** Qué parte de esa categoría es de CLAURE (0 a 100). */
+  pct: number;
+  /** La parte de CLAURE: monto pagado × su %. */
+  parte: number;
+};
+
+export function leerGastoClaure(r: Record<string, unknown>): GastoClaure {
+  return {
+    gastoId: String(r.gasto_id ?? ""),
+    fecha: String(r.fecha ?? "").slice(0, 10),
+    ubicacionId: r.ubicacion_id ? String(r.ubicacion_id) : null,
+    categoria: String(r.categoria ?? ""),
+    categoriaNombre: String(r.categoria_nombre ?? r.categoria ?? ""),
+    descripcion: String(r.descripcion ?? ""),
+    montoTotal: numero(r.monto_total),
+    pct: numero(r.pct),
+    parte: numero(r.parte),
+  };
+}
+
 /** Un pago a CLAURE: plata que salió de un banco de CAYLA para pagarle a Claudia (`movimientos_dinero.tipo = 'pago_claure'`). */
 export type PagoClaure = {
   id: string;
@@ -87,7 +118,9 @@ export type ResumenClaure = {
   sinTarifa: number;
   /** Lo que ya se le pagó a CLAURE (pagos vigentes). */
   pagado: number;
-  /** Lo que se le debe a CLAURE: cobrado − devuelto − comisión − pagado. Negativo si se le pagó de más: queda a favor de CAYLA. */
+  /** La parte de CLAURE de los gastos que pagó CAYLA (alquiler, luz, limpieza…): también baja lo que se le debe. */
+  gastos: number;
+  /** Lo que se le debe a CLAURE: cobrado − devuelto − comisión − pagado − gastos suyos que pagó CAYLA. Negativo si se le pagó de más: queda a favor de CAYLA. */
   saldo: number;
   /** El IGV que va incluido en lo cobrado menos lo devuelto (la boleta sale con el RUC de CAYLA). */
   igv: number;
@@ -95,7 +128,7 @@ export type ResumenClaure = {
   cambios: { n: number; monto: number };
 };
 
-export function resumenClaure(filas: readonly FilaClaure[], pagos: readonly PagoClaure[] = []): ResumenClaure {
+export function resumenClaure(filas: readonly FilaClaure[], pagos: readonly PagoClaure[] = [], gastos: readonly GastoClaure[] = []): ResumenClaure {
   let cobrado = 0;
   let devuelto = 0;
   let comision = 0;
@@ -116,13 +149,15 @@ export function resumenClaure(filas: readonly FilaClaure[], pagos: readonly Pago
     else comision += f.comision;
   }
   const pagado = pagos.reduce((a, p) => a + p.monto, 0);
+  const deGastos = gastos.reduce((a, g) => a + g.parte, 0);
   return {
     cobrado: redondear(cobrado),
     devuelto: redondear(devuelto),
     comision: redondear(comision),
     sinTarifa,
     pagado: redondear(pagado),
-    saldo: redondear(cobrado - devuelto - comision - pagado),
+    gastos: redondear(deGastos),
+    saldo: redondear(cobrado - devuelto - comision - pagado - deGastos),
     igv: redondear(igv),
     cambios: { n: nCambios, monto: redondear(montoCambios) },
   };
@@ -170,6 +205,7 @@ export function chipsClaure(r: ResumenClaure, hayDatos: boolean): ChipRespuesta[
   if (r.devuelto > 0) chips.push({ texto: `Devuelto ${soles(r.devuelto)}`, tono: "pizarra" });
   if (r.comision > 0) chips.push({ texto: `Comisión del POS ${soles(r.comision)}`, tono: "pizarra" });
   if (r.pagado > 0) chips.push({ texto: `Ya pagado ${soles(r.pagado)}`, tono: "verde" });
+  if (r.gastos > 0) chips.push({ texto: `Gastos suyos que pagó CAYLA ${soles(r.gastos)}`, tono: "pizarra" });
   if (r.saldo < 0) chips.push({ texto: "Se le pagó de más: queda a favor de CAYLA", tono: "ambar" });
   if (r.sinTarifa > 0) chips.push({ texto: `${r.sinTarifa} ${r.sinTarifa === 1 ? "cobro" : "cobros"} sin tarifa`, tono: "ambar" });
   if (r.cambios.n > 0) chips.push({ texto: `${r.cambios.n} ${r.cambios.n === 1 ? "cambio" : "cambios"} por revisar`, tono: "ambar" });
@@ -208,6 +244,10 @@ export const NOTA_CLAURE =
   "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Cuentas y cobros) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no.";
 
 /** Bajo los pagos: dónde se anula uno equivocado. */
+/** Bajo los gastos: de dónde sale la parte de cada uno. */
+export const NOTA_GASTOS_CLAURE =
+  "Cada categoría de gasto tiene su parte de CLAURE (de fábrica: alquiler, luz, servicios básicos y mantenimiento, la mitad; limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA en Reportes.";
+
 export const NOTA_PAGOS_CLAURE = "Un pago equivocado se anula en Dónde está ▸ Movimientos, y el saldo vuelve a subir.";
 
 /**
