@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 // La cadena que deja `fn_claure_cierre` como estaba antes de esta actividad (con los gastos de la actividad 8) y, encima, la migración que se prueba.
@@ -40,7 +40,7 @@ const sesion = (id) =>
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", process.env.BASE_PG ?? "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] },
   ).trim();
 }

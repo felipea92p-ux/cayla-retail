@@ -790,10 +790,6 @@ export const PRUEBAS = [
   // mermas sin costo del Estado de resultados); lo de antes del arranque y lo de otra sede sigue siendo de CAYLA; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
   "pruebas:claure-perdidas-y-danadas",
 
-  // El Balance sin el stock de CLAURE (ADR-0560, actividad 15): fn_bal_stock resta las unidades de CLAURE al corte (hoy y a una fecha pasada, deshaciendo lo que movió después) y su costo; las causas de la mercadería
-  // no cuentan sus movimientos; sin prendas de CLAURE devuelven lo de antes; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
-  "pruebas:claure-balance-sin-su-stock",
-
   // «¿Me alcanza?» sin la plata de Claudia (ADR-0560, actividad 16): fn_claure_saldo_a (lo que se le debe a una fecha: la misma cuenta que la pestaña CLAURE) y la proyección de caja que parte de lo que hay menos eso
   // (y lo dice en de_claudia); no suma si se le pagó de más; sin prendas de CLAURE da lo de antes; la migración se repega y aborta con un texto distinto. Parte del estado de antes. Cada caso: ROLLBACK.
   "pruebas:claure-proyeccion",

@@ -19,7 +19,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 // Las migraciones de CLAURE se repegan en orden: la cuenta con CLAURE (fecha de arranque), el pago (la cuenta 479 y el tipo de movimiento) y esta.
@@ -41,7 +41,7 @@ const sesion = (id) =>
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", process.env.BASE_PG ?? "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] },
   ).trim();
 }
@@ -185,16 +185,15 @@ caso("lo anterior al arranque, lo de otra sede y lo de CAYLA no se tocan", () =>
   ),
 );
 
-caso("el Estado de resultados ya no suma a CLAURE: Lima trae solo lo de CAYLA", () =>
+caso("el Estado de resultados ya no suma a CLAURE: Lima trae solo lo de CAYLA", () => {
   // Lima: S1 100 (la parte de CAYLA) + S3 84.75 = 184.75; Trujillo: 84.75. La suma de las filas coincide con el Diario.
-  igual(
-    dentro(
-      `select (select ventas_netas from retail.fn_estado_resultados(:'hoy'::date, :'hoy'::date, null) where ubicacion_id = ${LIMA})::numeric(12,2)::text || '|' ||
-              (select ventas_netas from retail.fn_estado_resultados(:'hoy'::date, :'hoy'::date, null) where ubicacion_id = ${TRUJILLO})::numeric(12,2)::text;`,
-    ),
-    "184.75|84.75",
-  ),
-);
+  // Se mide lo que la escena AGREGA: una base con ventas de hoy (como la de las pruebas de otra sesión) no cambia el resultado.
+  const consulta = (extra) => `select coalesce((select ventas_netas from retail.fn_estado_resultados(${extra}, ${extra}, null) where ubicacion_id = ${LIMA}), 0)::numeric(12,2)::text || '|' ||
+              coalesce((select ventas_netas from retail.fn_estado_resultados(${extra}, ${extra}, null) where ubicacion_id = ${TRUJILLO}), 0)::numeric(12,2)::text;`;
+  const antes = psql(`begin;\n${sesion(FELIPE)}\n${consulta("(now() at time zone 'America/Lima')::date")}\nrollback;`).split("|").map(Number);
+  const despues = dentro(consulta(":'hoy'::date")).split("|").map(Number);
+  return igual(despues.map((v, i) => (v - antes[i]).toFixed(2)).join("|"), "184.75|84.75");
+});
 
 caso("fn_claure_ventas_en: lo vendido de CLAURE, neto de anulaciones y devoluciones", () =>
   // Vendido 118 (S1) + 177 (S2) + 100 (S5) − 100 (anulada) − 177 (devuelta) = 118; IGV 18; base 100; costo 10.

@@ -191,7 +191,12 @@ revoke all on function retail.fn_asientos_claure(date, date, boolean, uuid[]) fr
 
 -- fn_asientos la suma al final, como las demás fuentes. El ancla deja entero el texto que ya guardan 20261015053000 y sus pruebas
 -- (termina en la línea de los pedidos web y su salto de línea; lo nuevo va DESPUÉS).
-select pg_temp.reemplazar('retail.fn_asientos(date, date, uuid)',
+-- Si `fn_asientos` YA une `fn_asientos_claure` (el ADR-0558 de `main` lo hizo con la misma llamada, el 2026-10-28), no se vuelve a unir: dos uniones duplicarían los asientos. Esta migración reemplaza
+-- entonces solo el CUERPO de `fn_asientos_claure` (más abajo, misma firma): lo que mandó es lo cobrado, no la consignación a costo (Felipe, 2026-10-29).
+do $claure$
+begin
+  if position('fn_asientos_claure' in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) = 0 then
+    perform pg_temp.reemplazar('retail.fn_asientos(date, date, uuid)',
 $v$    union all select * from retail.fn_asientos_pedidos_web(p_desde, p_hasta, v_todo, v_ubics)
   )$v$,
 $n$    union all select * from retail.fn_asientos_pedidos_web(p_desde, p_hasta, v_todo, v_ubics)
@@ -199,6 +204,8 @@ $n$    union all select * from retail.fn_asientos_pedidos_web(p_desde, p_hasta, 
     union all select * from retail.fn_asientos_claure(p_desde, p_hasta, v_todo, v_ubics)
   )$n$,
 1);
+  end if;
+end $claure$;
 
 -- ---------- 3. Lo vendido de CLAURE, para decirlo en Impuestos y en el Estado de resultados ----------
 create or replace function retail.fn_claure_ventas_en(p_desde date, p_hasta date, p_ubicacion_id uuid default null)
