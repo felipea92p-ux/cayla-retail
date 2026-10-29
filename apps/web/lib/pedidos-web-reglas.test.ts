@@ -369,6 +369,7 @@ describe("El cliente y WhatsApp", () => {
     );
     expect(mensajeWhatsapp(p, "cobro")).toMatch(/Falta pagar S\/\u00a0229\.80/);
     expect(mensajeWhatsapp(p, "sinstock")).toMatch(/una prenda ya no está/);
+    expect(mensajeWhatsapp({ ...p, boleta: { comprobanteId: "c1", texto: "B004-000413", estado: "aceptado" } }, "boleta")).toMatch(/Tu boleta B004-000413 por S\/\u00a0/);
     // Actividad 9: un pedido anulado que ya había pagado.
     expect(mensajeWhatsapp(p, "devolucion")).toBe(
       "Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012: quedó anulado y te devolvemos S/\u00a050.00. ¿Cómo prefieres recibirlo?",
