@@ -283,7 +283,7 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                   ? ""
                   : conCambios && cuenta
                     ? `${textoDeCambios(cuenta.datos)} · ${textoDeLaPlata(cuenta.plata)}`
-                    : compra.sePuede
+                    : compra.sePuede && !prenda && !enElPapel
                       ? "Toca una prenda para corregirla."
                       : ""}
               </p>
