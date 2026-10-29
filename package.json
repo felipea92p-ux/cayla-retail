@@ -75,6 +75,7 @@
     "pruebas:balance": "node scripts/pruebas/balance.mjs",
     "pruebas:reversa-de-cobro": "node scripts/pruebas/reversa_de_cobro_por_su_cuenta.mjs",
     "pruebas:perdidas": "node scripts/pruebas/perdidas.mjs",
+    "pruebas:ingresos-por-modelo": "node scripts/pruebas/ingresos_por_modelo.mjs",
     "pruebas:resumen-finanzas": "node scripts/pruebas/resumen_finanzas.mjs",
     "pruebas:finanzas-alcance": "node scripts/pruebas/finanzas_alcance_coherente.mjs",
     "pruebas:finanzas-apartados-por-pago": "node scripts/pruebas/finanzas_apartados_por_pago.mjs",

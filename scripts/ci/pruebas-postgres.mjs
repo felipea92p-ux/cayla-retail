@@ -133,6 +133,10 @@ export const PRUEBAS = [
   // mermas a la 6951: mismas líneas y mismos totales, su «deshacer», idempotente, y el candado de mes cerrado. ROLLBACK.
   "pruebas:perdidas",
 
+  // Ingresos por modelo (pestaña «Ingresos» de Movimientos): suma por modelo el stock inicial y la mercadería recibida de una
+  // sede entre dos fechas (hora de Lima); no cuenta traslados anulados, ajustes ni otra sede; cuadra con el libro; permisos. ROLLBACK.
+  "pruebas:ingresos-por-modelo",
+
   // Resumen de Finanzas (ADR-0195 F10): cada número es el de su fase (F2–F9 y Presupuesto) mirando CAYLA entera, una
   // tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
   "pruebas:resumen-finanzas",

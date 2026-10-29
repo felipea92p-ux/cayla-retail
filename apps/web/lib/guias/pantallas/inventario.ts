@@ -428,7 +428,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
   id: "inventario.movimientos",
   ruta: "/inventario/movimientos",
   titulo: "Movimientos",
-  resumen: "Ver todo lo que entró y salió del stock de la sede, quién lo hizo y por qué.",
+  resumen: "Ver todo lo que entró y salió del stock de la sede, qué prendas llegaron, quién lo hizo y por qué.",
   pasos: [
     {
       id: "bienvenida",
@@ -439,8 +439,8 @@ export const GUIA_MOVIMIENTOS: Guia = {
     {
       id: "pestanas",
       ancla: "movimientos.pestanas",
-      titulo: "Movimientos y Pérdidas",
-      texto: "«Movimientos» es la lista completa. «Pérdidas» junta solo lo que se perdió (dañadas, faltantes de un conteo) y cuánto vale: al final de la demo te la abrimos.",
+      titulo: "Movimientos, Ingresos y Pérdidas",
+      texto: "«Movimientos» es la lista completa. «Ingresos» te dice qué prendas llegaron, una línea por modelo. «Pérdidas» junta solo lo que se perdió (dañadas, faltantes de un conteo) y cuánto vale: al final de la demo te las abrimos.",
     },
     {
       id: "menu",
@@ -537,6 +537,42 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Un movimiento no se edita ni se borra nunca. Si algo estuvo mal, se corrige con otro movimiento, y los dos quedan a la vista.",
     },
     {
+      id: "ingresos",
+      ancla: "movimientos.ingresos-periodo",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "movimientos.pestana-ingresos" }],
+      titulo: "Ingresos: ¿qué llegó?",
+      texto: "Abrimos la otra pestaña. Sirve cuando llega un fardo y compras pregunta qué entró: sale una línea por modelo, sin colores ni tallas. Arriba eliges desde cuándo mirar: 7, 30 o 90 días.",
+    },
+    {
+      id: "ingresos-fechas",
+      ancla: "movimientos.ingresos-fechas",
+      opcional: true,
+      titulo: "Desde el día que llegó",
+      texto: "Con «Elegir fechas» pones el día exacto en que llegó el fardo, y el reporte cuenta hasta hoy.",
+    },
+    {
+      id: "ingresos-total",
+      ancla: "movimientos.ingresos-total",
+      opcional: true,
+      titulo: "El total, de un vistazo",
+      texto: "Cuántas prendas entraron y de cuántos modelos distintos en ese período. Es la cifra que compras suele pedir primero.",
+    },
+    {
+      id: "ingresos-tabla",
+      ancla: "movimientos.ingresos-tabla",
+      opcional: true,
+      titulo: "Un modelo por línea",
+      texto: "Su foto, su nombre y su código, y cuántas prendas entraron sumando todos sus colores y tallas. El modelo con más prendas va primero. Pasa el mouse sobre la cifra y te dice cuántas fueron de stock inicial y cuántas de mercadería recibida.",
+    },
+    {
+      id: "ingresos-nota",
+      ancla: "movimientos.ingresos-nota",
+      opcional: true,
+      titulo: "Qué cuenta y qué no",
+      texto: "Cuenta lo que entró, no lo que quedó: si después se ajustó o se vendió algo, aquí no se resta. Para ver eso está la lista de Movimientos.",
+    },
+    {
       id: "perdidas",
       ancla: "perdidas.periodo",
       opcional: true,
@@ -598,7 +634,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
       ancla: null,
       preparar: [{ tipo: "clic", ancla: "movimientos.pestana-movimientos" }],
       titulo: "¡Listo!",
-      texto: "Ya sabes seguirle la pista a cualquier prenda y ver lo que se perdió. Para repasarlo: Mi perfil ▸ Demo ▸ Movimientos.",
+      texto: "Ya sabes seguirle la pista a cualquier prenda, ver qué llegó y ver lo que se perdió. Para repasarlo: Mi perfil ▸ Demo ▸ Movimientos.",
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "movimientos.buscador" }],
