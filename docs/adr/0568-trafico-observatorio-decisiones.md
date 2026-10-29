@@ -1,7 +1,8 @@
 # ADR-0568 · Tienda web ▸ Tráfico: del tablero de la vitrina al «Observatorio» que dice qué hacer
 
 - **Fecha:** 2026-10-29 · **Estado:** aceptado (Felipe eligió la maqueta y aprobó las 10 actividades el 2026-10-28). Construido en la rama
-  `claude/web-store-traffic-dashboard-e8b9e2`. **Nada está en producción:** siete migraciones esperan su OK, en orden (ver «Cómo se publica»).
+  `claude/web-store-traffic-dashboard-e8b9e2`. **Las migraciones están en producción desde el 2026-10-29** (pegadas con el OK de Felipe; ver «Cómo se
+  publica»). La web se publica al fusionar el PR.
 - **Pedido:** un tablero del tráfico de la tienda web que ayude a decidir, con texto corto, gráficos que cualquiera entienda y filtros como «Hoy» y
   «Este mes». Maqueta final: `docs/maquetas/trafico-decisiones-2026-10/index.html` (PR #1457).
 - **Relacionados:** ADR-0495 (la medición propia de visitas y la primera pantalla, maqueta C «La vitrina»), ADR-0136 (movimiento), ADR-0358 (una
@@ -61,6 +62,13 @@ Las migraciones se pegan en el SQL Editor de producción **con el OK de Felipe y
 función de 7 parámetros): `20261029015000` → `20261029040000` → `20261029042000` → `20261029050000` → `20261029120000` → `20261029123000` →
 `20261029132000`. Cada una es un `create or replace` (la primera y la de departamentos borran antes la firma vieja con `drop function`, que no toma
 las tablas de auth ni storage), sin políticas ni tablas en uso, y se puede pegar dos veces. Después: refrescar el volcado del diccionario.
+
+**Cómo se pegó (2026-10-29, con el OK de Felipe):** cada migración trae `resumen_trafico_web` entera, sumando lo de la anterior, así que se aplicaron
+en orden las tres que dejan producción igual que las siete: `20261029015000` (borra la de 4 parámetros y crea la de 7), la parte 1 de
+`20261029050000` (`fn_trafico_web_personas` con su departamento) y `20261029132000` (el resumen completo, que contiene lo de `040000`, `042000`,
+`050000`, `120000` y `123000`). Verificado: la huella (`md5(prosrc)`) de las dos funciones es idéntica a la de la base local donde corrieron las
+pruebas, `authenticated` las ejecuta y `anon` no, y la función responde como Admin con sus 22 partes. La llamada de 4 parámetros de la web de
+antes sigue funcionando (los otros tres tienen valor de fábrica).
 
 ## Qué quedó sin verificar
 

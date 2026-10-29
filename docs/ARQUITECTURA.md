@@ -1385,7 +1385,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `club_avisos_textos_sede`. Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
   (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
 - `/tienda-web/trafico` (ADR-0495, Felipe 2026-10-23; «Observatorio» ADR-0568, 2026-10-29; módulo **`trafico`**, nace solo para el líder;
-  migraciones `20261023230000` y `20261023231000`, y las siete del Observatorio `20261029015000`…`20261029132000`, **sin pegar en producción**):
+  migraciones `20261023230000` y `20261023231000`, y las siete del Observatorio `20261029015000`…`20261029132000`, **en producción desde el
+  2026-10-29**, verificado por la huella de las funciones):
   cuánta gente entra a la tienda online, qué mira, dónde se va y qué conviene hacer, contado por persona anónima (maqueta
   `docs/maquetas/trafico-decisiones-2026-10/`). Séptima hija de Tienda web (excepción `tiendaWeb: 7` en `menu.test.ts`), `soloConModulo`.
   `layout.tsx` y `page.tsx` piden `trafico` → RPC `resumen_trafico_web(desde, hasta, camino, ciudad, ant_desde, ant_hasta, ant_corte)` (personas

@@ -15,7 +15,6 @@ Hecho: maqueta aprobada en lo grueso (`docs/maquetas/trafico-decisiones-2026-10/
 - Decisión tomada al construir: el control de período usa `SegmentoEnlaces` (la pieza de «modo», pensada para 2–3 opciones) porque Felipe pidió que se vea
   como la maqueta; ADR-0358 dice «período = `pildora-cayla`». Confirmarlo con Felipe en `/unificar` si molesta.
 - Para el ADR del cierre (actividad 10): la vitrina de baldosas se fue y con ella su movimiento (cascada, etiqueta, luz); ADR-0136 act. 2026-10-23 (d) y CLAUDE.md («Tienda web ▸ Tráfico la vitrina…») deben decir lo que queda: los 100 puntos que se encienden una vez y el punto verde.
-- **Pendiente tras el cierre:** (1) pegar en producción, con OK de Felipe y en orden, `20261029015000` → `040000` → `042000` → `050000` → `120000` →
-  `123000` → `132000`, ANTES de publicar la web; (2) refrescar el volcado del diccionario (`docs/datos/generado/COMO-REFRESCAR.md`); (3) mirar la
+- **Pendiente tras el cierre:** ~~(1) pegar en producción las siete migraciones~~ (hecho el 2026-10-29 con el OK de Felipe, ver ADR-0568); (2) refrescar el volcado del diccionario (`docs/datos/generado/COMO-REFRESCAR.md`); (3) mirar la
   pantalla con visitas reales, recorrer la guía (`guias:recorrer`, hoy «sin datos locales») y correr `/formidable`; (4) decidir los colores de los
   caminos; (5) si `trafico_web` crece mucho, un índice por visitante para «Quién entra».

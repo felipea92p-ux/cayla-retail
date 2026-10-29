@@ -80,3 +80,7 @@
   oscuro. `guias:recorrer` arranca la guía; la base local no tiene visitas y se declaró «sin datos locales» en `guias/ejemplos.mjs`. `/formidable`
   queda para cuando haya visitas reales. ADR-0568 con las decisiones y el orden de pegado; ADR-0136 y ADR-0495 actualizados, CLAUDE.md y
   ARQUITECTURA.md al día. Se borró la página temporal de prueba, el `.env.local` copiado y el cambio de `launch.json`.
+- **En producción (2026-10-29, con el OK de Felipe):** se aplicaron en orden `20261029015000`, la parte de `fn_trafico_web_personas` de `050000` y
+  `132000` (que trae todo lo de las demás, porque cada una reescribe la función entera). La huella de `resumen_trafico_web` y de
+  `fn_trafico_web_personas` es idéntica a la local, los permisos son los de siempre (con sesión sí, anónimo no) y la función responde como Admin con
+  sus 22 partes. Falta refrescar el volcado del diccionario.
