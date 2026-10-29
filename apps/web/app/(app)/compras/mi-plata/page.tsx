@@ -1,6 +1,6 @@
 import { HandCoins } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getBancosParaPlata, getMiPlata, getMisEnvios } from "@/lib/mi-plata";
+import { getBancosParaPlata, getCuentasParaDevolver, getMiPlata, getMisEnvios } from "@/lib/mi-plata";
 import { codigosPorCompra, enviosDeLaFila, rondasConEnvios } from "@/lib/mis-envios-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { PASOS_DE_LA_RONDA, historialDeLaCompradora, movimientosDeLaCompradora, pasoDeLaRonda, tituloDeLaLista, ultimaRondaDelHistorial } from "@/lib/mi-plata-reglas";
@@ -27,7 +27,7 @@ import { MesaDeLaRonda } from "@/components/mi-plata/MesaDeLaRonda";
 // (principio 9): nunca «tienes S/ 0» inventado. Una terminal no tiene «tu plata». `?mandar=1` (desde «Compra guardada») abre «Mandar a la tienda».
 export default async function MiPlataPage({ searchParams }: { searchParams: Promise<{ mandar?: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [plata, bancos, envios, { mandar }] = await Promise.all([getMiPlata(), getBancosParaPlata(), getMisEnvios(), searchParams]);
+  const [plata, bancos, cuentasDevolver, envios, { mandar }] = await Promise.all([getMiPlata(), getBancosParaPlata(), getCuentasParaDevolver(), getMisEnvios(), searchParams]);
   // Arriba lo de la ronda abierta; lo anterior, agrupado por ronda (Felipe 2026-10-23). Cada compra ya mandada dice el código de su envío
   // (Felipe 2026-10-26); si «Mis envíos» no se pudo leer, Mis compras sigue sin ellos.
   const lista = plata?.persona ? movimientosDeLaCompradora(plata, codigosPorCompra(envios ?? [])) : null;
@@ -71,6 +71,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
           plata={plata}
           ronda={plata.ronda.abierta}
           bancos={bancos}
+          cuentasDevolver={cuentasDevolver}
           actuales={lista?.actuales ?? []}
           anteriores={anteriores}
           envios={envios}
@@ -102,7 +103,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
             {conManda && <ParaMandar porMandar={plata.porMandar} envios={null} texto={null} hoy={hoy} />}
             {ultima && (
               <div className="min-w-0">
-                <UltimaRonda u={ultima} envios={enviosDeLaFila(rondasEnvios, ultima.ronda.clave)} hoy={hoy} />
+                <UltimaRonda u={ultima} envios={enviosDeLaFila(rondasEnvios, ultima.ronda.clave)} hoy={hoy} ultimaCerrada={plata.ronda.ultimaCerrada} />
               </div>
             )}
             {sinHistoria && <PrimeraRonda />}

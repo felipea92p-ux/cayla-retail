@@ -1,0 +1,9 @@
+## 2026-10-29 (Mis compras: «Reabrir» en «Tu última ronda» y la cuenta de la devolución — ADR-0571)
+Qué hice:
+- **«Reabrir RC-…» pasó a la tarjeta «Tu última ronda»** (`ReabrirRonda`), que es donde se ve la ronda que se reabre; salió de «¿Sales a comprar?». Mismas reglas. La guía interactiva y sus huellas siguen la mudanza.
+- **«¿A qué cuenta de CAYLA lo devuelves?» al cerrar la ronda con «Lo devuelvo»**: la compradora elige entre los bancos y cajas fuertes de la empresa (`fn_cuentas_para_devolver_compras`); queda en `compra_cierres.cuenta_indicada_id` como indicación. Compras la ve en «Revisar compras» ya elegida y la puede cambiar; la plata sigue entrando solo en `recibir_cierre_compras`.
+- **«Cerrar mi ronda» con menos texto (opción A de `docs/maquetas/mis-compras-cerrar-ronda-2026-10/`, Felipe):** sin subtítulo, envíos en una línea, «Me lo quedo» / «Lo devuelvo» como dos botones y «¿A qué cuenta?» sin notas.
+- **Base:** `20261029165000` (columna + candado) y `20261029170000` (`terminar_dia_compras` con 2.º parámetro, la lista y `fn_revisar_compras`). **NO están en producción.**
+Por qué así: el mismo patrón que «¿De qué banco salió?»: lo que dice la compradora es una indicación y no mueve plata.
+Estado: `pnpm pruebas:compras-simple-cuenta-devolucion` 6/6 y `compras-simple-reabrir` 9/9, `compras-simple-dia` 23/23, `roles-cobertura` 32/32; `tsc`, `knip` y las 732 pruebas de la web en verde. `pruebas:compras-simple-revisar` falla en su preludio por el estado de la base local compartida (usa migraciones de antes de las mías: no es de este cambio). **No se vio la pantalla en el navegador** (la base local no tiene las migraciones nuevas) ni se corrió `/formidable` ni `/chaos`.
+Felipe se lleva: el OK para pegar las dos migraciones en producción (en orden, antes de publicar la web) y probar el cierre con una cuenta de compradora.

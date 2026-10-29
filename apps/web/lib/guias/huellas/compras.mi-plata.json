@@ -12,8 +12,7 @@
       "button «→() => onValor(c.id)»"
     ],
     "components/mi-plata/AbrirRonda.tsx": [
-      "Boton «Abrir mi ronda»",
-      "Boton «Reabrir»"
+      "Boton «Abrir mi ronda»"
     ],
     "components/mi-plata/AccionDelDia.tsx": [
       "Link «{guia}»",
@@ -81,6 +80,9 @@
     "components/mi-plata/ParaMandar.tsx": [
       "Boton «mi-plata.mandar»"
     ],
+    "components/mi-plata/ReabrirRonda.tsx": [
+      "Boton «Reabrir»"
+    ],
     "components/mi-plata/TablaDeLaRonda.tsx": [
       "button «{horaDeMovimiento(m) ?? \"—\"}»"
     ],
@@ -89,7 +91,7 @@
     ],
     "components/mi-plata/TerminarDia.tsx": [
       "Boton «mi-plata.termine»",
-      "button «(sin nombre)»",
+      "button «{OPCIONES[k]}»",
       "Boton «Cancelar»",
       "Boton «mi-plata.terminar»"
     ],
