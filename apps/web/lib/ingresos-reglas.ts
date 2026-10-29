@@ -269,3 +269,66 @@ export function matrizDeVariantes(variantes: readonly Pick<VarianteIngresada, "c
   });
   return { tallas, filas: ordenadas, totalPorTalla, total };
 }
+
+// ── Buscar y ordenar (en el navegador: el rango ya trajo todo lo que se muestra) ─────────────────────────────────────────
+
+export type CampoOrdenIngresos = "modelo" | "prendas" | "precio" | "costo";
+export type OrdenIngresos = { campo: CampoOrdenIngresos; dir: "asc" | "desc" };
+
+/** Al llegar, el modelo con más prendas primero: es lo que devuelve la base y lo que compras mira primero. */
+export const ORDEN_INICIAL_INGRESOS: OrdenIngresos = { campo: "prendas", dir: "desc" };
+
+export function esCampoOrdenIngresos(campo: string): campo is CampoOrdenIngresos {
+  return campo === "modelo" || campo === "prendas" || campo === "precio" || campo === "costo";
+}
+
+/** Lo que pasa al tocar el título de una columna: la misma invierte; otra empieza donde se espera (el nombre de A a Z, las
+ *  cifras de mayor a menor). */
+export function siguienteOrdenIngresos(actual: OrdenIngresos, campo: CampoOrdenIngresos): OrdenIngresos {
+  if (actual.campo === campo) return { campo, dir: actual.dir === "asc" ? "desc" : "asc" };
+  return { campo, dir: campo === "modelo" ? "asc" : "desc" };
+}
+
+type Ordenable = Pick<ModeloIngresado, "referencia" | "unidades" | "precioMin" | "precioMax" | "costoMin" | "costoMax">;
+
+/** Una copia ordenada. Lo que no tiene dato (un costo sin cargar) va SIEMPRE al final, hacia donde se ordene: no es el más barato
+ *  ni el más caro. Un empate se resuelve por nombre, así que el orden no salta de una vez a otra. */
+export function ordenarModelosIngresos<T extends Ordenable>(modelos: readonly T[], orden: OrdenIngresos): T[] {
+  const signo = orden.dir === "asc" ? 1 : -1;
+  const valor = (m: T): number | string | null => {
+    switch (orden.campo) {
+      case "modelo":
+        return m.referencia;
+      case "prendas":
+        return m.unidades;
+      case "precio":
+        return m.precioMin;
+      case "costo":
+        return m.costoMin;
+    }
+  };
+  return [...modelos].sort((a, b) => {
+    const va = valor(a);
+    const vb = valor(b);
+    if (va === null || vb === null) {
+      if (va !== vb) return va === null ? 1 : -1;
+    } else {
+      const c = typeof va === "string" && typeof vb === "string" ? va.localeCompare(vb, "es") : (va as number) - (vb as number);
+      if (c !== 0) return c * signo;
+    }
+    return a.referencia.localeCompare(b.referencia, "es");
+  });
+}
+
+const sinTildes = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Los modelos que contienen TODAS las palabras escritas, sin tildes ni mayúsculas, en su nombre, su código o su categoría
+ *  («blusa emma», «cmis», «jeans»). Sin nada escrito, todos. */
+export function buscarModelosIngresos<T extends Pick<ModeloIngresado, "referencia" | "codigo" | "categoria">>(modelos: readonly T[], texto: string): T[] {
+  const palabras = sinTildes(texto).split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return [...modelos];
+  return modelos.filter((m) => {
+    const pajar = sinTildes([m.referencia, m.codigo, m.categoria].filter(Boolean).join(" "));
+    return palabras.every((p) => pajar.includes(p));
+  });
+}

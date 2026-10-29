@@ -559,11 +559,20 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Cuántas prendas entraron y de cuántos modelos distintos en ese período. Es la cifra que compras suele pedir primero.",
     },
     {
+      id: "ingresos-buscador",
+      ancla: "movimientos.ingresos-buscador",
+      opcional: true,
+      titulo: "Busca un modelo",
+      texto: "Escribe parte del nombre, el código o la categoría y la lista se ajusta mientras escribes. Sirve cuando el fardo trae muchos modelos y compras pregunta por uno.",
+      demostrar: [{ tipo: "escribir", ancla: "movimientos.ingresos-buscador", texto: { palabraDe: "movimientos.ingresos-nombre" } }],
+    },
+    {
       id: "ingresos-tabla",
       ancla: "movimientos.ingresos-tabla",
       opcional: true,
+      preparar: [{ tipo: "vaciar", ancla: "movimientos.ingresos-buscador" }],
       titulo: "Un modelo por línea",
-      texto: "Su foto, su nombre y su código, y cuántas prendas entraron sumando todos sus colores y tallas. El modelo con más prendas va primero. Pasa el mouse sobre la cifra y te dice cuántas fueron de stock inicial y cuántas de mercadería recibida.",
+      texto: "Su foto, su nombre y su código, y cuántas prendas entraron sumando todos sus colores y tallas. El de más prendas va primero; toca el título de una columna para ordenar por ella. Pasa el mouse sobre la cifra y te dice cuántas fueron de stock inicial y cuántas de mercadería recibida.",
     },
     {
       id: "ingresos-abrir",
@@ -601,6 +610,13 @@ export const GUIA_MOVIMIENTOS: Guia = {
       opcional: true,
       titulo: "Precio y costo",
       texto: "El precio es el que se cobra en esta sede; si las tallas valen distinto, sale un rango. El costo solo lo ven quienes tienen permiso de dinero, y «Sin costo» quiere decir que nadie lo ha cargado todavía.",
+    },
+    {
+      id: "ingresos-pie",
+      ancla: "movimientos.ingresos-pie",
+      opcional: true,
+      titulo: "El total al pie",
+      texto: "Como en Excel, al pie va el total de lo que estás viendo. Si buscas o filtras por nuevos o reingresos, el total se ajusta.",
     },
     {
       id: "ingresos-nota",

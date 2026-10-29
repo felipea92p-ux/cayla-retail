@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   MAXIMO_DIAS_INGRESOS,
+  ORDEN_INICIAL_INGRESOS,
+  buscarModelosIngresos,
   conPreposicion,
   costoDelModelo,
   cuentaNovedad,
@@ -11,10 +13,12 @@ import {
   leerResumenIngresos,
   matrizDeVariantes,
   modelosTexto,
+  ordenarModelosIngresos,
   precioDelModelo,
   prendasTexto,
   rangoIngresos,
   rangoSolesTexto,
+  siguienteOrdenIngresos,
   solesTexto,
 } from "./ingresos-reglas";
 
@@ -281,6 +285,60 @@ describe("matrizDeVariantes", () => {
       totales: {},
     });
     expect(r?.modelos[0].variantes).toEqual([{ varianteId: "x", color: "Azul", colorHex: null, talla: "S", unidades: 2 }]);
+  });
+});
+
+describe("ordenar y buscar", () => {
+  const m = (referencia: string, unidades: number, precio: number | null, costo: number | null, codigo: string | null = null, categoria: string | null = null) => ({
+    referencia,
+    unidades,
+    precioMin: precio,
+    precioMax: precio,
+    costoMin: costo,
+    costoMax: costo,
+    codigo,
+    categoria,
+  });
+  const lista = [m("Blusa Emma", 24, 59, 20, "CMS-0011", "Camisas y Blusas"), m("Casaca Lola", 4, 120, null, "CSC-0001", "Casacas"), m("Jean Dalia", 30, 90, 40, "JEA-0001", "Jeans")];
+
+  it("al llegar, el de más prendas va primero", () => {
+    expect(ordenarModelosIngresos(lista, ORDEN_INICIAL_INGRESOS).map((x) => x.referencia)).toEqual(["Jean Dalia", "Blusa Emma", "Casaca Lola"]);
+  });
+
+  it("por nombre de A a Z y al revés; sin tildes de por medio", () => {
+    expect(ordenarModelosIngresos(lista, { campo: "modelo", dir: "asc" }).map((x) => x.referencia)).toEqual(["Blusa Emma", "Casaca Lola", "Jean Dalia"]);
+    expect(ordenarModelosIngresos(lista, { campo: "modelo", dir: "desc" }).map((x) => x.referencia)).toEqual(["Jean Dalia", "Casaca Lola", "Blusa Emma"]);
+  });
+
+  it("un costo sin cargar va siempre al final, ordenes hacia donde ordenes", () => {
+    expect(ordenarModelosIngresos(lista, { campo: "costo", dir: "asc" }).map((x) => x.referencia)).toEqual(["Blusa Emma", "Jean Dalia", "Casaca Lola"]);
+    expect(ordenarModelosIngresos(lista, { campo: "costo", dir: "desc" }).map((x) => x.referencia)).toEqual(["Jean Dalia", "Blusa Emma", "Casaca Lola"]);
+  });
+
+  it("un empate se resuelve por nombre y no cambia el original", () => {
+    const empate = [m("Zeta", 5, 10, 1), m("Alfa", 5, 10, 1)];
+    expect(ordenarModelosIngresos(empate, { campo: "prendas", dir: "desc" }).map((x) => x.referencia)).toEqual(["Alfa", "Zeta"]);
+    expect(empate.map((x) => x.referencia)).toEqual(["Zeta", "Alfa"]);
+  });
+
+  it("tocar otra columna empieza donde se espera; tocar la misma, invierte", () => {
+    expect(siguienteOrdenIngresos(ORDEN_INICIAL_INGRESOS, "modelo")).toEqual({ campo: "modelo", dir: "asc" });
+    expect(siguienteOrdenIngresos(ORDEN_INICIAL_INGRESOS, "precio")).toEqual({ campo: "precio", dir: "desc" });
+    expect(siguienteOrdenIngresos({ campo: "precio", dir: "desc" }, "precio")).toEqual({ campo: "precio", dir: "asc" });
+  });
+
+  it("busca sin tildes ni mayúsculas en el nombre, el código y la categoría", () => {
+    expect(buscarModelosIngresos(lista, "BLUSA").map((x) => x.referencia)).toEqual(["Blusa Emma"]);
+    expect(buscarModelosIngresos(lista, "jea-0001").map((x) => x.referencia)).toEqual(["Jean Dalia"]);
+    expect(buscarModelosIngresos(lista, "camisas").map((x) => x.referencia)).toEqual(["Blusa Emma"]);
+    expect(buscarModelosIngresos([m("Camisa Áurea", 1, 1, 1)], "aurea")).toHaveLength(1);
+  });
+
+  it("todas las palabras tienen que estar, en cualquier orden; vacío es todo", () => {
+    expect(buscarModelosIngresos(lista, "emma blusa")).toHaveLength(1);
+    expect(buscarModelosIngresos(lista, "blusa lola")).toHaveLength(0);
+    expect(buscarModelosIngresos(lista, "   ")).toHaveLength(3);
+    expect(buscarModelosIngresos(lista, "")).toHaveLength(3);
   });
 });
 

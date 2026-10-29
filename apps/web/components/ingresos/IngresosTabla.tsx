@@ -1,25 +1,34 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { SearchX } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
 import { MatrizIngreso } from "./MatrizIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
+import { Vacio } from "@/components/ui/Vacio";
 import type { Apariencia } from "@/lib/ingresos";
 import {
+  ORDEN_INICIAL_INGRESOS,
+  buscarModelosIngresos,
   costoDelModelo,
   cuentaNovedad,
+  esCampoOrdenIngresos,
   filtrarPorNovedad,
   modelosTexto,
+  ordenarModelosIngresos,
   precioDelModelo,
   prendasTexto,
+  siguienteOrdenIngresos,
   type FiltroNovedad,
   type ModeloIngresado,
+  type OrdenIngresos,
 } from "@/lib/ingresos-reglas";
 
 // La lista de modelos de «Ingresos»: una línea por modelo con su foto, si es Nuevo o un Reingreso, cuántas prendas entraron, su
-// precio en esta sede y —solo para quien ve el dinero— su costo. Vive en el cliente porque se filtra y (en las siguientes
-// pasadas) se ordena y se abre sin volver al servidor: el rango ya trajo todo lo que se muestra.
+// precio en esta sede y —solo para quien ve el dinero— su costo. Vive en el cliente porque se busca, se filtra, se ordena y se abre
+// sin volver al servidor: el rango ya trajo todo lo que se muestra (la búsqueda del navegador no abre el loader, ADR-0149).
 
 export function IngresosTabla({
   modelos,
@@ -33,6 +42,8 @@ export function IngresosTabla({
   rangoTexto: string;
 }) {
   const [filtro, setFiltro] = useState<FiltroNovedad>("todos");
+  const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useState<OrdenIngresos>(ORDEN_INICIAL_INGRESOS);
   // Los modelos abiertos (por si compras quiere comparar el detalle de dos): se abren y se cierran con un toque.
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
   function alternar(productoId: string) {
@@ -42,30 +53,48 @@ export function IngresosTabla({
       return ahora;
     });
   }
-  const cuenta = cuentaNovedad(modelos);
-  // Con una sola clase de modelos el filtro no filtra nada: no se ofrece, y si estaba puesto se vuelve a «todos».
-  const activo: FiltroNovedad = cuenta.hayDeLasDos ? filtro : "todos";
-  const visibles = filtrarPorNovedad(modelos, activo);
+  // El filtro se ofrece según TODOS los modelos (no salta cuando una búsqueda deja solo de una clase); con una sola clase no filtra
+  // nada, así que no se ofrece, y si estaba puesto se vuelve a «todos». Los números de sus píldoras siguen a la búsqueda.
+  const hayDeLasDos = cuentaNovedad(modelos).hayDeLasDos;
+  const activo: FiltroNovedad = hayDeLasDos ? filtro : "todos";
+  const encontrados = buscarModelosIngresos(modelos, busqueda);
+  const cuenta = cuentaNovedad(encontrados);
+  const visibles = ordenarModelosIngresos(filtrarPorNovedad(encontrados, activo), orden);
   const prendas = visibles.reduce((suma, m) => suma + m.unidades, 0);
+  // Con solo una búsqueda puesta, el botón del vacío la borra; con un filtro de por medio, quita todo lo puesto.
+  const soloBusqueda = busqueda.trim() !== "" && activo === "todos";
+  function limpiar() {
+    setBusqueda("");
+    setFiltro("todos");
+  }
 
   // Una plantilla para el encabezado y las filas (Tabla). El costo solo existe para quien lo ve: su columna no se dibuja vacía.
   const plantilla = veCosto ? "sm:grid-cols-[minmax(0,1fr)_5.5rem_8rem_8rem]" : "sm:grid-cols-[minmax(0,1fr)_5.5rem_8rem]";
   const columnas: Columna[] = [
-    { titulo: "Modelo" },
-    { titulo: "Prendas", alinear: "der" },
-    { titulo: "Precio", alinear: "der", ayuda: "Lo que se cobra en esta sede por lo que entró" },
-    ...(veCosto ? [{ titulo: "Costo", alinear: "der" as const, ayuda: "Lo que costó. Solo lo ve quien tiene permiso de dinero." }] : []),
+    { titulo: "Modelo", campo: "modelo" },
+    { titulo: "Prendas", alinear: "der", campo: "prendas" },
+    { titulo: "Precio", alinear: "der", campo: "precio", ayuda: "Lo que se cobra en esta sede por lo que entró" },
+    ...(veCosto ? [{ titulo: "Costo", alinear: "der" as const, campo: "costo", ayuda: "Lo que costó. Solo lo ve quien tiene permiso de dinero." }] : []),
   ];
 
   return (
     <>
+      <p data-guia="movimientos.ingresos-total" className="text-sm text-taupe">
+        <b className="font-semibold text-tinta">{prendasTexto(prendas)}</b> en {modelosTexto(visibles.length)}, {rangoTexto}.
+      </p>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p data-guia="movimientos.ingresos-total" className="text-sm text-taupe">
-          <b className="font-semibold text-tinta">{prendasTexto(prendas)}</b> en {modelosTexto(visibles.length)}, {rangoTexto}.
-        </p>
-        {cuenta.hayDeLasDos && (
+        <Buscador
+          valor={busqueda}
+          onCambio={setBusqueda}
+          placeholder="Buscar un modelo"
+          etiqueta="Buscar un modelo por su nombre, su código o su categoría"
+          atajo
+          guia="movimientos.ingresos-buscador"
+          className="w-full sm:max-w-xs"
+        />
+        {hayDeLasDos && (
           <div role="group" aria-label="Nuevos o reingresos" data-guia="movimientos.ingresos-novedad" className="flex flex-wrap items-center gap-1.5">
-            <Pastilla activa={activo === "todos"} onClick={() => setFiltro("todos")} cuenta={modelos.length}>
+            <Pastilla activa={activo === "todos"} onClick={() => setFiltro("todos")} cuenta={encontrados.length}>
               Todos
             </Pastilla>
             <Pastilla activa={activo === "nuevo"} onClick={() => setFiltro("nuevo")} cuenta={cuenta.nuevos}>
@@ -78,7 +107,12 @@ export function IngresosTabla({
         )}
       </div>
       <Tabla guia="movimientos.ingresos-tabla">
-        <Encabezado columnas={columnas} plantilla={plantilla} />
+        <Encabezado columnas={columnas} plantilla={plantilla} orden={orden} onOrden={(campo) => esCampoOrdenIngresos(campo) && setOrden((o) => siguienteOrdenIngresos(o, campo))} />
+        {visibles.length === 0 && (
+          <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: soloBusqueda ? "Borrar la búsqueda" : "Quitar lo puesto", onClick: limpiar }}>
+            {busqueda.trim() !== "" ? `Ningún modelo coincide con «${busqueda.trim()}».` : "Ningún modelo es de esa clase."}
+          </Vacio>
+        )}
         {visibles.map((m, i) => {
           const a = apariencia[m.productoId];
           const detalle = [m.codigo, m.categoria].filter(Boolean).join(" · ");
@@ -102,6 +136,7 @@ export function IngresosTabla({
                         type="button"
                         aria-expanded={abierto}
                         aria-controls={`ingreso-${m.productoId}`}
+                        data-guia={i === 0 ? "movimientos.ingresos-nombre" : undefined}
                         className="truncate text-left text-sm font-medium text-tinta"
                       >
                         {m.referencia}
@@ -141,6 +176,16 @@ export function IngresosTabla({
             </Fragment>
           );
         })}
+        {visibles.length > 0 && (
+          // El total de lo que se ve, como la fila de totales de Excel: sigue a la búsqueda y al filtro.
+          <div role="row" data-guia="movimientos.ingresos-pie" className={`grid gap-x-4 gap-y-1 bg-hueso/60 px-5 py-2.5 text-sm font-semibold text-tinta ${plantilla}`}>
+            <span className="min-w-0 truncate">Total · {modelosTexto(visibles.length)}</span>
+            <span className="whitespace-nowrap tabular-nums sm:text-right">
+              {prendas.toLocaleString("es-PE")}
+              <span className="text-xs font-normal text-taupe sm:hidden"> {prendas === 1 ? "prenda" : "prendas"}</span>
+            </span>
+          </div>
+        )}
       </Tabla>
     </>
   );

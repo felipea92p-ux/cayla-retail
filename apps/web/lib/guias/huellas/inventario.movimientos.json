@@ -77,7 +77,7 @@
       "Pastilla «Todos»",
       "Pastilla «Nuevos»",
       "Pastilla «Reingresos»",
-      "button «{m.referencia}»",
+      "button «{i === 0 ? \"movimientos.ingresos-nombre\" : undefined}»",
       "button «{children}»"
     ],
     "components/ingresos/SelectorRangoIngresos.tsx": [
