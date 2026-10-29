@@ -47,6 +47,9 @@ import { cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } fr
 import type { Firma } from "@/lib/responsable-reglas";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { HojaTallas } from "./HojaTallas";
+import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
+import { hayQueElegirDueno, type EmpresaElegible } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { enfocarCosto, enfocarPrecio, type CostoDePrenda } from "./PrecioDePrenda";
 import { PreciosDeVenta } from "./PreciosDeVenta";
 import { usePreciosDeVenta } from "./usePreciosDeVenta";
@@ -103,6 +106,11 @@ export function HacerAhora({
     return ya ? { tipo: "tallas", prenda: ya, original: null } : { tipo: "cargando" };
   });
   const [separado, setSeparado] = useState<Separado>(SEPARADO_VACIO);
+  // En una sede con CAYLA y CLAURE, lo que entra al stock lleva su dueño (ADR-0542); sin dos empresas no se pregunta.
+  const empresasDeLaSede = useEmpresasDeSede(detalle.sede?.id ?? null);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const dueno = preguntaDueno && empresasDeLaSede ? { empresas: empresasDeLaSede, duenoId, onElegir: setDuenoId } : null;
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -253,6 +261,7 @@ export function HacerAhora({
     const { resuelto, error: e } = await resolverPendiente(
       argsResolverPendiente({ despachoId: detalle.id, linea, pendienteId, separado: s, costos, confirmaCosto, token }),
       firma,
+      preguntaDueno ? duenoId : null,
     );
     responsable.despues(e);
     if (e) {
@@ -407,6 +416,7 @@ export function HacerAhora({
           variantes={vista.original?.variantes ?? null}
           sugeridas={item.tipo === "separar" ? (vista.original?.cantidad ?? null) : item.cantidad}
           maximo={item.tipo === "separar" ? null : item.cantidad}
+          dueno={dueno}
           textoListo={item.tipo === "separar" ? "Listo" : "Meter al stock"}
           guardando={guardando}
           error={error}
@@ -445,6 +455,7 @@ export function HacerAhora({
         precios={precios}
         costoDe={costoDe}
         onCosto={cambiarCosto}
+        dueno={dueno}
         onGuardar={() => void pedirGuardar(separado)}
         onCerrar={cerrar}
       />
@@ -494,6 +505,7 @@ function SepararAhora({
   costoDe,
   onCosto,
   onGuardar,
+  dueno,
   onCerrar,
 }: {
   item: ParaDespues;
@@ -514,6 +526,7 @@ function SepararAhora({
   costoDe?: (productoId: string) => CostoDePrenda;
   onCosto: (productoId: string, valor: string) => void;
   onGuardar: () => void;
+  dueno: { empresas: readonly EmpresaElegible[]; duenoId: string; onElegir: (id: string) => void } | null;
   onCerrar: () => void;
 }) {
   const total = totalSeparado(separado);
@@ -553,6 +566,7 @@ function SepararAhora({
             />
           </div>
           <PreciosDeVenta prendas={separado.prendas} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={onCosto} />
+          {dueno && <DuenoDeLoQueEntra {...dueno} deshabilitado={guardando} />}
           {error && <Aviso tono="error" titulo="No se pudo guardar">{error}</Aviso>}
           <div className="pie-hoja-fijo">
             <div className="space-y-3 border-t border-sand pt-3">
@@ -561,7 +575,7 @@ function SepararAhora({
                 <Boton type="button" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar || (!!dueno && !dueno.duenoId)} title={guia.frase ?? (dueno && !dueno.duenoId ? "Elige de quién es la mercadería" : undefined)} className={guia.claseConfirmar}>
                   Guardar
                 </Boton>
               </div>

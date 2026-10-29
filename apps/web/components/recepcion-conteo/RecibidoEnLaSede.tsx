@@ -10,7 +10,8 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
-import { RecepcionesRecientes, type CostoRecepcion } from "@/components/RecepcionesRecientes";
+import type { CostoRecepcion } from "@/components/RecepcionesRecientes";
+import { RecibidoPorEnvio } from "./RecibidoPorEnvio";
 import type { RecepcionReciente } from "@/lib/compras-reglas";
 import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { paginar } from "@/lib/paginacion";
@@ -94,7 +95,7 @@ export function RecibidoEnLaSede({
       ) : (
         <>
           {/* Un envío contado sin nada en el stock no tiene lote (ADR-0393): sin esta frase, «Terminados» diría que no llegó nada. */}
-          <RecepcionesRecientes
+          <RecibidoPorEnvio
             recepciones={recibidos}
             costos={costos}
             porPagina={TERMINADOS_POR_PAGINA}

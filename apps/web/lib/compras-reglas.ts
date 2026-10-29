@@ -203,6 +203,10 @@ export type LineaRecepcion = {
 
 export type RecepcionReciente = {
   loteId: string;
+  /** El envío (`despachos`) del que salió este lote: un envío con dos proveedores deja dos lotes. `null` en una llegada sin envío. */
+  despachoId: string | null;
+  /** «ENV-000254», o `null` sin envío. */
+  envioNumero: string | null;
   fecha: string;
   /** Cuándo la sede abrió el envío para recibirlo (`despachos.abierto_en`); null si el lote no viene de un envío. */
   llegoEn?: string | null;
@@ -423,3 +427,17 @@ export function esRelacionAusente(error: { code?: string | null } | null | undef
   return error?.code === "PGRST205" || error?.code === "42P01";
 }
 
+
+/**
+ * El número del envío («ENV-000254») con que la recepción abre la nota del lote: «Envío ENV-000254 · Costo atípico…» (`recibir_envio` y el cierre
+ * del conteo). `despachos` no se lee directo desde la pantalla, y el lote sí trae su nota. `null` si la nota no empieza así.
+ */
+export function numeroDeEnvioEnNota(nota: string | null): string | null {
+  return /^Envío (ENV-\d+)/.exec(nota ?? "")?.[1] ?? null;
+}
+
+/** La nota del lote sin el «Envío ENV-… · » con que empieza (el número ya se ve aparte); `null` si no queda nada que decir. */
+export function notaSinEnvio(nota: string | null): string | null {
+  const t = (nota ?? "").replace(/^Envío ENV-\d+(\s*·\s*)?/, "").trim();
+  return t === "" ? null : t;
+}

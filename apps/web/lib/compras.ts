@@ -21,6 +21,7 @@ import {
   type LineaRecepcion,
   type ProveedorResumen,
   type TipoDocumentoCompra,
+  numeroDeEnvioEnNota,
 } from "@/lib/compras-reglas";
 import { lineaEnMiTienda, otrasTiendasDeJson } from "@/lib/reparto-reglas";
 import { leerNoDeduciblesCon } from "@/lib/no-deducible";
@@ -660,6 +661,19 @@ export async function getRecepcionesRecientes(
     ),
     personaIds.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: personaIds }) : Promise.resolve({ data: [], error: null }),
   ]);
+  // De qué envío salió cada lote (`lotes.despacho_id`, aún fuera de los tipos generados): un envío con dos proveedores deja dos lotes y la lista
+  // de «Terminados» los junta. Secundario: si la base no lo tiene, cada lote queda como llegada sin envío.
+  const envioDeLote = new Map<string, string>();
+  try {
+    const { data } = (await supabase.from("lotes" as never).select("id, despacho_id").in("id", loteIds)) as unknown as {
+      data: { id: string; despacho_id: string | null }[] | null;
+    };
+    for (const f of data ?? []) {
+      if (f.despacho_id) envioDeLote.set(f.id, f.despacho_id);
+    }
+  } catch (e) {
+    console.error("El envío de cada lote recibido:", e);
+  }
   const movimientos = exigir(movimientosRes, "las líneas de las recepciones recientes");
   const personas = new Map(exigir(nombresRes, "quién recibió cada lote").map((p) => [p.id, p.nombre]));
   type Agg = {
@@ -696,6 +710,8 @@ export async function getRecepcionesRecientes(
       const agg = porLote.get(l.id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null, detalle: [] };
       return {
         loteId: l.id,
+        despachoId: envioDeLote.get(l.id) ?? null,
+        envioNumero: envioDeLote.has(l.id) ? numeroDeEnvioEnNota(l.nota) : null,
         fecha: l.fecha_recepcion,
         llegoEn: llegadas.get(l.id) ?? null,
         ubicacion: l.ubicacion?.nombre ?? "",
