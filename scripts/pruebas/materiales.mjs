@@ -29,6 +29,9 @@
  *      su nombre y su código de antes (del respaldo del conversor, o de su tela si nació de él), deja libre a la web vieja y le quita las funciones de telas a `authenticated`; y su PARTE B (abandonar
  *      el diseño) corre tal cual, en su orden, sin romper ningún INSERT ni UPDATE de insumos.
  *
+ *   U. Retirar un color (migración 20261029014000). `retirar_color_de_material` esconde un color de su tela sin borrar nada; es del líder; retirar dos veces no falla ni anota dos veces; se niega ante
+ *      saldo, una orden de producción en proceso, una orden de insumos o una factura por recibir y la receta de un modelo (y lo anulado o archivado no lo retiene); y a un color retirado no le entra tela.
+ *
  * Los mensajes del servidor salen en el idioma de la base: por eso los casos buscan el NOMBRE de la restricción o el texto propio de la migración.
  *
  * USO
@@ -845,6 +848,203 @@ mal(
 insert into retail.insumos (codigo, nombre, tipo, unidad_medida, material_id, color_codigo) values ('X', 'X', 'tela', 'metro', :'mid3', :'c1');
 insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-FT', 'Otro con el código', 'avio', 'unidad');
 ${DESHACER_APLICA}`
+);
+
+// ---------------- U. Retirar un color (ADR-0554, «Retirar color»: alguien se equivocó de color y no había cómo quitarlo) ----------------
+// Retirar es esconder (`archivado_at`): no borra nada. Se niega ante lo abierto —saldo, orden en proceso, orden de insumos o factura por recibir, receta de un modelo— y a un color retirado no le entra tela.
+const RETIRAR = (ins) => `retail.retirar_color_de_material(${ins}, :'taller')`;
+const TELA_TRES_COLORES = `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1"), COLOR("c2"), COLOR("c3")))} as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'id')::uuid as mid \\gset
+select i.id as i1 from retail.insumos i where i.material_id = :'mid' and i.color_codigo = :'c1' \\gset
+select i.id as i2 from retail.insumos i where i.material_id = :'mid' and i.color_codigo = :'c2' \\gset
+select i.id as i3 from retail.insumos i where i.material_id = :'mid' and i.color_codigo = :'c3' \\gset
+select p.id as felipe_p from public.personas p where p.auth_user_id = '${FELIPE}' \\gset`;
+/** Una tela con un color con 9 m en el Taller (saldo inicial) y otro sin saldo. */
+const TELA_CON_SALDO = `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1", [9, 90]), COLOR("c2")))} as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'id')::uuid as mid \\gset
+select i.id as i1 from retail.insumos i where i.material_id = :'mid' and i.color_codigo = :'c1' \\gset
+select i.id as i2 from retail.insumos i where i.material_id = :'mid' and i.color_codigo = :'c2' \\gset
+select p.id as felipe_p from public.personas p where p.auth_user_id = '${FELIPE}' \\gset`;
+/** Intenta retirar y, si la base se niega, devuelve su mensaje sin tumbar la transacción: para mirar que NADA cambió después de un rechazo. (psql no interpola variables dentro de un $x$: va por parámetros.) */
+const INTENTAR_RETIRAR = (ins) => `create function pg_temp.intentar(p_i uuid, p_t uuid) returns text language plpgsql as $x$ begin perform retail.retirar_color_de_material(p_i, p_t); return 'ok'; exception when others then return 'RECHAZADO: ' || sqlerrm; end $x$;
+select pg_temp.intentar(${ins}, :'taller') as intento \\gset`;
+
+ok(
+  "U1 el líder retira un color: sale de la lista, conserva su fila y su código, y los demás colores de la tela siguen",
+  `${TELA_TRES_COLORES}
+select ${RETIRAR(":'i2'")} as r2 \\gset
+select (:'r2'::jsonb ->> 'retirado'), (:'r2'::jsonb ->> 'ya_estaba'),
+  (select archivado_at is not null from retail.insumos where id = :'i2'),
+  (select count(*) from retail.insumos where material_id = :'mid' and archivado_at is null),
+  (select count(*) from retail.insumos where material_id = :'mid'),
+  (select codigo from retail.insumos where id = :'i2');`,
+  (c) => c[0] === "true" && c[1] === "false" && c[2] === "t" && Number(c[3]) === 2 && Number(c[4]) === 3 && c[5].startsWith("ZAF-01-")
+);
+ok(
+  "U2 retirar dos veces (doble clic) no falla y no anota dos veces",
+  `${TELA_TRES_COLORES}
+select ${RETIRAR(":'i2'")} as r2 \\gset
+select ${RETIRAR(":'i2'")} as r3 \\gset
+select (:'r3'::jsonb ->> 'ya_estaba'), (select count(*) from retail.actividad where tabla = 'materiales' and registro_id = :'mid' and accion = 'color_retirado');`,
+  (c) => c[0] === "true" && Number(c[1]) === 1
+);
+ok(
+  "U3 «Actividad» dice quién lo retiró, qué color y de qué tela, sin cifras de dinero",
+  `${TELA_TRES_COLORES}
+select ${RETIRAR(":'i2'")} as r2 \\gset
+select count(*), bool_and(persona_id is not null), bool_and(descripcion like 'retiró el color «%» (ZAF-01-%) de la tela «Zafiro Prueba» (ZAF-01)'), bool_and((detalle ->> 'insumo_id')::uuid = :'i2')
+  from retail.actividad where tabla = 'materiales' and registro_id = :'mid' and accion = 'color_retirado';`,
+  (c) => Number(c[0]) === 1 && c[1] === "t" && c[2] === "t" && c[3] === "t"
+);
+mal(
+  "U4 un color con saldo no se retira, y el mensaje dice cuánto tiene y dónde",
+  "todavía tiene 9 m en",
+  `${TELA_CON_SALDO}
+select ${RETIRAR(":'i1'")};`
+);
+ok(
+  "U4b …y tras el rechazo no cambió nada (sigue a la vista, con su saldo y sin línea en Actividad)",
+  `${TELA_CON_SALDO}
+${INTENTAR_RETIRAR(":'i1'")}
+select (:'intento' like 'RECHAZADO: Este color todavía tiene 9 m%'), (select archivado_at is null from retail.insumos where id = :'i1'),
+  (select coalesce(sum(fisico), 0) from retail.v_insumo_saldos where insumo_id = :'i1'),
+  (select count(*) from retail.actividad where tabla = 'materiales' and registro_id = :'mid' and accion = 'color_retirado');`,
+  (c) => c[0] === "t" && c[1] === "t" && Number(c[2]) === 9 && Number(c[3]) === 0
+);
+ok(
+  "U5 el saldo se lee del libro: con una salida que lo deja en cero, el color ya se puede retirar",
+  `${TELA_CON_SALDO}
+insert into retail.movimientos_insumo (insumo_id, insumo_lote_id, ubicacion_id, tipo, cantidad, costo_unitario, usuario_id, motivo)
+  select l.insumo_id, l.id, l.ubicacion_id, 'ajuste', -9, l.costo_unitario, :'felipe_p', 'prueba: ingreso equivocado' from retail.insumo_lotes l where l.insumo_id = :'i1';
+select ${RETIRAR(":'i1'")} as r1 \\gset
+select (:'r1'::jsonb ->> 'retirado'), (select archivado_at is not null from retail.insumos where id = :'i1');`,
+  (c) => c[0] === "true" && c[1] === "t"
+);
+mal(
+  "U6 un color en una orden de producción en proceso no se retira (dice cuál orden)",
+  "Este color está en la orden OP-",
+  `${TELA_TRES_COLORES}
+select id as prod from retail.productos order by created_at limit 1 \\gset
+insert into retail.producciones (ubicacion_id, producto_id, estado, cantidad_plan) values (:'taller', :'prod', 'en_proceso', 12) returning id as op \\gset
+insert into retail.produccion_insumos (produccion_id, insumo_id, consumo_por_prenda, cantidad_plan) values (:'op', :'i2', 1.2, 14.4);
+select ${RETIRAR(":'i2'")};`
+);
+ok(
+  "U6b …pero una orden terminada o anulada ya no lo retiene",
+  `${TELA_TRES_COLORES}
+select id as prod from retail.productos order by created_at limit 1 \\gset
+insert into retail.producciones (ubicacion_id, producto_id, estado, cantidad_plan) values (:'taller', :'prod', 'en_proceso', 12) returning id as op \\gset
+insert into retail.produccion_insumos (produccion_id, insumo_id, consumo_por_prenda, cantidad_plan) values (:'op', :'i2', 1.2, 14.4);
+update retail.producciones set estado = 'anulada' where id = :'op';
+select (${RETIRAR(":'i2'")} ->> 'retirado');`,
+  (c) => c[0] === "true"
+);
+mal(
+  "U7 un color con tela por recibir en una orden de insumos no se retira (dice cuál orden)",
+  "tela por recibir en la orden de insumos OI-",
+  `${TELA_TRES_COLORES}
+insert into retail.proveedores_produccion (nombre, rubro) values ('Proveedor Prueba Retirar', 'tela') returning id as prov \\gset
+insert into retail.ordenes_insumo (proveedor_id, ubicacion_destino_id, creada_por) values (:'prov', :'taller', :'felipe_p') returning id as oi \\gset
+insert into retail.orden_insumo_items (orden_insumo_id, posicion, insumo_id, cantidad, unidad_medida, precio_unitario) values (:'oi', 1, :'i2', 20, 'metro', 12);
+select ${RETIRAR(":'i2'")};`
+);
+ok(
+  "U7b …y una orden de insumos anulada, o ya recibida por completo, no lo retiene",
+  `${TELA_TRES_COLORES}
+insert into retail.proveedores_produccion (nombre, rubro) values ('Proveedor Prueba Retirar', 'tela') returning id as prov \\gset
+insert into retail.ordenes_insumo (proveedor_id, ubicacion_destino_id, creada_por, estado, anulada_por, anulada_en, motivo_anulacion)
+  values (:'prov', :'taller', :'felipe_p', 'anulada', :'felipe_p', now(), 'Se pidió dos veces') returning id as oi \\gset
+insert into retail.orden_insumo_items (orden_insumo_id, posicion, insumo_id, cantidad, unidad_medida, precio_unitario) values (:'oi', 1, :'i2', 20, 'metro', 12);
+select (${RETIRAR(":'i2'")} ->> 'retirado');`,
+  (c) => c[0] === "true"
+);
+mal(
+  "U8 un color con tela por recibir en una factura vigente no se retira (dice cuál factura)",
+  "tela por recibir en la factura TRT-",
+  `${TELA_TRES_COLORES}
+insert into retail.proveedores_produccion (nombre, rubro) values ('Proveedor Prueba Retirar', 'tela') returning id as pprov \\gset
+insert into retail.comprobantes_produccion (proveedor_id, tipo, serie, numero, condicion, subtotal, igv, total) values (:'pprov', 'factura', 'TRT', '1', 'contado', 100, 18, 118) returning id as cprod \\gset
+insert into retail.comprobantes_produccion_items (comprobante_id, insumo_id, descripcion, cantidad, costo_unitario) values (:'cprod', :'i2', 'Tela de prueba', 10, 10);
+select ${RETIRAR(":'i2'")};`
+);
+mal(
+  "U9 un color en la receta de un modelo no se retira (dice cuál modelo)",
+  "es parte de la receta del modelo",
+  `${TELA_TRES_COLORES}
+select id as prod from retail.productos order by created_at limit 1 \\gset
+insert into retail.producto_avios (producto_id, insumo_id, cantidad_por_prenda, declarado_por) values (:'prod', :'i2', 1, :'felipe_p');
+select ${RETIRAR(":'i2'")};`
+);
+ok(
+  "U9b …pero una línea de receta archivada ya no lo retiene",
+  `${TELA_TRES_COLORES}
+select id as prod from retail.productos order by created_at limit 1 \\gset
+insert into retail.producto_avios (producto_id, insumo_id, cantidad_por_prenda, declarado_por, archivado_at) values (:'prod', :'i2', 1, :'felipe_p', now());
+select (${RETIRAR(":'i2'")} ->> 'retirado');`,
+  (c) => c[0] === "true"
+);
+mal(
+  "U10 retirar un color es del líder: un colaborador, aunque vea Producción en ese Taller, no lo retira",
+  "Retirar un color es del líder",
+  `${TELA_TRES_COLORES}
+${MICAELA_EN_EL_TALLER}
+select ${RETIRAR(":'i2'")};`
+);
+mal(
+  "U11 un insumo suelto (que no es el color de ninguna tela) no se retira por aquí",
+  "Solo se retira el color de una tela",
+  `insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-SUELTO-U', 'Suelto de prueba', 'tela', 'metro') returning id as suelto \\gset
+select ${RETIRAR(":'suelto'")};`
+);
+mal(
+  "U12 un color que ya no existe se dice en castellano",
+  "Ese color ya no existe",
+  `select ${RETIRAR("'00000000-0000-4000-8000-000000000000'::uuid")};`
+);
+mal(
+  "U13 solo en un Taller: en una tienda se dice",
+  "Las telas y sus colores se anotan en un Taller",
+  `${TELA_TRES_COLORES}
+select retail.retirar_color_de_material(:'i2', (select id from retail.ubicaciones where tipo <> 'taller' and activo order by nombre limit 1));`
+);
+mal(
+  "U14 a un color retirado NO le entra tela: el ingreso se rechaza y dice por qué",
+  "está retirado: no se le ingresa tela",
+  `${TELA_TRES_COLORES}
+select ${RETIRAR(":'i2'")} as r2 \\gset
+select retail.recibir_insumo(:'i2', :'taller', 5, 50);`
+);
+ok(
+  "U14b …mientras que a un color a la vista le sigue entrando, y un retirado al que se le devuelve `archivado_at` vuelve a recibir",
+  `${TELA_TRES_COLORES}
+select retail.recibir_insumo(:'i1', :'taller', 5, 50) as a \\gset
+select ${RETIRAR(":'i2'")} as r2 \\gset
+update retail.insumos set archivado_at = null where id = :'i2';
+select retail.recibir_insumo(:'i2', :'taller', 4, 40) as b \\gset
+select (select coalesce(sum(fisico), 0) from retail.v_insumo_saldos where insumo_id = :'i1'), (select coalesce(sum(fisico), 0) from retail.v_insumo_saldos where insumo_id = :'i2');`,
+  (c) => Number(c[0]) === 5 && Number(c[1]) === 4
+);
+ok(
+  "U15 una tela con todos sus colores retirados sigue existiendo y se le pueden sumar otros colores",
+  `${TELA_TRES_COLORES}
+select ${RETIRAR(":'i1'")} as a \\gset
+select ${RETIRAR(":'i2'")} as b \\gset
+select ${RETIRAR(":'i3'")} as c \\gset
+select codigo as c4 from retail.colores where activo and codigo not in (:'c1', :'c2', :'c3') order by codigo limit 1 \\gset
+select retail.agregar_colores_a_material(:'mid', :'taller', ${COLORES(COLOR("c4"))}) as d \\gset
+select (select count(*) from retail.materiales where id = :'mid' and archivado_at is null),
+  (select count(*) from retail.insumos where material_id = :'mid' and archivado_at is null), (select count(*) from retail.insumos where material_id = :'mid');`,
+  (c) => Number(c[0]) === 1 && Number(c[1]) === 1 && Number(c[2]) === 4
+);
+ok(
+  "U16 puertas: anon no llama a nada; authenticated solo a retirar, no a las internas",
+  `select concat_ws(',',
+    has_function_privilege('anon', 'retail.retirar_color_de_material(uuid,uuid)', 'execute'),
+    has_function_privilege('authenticated', 'retail.retirar_color_de_material(uuid,uuid)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_color_compromisos(uuid)', 'execute'),
+    has_function_privilege('anon', 'retail.fn_color_compromisos(uuid)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_insumo_lotes_color_activo()', 'execute'));`,
+  (c) => c[0] === "f,t,f,f,f"
 );
 
 function main() {
