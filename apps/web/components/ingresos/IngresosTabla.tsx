@@ -8,6 +8,7 @@ import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Chip } from "@/components/ui/Chip";
 import { HojaIngresos } from "./HojaIngresos";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { MatrizIngreso } from "./MatrizIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
@@ -35,6 +36,10 @@ import {
 // La lista de modelos de «Ingresos»: una línea por modelo con su foto, si es Nuevo o un Reingreso, cuántas prendas entraron, su
 // precio en esta sede y —solo para quien ve el dinero— su costo. Vive en el cliente porque se busca, se filtra, se ordena y se abre
 // sin volver al servidor: el rango ya trajo todo lo que se muestra (la búsqueda del navegador no abre el loader, ADR-0149).
+
+/** El alto de un botón de fila: 32 px con el mouse y 44 con el dedo (el patrón de `parecidas-boton` y `compra-celular`), para que quede a la altura de
+ *  las píldoras. Una utilidad le gana a `.btn-chico`, que mide 44 siempre. */
+const ALTO_COMPACTO = "min-h-8 [@media(pointer:coarse)]:min-h-11";
 
 export function IngresosTabla({
   modelos,
@@ -135,17 +140,40 @@ export function IngresosTabla({
           <b className="font-semibold text-tinta">{prendasTexto(prendas)}</b> en {modelosTexto(visibles.length)}, {rangoTexto}.
         </p>
         {visibles.length > 0 && (
-          <div data-guia="movimientos.ingresos-descargar" className="flex flex-wrap items-center gap-2">
-            <BotonDescargar chico onClick={() => bajar(false)} title="Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo">
-              Descargar Excel
-            </BotonDescargar>
-            <BotonDescargar chico onClick={() => bajar(true)} title="Lo mismo, con una línea por cada color y talla de cada modelo">
-              Descargar Excel con tallas
-            </BotonDescargar>
-            <BotonImprimir chico onClick={imprimir} cargando={preparando} guia="movimientos.ingresos-imprimir" title="Imprime lo que estás viendo, con la foto de cada modelo. En el cuadro de impresión también puedes guardarlo como PDF">
-              Imprimir la lista
-            </BotonImprimir>
-          </div>
+          <>
+            {/* Desde sm: los tres botones sueltos, a la altura de las píldoras de al lado (32 px con el mouse, 44 con el dedo: `btn-chico`
+                mide 44 siempre y la fila quedaba con tres alturas). En el celular se juntan en «Más»: sueltos empujaban la tabla casi una
+                pantalla hacia abajo. */}
+            <div data-guia="movimientos.ingresos-descargar" className="hidden flex-wrap items-center gap-2 sm:flex">
+              <BotonDescargar chico className={ALTO_COMPACTO} onClick={() => bajar(false)} title="Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo">
+                Descargar Excel
+              </BotonDescargar>
+              <BotonDescargar chico className={ALTO_COMPACTO} onClick={() => bajar(true)} title="Lo mismo, con una línea por cada color y talla de cada modelo">
+                Descargar Excel con tallas
+              </BotonDescargar>
+              <BotonImprimir
+                chico
+                className={ALTO_COMPACTO}
+                onClick={imprimir}
+                cargando={preparando}
+                guia="movimientos.ingresos-imprimir"
+                title="Imprime lo que estás viendo, con la foto de cada modelo. En el cuadro de impresión también puedes guardarlo como PDF"
+              >
+                Imprimir la lista
+              </BotonImprimir>
+            </div>
+            <div data-guia="movimientos.ingresos-mas" className="sm:hidden">
+              <MenuAcciones
+                etiqueta="Más acciones de Ingresos"
+                texto="Más"
+                items={[
+                  { clave: "excel", etiqueta: "Descargar Excel", onSelect: () => bajar(false) },
+                  { clave: "excel-tallas", etiqueta: "Descargar Excel con tallas", onSelect: () => bajar(true) },
+                  { clave: "imprimir", etiqueta: "Imprimir la lista", onSelect: imprimir },
+                ]}
+              />
+            </div>
+          </>
         )}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -246,7 +274,7 @@ export function IngresosTabla({
         {visibles.length > 0 && (
           // El total de lo que se ve, como la fila de totales de Excel: sigue a la búsqueda y al filtro.
           <div role="row" data-guia="movimientos.ingresos-pie" className={`grid gap-x-4 gap-y-1 bg-hueso/60 px-5 py-2.5 text-sm font-semibold text-tinta ${plantilla}`}>
-            <span className="min-w-0 truncate">Total · {modelosTexto(visibles.length)}</span>
+            <span className="min-w-0 truncate">Total</span>
             <span className="whitespace-nowrap tabular-nums sm:text-right">
               {prendas.toLocaleString("es-PE")}
               <span className="text-xs font-normal text-taupe sm:hidden"> {prendas === 1 ? "prenda" : "prendas"}</span>

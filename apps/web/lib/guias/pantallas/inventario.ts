@@ -573,6 +573,13 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Saca una hoja limpia con la foto de cada modelo, ideal para revisar el fardo con la mercadería al lado. Los modelos que dejaste abiertos salen con su detalle de colores y tallas. En el cuadro de impresión también puedes guardarla como PDF.",
     },
     {
+      id: "ingresos-mas",
+      ancla: "movimientos.ingresos-mas",
+      opcional: true,
+      titulo: "Bájalo o imprímelo",
+      texto: "En el celular, «Descargar Excel», «Descargar Excel con tallas» e «Imprimir la lista» están juntos aquí, en «Más». Bajan o imprimen lo que estás viendo, con tu búsqueda y tu orden.",
+    },
+    {
       id: "ingresos-buscador",
       ancla: "movimientos.ingresos-buscador",
       opcional: true,

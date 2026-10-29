@@ -8,7 +8,7 @@
 - [x] **Migración `20261029022000_ingresos_por_modelo.sql` pegada en producción (2026-10-29)** con `apply_migration` (registrada como `20261029135109`); función verificada contra el libro (1.146 = 1.146 = 1.146). Falta correr `pnpm datos:generar:produccion` y `pnpm datos:comparar` (no agrega tablas) cuando se refresque el volcado.
 - [ ] Abrir el PR con `/abrir-pr` (la rama lleva 7 commits de esta obra y no tiene PR).
 - [ ] Probar con la colaboradora que lo pidió y con la persona de compras (ciega y real sin probar); decidir si el CSV alcanza o hace falta un .xlsx real con fotos.
-- [ ] Los 3 cambios de `/formidable` (esperan OK): una sola altura de control, los tres botones en un «Más» en el celular, un solo total.
+- [x] Los 3 cambios de `/formidable` (OK de Felipe, 2026-10-29): botones de fila a 32 px, los tres botones en un «Más» en el celular y un solo total. Queda la caja de búsqueda a 38 px (pieza del sistema).
 - [ ] Confirmar la hoja impresa por el diálogo real de impresión y en una compilación limpia (el `next dev` local no tomó `ingresos-impresion.css`).
 - [ ] Posibles mejoras que no se pidieron: proveedor y guía del fardo (`lotes`) para lo recibido; comparar lo que entró contra la factura o la orden de compra («más adelante»).
 - [ ] Opcional: el filtro por empresa (CAYLA / CLAURE en Lima, ADR-0532) de Movimientos, también en Ingresos.

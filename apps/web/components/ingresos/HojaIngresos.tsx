@@ -92,7 +92,7 @@ export function HojaIngresos({
         </tbody>
         <tfoot>
           <tr className="border-t border-tinta font-semibold text-tinta">
-            <td className="py-2 pr-3">Total · {modelosTexto(modelos.length)}</td>
+            <td className="py-2 pr-3">Total</td>
             <td className="px-3 py-2 text-right tabular-nums">{prendas.toLocaleString("es-PE")}</td>
             <td colSpan={columnas - 2} />
           </tr>

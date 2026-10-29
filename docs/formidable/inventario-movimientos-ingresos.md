@@ -2,7 +2,7 @@
 
 - **Fecha / SHA:** 2026-10-28 · e10f079b1 · **Dispositivo que manda:** escritorio (Mac mini); 375 px se adapta
 - **Pasada:** **rápida** (solo medido, sin agentes: sin prueba ciega, sin escéptico, sin colaboradora real). **Sin notas 0–10:** una nota sin
-  evidencia no se pone (informe.md). Los 3 cambios de abajo esperan el OK de Felipe; ninguno se implementó.
+  evidencia no se pone (informe.md). **Los 3 cambios de abajo los aprobó Felipe el 2026-10-29 y están hechos y medidos** (ver «Después», al final).
 - **Pregunta que debería resolver:** «¿Qué prendas entraron cuando llegó el fardo?» · **Protagonista:** la prenda (modelo + foto + cuántas).
 
 ## Medido (1440 × 900, cuenta admin, Tienda Lima, desde el 2 de octubre; 4 modelos)
@@ -48,3 +48,14 @@ con su OK (cambio de esquema en producción).
 - **Concurrencia:** es solo lectura (no escribe nada): sin riesgo de dos personas sobre el mismo registro.
 - **Caída externa:** si la base no responde, la pestaña dice «No se pudieron leer los ingresos» y no dibuja ceros (probado en código y en la prueba de `leerResumenIngresos`; sin simular la caída en el navegador).
 - **Persona sin contexto:** **sin probar** (ni agente ciego ni colaboradora). Es lo primero que conviene hacer con la colaboradora que pidió el reporte.
+
+## Después (2026-10-29, los 3 cambios con el OK de Felipe) · **[Medido]** a 1440 × 900 y en captura a 375 px
+
+| Cambio | Antes | Después |
+|---|---|---|
+| 1 · Una sola altura de control | botones de descargar e imprimir **44 px** · píldoras 31,5 · caja de búsqueda 38 | botones **32 px con el mouse** (44 con el dedo, el patrón de `parecidas-boton`), a la altura de las píldoras (31,5). **La caja de búsqueda sigue en 38 px**: es la pieza del sistema que Felipe eligió con `/unificar` y no se toca desde aquí. |
+| 2 · «Más» en el celular | tres botones apilados, uno por línea | un solo «Más ▾» con las tres opciones; la búsqueda sube a la primera pantalla; sin desborde horizontal. Desde 640 px siguen sueltos. |
+| 3 · Un solo total | titular «186 prendas en 4 modelos» y pie «Total · 4 modelos · 186» | titular igual; el pie dice solo **«Total»** y la cifra (también en la hoja impresa) |
+
+La guía suma el paso «Bájalo o imprímelo» (solo se ve en el celular: el motor salta solo las anclas que no se ven) y se recorrió en escritorio y a **375 × 812 en oscuro** (31 pasos, ✓).
+**Sigue sin hacerse:** la prueba ciega y la real con la colaboradora; el medidor completo a 1024 y 375 px.
