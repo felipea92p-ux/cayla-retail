@@ -19,6 +19,9 @@
  *   · Al cerrar la ronda, los gastos con papel pasan solos a los gastos del viaje (pagados de su fondo, a su compra del día); los de antes, sin papel,
  *     se quedan para Compras. Si uno no puede pasar (no hay una compra a la que ir), el cierre NO se cae y queda con su motivo.
  *
+ * QUÉ PROMETE (actividad 6: Compras solo ve y corrige)
+ *   · «Revisar compras» (`fn_revisar_compras`) trae, de cada compra y gasto por revisar, lo que escribió la compradora y por qué NO pasó solo.
+ *
  * USO
  *   node scripts/pruebas/compras_simple_historial.mjs                        → contra el Postgres local (supabase_db_cayla-retail)
  *   node scripts/pruebas/compras_simple_historial.mjs --contenedor <otro> [--base <nombre>]
@@ -248,6 +251,28 @@ reset role;
 select estado, pasa_sola_error ~ 'compra' from retail.compra_gastos where id = '${ID(1)}';
 select (select count(*) from retail.compra_rondas where persona_id = :'micaela' and cerrada_en is not null) >= 1;`,
   "t / por_completar|t / t",
+);
+
+// ---------- Revisar compras dice por qué no pasó solo (actividad 6) ----------
+const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder: ve «Revisar compras»
+
+caso(
+  "«Revisar compras» trae lo que escribió la compradora (serie y número; papel y RUC) y por qué no pasó solo; de antes, vacío",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "compra_rapida")}
+${COMPRA(1, "factura", "F001", "9001")} \\g /dev/null
+${COMPRA(2, "boleta", null, null)} \\g /dev/null
+${como(MICAELA, "gasto_rapido")}
+${GASTO(1, "envio", "factura", "20123456789", "gastos/f.jpg")} \\g /dev/null
+${GASTO(2, "comida", null)} \\g /dev/null
+reset role;
+update retail.compra_papeles set pasa_sola_error = 'Ese comprobante ya está registrado.' where id = '${ID(1)}';
+update retail.compra_gastos set pasa_sola_error = 'Todavía no hay una compra.' where id = '${ID(1)}';
+${como(FELIPE, null)}
+select (select p ->> 'serie' || '|' || (p ->> 'numero') || '|' || (p ->> 'pasa_sola_error') from jsonb_array_elements(retail.fn_revisar_compras() -> 'papeles') p where p ->> 'id' = '${ID(1)}'),
+       (select coalesce(p ->> 'serie', '-') || '|' || coalesce(p ->> 'pasa_sola_error', '-') from jsonb_array_elements(retail.fn_revisar_compras() -> 'papeles') p where p ->> 'id' = '${ID(2)}'),
+       (select (g ->> 'papel') || '|' || (g ->> 'ruc') || '|' || (g ->> 'pasa_sola_error') from jsonb_array_elements(retail.fn_revisar_compras() -> 'gastos') g where g ->> 'id' = '${ID(1)}'),
+       (select coalesce(g ->> 'papel', '-') from jsonb_array_elements(retail.fn_revisar_compras() -> 'gastos') g where g ->> 'id' = '${ID(2)}');`,
+  "F001|9001|Ese comprobante ya está registrado.|-|-|factura|20123456789|Todavía no hay una compra.|-",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

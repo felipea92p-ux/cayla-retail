@@ -59,6 +59,11 @@ export type PapelPorCompletar = {
   lineas: LineaPapel[];
   envios: EnvioPapel[];
   llego: boolean;
+  /** La serie y el número que la compradora escribió al comprar (20261029193000): Compras solo los corrige. De antes, nulos: los copia de la foto. */
+  serie: string | null;
+  numero: string | null;
+  /** Por qué NO pasó sola a los libros al cerrar la tienda el conteo (20261029194000); nulo si es de antes o si todavía no le tocaba. */
+  noPasoPor: string | null;
 };
 
 export type CierrePorRecibir = {
@@ -104,6 +109,11 @@ export type GastoPorRevisar = {
   ronda: string | null;
   /** Sin ninguna compra de quien gastó, la base no lo deja pasar: un gasto del viaje va siempre a una compra (decisión 75). */
   tieneCompra: boolean;
+  /** El papel y el RUC que la compradora dijo al anotar (20261029195000); de antes, nulos: Compras los elige. */
+  papel: PapelGasto | null;
+  ruc: string | null;
+  /** Por qué NO pasó solo a los gastos del viaje al cerrar su ronda; nulo si es de antes o si todavía no le tocaba. */
+  noPasoPor: string | null;
 };
 
 export type RevisarCompras = {
@@ -177,6 +187,9 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
       return eid && n != null && estado ? [{ id: eid, numero: n, estado, recibioQuienCompro: eo?.recibio_quien_compro === true }] : [];
     }),
     llego: o.llego === true,
+    serie: texto(o.serie),
+    numero: texto(o.numero),
+    noPasoPor: texto(o.pasa_sola_error),
   };
 }
 
@@ -215,6 +228,9 @@ function leerGasto(x: unknown): GastoPorRevisar | null {
     fecha: texto(o.fecha) ?? "",
     ronda: texto(o.ronda),
     tieneCompra: o.tiene_compra !== false,
+    papel: PAPELES_VALIDOS.find((p) => p === o.papel) ?? null,
+    ruc: texto(o.ruc),
+    noPasoPor: texto(o.pasa_sola_error),
   };
 }
 
@@ -451,6 +467,7 @@ export function camposCierre(v: { cuentaId: string; monto: string }, decision: C
 
 /** Qué papel le dieron por un gasto, como lo pide un gasto del viaje. Sin papel, una planilla de movilidad. */
 export type PapelGasto = "boleta" | "factura" | "ticket" | "planilla_movilidad";
+const PAPELES_VALIDOS: readonly PapelGasto[] = ["boleta", "factura", "ticket", "planilla_movilidad"];
 export const PAPELES_GASTO: Record<PapelGasto, { nombre: string; ayuda: string }> = {
   boleta: { nombre: "Boleta", ayuda: "Con número" },
   factura: { nombre: "Factura", ayuda: "Con RUC: separa el IGV" },

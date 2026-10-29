@@ -88,6 +88,29 @@ describe("leerRevisarCompras", () => {
     expect(r?.proveedores).toEqual([{ id: "pr", nombre: "Confecciones Lupe", ruc: null }]);
   });
 
+  it("lee lo que la compradora escribió y por qué no pasó solo; de antes, todo vacío (ADR-0574)", () => {
+    const r = leerRevisarCompras({
+      papeles: [
+        { id: "p1", tipo: "factura", monto: 100, proveedor_id: "pr", serie: "F001", numero: "123", pasa_sola_error: "Ese comprobante ya está registrado para este proveedor." },
+        { id: "p2", tipo: "boleta", monto: 50, proveedor_id: "pr" },
+      ],
+      gastos: [
+        { id: "g1", concepto: "envio", monto: 20, papel: "factura", ruc: "20123456789", pasa_sola_error: "Todavía no hay una compra de quien gastó." },
+        { id: "g2", concepto: "taxi", monto: 10, papel: "recibo" },
+      ],
+      cierres: [],
+      proveedores: [],
+    });
+    expect(r?.papeles.map((p) => [p.serie, p.numero, p.noPasoPor])).toEqual([
+      ["F001", "123", "Ese comprobante ya está registrado para este proveedor."],
+      [null, null, null],
+    ]);
+    expect(r?.gastos.map((g) => [g.papel, g.ruc, g.noPasoPor])).toEqual([
+      ["factura", "20123456789", "Todavía no hay una compra de quien gastó."],
+      [null, null, null],
+    ]);
+  });
+
   it("lee la cuenta que indicó la compradora en un cierre, y sin ella (o con la base sin la migración) queda vacía", () => {
     const r = leerRevisarCompras({
       papeles: [],

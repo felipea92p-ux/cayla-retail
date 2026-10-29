@@ -359,6 +359,12 @@ export default async function FondosPage() {
         </Aviso>
       )}
       {!falla && (
+        <p className="nota-cayla text-sm">
+          Lo que anotan las compradoras pasa solo a los libros: las compras cuando la tienda cierra el conteo, los gastos cuando cierran su ronda y la plata
+          por transferencia al anotarla. Aquí queda lo que no pudo pasar solo y lo de antes de este cambio; lo demás lo ves en el historial.
+        </p>
+      )}
+      {!falla && (
         <BandejaRevisar
           plata={plataAnotada ?? []}
           papeles={revisar?.papeles ?? []}

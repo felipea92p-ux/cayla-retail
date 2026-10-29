@@ -105,9 +105,10 @@ function FotoGasto({ gasto }: { gasto: GastoConFoto }) {
 
 export function DetalleGasto({ gasto, alTerminar }: { gasto: GastoConFoto; alTerminar: () => void }) {
   const router = useRouter();
-  const [papel, setPapel] = useState<PapelGasto | null>(papelSugerido(gasto));
+  // Lo que dijo la compradora al anotar (ADR-0574) viene puesto; de antes, el papel que cae de cajón (un taxi sin foto va sin papel).
+  const [papel, setPapel] = useState<PapelGasto | null>(gasto.papel ?? papelSugerido(gasto));
   const [serieNumero, setSerieNumero] = useState("");
-  const [ruc, setRuc] = useState("");
+  const [ruc, setRuc] = useState(gasto.ruc ?? "");
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
@@ -180,6 +181,11 @@ export function DetalleGasto({ gasto, alTerminar }: { gasto: GastoConFoto; alTer
               }}
               className="flex min-w-0 flex-col gap-5"
             >
+              {gasto.noPasoPor && (
+                <Aviso tono="atencion" titulo="No pasó solo a los gastos del viaje">
+                  {gasto.noPasoPor}
+                </Aviso>
+              )}
               <CampoGuiado id="papel" guia={guia} titulo="¿Qué papel le dieron?">
                 <FichasDePapel
                   etiqueta="¿Qué papel le dieron?"
