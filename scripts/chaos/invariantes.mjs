@@ -581,6 +581,26 @@ select i.id as insumo_id, i.codigo, i.nombre, m.codigo as tela_codigo, m.nombre 
 update retail.insumos set merma_pct = case when merma_pct < 0.4 then merma_pct + 0.05 else merma_pct - 0.05 end
  where ctid = (select ctid from retail.insumos where material_id is not null limit 1);`,
   },
+  {
+    id: "INV-25",
+    nombre: "color_retirado_sin_tela_guardada",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Un color de tela retirado (`archivado_at`, «Retirar color», ADR-0554) no guarda tela: ni saldo distinto de cero en ninguna sede, ni un lote que haya entrado DESPUÉS de retirarlo. Si lo tuviera, serían metros que el libro de movimientos sigue contando (y suman al capital en insumos) pero que ninguna lista muestra: stock fantasma. `retirar_color_de_material` se niega con saldo y un disparador en `insumo_lotes` rechaza el ingreso a un retirado; esto vigila lo que se cuele por un camino que los salte (un arreglo a mano, una migración, una función nueva que escriba el libro sin pasar por el lote).",
+    sql: `
+select i.id as insumo_id, i.codigo, i.archivado_at, s.ubicacion_id, s.fisico as cantidad, 'saldo' as motivo
+  from retail.insumos i
+  join retail.v_insumo_saldos s on s.insumo_id = i.id
+ where i.material_id is not null and i.archivado_at is not null and s.fisico <> 0
+union all
+select i.id, i.codigo, i.archivado_at, l.ubicacion_id, l.cantidad_ingresada, 'lote_posterior'
+  from retail.insumos i
+  join retail.insumo_lotes l on l.insumo_id = i.id
+ where i.material_id is not null and i.archivado_at is not null and l.created_at > i.archivado_at`,
+    // Retirar un color que SÍ tiene saldo: lo que la función y el disparador impiden, hecho por la puerta de atrás (un UPDATE directo, que la política de líder permite).
+    corrompe: `update retail.insumos set archivado_at = now()
+ where ctid = (select i.ctid from retail.insumos i join retail.v_insumo_saldos s on s.insumo_id = i.id where i.material_id is not null and i.archivado_at is null and s.fisico <> 0 limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────
