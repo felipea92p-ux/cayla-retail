@@ -429,13 +429,14 @@
     position: relative;
     line-height: 1.15;
   }
+  /* La talla y las unidades pueden caer sobre la barra (más oscura en el tema oscuro): van en tinta plena, nunca tenues. */
   .trafico-talla-nombre {
     position: absolute;
     top: 6px;
     font-size: 10.5px;
     font-weight: 600;
     letter-spacing: 0.06em;
-    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+    color: var(--color-tinta);
   }
   .trafico-talla-celda > b {
     font-family: var(--font-display);
@@ -445,7 +446,7 @@
   }
   .trafico-talla-celda > small {
     font-size: 10.5px;
-    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+    color: var(--color-tinta);
   }
   .trafico-talla-celda[data-falta] {
     background: color-mix(in srgb, var(--color-ambar) 22%, var(--color-papel));
@@ -471,8 +472,9 @@
 }
 
 /* ---------- Necesita tu atención y el calendario (actividades 8 y 9), lado a lado ----------
-   Desde 1180 px de cuerpo, mitad y mitad (como la maqueta). Cada día del calendario lleva su rojo en línea, como el mapa de calor; el día
-   fuera del período, tenue; hoy, con su filo en rojo profundo y unas rayas; el que no llega, solo su número sobre una línea punteada. */
+   Desde 1180 px de cuerpo, mitad y mitad (como la maqueta). Cada día del calendario lleva su rojo en línea, más suave que el del mapa de
+   calor (de 6 a 56 %) para que su número en tinta se lea en los dos temas (4,6:1 o más, medido); el día fuera del período baja su rojo, no
+   su número; hoy, con su filo en rojo profundo y unas rayas; el que no llega, solo su número sobre una línea punteada. */
 @layer components {
   .trafico-rejilla-mitades {
     display: grid;
@@ -515,12 +517,6 @@
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     text-align: right;
-  }
-  .trafico-cal-dia[data-oscuro] {
-    color: var(--color-crema-fija);
-  }
-  .trafico-cal-dia[data-fuera] {
-    opacity: 0.5;
   }
   .trafico-cal-dia[data-futuro] {
     border: 1px dashed var(--color-sand);

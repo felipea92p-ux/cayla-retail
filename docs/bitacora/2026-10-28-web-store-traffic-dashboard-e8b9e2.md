@@ -74,3 +74,9 @@
   promedio. Base: `20261029132000_trafico_web_calendario.sql` suma `calendario` al resumen (misma firma). **Verificado:**
   `pruebas:tienda-trafico-resumen` 83/83, vitest de reglas 92/92, guías (paso nuevo), unificar, tokens, movimiento, ancho, tsc, eslint y knip; en el
   navegador a 1440 en claro y a 375 px en oscuro sin scroll lateral. **No está en producción.**
+- **Actividad 10 · Cierre:** `tema:auditar` sobre la ruta real (0 hallazgos) y sobre la página de prueba con todas las tarjetas: encontró el número del
+  calendario sobre rojo bajo 4,5:1 en los dos temas y la talla y las unidades tenues sobre la barra en oscuro; el rojo del calendario pasó a 6–56 %
+  con el número en tinta, el día fuera del período baja su rojo y no su número, y la talla y las unidades van en tinta plena: 0 hallazgos en claro y
+  oscuro. `guias:recorrer` arranca la guía; la base local no tiene visitas y se declaró «sin datos locales» en `guias/ejemplos.mjs`. `/formidable`
+  queda para cuando haya visitas reales. ADR-0568 con las decisiones y el orden de pegado; ADR-0136 y ADR-0495 actualizados, CLAUDE.md y
+  ARQUITECTURA.md al día. Se borró la página temporal de prueba, el `.env.local` copiado y el cambio de `launch.json`.

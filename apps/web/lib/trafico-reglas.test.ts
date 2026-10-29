@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  tinteDelDia,
   celdasDelCalendario,
   diasFuertesDelMes,
   mesTexto,
@@ -700,6 +701,10 @@ describe("el calendario del mes", () => {
     expect(c.dias[1].n).toBe(0);
     expect(c.dias[26]).toMatchObject({ dia: 27, n: 9, enPeriodo: true, hoy: true });
     expect(c.dias[27].n).toBeNull();
+  });
+
+  it("el rojo de un día va de 6 a 56 (su número en tinta se lee en los dos temas); fuera del período, el 40 %", () => {
+    expect([tinteDelDia(0, 400, true), tinteDelDia(400, 400, true), tinteDelDia(200, 400, true), tinteDelDia(400, 400, false)]).toEqual([6, 56, 31, 22]);
   });
 
   it("febrero de un año no bisiesto tiene 28 días", () => {

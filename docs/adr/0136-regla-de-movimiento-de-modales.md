@@ -548,3 +548,10 @@ excepción a «sin rebote»: **la única pieza del ERP con un rebote, y es uno s
 - **Lo que lo mantiene discreto:** una vez, menos de 2,5 s, nunca en bucle, y con `prefers-reduced-motion` aparece y se va ya hecha.
 - **Se rompe si:** se publican muchas versiones por hora y la gota deja de ser una señal y pasa a ser ruido (ver ADR-0422, «Opciones»); o si alguien reutiliza
   el rebote en otra pieza: esta excepción es solo del aviso. Pruebas: `lib/version-nueva-reglas.test.ts`.
+
+## Actualización 2026-10-29 — Tienda web ▸ Tráfico, «Observatorio» (ADR-0568)
+
+La vitrina de baldosas de Tráfico (act. 2026-10-23 (d)) se fue: su cascada, la etiqueta que se cuelga y la luz que cruza ya no existen. Lo que
+queda propio de la pantalla: **los 100 puntos de «Hasta dónde llega la gente» se encienden una vez**, paso tras paso (90 ms) y punto tras punto
+(6 ms), 360 ms cada uno con `--ease-cayla`, sin rebote; y el único bucle sigue siendo la señal del punto verde de «N mirando ahora», que respira
+solo mientras alguien mira. Todo quieto con `prefers-reduced-motion`. Lo vigila `lib/trafico-movimiento.test.ts`.

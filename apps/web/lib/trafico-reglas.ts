@@ -1012,6 +1012,16 @@ export function celdasDelCalendario(c: CalendarioTrafico, p: { desde: string; ha
   };
 }
 
+/**
+ * Cuánto rojo lleva un día del calendario: de 6 % (nadie) a 56 % (el que más), sobre hueso. Más suave que el mapa de calor porque encima va
+ * su número en tinta: hasta 56 % se lee en los dos temas (4,6:1 o más, medido con tema:auditar). Fuera del período, el 40 % de eso: tenue
+ * sin apagar el número.
+ */
+export function tinteDelDia(n: number, max: number, enPeriodo: boolean): number {
+  const t = 6 + (max > 0 ? n / max : 0) * 50;
+  return Math.round(enPeriodo ? t : t * 0.4);
+}
+
 /** Los dos días de la semana con más gente en promedio en el mes (solo los días que ya pasaron); `null` con menos de 10 personas. */
 export function diasFuertesDelMes(dias: readonly DiaCalendario[]): readonly [number, number] | null {
   const suma = Array(7).fill(0);

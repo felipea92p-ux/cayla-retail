@@ -1,13 +1,10 @@
 import type { CSSProperties } from "react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { DIAS_CORTOS, celdasDelCalendario, diasFuertesDelMes, diasTexto, mesTexto, miles, personas, tinteDeRegion, type CalendarioTrafico as Calendario } from "@/lib/trafico-reglas";
-
-/** Desde este tinte el rojo ya es oscuro: el número va en crema fija (es dato, no cambia con el tema). */
-const TINTE_OSCURO = 48;
+import { DIAS_CORTOS, celdasDelCalendario, diasFuertesDelMes, diasTexto, mesTexto, miles, personas, tinteDelDia, type CalendarioTrafico as Calendario } from "@/lib/trafico-reglas";
 
 /**
  * «Octubre, día por día» (actividad 9; maqueta `docs/maquetas/trafico-decisiones-2026-10/`): el mes del último día del período, cada día
- * más rojo mientras más gente entró (el mismo rojo del mapa de calor). Los días del período elegido van plenos y los demás, tenues; hoy
+ * más rojo mientras más gente entró (`tinteDelDia`). Los días del período elegido van plenos y los demás, tenues; hoy
  * lleva su filo; los que todavía no llegan, solo su número. Arriba, los dos días de la semana con más gente.
  */
 export function CalendarioTrafico({ calendario, periodo, hoy }: { calendario: Calendario; periodo: { desde: string; hasta: string }; hoy: string }) {
@@ -46,14 +43,13 @@ export function CalendarioTrafico({ calendario, periodo, hoy }: { calendario: Ca
                   <span>{d.dia}</span>
                 </span>
               );
-            const tinte = tinteDeRegion(d.n, max);
+            const tinte = tinteDelDia(d.n, max, d.enPeriodo);
             return (
               <span
                 key={d.dia}
                 className="trafico-cal-dia"
                 data-fuera={!d.enPeriodo || undefined}
                 data-hoy={d.hoy || undefined}
-                data-oscuro={tinte > TINTE_OSCURO || undefined}
                 title={`${d.dia} de ${mes.toLowerCase()}: ${personas(d.n)}`}
                 style={{ background: `color-mix(in srgb, var(--color-rojo) ${tinte}%, var(--color-hueso))` }}
               >
