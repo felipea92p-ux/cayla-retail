@@ -1,6 +1,6 @@
 # ADR-0565 · Movimientos ▸ «Ingresos»: qué prendas entraron, por modelo
 
-- **Fecha:** 2026-10-28 · **Estado:** construido en la rama; **la migración NO está en producción** (espera el OK de Felipe).
+- **Fecha:** 2026-10-28 · **Estado:** construido en la rama; **la migración está en producción desde el 2026-10-29** (Felipe: «pega todas las migraciones en prod»), registrada por `apply_migration` como `20261029135109 ingresos_por_modelo` (la hora de aplicación, no la del archivo `20261029022000`).
 - **Pedido (de una colaboradora, contado por Felipe):** cuando llega un fardo, la persona de compras le pide saber qué prendas entraron —por modelo, sin
   colores ni tallas, «a veces» con ellos—. En Movimientos buscó lo cargado como «Stock inicial» desde el día que llegó el fardo hasta hoy y no pudo: salían
   decenas de filas por color y talla, no sumaba por modelo y no logró pasarlo a Excel. Quería algo como su Excel, «no tan feo, o más útil».
@@ -31,6 +31,12 @@
 - **.xlsx real** (fotos y hojas aparte): suma una dependencia nueva; se deja a Felipe si el CSV no alcanza.
 - **Agrupar por «fardo»** con un nombre al ingresar: cambia el flujo de ingreso; se eligió «por fechas».
 - **Usar `lotes`** (proveedor y guía del fardo) como identidad: solo la mercadería *recibida* los tiene; el stock inicial no. Queda como mejora posible.
+
+## En producción (2026-10-29)
+
+Antes de pegar se leyó producción (solo lectura): existían `fn_precio_en_sede`, `fn_puede_ver_dinero_de_compras`, `fn_ve_modulo`, `fn_puede_operar_ubicacion` y todas las columnas que usa. Después: la función existe (`security definer`, estable), `anon` no la ejecuta y `authenticated` sí. Prueba funcional que se revierte sola, con una cuenta de líder y los últimos 30 días de la sede con ingresos más reciente: la función suma **1.146** unidades, igual que una suma directa del libro y que la suma del detalle por color y talla (194 modelos). Pendiente de producción: que el `?vista=ingresos` de la web llegue con el PR.
+
+**Pendiente de diseño:** Movimientos ya tiene un filtro opcional por empresa (CAYLA o CLAURE en Lima, ADR-0532, `fn_empresa_de_prenda_en_sede`). Ingresos muestra todo, como Movimientos por defecto; sumarle ese filtro queda para después.
 
 ## Verificación
 
