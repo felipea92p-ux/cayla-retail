@@ -22,6 +22,7 @@ import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MA
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, TIPOS_DANO, tituloExitoReporte } from "@/lib/danadas-reglas";
 import { pistaDeNota } from "@/lib/sugerencias-danadas";
+import { fraseDejarEn } from "@/lib/danadas-lugar";
 import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -218,6 +219,7 @@ export function FlujoTalla({
   destinos,
   origenes,
   puedePedirParaCliente,
+  lugarDanadas = null,
   onHecho,
   onSalir,
   onCambiar,
@@ -239,6 +241,8 @@ export function FlujoTalla({
   destinos: readonly { id: string; nombre: string }[];
   origenes: readonly SedeConCantidad[];
   puedePedirParaCliente: boolean;
+  /** Dónde deja la tienda las prendas dañadas (ADR-0564); null si no lo marcó. */
+  lugarDanadas?: string | null;
   /** Terminó bien: el panel vuelve a la talla con el aviso «hecho». */
   /** `cerrar`: lo hecho se confirmó con el aviso destacado y el panel entero se cierra (hoy, bajar al piso). */
   onHecho: (texto: string, opciones?: { cerrar?: boolean }) => void;
@@ -530,7 +534,7 @@ export function FlujoTalla({
           yaEstaba: (x) => leerRespuestaDanada(x)?.ya_registrada === true,
           resuelve: reporteResuelveLaMarca,
           titulo: (x) => tituloExitoReporte(leerRespuestaDanada(x)?.unidades ?? n),
-          recordatorio: recordatorioAlReportar(desde),
+          recordatorio: recordatorioAlReportar(desde, lugarDanadas),
         };
       }
       default:
@@ -905,7 +909,7 @@ export function FlujoTalla({
               className={CLASE_TEXTO}
             />
             {/* Lo que pasa al reportar, ANTES de confirmar: el acto físico primero (si sigue colgada, se puede vender). */}
-            <p className="mt-3 rounded-xl bg-hueso px-3 py-2.5 text-[13px] text-tinta">{quePasaAlReportar(d.lugar ?? null)}</p>
+            <p className="mt-3 rounded-xl bg-hueso px-3 py-2.5 text-[13px] text-tinta">{quePasaAlReportar(d.lugar ?? null)}{fraseDejarEn(lugarDanadas) ? ` ${fraseDejarEn(lugarDanadas)}` : ""}</p>
           </>
         );
       case "quien": {

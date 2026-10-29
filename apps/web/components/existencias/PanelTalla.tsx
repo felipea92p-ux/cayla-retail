@@ -141,6 +141,7 @@ export function PanelTalla({
   marcaDelFiltro = null,
   enSedeActiva,
   puedeReportarDanada = false,
+  lugarDanadas = null,
   hrefCatalogo,
   fotoDesde = null,
   onAjustarCompleto,
@@ -181,6 +182,8 @@ export function PanelTalla({
   /** Mirando la sede propia: Etiquetas e Historial trabajan sobre ella. */
   enSedeActiva: boolean;
   puedeReportarDanada?: boolean;
+  /** Dónde deja la tienda las prendas dañadas (ADR-0564): «Reportar dañada» lo repite. */
+  lugarDanadas?: string | null;
   /** El enlace a Catálogo ▸ Productos con esta prenda, solo si el rol ve Productos. */
   hrefCatalogo?: (referencia: string) => string;
   /** La miniatura de la tarjeta desde la que se abrió: la foto cruza desde ahí hasta el modal. `null`: entra sin cruzar. */
@@ -932,6 +935,7 @@ export function PanelTalla({
                     destinos={destinos}
                     origenes={origenes}
                     puedePedirParaCliente={puedePedirParaCliente}
+                    lugarDanadas={lugarDanadas}
                     onHecho={(texto, opciones) => {
                       setFlujo(null);
                       // Colgar y subir (Felipe, 2026-10-08): lo confirma el aviso destacado y el modal se va con su salida de siempre; la lista

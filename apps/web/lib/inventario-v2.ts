@@ -518,6 +518,19 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
   }));
 }
 
+/**
+ * Dónde deja la tienda las prendas dañadas (ADR-0564, `sububicaciones.lugar` de la cuarentena), o null si aún no lo marcó. Dato
+ * secundario: NUNCA lanza. Sin la columna (la web salió antes que `20261029031000`) o sin respuesta, no hay lugar y la pantalla sigue como antes.
+ */
+export async function getLugarDeDanadas(ubicacionId: string): Promise<string | null> {
+  // `createClient` lee las cookies (una pantalla dinámica): va FUERA del try, para no tragarse el aviso interno de Next.
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("sububicaciones").select("lugar").eq("ubicacion_id", ubicacionId).eq("tipo", "cuarentena").limit(1);
+  // Una consulta de PostgREST no lanza: un error (como la columna aún inexistente, 42703) llega en `error`.
+  if (error) return null;
+  return data?.[0]?.lugar?.trim() || null;
+}
+
 async function leerDevolviblesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, DevolucionPosible>> {
   try {
     const { data, error } = await supabase.rpc(RPC_DANADAS_DEVOLVIBLES as never, { p_ubicacion_id: ubicacionId } as never);

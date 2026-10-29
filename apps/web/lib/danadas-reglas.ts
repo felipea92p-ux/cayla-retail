@@ -20,6 +20,7 @@
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import type { CampoDeGuia } from "./guia-campos";
+import { fraseDejarEn } from "./danadas-lugar";
 
 /** Las RPC y sus parámetros en un solo lugar: `danadas-reglas.test.ts` los fija contra la migración. */
 export const RPC_REPORTAR_DANADA = "reportar_danada";
@@ -335,8 +336,10 @@ export function quePasaAlReportar(desde: DesdeDanada | null): string {
 }
 
 /** Lo que el aviso de éxito recuerda hacer con la prenda en la mano (el sistema ya la movió; la percha todavía no). */
-export function recordatorioAlReportar(desde: DesdeDanada): string {
-  return desde === "piso" ? "Sácala del perchero y guárdala aparte con su nota." : "Guárdala aparte con su nota, lejos de lo que se cuelga en el piso.";
+export function recordatorioAlReportar(desde: DesdeDanada, lugar?: string | null): string {
+  const base = desde === "piso" ? "Sácala del perchero y guárdala aparte con su nota." : "Guárdala aparte con su nota, lejos de lo que se cuelga en el piso.";
+  const donde = fraseDejarEn(lugar);
+  return donde ? `${base} ${donde}` : base;
 }
 
 /** Lo que pasa con «Se arregló»: vuelve al almacén y, para venderla, se cuelga en el piso (así Frescura cuenta su edad desde ahí). */

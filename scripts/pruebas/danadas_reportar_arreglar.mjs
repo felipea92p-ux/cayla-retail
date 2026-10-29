@@ -673,5 +673,38 @@ select concat_ws(',', (:'r')::jsonb ->> 'estado', (:'n')::jsonb ->> 'ok');`,
   "23514,true"
 );
 
+// ===========================================================================
+// D10 · El lugar de las dañadas de cada tienda (ADR-0564, `20261029031000`)
+// ===========================================================================
+
+const lugar = (ubic, texto) => `pg_temp.intento(format('select retail.definir_lugar_danadas(%L, %L)', :'${ubic}', ${texto}))`;
+const LUGAR_DE = (ubic) => `(select lugar from retail.sububicaciones where ubicacion_id = :'${ubic}' and tipo = 'cuarentena')`;
+caso(
+  "D10 · el líder marca el lugar de su tienda (queda sin espacios de más, con quién y cuándo) y lo borra con un texto vacío",
+  `${sesion(FELIPE)}${COMO_API}select ${lugar("tru", "'  perchero detrás de caja '")} as a \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb ->> 'ok', ${LUGAR_DE("tru")},
+  (select lugar_por = :'felipe_p' and lugar_en is not null from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'cuarentena')) as v1 \\gset
+${sesion(FELIPE)}${COMO_API}select ${lugar("tru", "'   '")} as b \\gset
+${COMO_POSTGRES}select concat_ws(',', :'v1', (:'b')::jsonb ->> 'ok', coalesce(${LUGAR_DE("tru")}, 'sin lugar'));`,
+  "true,perchero detrás de caja,t,true,sin lugar"
+);
+caso(
+  "D10 · 1 o 2 letras y más de 80 no valen (lugar_invalido) y nada cambia; otra tienda, sin Existencias y el Taller se rechazan con su hint",
+  `${sesion(FELIPE)}${COMO_API}select ${lugar("tru", "'ab'")} as corto \\gset
+select ${lugar("tru", "repeat('x', 81)")} as largo \\gset
+select ${lugar("taller", "'estante'")} as taller \\gset
+${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select ${lugar("lim", "'estante'")} as otra \\gset
+${SIN_EXISTENCIAS_EN_NINGUN_ROL}${sesion(MICAELA)}${COMO_API}select ${lugar("tru", "'estante'")} as sinmod \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'corto')::jsonb ->> 'hint', (:'largo')::jsonb ->> 'hint', (:'taller')::jsonb ->> 'hint', (:'otra')::jsonb ->> 'hint',
+  (:'sinmod')::jsonb ->> 'hint', (:'sinmod')::jsonb ->> 'estado', ${LUGAR_DE("tru")} is null);`,
+  "lugar_invalido,lugar_invalido,lugar_sede_sin_cuarentena,lugar_sin_tienda,lugar_sin_modulo,42501,t"
+);
+caso(
+  "D10 · el candado del esquema: un lugar de 2 letras escrito directo se rechaza (23514) y los demás lugares quedan en null",
+  `select pg_temp.intento(format('update retail.sububicaciones set lugar = %L where id = %L', 'ab', :'cua_t')) ->> 'estado' as e \\gset
+select concat_ws(',', :'e', (select count(*) from retail.sububicaciones where lugar is not null and tipo <> 'cuarentena'));`,
+  "23514,0"
+);
+
 console.log(`\n${total - fallos}/${total} pruebas en verde.`);
 process.exit(fallos ? 1 : 0);

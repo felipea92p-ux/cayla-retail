@@ -193,6 +193,7 @@ export function InventarioPanel({
   sububicacionPiso,
   sububicacionAlmacen,
   danadosPendientes,
+  lugarDanadas,
   abrirDanados = false,
   abrirVariante = null,
   abrirAjustar = false,
@@ -231,6 +232,8 @@ export function InventarioPanel({
    *  / Se botó / Donada. Vacía en Taller (no separa piso/almacén, nunca
    *  recibe devoluciones). */
   danadosPendientes: PrendaDanada[];
+  /** Dónde deja esta tienda las prendas dañadas (ADR-0564), o null si aún no lo marcó. */
+  lugarDanadas: string | null;
   /** Abrir la cola de dañadas al entrar (`?danados=1`, aviso de cuarentena de Devoluciones). */
   abrirDanados?: boolean;
   /** La talla a abrir al llegar (`?variante=`, desde Movimientos: ADR-0241). */
@@ -1374,6 +1377,8 @@ export function InventarioPanel({
       {viendoDanados && (
         <ResolverDanadosModal
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
+          ubicacionId={ubicacionId}
+          lugar={lugarDanadas}
           otraSede={!enSedeActiva}
           sede={sedeNombre}
           onClose={() => {
@@ -1446,6 +1451,7 @@ export function InventarioPanel({
           marcaDelFiltro={marcaDelFiltro}
           enSedeActiva={permisos.etiquetasEHistorial}
           puedeReportarDanada={permisos.reportarDanada}
+          lugarDanadas={lugarDanadas}
           onAjustarCompleto={(f) => {
             setAbierta(null);
             setAjustando(f);

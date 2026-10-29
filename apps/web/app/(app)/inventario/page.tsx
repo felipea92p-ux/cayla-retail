@@ -3,7 +3,7 @@ import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
-import { getExistencias, getFilaSinStockDeVariante, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
+import { getExistencias, getFilaSinStockDeVariante, resumirExistencias, getPrendasDanadasPendientes, getLugarDeDanadas } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
@@ -73,7 +73,7 @@ export default async function InventarioPage({
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui, lugarDanadas] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -113,6 +113,8 @@ export default async function InventarioPage({
     vende ? leerPlanDelPiso(ubicacionActivaId) : Promise.resolve(null),
     // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
     getEmpresasAqui(ubicacionActivaId).catch(() => null),
+    // Dónde deja esta tienda las prendas dañadas (ADR-0564). Nunca lanza: sin dato, la pantalla sigue como antes.
+    getLugarDeDanadas(ubicacionActivaId),
   ]);
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
   // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Corre en paralelo con el ritmo de abajo;
@@ -285,6 +287,7 @@ export default async function InventarioPage({
         sububicacionPiso={sububicacionPiso}
         sububicacionAlmacen={sububicacionAlmacen}
         danadosPendientes={danadosPendientes}
+        lugarDanadas={lugarDanadas}
         abrirDanados={danados === "1"}
         abrirVariante={variante ?? null}
         abrirAjustar={pideAjustar(ajustar)}

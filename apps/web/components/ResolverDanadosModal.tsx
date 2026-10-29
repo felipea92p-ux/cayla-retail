@@ -34,6 +34,7 @@ import {
   tituloExitoArreglo,
   tituloExitoDevolucion,
 } from "@/lib/danadas-reglas";
+import { argumentosDeLugar, camposGuiaLugar, MAX_LUGAR_DANADAS, RPC_DEFINIR_LUGAR_DANADAS } from "@/lib/danadas-lugar";
 import { Aviso } from "@/components/ui/Aviso";
 import { Check } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
@@ -82,12 +83,17 @@ const ETIQUETA_METODO: Record<MetodoPago, string> = {
 export function ResolverDanadosModal({
   pendientes,
   otraSede = false,
+  ubicacionId,
+  lugar,
   sede = "",
   onClose,
 }: {
   pendientes: PrendaDanada[];
   /** Mirando otra sede (`?ubicacion=`): resolver firmaría con el Responsable de la sede activa, así que no se ofrece. */
   otraSede?: boolean;
+  /** La tienda cuyas dañadas se ven, y dónde las deja (ADR-0564): null si aún no lo marcó. */
+  ubicacionId: string;
+  lugar: string | null;
   /** El nombre de la sede, para decir a qué almacén vuelve una prenda arreglada. */
   sede?: string;
   onClose: () => void;
@@ -97,6 +103,11 @@ export function ResolverDanadosModal({
   const puedeDecidir = !otraSede;
   const router = useRouter();
   const [notas, setNotas] = useState<Record<string, string>>({});
+  // «Dónde se dejan» (ADR-0564): el lugar físico de las dañadas de esta tienda, que cada sede marca y la pantalla repite.
+  const [editandoLugar, setEditandoLugar] = useState(false);
+  const [textoLugar, setTextoLugar] = useState("");
+  const [guardandoLugar, setGuardandoLugar] = useState(false);
+  const [errorLugar, setErrorLugar] = useState<string | null>(null);
   const [resolviendo, setResolviendo] = useState<string | null>(null);
   const [liquidando, setLiquidando] = useState<string | null>(null);
   const [precios, setPrecios] = useState<Record<string, string>>({});
@@ -121,7 +132,9 @@ export function ResolverDanadosModal({
   // La guía de foco (ADR-0284) de lo que está abierto: «Se arregló» (qué se le hizo), «Liquidada» (precio y forma de pago) o, sin
   // ninguno abierto, solo quién lo hace. Sale de lo mismo que apaga cada botón: no agrega reglas.
   const precioLiquidando = liquidando ? Number(precios[liquidando]) : Number.NaN;
-  const camposAbiertos: CampoDeGuia[] = devolviendo
+  const camposAbiertos: CampoDeGuia[] = editandoLugar
+    ? camposGuiaLugar(textoLugar, responsable.listo)
+    : devolviendo
     ? camposGuiaDevolucion(notaDevolucion, responsable.listo)
     : arreglando
     ? camposGuiaArreglo(notaArreglo, responsable.listo)
@@ -136,6 +149,35 @@ export function ResolverDanadosModal({
         ? [{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién decide." }]
         : [];
   const guia = useGuiaCampos(camposAbiertos);
+
+  function abrirLugar() {
+    setTextoLugar(lugar ?? "");
+    setErrorLugar(null);
+    setEditandoLugar(true);
+  }
+
+  async function guardarLugar() {
+    if (!guia.puedeConfirmar || guardandoLugar) return;
+    setGuardandoLugar(true);
+    setErrorLugar(null);
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(createClient().rpc(RPC_DEFINIR_LUGAR_DANADAS, argumentosDeLugar(ubicacionId, textoLugar)), responsable.firma());
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setGuardandoLugar(false);
+    responsable.despues(error);
+    if (error) {
+      // Marcar el lugar es repetible sin daño (deja lo mismo): tras un corte de red basta volver a guardar.
+      setErrorLugar(interpretarErrorDeDanada(error, "marcar dónde se dejan las prendas dañadas").mensaje);
+      return;
+    }
+    avisar.exito(textoLugar.trim() ? "Lugar marcado" : "Lugar quitado", { detalle: textoLugar.trim() || undefined });
+    setEditandoLugar(false);
+    router.refresh();
+  }
 
   async function resolver(id: string, estado: EstadoSimple) {
     if (!responsable.listo) return;
@@ -290,10 +332,54 @@ export function ResolverDanadosModal({
       {(cerrar) => (
         <div className="space-y-4">
           {/* Los botones van por prenda: el combo queda arriba de la lista, antes de cualquiera de ellos. */}
-          {puedeDecidir && pendientes.length > 0 && (
+          {puedeDecidir && (pendientes.length > 0 || editandoLugar) && (
             <CampoGuiado id="responsable" guia={guia}>
               <ComboResponsable control={responsable} deshabilitado={resolviendo !== null} />
             </CampoGuiado>
+          )}
+          {/* Dónde deja esta tienda las dañadas: lo que la colaboradora lee con la prenda en la mano (ADR-0564). */}
+          {editandoLugar ? (
+            <div className="space-y-3 rounded-md bg-sand/30 p-3">
+              <CampoGuiado id="lugar" guia={guia}>
+                <CampoTexto
+                  etiqueta={guia.etiqueta("lugar", "¿Dónde dejan las prendas dañadas?")}
+                  // sugerir-fijo: es el primer dato de esta hoja; no depende de nada elegido antes
+                  placeholder="Ej. perchero detrás de caja"
+                  maxLength={MAX_LUGAR_DANADAS}
+                  value={textoLugar}
+                  onChange={(e) => {
+                    setTextoLugar(e.target.value);
+                    setErrorLugar(null);
+                  }}
+                  disabled={guardandoLugar}
+                />
+              </CampoGuiado>
+              {errorLugar && <Aviso tono="error">{errorLugar}</Aviso>}
+              <PieGuia guia={guia} listo="Todo listo: se guarda el lugar." />
+              <div className="pie-acciones">
+                <Boton type="button" onClick={() => setEditandoLugar(false)} disabled={guardandoLugar}>
+                  Cancelar
+                </Boton>
+                <Boton type="button" peso="primario" onClick={guardarLugar} cargando={guardandoLugar} disabled={guardandoLugar || !guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+                  Guardar el lugar
+                </Boton>
+              </div>
+            </div>
+          ) : (
+            <p className="flex flex-wrap items-baseline gap-x-2 text-[13px] text-tinta">
+              {lugar ? (
+                <>
+                  <span className="text-taupe">Se dejan en:</span> <span className="font-semibold">{lugar}</span>
+                </>
+              ) : (
+                <span className="text-taupe">Esta tienda aún no marcó dónde deja las prendas dañadas.</span>
+              )}
+              {puedeDecidir && (
+                <button type="button" onClick={abrirLugar} className="btn-cayla btn-enlace">
+                  {lugar ? "Cambiar" : "Marcar el lugar"}
+                </button>
+              )}
+            </p>
           )}
           {otraSede && pendientes.length > 0 && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
           {pendientes.length === 0 ? (
