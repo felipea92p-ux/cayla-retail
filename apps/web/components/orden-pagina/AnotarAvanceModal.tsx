@@ -6,20 +6,16 @@ import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { QuitarColor } from "@/components/orden-produccion/AgregarColor";
+import { FilasDeFalla } from "@/components/orden-pagina/FilasDeFalla";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { hoyLima } from "@/lib/fechas-lima";
 import {
-  DESTINOS_FALLA,
-  MAX_MOTIVO_FALLA,
-  MOTIVOS_FALLA,
   RPC_ANOTAR_TERMINE,
   RPC_DESHACER_AVANCE,
   RPC_DESHACER_FALLA,
@@ -40,7 +36,6 @@ import {
   problemasDeFallas,
   textoTermine,
   totalFallas,
-  type DestinoFalla,
   type FallaBorrador,
   type FasePagina,
   type OrdenPagina,
@@ -120,12 +115,6 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   function cambiarFallas(nuevas: FallaBorrador[]) {
     setFallas(nuevas);
     setCantidades((c) => buenasConFallas(faltan, c, nuevas));
-  }
-  function cambiarFila(i: number, cambio: Partial<FallaBorrador>) {
-    cambiarFallas(fallas.map((f, j) => (j === i ? { ...f, ...cambio } : f)));
-  }
-  function agregarFila() {
-    cambiarFallas([...fallas, { varianteId: opcionesVariante.length === 1 ? opcionesVariante[0].valor : "", cantidad: "1", destino: "arreglo" }]);
   }
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
@@ -240,8 +229,6 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
     cerrarTrasGuardar();
   }
 
-  const destinoDe = (d: DestinoFalla) => DESTINOS_FALLA.find((x) => x.valor === d);
-
   return (
     <Modal
       titulo={`¿Cuántas terminaste en ${nombreMinuscula}?`}
@@ -279,52 +266,16 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
 
         {/* Lo que no salió bien (ADR-0570): se abre a pedido; sin filas, la hoja es la de siempre. */}
         <div data-guia="prod-orden-terminar.fallas">
-          {fallas.length === 0 ? (
-            opcionesVariante.length > 0 && (
-              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={agregarFila}>
-                + Anotar prendas con falla
-              </button>
-            )
-          ) : (
-            <CampoGuiado id="fallas" guia={guia} className="space-y-3 rounded-xl bg-hueso px-4 py-3">
-              <span className={campoEtiqueta}>{guia.etiqueta("fallas", "Prendas con falla")}</span>
-              {fallas.map((f, i) => (
-                <div key={i} className="space-y-2 border-b border-sand pb-3 last:border-b-0 last:pb-0">
-                  <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_1.5rem] items-end gap-x-3">
-                    <CampoSelect etiqueta="Talla y color" id={`falla-variante-${i}`} valor={f.varianteId} onValor={(v) => cambiarFila(i, { varianteId: v })} opciones={opcionesVariante} marcador="Elige" />
-                    <CampoTexto etiqueta="Cuántas" id={`falla-cantidad-${i}`} inputMode="numeric" value={f.cantidad} onChange={(e) => cambiarFila(i, { cantidad: e.target.value.replace(/\D/g, "") })} maxLength={5} />
-                    <div className="pb-2.5">
-                      <QuitarColor nombre={`esta fila de prendas con falla`} onQuitar={() => cambiarFallas(fallas.filter((_, j) => j !== i))} />
-                    </div>
-                  </div>
-                  <SegmentoDeslizante
-                    etiqueta={`Qué pasa con las de ${f.varianteId ? nombreDe(f.varianteId) : "esta fila"}`}
-                    opciones={DESTINOS_FALLA.map((d) => ({ clave: d.valor, etiqueta: d.texto }))}
-                    valor={f.destino}
-                    onCambio={(v) => cambiarFila(i, { destino: v as DestinoFalla })}
-                  />
-                  <p className="text-xs text-tinta/65">{destinoDe(f.destino)?.ayuda}</p>
-                </div>
-              ))}
-              {opcionesVariante.length > 1 && (
-                <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={agregarFila}>
-                  + Otra talla o color
-                </button>
-              )}
-              <div className="space-y-2">
-                <span className={campoEtiqueta}>¿Qué pasó?</span>
-                <div className="flex flex-wrap gap-2">
-                  {MOTIVOS_FALLA.map((m) => (
-                    <button key={m} type="button" className="pildora-cayla" aria-pressed={motivo === m} onClick={() => setMotivo(m)}>
-                      {m}
-                    </button>
-                  ))}
-                </div>
-                <CampoTexto etiqueta="O cuéntalo con tus palabras" id="falla-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={MAX_MOTIVO_FALLA} />
-              </div>
-              {problemasFallas[0] && <p className="text-xs text-tinta/75">{problemasFallas[0]}</p>}
-            </CampoGuiado>
-          )}
+          <FilasDeFalla
+            fallas={fallas}
+            motivo={motivo}
+            opciones={opcionesVariante}
+            nombreDe={nombreDe}
+            guia={guia}
+            problema={problemasFallas[0] ?? null}
+            onFallas={cambiarFallas}
+            onMotivo={setMotivo}
+          />
         </div>
 
         {preguntaLaTela && (
