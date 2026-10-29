@@ -91,6 +91,7 @@
     "pruebas:costo-estimado-venta-sin-prenda": "node scripts/pruebas/costo_estimado_venta_sin_prenda.mjs",
     "pruebas:finanzas-confianza": "node scripts/pruebas/finanzas_confianza.mjs",
     "pruebas:pago-planilla-y-sunat": "node scripts/pruebas/pago_planilla_y_sunat.mjs",
+    "pruebas:planilla-salidas": "node scripts/pruebas/planilla_salidas.mjs",
     "pruebas:planilla-provision": "node scripts/pruebas/planilla_provision.mjs",
     "pruebas:movimientos-dinero-inicio-y-empresa": "node scripts/pruebas/movimientos_dinero_inicio_y_empresa.mjs",
     "pruebas:finanzas-montos-y-caja-fuerte": "node scripts/pruebas/finanzas_montos_y_caja_fuerte.mjs",

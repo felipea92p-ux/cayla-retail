@@ -26,6 +26,7 @@ import {
 } from "@/lib/cuentas-dinero-reglas";
 import { deudaConDueno } from "@/lib/cuentas-dinero-reglas";
 import { leerVer, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
+import { leerTramo, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_cuentas_dinero_ubicaciones`: el líder, todas; con el módulo, su sede). Los saldos los SUMA la base. Si una lectura
@@ -95,6 +96,15 @@ export async function getAlertasPos(): Promise<AlertaPos[]> {
   const { data, error } = await supabase.rpc("fn_pos_alertas" as never);
   if (error) return [];
   return ((data ?? []) as Fila[]).map(leerAlertaPos);
+}
+
+/** La planilla que Dynamic marcó pagada y todavía no dice de qué banco salió (ADR-0567). Solo el líder que ve la planilla en Dynamic; si la
+ *  base no tiene la función o Dynamic no responde, no hay aviso y la pantalla sigue igual. */
+export async function getPlanillaPorRegistrar(): Promise<TramoPlanilla[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_planilla_salidas_por_registrar" as never);
+  if (error) return [];
+  return ((data ?? []) as Fila[]).map(leerTramo);
 }
 
 /** Solo el líder: lo que movió plata este mes y todavía no dice de qué cuenta. */

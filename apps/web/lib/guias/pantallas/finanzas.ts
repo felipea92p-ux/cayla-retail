@@ -611,6 +611,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Si Izipay o Vendemás no depositó un día dentro de su plazo (el de su tarifa; sin tarifa, 3 días hábiles), aparece aquí: cuántos días esperan, cuánto suman y desde cuándo. «Registrar el depósito» abre el movimiento con esa máquina.",
     },
     {
+      id: "aviso-planilla",
+      ancla: "fin-dinero.aviso-planilla",
+      opcional: true,
+      titulo: "La planilla que pagó Dynamic",
+      texto: "Cuando Dynamic marca pagada la planilla, aquí ves cuánto salió hacia cada banco: lo que reciben quienes cobran en BCP y quienes cobran en Interbank. Registra una salida por banco para que su saldo baje. El aviso se va solo al registrarlas.",
+    },
+    {
       id: "mov-lotes",
       ancla: "fin-dinero.mov-lotes",
       opcional: true,

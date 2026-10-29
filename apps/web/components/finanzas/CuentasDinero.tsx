@@ -59,6 +59,7 @@ import {
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
+import type { AvisoPlanilla } from "@/lib/planilla-salidas-reglas";
 import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
@@ -185,6 +186,7 @@ export function CuentasPanel({
   plata,
   sinCuenta,
   alertas,
+  planilla,
   ver,
   esLider,
 }: {
@@ -195,6 +197,8 @@ export function CuentasPanel({
   sinCuenta: SinCuenta[];
   /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
   alertas?: AlertaPos[];
+  /** La planilla que Dynamic pagó y no dice de qué banco salió, partida por el banco de quien cobra (ADR-0567; solo el líder). */
+  planilla?: AvisoPlanilla[];
   ver: Ver;
   esLider: boolean;
 }) {
@@ -225,6 +229,18 @@ export function CuentasPanel({
             </button>
           }
         >
+          {a.detalle}
+        </Aviso>
+      ))}
+
+      {/* La planilla que Dynamic pagó (ADR-0567): una línea por banco de quien cobra; registrarla es «Pagar la planilla», una por banco. */}
+      {(planilla ?? []).map((a) => (
+        <Aviso key={a.clave} tono="atencion" titulo={a.titulo} guia="fin-dinero.aviso-planilla">
+          <ul className="mb-1 space-y-0.5 tabular-nums">
+            {a.tramos.map((t) => (
+              <li key={t.banco}>{t.texto}</li>
+            ))}
+          </ul>
           {a.detalle}
         </Aviso>
       ))}
