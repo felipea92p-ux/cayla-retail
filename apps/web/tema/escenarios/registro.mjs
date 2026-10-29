@@ -969,6 +969,10 @@ ESCENARIOS.push(
   { id: "movimientos.grupo", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento con varias prendas", preparar: verDetalle(/^Ver el detalle: las 3 prendas/) },
   { id: "movimientos.ajustes", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "nav[aria-label='Tipo de movimiento'] a[aria-current=true]", nombre: "Movimientos · el filtro «Ajustes y conteos»", preparar: tipoDeMovimiento(/^Ajustes/i) },
   { id: "movimientos.calendario", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=gridcell]", nombre: "Movimientos · «Personalizado» con el calendario abierto", preparar: secuencia(clicRol("button", /Personalizado/i), clicRol("button", /Abrir calendario/i)) },
+  // La pestaña «Ingresos» (qué prendas entraron, por modelo): sus 7 días de fábrica traen datos en Lima (admin y la terminal) y en Trujillo
+  // (integrante, sin permiso de dinero: su tabla no lleva la columna de costo). Abierto un modelo, su matriz de color y talla.
+  { id: "movimientos.ingresos", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[data-guia='movimientos.ingresos-tabla']", nombre: "Movimientos · la pestaña «Ingresos» (la lista por modelo)", preparar: clicRol("link", /^Ingresos$/i) },
+  { id: "movimientos.ingresos.detalle", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "table caption", nombre: "Movimientos · «Ingresos» con un modelo abierto (su matriz de color y talla)", preparar: secuencia(clicRol("link", /^Ingresos$/i), clicRol("button", /Ver colores y tallas/i)) },
   { id: "traslados.pedir", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Traslados · «Pedir a otra sede»", preparar: clicRol("button", /Pedir a otra sede/i) },
   // ADR-0355: la billetera de pases. Las pestañas, el reverso (el pase girado) y un pedido como pase.
   { id: "traslados.envias", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=tab][aria-selected=true]", nombre: "Traslados · la pestaña «Envías»", preparar: clicRol("tab", /^Envías/i) },

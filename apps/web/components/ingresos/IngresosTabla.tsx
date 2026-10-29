@@ -221,6 +221,7 @@ export function IngresosTabla({
                   className={celda("der", "text-sm font-semibold text-tinta")}
                   title={`${m.deStockInicial.toLocaleString("es-PE")} de stock inicial · ${m.deRecepcion.toLocaleString("es-PE")} de mercadería recibida`}
                 >
+                  <Etiqueta>Prendas </Etiqueta>
                   {m.unidades.toLocaleString("es-PE")}
                 </span>
                 <span data-guia={i === 0 ? "movimientos.ingresos-precio" : undefined} className={celda("der", "text-sm text-tinta")}>

@@ -333,6 +333,11 @@ flowchart TB
   («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
   (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
   «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
+  **2026-10-28 (ADR-0565, pestaña «Ingresos»):** `?vista=ingresos` (como Pérdidas, sin módulo): qué prendas entraron por modelo. `app/(app)/inventario/movimientos/page.tsx`
+  (`PaginaIngresos`) → `lib/ingresos.ts` (`getIngresosPorModelo`, foto y categoría por lotes) → RPC `fn_ingresos_por_modelo` (solo lectura; migración
+  `20261029022000`, **sin pegar en producción**); reglas puras en `lib/ingresos-reglas.ts` (rango, Nuevo/Reingreso, precio y costo, matriz de color y talla, orden y búsqueda) y
+  `lib/ingresos-exportar.ts` (los dos CSV); piezas en `components/ingresos/` (`IngresosVista`, `IngresosTabla`, `SelectorRangoIngresos`, `MatrizIngreso`, `HojaIngresos`) y
+  `app/estilos/ingresos-impresion.css` (la hoja A4). El costo solo para quien pasa `fn_puede_ver_dinero_de_compras()`.
   **2026-10-05 (ADR-0353, los tipos que se ven):** cada fila se dibuja con su **tipo** (`lib/movimientos-tipos.ts`: `tipoVisual`, `TIPOS_VISUALES`,
   `GRUPOS_TIPO`, `rotuloDeMovimiento`, `kindDeLugar`) con su sello (`components/movimientos/SelloTipo.tsx`) y su trayecto (`TrayectoMovimiento.tsx`); estilos en
   `app/estilos/movimientos-sellos.css` (`mv-*`). **Los siete botones de tipo en una columna a la derecha** (`TiposMovimiento.tsx`) son el filtro Y la cifra: reemplazan
