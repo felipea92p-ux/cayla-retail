@@ -95,6 +95,11 @@ Estado del 28-oct: ya está en producción lo de la PARTE 1 y la PARTE 2 de `202
 4. **Publicar la web** (fusionar el PR).
 5. **Correr el conversor** para absorber lo que el Taller haya cargado suelto mientras tanto: `select * from retail.fn_materializar_insumos_sueltos();` (ensaya) y, si el informe es lo esperado, `select * from retail.fn_materializar_insumos_sueltos(true);`.
 
+**Cómo se comprueba que quedó pegado (check «SQL pegado», ADR-0251).** El check compara con producción la huella FINAL de cada objeto que dejan las tres migraciones. Emulado con su mismo código sobre las huellas que el CI dejó para este PR: con lo que hay hoy en producción las tres salen «falta»; tras pegar `20261028172000` y luego `20261028203000` las tres salen «pegada» y el informe dice «se puede fusionar». Mientras `20261028203000` no esté pegada, `20261028175000` sale «falta» aunque lo esté: 8 de sus funciones las redefine `20261028203000` y se exige la versión final. Tres cuidados:
+- **Marcar solo la casilla «SQL pegado en producción».** La otra («se pega después de fusionar») deja el check en verde **sin mirar producción**, y Vercel publicaría la web nueva contra una base sin `editar_material`.
+- **Congelar las tres migraciones desde que se peguen.** Un cambio en un texto entre comillas (un mensaje de error) cambia la huella y el check sale rojo; los comentarios no cuentan. Cualquier corrección va en un archivo nuevo.
+- **Pegar con el cursor sin selección** (el editor corre solo lo seleccionado) y, si el check sale rojo con las tres pegadas, **no repegar**: el detalle de qué objeto falta se lee en privado con `node scripts/migraciones/sql-en-produccion.mjs <huellas-del-pr.json> <huellas de producción> --detalle` (el repo es público: el check solo dice el nombre del archivo).
+
 **Nunca repegar `20261028175000` después de `20261028203000`** (sus `create or replace` regresarían las funciones a la versión vieja en silencio; con la guardia nueva se detiene, y si pasara por otra vía, se arregla repegando `20261028203000`).
 
 **Sonda corta de solo lectura** (la corre quien tenga el SQL Editor; el conector de Supabase de esta sesión no tiene permiso sobre producción):

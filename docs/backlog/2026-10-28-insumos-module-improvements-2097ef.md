@@ -6,7 +6,8 @@
 - [ ] **Revisar el PR en borrador** y dejarlo listo: producción ya corre SQL que antes solo vivía en un worktree.
 - [ ] **Pegar `20261028172000` entera, en una sola pegada** (se detiene y dice qué corregir si hay una tela en otra unidad o códigos repetidos). Después, la sonda corta (en el ADR-0554, «Orden de entrega») debe dar `2 | t | t | t | t | 1 | 1 | 1 | 0`.
 - [ ] **Pegar `20261028203000` entera, en una sola pegada, antes de publicar la web** nueva (necesita la anterior: si falta se detiene con «Primero pega 20261028172000»). Hace posible «Editar tela» y cierra lo que encontraron las dos revisiones. **Nunca repegar `20261028175000` después de ésta.**
-- [ ] **Publicar la web** (fusionar el PR) y marcar «SQL pegado» solo cuando la sonda salga completa.
+- [ ] **Marcar SOLO la casilla «SQL pegado en producción»** del cuerpo del PR (nunca la otra: dejaría el check verde sin mirar producción) y esperar las tres líneas ✓ del check «SQL pegado». Desde que se peguen, las tres migraciones **no se editan** (un texto entre comillas cambia la huella; los comentarios no).
+- [ ] **Publicar la web: fusionar el PR a mano** (sin auto-merge) cuando los tres checks estén verdes en el mismo commit y la rama no diga BEHIND (si `main` se movió: «Update branch» una vez y esperar ~9 min; no hay que repegar ni volver a marcar).
 - [ ] **Correr el conversor:** `select * from retail.fn_materializar_insumos_sueltos();` (ensaya) y, si cuadra, `…(true)`.
 - [ ] **Mirar el costo del lote de 9 m de `MM-01`:** el error de la coma pudo dejarlo en S/ 0.00 (es dinero).
 - [ ] **Decidir una cuestión de permisos** (detalle en el chat del 28-oct; el repo es público y no la documenta).
