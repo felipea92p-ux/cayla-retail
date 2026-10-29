@@ -30,6 +30,21 @@
   "src_table": "apartados_opciones"
  },
  {
+  "conname": "asistente_informes_pedido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "asistente_informes"
+ },
+ {
+  "conname": "asistente_preguntas_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "asistente_preguntas"
+ },
+ {
+  "conname": "asistente_sedes_cambiado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "asistente_sedes"
+ },
+ {
   "conname": "bajadas_piso_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "bajadas_piso"
@@ -600,6 +615,11 @@
   "src_table": "lotes"
  },
  {
+  "conname": "materiales_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "materiales"
+ },
+ {
   "conname": "medios_de_cobro_registrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "medios_de_cobro"
@@ -725,6 +745,26 @@
   "src_table": "pedido_web_pagos"
  },
  {
+  "conname": "pedidos_campana_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_pedido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_campana"
+ },
+ {
+  "conname": "pedidos_campana_rectificado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_campana"
+ },
+ {
   "conname": "pedidos_no_atendidos_atendido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "pedidos_no_atendidos"
@@ -770,6 +810,21 @@
   "src_table": "piezas_liquidacion_etiquetas"
  },
  {
+  "conname": "plan_compra_calendario_actualizada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "plan_compra_calendario"
+ },
+ {
+  "conname": "plan_compra_calendario_quitada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "plan_compra_calendario"
+ },
+ {
   "conname": "planes_compra_archivado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "planes_compra"
@@ -800,14 +855,39 @@
   "src_table": "planes_compra"
  },
  {
+  "conname": "planes_compra_visibilidad_finanzas_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
   "conname": "planes_compra_lineas_actualizado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "planes_compra_lineas"
  },
  {
+  "conname": "planes_compra_lineas_historial_guardado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_lineas_historial"
+ },
+ {
+  "conname": "planes_compra_pagos_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_pagos"
+ },
+ {
+  "conname": "planes_compra_paso_2_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_paso_2"
+ },
+ {
   "conname": "planes_compra_reparto_actualizado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "planes_compra_reparto"
+ },
+ {
+  "conname": "planes_compra_versiones_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_versiones"
  },
  {
   "conname": "pos_maquinas_creada_por_fkey",
@@ -933,6 +1013,11 @@
   "conname": "producto_origen_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "producto_origen"
+ },
+ {
+  "conname": "producto_taller_declarado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_taller"
  },
  {
   "conname": "productos_aprobado_por_fkey",

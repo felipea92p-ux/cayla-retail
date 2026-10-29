@@ -135,6 +135,19 @@ describe("precios de la tabla", () => {
     expect(limpiarPrecio("abc")).toBe("");
   });
 
+  // /chaos 2026-10-28 (semilla 2810): un precio pegado entero se leía mal en silencio («S/. 59» → 0.59, «1.299,50» → 1.29).
+  it("un monto pegado entero se lee con la regla de la plata: «S/ 59», «S/. 59», «1.299,50», «1,299»", () => {
+    expect(limpiarPrecio("S/ 59")).toBe("59");
+    expect(limpiarPrecio("S/. 59")).toBe("59");
+    expect(limpiarPrecio("S/. 59,90")).toBe("59.9");
+    expect(limpiarPrecio("1.299,50")).toBe("1299.5");
+    expect(limpiarPrecio("1,299.50")).toBe("1299.5");
+    expect(limpiarPrecio("1,299")).toBe("1299");
+    // Mientras se escribe, la coma sigue siendo el decimal.
+    expect(limpiarPrecio("59,")).toBe("59.");
+    expect(limpiarPrecio("59,9")).toBe("59.9");
+  });
+
   it("vacía = S/ precio de venta", () => {
     expect(textoPrecioBase("89.9")).toBe("S/\u00a089.90");
     expect(textoPrecioBase("")).toBe("el precio de venta");

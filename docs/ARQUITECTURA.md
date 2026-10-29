@@ -970,6 +970,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin
   copiar su cuerpo y, si el paso 5 trae cantidades, a `fn_cargar_stock_inicial` (entradas `carga_inicial` al almacén) y
   a `bajar_al_piso` («colgadas en el piso»). El paso 5 es `components/alta-producto/MatrizCantidades.tsx`.
+  **Con la carga inicial de la sede cerrada (ADR-0328 act. 2026-10-28)** la tabla pasa a «Cuántas llegaron» y, si hay unidades, el alta va por
+  `crear_producto_con_llegada` (`20261028221000`): el alta de siempre sin cantidades + `recibir_lote` del proveedor elegido, en una transacción
+  (reglas `faltaProveedorLlegada` / `textoFaltaStock` en `lib/alta-producto.ts`).
+  **Estándar de nombres (ADR-0556, 2026-10-28):** el paso 2 va marca → «¿Ya existe?» (`components/alta-producto/YaExiste.tsx`, las prendas de la
+  categoría que trae `useParecidasAlta().existentes`; cada una abre la hoja «Ver y comparar») → tejido → patrón → detalle → nombre. El nombre es
+  «<Tipo> <Nombre propio>» (`components/alta-producto/NombreDePrenda.tsx`, reglas puras en `lib/nombre-de-prenda.ts`): el tipo sale de la categoría,
+  se sugiere primero el nombre del proveedor si sirve y luego las flores libres (`contexto.nombresPorCategoria`). «Cómo lo llama el proveedor» se
+  guarda aparte, después de crear, con `fijar_nombre_proveedor` (`20261028184000`); en `/productos/[id]/editar` es la fila
+  `components/ficha-producto/NombreDelProveedor.tsx`, que guarda sola con la misma función.
   Con `?desde=produccion&tipo=…` (ADR-0361) la persona viene de una orden: la flecha de vuelta lleva a `/produccion/ordenes` y la pantalla de éxito
   (`ProductoCreado.tsx`) ofrece «Abrir la orden» → `/produccion/ordenes?nueva=<producto>&tipo=…`. Los enlaces de ida y vuelta son puros: `lib/modelo-nuevo-orden-reglas.ts`.
   Es el camino de la **alta completa** (con fotos, tejido y patrón); el modelo que el Taller necesita de inmediato se crea dentro de «Nueva orden ▸ Modelo nuevo»
