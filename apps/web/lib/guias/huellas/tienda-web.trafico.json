@@ -2,7 +2,7 @@
   "guia": "tienda-web.trafico",
   "ruta": "/tienda-web/trafico",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 13,
   "controles": {
     "app/(app)/tienda-web/trafico/page.tsx": [
       "BotonLimpiar «Limpiar filtros»"
@@ -21,6 +21,9 @@
     ],
     "components/trafico/PorQue.tsx": [
       "button «{guia}»"
+    ],
+    "components/trafico/PulsoTrafico.tsx": [
+      "SegmentoDeslizante «Cómo contar»"
     ],
     "components/trafico/TablasTrafico.tsx": [
       "button «{p.nombre}»",

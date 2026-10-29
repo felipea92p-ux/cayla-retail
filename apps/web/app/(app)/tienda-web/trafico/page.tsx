@@ -1,16 +1,16 @@
 import { Footprints } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diasEntreFechas, horaLima, hoyLima } from "@/lib/fechas-lima";
 import { campanaDelPeriodo, hrefTrafico, leerFiltros, leerResumen, periodoDe, quienesTexto, sinNoticias } from "@/lib/trafico-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 import { Vacio } from "@/components/ui/Vacio";
-import { CifraTrafico } from "@/components/trafico/CifraTrafico";
 import { ControlesTrafico } from "@/components/trafico/ControlesTrafico";
 import { DeDondeVienen } from "@/components/trafico/DeDondeVienen";
 import { HorasTrafico } from "@/components/trafico/HorasTrafico";
+import { PulsoTrafico } from "@/components/trafico/PulsoTrafico";
 import { RecorridoTrafico } from "@/components/trafico/RecorridoTrafico";
 import { TablasTrafico } from "@/components/trafico/TablasTrafico";
 import { VitrinaTrafico } from "@/components/trafico/VitrinaTrafico";
@@ -52,9 +52,7 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <EncabezadoPagina sede="Todas las tiendas" detalle="Tienda web" titulo="Tráfico" subtitulo="Qué prendas mira la gente, de dónde viene y dónde se va.">
-        {r && total > 0 ? <CifraTrafico r={r} antes={periodo.antes} /> : undefined}
-      </EncabezadoPagina>
+      <EncabezadoPagina sede="Todas las tiendas" detalle="Tienda web" titulo="Tráfico" subtitulo="Cuánta gente entra a la tienda online, qué mira y dónde se va." />
       {r === null ? (
         <Aviso tono="error" titulo="No se pudo leer el tráfico de la tienda web">
           Recarga la página; si sigue, avísale al líder.
@@ -80,7 +78,21 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
             >
               {conFiltro ? "Quita un filtro para ver a más gente." : "Cuando alguien entre, lo verás aquí con su camino, su ciudad y hasta dónde llegó."}
             </Vacio>
-          ) : filtros.vista === "tabla" ? (
+          ) : (
+            <>
+              {/* Hasta dónde llega lo de hoy: la hora de ahora en Hoy; en un período de varios días que termina hoy, el día de hoy (a medias). */}
+              <PulsoTrafico
+                r={r}
+                periodo={periodo}
+                hastaX={
+                  periodo.clave === "hoy"
+                    ? Number((horaLima(new Date().toISOString()) ?? "0:00").split(":")[0])
+                    : periodo.hasta === hoy
+                      ? diasEntreFechas(periodo.desde, hoy)
+                      : null
+                }
+              />
+              {filtros.vista === "tabla" ? (
             <TablasTrafico r={r} filtros={filtros} periodo={periodo.nombre} antes={antes} />
           ) : (
             <>
@@ -94,6 +106,8 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
                   </aside>
                 </div>
               </div>
+            </>
+              )}
             </>
           )}
         </>

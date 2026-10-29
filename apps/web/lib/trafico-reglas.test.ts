@@ -21,6 +21,12 @@ import {
   tramoTexto,
   tramosDeTres,
   sinNoticias,
+  cambioDe,
+  graficoDe,
+  marcasDelTiempo,
+  totalDe,
+  valoresDe,
+  veredictoDe,
 } from "./trafico-reglas";
 
 const DE_LA_BASE = {
@@ -52,6 +58,7 @@ describe("leerResumen: lo que devuelve la base", () => {
       caminos: { instagram: 0, directo: 0, whatsapp: 0, tiktok: 0, google: 0, qr: 0, otros: 0 },
       ciudades: { trujillo: 0, lima: 0, arequipa: 0, chiclayo: 0, piura: 0, cusco: 0, otras: 0, fuera: 0, sin_dato: 0 },
       horas: Array.from({ length: 24 }, () => 0),
+      serie: { por: "dia", actual: [], antes: [] },
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -354,5 +361,71 @@ describe("el período y los filtros", () => {
     expect(quienesTexto("qr", null)).toBe("por el QR de la tienda");
     expect(quienesTexto(null, "fuera")).toBe("desde fuera del Perú");
     expect(quienesTexto(null, null)).toBe("");
+  });
+});
+
+describe("la serie del gráfico principal (Observatorio, actividad 2)", () => {
+  // [momento, entraron, vieron, separaron, recogieron]
+  const S = {
+    por: "hora" as const,
+    actual: [[9, 10, 8, 1, 0], [10, 20, 15, 2, 1], [15, 6, 4, 0, 0]] as [number, number, number, number, number][],
+    antes: [[9, 8, 6, 1, 0], [10, 16, 12, 1, 1], [15, 10, 8, 1, 0], [20, 30, 22, 3, 2]] as [number, number, number, number, number][],
+  };
+  it("lee la serie de la base, y sin serie sale vacía (no rota)", () => {
+    expect(leerResumen({ ...DE_LA_BASE, serie: { por: "hora", actual: [[1, 2, 1, 0, 0], "basura"], antes: [] } })?.serie).toEqual({ por: "hora", actual: [[1, 2, 1, 0, 0]], antes: [] });
+    expect(leerResumen(DE_LA_BASE)?.serie).toEqual({ por: "dia", actual: [], antes: [] });
+  });
+  it("una cifra hora por hora, con cero donde no entró nadie, y acumulada", () => {
+    expect(valoresDe(S.actual, "entraron", 12, false).slice(8, 12)).toEqual([0, 10, 20, 0]);
+    expect(valoresDe(S.actual, "entraron", 12, true).slice(8, 12)).toEqual([0, 10, 30, 30]);
+    expect(valoresDe(S.actual, "separaron", 12, false)[10]).toBe(2);
+  });
+  it("«de cada 100» va siempre acumulado: separaron hasta ahí entre entraron hasta ahí", () => {
+    expect(valoresDe(S.actual, "de100", 11, false)[10]).toBeCloseTo((3 / 30) * 100);
+    expect(valoresDe(S.actual, "de100", 11, false)[0]).toBe(0);
+  });
+  it("Hoy, hora por hora, la hora en curso no se dibuja (está a medias); acumulado sí", () => {
+    expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: false }).serie.at(-1)?.x).toBe(14);
+    expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: true }).serie.at(-1)?.x).toBe(15);
+  });
+  it("la referencia es el día de antes entero, aunque hoy llegue solo hasta ahora", () => {
+    expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: false }).referencia).toHaveLength(24);
+  });
+  it("el cierre esperado sigue la forma de ayer al ritmo de hoy (36 contra 34 a esta hora: el resto de ayer, crecido igual)", () => {
+    const g = graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: true });
+    expect(g.proyeccion?.[0]).toEqual({ x: 15, y: 36 });
+    // Ayer cerró en 64 (34 a las 3 p. m. + 30 después): hoy, 36 + 30 × 36/34 ≈ 68.
+    expect(g.cierre).toBe(68);
+  });
+  it("sin hoy, sin acumular o en «de cada 100», no hay cierre esperado", () => {
+    expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: null, acumulado: true }).proyeccion).toBeNull();
+    expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: false }).proyeccion).toBeNull();
+    expect(graficoDe(S, "de100", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: true }).proyeccion).toBeNull();
+  });
+  it("el total de cada cifra y su «antes»: en Hoy, el antes llega hasta esta hora de ayer", () => {
+    const r = leerResumen({ ...DE_LA_BASE, pasos: [36, 27, 10, 6, 3, 1], anterior: 34, serie: S })!;
+    expect(totalDe(r, "entraron", 15)).toEqual({ valor: 36, antes: 34 });
+    expect(totalDe(r, "vieron", 15)).toEqual({ valor: 27, antes: 26 }); // sin las 8 p. m. de ayer
+    expect(totalDe(r, "vieron", null)).toEqual({ valor: 27, antes: 48 });
+    expect(totalDe(r, "de100", 15).valor).toBeCloseTo((3 / 36) * 100);
+  });
+  it("el cambio en palabras: % en las cuentas, puntos en «de cada 100», y nada sin con qué comparar", () => {
+    expect(cambioDe("entraron", 120, 100)).toEqual({ tono: "verde", texto: "▲ 20 %" });
+    expect(cambioDe("entraron", 120, 5)).toBeNull();
+    expect(cambioDe("de100", 7.5, 7.8)).toEqual({ tono: "ambar", texto: "▼ 0.3 pts" });
+    expect(cambioDe("de100", 7.5, 7.5)).toEqual({ tono: "neutro", texto: "Igual" });
+    expect(cambioDe("separaron", 10, null)).toBeNull();
+  });
+  it("la respuesta en una frase, con el tiempo del verbo de cada período", () => {
+    expect(veredictoDe({ clave: "hoy", nombre: "Hoy", antes: "ayer a esta hora" }, 17).titulo).toBe("Hoy va mejor que ayer a esta hora");
+    expect(veredictoDe({ clave: "mes-pasado", nombre: "Setiembre", antes: "agosto" }, -12)).toEqual({ tono: "ambar", titulo: "Setiembre fue más lento que agosto" });
+    expect(veredictoDe({ clave: "7", nombre: "Últimos 7 días", antes: "los 7 días anteriores" }, 1).titulo).toBe("Estos 7 días van igual que los 7 días anteriores");
+    expect(veredictoDe({ clave: "hoy", nombre: "Hoy", antes: "ayer a esta hora" }, null).tono).toBe("neutro");
+  });
+  it("las marcas del tiempo: cada 6 horas en un día, hasta 5 fechas en un mes (caben a 375 px)", () => {
+    expect(marcasDelTiempo("hora", 24, "2026-10-27").map((m) => m.x)).toEqual([0, 6, 12, 18]);
+    const mes = marcasDelTiempo("dia", 27, "2026-10-01");
+    expect(mes[0]).toEqual({ x: 0, texto: "1 oct" });
+    expect(mes.length).toBeLessThanOrEqual(5);
   });
 });

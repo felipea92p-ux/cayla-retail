@@ -44,6 +44,8 @@ export function ControlesTrafico({
           período suma una entrada al «atrás» (`reemplazar={false}`) y no lleva la vista arriba. Las teclas las atiende `AtajosPeriodo`. */}
       <SegmentoEnlaces
         etiquetaAccesible="Período"
+        // Seis opciones no caben a 375 px: el segmento se desplaza dentro de su caja, nunca la página.
+        className="max-w-full overflow-x-auto [scrollbar-width:none]"
         activo={periodo.clave}
         guia="trafico.periodo"
         reemplazar={false}

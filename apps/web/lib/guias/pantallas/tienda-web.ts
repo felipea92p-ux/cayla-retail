@@ -1389,18 +1389,25 @@ export const GUIA_TRAFICO: Guia = {
       texto: "Aquí ves cuánta gente entra a la tienda online y hasta dónde llega: si mira una prenda, elige talla, la pone en la bolsa, separa y recoge. Se cuenta a cada persona sin saber quién es. Es una demo: no se guarda nada.",
     },
     {
-      id: "cifra",
-      ancla: "trafico.cifra",
-      opcional: true,
-      titulo: "Cuánta gente entró",
-      texto: "Las personas que entraron en los días que miras, si son más o menos que en los días de antes, y cuántas están mirando la tienda ahora mismo.",
-    },
-    {
       id: "periodo",
       ancla: "trafico.periodo",
       opcional: true,
       titulo: "Los días que miras",
       texto: "Elige Hoy, Ayer, 7 días, Este mes, el mes pasado o la campaña. Hoy se compara con ayer a esta hora y Este mes con los mismos días del mes anterior. Con el teclado: H, A, 7, M, P y C.",
+    },
+    {
+      id: "cifra",
+      ancla: "trafico.cifra",
+      opcional: true,
+      titulo: "Las cinco cifras",
+      texto: "Cuánta gente entró, miró una prenda, separó y recogió, y cuántos de cada 100 separan, con su cambio contra los días de antes. Toca una cifra y el gráfico de abajo la dibuja.",
+    },
+    {
+      id: "pulso",
+      ancla: "trafico.pulso",
+      opcional: true,
+      titulo: "Cómo va, en una frase",
+      texto: "La línea de estos días contra los de antes; en Acumulado, Hoy sigue punteado hasta el cierre esperado. Al costado, la respuesta: si vas mejor o peor, la hora más fuerte, el camino que más trae y dónde se pierde la gente.",
     },
     {
       id: "filtros",

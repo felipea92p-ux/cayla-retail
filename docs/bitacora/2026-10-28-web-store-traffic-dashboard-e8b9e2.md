@@ -17,3 +17,11 @@
   y crea la de 7: sin sobrecarga). Con corte, las prendas no se comparan («Sin comparar prenda por prenda»). El enlace viejo `?periodo=30` cae en 7 días.
   **Verificado:** `pnpm pruebas:tienda-trafico-resumen` 46/46 (13 escenarios nuevos), vitest de reglas 50/50, tsc, y en el navegador (página temporal con datos
   inventados) los períodos, la frase y las teclas. **No está en producción:** la migración espera el OK de Felipe.
+- **Actividad 2 · Cifras que eligen el gráfico:** cinco `TarjetaCifra` (Entraron, Vieron una prenda, Separaron, Separan de cada 100, Recogieron) con su cambio y
+  su `Sparkline`; al tocar una, `<Linea>` la dibuja contra los días de antes (Hoy por hora contra ayer; varios días, día por día), con «Por hora / Acumulado»
+  (`SegmentoDeslizante forma="modo"`) y, en Hoy acumulado, el cierre esperado. Al costado, la respuesta en una frase («Hoy va mejor que ayer a esta hora») y
+  cuatro datos. La cifra de la cabecera (`CifraTrafico`) se fue: su «Ahora, N mirando» vive ahora en la lectura. La hora en curso y el día de hoy a medias no se
+  dibujan sin acumular (la línea «caía» sin haber caído). Base: `20261029040000_trafico_web_serie.sql` suma `serie` a `resumen_trafico_web` (misma firma).
+  **Verificado:** `pruebas:tienda-trafico-resumen` 54/54, vitest de reglas 61/61, guías, unificar, colores, movimiento, ancho, tsc y eslint; en el navegador a
+  1440 (claro y oscuro) y a 375 px sin scroll lateral. **Ojo base local compartida:** otra sesión puso la base al día con `main` y recreó la función vieja de 4
+  parámetros; se reaplicaron las dos migraciones de esta rama.

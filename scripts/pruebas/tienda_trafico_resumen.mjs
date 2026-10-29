@@ -16,6 +16,7 @@
  *      primera entrada, en Lima (actividad 6).
  *   9. «Ahora» y «último dato».
  *  10. La migración se puede pegar dos veces.
+ *  12. La serie del gráfico (20261029040000, actividad 2): por hora en un día, por día en varios, para estos días y los de antes.
  *  11. Los días con los que se compara (20261029015000, «Observatorio» actividad 1): a mano (el día anterior pedido, no el de atrás del
  *      mismo largo), con corte de hora («ayer a esta hora»), y lo que no vale se rechaza (22023); sin pedirlos, todo sigue igual.
  *
@@ -35,6 +36,7 @@ const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = readFileSync("supabase/migrations/20261023231000_trafico_web_lectura.sql", "utf8");
 const MIGRACION_PERIODOS = readFileSync("supabase/migrations/20261029015000_trafico_web_periodos.sql", "utf8");
+const MIGRACION_SERIE = readFileSync("supabase/migrations/20261029040000_trafico_web_serie.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -261,6 +263,34 @@ for (const [nombre, extra] of [
 esperar("la migración de períodos se puede pegar dos veces", correr(`begin;\n${MIGRACION_PERIODOS}\n${MIGRACION_PERIODOS}\nrollback;`).ok, "falló al pegar dos veces");
 const un = correr(`select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'resumen_trafico_web';`);
 esperarValor("queda UNA sola `resumen_trafico_web` (sin sobrecarga que haga ambigua la llamada con nombres)", un, "1");
+
+// ---- 12. La serie del gráfico ----
+// Del 10: la 1 entró a las 3 p. m. y recogió; la 2 entró a las 8 p. m. y llegó a la bolsa; la 3 a las 9 p. m. y se fue; la 6 a las 9 a. m. y separó.
+esperarValor("en un día, la serie va por hora", escenario(`${resumen()} -> 'serie' ->> 'por';`), "hora");
+esperarValor(
+  "por hora: [hora, entraron, vieron, separaron, recogieron] en orden, solo las horas con gente",
+  escenario(`${resumen()} -> 'serie' -> 'actual';`),
+  "[[9, 1, 1, 1, 0], [15, 1, 1, 1, 1], [20, 1, 1, 0, 0], [21, 1, 0, 0, 0]]",
+);
+esperarValor(
+  "la serie suma lo mismo que los totales del período (entraron)",
+  escenario(`${resumen()} as r \\gset
+  ${COMO_POSTGRES}select (select sum((e ->> 1)::int) from jsonb_array_elements(:'r'::jsonb -> 'serie' -> 'actual') e) = (:'r'::jsonb -> 'pasos' ->> 0)::int;`),
+  "t",
+);
+esperarValor(
+  "«antes» va por hora del día de antes, completo aunque haya corte (la 5 entró a las 11:50 p. m. del 9)",
+  escenario(`${COMO(FELIPE)}select retail.resumen_trafico_web('2025-01-10', '2025-01-10', null, null, '2025-01-09', '2025-01-09', ${lima("2025-01-09 12:00")}) -> 'serie' -> 'antes';`),
+  "[[23, 1, 1, 0, 0]]",
+);
+esperarValor("en varios días, la serie va por día", escenario(`${resumen("null", "null", "2025-01-09", "2025-01-10")} -> 'serie' ->> 'por';`), "dia");
+esperarValor(
+  "por día: el día 0 es el primero del período (el 9 tiene a la 5; el 10, a las otras 4)",
+  escenario(`${resumen("null", "null", "2025-01-09", "2025-01-10")} -> 'serie' -> 'actual';`),
+  "[[0, 1, 1, 0, 0], [1, 4, 3, 2, 1]]",
+);
+esperarValor("con un camino puesto, la serie es solo de ese camino", escenario(`${resumen("'instagram'")} -> 'serie' -> 'actual';`), "[[15, 1, 1, 1, 1]]");
+esperar("la migración de la serie se puede pegar dos veces", correr(`begin;\n${MIGRACION_SERIE}\n${MIGRACION_SERIE}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);

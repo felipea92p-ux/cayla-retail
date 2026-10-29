@@ -37,6 +37,8 @@ export type ResumenTrafico = {
   ciudades: Record<Ciudad, number>;
   /** 24 cifras: cuántas personas entraron en cada hora del día (Lima), de las 0 a las 23. */
   horas: number[];
+  /** La serie del gráfico principal: por hora (un día) o por día (varios), de estos días y de los de antes (actividad 2). */
+  serie: SerieTrafico;
 };
 
 /** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
@@ -163,6 +165,7 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     caminos: conteoPor(Object.keys(CAMINOS) as Camino[], d.caminos),
     ciudades: conteoPor(Object.keys(CIUDADES) as Ciudad[], d.ciudades),
     horas: Array.isArray(d.horas) && d.horas.length === 24 && d.horas.every(esCifra) ? d.horas : Array.from({ length: 24 }, () => 0),
+    serie: leerSerie(d.serie),
   };
 }
 
@@ -469,4 +472,133 @@ export function sinNoticias(ultimoDato: string | null, ahora: Date): { desde: st
   const hora = horaCorta(ultimoDato) ?? "";
   const mismoDia = diaLima(ultimoDato) === diaLima(ahora.toISOString());
   return { desde: mismoDia ? `las ${hora}` : `el ${fechaLarga(diaLima(ultimoDato) ?? "")}, ${hora}` };
+}
+
+// ---------- La serie del gráfico principal («Observatorio», actividad 2) ----------
+
+/** Una fila de la serie: [momento (hora 0–23 o día 0…n desde el primero), entraron, vieron una prenda, separaron, recogieron]. */
+export type FilaSerie = readonly [number, number, number, number, number];
+export type SerieTrafico = { por: "hora" | "dia"; actual: FilaSerie[]; antes: FilaSerie[] };
+
+const filaSerie = (v: unknown): v is FilaSerie => Array.isArray(v) && v.length === 5 && v.every(esCifra);
+/** Lo que manda la base; una base de antes de la actividad 2 no trae serie: sale vacía, no rota. */
+function leerSerie(v: unknown): SerieTrafico {
+  const d = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  const filas = (x: unknown) => (Array.isArray(x) ? x.filter(filaSerie) : []);
+  return { por: d.por === "hora" ? "hora" : "dia", actual: filas(d.actual), antes: filas(d.antes) };
+}
+
+/** Las cinco cifras que eligen el gráfico, en el orden de la fila. `col` es su columna en la serie; «de cada 100» se calcula. */
+export const METRICAS = [
+  { clave: "entraron", nombre: "Entraron", col: 1 },
+  { clave: "vieron", nombre: "Vieron una prenda", col: 2 },
+  { clave: "separaron", nombre: "Separaron", col: 3 },
+  { clave: "de100", nombre: "Separan de cada 100", col: null },
+  { clave: "recogieron", nombre: "Recogieron", col: 4 },
+] as const;
+export type MetricaTrafico = (typeof METRICAS)[number]["clave"];
+
+/** Una columna de la serie, momento a momento de 0 a `largo − 1`, con cero donde no entró nadie. */
+function columna(filas: readonly FilaSerie[], col: number, largo: number): number[] {
+  const v = Array.from({ length: largo }, () => 0);
+  for (const f of filas) if (f[0] >= 0 && f[0] < largo) v[f[0]] += f[col];
+  return v;
+}
+const acumular = (v: readonly number[]) => v.reduce<number[]>((a, x) => [...a, (a.at(-1) ?? 0) + x], []);
+
+/**
+ * Lo que dibuja la línea de una cifra. «De cada 100» va siempre acumulado (separaron hasta ahí ÷ entraron hasta ahí): hora a hora,
+ * con 3 personas, salta de 0 a 33 y no dice nada. Las demás, por momento o acumuladas.
+ */
+export function valoresDe(filas: readonly FilaSerie[], metrica: MetricaTrafico, largo: number, acumulado: boolean): number[] {
+  if (metrica === "de100") {
+    const ent = acumular(columna(filas, 1, largo));
+    const sep = acumular(columna(filas, 3, largo));
+    return ent.map((e, i) => (e > 0 ? (sep[i] / e) * 100 : 0));
+  }
+  const col = METRICAS.find((m) => m.clave === metrica)!.col!;
+  const v = columna(filas, col, largo);
+  return acumulado ? acumular(v) : v;
+}
+
+export type GraficoTrafico = {
+  serie: { x: number; y: number }[];
+  referencia: { x: number; y: number }[];
+  /** «Si sigue así», de ahora al cierre del día (solo Hoy, acumulado). */
+  proyeccion: { x: number; y: number }[] | null;
+  /** Dónde terminaría el día al ritmo de hoy. */
+  cierre: number | null;
+};
+
+/**
+ * La línea de estos días contra la de antes. `hastaX`: hasta dónde llega lo de hoy (la hora de ahora); `null`, el período entero.
+ * La proyección (solo con `hastaX` y acumulado, y no en «de cada 100») sigue la forma del día de antes al ritmo de hoy: si a esta hora
+ * van 17 % más que ayer, el resto del día también.
+ */
+export function graficoDe(s: SerieTrafico, metrica: MetricaTrafico, o: { largo: number; largoAntes: number; hastaX: number | null; acumulado: boolean }): GraficoTrafico {
+  const actual = valoresDe(s.actual, metrica, o.largo, o.acumulado);
+  const antes = valoresDe(s.antes, metrica, o.largoAntes, o.acumulado);
+  // Hora a hora, la hora en curso está a medias (a las 3:40 p. m., «3 p. m.» tiene 40 minutos): sin acumular no se dibuja, o la línea
+  // «cae» al final sin haber caído. Acumulado sí entra: es lo que lleva el día hasta ahora.
+  const fin = o.hastaX === null ? o.largo - 1 : Math.max(0, Math.min(o.acumulado ? o.hastaX : o.hastaX - 1, o.largo - 1));
+  const serie = actual.slice(0, fin + 1).map((y, x) => ({ x, y }));
+  const referencia = antes.map((y, x) => ({ x, y }));
+  if (o.hastaX === null || !o.acumulado || metrica === "de100" || o.largoAntes !== o.largo || fin >= o.largo - 1) return { serie, referencia, proyeccion: null, cierre: null };
+  const base = antes[fin];
+  if (!base) return { serie, referencia, proyeccion: null, cierre: null };
+  const ritmo = actual[fin] / base;
+  const proyeccion = antes.slice(fin).map((y, i) => ({ x: fin + i, y: actual[fin] + (y - base) * ritmo }));
+  return { serie, referencia, proyeccion, cierre: Math.round(proyeccion.at(-1)!.y) };
+}
+
+/** Cuánto suma una cifra en estos días y en los de antes; en Hoy, «antes» llega hasta esta hora de ayer (`hastaX`). */
+export function totalDe(r: ResumenTrafico, metrica: MetricaTrafico, hastaX: number | null): { valor: number; antes: number | null } {
+  const antesHasta = (col: number) => r.serie.antes.filter((f) => hastaX === null || r.serie.por !== "hora" || f[0] <= hastaX).reduce((a, f) => a + f[col], 0);
+  if (metrica === "entraron") return { valor: r.pasos[0], antes: r.anterior };
+  if (metrica === "vieron") return { valor: r.pasos[1], antes: antesHasta(2) };
+  if (metrica === "separaron") return { valor: r.pasos[4], antes: antesHasta(3) };
+  if (metrica === "recogieron") return { valor: r.pasos[5], antes: antesHasta(4) };
+  const ent = antesHasta(1);
+  return { valor: r.pasos[0] > 0 ? (r.pasos[4] / r.pasos[0]) * 100 : 0, antes: ent > 0 ? (antesHasta(3) / ent) * 100 : null };
+}
+
+/** Cómo se escribe una cifra: «de cada 100» con un decimal (7,5); las demás, enteras con miles. */
+export const cifraTexto = (metrica: MetricaTrafico, v: number) =>
+  metrica === "de100" ? v.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : miles(Math.round(v));
+
+/** El cambio de una cifra en palabras y su tono: «▲ 17 %», «▼ 0,3 pts» (de cada 100), «Igual», o nada si no hay con qué comparar. */
+export function cambioDe(metrica: MetricaTrafico, valor: number, antes: number | null): { tono: "verde" | "ambar" | "neutro"; texto: string } | null {
+  if (antes === null) return null;
+  if (metrica === "de100") {
+    const d = Math.round((valor - antes) * 10) / 10;
+    if (Math.abs(d) < 0.1) return { tono: "neutro", texto: "Igual" };
+    return { tono: d > 0 ? "verde" : "ambar", texto: `${d > 0 ? "▲" : "▼"} ${Math.abs(d).toLocaleString("es-PE", { maximumFractionDigits: 1 })} pts` };
+  }
+  const c = cambio(valor, antes);
+  if (c === null) return null;
+  if (c === 0) return { tono: "neutro", texto: "Igual" };
+  return { tono: c > 0 ? "verde" : "ambar", texto: `${c > 0 ? "▲" : "▼"} ${Math.abs(c)} %` };
+}
+
+/** «Hoy va mejor que ayer a esta hora», «Setiembre fue más lento que agosto», «Estos 7 días van igual que…»: la respuesta en una frase. */
+export function veredictoDe(p: { clave: ClavePeriodo; nombre: string; antes: string }, c: number | null): { tono: "verde" | "ambar" | "neutro"; titulo: string } {
+  const sujeto = p.clave === "7" ? "Estos 7 días" : p.nombre;
+  const pasado = p.clave === "ayer" || p.clave === "mes-pasado";
+  const plural = p.clave === "7";
+  if (c === null) return { tono: "neutro", titulo: `${sujeto}: muy poca gente para comparar con ${p.antes}` };
+  const verbo = pasado ? "fue" : plural ? "van" : "va";
+  if (c >= 3) return { tono: "verde", titulo: `${sujeto} ${verbo} mejor que ${p.antes}` };
+  if (c <= -3) return { tono: "ambar", titulo: `${sujeto} ${verbo} más lento que ${p.antes}` };
+  return { tono: "neutro", titulo: `${sujeto} ${verbo} igual que ${p.antes}` };
+}
+
+/** Las marcas del eje del tiempo: cada 6 horas en un día; en varios días, hasta 5 fechas («21 oct»). Pocas a propósito: a 375 px
+ *  ocho horas se pisan. */
+export function marcasDelTiempo(por: "hora" | "dia", largo: number, desde: string): { x: number; texto: string }[] {
+  if (por === "hora") return [0, 6, 12, 18].map((h) => ({ x: h, texto: horaRedonda(h) }));
+  const paso = Math.max(1, Math.ceil(largo / 5));
+  const corto = (iso: string) => `${Number(iso.slice(8, 10))} ${MESES[Number(iso.slice(5, 7)) - 1].slice(0, 3)}`;
+  return Array.from({ length: largo }, (_, x) => x)
+    .filter((x) => x % paso === 0)
+    .map((x) => ({ x, texto: corto(sumarDias(desde, x)) }));
 }
