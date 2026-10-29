@@ -6,7 +6,6 @@ import {
   decidirLectura,
   rangoDeVarias,
   soltarPila,
-  textoIgnoradas,
   type EstadoRepetida,
 } from "./lectura-repetida";
 
@@ -58,7 +57,7 @@ describe("decidirLectura (ADR-0562)", () => {
     expect(decidirLectura("emma", 12, false, ESTADO_REPETIDA_VACIO)).toEqual({ tipo: "sigue", cierraPregunta: false });
   });
 
-  it("una pila declarada («Son varias iguales») no pregunta; al soltarla, vuelve a preguntar", () => {
+  it("una pila declarada («Cambiar cantidad») no pregunta; al soltarla, vuelve a preguntar", () => {
     const pilas = declararPila([], "emma");
     expect(decidirLectura("emma", 5, true, { pregunta: null, pilas })).toEqual({ tipo: "sigue", cierraPregunta: false });
     expect(decidirLectura("emma", 5, true, { pregunta: null, pilas: soltarPila(pilas, "emma") }).tipo).toBe("pregunta");
@@ -72,7 +71,7 @@ describe("pilas", () => {
   });
 });
 
-describe("«¿Cuántas tienes en total?»", () => {
+describe("«Cantidad total»", () => {
   it("va de una más de las que lleva hasta el tope", () => {
     expect(rangoDeVarias(1, 12)).toEqual({ min: 2, max: 12 });
     expect(rangoDeVarias(0, null)).toEqual({ min: 1, max: 99999 });
@@ -88,12 +87,5 @@ describe("«¿Cuántas tienes en total?»", () => {
     expect(acotarVarias(1, r)).toBe(2);
     expect(acotarVarias(5.7, r)).toBe(5);
     expect(acotarVarias(Number.NaN, r)).toBe(2);
-  });
-});
-
-describe("textoIgnoradas", () => {
-  it("singular y plural", () => {
-    expect(textoIgnoradas(1)).toBe("1 lectura repetida ignorada");
-    expect(textoIgnoradas(6)).toBe("6 lecturas repetidas ignoradas");
   });
 });
