@@ -62,3 +62,7 @@ avance.
 `role="progressbar"` fuera de la pieza, las clases de antes (`cr-progreso`, `vsr-f-bar`, `cmp-mini`, `rc-barra`) y una pieza homónima
 (`function BarraAvance`). Con el código de antes reconocen 12 archivos. **No ven todo:** una pista con su relleno dibujada con clases de
 Tailwind se parece a una barra de comparación; quien la dibuje a mano la encuentra en este registro.
+
+## Actualización 2026-10-28: `sobreTinta`
+
+La billetera de Mis compras (ADR-0559) es una tarjeta pintada de tinta, y la pista de arena con relleno de tinta no se ve sobre ella. Como `<Anillo sobreTinta>`, `<BarraAvance sobreTinta>` dibuja la pista y el relleno en crema (que se invierten con el tema, igual que la tarjeta) e ignora el verde de «completo». Es la misma pieza, no otra barra.

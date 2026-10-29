@@ -134,6 +134,11 @@ export const PRUEBAS = [
   // tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
   "pruebas:balance",
 
+  // La mercadería de CLAURE en Lima no es de CAYLA en el Balance (ADR-0558): entrar, vender, anular, devolver y perder mercadería de
+  // CLAURE mueve la mercadería del Balance (fn_bal_stock) igual que la 201 del diario; lo debido va a la 4699; un corte pasado; la
+  // autoprueba (deshecha una mitad, la propiedad se rompe); pegar dos veces y permisos. ROLLBACK.
+  "pruebas:balance-claure",
+
   // La reversa de un cobro sale por su cuenta (ADR-0120 act. 2026-10-17): anulación, devolución, diferencia de un cambio y
   // adelanto devuelto van a la cuenta por la que entró el cobro (tarjeta: 105) y nunca a la 451, con cada medio; el parche de
   // F7 sobre fn_asientos no se pierde al recrearla (autoprueba con la versión original). ROLLBACK.
@@ -232,6 +237,16 @@ export const PRUEBAS = [
   // Precio propio por sede (Felipe 2026-10-09): cambia solo en esa tienda, deja historial firmado, solo tu propia sede,
   // sin el módulo Productos nada, se archiva y nunca se borra ni se edita. ROLLBACK.
   "pruebas:precio-sede",
+
+  // La capa de precio por combinación en la tienda (Felipe 2026-10-28, ADR-0370 act.): con la capa vacía el precio de toda combinación en toda
+  // sede es el de ayer (se compara una a una, con su mutante); la excepción gana a la prenda solo en su tienda y su combinación; archivada no
+  // vale, el obsequio sigue en 0; no se borra ni se edita; Apartar y las proformas cobran el de la combinación. ROLLBACK.
+  "pruebas:precio-sede-variante",
+
+  // El costo y el precio por combinación al cerrar un envío (Felipe 2026-10-28, ADR-0393/0519/0370 act.): el costo de UNA combinación gana
+  // al de su prenda y al de su línea; el precio vale para todas las sedes o solo para la tienda (la prenda entera si se eligieron todas
+  // las tallas al mismo precio, excepciones por combinación si no); todo o nada; solo combinaciones contadas de este envío abierto. ROLLBACK.
+  "pruebas:recepcion-combinaciones",
 
   // El precio de venta desde la recepción (Felipe 2026-10-24): quien recibe cambia el precio de una prenda de SU envío (todas las
   // sedes o solo la suya) sin Productos; otra sede, quien hizo la orden, un envío sin abrir, una prenda ajena y un precio malo o
@@ -535,6 +550,11 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:alta-con-stock-inicial",
 
+  // Nuevo producto con la carga inicial cerrada (ADR-0328 act. 2026-10-28): las unidades entran como llegada del proveedor
+  // (recibir_lote) en la misma transacción que el alta; sin proveedor, sin unidades o con un nombre repetido no queda nada; el
+  // mismo token no recibe dos veces; los permisos de la sede son los de recibir. Cada caso termina en ROLLBACK.
+  "pruebas:alta-con-llegada",
+
   // Temporadas como atributo (ADR-0246): la lista cerrada de 9, el calendario de SENAMHI (lo que ya empezó no se mueve;
   // solo el líder corre una fecha futura), una temporada por prenda (color → producto → categoría), asignar todo o
   // nada con firma y rastro, el alta con p_temporada, el año por fecha de llegada y la guarda de la migración.
@@ -688,6 +708,11 @@ export const PRUEBAS = [
   // CLAURE no sale de Lima; la red al cierre atrapa un reparto que no cuadra con el stock. Cada caso: ROLLBACK.
   "pruebas:stock-dueno",
 
+  // «Ver el valor a costo» de Existencias (ADR-0557): una fila por sede y CERO filas sin el dinero de Compras (la puerta está en la base, y
+  // quien solo la ve en Compras recibe solo su sede); lo dañado y lo de CLAURE van aparte; una prenda sin costo no suma y se cuenta; lo que
+  // sube la Mercadería del Balance es valor + dañado + CLAURE. Cada caso: ROLLBACK.
+  "pruebas:valor-inventario-existencias",
+
   // Cuánto de lo vendido es de CAYLA y cuánto de CLAURE (ADR-0532): en el Historial la suma de las empresas es el vendido de
   // fn_totales_historial_ventas con los mismos filtros; una prenda de CLAURE suma a CLAURE; en Caja, lo de cada turno es lo de
   // fn_resumen_caja; sin sesión no se lee; anon no ejecuta; aplicarla dos veces es inocuo. Cada caso: ROLLBACK.
@@ -715,6 +740,16 @@ export const PRUEBAS = [
   // tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
   // Cada caso termina en ROLLBACK.
   "pruebas:insumos-devolucion",
+
+  // Candados de unidad de Insumos (ADR-0554, actividad 0): una tela se mide en metros, un insumo con historia no cambia de
+  // tipo ni de unidad (la historia se lee del catálogo, así que una tabla nueva queda cubierta sola), un código no se repite
+  // aunque cambien mayúsculas o espacios, y la propia migración se detiene si ya hay datos que la contradicen. ROLLBACK.
+  "pruebas:insumos-candados",
+
+  // La tela con sus colores (ADR-0554, actividad 1): `crear_material` y `agregar_colores_a_material` arman la tela y sus colores todo o nada, con el código
+  // que pone la base y el saldo inicial solo del líder; un reintento con el mismo token no duplica nada; una tela repetida AVISA y dice cuál; el nombre, el
+  // código, el tejido y la merma de un color son los de su tela; y los estados imposibles (un color dos veces, kilo sin medidas, NaN, unidad cambiada) no caben. ROLLBACK.
+  "pruebas:materiales",
 
   // Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
   // RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin
@@ -1573,6 +1608,9 @@ export const PRUEBAS = [
   "pruebas:compras-simple-revisar",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
+  // Corregir una compra ya anotada (ADR-0561): la plata vuelve sola mientras Compras no la completa, el papel acompaña si ya cuadraba, no se baja de lo
+  // enviado, todo o nada, rastro que no se borra.
+  "pruebas:compras-simple-corregir",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

@@ -40,6 +40,7 @@ export function BloquePrenda({
   enviado,
   preguntaPrenda = "¿Qué prenda es?",
   extraAntes,
+  antesDelConteo,
   sinPrendaAbajo,
   listo = true,
   motivoNoListo,
@@ -61,6 +62,8 @@ export function BloquePrenda({
   preguntaPrenda?: string;
   /** Algo más dentro del bloque de la prenda, antes de elegirla («No llegó nada de esto»). */
   extraAntes?: ReactNode;
+  /** Va entre «¿Qué prenda es?» y «¿Cuántas llegaron?» (en «Para después», de quién es la mercadería). */
+  antesDelConteo?: ReactNode;
   /** Lo que se dibuja en lugar de las dos salidas cuando ya no hace falta una prenda (la línea que no llegó). */
   sinPrendaAbajo?: ReactNode;
   /** Se puede elegir la prenda: en lo que no estaba en la guía, primero van la categoría y la marca. */
@@ -154,6 +157,7 @@ export function BloquePrenda({
 
       {prenda && !sinPrendaAbajo && (
         <>
+          {antesDelConteo}
           <CampoGuiado id={ids.conteo} guia={guia} retiene="fila">
             <div data-guia="recepcion.matriz" className="space-y-2">
               <p className={TITULO}>

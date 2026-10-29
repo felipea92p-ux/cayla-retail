@@ -21,6 +21,7 @@ import {
   type LineaRecepcion,
   type ProveedorResumen,
   type TipoDocumentoCompra,
+  numeroDeEnvioEnNota,
 } from "@/lib/compras-reglas";
 import { lineaEnMiTienda, otrasTiendasDeJson } from "@/lib/reparto-reglas";
 import { leerNoDeduciblesCon } from "@/lib/no-deducible";
@@ -637,6 +638,12 @@ export async function getRecepcionesRecientes(
   // embebe entre schemas, así que se resuelve en lote con
   // `fn_nombres_personas` (0009_integracion_dynamic.sql), mismo patrón que
   // ya usan `caja.ts`/`conteos.ts`/`traslados.ts`/`devoluciones.ts`.
+  // «Llegó el …»: cuando la sede abrió el envío para recibirlo (`despachos.abierto_en`), no cuando salió ni cuando se terminó de contar.
+  // «Llegó el …»: cuándo la sede abrió el envío (`despachos.abierto_en`), no cuando salió ni cuando se terminó de contar. `despachos` no se lee
+  // directo: lo da `fn_llegada_de_lotes`. La función aún no está en los tipos generados, de ahí el molde; si falla, la fila sale sin esa fecha.
+  const llamar = supabase.rpc as unknown as (f: string, a: object) => PromiseLike<{ data: { lote_id: string; abierto_en: string }[] | null }>;
+  const llegadas = new Map<string, string>();
+  for (const x of (await llamar.call(supabase, "fn_llegada_de_lotes", { p_lote_ids: loteIds })).data ?? []) llegadas.set(x.lote_id, x.abierto_en);
   const personaIds = [...new Set(lotes.map((l) => l.recibido_por).filter((id): id is string => !!id))];
   const [movimientosRes, nombresRes] = await Promise.all([
     // 30 lotes de 60–100 líneas pasan las 1.000 filas y PostgREST corta sin error (el lote más viejo salía con menos
@@ -654,6 +661,19 @@ export async function getRecepcionesRecientes(
     ),
     personaIds.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: personaIds }) : Promise.resolve({ data: [], error: null }),
   ]);
+  // De qué envío salió cada lote (`lotes.despacho_id`, aún fuera de los tipos generados): un envío con dos proveedores deja dos lotes y la lista
+  // de «Terminados» los junta. Secundario: si la base no lo tiene, cada lote queda como llegada sin envío.
+  const envioDeLote = new Map<string, string>();
+  try {
+    const { data } = (await supabase.from("lotes" as never).select("id, despacho_id").in("id", loteIds)) as unknown as {
+      data: { id: string; despacho_id: string | null }[] | null;
+    };
+    for (const f of data ?? []) {
+      if (f.despacho_id) envioDeLote.set(f.id, f.despacho_id);
+    }
+  } catch (e) {
+    console.error("El envío de cada lote recibido:", e);
+  }
   const movimientos = exigir(movimientosRes, "las líneas de las recepciones recientes");
   const personas = new Map(exigir(nombresRes, "quién recibió cada lote").map((p) => [p.id, p.nombre]));
   type Agg = {
@@ -690,7 +710,10 @@ export async function getRecepcionesRecientes(
       const agg = porLote.get(l.id) ?? { unidades: 0, lineas: 0, conFactura: false, compraId: null, documento: null, detalle: [] };
       return {
         loteId: l.id,
+        despachoId: envioDeLote.get(l.id) ?? null,
+        envioNumero: envioDeLote.has(l.id) ? numeroDeEnvioEnNota(l.nota) : null,
         fecha: l.fecha_recepcion,
+        llegoEn: llegadas.get(l.id) ?? null,
         ubicacion: l.ubicacion?.nombre ?? "",
         proveedorId: l.proveedor_id,
         proveedorNombre: l.proveedor?.nombre ?? "",

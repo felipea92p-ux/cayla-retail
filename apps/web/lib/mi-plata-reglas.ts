@@ -630,6 +630,24 @@ export function cuentaDeLaBilletera(plata: Pick<MiPlata, "tiene" | "ronda">): { 
   return { dieron, compraste, gastaste, antes };
 }
 
+/**
+ * La barra bajo la cifra de la billetera (maqueta docs/maquetas/mis-compras-pc-mesa-2026-10/, Felipe 2026-10-28): cuánto de la plata de la
+ * ronda ya se usó. La base es lo que tenía para comprar: lo que le dieron más lo que ya tenía al abrir la ronda (si le debían, eso no suma).
+ * Lo usado es lo comprado más lo gastado. El porcentaje se redondea HACIA ABAJO: nunca dice que usó más de lo que usó. Sin base (nada dado ni
+ * de antes) no hay qué medir y no se dibuja. Pasada de la base, la barra queda llena y la nota de «tienes» dice qué hacer; aquí no se juzga.
+ */
+export function usoDeLaPlata(cuenta: { dieron: number; compraste: number; gastaste: number; antes: number } | null): { pct: number; usado: number; base: number; texto: string } | null {
+  if (!cuenta) return null;
+  const base = redondear(cuenta.dieron + Math.max(0, cuenta.antes));
+  if (base <= 0.004) return null;
+  const usado = redondear(cuenta.compraste + cuenta.gastaste);
+  const deQue = cuenta.antes > 0.004 ? "lo que tenías" : "lo que te dieron";
+  const pct = Math.min(100, Math.max(0, Math.floor((usado / base) * 100)));
+  const texto =
+    usado <= 0.004 ? `Todavía no usas nada de ${deQue}` : usado >= base - 0.004 ? `Ya usaste todo ${deQue}` : pct < 1 ? `Usaste menos del 1 % de ${deQue}` : `Usaste el ${pct} % de ${deQue}`;
+  return { pct, usado, base, texto };
+}
+
 /** Los cuatro tramos del camino de una ronda, en el orden en que se hacen (maqueta mis-compras-rediseno-2026-10). */
 export const PASOS_DE_LA_RONDA = ["Abre tu ronda", "Anota", "Manda", "Ciérrala"] as const;
 
@@ -663,6 +681,10 @@ export type MovimientoCompradora = {
   icono: "compra" | "plata" | ConceptoGasto;
   titulo: string;
   detalle: string;
+  /** El detalle de la lista: el de arriba SIN lo que ya dice `envio` (en la lista va como chip; en la hoja de la fila, completo). */
+  resumen: string;
+  /** Solo una compra: si falta mandar a una tienda (ámbar) o ya salió con su código (verde). Es lo que la compradora tiene que hacer o ya hizo. */
+  envio: { texto: string; tono: "ambar" | "verde" } | null;
   /** La plata que entra suma (+, en verde); la que sale resta (−). */
   entra: boolean;
   monto: string;
@@ -673,6 +695,8 @@ export type MovimientoCompradora = {
   creadoEn: string;
   rondaId: string | null;
   ronda: string | null;
+  /** Solo en una compra: el papel (`compra_papeles.id`), para corregirla (ADR-0561). */
+  compraId?: string;
 };
 
 const TITULO_PLATA: Record<MedioPlata, string> = {
@@ -682,23 +706,25 @@ const TITULO_PLATA: Record<MedioPlata, string> = {
   ya_tenia: "Plata que ya tenías",
 };
 
-function detalleCompra(c: CompraAnotada, codigos: ReadonlyMap<string, readonly string[]>): string {
+function detalleCompra(c: CompraAnotada, codigos: ReadonlyMap<string, readonly string[]>): { detalle: string; resumen: string; envio: MovimientoCompradora["envio"] } {
   const papel = TIPOS_PAPEL[c.tipo as TipoPapel]?.nombre ?? "Papel";
   const prendas = c.prendas === 1 ? "1 prenda" : `${c.prendas} prendas`;
   // Ya enviada, lo que se busca es el código para avisar a la tienda («enviada · ENV-000118»); sin código (no se pudo leer «Mis envíos»), las tiendas.
   const enviada = codigos.get(c.id);
-  const tiendas = c.porMandar.length
-    ? `falta mandar a ${c.porMandar.join(", ")}`
-    : enviada?.length
-      ? `enviada · ${enviada.join(", ")}`
-      : c.tiendas.length
-        ? c.tiendas.join(", ")
-        : null;
+  const faltaMandar = c.porMandar.length > 0 ? `falta mandar a ${c.porMandar.join(", ")}` : null;
+  const yaSalio = !faltaMandar && enviada?.length ? `enviada · ${enviada.join(", ")}` : null;
+  const tiendas = faltaMandar ?? yaSalio ?? (c.tiendas.length ? c.tiendas.join(", ") : null);
   // Lo que no pagó ella lo paga Compras desde Por pagar: se dice, para que no crea que le falta plata. Va pegado a las prendas: en el
   // celular la línea se corta al final.
   const falta = Math.round((c.monto - c.pagado) * 100) / 100;
   const compras = falta >= 0.005 ? `Compras paga ${soles(falta)}` : null;
-  return [prendas, compras, papel, tiendas].filter(Boolean).join(" · ");
+  const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  return {
+    detalle: [prendas, compras, papel, tiendas].filter(Boolean).join(" · "),
+    // La lista dice lo del envío en un chip («Falta mandar a LIM»), no otra vez en el detalle: queda solo lo que no es de envío.
+    resumen: [prendas, compras, papel, faltaMandar || yaSalio ? null : tiendas].filter(Boolean).join(" · "),
+    envio: faltaMandar ? { texto: mayuscula(faltaMandar), tono: "ambar" } : yaSalio ? { texto: mayuscula(yaSalio), tono: "verde" } : null,
+  };
 }
 
 /**
@@ -718,12 +744,16 @@ export function movimientosDeLaCompradora(
   const todos: MovimientoCompradora[] = [
     ...plata.compras.map((c): MovimientoCompradora => {
       const e = estadoParaLaCompradora("compra", c.porCompletar);
+      const d = detalleCompra(c, codigos);
       return {
         clave: `compra-${c.id}`,
+        compraId: c.id,
         tipo: "compra",
         icono: "compra",
         titulo: `Compra a ${c.proveedor}`,
-        detalle: detalleCompra(c, codigos),
+        detalle: d.detalle,
+        resumen: d.resumen,
+        envio: d.envio,
         entra: false,
         // Baja de su plata solo lo que pagó: «− S/ 0.00» si se la dejó toda a Compras.
         monto: soles(c.pagado),
@@ -743,6 +773,8 @@ export function movimientosDeLaCompradora(
         icono: g.concepto,
         titulo: nombreGasto(g),
         detalle: g.conFoto ? "Con foto" : "Sin papel",
+        resumen: g.conFoto ? "Con foto" : "Sin papel",
+        envio: null,
         entra: false,
         monto: soles(g.monto),
         valor: g.monto,
@@ -761,6 +793,8 @@ export function movimientosDeLaCompradora(
         icono: "plata",
         titulo: TITULO_PLATA[a.medio],
         detalle: `${MEDIOS_PLATA[a.medio].nombre}${a.conFoto ? " · con foto" : ""}`,
+        resumen: `${MEDIOS_PLATA[a.medio].nombre}${a.conFoto ? " · con foto" : ""}`,
+        envio: null,
         entra: true,
         monto: textoMontoAnotado(a),
         valor: a.confirmada && a.montoConfirmado != null ? a.montoConfirmado : a.monto,
@@ -788,6 +822,21 @@ export function movimientosDeLaCompradora(
 export function tituloDeLaLista(ronda: Rondas): string {
   if (ronda.abierta) return "En esta ronda";
   return ronda.ultimaCerrada ? "Antes de abrir tu ronda" : "Hoy";
+}
+
+/**
+ * El pie de «En esta ronda» (maqueta mis-compras-pc-mesa, Felipe 2026-10-28): cuánta plata entró y cuánta salió de la lista que se ve. Salen de
+ * `valor` (lo que de verdad movió su plata: lo pagado de una compra, lo gastado, lo dado), no de los textos. No es «lo que tienes»: eso incluye
+ * lo que ya tenía al abrir la ronda y lo dice la billetera.
+ */
+export function totalesDeLaLista(movimientos: readonly Pick<MovimientoCompradora, "entra" | "valor">[]): { entro: number; salio: number } {
+  let entro = 0;
+  let salio = 0;
+  for (const m of movimientos) {
+    if (m.entra) entro += m.valor;
+    else salio += m.valor;
+  }
+  return { entro: redondear(entro), salio: redondear(salio) };
 }
 
 /** La sigla de una tienda en su cuadro: «Tienda Lima» → «LIM», «Tienda AQP» → «AQP». La última palabra, en tres letras. */

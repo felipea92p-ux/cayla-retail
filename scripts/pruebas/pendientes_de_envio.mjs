@@ -70,6 +70,9 @@ const MIGRACIONES = SIN_MIGRACION
       // ADR-0519 sobre ADR-0393 (2026-10-27): el costo de cada prenda también se cambia desde «Para después» (casos K). Parcha
       // `resolver_pendiente_envio`, `ligar_prenda_a_pendiente` y el candado de lo contado (ADR-0519, 20261026164000, que ya está en la base).
       "20261026210000_costo_por_prenda_en_hacer_ahora.sql",
+      // ADR-0393 (2026-10-28): «Otro» como causa de lo de más y el regalo de fuera de la guía a S/ 0 (casos O). Parcha `cerrar_conteo_envio` y
+      // `fn_recepcion_entrar` (que ya reescribieron las de arriba) y el candado de la causa.
+      "20261028182000_recepcion_otro_y_regalo_sin_costo.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -467,7 +470,7 @@ caso(
       "): revisa y vuelve a cerrar / recepcion_linea_repetida / recepcion_linea_ajena",
 );
 caso(
-  "C5 lo de fuera de la guía: sobra con su causa y su costo (sin costo no se cierra); lo que quedó en 0 se quitó y no deja nada",
+  "C5 lo de fuera de la guía: sobra con su causa y su costo (sin costo no se cierra, salvo un regalo: casos O); lo que quedó en 0 se quitó y no deja nada",
   `${BASE_D1}
    select ${GUARDA("d1", "di_l1", 10, SEP([["prod_n", 10, [V("v_s", 6), V("v_m", 4)]]]))} \\g /dev/null
    select ${GUARDA("d1", "di_l2", 4, SEP([["prod_p", 4, [V("pv_s", 4)]]]))} \\g /dev/null
@@ -475,16 +478,75 @@ caso(
    select ${GUARDA("d1", null, 2, VACIO, "null::int", { prov: ":'prov'", cat: ":'cat2'", marca: ":'marca'" })} \\g /dev/null
    select ${GUARDA("d1", null, 0, VACIO, "null::int", { extra: "2" })} \\g /dev/null
    ${VERS("d1", ["l1", "l2"], [1, 2])}
-   select pg_temp.e(${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "regalo" }), DEC(2)])}) as sin_costo \\gset
-   select ${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "regalo", costo: 12 }), DEC(2)])} as r \\gset
+   select pg_temp.e(${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "cobra_aparte" }), DEC(2)])}) as sin_costo \\gset
+   select ${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "cobra_aparte", costo: 12 }), DEC(2)])} as r \\gset
    reset role;
    select concat_ws(' / ', :'sin_costo', :'r'::jsonb ->> 'unidades',
      (select string_agg(x.tipo || ':' || x.causa || ':' || x.cantidad || ':' || x.extra_posicion || ':' || x.costo_unitario, ',')
         from retail.despacho_diferencias x where x.despacho_id = :'d1'),
      (select string_agg(r.extra_posicion || ':' || r.cantidad, ',') from retail.despacho_recibidos r
        where r.despacho_id = :'d1' and r.extra_posicion is not null));`,
-  "P0001|recepcion_costo|Escribe el costo de Gorros Conteo · Marca Conteo Prueba (fuera de la guía) / 17 / sobrante:regalo:3:1:12.00 / 1:3",
+  "P0001|recepcion_costo|Escribe el costo de Gorros Conteo · Marca Conteo Prueba (fuera de la guía) / 17 / sobrante:cobra_aparte:3:1:12.00 / 1:3",
 );
+// ---- O: «Otro» y el regalo a S/ 0 (ADR-0393, 2026-10-28) ----------------------------------------------------------------------
+const ESCENA_O = (decExtra, { contadasExtra = 3 } = {}) => `${BASE_D1}
+   select ${GUARDA("d1", "di_l1", 10, SEP([["prod_n", 10, [V("v_s", 6), V("v_m", 4)]]]))} \\g /dev/null
+   select ${GUARDA("d1", "di_l2", 4, SEP([["prod_p", 4, [V("pv_s", 4)]]]))} \\g /dev/null
+   select ${GUARDA("d1", null, contadasExtra, SEP([["prod_g", contadasExtra, [V("pg_s", contadasExtra)]]]), "null::int", { prov: ":'prov'", cat: ":'cat2'", marca: ":'marca'" })} \\g /dev/null
+   ${VERS("d1", ["l1", "l2"], [1])}`;
+caso(
+  "O1 «otro» pide su explicación: sin nota no se cierra; con ella se cierra y queda en el historial con su causa",
+  `${ESCENA_O()}
+   select pg_temp.e(${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "otro", costo: 12 })])}) as sin_nota \\gset
+   select pg_temp.e(${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "otro", costo: 12, nota: "x".repeat(301) })])}) as larga \\gset
+   select ${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "otro", costo: 12, nota: "Muestra que mandó el proveedor" })])} as r \\gset
+   reset role;
+   select concat_ws(' / ', :'sin_nota', :'larga',
+     (select string_agg(x.tipo || ':' || x.causa || ':' || x.cantidad || ':' || x.costo_unitario || ':' || coalesce(x.nota, '-'), ',')
+        from retail.despacho_diferencias x where x.despacho_id = :'d1'));`,
+  "P0001|recepcion_sobrante_otro|Cuenta qué fue lo de más de Gorros Conteo · Marca Conteo Prueba (fuera de la guía): escribe en una línea qué pasó / " +
+    "P0001|recepcion_nota|La nota de Gorros Conteo · Marca Conteo Prueba (fuera de la guía) es muy larga: hasta 300 letras / sobrante:otro:3:12.00:Muestra que mandó el proveedor",
+);
+caso(
+  "O2 un regalo de fuera de la guía entra a S/ 0 sin pedir costo ni confirmar nada: lo escrito (de la línea o de sus prendas) no cuenta",
+  `${ESCENA_O()}
+   select ${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "regalo", costo: 99, costosPrendas: J({ ":prod_g": "55" }) })])} as r \\gset
+   reset role;
+   select concat_ws(' / ', :'r'::jsonb ->> 'unidades',
+     (select string_agg(x.causa || ':' || x.costo_unitario, ',') from retail.despacho_diferencias x where x.despacho_id = :'d1'),
+     (select string_agg(r.costo_unitario::text, ',') from retail.despacho_recibidos r where r.despacho_id = :'d1' and r.extra_posicion = 1),
+     (select k.costo_unitario || ':' || k.costos_prendas::text from retail.despacho_conteos k where k.despacho_id = :'d1' and k.extra_posicion = 1));`,
+  "17 / regalo:0.00 / 0.00 / 0.00:{}",
+);
+caso(
+  "O3 un regalo SIN costo lo cierra quien no ve los costos de Compras (el S/ 0 no es un costo atípico que haya que confirmar)",
+  `${ESCENA_O()}
+   select ${CIERRA("d1", [DEC("l1"), DEC("l2"), DEC(1, { sobr: "regalo" })])} as r \\gset
+   reset role;
+   select 'estado=' || (select estado from retail.despachos where id = :'d1') || ' / ' || (:'r'::jsonb ->> 'unidades');`,
+  "estado=cerrado / 17",
+);
+caso(
+  "O4 solo el regalo de FUERA de la guía va a S/ 0: lo que sobra de una línea de la guía como regalo sigue con el costo de su orden",
+  `${BASE_D1}
+   select ${GUARDA("d1", "di_l1", 12, SEP([["prod_n", 10, [V("v_s", 6), V("v_m", 4)]]]))} \\g /dev/null
+   select ${GUARDA("d1", "di_l2", 4, SEP([["prod_p", 4, [V("pv_s", 4)]]]))} \\g /dev/null
+   ${VERS("d1", ["l1", "l2"])}
+   select ${CIERRA("d1", [DEC("l1", { sobr: "regalo" }), DEC("l2")])} as r \\gset
+   reset role;
+   select (select string_agg(x.causa || ':' || x.cantidad || ':' || x.costo_unitario, ',') from retail.despacho_diferencias x where x.despacho_id = :'d1');`,
+  "regalo:2:30.00",
+);
+caso(
+  "O5 el candado de la base acepta «otro» solo en un sobrante, y lo de siempre sigue igual",
+  `reset role;
+   select pg_temp.intento($q$insert into retail.despacho_diferencias (despacho_id, extra_posicion, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por)
+     values ((select id from retail.despachos limit 1), 1, (select id from retail.proveedores limit 1), (select id from retail.categorias limit 1), 'faltante', 'otro', 1, 0, (select id from public.personas limit 1))$q$) as falt \\gset
+   select concat_ws(' / ', split_part(:'falt', '|', 1),
+     (select pg_get_constraintdef(oid) like '%''otro''%' from pg_constraint where conrelid = 'retail.despacho_diferencias'::regclass and conname = 'despacho_diferencias_causa'));`,
+  "23514 / t",
+);
+
 caso(
   "C6 doble clic: el mismo token responde lo mismo sin escribir de nuevo; el mismo token con otros datos no",
   `${BASE_D1}
