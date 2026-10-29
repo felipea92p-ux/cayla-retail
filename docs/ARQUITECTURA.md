@@ -1989,6 +1989,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     la ficha (`fn_clienta_compras`, `fn_clienta_cambios`, `fn_clienta_devoluciones`) no lista las líneas de CLAURE ni lo que es solo de CLAURE. NO cambian `fn_club_conservacion_hasta` (plazo legal) ni `fn_club_avisos_pendientes`
     (deduce la talla de lo que compró). Las pruebas viejas que fijan el md5 de esas funciones (`club_lista_y_ficha`, `club_registro_cartel`, `clientas_por_modulo_y_anonimizar`) deshacen el reemplazo dentro de su transacción
     con `scripts/pruebas/_deshacer_claure.mjs`. Prueba: `pnpm pruebas:claure-club-y-clientes`.
+    **CLAURE fuera de Análisis y de los motores de decisión (actividad 6d, 20261029041000):** veinte reemplazos anclados sobre trece funciones, siempre `and not retail.fn_item_es_de_claure(vi.id, <sede>, <fecha>)` en la lectura de líneas
+    vendidas: Análisis (`fn_analisis_sede`), lo que leen el plan de compra, su propuesta y sus resultados (`fn_unidades_vendidas`, `fn_plan_compra` con sus seis lecturas, `fn_historial_ventas`), los motores del piso
+    (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`, `fn_frescura_decisiones`), `fn_rentabilidad`, `fn_calidad`, `fn_costo_estimado_resumen` (el costo que estima el Resumen de Finanzas: la actividad 5 lo había dejado
+    pasar) y lo más vendido de la tienda web (`fn_vitrina_probador`, `fn_vitrina_recortes`). NO cambian los que miran el libro de movimientos o el stock por dueño (Frescura del piso, `fn_resumen_*`, Pérdidas, calidad de dañadas,
+    reparto por proveedor, capacidad del Plan del piso): quedan como pendiente de Felipe. Prueba: `pnpm pruebas:claure-analisis-y-motores`.
   - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
     Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
     (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en

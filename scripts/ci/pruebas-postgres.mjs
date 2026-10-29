@@ -729,6 +729,11 @@ export const PRUEBAS = [
   // arranque y la sede sin CLAURE no cambian. Cada caso: ROLLBACK.
   "pruebas:claure-club-y-clientes",
 
+  // CLAURE fuera de Análisis y de los motores de decisión (ADR-0560, actividad 6d): trece funciones leen solo lo vendido de CAYLA con la regla de 6a (Análisis, Plan del piso, demanda,
+  // plan de compra y su historial, rentabilidad, calidad por origen, costo estimado del Resumen, vitrina de la tienda web); lo anterior al arranque y la sede sin CLAURE no
+  // cambian; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-analisis-y-motores",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

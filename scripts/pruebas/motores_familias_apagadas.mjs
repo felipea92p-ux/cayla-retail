@@ -34,6 +34,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { sqlDeshacer } from "./_deshacer_claure.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -45,6 +46,15 @@ const MOTORES = leer("20261010232000_piso_demanda_y_plan_ignoran_familias_apagad
 const ANALISIS_FRESCURA = leer("20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql");
 const PREPARACION = leer("20261012220000_preparacion_motor_ignora_familias_apagadas.sql");
 const GRUPOS = leer("20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql");
+// 20261029041000 (ADR-0560, 6d) parcha a propósito estas mismas funciones (lo vendido de CLAURE no es demanda de CAYLA) con reemplazos anclados DESPUÉS de los de
+// familias apagadas: aquí se recargan las migraciones de familias sobre la función viva, así que primero se deshacen los de CLAURE (dentro de la transacción).
+const DESHACER_CLAURE = sqlDeshacer("20261029041000_claure_fuera_de_analisis_y_motores.sql", [
+  "retail.fn_piso_plan_lectura(uuid)",
+  "retail.fn_demanda_sede(uuid, integer)",
+  "retail.fn_plan_compra(uuid)",
+  "retail.fn_analisis_sede(uuid)",
+  "retail.fn_motor_demanda_preparacion(uuid)",
+]);
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -68,6 +78,7 @@ const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local 
 
 const PRELUDIO = `
 begin;
+${DESHACER_CLAURE}
 set local search_path = retail, public, extensions;
 ${sinControl(MARCA)}
 set local search_path = retail, public, extensions;
