@@ -1593,6 +1593,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `getBancosParaPlata` en `lib/mi-plata.ts`, `leerBancosDePlata`) llena el combo y la columna `fondo_plata_anotada.cuenta_indicada_id` (`20261026165000`, solo
     con `medio = 'transferencia'`) guarda la indicación; la cuenta de verdad la elige Compras al confirmar (`PlataPorConfirmar.tsx` muestra el banco que indicó; no mueve plata). Sin bancos
     o sin migración, la hoja no pregunta y se anota igual.
+  - **La cuenta de la devolución (ADR-0571, `20261029165000` + `20261029170000`, NO en producción):** al cerrar la ronda con «Lo devuelvo», `TerminarDia.tsx` pregunta «¿A qué cuenta de CAYLA lo devuelves?»
+    con `fn_cuentas_para_devolver_compras()` (`getCuentasParaDevolver` en `lib/mi-plata.ts`, `leerCuentasParaDevolver`; solo bancos y cajas fuertes). `terminar_dia_compras(p_decision, p_cuenta_indicada_id)` la guarda en
+    `compra_cierres.cuenta_indicada_id` (indicación, no mueve plata); `fn_revisar_compras()` la trae y `CierresPorRecibir.tsx` la deja elegida al recibir (Compras la cambia). «Reabrir» vive en `ReabrirRonda.tsx`, dentro de `UltimaRonda.tsx`.
   - **Pantalla de escritorio en tres columnas** (`app/(app)/compras/mi-plata/page.tsx`; maqueta `docs/maquetas/mis-compras-envios-pc-2026-10/`): con la ronda abierta,
     «tu plata y lo que haces» (camino, billetera, acciones, «Cerrar mi ronda» debajo) · «Manda» (falta mandar y los envíos de la ronda) · el registro de la ronda y las
     anteriores. En el celular es una sola columna en el mismo orden del DOM.

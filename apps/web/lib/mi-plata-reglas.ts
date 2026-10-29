@@ -24,6 +24,8 @@ export const RPC_ABRIR_RONDA = "abrir_ronda_compras";
 export const RPC_REABRIR_RONDA = "reabrir_ronda_compras";
 // «¿De qué banco salió?» (20261026170000): los bancos de la empresa, para quien anota plata por transferencia.
 export const RPC_BANCOS_PLATA = "fn_bancos_para_plata_compras";
+// «¿A qué cuenta de CAYLA devolviste?» al cerrar la ronda (20261029170000): los bancos y cajas fuertes a los que Compras puede recibir lo devuelto.
+export const RPC_CUENTAS_DEVOLVER = "fn_cuentas_para_devolver_compras";
 
 /** La carpeta de los vouchers dentro del depósito de las fotos de los gastos del viaje (la base exige que la ruta empiece así). */
 export const CARPETA_VOUCHERS = "plata/";
@@ -465,6 +467,34 @@ export function cuentaSugerida(cuentas: readonly CuentaOpcion[]): string | null 
 /** El banco que llega elegido en «¿De qué banco salió?»: el BCP (Felipe 2026-10-22 y 26); si no hay uno con ese nombre, el primero; sin bancos, ninguno. */
 export function bancoSugerido(bancos: readonly { id: string; nombre: string }[]): string | null {
   return (bancos.find((c) => /\bbcp\b/.test(normalizar(c.nombre))) ?? bancos[0])?.id ?? null;
+}
+
+/** Las cuentas de CAYLA a las que se puede devolver lo que sobró (`fn_cuentas_para_devolver_compras`): bancos y cajas fuertes. Lo ilegible se descarta. */
+export function leerCuentasParaDevolver(data: unknown): CuentaOpcion[] {
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((x): CuentaOpcion | null => {
+      if (!x || typeof x !== "object") return null;
+      const o = x as Record<string, unknown>;
+      const id = texto(o.id);
+      const nombre = texto(o.nombre);
+      if (!id || !nombre || (o.tipo !== "banco" && o.tipo !== "caja_fuerte")) return null;
+      return { id, nombre, tipo: o.tipo, sede: texto(o.sede) };
+    })
+    .filter((x): x is CuentaOpcion => x !== null);
+}
+
+/**
+ * ¿Falta decir a qué cuenta de CAYLA devolvió? Solo con «Lo devuelvo» y solo si hay cuentas que elegir: sin ninguna configurada no hay nada que
+ * indicar y no bloquea (la elige Compras al recibir, como siempre). La base acepta el cierre sin cuenta; esto es la regla de la pantalla.
+ */
+export function faltaCuentaDeLaDevolucion(decision: DecisionCierre | null, cuentas: readonly CuentaOpcion[], cuentaId: string | null): boolean {
+  return decision === "devuelve" && cuentas.length > 0 && !cuentas.some((c) => c.id === cuentaId);
+}
+
+/** «Marisol dijo que lo devolvió a BCP.»: lo que ve Compras al recibir un cierre cuando la compradora indicó la cuenta. */
+export function textoCuentaDevuelta(persona: string, cuenta: string | null): string | null {
+  return cuenta ? `${persona} dijo que lo devolvió a ${cuenta}.` : null;
 }
 
 /**

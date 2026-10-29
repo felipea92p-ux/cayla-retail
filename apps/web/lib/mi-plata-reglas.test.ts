@@ -19,6 +19,9 @@ import {
   leerMiPlata,
   leerPlataPorConfirmar,
   leerBancosDePlata,
+  leerCuentasParaDevolver,
+  faltaCuentaDeLaDevolucion,
+  textoCuentaDevuelta,
   bancoSugerido,
   cuentaAlConfirmar,
   textoBancoIndicado,
@@ -691,5 +694,35 @@ describe("reabrir la última ronda (ADR-0569)", () => {
     expect(puedeReabrirLaRonda({ abierta: null, ultimaCerrada: null })).toBe(false);
     const abierta = { id: "r", texto: "RC-000013", abiertaEn: "2026-10-29T16:00:00Z", compras: 0, prendas: 0, dieron: 0, compraste: 0, gastaste: 0 };
     expect(puedeReabrirLaRonda({ abierta, ultimaCerrada: cerrada() })).toBe(false);
+  });
+});
+
+describe("la cuenta de CAYLA a la que devuelve al cerrar la ronda", () => {
+  const cuentas = leerCuentasParaDevolver([
+    { id: "bcp", nombre: "BCP", tipo: "banco", sede: null },
+    { id: "cf", nombre: "Caja fuerte Trujillo", tipo: "caja_fuerte", sede: "Trujillo" },
+  ]);
+  it("lee las cuentas con su tipo y su sede, y descarta lo ilegible o lo que no es banco ni caja fuerte", () => {
+    expect(cuentas).toEqual([
+      { id: "bcp", nombre: "BCP", tipo: "banco", sede: null },
+      { id: "cf", nombre: "Caja fuerte Trujillo", tipo: "caja_fuerte", sede: "Trujillo" },
+    ]);
+    expect(leerCuentasParaDevolver([{ id: "x", nombre: "Cajón", tipo: "cajon" }, { nombre: "sin id", tipo: "banco" }, null, "texto"])).toEqual([]);
+    expect(leerCuentasParaDevolver(null)).toEqual([]);
+  });
+  it("falta elegirla solo con «Lo devuelvo» y mientras haya cuentas y ninguna esté elegida", () => {
+    expect(faltaCuentaDeLaDevolucion("devuelve", cuentas, null)).toBe(true);
+    expect(faltaCuentaDeLaDevolucion("devuelve", cuentas, "otra")).toBe(true);
+    expect(faltaCuentaDeLaDevolucion("devuelve", cuentas, "bcp")).toBe(false);
+  });
+  it("no bloquea si no devuelve, si aún no eligió qué hacer o si no hay cuentas configuradas", () => {
+    expect(faltaCuentaDeLaDevolucion("se_queda", cuentas, null)).toBe(false);
+    expect(faltaCuentaDeLaDevolucion("le_deben", cuentas, null)).toBe(false);
+    expect(faltaCuentaDeLaDevolucion(null, cuentas, null)).toBe(false);
+    expect(faltaCuentaDeLaDevolucion("devuelve", [], null)).toBe(false);
+  });
+  it("Compras lee quién dijo a qué cuenta devolvió, y nada si no la indicó", () => {
+    expect(textoCuentaDevuelta("Marisol", "BCP")).toBe("Marisol dijo que lo devolvió a BCP.");
+    expect(textoCuentaDevuelta("Marisol", null)).toBeNull();
   });
 });
