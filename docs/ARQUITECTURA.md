@@ -259,7 +259,7 @@ flowchart TB
   para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en «Qué hago» de la talla:
   el paso «Reportar dañada» de `FlujoTalla`, con la validación de `lib/danadas-reglas.ts`; ADR-0328 act. 10; la ventana `ReportarDanadaModal.tsx` ya no existe). La lista de Dañadas
   (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
-  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
+  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén o, con `p_destino = piso`, al piso en dos traslados internos; `p_costo` opcional), `liquidar_prenda_danada` y `resolver_prenda_danada`. **Desde el 2026-10-28 (ADR-0564)** `reportar_danada` lleva `p_tipo` (lista corta: `TIPOS_DANO` en `lib/danadas-reglas.ts`) y la foto opcional (`registrar_foto_danada`, `fotos_de_danadas`, bucket `retail-danadas`, `lib/danadas-foto.ts`); la lista marca dónde las dejan (`definir_lugar_danadas`, `lib/danadas-lugar.ts`), cuáles salieron a arreglar (`sacar_danada_a_arreglar`: cerca o Taller, sin mover stock) y cuáles volvieron sin arreglo (`no_se_pudo_arreglar`; `lib/danadas-arreglo.ts`); «Para hoy» sube a rojo las que llevan 7 días separadas (`contarDanadasViejas`); y `/inventario?danada=1` (el botón «Separé una dañada» de Vender, `punto-de-venta/AccesosVenta.tsx`, y del Inicio de almacén, `inicio-almacen/CabinaAlmacen.tsx`) abre `BuscarPrendaParaAjustar modo="danada"` y de ahí el mismo paso «Reportar dañada». La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
   `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
   `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`
@@ -1384,20 +1384,23 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/club-avisos.ts:getTextosDeAvisos`) y guarda con `guardar_mensajes_avisos(tienda, …)` (`lib/club-avisos-acciones.ts`) en
   `club_avisos_textos_sede`. Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
   (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
-- `/tienda-web/trafico` (ADR-0495, Felipe 2026-10-23; módulo **`trafico`**, nace solo para el líder; migraciones `20261023230000` y
-  `20261023231000`, **sin pegar en producción**): cuánta gente entra a la tienda online, qué mira y en qué paso se va, contado por persona
-  anónima (maqueta C «La vitrina», `docs/maquetas/trafico-cero-2026-10/`). Séptima hija de Tienda web (excepción `tiendaWeb: 7` en
-  `menu.test.ts`), `soloConModulo`. `layout.tsx` y `page.tsx` piden `trafico` → RPC `resumen_trafico_web(desde, hasta, camino, ciudad)`
-  (personas por su paso más lejano, desde `fn_trafico_web_personas`; la ciudad de cada departamento, `fn_trafico_web_ciudad`; cada prenda
-  con su recorrido, tallas, colores y caminos, `fn_trafico_web_prendas`) →
-  `lib/trafico-reglas.ts` (puro: lectura, «de cada 100», el cambio contra los días de antes, dónde se atora con poca gente contraído hacia
-  lo de costumbre, y el aviso de «la tienda no manda visitas»; el mosaico de la vitrina, `lib/trafico-mosaico.ts`) → `components/trafico/`
-  (`CifraTrafico`, `RecorridoTrafico`, `PorQue`, `VitrinaTrafico` y su `CajonPrendaTrafico` —abierto con `usePrendaAbierta`, también desde
-  la tabla—, con «Ver en la vitrina» → `/tienda-web/vitrina`; `ControlesTrafico` con el período, los filtros puestos y la vista;
-  `DeDondeVienen`, `HorasTrafico` y `TablasTrafico`). El período, los filtros y la vista van en la dirección (`leerFiltros`/`hrefTrafico`);
-  la campaña del tercer período se lee de `etiquetas` (estilo «campaña», `campanaDelPeriodo`). Lo
-  escribe la TIENDA (`apps/tienda`): `POST /api/visita` y las acciones de la bolsa → `retail.tienda_anotar_pasos` → `retail.trafico_web`
-  (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y `pnpm pruebas:tienda-trafico-resumen`.
+- `/tienda-web/trafico` (ADR-0495, Felipe 2026-10-23; «Observatorio» ADR-0568, 2026-10-29; módulo **`trafico`**, nace solo para el líder;
+  migraciones `20261023230000` y `20261023231000`, y las siete del Observatorio `20261029015000`…`20261029132000`, **en producción desde el
+  2026-10-29**, verificado por la huella de las funciones):
+  cuánta gente entra a la tienda online, qué mira, dónde se va y qué conviene hacer, contado por persona anónima (maqueta
+  `docs/maquetas/trafico-decisiones-2026-10/`). Séptima hija de Tienda web (excepción `tiendaWeb: 7` en `menu.test.ts`), `soloConModulo`.
+  `layout.tsx` y `page.tsx` piden `trafico` → RPC `resumen_trafico_web(desde, hasta, camino, ciudad, ant_desde, ant_hasta, ant_corte)` (personas
+  por su paso más lejano y su departamento, `fn_trafico_web_personas`; la ciudad de cada departamento, `fn_trafico_web_ciudad`; cada prenda,
+  `fn_trafico_web_prendas`; más `serie`, `calor`, `regiones`, `caminos_separan`, `tallas`, `quienes`, `atencion` y `calendario`) →
+  `lib/trafico-reglas.ts` (puro: períodos y contra qué se comparan, el gráfico, dónde se atora y si va peor que de costumbre, el mapa de calor,
+  cuánto rinde cada camino, la tabla de prendas, las tallas que faltan, qué reponer y empujar, el calendario; las franjas de color,
+  `lib/trafico-mosaico.ts`; el Perú por departamento, `lib/peru-departamentos.ts`) → `components/trafico/` (`ControlesTrafico` con
+  `AtajosPeriodo`, `PulsoTrafico`, `CalorTrafico`, `DeDondeVienen`, `RecorridoTrafico` con `PorQue`, `PrendasTrafico` y su `CajonPrendaTrafico`
+  —abierto con `usePrendaAbierta`, también desde la tabla—, `TallasTrafico`, `AtencionTrafico` → `/tienda-web/pedidos?pestana=entregar`,
+  `CalendarioTrafico` y `TablasTrafico`). El período, los filtros y la vista van en la dirección (`leerFiltros`/`hrefTrafico`); la campaña se lee
+  de `etiquetas` (estilo «campaña», `campanaDelPeriodo`). Lo escribe la TIENDA (`apps/tienda`): `POST /api/visita` y las acciones de la bolsa →
+  `retail.tienda_anotar_pasos` → `retail.trafico_web` (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y
+  `pnpm pruebas:tienda-trafico-resumen`.
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y

@@ -2,6 +2,7 @@
 // Sin Supabase ni React: se prueban en `inicio-almacen-reglas.test.ts` y las importan la página (servidor) y los
 // componentes de `components/inicio-almacen/` (cliente).
 
+import { HREF_SEPARAR_DANADA } from "./danadas-lugar";
 import { porColgarDeLaSede } from "./existencias-para-hoy";
 import { diaLima, hoyLima } from "./fechas-lima";
 import { urlBajarAlPiso, type FilaPrenda } from "./existencias-prendas";
@@ -465,6 +466,15 @@ export function hrefColgarEnTandas(existencias: Existencias | null | undefined):
   if (existencias === undefined) return null;
   if (existencias !== null && existencias.enAlmacen === null) return null;
   return HREF_COLGAR_EN_TANDAS;
+}
+
+/**
+ * Adónde lleva «Separé una dañada» del Inicio de Almacén (ADR-0564); `null` si no se ofrece. Las mismas condiciones que «Colgar en
+ * tandas»: quien no ve Existencias (`undefined`) no tiene dónde reportarla, y una sede que no separa piso y almacén no tiene
+ * cuarentena a la cual moverla.
+ */
+export function hrefSepararDanada(existencias: Existencias | null | undefined): string | null {
+  return hrefColgarEnTandas(existencias) === null ? null : HREF_SEPARAR_DANADA;
 }
 
 // ── De lo leído a las fuentes de «Te toca» ───────────────────────────────────────────────────────

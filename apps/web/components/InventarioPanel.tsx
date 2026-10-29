@@ -193,7 +193,10 @@ export function InventarioPanel({
   sububicacionPiso,
   sububicacionAlmacen,
   danadosPendientes,
+  lugarDanadas,
+  danadasViejas = 0,
   abrirDanados = false,
+  abrirSepararDanada = false,
   abrirVariante = null,
   abrirAjustar = false,
   abrirSinFila = null,
@@ -231,8 +234,14 @@ export function InventarioPanel({
    *  / Se botó / Donada. Vacía en Taller (no separa piso/almacén, nunca
    *  recibe devoluciones). */
   danadosPendientes: PrendaDanada[];
+  /** Dónde deja esta tienda las prendas dañadas (ADR-0564), o null si aún no lo marcó. */
+  lugarDanadas: string | null;
+  /** Cuántas dañadas llevan 7 días o más sin que nadie las saque a arreglar ni decida (`contarDanadasViejas`, ADR-0564). */
+  danadasViejas?: number;
   /** Abrir la cola de dañadas al entrar (`?danados=1`, aviso de cuarentena de Devoluciones). */
   abrirDanados?: boolean;
+  /** Abrir el buscador de «¿Qué prenda está dañada?» (`?danada=1`, ADR-0564): lo piden los botones «Separé una dañada» de caja y almacén. */
+  abrirSepararDanada?: boolean;
   /** La talla a abrir al llegar (`?variante=`, desde Movimientos: ADR-0241). */
   abrirVariante?: string | null;
   /** Abrir esa talla directo en la planilla de «Ajustar stock» (`?ajustar=1`, desde el candado de Editar producto: ADR-0494). */
@@ -316,6 +325,8 @@ export function InventarioPanel({
   const pedidoDeAjuste = usePedidoDeAjuste();
   const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
   const [buscandoAjuste, setBuscandoAjuste] = useState(false);
+  // «Separé una dañada» (ADR-0564): el mismo buscador, que lleva directo a «Reportar dañada» de la talla elegida.
+  const [buscandoDanada, setBuscandoDanada] = useState(abrirSepararDanada);
   if (pedidoDeAjuste !== pedidoVisto) {
     setPedidoVisto(pedidoDeAjuste);
     setBuscandoAjuste(true);
@@ -346,12 +357,11 @@ export function InventarioPanel({
   // una copia: tras reponer o apartar, el `router.refresh` trae las cifras nuevas y el detalle las muestra.
   const [vista, setVista] = useState<"prenda" | "talla">("prenda");
   // La lista de entrada son tarjetas (maqueta `existencias-tarjetas-2026-09`); «Ver detalle» pasa a la tabla de siempre, con su
-  // «Vista: Por prenda / Por talla». `orden` solo ordena las tarjetas: la tabla conserva su orden. El cajón de la prenda vive en la
-  // tabla: las tarjetas no lo abren, así que llegar «Ver en Existencias» desde Movimientos (`abrirVariante`) o escanear un código
-  // (`abrirPorCodigo`) entra por la tabla.
-  // Llegar desde el candado de Editar (`abrirAjustar`) NO fuerza la tabla: el modal de la prenda y su planilla de «Ajustar stock» se abren sobre
-  // la vista de siempre (tarjetas), igual que con el botón «Ajustar stock» de la cabecera; la persona no debe aterrizar en «Vista: Tabla» sin pedirla.
-  const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante) && !(abrirAjustar && puedeAjustar));
+  // «Vista: Por prenda / Por talla». `orden` solo ordena las tarjetas: la tabla conserva su orden. Llegar con `abrirVariante`
+  // («Ver en Existencias» desde la vista rápida de Productos o desde Movimientos) NO fuerza la tabla: el modal de la prenda
+  // se monta fuera de las dos vistas, así que abre sobre las tarjetas y la persona no aterriza en «Vista: Tabla» sin pedirla
+  // (igual que con `abrirAjustar`).
+  const [verDetalle, setVerDetalle] = useState(false);
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
@@ -672,12 +682,13 @@ export function InventarioPanel({
         sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
         sinRegistrar,
         danadas: danadosPendientes.length,
+        danadasViejas,
         // Desde ADR-0534 las decide quien ve Existencias en su sede (antes, solo un líder).
         resuelveDanadas: enSedeActiva,
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, planFallo, stock, sinRegistrar, danadosPendientes.length, enSedeActiva, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, planFallo, stock, sinRegistrar, danadosPendientes.length, danadasViejas, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });
@@ -1374,6 +1385,8 @@ export function InventarioPanel({
       {viendoDanados && (
         <ResolverDanadosModal
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
+          ubicacionId={ubicacionId}
+          lugar={lugarDanadas}
           otraSede={!enSedeActiva}
           sede={sedeNombre}
           onClose={() => {
@@ -1404,6 +1417,22 @@ export function InventarioPanel({
           El cajón de la prenda (diseño aprobado, 2026-09-28): el MISMO desde «Por prenda» y «Por talla». Sus acciones no abren un
           modal encima del cajón: lo cierran y abren el suyo (Reponer, Ajustar, Eliminar), que al guardar refresca la pantalla. Sin
           `key`: al tocar otra fila el cajón se queda y solo cambia su contenido. */}
+      {buscandoDanada && permisos.reportarDanada && (
+        <BuscarPrendaParaAjustar
+          modo="danada"
+          indice={indiceBusqueda}
+          sedeNombre={sedeNombre}
+          ubicacionId={ubicacionId}
+          sinStock={sinStock}
+          onClose={() => setBuscandoDanada(false)}
+          onElegir={(clave, varianteId) => {
+            setBuscandoDanada(false);
+            setAbierta({ clave, varianteId, flujo: { tipo: "danada" } });
+          }}
+          onElegirSinStock={() => setBuscandoDanada(false)}
+        />
+      )}
+
       {buscandoAjuste && puedeAjustarAqui && (
         <BuscarPrendaParaAjustar
           indice={indiceBusqueda}
@@ -1446,6 +1475,7 @@ export function InventarioPanel({
           marcaDelFiltro={marcaDelFiltro}
           enSedeActiva={permisos.etiquetasEHistorial}
           puedeReportarDanada={permisos.reportarDanada}
+          lugarDanadas={lugarDanadas}
           onAjustarCompleto={(f) => {
             setAbierta(null);
             setAjustando(f);

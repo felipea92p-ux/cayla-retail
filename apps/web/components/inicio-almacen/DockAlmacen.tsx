@@ -10,7 +10,7 @@ import { Ico } from "./iconos";
  * de la cabina sale de la pantalla (mientras se ve, no se repite). Es una acción de ESTA pantalla, no una barra de
  * navegación: el menú sigue siendo el cajón ☰ (ADR-0206). Desde `sm` no existe (CSS).
  */
-export function DockAlmacen({ veRecibir, hrefColgar }: { veRecibir: boolean; hrefColgar: string | null }) {
+export function DockAlmacen({ veRecibir, hrefColgar, hrefDanada }: { veRecibir: boolean; hrefColgar: string | null; hrefDanada: string | null }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -37,6 +37,11 @@ export function DockAlmacen({ veRecibir, hrefColgar }: { veRecibir: boolean; hre
       {hrefColgar && (
         <Link href={hrefColgar} className="ia-ib" aria-label="Colgar al piso en tandas">
           <Ico clave="camera" />
+        </Link>
+      )}
+      {hrefDanada && (
+        <Link href={hrefDanada} className="ia-ib" aria-label="Separé una dañada">
+          <Ico clave="danada" />
         </Link>
       )}
       <Link href="/buscar" className="ia-ib" aria-label="Escanear o buscar">
