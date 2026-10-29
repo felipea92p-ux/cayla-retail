@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   atoraContraCostumbre,
+  filasDelGlobito,
   ordenarCategorias,
   tinteDelDia,
   celdasDelCalendario,
@@ -721,5 +722,24 @@ describe("el calendario del mes", () => {
     expect(diasFuertesDelMes(c.dias)).toEqual([5, 6]);
     expect(diasFuertesDelMes(celdasDelCalendario({ mes: "2026-10-01", dias: [[3, 4]] }, { desde: "2026-10-01", hasta: "2026-10-27" }, "2026-10-27").dias)).toBeNull();
     expect(mesTexto("2026-09-01")).toBe("Setiembre");
+  });
+});
+
+describe("el globito del gráfico: qué momento es y con cuál se compara", () => {
+  it("7 días: el día y el mismo día de la semana pasada", () => {
+    expect(filasDelGlobito({ por: "dia", clave: "7", desde: "2026-10-21", antDesde: "2026-10-14" }, 6)).toEqual({
+      actual: "Martes 27 oct",
+      antes: "Martes pasado · 20 oct",
+    });
+  });
+  it("este mes contra los mismos días del mes anterior: la fecha, porque no cae el mismo día de la semana", () => {
+    expect(filasDelGlobito({ por: "dia", clave: "mes", desde: "2026-10-01", antDesde: "2026-09-01" }, 26)).toEqual({
+      actual: "Martes 27 oct",
+      antes: "Domingo 27 set",
+    });
+  });
+  it("hoy y ayer, hora por hora", () => {
+    expect(filasDelGlobito({ por: "hora", clave: "hoy", desde: "2026-10-27", antDesde: "2026-10-26" }, 15)).toEqual({ actual: "Hoy · 3 p. m.", antes: "Ayer · 3 p. m." });
+    expect(filasDelGlobito({ por: "hora", clave: "ayer", desde: "2026-10-26", antDesde: "2026-10-19" }, 20)).toEqual({ actual: "Ayer · 8 p. m.", antes: "Lunes pasado · 19 oct · 8 p. m." });
   });
 });

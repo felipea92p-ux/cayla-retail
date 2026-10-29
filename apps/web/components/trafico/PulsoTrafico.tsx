@@ -16,6 +16,7 @@ import {
   cifraTexto,
   de100,
   dondeSeAtora,
+  filasDelGlobito,
   graficoDe,
   horaRedonda,
   lider,
@@ -143,16 +144,29 @@ export function PulsoTrafico({
             ahora={hoy && hastaX !== null ? { x: hastaX, texto: `ahora · ${horaRedonda(hastaX)}` } : null}
             cifra={cifraTexto(metrica, ultimo)}
             cifraReferencia={g.cierre !== null ? { valor: miles(g.cierre), texto: "cierre esperado" } : null}
+            // El globito dice qué momento es y con cuál se compara, cada uno con su cifra (Felipe, 2026-10-29: «Últimos 7 días: 69 · Los 7 días
+            // anteriores: 0» confundía).
             leer={(x) => {
               const i = Math.round(x);
-              const a = g.serie.find((p) => p.x === i)?.y;
+              const dibujado = g.serie.find((p) => p.x === i)?.y;
+              // La hora o el día en curso no se dibujan (la línea «caería» sin haber caído), pero el globito dice lo que va, «hasta ahora».
+              const enCurso = dibujado === undefined && hastaX !== null && i === hastaX;
+              const a = enCurso ? valoresDe(r.serie.actual, metrica, largo, acum)[i] : dibujado;
               const b = g.referencia.find((p) => p.x === i)?.y;
-              const cuando = porHora ? horaRedonda(i) : marcaDia(periodo.desde, i);
+              const f = filasDelGlobito({ por: r.serie.por, clave: periodo.clave, desde: periodo.desde, antDesde: r.anteriorDesde }, i);
               return (
-                <span>
-                  <b>{cuando}</b>
-                  {a !== undefined && <span className="block">{hoy ? "Hoy" : periodo.nombre}: {cifraTexto(metrica, a)}</span>}
-                  {b !== undefined && <span className="block">{nombreAntes}: {cifraTexto(metrica, b)}</span>}
+                <span className="grid grid-cols-[auto_auto] gap-x-5 gap-y-0.5">
+                  <span>
+                    {f.actual}
+                    {enCurso && " · hasta ahora"}
+                  </span>
+                  <b className="text-right font-semibold">{a === undefined ? "—" : cifraTexto(metrica, a)}</b>
+                  {b !== undefined && (
+                    <>
+                      <span className="text-crema/75">{f.antes}</span>
+                      <span className="text-right text-crema/75">{cifraTexto(metrica, b)}</span>
+                    </>
+                  )}
                 </span>
               );
             }}
@@ -219,12 +233,6 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
   );
 }
 
-const MES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
-function marcaDia(desde: string, i: number): string {
-  const d = new Date(`${desde}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + i);
-  return `${d.getUTCDate()} ${MES_CORTO[d.getUTCMonth()]}`;
-}
 function diasDelRango(desde: string, hasta: string): number {
   return Math.round((Date.parse(`${hasta}T12:00:00Z`) - Date.parse(`${desde}T12:00:00Z`)) / 864e5) + 1;
 }

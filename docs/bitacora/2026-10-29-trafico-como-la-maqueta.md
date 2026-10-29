@@ -8,3 +8,7 @@
 - **Verificado:** vitest de reglas 93/93, guías (huella aceptada, dos anclas sin paso quitadas), unificar, guía de foco, tokens, movimiento, hojas,
   tsc, eslint y knip; en el navegador (página temporal de datos inventados, ya borrada) a 1440 y 375 px: la franja, las dos hojas y el paso marcado
   con pocas personas. **Falta:** verlo con visitas reales en producción.
+- **El globito del gráfico** decía «Últimos 7 días: 69 · Los 7 días anteriores: 0», que confundía a Felipe. Ahora dice el día y su cifra, y debajo
+  el día con que se compara dicho como se dice (`filasDelGlobito`): «Martes 27 oct — 69» / «Martes pasado · 20 oct — 0»; en Hoy, «Hoy · 3 p. m.»
+  / «Ayer · 3 p. m.»; si no cae el mismo día de la semana (Este mes), su fecha. El día o la hora en curso dice lo que va, «hasta ahora». Probado
+  con 3 casos nuevos y en el navegador.

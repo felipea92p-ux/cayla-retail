@@ -1047,3 +1047,30 @@ export function diasFuertesDelMes(dias: readonly DiaCalendario[]): readonly [num
 
 /** «Octubre», «Setiembre»: el nombre del mes, con mayúscula. */
 export const mesTexto = (mes: string) => `${MESES[Number(mes.slice(5, 7)) - 1].charAt(0).toUpperCase()}${MESES[Number(mes.slice(5, 7)) - 1].slice(1)}`;
+
+// ---------- El globito del gráfico principal (Felipe, 2026-10-29) ----------
+
+const fechaCorta = (iso: string) => `${Number(iso.slice(8, 10))} ${MESES[Number(iso.slice(5, 7)) - 1].slice(0, 3)}`;
+const nombreDelDia = (iso: string) => {
+  const d = DIAS_LARGOS[diaDeLaSemana(iso)];
+  return d.charAt(0).toUpperCase() + d.slice(1);
+};
+
+/**
+ * Las dos filas del globito al pasar por un punto: qué momento es («Martes 27 oct», «Hoy · 3 p. m.») y con cuál se compara, dicho como se dice
+ * («Martes pasado · 20 oct», «Ayer · 3 p. m.»; si no cae el mismo día de la semana, su fecha: «Domingo 27 set»). Antes decía «Últimos 7 días» y
+ * «Los 7 días anteriores», que confundía.
+ */
+export function filasDelGlobito(p: { por: "hora" | "dia"; clave: ClavePeriodo; desde: string; antDesde: string }, i: number): { actual: string; antes: string } {
+  const a = p.por === "hora" ? p.desde : sumarDias(p.desde, i);
+  const b = p.por === "hora" ? p.antDesde : sumarDias(p.antDesde, i);
+  const hora = p.por === "hora" ? ` · ${horaRedonda(i)}` : "";
+  const actual = p.por === "hora" && p.clave === "hoy" ? "Hoy" : p.por === "hora" && p.clave === "ayer" ? "Ayer" : `${nombreDelDia(a)} ${fechaCorta(a)}`;
+  const antes =
+    p.por === "hora" && p.clave === "hoy"
+      ? "Ayer"
+      : diasEntreFechas(b, a) === 7
+        ? `${nombreDelDia(b)} pasado · ${fechaCorta(b)}`
+        : `${nombreDelDia(b)} ${fechaCorta(b)}`;
+  return { actual: actual + hora, antes: antes + hora };
+}
