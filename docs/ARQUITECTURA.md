@@ -371,7 +371,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 `/inventario/*` y `/gestion/*` va a ancho completo (`SIN_TOPE_DE_ANCHO`).
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
-  de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
+  de Vender, vía `lib/stock-por-sede.ts`) + RPC `fn_stock_por_dueno` (ADR-0542: de quién son las unidades de cada talla en una sede con
+  dos empresas, solo las prendas con unidades de CLAURE; vía `lib/stock-por-dueno.ts`, la línea «De quién es» de `PanelTalla`) +
+  `transferencia_items` en tránsito hacia acá →
   + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migraciones `20261004213000` y `20261005160100`: lo libre en piso y almacén, lo vendido
   escaneado y anotado «sin registrar» en 14 días —la anotada cuenta mientras no tenga prenda: pendiente o cerrada sin prenda,
   ADR-0334— por prenda y por categoría × talla × familia de color —lo que el cliente
@@ -1518,6 +1520,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   que arma las líneas pendientes de esa tienda y llama a `crear_envio`; `despachos.bultos`) y «Terminé de comprar hoy» (`TerminarDia.tsx` →
   `terminar_dia_compras`). `fn_mi_plata_compras` lee también `gastos`, `por_mandar` y `hoy`; `fn_mi_plata_tiene` es la única cuenta de lo
   que tiene. `?mandar=1` (desde «Listo» de la compra) abre «Mandar a la tienda».
+  ADR-0559 (2026-10-28, sin migración): con la ronda abierta, `/compras/mi-plata` se coloca en `components/mi-plata/MesaDeLaRonda.tsx` (camino · plata y
+  acciones · `TablaDeLaRonda`/`ListaDelDia` y `ParaMandar` · `TerminarDia` como franja · `RondasAnteriores` en tarjetas); `lib/mi-plata-reglas.ts` suma
+  `usoDeLaPlata` y `totalesDeLaLista`, y `lib/mis-envios-reglas.ts`, `avanceDeEnvios`. La hoja «Mandar a la tienda» se abre con `EVENTO_MANDAR`.
   Actividad 6 (migración `20261023121000`): `/recibir/envio/[id]` muestra los papeles de lo comprado desde el celular
   (`components/recepcion-conteo/PapelesDeLaCompra.tsx`; `fn_envio_detalle` → `papeles`, foto firmada en `lib/recepcion-envio.ts`) y
   la prenda que eligió la compradora viaja en cada línea (`lineas[].producto`), pero el atajo «Son estas» de `SepararPrendas` se retiró el 2026-10-26 (ADR-0480): quien cuenta separa buscando la prenda.
@@ -1555,7 +1560,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `rondasConEnvios`, `codigosPorCompra`, buscador y filtros «Sin recibir / Recibidos», resumen y estado de cada envío) → `components/mi-plata/MisEnvios.tsx`
     (pestañas «Esta ronda» / «Rondas anteriores», `TablaEnvios.tsx` y `FilaEnvio.tsx`, el detalle en `HojaEnvio.tsx` —hoja en celular, cajón en escritorio— con
     `CodigoDeEnvio.tsx`: copiar el código y compartirlo por WhatsApp). «Mandar a la tienda» (`MandarATienda.tsx`) muestra ese mismo código al salir el envío
-    y `EnviosDeLaRonda.tsx` lo trae a Mis compras. Si la lectura falla la pantalla lo dice; Mis compras sigue sin los envíos (principio 9).
+    y `ParaMandar.tsx` (la tarjeta «Para mandar», que reemplazó a `EnviosDeLaRonda.tsx`, ADR-0559) lo trae a Mis compras. Si la lectura falla la pantalla lo dice; Mis compras sigue sin los envíos (principio 9).
   - **El banco de la plata anotada:** en una transferencia, «Me dieron plata» pregunta de qué banco salió. `fn_bancos_para_plata_compras()` (`20261026170000`;
     `getBancosParaPlata` en `lib/mi-plata.ts`, `leerBancosDePlata`) llena el combo y la columna `fondo_plata_anotada.cuenta_indicada_id` (`20261026165000`, solo
     con `medio = 'transferencia'`) guarda la indicación; la cuenta de verdad la elige Compras al confirmar (`PlataPorConfirmar.tsx` muestra el banco que indicó; no mueve plata). Sin bancos
@@ -2640,7 +2645,7 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 | `fn_parametros_caja(sede, fecha)` / `fn_meta_mes(sede, mes)` / `fn_configuracion_tiendas()` / `guardar_metas_tienda` / `guardar_efecto_campana` (2026-09-24, ADR-0195 F1; **sin pegar en producción**) | La meta del día (con IGV) y el fondo de caja que rigen: meta del día de la semana (`ubicacion_metas_dia`, respaldo `ubicaciones.meta_venta_diaria`) y `ubicaciones.fondo_caja`, más las campañas (`campana_efecto_caja`); si dos campañas rigen el mismo día gana la mayor. La meta del mes es la suma de las del día. Las dos de guardar son solo del líder, firman con el responsable y dejan el antes/después en `configuracion_historial`. Un disparador en `cajas` anota `fondo_requerido` al cerrar |
 | `fn_actividad` / `fn_actividad_personas` (2026-09-25, ADR-0207; **en producción desde el 2026-09-25**) | El historial de cada módulo: lee `retail.actividad` (solo agregar, la llenan disparadores en `ventas`, `cajas`, `caja_movimientos`, `caja_traslados` y `cambios`; cada evento lo arma una `fn_actividad_<evento>`). Líder: todas las sedes o la pedida; con el módulo `actividad`: solo su sede (también un traslado que llega a ella); terminal: nunca. Cursor por (`ocurrio_at`, `id`). La leen el botón «Actividad» de la cabecera y `/actividad` |
 | `fn_totales_historial_ventas` | Totales del Historial de ventas con los filtros de la pantalla, sin tope de 1.000 filas (ADR-0191) |
-| `fn_empresa_de_prenda_en_sede` / `fn_marcas_de_empresas` | De quién es una prenda en una sede (ADR-0532): en Lima, la marca CAYLA es de CAYLA y lo demás de CLAURE; en las demás sedes, `productos.empresa_id`. Espejo en la web: `empresaPorMarca` (`lib/empresas-de-sede-reglas.ts`), que usan Nuevo producto y la insignia del catálogo de la sede |
+| `fn_dueno_de_la_linea` / `fn_stock_por_dueno` / disparador `trg_movimientos_libro_por_dueno` | De quién son las unidades en una sede con dos empresas (ADR-0542, reemplaza la regla por marca de ADR-0532): lo marca la persona que opera (encabezado `x-dueno` / `x-dueno-lineas`, `lib/dueno-reglas.ts`), se guarda en `movimientos.empresa_id` y `stock_dueno` (solo lo de CLAURE; CAYLA es el resto). Caja, Historial y Movimientos leen el dueño de cada línea vendida con `fn_dueno_de_la_linea`. |
 | `fn_vendido_por_empresa` / `fn_vendido_por_empresa_de_cajas` / `fn_empresa_de_ventas` | Lo vendido de CAYLA y de CLAURE, prenda por prenda (ADR-0532): la primera con los filtros de `fn_totales_historial_ventas` (Historial), la segunda por turno de caja (Caja y el detalle de un cierre), la tercera por venta (la marca «CLAURE» de la lista). `lib/vendido-por-empresa.ts`; se dibuja con `<RepartoEmpresas>` solo donde conviven dos empresas. `fn_movimientos` y su resumen filtran por empresa con `p_empresa_id` (`?emp=` en Movimientos) |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |

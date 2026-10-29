@@ -2,16 +2,20 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 152,
+  "total": 154,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
     ],
     "components/EscanerCamara.tsx": [
       "button «Cerrar la cámara»",
+      "SegmentoDeslizante «Qué hace la cámara con lo que lee»",
       "button «{linterna.encendida ? \"Apagar la linterna\" : \"Encender la linterna\"}»",
       "button «Buscar por nombre»",
       "button «Ver ticket»"
+    ],
+    "components/ExistenciasEnCamara.tsx": [
+      "button «{c.nombre ?? \"Sin color\"}»"
     ],
     "components/PedidoClienteModales.tsx": [
       "ComboResponsable «{responsable}»",
@@ -36,6 +40,10 @@
       "button «Mejor no»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
     "components/apartados/ApartadosPanel.tsx": [
       "Pestanas «→(c) => irA(c as Vista)»",
       "button «apartados.opciones»",
@@ -49,7 +57,7 @@
       "button «→() => agregar(id)»",
       "button «Quitar»",
       "input «Viene el sábado, quiere probársela otra vez…»",
-      "button «Apartar»",
+      "button «{faltaDuenoEn.length > 0 ? \"Marca de quién es lo que apartas.\" : undefined}»",
       "Volver «(sin nombre)»",
       "button «Cambiar»",
       "BotonBuscar «→buscarFicha»",

@@ -61,6 +61,9 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { conDueno, faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useCargaInicial } from "@/lib/useCargaInicial";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
 import { sugerirNotaAjuste } from "@/lib/sugerencias-ajuste";
@@ -158,6 +161,11 @@ export function AjustarInventarioModal({
   // «Encontré prendas», que en el piso de una tienda que separa piso y almacén está cerrada.
   const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
   const [motivo, setMotivo] = useState<MotivoAjuste | "">("");
+  // ADR-0542: en una sede donde operan dos empresas (Lima), quien ajusta dice de quién es lo que toca. Sin respuesta de fábrica.
+  const empresasDeLaSede = useEmpresasDeSede(ubicacionId);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresasDeLaSede, duenoId);
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -253,6 +261,7 @@ export function AjustarInventarioModal({
   // cada talla; no hace falta si lo único que se escribe son prendas nuevas en la tienda (entran como stock inicial, sin motivo).
   const hayPregunta = hallazgos.sinResponder.length > 0 || hallazgos.conExceso.length > 0;
   const guia = useGuiaCampos([
+    ...(preguntaDueno ? [{ id: "dueno", nombre: "De quién es", requerido: true, hecho: !faltaDueno, pendiente: "Elige si lo que ajustas es de CAYLA o de CLAURE." }] : []),
     { id: "motivo", nombre: "Motivo", requerido: ajustes.length > 0 || lineas.length === 0, hecho: motivo !== "", pendiente: "Elige por qué ajustas." },
     {
       id: "cantidades",
@@ -382,7 +391,8 @@ export function AjustarInventarioModal({
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
     const { data, error: errorRpc } = await firmar(
-      createClient()
+      conDueno(
+        createClient()
         .rpc(
           "ajustar_inventario",
           argumentosDeAjuste({
@@ -397,6 +407,8 @@ export function AjustarInventarioModal({
           })
         )
         .abortSignal(control.signal),
+        duenoId
+      ),
       responsable.firma()
     );
     window.clearTimeout(tope);
@@ -471,6 +483,12 @@ export function AjustarInventarioModal({
                     { valor: "piso", texto: "Piso de venta" },
                   ]}
                 />
+              )}
+
+              {preguntaDueno && empresasDeLaSede && (
+                <CampoGuiado id="dueno" guia={guia} titulo="¿De quién es lo que ajustas?" retiene="fila">
+                  <ElegirDueno empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={congelado || enviando} guia="existencias.modal-ajuste-dueno" />
+                </CampoGuiado>
               )}
 
               {/* Antes de las tallas: el motivo decide qué se escribe en ellas (contado o suma/resta). */}
@@ -582,6 +600,7 @@ export function AjustarInventarioModal({
                 cargando ||
                 variantes.length === 0 ||
                 !responsable.listo ||
+                faltaDueno ||
                 lineas.length === 0 ||
                 (ajustes.length > 0 && !motivo) ||
                 !notaLista ||

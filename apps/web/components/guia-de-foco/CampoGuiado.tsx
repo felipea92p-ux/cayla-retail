@@ -21,6 +21,7 @@ export function CampoGuiado({
   guia,
   titulo,
   ayuda,
+  ayudaAbajo = false,
   retiene,
   className = "",
   children,
@@ -29,6 +30,8 @@ export function CampoGuiado({
   guia: GuiaCampos;
   titulo?: ReactNode;
   ayuda?: ReactNode;
+  /** La ayuda va en su propia línea, bajo el título (Felipe 2026-10-28), en vez de a su derecha. Por defecto no cambia nada para los demás modales. */
+  ayudaAbajo?: boolean;
   /** `"fila"` para un campo de VARIAS opciones (chips que se marcan de a uno): la luz espera mientras se siga eligiendo aquí. Por defecto
    *  espera solo mientras se teclea en una caja de texto. */
   retiene?: ModoRetencion;
@@ -41,10 +44,13 @@ export function CampoGuiado({
   return (
     <div {...retener} data-campo={id} data-estado={estado} className={`hilo-luz ${className}`}>
       {titulo && (
-        <p className="mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta">
-          <ConMarca estado={estado}>{titulo}</ConMarca>
-          {ayuda && <span className="text-[12px] font-normal text-taupe">{ayuda}</span>}
-        </p>
+        <>
+          <p className={`${ayuda && ayudaAbajo ? "" : "mb-1.5 "}flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta`}>
+            <ConMarca estado={estado}>{titulo}</ConMarca>
+            {ayuda && !ayudaAbajo && <span className="text-[12px] font-normal text-taupe">{ayuda}</span>}
+          </p>
+          {ayuda && ayudaAbajo && <p className="mb-1.5 mt-0.5 text-[12px] font-normal text-taupe">{ayuda}</p>}
+        </>
       )}
       {children}
     </div>

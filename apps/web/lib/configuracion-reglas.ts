@@ -72,15 +72,6 @@ export function ordenarCampanas<T extends { desde: string | null; hasta: string 
   });
 }
 
-/** «+25 % · S/ 400», «+5 %», «S/ 400», o «lo normal». */
-export function textoEfecto(e: { meta_pct: number; fondo: number | null } | undefined, soles: (n: number) => string): string {
-  if (!e) return "lo normal";
-  const partes: string[] = [];
-  if (e.meta_pct) partes.push(`${e.meta_pct > 0 ? "+" : "−"}${Math.abs(e.meta_pct)} %`);
-  if (e.fondo != null) partes.push(`fondo ${soles(e.fondo)}`);
-  return partes.join(" · ") || "lo normal";
-}
-
 // ---- Caja: lo que rige hoy ----------------------------------------------------------------------------------------
 
 export type ParametrosCaja = {

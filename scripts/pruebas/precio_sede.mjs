@@ -50,7 +50,8 @@ function psql(sql) {
 const sesion = (uid) => `
 set local request.jwt.claim.sub = '${uid}';
 set local request.jwt.claims = '{"sub":"${uid}","role":"authenticated"}';
-select set_config('request.headers', json_build_object('x-ubicacion', :'tru')::text, true) as _h \\gset
+
+select set_config('request.headers', json_build_object('x-ubicacion', :'tru', 'x-dueno', 'ca71a000-0000-4000-8000-000000000001')::text, true) as _h \\gset
 `;
 
 const PRELUDIO = `

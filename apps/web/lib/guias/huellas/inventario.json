@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 164,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -137,6 +137,10 @@
       "button «Cancelar»",
       "button «Elegir»"
     ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
     "components/existencias/AjusteDelModelo.tsx": [
       "button «existencias.cajon-ajustar»",
       "Volver «→onVolver»",
@@ -149,7 +153,7 @@
       "button «Reintentar»",
       "ComboResponsable «{control.responsable}»",
       "Boton «{n > 0 ? \"Descartar\" : \"Cancelar\"}»",
-      "Boton «{problema ? (guia.frase ?? undefined) : undefined}»",
+      "Boton «{problema || control.faltaDueno ? (guia.frase ?? undefined) : undefined}»",
       "Boton «Más tarde»",
       "BotonImprimir «Imprimir»"
     ],

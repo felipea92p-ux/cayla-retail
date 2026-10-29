@@ -1,8 +1,6 @@
 import type { Comprobante, SerieComprobante, TipoComprobante } from "./comprobantes-reglas";
 import { ETIQUETA_TIPO } from "./comprobantes-reglas";
 import { anulacionEnTramite, chipDelComprobante, textoDelNumero } from "./facturacion-actividad";
-import { tiendasOperativas } from "./facturacion-reglas";
-import { nombreCorto } from "./resumen-formato";
 
 // Reglas de la vista Comprobantes (spec §6 y §9, ADR-0124): qué series le faltan a cada tienda,
 // cuánto se facturó de verdad este mes y por qué una fila dice lo que dice. Puras y sin servidor.
@@ -26,37 +24,6 @@ export function errorDeSerie(tipo: TipoComprobante, texto: string): string | nul
     return `La serie de una ${ETIQUETA_TIPO[tipo].toLowerCase()} empieza con B si corrige boletas o con F si corrige facturas (por ejemplo BC01).`;
   }
   return null;
-}
-
-export type GrupoSeriesFaltantes = { tipo: TipoComprobante; tiendas: { id: string; nombre: string }[] };
-
-/** Las series que faltan, agrupadas por tipo (en el orden boleta, factura, nota de crédito) y con
- *  las tiendas a las que les falta. Solo las tiendas emiten: el Taller y los almacenes nunca
- *  necesitan una serie. Un tipo con todas sus tiendas al día no aparece. */
-export function seriesFaltantes(
-  series: Pick<SerieComprobante, "ubicacion_id" | "tipo">[],
-  ubicaciones: { id: string; nombre: string; tipo: "tienda" | "almacen" | "taller" }[]
-): GrupoSeriesFaltantes[] {
-  const tiendas = tiendasOperativas(ubicaciones);
-  const registradas = new Set(series.map((s) => `${s.ubicacion_id}|${s.tipo}`));
-  return TIPOS_CON_SERIE.map((tipo) => ({
-    tipo,
-    tiendas: tiendas.filter((t) => !registradas.has(`${t.id}|${tipo}`)).map(({ id, nombre }) => ({ id, nombre })),
-  })).filter((g) => g.tiendas.length > 0);
-}
-
-/** «Trujillo, Arequipa y Lima». */
-function listaConY(nombres: string[]): string {
-  if (nombres.length <= 1) return nombres.join("");
-  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
-}
-
-/** «Faltan 3 series: nota de crédito en Trujillo, Arequipa y Lima.» (vacío si no falta ninguna). */
-export function textoDeSeriesFaltantes(grupos: GrupoSeriesFaltantes[]): string {
-  const cuantas = grupos.reduce((suma, g) => suma + g.tiendas.length, 0);
-  if (cuantas === 0) return "";
-  const detalle = grupos.map((g) => `${ETIQUETA_TIPO[g.tipo].toLowerCase()} en ${listaConY(g.tiendas.map((t) => nombreCorto(t.nombre)))}`).join("; ");
-  return `${cuantas === 1 ? "Falta 1 serie" : `Faltan ${cuantas} series`}: ${detalle}.`;
 }
 
 const aCentimos = (n: number) => Math.round(n * 100) / 100;

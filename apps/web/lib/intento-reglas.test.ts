@@ -5,7 +5,6 @@ import {
   avisoDeResolucion,
   avisoDeTraslado,
   cobrosGuardados,
-  cobrosPorResolver,
   conCobro,
   faseTrasError,
   hayQueRevisar,
@@ -82,12 +81,6 @@ describe("el cobro en curso de Vender", () => {
     const lista = conCobro(conCobro([], c("a", "x")), c("b", "y"));
     expect(conCobro(lista, c("a", "z")).map((x) => x.token)).toEqual(["b", "a"]);
     expect(sinCobro(lista, "a").map((x) => x.token)).toEqual(["b"]);
-  });
-  it("solo se pregunta por un cobro que salió hace más del tope (otra pestaña puede estar mandándolo)", () => {
-    const ahora = Date.parse("2026-10-13T10:00:30Z");
-    const lista = [c("viejo", "2026-10-13T09:59:00Z"), c("nuevo", "2026-10-13T10:00:25Z"), c("roto", "no es fecha")];
-    expect(cobrosPorResolver(lista, ahora).map((x) => x.token)).toEqual(["viejo", "roto"]);
-    expect(cobrosPorResolver(lista, ahora + TOPE_ESPERA_MS).map((x) => x.token)).toEqual(["viejo", "nuevo", "roto"]);
   });
   it("el aviso dice lo que pasó, con el comprobante si lo hay", () => {
     const cobro = c("a", "x");

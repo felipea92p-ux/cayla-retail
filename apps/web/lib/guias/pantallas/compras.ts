@@ -2370,14 +2370,14 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.camino",
       opcional: true,
       titulo: "En qué paso vas",
-      texto: "Cuatro pasos: abre tu ronda, anota lo que haces, manda las prendas a las tiendas y ciérrala. El de ahora va en negro y los que ya hiciste, en verde.",
+      texto: "Cuatro pasos: abre tu ronda, anota lo que haces, manda las prendas a las tiendas y ciérrala. El de ahora va en negro y los que ya hiciste, en verde. A la derecha, el número de tu ronda y desde cuándo.",
     },
     {
       id: "tienes",
       ancla: "mi-plata.tienes",
       opcional: true,
       titulo: "Lo que tienes para comprar",
-      texto: "Toda la plata que tienes para comprar, también la que Compras todavía no revisa: ya la puedes usar. Con tu ronda abierta, abajo ves cuánto te dieron, cuánto compraste y cuánto gastaste en ella.",
+      texto: "Toda la plata que tienes para comprar, también la que Compras todavía no revisa: ya la puedes usar. Con tu ronda abierta, abajo ves cuánto te dieron, compraste y gastaste, y cuánto de lo que tenías ya usaste.",
     },
     {
       id: "abrir-ronda",
@@ -2418,7 +2418,7 @@ export const GUIA_MI_PLATA: Guia = {
       id: "compre",
       ancla: "mi-plata.compre",
       opcional: true,
-      titulo: "Compré ropa",
+      titulo: "Apunte de compras",
       texto: "Cuando le compras a un proveedor, tócalo y anota a quién, qué prendas y el papel que te dieron. Una pregunta a la vez.",
     },
     {
@@ -2500,8 +2500,8 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.mandar",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Falta mandar",
-      texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues los fardos al transporte (te lo abrimos).",
+      titulo: "Para mandar",
+      texto: "Lo que compraste para cada tienda y todavía no sale, y cuántas prendas de la ronda ya mandaste. Toca «Mandar a …» cuando entregues los fardos al transporte (te lo abrimos). Abajo salen los envíos con su código.",
     },
     {
       id: "fardos",
@@ -2524,14 +2524,14 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.mis-envios",
       opcional: true,
       titulo: "Mis envíos",
-      texto: "Con tu ronda cerrada, aquí arriba: todos los paquetes que mandaste, de esta ronda y de las anteriores, con su código. Con la ronda abierta, lo encuentras en «Envíos de esta ronda».",
+      texto: "Con tu ronda cerrada, aquí arriba: todos los paquetes que mandaste, de esta ronda y de las anteriores, con su código. Con la ronda abierta, lo encuentras al pie de «Para mandar».",
     },
     {
       id: "envios",
       ancla: "mi-plata.envios",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Envíos de esta ronda",
+      titulo: "Los envíos de la ronda",
       texto: "Lo que ya mandaste en esta ronda, cada paquete con su código y en qué va: en camino, la tienda lo cuenta o recibido. Tócalo para ver el detalle y copiar el código. «Ver todos» abre Mis envíos, con las rondas anteriores y un buscador.",
     },
     {
@@ -2540,7 +2540,7 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cerrar mi ronda",
-      texto: "Al volver de comprar, ciérrala: revisa tu plata y di qué haces con lo que te sobró (te lo abrimos). Va debajo de la lista de la ronda.",
+      texto: "Es el último paso. Al volver de comprar, ciérrala: revisa tu plata y di qué haces con lo que te sobró (te lo abrimos). La franja te dice si antes falta mandar algo.",
     },
     {
       id: "cuaderno",
@@ -2580,14 +2580,14 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "En esta ronda",
-      texto: "Todo lo de tu ronda en una lista, con la hora de cada cosa: lo que compraste y gastaste (con −) y la plata que te dieron (con +, en verde). Cada fila dice quién la revisa. Tócala y una hoja te cuenta qué hará Compras con eso.",
+      texto: "Todo lo de tu ronda, con la hora de cada cosa: lo que compraste y gastaste (con −) y la plata que te dieron (con +, en verde). Cada fila dice quién la revisa y, si es una compra, si falta mandarla (ámbar) o ya salió. Al pie, cuánto entró y salió. Tócala para ver qué hará Compras.",
     },
     {
       id: "antes",
       ancla: "mi-plata.antes",
       opcional: true,
       titulo: "Rondas anteriores",
-      texto: "Plegadas hasta que las necesites («Ver 4»): la plata que te dieron antes, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella y los envíos que mandaste, con su código.",
+      texto: "Tus últimas rondas cerradas, una tarjeta por ronda: cuánto salió de tu plata y cómo cerró. Toca una para ver lo que compraste y gastaste en ella y los envíos con su código. «Ver N más» abre lo anterior: plata anotada antes y lo que devolviste en caja.",
     },
     {
       id: "fin",
@@ -2662,7 +2662,7 @@ export const GUIA_MIS_ENVIOS: Guia = {
 export const GUIA_COMPRA_RAPIDA: Guia = {
   id: "compras.mi-plata.compra",
   ruta: "/compras/mi-plata/compra",
-  titulo: "Compré ropa",
+  titulo: "Apunte de compras",
   resumen: "A quién le compraste, qué prendas y el papel que te dieron.",
   pasos: [
     {

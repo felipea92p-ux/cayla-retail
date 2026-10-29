@@ -26,6 +26,7 @@ import {
   notaLinea,
   situacion,
   solesBalance,
+  solesExactos,
   textoRinde,
   tituloChequeo,
   tituloCorte,
@@ -182,6 +183,10 @@ describe("cifras, fechas y nombres", () => {
     expect(solesBalance(-0.4)).toBe("−S/\u00a00.40");
     expect(solesBalance(0)).toBe("S/\u00a00");
     expect(solesBalance(-0.2)).toBe("−S/\u00a00.20");
+    // La diferencia del arranque se escribe tal cual: con sus céntimos, aunque sea grande.
+    expect(solesExactos(67928.73)).toBe("S/\u00a067,928.73");
+    expect(solesExactos(-67928.7)).toBe("−S/\u00a067,928.70");
+    expect(solesExactos(67929)).toBe("S/\u00a067,929");
   });
   it("cuánto rinde, con coma decimal", () => {
     expect(textoRinde(0.0721)).toBe("7,2 % al mes");

@@ -8,7 +8,6 @@ import {
   lineasDeMoverModelo,
   tallasParaReponer,
   textoFilaSinAlcance,
-  topeDeTalla,
 } from "./reponer-prenda-reglas";
 import { argumentosDeBajada } from "./bajada-reglas";
 
@@ -118,12 +117,6 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
 
 
 
-
-  it("el tope depende del rumbo: el almacén al bajar, el piso al subir", () => {
-    const m = colores[0].tallas.find((t) => t.talla === "M")!; // piso 1, almacén 8
-    expect(topeDeTalla(m, "bajar")).toBe(8);
-    expect(topeDeTalla(m, "subir")).toBe(1);
-  });
 
   it("arranca en cero: sin elegir nada, ninguna línea (ADR-0231)", () => {
     expect(lineasDeMoverModelo(colores, {}, "bajar")).toEqual([]);

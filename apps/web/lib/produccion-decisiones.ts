@@ -448,11 +448,6 @@ function tarjetaTrasladar(m: FilaModelo & { ritmoDia: number }, href: string): D
   };
 }
 
-/** Lo mismo que `resumenDeDecisiones(c).decisiones`: lo que se dibuja. */
-export function decisionesDeProduccion(c: ContextoDecisiones): Decision[] {
-  return resumenDeDecisiones(c).decisiones;
-}
-
 export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones {
   const out: Decision[] = [];
   const porId = new Map(c.insumos.map((i) => [i.id, i]));

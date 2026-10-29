@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante } from "./comprobantes-reglas";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, enlaceWhatsAppA, numeroWhatsApp, totalesPorTipo, montosDelMes, motivoDelComprobante, nombreDelTipo, numerosUsados, seriesFaltantes, seriesPorTienda, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, enlaceWhatsAppA, numeroWhatsApp, totalesPorTipo, montosDelMes, motivoDelComprobante, nombreDelTipo, numerosUsados, seriesPorTienda, errorDeSerie } from "./facturacion-comprobantes-reglas";
 
 const TRU = { id: "u-tru", nombre: "Tienda Trujillo", tipo: "tienda" as const };
 const AQP = { id: "u-aqp", nombre: "Tienda Arequipa", tipo: "tienda" as const };
 const LIM = { id: "u-lim", nombre: "Tienda Lima", tipo: "tienda" as const };
-const TALLER = { id: "u-tal", nombre: "Taller", tipo: "taller" as const };
-const ALMACEN = { id: "u-alm", nombre: "Almacén", tipo: "almacen" as const };
 
 function c(extra: Partial<Comprobante>): Comprobante {
   return {
@@ -32,70 +30,6 @@ function c(extra: Partial<Comprobante>): Comprobante {
     ...extra,
   } as Comprobante;
 }
-
-describe("seriesFaltantes (spec §9: tiendas × boleta, factura y nota de crédito)", () => {
-  const todas = (ub: { id: string }, tipos: ("boleta" | "factura" | "nota_credito")[]) => tipos.map((tipo) => ({ ubicacion_id: ub.id, tipo }));
-
-  it("hoy: boleta y factura en dos tiendas y ninguna nota de crédito → falta en las dos, y la tienda sin series falta en todo", () => {
-    const series = [...todas(TRU, ["boleta", "factura"]), ...todas(LIM, ["boleta", "factura"])];
-    expect(seriesFaltantes(series, [TRU, AQP, LIM])).toEqual([
-      { tipo: "boleta", tiendas: [{ id: "u-aqp", nombre: "Tienda Arequipa" }] },
-      { tipo: "factura", tiendas: [{ id: "u-aqp", nombre: "Tienda Arequipa" }] },
-      {
-        tipo: "nota_credito",
-        tiendas: [
-          { id: "u-tru", nombre: "Tienda Trujillo" },
-          { id: "u-aqp", nombre: "Tienda Arequipa" },
-          { id: "u-lim", nombre: "Tienda Lima" },
-        ],
-      },
-    ]);
-  });
-
-  it("el Taller y los almacenes no emiten comprobantes: nunca les falta una serie", () => {
-    const series = [...todas(TRU, ["boleta", "factura", "nota_credito"])];
-    expect(seriesFaltantes(series, [TRU, TALLER, ALMACEN])).toEqual([]);
-  });
-
-  it("todo registrado: no falta nada", () => {
-    const series = [TRU, AQP].flatMap((u) => todas(u, ["boleta", "factura", "nota_credito"]));
-    expect(seriesFaltantes(series, [TRU, AQP])).toEqual([]);
-  });
-
-  it("una serie de otro tipo no cuenta: tener boleta no cubre la nota de crédito", () => {
-    expect(seriesFaltantes(todas(TRU, ["boleta"]), [TRU])).toEqual([
-      { tipo: "factura", tiendas: [{ id: "u-tru", nombre: "Tienda Trujillo" }] },
-      { tipo: "nota_credito", tiendas: [{ id: "u-tru", nombre: "Tienda Trujillo" }] },
-    ]);
-  });
-
-  it("sin tiendas no hay nada que pedir", () => {
-    expect(seriesFaltantes([], [TALLER])).toEqual([]);
-  });
-});
-
-describe("textoDeSeriesFaltantes", () => {
-  it("una nota de crédito que falta en tres tiendas: «Faltan 3 series: nota de crédito en Trujillo, Arequipa y Lima.»", () => {
-    const grupos = seriesFaltantes([], [TRU, AQP, LIM]).filter((g) => g.tipo === "nota_credito");
-    expect(textoDeSeriesFaltantes(grupos)).toBe("Faltan 3 series: nota de crédito en Trujillo, Arequipa y Lima.");
-  });
-
-  it("en singular cuando es una sola", () => {
-    expect(textoDeSeriesFaltantes([{ tipo: "nota_credito", tiendas: [{ id: "u-lim", nombre: "Tienda Lima" }] }])).toBe("Falta 1 serie: nota de crédito en Lima.");
-  });
-
-  it("dos tipos distintos se separan con «;» y cada uno junta sus tiendas con «y»", () => {
-    const grupos = [
-      { tipo: "factura" as const, tiendas: [{ id: "a", nombre: "Tienda Lima" }] },
-      { tipo: "nota_credito" as const, tiendas: [{ id: "b", nombre: "Tienda Trujillo" }, { id: "c", nombre: "Tienda Lima" }] },
-    ];
-    expect(textoDeSeriesFaltantes(grupos)).toBe("Faltan 3 series: factura en Lima; nota de crédito en Trujillo y Lima.");
-  });
-
-  it("sin faltantes no escribe nada", () => {
-    expect(textoDeSeriesFaltantes([])).toBe("");
-  });
-});
 
 describe("montosDelMes (spec §9: «Monto facturado» solo suma aceptados de producción)", () => {
   it("factura lo aceptado por SUNAT en producción, sin la baja en trámite", () => {

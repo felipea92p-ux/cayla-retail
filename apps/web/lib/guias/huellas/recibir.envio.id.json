@@ -97,11 +97,11 @@
     ],
     "components/recepcion-conteo/HacerAhora.tsx": [
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «Guardar»"
     ],
     "components/recepcion-conteo/HojaTallas.tsx": [
       "Boton «Dejar para después»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «{textoListo}»"
     ],
     "components/recepcion-conteo/ObservacionesDeLinea.tsx": [
       "Boton «Anotar observación»",

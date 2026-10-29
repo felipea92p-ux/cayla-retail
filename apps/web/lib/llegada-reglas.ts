@@ -119,6 +119,8 @@ export function camposDeLlegada(p: {
   responsableMotivo: string | null;
   /** `null`: el proveedor no tiene facturas pendientes aquí (no se pregunta). `true`/`false`: si ya se contestó. */
   facturaRespondida?: boolean | null;
+  /** ADR-0542: `null`/ausente = aquí no se pregunta de quién es lo que llega (una sola empresa); `true` = falta elegirlo; `false` = ya se eligió. */
+  duenoFalta?: boolean | null;
 }): CampoDeGuia[] {
   const factura: CampoDeGuia[] =
     p.facturaRespondida == null
@@ -128,6 +130,9 @@ export function camposDeLlegada(p: {
     { id: "llegada-proveedor", nombre: "De quién", requerido: true, hecho: p.proveedorId !== "", pendiente: "Elige el proveedor." },
     ...factura,
     { id: "llegada-prendas", nombre: "Qué llegó", requerido: true, hecho: totalUnidades(p.lineas) > 0, pendiente: "Escanea o busca las prendas que llegaron." },
+    ...(p.duenoFalta === null || p.duenoFalta === undefined
+      ? []
+      : [{ id: "llegada-dueno", nombre: "De quién es", requerido: true, hecho: !p.duenoFalta, pendiente: "Elige si lo que llegó es de CAYLA o de CLAURE." }]),
     {
       id: "llegada-responsable",
       nombre: "Quién recibe",
