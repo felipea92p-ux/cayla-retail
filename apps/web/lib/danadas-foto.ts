@@ -20,6 +20,7 @@ export const PARAMETROS_RPC_FOTO = ["p_danada_id", "p_ruta", "p_nombre", "p_tipo
 export const RPC_FOTOS_DE_DANADAS = "fotos_de_danadas";
 
 export const MAX_BYTES_FOTO_DANADA = 10 * 1024 * 1024;
+/** @internal La prueba lo cruza con el tope que pone la migración 20261029034000 (3 fotos por dañada). */
 export const MAX_FOTOS_POR_DANADA = 3;
 export const TIPOS_FOTO_DANADA = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 

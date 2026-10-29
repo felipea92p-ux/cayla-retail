@@ -13,7 +13,8 @@
 
 import type { TipoDano } from "./danadas-reglas";
 
-/** Lo más largo que cabe en un placeholder del celular sin cortarse (el campo de la hoja a 375 px). */
+/** Lo más largo que cabe en un placeholder del celular sin cortarse (el campo de la hoja a 375 px).
+ * @internal Es el tope contra el que la prueba mide cada pista. */
 export const MAX_PISTA_DANADA = 38;
 
 const PISTAS: Record<TipoDano, string> = {
