@@ -90,7 +90,7 @@ describe("cuentaImpuestos", () => {
   it("el mes en curso dice que todavía cambia y no promete fecha de pago", () => {
     const c = cuentaImpuestos(PANEL, { enCurso: true, pendientes: 3 });
     if (c.estado !== "a_pagar") throw new Error("a pagar");
-    expect(c.etiqueta).toBe("Pagarás");
+    expect(c.etiqueta).toBe("Pagarás a SUNAT");
     expect(c.chip).toBe("Va a la fecha");
     expect(c.frase).toBe("El mes sigue abierto: la cifra cambia hasta que cierre.");
   });
@@ -149,7 +149,7 @@ describe("limiteImpuestos", () => {
 
 describe("barrasMeses", () => {
   const historial = [mes({ mes: "2026-08", aPagar: 8200 }), mes({ mes: "2026-09", aPagar: 7640 }), mes({ mes: "2026-10", aPagar: 3100, comprobantes: 40 })];
-  it("una barra por mes: el que miras en tinta, el que se declara en ámbar y el que corre, rayado", () => {
+  it("una barra por mes: el que miras en tinta y el que corre, rayado", () => {
     const { barras, destacada } = barrasMeses(sobresIgv(historial, "2026-10", "2026-09"));
     expect(destacada).toBe("2026-09");
     expect(barras.map((b) => [b.clave, b.etiqueta, b.cifra, b.valor])).toEqual([
@@ -157,7 +157,7 @@ describe("barrasMeses", () => {
       ["2026-09", "Sep", "7.6 mil", 7640],
       ["2026-10", "Oct", "3.1 mil", 3100],
     ]);
-    expect(barras[1]?.tono).toBe("ambar");
+    expect(barras[1]?.tono).toBeUndefined();
     expect(barras[2]?.rayada).toBe(true);
   });
 

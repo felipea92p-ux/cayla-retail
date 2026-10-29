@@ -75,7 +75,7 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
 
   return {
     estado: pulso.estado,
-    etiqueta: opciones.enCurso ? "Pagarás" : "Pagas",
+    etiqueta: opciones.enCurso ? "Pagarás a SUNAT" : "Pagas a SUNAT",
     pagas,
     chip,
     frase,
@@ -147,7 +147,7 @@ const MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep"
 
 /**
  * Una barra por mes con el IGV del mes: lo que se paga de IGV o, si quedó a favor, el saldo (en verde). El mes que se mira va en tinta
- * (`destacada`); el que se declara ahora, en ámbar; el que todavía corre, rayado. Es el IGV (ventas − compras): la renta no entra, porque
+ * (`destacada`); el que todavía corre, rayado. Es el IGV (ventas − compras): la renta no entra, porque
  * su tasa es del año y la base no la guarda mes a mes.
  */
 export function barrasMeses(sobres: readonly Sobre[]): { barras: BarraTiempo[]; destacada: string | null } {
@@ -162,7 +162,7 @@ export function barrasMeses(sobres: readonly Sobre[]): { barras: BarraTiempo[]; 
       cifra: milesCortos(s.monto),
       tip: `${s.nombre}: ${que} · ${s.texto}`,
       aria: `${s.nombre}: ${que}, ${s.texto}${s.elegido ? " (lo estás viendo)" : ""}`,
-      tono: s.aFavor ? "verde" : s.aDeclarar ? "ambar" : undefined,
+      tono: s.aFavor ? "verde" : undefined,
       rayada: s.estado === "en_curso",
     };
   });

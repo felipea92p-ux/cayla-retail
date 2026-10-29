@@ -1434,8 +1434,8 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
     {
       id: "historial",
       ancla: "fin-impuestos.historial",
-      titulo: "El IGV de cada mes",
-      texto: "Una barra por mes con su IGV (en verde, el que quedó a favor). La del mes que miras va en oscuro. Al tocar una barra, la pantalla pasa a ese mes.",
+      titulo: "El IGV a pagar de cada mes",
+      texto: "Una barra por mes con su IGV a pagar (en verde, el que quedó a favor). La del mes que miras va en oscuro. Al tocar una barra, la pantalla pasa a ese mes.",
     },
     {
       id: "fin",

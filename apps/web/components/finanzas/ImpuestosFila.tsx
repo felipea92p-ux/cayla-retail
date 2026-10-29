@@ -99,12 +99,12 @@ export function LimiteAnio({ limite, panel, guia }: { limite: LimiteImpuestos; p
         {limite.frase} <span className="fin-tenue">Tope: {solesRedondo(limite.umbralSoles)}.</span>
       </p>
       {aviso.titulo && (aviso.nivel === "aviso" || aviso.nivel === "cruzado") && (
-        <Aviso tono={aviso.nivel === "cruzado" ? "error" : "atencion"} titulo={aviso.titulo} chico className="mt-3">
+        <Aviso tono={aviso.nivel === "cruzado" ? "error" : "atencion"} titulo={aviso.titulo.replace(/\.$/, "")} chico className="mt-3">
           {aviso.detalle}
         </Aviso>
       )}
       <p className="fin-tenue mt-2 text-[12px]">
-        Sin IGV, de enero a hoy, según el sistema: puede quedar por debajo de lo real. UIT {limite.uit.anio}: {solesRedondo(limite.uit.valor)}
+        Sin IGV, solo lo registrado en el sistema, de enero a hoy. UIT (la medida de SUNAT) {limite.uit.anio}: {solesRedondo(limite.uit.valor)}
         {limite.uit.provisional ? " (por confirmar)" : ""}.
         {aviso.ajuste > 0 && ` Incluye ${solesRedondo(aviso.ajuste)} de ajuste (${solesRedondo(aviso.ventasSistema)} en el sistema).`}
       </p>
@@ -117,8 +117,8 @@ export function MesesImpuestos({ barras, destacada, onElegir, guia }: { barras: 
   return (
     <Superficie pad className="anim-sube" guia={guia}>
       <div className="fin-imp-cab">
-        <h3 className="fin-imp-titulo">IGV de cada mes</h3>
-        <span className="fin-tenue text-[12px]">ventas − compras · verde, a favor</span>
+        <h3 className="fin-imp-titulo">IGV a pagar de cada mes</h3>
+        {barras.some((b) => b.tono === "verde") && <span className="fin-tenue text-[12px]">verde: quedó a favor</span>}
       </div>
       <BarrasTiempo
         barras={barras}
@@ -126,7 +126,7 @@ export function MesesImpuestos({ barras, destacada, onElegir, guia }: { barras: 
         cifras="todas"
         alto={112}
         respuesta={{ onElegir }}
-        etiqueta="IGV de cada mes. Toca un mes para verlo arriba."
+        etiqueta="IGV a pagar de cada mes. Toca un mes para verlo arriba."
       />
     </Superficie>
   );

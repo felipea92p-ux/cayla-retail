@@ -49,9 +49,9 @@ export function pendientesCompactos(p: PanelImpuestos): LineaPendiente[] {
   if (r.boletas.n > 0)
     lista.push({ id: "boletas", tono: "ambar", texto: `${plural(r.boletas.n, "compra", "compras")} con boleta`, monto: r.boletas.total, detalle: "Una boleta no da IGV: pide factura.", href: r.boletas.gastos > 0 ? gastos : null });
   if (r.igvPerdido.n > 0)
-    lista.push({ id: "igv_perdido", tono: "rojo", texto: "IGV que no se descuenta", monto: r.igvPerdido.igv, detalle: "Facturas de S/ 2,000 o más pagadas en efectivo o desde un fondo.", href: gastos });
+    lista.push({ id: "igv_perdido", tono: "rojo", texto: "IGV que no se descuenta", monto: r.igvPerdido.igv, detalle: "Facturas de S/ 2,000 o más pagadas en efectivo: págalas por banco.", href: gastos });
   if (r.honorarios.n > 0)
-    lista.push({ id: "honorarios", tono: "gris", texto: plural(r.honorarios.n, "recibo de honorarios", "recibos de honorarios"), monto: r.honorarios.total, detalle: "Retención de 8 %: lo confirma el contador.", href: null });
+    lista.push({ id: "honorarios", tono: "gris", texto: plural(r.honorarios.n, "recibo de honorarios", "recibos de honorarios"), monto: r.honorarios.total, detalle: "Retener el 8 % o no: lo decide el contador.", href: null });
   return lista;
 }
 

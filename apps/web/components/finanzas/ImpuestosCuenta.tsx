@@ -28,7 +28,7 @@ export function PagasImpuestos({ cuenta, guia }: { cuenta: CuentaImpuestos; guia
       <p className="fin-pagas-frase">{cuenta.frase}</p>
       {hay && (
         <div>
-          <BotonEnlace href="/finanzas/dinero" peso="fantasma">
+          <BotonEnlace href="/finanzas/dinero" peso="fantasma" title="Anota el pago que hiciste desde un banco, en Cuentas y dinero">
             <Landmark aria-hidden className="h-4 w-4" /> Registrar pago
           </BotonEnlace>
         </div>
@@ -65,10 +65,13 @@ export function CuentaLineas({ cuenta, guia }: { cuenta: CuentaImpuestos; guia?:
         <span className="fin-cuenta-monto">{mas(c.igvVentas)}</span>
       </div>
       <div className="fin-cuenta-fila">
-        <button type="button" className="btn-cayla btn-enlace fin-cuenta-abrir" aria-expanded={abierta} onClick={() => setAbierta((v) => !v)}>
-          − IGV de tus compras
-          <ChevronDown aria-hidden className="h-3.5 w-3.5" data-abierta={abierta ? "" : undefined} />
-        </button>
+        <span>
+          <button type="button" className="btn-cayla btn-enlace fin-cuenta-abrir" aria-expanded={abierta} onClick={() => setAbierta((v) => !v)}>
+            − IGV de tus compras
+            <ChevronDown aria-hidden className="h-3.5 w-3.5" data-abierta={abierta ? "" : undefined} />
+          </button>
+          <small>{abierta ? "Toca para ocultar" : "Toca para ver de dónde sale"}</small>
+        </span>
         <span className="fin-cuenta-monto">{mas(c.igvCompras)}</span>
       </div>
       {abierta && (
@@ -89,9 +92,9 @@ export function CuentaLineas({ cuenta, guia }: { cuenta: CuentaImpuestos; guia?:
       )}
       <div className="fin-cuenta-fila">
         <span>
-          + Renta
+          + Renta a cuenta
           <small>
-            {c.renta.tasa ? `${c.renta.tasa} de ${mas(c.renta.base)}${c.renta.provisional ? " · por confirmar" : ""}` : "Falta la tasa del año en Configuración"}
+            {c.renta.tasa ? `Adelanto del impuesto a la renta: ${c.renta.tasa} de ${mas(c.renta.base)}${c.renta.provisional ? " (tasa por confirmar)" : ""}` : "Falta la tasa del año en Configuración"}
           </small>
         </span>
         <span className="fin-cuenta-monto">{c.renta.monto === null ? "—" : mas(c.renta.monto)}</span>

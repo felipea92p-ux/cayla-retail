@@ -8,6 +8,13 @@ Esperan una decisión de Felipe o del contador:
 - [ ] **IGV por sede** («IGV del mes por lugar») y **«Lo que viene en el año»** (renta anual, ITAN, SIRE): salieron de la pantalla.
 - [ ] **Barras de meses con IGV + renta:** hoy solo muestran el IGV.
 
+Prueba ciega con dos lectoras simuladas (agentes sin contexto, solo imágenes con datos inventados; NO son personas): 5/10 y, tras ajustar textos, 6/10. Siguen abiertos:
+- [ ] **Falta la fecha límite exacta** («Se paga en octubre» no dice el día): depende de la decisión del último dígito del RUC.
+- [ ] **«Registrar pago» confunde:** no queda claro si paga o solo anota. Se le puso una ayuda al pasar el mouse; conviene probar otro nombre con colaboradoras reales.
+- [ ] **El límite de 300 UIT sigue siendo la parte más difícil** (UIT, 250 vs 300, «habla con tu contador»): ver si una sola frase alcanza.
+- [ ] **«Díselo al contador»:** un botón «Avisar al contador» en los pendientes que lo dicen (idea de la prueba; no existe).
+- [ ] Probar con 3 a 5 colaboradoras reales (la prueba ciega es un proxy de IA).
+
 Pendiente técnico:
-- [ ] Recorrer la guía con `guias:recorrer` (escritorio y 375 px), `pnpm --filter web tema:auditar`, `/formidable` y probar con una cuenta real.
+- [ ] Recorrer la guía con `guias:recorrer` y `pnpm --filter web tema:auditar` con una cuenta real (necesitan sesión y base: solo se midió con el mismo escáner sobre datos inventados, 0 hallazgos en claro y oscuro a 1440 y 375 px), y probar con datos reales.
 - [ ] Quitar la palabra «electrónicos» de la frase del límite si el contador no la confirma (ya no está en la pantalla nueva; revisar Configuración).
