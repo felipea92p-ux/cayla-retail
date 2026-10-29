@@ -184,3 +184,22 @@
   .rc-tray-lleno, .rc-tray-marca, .rc-tray-parada em { transition: none; }
   .rc-tray-halo, .rc-tray-lleno::after { display: none; }
 }
+
+/* ── El Podio de una categoría, en el cierre ── */
+.rc-podio { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); column-gap: 8px; align-items: end; min-width: 0; max-width: 28rem; }
+.rc-podio-llave { grid-column: 1 / span 2; grid-row: 1; display: grid; justify-items: center; height: 26px; margin: 0 14px 4px; border: 2px solid var(--color-ambar); border-bottom: 0; border-radius: 6px 6px 0 0; animation: cayla-entrada 400ms var(--ease-cayla) 500ms both; }
+.rc-podio-llave b { margin-top: -11px; padding: 0 6px; background: var(--color-papel); color: var(--color-ambar-profundo); font-size: 13px; font-weight: 700; line-height: 1.4; }
+.rc-podio-llave[data-cuadra] { border-color: var(--color-verde); }
+.rc-podio-llave[data-cuadra] b { color: var(--color-verde-profundo); }
+.rc-podio-col { grid-row: 2; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; height: 104px; }
+.rc-podio-n { color: var(--color-tinta); font-family: var(--font-serif); font-size: 22px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.rc-podio-barra { width: min(100%, 44px); border-radius: 8px 8px 3px 3px; background: var(--color-tinta); transform-origin: bottom; transition: height 600ms var(--ease-cayla); animation: rc-podio-crece 800ms var(--ease-cayla) both; animation-delay: calc(var(--i) * 130ms); }
+@keyframes rc-podio-crece { from { transform: scaleY(0); } }
+.rc-podio-col[data-clave="dijeron"] .rc-podio-barra { background: color-mix(in srgb, var(--color-borde-control) 40%, var(--color-hueso)); }
+.rc-podio-col[data-clave="vender"] .rc-podio-barra { background: var(--color-verde); }
+.rc-podio-col[data-clave="despues"] .rc-podio-barra { background: var(--color-taupe); }
+.rc-podio-col small { max-width: 100%; overflow: hidden; color: var(--color-taupe); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .rc-podio-barra, .rc-podio-llave { animation: none; }
+  .rc-podio-barra { transition: none; }
+}

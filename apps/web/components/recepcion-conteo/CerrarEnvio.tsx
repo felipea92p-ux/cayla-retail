@@ -10,6 +10,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
 import { Balanza, BaldosaCategoria } from "./piezas";
 import { FilaDeCosto } from "./PrecioDePrenda";
+import { PodioCategoria } from "./PodioCategoria";
 import { PrendaConCombinaciones } from "./PrendaConCombinaciones";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { Vacio } from "@/components/ui/Vacio";
@@ -59,9 +60,9 @@ import {
 // columnas se pisaban. Desde 880 px de tarjeta, columnas; con menos, cada fila apilada, con su etiqueta en cada dato.
 // En columnas, toda celda pone su primera línea en la franja de 40 px de la caja del costo (`FRANJA`): el nombre, las cifras, el chip y la
 // diferencia quedan a la misma altura aunque «Para después» o la causa sumen líneas abajo.
-const PLANTILLA_CIERRE = "@min-[1000px]:grid-cols-[minmax(0,1.5fr)_3.75rem_4.25rem_7rem_minmax(0,1.5fr)_minmax(0,1.6fr)_2rem]";
+// Las cuatro cifras (dijeron, contaste, se pueden vender, para después) son el Podio de la categoría (rediseño «B», Felipe 2026-10-29): una columna de 17 rem.
+const PLANTILLA_CIERRE = "@min-[1000px]:grid-cols-[minmax(0,1.3fr)_17rem_minmax(0,1.3fr)_minmax(0,1.6fr)_2rem]";
 const FRANJA = "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center";
-const CIFRA = "min-w-0 whitespace-nowrap tabular-nums @min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center @min-[1000px]:justify-end";
 
 export function CerrarEnvio({
   detalle,
@@ -474,9 +475,7 @@ export function CerrarEnvio({
           plantilla={PLANTILLA_CIERRE}
           columnas={[
             { titulo: "Categoría" },
-            { titulo: "Dijeron", alinear: "der" },
-            { titulo: "Contaste", alinear: "der" },
-            { titulo: "Se pueden vender", alinear: "der", ayuda: "Lo que entra al stock al cerrar: ya tiene su talla y su color" },
+            { titulo: "Lo que llegó", ayuda: "Lo que dijeron, lo que contaste, lo que se puede vender hoy (ya tiene su talla y su color) y lo que queda para después" },
             { titulo: "Para después", clase: "@min-[1000px]:pl-5", ayuda: "Lo que queda guardado en el almacén hasta separarlo, ponerle tallas o crearlo" },
             { titulo: "Diferencia y por qué" },
             { titulo: <span className="sr-only">Costo y precio de venta de cada prenda</span> },
@@ -578,17 +577,14 @@ export function CerrarEnvio({
                       </p>
                     </span>
                   </div>
-                  <div className={`${CIFRA} text-taupe`} role="cell">
-                    <span className="@min-[1000px]:hidden">Dijeron&nbsp;</span>
-                    {g.dijeron ?? "—"}
-                  </div>
-                  <div className={`${CIFRA} text-tinta`} role="cell">
-                    <span className="text-taupe @min-[1000px]:hidden">Contaste&nbsp;</span>
-                    {hayConteo ? g.contadas : <Chip tono="ambar">Sin contar</Chip>}
-                  </div>
-                  <div className={CIFRA} role="cell">
-                    <span className="text-taupe @min-[1000px]:hidden">Se pueden vender&nbsp;</span>
-                    <span className="font-semibold tabular-nums text-verde">{alStock}</span>
+                  <div className="min-w-0 py-1 @min-[1000px]:py-0" role="cell">
+                    {hayConteo ? (
+                      <PodioCategoria dijeron={g.dijeron} contadas={g.contadas} alStock={alStock} paraDespues={para} />
+                    ) : (
+                      <div className={FRANJA}>
+                        <Chip tono="ambar">Sin contar</Chip>
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0 space-y-1 @min-[1000px]:pl-5" role="cell">
                     {para > 0 ? (
