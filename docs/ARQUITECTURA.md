@@ -225,7 +225,9 @@ flowchart TB
 
 **Catálogo / inventario**
 - `/inventario` (Existencias; rediseño 2026-10-04, ADR-0331) → `app/(app)/inventario/page.tsx` lee `lib/inventario-v2.ts`
-  (`getExistencias`, RPC `fn_stock_por_sede_json`), `lib/por-regularizar-cuenta.ts` (`contarPorRegularizar`, tabla
+  (`getExistencias`, RPC `fn_stock_por_sede_json`), `lib/valor-inventario.ts` (`getValorInventario`, RPC `fn_valor_inventario_existencias`: «Ver el
+  valor a costo» de `components/existencias/ValorInventarioExistencias.tsx`, solo si la cuenta ve el dinero de Compras; su «Ver cuáles» pide
+  `fn_tallas_sin_costo` desde el navegador; reglas en `lib/valor-inventario-reglas.ts`, ADR-0557), `lib/por-regularizar-cuenta.ts` (`contarPorRegularizar`, tabla
   `prendas_por_regularizar`; su fila de «Para hoy» lleva a `/inventario/por-regularizar?ubicacion=`), `lib/capacidad-piso-servidor.ts`
   (`getCapacidadPiso`, RPC `fn_capacidad_piso`, tabla `capacidad_piso`, ADR-0329: la nota «de 600» de «Colgadas en el piso», con
   «por cuadrar» mientras la sede no tenga cuadre —`cuadrado_en`, leído de `cuadres_piso` si existe—; esa tarjeta cuenta solo la ropa
