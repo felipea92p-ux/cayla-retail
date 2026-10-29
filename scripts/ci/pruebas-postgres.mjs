@@ -1637,6 +1637,9 @@ export const PRUEBAS = [
   // embolsar y Ojales y botones son opcionales); cada uno de los cinco hace falta (`fases_espina`); la de siete pasos y la ruta anterior siguen igual; el cierre mira la última fase que tenga.
   "pruebas:produccion-cinco-pasos",
   "pruebas:produccion-quitar-paso",
+
+  // Agregar un paso a una orden abierta (ADR-0566, actividad 1): hermana de «quitar paso». Entra en su lugar de la ruta (Ojales y botones entre Costura y Planchado), la ruta resultante pasa la validación de abrir, no se agrega si un paso posterior ya empezó (aunque esté deshecho), no mueve dinero, todo o nada y comparte el candado por orden. ROLLBACK.
+  "pruebas:produccion-agregar-paso",
   // «Lleva ojales y botones», un dato del MODELO (ADR-0551, migración 20261028053000): sin fila = nadie lo ha preguntado; guardar lo mismo no escribe ni anota; solo quien opera ese Taller guarda;
   // la tabla no se lee ni se escribe directo; la fila se va con el modelo. ROLLBACK.
   "pruebas:producto-taller",
