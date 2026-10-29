@@ -249,7 +249,7 @@ describe("tras una respuesta incierta: el paso no se traba", () => {
   });
 });
 
-describe("cuando otro líder la resolvió antes", () => {
+describe("cuando otra persona la resolvió antes", () => {
   it("el estado crudo de resolver/liquidar se dice en palabras de tienda y pide releer la lista", () => {
     expect(textoErrorDeResolucion({ code: "P0001", message: "Esta prenda ya se resolvió como se_arreglo" }, "resolver esta prenda dañada")).toEqual({
       mensaje: "Esta prenda ya se resolvió como «Se arregló». La lista se actualizó.",

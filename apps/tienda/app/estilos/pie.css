@@ -19,7 +19,7 @@
 .t-pie.ay-pie { padding-block: 34px 26px; }
 
 /* ---- Los títulos de columna: h2 con la cara del h4 de la maqueta ---- */
-.t-pie .t-pie-tit { margin: 0 0 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+.t-pie .t-pie-tit { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
 
 /* ---- La ayuda, arriba: cada página con su ícono, su nombre y lo que promete; se toca toda la fila ---- */
 .t-pie .ay-pie-ayuda { margin-bottom: 30px; padding-bottom: 6px; border-bottom: 1px solid var(--sand); }
@@ -81,3 +81,7 @@
     .t-pie .t-pie-in li a { display: inline-block; min-height: 0; padding: 4px 0; }
   }
 }
+
+/* ---- Los créditos de los escudos (Creative Commons): una línea chica bajo lo legal, sin competir con él ---- */
+.t-pie .t-pie-creditos { margin: 10px 0 0; font-size: 11px; line-height: 1.5; color: var(--taupe); }
+.t-pie .t-pie-creditos a { text-decoration: underline; text-underline-offset: 2px; }

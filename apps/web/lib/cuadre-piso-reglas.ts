@@ -7,12 +7,12 @@
 //
 // CONTRATO
 //   PROMETE: armar y conservar la lista de lo escaneado (sin tope: en el cuadre se puede escanear de más, y eso es justo lo que
-//            hay que ver); guardarla en el aparato por sede (sobrevive al cambio de cuenta: escanea Almacén, confirma un líder);
+//            hay que ver); guardarla en el aparato por sede (sobrevive a un cambio de cuenta en el mismo equipo);
 //            leer lo que devuelve la base y traducir sus rechazos a palabras de tienda; decir qué falta en cada paso.
 //   ASUME:   la cuenta la hace la base (`fn_cuadre_piso_calculo`), una sola vez para revisar y para aplicar. `cuentaDeLaPrenda` es
 //            su espejo SOLO para avisar «no cargada» mientras se escanea; una prueba exige que sea la misma fórmula que la
 //            migración. Ninguna cifra que se muestra en «Revisar» o en el resultado sale de aquí: sale de la base.
-//   NO HACE: no decide quién confirma (la base: solo un líder) ni mueve nada.
+//   NO HACE: no decide quién confirma (la base: quien ve Existencias, el mismo que escanea, ADR-0534) ni mueve nada.
 
 import { resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { esRespuestaIncierta, type ErrorEscritura } from "./error-escritura";
@@ -162,7 +162,7 @@ export function escaneoDesdeAhora(localMs: number, desfaseMs: number): string {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 5. El borrador (por SEDE, no por cuenta: escanea la cuenta Almacén y confirma un líder en el mismo navegador)
+// 5. El borrador (por SEDE, no por cuenta: sobrevive a un cambio de cuenta en el mismo navegador)
 // ---------------------------------------------------------------------------------------------------------------------
 
 export type BorradorCuadre = {
@@ -491,7 +491,7 @@ export type ErrorDeCuadre =
   | { tipo: "conteo_abierto"; mensaje: string; conteo: ConteoAbierto | null }
   | { tipo: "token_reusado"; mensaje: string }
   | { tipo: "nota_requerida"; mensaje: string }
-  | { tipo: "solo_lider"; mensaje: string }
+  | { tipo: "sin_modulo"; mensaje: string }
   | { tipo: "otro"; mensaje: string };
 
 export const TEXTO_RED_CUADRE = `Se cortó la conexión y no sabemos si el cuadre se guardó. Lo escaneado sigue aquí: pulsa «${BOTON_COMPROBAR_CUADRE}». Si ya se había guardado, no se repite.`;
@@ -528,8 +528,8 @@ export function interpretarErrorDeCuadre(error: ErrorEscritura): ErrorDeCuadre {
       return { tipo: "token_reusado", mensaje };
     case "cuadre_nota_requerida":
       return { tipo: "nota_requerida", mensaje };
-    case "cuadre_solo_lider":
-      return { tipo: "solo_lider", mensaje };
+    case "cuadre_sin_modulo":
+      return { tipo: "sin_modulo", mensaje };
     default:
       return { tipo: "otro", mensaje };
   }
@@ -555,7 +555,7 @@ const HINTS_DESPUES_DE_LA_MARCA = new Set([
 /**
  * En un REENVÍO (la marca ya viajó y no se supo qué pasó): ¿esta respuesta dice qué pasó con ella? Sí con éxito, con un
  * rechazo posterior a mirar la marca o con un choque de candados (40P01: pasó la marca y se deshizo entero). No con un corte
- * de red, una sesión vencida o una cuenta que no es de líder: la base contestó sin mirar la marca, y soltarla dejaría
+ * de red, una sesión vencida o una cuenta sin el módulo Existencias: la base contestó sin mirar la marca, y soltarla dejaría
  * cuadrar dos veces lo que quizá ya se guardó.
  */
 export function respuestaResuelveLaMarcaCuadre(error: ErrorEscritura): boolean {
@@ -599,14 +599,6 @@ export function camposGuiaConfirmar({ responsableListo, notaRequerida, nota }: {
   ];
 }
 
-/**
- * Quién confirma, dicho para quien escaneó sin ser líder (la cuenta Almacén). Lo escaneado se guarda en el aparato por SEDE: el
- * líder lo ve solo si entra en ESTE equipo y tiene ESTA sede elegida arriba (si no, ve el cuadre de otra tienda, vacío).
- */
-export function textoQuienConfirma(sede: string): string {
-  return `Solo un líder confirma el cuadre. Pídele que entre con su cuenta en este mismo equipo y elija ${sede} arriba: lo escaneado no se pierde.`;
-}
-
 /** Por qué el botón «Revisar» está apagado, o null si se puede revisar. */
 export function motivoNoRevisar({ lineas, confirmoVacio, pendientes }: { lineas: number; confirmoVacio: boolean; pendientes: number }): string | null {
   if (pendientes > 0) return `Falta volver a escanear ${plural(pendientes, "prenda que cambió", "prendas que cambiaron")} en el almacén.`;
@@ -615,25 +607,21 @@ export function motivoNoRevisar({ lineas, confirmoVacio, pendientes }: { lineas:
 }
 
 /**
- * Por qué el botón «Cuadrar el piso» está apagado, o null. Sin ser líder no desaparece: se apaga y dice quién sí puede. Con un
- * conteo abierto en la sede tampoco: la base lo rechazaría (`cuadre_conteo_abierto`), y no es un campo que se llene aquí.
+ * Por qué el botón «Cuadrar el piso» está apagado, o null. Lo confirma quien escaneó (ADR-0534: ya no espera a la cuenta de un
+ * líder). Con un conteo abierto en la sede no desaparece: se apaga, porque la base lo rechazaría (`cuadre_conteo_abierto`), y no
+ * es un campo que se llene aquí.
  */
 export function motivoNoConfirmar({
-  esLider,
-  sede,
   responsableMotivo,
   notaRequerida,
   nota,
   conteoAbierto = null,
 }: {
-  esLider: boolean;
-  sede: string;
   responsableMotivo: string | null;
   notaRequerida: boolean;
   nota: string;
   conteoAbierto?: ConteoAbierto | null;
 }): string | null {
-  if (!esLider) return textoQuienConfirma(sede);
   if (conteoAbierto) return `Hay un conteo abierto (${nombreDelConteo(conteoAbierto)}): ciérralo o cancélalo en Conteo antes de cuadrar.`;
   if (notaRequerida && !nota.trim()) return "Escribe por qué se vuelve a cuadrar el piso.";
   if (nota.trim().length > NOTA_MAXIMA_CUADRE) return `La nota admite hasta ${NOTA_MAXIMA_CUADRE} caracteres.`;

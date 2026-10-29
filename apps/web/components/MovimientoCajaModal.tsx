@@ -22,17 +22,15 @@ import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 const TEXTO_TIPO = { ingreso: "Entrada", egreso: "Salida" } as const;
 
 // «Retiro de efectivo» y «Depósito bancario» son un egreso con motivo predefinido — mismo caso que
-// registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true, que
-// la RPC exige de líder (ADR-0056). Las listas y las reglas viven en lib/caja-panel-reglas.ts.
+// registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true; desde
+// ADR-0534 lo anota quien opera la caja, no solo el líder (antes, ADR-0056). Las listas y las reglas viven en lib/caja-panel-reglas.ts.
 
 export function MovimientoCajaModal({
   cajaId,
-  esLider,
   soloSalida = false,
   onClose,
 }: {
   cajaId: string;
-  esLider: boolean;
   /** Desde 2026-10-10 Caja abre este modal solo para SACAR plata («Retiro o depósito»): las entradas tienen su hoja,
    *  «Registrar ingreso» (`IngresoRapidoModal`). Con esto el tipo viene fijo y no se muestra. */
   soloSalida?: boolean;
@@ -55,7 +53,7 @@ export function MovimientoCajaModal({
   // Quién hace el ingreso o egreso (ADR-0161, A12: el cierre de caja lo muestra por movimiento).
   const responsable = useResponsable();
 
-  const motivosRapidos = tipo ? motivosDeMovimiento(tipo, esLider) : [];
+  const motivosRapidos = tipo ? motivosDeMovimiento(tipo) : [];
   const mostrarLibre = motivoRapido === "Otro";
   const motivo = mostrarLibre ? motivoLibre : motivoRapido;
   const esAjuste = esMotivoDeAjuste(motivoRapido);

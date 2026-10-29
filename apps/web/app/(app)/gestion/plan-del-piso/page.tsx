@@ -13,8 +13,8 @@ import { PropuestaDelMix } from "@/components/plan-piso/PropuestaDelMix";
 // Plan del piso (ADR-0329 + ADR-0328, actividad 12), primera entrega, solo lectura: cuánto lugar le toca a cada grupo de prendas en
 // el riel de la sede (la PROPUESTA) y a qué grupo pertenece cada categoría (los GRUPOS). La sede es la del selector global
 // (`persona.ubicacionId`): la pantalla no tiene selector propio, como Frescura y Análisis.
-// Esta página solo trae los datos (`getGruposDelMix` y `getPropuestaDelMix`, que nunca lanzan) y dice si quien mira es líder (la base lo
-// decide de verdad); todo lo demás —el cálculo, las filas, los cambios preparados— vive en `lib/mix-piso.ts`, `lib/plan-piso-grupos.ts`
+// Esta página solo trae los datos (`getGruposDelMix` y `getPropuestaDelMix`, que nunca lanzan): quien la ve decide los grupos (ADR-0534;
+// la base vuelve a pedir el módulo); todo lo demás —el cálculo, las filas, los cambios preparados— vive en `lib/mix-piso.ts`, `lib/plan-piso-grupos.ts`
 // y en los paneles. Si falla la lectura de los grupos no hay nada que mostrar; si falla solo la de la propuesta, los grupos se siguen
 // pudiendo revisar (se degrada una pestaña, no la pantalla).
 export default async function PlanDelPisoPage() {
@@ -43,7 +43,7 @@ export default async function PlanDelPisoPage() {
           porRevisar={porRevisar}
           propuesta={
             propuesta.ok ? (
-              <PropuestaDelMix propuesta={propuesta.propuesta} capacidadProvisional={propuesta.capacidadProvisional} categoriasPorRevisar={resumen?.porRevisar ?? 0} categoriasSinGrupo={resumen?.sinGrupo ?? 0} esLider={persona.rol === "lider"} />
+              <PropuestaDelMix propuesta={propuesta.propuesta} capacidadProvisional={propuesta.capacidadProvisional} categoriasPorRevisar={resumen?.porRevisar ?? 0} categoriasSinGrupo={resumen?.sinGrupo ?? 0} />
             ) : (
               // Se degrada así: la pestaña dice que no pudo leer y no se muestra una propuesta sobre un piso que no se leyó.
               <div className="card-cayla p-5" role="alert">
@@ -57,7 +57,7 @@ export default async function PlanDelPisoPage() {
               </div>
             )
           }
-          grupos={<GruposDelMix grupos={lectura.grupos} categorias={lectura.categorias} esLider={persona.rol === "lider"} />}
+          grupos={<GruposDelMix grupos={lectura.grupos} categorias={lectura.categorias} />}
           historia={
             fotos.ok ? (
               <HistoriaDelEspacio historia={armarHistoria(fotos.fotos, lectura.categorias, lectura.grupos, hoyLima())} grupos={lectura.grupos} />

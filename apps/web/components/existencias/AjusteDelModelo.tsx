@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
-import { Archive, Check, ClipboardCheck, Info, PencilLine, PenLine, ReceiptText, SearchCheck, SearchX, Store } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact, type ReactNode, type RefObject } from "react";
+import { Archive, Check, Info, PencilLine } from "lucide-react";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { Volver } from "@/components/ui/Volver";
@@ -14,6 +14,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
+import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Punto } from "@/components/alta-producto/Punto";
 import { TiraDeLoQueEntro, VistoQueSeDibuja } from "@/components/ficha-producto/ImprimirLoQueEntro";
@@ -28,7 +30,6 @@ import {
   MOTIVOS_PLANILLA,
   ordenDeRecorrido,
   siguienteDelRecorrido,
-  type ClaveMotivoPlanilla,
 } from "@/lib/existencias-ajuste-modelo";
 import { nombreDeCelda, type AjusteGuardado, type ControlAjuste, type LineaDelLote } from "./useAjusteDelModelo";
 
@@ -70,19 +71,44 @@ export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conRes
   );
 }
 
+/** En el celular la hoja se desliza entera y el pie queda pegado abajo (Felipe 2026-10-26: con avisos, la planilla quedaba de una fila).
+ *  La planilla crece con sus colores hasta lo que se ve entre el borde de arriba de la hoja y el pie: bajando, la tabla llena la pantalla
+ *  con sus tallas y su total a la vista. Mide la hoja y el pie (cambian con el teclado y con «Falta: …») y lo deja en `--tope-planilla`,
+ *  que solo lee el CSS del celular (`ajuste-modelo.css`). */
+export function useTopeDeLaPlanilla(raiz: RefObject<HTMLElement | null>, activo: boolean) {
+  useEffect(() => {
+    if (!activo || typeof ResizeObserver === "undefined") return;
+    let el: HTMLElement | null = null;
+    let observador: ResizeObserver | null = null;
+    let cuadro = 0;
+    // El portal de Radix monta la hoja un instante después del primer render: se espera a que exista, cuadro a cuadro.
+    const enlazar = () => {
+      el = raiz.current;
+      const hoja = el?.closest<HTMLElement>("[data-variante]");
+      if (!el || !hoja) {
+        cuadro = requestAnimationFrame(enlazar);
+        return;
+      }
+      const vista = el;
+      const pie = hoja.querySelector<HTMLElement>(".pie-hoja-fijo");
+      // 24 px: los 16 que separan el pie de la planilla y 8 de aire arriba, para que la cabecera de tallas no quede pegada al borde.
+      const medir = () => vista.style.setProperty("--tope-planilla", `${Math.max(192, hoja.clientHeight - (pie?.offsetHeight ?? 0) - 24)}px`);
+      observador = new ResizeObserver(medir);
+      observador.observe(hoja);
+      if (pie) observador.observe(pie);
+    };
+    enlazar();
+    return () => {
+      cancelAnimationFrame(cuadro);
+      observador?.disconnect();
+      el?.style.removeProperty("--tope-planilla");
+    };
+  }, [raiz, activo]);
+}
+
 /** Lo que dice cada lugar en una frase. */
 const DONDE = { piso: "en piso", almacen: "en almacén", sede: "en la sede" } as const;
 const NOMBRE_LUGAR = { piso: "piso", almacen: "almacén" } as const;
-
-/** El ícono de cada motivo en la banda: se reconoce el botón sin leerlo entero. */
-const ICONO_MOTIVO: Record<ClaveMotivoPlanilla, ReactNode> = {
-  conte: <ClipboardCheck aria-hidden className="h-4 w-4" />,
-  encontre: <SearchCheck aria-hidden className="h-4 w-4" />,
-  no_aparece: <SearchX aria-hidden className="h-4 w-4" />,
-  error_cobro: <ReceiptText aria-hidden className="h-4 w-4" />,
-  uso_interno: <Store aria-hidden className="h-4 w-4" />,
-  otro: <PenLine aria-hidden className="h-4 w-4" />,
-};
 
 /** Lo que una cantidad tiene que decir además de su número: cambió mientras se contaba, nunca estuvo aquí o tiene apartadas. */
 function notaDeCelda(v: VarianteAjuste, control: ControlAjuste): { texto: string; tono: "nueva" | "dato" | "ajeno" } | null {
@@ -95,7 +121,7 @@ function notaDeCelda(v: VarianteAjuste, control: ControlAjuste): { texto: string
 }
 
 /* La planilla del modelo entero («Planilla rápida», ronda 2: Felipe 2026-10-26, docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html).
-   Arriba, la banda con «Dónde» y «Qué pasó», siempre en el mismo lugar; debajo, el aviso, y la planilla, lo único que se desliza. Con una
+   Arriba, la banda con «Dónde» y «Qué pasó» (un combo), siempre en el mismo lugar; debajo, el aviso, y la planilla, lo único que se desliza. Con una
    talla, columnas Hoy · Contaste · Cambio y lo del otro lugar; con varias, colores × tallas. La cantidad de la que se viene lleva el cursor y
    un filo, y nada se apaga: todo el modelo se toca igual. Enter pasa a la siguiente cantidad (talla por talla, bajando por los colores), y
    un ✓ marca cada color ya mirado. «Dónde» no lleva conteos: eran del modelo entero y chocaban con los de la talla (/formidable 2026-10-26). */
@@ -104,6 +130,7 @@ export function PlanillaDelAjuste({
   foco,
   onApagarFoco,
   onVolver,
+  volverA = "la talla",
   onAbrirConteo,
   onGuardarYPasar,
   onAvisoLugar,
@@ -115,6 +142,8 @@ export function PlanillaDelAjuste({
   foco: string | null;
   onApagarFoco: () => void;
   onVolver: () => void;
+  /** Adónde vuelve la flecha: la talla (de siempre) o «Editar producto» si se llegó desde su candado. */
+  volverA?: string;
   /** Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza (ADR-0291). */
   onAbrirConteo: (varianteId: string) => void;
   /** «Guardar y pasar a almacén»: guarda lo contado aquí y sigue en el otro lugar. */
@@ -144,19 +173,8 @@ export function PlanillaDelAjuste({
   const varianteFoco = modelo && foco ? [...modelo.celdas.values()].find((v) => v.varianteId === foco) : undefined;
   const raiz = useRef<HTMLDivElement>(null);
   const caja = useRef<HTMLDivElement>(null);
-  const motivos = useRef<HTMLDivElement>(null);
   const orden = modelo ? ordenDeRecorrido(modelo) : [];
   const avisoCarga = avisoCargaDeLaPlanilla(control.avisoCarga);
-
-  // En el celular «Qué pasó» va en una fila que se desliza: el motivo elegido queda a la vista (solo se mueve esa fila, nunca la hoja).
-  useEffect(() => {
-    const fila = motivos.current;
-    const elegido = fila?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    if (!fila || !elegido || fila.scrollWidth <= fila.clientWidth) return;
-    const f = fila.getBoundingClientRect();
-    const b = elegido.getBoundingClientRect();
-    if (b.left < f.left || b.right > f.right) fila.scrollLeft += b.left - f.left - 8;
-  }, [control.motivo]);
 
   /** Lleva una cantidad a la vista DENTRO de la planilla, sin mover la hoja ni la página. */
   function verEnLaPlanilla(el: Element) {
@@ -262,7 +280,7 @@ export function PlanillaDelAjuste({
   return (
     <div ref={raiz} onKeyDown={alTeclear} className="ajuste-vista">
       <div className="ajuste-encabezado">
-        <Volver onClick={onVolver} a="la talla" />
+        <Volver onClick={onVolver} a={volverA} />
         <p className="min-w-0">
           {titulo ? (
             <>
@@ -279,7 +297,7 @@ export function PlanillaDelAjuste({
 
       <div className="ajuste-banda">
         {control.separa && (
-          <div className="ajuste-banda-fila">
+          <div className="ajuste-banda-fila ajuste-banda-donde">
             <span className="ajuste-banda-tit">Dónde</span>
             <div role="group" aria-label="Dónde contaste" className="ajuste-opciones">
               {(["almacen", "piso"] as const).map((u) => (
@@ -298,32 +316,27 @@ export function PlanillaDelAjuste({
             </div>
           </div>
         )}
-        <CampoGuiado id="motivo" guia={guia} retiene="fila" className="ajuste-banda-fila">
-          <span className="ajuste-banda-tit">
-            <ConMarca estado={guia.estado("motivo")}>Qué pasó</ConMarca>
+        <CampoGuiado id="motivo" guia={guia} retiene="fila" className={`ajuste-banda-fila ${control.separa ? "ajuste-banda-que" : "ajuste-banda-sola"}`}>
+          <span id="ajuste-motivo-tit" className="ajuste-banda-tit">
+            <ConMarca estado={guia.estado("motivo")} sinAhora>
+              Qué pasó
+            </ConMarca>
           </span>
-          <div ref={motivos} role="group" aria-label="Qué pasó" className="ajuste-opciones ajuste-opciones-desliza">
-            {MOTIVOS_PLANILLA.map((x) => {
+          {/* Un combo y no seis píldoras: en dos filas se leían desordenadas (Felipe 2026-10-26). Elegir uno que no va (Encontré en
+              el piso, o con un guardado que quedó en duda) sigue pasando por `cambiarMotivo`, que dice por qué en el aviso. */}
+          <Desplegable
+            idEtiqueta="ajuste-motivo-tit"
+            valor={control.motivo}
+            onValor={(v) => avisar(control.cambiarMotivo(v))}
+            opciones={MOTIVOS_PLANILLA.map((x) => {
               const cerrado = motivoCerrado(x.clave, control.ubicado, control.separa);
-              return (
-                <button
-                  key={x.clave}
-                  type="button"
-                  aria-pressed={control.motivo === x.clave}
-                  aria-disabled={cerrado ? true : undefined}
-                  title={cerrado ?? x.ayuda}
-                  onClick={() => avisar(control.cambiarMotivo(x.clave))}
-                  className="pildora-cayla ajuste-opcion"
-                >
-                  {ICONO_MOTIVO[x.clave]}
-                  {x.texto}
-                </button>
-              );
+              return { valor: x.clave, texto: cerrado ? `${x.texto} · solo en almacén` : x.texto, deshabilitada: Boolean(cerrado) };
             })}
-          </div>
+            className="ajuste-motivo"
+          />
         </CampoGuiado>
         {m.nota && (
-          <CampoGuiado id="nota" guia={guia} className="ajuste-banda-pie">
+          <CampoGuiado id="nota" guia={guia} className="ajuste-banda-pie ajuste-banda-nota">
             <CampoTexto
               id="ajuste-nota"
               etiqueta={m.nota.etiqueta}
@@ -754,15 +767,20 @@ export function PieDelAjuste({
   const { resumen, problema, guia } = control;
   const n = resumen.tallas;
   return (
-    <div className="pie-hoja-fijo mt-4">
-      <div className="grid gap-3 border-t border-sand pt-3 sm:flex sm:flex-wrap sm:items-center">
+    <div className="pie-hoja-fijo mt-3">
+      <div className="grid gap-3 border-t border-sand pt-2.5 sm:flex sm:flex-wrap sm:items-center">
+        {hayQueElegirDueno(control.empresas) && control.empresas && (
+          <CampoGuiado id="dueno" guia={guia} titulo="¿De quién es?" retiene="fila">
+            <ElegirDueno empresas={control.empresas} duenoId={control.duenoId} onElegir={control.elegirDueno} deshabilitado={control.enviando || control.incierto} guia="existencias.ajuste-dueno" />
+          </CampoGuiado>
+        )}
         <CampoGuiado id="responsable" guia={guia}>
-          <ComboResponsable control={control.responsable} compacto deshabilitado={control.enviando} />
+          <ComboResponsable control={control.responsable} compacto enLinea deshabilitado={control.enviando} />
         </CampoGuiado>
         <div className="min-w-0 flex-1 text-[13px]">
           {n === 0 ? (
             <span className="text-taupe max-sm:hidden">Nada cambia hasta que guardes.</span>
-          ) : problema ? (
+          ) : problema || control.faltaDueno ? (
             <PieGuia guia={guia} />
           ) : (
             <span role="status">
@@ -778,7 +796,7 @@ export function PieDelAjuste({
           <Boton peso="fantasma" onClick={onCancelar} disabled={control.enviando || control.incierto}>
             {n > 0 ? "Descartar" : "Cancelar"}
           </Boton>
-          <Boton peso={secundario ? "fantasma" : "primario"} cargando={control.enviando} disabled={n === 0 || Boolean(problema) || control.enviando} onClick={onGuardar} title={problema ? (guia.frase ?? undefined) : undefined}>
+          <Boton peso={secundario ? "fantasma" : "primario"} cargando={control.enviando} disabled={n === 0 || Boolean(problema) || control.faltaDueno || control.enviando} onClick={onGuardar} title={problema || control.faltaDueno ? (guia.frase ?? undefined) : undefined}>
             {n > 0 ? `Guardar ${n} ${n === 1 ? "cambio" : "cambios"}` : "Guardar"}
           </Boton>
         </PieAcciones>

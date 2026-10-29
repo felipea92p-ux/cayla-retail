@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 126,
+  "total": 136,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -52,21 +52,24 @@
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
       "Boton «Contarla»",
-      "CampoTexto «{`Precio de compra de ${nombreDeLinea(l)}»",
+      "CampoTexto «¿Qué pasó exactamente?»",
       "button «{`${abierta ? \"Esconder\" : \"Ver\"}»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
       "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
       "ComboResponsable «{responsable}»",
       "Volver «→onVolver»",
-      "Boton «recepcion.cerrar-boton»",
+      "Boton «recepcion.cerrar-boton»"
+    ],
+    "components/recepcion-conteo/ConfirmarPrecios.tsx": [
       "Boton «Cancelar»",
-      "Boton «Confirmar y cerrar»"
+      "Boton «{textoConfirmar}»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
-      "ComboResponsable «{responsable}»",
-      "button «→() => elegir(l)»",
+      "button «{sub}»",
       "button «recepcion.agregar»",
+      "ComboResponsable «{responsable}»",
+      "button «Cómo se guarda quién cuenta»",
       "Boton «Anterior»",
       "Boton «Listo, sigue»",
       "Boton «recepcion.pasar-a-cerrar»",
@@ -87,18 +90,18 @@
     "components/recepcion-conteo/EnvioCerrado.tsx": [
       "Boton «{veredicto.accion}»",
       "BotonEnlace «{a.texto}»",
-      "Boton «{p.tipo === \"crear\" ? \"+ Crear ahora\" : \"Hacer ahora\"}»",
+      "Boton «{BOTON_DE_PENDIENTE[p.tipo]}»",
       "Boton «Reabrir el conteo»",
       "BotonEnlace «Recibir otro»",
       "BotonEnlace «Ver todo lo recibido»"
     ],
     "components/recepcion-conteo/HacerAhora.tsx": [
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «Guardar»"
     ],
     "components/recepcion-conteo/HojaTallas.tsx": [
       "Boton «Dejar para después»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «{textoListo}»"
     ],
     "components/recepcion-conteo/ObservacionesDeLinea.tsx": [
       "Boton «Anotar observación»",
@@ -108,15 +111,23 @@
       "Boton «{problema ?? undefined}»"
     ],
     "components/recepcion-conteo/PapelesDeLaCompra.tsx": [
-      "a «Abrir el PDF del papel»",
-      "button «recepcion.papel-foto»"
+      "Boton «recepcion.papel-subir»",
+      "input «Ver en grande»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
-      "CampoTexto «{`Precio de venta de ${nombre}»"
+      "CampoTexto «{`Costo de ${nombre}»",
+      "CampoTexto «{`Precio de venta de ${nombre}»",
+      "CampoTexto «{`Costo de ${nombre}» #2"
     ],
-    "components/recepcion-conteo/PreguntaDeLaCompra.tsx": [
-      "Boton «recepcion.son-estas»",
-      "Boton «recepcion.es-otra»"
+    "components/recepcion-conteo/PrendaConCombinaciones.tsx": [
+      "button «{guia}»",
+      "SegmentoDeslizante «{`Qué cifra editas en ${nombre}»",
+      "Boton «{combinaciones.length === 1 ? `Cambiar el ${palabra}»",
+      "CampoTexto «{`${cifraActiva === \"costo\" ? \"Costo\" : \"Precio de venta\"}»",
+      "BotonDeshacer «→() => onQuitar(cifraActiva, cambiadas)»",
+      "SegmentoDeslizante «Dónde vale este precio: solo en esta tienda o en todas las sedes»",
+      "Boton «Cancelar»",
+      "Boton «Aplicar»"
     ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
       "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",
@@ -129,9 +140,10 @@
     ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",
-      "button «Son estas (»",
+      "button «{`Pasar ${a.prenda.nombre}»",
       "button «Cambiar»",
       "Boton «Tallas y colores ahora»",
+      "Boton «Crear ahora»",
       "BotonEditar «Describir ahora»",
       "button «{p.nombre}»",
       "button «(sin nombre)»"

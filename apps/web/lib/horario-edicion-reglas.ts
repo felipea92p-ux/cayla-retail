@@ -2,7 +2,7 @@
 // (`components/tienda-web-conf/HorarioSemanal.tsx`) solo traduce un gesto a estos números.
 //
 // CONTRATO
-//   PROMETE: que todo resultado sea un tramo que la base acepta (de media en media hora, dentro del rango visible, abre antes de cerrar y con
+//   PROMETE: que todo resultado sea un tramo que la base acepta (de a 15 minutos, dentro del rango visible, abre antes de cerrar y con
 //            al menos media hora de ancho), pase lo que pase con el gesto: nunca devuelve un tramo invertido ni fuera de la regla.
 //   ASUME:   minutos desde la medianoche (`@cayla-retail/shared/horario-de-tienda`).
 //   NO HACE: leer el DOM ni guardar.
@@ -27,10 +27,13 @@ export function rangoVisible(semana: SemanaDeTienda): RangoVisible {
   return { desde, hasta };
 }
 
+/** Lo menos que dura una barra: media hora (la base aceptaría 15 minutos, pero una barra de 15 es un error de dedo). */
+export const MINIMO_DE_TRAMO = 30;
+
 const aPaso = (min: number) => Math.round(min / PASO_DE_HORA) * PASO_DE_HORA;
 const entre = (min: number, rango: RangoVisible) => Math.min(rango.hasta, Math.max(rango.desde, min));
 
-/** El minuto (de a media hora y dentro del rango) que corresponde a un punto de la pista: `fraccion` va de 0 (izquierda) a 1 (derecha). */
+/** El minuto (de a 15 minutos y dentro del rango) que corresponde a un punto de la pista: `fraccion` va de 0 (izquierda) a 1 (derecha). */
 export function minutoDeLaPista(fraccion: number, rango: RangoVisible): number {
   const f = Number.isFinite(fraccion) ? Math.min(1, Math.max(0, fraccion)) : 0;
   return entre(aPaso(rango.desde + f * (rango.hasta - rango.desde)), rango);
@@ -41,23 +44,23 @@ export function porcentajeDeMinuto(min: number, rango: RangoVisible): number {
   return Math.min(100, Math.max(0, ((min - rango.desde) / (rango.hasta - rango.desde)) * 100));
 }
 
-/** Arrastrar sobre un hueco: el tramo entre donde se empezó y donde se está, en el orden que sea; con un solo punto, media hora. */
+/** Arrastrar sobre un hueco: el tramo entre donde se empezó y donde se está, en el orden que sea; con un solo punto, media hora (`MINIMO_DE_TRAMO`). */
 export function tramoPintado(desdeMin: number, hastaMin: number, rango: RangoVisible): TramoDia {
   const a = entre(aPaso(Math.min(desdeMin, hastaMin)), rango);
   const b = entre(aPaso(Math.max(desdeMin, hastaMin)), rango);
   if (b > a) return { abre: a, cierra: b };
   // Un solo punto: media hora hacia la derecha, o hacia la izquierda si ya está en el borde.
-  return a + PASO_DE_HORA <= rango.hasta ? { abre: a, cierra: a + PASO_DE_HORA } : { abre: a - PASO_DE_HORA, cierra: a };
+  return a + MINIMO_DE_TRAMO <= rango.hasta ? { abre: a, cierra: a + MINIMO_DE_TRAMO } : { abre: a - MINIMO_DE_TRAMO, cierra: a };
 }
 
-/** Arrastrar el borde izquierdo de una barra: la apertura va donde está el dedo, sin pasar media hora antes del cierre. */
+/** Arrastrar el borde izquierdo de una barra: la apertura va donde está el dedo, sin quedar a menos de media hora del cierre. */
 export function conAperturaEn(t: TramoDia, min: number, rango: RangoVisible): TramoDia {
-  return { abre: Math.min(entre(aPaso(min), rango), t.cierra - PASO_DE_HORA), cierra: t.cierra };
+  return { abre: Math.min(entre(aPaso(min), rango), t.cierra - MINIMO_DE_TRAMO), cierra: t.cierra };
 }
 
 /** Arrastrar el borde derecho: el cierre va donde está el dedo, sin quedar a menos de media hora de la apertura. */
 export function conCierreEn(t: TramoDia, min: number, rango: RangoVisible): TramoDia {
-  return { abre: t.abre, cierra: Math.max(entre(aPaso(min), rango), t.abre + PASO_DE_HORA) };
+  return { abre: t.abre, cierra: Math.max(entre(aPaso(min), rango), t.abre + MINIMO_DE_TRAMO) };
 }
 
 /** Arrastrar la barra entera: se corre sin cambiar cuánto dura y sin salirse del rango. */
@@ -71,7 +74,7 @@ export function corridoPor(t: TramoDia, deltaMin: number, rango: RangoVisible): 
 export function tramoParaAbrir(rango: RangoVisible): TramoDia {
   const abre = Math.max(rango.desde, TRAMO_AL_ABRIR.abre);
   const cierra = Math.min(rango.hasta, TRAMO_AL_ABRIR.cierra);
-  return cierra > abre ? { abre, cierra } : { abre: rango.desde, cierra: rango.desde + PASO_DE_HORA };
+  return cierra > abre ? { abre, cierra } : { abre: rango.desde, cierra: rango.desde + MINIMO_DE_TRAMO };
 }
 
 /** El lunes (o el primer día abierto) en toda la semana: «Copiar lunes a todos». Sin lunes abierto, la semana queda cerrada. */
@@ -80,7 +83,7 @@ export function semanaComoElLunes(semana: SemanaDeTienda): SemanaDeTienda {
   return lunes ? semana.map(() => ({ ...lunes })) : semanaVacia();
 }
 
-/** Teclas sobre una barra: ←/→ la corren media hora; Mayús + ←/→ mueven el cierre; Alt + ←/→ mueven la apertura; Suprimir cierra el día. `null` si la
+/** Teclas sobre una barra: ←/→ la corren 15 minutos; Mayús + ←/→ mueven el cierre; Alt + ←/→ mueven la apertura; Suprimir cierra el día. `null` si la
  *  tecla no hace nada. Un día cerrado queda como `undefined` aparte: quien llama lo distingue con `cerrar`. */
 export function conTecla(t: TramoDia, tecla: string, { mayus, alt }: { mayus: boolean; alt: boolean }, rango: RangoVisible): TramoDia | "cerrar" | null {
   if (tecla === "Delete" || tecla === "Backspace") return "cerrar";

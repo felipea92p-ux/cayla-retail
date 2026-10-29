@@ -26,12 +26,6 @@ export function formatoSoles(monto: number): string {
   return `S/\u00a0${Math.round(monto).toLocaleString("en-US")}`;
 }
 
-/** «Tienda Trujillo» → «Trujillo»; el Taller y lo demás quedan igual. Para
- *  columnas angostas donde «Tienda» es ruido. */
-export function nombreCorto(nombre: string): string {
-  return nombre.replace(/^Tienda\s+/i, "").trim() || nombre;
-}
-
 // ---------------------------------------------------------------------------
 // Ritmo reciente / Cobertura piso de Existencias (2026-09-25, sobre el ledger único)
 // ---------------------------------------------------------------------------

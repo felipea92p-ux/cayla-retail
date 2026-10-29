@@ -8,6 +8,9 @@ import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
@@ -113,7 +116,17 @@ export function FormularioRecepcion({
     }),
     [detalle.lineas, detalle.deudas, proveedores, catalogo],
   );
-  const campos = camposDeRecepcion(borrador, ctx, { listo: responsable.listo, motivo: responsable.motivo });
+  // ADR-0542: en una sede donde operan dos empresas (Lima), quien recibe dice de quién es lo que entra. Sin respuesta de fábrica.
+  const empresasDeLaSede = useEmpresasDeSede(detalle.sede?.id);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresasDeLaSede, duenoId);
+  const camposBase = camposDeRecepcion(borrador, ctx, { listo: responsable.listo, motivo: responsable.motivo });
+  const campos = preguntaDueno
+    ? camposBase.flatMap((c) =>
+        c.id === "responsable" ? [{ id: "dueno", nombre: "De quién es", requerido: true, hecho: !faltaDueno, pendiente: "Elige si lo que llegó es de CAYLA o de CLAURE." }, c] : [c],
+      )
+    : camposBase;
   // Cuántas cubre cada reposición elegida y si la base la aceptaría (la pregunta lo dice en su lugar; la guía, en «Falta»).
   const reposiciones = reposicionesDe(borrador, ctx);
   const guia = useGuiaCampos(campos, { enModal: false });
@@ -265,7 +278,7 @@ export function FormularioRecepcion({
     try {
       setError(null);
       setGuardando(true);
-      const { resultado, error: falla } = await recibirDespacho(argsRecibirDespacho(detalle, borrador, ctx, { version, token, confirmadas }), responsable.firma());
+      const { resultado, error: falla } = await recibirDespacho(argsRecibirDespacho(detalle, borrador, ctx, { version, token, confirmadas }), responsable.firma(), preguntaDueno ? duenoId : null);
       responsable.despues(falla);
       if (falla) {
         setGuardando(false);
@@ -386,6 +399,11 @@ export function FormularioRecepcion({
             </p>
             <CampoTexto id="recepcion-nota" caja etiqueta="Nota de la recepción" maxLength={TOPES_RECEPCION.nota} value={borrador.nota} onChange={(e) => cambiar((b) => ({ ...b, nota: e.target.value }))} />
           </CampoGuiado>
+          {preguntaDueno && empresasDeLaSede && (
+            <CampoGuiado id="dueno" guia={guia} titulo="¿De quién es la mercadería?" ayuda="CAYLA o CLAURE: lo marcas tú, no la marca de la prenda" retiene="fila">
+              <ElegirDueno empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={guardando} guia="recepcion.dueno" />
+            </CampoGuiado>
+          )}
           <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe" className="max-w-sm">
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>

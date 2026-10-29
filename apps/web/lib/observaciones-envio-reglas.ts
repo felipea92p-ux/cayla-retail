@@ -61,6 +61,6 @@ export function leerObservaciones(data: unknown): ObservacionDeEnvio[] {
   return lista.map(leerObservacion).filter((o): o is ObservacionDeEnvio => o !== null);
 }
 
-/** Las de una línea (o, con `null`, las del envío entero), de la más vieja a la más nueva. */
-export const deLaLinea = (todas: readonly ObservacionDeEnvio[], despachoItemId: string | null): ObservacionDeEnvio[] =>
-  todas.filter((o) => o.despachoItemId === despachoItemId);
+/** Las de unas líneas (con `null`, las del envío entero), de la más vieja a la más nueva: una categoría junta las de todas sus líneas. */
+export const deLasLineas = (todas: readonly ObservacionDeEnvio[], despachoItemIds: readonly (string | null)[]): ObservacionDeEnvio[] =>
+  todas.filter((o) => despachoItemIds.includes(o.despachoItemId));

@@ -10,6 +10,7 @@ import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
+import { CorreccionesDeCompra } from "./CorreccionesDeCompra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -32,6 +33,7 @@ import {
   notaNoCuadra,
   pagoPapel,
   pideSerie,
+  recibioQuienCompro,
   sobrePapel,
   subtituloPapel,
   textoFaltan,
@@ -40,6 +42,7 @@ import {
   type ProveedorOpcion,
 } from "@/lib/revisar-compras-reglas";
 import type { PapelConFoto } from "@/lib/revisar-compras";
+import { TEXTO_LO_RECIBIO_QUIEN_COMPRO } from "@/lib/recepcion-envio-reglas";
 import { PanelDetalle } from "./PanelDetalle";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ las compras que anotaron las compradoras. Rediseño (2026-10-23): cada papel
@@ -166,21 +169,25 @@ function Veredicto({ papel: p, monto }: { papel: PapelConFoto; monto: number }) 
     );
   }
   return (
-    <div className="rounded-2xl bg-ambar/10 px-4 py-3.5" data-guia="fondos.papel-veredicto">
-      <div className="flex items-center justify-between gap-3">
+    <div
+      /* unificar-fijo: el veredicto lleva la diferencia en grande y las dos cifras lado a lado: es un dato de la revisión, no un aviso con título y frase */
+      className="rounded-2xl bg-ambar/10 px-4 py-3.5"
+      data-guia="fondos.papel-veredicto"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className="flex items-center gap-2.5 text-[15px] font-semibold text-ambar-profundo">
           <TriangleAlert className="h-5 w-5" aria-hidden />
           No cuadra
         </span>
-        <span className="whitespace-nowrap font-serif text-[32px] leading-none tabular-nums text-ambar-profundo">{soles(diferencia)}</span>
+        <span className="ml-auto whitespace-nowrap font-serif text-[clamp(1.75rem,8vw,2rem)] leading-none tabular-nums text-ambar-profundo">{soles(diferencia)}</span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <span className="rounded-xl bg-papel px-3 py-2">
-          <span className="label-cayla block text-[10.5px] text-taupe">Papel</span>
+          <span className="label-cayla block text-[11px] text-taupe">Papel</span>
           <span className="block text-sm font-semibold tabular-nums text-tinta">{soles(v.pagado)}</span>
         </span>
         <span className="rounded-xl bg-papel px-3 py-2">
-          <span className="label-cayla block text-[10.5px] text-taupe">Anotó {primerNombre(p.persona)}</span>
+          <span className="label-cayla block text-[11px] text-taupe">Anotó {primerNombre(p.persona)}</span>
           <span className="block text-sm font-semibold tabular-nums text-tinta">{soles(v.anotado)}</span>
         </span>
       </div>
@@ -453,6 +460,7 @@ export function DetallePapel({
         </div>
       )}
       <Prendas papel={papel} />
+      <CorreccionesDeCompra papelId={papel.id} />
     </div>
   );
 
@@ -463,7 +471,19 @@ export function DetallePapel({
       titulo={proveedor}
       subtitulo={subtituloPapel(papel)}
       monto={soles(papel.monto)}
-      estado={papel.esMia ? <Chip tono="pizarra">Es tuya</Chip> : undefined}
+      // ADR-0517: si un Admin recibió lo que él mismo compró, quien completa el papel (que nunca es quien compró) lo ve aquí.
+      estado={
+        papel.esMia || recibioQuienCompro(papel) ? (
+          <span className="flex flex-wrap justify-end gap-1.5">
+            {papel.esMia && <Chip tono="pizarra">Es tuya</Chip>}
+            {recibioQuienCompro(papel) && (
+              <Chip tono="ambar" versalitas={false} title="La misma persona hizo la compra y cerró el conteo en la tienda: nadie más contó esta mercadería.">
+                {TEXTO_LO_RECIBIO_QUIEN_COMPRO}
+              </Chip>
+            )}
+          </span>
+        ) : undefined
+      }
     >
       {editable ? (
         <form
@@ -504,8 +524,10 @@ export function DetallePapel({
                 className={guia.claseConfirmar}
                 data-guia="fondos.papel-completar"
               >
-                <Check className="h-4 w-4" aria-hidden />
-                {fraseCompletar()}
+                <span className="inline-flex items-center gap-2">
+                  <Check className="h-4 w-4" aria-hidden />
+                  {fraseCompletar()}
+                </span>
               </Boton>
             </div>
           </div>

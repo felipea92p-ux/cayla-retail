@@ -2,7 +2,10 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { DIAS_RINDE, FALLA_RINDE, filaRindeDe, rindePorCategoria } from "@/lib/analisis-pedir";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
-import { IGV_TASA } from "@/lib/registro-contable";
+import { unstable_rethrow } from "next/navigation";
+
+/** Tasa del IGV (18 %): las ventas netas vienen con IGV y el rendimiento se calcula sin él. */
+const IGV_TASA = 0.18;
 
 // Análisis v4 (ADR-0357): «Lo que más rinde» en «Qué pedir». Por tipo de prenda de MI tienda: cuánto se ganó en los últimos 90
 // días por cada S/ 1 que hubo en ropa de ese tipo (al costo, en promedio). Es el GMROI dicho en palabras de tienda.
@@ -36,6 +39,7 @@ export async function getRindePorCategoria(ubicacionId: string): Promise<{ rinde
     const filas = Array.isArray(data) ? (data as unknown[]).map(filaRindeDe) : [];
     return { rinde: rindePorCategoria(filas, IGV_TASA), falla: null };
   } catch (e: unknown) {
+    unstable_rethrow(e);
     console.error(`lo que más rinde: ${e instanceof Error ? e.message : String(e)}`);
     return { rinde: [], falla: FALLA_RINDE };
   }

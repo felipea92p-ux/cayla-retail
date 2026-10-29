@@ -1,0 +1,646 @@
+/* Tienda web ▸ Tráfico (ADR-0495; «Observatorio», maqueta docs/maquetas/trafico-decisiones-2026-10/). Solo tokens: el oscuro sale solo.
+   Movimiento (ADR-0136): las tarjetas suben en cascada con `anim-sube` del sistema; lo propio de esta pantalla es que los 100 puntos de
+   «Hasta dónde llega la gente» se encienden UNA vez al llegar, paso tras paso, con `--ease-cayla` y sin rebote (la vitrina de baldosas
+   de la maqueta C se fue en la actividad 6). El único bucle es una señal: el punto verde de «N mirando ahora» respira mientras alguien
+   mira la tienda (si nadie mira, no se dibuja). Con `prefers-reduced-motion`, todo quieto. Lo vigila `lib/trafico-movimiento.test.ts`. */
+@layer components {
+  /* «Ahora, N mirando»: el punto verde de la cabecera, con su onda que respira. */
+  .trafico-punto-vivo {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-verde);
+  }
+  .trafico-punto-vivo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--color-verde);
+    animation: trafico-respira 2400ms var(--ease-cayla) infinite;
+  }
+  @keyframes trafico-respira {
+    0% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    70%,
+    100% {
+      opacity: 0;
+      transform: scale(2.6);
+    }
+  }
+}
+
+/* ---------- El cuerpo de la pantalla y las filas de «De dónde vienen» ---------- */
+@layer components {
+  .trafico-cuerpo {
+    container: trafico / inline-size;
+  }
+  .trafico-cuerpo-rejilla {
+    display: grid;
+    gap: 16px;
+    align-items: stretch;
+  }
+  @container trafico (min-width: 1000px) {
+    .trafico-cuerpo-rejilla {
+      grid-template-columns: minmax(0, 1fr) 460px;
+    }
+  }
+  @container trafico (min-width: 1500px) {
+    .trafico-cuerpo-rejilla {
+      grid-template-columns: minmax(0, 1fr) 520px;
+    }
+  }
+
+  /* ---------- De dónde vienen (actividad 6): cada fila es un filtro ---------- */
+  .trafico-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(2rem, 0.35fr) 2.25rem;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 6px;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: background-color 180ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    a.trafico-fila:hover {
+      background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+    }
+  }
+  .trafico-fila[aria-current="true"] {
+    background: var(--color-hueso);
+    font-weight: 600;
+  }
+  .trafico-fila[data-cero] {
+    color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  }
+  /* ---------- El cajón de una prenda ---------- */
+  .trafico-talla {
+    display: grid;
+    gap: 0;
+    min-width: 64px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: var(--color-hueso);
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-talla b {
+    font-size: 15px;
+    color: var(--color-tinta);
+  }
+  .trafico-talla[data-mas] {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .trafico-talla[data-mas] b {
+    color: var(--color-crema);
+  }
+  .trafico-muestra {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex: none;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 15%, transparent);
+  }
+  /* En oscuro, un «Negro» o un azul marino se perdería contra la hoja: el filo es claro. */
+  :root[data-tema="oscuro"] .trafico-muestra {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-crema-fija) 30%, transparent);
+  }
+}
+
+/* ---------- Hasta dónde llega la gente (actividad 3): 100 puntos por paso ----------
+   Cada punto es una persona de cada 100 que entraron; se encienden los que llegaron hasta ese paso, UNA vez al llegar, paso tras paso
+   (`--k`) y punto tras punto (`--d`). El paso donde se pierde más gente de lo de costumbre va en ámbar, con su globo encima. */
+@layer components {
+  .trafico-recorrido {
+    container: recorrido / inline-size;
+  }
+  .trafico-pasos {
+    --trafico-punto-apagado: color-mix(in srgb, var(--color-tinta) 11%, var(--color-hueso));
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Entre filas cabe el globo del paso de abajo, sin pisar el «de cada 100» del de arriba. */
+    gap: 40px 18px;
+    padding-top: 28px;
+  }
+  @container recorrido (min-width: 560px) {
+    .trafico-pasos {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @container recorrido (min-width: 1000px) {
+    .trafico-pasos {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+  .trafico-paso {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .trafico-puntos {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 3px;
+    padding: 9px;
+    border-radius: 14px;
+    background: var(--color-hueso);
+  }
+  .trafico-puntos > i {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--trafico-punto-apagado);
+  }
+  .trafico-puntos > .trafico-punto-on {
+    background: var(--color-tinta);
+    animation: trafico-enciende 360ms var(--ease-cayla) both;
+    animation-delay: calc(var(--k, 0) * 90ms + var(--d, 0) * 6ms);
+  }
+  .trafico-paso[data-fuga] .trafico-puntos {
+    outline: 2.5px solid var(--color-ambar);
+    outline-offset: 2px;
+  }
+  .trafico-paso[data-fuga] .trafico-puntos > .trafico-punto-on {
+    background: var(--color-ambar);
+  }
+  .trafico-paso-globo {
+    position: absolute;
+    top: -28px;
+    right: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+  }
+  @keyframes trafico-enciende {
+    from {
+      background-color: var(--trafico-punto-apagado);
+    }
+  }
+}
+
+/* ---------- Cuándo entra la gente (actividad 4): el mapa de calor día × hora, en rojo CAYLA ----------
+   Cada celda lleva su rojo en línea (de 6 a 92 % sobre hueso, según cuánta gente entra); las 6 más fuertes llevan su filo en rojo
+   profundo. A la derecha, el total del día; abajo, cuánta gente entra en cada hora. Bajo 640 px el total se va y las celdas se achican. */
+@layer components {
+  .trafico-calor-tarjeta {
+    container: calor / inline-size;
+  }
+  .trafico-calor {
+    display: grid;
+    grid-template-columns: 38px repeat(24, minmax(0, 1fr)) 84px;
+    gap: 3px;
+    align-items: center;
+  }
+  .trafico-calor-hora {
+    height: 18px;
+    overflow: visible;
+    font-size: 11.5px;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .trafico-calor-dia {
+    font-size: 12px;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-calor-celda {
+    position: relative;
+    height: 46px;
+    border-radius: 5px;
+    transition: transform 150ms var(--ease-cayla);
+  }
+  .trafico-calor-celda[data-fuerte] {
+    outline: 2px solid var(--color-rojo-profundo);
+    outline-offset: -2px;
+  }
+  @media (hover: hover) {
+    .trafico-calor-celda:hover {
+      z-index: 2;
+      outline: 2px solid var(--color-rojo-profundo);
+      transform: scale(1.18);
+    }
+  }
+  .trafico-calor-ahora {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+    box-shadow: 0 0 0 2px var(--color-papel);
+  }
+  .trafico-calor-celda > .trafico-calor-ahora {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+  }
+  .trafico-calor-suma {
+    display: grid;
+    gap: 3px;
+    padding-left: 10px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .trafico-calor-suma > b {
+    font-weight: 600;
+  }
+  .trafico-calor-suma > i {
+    display: block;
+    height: 4px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--color-rojo) 60%, transparent);
+  }
+  .trafico-calor-barra {
+    display: flex;
+    height: 38px;
+    align-items: flex-end;
+  }
+  .trafico-calor-barra > i {
+    display: block;
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    background: color-mix(in srgb, var(--color-rojo) 30%, var(--color-hueso));
+  }
+  .trafico-calor-barra > i[data-pico] {
+    background: var(--color-rojo);
+  }
+  .trafico-calor-escala {
+    display: inline-block;
+    width: 110px;
+    height: 8px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-rojo) 6%, var(--color-hueso)), var(--color-rojo));
+  }
+  .trafico-calor-muestra {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    outline: 2px solid var(--color-rojo-profundo);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--color-rojo) 50%, var(--color-hueso));
+  }
+  @container calor (max-width: 640px) {
+    .trafico-calor {
+      grid-template-columns: 30px repeat(24, minmax(0, 1fr));
+      gap: 2px;
+    }
+    .trafico-calor-total {
+      display: none;
+    }
+    .trafico-calor-celda {
+      height: 26px;
+    }
+    .trafico-calor-hora {
+      font-size: 9.5px;
+    }
+  }
+}
+
+/* ---------- De dónde vienen (actividad 5): cada camino con cuántos separan, y el Perú pintado por departamento ----------
+   El tinte de cada departamento va en línea (el mismo rojo sobre hueso del mapa de calor); el filo es papel, para que se lean los
+   límites. El departamento de la ciudad filtrada lleva el filo en tinta. */
+@layer components {
+  .trafico-camino {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    align-items: center;
+    padding: 12px 8px;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13.5px;
+    transition: background-color 180ms var(--ease-cayla);
+  }
+  li:first-child > .trafico-camino {
+    border-top: 0;
+  }
+  @media (hover: hover) {
+    .trafico-camino:hover {
+      background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+    }
+  }
+  .trafico-camino[aria-current="true"] {
+    background: var(--color-hueso);
+  }
+  .trafico-mapa-dep {
+    cursor: pointer;
+    stroke: var(--color-papel);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    transition: stroke 160ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .trafico-mapa-dep:hover {
+      stroke: var(--color-rojo-profundo);
+      stroke-width: 2;
+    }
+  }
+  .trafico-mapa-dep[data-elegido] {
+    stroke: var(--color-tinta);
+    stroke-width: 2;
+  }
+  .trafico-mapa-tienda {
+    fill: var(--color-tinta);
+    stroke: var(--color-papel);
+    stroke-width: 2;
+  }
+  .trafico-mapa-nombre {
+    fill: var(--color-tinta);
+    font-size: 17px;
+    font-weight: 600;
+    paint-order: stroke;
+    stroke: var(--color-papel);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+  }
+  .trafico-mapa-muestra {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+  }
+}
+
+/* ---------- Qué prendas miran y Tallas que piden y no hay (actividades 6 y 7), lado a lado ----------
+   Desde 1180 px de cuerpo, la tabla de prendas toma dos tercios y las tallas, uno (como la maqueta); antes, una debajo de la otra. Cada
+   celda de talla es una barrita que crece con la gente que la eligió; la que falta va en ámbar. */
+@layer components {
+  .trafico-rejilla-prendas {
+    display: grid;
+    gap: 16px;
+    align-items: start;
+  }
+  @container trafico (min-width: 1180px) {
+    .trafico-rejilla-prendas {
+      grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    }
+  }
+  .trafico-tallas-fila {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 6rem) minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+  }
+  .trafico-tallas-tarjeta {
+    container: tallas / inline-size;
+  }
+  @container tallas (max-width: 380px) {
+    .trafico-tallas-fila {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+  }
+  .trafico-tallas-celdas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 4px;
+  }
+  .trafico-talla-celda {
+    position: relative;
+    display: flex;
+    height: 50px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+    padding: 0 2px 5px;
+    border-radius: 8px;
+    background: var(--color-hueso);
+  }
+  .trafico-talla-celda > i {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: color-mix(in srgb, var(--color-tinta) 18%, var(--color-hueso));
+  }
+  .trafico-talla-celda > b,
+  .trafico-talla-celda > small {
+    position: relative;
+    line-height: 1.15;
+  }
+  /* La talla y las unidades pueden caer sobre la barra (más oscura en el tema oscuro): van en tinta plena, nunca tenues. */
+  .trafico-talla-nombre {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    left: 2px;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--color-tinta);
+  }
+  .trafico-talla-celda > b {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .trafico-talla-celda > small {
+    font-size: 9.5px;
+    color: var(--color-tinta);
+  }
+  .trafico-talla-celda[data-falta] {
+    background: color-mix(in srgb, var(--color-ambar) 22%, var(--color-papel));
+    outline: 2px solid var(--color-ambar);
+    outline-offset: -2px;
+  }
+  .trafico-talla-celda[data-falta] > i {
+    background: color-mix(in srgb, var(--color-ambar) 40%, var(--color-hueso));
+  }
+  .trafico-talla-celda[data-falta] > small {
+    color: var(--color-tinta);
+    font-weight: 700;
+  }
+  .trafico-talla-muestra {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    outline: 2px solid var(--color-ambar);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--color-ambar) 22%, var(--color-papel));
+  }
+}
+
+/* ---------- Necesita tu atención y el calendario (actividades 8 y 9), lado a lado ----------
+   Desde 1180 px de cuerpo, mitad y mitad (como la maqueta). Cada día del calendario lleva su rojo en línea, más suave que el del mapa de
+   calor (de 6 a 56 %) para que su número en tinta se lea en los dos temas (4,6:1 o más, medido); el día fuera del período baja su rojo, no
+   su número; hoy, con su filo en rojo profundo y unas rayas; el que no llega, solo su número sobre una línea punteada. */
+@layer components {
+  .trafico-rejilla-mitades {
+    display: grid;
+    gap: 16px;
+    align-items: start;
+  }
+  @container trafico (min-width: 1180px) {
+    .trafico-rejilla-mitades {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .trafico-cal {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .trafico-cal-dia-semana {
+    padding-bottom: 2px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-cal-dia {
+    display: flex;
+    min-width: 0;
+    min-height: 52px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 5px 7px;
+    border-radius: 9px;
+    font-size: 11px;
+    line-height: 1.1;
+    color: var(--color-tinta);
+  }
+  .trafico-cal-dia > b {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .trafico-cal-dia[data-futuro] {
+    border: 1px dashed var(--color-sand);
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-cal-dia[data-hoy] {
+    background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-crema-fija) 22%, transparent) 0 3px, transparent 3px 7px);
+    outline: 2px solid var(--color-rojo-profundo);
+    outline-offset: 1px;
+  }
+  @media (max-width: 420px) {
+    .trafico-cal-dia {
+      min-height: 46px;
+      padding: 4px 5px;
+    }
+    .trafico-cal-dia > b {
+      font-size: 12.5px;
+    }
+  }
+}
+
+/* ---------- El pulso (actividad 2, ajustado a la maqueta el 2026-10-29) ----------
+   Una sola tarjeta: la franja de cinco cifras arriba (la elegida con fondo y su raya de 3 px), el gráfico y la lectura al costado sobre un
+   degradado de hueso. Bajo 1180 px de tarjeta, la franja va de a 3 y la lectura baja; bajo 640, de a 2. */
+@layer components {
+  .trafico-pulso {
+    container: pulso / inline-size;
+  }
+  .trafico-franja {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-bottom: 1px solid var(--color-sand);
+  }
+  .trafico-franja-cifra {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 18px 22px 14px;
+    border-right: 1px solid var(--color-sand);
+    text-align: left;
+    transition: background-color 200ms var(--ease-cayla);
+  }
+  .trafico-franja-cifra:last-child {
+    border-right: 0;
+  }
+  .trafico-franja-numero {
+    font-size: 40px;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+  @media (hover: hover) {
+    .trafico-franja-cifra:hover {
+      background: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+    }
+  }
+  .trafico-franja-cifra[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+  }
+  .trafico-franja-cifra[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 3px;
+    background: var(--color-tinta);
+  }
+  .trafico-pulso-cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+  .trafico-lectura {
+    border-left: 1px solid var(--color-sand);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 55%, transparent), transparent 70%);
+  }
+  @container pulso (max-width: 1180px) {
+    .trafico-franja {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .trafico-franja-cifra {
+      border-bottom: 1px solid var(--color-sand);
+    }
+    .trafico-pulso-cuerpo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .trafico-lectura {
+      border-top: 1px solid var(--color-sand);
+      border-left: 0;
+    }
+  }
+  @container pulso (max-width: 640px) {
+    .trafico-franja {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .trafico-franja-cifra {
+      padding: 14px 16px 10px;
+    }
+    .trafico-franja-cifra:last-child {
+      grid-column: 1 / -1;
+    }
+    .trafico-franja-numero {
+      font-size: 32px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trafico-franja-cifra,
+  .trafico-calor-celda,
+  .trafico-camino,
+  .trafico-mapa-dep,
+  .trafico-fila {
+    transition: none;
+  }
+  .trafico-puntos > .trafico-punto-on,
+  .trafico-punto-vivo::after {
+    animation: none;
+  }
+}

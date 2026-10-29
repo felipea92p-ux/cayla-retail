@@ -141,10 +141,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         ordenar([...actual, { id: datos.talla.id, valor: datos.talla.valor, activo: true, notas: datos.talla.notas, estado: datos.talla.estado }])
       );
       responsable.despues(null);
-      avisar.exito(
-        datos.talla.estado === "pendiente" ? `${datos.talla.valor} agregada — ya la puedes usar` : `Talla ${datos.talla.valor} agregada`,
-        datos.talla.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder la apruebe, pero eso no te frena." } : undefined
-      );
+      avisar.exito(`Talla ${datos.talla.valor} agregada`);
       setAgregando(false);
       setValor("");
     } catch {

@@ -41,6 +41,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DESHACER_TALLER_SELLO } from "./sello-taller-antes-de-cuenta.mjs";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const arg = (nombre, porDefecto) => {
@@ -64,6 +65,11 @@ const MIGRACION = sinCandadosDePegado(
     .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
     .join("\n"),
 );
+// ADR-0553: la base de hoy ya puede traer el sello del Taller con su sede (20261028065000); 20261015034000 parte de la sede nula. Se
+// deshace ese parche antes de pegar las migraciones viejas (`sello-taller-antes-de-cuenta.mjs`). Con `--con-migracion <archivo>` la
+// migración nueva se vuelve a pegar AL FINAL del preludio (es idempotente), para correr los casos sobre el estado final.
+const ARCHIVO_CON_MIGRACION = arg("--con-migracion", "");
+const CON_MIGRACION = ARCHIVO_CON_MIGRACION ? sinCandadosDePegado(readFileSync(ARCHIVO_CON_MIGRACION, "utf8")) : "";
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed): firma a su nombre sin marcar asistencia
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo, no es Admin (seed)
@@ -138,7 +144,9 @@ const PRELUDIO = `
 set client_min_messages = warning;
 begin;
 set local search_path = retail, public, extensions;
+${DESHACER_TALLER_SELLO}
 ${MIGRACION}
+${CON_MIGRACION}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
 insert into retail.proveedores_produccion (nombre, rubro) values ('Telas Recepción CI Prueba', 'tela') returning id as prov \\gset

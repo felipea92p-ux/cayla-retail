@@ -1,19 +1,15 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  NO_SU_PROPIA_VENTA,
   SIN_UNIDADES_LIBRES,
-  TU_PROPIA_VENTA,
   cargaParaLaFrase,
   cifrasPorRegularizar,
   coincideConBusqueda,
   estaVencida,
-  motivoPropiaVenta,
   notaSinUnidades,
   ordenarVentas,
   prendaSinCargar,
   resueltasDesde,
-  siguienteOrden,
   tipoDiferencia,
 } from "./por-regularizar-reglas";
 
@@ -111,17 +107,6 @@ describe("ordenarVentas", () => {
   });
 });
 
-describe("siguienteOrden", () => {
-  it("el mismo campo invierte", () => {
-    expect(siguienteOrden({ campo: "cobrado", dir: "desc" }, "cobrado")).toEqual({ campo: "cobrado", dir: "asc" });
-    expect(siguienteOrden({ campo: "cobrado", dir: "asc" }, "cobrado")).toEqual({ campo: "cobrado", dir: "desc" });
-  });
-  it("un campo nuevo arranca de mayor a menor, salvo la prenda (A–Z)", () => {
-    expect(siguienteOrden({ campo: "vendio", dir: "desc" }, "cobrado")).toEqual({ campo: "cobrado", dir: "desc" });
-    expect(siguienteOrden({ campo: "vendio", dir: "desc" }, "prenda")).toEqual({ campo: "prenda", dir: "asc" });
-  });
-});
-
 describe("coincideConBusqueda", () => {
   const f = { descripcion: "Polos · Vino · Talla Estándar", categoria: "Polos", talla: "Estándar", color: "Vino", vendidoPor: "Pamela Burgos", sede: "Tienda TRU", prendaReal: null, precioCobrado: 35 };
   it("sin nada escrito, todo coincide", () => expect(coincideConBusqueda(f, "  ")).toBe(true));
@@ -208,31 +193,5 @@ describe("notaSinUnidades — la nota en ámbar del puente", () => {
     expect(notaSinUnidades({ ...base, disponible: 0, cargada: undefined })).toBeNull();
     expect(notaSinUnidades({ ...base, disponible: 3, cargada: null })).toBeNull();
     expect(notaSinUnidades({ ...base, disponible: null, cargada: true })).toBeNull();
-  });
-});
-
-describe("motivoPropiaVenta — nadie regulariza su propia venta, salvo el líder firmando él mismo", () => {
-  const MIC = "micaela";
-  const LUC = "lucia";
-  const ROSA = "rosa";
-  const FEL = "felipe";
-  it("NO_SU_PROPIA_VENTA es, al carácter, la frase de la base", () => {
-    expect(MIGRACION).toContain(`raise exception '${NO_SU_PROPIA_VENTA}'`);
-  });
-  // Los mismos casos que la prueba SQL (C1–C14) le hace a `regularizar_prenda`; una terminal no tiene persona de sesión (`null`).
-  it.each([
-    ["C1 · Micaela, con su cuenta, su propia venta", { vendidoPorId: MIC, responsableId: MIC, personaSesionId: MIC, esLider: false }, TU_PROPIA_VENTA],
-    ["C2 · otra integrante con su cuenta", { vendidoPorId: MIC, responsableId: LUC, personaSesionId: LUC, esLider: false }, null],
-    ["C3 · el líder, su propia venta", { vendidoPorId: FEL, responsableId: FEL, personaSesionId: FEL, esLider: true }, null],
-    ["C4 · terminal, eligiéndose a sí misma", { vendidoPorId: MIC, responsableId: MIC, personaSesionId: null, esLider: false }, NO_SU_PROPIA_VENTA],
-    ["C5 · terminal, con Rosa en el combo", { vendidoPorId: MIC, responsableId: ROSA, personaSesionId: null, esLider: false }, null],
-    ["C7 · con su cuenta, nombrar a Lucía no la vuelve ajena", { vendidoPorId: MIC, responsableId: LUC, personaSesionId: MIC, esLider: false }, TU_PROPIA_VENTA],
-    ["C8 · sin quién la vendió registrado", { vendidoPorId: null, responsableId: MIC, personaSesionId: MIC, esLider: false }, null],
-    ["C12 · cuenta de líder abierta y Micaela (la que vendió) en el combo", { vendidoPorId: MIC, responsableId: MIC, personaSesionId: FEL, esLider: true }, NO_SU_PROPIA_VENTA],
-    ["C13 · el líder que vendió nombra a Lucía", { vendidoPorId: FEL, responsableId: LUC, personaSesionId: FEL, esLider: true }, null],
-    ["C14 · terminal, el nombre del líder que vendió", { vendidoPorId: FEL, responsableId: FEL, personaSesionId: null, esLider: false }, NO_SU_PROPIA_VENTA],
-    ["todavía sin nadie en el combo, venta ajena", { vendidoPorId: MIC, responsableId: null, personaSesionId: LUC, esLider: false }, null],
-  ] as const)("%s", (_, p, esperado) => {
-    expect(motivoPropiaVenta(p)).toBe(esperado);
   });
 });

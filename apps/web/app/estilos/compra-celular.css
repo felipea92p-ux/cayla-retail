@@ -24,10 +24,18 @@
   font-size: 17px;
   color: var(--color-tinta);
 }
+/* La misma, en chico (la tarjeta «Tu compra» de PC, 32 px). Va después de la grande: a igual fuerza, la última gana. */
+.compra-iniciales-chico {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 13px;
+}
 
 /* «Cerrar mi ronda»: la cuenta de la ronda como un cuaderno rayado (la maqueta). Cada renglón mide 44 px y la raya de arena cae
    bajo cada uno; el último, «Te queda», es más alto y va en la serif. La raya es de cada renglón: un rayado de fondo cada 44 px
-   cruzaba «Te queda» (52 px) cerca de su pie y el cuaderno se veía cortado. Sin `margin` propio: pisaba el aire de la hoja
+   cruzaba «Te queda» (52 px) cerca de su pie y el cuaderno se veía cortado. El alto es un MÍNIMO: con «Pusiste de tu bolsillo» y un monto
+   de S/ 1,000 o más, el nombre pasa a dos renglones y el renglón crece (a 375 px no cabía en uno). Sin `margin` propio: pisaba el aire de la hoja
    (`space-y-5`) y la pregunta de abajo quedaba pegada al cuaderno. */
 .compra-cuaderno {
   list-style: none;
@@ -41,8 +49,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 44px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 6px 16px;
   font-size: 14.5px;
   color: var(--color-tinta);
 }
@@ -50,7 +58,7 @@
   border-bottom: 1px solid var(--color-sand);
 }
 .compra-cuaderno > li.compra-cuaderno-fin {
-  height: 52px;
+  min-height: 52px;
   font-family: var(--font-serif);
   font-size: 22px;
 }
@@ -78,5 +86,173 @@
 @media (pointer: coarse) {
   .compra-atajo {
     min-height: 2.5rem;
+  }
+}
+
+/* «Mis envíos» (maqueta docs/maquetas/mis-compras-envios-2026-10/, Felipe 2026-10-26): el código del envío es lo más grande de su
+   hoja, en la serif, porque es lo que la compradora le dicta o le escribe a la tienda. */
+.envio-codigo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--color-hueso);
+  text-align: center;
+}
+.envio-codigo-numero {
+  font-family: var(--font-serif);
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+/* El código en una fila de la lista: la misma serif, chica, sin partirse. */
+.envio-codigo-fila {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La historia del envío en tres pasos: un punto por paso (verde si ya pasó, tinta el que está pasando, arena el que falta). */
+.envio-tiempo {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.envio-tiempo > li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  font-size: 13.5px;
+  color: var(--color-taupe);
+}
+.envio-tiempo > li::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--color-sand);
+}
+.envio-tiempo > li[data-paso="hecho"] {
+  color: var(--color-tinta);
+}
+.envio-tiempo > li[data-paso="hecho"]::before {
+  background: var(--color-verde);
+}
+.envio-tiempo > li[data-paso="ahora"] {
+  color: var(--color-tinta);
+  font-weight: 600;
+}
+.envio-tiempo > li[data-paso="ahora"]::before {
+  background: var(--color-tinta);
+}
+
+/* El vuelo de la prenda a «Tu compra» (Felipe 2026-10-28, ADR-0136 act. 2026-10-28; maqueta docs/maquetas/mis-compras-prendas-2026-10/):
+   al agregar, la miniatura sale de donde se anotó, cruza en arco con la curva del sistema y aterriza en su línea (en el celular, en la
+   barra de abajo); su línea se ilumina UNA vez y el recuadro hace un solo pulso. Sin rebote, sin bucle. Lo mueve `components/mi-plata/vuelo.ts`
+   (la trayectoria sale de `lib/vuelo-reglas.ts`); sin movimiento (`prefers-reduced-motion`) no vuela, solo se ilumina la línea. */
+.vuelo-x {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 90; /* sobre las hojas (z-50) y los avisos */
+  pointer-events: none;
+  will-change: transform;
+}
+.vuelo-y {
+  position: relative;
+  will-change: transform;
+}
+.vuelo-cuerpo {
+  border-radius: 12px;
+  overflow: hidden;
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--color-sombra) 30%, transparent));
+}
+/* La cantidad que viaja con la prenda, fuera del cuerpo (que recorta) para que no se corte. */
+.vuelo-cant {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-verde);
+  color: var(--color-crema-fija);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* Sin miniatura a la vista (una prenda nueva): una bola con la cantidad, del mismo verde. */
+.vuelo-bola {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--color-verde);
+  color: var(--color-crema-fija);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* La línea de «Tu compra» a la que aterriza la prenda: oculta mientras vuela (su lugar ya está reservado, nada se corre) y, al llegar,
+   se ilumina una vez. */
+.compra-linea-vuela > * {
+  visibility: hidden;
+}
+.compra-linea-llega {
+  animation: compra-llega 900ms var(--ease-cayla) both;
+  border-radius: 8px;
+}
+.compra-linea-llega > * {
+  animation: compra-llega-texto 320ms var(--ease-cayla) both;
+}
+@keyframes compra-llega {
+  from {
+    background: color-mix(in srgb, var(--color-verde) 22%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+@keyframes compra-llega-texto {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* El pulso del recuadro de «Tu compra» (y de la barra de abajo) cuando aterriza una prenda: un anillo que sale y se va, una vez. */
+.compra-pulso {
+  animation: compra-pulso 800ms var(--ease-cayla) both;
+}
+@keyframes compra-pulso {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-verde) 38%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-verde) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .compra-linea-llega,
+  .compra-linea-llega > *,
+  .compra-pulso {
+    animation: none;
   }
 }

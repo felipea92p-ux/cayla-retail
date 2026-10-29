@@ -27,6 +27,9 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { EnvioRecibido, type ResultadoEnvio as Resultado } from "@/components/EnvioRecibido";
 import { ResumenPrevioEnvio } from "@/components/ResumenPrevioEnvio";
+import { conDueno, faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -345,6 +348,11 @@ export function RecepcionEnvio({
   // Quién recibe (ADR-0161/0162): `recibir_envio` firma con esa persona, elegida entre quienes están de turno en la
   // ubicación a la que ENTRA la mercadería (la que se elige arriba), no en la sede de la cabecera.
   const responsable = useResponsable(ubicacionId ? { ubicacionId, etiqueta: ubicacionNombre || "esta ubicación" } : undefined);
+  // ADR-0542: en una sede donde operan dos empresas (Lima), quien recibe dice de quién es lo que entra. Sin respuesta de fábrica.
+  const empresasDeLaSede = useEmpresasDeSede(ubicacionId);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresasDeLaSede, duenoId);
   const proveedorPorDefecto = proveedoresEnvio[0]?.id ?? proveedores[0]?.id ?? "";
 
   // ---- la lista de la izquierda -------------------------------------------------------------------
@@ -669,6 +677,7 @@ export function RecepcionEnvio({
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
     if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
+    if (faltaDueno) return void avisar.error("Elige de quién es la mercadería: CAYLA o CLAURE.", { enfocar: "recibir-dueno" });
     // Un costo que no se entiende no viaja adivinado (ADR-0419): se dice y se lleva al campo.
     const extraIlegible = extras.findIndex((x) => !x.esRegalo && montoIlegible(x.costoUnitario));
     if (extraIlegible >= 0) {
@@ -727,7 +736,7 @@ export function RecepcionEnvio({
     // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante y los cierres se registran
     // juntos o no se registra nada. Con el mismo token, reintentar no duplica.
     const firma = responsable.firma();
-    const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
+    const { data, error, status } = await firmar(conDueno(supabase.rpc("recibir_envio", pedido), preguntaDueno ? duenoId : null), firma);
     cerrarProceso();
     setLoading(false);
     // Sin red (ADR-0210): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
@@ -740,6 +749,7 @@ export function RecepcionEnvio({
         rpc: "recibir_envio",
         params: pedido,
         firma,
+        dueno: preguntaDueno ? duenoId : null,
         resumen: [`Envío de ${que}`, documentos, ubicacionNombre].filter(Boolean).join(" · "),
       });
       setPedidoListo(null);
@@ -1147,6 +1157,12 @@ export function RecepcionEnvio({
                     />
                   ) : (
                     <CampoTexto etiqueta="Entra al almacén de" value={ubicacionNombre} readOnly />
+                  )}
+                  {preguntaDueno && empresasDeLaSede && (
+                    <div id="recibir-dueno" className="space-y-1.5">
+                      <p className="campo-etiqueta">¿De quién es la mercadería?</p>
+                      <ElegirDueno empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={loading} guia="recibir.envio-dueno" />
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @[44rem]:col-span-1 @[44rem]:border-l @[44rem]:border-t-0">

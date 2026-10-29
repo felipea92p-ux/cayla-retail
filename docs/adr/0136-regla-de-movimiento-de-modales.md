@@ -510,3 +510,65 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `prefers-reduced-motion` todo queda quieto (el sellado no espera). **Nada en bucle** (el hilo del botón ya era una excepción).
 - **Dónde vive:** `apps/web/app/estilos/ajuste-modelo.css`, `components/existencias/AjusteDelModelo.tsx` y `PanelTalla.tsx`; lo vigila
   `lib/ajuste-modelo-movimiento.test.ts`.
+
+## Actualización 2026-10-23 (d) — Tienda web ▸ Tráfico, la vitrina por miradas (ADR-0495), elegida por Felipe
+
+- **Qué:** las tarjetas de la pantalla suben en cascada con `anim-sube` (la del sistema); en la vitrina, cada baldosa crece desde casi su
+  tamaño en cascada (de la más mirada a la menos), su etiqueta de papel se cuelga girando a su lugar y, cuando ya están todas, una luz cruza
+  el mosaico una vez. Las barras del recorrido, de «De dónde vienen» y de las horas son `BarraAvance` y `BarrasTiempo`, con su propio
+  movimiento.
+- **Por qué se admite:** Felipe eligió la maqueta C «La vitrina» entre tres, con este movimiento (docs/maquetas/trafico-cero-2026-10/), y la
+  lista de actividades aprobada lo incluía.
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, cada pieza en 1,2 s o menos, solo tokens del tema, y con
+  `prefers-reduced-motion` todo queda quieto. **Un solo bucle, que es señal y no adorno:** el punto verde de «Ahora, N mirando» respira
+  (una onda que se abre cada 2,4 s) solo mientras alguien mira la tienda online; si nadie mira, el punto no se dibuja.
+- **Dónde vive:** `apps/web/app/estilos/trafico.css`, `components/trafico/` y lo vigila `lib/trafico-movimiento.test.ts`.
+
+## Actualización 2026-10-27 — El stock inicial se sella (ADR-0494, actividad 3)
+
+Dos movimientos de una sola vez, sin rebote ni bucle y apagados con «reducir movimiento»: **el sello de «Stock inicial»** de Nuevo producto (la
+pantalla de «Se creó…»: gira de 22° a −8° mientras baja de 1,7× a su tamaño, 780 ms con `--ease-cayla`) y **el destello del candado** de una variante
+que acaba de guardarse con sus unidades de partida (la caja pasa de ámbar a verde y el grillete se cierra, 900 ms). En «Agregar color / talla», la fila
+nueva de «Así quedará en la tabla» entra con `anim-revelar`. El sello (`.sello-stock-inicial`) vive en `app/estilos/alta-guia.css` y el candado
+(`.matriz-paso[data-sellada]`) en `app/estilos/ficha-taller.css`.
+
+
+## Actualización 2026-10-28 — la gota del aviso «Hay una versión nueva»: un rebote, con nombre propio
+
+Felipe pidió, mirando maquetas (`docs/maquetas/version-nueva-2026-10/gota.html`), que el aviso de versión nueva (ADR-0422) entre como una gota. Es una
+excepción a «sin rebote»: **la única pieza del ERP con un rebote, y es uno solo**, una vez al aparecer y otra al irse, sin bucle.
+
+- **Entrada (~2,2 s):** cae suave hasta lo más bajo de la sección del aviso, **rebota una vez** y sube suave al centro; desde ahí se riega como un
+  líquido —primero por el suelo, con la punta redonda, después sube el nivel ondulado— hasta ser la píldora; el texto aparece al final.
+- **Salida con la ✕ (1,45 s):** la entrada al revés: el texto se apaga, el nivel baja, el líquido se recoge al centro hasta ser una gota, que se desprende
+  y cae desvaneciéndose. «Más tarde» sigue callando 30 min.
+- **Cómo se hace:** círculos y columnas de borde redondo que un filtro SVG de «goteo» (`#liquido`, blur + contraste del alfa) funde en una masa blanda,
+  recortada por la forma de la píldora; `--m` (la mitad del ancho, medida al montar) hace que llegue a las paredes con cualquier texto. Detalle y tiempos
+  en `app/estilos/avisos.css`.
+- **Lo que lo mantiene discreto:** una vez, menos de 2,5 s, nunca en bucle, y con `prefers-reduced-motion` aparece y se va ya hecha.
+- **Se rompe si:** se publican muchas versiones por hora y la gota deja de ser una señal y pasa a ser ruido (ver ADR-0422, «Opciones»); o si alguien reutiliza
+  el rebote en otra pieza: esta excepción es solo del aviso. Pruebas: `lib/version-nueva-reglas.test.ts`.
+
+## Actualización 2026-10-28 (b) — El vuelo de la prenda a «Tu compra» en «Apunte de compras», pedido por Felipe
+
+Al agregar una prenda a una compra (Compras ▸ Mis compras ▸ Apunte de compras, paso «¿Qué le compraste?»), su miniatura sale de donde se tocó
+(el botón «Agregar» de la hoja, o su lugar en la lista si fue el «+ 9 como la vez pasada»), cruza en arco y aterriza en su línea de «Tu compra»
+(en el celular, en la barra negra de abajo). Es la respuesta a una acción del contenido, como el sello al guardar, pero **sale de la franja de
+200–500 ms** (dura 520–680 ms según la distancia), por eso se escribe aquí:
+
+- **Una vez, sin rebote, sin bucle.** Curva del sistema (`cubic-bezier(0.32, 0.72, 0.24, 1)` para lo que entra; el arco usa dos curvas suaves, una por eje).
+- **Mientras vuela**, «Tu compra» y la barra siguen diciendo lo de antes y la línea de la prenda ya tiene su lugar (nada se corre); **al aterrizar**,
+  la línea se ilumina una vez (900 ms), el recuadro hace un pulso (800 ms) y el total cuenta hasta la cifra nueva (520 ms).
+- **Corregir** una prenda que ya iba no vuela: solo cambia su línea.
+- **Con `prefers-reduced-motion` no vuela**: la línea y el total aparecen ya hechos.
+- **Dónde vive:** la trayectoria en `lib/vuelo-reglas.ts` (con prueba), el navegador en `components/mi-plata/vuelo.ts`, la cifra que cuenta en
+  `components/ui/useCifraQueCuenta.ts` y la forma en `app/estilos/compra-celular.css`. Maqueta elegida por Felipe mirando:
+  `docs/maquetas/mis-compras-prendas-2026-10/`.
+- **Se rompe si:** el vuelo se usa en una pantalla donde agregar es frecuente y rápido (un escáner, Vender): ahí sería ruido, no una señal. Esta excepción es solo de «Apunte de compras».
+
+## Actualización 2026-10-29 — Tienda web ▸ Tráfico, «Observatorio» (ADR-0568)
+
+La vitrina de baldosas de Tráfico (act. 2026-10-23 (d)) se fue: su cascada, la etiqueta que se cuelga y la luz que cruza ya no existen. Lo que
+queda propio de la pantalla: **los 100 puntos de «Hasta dónde llega la gente» se encienden una vez**, paso tras paso (90 ms) y punto tras punto
+(6 ms), 360 ms cada uno con `--ease-cayla`, sin rebote; y el único bucle sigue siendo la señal del punto verde de «N mirando ahora», que respira
+solo mientras alguien mira. Todo quieto con `prefers-reduced-motion`. Lo vigila `lib/trafico-movimiento.test.ts`.

@@ -94,7 +94,7 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 const montoEnFrase = (n: number) => <span className="whitespace-nowrap">{soles(n)}</span>;
 
 export default async function FondosPage() {
-  await exigirModulo("fondos");
+  const persona = await exigirModulo("fondos");
   const [{ fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla }, plataAnotada, revisar] = await Promise.all([
     getDatosFondos(),
     getPlataPorConfirmar(),
@@ -367,6 +367,7 @@ export default async function FondosPage() {
           proveedores={revisar?.proveedores ?? []}
           cuentas={opciones.cuentas}
           rondasAbiertas={revisar?.rondasAbiertas ?? []}
+          esLider={persona.rol === "lider"}
         />
       )}
 

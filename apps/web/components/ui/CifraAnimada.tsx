@@ -10,7 +10,17 @@ import { soles as solesRedondo } from "@/lib/flujo-caja-reglas";
  *  lector de pantalla lee siempre el valor final, nunca los números intermedios. */
 // `soles-redondo`: sin céntimos, como el resto de una pantalla que habla en soles enteros (el Resumen de Finanzas): la cifra
 // grande no puede decir «S/ 396.00» si la frase de al lado dice «S/ 396».
-export function CifraAnimada({ valor, formato = "entero" }: { valor: number; formato?: "entero" | "soles" | "soles-redondo" }) {
+type Props = { valor: number; formato?: "entero" | "soles" | "soles-redondo" };
+
+/** Con un valor nuevo se vuelve a armar desde cero (`key={valor}`). La cifra guarda el número que muestra en su estado y, al cambiar
+ *  la página de sede, React conserva ese estado: cuando el valor nuevo era 0 (o se pidió menos movimiento) el efecto de abajo no
+ *  anima y nadie actualizaba `mostrado`, así que Cuentas y dinero decía «Taller: S/ 209» con la plata de Lima (2026-10-28). Armarla
+ *  de nuevo lo resuelve para todo valor y para todas las pantallas que la usan, sin una excepción más dentro del efecto. */
+export function CifraAnimada(props: Props) {
+  return <CifraAnimadaDe key={props.valor} {...props} />;
+}
+
+function CifraAnimadaDe({ valor, formato = "entero" }: Props) {
   const [mostrado, setMostrado] = useState(valor);
 
   useEffect(() => {

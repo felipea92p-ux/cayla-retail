@@ -2,24 +2,15 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 128,
+  "total": 149,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
     ],
-    "components/AjustarInventarioModal.tsx": [
-      "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
-      "button «{o.texto}»",
-      "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
-      "BotonDescargar «Descargar reporte del ajuste»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
-    ],
     "components/BarraDeCambios.tsx": [
       "Boton «Descartar»",
       "Boton «Recargar la prenda»",
-      "Boton «Revisar y guardar»"
+      "Boton «editar.barra-guardar»"
     ],
     "components/ConfirmarCambios.tsx": [
       "ComboResponsable «{responsable}»",
@@ -143,14 +134,20 @@
       "button «{b.quitar.titulo}»",
       "button «{h.puede ? `Agregar ${donde}»",
       "button «{`${nombreElegida}»",
-      "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»",
-      "CampoTexto «{<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? \"hecho\" : \"falta\"}»",
-      "ComboResponsable «{stock.responsable}»"
+      "input «{`Precio de ${etiqueta}»",
+      "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»"
+    ],
+    "components/ficha-producto/NombreDelProveedor.tsx": [
+      "BotonEditar «Editar»",
+      "CampoTexto «Cómo lo llama el proveedor»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ],
     "components/ficha-producto/PanelDelTaller.tsx": [
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
       "input «(sin nombre)»",
       "button «{n.color(c)}»",
+      "Boton «Abrir la ficha»",
       "button «editar.falta»"
     ],
     "components/ficha-producto/PrecioSedeModal.tsx": [
@@ -163,13 +160,28 @@
       "CampoTexto «Por qué (opcional)»",
       "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar» #2",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
+      "CampoTexto «Por qué (opcional)» #2",
+      "ComboResponsable «{responsable}» #3",
+      "Boton «Cancelar» #3",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #3"
     ],
     "components/ficha-producto/PreciosPorSede.tsx": [
       "Boton «{textoPoner}»",
       "Boton «{`Cambiar el precio de ${f.sede}»",
       "Boton «{`Quitar el precio de ${f.sede}»",
-      "Boton «{`Poner un precio propio en ${f.sede}»"
+      "Boton «{`Poner un precio propio en ${f.sede}»",
+      "Boton «{`Quitar el precio de ${etiquetaDeVariante(t.varianteId)}»"
+    ],
+    "components/ficha-producto/PuertaAjustarStock.tsx": [
+      "Boton «Cancelar»",
+      "BotonEnlace «Ajustar stock»"
+    ],
+    "components/ficha-producto/QuitarVarianteHoja.tsx": [
+      "Boton «Cancelar»",
+      "BotonEnlace «Llevarlo a 0 en Existencias»",
+      "Boton «Cancelar» #2",
+      "Boton «Archivar»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
@@ -178,6 +190,10 @@
     "components/ficha-producto/SeccionFicha.tsx": [
       "button «{hecho ? \"✓\" : numero}»"
     ],
+    "components/ficha-producto/UnidadesDePartida.tsx": [
+      "button «+1 a todas»",
+      "button «En 0»"
+    ],
     "components/ficha-producto/piezas.tsx": [
       "ComboBuscable «{id}»",
       "input «0.00»",
@@ -185,6 +201,26 @@
       "button «Cancelar»",
       "button «{texto}»",
       "button «{fuera ? `${etiqueta}»"
+    ],
+    "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/FichaDeConsumoHoja.tsx": [
+      "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»",
+      "SegmentoDeslizante «Cuántas cifras»",
+      "CampoTexto «{`Talla ${t}»",
+      "CampoTexto «{variasTallas ? \"Todas las tallas\" : \"Metros por prenda\"}»",
+      "CampoSelect «Avío»",
+      "CampoSelect «Para»",
+      "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
+      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»",
+      "Boton «{oferta.etiqueta}»",
+      "Boton «Sí,»",
+      "Boton «Mejor no»"
     ]
   }
 }

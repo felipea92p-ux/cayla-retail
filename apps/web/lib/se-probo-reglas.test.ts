@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   MOTIVOS_PEDIDO,
-  OPCIONES_RAZON,
   RAZONES_SE_PROBO,
   TEXTO_MOTIVO,
   TEXTO_RAZON,
@@ -49,11 +48,6 @@ describe("textos", () => {
     for (const m of MOTIVOS_PEDIDO) expect(TEXTO_MOTIVO[m]).toBeTruthy();
     for (const r of RAZONES_SE_PROBO) expect(TEXTO_RAZON[r]).toBeTruthy();
     expect(new Set(Object.values(TEXTO_RAZON)).size).toBe(RAZONES_SE_PROBO.length);
-  });
-
-  it("las opciones de razón siguen el orden y los textos del spike (No le quedó, Precio, Color, Lo piensa)", () => {
-    expect(OPCIONES_RAZON.map((o) => o.valor)).toEqual(["no_le_quedo", "precio", "color", "lo_piensa"]);
-    expect(OPCIONES_RAZON.map((o) => o.texto)).toEqual(["No le quedó", "Precio", "Color", "Lo piensa"]);
   });
 
   it("describirMotivo: el motivo, y la razón en minúscula si la dijo", () => {

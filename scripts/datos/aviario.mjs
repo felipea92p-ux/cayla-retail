@@ -55,6 +55,9 @@ export const AVIARIO = [
       // ADR-0370: el precio propio de una tienda es de la PRENDA, uno por prenda y tienda (`precios_sede` por variante quedó como historia).
       // Está en producción desde el 2026-10-11 (20261011100000-100300). Refresco del volcado del 2026-10-11.
       "precios_sede_prenda",
+      // ADR-0370 (act. 2026-10-28): la excepción de precio de UNA talla en una tienda, encima del precio de la prenda. Pegada en producción
+      // el 2026-10-29 (20261028230000-234000). Asignada en el refresco del volcado del 2026-10-29.
+      "precios_sede_variante",
       // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
       "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
@@ -89,6 +92,10 @@ export const AVIARIO = [
       // rige en todas. Se edita desde la pantalla de Campañas, junto a la etiqueta y su diseño, que son de Loro; la caja solo la lee por
       // `campanas_vigentes(sede)`, como lee `etiquetas`. Asignada en el refresco del volcado del 2026-10-23.
       "campana_sedes",
+      // ADR-0488 (Configuración de una campaña, 20261023232000): las ofertas de una campaña (un % menos con fechas, días y, si se quiere, solo
+      // algunas categorías o sedes) y cómo estaban antes de cada cambio. Se manejan desde la hoja «Configuración» de Catálogo ▸ Insignias, junto
+      // a la etiqueta y su diseño, que son de Loro. Asignadas en el refresco del volcado del 2026-10-26.
+      "campana_reglas", "campana_regla_categorias", "campana_regla_sedes", "campana_regla_historial",
       // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
       // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
       // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
@@ -100,6 +107,11 @@ export const AVIARIO = [
   { n: "05", pajaro: "Halcón", modulo: "Inventario y movimientos",
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
+      // Las fotos del daño de una prenda dañada (ADR de «Dañadas», 20261029140739-141031): cuelgan de `prendas_danadas`, que ya es de Halcón.
+      // Asignada en el refresco del volcado del 2026-10-29.
+      "prendas_danadas_fotos",
+      // ADR-0542: lo de CLAURE del stock de una sede con dos empresas (Lima); CAYLA es el resto. Refresco del 2026-10-28.
+      "stock_dueno",
       "transferencias", "transferencia_items", "transferencia_recepciones",
       // ADR-0404: lo que una sede contó de MÁS al recibir un traslado, a revisar antes de entrar al stock. Es parte del traslado: mismo
       // pájaro. Está en producción desde el 2026-10-14; la asignó el refresco del volcado del 2026-10-15.
@@ -119,6 +131,14 @@ export const AVIARIO = [
       // aviso. Son de la recepción del envío, como `despacho_recibidos`: el pájaro del stock. Están en producción desde el 2026-10-14; las
       // asignó el refresco del volcado del 2026-10-15.
       "despacho_conteos", "despacho_pendientes", "despacho_separaciones", "despacho_cierres", "despachos_sin_aviso",
+      // ADR-0507: lo que la persona vio al contar un envío (prenda rota, faltante, manchada…): es de la recepción del envío, como
+      // `despacho_conteos`. Asignada en el refresco del volcado del 2026-10-26.
+      "despacho_observaciones",
+      // ADR-0515: la corrección que un líder hace al costo de lo que llegó en la ÚLTIMA compra de una prenda (solo se agrega). Cuelga de una
+      // fila de `costo_historial` —el libro del costo de lo que entró al stock, de este mismo pájaro— y no la reemplaza: la lee
+      // `fn_costo_historial_efectivo`. Se corrige desde la pestaña «Costo» del Historial de la prenda (Catálogo), pero el dato es del costo
+      // del stock, como `costo_historial`. En producción desde el 2026-10-26.
+      "costo_correcciones",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
       // Análisis v4 (ADR-0357, 20261006216000): «Liquidar desde», un número para toda la red (lo mueve quien ve Análisis).
@@ -207,6 +227,15 @@ export const AVIARIO = [
       "pedidos_web", "pedido_web_lineas", "pedido_web_pagos",
       "cuentas_web", "cuentas_web_pendientes", "cuentas_web_cambios_correo", "cuentas_web_intentos_clave", "cuentas_web_visitas",
       "favoritos_web", "esperas_web", "recomendaciones_web", "configuracion_tienda_web", "ubicacion_datos_web",
+      // ADR-0518 (Tienda web ▸ Conf. Tienda): el horario por días de cada tienda en la web y los días que no abre. Son de la tienda web, como
+      // `ubicacion_datos_web`. Asignadas en el refresco del volcado del 2026-10-26.
+      "ubicacion_horario_web", "ubicacion_cierres_web",
+      // ADR-0495 (Tienda web ▸ Tráfico): cada paso anónimo de una persona en la tienda online (entró, vio prenda, eligió talla, bolsa,
+      // separó), solo se agrega. Cuenta el embudo de los pedidos web: el mismo pájaro. Asignada en el refresco del volcado del 2026-10-26.
+      "trafico_web",
+      // ADR-0511 (paso 2): los tickets de Vender compartidos por la tienda (de una MacBook a un celular). Son del mostrador, como `ventas`.
+      // Asignada en el refresco del volcado del 2026-10-26.
+      "tickets_abiertos",
       // ADR-0008: la huella de las lecturas del padrón de la última hora, con que la base exige que el nombre de una ficha con DNI sea
       // el del padrón (20261015133000). Cuida `clientas.nombre`. Refresco del volcado del 2026-10-16.
       "padron_lecturas",
@@ -251,6 +280,10 @@ export const AVIARIO = [
       // (soles por tienda y día, desde los Excel «Sinatra»; solo la lee `fn_historial_ventas`, que pide el módulo del plan). Refresco del
       // 2026-10-12.
       "planes_compra_reparto", "ventas_historicas",
+      // Plan de campaña (ADR-0520 a ADR-0530): la historia de cada línea, las versiones del plan, el calendario, el paso 2 (modelos), los
+      // pagos y lo que se manda a Compras (`pedidos_campana`). Asignadas en el refresco del volcado del 2026-10-28.
+      "planes_compra_lineas_historial", "planes_compra_versiones", "plan_compra_calendario", "planes_compra_paso_2", "planes_compra_pagos",
+      "pedidos_campana", "pedidos_campana_lineas",
       // Órdenes de compra: el pedido que se le manda a un proveedor (generada o anulada), sus líneas y la versión anterior de cada edición, que
       // nunca se cambia. Están en producción y su migración TODAVÍA NO ESTÁ en el repo (ni en `main` ni en una rama): se encontraron en el
       // refresco del volcado del 2026-10-11 (docs/backlog/2026-10-11-diccionario-precios-tienda.md).
@@ -283,7 +316,10 @@ export const AVIARIO = [
       // (`fondo_plata_anotada`: nace «por confirmar» y Compras la confirma en «Revisar compras»). Todas se leen y escriben desde las pantallas de
       // Compras. Al confirmar una plata, la entrega al fondo pasa por `entregar_fondo` y escribe en los libros de Garza, pero escribir allí no
       // hace a Compras dueño de ellos (como escribir en `movimientos`). Asignadas en el refresco del volcado del 2026-10-23.
-      "compra_papeles", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada"] },
+      "compra_papeles", "compra_correcciones", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
+      // ADR-0480: la ronda de compras de una compradora (RC-000001): la abre, anota sus compras y gastos y la cierra. Se maneja desde
+      // Compras. Asignada en el refresco del volcado del 2026-10-26.
+      "compra_rondas"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
     tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos",
       // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de
@@ -311,7 +347,14 @@ export const AVIARIO = [
       // ADR-0400 (act. k y l): lo que se marcó «hecho» en una fase que no cuenta prendas (Ploteo). Es de las fases: el mismo pájaro.
       // Asignada en el refresco del volcado del 2026-10-21.
       "produccion_fase_marcas",
-      "produccion_vueltas", "produccion_vuelta_lineas", "producto_consumos", "proveedor_tarifas"] },
+      "produccion_vueltas", "produccion_vuelta_lineas", "producto_consumos", "proveedor_tarifas",
+      // ADR-0513: los avíos de un modelo y lo que de verdad se gastó por orden cerrada (lo declarado vive en `producto_consumos`). Los propone
+      // «Nueva orden» y los escribe `cerrar_produccion`: Producción. Asignadas en el refresco del volcado del 2026-10-26.
+      "producto_avios", "producto_consumo_medido",
+      // ADR-0554: la TELA (qué es y cómo se compra); sus colores son filas de `insumos`, que ya son de Gallito. La escriben `crear_material`, `agregar_colores_a_material`
+      // y `editar_material` desde Producción ▸ Insumos. En producción desde el 2026-10-28 (20261028175000). `producto_taller`: los ojales y botones de cada modelo
+      // (ADR-0551), que usa Producción. Asignadas en el refresco del volcado del 2026-10-28.
+      "materiales", "producto_taller"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la
@@ -356,7 +399,8 @@ export const AVIARIO = [
   // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá. `actividad` (ADR-0207) es el primero:
   // «quién hizo qué» de cada módulo, escrito por disparadores sobre ventas, caja, cambios y apartados, sin que ningún
   // módulo lo escriba a mano. Asignada en el refresco del volcado del 2026-09-26.
-  { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: ["actividad"] },
+  // ADR-0536 («Pregúntale a CAYLA»): en qué sedes está encendido, las preguntas y sus respuestas, y los informes del lunes. Refresco del 2026-10-28.
+  { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: ["actividad", "asistente_sedes", "asistente_preguntas", "asistente_informes"] },
   // ADR-0251: la llave de la revisión diaria de deriva (`huellas_catalogo`); no es dato del negocio. Refresco del 2026-09-28.
   { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: ["huellas_llave"] },
 ];

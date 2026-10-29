@@ -4,6 +4,9 @@
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
 import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
+// Reglas puras y relativas (no `./cuadre-piso`, que importa por alias `@/` y vitest no lo resuelve al probar este archivo).
+import { RPC_ESTADO, leerEstadoCuadre } from "./cuadre-piso-reglas";
+import type { CuadresPorSede } from "./cola-arranque-reglas";
 
 export type FilaPorRegularizar = {
   id: string;
@@ -26,13 +29,10 @@ export type FilaPorRegularizar = {
   categoriaFamilia: string | null;
   precioCobrado: number;
   vendidoPor: string;
-  /** Quién la vendió, como id de persona (`null` = no quedó registrado): la mesa avisa ANTES del botón que nadie regulariza su propia
-   *  venta (20261004204000, `motivoPropiaVenta`). */
-  vendidoPorId: string | null;
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
-  /** `cerrada_sin_prenda` (ADR-0334): un líder la dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
+  /** `cerrada_sin_prenda` (ADR-0334): se dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
   estado: "pendiente" | "regularizada" | "anulada" | "cerrada_sin_prenda";
   /** Solo cerrada (o anulada después de cerrada): por qué se cerró y cuándo. */
   cierre: { motivo: string; cerradoEn: string } | null;
@@ -81,7 +81,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
   const yaResueltas = [...exigir(resueltas, "las prendas ya regularizadas"), ...exigir(cerradas, "las ventas cerradas sin prenda")].sort(
     (a, b) => Date.parse(b.vendido_en) - Date.parse(a.vendido_en) || a.id.localeCompare(b.id),
   );
-  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o un líder cierra) justo entre las lecturas saldría en
+  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o alguien cierra) justo entre las lecturas saldría en
   // dos y se pintaría dos veces. Gana la resuelta, que es la más nueva. (En el sentido contrario, que no salga en ninguna, solo dura
   // hasta el siguiente refresco.)
   const idsResueltas = new Set(yaResueltas.map((f) => f.id));
@@ -120,7 +120,6 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     categoriaFamilia: f.categoria?.familia ?? null,
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
-    vendidoPorId: f.vendido_por ?? null,
     vendidoEn: f.vendido_en,
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",
@@ -163,4 +162,23 @@ export async function getPlazosColaArranque(): Promise<Record<string, string>> {
   const { data, error } = await supabase.from("cola_arranque_plazo").select("ubicacion_id, hasta");
   if (error || !data) return {};
   return Object.fromEntries(data.map((p) => [p.ubicacion_id, p.hasta]));
+}
+
+/**
+ * Cuándo se guardó el último cuadre del piso de cada tienda con ventas pendientes (`fn_cuadre_piso_estado.cuadrado_en`; ADR-0334 act.
+ * 2026-10-14, A6): cerrar la cola en bloque exige uno posterior a la última venta que se cierra. `null` = nunca se cuadró. Una tienda
+ * cuyo estado no se pudo leer NO entra al mapa: la pantalla no la juzga y la base vuelve a exigirlo al cerrar. Nunca lanza.
+ */
+export async function getUltimoCuadrePorSede(ubicacionIds: readonly string[]): Promise<CuadresPorSede> {
+  const unicas = [...new Set(ubicacionIds)];
+  if (unicas.length === 0) return {};
+  const supabase = await createClient();
+  const lecturas = await Promise.all(unicas.map((id) => supabase.rpc(RPC_ESTADO as never, { p_ubicacion_id: id } as never).then((r) => r, () => ({ data: null, error: { message: "sin leer" } }))));
+  const cuadres: Record<string, string | null> = {};
+  unicas.forEach((id, i) => {
+    const { data, error } = lecturas[i]! as { data: unknown; error: unknown };
+    const estado = error ? null : leerEstadoCuadre(data);
+    if (estado) cuadres[id] = estado.cuadradoEn;
+  });
+  return cuadres;
 }

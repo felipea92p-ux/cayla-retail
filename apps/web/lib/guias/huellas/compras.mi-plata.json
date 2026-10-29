@@ -2,8 +2,11 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 25,
+  "total": 55,
   "controles": {
+    "app/(app)/compras/mi-plata/page.tsx": [
+      "BotonVer «Mis envíos»"
+    ],
     "components/fondos/FichasCuenta.tsx": [
       "CampoSelect «{etiqueta}»",
       "button «→() => onValor(c.id)»"
@@ -29,14 +32,56 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/mi-plata/CodigoDeEnvio.tsx": [
+      "BotonCopiar «el código del envío»",
+      "BotonAncla «Compartir por WhatsApp»"
+    ],
+    "components/mi-plata/CorreccionesDeCompra.tsx": [
+      "BotonVerMas «Ver qué cambió»"
+    ],
+    "components/mi-plata/DetalleDeFila.tsx": [
+      "BotonEditar «Corregir esta compra»"
+    ],
+    "components/mi-plata/FilaEnvio.tsx": [
+      "button «{abierta && <HojaEnvio e={e}»"
+    ],
+    "components/mi-plata/HojaCorregirCompra.tsx": [
+      "button «{nombre}»",
+      "button «Papel y pago»",
+      "Boton «{revisando ? \"Seguir corrigiendo\" : \"Cancelar\"}»",
+      "Boton «{revisando ? \"Guardar la corrección\" : \"Revisar los cambios\"}»",
+      "Volver «→alVolver»",
+      "CampoTexto «Nombre»",
+      "CampoSelect «Categoría»",
+      "CampoSelect «Marca»",
+      "CampoSelect «Tienda a la que va»",
+      "CampoMonto «Costo c/u»",
+      "CampoMonto «Se vende a»",
+      "button «Dejar esta prenda como estaba»",
+      "Volver «→alVolver» #2",
+      "CampoMonto «Cuánto dice el papel»",
+      "CampoMonto «Lo que pagaste»",
+      "button «Que siga a las prendas otra vez»"
+    ],
     "components/mi-plata/ListaDelDia.tsx": [
       "button «{cara}»",
+      "button «{e.titulo}»",
       "button «→() => setAbierta(true)»",
-      "BotonVerMas «{`Ver ${historial.length}»"
+      "BotonVerMas «{`Ver ${resto.length}»",
+      "BotonVerMas «{`Ver ${historial.length}»",
+      "BotonVerMas «{`Ver ${guardadas.length}»"
     ],
     "components/mi-plata/MandarATienda.tsx": [
       "button «{guia}»",
+      "Boton «Mandar a la siguiente tienda (»",
+      "BotonVer «Ver mis envíos»",
       "Boton «{t === porMandar[0] ? \"mi-plata.mandar-uno\" : undefined}»"
+    ],
+    "components/mi-plata/ParaMandar.tsx": [
+      "Boton «mi-plata.mandar»"
+    ],
+    "components/mi-plata/TablaDeLaRonda.tsx": [
+      "button «{horaDeMovimiento(m) ?? \"—\"}»"
     ],
     "components/mi-plata/TarjetaFoto.tsx": [
       "input «(sin nombre)»"
@@ -46,6 +91,9 @@
       "button «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «mi-plata.terminar»"
+    ],
+    "components/mi-plata/UltimaRonda.tsx": [
+      "BotonVer «Ver lo que anoté»"
     ]
   }
 }

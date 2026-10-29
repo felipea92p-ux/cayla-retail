@@ -25,6 +25,8 @@ import {
   textoMontoAnotado,
   textoPorConfirmar,
   cuentaDeLaBilletera,
+  usoDeLaPlata,
+  totalesDeLaLista,
   desdeRonda,
   horaDeMovimiento,
   queHaraCompras,
@@ -33,6 +35,7 @@ import {
   textoFaltaMandar,
   movimientosDeLaCompradora,
   historialDeLaCompradora,
+  ultimaRondaDelHistorial,
   siglaTienda,
   detalleEnvio,
 } from "./mi-plata-reglas";
@@ -77,6 +80,20 @@ describe("leerMiPlata: lo que tiene para comprar es su fondo más lo por confirm
     expect(leerMiPlata({ persona: true, saldo: -40, por_confirmar: 100, anotada: [] })?.tiene).toBe(60);
   });
 
+  it("si faltan las cifras que componen «tienes» la lectura es null, no un cero que engaña (principio 9)", () => {
+    // Sin saldo o sin lo por confirmar (presentes desde la primera versión de la función): respuesta dañada.
+    expect(leerMiPlata({ persona: true, por_confirmar: 0, anotada: [] })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, anotada: [] })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: "roto", por_confirmar: 0 })).toBeNull();
+    // Una base con rondas ya manda lo comprado y lo gastado por completar: sin ellas, «tienes» saldría de más.
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, ronda: {} })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 120, ronda: {} })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, gastos_por_completar: 30, ronda: {} })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 0, gastos_por_completar: 0, ronda: {} })?.tiene).toBe(300);
+    // Una versión anterior a las rondas todavía se lee: lo que no existía en ella es cero de verdad.
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 50 })?.tiene).toBe(350);
+  });
+
   it("descarta lo ilegible sin caerse; sin persona (una terminal) no hay plata; sin datos, null", () => {
     expect(leerMiPlata({ persona: true, saldo: 0, por_confirmar: 0, anotada: [{ id: "x", medio: "cheque", monto: 1 }, null, 3] })?.anotada).toEqual([]);
     expect(leerMiPlata({ persona: false })).toMatchObject({ persona: false, tiene: 0 });
@@ -109,6 +126,9 @@ describe("«Ya tenía plata» solo la primera vez", () => {
   it("si ya no puede, elegirla no cuenta como hecho (la base la rechazaría)", () => {
     expect(camposAnotar({ medio: "ya_tenia", monto: "100" }, false, PERSONA)[0].hecho).toBe(false);
     expect(camposAnotar({ medio: "ya_tenia", monto: "100" }, true, PERSONA)[0].hecho).toBe(true);
+    // La plata que te dan llega hasta S/ 1 000 000 (la base); más, se dice en el campo.
+    expect(camposAnotar({ medio: "efectivo", monto: "1000000" }, false, PERSONA).find((c) => c.id === "monto")?.hecho).toBe(true);
+    expect(camposAnotar({ medio: "efectivo", monto: "1000001" }, false, PERSONA).find((c) => c.id === "monto")?.hecho).toBe(false);
   });
 });
 
@@ -238,7 +258,7 @@ describe("textos", () => {
 });
 
 describe("el resto del día de compras (actividad 5)", () => {
-  const BASE = { persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 120, anotada: [], compras: [] };
+  const BASE = { persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 120, gastos_por_completar: 0, anotada: [], compras: [] };
 
   it("lo gastado en otras cosas también bajó: tiene = fondo + por confirmar − compras − gastos (como fn_mi_plata_tiene)", () => {
     const p = leerMiPlata({
@@ -302,15 +322,11 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
   });
 
-  it("lee el cierre de hoy y descarta una decisión que no conoce", () => {
-    expect(leerMiPlata({ ...BASE, hoy: { cierre: { decision: "devuelve", monto: "80.00", resuelto: false } } })?.hoy.cierre).toEqual({
-      decision: "devuelve",
-      monto: 80,
-      resuelto: false,
-    });
-    expect(leerMiPlata({ ...BASE, hoy: { cierre: { decision: "regala", monto: 1 } } })?.hoy.cierre).toBeNull();
+  it("de «hoy» solo se lee el día (lo demás vive en la ronda abierta)", () => {
+    expect(leerMiPlata({ ...BASE, hoy: { fecha: "2026-10-23T05:00:00Z", dieron: 500 } })?.hoy).toEqual({ fecha: "2026-10-23" });
+    expect(leerMiPlata({ ...BASE })?.hoy).toEqual({ fecha: "" });
     expect(leerMiPlata(null)).toBeNull();
-    expect(leerMiPlata({ persona: false })?.hoy).toEqual({ fecha: "", dieron: 0, compraste: 0, compras: 0, gastaste: 0, cierre: null });
+    expect(leerMiPlata({ persona: false })?.hoy).toEqual({ fecha: "" });
   });
 
   it("qué se puede elegir al terminar: lo mismo que acepta terminar_dia_compras", () => {
@@ -334,6 +350,9 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(faltan({ concepto: "otro", nota: "x".repeat(121), monto: "15" })).toEqual(["nota"]);
     expect(faltan({ concepto: "otro", nota: "Candado", monto: "0" })).toEqual(["monto"]);
     expect(camposGasto({ concepto: "taxi", nota: "", monto: "15" }).find((c) => c.id === "foto")?.requerido).toBe(false);
+    // El tope de un gasto es el de la base (S/ 100 000): se dice en el campo, no al guardar.
+    expect(camposGasto({ concepto: "taxi", nota: "", monto: "100000" }).find((c) => c.id === "monto")?.hecho).toBe(true);
+    expect(camposGasto({ concepto: "taxi", nota: "", monto: "100000.01" }).find((c) => c.id === "monto")).toMatchObject({ hecho: false });
     expect(plano(fraseGasto(15))).toBe("Anotar S/ 15.00");
     expect(fraseGasto(null)).toBe("Anotar el gasto");
   });
@@ -366,7 +385,7 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
       { id: "c2", proveedor: "Andina", tipo: "boleta", monto: 99, estado: "completado", fecha: "2026-10-23", creado_en: "2026-10-23T15:05:00Z", prendas: 1, tiendas: ["LIM"], por_mandar: ["LIM"], ronda_id: "r" },
     ],
     gastos: [{ id: "g1", concepto: "taxi", monto: 12, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T09:40:00Z", con_foto: false, ronda_id: "r" }],
-    hoy: { fecha: "2026-10-23", dieron: 500, compraste: 624, compras: 2, gastaste: 12, cierre: null },
+    hoy: { fecha: "2026-10-23" },
     ronda: {
       abierta: { id: "r", texto: "RC-000003", abierta_en: "2026-10-23T08:00:00Z", compras: 2, prendas: 36, dieron: 500, compraste: 624, gastaste: 12 },
       ultima_cerrada: { texto: "RC-000002", cerrada_en: "2026-10-21T20:00:00Z", decision: "se_queda", monto: 0 },
@@ -386,6 +405,41 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect([rosa.detalle, rosa.estado.texto, rosa.estado.pendiente]).toEqual(["35 prendas · Factura · AQP", "Compras la revisa", true]);
     expect([yape.titulo, yape.detalle, yape.entra, yape.estado.texto]).toEqual(["Te yapearon", "Yape o Plin · con foto", true, "Compras la confirma"]);
     expect([taxi.titulo, taxi.icono, taxi.detalle, taxi.estado.texto]).toEqual(["Taxi", "taxi", "Sin papel", "Compras lo revisa"]);
+  });
+
+  it("una compra ya enviada dice su código (Mis envíos); si falta mandar algo, sigue diciendo a qué tienda", () => {
+    const codigos = new Map([["c1", ["ENV-000118", "ENV-000119"]], ["c2", ["ENV-000120"]]]);
+    const { actuales } = movimientosDeLaCompradora(p, codigos);
+    const [andina, , rosa] = actuales;
+    expect(rosa.detalle).toBe("35 prendas · Factura · enviada · ENV-000118, ENV-000119");
+    expect(andina.detalle).toBe("1 prenda · Boleta · falta mandar a LIM");
+  });
+
+  it("en la lista, lo del envío va en un chip (ámbar si falta mandar, verde si ya salió) y el resumen no lo repite; la hoja sigue con el detalle completo", () => {
+    const codigos = new Map([["c1", ["ENV-000118", "ENV-000119"]]]);
+    const { actuales } = movimientosDeLaCompradora(p, codigos);
+    const [andina, yape, rosa, taxi] = actuales;
+    expect([andina.envio, andina.resumen, andina.detalle]).toEqual([{ texto: "Falta mandar a LIM", tono: "ambar" }, "1 prenda · Boleta", "1 prenda · Boleta · falta mandar a LIM"]);
+    expect([rosa.envio, rosa.resumen]).toEqual([{ texto: "Enviada · ENV-000118, ENV-000119", tono: "verde" }, "35 prendas · Factura"]);
+    // Sin envío que decir (ni por mandar ni enviada con código), las tiendas se quedan en el resumen; la plata y el gasto no llevan chip de envío.
+    const sinCodigos = movimientosDeLaCompradora(p).actuales[2];
+    expect([sinCodigos.envio, sinCodigos.resumen]).toEqual([null, "35 prendas · Factura · AQP"]);
+    expect([yape.envio, yape.resumen, taxi.envio, taxi.resumen]).toEqual([null, "Yape o Plin · con foto", null, "Sin papel"]);
+  });
+
+  it("el pie de la lista suma lo que entró y lo que salió de la plata (no el texto de cada fila)", () => {
+    expect(totalesDeLaLista([])).toEqual({ entro: 0, salio: 0 });
+    expect(
+      totalesDeLaLista([
+        { entra: true, valor: 5700 },
+        { entra: false, valor: 198 },
+        { entra: false, valor: 0.1 },
+        { entra: false, valor: 0.2 },
+      ]),
+    ).toEqual({ entro: 5700, salio: 198.3 });
+    const { actuales } = movimientosDeLaCompradora(p);
+    const t = totalesDeLaLista(actuales);
+    expect(t.entro).toBeCloseTo(actuales.filter((m) => m.entra).reduce((s, m) => s + m.valor, 0), 2);
   });
 
   it("sin ronda: lo anotado después del último cierre va arriba; sin ningún cierre, lo de hoy; sin el día de la base, todo", () => {
@@ -410,6 +464,26 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     // 1000 de fondo + 500 por confirmar − 624 − 12 = 864; la ronda recibió 500, así que ya tenía 1000 al abrirla.
     expect(cuentaDeLaBilletera(p)).toEqual({ dieron: 500, compraste: 624, gastaste: 12, antes: p.tiene - 500 + 624 + 12 });
     expect(cuentaDeLaBilletera({ tiene: -40, ronda: { abierta: null, ultimaCerrada: null } })).toBeNull();
+  });
+
+  it("la barra de uso: lo usado contra lo que te dieron (y lo que ya tenías), redondeado hacia abajo, y sin base no se dibuja", () => {
+    // Los datos de la maqueta: te dieron 5,700, compraste 198, no gastaste: 3,47 % → «3 %».
+    expect(usoDeLaPlata({ dieron: 5700, compraste: 198, gastaste: 0, antes: 0 })).toEqual({ pct: 3, usado: 198, base: 5700, texto: "Usaste el 3 % de lo que te dieron" });
+    // Lo que ya tenías al abrir la ronda suma a la base y el texto lo dice.
+    expect(usoDeLaPlata({ dieron: 500, compraste: 624, gastaste: 12, antes: 1000 })).toEqual({ pct: 42, usado: 636, base: 1500, texto: "Usaste el 42 % de lo que tenías" });
+    // Si al abrir te debían (antes negativo), eso no suma a la base: no inventa plata.
+    expect(usoDeLaPlata({ dieron: 1000, compraste: 250, gastaste: 0, antes: -300 })?.base).toBe(1000);
+    // Hacia abajo: 99,9 % no es «100 %».
+    expect(usoDeLaPlata({ dieron: 1000, compraste: 999, gastaste: 0, antes: 0 })?.pct).toBe(99);
+    // Nada usado, casi nada, todo y de más.
+    expect(usoDeLaPlata({ dieron: 800, compraste: 0, gastaste: 0, antes: 0 })).toMatchObject({ pct: 0, texto: "Todavía no usas nada de lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 5000, compraste: 10, gastaste: 0, antes: 0 })).toMatchObject({ pct: 0, texto: "Usaste menos del 1 % de lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 100, compraste: 100, gastaste: 0, antes: 0 })).toMatchObject({ pct: 100, texto: "Ya usaste todo lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 100, compraste: 130, gastaste: 20, antes: 0 })).toMatchObject({ pct: 100, texto: "Ya usaste todo lo que te dieron" });
+    // Sin ronda (la cuenta es null) o sin nada dado ni de antes: no hay qué medir.
+    expect(usoDeLaPlata(null)).toBeNull();
+    expect(usoDeLaPlata({ dieron: 0, compraste: 50, gastaste: 0, antes: 0 })).toBeNull();
+    expect(usoDeLaPlata({ dieron: 0, compraste: 0, gastaste: 0, antes: -40 })).toBeNull();
   });
 
   it("el camino de la ronda: sin ronda 1.º; por mandar, 3.º; con compras y nada por mandar, 4.º; si no, 2.º", () => {
@@ -499,6 +573,9 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
   const p = leerMiPlata({
     persona: true,
     saldo: 0,
+    por_confirmar: 0,
+    compras_por_completar: 0,
+    gastos_por_completar: 0,
     anotada: [
       { id: "a1", medio: "yape_plin", monto: 500, estado: "confirmada", fecha: "2026-10-20", creado_en: "2026-10-20T09:00:00Z", ronda_id: "r1", ronda: "RC-000001" },
       { id: "a2", medio: "efectivo", monto: 200, estado: "por_confirmar", fecha: "2026-10-22", creado_en: "2026-10-22T09:00:00Z", ronda_id: "r2", ronda: "RC-000002" },
@@ -567,6 +644,31 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
       ["cierre-r5", "Te lo devolvieron"],
       ["ronda-r5", "22/10 · Sin compras ni gastos"],
     ]);
+  });
+
+  it("la última ronda se destaca con su cierre pegado y el resto queda sin ella (Felipe 2026-10-27)", () => {
+    const u = ultimaRondaDelHistorial(h)!;
+    expect(u.ronda.clave).toBe("ronda-r2");
+    // Devolvió S/ 80 y Compras todavía no lo recibe: manda la plata, no el estado de los libros.
+    expect([u.cierre?.clave, u.estado.texto, u.estado.pendiente, u.comoCerro]).toEqual(["cierre-r2", "Entrégalo en caja", true, `Devolviste en caja ${soles(80)}`]);
+    expect(u.resto.map((e) => e.clave)).toEqual(["plata-a2", "ronda-r1", "plata-a1", "ronda-sin-ronda"]);
+  });
+
+  it("sin plata que devolver, la última ronda dice cómo cerró o que Compras todavía revisa; sin rondas cerradas, nada", () => {
+    // RC-000001 se quedó con la plata y todo está en los libros.
+    const r1 = ultimaRondaDelHistorial(h.filter((e) => !["cierre-r2", "ronda-r2"].includes(e.clave)))!;
+    expect([r1.ronda.clave, r1.cierre, r1.estado, r1.comoCerro]).toEqual([
+      "ronda-r1",
+      null,
+      { texto: "Todo al día", detalle: "Compras ya pasó todo de esta ronda a los libros", pendiente: false },
+      `Te quedaste ${soles(200)} para tu próxima ronda.`,
+    ]);
+    // Algo sin pasar a los libros y ningún cierre aparte.
+    const sinCierre = ultimaRondaDelHistorial(h.filter((e) => e.clave !== "cierre-r2"))!;
+    expect([sinCierre.estado.texto, sinCierre.estado.pendiente]).toEqual(["Compras la revisa", true]);
+    // «Antes de las rondas» no es una ronda: no se destaca.
+    expect(ultimaRondaDelHistorial(h.filter((e) => e.clave === "ronda-sin-ronda"))).toBeNull();
+    expect(ultimaRondaDelHistorial([])).toBeNull();
   });
 
   it("sin la migración (sin `cerradas`), igual agrupa por ronda con el número de sus compras", () => {

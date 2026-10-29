@@ -4,6 +4,7 @@ import { getInsumosDelTaller } from "@/lib/insumos";
 import { RPC_ORDEN_PRODUCCION, RPC_TELA_PENDIENTE, leerOrdenPagina, numeroDeOrdenEnUrl, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { armarEdicionDeTela, type DatosEditarTela } from "@/lib/orden-tela-editar-reglas";
 import type { OpcionesNuevaOrden } from "@/lib/produccion";
+import { unstable_rethrow } from "next/navigation";
 
 // La página de una orden de producción (ADR-0400, actividad 3): lectura del servidor. Dos pasos: el número de la URL (`OP-000067`) se resuelve al id de la orden y `fn_orden_produccion`
 // trae TODO lo que la página dibuja (orden, fases, tela, costos, línea de tiempo y permisos) en una sola lectura. Si algo falla lo dice (principio 9): nunca una orden "vacía" que
@@ -79,6 +80,7 @@ export async function getEdicionDeTela(orden: OrdenPagina, opciones: OpcionesNue
       falla: false,
     };
   } catch (e) {
+    unstable_rethrow(e);
     console.error(`editar tela de ${orden.orden.numeroTexto}: ${e instanceof Error ? e.message : String(e)}`);
     return { datos: null, falla: true };
   }

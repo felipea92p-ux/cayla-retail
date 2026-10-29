@@ -154,8 +154,16 @@ describe("leer lo que está por recibir en la sede", () => {
       { id: "e1", numero: "ENV-000061", numero_guia: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"] },
     ]);
     expect(filas).toEqual([
-      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], creadoPorMi: false },
+      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", despachadoEn: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], creadoPorMi: false },
     ]);
+  });
+
+  it("lee cuándo salió el envío (`despachado_en`) tal como lo manda la base, y null si no lo manda", () => {
+    const filas = leerEnviosPorAbrir([
+      { id: "e1", numero: "ENV-000061", despachado_en: "2026-10-14T01:00:00+00:00" },
+      { id: "e2", numero: "ENV-000062", despachado_en: "" },
+    ]);
+    expect(filas.map((f) => f.despachadoEn)).toEqual(["2026-10-14T01:00:00+00:00", null]);
   });
 
   it("lee la forma de la fase 4 y descarta lo que no se puede recibir (cerrado, anulado, sin id o sin número)", () => {
@@ -230,6 +238,15 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
     expect(d.lotes).toEqual([]);
   });
 
+  it("lee cuántos fardos vienen (`bultos`); sin dato, o con un dato que no es un conteo, es «no se sabe» y nunca un cero", () => {
+    expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: 3 })!.bultos).toBe(3);
+    expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: "2" })!.bultos).toBe(2);
+    // La base de antes (sin la clave) y un envío armado en el escritorio (null): la pantalla no muestra nada.
+    expect(detalle.bultos).toBeNull();
+    expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: null })!.bultos).toBeNull();
+    for (const raro of [0, -1, 1.5, "", "dos", true, {}, []]) expect(leerDetalleEnvio({ ...DETALLE_FASE4, bultos: raro })!.bultos).toBeNull();
+  });
+
   it("un envío cerrado trae cómo se cerró; una fila rara se descarta", () => {
     const d = leerDetalleEnvio({
       ...DETALLE_FASE4,
@@ -255,6 +272,16 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
     expect(d.recibidos![0]).toMatchObject({ varianteId: "v-m-ne", prenda: "Chompa Aurora", cantidad: 10, danadas: 2, costoUnitario: 25 });
     expect(d.recibidos![1]).toMatchObject({ prenda: "Bolso", costoUnitario: 30, danadas: 0 });
     expect(d.diferencias).toEqual([{ despachoItemId: "di-1", extra: null, tipo: "faltante", causa: "no_vino", cantidad: 2, categoria: null, marca: null }]);
+  });
+
+  it("ADR-0517: lee si quien mira compró (aunque pueda recibirlo) y si lo cerró quien compró; una base sin las claves dice null", () => {
+    const d = leerDetalleEnvio({ ...DETALLE_FASE4, creado_por_mi: false, compro_quien_mira: true, recibio_quien_compro: true })!;
+    expect(d.creadoPorMi).toBe(false);
+    expect(d.comproQuienMira).toBe(true);
+    expect(d.recibioQuienCompro).toBe(true);
+    const sin = leerDetalleEnvio({ ...DETALLE_FASE4, compro_quien_mira: undefined, recibio_quien_compro: "si" })!;
+    expect(sin.comproQuienMira).toBeNull();
+    expect(sin.recibioQuienCompro).toBeNull();
   });
 
   it("sin envío (no existe o la respuesta no se entiende) es null", () => {

@@ -6,7 +6,7 @@
 //   su nombre automático y su frase; validar lo que la base valida (mismos mensajes en lo que importa) ANTES de ir a ella; y leer el
 //   cuerpo que manda la hoja a la API.
 // ASUME: fechas «AAAA-MM-DD» de Lima; días de la semana como ISO (1 = lunes … 7 = domingo), igual que la base (`isodow`).
-// NO HACE: no habla con la base ni decide permisos (eso es de la base: `fn_puede_campanas`, `fn_es_lider`).
+// NO HACE: no habla con la base ni decide permisos (eso es de la base: `fn_puede_campanas`; desde ADR-0534 ya no pide líder).
 // La regla de verdad vive en `supabase/migrations/20261023232000_campana_reglas_de_precio.sql`; una prueba la ata (`campana-reglas.test.ts`).
 
 import { fechaCorta } from "./etiqueta-vigencia";
@@ -174,7 +174,7 @@ export function textoDiasCorto(dias: readonly number[]): string {
 
 export type VigenciaRegla = "borrador" | "programada" | "vigente" | "terminada" | "retirada";
 
-/** Borrador (espera a un líder), programada (empieza después), vigente (hoy cae en sus fechas), terminada o retirada. */
+/** Borrador (guardada sin activar), programada (empieza después), vigente (hoy cae en sus fechas), terminada o retirada. */
 export function vigenciaDeRegla(r: Pick<ReglaCampana, "estado" | "desde" | "hasta">, hoy: string): VigenciaRegla {
   if (r.estado === "desactivada") return "retirada";
   if (r.estado === "borrador") return r.hasta < hoy ? "terminada" : "borrador";
@@ -350,7 +350,7 @@ export type CuerpoGuardarOferta = {
   categoriasFuera: string[];
   sedeIds: string[];
   incluyeClaure: boolean;
-  /** Solo un líder activa; quien no lo es la guarda como borrador. */
+  /** Activarla ya (rige desde su fecha) o dejarla como borrador; lo hace quien tiene la llave de campañas (ADR-0534). */
   activar: boolean;
 };
 

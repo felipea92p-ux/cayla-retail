@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
-import { CarrilConFlechas } from "@/components/CarrilConFlechas";
+import { EscenarioDelDesfile } from "@/components/desfile/EscenarioDelDesfile";
+import { ListaDeSalidas } from "@/components/desfile/ListaDeSalidas";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
@@ -23,7 +24,8 @@ import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
-import { heroDelInicio } from "@/lib/inicio";
+import { piezasDelDesfile } from "@/lib/desfile";
+import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
@@ -101,6 +103,10 @@ export default async function Inicio({ searchParams }: Props) {
   // El diseño de la campaña que anuncia la portada (la misma que la franja): viste el héroe y el sello de sus prendas; sin él, todo como siempre.
   const diseno = await leerDisenoDeCampana(campana?.nombre);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
+  // Lo que llegó hace menos, con foto primero: las salidas del desfile (hasta 6) y las filas de su programa (hasta 8) siguen el mismo orden y la misma numeración.
+  const nuevas = lasNuevas(prendas);
+  // Sin nada que llegara hace menos de 30 días el programa sigue (Felipe 2026-10-27): lista lo que hay en la tienda, el mismo orden del desfile.
+  const delPrograma = nuevas.length > 0 ? nuevas : lasEnVitrina(prendas);
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
   const ofertaElegida = campanas.find((c) => c.id === leerCampana(sp.oferta)) ?? null;
@@ -122,6 +128,16 @@ export default async function Inicio({ searchParams }: Props) {
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
       <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      {/* Con una campaña vigente la portada es la de la campaña y el desfile baja a su propia sección (ADR-0524); sin campaña, el desfile ES la portada. */}
+      {hero.tipo === "campana" && nuevas.length > 0 && (
+        <EscenarioDelDesfile
+          piezas={piezasDelDesfile(nuevas, sede, origenFotos)}
+          modo="seccion"
+          ceja="Llegó en los últimos 30 días"
+          titulo="Lo nuevo"
+          boton={{ texto: "Ver lo nuevo", href: lista("nuevo") }}
+        />
+      )}
 
       {catalogo === null ? (
         <div className="t-ancho">
@@ -136,32 +152,27 @@ export default async function Inicio({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          {nuevos.length > 0 && (
-            <section className="t-sec t-ancho" aria-labelledby="lo-nuevo">
-              <div className="t-sec-cab">
-                <div>
-                  <h2 id="lo-nuevo">
-                    Lo <em>nuevo</em>
-                  </h2>
-                </div>
-                <Link className="t-ver" href={lista("nuevo")}>
-                  Ver todo <b>{nuevos.length}</b>
-                  <Icono nombre="flecha" />
+          {delPrograma.length > 0 && (
+            <section className="t-programa-sec t-ancho" aria-labelledby="lo-nuevo">
+              <div className="t-cab-centro" data-revela>
+                <span className="t-ceja">El programa</span>
+                <h2 id="lo-nuevo">
+                  En las <em>tiendas</em>
+                </h2>
+                <p>Lo que llegó a nuestras tiendas. Mira cuánto hay en cada una y sepáralo sin pagar.</p>
+              </div>
+              <ListaDeSalidas piezas={piezasDelDesfile(delPrograma, sede, origenFotos, 8)} />
+              <div className="t-programa-pie">
+                <Link className="t-btn t-btn-sec" href={nuevas.length > 0 ? lista("nuevo") : hrefLista({ sede, categoria: null, orden: "destacado" })}>
+                  {nuevas.length > 0 ? `Ver las ${nuevos.length} salidas` : "Ver toda la tienda"}
                 </Link>
               </div>
-              <CarrilConFlechas className="t-carril-inicio">
-                <div className="t-carril">
-                  {nuevos.slice(0, 10).map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo diseno={diseno} />
-                  ))}
-                </div>
-              </CarrilConFlechas>
             </section>
           )}
 
           {looks.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="arma-tu-look">
                     Arma tu <em>look</em>
@@ -172,7 +183,7 @@ export default async function Inicio({ searchParams }: Props) {
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-looks-inicio">
+              <div className="t-looks-inicio" data-revela-lista>
                 {looks.slice(0, 3).map((l) => (
                   <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
                 ))}
@@ -211,7 +222,7 @@ export default async function Inicio({ searchParams }: Props) {
 
           {vendidos.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="mas-vendidos">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="mas-vendidos">
                     Más <em>vendidos</em>

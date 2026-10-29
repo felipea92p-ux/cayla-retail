@@ -11,7 +11,6 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { BotonVerMas } from "@/components/ui/VerMas";
-import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Volver } from "@/components/ui/Volver";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
@@ -19,10 +18,10 @@ import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampa
 import type { CategoriaOpcion, Etiqueta } from "@/components/EtiquetasLista";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { CampoDeGuia } from "@/lib/guia-campos";
-import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nombreBajoCosto, objecionVigencia, parsearFecha, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
+import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
 import { ejemplosDeCaja, piezasDelMosaico } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
-import { avisoDiaDeSemana, fechaCorta, repetirTemporada, textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { fechaCorta, repetirTemporada, textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import {
   DIAS_SEMANA,
   PORCENTAJES_RAPIDOS,
@@ -68,8 +67,9 @@ import {
    cada respuesta (la misma de la hoja de la campaña, ADR-0488, con el resumen de la oferta). El cuándo y las prendas ya vienen contestados
    con lo más común; las tiendas no (se marcan una por una); quien ya sabe usa el atajo de la pregunta 1.
    ASUME: hoy solo existe «Un % menos» (los otros 14 tipos de la maqueta cambian dinero en la caja y llegan después: se ven apagados con
-   «Pronto»). Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien no es líder deja un borrador; un líder
-   la activa (la base vuelve a exigirlo). Guardar y activar van por /api/productos/campana-reglas; la base valida todo otra vez.
+   «Pronto»). Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de
+   campañas y activa, cambia y retira sin esperar a un líder (ADR-0534; la base vuelve a exigir la llave). Guardar y activar van por
+   /api/productos/campana-reglas; la base valida todo otra vez.
    NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (solo se retira desde «Ya registradas»).
    ==================================================================== */
 
@@ -105,7 +105,6 @@ export function OfertasHoja({
   sedeActualId,
   prendasConCosto,
   variantesManuales,
-  esLider,
   hoy,
   puedeDarDescuento,
   alGuardarCampana,
@@ -122,8 +121,6 @@ export function OfertasHoja({
   sedeActualId: string | null;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
-  /** Un líder activa y cambia lo que ya rige; los demás dejan borradores. */
-  esLider: boolean;
   hoy: string;
   /** Quien configura la campaña puede ponerle su descuento de siempre (si no, el formulario no lo ofrece). */
   puedeDarDescuento: boolean;
@@ -182,23 +179,13 @@ export function OfertasHoja({
   const [regsAb, setRegsAb] = useState(false);
   const [retirando, setRetirando] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
-  // Lo poco que la campaña misma tiene (sus fechas, su descuento de siempre y el límite de tiendas de antes) se toca aquí, con las mismas
-  // puertas de siempre (`PATCH /api/productos/etiquetas`). Todo lo demás —cuánto baja, en qué prendas, en qué tiendas y cuándo— es de cada oferta.
+  // Lo poco que la campaña misma tiene aquí (su descuento de siempre y el límite de tiendas de antes) se toca con las mismas puertas de
+  // siempre (`PATCH /api/productos/etiquetas`). Sus FECHAS ya no se cambian aquí sino en «Editar» de su pase (Felipe 2026-10-28). Todo lo
+  // demás —cuánto baja, en qué prendas, en qué tiendas y cuándo— es de cada oferta.
   const router = useRouter();
   const repeticion = useMemo(() => repetirTemporada(campDesde, campHasta, hoy), [campDesde, campHasta, hoy]);
-  // Una campaña que ya pasó abre con las fechas del año que viene puestas, como abría «Repetir»; se guardan solo con «Guardar fechas».
-  const [editandoFechas, setEditandoFechas] = useState(() => repeticion !== null);
-  const [fDesde, setFDesde] = useState(() => (repeticion ? repeticion.desde : campDesde) ?? "");
-  const [fHasta, setFHasta] = useState(() => (repeticion ? repeticion.hasta : campHasta) ?? "");
   const [guardandoCampana, setGuardandoCampana] = useState(false);
   const [retirandoDescuento, setRetirandoDescuento] = useState(false);
-  const fechasOk = parsearFecha(fDesde).ok && parsearFecha(fHasta).ok && fDesde !== "" && fHasta !== "" && !objecionVigencia(fDesde, fHasta);
-  const avisoDia = editandoFechas && repeticion ? avisoDiaDeSemana(repeticion, { desde: fDesde, hasta: fHasta }) : null;
-  function abrirFechas(repetir: boolean) {
-    setFDesde((repetir && repeticion ? repeticion.desde : campDesde) ?? "");
-    setFHasta((repetir && repeticion ? repeticion.hasta : campHasta) ?? "");
-    setEditandoFechas(true);
-  }
   async function guardarCampana(parche: Partial<Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "sedeIds">>, titulo: string) {
     setGuardandoCampana(true);
     const nueva = {
@@ -227,7 +214,6 @@ export function OfertasHoja({
       const reimprimir = avisoReimprimir(cambian, destino !== null);
       avisar.exito(titulo, reimprimir ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined } : undefined);
       alGuardarCampana(nueva);
-      setEditandoFechas(false);
       setRetirandoDescuento(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -351,7 +337,7 @@ export function OfertasHoja({
     const cuando = o.desde > hoy ? `desde el ${sinPunto(fechaCorta(o.desde))}` : "desde ahora";
     if (activar) avisar.exito("Oferta activada", { detalle: `«${nombre}» rige ${cuando} en caja y en la tienda web.` });
     else if (o.id) avisar.exito("Cambios guardados", { detalle: "Valen desde ahora; lo que ya se vendió se queda como estaba." });
-    else avisar.exito("Oferta guardada como borrador", { detalle: esLider ? "Actívala cuando quieras que empiece a bajar el precio." : "Un líder la activa para que empiece a bajar el precio." });
+    else avisar.exito("Oferta guardada como borrador", { detalle: "Actívala cuando quieras que empiece a bajar el precio." });
     reiniciar();
   }
 
@@ -731,7 +717,7 @@ export function OfertasHoja({
             )}
             {diasSueltos && rige && rige.rige > 0 && (
               <Aviso tono="info" chico titulo="El papel colgado no cambia cada día">
-                {esLider ? "Antes de activarla, decide qué dirá la etiqueta de precio." : "Antes de que un líder la active, decidan qué dirá la etiqueta de precio."}
+                Antes de activarla, decide qué dirá la etiqueta de precio.
               </Aviso>
             )}
           </div>
@@ -895,9 +881,7 @@ export function OfertasHoja({
           <span className="of-falta">
             {edita && estadoEdita === "activa"
               ? "Vale desde ahora; lo que ya se vendió se queda como estaba."
-              : esLider
-                ? `Todo listo: actívala (cambia el precio ${cuando}) o déjala como borrador.`
-                : "Queda como borrador: un líder la activa."}
+              : `Todo listo: actívala (cambia el precio ${cuando}) o déjala como borrador.`}
           </span>
         );
       }
@@ -908,15 +892,13 @@ export function OfertasHoja({
         </Boton>
       ) : (
         <>
-          <Boton peso={esLider ? "fantasma" : "primario"} disabled={!ok || guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
+          <Boton peso="fantasma" disabled={!ok || guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
             {edita ? "Guardar cambios" : "Guardar como borrador"}
           </Boton>
-          {esLider && (
-            <Boton peso="primario" disabled={!ok || guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
-              <Check aria-hidden className="mr-1 inline h-4 w-4" />
-              Activar
-            </Boton>
-          )}
+          <Boton peso="primario" disabled={!ok || guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
+            <Check aria-hidden className="mr-1 inline h-4 w-4" />
+            Activar
+          </Boton>
         </>
       );
     }
@@ -940,7 +922,6 @@ export function OfertasHoja({
     const v = vigenciaDeRegla(r, hoy);
     const chip = CHIP_ESTADO[v];
     const viva = r.estado !== "desactivada" && v !== "terminada";
-    const puedeCambiarla = viva && (r.estado === "borrador" || esLider);
     const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio) : "";
     const datos = [`−${pct(r.porcentaje)} %`, `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
     const confirmando = retirando === r.id;
@@ -951,8 +932,8 @@ export function OfertasHoja({
           className="of-reg"
           aria-current={o.id === r.id ? "true" : undefined}
           data-recien={recien === r.id ? "" : undefined}
-          disabled={!puedeCambiarla}
-          title={puedeCambiarla ? "Toca para editarla" : viva ? "Solo un líder cambia una oferta que ya rige" : undefined}
+          disabled={!viva}
+          title={viva ? "Toca para editarla" : undefined}
           onClick={() => editar(r)}
         >
           <b>{r.nombre}</b>
@@ -975,17 +956,14 @@ export function OfertasHoja({
         </button>
         {viva && !confirmando && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {r.estado === "borrador" && esLider && (
+            {r.estado === "borrador" && (
               <Boton peso="fantasma" className="btn-chico" cargando={trabajando === r.id} textoCargando="Activando…" onClick={() => activarRegla(r)}>
                 Activar
               </Boton>
             )}
-            {r.estado === "borrador" && !esLider && <span className="of-espera">espera a un líder</span>}
-            {(r.estado === "borrador" || esLider) && (
-              <button type="button" className="btn-cayla btn-enlace text-xs" disabled={trabajando === r.id} onClick={() => setRetirando(r.id)}>
-                Retirar
-              </button>
-            )}
+            <button type="button" className="btn-cayla btn-enlace text-xs" disabled={trabajando === r.id} onClick={() => setRetirando(r.id)}>
+              Retirar
+            </button>
           </div>
         )}
         {viva && confirmando && (
@@ -1072,12 +1050,12 @@ export function OfertasHoja({
     >
       {(cerrar) => (
         <div className="mt-4 space-y-4" data-guia="sellos.ofertas">
-          <div className="of-camp">
+          <div className="of-camp" data-guia="sellos.ofertas-campana">
             <Chip tono="neutro" versalitas={false}>
               La campaña
             </Chip>
             <span>
-              {terminada && campHasta ? `Terminó el ${sinPunto(fechaCorta(campHasta))}` : campDesde && campHasta ? `Rige del ${sinPunto(fechaCorta(campDesde))} al ${sinPunto(fechaCorta(campHasta))}` : "Sin fechas todavía"} ·{" "}
+              {terminada && campHasta ? `Terminó el ${sinPunto(fechaCorta(campHasta))}` : campDesde && campHasta ? `Rige del ${sinPunto(fechaCorta(campDesde))} al ${sinPunto(fechaCorta(campHasta))}` : "Sin fechas todavía (ponlas desde «Editar» en su pase)"} ·{" "}
               {plural(contarPrendas(prendasCampana), "prenda", "prendas")} a la venta
             </span>
             {etiqueta.sedeIds.length > 0 && (
@@ -1090,45 +1068,11 @@ export function OfertasHoja({
                 </button>
               </>
             )}
-            {!editandoFechas && (
-              <button type="button" className="btn-cayla btn-enlace of-camp-ir text-xs" onClick={() => abrirFechas(terminada && repeticion !== null)} data-guia="sellos.ofertas-campana">
-                {terminada && repeticion ? `Repetir en ${repeticion.anio}` : "Cambiar fechas"}
-              </button>
-            )}
           </div>
 
-          {editandoFechas && (
-            <div className="space-y-3">
-              <div className="of-fechas">
-                <CampoFecha etiqueta="La campaña empieza" valor={fDesde} onValor={setFDesde} />
-                <CampoFecha etiqueta="La campaña termina" valor={fHasta} onValor={setFHasta} tono={fDesde && fHasta && objecionVigencia(fDesde, fHasta) ? "error" : undefined} pie={fDesde && fHasta ? (objecionVigencia(fDesde, fHasta) ?? undefined) : undefined} />
-              </div>
-              {avisoDia && repeticion?.mismoDia && (
-                <Aviso tono="info" chico titulo={avisoDia.titulo}>
-                  {avisoDia.detalle}{" "}
-                  {avisoDia.modo === "sumando-un-anio" ? (
-                    <button type="button" className="btn-cayla btn-enlace text-xs" onClick={() => { setFDesde(repeticion.mismoDia?.desde ?? ""); setFHasta(repeticion.mismoDia?.hasta ?? ""); }}>
-                      {avisoDia.boton}
-                    </button>
-                  ) : (
-                    <BotonDeshacer onClick={() => { setFDesde(repeticion.desde ?? ""); setFHasta(repeticion.hasta ?? ""); }} />
-                  )}
-                </Aviso>
-              )}
-              <div className="pie-acciones">
-                <Boton peso="fantasma" onClick={() => setEditandoFechas(false)} disabled={guardandoCampana}>
-                  Cancelar
-                </Boton>
-                <Boton peso="primario" cargando={guardandoCampana} disabled={!fechasOk} onClick={() => guardarCampana({ vigenteDesde: fDesde, vigenteHasta: fHasta }, `${etiqueta.nombre} actualizada`)}>
-                  Guardar fechas
-                </Boton>
-              </div>
-            </div>
-          )}
-
-          {terminada && !editandoFechas && (
+          {terminada && (
             <Aviso tono="atencion" titulo="Esta campaña ya terminó">
-              {repeticion ? `Para ponerle ofertas, repítela en ${repeticion.anio}: se le pasan las fechas al año que viene.` : "Para ponerle ofertas, primero cámbiale las fechas."}
+              {repeticion ? `Para ponerle ofertas, repítela en ${repeticion.anio} desde «Editar» en su pase: ahí se le pasan las fechas al año que viene.` : "Para ponerle ofertas, primero cámbiale las fechas desde «Editar» en su pase."}
             </Aviso>
           )}
 

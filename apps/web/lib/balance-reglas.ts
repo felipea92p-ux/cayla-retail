@@ -289,6 +289,17 @@ export function solesBalance(v: number): string {
   return `${v < 0 && !cero ? "−" : ""}S/\u00a0${cuerpo}`;
 }
 
+/**
+ * La cifra exacta, con céntimos si los tiene: la que el líder tiene que escribir para que el arranque cuadre. Con
+ * `solesBalance` una diferencia de 67,928.73 se leía «S/ 67,929»; quien la copiaba seguía sin poder guardar.
+ */
+export function solesExactos(v: number): string {
+  const centimos = Math.round(Math.abs(v) * 100);
+  if (centimos % 100 === 0) return solesBalance(v);
+  const cuerpo = (centimos / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${v < 0 ? "−" : ""}S/\u00a0${cuerpo}`;
+}
+
 /** «7,2 % al mes» (coma decimal, como el resto de Reportes). */
 export function textoRinde(r: number | null): string {
   if (r == null || !Number.isFinite(r)) return "—";
@@ -327,6 +338,7 @@ const NOMBRE_LINEA: Record<string, string> = {
   "421": "Facturas por pagar",
   "451": "Tarjeta de crédito",
   "47": "Préstamo del dueño (por devolver)",
+  "4699": "Por liquidar a CLAURE (lo vendido de su mercadería)",
   "122": "Adelantos de clientes",
   "50": "Capital",
   "52": "Aportes del dueño",
@@ -362,6 +374,7 @@ export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion"
   }
   if (l.cuenta === "4011" && l.seccion === "pasivo") return "los pagos a SUNAT todavía no se registran: por ahora solo sube";
   if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
+  if (l.cuenta === "4699") return "lo vendido de la mercadería de CLAURE, a su costo: los pagos a CLAURE todavía no se registran, por ahora solo sube";
   return null;
 }
 

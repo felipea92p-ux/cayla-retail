@@ -53,7 +53,7 @@ export const MAX_PRENDAS_PARA_RECIBIR = 30;
 
 /** El aviso de costo atípico de la recepción (`recibir_despacho`): el detalle viene en JSON en `details`. */
 export const HINT_COSTO_ATIPICO_RECEPCION = "recepcion_costo_atipico";
-/** Decisión 17: quien hizo una de las órdenes del envío no lo recibe (ni el líder). */
+/** Decisión 17: quien hizo una de las órdenes del envío no lo recibe (ni el líder; solo un Admin, ADR-0517). */
 export const HINT_QUIEN_COMPRO = "recibir_quien_compro";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -62,7 +62,11 @@ export const HINT_QUIEN_COMPRO = "recibir_quien_compro";
 
 export type CausaFaltante = "no_vino" | "se_perdio" | "otra_sede";
 /** `reposicion` (fase 5a): lo de más es lo que el proveedor debía de una recepción anterior. Solo se ofrece si lo debe (`opcionesSobrante`). */
-export type CausaSobrante = "regalo" | "cobra_aparte" | "proxima_compra" | typeof VALOR_REPOSICION;
+export type CausaSobrante = "regalo" | "cobra_aparte" | "proxima_compra" | typeof VALOR_REPOSICION | typeof VALOR_OTRO;
+/** «Otro» (Felipe 2026-10-28): lo de más tuvo una causa que no está en la lista; quien cierra la cuenta en una línea (la nota de la línea, hasta 300 letras). Solo se
+ *  ofrece al CERRAR un conteo (`cerrar_conteo_envio`); el formulario de la fase 4 (`recibir_despacho`) sigue con las tres de siempre. */
+export const VALOR_OTRO = "otro";
+export const OPCION_OTRO = { valor: VALOR_OTRO, texto: "Otro", ayuda: "Pasó otra cosa: cuéntala en una línea." } as const;
 /** Una dañada con arreglo queda en cuarentena esperando; sin arreglo, en cuarentena para liquidar, regalar, desechar o devolver. */
 export type SolucionDanada = "pendiente" | "sin_solucion";
 
@@ -88,7 +92,7 @@ export const SOLUCIONES_DANADA: readonly { valor: SolucionDanada; texto: string;
 export const textoCausa = (causa: string | null | undefined): string | null =>
   causa === VALOR_REPOSICION
     ? "Reposición de lo que faltó"
-    : ([...CAUSAS_FALTANTE, ...CAUSAS_SOBRANTE].find((c) => c.valor === causa)?.texto ?? (causa ? causa.replace(/_/g, " ") : null));
+    : ([...CAUSAS_FALTANTE, ...CAUSAS_SOBRANTE, OPCION_OTRO].find((c) => c.valor === causa)?.texto ?? (causa ? causa.replace(/_/g, " ") : null));
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Lectores tolerantes
@@ -131,6 +135,8 @@ export type EnvioPorAbrir = {
   numero: string;
   numeroGuia: string | null;
   estado: Extract<EstadoEnvio, "en_camino" | "abierto">;
+  /** El INSTANTE en que salió el envío (`despachado_en`, ISO): la tabla lo lee en Lima y ordena por él. `null` si la base no lo manda. */
+  despachadoEn: string | null;
   unidades: number;
   lineas: number;
   ordenes: string[];
@@ -155,6 +161,7 @@ export function leerEnviosPorAbrir(data: unknown): EnvioPorAbrir[] {
         numero,
         numeroGuia: texto(r.numero_guia),
         estado,
+        despachadoEn: texto(r.despachado_en),
         unidades: Math.max(0, cifra(r.unidades) ?? 0),
         lineas: Math.max(0, cifra(r.lineas) ?? 0),
         ordenes: lista(r.ordenes).map(numeroDeOrden).filter((x): x is string => !!x),
@@ -193,6 +200,11 @@ export function leerOrdenesDirectas(data: unknown): OrdenDirecta[] {
 
 /** Lo que se dice en vez del botón cuando quien mira hizo la orden (decisión 17). */
 export const TEXTO_LA_RECIBE_OTRA = "La recibe otra persona: tú hiciste la orden";
+
+/** ADR-0517: un Admin sí recibe lo que él mismo compró; antes de contar se le avisa que va a quedar anotado. */
+export const TEXTO_COMPRASTE_Y_LO_RECIBES = "Compraste esto tú: lo puedes recibir porque eres Admin";
+/** ADR-0517: lo que ve cualquiera en un envío cerrado por quien hizo la compra (y quien revisa las compras, en su ficha). */
+export const TEXTO_LO_RECIBIO_QUIEN_COMPRO = "Lo recibió quien hizo la compra";
 
 // ---- Un envío por dentro (`fn_envio_detalle`) ---------------------------------------------------------------------------------------
 
@@ -277,6 +289,9 @@ export type DetalleEnvio = {
   version: number;
   /** Cuántas prendas vienen en total. */
   enviado: number;
+  /** Cuántos fardos (paquetes) entregó la compradora al transporte (ADR-0480). `null` = nadie lo dijo: un envío de antes o armado en el
+   *  escritorio, o una base que todavía no manda `bultos`. La pantalla no muestra nada en ese caso, nunca un «0 fardos». */
+  bultos: number | null;
   lineas: LineaEnvio[];
   /** Solo en un envío cerrado; `null` si la base todavía no lo dice. */
   recibidos: RecibidoEnvio[] | null;
@@ -285,8 +300,12 @@ export type DetalleEnvio = {
   lotes: string[];
   /** En un envío cerrado: el resumen de cómo se cerró (`recepcion`, el mismo que devuelve `recibir_despacho`). */
   recepcion: ResultadoRecepcion | null;
-  /** Si la base lo dice: quien mira hizo alguna de sus órdenes (decisión 17). */
+  /** Si la base lo dice: a quien mira, Recibir le cierra este envío porque hizo alguna de sus órdenes (decisión 17). Un Admin no queda aquí. */
   creadoPorMi: boolean | null;
+  /** ADR-0517: quien mira hizo alguna de sus órdenes, sea Admin (la puede recibir) o no. `null` = la base todavía no lo dice. */
+  comproQuienMira: boolean | null;
+  /** ADR-0517: el envío está cerrado y lo cerró quien hizo alguna de sus órdenes (un Admin recibió lo que él mismo compró). */
+  recibioQuienCompro: boolean | null;
   /** Lo que los proveedores del envío deben por reponer, por categoría y marca (fase 5a, `deudas_del_proveedor`): con esto se ofrece «Es la
    *  reposición de lo que faltó». `null` = la base todavía no lo dice (la recepción sigue sin esa opción). */
   deudas: DeudaDelEnvio[] | null;
@@ -440,6 +459,7 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     motivoAnulacion: texto(d.motivo_anulacion),
     version: cifra(d.version) ?? 1,
     enviado: cifra(d.unidades) ?? lineas.reduce((a, l) => a + l.enviado, 0),
+    bultos: fardosDe(d.bultos),
     lineas,
     recibidos,
     diferencias,
@@ -450,9 +470,17 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     ],
     recepcion,
     creadoPorMi: booleano(d.creado_por_mi),
+    comproQuienMira: booleano(d.compro_quien_mira),
+    recibioQuienCompro: booleano(d.recibio_quien_compro),
     deudas: leerDeudasDelEnvio(d.deudas_del_proveedor ?? d.deudas),
     papeles: lista(d.papeles).map(leerPapel).filter((x): x is PapelDelEnvio => x !== null),
   };
+}
+
+/** Los fardos que dijo la base: un entero de 1 en adelante (la base los limita de 1 a 99); cualquier otra cosa es «no se sabe». */
+function fardosDe(v: unknown): number | null {
+  const n = cifra(v);
+  return n !== null && Number.isInteger(n) && n >= 1 ? n : null;
 }
 
 /** Los proveedores del envío (uno por línea, sin repetir), en el orden en que aparecen. Con dos o más, lo que no estaba en la guía dice de cuál es. */
@@ -1237,9 +1265,11 @@ export const TEXTO_QUIEN_COMPRO =
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
 const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden)_[a-z_]+$/;
-/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4); con la cara A el botón es «Abrir el fardo». El texto vive en nueve
- *  lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se traduce aquí, por su pista, en vez de tocarlo allá. */
-export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se abrió: ábrelo primero y después cuenta.";
+/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4). La cara A (ADR-0393) lo llamó «Abrir el fardo» y el aviso se traducía; con
+ *  varios fardos por envío que se abren por partes, «abrir el fardo» ya no decía qué hacía el botón y volvió a ser «Empezar a recibir»
+ *  (ADR-0480, 2026-10-26). El texto vive en nueve lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se dice aquí, por su
+ *  pista, en vez de tocarlo allá. */
+export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se empezó a recibir: pulsa «Empezar a recibir» primero y después cuenta.";
 
 export function mensajeDeLaRecepcion(error: { message?: string | null; hint?: string | null } | null | undefined): string | null {
   if (!error?.message) return null;

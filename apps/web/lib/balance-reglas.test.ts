@@ -26,6 +26,7 @@ import {
   notaLinea,
   situacion,
   solesBalance,
+  solesExactos,
   textoRinde,
   tituloChequeo,
   tituloCorte,
@@ -182,6 +183,10 @@ describe("cifras, fechas y nombres", () => {
     expect(solesBalance(-0.4)).toBe("−S/\u00a00.40");
     expect(solesBalance(0)).toBe("S/\u00a00");
     expect(solesBalance(-0.2)).toBe("−S/\u00a00.20");
+    // La diferencia del arranque se escribe tal cual: con sus céntimos, aunque sea grande.
+    expect(solesExactos(67928.73)).toBe("S/\u00a067,928.73");
+    expect(solesExactos(-67928.7)).toBe("−S/\u00a067,928.70");
+    expect(solesExactos(67929)).toBe("S/\u00a067,929");
   });
   it("cuánto rinde, con coma decimal", () => {
     expect(textoRinde(0.0721)).toBe("7,2 % al mes");
@@ -208,6 +213,8 @@ describe("cifras, fechas y nombres", () => {
     expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 400, en_transito: 0 } }))).toBe("incluye S/\u00a0400 facturado por recibir");
     expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 0, en_transito: 0 } }))).toBeNull();
     expect(notaLinea(linea({ cuenta: "4011", seccion: "pasivo" }))).toContain("SUNAT");
+    expect(notaLinea(linea({ cuenta: "4699", seccion: "pasivo" }))).toContain("CLAURE");
+    expect(nombreDeCuenta("4699", "x")).toContain("CLAURE");
   });
   it("agrupa y suma: lo que tiene contra lo que debe + lo tuyo", () => {
     const g = agrupar([

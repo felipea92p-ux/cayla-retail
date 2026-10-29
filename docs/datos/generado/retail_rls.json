@@ -29,6 +29,21 @@
   "relkind": "r",
   "rls": true
  },
+ "asistente_informes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "asistente_preguntas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "asistente_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "avisos_bandeja": {
   "forzado": false,
   "relkind": "r",
@@ -85,6 +100,26 @@
   "rls": true
  },
  "campana_efecto_caja": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_categorias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_reglas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -284,6 +319,11 @@
   "relkind": "r",
   "rls": true
  },
+ "compra_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "compra_gastos": {
   "forzado": false,
   "relkind": "r",
@@ -350,6 +390,11 @@
   "rls": false
  },
  "compra_reasignaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_rondas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -430,6 +475,11 @@
   "rls": true
  },
  "conteos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "costo_correcciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -520,6 +570,11 @@
   "rls": false
  },
  "despacho_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_observaciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -759,6 +814,11 @@
   "relkind": "r",
   "rls": true
  },
+ "materiales": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "medios_de_cobro": {
   "forzado": false,
   "relkind": "r",
@@ -874,6 +934,16 @@
   "relkind": "r",
   "rls": true
  },
+ "pedidos_campana": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pedidos_campana_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "pedidos_no_atendidos": {
   "forzado": false,
   "relkind": "r",
@@ -904,6 +974,11 @@
   "relkind": "r",
   "rls": true
  },
+ "plan_compra_calendario": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planes_compra": {
   "forzado": false,
   "relkind": "r",
@@ -914,7 +989,27 @@
   "relkind": "r",
   "rls": true
  },
+ "planes_compra_lineas_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planes_compra_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planes_compra_paso_2": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planes_compra_reparto": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planes_compra_versiones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -954,12 +1049,22 @@
   "relkind": "r",
   "rls": true
  },
+ "precios_sede_variante": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "preferencias_colaborador": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "prendas_danadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_danadas_fotos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1044,7 +1149,17 @@
   "relkind": "r",
   "rls": true
  },
+ "producto_avios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "producto_color_temporadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_consumo_medido": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1060,6 +1175,11 @@
   "rls": true
  },
  "producto_origen": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_taller": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1209,6 +1329,11 @@
   "relkind": "r",
   "rls": true
  },
+ "stock_dueno": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "sububicaciones": {
   "forzado": false,
   "relkind": "r",
@@ -1239,6 +1364,11 @@
   "relkind": "r",
   "rls": true
  },
+ "tickets_abiertos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "tienda_push_envios": {
   "forzado": false,
   "relkind": "r",
@@ -1250,6 +1380,11 @@
   "rls": true
  },
  "tipos_activo": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "trafico_web": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1274,12 +1409,22 @@
   "relkind": "r",
   "rls": true
  },
+ "ubicacion_cierres_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ubicacion_datos_fiscales": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "ubicacion_datos_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ubicacion_horario_web": {
   "forzado": false,
   "relkind": "r",
   "rls": true

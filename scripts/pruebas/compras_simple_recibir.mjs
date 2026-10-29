@@ -5,6 +5,8 @@
  * QUÉ PROMETE
  *   · El detalle del envío de una compra anotada desde el celular trae sus papeles (de quién, qué papel, la foto y quién compró), sin montos.
  *   · Cada línea trae la prenda del catálogo que eligió la compradora; una prenda sin catálogo viene sin ella.
+ *   · El detalle dice cuántos fardos mandó la compradora (`bultos`, 20261026214000); si nadie lo dijo, la clave viene en null. La migración se
+ *     detiene sin tocar nada si falta la columna (la función es plpgsql: sin ella, cada lectura de un envío fallaría).
  *   · Quien tiene Recibir lee las fotos de `papeles/`, pero no los vouchers (`plata/`) ni los gastos (`gastos/`); sin Recibir ni Compras,
  *     nada.
  *
@@ -29,6 +31,12 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261023121000_compras_simple_recibir_con_la_foto.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
+// Los fardos en el detalle (20261026214000): se pega después de la anterior, que es la que deja `fn_envio_detalle` con sus papeles.
+const MIGRACION_FARDOS = readFileSync(join(RAIZ, "supabase", "migrations", "20261026214000_envio_detalle_con_fardos.sql"), "utf8").replace(
   /^set lock_timeout.*$/gm,
   "",
 );
@@ -64,6 +72,8 @@ const PRELUDIO = `
 begin;
 ${MIGRACION}
 ${MIGRACION}
+${MIGRACION_FARDOS}
+${MIGRACION_FARDOS}
 ${RONDA}
 ${RONDA}
 ${RONDAS_ABIERTAS}
@@ -84,7 +94,7 @@ select retail.registrar_compra_rapida('aaaaaaaa-0480-4000-8000-0000000006a1', cu
   jsonb_build_object('producto_id', current_setting('t.p1')::uuid, 'cantidad', 6, 'costo', 40, 'precio_venta', 99.90, 'destino_id', current_setting('t.tru')::uuid),
   jsonb_build_object('descripcion', 'Polera capucha prueba', 'categoria_id', current_setting('t.cat')::uuid, 'marca_id', current_setting('t.marca')::uuid, 'cantidad', 3, 'costo', 30, 'destino_id', current_setting('t.tru')::uuid))) \\g /dev/null
 ${como(FELIPE, "compra_mandar")}
-select retail.mandar_compras_a_tienda(current_setting('t.tru')::uuid, 1, 'aaaaaaaa-0480-4000-8000-0000000006b1') ->> 'despacho_id' as envio \\gset
+select retail.mandar_compras_a_tienda(current_setting('t.tru')::uuid, 3, 'aaaaaaaa-0480-4000-8000-0000000006b1') ->> 'despacho_id' as envio \\gset
 select set_config('t.envio', :'envio', true) \\g /dev/null
 `;
 
@@ -134,6 +144,30 @@ insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'existencias');
 ${como(MICAELA, null)}
 select retail.fn_puede_ver_foto_gasto_viaje('papeles/x.jpg');`,
   "t|f|f / f",
+);
+
+caso(
+  "quien recibe ve cuántos fardos mandó la compradora",
+  `${como(MICAELA, null)}
+select d ->> 'bultos', jsonb_typeof(d -> 'bultos') from retail.fn_envio_detalle(current_setting('t.envio')::uuid) d;`,
+  "3|number",
+);
+
+caso(
+  "un envío donde nadie dijo cuántos fardos eran trae la clave en null, no un cero",
+  `reset role;
+update retail.despachos set bultos = null where id = current_setting('t.envio')::uuid;
+${como(MICAELA, null)}
+select d ? 'bultos', jsonb_typeof(d -> 'bultos') from retail.fn_envio_detalle(current_setting('t.envio')::uuid) d;`,
+  "t|null",
+);
+
+caso(
+  "sin la columna de fardos la migración se detiene antes de cambiar la función (no la deja rota)",
+  `reset role;
+alter table retail.despachos drop column bultos;
+${MIGRACION_FARDOS}`,
+  (o) => o.startsWith("ERROR:") && o.includes("Falta retail.despachos.bultos"),
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

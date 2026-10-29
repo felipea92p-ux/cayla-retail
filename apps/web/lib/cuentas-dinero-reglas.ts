@@ -440,20 +440,42 @@ export function cuentasVisibles(cuentas: readonly CuentaDinero[], ubicacionId: s
   return cuentas.filter((c) => !c.archivada && !c.soloDestino && (c.ubicacionId === null || ubicacionId === null || c.ubicacionId === ubicacionId));
 }
 
+/** Las sedes que solo guardan la cuenta de sus TRANSFERENCIAS: el Taller no cobra a clientes, pero paga a sus proveedores
+ *  por transferencia y «Sale de» propone la cuenta que se eligió aquí. Se reconocen por lo que la base les devuelve
+ *  (`fn_medios_de_cobro` lista al Taller solo con ese medio), sin que la web conozca el tipo de ubicación: si la base aún
+ *  no lo lista (migración sin pegar), la función devuelve un conjunto vacío y todo se ve como siempre. */
+export function idsSoloTransferencia(medios: readonly Pick<FilaMedio, "ubicacionId" | "medio">[]): Set<string> {
+  const conOtroMedio = new Set(medios.filter((m) => m.medio !== "transferencia").map((m) => m.ubicacionId));
+  return new Set(medios.filter((m) => !conOtroMedio.has(m.ubicacionId)).map((m) => m.ubicacionId));
+}
+
 /** «Yape de TRU y AQP · transferencias»: qué cobros entran hoy a una cuenta, dicho en palabras (sale de `medios_de_cobro`). */
 export function textoRecibe(cuenta: Pick<CuentaDinero, "id">, medios: readonly FilaMedio[]): string | null {
-  const tiendas = [...new Set(medios.map((m) => m.ubicacionId))];
+  const soloTransferencia = idsSoloTransferencia(medios);
+  // «Las N tiendas» cuenta las sedes que cobran con todos los medios: el Taller (solo transferencia) no es una tienda.
+  const tiendas = [...new Set(medios.map((m) => m.ubicacionId).filter((id) => !soloTransferencia.has(id)))];
   // Como en el spike: lo que llega de todas las tiendas va primero («Plin de las 3 tiendas · Yape de LIM») y las
   // transferencias al final («Yape de TRU y AQP · transferencias»).
   const partes: { texto: string; orden: number }[] = [];
   for (const medio of MEDIOS_COBRO) {
     const aqui = medios.filter((m) => m.medio === medio && m.cuentaId === cuenta.id);
     if (!aqui.length) continue;
-    const todas = aqui.length === tiendas.length && tiendas.length > 1;
     const de = listaY(aqui.map((m) => corto(m.ubicacionNombre)));
     const nombre = medio === "tarjeta" ? "tarjeta" : TEXTO_MEDIO_COBRO[medio];
-    if (medio === "transferencia") partes.push({ texto: todas || tiendas.length === 1 ? "transferencias" : `transferencias de ${de}`, orden: 2 });
-    else partes.push({ texto: todas ? `${nombre} de las ${tiendas.length} tiendas` : `${nombre} de ${de}`, orden: todas ? 0 : 1 });
+    if (medio === "transferencia") {
+      // Lo que ENTRA por transferencia es de las tiendas; el Taller no cobra: de esa cuenta SALEN sus pagos a proveedores, y se dice así.
+      const deTiendas = aqui.filter((m) => !soloTransferencia.has(m.ubicacionId));
+      const deTaller = aqui.filter((m) => soloTransferencia.has(m.ubicacionId));
+      if (deTiendas.length) {
+        const todas = deTiendas.length === tiendas.length && tiendas.length > 1;
+        const lista = listaY(deTiendas.map((m) => corto(m.ubicacionNombre)));
+        partes.push({ texto: todas || tiendas.length === 1 ? "transferencias" : `transferencias de ${lista}`, orden: 2 });
+      }
+      if (deTaller.length) partes.push({ texto: `pagos de ${listaY(deTaller.map((m) => corto(m.ubicacionNombre)))}`, orden: 3 });
+    } else {
+      const todas = aqui.length === tiendas.length && tiendas.length > 1;
+      partes.push({ texto: todas ? `${nombre} de las ${tiendas.length} tiendas` : `${nombre} de ${de}`, orden: todas ? 0 : 1 });
+    }
   }
   if (!partes.length) return null;
   const t = [...partes].sort((a, b) => a.orden - b.orden).map((p) => p.texto).join(" · ");

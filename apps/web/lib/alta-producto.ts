@@ -100,12 +100,6 @@ export function codigoVariantePrevisto(base: string, colorCodigo: string | null,
   return base + (colorCodigo ? `-${colorCodigo}` : "") + `-${tokenTalla(tallaValor)}`;
 }
 
-/** Posiciones cuyo código ya apareció antes en la lista (la primera aparición no cuenta: es la que se queda). `null` =
- *  código todavía desconocido, nunca repetido. Dos variantes con el mismo código no caben (`variantes_codigo_unico`). */
-export function codigosRepetidos(codigos: readonly (string | null)[]): number[] {
-  return codigos.flatMap((c, i) => (c !== null && codigos.indexOf(c) !== i ? [i] : []));
-}
-
 /** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. `pantoneTcx`: el código para pedir la tela
  *  («19-2039 TCX»); el círculo es una aproximación en pantalla y el código es la referencia real. Null en los metálicos.
  *  `tipo`: `colores.tipo` («solido» | «textura» | «estampado»); `fondoDeMuestra` lo usa para que «Gris melange» no se pinte como «Gris».
@@ -210,6 +204,11 @@ export type EstadoAlta = {
    *  (Felipe 2026-10-04, ADR-0328). Con «almacén» marcado de antemano, TRU se cargó casi entera como guardada estando colgada:
    *  el sistema veía 138 en el piso y había 600–750, la caja no dejaba cobrar lo colgado y «Reponer» marcaba todas las tallas. */
   lugarCarga: LugarCarga | null;
+  /** La carga inicial de la sede ya se cerró (ADR-0328 act. 2026-10-28): lo que se escribe entra como una LLEGADA del proveedor
+   *  (`crear_producto_con_llegada`), al almacén de entrada. Sin la pregunta de piso o almacén y con el proveedor obligatorio. */
+  llegada?: boolean;
+  /** Hay proveedor elegido (paso 2). Solo cuenta con `llegada`: la llegada entra a su nombre (`lotes.proveedor_id`). */
+  proveedorElegido?: boolean;
 };
 
 export type LugarCarga = "piso" | "almacen";
@@ -217,9 +216,23 @@ export type LugarCarga = "piso" | "almacen";
 /** Lo que falta cuando hay unidades en una tienda que separa piso y almacén y nadie dijo dónde están. */
 export const TEXTO_FALTA_LUGAR = "Di si están colgadas en el piso o guardadas en el almacén.";
 
-/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. */
-export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga">): boolean {
-  return e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. Una llegada no lo pregunta:
+ *  entra al almacén, como todo lo que llega de un proveedor («se cuenta allí y luego se cuelga», ADR-0328). */
+export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga" | "llegada">): boolean {
+  return !e.llegada && e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+}
+
+/** Lo que falta cuando llegaron unidades y no hay proveedor: la llegada entra a su nombre (ADR-0328 act. 2026-10-28). */
+export const TEXTO_FALTA_PROVEEDOR_LLEGADA = "Elige el proveedor en «¿Cómo es?»: lo que llegó entra a su nombre.";
+
+/** Escribió unidades que llegaron, pero todavía no eligió de qué proveedor. */
+export function faltaProveedorLlegada(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "llegada" | "proveedorElegido">): boolean {
+  return !!e.llegada && e.stockInvalidas === 0 && e.stockTotal > 0 && !e.proveedorElegido;
+}
+
+/** Lo que falta cuando no se escribió ninguna cantidad ni se dijo que no hay: la frase cambia con la carga cerrada. */
+export function textoFaltaStock(e: Pick<EstadoAlta, "llegada">): string {
+  return e.llegada ? "Escribe cuántas llegaron, o marca que todavía no tienes." : "Escribe cuántas tienes hoy, o marca que todavía no tienes.";
 }
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
@@ -270,8 +283,9 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
-  else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: "Escribe cuántas tienes hoy, o marca que todavía no tienes." });
+  else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: textoFaltaStock(e) });
   else if (faltaLugarCarga(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_LUGAR });
+  else if (faltaProveedorLlegada(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_PROVEEDOR_LLEGADA });
   return p;
 }
 
@@ -288,9 +302,15 @@ export function leerCantidad(texto: string): number | null {
   return Number(t);
 }
 
-/** Lo que admite una celda mientras se tipea: solo dígitos, hasta 4. Así una cantidad imposible ni se puede escribir. */
+/** Lo que admite una celda mientras se tipea: solo dígitos, hasta 4. Así una cantidad imposible ni se puede escribir.
+ *  Lo de antes del primer número se ignora («S/ 12», « 12»). Un decimal se corta en su entero («2,5» → 2, «12,50» → 12): antes se
+ *  borraba la coma y «2,5» se guardaba como 25 sin que nadie lo notara (/chaos 2026-10-28, semilla 2810). Una coma o un punto seguido de
+ *  exactamente tres cifras es un millar («1,200», «1.200» → 1200). Lo que viene después del número se ignora («12 u.» → 12). */
 export function limpiarCantidad(texto: string): string {
-  return texto.replace(/\D/g, "").slice(0, 4);
+  const t = texto.replace(/^\D+/, "");
+  const millar = /^(\d{1,3})[.,](\d{3})(?!\d)/.exec(t);
+  const entero = millar ? millar[1] + millar[2] : (/^\d*/.exec(t)?.[0] ?? "");
+  return entero.slice(0, 4);
 }
 
 export type StockAlta = { total: number; invalidas: number; celdasConStock: number };
@@ -320,23 +340,6 @@ export function textoDestinoStock(etiquetaSede: string, lugar: LugarCarga | null
   if (!separaPiso) return etiquetaSede;
   if (lugar === null) return `${etiquetaSede} · falta decir si están colgadas o guardadas`;
   return `${lugar === "piso" ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
-}
-
-export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };
-
-/** Cada bloque se abre al resolver el anterior; los cerrados se ven atenuados, no ocultos (la persona ve el camino completo). */
-export function desbloqueos(e: EstadoAlta): Desbloqueos {
-  const marca = Boolean(e.categoriaId);
-  // La marca y el proveedor son opcionales (ADR-0283): ya no traban el nombre.
-  const nombre = marca;
-  const nombreResuelto = nombre && e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
-  const atributos = nombreResuelto;
-  const atributosResueltos =
-    atributos &&
-    !e.categoriaSinTallas &&
-    e.tallasElegidas > 0 &&
-    (!e.exigeTejidoPatron || (e.hayTejidosEnCategoria && e.hayPatronesEnCategoria && Boolean(e.tejidoId) && Boolean(e.patronId)));
-  return { marca, nombre, atributos, colores: atributosResueltos, precio: atributosResueltos };
 }
 
 // ---------------------------------------------------------------------------
@@ -382,12 +385,6 @@ export function faltaDelPaso(problemas: Problema[], paso: PasoAlta): string | nu
 /** Un paso está hecho cuando ni él ni ninguno anterior tiene problemas: sin categoría, «¿En qué tallas y colores?» no puede estar listo. */
 export function pasoHecho(problemas: Problema[], paso: PasoAlta): boolean {
   return !problemas.some((p) => pasoDeProblema(p) <= paso);
-}
-
-/** El paso más lejano al que se puede entrar: el primero que todavía tiene algo pendiente. */
-export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
-  const primero = problemas[0];
-  return primero ? pasoDeProblema(primero) : 4;
 }
 
 /** Se puede abrir un paso (desde la lista «Avance» de la ficha) cuando los anteriores están contestados. El 1 siempre. */
@@ -479,13 +476,21 @@ export function estadoSubidaSinConexion(o: {
 }
 
 /** La frase del stock en la pantalla de éxito: nunca dice «ya aparecen en Existencias» de algo que todavía no entró. */
-export function fraseStockCreado(stock: { unidades: number; donde: string }, sinConexion: boolean, subida: SubidaSinConexion | undefined): string {
+export function fraseStockCreado(
+  stock: { unidades: number; donde: string; llegadaDe?: string | null },
+  sinConexion: boolean,
+  subida: SubidaSinConexion | undefined
+): string {
   const n = stock.unidades;
   const u = `${n} unidad${n === 1 ? "" : "es"}`;
+  // ADR-0328 act. 2026-10-28: con la carga cerrada, lo escrito entró como una llegada del proveedor, no como stock inicial.
+  if (stock.llegadaDe && !(sinConexion && subida !== "subio")) {
+    return `${u} recibida${n === 1 ? "" : "s"} de ${stock.llegadaDe} (${stock.donde}) como una llegada de hoy: ya aparecen en Existencias, donde desde ahora se ajustan.`;
+  }
   if (sinConexion && subida === "descartada") return `${u}: no se cargaron, se descartaron junto con el producto.`;
   if (sinConexion && subida === "rechazada") return `${u}: todavía no entraron, porque la base no aceptó el alta (mira el aviso rojo).`;
   if (sinConexion && subida !== "subio") return `${u}: van al inventario (${stock.donde}) junto con el producto, cuando suba.`;
-  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}): ya aparecen en Existencias.`;
+  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.`;
 }
 
 /** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918230100). Cualquier otro error va por `traducirError`. */

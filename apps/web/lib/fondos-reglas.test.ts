@@ -22,6 +22,8 @@ import {
   nombresDeFichas,
   opcionesDeCuentas,
   opcionesDePersonas,
+  MONTO_MAXIMO_GASTO,
+  MONTO_MAXIMO_PLATA,
   problemaDeMonto,
   problemaDeMotivo,
   problemaDePersona,
@@ -237,8 +239,8 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
     expect(mostrarTuFondo({ ...BASE, saldo: 0, entregado: 0, rendicion: { ...R, abierta: { id: "r", en: "2026-10-13", faltante: 0 } } })).toBe(true);
   });
 
-  it("lleva a Órdenes de compra si la ve; si no, a Por pagar; si no ve ninguna, no lleva", () => {
-    expect(hrefTuFondo(() => true)).toBe("/compras/ordenes");
+  it("lleva a Mis compras si la ve; si no, a Por pagar; si no ve ninguna, no lleva", () => {
+    expect(hrefTuFondo(() => true)).toBe("/compras/mi-plata");
     expect(hrefTuFondo((m) => m === "por_pagar")).toBe("/compras/por-pagar");
     expect(hrefTuFondo(() => false)).toBeUndefined();
   });
@@ -267,6 +269,16 @@ describe("lo que falta (las mismas reglas que la base)", () => {
     expect(problemaDePersona("p-felipe", OPCIONES)).toMatch(/No puedes entregarte plata a ti/);
     expect(problemaDePersona("p-otra", OPCIONES)).toMatch(/ya no está activa/);
     expect(problemaDePersona("p-micaela", OPCIONES)).toBeNull();
+  });
+
+  it("con `maximo`, el tope de la base se dice en el campo (Mis compras): S/ 1 000 000 la plata y el papel, S/ 100 000 un gasto", () => {
+    expect(problemaDeMonto("1000000", undefined, MONTO_MAXIMO_PLATA)).toBeNull();
+    expect(problemaDeMonto("1000000.01", undefined, MONTO_MAXIMO_PLATA)).toBe("El monto no puede pasar de S/\u00a01,000,000.00.");
+    expect(problemaDeMonto("100000", undefined, MONTO_MAXIMO_GASTO)).toBeNull();
+    expect(problemaDeMonto("100000.50", undefined, MONTO_MAXIMO_GASTO)).toBe("El monto no puede pasar de S/\u00a0100,000.00.");
+    // Lo ilegible y el cero se dicen antes que el tope; sin `maximo`, no hay tope (el resto de las hojas del fondo).
+    expect(problemaDeMonto("0", undefined, MONTO_MAXIMO_GASTO)).toBe("El monto tiene que ser mayor que cero.");
+    expect(problemaDeMonto("9999999")).toBeNull();
   });
 
   it("el monto: escrito, mayor que cero y, al devolver, no más de lo que tiene", () => {

@@ -5,9 +5,9 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** 2026-10-23 18:30:55 UTC
-> **Tablas y vistas encontradas:** 274
-> **Funciones en `retail`:** 1572 (las firmas, en `funciones-produccion.txt`)
+> **Leído el:** 2026-10-29 14:25:48 UTC
+> **Tablas y vistas encontradas:** 303
+> **Funciones en `retail`:** 1783 (las firmas, en `funciones-produccion.txt`)
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -93,7 +93,7 @@
 
 ### `colaboradores_historial`
 
-*9 columnas · ~62 filas · permisos por fila **activos***
+*9 columnas · ~65 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -192,7 +192,7 @@
 
 ### `modulos`
 
-*8 columnas · ~49 filas · permisos por fila **activos***
+*8 columnas · ~51 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -219,7 +219,7 @@
 
 ### `rol_modulos`
 
-*2 columnas · ~61 filas · permisos por fila **activos***
+*2 columnas · ~60 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -237,7 +237,7 @@
 
 ### `roles_historial`
 
-*6 columnas · ~66 filas · permisos por fila **activos***
+*6 columnas · ~69 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -321,7 +321,7 @@
 
 ### `guias_vistas`
 
-*4 columnas · ~216 filas · permisos por fila **activos***
+*4 columnas · ~257 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -339,7 +339,7 @@
 
 ### `acciones_sin_responsable`
 
-*2 columnas · ~65 filas · permisos por fila **activos***
+*2 columnas · ~66 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -355,7 +355,7 @@
 
 ### `preferencias_colaborador`
 
-*3 columnas · ~0 filas · permisos por fila **activos***
+*3 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -377,7 +377,7 @@
 
 ### `productos`
 
-*22 columnas · ~444 filas · permisos por fila **activos***
+*23 columnas · ~496 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -403,11 +403,13 @@
 | `es_prueba` | boolean | **no** | `false` | — |
 | `version` | integer | **no** | `1` | — |
 | `empresa_id` | uuid | **no** | `retail.fn_empresa_casa_id()` | — |
+| `nombre_proveedor` | text | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `productos_estado_alta_check` — `CHECK ((estado_alta = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
 - `productos_estado_check` — `CHECK ((estado = ANY (ARRAY['activo'::text, 'descontinuado'::text])))`
+- `productos_nombre_proveedor_check` — `CHECK (((nombre_proveedor IS NULL) OR ((btrim(nombre_proveedor) <> ''::text) AND (char_length(nombre_proveedor) <= 80))))`
 - `productos_rechazado_descontinuado_check` — `CHECK (((estado_alta <> 'rechazado'::text) OR (estado = 'descontinuado'::text)))`
 - `productos_stock_minimo_no_negativo` — `CHECK (((stock_minimo IS NULL) OR (stock_minimo >= 0)))`
 - `productos_textos_con_tope` — `CHECK (((char_length(referencia) <= 80) AND (char_length(descripcion) <= 500)))`
@@ -426,7 +428,7 @@
 
 ### `variantes`
 
-*10 columnas · ~2519 filas · permisos por fila **activos***
+*10 columnas · ~2874 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -547,7 +549,7 @@
 
 ### `producto_fotos`
 
-*7 columnas · ~764 filas · permisos por fila **activos***
+*7 columnas · ~924 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -575,7 +577,7 @@
 
 ### `historial_producto_cambios`
 
-*9 columnas · ~3394 filas · permisos por fila **activos***
+*9 columnas · ~3956 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -600,7 +602,7 @@
 
 ### `precios_sede_prenda`
 
-*11 columnas · ~26 filas · permisos por fila **activos***
+*11 columnas · ~34 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -629,9 +631,38 @@
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
+### `precios_sede_variante`
+
+*11 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `variante_id` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `precio` | numeric | **no** | — | — |
+| `motivo` | text | **no** | — | — |
+| `vigente_desde` | timestamp with time zone | **no** | `now()` | — |
+| `creado_por` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `archivado_en` | timestamp with time zone | sí | — | — |
+| `archivado_por` | uuid | sí | — | — |
+| `archivado_motivo` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `precios_sede_variante_motivo_no_vacio` — `CHECK ((length(btrim(motivo)) >= 3))`
+- `precios_sede_variante_precio_con_tope` — `CHECK (((precio > (0)::numeric) AND (precio <= (5000)::numeric)))`
+- `precios_sede_variante_vigente_unico` *(único parcial)* — `retail.precios_sede_variante (variante_id, ubicacion_id) WHERE (archivado_en IS NULL)`
+
+**De qué depende:** `(archivado_por) REFERENCES personas(id)` · `(creado_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
 ### `marcas`
 
-*4 columnas · ~106 filas · permisos por fila **activos***
+*4 columnas · ~108 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -655,7 +686,7 @@
 
 ### `marca_proveedores`
 
-*3 columnas · ~107 filas · permisos por fila **activos***
+*3 columnas · ~109 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -675,7 +706,7 @@
 
 ### `codigos_barras`
 
-*5 columnas · ~2555 filas · permisos por fila **activos***
+*5 columnas · ~2910 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -723,7 +754,7 @@
 
 ### `colores`
 
-*17 columnas · ~105 filas · permisos por fila **activos***
+*17 columnas · ~107 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -824,7 +855,7 @@
 
 ### `tejidos`
 
-*11 columnas · ~48 filas · permisos por fila **activos***
+*11 columnas · ~49 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -858,7 +889,7 @@
 
 ### `categoria_tejidos`
 
-*3 columnas · ~223 filas · permisos por fila **activos***
+*3 columnas · ~233 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -912,7 +943,7 @@
 
 ### `categoria_patrones`
 
-*3 columnas · ~145 filas · permisos por fila **activos***
+*3 columnas · ~147 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -932,7 +963,7 @@
 
 ### `etiquetas`
 
-*14 columnas · ~26 filas · permisos por fila **activos***
+*17 columnas · ~27 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -950,6 +981,9 @@
 | `vigente_hasta` | date | sí | — | — |
 | `estilo` | text | **no** | `'neutral'::text` | — |
 | `descuento_pct` | numeric | sí | — | — |
+| `icono` | text | sí | — | — |
+| `icono_imagen` | text | sí | — | — |
+| `icono_imagen_silueta` | boolean | **no** | `false` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -957,6 +991,11 @@
 - `etiquetas_descuento_solo_aprobada` — `CHECK (((descuento_pct IS NULL) OR (estado = 'aprobado'::text)))`
 - `etiquetas_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
 - `etiquetas_estilo_valido` — `CHECK ((estilo = ANY (ARRAY['neutral'::text, 'urgencia'::text, 'positivo'::text, 'campana'::text])))`
+- `etiquetas_icono_forma` — `CHECK (((icono IS NULL) OR (icono ~ '^[a-z]{3,20}$'::text)))`
+- `etiquetas_icono_imagen_es_suya` — `CHECK (((icono_imagen IS NULL) OR (icono_imagen ~~ (('insignias/'::text \|\| (id)::text) \|\| '/%'::text))))`
+- `etiquetas_icono_imagen_forma` — `CHECK (((icono_imagen IS NULL) OR (icono_imagen ~ '^insignias/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$'::text)))`
+- `etiquetas_icono_o_imagen` — `CHECK (((icono IS NULL) OR (icono_imagen IS NULL)))`
+- `etiquetas_icono_silueta_con_imagen` — `CHECK (((NOT icono_imagen_silueta) OR (icono_imagen IS NOT NULL)))`
 - `etiquetas_montos_finitos` — `CHECK ((abs(descuento_pct) < 'Infinity'::numeric))`
 - `etiquetas_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
 - `etiquetas_vigencia_coherente` — `CHECK (((vigente_desde IS NULL) OR (vigente_hasta IS NULL) OR (vigente_desde <= vigente_hasta)))`
@@ -974,7 +1013,7 @@
 
 ### `etiqueta_categorias`
 
-*3 columnas · ~1 filas · permisos por fila **activos***
+*3 columnas · ~51 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -994,7 +1033,7 @@
 
 ### `variante_etiquetas`
 
-*3 columnas · ~313 filas · permisos por fila **activos***
+*3 columnas · ~383 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1103,7 +1142,7 @@
 
 ### `producto_origen`
 
-*5 columnas · ~443 filas · permisos por fila **activos***
+*5 columnas · ~495 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1120,7 +1159,7 @@
 
 ### `vitrina_productos`
 
-*11 columnas · ~370 filas · permisos por fila **activos***
+*11 columnas · ~424 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1151,7 +1190,7 @@
 
 ### `vitrina_looks`
 
-*12 columnas · ~0 filas · permisos por fila **activos***
+*12 columnas · ~9 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1184,7 +1223,7 @@
 
 ### `vitrina_look_piezas`
 
-*8 columnas · ~0 filas · permisos por fila **activos***
+*8 columnas · ~23 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1210,7 +1249,7 @@
 
 ### `foto_recortes`
 
-*9 columnas · ~584 filas · permisos por fila **activos***
+*9 columnas · ~589 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1398,7 +1437,7 @@
 
 ### `campana_sedes`
 
-*3 columnas · ~1 filas · permisos por fila **activos***
+*3 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1411,9 +1450,96 @@
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
+### `campana_reglas`
+
+*15 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `etiqueta_id` | uuid | **no** | — | — |
+| `nombre` | text | **no** | — | — |
+| `tipo` | text | **no** | `'pct'::text` | — |
+| `porcentaje` | numeric | **no** | — | — |
+| `desde` | date | **no** | — | — |
+| `hasta` | date | **no** | — | — |
+| `dias_semana` | ARRAY | **no** | `ARRAY[(1)::smallint, (2)::smallint, (3)::smallint, (4)::smallint, (5)::smallint, (6)::smallint, (7)::smallint]` | — |
+| `incluye_claure` | boolean | **no** | `false` | — |
+| `estado` | text | **no** | `'borrador'::text` | — |
+| `creada_por` | uuid | sí | — | — |
+| `creada_en` | timestamp with time zone | **no** | `now()` | — |
+| `activada_por` | uuid | sí | — | — |
+| `activada_en` | timestamp with time zone | sí | — | — |
+| `actualizada_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `campana_reglas_activa_firmada` — `CHECK (((estado <> 'activa'::text) OR ((activada_en IS NOT NULL) AND (activada_por IS NOT NULL))))`
+- `campana_reglas_dias` — `CHECK (retail.fn_dias_semana_validos(dias_semana))`
+- `campana_reglas_estado` — `CHECK ((estado = ANY (ARRAY['borrador'::text, 'activa'::text, 'desactivada'::text])))`
+- `campana_reglas_fechas` — `CHECK ((hasta >= desde))`
+- `campana_reglas_nombre` — `CHECK (((btrim(nombre) <> ''::text) AND (length(nombre) <= 80)))`
+- `campana_reglas_porcentaje` — `CHECK (((porcentaje > (0)::numeric) AND (porcentaje <= (70)::numeric)))`
+- `campana_reglas_tipo` — `CHECK ((tipo = 'pct'::text))`
+
+**De qué depende:** `(etiqueta_id) REFERENCES retail.etiquetas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `campana_regla_categorias`
+
+*3 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `regla_id` | uuid | **no** | — | — |
+| `categoria_id` | uuid | **no** | — | — |
+| `modo` | text | **no** | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `campana_regla_categorias_modo` — `CHECK ((modo = ANY (ARRAY['solo'::text, 'fuera'::text])))`
+
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id)` · `(regla_id) REFERENCES retail.campana_reglas(id) ON DELETE CASCADE`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `campana_regla_sedes`
+
+*2 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `regla_id` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+
+**De qué depende:** `(regla_id) REFERENCES retail.campana_reglas(id) ON DELETE CASCADE` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `campana_regla_historial`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `regla_id` | uuid | **no** | — | — |
+| `antes` | jsonb | **no** | — | — |
+| `por` | uuid | sí | — | — |
+| `en` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(regla_id) REFERENCES retail.campana_reglas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
 ### `empresas`
 
-*8 columnas · ~2 filas · permisos por fila **activos***
+*9 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1425,12 +1551,15 @@
 | `orden` | integer | **no** | `0` | — |
 | `activo` | boolean | **no** | `true` | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `marca_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `empresas_clave_check` — `CHECK ((clave ~ '^[a-z0-9_]+$'::text))`
 - `empresas_clave_key` — `UNIQUE (clave)`
 - `empresas_nombre_check` — `CHECK ((btrim(nombre) <> ''::text))`
+
+**De qué depende:** `(marca_id) REFERENCES retail.marcas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -1454,7 +1583,7 @@
 
 ### `movimientos`
 
-*22 columnas · ~5772 filas · permisos por fila **activos***
+*23 columnas · ~7046 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1480,6 +1609,7 @@
 | `produccion_id` | uuid | sí | — | — |
 | `transferencia_recepcion_id` | uuid | sí | — | — |
 | `terminal_id` | uuid | sí | — | — |
+| `empresa_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -1487,7 +1617,7 @@
 - `movimientos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['entrada'::text, 'salida'::text, 'ajuste'::text, 'traslado'::text, 'apartado'::text, 'liberacion_apartado'::text])))`
 - `movimientos_traslado_tiene_destino` — `CHECK ((((tipo = 'traslado'::text) AND (ubicacion_destino_id IS NOT NULL) AND ((ubicacion_destino_id <> ubicacion_id) OR (sububicacion_destino_id IS DISTINCT FROM sububicacion_id))) OR ((tipo <> 'traslado'::text) AND (ubicacion_destino_id IS NULL))))`
 
-**De qué depende:** `(cambio_id) REFERENCES retail.cambios(id)` · `(compra_item_id) REFERENCES retail.compra_items(id)` · `(conteo_item_id) REFERENCES retail.conteo_items(id)` · `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(lote_id) REFERENCES retail.lotes(id)` · `(produccion_id) REFERENCES retail.producciones(id)` · `(sububicacion_destino_id, ubicacion_destino_id) REFERENCES retail.sububicaciones(id, ubicacion_id)` · `(sububicacion_id, ubicacion_id) REFERENCES retail.sububicaciones(id, ubicacion_id)` · `(terminal_id) REFERENCES retail.terminales(id)` · `(transferencia_item_id) REFERENCES retail.transferencia_items(id)` · `(transferencia_recepcion_id) REFERENCES retail.transferencia_recepciones(id)` · `(ubicacion_destino_id) REFERENCES retail.ubicaciones(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)` · `(variante_id) REFERENCES retail.variantes(id)` · `(venta_item_id) REFERENCES retail.venta_items(id)`
+**De qué depende:** `(cambio_id) REFERENCES retail.cambios(id)` · `(compra_item_id) REFERENCES retail.compra_items(id)` · `(conteo_item_id) REFERENCES retail.conteo_items(id)` · `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(empresa_id) REFERENCES retail.empresas(id)` · `(lote_id) REFERENCES retail.lotes(id)` · `(produccion_id) REFERENCES retail.producciones(id)` · `(sububicacion_destino_id, ubicacion_destino_id) REFERENCES retail.sububicaciones(id, ubicacion_id)` · `(sububicacion_id, ubicacion_id) REFERENCES retail.sububicaciones(id, ubicacion_id)` · `(terminal_id) REFERENCES retail.terminales(id)` · `(transferencia_item_id) REFERENCES retail.transferencia_items(id)` · `(transferencia_recepcion_id) REFERENCES retail.transferencia_recepciones(id)` · `(ubicacion_destino_id) REFERENCES retail.ubicaciones(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)` · `(variante_id) REFERENCES retail.variantes(id)` · `(venta_item_id) REFERENCES retail.venta_items(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -1499,7 +1629,7 @@
 
 ### `stock`
 
-*6 columnas · ~3778 filas · permisos por fila **activos***
+*6 columnas · ~4298 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1560,7 +1690,7 @@
 
 ### `sububicaciones`
 
-*5 columnas · ~9 filas · permisos por fila **activos***
+*8 columnas · ~9 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1569,10 +1699,14 @@
 | `nombre` | text | **no** | — | — |
 | `tipo` | text | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `lugar` | text | sí | — | — |
+| `lugar_por` | uuid | sí | — | — |
+| `lugar_en` | timestamp with time zone | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `sububicaciones_id_ubicacion_unique` — `UNIQUE (id, ubicacion_id)`
+- `sububicaciones_lugar_valido` — `CHECK (((lugar IS NULL) OR ((char_length(btrim(lugar)) >= 3) AND (char_length(btrim(lugar)) <= 80))))`
 - `sububicaciones_ubicacion_id_nombre_key` — `UNIQUE (ubicacion_id, nombre)`
 - `sububicaciones_tipo_unico_por_ubicacion` *(único parcial)* — `ON retail.sububicaciones (ubicacion_id, tipo) WHERE (tipo = ANY (ARRAY['piso_venta'::text, 'almacen_tienda'::text, 'cuarentena'::text]))`
 
@@ -1626,7 +1760,7 @@
 
 ### `prendas_danadas`
 
-*15 columnas · ~1 filas · permisos por fila **activos***
+*25 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1645,26 +1779,97 @@
 | `proveedor_id` | uuid | sí | — | — |
 | `cambio_id` | uuid | sí | — | — |
 | `motivo_reporte` | text | sí | — | — |
+| `tipo_dano` | text | sí | — | — |
+| `en_arreglo_desde` | timestamp with time zone | sí | — | — |
+| `ruta_arreglo` | text | sí | — | — |
+| `sacada_por` | uuid | sí | — | — |
+| `nota_arreglo` | text | sí | — | — |
+| `arreglo_costo` | numeric | sí | — | — |
+| `arreglo_gasto_id` | uuid | sí | — | — |
+| `arreglo_volvio_en` | timestamp with time zone | sí | — | — |
+| `arreglo_resultado` | text | sí | — | — |
+| `arreglo_no_se_pudo_motivo` | text | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `prendas_danadas_arreglo_con_nota` — `CHECK (((estado <> 'se_arreglo'::text) OR (char_length(btrim(COALESCE(nota, ''::text))) >= 3)))`
+- `prendas_danadas_arreglo_costo_valido` — `CHECK (((arreglo_costo IS NULL) OR ((arreglo_costo >= (0)::numeric) AND (COALESCE(arreglo_resultado, ''::text) = 'arreglada'::text))))`
+- `prendas_danadas_arreglo_motivo_valido` — `CHECK (((arreglo_no_se_pudo_motivo IS NULL) OR ((COALESCE(arreglo_resultado, ''::text) = 'no_se_pudo'::text) AND ((char_length(btrim(arreglo_no_se_pudo_motivo)) >= 3) AND (char_length(btrim(arreglo_no_se_pudo_motivo)) <= 200)))))`
+- `prendas_danadas_arreglo_resultado_valido` — `CHECK (((arreglo_resultado IS NULL) OR (arreglo_resultado = ANY (ARRAY['arreglada'::text, 'no_se_pudo'::text]))))`
+- `prendas_danadas_arreglo_volvio_exige_salida` — `CHECK (((arreglo_volvio_en IS NULL) OR (en_arreglo_desde IS NOT NULL)))`
 - `prendas_danadas_cambio_id_key` — `UNIQUE (cambio_id)`
 - `prendas_danadas_cantidad_check` — `CHECK ((cantidad > 0))`
 - `prendas_danadas_devolucion_item_id_key` — `UNIQUE (devolucion_item_id)`
 - `prendas_danadas_estado_check` — `CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text, 'devuelta_proveedor'::text, 'se_arreglo'::text])))`
 - `prendas_danadas_motivo_reporte_valido` — `CHECK (((motivo_reporte IS NULL) OR ((char_length(btrim(motivo_reporte)) >= 3) AND (char_length(btrim(motivo_reporte)) <= 200))))`
+- `prendas_danadas_nota_arreglo_valida` — `CHECK (((nota_arreglo IS NULL) OR ((char_length(btrim(nota_arreglo)) >= 3) AND (char_length(btrim(nota_arreglo)) <= 200))))`
 - `prendas_danadas_proveedor_coherente` — `CHECK (((estado = 'devuelta_proveedor'::text) = (proveedor_id IS NOT NULL)))`
 - `prendas_danadas_resolucion_coherente` — `CHECK ((((estado = 'en_cuarentena'::text) AND (movimiento_salida_id IS NULL) AND (resuelto_en IS NULL)) OR ((estado <> 'en_cuarentena'::text) AND (movimiento_salida_id IS NOT NULL) AND (resuelto_en IS NOT NULL))))`
+- `prendas_danadas_ruta_arreglo_valida` — `CHECK ((((en_arreglo_desde IS NULL) = (ruta_arreglo IS NULL)) AND ((ruta_arreglo IS NULL) OR (ruta_arreglo = ANY (ARRAY['cerca'::text, 'taller'::text])))))`
+- `prendas_danadas_tipo_dano_valido` — `CHECK (((tipo_dano IS NULL) OR (tipo_dano = ANY (ARRAY['mancha'::text, 'descosido'::text, 'boton_cierre'::text, 'rotura'::text, 'otro'::text]))))`
 - `prendas_danadas_un_origen` — `CHECK ((num_nonnulls(devolucion_item_id, cambio_id, motivo_reporte) = 1))`
 
-**De qué depende:** `(cambio_id) REFERENCES retail.cambios(id)` · `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+**De qué depende:** `(arreglo_gasto_id) REFERENCES retail.gastos(id)` · `(cambio_id) REFERENCES retail.cambios(id)` · `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
 | `prendas_danadas_select` | SELECT | `COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)` |
+
+
+### `prendas_danadas_fotos`
+
+*8 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `danada_id` | uuid | **no** | — | — |
+| `ruta` | text | **no** | — | — |
+| `nombre` | text | **no** | — | — |
+| `tipo` | text | **no** | — | — |
+| `bytes` | integer | **no** | — | — |
+| `subida_por` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `prendas_danadas_fotos_bytes_check` — `CHECK (((bytes > 0) AND (bytes <= ((10 * 1024) * 1024))))`
+- `prendas_danadas_fotos_nombre_check` — `CHECK (((char_length(btrim(nombre)) >= 1) AND (char_length(btrim(nombre)) <= 200)))`
+- `prendas_danadas_fotos_ruta_de_la_danada` — `CHECK ((ruta ~~ ((danada_id)::text \|\| '/%'::text)))`
+- `prendas_danadas_fotos_ruta_key` — `UNIQUE (ruta)`
+- `prendas_danadas_fotos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['image/jpeg'::text, 'image/png'::text, 'image/webp'::text, 'image/heic'::text, 'image/heif'::text])))`
+
+**De qué depende:** `(danada_id) REFERENCES retail.prendas_danadas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `stock_dueno`
+
+*7 columnas · ~42 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `variante_id` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `sububicacion_id` | uuid | sí | — | — |
+| `empresa_id` | uuid | **no** | — | — |
+| `cantidad` | integer | **no** | `0` | — |
+| `cantidad_apartada` | integer | **no** | `0` | — |
+| `updated_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `stock_dueno_apartada_valida` — `CHECK (((cantidad_apartada >= 0) AND (cantidad_apartada <= cantidad)))`
+- `stock_dueno_cantidad_no_negativa` — `CHECK ((cantidad >= 0))`
+- `stock_dueno_clave` — `UNIQUE NULLS NOT DISTINCT (variante_id, ubicacion_id, sububicacion_id, empresa_id)`
+- `stock_dueno_no_es_la_casa` — `CHECK ((empresa_id <> 'ca71a000-0000-4000-8000-000000000001'::uuid))`
+
+**De qué depende:** `(empresa_id) REFERENCES retail.empresas(id)` · `(sububicacion_id, ubicacion_id) REFERENCES retail.sububicaciones(id, ubicacion_id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id) ON DELETE CASCADE`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
 ### `transferencias`
@@ -2055,7 +2260,7 @@
 
 ### `despacho_conteos`
 
-*13 columnas · ~2 filas · permisos por fila **activos***
+*14 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2072,11 +2277,13 @@
 | `contado_por` | uuid | **no** | — | — |
 | `contado_en` | timestamp with time zone | **no** | `now()` | — |
 | `version` | integer | **no** | `1` | — |
+| `costos_prendas` | jsonb | **no** | `'{}'::jsonb` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `despacho_conteos_contadas_check` — `CHECK (((contadas >= 0) AND (contadas <= 99999)))`
 - `despacho_conteos_costo_unitario_check` — `CHECK (((costo_unitario IS NULL) OR (costo_unitario >= (0)::numeric)))`
+- `despacho_conteos_costos_prendas_objeto` — `CHECK ((jsonb_typeof(costos_prendas) = 'object'::text))`
 - `despacho_conteos_extra_con_que` — `CHECK (((extra_posicion IS NULL) OR (categoria_id IS NOT NULL)))`
 - `despacho_conteos_extra_posicion_check` — `CHECK (((extra_posicion IS NULL) OR (extra_posicion > 0)))`
 - `despacho_conteos_linea_o_extra` — `CHECK (((despacho_item_id IS NULL) <> (extra_posicion IS NULL)))`
@@ -2206,9 +2413,75 @@
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
+### `despacho_observaciones`
+
+*8 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `despacho_id` | uuid | **no** | — | — |
+| `despacho_item_id` | uuid | sí | — | — |
+| `tipo` | text | **no** | — | — |
+| `mensaje` | text | **no** | — | — |
+| `creado_por` | uuid | **no** | — | — |
+| `creado_en` | timestamp with time zone | **no** | `clock_timestamp()` | — |
+| `token_cliente` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `despacho_observaciones_mensaje` — `CHECK (((btrim(mensaje) <> ''::text) AND (length(mensaje) <= 300)))`
+- `despacho_observaciones_tipo` — `CHECK ((tipo = ANY (ARRAY['prenda_rota'::text, 'prenda_faltante'::text, 'prenda_manchada'::text, 'prenda_distinta'::text, 'prenda_de_mas'::text, 'empaque_danado'::text, 'otro'::text])))`
+- `despacho_observaciones_token_unico` *(único parcial)* — `retail.despacho_observaciones (despacho_id, token_cliente) WHERE (token_cliente IS NOT NULL)`
+
+**De qué depende:** `(creado_por) REFERENCES personas(id)` · `(despacho_id) REFERENCES retail.despachos(id)` · `(despacho_item_id) REFERENCES retail.despacho_items(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `costo_correcciones`
+
+*17 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `correccion_id` | uuid | **no** | — | — |
+| `producto_id` | uuid | **no** | — | — |
+| `variante_id` | uuid | **no** | — | — |
+| `movimiento_id` | uuid | **no** | — | — |
+| `compra_en` | timestamp with time zone | **no** | — | — |
+| `stock_previo` | integer | **no** | — | — |
+| `cantidad` | integer | **no** | — | — |
+| `costo_unitario_antes` | numeric | **no** | — | — |
+| `costo_unitario_despues` | numeric | **no** | — | — |
+| `costo_anterior_despues` | numeric | **no** | — | — |
+| `costo_resultante_antes` | numeric | **no** | — | — |
+| `costo_resultante_despues` | numeric | **no** | — | — |
+| `motivo` | text | **no** | — | — |
+| `costo_atipico_confirmado` | boolean | **no** | `false` | — |
+| `persona_id` | uuid | **no** | — | — |
+| `creado_en` | timestamp with time zone | **no** | `clock_timestamp()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `costo_correcciones_cantidad_check` — `CHECK ((cantidad > 0))`
+- `costo_correcciones_costo_anterior_despues_check` — `CHECK ((costo_anterior_despues >= (0)::numeric))`
+- `costo_correcciones_costo_resultante_antes_check` — `CHECK ((costo_resultante_antes >= (0)::numeric))`
+- `costo_correcciones_costo_resultante_despues_check` — `CHECK ((costo_resultante_despues >= (0)::numeric))`
+- `costo_correcciones_costo_unitario_antes_check` — `CHECK ((costo_unitario_antes >= (0)::numeric))`
+- `costo_correcciones_costo_unitario_despues_check` — `CHECK ((costo_unitario_despues > (0)::numeric))`
+- `costo_correcciones_motivo_check` — `CHECK (((length(btrim(motivo)) >= 3) AND (length(btrim(motivo)) <= 300)))`
+- `costo_correcciones_stock_previo_check` — `CHECK ((stock_previo >= 0))`
+
+**De qué depende:** `(movimiento_id) REFERENCES retail.movimientos(id)` · `(persona_id) REFERENCES personas(id)` · `(producto_id) REFERENCES retail.productos(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
 ### `bajadas_piso`
 
-*6 columnas · ~792 filas · permisos por fila **activos***
+*6 columnas · ~890 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2231,7 +2504,7 @@
 
 ### `bajada_piso_items`
 
-*4 columnas · ~1761 filas · permisos por fila **activos***
+*4 columnas · ~2161 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2272,7 +2545,7 @@
 
 ### `bajadas_en_mano`
 
-*2 columnas · ~1 filas · permisos por fila **activos***
+*2 columnas · ~7 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2373,7 +2646,7 @@
 
 ### `espacio_piso`
 
-*7 columnas · ~276 filas · permisos por fila **activos***
+*7 columnas · ~414 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2443,7 +2716,7 @@
 
 ### `movimientos_internos_intentos`
 
-*4 columnas · ~150 filas · permisos por fila **activos***
+*4 columnas · ~255 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2464,7 +2737,7 @@
 
 ### `ajustes_inventario_intentos`
 
-*5 columnas · ~657 filas · permisos por fila **activos***
+*5 columnas · ~774 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2639,7 +2912,7 @@
 
 ### `ventas`
 
-*20 columnas · ~1094 filas · permisos por fila **activos***
+*20 columnas · ~1443 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2688,7 +2961,7 @@
 
 ### `venta_items`
 
-*15 columnas · ~1806 filas · permisos por fila **activos***
+*15 columnas · ~2382 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2735,7 +3008,7 @@
 
 ### `venta_pagos`
 
-*7 columnas · ~1132 filas · permisos por fila **activos***
+*7 columnas · ~1490 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2769,7 +3042,7 @@
 
 ### `venta_anulacion_items`
 
-*6 columnas · ~3 filas · permisos por fila **activos***
+*6 columnas · ~7 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2797,7 +3070,7 @@
 
 ### `cajas`
 
-*20 columnas · ~66 filas · permisos por fila **activos***
+*20 columnas · ~80 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2841,7 +3114,7 @@
 
 ### `caja_movimientos`
 
-*12 columnas · ~160 filas · permisos por fila **activos***
+*12 columnas · ~203 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2901,7 +3174,7 @@
 
 ### `clientas`
 
-*25 columnas · ~58 filas · permisos por fila **activos***
+*25 columnas · ~61 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3006,7 +3279,7 @@
 
 ### `cambios`
 
-*15 columnas · ~8 filas · permisos por fila **activos***
+*15 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3048,7 +3321,7 @@
 
 ### `devoluciones`
 
-*17 columnas · ~1 filas · permisos por fila **activos***
+*17 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3093,7 +3366,7 @@
 
 ### `devolucion_items`
 
-*6 columnas · ~1 filas · permisos por fila **activos***
+*6 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3175,7 +3448,7 @@
 
 ### `apartados`
 
-*23 columnas · ~12 filas · permisos por fila **activos***
+*23 columnas · ~17 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3226,7 +3499,7 @@
 
 ### `separaciones`
 
-*40 columnas · ~5 filas · permisos por fila **activos***
+*40 columnas · ~8 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3307,7 +3580,7 @@
 
 ### `separacion_items`
 
-*8 columnas · ~5 filas · permisos por fila **activos***
+*8 columnas · ~10 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3340,7 +3613,7 @@
 
 ### `separacion_pagos`
 
-*9 columnas · ~7 filas · permisos por fila **activos***
+*9 columnas · ~10 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3428,7 +3701,7 @@
 
 ### `caja_traslados`
 
-*8 columnas · ~35 filas · permisos por fila **activos***
+*8 columnas · ~42 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3459,7 +3732,7 @@
 
 ### `prendas_por_regularizar`
 
-*18 columnas · ~943 filas · permisos por fila **activos***
+*18 columnas · ~1063 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3557,7 +3830,7 @@
 
 ### `cola_arranque_plazo`
 
-*3 columnas · ~3 filas · permisos por fila **activos***
+*3 columnas · ~4 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3624,7 +3897,7 @@
 
 ### `configuracion_historial`
 
-*5 columnas · ~114 filas · permisos por fila **activos***
+*5 columnas · ~160 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3669,7 +3942,7 @@
 
 ### `separacion_avisos`
 
-*5 columnas · ~0 filas · permisos por fila **activos***
+*5 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4167,7 +4440,7 @@
 
 ### `intentos_con_token`
 
-*5 columnas · ~761 filas · permisos por fila **activos***
+*5 columnas · ~1261 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4182,7 +4455,7 @@
 
 ### `pedidos_web`
 
-*26 columnas · ~18 filas · permisos por fila **activos***
+*26 columnas · ~19 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4241,7 +4514,7 @@
 
 ### `pedido_web_lineas`
 
-*19 columnas · ~21 filas · permisos por fila **activos***
+*19 columnas · ~24 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4286,7 +4559,7 @@
 
 ### `pedido_web_pagos`
 
-*20 columnas · ~1 filas · permisos por fila **activos***
+*22 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4310,6 +4583,8 @@
 | `anulado_caja_movimiento_id` | uuid | sí | — | — |
 | `token_cliente` | uuid | sí | — | — |
 | `cuenta_dinero_id` | uuid | sí | — | — |
+| `verificado_por` | uuid | sí | — | — |
+| `verificado_en` | timestamp with time zone | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -4327,18 +4602,19 @@
 - `pedido_web_pagos_pasarela_coherente` — `CHECK (((origen <> 'pasarela'::text) OR ((medio <> 'efectivo'::text) AND (proveedor ~ '^[a-z][a-z0-9_]{1,29}$'::text) AND ((char_length(referencia_externa) >= 1) AND (char_length(referencia_externa) <= 100)) AND (numero_operacion IS NULL))))`
 - `pedido_web_pagos_pasarela_unica` — `UNIQUE (proveedor, referencia_externa)`
 - `pedido_web_pagos_revision_con_observacion` — `CHECK (((estado <> 'por_revisar'::text) OR ((char_length(btrim(COALESCE(observacion, ''::text))) >= 1) AND (char_length(btrim(COALESCE(observacion, ''::text))) <= 300))))`
-- `pedido_web_pagos_tienda_coherente` — `CHECK (((origen <> 'tienda'::text) OR ((medio = ANY (ARRAY['efectivo'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])) AND (proveedor IS NULL) AND (referencia_externa IS NULL) AND (registrado_por IS NOT NULL) AND (estado = ANY (ARRAY['aprobado'::text, 'anulado'::text])))))`
+- `pedido_web_pagos_tienda_coherente` — `CHECK (((origen <> 'tienda'::text) OR ((medio = ANY (ARRAY['efectivo'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])) AND (proveedor IS NULL) AND (referencia_externa IS NULL) AND (registrado_por IS NOT NULL) AND ((estado = ANY (ARRAY['aprobado'::text, 'anulado'::text])) OR ((estado = ANY (ARRAY['pendiente'::text, 'rechazado'::text])) AND (medio <> 'efectivo'::text))))))`
 - `pedido_web_pagos_token_cliente_key` — `UNIQUE (token_cliente)`
+- `pedido_web_pagos_verificacion_coherente` — `CHECK ((((verificado_por IS NULL) = (verificado_en IS NULL)) AND ((origen <> 'tienda'::text) OR (estado <> 'pendiente'::text) OR (verificado_por IS NULL)) AND ((origen <> 'tienda'::text) OR (estado <> 'rechazado'::text) OR ((verificado_por IS NOT NULL) AND COALESCE((observacion = ANY (ARRAY['no_aparece_en_el_banco'::text, 'monto_no_coincide'::text, 'operacion_equivocada'::text])), false)))))`
 - `pedido_web_pagos_operacion_unica` *(único parcial)* — `retail.pedido_web_pagos (numero_operacion) WHERE ((numero_operacion IS NOT NULL) AND (estado <> 'anulado'::text))`
 
-**De qué depende:** `(anulado_caja_movimiento_id) REFERENCES retail.caja_movimientos(id)` · `(anulado_por) REFERENCES personas(id)` · `(caja_movimiento_id) REFERENCES retail.caja_movimientos(id)` · `(cuenta_dinero_id) REFERENCES retail.cuentas_dinero(id)` · `(pedido_id) REFERENCES retail.pedidos_web(id)` · `(registrado_por) REFERENCES personas(id)`
+**De qué depende:** `(anulado_caja_movimiento_id) REFERENCES retail.caja_movimientos(id)` · `(anulado_por) REFERENCES personas(id)` · `(caja_movimiento_id) REFERENCES retail.caja_movimientos(id)` · `(cuenta_dinero_id) REFERENCES retail.cuentas_dinero(id)` · `(pedido_id) REFERENCES retail.pedidos_web(id)` · `(registrado_por) REFERENCES personas(id)` · `(verificado_por) REFERENCES personas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
 ### `cuentas_web`
 
-*11 columnas · ~12 filas · permisos por fila **activos***
+*11 columnas · ~14 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4450,7 +4726,7 @@
 
 ### `cuentas_web_visitas`
 
-*3 columnas · ~10 filas · permisos por fila **activos***
+*3 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4469,7 +4745,7 @@
 
 ### `favoritos_web`
 
-*4 columnas · ~37 filas · permisos por fila **activos***
+*4 columnas · ~45 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4489,7 +4765,7 @@
 
 ### `esperas_web`
 
-*7 columnas · ~0 filas · permisos por fila **activos***
+*7 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4577,7 +4853,7 @@
 
 ### `ubicacion_datos_web`
 
-*6 columnas · ~3 filas · permisos por fila **activos***
+*9 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4587,16 +4863,135 @@
 | `horario` | text | sí | — | — |
 | `mostrar` | boolean | **no** | `false` | — |
 | `actualizado_en` | timestamp with time zone | **no** | `now()` | — |
+| `orden` | integer | sí | — | — |
+| `mapa_url` | text | sí | — | — |
+| `foto_ruta` | text | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `ubicacion_datos_web_direccion_valida` — `CHECK (((direccion IS NULL) OR ((direccion = btrim(direccion)) AND ((char_length(direccion) >= 1) AND (char_length(direccion) <= 160)))))`
+- `ubicacion_datos_web_foto_valida` — `CHECK (((foto_ruta IS NULL) OR (foto_ruta ~ (('^tiendas/'::text \|\| (ubicacion_id)::text) \|\| '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(webp\|jpg)$'::text))))`
 - `ubicacion_datos_web_horario_valido` — `CHECK (((horario IS NULL) OR ((horario = btrim(horario)) AND ((char_length(horario) >= 1) AND (char_length(horario) <= 120)))))`
+- `ubicacion_datos_web_mapa_valido` — `CHECK (((mapa_url IS NULL) OR (((char_length(mapa_url) >= 1) AND (char_length(mapa_url) <= 400)) AND (mapa_url = btrim(mapa_url)) AND (mapa_url ~* '^https://(www\.google\.com/maps\|google\.com/maps\|maps\.google\.com\|maps\.app\.goo\.gl\|goo\.gl/maps)(/\S*)?(\?\S*)?$'::text))))`
 - `ubicacion_datos_web_mostrar_completa` — `CHECK (((NOT mostrar) OR ((nombre_web IS NOT NULL) AND (direccion IS NOT NULL))))`
 - `ubicacion_datos_web_nombre_valido` — `CHECK (((nombre_web IS NULL) OR ((nombre_web = btrim(nombre_web)) AND ((char_length(nombre_web) >= 1) AND (char_length(nombre_web) <= 40)))))`
 - `ubicacion_datos_web_nombre_unico` *(único parcial)* — `retail.ubicacion_datos_web (lower(nombre_web)) WHERE (nombre_web IS NOT NULL)`
 
 **De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `ubicacion_horario_web`
+
+*4 columnas · ~20 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `ubicacion_id` | uuid | **no** | — | — |
+| `dia` | smallint | **no** | — | — |
+| `abre` | smallint | **no** | — | — |
+| `cierra` | smallint | **no** | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `ubicacion_horario_web_dia` — `CHECK (((dia >= 0) AND (dia <= 6)))`
+- `ubicacion_horario_web_horas` — `CHECK (((abre >= 0) AND (abre < cierra) AND (cierra <= 1440) AND (((abre)::integer % 15) = 0) AND (((cierra)::integer % 15) = 0)))`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `ubicacion_cierres_web`
+
+*2 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `ubicacion_id` | uuid | **no** | — | — |
+| `fecha` | date | **no** | — | — |
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `trafico_web`
+
+*9 columnas · ~291 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | bigint | **no** | — | — |
+| `ocurrio_en` | timestamp with time zone | **no** | `now()` | — |
+| `visitante` | uuid | **no** | — | — |
+| `paso` | smallint | **no** | — | — |
+| `camino` | text | sí | — | — |
+| `region` | text | sí | — | — |
+| `producto_id` | uuid | sí | — | — |
+| `variante_id` | uuid | sí | — | — |
+| `pedido_web_id` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `trafico_web_camino` — `CHECK (((camino IS NULL) OR (camino = ANY (ARRAY['instagram'::text, 'directo'::text, 'whatsapp'::text, 'tiktok'::text, 'google'::text, 'qr'::text, 'otros'::text]))))`
+- `trafico_web_camino_al_entrar` — `CHECK (((paso = 0) = (camino IS NOT NULL)))`
+- `trafico_web_paso` — `CHECK (((paso >= 0) AND (paso <= 4)))`
+- `trafico_web_pedido` — `CHECK (((paso = 4) = (pedido_web_id IS NOT NULL)))`
+- `trafico_web_prenda` — `CHECK (((paso = ANY (ARRAY[1, 2, 3])) = (producto_id IS NOT NULL)))`
+- `trafico_web_region` — `CHECK (((region IS NULL) OR (region ~ '^[A-Z]{2}(-[A-Z0-9]{1,3})?$'::text)))`
+- `trafico_web_region_al_entrar` — `CHECK (((paso = 0) OR (region IS NULL)))`
+- `trafico_web_talla` — `CHECK (((paso = ANY (ARRAY[2, 3])) OR (variante_id IS NULL)))`
+- `trafico_web_talla_obligatoria` — `CHECK (((paso <> ALL (ARRAY[2, 3])) OR (variante_id IS NOT NULL)))`
+- `trafico_web_pedido_una_vez` *(único parcial)* — `retail.trafico_web (pedido_web_id) WHERE (pedido_web_id IS NOT NULL)`
+
+**De qué depende:** `(pedido_web_id) REFERENCES retail.pedidos_web(id)` · `(producto_id) REFERENCES retail.productos(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `tickets_abiertos`
+
+*18 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `nombre` | text | **no** | — | — |
+| `estado` | text | **no** | `'abierto'::text` | — |
+| `lineas` | jsonb | **no** | `'[]'::jsonb` | — |
+| `nota` | text | **no** | `''::text` | — |
+| `clienta` | jsonb | sí | — | — |
+| `cobro` | jsonb | sí | — | — |
+| `posicion` | integer | **no** | `0` | — |
+| `tomado_por` | uuid | sí | — | — |
+| `tomado_etiqueta` | text | sí | — | — |
+| `tomado_hasta` | timestamp with time zone | sí | — | — |
+| `version` | integer | **no** | `1` | — |
+| `venta_id` | uuid | sí | — | — |
+| `creado_por` | uuid | **no** | `auth.uid()` | — |
+| `creado_en` | timestamp with time zone | **no** | `now()` | — |
+| `actualizado_en` | timestamp with time zone | **no** | `now()` | — |
+| `cerrado_en` | timestamp with time zone | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `tickets_abiertos_clienta_check` — `CHECK (((clienta IS NULL) OR (jsonb_typeof(clienta) = 'object'::text)))`
+- `tickets_abiertos_cobro_check` — `CHECK (((cobro IS NULL) OR (jsonb_typeof(cobro) = 'object'::text)))`
+- `tickets_abiertos_estado_check` — `CHECK ((estado = ANY (ARRAY['abierto'::text, 'cobrado'::text, 'descartado'::text])))`
+- `tickets_abiertos_lineas_check` — `CHECK (((jsonb_typeof(lineas) = 'array'::text) AND (octet_length((lineas)::text) <= 60000)))`
+- `tickets_abiertos_nombre_check` — `CHECK (((char_length(btrim(nombre)) >= 1) AND (char_length(btrim(nombre)) <= 30)))`
+- `tickets_abiertos_nota_check` — `CHECK ((char_length(nota) <= 200))`
+- `tickets_abiertos_tomado_etiqueta_check` — `CHECK (((tomado_etiqueta IS NULL) OR (char_length(tomado_etiqueta) <= 40)))`
+- `tickets_cerrado_no_se_tiene` — `CHECK (((estado = 'abierto'::text) OR (tomado_por IS NULL)))`
+- `tickets_cerrado_si_y_solo_si_no_abierto` — `CHECK (((estado = 'abierto'::text) = (cerrado_en IS NULL)))`
+- `tickets_cobrado_si_y_solo_si_hay_venta` — `CHECK (((estado = 'cobrado'::text) = (venta_id IS NOT NULL)))`
+- `tickets_un_nombre_por_sede` *(único parcial)* — `retail.tickets_abiertos (ubicacion_id, lower(btrim(nombre))) WHERE (estado = 'abierto'::text)`
+- `tickets_una_venta` *(único parcial)* — `retail.tickets_abiertos (venta_id) WHERE (venta_id IS NOT NULL)`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(venta_id) REFERENCES retail.ventas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -4641,7 +5036,7 @@
 
 ### `looks_web`
 
-*6 columnas · ~0 filas · permisos por fila **activos***
+*6 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4665,7 +5060,7 @@
 
 ### `look_web_piezas`
 
-*4 columnas · ~0 filas · permisos por fila **activos***
+*4 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4803,7 +5198,7 @@
 
 ### `tienda_push_envios`
 
-*9 columnas · ~2 filas · permisos por fila **activos***
+*9 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5021,7 +5416,7 @@
 
 ### `comprobantes`
 
-*41 columnas · ~1097 filas · permisos por fila **activos***
+*41 columnas · ~1446 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5305,7 +5700,7 @@
 
 ### `proveedores`
 
-*16 columnas · ~117 filas · permisos por fila **activos***
+*17 columnas · ~120 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5325,6 +5720,7 @@
 | `billeteras` | ARRAY | sí | — | en qué app tiene ese celular: Yape, Plin o ambas; va de la mano con el celular (uno sin el otro no puede existir) |
 | `titular_cuenta` | text | sí | — | el nombre que muestra el banco o Yape antes de confirmar; quien paga lo compara con este para no equivocarse de destino |
 | `rubros` | ARRAY | **no** | `'{}'::text[]` | — |
+| `tipo` | text | **no** | `'mercaderia'::text` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -5337,6 +5733,7 @@
 - `proveedores_rubros_limpios` — `CHECK ((rubros = retail.fn_rubros_limpios(rubros)))`
 - `proveedores_ruc_check` — `CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))`
 - `proveedores_textos_con_tope` — `CHECK ((char_length(nombre) <= 120))`
+- `proveedores_tipo_valido` — `CHECK ((tipo = ANY (ARRAY['mercaderia'::text, 'servicios'::text])))`
 - `proveedores_titular_largo` — `CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))`
 - `proveedores_ruc_unico` *(único parcial)* — `retail.proveedores (ruc) WHERE (ruc IS NOT NULL)`
 
@@ -5600,7 +5997,7 @@
 
 ### `planes_compra`
 
-*17 columnas · ~4 filas · permisos por fila **activos***
+*25 columnas · ~5 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5621,29 +6018,43 @@
 | `recupero_defecto_pct` | integer | sí | — | — |
 | `recupero_actualizado_por` | uuid | sí | — | — |
 | `recupero_actualizado_en` | timestamp with time zone | sí | — | — |
+| `dias_para_llegar` | integer | sí | — | — |
+| `plazo_actualizado_por` | uuid | sí | — | — |
+| `plazo_actualizado_en` | timestamp with time zone | sí | — | — |
+| `precio_de_la_plata` | numeric | **no** | `0` | — |
+| `calendario_id` | uuid | sí | — | — |
+| `visibilidad_finanzas` | text | **no** | `'todo'::text` | — |
+| `visibilidad_finanzas_por` | uuid | sí | — | — |
+| `visibilidad_finanzas_en` | timestamp with time zone | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `planes_compra_archivado_con_autor` — `CHECK (((archivado_en IS NULL) = (archivado_por IS NULL)))`
 - `planes_compra_editado_con_autor` — `CHECK (((editado_en IS NULL) = (editado_por IS NULL)))`
 - `planes_compra_fechas` — `CHECK ((hasta >= desde))`
+- `planes_compra_insignia_o_propia` — `CHECK (((etiqueta_id IS NULL) OR (calendario_id IS NULL)))`
 - `planes_compra_montos_finitos` — `CHECK ((abs(tope_inversion) < 'Infinity'::numeric))`
 - `planes_compra_nombre_check` — `CHECK ((btrim(nombre) <> ''::text))`
 - `planes_compra_nombre_key` — `UNIQUE (nombre)`
+- `planes_compra_plazo_con_autor` — `CHECK (((dias_para_llegar IS NULL) OR ((plazo_actualizado_por IS NOT NULL) AND (plazo_actualizado_en IS NOT NULL))))`
+- `planes_compra_plazo_rango` — `CHECK (((dias_para_llegar IS NULL) OR ((dias_para_llegar >= 1) AND (dias_para_llegar <= 365))))`
+- `planes_compra_precio_de_la_plata_check` — `CHECK (((precio_de_la_plata >= ('-1'::integer)::numeric) AND (precio_de_la_plata <= (50)::numeric)))`
 - `planes_compra_recupero_con_autor` — `CHECK (((recupero_defecto_pct IS NULL) OR ((recupero_actualizado_por IS NOT NULL) AND (recupero_actualizado_en IS NOT NULL))))`
 - `planes_compra_recupero_defecto_pct_check` — `CHECK (((recupero_defecto_pct IS NULL) OR ((recupero_defecto_pct >= 0) AND (recupero_defecto_pct <= 100))))`
 - `planes_compra_tope_con_autor` — `CHECK (((tope_inversion IS NULL) OR ((tope_actualizado_por IS NOT NULL) AND (tope_actualizado_en IS NOT NULL))))`
 - `planes_compra_tope_inversion_check` — `CHECK (((tope_inversion IS NULL) OR (tope_inversion > (0)::numeric)))`
+- `planes_compra_visibilidad_finanzas_valida` — `CHECK (((visibilidad_finanzas = ANY (ARRAY['todo'::text, 'escenarios'::text, 'nada'::text])) AND ((visibilidad_finanzas_por IS NULL) = (visibilidad_finanzas_en IS NULL))))`
 - `planes_compra_una_por_etiqueta_y_anio` *(único parcial)* — `retail.planes_compra (etiqueta_id, ((EXTRACT(year FROM hasta))::integer)) WHERE (etiqueta_id IS NOT NULL)`
+- `planes_compra_una_por_propia_y_anio` *(único parcial)* — `retail.planes_compra (calendario_id, ((EXTRACT(year FROM hasta))::integer)) WHERE (calendario_id IS NOT NULL)`
 
-**De qué depende:** `(archivado_por) REFERENCES personas(id)` · `(creado_por) REFERENCES personas(id)` · `(editado_por) REFERENCES personas(id)` · `(etiqueta_id) REFERENCES retail.etiquetas(id)` · `(recupero_actualizado_por) REFERENCES personas(id)` · `(tope_actualizado_por) REFERENCES personas(id)`
+**De qué depende:** `(archivado_por) REFERENCES personas(id)` · `(calendario_id) REFERENCES retail.plan_compra_calendario(id)` · `(creado_por) REFERENCES personas(id)` · `(editado_por) REFERENCES personas(id)` · `(etiqueta_id) REFERENCES retail.etiquetas(id)` · `(plazo_actualizado_por) REFERENCES personas(id)` · `(recupero_actualizado_por) REFERENCES personas(id)` · `(tope_actualizado_por) REFERENCES personas(id)` · `(visibilidad_finanzas_por) REFERENCES personas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
 ### `planes_compra_lineas`
 
-*14 columnas · ~0 filas · permisos por fila **activos***
+*15 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5661,11 +6072,13 @@
 | `actualizado_por` | uuid | **no** | — | — |
 | `updated_at` | timestamp with time zone | **no** | `now()` | — |
 | `version` | integer | **no** | `1` | — |
+| `descuento_pct` | numeric | **no** | `0` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `planes_compra_lineas_costo_check` — `CHECK ((costo >= (0)::numeric))`
 - `planes_compra_lineas_curva_check` — `CHECK ((jsonb_typeof(curva) = 'object'::text))`
+- `planes_compra_lineas_descuento_rango` — `CHECK (((descuento_pct >= (0)::numeric) AND (descuento_pct < (100)::numeric)))`
 - `planes_compra_lineas_escenarios` — `CHECK (((flojo <= normal) AND (normal <= bueno)))`
 - `planes_compra_lineas_flojo_check` — `CHECK ((flojo >= 0))`
 - `planes_compra_lineas_margen` — `CHECK ((costo < precio))`
@@ -5724,9 +6137,265 @@
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
+### `planes_compra_lineas_historial`
+
+*16 columnas · ~1 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `plan_id` | uuid | **no** | — | — |
+| `categoria_id` | uuid | **no** | — | — |
+| `version` | integer | **no** | — | — |
+| `flojo` | integer | **no** | — | — |
+| `normal` | integer | **no** | — | — |
+| `bueno` | integer | **no** | — | — |
+| `precio` | numeric | **no** | — | — |
+| `costo` | numeric | **no** | — | — |
+| `recupero_pct` | integer | **no** | — | — |
+| `descuento_pct` | numeric | **no** | `0` | — |
+| `curva` | jsonb | **no** | `'{}'::jsonb` | — |
+| `nota` | text | sí | — | — |
+| `propuesta` | jsonb | sí | — | — |
+| `guardado_por` | uuid | **no** | — | — |
+| `guardado_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `planes_compra_lineas_historial_costo_check` — `CHECK ((costo >= (0)::numeric))`
+- `planes_compra_lineas_historial_curva_check` — `CHECK ((jsonb_typeof(curva) = 'object'::text))`
+- `planes_compra_lineas_historial_descuento_pct_check` — `CHECK (((descuento_pct >= (0)::numeric) AND (descuento_pct < (100)::numeric)))`
+- `planes_compra_lineas_historial_escenarios` — `CHECK (((flojo <= normal) AND (normal <= bueno)))`
+- `planes_compra_lineas_historial_flojo_check` — `CHECK ((flojo >= 0))`
+- `planes_compra_lineas_historial_margen` — `CHECK ((costo < precio))`
+- `planes_compra_lineas_historial_nota_check` — `CHECK (((nota IS NULL) OR (btrim(nota) <> ''::text)))`
+- `planes_compra_lineas_historial_precio_check` — `CHECK ((precio > (0)::numeric))`
+- `planes_compra_lineas_historial_propuesta_check` — `CHECK (((propuesta IS NULL) OR ((jsonb_typeof(propuesta) = 'object'::text) AND (octet_length((propuesta)::text) <= 8192))))`
+- `planes_compra_lineas_historial_recupero_pct_check` — `CHECK (((recupero_pct >= 0) AND (recupero_pct <= 100)))`
+- `planes_compra_lineas_historial_una_por_version` — `UNIQUE (plan_id, categoria_id, version)`
+- `planes_compra_lineas_historial_version_check` — `CHECK ((version >= 1))`
+
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id)` · `(guardado_por) REFERENCES personas(id)` · `(plan_id) REFERENCES retail.planes_compra(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `planes_compra_versiones`
+
+*14 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `plan_id` | uuid | **no** | — | — |
+| `numero` | integer | **no** | — | — |
+| `nota` | text | **no** | `''::text` | — |
+| `origen` | text | **no** | — | — |
+| `restaurada_de` | integer | sí | — | — |
+| `precio_de_la_plata` | numeric | **no** | — | — |
+| `tope` | numeric | sí | — | — |
+| `lineas` | jsonb | **no** | — | — |
+| `prendas` | integer | sí | — | — |
+| `inversion` | numeric | sí | — | — |
+| `huella` | text | **no** | — | — |
+| `creada_por` | uuid | **no** | — | — |
+| `creada_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `planes_compra_versiones_inversion_check` — `CHECK (((inversion IS NULL) OR (inversion >= (0)::numeric)))`
+- `planes_compra_versiones_lineas_check` — `CHECK (((jsonb_typeof(lineas) = 'array'::text) AND (octet_length((lineas)::text) <= 262144)))`
+- `planes_compra_versiones_nota_check` — `CHECK ((char_length(nota) <= 120))`
+- `planes_compra_versiones_numero_check` — `CHECK ((numero >= 1))`
+- `planes_compra_versiones_origen_check` — `CHECK ((origen = ANY (ARRAY['manual'::text, 'plan_con_tope'::text, 'restauracion'::text, 'automatica'::text])))`
+- `planes_compra_versiones_precio_de_la_plata_check` — `CHECK (((precio_de_la_plata >= ('-1'::integer)::numeric) AND (precio_de_la_plata <= (50)::numeric)))`
+- `planes_compra_versiones_prendas_check` — `CHECK (((prendas IS NULL) OR (prendas >= 0)))`
+- `planes_compra_versiones_restauracion` — `CHECK (((origen = 'restauracion'::text) = (restaurada_de IS NOT NULL)))`
+- `planes_compra_versiones_restaurada_de_check` — `CHECK (((restaurada_de IS NULL) OR (restaurada_de >= 1)))`
+- `planes_compra_versiones_tope_check` — `CHECK (((tope IS NULL) OR (tope > (0)::numeric)))`
+- `planes_compra_versiones_una_por_numero` — `UNIQUE (plan_id, numero)`
+- `planes_compra_versiones_vuelve_a_una_anterior` — `CHECK (((restaurada_de IS NULL) OR (restaurada_de < numero)))`
+
+**De qué depende:** `(creada_por) REFERENCES personas(id)` · `(plan_id) REFERENCES retail.planes_compra(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `plan_compra_calendario`
+
+*15 columnas · ~3 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `etiqueta_id` | uuid | sí | — | — |
+| `nombre` | text | sí | — | — |
+| `desde_md` | text | sí | — | — |
+| `hasta_md` | text | sí | — | — |
+| `uso` | text | **no** | `'no'::text` | — |
+| `pausa_hasta` | date | sí | — | — |
+| `repite` | text | **no** | `'anual'::text` | — |
+| `anio_unico` | integer | sí | — | — |
+| `quitada_en` | timestamp with time zone | sí | — | — |
+| `quitada_por` | uuid | sí | — | — |
+| `creada_por` | uuid | **no** | — | — |
+| `creada_en` | timestamp with time zone | **no** | `now()` | — |
+| `actualizada_por` | uuid | **no** | — | — |
+| `actualizada_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `plan_compra_calendario_anio_unico_check` — `CHECK (((anio_unico IS NULL) OR ((anio_unico >= 2000) AND (anio_unico <= 2100))))`
+- `plan_compra_calendario_de_insignia_sin_nombre` — `CHECK (((etiqueta_id IS NULL) OR (nombre IS NULL)))`
+- `plan_compra_calendario_desde_md_check` — `CHECK (((desde_md IS NULL) OR (desde_md ~ '^(0[1-9]\|1[0-2])-(0[1-9]\|[12][0-9]\|3[01])$'::text)))`
+- `plan_compra_calendario_hasta_md_check` — `CHECK (((hasta_md IS NULL) OR (hasta_md ~ '^(0[1-9]\|1[0-2])-(0[1-9]\|[12][0-9]\|3[01])$'::text)))`
+- `plan_compra_calendario_las_dos_fechas` — `CHECK (((desde_md IS NULL) = (hasta_md IS NULL)))`
+- `plan_compra_calendario_nombre_check` — `CHECK (((nombre IS NULL) OR ((btrim(nombre) <> ''::text) AND (char_length(nombre) <= 80))))`
+- `plan_compra_calendario_propia_completa` — `CHECK (((etiqueta_id IS NOT NULL) OR ((nombre IS NOT NULL) AND (desde_md IS NOT NULL) AND (hasta_md IS NOT NULL))))`
+- `plan_compra_calendario_quitada_con_autor` — `CHECK (((quitada_en IS NULL) = (quitada_por IS NULL)))`
+- `plan_compra_calendario_regreso_solo_pausada` — `CHECK (((pausa_hasta IS NULL) OR (uso = 'pausada'::text)))`
+- `plan_compra_calendario_repite_check` — `CHECK ((repite = ANY (ARRAY['anual'::text, 'unica'::text])))`
+- `plan_compra_calendario_unica_con_anio` — `CHECK (((repite = 'unica'::text) = (anio_unico IS NOT NULL)))`
+- `plan_compra_calendario_uso_check` — `CHECK ((uso = ANY (ARRAY['activa'::text, 'pausada'::text, 'no'::text])))`
+- `plan_compra_calendario_nombre_propio` *(único parcial)* — `retail.plan_compra_calendario (retail.fn_clave_texto(nombre)) WHERE (etiqueta_id IS NULL)`
+- `plan_compra_calendario_una_por_insignia` *(único parcial)* — `retail.plan_compra_calendario (etiqueta_id) WHERE (etiqueta_id IS NOT NULL)`
+
+**De qué depende:** `(actualizada_por) REFERENCES personas(id)` · `(creada_por) REFERENCES personas(id)` · `(etiqueta_id) REFERENCES retail.etiquetas(id)` · `(quitada_por) REFERENCES personas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `planes_compra_paso_2`
+
+*10 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `plan_id` | uuid | **no** | — | — |
+| `categoria_id` | uuid | **no** | — | — |
+| `version` | integer | **no** | — | — |
+| `pct` | integer | **no** | — | — |
+| `total` | integer | **no** | — | — |
+| `items` | jsonb | **no** | — | — |
+| `unidades` | integer | **no** | — | — |
+| `por` | uuid | **no** | — | — |
+| `en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `planes_compra_paso_2_cabe_en_el_total` — `CHECK ((unidades <= total))`
+- `planes_compra_paso_2_items_check` — `CHECK (((jsonb_typeof(items) = 'array'::text) AND (jsonb_array_length(items) <= 5000) AND (octet_length((items)::text) <= 1048576)))`
+- `planes_compra_paso_2_pct_check` — `CHECK (((pct >= 0) AND (pct <= 100)))`
+- `planes_compra_paso_2_total_check` — `CHECK ((total >= 0))`
+- `planes_compra_paso_2_una_por_version` — `UNIQUE (plan_id, categoria_id, version)`
+- `planes_compra_paso_2_unidades_check` — `CHECK ((unidades >= 0))`
+- `planes_compra_paso_2_version_check` — `CHECK ((version >= 1))`
+
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id)` · `(plan_id) REFERENCES retail.planes_compra(id)` · `(por) REFERENCES personas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `planes_compra_pagos`
+
+*8 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `plan_id` | uuid | **no** | — | — |
+| `version` | integer | **no** | — | — |
+| `pagos` | jsonb | **no** | — | — |
+| `tandas` | jsonb | **no** | `'[]'::jsonb` | — |
+| `igv_incluido` | jsonb | **no** | `'[]'::jsonb` | — |
+| `por` | uuid | **no** | — | — |
+| `en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `planes_compra_pagos_igv_lista` — `CHECK (((jsonb_typeof(igv_incluido) = 'array'::text) AND (jsonb_array_length(igv_incluido) <= 500)))`
+- `planes_compra_pagos_suman_cien` — `CHECK (retail.fn_pagos_de_compra_validos(pagos))`
+- `planes_compra_pagos_tandas_tope` — `CHECK (((jsonb_typeof(tandas) = ANY (ARRAY['array'::text, 'object'::text])) AND (octet_length((tandas)::text) <= 16384)))`
+- `planes_compra_pagos_una_por_version` — `UNIQUE (plan_id, version)`
+- `planes_compra_pagos_version_check` — `CHECK ((version >= 1))`
+
+**De qué depende:** `(plan_id) REFERENCES retail.planes_compra(id)` · `(por) REFERENCES personas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `pedidos_campana`
+
+*20 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `plan_id` | uuid | **no** | — | — |
+| `categoria_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `estado` | text | **no** | `'pendiente'::text` | — |
+| `cuando` | text | **no** | — | — |
+| `fecha_prevista` | date | sí | — | — |
+| `paso_2_version` | integer | **no** | — | — |
+| `unidades` | integer | **no** | — | — |
+| `costo_unitario` | numeric | **no** | — | — |
+| `enviado_por` | uuid | **no** | — | — |
+| `enviado_en` | timestamp with time zone | **no** | `now()` | — |
+| `actualizado_por` | uuid | sí | — | — |
+| `actualizado_en` | timestamp with time zone | sí | — | — |
+| `orden_compra_id` | uuid | sí | — | — |
+| `pedido_por` | uuid | sí | — | — |
+| `pedido_en` | timestamp with time zone | sí | — | — |
+| `rectificado_por` | uuid | sí | — | — |
+| `rectificado_en` | timestamp with time zone | sí | — | — |
+| `motivo` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `pedidos_campana_actualizado_con_autor` — `CHECK (((actualizado_por IS NULL) = (actualizado_en IS NULL)))`
+- `pedidos_campana_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
+- `pedidos_campana_cuando_coherente` — `CHECK ((((cuando = 'ya'::text) AND (fecha_prevista IS NULL)) OR ((cuando = 'fecha'::text) AND (fecha_prevista IS NOT NULL))))`
+- `pedidos_campana_estado_coherente` — `CHECK ( CASE estado     WHEN 'pendiente'::text THEN ((orden_compra_id IS NULL) AND (pedido_por IS NULL) AND (pedido_en IS NULL) AND (rectificado_por IS NULL) AND (rectificado_en IS NULL) AND (motivo IS NULL))     WHEN 'pedido'::text THEN ((orden_compra_id IS NOT NULL) AND (pedido_por IS NOT NULL) AND (pedido_en IS NOT NULL) AND (rectificado_por IS NULL) AND (rectificado_en IS NULL) AND (motivo IS NULL))     WHEN 'rectificado'::text THEN ((orden_compra_id IS NULL) AND (pedido_por IS NULL) AND (pedido_en IS NULL) AND (rectificado_por IS NOT NULL) AND (rectificado_en IS NOT NULL) AND (btrim(COALESCE(motivo, ''::text)) <> ''::text))     ELSE NULL::boolean END)`
+- `pedidos_campana_estado_valido` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'pedido'::text, 'rectificado'::text])))`
+- `pedidos_campana_motivo_con_tope` — `CHECK (((motivo IS NULL) OR (length(motivo) <= 200)))`
+- `pedidos_campana_paso_2_version_check` — `CHECK ((paso_2_version >= 1))`
+- `pedidos_campana_una_orden` — `UNIQUE (orden_compra_id)`
+- `pedidos_campana_unidades_check` — `CHECK ((unidades >= 1))`
+- `pedidos_campana_un_pedido_por_version` *(único parcial)* — `ON retail.pedidos_campana (plan_id, categoria_id, proveedor_id, paso_2_version) WHERE (estado = 'pedido'::text)`
+- `pedidos_campana_un_pendiente` *(único parcial)* — `retail.pedidos_campana (plan_id, categoria_id, proveedor_id) WHERE (estado = 'pendiente'::text)`
+
+**De qué depende:** `(actualizado_por) REFERENCES personas(id)` · `(categoria_id) REFERENCES retail.categorias(id)` · `(enviado_por) REFERENCES personas(id)` · `(orden_compra_id) REFERENCES retail.ordenes_compra(id)` · `(pedido_por) REFERENCES personas(id)` · `(plan_id) REFERENCES retail.planes_compra(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(rectificado_por) REFERENCES personas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `pedidos_campana_lineas`
+
+*6 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `pedido_id` | uuid | **no** | — | — |
+| `producto_id` | uuid | **no** | — | — |
+| `color_codigo` | text | **no** | — | — |
+| `talla_id` | uuid | sí | — | — |
+| `cantidad` | integer | **no** | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `pedidos_campana_lineas_cantidad_check` — `CHECK (((cantidad >= 1) AND (cantidad <= 100000)))`
+
+**De qué depende:** `(pedido_id) REFERENCES retail.pedidos_campana(id)` · `(producto_id) REFERENCES retail.productos(id)` · `(talla_id) REFERENCES retail.tallas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
 ### `ordenes_compra`
 
-*17 columnas · ~0 filas · permisos por fila **activos***
+*17 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5764,7 +6433,7 @@
 
 ### `orden_compra_items`
 
-*14 columnas · ~0 filas · permisos por fila **activos***
+*14 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5851,7 +6520,7 @@
 **Candados** — lo que esta tabla hace imposible:
 
 - `despacho_diferencias_cantidad_check` — `CHECK ((cantidad > 0))`
-- `despacho_diferencias_causa` — `CHECK ((((tipo = 'faltante'::text) AND (causa = ANY (ARRAY['no_vino'::text, 'se_perdio'::text, 'otra_sede'::text, 'devuelta'::text]))) OR ((tipo = 'sobrante'::text) AND (causa = ANY (ARRAY['regalo'::text, 'cobra_aparte'::text, 'proxima_compra'::text, 'reposicion_faltante'::text])))))`
+- `despacho_diferencias_causa` — `CHECK ((((tipo = 'faltante'::text) AND (causa = ANY (ARRAY['no_vino'::text, 'se_perdio'::text, 'otra_sede'::text, 'devuelta'::text]))) OR ((tipo = 'sobrante'::text) AND (causa = ANY (ARRAY['regalo'::text, 'cobra_aparte'::text, 'proxima_compra'::text, 'reposicion_faltante'::text, 'otro'::text])))))`
 - `despacho_diferencias_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
 - `despacho_diferencias_devuelta_con_su_prenda` — `CHECK (((causa = 'devuelta'::text) = (prenda_danada_id IS NOT NULL)))`
 - `despacho_diferencias_extra_posicion_check` — `CHECK (((extra_posicion IS NULL) OR (extra_posicion > 0)))`
@@ -6223,7 +6892,7 @@
 
 ### `compra_papeles`
 
-*11 columnas · ~0 filas · permisos por fila **activos***
+*14 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6238,23 +6907,53 @@
 | `huella` | text | **no** | — | — |
 | `registrado_por` | uuid | **no** | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `pagado` | numeric | **no** | — | — |
+| `medio_pago` | text | sí | — | — |
+| `ronda_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `compra_papeles_estado_check` — `CHECK ((estado = ANY (ARRAY['por_completar'::text, 'completado'::text, 'anulado'::text])))`
 - `compra_papeles_foto_ruta_check` — `CHECK (((foto_ruta IS NULL) OR ((foto_ruta ~~ 'papeles/%'::text) AND (char_length(foto_ruta) <= 300))))`
-- `compra_papeles_foto_si_hay_papel` — `CHECK (((tipo = 'sin_comprobante'::text) OR (foto_ruta IS NOT NULL)))`
+- `compra_papeles_medio_pago` — `CHECK ((((pagado = (0)::numeric) AND (medio_pago IS NULL)) OR ((pagado > (0)::numeric) AND (medio_pago = ANY (ARRAY['yape'::text, 'efectivo'::text, 'transferencia'::text])))))`
 - `compra_papeles_monto_check` — `CHECK (((monto > (0)::numeric) AND (monto <= (1000000)::numeric)))`
+- `compra_papeles_pagado_rango` — `CHECK (((pagado >= (0)::numeric) AND (pagado <= monto)))`
 - `compra_papeles_tipo_check` — `CHECK ((tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'nota_venta'::text, 'sin_comprobante'::text])))`
 
-**De qué depende:** `(persona_id) REFERENCES personas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(registrado_por) REFERENCES personas(id)`
+**De qué depende:** `(persona_id) REFERENCES personas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(registrado_por) REFERENCES personas(id)` · `(ronda_id) REFERENCES retail.compra_rondas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `compra_correcciones`
+
+*9 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `lote` | uuid | **no** | — | — |
+| `papel_id` | uuid | **no** | — | — |
+| `orden_compra_item_id` | uuid | sí | — | — |
+| `campo` | text | **no** | — | — |
+| `antes` | text | sí | — | — |
+| `despues` | text | sí | — | — |
+| `corregida_por` | uuid | **no** | — | — |
+| `corregida_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `compra_correcciones_cambia` — `CHECK ((antes IS DISTINCT FROM despues))`
+- `compra_correcciones_campo_check` — `CHECK ((campo = ANY (ARRAY['cantidad'::text, 'costo'::text, 'precio_venta'::text, 'nombre'::text, 'categoria'::text, 'marca'::text, 'tienda'::text, 'monto'::text, 'pagado'::text, 'medio_pago'::text])))`
+
+**De qué depende:** `(corregida_por) REFERENCES personas(id)` · `(orden_compra_item_id) REFERENCES retail.orden_compra_items(id)` · `(papel_id) REFERENCES retail.compra_papeles(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
 ### `compra_gastos`
 
-*11 columnas · ~0 filas · permisos por fila **activos***
+*12 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6269,6 +6968,7 @@
 | `huella` | text | **no** | — | — |
 | `registrado_por` | uuid | **no** | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `ronda_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -6279,14 +6979,14 @@
 - `compra_gastos_nota_check` — `CHECK (((nota IS NULL) OR (char_length(nota) <= 120)))`
 - `compra_gastos_otro_dice_que` — `CHECK (((concepto <> 'otro'::text) OR (NULLIF(btrim(COALESCE(nota, ''::text)), ''::text) IS NOT NULL)))`
 
-**De qué depende:** `(persona_id) REFERENCES personas(id)` · `(registrado_por) REFERENCES personas(id)`
+**De qué depende:** `(persona_id) REFERENCES personas(id)` · `(registrado_por) REFERENCES personas(id)` · `(ronda_id) REFERENCES retail.compra_rondas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
 ### `compra_cierres`
 
-*9 columnas · ~0 filas · permisos por fila **activos***
+*10 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6299,15 +6999,16 @@
 | `resuelto_por` | uuid | sí | — | — |
 | `cerrado_por` | uuid | **no** | — | — |
 | `cerrado_en` | timestamp with time zone | **no** | `now()` | — |
+| `ronda_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `compra_cierres_decision_check` — `CHECK ((decision = ANY (ARRAY['se_queda'::text, 'devuelve'::text, 'le_deben'::text])))`
 - `compra_cierres_monto_check` — `CHECK ((monto >= (0)::numeric))`
 - `compra_cierres_queda_sin_resolver` — `CHECK (((decision <> 'se_queda'::text) OR (resuelto_en IS NULL)))`
-- `compra_cierres_uno_por_dia` — `UNIQUE (persona_id, fecha)`
+- `compra_cierres_ronda_id_key` — `UNIQUE (ronda_id)`
 
-**De qué depende:** `(cerrado_por) REFERENCES personas(id)` · `(persona_id) REFERENCES personas(id)` · `(resuelto_por) REFERENCES personas(id)`
+**De qué depende:** `(cerrado_por) REFERENCES personas(id)` · `(persona_id) REFERENCES personas(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ronda_id) REFERENCES retail.compra_rondas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -6337,7 +7038,7 @@
 
 ### `fondo_plata_anotada`
 
-*15 columnas · ~0 filas · permisos por fila **activos***
+*17 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6356,9 +7057,12 @@
 | `anotada_por` | uuid | **no** | — | — |
 | `token_cliente` | uuid | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `ronda_id` | uuid | sí | — | — |
+| `cuenta_indicada_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `fondo_plata_anotada_cuenta_indicada` — `CHECK (((cuenta_indicada_id IS NULL) OR (medio = 'transferencia'::text)))`
 - `fondo_plata_anotada_estado` — `CHECK ((((estado = 'por_confirmar'::text) AND (monto_confirmado IS NULL) AND (cuenta_origen_id IS NULL) AND (movimiento_id IS NULL) AND (confirmada_por IS NULL) AND (confirmada_en IS NULL)) OR ((estado = 'confirmada'::text) AND (monto_confirmado IS NOT NULL) AND (confirmada_por IS NOT NULL) AND (confirmada_en IS NOT NULL) AND ((medio = 'ya_tenia'::text) = (cuenta_origen_id IS NULL)) AND ((medio = 'ya_tenia'::text) = (movimiento_id IS NULL)))))`
 - `fondo_plata_anotada_estado_check` — `CHECK ((estado = ANY (ARRAY['por_confirmar'::text, 'confirmada'::text])))`
 - `fondo_plata_anotada_foto_ruta_check` — `CHECK (((foto_ruta IS NULL) OR ((foto_ruta ~~ 'plata/%'::text) AND (char_length(foto_ruta) <= 300))))`
@@ -6369,7 +7073,33 @@
 - `fondo_plata_anotada_token_cliente_key` — `UNIQUE (token_cliente)`
 - `fondo_plata_anotada_ya_tenia_uq` *(único parcial)* — `retail.fondo_plata_anotada (persona_id) WHERE (medio = 'ya_tenia'::text)`
 
-**De qué depende:** `(anotada_por) REFERENCES personas(id)` · `(confirmada_por) REFERENCES personas(id)` · `(cuenta_origen_id) REFERENCES retail.cuentas_dinero(id)` · `(movimiento_id) REFERENCES retail.movimientos_dinero(id)` · `(persona_id) REFERENCES personas(id)`
+**De qué depende:** `(anotada_por) REFERENCES personas(id)` · `(confirmada_por) REFERENCES personas(id)` · `(cuenta_indicada_id) REFERENCES retail.cuentas_dinero(id)` · `(cuenta_origen_id) REFERENCES retail.cuentas_dinero(id)` · `(movimiento_id) REFERENCES retail.movimientos_dinero(id)` · `(persona_id) REFERENCES personas(id)` · `(ronda_id) REFERENCES retail.compra_rondas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `compra_rondas`
+
+*7 columnas · ~4 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `numero` | integer | **no** | `nextval('retail.compra_rondas_numero_seq'::regclass)` | — |
+| `persona_id` | uuid | **no** | — | — |
+| `abierta_en` | timestamp with time zone | **no** | `now()` | — |
+| `abierta_por` | uuid | **no** | — | — |
+| `cerrada_en` | timestamp with time zone | sí | — | — |
+| `cierre_id` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `compra_rondas_cerrada_con_cierre` — `CHECK (((cerrada_en IS NULL) = (cierre_id IS NULL)))`
+- `compra_rondas_cierre_id_key` — `UNIQUE (cierre_id)`
+- `compra_rondas_numero_key` — `UNIQUE (numero)`
+- `compra_rondas_una_abierta` *(único parcial)* — `retail.compra_rondas (persona_id) WHERE (cerrada_en IS NULL)`
+
+**De qué depende:** `(abierta_por) REFERENCES personas(id)` · `(cierre_id) REFERENCES retail.compra_cierres(id)` · `(persona_id) REFERENCES personas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -6379,7 +7109,7 @@
 
 ### `producciones`
 
-*19 columnas · ~0 filas · permisos por fila **activos***
+*19 columnas · ~4 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6426,7 +7156,7 @@
 
 ### `produccion_lineas`
 
-*6 columnas · ~0 filas · permisos por fila **activos***
+*6 columnas · ~47 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6454,7 +7184,7 @@
 
 ### `insumos`
 
-*15 columnas · ~0 filas · permisos por fila **activos***
+*16 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6473,17 +7203,21 @@
 | `creado_por` | uuid | sí | — | — |
 | `tejido_id` | uuid | sí | — | — |
 | `color_codigo` | text | sí | — | — |
+| `material_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `insumos_codigo_key` — `UNIQUE (codigo)`
+- `insumos_codigo_no_vacio` — `CHECK ((retail.fn_clave_texto(codigo) IS NOT NULL))`
 - `insumos_merma_pct_check` — `CHECK (((merma_pct >= (0)::numeric) AND (merma_pct < 0.5)))`
 - `insumos_montos_finitos` — `CHECK (((abs(stock_minimo) < 'Infinity'::numeric) AND (abs(merma_pct) < 'Infinity'::numeric)))`
 - `insumos_stock_minimo_check` — `CHECK (((stock_minimo IS NULL) OR (stock_minimo >= (0)::numeric)))`
+- `insumos_tela_en_metros` — `CHECK (((tipo <> 'tela'::text) OR (unidad_medida = 'metro'::text)))`
 - `insumos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['tela'::text, 'avio'::text])))`
 - `insumos_unidad_medida_check` — `CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))`
+- `insumos_material_color_unico` *(único parcial)* — `retail.insumos (material_id, COALESCE(color_codigo, ''::text)) WHERE (material_id IS NOT NULL)`
 
-**De qué depende:** `(color_codigo) REFERENCES retail.colores(codigo)` · `(creado_por) REFERENCES personas(id)` · `(proveedor_id) REFERENCES retail.proveedores_produccion(id)` · `(tejido_id) REFERENCES retail.tejidos(id)`
+**De qué depende:** `(color_codigo) REFERENCES retail.colores(codigo)` · `(creado_por) REFERENCES personas(id)` · `(material_id, tipo, unidad_medida) REFERENCES retail.materiales(id, tipo, unidad_medida)` · `(proveedor_id) REFERENCES retail.proveedores_produccion(id)` · `(tejido_id) REFERENCES retail.tejidos(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -6496,7 +7230,7 @@
 
 ### `insumo_lotes`
 
-*17 columnas · ~0 filas · permisos por fila **activos***
+*17 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6540,7 +7274,7 @@
 
 ### `movimientos_insumo`
 
-*12 columnas · ~0 filas · permisos por fila **activos***
+*12 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -6596,7 +7330,7 @@
 
 ### `proveedores_produccion`
 
-*19 columnas · ~0 filas · permisos por fila **activos***
+*19 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7027,7 +7761,7 @@
 
 ### `produccion_fases`
 
-*14 columnas · ~0 filas · permisos por fila **activos***
+*14 columnas · ~20 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7054,7 +7788,7 @@
 - `produccion_fases_nota_check` — `CHECK (((nota IS NULL) OR (btrim(nota) <> ''::text)))`
 - `produccion_fases_posicion` — `CHECK (((clave = ANY (ARRAY['bordado'::text, 'estampado'::text])) = (posicion IS NOT NULL)))`
 - `produccion_fases_posicion_check` — `CHECK ((posicion = ANY (ARRAY['pieza'::text, 'prenda'::text])))`
-- `produccion_fases_quien` — `CHECK ( CASE     WHEN (quien = 'servicio'::text) THEN ((proveedor_id IS NOT NULL) AND ((tarifa_prenda IS NOT NULL) OR ((clave = 'ploteo'::text) AND (fijo_orden > (0)::numeric))))     ELSE ((proveedor_id IS NULL) AND (tarifa_prenda IS NULL) AND (fecha_prometida IS NULL) AND (cantidad_minima IS NULL)) END)`
+- `produccion_fases_quien` — `CHECK ( CASE     WHEN (quien = 'servicio'::text) THEN (((proveedor_id IS NOT NULL) AND ((tarifa_prenda IS NOT NULL) OR ((clave = 'ploteo'::text) AND (fijo_orden > (0)::numeric)))) OR ((proveedor_id IS NULL) AND ((clave <> 'ploteo'::text) OR (tarifa_prenda IS NULL))))     ELSE ((proveedor_id IS NULL) AND (tarifa_prenda IS NULL) AND (fecha_prometida IS NULL) AND (cantidad_minima IS NULL)) END)`
 - `produccion_fases_quien_check` — `CHECK ((quien = ANY (ARRAY['taller'::text, 'servicio'::text])))`
 - `produccion_fases_secuencia_check` — `CHECK ((secuencia > 0))`
 - `produccion_fases_secuencia_de_la_ruta` — `CHECK ((secuencia = retail.fn_fase_secuencia(clave, posicion)))`
@@ -7101,7 +7835,7 @@
 
 ### `produccion_insumos`
 
-*8 columnas · ~0 filas · permisos por fila **activos***
+*10 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7113,11 +7847,14 @@
 | `cantidad_plan` | numeric | **no** | — | — |
 | `nota` | text | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `consumo_por_talla` | jsonb | sí | — | — |
+| `es_complemento` | boolean | **no** | `false` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `produccion_insumos_cantidad_plan_check` — `CHECK ((cantidad_plan > (0)::numeric))`
 - `produccion_insumos_consumo_por_prenda_check` — `CHECK ((consumo_por_prenda > (0)::numeric))`
+- `produccion_insumos_consumo_por_talla_check` — `CHECK (((consumo_por_talla IS NULL) OR (jsonb_typeof(consumo_por_talla) = 'object'::text)))`
 - `produccion_insumos_nota_check` — `CHECK (((nota IS NULL) OR (btrim(nota) <> ''::text)))`
 
 **De qué depende:** `(color_codigo) REFERENCES retail.colores(codigo)` · `(insumo_id) REFERENCES retail.insumos(id)` · `(produccion_id) REFERENCES retail.producciones(id)`
@@ -7175,7 +7912,7 @@
 
 ### `produccion_fase_marcas`
 
-*6 columnas · ~0 filas · permisos por fila **activos***
+*6 columnas · ~4 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7268,7 +8005,7 @@
 - `producto_consumos_nota_check` — `CHECK (((nota IS NULL) OR (btrim(nota) <> ''::text)))`
 - `producto_consumos_tela_por_prenda_check` — `CHECK ((tela_por_prenda > (0)::numeric))`
 
-**De qué depende:** `(actualizado_por) REFERENCES personas(id)` · `(producto_id) REFERENCES retail.productos(id)`
+**De qué depende:** `(actualizado_por) REFERENCES personas(id)` · `(producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -7305,12 +8042,128 @@
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
+### `producto_avios`
+
+*8 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `producto_id` | uuid | **no** | — | — |
+| `insumo_id` | uuid | **no** | — | — |
+| `color_codigo` | text | sí | — | — |
+| `cantidad_por_prenda` | numeric | **no** | — | — |
+| `declarado_por` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `archivado_at` | timestamp with time zone | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `producto_avios_cantidad_por_prenda_check` — `CHECK (((cantidad_por_prenda > (0)::numeric) AND (cantidad_por_prenda <= (9999)::numeric)))`
+- `producto_avios_vigente_uq` *(único parcial)* — `retail.producto_avios (producto_id, insumo_id, COALESCE(color_codigo, ''::text)) WHERE (archivado_at IS NULL)`
+
+**De qué depende:** `(color_codigo) REFERENCES retail.colores(codigo)` · `(declarado_por) REFERENCES personas(id)` · `(insumo_id) REFERENCES retail.insumos(id)` · `(producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `producto_consumo_medido`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `produccion_id` | uuid | **no** | — | — |
+| `producto_id` | uuid | **no** | — | — |
+| `buenas` | integer | **no** | — | — |
+| `metros` | numeric | **no** | — | — |
+| `cerrada_en` | timestamp with time zone | **no** | `clock_timestamp()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `producto_consumo_medido_buenas_check` — `CHECK ((buenas > 0))`
+- `producto_consumo_medido_metros_check` — `CHECK ((metros > (0)::numeric))`
+
+**De qué depende:** `(produccion_id) REFERENCES retail.producciones(id)` · `(producto_id) REFERENCES retail.productos(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `materiales`
+
+*17 columnas · ~1 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `codigo` | text | **no** | — | — |
+| `nombre` | text | **no** | — | — |
+| `tipo` | text | **no** | — | — |
+| `tejido_id` | uuid | sí | — | — |
+| `composicion` | text | sí | — | — |
+| `unidad_medida` | text | **no** | — | — |
+| `merma_pct` | numeric | **no** | `0` | — |
+| `unidad_compra` | text | **no** | `'metro'::text` | — |
+| `ancho_cm` | numeric | sí | — | — |
+| `gramaje_gm2` | numeric | sí | — | — |
+| `metros_por_rollo` | numeric | sí | — | — |
+| `token_cliente` | uuid | sí | — | — |
+| `creado_por` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `updated_at` | timestamp with time zone | **no** | `now()` | — |
+| `archivado_at` | timestamp with time zone | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `materiales_codigo_no_vacio` — `CHECK ((retail.fn_clave_texto(codigo) IS NOT NULL))`
+- `materiales_compra_de_la_tela` — `CHECK (((tipo = 'avio'::text) OR (unidad_compra = ANY (ARRAY['metro'::text, 'kilo'::text, 'rollo'::text]))))`
+- `materiales_compra_del_avio` — `CHECK (((tipo = 'tela'::text) OR (unidad_compra = unidad_medida)))`
+- `materiales_id_tipo_unidad_unico` — `UNIQUE (id, tipo, unidad_medida)`
+- `materiales_kilo_pide_ancho_y_gramaje` — `CHECK (((tipo = 'avio'::text) OR (unidad_compra <> 'kilo'::text) OR ((ancho_cm IS NOT NULL) AND (gramaje_gm2 IS NOT NULL))))`
+- `materiales_medidas_con_tope` — `CHECK ((((ancho_cm IS NULL) OR ((ancho_cm > (0)::numeric) AND (ancho_cm < (1000)::numeric))) AND ((gramaje_gm2 IS NULL) OR ((gramaje_gm2 > (0)::numeric) AND (gramaje_gm2 < (5000)::numeric))) AND ((metros_por_rollo IS NULL) OR ((metros_por_rollo > (0)::numeric) AND (metros_por_rollo < (100000)::numeric)))))`
+- `materiales_medidas_plausibles` — `CHECK ((((ancho_cm IS NULL) OR ((ancho_cm >= (20)::numeric) AND (ancho_cm <= (400)::numeric))) AND ((gramaje_gm2 IS NULL) OR ((gramaje_gm2 >= (30)::numeric) AND (gramaje_gm2 <= (1500)::numeric)))))`
+- `materiales_merma_pct_check` — `CHECK (((merma_pct >= (0)::numeric) AND (merma_pct < 0.5)))`
+- `materiales_nombre_no_vacio` — `CHECK ((retail.fn_clave_texto(nombre) IS NOT NULL))`
+- `materiales_rollo_pide_metros` — `CHECK (((unidad_compra <> 'rollo'::text) OR (metros_por_rollo IS NOT NULL)))`
+- `materiales_tejido_solo_tela` — `CHECK (((tipo = 'tela'::text) OR (tejido_id IS NULL)))`
+- `materiales_tela_en_metros` — `CHECK (((tipo <> 'tela'::text) OR (unidad_medida = 'metro'::text)))`
+- `materiales_textos_con_tope` — `CHECK (((length(nombre) <= 120) AND (length(codigo) <= 20) AND (length(COALESCE(composicion, ''::text)) <= 160)))`
+- `materiales_tipo_check` — `CHECK ((tipo = ANY (ARRAY['tela'::text, 'avio'::text])))`
+- `materiales_token_cliente_key` — `UNIQUE (token_cliente)`
+- `materiales_unidad_compra_check` — `CHECK ((unidad_compra = ANY (ARRAY['metro'::text, 'kilo'::text, 'rollo'::text, 'unidad'::text, 'cono'::text, 'par'::text, 'docena'::text])))`
+- `materiales_unidad_medida_check` — `CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))`
+
+**De qué depende:** `(creado_por) REFERENCES personas(id)` · `(tejido_id) REFERENCES retail.tejidos(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `materiales_select_autenticado` | SELECT | `( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)` |
+
+
+### `producto_taller`
+
+*4 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `producto_id` | uuid | **no** | — | — |
+| `lleva_ojales_botones` | boolean | **no** | — | — |
+| `declarado_por` | uuid | sí | — | — |
+| `updated_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(declarado_por) REFERENCES personas(id)` · `(producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
 
 ## 11 · Garza — Finanzas operativas
 
 ### `gastos`
 
-*19 columnas · ~180 filas · permisos por fila **activos***
+*19 columnas · ~237 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7402,7 +8255,7 @@
 
 ### `gastos_fijos`
 
-*16 columnas · ~25 filas · permisos por fila **activos***
+*16 columnas · ~29 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7535,7 +8388,7 @@
 
 ### `cuentas_dinero`
 
-*14 columnas · ~13 filas · permisos por fila **activos***
+*14 columnas · ~15 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7578,7 +8431,7 @@
 
 ### `medios_de_cobro`
 
-*7 columnas · ~33 filas · permisos por fila **activos***
+*7 columnas · ~36 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7601,7 +8454,7 @@
 
 ### `movimientos_dinero`
 
-*20 columnas · ~7 filas · permisos por fila **activos***
+*20 columnas · ~14 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7681,7 +8534,7 @@
 
 ### `dinero_revisados`
 
-*8 columnas · ~54 filas · permisos por fila **activos***
+*8 columnas · ~87 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7948,7 +8801,7 @@
 
 ### `gastos_fijos_ficha`
 
-*19 columnas · ~25 filas · permisos por fila **activos***
+*19 columnas · ~29 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -7992,7 +8845,7 @@
 
 ### `gastos_fijos_ficha_cambios`
 
-*7 columnas · ~52 filas · permisos por fila **activos***
+*7 columnas · ~58 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -8090,7 +8943,7 @@
 
 ### `pos_abonos_lotes`
 
-*9 columnas · ~0 filas · permisos por fila **activos***
+*9 columnas · ~196 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -8204,7 +9057,7 @@
 
 ### `cuentas`
 
-*6 columnas · ~47 filas · permisos por fila **activos***
+*6 columnas · ~48 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -8414,7 +9267,7 @@
 
 ### `actividad`
 
-*14 columnas · ~4664 filas · permisos por fila **activos***
+*14 columnas · ~5761 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -8440,6 +9293,114 @@
 - `actividad_origen_check` — `CHECK ((origen = ANY (ARRAY['vivo'::text, 'carga_inicial'::text])))`
 
 **De qué depende:** `(modulo) REFERENCES retail.modulos(clave)` · `(persona_id) REFERENCES personas(id)` · `(terminal_id) REFERENCES retail.terminales(id)` · `(ubicacion_destino_id) REFERENCES retail.ubicaciones(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `asistente_sedes`
+
+*5 columnas · ~4 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `ubicacion_id` | uuid | **no** | — | — |
+| `encendido` | boolean | **no** | `false` | — |
+| `desde` | timestamp with time zone | sí | — | — |
+| `cambiado_por` | uuid | sí | — | — |
+| `cambiado_en` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(cambiado_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `asistente_preguntas`
+
+*23 columnas · ~17 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `creada_en` | timestamp with time zone | **no** | `now()` | — |
+| `cuenta_id` | uuid | **no** | — | — |
+| `persona_id` | uuid | sí | — | — |
+| `ubicacion_id` | uuid | sí | — | — |
+| `ruta` | text | **no** | — | — |
+| `pregunta` | text | **no** | — | — |
+| `tipo` | text | **no** | — | — |
+| `tema` | text | sí | — | — |
+| `motivo` | text | sí | — | — |
+| `tramos` | jsonb | **no** | `'[]'::jsonb` | — |
+| `guia_id` | text | sí | — | — |
+| `modulo` | text | sí | — | — |
+| `referencia` | text | sí | — | — |
+| `modelo` | text | sí | — | — |
+| `tokens_entrada` | integer | **no** | `0` | — |
+| `tokens_salida` | integer | **no** | `0` | — |
+| `tokens_cache` | integer | **no** | `0` | — |
+| `costo_usd` | numeric | **no** | `0` | — |
+| `ms` | integer | sí | — | — |
+| `sirvio` | boolean | sí | — | — |
+| `comentario` | text | sí | — | — |
+| `respondida_en` | timestamp with time zone | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `asistente_preguntas_check` — `CHECK (((comentario IS NULL) OR (sirvio IS FALSE)))`
+- `asistente_preguntas_comentario_check` — `CHECK (((char_length(comentario) >= 1) AND (char_length(comentario) <= 300)))`
+- `asistente_preguntas_costo_usd_check` — `CHECK (((costo_usd >= (0)::numeric) AND (costo_usd <= 0.05)))`
+- `asistente_preguntas_guia_id_check` — `CHECK ((guia_id ~ '^[a-z0-9][a-z0-9._-]{0,79}$'::text))`
+- `asistente_preguntas_modelo_check` — `CHECK ((char_length(modelo) <= 60))`
+- `asistente_preguntas_modulo_check` — `CHECK ((char_length(modulo) <= 60))`
+- `asistente_preguntas_motivo_check` — `CHECK ((motivo = ANY (ARRAY['sin_clave'::text, 'sin_respuesta'::text, 'respuesta_invalida'::text, 'rechazo'::text, 'tope'::text])))`
+- `asistente_preguntas_ms_check` — `CHECK ((ms >= 0))`
+- `asistente_preguntas_pregunta_check` — `CHECK (((char_length(pregunta) >= 2) AND (char_length(pregunta) <= 300)))`
+- `asistente_preguntas_referencia_check` — `CHECK ((char_length(referencia) <= 80))`
+- `asistente_preguntas_ruta_check` — `CHECK (((ruta ~ '^/'::text) AND (char_length(ruta) <= 300)))`
+- `asistente_preguntas_tema_check` — `CHECK ((tema = ANY (ARRAY['como_hacer'::text, 'regla'::text, 'por_que'::text, 'otro'::text])))`
+- `asistente_preguntas_tipo_check` — `CHECK ((tipo = ANY (ARRAY['guia'::text, 'sin_acceso'::text, 'regla'::text, 'error'::text, 'no_existe'::text, 'fuera_de_tema'::text, 'basico'::text])))`
+- `asistente_preguntas_tokens_cache_check` — `CHECK ((tokens_cache >= 0))`
+- `asistente_preguntas_tokens_entrada_check` — `CHECK ((tokens_entrada >= 0))`
+- `asistente_preguntas_tokens_salida_check` — `CHECK ((tokens_salida >= 0))`
+- `asistente_preguntas_tramos_check` — `CHECK (((jsonb_typeof(tramos) = 'array'::text) AND (jsonb_array_length(tramos) <= 3)))`
+
+**De qué depende:** `(persona_id) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `asistente_informes`
+
+*12 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `semana` | date | **no** | — | — |
+| `desde` | timestamp with time zone | **no** | — | — |
+| `hasta` | timestamp with time zone | **no** | — | — |
+| `cifras` | jsonb | **no** | `'{}'::jsonb` | — |
+| `mejoras` | jsonb | **no** | `'[]'::jsonb` | — |
+| `modelo` | text | sí | — | — |
+| `tokens_entrada` | integer | **no** | `0` | — |
+| `tokens_salida` | integer | **no** | `0` | — |
+| `costo_usd` | numeric | **no** | `0` | — |
+| `creado_en` | timestamp with time zone | **no** | `now()` | — |
+| `pedido_por` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `asistente_informes_check` — `CHECK ((hasta > desde))`
+- `asistente_informes_cifras_check` — `CHECK ((jsonb_typeof(cifras) = 'object'::text))`
+- `asistente_informes_costo_usd_check` — `CHECK (((costo_usd >= (0)::numeric) AND (costo_usd <= (1)::numeric)))`
+- `asistente_informes_mejoras_check` — `CHECK (((jsonb_typeof(mejoras) = 'array'::text) AND (jsonb_array_length(mejoras) <= 5)))`
+- `asistente_informes_modelo_check` — `CHECK ((char_length(modelo) <= 60))`
+- `asistente_informes_semana_check` — `CHECK ((EXTRACT(isodow FROM semana) = (1)::numeric))`
+- `asistente_informes_semana_key` — `UNIQUE (semana)`
+- `asistente_informes_tokens_entrada_check` — `CHECK ((tokens_entrada >= 0))`
+- `asistente_informes_tokens_salida_check` — `CHECK ((tokens_salida >= 0))`
+
+**De qué depende:** `(pedido_por) REFERENCES personas(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 

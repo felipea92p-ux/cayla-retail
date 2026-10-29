@@ -15,10 +15,12 @@ import { esAtajoDelAsistente } from "@/lib/asistente/atajo";
 import { preseleccionar, type Sugerencia } from "@/lib/asistente/preseleccion";
 import { direccionDelTramo, esDeEstaPantalla, type Tramo } from "@/lib/asistente/recorrido";
 import { LARGO_MAXIMO_PREGUNTA, type ResultadoAsistente } from "@/lib/asistente/respuesta";
+import { mismaPantalla, seAbreDesdeOtra, type PasoTarea } from "@/lib/asistente/tarea";
+import { empezarTarea } from "@/components/asistente/Acompanante";
 import { GUIAS } from "@/lib/guias/registro";
 import { guiaDeRuta } from "@/lib/guias/reglas";
 
-// «Pregúntale a CAYLA» (ADR-0529): el botón de la cabecera y su cajón. Mientras la persona escribe, busca sin IA las guías interactivas
+// «Pregúntale a CAYLA» (ADR-0536): el botón de la cabecera y su cajón. Mientras la persona escribe, busca sin IA las guías interactivas
 // (ADR-0389) de las pantallas que su rol ve (`preseleccionar`); al apretar «Preguntar» (o Enter), la pregunta va a la IA
 // (`/api/asistente`, actividad 2), que elige el recorrido (hasta 3 pantallas, cada una con el paso que responde), y «Muéstrame» lo arranca
 // en la pantalla de verdad, desde ese paso (actividad 3: `components/guias/recorrido.ts` y `MotorGuias`). Si la IA
@@ -75,6 +77,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
   // Una respuesta vale para la pregunta que se hizo: si la persona sigue escribiendo, vuelve la búsqueda en vivo.
   const vigente = respuesta && respuesta.pregunta === pregunta.trim() ? respuesta : null;
   const ultima = useRef(0);
+  const enCurso = useRef(false);
 
   /** La demo entera de una pantalla (las «demos que pueden ayudarte»). */
   function llevar(s: Pick<Sugerencia, "href">, cerrar: () => void) {
@@ -84,7 +87,16 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     else router.push(`${s.href}${s.href.includes("?") ? "&" : "?"}demo=1`);
   }
 
-  /** «Muéstrame»: el recorrido que contestó la IA, desde el paso que responde (ADR-0529, actividad 3). */
+  /** «Acompáñame»: la tarea paso a paso, que la persona hace con la barra de abajo (`Acompanante`). Si el primer paso es de otra pantalla, lleva ahí. */
+  function acompanar(tarea: readonly PasoTarea[], cerrar: () => void) {
+    const primero = tarea[0];
+    if (!primero) return;
+    empezarTarea(tarea);
+    cerrar();
+    if (!mismaPantalla(primero.href, pathname) && !seAbreDesdeOtra(primero.href)) router.push(primero.href);
+  }
+
+  /** «Muéstrame»: el recorrido que contestó la IA, desde el paso que responde (ADR-0536, actividad 3). */
   function recorrer(tramos: readonly Tramo[], cerrar: () => void) {
     const [primero, ...resto] = tramos;
     if (!primero) return;
@@ -102,7 +114,10 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
   async function preguntar(e: FormEvent) {
     e.preventDefault();
     const texto = pregunta.trim();
-    if (texto.length < 2 || preguntando) return;
+    // El candado va en una ref y no en `preguntando`: dos clics en el mismo instante leen el estado de antes y los dos pasaban, anotando
+    // y pagando la pregunta dos veces (/chaos 2026-10-27, DC-01).
+    if (texto.length < 2 || enCurso.current) return;
+    enCurso.current = true;
     const esta = ++ultima.current;
     setPreguntando(true);
     let resultado: Respondida = { pregunta: texto, resultado: { tipo: "basico", motivo: "sin_respuesta" }, preguntaId: null };
@@ -119,6 +134,8 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
       }
     } catch {
       // Sin red: queda la búsqueda sin IA, que ya está a la vista.
+    } finally {
+      enCurso.current = false;
     }
     if (esta !== ultima.current) return;
     setRespuesta(resultado);
@@ -141,7 +158,8 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
       }
       sobre="Pregúntale a CAYLA"
       titulo="¿Qué quieres hacer?"
-      frase="Escríbelo con tus palabras y te muestro, en la pantalla de verdad, dónde se hace. Tu pregunta se guarda para mejorar CAYLA."
+      // Quien preguntó se ve en Gestión ▸ Preguntas del equipo (Felipe 2026-10-27, «con el nombre»): la persona lo sabe antes de escribir.
+      frase="Escríbelo con tus palabras y te muestro, en la pantalla de verdad, dónde se hace. Tu líder ve lo que preguntas, para mejorar CAYLA."
     >
       {(cerrar) => (
         <div className="space-y-5">
@@ -155,7 +173,9 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
               autoFocus
             />
             <div className="flex justify-end">
-              <Boton peso="primario" type="submit" cargando={preguntando} textoCargando="Pensando…" disabled={pregunta.trim().length < 2}>
+              {/* Con una respuesta a la vista, lo que sigue es «Muéstrame»: «Preguntar» baja a secundario hasta que cambie la pregunta
+                  (Formidable 2026-10-27, ley 2: un solo botón negro). */}
+              <Boton peso={vigente ? "fantasma" : "primario"} type="submit" cargando={preguntando} textoCargando="Pensando…" disabled={pregunta.trim().length < 2}>
                 Preguntar
               </Boton>
             </div>
@@ -166,14 +186,35 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
               {vigente.resultado.tipo === "guia" ? (
                 <div className="rounded-xl border border-sand bg-papel p-4">
                   <p className="text-[15px] leading-snug text-tinta">{vigente.resultado.texto}</p>
-                  {pantallas.length > 1 ? <p className="mt-2 text-xs text-tinta/65">Pasa por {pantallas.join(" → ")}.</p> : null}
+                  {vigente.resultado.tarea ? (
+                    // Una tarea (Felipe 2026-10-27): los pasos cortos a la vista, y «Acompáñame» los enciende uno a uno mientras la persona los hace.
+                    <ol className="mt-3 space-y-1.5">
+                      {vigente.resultado.tarea.map((p, k) => (
+                        <li key={`${p.guiaId}-${p.pasoId}-${k}`} className="flex items-baseline gap-2.5 text-[15px] text-tinta">
+                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sand text-[11px] tabular-nums text-tinta">{k + 1}</span>
+                          {p.orden}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : pantallas.length > 1 ? (
+                    <p className="mt-2 text-xs text-tinta/65">Pasa por {pantallas.join(" → ")}.</p>
+                  ) : null}
                   <div className="mt-3 flex justify-end">
-                    <Boton peso="primario" onClick={() => recorrer(tramos, cerrar)}>
-                      <span className="inline-flex items-center gap-2">
-                        <PlayCircle className="h-4 w-4" aria-hidden />
-                        Muéstrame
-                      </span>
-                    </Boton>
+                    {vigente.resultado.tarea ? (
+                      <Boton peso="primario" onClick={() => acompanar(vigente.resultado.tipo === "guia" ? (vigente.resultado.tarea ?? []) : [], cerrar)}>
+                        <span className="inline-flex items-center gap-2">
+                          <PlayCircle className="h-4 w-4" aria-hidden />
+                          Acompáñame
+                        </span>
+                      </Boton>
+                    ) : (
+                      <Boton peso="primario" onClick={() => recorrer(tramos, cerrar)}>
+                        <span className="inline-flex items-center gap-2">
+                          <PlayCircle className="h-4 w-4" aria-hidden />
+                          Muéstrame
+                        </span>
+                      </Boton>
+                    )}
                   </div>
                 </div>
               ) : vigente.resultado.tipo === "regla" || vigente.resultado.tipo === "error" ? (
@@ -246,7 +287,7 @@ async function opinar(preguntaId: string, sirvio: boolean, comentario?: string) 
 }
 
 /**
- * «¿Te sirvió? Sí / No» (ADR-0529, decisión 6). Con un «No» se anota al tiro (si cierra el cajón ahí, ya contó) y aparece una caja
+ * «¿Te sirvió? Sí / No» (ADR-0536, decisión 6). Con un «No» se anota al tiro (si cierra el cajón ahí, ya contó) y aparece una caja
  * opcional, «¿Qué buscabas?», que se manda aparte: es lo que más ayuda a saber qué construir.
  */
 function TeSirvio({ preguntaId }: { preguntaId: string }) {

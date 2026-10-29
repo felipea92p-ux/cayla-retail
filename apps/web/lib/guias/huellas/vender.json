@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 180,
+  "total": 190,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -40,9 +40,13 @@
     ],
     "components/EscanerCamara.tsx": [
       "button «Cerrar la cámara»",
+      "SegmentoDeslizante «Qué hace la cámara con lo que lee»",
       "button «{linterna.encendida ? \"Apagar la linterna\" : \"Encender la linterna\"}»",
       "button «Buscar por nombre»",
       "button «Ver ticket»"
+    ],
+    "components/ExistenciasEnCamara.tsx": [
+      "button «{c.nombre ?? \"Sin color\"}»"
     ],
     "components/PedidoClienteModales.tsx": [
       "ComboResponsable «{responsable}»",
@@ -75,6 +79,8 @@
       "ComboBuscable «{colorCodigo}»",
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
+      "Boton «Corregir el precio»",
+      "Boton «Sí, cobré S/&nbsp;»",
       "ComboResponsable «{corregir.responsable}»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -103,6 +109,7 @@
       "button «Volver al catálogo»",
       "Volver «→onVolverATicket»",
       "button «Retomar»",
+      "button «{`Descartar el ticket de ${nombreDeEspera(t.nombre, i)}»",
       "SegmentoDeslizante «Cómo escribir el descuento»",
       "button «S/»",
       "input «Monto de descuento»",
@@ -121,7 +128,7 @@
       "ComboResponsable «{responsable}»",
       "button «Aplicar descuento» #2",
       "button «Quitar descuento»",
-      "button «{loading ? \"Procesando…\" : \"Confirmar cobro\"}»",
+      "button «vender.cobro-confirmar»",
       "button «vender.cobrar»"
     ],
     "components/VentaRegistradaModal.tsx": [
@@ -129,6 +136,10 @@
       "button «Solo imprimir»",
       "button «Sin imprimir»",
       "button «Nueva venta»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"
@@ -190,7 +201,9 @@
     ],
     "components/punto-de-venta/Esperas.tsx": [
       "Boton «Cancelar»",
-      "Boton «Seguir con el cierre»"
+      "Boton «Seguir con el cierre»",
+      "Boton «Cancelar» #2",
+      "Boton «Descartar ticket»"
     ],
     "components/punto-de-venta/HojaDeCobro.tsx": [
       "Volver «→onVolver»",
@@ -199,7 +212,7 @@
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",
       "button «{icono}»",
-      "button «(sin nombre)»"
+      "button «vender.cobro-confirmar»"
     ],
     "components/punto-de-venta/LineaDelTicket.tsx": [
       "button «{`Descuento para ${nombre}»",
@@ -240,6 +253,9 @@
       "button «{soles(r.total)}»",
       "BotonVer «Historial completo»",
       "BotonVer «Ir a Caja»"
+    ],
+    "components/punto-de-venta/SinRegistrarDeHoy.tsx": [
+      "Link «{TEXTO_ENLACE_MESA}»"
     ],
     "components/punto-de-venta/TarjetaPrenda.tsx": [
       "button «vender.prenda-abrir»",

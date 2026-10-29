@@ -37,6 +37,7 @@ import {
 import { IngresosVista } from "@/components/ingresos/IngresosVista";
 import { getIngresosPorModelo } from "@/lib/ingresos";
 import { hrefIngresos, rangoIngresos, type ParamsIngresos } from "@/lib/ingresos-reglas";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { TiposMovimiento } from "@/components/movimientos/TiposMovimiento";
 import { MovimientosLista } from "@/components/MovimientosLista";
@@ -85,7 +86,9 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
   // Las sububicaciones van antes que la lista: «?sub=piso» se traduce a SU id, que solo se sabe mirando la ubicación.
   // No dependen de la lista de ubicaciones (la sede sale de la persona): las dos a la vez, una espera menos.
-  const [ubicaciones, sububicaciones] = await Promise.all([getUbicaciones(), getSububicaciones(ubicacionActivaId)]);
+  // Las empresas de la sede (ADR-0532): en Lima, el filtro «Tienda» (CAYLA / CLAURE); con una sola, no hay filtro.
+  const [ubicaciones, sububicaciones, empresasAqui] = await Promise.all([getUbicaciones(), getSububicaciones(ubicacionActivaId), getEmpresasAqui(ubicacionActivaId)]);
+  const empresasFiltro = empresasAqui && empresasAqui.length > 1 ? empresasAqui : null;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
   const sede = ubicacionActiva?.nombre ?? "esta sede";
   // «Hoy» por defecto en el celular (ADR-0241): la pregunta de la tienda es «qué pasó hoy», y en el teléfono cada fila
@@ -93,7 +96,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   // un parpadeo de «30 días» a «Hoy». Una tableta o la computadora siguen en 30 días.
   const esCelular = userAgent({ headers: await headers() }).device.type === "mobile";
   const porDefecto = esCelular ? "hoy" : "30";
-  const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones, porDefecto });
+  const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones, porDefecto, empresas: empresasFiltro });
   const cursor = cursorDesdeParams(params);
 
   // Las cifras de las píldoras cuentan con los demás filtros, pero no con el proceso: con «Merma» elegida, «Ajustes 3»
@@ -157,6 +160,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           desde={filtros.desde ?? ""}
           hasta={filtros.hasta ?? ""}
           resumen={resumenSinProceso ?? resumen}
+          empresas={empresasFiltro}
         />
         {/* `data-resultados` (main, ADR-0149): se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
         <div data-resultados>
@@ -164,7 +168,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
             <MovimientosVacio
               sede={sede}
               periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : periodo === "hoy" ? "hoy" : `los últimos ${periodo} días`}
-              conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
+              conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId || filtros.empresaId)}
               en90={en90}
               params={params}
             />

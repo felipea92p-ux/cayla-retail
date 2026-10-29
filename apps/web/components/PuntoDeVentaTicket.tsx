@@ -1,7 +1,8 @@
 "use client";
 
+import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Wallet, X } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
@@ -176,6 +177,10 @@ type Props = {
   detalles?: ReadonlyMap<string, DetalleVariante>;
   /** Por `claveLinea`: los otros tickets abiertos que llevan esa prenda cuando no alcanza para todos (solo avisa). */
   tambienEn?: ReadonlyMap<string, readonly string[]>;
+  /** ADR-0542: de quién son las unidades de cada prenda aquí (solo las que tienen de alguien que no es la casa), lo que ya eligió la cajera por prenda, y cómo elige. */
+  duenosPorVariante?: Readonly<Record<string, readonly UnidadesDeDueno[]>> | null;
+  duenoElegido?: Readonly<Record<string, string>>;
+  onDueno?: (varianteId: string, empresaId: string) => void;
   /** Ref de la lista de líneas: el padre le captura la posición para el reflujo `Flip`. */
   listaRef: RefObject<HTMLDivElement | null>;
   onQuitar: (claveLinea: string) => void;
@@ -195,6 +200,8 @@ type Props = {
   onDejarEnEspera: () => void;
   onRetomar: (id: string) => void;
   onIrAEspera: () => void;
+  /** El basurero de una fila de «En espera»: pide confirmación y lo saca de la espera. */
+  onDescartarEspera: (id: string) => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -235,6 +242,8 @@ type Props = {
   id?: string;
   /** Arriba de las líneas mientras se arma (spike 2026-09-26): la tira de tickets en espera y la fila «Clienta». */
   arriba?: ReactNode;
+  /** Lo que va bajo «Cobrar», en el pie: la frase de las prendas sin registrar de hoy (`SinRegistrarDeHoy`, A5). */
+  abajo?: ReactNode;
   /** Dentro de la hoja del celular (`<Modal variante="ticket">`): llena la hoja y ofrece volver al catálogo. */
   enHoja?: boolean;
   onCerrarHoja?: () => void;
@@ -258,6 +267,9 @@ export function PuntoDeVentaTicket({
   carrito,
   detalles,
   tambienEn,
+  duenosPorVariante,
+  duenoElegido,
+  onDueno,
   listaRef,
   onQuitar,
   onCantidad,
@@ -272,6 +284,7 @@ export function PuntoDeVentaTicket({
   onDejarEnEspera,
   onRetomar,
   onIrAEspera,
+  onDescartarEspera,
   total,
   prendas,
   vale = null,
@@ -290,6 +303,7 @@ export function PuntoDeVentaTicket({
   loading,
   onCobrar,
   arriba,
+  abajo,
   enHoja = false,
   onCerrarHoja,
 }: Props) {
@@ -590,6 +604,18 @@ export function PuntoDeVentaTicket({
                           <Play className={ICONO_CHICO} aria-hidden />
                           Retomar
                         </button>
+                        {/* El mismo basurero rojo que quita una prenda del ticket: aquí tira el ticket entero que ya no se va a
+                            cobrar (Felipe 2026-10-26). Pide confirmación antes, porque no se deshace. */}
+                        <button
+                          type="button"
+                          onClick={() => onDescartarEspera(t.id)}
+                          disabled={bloqueado}
+                          aria-label={`Descartar el ticket de ${nombreDeEspera(t.nombre, i)}`}
+                          title="Descartar este ticket"
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
                       </div>
                     );
                   })}
@@ -844,6 +870,9 @@ export function PuntoDeVentaTicket({
                     linea={it}
                     detalle={detalles?.get(it.varianteId)}
                     tambienEn={tambienEn?.get(it.claveLinea)}
+                    duenos={duenosParaElegir(duenosPorVariante?.[it.varianteId])}
+                    duenoElegido={duenoElegido?.[it.varianteId]}
+                    onDueno={onDueno}
                     bloqueado={bloqueado || cobrando}
                     onQuitar={onQuitar}
                     onCantidad={onCantidad}
@@ -1022,7 +1051,9 @@ export function PuntoDeVentaTicket({
               y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
               envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
           {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
-            <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
+            <div data-guia="vender.responsable">
+              <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
+            </div>
           )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.
@@ -1070,6 +1101,8 @@ export function PuntoDeVentaTicket({
           ) : cobrando ? (
             <button
               type="submit"
+              // En el celular la hoja de cobro va compacta y su «Confirmar cobro» es este: la misma ancla que el de la hoja (ADR-0536).
+              data-guia="vender.cobro-confirmar"
               disabled={apagado || loading}
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={`${BOTON_PRINCIPAL} ${listoParaConfirmar ? "cobrar-listo" : ""}`}
@@ -1096,6 +1129,7 @@ export function PuntoDeVentaTicket({
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           )}
+          {!cobrando && abajo}
         </div>
       </form>
     </aside>

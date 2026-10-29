@@ -139,9 +139,9 @@ Se le sumó lo que faltaba:
 - **El papel con su foto** («Lo que anotó Marisol al comprar»): de quién es, qué papel y quién compró, y la foto, que se abre en grande. Sin
   montos: la tienda no ve el dinero de Compras por tener Recibir. `fn_envio_detalle` trae `papeles`, y la regla del depósito
   (`fn_puede_ver_foto_gasto_viaje`) deja leer la carpeta `papeles/` a quien tiene Recibir; los vouchers y los gastos siguen siendo de Compras.
-- **La prenda que eligió la compradora** (`orden_compra_items.producto_id`): cada línea la trae, y al contar «¿Qué … son?» la ofrece de un
+- **La prenda que eligió la compradora** (`orden_compra_items.producto_id`): cada línea la trae, y al contar «¿Qué … son?» la ofrecía de un
   toque («La compradora anotó Blusa Emma. ¿Son estas? · Son estas (6)»), también en «Hacer ahora». No se separa sola: lo que llegó lo
-  certifica quien cuenta (decisión 17 de ADR-0362).
+  certifica quien cuenta (decisión 17 de ADR-0362). **Retirado el 2026-10-26** (ver «Actualización 2026-10-26»): la pantalla ya no lo ofrece.
 - **El nombre que anotó** pasa a la hoja de la prenda nueva («En la orden dice «Polera capucha oversize». Usar ese nombre») también cuando lo
   nuevo no se describió al contar.
 
@@ -289,6 +289,44 @@ nota de venta o sin comprobante.
 - **Actualización 2026-10-26 (b) (rama `claude/mis-compras-banco-de-la-plata`, migración `20261026165000` + `20261026170000`):** con una transferencia, la compradora
   indica el banco de la empresa del que salió la plata (`fondo_plata_anotada.cuenta_indicada_id`; BCP de fábrica o Interbank); «Revisar compras» lo trae
   elegido y Compras lo confirma o lo cambia. **La indicación no mueve plata:** lo que baja en Finanzas sigue siendo `confirmar_plata_compras(p_cuenta_origen_id)`.
+
+## Actualización 2026-10-26: Recibir ya no tiene la tarjeta «Llevas contadas»
+
+Felipe pidió quitar de `/recibir/envio/[id]` la tarjeta de la derecha del paso Contar: «Llevas contadas N de M» y su pregunta **«La compradora
+anotó X × N. ¿Son estas?»** con «Son estas» / «Es otra prenda» (`PreguntaDeLaCompra.tsx`, decisión de «Rediseño visual…» de arriba). Se borró el
+componente y `avanceAnotado` de `lib/recibir-papel-reglas.ts`; `siguienteAnotada` ya no recibe las líneas saltadas (esa memoria era de la tarjeta),
+y la guía pierde sus tres pasos (`pregunta`, `son-estas`, `es-otra`). **Después, mirando «¿Qué polos son?» (el mismo día), Felipe pidió quitar
+también el «La compradora anotó X · ¿Son estas?» con su botón «Son estas (N)» de `SepararPrendas.tsx`** (en Contar y en «Hacer ahora»): se quitó
+la prop `elegida` de ese componente, su paso de la guía (`elegida`) y lo que la pasaba desde `ContarEnvio.tsx` y `HacerAhora.tsx`. Con eso la
+**actividad 6 de arriba («La prenda que eligió la compradora… de un toque») ya no vale en la pantalla:** quien cuenta separa buscando la prenda por
+su nombre, como antes de ADR-0480. La prenda que anotó la compradora sigue viajando en cada línea (`prendaElegida`) y se usa como nombre en la
+lista «Lo que anotó X»; solo se retiró el atajo que la separaba. No cambia qué se puede hacer: es lo mismo que buscarla y ponerle el número.
+En el cierre, el detalle de una fila tampoco lleva el título «Costos y precios» (ADR-0519).
+
+## Actualización 2026-10-26 (c): «Mis envíos» — el código de cada envío y su historial por ronda
+Felipe notó que al mandar a la tienda el código del envío (ENV-…) no se veía: la compradora no podía avisarle a la sede qué buscar en Recibir ni volver a verlo. Maqueta aprobada: `docs/maquetas/mis-compras-envios-2026-10/`. Decisiones: (1) el código sale en grande apenas se manda, con copiar y compartir por WhatsApp; (2) los envíos se leen con `retail.fn_mis_envios()` (20261026174000, solo lectura, sin tablas nuevas): los que despachó quien mira, con su ronda leída de las compras que llevan; (3) «Mis envíos» agrupa por ronda («Esta ronda» / «Rondas anteriores»), busca en todas las rondas y filtra por cómo van; (4) en el inicio, «Envíos de esta ronda» va pegado a «Falta mandar» —el mismo paso, «Manda»— y el cierre de la ronda muestra sus envíos antes de cerrar. Un envío «en camino» no frena el cierre (lo frena solo lo que falta mandar). (5) en escritorio, la propuesta «A» de la maqueta de PC (Inicio en tres columnas, Mis envíos en tabla con cajón, Compré ropa con «Tu compra» a la derecha, hojas de dos columnas): solo desde 1024 px, el celular no cambia. Detalle y SQL por pegar: `docs/bitacora/2026-10-26-mis-compras-envios-por-ronda.md`.
+
+## Actualización 2026-10-26 (d): la tienda ve cuántos fardos vienen, y el botón es «Empezar a recibir» (rama `claude/fardos-numero-etiqueta-bbb46c`, migración `20261026214000`)
+
+**El problema.** La compradora dice cuántos fardos entrega al transporte (`despachos.bultos`, actividad 5), pero la tienda no lo veía: la hoja «Detalle»
+de Recibir mostraba las prendas por categoría y nada de cuántos paquetes eran. Y el botón de esa hoja decía «Abrir el fardo», que supone UN fardo que se
+abre de una vez; con varios por envío, que se reciben por partes (hoy uno, mañana otro), no decía qué hace: lo que hace (`abrir_despacho`) es empezar la
+recepción del envío, y lo contado queda guardado hasta cerrar.
+
+**La decisión.** Felipe pidió las dos cosas (mostrar el número y dejar de decir «abrir el fardo»); la palabra nueva la propuso el arquitecto y queda por confirmar con él mirándola en pantalla.
+- `fn_envio_detalle` suma `bultos` (reemplazo anclado, idempotente; si falta la columna se detiene antes de tocar nada, porque la función es plpgsql y un
+  `d.bultos` sin columna haría fallar cada lectura de un envío). La hoja y la pantalla del envío dicen «Vienen N fardos» en su propia línea, sobre
+  «Dijeron … prendas»; sin dato (envío de antes o del escritorio) no dibujan nada.
+- El botón vuelve a llamarse **«Empezar a recibir»**, en las dos pantallas, con «Seguir recibiendo» para el día siguiente. Es el nombre de la fase 4
+  (ADR-0362), y es el que la base ya decía en su aviso de «envío sin abrir»: la web lo traducía a «Abrir el fardo» y ahora coinciden. La frase al contar
+  pasa de «Abre el fardo» a «Abre un fardo» (es la instrucción física, una a la vez), y una nota bajo el botón dice que se puede recibir por partes.
+
+DESCARTÉ: «Recibir el envío» (suena a hacerlo todo de una vez); seguir el estado de cada fardo —abierto o no— en una tabla, porque hoy se cuenta por
+categoría y no por fardo (ADR-0393) y sería una pantalla nueva para un dato que informa y no se controla; leer `despachos.bultos` directo desde el
+navegador, porque la tienda lee el envío por `fn_envio_detalle` (módulo Recibir, sede del envío) y una segunda puerta duplicaría esa regla.
+SE ROMPE SI: se pega la migración en una base sin `20261023114000` (la propia migración lo frena con un mensaje) o si alguien vuelve a poner «Abrir el
+fardo» en una pantalla y deja la base, el aviso y la guía diciendo otra cosa.
+**En producción:** pendiente; se pega después de `20261023114000` y `20261023121000`. Mientras tanto la web publicada no muestra fardos y tampoco falla.
 
 ## Cómo se ve mal hecho
 

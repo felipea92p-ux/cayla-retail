@@ -1,0 +1,55 @@
+/* ── 2 · ÍNDIGO ─ azul tinta sobre hueso: la elegancia de un cuaderno de sastre. Serif fina con cursivas, grano de papel y láminas
+   montadas una sobre otra, ladeadas, con su sombra. El rojo del logo es la única nota cálida. ── */
+#lienzo[data-d="indigo"] {
+  --bg: #f3f0e8; --surface: #e9e5d9; --surface-2: #dad4c3; --luz: #f7f4ec; --ink: #15213b; --mute: #566078; --line: #d5d0c1;
+  --btn-bg: #15213b; --btn-ink: #f3f0e8; --logo: #c8342c; --band: #15213b; --band-ink: #f3f0e8;
+  --band-fondo: radial-gradient(120% 130% at 0% 0%, #22345c 0%, #15213b 55%, #0f182d 100%);
+  --look-fondo: var(--surface);
+  --f-display: "Instrument Serif", Georgia, serif; --f-body: "Instrument Sans", system-ui, sans-serif;
+  --f-nombre: "Instrument Serif", Georgia, serif; --s-nombre: 21px; --w-nombre: 400;
+  --w-display: 400; --ls-display: -.015em; --lh-display: .94;
+  --r: 2px; --r-foto: 2px; --r-btn: 2px; --logo-h: 24px; --pad-foto: 9%;
+  --ls-cap: .14em; --grano: .07;
+}
+[data-d="indigo"] .tj-nombre, [data-d="indigo"] .panel h1, [data-d="indigo"] .cat-nom { font-style: italic; }
+[data-d="indigo"] .panel h1 { font-size: clamp(38px, 4.4cqi, 64px); }
+[data-d="indigo"] .t-h1 { font-size: clamp(44px, 6.4cqi, 96px); }
+[data-d="indigo"] .t-h2 { font-size: clamp(30px, 3.4cqi, 50px); }
+[data-d="indigo"] .total b, [data-d="indigo"] .paso-n { font-weight: 400; }
+[data-d="indigo"] .paso-n { font-style: italic; }
+/* La lámina: un filo fino por dentro del lienzo, como una fotografía montada. */
+[data-d="indigo"] .tj-foto::after, [data-d="indigo"] .foto::after { content: ""; position: absolute; inset: 8px; border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); pointer-events: none; }
+[data-d="indigo"] .anu { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+[data-d="indigo"] .club { margin-inline: 0; border-radius: 0; padding-inline: var(--gutter); }
+[data-d="indigo"] .club .link { border-color: color-mix(in srgb, var(--band-ink) 40%, transparent); }
+[data-d="indigo"] .tienda { background: var(--surface); border: 0; padding: 32px; }
+[data-d="indigo"] .btn { font-weight: 500; letter-spacing: .04em; }
+[data-d="indigo"] .look-fondo { border-radius: 0; }
+[data-d="indigo"] .tj-ver { letter-spacing: .1em; text-transform: uppercase; font-size: 11.5px; }
+
+/* Portada: a la izquierda el azul con sus aros finos y el titular; a la derecha una pila de láminas montadas. */
+[data-d="indigo"] .h-laminas { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: min(80vh, 780px); }
+[data-d="indigo"] .h-izq { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(40px, 6cqi, 96px) clamp(24px, 5cqi, 88px) clamp(40px, 5cqi, 80px) var(--gutter); background: var(--band-fondo); color: var(--band-ink); }
+[data-d="indigo"] .h-izq > :not(.h-aro) { position: relative; }
+[data-d="indigo"] .h-aro { position: absolute; right: -16cqi; top: -14cqi; width: 46cqi; aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(243, 240, 232, .18); box-shadow: 0 0 0 3cqi rgba(243, 240, 232, .035), 0 0 0 6cqi rgba(243, 240, 232, .025); }
+[data-d="indigo"] .h-izq .cap { opacity: .75; margin-bottom: 24px; }
+[data-d="indigo"] .h-tit { font-size: clamp(52px, 7.6cqi, 120px); margin-bottom: 28px; }
+[data-d="indigo"] .h-tit em { font-style: italic; }
+[data-d="indigo"] .h-izq p { max-width: 36ch; margin: 0 0 32px; opacity: .85; font-size: 16px; }
+[data-d="indigo"] .h-izq .btn { --btn-bg: var(--band-ink); --btn-ink: var(--band); }
+[data-d="indigo"] .h-izq .link { color: var(--band-ink); border-color: color-mix(in srgb, var(--band-ink) 40%, transparent); }
+[data-d="indigo"] .h-der { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); place-content: center; justify-items: center; padding: clamp(32px, 5cqi, 72px) var(--gutter); background: linear-gradient(160deg, #ede9dd, #e0dbca); overflow: hidden; }
+[data-d="indigo"] .h-pila { position: relative; width: min(100%, 540px); aspect-ratio: 1 / 1.12; }
+[data-d="indigo"] .h-marco { position: absolute; display: block; padding: 10px; background: #fbf9f3; box-shadow: 0 38px 56px -30px rgba(10, 20, 40, .62), 0 0 0 1px var(--line); text-decoration: none; }
+[data-d="indigo"] .m1 { left: 0; top: 7%; width: 54%; rotate: -5deg; }
+[data-d="indigo"] .m2 { right: 0; top: 0; width: 52%; rotate: 4.5deg; }
+[data-d="indigo"] .m3 { left: 18%; bottom: 0; width: 62%; }
+[data-d="indigo"] .h-leyenda { display: flex; justify-content: space-between; gap: 12px; padding: 10px 4px 2px; }
+
+@container lienzo (max-width: 760px) {
+  [data-d="indigo"] .h-laminas { grid-template-columns: 1fr; min-height: 0; }
+  [data-d="indigo"] .h-izq { padding: 40px var(--gutter) 36px; }
+  [data-d="indigo"] .h-der { padding: 40px var(--gutter) 40px; }
+  [data-d="indigo"] .h-pila { width: min(100%, 340px); }
+  [data-d="indigo"] .h-aro { width: 80cqi; right: -30cqi; top: -20cqi; }
+}

@@ -60,7 +60,7 @@ export type PrendaNuevaDeHoja = {
   cambiar: (cambio: Partial<BorradorNuevo>) => void;
   proveedor: string;
   categorias: CategoriaParaComprar[];
-  /** Las categorías que ya le compras: van primero. */
+  /** Las categorías que ya le compras y las que ya anotaste en esta compra: van primero, en este orden (lo último anotado, antes). */
   suyas: ReadonlySet<string>;
   marcas: { id: string; nombre: string }[];
   /** Las marcas que trae este proveedor: van primero. */
@@ -83,6 +83,7 @@ export function HojaPrenda({
   onQuitar,
   onClose,
   nueva,
+  admitePrecioCero = false,
 }: {
   habitual: Habitual;
   borrador: BorradorPrenda;
@@ -100,10 +101,13 @@ export function HojaPrenda({
   onClose: () => void;
   /** Una prenda que todavía no le compras: la hoja pregunta además qué es, la marca y cómo se llama. */
   nueva?: PrendaNuevaDeHoja;
+  /** ¿La categoría de esta prenda admite venderla a S/ 0 (bolsas, cajas, empaque)? En una prenda nueva se lee de la categoría que se va eligiendo. Sin dato, no. */
+  admitePrecioCero?: boolean;
 }) {
   const n = nueva?.borrador;
+  const admiteCero = n ? nueva?.categorias.find((c) => c.id === n.categoriaId)?.admitePrecioCero === true : admitePrecioCero;
   const parecido = nueva && n ? habitualParecido(n.nombre, nueva.habituales, n.descartadas) : null;
-  const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b) : camposPrenda(b));
+  const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b, admiteCero) : camposPrenda(b, admiteCero));
   const poner = (campo: "costo" | "venta") => (v: string) => cambiar({ [campo]: v });
   // Cambiar cuántas rehace el reparto parejo entre las tiendas, salvo que se haya repartido a mano.
   const ponerCantidad = (v: string) => cambiar(conCantidad(b, v));
@@ -112,7 +116,7 @@ export function HojaPrenda({
   const faltaReparto = problemaReparto(b);
   const sumaReparto = b.destinos.reduce((s, d) => s + (leerCantidad(b.reparto[d] ?? "") ?? 0), 0);
   const cantidad = leerCantidad(b.cantidad);
-  const ganancia = gananciaPorPrenda(b);
+  const ganancia = gananciaPorPrenda(b, admiteCero);
   const laVezPasada = h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
   const detalle = [h.categoria, h.marca].filter(Boolean).join(" · ");
   // Solo al cerrar la hoja: el «atrás» y los enlaces ya los cuida la guardia de «Compré ropa», que la contiene.
@@ -146,7 +150,7 @@ export function HojaPrenda({
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col items-start gap-1">
                 <span className="text-[13px] font-semibold text-tinta">
-                  <ConMarca estado={guia.estado("cantidad")}>¿Cuántas?</ConMarca>
+                  <ConMarca estado={guia.estado("cantidad")}>¿Cuántas unidades?</ConMarca>
                 </span>
                 {laVezPasada != null && (
                   <Atajo elegido={cantidad === laVezPasada} onClick={() => ponerCantidad(String(laVezPasada))} guia="compra.igual">
@@ -162,7 +166,7 @@ export function HojaPrenda({
                   value: b.cantidad,
                   inputMode: "numeric",
                   autoComplete: "off",
-                  "aria-label": "¿Cuántas compraste?",
+                  "aria-label": "¿Cuántas unidades compraste?",
                   onChange: (e) => ponerCantidad(e.target.value),
                 }}
               />
@@ -216,8 +220,8 @@ export function HojaPrenda({
           )}
 
           <CampoGuiado id="tienda" guia={guia} titulo="¿A qué tienda va? · una o varias">
-            {/* Con dos tiendas, dos columnas: en tres quedaba un hueco al lado. */}
-            <div role="group" aria-label="¿A qué tienda va?" className={`grid gap-2 ${tiendas.length === 2 ? "grid-cols-2" : "grid-cols-3"}`} data-guia="compra.tiendas">
+            {/* Las columnas se reparten solas según cuántas tiendas haya (dos, tres o más), sin un hueco al lado. */}
+            <div role="group" aria-label="¿A qué tienda va?" className="grid grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] gap-2" data-guia="compra.tiendas">
               {tiendas.map((t) => {
                 const elegida = b.destinos.includes(t.id);
                 return (
@@ -239,7 +243,7 @@ export function HojaPrenda({
 
           {/* Repartida entre tiendas: cuántas va a cada una, parejo de entrada; abajo, si cuadra con lo comprado. */}
           {repartidas && (
-            <CampoGuiado id="reparto" guia={guia} titulo="¿Cuántas a cada una?">
+            <CampoGuiado id="reparto" guia={guia} titulo="¿Cuántas unidades a cada una?">
               <ul className="flex flex-col gap-2" data-guia="compra.reparto">
                 {b.destinos.map((d) => {
                   const n = leerCantidad(b.reparto[d] ?? "") ?? 0;
@@ -254,7 +258,7 @@ export function HojaPrenda({
                           value: b.reparto[d] ?? "",
                           inputMode: "numeric",
                           autoComplete: "off",
-                          "aria-label": `Cuántas van a ${nombreTienda.get(d) ?? "la tienda"}`,
+                          "aria-label": `Cuántas unidades van a ${nombreTienda.get(d) ?? "la tienda"}`,
                           onChange: (e) => ponerParte(e.target.value),
                         }}
                       />
@@ -290,6 +294,7 @@ export function HojaPrenda({
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               data-guia="compra.agregar"
+              data-vuelo-origen
             >
               {textoAgregarPrenda(b, corrige)}
             </Boton>
@@ -346,7 +351,7 @@ function DescribirNueva({
             etiqueta="¿Qué es?"
             marcadorSinChips="Elige una categoría"
             todas={nueva.categorias}
-            habituales={nueva.categorias.filter((c) => nueva.suyas.has(c.id)).map((c) => c.id)}
+            habituales={[...nueva.suyas].filter((id) => nueva.categorias.some((c) => c.id === id))}
             valor={n.categoriaId}
             onValor={(v) => nueva.cambiar({ categoriaId: v || null })}
             opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
@@ -383,7 +388,7 @@ function DescribirNueva({
             <Boton
               type="button"
               peso="fantasma"
-              className="h-10 w-10 shrink-0 px-0"
+              className="h-10 w-10 shrink-0 px-0 max-sm:h-11 max-sm:w-11 pointer-coarse:h-11 pointer-coarse:w-11"
               aria-label={escribeMarca ? "Volver a la lista de marcas" : "Escribir una marca nueva"}
               title={escribeMarca ? "Volver a la lista de marcas" : "Escribir una marca nueva"}
               aria-pressed={escribeMarca}

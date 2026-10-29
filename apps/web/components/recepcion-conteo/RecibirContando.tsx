@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useResponsable } from "@/lib/useResponsable";
-import { TEXTO_LA_RECIBE_OTRA, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
+import { TEXTO_COMPRASTE_Y_LO_RECIBES, TEXTO_LA_RECIBE_OTRA, TEXTO_LO_RECIBIO_QUIEN_COMPRO, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import {
   argsGuardarConteo,
   claveDe,
@@ -27,7 +27,8 @@ import {
   type Separado,
   mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
-import { guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
+import { agregarFotoPapel, guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
+import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
 import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -37,7 +38,6 @@ import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
-import { PreguntaDeLaCompra } from "./PreguntaDeLaCompra";
 import { siguienteAnotada } from "@/lib/recibir-papel-reglas";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 
@@ -81,6 +81,7 @@ export function RecibirContando({
   lotes,
   veExistencias,
   veDinero,
+  soloSede = false,
   proveedoresParaElegir = [],
   papeles = [],
 }: {
@@ -93,6 +94,8 @@ export function RecibirContando({
   veExistencias: boolean;
   /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
   veDinero: boolean;
+  /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
+  soloSede?: boolean;
   /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
   proveedoresParaElegir?: readonly { id: string; nombre: string }[];
   /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
@@ -153,6 +156,7 @@ export function RecibirContando({
           contadas: b.contadas,
           separado: b.separado,
           costoUnitario: null,
+          costosPrendas: {},
           version: 0,
           contadoPor: null,
           contadoEn: null,
@@ -164,8 +168,6 @@ export function RecibirContando({
     });
   }, [detalle, conteos, borradores]);
   const cifras = cifrasDelEnvio(lineas);
-  // Lo anotado que se dejó para después con «Es otra prenda» (rediseño de Compras simple): se cuenta a mano en el contador.
-  const [saltadas, setSaltadas] = useState<ReadonlySet<string>>(() => new Set());
 
   /** Guarda una línea en la base con lo último que se escribió. */
   const guardar = useCallback(
@@ -243,6 +245,21 @@ export function RecibirContando({
     router.refresh();
   }, [detalle.id, router]);
 
+  /** Sube la foto de un papel que llegó sin ella y se la pone a la compra. Devuelve por qué no se pudo, o `null` si quedó. */
+  const subirFotoDelPapel = useCallback(
+    async (papelId: string, archivo: File): Promise<string | null> => {
+      const subida = await subirFotoPapel(archivo);
+      if (!subida.ruta) return subida.motivo ?? "No se pudo subir la foto.";
+      const { error } = await agregarFotoPapel({ p_despacho_id: detalle.id, p_papel_id: papelId, p_foto_ruta: subida.ruta }, responsable.firma());
+      responsable.despues(error);
+      if (error) return mensajeAlGuardar(error, "subir la foto del papel");
+      avisar.exito("Subiste la foto del papel");
+      router.refresh();
+      return null;
+    },
+    [detalle.id, responsable, router],
+  );
+
   // Cerrar cambia la VISTA (de contar a «cerrado»): se suelta <PaginaEstable> (ADR-0185) y la vista va arriba.
   const [recienCerrado, setRecienCerrado] = useState(false);
   useLayoutEffect(() => {
@@ -260,7 +277,7 @@ export function RecibirContando({
       ? "Este envío se anuló: ya no llega."
       : otraSede || noLoRecibe
         ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
-        : "Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
+        : "Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
   // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. El número del envío y lo que se
   // lleva contado van en el riel y en la balanza.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
@@ -297,7 +314,8 @@ export function RecibirContando({
             </Aviso>
           ) : (
             <Aviso tono="atencion" guia="recepcion.quien-compro" titulo={TEXTO_LA_RECIBE_OTRA}>
-              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder: contar es certificar lo que llegó. Pídele a otra persona de la tienda que lo haga.
+              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder (solo un Admin recibe lo que él mismo compró): contar es certificar lo que llegó.
+              Pídele a otra persona de la tienda que lo haga.
             </Aviso>
           )}
           {detalle.lineas.length > 0 && (
@@ -307,6 +325,18 @@ export function RecibirContando({
             </section>
           )}
         </>
+      )}
+
+      {/* ADR-0517: un Admin sí recibe lo que él mismo compró. Antes de contar se le avisa; ya cerrado, lo ve cualquiera que mire el envío. */}
+      {porRecibir && !otraSede && !noLoRecibe && detalle.comproQuienMira && (
+        <Aviso tono="info" titulo={TEXTO_COMPRASTE_Y_LO_RECIBES}>
+          Al cerrar el conteo queda anotado que lo recibió quien hizo la compra, y quien revise las compras lo verá.
+        </Aviso>
+      )}
+      {estado === "cerrado" && detalle.recibioQuienCompro && (
+        <Aviso tono="atencion" titulo={TEXTO_LO_RECIBIO_QUIEN_COMPRO}>
+          La misma persona hizo la compra y cerró el conteo (un Admin puede recibir lo que él mismo compró), así que nadie más contó esta mercadería.
+        </Aviso>
       )}
 
       {(estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe && (
@@ -326,19 +356,16 @@ export function RecibirContando({
         />
       )}
 
-      {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la izquierda mientras se cuenta (maqueta
-          compras-formidable-2026-10); sin papeles, todo sigue a lo ancho. */}
-      <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[21.25rem_minmax(0,1fr)]" : "space-y-6"}>
+      {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la DERECHA mientras se cuenta, se cierra y se
+          mira lo cerrado (rediseño de «Contar», opción A de `docs/maquetas/recibir-contar-2026-10`, Felipe 2026-10-28): el trabajo ocupa lo
+          ancho y el papel acompaña sin quitarle el primer lugar. Bajo `xl` el papel va arriba, como antes. Sin papeles, todo sigue a lo ancho. */}
+      <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]" : "space-y-6"}>
       {conPapel && (
-        <div className="xl:sticky xl:top-4">
-          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas, saltadas)?.clave ?? null) : null} />
+        <div className="xl:sticky xl:top-4 xl:order-2">
+          <PapelesDeLaCompra papeles={papeles} lineas={lineas} alSubirFoto={subirFotoDelPapel} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />
         </div>
       )}
-      <div className={conPapel ? "min-w-0 space-y-6" : "space-y-6"}>
-
-      {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && conPapel && (
-        <PreguntaDeLaCompra lineas={lineas} saltadas={saltadas} onEscribir={escribir} onSaltar={(c) => setSaltadas((s) => new Set(s).add(c))} />
-      )}
+      <div className={conPapel ? "min-w-0 space-y-6 xl:order-1" : "space-y-6"}>
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
         <EmpezarARecibir
@@ -388,6 +415,7 @@ export function RecibirContando({
           sede={sedeActual.etiqueta}
           responsable={responsable}
           veDinero={veDinero}
+          soloSede={soloSede}
           proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}
@@ -410,6 +438,9 @@ export function RecibirContando({
           veExistencias={veExistencias}
           responsable={responsable}
           prendas={prendas}
+          soloSede={soloSede}
+          sinAviso={sinAviso}
+          veDinero={veDinero}
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {

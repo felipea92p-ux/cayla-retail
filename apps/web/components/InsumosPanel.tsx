@@ -10,21 +10,31 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
+import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
+import { RetirarColorModal } from "@/components/insumos-taller/RetirarColorModal";
+import { NuevaTelaModal } from "@/components/insumos-taller/NuevaTelaModal";
 import { NuevoInsumoModal } from "@/components/insumos-taller/NuevoInsumoModal";
+import type { ColorAlta } from "@/lib/alta-producto";
 import { fichaDeLaTela, textoDeLaFicha, type VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
 import {
   TIPOS_INSUMO,
   UNIDADES_INSUMO,
+  agruparPorTela,
   cantidadTexto,
   loteMasAntiguoConSaldo,
+  textoDeCompra,
   textoDeMovimiento,
   tramoDeSaldo,
   type EstadoInsumo,
+  type MaterialVista,
 } from "@/lib/insumos-reglas";
 import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
+import { LapizEditar } from "@/components/ui/BotonEditar";
+import { coloresConNombreDesfasado } from "@/lib/editar-tela-reglas";
+import { costoUnitarioTexto } from "@/lib/monto-plata-reglas";
 import { Vacio } from "@/components/ui/Vacio";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Lo que hay por lote, cuánto dura y qué falta. El saldo es la suma del
@@ -34,6 +44,9 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 // completar la ficha de una tela (tejido y color, de donde «Nueva orden» saca su sugerencia) siguen siendo del líder.
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+/** El tejido de una tela con su nombre (el del vocabulario de Catálogo); `null` si no se dijo. */
+const vocabularioTejido = (v: VocabularioDeTelas, m: MaterialVista): string | null => (m.tejidoId ? (v.tejidos.find((t) => t.id === m.tejidoId)?.nombre ?? null) : null);
 
 const TONO_ESTADO: Record<EstadoInsumo["tono"], TonoChip> = { sin_saldo: "rojo", bajo: "ambar", bien: "verde", sin_minimo: "neutro" };
 // La barra de avance del sistema (ronda 13): en tinta; el rojo y el ámbar los pone el estado del insumo (sin saldo, bajo el mínimo).
@@ -47,6 +60,8 @@ export function InsumosPanel({
   veCostos,
   vocabulario,
   leyoVocabulario,
+  colores,
+  leyoColores,
 }: {
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
@@ -58,15 +73,25 @@ export function InsumosPanel({
   vocabulario: VocabularioDeTelas;
   /** `false`: no se pudieron leer los tejidos y los colores; la ficha lo dice. */
   leyoVocabulario: boolean;
+  /** La carta de colores de Catálogo, para «Nueva tela» (ADR-0554). */
+  colores: ColorAlta[];
+  leyoColores: boolean;
 }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   const [nuevo, setNuevo] = useState(false);
+  // «Nueva tela»: abierta para crear una (`agregarA: null`) o para sumarle colores a una que ya existe.
+  const [nuevaTela, setNuevaTela] = useState<{ agregarA: MaterialVista | null } | null>(null);
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
   const [fichando, setFichando] = useState<InsumoVista | null>(null);
+  // «Retirar color» (solo el líder): el color de tela que se está retirando de la lista.
+  const [retirando, setRetirando] = useState<InsumoVista | null>(null);
+  // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
+  const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number; desfasados: number } | null>(null);
   const [verCapital, setVerCapital] = useState(false);
 
   const { insumos, libro, capital } = datos;
   const bajos = insumos.filter((i) => i.estado.tono === "bajo" || i.estado.tono === "sin_saldo").length;
+  const primeraTelaId = agruparPorTela(insumos.filter((i) => i.tipo === "tela"), datos.materiales).find((g) => g.material)?.material?.id ?? null;
   let indice = 0;
 
   return (
@@ -77,14 +102,24 @@ export function InsumosPanel({
         titulo="Insumos"
         subtitulo="Tela y avíos del Taller: lo que hay por lote, cuánto dura y qué pedir."
         acciones={
-          esLider ? (
+          datos.hayTelas || esLider ? (
             <>
-              <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevo(true)}>
-                + Nuevo insumo
-              </Boton>
-              <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
-                Ingresar insumo
-              </Boton>
+              {/* Quien ve Producción en el Taller crea telas y colores (ADR-0554, decisión 3); el avío y el ingreso de un lote con su costo siguen siendo del líder. */}
+              {datos.hayTelas && (
+                <Boton peso={esLider ? "fantasma" : "primario"} data-guia="prod-insumos.nueva-tela" onClick={() => setNuevaTela({ agregarA: null })}>
+                  + Nueva tela
+                </Boton>
+              )}
+              {esLider && (
+                <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevo(true)}>
+                  {datos.hayTelas ? "+ Nuevo avío" : "+ Nuevo insumo"}
+                </Boton>
+              )}
+              {esLider && (
+                <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
+                  Ingresar insumo
+                </Boton>
+              )}
             </>
           ) : undefined
         }
@@ -133,15 +168,15 @@ export function InsumosPanel({
             icono={<Layers />}
             titulo="Todavía no hay insumos"
             acciones={
-              esLider ? (
-                <Boton peso="primario" onClick={() => setNuevo(true)}>
-                  Agregar el primero
+              datos.hayTelas || esLider ? (
+                <Boton peso="primario" onClick={() => (datos.hayTelas ? setNuevaTela({ agregarA: null }) : setNuevo(true))}>
+                  {datos.hayTelas ? "Crear la primera tela" : "Agregar el primero"}
                 </Boton>
               ) : null
             }
           >
             Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda.{" "}
-            {esLider ? "Empieza agregando un insumo al catálogo; después ingresa su primer lote." : "El líder tiene que cargar el catálogo primero."}
+            {datos.hayTelas ? "Empieza con tu primera tela y todos sus colores, en una sola hoja." : esLider ? "Empieza agregando un insumo al catálogo; después ingresa su primer lote." : "El líder tiene que cargar el catálogo primero."}
           </Vacio>
         </div>
       ) : (
@@ -153,19 +188,42 @@ export function InsumosPanel({
               return (
                 <section key={t.valor} className="space-y-2.5">
                   <TituloSeccion dato={t.ayuda}>{t.plural}</TituloSeccion>
-                  {lista.map((i) => (
-                    <FilaInsumo
-                      key={i.id}
-                      insumo={i}
-                      indice={indice++}
-                      esLider={esLider}
-                      veCostos={veCostos}
-                      vocabulario={vocabulario}
-                      abierto={!!abiertos[i.id]}
-                      onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
-                      onIngresar={() => setIngresando({ insumoId: i.id })}
-                      onFicha={() => setFichando(i)}
-                    />
+                  {agruparPorTela(lista, datos.materiales).map((g) => (
+                    <div key={g.material?.id ?? g.insumos[0].id} className="space-y-2.5">
+                      {/* Cada tela con sus colores debajo: lo de la tela (código, tejido, cómo se compra) se dice una vez. */}
+                      {g.material && (
+                        <div data-guia={g.material.id === primeraTelaId ? "prod-insumos.tela" : undefined} className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 pt-1.5">
+                          <TituloGrupo cuenta={g.insumos.length} nota={[g.material.codigo, vocabularioTejido(vocabulario, g.material), g.material.composicion, textoDeCompra(g.material)].filter(Boolean).join(" · ")}>
+                            {g.material.nombre}
+                          </TituloGrupo>
+                          {t.valor === "tela" && (
+                            <div className="flex items-center gap-1">
+                              <button type="button" className="btn-enlace text-xs" data-guia={g.material.id === primeraTelaId ? "prod-insumos.agregar-colores" : undefined} onClick={() => setNuevaTela({ agregarA: g.material })}>
+                                + Agregar colores
+                              </button>
+                              {esLider && g.material && (
+                                <LapizEditar que={`la tela ${g.material.nombre}`} guia={g.material.id === primeraTelaId ? "prod-insumos.editar-tela" : undefined} onClick={() => setEditandoTela({ material: g.material as MaterialVista, colores: g.insumos.length, desfasados: coloresConNombreDesfasado(g.material as MaterialVista, g.insumos, vocabulario) })} />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {g.insumos.map((i) => (
+                        <FilaInsumo
+                          key={i.id}
+                          insumo={i}
+                          indice={indice++}
+                          esLider={esLider}
+                          veCostos={veCostos}
+                          vocabulario={vocabulario}
+                          abierto={!!abiertos[i.id]}
+                          onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
+                          onIngresar={() => setIngresando({ insumoId: i.id })}
+                          onFicha={() => setFichando(i)}
+                          onRetirar={() => setRetirando(i)}
+                        />
+                      ))}
+                    </div>
                   ))}
                 </section>
               );
@@ -203,8 +261,37 @@ export function InsumosPanel({
         </div>
       )}
 
-      {nuevo && <NuevoInsumoModal existentes={insumos.map((i) => ({ codigo: i.codigo, nombre: i.nombre }))} vocabulario={vocabulario} leyoVocabulario={leyoVocabulario} onClose={() => setNuevo(false)} />}
+      {nuevo && <NuevoInsumoModal existentes={insumos.map((i) => ({ codigo: i.codigo, nombre: i.nombre }))} vocabulario={vocabulario} leyoVocabulario={leyoVocabulario} soloAvios={datos.hayTelas} onClose={() => setNuevo(false)} />}
+      {nuevaTela && (
+        <NuevaTelaModal
+          key={nuevaTela.agregarA?.id ?? "nueva"}
+          tallerId={tallerId}
+          materiales={datos.materiales}
+          vocabulario={vocabulario}
+          leyoVocabulario={leyoVocabulario}
+          colores={colores}
+          leyoColores={leyoColores}
+          puedeSaldo={esLider}
+          agregarA={nuevaTela.agregarA}
+          coloresDeLaTela={insumos.filter((i) => i.materialId && i.materialId === nuevaTela.agregarA?.id && i.colorCodigo).map((i) => i.colorCodigo as string)}
+          alElegirExistente={(m) => setNuevaTela({ agregarA: m })}
+          onClose={() => setNuevaTela(null)}
+        />
+      )}
+      {editandoTela && (
+        <EditarTelaModal
+          key={editandoTela.material.id}
+          material={editandoTela.material}
+          cuantosColores={editandoTela.colores}
+          coloresDesfasados={editandoTela.desfasados}
+          tallerId={tallerId}
+          vocabulario={vocabulario}
+          leyoVocabulario={leyoVocabulario}
+          onClose={() => setEditandoTela(null)}
+        />
+      )}
       {fichando && <FichaDeLaTelaModal insumo={fichando} vocabulario={vocabulario} leyo={leyoVocabulario} onClose={() => setFichando(null)} />}
+      {retirando && <RetirarColorModal key={retirando.id} insumo={retirando} tallerId={tallerId} onClose={() => setRetirando(null)} />}
       {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
     </div>
   );
@@ -220,6 +307,7 @@ function FilaInsumo({
   onAlternar,
   onIngresar,
   onFicha,
+  onRetirar,
 }: {
   insumo: InsumoVista;
   indice: number;
@@ -230,6 +318,7 @@ function FilaInsumo({
   onAlternar: () => void;
   onIngresar: () => void;
   onFicha: () => void;
+  onRetirar: () => void;
 }) {
   const { llenado, marcaMinimo } = tramoDeSaldo(i.saldo, i.minimo);
   const primero = loteMasAntiguoConSaldo(i.lotes);
@@ -298,7 +387,7 @@ function FilaInsumo({
                       {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">/ {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
                     </span>
                     <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75">
-                      {veCostos && l.costoUnitario !== null && soles(l.costoUnitario)}
+                      {veCostos && l.costoUnitario !== null && costoUnitarioTexto(l.costoUnitario)}
                       {primero?.id === l.id && (
                         <span title="Se descuenta primero: el más antiguo con saldo">
                           <Chip tono="neutro">1º</Chip>
@@ -314,9 +403,18 @@ function FilaInsumo({
                 <Boton peso="discreto" className="!px-3 !py-2" onClick={onIngresar}>
                   + Ingresar lote
                 </Boton>
-                <Boton peso="discreto" className="!px-3 !py-2" data-guia={indice === 0 ? "prod-insumos.editar-ficha" : undefined} onClick={onFicha}>
-                  {ficha.completa ? "Editar la ficha" : i.tipo === "tela" ? "Completar tejido y color" : "Completar el color"}
-                </Boton>
+                {/* El tejido y el color de un color de tela son los de su tela (ADR-0554): no se completan aquí. */}
+                {!i.materialId && (
+                  <Boton peso="discreto" className="!px-3 !py-2" data-guia={indice === 0 ? "prod-insumos.editar-ficha" : undefined} onClick={onFicha}>
+                    {ficha.completa ? "Editar la ficha" : i.tipo === "tela" ? "Completar tejido y color" : "Completar el color"}
+                  </Boton>
+                )}
+                {/* Un color elegido por error se retira (se esconde, no se borra): solo el color de una tela, y la base se niega si tiene saldo u órdenes abiertas (ADR-0554). Abre una hoja: es una ventana, no guarda. */}
+                {i.materialId && (
+                  <Boton peso="peligro" className="!px-3 !py-2" data-guia={indice === 0 ? "prod-insumos.retirar-color" : undefined} aria-haspopup="dialog" onClick={onRetirar}>
+                    Retirar color
+                  </Boton>
+                )}
               </div>
             )}
           </div>

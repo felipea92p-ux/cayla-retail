@@ -14,7 +14,7 @@
     "components/tienda-web-conf/CierresDeTienda.tsx": [
       "button «{`Quitar el cierre del ${hoy ? etiquetaDeCierre(fecha, hoy) : fecha}»",
       "button «Cerrar hoy»",
-      "CampoFecha «Cerrar otra fecha»"
+      "CampoFecha «Cerrar otro día»"
     ],
     "components/tienda-web-conf/HorarioSemanal.tsx": [
       "button «{`${DIAS_LARGOS[i]}»",
@@ -23,7 +23,7 @@
     "components/tienda-web-conf/PuertaDeTienda.tsx": [
       "button «{`Mover ${nombre}»",
       "button «{`Mover ${nombre}» #2",
-      "button «{nombre}»"
+      "button «{ordenable ? \"Arrastra para ordenar, o Alt + ← →\" : undefined}»"
     ],
     "components/tienda-web-conf/RelojDelPedido.tsx": [
       "button «{n}»"
