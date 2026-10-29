@@ -345,8 +345,9 @@ export const AVIARIO = [
       // ADR-0513: los avíos de un modelo y lo que de verdad se gastó por orden cerrada (lo declarado vive en `producto_consumos`). Los propone
       // «Nueva orden» y los escribe `cerrar_produccion`: Producción. Asignadas en el refresco del volcado del 2026-10-26.
       "producto_avios", "producto_consumo_medido",
-      // Los materiales del Taller (ADR-0554, insumos: su migración vive en otra rama, todavía no en `main`) y los ojales y botones de cada
-      // modelo (`producto_taller`, ADR-0551): los usa Producción. Asignadas en el refresco del volcado del 2026-10-28.
+      // ADR-0554: la TELA (qué es y cómo se compra); sus colores son filas de `insumos`, que ya son de Gallito. La escriben `crear_material`, `agregar_colores_a_material`
+      // y `editar_material` desde Producción ▸ Insumos. En producción desde el 2026-10-28 (20261028175000). `producto_taller`: los ojales y botones de cada modelo
+      // (ADR-0551), que usa Producción. Asignadas en el refresco del volcado del 2026-10-28.
       "materiales", "producto_taller"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
