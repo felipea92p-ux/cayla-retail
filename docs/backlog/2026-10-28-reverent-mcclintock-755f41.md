@@ -67,7 +67,7 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
   - [x] **6b. Rendimiento, metas, Comercial y «Mis ventas»** — migración `20261029030000`: once reemplazos anclados (`fn_rendimiento_*`, `fn_metas_equipo`, `fn_comercial_*`, `fn_mis_ventas_*`) con la regla de 6a; sus «Ayuda» dicen que lo de CLAURE no cuenta.
   - [x] **6c. Club y clientes** — migración `20261029035000`: una prenda de CLAURE no da puntos (`fn_club_monto_neto_venta`), una compra solo de CLAURE no cuenta (`fn_club_compras_netas`) y la ficha de la cliente no la lista (`fn_clienta_compras/cambios/devoluciones`). Decidido por defecto (Felipe pidió seguir sin parar): ver pendientes.
   - [x] **6d. Análisis y motores (la mitad que lee líneas de venta)** — migración `20261029041000`: 20 reemplazos anclados sobre 13 funciones (Análisis, `fn_unidades_vendidas` —lo que leen el plan de compra, su propuesta y sus resultados—, `fn_plan_compra`, `fn_historial_ventas`, Plan del piso, demanda, motor de demanda, `fn_frescura_decisiones`, rentabilidad, calidad por origen, costo estimado del Resumen y vitrina de la tienda web). La otra mitad (libro de movimientos y stock por dueño) queda como pendiente de Felipe, abajo.
-- [ ] 7. Apartados y pedidos web · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
+- [x] **7. Apartados y pedidos web** — migración `20261029043000`: el adelanto de un apartado (abonos) y el pago de un pedido web, que la venta guarda como `anticipo` sin cuenta, ahora entran a lo que se le debe, fechados el día que la prenda sale · [ ] 8. Gastos por empresa · [ ] 9. Cierre.
 
 **Decisiones tomadas en la actividad 2 (sin preguntar, con su porqué):**
 - La cuenta contable de lo que se le debe es la **479 «Otras cuentas por pagar — relacionadas»**, **provisional hasta el contador**: el Diario se arma al leer, así que cambiarla es una línea de `fn_asientos_dinero_y_caja`.
@@ -156,3 +156,12 @@ Lista de actividades para `/construir` (cuentas de dinero con dueño · cálculo
 - [ ] **Sin prueba de comportamiento con cifra** (solo el chequeo final de la migración y la idempotencia): `fn_plan_compra`, `fn_frescura_decisiones`, `fn_motor_demanda_preparacion` y las dos de la vitrina: sembrar su escena (un plan, una decisión, una vitrina publicada) es más grande que su cambio, que es la misma línea de las demás.
 - [ ] **Al pegar `20261029041000` en producción:** son 20 reemplazos en 13 funciones; es la migración con más probabilidad de abortar por una diferencia con producción (aborta sin cambiar nada y nombra la función y su ancla). Va después de `20261029035000`.
 - [ ] **Suites que ya fallaban en la base local sin este cambio** (no son de 6d): `plan-compra-envio` (0/55), `plan-compra-pagos` (0/27), `plan-compra-paso-2` (0/21), `plan-compra-versiones` (0/45) —«function retail.fn_plan_compra_historial_inmutable() does not exist»—, `plan-compra-historia` (3), `plan-piso-foto` (2) y `arreglos-en-vivo` (13).
+
+**Decisiones tomadas en la actividad 7 (por defecto):**
+- **Se debe cuando la prenda sale** (la fecha de la venta: la entrega del apartado o el despacho del pedido), no cuando se abonó. Mientras no hay venta no se debe nada, y un apartado que se libera o un pedido que se anula no deja deuda.
+- **El adelanto se reparte por el valor de las líneas de CLAURE** como cualquier otro pago, y entra en la cuenta donde cayó cada abono.
+- **Un abono en efectivo no entra** (el efectivo lo tiene Claudia).
+
+**Pendientes que dejó la actividad 7:**
+- [ ] **Al pegar `20261029043000` en producción:** es un `create or replace` de `fn_claure_filas` (función propia): va después de `20261029004000`.
+- [ ] Un apartado cuyo adelanto se **devolvió** a la clienta después de entregar (caso raro) no se descuenta por separado; si pasa, el reembolso es una devolución normal.

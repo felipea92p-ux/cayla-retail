@@ -734,6 +734,11 @@ export const PRUEBAS = [
   // cambian; las migraciones se repegan. Cada caso: ROLLBACK.
   "pruebas:claure-analisis-y-motores",
 
+  // Apartados y pedidos web con prendas de CLAURE (ADR-0560, actividad 7): el adelanto de un apartado entregado (abonos de separacion_pagos) y el pago aprobado de un pedido web
+  // despachado se le deben a Claudia desde que la prenda sale (el día de la venta), por su parte de CLAURE y en la cuenta donde cayeron; el efectivo no entra; mientras la prenda no
+  // sale no se debe nada; lo cobrado de siempre no cambia; las migraciones se repegan. Cada caso: ROLLBACK.
+  "pruebas:claure-apartados-y-pedidos-web",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 
