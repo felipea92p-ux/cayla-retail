@@ -12,9 +12,6 @@ import { paginar } from "@/lib/paginacion";
 const PLANTILLA = "sm:grid-cols-[6rem_1fr_7rem]";
 // Con la columna de costo (Ingreso sin comprobante, ADR-0111): fecha · proveedor/nota · unidades · costo.
 const PLANTILLA_CON_COSTO = "sm:grid-cols-[6rem_1fr_7rem_10rem]";
-// Con la columna «Llegó» (Recibir ▸ Terminados): llegó · terminado · proveedor/nota · unidades · costo.
-const PLANTILLA_CON_LLEGADA = "sm:grid-cols-[6rem_6rem_1fr_7rem]";
-const PLANTILLA_CON_LLEGADA_Y_COSTO = "sm:grid-cols-[6rem_6rem_1fr_7rem_10rem]";
 
 /** Costo unitario promedio del lote y si falta: sin costo la prenda no cuenta en el promedio ponderado y distorsiona el margen. */
 export type CostoRecepcion = { costo: number | null; sinCosto: boolean };
@@ -37,21 +34,18 @@ export function RecepcionesRecientes({
   vacio,
   costos,
   porPagina,
-  conLlegada,
 }: {
   recepciones: RecepcionReciente[];
   vacio: string;
   costos?: Record<string, CostoRecepcion>;
   /** Con un número, la tabla pinta esa cantidad de filas y el resto va paginado (sin ir a la base). Sin él, todas, como siempre. */
   porPagina?: number;
-  /** Suma la columna «Llegó» (cuándo la sede abrió el envío) y llama «Terminado» a la fecha del lote. */
-  conLlegada?: boolean;
 }) {
   const [abierta, setAbierta] = useState<RecepcionReciente | null>(null);
   const [pagina, setPagina] = useState(1);
   const actual = porPagina ? paginar(recepciones, pagina, porPagina) : null;
   const visibles = actual ? actual.filas : recepciones;
-  const plantilla = conLlegada ? (costos ? PLANTILLA_CON_LLEGADA_Y_COSTO : PLANTILLA_CON_LLEGADA) : costos ? PLANTILLA_CON_COSTO : PLANTILLA;
+  const plantilla = costos ? PLANTILLA_CON_COSTO : PLANTILLA;
 
   if (recepciones.length === 0) {
     return <p className="card-cayla p-5 text-sm text-tinta/65">{vacio}</p>;
@@ -59,7 +53,7 @@ export function RecepcionesRecientes({
   return (
     <>
       <Tabla>
-        <Encabezado plantilla={plantilla} columnas={[...(conLlegada ? [{ titulo: "Llegó" }] : []), { titulo: conLlegada ? "Terminado" : "Fecha" }, { titulo: costos ? "Proveedor / nota · guía" : "Proveedor · guía" }, { titulo: "Unidades", alinear: "der" }, ...(costos ? [{ titulo: "Costo" }] : [])]} />
+        <Encabezado plantilla={plantilla} columnas={[{ titulo: "Fecha" }, { titulo: costos ? "Proveedor / nota · guía" : "Proveedor · guía" }, { titulo: "Unidades", alinear: "der" }, ...(costos ? [{ titulo: "Costo" }] : [])]} />
         {visibles.map((r) => (
           <button
             key={r.loteId}
@@ -68,7 +62,6 @@ export function RecepcionesRecientes({
             onClick={() => setAbierta(r)}
             className={`${fila(plantilla)} w-full text-left transition-colors hover:bg-tinta/[0.03]`}
           >
-            {conLlegada && <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{r.llegoEn ? fechaCorta(r.llegoEn) : "—"}</span>}
             <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
             <span className={celda("izq")}>
               <span className="text-sm font-medium text-tinta">
@@ -113,7 +106,7 @@ export function RecepcionesRecientes({
         <Modal
           conCerrar
           titulo={abierta.proveedorNombre}
-          subtitulo={`${conLlegada && abierta.llegoEn ? `Llegó el ${fechaCorta(abierta.llegoEn)} · Terminado el ` : ""}${fechaCorta(abierta.fecha)} · ${abierta.numeroGuia ? `Guía ${abierta.numeroGuia}` : "Sin guía"} · ${abierta.ubicacion}${
+          subtitulo={`${fechaCorta(abierta.fecha)} · ${abierta.numeroGuia ? `Guía ${abierta.numeroGuia}` : "Sin guía"} · ${abierta.ubicacion}${
             abierta.recibidoPor ? ` · Recibido por ${abierta.recibidoPor}` : ""
           }`}
           tamano="mediana"
