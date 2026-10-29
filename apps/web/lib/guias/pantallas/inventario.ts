@@ -25,6 +25,13 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Toca «Colgadas» o «Guardadas» y la lista deja solo las prendas que tienen algo ahí; tócala otra vez y vuelve todo. Si dice «por cuadrar», el piso todavía no se contó.",
     },
     {
+      id: "valor",
+      ancla: "existencias.valor",
+      opcional: true,
+      titulo: "Cuánto vale lo que hay",
+      texto: "«Ver el valor a costo» muestra cuánto vale lo que hay en la sede, a lo que costó cada prenda. Lo ven el líder y quien ve el dinero de Compras. Las prendas sin costo no suman: la pantalla dice cuántas son y «Ver cuáles» te las lista para ponerles su costo. En la demo no lo abrimos.",
+    },
+    {
       id: "ajustar-stock",
       ancla: "existencias.ajustar-stock",
       opcional: true,
