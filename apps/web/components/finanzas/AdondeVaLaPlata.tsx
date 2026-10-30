@@ -38,13 +38,12 @@ export function AdondeVaLaPlata({ recorrido, bajada }: { recorrido: Recorrido; b
   const pierde = recorrido.modo === "vende" && recorrido.resultado < 0;
   const enFoco = partes.find((h) => h.clave === foco) ?? null;
   const pct = (h: HiloRecorrido) => pctDelNudo(h, recorrido);
-  let acumulado = 0;
+  const largos = partes.map((h) => (h.monto / total) * CIRCUNFERENCIA);
   const tramos = partes.map((h, i) => {
-    const largo = (h.monto / total) * CIRCUNFERENCIA;
+    const largo = largos[i];
     const pintado = Math.max(largo - Math.min(3, largo * 0.3), 0.5);
-    const t = { h, i, pintado, desfase: -acumulado };
-    acumulado += largo;
-    return t;
+    const antes = largos.slice(0, i).reduce((a, l) => a + l, 0);
+    return { h, i, pintado, desfase: -antes };
   });
   const etiqueta = `${bajada} A dónde va: ${partes.map((h) => `${h.nombre} ${soles(h.monto)}, ${pct(h)} %`).join("; ")}.`;
   return (
