@@ -197,6 +197,9 @@ export function CategoriasLista({
   };
 
   function abrirBorrador(b: Borrador | null) {
+    // Lo que se contestó en la vez anterior («No, es otra») no vale para esta: el formulario es el mismo componente, no nace de nuevo.
+    existe.reiniciar();
+    existeSub.reiniciar();
     setViendoId(null);
     setBorrador(b);
     setPrefijoPropio(Boolean(b?.id));
