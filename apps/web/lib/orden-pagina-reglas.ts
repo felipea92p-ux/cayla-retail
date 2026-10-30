@@ -799,7 +799,24 @@ export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "p
 }
 
 export type PasoAgregable = { clave: FaseClave; nombre: string; ayuda: string; lugar: number; quienSugerido: Quien };
-export type PasoNoAgregable = { clave: FaseClave; nombre: string; porQue: string };
+/** `yaEmpezo` es el paso de DESPUÉS que lo frena («Planchado»): la lista del combo lo dice corto, `porQue` lo dice completo. */
+export type PasoNoAgregable = { clave: FaseClave; nombre: string; porQue: string; yaEmpezo: string };
+
+/** El primer paso de la ruta que va DESPUÉS de `lugar` y ya tiene algo (empezó o está hecho): lo que frena a la base con `paso_despues_empezado`. */
+export function pasoPosteriorEmpezado(fases: ReadonlyArray<Pick<FasePagina, "secuencia" | "empezada" | "estado" | "nombre">>, lugar: number): { nombre: string } | undefined {
+  return fases.find((f) => f.secuencia > lugar && (f.empezada || f.estado === "hecha"));
+}
+
+/**
+ * Lo que la hoja «Agregar un paso» dice de los pasos que NO se pueden agregar, en una frase («Ojales y botones y Pegar cierre ya no entran: Planchado ya empezó y irían antes»), o `null` si no hay.
+ * Existe porque un líder siempre ve «+ Agregar un paso» (puede dar de alta «Otro proceso…»): sin esto, un paso bloqueado desaparecía del combo sin decir por qué.
+ */
+export function textoDePasosBloqueados(bloqueados: ReadonlyArray<Pick<PasoNoAgregable, "nombre" | "yaEmpezo">>): string | null {
+  if (bloqueados.length === 0) return null;
+  const lista = new Intl.ListFormat("es", { style: "long", type: "conjunction" });
+  const empezaron = [...new Set(bloqueados.map((b) => b.yaEmpezo))];
+  return `${lista.format(bloqueados.map((b) => b.nombre))} ya no ${bloqueados.length === 1 ? "entra" : "entran"}: ${lista.format(empezaron)} ya ${empezaron.length === 1 ? "empezó" : "empezaron"} y ${bloqueados.length === 1 ? "iría" : "irían"} antes.`;
+}
 
 /**
  * Los pasos opcionales que una orden en proceso todavía puede sumar (ADR-0566): los que la hoja «Nueva orden» ofrece (`enLaHoja`, hoy solo Ojales y botones), que no están ya en la ruta y que
@@ -817,8 +834,8 @@ export function pasosAgregables(p: Pick<OrdenPagina, "orden" | "permisos" | "fas
     if (c.siempre || !c.enLaHoja || !c.activo || enLaRuta.has(c.clave) || (rutaAnterior && c.ruta === "nueva")) continue;
     const lugar = secuenciaDe(c.clave, null, p.procesos);
     if (lugar === null) continue;
-    const tarde = p.fases.find((f) => f.secuencia > lugar && (f.empezada || f.estado === "hecha"));
-    if (tarde) bloqueados.push({ clave: c.clave, nombre: c.nombre, porQue: `${tarde.nombre} ya empezó, y ${c.nombre} iría antes` });
+    const tarde = pasoPosteriorEmpezado(p.fases, lugar);
+    if (tarde) bloqueados.push({ clave: c.clave, nombre: c.nombre, porQue: `${tarde.nombre} ya empezó, y ${c.nombre} iría antes`, yaEmpezo: tarde.nombre });
     else ofrecidos.push({ clave: c.clave, nombre: c.nombre, ayuda: c.ayuda, lugar, quienSugerido: c.quienSugerido });
   }
   ofrecidos.sort((a, b) => a.lugar - b.lugar);
