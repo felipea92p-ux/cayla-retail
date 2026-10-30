@@ -1441,14 +1441,14 @@ export const GUIA_TRAFICO: Guia = {
       ancla: "trafico.recorrido",
       opcional: true,
       titulo: "Hasta dónde llega la gente",
-      texto: "Cada punto es una persona de cada 100 que entraron. Paso a paso se apagan los que se fueron: lo que ves encendido es quienes llegaron hasta ahí.",
+      texto: "Como recorrer la tienda: cada estación es un paso, con cuántas personas llegaron hasta ahí. Entre una y otra, cuántas se fueron y sin hacer qué. La última se pinta de verde si alguien llegó a recoger.",
     },
     {
       id: "veredicto",
       ancla: "trafico.veredicto",
       opcional: true,
       titulo: "Dónde se atora",
-      texto: "El paso donde más gente se pierde, comparado con lo de costumbre. Si va peor que siempre, se pinta en ámbar: ahí conviene mejorar la tienda.",
+      texto: "La estación en ámbar es donde más gente se va de la que le llega, comparada con lo de costumbre. Si va peor que siempre, lo dice el chip: ahí conviene mejorar la tienda.",
     },
     {
       id: "porque",
