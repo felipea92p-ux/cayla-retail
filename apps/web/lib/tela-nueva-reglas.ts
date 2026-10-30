@@ -35,12 +35,15 @@ export type EntradaTelaNueva = {
   /** Quien guarda puede anotar el saldo inicial (es el líder). */
   puedeSaldo: boolean;
   responsableListo: boolean;
+  /** El tejido escrito a mano que se parece a uno que ya existe y todavía no se contestó («¿es otro?», ADR-0576). Mientras haya uno, la tela no se guarda: se perdería el tejido que la persona pidió. */
+  tejidoPorContestar?: string;
 };
 
 /** Lo que describe a la TELA misma (sin sus colores): lo comparten «Nueva tela» y «Editar tela». */
-export type DatosDeLaTela = Pick<EntradaTelaNueva, "nombre" | "tejidoId" | "composicion" | "compra" | "ancho" | "gramaje" | "metrosPorRollo" | "merma">;
+export type DatosDeLaTela = Pick<EntradaTelaNueva, "nombre" | "tejidoId" | "composicion" | "compra" | "ancho" | "gramaje" | "metrosPorRollo" | "merma" | "tejidoPorContestar">;
 
 const MENSAJE_NOMBRE = "Ponle un nombre a la tela.";
+const mensajeDelTejidoPorContestar = (nombre: string) => `Contesta si «${nombre.trim()}» es otro tejido o usa el que ya existe.`;
 const MENSAJE_MERMA = "La merma va de 0 % a menos de 50 %.";
 const MENSAJE_KILO = "Para pasar los kilos a metros hace falta el ancho y el gramaje de la tela.";
 // Las cotas físicas del kilo → metro (revisión de «una tela con sus colores», G9): un ancho escrito en metros («1.60») o un gramaje de otro mundo inflaban o encogían el saldo ×2 a ×100 sin avisar.
@@ -138,6 +141,7 @@ const compraCompleta = (e: DatosDeLaTela): boolean =>
 export function problemasDeLaTela(e: DatosDeLaTela): string[] {
   const p: string[] = [];
   if (!e.nombre.trim()) p.push(MENSAJE_NOMBRE);
+  if (e.tejidoPorContestar) p.push(mensajeDelTejidoPorContestar(e.tejidoPorContestar));
   if (e.compra === "kilo" && rindeEscrito(e) === null) p.push(...mensajesDelKilo(e));
   if (e.compra === "rollo" && !((leerCantidad(e.metrosPorRollo) ?? 0) > 0)) p.push(MENSAJE_ROLLO);
   if (!mermaBuena(e)) p.push(MENSAJE_MERMA);
@@ -158,7 +162,15 @@ export function camposDeLaTela(e: DatosDeLaTela): CampoDeGuia[] {
   return [
     { id: "nombre", nombre: "Nombre de la tela", requerido: true, hecho: e.nombre.trim() !== "", pendiente: MENSAJE_NOMBRE },
     // Lo recomendado que no bloquea: el tejido alimenta la sugerencia de «Nueva orden»; la composición, la etiqueta de la prenda.
-    { id: "tejido", nombre: "El tejido", requerido: false, sugerido: true, hecho: e.tejidoId !== "", pendiente: "Elige el tejido (o créalo aquí mismo): «Nueva orden» lo usa para proponer la tela." },
+    // Con una pregunta sin contestar («¿«Franelas» es otro tejido?») el tejido deja de ser solo sugerido: guardar ahora perdería lo que la persona pidió.
+    {
+      id: "tejido",
+      nombre: "El tejido",
+      requerido: Boolean(e.tejidoPorContestar),
+      sugerido: true,
+      hecho: e.tejidoId !== "" && !e.tejidoPorContestar,
+      pendiente: e.tejidoPorContestar ? mensajeDelTejidoPorContestar(e.tejidoPorContestar) : "Elige el tejido (o créalo aquí mismo): «Nueva orden» lo usa para proponer la tela.",
+    },
     { id: "composicion", nombre: "La composición", requerido: false, sugerido: true, hecho: e.composicion.trim() !== "", pendiente: "Escribe la composición: sale en la etiqueta de la prenda." },
     { id: "compra", nombre: "Cómo la compras", requerido: true, hecho: compraCompleta(e), pendiente: e.compra === "kilo" ? mensajesDelKilo(e)[0] : MENSAJE_ROLLO },
     { id: "merma", nombre: "Merma al cortar", requerido: mermaEscrita, hecho: mermaEscrita && mermaBuena(e), pendiente: MENSAJE_MERMA },

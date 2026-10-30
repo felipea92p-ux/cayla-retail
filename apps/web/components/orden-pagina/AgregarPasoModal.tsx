@@ -14,10 +14,10 @@ import { Casilla } from "@/components/ui/Casilla";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type Quien, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { faseDe, fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type FaseDelCatalogo, type Quien, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import { camposDeAgregarPaso } from "@/lib/orden-pagina-guia";
 import { OTRO_PROCESO, RPC_GUARDAR_PROCESO, despuesDeEnLaRuta, problemaDeNombreDeProceso } from "@/lib/procesos-reglas";
-import { RPC_AGREGAR_PASO, RPC_QUITAR_PASO, type OrdenPagina, type PasoAgregable } from "@/lib/orden-pagina-reglas";
+import { RPC_AGREGAR_PASO, RPC_QUITAR_PASO, pasoPosteriorEmpezado, textoDePasosBloqueados, type OrdenPagina, type PasoAgregable, type PasoNoAgregable } from "@/lib/orden-pagina-reglas";
 import type { OpcionesNuevaOrden } from "@/lib/produccion";
 import { firmar } from "@/lib/responsable-reglas";
 import type { Tolerado } from "@/lib/resultado";
@@ -36,6 +36,10 @@ import { useResponsable } from "@/lib/useResponsable";
 // «Otro proceso…» (ADR-0570, actividad 5): un líder da de alta un proceso que el catálogo no tiene (nombre y después de qué paso de esta orden va) y lo agrega en el mismo guardado; quien no es
 // líder ve que se lo tiene que pedir. El alta va primero: si después falla agregarlo, el proceso ya queda en el catálogo para la próxima vez.
 //
+// Lo que NO se puede agregar se ve, no se esconde (ADR-0566, «la sección lo dice»): un paso cuyo siguiente ya empezó sale en la lista, apagado y con su motivo, y una frase debajo del combo lo explica.
+// Un líder siempre ve «+ Agregar un paso» (puede dar de alta «Otro proceso…»), así que la página ya no lo dice por su cuenta. «Otro proceso…» pasa por la misma regla: si iría antes de un paso que ya
+// empezó se frena aquí, no después de haberlo dado de alta en el catálogo (el alta va primero).
+//
 // El aviso de éxito trae «Deshacer»: mientras el paso no tenga nada anotado, quitarlo es la misma llamada de «Quitar este paso» (`quitar_paso_orden`).
 
 const RPC_GUARDAR_PROCESO_MODELO = "guardar_proceso_modelo";
@@ -48,6 +52,7 @@ function borradorNuevo(clave: FaseClave, quien: Quien = "taller"): FaseBorrador 
 export function AgregarPasoModal({
   datos,
   pasos,
+  bloqueados = [],
   opciones,
   hoy,
   esLider = false,
@@ -55,6 +60,8 @@ export function AgregarPasoModal({
 }: {
   datos: OrdenPagina;
   pasos: readonly PasoAgregable[];
+  /** Los pasos que no entran porque uno de después ya empezó: se listan apagados, con su motivo. */
+  bloqueados?: readonly PasoNoAgregable[];
   opciones: Tolerado<OpcionesNuevaOrden> | null;
   hoy: string;
   /** Un líder puede dar de alta «Otro proceso…» desde aquí (la base lo vuelve a exigir: `proceso_solo_lider`). */
@@ -78,6 +85,13 @@ export function AgregarPasoModal({
     ? { clave: OTRO_PROCESO, nombre: nombreOtro.trim() || "Otro proceso", ayuda: "", lugar: (rutaOrdenada.find((f) => f.clave === despuesDe)?.secuencia ?? 0) + 0.5, quienSugerido: "taller" }
     : (pasos.find((p) => p.clave === clave) ?? pasos[0]);
   const nombreMinuscula = paso.nombre.toLocaleLowerCase("es");
+  const otroTarde = esOtro ? pasoPosteriorEmpezado(datos.fases, paso.lugar) : undefined;
+  const textoBloqueados = textoDePasosBloqueados(bloqueados);
+  // La fila de «Quién lo hace» dibuja el nombre del paso desde el catálogo: un proceso que todavía no existe lleva el nombre que se está escribiendo, no su clave de mentira.
+  const catalogoDeLaFila = useMemo<ReadonlyArray<FaseDelCatalogo>>(
+    () => (esOtro ? [...datos.procesos, { ...faseDe("pegar_cierre", datos.procesos), clave: OTRO_PROCESO, nombre: nombreOtro.trim() || "Proceso nuevo", ayuda: "", delSistema: false }] : datos.procesos),
+    [esOtro, datos.procesos, nombreOtro]
+  );
 
   const proveedoresDelDirectorio = useMemo(() => proveedoresQueSirven(opciones?.datos?.proveedores ?? []), [opciones]);
   // Quien todavía no está en el directorio se registra desde aquí (la hoja no se cierra ni se pierde lo elegido).
@@ -90,7 +104,7 @@ export function AgregarPasoModal({
   );
   // La fila de un proceso nuevo todavía no tiene clave: se valida con la de un proceso del Taller cualquiera (las reglas de quién lo hace no dependen del proceso, salvo el Ploteo).
   const problemas = useMemo(() => problemasFases([esOtro ? { ...borrador, clave: "pegar_cierre" } : borrador], { hoy, proveedores, lista, catalogo: datos.procesos }), [borrador, esOtro, hoy, proveedores, lista, datos.procesos]);
-  const faltas = [...(esOtro && !esLider ? ["Solo un líder da de alta un proceso nuevo. Pídeselo, o elige uno de la lista."] : []), ...(problemaNombre ? [problemaNombre] : []), ...problemas.map((p) => p.texto)];
+  const faltas = [...(esOtro && !esLider ? ["Solo un líder da de alta un proceso nuevo. Pídeselo, o elige uno de la lista."] : []), ...(problemaNombre ? [problemaNombre] : []), ...(otroTarde ? [`${otroTarde.nombre} ya empezó, y ${paso.nombre === "Otro proceso" ? "un proceso nuevo" : paso.nombre} iría antes. Elige un paso de más adelante en «Va después de».`] : []), ...problemas.map((p) => p.texto)];
   const guia = useGuiaCampos(camposDeAgregarPaso({ faltas, responsableListo: responsable.listo }));
 
   // Entre qué pasos de la ruta cae: lo dice la bajada para que se entienda qué cambia en la orden.
@@ -224,8 +238,17 @@ export function AgregarPasoModal({
             setClave(v as FaseClave);
             setBorrador(borradorNuevo(v as FaseClave, pasos.find((p) => p.clave === v)?.quienSugerido));
           }}
-          opciones={[...pasos.map((p) => ({ valor: p.clave, texto: p.nombre })), { valor: OTRO_PROCESO, texto: "Otro proceso…" }]}
+          opciones={[
+            ...pasos.map((p) => ({ valor: p.clave, texto: p.nombre })),
+            ...bloqueados.map((b) => ({ valor: b.clave, texto: `${b.nombre} · ${b.yaEmpezo} ya empezó`, deshabilitada: true })),
+            { valor: OTRO_PROCESO, texto: "Otro proceso…" },
+          ]}
         />
+        {textoBloqueados && (
+          <Aviso tono="info" chico>
+            {textoBloqueados}
+          </Aviso>
+        )}
         {esOtro && (
           <div className="space-y-3" data-guia="prod-orden-agregar.otro">
             {esLider ? (
@@ -269,6 +292,7 @@ export function AgregarPasoModal({
                 proveedores={proveedores}
                 opcionesProveedor={opcionesProveedor}
                 problemas={problemas}
+                catalogo={catalogoDeLaFila}
                 onCambiar={(parche) => setBorrador((b) => ({ ...b, ...parche }))}
                 onAgregarProveedor={altaProveedor.abrir}
               />
@@ -306,7 +330,7 @@ export function AgregarPasoModal({
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar || (esOtro && (!esLider || problemaNombre !== null))} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar || (esOtro && (!esLider || problemaNombre !== null || otroTarde !== undefined))} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               Agregar el paso
             </Boton>
           </div>

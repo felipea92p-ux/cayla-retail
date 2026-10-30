@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { anchoDeTexto, radioDeToque, separarMarcas, textosQueCaben } from "@/lib/linea-marcas-reglas";
 import { filasDeNotas, lugarDeLaCifra, muestrearTrazo, separarAlFinal } from "@/lib/linea-textos-reglas";
 
@@ -100,6 +100,10 @@ type Props = {
   vienen?: readonly VieneLinea[];
   /** La raya punteada vertical de «ahora», con su texto (vacío: solo la raya). */
   ahora?: { x: number; texto: string } | null;
+  /** Lo que queda bajo la referencia se tiñe de rojo suave y el tramo de la línea que cae ahí se pinta de rojo (la caja bajo tu mínimo, Resumen). */
+  bajoReferencia?: boolean;
+  /** El punto más bajo, marcado en rojo con su texto («31 oct · S/ 4,842»). */
+  minimo?: { x: number; y: number; texto: string } | null;
   /** La cifra del último punto, en serif. */
   cifra?: string | null;
   /** La cifra al final de la referencia («15,500 · meta»). */
@@ -174,6 +178,8 @@ export function Linea({
   notas = [],
   vienen = [],
   ahora = null,
+  bajoReferencia = false,
+  minimo = null,
   cifra = null,
   cifraReferencia = null,
   cifraProyeccion = null,
@@ -204,6 +210,7 @@ export function Linea({
     return () => ro.disconnect();
   }, []);
   const [guia, setGuia] = useState<number | null>(null);
+  const idBajo = useId();
 
   const todos = [...serie, ...(referencia ?? []), ...(proyeccion ?? [])].map((p) => p.y);
   const techo = maxY ?? topeRedondo(Math.max(1, ...todos));
@@ -238,6 +245,8 @@ export function Linea({
   const finRef = referencia?.at(-1) ?? null;
   const finProy = proyeccion?.at(-1) ?? null;
   const yNota = (n: NotaLinea) => valorEnLinea(serie, n.x, escalones) ?? minY;
+  // La raya de la referencia (un mínimo es una línea recta): lo de abajo es «bajo la referencia».
+  const yBajo = bajoReferencia && referencia && referencia.length > 0 ? Y(referencia[0]!.y) : null;
 
   // Las cifras del final (la referencia y el «si sigue así»), en el margen derecho y separadas si caen juntas: cada una ocupa dos líneas.
   const finales = [
@@ -261,6 +270,10 @@ export function Linea({
         (lugarNotas[i]?.fila ?? -1) >= 0 ? muestrearTrazo([[X(n.x), baseNota(lugarNotas[i]!.fila) + 5], [X(n.x), Y(yNota(n))]]) : [[X(n.x), Y(yNota(n))] as [number, number]],
       ),
       ...finales.flatMap((_, i) => muestrearTrazo([[xFinal, yFinales[i]! - 6], [W - 4, yFinales[i]! - 6], [W - 4, yFinales[i]! + 16], [xFinal, yFinales[i]! + 16]], 4)),
+      // El punto más bajo y su texto («31 oct · S/ 4,842»), que van debajo y a la derecha del punto.
+      ...(minimo
+        ? muestrearTrazo([[X(minimo.x), Y(minimo.y)], [X(minimo.x) + 12, Y(minimo.y) + 10], [X(minimo.x) + 12 + anchoDe(minimo.texto, `600 12.5px ${letras.sans}`), Y(minimo.y) + 10], [X(minimo.x) + 12 + anchoDe(minimo.texto, `600 12.5px ${letras.sans}`), Y(minimo.y) + 26]], 4)
+        : []),
     ];
     const anchoCifra = anchoDe(cifra, `15px ${letras.serif}`);
     // Hacia la derecha puede asomarse hasta 24 px fuera del dibujo, como siempre lo hizo (el margen de la tarjeta lo recibe).
@@ -371,6 +384,14 @@ export function Linea({
               )}
             </g>
           )}
+          {yBajo !== null && (
+            <>
+              <clipPath id={idBajo}>
+                <rect x={L} y={yBajo} width={Math.max(W - L - R, 0)} height={Math.max(Y(minY) - yBajo, 0)} />
+              </clipPath>
+              <rect x={L} y={yBajo} width={Math.max(W - L - R, 0)} height={Math.max(Y(minY) - yBajo, 0)} className="linea-zona-baja" />
+            </>
+          )}
           {referencia && referencia.length > 1 && <path d={camino(referencia)} className="linea-referencia" />}
           {proyeccion && proyeccion.length > 1 && <path d={camino(proyeccion)} className="linea-proyeccion" />}
           {vienen.map((v, i) => (
@@ -396,11 +417,20 @@ export function Linea({
                 <path d={`${camino(serie, escalones)} L${X(ultimo.x).toFixed(1)},${Y(minY).toFixed(1)} L${X(serie[0]!.x).toFixed(1)},${Y(minY).toFixed(1)} Z`} className="linea-area" />
               )}
               {serie.length > 1 && <path d={camino(serie, escalones)} pathLength={1} className="linea-trazo" />}
+              {yBajo !== null && serie.length > 1 && <path d={camino(serie, escalones)} clipPath={`url(#${idBajo})`} className="linea-trazo-bajo" />}
               {puntos &&
                 serie.map((p, i) => (
                   <circle key={i} cx={X(p.x)} cy={Y(p.y)} r={guia === p.x ? 6.5 : 4.5} className="linea-punto" style={{ "--i": i } as CSSProperties} />
                 ))}
               {!puntos && <circle cx={X(ultimo.x)} cy={Y(ultimo.y)} r={4.5} className="linea-punto-fin" />}
+              {minimo && (
+                <g>
+                  <circle cx={X(minimo.x)} cy={Y(minimo.y)} r={6} className="linea-punto-bajo" />
+                  <text x={X(minimo.x) + 12} y={Y(minimo.y) + 22} className="linea-texto-bajo linea-sobre">
+                    {minimo.texto}
+                  </text>
+                </g>
+              )}
               {cifra && lugarCifra && (
                 <text x={lugarCifra.x} y={lugarCifra.y} textAnchor={lugarCifra.anclaje} className="linea-cifra linea-sobre">
                   {cifra}

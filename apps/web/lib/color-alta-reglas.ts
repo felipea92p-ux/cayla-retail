@@ -1,16 +1,16 @@
 // Crear un color sin salir de «Nuevo producto» (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
-// PROMETE: lógica pura del formulario corto de `NuevoColorAlta`: el nombre como se guarda, si ya existe un
-//   color con ese nombre (o sinónimo), qué familia sugerir para el tono elegido, qué falta para poder crearlo y
-//   cómo se lee la respuesta de `POST /api/productos/colores`.
+// PROMETE: lógica pura del formulario corto de `NuevoColorAlta` y de Atributos ▸ Colores: el nombre como se guarda, qué
+//   colores ya existen y se parecen al que se va a crear (por nombre y por tono: `coloresQueYaExisten`), qué familia
+//   sugerir para el tono elegido, qué falta para poder crearlo y cómo se lee la respuesta de `POST /api/productos/colores`.
 // ASUME: `colores` es la lista que ya tiene la pantalla (los activos); el candado real está en la base
 //   (`colores_pkey` para el código, `colores_clave_unica` para el nombre) y la API traduce sus rechazos.
 // NO HACE: no decide por la persona. La familia y el código son sugerencias que ella puede cambiar; un color
 //   que se ve casi igual a otro se avisa, no se bloquea (Blanco y Crudo se parecen y son dos colores).
 
 import type { ColorAlta } from "./alta-producto";
-import { clave } from "./buscar-prenda-v2";
-import { distanciaEntreHex, esHexValido } from "./color-parecido";
+import { atributosParecidos, type MotivoVisto } from "./atributo-parecido";
+import { coloresParecidos, distanciaEntreHex, esHexValido } from "./color-parecido";
 import { FAMILIAS_COLOR } from "./colores-familias";
 
 /** El nombre como se guarda: sin espacios de más y con la primera letra en mayúscula («palo de rosa» → «Palo de rosa»). */
@@ -19,14 +19,30 @@ export function nombreDeColor(texto: string): string {
   return limpio ? limpio[0].toLocaleUpperCase("es") + limpio.slice(1) : "";
 }
 
+type ColorConNombres = { codigo: string; nombre: string; hex: string | null; familiaColor: string | null; sinonimos?: readonly string[]; activo?: boolean };
+
+export type CoincidenciaDeColor<C> = { item: C; por: MotivoVisto; con: string | null };
+
 /**
- * El color de la lista que ya se llama así (por su nombre o por un sinónimo), sin tildes ni mayúsculas. Sirve para
- * ofrecer «elígelo» en vez de dejar que la base rechace el duplicado después de llenar todo.
+ * Todo lo que «ya existe» frente a un color que se va a crear o a renombrar (ADR-0576): primero por NOMBRE —el mismo, un sinónimo,
+ * o casi igual como «Verde Olivo» frente a «Verde oliva»— y después por TONO (ΔE2000 < 8, `color-parecido.ts`). Es una sola lista,
+ * porque para quien crea es una sola pregunta: «¿esto ya lo tengo?». `excluir` es el código del color que se está editando. Por NOMBRE
+ * entran también los desactivados (la base rechaza un nombre que ya tuvo un color); por TONO solo los que se pueden elegir.
  */
-export function colorConEseNombre(texto: string, colores: readonly ColorAlta[]): ColorAlta | undefined {
-  const k = clave(nombreDeColor(texto));
-  if (!k) return undefined;
-  return colores.find((c) => clave(c.nombre) === k) ?? colores.find((c) => (c.sinonimos ?? []).some((s) => clave(s) === k));
+export function coloresQueYaExisten<C extends ColorConNombres>(
+  nombre: string,
+  hex: string | null,
+  familiaColor: string | null,
+  colores: readonly C[],
+  { excluir }: { excluir?: string } = {}
+): CoincidenciaDeColor<C>[] {
+  const porNombre: CoincidenciaDeColor<C>[] = atributosParecidos(nombre, colores, { excluir: (c) => c.codigo === excluir });
+  const vistos = new Set(porNombre.map((c) => c.item.codigo));
+  const porTono = coloresParecidos(hex, familiaColor, colores, { excluir })
+    .filter((p) => !vistos.has(p.color.codigo) && p.color.activo !== false)
+    .slice(0, 3)
+    .map((p) => ({ item: p.color, por: "tono" as const, con: null }));
+  return [...porNombre, ...porTono];
 }
 
 // Un tono plano rara vez es metálico: esa familia no se sugiere por cercanía (una muestra plana de «Plata vieja» siempre
