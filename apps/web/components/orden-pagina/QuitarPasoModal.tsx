@@ -14,8 +14,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 
 // «Quitar este paso» (ADR-0551, actividad 1b): una orden que se abrió con un paso que ya no se hace (Limpiar hilos y revisar, Etiquetar y embolsar) lo deja salir de su ruta mientras
-// el paso no tenga NADA anotado. Quitar es de un solo sentido —la base no tiene «agregar paso»—, por eso es una hoja con su confirmación y no un clic suelto, y el botón es el rojo de
-// lo que borra. Un solo control, quién lo quita: la base firma cada escritura (ADR-0161/0162). No decide nada: `quitar_paso_orden` rechaza lo que no se puede (`fase_empezada`,
+// el paso no tenga NADA anotado. Quitar borra la fila (se puede volver a agregar con «Agregar un paso», ADR-0566, mientras ningún paso de después haya empezado), por eso es una hoja con su confirmación y no un clic suelto, y el
+// botón es el rojo de lo que borra. Un solo control, quién lo quita: la base firma cada escritura (ADR-0161/0162). No decide nada: `quitar_paso_orden` rechaza lo que no se puede (`fase_empezada`,
 // `paso_fijo`, `orden_cerrada`) y `traducirError` lo dice en palabras de tienda.
 
 export function QuitarPasoModal({ datos, fase, onClose }: { datos: OrdenPagina; fase: FasePagina; onClose: () => void }) {
@@ -56,7 +56,7 @@ export function QuitarPasoModal({ datos, fase, onClose }: { datos: OrdenPagina; 
   return (
     <Modal
       titulo={`¿Quitar ${fase.nombre}?`}
-      subtitulo={`La ${datos.orden.numeroTexto} deja de hacer este paso. No se puede volver a agregar.`}
+      subtitulo={`La ${datos.orden.numeroTexto} deja de hacer este paso. Se puede volver a agregar con «Agregar un paso», mientras ningún paso de después haya empezado.`}
       variante="hoja"
       onClose={onClose}
     >

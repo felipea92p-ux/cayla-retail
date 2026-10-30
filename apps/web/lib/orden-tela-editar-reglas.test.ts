@@ -12,6 +12,7 @@ const pagina = (o: Partial<InsumoPagina> & Pick<InsumoPagina, "insumoId">): Insu
   colorCodigo: null,
   colorNombre: null,
   consumoPorPrenda: 1.2,
+  esComplemento: false,
   cantidadPlan: 36,
   usado: 0,
   saldo: 100,
@@ -173,5 +174,34 @@ describe("consumo por talla en la edición", () => {
   });
   it("una cifra por talla que no se lee todavía cuenta como cambio (no se puede dar por igual)", () => {
     expect(hayCambios([conTalla("lino", "NEG", { S: "1.000", M: "1.500" })], [conTalla("lino", "NEG", { S: "1.000", M: "" })])).toBe(true);
+  });
+});
+
+describe("los complementos en la edición (ADR-0563)", () => {
+  const forro = (o: Partial<TelaBorrador> = {}): TelaBorrador => ({ insumoId: "forro", colorCodigo: null, consumoPorPrenda: "0.900", complemento: true, ...o });
+  it("telasIniciales pone la tela de cada color primero, después los complementos y al final los avíos, y marca solo a las telas complemento", () => {
+    const l = telasIniciales([
+      pagina({ insumoId: "boton", tipo: "avio", consumoPorPrenda: 4 }),
+      pagina({ insumoId: "forro", tipo: "tela", colorCodigo: null, consumoPorPrenda: 0.9, esComplemento: true }),
+      pagina({ insumoId: "lino", colorCodigo: "NEG", consumoPorPrenda: 1.2 }),
+    ]);
+    expect(l).toEqual([fila("lino", "NEG", "1.200"), forro(), fila("boton", null, "4.000")]);
+    // El rol de un avío no se lee: ni siquiera si la base lo trajera en verdadero.
+    expect(telasIniciales([pagina({ insumoId: "boton", tipo: "avio", esComplemento: true })])[0]).not.toHaveProperty("complemento");
+  });
+  it("pasar un material de tela a complemento (o al revés) es un cambio aunque el consumo sea el mismo, y cuenta como corregido", () => {
+    const antes = [fila("lino", "NEG", "1.200"), { ...forro(), complemento: false }];
+    const despues = [fila("lino", "NEG", "1.200"), forro()];
+    expect(hayCambios(antes, despues)).toBe(true);
+    expect(hayCambios(despues, antes)).toBe(true);
+    expect(contarCambios(antes, despues)).toEqual({ agregadas: 0, corregidas: 1, quitadas: 0 });
+  });
+  it("sin la marca de un lado y con `complemento: false` del otro es lo mismo: no hay cambio", () => {
+    expect(hayCambios([fila("lino", "NEG", "1.200")], [{ ...fila("lino", "NEG", "1.200"), complemento: false }])).toBe(false);
+  });
+  it("quitar el forro de la lista cuenta como quitado; agregarlo, como agregado", () => {
+    const sin = [fila("lino", "NEG", "1.200")];
+    expect(contarCambios(sin, [...sin, forro()])).toEqual({ agregadas: 1, corregidas: 0, quitadas: 0 });
+    expect(contarCambios([...sin, forro()], sin)).toEqual({ agregadas: 0, corregidas: 0, quitadas: 1 });
   });
 });

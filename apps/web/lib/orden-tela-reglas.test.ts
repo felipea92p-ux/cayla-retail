@@ -650,3 +650,62 @@ describe("los avíos que el modelo ya tiene", () => {
     expect(ofertaDeAviosDelModelo([fila()], ESTANTE, [])).toEqual({ tipo: "ninguna" });
   });
 });
+
+describe("los complementos de la prenda: forro y otras telas (ADR-0563)", () => {
+  const FORRO = tela("forro-popelina", { nombre: "Forro popelina", tejidoId: "tej-pop" });
+  const insumos = [...INSUMOS, FORRO];
+  const lino: TelaBorrador = { insumoId: LINO_NEG.id, colorCodigo: "NEG", consumoPorPrenda: "1.2" };
+  const sugeridas: TelaBorrador[] = [lino, { insumoId: null, colorCodigo: "PRO", consumoPorPrenda: "1.2" }];
+  const forroDeTodos: TelaBorrador = { insumoId: FORRO.id, colorCodigo: null, consumoPorPrenda: "0.9", complemento: true };
+  const forroDeNegro: TelaBorrador = { insumoId: FORRO.id, colorCodigo: "NEG", consumoPorPrenda: "0.9", complemento: true };
+
+  it("insumosParaRpc manda `complemento: true` solo en lo que lo es: el resto viaja EXACTAMENTE como antes (sin la llave)", () => {
+    const rpc = insumosParaRpc([lino, forroDeTodos, { ...forroDeNegro, complemento: false }], COLORES);
+    expect(rpc[0]).toEqual({ insumo_id: LINO_NEG.id, color_codigo: "NEG", consumo_por_prenda: "1.2" });
+    expect(rpc[1]).toEqual({ insumo_id: FORRO.id, color_codigo: null, consumo_por_prenda: "0.9", complemento: true });
+    expect("complemento" in rpc[2]).toBe(false);
+  });
+  it("un complemento con cifra por talla también lleva la marca", () => {
+    const porTalla = { insumoId: FORRO.id, colorCodigo: "NEG", consumoPorPrenda: "", complemento: true, porTalla: { S: "0.8", M: "1.0" } };
+    const colores = coloresDeLaOrden([{ colorCodigo: "NEG", cantidad: 5, talla: "S" }, { colorCodigo: "NEG", cantidad: 5, talla: "M" }]);
+    expect(insumosParaRpc([porTalla], colores)[0]).toMatchObject({ complemento: true, consumo_por_talla: { S: "0.8", M: "1.0" } });
+  });
+  it("la lista de Nueva orden conserva el forro (de toda la orden o de un color) después de las filas de color, y no lo toma por la tela de su color", () => {
+    // El forro de NEG va ANTES que el lino en lo que la persona tocó: aun así la tela de NEG es el lino.
+    const lista = telasDeLaHoja({ sugeridas, manual: [forroDeNegro, lino, forroDeTodos], insumos });
+    expect(lista).toEqual([lino, sugeridas[1], forroDeNegro, forroDeTodos]);
+  });
+  it("un forro de un color que la orden no fabrica se descarta (como un avío), y una fila nueva sin elegir sigue ahí", () => {
+    const ajeno: TelaBorrador = { ...forroDeNegro, colorCodigo: "XXX" };
+    const vacia: TelaBorrador = { insumoId: null, colorCodigo: null, consumoPorPrenda: "" };
+    expect(telasDeLaHoja({ sugeridas, manual: [lino, ajeno, vacia], insumos })).toEqual([lino, sugeridas[1], vacia]);
+  });
+  it("el forro no es la tela del modelo: aunque vaya primero, «Dejar este consumo como el del modelo» mira al lino", () => {
+    const declarado = { telaPorPrenda: 1.2, fuente: "declarado" as const };
+    expect(ofertaDeConsumoDelModelo([forroDeTodos, lino], insumos, null, COLORES)).toMatchObject({ tipo: "primera", nuevo: 1.2 });
+    expect(ofertaDeConsumoDelModelo([forroDeTodos, lino], insumos, declarado, COLORES)).toEqual({ tipo: "ninguna" });
+    // Sin ninguna tela principal (solo el forro), no hay nada que declarar.
+    expect(ofertaDeConsumoDelModelo([forroDeTodos], insumos, null, COLORES)).toEqual({ tipo: "ninguna" });
+  });
+  it("problemasTela trata al forro como cualquier material: lo mismo repetido en el mismo color se rechaza, en colores distintos no", () => {
+    const hintsConForro = (telas: TelaBorrador[]) => problemasTela(telas, { insumos, colores: COLORES }).map((p) => p.hint);
+    expect(hintsConForro([lino, forroDeNegro, { ...forroDeNegro }])).toEqual(["insumo_repetido"]);
+    expect(hintsConForro([lino, forroDeNegro, { ...forroDeNegro, colorCodigo: "PRO" }])).toEqual([]);
+  });
+});
+
+describe("paridad con la migración 20261029021000 (complementos)", () => {
+  const SQL_COMPLEMENTOS = readFileSync(join(RAIZ, "supabase/migrations/20261029021000_produccion_complementos_de_la_orden.sql"), "utf8");
+  it("la base lee la misma llave que manda la web y guarda el rol en la columna que la lectura devuelve", () => {
+    const rpc = insumosParaRpc([{ insumoId: "x", colorCodigo: null, consumoPorPrenda: "1", complemento: true }]);
+    const llaves = Object.keys(rpc[0]).filter((k) => !["insumo_id", "color_codigo", "consumo_por_prenda", "consumo_por_talla"].includes(k));
+    expect(llaves).toEqual(["complemento"]);
+    expect(SQL_COMPLEMENTOS).toContain("(x ->> 'complemento')::boolean");
+    expect(SQL_COMPLEMENTOS).toContain("add column if not exists es_complemento boolean not null default false");
+    expect(SQL_COMPLEMENTOS).toContain("'es_complemento', pi.es_complemento");
+  });
+  it("un valor que no es verdadero o falso se rechaza con un hint que la hoja ya conoce", () => {
+    const hint = /using hint = '(\w+)'/.exec(SQL_COMPLEMENTOS)?.[1];
+    expect(HINTS_TELA).toContain(hint);
+  });
+});

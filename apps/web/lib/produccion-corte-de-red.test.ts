@@ -24,7 +24,7 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
   });
 
   // Lo mismo en las hojas del rediseño (ADR-0400) que guardan sin token propio: el /chaos del 2026-10-15 (hallazgo #3) vio la misma frase falsa en «Nueva tarifa», «Cambiar quién»,
-  // la ficha de la tela y «Nuevo insumo». «Deshacer» lo que se anotó es la salida de un error: también dice la frase honesta.
+  // la ficha de la tela y «Nuevo insumo». Corregir lo que se anotó es la salida de un error: también dice la frase honesta.
   const HOJAS_DEL_REDISENO: [archivo: string, contexto: string][] = [
     ["proveedores-produccion/TarifaServicioModal.tsx", "guardar la tarifa"],
     ["orden-pagina/CambiarQuienModal.tsx", "cambiar quién hace"],
@@ -32,7 +32,13 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
     ["insumos-taller/FichaDeLaTelaModal.tsx", "guardar la ficha"],
     ["insumos-taller/NuevoInsumoModal.tsx", "crear el insumo"],
     ["insumos-taller/RetirarColorModal.tsx", "retirar el color"],
-    ["orden-pagina/DeshacerAvanceModal.tsx", "deshacer lo que se anotó"],
+    // ADR-0570, actividad 3: corregir o eliminar lo anotado, quitar la marca o restaurar, y la nota del equipo.
+    ["orden-pagina/CorregirAnotacionModal.tsx", "lo terminado en"],
+    ["orden-pagina/CambioConMotivoModal.tsx", "quitar la marca"],
+    ["orden-pagina/NotaDeLaOrdenModal.tsx", "escribir la nota"],
+    // ADR-0570, actividad 4: lo usado de la orden y la tela encontrada.
+    ["orden-pagina/AnotarLoUsadoModal.tsx", "anotar lo usado"],
+    ["orden-pagina/EncontreTelaModal.tsx", "anotar la tela que encontraste"],
     ["orden-pagina/PasarAlStockModal.tsx", "pasar la orden al stock"],
     ["orden-pagina/AnularLaOrdenModal.tsx", "anular la orden"],
     ["orden-pagina/RevertirLaOrdenModal.tsx", "revertir el cierre"],

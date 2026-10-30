@@ -50,7 +50,7 @@ import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumo
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
 import { NivelDos } from "@/components/orden-produccion/NivelDos";
 import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
-import { conOjalesDelModelo, costoServiciosEstimado, fasesIniciales, fasesParaRpc, listaDeTarifas, problemasFases, proveedoresQueSirven, serviciosConCosto, serviciosPorDefecto, type FaseBorrador, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { FASES, conProcesosDelModelo, costoServiciosEstimado, fasesIniciales, fasesParaRpc, listaDeTarifas, problemasFases, procesosParaRecordar, proveedoresQueSirven, serviciosConCosto, serviciosPorDefecto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import {
   aviosSugeridos,
   coloresDeLaOrden,
@@ -142,7 +142,8 @@ type ModoModelo = "existe" | "nuevo";
 // La RPC es nueva (migración 20261014154000) y los tipos generados no la conocen: se llama por su nombre, como las de Órdenes de insumos.
 const RPC_ABRIR_ORDEN = "abrir_orden_produccion";
 /** ADR-0551: lo que se elige de ojales y botones al abrir la orden se recuerda en el modelo (migración 20261028053000). */
-const RPC_GUARDAR_OJALES_BOTONES = "guardar_ojales_botones_modelo";
+/** Lo que el modelo lleva de cada proceso (ADR-0570, actividad 5; reemplaza a `guardar_ojales_botones_modelo`). */
+const RPC_GUARDAR_PROCESO_MODELO = "guardar_proceso_modelo";
 // Los costos ya no se teclean (ADR-0400): a la función de hoy le viajan en cero y la base los deriva.
 const SIN_COSTOS = { tela: "", avios: "", maquila: "" };
 
@@ -152,10 +153,10 @@ const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"
   pierde: { tono: "rojo", texto: TEXTO_SEMAFORO.pierde },
 };
 
-/** El bloque de fases como nace (ADR-0551): con lo que el modelo dijo de ojales y botones, y con Ploteo y Corte afuera solo si ya hay a quién mandarlos (un proveedor activo con precio vigente). */
-function fasesDeArranqueDe(opciones: OpcionesNuevaOrden | null, hoy: string, ojalesBotones: boolean | null): FaseBorrador[] {
-  if (!opciones) return fasesIniciales({ ojalesBotones });
-  return fasesIniciales({ ojalesBotones, servicios: serviciosPorDefecto(opciones.proveedores, listaDeTarifas(opciones.proveedores), hoy) });
+/** El bloque de fases como nace (ADR-0551, ADR-0570): con lo que el modelo dijo de cada proceso, y con Ploteo y Corte afuera solo si ya hay a quién mandarlos (un proveedor activo con precio vigente). */
+function fasesDeArranqueDe(opciones: OpcionesNuevaOrden | null, hoy: string, delModelo: Readonly<Record<FaseClave, boolean>> | null): FaseBorrador[] {
+  if (!opciones) return fasesIniciales({ delModelo: delModelo ?? undefined });
+  return fasesIniciales({ delModelo: delModelo ?? undefined, servicios: serviciosPorDefecto(opciones.proveedores, listaDeTarifas(opciones.proveedores), hoy) }, opciones.procesos);
 }
 
 /** Dónde vive el formulario: recibe el cuerpo (el `<form>` y el aviso de salida) y cómo preguntar «¿Salir sin guardar?» antes de descartarlo. */
@@ -248,7 +249,7 @@ export function NuevaOrdenProduccionForm({
   const [choque, setChoque] = useState<Extract<ErrorModeloNuevo, { tipo: "nombre_duplicado" | "nombre_casi_igual" }> | null>(null);
   // ADR-0400: las fases (quién hace cada una) y la tela de la orden reemplazan a los tres montos tecleados. Nacen válidas: la espina en el Taller, sin tela.
   // ADR-0551: Ojales y botones nace prendido si el modelo ya dijo que los lleva; Ploteo y Corte nacen afuera si hay a quién mandarlos. Un borrador retomado conserva lo que tenía.
-  const [fases, setFases] = useState<FaseBorrador[]>(() => inicio?.fases ?? fasesDeArranqueDe(opciones?.datos ?? null, hoy, productoInicialId ? (opciones?.datos?.ojalesBotones[productoInicialId] ?? null) : null));
+  const [fases, setFases] = useState<FaseBorrador[]>(() => inicio?.fases ?? fasesDeArranqueDe(opciones?.datos ?? null, hoy, productoInicialId ? (opciones?.datos?.procesosDelModelo[productoInicialId] ?? null) : null));
   // Lo que la persona eligió de tela (null = no tocó nada: manda la sugerencia). Las filas que se ven se DERIVAN de la sugerencia más esto, sin efectos.
   const [telasManual, setTelasManual] = useState<TelaBorrador[] | null>(inicio?.telasManual ?? null);
   // «Dejar este consumo como el del modelo»: apagado de fábrica; solo vale si el modelo ya dice otra cosa y quien abre edita el catálogo (`ofertaConsumo`).
@@ -353,7 +354,12 @@ export function NuevaOrdenProduccionForm({
   // Lo que el modelo elegido dijo de ojales y botones: `undefined` sin modelo que exista, `null` si nadie lo ha preguntado (ADR-0551).
   const ojalesDelModelo: boolean | null | undefined = esNuevo || !productoId ? undefined : (opcionesDatos?.ojalesBotones[productoId] ?? null);
   // El punto de partida del bloque de fases con ESTE modelo: lo que la persona no tocó no cuenta como trabajo ni como cambio (elegir el modelo no es llenar la orden).
-  const fasesDeArranque = useMemo(() => fasesDeArranqueDe(opcionesDatos, hoy, ojalesDelModelo ?? null), [opcionesDatos, hoy, ojalesDelModelo]);
+  // Lo que el modelo elegido dijo de cada proceso (ADR-0570): `null` sin modelo que exista o si nunca contestó nada.
+  const procesosDelModelo = esNuevo || !productoId ? null : (opcionesDatos?.procesosDelModelo[productoId] ?? null);
+  const catalogo = opcionesDatos?.procesos ?? FASES;
+  // «Recordar en la ficha»: lo elegido de cada proceso se guarda en el modelo al abrir la orden (prendida de fábrica, como se recordaban los ojales).
+  const [recordarEnLaFicha, setRecordarEnLaFicha] = useState(true);
+  const fasesDeArranque = useMemo(() => fasesDeArranqueDe(opcionesDatos, hoy, procesosDelModelo), [opcionesDatos, hoy, procesosDelModelo]);
   const insumosDelTaller = useMemo<InsumoDelTaller[]>(
     () => insumos.map((i) => ({ id: i.id, nombre: i.nombre, tipo: i.tipo, unidad: i.unidad, tejidoId: i.tejidoId, colorCodigo: i.colorCodigo, saldo: i.saldo, mermaPct: i.merma, archivado: false })),
     [insumos]
@@ -400,7 +406,7 @@ export function NuevaOrdenProduccionForm({
     () => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller, avios: aviosSugeridosAhora }),
     [telasManual, telasSugeridasAhora, insumosDelTaller, aviosSugeridosAhora]
   );
-  const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios }), [fases, hoy, proveedoresServicio, listaDePrecios]);
+  const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios, catalogo }), [fases, hoy, proveedoresServicio, listaDePrecios, catalogo]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
   const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado, coloresOrden), [telas, insumosDelTaller, consumoDeclarado, coloresOrden]);
   const fijarElConsumo = fijarConsumo && !esNuevo && ofertaConsumo.tipo === "corregir" && puedeEditarCatalogo;
@@ -435,7 +441,7 @@ export function NuevaOrdenProduccionForm({
   const unitario = costoUnitario(costoTelaEstimado, 0, costoServicios, total);
   // El mismo costo por prenda, partido en lo que lo forma (la tela y cada servicio de afuera): suma EXACTAMENTE `unitario`. La ficha lo lista cuando hay dos partes o más;
   // con una sola, lo que sale afuera sigue diciéndose en su línea «Afuera» (quién la hace).
-  const serviciosDeLaOrden = serviciosConCosto(fases, total, listaDePrecios, hoy, proveedoresServicio);
+  const serviciosDeLaOrden = serviciosConCosto(fases, total, listaDePrecios, hoy, proveedoresServicio, catalogo);
   const partesDelCosto = partesDelCostoPorPrenda({
     totalPrendas: total,
     porPrenda: unitario,
@@ -600,8 +606,8 @@ export function NuevaOrdenProduccionForm({
     setModoModelo("existe");
     setProductoId(id);
     setCantidades({});
-    // Ojales y botones sigue a lo que dijo el modelo elegido (prendido si los lleva; apagado si no, o si nadie lo ha preguntado). Lo demás que se escribió en las fases se queda.
-    setFases((f) => conOjalesDelModelo(f, id ? (opcionesDatos?.ojalesBotones[id] ?? null) : null));
+    // Cada proceso opcional sigue a lo que dijo el modelo elegido (prendido si lo lleva; apagado si no, o si nadie lo ha dicho). Lo demás que se escribió en las fases se queda.
+    setFases((f) => conProcesosDelModelo(f, id ? (opcionesDatos?.procesosDelModelo[id] ?? null) : null, catalogo));
     setChoque(null);
     setTipo((actual) => tipoAlElegir({ eleccion: "existente", tipoActual: actual, aMano: tipoAMano.current }));
     ofrecerBorrador(id || null);
@@ -611,7 +617,7 @@ export function NuevaOrdenProduccionForm({
     setModoModelo("nuevo");
     setProductoId("");
     setCantidades({});
-    setFases((f) => conOjalesDelModelo(f, null));
+    setFases((f) => conProcesosDelModelo(f, null, catalogo));
     setChoque(null);
     if (nombre) setNombreNuevo(nombre);
     setTipo((actual) => tipoAlElegir({ eleccion: "nuevo", tipoActual: actual, aMano: tipoAMano.current }));
@@ -788,19 +794,20 @@ export function NuevaOrdenProduccionForm({
       avisar.error(traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
-    // ADR-0551: lo que se eligió de ojales y botones se recuerda en el MODELO. Es un hecho del modelo y no de la orden: la orden ya está abierta (el error de arriba ya salió), así que si esto falla no se pierde nada (la hoja volverá a preguntar).
-    void recordarOjalesBotones(modelo.productoId);
+    // ADR-0551 y ADR-0570: lo que se eligió de cada proceso se recuerda en el MODELO si la casilla está marcada. Es un hecho del modelo y no de la orden: la orden ya está abierta (el error de arriba ya salió), así que si esto falla no se pierde nada (la hoja volverá a preguntar).
+    if (recordarEnLaFicha) void recordarProcesos(modelo.productoId);
     avisarCreada(`Orden de ${modelo.referencia} abierta`, `${total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}`, data);
     cerrarTrasGuardar();
   }
 
-  async function recordarOjalesBotones(idDelModelo: string) {
-    const lleva = fases.some((f) => f.clave === "ojales_botones" && f.encendida);
-    if (opcionesDatos?.ojalesBotones[idDelModelo] === lleva) return;
-    try {
-      await firmar(createClient().rpc(RPC_GUARDAR_OJALES_BOTONES as never, { p_ubicacion_id: tallerId, p_producto_id: idDelModelo, p_lleva: lleva } as never), responsable.firma());
-    } catch {
-      // Sin respuesta (corte de red): el modelo queda sin contestar y la próxima orden vuelve a preguntar.
+  async function recordarProcesos(idDelModelo: string) {
+    const firma = responsable.firma();
+    for (const { clave, lleva } of procesosParaRecordar(fases, opcionesDatos?.procesosDelModelo[idDelModelo] ?? null, catalogo)) {
+      try {
+        await firmar(createClient().rpc(RPC_GUARDAR_PROCESO_MODELO as never, { p_ubicacion_id: tallerId, p_producto_id: idDelModelo, p_clave: clave, p_lleva: lleva } as never), firma);
+      } catch {
+        // Sin respuesta (corte de red): el modelo queda como estaba y la próxima orden vuelve a sugerir lo de antes.
+      }
     }
   }
 
@@ -947,7 +954,7 @@ export function NuevaOrdenProduccionForm({
         >
         {modelo && (
           <>
-            <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} ojalesDelModelo={ojalesDelModelo} onAgregarProveedor={altaProveedor.abrir} />
+            <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} ojalesDelModelo={ojalesDelModelo} onAgregarProveedor={altaProveedor.abrir} catalogo={catalogo} recordar={esNuevo || !productoId ? undefined : { marcada: recordarEnLaFicha, onCambio: () => setRecordarEnLaFicha((v) => !v) }} />
             <TelaDeLaOrden
               telas={telas}
               onTelas={setTelasManual}

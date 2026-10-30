@@ -12,43 +12,31 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeTelaUsada } from "@/lib/orden-pagina-guia";
 import { cantidadConUnidad, type OrdenPagina } from "@/lib/orden-pagina-reglas";
-import {
-  RPC_DEVOLVER_INSUMO,
-  RPC_REGISTRAR_CONSUMO,
-  anotarConsumoEnLotes,
-  cantidadDeFabrica,
-  leerCantidad,
-  problemaDeTelaUsada,
-  telasDeLaOrden,
-  textoAnotasteTela,
-  type ModoDeTela,
-} from "@/lib/orden-tela-usada-reglas";
+import { RPC_DEVOLVER_INSUMO, leerCantidad, problemaDeTelaUsada, telasDeLaOrden, textoAnotasteTela } from "@/lib/orden-tela-usada-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 
-// «Anotar lo que usaste» y «Devolver lo que sobró» de la tela y los avíos de la orden (ADR-0400, actividad 7). Lo que se anota sale del estante del Taller —de los lotes, el más antiguo primero— y
-// queda en la orden: el costo de la tela y de los avíos lo calcula la base con lo realmente descontado, nadie lo teclea. Si lo que se usó cruza de un lote al siguiente, la hoja lo parte sola en
-// las llamadas que la base pide (`anotarConsumoEnLotes`); si la tela se acaba a la mitad, lo ya anotado queda anotado y se dice cuánto falta. Devolver trae de vuelta lo que sobró, al lote del que salió.
-// Se anota con quien se elige en «Responsable» (ADR-0161/0162). Un doble clic no anota dos veces: una marca síncrona corta la segunda llamada.
+// «Devolver lo que sobró» de la tela y los avíos de la orden (ADR-0400, actividad 7): lo que sobró vuelve al estante del Taller, al lote del que salió y a su mismo costo; el costo de la orden
+// lo recalcula la base. Anotar lo usado vive aparte, en «¿Cuánto quedó en el estante?» (`AnotarLoUsadoModal`, ADR-0570 actividad 4): una sola hoja para todos los colores.
+// Se anota con quien se elige en «Responsable» (ADR-0161/0162). Un doble clic no devuelve dos veces: una marca síncrona corta la segunda llamada.
 
-export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: OrdenPagina; modo: ModoDeTela; insumoId?: string; onClose: () => void }) {
+export function TelaUsadaModal({ datos, onClose }: { datos: OrdenPagina; onClose: () => void }) {
   const router = useRouter();
-  const devuelve = modo === "devolver";
   const responsable = useResponsable({ ubicacionId: datos.orden.ubicacionId, etiqueta: datos.orden.ubicacionNombre });
   const telas = useMemo(() => telasDeLaOrden(datos.insumos), [datos.insumos]);
-  const candidatas = devuelve ? telas.filter((t) => t.usado > 0) : telas;
-  const inicial = candidatas.find((t) => t.insumoId === insumoId) ?? candidatas.find((t) => (devuelve ? t.usado > 0 : t.falta > 0)) ?? candidatas[0] ?? null;
+  const candidatas = telas.filter((t) => t.usado > 0);
+  const inicial = candidatas[0] ?? null;
   const [elegida, setElegida] = useState(inicial?.insumoId ?? "");
   const tela = candidatas.find((t) => t.insumoId === elegida) ?? inicial;
-  const [cantidad, setCantidad] = useState(!devuelve && inicial ? cantidadDeFabrica(inicial) : "");
+  const [cantidad, setCantidad] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
 
-  const problema = tela ? problemaDeTelaUsada(tela, cantidad, modo) : "No hay nada que anotar.";
-  const guia = useGuiaCampos(camposDeTelaUsada({ problema, responsableListo: responsable.listo }, devuelve));
+  const problema = tela ? problemaDeTelaUsada(tela, cantidad, "devolver") : "No hay nada que anotar.";
+  const guia = useGuiaCampos(camposDeTelaUsada({ problema, responsableListo: responsable.listo }, true));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja puede nacer con la cantidad del plan, así que solo cuenta lo que la persona cambió.
   const fotoActual = fotoFormulario({ elegida, cantidad, nota });
@@ -62,8 +50,6 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
 
   function cambiarTela(id: string) {
     setElegida(id);
-    const t = candidatas.find((x) => x.insumoId === id);
-    if (t && !devuelve) setCantidad(cantidadDeFabrica(t));
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -84,40 +70,28 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
     const firma = responsable.firma();
     const cliente = createClient();
     const notaFinal = nota.trim() === "" ? null : nota.trim();
-    let hecho = 0;
-    let falta = n;
     let fallo: { message: string } | null = null;
     try {
-      if (devuelve) {
-        const { error } = await firmar(cliente.rpc(RPC_DEVOLVER_INSUMO as never, { p_produccion_id: datos.orden.id, p_insumo_id: tela.insumoId, p_cantidad: n, p_nota: notaFinal } as never), firma);
-        if (error) fallo = error;
-        else hecho = n;
-      } else {
-        const r = await anotarConsumoEnLotes(n, (c) => firmar(cliente.rpc(RPC_REGISTRAR_CONSUMO as never, { p_produccion_id: datos.orden.id, p_insumo_id: tela.insumoId, p_cantidad: c, p_nota: notaFinal } as never), firma));
-        hecho = r.anotado;
-        falta = r.falta;
-        fallo = r.error;
-      }
+      const { error } = await firmar(cliente.rpc(RPC_DEVOLVER_INSUMO as never, { p_produccion_id: datos.orden.id, p_insumo_id: tela.insumoId, p_cantidad: n, p_nota: notaFinal } as never), firma);
+      fallo = error;
     } finally {
       enVuelo.current = false;
     }
     responsable.despues(fallo);
     setCargando(false);
     if (fallo) {
-      const dicho = traducirError(fallo, devuelve ? "devolver al estante" : "anotar lo que usaste", { confirmarAntesDeRepetir: hecho === 0 });
-      avisar.error(hecho > 0 ? `Se anotaron ${cantidadConUnidad(hecho, tela.unidad)} de ${cantidadConUnidad(n, tela.unidad)}. Faltan ${cantidadConUnidad(falta, tela.unidad)}: ${dicho}` : dicho);
-      if (hecho > 0) router.refresh();
+      avisar.error(traducirError(fallo, "devolver al estante", { confirmarAntesDeRepetir: true }));
       return;
     }
-    avisar.exito(textoAnotasteTela(tela, hecho, modo), { detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}` });
+    avisar.exito(textoAnotasteTela(tela, n, "devolver"), { detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}` });
     cerrarTrasGuardar();
   }
 
   const unidad = tela ? (tela.unidad === "metro" ? "metros" : tela.unidad === "unidad" ? "unidades" : tela.unidad) : "";
   return (
     <Modal
-      titulo={devuelve ? "¿Cuánto devuelves al estante?" : "¿Cuánto usaste?"}
-      subtitulo={devuelve ? "Lo que sobró vuelve al lote del que salió, a su mismo costo." : "Sale del estante del Taller y queda en la orden. El costo lo calcula el sistema con lo que realmente se usó."}
+      titulo="¿Cuánto devuelves al estante?"
+      subtitulo="Lo que sobró vuelve al lote del que salió, a su mismo costo."
       variante="hoja"
       tamano="mediana"
       onClose={onClose}
@@ -125,10 +99,10 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
     >
       <form onSubmit={onSubmit} className="mt-3.5 space-y-5">
         {candidatas.length === 0 || !tela ? (
-          <p className="text-sm text-tinta/75">{devuelve ? "Esta orden no tiene nada descontado: no hay nada que devolver." : "Esta orden no declaró qué tela ni qué avíos lleva."}</p>
+          <p className="text-sm text-tinta/75">Esta orden no tiene nada descontado: no hay nada que devolver.</p>
         ) : (
           <>
-            <div data-guia="prod-orden-tela.cantidad" className="space-y-4">
+            <div data-guia="prod-orden-devolver.cantidad" className="space-y-4">
               {candidatas.length > 1 ? (
                 <CampoSelect etiqueta="Qué tela o avío" valor={tela.insumoId} onValor={cambiarTela} opciones={candidatas.map((t) => ({ valor: t.insumoId, texto: t.nombre }))} />
               ) : (
@@ -137,7 +111,7 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
               <CampoGuiado id="cantidad" guia={guia}>
                 <CampoTexto
                   id="tela-cantidad"
-                  etiqueta={guia.etiqueta("cantidad", devuelve ? `Cuántos ${unidad} devuelves` : `Cuántos ${unidad} usaste`)}
+                  etiqueta={guia.etiqueta("cantidad", `Cuántos ${unidad} devuelves`)}
                   inputMode="decimal"
                   pie={`El plan pide ${cantidadConUnidad(tela.plan, tela.unidad)} · ya se ${tela.usado === 1 ? "usó" : "usaron"} ${cantidadConUnidad(tela.usado, tela.unidad)} · en el estante hay ${cantidadConUnidad(tela.saldo, tela.unidad)}`}
                   value={cantidad}
@@ -148,11 +122,11 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
               <CampoTexto id="tela-nota" etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
             </div>
 
-            <div data-guia="prod-orden-tela.cierre" className="space-y-3">
+            <div data-guia="prod-orden-devolver.cierre" className="space-y-3">
               <CampoGuiado id="quien" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
               </CampoGuiado>
-              <PieGuia guia={guia} listo={devuelve ? "Todo listo para devolver." : "Todo listo para anotar."} conFrase />
+              <PieGuia guia={guia} listo="Todo listo para devolver." conFrase />
             </div>
           </>
         )}
@@ -164,7 +138,7 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
             </Boton>
             {tela && (
               <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-                {devuelve ? "Devolver" : "Anotar"}
+                Devolver
               </Boton>
             )}
           </div>

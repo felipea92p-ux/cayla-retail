@@ -2,7 +2,7 @@
   "guia": "produccion.proveedores",
   "ruta": "/produccion/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 49,
   "controles": {
     "components/ProduccionSoloLider.tsx": [
       "BotonVer «Ir a Órdenes»"
@@ -35,6 +35,21 @@
       "Boton «Borrar la búsqueda»",
       "Boton «Limpiar filtros»",
       "button «{p.nombre}»"
+    ],
+    "components/proveedores-produccion/ProcesoModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del proceso\")}»",
+      "CampoSelect «{guia.etiqueta(\"despues\", \"Va después de\")}»",
+      "CampoSelect «{guia.etiqueta(\"quien-lo-hace\", \"Quién lo hace de costumbre\")}»",
+      "CampoTexto «{guia.etiqueta(\"ayuda\", \"Qué es\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Apagar el proceso»",
+      "Boton «Ofrecerlo otra vez»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/proveedores-produccion/ProcesosDelTaller.tsx": [
+      "Boton «prod-tarifas.nuevo-proceso»",
+      "LapizEditar «{p.nombre}»"
     ],
     "components/proveedores-produccion/ServiciosYTarifas.tsx": [
       "Boton «Agregar un servicio»",
