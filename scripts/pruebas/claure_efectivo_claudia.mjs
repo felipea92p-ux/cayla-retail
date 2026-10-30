@@ -74,8 +74,8 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 // La escena del IGV (actividad 10): hoy se cobró 168 en cuentas de CAYLA (IGV 25.63, comisión 1.40, pagado 40), ayer 59 (IGV 9.00, pagado 10) → saldo 140.97.
 // Más: la caja de Lima de hoy ABIERTA (e9) con una venta en efectivo de 200 (100 de CLAURE y 100 de CAYLA) y una caja abierta en Trujillo (e8) para ver que allá no se puede.
 const ESCENA = `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+select va.id as va_a, va.producto_id as p_a from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
+select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' and va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 set local session_replication_role = replica;

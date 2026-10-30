@@ -63,8 +63,8 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   m1 ajuste −2 de A (dueño CLAURE) · m2 ajuste −3 de B (dueño CAYLA) · m3 salida «cuarentena_se_boto» 1 de A (CLAURE) · m4 ajuste −4 de A de HACE 12 DÍAS (antes del arranque: es de CAYLA) · m5 ajuste −5 de A en TRUJILLO.
 // Más: una venta anulada con una línea de A y otra de B, ambas dañadas, y una devolución aprobada con una de A y una de B, ambas dañadas.
 const ESCENA = `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+select va.id as va_a, va.producto_id as p_a from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
+select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' and va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
 reset role;
 set local session_replication_role = replica;
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';

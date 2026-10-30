@@ -59,8 +59,8 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 // Más: 20 de efectivo que se quedaron con Claudia al cerrar la caja de hoy y un gasto de limpieza de 118 (100 % de CLAURE). Saldo a hoy: 227 − 34.63 − 1.40 − 50 − 20 − 118 = 2.97.
 // `granGasto` agrega un alquiler de 1180 (50 % → 590): lo que se le debe pasa a negativo.
 const escena = ({ granGasto = false, conClaure = true } = {}) => `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+select va.id as va_a, va.producto_id as p_a from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
+select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' and va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset

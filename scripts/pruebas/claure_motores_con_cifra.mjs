@@ -53,8 +53,8 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 
 // A = prenda de CLAURE, B = de CAYLA. `lineas` dice qué se vendió hoy en Lima: «A», «B» o «AB» (un ticket mixto: 1 de A y 2 de B). Sin ventas anteriores en la ventana: se borran las de la sede dentro de la transacción.
 const escena = (lineas) => `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+select va.id as va_a, va.producto_id as p_a from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
+select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' and va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
 reset role;
 set local session_replication_role = replica;
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';

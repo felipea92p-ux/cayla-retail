@@ -62,8 +62,8 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   C4 devuelve A pagada en EFECTIVO y se lleva B → no mueve nada (el efectivo lo tiene Claudia)
 //   C5 devuelve B y se lleva B → CAYLA con CAYLA: nada
 const ESCENA = `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+select va.id as va_a, va.producto_id as p_a from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
+select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' and va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 reset role;
 set local session_replication_role = replica;
