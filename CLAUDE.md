@@ -503,6 +503,21 @@ Al terminar un archivo de la deuda: bórralo de la lista y baja `PENDIENTES_HOY`
 `docs/adr/0290-sugerencias-que-siguen-lo-que-la-persona-eligio.md`. Para verlo funcionando, con datos reales y tocable:
 `docs/maquetas/sugerir-2026-09/index.html`.
 
+## «Existe también»: antes de crear, se ve lo que ya existe (regla — ADR-0576, 2026-10-30)
+
+**Todo formulario que crea un valor de un vocabulario (color, talla, tejido, patrón, familia, categoría, y el que venga) dice, mientras se escribe el
+nombre, qué ya existe y por qué se parece.** Nació de «Verde Olivo» creado teniendo «Verde oliva»: la base solo frena el nombre idéntico, y una letra
+(olivo/oliva, rayas/raya, rojo/roja) pasa. Es OBLIGATORIO en toda pantalla o modal nuevo que cree un valor. Cómo se hace bien:
+1. **La regla es una sola** (`lib/atributo-parecido.ts`, sobre `nombresParecidos` de marcas y proveedores): `existentesParecidos(nombre, lista, { excluirId })`.
+   Plural y femenino son el mismo nombre; los números cuentan («Talla 38» no es «Talla 40»); lo contenido no avisa («Azul» y «Azul rey» son dos colores);
+   el tipeo de una letra solo desde 8 letras. **No escribas otra comparación de nombres.** Un color suma el tono: `coloresQueYaExisten`.
+2. **La pieza es una sola:** `useExisteTambien` + `<ExisteTambien que="…">` (`components/ui/ExisteTambien.tsx`, sobre `PreguntaParecido`). Tres niveles que decide el
+   motivo: **frena** (mismo nombre: la base lo rechaza), **pregunta** (casi igual o sinónimo: «Guardar» espera el «No, es otro») y **avisa** (solo el tono). El botón
+   de guardar suma `existe.bloquea` y su `title` dice `faltaPorExistente(…)`; la guía de foco cuenta la pregunta sin contestar como lo que falta del Nombre.
+3. **Al editar, solo si cambió el nombre**, y por nombre entran también los desactivados (la base rechaza un nombre que ya tuvo uno).
+4. **Nunca un candado de la base para el «casi igual»**: Blanco y Crudo son dos colores. El candado es el nombre exacto. Una prueba nueva de vocabulario corre la carta
+   oficial contra sí misma (`lib/atributo-parecido.test.ts`): si la regla grita sobre lo correcto, la gente aprende a ignorarla.
+
 ## Formidable: el iPhone llevado al ERP (regla — ADR-0350, Felipe 2026-10-05)
 
 **Una pantalla o un modal se entiende en 5 segundos sin que nadie lo explique: la colaboradora o la encargada saben qué es, qué pasa y qué les
