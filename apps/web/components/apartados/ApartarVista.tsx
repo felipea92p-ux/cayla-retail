@@ -9,7 +9,7 @@ import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, BadgePercent, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -68,6 +68,17 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
+import { Chip } from "@/components/ui/Chip";
+import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
+import {
+  descuentoParaGuardar,
+  descuentosVigentes,
+  lineaDescontada,
+  quitarDelApartado,
+  totalDescontado,
+  type DescuentosDelApartado,
+} from "@/lib/apartar-descuento-reglas";
+import { RAZONES_DESCUENTO, RAZON_CAMPANA, porcentajeDeLinea } from "@/lib/vender-reglas";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -112,6 +123,8 @@ type ApartadoArmado = {
   clientaId: string | null;
   sinFicha: null | "padron" | "nada";
   intento: InstantaneaIntento | null;
+  /** El descuento a mano de cada prenda (ADR-0584). */
+  descuentos?: DescuentosDelApartado;
 };
 
 const FORMULARIO_VACIO = {
@@ -215,6 +228,10 @@ export function ApartarVista({
   // ADR-0542: de quién es lo que se aparta cuando hay unidades de las dos empresas (Lima). Sin respuesta de fábrica.
   const duenosPorVariante = useStockPorDueno(ubicacionId);
   const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
+  // El descuento a mano de cada prenda (ADR-0584), con las reglas de la venta. Se guarda por variante: Apartar junta las unidades.
+  const [descuentos, setDescuentos] = useState<DescuentosDelApartado>(() => (pedido ? {} : (guardado?.descuentos ?? {})));
+  // La hoja «Descuento» abierta, con las prendas que arrancan marcadas.
+  const [hojaDescuento, setHojaDescuento] = useState<string[] | null>(null);
   const faltaDuenoEn = variantesSinDueno(lineas.map((l) => l.varianteId), duenosPorVariante, duenoDeLinea);
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
@@ -280,19 +297,24 @@ export function ApartarVista({
         ? {
             etiqueta: ubicacionEtiqueta,
             unidades: prendas,
-            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio() },
+            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio(), descuentos },
             ...avisosDelApartado({ etiqueta: ubicacionEtiqueta, nombres: f.nombres, apellidos: f.apellidos, prendas }),
           }
         : null,
     );
-  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio]);
+  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio, descuentos]);
 
-  const total = totalDeLineas(
-    lineas.map((l) => {
-      const p = porId.get(l.varianteId)!;
-      return { cantidad: l.cantidad, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) };
-    }),
-  );
+  // Cada prenda con el descuento que de verdad lleva: el puesto a mano si supera a su campaña; si no, la campaña (ADR-0584).
+  const conDescuento = descuentosVigentes(descuentos, lineas.map((l) => l.varianteId));
+  const lineasConDescuento = lineas.map((l) => lineaDescontada(porId.get(l.varianteId)!, l.cantidad, conDescuento[l.varianteId]));
+  const descuentoDe = new Map(lineasConDescuento.map((l) => [l.varianteId, l]));
+  const total = totalDeLineas(lineasConDescuento);
+  const descontado = totalDescontado(lineasConDescuento);
+  /** Quita una prenda del apartado y, con ella, su descuento a mano (si vuelve, vuelve sin él). */
+  const quitarPrenda = (varianteId: string) => {
+    setLineas((ls) => ls.filter((x) => x.varianteId !== varianteId));
+    setDescuentos((d) => quitarDelApartado(d, [varianteId]));
+  };
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);
   const vence = sumarDiasIso(hoy, PLAZO_DIAS);
   // Quién atiende ya no se valida como campo del formulario: lo exige el combo «Responsable», que apaga el botón.
@@ -540,7 +562,8 @@ export function ApartarVista({
           empresa_id: duenosParaElegir(duenosPorVariante?.[l.varianteId]) ? duenoDeLinea[l.varianteId] : undefined,
           cantidad: l.cantidad,
           precio_unitario: p.precio,
-          descuento_unitario: descuentoCampana(p),
+          // ADR-0584: la campaña sin motivo; el descuento a mano con su motivo y su argumento (la base los vuelve a exigir).
+          ...descuentoParaGuardar(lineaDescontada(p, l.cantidad, conDescuento[l.varianteId])),
         };
       }),
       p_pagos: pagosParaRpcApartado(f.pagos),
@@ -613,6 +636,7 @@ export function ApartarVista({
       avisar.exito("Apartado registrado");
     }
     setLineas([]);
+    setDescuentos({});
     setNota("");
     setF(FORMULARIO_VACIO);
     setIntento(false);
@@ -822,7 +846,7 @@ export function ApartarVista({
                               {variante(pr)} · <span className="font-mono text-[11px]">{codigoPrenda(pr)}</span>
                             </p>
                           </div>
-                          <button type="button" onClick={() => setLineas((ls) => ls.filter((_, j) => j !== i))} className="label-cayla flex h-7 items-center gap-1 text-[10.5px] text-rojo-profundo">
+                          <button type="button" onClick={() => quitarPrenda(l.varianteId)} className="label-cayla flex h-7 items-center gap-1 text-[10.5px] text-rojo-profundo">
                             <Trash2 className="h-3.5 w-3.5" aria-hidden /> Quitar
                           </button>
                         </div>
@@ -831,14 +855,19 @@ export function ApartarVista({
                           <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Precio</span>
                           <span className="text-right text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Importe</span>
                           <PasoCantidad
-                            menos={{ onClick: () => setLineas((ls) => ls.flatMap((x, j) => (j !== i ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
+                            menos={{
+                              onClick: () =>
+                                l.cantidad > 1 ? setLineas((ls) => ls.map((x, j) => (j !== i ? x : { ...x, cantidad: x.cantidad - 1 }))) : quitarPrenda(l.varianteId),
+                              etiqueta: "Una menos",
+                            }}
                             mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
                           >
                             {l.cantidad}
                           </PasoCantidad>
-                          <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
-                          <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([{ cantidad: l.cantidad, precioUnitario: pr.precio, descuentoUnitario: descuentoCampana(pr) }]))}</span>
+                          <span className="text-sm font-semibold tabular-nums">{money(pr.precio - (descuentoDe.get(l.varianteId)?.descuentoUnitario ?? 0))}</span>
+                          <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([descuentoDe.get(l.varianteId)!]))}</span>
                         </div>
+                        <DescuentoDeLinea linea={descuentoDe.get(l.varianteId)!} onAbrir={() => setHojaDescuento([l.varianteId])} />
                         {duenosParaElegir(duenosPorVariante?.[l.varianteId]) && (
                           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/65">
                             <span>¿De quién es?</span>
@@ -859,6 +888,18 @@ export function ApartarVista({
                       </div>
                     );
                   })}
+                  {/* El descuento a mano (ADR-0584): el mismo de la venta, para todas las prendas o las que se marquen. */}
+                  <div className="flex items-center justify-between gap-3 border-b border-sand px-5 py-3">
+                    <button
+                      type="button"
+                      data-guia="apartados.descuento"
+                      onClick={() => setHojaDescuento(lineas.map((l) => l.varianteId))}
+                      className="btn-cayla btn-secundario btn-chico"
+                    >
+                      <BadgePercent className="h-4 w-4" aria-hidden /> Descuento
+                    </button>
+                    {descontado > 0 && <span className="text-[12.5px] tabular-nums text-tinta/70">Descuento −{money(descontado)}</span>}
+                  </div>
                   <label className="block px-5 py-4">
                     <span className="mb-2 flex items-center gap-1.5 text-[11.5px] text-tinta/60">
                       <StickyNote className="h-3.5 w-3.5" aria-hidden /> Nota del apartado (opcional)
@@ -1123,6 +1164,21 @@ export function ApartarVista({
         />
       )}
 
+      {hojaDescuento && (
+        <DescuentoApartado
+          lineas={lineasConDescuento}
+          prendas={porId}
+          nombreDe={(id) => {
+            const p = porId.get(id);
+            return p ? [p.referencia, variante(p)].filter(Boolean).join(" · ") : "Prenda";
+          }}
+          elegidasAlAbrir={hojaDescuento}
+          onAplicar={setDescuentos}
+          onQuitar={(ids) => setDescuentos((d) => quitarDelApartado(d, ids))}
+          onClose={() => setHojaDescuento(null)}
+        />
+      )}
+
       {/* ADR-0328 act. 17: la misma ventana que Vender («Pedir y apartar»): allá la apartan al pedir. */}
       {pedir && (
         <PedirYApartarModal
@@ -1177,5 +1233,32 @@ function Campo({ etiqueta, error, onBlur, children }: { etiqueta: string; error?
       {children}
       {error && <span className="mt-0.5 block text-xs text-rojo-profundo">{error}</span>}
     </label>
+  );
+}
+
+/** Bajo una prenda del apartado, su descuento: el de la campaña, o el puesto a mano con su motivo y un «Cambiar» que abre la hoja
+ *  solo para ella. Sin descuento no dibuja nada: el botón «Descuento» de abajo es para eso. */
+function DescuentoDeLinea({ linea, onAbrir }: { linea: ReturnType<typeof lineaDescontada>; onAbrir: () => void }) {
+  if (linea.descuentoUnitario <= 0) return null;
+  const pct = porcentajeDeLinea(linea);
+  if (linea.razonDescuento === RAZON_CAMPANA) {
+    return (
+      <p className="mt-2 text-[12px] text-tinta/70">
+        <Chip tono="pizarra" versalitas={false}>
+          {linea.campana?.nombre ?? "Campaña"} · −{pct} %
+        </Chip>
+      </p>
+    );
+  }
+  const motivo = RAZONES_DESCUENTO.find((r) => r.valor === linea.razonDescuento)?.etiqueta ?? "Descuento";
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/70">
+      <Chip tono="ambar" versalitas={false} title={linea.argumentoDescuento || undefined}>
+        −{money(linea.descuentoUnitario)} c/u · {linea.razonDescuento === "otro" ? linea.razonDescuentoOtro || motivo : motivo}
+      </Chip>
+      <button type="button" onClick={onAbrir} className="btn-cayla btn-enlace">
+        Cambiar
+      </button>
+    </p>
   );
 }

@@ -133,6 +133,7 @@
     "pruebas:reposicion-piso-cerrada": "node scripts/pruebas/reposicion_piso_cerrada.mjs",
     "pruebas:mover-interno-marca": "node scripts/pruebas/mover_interno_marca.mjs",
     "pruebas:separaciones": "node scripts/pruebas/separaciones.mjs",
+    "pruebas:apartar-con-descuento": "node scripts/pruebas/apartar_con_descuento.mjs",
     "pruebas:fn-movimientos-referencias": "node scripts/pruebas/fn_movimientos_referencias.mjs",
     "pruebas:movimientos-desde-la-tienda": "node scripts/pruebas/movimientos_desde_la_tienda.mjs",
     "pruebas:movimientos-colgada-y-guardada": "node scripts/pruebas/movimientos_colgada_y_guardada.mjs",
