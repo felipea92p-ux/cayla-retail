@@ -22,6 +22,7 @@ import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
 import { verDeLaVista } from "@/lib/vista-global";
 import { sedeDeLaUrl, sedesDeLaUrl, sedesElegidas } from "@/lib/finanzas-telar-reglas";
 import { verDeVarias } from "@/lib/gastos-varias-sedes";
+import { mesesDeAntes, mesPrevio, seCompara } from "@/lib/gastos-hilos-reglas";
 
 const PESTANAS: PestanaGastos[] = ["gastos", "fijos", "activos", "egresos"];
 const TODAS: Ver = { clave: "todas", ubicacionId: null, soloEmpresa: false };
@@ -38,6 +39,8 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   const esLider = persona.rol === "lider";
   // Qué sedes se pueden mirar: la misma pregunta que la base (`fn_gastos_ubicaciones` usa `fn_ve_finanzas_de_todo`), no el rol.
   const veTodo = veFinanzasDeTodoDe(persona);
+  // El inicio de Finanzas no depende de nada: se pide desde ya (antes era una vuelta más de espera, después de las lecturas del mes).
+  const parametrosP = getParametrosFinanzas();
 
   // Los bancos para «¿A qué cuenta llegó?» al clasificar un depósito (vacío sin Cuentas y dinero, ADR-0195 F3).
   const [contexto, categorias, proveedores, tiposActivo, destinosDeposito, telar] = await Promise.all([
@@ -52,23 +55,39 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   const elegidas = sedesElegidas(sedesDeLaUrl(sp), telar.sedes, veTodo, persona.ubicacionId);
   const ver = verDeVarias(elegidas, contexto.ubicaciones) ?? leerVer(verDeLaVista(persona.vista, sedeDeLaUrl(sp)), contexto.ubicaciones, veTodo, persona.ubicacionId);
   const mesDeHoy = mesDe(hoy);
-  // Para «¿es uno de tus fijos?» del formulario de gasto: los fijos de TODAS las tiendas (el formulario puede ser de otra tienda que la que se
-  // mira) del mes que se mira y del mes de hoy (un gasto de hoy, con otro mes en pantalla). Si una lectura falla, ese mes no pregunta.
-  // Y el inicio de Finanzas: antes de esa fecha los fijos no se confirman (la base rechaza un gasto anterior al inicio).
-  // Todo en una sola tanda (ADR-0583): estas tres lecturas no dependen de las de arriba y antes esperaban a que terminaran.
-  const fijosDelMes = getFijosMes(desde, ver);
-  const [panel, gastos, egresos, marcas, activos, fijos, sugeridos, fijosDeTodas, fijosDeHoy, parametros] = await Promise.all([
+  // Todo lo que solo necesita saber qué se mira (`ver`) va en una sola vuelta, a la vez:
+  // · Para «¿es uno de tus fijos?» del formulario de gasto: los fijos de TODAS las tiendas (el formulario puede ser de otra tienda que la que
+  //   se mira) del mes que se mira y del mes de hoy (un gasto de hoy, con otro mes en pantalla). Si una lectura falla, ese mes no pregunta.
+  //   Y el inicio de Finanzas: antes de esa fecha los fijos no se confirman (la base rechaza un gasto anterior al inicio).
+  // · «En qué se va» compara cada categoría con los meses de antes (hilos, Felipe 2026-10-30): el mismo resumen del mes, uno por mes y en
+  //   paralelo, solo los que empiezan desde el inicio de Finanzas (los de antes ni se piden). Uno que no responde no se compara: el gráfico
+  //   sale igual, sin su píldora ni su línea, y el aviso de arriba lo dice.
+  // · «Cuándo» compara el mes día por día con el anterior (el ritmo, Felipe 2026-10-30): sus gastos, uno por uno, con la misma regla.
+  const meses = mesesDeAntes(mes);
+  const mesAnterior = meses.at(-1)!;
+  const [panel, gastos, egresos, marcas, activos, fijos, sugeridos, fijosDeOtras, fijosDeHoy, parametros, panelesDeAntes, gastosDeAntes] = await Promise.all([
     getPanelGastos(desde, hasta, ver),
     getGastos(desde, hasta, ver),
     getEgresosPorClasificar(ver),
     getMarcasNoGasto(ver),
     getActivos(ver),
-    fijosDelMes,
+    getFijosMes(desde, ver),
     getFijosSugeridos(ver),
-    ver.clave === "todas" ? fijosDelMes : getFijosMes(desde, TODAS),
+    // Mirando todas las sedes, los fijos del mes ya son los de todas: no se piden dos veces.
+    ver.clave === "todas" ? Promise.resolve(null) : getFijosMes(desde, TODAS),
     mes === mesDeHoy ? Promise.resolve(null) : getFijosMes(rangoMes(mesDeHoy).desde, TODAS),
-    getParametrosFinanzas(),
+    parametrosP,
+    parametrosP.then((p) =>
+      Promise.all(meses.map((m) => (seCompara(m, p?.inicioFinanzas ?? null) ? getPanelGastos(rangoMes(m).desde, rangoMes(m).hasta, ver) : null))),
+    ),
+    parametrosP.then((p) => (seCompara(mesAnterior, p?.inicioFinanzas ?? null) ? getGastos(rangoMes(mesAnterior).desde, rangoMes(mesAnterior).hasta, ver) : null)),
   ]);
+  const fijosDeTodas = fijosDeOtras ?? fijos;
+  const previos = meses.map((m, i) => mesPrevio(m, panelesDeAntes[i]?.datos ?? null));
+  // Si la lista del mes anterior no se pudo leer, «Cuándo» no compara (un mes vacío no es un mes barato); el IGV perdido no hace falta aquí.
+  const sinAnteriores = !gastosDeAntes || (!!gastosDeAntes.falla && gastosDeAntes.datos.length === 0);
+  const fallaDeAntes =
+    panelesDeAntes.some((p) => p?.falla) || (gastosDeAntes && sinAnteriores) ? "No se pudo leer los meses de antes, para comparar" : null;
 
   return (
     <GastosPanel
@@ -95,7 +114,9 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       pestanaInicial={PESTANAS.find((p) => p === sp.tab) ?? "gastos"}
       destinosDeposito={destinosDeposito}
       sedesTelar={telar.sedes}
-      fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla].filter((f): f is string => !!f)}
+      previos={previos}
+      gastosDelMesAnterior={sinAnteriores ? null : gastosDeAntes.datos}
+      fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla, fallaDeAntes].filter((f): f is string => !!f)}
     />
   );
 }
