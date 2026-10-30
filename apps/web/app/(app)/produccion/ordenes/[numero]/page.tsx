@@ -13,15 +13,16 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { FichaDeLaOrden } from "@/components/orden-pagina/FichaDeLaOrden";
-import { RutaDeFases } from "@/components/orden-pagina/RutaDeFases";
+import { RutaViva } from "@/components/orden-pagina/RutaViva";
 import { TelaDeLaOrdenVista } from "@/components/orden-pagina/TelaDeLaOrdenVista";
 import { CostoDeLaOrden } from "@/components/orden-pagina/CostoDeLaOrden";
 import { LineaDeTiempo } from "@/components/orden-pagina/LineaDeTiempo";
 import { AccionesDeLaOrden } from "@/components/orden-pagina/AccionesDeLaOrden";
 
-// Una orden de producción en su propia página (ADR-0400, actividad 3; vista D de la lámina, elegida por Felipe el 2026-10-14): `/produccion/ordenes/OP-000012`. La cabecera dice qué orden es,
-// qué prenda y cuántas; bajo ella, la ficha, las fases en fila con quién las hace y la acción de cada una, la tela y el costo, y la línea de tiempo. Se llega desde la lista de Órdenes y
-// se puede mandar el enlace. La puerta del módulo la pone el layout de `/produccion`; aquí se pide la persona para la cabecera y para saber si está parada en el Taller.
+// Una orden de producción en su propia página (ADR-0400, actividad 3): `/produccion/ordenes/OP-000012`. Desde el 2026-10-29 es la «Ruta viva» (ADR-0570, actividad 1; versión A de
+// `docs/maquetas/produccion-taller-2026-10/`, elegida por Felipe): la cabecera dice qué orden es, qué prenda y cuántas; bajo ella, la ruta con un color por paso y el paso que toca
+// abierto con su botón; debajo, la tela y el costo; al costado, la ficha y la historia. Se llega desde la lista de Órdenes y se puede mandar el enlace. La puerta del módulo la pone el
+// layout de `/produccion`; aquí se pide la persona para la cabecera y para saber si está parada en el Taller.
 export default async function OrdenProduccionPage({ params }: { params: Promise<{ numero: string }> }) {
   const persona = await requirePersonaActualV2();
   const volver = <Volver href="/produccion/ordenes" a="Órdenes" />;
@@ -64,7 +65,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
 
   return (
     <div className="op-pagina space-y-6">
-      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={datos.orden.numeroTexto} subtitulo={fraseDeLaOrden(datos.orden)} volver={volver} acciones={<AccionesDeLaOrden datos={datos} edicion={edicionDeTela.datos} />}>
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={datos.orden.numeroTexto} subtitulo={fraseDeLaOrden(datos.orden)} volver={volver} acciones={<AccionesDeLaOrden datos={datos} edicion={edicionDeTela.datos} esLider={persona.rol === "lider"} />}>
         <ResumenSede
           sede={persona.ubicacionEtiqueta}
           cifras={[
@@ -75,16 +76,24 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
         />
       </EncabezadoPagina>
 
-      <FichaDeLaOrden datos={datos} hoy={hoy} />
-      <RutaDeFases datos={datos} opciones={opciones} hoy={hoy} />
-
-      <div className="op-bloques">
-        <div className="space-y-6">
-          <TelaDeLaOrdenVista datos={datos} puedePedir={persona.modulos.some((m) => m.clave === "ordenes_insumos")} edicion={edicionDeTela.datos} edicionFalla={edicionDeTela.falla} />
-          <CostoDeLaOrden datos={datos} />
-        </div>
-        <LineaDeTiempo datos={datos} hoy={hoy} />
-      </div>
+      <RutaViva
+        datos={datos}
+        opciones={opciones}
+        hoy={hoy}
+        esLider={persona.rol === "lider"}
+        izquierda={
+          <>
+            <TelaDeLaOrdenVista datos={datos} puedePedir={persona.modulos.some((m) => m.clave === "ordenes_insumos")} edicion={edicionDeTela.datos} edicionFalla={edicionDeTela.falla} />
+            <CostoDeLaOrden datos={datos} />
+          </>
+        }
+        derecha={
+          <>
+            <FichaDeLaOrden datos={datos} hoy={hoy} />
+            <LineaDeTiempo datos={datos} hoy={hoy} />
+          </>
+        }
+      />
     </div>
   );
 }

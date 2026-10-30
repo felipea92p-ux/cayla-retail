@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { FASES, faseDe } from "./orden-fases-reglas";
 import {
   DIAS_SIN_MOVERSE,
   MAX_MOTIVO_ANULACION,
@@ -10,6 +11,7 @@ import {
   RPC_CERRAR_PRODUCCION,
   RPC_DESHACER_MARCA,
   RPC_MARCAR_FASE,
+  RPC_AGREGAR_PASO,
   RPC_QUITAR_PASO,
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
@@ -53,6 +55,7 @@ import {
   esPendienteDeRegistrar,
   fasesSinRegistrar,
   pendienteConCosto,
+  pasosAgregables,
   puedeQuitarPaso,
   queSigue,
   quedanAfuera,
@@ -77,8 +80,38 @@ import {
   textoTermine,
   textoVolvieron,
   todasLasQueCuentanHechas,
+  estadoEnRuta,
+  faseAbiertaDeLaRuta,
+  subtituloEnRuta,
+  tonoDeEntrada,
+  MAX_MOTIVO_FALLA,
+  buenasConFallas,
+  diaParaLaBase,
+  fallasNuevas,
+  fallasQueCierran,
+  lineasDeFallas,
+  problemaDeDia,
+  problemasDeFallas,
+  textoFallas,
+  totalFallas,
+  type FallaBorrador,
   type FasePagina,
   type OrdenPagina,
+  type TipoEvento,
+  MAX_MOTIVO_CAMBIO,
+  MAX_NOTA_ORDEN,
+  RPC_COMENTAR_ORDEN,
+  RPC_CORREGIR_ANOTACION,
+  RPC_ELIMINAR_ANOTACION,
+  RPC_RESTAURAR_ANOTACION,
+  correccionSinCambios,
+  disponiblesParaCorregir,
+  fallasDeLaAnotacion,
+  problemaDeCantidadesCorregidas,
+  problemaDeMotivoCambio,
+  problemaDeNota,
+  queCambio,
+  type AnotacionCorregible,
 } from "./orden-pagina-reglas";
 
 // La respuesta de `fn_orden_produccion` tal como la escribe la migración 20261014155000: una orden de 48 pantalones (negro y caqui, tallas 28/30/32, 8 de cada una).
@@ -216,7 +249,7 @@ describe("leerOrdenPagina — lee lo que manda fn_orden_produccion", () => {
 
   it("descarta lo suelto sin romper: una fase de clave desconocida, un evento sin fecha", () => {
     const c = crudo();
-    c.fases.push({ ...faseCruda({ clave: "zzz", secuencia: 70, quien: "taller" }) });
+    c.fases.push({ ...faseCruda({ clave: "ZZ-1", secuencia: 70, quien: "taller" }) });
     c.linea_de_tiempo.push({ id: "roto", tipo: "avance" } as never);
     const p = leerOrdenPagina(c)!;
     expect(p.fases).toHaveLength(3);
@@ -547,17 +580,15 @@ describe("lineaDeTiempoAgrupada", () => {
   it("un «Terminé» de seis tallas es UNA entrada, con su resumen por color", () => {
     const [, ayer] = lineaDeTiempoAgrupada(orden(), "2026-10-16");
     expect(ayer.entradas).toHaveLength(1);
-    expect(ayer.entradas[0]).toMatchObject({ titulo: "Terminó Corte", cuanto: "48 prendas", quien: "Rosa", detalle: "Negro 24 · Caqui 24", avanceIds: null });
+    expect(ayer.entradas[0]).toMatchObject({ titulo: "Terminó Corte", cuanto: "48 prendas", quien: "Rosa", detalle: "Negro 24 · Caqui 24" });
     expect(ayer.entradas[0].ids).toHaveLength(6);
   });
-  it("«Deshacer» solo si TODOS los avances de la entrada se pueden deshacer", () => {
-    const c = crudo();
-    for (const e of c.linea_de_tiempo) if (e.tipo === "avance") e.avance_id = `av-${e.id}` as never;
-    const [, ayer] = lineaDeTiempoAgrupada(leerOrdenPagina(c)!, "2026-10-16");
-    expect(ayer.entradas[0].avanceIds).toHaveLength(6);
-    const c2 = crudo();
-    for (const e of c2.linea_de_tiempo) if (e.tipo === "avance" && (e as { variante_id?: string }).variante_id !== "c32") e.avance_id = `av-${e.id}` as never;
-    expect(lineaDeTiempoAgrupada(leerOrdenPagina(c2)!, "2026-10-16")[1].entradas[0].avanceIds).toBeNull();
+  it("«Corregir» (ADR-0570, actividad 3) solo si TODOS los avances de la entrada siguen vivos: basta que una talla tenga su Deshacer", () => {
+    const [, ayer] = lineaDeTiempoAgrupada(orden(), "2026-10-16");
+    // Del más reciente al más viejo, como la historia.
+    expect(ayer.entradas[0].corregible).toMatchObject({ ids: [...TODAS].reverse().map((id) => `a-${id}`), faseClave: "corte", faseNombre: "Corte", dia: "2026-10-15", fallas: [] });
+    expect(ayer.entradas[0].corregible?.buenas).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
+    expect(lineaDeTiempoAgrupada(orden({ deshechos: ["a-c32"] }), "2026-10-16")[1].entradas[0].corregible).toBeNull();
   });
   it("la Salida y la apertura se muestran como las dice la base", () => {
     const [hoy, , antes] = lineaDeTiempoAgrupada(orden(), "2026-10-16");
@@ -1231,7 +1262,7 @@ describe("una fase que se marca (Ploteo, ADR-0400 act. k y l): hecha con un toqu
     const p = conPloteo(MARCADA, {}, { linea_de_tiempo: linea });
     const entradas = lineaDeTiempoAgrupada(p, HOY).flatMap((d) => d.entradas);
     expect(entradas.map((e) => e.titulo)).toEqual(["Marcó Ploteo como hecho", "Deshizo la marca de Ploteo", "Marcó Ploteo como hecho"]);
-    expect(entradas[0]).toMatchObject({ detalle: "con Audaces", cuanto: null, avanceIds: null, anulable: null });
+    expect(entradas[0]).toMatchObject({ detalle: "con Audaces", cuanto: null, anulable: null, marcaViva: { id: "m-2", faseClave: "ploteo", faseNombre: "Ploteo" } });
     expect(cuandoTerminoLaFase("ploteo", p.lineaDeTiempo)).toBe("2026-10-16T15:00:00+00:00");
   });
 
@@ -1260,5 +1291,426 @@ describe("la tela de la orden con consumo por talla", () => {
     const fila = filasDeTela(orden({ insumos: [lino({ consumo_por_talla: { M: 1.5, S: 1 } })] }).insumos)[0];
     expect(fila.detalle).toBe("S 1 m · M 1.5 m por prenda");
     expect(filasDeTela(orden({ insumos: [lino({})] }).insumos)[0].detalle).toBe("1.33 m por prenda");
+  });
+});
+
+// ---------- Los complementos de la prenda en la página de la orden (ADR-0563) ----------
+
+describe("los complementos (forro, otras telas) en la página de la orden", () => {
+  const material = (extra: Record<string, unknown>) => ({ id: "pi-1", insumo_id: "i-1", nombre: "Lino", tipo: "tela", unidad: "metro", color_codigo: "NEG", consumo_por_prenda: 1.2, cantidad_plan: 42, usado: 0, saldo: 100, ...extra });
+  it("lee `es_complemento` de una tela; sin la llave, o con otra cosa que `true`, es la tela de siempre; un avío nunca es complemento", () => {
+    expect(orden({ insumos: [material({ es_complemento: true })] }).insumos[0].esComplemento).toBe(true);
+    expect(orden({ insumos: [material({})] }).insumos[0].esComplemento).toBe(false);
+    expect(orden({ insumos: [material({ es_complemento: "true" })] }).insumos[0].esComplemento).toBe(false);
+    expect(orden({ insumos: [material({ tipo: "avio", es_complemento: true })] }).insumos[0].esComplemento).toBe(false);
+  });
+  it("la tabla de la orden pone la tela principal primero, luego el forro y los avíos al final, y dice cuál es complemento", () => {
+    const insumos = [
+      material({ id: "pi-b", insumo_id: "i-boton", nombre: "Botón", tipo: "avio", unidad: "unidad", color_codigo: null, consumo_por_prenda: 4, cantidad_plan: 96 }),
+      material({ id: "pi-f", insumo_id: "i-forro", nombre: "Forro popelina", color_codigo: null, consumo_por_prenda: 0.9, cantidad_plan: 43.2, es_complemento: true }),
+      material({ id: "pi-l", insumo_id: "i-lino", nombre: "Lino" }),
+    ];
+    const filas = filasDeTela(orden({ insumos }).insumos);
+    expect(filas.map((f) => [f.nombre, f.tipo, f.complemento])).toEqual([
+      ["Lino", "tela", false],
+      ["Forro popelina", "tela", true],
+      ["Botón", "avio", false],
+    ]);
+  });
+  it("una misma tela que es complemento en un color y principal en otro NO se marca como complemento en la tabla (solo si lo es en todos sus colores)", () => {
+    const mezcla = [material({ id: "pi-a", color_codigo: "NEG", es_complemento: true }), material({ id: "pi-b", color_codigo: "CRU" })];
+    expect(filasDeTela(orden({ insumos: mezcla }).insumos)[0].complemento).toBe(false);
+  });
+});
+
+// ---------- Agregar un paso a una orden abierta (ADR-0566) ----------
+
+describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () => {
+  const base = orden();
+  const fase = (clave: FasePagina["clave"], nombre: string, secuencia: number, extra: Partial<FasePagina> = {}): FasePagina => ({ ...base.fases[0], id: `f-${clave}`, clave, nombre, secuencia, estado: "pendiente", actual: false, empezada: false, hechas: 0, ...extra });
+  const NUEVA = [fase("ploteo", "Ploteo", 5, { estado: "hecha", empezada: true }), fase("corte", "Corte", 10, { estado: "hecha", empezada: true }), fase("habilitado", "Habilitado", 15, { estado: "hecha", empezada: true }), fase("costura", "Costura", 30, { estado: "hecha", empezada: true }), fase("planchado", "Planchado", 65)];
+  const q = (fases: FasePagina[], parche: Partial<Pick<OrdenPagina, "permisos" | "procesos">> & { estado?: string } = {}) => ({
+    orden: { ...base.orden, estado: (parche.estado ?? "en_proceso") as OrdenPagina["orden"]["estado"] },
+    permisos: parche.permisos ?? { puedeOperar: true, veCostos: true },
+    fases,
+    procesos: parche.procesos ?? FASES,
+  });
+
+  it("la orden del Chaleco (Costura hecha, Planchado sin empezar) puede sumar Pegar cierre, Ojales y botones y Lavado o teñido, en el orden de la ruta", () => {
+    const { ofrecidos, bloqueados } = pasosAgregables(q(NUEVA));
+    expect(ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
+    expect(ofrecidos.map((x) => x.nombre)).toEqual(["Pegar cierre", "Ojales y botones", "Lavado o teñido"]);
+    expect(ofrecidos.map((x) => x.quienSugerido)).toEqual(["taller", "taller", "servicio"]);
+    expect(bloqueados).toEqual([]);
+  });
+  it("no se ofrece lo que ya está en la ruta", () => {
+    const con = [...NUEVA.slice(0, 4), fase("ojales_botones", "Ojales y botones", 35), NUEVA[4]];
+    expect(pasosAgregables(q(con)).ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "lavanderia"]);
+  });
+  it("si un paso POSTERIOR ya empezó no se ofrece, y se dice por qué en vez de esconderlo", () => {
+    const planchando = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "en_curso" as const }];
+    const r = pasosAgregables(q(planchando));
+    expect(r.ofrecidos).toEqual([]);
+    expect(r.bloqueados[1]).toEqual({ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes" });
+    expect(r.bloqueados.map((b) => b.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
+  });
+  it("un paso ANTERIOR empezado no frena nada (Costura a medias)", () => {
+    const a_medias = [...NUEVA.slice(0, 3), { ...NUEVA[3], estado: "en_curso" as const, actual: true, hechas: 10 }, NUEVA[4]];
+    expect(pasosAgregables(q(a_medias)).ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
+  });
+  it("una orden de la ruta anterior (Acabado) no mezcla con las fases nuevas: solo se ofrece lo que es de las dos rutas", () => {
+    const anterior = [fase("corte", "Corte", 10), fase("costura", "Costura", 30), fase("acabado", "Acabado", 60)];
+    expect(pasosAgregables(q(anterior)).ofrecidos.map((x) => x.clave)).toEqual(["pegar_cierre", "lavanderia"]);
+  });
+  it("un proceso que dio de alta el líder se ofrece en su lugar; uno apagado no (ADR-0570, actividad 5)", () => {
+    const propio = { ...faseDe("pegar_cierre"), clave: "tenido_en_frio", nombre: "Teñido en frío", ayuda: "", secuencia: 31, delSistema: false };
+    const apagado = { ...faseDe("lavanderia"), activo: false };
+    const procesos = [...FASES.filter((f) => f.clave !== "lavanderia"), propio, apagado];
+    expect(pasosAgregables(q(NUEVA, { procesos })).ofrecidos.map((x) => `${x.clave}@${x.lugar}`)).toEqual(["tenido_en_frio@31", "pegar_cierre@32", "ojales_botones@35"]);
+  });
+  it("sin permiso de operar, con la orden cerrada o sin fases, no se ofrece nada", () => {
+    expect(pasosAgregables(q(NUEVA, { permisos: { puedeOperar: false, veCostos: true } }))).toEqual({ ofrecidos: [], bloqueados: [] });
+    expect(pasosAgregables(q(NUEVA, { estado: "terminada" }))).toEqual({ ofrecidos: [], bloqueados: [] });
+    expect(pasosAgregables(q([]))).toEqual({ ofrecidos: [], bloqueados: [] });
+  });
+  it("paridad con la migración 20261029051000: la RPC existe, sus argumentos son los que manda la hoja y sus motivos son los que la pantalla ya conoce", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261029051000_produccion_agregar_paso_a_la_orden.sql"), "utf8");
+    expect(sql).toContain(`create or replace function retail.${RPC_AGREGAR_PASO}(`);
+    for (const arg of ["p_produccion_id", "p_clave", "p_quien", "p_proveedor_id", "p_tarifa_prenda", "p_fijo_orden", "p_cantidad_minima", "p_fecha_prometida", "p_proveedor_pendiente", "p_posicion"]) expect(sql, arg).toContain(arg);
+    for (const hint of ["paso_despues_empezado", "orden_cerrada", "orden_inexistente", "responsable_requerido"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    // La ruta completa pasa la validación de abrir y el candado es el de las demás escrituras de la orden.
+    expect(sql).toContain("retail.fn_produccion_fases_normalizar(");
+    expect(sql).toContain("pg_advisory_xact_lock(hashtextextended('produccion:'");
+  });
+});
+
+describe("la ruta viva (ADR-0570): un color por paso y un paso abierto", () => {
+  const p = orden();
+  const [corte, costura, acabado] = p.fases;
+
+  it("estadoEnRuta: verde lo hecho, ámbar lo que toca (la actual o una que ya empezó), gris lo que falta", () => {
+    expect(estadoEnRuta(corte)).toBe("hecha");
+    expect(estadoEnRuta(costura)).toBe("toca");
+    expect(estadoEnRuta(acabado)).toBe("pendiente");
+    // Una fase que empezó en paralelo con la actual también pide que alguien anote.
+    expect(estadoEnRuta({ ...acabado, estado: "en_curso" })).toBe("toca");
+  });
+
+  it("faseAbiertaDeLaRuta: la actual; sin actual, la primera sin terminar; todo hecho, la última; sin pasos, nada", () => {
+    expect(faseAbiertaDeLaRuta(p.fases)?.clave).toBe("costura");
+    expect(faseAbiertaDeLaRuta(p.fases.map((f) => ({ ...f, actual: false })))?.clave).toBe("costura");
+    expect(faseAbiertaDeLaRuta(p.fases.map((f) => ({ ...f, estado: "hecha" as const, actual: false })))?.clave).toBe("acabado");
+    expect(faseAbiertaDeLaRuta([])).toBeNull();
+  });
+
+  it("subtituloEnRuta: cuántas y cuándo si está hecha, «Te toca» en la actual, quién la hará si falta", () => {
+    expect(subtituloEnRuta(corte, "2026-10-15T22:40:00+00:00", 48)).toBe("48 · jue 15 oct");
+    expect(subtituloEnRuta(corte, null, 48)).toBe("48 hechas");
+    expect(subtituloEnRuta(costura, null, 48)).toBe("Te toca");
+    expect(subtituloEnRuta({ ...acabado, estado: "en_curso", hechas: 12, entrada: 30 }, null, 48)).toBe("12 de 48");
+    expect(subtituloEnRuta(acabado, null, 48)).toBe("Taller");
+    expect(subtituloEnRuta({ ...acabado, quien: "servicio", proveedorNombre: "Ojalería Lima" }, null, 48)).toBe("Afuera · Ojalería Lima");
+  });
+
+  it("subtituloEnRuta: un paso que se marca (Ploteo) dice «Hecho» con su día, sin contar prendas", () => {
+    const ploteo: FasePagina = { ...corte, clave: "ploteo", nombre: "Ploteo", hito: true, marcada: true, hechas: 0 };
+    expect(subtituloEnRuta(ploteo, "2026-10-13T15:00:00+00:00", 48)).toBe("Hecho · mar 13 oct");
+    expect(subtituloEnRuta(ploteo, null, 48)).toBe("Hecho");
+  });
+
+  it("tonoDeEntrada: lo hecho en verde, lo que salió en camino, lo deshecho o anulado como cambio, la apertura aparte", () => {
+    expect((["avance", "vuelta", "marca"] as TipoEvento[]).map(tonoDeEntrada)).toEqual(["hecho", "hecho", "hecho"]);
+    expect(tonoDeEntrada("salida")).toBe("camino");
+    expect((["deshacer", "anulacion", "desmarca"] as TipoEvento[]).map(tonoDeEntrada)).toEqual(["cambio", "cambio", "cambio"]);
+    expect(tonoDeEntrada("apertura")).toBe("inicio");
+  });
+
+  it("la tela «por anotar»: ya se cortó y la orden no tiene nada descontado; con algo anotado ya no; un avío nunca", () => {
+    const sinNadaUsado = orden().insumos.map((i) => ({ ...i, usado: 0 }));
+    const [tela, boton] = filasDeTela(sinNadaUsado, true);
+    expect(tela).toMatchObject({ yaCortada: true, porAnotar: true });
+    expect(boton.porAnotar).toBe(false);
+    // 35 m ya anotados: no falta anotar aunque sea menos que el plan.
+    expect(filasDeTela(orden().insumos, true)[0].porAnotar).toBe(false);
+    // Sin cortar todavía, no hay nada que anotar.
+    expect(filasDeTela(sinNadaUsado, false)[0].porAnotar).toBe(false);
+  });
+});
+
+describe("«Terminé» con falla y con fecha (ADR-0570, actividad 2)", () => {
+  const p = orden();
+  const [corte, , acabado] = p.fases;
+  const nombreDe = (id: string) => `la variante ${id}`;
+  const falla = (varianteId: string, cantidad: string, destino: FallaBorrador["destino"] = "segunda"): FallaBorrador => ({ varianteId, cantidad, destino });
+
+  it("lo que falta terminar descuenta las segundas y las perdidas ya anotadas (un arreglo sigue faltando)", () => {
+    const enCurso: FasePagina = { ...acabado, estado: "en_curso", porVariante: acabado.porVariante.map((v) => ({ ...v, entrada: 8, hechas: 3, fallasSegundas: v.varianteId === "n28" ? 2 : 0, fallasPerdidas: v.varianteId === "n28" ? 1 : 0 })) };
+    const faltan = cantidadesQueFaltan(enCurso, p.fases);
+    expect(faltan.n28).toBe(2);
+    expect(faltan.c30).toBe(5);
+  });
+
+  it("en el Taller lo que no salió bien se dice «perdida»; en un servicio sigue siendo «faltante»", () => {
+    const tallerHecho: FasePagina = { ...corte, segundas: 1, faltantes: 2 };
+    expect(textoDeFase(tallerHecho, { previa: null, terminoEl: null, totalPlan: 48 }).detalle).toBe("Hecha · 1 segunda · 2 perdidas");
+  });
+
+  it("buenasConFallas: anotar 2 con falla baja las buenas de esa talla y color; nunca las sube", () => {
+    const faltan = { n28: 8, c28: 8 };
+    expect(buenasConFallas(faltan, { n28: "8", c28: "8" }, [falla("n28", "2")])).toEqual({ n28: "6", c28: "8" });
+    // Lo que la persona ya había bajado a mano se respeta.
+    expect(buenasConFallas(faltan, { n28: "3", c28: "8" }, [falla("n28", "2")])).toEqual({ n28: "3", c28: "8" });
+    // Dos filas de la misma talla y color se suman.
+    expect(buenasConFallas(faltan, { n28: "8" }, [falla("n28", "2"), falla("n28", "1", "perdida")])).toEqual({ n28: "5" });
+  });
+
+  it("totales: todas las fallas, y solo las que cierran la fase (segunda y perdida, no el arreglo)", () => {
+    const filas = [falla("n28", "2"), falla("c28", "1", "arreglo"), falla("", "4"), falla("n30", "x")];
+    expect(totalFallas(filas)).toBe(3);
+    expect(fallasQueCierran(filas)).toBe(2);
+  });
+
+  it("problemasDeFallas: sin talla, sin cantidad, pasarse de lo que falta y sin motivo, cada uno en una frase", () => {
+    const faltan = { n28: 8 };
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "2")], "Mancha", nombreDe)).toEqual([]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("", "1")], "Mancha", nombreDe)).toEqual(["Elige la talla y el color de cada prenda con falla."]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "0")], "Mancha", nombreDe)).toEqual(["Escribe cuántas con falla hay en la variante n28."]);
+    expect(problemasDeFallas(faltan, { n28: "8" }, [falla("n28", "1")], "Mancha", nombreDe)).toEqual(["En la variante n28 faltan 8: entre buenas y con falla anotaste 9."]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "2")], "  ", nombreDe)).toEqual(["Cuenta qué pasó con las prendas con falla."]);
+    expect(problemasDeFallas(faltan, { n28: "6" }, [falla("n28", "2")], "x".repeat(MAX_MOTIVO_FALLA + 1), nombreDe)).toHaveLength(1);
+    // Sin fallas no se pide motivo.
+    expect(problemasDeFallas(faltan, { n28: "8" }, [], "", nombreDe)).toEqual([]);
+  });
+
+  it("lineasDeFallas: una línea por talla, color y destino (las repetidas se suman), con el motivo; las vacías no viajan", () => {
+    expect(lineasDeFallas([falla("n28", "2"), falla("n28", "1"), falla("n28", "1", "perdida"), falla("", "3"), falla("c28", "0")], " Mancha ")).toEqual([
+      { variante_id: "n28", cantidad: 3, destino: "segunda", motivo: "Mancha" },
+      { variante_id: "n28", cantidad: 1, destino: "perdida", motivo: "Mancha" },
+    ]);
+  });
+
+  it("textoFallas: «2 segundas · 1 perdida · 1 se arregla», sin los ceros", () => {
+    expect(textoFallas({ segunda: 2, perdida: 1, arreglo: 1 })).toBe("2 segundas · 1 perdida · 1 se arregla");
+    expect(textoFallas({ segunda: 0, perdida: 0, arreglo: 2 })).toBe("2 se arreglan");
+  });
+
+  it("el día: hoy de fábrica; nunca futuro ni antes de abrir la orden; a la base viaja nulo si es hoy", () => {
+    expect(problemaDeDia("2026-10-19", "2026-10-19", "2026-10-13")).toBeNull();
+    expect(problemaDeDia("2026-10-15", "2026-10-19", "2026-10-13")).toBeNull();
+    expect(problemaDeDia("2026-10-20", "2026-10-19", "2026-10-13")).toMatch(/todavía no llega/);
+    expect(problemaDeDia("2026-10-12", "2026-10-19", "2026-10-13")).toMatch(/se abrió el mar 13 oct/);
+    expect(problemaDeDia("", "2026-10-19", "2026-10-13")).toMatch(/Elige el día/);
+    expect(diaParaLaBase("2026-10-19", "2026-10-19")).toBeNull();
+    expect(diaParaLaBase("2026-10-15", "2026-10-19")).toBe("2026-10-15");
+  });
+
+  it("la línea de tiempo: las fallas de una anotación son UNA entrada roja, con su resumen, su porqué y su «Corregir»; otro día dice cuándo se anotó", () => {
+    const conFallas = orden({
+      linea_de_tiempo: [
+        { id: "fa-1", cuando: "2026-10-17T17:00:00+00:00", registrado_en: "2026-10-19T14:12:00.001+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 2, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-1" },
+        { id: "fa-2", cuando: "2026-10-17T17:00:00+00:00", registrado_en: "2026-10-19T14:12:00.002+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 1, destino: "perdida", motivo: "Mancha", variante_id: "c28", falla_id: "fa-2" },
+      ],
+    });
+    const [dia] = lineaDeTiempoAgrupada(conFallas, HOY);
+    expect(dia.dia).toBe("2026-10-17");
+    expect(dia.entradas).toHaveLength(1);
+    expect(dia.entradas[0]).toMatchObject({
+      titulo: "Con falla en Acabado",
+      cuanto: "3 prendas",
+      detalle: "2 segundas · 1 perdida: Mancha",
+      anotado: "anotó el lun 19 oct a las 09:12",
+      corregible: {
+        ids: ["fa-1", "fa-2"],
+        faseClave: "acabado",
+        buenas: {},
+        fallas: [
+          { varianteId: "n28", destino: "segunda", cantidad: 2, motivo: "Mancha" },
+          { varianteId: "c28", destino: "perdida", cantidad: 1, motivo: "Mancha" },
+        ],
+        dia: "2026-10-17",
+      },
+    });
+    expect(tonoDeEntrada("falla")).toBe("problema");
+    expect(tonoDeEntrada("falla_deshecha")).toBe("cambio");
+  });
+
+  it("fallasNuevas: las que se anotaron después de `antes` en esa fase y todavía se pueden deshacer", () => {
+    const despues = orden({
+      linea_de_tiempo: [
+        { id: "fa-1", cuando: "2026-10-19T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 2, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-1" },
+        { id: "fa-0", cuando: "2026-10-18T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 1, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-0" },
+      ],
+    }).lineaDeTiempo;
+    expect(fallasNuevas(despues.filter((e) => e.id === "fa-0"), despues, "acabado")).toEqual(["fa-1"]);
+    expect(fallasNuevas([], despues, "corte")).toEqual([]);
+  });
+
+  it("paridad con la migración 20261029164000: los mismos rechazos (hints), el mismo tope del motivo y las llaves que la página lee", () => {
+    const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20261029164000_produccion_termine_con_falla_y_fecha.sql"), "utf8");
+    for (const hint of ["falla_sin_motivo", "falla_destino_invalido", "falla_cantidad_invalida", "falla_repetida", "avance_excede", "avance_fecha_futura", "avance_fecha_antes_de_abrir", "deshacer_ya_hecho"]) {
+      expect(mig, hint).toContain(`'${hint}'`);
+    }
+    expect(mig).toContain(`length(motivo) <= ${MAX_MOTIVO_FALLA}`);
+    expect(mig).toContain("destino in ('segunda', 'perdida', 'arreglo')");
+    for (const k of ["fallas_segundas", "fallas_perdidas", "falla_id", "registrado_en", "destino"]) expect(mig, k).toContain(`'${k}'`);
+    expect(mig).toContain("create or replace function retail.anotar_termine(p_fase_id uuid, p_lineas jsonb, p_nota text default null, p_hecho_en date default null, p_fallas jsonb default null)");
+    expect(mig).toContain("create or replace function retail.deshacer_falla(p_falla_id uuid)");
+  });
+});
+
+describe("corregir, eliminar y restaurar con su historia (ADR-0570, actividad 3)", () => {
+  const CORTE = TODAS.map((id) => `a-${id}`);
+  const eliminacion = (parche: Record<string, unknown> = {}) => ({
+    id: "c-1",
+    accion: "eliminar",
+    objeto: "termine",
+    fase_clave: "corte",
+    fase_nombre: "Corte",
+    quita_ids: CORTE,
+    pone_ids: [],
+    deshace_ids: ["d-1"],
+    antes: { buenas: TODAS.map((v) => ({ variante_id: v, cantidad: 8 })), fallas: [], hecho: "2026-10-15T22:40:00+00:00", nota: null },
+    despues: null,
+    texto: "Se anotó dos veces",
+    restaurado: false,
+    quien_nombre: "Felipe",
+    cuando: "2026-10-16T16:00:00+00:00",
+    ...parche,
+  });
+  const deshacerDeLaEliminacion = { id: "d-1", cuando: "2026-10-16T16:00:00+00:00", quien_nombre: "Felipe", tipo: "deshacer", fase_clave: "corte", fase_nombre: "Corte", cantidad: 8, detalle: "8 de n28", variante_id: "n28", avance_id: null };
+
+  it("lee los cambios y lo ya deshecho; lo suelto se descarta", () => {
+    const p = orden({ cambios: [eliminacion(), { id: "x" }, { id: "y", accion: "borrar", cuando: "2026-10-16T16:00:00+00:00" }], deshechos: ["a-n28", 3] });
+    expect(p.cambios).toHaveLength(1);
+    expect(p.cambios[0]).toMatchObject({ accion: "eliminar", objeto: "termine", faseClave: "corte", quitaIds: CORTE, deshaceIds: ["d-1"], texto: "Se anotó dos veces" });
+    expect(p.cambios[0].antes?.buenas).toHaveLength(6);
+    expect(p.deshechos).toEqual(["a-n28"]);
+    expect(orden().cambios).toEqual([]);
+  });
+
+  it("lo que un cambio quitó (y sus Deshacer) sale de la vista; en su lugar va el cambio, con cuántas, de qué día y por qué, y su «Restaurar»", () => {
+    const p = orden({ linea_de_tiempo: [...crudo().linea_de_tiempo, deshacerDeLaEliminacion], cambios: [eliminacion()], deshechos: CORTE });
+    const entradas = lineaDeTiempoAgrupada(p, "2026-10-16").flatMap((d) => d.entradas);
+    expect(entradas.map((e) => e.titulo)).toEqual(["Eliminó lo terminado en Corte", "Salida de Costura", "Abrió la orden"]);
+    expect(entradas[0]).toMatchObject({ cuanto: "48 prendas", detalle: "del jue 15 oct · Por qué: Se anotó dos veces", restaurable: { cambioId: "c-1" }, restaurado: false, quien: "Felipe", corregible: null });
+    expect(tonoDeEntrada(entradas[0].tipo)).toBe("cambio");
+  });
+
+  it("una eliminación restaurada ya no trae «Restaurar» y lleva su marca; la restauración es otra entrada", () => {
+    const restauracion = { ...eliminacion({ id: "c-2", accion: "restaurar", quita_ids: [], pone_ids: ["a-r1"], deshace_ids: [], antes: null, texto: "Se eliminó por error", cuando: "2026-10-16T17:00:00+00:00" }), despues: eliminacion().antes };
+    const p = orden({ linea_de_tiempo: [...crudo().linea_de_tiempo, deshacerDeLaEliminacion], cambios: [restauracion, eliminacion({ restaurado: true })], deshechos: CORTE });
+    const [hoy] = lineaDeTiempoAgrupada(p, "2026-10-16");
+    expect(hoy.entradas.map((e) => [e.titulo, e.restaurable, e.restaurado])).toEqual([
+      ["Restauró lo terminado en Corte", null, false],
+      ["Eliminó lo terminado en Corte", null, true],
+      ["Salida de Costura", null, false],
+    ]);
+    expect(hoy.entradas[0]).toMatchObject({ cuanto: "48 prendas", detalle: "Por qué: Se eliminó por error" });
+  });
+
+  it("una corrección dice de cuánto a cuánto, qué cambió y por qué; lo corregido lleva su marca y dice «corrigió el…», nunca «anotó»", () => {
+    const corregido = { id: "a-nuevo", cuando: "2026-10-15T22:40:00+00:00", registrado_en: "2026-10-16T16:00:00+00:00", quien_nombre: "Felipe", tipo: "avance", fase_clave: "corte", fase_nombre: "Corte", cantidad: 6, detalle: "6 de n28", variante_id: "n28", avance_id: null };
+    const correccion = eliminacion({
+      accion: "corregir",
+      quita_ids: ["a-n28"],
+      pone_ids: ["a-nuevo"],
+      deshace_ids: ["d-1"],
+      antes: { buenas: [{ variante_id: "n28", cantidad: 8 }], fallas: [], hecho: "2026-10-15T22:40:00+00:00", nota: null },
+      despues: { buenas: [{ variante_id: "n28", cantidad: 6 }], fallas: [{ variante_id: "n28", destino: "segunda", cantidad: 2, motivo: "Mancha" }], hecho: "2026-10-15T22:40:00+00:00", nota: null },
+      texto: "Cantidad equivocada",
+    });
+    const p = orden({ linea_de_tiempo: [...crudo().linea_de_tiempo, corregido, deshacerDeLaEliminacion], cambios: [correccion], deshechos: ["a-n28"] });
+    const entradas = lineaDeTiempoAgrupada(p, "2026-10-16").flatMap((d) => d.entradas);
+    const cambio = entradas.find((e) => e.tipo === "corregir")!;
+    expect(cambio).toMatchObject({ titulo: "Corrigió lo terminado en Corte", cuanto: "8 → 6", detalle: "Negro 28: 8 → 6 · con falla: 2 segundas · Por qué: Cantidad equivocada" });
+    const nuevo = entradas.find((e) => e.ids.includes("a-nuevo"))!;
+    expect(nuevo).toMatchObject({ titulo: "Terminó Corte", corregida: true, anotado: "corrigió el vie 16 oct a las 11:00", hora: "17:40" });
+    expect(nuevo.corregible?.ids).toEqual(["a-nuevo"]);
+    // Las otras cinco tallas del corte siguen como estaban, corregibles.
+    expect(entradas.find((e) => e.ids.includes("a-n30"))?.corregible?.ids).toHaveLength(5);
+    expect(entradas.some((e) => e.ids.includes("a-n28") || e.ids.includes("d-1"))).toBe(false);
+  });
+
+  it("queCambio: las tallas que cambiaron, las fallas y el día; nada si es igual", () => {
+    const lineas = orden().lineas;
+    const a = { buenas: [{ varianteId: "n28", cantidad: 8 }, { varianteId: "c30", cantidad: 4 }], fallas: [], hecho: "2026-10-15T22:40:00+00:00", nota: null };
+    expect(queCambio(a, { ...a, hecho: "2026-10-16T17:00:00+00:00" }, lineas)).toBe("del jue 15 oct al vie 16 oct");
+    expect(queCambio(a, { ...a, buenas: [{ varianteId: "n28", cantidad: 8 }] }, lineas)).toBe("Caqui 30: 4 → 0");
+    expect(queCambio({ ...a, fallas: [{ varianteId: "n28", destino: "perdida", cantidad: 1, motivo: "Mancha" }] }, a, lineas)).toBe("sin fallas");
+    expect(queCambio(a, a, lineas)).toBeNull();
+  });
+
+  it("una nota del equipo es una entrada neutra con su texto; la marca quitada y su restauración dicen la fase", () => {
+    const nota = { id: "n-1", accion: "nota", objeto: null, fase_clave: null, fase_nombre: null, quita_ids: [], pone_ids: [], deshace_ids: [], antes: null, despues: null, texto: "La tela llegó con una mancha", restaurado: false, quien_nombre: "Rosa", cuando: "2026-10-16T18:00:00+00:00" };
+    const marca = eliminacion({ id: "m-c", objeto: "marca", fase_clave: "corte", fase_nombre: "Ploteo", quita_ids: ["m-x"], antes: null, texto: "Todavía no se hizo", cuando: "2026-10-16T17:30:00+00:00" });
+    const [hoy] = lineaDeTiempoAgrupada(orden({ cambios: [nota, marca] }), "2026-10-16");
+    expect(hoy.entradas[0]).toMatchObject({ tipo: "nota", titulo: "Nota", detalle: "La tela llegó con una mancha", quien: "Rosa", hora: "13:00", cuanto: null, restaurable: null });
+    expect(tonoDeEntrada("nota")).toBe("neutro");
+    expect(hoy.entradas[1]).toMatchObject({ titulo: "Quitó la marca de Ploteo", detalle: "Por qué: Todavía no se hizo", restaurable: { cambioId: "m-c" } });
+  });
+
+  const anotacion: AnotacionCorregible = {
+    ids: ["a-1", "fa-1"],
+    faseClave: "acabado",
+    faseNombre: "Acabado",
+    buenas: { n28: 6 },
+    fallas: [
+      { varianteId: "n28", destino: "segunda", cantidad: 1, motivo: "Mancha" },
+      { varianteId: "n28", destino: "arreglo", cantidad: 1, motivo: "Mancha" },
+    ],
+    dia: "2026-10-17",
+  };
+  const nombreDe = (id: string) => id;
+
+  it("lo que cabe al corregir: lo que falta más lo que ocupaba esa anotación (un arreglo no ocupaba lugar)", () => {
+    expect(disponiblesParaCorregir({ n28: 1, c28: 3 }, anotacion)).toEqual({ n28: 8, c28: 3 });
+    expect(fallasDeLaAnotacion(anotacion)).toEqual({
+      fallas: [
+        { varianteId: "n28", cantidad: "1", destino: "segunda" },
+        { varianteId: "n28", cantidad: "1", destino: "arreglo" },
+      ],
+      motivo: "Mancha",
+    });
+  });
+
+  it("las cantidades corregidas: no más de lo que cabe en una talla sin fallas, y sin nada se usa «Eliminar»", () => {
+    const caben = { n28: 8, c28: 3 };
+    expect(problemaDeCantidadesCorregidas(caben, { n28: "8", c28: "3" }, [], nombreDe)).toBeNull();
+    expect(problemaDeCantidadesCorregidas(caben, { c28: "4" }, [], nombreDe)).toBe("En c28 caben 3: anotaste 4.");
+    expect(problemaDeCantidadesCorregidas(caben, { n28: "0" }, [], nombreDe)).toMatch(/usa «Eliminar»/);
+    expect(problemaDeCantidadesCorregidas(caben, { n28: "0" }, [{ varianteId: "n28", cantidad: "2", destino: "perdida" }], nombreDe)).toBeNull();
+  });
+
+  it("sin cambios no hay nada que guardar: mismas buenas, mismas fallas con su motivo y el mismo día", () => {
+    const { fallas, motivo } = fallasDeLaAnotacion(anotacion);
+    expect(correccionSinCambios(anotacion, { n28: "6" }, fallas, motivo, "2026-10-17")).toBe(true);
+    expect(correccionSinCambios(anotacion, { n28: "5" }, fallas, motivo, "2026-10-17")).toBe(false);
+    expect(correccionSinCambios(anotacion, { n28: "6" }, fallas, motivo, "2026-10-16")).toBe(false);
+    expect(correccionSinCambios(anotacion, { n28: "6" }, fallas, "Quemadura de plancha", "2026-10-17")).toBe(false);
+    expect(correccionSinCambios(anotacion, { n28: "6" }, fallas.slice(0, 1), motivo, "2026-10-17")).toBe(false);
+    expect(correccionSinCambios(anotacion, { n28: "6", c28: "" }, fallas, motivo, "2026-10-17")).toBe(true);
+  });
+
+  it("el motivo de un cambio y una nota: obligatorios y con su tope", () => {
+    expect(problemaDeMotivoCambio("  ")).toMatch(/Cuenta por qué/);
+    expect(problemaDeMotivoCambio("Cantidad equivocada")).toBeNull();
+    expect(problemaDeMotivoCambio("x".repeat(MAX_MOTIVO_CAMBIO + 1))).toMatch(/muy largo/);
+    expect(problemaDeNota("")).toBe("Escribe la nota.");
+    expect(problemaDeNota("x".repeat(MAX_NOTA_ORDEN + 1))).toMatch(/muy larga/);
+    expect(problemaDeNota("La tela llegó con una mancha")).toBeNull();
+  });
+
+  it("paridad con la migración 20261029173000: las RPC, los rechazos (hints), los topes y las llaves que la página lee", () => {
+    const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20261029173000_produccion_corregir_y_eliminar_con_historia.sql"), "utf8");
+    expect(mig).toContain(`create or replace function retail.${RPC_CORREGIR_ANOTACION}(p_ids uuid[], p_lineas jsonb, p_fallas jsonb, p_hecho_en date, p_motivo text)`);
+    expect(mig).toContain(`create or replace function retail.${RPC_ELIMINAR_ANOTACION}(p_ids uuid[], p_motivo text)`);
+    expect(mig).toContain(`create or replace function retail.${RPC_RESTAURAR_ANOTACION}(p_cambio_id uuid, p_motivo text)`);
+    expect(mig).toContain(`create or replace function retail.${RPC_COMENTAR_ORDEN}(p_produccion_id uuid, p_texto text)`);
+    for (const hint of ["cambio_sin_motivo", "cambio_motivo_largo", "corregir_vacio", "corregir_sin_cambios", "cambio_ya_avanzo", "cambio_ya_deshecho", "restaurar_ya_hecho", "nota_vacia", "nota_larga"]) {
+      expect(mig, hint).toContain(`'${hint}'`);
+    }
+    expect(mig).toContain(`length(v) > ${MAX_MOTIVO_CAMBIO}`);
+    expect(mig).toContain(`length(v_texto) > ${MAX_NOTA_ORDEN}`);
+    for (const k of ["cambios", "deshechos", "quita_ids", "pone_ids", "deshace_ids", "restaurado", "fase_clave", "quien_nombre"]) expect(mig, k).toContain(`'${k}'`);
   });
 });

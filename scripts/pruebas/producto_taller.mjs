@@ -2,7 +2,10 @@
 /**
  * «Lleva ojales y botones», un dato del MODELO (ADR-0551, actividad 1; migración 20261028053000). CAYLA V2.
  *
- * LO QUE VIGILA. Que la respuesta viva en `producto_taller` y no en `productos`; que «sin fila» (nadie lo ha preguntado) se distinga de «no lleva»; que guardar lo MISMO no escriba ni anote
+ * DESDE ADR-0570 (actividad 5, migración 20261029210000) la respuesta vive en `producto_procesos` (proceso `ojales_botones`), y `guardar_ojales_botones_modelo` y
+ * `fn_ojales_botones_de_modelos` siguen con su firma pasando por ella: esta suite vigila lo mismo de siempre sobre la tabla nueva.
+ *
+ * LO QUE VIGILA. Que la respuesta viva en una tabla del Taller y no en `productos`; que «sin fila» (nadie lo ha preguntado) se distinga de «no lleva»; que guardar lo MISMO no escriba ni anote
  * nada; que cambiar la respuesta quede firmada y en Actividad; que solo quien opera ESE Taller la guarde (y nadie desde afuera ni sin decir sí o no); que la tabla no se lea ni se escriba
  * directo; que borrar el modelo borre su fila; y que la migración se pueda volver a pegar.
  *
@@ -27,7 +30,7 @@ const BASE = arg("--base", "postgres");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
-const MIGRACION = readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261028053000_producto_taller_ojales_y_botones.sql", import.meta.url)), "utf8");
+const MIGRACION = readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql", import.meta.url)), "utf8");
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function psql(sql) {
@@ -77,8 +80,10 @@ select id as tienda from retail.ubicaciones where tipo = 'tienda' and activo ord
 select p.id as prod from retail.productos p where p.es_prueba is not true and p.estado <> 'descontinuado' order by p.created_at limit 1 \\gset
 ${como(FELIPE)}
 `;
-const FILA = `(select lleva_ojales_botones::text from retail.producto_taller where producto_id = :'prod')`;
-const ACTIVIDAD = `(select count(*) from retail.actividad where accion = 'producto_taller_ojales_botones' and registro_id = :'prod'::text)`;
+const TABLA = `retail.producto_procesos`;
+const DEL_MODELO = `producto_id = :'prod' and proceso_clave = 'ojales_botones'`;
+const FILA = `(select lleva::text from ${TABLA} where ${DEL_MODELO})`;
+const ACTIVIDAD = `(select count(*) from retail.actividad where accion = 'producto_proceso' and registro_id = :'prod'::text)`;
 
 let fallas = 0;
 let casos = 0;
@@ -110,24 +115,24 @@ caso(
 caso(
   "B1 decir que lleva ojales y botones guarda la respuesta (devuelve true), la firma quien la dio, sale en la lectura y queda UNA línea en Actividad",
   `select pg_temp.guarda(:'taller', :'prod', true) as g \\gset
-   select concat_ws(',', :'g', ${FILA}, (select declarado_por is not null from retail.producto_taller where producto_id = :'prod'),
+   select concat_ws(',', :'g', ${FILA}, (select declarado_por is not null from ${TABLA} where ${DEL_MODELO}),
      (select lleva_ojales_botones::text from retail.fn_ojales_botones_de_modelos() where producto_id = :'prod'), ${ACTIVIDAD});`,
   "true,true,t,true,1"
 );
 caso(
   "B2 decir lo MISMO otra vez no escribe nada: devuelve false, la fecha no cambia y Actividad no suma una línea",
   `select pg_temp.guarda(:'taller', :'prod', true) as g1 \\gset
-   select updated_at as t1 from retail.producto_taller where producto_id = :'prod' \\gset
+   select updated_at as t1 from ${TABLA} where ${DEL_MODELO} \\gset
    select pg_sleep(0.05);
    select pg_temp.guarda(:'taller', :'prod', true) as g2 \\gset
-   select concat_ws(',', :'g1', :'g2', (select updated_at = :'t1'::timestamptz from retail.producto_taller where producto_id = :'prod'), ${ACTIVIDAD});`,
+   select concat_ws(',', :'g1', :'g2', (select updated_at = :'t1'::timestamptz from ${TABLA} where ${DEL_MODELO}), ${ACTIVIDAD});`,
   "true,false,t,1"
 );
 caso(
   "B3 cambiar la respuesta (lleva → no lleva) la actualiza, devuelve true y suma su línea en Actividad: una sola fila por modelo",
   `select pg_temp.guarda(:'taller', :'prod', true) as g1 \\gset
    select pg_temp.guarda(:'taller', :'prod', false) as g2 \\gset
-   select concat_ws(',', :'g1', :'g2', ${FILA}, (select count(*) from retail.producto_taller where producto_id = :'prod'), ${ACTIVIDAD});`,
+   select concat_ws(',', :'g1', :'g2', ${FILA}, (select count(*) from ${TABLA} where ${DEL_MODELO}), ${ACTIVIDAD});`,
   "true,true,false,1,2"
 );
 
@@ -137,7 +142,7 @@ caso(
   `${como(MICAELA)}
    select pg_temp.guarda(:'taller', :'prod', true) as g \\gset
    ${como(FELIPE)}
-   select concat_ws(',', pg_temp.eh(:'g'), (select count(*) from retail.producto_taller where producto_id = :'prod'), ${ACTIVIDAD});`,
+   select concat_ws(',', pg_temp.eh(:'g'), (select count(*) from ${TABLA} where ${DEL_MODELO}), ${ACTIVIDAD});`,
   "42501|produccion_sin_taller,0,0"
 );
 caso(
@@ -146,16 +151,16 @@ caso(
      pg_temp.eh(pg_temp.guarda(:'tienda', :'prod', true)),
      pg_temp.eh(pg_temp.guarda(:'taller', :'prod', null)),
      pg_temp.eh(pg_temp.guarda(:'taller', gen_random_uuid(), true)),
-     (select count(*) from retail.producto_taller));`,
+     (select count(*) from ${TABLA}));`,
   (o) => /^(42501\|[a-z_]+|P0001\|ojales_botones_no_es_taller),P0001\|ojales_botones_sin_respuesta,P0001\|ojales_botones_modelo_inexistente,0$/.test(o)
 );
 caso(
   "C3 la tabla está cerrada a la API (authenticated y anon no la leen ni la escriben, solo las funciones) con RLS encendido y sin políticas; la lectura es de quien ve Producción y la función de guardar no la ejecuta anon",
   `select concat_ws(',',
-     has_table_privilege('authenticated', 'retail.producto_taller', 'select,insert,update,delete'),
-     has_table_privilege('anon', 'retail.producto_taller', 'select'),
-     (select relrowsecurity from pg_class where oid = 'retail.producto_taller'::regclass),
-     (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'producto_taller'),
+     has_table_privilege('authenticated', 'retail.producto_procesos', 'select,insert,update,delete'),
+     has_table_privilege('anon', 'retail.producto_procesos', 'select'),
+     (select relrowsecurity from pg_class where oid = 'retail.producto_procesos'::regclass),
+     (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'producto_procesos'),
      has_function_privilege('anon', 'retail.guardar_ojales_botones_modelo(uuid, uuid, boolean)', 'execute'),
      has_function_privilege('authenticated', 'retail.guardar_ojales_botones_modelo(uuid, uuid, boolean)', 'execute'),
      has_function_privilege('anon', 'retail.fn_ojales_botones_de_modelos()', 'execute'));`,
@@ -165,13 +170,14 @@ caso(
 // D. LA FILA SE VA CON EL MODELO Y LA MIGRACIÓN SE PUEDE REPEGAR --------------------------------------------------------------------
 caso(
   "D1 la fila cuelga del modelo con cascada (es configuración del modelo, no historia: la orden ya guardó sus propias fases)",
-  `select (select confdeltype from pg_constraint where conrelid = 'retail.producto_taller'::regclass and contype = 'f' and confrelid = 'retail.productos'::regclass);`,
+  `select (select confdeltype from pg_constraint where conrelid = 'retail.producto_procesos'::regclass and contype = 'f' and confrelid = 'retail.productos'::regclass);`,
   "c"
 );
 caso(
   "D2 volver a pegar la migración no cambia nada: la función de guardar queda idéntica (misma huella) y la respuesta ya guardada sigue ahí",
   `select pg_temp.guarda(:'taller', :'prod', true) as g \\gset
    select md5(pg_get_functiondef('retail.guardar_ojales_botones_modelo(uuid, uuid, boolean)'::regprocedure)) as antes \\gset
+   set local search_path = retail, public, extensions;
    ${MIGRACION.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "")}
    ${como(FELIPE)}
    select concat_ws(',', md5(pg_get_functiondef('retail.guardar_ojales_botones_modelo(uuid, uuid, boolean)'::regprocedure)) = :'antes', ${FILA});`,

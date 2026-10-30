@@ -4,14 +4,16 @@ import { PideAtencion } from "@/components/orden-pagina/PideAtencion";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { estadoDeLaOrden, queSigue, rojoDeLaOrden, textoApertura, textoColoresYTallas, textoQueSigue, textoSeVende, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 
-// La ficha de la orden (ADR-0400, vista D): la prenda grande, su nombre, dónde está y qué sigue, lo que se fabrica (colores, tallas, a cuánto se vende) y quién la abrió. Se lee en cinco
-// segundos: es lo primero bajo la cabecera. Es de servidor — solo la insignia «¿Por qué?» (`PideAtencion`) tiene un toque que contar.
+// La ficha de la orden (ADR-0400, vista D): la prenda grande, su nombre, dónde está, lo que se fabrica (colores, tallas, a cuánto se vende) y quién la abrió. Es de servidor — solo la
+// insignia «¿Por qué?» (`PideAtencion`) tiene un toque que contar. Desde la «Ruta viva» (ADR-0570, actividad 1) va en la columna de la derecha, sobre la historia: lo que toca hacer lo dice
+// el paso abierto bajo la ruta, así que aquí «Sigue…» solo aparece cuando ya no queda ningún paso y lo que sigue es pasar al stock.
 
 export function FichaDeLaOrden({ datos, hoy }: { datos: OrdenPagina; hoy: string }) {
   const { orden, lineas, fases } = datos;
   const prenda = categoriaDe({ categoria: orden.producto.categoria?.nombre, categoriaPrefijo: orden.producto.categoria?.prefijo, categoriaFamilia: orden.producto.categoria?.familia });
   const estado = estadoDeLaOrden(orden, fases);
-  const siguiente = textoQueSigue(queSigue(fases, orden.estado), fases);
+  const sigue = queSigue(fases, orden.estado);
+  const siguiente = sigue.accion === "pasar_al_stock" ? textoQueSigue(sigue, fases) : null;
   const que = [textoColoresYTallas(lineas), textoSeVende(orden.producto.precio)].filter((x): x is string => x !== null).join(" · ");
   return (
     <section data-guia="prod-orden.ficha" aria-label="La orden" className="card-cayla flex flex-wrap items-start gap-x-4 gap-y-3 p-5">
@@ -27,7 +29,7 @@ export function FichaDeLaOrden({ datos, hoy }: { datos: OrdenPagina; hoy: string
           </Chip>
         </div>
         {que && <p className="text-sm text-tinta/75">{que}</p>}
-        <p className="text-[13px] text-taupe-profundo">{textoApertura(orden)}</p>
+        <p className="text-[13px] text-tinta/70">{textoApertura(orden)}</p>
         {siguiente && <p className="pt-1 text-sm text-tinta">{siguiente}</p>}
       </div>
       <div className="w-full sm:w-auto sm:max-w-sm">

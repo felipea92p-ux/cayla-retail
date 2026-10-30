@@ -11,12 +11,15 @@ import {
   costoServiciosEstimado,
   esFechaIso,
   faseViaja,
+  faseDe,
   fasesEncendidas,
   fasesIniciales,
-  conOjalesDelModelo,
+  conProcesosDelModelo,
   fasesParaRpc,
   leerEntero,
-  leerOjalesBotones,
+  leerProcesos,
+  leerProcesosDeModelos,
+  procesosParaRecordar,
   listaDeTarifas,
   serviciosPorDefecto,
   leerServicio,
@@ -68,7 +71,7 @@ const CTX = { hoy: HOY, proveedores: PROVEEDORES, lista: LISTA };
  */
 const iniciales = (): FaseBorrador[] =>
   ordenarFases(
-    FASES.filter((f) => f.ruta !== "nueva").map((f) => ({
+    FASES.filter((f) => f.ruta !== "nueva" && f.delSistema).map((f) => ({
       clave: f.clave,
       encendida: f.siempre,
       quien: "taller" as const,
@@ -89,9 +92,10 @@ const afuera = (clave: FaseClave, cambios: Partial<FaseBorrador> = {}, base?: Fa
 const hints = (fases: FaseBorrador[]) => problemasFases(fases, CTX).map((p) => p.hint);
 
 describe("el catálogo de fases", () => {
-  it("son doce: las seis de siempre y las seis de la ruta nueva; solo bordado y estampado eligen posición; solo Ploteo se marca en vez de contarse", () => {
-    expect(FASES).toHaveLength(12);
-    expect(FASES.filter((f) => f.ruta !== "nueva").map((f) => f.clave)).toEqual(["corte", "costura", "acabado", "bordado", "estampado", "lavanderia"]);
+  it("son trece: las seis de siempre, las seis de la ruta nueva y Pegar cierre (ADR-0570); solo bordado y estampado eligen posición; solo Ploteo se marca en vez de contarse", () => {
+    expect(FASES).toHaveLength(13);
+    expect(FASES.filter((f) => f.ruta !== "nueva").map((f) => f.clave)).toEqual(["corte", "costura", "pegar_cierre", "bordado", "estampado", "lavanderia", "acabado"]);
+    expect(FASES.filter((f) => !f.delSistema).map((f) => f.clave)).toEqual(["pegar_cierre"]);
     // ADR-0551: los pasos fijos son cinco; Limpiar hilos y revisar y Etiquetar y embolsar son opcionales y la hoja no los ofrece.
     expect(FASES.filter((f) => f.ruta !== "anterior" && f.siempre).map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
     expect(FASES.filter((f) => f.ruta !== "nueva" && f.siempre).map((f) => f.clave)).toEqual(["corte", "costura", "acabado"]);
@@ -99,8 +103,8 @@ describe("el catálogo de fases", () => {
     expect(FASES.filter((f) => f.hito).map((f) => f.clave)).toEqual(["ploteo"]);
     for (const f of FASES) expect(f.ayuda.length, f.clave).toBeGreaterThan(10);
   });
-  it("la hoja de «Nueva orden» ofrece la ruta nueva: las cinco fijas y Ojales y botones; Limpiar hilos, Etiquetar, Acabado, Bordado, Estampado y Lavandería no se ofrecen", () => {
-    expect(FASES_DE_LA_HOJA.map((f) => f.nombre)).toEqual(["Ploteo", "Corte", "Habilitado", "Costura", "Ojales y botones", "Planchado"]);
+  it("la hoja de «Nueva orden» ofrece la ruta nueva: las cinco fijas, Pegar cierre, Ojales y botones y Lavado o teñido; Limpiar hilos, Etiquetar, Acabado, Bordado y Estampado no se ofrecen", () => {
+    expect(FASES_DE_LA_HOJA.map((f) => f.nombre)).toEqual(["Ploteo", "Corte", "Habilitado", "Costura", "Pegar cierre", "Ojales y botones", "Lavado o teñido", "Planchado"]);
     expect(FASES_DE_LA_HOJA.filter((f) => f.siempre).map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
     const ofrecidas = FASES_DE_LA_HOJA.map((f) => f.clave);
     for (const fuera of ["limpieza_revision", "etiquetado_embolsado"]) expect(ofrecidas, fuera).not.toContain(fuera);
@@ -127,9 +131,9 @@ describe("el catálogo de fases", () => {
 });
 
 describe("fasesIniciales y el orden de la ruta", () => {
-  it("la hoja de hoy nace con la ruta nueva: las cinco fijas encendidas y en el Taller, Ojales y botones apagado, en el orden de la ruta", () => {
+  it("la hoja de hoy nace con la ruta nueva: las cinco fijas encendidas y en el Taller, los opcionales apagados, en el orden de la ruta", () => {
     const f = fasesIniciales();
-    expect(f.map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "ojales_botones", "planchado"]);
+    expect(f.map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "pegar_cierre", "ojales_botones", "lavanderia", "planchado"]);
     expect(f.filter((x) => x.encendida).map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
     expect(f.every((x) => x.quien === "taller" && x.proveedorId === null && x.tarifa === "" && x.fijo === "" && x.minimo === "" && x.fechaPrometida === "" && x.posicion === null)).toBe(true);
   });
@@ -139,11 +143,11 @@ describe("fasesIniciales y el orden de la ruta", () => {
     expect(rpc.map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
     expect(rpc.every((f) => f.quien === "taller" && f.proveedor_id === null && f.tarifa_prenda === null && f.fijo_orden === null && f.posicion === null)).toBe(true);
   });
-  it("Ojales y botones, encendido, viaja justo después de Costura; Acabado, Bordado, Estampado y Lavandería no se ofrecen", () => {
+  it("Ojales y botones, encendido, viaja justo después de Costura; Acabado, Bordado y Estampado no se ofrecen", () => {
     const rpc = fasesParaRpc(con("ojales_botones", { encendida: true }, fasesIniciales()), LISTA, HOY);
     expect(rpc.map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "ojales_botones", "planchado"]);
     const ofrecidas = FASES_DE_LA_HOJA.map((f) => f.clave);
-    for (const fuera of ["acabado", "bordado", "estampado", "lavanderia"]) expect(ofrecidas, fuera).not.toContain(fuera);
+    for (const fuera of ["acabado", "bordado", "estampado"]) expect(ofrecidas, fuera).not.toContain(fuera);
   });
   it("un bordado sobre prenda pasa de antes a después de costura; lavandería va antes del acabado (la ruta anterior, que la base sigue aceptando)", () => {
     const claves = (p: Posicion) => ordenarFases(con("bordado", { posicion: p })).map((f) => f.clave);
@@ -464,15 +468,30 @@ describe("paridad con las migraciones 20261019191000 y 20261019192000", () => {
     // Las claves con posición en el SQL son exactamente las posicionables de acá, y toda clave de acá aparece allá.
     const conPosicion = new Set(filas.filter((f) => f[2]).map((f) => f[1]));
     expect([...conPosicion].sort()).toEqual(FASES.filter((f) => f.posicionable).map((f) => f.clave).sort());
-    expect(new Set(filas.map((f) => f[1]))).toEqual(new Set(FASES.map((f) => f.clave)));
+    // Los doce de antes conservan su número en el catálogo (ADR-0570): así la CHECK de `produccion_fases` sigue valiendo en las órdenes ya abiertas.
+    expect(new Set(filas.map((f) => f[1]))).toEqual(new Set(FASES.filter((f) => f.delSistema).map((f) => f.clave)));
   });
   it("los nombres son los de fn_fase_nombre y las claves las del CHECK de produccion_fases", () => {
     const nombres = new Map([...funcion("fn_fase_nombre").matchAll(/when '(\w+)' then '([^']+)'/g)].map((m) => [m[1], m[2]]));
     expect(nombres.size).toBe(12);
-    for (const f of FASES) expect(nombres.get(f.clave), f.clave).toBe(f.nombre);
+    // Lavandería pasó a llamarse «Lavado o teñido» en el catálogo (ADR-0570, actividad 5); el resto conserva su nombre.
+    for (const f of FASES.filter((x) => x.delSistema)) expect(nombres.get(f.clave), f.clave).toBe(f.clave === "lavanderia" ? "Lavandería" : f.nombre);
     const check = /add constraint produccion_fases_clave_check check \(clave in \(([^)]+)\)\)/.exec(SQL)?.[1] ?? "";
     const claves = [...check.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
-    expect(claves).toEqual(FASES.map((f) => f.clave).sort());
+    expect(claves).toEqual(FASES.filter((f) => f.delSistema).map((f) => f.clave).sort());
+  });
+  it("el catálogo de respaldo es la siembra de 20261029210000, fila por fila (ADR-0570, actividad 5)", () => {
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql"), "utf8");
+    const bloque = /insert into retail\.procesos_produccion \([^)]*\) values([\s\S]*?)on conflict/.exec(sql)?.[1] ?? "";
+    const filas = [...bloque.matchAll(/\('(\w+)', '([^']+)', '([^']+)', (\d+), (null|\d+), '(\w+)', (true|false), (true|false), (true|false), (true|false), '(\w+)'\)/g)];
+    expect(filas).toHaveLength(FASES.length);
+    for (const [, clave, nombre, ayuda, sec, pieza, ruta, espina, hito, sistema, hoja, quien] of filas) {
+      const f = FASES.find((x) => x.clave === clave);
+      expect(f, clave).toBeDefined();
+      expect([f?.nombre, f?.ayuda, f?.secuencia, f?.secuenciaPieza, f?.ruta, f?.siempre, f?.hito, f?.delSistema, f?.enLaHoja, f?.quienSugerido], clave).toEqual([
+        nombre, ayuda, Number(sec), pieza === "null" ? null : Number(pieza), ruta, espina === "true", hito === "true", sistema === "true", hoja === "true", quien,
+      ]);
+    }
   });
   it("las fases que se marcan son las de fn_fase_es_hito (hoy solo ploteo)", () => {
     const cuerpo = funcion("fn_fase_es_hito", SQL_NORMALIZAR);
@@ -582,15 +601,27 @@ describe("Ojales y botones sigue a lo que dijo el modelo", () => {
     expect(claves(fasesIniciales({ ojalesBotones: null }))).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
     expect(claves(fasesIniciales())).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
   });
-  it("conOjalesDelModelo solo mueve esa fila: lo que la persona ya escribió en las demás se queda (y «sin respuesta» apaga, no prende a ciegas)", () => {
+  it("conProcesosDelModelo solo mueve los opcionales: lo que la persona ya escribió en la espina se queda (y «sin respuesta» apaga, no prende a ciegas)", () => {
     const tocadas = con("costura", { quien: "servicio", proveedorId: CONF.id, tarifa: "4.50" }, fasesIniciales({ ojalesBotones: true }));
-    const siLleva = conOjalesDelModelo(tocadas, true);
-    const noLleva = conOjalesDelModelo(tocadas, false);
-    const sinRespuesta = conOjalesDelModelo(tocadas, null);
-    expect(siLleva.find((f) => f.clave === "ojales_botones")?.encendida).toBe(true);
+    const siLleva = conProcesosDelModelo(tocadas, { ojales_botones: true, pegar_cierre: true });
+    const noLleva = conProcesosDelModelo(tocadas, { ojales_botones: false });
+    const sinRespuesta = conProcesosDelModelo(tocadas, null);
+    expect(siLleva.filter((f) => f.encendida && !faseDe(f.clave).siempre).map((f) => f.clave)).toEqual(["pegar_cierre", "ojales_botones"]);
     expect(noLleva.find((f) => f.clave === "ojales_botones")?.encendida).toBe(false);
     expect(sinRespuesta.find((f) => f.clave === "ojales_botones")?.encendida).toBe(false);
     for (const r of [siLleva, noLleva, sinRespuesta]) expect(r.find((f) => f.clave === "costura")).toEqual(tocadas.find((f) => f.clave === "costura"));
+  });
+  it("el modelo prende sus procesos al nacer la hoja (delModelo), también uno propio del catálogo", () => {
+    const propio = { ...faseDe("pegar_cierre"), clave: "tenido_en_frio", nombre: "Teñido en frío", secuencia: 31, delSistema: false };
+    const catalogo = [...FASES, propio];
+    const f = fasesIniciales({ delModelo: { tenido_en_frio: true, lavanderia: true } }, catalogo);
+    expect(fasesEncendidas(f, catalogo).map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "tenido_en_frio", "lavanderia", "planchado"]);
+  });
+  it("procesosParaRecordar: lo que cambió; un proceso nunca contestado se anota solo si la orden lo lleva, salvo Ojales y botones (que se contesta siempre)", () => {
+    const f = con("pegar_cierre", { encendida: true }, fasesIniciales());
+    expect(procesosParaRecordar(f, null)).toEqual([{ clave: "pegar_cierre", lleva: true }, { clave: "ojales_botones", lleva: false }]);
+    expect(procesosParaRecordar(f, { pegar_cierre: true, ojales_botones: false })).toEqual([]);
+    expect(procesosParaRecordar(fasesIniciales(), { pegar_cierre: true, ojales_botones: false, lavanderia: false })).toEqual([{ clave: "pegar_cierre", lleva: false }]);
   });
   it("con Ojales y botones prendido la orden sigue siendo válida y a la base viaja entre Costura y Planchado", () => {
     const f = fasesIniciales({ ojalesBotones: true });
@@ -598,11 +629,24 @@ describe("Ojales y botones sigue a lo que dijo el modelo", () => {
     expect(problemasFases(f, CTX)).toEqual([]);
     expect(fasesParaRpc(f, LISTA, HOY).map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "ojales_botones", "planchado"]);
   });
-  it("leerOjalesBotones: una fila por modelo que contestó; lo que no se lee bien no contesta (la hoja pregunta), nunca prende el paso a ciegas", () => {
-    expect(leerOjalesBotones([{ producto_id: "a", lleva_ojales_botones: true }, { producto_id: "b", lleva_ojales_botones: false }])).toEqual({ a: true, b: false });
-    expect(leerOjalesBotones([{ producto_id: "a", lleva_ojales_botones: "true" }, { producto_id: 5, lleva_ojales_botones: true }, null, "x", { producto_id: "c" }])).toEqual({});
-    expect(leerOjalesBotones(null)).toEqual({});
-    expect(leerOjalesBotones({ producto_id: "a", lleva_ojales_botones: true })).toEqual({});
+  it("leerProcesosDeModelos: por modelo, lo que dijo de cada proceso; lo que no se lee bien no contesta (la hoja pregunta), nunca prende un paso a ciegas", () => {
+    expect(leerProcesosDeModelos([{ producto_id: "a", proceso_clave: "ojales_botones", lleva: true }, { producto_id: "a", proceso_clave: "pegar_cierre", lleva: false }, { producto_id: "b", proceso_clave: "ojales_botones", lleva: false }])).toEqual({
+      a: { ojales_botones: true, pegar_cierre: false },
+      b: { ojales_botones: false },
+    });
+    expect(leerProcesosDeModelos([{ producto_id: "a", proceso_clave: "x", lleva: "true" }, { producto_id: 5, proceso_clave: "x", lleva: true }, null, "x", { producto_id: "c" }])).toEqual({});
+    expect(leerProcesosDeModelos(null)).toEqual({});
+  });
+  it("leerProcesos: lo que manda fn_procesos_produccion, en el orden de la ruta; una fila rota no entra y sin filas es null (la pantalla usa el respaldo)", () => {
+    const leido = leerProcesos([
+      { clave: "corte", nombre: "Corte", ayuda: "x", secuencia: 10, secuencia_pieza: null, ruta: "ambas", espina: true, hito: false, del_sistema: true, en_la_hoja: true, quien_sugerido: "taller", activo: true, usos: 4 },
+      { clave: "bordado", nombre: "Bordado", secuencia: 40, secuencia_pieza: 20, ruta: "ambas", espina: false, hito: false, del_sistema: true, en_la_hoja: false, quien_sugerido: "servicio", activo: true },
+      { clave: "Malo!", nombre: "x", secuencia: 1 },
+      { clave: "sin_nombre", nombre: " ", secuencia: 2 },
+    ]);
+    expect(leido?.map((f) => `${f.clave}:${f.secuencia}:${f.secuenciaPieza}:${f.posicionable}:${f.usos}`)).toEqual(["corte:10:null:false:4", "bordado:40:20:true:undefined"]);
+    expect(leerProcesos([])).toBeNull();
+    expect(leerProcesos("x")).toBeNull();
   });
 });
 

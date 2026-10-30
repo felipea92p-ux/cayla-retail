@@ -26,6 +26,8 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { ServiciosYTarifas } from "@/components/proveedores-produccion/ServiciosYTarifas";
 import { TarifaServicioModal } from "@/components/proveedores-produccion/TarifaServicioModal";
+import { ProcesoModal } from "@/components/proveedores-produccion/ProcesoModal";
+import { FASES, type FaseDelCatalogo } from "@/lib/orden-fases-reglas";
 import { serviciosParaTarifar, tarifasPorServicio, type TarifaDeServicio } from "@/lib/tarifas-servicios-reglas";
 
 // Proveedores de Producción (ADR-0133, F4a; D-H): quienes le venden tela, avíos y maquila al Taller. Directorio aparte del de
@@ -47,6 +49,7 @@ export function ProveedoresProduccionPanel({
   tarifas,
   hoy,
   vistaInicial = "proveedores",
+  procesos = FASES,
 }: {
   sede: string;
   proveedores: ProveedorProduccion[];
@@ -54,7 +57,10 @@ export function ProveedoresProduccionPanel({
   tarifas: TarifaDeServicio[] | null;
   hoy: string;
   vistaInicial?: VistaProveedores;
+  /** El catálogo de procesos del Taller (ADR-0570, actividad 5); sin lectura, el de respaldo. */
+  procesos?: ReadonlyArray<FaseDelCatalogo>;
 }) {
+  const [hojaProceso, setHojaProceso] = useState<{ proceso: FaseDelCatalogo | null } | null>(null);
   const [vista, setVista] = useState<VistaProveedores>(vistaInicial);
   const [hojaTarifa, setHojaTarifa] = useState<HojaDeTarifa | null>(null);
   const [rubro, setRubro] = useState<RubroProduccion | "todos">("todos");
@@ -120,6 +126,8 @@ export function ProveedoresProduccionPanel({
             setVista("proveedores");
             setEditando("nuevo");
           }}
+          procesos={procesos}
+          onProceso={(p) => setHojaProceso({ proceso: p })}
         />
       ) : (
         <>
@@ -256,7 +264,8 @@ export function ProveedoresProduccionPanel({
       )}
 
       {editando && <ProveedorProduccionModal proveedor={editando === "nuevo" ? null : editando} onClose={() => setEditando(null)} />}
-      {hojaTarifa && <TarifaServicioModal tarifa={hojaTarifa.tarifa} proveedorId={hojaTarifa.proveedorId} servicios={servicios} tarifas={tarifas ?? []} onClose={() => setHojaTarifa(null)} />}
+      {hojaTarifa && <TarifaServicioModal tarifa={hojaTarifa.tarifa} proveedorId={hojaTarifa.proveedorId} servicios={servicios} tarifas={tarifas ?? []} procesos={procesos} onClose={() => setHojaTarifa(null)} />}
+      {hojaProceso && <ProcesoModal proceso={hojaProceso.proceso} catalogo={procesos} onClose={() => setHojaProceso(null)} />}
     </div>
   );
 }

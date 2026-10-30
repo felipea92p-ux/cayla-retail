@@ -9,6 +9,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
+import { esHeredada } from "./heredadas.mjs";
 
 export const PREFIJO = "reserva/";
 const ETIQUETA = /^reserva\/(adr|migracion)-(\d{4}|\d{14})$/;
@@ -64,7 +65,7 @@ export function revisarReservas({ tipo, nuevos, reservas, rama }) {
   for (const numero of [...new Set(nuevos)].sort()) {
     const r = porNumero.get(numero);
     if (!r) avisos.push(`${nombre} ${numero} no está reservado: resérvalo con \`pnpm reservar ${tipo}\` (o usa el que te dé).`);
-    else if (rama && r.rama && r.rama !== rama)
+    else if (rama && r.rama && r.rama !== rama && !esHeredada(r, rama))
       errores.push(
         `${nombre} ${numero} lo reservó la rama «${r.rama}», no esta («${rama}»): renumera el tuyo con \`pnpm reservar ${tipo}\`. Si «${r.rama}» era esta misma rama con otro nombre, reserva uno nuevo igual: las reservas no se mueven.`,
       );

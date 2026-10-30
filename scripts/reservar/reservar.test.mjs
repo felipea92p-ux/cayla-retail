@@ -77,6 +77,25 @@ test("parsearReservas lee la etiqueta y la rama dueña; ignora lo que no es una 
   ]);
 });
 
+test("reservas heredadas: solo el número declarado, de la rama de origen y en la rama heredera; nada más pasa", () => {
+  const de = "claude/module-registration-editing-4c6c12";
+  const a = "claude/module-registration-editing-4c6c12-j5lpdz";
+  const reservas = [
+    { tipo: "adr", numero: "0570", rama: de },
+    { tipo: "migracion", numero: "20261029190000", rama: de },
+    { tipo: "adr", numero: "0571", rama: de },
+  ];
+  assert.deepEqual(revisarReservas({ tipo: "adr", nuevos: ["0570"], reservas, rama: a }).errores, [], "la heredera puede usar 0570");
+  assert.deepEqual(revisarReservas({ tipo: "migracion", nuevos: ["20261029190000"], reservas, rama: a }).errores, []);
+  assert.equal(revisarReservas({ tipo: "adr", nuevos: ["0571"], reservas, rama: a }).errores.length, 1, "un número no declarado sigue siendo de otra rama");
+  assert.equal(revisarReservas({ tipo: "adr", nuevos: ["0570"], reservas, rama: "claude/otra" }).errores.length, 1, "otra rama no hereda");
+  assert.equal(
+    revisarReservas({ tipo: "adr", nuevos: ["0570"], reservas: [{ tipo: "adr", numero: "0570", rama: "claude/tercera" }], rama: a }).errores.length,
+    1,
+    "si la reserva es de otra rama que no es la de origen, no vale",
+  );
+});
+
 test("revisarReservas: de otra rama es error, sin reserva es aviso, mía no dice nada", () => {
   const reservas = [
     { tipo: "adr", numero: "0380", rama: "claude/yo" },
