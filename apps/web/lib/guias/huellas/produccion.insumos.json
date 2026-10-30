@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 74,
+  "total": 92,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -26,6 +26,8 @@
       "button «{g.material.id === primeraTelaId ? \"prod-insumos.agregar-colores\" : undefined}»",
       "LapizEditar «{`la tela ${g.material.nombre}»",
       "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
+      "LapizEditar «este ingreso»",
+      "button «Restaurar»",
       "Boton «+ Ingresar lote»",
       "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»",
       "Boton «{indice === 0 ? \"prod-insumos.retirar-color\" : undefined}»"
@@ -56,6 +58,19 @@
     "components/insumos-taller/CamposDeLaFicha.tsx": [
       "CampoSelect «{foco.etiqueta(\"tejido\", \"Tejido\")}»",
       "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
+    ],
+    "components/insumos-taller/CorregirIngresoModal.tsx": [
+      "CampoTexto «{`Cantidad (${unidad.corta}»",
+      "CampoMonto «{`Costo por ${unidad.corta}»",
+      "CampoFecha «¿Qué día llegó?»",
+      "CampoTexto «Documento»",
+      "CampoTexto «Código de lote»",
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
+      "ComboResponsable «{responsable}»",
+      "Boton «prod-insumos-corregir.eliminar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/insumos-taller/EditarTelaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
@@ -98,6 +113,13 @@
       "CampoTexto «Gramaje (g/m²)»",
       "CampoTexto «¿Cuántos metros trae un rollo?»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»"
+    ],
+    "components/insumos-taller/RestaurarIngresoModal.tsx": [
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/insumos-taller/RetirarColorModal.tsx": [
       "ComboResponsable «{responsable}»",

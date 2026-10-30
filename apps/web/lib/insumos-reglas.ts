@@ -151,6 +151,8 @@ export type LoteInsumo = {
   costoUnitario: number | null;
   documento: string | null;
   origen: "compra" | "saldo_inicial";
+  /** Por qué este ingreso no se corrige ni se elimina desde la pantalla (de él ya salió material); `null` o ausente si se puede (ADR-0570, `motivoParaNoTocarIngreso`). */
+  noSeToca?: string | null;
 };
 
 /** Lo que queda de un lote, como lo recalcula `registrar_consumo_insumo`: lo ingresado, menos consumo y merma,

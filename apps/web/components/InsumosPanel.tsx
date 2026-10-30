@@ -10,8 +10,10 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
+import { CorregirIngresoModal } from "@/components/insumos-taller/CorregirIngresoModal";
 import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
+import { RestaurarIngresoModal } from "@/components/insumos-taller/RestaurarIngresoModal";
 import { RetirarColorModal } from "@/components/insumos-taller/RetirarColorModal";
 import { NuevaTelaModal } from "@/components/insumos-taller/NuevaTelaModal";
 import { NuevoInsumoModal } from "@/components/insumos-taller/NuevoInsumoModal";
@@ -27,9 +29,10 @@ import {
   textoDeMovimiento,
   tramoDeSaldo,
   type EstadoInsumo,
+  type LoteConSaldo,
   type MaterialVista,
 } from "@/lib/insumos-reglas";
-import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
+import type { IngresoEliminado, InsumoVista, InsumosDelTaller } from "@/lib/insumos";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { coloresConNombreDesfasado } from "@/lib/editar-tela-reglas";
 import { costoUnitarioTexto } from "@/lib/monto-plata-reglas";
@@ -85,11 +88,14 @@ export function InsumosPanel({
   const [fichando, setFichando] = useState<InsumoVista | null>(null);
   // «Retirar color» (solo el líder): el color de tela que se está retirando de la lista.
   const [retirando, setRetirando] = useState<InsumoVista | null>(null);
+  // «Corregir este ingreso» y «Restaurar» (solo el líder): el ingreso de un color que se está corrigiendo, o el eliminado que se está restaurando (ADR-0570).
+  const [corrigiendo, setCorrigiendo] = useState<{ insumo: InsumoVista; lote: LoteConSaldo } | null>(null);
+  const [restaurando, setRestaurando] = useState<{ insumo: InsumoVista; eliminado: IngresoEliminado } | null>(null);
   // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
   const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number; desfasados: number } | null>(null);
   const [verCapital, setVerCapital] = useState(false);
 
-  const { insumos, libro, capital } = datos;
+  const { insumos, libro, capital, eliminados } = datos;
   const bajos = insumos.filter((i) => i.estado.tono === "bajo" || i.estado.tono === "sin_saldo").length;
   const primeraTelaId = agruparPorTela(insumos.filter((i) => i.tipo === "tela"), datos.materiales).find((g) => g.material)?.material?.id ?? null;
   let indice = 0;
@@ -221,6 +227,10 @@ export function InsumosPanel({
                           onIngresar={() => setIngresando({ insumoId: i.id })}
                           onFicha={() => setFichando(i)}
                           onRetirar={() => setRetirando(i)}
+                          ingresosEditables={datos.ingresosEditables}
+                          eliminados={eliminados.filter((e) => e.insumoId === i.id)}
+                          onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
+                          onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
                         />
                       ))}
                     </div>
@@ -292,6 +302,8 @@ export function InsumosPanel({
       )}
       {fichando && <FichaDeLaTelaModal insumo={fichando} vocabulario={vocabulario} leyo={leyoVocabulario} onClose={() => setFichando(null)} />}
       {retirando && <RetirarColorModal key={retirando.id} insumo={retirando} tallerId={tallerId} onClose={() => setRetirando(null)} />}
+      {corrigiendo && <CorregirIngresoModal key={corrigiendo.lote.id} insumo={corrigiendo.insumo} lote={corrigiendo.lote} veCostos={veCostos} onClose={() => setCorrigiendo(null)} />}
+      {restaurando && <RestaurarIngresoModal key={restaurando.eliminado.loteId} insumo={restaurando.insumo} eliminado={restaurando.eliminado} onClose={() => setRestaurando(null)} />}
       {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
     </div>
   );
@@ -308,6 +320,10 @@ function FilaInsumo({
   onIngresar,
   onFicha,
   onRetirar,
+  ingresosEditables,
+  eliminados,
+  onCorregir,
+  onRestaurar,
 }: {
   insumo: InsumoVista;
   indice: number;
@@ -319,6 +335,12 @@ function FilaInsumo({
   onIngresar: () => void;
   onFicha: () => void;
   onRetirar: () => void;
+  /** La base ya sabe corregir y eliminar un ingreso: sin ella no se ofrece el lápiz. */
+  ingresosEditables: boolean;
+  /** Los ingresos de este color que se eliminaron por error (solo los ve el líder). */
+  eliminados: IngresoEliminado[];
+  onCorregir: (lote: LoteConSaldo) => void;
+  onRestaurar: (eliminado: IngresoEliminado) => void;
 }) {
   const { llenado, marcaMinimo } = tramoDeSaldo(i.saldo, i.minimo);
   const primero = loteMasAntiguoConSaldo(i.lotes);
@@ -373,8 +395,8 @@ function FilaInsumo({
               <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Layers />}>Todavía no hay lotes de este insumo.</Vacio>
             ) : (
               <ul>
-                {lotes.map((l) => (
-                  <li key={l.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0">
+                {lotes.map((l, k) => (
+                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0`}>
                     <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
@@ -394,9 +416,37 @@ function FilaInsumo({
                         </span>
                       )}
                     </span>
+                    {/* Un ingreso equivocado se corrige o se elimina aquí (ADR-0570): el lápiz abre una hoja con el motivo; si de ese lote ya salió material, se apaga y dice por qué. */}
+                    {esLider && ingresosEditables && (
+                      <LapizEditar
+                        que="este ingreso"
+                        guia={indice === 0 && k === 0 ? "prod-insumos.corregir-ingreso" : undefined}
+                        disabled={!!l.noSeToca}
+                        title={l.noSeToca ?? "Corregir o eliminar este ingreso"}
+                        onClick={() => onCorregir(l)}
+                      />
+                    )}
                   </li>
                 ))}
               </ul>
+            )}
+            {/* Lo eliminado no se borró: queda aquí con su porqué, y «Restaurar» lo devuelve al estante. */}
+            {esLider && eliminados.length > 0 && (
+              <div className="mt-1 border-t border-tinta/[0.06] pt-2">
+                <p className="text-[11.5px] text-tinta/65">{plural(eliminados.length, "ingreso eliminado", "ingresos eliminados")}</p>
+                <ul>
+                  {eliminados.map((e) => (
+                    <li key={e.loteId} className="flex items-center justify-between gap-3 py-1.5 text-[12.5px]">
+                      <span className="min-w-0 truncate text-tinta/75">
+                        <span className="tabular-nums">{cantidadTexto(e.cantidad, i.unidad)}</span> · {diaMes(e.ingreso)} · «{e.motivo}»
+                      </span>
+                      <button type="button" className="btn-enlace shrink-0 text-xs" aria-haspopup="dialog" onClick={() => onRestaurar(e)}>
+                        Restaurar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             {esLider && (
               <div className="flex flex-wrap gap-2 pt-2">

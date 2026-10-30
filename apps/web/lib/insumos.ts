@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { RPC_INGRESOS_ELIMINADOS, motivoParaNoTocarIngreso } from "@/lib/ingreso-insumo-reglas";
 import {
   capitalEnLotes,
   consumoSemanal,
@@ -50,6 +51,20 @@ export type InsumoVista = {
   semanas: number | null;
 };
 
+/** Un ingreso eliminado por error (ADR-0570, actividad 6a): cuánto era, quién lo eliminó y por qué. Solo lo ve el líder; los demás reciben la lista vacía. */
+export type IngresoEliminado = {
+  loteId: string;
+  insumoId: string;
+  cantidad: number;
+  costoUnitario: number | null;
+  ingreso: string;
+  documento: string | null;
+  codigo: string | null;
+  motivo: string;
+  quien: string;
+  eliminadoEn: string;
+};
+
 export type MovimientoDelLibro = {
   id: string;
   insumoId: string;
@@ -86,6 +101,10 @@ export type InsumosDelTaller = {
   capital: number | null;
   /** La base entregó el costo de los lotes (quien mira ve Producción en este Taller, ADR-0400 actividad 6). Sin lotes no hay costo que ver y se da por visible; con lotes y cero filas, no se ve: nunca se dibuja «S/ 0.00». */
   veCostos: boolean;
+  /** La base ya sabe corregir y eliminar un ingreso (migración 20261030134000): sin ella la pantalla no ofrece el lápiz. */
+  ingresosEditables: boolean;
+  /** Los ingresos eliminados por error, del más reciente al más viejo (solo para el líder; vacío si la base todavía no sabe eliminar ingresos). */
+  eliminados: IngresoEliminado[];
   /** Las telas (y avíos con tela) del Taller: lo que es cada una y cómo se compra. Vacío si la base todavía no las tiene. */
   materiales: MaterialVista[];
   /** La base ya tiene las telas con sus colores (ADR-0554): sin ellas la pantalla se queda como antes. */
@@ -124,6 +143,31 @@ type FilaMaterial = {
   updated_at: string;
 };
 
+type FilaLote = {
+  id: string;
+  insumo_id: string;
+  codigo_lote: string | null;
+  fecha_ingreso: string;
+  created_at: string;
+  cantidad_ingresada: number | string;
+  documento: string | null;
+  origen: string;
+  anulado_at?: string | null;
+};
+
+type FilaEliminado = {
+  lote_id: string;
+  insumo_id: string;
+  cantidad: number | string;
+  costo_unitario: number | string | null;
+  fecha_ingreso: string;
+  documento: string | null;
+  codigo_lote: string | null;
+  motivo: string;
+  hecho_por: string;
+  eliminado_at: string;
+};
+
 type Respuesta<T> = PromiseLike<{ data: T[] | null; error: { message: string; code?: string } | null }>;
 
 const COLUMNAS_INSUMO = "id, codigo, nombre, tipo, unidad_medida, merma_pct, stock_minimo, nota, tejido_id, color_codigo";
@@ -131,6 +175,16 @@ const COLUMNAS_INSUMO = "id, codigo, nombre, tipo, unidad_medida, merma_pct, sto
 // `tejido_id`, `color_codigo` y `material_id` son nuevas y los tipos generados todavía no las traen: la consulta se tipa a mano, como `lotes` en recepcion-envio.ts.
 function leerInsumos(supabase: Awaited<ReturnType<typeof createClient>>, columnas: string): Respuesta<FilaInsumo> {
   return (supabase.from("insumos") as unknown as { select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => Respuesta<FilaInsumo> } } }).select(columnas).is("archivado_at", null).order("nombre");
+}
+
+// `anulado_at` es nueva (ADR-0570, 20261030134000) y los tipos generados todavía no la traen: la consulta se tipa a mano.
+function leerLotes(supabase: Awaited<ReturnType<typeof createClient>>, tallerId: string, columnas: string): Respuesta<FilaLote> {
+  return (supabase.from("insumo_lotes") as unknown as { select: (c: string) => { eq: (col: string, v: string) => Respuesta<FilaLote> } }).select(columnas).eq("ubicacion_id", tallerId);
+}
+
+// La función es nueva (ADR-0570): sin ella la lista queda vacía y la pantalla no se cae.
+function leerEliminados(supabase: Awaited<ReturnType<typeof createClient>>, tallerId: string): Respuesta<FilaEliminado> {
+  return (supabase as unknown as { rpc: (f: string, a: { p_ubicacion_id: string }) => Respuesta<FilaEliminado> }).rpc(RPC_INGRESOS_ELIMINADOS, { p_ubicacion_id: tallerId });
 }
 
 function leerMateriales(supabase: Awaited<ReturnType<typeof createClient>>): Respuesta<FilaMaterial> {
@@ -148,11 +202,17 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
   const primera = await leerInsumos(supabase, `${COLUMNAS_INSUMO}, material_id`);
   const sinMaterialId = !!primera.error && (primera.error.code === "42703" || /material_id/.test(primera.error.message));
   const insumos = sinMaterialId ? await leerInsumos(supabase, COLUMNAS_INSUMO) : primera;
-  const [lotes, movs, costos, materialesRes] = await Promise.all([
-    supabase
-      .from("insumo_lotes")
-      .select("id, insumo_id, codigo_lote, fecha_ingreso, created_at, cantidad_ingresada, documento, origen")
-      .eq("ubicacion_id", tallerId),
+  const COLUMNAS_LOTE = "id, insumo_id, codigo_lote, fecha_ingreso, created_at, cantidad_ingresada, documento, origen";
+  // Si la base todavía no tiene la migración de corregir ingresos, la pantalla no ofrece el lápiz (tocarlo fallaría).
+  let baseSinIngresosEditables = false;
+  const [lotes, movs, costos, materialesRes, eliminadosRes] = await Promise.all([
+    // La web puede salir antes que la migración 20261030134000 (ADR-0570): sin `anulado_at` los lotes se leen como hasta hoy y nadie ha eliminado ninguno. Una columna sin permiso de lectura
+    // (`42501`, como las demás de `insumo_lotes` hasta que se les da) cae igual que una que no existe (`42703`).
+    leerLotes(supabase, tallerId, `${COLUMNAS_LOTE}, anulado_at`).then(async (r) => {
+      if (!(r.error && (r.error.code === "42703" || r.error.code === "42501" || /anulado_at/.test(r.error.message)))) return r;
+      baseSinIngresosEditables = true;
+      return await leerLotes(supabase, tallerId, COLUMNAS_LOTE);
+    }),
     supabase
       .from("movimientos_insumo")
       .select("id, insumo_id, insumo_lote_id, tipo, cantidad, produccion_id, motivo, created_at, produccion:producciones ( producto:productos ( referencia ) )")
@@ -161,6 +221,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     // Solo quien ve los costos del Taller recibe filas (`fn_ve_costos_del_taller`: el líder, o quien ve Producción parado en él); a los demás la base les responde vacío.
     opciones.conCostos ? supabase.rpc("fn_costos_insumos_taller", { p_ubicacion_id: tallerId }) : Promise.resolve({ data: [] as { lote_id: string; costo_unitario: number }[], error: null }),
     leerMateriales(supabase),
+    leerEliminados(supabase, tallerId),
   ]);
   const costoDeLote = new Map(exigir(costos, "los costos de los lotes").map((c) => [c.lote_id, Number(c.costo_unitario)]));
 
@@ -180,7 +241,8 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     creadoEn: m.created_at,
     costo: m.insumo_lote_id ? (costoDeLote.get(m.insumo_lote_id) ?? 0) : 0,
   }));
-  const lotesBase = filasLotes.map((l) => ({
+  // Un ingreso eliminado no es un lote del estante: no cuenta en «N lotes», ni en el PEPS ni en el capital. Se ve aparte, con su «Restaurar».
+  const lotesBase = filasLotes.filter((l) => !l.anulado_at).map((l) => ({
     id: l.id,
     insumoId: l.insumo_id,
     codigo: l.codigo_lote,
@@ -212,11 +274,27 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
         version: String(m.updated_at),
       }));
 
+  // Sin la función (la base todavía no la tiene) o sin ser líder, no hay eliminados que mostrar: no es un error de la pantalla.
+  const eliminados: IngresoEliminado[] = eliminadosRes.error
+    ? []
+    : (eliminadosRes.data ?? []).map((e) => ({
+        loteId: e.lote_id,
+        insumoId: e.insumo_id,
+        cantidad: Number(e.cantidad),
+        costoUnitario: e.costo_unitario === null ? null : Number(e.costo_unitario),
+        ingreso: e.fecha_ingreso,
+        documento: e.documento,
+        codigo: e.codigo_lote,
+        motivo: e.motivo,
+        quien: e.hecho_por,
+        eliminadoEn: e.eliminado_at,
+      }));
+
   const vistas: InsumoVista[] = filasInsumos.map((i) => {
     const suyos = movimientos.filter((m) => m.insumoId === i.id);
     const suyosLotes: LoteConSaldo[] = lotesBase
       .filter((l) => l.insumoId === i.id)
-      .map((l) => ({ ...l, saldo: saldoDeLote(l, suyos) }));
+      .map((l) => ({ ...l, saldo: saldoDeLote(l, suyos), noSeToca: motivoParaNoTocarIngreso(suyos.filter((m) => m.loteId === l.id)) }));
     const saldo = saldoDeInsumo(suyos);
     const semanal = consumoSemanal(suyos, opciones.hoy);
     return {
@@ -282,6 +360,8 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     consumosPorOrden,
     capital: veCostos ? capitalEnLotes(vistas.flatMap((v) => v.lotes)) : null,
     veCostos,
+    ingresosEditables: !baseSinIngresosEditables,
+    eliminados,
     materiales,
     hayTelas: !sinMaterialId && !materialesRes.error,
   };

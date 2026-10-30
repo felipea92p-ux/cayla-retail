@@ -1424,6 +1424,23 @@ ESCENARIOS.push(
     await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
     await esperar(pagina, 600);
   }) },
+  // «Corregir este ingreso» (ADR-0570, actividad 6a): la hoja con el lote tal como está, el motivo con atajos y «Eliminar el ingreso» a la izquierda. Necesita un lote que nadie haya usado (el lápiz de uno usado está apagado).
+  { id: "produccion.ingreso-corregir", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Corregir este ingreso»", preparar: secuencia(async (pagina) => {
+    const lapiz = 'button[aria-label="Editar este ingreso"]:not([disabled])';
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.locator(lapiz) }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.locator(lapiz).first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
+  // «Restaurar» un ingreso eliminado: necesita uno eliminado en la base local (se elimina uno desde «Corregir este ingreso» y se vuelve a correr).
+  { id: "produccion.ingreso-restaurar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Restaurar este ingreso»", preparar: secuencia(async (pagina) => {
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /^Restaurar$/ }) }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.getByRole("button", { name: /^Restaurar$/ }).first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
   { id: "produccion.cotizacion", ruta: "/produccion/cotizaciones-maquila", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva cotización» de maquila", preparar: clicRol("button", /Nueva cotización/i) },
   { id: "produccion.factura-nueva", ruta: "/produccion/comprobantes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva factura»", preparar: clicRol("button", /Nueva factura/i) },
   { id: "produccion.proveedor-nuevo", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo proveedor»", preparar: clicRol("button", /Nuevo proveedor/i) },

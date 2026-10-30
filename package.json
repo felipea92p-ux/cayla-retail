@@ -211,6 +211,7 @@
     "pruebas:insumos-devolucion": "node scripts/pruebas/insumos_devolucion.mjs",
     "pruebas:insumos-candados": "node scripts/pruebas/insumos_candados.mjs",
     "pruebas:materiales": "node scripts/pruebas/materiales.mjs",
+    "pruebas:insumos-corregir-ingreso": "node scripts/pruebas/insumos_corregir_ingreso.mjs",
     "pruebas:proveedores-produccion": "node scripts/pruebas/proveedores_produccion.mjs",
     "pruebas:comprobantes-produccion": "node scripts/pruebas/comprobantes_produccion.mjs",
     "pruebas:por-pagar-produccion": "node scripts/pruebas/por_pagar_produccion.mjs",
