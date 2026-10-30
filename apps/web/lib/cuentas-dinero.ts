@@ -195,15 +195,16 @@ export async function getContextoDinero(
   conciliacion: Lectura<ConciliacionCuenta[]>;
 }> {
   const esLider = persona.rol === "lider";
-  const { ubicaciones, talleres } = await getUbicacionesDinero();
-  // «Ver» es una sede, todas o la empresa (`ver.soloEmpresa`: los bancos y lo que no es de ninguna sede). La empresa no tiene cajón, pero
-  // sí cuentas: leerla como «todas» (lo que se hacía hasta el 2026-10-28) le mostraba a Felipe las cajas de las tiendas en «Empresa».
-  const ver = leerVer(verParam, ubicaciones, esLider, persona.ubicacionId);
-  const [cuentas, plata, conciliacion] = await Promise.all([
+  // Las sedes y los saldos se leen a la vez (ADR-0583): los saldos no dependen de la sede que se mira.
+  const [{ ubicaciones, talleres }, cuentas, plata, conciliacion] = await Promise.all([
+    getUbicacionesDinero(),
     getSaldos(null),
     esLider ? getPlataDelDueno() : Promise.resolve([]),
     esLider ? getConciliacionCuentas() : Promise.resolve({ datos: [], falla: null }),
   ]);
+  // «Ver» es una sede, todas o la empresa (`ver.soloEmpresa`: los bancos y lo que no es de ninguna sede). La empresa no tiene cajón, pero
+  // sí cuentas: leerla como «todas» (lo que se hacía hasta el 2026-10-28) le mostraba a Felipe las cajas de las tiendas en «Empresa».
+  const ver = leerVer(verParam, ubicaciones, esLider, persona.ubicacionId);
   return { ubicaciones, talleres, ver, esLider, cuentas, plata, deuda: deudaConDueno(plata).deuda, conciliacion };
 }
 

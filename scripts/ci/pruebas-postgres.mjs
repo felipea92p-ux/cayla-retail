@@ -1419,6 +1419,10 @@ export const PRUEBAS = [
   // entrelazado del cerrojo de cierre (quien registra espera al cierre y el cierre espera a quien registra; lo de hoy no espera). ROLLBACK.
   "pruebas:finanzas-mes-cerrado",
 
+  // Lecturas de Finanzas que escalan (ADR-0583): `fn_diario` no rearma el diario vivo de un mes cerrado entero y `fn_item_es_de_claure` mira
+  // la sede antes que el dueño de la línea; las dos responden EXACTAMENTE lo mismo que antes (comparadas con su copia). ROLLBACK.
+  "pruebas:finanzas-lecturas-que-escalan",
+
   // Cada pago de un apartado se asienta el día en que entró la plata (auditoría 2026-10-16, G02; ADR-0433 act. 10): el diario trae un asiento por pago
   // (el primero y cada abono) con su IGV por pago; agregar un abono no cambia el diario de un mes anterior; devolver el adelanto o entregar el apartado
   // reversan exactamente lo que entró (122 y 4011 en cero, con los céntimos por pago) y el Balance suma lo recibido hasta el corte. ROLLBACK.
