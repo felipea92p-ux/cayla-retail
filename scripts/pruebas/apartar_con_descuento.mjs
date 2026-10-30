@@ -8,7 +8,7 @@
  *      descuento con el mismo motivo (antes la entrega marcaba «campaña» todo descuento);
  *   2. que cada regla rechaza lo que debe (sin motivo, «Otro» sin detalle, pasado el 15 % sin argumento, bajo el costo, gratis,
  *      un Líder pasado el 35 %);
- *   1b. que la lista de apartados (`buscar_separaciones`, `20261030224000`) dice el motivo, el detalle y el argumento de cada prenda:
+ *   1b. que la lista de apartados (`buscar_separaciones`, `20261030234000`) dice el motivo, el detalle y el argumento de cada prenda:
  *      con eso el detalle, Entregar y el Historial distinguen un descuento a mano de uno de campaña;
  *   3. que la regla de Apartar (`fn_exigir_descuento_manual`) y la de la venta (dentro de `registrar_venta`) dicen LO MISMO: cada
  *      caso de rechazo se corre en las dos y exige el mismo error. La regla vive en dos lugares (ver el DESCARTÉ de la migración);
@@ -154,7 +154,7 @@ update retail.separacion_items set motivo_descuento = null where separacion_id =
 );
 
 // ---------------------------------------------------------------------------
-// 1b. El apartado ya hecho dice su descuento (`20261030224000`, actividad 4): la lista que leen el detalle, Entregar y el Historial
+// 1b. El apartado ya hecho dice su descuento (`20261030234000`, actividad 4): la lista que leen el detalle, Entregar y el Historial
 // ---------------------------------------------------------------------------
 exito(
   "la lista de apartados dice el motivo, el detalle y el argumento de cada prenda con descuento a mano",
@@ -267,7 +267,7 @@ select :'h0' = ${HUELLA}, (select count(*) from pg_proc where pronamespace = 're
   (s) => s === "t|2",
 );
 
-const MIG_LISTA = readFileSync(new URL("../../supabase/migrations/20261030224000_apartado_dice_su_descuento.sql", import.meta.url), "utf8");
+const MIG_LISTA = readFileSync(new URL("../../supabase/migrations/20261030234000_apartado_dice_su_descuento.sql", import.meta.url), "utf8");
 const HUELLA_LISTA = `(select md5(pg_get_functiondef('retail.buscar_separaciones'::regproc)))`;
 exito(
   "la migración de la lista se pega dos veces sin cambiar nada",

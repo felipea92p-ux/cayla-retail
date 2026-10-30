@@ -34,7 +34,7 @@ export type PrendaApartada = {
   precioUnitario: number;
   descuentoUnitario: number;
   /** ADR-0584: por qué se descontó A MANO (la lista de la venta). null sin descuento o con descuento de campaña (o con una base
-   *  anterior a 20261030224000, que no lo devuelve: todo descuento se ve como campaña, como antes). */
+   *  anterior a 20261030234000, que no lo devuelve: todo descuento se ve como campaña, como antes). */
   motivoDescuento: string | null;
   /** El texto de un motivo «otro». */
   motivoDescuentoDetalle: string | null;

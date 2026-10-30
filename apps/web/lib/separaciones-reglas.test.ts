@@ -449,7 +449,7 @@ describe("descuentoDePrenda — el apartado ya hecho dice su descuento (ADR-0584
     expect([sin.motivoDescuento, sin.motivoDescuentoDetalle, sin.argumentoDescuento]).toEqual([null, null, null]);
   });
 
-  it("una base anterior a 20261030224000 no trae los campos: todo descuento se ve como campaña, como antes", () => {
+  it("una base anterior a 20261030234000 no trae los campos: todo descuento se ve como campaña, como antes", () => {
     const p = prenda({ descuento_unitario: "8.00" });
     expect(p.motivoDescuento).toBeNull();
     expect(descuentoDePrenda(p)).toMatchObject({ campana: true, motivo: "Campaña" });

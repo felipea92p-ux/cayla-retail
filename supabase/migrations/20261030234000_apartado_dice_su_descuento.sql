@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261030224000_apartado_dice_su_descuento.sql — CAYLA V2 (ADR-0584, actividad 4; Felipe 2026-10-30)
+-- 20261030234000_apartado_dice_su_descuento.sql — CAYLA V2 (ADR-0584, actividad 4; Felipe 2026-10-30)
 --
 -- EL PROBLEMA. Desde 20261030220000 una prenda se aparta con descuento a mano y su motivo queda en `separacion_items`. Pero la
 -- lista de apartados (`buscar_separaciones`, la que leen el detalle, Entregar y el Historial) solo devolvía `descuento_unitario`:

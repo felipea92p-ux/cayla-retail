@@ -611,7 +611,7 @@ export const PRUEBAS = [
 
   // Apartar con descuento a mano (ADR-0584): se guarda con su motivo y la entrega lo lleva a la venta; cada regla (motivo,
   // «Otro» sin detalle, argumento pasado el 15 %, bajo el costo, Líder pasado el 35 %) rechaza igual al apartar que al vender,
-  // porque la regla vive en dos lugares; la lista de apartados dice el motivo de cada prenda (20261030224000); y las dos
+  // porque la regla vive en dos lugares; la lista de apartados dice el motivo de cada prenda (20261030234000); y las dos
   // migraciones se pegan dos veces. Cada caso: ROLLBACK.
   "pruebas:apartar-con-descuento",
 
