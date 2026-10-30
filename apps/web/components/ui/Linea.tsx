@@ -332,7 +332,11 @@ export function Linea({
                 "aria-valuemax": guiaHasta ?? hasta,
                 "aria-valuenow": guia ?? momentoInicial() ?? desde,
                 onKeyDown: alTeclear,
-                onFocus: () => setGuia(momentoInicial()),
+                // Solo con el teclado: un clic o un toque también da el foco, y la guía saltaría a «hoy» antes de que el clic elija su día
+                // (en el teléfono quedaba pegada encima de la cifra). Y solo al gráfico: el foco de una nota de adentro también sube hasta aquí.
+                onFocus: (e: React.FocusEvent<SVGSVGElement>) => {
+                  if (e.target === e.currentTarget && e.currentTarget.matches(":focus-visible")) setGuia(momentoInicial());
+                },
                 onBlur: () => setGuia(null),
                 onClick: (e: React.MouseEvent<SVGSVGElement>) => {
                   // Un clic en una nota o una marca es de ellas, no del momento que hay debajo.
