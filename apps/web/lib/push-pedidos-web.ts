@@ -119,3 +119,55 @@ export function decidirPorRespuesta(codigo: number | null): DecisionAparato {
 export function fichaCumplida(resultados: readonly DecisionAparato[]): boolean {
   return resultados.length === 0 || resultados.includes("entregado") || resultados.every((r) => r === "quitar_aparato");
 }
+
+// ---- En el teléfono (el botón «Avisos de pedidos») ---------------------------------------------------------------------------------
+
+/** Revisa lo que mandó el navegador al activar (`PushSubscription.toJSON()`). La suscripción limpia, o null si la forma no cuadra. */
+export function suscripcionValida(entrada: unknown): AparatoPush | null {
+  if (typeof entrada !== "object" || entrada === null) return null;
+  const f = entrada as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
+  const { p256dh, auth } = f.keys ?? {};
+  if (!direccionValida(f.endpoint)) return null;
+  if (typeof p256dh !== "string" || p256dh.length < 40 || p256dh.length > 200) return null;
+  if (typeof auth !== "string" || auth.length < 10 || auth.length > 100) return null;
+  return { endpoint: f.endpoint, p256dh, auth };
+}
+
+/** La clave pública (base64 url) en los bytes que pide el navegador para suscribirse. */
+export function claveAUint8(clave: string): Uint8Array<ArrayBuffer> {
+  const base64 = clave.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(clave.length / 4) * 4, "=");
+  const texto = atob(base64);
+  return Uint8Array.from(texto, (c) => c.charCodeAt(0));
+}
+
+/** En qué teléfono estamos, para decir lo que de verdad se puede hacer en él. */
+export type Telefono = "android" | "iphone" | "otro";
+
+export function telefonoDe(userAgent: string): Telefono {
+  if (/android/i.test(userAgent)) return "android";
+  if (/iphone|ipad|ipod/i.test(userAgent)) return "iphone";
+  return "otro";
+}
+
+/**
+ * ¿Se pueden activar los avisos aquí? El iPhone solo los da a una app agregada a la pantalla de inicio (iOS 16.4 o más nuevo):
+ * abierto en Safari no existe `PushManager`, así que se le explica cómo agregarla en vez de decir «no se puede».
+ */
+export type PuedeAvisar = "si" | "iphone_sin_instalar" | "sin_soporte";
+
+export function puedeAvisar(c: { telefono: Telefono; instalada: boolean; tienePush: boolean }): PuedeAvisar {
+  if (c.telefono === "iphone" && !c.instalada) return "iphone_sin_instalar";
+  return c.tienePush ? "si" : "sin_soporte";
+}
+
+/** El aviso de «Probar el aviso»: el mismo diseño y la misma vibración, sin un número ni un total que alguien vaya a buscar. */
+export function paqueteDePrueba(sede: string): PaqueteAviso {
+  return {
+    tipo: "pedido_web",
+    titulo: "Pedido web nuevo · prueba",
+    texto: `${sede} · así suena cada pedido nuevo`.slice(0, 240),
+    enlace: "/tienda-web/pedidos",
+    imagen: null,
+    etiqueta: "pedido-web-prueba",
+  };
+}

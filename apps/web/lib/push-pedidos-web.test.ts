@@ -1,5 +1,17 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decidirPorRespuesta, fichaCumplida, leerPorAvisar, paqueteDelPedido } from "./push-pedidos-web";
+import {
+  claveAUint8,
+  decidirPorRespuesta,
+  fichaCumplida,
+  leerPorAvisar,
+  paqueteDePrueba,
+  paqueteDelPedido,
+  puedeAvisar,
+  suscripcionValida,
+  telefonoDe,
+} from "./push-pedidos-web";
 
 const FOTO = "https://vovjyyiafkxteijimpuy.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/773bebab.jpg";
 const PEDIDO = { pedidoId: "8a1f2c3d-0000-4000-8000-000000000018", codigo: "W-0018", sede: "Tienda TRU", prendas: 1, total: 109, foto: FOTO };
@@ -68,5 +80,52 @@ describe("decidirPorRespuesta y fichaCumplida", () => {
     expect(fichaCumplida(["reintentar", "entregado"])).toBe(true);
     expect(fichaCumplida(["quitar_aparato"])).toBe(true);
     expect(fichaCumplida(["reintentar", "quitar_aparato"])).toBe(false);
+  });
+});
+
+describe("en el teléfono", () => {
+  it("acepta la suscripción del navegador y rechaza una sin claves o con una dirección que no es https", () => {
+    const ok = { endpoint: APARATO.endpoint, keys: { p256dh: APARATO.p256dh, auth: APARATO.auth } };
+    expect(suscripcionValida(ok)).toEqual(APARATO);
+    expect(suscripcionValida({ ...ok, keys: {} })).toBeNull();
+    expect(suscripcionValida({ ...ok, endpoint: "http://fcm.googleapis.com/fcm/send/xxxxxxxxxxxxxxxxxxxxx" })).toBeNull();
+    expect(suscripcionValida(null)).toBeNull();
+  });
+
+  it("convierte la clave pública a bytes", () => {
+    expect(Array.from(claveAUint8("AQID"))).toEqual([1, 2, 3]);
+    expect(claveAUint8("BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM")).toHaveLength(65);
+  });
+
+  it("reconoce el Android, el iPhone y lo demás", () => {
+    expect(telefonoDe("Mozilla/5.0 (Linux; Android 14; SM-A546E) Chrome/130")).toBe("android");
+    expect(telefonoDe("Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Safari/604.1")).toBe("iphone");
+    expect(telefonoDe("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130")).toBe("otro");
+  });
+
+  it("al iPhone sin instalar le explica cómo agregarlo; sin push, no se puede; lo demás, sí", () => {
+    expect(puedeAvisar({ telefono: "iphone", instalada: false, tienePush: false })).toBe("iphone_sin_instalar");
+    expect(puedeAvisar({ telefono: "iphone", instalada: true, tienePush: true })).toBe("si");
+    expect(puedeAvisar({ telefono: "android", instalada: false, tienePush: true })).toBe("si");
+    expect(puedeAvisar({ telefono: "otro", instalada: false, tienePush: false })).toBe("sin_soporte");
+  });
+
+  it("el aviso de prueba se ve igual que uno de verdad y se nota que es de prueba (sin número ni total que buscar)", () => {
+    const p = paqueteDePrueba("Tienda TRU");
+    expect(p.titulo).toBe("Pedido web nuevo · prueba");
+    expect(p.texto).toBe("Tienda TRU · así suena cada pedido nuevo");
+    expect(p.enlace).toBe("/tienda-web/pedidos");
+    expect(p.etiqueta).toBe("pedido-web-prueba");
+  });
+
+  it("el service worker muestra los avisos de pedido web con los archivos que existen", () => {
+    const sw = readFileSync(join(__dirname, "../public/sw.js"), "utf8");
+    expect(sw).toContain('addEventListener("push"');
+    expect(sw).toContain('addEventListener("notificationclick"');
+    expect(sw).toContain("probar-aviso-pedido-web");
+    for (const archivo of sw.match(/"\/erp-[a-z0-9-]+\.png"/g) ?? []) {
+      expect(existsSync(join(__dirname, "../public", JSON.parse(archivo))), archivo).toBe(true);
+    }
+    expect(existsSync(join(__dirname, "../public/sonidos/campanita-cayla.wav"))).toBe(true);
   });
 });
