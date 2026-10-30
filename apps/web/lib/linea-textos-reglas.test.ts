@@ -68,6 +68,12 @@ describe("la cifra de un punto", () => {
     expect(lugarDeLaCifra(100, 100, 60, 15, linea, dentro)).toEqual({ x: 111, y: 91, anclaje: "start" });
   });
 
+  it("el lugar de siempre de la pieza gana si está libre: una cifra que hoy no choca no se mueve", () => {
+    expect(lugarDeLaCifra(100, 100, 60, 15, [], dentro, [9, 5, "start"])).toEqual({ x: 109, y: 105, anclaje: "start" });
+    const linea = muestrearTrazo([[100, 100], [200, 100]]);
+    expect(lugarDeLaCifra(100, 100, 60, 15, linea, dentro, [9, 5, "start"])).not.toMatchObject({ x: 109, y: 105 });
+  });
+
   it("no se sale del gráfico: pegada al borde derecho va a la izquierda", () => {
     expect(lugarDeLaCifra(380, 100, 60, 15, [], dentro)).toMatchObject({ x: 369, anclaje: "end" });
   });

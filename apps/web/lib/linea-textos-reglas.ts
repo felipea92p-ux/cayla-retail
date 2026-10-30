@@ -82,9 +82,10 @@ const LUGARES: readonly (readonly [number, number, Anclaje])[] = [
 ];
 
 /**
- * Dónde va la cifra de un punto (`px`, `py`): en el primer lugar libre de `LUGARES` (a 4 px de todo punto de `obstaculos` y dentro de
- * `dentro`); si ninguno está libre, en el que menos pisa (el borde de papel del texto la deja leer igual). `x`/`y` son los de un `<text>`
- * (la línea de base), con su `anclaje`.
+ * Dónde va la cifra de un punto (`px`, `py`): en el primer lugar libre (a 4 px de todo punto de `obstaculos` y dentro de `dentro`),
+ * probando primero `primero` —el lugar de siempre de esa pieza, para que una cifra que hoy no choca con nada no se mueva— y después
+ * `LUGARES`; si ninguno está libre, en el que menos pisa (el borde de papel del texto la deja leer igual). `x`/`y` son los de un
+ * `<text>` (la línea de base), con su `anclaje`.
  */
 export function lugarDeLaCifra(
   px: number,
@@ -93,13 +94,15 @@ export function lugarDeLaCifra(
   alto: number,
   obstaculos: readonly (readonly [number, number])[],
   dentro: Caja,
+  primero?: readonly [number, number, Anclaje],
 ): { x: number; y: number; anclaje: Anclaje } {
   const pisa = (c: Caja) => {
     const fuera = c.x < dentro.x || c.x + c.ancho > dentro.x + dentro.ancho || c.y < dentro.y || c.y + c.alto > dentro.y + dentro.alto;
     return (fuera ? 1e6 : 0) + obstaculos.filter(([ox, oy]) => ox > c.x - 4 && ox < c.x + c.ancho + 4 && oy > c.y - 4 && oy < c.y + c.alto + 4).length;
   };
-  let mejor = { x: px + LUGARES[0]![0], y: py + LUGARES[0]![1], anclaje: LUGARES[0]![2], pisa: Infinity };
-  for (const [dx, dy, anclaje] of LUGARES) {
+  const lugares = primero ? [primero, ...LUGARES] : LUGARES;
+  let mejor = { x: px + lugares[0]![0], y: py + lugares[0]![1], anclaje: lugares[0]![2], pisa: Infinity };
+  for (const [dx, dy, anclaje] of lugares) {
     const x = px + dx;
     const izquierda = anclaje === "end" ? x - ancho : anclaje === "middle" ? x - ancho / 2 : x;
     // La caja del texto va de la línea de base hacia arriba (alto − 3) y baja 3 px (la cola de la «g»).
