@@ -453,7 +453,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "lista",
       ancla: "fin-gastos.lista",
       titulo: "Los gastos del mes",
-      texto: "Uno por fila: la fecha, qué fue, la categoría, el comprobante, cómo se pagó, el monto y su estado. Un gasto nunca se borra: si se registró mal, se anula con su motivo y queda a la vista. Al tocar uno ves su detalle (si hay, te abrimos el primero).",
+      texto: "Van por día, del más nuevo al más viejo, con lo que se fue cada día. Cada fila dice qué fue y, debajo, en qué y cómo se pagó; solo se marca lo que pide algo (por pagar, sin comprobante desde S/\u00a0300, anulado). Un gasto nunca se borra: se anula con su motivo. Al tocar uno ves su detalle.",
     },
     {
       id: "detalle",

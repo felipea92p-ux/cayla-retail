@@ -454,6 +454,51 @@ span.sede-telar { cursor: default; }
   .ritmo-gasto .hilo-gasto-sede { display: none; }
 }
 
+/* ---- Gastos · la lista como el extracto del banco («L1 · Por día», Felipe 2026-10-30): el separador del día es <SeparadorDia>
+   (se pega bajo la mesa de mando: `--separador-tope` lo mide `ExtractoGastos`) y cada fila es `fila-cayla`. Lo que pide algo va en
+   su columna de marcas; la sede, solo con varias a la vista. ---- */
+/* `clip` y no `hidden`: recorta las esquinas igual, pero no vuelve a la tarjeta un contenedor de scroll, y el separador sí se pega. */
+.fin-superficie:has(> .extracto-gastos) { overflow: clip; }
+.extracto-gastos { container: extracto / inline-size; }
+.extracto-filas { display: grid; }
+.extracto-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px 120px;
+  grid-template-areas: "que marca monto";
+  gap: 4px 16px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 32px 10px 20px;
+  text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent);
+}
+.extracto-filas > .extracto-fila:last-child { border-bottom: 0; }
+.extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 112px 200px 120px; grid-template-areas: "que sede marca monto"; }
+.extracto-que { grid-area: que; display: grid; min-width: 0; }
+.extracto-que b { font-weight: 500; }
+.extracto-proveedor { font-weight: 400; color: var(--color-taupe-profundo); }
+.extracto-que small { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--color-taupe-profundo); }
+.extracto-punto-angosto { display: none; }
+.extracto-sede { grid-area: sede; display: inline-flex; gap: 6px; align-items: center; min-width: 0; font-size: 12.5px; color: var(--color-taupe-profundo); }
+.extracto-marca { grid-area: marca; display: flex; justify-content: flex-start; min-width: 0; }
+.extracto-monto { grid-area: monto; display: grid; justify-items: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.extracto-monto b { font-weight: 500; }
+.extracto-monto small { font-size: 12px; color: var(--color-taupe-profundo); }
+.extracto-fila[data-anulado] .extracto-que b,
+.extracto-fila[data-anulado] .extracto-monto b { color: var(--color-taupe-profundo); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--color-taupe) 70%, transparent); }
+/* Angosta (tablet en vertical, celular): qué fue y el monto arriba; la marca, debajo de qué fue; la sede, como un punto en la línea de abajo. */
+@container extracto (max-width: 640px) {
+  .extracto-fila,
+  .extracto-gastos[data-con-sede] .extracto-fila {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "que monto" "marca monto";
+    padding: 10px 28px 10px 14px;
+  }
+  .extracto-sede { display: none; }
+  .extracto-punto-angosto { display: inline-flex; }
+  .extracto-marca:empty { display: none; }
+}
+
 /* ---- La hoja «Registrar gasto»: el formulario a la izquierda y «Así queda» a la derecha ---- */
 .hoja-gasto {
   display: grid;

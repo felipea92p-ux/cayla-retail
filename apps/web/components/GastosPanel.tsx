@@ -13,7 +13,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
-import { nombreCortoSede, porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { plantillasDe } from "@/lib/hoja-gasto-reglas";
 import { HojaRegistrarGasto } from "@/components/finanzas/gastos/HojaRegistrarGasto";
 import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
@@ -24,6 +24,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Volver } from "@/components/ui/Volver";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
+import { ExtractoGastos } from "@/components/finanzas/gastos/ExtractoGastos";
 import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -40,13 +41,11 @@ import {
   bajadaIgvDelMes,
   estadoGasto,
   fechaCorta,
-  igvBajoElMonto,
   igvDelGasto,
   igvEnRiesgo,
   igvParaLaTarjeta,
   mesDe,
   notaIgvPerdido,
-  papelDelGasto,
   papelEnUnaLinea,
   perdidoEnOtroMes,
   prefijoALaFecha,
@@ -389,6 +388,7 @@ export function GastosPanel({
           categorias={categorias}
           verTodas={verTodas}
           mes={mes}
+          hoy={hoy}
           onAbrir={setDetalle}
           filtros={filtros}
           onFiltros={(f) => setFiltros((a) => ({ ...a, ...f }))}
@@ -544,13 +544,14 @@ export function GastosPanel({
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// La tabla de gastos: filtros arriba (buscar, categoría, mes), la tabla y el pie, en una sola tarjeta.
+// La lista de gastos: filtros arriba (buscar, categoría, comprobante), el extracto por día y el pie, en una sola tarjeta.
 
 function TablaGastos({
   gastos,
   categorias,
   verTodas,
   mes,
+  hoy,
   onAbrir,
   filtros,
   onFiltros,
@@ -560,6 +561,7 @@ function TablaGastos({
   categorias: CategoriaGasto[];
   verTodas: boolean;
   mes: string;
+  hoy: string;
   onAbrir: (g: GastoFila) => void;
   /** Los filtros los comparte con los hilos, el calendario y «Por ordenar»; el mes lo elige la mesa de mando de arriba. */
   filtros: FiltrosLista;
@@ -636,75 +638,7 @@ function TablaGastos({
             </Vacio>
           )
         ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Gasto</th>
-                  <th>Categoría · cuenta</th>
-                  {verTodas && <th>Sede</th>}
-                  <th>Comprobante</th>
-                  <th>Cómo se pagó</th>
-                  <th className="fin-num">Monto</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((g) => {
-                  const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
-                  const pago = textoPago(g, (iso) => fechaCorta(iso));
-                  const papel = papelDelGasto(g);
-                  const igvFila = igvBajoElMonto(g);
-                  return (
-                    <tr
-                      key={g.id}
-                      data-clic
-                      tabIndex={0}
-                      className={g.estado === "anulado" ? "fin-anulada" : undefined}
-                      data-guia="fin-gastos.fila"
-                      onClick={() => onAbrir(g)}
-                      onKeyDown={(ev) => {
-                        if (ev.key === "Enter" || ev.key === " ") {
-                          ev.preventDefault();
-                          onAbrir(g);
-                        }
-                      }}
-                    >
-                      <td data-l="Fecha">{fechaCorta(g.fecha)}</td>
-                      <td className="fin-ancha" data-l="Gasto">
-                        <b>{g.descripcion}</b>
-                        <span className="fin-sub">{g.proveedorNombre ?? "Sin proveedor"}</span>
-                      </td>
-                      <td data-l="Categoría">
-                        {g.categoriaNombre} <span className="fin-tenue">· {g.cuenta}</span>
-                      </td>
-                      {verTodas && <td data-l="Sede">{g.ubicacionNombre ? nombreCortoSede(g.ubicacionNombre) : "Empresa"}</td>}
-                      <td data-l="Comprobante">
-                        {papel.tipo}
-                        {papel.detalle && <span className="fin-sub">{papel.detalle}</span>}
-                      </td>
-                      <td data-l="Pago" className={pago.startsWith("vence") ? "fin-tenue" : undefined}>
-                        {pago}
-                      </td>
-                      <td className="fin-num" data-l="Monto">
-                        <b>{soles(g.montoTotal)}</b>
-                        {igvFila && <span className="fin-sub">{igvFila.igv}</span>}
-                        {igvFila?.perdido && (
-                          <span className="fin-sub">
-                            <span className="text-ambar-profundo">{igvFila.perdido}</span>
-                          </span>
-                        )}
-                      </td>
-                      <td data-l="Estado">
-                        <Chip tono={e.tono}>{e.texto}</Chip>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ExtractoGastos gastos={visibles} hoy={hoy} verTodas={verTodas} sedes={sedes} onAbrir={onAbrir} />
         )}
         <PieTabla>
           <span>
