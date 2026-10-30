@@ -207,14 +207,14 @@ export function NuevoColorAlta({
             aria-describedby={`${id}-codigo-ayuda`}
             className="uppercase"
           />
-          <p id={`${id}-codigo-ayuda`} className="mt-1 text-[11px] text-taupe">
+          <p id={`${id}-codigo-ayuda`} className="mt-1 text-sm text-taupe">
             Va en el SKU
           </p>
         </div>
       </div>
 
       {existente && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-hueso px-3 py-2 text-xs text-tinta">
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta">
           <Punto hex={existente.hex} familia={existente.familiaColor} tipo={existente.tipo} />
           <span>
             {mismoNombre ? `«${existente.nombre}» ya está en la lista de colores.` : `«${nombreDeColor(nombre)}» es otro nombre de «${existente.nombre}».`}

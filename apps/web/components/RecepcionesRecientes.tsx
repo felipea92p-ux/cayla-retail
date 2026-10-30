@@ -62,20 +62,20 @@ export function RecepcionesRecientes({
             onClick={() => setAbierta(r)}
             className={`${fila(plantilla)} w-full text-left transition-colors hover:bg-tinta/[0.03]`}
           >
-            <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
+            <span className={celda("izq", "text-sm tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
             <span className={celda("izq")}>
               <span className="text-sm font-medium text-tinta">
                 {r.proveedorNombre || r.nota || "Sin proveedor"}
                 {r.documento ? ` · ${r.documento}` : ""}
               </span>
-              <span className="block truncate text-xs text-tinta/65">
+              <span className="block truncate text-sm text-tinta/65">
                 {r.numeroGuia ? `Guía ${r.numeroGuia}` : "Sin guía"} · {r.ubicacion}
                 {r.recibidoPor ? ` · ${r.recibidoPor}` : ""}
               </span>
             </span>
             <span className={celda("der", "text-sm text-tinta")}>
               {r.unidades} {r.unidades === 1 ? "unidad" : "unidades"}
-              <span className="block text-xs text-tinta/55">
+              <span className="block text-sm text-tinta/55">
                 {r.lineas} {r.lineas === 1 ? "línea" : "líneas"}
               </span>
             </span>
@@ -86,14 +86,14 @@ export function RecepcionesRecientes({
                 ) : costos[r.loteId]?.costo != null ? (
                   <Chip tono="verde">{`S/\u00a0${costos[r.loteId].costo!.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
                 ) : (
-                  <span className="text-xs text-tinta/45">—</span>
+                  <span className="text-sm text-tinta/45">—</span>
                 )}
               </span>
             )}
           </button>
         ))}
         {actual && actual.totalPaginas > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
             <span>
               Mostrando {actual.desde}–{actual.hasta} de {recepciones.length}
             </span>
@@ -120,7 +120,7 @@ export function RecepcionesRecientes({
                   <span className={celda("izq", "text-sm text-tinta")}>
                     {l.referencia}
                     {l.sku ? ` · ${l.sku}` : ""}
-                    <span className="block truncate text-xs text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/") || "—"}</span>
+                    <span className="block truncate text-sm text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/") || "—"}</span>
                   </span>
                   <span className={celda("der", "text-sm tabular-nums text-tinta")}>{l.cantidad}</span>
                 </div>
@@ -135,7 +135,7 @@ export function RecepcionesRecientes({
             )}
 
             <div className="flex items-center justify-between border-t border-tinta/10 pt-3">
-              <p className="text-xs text-tinta/55">
+              <p className="text-sm text-tinta/55">
                 {abierta.unidades} {abierta.unidades === 1 ? "unidad" : "unidades"} en total
               </p>
               {abierta.conFactura && abierta.compraId && (

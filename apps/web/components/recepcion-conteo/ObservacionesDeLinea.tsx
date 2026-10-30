@@ -70,7 +70,7 @@ export function ObservacionesDeLinea({
                   {nombreDeTipo(o.tipo)}
                 </Chip>
                 <span className="min-w-0 flex-1 basis-56 text-[14px] text-tinta">{o.mensaje}</span>
-                <span className="text-xs text-taupe">{[o.creadoPor, cuando ? `${cuando.dia} ${cuando.hora}` : null].filter(Boolean).join(" · ")}</span>
+                <span className="text-sm text-taupe">{[o.creadoPor, cuando ? `${cuando.dia} ${cuando.hora}` : null].filter(Boolean).join(" · ")}</span>
               </li>
             );
           })}
@@ -166,7 +166,7 @@ function HojaObservacion({
                   className={`rounded-2xl border px-3 py-2 text-left transition-colors ${tipo === t.valor ? "border-tinta bg-papel" : "border-sand bg-papel/70 hover:border-tinta/40"}`}
                 >
                   <b className="block text-[14px] text-tinta">{t.nombre}</b>
-                  <small className="block text-[12.5px] text-taupe">{t.ayuda}</small>
+                  <small className="block text-sm text-taupe">{t.ayuda}</small>
                 </button>
               ))}
             </div>

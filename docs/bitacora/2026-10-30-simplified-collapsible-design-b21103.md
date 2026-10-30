@@ -15,3 +15,9 @@
 - **Qué:** Punto de Venta, Apartados, Historial, Cambios, Devoluciones y Comprobantes (y las hojas que abren): lo que se lee pasa de 10,5–13 px a 14 px y el título de una fila de 13,5 a 15 px (versalitas, botones y papel impreso quedan igual); frases largas acortadas (nota del Historial, «De quién es lo vendido», bajadas de Cambios y Devoluciones, pendientes de Comprobantes). En todo el ERP: el detalle de `TarjetaCifra` y `TarjetaKpiVidrio`, `nota-cayla` y el texto de `<Aviso>` a 14 px. Los títulos de grupo del resumen de un cambio y de una devolución pasan a `<TituloGrupo>`.
 - **Por qué:** Felipe vio Caja y pidió lo mismo en todo Ventas. El censo anterior había medido Ventas con una cuenta sin sede y solo vio «elige una sede».
 - **Cómo verificas:** abre `/vender/historial` y `/cambios` (también a 375 px): las filas, el detalle y el pulso se leen a 14 px. No se miró con datos: las hojas de cobro, cambio y devolución abiertas (piden guardar en la base local).
+
+## 2026-10-30 — Inventario con la letra a 14 px (ronda 19, tercera pasada)
+
+- **Qué:** Existencias, Movimientos, Traslados, Conteo, Recibir mercadería y Por regularizar (y las hojas que abren): lo que se lee pasa de 10,5–13 px a 14 px y el título de una fila de 13,5 a 15 px. En CSS propio: el panel «Filtrar por tipo» y el trayecto de Movimientos (`movimientos-sellos.css`) y el texto de los pases de Traslados (`traslados-pases.css`), sin tocar sellos ni movimiento. El aviso del traslado en camino de Recibir, más corto. Quedan igual a propósito: la planilla de «Ajustar stock», las matrices de tallas y la hoja impresa de ingresos.
+- **Por qué:** Felipe pidió seguir con Inventario tras ver Ventas.
+- **Cómo verificas:** abre `/inventario`, `/inventario/movimientos` y `/inventario/traslados` (también a 375 px). No se miraron con datos las hojas que piden algo guardado (un conteo en curso, el cuadre del piso, una recepción abierta).

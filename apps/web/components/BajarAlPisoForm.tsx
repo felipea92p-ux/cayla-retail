@@ -1030,7 +1030,7 @@ export function BajarAlPisoForm({
             <span className="hidden sm:inline">Cámara</span>
           </button>
         </div>
-        <p id="bajar-ayuda" className="mt-2 text-xs text-taupe">
+        <p id="bajar-ayuda" className="mt-2 text-sm text-taupe">
           La primera lectura de una prenda suma 1; si la misma vuelve a leerse, te pregunto antes de sumarla.
           Si tienes 12 iguales, toca «Cambiar cantidad». Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista.
         </p>
@@ -1050,12 +1050,12 @@ export function BajarAlPisoForm({
                         es la talla y el color, y en una sola línea («Vestido Sofía · L · Azul…») era justo lo que se cortaba en el celular. */}
                     <span className="min-w-0 flex-1" title={nombreDePrenda(p)}>
                       <span className="block truncate text-sm text-tinta">{p.referencia}</span>
-                      <span className="block truncate text-xs text-tinta/70">
+                      <span className="block truncate text-sm text-tinta/70">
                         {[p.talla, p.color].map((t) => (t ?? "").trim()).filter(Boolean).join(" · ")}
                         {p.sku && <span className="ml-2 font-mono text-[11px] text-tinta/60">{p.sku}</span>}
                       </span>
                     </span>
-                    <span className="shrink-0 text-right text-xs tabular-nums text-taupe">{textoDeExistencia(p)}</span>
+                    <span className="shrink-0 text-right text-sm tabular-nums text-taupe">{textoDeExistencia(p)}</span>
                   </button>
                 </li>
               ))}
@@ -1120,7 +1120,7 @@ export function BajarAlPisoForm({
                   <Chip tono="ambar">En duda</Chip>
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="text-xs tabular-nums text-taupe">{textoDeMarcaEnLista(marca)}</span>
+                  <span className="text-sm tabular-nums text-taupe">{textoDeMarcaEnLista(marca)}</span>
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrirEnMano(prenda, 0)}>
                     Comprobar
                   </button>
@@ -1130,15 +1130,15 @@ export function BajarAlPisoForm({
             {hechas.map((h) => (
               <li key={h.bajadaId} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
                 <span className="text-tinta">{h.nombre}</span>
-                <span className="text-xs tabular-nums text-taupe">{textoDeHecha(h)}</span>
+                <span className="text-sm tabular-nums text-taupe">{textoDeHecha(h)}</span>
               </li>
             ))}
           </ul>
           {hechas.length > 0 && (
-            <p className="mt-2 text-xs text-taupe">Ya quedaron registradas, con tu nombre, en Movimientos: no hace falta confirmarlas abajo.</p>
+            <p className="mt-2 text-sm text-taupe">Ya quedaron registradas, con tu nombre, en Movimientos: no hace falta confirmarlas abajo.</p>
           )}
           {marcasALaVista.length > 0 && (
-            <p className="mt-2 text-xs text-taupe">«En duda»: se cortó la conexión y no sabemos si se guardó. «Comprobar» la reenvía: si ya se había guardado, no se repite.</p>
+            <p className="mt-2 text-sm text-taupe">«En duda»: se cortó la conexión y no sabemos si se guardó. «Comprobar» la reenvía: si ya se había guardado, no se repite.</p>
           )}
         </section>
       )}
@@ -1207,7 +1207,7 @@ export function BajarAlPisoForm({
                           <div className="min-w-0">
                             <p className="text-sm text-tinta">{nombre}</p>
                             {prenda?.sku && <p className="font-mono text-xs text-tinta/65">{prenda.sku}</p>}
-                            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-taupe">
+                            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-taupe">
                               {problema && enRojo ? (
                                 <Chip tono="rojo">{problema.motivo === "sin_alcance" ? `hay ${problema.hay}` : (MOTIVO_CORTO[problema.motivo] ?? "no se puede bajar")}</Chip>
                               ) : (
@@ -1221,7 +1221,7 @@ export function BajarAlPisoForm({
                                   </Chip>
                                   <button
                                     type="button"
-                                    className="btn-enlace text-xs"
+                                    className="btn-enlace text-sm"
                                     onClick={() => {
                                       cambiarRepetida({ ...repetidaRef.current, pilas: soltarPila(repetidaRef.current.pilas, l.varianteId) });
                                       volverAlEscaner();
@@ -1282,7 +1282,7 @@ export function BajarAlPisoForm({
               <div data-guia="bajar.resumen" className="min-w-0">
                 <p className="font-display text-xl tabular-nums text-tinta">{textoDeResumen(resumen)}</p>
                 {motivo && !enviando && (
-                  <p id="bajar-motivo" className="mt-0.5 text-xs text-taupe">
+                  <p id="bajar-motivo" className="mt-0.5 text-sm text-taupe">
                     {motivo}
                   </p>
                 )}
