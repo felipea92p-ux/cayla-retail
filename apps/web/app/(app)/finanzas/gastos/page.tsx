@@ -68,18 +68,24 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   // «En qué se va» compara cada categoría con los meses de antes (hilos, Felipe 2026-10-30): el mismo resumen del mes, uno por mes y en
   // paralelo, solo los que empiezan desde el inicio de Finanzas (los de antes ni se piden). Uno que no responde no se compara: el gráfico
   // sale igual, sin su píldora ni su línea, y el aviso de arriba lo dice.
+  // «Cuándo» compara el mes día por día con el anterior (el ritmo, Felipe 2026-10-30): sus gastos, uno por uno, con la misma regla.
   const meses = mesesDeAntes(mes);
+  const mesAnterior = meses.at(-1)!;
   const parametrosP = getParametrosFinanzas();
-  const [fijosDeTodas, fijosDeHoy, parametros, panelesDeAntes] = await Promise.all([
+  const [fijosDeTodas, fijosDeHoy, parametros, panelesDeAntes, gastosDeAntes] = await Promise.all([
     ver.clave === "todas" ? Promise.resolve(fijos) : getFijosMes(desde, TODAS),
     mes === mesDeHoy ? Promise.resolve(null) : getFijosMes(rangoMes(mesDeHoy).desde, TODAS),
     parametrosP,
     parametrosP.then((p) =>
       Promise.all(meses.map((m) => (seCompara(m, p?.inicioFinanzas ?? null) ? getPanelGastos(rangoMes(m).desde, rangoMes(m).hasta, ver) : null))),
     ),
+    parametrosP.then((p) => (seCompara(mesAnterior, p?.inicioFinanzas ?? null) ? getGastos(rangoMes(mesAnterior).desde, rangoMes(mesAnterior).hasta, ver) : null)),
   ]);
   const previos = meses.map((m, i) => mesPrevio(m, panelesDeAntes[i]?.datos ?? null));
-  const fallaDeAntes = panelesDeAntes.some((p) => p?.falla) ? "No se pudo leer los meses de antes, para comparar" : null;
+  // Si la lista del mes anterior no se pudo leer, «Cuándo» no compara (un mes vacío no es un mes barato); el IGV perdido no hace falta aquí.
+  const sinAnteriores = !gastosDeAntes || (!!gastosDeAntes.falla && gastosDeAntes.datos.length === 0);
+  const fallaDeAntes =
+    panelesDeAntes.some((p) => p?.falla) || (gastosDeAntes && sinAnteriores) ? "No se pudo leer los meses de antes, para comparar" : null;
 
   return (
     <GastosPanel
@@ -107,6 +113,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       destinosDeposito={destinosDeposito}
       sedesTelar={telar.sedes}
       previos={previos}
+      gastosDelMesAnterior={sinAnteriores ? null : gastosDeAntes.datos}
       fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla, fallaDeAntes].filter((f): f is string => !!f)}
     />
   );

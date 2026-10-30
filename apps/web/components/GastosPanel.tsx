@@ -148,6 +148,8 @@ export function GastosPanel({
   sedesTelar: SedeTelar[];
   /** Los meses de antes, del más viejo al anterior (`mesesDeAntes`); `null` el que no se compara. Para «En qué se va» y su chip. */
   previos?: MesPrevio[];
+  /** Los gastos del mes anterior, uno por uno, para el ritmo de «Cuándo»; `null` si ese mes no se compara o no se pudo leer. */
+  gastosDelMesAnterior?: GastoFila[] | null;
 }) {
   const router = useRouter();
   const ruta = usePathname();
