@@ -22,6 +22,7 @@ import {
   resumenDeCambios,
   type IngresoEditable,
 } from "./ingreso-insumo-reglas";
+import { cantidadTexto } from "./insumos-reglas";
 import { leerCostoUnitario } from "./monto-plata-reglas";
 
 const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20261030134000_insumos_corregir_y_eliminar_ingreso.sql", import.meta.url), "utf8");
@@ -104,7 +105,8 @@ describe("Corregir un ingreso: la hoja nace con el lote tal como está y NUNCA r
   });
 
   it("el resumen dice solo lo que cambió", () => {
-    expect(resumenDeCambios(LOTE, { ...LOTE, cantidad: 7, costo: 12.5 }, "metro")).toBe("9 m → 7 m · costo");
+    // Cómo se escribe una cantidad lo decide `cantidadTexto` (hoy con dos decimales): la prueba no depende de cuántos.
+    expect(resumenDeCambios(LOTE, { ...LOTE, cantidad: 7, costo: 12.5 }, "metro")).toBe(`${cantidadTexto(9, "metro")} → ${cantidadTexto(7, "metro")} · costo`);
     expect(resumenDeCambios(LOTE, { ...LOTE, fecha: "2026-10-28", codigo: "LT-10" }, "metro")).toBe("día · documento o código");
     expect(resumenDeCambios(LOTE, LOTE, "metro")).toBe("");
   });

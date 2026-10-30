@@ -381,7 +381,7 @@ function FilaInsumo({
           </div>
         </div>
         <p className="font-display whitespace-nowrap text-right text-2xl tabular-nums text-tinta">
-          <CifraQueCuenta valor={i.saldo} formato="entero" />
+          <CifraQueCuenta valor={i.saldo} decimales={UNIDADES_INSUMO[i.unidad].vista} />
           <small className="font-sans ml-1 text-xs text-tinta/65">{UNIDADES_INSUMO[i.unidad].corta}</small>
         </p>
         <ChevronRight aria-hidden className={`h-4 w-4 text-tinta/45 transition-transform duration-300 ease-cayla max-sm:hidden ${abierto ? "rotate-90" : ""}`} />
@@ -396,7 +396,7 @@ function FilaInsumo({
             ) : (
               <ul>
                 {lotes.map((l, k) => (
-                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0`}>
+                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0`}>
                     <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
