@@ -3,14 +3,13 @@
 import { useEffect, useId, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Campo, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
-import { Punto } from "@/components/alta-producto/ElegirColores";
 import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
-import { colorConEseNombre, colorDeRespuesta, faltaParaCrear, familiaSugerida, nombreDeColor } from "@/lib/color-alta-reglas";
+import { colorDeRespuesta, coloresQueYaExisten, faltaParaCrear, familiaSugerida, nombreDeColor } from "@/lib/color-alta-reglas";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
-import { coloresParecidos } from "@/lib/color-parecido";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
-import { clave } from "@/lib/buscar-prenda-v2";
+import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { createClient } from "@/lib/supabase/client";
 import { sugerirColor } from "@/lib/sugerencias-alta-producto";
 import { useEnLinea } from "@/lib/useEnLinea";
@@ -26,10 +25,11 @@ import { Aviso } from "@/components/ui/Aviso";
 // base, no esta pantalla.
 //
 // Lo que la pantalla sí hace antes de tocar la base, para no hacer llenar todo en vano:
-//   · si el nombre ya existe (o es sinónimo de uno), ofrece elegir ese en vez de crear otro;
+//   · si el nombre ya existe, es sinónimo de uno o es casi igual («Verde Olivo» frente a «Verde oliva»), lo dice y ofrece elegir ese
+//     en vez de crear otro: con el mismo nombre no deja crear; con uno casi igual, pregunta (ADR-0576, `ExisteTambien`);
 //   · la familia sale del color existente más parecido y el código de `sugerirCodigoColor`: dos sugerencias que la
 //     persona puede cambiar, y que dejan de seguir al nombre/tono en cuanto las toca;
-//   · si el tono se ve casi igual a otro (ΔE2000 < 8), lo avisa sin bloquear.
+//   · si el tono se ve casi igual a otro (ΔE2000 < 8), lo avisa sin bloquear (en la misma lista: `coloresQueYaExisten`).
 //
 // El código necesita TODOS los códigos, también los de colores desactivados (siguen siendo clave primaria): la
 // pantalla solo trae los activos, así que al abrirse lee `colores.codigo` completo (una lectura GET: no activa el
@@ -50,7 +50,7 @@ export function NuevoColorAlta({
 }: {
   /** Va dentro de una hoja (ya es la tarjeta): sin marco propio y con el nombre en su propia línea. */
   enModal?: boolean;
-  /** Los colores que ya tiene la pantalla: para reconocer un nombre repetido, sugerir la familia y avisar parecidos. */
+  /** Los colores que ya tiene la pantalla: para reconocer un nombre repetido o casi igual, sugerir la familia y avisar parecidos. */
   colores: ColorAlta[];
   elegidos: string[];
   /** Lo que se escribió en el buscador antes de tocar «+ Crear el color «X»». */
@@ -95,15 +95,15 @@ export function NuevoColorAlta({
   // Los ejemplos de las dos cajas siguen a la familia (elegida, o la que sale del tono) y no repiten un color que ya existe.
   const ejemplo = sugerirColor(familia || null, colores, new Set(ocupados.keys()));
   const duenoDelCodigo = codigo.length === 3 ? ocupados.get(codigo) : undefined;
-  const existente = colorConEseNombre(nombre, colores);
-  // Mismo nombre: la base lo rechazaría (`colores_clave_unica`). Por sinónimo: solo se ofrece, puede ser otro color.
-  const mismoNombre = existente !== undefined && clave(existente.nombre) === clave(nombreDeColor(nombre));
-  const parecidos = existente ? [] : coloresParecidos(hex, familia || null, colores).slice(0, 2);
+  // Lo que ya existe y se parece (ADR-0576). Mismo nombre: la base lo rechazaría (`colores_clave_unica`) y no se deja crear. Un sinónimo o un
+  // casi igual («Verde Olivo»): se pregunta, puede ser otro color. Solo el tono: se avisa y se deja crear.
+  const existe = useExisteTambien(nombre, vistaDeCoincidencias(coloresQueYaExisten(nombre, hex, familia || null, colores), (c) => ({ id: c.codigo, nombre: c.nombre })));
+  const faltaExiste = faltaPorExistente("color", nombre, existe);
   const falta = faltaParaCrear({ nombre, hex, familia, codigo });
   const bloqueo = !enLinea
     ? "Crear un color necesita internet. Cuando vuelva la conexión, toca «Crear y elegir»."
-    : mismoNombre
-      ? `«${existente!.nombre}» ya existe: elígelo en vez de crearlo.`
+    : faltaExiste
+      ? faltaExiste
       : duenoDelCodigo
         ? `El código ${codigo} ya lo usa «${duenoDelCodigo}». Escribe otro.`
         : falta;
@@ -147,8 +147,12 @@ export function NuevoColorAlta({
   }
 
   // Lo que falta se dice al tocar «Crear y elegir», no mientras se escribe; un código ocupado o la falta de red, de
-  // entrada. El nombre repetido ya lo dice su propia franja (con «Elegir …»), no se repite acá.
-  const aviso = error ?? (mismoNombre ? null : intento || duenoDelCodigo || !enLinea ? bloqueo : null);
+  // entrada. Lo que ya existe lo dice su propia franja (con «Elegir …»), no se repite acá.
+  const aviso = error ?? (faltaExiste ? null : intento || duenoDelCodigo || !enLinea ? bloqueo : null);
+
+  // Elegir el que ya existe; si ya estaba elegido en esta prenda, solo se cierra este bloque.
+  const elegirExistente = (o: { id: string; nombre: string }) =>
+    elegidos.includes(o.id) ? { texto: `${o.nombre} ya está elegido`, onClick: onCerrar } : { texto: `Elegir ${o.nombre}`, onClick: () => onElegir(o.id) };
 
   return (
     <div className={enModal ? "space-y-3" : "anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3"}>
@@ -213,40 +217,16 @@ export function NuevoColorAlta({
         </div>
       </div>
 
-      {existente && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-hueso px-3 py-2 text-xs text-tinta">
-          <Punto hex={existente.hex} familia={existente.familiaColor} tipo={existente.tipo} />
-          <span>
-            {mismoNombre ? `«${existente.nombre}» ya está en la lista de colores.` : `«${nombreDeColor(nombre)}» es otro nombre de «${existente.nombre}».`}
-          </span>
-          <OfrecerElegir color={existente} elegidos={elegidos} onElegir={onElegir} />
-        </div>
-      )}
-
-      {parecidos.length > 0 && (
-        <Aviso
-          tono="atencion"
-          chico
-          accion={
-            <span className="flex flex-wrap items-center gap-2">
-              {parecidos.map((p) => (
-                <OfrecerElegir key={p.color.codigo} color={p.color} elegidos={elegidos} onElegir={onElegir} />
-              ))}
-            </span>
-          }
-        >
-          Se ve casi igual que {parecidos.map((p) => `«${p.color.nombre}»`).join(" y ")}. Si es el mismo color, usa ese: con dos nombres, la
-          misma prenda queda registrada de dos formas.
-        </Aviso>
-      )}
+      <ExisteTambien que="color" nombre={nombre} solo="nombre" estado={existe} si={elegirExistente} deshabilitado={guardando} />
+      <ExisteTambien que="color" nombre={nombre} solo="tono" estado={existe} si={elegirExistente} deshabilitado={guardando} />
 
       <AvisoSinIdentidad firma={firma} />
       <div className="flex flex-wrap items-center gap-2.5">
         <Boton peso="primario" cargando={guardando} textoCargando="Creando…"
           type="button"
           onClick={() => void crear()}
-          disabled={guardando || !enLinea || mismoNombre || !firma.listo}
-          title={(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}
+          disabled={guardando || !enLinea || existe.bloquea || !firma.listo}
+          title={(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}
         >
           Crear y elegir
         </Boton>
@@ -260,14 +240,5 @@ export function NuevoColorAlta({
 
       )}
     </div>
-  );
-}
-
-function OfrecerElegir({ color, elegidos, onElegir }: { color: ColorAlta; elegidos: string[]; onElegir: (codigo: string) => void }) {
-  if (elegidos.includes(color.codigo)) return <span className="text-taupe">· ya está elegido</span>;
-  return (
-    <button type="button" onClick={() => onElegir(color.codigo)} className="btn-cayla btn-enlace text-xs">
-      Elegir {color.nombre}
-    </button>
   );
 }
