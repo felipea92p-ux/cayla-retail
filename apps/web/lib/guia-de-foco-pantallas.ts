@@ -183,7 +183,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/comprobantes": PENDIENTE,
   "/produccion/cotizaciones-maquila": PENDIENTE,
   "/produccion/eficiencia": PENDIENTE,
-  "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx", "components/insumos-taller/EditarTelaModal.tsx", "components/insumos-taller/NuevoInsumoModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/InsumoModales.tsx"] },
+  "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx", "components/insumos-taller/EditarTelaModal.tsx", "components/insumos-taller/NuevoAvioModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/InsumoModales.tsx"] },
   "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "/produccion/ordenes/[numero]": { estado: "no-aplica", motivo: "Una orden se lee, no se llena: la ruta de fases, la tela, el costo y la línea de tiempo. Lo que se anota vive en sus hojas «Terminé» y «Cambiar quién», cada una con su guía en el registro de modales." },
   "/produccion/por-pagar": PENDIENTE,
@@ -388,7 +388,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/proveedores-produccion/ProcesoModal.tsx": { estado: "aplicada", evidencia: ["components/proveedores-produccion/ProcesoModal.tsx"] },
   "components/insumos-taller/NuevaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx"] },
   "components/insumos-taller/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/EditarTelaModal.tsx"] },
-  "components/insumos-taller/NuevoInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx"] },
+  "components/insumos-taller/NuevoAvioModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoAvioModal.tsx"] },
+  "components/AvioClasesLista.tsx": { estado: "aplicada", evidencia: ["components/AvioClasesLista.tsx"] },
   "components/insumos-taller/FichaDeLaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/FichaDeLaTelaModal.tsx"] },
   "components/insumos-taller/RetirarColorModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién retira el color): el título dice qué color sale de la lista, la bajada avisa que no se borra nada y el aviso de la hoja dice por qué no se puede si tiene saldo; la base rechaza el resto (orden en proceso, tela por recibir, receta) con su frase." },
   // Actividad 6: pasar la orden al stock (cuántas salieron buenas, precargado con lo terminado, y quién lo anota; «falta» sale de los candados de `cerrar_produccion`), anular la orden y revertir el cierre.

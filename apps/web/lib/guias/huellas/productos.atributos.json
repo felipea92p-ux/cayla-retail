@@ -2,10 +2,21 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 126,
+  "total": 135,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
+    ],
+    "components/AvioClasesLista.tsx": [
+      "Boton «+ Nueva clase»",
+      "Boton «Crear la primera»",
+      "BotonEditar «→() => setEditando(c)»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "CampoSelect «Qué es»",
+      "CampoSelect «Se cuenta en (lo que se propone)»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ColoresLista.tsx": [
       "BotonFiltro «Todos»",

@@ -30,7 +30,6 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
     ["orden-pagina/CambiarQuienModal.tsx", "cambiar quién hace"],
     ["orden-pagina/QuitarPasoModal.tsx", "quitar"],
     ["insumos-taller/FichaDeLaTelaModal.tsx", "guardar la ficha"],
-    ["insumos-taller/NuevoInsumoModal.tsx", "crear el insumo"],
     ["insumos-taller/RetirarColorModal.tsx", "retirar el color"],
     // ADR-0570, actividad 3: corregir o eliminar lo anotado, quitar la marca o restaurar, y la nota del equipo.
     ["orden-pagina/CorregirAnotacionModal.tsx", "lo terminado en"],
@@ -48,6 +47,15 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
     const llamadas = [...codigo.matchAll(new RegExp(`traducirError\\([^)]*${contexto}[^)]*\\)`, "g"))].map((m) => m[0]);
     expect(llamadas.length).toBeGreaterThan(0);
     for (const llamada of llamadas) expect(llamada).toContain("confirmarAntesDeRepetir: true");
+  });
+
+  // Las dos hojas que crean una ficha de Insumos (ADR-0554, ADR-0580) NO llevan esa opción a propósito, y por eso aquí se les exige lo que la hace innecesaria: mandan un TOKEN, así que
+  // repetir el envío devuelve lo ya creado en vez de duplicarlo. Si alguien le quita el token a una, esto se pone en rojo y la frase honesta vuelve a hacer falta.
+  // («Nuevo avío» reemplazó a «Nuevo insumo» el 2026-10-30: aquella sí necesitaba la opción, porque guardaba con un INSERT directo y sin token.)
+  it.each([["insumos-taller/NuevaTelaModal.tsx"], ["insumos-taller/NuevoAvioModal.tsx"]])("%s manda su token: repetir el envío no duplica nada", (archivo) => {
+    const codigo = readFileSync(new URL(`../components/${archivo}`, import.meta.url), "utf8");
+    expect(codigo).toContain("p_token");
+    expect(codigo).toContain("crypto.randomUUID()");
   });
 
   it("con la opción, la frase no promete que no se guardó", () => {
