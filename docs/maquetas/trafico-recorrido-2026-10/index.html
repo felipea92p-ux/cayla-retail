@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hasta dónde llega la gente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+/* Maqueta · Tienda web ▸ Tráfico ▸ «Hasta dónde llega la gente» (reemplazo de las seis grillas de 100 puntos, ADR-0495 / ADR-0568).
+   Ronda 2 (Felipe, 2026-10-30): sin «de cada 100» —se cuentan personas reales— y cinco formas que no son las de la ronda 1
+   (escalera, un solo 100, anillos, cinta: no le gustaron). Mismos tokens del ERP (globals.css + tema.css). Datos inventados. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --tinta70: #4f4a43; --taupe: #805c4c; --borde: #96786a;
+  --rojo: #b8412d; --verde: #48603f; --ambar: #74501a; --ambar-suave: #f1e3c6;
+  --serif: "EB Garamond", ui-serif, Georgia, serif; --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --barra-bg: #111110; --barra-fg: #f5f0e8;
+}
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --tinta70: #c7c0b5;
+  --taupe: #c4a898; --borde: #8d7a6e; --rojo: #e8806a; --verde: #9ccb8d; --ambar: #e4b968; --ambar-suave: #3d3222;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--crema); color: var(--tinta); font: 400 14px/1.5 var(--sans); margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+b { font-weight: 600; }
+:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---- barra de la maqueta (no es del diseño) ---- */
+.mq { position: sticky; top: 0; z-index: 30; background: var(--barra-bg); color: var(--barra-fg);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: 12px; padding: 8px 16px; }
+.mq-t { font-weight: 600; }
+.mq-g { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.mq-g > span { opacity: .6; margin-right: 4px; }
+.mq button { background: transparent; border: 1px solid #ffffff33; color: inherit; border-radius: 999px; padding: 3px 10px; font-size: 12px; }
+.mq button[aria-pressed="true"] { background: var(--barra-fg); color: var(--barra-bg); border-color: var(--barra-fg); }
+
+.lienzo { padding: 24px 16px 64px; max-width: 1280px; margin: 0 auto; }
+.lienzo[data-ancho="375"] { max-width: 375px; }
+.intro { max-width: 72ch; margin: 0 0 20px; color: var(--tinta70); }
+.intro h1 { font: 500 34px/1.1 var(--serif); color: var(--tinta); margin: 0 0 6px; }
+
+.card { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 18px 22px 22px; }
+.cab { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.cab h2 { font: 500 21px/1.2 var(--serif); margin: 0; }
+.cab .dato { font-size: 12.5px; color: var(--tinta70); }
+.cual { font: 600 11px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); margin-bottom: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600;
+  background: var(--ambar-suave); color: var(--ambar); white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.nota { margin-top: 18px; padding: 12px 14px; background: var(--hueso); border-radius: 12px; font-size: 13px; color: var(--tinta70); }
+.nota b { color: var(--tinta); }
+.entra { animation: sube .45s var(--ease) both; animation-delay: calc(var(--k, 0) * 70ms); }
+@keyframes sube { from { transform: translateY(10px); opacity: 0; } }
+
+/* ===== E · Solo las cifras ===== */
+.cif { display: grid; grid-template-columns: repeat(11, auto); align-items: start; justify-content: space-between; margin-top: 22px; }
+.cif-paso { display: grid; gap: 4px; justify-items: center; text-align: center; min-width: 0; }
+.cif-paso b { font: 500 56px/0.95 var(--serif); font-variant-numeric: tabular-nums; }
+.cif-paso span { font-size: 13px; color: var(--tinta70); max-width: 11ch; line-height: 1.25; }
+.cif-paso[data-fin] b { color: var(--verde); }
+.cif-se { align-self: center; display: grid; justify-items: center; gap: 2px; color: var(--taupe); font-size: 12.5px; padding: 0 4px; margin-top: -26px; }
+.cif-se i { font-style: normal; font-size: 18px; line-height: 1; }
+.cif-se[data-traba] { color: var(--ambar); font-weight: 600; }
+.cif-pie { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--sand); display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 14px; color: var(--tinta70); }
+.cif-pie b { color: var(--tinta); }
+
+/* ===== F · La línea de la tienda ===== */
+.lin { position: relative; margin-top: 18px; padding: 0 8px; }
+.lin-riel { position: absolute; left: 8%; right: 8%; top: 92px; height: 4px; border-radius: 2px; background: var(--tinta); }
+.lin-estaciones { display: grid; grid-template-columns: repeat(6, 1fr); position: relative; }
+.lin-est { display: grid; justify-items: center; text-align: center; gap: 6px; }
+.lin-est b { font: 500 34px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.lin-est .nom { font-size: 13px; font-weight: 600; height: 18px; }
+.lin-nodo { width: 44px; height: 44px; border-radius: 50%; background: var(--papel); border: 3px solid var(--tinta); display: grid; place-items: center; }
+.lin-est[data-traba] .lin-nodo { border-color: var(--ambar); color: var(--ambar); }
+.lin-est[data-fin] .lin-nodo { background: var(--verde); border-color: var(--verde); color: var(--papel); }
+.lin-salida { display: grid; justify-items: center; gap: 2px; font-size: 12.5px; color: var(--tinta70); margin-top: -26px; min-height: 64px; position: relative; left: 50%; }
+.lin-salida::before { content: ""; width: 2px; height: 34px; background: repeating-linear-gradient(var(--borde) 0 3px, transparent 3px 6px); }
+.lin-salida b { font: 600 15px/1 var(--sans); color: var(--tinta); }
+.lin-salida[data-traba] b, .lin-salida[data-traba] { color: var(--ambar); }
+.lin-salida[data-vacia]::before { visibility: hidden; }
+.lin-hueco { grid-column: span 1; }
+
+/* ===== G · La gente, de verdad ===== */
+.gen { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; margin-top: 20px; align-items: end; }
+.gen-col { display: grid; gap: 8px; align-content: end; }
+.gen-pts { display: flex; flex-wrap: wrap-reverse; gap: 3px; align-content: flex-start; min-height: 12px; }
+.gen-pts i { width: 9px; height: 9px; border-radius: 50%; background: color-mix(in srgb, var(--tinta) 30%, var(--hueso));
+  animation: asoma .3s var(--ease) both; animation-delay: calc(var(--d) * 4ms); }
+.gen-col[data-traba] .gen-pts i { background: var(--ambar); }
+.gen-col[data-fin] .gen-pts i { background: var(--verde); }
+.gen-col b { font: 500 30px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.gen-col span { font-size: 12.5px; color: var(--tinta70); line-height: 1.3; border-top: 1px solid var(--sand); padding-top: 8px; }
+.gen-col[data-traba] span { color: var(--ambar); font-weight: 600; }
+@keyframes asoma { from { transform: scale(.2); opacity: 0; } }
+
+/* ===== H · La respuesta ===== */
+.res { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; margin-top: 6px; align-items: start; }
+.res h3 { font: 500 34px/1.12 var(--serif); margin: 8px 0 10px; text-wrap: balance; }
+.res p { margin: 0; color: var(--tinta70); font-size: 14.5px; }
+.res-hilo { display: flex; height: 10px; border-radius: 999px; overflow: hidden; gap: 2px; margin-top: 20px; }
+.res-hilo span { background: color-mix(in srgb, var(--tinta) 22%, var(--hueso)); transform-origin: left; animation: crece .6s var(--ease) both; }
+.res-hilo span[data-traba] { background: var(--ambar); }
+.res-hilo span[data-fin] { background: var(--verde); }
+.res-ley { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--tinta70); margin-top: 8px; }
+.res-ley i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.res-hall { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.res-hall li { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--sand); border-radius: 14px; }
+.res-hall li[data-traba] { border-color: var(--ambar); background: color-mix(in srgb, var(--ambar-suave) 50%, transparent); }
+.res-hall .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--hueso); display: grid; place-items: center; }
+.res-hall li[data-traba] .ico { background: var(--ambar-suave); color: var(--ambar); }
+.res-hall strong { display: block; font-size: 14.5px; font-weight: 600; }
+.res-hall small { font-size: 13px; color: var(--tinta70); }
+@keyframes crece { from { transform: scaleX(0); } }
+
+/* ===== I · El seguimiento ===== */
+.seg { list-style: none; margin: 18px 0 0; padding: 0; max-width: 640px; }
+.seg li { display: grid; grid-template-columns: 36px 1fr auto; gap: 0 14px; position: relative; }
+.seg li:not(:last-child)::before { content: ""; position: absolute; left: 17px; top: 36px; bottom: 0; width: 2px; background: var(--tinta); }
+.seg .punto { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--tinta); background: var(--papel); display: grid; place-items: center; position: relative; z-index: 1; }
+.seg .punto svg { width: 16px; height: 16px; }
+.seg li[data-traba] .punto { border-color: var(--ambar); color: var(--ambar); }
+.seg li[data-fin] .punto { background: var(--verde); border-color: var(--verde); color: var(--papel); }
+.seg .que { padding-top: 7px; font-weight: 600; font-size: 15px; }
+.seg .n { font: 500 30px/1 var(--serif); font-variant-numeric: tabular-nums; padding-top: 3px; text-align: right; }
+.seg .se { grid-column: 2 / 4; padding: 4px 0 18px; font-size: 13px; color: var(--tinta70); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.seg .se b { color: var(--tinta); }
+.seg li[data-traba] .se, .seg li[data-traba] .se b { color: var(--ambar); }
+.seg-lado { display: grid; grid-template-columns: minmax(0, 640px) 1fr; gap: 32px; align-items: start; }
+.seg-resumen { background: var(--hueso); border-radius: 14px; padding: 16px 18px; font-size: 14px; color: var(--tinta70); margin-top: 18px; }
+.seg-resumen b { color: var(--tinta); }
+.seg-resumen h4 { font: 500 22px/1.15 var(--serif); color: var(--tinta); margin: 0 0 8px; }
+
+/* ===== Hoy en la línea ===== */
+.hoy { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.hoy figure { margin: 0; }
+.hoy figcaption { font-size: 12.5px; color: var(--tinta70); margin-top: 6px; }
+.hoy svg { width: 100%; height: auto; overflow: visible; }
+.hoy .eje { stroke: var(--sand); }
+.hoy .lin2 { fill: none; stroke: var(--tinta); stroke-width: 2.5; stroke-linejoin: round; }
+.hoy .area { fill: color-mix(in srgb, var(--tinta) 7%, transparent); }
+.hoy .curso { fill: none; stroke: var(--tinta); stroke-width: 2.5; stroke-dasharray: 2 5; stroke-linecap: round; }
+.hoy .ref { fill: none; stroke: var(--taupe); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.hoy text { fill: var(--tinta70); font-size: 11px; font-family: var(--sans); }
+.hoy .fuerte { fill: var(--tinta); font-weight: 600; }
+
+/* ---- angosto (botón 375 de la barra, o pantalla de verdad) ---- */
+.lienzo[data-ancho="375"] .card { padding: 16px; }
+.lienzo[data-ancho="375"] .cif { grid-template-columns: 1fr auto; gap: 6px 12px; }
+.lienzo[data-ancho="375"] .cif-paso { grid-template-columns: auto 1fr; justify-items: start; text-align: left; align-items: baseline; gap: 12px; }
+.lienzo[data-ancho="375"] .cif-paso b { font-size: 40px; min-width: 2.2ch; }
+.lienzo[data-ancho="375"] .cif-paso span { max-width: none; }
+.lienzo[data-ancho="375"] .cif-se { grid-template-columns: auto auto; margin: 0 0 0 10px; justify-self: start; gap: 6px; }
+.lienzo[data-ancho="375"] .cif-se, .lienzo[data-ancho="375"] .cif-paso { grid-column: 1 / 3; }
+.lienzo[data-ancho="375"] .cif-se i { transform: rotate(90deg); }
+.lienzo[data-ancho="375"] .lin-riel { display: none; } .lienzo[data-ancho="375"] .lin-salida { left: 0; margin-top: 2px; }
+.lienzo[data-ancho="375"] .lin-estaciones { grid-template-columns: 1fr 1fr 1fr; row-gap: 18px; }
+.lienzo[data-ancho="375"] .gen { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lienzo[data-ancho="375"] .res, .lienzo[data-ancho="375"] .seg-lado, .lienzo[data-ancho="375"] .hoy { grid-template-columns: 1fr; }
+.lienzo[data-ancho="375"] .res h3 { font-size: 28px; }
+@media (max-width: 760px) {
+  .cif { grid-template-columns: 1fr; } .cif-se { margin: 0; justify-self: start; }
+  .lin-riel { display: none; } .lin-salida { left: 0; margin-top: 2px; } .lin-estaciones { grid-template-columns: 1fr 1fr 1fr; row-gap: 18px; }
+  .gen { grid-template-columns: repeat(3, minmax(0, 1fr)); } .res, .seg-lado, .hoy { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="mq" role="toolbar" aria-label="Controles de la maqueta">
+  <span class="mq-t">Maqueta · no es del diseño</span>
+  <div class="mq-g" id="mq-dir"><span>Dirección</span></div>
+  <div class="mq-g" id="mq-datos"><span>Datos</span></div>
+  <div class="mq-g" id="mq-tema"><span>Tema</span></div>
+  <div class="mq-g" id="mq-ancho"><span>Ancho</span></div>
+</div>
+
+<main class="lienzo" id="lienzo">
+  <div class="intro">
+    <h1>Hasta dónde llega la gente</h1>
+    <p>Ronda 2. Ya no dice «de cada 100»: cuenta personas de verdad («de 43 que miraron una prenda, 6 eligieron talla»). Son cinco formas
+      nuevas, de la más sobria (solo cifras) a la más ilustrada. Arriba cambias de dirección y de datos; «Hoy, poca gente» muestra cómo se
+      ve con casi nadie y «Un mes con más gente», con mucha.</p>
+  </div>
+  <div id="vista"></div>
+
+  <section class="card" style="margin-top:28px">
+    <div class="cab"><h2>Y el día de hoy en «Entraron»</h2><span class="dato">Arreglo propuesto, va con cualquier dirección</span></div>
+    <p style="margin:10px 0 18px;color:var(--tinta70);max-width:72ch">Hoy la línea se corta en el último día completo y el 30 de octubre queda vacío sin
+      explicación. La propuesta: dibujar hoy con un tramo punteado hasta lo que va, con su cifra «hasta ahora».</p>
+    <div class="hoy" id="hoy"></div>
+  </section>
+</main>
+
+<script>
+const DATOS = {
+  d7:  { nombre: "Estos 7 días", pasos: [127, 43, 6, 3, 1, 1] },
+  hoy: { nombre: "Hoy, poca gente", pasos: [9, 3, 1, 0, 0, 0] },
+  mes: { nombre: "Un mes con más gente", pasos: [2140, 862, 318, 141, 63, 49] },
+};
+// Íconos de lucide (los mismos trazos que usa el ERP).
+const IC = {
+  puerta: '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/>',
+  ojo: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  regla: '<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>',
+  bolsa: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  etiqueta: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+  tienda: '<path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-7h6v7"/>',
+};
+const ico = (k) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+const PASOS = [
+  { nombre: "Entraron", corto: "Entraron", frase: "entraron", ic: "puerta" },
+  { nombre: "Miraron una prenda", corto: "Miraron", frase: "miraron una prenda", seFueron: "sin mirar ninguna prenda", ic: "ojo" },
+  { nombre: "Eligieron talla", corto: "Talla", frase: "eligieron talla", seFueron: "sin elegir talla", ic: "regla" },
+  { nombre: "A la bolsa", corto: "Bolsa", frase: "la pusieron en la bolsa", seFueron: "sin ponerla en la bolsa", ic: "bolsa" },
+  { nombre: "Separaron", corto: "Separaron", frase: "separaron", seFueron: "sin separar", ic: "etiqueta" },
+  { nombre: "Recogieron", corto: "Recogieron", frase: "recogieron en la tienda", seFueron: "sin recoger", ic: "tienda" },
+];
+const DIRS = [
+  { id: "e", nombre: "E · Solo las cifras" },
+  { id: "f", nombre: "F · La línea de la tienda" },
+  { id: "g", nombre: "G · La gente, de verdad" },
+  { id: "h", nombre: "H · La respuesta" },
+  { id: "i", nombre: "I · El seguimiento" },
+];
+const q = new URLSearchParams(location.search);
+const est = { d: DIRS.some((d) => d.id === q.get("d")) ? q.get("d") : "e", datos: q.get("datos") || "d7", tema: q.get("tema") || "claro", ancho: q.get("ancho") || "escritorio" };
+
+const miles = (n) => n.toLocaleString("es-PE");
+const personas = (n) => `${miles(n)} ${n === 1 ? "persona" : "personas"}`;
+// Dónde se traba: el paso que deja pasar a menos de quienes llegaron al anterior (con al menos 5 antes: con menos es ruido).
+function trabaDe(p) {
+  let peor = null;
+  for (let i = 1; i < p.length; i++) {
+    if (p[i - 1] < 5) continue;
+    const pasan = p[i] / p[i - 1];
+    if (!peor || pasan < peor.pasan) peor = { i, pasan };
+  }
+  return peor;
+}
+// Dónde se va más gente, en personas.
+function masSeVanDe(p) {
+  let m = { i: 1, n: -1 };
+  for (let i = 1; i < p.length; i++) if (p[i - 1] - p[i] > m.n) m = { i, n: p[i - 1] - p[i] };
+  return m.n > 0 ? m : null;
+}
+const fin = (p) => p[5];
+const titular = (p) => fin(p) === 0
+  ? `De ${personas(p[0])} que entraron, nadie llegó a recoger todavía.`
+  : `De ${personas(p[0])} que entraron, ${fin(p) === 1 ? "1 recogió" : `${miles(fin(p))} recogieron`} en la tienda.`;
+const fraseTraba = (p, t) => t
+  ? `De ${miles(p[t.i - 1])} que ${PASOS[t.i - 1].frase}, solo ${miles(p[t.i])} ${PASOS[t.i].frase}.`
+  : "Todavía muy poca gente para saber dónde se traba.";
+const cab = (dato) => `<div class="cab"><h2>Hasta dónde llega la gente</h2><span class="dato">${dato}</span></div>`;
+
+// ---------- E · Solo las cifras ----------
+function soloCifras(p) {
+  const t = trabaDe(p), m = masSeVanDe(p);
+  const piezas = PASOS.map((s, i) => {
+    const se = i ? `<div class="cif-se entra" style="--k:${i}" ${t && t.i === i ? "data-traba" : ""}><i>→</i>${p[i - 1] - p[i] > 0 ? `−${miles(p[i - 1] - p[i])}` : "—"}</div>` : "";
+    return `${se}<div class="cif-paso entra" style="--k:${i}" ${i === 5 && p[5] > 0 ? "data-fin" : ""}><b>${miles(p[i])}</b><span>${s.nombre}</span></div>`;
+  }).join("");
+  return `<section class="card"><div class="cual">E · Solo las cifras</div>${cab("Personas en cada paso")}
+    <div class="cif">${piezas}</div>
+    <div class="cif-pie">${t ? '<span class="chip">Aquí se traba</span>' : ""}<span>${fraseTraba(p, t).replace(/(\d[\d,]*)/g, "<b>$1</b>")}</span>
+      ${m ? `<span>· La mayoría se va ${PASOS[m.i].seFueron} (${miles(m.n)}).</span>` : ""}</div>
+    <div class="nota"><b>Sin gráfico.</b> Seis números grandes y lo que se perdió entre uno y otro. Se entiende de un vistazo y ocupa una franja baja.
+      Es lo más sobrio: si el número es lo que importa, no hace falta dibujarlo.</div>
+  </section>`;
+}
+
+// ---------- F · La línea de la tienda ----------
+function lineaTienda(p) {
+  const t = trabaDe(p);
+  const est = PASOS.map((s, i) => {
+    const se = i < 5 ? p[i] - p[i + 1] : 0;
+    const traba = t && t.i === i + 1;
+    return `<div class="lin-est entra" style="--k:${i}" ${t && t.i === i ? "data-traba" : ""} ${i === 5 && p[5] > 0 ? "data-fin" : ""}>
+      <span class="nom">${s.corto}</span><b>${miles(p[i])}</b>
+      <span class="lin-nodo">${ico(s.ic)}</span>
+      <span class="lin-salida" ${i === 5 || !se ? "data-vacia" : ""} ${traba ? "data-traba" : ""}>${i < 5 && se ? `<b>${miles(se)}</b>salieron${traba ? " · aquí se traba" : ""}` : ""}</span>
+    </div>`;
+  }).join("");
+  return `<section class="card"><div class="cual">F · La línea de la tienda</div>${cab("Como recorrer la tienda: de la puerta a recoger")}
+    <p style="margin:10px 0 0;color:var(--tinta70);font-size:14.5px">${titular(p)} ${fraseTraba(p, t)}</p>
+    <div class="lin"><div class="lin-riel"></div><div class="lin-estaciones">${est}</div></div>
+    <div class="nota"><b>Se lee como un mapa.</b> Cada paso es una estación con su ícono (la puerta, el ojo, la talla, la bolsa…) y su cifra encima; bajo
+      cada estación, los que salieron antes de la siguiente. La estación que traba se pinta en ámbar; la última, en verde si alguien llegó.</div>
+  </section>`;
+}
+
+// ---------- G · La gente, de verdad ----------
+function genteDeVerdad(p) {
+  const t = trabaDe(p);
+  const escala = p[0] > 400 ? 10 : 1;
+  const grupos = [];
+  for (let i = 1; i < 6; i++) grupos.push({ i, n: p[i - 1] - p[i], txt: `se fueron ${PASOS[i].seFueron}` });
+  grupos.push({ i: 6, n: p[5], txt: "recogieron en la tienda" });
+  let d = 0;
+  const cols = grupos.map((g, k) => {
+    const pts = Array.from({ length: Math.round(g.n / escala) }, () => `<i style="--d:${d++}"></i>`).join("");
+    return `<div class="gen-col" ${t && t.i === g.i ? "data-traba" : ""} ${g.i === 6 ? "data-fin" : ""}>
+      <div class="gen-pts">${pts}</div><b>${miles(g.n)}</b><span>${g.txt}</span></div>`;
+  }).join("");
+  return `<section class="card"><div class="cual">G · La gente, de verdad</div>${cab(escala === 1 ? "Cada punto es una persona" : "Cada punto son 10 personas")}
+    <p style="margin:10px 0 0;color:var(--tinta70);font-size:14.5px">${titular(p)} Así se repartieron los demás:</p>
+    <div class="gen">${cols}</div>
+    <div class="nota"><b>Cada punto es una persona real</b> (no «de cada 100»), juntada donde se fue. La montaña más alta dice dónde se va más gente; la
+      ámbar, dónde se traba. Con mucha gente, cada punto pasa a valer 10 y lo dice arriba.</div>
+  </section>`;
+}
+
+// ---------- H · La respuesta ----------
+function respuesta(p) {
+  const t = trabaDe(p), m = masSeVanDe(p);
+  const total = p[0] || 1;
+  const tramos = [];
+  for (let i = 1; i < 6; i++) tramos.push({ i, n: p[i - 1] - p[i] });
+  tramos.push({ i: 6, n: p[5] });
+  const hilo = tramos.filter((x) => x.n > 0).map((x, k) => `<span style="flex:${x.n};animation-delay:${k * 60}ms" ${t && t.i === x.i ? "data-traba" : ""} ${x.i === 6 ? "data-fin" : ""} title="${miles(x.n)}"></span>`).join("");
+  const hallazgos = [];
+  if (m) hallazgos.push({ ic: PASOS[m.i].ic, titulo: `${miles(m.n)} se fueron ${PASOS[m.i].seFueron}`, sub: `La mayor salida, en personas.` });
+  if (t && (!m || t.i !== m.i)) hallazgos.push({ traba: true, ic: PASOS[t.i].ic, titulo: `Aquí se traba: ${PASOS[t.i].nombre.toLowerCase()}`, sub: fraseTraba(p, t) });
+  else if (t) hallazgos[0] = { ...hallazgos[0], traba: true, sub: fraseTraba(p, t) };
+  hallazgos.push({ ic: "tienda", titulo: fin(p) ? `${personas(fin(p))} ${fin(p) === 1 ? "llegó" : "llegaron"} hasta el final` : "Nadie llegó hasta el final", sub: `De ${miles(p[3])} con algo en la bolsa, ${miles(p[4])} separaron.` });
+  return `<section class="card"><div class="cual">H · La respuesta</div>${cab("Lo que pasó, en una frase")}
+    <div class="res">
+      <div class="entra"><h3>${titular(p)}</h3>
+        <p>Los demás se fueron en el camino. La barra los muestra a todos, de dónde se fueron primero a quienes llegaron.</p>
+        <div class="res-hilo">${hilo}</div>
+        <div class="res-ley"><span><i style="background:color-mix(in srgb,var(--tinta) 22%,var(--hueso))"></i>Se fueron</span>
+          <span><i style="background:var(--ambar)"></i>Donde se traba</span><span><i style="background:var(--verde)"></i>Recogieron</span></div>
+      </div>
+      <ul class="res-hall">${hallazgos.map((h, k) => `<li class="entra" style="--k:${k + 1}" ${h.traba ? "data-traba" : ""}><span class="ico">${ico(h.ic)}</span>
+        <span><strong>${h.titulo}</strong><small>${h.sub}</small></span></li>`).join("")}</ul>
+    </div>
+    <div class="nota"><b>Texto primero, como la lectura del pulso.</b> La respuesta va en grande y al lado, tres cosas que hacer o mirar. El único dibujo es una
+      barra fina con todas las personas. Es la que más se parece a «entender en 5 segundos».</div>
+  </section>`;
+}
+
+// ---------- I · El seguimiento ----------
+function seguimiento(p) {
+  const t = trabaDe(p);
+  const filas = PASOS.map((s, i) => {
+    const se = i < 5 ? p[i] - p[i + 1] : 0;
+    const traba = t && t.i === i + 1;
+    return `<li class="entra" style="--k:${i}" ${traba ? "data-traba" : ""} ${i === 5 && p[5] > 0 ? "data-fin" : ""}>
+      <span class="punto">${ico(s.ic)}</span><span class="que">${s.nombre}</span><span class="n">${miles(p[i])}</span>
+      ${i < 5 ? `<span class="se">${se ? `<b>${miles(se)}</b> se fueron ${PASOS[i + 1].seFueron}` : "nadie se fue aquí"}${traba ? '<span class="chip">Aquí se traba</span>' : ""}</span>` : '<span class="se"></span>'}
+    </li>`;
+  }).join("");
+  return `<section class="card"><div class="cual">I · El seguimiento</div>${cab("Paso a paso, como seguir un pedido")}
+    <div class="seg-lado"><ol class="seg">${filas}</ol>
+      <div class="seg-resumen entra" style="--k:3"><h4>${titular(p)}</h4>${fraseTraba(p, t).replace(/(\d[\d,]*)/g, "<b>$1</b>")}</div></div>
+    <div class="nota"><b>Se lee de arriba abajo</b>, como el seguimiento de un envío: cada paso con su cifra y, entre uno y otro, quiénes se fueron y sin
+      hacer qué. Lo conocen todos por las apps de delivery. A lo ancho, el resumen va al costado.</div>
+  </section>`;
+}
+
+// ---------- Hoy en la línea ----------
+function hoy() {
+  const v = [0, 0, 0, 69, 50, 8, 3], dias = ["24 oct", "25", "26", "27", "28", "29", "30 oct"];
+  const W = 460, H = 180, L = 28, B = 22, max = 80;
+  const X = (i) => L + (i * (W - L - 10)) / 6, Y = (y) => H - B - (y / max) * (H - B - 10);
+  const linea = (hasta) => v.slice(0, hasta + 1).map((y, i) => `${i ? "L" : "M"}${X(i)},${Y(y)}`).join(" ");
+  const eje = `<line class="eje" x1="${L}" x2="${W - 10}" y1="${Y(0)}" y2="${Y(0)}"/><line class="eje" x1="${L}" x2="${W - 10}" y1="${Y(40)}" y2="${Y(40)}"/>
+    <text x="0" y="${Y(40) + 4}">40</text><text x="6" y="${Y(0) + 4}">0</text>
+    ${[0, 2, 4, 6].map((i) => `<text x="${X(i)}" y="${H - 4}" text-anchor="middle">${dias[i]}</text>`).join("")}
+    <path class="ref" d="M${X(0)},${Y(0)} L${X(6)},${Y(0)}"/>`;
+  const area = (hasta) => `${linea(hasta)} L${X(hasta)},${Y(0)} L${X(0)},${Y(0)} Z`;
+  const antes = `<svg viewBox="0 0 ${W} ${H}">${eje}<path class="area" d="${area(5)}"/><path class="lin2" d="${linea(5)}"/>
+    <circle cx="${X(5)}" cy="${Y(8)}" r="4" fill="var(--tinta)"/><text class="fuerte" x="${X(5) + 8}" y="${Y(8) + 4}">8</text></svg>`;
+  const despues = `<svg viewBox="0 0 ${W} ${H}">${eje}<path class="area" d="${area(5)}"/><path class="lin2" d="${linea(5)}"/>
+    <path class="curso" d="M${X(5)},${Y(8)} L${X(6)},${Y(3)}"/>
+    <line x1="${X(6)}" x2="${X(6)}" y1="10" y2="${Y(0)}" style="stroke:var(--sand);stroke-dasharray:3 3"/>
+    <circle cx="${X(6)}" cy="${Y(3)}" r="4.5" fill="var(--papel)" stroke="var(--tinta)" stroke-width="2"/>
+    <text class="fuerte" x="${X(6)}" y="${Y(24)}" text-anchor="end">hoy, hasta ahora · 3</text></svg>`;
+  document.getElementById("hoy").innerHTML = `<figure>${antes}<figcaption>Hoy: la línea termina el 29 y el 30 queda vacío.</figcaption></figure>
+    <figure>${despues}<figcaption>Propuesta: hoy entra punteado, con un punto hueco y «hasta ahora». No «cae»: se ve que el día sigue abierto.</figcaption></figure>`;
+}
+
+// ---------- la barra de la maqueta y el dibujo ----------
+function botones(id, opciones, clave) {
+  const g = document.getElementById(id);
+  opciones.forEach(([v, t]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = t; b.dataset.v = v; b.dataset.clave = clave;
+    b.onclick = () => { est[clave] = v; pinta(); };
+    g.appendChild(b);
+  });
+}
+botones("mq-dir", DIRS.map((d) => [d.id, d.nombre]), "d");
+botones("mq-datos", Object.entries(DATOS).map(([k, v]) => [k, v.nombre]), "datos");
+botones("mq-tema", [["claro", "Claro"], ["oscuro", "Oscuro"]], "tema");
+botones("mq-ancho", [["escritorio", "Escritorio"], ["375", "375 px"]], "ancho");
+
+function pinta() {
+  document.querySelectorAll(".mq button").forEach((b) => b.setAttribute("aria-pressed", String(est[b.dataset.clave] === b.dataset.v)));
+  document.documentElement.dataset.theme = est.tema === "oscuro" ? "dark" : "light";
+  document.getElementById("lienzo").dataset.ancho = est.ancho;
+  history.replaceState(null, "", `?${new URLSearchParams(est)}`);
+  const p = DATOS[est.datos].pasos;
+  document.getElementById("vista").innerHTML = { e: soloCifras, f: lineaTienda, g: genteDeVerdad, h: respuesta, i: seguimiento }[est.d](p);
+}
+hoy();
+pinta();
+</script>
+</body>
+</html>
