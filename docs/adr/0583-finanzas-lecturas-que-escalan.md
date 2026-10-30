@@ -1,8 +1,9 @@
 # ADR-0583 · Finanzas: lecturas que escalan (medir, quitar el trabajo de más y no esperar en fila)
 
 - **Fecha:** 2026-10-30 · **Estado:** construido y probado contra Postgres local (las 984 migraciones con fecha + la siembra; 34 suites de base en
-  verde y una nueva). **La migración `20261030170000` NO está pegada en producción:** espera el OK de Felipe (cambia dos funciones que leen 31
-  pantallas de varios módulos). La web funciona igual con o sin ella.
+  verde y una nueva). **La migración `20261030170000` está PEGADA en producción** desde el 2026-10-30 con el OK de Felipe (versión
+  `20261030203931`). Verificada: las dos funciones nuevas vivas, los permisos iguales; `fn_finanzas_confianza` pasó de ~629 a 162 ms y
+  `fn_resumen_finanzas` midió 1.530 ms (antes 2.274 de promedio).
 - **Decide:** Felipe, 2026-10-30: «el módulo de finanzas está siendo lento… si ahora está lento con poca información, cuando exista mucho más
   será muchísimo más lento, tiene que ser escalable».
 - **Toca:** ADR-0198 (diario y cierre de mes), ADR-0433 act. 9 (mes cerrado se queda cerrado), ADR-0560 (CLAURE fuera de las cifras), ADR-0149

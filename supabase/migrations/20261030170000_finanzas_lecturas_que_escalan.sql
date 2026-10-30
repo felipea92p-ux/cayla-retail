@@ -32,6 +32,9 @@
 --   SE ROMPE SI: alguien hace que `fn_asientos` deje de ser aditivo por mes (una línea fechada en un mes que dependa del inicio del rango pedido):
 --   ya rompería el cierre de mes, que congela mes por mes.
 --
+-- PEGADA EN PRODUCCIÓN el 2026-10-30 con el OK de Felipe (versión `20261030203931`); verificada: las dos funciones nuevas vivas, los permisos
+-- iguales y `fn_finanzas_confianza` de ~629 a 162 ms.
+--
 -- CÓMO SE PEGA EN PRODUCCIÓN — UNA SOLA EJECUCIÓN (solo `create or replace function`: sin `alter` de tablas en uso, sin políticas ni `drop
 -- trigger`; ADR-0195 «Políticas y deadlocks»). Idempotente. Antes de reemplazar `fn_diario`, comprueba que la definición viva sea la que se leyó
 -- el 2026-10-30 (el texto ancla aparece una vez); si alguien la cambió, ABORTA sin tocar nada. Con la web vieja o la nueva, igual.
