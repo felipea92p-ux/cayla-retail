@@ -73,3 +73,17 @@ anotado como «sí lleva» (`guardar_ojales_botones_modelo`, que llama la web); 
 no tomar el candado). Con la migración aplicada de verdad pasan sin cambios las suites vecinas: quitar paso (13), cinco pasos (13), fases nuevas (17), avances (29),
 ploteo (20), proveedor pendiente (17), complementos (17), cierre (20) y anulaciones (18). La orden con el paso nuevo se trabaja y se pasa al stock de punta a punta (F1), y un servicio agregado devenga 90.00 al volver
 (F2), no al agregarse.
+
+## Actualización 2026-10-30 — el paso bloqueado se VE en la hoja (Felipe: «no me aparece ojal y botón»)
+
+**Qué pasó:** en la orden del Short (Planchado ya hecho) el combo «Qué paso» abría directo en «Otro proceso…» y no listaba Ojales y botones. La base y `pasosAgregables` hacían bien su trabajo (Ojales y botones va en 35, antes de
+Planchado 65, y Planchado ya tenía algo anotado: `paso_despues_empezado`), pero **la promesa de arriba —«la sección lo dice en vez de esconderlo»— se rompió con ADR-0570 act. 5**: un líder siempre ve «+ Agregar un paso» (puede dar de alta
+«Otro proceso…»), y la línea de la página que explica lo bloqueado solo sale cuando NO hay botón. Resultado: el paso desaparecía sin decir por qué.
+
+**Cambio (web, sin tocar la base ni la regla):**
+- La hoja lista los pasos bloqueados **apagados y con su motivo** («Ojales y botones · Planchado ya empezó») y una frase bajo el combo los explica (`textoDePasosBloqueados`). Quien no es líder sigue viendo la línea de la página.
+- **«Otro proceso…» pasa por la misma regla** (`pasoPosteriorEmpezado`, que `pasosAgregables` también usa): si iría antes de un paso ya empezado, la hoja lo frena y pide elegir otro «Va después de». Antes el alta del proceso iba primero y
+  luego la base rechazaba el paso: quedaba un proceso en el catálogo sin haberse agregado a ninguna orden.
+- La fila «Quién lo hace» mostraba la clave interna `__otro__` como título; ahora muestra el nombre que se está escribiendo («Proceso nuevo» mientras tanto), y toma el catálogo de la orden (un proceso propio del líder ya no sale con su clave).
+
+**No se cambia (y es decisión de Felipe, no mía):** dejar agregar Ojales y botones con Planchado ya hecho exigiría cambiar `agregar_paso_orden` y volvería a abrir lo que el DESCARTÉ de arriba cerró (los conteos de las prendas ya planchadas quedarían contradictorios).
