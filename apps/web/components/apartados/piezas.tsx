@@ -6,9 +6,10 @@ import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/components/PuntoDeVenta";
-import { esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
+import { descuentoDePrenda, esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado, type PrendaApartada } from "@/lib/separaciones-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
+import { Chip } from "@/components/ui/Chip";
 
 export { FotoPrenda } from "@/components/ui/FotoPrenda";
 
@@ -26,6 +27,46 @@ export function EstadoChip({ clave, texto }: { clave: ClaveEstado; texto: string
     <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11.5px] font-semibold ${TONO_ESTADO[clave]}`}>
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-current ${clave === "vencida" ? "animate-pulse motion-reduce:animate-none" : ""}`} />
       {texto}
+    </span>
+  );
+}
+
+/** El descuento de una prenda ya apartada (ADR-0584), con la cara del chip de Apartar: la campaña en pizarra, el descuento a mano en
+ *  ámbar con su motivo («Otro» dice su texto). El argumento, si lo hubo, lo muestra quien lo pide con `conArgumento`. Va en su
+ *  propia línea bajo la prenda, a todo el ancho de la fila: en la columna del nombre, a 375 px, el motivo se partía en dos. */
+export function DescuentoDePrenda({ prenda, conArgumento = false, className = "" }: { prenda: PrendaApartada; conArgumento?: boolean; className?: string }) {
+  const d = descuentoDePrenda(prenda);
+  if (!d) return null;
+  return (
+    <span className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 ${className}`}>
+      {d.campana ? (
+        <Chip tono="pizarra" versalitas={false}>
+          {d.motivo} · −{d.pct} %
+        </Chip>
+      ) : (
+        <Chip tono="ambar" versalitas={false} className="max-w-full" title={d.argumento ? `${d.motivo} · ${d.argumento}` : d.motivo}>
+          {/* El motivo es lo que importa: en una columna angosta (375 px) o con un «Otro» largo, baja de línea en vez de cortarse. */}
+          <span className="min-w-0 whitespace-normal">
+            −{money(prenda.descuentoUnitario)} c/u · {d.motivo}
+          </span>
+        </Chip>
+      )}
+      {conArgumento && d.argumento && <span className="text-[12px] text-tinta/60">Argumento: {d.argumento}</span>}
+    </span>
+  );
+}
+
+/** El importe de una prenda apartada: lo que se cobra y, si lleva descuento, el de etiqueta tachado debajo (como la fila del ticket). */
+export function ImporteDePrenda({ prenda, className = "" }: { prenda: PrendaApartada; className?: string }) {
+  const importe = (prenda.precioUnitario - prenda.descuentoUnitario) * prenda.cantidad;
+  return (
+    <span className={`flex shrink-0 flex-col items-end text-sm tabular-nums ${className}`}>
+      <span>{money(importe)}</span>
+      {prenda.descuentoUnitario > 0 && (
+        <s className="text-[11.5px] font-normal text-tinta/55" aria-label={`Precio de etiqueta ${money(prenda.precioUnitario * prenda.cantidad)}`}>
+          {money(prenda.precioUnitario * prenda.cantidad)}
+        </s>
+      )}
     </span>
   );
 }
@@ -114,12 +155,24 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
           </>
         )}
       </dl>
-      {a.prendas.map((p) => (
-        <p key={p.varianteId} className="rt-fila">
-          <span>{p.cantidad} {p.referencia} {p.sku}</span>
-          <span>{money((p.precioUnitario - p.descuentoUnitario) * p.cantidad)}</span>
-        </p>
-      ))}
+      {a.prendas.map((p) => {
+        // ADR-0584: con descuento, el papel dice el precio de etiqueta, el descuento y el precio acordado (el motivo y el argumento
+        // son de la tienda, como en el ticket de una venta, y no se imprimen).
+        const d = descuentoDePrenda(p);
+        return (
+          <div key={p.varianteId}>
+            <p className="rt-fila">
+              <span>{p.cantidad} {p.referencia} {p.sku}</span>
+              <span>{money((p.precioUnitario - p.descuentoUnitario) * p.cantidad)}</span>
+            </p>
+            {d && (
+              <p className="rt-detalle">
+                P.U. {p.precioUnitario.toFixed(2)} · Dscto. -{p.descuentoUnitario.toFixed(2)} c/u · Precio acordado {d.precioAcordado.toFixed(2)} c/u
+              </p>
+            )}
+          </div>
+        );
+      })}
       <p className="rt-fila rt-negrita"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
       {tipo === "anticipo" ? (
         <>
