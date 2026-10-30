@@ -16,14 +16,15 @@ import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { nombreCortoSede, porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { plantillasDe } from "@/lib/hoja-gasto-reglas";
 import { HojaRegistrarGasto } from "@/components/finanzas/gastos/HojaRegistrarGasto";
-import { calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, retazoDeGastos, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
+import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
 import { Buscador as BuscadorLista } from "@/components/ui/Buscador";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Volver } from "@/components/ui/Volver";
-import { RetazoGastos } from "@/components/finanzas/gastos/RetazoGastos";
-import { CalendarioGastos } from "@/components/finanzas/gastos/CalendarioGastos";
+import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
+import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
+import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
@@ -43,6 +44,7 @@ import {
   igvDelGasto,
   igvEnRiesgo,
   igvParaLaTarjeta,
+  mesDe,
   notaIgvPerdido,
   papelDelGasto,
   papelEnUnaLinea,
@@ -74,6 +76,7 @@ import { Boton } from "@/components/ui/campos";
 import { GastosPulso } from "@/components/finanzas/GastosPulso";
 import { bandejaPulso, chipDeFijosPorConfirmar, fijosPorConfirmar, gastastePulso } from "@/lib/gastos-pulso-reglas";
 import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
+import { chipDelMesAnterior, fraseDeLosHilos, hilosDeGastos, mesAEstaAltura, mesesDeAntes, type MesPrevio } from "@/lib/gastos-hilos-reglas";
 import { fijosDelMesVisibles } from "@/lib/fijos-del-mes-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Armchair, Check, FunnelX, Plus, Receipt, Repeat, SearchX, Store, Tag, Wallet } from "lucide-react";
@@ -112,6 +115,8 @@ export function GastosPanel({
   fallas,
   pestanaInicial = "gastos",
   destinosDeposito = [],
+  previos = [],
+  gastosDelMesAnterior = null,
 }: {
   panel: PanelGastos | null;
   gastos: GastoFila[];
@@ -144,6 +149,10 @@ export function GastosPanel({
   destinosDeposito?: { id: string; nombre: string }[];
   /** Los hilos de sede del telar, para el orillo (`getSedesDelTelar`). */
   sedesTelar: SedeTelar[];
+  /** Los meses de antes, del más viejo al anterior (`mesesDeAntes`); `null` el que no se compara. Para «En qué se va» y su chip. */
+  previos?: MesPrevio[];
+  /** Los gastos del mes anterior, uno por uno, para el ritmo de «Cuándo»; `null` si ese mes no se compara o no se pudo leer. */
+  gastosDelMesAnterior?: GastoFila[] | null;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -161,14 +170,24 @@ export function GastosPanel({
   // Antes del inicio de Finanzas no hay fijos que confirmar: la base los marcaría todos «falta» y la base rechaza un gasto anterior a esa fecha.
   const antesDelCorte = !!inicioFinanzas && mesAntesDelCorte(mes, inicioFinanzas);
   const fijosDelMes = fijosDelMesVisibles(fijos, mes, inicioFinanzas);
-  // Los filtros de la lista: los ponen la lista misma, el retazo (una categoría), el calendario (un día) y «Por ordenar» (sin comprobante).
-  const [filtros, setFiltros] = useState<FiltrosLista>({ q: "", categoria: "", dia: null, comprobante: "todos" });
+  // Los filtros de la lista: los ponen la lista misma, los hilos (una categoría), el calendario (un día) y «Por ordenar» (sin comprobante).
+  const [filtros, setFiltros] = useState<FiltrosLista>(SIN_FILTROS);
   const elegirFiltro = (f: Partial<FiltrosLista>) => {
     setFiltros((a) => ({ ...a, ...f }));
     setPestana("gastos");
   };
-  const retazo = useMemo(() => retazoDeGastos(gastos), [gastos]);
-  const calendario = useMemo(() => calendarioDelMes(gastos, mes, hoy), [gastos, mes, hoy]);
+  // En el mes en curso todo se compara con lo que el mes anterior llevaba al mismo día (el chip, las píldoras, la rayita y las dos frases):
+  // contra el mes entero, a mitad de mes todo parecería «▼» y contradecía a «Cuándo» (/formidable 2026-10-30). Un mes cerrado, contra el entero.
+  const enCurso = mes === mesDe(hoy);
+  const contra = useMemo(
+    () => (enCurso ? mesAEstaAltura(gastosDelMesAnterior, Number(hoy.slice(8, 10))) : (previos.at(-1) ?? null)),
+    [enCurso, gastosDelMesAnterior, hoy, previos],
+  );
+  const hilos = useMemo(() => hilosDeGastos(gastos, sedesTelar, previos, { contra, enCurso }), [gastos, sedesTelar, previos, contra, enCurso]);
+  const ritmo = useMemo(
+    () => ritmoDelMes({ gastos, anteriores: gastosDelMesAnterior, fijos: fijosDelMes, mes, hoy }),
+    [gastos, gastosDelMesAnterior, fijosDelMes, mes, hoy],
+  );
   // El `?registrar=1` se quita apenas se abrió la hoja, para que recargar o volver atrás no la abra otra vez.
   useEffect(() => {
     if (params.get("registrar") !== "1") return;
@@ -206,7 +225,10 @@ export function GastosPanel({
   // En «De la empresa» no se lee ningún cajón: la bandeja no puede decir que todo está clasificado.
   const bandeja = bandejaPulso(egresos, fijosDelMes, { egresosLeidos: !ver.soloEmpresa });
   // Lo que la cifra grande todavía no cuenta: los fijos del mes sin confirmar (tarea #2 de /pantalla, 2026-10-22).
-  const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
+  // Y el mes entero contra el anterior, si ese mes se puede comparar (hilos, Felipe 2026-10-30).
+  const nombreMesAnterior = textoMes(mesesDeAntes(mes, 1)[0]!).split(" ")[0]!;
+  const chipAnterior = panel ? chipDelMesAnterior(panel.total, contra, nombreMesAnterior, enCurso) : null;
+  const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
 
   return (
     <div className="space-y-6">
@@ -261,13 +283,24 @@ export function GastosPanel({
         </Aviso>
       )}
 
-      {/* El telar (ADR-0493): en qué se va la plata (el retazo) y cuándo (el calendario); tocar uno filtra la lista. Después, la bandeja. */}
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+      {/* El telar (ADR-0493): en qué se va la plata (los hilos) y cuándo (el ritmo del mes, a todo el ancho; los dos de 2026-10-30): tocar uno
+          abre su detalle, y de ahí «Ver en la tabla» filtra la lista. Después, la bandeja. */}
+      <section className="grid gap-4">
         <Superficie pad className="anim-entra min-w-0">
-          <TituloSeccion dato={gastastePulso(panel, { mes, hoy })?.frase}>En qué se va</TituloSeccion>
-          {retazo.length ? (
+          <TituloSeccion dato={fraseDeLosHilos(hilos, nombreMesAnterior, enCurso) ?? gastastePulso(panel, { mes, hoy })?.frase}>En qué se va</TituloSeccion>
+          {hilos.length ? (
             <div className="mt-3">
-              <RetazoGastos piezas={retazo} sedes={sedesTelar} elegida={filtros.categoria} onElegir={(c) => elegirFiltro({ categoria: c })} />
+              <HilosGastos
+                filas={hilos}
+                gastos={gastos}
+                nombreMesAnterior={nombreMesAnterior}
+                aEstaAltura={enCurso}
+                onAbrirGasto={(id) => setDetalle(gastos.find((g) => g.id === id) ?? null)}
+                onVerEnLaTabla={(categoria, sede) => {
+                  setFiltros((a) => ({ ...a, categoria, sede: sede ?? "" }));
+                  irALasPestanas("gastos");
+                }}
+              />
             </div>
           ) : (
             <Vacio tamano="chico" icono={<Receipt />}>
@@ -276,9 +309,21 @@ export function GastosPanel({
           )}
         </Superficie>
         <Superficie pad className="anim-entra min-w-0">
-          <TituloSeccion dato="más oscuro, más gasto">Cuándo</TituloSeccion>
+          <TituloSeccion dato={fraseDelRitmo(ritmo, mes, nombreMesAnterior)}>Cuándo</TituloSeccion>
           <div className="mt-3">
-            <CalendarioGastos huecos={calendario.huecos} dias={calendario.dias} mesNombre={textoMes(mes).split(" ")[0]!} elegido={filtros.dia} onElegir={(d) => elegirFiltro({ dia: d })} />
+            <RitmoGastos
+              key={mes}
+              ritmo={ritmo}
+              gastos={gastos}
+              mes={mes}
+              nombreMesAnterior={nombreMesAnterior}
+              sedes={sedesTelar}
+              onAbrirGasto={(id) => setDetalle(gastos.find((g) => g.id === id) ?? null)}
+              onVerEnLaTabla={(dia) => {
+                setFiltros((a) => ({ ...a, dia }));
+                irALasPestanas("gastos");
+              }}
+            />
           </div>
         </Superficie>
       </section>
@@ -347,6 +392,7 @@ export function GastosPanel({
           onAbrir={setDetalle}
           filtros={filtros}
           onFiltros={(f) => setFiltros((a) => ({ ...a, ...f }))}
+          sedes={sedesTelar}
         />
       )}
 
@@ -508,20 +554,24 @@ function TablaGastos({
   onAbrir,
   filtros,
   onFiltros,
+  sedes,
 }: {
   gastos: GastoFila[];
   categorias: CategoriaGasto[];
   verTodas: boolean;
   mes: string;
   onAbrir: (g: GastoFila) => void;
-  /** Los filtros los comparte con el retazo, el calendario y «Por ordenar»; el mes lo elige la mesa de mando de arriba. */
+  /** Los filtros los comparte con los hilos, el calendario y «Por ordenar»; el mes lo elige la mesa de mando de arriba. */
   filtros: FiltrosLista;
   onFiltros: (f: Partial<FiltrosLista>) => void;
+  /** Para nombrar la sede de la píldora que pone el desglose de «En qué se va». */
+  sedes: SedeTelar[];
 }) {
   const visibles = useMemo(() => filtrarGastos(gastos, filtros, mes), [gastos, filtros, mes]);
   const nombreCategoria = (c: string) => categorias.find((x) => x.codigo === c)?.nombre ?? c;
-  const puestos = filtrosPuestosDeGastos(filtros, nombreCategoria, textoMes(mes).split(" ")[0]!);
-  const limpiar = () => onFiltros({ q: "", categoria: "", dia: null, comprobante: "todos" });
+  const nombreSede = (clave: string) => sedes.find((s) => s.clave === clave)?.nombre ?? "otra sede";
+  const puestos = filtrosPuestosDeGastos(filtros, nombreCategoria, textoMes(mes).split(" ")[0]!, nombreSede);
+  const limpiar = () => onFiltros(SIN_FILTROS);
 
   return (
     <>
@@ -560,7 +610,7 @@ function TablaGastos({
               <FiltroPuesto
                 key={f.clave}
                 etiqueta={`Quitar el filtro ${f.texto}`}
-                onQuitar={() => onFiltros(f.clave === "q" ? { q: "" } : f.clave === "categoria" ? { categoria: "" } : f.clave === "dia" ? { dia: null } : { comprobante: "todos" })}
+                onQuitar={() => onFiltros({ [f.clave]: SIN_FILTROS[f.clave] })}
               >
                 {f.texto}
               </FiltroPuesto>
