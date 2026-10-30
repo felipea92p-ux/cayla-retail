@@ -9,5 +9,17 @@
 - [ ] **Sin PR:** todo en commits locales de la rama; el PR se abre con `/abrir-pr` cuando Felipe lo pida.
 - [ ] **Sin `/formidable` ni `/chaos`:** `/chaos` no aplica (no guarda nada); `/formidable` queda para el cierre de Gastos completo.
 - [ ] **En producción hoy no se verá la comparación:** septiembre de 2026 no tuvo gastos registrados (ADR-0332), así que el chip, la rayita y la píldora salen desde noviembre; la línea, con tres meses seguidos.
-- [ ] Lo siguiente que pidió Felipe: rediseñar «Cuándo» (el calendario), que ya traía 8 días con contraste bajo en oscuro (`calendario-dia`, número crema sobre gris medio).
+- [x] Lo siguiente que pidió Felipe: rediseñar «Cuándo» (el calendario). Hecho abajo; sus 8 días con contraste bajo en oscuro se fueron con él.
 - [ ] Menor: en la guía, el paso del desglose queda en parte bajo la barra de sede fija cuando el desglose es alto.
+
+## 📈 Gastos · «Cuándo» como el ritmo del mes, y `<Linea>` sin textos tapados (2026-10-30, ADR-0493 act. 2026-10-30 (b)) — solo web, sin migración; misma rama
+
+- [x] Maqueta con cuatro propuestas (`docs/maquetas/gastos-cuando-2026-10/`); Felipe eligió la C2 y pidió que el texto se lea mejor. Medido en la maqueta: ningún texto toca una línea desde 350 px de gráfico, en todas las sedes.
+- [x] Reglas puras con pruebas (`lib/gastos-ritmo-reglas.ts`, 20): acumulado, mes anterior a la misma altura, «si sigue así» (un día normal sin fijos ni saltos + los fijos sin registrar en su fecha), saltos con nombre, frase, pie y día elegido.
+- [x] Reglas de dónde va cada texto de `<Linea>` (`lib/linea-textos-reglas.ts`, 13, con 200 casos al azar): notas en franja, cifra que busca hueco, cifras del final separadas.
+- [x] `<Linea>` gana `notas`, `vienen`, `cifraProyeccion`, `onElegir`/`elegido` (también con el teclado) y el borde de papel en sus textos. Finanzas ▸ Resumen, comprobado: su cifra no se movió.
+- [x] La página lee los gastos del mes anterior (`getGastos`, solo si se compara); `RitmoGastos` reemplaza a `CalendarioGastos` (borrado con su regla, su prueba y su CSS) a todo el ancho bajo «En qué se va».
+- [x] Guía con el paso «Lo que se gastó ese día» (recorrida: 33 pasos ✓) y huella aceptada; el piloto de las guías sabe tocar una pieza SVG. Escenario `gastos.ritmo-dia` en el auditor del tema: 0 hallazgos solo en oscuro. Knip limpio.
+- [ ] **Sin verificar con datos de varios meses** hasta la actividad de verificación (foto, gastos de ejemplo, 1920/1440/375, claro y oscuro, mes cerrado y una sede).
+- [ ] **No revisado en pantallas con datos:** Caja, Rendimiento, el plan de campaña y el costo de una prenda también usan `<Linea>`; la base local no tiene datos para dibujarlas. La regla deja la cifra donde estaba si no choca, pero conviene mirarlas en producción.
+- [ ] Menor: Playwright no puede tocar el centro de una nota (cae entre el texto y su punto, sobre el gráfico); el escenario toca su texto. Una persona toca el texto.

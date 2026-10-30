@@ -189,3 +189,39 @@ primera versión del desglose (no le gustaron), las píldoras y «el hilo en gra
 mouse (bajaba su texto por debajo de 4.5:1) y una RPC nueva por mes (el resumen de siempre ya trae lo sumado por categoría). **SE ROMPE SI:**
 la lista del mes deja de traer todos los gastos (el desglose y el hilo salen de ella, `fn_gastos_lista` sin tope) o si `fn_gastos_panel`
 deja de devolver `por_categoria` (se pierde la comparación, sin caerse).
+
+## Actualización 2026-10-30 (b) — «Cuándo» de Gastos deja el calendario por el ritmo del mes (Felipe, eligiendo mirando)
+
+Felipe pidió lo mismo para «Cuándo». Cuatro propuestas en `docs/maquetas/gastos-cuando-2026-10/` (C1 · Calendario fino, C2 · El ritmo del
+mes, C3 · Día por día, C4 · La lluvia), sobre lo que hacen Copilot Money, Tiller y otras apps de finanzas (el mes contra el anterior el mismo
+día, y hacia dónde va). Eligió **la C2, «pero que se lea mejor el texto, ya que en distintos tamaños se llega a tapar por la línea»**. Lo que
+quedó (`components/finanzas/gastos/RitmoGastos.tsx`, reglas en `lib/gastos-ritmo-reglas.ts`), a todo el ancho bajo «En qué se va»:
+
+1. **El ritmo con `<Linea>`, la pieza única** (ADR-0358): lo gastado sumado día a día en tinta; el mes anterior **a la misma altura** en taupe
+   punteado (sus gastos uno por uno, `getGastos` del mes anterior en `page.tsx`, con la misma regla de los hilos: solo desde el inicio de
+   Finanzas, y un mes sin gastos no se compara); desde hoy, el «si sigue así». Junto al título, «A hoy llevas S/ X: S/ Y más que septiembre a
+   esta altura»; en un mes cerrado, el mes entero contra el anterior.
+2. **«Si sigue así» = un día normal cada día que falta + lo que ya se sabe que viene.** Un día normal es lo gastado sin los gastos que vienen
+   de un fijo ni los saltos, repartido en los días que pasaron (un alquiler no hace creer que cada día se gastan miles). Lo que viene: los
+   fijos del mes sin registrar en su fecha (el atrasado, mañana), en puntos huecos sobre la línea, y un gasto anotado con fecha de más
+   adelante, en su día.
+3. **Los saltos grandes con su nombre** («Alquileres · 3 al 5 oct S/ 6,600»): los gastos de 6 % o más de lo más alto del mes, juntos si son de
+   la misma categoría en días cercanos, tres como mucho.
+4. **Tocar un día** (o una nota, o con ← → y Enter: la línea es un deslizador) **abre debajo lo que se gastó ese día**, gasto por gasto y del
+   más grande al más chico, como el desglose de «En qué se va» (seis a la vista y «Ver N más»); en un día que no llega, el fijo que falta.
+   «Ver en la tabla» deja la lista de abajo con ese día (el filtro `dia` que ya existía).
+
+**Lo que se lee mejor (el pedido de Felipe), en `<Linea>` y para todas sus pantallas** (`lib/linea-textos-reglas.ts`, con pruebas que recorren
+200 casos al azar): las notas van en una **franja sobre el gráfico**, con un hilo punteado hasta su punto, nunca encima de un trazo (se prueban
+todas las combinaciones de fila y lado; si no caben en dos filas, todas pasan a su nombre corto); **la cifra del último punto** se queda en su
+lugar de siempre salvo que choque con un trazo, y entonces busca el primer hueco alrededor; **las cifras del final se separan** si caen juntas;
+y **todo texto sobre el dibujo lleva un borde del color del fondo** (`--linea-fondo`, papel de fábrica) que corta la línea que pase detrás.
+Medido en la maqueta: en las seis vistas de sede y once anchos (300 a 1920 px), ningún texto toca una línea desde 350 px de gráfico.
+
+**DECIDÍ:** que la mejora de lectura viva en `<Linea>` y no en Gastos: es la pieza única de la línea, y Caja, Rendimiento, el plan de campaña y
+las demás la reciben sin cambiar nada donde hoy no hay choque (comprobado en Finanzas ▸ Resumen: su cifra se queda donde estaba). Y que la
+línea comparada sea **el mes anterior a la misma altura**, no su promedio: es la pregunta que se contesta de un vistazo. **DESCARTÉ:** la C1
+(el calendario arreglado, en la columna angosta: no dice si se va más rápido que el mes pasado), la C3 (barras por día) y la C4 (gotas por
+gasto), que Felipe vio y no eligió; la mediana de un día como ritmo (en un mes con pocos gastos da cero y no proyecta nada); y una RPC que sume
+por día (la lista del mes ya trae cada gasto). **SE ROMPE SI:** `fn_gastos_lista` del mes anterior deja de responder (se calla la comparación,
+sin caerse: el aviso de arriba lo dice) o `fn_gastos_fijos_mes` deja de traer `fecha_esperada` (los fijos caerían mañana).

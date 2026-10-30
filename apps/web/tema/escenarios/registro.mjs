@@ -1678,6 +1678,15 @@ ESCENARIOS.push(
   { id: "finanzas.resumen-confianza", ruta: "/finanzas/resumen", cuentas: FIN, abre: "#fin-confianza-piezas", nombre: "Resumen · «cosas por revisar» abre el medidor de confianza", preparar: clicRol("button", /(cosas? por revisar|Ver el detalle)/i) },
   { id: "gastos.registrar", ruta: "/finanzas/gastos", cuentas: FIN, abre: "[role=dialog]", nombre: "Gastos · «Registrar gasto»", preparar: clicRol("button", /Registrar gasto/i) },
   { id: "gastos.desglose", ruta: "/finanzas/gastos", cuentas: FIN, abre: '[data-guia="fin-gastos.desglose"]', nombre: "Gastos · el desglose de «En qué se va» (sedes en columna y sus gastos)", preparar: clicGuia("fin-gastos.hilo-primera") },
+  { id: "gastos.ritmo-dia", ruta: "/finanzas/gastos", cuentas: FIN, abre: '[data-guia="fin-gastos.ritmo-dia"]', nombre: "Gastos · «Cuándo» con un día abierto (lo que se gastó ese día)",
+    // La nota va arriba del gráfico: se centra antes del clic (o queda bajo la barra fija de la sede y el mes) y se toca su texto (el
+    // centro de la nota cae entre el texto y su punto, sobre el gráfico).
+    preparar: async (pagina) => {
+      const nota = pagina.locator('[data-guia="fin-gastos.ritmo-nota"] text').first();
+      await nota.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await nota.click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    } },
   { id: "gastos.fijos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Fijos del mes»", preparar: clicRol("tab", /Fijos del mes/i) },
   { id: "gastos.activos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Activos fijos»", preparar: clicRol("tab", /Activos fijos/i) },
   { id: "gastos.egresos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Egresos de caja por clasificar»", preparar: clicRol("tab", /Egresos de caja por clasificar/i) },

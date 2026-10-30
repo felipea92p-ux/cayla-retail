@@ -63,6 +63,15 @@ gráfico): el escalón de la línea no se mueve, solo el número, unido a su pun
 no se le dibuja el texto («↑ subió S/ 1.61»): lo dicen la tabla de abajo, su `<title>` y el lector de pantalla; el elegido lo muestra siempre, y el
 blanco de toque se achica a la mitad de la distancia al vecino (mínimo 12 px). Quien tiene sus números separados no ve ningún cambio.
 
+## Ninguna línea tapa un texto (2026-10-30)
+
+Al elegir el ritmo del mes para «Cuándo» de Gastos, Felipe pidió que el texto se lea a todos los anchos (ADR-0493, actualización (b)). Desde
+entonces la pieza: le pone a todo texto sobre el dibujo un borde del color del fondo (`.linea-sobre`, `--linea-fondo`); deja la cifra del último
+punto en su lugar de siempre salvo que choque con un trazo, y entonces la lleva al primer hueco libre; separa las cifras del final si caen
+juntas; y suma `notas` (lo que pasó en un punto, en una franja SOBRE el gráfico con un hilo hasta él), `vienen` (puntos huecos sobre la
+proyección), `cifraProyeccion` y `onElegir`/`elegido` (tocar un momento, también con ← → y Enter). La lógica es pura, en
+`lib/linea-textos-reglas.ts`. Una pantalla que hoy no tiene choques no ve ningún cambio.
+
 ## Firmas
 
 Una `<polyline>` o un `<path>` armado con su propia función de trazo (`d={trazo(…)}`, `camino`, `linea`) fuera de la pieza. Con el código de
