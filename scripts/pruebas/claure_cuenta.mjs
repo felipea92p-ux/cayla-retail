@@ -18,6 +18,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ELEGIR_A, ELEGIR_B_CON_PRODUCTO } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -50,8 +51,8 @@ insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, $
 // Las ventas de la prueba. A = una prenda de CLAURE, B = una de CAYLA. Todo se escribe como postgres, sin disparadores (la prueba solo lee).
 const V = (n) => `'00000000-0000-4000-8000-0000000000${n}'`; // venta n
 const ESCENA_VENTAS = `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
-select va.id as va_b, va.producto_id as p_b from retail.variantes va where va.producto_id <> :'p_a' and va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
+${ELEGIR_A}
+${ELEGIR_B_CON_PRODUCTO}
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 set local session_replication_role = replica;

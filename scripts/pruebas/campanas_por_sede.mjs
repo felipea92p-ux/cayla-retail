@@ -307,6 +307,50 @@ rollback;`);
     esperar("la corrección (una sola firma) es re-ejecutable (dos veces seguidas)", r.ok && ultimaLinea(r) === "ok", r.ok ? r.salida : r.mensaje);
   }
 
+  // ---- 12. `campanas_firma` (20261030223000): cambia si y solo si cambia la lista de `campanas_vigentes` de ESA tienda ----
+  //      El ERP la sondea cada 10 s en vez de bajar la lista entera. Cambia al aparecer la campaña y al cambiar su %, NO al renombrarla ni
+  //      en otra tienda, y es el md5 de la misma lista. MUTANTE: una firma que ignora el % no ve el cambio de descuento.
+  {
+    const FIRMA_DE_LA_LISTA = `(select md5(coalesce(string_agg(c.variante_id::text || ':' || c.etiqueta_id::text || ':' || trim_scale(c.descuento_pct)::text, ','
+      order by c.variante_id), '')) from retail.campanas_vigentes(:'tru') c)`;
+    const escenario = (antes = "") => `begin;
+set local request.jwt.claim.sub = '${FELIPE}';
+${TIENDAS}
+${antes}
+select retail.campanas_firma(:'tru') as f0_tru \\gset
+select retail.campanas_firma(:'lima') as f0_lima \\gset
+${CAMPANA(SOLO_TRU)}
+select retail.campanas_firma(:'tru') as f1_tru \\gset
+update retail.etiquetas set nombre = 'ZZ Campaña renombrada (prueba)' where id = :'etq';
+select retail.campanas_firma(:'tru') as f2_tru \\gset
+select retail.actualizar_campana_etiqueta_con_sedes(:'etq', 30, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5, '{}'::uuid[], ${SOLO_TRU}) as _pct \\gset
+select concat_ws('|',
+  (:'f1_tru' <> :'f0_tru')::text,
+  (retail.campanas_firma(:'lima') = :'f0_lima')::text,
+  (:'f2_tru' = :'f1_tru')::text,
+  (retail.campanas_firma(:'tru') <> :'f2_tru')::text,
+  (retail.campanas_firma(:'tru') = ${FIRMA_DE_LA_LISTA})::text);
+rollback;`;
+    const r = correr(escenario());
+    esperar(
+      "campanas_firma cambia al aparecer la campaña y al cambiar su %, no al renombrarla ni en otra tienda, y es el md5 de la lista",
+      ultimaLinea(r) === "true|true|true|true|true",
+      r.ok ? r.salida : r.mensaje,
+    );
+
+    const mutante = correr(escenario(`create or replace function retail.campanas_firma(p_ubicacion_id uuid default null) returns text
+language sql stable as $$ select md5(coalesce(string_agg(c.variante_id::text || ':' || c.etiqueta_id::text, ',' order by c.variante_id), ''))
+  from retail.campanas_vigentes(p_ubicacion_id) c $$;`));
+    esperar("MUTANTE (una firma que ignora el %): el caso lo ve", mutante.ok && ultimaLinea(mutante).split("|")[3] === "false", mutante.ok ? mutante.salida : mutante.mensaje);
+
+    const anon = correr(`begin;
+${TIENDAS}
+set local role anon;
+select retail.campanas_firma(:'tru');
+rollback;`);
+    esperarError("sin sesión (anon) no se puede pedir la firma", anon, "permission denied");
+  }
+
   console.log(`\n${total - fallos} de ${total} bien${fallos ? ` · ${fallos} FALLARON` : ""}.`);
   process.exit(fallos ? 1 : 0);
 }

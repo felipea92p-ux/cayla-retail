@@ -18,6 +18,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -60,8 +61,8 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   S1 mixta: A 118 + B 118 · S2 solo CLAURE: A 177 (luego devuelta, desde Yape) · S3 solo CAYLA: B 100 · S4 CLAURE de antes del arranque: A 59
 //   S5 CLAURE anulada hoy: A 100 · S6 CAYLA en Trujillo: B 100
 const ESCENA = `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' and va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1 \\gset
+${ELEGIR_A}
+${ELEGIR_B}
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 select (now() at time zone 'America/Lima')::date as hoy \\gset
 set local session_replication_role = replica;
