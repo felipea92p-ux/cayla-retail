@@ -12,6 +12,20 @@
     seis funciones a su versión anterior sin ningún error.
   - Prueba: `pnpm pruebas:materiales` (143 casos, grupo V nuevo).
 
+## DECISIÓN PENDIENTE DE FELIPE (antes del primer botón)
+
+**¿Un botón se mide en líneas o en milímetros?** Hoy `fn_medida_cuadra` admite las DOS para el comportamiento `pieza`, y la
+unidad entra en la llave del índice único: «Botón nácar» 18 `linea` y «Botón nácar» 11.4 `milimetro` son dos fichas
+legítimas del MISMO botón, con códigos, colores y stock separados. Se descubre tarde: Producción pide botones, una ficha
+dice 0 y los 800 están en la otra. Lo encontró la revisión adversarial del 30-oct, antes de pegar el SQL.
+
+- **Si se mide SOLO en líneas** (lo habitual en el rubro y mi recomendación): un `create or replace` de una línea en
+  `retail.fn_medida_cuadra` (`when 'pieza' then p_unidad = 'linea'`), más quitar el milímetro de la nota de la clase Botón
+  y de `COMPORTAMIENTOS` en `lib/avio-clases-reglas.ts`. **Con 0 avíos no migra ni una fila**; cada día que pase con avíos
+  cargados lo encarece.
+- **Si se quieren las dos**, hace falta una medida canónica (guardar milímetros siempre, mostrar líneas con
+  `fn_medida_texto`) y que el índice use esa, no la escrita.
+
 ## LO QUE QUEDÓ FUERA, A PROPÓSITO
 
 1. **La unidad de compra con factor** (gruesa de 144, ciento, millar, caja). Felipe lo dejó para después (decisión 2). **No se

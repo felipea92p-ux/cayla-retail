@@ -391,19 +391,22 @@ select (select count(*) from retail.materiales where nombre = 'Larga' and length
 
 // ---------------- J. Puertas ----------------
 ok(
-  "J1 anon no llama a nada; authenticated solo a las dos funciones de alta, no a las internas",
+  "J1 anon no llama a nada; authenticated solo a las dos funciones de alta, no a las internas (ni a `fn_medida_texto`/`fn_medida_cuadra`, ADR-0580)",
   `select concat_ws(',',
     has_function_privilege('anon', 'retail.crear_material(uuid,jsonb,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.crear_material(uuid,jsonb,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.agregar_colores_a_material(uuid,uuid,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_material_agregar_colores(uuid,uuid,jsonb,uuid)', 'execute'),
-    has_function_privilege('authenticated', 'retail.fn_codigo_de_material(text,text)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_codigo_de_material(text,text,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_materializar_insumos_sueltos(boolean)', 'execute'),
     has_function_privilege('authenticated', 'retail.editar_material(uuid,uuid,jsonb)', 'execute'),
     has_function_privilege('anon', 'retail.editar_material(uuid,uuid,jsonb)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_material_leer(jsonb,text,text)', 'execute'),
-    has_function_privilege('authenticated', 'retail.fn_materiales_propagar_a_colores()', 'execute'));`,
-  (c) => c[0] === "f,t,t,f,f,f,t,f,f,f"
+    has_function_privilege('authenticated', 'retail.fn_materiales_propagar_a_colores()', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_medida_texto(numeric,text)', 'execute'),
+    has_function_privilege('anon', 'retail.fn_medida_texto(numeric,text)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_medida_cuadra(text,text)', 'execute'));`,
+  (c) => c[0] === "f,t,t,f,f,f,t,f,f,f,f,f,f"
 );
 mal(
   "J2 la tabla de telas no se escribe desde la API",

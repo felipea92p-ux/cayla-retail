@@ -32,6 +32,17 @@ tres candados rotos a propósito, tres casos en rojo; las 14 suites de Postgres 
 título 40» en conos, con sus colores `HIL-01-NEG` y `HIL-01-CRU`, y Actividad lo anotó. Revisado en escritorio, en modo oscuro
 y a 375 px.
 
+**Revisión adversarial antes de pegar (30-oct).** Antes de entregarle el SQL a Felipe se midió el estado real de producción
+(0 avíos, 1 tela, `avio_clases` inexistente) y se comprobó que **las 8 funciones que la migración recrea son byte a byte
+idénticas a las que produce `main`** (md5 contra una base privada con las 980 migraciones): ningún parche vivo que revertir
+en silencio. Después, 36 agentes revisaron el archivo por 6 lentes y refutaron entre sí: de 30 hallazgos, **25 cayeron con
+evidencia** y 5 quedaron. Cuatro se arreglaron en el mismo PR —el aviso traducido del índice renombrado
+(`error-escritura.ts`), la llave del candado que dejaba de serializarse con `fn_materializar_insumos_sueltos`, las dos
+funciones nuevas sin `revoke`, y «Agregar colores», que llamaba «tela» a un avío y sin su medida— y el quinto es una
+decisión de Felipe (ver el backlog: un botón, ¿en líneas o en milímetros?). También se escribió y **se probó** el camino de
+vuelta: restaura las 8 funciones a su md5 de producción, es re-ejecutable, y su guarda se rompió a propósito para
+comprobar que de verdad frena si ya hay un avío.
+
 **El SQL (`20261030144000`) todavía NO está pegado en producción.** Va en dos partes, por separado y en orden; la segunda es la
 política de `avio_clases`, sola y al final (ADR-0195). Producción tiene **0 avíos** (consultado en vivo el 30-oct), así que no
 hay nada que migrar — pero conviene repetir esa sonda antes de pegar, porque basta un avío cargado por el SQL Editor para que

@@ -18,7 +18,8 @@
 --      (nombre, tipo, medida): dos medidas del mismo botón son dos fichas a propósito; la misma medida dos veces, no entra.
 --   4. `fn_medida_texto` y el nombre COMPUESTO: lo que se lee en Producción, en Compras y en una orden («Botón nácar 18 L · Negro») lo arma la base en el disparador de cada color, desde el
 --      nombre y la medida de la ficha. Ninguna pantalla lo escribe, así que no se pueden desfasar.
---   5. `fn_codigo_de_material` toma el prefijo de la CLASE (`BOT-01`, `CIE-01`, `HIL-01`), no de la primera palabra del nombre. La de dos argumentos delega en la de tres.
+--   5. `fn_codigo_de_material` toma el prefijo de la CLASE (`BOT-01`, `CIE-01`, `HIL-01`), no de la primera palabra del nombre. Pasa a tener UNA sola firma, con el tercer argumento por defecto
+--      (se suelta la de dos antes de crearla): `pruebas:una-sola-firma` no deja dos firmas vivas de la misma función, y las llamadas de dos argumentos siguen funcionando.
 --   6. `fn_material_leer` valida el avío entero: clase viva, la medida que su comportamiento pide (y la que no admite), y merma solo si se mide en metros.
 --   7. **Un avío lo crea quien opera el Taller, igual que una tela** (Felipe, 2026-10-30, decisión 3): se retira el candado `avio_sin_lider` de `crear_material` y de
 --      `fn_material_agregar_colores`. El SALDO INICIAL, con su costo, sigue siendo solo del líder (`saldo_sin_lider`), y editar una ficha también (`editar_material`).
@@ -164,6 +165,8 @@ as $f$
 $f$;
 comment on function retail.fn_medida_texto(numeric, text) is
   'ADR-0580: la medida de un avío dicha en palabras («18 L», «40 cm», «título 40»). IMMUTABLE: la usan el disparador de los colores y las lecturas.';
+revoke all on function retail.fn_medida_texto(numeric, text) from public, anon, authenticated;
+-- La usan por dentro las funciones `security definer` (que corren como su dueño); nadie la llama por RPC. Las otras seis de este archivo ya lo hacían: esta sigue la misma regla.
 
 -- ---------- 4. El nombre que se lee lo arma la base ----------
 -- Igual que antes, pero el nombre de cada color incluye la MEDIDA de su ficha: «Botón nácar 18 L · Negro». Así la lista de Insumos, el combo de una orden y una factura dicen lo mismo,
@@ -220,8 +223,11 @@ create or replace trigger materiales_propaga_a_colores
 
 -- ---------- 5. El código sale de la clase ----------
 -- `BOT-01` para un botón, `HIL-01` para un hilo: el prefijo es el de su clase, no las tres primeras letras del nombre (que daría `NAC-01` para «Nácar grande»).
--- La de TRES argumentos no lleva valor por defecto: con default, `fn_codigo_de_material('x','y')` quedaría ambigua (42725) y rompería `crear_material` de golpe.
-create or replace function retail.fn_codigo_de_material(p_nombre text, p_tipo text, p_clase_id uuid)
+-- UNA sola firma, con el tercer argumento por defecto: `pruebas:una-sola-firma` prohíbe que una función de retail tenga dos firmas vivas (y con las dos, el default daría 42725 por ambigüedad).
+-- Por eso se SUELTA primero la de dos argumentos: así `fn_codigo_de_material('x','y')` —que llaman las pruebas y el SQL viejo— sigue funcionando, resuelta contra esta con `p_clase_id` nulo.
+-- `drop function` no toma las 21 tablas de `auth`/`storage` (ADR-0195), así que puede ir en la PARTE 1.
+drop function if exists retail.fn_codigo_de_material(text, text);
+create or replace function retail.fn_codigo_de_material(p_nombre text, p_tipo text, p_clase_id uuid default null)
 returns text
 language plpgsql
 security definer
@@ -257,17 +263,6 @@ end;
 $f$;
 revoke all on function retail.fn_codigo_de_material(text, text, uuid) from public, anon, authenticated;
 
--- La de dos argumentos sigue existiendo (la llaman las pruebas y cualquier SQL viejo) y delega en la de tres.
-create or replace function retail.fn_codigo_de_material(p_nombre text, p_tipo text)
-returns text
-language sql
-security definer
-set search_path = retail, public, extensions
-as $f$
-  select retail.fn_codigo_de_material(p_nombre, p_tipo, null::uuid);
-$f$;
-revoke all on function retail.fn_codigo_de_material(text, text) from public, anon, authenticated;
-
 -- Qué medida admite cada comportamiento. Vive aparte para que la lean `fn_material_leer` y las pruebas sin repetir la tabla.
 create or replace function retail.fn_medida_cuadra(p_comportamiento text, p_unidad text)
 returns boolean
@@ -285,6 +280,8 @@ as $f$
 $f$;
 comment on function retail.fn_medida_cuadra(text, text) is
   'ADR-0580: qué unidad de medida admite cada comportamiento de clase de avío. Un botón se mide en líneas o milímetros, un cierre en centímetros, un hilo en título; una etiqueta no se mide.';
+revoke all on function retail.fn_medida_cuadra(text, text) from public, anon, authenticated;
+-- La usan por dentro las funciones `security definer` (que corren como su dueño); nadie la llama por RPC. Las otras seis de este archivo ya lo hacían: esta sigue la misma regla.
 
 -- ---------- 6. Leer y validar una ficha, tela o avío ----------
 -- Un avío ahora trae clase y medida. Las reglas salen del COMPORTAMIENTO de su clase, nunca de su nombre (ADR-0290: el nombre se renombra, el comportamiento no).
@@ -564,8 +561,11 @@ begin
   v_actor := retail.fn_actor_persona_id(true);
 
   -- Dos personas creando la misma ficha a la vez: la segunda espera, ve que ya existe y recibe el aviso (no un error de índice). La medida entra en la llave: «Botón nácar 18 L» y
-  -- «Botón nácar 20 L» son dos fichas a propósito.
-  perform pg_advisory_xact_lock(hashtextextended('materiales:nombre:' || v_tipo || ':' || coalesce(retail.fn_clave_texto(v_nombre), '') || ':' || coalesce(v_medida::text, '') || coalesce(v_mu, ''), 0));
+  -- «Botón nácar 20 L» son dos fichas a propósito. La medida va por `trim_scale`: `11.4` y `11.40` son el MISMO numeric para el índice, pero `::text` da dos cadenas distintas, así que
+  -- sin normalizar las dos personas tomarían candados distintos y la segunda recibiría el 23505 crudo del índice en vez del aviso en castellano.
+  -- Y una TELA (sin medida) conserva la llave EXACTA de antes, sin el «:» de más: `fn_materializar_insumos_sueltos` (20261028203000:696) sigue con la llave vieja y promete por escrito
+  -- que el conversor «no se cruza con quien está creando o corrigiendo esa tela». Con el `case` las dos llaves siguen siendo la misma y esa promesa se mantiene sin tocar al conversor.
+  perform pg_advisory_xact_lock(hashtextextended('materiales:nombre:' || v_tipo || ':' || coalesce(retail.fn_clave_texto(v_nombre), '') || case when v_medida is null and v_mu is null then '' else ':' || coalesce(trim_scale(v_medida)::text, '') || coalesce(v_mu, '') end, 0));
   for v_existente in select m.id, m.codigo, m.nombre, m.medida_valor, m.medida_unidad from retail.materiales m
     where retail.fn_clave_texto(m.nombre) = retail.fn_clave_texto(v_nombre) and m.tipo = v_tipo
       and m.medida_valor is not distinct from v_medida and m.medida_unidad is not distinct from v_mu loop
@@ -661,7 +661,7 @@ begin
   v_mu := v_d ->> 'medida_unidad';
   if retail.fn_clave_texto(v_d ->> 'nombre') is distinct from retail.fn_clave_texto(m.nombre)
      or v_medida is distinct from m.medida_valor or v_mu is distinct from m.medida_unidad then
-    perform pg_advisory_xact_lock(hashtextextended('materiales:nombre:' || m.tipo || ':' || coalesce(retail.fn_clave_texto(v_d ->> 'nombre'), '') || ':' || coalesce(v_medida::text, '') || coalesce(v_mu, ''), 0));
+    perform pg_advisory_xact_lock(hashtextextended('materiales:nombre:' || m.tipo || ':' || coalesce(retail.fn_clave_texto(v_d ->> 'nombre'), '') || case when v_medida is null and v_mu is null then '' else ':' || coalesce(trim_scale(v_medida)::text, '') || coalesce(v_mu, '') end, 0));
     for v_existente in select x.codigo, x.nombre, x.id from retail.materiales x
       where x.id <> m.id and x.tipo = m.tipo and retail.fn_clave_texto(x.nombre) = retail.fn_clave_texto(v_d ->> 'nombre')
         and x.medida_valor is not distinct from v_medida and x.medida_unidad is not distinct from v_mu loop
@@ -744,6 +744,59 @@ revoke all on function retail.editar_material(uuid, uuid, jsonb) from public, an
 grant execute on function retail.editar_material(uuid, uuid, jsonb) to authenticated;
 comment on function retail.editar_material(uuid, uuid, jsonb) is
   'ADR-0554/ADR-0580: corrige una ficha de Insumos (nombre, clase, medida, tejido, composición, merma, cómo se compra); sus colores la siguen en la misma transacción. Solo el líder. El tipo y la unidad no se cambian.';
+
+-- ---------- 9 bis. «Agregar colores» habla del avío, y con su medida ----------
+-- La dejó `20261028203000` cuando sólo había telas: decía «le sumó 2 colores a la TELA «Botón nácar» (BOT-01)» y leía `materiales.nombre` pelado, sin la medida. Es la puerta que usa la hoja
+-- nueva para sumarle colores a un avío ya creado (`NuevoAvioModal`), así que sin esto el PROMETE de este archivo —«el nombre que se lee en todo el ERP lo arma la base»— se incumple justo ahí.
+-- Lo único que cambia es el TEXTO que se lee; los permisos y lo que hace son los mismos (sigue delegando en `fn_material_agregar_colores`).
+create or replace function retail.agregar_colores_a_material(p_material_id uuid, p_ubicacion_id uuid, p_colores jsonb, p_token uuid default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $f$
+declare
+  v_actor uuid;
+  v_antes integer;
+  v_despues integer;
+  v_codigo text;
+  v_nombre text;
+  v_tipo text;
+  v_medida text;
+  v_que text;
+begin
+  perform retail.fn_produccion_exigir_operar(p_ubicacion_id);
+  perform retail.fn_material_exigir_taller(p_ubicacion_id);
+  if jsonb_typeof(coalesce(p_colores, '[]'::jsonb)) is distinct from 'array' then
+    raise exception 'Los colores se mandan como una lista.' using hint = 'color_ilegible';
+  end if;
+  perform retail.fn_intento_con_huella('agregar_colores_a_material', p_token, md5(row(p_material_id, p_ubicacion_id, p_colores)::text));
+  if not exists (select 1 from retail.materiales m where m.id = p_material_id and m.archivado_at is null) then
+    raise exception 'Esa ficha ya no existe. Actualiza la pantalla.' using hint = 'material_no_existe';
+  end if;
+  v_actor := retail.fn_actor_persona_id(true);
+  -- Dos personas sumando colores (o editando) la misma ficha a la vez: una a una.
+  perform pg_advisory_xact_lock(hashtextextended('materiales:colores:' || p_material_id::text, 0));
+  v_antes := (select count(*)::integer from retail.insumos i where i.material_id = p_material_id);
+  perform retail.fn_material_agregar_colores(p_material_id, p_ubicacion_id, p_colores, p_token);
+  v_despues := (select count(*)::integer from retail.insumos i where i.material_id = p_material_id);
+  -- Un reintento (el mismo token) no suma nada y no anota otra vez.
+  if v_despues > v_antes then
+    for v_codigo, v_nombre, v_tipo, v_medida in
+      select m.codigo, m.nombre, m.tipo, retail.fn_medida_texto(m.medida_valor, m.medida_unidad) from retail.materiales m where m.id = p_material_id loop
+      exit;
+    end loop;
+    v_que := case when v_tipo = 'avio' then 'el avío' else 'la tela' end;
+    perform retail.fn_material_anotar('colores_agregados',
+      'le sumó ' || (v_despues - v_antes) || case when v_despues - v_antes = 1 then ' color' else ' colores' end
+        || ' a ' || v_que || ' «' || v_nombre || coalesce(' ' || v_medida, '') || '» (' || v_codigo || ')',
+      v_actor, p_ubicacion_id, p_material_id, jsonb_build_object('material_id', p_material_id, 'codigo', v_codigo, 'tipo', v_tipo, 'colores_nuevos', v_despues - v_antes));
+  end if;
+  return retail.fn_material_como_json(p_material_id);
+end;
+$f$;
+revoke all on function retail.agregar_colores_a_material(uuid, uuid, jsonb, uuid) from public, anon;
+grant execute on function retail.agregar_colores_a_material(uuid, uuid, jsonb, uuid) to authenticated;
 
 -- ============================ FIN DE LA PARTE 1 ============================
 
