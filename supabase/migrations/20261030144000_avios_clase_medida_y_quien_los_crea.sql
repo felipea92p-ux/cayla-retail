@@ -282,7 +282,7 @@ as $f$
   end;
 $f$;
 comment on function retail.fn_medida_cuadra(text, text) is
-  'ADR-0580: qué unidad de medida admite cada comportamiento de clase de avío. Un botón se mide en líneas o milímetros, un cierre en centímetros, un hilo en título; una etiqueta no se mide.';
+  'ADR-0580: qué unidad de medida admite cada comportamiento de clase de avío. Un botón se mide en líneas, siempre; un cierre en centímetros, un hilo en título; una etiqueta no se mide.';
 revoke all on function retail.fn_medida_cuadra(text, text) from public, anon, authenticated;
 -- La usan por dentro las funciones `security definer` (que corren como su dueño); nadie la llama por RPC. Las otras seis de este archivo ya lo hacían: esta sigue la misma regla.
 
