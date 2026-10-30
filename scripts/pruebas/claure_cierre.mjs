@@ -15,8 +15,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
 import { CAJERA_AUTH, escenaCajera } from "./_claure_cajera.mjs";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -52,13 +52,15 @@ insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, $
 const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 // Tres cajas cerradas: la de hoy y la de ayer en Lima, y una de Trujillo. A = prenda de CLAURE, B = de CAYLA.
 const ESCENA = `
+${ELEGIR_A}
+${ELEGIR_B}
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 set local session_replication_role = replica;
 -- Lo que otra prueba o el seed de la base dejó (ventas y devoluciones reales) no entra a estas cuentas: la prueba mide SOLO su escena. Va antes de crearla, y todo termina en ROLLBACK.
 update retail.ventas set es_prueba = true where not coalesce(es_prueba, false);
 update retail.devoluciones set estado = 'rechazada' where estado = 'aprobada';
-${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where cuenta_id = :'izipay');
 delete from retail.medios_de_cobro where ubicacion_id = ${LIMA};
 insert into retail.pos_maquinas (nombre, cuenta_id) select 'Izipay prueba', :'izipay' where not exists (select 1 from retail.pos_maquinas m where m.cuenta_id = :'izipay');

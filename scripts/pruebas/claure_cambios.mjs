@@ -15,7 +15,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -63,10 +63,12 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   C4 devuelve A pagada en EFECTIVO y se lleva B → no mueve nada (el efectivo lo tiene Claudia)
 //   C5 devuelve B y se lleva B → CAYLA con CAYLA: nada
 const ESCENA = `
+${ELEGIR_A}
+${ELEGIR_B}
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 reset role;
 set local session_replication_role = replica;
-${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 insert into retail.cajas (id, ubicacion_id, estado, monto_apertura, abierta_en, cerrada_en)
   values (${ID("e1")}, ${LIMA}, 'cerrada', 100, now() - interval '3 hours', now() - interval '1 hour');
 insert into retail.ventas (id, ubicacion_id, created_at, estado, es_prueba, caja_id) values

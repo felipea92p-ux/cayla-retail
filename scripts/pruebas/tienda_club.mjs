@@ -158,7 +158,7 @@ begin
   values (p_ubic, p_cli, (p_dia::timestamp + interval '12 hours') at time zone 'America/Lima', 'completada', false)
   returning id into v;
   insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario)
-  select v, va.id, 1, p_precio, 1 from retail.variantes va order by va.id limit 1;
+  select v, va.id, 1, p_precio, 1 from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1;
   return v;
 end $f$;
 -- Un modelo nuevo de una talla (el color y la talla de otra prenda), publicado en la vitrina. Devuelve su prenda.

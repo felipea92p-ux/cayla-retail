@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -65,8 +65,10 @@ update retail.empresas set cuenta_corriente_desde = ((now() at time zone 'Americ
 select (now() at time zone 'America/Lima')::date::text as hoy \\gset
 select date_trunc('month', (now() at time zone 'America/Lima')::date)::date::text as mes \\gset
 select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
+${ELEGIR_A}
+${ELEGIR_B}
 set local session_replication_role = replica;
-${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 `;
 
 const FOTO = (n) =>

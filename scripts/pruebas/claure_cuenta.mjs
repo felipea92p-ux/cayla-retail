@@ -18,7 +18,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
+import { ELEGIR_A, ELEGIR_B_CON_PRODUCTO } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -48,16 +48,19 @@ const LIMA = (() => {
 const ESCENA_EMPRESAS = `insert into retail.empresa_sedes (empresa_id, ubicacion_id) select ${CAYLA}, u.id from retail.ubicaciones u on conflict do nothing;
 insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, ${LIMA}) on conflict do nothing;`;
 
-// Las ventas de la prueba. A = una prenda de CLAURE, B = una de CAYLA, las dos CREADAS por la escena. Todo se escribe como postgres, sin disparadores (la prueba solo lee).
+// Las ventas de la prueba. A = una prenda de CLAURE, B = una de CAYLA. Todo se escribe como postgres, sin disparadores (la prueba solo lee).
 const V = (n) => `'00000000-0000-4000-8000-0000000000${n}'`; // venta n
 const ESCENA_VENTAS = `
+${ELEGIR_A}
+${ELEGIR_B_CON_PRODUCTO}
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 set local session_replication_role = replica;
 -- Lo que otra prueba o el seed de la base dejó (ventas y devoluciones reales de hoy) no entra a estas cuentas: la prueba mide SOLO su escena. Va antes de crearla, y todo termina en ROLLBACK.
 update retail.ventas set es_prueba = true where not coalesce(es_prueba, false);
 update retail.devoluciones set estado = 'rechazada' where estado = 'aprobada';
-${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
+update retail.productos set empresa_id = ${CAYLA} where id = :'p_b';
 insert into retail.cuentas_dinero (id, nombre, tipo, cuenta_contable, empresa_id) values ('00000000-0000-4000-8000-0000000000c1', 'Yape de Claudia', 'banco', '104', ${CLAURE});
 insert into retail.pos_maquinas (nombre, cuenta_id) select 'Izipay prueba', :'izipay' where not exists (select 1 from retail.pos_maquinas m where m.cuenta_id = :'izipay');
 -- Tarifas y destinos de cobro en limpio (la base local trae los suyos): tarjeta con tarifa, QR sin tarifa y sin destino.

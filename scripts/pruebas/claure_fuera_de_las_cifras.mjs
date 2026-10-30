@@ -18,7 +18,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -57,14 +57,16 @@ const ESCENA_EMPRESAS = `insert into retail.empresa_sedes (empresa_id, ubicacion
 insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, ${LIMA}) on conflict do nothing;`;
 
 const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
-// A = una prenda de CLAURE (costo 10), B = una de CAYLA (costo 10), las dos CREADAS por la escena. Todas las ventas son de hoy en hora de Lima, salvo la 4 (antes del arranque).
+// A = una prenda de CLAURE (costo 10), B = una de CAYLA (costo 10). Todas las ventas son de hoy en hora de Lima, salvo la 4 (antes del arranque).
 //   S1 mixta: A 118 + B 118 · S2 solo CLAURE: A 177 (luego devuelta, desde Yape) · S3 solo CAYLA: B 100 · S4 CLAURE de antes del arranque: A 59
 //   S5 CLAURE anulada hoy: A 100 · S6 CAYLA en Trujillo: B 100
 const ESCENA = `
+${ELEGIR_A}
+${ELEGIR_B}
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 select (now() at time zone 'America/Lima')::date as hoy \\gset
 set local session_replication_role = replica;
-${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 insert into retail.ventas (id, ubicacion_id, created_at, estado, es_prueba) values
   (${ID("a1")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
   (${ID("a2")}, ${LIMA}, now() - interval '2 hours', 'completada', false),

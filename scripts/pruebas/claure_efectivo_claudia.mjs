@@ -16,9 +16,9 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
 import { CAJERA_AUTH, escenaCajera } from "./_claure_cajera.mjs";
 import { sqlDeshacer } from "./_deshacer_claure.mjs";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -75,13 +75,15 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 // La escena del IGV (actividad 10): hoy se cobró 168 en cuentas de CAYLA (IGV 25.63, comisión 1.40, pagado 40), ayer 59 (IGV 9.00, pagado 10) → saldo 140.97.
 // Más: la caja de Lima de hoy ABIERTA (e9) con una venta en efectivo de 200 (100 de CLAURE y 100 de CAYLA) y una caja abierta en Trujillo (e8) para ver que allá no se puede.
 const ESCENA = `
+${ELEGIR_A}
+${ELEGIR_B}
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 set local session_replication_role = replica;
 -- Lo que otra prueba o el seed de la base dejó (ventas y devoluciones reales) no entra a estas cuentas: la prueba mide SOLO su escena. Va antes de crearla, y todo termina en ROLLBACK.
 update retail.ventas set es_prueba = true where not coalesce(es_prueba, false);
 update retail.devoluciones set estado = 'rechazada' where estado = 'aprobada';
-${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where cuenta_id = :'izipay');
 delete from retail.medios_de_cobro where ubicacion_id = ${LIMA};
 insert into retail.pos_maquinas (nombre, cuenta_id) select 'Izipay prueba', :'izipay' where not exists (select 1 from retail.pos_maquinas m where m.cuenta_id = :'izipay');

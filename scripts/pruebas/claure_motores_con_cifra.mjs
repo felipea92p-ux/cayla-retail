@@ -18,7 +18,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sqlDeshacer } from "./_deshacer_claure.mjs";
-import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -54,9 +54,11 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 
 // A = prenda de CLAURE, B = de CAYLA. `lineas` dice qué se vendió hoy en Lima: «A», «B» o «AB» (un ticket mixto: 1 de A y 2 de B). Sin ventas anteriores en la ventana: se borran las de la sede dentro de la transacción.
 const escena = (lineas) => `
+${ELEGIR_A}
+${ELEGIR_B}
 reset role;
 set local session_replication_role = replica;
-${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 delete from retail.venta_items where venta_id in (select id from retail.ventas where ubicacion_id = ${LIMA});
 delete from retail.ventas where ubicacion_id = ${LIMA};
 ${
