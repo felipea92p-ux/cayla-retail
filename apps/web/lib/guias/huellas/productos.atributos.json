@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 135,
+  "total": 134,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
@@ -30,7 +30,7 @@
       "CampoTexto «Sinónimos»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»",
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
       "Boton «Confirmar rechazo»",
@@ -43,7 +43,7 @@
       "ComboResponsable «{responsable}» #2",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar» #3",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}» #2"
     ],
     "components/CombinaConCampo.tsx": [
       "button «{`Quitar ${nombre}»",
@@ -82,7 +82,7 @@
       "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -100,7 +100,7 @@
       "CampoTexto «{guia.etiqueta(\"valor\", \"Valor de la talla\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #3",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»"
     ],
     "components/TejidosLista.tsx": [
       "BotonFiltro «Todos»",
@@ -112,7 +112,7 @@
       "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}»"
     ],
     "components/TemporadasLista.tsx": [
       "button «{guia}»",
@@ -156,9 +156,8 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/atributos/kit.tsx": [
       "Boton «vocabulario.agregar»",

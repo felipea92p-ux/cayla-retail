@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Campo, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { ExisteTambien, type EstadoExisteTambien } from "@/components/ui/ExisteTambien";
 import { proponerValorVocabulario } from "@/lib/alta-producto-ejes";
+import { existentesParecidos, preguntaPendiente } from "@/lib/atributo-parecido";
 import { CANTIDAD_ILEGIBLE, type CompraDeTela } from "@/lib/insumos-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import {
@@ -25,9 +27,46 @@ import {
 // Las piezas que «Nueva tela» y «Editar tela» comparten (ADR-0554, actividad 3): el tejido y la composición, y cómo se compra la tela con su merma. Una sola forma de dibujarlas y de avisar lo que no tiene sentido:
 // quien edita una tela ve exactamente los mismos campos, en el mismo orden y con los mismos avisos que cuando la creó. Cada hoja pone su título, su guía de foco (`data-guia`) y su botón.
 
+/** Un tejido escrito a mano que se parece a uno que ya existe: espera que la persona diga cuál de los dos es (ADR-0576). */
+export type PreguntaDeTejido = {
+  /** Lo que escribió y todavía no se creó. */
+  nombre: string;
+  estado: EstadoExisteTambien;
+  /** «Usar X»: elige el que ya existe y no crea nada. */
+  usar: (id: string) => void;
+  /** Cambió de idea (eligió otro tejido de la lista): la pregunta ya no aplica. */
+  descartar: () => void;
+};
+
 /** Los tejidos que se pueden elegir y el crear uno nuevo ahí mismo (es el mismo vocabulario de Catálogo: nace aprobado, lo cree quien lo cree, ADR-0534). */
 export function useTejidosDeLaTela(iniciales: { id: string; nombre: string }[], responsable: ControlResponsable) {
   const [tejidos, setTejidos] = useState(iniciales);
+  // El tejido no tiene su propio «Guardar»: se crea en el momento de tocar «+ Crear». Si lo escrito se parece a uno que ya existe, no se crea
+  // todavía: queda pendiente (con lo que había que hacer al crearlo) hasta que la persona diga «Usar X» o «No, es otro». Mientras tanto la
+  // hoja no se guarda (`tejidoPorContestar` en `lib/tela-nueva-reglas.ts`): guardar ahora perdería el tejido que pidió.
+  const [pendiente, setPendiente] = useState<{ nombre: string; alCrear: (id: string) => void } | null>(null);
+
+  // Un segundo toque mientras la base responde no manda otra creación (la base rechazaría el nombre repetido y la persona vería un error por algo que salió bien).
+  const creando = useRef(false);
+  async function crear(limpio: string, alCrear: (id: string) => void) {
+    if (creando.current) return;
+    creando.current = true;
+    try {
+      const { valor, error } = await proponerValorVocabulario("tejidos", limpio, responsable.encabezados());
+      if (error || !valor) {
+        // La pregunta (si había) queda a la vista: con un corte de red se vuelve a tocar «No, es otro», sin reescribir nada.
+        avisar.error(error ?? "No se pudo crear el tejido.");
+        return;
+      }
+      setTejidos((ts) => [...ts, { id: valor.id, nombre: valor.texto }].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
+      setPendiente(null);
+      alCrear(valor.id);
+      avisar.exito(`Tejido «${valor.texto}» creado`, { detalle: "Ya está en la lista de Catálogo." });
+    } finally {
+      creando.current = false;
+    }
+  }
+
   async function crearTejido(texto: string, alCrear: (id: string) => void) {
     const limpio = texto.trim();
     if (!limpio) return;
@@ -35,16 +74,29 @@ export function useTejidosDeLaTela(iniciales: { id: string; nombre: string }[], 
       avisar.error(responsable.motivo ?? "Elige primero quién lo anota.");
       return;
     }
-    const { valor, error } = await proponerValorVocabulario("tejidos", limpio, responsable.encabezados());
-    if (error || !valor) {
-      avisar.error(error ?? "No se pudo crear el tejido.");
+    if (preguntaPendiente(limpio, existentesParecidos(limpio, tejidos), "").bloquea) {
+      setPendiente({ nombre: limpio, alCrear });
       return;
     }
-    setTejidos((ts) => [...ts, { id: valor.id, nombre: valor.texto }].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
-    alCrear(valor.id);
-    avisar.exito(`Tejido «${valor.texto}» creado`, { detalle: "Ya está en la lista de Catálogo." });
+    setPendiente(null);
+    await crear(limpio, alCrear);
   }
-  return { tejidos, crearTejido };
+
+  const pregunta: PreguntaDeTejido | null = pendiente && {
+    nombre: pendiente.nombre,
+    estado: {
+      coincidencias: existentesParecidos(pendiente.nombre, tejidos),
+      bloquea: true,
+      esOtro: () => void crear(pendiente.nombre, pendiente.alCrear),
+      reiniciar: () => setPendiente(null),
+    },
+    usar: (id) => {
+      pendiente.alCrear(id);
+      setPendiente(null);
+    },
+    descartar: () => setPendiente(null),
+  };
+  return { tejidos, crearTejido, pregunta };
 }
 
 /** El tejido (si no está en la lista, se crea ahí mismo) y la composición, lado a lado. */
@@ -55,6 +107,7 @@ export function TejidoYComposicion({
   tejidoId,
   onTejido,
   onCrearTejido,
+  pregunta,
   composicion,
   onComposicion,
 }: {
@@ -65,6 +118,8 @@ export function TejidoYComposicion({
   tejidoId: string;
   onTejido: (id: string) => void;
   onCrearTejido: (texto: string) => void;
+  /** «¿No será un tejido que ya existe?»: lo que `useTejidosDeLaTela` deja pendiente cuando lo escrito se parece a uno de la lista. */
+  pregunta: PreguntaDeTejido | null;
   composicion: string;
   onComposicion: (texto: string) => void;
 }) {
@@ -75,7 +130,10 @@ export function TejidoYComposicion({
           {leyoVocabulario ? (
             <ComboBuscable
               valor={tejidoId}
-              onValor={onTejido}
+              onValor={(id) => {
+                pregunta?.descartar();
+                onTejido(id);
+              }}
               opciones={tejidos.map((t) => ({ valor: t.id, texto: t.nombre }))}
               marcador="Busca o escribe el tejido"
               etiquetaAccesible="Tejido de la tela"
@@ -86,16 +144,24 @@ export function TejidoYComposicion({
           )}
         </Campo>
       </CampoGuiado>
-      <CampoGuiado id="composicion" guia={guia}>
-        <CampoTexto
-          etiqueta={guia.etiqueta("composicion", "Composición")}
-          pie="Sale en la etiqueta de la prenda."
-          value={composicion}
-          onChange={(ev) => onComposicion(ev.target.value)}
-          maxLength={160}
-          placeholder="Escribe lo que dice la etiqueta del proveedor"
-        />
-      </CampoGuiado>
+      {/* En el celular (una columna) la pregunta va pegada al tejido; en escritorio, a todo lo ancho bajo los dos campos. */}
+      <div className="order-3 sm:order-2">
+        <CampoGuiado id="composicion" guia={guia}>
+          <CampoTexto
+            etiqueta={guia.etiqueta("composicion", "Composición")}
+            pie="Sale en la etiqueta de la prenda."
+            value={composicion}
+            onChange={(ev) => onComposicion(ev.target.value)}
+            maxLength={160}
+            placeholder="Escribe lo que dice la etiqueta del proveedor"
+          />
+        </CampoGuiado>
+      </div>
+      {pregunta && (
+        <div className="order-2 sm:order-3 sm:col-span-2">
+          <ExisteTambien que="tejido" nombre={pregunta.nombre} estado={pregunta.estado} si={(existente) => ({ texto: `Usar ${existente.nombre}`, onClick: () => pregunta.usar(existente.id) })} />
+        </div>
+      )}
     </div>
   );
 }

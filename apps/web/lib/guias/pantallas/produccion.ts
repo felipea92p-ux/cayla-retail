@@ -1023,7 +1023,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "prod-insumos.nueva-tela" }],
       titulo: "Qué tela es",
-      texto: "El nombre, el tejido (si no está en la lista, lo creas ahí mismo) y la composición. Si ya existe una tela así, la hoja avisa y te deja sumarle colores a esa en vez de repetirla. El código se arma solo.",
+      texto: "El nombre, el tejido (si no está en la lista, lo creas ahí mismo; si se parece a uno que ya existe, te pregunta antes y no guarda hasta que contestes) y la composición. Si ya existe una tela así, la hoja avisa y te deja sumarle colores a esa en vez de repetirla. El código se arma solo.",
     },
     {
       id: "tela-compra",

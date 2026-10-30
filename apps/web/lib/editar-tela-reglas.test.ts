@@ -123,6 +123,12 @@ describe("lo que la hoja dice de los colores", () => {
 
 describe("la guía de «Editar tela»", () => {
   const abierta = datosDeLaTelaYaGuardada(tela());
+  it("con la pregunta de un tejido nuevo sin contestar no se guarda: la tela conservaría el tejido viejo sin que nadie lo note", () => {
+    const e = { ...abierta, tejidoId: "t1", tejidoPorContestar: "Franelas" };
+    expect(problemasDeEditarTela(e)).toEqual(["Contesta si «Franelas» es otro tejido o usa el que ya existe."]);
+    expect(camposDeEditarTela({ ...e, responsableListo: true }).find((c) => c.id === "tejido")).toMatchObject({ requerido: true, hecho: false });
+    expect(sePuedeConfirmar(camposDeEditarTela({ ...e, responsableListo: true }))).toBe(false);
+  });
   it("el tejido y la composición se SUGIEREN pero nunca bloquean; quién lo anota sí es obligatorio", () => {
     const sin = camposDeEditarTela({ ...abierta, responsableListo: false });
     expect(sin.find((c) => c.id === "tejido")).toMatchObject({ requerido: false, sugerido: true, hecho: false });
@@ -131,7 +137,7 @@ describe("la guía de «Editar tela»", () => {
     expect(sePuedeConfirmar(camposDeEditarTela({ ...abierta, responsableListo: true }))).toBe(true);
   });
   it("la guía y la hoja deciden igual: se puede confirmar exactamente cuando no hay problemas y alguien firma", () => {
-    for (const cambio of [{}, { nombre: "" }, { merma: "70" }, { compra: "kilo" as const }, { compra: "kilo" as const, ancho: "160", gramaje: "180" }]) {
+    for (const cambio of [{}, { nombre: "" }, { merma: "70" }, { compra: "kilo" as const }, { compra: "kilo" as const, ancho: "160", gramaje: "180" }, { tejidoPorContestar: "Franelas" }]) {
       const e = { ...abierta, ...cambio };
       for (const firma of [true, false]) {
         expect(sePuedeConfirmar(camposDeEditarTela({ ...e, responsableListo: firma })), `${JSON.stringify(cambio)} firma=${firma}`).toBe(problemasDeEditarTela(e).length === 0 && firma);

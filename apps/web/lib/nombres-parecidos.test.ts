@@ -27,6 +27,17 @@ describe("nombresParecidos: la regla general de «¿no será uno que ya existe?�
     expect(r.parecidos.map((p) => `${p.item.nombre}:${p.por}`)).toEqual(["CAYLA:raiz"]);
   });
 
+  it("las opciones de un vocabulario: los números cuentan, lo contenido no avisa y el tipeo pide más letras", () => {
+    const tallas = [{ nombre: "Talla 40" }, { nombre: "Azul" }, { nombre: "Dorado" }];
+    // Sin opciones, «Talla 38» pasa por «Talla 40» (la raíz ignora el número del final: así se agrupa «Cayla 2» con «Cayla»).
+    expect(nombresParecidos("Talla 38", tallas).parecidos.map((p) => p.item.nombre)).toEqual(["Talla 40"]);
+    expect(nombresParecidos("Talla 38", tallas, { numerosCuentan: true }).parecidos).toEqual([]);
+    expect(nombresParecidos("Azul rey", tallas).parecidos.map((p) => p.por)).toEqual(["contenida"]);
+    expect(nombresParecidos("Azul rey", tallas, { contenida: false }).parecidos).toEqual([]);
+    expect(nombresParecidos("Morado", tallas).parecidos.map((p) => p.item.nombre)).toEqual(["Dorado"]);
+    expect(nombresParecidos("Morado", tallas, { tipeoDesde: 8 }).parecidos).toEqual([]);
+  });
+
   it("un nombre vacío no pregunta nada", () => {
     expect(nombresParecidos("  ", existentes)).toEqual({ igual: null, parecidos: [] });
   });
