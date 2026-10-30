@@ -774,7 +774,14 @@ export const GUIA_COLABORADORES: Guia = {
       ancla: "roles.modulos",
       opcional: true,
       titulo: "Qué módulos ve",
-      texto: "Cada píldora es un módulo del menú: oscura lo ve, clara no. Tocarla lo enciende o apaga en borrador —verde se suma, rojo se quita— y nada cambia hasta «Guardar cambios». Un candado dice por qué ese no se puede dar. En la demo no tocamos ninguno.",
+      texto: "Cada área del menú se abre al tocarla y dice cuántos módulos ve este rol («4 de 7»). Marca o desmarca un módulo: queda en borrador —verde se suma, rojo se quita— y nada cambia hasta «Guardar cambios». Un candado dice por qué ese no se puede dar. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "roles-vista-previa",
+      ancla: "roles.vista-previa",
+      opcional: true,
+      titulo: "Así verá el menú",
+      texto: "El menú tal como lo vería quien tenga este rol. Lo que sumas aparece resaltado y lo que quitas, tachado, antes de guardar.",
     },
     {
       id: "roles-responsable",

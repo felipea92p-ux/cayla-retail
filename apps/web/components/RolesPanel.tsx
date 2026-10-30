@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Lock, Minus, Plus, SearchX, ShieldCheck, Users } from "lucide-react";
+import { ChevronDown, Lock, Plus, SearchX, ShieldCheck } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton, Desplegable } from "@/components/ui/campos";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Modal } from "@/components/ui/Modal";
+import { RolesModulos } from "@/components/RolesModulos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ArchivarRolModal, AsignarRolModal, NuevoRolModal, RenombrarRolModal } from "@/components/RolesModales";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -20,29 +21,22 @@ import type { Ubicacion } from "@/lib/ubicaciones";
 import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo } from "@/lib/modulos";
 import { accionesRolesSupabase, type AccionesRoles, type ResultadoRol } from "@/lib/roles-acciones";
 import {
-  alternarGrupo,
-  alternarModulo,
   avisoDelRol,
   cambiosDelBorrador,
   conGuardadosLocales,
-  controlDe,
   esMiRolSinSerLider,
-  MODULO_FIJO_DEL_LIDER,
-  fueraDeLoMio,
   motivoPorLoMio,
   puedeAsignarRol,
   type QuienEdita,
   cuentasAsignables,
   cuentasDelRol,
   hayCambios,
-  modulosPorGrupo,
   motivoParaNoArchivar,
   motivoParaNoGuardar,
   nombreDeCopia,
   pantallaPrincipalValida,
   pantallasElegibles,
   rolesAsignables,
-  veModulo,
   type CuentaConRol,
   type GuardadoLocal,
   type RolVista,
@@ -132,8 +126,6 @@ export function RolesPanel({
   const [modal, setModal] = useState<Modal | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [verArchivados, setVerArchivados] = useState(false);
-  // El módulo que se tocó: su «qué incluye» sale en la línea de ayuda de arriba de las baldosas.
-  const [ayudaId, setAyudaId] = useState<ClaveModulo | null>(null);
 
   const borrador = rol ? (borradores[rol.id] ?? rol.modulos) : [];
   // Se autocorrige contra el borrador de módulos: si se apaga el módulo elegido, vuelve solo a «sin preferencia»
@@ -193,11 +185,6 @@ export function RolesPanel({
     setGuardados((g) => ({ ...g, [rolId]: { version, modulos, pantallaPrincipal } }));
   }
 
-  function elegir(id: string) {
-    setElegidoId(id);
-    setAyudaId(null);
-  }
-
   const ponerBorrador = (modulos: ClaveModulo[]) => {
     if (!rol) return;
     // ADR-0161 P6 (ver arriba): se frena al encender, no al guardar.
@@ -221,7 +208,6 @@ export function RolesPanel({
   const esMio = esMiRolSinSerLider(rol, quien);
   // ADR-0253: el Líder lo edita solo un Admin (tocarlo es tocar a todos los líderes).
   const editable = (!rol.fijo || soyAdmin) && !rol.archivado && !esMio;
-  const ayuda = ayudaId ? (MODULOS.find((m) => m.clave === ayudaId) ?? null) : null;
 
   const itemsMenu: ItemMenu[] = [
     ...(!rol.fijo && !rol.archivado ? [{ clave: "renombrar", etiqueta: "Renombrar", onSelect: () => setModal({ tipo: "renombrar", rol }) }] : []),
@@ -253,7 +239,7 @@ export function RolesPanel({
           sinGuardar={(id) => !!borradores[id] && hayCambios(roles.find((r) => r.id === id)?.modulos ?? [], borradores[id])}
           verArchivados={verArchivados}
           onVerArchivados={() => setVerArchivados((v) => !v)}
-          onElegir={elegir}
+          onElegir={setElegidoId}
           onNuevo={() => setModal({ tipo: "nuevo" })}
         />
 
@@ -331,73 +317,17 @@ export function RolesPanel({
             </div>
           )}
 
-          <div data-guia="roles.modulos">
-            <p className="px-5 pb-1 pt-4 text-[13px] text-tinta/65">
-              Ve <strong className="font-semibold text-tinta">{borrador.length}</strong> de {rol.fijo ? `${MODULOS.length} módulos` : `${DELEGABLES} que se pueden dar`}
-              {/* Qué incluye el módulo tocado, en una línea; si no hay ninguno tocado, no ocupa lugar (el nombre del módulo lo lleva en su `title`). */}
-              {ayuda && (
-                <span role="status" className="ml-2 text-tinta/75">
-                  · <strong className="font-semibold text-tinta">{ayuda.nombre}:</strong> {ayuda.incluye}.
-                </span>
-              )}
-            </p>
-            {modulosPorGrupo().map(({ grupo, modulos }, i) => {
-              // ADR-0178: «Todos» solo mueve lo que quien mira puede dar; el Líder (ADR-0253) todo menos Roles y accesos.
-              const delegables = rol.fijo ? modulos : modulos.filter(esDelegable);
-              const mios = delegables.filter((m) => (rol.fijo ? m.clave !== MODULO_FIJO_DEL_LIDER : fueraDeLoMio([m.clave], misModulos).length === 0));
-              const todoEncendido = mios.length > 0 && mios.every((m) => borrador.includes(m.clave));
-              const encendidos = modulos.filter((m) => borrador.includes(m.clave)).length;
-              return (
-                <div key={grupo} className={`grid gap-x-4 gap-y-1.5 px-5 py-3 @[640px]:grid-cols-[8.5rem_minmax(0,1fr)] ${i > 0 ? "border-t border-sand" : ""}`}>
-                  <div className="flex items-baseline justify-between gap-3 @[640px]:block">
-                    <h3 className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-taupe-profundo">
-                      {grupo} <span className="font-normal normal-case tracking-normal text-tinta/60">{encendidos}/{modulos.length}</span>
-                    </h3>
-                    {editable && mios.length > 0 && (
-                      <button
-                        type="button"
-                        className="btn-cayla btn-enlace text-[12.5px]"
-                        onClick={() =>
-                          ponerBorrador(
-                            alternarGrupo(borrador, grupo, !todoEncendido, rol.fijo).filter((c) => borrador.includes(c) || fueraDeLoMio([c], misModulos).length === 0),
-                          )
-                        }
-                      >
-                        {todoEncendido ? "Quitar todos" : "Todos"}
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {modulos.map((m) => {
-                      const on = veModulo({ modulos: borrador }, m.clave);
-                      const control = controlDe(rol, m, quien, on);
-                      const marca = cambios.suma.includes(m.clave) ? "suma" : cambios.quita.includes(m.clave) ? "quita" : undefined;
-                      const tocable = control.tipo === "interruptor" && control.editable;
-                      return (
-                        <button
-                          key={m.clave}
-                          type="button"
-                          className="pildora-cayla"
-                          aria-pressed={on}
-                          data-cambio={marca}
-                          data-bloq={control.tipo === "candado" ? "si" : undefined}
-                          title={`${m.incluye}${control.tipo === "candado" ? ` · ${control.texto}` : ""}${marca ? (marca === "suma" ? " · se suma al guardar" : " · se quita al guardar") : ""}`}
-                          aria-label={`${m.nombre}: ${on ? "lo ve" : "no lo ve"}${control.tipo === "candado" ? ` (${control.texto})` : ""}${marca ? (marca === "suma" ? ", se suma al guardar" : ", se quita al guardar") : ""}`}
-                          onClick={() => {
-                            setAyudaId(m.clave);
-                            if (tocable) ponerBorrador(alternarModulo(borrador, m.clave, rol.fijo));
-                          }}
-                        >
-                          {marca === "quita" ? <Minus aria-hidden className="h-3.5 w-3.5" /> : on ? <Check aria-hidden className="h-3.5 w-3.5" /> : null}
-                          {m.nombre}
-                          {control.tipo === "candado" && <Lock aria-hidden className="h-3 w-3" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="@container/mod" data-guia="roles.modulos">
+            <RolesModulos
+              rol={rol}
+              borrador={borrador}
+              suma={cambios.suma}
+              quita={cambios.quita}
+              editable={editable}
+              quien={quien}
+              misModulos={misModulos}
+              onCambiar={ponerBorrador}
+            />
           </div>
 
           <details className="group border-t border-sand">
