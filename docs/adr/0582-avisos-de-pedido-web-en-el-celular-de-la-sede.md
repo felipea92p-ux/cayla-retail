@@ -1,8 +1,11 @@
 # ADR-0582 — El celular de la sede suena cuando llega un pedido web
 
 - **Fecha:** 2026-10-30 · **Estado:** código, pruebas y verificación local listos en la rama `claude/order-notifications-store-1aae00`.
-  **Pendiente:** la migración `20261030150000` no está en producción; las claves `ERP_VAPID_*` no están en Vercel; no se probó en los dos
-  teléfonos reales (un Android y un iPhone 12).
+  **En producción (2026-10-30, con el OK de Felipe):** la migración `20261030150000` se pegó con `apply_migration` del MCP de Supabase y quedó
+  registrada como `20261030190324 pedidos_web_push_aparatos`; las claves `ERP_VAPID_PUBLIC_KEY`, `ERP_VAPID_PRIVATE_KEY` y `ERP_VAPID_ASUNTO`
+  (`https://retail.cayla.pe`) están en Vercel, proyecto `cayla-retail`, Production. **No cambies esas claves:** cada teléfono queda suscrito
+  con la pública, y con otra habría que volver a activar los dos. **Pendiente:** la web (este PR) y la prueba en los dos teléfonos reales
+  (un Android y un iPhone 12).
 - **Relacionados:** ADR-0461 (los avisos push de la tienda a los clientes: el mismo patrón), ADR-0408 (pedidos web), ADR-0210 (el service
   worker del ERP), ADR-0136 (hojas), ADR-0389 (guías).
 
