@@ -416,11 +416,9 @@ span.sede-telar { cursor: default; }
 .ritmo-muestra[data-tipo="viene"] { width: 9px; height: 9px; border: 1.5px dashed var(--color-taupe); border-radius: 50%; }
 .ritmo-globo { display: grid; gap: 1px; }
 .ritmo-globo b { font-weight: 600; }
-/* Lo del final del mes va al final de las líneas; en un gráfico angosto, además, en una frase debajo (se lee mejor que a 10,5 px). */
-.ritmo-pie { display: none; margin: 4px 0 0; font-size: 13px; color: var(--color-taupe-profundo); }
-@container ritmo (max-width: 560px) {
-  .ritmo-pie { display: block; }
-}
+/* Lo del final del mes va al final de las líneas y, en una frase debajo, de qué está hecho el «si sigue así» (antes solo en el angosto:
+   la prueba ciega de /formidable no sabía si contaba los fijos que faltan). */
+.ritmo-pie { margin: 4px 0 0; max-width: 75ch; font-size: 13px; color: var(--color-taupe-profundo); }
 .ritmo-cajon { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 450ms var(--ease-cayla); }
 .ritmo-cajon[data-abierto] { grid-template-rows: 1fr; }
 .ritmo-cajon > div { min-height: 0; overflow: hidden; }

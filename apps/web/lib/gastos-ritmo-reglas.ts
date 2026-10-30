@@ -60,6 +60,8 @@ export type RitmoDelMes = {
   cierreProyectado: number | null;
   /** Lo de un día normal: lo gastado sin los fijos ni los saltos, repartido en los días que pasaron. */
   ritmoDiario: number | null;
+  /** De qué más está hecho el «si sigue así»: los fijos sin registrar y lo ya anotado con fecha de más adelante. */
+  porVenir: { fijos: number; montoFijos: number; anotados: number };
   vienen: VieneRitmo[];
   saltos: SaltoRitmo[];
 };
@@ -162,10 +164,12 @@ export function ritmoDelMes(e: {
   // mañana— y un gasto ya anotado con fecha de más adelante).
   let proyeccion: PuntoRitmo[] | null = null;
   let vienen: VieneRitmo[] = [];
+  let porVenir = { fijos: 0, montoFijos: 0, anotados: 0 };
   if (enCurso && hasta < dias && ritmoDiario !== null) {
     const extra = Array.from({ length: dias + 1 }, () => 0);
     for (let d = hasta + 1; d <= dias; d++) extra[d] = dia[d]!;
     const pendientes = e.fijos.filter((f) => f.estado !== "registrado" && f.monto > 0);
+    porVenir = { fijos: pendientes.length, montoFijos: pendientes.reduce((a, f) => a + f.monto, 0), anotados: extra.reduce((a, m) => a + m, 0) };
     const diaDelFijo = (f: FijoParaRitmo) => Math.min(dias, Math.max(hasta + 1, mesDe(f.fechaEsperada) === e.mes ? diaDe(f.fechaEsperada) : hasta + 1));
     for (const f of pendientes) extra[diaDelFijo(f)]! += f.monto;
     proyeccion = [{ x: hasta, y: aHoy }];
@@ -189,6 +193,7 @@ export function ritmoDelMes(e: {
     proyeccion,
     cierreProyectado: proyeccion ? proyeccion.at(-1)!.y : null,
     ritmoDiario,
+    porVenir,
     vienen,
     saltos,
   };
@@ -210,15 +215,25 @@ export function fraseDelRitmo(r: RitmoDelMes, mes: string, nombreMesAnterior: st
   return `${inicio}: ${solesRedondo(Math.abs(dif))} ${dif > 0 ? "más" : "menos"} que ${nombreMesAnterior}${altura}.`;
 }
 
-/** Bajo el gráfico angosto, lo que en el ancho va al final de las líneas: «Si sigue así, cierras octubre en ≈ S/ 16,200; septiembre cerró en S/ 13,100.» */
+/**
+ * Bajo el gráfico, de qué está hecho el «si sigue así» (la prueba ciega no sabía si contaba los fijos, /formidable 2026-10-30): «Si sigue así,
+ * cierras octubre en ≈ S/ 11,362: un día normal (S/ 185) por cada día que falta, más S/ 210 de 2 fijos sin registrar. Septiembre cerró en
+ * S/ 10,368.» En un mes cerrado, solo cómo cerró el anterior. `null` si no hay nada que decir.
+ */
 export function pieDelRitmo(r: RitmoDelMes, mes: string, nombreMesAnterior: string): string | null {
-  const partes = [
-    r.cierreProyectado !== null ? `Si sigue así, cierras ${textoMes(mes).split(" ")[0]} en ≈ ${solesRedondo(r.cierreProyectado)}` : null,
-    r.cierreAnterior !== null ? `${nombreMesAnterior} cerró en ${solesRedondo(r.cierreAnterior)}` : null,
-  ].filter((p): p is string => !!p);
-  if (partes.length === 0) return null;
-  const texto = partes.join("; ");
-  return `${texto[0]!.toUpperCase()}${texto.slice(1)}.`;
+  const frases: string[] = [];
+  if (r.cierreProyectado !== null) {
+    const faltan = r.dias - r.hasta;
+    const dia = r.ritmoDiario !== null && Math.round(r.ritmoDiario) > 0 ? `un día normal (${solesRedondo(r.ritmoDiario)}) por ${faltan === 1 ? "el día que falta" : "cada día que falta"}` : null;
+    const extras = [
+      r.porVenir.fijos > 0 ? `${solesRedondo(r.porVenir.montoFijos)} de ${r.porVenir.fijos} ${r.porVenir.fijos === 1 ? "fijo" : "fijos"} sin registrar` : null,
+      r.porVenir.anotados > 0 ? `${solesRedondo(r.porVenir.anotados)} ya anotados para después` : null,
+    ].filter((x): x is string => !!x);
+    const hecho = dia ? (extras.length ? `${dia}, más ${extras.join(" y ")}` : dia) : extras.join(" y ");
+    frases.push(`Si sigue así, cierras ${textoMes(mes).split(" ")[0]} en ≈ ${solesRedondo(r.cierreProyectado)}${hecho ? `: ${hecho}` : ""}.`);
+  }
+  if (r.cierreAnterior !== null) frases.push(`${nombreMesAnterior[0]!.toUpperCase()}${nombreMesAnterior.slice(1)} cerró en ${solesRedondo(r.cierreAnterior)}.`);
+  return frases.length ? frases.join(" ") : null;
 }
 
 /** Los días bajo el gráfico: 1, 8, 15, 22, 29 y, en el mes en curso, «hoy» en negrita (sin el día que le caiga encima). */

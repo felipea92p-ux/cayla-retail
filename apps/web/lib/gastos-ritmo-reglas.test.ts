@@ -145,9 +145,20 @@ describe("cómo se dice", () => {
     expect(fraseDelRitmo(ritmo({}), "2026-10", "septiembre")).toBeNull();
   });
 
-  it("el pie del gráfico angosto: cómo cierra si sigue así y cómo cerró el anterior, lo que haya", () => {
-    const r = ritmo({ gastos: [g("2026-10-02", 100)], anteriores: [g("2026-09-02", 900)] });
-    expect(pieDelRitmo(r, "2026-10", "septiembre")).toBe(`Si sigue así, cierras octubre en ≈ ${solesRedondo(r.cierreProyectado!)}; septiembre cerró en ${solesRedondo(900)}.`);
+  it("el pie del gráfico: de qué está hecho el «si sigue así» y cómo cerró el anterior, lo que haya", () => {
+    const r = ritmo({
+      gastos: [alquiler("2026-10-02", 5000, "t", "Tienda Trujillo"), g("2026-10-03", 100), g("2026-10-20", 400)],
+      anteriores: [g("2026-09-02", 900)],
+      fijos: [fijo("2026-10-25", 90), fijo("2026-10-28", 120)],
+    });
+    expect(pieDelRitmo(r, "2026-10", "septiembre")).toBe(
+      `Si sigue así, cierras octubre en ≈ ${solesRedondo(r.cierreProyectado!)}: un día normal (${solesRedondo(10)}) por cada día que falta, más ${solesRedondo(210)} de 2 fijos sin registrar y ${solesRedondo(400)} ya anotados para después. Septiembre cerró en ${solesRedondo(900)}.`,
+    );
+    // Sin día normal (todo fue un salto) ni nada por venir, solo la cifra; con un solo día por delante, «el día que falta».
+    expect(pieDelRitmo(ritmo({ gastos: [alquiler("2026-10-02", 5000, "t", "Tienda Trujillo")] }), "2026-10", "septiembre")).toBe(`Si sigue así, cierras octubre en ≈ ${solesRedondo(5000)}.`);
+    expect(pieDelRitmo(ritmo({ gastos: [alquiler("2026-10-02", 5000, "t", "Tienda Trujillo"), g("2026-10-05", 300)], fijos: [fijo("2026-10-31", 90)], hoy: "2026-10-30" }), "2026-10", "septiembre")).toBe(
+      `Si sigue así, cierras octubre en ≈ ${solesRedondo(5300 + 10 + 90)}: un día normal (${solesRedondo(10)}) por el día que falta, más ${solesRedondo(90)} de 1 fijo sin registrar.`,
+    );
     expect(pieDelRitmo(ritmo({ gastos: [g("2026-09-02", 1)], anteriores: [g("2026-08-02", 900)], mes: "2026-09" }), "2026-09", "agosto")).toBe(`Agosto cerró en ${solesRedondo(900)}.`);
     expect(pieDelRitmo(ritmo({ mes: "2026-09" }), "2026-09", "agosto")).toBeNull();
   });
