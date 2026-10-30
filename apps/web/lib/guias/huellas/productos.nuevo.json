@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 121,
+  "total": 120,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -139,9 +139,8 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/ParecidasDelAlta.tsx": [
       "button «{TEXTO.verYComparar}»",
@@ -160,7 +159,7 @@
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
-      "Boton «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? faltaExiste ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [
