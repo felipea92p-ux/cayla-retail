@@ -10,7 +10,8 @@
  *
  * QUÉ PRUEBA
  *   T  EL CAMBIO: de muestra a lote y de lote a muestra, con y sin motivo; el rastro (historia y Actividad); pedir lo mismo que ya es; que la página lo lea.
- *   R  LOS RECHAZOS: orden cerrada, sin precio, motivo largo, tipo vacío, orden que no existe, otra sede.
+ *   R  LOS RECHAZOS: orden cerrada, sin precio (también la talla sin código), motivo largo, tipo vacío, orden que no existe, otra sede. Las tallas van como en producción: con
+ *      `codigo` y sin `sku`.
  *   E  EL EFECTO: muestra que pasa a lote entra al stock al cerrar; muestra que sigue siendo muestra, no.
  *   S  LA FORMA: el CHECK de la historia, permisos y que se pueda pegar otra vez.
  *   D  EL SCRIPT DE DATOS (`pegar-en-produccion-tipo-de-ordenes-2-3-4-2026-10-30.sql`): ensayo por defecto, aplicar, repetir, parar si una orden ya se cerró o no tiene precio, y el camino de vuelta.
@@ -113,6 +114,10 @@ select p.id as prod from retail.productos p
 select v.id as v1, v.color_codigo as c1 from retail.variantes v where v.producto_id = :'prod' and v.activo and v.color_codigo is not null order by v.color_codigo, v.id limit 1 \\gset
 select v.id as v2, v.color_codigo as c2 from retail.variantes v where v.producto_id = :'prod' and v.activo and v.color_codigo is not null and v.color_codigo <> :'c1' order by v.color_codigo, v.id limit 1 \\gset
 update retail.variantes set precio = 59.90, costo = 4.50 where id in (:'v1', :'v2');
+-- Las tallas como en producción: con su \`codigo\` y SIN \`sku\` (el 2026-10-30, 1 de 3162 variantes de producción lo tenía). Con el \`sku\` del seed, esta prueba escondía que el
+-- control de precio nombraba las tallas por un campo que allá está vacío, y que por eso no saltaba nunca.
+update retail.variantes set sku = null where producto_id = :'prod';
+update retail.variantes set codigo = 'PRUEBA-TIPO-' || color_codigo where id in (:'v1', :'v2') and codigo is null;
 ${como(FELIPE)}
 `;
 
@@ -213,7 +218,15 @@ caso(
   `${ABRE(true)}
    update retail.variantes set precio = 0 where id = :'v2';
    select pg_temp.cambia(:'oid', false) as r \\gset
-   select concat_ws(',', pg_temp.eh(:'r'), position((select sku from retail.variantes where id = :'v2') in :'r') > 0, ${ES_MUESTRA}, ${CAMBIOS});`,
+   select concat_ws(',', pg_temp.eh(:'r'), position((select codigo from retail.variantes where id = :'v2') in :'r') > 0, ${ES_MUESTRA}, ${CAMBIOS});`,
+  "P0001|precio_obligatorio,t,t,0"
+);
+caso(
+  "R2b una talla sin precio que tampoco tiene código ni SKU igual frena el paso a lote, y el aviso dice «sin código» (una lista vacía no puede valer como «no falta ninguna»)",
+  `${ABRE(true)}
+   update retail.variantes set precio = 0, codigo = null where id = :'v2';
+   select pg_temp.cambia(:'oid', false) as r \\gset
+   select concat_ws(',', pg_temp.eh(:'r'), position('sin código' in :'r') > 0, ${ES_MUESTRA}, ${CAMBIOS});`,
   "P0001|precio_obligatorio,t,t,0"
 );
 caso(

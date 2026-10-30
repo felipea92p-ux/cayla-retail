@@ -92,16 +92,18 @@ begin
     raise exception 'Elige quién lo cambia' using errcode = '42501', hint = 'responsable_requerido';
   end if;
   -- De muestra a lote: cada talla y color de la orden tiene que tener precio a tienda (salvo el empaque, donde el precio 0 vale). Una muestra sí puede ir sin precio.
+  -- La talla se nombra por su `codigo`, como en el resto de la base: en producción casi ninguna tiene `sku` (el 2026-10-30, 1 de 3162). Con `sku` la lista de las que faltan
+  -- salía vacía, y una lista vacía es «no falta ninguna»: el control nunca saltaba. El «sin código» es para que una talla sin ninguno de los dos también cuente.
   if not p_es_muestra then
-    select string_agg(x.sku, ', ' order by x.sku) into v_sin_precio
-      from (select v.sku
+    select string_agg(x.codigo, ', ' order by x.codigo) into v_sin_precio
+      from (select coalesce(v.codigo, v.sku, 'sin código') as codigo
               from retail.produccion_lineas l
               join retail.variantes v on v.id = l.variante_id
               join retail.productos pr on pr.id = v.producto_id
              where l.produccion_id = p_produccion_id
                and coalesce(v.precio, 0) < 0.01
                and not retail.fn_categoria_admite_precio_cero(pr.categoria_id)
-             order by v.sku
+             order by 1
              limit 6) x;
     if v_sin_precio is not null then
       raise exception 'Un lote de producción necesita el precio a tienda: sin precio no hay margen que calcular ni se puede vender. Falta en: %. Ponlo en el catálogo y vuelve a intentar; una muestra sí puede ir sin precio.', v_sin_precio

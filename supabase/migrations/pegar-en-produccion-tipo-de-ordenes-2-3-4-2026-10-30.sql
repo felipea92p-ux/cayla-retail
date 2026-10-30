@@ -18,6 +18,8 @@
 --
 -- ENSAYO PRIMERO. Por defecto NO aplica: hace todo, cuenta, y termina con un error «ENSAYO_OK …» que deshace todo y dice qué órdenes cambiaría. Cuando sea lo esperado, cambia `false` por
 --   `true` en la línea marcada APLICAR y vuelve a pegar. Ensayado el 2026-10-30 en una base privada con las migraciones de `main` (`pnpm pruebas:produccion-cambiar-tipo`, grupo D).
+--   Una primera versión nombraba la talla por su `sku` (ver el comentario del control de precio). Para estas tres órdenes da lo mismo: sus 32 tallas y colores tienen precio
+--   (leído en producción el 2026-10-30), así que ninguna de las dos versiones se detiene ahí.
 --
 -- LO QUE CAMBIA PARA QUIEN USA EL ERP, al aplicar: las tres órdenes pasan de la pestaña «Muestras» a «En curso»; «Hoy en el Taller» no cambia (ya contaba las abiertas, muestras incluidas);
 --   Análisis empieza a contar sus 139 prendas como «en camino» (hoy no las ve); y al cerrar cada una, entra al stock del Taller y la base pide lo que pide a todo lote: confirmar el costo si
@@ -71,16 +73,17 @@ begin
       v_ya_eran := v_ya_eran + 1;
       continue;
     end if;
-    -- Un lote necesita el precio a tienda de cada talla y color (salvo el empaque): la misma regla de `cambiar_tipo_orden_produccion`.
-    select string_agg(x.sku, ', ' order by x.sku) into v_sin_precio
-      from (select v.sku
+    -- Un lote necesita el precio a tienda de cada talla y color (salvo el empaque): la misma regla de `cambiar_tipo_orden_produccion`, y como ella, la talla se nombra por su
+    -- `codigo` (en producción casi ninguna tiene `sku`: con `sku` la lista salía vacía y el control no saltaba nunca).
+    select string_agg(x.codigo, ', ' order by x.codigo) into v_sin_precio
+      from (select coalesce(v.codigo, v.sku, 'sin código') as codigo
               from retail.produccion_lineas l
               join retail.variantes v on v.id = l.variante_id
               join retail.productos pr on pr.id = v.producto_id
              where l.produccion_id = v_id
                and coalesce(v.precio, 0) < 0.01
                and not retail.fn_categoria_admite_precio_cero(pr.categoria_id)
-             order by v.sku
+             order by 1
              limit 6) x;
     if v_sin_precio is not null then
       raise exception 'La % de % no puede pasar a lote: falta el precio a tienda en %. No se tocó ninguna orden.', retail.fn_produccion_numero_texto(v_o.numero), v_o.referencia, v_sin_precio;
