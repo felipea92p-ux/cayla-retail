@@ -86,3 +86,19 @@ antes sigue funcionando (los otros tres tienen valor de fábrica).
 - **«Ver más» abre una hoja** en «Qué prendas miran» (la tabla entera, con su orden) y en «Tallas que piden y no hay» (todas las categorías). Las
   tallas muestran las 8 categorías donde más gente eligió talla, con celdas más chicas, para que midan lo mismo que las 8 prendas de al lado.
 - **El paso donde más gente se pierde se marca siempre**, también con pocas personas (entonces la frase dice que es una pista).
+
+## Actualización 2026-10-30 — «Hasta dónde llega la gente» pasa a ser la línea de la tienda, y hoy entra al gráfico
+
+- **Los 100 puntos por paso se fueron.** Con pocas visitas (127 en 7 días) cinco de las seis grillas quedaban casi grises, y «1 de cada 100»
+  era, en verdad, 1 persona. Felipe vio dos rondas de maquetas (`docs/maquetas/trafico-recorrido-2026-10/`: escalera, un solo 100, anillos,
+  cinta; después solo cifras, la línea de la tienda, la gente de verdad, la respuesta y el seguimiento) y eligió **F · La línea de la tienda**:
+  cada paso es una estación con su ícono de lucide y **cuántas personas llegaron**; entre una y otra, cuántas se fueron y sin hacer qué. La
+  estación donde se atora va en ámbar y la última en verde si alguien llegó. Angosta (menos de 760 px de tarjeta) baja de arriba abajo.
+- **Sin «de cada 100» en este bloque** (Felipe: «¿es necesario?»). La frase dice personas de estos días: «de 43 que vieron una prenda, solo 6
+  eligieron talla. De costumbre, serían unos 19» (`costumbreEnPersonas`). La regla de dónde se atora (`dondeSeAtora`) no cambió.
+- **Movimiento (ADR-0136):** las estaciones entran una vez en cascada y el riel se dibuja detrás; sin rebote ni bucle, apagado con «reducir
+  movimiento». Reemplaza a «los 100 puntos que se encienden», que era la excepción anotada en CLAUDE.md.
+- **Hoy entra al gráfico de «Entraron».** En «Por día», el día en curso no entraba a la línea a propósito (a medias, la línea «caía» sin haber
+  caído), pero el 30 quedaba vacío sin explicación y Felipe preguntó por qué. Ahora `graficoDe` lo devuelve aparte (`enCurso`) y `<Linea>`
+  lo dibuja con un tramo punteado hasta un punto hueco con su cifra y «hasta ahora» (prop `enCurso`, nueva en la pieza única). Lo mismo con
+  la hora en curso en Hoy. En «Acumulado» no cambia nada: ahí ya entraba.
