@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { claveTexto } from "@/lib/nombres-parecidos";
-import { nivelDeMotivo, nivelMasFuerte, textoDeLaPregunta, type CoincidenciaVista, type Vocablo } from "@/lib/atributo-parecido";
+import { preguntaPendiente, textoDeLaPregunta, type CoincidenciaVista, type Vocablo } from "@/lib/atributo-parecido";
 
 // «Existe también» (ADR-0576): la caja ámbar que aparece bajo el nombre mientras se escribe un color, una talla, un tejido, un
 // patrón, una familia o una categoría nuevos, y dice cuáles ya existen y por qué se parecen. Es la misma pieza de marcas y
@@ -17,15 +17,12 @@ import { nivelDeMotivo, nivelMasFuerte, textoDeLaPregunta, type CoincidenciaVist
 export function useExisteTambien(nombre: string, coincidencias: readonly CoincidenciaVista[]) {
   // Para qué nombre dijo la persona «es otro»: si lo cambia, la pregunta vuelve (puede ser otro parecido distinto).
   const [respondidoPara, setRespondidoPara] = useState("");
-  const clave = claveTexto(nombre);
-  const respondida = respondidoPara !== "" && respondidoPara === clave;
-  const visibles = respondida ? coincidencias.filter((c) => nivelDeMotivo(c.por) === "avisa") : coincidencias;
-  const nivel = nivelMasFuerte(visibles);
+  const { visibles, bloquea } = preguntaPendiente(nombre, coincidencias, respondidoPara);
   return {
     coincidencias: visibles,
     /** Hay que contestar la pregunta o cambiar el nombre antes de guardar. */
-    bloquea: nivel === "frena" || nivel === "pregunta",
-    esOtro: () => setRespondidoPara(clave),
+    bloquea,
+    esOtro: () => setRespondidoPara(claveTexto(nombre)),
     /** Al abrir de nuevo el formulario: lo contestado antes no vale para esta vez. */
     reiniciar: () => setRespondidoPara(""),
   };

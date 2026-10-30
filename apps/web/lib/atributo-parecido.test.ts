@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { atributosParecidos, existentesParecidos, nivelMasFuerte, plegarPalabra, textoDeLaPregunta, vistaDeCoincidencias, VOCABLOS } from "./atributo-parecido";
+import { atributosParecidos, existentesParecidos, nivelMasFuerte, plegarPalabra, preguntaPendiente, textoDeLaPregunta, vistaDeCoincidencias, VOCABLOS } from "./atributo-parecido";
+import { claveTexto } from "./nombres-parecidos";
 
 const f = (nombre: string, sinonimos: string[] = []) => ({ nombre, sinonimos });
 const motivos = (nombre: string, existentes: ReturnType<typeof f>[]) => atributosParecidos(nombre, existentes).map((c) => `${c.item.nombre}:${c.por}`);
@@ -201,5 +202,63 @@ describe("existentesParecidos", () => {
   it("`excluirId` deja fuera al que se está editando; un nombre nuevo no dice nada", () => {
     expect(existentesParecidos("Rayas", lista, { excluirId: "t1" })).toEqual([]);
     expect(existentesParecidos("Cuadros", lista)).toEqual([]);
+  });
+});
+
+describe("preguntaPendiente: qué falta contestar antes de guardar", () => {
+  const casi = [{ id: "VOL", nombre: "Verde oliva", por: "casi-igual" as const, detalle: "" }];
+  const mismo = [{ id: "VOL", nombre: "Verde oliva", por: "mismo-nombre" as const, detalle: "" }];
+  const tono = [{ id: "CRU", nombre: "Crudo", por: "tono" as const, detalle: "" }];
+
+  it("sin respuesta, lo casi igual y lo del mismo nombre apagan «Guardar»; solo el tono no", () => {
+    expect(preguntaPendiente("Verde olivo", casi, "").bloquea).toBe(true);
+    expect(preguntaPendiente("Verde oliva", mismo, "").bloquea).toBe(true);
+    expect(preguntaPendiente("Blanco roto", tono, "").bloquea).toBe(false);
+    expect(preguntaPendiente("Cuadros", [], "").bloquea).toBe(false);
+  });
+  it("«No, es otro» destraba lo casi igual para ESE nombre, aunque tenga distinta mayúscula o tilde", () => {
+    const r = preguntaPendiente("Verde  OLIVO", casi, claveTexto("verde olivo"));
+    expect(r.bloquea).toBe(false);
+    expect(r.visibles).toEqual([]);
+  });
+  it("si la persona cambia el nombre, la pregunta vuelve", () => {
+    expect(preguntaPendiente("Verde olivos", casi, claveTexto("Verde olivo")).bloquea).toBe(true);
+  });
+  it("la respuesta NO calla el mismo nombre: la base lo rechaza diga lo que diga la persona", () => {
+    // La lista se refrescó mientras tanto y la otra persona ya había creado «Verde oliva».
+    const r = preguntaPendiente("Verde oliva", [...mismo, ...casi], claveTexto("Verde oliva"));
+    expect(r.bloquea).toBe(true);
+    expect(r.visibles.map((c) => c.por)).toEqual(["mismo-nombre"]);
+  });
+  it("la respuesta tampoco calla el aviso del tono: sigue a la vista, sin apagar «Guardar»", () => {
+    const r = preguntaPendiente("Verde olivo", [...casi, ...tono], claveTexto("Verde olivo"));
+    expect(r.bloquea).toBe(false);
+    expect(r.visibles.map((c) => c.por)).toEqual(["tono"]);
+  });
+  it("no toca la lista que recibe", () => {
+    const lista = [...casi];
+    preguntaPendiente("Verde olivo", lista, claveTexto("Verde olivo"));
+    expect(lista).toHaveLength(1);
+  });
+});
+
+describe("tejido nuevo escrito a mano (Insumos ▸ Nueva tela): cuándo se pregunta antes de crearlo", () => {
+  const tejidos = [
+    { id: "t1", nombre: "Algodón pima" },
+    { id: "t2", nombre: "Jersey 30/1" },
+    { id: "t3", nombre: "Piqué" },
+    { id: "t4", nombre: "Franela" },
+  ];
+  const pregunta = (texto: string) => preguntaPendiente(texto, existentesParecidos(texto, tejidos), "").bloquea;
+
+  it("el plural, el femenino y la tilde que falta preguntan", () => {
+    expect(pregunta("Algodón pimas")).toBe(true);
+    expect(pregunta("Franelas")).toBe(true);
+    expect(pregunta("Pique")).toBe(true);
+  });
+  it("lo que de verdad es otro tejido se crea sin preguntar", () => {
+    expect(pregunta("Jersey 24/1")).toBe(false);
+    expect(pregunta("Algodón")).toBe(false);
+    expect(pregunta("Gabardina")).toBe(false);
   });
 });

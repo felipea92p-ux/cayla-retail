@@ -105,6 +105,23 @@ export function nivelMasFuerte(coincidencias: readonly { por: MotivoVisto }[]): 
   return niveles.includes("frena") ? "frena" : niveles.includes("pregunta") ? "pregunta" : niveles.includes("avisa") ? "avisa" : null;
 }
 
+/**
+ * Qué queda por contestar de la pregunta. `respondidoPara` es la clave (`claveTexto`) del nombre para el que la persona ya dijo
+ * «No, es otro» (`""` si todavía no dijo nada). Esa respuesta calla SOLO la pregunta («casi igual», «otro nombre»): nunca el mismo
+ * nombre —la base lo rechaza, diga lo que diga la persona— ni el aviso del tono, que sigue a la vista. Si cambia el nombre, la
+ * clave ya no coincide y la pregunta vuelve (puede parecerse a otro distinto).
+ */
+export function preguntaPendiente<C extends { por: MotivoVisto }>(
+  nombre: string,
+  coincidencias: readonly C[],
+  respondidoPara: string
+): { visibles: C[]; bloquea: boolean } {
+  const respondida = respondidoPara !== "" && respondidoPara === claveTexto(nombre);
+  const visibles = respondida ? coincidencias.filter((c) => NIVEL[c.por] !== "pregunta") : [...coincidencias];
+  const nivel = nivelMasFuerte(visibles);
+  return { visibles, bloquea: nivel === "frena" || nivel === "pregunta" };
+}
+
 export const TEXTO_DEL_MOTIVO: Record<MotivoVisto, string> = {
   "mismo-nombre": "mismo nombre",
   "otro-nombre": "otro nombre de este",
