@@ -466,6 +466,48 @@ select concat_ws('|', (select count(*) from retail.fn_precios_sede_variantes_pro
   esperar("sin sesión, la lista de excepciones y los precios por tienda no devuelven nada", ultima(r) === "0|0", r);
 }
 
+// 21. `fn_precios_en_sede` arma la lista en UNA consulta (20261030222000): tiene que decir lo mismo que la regla de cobro (`fn_precio_en_sede`)
+//     preguntada combinación por combinación, en TODA tienda, con las tres capas a la vez (precio de la prenda, excepción de una combinación y
+//     talla de obsequio). Y un MUTANTE que olvida las excepciones hace saltar la comparación.
+{
+  // La regla de cobro sobre cada combinación de cada tienda, y la lista: diferencias en los dos sentidos.
+  const DIFERENCIA_CON_LA_REGLA = `
+select count(*) from (
+  (select u.id as ubicacion_id, l.variante_id, l.precio from retail.ubicaciones u cross join lateral retail.fn_precios_en_sede(u.id) l
+   except
+   select u.id, v.id, retail.fn_precio_en_sede(v.id, u.id) from retail.variantes v cross join retail.ubicaciones u
+    where retail.fn_precio_en_sede(v.id, u.id) <> v.precio)
+  union all
+  (select u.id, v.id, retail.fn_precio_en_sede(v.id, u.id) from retail.variantes v cross join retail.ubicaciones u
+    where retail.fn_precio_en_sede(v.id, u.id) <> v.precio
+   except
+   select u.id, l.variante_id, l.precio from retail.ubicaciones u cross join lateral retail.fn_precios_en_sede(u.id) l)) d;`;
+  const TRES_CAPAS = `
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Precio de la prenda en Trujillo') as _p \\gset
+insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo) values (:'v2', :'tru', :general + 25, 'Talla extra');
+insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo) values (:'v2', :'lima', :general + 5, 'Talla extra en Lima');`;
+  const r = correr(FELIPE, `${TRES_CAPAS}
+select concat_ws('|', (${DIFERENCIA_CON_LA_REGLA.replace(/;\s*$/, "")})::text,
+  (select count(*) from retail.ubicaciones u cross join lateral retail.fn_precios_en_sede(u.id))::text);`);
+  const [dif, filas] = ultima(r).split("|");
+  esperar("fn_precios_en_sede dice lo mismo que fn_precio_en_sede en toda combinación y tienda (prenda + excepción)", r.ok && dif === "0" && Number(filas) > 0, r);
+
+  const obsequio = correr(FELIPE, `${MOTIVO_PARA_ARMAR_OBSEQUIO}
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Precio de la prenda en Trujillo') as _p \\gset
+select concat_ws('|', (${DIFERENCIA_CON_LA_REGLA.replace(/;\s*$/, "")})::text,
+  (select count(*) = 0 from retail.fn_precios_en_sede(:'tru') where variante_id = :'v1')::text);`);
+  esperar("con una talla de obsequio, la lista sigue igual a la regla y no la cobra", ultima(obsequio) === "0|true", obsequio);
+
+  // MUTANTE: una lista que olvida las excepciones de combinación (solo el precio de la prenda). La comparación tiene que verlo.
+  const mutante = correr(FELIPE, `${TRES_CAPAS}
+create or replace function retail.fn_precios_en_sede(p_ubicacion_id uuid) returns table (variante_id uuid, precio numeric)
+language sql stable security definer set search_path = retail, public, extensions as $$
+  select v.id, ps.precio from retail.variantes v join retail.precios_sede_prenda ps on ps.producto_id = v.producto_id
+   where ps.ubicacion_id = p_ubicacion_id and ps.archivado_en is null and v.precio <> ps.precio and auth.uid() is not null $$;
+${DIFERENCIA_CON_LA_REGLA}`);
+  esperar("MUTANTE (la lista olvida las excepciones): la comparación lo ve", mutante.ok && Number(ultima(mutante)) > 0, mutante);
+}
+
 if (fallos) {
   console.log(`\n${fallos} fallo(s).`);
   process.exit(1);
