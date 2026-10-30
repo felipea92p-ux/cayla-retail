@@ -2112,6 +2112,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `lib/equilibrio-mes-reglas.ts` → `EquilibrioMes.tsx` («¿Ya pagaste el mes?», que reemplazó a la línea de ventas contra la meta),
     `lib/de-cada-cien-reglas.ts` → `DeCadaCien.tsx` («De cada S/ 100», sobre el recorrido) y `Confianza.tsx`, que pasó de tarjeta al fondo a
     franja bajo la respuesta. Sin migración ni RPC nuevos.
+    **Desde 2026-10-29 (ADR-0579, pulido del Resumen):** `RecorridoPlata.tsx`, `DeCadaCien.tsx` y `lib/de-cada-cien-reglas.ts` ya no existen: «A dónde va la plata» es `AdondeVaLaPlata.tsx` (anillo sobre `recorridoPlata`); `VendidoPorSede.tsx` junta el orillo con `Confianza.tsx` (ahora `ConfianzaChip` y `ConfianzaDetalle`, ya no franja); `TresRespuestas` reparte lo que tienes entre CAYLA y CLAURE y lista las deudas con su fecha (`lib/tres-respuestas-reglas.ts`); `Linea` acepta `bajoReferencia` y `minimo`; `InversionMercaderia` va al final y siempre se ve. Sin migración ni RPC.
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
