@@ -183,6 +183,7 @@
     "pruebas:tienda-looks-guardados": "node scripts/pruebas/tienda_looks_guardados.mjs",
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",
     "pruebas:pedidos-web-erp": "node scripts/pruebas/pedidos_web_erp.mjs",
+    "pruebas:pedidos-web-push": "node scripts/pruebas/pedidos_web_push.mjs",
     "pruebas:tienda-bolsa": "node scripts/pruebas/tienda_bolsa.mjs",
     "pruebas:tienda-empresas": "node scripts/pruebas/tienda_empresas.mjs",
     "pruebas:tienda-club": "node scripts/pruebas/tienda_club.mjs",

@@ -154,7 +154,7 @@ export function RutaViva({
       {hoja?.tipo === "salida" && faseDeLaHoja && <AnotarSalidaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "quitar" && faseDeLaHoja && <QuitarPasoModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
-      {agregando && sePuedeAgregar && <AgregarPasoModal datos={datos} pasos={pasosPorAgregar} opciones={opciones} hoy={hoy} esLider={esLider} onClose={() => setAgregando(false)} />}
+      {agregando && sePuedeAgregar && <AgregarPasoModal datos={datos} pasos={pasosPorAgregar} bloqueados={pasosBloqueados} opciones={opciones} hoy={hoy} esLider={esLider} onClose={() => setAgregando(false)} />}
       {hoja?.tipo === "quien" && faseDeLaHoja && <CambiarQuienModal datos={datos} fase={faseDeLaHoja} opciones={opciones} hoy={hoy} onClose={() => setHoja(null)} />}
     </>
   );
