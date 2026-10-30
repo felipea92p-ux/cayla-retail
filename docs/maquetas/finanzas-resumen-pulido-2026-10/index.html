@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finanzas ▸ Resumen · textos cortos</title>
+<style>
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--tru:#b8412d;--aqp:#4c5d6e;--lima:#48603f;--morado:#7d4f8f;--ease:cubic-bezier(.32,.72,.24,1);--serif:"EB Garamond",ui-serif,Georgia,serif;--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif}
+:root[data-t="o"]{--crema:#1c1a17;--papel:#262420;--hueso:#33302b;--sand:#3d3a35;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--tru:#e8806a;--aqp:#a2b8cd;--lima:#9ccb8d;--morado:#c9a0d6;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--crema);color:var(--tinta);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;letter-spacing:-.005em}p{margin:0}button{font:inherit;color:inherit;cursor:pointer}
+.n{font-variant-numeric:tabular-nums}.t{color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.vs{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.barra{position:sticky;top:0;z-index:9;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 20px;background:color-mix(in srgb,var(--crema) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--sand)}
+.barra b{font:500 20px var(--serif)}.sp{flex:1}
+.seg{display:inline-flex;padding:4px;border-radius:999px;background:var(--hueso);gap:2px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600}
+.seg button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.btn{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 14px;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+.nota{margin:0 0 20px;padding:12px 16px;border-radius:12px;background:var(--hueso);font-size:13.5px}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.cab h1{font-size:44px;line-height:1.05}.cab .vs{margin-bottom:6px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:20px 22px}
+.card h2{font-size:21px;margin-bottom:2px}.card .sub{font-size:13px;margin-bottom:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px;background:var(--hueso)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.ok{color:var(--verde)}.am{color:var(--ambar)}.pz{color:var(--pizarra)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.g2{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}.g2b{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cifra{font:500 44px/1.05 var(--serif)}.cifra small{font-size:.5em;color:var(--taupe);margin-right:3px}
+.q{font-size:13px;font-weight:600;margin-bottom:8px}
+.bar{height:10px;border-radius:99px;background:var(--hueso);overflow:hidden;display:flex}.bar i{display:block;height:100%}
+.fila{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--sand);font-size:14px}
+.fila:first-of-type{border-top:0}
+.pto{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.aviso{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--sand)}
+.aviso:first-of-type{border-top:0}.aviso b{font-weight:600}.aviso a{font-size:12px;font-weight:600;color:var(--rojo-p);text-decoration:none;white-space:nowrap}
+.dock{display:flex;gap:8px;flex-wrap:wrap}.dock span{padding:8px 16px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;font-weight:600}.dock span:first-child{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.vista{display:none}.vista.on{display:block;animation:e .35s var(--ease)}@keyframes e{from{opacity:0;transform:translateY(8px)}}
+@media(prefers-reduced-motion:reduce){.vista.on{animation:none}}
+.dueno{margin-top:12px}.dueno .bar{height:8px}.dueno .fila{padding:6px 0;font-size:13.5px}
+.venc{margin-top:10px}.venc .fila{padding:6px 0;font-size:13.5px;align-items:baseline}.venc .fila span:first-child{min-width:0}.riel .venc .fila{flex-wrap:wrap;gap:0 12px}.venc .d{font-size:12px;font-weight:600;white-space:nowrap}.venc .r{color:var(--rojo-p)}.venc .a{color:var(--ambar)}
+.cj h2{font-size:24px}.cj .tit{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:6px}
+.lectura{display:flex;gap:10px 22px;flex-wrap:wrap;margin:12px 0 4px;font-size:13.5px;min-height:24px}.lectura b{font-weight:600}
+.cj svg{display:block;width:100%;height:auto;overflow:visible}.cj svg text{font-family:var(--sans);fill:var(--tinta)}
+.cj .ej{fill:color-mix(in srgb,var(--tinta) 55%,transparent);font-size:11.5px}.leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;margin-top:10px}
+.leyenda i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.sub2{display:inline-flex;padding:3px;border-radius:999px;background:var(--hueso);gap:2px;margin:14px 0 4px}.sub2 button{border:0;background:none;padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:600}.sub2 button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.ver{display:block;text-align:right;margin-top:10px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--rojo-p);text-decoration:none}
+.dn{display:grid;grid-template-columns:minmax(260px,400px) 1fr;gap:24px 36px;align-items:center;margin-top:8px}
+.dn svg{width:100%;height:auto;display:block}.dn circle.seg{transition:opacity .2s var(--ease),stroke-width .2s var(--ease);cursor:pointer}.dn.hay circle.seg:not(.on){opacity:.28}
+.dn text{font-family:var(--sans);fill:var(--tinta)}.dn .cen b{font:500 34px var(--serif)}
+.lg{display:grid;gap:2px}.lg h3{font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:10px 0 4px}
+.lg .f{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;font-size:14px;cursor:pointer}
+.lg .f:hover,.lg .f.on{background:var(--hueso)}.lg .f i{width:12px;height:12px;border-radius:4px}.lg .f .p{font-size:12px;color:color-mix(in srgb,var(--tinta) 62%,transparent);min-width:34px;text-align:right}
+.lg .f.falta b{color:var(--rojo-p)}
+.dn.mini{grid-template-columns:minmax(150px,210px) 1fr;gap:14px;margin-top:0}.dn.mini .lg .f{padding:5px 6px;font-size:13px;gap:8px}.dn.mini .lg h3{margin-top:0}.dn.mini .lg .f span:nth-child(2){min-width:0}
+@media(max-width:1180px){.dn.mini{grid-template-columns:1fr}.dn.mini svg{max-width:230px;margin:0 auto}}
+@media(max-width:860px){.dn{grid-template-columns:1fr}}
+.pb{margin-top:6px}.pb .cifras{display:flex;gap:10px 40px;flex-wrap:wrap;margin-bottom:18px}.pb .cifras .vs{margin-bottom:2px}.pb .cifras .cifra{font-size:34px}
+.pb .pista{position:relative;padding-top:30px}.pb .barra2{display:flex;height:48px;border-radius:12px;overflow:hidden;gap:2px;background:var(--hueso)}
+.pb .barra2 div{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--crema);min-width:0;cursor:pointer;transition:opacity .2s var(--ease)}
+.pb.hay .barra2 div:not(.on){opacity:.3}
+.pb .corte{position:absolute;top:0;bottom:0;width:2px;background:var(--tinta);z-index:2}
+.pb .corte span{position:absolute;top:-2px;left:8px;white-space:nowrap;font-size:13px;font-weight:600}
+.pb .falta-zona{position:absolute;bottom:0;height:48px;border-radius:0 12px 12px 0;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--papel) 55%,transparent) 6px 9px)}
+.pb .faltan{margin-top:10px;text-align:right;font-size:14px;font-weight:600;color:var(--rojo-p)}
+.pb>.lg{margin-top:18px;grid-template-columns:1fr 1fr;column-gap:28px}
+.rk .f2{display:grid;grid-template-columns:minmax(150px,230px) 1fr auto auto;gap:14px;align-items:center;padding:9px 6px;border-top:1px solid var(--sand);font-size:14.5px;cursor:pointer}
+.rk .f2:first-child{border:0}.rk .f2:hover,.rk .f2.on{background:var(--hueso);border-radius:10px}.rk .f2 .tb{height:14px;border-radius:99px;background:var(--hueso)}.rk .f2 .tb i{display:block;height:100%;border-radius:99px}
+.rk .p{font-size:12.5px;min-width:40px;text-align:right;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+@media(max-width:860px){.pb>.lg{grid-template-columns:1fr}.rk .f2{grid-template-columns:1fr auto auto}.rk .f2 .tb{grid-column:1/-1;order:5}}
+.inv .camp{padding:16px 0;border-top:1px solid var(--sand)}.inv .camp:first-of-type{border-top:0;padding-top:4px}
+.inv .ch{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}.inv .ch h3{font-size:19px}.inv .ch h3 small{font:13px var(--sans);margin-left:8px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.inv .bar{height:12px;gap:2px}.inv .mt{display:flex;gap:6px 26px;flex-wrap:wrap;margin-top:10px;font-size:13.5px}.inv .mt i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px}
+.inv .tot{margin-left:auto}
+
+/* Pantalla completa */
+.mesa{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:8px;border-radius:20px;background:var(--hueso);margin-bottom:20px}
+.mesa .sedes{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 6px 4px 14px;border-radius:999px;background:color-mix(in srgb,var(--papel) 60%,transparent)}
+.mesa .sedes .vs{margin-right:6px}.mesa .sd{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;border:0;background:var(--papel);font-size:14px;font-weight:500}
+.mesa .sd i{width:13px;height:13px;border-radius:50%;border:2px solid var(--c,var(--tinta));display:inline-block}.mesa .sd.on{background:var(--tinta);color:var(--crema)}
+.mesa .mes{display:inline-flex;align-items:center;gap:12px;padding:7px 14px;border-radius:999px;background:var(--papel);font-weight:600;font-size:14px}.mesa .mes .x{opacity:.4}
+.mesa .viendo{font-size:13px;display:flex;align-items:center;gap:8px}.mesa .viendo svg{opacity:.7}
+.mesa .sp{flex:1}.mesa .toca{display:inline-flex;gap:8px;align-items:center;padding:8px 14px;border-radius:999px;background:var(--papel);font-size:14px;font-weight:500}
+.mesa .toca b{background:var(--hueso);border-radius:99px;padding:0 8px;font-size:12px}.mesa .reg{border:0;padding:10px 18px;border-radius:12px;background:var(--tinta);color:var(--crema);font-weight:600;font-size:14px}
+.conf{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap;padding:12px 18px}.conf p{flex:1 1 260px;font-size:14px}.conf .mini{width:130px;height:6px;border-radius:99px;background:var(--hueso);overflow:hidden}.conf .mini i{display:block;height:100%;background:var(--verde)}.conf a{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--rojo-p);text-decoration:none}
+.orillo{display:flex;gap:3px;height:12px;margin:14px 0 6px}.orillo i{display:block;border-radius:99px}.orl-l{display:flex;gap:18px;font-size:12.5px;margin-bottom:14px;flex-wrap:wrap}.orl-l b{font-weight:600}
+.dockg{display:flex;gap:4px;padding:6px;border-radius:20px;background:var(--papel);border:1px solid var(--sand);box-shadow:0 10px 30px color-mix(in srgb,var(--tinta) 14%,transparent)}
+.dockw{position:sticky;bottom:16px;display:flex;justify-content:center;margin-top:24px;z-index:6}
+.dockg a{display:inline-flex;align-items:center;gap:9px;padding:10px 16px;border-radius:14px;font-size:14px;font-weight:500;text-decoration:none;color:var(--tinta)}.dockg a:first-child{background:var(--tinta);color:var(--crema)}
+.dockg kbd{font:600 11px var(--sans);padding:2px 7px;border-radius:7px;background:var(--hueso);color:var(--tinta)}.dockg a:first-child kbd{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+.dockg{box-shadow:0 10px 30px color-mix(in srgb,var(--tinta) 14%,transparent)}
+.neg{color:var(--rojo-p)}
+@media(max-width:860px){.dockg a span{display:none}}
+.pz{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-6px 0 14px;font-size:12.5px}.pz .sub2{margin:0}
+.chipc{display:none;align-items:center;gap:8px;padding:6px 12px 6px 10px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;font-weight:600;margin-top:10px}.chipc i{width:8px;height:8px;border-radius:50%;background:var(--verde)}.chipc span{font-weight:400;opacity:.7}
+.herofoot{display:none;grid-column:1/-1;border-top:1px solid var(--sand)!important;border-left:0!important;padding:12px 24px!important;align-items:center;gap:10px 18px;flex-wrap:wrap}.herofoot p{flex:1 1 260px;font-size:14px}.herofoot .mini{width:130px;height:6px;border-radius:99px;background:var(--hueso);overflow:hidden}.herofoot .mini i{display:block;height:100%;background:var(--verde)}.herofoot a{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--rojo-p);text-decoration:none}
+.sedeb{display:flex;gap:3px;height:34px;margin:12px 0 12px;border-radius:10px;overflow:hidden}.sedeb div{display:flex;align-items:center;padding-left:12px;color:#fff;font-size:13px;font-weight:600;min-width:0}
+.sedel{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 20px}.sedel .f{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--sand);font-size:14px}
+@media(max-width:860px){.sedel{grid-template-columns:1fr}}
+/* A */
+.hero{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--sand);border-radius:18px;background:var(--papel);overflow:hidden;margin-bottom:14px}
+.hero>div{padding:22px 24px;min-width:0;border-left:1px solid var(--sand)}.hero>div:first-child{border:0}
+.hero .cifra{font-size:52px}.hero .mini{margin-top:8px;font-size:13px}
+/* B */
+.titular{font:500 34px/1.2 var(--serif);max-width:26ch;margin-bottom:6px}.titular em{font-style:normal;color:var(--verde)}
+.tira{display:flex;gap:28px;flex-wrap:wrap;padding:14px 0 18px;border-bottom:1px solid var(--sand);margin-bottom:18px}
+.tira div{min-width:120px}.tira .cifra{font-size:30px}
+.sec{padding:18px 0;border-bottom:1px solid var(--sand)}.sec:last-child{border:0}
+.sec>.vs{margin-bottom:10px}
+/* C */
+.riel{display:grid;grid-template-columns:360px 1fr;gap:14px;align-items:start}
+.riel .lado{position:sticky;top:70px;display:grid;gap:14px}
+.mono{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:12px 0;border-top:1px solid var(--sand)}.mono:first-of-type{border:0}
+.mono .cifra{font-size:28px}
+.antes td{padding:8px 10px;border-top:1px solid var(--sand);vertical-align:top;font-size:13.5px}
+.antes th{text-align:left;padding:8px 10px}
+.antes .x{color:color-mix(in srgb,var(--tinta) 55%,transparent);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--rojo) 55%,transparent)}
+.antes .y{font-weight:600}
+@media(max-width:860px){.g3,.hero,.g2,.g2b,.riel{grid-template-columns:1fr}.hero>div{border-left:0;border-top:1px solid var(--sand)}.hero>div:first-child{border:0}.riel .lado{position:static}.cab h1{font-size:34px}.titular{font-size:27px}}
+</style></head><body>
+<div class="barra"><b>Finanzas ▸ Resumen</b><span class="t" style="font-size:13px">textos cortos · 3 direcciones</span><span class="sp"></span>
+<div class="seg" id="seg"><button data-v="g" aria-pressed="true">Pantalla completa</button><button data-v="a" aria-pressed="false">A · por piezas</button><button data-v="b" aria-pressed="false">B · Una lectura</button><button data-v="c" aria-pressed="false">C · Riel y detalle</button><button data-v="e" aria-pressed="false">E · Gráfico de caja</button><button data-v="f" aria-pressed="false">F · Por dónde pasa la plata</button><button data-v="d" aria-pressed="false">Textos antes/después</button></div>
+<button class="btn" id="tema">Claro / oscuro</button></div>
+<main>
+<p class="nota"><b>Cifras de ejemplo</b> (octubre al 15, todas las sedes). Mismos tokens del ERP; nada sale de producción. En las tres direcciones cada texto tiene una sola idea y cabe en una línea.</p>
+
+<section class="vista on" id="g">
+ <div class="mesa"><div class="sedes"><span class="vs">Ver sede</span><button class="sd on">Todas</button><button class="sd" style="--c:#3d6aa8"><i></i>TRU</button><button class="sd" style="--c:#d0743f"><i></i>AQP</button><button class="sd" style="--c:#1d8a6a"><i></i>LIM</button><button class="sd" style="--c:#8a4fa8"><i></i>Taller</button><button class="sd" style="--c:#8c7e70"><i></i>Empresa</button></div>
+  <div class="mes"><span class="x">‹</span>Octubre 2026 <span style="opacity:.6">⌄</span><span class="x">›</span></div>
+  <div class="viendo t"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Viendo las cinco sedes juntas</div><span class="sp"></span>
+  <span class="toca"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>Te toca <b>3</b></span><button class="reg">+ Registrar gasto</button></div>
+ <div class="cab"><div><div class="vs">Todas las sedes · jueves 29 oct</div><h1>Resumen</h1><p class="t" style="margin-top:6px">De lo que vendes a lo que te queda.</p><button class="chipc" id="chipc"><i></i>Seguro al 86 %<span>· 2 cosas por revisar ⌄</span></button></div></div>
+ <div class="pz"><span class="vs">Probar la franja de confianza y sedes:</span><div class="sub2" id="zsel"><button data-z="0" aria-pressed="true">Actual</button><button data-z="1" aria-pressed="false">1 · Chip en la cabecera</button><button data-z="2" aria-pressed="false">2 · Pie de las cifras</button><button data-z="3" aria-pressed="false">3 · Una tarjeta</button></div></div>
+ <div class="hero">
+  <div><div class="q">¿Cuánto tienes?</div><div class="cifra n"><small>S/</small>35,000</div><div class="mini t">Bancos, cajas y cajones</div><div class="dueno"><div class="bar"><i style="width:81.1%;background:var(--tinta)"></i><i style="width:18.9%;background:var(--taupe)"></i></div><div class="fila"><span><span class="pto" style="background:var(--tinta)"></span>De CAYLA</span><b class="n">S/ 28,400</b></div><div class="fila"><span><span class="pto" style="background:var(--taupe)"></span>De CLAURE</span><b class="n">S/ 6,600</b></div></div></div>
+  <div><div class="q">¿Cuánto debes pronto?</div><div class="cifra n"><small>S/</small>37,562</div><div class="mini"><span class="chip am">Vence mañana</span></div><div class="venc"><div class="fila"><span>Planilla · S/ 30,062</span><span class="d a">Vence 30 oct</span></div><div class="fila"><span>Local Trujillo Sinchi Roca · S/ 4,200</span><span class="d a">Vence 31 oct</span></div><div class="fila"><span>Local Arequipa · S/ 3,300</span><span class="d a">Vence 31 oct</span></div></div></div>
+  <div><div class="q">¿Cuánto te deja?</div><div class="cifra n neg"><small>S/</small>−30,266</div><div class="mini"><span class="chip am">Pérdida del mes</span></div><p class="t" style="font-size:13.5px;margin-top:12px">Vendiste S/ 99,950 y salió S/ 130,215.</p></div>
+  <div class="herofoot" id="herofoot"><p><b class="n">Seguro al 86 %</b> <span class="t">· falta registrar 2 gastos</span></p><div class="mini"><i style="width:86%"></i></div><a href="#">2 cosas por revisar ⌄</a></div>
+ </div>
+ <div id="zona0"><div class="card conf" style="margin-bottom:0"><p><b class="n">Seguro al 86 %</b> <span class="t">· falta registrar 2 gastos</span></p><div class="mini"><i style="width:86%"></i></div><a href="#">2 cosas por revisar ⌄</a></div>
+ <div class="orillo" aria-label="Vendido por sede"><i style="flex:67929;background:#3d6aa8"></i><i style="flex:31287;background:#d0743f"></i><i style="flex:733;background:#1d8a6a"></i></div>
+ <div class="orl-l t"><span>Vendido por sede:</span><span><b>TRU</b> S/ 67,929</span><span><b>AQP</b> S/ 31,287</span><span><b>LIM</b> S/ 733</span></div>
+ </div>
+ <div class="card cj" id="zona3" style="display:none;margin-bottom:14px"><div class="tit"><div><h2>Vendido por sede</h2><p class="t" style="font-size:14px">S/ 99,950 en total este mes.</p></div><span class="chip ok">Seguro al 86 %</span></div><div class="sedeb"><div style="flex:67929;background:#3d6aa8">TRU 68 %</div><div style="flex:31287;background:#d0743f">AQP 31 %</div><div style="flex:733;background:#1d8a6a"></div></div><div class="sedel"><div class="f"><span>TRU</span><b class="n">S/ 67,929</b></div><div class="f"><span>AQP</span><b class="n">S/ 31,287</b></div><div class="f"><span>LIM</span><b class="n">S/ 733</b></div></div><p class="t" style="font-size:13px;margin-top:10px">Falta registrar 2 gastos. <a href="#" style="color:var(--rojo-p);font-weight:600">Revisar →</a></p></div>
+ <div class="g2">
+  <div class="card cj"><div class="tit"><div><h2>Tu caja, 2 semanas</h2><p class="t" style="font-size:14px">Baja a <b class="n">S/ 4,842</b> el 31 oct: <b class="n">S/ 10,158</b> bajo tu mínimo.</p></div><span class="chip am">Bajo tu mínimo</span></div><div class="lectura" id="lec-g"></div><div id="graf-g"></div>
+   <div style="margin-top:12px;border-top:1px solid var(--sand);padding-top:4px"><div class="vs" style="margin:10px 0 2px">Lo que más pesa</div><div class="fila"><span>Planilla</span><span class="n">S/ 30,062 · 30 oct</span></div><div class="fila"><span>Local Tienda Trujillo Sinchi Roca</span><span class="n">S/ 4,200 · 31 oct</span></div><div class="fila"><span>Local Tienda Arequipa</span><span class="n">S/ 3,300 · 31 oct</span></div><a class="ver" href="#">Ver el flujo completo →</a></div></div>
+  <div class="card"><h2>Hoy te toca</h2><p class="sub t">Lo urgente, primero.</p>
+   <div class="aviso"><span class="pto" style="background:var(--rojo)"></span><span><b>Caja bajo tu mínimo el 31 oct</b><br><span class="t" style="font-size:13px">Faltan S/ 10,158</span></span><a href="#">Ver →</a></div>
+   <div class="aviso"><span class="pto" style="background:var(--ambar)"></span><span><b>Planilla vence mañana</b><br><span class="t" style="font-size:13px">S/ 30,062</span></span><a href="#">Pagar →</a></div>
+   <div class="aviso"><span class="pto" style="background:var(--pizarra)"></span><span><b>Octubre sigue abierto</b></span><a href="#">Cierre →</a></div></div>
+ </div>
+ <div class="g2" style="margin-top:14px;grid-template-columns:1.5fr 1fr">
+  <div class="card cj"><h2>A dónde va la plata</h2><p class="sub t">Vendiste <b class="n">S/ 99,950</b> · faltan <b class="n neg">S/ 30,266</b></p><div class="dn mini" id="dn-g"></div></div>
+  <div style="display:grid;gap:14px;align-content:start"><div class="card"><h2>¿Ya pagaste el mes?</h2><p class="sub t">Faltan S/ 119,750 de ventas.</p><div class="bar" style="height:10px"><i style="width:45.5%;background:var(--ambar)"></i></div><div class="vs" style="margin-top:8px;display:flex;justify-content:space-between"><span>45 %</span><span>Meta S/ 219,700</span></div></div>
+  <div class="card"><div class="vs" style="margin-bottom:2px">Contra setiembre</div><div class="fila"><span>Ventas</span><b class="n ok">+12 %</b></div><div class="fila"><span>Gastos</span><b class="n">+5 %</b></div></div></div>
+ </div>
+ <div class="card inv" style="margin-top:14px"><div class="tit" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><h2 style="font-size:22px">Inversión en mercadería</h2><p class="sub t" style="margin-bottom:8px">Sale de tu caja cuando pagas. Aún no es gasto.</p></div><a class="ver" style="margin:6px 0 0" href="#">Ver el plan de campaña →</a></div>
+  <div class="sub2" id="subi-g" style="margin:0 0 6px"><button data-i="1" aria-pressed="true">Con pedidos</button><button data-i="0" aria-pressed="false">Sin nada pendiente</button></div>
+  <div id="inv-datos-g"><div class="camp"><div class="ch"><h3>Black Friday 2026<small>24–30 nov</small></h3><span class="chip am">Pedir en 5 días</span></div><div class="bar"><i style="width:82.6%;background:var(--verde)"></i><i style="width:0.0%;background:var(--taupe)"></i><i style="width:17.4%;background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i></div><div class="mt"><span><i style="background:var(--verde)"></i>Pagado S/ 9,500</span><span><i style="background:var(--taupe)"></i>Por pagar S/ 0</span><span><i style="background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i>Falta pedir S/ 2,000</span><b class="n tot">Total S/ 11,500</b></div></div><div class="camp"><div class="ch"><h3>Navidad 2026<small>1–31 dic</small></h3><span class="chip pz">Pedir en 12 días</span></div><div class="bar"><i style="width:33.3%;background:var(--verde)"></i><i style="width:40.0%;background:var(--taupe)"></i><i style="width:26.7%;background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i></div><div class="mt"><span><i style="background:var(--verde)"></i>Pagado S/ 6,000</span><span><i style="background:var(--taupe)"></i>Por pagar S/ 7,200</span><span><i style="background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i>Falta pedir S/ 4,800</span><b class="n tot">Total S/ 18,000</b></div></div></div>
+  <div class="camp" id="inv-vacio-g" style="display:none;border:0;padding:4px 0 0"><div class="ch" style="margin-bottom:0"><p style="font-size:14.5px">Nada pendiente: lo de las campañas está pedido y pagado.</p><span class="chip ok">Todo pedido</span></div></div></div>
+ <div class="dockw"><nav class="dockg" aria-label="Acciones"><a href="#"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18v12H3z"/><path d="M3 7l2-3h14l2 3"/><path d="M16 13h2"/></svg><span>Pagar facturas</span><kbd>P</kbd></a><a href="#"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg><span>IGV del mes</span><kbd>I</kbd></a><a href="#"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M9 15l2 2 4-4"/></svg><span>Cierre de mes</span><kbd>M</kbd></a><a href="#"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v14a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v14a2 2 0 0 1 2-2h8z"/></svg><span>Reportes</span><kbd>R</kbd></a></nav></div>
+</section>
+<!-- ============ A ============ -->
+<section class="vista" id="a">
+ <div class="cab"><div><div class="vs">Todas las sedes · 15 oct</div><h1>Resumen</h1></div><div class="dock"><span>Pagar facturas</span><span>IGV</span><span>Cierre</span><span>Reportes</span></div></div>
+ <div class="hero">
+  <div><div class="q">¿Cuánto tienes?</div><div class="cifra n"><small>S/</small>12,480</div><div class="mini t">Bancos, cajas y cajones</div><div class="dueno"><div class="bar"><i style="width:75.2%;background:var(--tinta)"></i><i style="width:24.8%;background:var(--taupe)"></i></div><div class="fila"><span><span class="pto" style="background:var(--tinta)"></span>De CAYLA</span><b class="n">S/ 9,380</b></div><div class="fila"><span><span class="pto" style="background:var(--taupe)"></span>De CLAURE</span><b class="n">S/ 3,100</b></div></div></div>
+  <div><div class="q">¿Cuánto debes pronto?</div><div class="cifra n"><small>S/</small>4,200</div><div class="mini"><span class="chip am">2 vencidas</span></div><div class="venc"><div class="fila"><span>Telas Rímac · S/ 1,100</span><span class="d r">Vencida hace 5 d</span></div><div class="fila"><span>Hilos Lima · S/ 800</span><span class="d r">Vencida hace 2 d</span></div><div class="fila"><span>Planilla · S/ 1,200</span><span class="d a">Vence 30 oct</span></div><div class="fila"><span>Avíos Gamarra · S/ 1,100</span><span class="d a">Vence 2 nov</span></div></div></div>
+  <div><div class="q">¿Cuánto te deja?</div><div class="cifra n"><small>S/</small>3,850</div><div class="mini"><span class="chip ok">Mejor que setiembre</span></div></div>
+ </div>
+ <div class="g2">
+  <div class="card cj"><h2>Tu caja, 2 semanas</h2><p class="sub t">Baja a <b class="n">S/ 4,842</b> el 31 oct: <b class="n">S/ 10,158</b> bajo tu mínimo.</p><div class="lectura" id="lec-a" style="margin-top:0"></div><div id="graf-a"></div><div style="margin-top:12px;border-top:1px solid var(--sand);padding-top:4px"><div class="vs" style="margin:10px 0 2px">Lo que más pesa</div>
+ <div class="fila"><span>Planilla</span><span class="n">S/ 30,062 · 30 oct</span></div><div class="fila"><span>Local Tienda Trujillo Sinchi Roca</span><span class="n">S/ 4,200 · 31 oct</span></div><div class="fila"><span>Local Tienda Arequipa</span><span class="n">S/ 3,300 · 31 oct</span></div><a class="ver" href="#">Ver el flujo completo →</a></div></div>
+  <div class="card"><h2>Hoy te toca</h2><p class="sub t">Lo que más cuesta si se deja.</p>
+   <div class="aviso"><span class="pto" style="background:var(--rojo)"></span><span><b>2 facturas vencidas</b><br><span class="t" style="font-size:13px">S/ 1,900 · Telas Rímac primero</span></span><a href="#">Pagar →</a></div>
+   <div class="aviso"><span class="pto" style="background:var(--ambar)"></span><span><b>Falta el alquiler de TRU</b><br><span class="t" style="font-size:13px">S/ 2,400 · venció el 10</span></span><a href="#">Registrar →</a></div>
+   <div class="aviso"><span class="pto" style="background:var(--pizarra)"></span><span><b>Octubre sigue abierto</b></span><a href="#">Cierre →</a></div></div>
+ </div>
+ <div class="g2" style="margin-top:14px;grid-template-columns:1.5fr 1fr">
+  <div class="card cj"><h2>Por dónde pasa la plata</h2><p class="sub t">Vendiste <b class="n">S/ 99,950</b> · faltan <b class="n" style="color:var(--rojo-p)">S/ 30,266</b></p><div class="dn mini" id="dn-a"></div></div>
+  <div class="card"><h2>¿Ya pagaste el mes?</h2><p class="sub t">Faltan S/ 2,100 de ventas.</p>
+   <div class="bar"><i style="width:72%;background:var(--verde)"></i></div><div class="vs" style="margin-top:8px;display:flex;justify-content:space-between"><span>72 %</span><span>Meta S/ 28,900</span></div>
+   <div style="margin-top:14px"><div class="vs" style="margin-bottom:2px">Contra setiembre</div><div class="fila"><span>Ventas</span><b class="n ok">+12 %</b></div><div class="fila"><span>Gastos</span><b class="n">+5 %</b></div></div></div>
+ </div>
+<div class="card inv" style="margin-top:14px"><div class="tit" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><h2 style="font-size:22px">Inversión en mercadería</h2><p class="sub t" style="margin-bottom:8px">Sale de tu caja cuando pagas. Aún no es gasto.</p></div><a class="ver" style="margin:6px 0 0" href="#">Ver el plan de campaña →</a></div>
+ <div class="sub2" id="subi" style="margin:0 0 6px"><button data-i="1" aria-pressed="true">Con pedidos</button><button data-i="0" aria-pressed="false">Sin nada pendiente</button></div>
+  <div id="inv-datos"><div class="camp"><div class="ch"><h3>Black Friday 2026<small>24–30 nov</small></h3><span class="chip am">Pedir en 5 días</span></div>
+   <div class="bar"><i style="width:82.6%;background:var(--verde)"></i><i style="width:0.0%;background:var(--taupe)"></i><i style="width:17.4%;background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i></div>
+   <div class="mt"><span><i style="background:var(--verde)"></i>Pagado S/ 9,500</span><span><i style="background:var(--taupe)"></i>Por pagar S/ 0</span><span><i style="background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i>Falta pedir S/ 2,000</span><b class="n tot">Total S/ 11,500</b></div></div>
+  <div class="camp"><div class="ch"><h3>Navidad 2026<small>1–31 dic</small></h3><span class="chip pz">Pedir en 12 días</span></div>
+   <div class="bar"><i style="width:33.3%;background:var(--verde)"></i><i style="width:40.0%;background:var(--taupe)"></i><i style="width:26.7%;background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i></div>
+   <div class="mt"><span><i style="background:var(--verde)"></i>Pagado S/ 6,000</span><span><i style="background:var(--taupe)"></i>Por pagar S/ 7,200</span><span><i style="background:color-mix(in srgb,var(--tinta) 22%,var(--papel))"></i>Falta pedir S/ 4,800</span><b class="n tot">Total S/ 18,000</b></div></div></div><div class="camp" id="inv-vacio" style="display:none;border:0;padding:4px 0 0"><div class="ch" style="margin-bottom:0"><p style="font-size:14.5px">Nada pendiente: lo de las campañas está pedido y pagado.</p><span class="chip ok">Todo pedido</span></div></div>
+ </div>
+ </section>
+
+<!-- ============ B ============ -->
+<section class="vista" id="b">
+ <div class="cab"><div><div class="vs">Todas las sedes · 15 oct</div><h1>Resumen</h1></div><div class="dock"><span>Pagar facturas</span><span>IGV</span><span>Cierre</span><span>Reportes</span></div></div>
+ <div class="card" style="padding:26px 30px">
+  <h2 class="titular">Octubre va bien: <em>deja S/ 3,850</em></h2>
+  <p class="t">Mejor que setiembre. Pero hay 2 facturas vencidas.</p>
+  <div class="tira"><div style="flex:1 1 260px"><div class="vs">Tienes</div><div class="cifra n">S/ 12,480</div><div class="dueno"><div class="bar"><i style="width:75.2%;background:var(--tinta)"></i><i style="width:24.8%;background:var(--taupe)"></i></div><div class="fila"><span><span class="pto" style="background:var(--tinta)"></span>De CAYLA</span><b class="n">S/ 9,380</b></div><div class="fila"><span><span class="pto" style="background:var(--taupe)"></span>De CLAURE</span><b class="n">S/ 3,100</b></div></div></div><div style="flex:1 1 300px"><div class="vs">Debes pronto</div><div class="cifra n">S/ 4,200</div><div class="venc"><div class="fila"><span>Telas Rímac · S/ 1,100</span><span class="d r">Vencida hace 5 d</span></div><div class="fila"><span>Hilos Lima · S/ 800</span><span class="d r">Vencida hace 2 d</span></div><div class="fila"><span>Planilla · S/ 1,200</span><span class="d a">Vence 30 oct</span></div><div class="fila"><span>Avíos Gamarra · S/ 1,100</span><span class="d a">Vence 2 nov</span></div></div></div><div><div class="vs">Te deja</div><div class="cifra n">S/ 3,850</div></div><div><div class="vs">Confianza</div><div class="cifra n">86 %</div></div></div>
+  <div class="sec"><div class="vs">Hoy te toca</div>
+   <div class="aviso"><span class="pto" style="background:var(--rojo)"></span><span><b>Paga 2 facturas vencidas</b> <span class="t">· S/ 1,900</span></span><a href="#">Pagar →</a></div>
+   <div class="aviso"><span class="pto" style="background:var(--ambar)"></span><span><b>Registra el alquiler de TRU</b> <span class="t">· S/ 2,400</span></span><a href="#">Registrar →</a></div></div>
+  <div class="sec"><div class="vs">Tu caja · 2 semanas</div>
+   <p>Baja a <b class="n">S/ 6,900</b> el 28 oct y se recupera. <span class="t">Alcanza para pagar todo.</span></p></div>
+  <div class="sec"><div class="vs">Ventas por sede</div>
+   <div class="bar" style="margin:6px 0 10px"><i style="width:65.8%;background:var(--tru)"></i><i style="width:34.2%;background:var(--aqp)"></i></div>
+   <p><span class="pto" style="background:var(--tru)"></span>TRU <b class="n">30,900</b> &nbsp; <span class="pto" style="background:var(--aqp)"></span>AQP <b class="n">16,000</b> &nbsp; <span class="pto" style="background:var(--lima)"></span>Lima <span class="t">sin ventas</span></p></div>
+  <div class="sec"><div class="vs">Contra setiembre</div>
+   <p>Ventas <b class="ok n">+12 %</b> · Gastos <b class="n">+5 %</b> · Faltan <b class="n">S/ 2,100</b> para pagar el mes.</p></div>
+ </div>
+</section>
+
+<!-- ============ C ============ -->
+<section class="vista" id="c">
+ <div class="cab"><div><div class="vs">Todas las sedes · 15 oct</div><h1>Resumen</h1></div><div class="dock"><span>Pagar facturas</span><span>IGV</span><span>Cierre</span><span>Reportes</span></div></div>
+ <div class="riel">
+  <div class="lado">
+   <div class="card"><div class="mono"><span class="q" style="margin:0">Tienes</span><span class="cifra n">S/ 12,480</span></div><div class="dueno" style="margin:0 0 6px"><div class="bar"><i style="width:75.2%;background:var(--tinta)"></i><i style="width:24.8%;background:var(--taupe)"></i></div><div class="fila"><span><span class="pto" style="background:var(--tinta)"></span>De CAYLA</span><b class="n">S/ 9,380</b></div><div class="fila"><span><span class="pto" style="background:var(--taupe)"></span>De CLAURE</span><b class="n">S/ 3,100</b></div></div><div class="mono"><span class="q" style="margin:0">Debes pronto</span><span class="cifra n">S/ 4,200</span></div><div class="venc" style="margin:0 0 6px"><div class="fila"><span>Telas Rímac · S/ 1,100</span><span class="d r">Vencida hace 5 d</span></div><div class="fila"><span>Hilos Lima · S/ 800</span><span class="d r">Vencida hace 2 d</span></div><div class="fila"><span>Planilla · S/ 1,200</span><span class="d a">Vence 30 oct</span></div><div class="fila"><span>Avíos Gamarra · S/ 1,100</span><span class="d a">Vence 2 nov</span></div></div><div class="mono"><span class="q" style="margin:0">Te deja</span><span class="cifra n ok">S/ 3,850</span></div>
+    <p class="t" style="font-size:12.5px;margin-top:10px">Confianza 86 % · falta revisar 2 gastos</p></div>
+   <div class="card"><h2>Hoy te toca</h2><p class="sub t">Primero lo urgente.</p>
+    <div class="aviso" style="grid-template-columns:auto 1fr"><span class="pto" style="background:var(--rojo)"></span><span><b>2 vencidas</b> <span class="t">S/ 1,900</span></span></div>
+    <div class="aviso" style="grid-template-columns:auto 1fr"><span class="pto" style="background:var(--ambar)"></span><span><b>Alquiler TRU</b> <span class="t">S/ 2,400</span></span></div>
+    <div class="aviso" style="grid-template-columns:auto 1fr"><span class="pto" style="background:var(--pizarra)"></span><span><b>Octubre abierto</b></span></div></div>
+  </div>
+  <div style="display:grid;gap:14px">
+   <div class="card"><h2>Tu caja, 2 semanas</h2><p class="sub t">Punto más bajo: S/ 6,900 el 28 oct</p>
+    <svg viewBox="0 0 600 110" width="100%"><path d="M0 36 L100 44 L200 66 L300 58 L400 84 L500 76 L600 70" fill="none" stroke="var(--tinta)" stroke-width="2.5"/></svg></div>
+   <div class="card"><h2>Por sede</h2><p class="sub t">Ventas y lo que queda.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px"><tr class="vs"><td></td><td align=right>Ventas</td><td align=right>Queda</td><td style="width:34%"></td></tr>
+     <tr><td><span class="pto" style="background:var(--tru)"></span>TRU</td><td align=right class="n">30,900</td><td align=right class="n">2,950</td><td><div class="bar"><i style="width:94%;background:var(--tru)"></i></div></td></tr>
+     <tr><td><span class="pto" style="background:var(--aqp)"></span>AQP</td><td align=right class="n">16,000</td><td align=right class="n">1,700</td><td><div class="bar"><i style="width:50%;background:var(--aqp)"></i></div></td></tr>
+     <tr><td><span class="pto" style="background:var(--lima)"></span>Lima</td><td align=right class="t">0</td><td align=right class="n am">−800</td><td></td></tr></table></div>
+   <div class="g2b"><div class="card"><h2>¿Ya pagaste el mes?</h2><p class="sub t">Faltan S/ 2,100.</p><div class="bar"><i style="width:72%;background:var(--verde)"></i></div></div>
+    <div class="card"><h2>Contra setiembre</h2><p class="sub t">Ventas <b class="ok">+12 %</b> · Gastos <b>+5 %</b></p><span class="chip ok">Va mejor</span></div></div>
+  </div>
+ </div>
+</section>
+
+<section class="vista" id="e"><div class="card cj">
+ <div class="tit"><div><h2>Tu caja, 2 semanas</h2><p class="t" style="font-size:14px">Baja a <b class="n">S/ 4,842</b> el 31 oct: <b class="n">S/ 10,158</b> bajo tu mínimo.</p></div><span class="chip am">Bajo tu mínimo</span></div>
+ <div class="sub2" id="sub2"><button data-g="1" aria-pressed="true">1 · Línea clara</button><button data-g="2" aria-pressed="false">2 · Si cobras menos</button><button data-g="3" aria-pressed="false">3 · Cascada</button></div>
+ <div class="lectura" id="lec"></div><div id="graf"></div><div class="leyenda" id="ley"></div>
+ <div style="margin-top:16px;border-top:1px solid var(--sand);padding-top:4px"><div class="vs" style="margin:10px 0 2px">Lo que más pesa</div>
+ <div class="fila"><span>Planilla</span><span class="n">S/ 30,062 · 30 oct</span></div><div class="fila"><span>Local Tienda Trujillo Sinchi Roca</span><span class="n">S/ 4,200 · 31 oct</span></div><div class="fila"><span>Local Tienda Arequipa</span><span class="n">S/ 3,300 · 31 oct</span></div><a class="ver" href="#">Ver el flujo completo →</a></div>
+ <p class="t" style="font-size:12px;margin-top:12px">Ejemplo: partí de tu captura (hoy ≈ S/ 35 mil, mínimo S/ 4,842 el 31 oct, S/ 57,229 el 12 nov). Los cobros por día están inventados para que cierre ese total.</p>
+</div></section>
+<section class="vista" id="f"><div class="card cj">
+ <div class="tit"><div><h2>A dónde va la plata</h2><p class="t" style="font-size:14px">Vendiste <b class="n">S/ 99,950</b> y salió <b class="n">S/ 130,215</b>: faltan <b class="n">S/ 30,266</b>.</p></div><span class="chip am">No alcanza</span></div>
+ <div class="sub2" id="sub3"><button data-d="1" aria-pressed="true">1 · Barra con corte</button><button data-d="2" aria-pressed="false">2 · Barras por fila</button><button data-d="3" aria-pressed="false">3 · Anillo, texto afuera</button></div>
+ <div id="plata"></div>
+ <p class="t" style="font-size:12px;margin-top:14px">Cifras de tu captura (todas las sedes).</p>
+</div></section>
+<!-- ============ Textos ============ -->
+<section class="vista" id="d">
+ <div class="card"><h2>Textos: antes → después</h2><p class="sub t">Regla: un dato, una idea, sin «mientras», «aunque» ni «si no».</p>
+ <table class="antes" style="width:100%;border-collapse:collapse"><tr class="vs"><th>Dónde</th><th>Antes</th><th>Después</th></tr>
+ <tr><td>Frase de la cabecera</td><td class="x">Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.</td><td class="y">De lo que vendes a lo que te queda.</td></tr>
+ <tr><td>Hoy te toca</td><td class="x">Es de hoy, aunque mires setiembre. Primero lo que más cuesta si se deja pasar.</td><td class="y">Lo de hoy, primero lo urgente.</td></tr>
+ <tr><td>¿Cuánto tienes?</td><td class="x">En bancos, cajas fuertes y cajones: S/ 9,800. Más S/ 2,100 de tarjeta y QR que las máquinas todavía no depositan y S/ 580 en fondos y plata por rendir.</td><td class="y">S/ 9,800 a mano · S/ 2,680 por llegar</td></tr>
+ <tr><td>Plata de CLAURE</td><td class="x">Disponible: S/ 9,380 (si le pagas a CLAURE lo que se le debe).</td><td class="y">De CAYLA S/ 9,380 · De CLAURE S/ 3,100</td></tr>
+ <tr><td>¿Cuánto debes pagar pronto?</td><td class="x">2 deudas vencen en 7 días; 2 vencidas (S/ 1,900); planilla S/ 1,200.</td><td class="y">Cada deuda en su línea: quién, monto y cuándo vence</td></tr>
+ <tr><td>Falta registrar</td><td class="x">Venció el día 10 por unos S/ 2,400. Si no está, el resultado del mes sale mejor de lo que es.</td><td class="y">Alquiler TRU · S/ 2,400 · venció el 10</td></tr>
+ <tr><td>Mes abierto</td><td class="x">Mientras siga abierto, se puede registrar con fecha de octubre y sus números pueden cambiar.</td><td class="y">Octubre sigue abierto</td></tr>
+ <tr><td>Equilibrio</td><td class="x">Todavía no hay gastos registrados (sueldos, alquileres…): sin ellos no se sabe cuánto hay que vender para pagar el mes. Cárgalos en Gastos.</td><td class="y">Faltan los gastos. Cárgalos en Gastos.</td></tr>
+ <tr><td>Recorrido</td><td class="x">Lima no vende: se sostiene con lo que dejan las tiendas. Aquí ves cuánto se lleva.</td><td class="y">Lima no vende. Se lleva S/ 800.</td></tr>
+ <tr><td>Error de lectura</td><td class="x">No se pudo leer el estado de resultados de este mes. Vuelve a cargar la página en un rato.</td><td class="y">No se pudo leer el mes. Reintenta.</td></tr>
+ <tr><td>Sin datos</td><td class="x">Para ver cómo se sostiene, elige «Todas las sedes» o una tienda: este mes no hay tiendas con qué compararlo.</td><td class="y">Elige una tienda para ver esto.</td></tr>
+ </table></div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));document.querySelectorAll('.vista').forEach(v=>v.classList.toggle('on',v.id===b.dataset.v))});
+$('#tema').onclick=()=>{const r=document.documentElement;r.dataset.t=r.dataset.t==='o'?'':'o'};
+
+const COB=[0,4600,2804,4000,4800,3900,6700,4300,3100,5000,4900,3400,3800,4200,4287],PAG=[0,30062,7500,0,0,0,0,0,0,0,0,0,0,0,0],MIN=15000,INI=35000;
+const FE=i=>{const d=29+i;return d<=31?d+' oct':(d-31)+' nov'},fm=n=>'S/ '+Math.round(n).toLocaleString('en-US');
+function serie(k){let v=INI;return COB.map((c,i)=>i?(v+=c*k-PAG[i]):v)}
+const NS='http://www.w3.org/2000/svg';
+function T(x,y,t,c='',a='start'){return `<text x="${x}" y="${y}" class="${c}" text-anchor="${a}" font-size="12.5">${t}</text>`}
+function ejes(W,x0,x1,y,h,max){let o='';[0,15000,30000,60000].forEach(v=>{const yy=y+h-v/max*h;o+=`<line x1="${x0}" x2="${x1}" y1="${yy}" y2="${yy}" stroke="var(--sand)" ${v==15000?'':''}/>`+T(x0-8,yy+4,v==0?'0':v/1000+' mil','ej','end')});return o}
+let _n=0;function graf1(){const id="bajo"+(++_n);const W=960,x0=60,x1=900,y0=16,h=230,max=60000,st=(x1-x0)/14,X=i=>x0+i*st,Y=v=>y0+h-v/max*h,sv=serie(1);
+ let o=`<svg viewBox="0 0 ${W} 285" role="img" aria-label="Caja proyectada"><defs><clipPath id="${id}"><rect x="${x0}" y="${Y(MIN)}" width="${x1-x0}" height="${y0+h-Y(MIN)+2}"/></clipPath></defs>`;
+ o+=ejes(W,x0,x1,y0,h,max);
+ o+=`<rect x="${x0}" y="${Y(MIN)}" width="${x1-x0}" height="${y0+h-Y(MIN)}" fill="var(--rojo)" opacity=".08"/><line x1="${x0}" x2="${x1}" y1="${Y(MIN)}" y2="${Y(MIN)}" stroke="var(--taupe)" stroke-dasharray="5 4"/>`+T(x1+8,Y(MIN)+4,'mínimo','ej');
+ const d=sv.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join(' ');
+ o+=`<path d="${d} L${X(14)} ${y0+h} L${x0} ${y0+h}Z" fill="var(--tinta)" opacity=".06"/><path d="${d}" fill="none" stroke="var(--tinta)" stroke-width="2.6" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="var(--rojo)" stroke-width="3" clip-path="url(#${id})"/>`;
+ o+=`<circle cx="${X(2)}" cy="${Y(sv[2])}" r="6" fill="var(--rojo)" stroke="var(--papel)" stroke-width="2"/>`+T(X(2)+12,Y(sv[2])+22,'31 oct · '+fm(sv[2]),'','start').replace('font-size="12.5"','font-size="13" font-weight="600"');
+ o+=`<circle cx="${X(0)}" cy="${Y(sv[0])}" r="4.5" fill="var(--tinta)"/>`+T(X(0)+10,Y(sv[0])-8,'hoy '+fm(sv[0]))+`<circle cx="${X(14)}" cy="${Y(sv[14])}" r="5" fill="var(--tinta)"/>`+T(X(14),Y(sv[14])-12,fm(sv[14]),'','end').replace('font-size="12.5"','font-size="14" font-weight="600"');
+ o+=`<circle cx="${X(1)}" cy="${Y(sv[1])}" r="4.5" fill="var(--rojo)" stroke="var(--papel)" stroke-width="2"/>`+T(X(1)+10,Y(sv[1])-9,'Planilla −30,062','ej');
+ for(let i=0;i<=14;i+=2)o+=T(X(i),y0+h+26,i?FE(i):'hoy','ej','middle');
+ o+=`<line id="gl" y1="${y0}" y2="${y0+h}" stroke="var(--tinta)" opacity=".25" style="display:none"/>`;
+ for(let i=0;i<=14;i++)o+=`<rect data-i="${i}" x="${X(i)-st/2}" y="${y0}" width="${st}" height="${h}" fill="transparent"/>`;
+ return o+'</svg>'}
+function graf2(){const W=960,x0=60,x1=900,y0=16,h=290,max=60000,st=(x1-x0)/14,X=i=>x0+i*st,Y=v=>y0+h-v/max*h,a=serie(1),lo=serie(.8),hi=serie(1.1);
+ let o=`<svg viewBox="0 0 ${W} 350" role="img" aria-label="Escenarios de caja">`+ejes(W,x0,x1,y0,h,max);
+ o+=`<rect x="${x0}" y="${Y(MIN)}" width="${x1-x0}" height="${y0+h-Y(MIN)}" fill="var(--rojo)" opacity=".08"/><line x1="${x0}" x2="${x1}" y1="${Y(MIN)}" y2="${Y(MIN)}" stroke="var(--taupe)" stroke-dasharray="5 4"/>`+T(x1+8,Y(MIN)+4,'mínimo','ej');
+ const up=hi.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join(' '),dn=lo.map((v,i)=>[X(i),Y(v)]).reverse().map(p=>'L'+p[0]+' '+p[1]).join(' ');
+ o+=`<path d="${up} ${dn}Z" fill="var(--taupe)" opacity=".16"/>`;
+ o+=`<path d="${lo.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join(' ')}" fill="none" stroke="var(--taupe)" stroke-width="1.8" stroke-dasharray="6 4"/><path d="${hi.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join(' ')}" fill="none" stroke="var(--taupe)" stroke-width="1.8" stroke-dasharray="2 4"/>`;
+ o+=`<path d="${a.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join(' ')}" fill="none" stroke="var(--tinta)" stroke-width="2.8" stroke-linejoin="round"/>`;
+ o+=`<circle cx="${X(2)}" cy="${Y(a[2])}" r="6" fill="var(--rojo)" stroke="var(--papel)" stroke-width="2"/>`+T(X(2)+12,Y(a[2])+24,'31 oct · '+fm(a[2]),'').replace('font-size="12.5"','font-size="13" font-weight="600"');
+ [['',14,hi],['',14,a],['',14,lo]].forEach((r,k)=>{const v=r[2][14];o+=T(X(14)+8,Y(v)+4+(k==1?0:0),fm(v),'ej')});
+ for(let i=0;i<=14;i+=2)o+=T(X(i),y0+h+26,i?FE(i):'hoy','ej','middle');
+ for(let i=0;i<=14;i++)o+=`<rect data-i="${i}" x="${X(i)-st/2}" y="${y0}" width="${st}" height="${h}" fill="transparent"/>`;
+ return o+'</svg>'}
+function graf3(){const W=960,x0=60,x1=900,y0=20,h=260,max=60000,Y=v=>y0+h-v/max*h,s=serie(1);
+ const pasos=[['Hoy',0,INI,'t'],['Cobros hasta el 31',INI,INI+COB[1]+COB[2],'+'],['Planilla',INI+COB[1]+COB[2],INI+COB[1]+COB[2]-30062,'-'],['Locales',INI+COB[1]+COB[2]-30062,s[2],'-'],['31 oct · mínimo',0,s[2],'m'],['Cobros 1–12 nov',s[2],s[14],'+'],['12 nov',0,s[14],'t']];
+ const bw=82,gap=(x1-x0-bw*7)/6;let o=`<svg viewBox="0 0 ${W} 360" role="img" aria-label="Cascada de caja">`+ejes(W,x0,x1,y0,h,max);
+ o+=`<line x1="${x0}" x2="${x1}" y1="${Y(MIN)}" y2="${Y(MIN)}" stroke="var(--taupe)" stroke-dasharray="5 4"/>`+T(x1+8,Y(MIN)+4,'mínimo','ej');
+ pasos.forEach((p,i)=>{const x=x0+i*(bw+gap),a=Math.min(Y(p[1]),Y(p[2])),b=Math.max(Y(p[1]),Y(p[2])),c=p[3]=='+'?'var(--verde)':p[3]=='-'?'var(--rojo)':p[3]=='m'?'var(--rojo)':'var(--tinta)';
+  o+=`<rect x="${x}" y="${a}" width="${bw}" height="${Math.max(b-a,2)}" rx="4" fill="${c}" opacity="${p[3]=='t'||p[3]=='m'?1:.85}"/>`;
+  const val=p[3]=='+'?'+'+Math.round(p[2]-p[1]).toLocaleString('en-US'):p[3]=='-'?'−'+Math.round(p[1]-p[2]).toLocaleString('en-US'):Math.round(p[2]).toLocaleString('en-US');
+  o+=T(x+bw/2,a-8,val,'','middle').replace('font-size="12.5"','font-size="13" font-weight="600"')+T(x+bw/2,y0+h+22,p[0],'ej','middle');
+  if(i<6){const nx=x+bw+gap,yy=Y(p[3]=='-'||p[3]=='+'?p[2]:p[2]);o+=`<line x1="${x+bw}" x2="${nx}" y1="${yy}" y2="${yy}" stroke="var(--taupe)" stroke-dasharray="2 3" opacity=".7"/>`}});
+ return o+'</svg>'}
+function lecturaDe(i,g){const sv=serie(1);return `<span><b>${i?FE(i):'Hoy'}</b></span><span>Saldo <b class="n">${fm(sv[i])}</b></span>`+(i?`<span style="color:var(--verde)">Entra <b class="n">${fm(COB[i])}</b></span>`:'')+(PAG[i]?`<span style="color:var(--rojo-p)">Sale <b class="n">${fm(PAG[i])}</b></span>`:'')+(sv[i]<MIN?`<span class="am"><b>${fm(MIN-sv[i])}</b> bajo tu mínimo</span>`:'')}
+function pinta(g){const G=$('#graf');G.innerHTML=g==1?graf1():g==2?graf2():graf3();
+ const L=$('#lec'),Y=$('#ley');
+ if(g==3){L.innerHTML='<span>Del 29 oct al 12 nov: entran <b class="n">S/ 59,791</b> y salen <b class="n">S/ 37,562</b>.</span>';Y.innerHTML='<span><i style="background:var(--verde)"></i>Entra</span><span><i style="background:var(--rojo)"></i>Sale</span><span><i style="background:var(--tinta)"></i>Saldo</span>'}
+ else{L.innerHTML=lecturaDe(2);
+  Y.innerHTML=g==1?'<span><i style="background:var(--tinta)"></i>Saldo</span><span><i style="background:var(--rojo)"></i>Bajo tu mínimo</span>':'<span><i style="background:var(--tinta)"></i>Lo esperado</span><span><i style="background:var(--taupe)"></i>Si cobras 20 % menos</span><span><i style="background:var(--taupe);opacity:.5"></i>Si cobras 10 % más</span>';
+  if(g==2)L.innerHTML+=`<span class="t">12 nov: <b class="n">${fm(serie(.8)[14])}</b> a <b class="n">${fm(serie(1.1)[14])}</b></span>`;
+  G.querySelectorAll('rect[data-i]').forEach(r=>r.onmouseenter=()=>{L.innerHTML=lecturaDe(+r.dataset.i);const gl=G.querySelector('#gl');if(gl){const x=+r.getAttribute('x')+ +r.getAttribute('width')/2;gl.setAttribute('x1',x);gl.setAttribute('x2',x);gl.style.display=''}})}}
+document.querySelectorAll('#sub2 button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#sub2 button').forEach(x=>x.setAttribute('aria-pressed',x===b));pinta(+b.dataset.g)});pinta(1);
+(function(){const G=$('#graf-a'),L=$('#lec-a');G.innerHTML=graf1();L.innerHTML=lecturaDe(2);G.querySelectorAll('rect[data-i]').forEach(r=>r.onmouseenter=()=>{L.innerHTML=lecturaDe(+r.dataset.i);const gl=G.querySelector('#gl'),x=+r.getAttribute('x')+ +r.getAttribute('width')/2;gl.setAttribute('x1',x);gl.setAttribute('x2',x);gl.style.display=''})})();
+
+const ORI=[['tru','TRU',67929,'#5b86b3'],['aqp','AQP',31287,'#d08a5e'],['lim','Lima',733,'#4c9a7a'],['falta','Te faltan',30266,'var(--rojo)']];
+const DES=[['pren','Lo que costaron las prendas',76042,'var(--pizarra)'],['gas','Gastos de las tiendas',28660,'var(--rojo)'],['tal','Taller',6072,'var(--verde)'],['emp','Empresa',17769,'var(--morado)'],['caj','Faltó en caja',1672,'var(--ambar)']];
+const TOT=130215;
+function anillo(items,r,w,cx,cy){const C=2*Math.PI*r;let acc=0;return items.map(it=>{const l=it[2]/TOT*C,gap=Math.min(3,l*.3),d=`<circle class="seg" data-k="${it[0]}" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${it[3]}" stroke-width="${w}" stroke-dasharray="${Math.max(l-gap,.5)} ${C-Math.max(l-gap,.5)}" stroke-dashoffset="${-acc}" transform="rotate(-90 ${cx} ${cy})"/>`;acc+=l;return d}).join('')}
+function fila(it){const p=Math.round(it[2]/TOT*100);return `<div class="f ${it[0]=='falta'?'falta':''}" data-k="${it[0]}"><i style="background:${it[3]}"></i><span>${it[1]}</span><b class="n">${fm(it[2])}</b><span class="p n">${p<1?'<1':p} %</span></div>`}
+function donut(v,D=$('#dn'),u=''){const all=ORI.concat(DES);
+ const svg=v==1?`<svg viewBox="0 0 400 400" role="img" aria-label="De dónde sale y a dónde va la plata">${anillo(DES,168,30,200,200)}${anillo(ORI,126,30,200,200)}<g class="cen" text-anchor="middle"><text x="200" y="178" font-size="12.5" fill="var(--taupe)" class="ej" id="c1${u}">Vendiste</text><foreignObject x="110" y="184" width="180" height="50"><div xmlns="http://www.w3.org/1999/xhtml" style="text-align:center"><b id="c2${u}" class="n" style="font:500 34px var(--serif);color:var(--tinta)">S/ 99,950</b></div></foreignObject><text x="200" y="244" font-size="12.5" id="c3${u}" style="fill:var(--rojo-p)">Te faltan S/ 30,266</text></g></svg>`
+  :`<svg viewBox="0 0 400 400" role="img" aria-label="A dónde va la plata">${anillo(DES,150,46,200,200)}<g class="cen" text-anchor="middle"><text x="200" y="168" font-size="12.5" fill="var(--taupe)" id="c1${u}">Salió</text><foreignObject x="100" y="174" width="200" height="50"><div xmlns="http://www.w3.org/1999/xhtml" style="text-align:center"><b id="c2${u}" class="n" style="font:500 36px var(--serif);color:var(--tinta)">S/ 130,215</b></div></foreignObject><text x="200" y="240" font-size="12.5" id="c3${u}" style="fill:var(--taupe);font-weight:600">Vendiste S/ 99,950 · faltan S/ 30,266</text></g></svg>`;
+ const lg=v==1?`<div class="lg"><h3>De dónde sale</h3>${ORI.map(fila).join('')}<h3>A dónde va</h3>${DES.map(fila).join('')}</div>`:`<div class="lg"><h3>A dónde va</h3>${DES.map(fila).join('')}</div>`;
+ D.innerHTML=svg+lg;const b=D.querySelector('svg').parentNode;
+ const set=k=>{D.classList.toggle('hay',!!k);D.querySelectorAll('[data-k]').forEach(e=>e.classList.toggle('on',e.dataset.k===k));const it=all.find(x=>x[0]===k);
+  if(it){$('#c1'+u).textContent=it[1];$('#c2'+u).textContent=fm(it[2]);{const c3=$('#c3'+u);if(c3)c3.textContent=Math.round(it[2]/TOT*100)+' % de lo que salió'}}else{$('#c1'+u).textContent=v==1?'Vendiste':'Salió';$('#c2'+u).textContent=v==1?'S/ 99,950':'S/ 130,215';{const c3=$('#c3'+u);if(c3)c3.textContent='Vendiste S/ 99,950 · faltan S/ 30,266'}}};
+ D.querySelectorAll('[data-k]').forEach(e=>{e.onmouseenter=()=>set(e.dataset.k);e.onmouseleave=()=>set(null)})}
+donut(2,$('#dn-a'),'a');(function(){const c3=$('#c3a');if(c3)c3.remove();const c1=$('#c1a');c1.setAttribute('font-size','19');c1.setAttribute('y','160');const c2=$('#c2a');c2.style.fontSize='40px';const fo=c2.closest('foreignObject');fo.setAttribute('x','80');fo.setAttribute('width','240');fo.setAttribute('y','170')})();
+function plata(v){const P=$('#plata'),cifras=`<div class="cifras"><div><div class="vs">Vendiste</div><div class="cifra n">S/ 99,950</div></div><div><div class="vs">Salió</div><div class="cifra n">S/ 130,215</div></div><div><div class="vs" style="color:var(--rojo-p)">Faltan</div><div class="cifra n" style="color:var(--rojo-p)">S/ 30,266</div></div></div>`;
+ const hover=(root,cls)=>{root.querySelectorAll('[data-k]').forEach(e=>{e.onmouseenter=()=>{root.classList.add('hay');root.querySelectorAll('[data-k]').forEach(x=>x.classList.toggle('on',x.dataset.k===e.dataset.k))};e.onmouseleave=()=>{root.classList.remove('hay');root.querySelectorAll('[data-k]').forEach(x=>x.classList.remove('on'))}})};
+ if(v==1){const cut=99950/TOT*100;P.innerHTML=`<div class="pb">${cifras}<div class="pista"><div class="corte" style="left:${cut}%"><span>Hasta aquí llegó lo vendido</span></div><div class="barra2">${DES.map(d=>`<div data-k="${d[0]}" style="width:${d[2]/TOT*100}%;background:${d[3]}">${d[2]/TOT>.06?Math.round(d[2]/TOT*100)+' %':''}</div>`).join('')}</div><div class="falta-zona" style="left:${cut}%;right:0"></div></div><div class="faltan">Lo rayado, S/ 30,266, no lo cubrió lo vendido</div><div class="lg">${DES.map(fila).join('')}</div></div>`;hover(P.querySelector('.pb'))}
+ else if(v==2){const mx=Math.max(...DES.map(d=>d[2]));P.innerHTML=`<div class="pb rk">${cifras}${DES.map(d=>`<div class="f2" data-k="${d[0]}"><span>${d[1]}</span><div class="tb"><i style="width:${d[2]/mx*100}%;background:${d[3]}"></i></div><b class="n">${fm(d[2])}</b><span class="p n">${Math.round(d[2]/TOT*100)} %</span></div>`).join('')}</div>`;hover(P.querySelector('.pb'))}
+ else{P.innerHTML=`<div class="pb">${cifras.replace(/<div><div class="vs">Salió.*?<\/div><\/div><div>/s,'<div>')}<div class="dn" id="dn3"></div></div>`;donut(2,$('#dn3'),'z');const c=$('#c3z');if(c)c.remove();}}
+document.querySelectorAll('#sub3 button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#sub3 button').forEach(x=>x.setAttribute('aria-pressed',x===b));plata(+b.dataset.d)});plata(1);
+
+document.querySelectorAll('#subi button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#subi button').forEach(x=>x.setAttribute('aria-pressed',x===b));const c=b.dataset.i==='1';$('#inv-datos').style.display=c?'':'none';$('#inv-vacio').style.display=c?'none':''});
+
+(function(){const G=$('#graf-g'),L=$('#lec-g');G.innerHTML=graf1();L.innerHTML=lecturaDe(2);G.querySelectorAll('rect[data-i]').forEach(r=>r.onmouseenter=()=>{L.innerHTML=lecturaDe(+r.dataset.i);const gl=G.querySelector('#gl'),x=+r.getAttribute('x')+ +r.getAttribute('width')/2;gl.setAttribute('x1',x);gl.setAttribute('x2',x);gl.style.display=''});
+ donut(2,$('#dn-g'),'g');const c3=$('#c3g');if(c3)c3.remove();const c1=$('#c1g');c1.setAttribute('font-size','19');c1.setAttribute('y','160');const c2=$('#c2g');c2.style.fontSize='40px';const fo=c2.closest('foreignObject');fo.setAttribute('x','80');fo.setAttribute('width','240');fo.setAttribute('y','170');
+ document.querySelectorAll('#subi-g button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#subi-g button').forEach(x=>x.setAttribute('aria-pressed',x===b));const c=b.dataset.i==='1';$('#inv-datos-g').style.display=c?'':'none';$('#inv-vacio-g').style.display=c?'none':''})})();
+
+document.querySelectorAll('#zsel button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#zsel button').forEach(x=>x.setAttribute('aria-pressed',x===b));const z=+b.dataset.z;$('#zona0').style.display=z==0?'':'none';$('#chipc').style.display=z==1?'inline-flex':'none';$('#herofoot').style.display=z==2?'flex':'none';$('#zona3').style.display=z==3?'':'none'});
+</script></body></html>

@@ -1,0 +1,5 @@
+# 2026-10-29 · Finanzas ▸ Resumen pulido (estética y textos cortos)
+
+- **Qué:** el Resumen de Finanzas se rehízo según el spike `docs/maquetas/finanzas-resumen-pulido-2026-10/` (Felipe eligió la opción 3 para la franja de sedes y confianza). «¿Cuánto tienes?» reparte entre CAYLA y CLAURE; «¿Cuánto debes pagar pronto?» lista cada deuda con su fecha; «Vendido por sede» junta el orillo y la confianza en una tarjeta; la caja marca en rojo lo que cae bajo el mínimo; «A dónde va la plata» es un anillo y reemplaza al recorrido en hilos y a «¿Y de cada S/ 100?»; «Inversión en mercadería» va al final y siempre se ve.
+- **Por qué así:** una cifra y su detalle viven juntos (nada repetido en otra tarjeta); los textos largos se cortaron a una idea; el anillo de reparto es una pieza propia (`unificar-fijo`, `<Anillo>` es de un solo avance) y no suma ningún token de color nuevo.
+- **Pendiente:** ver con la base real y cuenta de líder; `/formidable` y `/chaos` no aplican (no guarda), pero falta la pasada de `tema:auditar`; «¿Ya pagaste el mes?» y «Contra el mes pasado» quedaron como estaban.

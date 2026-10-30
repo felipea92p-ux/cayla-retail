@@ -294,16 +294,16 @@ export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaPr
   let titular: string;
   let tono: TonoCaja;
   if (masBajo && sinPlata) {
-    titular = `Tu caja se queda sin plata: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)}.`;
+    titular = `Te quedas sin plata el ${fechaEnPalabras(masBajo.fecha)}: llegas a ${soles(masBajo.saldo)}.`;
     tono = "rojo";
   } else if (masBajo && bajaDelMinimo && bajaDelMinimo.fecha === p.hoy) {
     titular =
       masBajo.fecha === p.hoy
-        ? `Hoy tu caja ya está bajo tu mínimo: tienes ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`
-        : `Hoy tu caja ya está bajo tu mínimo (tienes ${soles(p.saldoHoy)}): el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
+        ? `Hoy estás bajo tu mínimo: tienes ${soles(masBajo.saldo)}, te faltan ${soles(minimo - masBajo.saldo)}.`
+        : `Hoy ya estás bajo tu mínimo y el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)}: te faltan ${soles(minimo - masBajo.saldo)}.`;
     tono = "ambar";
   } else if (masBajo) {
-    titular = `Tu caja baja de tu mínimo: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
+    titular = `Tu caja baja a ${soles(masBajo.saldo)} el ${fechaEnPalabras(masBajo.fecha)}: ${soles(minimo - masBajo.saldo)} bajo tu mínimo.`;
     tono = "ambar";
   } else if (luego) {
     titular = `Las próximas ${ventana} estás bien: te quedan ${soles(queda)}. Después baja de tu mínimo la semana que termina el ${fechaEnPalabras(luego.fecha)}.`;
