@@ -1,4 +1,4 @@
 ## Apartados: el apartado dice su descuento (ADR-0584, actividad 4)
 
-- [ ] **Pegar en producción `20261030234000_apartado_dice_su_descuento.sql`**, con OK de Felipe y DESPUÉS de `20261030220000` (necesita sus columnas). Una sola parte, sin políticas, idempotente. Con la base vieja la web nueva muestra «Campaña» en todo descuento (como antes): no se rompe nada.
+- [x] **`20261030234000_apartado_dice_su_descuento.sql` en producción:** Felipe la pegó el 2026-10-30, después de `20261030220000` y `20261030221000`, antes de fusionar.
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté en producción.

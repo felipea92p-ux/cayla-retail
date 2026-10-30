@@ -1,6 +1,6 @@
 # ADR-0584 · Al apartar se puede descontar a mano, con las mismas reglas de la venta
 
-- **Fecha:** 2026-10-30 · **Estado:** construido y probado en local (base con todas las migraciones y datos inventados). **Migraciones sin pegar en producción:** `20261030220000_apartar_con_descuento_manual.sql` (y la de agregar prendas, `20261030221000`, de la actividad 3).
+- **Fecha:** 2026-10-30 · **Estado:** construido, probado en local y **en producción**: Felipe pegó `20261030220000`, `20261030221000` y `20261030234000` el 2026-10-30, antes de fusionar.
 - **Pedido (Felipe, 2026-10-30):** «al momento de separar una prenda, que permita aplicar descuentos también como en la venta».
 - **Decisiones de Felipe (las tres recomendadas):** las mismas reglas de la venta; el descuento del ticket de Vender viaja a Apartar; al agregar prendas a un apartado ya hecho también se puede descontar.
 - **Complementa:** ADR-0166 (apartados con adelanto), R-45 / ADR-0153 (motivo y escalonado del descuento de venta), ADR-0403 (precio sin céntimos sueltos), ADR-0486 (campañas por sede).
