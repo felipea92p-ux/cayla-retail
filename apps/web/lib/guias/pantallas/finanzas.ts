@@ -383,7 +383,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       preparar: [{ tipo: "escape" }],
       opcional: true,
       titulo: "¿En qué se va la plata?",
-      texto: "Cada fila es una categoría, de la que más se gastó a la que menos. Su barra dice qué sede lo gastó (un color por sede) y la rayita, dónde estaba el mes anterior; al lado, cuánto subió o bajó. Tocas una fila y la lista de abajo muestra solo esa categoría; la tocas otra vez y vuelve todo.",
+      texto: "Cada fila es una categoría, de la que más se gastó a la que menos; su barra dice qué sede lo gastó y la rayita, dónde estaba el mes anterior. Tocas una fila y se abre: sus sedes a la izquierda y cada gasto a la derecha. «Ver en la tabla» deja la lista de abajo solo con eso.",
     },
     {
       id: "calendario",

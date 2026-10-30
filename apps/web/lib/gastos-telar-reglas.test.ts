@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, sedeDeLaCabecera } from "./gastos-telar-reglas";
+import { SIN_FILTROS, calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, sedeDeLaCabecera } from "./gastos-telar-reglas";
 
 const UBIC = [
   { id: "l", nombre: "Tienda Lima" },
@@ -55,10 +55,10 @@ describe("el calendario", () => {
 
 describe("la lista de Gastos", () => {
   const G = [
-    { categoria: "luz", categoriaNombre: "Servicios básicos", fecha: "2026-10-05", descripcion: "Luz del Baño", proveedorNombre: "Hidrandina", comprobante: "F001-1", comprobanteTipo: "factura" },
-    { categoria: "taxi", categoriaNombre: "Movilidad", fecha: "2026-10-07", descripcion: "Taxi a Gamarra", proveedorNombre: null, comprobante: null, comprobanteTipo: "sin_comprobante" },
+    { categoria: "luz", ubicacionId: "l", categoriaNombre: "Servicios básicos", fecha: "2026-10-05", descripcion: "Luz del Baño", proveedorNombre: "Hidrandina", comprobante: "F001-1", comprobanteTipo: "factura" },
+    { categoria: "taxi", ubicacionId: null, categoriaNombre: "Movilidad", fecha: "2026-10-07", descripcion: "Taxi a Gamarra", proveedorNombre: null, comprobante: null, comprobanteTipo: "sin_comprobante" },
   ];
-  const nada = { q: "", categoria: "", dia: null, comprobante: "todos" as const };
+  const nada = SIN_FILTROS;
 
   it("busca sin tildes ni mayúsculas, también por la categoría", () => {
     expect(filtrarGastos(G, { ...nada, q: "bano" }, "2026-10").map((g) => g.categoria)).toEqual(["luz"]);
@@ -72,9 +72,16 @@ describe("la lista de Gastos", () => {
     expect(filtrarGastos(G, { ...nada, categoria: "luz", dia: 7 }, "2026-10")).toEqual([]);
   });
 
+  it("filtra por la sede que se eligió en «En qué se va» (la empresa también)", () => {
+    expect(filtrarGastos(G, { ...nada, sede: "l" }, "2026-10").map((g) => g.categoria)).toEqual(["luz"]);
+    expect(filtrarGastos(G, { ...nada, sede: "empresa" }, "2026-10").map((g) => g.categoria)).toEqual(["taxi"]);
+    expect(filtrarGastos(G, { ...nada, categoria: "luz", sede: "empresa" }, "2026-10")).toEqual([]);
+  });
+
   it("los filtros puestos se leen como píldoras", () => {
-    expect(filtrosPuestosDeGastos({ q: " gamarra ", categoria: "taxi", dia: 7, comprobante: "sin" }, () => "Movilidad", "octubre").map((f) => f.texto)).toEqual([
+    expect(filtrosPuestosDeGastos({ q: " gamarra ", categoria: "taxi", sede: "l", dia: 7, comprobante: "sin" }, () => "Movilidad", "octubre", () => "Lima").map((f) => f.texto)).toEqual([
       "Movilidad",
+      "En Lima",
       "El 7 de octubre",
       "Sin comprobante",
       "«gamarra»",

@@ -238,7 +238,7 @@ span.sede-telar { cursor: default; }
    El hilo es <BarraApilada> a la escala de la categoría más grande; encima, la rayita de dónde estaba el mes anterior. Al cambiar de sede
    las filas se deslizan a su nuevo puesto (FLIP, HilosGastos.tsx) y los hilos se reacomodan desde donde estaban. Una vez, sin rebote.
    El ancho lo pone su caja (`@container`), no la ventana: el gráfico vive al lado del calendario. */
-.hilos-gastos { container-type: inline-size; }
+.hilos-gastos { container: hilos / inline-size; }
 .hilos-leyenda {
   display: flex;
   flex-wrap: wrap;
@@ -257,9 +257,9 @@ span.sede-telar { cursor: default; }
   animation: cayla-entrada 420ms var(--ease-cayla) backwards;
   animation-delay: calc(var(--i, 0) * 45ms);
 }
-.hilo-fila[data-elegida] { background: color-mix(in oklab, var(--color-hueso) 75%, transparent); }
+.hilo-fila[data-abierta] { background: color-mix(in oklab, var(--color-hueso) 75%, transparent); }
 @media (hover: hover) {
-  .hilos-filas:hover .hilo-fila:not(:hover, [data-elegida]) { opacity: 0.6; }
+  .hilos-filas:hover .hilo-fila:not(:hover, [data-abierta]) { opacity: 0.6; }
   .hilo-fila:hover { background: color-mix(in oklab, var(--color-hueso) 60%, transparent); }
 }
 .hilo-cabeza {
@@ -301,17 +301,108 @@ span.sede-telar { cursor: default; }
 .hilo-cambio { justify-self: start; }
 .hilo-monto { font-family: var(--font-serif); font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .hilo-linea { justify-self: end; color: var(--color-tinta); }
-@container (max-width: 680px) {
+@container hilos (max-width: 680px) {
   .hilo-cabeza { grid-template-columns: 22px minmax(120px, 1fr) minmax(0, 1.6fr) 76px 88px; }
   .hilo-linea { display: none; }
 }
-@container (max-width: 480px) {
+@container hilos (max-width: 480px) {
   .hilo-cabeza { grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 8px; }
   .hilo-rango { grid-row: 1; }
   .hilo-nombre { grid-column: 2; grid-row: 1; }
   .hilo-monto { grid-column: 3; grid-row: 1; }
   .hilo-barra { grid-column: 2 / -1; grid-row: 2; }
   .hilo-cambio { display: none; }
+}
+
+/* El desglose (la 3 que eligió Felipe): se abre debajo de la fila, desplegándose de 0 a su alto; a la izquierda las sedes en columna, con
+   la hoja clara y el hilo rojo que se desliza a la elegida; a la derecha, lo que se gastó exactamente (filas de <Tabla>, con su hilo y su «›»). */
+.hilo-cajon { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 450ms var(--ease-cayla); }
+.hilo-fila[data-abierta] .hilo-cajon { grid-template-rows: 1fr; }
+.hilo-cajon > div { min-height: 0; overflow: hidden; }
+.hilo-desglose { padding: 4px 12px 14px 50px; cursor: default; }
+.hilo-desglose[data-columna] { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 0 32px; align-items: start; }
+.hilo-sedes { position: relative; display: grid; gap: 2px; }
+.hilo-sedes-marca {
+  position: absolute;
+  border-radius: 10px;
+  background: var(--color-papel);
+  box-shadow: inset 2px 0 0 var(--color-rojo);
+  transition: left 450ms var(--ease-cayla), top 450ms var(--ease-cayla), width 450ms var(--ease-cayla), height 450ms var(--ease-cayla);
+}
+.hilo-sede {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 12px;
+  align-items: center;
+  padding: 10px 12px 11px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-taupe-profundo);
+  text-align: left;
+  cursor: pointer;
+  transition: color 250ms var(--ease-cayla);
+  animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 50ms);
+}
+.hilo-sede[aria-pressed="true"] { color: var(--color-tinta); }
+@media (hover: hover) {
+  .hilo-sede:not([aria-pressed="true"]):hover { color: var(--color-tinta); }
+}
+.hilo-sede:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.hilo-sede-nombre { display: inline-flex; gap: 7px; align-items: center; font-size: 13px; font-weight: 600; }
+.hilo-sede-monto { font-family: var(--font-serif); font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
+.hilo-sede-barra { grid-column: 1 / -1; }
+.hilo-detalle { min-width: 0; container: hilos-detalle / inline-size; }
+.hilo-resumen { margin: 6px 0; font-size: 13px; color: var(--color-taupe-profundo); }
+.hilo-resumen b { font-weight: 600; color: var(--color-tinta); }
+.hilo-caja { overflow: hidden; }
+.hilo-gastos { display: grid; }
+.hilo-gasto {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 96px 88px;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 28px 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--color-tinta);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.hilo-gastos[data-con-sede] .hilo-gasto { grid-template-columns: 52px minmax(0, 1fr) 84px 96px 88px; }
+.hilo-gasto-dia { font-size: 12px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-gasto-que { display: grid; min-width: 0; }
+.hilo-gasto-que b,
+.hilo-gasto-que small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hilo-gasto-que b { font-weight: 500; }
+.hilo-gasto-que small { font-size: 12px; color: var(--color-taupe-profundo); }
+.hilo-gasto-sede { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--color-taupe-profundo); }
+.hilo-gasto-monto { font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.hilo-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 10px; }
+@container hilos (max-width: 760px) {
+  .hilo-desglose { padding-left: 12px; }
+  .hilo-desglose[data-columna] { grid-template-columns: 180px minmax(0, 1fr); gap: 0 20px; }
+}
+@container hilos (max-width: 480px) {
+  .hilo-desglose[data-columna] { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .hilo-sedes { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .hilo-sede { flex: none; min-width: 128px; }
+}
+/* La lista de gastos se acomoda a SU ancho (al lado de la columna de sedes es angosta): primero se va la barra, después la sede. */
+@container hilos-detalle (max-width: 560px) {
+  .hilo-gasto { grid-template-columns: 52px minmax(0, 1fr) 88px; }
+  .hilo-gastos[data-con-sede] .hilo-gasto { grid-template-columns: 52px minmax(0, 1fr) 76px 84px; }
+  .hilo-gasto-barra { display: none; }
+}
+@container hilos-detalle (max-width: 380px) {
+  .hilo-gasto,
+  .hilo-gastos[data-con-sede] .hilo-gasto { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
+  .hilo-gasto-sede { display: none; }
 }
 
 /* ---- Gastos · el calendario: más oscuro, más gasto ---- */
@@ -572,6 +663,9 @@ span.sede-telar { cursor: default; }
   .orillo-tramo,
   .hilo-fila,
   .hilo-antes,
+  .hilo-cajon,
+  .hilo-sede,
+  .hilo-sedes-marca,
   .calendario-dia,
   .hoja-gasto-sede,
   .hoja-gasto-linea,

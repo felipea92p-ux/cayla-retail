@@ -1,6 +1,6 @@
 // Gastos en el telar de Finanzas (Felipe 2026-10-23): la pregunta que responde su cabecera, sus chips y la sede que se nombra
 // arriba. Lógica pura, probada en `gastos-telar-reglas.test.ts`; el total sale de `fn_gastos_panel` y no se recalcula aquí.
-import { nombreCortoSede } from "./finanzas-telar-reglas";
+import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { sinTildes } from "./marcas";
 import { textoMes, type PanelGastos, type UbicacionGastos, type Ver } from "./gastos-reglas";
 import { nombresDeVarias } from "./gastos-varias-sedes";
@@ -70,10 +70,15 @@ export function calendarioDelMes(gastos: readonly { fecha: string; montoTotal: n
 // ---- La lista: los filtros a la vista y la búsqueda que no mira tildes ----------------------------------------------------------
 
 export type FiltroComprobante = "todos" | "sin" | "con";
-export type FiltrosLista = { q: string; categoria: string; dia: number | null; comprobante: FiltroComprobante };
+/** `sede`: la sede de un gasto (`empresa` = lo que no es de ninguna), puesta desde el desglose de «En qué se va»; "" = todas. */
+export type FiltrosLista = { q: string; categoria: string; sede: string; dia: number | null; comprobante: FiltroComprobante };
+
+/** Sin ningún filtro: así nace la lista, así la deja «Limpiar todo», y de aquí sale el valor que quita cada píldora. */
+export const SIN_FILTROS: FiltrosLista = { q: "", categoria: "", sede: "", dia: null, comprobante: "todos" };
 
 type GastoParaFiltrar = {
   categoria: string;
+  ubicacionId: string | null;
   fecha: string;
   descripcion: string;
   proveedorNombre: string | null;
@@ -89,6 +94,7 @@ export function filtrarGastos<T extends GastoParaFiltrar>(gastos: readonly T[], 
   return gastos.filter(
     (g) =>
       (!f.categoria || g.categoria === f.categoria) &&
+      (!f.sede || (g.ubicacionId ?? SEDE_EMPRESA) === f.sede) &&
       (!fechaDia || g.fecha === fechaDia) &&
       (f.comprobante === "todos" || (f.comprobante === "sin") === (g.comprobanteTipo === "sin_comprobante")) &&
       (!q || [g.descripcion, g.proveedorNombre ?? "", g.comprobante ?? "", g.categoriaNombre].some((t) => sinTildes(t).includes(q))),
@@ -98,9 +104,10 @@ export function filtrarGastos<T extends GastoParaFiltrar>(gastos: readonly T[], 
 export type FiltroPuestoGastos = { clave: keyof FiltrosLista; texto: string };
 
 /** Los filtros puestos, como se leen en sus píldoras (cada una se quita sola). */
-export function filtrosPuestosDeGastos(f: FiltrosLista, nombreCategoria: (c: string) => string, mesNombre: string): FiltroPuestoGastos[] {
+export function filtrosPuestosDeGastos(f: FiltrosLista, nombreCategoria: (c: string) => string, mesNombre: string, nombreSede: (clave: string) => string = (c) => c): FiltroPuestoGastos[] {
   const r: FiltroPuestoGastos[] = [];
   if (f.categoria) r.push({ clave: "categoria", texto: nombreCategoria(f.categoria) });
+  if (f.sede) r.push({ clave: "sede", texto: `En ${nombreSede(f.sede)}` });
   if (f.dia) r.push({ clave: "dia", texto: `El ${f.dia} de ${mesNombre}` });
   if (f.comprobante !== "todos") r.push({ clave: "comprobante", texto: f.comprobante === "sin" ? "Sin comprobante" : "Con comprobante" });
   if (f.q.trim()) r.push({ clave: "q", texto: `«${f.q.trim()}»` });

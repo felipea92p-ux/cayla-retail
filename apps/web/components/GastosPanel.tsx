@@ -16,7 +16,7 @@ import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { nombreCortoSede, porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { plantillasDe } from "@/lib/hoja-gasto-reglas";
 import { HojaRegistrarGasto } from "@/components/finanzas/gastos/HojaRegistrarGasto";
-import { calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
+import { calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
 import { Buscador as BuscadorLista } from "@/components/ui/Buscador";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -166,7 +166,7 @@ export function GastosPanel({
   const antesDelCorte = !!inicioFinanzas && mesAntesDelCorte(mes, inicioFinanzas);
   const fijosDelMes = fijosDelMesVisibles(fijos, mes, inicioFinanzas);
   // Los filtros de la lista: los ponen la lista misma, los hilos (una categoría), el calendario (un día) y «Por ordenar» (sin comprobante).
-  const [filtros, setFiltros] = useState<FiltrosLista>({ q: "", categoria: "", dia: null, comprobante: "todos" });
+  const [filtros, setFiltros] = useState<FiltrosLista>(SIN_FILTROS);
   const elegirFiltro = (f: Partial<FiltrosLista>) => {
     setFiltros((a) => ({ ...a, ...f }));
     setPestana("gastos");
@@ -276,9 +276,13 @@ export function GastosPanel({
             <div className="mt-3">
               <HilosGastos
                 filas={hilos}
+                gastos={gastos}
                 nombreMesAnterior={nombreMesAnterior}
-                elegida={filtros.categoria}
-                onElegir={(c) => elegirFiltro({ categoria: filtros.categoria === c ? "" : c })}
+                onAbrirGasto={(id) => setDetalle(gastos.find((g) => g.id === id) ?? null)}
+                onVerEnLaTabla={(categoria, sede) => {
+                  setFiltros((a) => ({ ...a, categoria, sede: sede ?? "" }));
+                  irALasPestanas("gastos");
+                }}
               />
             </div>
           ) : (
@@ -359,6 +363,7 @@ export function GastosPanel({
           onAbrir={setDetalle}
           filtros={filtros}
           onFiltros={(f) => setFiltros((a) => ({ ...a, ...f }))}
+          sedes={sedesTelar}
         />
       )}
 
@@ -520,6 +525,7 @@ function TablaGastos({
   onAbrir,
   filtros,
   onFiltros,
+  sedes,
 }: {
   gastos: GastoFila[];
   categorias: CategoriaGasto[];
@@ -529,11 +535,14 @@ function TablaGastos({
   /** Los filtros los comparte con los hilos, el calendario y «Por ordenar»; el mes lo elige la mesa de mando de arriba. */
   filtros: FiltrosLista;
   onFiltros: (f: Partial<FiltrosLista>) => void;
+  /** Para nombrar la sede de la píldora que pone el desglose de «En qué se va». */
+  sedes: SedeTelar[];
 }) {
   const visibles = useMemo(() => filtrarGastos(gastos, filtros, mes), [gastos, filtros, mes]);
   const nombreCategoria = (c: string) => categorias.find((x) => x.codigo === c)?.nombre ?? c;
-  const puestos = filtrosPuestosDeGastos(filtros, nombreCategoria, textoMes(mes).split(" ")[0]!);
-  const limpiar = () => onFiltros({ q: "", categoria: "", dia: null, comprobante: "todos" });
+  const nombreSede = (clave: string) => sedes.find((s) => s.clave === clave)?.nombre ?? "otra sede";
+  const puestos = filtrosPuestosDeGastos(filtros, nombreCategoria, textoMes(mes).split(" ")[0]!, nombreSede);
+  const limpiar = () => onFiltros(SIN_FILTROS);
 
   return (
     <>
@@ -572,7 +581,7 @@ function TablaGastos({
               <FiltroPuesto
                 key={f.clave}
                 etiqueta={`Quitar el filtro ${f.texto}`}
-                onQuitar={() => onFiltros(f.clave === "q" ? { q: "" } : f.clave === "categoria" ? { categoria: "" } : f.clave === "dia" ? { dia: null } : { comprobante: "todos" })}
+                onQuitar={() => onFiltros({ [f.clave]: SIN_FILTROS[f.clave] })}
               >
                 {f.texto}
               </FiltroPuesto>
