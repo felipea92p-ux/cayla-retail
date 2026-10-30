@@ -173,7 +173,8 @@ export function ExtractoGastos({
             </>
           }
         >
-          {d.titulo}
+          <span className="extracto-titulo-largo">{d.titulo}</span>
+          <span className="extracto-titulo-corto">{d.tituloCorto}</span>
         </SeparadorDia>
         <div className="extracto-filas">{d.filas.map((f) => (f.tipo === "gasto" ? fila(f.gasto, f.marca) : repetidos(f)))}</div>
       </section>

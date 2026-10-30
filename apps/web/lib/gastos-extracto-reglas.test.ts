@@ -101,6 +101,8 @@ describe("los días", () => {
     expect(tituloDelDia(HOY, HOY)).toBe("Hoy · viernes 30 de octubre");
     expect(tituloDelDia("2026-10-29", HOY)).toBe("Ayer · jueves 29 de octubre");
     expect(tituloDelDia("2026-10-27", HOY)).toBe("Martes 27 de octubre");
+    expect(tituloDelDia(HOY, HOY, true)).toBe("Hoy · viernes 30");
+    expect(tituloDelDia("2026-09-30", HOY, true)).toBe("Miércoles 30");
     // En un mes que ya pasó no hay «Hoy».
     expect(tituloDelDia("2026-09-30", HOY)).toBe("Miércoles 30 de septiembre");
   });

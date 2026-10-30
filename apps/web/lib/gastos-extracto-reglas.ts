@@ -116,6 +116,8 @@ export type DiaDelExtracto<T extends GastoParaExtracto> = {
   fecha: string;
   /** «Hoy · jueves 30 de octubre», «Ayer · miércoles 29 de octubre», «Martes 28 de octubre». */
   titulo: string;
+  /** Sin el mes, para el celular (el mes ya está en la barra de arriba): «Hoy · jueves 30», «Martes 28». */
+  tituloCorto: string;
   hoy: boolean;
   /** Lo que se fue ese día y en cuántos gastos, sin los anulados (no cuentan en el mes). */
   total: number;
@@ -125,9 +127,10 @@ export type DiaDelExtracto<T extends GastoParaExtracto> = {
 
 const conMayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
-/** «Hoy · jueves 30 de octubre», «Ayer · …» o «Martes 28 de octubre». */
-export function tituloDelDia(fecha: string, hoy: string): string {
-  const nombre = nombreDelDia(fecha.slice(0, 7), Number(fecha.slice(8, 10)));
+/** «Hoy · jueves 30 de octubre», «Ayer · …» o «Martes 28 de octubre»; `corto`, sin el mes («Hoy · jueves 30»). */
+export function tituloDelDia(fecha: string, hoy: string, corto = false): string {
+  const largo = nombreDelDia(fecha.slice(0, 7), Number(fecha.slice(8, 10)));
+  const nombre = corto ? largo.replace(/ de \S+$/, "") : largo;
   const atras = diasEntre(fecha, hoy);
   if (atras === 0) return `Hoy · ${nombre}`;
   if (atras === 1) return `Ayer · ${nombre}`;
@@ -171,6 +174,7 @@ export function extractoPorDia<T extends GastoParaExtracto>(gastos: readonly T[]
       return {
         fecha,
         titulo: tituloDelDia(fecha, hoy),
+        tituloCorto: tituloDelDia(fecha, hoy, true),
         hoy: fecha === hoy,
         total: redondear(vigentes.reduce((s, g) => s + g.montoTotal, 0)),
         n: vigentes.length,

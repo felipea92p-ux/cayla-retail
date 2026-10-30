@@ -461,6 +461,10 @@ span.sede-telar { cursor: default; }
 .fin-superficie:has(> .extracto-gastos) { overflow: clip; }
 .extracto-gastos { container: extracto / inline-size; }
 .extracto-filas { display: grid; }
+/* El separador va alineado con las filas (su total con el monto) y su total no se parte en dos renglones. */
+.extracto-gastos .separador-dia { padding-right: 32px; }
+.extracto-gastos .separador-dia-total { white-space: nowrap; }
+.extracto-titulo-corto { display: none; }
 .extracto-fila {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px 120px;
@@ -496,6 +500,19 @@ span.sede-telar { cursor: default; }
 .extracto-gastos .filas-de-mas[data-abierto] > div { overflow: clip; }
 .extracto-repetidos[data-abierto] { border-bottom: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent); }
 @media (prefers-reduced-motion: reduce) { .extracto-flecha { transition: none; } }
+/* En el celular el día va sin el mes (ya está en la barra de arriba): «Hoy · viernes 30 de octubre» y su total no caben en un renglón. */
+@container extracto (max-width: 480px) {
+  .extracto-titulo-largo { display: none; }
+  .extracto-titulo-corto { display: inline; }
+}
+/* Mediana (un laptop de 1024, la lista ~690 px): la columna de la sede le quitaba a «qué fue» hasta dejarlo en 150 px y partirlo en dos
+   renglones; la sede pasa a ser el punto de color de la línea de abajo (como en el celular) y la marca se angosta. */
+@container extracto (max-width: 900px) {
+  .extracto-fila,
+  .extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 176px 112px; grid-template-areas: "que marca monto"; }
+  .extracto-sede { display: none; }
+  .extracto-punto-angosto { display: inline-flex; }
+}
 /* Angosta (tablet en vertical, celular): qué fue y el monto arriba; la marca, debajo de qué fue; la sede, como un punto en la línea de abajo. */
 @container extracto (max-width: 640px) {
   .extracto-fila,
@@ -505,6 +522,7 @@ span.sede-telar { cursor: default; }
     padding: 10px 28px 10px 14px;
   }
   .extracto-fila[data-dentro] { padding-left: 28px; }
+  .extracto-gastos .separador-dia { padding-inline: 14px 28px; }
   .extracto-sede { display: none; }
   .extracto-punto-angosto { display: inline-flex; }
   .extracto-marca:empty { display: none; }
