@@ -87,6 +87,16 @@ export function RitmoGastos({
     );
   };
 
+  // Un mes sin un solo gasto (ni un fijo por venir) no dibuja una línea en cero con su «S/ 0»: dice que está vacío, como «En qué se va».
+  if (ritmo.aHoy <= 0 && ritmo.vienen.length === 0)
+    return (
+      <div data-guia="fin-gastos.ritmo">
+        <Vacio tamano="chico" icono={<CalendarX />}>
+          Sin gastos en {nombreMes} todavía.
+        </Vacio>
+      </div>
+    );
+
   const elDia = dibujado !== null ? delDia(ritmo, gastos, mes, dibujado) : null;
   const futuro = dibujado !== null && dibujado > ritmo.hasta;
   const mayor = elDia?.gastos[0]?.monto ?? 0;
