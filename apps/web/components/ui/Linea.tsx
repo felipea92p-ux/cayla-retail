@@ -58,6 +58,8 @@ export type NotaLinea = {
   corto?: string;
   etiqueta: string;
   onElegir?: () => void;
+  /** Su ancla para la guía interactiva (`data-guia`). */
+  guia?: string;
 };
 
 /** Algo que se sabe que viene, sobre el «si sigue así»: un punto hueco (un fijo que falta pagar). */
@@ -138,7 +140,8 @@ function anchoDe(texto: string, letra: string): number {
   return lienzo.measureText(texto).width;
 }
 
-const montoCorto = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} mil` : Math.round(v).toLocaleString("es-PE"));
+/** Un monto corto, como los del eje: «13,1 mil». */
+export const montoCorto = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} mil` : Math.round(v).toLocaleString("es-PE"));
 
 /** El valor de una línea en el momento `x` (interpolado entre sus dos puntos vecinos; con `escalones`, el del último punto que pasó). */
 export function valorEnLinea(puntos: readonly PuntoLinea[], x: number, escalones = false): number | null {
@@ -485,6 +488,9 @@ export function Linea({
                 <circle cx={px} cy={py} r={4} className="linea-nota-punto" />
                 {u.fila >= 0 && (
                   <>
+                    {/* Todo el texto se toca, no solo sus letras; y su hilo, con un margen. */}
+                    <rect x={u.desde - 4} y={baseNota(u.fila) - 13} width={u.hasta - u.desde + 8} height={18} className="linea-nota-toque" />
+                    <rect x={px - 6} y={baseNota(u.fila) + 5} width={12} height={Math.max(0, py - baseNota(u.fila) - 5)} className="linea-nota-toque" />
                     <line x1={px} x2={px} y1={baseNota(u.fila) + 5} y2={py - 6} className="linea-nota-hilo" />
                     <text x={u.desde} y={baseNota(u.fila)} className="linea-nota linea-sobre">
                       <tspan className="linea-nota-texto">{notasLargas ? n.texto : (n.corto ?? n.texto)}</tspan>
@@ -500,6 +506,7 @@ export function Linea({
                 role="button"
                 tabIndex={0}
                 aria-label={n.etiqueta}
+                data-guia={n.guia}
                 className="linea-nota-g"
                 style={{ "--i": i } as CSSProperties}
                 onClick={n.onElegir}

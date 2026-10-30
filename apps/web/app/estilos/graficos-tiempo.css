@@ -63,6 +63,7 @@
   /* Las notas, en su franja sobre el gráfico: el texto en tinta, su detalle en taupe, el hilo punteado hasta su punto. Aparecen al llegar la línea. */
   .linea-nota-g { animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(950ms + var(--i, 0) * 120ms); }
   .linea-nota-g[role="button"] { cursor: pointer; outline: none; }
+  .linea-nota-toque { fill: transparent; }
   .linea-nota { font-size: 12px; fill: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
   .linea-nota-texto { fill: var(--color-tinta); font-weight: 600; }
   .linea-nota-punto { fill: var(--color-papel); stroke: var(--color-tinta); stroke-width: 1.5; }

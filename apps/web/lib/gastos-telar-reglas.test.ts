@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SIN_FILTROS, calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, sedeDeLaCabecera } from "./gastos-telar-reglas";
+import { SIN_FILTROS, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, sedeDeLaCabecera } from "./gastos-telar-reglas";
 
 const UBIC = [
   { id: "l", nombre: "Tienda Lima" },
@@ -28,28 +28,6 @@ describe("la cabecera de Gastos en el telar", () => {
       { texto: "12 gastos", tono: "pizarra" },
       { texto: "3 sin comprobante", tono: "ambar" },
     ]);
-  });
-});
-
-describe("el calendario", () => {
-  it("octubre de 2026 empieza en jueves: tres huecos; lo de después de hoy es futuro", () => {
-    const c = calendarioDelMes(
-      [
-        { fecha: "2026-10-05", montoTotal: 400, estado: "vigente" },
-        { fecha: "2026-10-05", montoTotal: 0, estado: "vigente" },
-        { fecha: "2026-10-07", montoTotal: 100, estado: "vigente" },
-        { fecha: "2026-10-07", montoTotal: 900, estado: "anulado" },
-        { fecha: "2026-09-30", montoTotal: 50, estado: "vigente" },
-      ],
-      "2026-10",
-      "2026-10-23",
-    );
-    expect(c.huecos).toBe(3);
-    expect(c.dias).toHaveLength(31);
-    expect(c.dias[4]).toMatchObject({ dia: 5, total: 400, n: 2, intensidad: 1, futuro: false });
-    expect(c.dias[6]).toMatchObject({ dia: 7, total: 100, intensidad: 0.5 });
-    expect(c.dias[22]!.futuro).toBe(false);
-    expect(c.dias[23]!.futuro).toBe(true);
   });
 });
 

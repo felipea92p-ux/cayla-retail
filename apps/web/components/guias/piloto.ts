@@ -158,7 +158,9 @@ export async function ejecutar(
     const control = el.matches("button, a, input, [role=button], [role=tab]") ? el : (el.querySelector<HTMLElement>("button, a, input, [role=button], [role=tab]") ?? el);
     if (apuntar && conMovimiento) await apuntar(control, "clic");
     if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
-    control.click();
+    // Una pieza de un gráfico (una nota de `<Linea>`) es SVG y no tiene `click()`: recibe el mismo clic como evento.
+    if (typeof (control as Partial<HTMLElement>).click === "function") control.click();
+    else control.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     return { ok: true };
   }
 

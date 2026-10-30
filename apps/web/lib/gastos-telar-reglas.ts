@@ -35,38 +35,6 @@ export function chipsDeGastos(panel: Pick<PanelGastos, "n" | "sinComprobante">):
   return chips;
 }
 
-// ---- El calendario: cuándo se gastó, más oscuro es más gasto --------------------------------------------------------------------
-
-export type DiaCalendario = { dia: number; total: number; n: number; intensidad: number; futuro: boolean };
-
-/**
- * Los días del mes con lo vigente de cada uno. `huecos` son los días en blanco antes del 1 (la semana empieza el lunes). La intensidad
- * va de 0 a 1 con la raíz de lo gastado contra el día de más gasto: un día de alquiler no deja todos los demás en blanco. Los días
- * después de hoy son `futuro` (no se eligen).
- */
-export function calendarioDelMes(gastos: readonly { fecha: string; montoTotal: number; estado: "vigente" | "anulado" }[], mes: string, hoy: string): { huecos: number; dias: DiaCalendario[] } {
-  const [a, m] = mes.split("-").map(Number) as [number, number];
-  const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
-  const huecos = (new Date(Date.UTC(a, m - 1, 1)).getUTCDay() + 6) % 7;
-  const totales = Array.from({ length: ultimo + 1 }, () => ({ total: 0, n: 0 }));
-  for (const g of gastos) {
-    if (g.estado !== "vigente" || !g.fecha.startsWith(`${mes}-`)) continue;
-    const d = Number(g.fecha.slice(8, 10));
-    if (d >= 1 && d <= ultimo) {
-      totales[d]!.total += g.montoTotal;
-      totales[d]!.n += 1;
-    }
-  }
-  const mayor = Math.max(0, ...totales.map((t) => t.total));
-  const dias = Array.from({ length: ultimo }, (_, i) => {
-    const dia = i + 1;
-    const t = totales[dia]!;
-    const fecha = `${mes}-${String(dia).padStart(2, "0")}`;
-    return { dia, total: t.total, n: t.n, intensidad: mayor > 0 ? Math.sqrt(t.total / mayor) : 0, futuro: fecha > hoy };
-  });
-  return { huecos, dias };
-}
-
 // ---- La lista: los filtros a la vista y la búsqueda que no mira tildes ----------------------------------------------------------
 
 export type FiltroComprobante = "todos" | "sin" | "con";

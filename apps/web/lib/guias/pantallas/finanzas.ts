@@ -395,17 +395,30 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "A la izquierda, las sedes que gastaron en esta categoría: tocas una y quedan solo sus gastos. A la derecha, cada gasto con su día, en qué y a quién, del más grande al más chico. Tocas uno y se abre su hoja; «Ver en la tabla» deja la lista de abajo solo con eso.",
     },
     {
-      id: "calendario",
-      ancla: "fin-gastos.calendario",
+      id: "ritmo",
+      ancla: "fin-gastos.ritmo",
       // Cierra el desglose que abrió el paso anterior (tocar la fila abierta la cierra).
       preparar: [{ tipo: "clic", ancla: "fin-gastos.hilo-primera", siEsta: true }],
       prepararSoloAlAvanzar: true,
-      titulo: "¿Cuándo se gastó?",
-      texto: "Cada día del mes, más oscuro cuanto más se gastó. Tocas un día y la lista muestra solo lo de ese día. Los días que todavía no llegan no se tocan.",
+      titulo: "¿Cuándo se gastó, y a qué ritmo?",
+      texto: "La línea suma lo gastado día a día; la punteada es el mes anterior a la misma altura, y desde hoy, tenue, hacia dónde va si sigue así, con los fijos que faltan pagar. Los saltos grandes llevan su nombre arriba. Tocas un día, o una nota, y se abre debajo lo que se gastó ese día.",
+    },
+    {
+      id: "ritmo-dia",
+      ancla: "fin-gastos.ritmo-dia",
+      // Abre el día del primer salto con nombre (si el mes no tiene ninguno, el paso no se muestra).
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.ritmo-nota" }],
+      prepararSoloAlAvanzar: true,
+      opcional: true,
+      titulo: "Lo que se gastó ese día",
+      texto: "Gasto por gasto, del más grande al más chico, con su sede; en un día que todavía no llega, el fijo que falta pagar. Tocas un gasto y se abre su hoja; «Ver en la tabla» deja la lista de abajo solo con ese día. Tocas el día otra vez y se cierra.",
     },
     {
       id: "bandeja",
       ancla: "fin-gastos.bandeja",
+      // Cierra el día que abrió el paso anterior (tocar la misma nota lo cierra).
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.ritmo-nota", siEsta: true }],
+      prepararSoloAlAvanzar: true,
       opcional: true,
       titulo: "Lo que falta revisar, de a uno",
       texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya venció sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",

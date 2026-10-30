@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 94,
+  "total": 95,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -80,9 +80,6 @@
       "button «Ver»",
       "button «Ver todas»"
     ],
-    "components/finanzas/gastos/CalendarioGastos.tsx": [
-      "button «{`${d.dia}»"
-    ],
     "components/finanzas/gastos/HilosGastos.tsx": [
       "button «{i === 0 ? \"fin-gastos.hilo-primera\" : undefined}»",
       "button «{fechaCorta(g.fecha)}»",
@@ -107,6 +104,10 @@
       "Boton «Cancelar»",
       "Boton «Guardar y registrar otro (⌘⇧↵)»",
       "Boton «Registrar (⌘↵)»"
+    ],
+    "components/finanzas/gastos/RitmoGastos.tsx": [
+      "button «{g.descripcion}»",
+      "BotonVerMas «{`Ver ${elDia.gastos.length - A_LA_VISTA}»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",

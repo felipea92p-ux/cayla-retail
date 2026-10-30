@@ -16,14 +16,15 @@ import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { nombreCortoSede, porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { plantillasDe } from "@/lib/hoja-gasto-reglas";
 import { HojaRegistrarGasto } from "@/components/finanzas/gastos/HojaRegistrarGasto";
-import { calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
+import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
 import { Buscador as BuscadorLista } from "@/components/ui/Buscador";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Volver } from "@/components/ui/Volver";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
-import { CalendarioGastos } from "@/components/finanzas/gastos/CalendarioGastos";
+import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
+import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
@@ -114,6 +115,7 @@ export function GastosPanel({
   pestanaInicial = "gastos",
   destinosDeposito = [],
   previos = [],
+  gastosDelMesAnterior = null,
 }: {
   panel: PanelGastos | null;
   gastos: GastoFila[];
@@ -174,7 +176,10 @@ export function GastosPanel({
     setPestana("gastos");
   };
   const hilos = useMemo(() => hilosDeGastos(gastos, sedesTelar, previos), [gastos, sedesTelar, previos]);
-  const calendario = useMemo(() => calendarioDelMes(gastos, mes, hoy), [gastos, mes, hoy]);
+  const ritmo = useMemo(
+    () => ritmoDelMes({ gastos, anteriores: gastosDelMesAnterior, fijos: fijosDelMes, mes, hoy }),
+    [gastos, gastosDelMesAnterior, fijosDelMes, mes, hoy],
+  );
   // El `?registrar=1` se quita apenas se abrió la hoja, para que recargar o volver atrás no la abra otra vez.
   useEffect(() => {
     if (params.get("registrar") !== "1") return;
@@ -270,8 +275,9 @@ export function GastosPanel({
         </Aviso>
       )}
 
-      {/* El telar (ADR-0493): en qué se va la plata (los hilos, 2026-10-30) y cuándo (el calendario); tocar uno filtra la lista. Después, la bandeja. */}
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+      {/* El telar (ADR-0493): en qué se va la plata (los hilos) y cuándo (el ritmo del mes, a todo el ancho; los dos de 2026-10-30): tocar uno
+          abre su detalle, y de ahí «Ver en la tabla» filtra la lista. Después, la bandeja. */}
+      <section className="grid gap-4">
         <Superficie pad className="anim-entra min-w-0">
           <TituloSeccion dato={fraseDeLosHilos(hilos, nombreMesAnterior) ?? gastastePulso(panel, { mes, hoy })?.frase}>En qué se va</TituloSeccion>
           {hilos.length ? (
@@ -294,9 +300,21 @@ export function GastosPanel({
           )}
         </Superficie>
         <Superficie pad className="anim-entra min-w-0">
-          <TituloSeccion dato="más oscuro, más gasto">Cuándo</TituloSeccion>
+          <TituloSeccion dato={fraseDelRitmo(ritmo, mes, nombreMesAnterior)}>Cuándo</TituloSeccion>
           <div className="mt-3">
-            <CalendarioGastos huecos={calendario.huecos} dias={calendario.dias} mesNombre={textoMes(mes).split(" ")[0]!} elegido={filtros.dia} onElegir={(d) => elegirFiltro({ dia: d })} />
+            <RitmoGastos
+              key={mes}
+              ritmo={ritmo}
+              gastos={gastos}
+              mes={mes}
+              nombreMesAnterior={nombreMesAnterior}
+              sedes={sedesTelar}
+              onAbrirGasto={(id) => setDetalle(gastos.find((g) => g.id === id) ?? null)}
+              onVerEnLaTabla={(dia) => {
+                setFiltros((a) => ({ ...a, dia }));
+                irALasPestanas("gastos");
+              }}
+            />
           </div>
         </Superficie>
       </section>

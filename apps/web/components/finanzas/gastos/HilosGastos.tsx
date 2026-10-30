@@ -12,7 +12,7 @@ import { fechaCorta, solesRedondo, type GastoFila } from "@/lib/gastos-reglas";
 import type { ClaveSede, ColorSede } from "@/lib/finanzas-telar-reglas";
 
 // El color de cada hilo de sede, el mismo del orillo del telar. La empresa va rayada: no es una tienda, es lo que no es de ninguna.
-const COLOR: Record<ColorSede, string> = {
+export const COLOR: Record<ColorSede, string> = {
   tru: "var(--color-sede-tru)",
   aqp: "var(--color-sede-aqp)",
   lim: "var(--color-sede-lim)",

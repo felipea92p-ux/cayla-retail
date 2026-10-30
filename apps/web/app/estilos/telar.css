@@ -405,49 +405,55 @@ span.sede-telar { cursor: default; }
   .hilo-gasto-sede { display: none; }
 }
 
-/* ---- Gastos · el calendario: más oscuro, más gasto ---- */
-.calendario-gastos {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
+/* ---- Gastos · «Cuándo», el ritmo del mes (la C2 que eligió Felipe, 2026-10-30): la línea es <Linea>; aquí, su leyenda, el pie del
+   gráfico angosto y el día elegido, que se abre debajo como el desglose de «En qué se va». ---- */
+.ritmo-gastos { container: ritmo / inline-size; }
+.ritmo-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 6px; font-size: 12px; color: var(--color-taupe-profundo); }
+.ritmo-leyenda span { display: inline-flex; gap: 6px; align-items: center; }
+.ritmo-muestra { display: inline-block; width: 18px; border-top: 2.5px solid var(--color-tinta); }
+.ritmo-muestra[data-tipo="ref"] { border-top: 2px dashed var(--color-taupe); }
+.ritmo-muestra[data-tipo="proy"] { border-top: 2px dotted var(--color-tinta); opacity: 0.55; }
+.ritmo-muestra[data-tipo="viene"] { width: 9px; height: 9px; border: 1.5px dashed var(--color-taupe); border-radius: 50%; }
+.ritmo-globo { display: grid; gap: 1px; }
+.ritmo-globo b { font-weight: 600; }
+/* Lo del final del mes va al final de las líneas; en un gráfico angosto, además, en una frase debajo (se lee mejor que a 10,5 px). */
+.ritmo-pie { display: none; margin: 4px 0 0; font-size: 13px; color: var(--color-taupe-profundo); }
+@container ritmo (max-width: 560px) {
+  .ritmo-pie { display: block; }
 }
-.calendario-dia-semana {
-  padding-bottom: 2px;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-align: center;
-  color: var(--color-taupe-profundo);
-}
-.calendario-dia {
+.ritmo-cajon { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 450ms var(--ease-cayla); }
+.ritmo-cajon[data-abierto] { grid-template-rows: 1fr; }
+.ritmo-cajon > div { min-height: 0; overflow: hidden; }
+.ritmo-dia { margin-top: 14px; padding: 12px 14px 8px; border-radius: 12px; background: color-mix(in srgb, var(--color-hueso) 50%, transparent); container: ritmo-dia / inline-size; }
+.ritmo-dia-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 0 10px; }
+.ritmo-dia-cabeza h4 { margin: 0; font-family: var(--font-serif); font-size: 18px; font-weight: 500; }
+.ritmo-dia-cabeza small { font-size: 13px; color: var(--color-taupe-profundo); }
+.ritmo-gastos-dia { display: grid; margin-top: 6px; }
+.ritmo-gasto {
   display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  min-height: 28px;
+  grid-template-columns: minmax(0, 1fr) 110px 96px 88px;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 28px 9px 10px;
+  border: 0;
   border-radius: 8px;
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-  background: color-mix(in srgb, var(--color-tinta) calc(var(--a, 0) * 1%), var(--color-hueso));
+  background-color: transparent;
   color: var(--color-tinta);
-  transition: transform 0.2s var(--ease-cayla), box-shadow 0.2s var(--ease-cayla);
-  animation: calendario-entra 0.4s var(--ease-cayla) backwards;
-  animation-delay: calc(var(--i, 0) * 12ms);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
 }
-@keyframes calendario-entra {
-  from { opacity: 0; }
+.ritmo-gasto[data-viene] { cursor: default; color: var(--color-taupe-profundo); }
+.ritmo-gasto[data-viene] .hilo-gasto-que b { font-weight: 400; }
+.ritmo-pie-dia { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px 4px; }
+@container ritmo-dia (max-width: 560px) {
+  .ritmo-gasto { grid-template-columns: minmax(0, 1fr) 96px 84px; }
+  .ritmo-gasto .hilo-gasto-barra { display: none; }
 }
-.calendario-dia[data-oscuro] { color: var(--color-crema); }
-@media (hover: hover) {
-  .calendario-dia:hover:not(:disabled) { transform: scale(1.08); }
-}
-.calendario-dia:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-.calendario-dia[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--color-rojo); }
-.calendario-dia:disabled {
-  background: transparent;
-  border: 1px dashed var(--color-sand);
-  /* contraste: texto sobre crema y papel (tinta al 64 %, el piso) */
-  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
-  cursor: default;
+@container ritmo-dia (max-width: 380px) {
+  .ritmo-gasto { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding-right: 10px; }
+  .ritmo-gasto .hilo-gasto-sede { display: none; }
 }
 
 /* ---- La hoja «Registrar gasto»: el formulario a la izquierda y «Así queda» a la derecha ---- */
@@ -666,7 +672,7 @@ span.sede-telar { cursor: default; }
   .hilo-cajon,
   .hilo-sede,
   .hilo-sedes-marca,
-  .calendario-dia,
+  .ritmo-cajon,
   .hoja-gasto-sede,
   .hoja-gasto-linea,
   .te-toca-telar,
