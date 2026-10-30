@@ -7,7 +7,7 @@
 - [x] Guía de Gastos con el paso «Lo que se gastó exactamente» (recorrida: 32 pasos ✓), huella aceptada, escenario `gastos.desglose` en el auditor del tema (nada de lo nuevo falla en claro ni en oscuro), Knip limpio.
 - [x] Probado en local con 320 gastos de ejemplo de junio a octubre (foto `gastos-hilos`, restaurada al final): 1920, 1440 y 375 px, claro y oscuro.
 - [ ] **Sin PR:** todo en commits locales de la rama; el PR se abre con `/abrir-pr` cuando Felipe lo pida.
-- [ ] **Sin `/formidable` ni `/chaos`:** `/chaos` no aplica (no guarda nada); `/formidable` queda para el cierre de Gastos completo.
+- [x] `/formidable` de las dos secciones nuevas (2026-10-30, `docs/formidable/finanzas-gastos.md`): leyes 6,6 (ley 2 en 5), oficio 7, ciega ✓. `/chaos` no aplica (no guarda nada).
 - [ ] **En producción hoy no se verá la comparación:** septiembre de 2026 no tuvo gastos registrados (ADR-0332), así que el chip, la rayita y la píldora salen desde noviembre; la línea, con tres meses seguidos.
 - [x] Lo siguiente que pidió Felipe: rediseñar «Cuándo» (el calendario). Hecho abajo; sus 8 días con contraste bajo en oscuro se fueron con él.
 - [ ] Menor: en la guía, el paso del desglose queda en parte bajo la barra de sede fija cuando el desglose es alto.
@@ -24,3 +24,6 @@
 - [ ] **Sin PR:** todo en commits locales de la rama; el PR se abre con `/abrir-pr` cuando Felipe lo pida (va con los hilos).
 - [ ] **No revisado en pantallas con datos:** Caja, Rendimiento, el plan de campaña y el costo de una prenda también usan `<Linea>`; la base local no tiene datos para dibujarlas. La regla deja la cifra donde estaba si no choca, pero conviene mirarlas en producción.
 - [ ] Menor: Playwright no puede tocar el centro de una nota (cae entre el texto y su punto, sobre el gráfico); el escenario toca su texto. Una persona toca el texto.
+- [x] Arreglado en `/formidable`: «Cuándo» de un mes sin gastos (decía «S/ 0» con un eje «0, 1, 1»), el globito que saltaba a «hoy» al tocar el gráfico (pegado en el teléfono) y las lecturas para comparar en cadena (de 4 esperas seguidas a 3).
+- [ ] **Esperan el OK de Felipe (los 3 cambios de `/formidable`):** 1) en el mes en curso, el chip de la cifra, la píldora y la rayita de cada categoría y la frase de los hilos comparan a la misma altura (hoy, contra el mes anterior entero: a mitad de mes contradicen a «Cuándo»); 2) la frase del «si sigue así» dice de qué está hecha (un día normal + los fijos sin registrar), a todo ancho; 3) «En qué se va» con las 6 más grandes y «Ver N más», su frase «entre lo que más pesa» y «menos de 1 %».
+- [ ] Lista aparte de `/formidable`: a 375 el ▲/▼ de cada categoría no llega al lector de pantalla; el globito de `<Linea>` asoma ~10 px por el borde (se corta a 375); el dock flotante tapa filas y montos (pieza de todo Finanzas).
