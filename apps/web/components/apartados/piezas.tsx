@@ -23,7 +23,7 @@ const TONO_ESTADO: Record<ClaveEstado, string> = {
 /** El estado con su punto de color. El punto de «vencido» late: es una señal que pide acción (ADR-0136). */
 export function EstadoChip({ clave, texto }: { clave: ClaveEstado; texto: string }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11.5px] font-semibold ${TONO_ESTADO[clave]}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold ${TONO_ESTADO[clave]}`}>
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-current ${clave === "vencida" ? "animate-pulse motion-reduce:animate-none" : ""}`} />
       {texto}
     </span>

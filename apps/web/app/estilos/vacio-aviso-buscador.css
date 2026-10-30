@@ -103,7 +103,7 @@
   .aviso-linea-ic { grid-column: 1; grid-row: 1 / span 2; display: grid; place-items: center; width: 18px; height: 22px; color: var(--cp); --trazo-ms: 520ms; --trazo-espera: 220ms; }
   .aviso-linea-ic svg { width: 16px; height: 16px; stroke-width: 2.2; }
   .aviso-linea-tit { grid-column: 2; grid-row: 1; margin: 1px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--cp); }
-  .aviso-linea-det { grid-column: 2; margin: 0; font-size: 13.5px; line-height: 1.5; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+  .aviso-linea-det { grid-column: 2; margin: 0; font-size: 14px; /* ronda 19 */ line-height: 1.5; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
   .aviso-linea-det.solo { grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc :is(a, button) {
@@ -117,7 +117,7 @@
   .aviso-linea.chico { align-items: center; padding: 8px 10px 8px 10px; border-radius: 4px 12px 12px 4px; }
   .aviso-linea.chico .aviso-linea-ic { grid-row: 1; height: 18px; }
   .aviso-linea.chico .aviso-linea-ic svg { width: 14px; height: 14px; }
-  .aviso-linea.chico .aviso-linea-tit { margin: 0; font-size: 13px; }
+  .aviso-linea.chico .aviso-linea-tit { margin: 0; font-size: 14px; }
   .aviso-linea.chico .aviso-linea-tit span { font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
   .aviso-linea.chico .aviso-linea-acc { grid-row: 1; }
 

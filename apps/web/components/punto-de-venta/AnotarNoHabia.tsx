@@ -63,7 +63,7 @@ export function AnotarNoHabia({
 
   return (
     <div className="mt-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-3 py-2.5 text-xs text-tinta/75">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/75">
         <Flag className="h-4 w-4 shrink-0" aria-hidden />
         <span className="min-w-[12rem] flex-1">
           {estado === "anotado" ? "Anotado. Compras ya lo ve." : "¿La talla que pidió no está y no le sirve esperar? Anótalo para Compras."}
@@ -84,7 +84,7 @@ export function AnotarNoHabia({
       </div>
       {estado === "listo" && tallas.length > 1 && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Talla que pidió">
-          <span className="text-[11px] text-tinta/60">¿Qué talla pidió?</span>
+          <span className="text-sm text-tinta/60">¿Qué talla pidió?</span>
           {tallas.map(({ talla: t }) => (
             <button
               key={t}

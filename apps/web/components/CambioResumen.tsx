@@ -1,5 +1,6 @@
 "use client";
 
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import type { CSSProperties } from "react";
 import { AlertTriangle, ArrowLeftRight, CheckCircle2, Circle, Info } from "lucide-react";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -34,7 +35,7 @@ function FichaPrenda({ titulo, prenda, vacia, hueco = false }: { titulo: string;
             <p className="font-display truncate text-[21px] leading-tight text-tinta">{prenda.referencia}</p>
             <p className="text-sm text-tinta/75">{varianteLegible(prenda)}</p>
             <p className="mt-0.5 text-sm tabular-nums text-tinta">{soles(prenda.precio)}</p>
-            {prenda.detalle && <p className="text-xs text-tinta/70">{prenda.detalle}</p>}
+            {prenda.detalle && <p className="text-sm text-tinta/70">{prenda.detalle}</p>}
           </div>
         </div>
       ) : (
@@ -144,7 +145,7 @@ export function ListaValidaciones({ validaciones }: { validaciones: readonly Val
                 <span className="sr-only">{lector}: </span>
                 {v.titulo}
               </p>
-              {v.detalle && <p className="mt-0.5 text-xs text-tinta/70">{v.detalle}</p>}
+              {v.detalle && <p className="mt-0.5 text-sm text-tinta/70">{v.detalle}</p>}
             </div>
           </li>
         );
@@ -160,7 +161,7 @@ export function ImpactoVista({ impacto, compacto = false }: { impacto: ImpactoOp
   return (
     <div className={compacto ? "space-y-5" : "grid gap-6 sm:grid-cols-2"}>
       <section aria-label="Impacto en inventario">
-        <h3 className="text-xs font-semibold text-tinta/70">Impacto en inventario</h3>
+        <TituloGrupo>Impacto en inventario</TituloGrupo>
         <ul className="mt-2.5 space-y-2">
           {impacto.inventario.map((i) => (
             <li key={`${i.signo}|${i.prenda}|${i.donde}`} className="flex gap-3 text-sm">
@@ -170,22 +171,22 @@ export function ImpactoVista({ impacto, compacto = false }: { impacto: ImpactoOp
               </span>
               <span className="min-w-0">
                 <span className="text-tinta">{i.prenda}</span>
-                <span className="block text-xs text-tinta/70">{i.donde}</span>
+                <span className="block text-sm text-tinta/70">{i.donde}</span>
               </span>
             </li>
           ))}
         </ul>
       </section>
       <section aria-label="Impacto en caja">
-        <h3 className="text-xs font-semibold text-tinta/70">Impacto en caja</h3>
+        <TituloGrupo>Impacto en caja</TituloGrupo>
         <p className="mt-2.5 text-sm font-semibold tabular-nums text-tinta">{impacto.caja.titulo}</p>
-        <p className="mt-0.5 text-xs text-tinta/70">{impacto.caja.detalle}</p>
+        <p className="mt-0.5 text-sm text-tinta/70">{impacto.caja.detalle}</p>
       </section>
       {impacto.documento && (
         <section aria-label="Documento que se emite" className={compacto ? "" : "sm:col-span-2"}>
-          <h3 className="text-xs font-semibold text-tinta/70">Documento</h3>
+          <TituloGrupo>Documento</TituloGrupo>
           <p className="mt-2.5 text-sm font-semibold text-tinta">{impacto.documento.titulo}</p>
-          <p className="mt-0.5 text-xs text-tinta/70">{impacto.documento.detalle}</p>
+          <p className="mt-0.5 text-sm text-tinta/70">{impacto.documento.detalle}</p>
         </section>
       )}
     </div>

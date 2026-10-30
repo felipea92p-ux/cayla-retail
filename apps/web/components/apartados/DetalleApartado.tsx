@@ -177,7 +177,7 @@ function VistaDetalle({
       <section className="space-y-3 rounded-2xl border border-sand p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <EstadoChip {...estadoVisible(a, hoy)} />
-          <p className="text-[12.5px] text-tinta/70">
+          <p className="text-sm text-tinta/70">
             {abierto ? (
               <>
                 Vence el <b className="font-semibold text-tinta">{fechaCorta(a.venceEl)}</b>
@@ -224,7 +224,7 @@ function VistaDetalle({
                 <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} colorHex={v?.colorHex} categoria={v?.categoria} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={36} className="w-9" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
-                  <p className="text-[12px] text-tinta/60">{[v?.color, v?.talla].filter(Boolean).join(" · ") || pr.sku} · {pr.cantidad} u.</p>
+                  <p className="text-sm text-tinta/60">{[v?.color, v?.talla].filter(Boolean).join(" · ") || pr.sku} · {pr.cantidad} u.</p>
                 </div>
                 <span className="text-sm tabular-nums">{money((pr.precioUnitario - pr.descuentoUnitario) * pr.cantidad)}</span>
               </li>
@@ -243,7 +243,7 @@ function VistaDetalle({
           ))}
         </ol>
         {sinFecha > 0 && (
-          <p className="mt-2 text-xs text-tinta/60">
+          <p className="mt-2 text-sm text-tinta/60">
             {sinFecha === 1 ? "Se aplazó una vez" : `Se aplazó ${sinFecha} veces`} antes de que el sistema guardara cuándo y quién.
           </p>
         )}
@@ -256,8 +256,8 @@ function VistaDetalle({
 
       {abierto && (
         <div className="space-y-2">
-          {!puedeGestionar && <p className="text-xs text-tinta/60">Para aplazar el vencimiento, pídeselo a la líder o usa la cuenta de ventas de la tienda.</p>}
-          {puedeGestionar && aplazar.bloqueo && <p className="text-xs text-tinta/60">{aplazar.bloqueo}</p>}
+          {!puedeGestionar && <p className="text-sm text-tinta/60">Para aplazar el vencimiento, pídeselo a la líder o usa la cuenta de ventas de la tienda.</p>}
+          {puedeGestionar && aplazar.bloqueo && <p className="text-sm text-tinta/60">{aplazar.bloqueo}</p>}
           <PieAcciones className="pie-hoja-fijo">
             {puedeGestionar && (
               <Boton type="button" peso="fantasma" onClick={onAplazar} disabled={Boolean(aplazar.bloqueo)} title={aplazar.bloqueo ?? undefined}>
@@ -347,11 +347,11 @@ function FilaEvento({ e, ultimo }: { e: EventoApartado; ultimo: boolean }) {
       <span className="relative grid h-7 w-7 place-items-center rounded-full border border-sand bg-papel text-tinta/75 [&_svg]:h-3.5 [&_svg]:w-3.5">{icono}</span>
       <div className="min-w-0 pt-0.5">
         <p className="text-sm font-semibold text-tinta">{titulo}</p>
-        <p className="text-[12px] text-tinta/60 tabular-nums">
+        <p className="text-sm text-tinta/60 tabular-nums">
           {cuando(e.fecha)}
           {e.por && ` · ${verbo} ${e.por}`}
         </p>
-        {nota && <p className="text-[12px] text-tinta/60">{nota}</p>}
+        {nota && <p className="text-sm text-tinta/60">{nota}</p>}
       </div>
       {monto && <span className="pt-0.5 text-sm font-semibold tabular-nums text-tinta">{monto}</span>}
     </li>
@@ -453,7 +453,7 @@ function AplazarFormulario({
               className={`flex flex-col items-center justify-center rounded-xl border px-2 py-2.5 text-center transition-colors disabled:opacity-45 ${eleccion !== null && eleccion !== "otra" && eleccion.dias === x.dias ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel hover:border-taupe"}`}
             >
               <span className="text-sm font-semibold">+{x.dias} días</span>
-              <span className={`text-[11.5px] ${eleccion !== null && eleccion !== "otra" && eleccion.dias === x.dias ? "text-crema/80" : "text-tinta/60"}`}>{fechaCorta(x.fecha)}</span>
+              <span className={`text-sm ${eleccion !== null && eleccion !== "otra" && eleccion.dias === x.dias ? "text-crema/80" : "text-tinta/60"}`}>{fechaCorta(x.fecha)}</span>
             </button>
           ))}
           <button
@@ -465,7 +465,7 @@ function AplazarFormulario({
             className={`flex flex-col items-center justify-center rounded-xl border px-2 py-2.5 text-center transition-colors disabled:opacity-45 ${eleccion === "otra" ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel hover:border-taupe"}`}
           >
             <span className="text-sm font-semibold">Otra fecha</span>
-            <span className={`text-[11.5px] ${eleccion === "otra" ? "text-crema/80" : "text-tinta/60"}`}>hasta el {fechaCorta(o.tope)}</span>
+            <span className={`text-sm ${eleccion === "otra" ? "text-crema/80" : "text-tinta/60"}`}>hasta el {fechaCorta(o.tope)}</span>
           </button>
         </div>
         {eleccion === "otra" && (
@@ -482,7 +482,7 @@ function AplazarFormulario({
       </CampoGuiado>
 
       {fecha && !motivo && (
-        <p className="anim-revelar rounded-xl bg-hueso px-3.5 py-2.5 text-[13px] text-tinta/80">
+        <p className="anim-revelar rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">
           Recoge hasta el <b className="font-semibold text-tinta">{fechaCorta(fecha)}</b> ({textoDiasMas(o.desde, fecha)}).{" "}
           {o.restantes - 1 === 0 ? "Es el último aplazamiento que le queda." : `Después le queda ${o.restantes - 1} aplazamiento más.`}
         </p>

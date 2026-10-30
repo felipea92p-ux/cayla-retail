@@ -93,7 +93,7 @@ function Botones({ cerrar, principal }: { cerrar: () => void; principal: string 
           Sin imprimir
         </button>
       </div>
-      <p className="text-center text-[11px] text-tinta/55">Enter imprime · Esc sigue sin imprimir</p>
+      <p className="text-center text-sm text-tinta/55">Enter imprime · Esc sigue sin imprimir</p>
     </div>
   );
 }
@@ -138,7 +138,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
             <div className="w-14 shrink-0 overflow-hidden rounded-lg border border-sand bg-papel text-center">
               <p className="bg-rojo py-0.5 text-[10px] font-semibold tracking-[0.14em] text-papel">{mes}</p>
               <p className="font-display text-3xl leading-tight text-tinta">{dia}</p>
-              <p className="pb-1 text-[10px] text-tinta/60">{semana}</p>
+              <p className="pb-1 text-sm text-tinta/60">{semana}</p>
             </div>
             <div className="min-w-0 flex-1">
               <p className="label-cayla text-[11px] text-tinta/60">Recoger hasta</p>
@@ -150,7 +150,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
                   <span key={i} className={`h-1 rounded-sm ${i === 0 ? "bg-tinta" : i === PLAZO_DIAS - 1 ? "bg-rojo" : "bg-sand"}`} />
                 ))}
               </div>
-              <p className="mt-1.5 text-[11.5px] text-tinta/60">El aviso para escribirle sale el {fechaCorta(sumarDiasIso(a.venceEl, -AVISO_DIAS))}.</p>
+              <p className="mt-1.5 text-sm text-tinta/60">El aviso para escribirle sale el {fechaCorta(sumarDiasIso(a.venceEl, -AVISO_DIAS))}.</p>
             </div>
           </div>
           <div className="card-cayla space-y-2.5 p-4 text-sm">
@@ -160,18 +160,18 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
                   <span className="text-tinta">
                     Constancia <span className="font-mono">{a.codigo}</span>
                   </span>
-                  <span className="text-[11px] text-tinta/60">No es comprobante de pago</span>
+                  <span className="text-sm text-tinta/60">No es comprobante de pago</span>
                 </>
               ) : (
                 <>
                   <span className="text-tinta">
                     Boleta <span className="font-mono">{a.comprobanteAnticipo}</span> · anticipo
                   </span>
-                  <span className="text-[11px] text-tinta/60">Pendiente de enviar</span>
+                  <span className="text-sm text-tinta/60">Pendiente de enviar</span>
                 </>
               )}
             </div>
-            <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/80">
+            <div className="space-y-0.5 border-t border-sand pt-2.5 text-sm text-tinta/80">
               {a.pagos.map((p, i) => (
                 <p key={i} className="flex justify-between tabular-nums">
                   <span>{NOMBRE_METODO[p.metodo] ?? p.metodo}</span>
@@ -179,7 +179,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
                 </p>
               ))}
             </div>
-            <p className="border-t border-sand pt-2.5 text-xs text-tinta/70">
+            <p className="border-t border-sand pt-2.5 text-sm text-tinta/70">
               Cliente: <span className="text-tinta">{a.nombres} {a.apellidos}</span> · si no recoge: {textoDevolucion(a)}
             </p>
           </div>
@@ -223,7 +223,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
               <span className="font-display text-3xl text-tinta">{money(vuelto)}</span>
             </div>
           )}
-          <div className="card-cayla space-y-2 p-4 text-xs text-tinta/80">
+          <div className="card-cayla space-y-2 p-4 text-sm text-tinta/80">
             <p className="flex justify-between tabular-nums"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
             <p className="flex justify-between tabular-nums"><span>(−) {esConstancia(a) ? "Adelanto" : a.pagos.some((p) => p.abono) ? "Anticipos (apartado y abonos)" : `Anticipo ${a.comprobanteAnticipo}`}</span><span>−{money(a.adelanto)}</span></p>
             {pagadoHoy.map((p, i) => (
@@ -270,12 +270,12 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
               <span className="text-tinta">
                 {cual === "anticipo" && constancia ? "Constancia" : "Boleta"} <span className="font-mono">{numero ?? "—"}</span>
               </span>
-              <span className="text-[11px] text-tinta/60">{cual === "final" ? (constancia ? "por el total" : "final") : constancia ? "no es comprobante de pago" : "anticipo"}</span>
+              <span className="text-sm text-tinta/60">{cual === "final" ? (constancia ? "por el total" : "final") : constancia ? "no es comprobante de pago" : "anticipo"}</span>
             </p>
-            <p className="text-xs text-tinta/70">
+            <p className="text-sm text-tinta/70">
               {a.nombres} {a.apellidos} · {cual === "final" ? `total ${money(a.total)}` : `adelanto ${money(a.adelanto)} de ${money(a.total)}`}
             </p>
-            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
+            <p className="text-sm text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
           </div>
           <BotonImprimir peso="primario" autoFocus onClick={() => window.print()} className="w-full">
             Imprimir la copia
@@ -395,7 +395,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
           <div className="card-cayla p-4 text-center">
             <p className="label-cayla text-[11px] text-rojo-profundo">A devolver</p>
             <p className="font-display mt-1 text-3xl text-tinta">{money(apartado.adelanto)}</p>
-            <p className="mt-1 text-xs text-tinta/70">Pidió que se le devuelva por {textoDevolucion(apartado)}</p>
+            <p className="mt-1 text-sm text-tinta/70">Pidió que se le devuelva por {textoDevolucion(apartado)}</p>
           </div>
           <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
             {medios.map((m) => (
@@ -405,7 +405,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 aria-pressed={medio === m}
                 onClick={() => setMedio(m)}
                 style={medio === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-                className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg text-[10px] capitalize transition-colors ${medio === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
+                className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg text-sm capitalize transition-colors ${medio === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
               >
                 {ICONO_METODO[m]}
                 {m}
@@ -413,7 +413,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
             ))}
           </div>
           {medio === "efectivo" ? (
-            <p className={`rounded-lg border px-3 py-2 text-xs ${sinCaja ? "border-rojo/30 text-rojo-profundo" : "border-sand bg-crema text-tinta/75"}`}>
+            <p className={`rounded-lg border px-3 py-2 text-sm ${sinCaja ? "border-rojo/30 text-rojo-profundo" : "border-sand bg-crema text-tinta/75"}`}>
               {sinCaja ? "Para devolver en efectivo abre primero la caja de la tienda." : "Solo si el cliente vino a la tienda. Sale del cajón como «Devolución de apartado»."}
             </p>
           ) : (
@@ -422,13 +422,13 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 <label className="block">
                   <span className={campoEtiqueta}>CCI (si cambió)</span>
                   <input value={cci} onChange={(e) => setCci(e.target.value)} inputMode="numeric" placeholder={apartado.devolucionCciFinal ? `…${apartado.devolucionCciFinal}` : "20 dígitos"} className={`${campoTexto} font-mono`} />
-                  {intento && cciMalo && <span className="text-xs text-rojo-profundo">El CCI tiene 20 dígitos.</span>}
+                  {intento && cciMalo && <span className="text-sm text-rojo-profundo">El CCI tiene 20 dígitos.</span>}
                 </label>
               )}
               <label className="block">
                 <span className={campoEtiqueta}>N.º de operación</span>
                 <input value={operacion} onChange={(e) => setOperacion(e.target.value)} placeholder="Obligatorio" className={`${campoTexto} font-mono`} />
-                {intento && faltaOperacion && <span className="text-xs text-rojo-profundo">Anótalo: es la prueba de que se devolvió.</span>}
+                {intento && faltaOperacion && <span className="text-sm text-rojo-profundo">Anótalo: es la prueba de que se devolvió.</span>}
               </label>
               <div className="sm:col-span-2">
                 <CampoSelect
@@ -443,7 +443,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
               </div>
             </div>
           )}
-          <p className="text-xs text-tinta/60">
+          <p className="text-sm text-tinta/60">
             {esConstancia(apartado)
               ? "Solo se registra que el dinero volvió al cliente: no hay comprobante que anular, así que no se gasta ningún correlativo."
               : `Se intentará la nota de crédito sobre la boleta ${apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.`}
@@ -539,10 +539,10 @@ export function RecordarModal({
                     >
                       <span className="min-w-0 flex-1">
                         <b className="font-semibold">{a.nombres} {a.apellidos}</b>{" "}
-                        <span className="text-xs text-tinta/55 tabular-nums">{formatoCelular(a.celular)}</span>
+                        <span className="text-sm text-tinta/55 tabular-nums">{formatoCelular(a.celular)}</span>
                       </span>
                       {hechas.has(a.id) ? (
-                        <span className="flex items-center gap-1 text-xs text-verde-profundo"><Check className="h-3.5 w-3.5" aria-hidden /> Avisado</span>
+                        <span className="flex items-center gap-1 text-sm text-verde-profundo"><Check className="h-3.5 w-3.5" aria-hidden /> Avisado</span>
                       ) : (
                         <EstadoChip {...estadoVisible(a, hoy)} />
                       )}
@@ -554,8 +554,8 @@ export function RecordarModal({
           )}
           <div className="card-cayla space-y-2 p-4">
             <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {actual.nombres}</p>
-            <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">{mensaje}</p>
-            <p className="text-xs text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
+            <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[15px] text-tinta">{mensaje}</p>
+            <p className="text-sm text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
           </div>
           <div className="pie-acciones">
             {varias ? (
@@ -694,7 +694,7 @@ export function AbonarFormulario({
             aria-checked={metodo === m}
             onClick={() => setMetodo(m)}
             style={metodo === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-            className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
+            className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
           >
             {ICONO_METODO[m]}
             {m}
@@ -710,28 +710,28 @@ export function AbonarFormulario({
       </label>
       <div className="flex flex-wrap gap-1.5">
         {rapidos.map((x) => (
-          <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+          <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-sm tabular-nums hover:border-taupe">
             {money(x)}
           </button>
         ))}
-        <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+        <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-sm tabular-nums hover:border-taupe">
           Todo · {money(saldo)}
         </button>
       </div>
       <BarraAvance pct={((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100} decorativa />
-      <p className="flex justify-between text-xs text-tinta/60 tabular-nums">
+      <p className="flex justify-between text-sm text-tinta/60 tabular-nums">
         <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
         <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
       </p>
       {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
-      <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
+      <label className="flex cursor-pointer items-start gap-2.5 text-sm text-tinta/85">
         <Casilla marcada={esperar} onCambio={() => setEsperar(!esperar)} etiqueta={`Esperarla ${dias} días más`} className="mt-0.5 shrink-0" />
         <span>
           Esperarla {dias} días más: recoge hasta el <b>{fechaCorta(nuevaFecha)}</b>
-          <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
+          <span className="block text-sm text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
         </span>
       </label>
-      <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
+      <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
       <ComboResponsable control={responsable} deshabilitado={enviando} />
       </fieldset>
       {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
@@ -866,7 +866,7 @@ export function EditarApartadoModal({
                   <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} colorHex={v?.colorHex} categoria={v?.categoria} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={40} className="w-10" />
                   <div className="min-w-0 flex-1">
                     <p className={`truncate text-sm font-semibold ${fuera ? "text-tinta/45 line-through" : "text-tinta"}`}>{pr.referencia}</p>
-                    <p className="text-xs text-tinta/60">{v ? detalleVariante(v) : pr.sku} · {pr.cantidad} u.</p>
+                    <p className="text-sm text-tinta/60">{v ? detalleVariante(v) : pr.sku} · {pr.cantidad} u.</p>
                   </div>
                   {!fuera && hermanas.length > 1 && (
                     <div className="flex gap-1" role="group" aria-label="Cambiar la talla">
@@ -901,8 +901,8 @@ export function EditarApartadoModal({
                 <li key={`n-${l.varianteId}`} className="flex flex-wrap items-center gap-3 bg-verde/5 px-3.5 py-3">
                   <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={40} className="w-10" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{p.referencia} <span className="ml-1 text-[11px] font-normal text-verde-profundo">nueva</span></p>
-                    <p className="text-xs text-tinta/60">{detalleVariante(p)}</p>
+                    <p className="truncate text-sm font-semibold">{p.referencia} <span className="ml-1 text-sm font-normal text-verde-profundo">nueva</span></p>
+                    <p className="text-sm text-tinta/60">{detalleVariante(p)}</p>
                   </div>
                   <PasoCantidad
                     menos={{ onClick: () => setSumar((ls) => ls.flatMap((x) => (x.varianteId !== l.varianteId ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
@@ -923,8 +923,8 @@ export function EditarApartadoModal({
                 {buscados.map((p) => (
                   <li key={p.varianteId}>
                     <button type="button" onClick={() => agregar(p.varianteId)} className="flex w-full items-center gap-3 px-3.5 py-2 text-left text-sm hover:bg-crema/60">
-                      <span className="min-w-0 flex-1"><b className="font-semibold">{p.referencia}</b> <span className="text-xs text-tinta/60">{detalleVariante(p)}</span></span>
-                      <span className="text-xs tabular-nums">{money(p.precio - descuentoHoy(p))} · {p.stockAqui} disp.</span>
+                      <span className="min-w-0 flex-1"><b className="font-semibold">{p.referencia}</b> <span className="text-sm text-tinta/60">{detalleVariante(p)}</span></span>
+                      <span className="text-sm tabular-nums">{money(p.precio - descuentoHoy(p))} · {p.stockAqui} disp.</span>
                     </button>
                   </li>
                 ))}
@@ -939,7 +939,7 @@ export function EditarApartadoModal({
           </div>
           {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El adelanto ya recibido sigue valiendo.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El adelanto ya recibido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           </fieldset>
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
@@ -1005,7 +1005,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
                 <span>
                   <b className="text-sm">{PRESETS_APARTADOS[k].titulo}</b>
                   {k === "completo" && <Chip tono="pizarra" versalitas={false} className="ml-2">de fábrica</Chip>}
-                  <span className="block text-xs text-tinta/60">{PRESETS_APARTADOS[k].texto}</span>
+                  <span className="block text-sm text-tinta/60">{PRESETS_APARTADOS[k].texto}</span>
                 </span>
               </button>
             ))}
@@ -1020,7 +1020,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
                     <li key={f.clave} className="flex items-center gap-3 py-2.5">
                       <span className="min-w-0 flex-1">
                         <b className="block text-sm font-medium">{f.titulo}</b>
-                        <span className="text-xs text-tinta/60">{f.texto}</span>
+                        <span className="text-sm text-tinta/60">{f.texto}</span>
                       </span>
                       <button
                         type="button"
@@ -1038,7 +1038,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
               </ul>
             </div>
           ))}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Apagar una función esconde sus botones en esta tienda. Lo que ya se hizo con ella (un abono, un estante) sigue contando.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Apagar una función esconde sus botones en esta tienda. Lo que ya se hizo con ella (un abono, un estante) sigue contando.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
@@ -1105,14 +1105,14 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           <div className="card-cayla p-4 text-sm">
             <p className="font-semibold">{prenda?.referencia ?? "Prenda"} · {pedido.cantidad} u.</p>
-            <p className="text-xs text-tinta/60">{prenda ? detalleVariante(prenda) : ""}</p>
-            {pedido.nota && <p className="mt-2 text-xs text-tinta/70">Nota: {pedido.nota}</p>}
+            <p className="text-sm text-tinta/60">{prenda ? detalleVariante(prenda) : ""}</p>
+            {pedido.nota && <p className="mt-2 text-sm text-tinta/70">Nota: {pedido.nota}</p>}
           </div>
           <label className="block">
             <span className={campoEtiqueta}>¿Cuándo llega?</span>
             <input type="date" value={llega} min={manana.slice(0, 10)} onChange={(e) => setLlega(e.target.value)} className={campoTexto} />
           </label>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           </fieldset>
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}

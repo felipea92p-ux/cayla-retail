@@ -30,7 +30,7 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 // 768 px deja ~480 px de contenido. Desde 640 px de tarjeta, una tabla; por debajo, filas apiladas.
 const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[72px_minmax(0,1.2fr)_100px_minmax(0,1.4fr)]";
 const ENLACE_FILA =
-  "rounded-md px-1.5 py-0.5 text-xs text-tinta/65 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60";
+  "rounded-md px-1.5 py-0.5 text-sm text-tinta/65 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60";
 
 // Proforma: NO es un comprobante de pago (Art. 2, RS 007-99/SUNAT — ADR-0007). Sirve para cotizar prendas
 // antes de que la clienta decida comprar. Desde 2026-09-22 (ADR-0167) lleva prendas del catálogo y se cobra en el
@@ -119,9 +119,9 @@ export function ProformasPanel({
               </Ayuda>
             </p>
             <TituloSeccion className="mt-0.5">Todas las proformas</TituloSeccion>
-            <p className="mt-0.5 text-xs text-tinta/65">Las vigentes de cualquier mes, más las que se hicieron {periodo}. Las que vencen antes van primero.</p>
+            <p className="mt-0.5 text-sm text-tinta/65">Las vigentes de cualquier mes, más las que se hicieron {periodo}. Las que vencen antes van primero.</p>
             {conversion.porcentaje !== null && (
-              <p className="mt-1.5 text-[13px] text-tinta/75">
+              <p className="mt-1.5 text-sm text-tinta/75">
                 De las {conversion.creadas} creadas {periodo},{" "}
                 <b className="font-semibold tabular-nums text-tinta">
                   {conversion.convertidas} terminaron en venta ({conversion.porcentaje} %)
@@ -178,7 +178,7 @@ export function ProformasPanel({
                       <p className="truncate text-[15px] leading-normal text-tinta">
                         <span className="text-tinta/65">{numeroDeProforma(p.numero)}</span> · {quien}
                       </p>
-                      <p className="flex items-center gap-1 text-[13px] text-tinta/60">
+                      <p className="flex items-center gap-1 text-sm text-tinta/60">
                         {lineas === null ? (
                           "Formato anterior, sin prendas"
                         ) : (
@@ -196,7 +196,7 @@ export function ProformasPanel({
                       <div className="min-w-0">
                         {lineas === null ? <Chip tono="neutro">Formato anterior</Chip> : <Chip tono={chip.tono}>{chip.texto}</Chip>}
                         {detalle && lineas !== null && (
-                          <p className={`mt-1.5 text-[13px] leading-snug ${detalle.urgente ? "font-semibold text-ambar-profundo" : "text-tinta/65"}`}>{detalle.texto}</p>
+                          <p className={`mt-1.5 text-sm leading-snug ${detalle.urgente ? "font-semibold text-ambar-profundo" : "text-tinta/65"}`}>{detalle.texto}</p>
                         )}
                       </div>
                       {lineas !== null && (
@@ -243,11 +243,11 @@ export function ProformasPanel({
                   {abierta && (
                     <ul className="anim-revelar space-y-1.5 bg-tinta/[0.02] px-5 pt-1 pb-3 @min-[640px]:pl-[calc(72px+2.5rem)]">
                       {lineas.map((l, i) => (
-                        <li key={`${l.variante_id}-${i}`} className="flex items-center gap-3 text-[13px]">
+                        <li key={`${l.variante_id}-${i}`} className="flex items-center gap-3 text-sm">
                           <Foto prenda={{ ...(fotos[l.variante_id] ?? { fotoUrl: null, colorHex: null }), referencia: l.descripcion }} />
                           <span className="min-w-0 flex-1">
                             <span className="text-tinta">{l.descripcion}</span>
-                            {l.codigo && <span className="block text-xs text-tinta/55">{l.codigo}</span>}
+                            {l.codigo && <span className="block text-sm text-tinta/55">{l.codigo}</span>}
                           </span>
                           <span className="tabular-nums text-tinta/60">
                             {l.cantidad} × {soles(l.precio_unitario)}
@@ -256,7 +256,7 @@ export function ProformasPanel({
                           <b className="w-24 text-right font-semibold tabular-nums">{soles((l.precio_unitario - l.descuento_unitario) * l.cantidad)}</b>
                         </li>
                       ))}
-                      {p.nota && <li className="pt-1 text-[13px] text-tinta/70">Nota: {p.nota}</li>}
+                      {p.nota && <li className="pt-1 text-sm text-tinta/70">Nota: {p.nota}</li>}
                     </ul>
                   )}
                 </div>
@@ -289,7 +289,7 @@ export function ProformasPanel({
                   <ProformaA4 proforma={viendo} tienda={nombreTienda(viendo.ubicacion_id)} fotos={fotos} />
                 </div>
               </div>
-              <p className="text-xs text-tinta/60">Para enviarla por WhatsApp, elige «Guardar como PDF» en el cuadro de impresión y adjunta el archivo.</p>
+              <p className="text-sm text-tinta/60">Para enviarla por WhatsApp, elige «Guardar como PDF» en el cuadro de impresión y adjunta el archivo.</p>
               <div className="flex gap-2">
                 {/* Que también sirve para guardarla en PDF lo dice la frase de arriba, no el botón (ADR-0358, ronda 11). */}
                 <BotonImprimir peso="primario" className="flex-1" onClick={() => setImprimiendo(true)} cargando={imprimiendo}>

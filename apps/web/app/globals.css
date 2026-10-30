@@ -653,7 +653,7 @@ body {
     background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
     border-radius: var(--radius-xl);
     padding: 0.875rem 1.125rem;
-    font-size: 13px;
+    font-size: 14px; /* ronda 19: a 13 nadie la leía */
     line-height: 1.6;
     color: var(--color-taupe);
   }
