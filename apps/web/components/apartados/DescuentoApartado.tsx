@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -251,27 +252,31 @@ export function DescuentoApartado({
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo para aplicar." />
-            <div className="pie-acciones w-full">
-              {conManual.length > 0 && (
-                <Boton
-                  type="button"
-                  peso="peligro"
-                  className="mr-auto"
-                  onClick={() => {
-                    onQuitar(conManual.map((l) => l.varianteId));
-                    cerrar();
-                  }}
-                >
-                  Quitar descuento
-                </Boton>
-              )}
+            {/* En el celular «Cancelar» y «Aplicar» se reparten la fila y «Quitar descuento» baja a la suya (PieAcciones). */}
+            <PieAcciones
+              className="w-full"
+              izquierda={
+                conManual.length > 0 ? (
+                  <Boton
+                    type="button"
+                    peso="peligro"
+                    onClick={() => {
+                      onQuitar(conManual.map((l) => l.varianteId));
+                      cerrar();
+                    }}
+                  >
+                    Quitar descuento
+                  </Boton>
+                ) : undefined
+              }
+            >
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
               <Boton type="submit" peso="primario" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                 Aplicar descuento
               </Boton>
-            </div>
+            </PieAcciones>
           </div>
         </form>
       )}
