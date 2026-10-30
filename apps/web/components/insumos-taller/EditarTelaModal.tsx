@@ -57,13 +57,15 @@ export function EditarTelaModal({
   const enVuelo = useRef(false);
   const cambiar = (c: Partial<DatosDeLaTela>) => setDatos((d) => ({ ...d, ...c }));
 
-  const problemas = problemasDeEditarTela(datos);
+  // Un tejido escrito a mano que se parece a uno que existe y todavía no se contestó: no se guarda hasta decidir (si no, el tejido pedido se perdería sin aviso).
+  const conPregunta: DatosDeLaTela = { ...datos, tejidoPorContestar: preguntaTejido?.nombre };
+  const problemas = problemasDeEditarTela(conPregunta);
   const hayCambios = hayCambiosEnLaTela(inicial, datos);
   // Sin cambios en la tela todavía hay algo que guardar si hay colores con el nombre desfasado: guardarla los pone al día (la base reescribe el nombre de cada color al tocar su tela).
   const soloPonerAlDia = !hayCambios && coloresDesfasados > 0;
   const puedeGuardar = hayCambios || soloPonerAlDia;
   const avisos = avisosDeEditarTela(inicial, datos);
-  const guia = useGuiaCampos(camposDeEditarTela({ ...datos, responsableListo: responsable.listo }));
+  const guia = useGuiaCampos(camposDeEditarTela({ ...conPregunta, responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): solo cuenta lo que la persona cambió.
   const fotoActual = fotoFormulario({ ...datos });

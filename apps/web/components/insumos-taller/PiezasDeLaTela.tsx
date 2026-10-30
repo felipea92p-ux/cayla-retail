@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
@@ -41,19 +41,30 @@ export type PreguntaDeTejido = {
 /** Los tejidos que se pueden elegir y el crear uno nuevo ahí mismo (es el mismo vocabulario de Catálogo: nace aprobado, lo cree quien lo cree, ADR-0534). */
 export function useTejidosDeLaTela(iniciales: { id: string; nombre: string }[], responsable: ControlResponsable) {
   const [tejidos, setTejidos] = useState(iniciales);
-  // Aquí no hay un campo con su botón de guardar: el tejido se crea en el momento de tocar «+ Crear». Si lo escrito se parece a uno que ya
-  // existe, no se crea todavía: queda pendiente (con lo que había que hacer al crearlo) hasta que la persona diga «Usar X» o «No, es otro».
+  // El tejido no tiene su propio «Guardar»: se crea en el momento de tocar «+ Crear». Si lo escrito se parece a uno que ya existe, no se crea
+  // todavía: queda pendiente (con lo que había que hacer al crearlo) hasta que la persona diga «Usar X» o «No, es otro». Mientras tanto la
+  // hoja no se guarda (`tejidoPorContestar` en `lib/tela-nueva-reglas.ts`): guardar ahora perdería el tejido que pidió.
   const [pendiente, setPendiente] = useState<{ nombre: string; alCrear: (id: string) => void } | null>(null);
 
+  // Un segundo toque mientras la base responde no manda otra creación (la base rechazaría el nombre repetido y la persona vería un error por algo que salió bien).
+  const creando = useRef(false);
   async function crear(limpio: string, alCrear: (id: string) => void) {
-    const { valor, error } = await proponerValorVocabulario("tejidos", limpio, responsable.encabezados());
-    if (error || !valor) {
-      avisar.error(error ?? "No se pudo crear el tejido.");
-      return;
+    if (creando.current) return;
+    creando.current = true;
+    try {
+      const { valor, error } = await proponerValorVocabulario("tejidos", limpio, responsable.encabezados());
+      if (error || !valor) {
+        // La pregunta (si había) queda a la vista: con un corte de red se vuelve a tocar «No, es otro», sin reescribir nada.
+        avisar.error(error ?? "No se pudo crear el tejido.");
+        return;
+      }
+      setTejidos((ts) => [...ts, { id: valor.id, nombre: valor.texto }].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
+      setPendiente(null);
+      alCrear(valor.id);
+      avisar.exito(`Tejido «${valor.texto}» creado`, { detalle: "Ya está en la lista de Catálogo." });
+    } finally {
+      creando.current = false;
     }
-    setTejidos((ts) => [...ts, { id: valor.id, nombre: valor.texto }].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
-    alCrear(valor.id);
-    avisar.exito(`Tejido «${valor.texto}» creado`, { detalle: "Ya está en la lista de Catálogo." });
   }
 
   async function crearTejido(texto: string, alCrear: (id: string) => void) {
@@ -76,10 +87,7 @@ export function useTejidosDeLaTela(iniciales: { id: string; nombre: string }[], 
     estado: {
       coincidencias: existentesParecidos(pendiente.nombre, tejidos),
       bloquea: true,
-      esOtro: () => {
-        setPendiente(null);
-        void crear(pendiente.nombre, pendiente.alCrear);
-      },
+      esOtro: () => void crear(pendiente.nombre, pendiente.alCrear),
       reiniciar: () => setPendiente(null),
     },
     usar: (id) => {

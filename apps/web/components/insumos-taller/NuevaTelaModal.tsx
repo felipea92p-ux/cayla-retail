@@ -120,7 +120,7 @@ export function NuevaTelaModal({
         puedeSaldo,
         responsableListo: responsable.listo,
       }
-    : { nombre, tejidoId, composicion, compra, ancho, gramaje, metrosPorRollo, merma, filas, puedeSaldo, responsableListo: responsable.listo };
+    : { nombre, tejidoId, composicion, compra, ancho, gramaje, metrosPorRollo, merma, filas, puedeSaldo, responsableListo: responsable.listo, tejidoPorContestar: preguntaTejido?.nombre };
   const datosDeLaTela: DatosDeLaTela = { nombre: e.nombre, tejidoId: e.tejidoId, composicion: e.composicion, compra: e.compra, ancho: e.ancho, gramaje: e.gramaje, metrosPorRollo: e.metrosPorRollo, merma: e.merma };
   const problemas = problemasDeTelaNueva(e);
   const campos = camposDeTelaNueva(e);
