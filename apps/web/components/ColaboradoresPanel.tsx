@@ -18,6 +18,7 @@ import type { Ubicacion } from "@/lib/ubicaciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { History } from "lucide-react";
 import { AlternarTerminalModal } from "@/components/ColaboradoresModales";
@@ -215,6 +216,7 @@ export function ColaboradoresPanel({
   }
 
   const ve = (x: SeccionColaboradores) => !secciones || secciones.includes(x);
+  const responsableArriba = responsable.estado === "admin" && ve("cuentas") && ve("roles");
   const rolesVigentes = roles?.filter((r) => !r.archivado) ?? [];
   const rolesSinModulos = cuentas ? rolesVigentes.filter((r) => avisoDelRol(r, cuentasDelRol(cuentas, r.id).length) === "sin_modulos").length : 0;
   const nombreSede = (id: string) => ubicaciones.find((u) => u.id === id)?.nombre ?? "la nueva sede";
@@ -292,6 +294,9 @@ export function ColaboradoresPanel({
       {ve("cuentas") && ve("roles") && (
         // Dos pestañas con su número (Felipe 2026-10-27, «palabras clave, compacto»): lo que pide atención (altas por aprobar,
         // roles que dejan cuentas sin módulo) lo dice la franja «Esperan tu ok» y el conteo en ámbar de Roles.
+        // A la derecha, el aviso del Admin como chip de una línea (Felipe 2026-10-30): el recuadro ocupaba una fila entera
+        // bajo las pestañas. Quien no es Admin conserva el combo «Responsable» dentro de Roles.
+        <div className="flex flex-wrap items-center justify-between gap-3">
         <Pestanas
           items={[
             { clave: "cuentas", etiqueta: "Equipo", conteo: colaboradores.length, guia: "colaboradores.sec-equipo" },
@@ -309,6 +314,12 @@ export function ColaboradoresPanel({
           idIndicador="colaboradores"
           guia="colaboradores.secciones"
         />
+        {responsableArriba && (
+          <div data-guia={seccion === "roles" ? "roles.responsable" : undefined}>
+            <ComboResponsable control={responsable} compacto />
+          </div>
+        )}
+        </div>
       )}
 
       {seccion === "cuentas" && ve("cuentas") && (
@@ -390,6 +401,7 @@ export function ColaboradoresPanel({
               admins={admins}
               acciones={accionesRoles}
               responsable={responsable}
+              responsableArriba={responsableArriba}
             />
           )}
         </section>
