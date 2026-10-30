@@ -15,7 +15,9 @@ const FORMATO = {
 /**
  * Un número que cuenta hasta su valor nuevo cuando cambia (ver `useContar`). En reposo es solo el número.
  * `alMontar`: además cuenta desde 0 una vez al aparecer la pantalla. `desde`: al aparecer, cuenta desde ese número (el de antes de guardar).
+ * `decimales`: una cantidad con esos decimales fijos (0.70 no es «1»), en vez de `formato`; la cantidad de un insumo pasa los de su unidad (`UNIDADES_INSUMO[…].vista`).
  */
-export function CifraQueCuenta({ valor, formato = "entero", alMontar = false, desde }: { valor: number; formato?: keyof typeof FORMATO; alMontar?: boolean; desde?: number }) {
-  return <>{FORMATO[formato](useContar(valor, 800, alMontar, desde))}</>;
+export function CifraQueCuenta({ valor, formato = "entero", alMontar = false, desde, decimales }: { valor: number; formato?: keyof typeof FORMATO; alMontar?: boolean; desde?: number; decimales?: number }) {
+  const v = useContar(valor, 800, alMontar, desde);
+  return <>{decimales === undefined ? FORMATO[formato](v) : v.toLocaleString("es-PE", { minimumFractionDigits: decimales, maximumFractionDigits: decimales })}</>;
 }

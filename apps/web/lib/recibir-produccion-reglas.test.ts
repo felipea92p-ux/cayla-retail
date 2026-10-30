@@ -75,7 +75,7 @@ describe("armarRecepcion", () => {
     expect(armarRecepcion([ls[0]], [entrada("a", { codigoLote: " L-7 " })]).lineas[0]).toEqual({ item_id: "a", cantidad: 100, codigo_lote: "L-7" });
   });
   it("no deja recibir más de lo pendiente y lo dice con las unidades", () => {
-    expect(armarRecepcion([ls[0]], [entrada("a", { llego: "101" })]).error).toContain("solo faltan 100 m");
+    expect(armarRecepcion([ls[0]], [entrada("a", { llego: "101" })]).error).toContain("solo faltan 100.00 m");
   });
   it("rechaza números inválidos y más de tres decimales", () => {
     expect(armarRecepcion([ls[0]], [entrada("a", { llego: "abc" })]).error).toContain("no es un número");
