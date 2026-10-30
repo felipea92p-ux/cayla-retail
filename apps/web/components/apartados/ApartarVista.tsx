@@ -35,7 +35,7 @@ import { nombreDePersona } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
-import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
+import { lineasApartables, tomarDescuentosParaApartar, type LineaApartar } from "@/lib/apartar-desde-ticket";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -237,6 +237,19 @@ export function ApartarVista({
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
   }, [lineasIniciales, router]);
+  // ADR-0584: el descuento puesto a mano en el ticket llega con las prendas. Vive en el almacenamiento de la pestaña (lleva texto
+  // escrito: no va en la dirección), así que se lee ya montada la pantalla; se toma una sola vez y solo si es de estas prendas.
+  const descuentoDelTicketLeido = useRef(false);
+  useEffect(() => {
+    if (descuentoDelTicketLeido.current || pedido || guardado || !lineasIniciales?.length) return;
+    descuentoDelTicketLeido.current = true;
+    const delTicket = tomarDescuentosParaApartar(lineasIniciales);
+    if (Object.keys(delTicket).length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lo dejó el ticket en la pestaña: leerlo al iniciar el estado rompería la hidratación (misma decisión que BajarAlPisoForm)
+    setDescuentos(delTicket);
+    // Si alguna prenda no entró (aviso de error), ese aviso manda; si no, se dice que el descuento llegó.
+    setMensaje((m) => (m?.tono === "info" ? { tono: "info", texto: "Las prendas del ticket ya están en la lista, con su descuento. Revisa y sigue con los datos del cliente." } : m));
+  }, [lineasIniciales, pedido, guardado]);
   const [nota, setNota] = useState(guardado?.nota ?? "");
   const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
   const [f, setF] = useState(() =>
