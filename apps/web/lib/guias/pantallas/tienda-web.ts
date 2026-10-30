@@ -82,6 +82,12 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "Cuando no queda nada por hacer, te lo dice en una línea, con lo último que pasó. Abajo quedan los pedidos cerrados de los últimos 30 días.",
     },
     {
+      id: "avisos",
+      ancla: "pedidos-web.avisos",
+      titulo: "Avisos en el celular",
+      texto: "Haz que el celular de la tienda suene cuando llega un pedido web: lo activas una vez en cada teléfono y avisa al minuto, aunque el ERP esté cerrado.",
+    },
+    {
       id: "mensaje",
       ancla: "pedidos-web.mensaje",
       titulo: "Mensaje predeterminado",

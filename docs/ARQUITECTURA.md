@@ -1426,6 +1426,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   sirve al cron de SUNAT). Desde `20261015055000` (**sin pegar en producción**) cuenta los 3 años desde la última compra **o la última
   entrada a la cuenta web** (`cuentas_web.ultima_entrada_en`, o su creación), no toca a quien tiene un pedido web en curso, y al
   anonimizar cierra su cuenta web en la misma escritura (disparador `clientas_cuenta_web_al_anonimizar`; ver «La tienda online»).
+- `GET /api/pedidos-web/avisar` (cron cada minuto, `vercel.json`; ADR-0582; **migración sin pegar en producción**) → `crearClienteAdmin()` →
+  `fn_pedidos_web_push_reclamar(20)` (solo `service_role`: las fichas de la cola `pedidos_web_push_envios` que anota el disparador
+  `pedidos_web_push_nuevo` de `pedidos_web`, con los teléfonos de la sede del pedido cuya cuenta todavía ve «Pedidos web» y opera esa sede)
+  → `lib/push-pedidos-web.ts` (`paqueteDelPedido`, el texto «A · Directo») → `web-push` con `ERP_VAPID_*` →
+  `fn_pedidos_web_push_marcar_enviado` / `fn_pedidos_web_push_quitar_aparato` (404/410). Sin las claves, 503 y la cola espera. El teléfono
+  lo muestra `public/sw.js` (al tocarlo abre `/tienda-web/pedidos?pedido=<id>`); se activa en la hoja «Avisos de pedidos»
+  (`components/pedidos-web/AvisosCelularHoja.tsx` → `pedidos_web_push_activar` / `pedidos_web_push_apagar` / `fn_pedidos_web_push_estado`).
 - `GET /api/pedidos-web/cerrar-vencidos` (cron cada 15 minutos, `vercel.json`; ADR-0408 DECIDÍ 8, tienda online actividad 7; **sin
   pegar en producción**) → `crearClienteAdmin()` → `fn_cerrar_pedidos_web_sin_confirmar()` (solo `service_role`): lee el plazo de
   Tienda web ▸ Ajustes y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve
@@ -2105,6 +2112,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `lib/equilibrio-mes-reglas.ts` → `EquilibrioMes.tsx` («¿Ya pagaste el mes?», que reemplazó a la línea de ventas contra la meta),
     `lib/de-cada-cien-reglas.ts` → `DeCadaCien.tsx` («De cada S/ 100», sobre el recorrido) y `Confianza.tsx`, que pasó de tarjeta al fondo a
     franja bajo la respuesta. Sin migración ni RPC nuevos.
+    **Desde 2026-10-29 (ADR-0579, pulido del Resumen):** `RecorridoPlata.tsx`, `DeCadaCien.tsx` y `lib/de-cada-cien-reglas.ts` ya no existen: «A dónde va la plata» es `AdondeVaLaPlata.tsx` (anillo sobre `recorridoPlata`); `VendidoPorSede.tsx` junta el orillo con `Confianza.tsx` (ahora `ConfianzaChip` y `ConfianzaDetalle`, ya no franja); `TresRespuestas` reparte lo que tienes entre CAYLA y CLAURE y lista las deudas con su fecha (`lib/tres-respuestas-reglas.ts`); `Linea` acepta `bajoReferencia` y `minimo`; `InversionMercaderia` va al final y siempre se ve. Sin migración ni RPC.
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`

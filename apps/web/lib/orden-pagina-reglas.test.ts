@@ -56,6 +56,8 @@ import {
   fasesSinRegistrar,
   pendienteConCosto,
   pasosAgregables,
+  pasoPosteriorEmpezado,
+  textoDePasosBloqueados,
   puedeQuitarPaso,
   queSigue,
   quedanAfuera,
@@ -1351,8 +1353,21 @@ describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () 
     const planchando = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "en_curso" as const }];
     const r = pasosAgregables(q(planchando));
     expect(r.ofrecidos).toEqual([]);
-    expect(r.bloqueados[1]).toEqual({ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes" });
+    expect(r.bloqueados[1]).toEqual({ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes", yaEmpezo: "Planchado" });
     expect(r.bloqueados.map((b) => b.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
+  });
+  it("una orden con Planchado HECHO (la del Short, captura del 30-oct) tampoco ofrece nada, y lo dice con una frase para la hoja", () => {
+    const hecho = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "hecha" as const }];
+    const r = pasosAgregables(q(hecho));
+    expect(r.ofrecidos).toEqual([]);
+    expect(textoDePasosBloqueados(r.bloqueados)).toBe("Pegar cierre, Ojales y botones y Lavado o teñido ya no entran: Planchado ya empezó y irían antes.");
+    expect(textoDePasosBloqueados(r.bloqueados.slice(1, 2))).toBe("Ojales y botones ya no entra: Planchado ya empezó y iría antes.");
+    expect(textoDePasosBloqueados([])).toBeNull();
+  });
+  it("«Otro proceso…» pasa por la misma regla: un proceso que iría antes de un paso ya empezado se frena en la hoja, no después de dar de alta el proceso", () => {
+    const hecho = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "hecha" as const }];
+    expect(pasoPosteriorEmpezado(hecho, 30.5)?.nombre).toBe("Planchado");
+    expect(pasoPosteriorEmpezado(hecho, 65.5)).toBeUndefined();
   });
   it("un paso ANTERIOR empezado no frena nada (Costura a medias)", () => {
     const a_medias = [...NUEVA.slice(0, 3), { ...NUEVA[3], estado: "en_curso" as const, actual: true, hechas: 10 }, NUEVA[4]];

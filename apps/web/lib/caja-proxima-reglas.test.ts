@@ -128,12 +128,12 @@ describe("lo que dice el titular", () => {
     expect(c.tono).toBe("ambar");
     expect(c.bajaDelMinimo).toEqual({ fecha: "2026-10-28", saldo: 12_000 });
     expect(c.masBajo).toEqual({ fecha: "2026-10-28", saldo: 12_000 });
-    expect(texto(c.titular)).toBe("Tu caja baja de tu mínimo: el 28 de octubre llegas a S/ 12,000 y tu mínimo es S/ 15,000.");
+    expect(texto(c.titular)).toBe("Tu caja baja a S/ 12,000 el 28 de octubre: S/ 3,000 bajo tu mínimo.");
   });
 
   it("si se queda sin plata lo dice así, no como «bajo el mínimo»", () => {
     const c = cayla(proyeccion({ saldoHoy: 5_000, salidas: [salida("2026-10-20", "Factura", 8_000)] }));
-    expect(texto(c.titular)).toBe("Tu caja se queda sin plata: el 20 de octubre llegas a −S/ 3,000.");
+    expect(texto(c.titular)).toBe("Te quedas sin plata el 20 de octubre: llegas a −S/ 3,000.");
   });
 
   it("si hoy la caja ya está bajo el mínimo, lo dice así y no inventa un día de «baja»", () => {
@@ -141,7 +141,7 @@ describe("lo que dice el titular", () => {
     expect(c.tono).toBe("ambar");
     expect(c.sinPlata).toBeNull();
     // Hoy tiene 9,000 (ya bajo el mínimo) y el 20 baja a 8,000: dice las dos cosas, con el mismo punto más bajo que el aviso.
-    expect(texto(c.titular)).toBe("Hoy tu caja ya está bajo tu mínimo (tienes S/ 9,000): el 20 de octubre llegas a S/ 8,000 y tu mínimo es S/ 15,000.");
+    expect(texto(c.titular)).toBe("Hoy ya estás bajo tu mínimo y el 20 de octubre llegas a S/ 8,000: te faltan S/ 7,000.");
   });
 
   it("no baja ahora pero sí después: ámbar, con la semana que baja", () => {
@@ -172,7 +172,7 @@ describe("el punto más bajo es UN solo número", () => {
     const c = cayla(proyeccion({ salidas: [salida("2026-10-18", "Factura", 14_000), salida("2026-10-28", "Planilla", 8_000, { tipo: "planilla" })] }));
     expect(c.bajaDelMinimo).toEqual({ fecha: "2026-10-18", saldo: 14_000 });
     expect(c.masBajo).toEqual({ fecha: "2026-10-28", saldo: 6_000 });
-    expect(texto(c.titular)).toContain("el 28 de octubre llegas a S/ 6,000");
+    expect(texto(c.titular)).toContain("Tu caja baja a S/ 6,000 el 28 de octubre");
   });
 
   it("si no baja del mínimo, no hay punto más bajo que contar", () => {
@@ -277,7 +277,7 @@ describe("lo que no se ve o no se pudo leer", () => {
   it("con la proyección provisional el veredicto de alarma lleva la cautela del ADR-0417, y el verde no la necesita", () => {
     const p = { diasDeCajaConfiable: false, saldoInicialDeclarado: false };
     const alarma = cayla(proyeccion({ ...p, salidas: [salida("2026-10-28", "Planilla", 16_000, { tipo: "planilla" })] }));
-    expect(texto(alarma.titular)).toBe("Con lo que hay registrado, tu caja baja de tu mínimo: el 28 de octubre llegas a S/ 12,000 y tu mínimo es S/ 15,000.");
+    expect(texto(alarma.titular)).toBe("Con lo que hay registrado, tu caja baja a S/ 12,000 el 28 de octubre: S/ 3,000 bajo tu mínimo.");
     const bien = cayla(proyeccion({ ...p, salidas: [salida("2026-10-20", "Factura", 1_000)] }));
     expect(bien.titular.startsWith("Tu caja aguanta")).toBe(true);
   });

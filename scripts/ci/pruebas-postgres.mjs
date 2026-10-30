@@ -422,6 +422,9 @@ export const PRUEBAS = [
   // salen de Configuración ▸ Tienda web; el aviso de 48 h calla con adelanto y una prenda por conseguir o en camino; enviar desde
   // otra tienda arma un traslado que se reserva solo al llegar (y vuelve si se anula); Catálogo dice «tiene pedidos web». ROLLBACK.
   "pruebas:pedidos-web-erp",
+  // El aviso en el celular de la sede (ADR-0582): cada pedido nuevo deja su ficha (y nace aunque la cola falle); activar pide el
+  // módulo y la sede; el envío lleva solo los teléfonos de esa sede y vuelve a preguntar el permiso; lo viejo o cerrado no sale. ROLLBACK.
+  "pruebas:pedidos-web-push",
   // La bolsa y «Separar» de la tienda online (ADR-0408, actividad 7): la bolsa da el precio de la tienda elegida (o el mayor) con
   // la campaña y solo «alcanza / hay» por tienda, nunca la cifra; separar vuelve a calcular cada precio, crea el pedido por
   // confirmar SIN tocar el stock y la misma marca da el mismo pedido; cada cliente ve solo sus pedidos (el código de recojo, recién
