@@ -22,6 +22,7 @@ import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
 import { verDeLaVista } from "@/lib/vista-global";
 import { sedeDeLaUrl, sedesDeLaUrl, sedesElegidas } from "@/lib/finanzas-telar-reglas";
 import { verDeVarias } from "@/lib/gastos-varias-sedes";
+import { mesesDeAntes, mesPrevio, seCompara } from "@/lib/gastos-hilos-reglas";
 
 const PESTANAS: PestanaGastos[] = ["gastos", "fijos", "activos", "egresos"];
 const TODAS: Ver = { clave: "todas", ubicacionId: null, soloEmpresa: false };
@@ -64,11 +65,21 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   // Para «¿es uno de tus fijos?» del formulario de gasto: los fijos de TODAS las tiendas (el formulario puede ser de otra tienda que la que se
   // mira) del mes que se mira y del mes de hoy (un gasto de hoy, con otro mes en pantalla). Si una lectura falla, ese mes no pregunta.
   // Y el inicio de Finanzas: antes de esa fecha los fijos no se confirman (la base rechaza un gasto anterior al inicio).
-  const [fijosDeTodas, fijosDeHoy, parametros] = await Promise.all([
+  // «En qué se va» compara cada categoría con los meses de antes (hilos, Felipe 2026-10-30): el mismo resumen del mes, uno por mes y en
+  // paralelo, solo los que empiezan desde el inicio de Finanzas (los de antes ni se piden). Uno que no responde no se compara: el gráfico
+  // sale igual, sin su píldora ni su línea, y el aviso de arriba lo dice.
+  const meses = mesesDeAntes(mes);
+  const parametrosP = getParametrosFinanzas();
+  const [fijosDeTodas, fijosDeHoy, parametros, panelesDeAntes] = await Promise.all([
     ver.clave === "todas" ? Promise.resolve(fijos) : getFijosMes(desde, TODAS),
     mes === mesDeHoy ? Promise.resolve(null) : getFijosMes(rangoMes(mesDeHoy).desde, TODAS),
-    getParametrosFinanzas(),
+    parametrosP,
+    parametrosP.then((p) =>
+      Promise.all(meses.map((m) => (seCompara(m, p?.inicioFinanzas ?? null) ? getPanelGastos(rangoMes(m).desde, rangoMes(m).hasta, ver) : null))),
+    ),
   ]);
+  const previos = meses.map((m, i) => mesPrevio(m, panelesDeAntes[i]?.datos ?? null));
+  const fallaDeAntes = panelesDeAntes.some((p) => p?.falla) ? "No se pudo leer los meses de antes, para comparar" : null;
 
   return (
     <GastosPanel
@@ -95,7 +106,8 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       pestanaInicial={PESTANAS.find((p) => p === sp.tab) ?? "gastos"}
       destinosDeposito={destinosDeposito}
       sedesTelar={telar.sedes}
-      fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla].filter((f): f is string => !!f)}
+      previos={previos}
+      fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla, fallaDeAntes].filter((f): f is string => !!f)}
     />
   );
 }

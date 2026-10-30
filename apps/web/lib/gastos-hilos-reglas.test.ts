@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SedeTelar } from "./finanzas-telar-reglas";
 import { solesRedondo } from "./gastos-reglas";
-import { chipDelMesAnterior, desgloseDe, etiquetaCambio, fraseDeLosHilos, hilosDeGastos, resumenDelDesglose, type MesPrevio } from "./gastos-hilos-reglas";
+import { chipDelMesAnterior, desgloseDe, etiquetaCambio, fraseDeLosHilos, hilosDeGastos, mesesDeAntes, mesPrevio, resumenDelDesglose, seCompara, type MesPrevio } from "./gastos-hilos-reglas";
 
 const SEDES: SedeTelar[] = [
   { clave: "t", nombre: "Trujillo", color: "tru" },
@@ -32,6 +32,24 @@ const OCTUBRE = [
   g("agua", "l", 50),
   g("agua", "l", 0),
 ];
+
+describe("los meses de antes", () => {
+  it("son los cinco anteriores al que se mira, del más viejo al anterior, cruzando el año", () => {
+    expect(mesesDeAntes("2026-10")).toEqual(["2026-05", "2026-06", "2026-07", "2026-08", "2026-09"]);
+    expect(mesesDeAntes("2026-02", 3)).toEqual(["2025-11", "2025-12", "2026-01"]);
+  });
+
+  it("un mes anterior al inicio de Finanzas no se compara (ni se pide); sin corte, todos", () => {
+    expect([seCompara("2026-09", "2026-10-01"), seCompara("2026-10", "2026-10-01"), seCompara("2026-09", null)]).toEqual([false, true, true]);
+  });
+
+  it("un mes que no se pudo leer, o sin un solo gasto (no se registró), queda sin comparar", () => {
+    expect(mesPrevio("2026-09", { porCategoria: [{ categoria: "luz", monto: 10 }] })).toEqual({ mes: "2026-09", porCategoria: [{ categoria: "luz", monto: 10 }] });
+    expect(mesPrevio("2026-09", null)).toBeNull();
+    expect(mesPrevio("2026-09", { porCategoria: [] })).toBeNull();
+    expect(mesPrevio("2026-09", { porCategoria: [{ categoria: "luz", monto: 0 }] })).toBeNull();
+  });
+});
 
 describe("las filas de «En qué se va»", () => {
   it("una por categoría, de la que más gastó a la que menos, sin anulados ni montos en cero", () => {

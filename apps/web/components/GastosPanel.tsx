@@ -74,6 +74,7 @@ import { Boton } from "@/components/ui/campos";
 import { GastosPulso } from "@/components/finanzas/GastosPulso";
 import { bandejaPulso, chipDeFijosPorConfirmar, fijosPorConfirmar, gastastePulso } from "@/lib/gastos-pulso-reglas";
 import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
+import { chipDelMesAnterior, mesesDeAntes, type MesPrevio } from "@/lib/gastos-hilos-reglas";
 import { fijosDelMesVisibles } from "@/lib/fijos-del-mes-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Armchair, Check, FunnelX, Plus, Receipt, Repeat, SearchX, Store, Tag, Wallet } from "lucide-react";
@@ -112,6 +113,7 @@ export function GastosPanel({
   fallas,
   pestanaInicial = "gastos",
   destinosDeposito = [],
+  previos = [],
 }: {
   panel: PanelGastos | null;
   gastos: GastoFila[];
@@ -144,6 +146,8 @@ export function GastosPanel({
   destinosDeposito?: { id: string; nombre: string }[];
   /** Los hilos de sede del telar, para el orillo (`getSedesDelTelar`). */
   sedesTelar: SedeTelar[];
+  /** Los meses de antes, del más viejo al anterior (`mesesDeAntes`); `null` el que no se compara. Para «En qué se va» y su chip. */
+  previos?: MesPrevio[];
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -206,7 +210,10 @@ export function GastosPanel({
   // En «De la empresa» no se lee ningún cajón: la bandeja no puede decir que todo está clasificado.
   const bandeja = bandejaPulso(egresos, fijosDelMes, { egresosLeidos: !ver.soloEmpresa });
   // Lo que la cifra grande todavía no cuenta: los fijos del mes sin confirmar (tarea #2 de /pantalla, 2026-10-22).
-  const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
+  // Y el mes entero contra el anterior, si ese mes se puede comparar (hilos, Felipe 2026-10-30).
+  const nombreMesAnterior = textoMes(mesesDeAntes(mes, 1)[0]!).split(" ")[0]!;
+  const chipAnterior = panel ? chipDelMesAnterior(panel.total, previos.at(-1) ?? null, nombreMesAnterior) : null;
+  const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
 
   return (
     <div className="space-y-6">

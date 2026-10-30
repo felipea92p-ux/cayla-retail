@@ -25,7 +25,34 @@ type GastoParaHilos = {
 export type MesPrevio = { mes: string; porCategoria: readonly { categoria: string; monto: number }[] } | null;
 
 /** Lo que puso una sede en la categoría: `n` gastos que suman `monto`, el `pct` % de la categoría. */
-export type TramoHilo = { clave: ClaveSede; nombre: string; color: ColorSede; monto: number; n: number; pct: number };
+/** Cuántos meses de antes lee la página: la línea de cada fila tiene, como mucho, estos más el que se mira. */
+export const MESES_DE_ANTES = 5;
+
+/** Los meses de antes de `mes` («2026-10»), del más viejo al anterior: `["2026-05", …, "2026-09"]`. */
+export function mesesDeAntes(mes: string, n = MESES_DE_ANTES): string[] {
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(a, m - 1 - n + i, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
+/**
+ * ¿Se compara contra este mes? No si empieza antes del inicio de Finanzas (ADR-0332): lo de antes no se registró, y un «subió» contra ese
+ * mes vacío sería falso; tampoco se pide a la base. `inicioFinanzas` es un día 1 («2026-10-01») o `null` si no hay corte.
+ */
+export const seCompara = (mes: string, inicioFinanzas: string | null) => !inicioFinanzas || `${mes}-01` >= inicioFinanzas;
+
+/**
+ * Un mes de antes, listo para comparar; `null` si no se pidió (antes del inicio), no se pudo leer o no tiene ni un gasto: una tienda
+ * abierta siempre paga algo, así que un mes en cero es un mes que no se registró (sin corte, septiembre de 2026 era eso), no uno barato.
+ */
+export function mesPrevio(mes: string, panel: { porCategoria: readonly { categoria: string; monto: number }[] } | null): MesPrevio {
+  if (!panel || !panel.porCategoria.some((c) => c.monto > 0)) return null;
+  return { mes, porCategoria: panel.porCategoria.map((c) => ({ categoria: c.categoria, monto: c.monto })) };
+}
+
+export type TramoHilo ={ clave: ClaveSede; nombre: string; color: ColorSede; monto: number; n: number; pct: number };
 
 /** Contra el mes anterior: `igual` si se movió menos del 2 %; `nuevo` si ese mes no tuvo nada en la categoría. */
 export type CambioHilo = { tipo: "sube" | "baja" | "igual" | "nuevo"; pct: number };
