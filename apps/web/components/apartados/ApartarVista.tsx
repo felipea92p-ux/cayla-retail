@@ -68,8 +68,7 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
-import { Chip } from "@/components/ui/Chip";
-import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
+import { DescuentoApartado, DescuentoDeLinea } from "@/components/apartados/DescuentoApartado";
 import {
   descuentoParaGuardar,
   descuentosVigentes,
@@ -78,7 +77,6 @@ import {
   totalDescontado,
   type DescuentosDelApartado,
 } from "@/lib/apartar-descuento-reglas";
-import { RAZONES_DESCUENTO, RAZON_CAMPANA, porcentajeDeLinea } from "@/lib/vender-reglas";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -1246,32 +1244,5 @@ function Campo({ etiqueta, error, onBlur, children }: { etiqueta: string; error?
       {children}
       {error && <span className="mt-0.5 block text-xs text-rojo-profundo">{error}</span>}
     </label>
-  );
-}
-
-/** Bajo una prenda del apartado, su descuento: el de la campaña, o el puesto a mano con su motivo y un «Cambiar» que abre la hoja
- *  solo para ella. Sin descuento no dibuja nada: el botón «Descuento» de abajo es para eso. */
-function DescuentoDeLinea({ linea, onAbrir }: { linea: ReturnType<typeof lineaDescontada>; onAbrir: () => void }) {
-  if (linea.descuentoUnitario <= 0) return null;
-  const pct = porcentajeDeLinea(linea);
-  if (linea.razonDescuento === RAZON_CAMPANA) {
-    return (
-      <p className="mt-2 text-[12px] text-tinta/70">
-        <Chip tono="pizarra" versalitas={false}>
-          {linea.campana?.nombre ?? "Campaña"} · −{pct} %
-        </Chip>
-      </p>
-    );
-  }
-  const motivo = RAZONES_DESCUENTO.find((r) => r.valor === linea.razonDescuento)?.etiqueta ?? "Descuento";
-  return (
-    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/70">
-      <Chip tono="ambar" versalitas={false} title={linea.argumentoDescuento || undefined}>
-        −{money(linea.descuentoUnitario)} c/u · {linea.razonDescuento === "otro" ? linea.razonDescuentoOtro || motivo : motivo}
-      </Chip>
-      <button type="button" onClick={onAbrir} className="btn-cayla btn-enlace">
-        Cambiar
-      </button>
-    </p>
   );
 }

@@ -12,7 +12,9 @@
  *      con eso el detalle, Entregar y el Historial distinguen un descuento a mano de uno de campaña;
  *   3. que la regla de Apartar (`fn_exigir_descuento_manual`) y la de la venta (dentro de `registrar_venta`) dicen LO MISMO: cada
  *      caso de rechazo se corre en las dos y exige el mismo error. La regla vive en dos lugares (ver el DESCARTÉ de la migración);
- *      si una cambia sin la otra, esto falla.
+ *      si una cambia sin la otra, esto falla;
+ *   4. que al SUMAR una prenda a un apartado ya hecho (`editar_separacion`, `20261030221000_editar_apartado_con_descuento.sql`) rige
+ *      la misma regla, las prendas que ya estaban conservan su descuento y una prenda quitada pasa al archivo con su motivo.
  *
  * MISMO PATRÓN que `separaciones.mjs`: `docker exec ... psql`, `set local request.jwt.claim.sub` y ROLLBACK siempre.
  * QUÉ DA POR SENTADO. `Tienda Trujillo` y `BLU-EMMA-NEG-M` del seed (S/ 79.90); Felipe (líder) y Micaela (colaboradora en Trujillo).
@@ -64,22 +66,27 @@ select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as piso \\gset
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
   values (:'v', :'ubic', :'piso', 'entrada', 20, 'colchón de prueba') returning id as m0 \\gset
 select retail.fn_aplicar_movimiento(:'m0') as _a \\gset
+select id as v2 from retail.variantes where sku = 'BLU-EMMA-BEI-M' \\gset
+update retail.variantes set costo = 32 where id = :'v2';
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v2', :'ubic', :'piso', 'entrada', 20, 'colchón de prueba') returning id as m1 \\gset
+select retail.fn_aplicar_movimiento(:'m1') as _b \\gset
 set local request.jwt.claim.sub = '${quien}';
 `;
 }
 
 /** El descuento de una línea, como lo manda la web (`descuentoParaGuardar`). */
-const linea = ({ descuento = 0, motivo, detalle, argumento } = {}) =>
-  `jsonb_build_object('variante_id', :'v', 'cantidad', 1, 'precio_unitario', :'precio'::numeric, 'descuento_unitario', ${descuento}` +
+const linea = ({ descuento = 0, motivo, detalle, argumento, variante = "v" } = {}) =>
+  `jsonb_build_object('variante_id', :'${variante}', 'cantidad', 1, 'precio_unitario', :'precio'::numeric, 'descuento_unitario', ${descuento}` +
   (motivo ? `, 'motivo_descuento', '${motivo}'` : "") +
   (detalle ? `, 'motivo_descuento_detalle', '${detalle}'` : "") +
   (argumento ? `, 'argumento_descuento', '${argumento}'` : "") +
   ")";
 
-function separar(d, como = "sep") {
+function separar(d, como = "sep", adelanto = 30) {
   return `select retail.separar_prendas(
     p_ubicacion_id => :'ubic', p_items => jsonb_build_array(${linea(d)}),
-    p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 30)),
+    p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', ${adelanto})),
     p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Lozano Vera', p_clienta_celular => '987111222',
     p_devolucion_medio => 'yape') as ${como} \\gset
 `;
@@ -184,11 +191,72 @@ error("apartar la prenda gratis → venta_descuento_bajo_costo", `${preparar()}u
 ${separar({ descuento: 79.9, motivo: "otro", detalle: "x", argumento: "x" })}`, "venta_descuento_bajo_costo");
 
 // ---------------------------------------------------------------------------
+// 4. Sumar una prenda a un apartado ya hecho (`editar_separacion`, 20261030221000): misma regla, y lo que ya estaba no se toca
+// ---------------------------------------------------------------------------
+/**
+ * Suma la BLU-EMMA-BEI-M (`:'v2'`) al apartado `:'sep'`, con el descuento `d`; `quitar` es una lista SQL de `separacion_items.id`.
+ * Como Felipe: editar pide el módulo Apartados, que el rol de Micaela no trae en la semilla (igual que en `separaciones.mjs`).
+ */
+function sumar(d, quitar = "'{}'::uuid[]") {
+  return `set local request.jwt.claim.sub = '${FELIPE}';
+select retail.editar_separacion(:'sep', ${quitar}, jsonb_build_array(${linea({ ...d, variante: "v2" })}), gen_random_uuid()) as ed \\gset
+`;
+}
+
+exito(
+  "sumar una prenda con 10 % y motivo: la nueva guarda su motivo, la que ya estaba conserva el suyo y el total cuadra",
+  `${preparar()}${separar(DIEZ, "sep", 50)}${sumar(DIEZ)}
+select s.total,
+       (select string_agg(si.descuento_unitario || ':' || coalesce(si.motivo_descuento, '-') || ':' || (si.descuento_etiqueta_id is null), ',' order by si.variante_id = :'v2')
+          from retail.separacion_items si where si.separacion_id = s.id),
+       (select count(*) from retail.fn_verificar_separaciones())
+  from retail.separaciones s where s.id = :'sep';`,
+  (s) => s === "143.80|8.00:cerrar_venta:true,8.00:cerrar_venta:true|0",
+);
+
+error("sumar una prenda con descuento sin motivo → venta_descuento_requiere_motivo",
+  `${preparar()}${separar({}, "sep", 50)}${sumar({ descuento: 8 })}`, "venta_descuento_requiere_motivo");
+
+error("sumar una prenda pasado el 15 % sin argumento → venta_descuento_requiere_argumento",
+  `${preparar()}${separar({}, "sep", 50)}${sumar({ descuento: 16, motivo: "cerrar_venta" })}`, "venta_descuento_requiere_argumento");
+
+exito(
+  "sumar sin descuento sigue como antes: la línea nueva no lleva motivo ni descuento",
+  `${preparar()}${separar({}, "sep", 50)}${sumar({})}
+select descuento_unitario, motivo_descuento is null from retail.separacion_items where separacion_id = :'sep' and variante_id = :'v2';`,
+  (s) => s === "0.00|t",
+);
+
+exito(
+  "quitar una prenda con descuento a mano: el archivo de retiradas guarda su descuento, su motivo, su detalle y su argumento",
+  `${preparar()}${separar({ descuento: 20, motivo: "otro", detalle: "Botón flojo", argumento: "Se cose en tienda" }, "sep", 50)}
+select id as item from retail.separacion_items where separacion_id = :'sep' \\gset
+${sumar({}, "array[:'item']::uuid[]")}
+select r.descuento_unitario, r.motivo_descuento, r.motivo_descuento_detalle, r.argumento_descuento,
+       (select total from retail.separaciones where id = :'sep'), (select count(*) from retail.fn_verificar_separaciones())
+  from retail.separacion_items_retirados r where r.id = :'item';`,
+  (s) => s === "20.00|otro|Botón flojo|Se cose en tienda|79.90|0",
+);
+
+// ---------------------------------------------------------------------------
 // La migración: re-ejecutable y no pisa a ciegas
 // ---------------------------------------------------------------------------
 const MIG = readFileSync(new URL("../../supabase/migrations/20261030220000_apartar_con_descuento_manual.sql", import.meta.url), "utf8");
 const HUELLA = `(select string_agg(md5(pg_get_functiondef(p.oid)), ',' order by p.proname) from pg_proc p
    where p.pronamespace = 'retail'::regnamespace and p.proname in ('separar_prendas', 'entregar_separacion', 'fn_exigir_descuento_manual'))`;
+const MIG_EDITAR = readFileSync(new URL("../../supabase/migrations/20261030221000_editar_apartado_con_descuento.sql", import.meta.url), "utf8");
+const HUELLA_EDITAR = `(select string_agg(md5(pg_get_functiondef(p.oid)), ',') from pg_proc p
+   where p.pronamespace = 'retail'::regnamespace and p.proname = 'editar_separacion')`;
+exito(
+  "la migración de editar se pega dos veces sin cambiar nada ni dejar sobrecargas",
+  `begin;
+select ${HUELLA_EDITAR} as h0 \\gset
+${MIG_EDITAR}
+${MIG_EDITAR}
+select :'h0' = ${HUELLA_EDITAR}, (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'editar_separacion');`,
+  (s) => s === "t|1",
+);
+
 exito(
   "la migración se pega dos veces sin cambiar nada ni dejar sobrecargas",
   `begin;

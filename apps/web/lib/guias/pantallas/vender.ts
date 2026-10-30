@@ -367,7 +367,7 @@ export const GUIA_APARTADOS: Guia = {
       ancla: "apartados.descuento",
       opcional: true,
       titulo: "Un descuento, como en la venta",
-      texto: "Si acordaste un precio con el cliente, toca «Descuento»: en % o en soles, con su motivo y, pasado el 15 %, por qué. El cliente lo conserva hasta que recoja y la boleta sale con ese precio. En la demo no se aplica.",
+      texto: "Si acordaste un precio con el cliente, toca «Descuento»: en % o en soles, con su motivo y, pasado el 15 %, por qué. Lo conserva hasta que recoja y la boleta sale con ese precio. Igual al sumar prendas a un apartado ya hecho: lo que ya estaba guarda el suyo. En la demo no se aplica.",
     },
     {
       id: "dueno-apartado",

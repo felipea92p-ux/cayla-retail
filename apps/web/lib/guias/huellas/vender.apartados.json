@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 170,
+  "total": 171,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -79,8 +79,7 @@
       "input «{f.celular || \"9 dígitos\"}»",
       "Casilla «Le leí las condiciones del apartado»",
       "ComboResponsable «{responsable}»",
-      "button «{cajaAbierta ? (responsable.motivo ?? undefined) : undefined}»",
-      "button «Cambiar» #2"
+      "button «{cajaAbierta ? (responsable.motivo ?? undefined) : undefined}»"
     ],
     "components/apartados/DescuentoApartado.tsx": [
       "SegmentoDeslizante «Cómo escribir el descuento»",
@@ -94,7 +93,8 @@
       "Casilla «{nombreDe(l.varianteId)}»",
       "Boton «Quitar descuento»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»",
+      "button «Cambiar»"
     ],
     "components/apartados/DetalleApartado.tsx": [
       "Boton «{aplazar.bloqueo ?? undefined}»",
@@ -154,6 +154,7 @@
       "button «{h.talla ?? \"—\"}»",
       "button «{fuera ? \"Dejar\" : \"Quitar\"}»",
       "button «No sumar»",
+      "button «Descuento a lo nuevo»",
       "button «{p.referencia}»",
       "ComboResponsable «{responsable}» #4",
       "button «Mejor no» #4",
