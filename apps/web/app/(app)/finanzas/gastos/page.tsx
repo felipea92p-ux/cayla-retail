@@ -52,20 +52,20 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   const elegidas = sedesElegidas(sedesDeLaUrl(sp), telar.sedes, veTodo, persona.ubicacionId);
   const ver = verDeVarias(elegidas, contexto.ubicaciones) ?? leerVer(verDeLaVista(persona.vista, sedeDeLaUrl(sp)), contexto.ubicaciones, veTodo, persona.ubicacionId);
   const mesDeHoy = mesDe(hoy);
-  const [panel, gastos, egresos, marcas, activos, fijos, sugeridos] = await Promise.all([
+  // Para «¿es uno de tus fijos?» del formulario de gasto: los fijos de TODAS las tiendas (el formulario puede ser de otra tienda que la que se
+  // mira) del mes que se mira y del mes de hoy (un gasto de hoy, con otro mes en pantalla). Si una lectura falla, ese mes no pregunta.
+  // Y el inicio de Finanzas: antes de esa fecha los fijos no se confirman (la base rechaza un gasto anterior al inicio).
+  // Todo en una sola tanda (ADR-0583): estas tres lecturas no dependen de las de arriba y antes esperaban a que terminaran.
+  const fijosDelMes = getFijosMes(desde, ver);
+  const [panel, gastos, egresos, marcas, activos, fijos, sugeridos, fijosDeTodas, fijosDeHoy, parametros] = await Promise.all([
     getPanelGastos(desde, hasta, ver),
     getGastos(desde, hasta, ver),
     getEgresosPorClasificar(ver),
     getMarcasNoGasto(ver),
     getActivos(ver),
-    getFijosMes(desde, ver),
+    fijosDelMes,
     getFijosSugeridos(ver),
-  ]);
-  // Para «¿es uno de tus fijos?» del formulario de gasto: los fijos de TODAS las tiendas (el formulario puede ser de otra tienda que la que se
-  // mira) del mes que se mira y del mes de hoy (un gasto de hoy, con otro mes en pantalla). Si una lectura falla, ese mes no pregunta.
-  // Y el inicio de Finanzas: antes de esa fecha los fijos no se confirman (la base rechaza un gasto anterior al inicio).
-  const [fijosDeTodas, fijosDeHoy, parametros] = await Promise.all([
-    ver.clave === "todas" ? Promise.resolve(fijos) : getFijosMes(desde, TODAS),
+    ver.clave === "todas" ? fijosDelMes : getFijosMes(desde, TODAS),
     mes === mesDeHoy ? Promise.resolve(null) : getFijosMes(rangoMes(mesDeHoy).desde, TODAS),
     getParametrosFinanzas(),
   ]);
