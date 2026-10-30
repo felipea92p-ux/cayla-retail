@@ -14,20 +14,23 @@ export const TIPOS_INSUMO: { valor: TipoInsumo; etiqueta: string; plural: string
   { valor: "avio", etiqueta: "Avío", plural: "Avíos", ayuda: "botones, cierres, etiquetas e hilo" },
 ];
 
-/** `corta` acompaña a la cifra («12.5 m»); `larga` es lo que se lee en un selector. */
-export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; decimales: number }> = {
-  metro: { corta: "m", larga: "Metros", decimales: 1 },
-  kilo: { corta: "kg", larga: "Kilos", decimales: 2 },
-  unidad: { corta: "unid.", larga: "Unidades", decimales: 0 },
-  cono: { corta: "conos", larga: "Conos", decimales: 0 },
-  par: { corta: "pares", larga: "Pares", decimales: 0 },
-  docena: { corta: "doc.", larga: "Docenas", decimales: 0 },
+/** `corta` acompaña a la cifra («12.50 m»); `larga` es lo que se lee en un selector.
+ *  Son DOS resoluciones y no se mezclan: `decimales` es con la que se PIDE al proveedor (`cantidadAPedir`: metros de 10 en 10 cm, hacia arriba) y `vista` es con la que se MUESTRA,
+ *  siempre fija. Un lote de 12.25 m se escribe con dos decimales (`leerCantidad`), así que verlo «12.3 m» o, peor, un saldo de 0.70 m como «1 m» es mostrar menos de lo que hay
+ *  (Felipe 2026-10-30). */
+export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; decimales: number; vista: number }> = {
+  metro: { corta: "m", larga: "Metros", decimales: 1, vista: 2 },
+  kilo: { corta: "kg", larga: "Kilos", decimales: 2, vista: 2 },
+  unidad: { corta: "unid.", larga: "Unidades", decimales: 0, vista: 0 },
+  cono: { corta: "conos", larga: "Conos", decimales: 0, vista: 0 },
+  par: { corta: "pares", larga: "Pares", decimales: 0, vista: 0 },
+  docena: { corta: "doc.", larga: "Docenas", decimales: 0, vista: 0 },
 };
 
-/** `12.5 m`, `40 unid.`: los decimales que la unidad admite y no más. */
+/** `12.50 m`, `40 unid.`: los decimales de `vista` de la unidad, siempre los mismos (nunca «12.5» en una fila y «12.50» en la de al lado). */
 export function cantidadTexto(n: number, unidad: UnidadInsumo): string {
   const u = UNIDADES_INSUMO[unidad];
-  return `${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: u.decimales })} ${u.corta}`;
+  return `${n.toLocaleString("es-PE", { minimumFractionDigits: u.vista, maximumFractionDigits: u.vista })} ${u.corta}`;
 }
 
 /** En qué unidades se puede llevar el libro de cada tipo (ADR-0554). Una TELA va siempre en metros: el kilo y el rollo son unidades de COMPRA que se convierten al recibir, porque lo que el
