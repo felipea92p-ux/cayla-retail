@@ -1426,6 +1426,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   sirve al cron de SUNAT). Desde `20261015055000` (**sin pegar en producción**) cuenta los 3 años desde la última compra **o la última
   entrada a la cuenta web** (`cuentas_web.ultima_entrada_en`, o su creación), no toca a quien tiene un pedido web en curso, y al
   anonimizar cierra su cuenta web en la misma escritura (disparador `clientas_cuenta_web_al_anonimizar`; ver «La tienda online»).
+- `GET /api/pedidos-web/avisar` (cron cada minuto, `vercel.json`; ADR-0582; **migración sin pegar en producción**) → `crearClienteAdmin()` →
+  `fn_pedidos_web_push_reclamar(20)` (solo `service_role`: las fichas de la cola `pedidos_web_push_envios` que anota el disparador
+  `pedidos_web_push_nuevo` de `pedidos_web`, con los teléfonos de la sede del pedido cuya cuenta todavía ve «Pedidos web» y opera esa sede)
+  → `lib/push-pedidos-web.ts` (`paqueteDelPedido`, el texto «A · Directo») → `web-push` con `ERP_VAPID_*` →
+  `fn_pedidos_web_push_marcar_enviado` / `fn_pedidos_web_push_quitar_aparato` (404/410). Sin las claves, 503 y la cola espera. El teléfono
+  lo muestra `public/sw.js` (al tocarlo abre `/tienda-web/pedidos?pedido=<id>`); se activa en la hoja «Avisos de pedidos»
+  (`components/pedidos-web/AvisosCelularHoja.tsx` → `pedidos_web_push_activar` / `pedidos_web_push_apagar` / `fn_pedidos_web_push_estado`).
 - `GET /api/pedidos-web/cerrar-vencidos` (cron cada 15 minutos, `vercel.json`; ADR-0408 DECIDÍ 8, tienda online actividad 7; **sin
   pegar en producción**) → `crearClienteAdmin()` → `fn_cerrar_pedidos_web_sin_confirmar()` (solo `service_role`): lee el plazo de
   Tienda web ▸ Ajustes y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve

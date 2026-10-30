@@ -24,6 +24,8 @@ export const metadata: Metadata = {
   // (app/favicon.ico, app/icon.png, app/apple-icon.png). Un `icons` manual convivía
   // con el favicon.ico de plantilla (el triángulo de Vercel) y el navegador elegía
   // el equivocado.
+  // Instalado en el iPhone (ADR-0582): se abre sin la barra de Safari y con este nombre bajo el ícono.
+  appleWebApp: { capable: true, title: "CAYLA ERP", statusBarStyle: "default" },
 };
 
 // `viewport-fit=cover` (ADR-0479, actividad 9): la página llega hasta los bordes del iPhone, con el fondo crema bajo la isla, la
