@@ -1,0 +1,14 @@
+## 2026-10-30 (La base dejó de ahogarse con la lista de asistencia de Dynamic)
+Qué hice: con la memoria de la base en «SEVERE» (103 % comprometida, instancia Small de 2 GB), encontré que la consulta que más base gastaba era una lectura de Dynamic a `public.marcajes` (993 ms de promedio, 12,6 h de base desde el 17-oct) y reescribí sus 4 políticas para que calculen quién eres una vez por consulta y no en cada fila; aplicado en producción hoy (`supabase/migrations/pegar-en-produccion-marcajes-politicas-una-vez-por-consulta-2026-10-30.sql`): de 663 ms a 17 ms, mismas filas.
+Por qué así: la tabla tiene 11 mil filas, no es volumen; antes de escribir se comprobó en producción, en solo lectura, que 8 identidades (4 terminales, admin, integrante, supervisora, sin cuenta) ven exactamente las mismas filas, y el script corrió completo en la base local de Dynamic dentro de una transacción deshecha.
+Felipe se lleva: el mismo cambio tiene que quedar en el repo de Dynamic o una migración suya lo deshace, y averiguar qué pantalla de Dynamic pide esa lista ~3 500 veces al día.
+
+## 2026-10-30 (Los precios de cada tienda se leen 40 veces más rápido)
+Qué hice: la terminal de Dynamic dejó de pedir lo mismo cada minuto (PR felipea92p-ux/cayla-dynamic#622, sin fusionar), y en retail `fn_precios_en_sede` —la lista de precios propios que Vender relee cada 10 s— arma la lista en una consulta en vez de preguntar prenda por prenda: aplicada en producción (`20261030222000`), de 115–141 ms a 3–8 ms, misma lista en las 4 ubicaciones.
+Por qué así: preguntaba a `fn_precio_en_sede` una vez por prenda, y una función `security definer` no se funde con la consulta; la regla de cobro no se tocó, y el caso 21 de `pruebas:precio-sede-variante` exige que la lista diga lo mismo que esa regla en toda combinación y tienda.
+Felipe se lleva: lo siguiente es `campanas_vigentes` (la más llamada de retail: el ERP entero baja todas las campañas cada 10 s solo para saber si algo cambió).
+
+## 2026-10-30 (El ERP deja de bajar todas las campañas cada 10 segundos)
+Qué hice: la base da `campanas_firma(tienda)` (md5 de la misma lista de `campanas_vigentes`, aplicada en producción y verificada igual a la lista en las 3 tiendas) y `<PreciosEnVivo />` —que corre en toda pantalla— pide esa firma en vez de la lista entera; si la función no existe, vuelve a la lista.
+Por qué así: hoy las campañas son chicas, pero en el Aniversario cada pantalla bajaba ~420 KB en 3 páginas cada 10 s; con la firma es una llamada y 32 letras, tenga la campaña el tamaño que tenga, y la firma se calcula sobre la misma función, así que no puede decir otra cosa que la lista.
+Felipe se lleva: el ahorro empieza cuando el código se publique (PR de esta rama); Vender con caja abierta todavía lee la lista cada 10 s y podría pedir la firma primero.
