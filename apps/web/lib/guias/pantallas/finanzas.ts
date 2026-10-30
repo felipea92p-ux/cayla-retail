@@ -378,12 +378,12 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "Arriba de los botones eliges quién lo está registrando. «Registrar gasto» lo guarda y ya suma en las cifras del mes. En la demo no registramos: cerramos la ventana.",
     },
     {
-      id: "retazo",
-      ancla: "fin-gastos.retazo",
+      id: "hilos",
+      ancla: "fin-gastos.hilos",
       preparar: [{ tipo: "escape" }],
       opcional: true,
       titulo: "¿En qué se va la plata?",
-      texto: "Cada pedazo es una categoría, del tamaño de lo que se gastó en ella; la raya de colores de abajo dice qué sede lo gastó. Tocas un pedazo y la lista de abajo muestra solo esa categoría; lo tocas otra vez y vuelve todo.",
+      texto: "Cada fila es una categoría, de la que más se gastó a la que menos. Su barra dice qué sede lo gastó (un color por sede) y la rayita, dónde estaba el mes anterior; al lado, cuánto subió o bajó. Tocas una fila y la lista de abajo muestra solo esa categoría; la tocas otra vez y vuelve todo.",
     },
     {
       id: "calendario",
@@ -436,7 +436,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.puestos",
       opcional: true,
       titulo: "Los filtros puestos",
-      texto: "Cada filtro que pusiste —aquí, en el retazo o en el calendario— aparece como una píldora. La tocas y se quita; «Limpiar todo» quita todos de una vez.",
+      texto: "Cada filtro que pusiste —aquí, en «En qué se va» o en el calendario— aparece como una píldora. La tocas y se quita; «Limpiar todo» quita todos de una vez.",
     },
     {
       id: "lista",

@@ -83,6 +83,9 @@
     "components/finanzas/gastos/CalendarioGastos.tsx": [
       "button «{`${d.dia}»"
     ],
+    "components/finanzas/gastos/HilosGastos.tsx": [
+      "button «{f.nombre}»"
+    ],
     "components/finanzas/gastos/HojaRegistrarGasto.tsx": [
       "button «{`${p.descripcion}»",
       "CampoMonto «Monto»",
@@ -100,9 +103,6 @@
       "Boton «Cancelar»",
       "Boton «Guardar y registrar otro (⌘⇧↵)»",
       "Boton «Registrar (⌘↵)»"
-    ],
-    "components/finanzas/gastos/RetazoGastos.tsx": [
-      "button «{`${p.nombre}»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",

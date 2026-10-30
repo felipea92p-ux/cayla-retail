@@ -234,73 +234,84 @@ span.sede-telar { cursor: default; }
   color: var(--color-crema);
 }
 
-/* ---- Gastos · el retazo: cada categoría es un pedazo del tamaño de su gasto ---- */
-.retazo-gastos {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 100 / 46;
-}
-.retazo-gastos[data-alto] { aspect-ratio: 100 / 110; }
-.retazo-pieza {
-  position: absolute;
-  padding: 3px;
-  animation: retazo-despliega 0.6s var(--ease-cayla) backwards;
-  animation-delay: calc(var(--i, 0) * 55ms);
-}
-@keyframes retazo-despliega {
-  from { opacity: 0; transform: scale(0.96); }
-}
-.retazo-pieza > button {
-  position: relative;
+/* ---- Gastos · los hilos: cada categoría es una fila con su hilo partido por sede (Felipe 2026-10-30, maqueta gastos-grafico-2026-10) ----
+   El hilo es <BarraApilada> a la escala de la categoría más grande; encima, la rayita de dónde estaba el mes anterior. Al cambiar de sede
+   las filas se deslizan a su nuevo puesto (FLIP, HilosGastos.tsx) y los hilos se reacomodan desde donde estaban. Una vez, sin rebote.
+   El ancho lo pone su caja (`@container`), no la ventana: el gráfico vive al lado del calendario. */
+.hilos-gastos { container-type: inline-size; }
+.hilos-leyenda {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  height: 100%;
-  padding: 12px 12px 0;
-  overflow: hidden;
-  text-align: left;
-  border: 1px solid var(--color-sand);
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+  margin: 0 0 6px 12px;
+  font-size: 12px;
+  color: var(--color-taupe-profundo);
+}
+.hilos-leyenda > span { display: inline-flex; gap: 6px; align-items: center; }
+.hilo-antes-muestra { display: inline-block; width: 2px; height: 12px; border-radius: 1px; background: var(--color-tinta); }
+.hilos-filas { margin: 0; padding: 0; list-style: none; }
+.hilo-fila {
   border-radius: 12px;
-  background: var(--color-papel);
-  color: var(--color-tinta);
-  transition: transform 0.3s var(--ease-cayla), border-color 0.2s var(--ease-cayla), background-color 0.3s var(--ease-cayla), color 0.3s var(--ease-cayla);
+  transition: background-color 200ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
+  animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
+.hilo-fila[data-elegida] { background: color-mix(in oklab, var(--color-hueso) 75%, transparent); }
 @media (hover: hover) {
-  .retazo-pieza > button:hover { transform: translateY(-2px); border-color: var(--color-taupe); }
+  .hilos-filas:hover .hilo-fila:not(:hover, [data-elegida]) { opacity: 0.6; }
+  .hilo-fila:hover { background: color-mix(in oklab, var(--color-hueso) 60%, transparent); }
 }
-.retazo-pieza > button:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-.retazo-pieza > button[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
-.retazo-nombre { font-size: 13px; font-weight: 500; line-height: 1.25; }
-.retazo-monto { font-family: var(--font-serif); font-size: clamp(18px, 2vw, 28px); line-height: 1.05; font-variant-numeric: tabular-nums; }
-/* contraste: texto sobre papel y tinta (tinta y crema al 70 %, sobre el piso del 64 %) */
-.retazo-pct { font-size: 11.5px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
-.retazo-pieza > button[aria-pressed="true"] .retazo-pct { color: color-mix(in srgb, var(--color-crema) 70%, transparent); }
-.retazo-pieza[data-chica] .retazo-monto,
-.retazo-pieza[data-chica] .retazo-pct { display: none; }
-.retazo-trama {
+.hilo-cabeza {
+  display: grid;
+  grid-template-columns: 22px minmax(150px, 1.3fr) minmax(0, 2fr) 76px 92px 46px;
+  column-gap: 16px;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+}
+.hilo-rango { font-size: 12px; font-weight: 500; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-nombre {
+  display: grid;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-tinta);
+  text-align: left;
+  cursor: pointer;
+}
+.hilo-nombre:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
+.hilo-nombre b { font-size: 14px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.hilo-nombre small { font-size: 12px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-barra { position: relative; display: block; }
+/* La rayita del mes anterior: un trazo de tinta sobre el hilo, que se corre al cambiar de sede como los tramos. Es gráfico, no texto. */
+.hilo-antes {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  gap: 1px;
-  height: 8px;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--color-tinta);
+  opacity: 0.6;
+  transition: left 700ms var(--ease-cayla);
 }
-.retazo-trama i {
-  --c: var(--color-taupe);
-  flex: 1 1 0;
-  background: var(--c);
-  transform-origin: left;
-  animation: orillo-teje 0.8s var(--ease-cayla) backwards;
-  animation-delay: calc(200ms + var(--i, 0) * 55ms);
+.hilo-cambio { justify-self: start; }
+.hilo-monto { font-family: var(--font-serif); font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.hilo-linea { justify-self: end; color: var(--color-tinta); }
+@container (max-width: 680px) {
+  .hilo-cabeza { grid-template-columns: 22px minmax(120px, 1fr) minmax(0, 1.6fr) 76px 88px; }
+  .hilo-linea { display: none; }
 }
-.retazo-trama i[data-color="tru"] { --c: var(--color-sede-tru); }
-.retazo-trama i[data-color="aqp"] { --c: var(--color-sede-aqp); }
-.retazo-trama i[data-color="lim"] { --c: var(--color-sede-lim); }
-.retazo-trama i[data-color="tal"] { --c: var(--color-sede-tal); }
-.retazo-trama i[data-color="emp"] {
-  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 45%, transparent) 3px 6px);
+@container (max-width: 480px) {
+  .hilo-cabeza { grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 8px; }
+  .hilo-rango { grid-row: 1; }
+  .hilo-nombre { grid-column: 2; grid-row: 1; }
+  .hilo-monto { grid-column: 3; grid-row: 1; }
+  .hilo-barra { grid-column: 2 / -1; grid-row: 2; }
+  .hilo-cambio { display: none; }
 }
 
 /* ---- Gastos · el calendario: más oscuro, más gasto ---- */
@@ -559,9 +570,8 @@ span.sede-telar { cursor: default; }
   .sede-telar,
   .sede-telar-punto,
   .orillo-tramo,
-  .retazo-pieza,
-  .retazo-pieza > button,
-  .retazo-trama i,
+  .hilo-fila,
+  .hilo-antes,
   .calendario-dia,
   .hoja-gasto-sede,
   .hoja-gasto-linea,
