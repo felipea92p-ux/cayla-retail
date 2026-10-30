@@ -1,0 +1,4 @@
+## 2026-10-30 (Gastos: la lista va por día, como el extracto del banco)
+Qué hice: cambié la tabla de 8 columnas de Finanzas ▸ Gastos por una lista por día, del más nuevo al más viejo. Cada día tiene su total pegado arriba al bajar. Cada fila dice qué fue y, debajo, en qué, cómo se pagó y su comprobante. Solo se marca lo que pide algo: anulado, lo que falta pagar con su vencimiento, o sin comprobante desde S/ 300. Lo chico repetido el mismo día va en una fila «×N» que se abre, y se ven los últimos 5 días con «Ver los N días de antes».
+Por qué así: Felipe eligió la L1 de cuatro maquetas y fijó el umbral de S/ 300, porque por debajo están el mototaxi y el baño, que nunca traen factura. Se arma con las piezas decididas (separador del día, fila, insignia, globito, «Ver más»), y buscar y filtrar siguen igual.
+Felipe se lleva: el umbral de S/ 300 es suyo y está escrito en `UMBRAL_SIN_COMPROBANTE` y en ADR-0493 (d); cambiarlo es una línea y su prueba.
