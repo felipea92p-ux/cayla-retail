@@ -425,7 +425,7 @@ span.sede-telar { cursor: default; }
 .ritmo-cajon[data-abierto] { grid-template-rows: 1fr; }
 .ritmo-cajon > div { min-height: 0; overflow: hidden; }
 .ritmo-dia { margin-top: 14px; padding: 12px 14px 8px; border-radius: 12px; background: color-mix(in srgb, var(--color-hueso) 50%, transparent); container: ritmo-dia / inline-size; }
-.ritmo-dia-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 0 10px; }
+.ritmo-dia-cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 0 10px; }
 .ritmo-dia-cabeza h4 { margin: 0; font-family: var(--font-serif); font-size: 18px; font-weight: 500; }
 .ritmo-dia-cabeza small { font-size: 13px; color: var(--color-taupe-profundo); }
 .ritmo-gastos-dia { display: grid; margin-top: 6px; }

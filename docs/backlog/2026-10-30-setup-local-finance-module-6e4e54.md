@@ -20,6 +20,7 @@
 - [x] `<Linea>` gana `notas`, `vienen`, `cifraProyeccion`, `onElegir`/`elegido` (también con el teclado) y el borde de papel en sus textos. Finanzas ▸ Resumen, comprobado: su cifra no se movió.
 - [x] La página lee los gastos del mes anterior (`getGastos`, solo si se compara); `RitmoGastos` reemplaza a `CalendarioGastos` (borrado con su regla, su prueba y su CSS) a todo el ancho bajo «En qué se va».
 - [x] Guía con el paso «Lo que se gastó ese día» (recorrida: 33 pasos ✓) y huella aceptada; el piloto de las guías sabe tocar una pieza SVG. Escenario `gastos.ritmo-dia` en el auditor del tema: 0 hallazgos solo en oscuro. Knip limpio.
-- [ ] **Sin verificar con datos de varios meses** hasta la actividad de verificación (foto, gastos de ejemplo, 1920/1440/375, claro y oscuro, mes cerrado y una sede).
+- [x] Probado en local con 159 gastos y 5 fijos de ejemplo en septiembre y octubre (foto `ritmo-cuando`, restaurada al final): 1920, 1440 y 375 px, claro y oscuro, el mes en curso, septiembre cerrado y Trujillo sola; ningún texto toca una línea y la página no se desplaza de lado en el celular.
+- [ ] **Sin PR:** todo en commits locales de la rama; el PR se abre con `/abrir-pr` cuando Felipe lo pida (va con los hilos).
 - [ ] **No revisado en pantallas con datos:** Caja, Rendimiento, el plan de campaña y el costo de una prenda también usan `<Linea>`; la base local no tiene datos para dibujarlas. La regla deja la cifra donde estaba si no choca, pero conviene mirarlas en producción.
 - [ ] Menor: Playwright no puede tocar el centro de una nota (cae entre el texto y su punto, sobre el gráfico); el escenario toca su texto. Una persona toca el texto.
