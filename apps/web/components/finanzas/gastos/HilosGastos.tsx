@@ -126,7 +126,14 @@ export function HilosGastos({
                 }}
               >
                 <span className="hilo-rango">{i + 1}</span>
-                <button type="button" className="hilo-nombre" aria-expanded={esta} aria-controls={`hilo-${f.categoria}`} onClick={() => elegir(f.categoria, null)}>
+                <button
+                  type="button"
+                  data-guia={i === 0 ? "fin-gastos.hilo-primera" : undefined}
+                  className="hilo-nombre"
+                  aria-expanded={esta}
+                  aria-controls={`hilo-${f.categoria}`}
+                  onClick={() => elegir(f.categoria, null)}
+                >
                   <b>{f.nombre}</b>
                   <small>{f.pct} % de lo gastado</small>
                 </button>
@@ -273,7 +280,7 @@ function Desglose({
   };
 
   return (
-    <div className="hilo-desglose" data-columna={conColumna || undefined}>
+    <div className="hilo-desglose" data-columna={conColumna || undefined} data-guia="fin-gastos.desglose">
       {conColumna && (
         // La columna filtra la lista de al lado (no cambia de sección): sus sedes son botones que quedan presionados. Es la forma que eligió
         // Felipe mirando (la 3, 2026-10-30), aparte de la píldora de filtro del ERP: queda escrito en ADR-0493.

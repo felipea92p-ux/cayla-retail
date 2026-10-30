@@ -84,7 +84,7 @@
       "button «{`${d.dia}»"
     ],
     "components/finanzas/gastos/HilosGastos.tsx": [
-      "button «{f.nombre}»",
+      "button «{i === 0 ? \"fin-gastos.hilo-primera\" : undefined}»",
       "button «{fechaCorta(g.fecha)}»",
       "button «Todas»",
       "button «{t.nombre}»",

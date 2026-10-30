@@ -158,3 +158,34 @@ Felipe, mirando las cinco pantallas a ~2000 px: «que todos usen la pantalla al 
 **DECIDÍ:** sacar Finanzas entera de la lista de deuda de ancho en vez de mantener la excepción del Resumen y revisar las cinco pantallas «una por una». **DESCARTÉ:** la excepción por pantalla (`data-ancho-completo` en cada una), que dejaba a la persona
 viendo la barra cambiar de ancho cada vez que cambiaba de submódulo y obligaba a cada pantalla nueva de Finanzas a acordarse de pedirlo. **SE ROMPE SI:** una pantalla de Finanzas trae un bloque que no se llena a 1920 px y deja un hueco grande
 (se ve en la captura a lo ancho, no en la prueba), o si una pieza nueva se suma a la fila de la barra sin sumar su ancho a los 1038 px de arriba (volvería a dos filas a 1280 px).
+
+## Actualización 2026-10-30 — «En qué se va» de Gastos deja el retazo por los hilos, con su desglose (Felipe, eligiendo mirando)
+
+Felipe, sobre una captura de Gastos: «ese gráfico inicial es horrible y muestra todo de mala manera, no se entiende». Se armaron siete maquetas
+en `docs/maquetas/gastos-grafico-2026-10/` (ronda 1: A · Hilos, Anillo, Río de días; ronda 2: A2 · Hilos con memoria, A3 · Lo que pesa,
+A4 · Mosaico de 100) y eligió **la A2 con el desglose de la A3**, y para elegir la sede dentro del desglose, **la 3 · Columna** (entre
+píldoras, el hilo en grande y columna). Lo que quedó (`components/finanzas/gastos/HilosGastos.tsx`, reglas en `lib/gastos-hilos-reglas.ts`):
+
+1. **Un ranking que se lee de arriba abajo.** Cada categoría es una fila: su hilo partido por sede (`<BarraApilada>`, a la escala de la mayor,
+   con los colores de sede de este ADR), la rayita de dónde estaba el mes anterior, la píldora de cuánto subió (ámbar) o bajó (verde), el
+   monto y su línea de los últimos meses (`<Sparkline>`). Junto al título, la frase de lo que más subió y lo que más bajó (solo entre las
+   categorías que pesan el 4 % o más). La cifra grande de la cabecera suma su chip «▲ 15 % vs septiembre».
+2. **Los meses de antes se leen con el resumen que ya existe** (`fn_gastos_panel`, uno por mes, en paralelo, `page.tsx`): sin migración. Solo
+   se piden los meses que empiezan desde el inicio de Finanzas (ADR-0332), y **un mes sin un solo gasto no se compara**: es un mes que no se
+   registró, no uno barato (sin esa regla, septiembre de 2026 hacía decir «nuevo» a todo y la línea partía de cero). La línea se dibuja con
+   tres meses seguidos o más; un hueco la corta. Si un mes no responde, el aviso de arriba lo dice y el gráfico sale sin comparar.
+3. **Tocar una fila abre su desglose debajo** (tocar un color del hilo la abre ya en esa sede): a la izquierda, las sedes en columna con su monto
+   y su parte, y la hoja clara con el hilo rojo que se desliza a la elegida; a la derecha, cada gasto (día, en qué, a quién, sede, monto) del
+   más grande al más chico, con las filas de `<Tabla>` (`fila-cayla`, su hilo y su «›»), seis a la vista y «Ver N más». Un gasto abre su hoja;
+   «Ver en la tabla» deja la lista de abajo con esa categoría **y esa sede** (filtro nuevo `sede` en `FiltrosLista`, con su píldora).
+4. **Movimiento** (el gráfico propio del telar, en la excepción de arriba): las filas entran en cascada, el hilo crece tramo a tramo, al
+   cambiar de sede las filas se deslizan a su nuevo puesto (FLIP) y los hilos se reacomodan desde donde estaban; el desglose se despliega y
+   la marca de la sede se desliza. Una vez, sin rebote ni bucle; quieto con `prefers-reduced-motion`.
+
+**DECIDÍ:** la columna de sedes como **botones que quedan presionados** (`aria-pressed`), no como pestañas: filtra la lista de al lado, no
+cambia de sección. Es la forma que Felipe eligió mirando, aparte de la píldora de filtro (`pildora-cayla`) que /unificar fija para filtrar:
+queda como excepción decidida de esta pieza, no como una forma nueva para el resto del ERP. **DESCARTÉ:** las tarjetas de sede de la
+primera versión del desglose (no le gustaron), las píldoras y «el hilo en grande» (opciones 1 y 2), atenuar las demás filas al pasar el
+mouse (bajaba su texto por debajo de 4.5:1) y una RPC nueva por mes (el resumen de siempre ya trae lo sumado por categoría). **SE ROMPE SI:**
+la lista del mes deja de traer todos los gastos (el desglose y el hilo salen de ella, `fn_gastos_lista` sin tope) o si `fn_gastos_panel`
+deja de devolver `por_categoria` (se pierde la comparación, sin caerse).

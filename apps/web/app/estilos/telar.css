@@ -253,14 +253,14 @@ span.sede-telar { cursor: default; }
 .hilos-filas { margin: 0; padding: 0; list-style: none; }
 .hilo-fila {
   border-radius: 12px;
-  transition: background-color 200ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
+  transition: background-color 200ms var(--ease-cayla);
   animation: cayla-entrada 420ms var(--ease-cayla) backwards;
   animation-delay: calc(var(--i, 0) * 45ms);
 }
-.hilo-fila[data-abierta] { background: color-mix(in oklab, var(--color-hueso) 75%, transparent); }
+/* La fila abierta, en hueso suave: el «Ver en la tabla» rojo de su pie necesita ese fondo claro para pasar 4.5:1. */
+.hilo-fila[data-abierta] { background: color-mix(in oklab, var(--color-hueso) 50%, transparent); }
 @media (hover: hover) {
-  .hilos-filas:hover .hilo-fila:not(:hover, [data-abierta]) { opacity: 0.6; }
-  .hilo-fila:hover { background: color-mix(in oklab, var(--color-hueso) 60%, transparent); }
+  .hilo-fila:not([data-abierta]):hover { background: color-mix(in oklab, var(--color-hueso) 40%, transparent); }
 }
 .hilo-cabeza {
   display: grid;
