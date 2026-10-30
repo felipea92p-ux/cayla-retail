@@ -270,11 +270,11 @@ cuenta, sede, comprobante, cómo se pagó, monto, estado) se va; queda `Extracto
    (el IGV que se recuperaría, cuánto falta y cuándo vence) al lector y al pasar el mouse.
 4. **Lo chico que se repite el mismo día** (mismo nombre, sede, categoría y forma de pago; cada uno bajo S/ 50 y sin marca) va en una fila con el
    globito de cuántas veces y lo que sumó, y se abre en su lugar (`<FilasDeMas>`).
-5. **Se ven los últimos 5 días**; el resto, con «Ver los N días de antes» (`<BotonVerMas>`). Buscando o con un día elegido se ven todos; si los de
+5. **Se ven los últimos 5 días**; el resto, con «Ver los N días de antes» (`<BotonVerMas>`). Con cualquier filtro puesto (buscar, un día, una categoría, una sede o el comprobante) se ven todos; si los de
    antes serían uno solo, también.
 
 Buscador, filtros, píldoras de lo filtrado, pie y la hoja del gasto no cambian: migrar cambió cómo se ve, no qué hace.
 
-**DECIDÍ:** el separador decidido (versalitas de 11 px) en vez del serif de la maqueta, porque `<SeparadorDia>` es la única pieza del día en el ERP. Y el porqué de la marca va en el `title` y en el texto del lector, no en una frase a la vista: la frase está en la hoja del gasto, a un toque. **DESCARTÉ:** juntar
+**DECIDÍ:** el separador decidido (versalitas de 11 px) en vez del serif de la maqueta, porque `<SeparadorDia>` es la única pieza del día en el ERP. Y el porqué de la marca va en el `title` y en el texto del lector, no en una frase a la vista. **Corregido el mismo día (/formidable):** decía que la frase estaba en la hoja del gasto, a un toque, y no está; ponerla ahí es uno de los 3 cambios que esperan el OK de Felipe. **DESCARTÉ:** juntar
 lo repetido por nombre solamente (un «Baño» del cajón y otro por Yape se leerían como pagados igual) y esconder los anulados (un gasto nunca se
 borra de la vista). **SE ROMPE SI:** la mesa de mando deja de llamarse `.mesa-telar`: el separador se pega bajo la cabecera y queda tapado por la mesa.

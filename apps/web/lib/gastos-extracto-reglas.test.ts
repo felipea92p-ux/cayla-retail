@@ -168,10 +168,13 @@ describe("cuántos días se ven", () => {
     expect(diasALaVista(3, SIN_FILTROS)).toBe(3);
   });
 
-  it("con una búsqueda o un día elegido se ven todos", () => {
+  it("con cualquier filtro puesto se ven todos (también los que pone «Ver cuáles» o «Ver en la tabla»)", () => {
     expect(diasALaVista(20, { ...SIN_FILTROS, q: "luz" })).toBe(20);
     expect(diasALaVista(20, { ...SIN_FILTROS, q: "   " })).toBe(DIAS_A_LA_VISTA);
     expect(diasALaVista(20, { ...SIN_FILTROS, dia: 12 })).toBe(20);
+    expect(diasALaVista(20, { ...SIN_FILTROS, categoria: "luz" })).toBe(20);
+    expect(diasALaVista(20, { ...SIN_FILTROS, sede: "empresa" })).toBe(20);
+    expect(diasALaVista(20, { ...SIN_FILTROS, comprobante: "sin" })).toBe(20);
   });
 
   it("el botón dice cuántos faltan", () => {

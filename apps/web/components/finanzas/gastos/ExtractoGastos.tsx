@@ -4,7 +4,7 @@
 // del día en su separador (que se queda arriba al bajar). Cada fila dice qué fue y, debajo, en qué, cómo se pagó y su comprobante; solo
 // lo que no es normal lleva su marca; lo chico que se repite el mismo día va en una fila «×N» que se abre en su lugar. Se ven los últimos
 // días y el resto con «Ver los N días de antes». Las reglas viven en `lib/gastos-extracto-reglas.ts`; aquí solo se dibujan.
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Globito } from "@/components/ui/Globito";
@@ -58,8 +58,8 @@ export function ExtractoGastos({
   /** Ya filtrados: los filtros y la búsqueda los pone la tarjeta de arriba. */
   gastos: GastoFila[];
   hoy: string;
-  /** Con una búsqueda o un día elegido se ven todos los días (lo buscado no se esconde tras «Ver los días de antes»). */
-  filtros: Pick<FiltrosLista, "q" | "dia">;
+  /** Con cualquier filtro puesto se ven todos los días (lo buscado no se esconde tras «Ver los días de antes»). */
+  filtros: FiltrosLista;
   /** Con varias sedes a la vista, cada fila dice de cuál es (su color y su nombre); con una sola, sobra. */
   verTodas: boolean;
   sedes: SedeTelar[];
@@ -163,7 +163,7 @@ export function ExtractoGastos({
   const dia = (d: DiaDelExtracto<GastoFila>, i: number) => {
     const r = resumenDelDia(d);
     return (
-      <section key={d.fecha} className="extracto-dia" style={{ "--k-dia": i } as CSSProperties} data-guia={i === 0 ? "fin-gastos.dia" : undefined}>
+      <section key={d.fecha} className="extracto-dia" data-guia={i === 0 ? "fin-gastos.dia" : undefined}>
         <SeparadorDia
           hoy={d.hoy}
           total={

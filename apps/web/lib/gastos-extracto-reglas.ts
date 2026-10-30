@@ -190,11 +190,12 @@ export function resumenDelDia(d: Pick<DiaDelExtracto<GastoParaExtracto>, "total"
 }
 
 /**
- * Cuántos días se ven al llegar. Con una búsqueda o un día elegido se ven todos (lo buscado no se esconde); si los de antes serían uno
- * solo, también («Ver el día de antes» por una fila es un toque de más).
+ * Cuántos días se ven al llegar. Con cualquier filtro puesto se ven todos: lo buscado no se esconde, y un «Ver cuáles» o un «Ver en la
+ * tabla» de más arriba ponen la categoría, la sede o el comprobante. Si los de antes serían uno solo, también («Ver el día de antes» por
+ * una fila es un toque de más).
  */
-export function diasALaVista(total: number, f: Pick<FiltrosLista, "q" | "dia">): number {
-  if (f.q.trim() || f.dia) return total;
+export function diasALaVista(total: number, f: FiltrosLista): number {
+  if (f.q.trim() || f.dia || f.categoria || f.sede || f.comprobante !== "todos") return total;
   return total <= DIAS_A_LA_VISTA + 1 ? total : DIAS_A_LA_VISTA;
 }
 
