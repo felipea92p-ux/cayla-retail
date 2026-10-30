@@ -1,0 +1,4 @@
+## 2026-10-30 (Gastos: «En qué se va» deja los recuadros por los hilos, con su desglose por sede)
+Qué hice: cambié el gráfico de recuadros de Finanzas ▸ Gastos por un ranking de hilos. Cada categoría muestra su reparto por sede, la rayita del mes anterior, cuánto subió o bajó y su línea de meses. Al tocarla se abre lo que se gastó exactamente, con las sedes en columna; «Ver en la tabla» filtra la lista por categoría y sede. La cifra grande suma su chip contra el mes anterior.
+Por qué así: Felipe lo eligió mirando siete maquetas (la A2 con el desglose de la A3 y la columna 3). Los meses de antes salen del resumen que ya existía, sin migración, y un mes sin un solo gasto no se compara, para no decir «nuevo» a todo.
+Felipe se lleva: la comparación se verá en producción desde noviembre (septiembre no tuvo gastos registrados) y la línea, con tres meses seguidos. Lo siguiente es «Cuándo», el calendario.
