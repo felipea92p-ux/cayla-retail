@@ -74,6 +74,9 @@ type Props = {
   arreglos?: readonly ArregloLinea[];
   /** La raya punteada vertical de «ahora», con su texto. */
   ahora?: { x: number; texto: string } | null;
+  /** Lo que va del momento en curso (el día o la hora a medias): sigue desde el último punto en tinta punteada, con un punto hueco y su
+   *  cifra («3 · hasta ahora»). No es parte de la línea: dibujarlo dentro la haría «caer» sin haber caído. */
+  enCurso?: { x: number; y: number; cifra: string; texto: string } | null;
   /** Lo que queda bajo la referencia se tiñe de rojo suave y el tramo de la línea que cae ahí se pinta de rojo (la caja bajo tu mínimo, Resumen). */
   bajoReferencia?: boolean;
   /** El punto más bajo, marcado en rojo con su texto («31 oct · S/ 4,842»). */
@@ -134,6 +137,7 @@ export function Linea({
   marcas = [],
   arreglos = [],
   ahora = null,
+  enCurso = null,
   bajoReferencia = false,
   minimo = null,
   cifra = null,
@@ -161,13 +165,13 @@ export function Linea({
   const [guia, setGuia] = useState<number | null>(null);
   const idBajo = useId();
 
-  const todos = [...serie, ...(referencia ?? []), ...(proyeccion ?? [])].map((p) => p.y);
+  const todos = [...serie, ...(referencia ?? []), ...(proyeccion ?? []), ...(enCurso ? [enCurso] : [])].map((p) => p.y);
   const techo = maxY ?? topeRedondo(Math.max(1, ...todos));
   const W = Math.max(ancho, 1);
   const H = alto;
   const angosto = W < 420;
   const L = ejes ? (angosto ? 36 : 44) : 8;
-  const R = cifra || cifraReferencia ? (angosto ? 52 : 64) : 12;
+  const R = cifra || cifraReferencia || enCurso ? (angosto ? 52 : 64) : 12;
   const T = 16;
   const B = marcasX.length > 0 ? 24 : 8;
   const X = (x: number) => L + (hasta === desde ? 0 : ((x - desde) / (hasta - desde)) * (W - L - R));
@@ -268,6 +272,18 @@ export function Linea({
                   <circle key={i} cx={X(p.x)} cy={Y(p.y)} r={guia === p.x ? 6.5 : 4.5} className="linea-punto" style={{ "--i": i } as CSSProperties} />
                 ))}
               {!puntos && <circle cx={X(ultimo.x)} cy={Y(ultimo.y)} r={4.5} className="linea-punto-fin" />}
+              {enCurso && (
+                <g className="linea-en-curso">
+                  <path d={`M${X(ultimo.x).toFixed(1)},${Y(ultimo.y).toFixed(1)} L${X(enCurso.x).toFixed(1)},${Y(enCurso.y).toFixed(1)}`} className="linea-en-curso-trazo" />
+                  <circle cx={X(enCurso.x)} cy={Y(enCurso.y)} r={4.5} className="linea-punto-curso" />
+                  <text x={X(enCurso.x) + 9} y={Y(enCurso.y) + 1} className="linea-cifra">
+                    {enCurso.cifra}
+                  </text>
+                  <text x={X(enCurso.x) + 9} y={Y(enCurso.y) + 14} className="linea-eje">
+                    {enCurso.texto}
+                  </text>
+                </g>
+              )}
               {minimo && (
                 <g>
                   <circle cx={X(minimo.x)} cy={Y(minimo.y)} r={6} className="linea-punto-bajo" />
