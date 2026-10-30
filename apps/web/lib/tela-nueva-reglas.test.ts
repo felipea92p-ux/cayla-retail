@@ -128,6 +128,8 @@ describe("la guía de «Nueva tela»", () => {
     ["con saldo sin costo", { filas: [fila("ARN", { ya: "9" })] }],
     ["con número roto", { filas: [fila("ARN", { ya: "x" })] }],
     ["saldo de quien no es líder", { puedeSaldo: false, filas: [fila("ARN", { ya: "9", costo: "10" })] }],
+    ["con la pregunta del tejido sin contestar", { tejidoPorContestar: "Franelas" }],
+    ["con la pregunta del tejido sin contestar y un tejido ya elegido", { tejidoId: "t1", tejidoPorContestar: "Franelas" }],
   ];
   for (const [nombre, cambio] of casos) {
     for (const firma of [true, false]) {
@@ -141,6 +143,16 @@ describe("la guía de «Nueva tela»", () => {
     const campos = camposDeTelaNueva(base);
     expect(faltanDe(campos).map((c) => c.id)).toEqual(["tejido", "composicion"]);
     expect(sePuedeConfirmar(campos)).toBe(true);
+  });
+  it("un tejido escrito a mano que espera su «¿es otro?» frena el guardado y la guía lo dice: se perdería lo que la persona pidió", () => {
+    const e = { ...base, tejidoPorContestar: " Franelas " };
+    expect(problemasDeTelaNueva(e)).toEqual(["Contesta si «Franelas» es otro tejido o usa el que ya existe."]);
+    const tejido = camposDeTelaNueva(e).find((c) => c.id === "tejido");
+    expect(tejido).toMatchObject({ requerido: true, hecho: false, pendiente: "Contesta si «Franelas» es otro tejido o usa el que ya existe." });
+    expect(sePuedeConfirmar(camposDeTelaNueva(e))).toBe(false);
+    // Contestada (sin pregunta), vuelve a ser solo una sugerencia.
+    expect(sePuedeConfirmar(camposDeTelaNueva({ ...e, tejidoPorContestar: undefined }))).toBe(true);
+    expect(sePuedeConfirmar(camposDeTelaNueva({ ...e, tejidoPorContestar: "" }))).toBe(true);
   });
   it("lo que sigue es lo primero que falta, en el orden de la hoja", () => {
     expect(estadosDe(camposDeTelaNueva({ ...base, nombre: "", filas: [], responsableListo: false }))).toMatchObject({ nombre: "ahora", colores: "falta", quien: "falta" });

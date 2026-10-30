@@ -1,7 +1,7 @@
 import { clave } from "./buscar-prenda-v2";
 import { sugerirCodigoColor } from "./color-codigo";
 import type { ColorAlta } from "./alta-producto";
-import { colorConEseNombre } from "./color-alta-reglas";
+import { atributosParecidos } from "./atributo-parecido";
 
 // Sugerencias de Nuevo producto que siguen lo que la persona ya eligió (skill `/sugerir`, CLAUDE.md «Sugerencias coherentes»).
 //
@@ -187,7 +187,7 @@ export function sugerirColor(
   codigosUsados: ReadonlySet<string> = new Set()
 ): { nombre: Sugerencia; codigo: Sugerencia } {
   const usados = new Set([...codigosUsados, ...colores.map((c) => c.codigo)]);
-  const nombre = (familia ? NOMBRES_DE_COLOR[familia] : undefined)?.find((n) => !colorConEseNombre(n, colores));
+  const nombre = (familia ? NOMBRES_DE_COLOR[familia] : undefined)?.find((n) => atributosParecidos(n, colores, { max: 1 }).length === 0);
   if (!nombre) return { nombre: { texto: "Nombre del color", origen: "neutro" }, codigo: { texto: "3 letras", origen: "neutro" } };
   const codigo = sugerirCodigoColor(nombre, usados);
   return { nombre: { texto: nombre, origen: "familia" }, codigo: codigo ? { texto: codigo, origen: "familia" } : { texto: "3 letras", origen: "neutro" } };
