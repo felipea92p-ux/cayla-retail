@@ -377,6 +377,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   // ADR-0400 (actividad 3): la página de la orden. «Terminé» lo único que falta es lo que ya viene precargado (cuántas) y quién lo anota; «Cambiar quién» es la fila de la fase entera.
   "components/orden-pagina/AnotarAvanceModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarAvanceModal.tsx"] },
+  "components/orden-pagina/AgregarPasoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AgregarPasoModal.tsx"] },
   "components/orden-pagina/CambiarQuienModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CambiarQuienModal.tsx"] },
   // Actividad 4: lo que sale a un servicio y lo que vuelve. «Salida»: cuántas mandas (precargado con lo que puede salir) y quién lo anota. «Vuelta»: cuántas volvieron, qué pasó con lo que no volvió bueno y quién lo anota.
   "components/orden-pagina/AnotarSalidaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarSalidaModal.tsx"] },
@@ -384,6 +385,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Actividad 4b: «Anular» una salida o una vuelta mal anotada. «Falta» = el porqué (la base lo exige, `anular_sin_motivo`) y quién lo anota.
   "components/orden-pagina/AnularSalidaOVueltaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnularSalidaOVueltaModal.tsx"] },
   "components/proveedores-produccion/TarifaServicioModal.tsx": { estado: "aplicada", evidencia: ["components/proveedores-produccion/TarifaServicioModal.tsx"] },
+  "components/proveedores-produccion/ProcesoModal.tsx": { estado: "aplicada", evidencia: ["components/proveedores-produccion/ProcesoModal.tsx"] },
   "components/insumos-taller/NuevaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx"] },
   "components/insumos-taller/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/EditarTelaModal.tsx"] },
   "components/insumos-taller/NuevoInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx"] },
@@ -395,11 +397,17 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/RevertirLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo revierte): el texto dice qué pasa con el stock; no hay camino que indicar." },
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
+  // ADR-0570, actividad 4: «¿Cuánto quedó en el estante?» y «Encontré tela».
+  "components/orden-pagina/AnotarLoUsadoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarLoUsadoModal.tsx"] },
+  "components/orden-pagina/EncontreTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EncontreTelaModal.tsx"] },
   "components/orden-pagina/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EditarTelaModal.tsx"] },
   "components/orden-produccion/FichaDeConsumoHoja.tsx": { estado: "aplicada", evidencia: ["components/orden-produccion/FichaDeConsumoHoja.tsx"] },
   "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
-  "components/orden-pagina/QuitarPasoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién quita el paso): el título dice qué paso sale de la orden y la bajada avisa que no se puede volver a agregar; la base rechaza el resto." },
-  "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
+  "components/orden-pagina/QuitarPasoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién quita el paso): el título dice qué paso sale de la orden y la bajada avisa que se puede volver a agregar; la base rechaza el resto." },
+  // ADR-0570, actividad 3: corregir o eliminar lo anotado, quitar la marca o restaurar, y la nota del equipo.
+  "components/orden-pagina/CorregirAnotacionModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CorregirAnotacionModal.tsx"] },
+  "components/orden-pagina/CambioConMotivoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CambioConMotivoModal.tsx"] },
+  "components/orden-pagina/NotaDeLaOrdenModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/NotaDeLaOrdenModal.tsx"] },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control propio + 8 del cierre y los insumos

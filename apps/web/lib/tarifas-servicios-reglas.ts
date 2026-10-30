@@ -1,6 +1,6 @@
 import { diaCorto } from "./orden-pagina-reglas";
 import { soles } from "./orden-ficha-reglas";
-import { FASES, type FaseClave } from "./orden-fases-reglas";
+import { FASES, faseDe, secuenciaDe, type FaseClave, type FaseDelCatalogo } from "./orden-fases-reglas";
 
 // La lista de precios de los servicios de afuera (ADR-0400, actividad 8; «Proveedores ▸ Servicios y tarifas»): las reglas puras. Sin React ni Supabase.
 //
@@ -42,7 +42,8 @@ function numero(x: unknown): number | null {
   const n = typeof x === "string" && x.trim() !== "" ? Number(x) : x;
   return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
-const claves = new Set<string>(FASES.map((f) => f.clave));
+// Una clave con forma de proceso: la base garantiza que existe en el catálogo (llave foránea, ADR-0570 actividad 5).
+const esClave = (c: string) => /^[a-z][a-z0-9_]{1,39}$/.test(c);
 
 /** La respuesta de `fn_tarifas_de_servicios`. `null` si no es una lista (la base responde NULL a quien no es líder, o falló): la pantalla dice «no se pudo leer», nunca «no hay tarifas». */
 export function leerTarifasDeServicios(crudo: unknown): TarifaDeServicio[] | null {
@@ -53,7 +54,7 @@ export function leerTarifasDeServicios(crudo: unknown): TarifaDeServicio[] | nul
     const fase = texto(t.fase_clave);
     const tarifa = numero(t.tarifa_prenda);
     const desde = texto(t.vigente_desde);
-    if (!proveedorId || !fase || !claves.has(fase) || tarifa === null || tarifa <= 0 || !desde) return [];
+    if (!proveedorId || !fase || !esClave(fase) || tarifa === null || tarifa <= 0 || !desde) return [];
     const minimo = numero(t.cantidad_minima);
     return [
       {
@@ -72,7 +73,7 @@ export function leerTarifasDeServicios(crudo: unknown): TarifaDeServicio[] | nul
   });
 }
 
-const nombreDeFase = (f: FaseClave) => FASES.find((x) => x.clave === f)?.nombre ?? f;
+const nombreDeFase = (f: FaseClave, catalogo: ReadonlyArray<FaseDelCatalogo> = FASES) => faseDe(f, catalogo).nombre;
 
 /** «S/ 4.50 por prenda». */
 export function textoTarifa(t: Pick<TarifaDeServicio, "tarifaPrenda">): string {
@@ -115,9 +116,9 @@ export function serviciosParaTarifar(proveedores: readonly { id: string; nombre:
 export type ServicioConTarifas = { proveedorId: string; nombre: string; activo: boolean; tarifas: TarifaDeServicio[] };
 
 /** Un servicio por fila con sus tarifas (una por fase, en el orden de la ruta). Los servicios activos sin ninguna tarifa también salen, vacíos: son los que faltan cargar. */
-export function tarifasPorServicio(tarifas: readonly TarifaDeServicio[], servicios: readonly ServicioParaTarifar[]): ServicioConTarifas[] {
-  // El mismo orden que `fn_tarifas_de_servicios` (la ruta nueva y la anterior); lo prueba `tarifas-servicios-reglas.test.ts` contra la migración.
-  const orden = ["ploteo", "corte", "habilitado", "bordado", "estampado", "costura", "ojales_botones", "lavanderia", "limpieza_revision", "acabado", "planchado", "etiquetado_embolsado"];
+export function tarifasPorServicio(tarifas: readonly TarifaDeServicio[], servicios: readonly ServicioParaTarifar[], catalogo: ReadonlyArray<FaseDelCatalogo> = FASES): ServicioConTarifas[] {
+  // El mismo orden que `fn_tarifas_de_servicios`: el lugar de cada proceso en la ruta (bordado y estampado, por su lugar sobre la pieza); lo prueba `tarifas-servicios-reglas.test.ts`.
+  const lugar = (fase: string) => secuenciaDe(fase, "pieza", catalogo) ?? 0;
   const porServicio = new Map<string, ServicioConTarifas>();
   for (const s of servicios) porServicio.set(s.id, { proveedorId: s.id, nombre: s.nombre, activo: s.activo, tarifas: [] });
   for (const t of tarifas) {
@@ -126,7 +127,7 @@ export function tarifasPorServicio(tarifas: readonly TarifaDeServicio[], servici
     porServicio.set(t.proveedorId, s);
   }
   return [...porServicio.values()]
-    .map((s) => ({ ...s, tarifas: [...s.tarifas].sort((a, b) => orden.indexOf(a.fase) - orden.indexOf(b.fase)) }))
+    .map((s) => ({ ...s, tarifas: [...s.tarifas].sort((a, b) => lugar(a.fase) - lugar(b.fase)) }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
@@ -152,11 +153,11 @@ function leerMonto(t: string): number | null {
 
 export type ProblemaDeTarifa = { hint: "tarifa_proveedor_inexistente" | "tarifa_fase_invalida" | "tarifa_monto_invalido" | "tarifa_minimo_invalido" | "tarifa_fijo_invalido"; campo: "servicio" | "fase" | "tarifa" | "minimo" | "fijo"; texto: string };
 
-/** Lo que la base rechazaría de lo escrito, en el orden en que la base lo mira. Vacío = la base lo aceptaría. */
-export function problemasDeTarifa(e: EntradaDeTarifa): ProblemaDeTarifa[] {
+/** Lo que la base rechazaría de lo escrito, en el orden en que la base lo mira. Vacío = la base lo aceptaría. Un proceso apagado ya no lleva tarifa nueva. */
+export function problemasDeTarifa(e: EntradaDeTarifa, catalogo: ReadonlyArray<FaseDelCatalogo> = FASES): ProblemaDeTarifa[] {
   const problemas: ProblemaDeTarifa[] = [];
   if (e.proveedorId === "") problemas.push({ hint: "tarifa_proveedor_inexistente", campo: "servicio", texto: "Elige a qué servicio le pones precio." });
-  if (!claves.has(e.fase)) problemas.push({ hint: "tarifa_fase_invalida", campo: "fase", texto: "Elige a qué fase le pones precio." });
+  if (!catalogo.some((f) => f.clave === e.fase && f.activo)) problemas.push({ hint: "tarifa_fase_invalida", campo: "fase", texto: "Elige a qué fase le pones precio." });
   const monto = leerMonto(e.tarifa);
   if (monto === null || monto <= 0 || monto > TARIFA_MAXIMA) problemas.push({ hint: "tarifa_monto_invalido", campo: "tarifa", texto: "Escribe cuánto cobra por prenda: un monto mayor que cero." });
   if (e.minimo.trim() !== "" && !/^\d+$/.test(e.minimo.trim())) problemas.push({ hint: "tarifa_minimo_invalido", campo: "minimo", texto: "El mínimo es un número de prendas, de una en adelante (o déjalo vacío si no pide mínimo)." });
@@ -181,8 +182,8 @@ export function argumentosDeTarifa(e: EntradaDeTarifa): { p_proveedor_id: string
 }
 
 /** El aviso de éxito: «Tarifa de Confecciones del Norte para Costura: S/ 4.50 por prenda». */
-export function textoTarifaGuardada(nombre: string, fase: string, tarifa: number): string {
-  return `Tarifa de ${nombre} para ${nombreDeFase(fase as FaseClave)}: ${soles(tarifa)} por prenda`;
+export function textoTarifaGuardada(nombre: string, fase: string, tarifa: number, catalogo: ReadonlyArray<FaseDelCatalogo> = FASES): string {
+  return `Tarifa de ${nombre} para ${nombreDeFase(fase, catalogo)}: ${soles(tarifa)} por prenda`;
 }
 
 export { nombreDeFase };

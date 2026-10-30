@@ -256,7 +256,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "pedidos-web.abrir", siEsta: true }],
       titulo: "Su boleta",
-      texto: "Salió sola al quedar pagado completo y se manda a SUNAT por la cola de siempre: aquí ves en qué va. Si SUNAT no responde, espera en la cola; el cobro ya quedó.",
+      texto: "Salió sola al quedar pagado completo y se manda a SUNAT por la cola de siempre: aquí ves en qué va. Si SUNAT no responde, espera en la cola; el cobro ya quedó. Debajo puedes imprimir su ticket.",
     },
     {
       id: "codigo",

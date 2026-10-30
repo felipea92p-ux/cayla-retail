@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 129,
+  "total": 130,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -123,6 +123,7 @@
       "button «Cambiar»"
     ],
     "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "Casilla «Recordar en la ficha del modelo»",
       "CampoSelect «Proveedor»",
       "button «+ Registrar proveedor nuevo»",
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
@@ -162,10 +163,10 @@
       "button «Una cifra para todas las tallas»",
       "button «Separar por talla»",
       "Casilla «Dejar este consumo como el del modelo»",
-      "CampoSelect «Avío»",
+      "CampoSelect «Material»",
       "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
       "CampoSelect «Para»",
-      "Boton «+ Agregar avío»",
+      "Boton «+ Agregar material»",
       "Casilla «Dejar estos avíos como los del modelo»"
     ],
     "components/ordenes-lista/FilaDeOrden.tsx": [

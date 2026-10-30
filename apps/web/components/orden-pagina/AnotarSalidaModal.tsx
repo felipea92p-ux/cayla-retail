@@ -11,7 +11,8 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { cantidadesDeFabricaDeSalida, cantidadesQuePuedenSalir, lineasDeSalida, problemasDeSalida, quienDeFase, RPC_REGISTRAR_SALIDA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { cantidadConUnidad, cantidadesDeFabricaDeSalida, cantidadesQuePuedenSalir, esPrimeraFase, lineasDeSalida, problemasDeSalida, quienDeFase, RPC_REGISTRAR_SALIDA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { RPC_ANOTAR_INSUMOS, cantidadDeFabrica, lineasDeTelaQueSale, problemaDeTelaQueSale, telasDeLaOrden } from "@/lib/orden-tela-usada-reglas";
 import { camposDeSalida } from "@/lib/orden-pagina-guia";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
 import { firmar } from "@/lib/responsable-reglas";
@@ -25,6 +26,10 @@ import { useResponsable } from "@/lib/useResponsable";
 //
 // Una salida no se edita ni se borra (solo se agrega, como todo lo anotado en una orden): si se anotó mal, se ANULA con su motivo desde la línea de tiempo (actividad 4b) y se anota de nuevo. El número de guía es solo un texto: el
 // Taller no emite comprobantes (ADR-0400, «Lo que NO cambia»). Un doble clic no anota dos salidas: una marca síncrona corta la segunda llamada.
+//
+// El corte de afuera (ADR-0570, actividad 4; Felipe: «si se corta afuera, sale al mandarla»): cuando la fase es la primera (Corte) y la hace un servicio, la hoja pregunta también cuánta tela
+// le mandas, que sale del estante y queda en la orden (`anotar_insumos_de_la_orden`, todo o nada). Va después de la salida: si la tela falla, la salida queda anotada y se dice. Lo que el
+// cortador devuelve se anota con «Devolver lo que sobró».
 
 export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina; fase: FasePagina; onClose: () => void }) {
   const router = useRouter();
@@ -34,6 +39,10 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(deFabrica).map(([id, n]) => [id, String(n)])));
   const [guiaDeRemision, setGuiaDeRemision] = useState("");
   const [nota, setNota] = useState("");
+  // La tela que se manda a cortar: solo en la primera fase, y solo las telas con algo en el estante. Viene con lo que falta usar según el plan.
+  const telas = useMemo(() => (esPrimeraFase(fase, datos.fases) ? telasDeLaOrden(datos.insumos).filter((t) => t.tipo === "tela" && t.saldo > 0) : []), [fase, datos.fases, datos.insumos]);
+  const [telaQueSale, setTelaQueSale] = useState<Record<string, string>>(() => Object.fromEntries(telas.map((t) => [t.insumoId, cantidadDeFabrica(t)])));
+  const problemaTela = problemaDeTelaQueSale(telas, telaQueSale);
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
 
@@ -51,7 +60,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   const guia = useGuiaCampos(camposDeSalida({ total, excesos: excesos.map((p) => p.texto), responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
-  const fotoActual = fotoFormulario({ cantidades, guiaDeRemision, nota });
+  const fotoActual = fotoFormulario({ cantidades, guiaDeRemision, nota, telaQueSale });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Cambiaste lo que ibas a anotar y todavía no se guardó. Si cierras ahora, se pierde lo que cambiaste.");
   function cerrarTrasGuardar() {
@@ -68,10 +77,15 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
       avisar.error(faltas[0].texto);
       return;
     }
+    if (problemaTela) {
+      avisar.error(problemaTela);
+      return;
+    }
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    const firma = responsable.firma();
     enVuelo.current = true;
     setCargando(true);
     let resultado;
@@ -81,7 +95,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
           RPC_REGISTRAR_SALIDA as never,
           { p_fase_id: fase.id, p_lineas: lineas, p_guia: guiaDeRemision.trim() === "" ? null : guiaDeRemision.trim(), p_nota: nota.trim() === "" ? null : nota.trim() } as never
         ),
-        responsable.firma()
+        firma
       );
     } finally {
       enVuelo.current = false;
@@ -94,7 +108,13 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
       avisar.error(traducirError(error, `anotar lo que mandas a ${servicio}`, { confirmarAntesDeRepetir: true }));
       return;
     }
-    avisar.exito(textoMandaste(total, servicio), { detalle: `${datos.orden.numeroTexto} · ${fase.nombre}` });
+    // La tela que sale con el corte, si se escribió: después de la salida, en una llamada. Si falla, la salida ya quedó anotada y se dice.
+    const sale = lineasDeTelaQueSale(telas, telaQueSale);
+    if (sale.length > 0) {
+      const { error: errorTela } = await firmar(createClient().rpc(RPC_ANOTAR_INSUMOS as never, { p_produccion_id: datos.orden.id, p_lineas: sale, p_nota: `sale a cortar con ${servicio}` } as never), firma);
+      if (errorTela) avisar.error(`La salida quedó anotada, pero la tela no: ${traducirError(errorTela, "anotar la tela que sale", { confirmarAntesDeRepetir: true })} Anótala desde «Tela».`);
+    }
+    avisar.exito(textoMandaste(total, servicio), { detalle: `${datos.orden.numeroTexto} · ${fase.nombre}${sale.length > 0 ? " · con su tela" : ""}` });
     cerrarTrasGuardar();
   }
 
@@ -133,6 +153,28 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
           </CampoGuiado>
         </div>
 
+        {telas.length > 0 && (
+          <div data-guia="prod-orden-salida.tela" className="space-y-3 rounded-xl bg-hueso px-4 py-3">
+            <p className="text-sm text-tinta">
+              <b className="font-semibold">El corte se hace afuera.</b> ¿Cuánta tela le mandas? Sale del estante y queda en la orden; lo que te devuelvan lo anotas con «Devolver lo que sobró».
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {telas.map((t) => (
+                <CampoTexto
+                  key={t.insumoId}
+                  id={`salida-tela-${t.insumoId}`}
+                  etiqueta={`Mandas de ${t.nombre} (${t.unidad === "metro" ? "metros" : t.unidad})`}
+                  inputMode="decimal"
+                  pie={`El plan pide ${cantidadConUnidad(t.falta, t.unidad)} · en el estante hay ${cantidadConUnidad(t.saldo, t.unidad)}`}
+                  value={telaQueSale[t.insumoId] ?? ""}
+                  onChange={(e) => setTelaQueSale((u) => ({ ...u, [t.insumoId]: e.target.value }))}
+                  maxLength={12}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-tinta/65">{problemaTela ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela»."}</p>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoTexto id="salida-guia" etiqueta="N.º de guía" pie="Opcional · el número del papel que viaja con las prendas" value={guiaDeRemision} onChange={(e) => setGuiaDeRemision(e.target.value)} maxLength={40} />
           <CampoTexto id="salida-nota" etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
@@ -150,7 +192,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar || problemaTela !== null} title={guia.frase ?? problemaTela ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               {total > 0 ? `Mandar ${total}` : "Mandar"}
             </Boton>
           </div>

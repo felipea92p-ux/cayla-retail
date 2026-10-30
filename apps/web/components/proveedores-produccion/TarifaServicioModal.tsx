@@ -10,7 +10,7 @@ import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/camp
 import { Modal } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { FASES_DE_LA_HOJA } from "@/lib/orden-fases-reglas";
+import { FASES, fasesDeLaHoja, type FaseDelCatalogo } from "@/lib/orden-fases-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
@@ -39,6 +39,7 @@ export function TarifaServicioModal({
   proveedorId,
   servicios,
   tarifas,
+  procesos = FASES,
   onClose,
 }: {
   tarifa: TarifaDeServicio | null;
@@ -46,6 +47,8 @@ export function TarifaServicioModal({
   proveedorId?: string;
   servicios: ServicioParaTarifar[];
   tarifas: TarifaDeServicio[];
+  /** El catálogo de procesos (ADR-0570, actividad 5): las fases que se pueden tarifar y sus nombres. */
+  procesos?: ReadonlyArray<FaseDelCatalogo>;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -55,8 +58,8 @@ export function TarifaServicioModal({
   const enVuelo = useRef(false);
   const hoy = hoyLima();
 
-  const problemas = problemasDeTarifa(e);
-  const guia = useGuiaCampos(camposDeTarifa(e, responsable.listo));
+  const problemas = problemasDeTarifa(e, procesos);
+  const guia = useGuiaCampos(camposDeTarifa(e, responsable.listo, procesos));
   const cambia = (cambio: Partial<typeof e>) => setE((antes) => ({ ...antes, ...cambio }));
 
   const nombreServicio = tarifa?.proveedorNombre ?? servicios.find((s) => s.id === e.proveedorId)?.nombre ?? "El servicio";
@@ -100,14 +103,14 @@ export function TarifaServicioModal({
       avisar.error(traducirError(error, "guardar la tarifa", { confirmarAntesDeRepetir: true }));
       return;
     }
-    avisar.exito(textoTarifaGuardada(nombreServicio, e.fase, argumentosDeTarifa(e).p_tarifa_prenda), { detalle: "Las órdenes nuevas la sugieren. Las que ya están abiertas conservan la suya." });
+    avisar.exito(textoTarifaGuardada(nombreServicio, e.fase, argumentosDeTarifa(e).p_tarifa_prenda, procesos), { detalle: "Las órdenes nuevas la sugieren. Las que ya están abiertas conservan la suya." });
     cerrarTrasGuardar();
   }
 
   return (
     <Modal
       titulo={tarifa ? "Cambiar la tarifa" : "Nueva tarifa"}
-      subtitulo={tarifa ? `${tarifa.proveedorNombre} · ${nombreDeFase(tarifa.fase)}` : "Lo que cobra un servicio de afuera por prenda en una fase"}
+      subtitulo={tarifa ? `${tarifa.proveedorNombre} · ${nombreDeFase(tarifa.fase, procesos)}` : "Lo que cobra un servicio de afuera por prenda en una fase"}
       variante="hoja"
       tamano="mediana"
       onClose={onClose}
@@ -133,7 +136,7 @@ export function TarifaServicioModal({
                 valor={e.fase}
                 onValor={(v) => cambia({ fase: v })}
                 // El ploteo se cobra por orden, no por prenda: su fijo se escribe en la orden (la lista de precios todavía no lo guarda).
-                opciones={FASES_DE_LA_HOJA.filter((f) => !f.hito).map((f) => ({ valor: f.clave, texto: f.nombre }))}
+                opciones={fasesDeLaHoja(procesos).filter((f) => !f.hito).map((f) => ({ valor: f.clave, texto: f.nombre }))}
                 marcador="Elegir la fase"
               />
             </CampoGuiado>

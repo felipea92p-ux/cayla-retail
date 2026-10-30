@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar, siguienteDe } from "./guia-campos";
-import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeEditarTela, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
+import { camposDeAgregarPaso, camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeEditarTela, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
 import { problemaDeAnulacion } from "./orden-pagina-reglas";
 import { problemasFases, type FaseBorrador, type ProveedorServicio, type TarifaDeLista } from "./orden-fases-reglas";
 
@@ -14,12 +14,31 @@ describe("camposDeAvance — la guía coincide con lo que registrar_avance exige
   it("al abrir la hoja precargada con lo que falta, solo sigue «quién lo anota»", () => {
     const campos = camposDeAvance({ total: 48, responsableListo: false });
     expect(siguienteDe(campos)?.id).toBe("quien");
-    expect(estadosDe(campos)).toEqual({ cantidades: "hecho", quien: "ahora" });
+    expect(estadosDe(campos)).toEqual({ cantidades: "hecho", dia: "hecho", quien: "ahora" });
   });
   it("si se borra todo, sigue «cuántas» y dice qué hacer", () => {
     const campos = camposDeAvance({ total: 0, responsableListo: true });
     expect(siguienteDe(campos)).toMatchObject({ id: "cantidades", pendiente: "Escribe cuántas terminaste en cada talla y color." });
     expect(faltanDe(camposDeAvance({ total: 0, responsableListo: false })).map((c) => c.id)).toEqual(["cantidades", "quien"]);
+  });
+});
+
+describe("camposDeAvance con falla y con fecha (ADR-0570) — la guía coincide con lo que anotar_termine exige", () => {
+  it("una anotación de solo fallas vale: «cuántas» queda hecha con 0 buenas y 2 con falla", () => {
+    const campos = camposDeAvance({ total: 0, conFalla: 2, hayFallas: true, problemaFallas: null, responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(true);
+    expect(estadosDe(campos)).toMatchObject({ cantidades: "hecho", fallas: "hecho" });
+  });
+  it("una falla a medias detiene la hoja y dice qué falta; sin filas de falla, el campo no existe", () => {
+    const campos = camposDeAvance({ total: 6, conFalla: 2, hayFallas: true, problemaFallas: "Cuenta qué pasó con las prendas con falla.", responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(siguienteDe(campos)).toMatchObject({ id: "fallas", pendiente: "Cuenta qué pasó con las prendas con falla." });
+    expect(camposDeAvance({ total: 6, responsableListo: true }).map((c) => c.id)).toEqual(["cantidades", "dia", "quien"]);
+  });
+  it("un día que no vale detiene la hoja con su frase", () => {
+    const campos = camposDeAvance({ total: 6, problemaDia: "Ese día todavía no llega: elige hoy o un día anterior.", responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(siguienteDe(campos)?.id).toBe("dia");
   });
 });
 
@@ -166,5 +185,19 @@ describe("camposDeEditarTela — la guía coincide con lo que guardar_insumos_or
     const campos = camposDeEditarTela({ faltas: [], hayCambios: true, responsableListo: false });
     expect(estadosDe(campos).tela).toBe("hecho");
     expect(siguienteDe(campos)?.id).toBe("quien");
+  });
+});
+
+describe("camposDeAgregarPaso — la guía de «Agregar un paso» dice lo mismo que la de «Cambiar quién»", () => {
+  it("la fila entera es UN campo y después quién lo anota: nada se puede confirmar con una falta o sin responsable", () => {
+    for (const faltas of [[], ["Si «Ojales y botones» sale afuera, elige a quién."]]) {
+      for (const responsableListo of [true, false]) {
+        expect(sePuedeConfirmar(camposDeAgregarPaso({ faltas, responsableListo })), JSON.stringify({ faltas, responsableListo })).toBe(faltas.length === 0 && responsableListo);
+      }
+    }
+  });
+  it("dice lo primero que falta con sus palabras, y sin faltas pasa a quién lo anota", () => {
+    expect(siguienteDe(camposDeAgregarPaso({ faltas: ["Si «Ojales y botones» sale afuera, elige a quién."], responsableListo: true }))).toMatchObject({ id: "fase", pendiente: "Si «Ojales y botones» sale afuera, elige a quién." });
+    expect(estadosDe(camposDeAgregarPaso({ faltas: [], responsableListo: false }))).toEqual({ fase: "hecho", quien: "ahora" });
   });
 });

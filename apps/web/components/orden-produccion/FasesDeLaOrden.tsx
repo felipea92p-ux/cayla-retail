@@ -6,21 +6,24 @@ import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { Aviso } from "@/components/ui/Aviso";
+import { Casilla } from "@/components/ui/Casilla";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CampoMonto, CampoSelect, CampoTexto, type Opcion } from "@/components/ui/campos";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import {
-  FASES_DE_LA_HOJA,
+  FASES,
   FIJO_MAXIMO,
   TARIFA_MAXIMA,
   avisoMinimo,
   faseDe,
+  fasesDeLaHoja,
   leerServicio,
   ordenarFases,
   proveedoresQueSirven,
   type FaseBorrador,
   type FaseClave,
+  type FaseDelCatalogo,
   type Posicion,
   type ProblemaFase,
   type ProveedorServicio,
@@ -122,14 +125,18 @@ export type PropsFasesDeLaOrden = {
   ojalesDelModelo?: boolean | null;
   /** «+ Registrar proveedor nuevo» bajo el combo de cada fase de afuera (ver `useAltaDeProveedorServicio`). */
   onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
+  /** El catálogo de procesos leído de la base (ADR-0570, actividad 5); sin él, el de respaldo. */
+  catalogo?: ReadonlyArray<FaseDelCatalogo>;
+  /** «Recordar en la ficha del modelo» (ADR-0570, actividad 5): sin modelo que exista no se ofrece. */
+  recordar?: { marcada: boolean; onCambio: () => void };
 };
 
-export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas, ojalesDelModelo, onAgregarProveedor }: PropsFasesDeLaOrden) {
+export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas, ojalesDelModelo, onAgregarProveedor, catalogo = FASES, recordar }: PropsFasesDeLaOrden) {
   const sirven = proveedoresQueSirven(proveedores);
   const opcionesProveedor: Opcion<string>[] = sirven.map((p) => ({ valor: p.id, texto: p.nombre }));
-  const encendidas = ordenarFases(fases).filter((f) => f.encendida || faseDe(f.clave).siempre);
-  // Las que se pueden encender, en el orden del catálogo (Bordado · Estampado · Lavandería), no en el de la ruta.
-  const apagadas = FASES_DE_LA_HOJA.filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
+  const encendidas = ordenarFases(fases, catalogo).filter((f) => f.encendida || faseDe(f.clave, catalogo).siempre);
+  // Las que se pueden encender, en el orden del catálogo (Pegar cierre · Ojales y botones · Lavado o teñido y los que dé de alta el líder).
+  const apagadas = fasesDeLaHoja(catalogo).filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
   const sinServicios = opcionesProveedor.length === 0 && encendidas.some((f) => f.quien === "servicio");
 
   function cambiar(clave: FaseClave, parche: Partial<FaseBorrador>) {
@@ -141,7 +148,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
     else
       onFases([
         ...fases,
-        { clave, encendida: true, quien: "taller", proveedorId: null, tarifa: "", fijo: "", minimo: "", fechaPrometida: "", posicion: faseDe(clave).posicionable ? "pieza" : null },
+        { clave, encendida: true, quien: "taller", proveedorId: null, tarifa: "", fijo: "", minimo: "", fechaPrometida: "", posicion: faseDe(clave, catalogo).posicionable ? "pieza" : null },
       ]);
   }
 
@@ -164,6 +171,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
               onCambiar={(parche) => cambiar(fase.clave, parche)}
               onApagar={() => cambiar(fase.clave, { encendida: false })}
               onAgregarProveedor={onAgregarProveedor}
+              catalogo={catalogo}
             />
           ))}
           {apagadas.length > 0 && (
@@ -177,8 +185,17 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
             </div>
           )}
         </div>
-        {ojalesDelModelo === null && (
-          <p className="text-[12.5px] text-tinta/70">Nadie ha dicho si este modelo lleva ojales y botones. Lo que elijas aquí se recuerda para las próximas órdenes.</p>
+        {recordar && (
+          <label className="flex items-start gap-2.5 text-[13px] text-tinta" data-guia="prod-orden-nueva.recordar">
+            <Casilla marcada={recordar.marcada} onCambio={recordar.onCambio} etiqueta="Recordar en la ficha del modelo" />
+            <span>
+              Recordar en la ficha del modelo
+              <span className="block text-[12.5px] text-tinta/70">
+                {ojalesDelModelo === null ? "Nadie ha dicho todavía qué procesos lleva este modelo. " : ""}
+                Las próximas órdenes nacen con los mismos procesos; en cada una se pueden cambiar.
+              </span>
+            </span>
+          </label>
         )}
         {sinServicios && (
           <Aviso tono="info" chico>
@@ -203,6 +220,7 @@ export function FilaFase({
   onCambiar,
   onApagar,
   onAgregarProveedor,
+  catalogo = FASES,
 }: {
   fase: FaseBorrador;
   totalPrendas: number;
@@ -215,8 +233,10 @@ export function FilaFase({
   onApagar?: () => void;
   /** Abre el alta de un proveedor de servicio; `alRegistrar` recibe el id del nuevo para elegirlo en esta fase. Sin ella, no se ofrece (la hoja que lo usa no lo permite). */
   onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
+  /** El catálogo de procesos (el nombre de un proceso propio); sin él, el de respaldo. */
+  catalogo?: ReadonlyArray<FaseDelCatalogo>;
 }) {
-  const def = faseDe(fase.clave);
+  const def = faseDe(fase.clave, catalogo);
   const nombreEnFrase = def.nombre.toLocaleLowerCase("es");
   const servicio = fase.quien === "servicio";
   const lectura = servicio ? leerServicio(fase, tarifas, hoy) : null;

@@ -2,8 +2,22 @@
   "guia": "tienda-web.pedidos",
   "ruta": "/tienda-web/pedidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 74,
+  "total": 85,
   "controles": {
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Reintentar»",
+      "Boton «Corregir pago»",
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
+    ],
     "components/pedidos-web/AnularPagoHoja.tsx": [
       "BotonVer «Ir a Caja»",
       "SegmentoDeslizante «Por qué se anula el pago»",
@@ -62,6 +76,7 @@
       "Boton «{guia.frase ?? undefined}» #5",
       "BotonAncla «Escribirle por WhatsApp» #4",
       "BotonAncla «WhatsApp» #4",
+      "BotonImprimir «Imprimir ticket»",
       "Boton «pedido-web.anular-pagado»",
       "BotonDeshacer «→() => onDecision(decisionDeFabrica(l, tiendaId))»",
       "button «(sin nombre)» #2",

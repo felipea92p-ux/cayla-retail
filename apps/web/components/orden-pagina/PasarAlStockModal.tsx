@@ -9,7 +9,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { soles } from "@/lib/compras-reglas";
@@ -17,11 +17,14 @@ import { leerCostoAtipico, type CostoAtipico } from "@/lib/costo-atipico-reglas"
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeCierre } from "@/lib/orden-pagina-guia";
 import {
+  MAX_MOTIVO_CAMBIO,
   RPC_CERRAR_PRODUCCION,
+  RPC_PERMITIR_SIN_TELA,
   cantidadesTerminadas,
   fasesSinRegistrar,
   pendienteConCosto,
   lineasDeCierre,
+  problemaDeMotivoCambio,
   problemasDeCierre,
   resumenDeCierre,
   textoPasasteAlStock,
@@ -29,7 +32,7 @@ import {
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
-import { avisoSinTelaDeclarada, avisoTelaSinAnotar } from "@/lib/orden-tela-sin-anotar-reglas";
+import { MOTIVOS_SIN_TELA, avisoSinTelaDeclarada, avisoTelaSinAnotar, permisoSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
 import { urlLlevarATiendas } from "@/lib/produccion-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
@@ -41,10 +44,27 @@ import { useResponsable } from "@/lib/useResponsable";
 // las buenas. El costo de los servicios sale de lo devengado, ya no se teclea; quien ve los costos del Taller ve aquí cuánto sale cada prenda. Si la base dice que el costo por prenda sale
 // fuera de lo normal (`costo_atipico`), un líder lo confirma en línea, como siempre. Una muestra solo se da por terminada: no toca el stock. Un doble clic no cierra dos veces: una marca
 // síncrona corta la segunda llamada (y la base ya rechaza una orden cerrada).
-// Si la tela del lote todavía no se anotó (plan > 0 y nada usado), un aviso lo dice antes del botón: el costo por prenda saldría sin tela y alimenta el promedio de la prenda en todas las sedes
-// (ADR-0400, «Tela y costo honestos» b; OK de Felipe 2026-10-16). Es un aviso y nunca un candado: «Pasar al stock» sigue disponible, y «Anotarla ahora» deja esta hoja y abre «Anotar lo que usaste».
+// La tela sin anotar (plan > 0 y nada usado) FRENA el paso al stock desde ADR-0570 (actividad 4; Felipe 2026-10-29: «sin tela anotada no pasa al stock, salvo el Líder o el Admin con
+// motivo»): el costo por prenda saldría sin tela y alimentaría el promedio de la prenda en todas las sedes. «Anotar cuánto quedó» deja esta hoja y abre esa. Un líder puede, en cambio, dejarla
+// pasar sin tela con su porqué: la hoja llama primero a `permitir_pasar_sin_tela` (queda en la historia) y después a `cerrar_produccion`, que lo vuelve a comprobar (`cierre_sin_tela`).
+// Una orden que no declaró ninguna tela sigue con su aviso, sin candado (ver ADR-0570, actividad 4, DESCARTÉ).
 
-export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela }: { datos: OrdenPagina; onClose: () => void; /** Deja esta hoja y abre «Anotar lo que usaste» con esa tela. Sin esto, el aviso se muestra sin el botón. */ alAnotarTela?: (insumoId: string) => void; /** Deja esta hoja y abre «Declarar tela y avíos». Sin esto (la cuenta no puede editar la tela), el aviso se muestra sin el botón. */ alDeclararTela?: () => void }) {
+export function PasarAlStockModal({
+  datos,
+  onClose,
+  alAnotarTela,
+  alDeclararTela,
+  esLider = false,
+}: {
+  datos: OrdenPagina;
+  onClose: () => void;
+  /** Deja esta hoja y abre «¿Cuánto quedó en el estante?». Sin esto, el aviso se muestra sin el botón. */
+  alAnotarTela?: () => void;
+  /** Deja esta hoja y abre «Declarar tela y avíos». Sin esto (la cuenta no puede editar la tela), el aviso se muestra sin el botón. */
+  alDeclararTela?: () => void;
+  /** La cuenta es líder: puede dejar pasar sin tela, con su porqué. */
+  esLider?: boolean;
+}) {
   const router = useRouter();
   const { orden, fases, lineas: lineasOrden } = datos;
   const responsable = useResponsable({ ubicacionId: orden.ubicacionId, etiqueta: orden.ubicacionNombre });
@@ -66,15 +86,30 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
   const problemas = problemasDeCierre(fases, lineasOrden, cantidades, nombreDe);
   const resumen = resumenDeCierre(datos, total);
   const telaSinAnotar = avisoTelaSinAnotar(datos.insumos, orden.esMuestra);
+  const permiso = permisoSinTela(datos.cambios);
+  const frenaTela = telaSinAnotar !== null && permiso === null;
+  const [porqueSinTela, setPorqueSinTela] = useState("");
+  const problemaPorque = problemaDeMotivoCambio(porqueSinTela);
   const sinTela = avisoSinTelaDeclarada(datos.insumos, orden.esMuestra);
   // Fases que salieron afuera sin registrar quién (ADR-0551): las que llevan costo lo devengan igual (su costo SÍ entra al de las prendas); las que no, no suman nada. Es un aviso, nunca un candado (como la tela sin anotar).
   const sinRegistrar = fasesSinRegistrar(fases);
   const sinRegistrarSinCosto = sinRegistrar.filter((f) => !pendienteConCosto(f));
   const sinRegistrarConCosto = sinRegistrar.filter((f) => pendienteConCosto(f));
-  const guia = useGuiaCampos(camposDeCierre({ total, problemas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
+  const guia = useGuiaCampos(
+    camposDeCierre({
+      total,
+      problemas: problemas.map((p) => p.texto),
+      responsableListo: responsable.listo,
+      tela: frenaTela
+        ? esLider
+          ? { hecho: problemaPorque === null, pendiente: "Anota cuánto quedó de la tela o, si de verdad pasa sin tela, cuenta por qué." }
+          : { hecho: false, pendiente: "Anota cuánto quedó de la tela, o pide a un líder que la deje pasar sin tela." }
+        : null,
+    })
+  );
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
-  const fotoActual = fotoFormulario({ cantidades });
+  const fotoActual = fotoFormulario({ cantidades, porqueSinTela });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Cambiaste cuántas salieron buenas y todavía no se pasó nada al stock. Si cierras ahora, se pierde lo que cambiaste.");
   function cerrarTrasGuardar() {
@@ -89,6 +124,10 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
       avisar.error(problemas[0].texto);
       return;
     }
+    if (frenaTela && (!esLider || problemaPorque)) {
+      avisar.error(esLider ? (problemaPorque ?? "") : "Falta anotar la tela: anota cuánto quedó, o pide a un líder que la deje pasar sin tela.");
+      return;
+    }
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -97,6 +136,17 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
     setCargando(true);
     let resultado;
     try {
+      // El permiso de pasar sin tela va antes, en su propia llamada: queda en la historia aunque el paso al stock falle después (y entonces no hace falta pedirlo otra vez).
+      if (frenaTela) {
+        const { error: errorPermiso } = await firmar(createClient().rpc(RPC_PERMITIR_SIN_TELA as never, { p_produccion_id: orden.id, p_motivo: porqueSinTela.trim() } as never), responsable.firma());
+        if (errorPermiso) {
+          responsable.despues(errorPermiso);
+          setCargando(false);
+          avisar.error(traducirError(errorPermiso, "dejarla pasar sin tela", { confirmarAntesDeRepetir: true }));
+          router.refresh();
+          return;
+        }
+      }
       // Los montos van en `null` a propósito: la base toma la tela y los avíos del libro de insumos y los servicios de lo devengado.
       resultado = await firmar(
         createClient().rpc(
@@ -228,18 +278,50 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
           </Aviso>
         )}
 
-        {telaSinAnotar && (
-          <Aviso
-            tono="atencion"
-            accion={
-              alAnotarTela ? (
-                <Boton type="button" peso="fantasma" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(() => alAnotarTela(telaSinAnotar.insumoId))}>
-                  Anotarla ahora
-                </Boton>
-              ) : undefined
-            }
-          >
-            {telaSinAnotar.texto}
+        {telaSinAnotar && frenaTela && (
+          <div data-guia="prod-orden-stock.tela" className="space-y-3">
+            <CampoGuiado id="tela" guia={guia} className="space-y-3">
+              <Aviso
+                tono="error"
+                accion={
+                  alAnotarTela ? (
+                    <button type="button" className="btn-cayla btn-enlace" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(alAnotarTela)}>
+                      Anotar cuánto quedó
+                    </button>
+                  ) : undefined
+                }
+              >
+                {telaSinAnotar.texto}
+              </Aviso>
+              {esLider ? (
+                <div className="space-y-2 rounded-xl bg-hueso px-4 py-3">
+                  <span className={campoEtiqueta}>{guia.etiqueta("tela", "¿La dejas pasar sin tela?")}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {MOTIVOS_SIN_TELA.map((m) => (
+                      <button key={m} type="button" className="pildora-cayla" aria-pressed={porqueSinTela === m} onClick={() => setPorqueSinTela(m)}>
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                  <CampoTexto
+                    id="stock-sin-tela"
+                    etiqueta="O cuéntalo con tus palabras"
+                    pie="Solo un líder. Queda en la historia de la orden y el costo de la prenda sale sin tela."
+                    value={porqueSinTela}
+                    onChange={(e) => setPorqueSinTela(e.target.value)}
+                    maxLength={MAX_MOTIVO_CAMBIO}
+                  />
+                </div>
+              ) : (
+                <p className="text-xs text-tinta/70">Si de verdad pasa sin tela, un líder puede dejarla pasar desde esta misma hoja, con su porqué.</p>
+              )}
+            </CampoGuiado>
+          </div>
+        )}
+
+        {telaSinAnotar && permiso && (
+          <Aviso tono="info" chico>
+            {permiso.quienNombre ?? "Un líder"} la dejó pasar sin tela: «{permiso.texto}».
           </Aviso>
         )}
 
