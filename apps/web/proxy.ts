@@ -158,5 +158,6 @@ export const config = {
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
   // `mac-etiquetas/` (ADR-0304), igual: el instalador del ayudante se baja con `curl`, sin sesión; redirigido al login,
   // Terminal recibía HTML y la instalación fallaba. Son dos scripts públicos, sin datos.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // `manifest.webmanifest` (ADR-0582), igual: el navegador lo pide sin cookies; redirigido al login, el ERP no se podía instalar.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|manifest\\.webmanifest|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
