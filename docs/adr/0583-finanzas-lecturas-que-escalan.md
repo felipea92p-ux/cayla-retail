@@ -53,7 +53,8 @@ Y eso con **un solo mes de datos** (Finanzas cuenta desde el 2026-10-01: 1.526 v
 3. Resumen: los sueldos estimados se piden a la vez que el resumen (`lib/resumen-finanzas.ts`), y la línea de ventas también, con las tiendas
    adivinadas de la URL (`tiendasAdivinadas`); si la base resolvió otras (`mismasTiendas` falla), se piden de nuevo. Nunca se muestra una serie de
    otras tiendas: la apuesta solo se usa si coincide exacta.
-4. Gastos: la tercera ronda (fijos de todas las sedes, fijos de hoy, parámetros) entra en la segunda; los fijos del mes se piden una sola vez.
+4. Gastos: la tercera ronda (fijos de todas las sedes, fijos de hoy, parámetros) entra en la segunda. Lo hizo a la vez #1501 («En qué se va»),
+   que entró antes a `main`: al resolver el conflicto quedó su versión, que ya pide todo en una vuelta.
 5. Cuentas y dinero: la lista de sedes y los saldos se leen a la vez (`getContextoDinero`).
 
 ## Lo que se descartó
