@@ -26,10 +26,7 @@ export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; p
                   </Chip>
                 )}
                 <p>{a.detalle}</p>
-                <p className="fin-impacto">
-                  {a.impacto && <>{a.impacto} · </>}
-                  <span className="fin-origen">sale de {a.origen}</span>
-                </p>
+                {a.impacto && <p className="fin-impacto">{a.impacto}</p>}
               </div>
               {a.href ? (
                 <Link href={a.href} className="btn-cayla btn-sutil btn-chico" data-guia="fin-resumen.aviso-accion">

@@ -3,7 +3,7 @@ import fixture from "./resumen-finanzas.fixture.json";
 import { estadoDeCaja, type CajaCayla, type CajaProxima } from "./caja-proxima-reglas";
 import { debesPronto, leerResumen } from "./resumen-finanzas-reglas";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { desgloseDeTienes, respuestaDeClaure, tresRespuestas } from "./tres-respuestas-reglas";
+import { desgloseDeTienes, tresRespuestas } from "./tres-respuestas-reglas";
 
 // Las tres respuestas de arriba del Resumen: lo que tienes, lo que debes pagar pronto y lo que te deja el mes. Ninguna calcula plata:
 // cada una repite la cifra de donde ya vive, y aquí se prueba que no se desvíen.
@@ -36,30 +36,41 @@ describe("tresRespuestas", () => {
     expect(armar(cajaCayla())[0].chips).toEqual([{ texto: "Te alcanza", tono: "verde" }]);
   });
 
-  it("si se le debe algo a CLAURE, «¿Cuánto tienes?» dice cuánto es de Claudia y cuánto queda disponible (la cifra no cambia)", () => {
+  it("si se le debe algo a CLAURE, «¿Cuánto tienes?» reparte lo que tienes entre CAYLA y CLAURE (la cifra no cambia)", () => {
     const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: "/finanzas/dinero", hrefPorPagar: "/finanzas/dinero/por-pagar", claure: { saldo: 500 } });
     expect(t.valor).toBe(21500);
-    expect(t.chips.map((c) => texto(c.texto))).toEqual(["Te alcanza", "De eso, S/ 500.00 es de Claudia", "Disponible real S/ 21,000.00"]);
+    expect(t.chips.map((c) => c.texto)).toEqual(["Te alcanza"]);
+    expect(t.reparto).toEqual([
+      { clave: "cayla", nombre: "De CAYLA", monto: 21000 },
+      { clave: "claure", nombre: "De CLAURE", monto: 500 },
+    ]);
+    expect(t.reparto!.reduce((a, p) => a + p.monto, 0)).toBe(t.valor);
   });
 
-  it("sin deuda con CLAURE (o con saldo a favor de CAYLA) no agrega nada; mirando una sede tampoco", () => {
-    const sin = (claure: { saldo: number } | null) => tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure })[0].chips.map((c) => c.texto);
-    expect(sin(null)).toEqual(["Te alcanza"]);
-    expect(sin({ saldo: 0 })).toEqual(["Te alcanza"]);
-    expect(sin({ saldo: -30 })).toEqual(["Te alcanza"]);
+  it("sin deuda con CLAURE no reparte nada; con saldo a favor de CAYLA lo dice aparte; mirando una sede tampoco reparte", () => {
+    const sin = (claure: { saldo: number } | null) => tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure })[0];
+    expect(sin(null).reparto).toBeUndefined();
+    expect(sin({ saldo: 0 }).reparto).toBeUndefined();
+    expect(sin({ saldo: -30 }).reparto).toBeUndefined();
+    expect(sin({ saldo: -30 }).chips.map((c) => texto(c.texto))).toEqual(["Te alcanza", "CLAURE te debe S/ 30"]);
     const sede = { tipo: "sede", nombre: "Lima", vende: true, hoy: "2026-10-15", hasta: "2026-10-29", efectivo: 1200, entra: 0, sale: 0, mayores: [], titular: "", sinPlanilla: false } as unknown as CajaProxima;
-    expect(tresRespuestas({ r: leerResumen(fixture.todas), caja: sede, deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure: { saldo: 500 } })[0].chips).toEqual([]);
+    const enSede = tresRespuestas({ r: leerResumen(fixture.todas), caja: sede, deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure: { saldo: 500 } })[0];
+    expect(enSede.reparto).toBeUndefined();
+    expect(enSede.chips).toEqual([]);
   });
 
-  it("lo que se le debe a Claudia pasa de lo que hay: el disponible real sale en rojo", () => {
+  it("lo que se le debe a Claudia pasa de lo que hay: lo de CAYLA sale negativo en el reparto", () => {
     const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla({ saldoHoy: 300 }), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure: { saldo: 500 } });
-    expect(t.chips.at(-1)).toEqual({ texto: "Disponible real S/\u00a0-200.00", tono: "rojo" });
+    expect(t.reparto).toEqual([
+      { clave: "cayla", nombre: "De CAYLA", monto: -200 },
+      { clave: "claure", nombre: "De CLAURE", monto: 500 },
+    ]);
   });
 
-  it("la tarjeta de CLAURE dice lo que se le debe y lleva a su pantalla; si se le pagó de más, lo que ella le debe; sin lectura, lo dice", () => {
-    expect(respuestaDeClaure(234.34, "/finanzas/dinero/claure")).toMatchObject({ clave: "claure", pregunta: "¿Cuánto le debes a CLAURE?", valor: 234.34, href: "/finanzas/dinero/claure" });
-    expect(respuestaDeClaure(-12, null)).toMatchObject({ pregunta: "¿Cuánto te debe CLAURE?", valor: 12 });
-    expect(respuestaDeClaure(null, null)).toMatchObject({ valor: null, noSePudoLeer: true });
+  it("si la lectura de CLAURE se cayó, «¿Cuánto tienes?» lo dice y no inventa un reparto", () => {
+    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claureFalla: true });
+    expect(t.reparto).toBeUndefined();
+    expect(t.chips.map((c) => c.texto)).toContain("No se pudo leer lo de CLAURE");
   });
 
   it("una caja provisional lo dice primero; sin plata gana sobre «bajo tu mínimo»", () => {
@@ -87,9 +98,22 @@ describe("tresRespuestas", () => {
     expect(b.valor).toBe(d.monto);
     expect(b.href).toBe("/finanzas/dinero/por-pagar");
     if (d.vencidas.length) {
-      expect(b.chips).toEqual([{ texto: "Hay deudas vencidas", tono: "ambar" }]);
-      expect(texto(b.detalle!)).toMatch(/vencidas? \(S\/ [\d,]+\)/);
+      expect(b.chips).toEqual([{ texto: d.vencidas.length === 1 ? "1 vencida" : `${d.vencidas.length} vencidas`, tono: "ambar" }]);
+      expect(b.filas!.some((f) => f.tono === "rojo" && /^Vencida hace \d+ d$/.test(f.cuando))).toBe(true);
     }
+  });
+
+  it("«¿Cuánto debes pronto?» lista cada deuda con su fecha, de la que vence antes a la que vence después, y cuenta las que no caben", () => {
+    const r = leerResumen(fixture.todas);
+    const d = debesPronto(r)!;
+    const [, b] = armar(cajaCayla(), r);
+    const total = d.vencidas.length + d.proximas.length + (d.planilla ? 1 : 0);
+    expect(b.filas!.length).toBe(Math.min(4, total));
+    expect((b.masFilas ?? 0) + b.filas!.length).toBe(total);
+    // Lo que vence antes va primero: ninguna fila «Vencida» detrás de una que vence en el futuro.
+    const vencidasAlFinal = b.filas!.findIndex((f) => f.tono === "ambar");
+    if (vencidasAlFinal >= 0) expect(b.filas!.slice(vencidasAlFinal).every((f) => f.tono === "ambar")).toBe(true);
+    expect(b.detalle).toBeUndefined();
   });
 
   it("sin nada que vencer, lo dice en vez de dejar un renglón vacío", () => {
@@ -136,12 +160,12 @@ describe("«¿Cuánto tienes?» dice de qué está hecha", () => {
     const t = conDesglose(99569.56, desgloseDeTienes(HOY_27, 99569.56));
     expect(t.valor).toBe(99569.56);
     expect(texto(t.detalle!)).toBe(
-      "En bancos, cajas fuertes y cajones: S/ 42,897. Más S/ 56,146 de tarjeta y QR que las máquinas todavía no depositan y S/ 526 en fondos y plata por rendir.",
+      "A mano S/ 42,897 · por llegar S/ 56,146 · en fondos S/ 526",
     );
   });
   it("si las partes no suman el titular no inventa un desglose (queda el texto de siempre)", () => {
     expect(desgloseDeTienes(HOY_27, 90000)).toBeNull();
-    expect(texto(conDesglose(90000, desgloseDeTienes(HOY_27, 90000)).detalle!)).toBe("En cajones, cajas fuertes y bancos de toda la empresa.");
+    expect(texto(conDesglose(90000, desgloseDeTienes(HOY_27, 90000)).detalle!)).toBe("Bancos, cajas y cajones.");
   });
   it("sin las cuentas, o con una que la persona no ve, no se atreve a repartir", () => {
     expect(desgloseDeTienes(null, 100)).toBeNull();
@@ -153,14 +177,14 @@ describe("«¿Cuánto tienes?» dice de qué está hecha", () => {
   });
   it("si no hay nada más que explicar, queda el texto de siempre, que ya era exacto", () => {
     const solo = [cuenta("banco", 500), cuenta("caja_fuerte", 100), cuenta("cajon", 50)];
-    expect(texto(conDesglose(650, desgloseDeTienes(solo, 650)).detalle!)).toBe("En cajones, cajas fuertes y bancos de toda la empresa.");
+    expect(texto(conDesglose(650, desgloseDeTienes(solo, 650)).detalle!)).toBe("Bancos, cajas y cajones.");
   });
   it("solo lo que las máquinas deben, o solo fondos, también se dice sin «y» de más", () => {
     expect(texto(conDesglose(1200, desgloseDeTienes([cuenta("banco", 1000), cuenta("por_abonar", 200)], 1200)).detalle!)).toBe(
-      "En bancos, cajas fuertes y cajones: S/ 1,000. Más S/ 200 de tarjeta y QR que las máquinas todavía no depositan.",
+      "A mano S/ 1,000 · por llegar S/ 200",
     );
     expect(texto(conDesglose(1500, desgloseDeTienes([cuenta("banco", 1000), cuenta(FONDO, 500)], 1500)).detalle!)).toBe(
-      "En bancos, cajas fuertes y cajones: S/ 1,000. Más S/ 500 en fondos y plata por rendir.",
+      "A mano S/ 1,000 · en fondos S/ 500",
     );
   });
 });
