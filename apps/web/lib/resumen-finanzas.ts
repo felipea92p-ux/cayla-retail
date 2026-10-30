@@ -6,6 +6,9 @@ import { calcularConfianza, leerHechosConfianza, type Confianza } from "@/lib/fi
 import { aplicarProvision, delMes, resumenDeProvision } from "@/lib/planilla-provision-reglas";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
 import { rangoMes } from "@/lib/gastos-reglas";
+import { mesAnterior } from "@/lib/resultados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import type { FilaProvision } from "@/lib/planilla-provision-reglas";
 
 // Finanzas ▸ Resumen (ADR-0195 F10; contrato en 20260925200000_finanzas_resumen.sql). Solo LEE, en una sola llamada:
 // `fn_resumen_finanzas` junta lo que ya calculan las fases y respeta el permiso de cada una. Si la lectura entera falla, la
@@ -15,26 +18,29 @@ export type Lectura<T> = { datos: T; falla: string | null };
 
 export async function getResumenFinanzas(pedido: { ubicacionId: string | null; soloEmpresa: boolean }): Promise<Lectura<ResumenFinanzas | null>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc(
-    "fn_resumen_finanzas" as never,
-    { p_ubicacion_id: pedido.ubicacionId, p_solo_empresa: pedido.soloEmpresa } as never
-  );
+  // Los sueldos estimados se piden A LA VEZ que el resumen (ADR-0583): antes se esperaba a que el resumen terminara para saber su mes, y
+  // eso sumaba una espera entera. El mes es el de hoy en Lima, el mismo que usa la base; si justo a medianoche no coinciden, se piden otra vez.
+  const mes = hoyLima().slice(0, 7);
+  const [{ data, error }, provision] = await Promise.all([
+    supabase.rpc("fn_resumen_finanzas" as never, { p_ubicacion_id: pedido.ubicacionId, p_solo_empresa: pedido.soloEmpresa } as never),
+    getProvisionPlanilla(rangoMes(mesAnterior(mes)).desde, rangoMes(mes).hasta, pedido.ubicacionId),
+  ]);
   if (error) {
     capturarError("finanzas.resumen", error);
     return { datos: null, falla: explicarFallaLectura(error, "leer el resumen") };
   }
-  return { datos: await conSueldosEstimados(leerResumen(data), pedido.ubicacionId), falla: null };
+  return { datos: await conSueldosEstimados(leerResumen(data), pedido.ubicacionId, { mes, filas: provision }), falla: null };
 }
 
 /**
  * Suma los sueldos ESTIMADOS (ADR-0453) al Estado de resultados del mes y al del anterior: lo que corresponde pagar hasta hoy según las
  * boletas de Dynamic, de un período que todavía no pagó. Fuera del libro (la base sigue igual) y marcado en cada fila. Una sola lectura
- * cubre los dos meses; el período que TERMINA en un mes es la planilla de ese mes (D-35). Sin estimación (Dynamic no la ve esta cuenta,
+ * cubre los dos meses (pedida a la vez que el resumen: `leida`); el período que TERMINA en un mes es la planilla de ese mes (D-35). Sin estimación (Dynamic no la ve esta cuenta,
  * no abrió el período, o la lectura falló), el Resumen queda como la base lo dijo.
  */
-async function conSueldosEstimados(r: ResumenFinanzas, ubicacionId: string | null): Promise<ResumenFinanzas> {
+async function conSueldosEstimados(r: ResumenFinanzas, ubicacionId: string | null, leida: { mes: string; filas: FilaProvision[] }): Promise<ResumenFinanzas> {
   if (r.resultadosMes.estado !== "ok" && r.resultadosAnterior.estado !== "ok") return r;
-  const prov = await getProvisionPlanilla(rangoMes(r.mesAnterior).desde, rangoMes(r.mes).hasta, ubicacionId);
+  const prov = leida.mes === r.mes ? leida.filas : await getProvisionPlanilla(rangoMes(r.mesAnterior).desde, rangoMes(r.mes).hasta, ubicacionId);
   if (!prov.length) return r;
   return {
     ...r,
