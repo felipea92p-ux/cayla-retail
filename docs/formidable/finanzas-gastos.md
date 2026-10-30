@@ -1,5 +1,66 @@
 # Formidable · Finanzas ▸ Gastos — la fila de un gasto del viaje   (`/finanzas/gastos`)
 
+## Después de los 3 cambios (OK de Felipe) · 2026-10-30, noche — medido otra vez y segunda prueba ciega
+
+- **SHA:** `cc1a10a64` + el nombre único de los fijos   · **Qué cambió:** los 3 cambios de la pasada de abajo, tal cual se propusieron (ADR-0493,
+  actualización (c)). Y uno que pidió la segunda ciega: el «si sigue así», la leyenda y el día abierto decían «fijos sin registrar» y «fijo que
+  falta pagar», y el chip de la cifra «fijos por confirmar»; ahora todos dicen **«por confirmar»**.
+- **Entorno:** el mismo (159 gastos de ejemplo, «hoy» = 30 de octubre, foto restaurada al final). Ojo: a fin de mes, «a esta altura» casi no se
+  distingue del mes entero; el caso del 10 de octubre lo cubren las pruebas puras (`gastos-hilos-reglas.test.ts`: el chip, la píldora y la frase
+  dicen «subió», como «Cuándo»).
+
+### Medido (antes → después)
+| Comprobación | Antes | Después |
+|---|---|---|
+| Dónde empieza «Cuándo», 1440 × 900 | 1 293 px | **1 100 px** |
+| Dónde empieza «Cuándo», 375 × 812 | 1 730 px | **1 476 px** |
+| Dónde empieza la lista, 1440 × 900 | 2 091 px | 1 940 px |
+| A 1024 × 768 | «En qué se va» en 624 px | en 699 px: el chip «▲ 6 % vs septiembre a esta altura» pasa a una segunda fila (+30 px) y la frase a dos líneas; «Cuándo» igual sube (1 378 → 1 259 px) |
+| La frase de los hilos a 1024 | — | se partía dejando «%)» solo abajo: **arreglado** con un espacio duro entre el número y su «%» |
+| Contraste, desborde | sin fallas | sin fallas (claro y oscuro: `tema:auditar`, 0 hallazgos solo en oscuro) |
+| Oficio de las dos secciones | 5 de 8 (piezas del sistema) | igual |
+
+### Notas (0–10) después
+| Eje | Antes | Ahora | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 7 | 8 | [Observado] segunda ciega: las cuatro bien al primer intento, en 12 pasos (antes 14); el cierre, «seguridad alta», explicado con sus partes (antes «media a baja») · real: sin probar (tope 8) |
+| 2 Una pregunta, una respuesta | 5 | 8 | [Medido] el chip, las píldoras, la rayita y las dos frases comparan igual (pruebas del 10 de octubre); [Observado] usó el chip y «Cuándo» sin contradecirse |
+| 3 Simplicidad profunda | 7 | 8 | [Observado] «Es S/ 10,967 más un día normal (S/ 186) por el día que falta, más S/ 210 de 2 fijos»; queda «¿cómo sale un día normal?» |
+| 4 Lenguaje de tienda | 7 | 8 | [Observado] «a esta altura» se entendió («hasta el mismo día del mes»); los tres nombres de los fijos, ya uno; «Empresa» como sede sigue (de antes) |
+| 5 Contenido primero | 6 | 7 | [Medido] «Cuándo» 193 px más arriba a 1440 y 254 a 375; a 1440 sigue bajo el pliegue (la cabecera ocupa 576 px) |
+| 6 Lo difícil, a un toque | 7 | 7 | sin cambio: el día y la categoría a un toque; cómo se calcula un día normal no está |
+| 7 Perdonar antes que preguntar | — | — | solo lee |
+| 8 Quitar antes de agregar | 6 | 7 | [Medido] el chip ya no contradice; queda el doble mensaje del mes vacío en «En qué se va» |
+| 9 De punta a punta | 8 | 8 | [Medido] 375, 1024, oscuro, mes cerrado, mes vacío |
+| **Leyes (promedio)** | 6,6 | **7,6** | ninguna ley bajo 7 |
+| **Oficio visual** | 7 | **7** | [Medido] igual: lo que falla son piezas del sistema |
+
+### Segunda prueba ciega (Opus, sobre 5 capturas nuevas de 1440 px; la de Sonnet la cortó un filtro de seguridad de la API a mitad del informe y se relanzó una vez con otro modelo, como pide `prueba-ciega.md`)
+| Medida | Resultado | Pasa |
+|---|---|---|
+| Lectura de 5 s | «la pantalla de "Gastos"… cuánto se gastó en el mes (S/ 10,967) y en qué se va, empezando por Alquileres» | sí |
+| Primer intento | las cuatro bien: más (S/ 599, ▲ 6 %), Alquileres (S/ 5,400), el lunes 5 con sus 4 gastos (S/ 3,095, sumó), ≈ S/ 11,362 con sus partes | sí |
+| Pasos | 12 y uno que tocaría (antes 14) | casi |
+| Dudas | 14; de lo nuevo: «un día normal» (¿cómo sale?) y un sol de redondeo; los tres nombres de los fijos (**arreglado**); dos vienen de cómo se sacaron las capturas (el día 5 ya abierto en la captura 3 y un globito del día 7 donde estaba el mouse), no de la pantalla | no |
+| Palabras no entendidas | 9, casi todas de antes («Por pagar», «Te toca», «Activos fijos», «Empresa»…); de lo nuevo, «un día normal» y «Llevabas» (las interpretó bien) | no |
+| Errores evitables | 0 en las respuestas; 4 casi errores (un «▲ 6 %» que coincide en el total y en Suministros, «TIENDA LIMA» arriba con «Todas» elegido, el globito de la captura, la nota del 3 al 5) | casi |
+
+**Refutado al revisarlo:** «las barritas al lado de cada gasto salen vacías» en el desglose. Medido en vivo: se llenan (100 %, 87,5 %, 37,5 %); la
+captura se sacó 1 s después del clic, con la animación de llenado aún corriendo.
+
+### Lo que queda (no se ejecuta sin Felipe)
+- «¿Cómo sale un día normal?»: el porqué no está a un toque (un globito sobre el «≈» o la frase: «lo de un día sin fijos ni gastos grandes»).
+- «TIENDA LIMA» arriba a la derecha con «Ver sede · Todas» elegido: la ciega dudó si veía solo Lima (es la sede de la cuenta; viene del marco).
+- El desglose no tiene cómo cerrarse a la vista (se cierra tocando la fila otra vez).
+- La lista aparte de la pasada de abajo (N2, el globito de `<Linea>`, el dock que tapa datos).
+
+### Historial
+| Fecha | SHA | Leyes | Oficio | Cambios cerrados |
+|---|---|---|---|---|
+| 2026-10-30 (noche) | `cc1a10a64` + nombre de los fijos | 7,6 (ley 1: 8; ninguna bajo 7) | 7 | los 3 cambios con el OK de Felipe; «%)» huérfano a 1024; un solo nombre para los fijos |
+
+---
+
 ## «En qué se va» (hilos) y «Cuándo» (ritmo del mes) · 2026-10-30 — medido, con prueba ciega
 
 - **Fecha / SHA:** 2026-10-30 · `33a3bef5b` (rama `claude/setup-local-finance-module-6e4e54`)   · **Dispositivo que manda:** escritorio (Mac mini); 375 px se adapta

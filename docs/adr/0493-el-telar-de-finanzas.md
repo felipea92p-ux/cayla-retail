@@ -225,3 +225,29 @@ línea comparada sea **el mes anterior a la misma altura**, no su promedio: es l
 gasto), que Felipe vio y no eligió; la mediana de un día como ritmo (en un mes con pocos gastos da cero y no proyecta nada); y una RPC que sume
 por día (la lista del mes ya trae cada gasto). **SE ROMPE SI:** `fn_gastos_lista` del mes anterior deja de responder (se calla la comparación,
 sin caerse: el aviso de arriba lo dice) o `fn_gastos_fijos_mes` deja de traer `fecha_esperada` (los fijos caerían mañana).
+
+## Actualización 2026-10-30 (c) — Gastos compara a la misma altura, dice de qué está hecho el «si sigue así» y acorta «En qué se va» (Felipe, los 3 cambios de /formidable)
+
+`/formidable` midió las dos secciones nuevas (`docs/formidable/finanzas-gastos.md`) y una prueba ciega las recorrió. Felipe aprobó sus tres
+cambios («Sí, los 3»):
+
+1. **En el mes en curso, todo compara a la misma altura.** El chip de la cifra grande, la píldora ▲/▼ y la rayita de cada categoría y la frase
+   de «En qué se va» comparaban lo gastado hasta hoy contra el mes anterior **entero**, mientras «Cuándo» comparaba al mismo día: el 10 de
+   octubre, con los datos de ejemplo, el chip decía «▼ 28 %» y «Cuándo», «S/ 157 menos a esta altura», y «Transporte ▼ 51 %» cuando a la
+   misma altura había subido 75 %. Ahora, en el mes en curso, todos usan lo que el mes anterior llevaba al mismo día (`mesAEstaAltura`, sobre la
+   lista del mes anterior que «Cuándo» ya lee) y lo dicen («▲ 6 % vs septiembre a esta altura», «dónde iba septiembre a esta altura»); en un mes
+   cerrado, el mes entero, como antes. La línea de meses de cada categoría llega hasta el mes anterior (el mes a medias era un punto que
+   siempre bajaba) y necesita tres meses cerrados.
+2. **El «si sigue así» dice de qué está hecho**, a todo ancho bajo el gráfico (antes solo en el angosto): «un día normal (S/ 186) por cada día
+   que falta, más S/ 210 de 2 fijos por confirmar» (el nombre del chip de la cifra grande: la segunda ciega encontró tres nombres para lo mismo) y, si hay, lo ya anotado para después. La ciega no sabía si el cierre contaba los fijos.
+3. **«En qué se va» muestra las 6 categorías más grandes** y «Ver N más» (`<FilasDeMas>`, en una segunda lista; con 7 u 8 se ven todas), su
+   frase dice «entre lo que más pesa» (la de «▲ 75 %» a la vista, de una categoría chica, la contradecía) y una categoría que redondea a cero dice
+   «menos de 1 %». «Cuándo» sube ~193 px a 1440 y ~254 px a 375, medido.
+
+En el mismo análisis se arreglaron tres defectos de lo construido ese día: «Cuándo» de un mes sin gastos, el globito que saltaba a «hoy» al tocar
+el gráfico (en el teléfono quedaba pegado) y las lecturas para comparar, que esperaban a las del mes.
+
+**DECIDÍ:** sacar el mes a medias de la línea de meses en vez de marcarlo «a hoy»: `<Sparkline>` no sabe dibujar un punto distinto, y una marca no
+evita que la línea baje. **DESCARTÉ:** quitar el chip de la cifra grande (ya no contradice a «Cuándo» y la ciega lo usó a los 5 segundos) y
+abreviar «a esta altura» (a 1024 px el chip pasa a una segunda fila, +30 px; se acepta). **SE ROMPE SI:** la lista del mes anterior no se lee:
+en el mes en curso ya no hay contra qué comparar y el chip, las píldoras y la rayita se callan (no vuelven a comparar contra el mes entero).
