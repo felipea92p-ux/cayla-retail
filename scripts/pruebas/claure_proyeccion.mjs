@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sqlDeshacer } from "./_deshacer_claure.mjs";
+import { sqlPrendasDePrueba } from "./_prendas_de_prueba.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -59,8 +60,6 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 // Más: 20 de efectivo que se quedaron con Claudia al cerrar la caja de hoy y un gasto de limpieza de 118 (100 % de CLAURE). Saldo a hoy: 227 − 34.63 − 1.40 − 50 − 20 − 118 = 2.97.
 // `granGasto` agrega un alquiler de 1180 (50 % → 590): lo que se le debe pasa a negativo.
 const escena = ({ granGasto = false, conClaure = true } = {}) => `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
@@ -69,7 +68,8 @@ set local session_replication_role = replica;
 -- Lo que otra prueba o el seed de la base dejó (ventas y devoluciones reales) no entra a estas cuentas: la prueba mide SOLO su escena. Va antes de crearla, y todo termina en ROLLBACK.
 update retail.ventas set es_prueba = true where not coalesce(es_prueba, false);
 update retail.devoluciones set estado = 'rechazada' where estado = 'aprobada';
-${conClaure ? `update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';` : ""}
+${sqlPrendasDePrueba({ claure: CLAURE, cayla: CAYLA })}
+${conClaure ? "" : `update retail.productos set empresa_id = ${CAYLA} where id = :'p_a';`}
 delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where cuenta_id = :'izipay');
 insert into retail.pos_maquinas (nombre, cuenta_id) select 'Izipay prueba', :'izipay' where not exists (select 1 from retail.pos_maquinas m where m.cuenta_id = :'izipay');
 insert into retail.pos_tarifas (maquina_id, medio, tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono, vigente_desde)
