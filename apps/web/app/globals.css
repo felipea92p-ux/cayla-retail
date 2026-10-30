@@ -16,6 +16,7 @@
 @import "./estilos/finanzas-recorrido.css";
 @import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
+@import "./estilos/ayuda-cabecera.css"; /* El «?» de la cabecera y su globo (ronda 18 de /unificar) */
 @import "./estilos/campana-efectos.css";
 @import "./estilos/etiqueta-prendas.css";
 @import "./estilos/campana-hoja.css";

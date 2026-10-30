@@ -1000,14 +1000,16 @@ export const DECISIONES = {
     "fecha": "2026-10-14",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/titulo-pagina.md",
-    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas menos Finanzas: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); Finanzas conserva la de su spike (<CabeceraPantalla>, ADR-0195); elegida mirando las fotos de cada pantalla el 2026-10-14",
+    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas menos Finanzas: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); Finanzas conserva la de su spike (<CabeceraPantalla>, ADR-0195); elegida mirando las fotos de cada pantalla el 2026-10-14. Ronda 18 (2026-10-30, mirando: P2 + D2 + V1): la frase ya no se ve; vive, con lo que explicaba un «!» junto al título (`ayuda`), en el globo de vidrio que abre el «?» junto al título (<AyudaCabecera>), también la que dice un dato",
     "pieza": "components/ui/EncabezadoPagina.tsx",
-    "tambien": ["components/ui/CabeceraPantalla.tsx"],
+    "tambien": ["components/ui/CabeceraPantalla.tsx", "components/ui/AyudaCabecera.tsx"],
     "firmas": [
       // El título de una pantalla dibujado a mano en la serif de la casa (con su sobretítulo en versalitas al lado): es <EncabezadoPagina>.
       "<h1\\b(?:[^>]|=>)*\\bfont-display\\b",
       // La cabecera de Finanzas fuera de Finanzas.
-      "<CabeceraPantalla\\b"
+      "<CabeceraPantalla\\b",
+      // El «!» metido a mano dentro del título con la letra de la frase (Marcas, Productos, Categorías… hasta la ronda 18): va en `ayuda`.
+      "inline-block align-middle font-sans text-\\[15px\\] leading-normal tracking-normal"
     ],
     "deuda": [],
     "excepciones": [

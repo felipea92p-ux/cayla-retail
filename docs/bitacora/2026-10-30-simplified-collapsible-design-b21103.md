@@ -1,0 +1,5 @@
+## 2026-10-30 — La frase de la cabecera, detrás de un «?» de vidrio (ronda 18 de `/unificar`)
+
+- **Qué:** la frase bajo el título de toda cabecera (`EncabezadoPagina subtitulo`) ya no se ve: la abre un «?» de vidrio de 20 px, arriba a la derecha de la última palabra del título como un superíndice, en un globo de vidrio con la letra a 16 px (`components/ui/AyudaCabecera.tsx`, `app/estilos/ayuda-cabecera.css`). También la frase que dice un dato, y lo que explicaba un «!» metido en el título (9 pantallas de Catálogo, Buscar, Rendimiento y el Plan de campaña) pasó a la prop `ayuda`.
+- **Por qué:** las colaboradoras decían que el texto era chico y nadie lo leía. Felipe eligió mirando, en dos vueltas: globo (P2), datos también (D2), vidrio esmerilado (V1). Registro: `docs/unificar/titulo-pagina.md`, «Ronda 18»; ADR-0358.
+- **Cómo verificas:** abre `/finanzas/gastos` o `/productos`, toca el «?» junto al título: el globo se abre con la frase; se cierra al tocar afuera o con Escape. Mira también en oscuro y a 375 px (Cambios). Lo que sigue: el «!» de ayuda fuera de la cabecera (28 pantallas, globo de 12 px).

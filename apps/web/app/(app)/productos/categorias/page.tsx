@@ -2,7 +2,6 @@ import Link from "next/link";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { Ayuda } from "@/components/Ayuda";
 import { CategoriasLista } from "@/components/CategoriasLista";
 import { getEjesPorCategoria, getTemporadasCatalogo } from "@/lib/catalogo-v2";
 import { compararTallas } from "@/lib/tallas";
@@ -122,23 +121,18 @@ export default async function CategoriasPage() {
       <div data-guia="categorias.cabecera">
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
-          titulo={
+          titulo="Categorías"
+          ayuda={
             <>
-              Categorías
-              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
-              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
-                <Ayuda titulo="Categorías">
-                  Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
-                  <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
-                  <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
-                  categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
-                  código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
-                  tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
-                  no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
-                  se elige qué tallas/tejidos/patrones ofrece: una subcategoría tiene su propia lista,
-                  no hereda la del padre.
-                </Ayuda>
-              </span>
+              Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
+              <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
+              <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
+              categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
+              código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
+              tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
+              no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
+              se elige qué tallas/tejidos/patrones ofrece: una subcategoría tiene su propia lista,
+              no hereda la del padre.
             </>
           }
           subtitulo={

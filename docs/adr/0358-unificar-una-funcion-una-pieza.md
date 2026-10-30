@@ -173,6 +173,16 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   sistema** (P1: los pendientes del turno en Caja). Migrado el mismo día: 31 pantallas en 33 archivos (la frase de la pieza pasó a ser opcional
   y lo que decía el sobretítulo va tras la fecha, en `detalle`), 5 íconos y 1 enlace; deuda 0. Registro nuevo: `titulo-pagina.md`.
 
+- **2026-10-30 · ronda 18, la frase de la cabecera detrás de un «?», mirando las fotos y tocando las demos** (fuentes en
+  `docs/unificar/rondas/18/`). Las colaboradoras decían que el texto era chico y que nadie lo leía. Felipe eligió en dos vueltas: **el globo**
+  (P2, sobre la frase que baja en su lugar y el botón «Qué es esto»), **también la frase que dice un dato** (D2: el turno de Caja, la cuenta de
+  Categorías, el veredicto de Frescura) y, para el material, **vidrio esmerilado** (V1, sobre tinta translúcida y papel con hilo). La pieza es
+  `<AyudaCabecera>` dentro de `<EncabezadoPagina>`: un «?» de vidrio de 20 px en la serif del título, arriba a la derecha de su última palabra como un superíndice (Felipe, al verlo aplicado) y un globo de vidrio que
+  flota en la capa de arriba, con el nombre de la pantalla en versalitas y la frase en 16 px tinta (antes 15 px al 70 %). Lo que un «!» explicaba
+  aparte junto al título (Productos, Marcas, Categorías, Atributos, Familias, Buscar, Rendimiento y el Plan de campaña) pasó a la prop `ayuda`,
+  en el mismo globo: una pantalla ya no tiene dos botones de ayuda. Migración: todas las cabeceras de una vez (la pieza decide), 9 archivos con
+  el «!» y 8 textos de guías. Registro: `titulo-pagina.md`, «Ronda 18».
+
 - **2026-10-14 · ronda 12, guardar, editar y las hojas, tocándolos** (fuentes en `docs/unificar/rondas/12/`). Felipe eligió P1 en las cinco
   preguntas: **mientras guarda, «Guardando…» y el hilo sin cambiar de ancho** (lo hace la pieza con `cargando`, también `BotonCompacto` y los
   botones del flujo del mostrador; cada acción que no es guardar dice su verbo con `textoCargando`); **«Editar» es el secundario con el
