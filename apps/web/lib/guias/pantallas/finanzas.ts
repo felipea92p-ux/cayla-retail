@@ -474,7 +474,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.dias-de-antes",
       opcional: true,
       titulo: "Los días de antes",
-      texto: "Se ven los últimos cinco días; este botón trae el resto del mes. Si buscas o filtras, se ven todos.",
+      texto: "Se ven los últimos cinco días; este botón trae el resto del mes y avisa si ahí hay algo vencido o por resolver. Si buscas o filtras, se ven todos.",
     },
     {
       id: "detalle",

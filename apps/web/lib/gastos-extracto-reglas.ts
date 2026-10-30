@@ -47,13 +47,27 @@ export type GastoParaExtracto = Pick<
   | "comprobante"
 >;
 
-/** Lo que no es normal en un gasto, en un chip; `porque` es la frase que lo explica (el `title` del chip y su texto para el lector). */
-export type MarcaGasto = { texto: string; tono: TonoChip; porque: string };
+/** Qué clase de cosa marca: con esto se cuenta lo que pide algo (lo que esconde «Ver los días de antes»). */
+export type ClaseMarca = "anulado" | "vencida" | "vence-pronto" | "por-pagar" | "sin-comprobante";
+
+/**
+ * Lo que no es normal en un gasto, en un chip; `porque` es la frase que lo explica (el `title` del chip, su texto para el lector y el aviso
+ * de la hoja del gasto).
+ */
+export type MarcaGasto = { clase: ClaseMarca; texto: string; tono: TonoChip; porque: string };
 
 /** Días entre dos fechas `AAAA-MM-DD` (positivo si `hasta` viene después). */
 function diasEntre(desde: string, hasta: string): number {
   const t = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
   return Math.round((t(hasta) - t(desde)) / 86_400_000);
+}
+
+/**
+ * ¿Es de lo grande sin comprobante? Vigente, sin boleta ni factura (la planilla de movilidad es el papel del viaje) y de S/ 300 o más. Es
+ * la única regla: la usan la marca de la fila, el filtro «Sin comprobante, desde S/ 300», el chip de la cifra, la bandeja y «Te toca».
+ */
+export function pideComprobante(g: Pick<GastoFila, "estado" | "comprobanteTipo" | "montoTotal">): boolean {
+  return g.estado !== "anulado" && g.comprobanteTipo === "sin_comprobante" && g.montoTotal >= UMBRAL_SIN_COMPROBANTE;
 }
 
 /**
@@ -63,22 +77,23 @@ function diasEntre(desde: string, hasta: string): number {
  */
 export function marcaDelGasto(g: GastoParaExtracto, hoy: string): MarcaGasto | null {
   const e = estadoGasto(g);
-  if (e === "anulado") return { texto: "Anulado", tono: "apagado", porque: g.motivoAnulacion ? `Anulado: ${g.motivoAnulacion}` : "Anulado: no cuenta en el mes." };
+  if (e === "anulado") return { clase: "anulado", texto: "Anulado", tono: "apagado", porque: g.motivoAnulacion ? `Anulado: ${g.motivoAnulacion}` : "Anulado: no cuenta en el mes." };
   if (e === "por_pagar" || e === "parcial") {
     const falta = `Faltan ${soles(g.saldo ?? 0)}${e === "parcial" ? ` de ${soles(g.montoTotal)}` : ""}`;
-    if (!g.fechaVencimiento) return { texto: "Por pagar", tono: "pizarra", porque: `${falta}, sin fecha de vencimiento.` };
+    if (!g.fechaVencimiento) return { clase: "por-pagar", texto: "Por pagar", tono: "pizarra", porque: `${falta}, sin fecha de vencimiento.` };
     const dias = diasEntre(hoy, g.fechaVencimiento);
     const cuando = fechaCorta(g.fechaVencimiento);
-    if (dias < 0) return { texto: `Vencida · ${cuando}`, tono: "rojo", porque: `${falta}: venció el ${cuando}.` };
-    if (dias === 0) return { texto: "Por pagar · vence hoy", tono: "ambar", porque: `${falta}: vence hoy.` };
+    if (dias < 0) return { clase: "vencida", texto: `Vencida · ${cuando}`, tono: "rojo", porque: `${falta}: venció el ${cuando}.` };
+    if (dias === 0) return { clase: "vence-pronto", texto: "Por pagar · vence hoy", tono: "ambar", porque: `${falta}: vence hoy.` };
     return {
+      clase: dias <= DIAS_DE_AVISO ? "vence-pronto" : "por-pagar",
       texto: `Por pagar · vence ${cuando}`,
       tono: dias <= DIAS_DE_AVISO ? "ambar" : "pizarra",
       porque: `${falta}: vence el ${cuando} (en ${dias} ${dias === 1 ? "día" : "días"}).`,
     };
   }
-  if (g.comprobanteTipo === "sin_comprobante" && g.montoTotal >= UMBRAL_SIN_COMPROBANTE) {
-    return { texto: "Sin comprobante", tono: "ambar", porque: `Sin boleta ni factura: con factura recuperarías ${soles(igvDeFactura(g.montoTotal))} de IGV.` };
+  if (pideComprobante(g)) {
+    return { clase: "sin-comprobante", texto: "Sin comprobante", tono: "ambar", porque: `Sin boleta ni factura: con factura recuperarías ${soles(igvDeFactura(g.montoTotal))} de IGV.` };
   }
   return null;
 }
@@ -197,6 +212,20 @@ export function resumenDelDia(d: Pick<DiaDelExtracto<GastoParaExtracto>, "total"
 export function diasALaVista(total: number, f: FiltrosLista): number {
   if (f.q.trim() || f.dia || f.categoria || f.sede || f.comprobante !== "todos") return total;
   return total <= DIAS_A_LA_VISTA + 1 ? total : DIAS_A_LA_VISTA;
+}
+
+/**
+ * Lo que pide algo entre los días que «Ver los días de antes» esconde, contado como lo dice la marca de la fila: «1 vencida» (rojo),
+ * «2 vencen esta semana» y «1 sin comprobante» (ámbar). Lo anulado y lo que vence más adelante no se cuentan: no piden nada hoy.
+ */
+export function loQueEsconden(dias: readonly Pick<DiaDelExtracto<GastoParaExtracto>, "filas">[]): { texto: string; tono: TonoChip }[] {
+  const n: Partial<Record<ClaseMarca, number>> = {};
+  for (const d of dias) for (const f of d.filas) if (f.tipo === "gasto" && f.marca) n[f.marca.clase] = (n[f.marca.clase] ?? 0) + 1;
+  const r: { texto: string; tono: TonoChip }[] = [];
+  if (n.vencida) r.push({ texto: `${n.vencida} ${n.vencida === 1 ? "vencida" : "vencidas"}`, tono: "rojo" });
+  if (n["vence-pronto"]) r.push({ texto: `${n["vence-pronto"]} ${n["vence-pronto"] === 1 ? "vence" : "vencen"} esta semana`, tono: "ambar" });
+  if (n["sin-comprobante"]) r.push({ texto: `${n["sin-comprobante"]} sin comprobante`, tono: "ambar" });
+  return r;
 }
 
 /** «Ver los 12 días de antes». */

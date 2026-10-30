@@ -8,6 +8,7 @@ import {
   diasALaVista,
   extractoPorDia,
   filasDelDia,
+  loQueEsconden,
   marcaDelGasto,
   resumenDelDia,
   textoDiasDeAntes,
@@ -54,7 +55,7 @@ describe("la marca de cada gasto", () => {
   it("anulado gana a todo y dice su motivo", () => {
     // Una factura vencida que se anuló dice «Anulado», no «Vencida».
     const m = marcaDelGasto({ ...factura(HOY, 1000, "2026-10-01"), estado: "anulado", motivoAnulacion: "se registró dos veces" }, HOY);
-    expect(m).toEqual({ texto: "Anulado", tono: "apagado", porque: "Anulado: se registró dos veces" });
+    expect(m).toEqual({ clase: "anulado", texto: "Anulado", tono: "apagado", porque: "Anulado: se registró dos veces" });
   });
 
   it("lo que se debe: rojo si venció (como Por pagar), ámbar hasta 7 días, pizarra si hay tiempo", () => {
@@ -72,7 +73,7 @@ describe("la marca de cada gasto", () => {
 
   it(`sin comprobante solo desde S/ ${UMBRAL_SIN_COMPROBANTE}, con el IGV que se recuperaría con factura`, () => {
     expect(marcaDelGasto(g(HOY, UMBRAL_SIN_COMPROBANTE - 0.01), HOY)).toBeNull();
-    expect(marcaDelGasto(g(HOY, 354), HOY)).toEqual({ texto: "Sin comprobante", tono: "ambar", porque: "Sin boleta ni factura: con factura recuperarías S/ 54.00 de IGV." });
+    expect(marcaDelGasto(g(HOY, 354), HOY)).toEqual({ clase: "sin-comprobante", texto: "Sin comprobante", tono: "ambar", porque: "Sin boleta ni factura: con factura recuperarías S/ 54.00 de IGV." });
     // La planilla de movilidad es el papel del viaje: no es «sin comprobante» aunque no dé IGV.
     expect(marcaDelGasto(g(HOY, 500, { comprobanteTipo: "planilla_movilidad" }), HOY)).toBeNull();
   });
@@ -175,6 +176,27 @@ describe("cuántos días se ven", () => {
     expect(diasALaVista(20, { ...SIN_FILTROS, categoria: "luz" })).toBe(20);
     expect(diasALaVista(20, { ...SIN_FILTROS, sede: "empresa" })).toBe(20);
     expect(diasALaVista(20, { ...SIN_FILTROS, comprobante: "sin" })).toBe(20);
+  });
+
+  it("lo que esconden los días de antes: vencidas en rojo, lo que vence esta semana y lo grande sin comprobante en ámbar", () => {
+    const dias = extractoPorDia(
+      [
+        factura("2026-10-02", 708, "2026-10-27"),
+        factura("2026-10-03", 500, "2026-10-12"),
+        factura("2026-10-04", 900, "2026-11-03"),
+        factura("2026-10-05", 900, "2026-11-20"),
+        g("2026-10-06", 450),
+        g("2026-10-07", 60, { estado: "anulado", motivoAnulacion: "doble" }),
+        g("2026-10-08", 5),
+      ],
+      HOY,
+    );
+    expect(loQueEsconden(dias)).toEqual([
+      { texto: "2 vencidas", tono: "rojo" },
+      { texto: "1 vence esta semana", tono: "ambar" },
+      { texto: "1 sin comprobante", tono: "ambar" },
+    ]);
+    expect(loQueEsconden(extractoPorDia([g("2026-10-08", 5), factura("2026-10-05", 900, "2026-11-20")], HOY))).toEqual([]);
   });
 
   it("el botón dice cuántos faltan", () => {

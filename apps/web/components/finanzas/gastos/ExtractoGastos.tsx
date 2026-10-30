@@ -21,6 +21,7 @@ import {
   detalleDelGasto,
   diasALaVista,
   extractoPorDia,
+  loQueEsconden,
   resumenDelDia,
   textoDiasDeAntes,
   type DiaDelExtracto,
@@ -183,6 +184,7 @@ export function ExtractoGastos({
 
   const aLaVista = diasALaVista(dias.length, filtros);
   const deAntes = dias.length - aLaVista;
+  const escondido = useMemo(() => loQueEsconden(dias.slice(aLaVista)), [dias, aLaVista]);
   return (
     <div ref={ref} className="extracto-gastos" data-con-sede={verTodas || undefined}>
       {dias.slice(0, aLaVista).map(dia)}
@@ -191,7 +193,24 @@ export function ExtractoGastos({
           <FilasDeMas abierto={verAntes} id="extracto-dias-de-antes">
             {dias.slice(aLaVista).map((d, i) => dia(d, aLaVista + i))}
           </FilasDeMas>
-          <BotonVerMas abierto={verAntes} onCambiar={setVerAntes} texto={textoDiasDeAntes(deAntes)} controla="extracto-dias-de-antes" data-guia="fin-gastos.dias-de-antes" />
+          {/* Lo que pide algo no se esconde: el botón dice qué hay detrás (una factura vencida es vieja por definición y casi siempre cae
+              aquí; /formidable, 2026-10-30). */}
+          <BotonVerMas
+            abierto={verAntes}
+            onCambiar={setVerAntes}
+            texto={
+              <>
+                {textoDiasDeAntes(deAntes)}
+                {escondido.map((c) => (
+                  <Chip key={c.texto} tono={c.tono} vivo={c.tono === "rojo"}>
+                    {c.texto}
+                  </Chip>
+                ))}
+              </>
+            }
+            controla="extracto-dias-de-antes"
+            data-guia="fin-gastos.dias-de-antes"
+          />
         </>
       )}
     </div>
