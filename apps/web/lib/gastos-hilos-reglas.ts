@@ -52,6 +52,22 @@ export function mesPrevio(mes: string, panel: { porCategoria: readonly { categor
   return { mes, porCategoria: panel.porCategoria.map((c) => ({ categoria: c.categoria, monto: c.monto })) };
 }
 
+/**
+ * El mes anterior A LA MISMA ALTURA (Felipe 2026-10-30, el cambio 1 de /formidable): en el mes en curso, lo gastado hasta hoy se compara con lo
+ * que ese mes llevaba al mismo día (el 10 contra el 10), nunca con el mes entero (a mitad de mes todo parecería «▼»). `gastos` son los del mes
+ * anterior, uno por uno; `dia` es el de hoy (si el mes anterior es más corto, hasta su último día). `null` si no se leyó o si a esa altura
+ * no había gastado nada: comparar contra cero diría «nuevo» a todo.
+ */
+export function mesAEstaAltura(gastos: readonly Pick<GastoParaHilos, "fecha" | "categoria" | "montoTotal" | "estado">[] | null, dia: number): MesPrevio {
+  const vigentes = (gastos ?? []).filter((g) => g.estado === "vigente" && g.montoTotal > 0);
+  if (vigentes.length === 0) return null;
+  const mes = vigentes[0]!.fecha.slice(0, 7);
+  const tope = `${mes}-${String(Math.max(1, dia)).padStart(2, "0")}`;
+  const por = new Map<string, number>();
+  for (const g of vigentes) if (g.fecha.slice(0, 7) === mes && g.fecha <= tope) por.set(g.categoria, (por.get(g.categoria) ?? 0) + g.montoTotal);
+  return mesPrevio(mes, { porCategoria: [...por.entries()].map(([categoria, monto]) => ({ categoria, monto })) });
+}
+
 export type TramoHilo ={ clave: ClaveSede; nombre: string; color: ColorSede; monto: number; n: number; pct: number };
 
 /** Contra el mes anterior: `igual` si se movió menos del 2 %; `nuevo` si ese mes no tuvo nada en la categoría. */
@@ -92,9 +108,16 @@ function sedeSuelta(clave: ClaveSede): Pick<TramoHilo, "nombre" | "color"> {
 
 /**
  * Las filas del gráfico: una por categoría con lo vigente del mes (un anulado no cuenta), de la que más gastó a la que menos. `previos`
- * son los meses de antes, del más viejo al anterior a este; el último es contra el que se compara.
+ * son los meses de antes (enteros), del más viejo al anterior a este: hacen la línea de meses. Contra qué se compara: `contra` (en el mes
+ * en curso, el anterior a la misma altura, `mesAEstaAltura`); sin él, el último de `previos`. Con `enCurso`, la línea de meses llega hasta
+ * el anterior: el mes a medias sería un punto que siempre baja.
  */
-export function hilosDeGastos(gastos: readonly GastoParaHilos[], sedes: readonly SedeTelar[], previos: readonly MesPrevio[]): FilaHilo[] {
+export function hilosDeGastos(
+  gastos: readonly GastoParaHilos[],
+  sedes: readonly SedeTelar[],
+  previos: readonly MesPrevio[],
+  opciones: { contra?: MesPrevio; enCurso?: boolean } = {},
+): FilaHilo[] {
   const por = new Map<string, { nombre: string; total: number; n: number; porSede: Map<ClaveSede, { monto: number; n: number }> }>();
   let total = 0;
   for (const g of gastos) {
@@ -109,7 +132,7 @@ export function hilosDeGastos(gastos: readonly GastoParaHilos[], sedes: readonly
     total += g.montoTotal;
   }
   const orden = new Map(sedes.map((s, i) => [s.clave, i]));
-  const anteriorMes = previos.at(-1) ?? null;
+  const anteriorMes = opciones.contra !== undefined ? opciones.contra : (previos.at(-1) ?? null);
   // Los meses que se pueden leer seguidos hasta este: un hueco corta la línea (no se dibuja un cero que no fue).
   const seguidos: NonNullable<MesPrevio>[] = [];
   for (let i = previos.length - 1; i >= 0 && previos[i]; i--) seguidos.unshift(previos[i]!);
@@ -123,7 +146,13 @@ export function hilosDeGastos(gastos: readonly GastoParaHilos[], sedes: readonly
         })
         .sort((a, b) => (orden.get(a.clave) ?? 99) - (orden.get(b.clave) ?? 99) || a.nombre.localeCompare(b.nombre, "es"));
       const anterior = anteriorMes ? montoEn(anteriorMes, categoria) : null;
-      const historia = seguidos.length >= 2 ? [...seguidos.map((m) => montoEn(m, categoria)), c.total] : null;
+      const historia = opciones.enCurso
+        ? seguidos.length >= 3
+          ? seguidos.map((m) => montoEn(m, categoria))
+          : null
+        : seguidos.length >= 2
+          ? [...seguidos.map((m) => montoEn(m, categoria)), c.total]
+          : null;
       return {
         categoria,
         nombre: c.nombre,
@@ -148,29 +177,39 @@ export function etiquetaCambio(c: CambioHilo): { texto: string; tono: TonoChip }
 
 /**
  * Junto al título: contra el mes anterior, qué categoría subió más y cuál bajó más. Solo cuentan las que pesan (4 % del mes o más: que una
- * categoría de S/ 30 pase a S/ 60 no es la noticia) y las que ese mes ya existían. `null` si no hay contra qué comparar o nada se movió.
+ * categoría de S/ 30 pase a S/ 60 no es la noticia) y las que ese mes ya existían, y la frase lo dice («entre lo que más pesa»: sin eso, una
+ * «▲ 75 %» chica a la vista la contradecía, /formidable 2026-10-30). Con `aEstaAltura`, en el mes en curso, lo dice también. `null` si no
+ * hay contra qué comparar o nada se movió.
  */
-export function fraseDeLosHilos(filas: readonly FilaHilo[], nombreMesAnterior: string): string | null {
+export function fraseDeLosHilos(filas: readonly FilaHilo[], nombreMesAnterior: string, aEstaAltura = false): string | null {
   const total = filas.reduce((a, f) => a + f.total, 0);
   const cand = filas.filter((f) => f.anterior !== null && f.anterior > 0 && f.total >= total * 0.04).map((f) => ({ f, d: (f.total - f.anterior!) / f.anterior! }));
   if (cand.length === 0) return null;
   const sube = cand.reduce((a, c) => (c.d > a.d ? c : a));
   const baja = cand.reduce((a, c) => (c.d < a.d ? c : a));
+  // El número y su «%» van pegados (espacio duro): a 1024 px la frase se partía y dejaba «%)» solo en la línea de abajo.
   const partes = [
-    sube.d > MOVIMIENTO_MINIMO ? `lo que más subió fue ${sube.f.nombre.toLowerCase()} (+${Math.round(sube.d * 100)} %)` : null,
-    baja.d < -MOVIMIENTO_MINIMO ? `lo que más bajó, ${baja.f.nombre.toLowerCase()} (−${Math.round(-baja.d * 100)} %)` : null,
+    sube.d > MOVIMIENTO_MINIMO ? `lo que más subió fue ${sube.f.nombre.toLowerCase()} (+${Math.round(sube.d * 100)}\u00a0%)` : null,
+    baja.d < -MOVIMIENTO_MINIMO ? `lo que más bajó, ${baja.f.nombre.toLowerCase()} (−${Math.round(-baja.d * 100)}\u00a0%)` : null,
   ].filter((p): p is string => !!p);
-  return partes.length ? `Contra ${nombreMesAnterior}, ${partes.join("; ")}.` : null;
+  return partes.length ? `Contra ${nombreMesAnterior}${aEstaAltura ? " a esta altura" : ""}, entre lo que más pesa, ${partes.join("; ")}.` : null;
 }
 
-/** El chip de la cifra grande: el mes entero contra el anterior. `null` si ese mes no se puede comparar o no tuvo gastos. */
-export function chipDelMesAnterior(totalDelMes: number, anterior: MesPrevio, nombreMesAnterior: string): { texto: string; tono: TonoChip } | null {
+/**
+ * El chip de la cifra grande: el mes contra el anterior; en el mes en curso (`aEstaAltura`), contra lo que el anterior llevaba al mismo día,
+ * y lo dice. `null` si ese mes no se puede comparar o no tuvo gastos.
+ */
+export function chipDelMesAnterior(totalDelMes: number, anterior: MesPrevio, nombreMesAnterior: string, aEstaAltura = false): { texto: string; tono: TonoChip } | null {
   if (!anterior) return null;
   const c = cambioContra(totalDelMes, anterior.porCategoria.reduce((a, x) => a + x.monto, 0));
+  const contra = `${nombreMesAnterior}${aEstaAltura ? " a esta altura" : ""}`;
   if (c.tipo === "nuevo") return null;
-  if (c.tipo === "igual") return { texto: `Igual que ${nombreMesAnterior}`, tono: "pizarra" };
-  return { texto: `${c.tipo === "sube" ? "▲" : "▼"} ${c.pct} % vs ${nombreMesAnterior}`, tono: c.tipo === "sube" ? "ambar" : "verde" };
+  if (c.tipo === "igual") return { texto: `Igual que ${contra}`, tono: "pizarra" };
+  return { texto: `${c.tipo === "sube" ? "▲" : "▼"} ${c.pct} % vs ${contra}`, tono: c.tipo === "sube" ? "ambar" : "verde" };
 }
+
+/** Bajo el nombre de la categoría: «22 % de lo gastado»; una que redondea a cero, «menos de 1 %» (un «0 %» se leía como que no gastó nada). */
+export const parteDeLoGastado = (fila: Pick<FilaHilo, "pct" | "total">) => (fila.pct === 0 && fila.total > 0 ? "menos de 1 % de lo gastado" : `${fila.pct} % de lo gastado`);
 
 // ---- El desglose: lo que se gastó exactamente en una categoría ----------------------------------------------------------------
 

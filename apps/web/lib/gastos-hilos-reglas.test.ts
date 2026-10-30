@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SedeTelar } from "./finanzas-telar-reglas";
 import { solesRedondo } from "./gastos-reglas";
-import { chipDelMesAnterior, desgloseDe, etiquetaCambio, fraseDeLosHilos, hilosDeGastos, mesesDeAntes, mesPrevio, resumenDelDesglose, seCompara, type MesPrevio } from "./gastos-hilos-reglas";
+import { chipDelMesAnterior, desgloseDe, etiquetaCambio, fraseDeLosHilos, hilosDeGastos, mesAEstaAltura, mesesDeAntes, mesPrevio, parteDeLoGastado, resumenDelDesglose, seCompara, type MesPrevio } from "./gastos-hilos-reglas";
 
 const SEDES: SedeTelar[] = [
   { clave: "t", nombre: "Trujillo", color: "tru" },
@@ -110,12 +110,12 @@ describe("cómo se dice el cambio", () => {
   it("la frase nombra lo que más subió y lo que más bajó, entre las categorías que pesan", () => {
     // Agua sube 400 % pero es el 1 % del mes: no es la noticia.
     const f = hilosDeGastos([g("software", "t", 800), g("luz", "l", 1300), g("agua", "l", 25)], SEDES, [mes("2026-09", { software: 1000, luz: 1000, agua: 5 })]);
-    expect(fraseDeLosHilos(f, "septiembre")).toBe("Contra septiembre, lo que más subió fue luz (+30 %); lo que más bajó, software (−20 %).");
+    expect(fraseDeLosHilos(f, "septiembre")).toBe("Contra septiembre, entre lo que más pesa, lo que más subió fue luz (+30\u00a0%); lo que más bajó, software (−20\u00a0%).");
   });
 
   it("si solo hubo subidas dice solo eso; sin mes anterior o sin movimiento, nada", () => {
     const sube = hilosDeGastos([g("luz", "l", 120)], SEDES, [mes("2026-09", { luz: 100 })]);
-    expect(fraseDeLosHilos(sube, "septiembre")).toBe("Contra septiembre, lo que más subió fue luz (+20 %).");
+    expect(fraseDeLosHilos(sube, "septiembre")).toBe("Contra septiembre, entre lo que más pesa, lo que más subió fue luz (+20\u00a0%).");
     expect(fraseDeLosHilos(hilosDeGastos([g("luz", "l", 120)], SEDES, []), "septiembre")).toBeNull();
     expect(fraseDeLosHilos(hilosDeGastos([g("luz", "l", 101)], SEDES, [mes("2026-09", { luz: 100 })]), "septiembre")).toBeNull();
   });
@@ -126,6 +126,46 @@ describe("cómo se dice el cambio", () => {
     expect(chipDelMesAnterior(1001, mes("2026-09", { a: 1000 }), "septiembre")).toEqual({ texto: "Igual que septiembre", tono: "pizarra" });
     expect(chipDelMesAnterior(500, mes("2026-09", {}), "septiembre")).toBeNull();
     expect(chipDelMesAnterior(500, null, "septiembre")).toBeNull();
+  });
+});
+
+describe("en el mes en curso, contra el anterior a la misma altura (/formidable 2026-10-30)", () => {
+  // Septiembre: transporte poco al principio y mucho al final; el 10 de octubre, contra el mes entero, todo parecería «▼».
+  const SEPTIEMBRE = [
+    g("transporte", "t", 241, { fecha: "2026-09-08" }),
+    g("transporte", "t", 613, { fecha: "2026-09-25" }),
+    g("alquileres", "t", 5400, { fecha: "2026-09-03" }),
+    g("suministros", "t", 1000, { fecha: "2026-09-28" }),
+    g("luz", "t", 80, { fecha: "2026-09-12", estado: "anulado" }),
+  ];
+  const OCTUBRE_AL_10 = [g("transporte", "t", 421, { fecha: "2026-10-09" }), g("alquileres", "t", 5400, { fecha: "2026-10-03" })];
+
+  it("suma lo del mes anterior hasta el mismo día, sin anulados; un mes más corto, hasta su último día", () => {
+    expect(mesAEstaAltura(SEPTIEMBRE, 10)).toEqual({ mes: "2026-09", porCategoria: [{ categoria: "transporte", monto: 241 }, { categoria: "alquileres", monto: 5400 }] });
+    expect(mesAEstaAltura([g("luz", "t", 30, { fecha: "2026-02-28" })], 31)!.porCategoria).toEqual([{ categoria: "luz", monto: 30 }]);
+  });
+
+  it("sin la lista del mes anterior, o si a esa altura no había gastado nada, no compara", () => {
+    expect([mesAEstaAltura(null, 10), mesAEstaAltura([], 10), mesAEstaAltura([g("luz", "t", 30, { fecha: "2026-09-20" })], 10)]).toEqual([null, null, null]);
+  });
+
+  it("el chip, la píldora y la frase dicen lo mismo que «Cuándo»: transporte subió, y lo dicen «a esta altura»", () => {
+    const contra = mesAEstaAltura(SEPTIEMBRE, 10);
+    const filas = hilosDeGastos(OCTUBRE_AL_10, SEDES, [mesPrevio("2026-09", { porCategoria: [{ categoria: "transporte", monto: 854 }, { categoria: "alquileres", monto: 5400 }, { categoria: "suministros", monto: 1000 }] })], { contra, enCurso: true });
+    expect(filas.find((f) => f.categoria === "transporte")).toMatchObject({ anterior: 241, cambio: { tipo: "sube", pct: 75 } });
+    expect(chipDelMesAnterior(5821, contra, "septiembre", true)).toEqual({ texto: "▲ 3 % vs septiembre a esta altura", tono: "ambar" });
+    expect(fraseDeLosHilos(filas, "septiembre", true)).toBe("Contra septiembre a esta altura, entre lo que más pesa, lo que más subió fue transporte (+75\u00a0%).");
+  });
+
+  it("en el mes en curso la línea de meses llega hasta el anterior (el mes a medias siempre bajaría); hacen falta tres meses", () => {
+    const previos = [mes("2026-07", { luz: 100 }), mes("2026-08", { luz: 200 }), mes("2026-09", { luz: 300 })];
+    expect(hilosDeGastos([g("luz", "l", 40)], SEDES, previos, { enCurso: true })[0]!.historia).toEqual([100, 200, 300]);
+    expect(hilosDeGastos([g("luz", "l", 40)], SEDES, previos.slice(1), { enCurso: true })[0]!.historia).toBeNull();
+    expect(hilosDeGastos([g("luz", "l", 400)], SEDES, previos)[0]!.historia).toEqual([100, 200, 300, 400]);
+  });
+
+  it("una categoría que redondea a cero dice «menos de 1 %»", () => {
+    expect([parteDeLoGastado({ pct: 0, total: 53 }), parteDeLoGastado({ pct: 22, total: 2407 })]).toEqual(["menos de 1 % de lo gastado", "22 % de lo gastado"]);
   });
 });
 

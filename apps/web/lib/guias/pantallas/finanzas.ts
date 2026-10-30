@@ -383,7 +383,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       preparar: [{ tipo: "escape" }],
       opcional: true,
       titulo: "¿En qué se va la plata?",
-      texto: "Cada fila es una categoría, de la que más se gastó a la que menos. Su barra dice qué sede lo gastó (un color por sede) y la rayita, dónde estaba el mes anterior; al lado, cuánto subió o bajó. Tocas una fila, o un color de su barra, y se abre lo que se gastó.",
+      texto: "Cada fila es una categoría, de la que más se gastó a la que menos (las demás, en «Ver más»). Su barra dice qué sede lo gastó y la rayita, dónde iba el mes anterior (en el mes en curso, al mismo día); al lado, cuánto subió o bajó. Tocas una fila, o un color de su barra, y se abre lo que se gastó.",
     },
     {
       id: "desglose",
@@ -401,7 +401,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       preparar: [{ tipo: "clic", ancla: "fin-gastos.hilo-primera", siEsta: true }],
       prepararSoloAlAvanzar: true,
       titulo: "¿Cuándo se gastó, y a qué ritmo?",
-      texto: "La línea suma lo gastado día a día; la punteada es el mes anterior a la misma altura, y desde hoy, tenue, hacia dónde va si sigue así, con los fijos que faltan pagar. Los saltos grandes llevan su nombre arriba. Tocas un día, o una nota, y se abre debajo lo que se gastó ese día.",
+      texto: "La línea suma lo gastado día a día; la punteada es el mes anterior a la misma altura, y desde hoy, tenue, hacia dónde va si sigue así, con los fijos que faltan pagar. Debajo dice de qué está hecho. Tocas un día, o una nota, y se abre lo que se gastó ese día.",
     },
     {
       id: "ritmo-dia",

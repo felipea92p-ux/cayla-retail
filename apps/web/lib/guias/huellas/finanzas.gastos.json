@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 95,
+  "total": 96,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -81,6 +81,7 @@
       "button «Ver todas»"
     ],
     "components/finanzas/gastos/HilosGastos.tsx": [
+      "BotonVerMas «{`Ver ${filas.length - aLaVista}»",
       "button «{i === 0 ? \"fin-gastos.hilo-primera\" : undefined}»",
       "button «{fechaCorta(g.fecha)}»",
       "button «Todas»",

@@ -7,7 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { Sparkline } from "@/components/ui/Sparkline";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
-import { desgloseDe, etiquetaCambio, resumenDelDesglose, type FilaHilo, type GastoDelDesglose } from "@/lib/gastos-hilos-reglas";
+import { desgloseDe, etiquetaCambio, parteDeLoGastado, resumenDelDesglose, type FilaHilo, type GastoDelDesglose } from "@/lib/gastos-hilos-reglas";
 import { fechaCorta, solesRedondo, type GastoFila } from "@/lib/gastos-reglas";
 import type { ClaveSede, ColorSede } from "@/lib/finanzas-telar-reglas";
 
@@ -23,6 +23,8 @@ export const COLOR: Record<ColorSede, string> = {
 
 /** Cuántos gastos se ven al abrir una categoría; los demás, con «Ver N más». */
 const A_LA_VISTA = 6;
+/** Cuántas categorías se ven de entrada; con una o dos más se ven todas (un «Ver 1 más» no ahorra nada). Así «Cuándo» sube (/formidable 2026-10-30). */
+const CATEGORIAS_A_LA_VISTA = 6;
 
 const quieta = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -38,6 +40,7 @@ export function HilosGastos({
   filas,
   gastos,
   nombreMesAnterior,
+  aEstaAltura = false,
   onAbrirGasto,
   onVerEnLaTabla,
 }: {
@@ -46,6 +49,8 @@ export function HilosGastos({
   gastos: readonly GastoFila[];
   /** «septiembre»: para la rayita y su leyenda. */
   nombreMesAnterior: string;
+  /** El mes en curso: la rayita y la píldora son del mes anterior al mismo día, y lo dicen. */
+  aEstaAltura?: boolean;
   /** Se tocó un gasto del desglose: abre su hoja, como en la lista. */
   onAbrirGasto: (id: string) => void;
   /** «Ver en la tabla»: la lista de abajo queda con esa categoría (y esa sede, si se eligió una). */
@@ -56,6 +61,9 @@ export function HilosGastos({
   const [dibujada, setDibujada] = useState<string | null>(null);
   const [sede, setSede] = useState<ClaveSede | null>(null);
   const [mas, setMas] = useState(false);
+  const [todas, setTodas] = useState(false);
+  // «En septiembre» o, en el mes en curso, «En septiembre a esta altura»: lo que dicen la rayita y la píldora al pasar el mouse.
+  const enElAnterior = `En ${nombreMesAnterior}${aEstaAltura ? " a esta altura" : ""}`;
 
   // Tocar la fila abierta la cierra; un color del hilo la abre (o la cambia) a esa sede.
   const elegir = (categoria: string, s: ClaveSede | null) => {
@@ -68,22 +76,25 @@ export function HilosGastos({
     setMas(false);
   };
 
-  const lista = useRef<HTMLOListElement>(null);
+  const lista = useRef<HTMLDivElement>(null);
   const antes = useRef(new Map<string, number>());
   // Las filas que cambian de puesto se deslizan desde donde estaban (FLIP): se mide contra la lista, no contra la ventana, para que
   // bajar la página no cuente como un movimiento. Abrir un desglose no mueve a nadie de puesto: solo empuja, y eso no se anima aquí.
+  // Las filas de «Ver N más» van en su propia lista, debajo: se miden juntas, así una fila que pasa de una a otra también se desliza.
   useLayoutEffect(() => {
     const el = lista.current;
     if (!el) return;
+    const tope = el.getBoundingClientRect().top;
     const ahora = new Map<string, number>();
-    const filasDom = [...el.querySelectorAll<HTMLElement>(":scope > [data-categoria]")];
+    const filasDom = [...el.querySelectorAll<HTMLElement>(".hilos-filas > [data-categoria]")];
     const puestoAntes = new Map([...antes.current.keys()].map((k, i) => [k, i]));
     filasDom.forEach((f, i) => {
       const k = f.dataset.categoria!;
-      ahora.set(k, f.offsetTop);
+      const y = f.getBoundingClientRect().top - tope;
+      ahora.set(k, y);
       const previo = antes.current.get(k);
-      if (!quieta() && previo !== undefined && puestoAntes.get(k) !== i && Math.abs(previo - f.offsetTop) > 1) {
-        f.animate([{ transform: `translateY(${previo - f.offsetTop}px)` }, { transform: "none" }], { duration: 650, easing: EASE });
+      if (!quieta() && previo !== undefined && puestoAntes.get(k) !== i && Math.abs(previo - y) > 1) {
+        f.animate([{ transform: `translateY(${previo - y}px)` }, { transform: "none" }], { duration: 650, easing: EASE });
       }
     });
     antes.current = ahora;
@@ -92,6 +103,7 @@ export function HilosGastos({
   const max = Math.max(...filas.map((f) => Math.max(f.total, f.anterior ?? 0)), 0);
   const sedes = new Map(filas.flatMap((f) => f.tramos).map((t) => [t.clave, t]));
   const conAntes = filas.some((f) => (f.anterior ?? 0) > 0);
+  const aLaVista = filas.length > CATEGORIAS_A_LA_VISTA + 2 ? CATEGORIAS_A_LA_VISTA : filas.length;
 
   return (
     <div className="hilos-gastos" data-guia="fin-gastos.hilos">
@@ -105,93 +117,111 @@ export function HilosGastos({
         {conAntes && (
           <span>
             <i className="hilo-antes-muestra" />
-            dónde estaba en {nombreMesAnterior}
+            {aEstaAltura ? `dónde iba ${nombreMesAnterior} a esta altura` : `dónde estaba en ${nombreMesAnterior}`}
           </span>
         )}
       </div>
-      <ol ref={lista} className="hilos-filas">
-        {filas.map((f, i) => {
-          const cambio = f.cambio ? etiquetaCambio(f.cambio) : null;
-          const esta = abierta === f.categoria;
-          // La sede elegida solo vale si esta categoría la tiene (al cambiar la sede de arriba puede quedar sin nada).
-          const sedeDeEsta = esta && sede !== null && f.tramos.some((t) => t.clave === sede) ? sede : null;
-          return (
-            <li key={f.categoria} data-categoria={f.categoria} data-abierta={esta || undefined} className="hilo-fila" style={{ "--i": i } as CSSProperties}>
-              {/* Toda la fila se toca; los botones de adentro (el nombre, cada color del hilo) hacen lo suyo y no la tocan dos veces. */}
-              <div
-                className="hilo-cabeza"
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest("button, a")) return;
-                  elegir(f.categoria, null);
-                }}
-              >
-                <span className="hilo-rango">{i + 1}</span>
-                <button
-                  type="button"
-                  data-guia={i === 0 ? "fin-gastos.hilo-primera" : undefined}
-                  className="hilo-nombre"
-                  aria-expanded={esta}
-                  aria-controls={`hilo-${f.categoria}`}
-                  onClick={() => elegir(f.categoria, null)}
-                >
-                  <b>{f.nombre}</b>
-                  <small>{f.pct} % de lo gastado</small>
-                </button>
-                <span className="hilo-barra">
-                  <BarraApilada
-                    segmentos={f.tramos.map((t) => ({
-                      clave: t.clave,
-                      nombre: t.nombre,
-                      valor: t.monto,
-                      color: COLOR[t.color],
-                      titulo: `${t.nombre}: ${solesRedondo(t.monto)}, el ${t.pct} % · tócalo para ver en qué se fue`,
-                    }))}
-                    total={max}
-                    unidad="soles"
-                    formato={solesRedondo}
-                    retraso={i}
-                    etiqueta={`${f.nombre}: ${f.tramos.map((t) => `${t.nombre} ${solesRedondo(t.monto)}`).join(", ")}`}
-                    respuesta={{ onElegir: (clave) => elegir(f.categoria, clave), resaltada: sedeDeEsta, accion: "Ver lo que se gastó en esa sede" }}
-                  />
-                  {(f.anterior ?? 0) > 0 && (
-                    <i aria-hidden className="hilo-antes" style={{ left: `${((f.anterior ?? 0) / max) * 100}%` }} title={`En ${nombreMesAnterior}: ${solesRedondo(f.anterior ?? 0)}`} />
-                  )}
-                </span>
-                <span className="hilo-cambio">
-                  {cambio && (
-                    <Chip tono={cambio.tono} versalitas={false} title={f.anterior ? `En ${nombreMesAnterior}: ${solesRedondo(f.anterior)}` : `En ${nombreMesAnterior} no hubo gastos de esto`}>
-                      {cambio.texto}
-                    </Chip>
-                  )}
-                </span>
-                <span className="hilo-monto">{solesRedondo(f.total)}</span>
-                <span className="hilo-linea">{f.historia && <Sparkline serie={f.historia} indice={i} />}</span>
-              </div>
-              <div className="hilo-cajon" id={`hilo-${f.categoria}`} inert={!esta}>
-                <div>
-                  {dibujada === f.categoria && (
-                    <Desglose
-                      fila={f}
-                      gastos={gastos}
-                      sede={sedeDeEsta}
-                      onSede={(s) => {
-                        setSede(s);
-                        setMas(false);
-                      }}
-                      mas={mas}
-                      onMas={setMas}
-                      onAbrirGasto={onAbrirGasto}
-                      onVerEnLaTabla={onVerEnLaTabla}
-                    />
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <div ref={lista}>
+        <ol className="hilos-filas">{filas.slice(0, aLaVista).map((f, i) => fila(f, i))}</ol>
+        {filas.length > aLaVista && (
+          <FilasDeMas abierto={todas} id="hilos-de-mas">
+            <ol className="hilos-filas" start={aLaVista + 1}>
+              {filas.slice(aLaVista).map((f, i) => fila(f, aLaVista + i))}
+            </ol>
+          </FilasDeMas>
+        )}
+      </div>
+      {filas.length > aLaVista && (
+        <BotonVerMas
+          abierto={todas}
+          onCambiar={setTodas}
+          controla="hilos-de-mas"
+          texto={`Ver ${filas.length - aLaVista} más`}
+        />
+      )}
     </div>
   );
+
+  // Una categoría: su fila y, debajo, su desglose (va en una función porque se dibuja en las dos listas, la de entrada y la de «Ver N más»).
+  function fila(f: FilaHilo, i: number) {
+    const cambio = f.cambio ? etiquetaCambio(f.cambio) : null;
+    const esta = abierta === f.categoria;
+    // La sede elegida solo vale si esta categoría la tiene (al cambiar la sede de arriba puede quedar sin nada).
+    const sedeDeEsta = esta && sede !== null && f.tramos.some((t) => t.clave === sede) ? sede : null;
+    return (
+      <li key={f.categoria} data-categoria={f.categoria} data-abierta={esta || undefined} className="hilo-fila" style={{ "--i": i } as CSSProperties}>
+        {/* Toda la fila se toca; los botones de adentro (el nombre, cada color del hilo) hacen lo suyo y no la tocan dos veces. */}
+        <div
+          className="hilo-cabeza"
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("button, a")) return;
+            elegir(f.categoria, null);
+          }}
+        >
+          <span className="hilo-rango">{i + 1}</span>
+          <button
+            type="button"
+            data-guia={i === 0 ? "fin-gastos.hilo-primera" : undefined}
+            className="hilo-nombre"
+            aria-expanded={esta}
+            aria-controls={`hilo-${f.categoria}`}
+            onClick={() => elegir(f.categoria, null)}
+          >
+            <b>{f.nombre}</b>
+            <small>{parteDeLoGastado(f)}</small>
+          </button>
+          <span className="hilo-barra">
+            <BarraApilada
+              segmentos={f.tramos.map((t) => ({
+                clave: t.clave,
+                nombre: t.nombre,
+                valor: t.monto,
+                color: COLOR[t.color],
+                titulo: `${t.nombre}: ${solesRedondo(t.monto)}, el ${t.pct} % · tócalo para ver en qué se fue`,
+              }))}
+              total={max}
+              unidad="soles"
+              formato={solesRedondo}
+              retraso={i}
+              etiqueta={`${f.nombre}: ${f.tramos.map((t) => `${t.nombre} ${solesRedondo(t.monto)}`).join(", ")}`}
+              respuesta={{ onElegir: (clave) => elegir(f.categoria, clave), resaltada: sedeDeEsta, accion: "Ver lo que se gastó en esa sede" }}
+            />
+            {(f.anterior ?? 0) > 0 && (
+              <i aria-hidden className="hilo-antes" style={{ left: `${((f.anterior ?? 0) / max) * 100}%` }} title={`${enElAnterior}: ${solesRedondo(f.anterior ?? 0)}`} />
+            )}
+          </span>
+          <span className="hilo-cambio">
+            {cambio && (
+              <Chip tono={cambio.tono} versalitas={false} title={f.anterior ? `${enElAnterior}: ${solesRedondo(f.anterior)}` : `${enElAnterior} no hubo gastos de esto`}>
+                {cambio.texto}
+              </Chip>
+            )}
+          </span>
+          <span className="hilo-monto">{solesRedondo(f.total)}</span>
+          <span className="hilo-linea">{f.historia && <Sparkline serie={f.historia} indice={i} />}</span>
+        </div>
+        <div className="hilo-cajon" id={`hilo-${f.categoria}`} inert={!esta}>
+          <div>
+            {dibujada === f.categoria && (
+              <Desglose
+                fila={f}
+                gastos={gastos}
+                sede={sedeDeEsta}
+                onSede={(s) => {
+                  setSede(s);
+                  setMas(false);
+                }}
+                mas={mas}
+                onMas={setMas}
+                onAbrirGasto={onAbrirGasto}
+                onVerEnLaTabla={onVerEnLaTabla}
+              />
+            )}
+          </div>
+        </div>
+      </li>
+    );
+  }
 }
 
 /** Lo de adentro de una categoría abierta: sus sedes en columna (si gastó más de una) y sus gastos, uno por uno. */

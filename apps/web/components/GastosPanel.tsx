@@ -44,6 +44,7 @@ import {
   igvDelGasto,
   igvEnRiesgo,
   igvParaLaTarjeta,
+  mesDe,
   notaIgvPerdido,
   papelDelGasto,
   papelEnUnaLinea,
@@ -75,7 +76,7 @@ import { Boton } from "@/components/ui/campos";
 import { GastosPulso } from "@/components/finanzas/GastosPulso";
 import { bandejaPulso, chipDeFijosPorConfirmar, fijosPorConfirmar, gastastePulso } from "@/lib/gastos-pulso-reglas";
 import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
-import { chipDelMesAnterior, fraseDeLosHilos, hilosDeGastos, mesesDeAntes, type MesPrevio } from "@/lib/gastos-hilos-reglas";
+import { chipDelMesAnterior, fraseDeLosHilos, hilosDeGastos, mesAEstaAltura, mesesDeAntes, type MesPrevio } from "@/lib/gastos-hilos-reglas";
 import { fijosDelMesVisibles } from "@/lib/fijos-del-mes-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Armchair, Check, FunnelX, Plus, Receipt, Repeat, SearchX, Store, Tag, Wallet } from "lucide-react";
@@ -175,7 +176,14 @@ export function GastosPanel({
     setFiltros((a) => ({ ...a, ...f }));
     setPestana("gastos");
   };
-  const hilos = useMemo(() => hilosDeGastos(gastos, sedesTelar, previos), [gastos, sedesTelar, previos]);
+  // En el mes en curso todo se compara con lo que el mes anterior llevaba al mismo día (el chip, las píldoras, la rayita y las dos frases):
+  // contra el mes entero, a mitad de mes todo parecería «▼» y contradecía a «Cuándo» (/formidable 2026-10-30). Un mes cerrado, contra el entero.
+  const enCurso = mes === mesDe(hoy);
+  const contra = useMemo(
+    () => (enCurso ? mesAEstaAltura(gastosDelMesAnterior, Number(hoy.slice(8, 10))) : (previos.at(-1) ?? null)),
+    [enCurso, gastosDelMesAnterior, hoy, previos],
+  );
+  const hilos = useMemo(() => hilosDeGastos(gastos, sedesTelar, previos, { contra, enCurso }), [gastos, sedesTelar, previos, contra, enCurso]);
   const ritmo = useMemo(
     () => ritmoDelMes({ gastos, anteriores: gastosDelMesAnterior, fijos: fijosDelMes, mes, hoy }),
     [gastos, gastosDelMesAnterior, fijosDelMes, mes, hoy],
@@ -219,7 +227,7 @@ export function GastosPanel({
   // Lo que la cifra grande todavía no cuenta: los fijos del mes sin confirmar (tarea #2 de /pantalla, 2026-10-22).
   // Y el mes entero contra el anterior, si ese mes se puede comparar (hilos, Felipe 2026-10-30).
   const nombreMesAnterior = textoMes(mesesDeAntes(mes, 1)[0]!).split(" ")[0]!;
-  const chipAnterior = panel ? chipDelMesAnterior(panel.total, previos.at(-1) ?? null, nombreMesAnterior) : null;
+  const chipAnterior = panel ? chipDelMesAnterior(panel.total, contra, nombreMesAnterior, enCurso) : null;
   const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
 
   return (
@@ -279,13 +287,14 @@ export function GastosPanel({
           abre su detalle, y de ahí «Ver en la tabla» filtra la lista. Después, la bandeja. */}
       <section className="grid gap-4">
         <Superficie pad className="anim-entra min-w-0">
-          <TituloSeccion dato={fraseDeLosHilos(hilos, nombreMesAnterior) ?? gastastePulso(panel, { mes, hoy })?.frase}>En qué se va</TituloSeccion>
+          <TituloSeccion dato={fraseDeLosHilos(hilos, nombreMesAnterior, enCurso) ?? gastastePulso(panel, { mes, hoy })?.frase}>En qué se va</TituloSeccion>
           {hilos.length ? (
             <div className="mt-3">
               <HilosGastos
                 filas={hilos}
                 gastos={gastos}
                 nombreMesAnterior={nombreMesAnterior}
+                aEstaAltura={enCurso}
                 onAbrirGasto={(id) => setDetalle(gastos.find((g) => g.id === id) ?? null)}
                 onVerEnLaTabla={(categoria, sede) => {
                   setFiltros((a) => ({ ...a, categoria, sede: sede ?? "" }));
