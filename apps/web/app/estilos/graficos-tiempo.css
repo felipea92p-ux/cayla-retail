@@ -18,6 +18,11 @@
     fill: none; stroke: var(--color-tinta); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round;
     stroke-dasharray: 1; animation: cayla-linea-dibuja 900ms var(--ease-cayla) 150ms backwards;
   }
+  /* Lo que cae bajo la referencia (la caja bajo tu mínimo): zona de rojo suave, el tramo de la línea en rojo y el punto más bajo con su texto. */
+  .linea-zona-baja { fill: color-mix(in srgb, var(--color-rojo) 9%, transparent); }
+  .linea-trazo-bajo { fill: none; stroke: var(--color-rojo); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+  .linea-punto-bajo { fill: var(--color-rojo); stroke: var(--color-papel); stroke-width: 2; }
+  .linea-texto-bajo { font-size: 12.5px; font-weight: 600; fill: var(--color-tinta); font-variant-numeric: tabular-nums; }
   .linea-referencia { fill: none; stroke: var(--color-taupe); stroke-width: 2; stroke-dasharray: 6 4; stroke-linejoin: round; }
   .linea-proyeccion { fill: none; stroke: color-mix(in srgb, var(--color-tinta) 40%, transparent); stroke-width: 2; stroke-dasharray: 2 4; stroke-linecap: round; }
   .linea-ahora { stroke: color-mix(in srgb, var(--color-tinta) 35%, transparent); stroke-width: 1; stroke-dasharray: 2 3; }
