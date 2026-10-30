@@ -515,7 +515,8 @@ nombre, qué ya existe y por qué se parece.** Nació de «Verde Olivo» creado 
    motivo: **frena** (mismo nombre: la base lo rechaza), **pregunta** (casi igual o sinónimo: «Guardar» espera el «No, es otro») y **avisa** (solo el tono). El botón
    de guardar suma `existe.bloquea` y su `title` dice `faltaPorExistente(…)`; la guía de foco cuenta la pregunta sin contestar como lo que falta del Nombre.
 3. **Al editar, solo si cambió el nombre**, y por nombre entran también los desactivados (la base rechaza un nombre que ya tuvo uno).
-4. **Nunca un candado de la base para el «casi igual»**: Blanco y Crudo son dos colores. El candado es el nombre exacto. Una prueba nueva de vocabulario corre la carta
+4. **Donde no hay un botón de guardar** (el valor se crea al tocar «+ Crear …» en un combo, como el tejido de Insumos ▸ Nueva tela), la pregunta sale ANTES de crear: queda pendiente hasta «Usar X» o «No, es otro» (modelo: `useTejidosDeLaTela`). Lo que decide si «Guardar» espera es `preguntaPendiente`, función pura con su prueba: la respuesta «es otro» calla solo la pregunta, nunca el mismo nombre.
+5. **Nunca un candado de la base para el «casi igual»**: Blanco y Crudo son dos colores. El candado es el nombre exacto. Una prueba nueva de vocabulario corre la carta
    oficial contra sí misma (`lib/atributo-parecido.test.ts`): si la regla grita sobre lo correcto, la gente aprende a ignorarla.
 
 ## Formidable: el iPhone llevado al ERP (regla — ADR-0350, Felipe 2026-10-05)

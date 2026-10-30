@@ -85,7 +85,7 @@ export function NuevaTelaModal({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const { tejidos, crearTejido } = useTejidosDeLaTela(vocabulario.tejidos, responsable);
+  const { tejidos, crearTejido, pregunta: preguntaTejido } = useTejidosDeLaTela(vocabulario.tejidos, responsable);
   const [nombre, setNombre] = useState("");
   const [tejidoId, setTejidoId] = useState("");
   const [composicion, setComposicion] = useState("");
@@ -259,6 +259,7 @@ export function NuevaTelaModal({
                   tejidoId={tejidoId}
                   onTejido={setTejidoId}
                   onCrearTejido={(t) => void crearTejido(t, setTejidoId)}
+                  pregunta={preguntaTejido}
                   composicion={composicion}
                   onComposicion={setComposicion}
                 />

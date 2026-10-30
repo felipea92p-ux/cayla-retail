@@ -50,7 +50,7 @@ export function EditarTelaModal({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const { tejidos, crearTejido } = useTejidosDeLaTela(vocabulario.tejidos, responsable);
+  const { tejidos, crearTejido, pregunta: preguntaTejido } = useTejidosDeLaTela(vocabulario.tejidos, responsable);
   const [inicial] = useState<DatosDeLaTela>(() => datosDeLaTelaYaGuardada(material));
   const [datos, setDatos] = useState<DatosDeLaTela>(inicial);
   const [cargando, setCargando] = useState(false);
@@ -148,6 +148,7 @@ export function EditarTelaModal({
               tejidoId={datos.tejidoId}
               onTejido={(id) => cambiar({ tejidoId: id })}
               onCrearTejido={(t) => void crearTejido(t, (id) => cambiar({ tejidoId: id }))}
+              pregunta={preguntaTejido}
               composicion={datos.composicion}
               onComposicion={(t) => cambiar({ composicion: t })}
             />
