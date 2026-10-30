@@ -2,7 +2,7 @@ import type { FilaER } from "./resultados-reglas";
 
 // Finanzas ▸ Resumen, «El recorrido de la plata» (El telar de Finanzas, elegido por Felipe el 2026-10-23). Lógica pura: a partir del
 // Estado de resultados del mes (`fn_estado_resultados`, las mismas filas que ya trae `fn_resumen_finanzas`), arma los hilos que entran
-// a un nudo y los que salen de él. La pieza que lo dibuja (`components/finanzas/RecorridoPlata.tsx`) no suma nada: solo dibuja esto.
+// a un nudo y los que salen de él. La pieza que lo dibuja (`components/finanzas/AdondeVaLaPlata.tsx`, desde ADR-0579) no suma nada: solo dibuja esto.
 //
 // LA REGLA QUE NO SE ROMPE: lo que entra al nudo es igual a lo que sale (`total`). Si las partes nombradas no explican el resultado de
 // la base (una devolución, una nota de crédito), la diferencia sale como «Otros ajustes», igual que en la cascada: un dibujo que no
