@@ -1,6 +1,6 @@
 # ADR-0581 · Cambiar el tipo de una orden abierta (muestra ↔ lote de producción)
 
-- **Fecha:** 2026-10-30 · **Estado:** construido y probado en una base privada con las 981 migraciones de `main` + esta (`pnpm pruebas:produccion-cambiar-tipo`, 24 casos; la pantalla, a 375 px y en escritorio). **Migración sin pegar en producción** (`20261030151000`). El script de datos de las tres órdenes (`pegar-en-produccion-tipo-de-ordenes-2-3-4-2026-10-30.sql`) tampoco está pegado.
+- **Fecha:** 2026-10-30 · **Estado:** construido y probado en una base privada con las 981 migraciones de `main` + esta (`pnpm pruebas:produccion-cambiar-tipo`, 25 casos; la pantalla, a 375 px y en escritorio). **Migración sin pegar en producción** (`20261030151000`). El script de datos de las tres órdenes (`pegar-en-produccion-tipo-de-ordenes-2-3-4-2026-10-30.sql`) tampoco está pegado.
 - **Decide:** Felipe, 2026-10-30: de las tres opciones eligió «Datos y cambio de tipo» (corregir las tres órdenes y dar el botón), y NO la tercera (quitar el valor de fábrica «muestra» del modelo nuevo).
 - **Toca:** ADR-0396 (Nueva orden: «un modelo nuevo arranca como muestra»), ADR-0570 (historia de la orden), ADR-0384 (precio 0 solo en empaque).
 
@@ -54,9 +54,10 @@ ANTES de pegar el script (las 16 prendas de OP-000002 no entran al stock y el bo
 
 ## Cómo se verificó
 
-- `pnpm pruebas:produccion-cambiar-tipo` (24 casos, con ROLLBACK): el cambio en los dos sentidos con su rastro, repetir no hace nada, ir y volver, la página lo lee, los rechazos (cerrada, sin precio, motivo largo, tipo vacío,
+- `pnpm pruebas:produccion-cambiar-tipo` (25 casos, con ROLLBACK): el cambio en los dos sentidos con su rastro, repetir no hace nada, ir y volver, la página lo lee, los rechazos (cerrada, sin precio, motivo largo, tipo vacío,
   orden inexistente, otra sede), el efecto (una muestra que pasa a lote **entra al stock** al cerrar; una que sigue muestra, no), el CHECK de la historia, permisos, que se pueda pegar otra vez y el script de datos (ensayo,
   aplicar, repetir, parar si una orden se cerró o no tiene precio, y el camino de vuelta). **Prueba de mutación:** se rompió la función y el script de ocho formas distintas y la prueba se puso roja cada vez.
+- **Corrección del mismo día (30-oct, tarde), hallada por otra sesión y comprobada en producción con un SELECT:** el control de precio armaba la lista de tallas sin precio con `sku`, y en producción solo 1 de 3 179 variantes tiene `sku` (3 178 usan `codigo`). La lista salía nula, y nula se leía como «no falta ninguna»: el control **nunca rechazaba**. Mis pruebas no lo vieron porque el seed local sí trae `sku`. Ahora nombra la talla con `coalesce(codigo, sku, 'sin código')`, como el resto de la base, y la prueba siembra las tallas como en producción (con `codigo`, sin `sku`) y suma un caso para una talla sin ninguno de los dos (25 casos; contra el SQL anterior, la misma prueba da 21/25). Aún no estaba pegada en producción. La causa real del hueco: **un dato de prueba que no se parece al de producción** —el mismo origen del error de fondo, un valor supuesto en vez de leído—.
 - **Concurrencia con dos sesiones reales:** el mismo pedido dos veces (la segunda esperó ~2 s al candado de la orden y no escribió nada) y pedidos opuestos (los dos se aplicaron en orden; tres filas en la historia; el CHECK
   impide un antes igual al después).
 - En el navegador, con login real contra la base privada: el botón, la hoja en los dos sentidos, el aviso de éxito, la historia («Pasó de muestra a lote de producción · Por qué: …»), el rechazo por precio con el código de la
