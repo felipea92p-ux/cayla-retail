@@ -4,7 +4,7 @@ Por qué así: la tabla tiene 11 mil filas, no es volumen; antes de escribir se 
 Felipe se lleva: el mismo cambio tiene que quedar en el repo de Dynamic o una migración suya lo deshace, y averiguar qué pantalla de Dynamic pide esa lista ~3 500 veces al día.
 
 ## 2026-10-30 (Los precios de cada tienda se leen 40 veces más rápido)
-Qué hice: la terminal de Dynamic dejó de pedir lo mismo cada minuto (PR felipea92p-ux/cayla-dynamic#622, sin fusionar), y en retail `fn_precios_en_sede` —la lista de precios propios que Vender relee cada 10 s— arma la lista en una consulta en vez de preguntar prenda por prenda: aplicada en producción (`20261030222000`), de 115–141 ms a 3–8 ms, misma lista en las 4 ubicaciones.
+Qué hice: la terminal de Dynamic dejó de pedir lo mismo cada minuto (PR felipea92p-ux/cayla-dynamic#622, ya fusionado), y en retail `fn_precios_en_sede` —la lista de precios propios que Vender relee cada 10 s— arma la lista en una consulta en vez de preguntar prenda por prenda: aplicada en producción (`20261030222000`), de 115–141 ms a 3–8 ms, misma lista en las 4 ubicaciones.
 Por qué así: preguntaba a `fn_precio_en_sede` una vez por prenda, y una función `security definer` no se funde con la consulta; la regla de cobro no se tocó, y el caso 21 de `pruebas:precio-sede-variante` exige que la lista diga lo mismo que esa regla en toda combinación y tienda.
 Felipe se lleva: lo siguiente es `campanas_vigentes` (la más llamada de retail: el ERP entero baja todas las campañas cada 10 s solo para saber si algo cambió).
 
@@ -12,3 +12,8 @@ Felipe se lleva: lo siguiente es `campanas_vigentes` (la más llamada de retail:
 Qué hice: la base da `campanas_firma(tienda)` (md5 de la misma lista de `campanas_vigentes`, aplicada en producción y verificada igual a la lista en las 3 tiendas) y `<PreciosEnVivo />` —que corre en toda pantalla— pide esa firma en vez de la lista entera; si la función no existe, vuelve a la lista.
 Por qué así: hoy las campañas son chicas, pero en el Aniversario cada pantalla bajaba ~420 KB en 3 páginas cada 10 s; con la firma es una llamada y 32 letras, tenga la campaña el tamaño que tenga, y la firma se calcula sobre la misma función, así que no puede decir otra cosa que la lista.
 Felipe se lleva: el ahorro empieza cuando el código se publique (PR de esta rama); Vender con caja abierta todavía lee la lista cada 10 s y podría pedir la firma primero.
+
+## 2026-10-30 (Las pruebas de CLAURE dejan de fallar a ratos en el CI)
+Qué hice: 14 pruebas de CLAURE tomaban «la primera prenda por id» y marcaban su producto entero como de CLAURE; si la base ya traía una venta o devolución de otra talla de ese producto, esa historia también se volvía de CLAURE y la cifra salía de menos (`claure-perdidas-y-danadas`: `2|1` en vez de `3|1`, en `main` y en este PR). Ahora eligen con `scripts/pruebas/_claure_prendas.mjs`: mercadería activa, con precio y categoría, de un producto sin ventas, apartados, pedidos web, cambios, dañadas ni mermas.
+Por qué así: se reprodujo el `2|1` exacto en una copia local al día con `main` creando una devolución dañada de otra talla del producto elegido; con el arreglo, la misma trampa puesta sobre el producto que elegiría ahora lo hace saltar a otro y las dos pruebas pasan 3 vueltas seguidas.
+Felipe se lleva: `claure-cierre`, `claure-efectivo-claudia` y `claure-igv` fallan en la base local por una persona que ya existe ahí (`personas_auth_user_id_key`), igual con los archivos de `main`; en el CI no pasa.
