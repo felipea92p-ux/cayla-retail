@@ -2,33 +2,30 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState, type CSSProperties } from "react";
-import { BookOpen, CalendarCheck, ChartColumn, Percent, Wallet } from "lucide-react";
+import { BookOpen, CalendarCheck, Percent, Wallet } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Aviso } from "@/components/ui/Aviso";
-import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { AjustesResumen } from "@/components/finanzas/AjustesResumen";
 import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
 import { InversionMercaderia } from "@/components/finanzas/InversionMercaderia";
 import { useAjustesResumen } from "@/components/finanzas/useAjustesResumen";
 import { CambiosDelMesPieza } from "@/components/finanzas/CambiosDelMes";
-import { DeCadaCienPieza } from "@/components/finanzas/DeCadaCien";
-import { Confianza } from "@/components/finanzas/Confianza";
+import { AdondeVaLaPlata } from "@/components/finanzas/AdondeVaLaPlata";
+import { VendidoPorSede } from "@/components/finanzas/VendidoPorSede";
 import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
-import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
-import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
 import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
 import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
-import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
-import { deCadaCien } from "@/lib/de-cada-cien-reglas";
+import { hrefTelar, mesDelDia, porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { soles } from "@/lib/flujo-caja-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
-import { desgloseDeTienes, respuestaDeClaure, tresRespuestas } from "@/lib/tres-respuestas-reglas";
+import { desgloseDeTienes, tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
@@ -41,10 +38,10 @@ import {
   type DiaVenta,
 } from "@/lib/resumen-telar-reglas";
 
-// Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493): arriba, las tres respuestas (Felipe 2026-10-26: ¿cuánto tienes?, ¿cuánto debes
-// pagar pronto?, ¿cuánto te deja este mes?), el
-// orillo con lo que vendió cada sede, el recorrido de la plata al lado de «Hoy te toca», la línea de ventas contra la meta y, al
-// final, qué tan seguro es el número (ADR-0417). La sede y el mes los pone la barra común; esta pantalla no tiene selector propio.
+// Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493), pulido el 2026-10-29: arriba, las tres respuestas (¿cuánto tienes —de CAYLA y de CLAURE—?,
+// ¿cuánto debes pronto —cada deuda con su fecha—?, ¿cuánto te deja?), «Vendido por sede» con la confianza del número adentro (ADR-0417), la caja
+// al lado de «Hoy te toca», «A dónde va la plata» (el anillo), «¿Ya pagaste el mes?» y, al final, la inversión en mercadería (siempre a la vista).
+// La sede y el mes los pone la barra común; esta pantalla no tiene selector propio.
 // No calcula plata: lo arman `recorrido-plata-reglas`, `resumen-telar-reglas` y `resumen-finanzas-reglas` con lo que lee la página.
 
 /** La entrada escalonada de cada pieza; esta llena su celda: dos tarjetas lado a lado miden lo mismo. */
@@ -77,7 +74,7 @@ type Props = {
   claure?: { saldo: number | null } | null;
 };
 
-const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
+const FRASE = "De lo que vendes a lo que te queda.";
 
 export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null }: Props) {
   const sp = useSearchParams();
@@ -127,7 +124,6 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const antes = mesPasadoComparable(filas, estadoAntes);
   const resp = respuestaResumen(r, antes, provisional, enCurso);
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
-  const cien = deCadaCien(recorrido);
   const faltan = noRevisado(resumen);
   // La inversión en mercadería es de CAYLA entera: mirando una sola sede no se reparte (como el saldo de los bancos), así que ahí no se dibuja.
   const todasLasCampanas = r.ver.todas ? delPlan : [];
@@ -140,6 +136,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, caja.saldoHoy) : null;
   // Lo de CLAURE es de la empresa entera, como los bancos: mirando una sola sede no se reparte.
   const saldoClaure = claure && r.ver.todas && claure.saldo !== null ? { saldo: claure.saldo } : null;
+  // Si la lectura de CLAURE se cayó, «¿Cuánto tienes?» lo dice (un chip), no se inventa un reparto ni se calla.
+  const claureFalla = !!claure && r.ver.todas && claure.saldo === null;
   // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
   const avisos = ordenarAvisos([
@@ -147,25 +145,23 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
     ...campanas.flatMap((c) => avisoDeInversion(c, hoy, ajustes.conIgv) ?? []),
   ]);
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
-  const hrefDeSede = acceso.lider
-    ? Object.fromEntries(sedes.map((s) => [s.clave, hrefTelar("/finanzas/resumen", sp.entries(), { sede: s.clave }, { mismaPantalla: true, mesDeHoy })]))
-    : {};
+
+  // «Vendiste X y salió Y» bajo «¿Cuánto te deja?»: de lo mismo que dibuja «A dónde va la plata» (el recorrido), así que las dos dicen el mismo número.
+  const plata = recorrido && recorrido.modo === "vende" ? { vendido: recorrido.nudo.monto, salio: recorrido.salidas.filter((h) => h.tipo !== "deja").reduce((a, h) => a + h.monto, 0) } : null;
+  const bajadaPlata = recorrido
+    ? recorrido.modo === "vende" && plata
+      ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}.`
+      : recorrido.nota
+    : "";
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
-      {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. */}
-      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure })} />
-      {claure && r.ver.todas && <TresRespuestas guia="fin-resumen.claure" respuestas={[respuestaDeClaure(claure.saldo, ir("/finanzas/dinero/claure"))]} />}
-      {/* ADR-0417: qué tan cierto es el número que acaba de leer, y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
-      {confianza.datos ? (
-        <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
-      ) : (
-        <p className="card-cayla px-4 py-3 text-sm text-taupe sm:px-5" data-guia="fin-resumen.confianza">
-          {confianza.falla ?? "No se pudo medir qué tan seguro es este número."}
-        </p>
-      )}
-      <Orillo porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} que="vendido" hoy={hoy} />
+      {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. «Tienes» dice cuánto es de CAYLA
+          y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
+      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, plata })} />
+      {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
+      <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} />
       {dock}
 
       {/* La caja y «Hoy te toca» van lado a lado y a la misma altura (desde 1280 px, con 20 rem de piso para «Hoy te toca»: antes, a 1024 px
@@ -177,10 +173,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
         <div {...alto(3)} data-guia="fin-resumen.decidir">
           <Superficie pad className="h-full">
-            <CabeceraBloque
-              titulo="Hoy te toca"
-              bajada={enCurso ? "Primero lo que más cuesta si se deja pasar." : `Es de hoy, aunque mires ${mesNombre(mes)}. Primero lo que más cuesta si se deja pasar.`}
-            />
+            <CabeceraBloque titulo="Hoy te toca" bajada={enCurso ? "Lo urgente, primero." : `Es de hoy, aunque mires ${mesNombre(mes)}. Lo urgente, primero.`} />
             <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
             {faltan.length > 0 && (
               <ul className="fin-no-revisado">
@@ -193,52 +186,27 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
         </div>
       </section>
 
-      {/* No es un gasto: sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega y se deja ver. */}
-      {inversionFalla && (
-        <Aviso tono="atencion" titulo="Inversión en mercadería">
-          {inversionFalla} Lo ya registrado (órdenes, facturas por pagar) sigue contando.
-        </Aviso>
-      )}
-      <InversionMercaderia
-        campanas={campanas}
-        conIgv={ajustes.conIgv}
-        hoy={hoy}
-        proyeccion={proyeccion}
-        elegidas={elegidas}
-        onElegir={(id, clave) => setElegidas((e) => ({ ...e, [id]: clave }))}
-        abierta={abierta}
-        onAbrir={setAbierta}
-        ocultasAqui={todasLasCampanas.some((c) => c.visible) && campanas.length === 0}
-      />
-      <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
-
-      {/* Lo demás, en dos columnas FIJAS: el recorrido a la izquierda y las otras dos tarjetas apiladas a la derecha, cada una pegada a la
-          de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem (dos columnas de 34 rem) van en una sola, en el mismo orden.
-          Antes eran `columns-[34rem]`, que reparte según las alturas: al abrir «¿Y de cada S/ 100?» el recorrido crecía y el navegador
-          pasaba otra tarjeta a la otra columna a media animación (medido el 2026-10-27: de 401 a 497 px y la tarjeta 2 saltaba de columna).
-          Con columnas fijas, lo que crece solo empuja lo que tiene debajo. */}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(34rem,100%),1fr))] items-start gap-4 pb-4">
+      {/* Lo demás, en dos columnas FIJAS: el anillo a la izquierda y «¿Ya pagaste el mes?» con «Contra el mes pasado» apiladas a la derecha, cada
+          una pegada a la de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem van en una sola, en el mismo orden. Con columnas
+          fijas, lo que crece solo empuja lo que tiene debajo (con `columns-[34rem]` el navegador pasaba una tarjeta de columna a media animación). */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(34rem,100%),1fr))] items-start gap-4">
         <div {...columna(4)}>
-          <Superficie pad guia="fin-resumen.recorrido">
-            <CabeceraBloque
-              titulo="Por dónde pasa la plata"
-              bajada={recorrido ? `${recorrido.nota}${acceso.lider ? " Toca una sede para seguirla." : ""}` : `${mesNombre(mes).replace(/^./, (c) => c.toUpperCase())} sin movimientos para dibujar.`}
-            />
-            {recorrido ? (
-              <>
-                <RecorridoPlata recorrido={recorrido} hrefDeSede={hrefDeSede} colorDeSede={coloresDeSede(sedes)} />
-                {cien && <DeCadaCienPieza cien={cien} colorDeSede={coloresDeSede(sedes)} />}
-              </>
-            ) : (
-              <Vacio tamano="chico" icono={<ChartColumn />}>
-                {estadoMes.falla
-                  ? "No se pudo leer el estado de resultados de este mes. Vuelve a cargar la página en un rato."
-                  : r.ver.todas || r.ver.tipo === "tienda"
-                    ? "Todavía no hay ventas ni gastos registrados este mes."
-                    : "Para ver cómo se sostiene, elige «Todas las sedes» o una tienda: este mes no hay tiendas con qué compararlo."}
-              </Vacio>
-            )}
-          </Superficie>
+          {recorrido ? (
+            <AdondeVaLaPlata recorrido={recorrido} bajada={bajadaPlata} />
+          ) : (
+            <Superficie pad guia="fin-resumen.recorrido">
+              <CabeceraBloque
+                titulo="A dónde va la plata"
+                bajada={
+                  estadoMes.falla
+                    ? "No se pudo leer el mes. Reintenta en un rato."
+                    : r.ver.todas || r.ver.tipo === "tienda"
+                      ? "Todavía no hay ventas ni gastos este mes."
+                      : "Elige «Todas las sedes» o una tienda para ver esto."
+                }
+              />
+            </Superficie>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -251,13 +219,28 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-/** Los colores de sede del telar (`--color-sede-*`) para los hilos del recorrido; «otra» toma el de respaldo. */
-function coloresDeSede(sedes: readonly SedeTelar[]): Record<string, string> {
-  return Object.fromEntries(
-    sedes.filter((s) => s.color !== "otra").map((s) => [s.clave === SEDE_EMPRESA ? "empresa" : s.clave, `var(--color-sede-${s.color})`]),
+      {/* La inversión en mercadería, AL FINAL y siempre a la vista (Felipe 2026-10-29): sin nada pendiente dice eso en una línea. No es un gasto:
+          sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega y se deja ver. */}
+      {inversionFalla && (
+        <Aviso tono="atencion" titulo="Inversión en mercadería">
+          {inversionFalla} Lo ya registrado (órdenes, facturas por pagar) sigue contando.
+        </Aviso>
+      )}
+      <div className="space-y-4 pb-4">
+        <InversionMercaderia
+          campanas={campanas}
+          conIgv={ajustes.conIgv}
+          hoy={hoy}
+          proyeccion={proyeccion}
+          elegidas={elegidas}
+          onElegir={(id, clave) => setElegidas((e) => ({ ...e, [id]: clave }))}
+          abierta={abierta}
+          onAbrir={setAbierta}
+          ocultasAqui={todasLasCampanas.some((c) => c.visible) && campanas.length === 0}
+        />
+        <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
+      </div>
+    </div>
   );
 }
