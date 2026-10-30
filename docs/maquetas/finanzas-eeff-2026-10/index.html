@@ -163,6 +163,23 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .flecha{transition:transform .25s var(--ease);color:var(--taupe)}
 [aria-expanded="true"] .flecha{transform:rotate(90deg)}
 
+/* Puertas a Presupuesto y Campañas */
+.puerta{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--rojo-p);display:inline-flex;align-items:center;gap:4px;border-bottom:1px solid color-mix(in srgb,var(--rojo-p) 35%,transparent)}
+.puerta:hover{border-bottom-color:var(--rojo-p)}
+.plan-real{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--sand);font-size:13px}
+.plan-real b{font-variant-numeric:tabular-nums;font-weight:600}
+.camp{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid var(--sand);border-radius:14px;padding:12px 16px}
+.camp .sello{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--hueso);font-family:var(--serif);font-size:18px}
+.camp b{font-weight:600} .camp small{display:block;color:var(--tenue);font-size:12.5px}
+.camp .v{font-family:var(--serif);font-size:20px;font-variant-numeric:tabular-nums;color:var(--verde);white-space:nowrap}
+.hoja-int h2{font-size:28px;margin-top:6px}
+.hoja-int .frase-h{color:var(--tenue);margin-top:4px;font-size:14px}
+.rubro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:12px 0;border-bottom:1px solid var(--sand)}
+.rubro .pistam{grid-column:1/-1;height:6px;border-radius:999px;background:var(--hueso);overflow:hidden;position:relative}
+.rubro .pistam div{height:100%;border-radius:999px;background:var(--tinta)}
+.rubro .pistam div.pasa{background:var(--g-baja)}
+.rubro small{grid-column:1/-1;color:var(--tenue);font-size:12.5px}
+.lista-camp{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 /* Qué dejó cada sede (barras divergentes) */
 .sedes{display:flex;flex-direction:column;gap:4px}
 .sedes .fila{grid-template-columns:150px minmax(0,1fr) 112px}
@@ -354,6 +371,14 @@ tr.t td{font-weight:600;border-bottom:1.5px solid var(--tinta)}
   </div>
 </main>
 
+<div id="capa-hoja" hidden>
+  <div class="velo" data-cerrar-hoja></div>
+  <aside class="notas hoja-int" role="dialog" aria-modal="true" aria-labelledby="t-hoja">
+    <button type="button" class="x" data-cerrar-hoja aria-label="Cerrar"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <div id="hoja-cuerpo"></div>
+  </aside>
+</div>
+
 <div id="capa-notas" hidden>
   <div class="velo" data-cerrar></div>
   <aside class="notas" role="dialog" aria-modal="true" aria-labelledby="t-notas">
@@ -368,9 +393,9 @@ tr.t td{font-weight:600;border-bottom:1.5px solid var(--tinta)}
         <tr><td>Flujo de caja</td><td>¿Dónde está la plata? Arriba el mes; abajo, lo que viene</td></tr>
         <tr><td>Balance</td><td>¿Cuánto vale CAYLA?</td></tr>
         <tr><td>(no existía)</td><td>¿Lo tuyo creció? (cambios en el patrimonio)</td></tr>
-        <tr><td>Presupuesto</td><td>Una marca de «lo planeado» en cada gasto de ¿Ganamos?, más una recomendación si se pasa del 10 %</td></tr>
+        <tr><td>Presupuesto</td><td>En ¿Ganamos?: la marca de «lo planeado» en cada gasto, planeado contra real al abrir la fila y «Ver el presupuesto» (página interna). Si un gasto se pasa del 10 %, también una recomendación</td></tr>
         <tr><td>Escenarios</td><td>«¿Y si…?» dentro de lo que viene en el flujo</td></tr>
-        <tr><td>Campañas</td><td>Una recomendación en ¿Ganamos? cuando una campaña cerró en el mes</td></tr>
+        <tr><td>Campañas</td><td>En ¿Ganamos?: «Campañas de octubre» y «Ver las campañas» (página interna, con las que vienen). Si una campaña cerró, también una recomendación</td></tr>
       </tbody>
     </table>
     <h3>Por qué así</h3>
@@ -463,6 +488,12 @@ var FLUJO = {
   semanas:[["2 nov",-2600],["9 nov",1800],["16 nov",-5750],["23 nov",1900],["30 nov",2400],["7 dic",-1200]],
   ventasSemana:12000
 };
+// Campañas: «necesita» = cuánto más hay que vender para que el descuento no se coma el margen (margen normal 50 %).
+var CAMPANAS = [
+  {n:"Halloween", fechas:"24 al 31 de octubre", sedes:"Trujillo y Arequipa", desc:20, estado:"cerro", necesita:67, logro:94, extra:2100},
+  {n:"Black Friday", fechas:"27 al 30 de noviembre", sedes:"Todas las tiendas", desc:25, estado:"viene", necesita:100},
+  {n:"Navidad", fechas:"15 al 24 de diciembre", sedes:"Todas las tiendas", desc:15, estado:"viene", necesita:43}
+];
 var PAT = {inicio:102750, ganancia:3850, aportes:0, retiros:3000, capital:80000, acumInicio:22750,
   serie:[["may",96100],["jun",97900],["jul",99400],["ago",101200],["sep",102750],["oct",103600]]};
 
@@ -619,7 +650,7 @@ function vistaGanamos(){
   var vende = e.ventas>0;
   var titulo = r>=0 ? '<span class="si">Sí.</span> Ganaste '+soles(r) : '<span class="no">No.</span> '+(vende?"Perdiste ":"Costó ")+soles(-r);
   var bajada = vende
-    ? 'De cada S/ 100 que vendiste te quedaron S/ '+(r/e.ventas*100).toFixed(1).replace(".",",")+'.'
+    ? 'De cada S/ 100 que vendiste '+(r>=0?'te quedaron':'perdiste')+' S/ '+Math.abs(r/e.ventas*100).toFixed(1).replace(".",",")+'.'
     : (s==="tal" ? 'El Taller no vende: sus prendas pasan a las tiendas a su costo. Esto es lo que costó tenerlo abierto, aparte de las prendas.' : 'La empresa no vende: estos gastos los cubren las tiendas.');
   if(estado.comparar && vende) bajada += ' En septiembre: '+soles(e.sep.res)+'.';
   var filas = [];
@@ -634,11 +665,20 @@ function vistaGanamos(){
   });
   filas.push({k:"dep",labelHtml:termino("depreciacion","Desgaste de equipos"),v:-e.dep,tipo:"paso"});
   filas.push({k:"res",label:r>=0?"Ganaste":(vende?"Perdiste":"Costó"),v:r,tipo:"final"});
-  filas.forEach(function(f){ var d = DET_ER[f.k]; if(d) f.det = detalleHtml(d.t, s==="todas"?d.l:[]); });
+  filas.forEach(function(f){ var d = DET_ER[f.k]; if(!d) return;
+    var extra = "";
+    if(f.plan){ var real = -f.v, dif = real-f.plan;
+      extra = '<div class="plan-real"><span>Planeado <b>'+soles(f.plan)+'</b></span><span>Real <b>'+soles(real)+'</b></span><span style="color:'+(dif>0?"var(--ambar)":"var(--verde)")+'">'+(dif>0?"Te pasaste ":dif<0?"Te sobró ":"Justo ")+(dif?"<b>"+soles(Math.abs(dif))+"</b>":"")+'</span><button type="button" class="puerta" data-abrir="presupuesto">Ver el presupuesto'+ICO.ir+'</button></div>'; }
+    f.det = detalleHtml(d.t, s==="todas"?d.l:[]).replace(/<\/div>$/, extra+'</div>'); });
 
   var h = '<div class="titular"><div><p class="versalita">Ganancias y pérdidas · octubre</p><h2 style="margin-top:6px">'+titulo+'</h2><p class="bajada">'+bajada+'</p></div></div>';
-  h += '<div class="sep"></div><div class="sec-t"><h3>De la venta a la ganancia</h3><div class="leyenda"><span><i style="background:var(--g-alza)"></i>Suma</span><span><i style="background:var(--g-baja)"></i>Resta</span><span><i class="plan"></i>Lo planeado</span></div></div>';
+  h += '<div class="sep"></div><div class="sec-t"><h3>De la venta a la ganancia</h3><div class="leyenda"><span><i style="background:var(--g-alza)"></i>Suma</span><span><i style="background:var(--g-baja)"></i>Resta</span><span><i class="plan"></i>Lo planeado</span><button type="button" class="puerta" data-abrir="presupuesto">Ver el presupuesto'+ICO.ir+'</button></div></div>';
   h += cascada(filas);
+  var hayCamp = s==="todas"||s==="tru"||s==="aqp", c0 = CAMPANAS[0];
+  h += '<div class="sep"></div><div class="sec-t"><h3>Campañas de octubre</h3><button type="button" class="puerta" data-abrir="campanas">Ver las campañas'+ICO.ir+'</button></div>';
+  h += hayCamp
+    ? '<div class="camp"><span class="sello">%</span><span><b>'+c0.n+' · '+c0.desc+' % de descuento</b><small>'+c0.fechas+' · '+c0.sedes+'. Necesitaba vender '+c0.necesita+' % más; vendió '+c0.logro+' % más.</small></span><span class="v">+'+soles(c0.extra)+'</span></div>'
+    : '<p class="tenue" style="font-size:14px">Esta sede no tuvo campañas en octubre.</p>';
   if(s==="todas"){
     var filasS = ["tru","aqp","lim","tal","emp"].map(function(id){ var so=sedeObj(id); var rr=resultado(ER[id]);
       return {k:"s-"+id, sede:id, labelHtml:'<span class="nom"><i style="--c:var('+so.c+')"></i>'+so.n+'</span>', v:rr, tipo:"total", color:so.c}; });
@@ -659,9 +699,9 @@ function recosGanamos(){
   var e = erDe(s);
   [["planilla","Sueldos"],["alquiler","Alquileres y servicios"],["otros","Otros gastos"]].forEach(function(g){
     var d = desvio(e[g[0]], e.plan[g[0]]);
-    if(d!=null && d>=0.10) out.push({t:"ambar", p:2, h:g[1]+": "+pct(d,0)+" sobre lo planeado", d:soles(e[g[0]]-e.plan[g[0]])+" más que el plan."+(g[0]==="otros"&&(s==="todas"||s==="lim")?" Lo que más subió: movilidad de Lima.":""), b:"Ver en Gastos"});
+    if(d!=null && d>=0.10) out.push({t:"ambar", p:2, h:g[1]+": "+pct(d,0)+" sobre lo planeado", d:soles(e[g[0]]-e.plan[g[0]])+" más que el plan."+(g[0]==="otros"&&(s==="todas"||s==="lim")?" Lo que más subió: movilidad de Lima.":""), b:"Ver el presupuesto", accion:"presupuesto"});
   });
-  if(s==="todas"||s==="tru"||s==="aqp") out.push({t:"verde", p:3, h:"Halloween dejó S/ 2,100 más que un fin de semana normal", d:"Con 20 % de descuento. Vale la pena repetirlo.", b:"Planear la siguiente"});
+  if(s==="todas"||s==="tru"||s==="aqp") out.push({t:"verde", p:3, h:"Halloween dejó S/ 2,100 más que un fin de semana normal", d:"Con 20 % de descuento vendió 94 % más; necesitaba 67 %. Vale la pena repetirla.", b:"Ver la campaña", accion:"campanas"});
   if(e.meta && e.ventas<e.meta*0.95) out.push({t:"ambar", p:4, h:"Vendiste el "+pct(e.ventas/e.meta,0)+" de la meta", d:"Faltaron "+soles(e.meta-e.ventas)+".", b:"Ver Análisis"});
   if(e.meta && e.ventas>=e.meta && resultado(e)>0 && out.length<2) out.push({t:"verde", p:5, h:"Pasaste la meta: "+pct(e.ventas/e.meta,0), d:"Y dejas "+soles(resultado(e))+" de ganancia.", b:null});
   if(!out.length) out.push({t:"pizarra", p:9, h:"Gastos dentro de lo planeado", d:"Nada se pasó más del 10 %.", b:null});
@@ -875,6 +915,7 @@ function pintarRecos(){
       if(r.sede){ estado.sede=r.sede; pintarTodo(); return; }
       if(r.accion==="todas"){ estado.sede="todas"; pintarTodo(); return; }
       if(r.accion==="todas-lim"){ estado.sede="lim"; pintarTodo(); return; }
+      if(r.accion==="presupuesto"||r.accion==="campanas"){ abrirHoja(r.accion, b); return; }
       if(r.accion==="palancas"){ var p=document.getElementById("p-ventas"); if(p){ p.scrollIntoView({behavior:reduce?"auto":"smooth",block:"center"}); p.focus(); } return; }
       avisar("En la app: «"+r.b+"» lleva a esa pantalla con la sede elegida.");
     });
@@ -932,7 +973,7 @@ document.addEventListener("click", function(ev){
   if(m){ ev.preventDefault(); avisar("En la maqueta solo está octubre de Estados financieros. «"+m.getAttribute("data-maqueta")+"» es otra pantalla."); }
 }, true);
 window.addEventListener("scroll", function(){ if(globo){ globo.remove(); globo=null; } }, {passive:true});
-document.addEventListener("keydown", function(ev){ var tt = ev.target.closest && ev.target.closest("[data-termino]"); if(tt && (ev.key==="Enter"||ev.key===" ")){ ev.preventDefault(); ev.stopPropagation(); tt.click(); return; } if(ev.key==="Escape"){ if(globo){globo.remove();globo=null;} cerrarNotas(); } });
+document.addEventListener("keydown", function(ev){ var tt = ev.target.closest && ev.target.closest("[data-termino]"); if(tt && (ev.key==="Enter"||ev.key===" ")){ ev.preventDefault(); ev.stopPropagation(); tt.click(); return; } if(ev.key==="Escape"){ if(globo){globo.remove();globo=null;} cerrarNotas(); cerrarHoja(); } });
 
 var tAviso;
 function avisar(texto){
@@ -955,6 +996,42 @@ var capa = document.getElementById("capa-notas"), ultimoFoco=null;
 document.getElementById("btn-notas").addEventListener("click", function(){ ultimoFoco=this; capa.hidden=false; capa.querySelector(".x").focus(); });
 function cerrarNotas(){ if(!capa.hidden){ capa.hidden=true; if(ultimoFoco) ultimoFoco.focus(); } }
 capa.querySelectorAll("[data-cerrar]").forEach(function(b){ b.addEventListener("click", cerrarNotas); });
+
+/* ---------------- Presupuesto y Campañas: páginas internas (aquí, en una hoja) ---------------- */
+var capaHoja = document.getElementById("capa-hoja"), focoHoja = null;
+function presupuestoHtml(){
+  var s = estado.sede, e = erDe(s), so = sedeObj(s);
+  var rubros = [["Ventas",e.ventas,e.meta,true],["Sueldos",e.planilla,e.plan.planilla],["Alquileres y servicios",e.alquiler,e.plan.alquiler],["Otros gastos",e.otros,e.plan.otros]];
+  var h = '<p class="versalita">Estados financieros · Presupuesto</p><h2 id="t-hoja">Presupuesto de octubre</h2><p class="frase-h">'+esc(so.n)+'. Lo planeado contra lo real.</p><div style="margin-top:14px">';
+  rubros.forEach(function(r){
+    if(!r[2] && !r[1]) return;
+    var f = r[2]? r[1]/r[2] : 0, pasa = !r[3] && f>1.10, falta = r[3] && f<0.95;
+    h += '<div class="rubro"><b>'+r[0]+'</b><span class="num">'+soles(r[1])+' <span class="tenue">de '+soles(r[2])+'</span></span>'+
+      '<div class="pistam"><div class="'+(pasa||falta?"pasa":"")+'" style="width:'+Math.min(f,1)*100+'%"></div></div>'+
+      '<small>'+(r[3]? (f>=1?"Pasaste la meta: "+pct(f,0)+".":"Vas al "+pct(f,0)+" de la meta.") : (f>1? "Te pasaste "+soles(r[1]-r[2])+" ("+pct(f-1,0)+")." : "Dentro de lo planeado."))+'</small></div>';
+  });
+  return h+'</div><p class="tenue" style="font-size:13px;margin-top:14px">Los topes se cambian en Configuración ▸ Presupuesto.</p>';
+}
+function campanasHtml(){
+  var h = '<p class="versalita">Estados financieros · Campañas</p><h2 id="t-hoja">Campañas</h2><p class="frase-h">Si el descuento valió la pena, y cuánto más hay que vender en las que vienen.</p>';
+  h += '<h3 style="font-size:19px;margin-top:20px">Cerraron</h3><div class="lista-camp">';
+  CAMPANAS.filter(function(c){return c.estado==="cerro";}).forEach(function(c){
+    h += '<div class="camp"><span class="sello">%</span><span><b>'+c.n+' · '+c.desc+' %</b><small>'+c.fechas+' · '+c.sedes+'. Necesitaba '+c.necesita+' % más; vendió '+c.logro+' % más.</small></span><span class="v">+'+soles(c.extra)+'</span></div>';
+  });
+  h += '</div><h3 style="font-size:19px;margin-top:20px">Vienen</h3><div class="lista-camp">';
+  CAMPANAS.filter(function(c){return c.estado==="viene";}).forEach(function(c){
+    h += '<div class="camp"><span class="sello">%</span><span><b>'+c.n+' · '+c.desc+' %</b><small>'+c.fechas+' · '+c.sedes+'.</small></span><span style="text-align:right;font-size:13px"><b class="num" style="font-family:var(--serif);font-size:20px;font-weight:500">+'+c.necesita+' %</b><small>de venta para no perder</small></span></div>';
+  });
+  return h+'</div>';
+}
+function abrirHoja(cual, desde){
+  focoHoja = desde || document.activeElement;
+  document.getElementById("hoja-cuerpo").innerHTML = cual==="presupuesto" ? presupuestoHtml() : campanasHtml();
+  capaHoja.hidden = false; capaHoja.querySelector(".x").focus();
+}
+function cerrarHoja(){ if(!capaHoja.hidden){ capaHoja.hidden = true; if(focoHoja && focoHoja.focus) focoHoja.focus(); } }
+capaHoja.querySelectorAll("[data-cerrar-hoja]").forEach(function(b){ b.addEventListener("click", cerrarHoja); });
+document.addEventListener("click", function(ev){ var a = ev.target.closest && ev.target.closest("[data-abrir]"); if(a){ ev.preventDefault(); abrirHoja(a.getAttribute("data-abrir"), a); } });
 
 function desdeHash(){ var h = (location.hash||"").slice(1); if(VISTAS.indexOf(h)>=0 && h!==estado.vista){ estado.vista=h; estado.abierto=null; estado.formal=false; pintarTodo(); } }
 window.addEventListener("hashchange", desdeHash);
