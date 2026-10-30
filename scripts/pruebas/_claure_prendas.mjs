@@ -11,9 +11,11 @@
  *
  * QUÉ PROMETE. Las prendas elegidas son MERCADERÍA de verdad (talla activa con precio, producto activo, no de prueba, con una categoría que
  * entra a los motores: lo que Pérdidas, el Diario y Análisis cuentan) y de productos sin ninguna línea de venta, apartado, pedido web, cambio
- * ni prenda dañada, y sin movimientos que no sean de entrada (una merma vieja cambiaría «mermas sin costo» al poner el costo en 0). Lo que la
- * prueba arma encima es lo único que hay de ellas. Sigue siendo determinista: la primera por id entre las limpias. Si no queda ninguna, `\gset`
- * no recibe filas y psql falla en voz alta (nunca se prueba sobre una prenda sucia en silencio).
+ * ni prenda dañada, y sin mermas (una merma vieja cambiaría Pérdidas y «mermas sin costo» al poner el costo en 0; se reconoce con las mismas
+ * reglas de la base, `fn_es_merma` y `fn_perdida_razon`). Las entradas y los traslados no cuentan: el seed reparte TODO su stock a las tiendas
+ * con traslados, y pedir «solo entradas» dejó al CI sin ninguna prenda (los 10 productos del seed tienen traslados). Lo que la prueba arma
+ * encima es lo único que hay de ellas. Sigue siendo determinista: la primera por id entre las limpias. Si no queda ninguna, `\gset` no recibe
+ * filas y psql falla en voz alta (nunca se prueba sobre una prenda sucia en silencio).
  * Lo de «mercadería»: la primera prenda limpia por id resultó ser un borrador sin categoría, apagado y a S/ 0, que Pérdidas no lista.
  */
 
@@ -31,7 +33,9 @@ export const PRODUCTO_SIN_HISTORIA = `va.activo and va.precio > 0
           or exists (select 1 from retail.pedido_web_lineas x where x.variante_id = h.id)
           or exists (select 1 from retail.cambio_salidas x where x.variante_id = h.id)
           or exists (select 1 from retail.prendas_danadas x where x.variante_id = h.id)
-          or exists (select 1 from retail.movimientos x where x.variante_id = h.id and x.tipo <> 'entrada')))`;
+          or exists (select 1 from retail.movimientos x
+                      where x.variante_id = h.id
+                        and (retail.fn_es_merma(x.tipo, x.motivo, x.cantidad) or retail.fn_perdida_razon(x.tipo, x.motivo, x.cantidad) is not null))))`;
 
 /** La prenda A (`:va_a`, de su producto `:p_a`). */
 export const ELEGIR_A = `select va.id as va_a, va.producto_id as p_a from retail.variantes va where ${PRODUCTO_SIN_HISTORIA} order by va.id limit 1 \\gset`;
