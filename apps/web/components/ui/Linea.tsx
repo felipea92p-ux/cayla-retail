@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { radioDeToque, separarMarcas, textosQueCaben } from "@/lib/linea-marcas-reglas";
 
 /* ====================================================================
@@ -74,6 +74,10 @@ type Props = {
   arreglos?: readonly ArregloLinea[];
   /** La raya punteada vertical de «ahora», con su texto. */
   ahora?: { x: number; texto: string } | null;
+  /** Lo que queda bajo la referencia se tiñe de rojo suave y el tramo de la línea que cae ahí se pinta de rojo (la caja bajo tu mínimo, Resumen). */
+  bajoReferencia?: boolean;
+  /** El punto más bajo, marcado en rojo con su texto («31 oct · S/ 4,842»). */
+  minimo?: { x: number; y: number; texto: string } | null;
   /** La cifra del último punto, en serif. */
   cifra?: string | null;
   /** La cifra al final de la referencia («15,500 · meta»). */
@@ -130,6 +134,8 @@ export function Linea({
   marcas = [],
   arreglos = [],
   ahora = null,
+  bajoReferencia = false,
+  minimo = null,
   cifra = null,
   cifraReferencia = null,
   leer,
@@ -153,6 +159,7 @@ export function Linea({
     return () => ro.disconnect();
   }, []);
   const [guia, setGuia] = useState<number | null>(null);
+  const idBajo = useId();
 
   const todos = [...serie, ...(referencia ?? []), ...(proyeccion ?? [])].map((p) => p.y);
   const techo = maxY ?? topeRedondo(Math.max(1, ...todos));
@@ -172,6 +179,8 @@ export function Linea({
   const textoCabe = textosQueCaben(lugarMarcas, marcas.map((m) => m.texto));
   const ultimo = serie.at(-1) ?? null;
   const finRef = referencia?.at(-1) ?? null;
+  // La raya de la referencia (un mínimo es una línea recta): lo de abajo es «bajo la referencia».
+  const yBajo = bajoReferencia && referencia && referencia.length > 0 ? Y(referencia[0]!.y) : null;
 
   function alMover(e: React.PointerEvent<SVGSVGElement>) {
     if (!leer) return;
@@ -226,6 +235,14 @@ export function Linea({
               </text>
             </g>
           )}
+          {yBajo !== null && (
+            <>
+              <clipPath id={idBajo}>
+                <rect x={L} y={yBajo} width={Math.max(W - L - R, 0)} height={Math.max(Y(minY) - yBajo, 0)} />
+              </clipPath>
+              <rect x={L} y={yBajo} width={Math.max(W - L - R, 0)} height={Math.max(Y(minY) - yBajo, 0)} className="linea-zona-baja" />
+            </>
+          )}
           {referencia && referencia.length > 1 && <path d={camino(referencia)} className="linea-referencia" />}
           {finRef && cifraReferencia && (
             <g>
@@ -245,11 +262,20 @@ export function Linea({
                 <path d={`${camino(serie, escalones)} L${X(ultimo.x).toFixed(1)},${Y(minY).toFixed(1)} L${X(serie[0]!.x).toFixed(1)},${Y(minY).toFixed(1)} Z`} className="linea-area" />
               )}
               {serie.length > 1 && <path d={camino(serie, escalones)} pathLength={1} className="linea-trazo" />}
+              {yBajo !== null && serie.length > 1 && <path d={camino(serie, escalones)} clipPath={`url(#${idBajo})`} className="linea-trazo-bajo" />}
               {puntos &&
                 serie.map((p, i) => (
                   <circle key={i} cx={X(p.x)} cy={Y(p.y)} r={guia === p.x ? 6.5 : 4.5} className="linea-punto" style={{ "--i": i } as CSSProperties} />
                 ))}
               {!puntos && <circle cx={X(ultimo.x)} cy={Y(ultimo.y)} r={4.5} className="linea-punto-fin" />}
+              {minimo && (
+                <g>
+                  <circle cx={X(minimo.x)} cy={Y(minimo.y)} r={6} className="linea-punto-bajo" />
+                  <text x={X(minimo.x) + 12} y={Y(minimo.y) + 22} className="linea-texto-bajo">
+                    {minimo.texto}
+                  </text>
+                </g>
+              )}
               {cifra && (
                 <text x={X(ultimo.x) + 9} y={Y(ultimo.y) + 5} className="linea-cifra">
                   {cifra}

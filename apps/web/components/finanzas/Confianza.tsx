@@ -1,32 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { BarraAvance, type TonoBarraAvance } from "@/components/ui/BarraAvance";
-import { Chip } from "@/components/ui/Chip";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import Link from "next/link";
+import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { textoEstado, tonoPieza, type Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 
-// «¿Puedo fiarme de este número?» (ADR-0417, Fase 1; Felipe 2026-10-24: spike 5-A). Va JUSTO bajo la respuesta del mes: «Seguro al 54 %»
-// con su barra y, a un toque, lo que falta para que lo sea (cada pieza con su insignia, su frase en lenguaje de tienda y el enlace a donde
-// se arregla). Antes era una tarjeta al fondo de la pantalla, lejos de la cifra que califica. No calcula nada: la calificación viene de
+// «¿Puedo fiarme de este número?» (ADR-0417, Fase 1; Felipe 2026-10-24: spike 5-A; 2026-10-29: dentro de «Vendido por sede»). Ya no es una franja
+// aparte: el chip «Seguro al 86 %» va arriba a la derecha de la tarjeta, y debajo la frase y, a un toque, lo que falta para que lo sea (cada pieza
+// con su insignia, su frase en lenguaje de tienda y el enlace a donde se arregla). No calcula nada: la calificación viene de
 // `lib/finanzas-confianza.ts` (pura, con prueba); aquí solo se dibuja.
 
-const TONO_NIVEL: Record<ConfianzaDatos["nivel"], TonoBarraAvance> = { alto: "verde", medio: "ambar", bajo: "rojo" };
+const TONO_NIVEL: Record<ConfianzaDatos["nivel"], TonoChip> = { alto: "verde", medio: "ambar", bajo: "rojo" };
 
-export function Confianza({ confianza, guia }: { confianza: ConfianzaDatos; guia?: string }) {
+/** El chip de arriba a la derecha: «Seguro al 86 %». */
+export function ConfianzaChip({ confianza }: { confianza: ConfianzaDatos }) {
+  return (
+    <Chip tono={TONO_NIVEL[confianza.nivel]} title="Qué tan seguro es este número" data-guia="fin-resumen.confianza">
+      Seguro al {confianza.pct} %
+    </Chip>
+  );
+}
+
+/** Lo que falta, en una línea con su «N cosas por revisar», y la lista que se abre a un toque. */
+export function ConfianzaDetalle({ confianza: c }: { confianza: ConfianzaDatos }) {
   const [abierto, setAbierto] = useState(false);
-  const c = confianza;
   const faltan = c.piezas.filter((p) => p.estado === "falta" || p.estado === "parcial").length;
   return (
-    <section className="card-cayla px-4 py-3 sm:px-5" data-guia={guia} data-nivel={c.nivel} aria-label="Qué tan seguro es este número">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="m-0 min-w-0 flex-1 basis-64 text-sm">
-          <b className="num">Seguro al {c.pct} %</b> <span className="text-taupe">· {c.frase}</span>
-        </p>
-        <div className="w-32 shrink-0" aria-hidden="true">
-          <BarraAvance pct={c.pct} tono={TONO_NIVEL[c.nivel]} decorativa />
-        </div>
+    <div data-nivel={c.nivel}>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <p className="m-0 min-w-0 text-sm text-taupe">{c.frase}</p>
         <BotonVerMas
           forma="enlace"
           abierto={abierto}
@@ -58,6 +61,6 @@ export function Confianza({ confianza, guia }: { confianza: ConfianzaDatos; guia
           ))}
         </ul>
       </FilasDeMas>
-    </section>
+    </div>
   );
 }
