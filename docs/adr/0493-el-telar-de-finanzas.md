@@ -251,3 +251,30 @@ el gráfico (en el teléfono quedaba pegado) y las lecturas para comparar, que e
 evita que la línea baje. **DESCARTÉ:** quitar el chip de la cifra grande (ya no contradice a «Cuándo» y la ciega lo usó a los 5 segundos) y
 abreviar «a esta altura» (a 1024 px el chip pasa a una segunda fila, +30 px; se acepta). **SE ROMPE SI:** la lista del mes anterior no se lee:
 en el mes en curso ya no hay contra qué comparar y el chip, las píldoras y la rayita se callan (no vuelven a comparar contra el mes entero).
+
+## Actualización 2026-10-30 (d) — La lista de Gastos va por día, como el extracto del banco (Felipe, eligiendo mirando)
+
+**Qué cambió.** Felipe miró cuatro propuestas para la lista de la pestaña «Gastos» (`docs/maquetas/gastos-lista-2026-10/`: L1 por día, L2
+primero lo que pide algo, L3 la tabla depurada, L4 por tamaño) y eligió **L1 · Por día**. La tabla de 8 columnas (fecha, gasto, categoría ·
+cuenta, sede, comprobante, cómo se pagó, monto, estado) se va; queda `ExtractoGastos` (`components/finanzas/gastos/`, reglas en
+`lib/gastos-extracto-reglas.ts`):
+
+1. **Por día, del más nuevo al más viejo**, cada día con `<SeparadorDia>` (la pieza decidida, ADR-0358): «Hoy · viernes 30 de octubre» y, a la
+   derecha, lo que se fue y en cuántos gastos, sin los anulados. Se pega bajo la mesa de mando al bajar (la mesa también va pegada y cambia de
+   alto: `ExtractoGastos` la mide y se lo pasa en `--separador-tope`). La tarjeta recorta con `overflow: clip` y no `hidden`, que rompería el pegado.
+2. **Cada fila dice qué fue** (y el proveedor) y debajo **en qué, cómo se pagó y su comprobante**; la sede, con su color, solo cuando se ven varias.
+   El IGV y el «perdido» siguen bajo el monto, como decidió Felipe el 2026-10-14. La cuenta contable sale de la fila: sigue en la hoja del gasto.
+3. **Solo se marca lo que no es normal**, una marca por fila: anulado; lo que falta pagar (vencido en rojo, como en Por pagar; ámbar si vence en
+   7 días o menos; pizarra si hay tiempo); y **sin comprobante desde S/ 300** (`UMBRAL_SIN_COMPROBANTE`, regla de dinero de Felipe, 2026-10-30): por
+   debajo están el mototaxi, el baño y los útiles, que nunca traen factura, y marcarlos haría que la marca deje de verse. La marca dice su porqué
+   (el IGV que se recuperaría, cuánto falta y cuándo vence) al lector y al pasar el mouse.
+4. **Lo chico que se repite el mismo día** (mismo nombre, sede, categoría y forma de pago; cada uno bajo S/ 50 y sin marca) va en una fila con el
+   globito de cuántas veces y lo que sumó, y se abre en su lugar (`<FilasDeMas>`).
+5. **Se ven los últimos 5 días**; el resto, con «Ver los N días de antes» (`<BotonVerMas>`). Buscando o con un día elegido se ven todos; si los de
+   antes serían uno solo, también.
+
+Buscador, filtros, píldoras de lo filtrado, pie y la hoja del gasto no cambian: migrar cambió cómo se ve, no qué hace.
+
+**DECIDÍ:** el separador decidido (versalitas de 11 px) en vez del serif de la maqueta, porque `<SeparadorDia>` es la única pieza del día en el ERP. Y el porqué de la marca va en el `title` y en el texto del lector, no en una frase a la vista: la frase está en la hoja del gasto, a un toque. **DESCARTÉ:** juntar
+lo repetido por nombre solamente (un «Baño» del cajón y otro por Yape se leerían como pagados igual) y esconder los anulados (un gasto nunca se
+borra de la vista). **SE ROMPE SI:** la mesa de mando deja de llamarse `.mesa-telar`: el separador se pega bajo la cabecera y queda tapado por la mesa.
