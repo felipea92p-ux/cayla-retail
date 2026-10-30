@@ -401,7 +401,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       preparar: [{ tipo: "clic", ancla: "fin-gastos.hilo-primera", siEsta: true }],
       prepararSoloAlAvanzar: true,
       titulo: "¿Cuándo se gastó, y a qué ritmo?",
-      texto: "La línea suma lo gastado día a día; la punteada es el mes anterior a la misma altura, y desde hoy, tenue, hacia dónde va si sigue así, con los fijos que faltan pagar. Debajo dice de qué está hecho. Tocas un día, o una nota, y se abre lo que se gastó ese día.",
+      texto: "La línea suma lo gastado día a día; la punteada es el mes anterior a la misma altura, y desde hoy, tenue, hacia dónde va si sigue así, con los fijos por confirmar. Debajo dice de qué está hecho. Tocas un día, o una nota, y se abre lo que se gastó ese día.",
     },
     {
       id: "ritmo-dia",
@@ -411,7 +411,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       prepararSoloAlAvanzar: true,
       opcional: true,
       titulo: "Lo que se gastó ese día",
-      texto: "Gasto por gasto, del más grande al más chico, con su sede; en un día que todavía no llega, el fijo que falta pagar. Tocas un gasto y se abre su hoja; «Ver en la tabla» deja la lista de abajo solo con ese día. Tocas el día otra vez y se cierra.",
+      texto: "Gasto por gasto, del más grande al más chico, con su sede; en un día que todavía no llega, el fijo por confirmar. Tocas un gasto y se abre su hoja; «Ver en la tabla» deja la lista de abajo solo con ese día. Tocas el día otra vez y se cierra.",
     },
     {
       id: "bandeja",

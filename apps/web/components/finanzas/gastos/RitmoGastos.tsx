@@ -142,7 +142,7 @@ export function RitmoGastos({
         {ritmo.vienen.length > 0 && (
           <span>
             <i className="ritmo-muestra" data-tipo="viene" />
-            fijo que falta pagar
+            fijo por confirmar
           </span>
         )}
       </div>
@@ -207,7 +207,7 @@ export function RitmoGastos({
                   <div key={f.id} className="ritmo-gasto" data-viene>
                     <span className="hilo-gasto-que">
                       <b>Viene: {f.descripcion}</b>
-                      <small>{f.categoriaNombre} · gasto fijo sin registrar</small>
+                      <small>{f.categoriaNombre} · fijo por confirmar</small>
                     </span>
                     <span className="hilo-gasto-sede">
                       {sede(f.ubicacionId ?? "empresa") && <MuestraTramo color={COLOR[sede(f.ubicacionId ?? "empresa")!.color]} />}

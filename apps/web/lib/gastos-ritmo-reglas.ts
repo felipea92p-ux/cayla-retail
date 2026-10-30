@@ -217,7 +217,7 @@ export function fraseDelRitmo(r: RitmoDelMes, mes: string, nombreMesAnterior: st
 
 /**
  * Bajo el gráfico, de qué está hecho el «si sigue así» (la prueba ciega no sabía si contaba los fijos, /formidable 2026-10-30): «Si sigue así,
- * cierras octubre en ≈ S/ 11,362: un día normal (S/ 185) por cada día que falta, más S/ 210 de 2 fijos sin registrar. Septiembre cerró en
+ * cierras octubre en ≈ S/ 11,362: un día normal (S/ 185) por cada día que falta, más S/ 210 de 2 fijos por confirmar (el mismo nombre que el chip de la cifra grande). Septiembre cerró en
  * S/ 10,368.» En un mes cerrado, solo cómo cerró el anterior. `null` si no hay nada que decir.
  */
 export function pieDelRitmo(r: RitmoDelMes, mes: string, nombreMesAnterior: string): string | null {
@@ -226,7 +226,7 @@ export function pieDelRitmo(r: RitmoDelMes, mes: string, nombreMesAnterior: stri
     const faltan = r.dias - r.hasta;
     const dia = r.ritmoDiario !== null && Math.round(r.ritmoDiario) > 0 ? `un día normal (${solesRedondo(r.ritmoDiario)}) por ${faltan === 1 ? "el día que falta" : "cada día que falta"}` : null;
     const extras = [
-      r.porVenir.fijos > 0 ? `${solesRedondo(r.porVenir.montoFijos)} de ${r.porVenir.fijos} ${r.porVenir.fijos === 1 ? "fijo" : "fijos"} sin registrar` : null,
+      r.porVenir.fijos > 0 ? `${solesRedondo(r.porVenir.montoFijos)} de ${r.porVenir.fijos} ${r.porVenir.fijos === 1 ? "fijo" : "fijos"} por confirmar` : null,
       r.porVenir.anotados > 0 ? `${solesRedondo(r.porVenir.anotados)} ya anotados para después` : null,
     ].filter((x): x is string => !!x);
     const hecho = dia ? (extras.length ? `${dia}, más ${extras.join(" y ")}` : dia) : extras.join(" y ");
