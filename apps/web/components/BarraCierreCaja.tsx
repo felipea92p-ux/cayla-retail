@@ -40,7 +40,7 @@ export function BarraCierreCaja({ estado, onCerrar }: { estado: EstadoBotonCierr
       <div data-guia="caja.barra-cierre" className="cc-barra" data-nivel={estado.nivel} role="status">
         <div>
           <b>{estado.titulo}</b>
-          <span className="cc-bajada">{estado.bajada}</span>
+          {estado.bajada && <span className="cc-bajada">{estado.bajada}</span>}
         </div>
         {onCerrar && (
           <button ref={botonRef} type="button" onClick={onCerrar} className="cc-boton">

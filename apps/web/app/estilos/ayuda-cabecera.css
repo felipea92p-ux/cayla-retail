@@ -76,6 +76,18 @@
   @media (pointer: coarse) {
     .ayuda-cab-q::before { inset: -12px; }
   }
+  /* Ronda 19 (A1 + F1): el mismo «?», más chico, junto al título de una sección (serif de 21 px) y junto a una cifra o un campo
+     (donde antes iba el «!» de `<Ayuda>`). También cuelga arriba a la derecha de la última palabra: `text-top` pega su borde de
+     arriba al de la letra de al lado, y `top` lo sube un poco más, como un superíndice. Lo de tocar sigue en 32 y 44 px. */
+  .ayuda-cab-q[data-tamano] { vertical-align: text-top; margin-left: 2px; }
+  .ayuda-cab-q[data-tamano="seccion"] { top: -2px; width: 16px; height: 16px; font-size: 11.5px; }
+  .ayuda-cab-q[data-tamano="texto"] { top: -4px; width: 14px; height: 14px; font-size: 10.5px; }
+  .ayuda-cab-q[data-tamano="seccion"]::before { inset: -8px; }
+  .ayuda-cab-q[data-tamano="texto"]::before { inset: -9px; }
+  @media (pointer: coarse) {
+    .ayuda-cab-q[data-tamano="seccion"]::before { inset: -14px; }
+    .ayuda-cab-q[data-tamano="texto"]::before { inset: -15px; }
+  }
 
   /* El globo: vidrio esmerilado que flota en la capa de arriba (`position: fixed`; lo coloca `AyudaCabecera`). */
   .ayuda-cab-globo {

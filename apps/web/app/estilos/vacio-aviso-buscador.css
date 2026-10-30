@@ -68,7 +68,7 @@
   .pildora-limpiar svg { width: 14px; height: 14px; flex-shrink: 0; }
 
   /* ---------- <Vacio tamano="chico">: una línea dentro de una tabla, una hoja o una lista ---------- */
-  .vacio-chico { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--color-taupe); animation: cayla-vacio-sube 300ms var(--ease-cayla) backwards; }
+  .vacio-chico { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 14px; font-size: 14px; color: var(--color-taupe); animation: cayla-vacio-sube 300ms var(--ease-cayla) backwards; }
   .vacio-chico.a-la-izquierda { justify-content: flex-start; }
   .vacio-chico .vacio-ic { width: 28px; height: 28px; flex-shrink: 0; }
   .vacio-chico .vacio-ic svg { width: 15px; height: 15px; stroke-width: 1.75; }
@@ -76,7 +76,7 @@
   .vacio-chico .vacio-txt { min-width: 0; text-align: left; }
   .vacio-chico .vacio-txt b, .vacio-chico .vacio-txt strong { color: var(--color-tinta); font-weight: 600; }
   .vacio-chico-accion {
-    flex-shrink: 0; font: 500 13px/1 var(--font-sans); color: var(--color-tinta); padding: 6px 8px; border-radius: 8px; cursor: pointer;
+    flex-shrink: 0; font: 500 14px/1 var(--font-sans); color: var(--color-tinta); padding: 6px 8px; border-radius: 8px; cursor: pointer;
     text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); text-underline-offset: 3px;
     transition: background-color 200ms, text-decoration-color 200ms;
   }

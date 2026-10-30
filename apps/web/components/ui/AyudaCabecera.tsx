@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useDestinoFlotante } from "@/components/ui/useAnclaje";
+import { useDestinoFlotante } from "./useAnclaje";
 
 /** El «?» junto al título de una pantalla y su globo de vidrio (ADR-0358, ronda 18 de `/unificar`; Felipe 2026-10-30).
  *
@@ -10,8 +10,26 @@ import { useDestinoFlotante } from "@/components/ui/useAnclaje";
  *  explicaba aparte con un «!» (`mas`). Se abre al tocar el «?», se cierra al tocarlo otra vez, al tocar afuera o con Escape,
  *  y cada vez que se entra a la pantalla vuelve cerrado. El globo cuelga de la capa flotante (`position: fixed`), como el de
  *  `<Ayuda>`: no mueve la página ni lo recorta el panel que lo contiene. Lo coloca este componente, debajo del «?» o, si no
- *  cabe, arriba; en el celular ocupa el ancho de la pantalla. Aspecto y movimiento: `app/estilos/ayuda-cabecera.css`. */
-export function AyudaCabecera({ nombre, children, mas, guia }: { nombre?: string; children?: ReactNode; mas?: ReactNode; guia?: string }) {
+ *  cabe, arriba; en el celular ocupa el ancho de la pantalla. Aspecto y movimiento: `app/estilos/ayuda-cabecera.css`.
+ *
+ *  Ronda 19 (Felipe 2026-10-30, A1 + F1): el mismo «?» explica también una sección (`tamano="seccion"`, en `<TituloSeccion ayuda>`)
+ *  y una cifra o un campo (`tamano="texto"`, lo que dibuja `<Ayuda>`, que antes era un «!»): más chico, siempre arriba a la derecha
+ *  de la última palabra. `etiqueta` es su nombre para el lector cuando el del globo no sirve («Cómo se lee»). */
+export function AyudaCabecera({
+  nombre,
+  children,
+  mas,
+  guia,
+  tamano = "cabecera",
+  etiqueta,
+}: {
+  nombre?: string;
+  children?: ReactNode;
+  mas?: ReactNode;
+  guia?: string;
+  tamano?: "cabecera" | "seccion" | "texto";
+  etiqueta?: string;
+}) {
   const [abierto, setAbierto] = useState(false);
   const boton = useRef<HTMLButtonElement>(null);
   const globo = useRef<HTMLDivElement>(null);
@@ -83,10 +101,11 @@ export function AyudaCabecera({ nombre, children, mas, guia }: { nombre?: string
         ref={boton}
         type="button"
         className="ayuda-cab-q"
+        data-tamano={tamano === "cabecera" ? undefined : tamano}
         data-guia={guia}
         aria-expanded={abierto}
         aria-controls={abierto ? id : undefined}
-        aria-label={nombre ? `Qué es ${nombre}` : "Qué es esta pantalla"}
+        aria-label={etiqueta ?? (nombre ? `Qué es ${nombre}` : tamano === "cabecera" ? "Qué es esta pantalla" : "Más información")}
         onClick={(e) => {
           // Un título puede vivir dentro de un enlace o una fila clicable: el «?» no la activa.
           e.preventDefault();
