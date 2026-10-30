@@ -62,6 +62,30 @@
     box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
   }
   .linea-globo { transform: translate(-50%, calc(-100% - 10px)); animation: cayla-linea-aparece 160ms var(--ease-cayla) both; }
+  /* Ninguna línea tapa un texto (2026-10-30, «Cuándo» de Gastos): lo escrito sobre el dibujo lleva un borde del color del fondo que corta
+     lo que pasa por detrás. Una línea sobre otra superficie que el papel lo dice con `--linea-fondo`. */
+  .linea-sobre { paint-order: stroke; stroke: var(--linea-fondo, var(--color-papel)); stroke-width: 4px; stroke-linejoin: round; }
+  /* Las notas, en su franja sobre el gráfico: el texto en tinta, su detalle en taupe, el hilo punteado hasta su punto. Aparecen al llegar la línea. */
+  .linea-nota-g { animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(950ms + var(--i, 0) * 120ms); }
+  .linea-nota-g[role="button"] { cursor: pointer; outline: none; }
+  .linea-nota-toque { fill: transparent; }
+  .linea-nota { font-size: 12px; fill: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+  .linea-nota-texto { fill: var(--color-tinta); font-weight: 600; }
+  .linea-nota-punto { fill: var(--color-papel); stroke: var(--color-tinta); stroke-width: 1.5; }
+  .linea-nota-hilo { stroke: var(--color-taupe); stroke-width: 1; stroke-dasharray: 1 3; stroke-linecap: round; transition: stroke 200ms var(--ease-cayla); }
+  .linea-nota-g:focus-visible .linea-nota-hilo { stroke: var(--color-rojo); stroke-dasharray: none; }
+  .linea-nota-g:focus-visible .linea-nota-punto { stroke: var(--color-rojo); }
+  @media (hover: hover) {
+    .linea-nota-g[role="button"]:hover .linea-nota-hilo { stroke: var(--color-tinta); stroke-dasharray: none; }
+  }
+  /* Lo que viene sobre el «si sigue así» (un fijo que falta pagar): un punto hueco y punteado. */
+  .linea-viene { fill: var(--color-papel); stroke: var(--color-taupe); stroke-width: 1.5; stroke-dasharray: 2 2;
+    animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(1100ms + var(--i, 0) * 100ms); }
+  .linea-punto-proy { fill: var(--color-papel); stroke: color-mix(in srgb, var(--color-tinta) 55%, transparent); stroke-width: 2; /* contraste: gráfico sobre papel */ }
+  /* El momento elegido (`onElegir`): una raya roja; el gráfico se recorre con el teclado como un deslizador. */
+  .linea-elegido { stroke: var(--color-rojo); stroke-width: 1.5; pointer-events: none; }
+  .linea-elegible { cursor: pointer; outline: none; }
+  .linea-elegible:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 4px; border-radius: 6px; }
 
   /* ---------- Las barras por tiempo ---------- */
   .barras-tiempo-zona { position: relative; border-bottom: 1px solid var(--color-sand); }
@@ -112,5 +136,5 @@
 @keyframes cayla-barras-crece { from { transform: scaleY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .linea-area, .linea-trazo, .linea-punto-fin, .linea-punto, .linea-marca, .linea-arreglo, .linea-cifra, .linea-globo, .barra-t-relleno, .barra-t-encima, .barra-t-globo { animation: none; transition: none; }
+  .linea-area, .linea-trazo, .linea-punto-fin, .linea-punto, .linea-marca, .linea-arreglo, .linea-cifra, .linea-globo, .linea-nota-g, .linea-nota-hilo, .linea-viene, .barra-t-relleno, .barra-t-encima, .barra-t-globo { animation: none; transition: none; }
 }
