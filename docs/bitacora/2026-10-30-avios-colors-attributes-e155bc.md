@@ -38,8 +38,9 @@ idénticas a las que produce `main`** (md5 contra una base privada con las 980 m
 en silencio. Después, 36 agentes revisaron el archivo por 6 lentes y refutaron entre sí: de 30 hallazgos, **25 cayeron con
 evidencia** y 5 quedaron. Cuatro se arreglaron en el mismo PR —el aviso traducido del índice renombrado
 (`error-escritura.ts`), la llave del candado que dejaba de serializarse con `fn_materializar_insumos_sueltos`, las dos
-funciones nuevas sin `revoke`, y «Agregar colores», que llamaba «tela» a un avío y sin su medida— y el quinto es una
-decisión de Felipe (ver el backlog: un botón, ¿en líneas o en milímetros?). También se escribió y **se probó** el camino de
+funciones nuevas sin `revoke`, y «Agregar colores», que llamaba «tela» a un avío y sin su medida— y el quinto se lo llevó a Felipe, que decidió el mismo día: **un botón se mide SIEMPRE en líneas**
+(`pieza` admitía líneas y milímetros, y como la unidad entra en la llave del índice, el mismo botón habría entrado dos veces con el stock partido). Se cerró con 0 avíos
+en producción, sin migrar una sola fila. También se escribió y **se probó** el camino de
 vuelta: restaura las 8 funciones a su md5 de producción, es re-ejecutable, y su guarda se rompió a propósito para
 comprobar que de verdad frena si ya hay un avío.
 

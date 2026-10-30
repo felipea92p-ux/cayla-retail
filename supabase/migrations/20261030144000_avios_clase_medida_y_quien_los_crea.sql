@@ -99,7 +99,7 @@ revoke delete, truncate, references, trigger on retail.avio_clases from authenti
 
 -- Las siete con las que arranca (Felipe, 2026-10-30, decisión 1). Re-ejecutable: una clase que el líder renombró o desactivó NO se pisa.
 insert into retail.avio_clases (nombre, prefijo, comportamiento, unidad_sugerida, pide_color, orden, nota) values
-  ('Botón',             'BOT', 'pieza',    'unidad', true,  10, 'Se mide en líneas (L) o en milímetros. 18 L ≈ 11,4 mm.'),
+  ('Botón',             'BOT', 'pieza',    'unidad', true,  10, 'Se mide en líneas (L), siempre: 18 L ≈ 11,4 mm.'),
   ('Cierre',            'CIE', 'largo',    'unidad', true,  20, 'Lo que lo distingue es su largo en centímetros.'),
   ('Hilo',              'HIL', 'titulo',   'cono',   true,  30, 'Se compra por cono (≈5.000 m) y por color.'),
   ('Etiqueta',          'ETI', 'etiqueta', 'unidad', false, 40, 'Marca, talla o composición: no lleva color.'),
@@ -264,13 +264,16 @@ $f$;
 revoke all on function retail.fn_codigo_de_material(text, text, uuid) from public, anon, authenticated;
 
 -- Qué medida admite cada comportamiento. Vive aparte para que la lean `fn_material_leer` y las pruebas sin repetir la tabla.
+-- `pieza` admite UNA sola unidad —líneas— por decisión de Felipe (2026-10-30): la unidad entra en la llave del índice único, así que admitir también milímetros dejaba entrar «Botón nácar 18 L»
+-- y «Botón nácar 11.4 mm» como DOS fichas del mismo botón, con su stock partido. Lo encontró la revisión adversarial antes de pegar, con 0 avíos, cuando cerrarlo no cuesta migrar nada.
+-- `otro` sigue admitiendo las cuatro a propósito: es el cajón de lo que el líder inventa y no tiene una unidad canónica que imponerle.
 create or replace function retail.fn_medida_cuadra(p_comportamiento text, p_unidad text)
 returns boolean
 language sql
 immutable
 as $f$
   select case p_comportamiento
-    when 'pieza' then p_unidad in ('linea', 'milimetro')
+    when 'pieza' then p_unidad = 'linea'
     when 'largo' then p_unidad = 'centimetro'
     when 'ancho' then p_unidad = 'centimetro'
     when 'titulo' then p_unidad = 'titulo'

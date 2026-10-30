@@ -1170,9 +1170,10 @@ ok(
 );
 ok(
   "V16 `fn_medida_cuadra` es la misma tabla que la web: cada comportamiento admite solo lo suyo",
-  `select concat_ws(',', retail.fn_medida_cuadra('pieza','linea'), retail.fn_medida_cuadra('pieza','centimetro'), retail.fn_medida_cuadra('largo','centimetro'),
+  `select concat_ws(',', retail.fn_medida_cuadra('pieza','linea'), retail.fn_medida_cuadra('pieza','milimetro'), retail.fn_medida_cuadra('pieza','centimetro'), retail.fn_medida_cuadra('largo','centimetro'),
     retail.fn_medida_cuadra('ancho','centimetro'), retail.fn_medida_cuadra('titulo','titulo'), retail.fn_medida_cuadra('etiqueta','linea'), retail.fn_medida_cuadra('otro','titulo'));`,
-  (c) => c[0] === "t,f,t,t,t,f,t"
+  // El 2.º es el candado de Felipe (2026-10-30): un botón NO se mide en milímetros, o el mismo botón entra dos veces y el stock queda partido.
+  (c) => c[0] === "t,f,f,t,t,t,f,t"
 );
 ok(
   "V17 las siete clases nacen con su comportamiento, su unidad propuesta y si llevan color",

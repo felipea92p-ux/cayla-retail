@@ -58,12 +58,23 @@ describe("la tabla de comportamientos es total y no se contradice", () => {
   it("toda unidad de medida que algún comportamiento admite tiene su texto", () => {
     for (const u of UNIDADES) expect(UNIDADES_MEDIDA[u].corta).toBeTruthy();
   });
+  // Felipe, 2026-10-30. La unidad entra en la llave del índice único (`materiales_nombre_tipo_medida_unico`), así que un comportamiento que admita DOS
+  // unidades deja entrar la misma cosa dos veces: «Botón nácar 18 L» y «Botón nácar 11.4 mm» serían dos fichas, con el stock partido y sin un solo error.
+  // Por eso cada comportamiento con significado propio admite UNA sola unidad. La excepción es `otro`, el cajón de lo que el líder inventa: ahí no hay
+  // ninguna unidad canónica que imponer, y el riesgo se acepta a nombre de quien crea la clase.
+  it("un comportamiento con significado propio admite UNA sola unidad; solo «otro» admite varias", () => {
+    for (const c of TODOS) {
+      if (c === "otro") continue;
+      expect(medidasDe(c).length, `«${c}» admite ${medidasDe(c).length} unidades: con dos, el mismo avío entra dos veces`).toBeLessThanOrEqual(1);
+    }
+    expect(medidasDe("otro").length).toBeGreaterThan(1);
+  });
 });
 
 describe("medidaCuadra: la MISMA tabla que `retail.fn_medida_cuadra` (caso V16 de pruebas:materiales)", () => {
-  it("un botón se mide en líneas o milímetros, nunca en centímetros", () => {
+  it("un botón se mide SOLO en líneas (Felipe 2026-10-30): con dos unidades el mismo botón entraba dos veces", () => {
     expect(medidaCuadra("pieza", "linea")).toBe(true);
-    expect(medidaCuadra("pieza", "milimetro")).toBe(true);
+    expect(medidaCuadra("pieza", "milimetro")).toBe(false);
     expect(medidaCuadra("pieza", "centimetro")).toBe(false);
     expect(medidaCuadra("pieza", "titulo")).toBe(false);
   });

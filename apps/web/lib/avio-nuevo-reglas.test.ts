@@ -269,7 +269,7 @@ describe("tituloDeLaMedida: lo que la hoja dibuja", () => {
   it("cada clase que se mide trae su título, su ejemplo y sus unidades", () => {
     expect(tituloDeLaMedida(CLASES[1])?.titulo).toBe("Largo");
     expect(tituloDeLaMedida(CLASES[1])?.unidades).toEqual(["centimetro"]);
-    expect(tituloDeLaMedida(CLASES[0])?.unidades).toEqual(["linea", "milimetro"]);
+    expect(tituloDeLaMedida(CLASES[0])?.unidades).toEqual(["linea"]);
   });
   it("una etiqueta y «sin clase» no dibujan medida", () => {
     expect(tituloDeLaMedida(CLASES[3])).toBeNull();

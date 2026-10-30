@@ -34,7 +34,7 @@ export type ClaseDeAvio = {
 
 export const UNIDADES_MEDIDA: Record<UnidadMedidaAvio, { corta: string; larga: string; ayuda: string }> = {
   linea: { corta: "L", larga: "Líneas (L)", ayuda: "La medida de toda la vida del botón: 18 L ≈ 11,4 mm." },
-  milimetro: { corta: "mm", larga: "Milímetros", ayuda: "El diámetro, si el proveedor lo dice en milímetros." },
+  milimetro: { corta: "mm", larga: "Milímetros", ayuda: "Para un avío que de verdad se mide así; un botón va SIEMPRE en líneas." },
   centimetro: { corta: "cm", larga: "Centímetros", ayuda: "El largo del cierre o el ancho del elástico." },
   titulo: { corta: "título", larga: "Título del hilo", ayuda: "El grosor: 40 es más fino que 20." },
 };
@@ -54,7 +54,7 @@ type ReglaDeComportamiento = {
 
 /** La tabla de verdad. Es la MISMA que `retail.fn_medida_cuadra` y los `raise` de `fn_material_leer`; `avio-clases-reglas.test.ts` lo comprueba comportamiento por comportamiento. */
 export const COMPORTAMIENTOS: Record<ComportamientoClase, ReglaDeComportamiento> = {
-  pieza: { medidas: ["linea", "milimetro"], requerida: false, comoSeLlama: "Medida", ejemplo: "18", porQue: "Un botón de 18 L y uno de 24 L son dos avíos distintos." },
+  pieza: { medidas: ["linea"], requerida: false, comoSeLlama: "Medida", ejemplo: "18", porQue: "Un botón de 18 L y uno de 24 L son dos avíos distintos." },
   largo: { medidas: ["centimetro"], requerida: true, comoSeLlama: "Largo", ejemplo: "40", porQue: "Un cierre de 20 cm y uno de 40 cm no se pueden mezclar." },
   ancho: { medidas: ["centimetro"], requerida: true, comoSeLlama: "Ancho", ejemplo: "3", porQue: "Lo que distingue un elástico de otro es su ancho." },
   titulo: { medidas: ["titulo"], requerida: true, comoSeLlama: "Título", ejemplo: "40", porQue: "El grosor del hilo: con el equivocado la costura se nota." },
