@@ -4,6 +4,7 @@ import {
   comoSePago,
   DIAS_A_LA_VISTA,
   detalleDelGasto,
+  detalleDeRepetidos,
   diasALaVista,
   extractoPorDia,
   filasDelDia,
@@ -144,6 +145,11 @@ describe("lo que se repite el mismo día", () => {
   it("del más grande al más chico (un grupo pesa lo que suma) y los anulados al final", () => {
     const filas = filasDelDia([g(HOY, 900, { estado: "anulado", descripcion: "Anulado" }), g(HOY, 20, { descripcion: "Taxi" }), g(HOY, 15), g(HOY, 15)], HOY);
     expect(filas.map((f) => (f.tipo === "gasto" ? f.gasto.descripcion : "Baño ×2"))).toEqual(["Baño ×2", "Taxi", "Anulado"]);
+  });
+
+  it("la línea de debajo de un grupo dice en qué y cómo se pagó (sin comprobante: es lo chico)", () => {
+    expect(detalleDeRepetidos([g(HOY, 1), g(HOY, 1)])).toBe("Movilidad · Cajón de Lima");
+    expect(detalleDeRepetidos([])).toBe("");
   });
 
   it("la clave de un grupo es única entre días", () => {

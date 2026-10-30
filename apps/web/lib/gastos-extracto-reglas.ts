@@ -102,6 +102,12 @@ export function detalleDelGasto(g: GastoParaExtracto): string {
   return partes.filter(Boolean).join(" · ");
 }
 
+/** La línea de debajo de una fila «×N»: en qué y cómo se pagó, que es lo mismo en todos (por eso se juntaron). */
+export function detalleDeRepetidos(gastos: readonly GastoParaExtracto[]): string {
+  const g = gastos[0];
+  return g ? [g.categoriaNombre, comoSePago(g)].filter(Boolean).join(" · ") : "";
+}
+
 export type FilaExtracto<T extends GastoParaExtracto> =
   | { tipo: "gasto"; gasto: T; marca: MarcaGasto | null }
   | { tipo: "repetidos"; clave: string; gastos: T[]; total: number };

@@ -638,7 +638,7 @@ function TablaGastos({
             </Vacio>
           )
         ) : (
-          <ExtractoGastos gastos={visibles} hoy={hoy} verTodas={verTodas} sedes={sedes} onAbrir={onAbrir} />
+          <ExtractoGastos gastos={visibles} hoy={hoy} filtros={filtros} verTodas={verTodas} sedes={sedes} onAbrir={onAbrir} />
         )}
         <PieTabla>
           <span>
