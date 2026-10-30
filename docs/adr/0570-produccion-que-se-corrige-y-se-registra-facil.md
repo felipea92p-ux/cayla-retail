@@ -4,7 +4,7 @@
 - Actividad 1 (la «Ruta viva», solo web): construida y probada en local.
 - Actividad 2 («Terminé» con falla y con fecha): construida y probada en local. Su migración `20261029164000` está SIN pegar en producción: va después de `20261029021000` y `20261029051000`.
 - Actividad 3 (corregir, eliminar y restaurar cualquier anotación, con historia y notas): construida y probada en local. Su migración `20261029173000` está SIN pegar: va después de `20261029164000`.
-- Actividad 6a (corregir y eliminar un ingreso de insumo, con «Restaurar»): construida y probada en local, también en el navegador. Su migración `20261030134000` está SIN pegar en producción: va después de `20261029190000` (que ya está). La web sale antes o después, indistinto.
+- Actividad 6a (corregir y eliminar un ingreso de insumo, con «Restaurar»): construida y probada en local, también en el navegador. Su migración `20261030134000` está **pegada en producción** (30-oct, a mano por Felipe; la consulta de comprobación respondió 4 funciones, la columna `anulado_at` y la tabla `insumo_lote_cambios`). La web sale cuando se fusione el PR: sin la migración no ofrecía el lápiz, con ella sí.
 - Actividades 4 a 10: sin construir, en el orden de abajo.
 **Fecha:** 2026-10-29.
 **Decidió:** Felipe, con 34 preguntas en 9 rondas, el 29-oct. Eligió la versión A de la orden y la A de Insumos mirando la maqueta `docs/maquetas/produccion-taller-2026-10/index.html`.
@@ -247,7 +247,7 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
 - Dos carreras reales con commit: dos eliminaciones del mismo ingreso (la segunda espera 1,5 s y recibe «ya estaba»; un solo ajuste) y dos correcciones con valores distintos (la segunda se rechaza con `ingreso_cambio_mientras_tanto`); INV-26 sin violaciones después.
 - En el navegador, con una base privada clonada de la local: eliminar el ingreso de 9 m, ver el color en «Sin saldo» con «1 ingreso eliminado», restaurarlo, corregirlo a 7,5 m, el lápiz apagado de un lote con merma, y el aviso de «Retirar color» con saldo. `tema:auditar` de las dos hojas en claro y oscuro (0 hallazgos) y a 375 px; `guias:recorrer` de `produccion.insumos` (32 pasos, sin escribir nada en la base).
 - La web: `tsc`, ESLint, Knip (y `knip:produccion`) y las 164 656 pruebas (prueba nueva: `lib/ingreso-insumo-reglas.test.ts`, que cruza las frases, los topes y los nombres de las funciones con la migración).
-- **Sin probar:** `/formidable`, `/chaos` formal sobre las dos hojas (el invariante nuevo ya está en el catálogo) y la migración en producción (la regla de Felipe: llega con orden, ventana y camino de vuelta, ver el encabezado del SQL).
+- **Sin probar:** `/formidable`, `/chaos` formal sobre las dos hojas (el invariante nuevo ya está en el catálogo) y la web ya publicada contra producción (la migración sí está pegada y comprobada; el encabezado del SQL, que dice «NO está aplicada», quedó como se pegó y es lo único desactualizado).
 
 **Decisiones de Felipe abiertas:** (1) hoy corrige y elimina **solo el líder**: la ronda 2 dijo «quien ve Producción» para las anotaciones de una orden, pero un ingreso mueve el costo del lote (dinero), y la cuestión de permisos de quien escribe lotes con costo sigue abierta (ADR-0554). (2) Lo que ya se usó solo se ajusta («lo que queda»): sin pantalla todavía. (3) Un lote que llegó con una factura u orden recibida se corrige desde su recepción: tampoco tiene pantalla.
 
