@@ -110,3 +110,35 @@ tela y consumo de la orden, avance «Terminé N», cabecera única). Las activid
 A4 pierde sentido (los tres montos tecleados desaparecen: el costo de servicio es el devengado y el de tela sale del consumo), A4b (costos
 del Taller para quien ve `produccion`) entra en la migración `20261014160000`, A5 (palabras y plazos) en la actividad 8 del ADR-0400 y
 A6 («Producir este modelo») en la actividad 3. A1–A3 quedan intactas y son la base de la hoja nueva.
+
+## Actualización 2026-10-30 · Un modelo nuevo ya no arranca como muestra: el tipo se elige (decisión de Felipe)
+
+**El problema, con números.** El punto 2 de la Decisión hacía que «Crear un modelo nuevo» arrancara en *Muestra*. Las cuatro órdenes que
+se abrieron así en producción (OP-000002, 003, 004 el 27-oct y OP-000005 el 30-oct: 16, 54, 69 y 68 prendas) eran **lotes**, y las cuatro
+quedaron como muestra porque nadie movió el interruptor. Una muestra, al cerrarse, no entra al stock: 207 prendas de producción real iban a
+terminar sin estante. El ADR-0581 agregó la salida («Pasar a lote» en la orden abierta, y un script para 2, 3 y 4) y dejó escrito que el
+valor de fábrica se volvería a mirar si el error se repetía; se repitió con la OP-000005 el mismo día.
+
+**Lo decidido.** Con un modelo nuevo el tipo **no viene marcado**: el interruptor aparece sin ninguna opción elegida, es lo primero que pide
+la guía de foco («Tipo de orden · Sigue aquí»; «Elige si es un lote de producción o una muestra») y «Crear orden» no se habilita hasta
+elegirlo. Cada opción dice qué pasa al cerrar (lote: entra al stock del Taller; muestra: no entra). Mientras no se elige, el precio cuenta
+como el de un lote: lo que libra de él es elegir Muestra. Un modelo que ya existe sigue naciendo en *Lote de producción* (sin marca de la
+guía, porque no es una falta), y lo que llega desde Resumen o con `?tipo=` no cambia.
+
+- DECIDÍ: el modelo nuevo sin tipo de fábrica (`tipoAlElegir` devuelve `null`; `problemasDelModelo` y la guía lo cuentan primero).
+- DESCARTÉ: (a) que arrancara en *Lote*: calza con 4 de 4, pero quien de verdad quiere una muestra sin precio choca con «pon el precio» y
+  puede inventar uno en vez de cambiar el tipo, y entonces la muestra entra al stock; (b) dejar *Muestra* y avisar «son muchas prendas»:
+  el número es arbitrario y un aviso que sale seguido se aprende a ignorar; (c) dejarlo así: el botón «Pasar a lote» corrige, pero solo
+  si alguien lo nota antes de cerrar.
+- SE ROMPE SI: alguien retoma un borrador de modelo nuevo guardado ANTES de este cambio (guardaba «muestra» por defecto): vuelve como
+  muestra elegida. Son borradores del navegador, máximo diez por Taller y de vida corta; no se migran. Y el camino «crearlo completo en
+  Productos» sin haber elegido tipo vuelve con el modelo ya existente, que toma el lote de un modelo que existe, a la vista y con su
+  interruptor.
+
+**Lo que no cambia.** La carga útil a la base: `es_muestra` sigue viajando siempre (`paramsRpcModeloNuevo` se niega a armarla sin tipo, en
+vez de mandar «lote» por su cuenta). Sin migración.
+
+**Piezas.** `lib/orden-modelo-reglas.ts` (`tipoAlElegir`, `tipoElegidoAMano`, `frasesDelMolde`), `lib/modelo-nuevo-reglas.ts` (el campo
+`tipo` en `problemasDelModelo` y `camposDeGuiaOrden`), `lib/borrador-orden.ts` (un borrador puede guardar el tipo sin elegir),
+`lib/sugerencias-orden-produccion.ts` (la nota neutra), `FichaOrden` («Lote o muestra: por elegir») y `SegmentoDeslizante`, que ya no deja el
+pulgar sobre la opción de antes cuando el valor queda sin elegir.

@@ -248,7 +248,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tipo",
       opcional: true,
       titulo: "¿Lote o muestra?",
-      texto: "Se elige solo: un modelo que ya existe se fabrica como «Lote de producción» y, al cerrar, entra al stock del Taller; uno nuevo arranca como «Muestra», para desarrollarlo (patrón y prototipo) sin stock. Si hace falta, lo cambias aquí.",
+      texto: "Un modelo que ya existe se fabrica como «Lote de producción»: al cerrar, entra al stock del Taller. Uno nuevo no trae ninguno: eliges tú si es un lote o una «Muestra», para desarrollarlo (patrón y prototipo) sin stock. Si hace falta, lo cambias aquí.",
     },
     {
       id: "matriz",

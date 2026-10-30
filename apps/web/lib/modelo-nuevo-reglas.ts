@@ -30,7 +30,8 @@ export type BorradorModelo = {
   tallaIds: string[];
   colorCodigos: string[];
   precio: string;
-  esMuestra: boolean;
+  /** `null`: todavía no se eligió si es un lote o una muestra. Un modelo nuevo nace así: no hay tipo de fábrica (ADR-0396, act. 2026-10-30). */
+  esMuestra: boolean | null;
   cantidades: Record<string, string>;
 };
 
@@ -217,13 +218,16 @@ export function tieneCaracterDeControl(texto: string): boolean {
   return false;
 }
 
-export type ProblemaModelo = { campo: "nombre" | "categoria" | "tallas" | "precio" | "cantidades" | "costos"; texto: string };
+export type ProblemaModelo = { campo: "tipo" | "nombre" | "categoria" | "tallas" | "precio" | "cantidades" | "costos"; texto: string };
 
 /** Lo que falta para abrir la orden, en el orden en que la persona lo encuentra en pantalla. Sale de lo que la base rechaza (nombre con al menos una
  *  letra o un número, categoría activa, tallas de la categoría, precio en una producción, cantidades enteras y al menos una celda con prendas), más lo que el
- *  alta de producto también exige (elegir al menos una talla). Lo OPCIONAL de verdad —los colores, el precio de una muestra— no es una falta. */
+ *  alta de producto también exige (elegir al menos una talla), más el tipo: la base lo recibe siempre, y un modelo nuevo no trae uno de fábrica, así que se
+ *  elige (ADR-0396, act. 2026-10-30). Mientras no se elige, el precio cuenta como el de un lote: lo que libra de él es elegir Muestra. Lo OPCIONAL de verdad
+ *  —los colores, el precio de una muestra— no es una falta. */
 export function problemasDelModelo(b: BorradorModelo, celdas: readonly CeldaAlta[], costos?: TextosDeOrden): ProblemaModelo[] {
   const p: ProblemaModelo[] = [];
+  if (b.esMuestra === null) p.push({ campo: "tipo", texto: "Elige si es un lote de producción o una muestra." });
   if (!b.nombre.trim()) p.push({ campo: "nombre", texto: "Escribe el nombre del modelo." });
   else if (claveReferencia(b.nombre) === "") p.push({ campo: "nombre", texto: "El nombre necesita al menos una letra o un número." });
   else if (nombreDelModelo(b).length > MAX_NOMBRE_MODELO) p.push({ campo: "nombre", texto: `El nombre es muy largo: máximo ${MAX_NOMBRE_MODELO} letras.` });
@@ -272,6 +276,8 @@ export function paramsRpcModeloNuevo(o: {
     const l = leerDinero(t);
     return l.tipo === "ok" ? l.valor : l.tipo === "vacio" ? 0 : Number.NaN;
   };
+  // `problemasDelModelo` ya frena sin tipo: llegar acá así es un error del formulario, y mandar «lote» en su lugar sería volver al valor de fábrica que se quitó.
+  if (o.borrador.esMuestra === null) throw new Error("Falta elegir si es un lote de producción o una muestra");
   return {
     p_ubicacion_id: o.ubicacionId,
     p_referencia: nombreDelModelo(o.borrador),
@@ -308,7 +314,8 @@ export function leerErrorModeloNuevo(error: { message: string; code?: string | n
 }
 
 /** Los campos de la guía de foco de «Nueva orden» (ADR-0284): qué está hecho, qué sigue y qué falta. NO agrega reglas: sale de `problemasDelModelo` (lo que la base
- *  rechaza) y la prueba exige que coincidan. Con un modelo que ya existe solo hay dos cosas que decidir: cuál y cuántas. Lo opcional de verdad (el precio de una
+ *  rechaza) y la prueba exige que coincidan. Con un modelo que ya existe solo hay dos cosas que decidir: cuál y cuántas (su tipo nace en lote y se ve, pero no es una
+ *  falta). Un modelo nuevo empieza por el tipo, que no trae uno de fábrica. Lo opcional de verdad (el precio de una
  *  muestra, los colores) no figura como falta: un campo es «requerido» si la regla lo exige, o si ya tiene un problema (un precio escrito mal en una muestra). */
 export function camposDeGuiaOrden(o: {
   esNuevo: boolean;
@@ -342,6 +349,7 @@ export function camposDeGuiaOrden(o: {
   const conCategoria = b.categoria !== null;
   const conPrecio = b.precio.trim() !== "";
   return [
+    { id: "tipo", nombre: "Tipo de orden", requerido: true, hecho: !hay("tipo"), pendiente: frase("tipo") },
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: !hay("nombre"), pendiente: frase("nombre") },
     { id: "categoria", nombre: "Categoría", requerido: true, hecho: !hay("categoria"), pendiente: frase("categoria") },
     { id: "tallas", nombre: "Tallas", requerido: conCategoria || hay("tallas"), hecho: conCategoria && !hay("tallas"), pendiente: frase("tallas") },

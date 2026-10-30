@@ -25,12 +25,25 @@ export type ModeloParaLista = {
 };
 
 /**
- * El tipo con que arranca la orden. Un modelo que ya existe se fabrica como producción; uno nuevo arranca como muestra (se desarrolla antes de fabricarlo). Si la persona ya
- * tocó el interruptor —o trajo `?tipo=muestra` en la URL al volver de Nuevo producto—, no se le pisa lo que eligió (`aMano`).
+ * El tipo con que arranca la orden. Un modelo que ya existe se fabrica como producción. Uno nuevo NO trae tipo (`null`): la persona elige si es un lote o una muestra.
+ * Hasta el 2026-10-30 arrancaba como muestra, y las 4 órdenes que se abrieron así eran lotes: las 4 quedaron como muestra sin que nadie lo eligiera (ADR-0581;
+ * ADR-0396, act. 2026-10-30). Si la persona ya eligió —tocó el interruptor, trajo `?tipo=muestra` al volver de Nuevo producto, o lo trae la partida—, no se le
+ * pisa (`aMano`).
  */
-export function tipoAlElegir(o: { eleccion: "existente" | "nuevo"; tipoActual: TipoOrden; aMano: boolean }): TipoOrden {
-  if (o.aMano) return o.tipoActual;
-  return o.eleccion === "nuevo" ? "muestra" : "produccion";
+export function tipoAlElegir(o: { eleccion: "existente" | "nuevo"; tipoActual: TipoOrden | null; aMano: boolean }): TipoOrden | null {
+  if (o.aMano && o.tipoActual !== null) return o.tipoActual;
+  return o.eleccion === "nuevo" ? null : "produccion";
+}
+
+/**
+ * ¿El tipo con que arranca el formulario lo eligió la persona? Si sí, cambiar de modelo no lo pisa. Un `?tipo=muestra` de la URL lo es. En una partida («crear otra»,
+ * o un borrador que se retoma) lo es todo tipo, salvo el lote de un modelo que ya existía en un borrador retomado: ese es solo el de fábrica de un modelo existente.
+ */
+export function tipoElegidoAMano(o: { partida: { tipo?: TipoOrden | null; modoModelo?: "existe" | "nuevo" } | null; otraDespues: boolean; tipoInicial: TipoOrden | null }): boolean {
+  if (!o.partida) return o.tipoInicial === "muestra";
+  const { tipo, modoModelo } = o.partida;
+  if (tipo === "muestra") return true;
+  return tipo === "produccion" && (modoModelo === "nuevo" || o.otraDespues);
 }
 
 export type Urgencia = { dias: number };
@@ -178,13 +191,16 @@ export function moldeDelModelo(historial: readonly OrdenParaMolde[], productoId:
 }
 
 /** Lo que dice la línea junto al interruptor del tipo: qué se sabe del molde y qué hacer. Cuando no se sabe, es la pregunta. */
-export function frasesDelMolde(o: { tipo: TipoOrden; esNuevo: boolean; molde: MoldeDelModelo }): { texto: string; pregunta: boolean } {
+export function frasesDelMolde(o: { tipo: TipoOrden | null; esNuevo: boolean; molde: MoldeDelModelo }): { texto: string; pregunta: boolean } {
   if (o.esNuevo && o.tipo === "produccion") {
     return { texto: "Es un modelo nuevo y ya tienen el molde: fabrica el lote y, al cerrarlo, entra al stock del Taller. Si todavía falta hacerlo, elige Muestra.", pregunta: false };
   }
+  if (o.esNuevo && o.tipo === "muestra") {
+    return { texto: "Una muestra desarrolla el modelo y, al cerrarla, no entra al stock. Si ya tienen el molde y van a fabricar para vender, elige Lote de producción.", pregunta: false };
+  }
   if (o.esNuevo) {
     return {
-      texto: "Es un modelo nuevo, así que arranca como muestra. ¿Ya tienen el molde (de otro proveedor o de un modelo parecido)? Entonces elige Lote de producción.",
+      texto: "Elige qué vas a hacer. Lote de producción: ya tienen el molde y, al cerrarlo, entra al stock del Taller. Muestra: todavía hay que desarrollarlo y no entra al stock.",
       pregunta: true,
     };
   }
