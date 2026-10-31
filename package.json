@@ -294,6 +294,7 @@
     "pruebas:produccion-paso-tarde": "node scripts/pruebas/produccion_paso_tarde.mjs",
     "pruebas:produccion-termine-con-falla": "node scripts/pruebas/produccion_termine_con_falla.mjs",
     "pruebas:produccion-correcciones": "node scripts/pruebas/produccion_correcciones.mjs",
+    "pruebas:produccion-estimado-de-tela": "node scripts/pruebas/produccion_estimado_de_tela.mjs",
     "pruebas:produccion-tela-al-cortar": "node scripts/pruebas/produccion_tela_al_cortar.mjs",
     "pruebas:produccion-corte-con-su-tela": "node scripts/pruebas/produccion_corte_con_su_tela.mjs",
     "pruebas:produccion-cambiar-tipo": "node scripts/pruebas/produccion_cambiar_tipo.mjs",
