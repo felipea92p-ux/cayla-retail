@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ColorAlta } from "./alta-producto";
-import { coloresQueFaltan, ejesDelModelo, fraseDeLasTallasNuevas, fraseDeLosColoresNuevos, puedeAgregarColor, puedeAgregarTalla, tallasQueFaltan } from "./agregar-variantes-orden-reglas";
+import { coloresDesactivados, coloresQueFaltan, ejesDelModelo, fraseDeLasTallasNuevas, fraseDeLosColoresNuevos, puedeAgregarColor, puedeAgregarTalla, tallasDesactivadas, tallasQueFaltan } from "./agregar-variantes-orden-reglas";
 import type { CategoriaDeModelo } from "./modelo-nuevo-reglas";
 
 // «+ Talla» y «+ Color» en Nueva orden: qué se ofrece y qué se dice. La base (`agregar_variantes_a_modelo`) decide de verdad; esto solo no ofrece lo que ella rechazaría.
@@ -105,5 +105,39 @@ describe("ejesDelModelo", () => {
     expect(ejesDelModelo([v("M", "Nude"), v("S", "Nude"), v("S", "Gris")])).toEqual({ tallas: ["S", "M"], colores: ["Nude", "Gris"], sinTalla: false, sinColor: false });
     expect(ejesDelModelo([v(null, "Nude")])).toMatchObject({ sinTalla: true, sinColor: false });
     expect(ejesDelModelo([v("S", null)])).toMatchObject({ sinTalla: false, sinColor: true });
+  });
+});
+
+// /chaos 2026-10-31, hallazgo #1: la hoja ofrecía una talla o un color cuyas variantes están DESACTIVADAS en el modelo y la base lo rechazaba («ya existe pero está desactivada»). Reactivar es de
+// Editar producto, así que no se ofrece, y se dice por qué.
+describe("variantes desactivadas del modelo (hallazgo #1 del /chaos)", () => {
+  const apagadas = [v("L", "Gris perla"), v("L", "Nude")];
+  it("una talla cuyas variantes están desactivadas no se ofrece; las demás sí", () => {
+    expect(tallasQueFaltan(categoria, gris, apagadas).map((t) => t.valor)).toEqual(["XL"]);
+    expect(tallasDesactivadas(categoria, gris, apagadas)).toEqual(["L"]);
+  });
+  it("basta UNA variante desactivada en un color que el modelo vende para frenar la talla (la base crearía esa combinación y chocaría)", () => {
+    expect(tallasQueFaltan(categoria, gris, [v("L", "Nude")]).map((t) => t.valor)).toEqual(["XL"]);
+  });
+  it("una desactivada en un color que el modelo ya no vende no estorba: la base solo cruza con los colores de sus variantes activas", () => {
+    expect(tallasQueFaltan(categoria, gris, [v("L", "Verde")]).map((t) => t.valor)).toEqual(["L", "XL"]);
+    expect(tallasDesactivadas(categoria, gris, [v("L", "Verde")])).toEqual([]);
+  });
+  it("un color con una variante desactivada en una talla que el modelo vende no se ofrece", () => {
+    const todos = [color("GRI", "Gris perla"), color("NUD", "Nude"), color("VER", "Verde"), color("AZU", "Azul")];
+    expect(coloresQueFaltan(todos, gris, [v("S", "Verde")]).map((c) => c.codigo)).toEqual(["AZU"]);
+    expect(coloresDesactivados(todos, gris, [v("S", "Verde")]).map((c) => c.nombre)).toEqual(["Verde"]);
+    expect(coloresQueFaltan(todos, gris, [v("XL", "Verde")]).map((c) => c.codigo)).toEqual(["VER", "AZU"]);
+  });
+  it("sin desactivadas todo sigue igual", () => {
+    expect(tallasQueFaltan(categoria, gris, []).map((t) => t.valor)).toEqual(["L", "XL"]);
+    expect(tallasQueFaltan(categoria, gris).map((t) => t.valor)).toEqual(["L", "XL"]);
+  });
+  it("si lo único que falta está desactivado, «+ Talla» se apaga y dice que se reactiva desde Editar producto", () => {
+    const todasMenosXL = ["S", "M", "L"].map((t) => v(t, "Nude"));
+    expect(puedeAgregarTalla({ puedeEditarCatalogo: true, categoria, variantes: todasMenosXL, desactivadas: [v("XL", "Nude")] })).toMatchObject({
+      puede: false,
+      motivo: expect.stringContaining("Editar producto"),
+    });
   });
 });

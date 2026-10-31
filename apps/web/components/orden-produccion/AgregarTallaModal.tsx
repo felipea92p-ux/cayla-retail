@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { fraseDeLasTallasNuevas, tallasQueFaltan } from "@/lib/agregar-variantes-orden-reglas";
+import { fraseDeLasTallasNuevas, tallasDesactivadas, tallasQueFaltan, type VarianteDesactivada } from "@/lib/agregar-variantes-orden-reglas";
 import type { CategoriaDeModelo } from "@/lib/modelo-nuevo-reglas";
 import { useAgregarVariantes } from "./useAgregarVariantes";
 
@@ -22,6 +22,8 @@ export function AgregarTallaModal({
   referencia,
   categoria,
   variantes,
+  desactivadas = [],
+  alCerrarEnfocar,
   onClose,
 }: {
   tallerId: string;
@@ -29,10 +31,15 @@ export function AgregarTallaModal({
   referencia: string;
   categoria: CategoriaDeModelo | null;
   variantes: readonly { talla: string | null; color: string | null }[];
+  /** Las variantes desactivadas del modelo: sus tallas no se ofrecen (se reactivan desde Editar producto). */
+  desactivadas?: readonly VarianteDesactivada[];
+  /** El botón que abrió la hoja: al cerrar, el foco vuelve a él. */
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onClose: () => void;
 }) {
   const { responsable, cargando, agregar } = useAgregarVariantes({ tallerId, productoId, onClose });
-  const faltan = tallasQueFaltan(categoria, variantes);
+  const faltan = tallasQueFaltan(categoria, variantes, desactivadas);
+  const apagadas = tallasDesactivadas(categoria, variantes, desactivadas);
   const [elegidasIds, setElegidasIds] = useState<string[]>([]);
   // En el orden de la lista (S · M · L), no en el de los clics.
   const elegidas = faltan.filter((t) => elegidasIds.includes(t.id));
@@ -41,7 +48,7 @@ export function AgregarTallaModal({
   const nombres = elegidas.map((t) => t.valor);
 
   return (
-    <Modal titulo="Agregar tallas" subtitulo={`A ${referencia}. Quedan en el catálogo, como si las hubieras agregado desde Editar producto.`} variante="hoja" tamano="angosta" onClose={onClose}>
+    <Modal titulo="Agregar tallas" subtitulo={`A ${referencia}. Quedan en el catálogo, como si las hubieras agregado desde Editar producto.`} variante="hoja" tamano="angosta" alCerrarEnfocar={alCerrarEnfocar} onClose={onClose}>
       <div className="mt-3.5 space-y-5">
         <div className="space-y-2">
           <span className={campoEtiqueta}>Qué tallas</span>
@@ -53,6 +60,12 @@ export function AgregarTallaModal({
             ))}
           </div>
         </div>
+
+        {apagadas.length > 0 && (
+          <p className="text-xs text-tinta/65">
+            {apagadas.length === 1 ? `La talla ${apagadas[0]} está desactivada en este modelo: se reactiva` : `Las tallas ${apagadas.join(", ")} están desactivadas en este modelo: se reactivan`} desde Editar producto.
+          </p>
+        )}
 
         {elegidas.length > 0 && (
           <Aviso tono="info" chico>

@@ -16,18 +16,56 @@ export function ejesDelModelo(variantes: readonly VarianteDelModelo[]): { tallas
   return { tallas, colores, sinTalla: variantes.some((v) => !v.talla), sinColor: variantes.some((v) => !v.color) };
 }
 
-/** Las tallas que la categoría habilita y el modelo todavía no vende, en el orden de siempre (S · M · L). «Única» y «Estándar» no son una talla más: marcan una prenda de una sola medida y no se mezclan con S · M · L. */
-export function tallasQueFaltan(categoria: CategoriaDeModelo | null, variantes: readonly VarianteDelModelo[]): TallaDeCategoria[] {
+/**
+ * Una variante DESACTIVADA del modelo: no sale en la tabla de la orden, pero su combinación sigue ocupada (el índice único la reclama) y reactivarla es de Editar producto (/chaos 2026-10-31).
+ * Una talla o un color con una de estas, en una combinación que la base crearía, no se ofrece: la base lo rechazaría entero («ya existe pero está desactivada»).
+ */
+export type VarianteDesactivada = VarianteDelModelo;
+
+// La base cruza lo nuevo SOLO con los colores (o tallas) de las variantes ACTIVAS: una desactivada en otro color u otra talla no estorba, una desactivada que cae en ese cruce, sí.
+function colorVendido(ejes: ReturnType<typeof ejesDelModelo>, color: string | null): boolean {
+  return color ? ejes.colores.includes(color) : ejes.sinColor;
+}
+function tallaVendida(ejes: ReturnType<typeof ejesDelModelo>, talla: string | null): boolean {
+  return talla ? ejes.tallas.includes(talla) : ejes.sinTalla;
+}
+
+function tallasSinFiltrar(categoria: CategoriaDeModelo | null, variantes: readonly VarianteDelModelo[]): TallaDeCategoria[] {
   if (!categoria) return [];
   const { tallas } = ejesDelModelo(variantes);
   const tiene = new Set(tallas);
   return categoria.tallas.filter((t) => !tiene.has(t.valor) && t.valor !== TALLA_UNICA && t.valor !== TALLA_ESTANDAR).sort((a, b) => compararTallas(a.valor, b.valor));
 }
 
-/** Los colores del vocabulario que el modelo todavía no vende (por código: el nombre visible se renombra). */
-export function coloresQueFaltan(colores: readonly ColorAlta[], variantes: readonly VarianteDelModelo[]): ColorAlta[] {
+/** Los nombres de las tallas que faltan pero NO se ofrecen porque sus variantes están desactivadas (se reactivan desde Editar producto). */
+export function tallasDesactivadas(categoria: CategoriaDeModelo | null, variantes: readonly VarianteDelModelo[], desactivadas: readonly VarianteDesactivada[] = []): string[] {
+  const ejes = ejesDelModelo(variantes);
+  return tallasSinFiltrar(categoria, variantes)
+    .filter((t) => desactivadas.some((d) => d.talla === t.valor && colorVendido(ejes, d.color)))
+    .map((t) => t.valor);
+}
+
+/** Las tallas que la categoría habilita y el modelo todavía no vende, en el orden de siempre (S · M · L). «Única» y «Estándar» no son una talla más: marcan una prenda de una sola medida y no se mezclan con S · M · L. Las que tienen una variante desactivada no se ofrecen. */
+export function tallasQueFaltan(categoria: CategoriaDeModelo | null, variantes: readonly VarianteDelModelo[], desactivadas: readonly VarianteDesactivada[] = []): TallaDeCategoria[] {
+  const bloqueadas = new Set(tallasDesactivadas(categoria, variantes, desactivadas));
+  return tallasSinFiltrar(categoria, variantes).filter((t) => !bloqueadas.has(t.valor));
+}
+
+function coloresSinFiltrar(colores: readonly ColorAlta[], variantes: readonly VarianteDelModelo[]): ColorAlta[] {
   const tiene = new Set(variantes.map((v) => v.colorCodigo).filter((c): c is string => !!c));
   return colores.filter((c) => !tiene.has(c.codigo));
+}
+
+/** Los colores que faltan pero NO se ofrecen porque tienen una variante desactivada en una talla que el modelo vende. */
+export function coloresDesactivados(colores: readonly ColorAlta[], variantes: readonly VarianteDelModelo[], desactivadas: readonly VarianteDesactivada[] = []): ColorAlta[] {
+  const ejes = ejesDelModelo(variantes);
+  return coloresSinFiltrar(colores, variantes).filter((c) => desactivadas.some((d) => d.colorCodigo === c.codigo && tallaVendida(ejes, d.talla)));
+}
+
+/** Los colores del vocabulario que el modelo todavía no vende (por código: el nombre visible se renombra), menos los que tienen una variante desactivada. */
+export function coloresQueFaltan(colores: readonly ColorAlta[], variantes: readonly VarianteDelModelo[], desactivadas: readonly VarianteDesactivada[] = []): ColorAlta[] {
+  const bloqueados = new Set(coloresDesactivados(colores, variantes, desactivadas).map((c) => c.codigo));
+  return coloresSinFiltrar(colores, variantes).filter((c) => !bloqueados.has(c.codigo));
 }
 
 export type PuedeAgregar = { puede: true } | { puede: false; motivo: string };
@@ -38,12 +76,16 @@ const SIN_PERMISO = "Agregar una talla o un color es de quien edita el catálogo
  * ¿Se ofrece «+ Talla» y, si no, por qué (lo que dice el botón apagado)? La base decide de verdad: quien opera el Taller y edita el catálogo. Una prenda en talla única o sin tallas
  * no recibe una (mezclaría «Única» con tallas), y sin la lista de tallas de la categoría no hay qué ofrecer.
  */
-export function puedeAgregarTalla(o: { puedeEditarCatalogo: boolean; categoria: CategoriaDeModelo | null; variantes: readonly VarianteDelModelo[] }): PuedeAgregar {
+export function puedeAgregarTalla(o: { puedeEditarCatalogo: boolean; categoria: CategoriaDeModelo | null; variantes: readonly VarianteDelModelo[]; desactivadas?: readonly VarianteDesactivada[] }): PuedeAgregar {
   if (!o.puedeEditarCatalogo) return { puede: false, motivo: SIN_PERMISO };
   if (o.variantes.length === 0) return { puede: false, motivo: "Este modelo no tiene variantes todavía." };
   if (ejesDelModelo(o.variantes).sinTalla) return { puede: false, motivo: "Este modelo se vende en talla única: no se le agrega una talla." };
   if (!o.categoria) return { puede: false, motivo: "No se pudo leer las tallas de la categoría. Actualiza la pantalla." };
-  if (tallasQueFaltan(o.categoria, o.variantes).length === 0) return { puede: false, motivo: "El modelo ya tiene todas las tallas de su categoría." };
+  if (tallasQueFaltan(o.categoria, o.variantes, o.desactivadas).length === 0) {
+    const apagadas = tallasDesactivadas(o.categoria, o.variantes, o.desactivadas);
+    if (apagadas.length > 0) return { puede: false, motivo: `Las tallas que faltan (${lista(apagadas)}) están desactivadas en este modelo: se reactivan desde Editar producto.` };
+    return { puede: false, motivo: "El modelo ya tiene todas las tallas de su categoría." };
+  }
   return { puede: true };
 }
 

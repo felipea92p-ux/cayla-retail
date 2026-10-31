@@ -308,9 +308,12 @@ export function NuevaOrdenProduccionForm({
   // «+ Talla» de un modelo que ya existe (2026-10-31): las tallas que le faltan son las de SU categoría, y la base decide de verdad (`agregar_variantes_a_modelo`).
   const [tallaAbierta, setTallaAbierta] = useState(false);
   const [colorAbierto, setColorAbierto] = useState(false);
+  // Al cerrar una de las dos hojas el foco vuelve al botón que la abrió (sin `Dialog.Trigger`, Radix no sabe cuál era: /chaos 2026-10-31).
+  const botonTallaRef = useRef<HTMLButtonElement>(null);
+  const botonColorRef = useRef<HTMLButtonElement>(null);
   const categoriaDelModelo = useMemo(() => vocab?.categorias.find((cat) => cat.id === modeloExistente?.categoriaId) ?? null, [vocab, modeloExistente]);
   const puedeTalla = useMemo(
-    () => (modeloExistente ? puedeAgregarTalla({ puedeEditarCatalogo, categoria: categoriaDelModelo, variantes: modeloExistente.variantes }) : null),
+    () => (modeloExistente ? puedeAgregarTalla({ puedeEditarCatalogo, categoria: categoriaDelModelo, variantes: modeloExistente.variantes, desactivadas: modeloExistente.desactivadas }) : null),
     [modeloExistente, puedeEditarCatalogo, categoriaDelModelo]
   );
   const puedeColor = useMemo(
@@ -848,6 +851,7 @@ export function NuevaOrdenProduccionForm({
   // dicen por qué debajo de la tabla (en el celular no hay «title»).
   const botonDeLaTabla = (que: "Talla" | "Color", puede: boolean, abrir: () => void, anclaGuia?: boolean) => (
     <button
+      ref={que === "Talla" ? botonTallaRef : botonColorRef}
       type="button"
       className="btn-cayla btn-secundario btn-chico"
       disabled={!puede || cargando}
@@ -978,6 +982,8 @@ export function NuevaOrdenProduccionForm({
             referencia={modeloExistente.referencia}
             colores={coloresDisponibles}
             variantes={modeloExistente.variantes}
+            desactivadas={modeloExistente.desactivadas}
+            alCerrarEnfocar={botonColorRef}
             onClose={() => setColorAbierto(false)}
           />
         )}
@@ -988,6 +994,8 @@ export function NuevaOrdenProduccionForm({
             referencia={modeloExistente.referencia}
             categoria={categoriaDelModelo}
             variantes={modeloExistente.variantes}
+            desactivadas={modeloExistente.desactivadas}
+            alCerrarEnfocar={botonTallaRef}
             onClose={() => setTallaAbierta(false)}
           />
         )}
