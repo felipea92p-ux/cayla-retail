@@ -36,6 +36,7 @@ export function CabeceraDinero({
   hoy,
   acciones,
   onRegistrar,
+  panorama = false,
 }: {
   pestana: PestanaDinero;
   esLider: boolean;
@@ -54,6 +55,8 @@ export function CabeceraDinero({
   acciones?: ReactNode;
   /** Abre «Registrar movimiento» aquí mismo; sin él, el dock lleva a Dónde está con la hoja abierta. */
   onRegistrar?: () => void;
+  /** «Dónde está» dibuja su propia tarjeta de total (PanoramaDinero): sin la respuesta grande ni el orillo de la barra común. */
+  panorama?: boolean;
 }) {
   const params = useSearchParams();
   // Al cambiar de cara viaja solo la sede (la de la barra, o la vieja `?ver=` mientras dure el cambio), como en la barra común.
@@ -85,9 +88,9 @@ export function CabeceraDinero({
         subtitulo="Dónde está la plata, qué debes y si cuadra con el banco. Un saldo nunca se escribe a mano: se suma de los movimientos."
         acciones={acciones}
       >
-        <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />
+        {!panorama && <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />}
       </EncabezadoPagina>
-      {orillo && <Orillo porSede={orillo.porSede} sedes={sedes} que={orillo.que} hoy={hoy} />}
+      {orillo && !panorama && <Orillo porSede={orillo.porSede} sedes={sedes} que={orillo.que} hoy={hoy} />}
       <PestanasFin
         etiqueta="Las caras de Cuentas y dinero"
         guia="fin-dinero.pestanas"

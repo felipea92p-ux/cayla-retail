@@ -2,15 +2,10 @@
   "guia": "finanzas.dinero",
   "ruta": "/finanzas/dinero",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 65,
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
-      "button «fin-dinero.aviso-registrar»",
-      "button «fin-dinero.aviso-planilla-registrar»",
-      "button «fin-dinero.poner-plata»",
-      "button «Sacar plata»",
-      "Link «Cambiar en Configuración»",
       "button «fin-dinero.decir-cuenta»",
       "button «{b.nombre}»",
       "ComboResponsable «{responsable}»",
@@ -30,15 +25,58 @@
       "button «Volver»",
       "Boton «{accion}»"
     ],
-    "components/finanzas/DineroPulso.tsx": [
-      "Link «Ver el flujo semana a semana»"
-    ],
     "components/finanzas/FaltanProyeccion.tsx": [
       "Link «Ir a cargarlo»"
     ],
     "components/finanzas/PagosSinCuenta.tsx": [
       "Boton «Guardar»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/finanzas/dinero/AlcanzaDinero.tsx": [
+      "Link «Ver el flujo semana a semana»"
+    ],
+    "components/finanzas/dinero/CampanaDinero.tsx": [
+      "button «fin-dinero.campana»",
+      "Pestanas «→(c) => cambiarVista(c as Vista)»",
+      "button «{f.texto}»",
+      "button «{f.nombre}»",
+      "button «{f.texto}» #2",
+      "button «{p.accion.texto}»",
+      "Link «Cuadrar con el banco»",
+      "button «Registrar el depósito»",
+      "button «Registrar el depósito» #2"
+    ],
+    "components/finanzas/dinero/CobrosDinero.tsx": [
+      "button «{c.texto}»",
+      "Link «Cambiar en Configuración»",
+      "button «fin-dinero.medios-todos»"
+    ],
+    "components/finanzas/dinero/HistorialDinero.tsx": [
+      "button «fin-dinero.movimiento»",
+      "button «fin-dinero.historial»",
+      "SegmentoDeslizante «Período del historial»",
+      "button «Período anterior»",
+      "button «Período siguiente»"
+    ],
+    "components/finanzas/dinero/PanoramaDinero.tsx": [
+      "button «{AYUDA_ETAPA[t.etapa]}»",
+      "SegmentoDeslizante «Agrupar las cuentas»",
+      "button «{siglas(f.nombre)}»",
+      "Volver «→() => setElegida(null)»",
+      "Link «Cuadrar con el banco»",
+      "button «Registrar el depósito»",
+      "button «Registrar el depósito» #2",
+      "Link «{i.accion.texto}»",
+      "button «{i.accion.texto}»",
+      "button «Ver historial completo»"
+    ],
+    "components/finanzas/dinero/PieDePaginas.tsx": [
+      "SegmentoDeslizante «Cuántas por página»"
+    ],
+    "components/finanzas/dinero/PlataDelDueno.tsx": [
+      "button «fin-dinero.poner-plata»",
+      "button «Sacar plata»",
+      "SegmentoDeslizante «Agrupar el gráfico»"
     ],
     "components/finanzas/dinero/SalidasPlanillaModal.tsx": [
       "ComboResponsable «{responsable}»",

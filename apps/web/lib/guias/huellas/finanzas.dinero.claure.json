@@ -2,15 +2,10 @@
   "guia": "finanzas.dinero.claure",
   "ruta": "/finanzas/dinero/claure",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 36,
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
-      "button «fin-dinero.aviso-registrar»",
-      "button «fin-dinero.aviso-planilla-registrar»",
-      "button «fin-dinero.poner-plata»",
-      "button «Sacar plata»",
-      "Link «Cambiar en Configuración»",
       "button «fin-dinero.decir-cuenta»",
       "button «{b.nombre}»",
       "ComboResponsable «{responsable}»",
@@ -37,10 +32,15 @@
     "components/finanzas/dinero/BotonPagarClaure.tsx": [
       "Boton «fin-claure.pagar»"
     ],
-    "components/finanzas/dinero/SalidasPlanillaModal.tsx": [
-      "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+    "components/finanzas/dinero/HistorialDinero.tsx": [
+      "button «fin-dinero.movimiento»",
+      "button «fin-dinero.historial»",
+      "SegmentoDeslizante «Período del historial»",
+      "button «Período anterior»",
+      "button «Período siguiente»"
+    ],
+    "components/finanzas/dinero/PieDePaginas.tsx": [
+      "SegmentoDeslizante «Cuántas por página»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",
