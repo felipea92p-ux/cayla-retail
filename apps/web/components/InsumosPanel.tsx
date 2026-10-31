@@ -10,11 +10,14 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
+import { CorregirIngresoModal } from "@/components/insumos-taller/CorregirIngresoModal";
 import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
+import { RestaurarIngresoModal } from "@/components/insumos-taller/RestaurarIngresoModal";
 import { RetirarColorModal } from "@/components/insumos-taller/RetirarColorModal";
 import { NuevaTelaModal } from "@/components/insumos-taller/NuevaTelaModal";
-import { NuevoInsumoModal } from "@/components/insumos-taller/NuevoInsumoModal";
+import { NuevoAvioModal } from "@/components/insumos-taller/NuevoAvioModal";
+import type { ClaseDeAvio } from "@/lib/avio-clases-reglas";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { fichaDeLaTela, textoDeLaFicha, type VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
 import {
@@ -27,9 +30,10 @@ import {
   textoDeMovimiento,
   tramoDeSaldo,
   type EstadoInsumo,
+  type LoteConSaldo,
   type MaterialVista,
 } from "@/lib/insumos-reglas";
-import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
+import type { IngresoEliminado, InsumoVista, InsumosDelTaller } from "@/lib/insumos";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { coloresConNombreDesfasado } from "@/lib/editar-tela-reglas";
 import { costoUnitarioTexto } from "@/lib/monto-plata-reglas";
@@ -62,6 +66,8 @@ export function InsumosPanel({
   leyoVocabulario,
   colores,
   leyoColores,
+  clases,
+  leyoClases,
 }: {
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
@@ -73,23 +79,30 @@ export function InsumosPanel({
   vocabulario: VocabularioDeTelas;
   /** `false`: no se pudieron leer los tejidos y los colores; la ficha lo dice. */
   leyoVocabulario: boolean;
-  /** La carta de colores de Catálogo, para «Nueva tela» (ADR-0554). */
+  /** La carta de colores de Catálogo, para «Nueva tela» y «Nuevo avío» (ADR-0554, ADR-0580). */
   colores: ColorAlta[];
   leyoColores: boolean;
+  /** Las clases de avío (ADR-0580): de ellas salen la unidad que se propone, si lleva color y qué medida se pide. */
+  clases: ClaseDeAvio[];
+  leyoClases: boolean;
 }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
-  const [nuevo, setNuevo] = useState(false);
+  // «Nuevo avío»: abierta para crear uno (`agregarA: null`) o para sumarle colores a uno que ya existe, igual que la de tela (ADR-0580).
+  const [nuevoAvio, setNuevoAvio] = useState<{ agregarA: MaterialVista | null } | null>(null);
   // «Nueva tela»: abierta para crear una (`agregarA: null`) o para sumarle colores a una que ya existe.
   const [nuevaTela, setNuevaTela] = useState<{ agregarA: MaterialVista | null } | null>(null);
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
   const [fichando, setFichando] = useState<InsumoVista | null>(null);
   // «Retirar color» (solo el líder): el color de tela que se está retirando de la lista.
   const [retirando, setRetirando] = useState<InsumoVista | null>(null);
+  // «Corregir este ingreso» y «Restaurar» (solo el líder): el ingreso de un color que se está corrigiendo, o el eliminado que se está restaurando (ADR-0570).
+  const [corrigiendo, setCorrigiendo] = useState<{ insumo: InsumoVista; lote: LoteConSaldo } | null>(null);
+  const [restaurando, setRestaurando] = useState<{ insumo: InsumoVista; eliminado: IngresoEliminado } | null>(null);
   // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
   const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number; desfasados: number } | null>(null);
   const [verCapital, setVerCapital] = useState(false);
 
-  const { insumos, libro, capital } = datos;
+  const { insumos, libro, capital, eliminados } = datos;
   const bajos = insumos.filter((i) => i.estado.tono === "bajo" || i.estado.tono === "sin_saldo").length;
   const primeraTelaId = agruparPorTela(insumos.filter((i) => i.tipo === "tela"), datos.materiales).find((g) => g.material)?.material?.id ?? null;
   let indice = 0;
@@ -102,26 +115,23 @@ export function InsumosPanel({
         titulo="Insumos"
         subtitulo="Tela y avíos del Taller: lo que hay por lote, cuánto dura y qué pedir."
         acciones={
-          datos.hayTelas || esLider ? (
-            <>
+          <>
               {/* Quien ve Producción en el Taller crea telas y colores (ADR-0554, decisión 3); el avío y el ingreso de un lote con su costo siguen siendo del líder. */}
               {datos.hayTelas && (
                 <Boton peso={esLider ? "fantasma" : "primario"} data-guia="prod-insumos.nueva-tela" onClick={() => setNuevaTela({ agregarA: null })}>
                   + Nueva tela
                 </Boton>
               )}
-              {esLider && (
-                <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevo(true)}>
-                  {datos.hayTelas ? "+ Nuevo avío" : "+ Nuevo insumo"}
-                </Boton>
-              )}
-              {esLider && (
-                <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
-                  Ingresar insumo
-                </Boton>
-              )}
-            </>
-          ) : undefined
+              {/* Un avío lo crea quien opera el Taller, igual que una tela (ADR-0580, decisión 3 de Felipe). */}
+              <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevoAvio({ agregarA: null })}>
+                + Nuevo avío
+              </Boton>
+            {esLider && (
+              <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
+                Ingresar insumo
+              </Boton>
+            )}
+          </>
         }
       />
 
@@ -168,15 +178,13 @@ export function InsumosPanel({
             icono={<Layers />}
             titulo="Todavía no hay insumos"
             acciones={
-              datos.hayTelas || esLider ? (
-                <Boton peso="primario" onClick={() => (datos.hayTelas ? setNuevaTela({ agregarA: null }) : setNuevo(true))}>
-                  {datos.hayTelas ? "Crear la primera tela" : "Agregar el primero"}
-                </Boton>
-              ) : null
+              <Boton peso="primario" onClick={() => setNuevaTela({ agregarA: null })}>
+                Crear la primera tela
+              </Boton>
             }
           >
-            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda.{" "}
-            {datos.hayTelas ? "Empieza con tu primera tela y todos sus colores, en una sola hoja." : esLider ? "Empieza agregando un insumo al catálogo; después ingresa su primer lote." : "El líder tiene que cargar el catálogo primero."}
+            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda. Empieza con tu primera tela y todos sus colores, en una sola hoja; los
+            botones, los cierres y el hilo van por «+ Nuevo avío», arriba.
           </Vacio>
         </div>
       ) : (
@@ -221,6 +229,10 @@ export function InsumosPanel({
                           onIngresar={() => setIngresando({ insumoId: i.id })}
                           onFicha={() => setFichando(i)}
                           onRetirar={() => setRetirando(i)}
+                          ingresosEditables={datos.ingresosEditables}
+                          eliminados={eliminados.filter((e) => e.insumoId === i.id)}
+                          onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
+                          onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
                         />
                       ))}
                     </div>
@@ -261,7 +273,22 @@ export function InsumosPanel({
         </div>
       )}
 
-      {nuevo && <NuevoInsumoModal existentes={insumos.map((i) => ({ codigo: i.codigo, nombre: i.nombre }))} vocabulario={vocabulario} leyoVocabulario={leyoVocabulario} soloAvios={datos.hayTelas} onClose={() => setNuevo(false)} />}
+      {nuevoAvio && (
+        <NuevoAvioModal
+          key={nuevoAvio.agregarA?.id ?? "nuevo"}
+          tallerId={tallerId}
+          materiales={datos.materiales}
+          clases={clases}
+          leyoClases={leyoClases}
+          colores={colores}
+          leyoColores={leyoColores}
+          puedeSaldo={esLider}
+          agregarA={nuevoAvio.agregarA}
+          coloresDelAvio={insumos.filter((i) => i.materialId && i.materialId === nuevoAvio.agregarA?.id && i.colorCodigo).map((i) => i.colorCodigo as string)}
+          alElegirExistente={(m) => setNuevoAvio({ agregarA: m })}
+          onClose={() => setNuevoAvio(null)}
+        />
+      )}
       {nuevaTela && (
         <NuevaTelaModal
           key={nuevaTela.agregarA?.id ?? "nueva"}
@@ -292,6 +319,8 @@ export function InsumosPanel({
       )}
       {fichando && <FichaDeLaTelaModal insumo={fichando} vocabulario={vocabulario} leyo={leyoVocabulario} onClose={() => setFichando(null)} />}
       {retirando && <RetirarColorModal key={retirando.id} insumo={retirando} tallerId={tallerId} onClose={() => setRetirando(null)} />}
+      {corrigiendo && <CorregirIngresoModal key={corrigiendo.lote.id} insumo={corrigiendo.insumo} lote={corrigiendo.lote} veCostos={veCostos} onClose={() => setCorrigiendo(null)} />}
+      {restaurando && <RestaurarIngresoModal key={restaurando.eliminado.loteId} insumo={restaurando.insumo} eliminado={restaurando.eliminado} onClose={() => setRestaurando(null)} />}
       {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
     </div>
   );
@@ -308,6 +337,10 @@ function FilaInsumo({
   onIngresar,
   onFicha,
   onRetirar,
+  ingresosEditables,
+  eliminados,
+  onCorregir,
+  onRestaurar,
 }: {
   insumo: InsumoVista;
   indice: number;
@@ -319,6 +352,12 @@ function FilaInsumo({
   onIngresar: () => void;
   onFicha: () => void;
   onRetirar: () => void;
+  /** La base ya sabe corregir y eliminar un ingreso: sin ella no se ofrece el lápiz. */
+  ingresosEditables: boolean;
+  /** Los ingresos de este color que se eliminaron por error (solo los ve el líder). */
+  eliminados: IngresoEliminado[];
+  onCorregir: (lote: LoteConSaldo) => void;
+  onRestaurar: (eliminado: IngresoEliminado) => void;
 }) {
   const { llenado, marcaMinimo } = tramoDeSaldo(i.saldo, i.minimo);
   const primero = loteMasAntiguoConSaldo(i.lotes);
@@ -359,7 +398,7 @@ function FilaInsumo({
           </div>
         </div>
         <p className="font-display whitespace-nowrap text-right text-2xl tabular-nums text-tinta">
-          <CifraQueCuenta valor={i.saldo} formato="entero" />
+          <CifraQueCuenta valor={i.saldo} decimales={UNIDADES_INSUMO[i.unidad].vista} />
           <small className="font-sans ml-1 text-xs text-tinta/65">{UNIDADES_INSUMO[i.unidad].corta}</small>
         </p>
         <ChevronRight aria-hidden className={`h-4 w-4 text-tinta/45 transition-transform duration-300 ease-cayla max-sm:hidden ${abierto ? "rotate-90" : ""}`} />
@@ -373,8 +412,8 @@ function FilaInsumo({
               <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Layers />}>Todavía no hay lotes de este insumo.</Vacio>
             ) : (
               <ul>
-                {lotes.map((l) => (
-                  <li key={l.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0">
+                {lotes.map((l, k) => (
+                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0`}>
                     <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
@@ -394,9 +433,37 @@ function FilaInsumo({
                         </span>
                       )}
                     </span>
+                    {/* Un ingreso equivocado se corrige o se elimina aquí (ADR-0570): el lápiz abre una hoja con el motivo; si de ese lote ya salió material, se apaga y dice por qué. */}
+                    {esLider && ingresosEditables && (
+                      <LapizEditar
+                        que="este ingreso"
+                        guia={indice === 0 && k === 0 ? "prod-insumos.corregir-ingreso" : undefined}
+                        disabled={!!l.noSeToca}
+                        title={l.noSeToca ?? "Corregir o eliminar este ingreso"}
+                        onClick={() => onCorregir(l)}
+                      />
+                    )}
                   </li>
                 ))}
               </ul>
+            )}
+            {/* Lo eliminado no se borró: queda aquí con su porqué, y «Restaurar» lo devuelve al estante. */}
+            {esLider && eliminados.length > 0 && (
+              <div className="mt-1 border-t border-tinta/[0.06] pt-2">
+                <p className="text-[11.5px] text-tinta/65">{plural(eliminados.length, "ingreso eliminado", "ingresos eliminados")}</p>
+                <ul>
+                  {eliminados.map((e) => (
+                    <li key={e.loteId} className="flex items-center justify-between gap-3 py-1.5 text-[12.5px]">
+                      <span className="min-w-0 truncate text-tinta/75">
+                        <span className="tabular-nums">{cantidadTexto(e.cantidad, i.unidad)}</span> · {diaMes(e.ingreso)} · «{e.motivo}»
+                      </span>
+                      <button type="button" className="btn-enlace shrink-0 text-xs" aria-haspopup="dialog" onClick={() => onRestaurar(e)}>
+                        Restaurar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             {esLider && (
               <div className="flex flex-wrap gap-2 pt-2">

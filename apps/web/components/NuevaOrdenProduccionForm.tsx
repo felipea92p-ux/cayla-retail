@@ -69,7 +69,7 @@ import {
   type TelaBorrador,
 } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
-import { frasesDelMolde, moldeDelModelo, tipoAlElegir, urgentesDeLaRed, type OrdenParaMolde } from "@/lib/orden-modelo-reglas";
+import { frasesDelMolde, moldeDelModelo, tipoAlElegir, tipoElegidoAMano, urgentesDeLaRed, type OrdenParaMolde } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
 import { sugerirNotaDeOrden } from "@/lib/sugerencias-orden-produccion";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -112,8 +112,9 @@ import {
 // La guía de foco (ADR-0284) sale de `camposDeGuiaOrden`, que coincide con lo que la base rechaza (lo prueba `modelo-nuevo-reglas.test.ts`).
 //
 // ADR-0396 (A1, «el modelo primero»): la primera pregunta es QUÉ se fabrica y se contesta buscando (`ElegirModelo`: arriba los que se están acabando, para el líder; abajo
-// «Crear un modelo nuevo»). Ya no hay dos selectores de pestañas (Tipo y Modelo): el tipo SE DEDUCE de lo que la persona hizo —un modelo que existe es un lote, uno nuevo
-// arranca como muestra (`tipoAlElegir`)— y se corrige con un interruptor que dice qué cambia. Lo que se manda a la base no cambia.
+// «Crear un modelo nuevo»). Ya no hay dos selectores de pestañas (Tipo y Modelo): un modelo que existe es un lote, y se corrige con un interruptor que dice qué
+// cambia. Un modelo nuevo NO trae tipo: la persona elige lote o muestra, y es lo primero que la guía pide (`tipoAlElegir`; ADR-0396, act. 2026-10-30: arrancaba
+// como muestra y las 4 órdenes que se abrieron así eran lotes, ADR-0581). Lo que se manda a la base no cambia.
 //
 // ADR-0396 (A2, «la tabla única»): «cuántas por talla y color» se contesta con LA MISMA tabla de Nuevo producto (`MatrizCantidades`, en su modo `soloCantidades`), no con una matriz hecha a
 // mano: una sola pieza para una sola pregunta. Enter y ↓ bajan por la talla, «Llenar todas con» repite un número, el gris de cada celda es lo que sugiere la red, y en un modelo nuevo
@@ -226,9 +227,16 @@ export function NuevaOrdenProduccionForm({
   const [token] = useState(() => crearTokenDeOrden());
   // Lo que trae una partida (un borrador retomado, o lo que deja «crear otra»); el resto nace como siempre. El formulario nace de nuevo con cada partida (la lista cambia su `key`), así que se lee una sola vez.
   const inicio = partida?.foto ?? null;
-  // El tipo con que arranca: un `?tipo=muestra` de la URL (al volver de Nuevo producto) es una elección de la persona y no se pisa (`aMano`).
-  const tipoAMano = useRef(inicio ? inicio.tipo === "muestra" : tipoInicial === "muestra");
-  const [tipo, setTipo] = useState<Tipo>(() => inicio?.tipo ?? tipoAlElegir({ eleccion: modelos.length === 0 ? "nuevo" : "existente", tipoActual: tipoInicial, aMano: tipoInicial === "muestra" }));
+  // El tipo con que arranca: lote si el modelo existe; ninguno si es nuevo. Lo que la persona ya eligió —un `?tipo=muestra` de la URL al volver de Nuevo producto, o lo que
+  // trae la partida— no se pisa (`aMano`).
+  const tipoAMano = useRef(tipoElegidoAMano({ partida: inicio, otraDespues: partida?.otraDespues === true, tipoInicial: tipoInicial ?? null }));
+  const [tipo, setTipo] = useState<Tipo | null>(() =>
+    tipoAlElegir({
+      eleccion: (inicio?.modoModelo ?? (modelos.length === 0 ? "nuevo" : "existe")) === "nuevo" ? "nuevo" : "existente",
+      tipoActual: inicio ? (inicio.tipo ?? null) : (tipoInicial ?? null),
+      aMano: tipoAMano.current,
+    })
+  );
   // Sin modelo elegido (`""`) se ve el buscador: ya no se preselecciona «el primero» (ADR-0396).
   const [productoId, setProductoId] = useState(inicio?.productoId ?? modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? "");
   // Con `sugeridaInicial` la matriz nace llena, en el estado inicial y no en un efecto: lo que trae la sugerencia es el PUNTO DE PARTIDA (`fotoAlAbrir`), así que cerrar sin tocar nada no pregunta
@@ -298,7 +306,7 @@ export function NuevaOrdenProduccionForm({
     return [...(vocab?.colores ?? []), ...coloresCreados].filter((col) => !vistos.has(col.codigo) && vistos.add(col.codigo));
   }, [vocab, coloresCreados]);
   const borrador = useMemo<BorradorModelo>(
-    () => ({ nombre: nombreNuevo, categoria: categoriaNueva, tallaIds: tallasNuevas, colorCodigos: coloresNuevos, precio: precioNuevo, esMuestra: tipo === "muestra", cantidades }),
+    () => ({ nombre: nombreNuevo, categoria: categoriaNueva, tallaIds: tallasNuevas, colorCodigos: coloresNuevos, precio: precioNuevo, esMuestra: tipo === null ? null : tipo === "muestra", cantidades }),
     [nombreNuevo, categoriaNueva, tallasNuevas, coloresNuevos, precioNuevo, tipo, cantidades]
   );
   const celdasNuevas = useMemo(() => celdasDelBorrador(borrador, coloresDisponibles), [borrador, coloresDisponibles]);
@@ -612,7 +620,7 @@ export function NuevaOrdenProduccionForm({
     setTipo((actual) => tipoAlElegir({ eleccion: "existente", tipoActual: actual, aMano: tipoAMano.current }));
     ofrecerBorrador(id || null);
   }
-  /** «Crear un modelo nuevo»: lo escrito en el buscador pasa a ser su nombre, y la orden arranca como muestra (se desarrolla antes de fabricarlo). */
+  /** «Crear un modelo nuevo»: lo escrito en el buscador pasa a ser su nombre, y la orden queda sin tipo hasta que la persona elija lote o muestra (salvo que ya lo hubiera elegido). */
   function crearModelo(nombre: string) {
     setModoModelo("nuevo");
     setProductoId("");
@@ -811,6 +819,15 @@ export function NuevaOrdenProduccionForm({
     }
   }
 
+  // Con un modelo nuevo el tipo es lo primero que pide la guía (no trae uno de fábrica); con uno que existe nace en lote y no es una falta, así que no lleva marca.
+  const bloqueTipo = (
+    <div data-guia="prod-orden-nueva.tipo" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <span className={campoEtiqueta}>{esNuevo ? guia.etiqueta("tipo", "Tipo de orden") : "Tipo de orden"}</span>
+      <SegmentoDeslizante etiqueta="Tipo de orden" valor={tipo ?? ""} onCambio={cambiarTipo} opciones={OPCIONES_TIPO} />
+      <p className="min-w-[14rem] flex-1 text-[12.5px] leading-snug text-tinta/70">{frase.texto}</p>
+    </div>
+  );
+
   const Marco = marco;
   return (
     <Marco onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
@@ -850,12 +867,12 @@ export function NuevaOrdenProduccionForm({
             </Aviso>
           )}
 
-          {(modeloExistente || esNuevo) && (
-            <div data-guia="prod-orden-nueva.tipo" className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className={campoEtiqueta}>Tipo de orden</span>
-              <SegmentoDeslizante etiqueta="Tipo de orden" valor={tipo} onCambio={cambiarTipo} opciones={OPCIONES_TIPO} />
-              <p className="min-w-[14rem] flex-1 text-[12.5px] leading-snug text-tinta/70">{frase.texto}</p>
-            </div>
+          {esNuevo ? (
+            <CampoGuiado id="tipo" guia={guia}>
+              {bloqueTipo}
+            </CampoGuiado>
+          ) : (
+            modeloExistente && bloqueTipo
           )}
 
           {esNuevo && (
@@ -1001,7 +1018,7 @@ export function NuevaOrdenProduccionForm({
           colorHex={colorDeLaFicha}
           nombre={nombreDeLaFichaVista.texto}
           nombreVacio={nombreDeLaFichaVista.vacio}
-          esMuestra={tipo === "muestra"}
+          esMuestra={tipo === null ? null : tipo === "muestra"}
           esNuevo={esNuevo}
           hayModelo={hayModelo}
           total={total}
@@ -1081,7 +1098,8 @@ export function NuevaOrdenProduccionForm({
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={`flex-1 ${guia.claseConfirmar}`}
               >
-                {esNuevo ? "Crear orden" : "Abrir orden"}
+                {/* Siempre «Abrir orden»: con un modelo nuevo decía «Crear orden» y la prueba ciega de Formidable dudó si así también quedaba abierta (2026-10-30). */}
+                Abrir orden
               </Boton>
             </div>
           </div>

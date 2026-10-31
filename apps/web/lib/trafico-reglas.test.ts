@@ -30,7 +30,7 @@ import {
   diaDeLaSemana,
   diasTexto,
   lecturaDeCalor,
-  puntosDelPaso,
+  costumbreEnPersonas,
   cambio,
   cambioDeLaPrenda,
   de100,
@@ -187,9 +187,11 @@ describe("dondeSeAtora: el paso que deja pasar a menos gente de la que le llega"
     });
   });
 
-  it("los 100 puntos: el primer paso los enciende todos (si entró alguien) y los demás, de cada 100 que entraron", () => {
-    expect([0, 1, 2, 3, 4, 5].map((i) => puntosDelPaso(DE_LA_BASE.pasos, i))).toEqual([100, 66, 33, 21, 9, 7]);
-    expect(puntosDelPaso([0, 0, 0, 0, 0, 0], 0)).toBe(0);
+  it("lo de costumbre se dice en personas de estos días: de 394 con algo en la bolsa, de costumbre separarían unos 178", () => {
+    const a = { i: 4, llegaron: 394, siguieron: 178, seFueronDe100: 55, pocas: false };
+    // Costumbre: 690 de 1530 separan (45 %): 394 × 690 / 1530 ≈ 178.
+    expect(costumbreEnPersonas(a, DE_LA_BASE.base)).toBe(178);
+    expect(costumbreEnPersonas(a, [0, 0, 0, 0, 0, 0])).toBeNull();
   });
 
   it("sin costumbre (los primeros días), manda lo de estos días", () => {
@@ -449,6 +451,12 @@ describe("la serie del gráfico principal (Observatorio, actividad 2)", () => {
   it("Hoy, hora por hora, la hora en curso no se dibuja (está a medias); acumulado sí", () => {
     expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: false }).serie.at(-1)?.x).toBe(14);
     expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: true }).serie.at(-1)?.x).toBe(15);
+  });
+  it("la hora en curso no cae en la línea: va aparte, en `enCurso`, con lo que lleva hasta ahora", () => {
+    const g = graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: false });
+    expect(g.enCurso).toEqual({ x: 15, y: valoresDe(S.actual, "entraron", 24, false)[15] });
+    expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: true }).enCurso).toBeNull();
+    expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: null, acumulado: false }).enCurso).toBeNull();
   });
   it("la referencia es el día de antes entero, aunque hoy llegue solo hasta ahora", () => {
     expect(graficoDe(S, "entraron", { largo: 24, largoAntes: 24, hastaX: 15, acumulado: false }).referencia).toHaveLength(24);

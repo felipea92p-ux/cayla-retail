@@ -183,7 +183,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/comprobantes": PENDIENTE,
   "/produccion/cotizaciones-maquila": PENDIENTE,
   "/produccion/eficiencia": PENDIENTE,
-  "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx", "components/insumos-taller/EditarTelaModal.tsx", "components/insumos-taller/NuevoInsumoModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/InsumoModales.tsx"] },
+  "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx", "components/insumos-taller/EditarTelaModal.tsx", "components/insumos-taller/NuevoAvioModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/insumos-taller/CorregirIngresoModal.tsx", "components/insumos-taller/RestaurarIngresoModal.tsx", "components/InsumoModales.tsx"] },
   "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "/produccion/ordenes/[numero]": { estado: "no-aplica", motivo: "Una orden se lee, no se llena: la ruta de fases, la tela, el costo y la línea de tiempo. Lo que se anota vive en sus hojas «Terminé» y «Cambiar quién», cada una con su guía en el registro de modales." },
   "/produccion/por-pagar": PENDIENTE,
@@ -388,12 +388,16 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/proveedores-produccion/ProcesoModal.tsx": { estado: "aplicada", evidencia: ["components/proveedores-produccion/ProcesoModal.tsx"] },
   "components/insumos-taller/NuevaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevaTelaModal.tsx"] },
   "components/insumos-taller/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/EditarTelaModal.tsx"] },
-  "components/insumos-taller/NuevoInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx"] },
+  "components/insumos-taller/NuevoAvioModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoAvioModal.tsx"] },
+  "components/AvioClasesLista.tsx": { estado: "aplicada", evidencia: ["components/AvioClasesLista.tsx"] },
   "components/insumos-taller/FichaDeLaTelaModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/FichaDeLaTelaModal.tsx"] },
+  "components/insumos-taller/CorregirIngresoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/CorregirIngresoModal.tsx"] },
+  "components/insumos-taller/RestaurarIngresoModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/RestaurarIngresoModal.tsx"] },
   "components/insumos-taller/RetirarColorModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién retira el color): el título dice qué color sale de la lista, la bajada avisa que no se borra nada y el aviso de la hoja dice por qué no se puede si tiene saldo; la base rechaza el resto (orden en proceso, tela por recibir, receta) con su frase." },
   // Actividad 6: pasar la orden al stock (cuántas salieron buenas, precargado con lo terminado, y quién lo anota; «falta» sale de los candados de `cerrar_produccion`), anular la orden y revertir el cierre.
   "components/orden-pagina/PasarAlStockModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/PasarAlStockModal.tsx"] },
   "components/orden-pagina/AnularLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación con UN dato obligatorio (quién la anula): el título dice qué orden se anula, qué pasa con la tela y los avíos y, si hay prendas afuera, por qué no se puede; el motivo es opcional. No hay camino que indicar." },
+  "components/orden-pagina/CambiarTipoModal.tsx": { estado: "no-aplica", motivo: "Confirmación con UN dato obligatorio (quién lo cambia): el título dice a qué tipo pasa, el texto dice qué cambia al cerrar la orden y si falta el precio, y el motivo es opcional. No hay camino que indicar." },
   "components/orden-pagina/RevertirLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo revierte): el texto dice qué pasa con el stock; no hay camino que indicar." },
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
@@ -480,6 +484,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // «Aplazar». El modo «Registrar abono» es el formulario de `ModalesApartado.tsx` (pendiente, se cuenta allí).
   "components/apartados/DetalleApartado.tsx": { estado: "aplicada", evidencia: ["components/apartados/DetalleApartado.tsx"] },
   "components/apartados/ModalesApartado.tsx": PENDIENTE, // 22 controles
+  // ADR-0584: la hoja «Descuento» de Apartar. Cuentan como «falta» lo mismo que exige la base al apartar: cuánto, el motivo (y su
+  // detalle si es «Otro»), el argumento pasado el 15 % y al menos una prenda.
+  "components/apartados/DescuentoApartado.tsx": { estado: "aplicada", evidencia: ["components/apartados/DescuentoApartado.tsx"] },
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles

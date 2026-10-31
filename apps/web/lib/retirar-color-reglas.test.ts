@@ -13,13 +13,13 @@ describe("Retirar color: lo que se dice de antemano por el saldo", () => {
   });
 
   it("con saldo dice cuánto tiene, con la unidad del color, y lo mismo que diría la base", () => {
-    expect(motivoParaNoRetirar({ saldo: 9, unidad: "metro" })).toBe("Este color todavía tiene 9 m: solo se retira un color sin saldo.");
+    expect(motivoParaNoRetirar({ saldo: 9, unidad: "metro" })).toBe("Este color todavía tiene 9.00 m: solo se retira un color sin saldo.");
     // La coma o el punto decimal los pone el idioma del navegador (`cantidadTexto`): la prueba no depende de cuál.
-    expect(motivoParaNoRetirar({ saldo: 12.5, unidad: "metro" })).toMatch(/^Este color todavía tiene 12[.,]5 m: solo se retira un color sin saldo\.$/);
+    expect(motivoParaNoRetirar({ saldo: 12.5, unidad: "metro" })).toMatch(/^Este color todavía tiene 12[.,]50 m: solo se retira un color sin saldo\.$/);
   });
 
   it("un saldo negativo (un libro que quedó mal) tampoco se esconde: se dice", () => {
-    expect(motivoParaNoRetirar({ saldo: -2, unidad: "metro" })).toContain("todavía tiene -2 m");
+    expect(motivoParaNoRetirar({ saldo: -2, unidad: "metro" })).toContain("todavía tiene -2.00 m");
   });
 
   it("sirve para toda unidad de insumo (un color de avío también lo pregunta)", () => {

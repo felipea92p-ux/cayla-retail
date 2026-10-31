@@ -4,10 +4,10 @@ import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas
 import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
-import { getFlujoProximo, getVentasPorDia } from "@/lib/resumen-telar";
+import { getFlujoProximo, getTiendasActivas, getVentasPorDia } from "@/lib/resumen-telar";
 import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
 import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { tiendasDeLaLinea, tramoDeComparacion, tramoDelMes, tramoDeSueldos } from "@/lib/resumen-telar-reglas";
+import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea, tramoDeComparacion, tramoDelMes, tramoDeSueldos } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 import { getCuentaClaure } from "@/lib/cuenta-claure";
 import { resumenClaure } from "@/lib/cuenta-claure-reglas";
@@ -17,7 +17,7 @@ import { resumenClaure } from "@/lib/cuenta-claure-reglas";
 //   - `fn_resumen_finanzas`: los avisos de «Hoy te toca», la confianza y las unidades (de HOY: es lo que toca decidir ahora);
 //   - `fn_estado_resultados` del mes elegido (al día de hoy si es el mes en curso) y del tramo con que se compara: la respuesta de
 //     la cabecera, el orillo y el recorrido salen de aquí, así que el mes de la barra filtra de verdad (auditoría v3);
-//   - `fn_rendimiento_serie` de cada tienda, si la cuenta ve Rendimiento: la línea de ventas contra la meta;
+//   - `fn_rendimiento_serie` de cada tienda, si la cuenta ve Rendimiento: la línea de ventas contra la meta (pedida a la vez que el resto, ADR-0583);
 //   - `fn_flujo_caja_proyeccion`, la misma de Dinero ▸ Flujo: «Tu caja en las próximas dos semanas»;
 //   - la inversión en mercadería que entrega el Plan de campaña (`getInversionMercaderia`, ADR-0527): si la cuenta no ve el Plan o la base aún no la trae, el Resumen no ofrece nada; si se cae, lo dice.
 // Quien no ve las finanzas de todo mira su sede: lo decide la base.
@@ -32,8 +32,17 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const tramo = tramoDelMes(mes, hoy)!;
   const sueldos = tramoDeSueldos(mes, hoy)!;
   const comparar = tramoDeComparacion(mes, hoy);
+  // La línea de ventas (si la cuenta ve Rendimiento) se pide A LA VEZ que todo lo demás, con las tiendas adivinadas de la URL (ADR-0583): antes
+  // esperaba al resumen entero para saber qué tiendas pedir. Si la base resolvió otras, se piden de nuevo abajo.
+  const veRendimiento = veModulo(persona, "rendimiento");
+  const ventasAdelantadas = veRendimiento
+    ? getTiendasActivas().then(async (activas) => {
+        const ids = tiendasAdivinadas(pedido, persona.ubicacionId, activas);
+        return { ids, ventas: await getVentasPorDia(ids, tramo.desde, tramo.hasta) };
+      })
+    : null;
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
     getEstadoResultados(tramo.desde, tramo.hasta, sueldos.hasta),
@@ -43,6 +52,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     getInversionMercaderia(hoy, sp.inversion === "ejemplo"),
     // Lo que se le debe a CLAURE (ADR-0560, actividad 4): solo quien ve las finanzas de todo (los bancos son de la empresa) y con el módulo Cuentas y dinero.
     veTodo ? getCuentaClaure() : Promise.resolve(null),
+    ventasAdelantadas ?? Promise.resolve(null),
   ]);
   // `null`: la cuenta no lo ve o CLAURE no tiene nada todavía (la tarjeta no se dibuja); `{ saldo: null }`: se cayó la lectura (se dice, no se inventa).
   const claure =
@@ -54,7 +64,11 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
           ? { saldo: resumenClaure(claureLeido.datos.filas, claureLeido.datos.pagos, claureLeido.datos.gastos).saldo }
           : null;
   const tiendas = datos ? tiendasDeLaLinea(datos) : [];
-  const ventas = veModulo(persona, "rendimiento") ? await getVentasPorDia(tiendas, tramo.desde, tramo.hasta) : null;
+  const ventas = !veRendimiento
+    ? null
+    : adelantadas && mismasTiendas(adelantadas.ids, tiendas)
+      ? adelantadas.ventas
+      : await getVentasPorDia(tiendas, tramo.desde, tramo.hasta);
 
   return (
     <ResumenFinanzasPanel

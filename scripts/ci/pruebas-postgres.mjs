@@ -32,7 +32,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DURACIONES = join(RAIZ, "scripts", "ci", "pruebas-postgres-duraciones.json");
-export const TANDAS = 4;
+export const TANDAS = 6;
 
 export const PRUEBAS = [
   // Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
@@ -609,6 +609,12 @@ export const PRUEBAS = [
   // congelado, vencer con 2 días de gracia, devolver el 100% y que el arqueo de caja cuadre al céntimo.
   "pruebas:separaciones",
 
+  // Apartar con descuento a mano (ADR-0584): se guarda con su motivo y la entrega lo lleva a la venta; cada regla (motivo,
+  // «Otro» sin detalle, argumento pasado el 15 %, bajo el costo, Líder pasado el 35 %) rechaza igual al apartar que al vender,
+  // porque la regla vive en dos lugares; la lista de apartados dice el motivo de cada prenda (20261030234000); y las dos
+  // migraciones se pegan dos veces. Cada caso: ROLLBACK.
+  "pruebas:apartar-con-descuento",
+
   // Conteo vacío (ADR-0174): cerrar_conteo rechaza un conteo sin prendas (hint conteo_vacio) y lo deja abierto para
   // contar o cancelar; con prendas cierra como siempre; la migración se puede pegar dos veces. Cada caso: ROLLBACK.
   "pruebas:conteo-vacio",
@@ -846,6 +852,10 @@ export const PRUEBAS = [
   // que pone la base y el saldo inicial solo del líder; un reintento con el mismo token no duplica nada; una tela repetida AVISA y dice cuál; el nombre, el
   // código, el tejido y la merma de un color son los de su tela; y los estados imposibles (un color dos veces, kilo sin medidas, NaN, unidad cambiada) no caben. ROLLBACK.
   "pruebas:materiales",
+
+  // Corregir y eliminar un ingreso de insumo (ADR-0570, actividad 6a; migración 20261030134000): el lote se corrige o queda en cero con su marca, el libro deja el ingreso y el par «deshago + anoto»,
+  // el saldo y el valor del color cuadran, un lote que ya se usó no se toca, es del líder, la historia no se edita ni se borra, y la migración se pega dos veces. ROLLBACK.
+  "pruebas:insumos-corregir-ingreso",
 
   // Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
   // RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin
@@ -1419,6 +1429,10 @@ export const PRUEBAS = [
   // entrelazado del cerrojo de cierre (quien registra espera al cierre y el cierre espera a quien registra; lo de hoy no espera). ROLLBACK.
   "pruebas:finanzas-mes-cerrado",
 
+  // Lecturas de Finanzas que escalan (ADR-0583): `fn_diario` no rearma el diario vivo de un mes cerrado entero y `fn_item_es_de_claure` mira
+  // la sede antes que el dueño de la línea; las dos responden EXACTAMENTE lo mismo que antes (comparadas con su copia). ROLLBACK.
+  "pruebas:finanzas-lecturas-que-escalan",
+
   // Cada pago de un apartado se asienta el día en que entró la plata (auditoría 2026-10-16, G02; ADR-0433 act. 10): el diario trae un asiento por pago
   // (el primero y cada abono) con su IGV por pago; agregar un abono no cambia el diario de un mes anterior; devolver el adelanto o entregar el apartado
   // reversan exactamente lo que entró (122 y 4011 en cero, con los céntimos por pago) y el Balance suma lo recibido hasta el corte. ROLLBACK.
@@ -1760,6 +1774,9 @@ export const PRUEBAS = [
 
   // Agregar un paso a una orden abierta (ADR-0566, actividad 1): hermana de «quitar paso». Entra en su lugar de la ruta (Ojales y botones entre Costura y Planchado), la ruta resultante pasa la validación de abrir, no se agrega si un paso posterior ya empezó (aunque esté deshecho), no mueve dinero, todo o nada y comparte el candado por orden. ROLLBACK.
   "pruebas:produccion-agregar-paso",
+  // Agregar un paso que se olvidó (ADR-0586, actividad 1): solo el líder y con motivo; entra en su lugar YA hecho con todas las prendas que le llegaron (Taller: «Terminé»; afuera: salida y
+  // vuelta que devengan), la cadena queda cuadrada (Planchado sigue y la orden cierra), queda en la historia (paso_tarde) y en Actividad; sin un paso posterior empezado, no es «tarde». ROLLBACK.
+  "pruebas:produccion-paso-tarde",
   // «Terminé» con falla y con fecha (ADR-0570, actividad 2): segunda y perdida cierran la fase sin pasar a la siguiente; un arreglo no cierra hasta volver bueno; buenas + fallas
   // nunca pasan de lo que entró (tampoco por el registrar_avance de siempre); el día real, desde la apertura y nunca futuro; una falla se deshace una vez; nada se edita. ROLLBACK.
   "pruebas:produccion-termine-con-falla",
@@ -1769,6 +1786,12 @@ export const PRUEBAS = [
   // La tela al cortar (ADR-0570, actividad 4): «¿cuánto quedó?» descuenta de los lotes del más antiguo al más nuevo, todo o nada; «Encontré tela» entra como lote «encontrada» al último
   // precio; sin tela anotada (también un forro) no pasa al stock salvo el permiso de un líder, que queda en la historia; una muestra y una orden sin tela declarada pasan. ROLLBACK.
   "pruebas:produccion-tela-al-cortar",
+  // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
+  // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
+  "pruebas:produccion-corte-con-su-tela",
+  // Cambiar el tipo de una orden abierta (ADR-0581): de muestra a lote y al revés, con su rastro (historia y Actividad); pedir el mismo tipo no hace nada; sin precio no pasa a lote; una orden
+  // cerrada no cambia; una muestra que pasa a lote entra al stock al cerrar y una que sigue muestra no. ROLLBACK.
+  "pruebas:produccion-cambiar-tipo",
   // El catálogo de procesos (ADR-0570, actividad 5): los doce de siempre con su mismo lugar en la ruta, Pegar cierre y Lavado o teñido, la llave foránea en fases y tarifas;
   // solo un líder da de alta o apaga (el nuevo cae entre sus vecinos; la espina no se apaga; lo apagado no entra a una orden ni a una tarifa); lo que lleva cada modelo. ROLLBACK.
   "pruebas:produccion-catalogo-de-procesos",
@@ -1948,6 +1971,10 @@ export const PRUEBAS = [
   // `variantes.costo`; quien registra con el módulo Facturas de compra confirma aunque no sea líder (sin el módulo, el permiso
   // de siempre); sin referencia solo vale el precio; costo 0 (obsequio) no se juzga; se puede pegar dos veces.
   "pruebas:factura-costo-atipico",
+
+  // Una compra sin fecha de emisión queda en el día de Lima a cualquier hora (20261031013000): el default de `registrar_compra`
+  // era `current_date` (UTC) y de 19:00 a 24:00 en Lima toda compra sin fecha salía «futura». Reloj falso; ROLLBACK.
+  "pruebas:registrar-compra-emision-lima",
 
   // Recibir lo FUERA de comprobante de un envío pide confirmación si su costo es atípico (20260930124000, Felipe 2026-09-30): el
   // líder recibe `costo_atipico` con los extras raros que faltan por confirmar (numerados por su posición en `p_extras`) y no se
