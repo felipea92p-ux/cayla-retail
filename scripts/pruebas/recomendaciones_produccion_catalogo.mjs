@@ -111,7 +111,7 @@ const abrirNuevo = (fecha) => `select retail.abrir_produccion_con_modelo_nuevo(:
   const sin = correr(`${preparar({ sinProduccion: true })}${abrir("'1990-01-01'::date")}`);
   esperar("CONTROL sin la migración: una orden con entrega en 1990 se abría", sin.ok, sin.error);
   esperar("una orden con entrega en 1990 se rechaza (entrega_pasada)", rechaza(correr(`${preparar()}${abrir("'1990-01-01'::date")}`), "entrega_pasada"), "pasó");
-  esperar("una orden con entrega ayer se rechaza (entrega_pasada)", rechaza(correr(`${preparar()}${abrir("current_date - 1")}`), "entrega_pasada"), "pasó");
+  esperar("una orden con entrega ayer se rechaza (entrega_pasada)", rechaza(correr(`${preparar()}${abrir("retail.fn_hoy_lima() - 1")}`), "entrega_pasada"), "pasó");
   for (const [que, fecha] of [["hoy", "retail.fn_hoy_lima()"], ["en una semana", "current_date + 7"], ["sin fecha", "null"]]) {
     const r = correr(`${preparar()}${abrir(fecha)}`);
     esperar(`una orden con entrega ${que} se abre`, r.ok, r.error);
