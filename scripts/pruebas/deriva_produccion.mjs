@@ -211,11 +211,13 @@ select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select p.id as pid, v.id as vid from retail.productos p join retail.variantes v on v.producto_id = p.id where v.sku = 'BLU-EMMA-NEG-M' \\gset
 select 'T' || substr(md5(random()::text), 1, 6) as ser \\gset
 `;
+  // La emisión va explícita, en el día de Lima: el default de `registrar_compra` es `current_date` (UTC) y la función rechaza una
+  // emisión posterior a `fn_hoy_lima()`; de 7 p. m. a medianoche en Lima, sin fecha, la compra salía «futura».
   const llamada = (numero, token) => `select retail.registrar_compra(
   p_proveedor_id => :'prov', p_serie => :'ser', p_numero => '${numero}', p_condicion => 'credito',
   p_ubicacion_destino_id => :'ubic',
   p_items => jsonb_build_array(jsonb_build_object('producto_id', :'pid', 'variante_id', :'vid', 'cantidad', 2, 'costo_unitario', 10, 'confirma_costo', true)),
-  p_fecha_vencimiento => current_date + 30${token ? `, p_token => :'${token}'` : ""})`;
+  p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 30${token ? `, p_token => :'${token}'` : ""})`;
 
   const mismoToken = correr(`${FIXTURE_COMPRA}
 select gen_random_uuid() as tok \\gset

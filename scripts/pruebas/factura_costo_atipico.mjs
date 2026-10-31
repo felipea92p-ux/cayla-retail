@@ -98,10 +98,12 @@ select gen_random_uuid() as tok \\gset
  * costo, confirma }]. `como`: 'lider' | 'integrante' | 'integrante_con_modulo' | 'integrante_sin_modulo'. `confirma: true` pone
  * la marca en TODAS las líneas (cada una puede traer la suya). `intentos`: cuántas veces se llama (mismo token).
  */
+// La emisión va explícita, en el día de Lima: el default de `registrar_compra` es `current_date` (UTC) y la función rechaza
+// una emisión posterior a `fn_hoy_lima()`; de 7 p. m. a medianoche en Lima, sin fecha, toda compra salía «futura».
 function escena({ lineas, como = "lider", confirma = false, intentos = 1, nota = null }) {
   const items = JSON.stringify(lineas.map((l) => ({ p: l.p ?? "B", v: l.v ?? null, cantidad: l.cantidad ?? 5, costo: l.costo, confirma: l.confirma ?? confirma })));
   const llamada = `select pg_temp.intento(format(
-  'select retail.registrar_compra(p_proveedor_id => %L, p_serie => %L, p_numero => %L, p_condicion => %L, p_ubicacion_destino_id => %L, p_items => %L::jsonb, p_fecha_vencimiento => current_date + 30, p_nota => %L, p_token => %L)',
+  'select retail.registrar_compra(p_proveedor_id => %L, p_serie => %L, p_numero => %L, p_condicion => %L, p_ubicacion_destino_id => %L, p_items => %L::jsonb, p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 30, p_nota => %L, p_token => %L)',
   :'prov', 'F001', 'CA-1', 'credito', :'tru', current_setting('prueba.items'), ${nota === null ? "null::text" : `'${nota}'`}, :'tok'))`;
   const conModulo = como === "integrante_con_modulo";
   const salida = psql(`begin;
