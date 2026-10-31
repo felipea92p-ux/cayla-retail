@@ -63,16 +63,20 @@ function diasEntre(desde: string, hasta: string): number {
   return Math.round((t(hasta) - t(desde)) / 86_400_000);
 }
 
+/** Lo que mira «¿pide comprobante?». `noEmite`: lo marcado «no emite comprobante» (ADR-0588), que ya no pide nada. */
+export type GastoQuePideComprobante = { estado: string; comprobanteTipo: string; montoTotal: number; noEmite?: unknown };
+
 /**
- * ¿Es de lo grande sin comprobante? Vigente, sin boleta ni factura (la planilla de movilidad es el papel del viaje) y de S/ 300 o más. Es
- * la única regla: la usan la marca de la fila, el filtro «Sin comprobante, desde S/ 300», el chip de la cifra, la bandeja y «Te toca».
+ * ¿Es de lo grande sin comprobante? Vigente, sin boleta ni factura (la planilla de movilidad es el papel del viaje), de S/ 300 o más y sin marcar
+ * «no emite comprobante» (ADR-0588: Felipe eligió que «sale de la cuenta»). Es la única regla: la usan la marca de la fila, el filtro «Sin
+ * comprobante, desde S/ 300», el chip de la cifra, la bandeja y «Te toca».
  */
-export function pideComprobante(g: { estado: string; comprobanteTipo: string; montoTotal: number }): boolean {
-  return g.estado !== "anulado" && g.comprobanteTipo === "sin_comprobante" && g.montoTotal >= UMBRAL_SIN_COMPROBANTE;
+export function pideComprobante(g: GastoQuePideComprobante): boolean {
+  return g.estado !== "anulado" && g.comprobanteTipo === "sin_comprobante" && g.montoTotal >= UMBRAL_SIN_COMPROBANTE && !g.noEmite;
 }
 
 /** Lo grande sin comprobante del mes, como lo marca la lista: cuántos y el IGV que se recuperaría con factura (para el chip, la bandeja y «Te toca»). */
-export function sinComprobanteGrande(gastos: readonly { estado: string; comprobanteTipo: string; montoTotal: number }[]): { n: number; igv: number } {
+export function sinComprobanteGrande(gastos: readonly GastoQuePideComprobante[]): { n: number; igv: number } {
   const grandes = gastos.filter(pideComprobante);
   return { n: grandes.length, igv: redondear(grandes.reduce((s, g) => s + igvDeFactura(g.montoTotal), 0)) };
 }
@@ -225,6 +229,34 @@ export function extractoPorDia<T extends GastoParaExtracto>(gastos: readonly T[]
         filas: filasDelDia(lista, hoy),
       };
     });
+}
+
+/**
+ * Los gastos en el orden en que se ven en el extracto (día por día, y dentro de un «×N» cada uno en su lugar): el orden de ↑ ↓ en el
+ * cajón del detalle (la 01 del benchmark visual, Felipe 2026-10-31) y su «3 de 12».
+ */
+export function ordenDelExtracto<T extends GastoParaExtracto>(dias: readonly DiaDelExtracto<T>[]): T[] {
+  return dias.flatMap((d) => d.filas.flatMap((f) => (f.tipo === "gasto" ? [f.gasto] : f.gastos)));
+}
+
+/** Lo que dice el aviso de un gasto recién registrado sobre dónde quedó en la lista: «Quedó en el día de hoy.», «Quedó en el martes 28 de octubre.». */
+export function textoDondeQuedo(fecha: string, hoy: string): string {
+  if (!fecha) return "";
+  const atras = diasEntre(fecha, hoy);
+  if (atras === 0) return "Quedó en el día de hoy.";
+  if (atras === 1) return "Quedó en el día de ayer.";
+  return `Quedó en el ${nombreDelDia(fecha.slice(0, 7), Number(fecha.slice(8, 10)))}.`;
+}
+
+/** En qué día de la lista está un gasto y, si va dentro de un «×N», en qué grupo: lo que hay que abrir para mostrarlo. */
+export function dondeEstaEnElExtracto<T extends GastoParaExtracto>(dias: readonly DiaDelExtracto<T>[], id: string | null | undefined): { dia: number; grupo: string | null } | null {
+  if (!id) return null;
+  for (const [i, d] of dias.entries())
+    for (const f of d.filas) {
+      if (f.tipo === "gasto" && f.gasto.id === id) return { dia: i, grupo: null };
+      if (f.tipo === "repetidos" && f.gastos.some((x) => x.id === id)) return { dia: i, grupo: f.clave };
+    }
+  return null;
 }
 
 /** Lo que dice el día a la derecha de su nombre: «S/ 514.50» y «· 7 gastos»; un día de solo anulados no suma nada. */
