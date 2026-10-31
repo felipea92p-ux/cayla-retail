@@ -11,7 +11,10 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
 - [ ] **Decisión de Felipe:** ¿el Resumen de Finanzas también muestra CAYLA entera a quien tiene el módulo? Hoy sigue con su tienda.
 - [x] **2 · El estado de cambios en el patrimonio en la base.** Migración `20261030235100` (`fn_patrimonio_cambios`), lee el mismo
   diario que el Balance; `pnpm pruebas:patrimonio-cambios` 19/19. **No está en producción:** se pega después de la `20261030235000`.
-- [ ] 3 · El nombre y las cuatro respuestas.
+- [x] **3 · El nombre y las cuatro respuestas.** Menú «Estados financieros»; módulo «Resumen y estados financieros» en Roles y accesos
+  (el `update` va en la `20261030235000`); `CabeceraEstados` con las cuatro `TarjetaCifra` como pestañas; página de «¿Lo tuyo creció?»;
+  Presupuesto, Campañas y Escenarios como páginas internas con su vuelta; guías y huellas al día. Probado: tipos, 745 archivos de vitest,
+  Knip y eslint. **Sin probar en el navegador logueado.**
 - [ ] 4 · ¿Ganamos? · 5 · ¿Dónde está la plata? · 6 · ¿Cuánto vale CAYLA? · 7 · ¿Lo tuyo creció?
 - [ ] 8 · «Descargar para el contador» con opciones.
 - [ ] 9 · Cierre: oscuro, `/focus`, `/formidable`, `docs/ARQUITECTURA.md`.

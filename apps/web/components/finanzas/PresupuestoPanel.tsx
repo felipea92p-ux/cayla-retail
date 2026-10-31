@@ -98,7 +98,6 @@ export function PresupuestoPanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="presupuesto"
         titulo="¿Vamos según lo planeado?"
         bajada="Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo."
         acciones={

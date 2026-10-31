@@ -125,7 +125,6 @@ export function BalancePanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="balance"
         titulo={verCayla ? "¿Cuánto vale CAYLA?" : `¿Cuánto tiene invertido ${nombreCortoTienda(unidad?.nombre ?? tiendaNombre)}?`}
         bajada={
           verCayla

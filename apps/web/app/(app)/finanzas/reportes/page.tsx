@@ -9,8 +9,10 @@ import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-re
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
 import { verDeLaVista } from "@/lib/vista-global";
 import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
+import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
+import { paramsDe } from "@/lib/estados-financieros-reglas";
 
-// Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5, spike «¿Ganamos?»). Lee en el servidor y deja a una sola pieza
+// Finanzas ▸ Estados financieros ▸ ¿Ganamos? (ganancias y pérdidas; ADR-0195 F5, ADR-0585). Lee en el servidor y deja a una sola pieza
 // cliente mirar. `?mes=2026-08` elige el mes (por defecto, el de hoy, «a la fecha»); `?ver=` (quien ve todo: el líder, un rol con
 // Configuración, Cierre de mes o CAYLA Global, o con este módulo, ADR-0585) elige qué columnas: la sede donde trabaja (por defecto), una ubicación, «todas» o «empresa», siempre con CAYLA al lado; `?comparar=1`
 // pone debajo de cada total cuánto cambió contra el mes anterior.
@@ -37,20 +39,24 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const inicio = parametros?.inicioFinanzas ?? null;
   const avisoCorte = inicio && mesAntesDelCorte(mes, inicio) ? avisoAntesDelCorte(inicio) : null;
 
+  const veTodo = veDiarioDeTodoDe(persona);
   return (
-    <EstadoResultadosPanel
-      filas={actual.datos}
-      anteriores={anterior?.datos ?? null}
-      veTodo={veDiarioDeTodoDe(persona)}
-      cerradas={cerradas}
-      sedeActual={persona.ubicacionId}
-      verParam={verDeLaVista(persona.vista, sedeDeLaUrl(sp))}
-      mes={mes}
-      mesPrevio={previo}
-      hoy={hoy}
-      comparar={comparar}
-      claure={claure}
-      fallas={[avisoCorte, actual.falla, anterior?.falla ?? null].filter((f): f is string => !!f)}
-    />
+    <div className="space-y-6">
+      <CabeceraEstados activa="ganamos" mes={mes} sede={veTodo ? sedeDeLaUrl(sp) : (persona.ubicacionId ?? "todas")} hoy={hoy} params={paramsDe(sp)} />
+      <EstadoResultadosPanel
+        filas={actual.datos}
+        anteriores={anterior?.datos ?? null}
+        veTodo={veTodo}
+        cerradas={cerradas}
+        sedeActual={persona.ubicacionId}
+        verParam={verDeLaVista(persona.vista, sedeDeLaUrl(sp))}
+        mes={mes}
+        mesPrevio={previo}
+        hoy={hoy}
+        comparar={comparar}
+        claure={claure}
+        fallas={[avisoCorte, actual.falla, anterior?.falla ?? null].filter((f): f is string => !!f)}
+      />
+    </div>
   );
 }

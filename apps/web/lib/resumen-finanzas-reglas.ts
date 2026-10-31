@@ -750,9 +750,9 @@ export function noRevisado(r: ResumenFinanzas): string[] {
     [r.porPagar, "lo que vence", DINERO],
     [r.egresos, "los egresos de caja", "Gastos"],
     [r.fijos, "los gastos fijos", "Gastos"],
-    [r.raros, "los gastos fuera de lo normal", "Reportes financieros"],
-    [r.presupuesto, "el presupuesto", "Reportes financieros"],
-    [r.campanas, "las campañas", "Reportes financieros"],
+    [r.raros, "los gastos fuera de lo normal", "Resumen y estados financieros"],
+    [r.presupuesto, "el presupuesto", "Resumen y estados financieros"],
+    [r.campanas, "las campañas", "Resumen y estados financieros"],
     [r.flujo, "la caja de las próximas semanas", "el líder"],
     [r.cierre, "el cierre del mes", "el líder"],
   ];

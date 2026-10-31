@@ -76,6 +76,7 @@ import {
 } from "./pantallas/compras";
 import {
   GUIA_FIN_BALANCE,
+  GUIA_FIN_PATRIMONIO,
   GUIA_FIN_CAMPANAS,
   GUIA_FIN_CIERRE,
   GUIA_FIN_CONCILIACION,
@@ -217,6 +218,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FIN_ESCENARIOS,
   GUIA_FIN_FLUJO,
   GUIA_FIN_BALANCE,
+  GUIA_FIN_PATRIMONIO,
   GUIA_FIN_IMPUESTOS,
   GUIA_FIN_CIERRE,
   GUIA_PROD_RESUMEN,
@@ -334,6 +336,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/impuestos": { estado: "aplicada", guia: GUIA_FIN_IMPUESTOS.id },
   "/finanzas/reportes": { estado: "aplicada", guia: GUIA_FIN_RESULTADOS.id },
   "/finanzas/reportes/balance": { estado: "aplicada", guia: GUIA_FIN_BALANCE.id },
+  "/finanzas/reportes/patrimonio": { estado: "aplicada", guia: GUIA_FIN_PATRIMONIO.id },
   "/finanzas/reportes/campanas": { estado: "aplicada", guia: GUIA_FIN_CAMPANAS.id },
   "/finanzas/reportes/escenarios": { estado: "aplicada", guia: GUIA_FIN_ESCENARIOS.id },
   "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },

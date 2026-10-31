@@ -1,6 +1,6 @@
 # ADR-0585 · Estados financieros: los cuatro estados como respuestas, y quien tiene el módulo ve todo
 
-- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos) y 2 (patrimonio) hechas.
+- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos), 2 (patrimonio) y 3 (el nombre y las cuatro respuestas) hechas.
 - **Decide:** Felipe, 2026-10-30, sobre la pizarra «4. Reportes» y la maqueta `docs/maquetas/finanzas-eeff-2026-10/`
   (https://claude.ai/artifact/UiZ2Pk8rnPkLYNLcDBo7kV).
 - **Toca:** ADR-0195 (Finanzas), ADR-0253 y ADR-0433 G16 (una sola regla de alcance), ADR-0161 P6 (las terminales no miran la
@@ -67,6 +67,29 @@ En un Postgres local armado con todas las migraciones y `seed.sql`, se corrieron
 
 En la web, pasan los tipos, las 744 pruebas de vitest, Knip y eslint.
 
+## Actividad 3 · El nombre y las cuatro respuestas
+
+- **El nombre.** El menú dice «Estados financieros». En Roles y accesos el módulo pasa a llamarse «Resumen y estados financieros»,
+  porque abre las dos entradas del menú, y su descripción ya no dice «de su tienda»: el `update` va en la migración 20261030235000.
+  La ruta `/finanzas/reportes` y la clave `reportes_financieros` no cambian (como `/clientas`). La foto del menú
+  (`lib/menu-hoy.golden.json`) se actualizó a propósito, en el mismo commit.
+- **Una cabecera para los cuatro estados.** `CabeceraEstados` usa la cabecera única (`EncabezadoPagina`) con «Estados financieros» de
+  título y, debajo, las cuatro respuestas. Cada respuesta es una `TarjetaCifra` del sistema (ADR-0358) en su forma de filtro: la
+  elegida queda rellena de arena y tocar otra pasa a ese estado, con la sede y el mes de la barra. No se inventó una pieza nueva para
+  estas pestañas. La pregunta va como nombre, el nombre formal al pie, y el punto de color da el veredicto.
+- **Las cifras de las respuestas** las arma `lib/estados-financieros-reglas.ts`, que es lógica pura y tiene su prueba. Salen de
+  lecturas que ya existían, envueltas en `cache()` para que la cabecera y el estado de abajo no pidan dos veces lo mismo.
+  - El Balance entero muestra su cifra solo si cuadra (ADR-0198).
+  - Mirando una sede, «¿Cuánto vale?» pasa a «¿Cuánto hay invertido?».
+  - La plata y lo tuyo son de toda CAYLA, y la tarjeta lo dice.
+- **El título de cada estado** baja a título de sección (`CabeceraReportes` ahora dibuja `TituloSeccion`) y se queda con sus
+  herramientas. Las actividades 4 a 7 rehacen cada estado.
+- **¿Lo tuyo creció?** tiene página propia (`/finanzas/reportes/patrimonio`). En esta actividad muestra sus cinco cifras; la escalera
+  y la línea de 6 meses llegan en la actividad 7.
+- **Presupuesto, Campañas y Escenarios** dejan de ser pestañas: son páginas internas con la cabecera única y la flecha de volver. Hasta
+  la actividad 5 (Escenarios dentro del flujo) y la 4 (el presupuesto dentro de ¿Ganamos?), siguen como estaban.
+- **Las guías** cambian «Los seis reportes» por «Las cuatro respuestas», y nace la guía de «¿Lo tuyo creció?».
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero
@@ -96,5 +119,5 @@ Es justo lo que hace falta para la única decisión que ayuda a tomar: cuánto r
 
 ### Producción
 
-Se pegan en orden: primero la 20261030235000 y después la 20261030235100. Cada una se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
+Se pegan en orden: primero la 20261030235000 (que además renombra el módulo en Roles y accesos) y después la 20261030235100. Cada una se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
 anclado al texto vivo: si producción no coincide, la migración aborta sin cambiar nada.

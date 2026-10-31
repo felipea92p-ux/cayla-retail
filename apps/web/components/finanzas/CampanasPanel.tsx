@@ -78,7 +78,6 @@ export function CampanasPanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="campanas"
         titulo="¿Valen la pena las campañas?"
         bajada="Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen."
         acciones={

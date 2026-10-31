@@ -6,8 +6,10 @@ import { getProyeccion } from "@/lib/flujo-caja";
 import { getEstadoResultados } from "@/lib/resultados";
 import { EscenariosPanel } from "@/components/finanzas/EscenariosPanel";
 import { SoloLiderFlujo } from "@/components/finanzas/SoloLiderFlujo";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 
-// Finanzas ▸ Reportes ▸ Escenarios (ADR-0195 F6; spike «¿Qué pasa si…?»). Lee dos cosas en el servidor —la proyección de la
+// Finanzas ▸ Estados financieros ▸ Escenarios (ADR-0195 F6; spike «¿Qué pasa si…?»). Lee dos cosas en el servidor —la proyección de la
 // caja (`fn_flujo_caja_proyeccion`, 6 semanas) y el estado de resultados del último mes completo (F5)— y deja a la pieza
 // cliente mover las palancas. No escribe nada. Es de CAYLA entera: quien tiene el módulo, salvo una terminal (como el flujo, ADR-0585).
 export default async function EscenariosPage() {
@@ -19,12 +21,20 @@ export default async function EscenariosPage() {
 
   const [proyeccion, resultados] = await Promise.all([getProyeccion(6), getEstadoResultados(desde, hasta)]);
   return (
-    <EscenariosPanel
-      proyeccion={proyeccion.datos}
-      resultados={resultados.falla ? null : resultados.datos}
-      mesBase={mesBase}
-      fallas={[proyeccion.falla].filter((f): f is string => !!f)}
-      hoy={hoy}
-    />
+    <div className="space-y-6">
+      <EncabezadoPagina
+        sede="Estados financieros"
+        titulo="Escenarios"
+        subtitulo="Qué pasa con la plata si cambias algo."
+        volver={<Volver href="/finanzas/reportes" a="Estados financieros" />}
+      />
+      <EscenariosPanel
+        proyeccion={proyeccion.datos}
+        resultados={resultados.falla ? null : resultados.datos}
+        mesBase={mesBase}
+        fallas={[proyeccion.falla].filter((f): f is string => !!f)}
+        hoy={hoy}
+      />
+    </div>
   );
 }

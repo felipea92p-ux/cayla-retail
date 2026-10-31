@@ -76,7 +76,6 @@ export function FlujoCajaPanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="flujo"
         titulo="¿Por qué vendí bien y no hay plata?"
         bajada="Lo que ya entró y salió, y lo que viene en las próximas semanas."
         acciones={

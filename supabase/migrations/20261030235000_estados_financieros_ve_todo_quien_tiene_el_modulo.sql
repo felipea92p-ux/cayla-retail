@@ -167,5 +167,13 @@ from unnest(array[
   'retail.fn_saldos_iniciales_propuesta(date)'
 ]) f;
 
+-- ── 6. Lo que dice Roles y accesos del módulo ───────────────────────────────────────────────────────────────────────────────
+-- Decía «…y el balance de su tienda»: con esta migración ya no es cierto. Y «Reportes» pasó a llamarse «Estados financieros» (Felipe
+-- 2026-10-30); el módulo abre también el Resumen. La clave (`reportes_financieros`) no cambia.
+update retail.modulos
+   set nombre = 'Resumen y estados financieros',
+       incluye = 'Ver el resumen y los estados financieros de CAYLA entera: lo que se ganó, dónde está la plata, cuánto vale y cuánto creció lo tuyo; el presupuesto y cómo rindieron las campañas'
+ where clave = 'reportes_financieros';
+
 comment on function retail.fn_diario_ubicaciones() is
   'Las ubicaciones cuyos números financieros ve la cuenta: todas para quien ve el diario de todo (fn_ve_diario_de_todo: el líder, ADR-0253 y, desde ADR-0585, quien tiene Estados financieros); la suya para una terminal con el módulo; ninguna sin él.';

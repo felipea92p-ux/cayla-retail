@@ -112,6 +112,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/reportes/campanas": PENDIENTE,
   "/finanzas/reportes/escenarios": PENDIENTE,
   "/finanzas/reportes/flujo": PENDIENTE,
+  "/finanzas/reportes/patrimonio": { estado: "no-aplica", motivo: "¿Lo tuyo creció? (Estados financieros, ADR-0585) solo mira: lo tuyo al empezar y al cerrar el mes y lo que lo movió. No hay campos ni pasos; el mes y la sede los elige la barra del telar." },
   "/finanzas/reportes/presupuesto": PENDIENTE,
   "/finanzas/resumen": PENDIENTE,
   // ---- global ----
