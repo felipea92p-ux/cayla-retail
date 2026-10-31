@@ -405,7 +405,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/EncontreTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EncontreTelaModal.tsx"] },
   "components/orden-pagina/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EditarTelaModal.tsx"] },
   "components/orden-produccion/FichaDeConsumoHoja.tsx": { estado: "aplicada", evidencia: ["components/orden-produccion/FichaDeConsumoHoja.tsx"] },
-  "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
+  "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca): el título dice qué fase queda hecha y no cuenta prendas; no hay camino que indicar. Quitar la marca vive en CambioConMotivoModal (ADR-0586 act. 2)." },
   "components/orden-pagina/QuitarPasoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién quita el paso): el título dice qué paso sale de la orden y la bajada avisa que se puede volver a agregar; la base rechaza el resto." },
   // ADR-0570, actividad 3: corregir o eliminar lo anotado, quitar la marca o restaurar, y la nota del equipo.
   "components/orden-pagina/CorregirAnotacionModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CorregirAnotacionModal.tsx"] },

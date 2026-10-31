@@ -32,7 +32,6 @@ export const RPC_AGREGAR_PASO = "agregar_paso_orden";
 /** ADR-0586: un líder suma un paso que se olvidó, cuando uno de después ya avanzó; entra ya hecho con todas las prendas que le llegaron. */
 export const RPC_AGREGAR_PASO_TARDE = "agregar_paso_tarde";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
-export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 export const RPC_REGISTRAR_SALIDA = "registrar_salida";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
@@ -752,17 +751,32 @@ export type AccionFase = "terminar" | "salida" | "vuelta" | "marcar" | "desmarca
 
 /**
  * Las acciones que ofrece una fase: «Terminé N» en el Taller; «Salida» si queda algo por mandar y «Vuelta» si hay prendas afuera, en un servicio; en una fase que se marca
- * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar». Ninguna si no se puede operar.
+ * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar» (quitar la marca, con motivo): esa SOLO a un líder (ADR-0586 act. 2; la base repite: `marca_solo_lider`). Ninguna si no
+ * se puede operar.
  */
-export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): AccionFase[] {
+export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">, { esLider = false }: { esLider?: boolean } = {}): AccionFase[] {
   if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return [];
-  if (f.hito) return f.marcada ? ["desmarcar"] : ["marcar"];
+  if (f.hito) return f.marcada ? (esLider ? ["desmarcar"] : []) : ["marcar"];
   if (f.estado === "hecha") return [];
   if (f.quien === "taller") return faltaTerminar(f, p.fases) > 0 ? ["terminar"] : [];
   const acciones: AccionFase[] = [];
   if (porMandar(f) > 0) acciones.push("salida");
   if (f.afuera > 0) acciones.push("vuelta");
   return acciones;
+}
+
+/** ADR-0586 act. 2: la marca viva de una fase que se marca (Ploteo), para quitarla desde el paso: la más reciente que nadie deshizo (la misma que la historia deja con su lápiz). */
+export function marcaVivaDeFase(f: FasePagina, p: Pick<OrdenPagina, "lineaDeTiempo" | "deshechos">): string | null {
+  if (!f.hito || !f.marcada) return null;
+  const deshechos = new Set(p.deshechos);
+  const vivas = p.lineaDeTiempo.filter((e) => e.tipo === "marca" && e.faseClave === f.clave && !deshechos.has(e.id));
+  return vivas.sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando))[0]?.id ?? null;
+}
+
+/** ADR-0586 act. 2: a quien opera pero no es líder, el paso marcado le dice cómo se arregla una marca equivocada (no busca un botón que no está). `null`: no hace falta decirlo. */
+export function avisoMarcaSoloLider(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">, { esLider = false }: { esLider?: boolean } = {}): string | null {
+  if (esLider || !f.hito || !f.marcada || !p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return null;
+  return "Si se marcó por error, un líder puede quitar la marca.";
 }
 
 export type Siguiente = { fase: FasePagina | null; accion: AccionFase | "pasar_al_stock" | "nada" };
@@ -1243,8 +1257,8 @@ export type EntradaDeTiempo = {
   corregible: AnotacionCorregible | null;
   /** La marca de una fase que no cuenta prendas (Ploteo), viva: se quita. */
   marcaViva: { id: string; faseClave: FaseClave | null; faseNombre: string } | null;
-  /** Una eliminación que todavía no se restauró: su «Restaurar». */
-  restaurable: { cambioId: string } | null;
+  /** Una eliminación que todavía no se restauró: su «Restaurar». `marca`: lo quitado era la marca de Ploteo, y restaurarla es de un líder (ADR-0586 act. 2). */
+  restaurable: { cambioId: string; marca: boolean } | null;
   /** Una eliminación ya restaurada. */
   restaurado: boolean;
   /** Lo anotado que salió de una corrección. */
@@ -1644,7 +1658,7 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     anotado: null,
     corregible: null,
     marcaViva: null,
-    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id } : null,
+    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id, marca: c.objeto === "marca" } : null,
     restaurado: c.accion === "eliminar" && c.restaurado,
     corregida: false,
   };
