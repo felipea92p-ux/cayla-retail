@@ -46,7 +46,7 @@ Cada maqueta de esta sección va montada sobre el marco ya elegido, que vive apa
 
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
-| Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos) | En maqueta | — (recomendada: A · Plana con gotas) | `cabecera-vidrio-2026-10/` |
+| Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | Elegido | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
 | Tarjetas de cifra | `ui/TarjetaCifra.tsx` | Por auditar | — | — |
 | Tablas | `ui/Tabla` + `.fila-cayla` | Por auditar | — | — |
 | Pestañas de sección | `ui/Pestanas` | Por auditar | — | — |

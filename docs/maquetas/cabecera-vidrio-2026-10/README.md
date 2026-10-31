@@ -20,7 +20,7 @@ En la cara C hay que bajar la pantalla para verla trabajar.
 | Cara | Cómo es |
 |---|---|
 | Como ahora | Título plano, Volver de papel, botones sólidos, cifras en papel al 70 %. |
-| **A · Plana con gotas** (recomendada) | Lo que explica queda plano sobre la Aurora; Volver y las acciones son gotas (los botones «A · Gota», con la voz de la cabecera); las cifras, una placa Serena. |
+| **A · Plana con gotas** (elegida) | Lo que explica queda plano sobre la Aurora; Volver y las acciones son gotas (los botones «A · Gota», con la voz de la cabecera); las cifras, una placa Serena. |
 | B · Placa | Toda la cabecera en una placa de vidrio; las cifras quedan planas adentro, tras un hilo. |
 | C · Se acomoda arriba | A en reposo; al bajar, el nombre de la pantalla (y su acción principal, si cabe) entra entre las dos islas y el buscador queda en su lupa. En el celular baja a una isla delgada bajo las dos. |
 
@@ -39,4 +39,5 @@ pantallas y los dos temas: nada se sale.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**A · Plana con gotas** (2026-10-31): lo que explica queda plano sobre la Aurora; Volver y las acciones son gotas con la voz de la
+cabecera; las cifras de la sede (`ResumenSede`), una placa Serena. C (el nombre que se acomoda arriba al bajar) queda como idea aparte.
