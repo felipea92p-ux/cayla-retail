@@ -13,7 +13,7 @@ import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { Aviso } from "@/components/ui/Aviso";
@@ -31,6 +31,7 @@ import {
   agruparPorPestana,
   MENSAJE_PREDETERMINADO_WEB,
   cifrasDe,
+  gruposDeLaLista,
   loQueTeToca,
   momentoDe,
   motivoDeCierre,
@@ -41,6 +42,7 @@ import {
   todoAlDia,
   verboDe,
   type EnvioPorHacer,
+  type GrupoDeLista,
   type PagoDeLista,
   type ParaEnviar,
   type PedidoDeLista,
@@ -55,16 +57,24 @@ import {
 const RUTA = "/tienda-web/pedidos";
 // En el celular la fila es una tarjeta (pedido y total arriba; el cliente, su plazo y su verbo abajo); desde `sm`, columnas.
 const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1.5fr)_7rem_minmax(0,1.3fr)_9.5rem]";
-const COLUMNAS = [{ titulo: "Pedido" }, { titulo: "Cliente y prendas" }, { titulo: "Total", alinear: "der" as const }, { titulo: "Plazo" }, { titulo: "" }];
 const COLUMNAS_CERRADOS = [{ titulo: "Pedido" }, { titulo: "Cliente y prendas" }, { titulo: "Total", alinear: "der" as const }, { titulo: "Cómo se cerró" }];
 // Lo cerrado que se ve sin abrir «Ver los …» en un día tranquilo (en uno con pedidos, la barra de motivos basta).
 const CERRADOS_A_LA_VISTA = 3;
 
 // Una estación filtrada que no tiene nada: qué pasa y cuándo aparece algo.
 const VACIOS: Record<Exclude<PestanaPedidos, "cerrados">, { titulo: string; frase: string }> = {
-  confirmar: { titulo: "No hay pedidos por confirmar", frase: "Cuando un cliente toque «Separar» en la web, su pedido aparece aquí y te escribe por WhatsApp." },
-  cobrar: { titulo: "Nada por cobrar", frase: "Los pedidos confirmados esperan aquí su pago." },
+  confirmar: { titulo: "No hay pedidos por confirmar", frase: "Cuando un cliente separe en la web, aparece aquí." },
+  cobrar: { titulo: "Nada por cobrar", frase: "Aquí esperan su pago los pedidos confirmados." },
   entregar: { titulo: "Nada por entregar", frase: "Lo pagado que falta recoger aparece aquí." },
+};
+
+// La franja de la izquierda de cada fila dice, sin leer, cuán urgente es (el mismo tono del plazo). `tinta` = sin franja.
+const FRANJA: Record<TonoReloj, string> = {
+  tinta: "",
+  ambar: "shadow-[inset_3px_0_0_var(--color-ambar)]",
+  rojo: "shadow-[inset_3px_0_0_var(--color-rojo)]",
+  verde: "shadow-[inset_3px_0_0_var(--color-verde)]",
+  pizarra: "shadow-[inset_3px_0_0_var(--color-pizarra)]",
 };
 
 const TONO_RELOJ: Record<TonoReloj, string> = {
@@ -166,6 +176,7 @@ export function PedidosWebPantalla({
   const cifras = cifrasDe(tablero, ahora);
   const grupos = agruparPorPestana(tablero.pedidos);
   const tocan = loQueTeToca(tablero.pedidos, plazos, ahora);
+  const grupos_ = gruposDeLaLista(tablero.pedidos, plazos, ahora);
   const nadaQueHacer = tocan.length === 0 && tablero.paraEnviar.length === 0;
   const abierto = detalle && detalle.id !== cerradoId ? detalle : null;
 
@@ -208,26 +219,32 @@ export function PedidosWebPantalla({
         sede={tienda}
         detalle="Tienda web"
         titulo="Pedidos"
-        subtitulo={`Lo que separaron en la web para ${tienda}.`}
+        subtitulo="Lo que separaron en la web."
         acciones={
           <div className="flex flex-wrap items-center gap-2">
-            <Boton type="button" peso="fantasma" aria-haspopup="dialog" onClick={() => setAvisosAbierto(true)} data-guia="pedidos-web.avisos">
+            <Boton type="button" peso="fantasma" aria-haspopup="dialog" aria-label="Avisos de pedidos" onClick={() => setAvisosAbierto(true)} data-guia="pedidos-web.avisos">
               <span className="flex items-center gap-2">
                 <BellRing aria-hidden className="-my-1 h-4 w-4 shrink-0" />
-                Avisos de pedidos
+                Avisos
               </span>
             </Boton>
-            <Boton type="button" peso="fantasma" onClick={() => setEditandoMensaje(true)} data-guia="pedidos-web.mensaje">
+            <Boton type="button" peso="fantasma" aria-label="Mensaje predeterminado" onClick={() => setEditandoMensaje(true)} data-guia="pedidos-web.mensaje">
               <span className="flex items-center gap-2">
                 <MessageSquareText aria-hidden className="-my-1 h-4 w-4 shrink-0" />
-                Mensaje predeterminado
+                Mensaje
               </span>
             </Boton>
-            <Boton type="button" peso="fantasma" aria-expanded={como} aria-controls="pedidos-web-reglas" onClick={() => setComo((c) => !c)} data-guia="pedidos-web.como">
-              <span className="flex items-center gap-2">
-                <CircleHelp aria-hidden className="-my-1 h-4 w-4 shrink-0" />
-                ¿Cómo funciona?
-              </span>
+            <Boton
+              type="button"
+              peso="fantasma"
+              aria-expanded={como}
+              aria-controls="pedidos-web-reglas"
+              aria-label="¿Cómo funciona?"
+              title="¿Cómo funciona?"
+              onClick={() => setComo((c) => !c)}
+              data-guia="pedidos-web.como"
+            >
+              <CircleHelp aria-hidden className="-my-1 h-4 w-4 shrink-0" />
             </Boton>
           </div>
         }
@@ -252,9 +269,8 @@ export function PedidosWebPantalla({
         </Aviso>
       )}
 
-      {/* En un día tranquilo el camino solo diría ceros: se ve si hay algo, o si se pidió «¿Cómo funciona?». */}
-      {(!nadaQueHacer || como || filtro !== null) && (
-        <CaminoDePedidos
+      {/* El camino se ve siempre: en un día tranquilo muestra ceros, y eso también dice que no hay nada pendiente. */}
+      <CaminoDePedidos
           cifras={cifras}
           plazos={plazos}
           etiqueta="El camino de los pedidos web: cada estación muestra los pedidos de ese paso"
@@ -265,7 +281,6 @@ export function PedidosWebPantalla({
           guia="pedidos-web.cifras"
           guiaEntregar="pedidos-web.estacion-entregar"
         />
-      )}
 
       {tablero.paraEnviar.length > 0 && (
         <ParaEnviarSeccion
@@ -277,7 +292,7 @@ export function PedidosWebPantalla({
       {nadaQueHacer && filtro === null ? (
         <section className="card-cayla">
           <Vacio icono={<CircleCheck />} titulo="Todo al día" guia="pedidos-web.todo-al-dia">
-            {todoAlDia(tablero.pedidos, tienda, ahora)} Cuando llegue uno, lo verás aquí y con su número en el menú.
+            {todoAlDia(tablero.pedidos, ahora)} Cuando llegue uno, aparece aquí.
           </Vacio>
         </section>
       ) : filtro === "cerrados" ? (
@@ -286,6 +301,7 @@ export function PedidosWebPantalla({
         <ListaSeccion
           filtro={filtro}
           pedidos={filtro === null ? tocan : tocan.filter((p) => pestanaDe(p.estado) === filtro)}
+          grupos={filtro === null ? grupos_ : null}
           plazos={plazos}
           ahora={ahora}
           abiertoId={abierto?.id ?? null}
@@ -414,6 +430,7 @@ export function PedidosWebPantalla({
 function ListaSeccion({
   filtro,
   pedidos,
+  grupos,
   plazos,
   ahora,
   abiertoId,
@@ -423,6 +440,8 @@ function ListaSeccion({
 }: {
   filtro: Exclude<PestanaPedidos, "cerrados"> | null;
   pedidos: PedidoDeLista[];
+  /** Sin filtro, «Lo que te toca» va en tramos (urgente, pide tu atención…); con una estación puesta, la lista va corrida. */
+  grupos: GrupoDeLista[] | null;
   plazos: PlazosPedidosWeb;
   ahora: number;
   abiertoId: string | null;
@@ -459,12 +478,23 @@ function ListaSeccion({
           </Vacio>
         )
       ) : (
-        <Tabla className="rounded-none border-0 shadow-none">
-          <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
-          {pedidos.map((p, i) => (
-            <FilaPedido key={p.id} pedido={p} ahora={ahora} plazos={plazos} indice={i} abierto={abiertoId === p.id} recien={recien === p.id} primera={i === 0} onAbrir={() => onAbrir(p.id)} />
-          ))}
-        </Tabla>
+        (grupos ?? [{ clave: null, titulo: "", nota: null, pedidos }]).map((g, gi) => {
+          const antes = (grupos ?? []).slice(0, gi).reduce((a, x) => a + x.pedidos.length, 0);
+          return (
+            <div key={g.clave ?? "todo"} data-guia={g.clave === "urgente" || (gi === 0 && grupos) ? "pedidos-web.grupo" : undefined}>
+              {g.clave && (
+                <div className="px-5 pb-1 pt-4">
+                  <TituloGrupo nota={g.nota ?? undefined}>{g.titulo}</TituloGrupo>
+                </div>
+              )}
+              <Tabla className="rounded-none border-0 shadow-none">
+                {g.pedidos.map((p, i) => (
+                  <FilaPedido key={p.id} pedido={p} ahora={ahora} plazos={plazos} indice={antes + i} abierto={abiertoId === p.id} recien={recien === p.id} primera={antes + i === 0} onAbrir={() => onAbrir(p.id)} />
+                ))}
+              </Tabla>
+            </div>
+          );
+        })
       )}
     </section>
   );
@@ -530,7 +560,7 @@ function FilaPedido({
       {...abreConLaFila(onAbrir)}
       aria-current={abierto ? "true" : undefined}
       data-recien={recien ? "" : undefined}
-      className={fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}
+      className={fila(PLANTILLA, `cursor-pointer items-center sm:items-center ${FRANJA[reloj.tono]}`)}
     >
       <span className="min-w-0">
         <button

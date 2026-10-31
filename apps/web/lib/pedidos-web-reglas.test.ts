@@ -26,6 +26,7 @@ import {
   leerDetalle,
   leerTablero,
   limpiarCodigo,
+  gruposDeLaLista,
   loQueTeToca,
   MENSAJE_PREDETERMINADO_WEB,
   mensajePredeterminadoDelPedido,
@@ -561,6 +562,30 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     expect(lista.map((p) => p.id)).toEqual(["sin-pago-1h", "confirmar-2h", "sin-pagar", "devolver", "confirmar-19h", "confirmado", "listo", "espera"]);
   });
 
+  it("«Lo que te toca» en tramos: urgente, pide tu atención, en plazo y esperan una prenda (los dos «en plazo» se leen como uno)", () => {
+    const grupos = gruposDeLaLista(
+      [
+        pedido({ id: "espera", estado: "pagado", pagadoEn: hace(3), listoParaRecoger: false }),
+        pedido({ id: "listo", estado: "pagado", pagadoEn: hace(24), listoParaRecoger: true }),
+        pedido({ id: "confirmado", estado: "confirmado", confirmadoEn: hace(6) }),
+        pedido({ id: "confirmar-19h", venceEn: en(19) }),
+        pedido({ id: "sin-pagar", estado: "confirmado", confirmadoEn: hace(50), sinPagar: true, pagado: 30 }),
+        pedido({ id: "confirmar-2h", venceEn: en(2) }),
+        pedido({ id: "entregado", estado: "entregado" }),
+      ],
+      PLAZOS,
+      AHORA,
+    );
+    expect(grupos.map((g) => g.clave)).toEqual(["urgente", "atencion", "plazo", "prenda"]);
+    expect(grupos.map((g) => g.pedidos.map((p) => p.id))).toEqual([["confirmar-2h"], ["sin-pagar"], ["confirmar-19h", "confirmado", "listo"], ["espera"]]);
+    expect(grupos[0]).toMatchObject({ titulo: "Urgente", nota: "Se pierde en menos de 3 h" });
+    // Sin pedidos en un tramo, el tramo no existe; lo cerrado sin plata no entra.
+    expect(gruposDeLaLista([pedido({ id: "e", estado: "entregado" })], PLAZOS, AHORA)).toEqual([]);
+    // Es el mismo orden de siempre: aplanar los tramos da `loQueTeToca`.
+    const todos = [pedido({ id: "a", venceEn: en(19) }), pedido({ id: "b", venceEn: en(2) }), pedido({ id: "c", estado: "pagado", pagadoEn: hace(2), listoParaRecoger: false })];
+    expect(gruposDeLaLista(todos, PLAZOS, AHORA).flatMap((g) => g.pedidos.map((p) => p.id))).toEqual(loQueTeToca(todos, PLAZOS, AHORA).map((p) => p.id));
+  });
+
   it("el reloj de cada fila: qué pasa y cuándo, una sola vez", () => {
     expect(relojDeFila(pedido({ creadoEn: hace(22), venceEn: en(2) }), PLAZOS, AHORA)).toMatchObject({
       texto: "Se cierra solo en 2 h",
@@ -638,17 +663,16 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
   });
 
   it("todo al día: en una línea, con lo último que pasó", () => {
-    expect(todoAlDia([], "Tienda TRU", AHORA)).toBe("No hay pedidos web esperando en Tienda TRU. Todavía no llegó ninguno.");
+    expect(todoAlDia([], AHORA)).toBe("Todavía no llegó ningún pedido.");
     expect(
       todoAlDia(
         [
           pedido({ codigo: "W-0008", estado: "entregado", creadoEn: hace(30) }),
           pedido({ codigo: "W-0009", estado: "anulado", cierreMotivo: "cliente_desistio", creadoEn: hace(1) }),
         ],
-        "Tienda TRU",
         AHORA,
       ),
-    ).toBe("No hay pedidos web esperando en Tienda TRU. El último (W-0009) llegó hoy a las 09:00 y se cerró: el cliente desistió.");
+    ).toBe("Nada por hacer. El último, W-0009, llegó hoy a las 09:00 y se cerró: el cliente desistió.");
   });
 
   it("los instantes, como se dicen en la tienda (en hora de Lima, también de noche)", () => {

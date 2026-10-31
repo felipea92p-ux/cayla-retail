@@ -793,10 +793,10 @@ export function tramosDelCamino(plazos: PlazosPedidosWeb): [TramoPedidos, TramoP
 /** «¿Cómo funciona?»: una regla por estación, la que antes vivía en una nota de cinco reglas al pie de la pantalla. */
 export function reglasDelCamino(plazos: PlazosPedidosWeb): Record<PestanaPedidos, string> {
   return {
-    confirmar: `Separar no toca el stock: la prenda se reserva cuando confirmas. Si nadie lo confirma en ${plazos.horasParaConfirmar} h, se cierra solo.`,
-    cobrar: `Registra cada pago dentro del pedido; con el que lo completa sale su boleta. Si no paga nada en ${plazos.horasAvisoSinPagar} h, se anula solo y sus prendas se liberan; si pagó una parte, solo avisa.`,
-    entregar: "Se entrega con el código de 4 cifras que el cliente ve en su pedido. Recién ahí la prenda sale del stock.",
-    cerrados: "Quedan 30 días: lo entregado, lo anulado y lo que nadie confirmó a tiempo. Van aparte de los apartados de la tienda.",
+    confirmar: `Separar no toca el stock. Al confirmar, reservas las prendas. Si nadie confirma en ${plazos.horasParaConfirmar} h, se cierra solo.`,
+    cobrar: `Registra cada pago en el pedido. El que lo completa emite la boleta. Si no paga nada en ${plazos.horasAvisoSinPagar} h, se anula solo; si pagó una parte, solo avisa.`,
+    entregar: "Se entrega con el código de 4 cifras del cliente. Recién ahí la prenda sale del stock.",
+    cerrados: "Quedan 30 días: entregados, anulados y los que nadie confirmó.",
   };
 }
 
@@ -827,22 +827,51 @@ function limiteDe(p: Pick<PedidoDeLista, "estado" | "venceEn" | "confirmadoEn" |
  * vence antes arriba.
  */
 export function loQueTeToca(pedidos: readonly PedidoDeLista[], plazos: PlazosPedidosWeb, ahora: number): PedidoDeLista[] {
-  const grupo = (p: PedidoDeLista): number => {
-    if (p.estado === "por_confirmar") return p.venceEn && Date.parse(p.venceEn) - ahora < URGENTE_MS ? 0 : 2;
-    // Confirmado sin ningún pago: se anula solo, igual que lo que nadie confirma (pierde la venta).
-    if (p.estado === "confirmado" && p.pagado === 0) {
-      const l = limiteDe(p, plazos);
-      return l !== null && l - ahora < URGENTE_MS ? 0 : 2;
-    }
-    if (p.estado === "anulado" || p.sinPagar || p.sinRecoger) return 1;
-    if (p.estado === "pagado" && !p.listoParaRecoger) return 4;
-    return 3;
-  };
   return pedidos
     .filter(pideAlgo)
-    .map((p) => ({ p, g: grupo(p), l: limiteDe(p, plazos) ?? Number.POSITIVE_INFINITY }))
+    .map((p) => ({ p, g: grupoQueToca(p, plazos, ahora), l: limiteDe(p, plazos) ?? Number.POSITIVE_INFINITY }))
     .sort((a, b) => a.g - b.g || a.l - b.l || a.p.numero - b.p.numero)
     .map((x) => x.p);
+}
+
+/** En cuál de los cinco grupos de orden cae un pedido (0 = lo que se pierde en menos de 3 h … 4 = espera una prenda). */
+function grupoQueToca(p: PedidoDeLista, plazos: PlazosPedidosWeb, ahora: number): number {
+  if (p.estado === "por_confirmar") return p.venceEn && Date.parse(p.venceEn) - ahora < URGENTE_MS ? 0 : 2;
+  // Confirmado sin ningún pago: se anula solo, igual que lo que nadie confirma (pierde la venta).
+  if (p.estado === "confirmado" && p.pagado === 0) {
+    const l = limiteDe(p, plazos);
+    return l !== null && l - ahora < URGENTE_MS ? 0 : 2;
+  }
+  if (p.estado === "anulado" || p.sinPagar || p.sinRecoger) return 1;
+  if (p.estado === "pagado" && !p.listoParaRecoger) return 4;
+  return 3;
+}
+
+export type ClaveGrupoLista = "urgente" | "atencion" | "plazo" | "prenda";
+/** Un tramo de «Lo que te toca» con su título corto (y, si hace falta, por qué está ahí). */
+export type GrupoDeLista = { clave: ClaveGrupoLista; titulo: string; nota: string | null; pedidos: PedidoDeLista[] };
+
+const GRUPO_DE_LISTA: Record<number, { clave: ClaveGrupoLista; titulo: string; nota: string | null }> = {
+  0: { clave: "urgente", titulo: "Urgente", nota: "Se pierde en menos de 3 h" },
+  1: { clave: "atencion", titulo: "Pide tu atención", nota: "Ya pasó el aviso" },
+  2: { clave: "plazo", titulo: "En plazo", nota: null },
+  3: { clave: "plazo", titulo: "En plazo", nota: null },
+  4: { clave: "prenda", titulo: "Esperan una prenda", nota: "No depende de ti" },
+};
+
+/**
+ * «Lo que te toca» en tramos (mismo orden de `loQueTeToca`): lo que se pierde pronto, lo que ya pasó su aviso, lo que está en plazo y lo que
+ * espera una prenda. Los dos grupos «en plazo» (lo que se cierra solo y lo que solo avisa) se leen como uno. Un tramo sin pedidos no existe.
+ */
+export function gruposDeLaLista(pedidos: readonly PedidoDeLista[], plazos: PlazosPedidosWeb, ahora: number): GrupoDeLista[] {
+  const grupos: GrupoDeLista[] = [];
+  for (const p of loQueTeToca(pedidos, plazos, ahora)) {
+    const g = GRUPO_DE_LISTA[grupoQueToca(p, plazos, ahora)]!;
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.clave === g.clave) ultimo.pedidos.push(p);
+    else grupos.push({ ...g, pedidos: [p] });
+  }
+  return grupos;
 }
 
 /** «hoy a las 22:15», «mañana a las 10:44», «ayer a las 18:02» o «el 19 oct a las 10:44»: un instante, como se dice en la tienda. */
@@ -969,13 +998,12 @@ export function porQueSeCerraron(pedidos: readonly Pick<PedidoDeLista, "estado" 
 }
 
 /** «Todo al día»: no queda nada que hacer, en una línea, con lo último que pasó (que es lo que la persona quiere saber después). */
-export function todoAlDia(pedidos: readonly PedidoDeLista[], tienda: string, ahora: number): string {
+export function todoAlDia(pedidos: readonly PedidoDeLista[], ahora: number): string {
   const ultimo = [...pedidos].sort((a, b) => Date.parse(b.creadoEn) - Date.parse(a.creadoEn))[0];
-  const base = `No hay pedidos web esperando en ${tienda}.`;
-  if (!ultimo) return `${base} Todavía no llegó ninguno.`;
+  if (!ultimo) return "Todavía no llegó ningún pedido.";
   const m = motivoDeCierre(ultimo);
   const final = m.clave === "entregado" ? "ya se entregó" : m.clave === "sin_confirmar" ? "nadie lo confirmó a tiempo" : `se cerró: ${m.texto.toLocaleLowerCase("es")}`;
-  return `${base} El último (${ultimo.codigo}) llegó ${cuandoEnLima(ultimo.creadoEn, ahora)} y ${final}.`;
+  return `Nada por hacer. El último, ${ultimo.codigo}, llegó ${cuandoEnLima(ultimo.creadoEn, ahora)} y ${final}.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
