@@ -1,6 +1,6 @@
 # ADR-0585 · Estados financieros: los cuatro estados como respuestas, y quien tiene el módulo ve todo
 
-- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos), 2 (patrimonio), 3 (el nombre y las cuatro respuestas), 4 (¿Ganamos?) y 5 (¿Dónde está la plata?) hechas.
+- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos), 2 (patrimonio), 3 (el nombre y las cuatro respuestas), 4 (¿Ganamos?), 5 (¿Dónde está la plata?) y 6 (¿Cuánto vale CAYLA?) hechas.
 - **Decide:** Felipe, 2026-10-30, sobre la pizarra «4. Reportes» y la maqueta `docs/maquetas/finanzas-eeff-2026-10/`
   (https://claude.ai/artifact/UiZ2Pk8rnPkLYNLcDBo7kV).
 - **Toca:** ADR-0195 (Finanzas), ADR-0253 y ADR-0433 G16 (una sola regla de alcance), ADR-0161 P6 (las terminales no miran la
@@ -144,6 +144,30 @@ En la web, pasan los tipos, las 744 pruebas de vitest, Knip y eslint.
 - **El formato formal, plegado:** el estado de flujos de efectivo por el método directo (operación, inversión y financiamiento, sin
   cuentas), la plata al empezar y al terminar, y lo que quedó semana a semana. `FlujoCajaPanel` se fue a `estados/PlataPanel.tsx`. Se
   borraron las reglas que solo usaba la pantalla vieja (`fraseDelFlujo`, `textoPeriodo`, `listasDelFlujo`).
+
+## Actividad 6 · ¿Cuánto vale CAYLA?
+
+- **Si el Balance cuadra**, la pantalla muestra, de arriba abajo:
+  - la respuesta: «Vale S/ X», lo tuyo, con la frase «es lo que tiene menos lo que debe» y la fecha;
+  - **la balanza**: dos `BarraApilada` (la pieza de ADR-0358) del mismo largo, una con lo que tiene y otra con lo que debe más lo tuyo;
+  - **dos medidores**;
+  - lo que es de cada sede;
+  - plegados, la comprobación, el balance formal y los saldos de arranque.
+
+  Cada barra va en pocos grupos que una tienda reconoce (`lib/vale-reglas.ts`, con su prueba): plata, lo que te deben, mercadería,
+  muebles; proveedores, impuestos, sueldos, tarjeta y préstamos; lo tuyo. Tocar un tramo o su nombre abre sus partes.
+- **Los dos medidores** son `TarjetaCifra` con su `BarraAvance`:
+  - «Si te cobraran todo hoy, cubres el X %»: plata y cobros contra todas las deudas;
+  - «Mercadería guardada: N meses de venta»: la mercadería contra lo que costó lo vendido en el último mes completo de CAYLA.
+- **Si no cuadra**, nada cambia: la comprobación y la guía de qué falta siguen a la vista y la cifra no se dibuja (ADR-0198). Los saldos
+  de arranque siguen siendo del líder.
+- **Las cuentas** ya no se muestran en las líneas del balance ni en lo de una sede. Siguen en el Excel que se descarga.
+- **«Qué te recomiendo»:**
+  - si no cuadra;
+  - la mercadería quieta (desde 4 meses de venta), que lleva a Frescura del piso;
+  - si la plata no cubre lo que se debe;
+  - la sede que no devuelve lo invertido, comparada con la que más rinde.
+- **La fecha**, por defecto, es el último día del mes de la barra (hoy, en el mes en curso). El selector de fechas del Balance sigue.
 
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 

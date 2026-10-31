@@ -50,15 +50,6 @@ const DOCK_GASTOS: PasoGuia = {
   texto: "Abajo están las cuatro cosas que más se hacen en Gastos: registrar un gasto (G), los fijos del mes (F), las salidas de caja (E) y los activos fijos (A). Las tocas o apretas su letra cuando no estás escribiendo.",
 };
 
-/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (lo elige quien ve todas las tiendas —el líder y, donde la pantalla lo permite, quien tiene Configuración, Cierre de mes o CAYLA Global—; los demás ven su tienda). */
-const VER: PasoGuia = {
-  id: "ver",
-  ancla: "fin-ver.combo",
-  opcional: true,
-  titulo: "Qué tienda mirar",
-  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige quien ve todas las tiendas (el líder y, en algunas pantallas, quien tiene Configuración o Cierre de mes); si no, ves tu tienda.",
-};
-
 /** Las cuatro respuestas de Estados financieros (ADR-0585): cada tarjeta es un estado y a la vez su pestaña (se explican, no se tocan). */
 const RESPUESTAS_ESTADOS: PasoGuia = {
   id: "respuestas",
@@ -1342,7 +1333,62 @@ export const GUIA_FIN_BALANCE: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
-    VER,
+    {
+      id: "respuesta",
+      ancla: "fin-vale.respuesta",
+      opcional: true,
+      titulo: "Cuánto vale",
+      texto: "Lo que es tuyo: lo que tiene CAYLA menos lo que debe. Sale solo si el Balance cuadra.",
+    },
+    {
+      id: "fecha",
+      ancla: "fin-vale.fecha",
+      opcional: true,
+      titulo: "A qué fecha",
+      texto: "Por defecto, el último día del mes de la barra (hoy, en el mes en curso). Puedes mirar el cierre de otro mes.",
+    },
+    {
+      id: "balanza",
+      ancla: "fin-vale.balanza",
+      opcional: true,
+      titulo: "La balanza",
+      texto: "Arriba, lo que tiene: plata, lo que te deben, mercadería y muebles. Abajo, lo que debe y lo tuyo. Las dos barras miden lo mismo: eso es que cuadre. Toca un tramo y ves de qué está hecho.",
+    },
+    {
+      id: "partes",
+      ancla: "fin-vale.partes",
+      opcional: true,
+      titulo: "De qué está hecho",
+      texto: "Las partes del tramo que tocaste, cada una por su nombre.",
+    },
+    {
+      id: "medidores",
+      ancla: "fin-vale.medidores",
+      opcional: true,
+      titulo: "Dos preguntas que importan",
+      texto: "Si mañana te cobraran todo lo que debes, cuánto pagas con plata y cobros; y para cuántos meses de venta te alcanza la mercadería guardada. Mucha mercadería es plata quieta.",
+    },
+    {
+      id: "tiendas",
+      ancla: "fin-balance.tiendas",
+      opcional: true,
+      titulo: "Lo que es de cada sede",
+      texto: "Cuánta plata tiene metida cada sede (su cajón, su mercadería, sus muebles, menos su parte de las facturas) y cuánto le rindió este mes. Sirve para comparar qué sede aprovecha mejor cada sol.",
+    },
+    {
+      id: "recos",
+      ancla: "fin-estados.recos",
+      titulo: "Qué te recomiendo",
+      texto: "Si el Balance no cuadra, la mercadería quieta, cuánto de lo que debes cubre la plata y la sede que no devuelve lo invertido. Cada una te lleva a donde se hace. Nada se cambia solo.",
+    },
+    {
+      id: "formal",
+      ancla: "fin-vale.formal",
+      opcional: true,
+      titulo: "El formato formal",
+      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Lo abrimos.",
+      demostrar: [{ tipo: "clic", ancla: "fin-vale.formal" }],
+    },
     {
       id: "arranque",
       ancla: "fin-balance.arranque",
@@ -1405,15 +1451,8 @@ export const GUIA_FIN_BALANCE: Guia = {
       id: "resultado",
       ancla: "fin-balance.resultado",
       opcional: true,
-      titulo: "El Balance",
-      texto: "Si todo cuadra: lo que tiene CAYLA, lo que debe y lo que es tuyo. Si no, dice qué hay que resolver o que falta el punto de partida.",
-    },
-    {
-      id: "tiendas",
-      ancla: "fin-balance.tiendas",
-      opcional: true,
-      titulo: "Lo que es de cada tienda",
-      texto: "Cuánta plata tiene metida cada tienda (su cajón, su mercadería, sus muebles, menos su parte de las facturas) y cuánto le rindió este mes. Sirve para comparar qué tienda aprovecha mejor cada sol.",
+      titulo: "El Balance, línea por línea",
+      texto: "Si todo cuadra: lo que tiene CAYLA, lo que debe y lo que es tuyo, línea por línea. Si no, dice qué hay que resolver o que falta el punto de partida.",
     },
     {
       id: "nota",

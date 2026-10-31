@@ -1,9 +1,14 @@
 import { exigirModulo, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
-import { leerCorte } from "@/lib/balance-reglas";
+import { leerCorte, situacion } from "@/lib/balance-reglas";
 import { getBalanceGeneral, getBalancePorTienda, getConciliacion, getSaldosIniciales } from "@/lib/balance";
 import { BalancePanel } from "@/components/finanzas/BalancePanel";
-import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
+import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
+import { mesDe, rangoMes } from "@/lib/gastos-reglas";
+import { getEstadoResultados } from "@/lib/resultados";
+import { mesAnterior } from "@/lib/resultados-reglas";
+import { gruposDelBalance, medidores, recomendacionesVale } from "@/lib/vale-reglas";
+import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
@@ -26,50 +31,47 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
   const ver = veTodo ? (pedida !== "cayla" && pedida !== "todas" && pedida !== "empresa" ? pedida : "cayla") : persona.ubicacionId;
   const cabecera = <CabeceraEstados activa="vale" mes={mes} sede={veTodo ? pedida : (persona.ubicacionId ?? "todas")} hoy={hoy} params={paramsDe(sp)} />;
 
-  if (!veTodo || ver !== "cayla") {
-    const unidades = await getBalancePorTienda(corte);
-    return (
-      <div className="space-y-6">
-        {cabecera}
-        <BalancePanel
-          esLider={esLider}
-          veTodo={veTodo}
-          hoy={hoy}
-          corte={corte}
-          ver={ver}
-          chequeos={[]}
-          lineas={[]}
-          unidades={unidades.datos}
-          saldos={[]}
-          tiendaNombre={persona.ubicacionEtiqueta}
-          fallas={unidades.falla ? [unidades.falla] : []}
-        />
-      </div>
-    );
-  }
 
-  const [chequeos, lineas, unidades, saldos] = await Promise.all([
-    getConciliacion(corte),
-    getBalanceGeneral(corte),
+  const params = paramsDe(sp);
+  const href = (ruta: string, otra?: string) => hrefTelar(ruta, params, otra ? { sede: otra } : {}, { mismaPantalla: false, mesDeHoy: mesDelDia(hoy) });
+  const deUnaSede = !veTodo || ver !== "cayla";
+  const base = rangoMes(mesAnterior(mesDe(hoy)));
+
+  const [chequeos, lineas, unidades, saldos, erBase] = await Promise.all([
+    deUnaSede ? Promise.resolve({ datos: [], falla: null }) : getConciliacion(corte),
+    deUnaSede ? Promise.resolve({ datos: [], falla: null }) : getBalanceGeneral(corte),
     getBalancePorTienda(corte),
-    getSaldosIniciales(),
+    deUnaSede ? Promise.resolve({ datos: [], falla: null }) : getSaldosIniciales(),
+    // Para cuántos meses de venta alcanza la mercadería: lo que costó lo vendido en el último mes completo (CAYLA). Apoyo: sin él, el
+    // medidor dice que falta un mes con ventas.
+    deUnaSede ? Promise.resolve(null) : getEstadoResultados(base.desde, base.hasta),
   ]);
+  const costoDelMes = erBase && !erBase.falla ? (erBase.datos.find((f) => f.unidad === "consolidado")?.costo ?? null) : null;
+  const cuadra = deUnaSede ? null : situacion(chequeos.datos).tipo === "cuadra";
+  const medidas = cuadra ? medidores(gruposDelBalance(lineas.datos), costoDelMes) : null;
+  const recomendaciones = recomendacionesVale({ cuadra, medidas, unidades: unidades.datos, sede: deUnaSede ? ver : null, href });
+
   return (
     <div className="space-y-6">
       {cabecera}
-      <BalancePanel
-        esLider={esLider}
-        veTodo
-        hoy={hoy}
-        corte={corte}
-        ver="cayla"
-        chequeos={chequeos.datos}
-        lineas={lineas.datos}
-        unidades={unidades.datos}
-        saldos={saldos.datos}
-        tiendaNombre={persona.ubicacionEtiqueta}
-        fallas={[chequeos.falla, lineas.falla, unidades.falla, saldos.falla].filter((f): f is string => !!f)}
-      />
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0">
+          <BalancePanel
+            esLider={esLider}
+            veTodo={veTodo}
+            hoy={hoy}
+            corte={corte}
+            ver={deUnaSede ? ver : "cayla"}
+            chequeos={chequeos.datos}
+            lineas={lineas.datos}
+            unidades={unidades.datos}
+            saldos={saldos.datos}
+            costoDelMes={costoDelMes}
+            fallas={[chequeos.falla, lineas.falla, unidades.falla, saldos.falla].filter((f): f is string => !!f)}
+          />
+        </div>
+        <Recomendaciones recomendaciones={recomendaciones} />
+      </div>
     </div>
   );
 }

@@ -2273,6 +2273,73 @@
     color: var(--color-ambar);
     font-weight: 600;
   }
+  /* ¿Cuánto vale CAYLA? (ADR-0585): la balanza, dos `BarraApilada` del mismo largo con su leyenda que se toca, y las partes del tramo
+     elegido debajo. */
+  .fin-balanza {
+    display: grid;
+    gap: 24px;
+  }
+  .fin-balanza-lado {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .fin-balanza-lado b {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-tinta);
+  }
+  .fin-balanza-leyenda {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+  .fin-balanza-leyenda button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .fin-balanza-leyenda button[aria-expanded="true"] {
+    font-weight: 600;
+  }
+  @media (hover: hover) {
+    .fin-balanza-leyenda button:hover {
+      color: var(--color-rojo-profundo);
+    }
+  }
+  .fin-balanza-detalle {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-left: 2px solid var(--color-sand);
+    background: var(--color-crema);
+    border-radius: 0 10px 10px 0;
+    animation: fin-pulso-abre 300ms var(--ease-cayla) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-balanza-detalle {
+      animation: none;
+    }
+  }
   @keyframes fin-pulso-abre {
     from {
       opacity: 0;
