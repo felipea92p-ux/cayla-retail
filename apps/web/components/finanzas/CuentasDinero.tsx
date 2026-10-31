@@ -107,6 +107,9 @@ export function PantallaDinero({
   deuda,
   hoy,
   fallas,
+  acciones,
+  panorama = false,
+  subtitulo,
   children,
 }: {
   pestana: PestanaDinero;
@@ -126,6 +129,12 @@ export function PantallaDinero({
   deuda: number;
   hoy: string;
   fallas: string[];
+  /** La acción de la cabecera si no es «+ Registrar movimiento» (CLAURE: «Pagar a CLAURE»); `null` = ninguna (el dock sigue con «Registrar movimiento»). */
+  acciones?: ReactNode;
+  /** La cara dibuja su propio resumen: la cabecera no repite la respuesta grande ni el orillo. */
+  panorama?: boolean;
+  /** La frase bajo el título, si la cara dice la suya. */
+  subtitulo?: string;
   children: ReactNode;
 }) {
   const params = useSearchParams();
@@ -156,10 +165,16 @@ export function PantallaDinero({
           sedes={sedes}
           hoy={hoy}
           onRegistrar={() => setModal({ que: "deposito" })}
+          panorama={panorama}
+          subtitulo={subtitulo}
           acciones={
-            <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
-              + Registrar movimiento
-            </Boton>
+            acciones !== undefined ? (
+              acciones
+            ) : (
+              <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+                + Registrar movimiento
+              </Boton>
+            )
           }
         />
         {fallas.map((f) => (
