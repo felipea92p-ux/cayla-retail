@@ -78,10 +78,21 @@ a.t-fila[aria-current="true"] .marca{display:block}
 .monto{display:inline-block;min-width:var(--w-monto,auto);text-align:right;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
 :root:not([data-sp]) .monto{min-width:0}
 /* la cabecera pegada, en vidrio */
-:root:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{position:sticky;top:72px;z-index:3;
-  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 72%,transparent));
-  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5)}
-[data-tema="oscuro"]:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{background:color-mix(in srgb,var(--vidrio) 92%,transparent)}
+/* Felipe 2026-10-31: «no me gusta que se quede así la cabecera, se confunde con el contenido». Antes era un vidrio al 72-86 % y las filas se
+   leían a través, y por encima de ella seguían pasando filas: parecía una fila más, flotando en medio de la lista. Ahora, al pegarse:
+   · es un vidrio casi opaco (98 %, con su desenfoque): nada se lee a través;
+   · la franja de arriba, desde el borde de la pantalla hasta ella, es el mismo vidrio: ninguna fila se ve encima de la cabecera;
+   · y gana una sombra abajo y un filo más marcado: se ve que está por encima de las filas, no entre ellas. */
+/* `top` se mide desde el borde del contenido de #cont, que tiene 92 px de relleno arriba: -20 px la deja a 72 px del borde, justo bajo las islas */
+:root:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{position:sticky;top:-20px;z-index:3;transition:box-shadow .25s var(--ease),background .25s}
+.tabla[data-pegada] .t-cabeza{background:color-mix(in srgb,var(--vidrio) 98%,transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  box-shadow:0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 14px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.tabla[data-pegada] .t-cabeza::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:72px;pointer-events:none;
+  background:color-mix(in srgb,var(--vidrio) 98%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5)}
+.tabla[data-pegada] .t-enc{box-shadow:none}
+[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza,[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza::before{background:color-mix(in srgb,var(--vidrio) 98%,transparent)}
+[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza{box-shadow:0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 14px 26px -16px var(--sombra)}
 /* la cabecera que se toca: el nombre, su flecha de orden y su punto de filtro */
 .col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;
   font-size:inherit;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t80);transition:background .2s,color .2s}
@@ -436,6 +447,7 @@ function repintar(primera) {
   $('#la-tabla').innerHTML = tabla();
   if (!primera) $$('.t-fila,.tabla').forEach((x) => (x.style.animation = 'none'));
   if (foco) { const i = $(`[data-texto="${foco}"]`); i.focus(); i.setSelectionRange(pos, pos); }
+  marcarPegada();
   if (globoDe) pintarGlobo();
 }
 
@@ -507,7 +519,12 @@ document.addEventListener('input', (ev) => {
   if (ev.target.matches('[data-g-buscar]')) { const q = sinTilde(ev.target.value.trim()); $$('.globo [data-elegir]').forEach((o) => (o.hidden = q && !sinTilde(o.dataset.t).includes(q))); }
 });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && globoDe) { const k = globoDe; cerrarGlobo(); const b = [...$$(`[data-col="${k}"]`)].find((x) => x.offsetParent); if (b) b.focus(); } });
-$('#cont').addEventListener('scroll', () => { if (globoDe) pintarGlobo(); }, { passive: true });
+// ¿la cabecera está pegada? (la tabla ya empezó más arriba que ella)
+function marcarPegada() {
+  const t = $('.tabla'), c = t && $('.t-cabeza', t); if (!t || !c) return;
+  t.toggleAttribute('data-pegada', getComputedStyle(c).position === 'sticky' && t.getBoundingClientRect().top < c.getBoundingClientRect().top - 1);
+}
+$('#cont').addEventListener('scroll', () => { marcarPegada(); if (globoDe) pintarGlobo(); }, { passive: true });
 addEventListener('resize', () => { if (globoDe) pintarGlobo(); });
 
 Marco.iniciar({ estado: { sp: 'globo' }, alPintar: () => { cerrarGlobo(); $('#cont').scrollTop = 0; pintarPantalla(); } });

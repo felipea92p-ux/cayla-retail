@@ -19,3 +19,6 @@
   (contenedor) en cuatro escalones (7 columnas · 5 · 4 · tarjetas), lo que se esconde baja a la línea del proveedor, y en el teléfono el
   filtro es la hoja a media altura. La base suma los anchos 320/375/430/768/1024/1280/1440/1920 (con zoom si no caben). Medidas 216
   combinaciones sin desbordes.
+- **Cabecera pegada de la tabla** (Felipe: «se confunde con el contenido»): era vidrio al 72–86 % y se pegaba 92 px más abajo (el `top`
+  de `sticky` se mide desde el relleno de #cont), así que se leían filas a través y por encima. Ahora se pega justo bajo las islas, al
+  98 % con su sombra, y la franja de arriba es el mismo vidrio.
