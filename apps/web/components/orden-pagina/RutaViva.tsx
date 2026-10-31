@@ -25,6 +25,7 @@ import {
   faltaTerminar,
   faseAbiertaDeLaRuta,
   previaQueCuenta,
+  pasoAgregadoTarde,
   pasosAgregables,
   puedeCambiarQuien,
   puedeRegistrarQuien,
@@ -72,7 +73,7 @@ export function RutaViva({
   const [elegida, setElegida] = useState<{ id: string; conActual: string | null } | null>(null);
   const abierta = (elegida && elegida.conActual === idActual ? fases.find((f) => f.id === elegida.id) : undefined) ?? faseAbiertaDeLaRuta(fases);
   const hechas = fases.filter((f) => f.estado === "hecha").length;
-  const { ofrecidos: pasosPorAgregar, bloqueados: pasosBloqueados } = pasosAgregables(datos);
+  const { ofrecidos: pasosPorAgregar, bloqueados: pasosBloqueados } = pasosAgregables(datos, { esLider });
   const sePuedeAgregar = pasosPorAgregar.length > 0 || (esLider && datos.permisos.puedeOperar && orden.estado === "en_proceso" && fases.length > 0);
   const faseDeLaHoja = hoja ? (fases.find((f) => f.id === hoja.faseId) ?? null) : null;
   const dato =
@@ -97,7 +98,11 @@ export function RutaViva({
         >
           Ruta de la orden
         </TituloSeccion>
-        {!sePuedeAgregar && pasosBloqueados.length > 0 && <p className="op-sub">{pasosBloqueados.map((p) => `${p.nombre} ya no se puede agregar: ${p.porQue}.`).join(" ")}</p>}
+        {!sePuedeAgregar && pasosBloqueados.length > 0 && (
+          <p className="op-sub">
+            {pasosBloqueados.map((p) => `${p.nombre} ya no se puede agregar: ${p.porQue}.`).join(" ")} Si se olvidó anotarlo, un líder puede agregarlo tarde, con lo que ya se hizo.
+          </p>
+        )}
         {fases.length === 0 ? (
           // Una orden abierta antes de que existieran las fases (solo en una base que ya tenía órdenes) no trae ninguna: se dice, no se dibuja una ruta vacía.
           <div className="card-cayla" data-guia="prod-orden.fases">
@@ -172,6 +177,8 @@ function PasoAbierto({ fase, datos, alAbrirHoja }: { fase: FasePagina; datos: Or
   const quitar = puedeQuitarPaso(fase, datos);
   const servicio = fase.quien === "servicio";
   const estado = estadoEnRuta(fase);
+  // ADR-0586: un paso que se olvidó y entró ya hecho lo dice, con su motivo al pasar el mouse (y completo en la historia).
+  const tarde = pasoAgregadoTarde(fase, datos.cambios);
   // El botón principal es el que avanza el paso; en un paso ya hecho, lo que queda (Deshacer) es secundario.
   const peso = estado === "hecha" ? "fantasma" : "primario";
   return (
@@ -184,6 +191,11 @@ function PasoAbierto({ fase, datos, alAbrirHoja }: { fase: FasePagina; datos: Or
     >
       <div className="op-paso-cab">
         <Chip tono={estado === "hecha" ? "verde" : estado === "toca" ? "ambar" : "neutro"}>{estado === "hecha" ? (fase.hito ? "Hecho" : "Hecha") : estado === "toca" ? "Te toca" : "Falta"}</Chip>
+        {tarde && (
+          <Chip tono="pizarra" title={`Por qué: ${tarde.texto}`}>
+            Agregado tarde
+          </Chip>
+        )}
         <span className="op-paso-quien" title={quienDeFase(fase)}>
           {servicio ? <Truck aria-hidden /> : <House aria-hidden />}
           <span>{servicio ? `Afuera · ${quienDeFase(fase)}` : "En el Taller"}</span>
