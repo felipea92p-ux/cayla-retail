@@ -55,7 +55,9 @@ const MSG_RLS_INSERT = "new row violates row-level security policy";
 
 const EN_SECO = process.argv.includes("--en-seco");
 const SQL_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260922160000_cotizaciones_maquila.sql"), "utf8");
-const PRELUDIO = EN_SECO ? SQL_MIGRACION : "";
+// 20261031150000: la vigencia se mide con el día de Lima (`fn_hoy_lima()`), no con `current_date` (UTC).
+const SQL_DIA_DE_LIMA = readFileSync(join(RAIZ, "supabase", "migrations", "20261031150000_cotizacion_maquila_vigente_dia_de_lima.sql"), "utf8");
+const PRELUDIO = EN_SECO ? `${SQL_MIGRACION}\n${SQL_DIA_DE_LIMA}` : "";
 
 function psql(sql) {
   return execFileSync(
@@ -198,6 +200,30 @@ rollback;
 `
   ),
   ["30.00"]
+);
+
+// El reloj de la base en UTC va cinco horas adelante de Lima: de 19:00 a 24:00 en Lima, `current_date` ya es mañana.
+// `fn_hoy_lima()` se reemplaza dentro de la transacción (el ROLLBACK la restaura) para probar ese borde a cualquier hora.
+const RELOJ_UTC_ADELANTADO = `create or replace function retail.fn_hoy_lima() returns date language sql stable as $$ select current_date - 1 $$;\n`;
+const VENCE_HOY_EN_LIMA = `${CATEGORIA_DE_PRUEBA}${RELOJ_UTC_ADELANTADO}insert into retail.cotizaciones_maquila (categoria_id, precio_maquila, fecha_cotizacion, vigente_hasta)
+  values (:'cat_id', 30.00, retail.fn_hoy_lima() - 180, retail.fn_hoy_lima());
+`;
+const LEER_VIGENTE = `select coalesce((select precio_maquila::numeric(12,2)::text from retail.fn_cotizacion_maquila_vigente(:'cat_id')), 'sin_vigente');\nrollback;\n`;
+
+exito(
+  "día de Lima: de 19:00 a 24:00 en Lima (UTC ya es mañana), una cotización que vence HOY en Lima sigue vigente",
+  comoPersona(FELIPE, `${VENCE_HOY_EN_LIMA}${LEER_VIGENTE}`),
+  ["30.00"]
+);
+
+exito(
+  "CONTROL día de Lima: con `current_date` (como antes de 20261031150000) esa misma cotización salía vencida cinco horas antes",
+  comoPersona(
+    FELIPE,
+    `${VENCE_HOY_EN_LIMA}do $d$ begin execute replace(pg_get_functiondef('retail.fn_cotizacion_maquila_vigente(uuid)'::regprocedure), 'retail.fn_hoy_lima()', 'current_date'); end $d$;
+${LEER_VIGENTE}`
+  ),
+  ["sin_vigente"]
 );
 
 // ===========================================================================

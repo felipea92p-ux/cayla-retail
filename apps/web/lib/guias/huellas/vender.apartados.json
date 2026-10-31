@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 171,
+  "total": 170,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -55,7 +55,6 @@
       "button «{codigoPrenda(h)}»",
       "button «Pedir a»",
       "button «→() => agregar(id)»",
-      "button «Quitar»",
       "button «apartados.descuento»",
       "input «Viene el sábado, quiere probársela otra vez…»",
       "button «{faltaDuenoEn.length > 0 ? \"Marca de quién es lo que apartas.\" : undefined}»",
@@ -93,8 +92,7 @@
       "Casilla «{nombreDe(l.varianteId)}»",
       "Boton «Quitar descuento»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»",
-      "button «Cambiar»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/apartados/DetalleApartado.tsx": [
       "Boton «{aplazar.bloqueo ?? undefined}»",
@@ -152,8 +150,6 @@
       "button «Mejor no» #3",
       "Boton «→() => abonar(cerrar)»",
       "button «{h.talla ?? \"—\"}»",
-      "button «{fuera ? \"Dejar\" : \"Quitar\"}»",
-      "button «No sumar»",
       "button «Descuento a lo nuevo»",
       "button «{p.referencia}»",
       "ComboResponsable «{responsable}» #4",
@@ -202,6 +198,11 @@
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"
+    ],
+    "components/punto-de-venta/LineaDelTicket.tsx": [
+      "button «{`Descuento para ${nombre}»",
+      "BotonDeshacer «{`Dejar ${nombre}»",
+      "button «{`Quitar ${nombre}»"
     ]
   }
 }

@@ -2,16 +2,15 @@
 
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno } from "@/lib/dueno-reglas";
 import { useStockPorDueno } from "@/lib/useStockPorDueno";
-import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Volver } from "@/components/ui/Volver";
 import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BadgePercent, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
@@ -68,7 +67,7 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
-import { DescuentoApartado, DescuentoDeLinea } from "@/components/apartados/DescuentoApartado";
+import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
 import {
   descuentoParaGuardar,
   descuentosVigentes,
@@ -846,59 +845,56 @@ export function ApartarVista({
                 </Vacio>
               ) : (
                 <>
-                  {lineas.map((l, i) => {
-                    const pr = porId.get(l.varianteId)!;
-                    return (
-                      <div key={l.varianteId} className="anim-revelar border-b border-sand px-5 py-4">
-                        <div className="flex justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-[15px] font-semibold text-tinta">{pr.referencia}</p>
-                            <p className="truncate text-[12px] text-tinta/60">
-                              {variante(pr)} · <span className="font-mono text-[11px]">{codigoPrenda(pr)}</span>
-                            </p>
-                          </div>
-                          <button type="button" onClick={() => quitarPrenda(l.varianteId)} className="label-cayla flex h-7 items-center gap-1 text-[10.5px] text-rojo-profundo">
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden /> Quitar
-                          </button>
-                        </div>
-                        <div className="mt-2.5 grid grid-cols-[auto_1fr_auto] items-end gap-x-4 gap-y-1">
-                          <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Cantidad</span>
-                          <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Precio</span>
-                          <span className="text-right text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Importe</span>
-                          <PasoCantidad
-                            menos={{
-                              onClick: () =>
-                                l.cantidad > 1 ? setLineas((ls) => ls.map((x, j) => (j !== i ? x : { ...x, cantidad: x.cantidad - 1 }))) : quitarPrenda(l.varianteId),
-                              etiqueta: "Una menos",
+                  {/* La fila de cada prenda es la del ticket de Vender (`LineaDelTicket`): nombre · color y talla · stock | − 1 + | importe | quitar.
+                      Lo propio de Apartar —cuántas quedan tras apartar, de qué sede llegó una prenda pedida— va en su `pie`. */}
+                  <div className="divide-y divide-sand border-b border-sand">
+                    {lineas.map((l) => {
+                      const pr = porId.get(l.varianteId)!;
+                      const d = descuentoDe.get(l.varianteId)!;
+                      const duenos = duenosParaElegir(duenosPorVariante?.[l.varianteId]);
+                      const linea: ItemCarrito = {
+                        claveLinea: l.varianteId,
+                        varianteId: l.varianteId,
+                        referencia: pr.referencia,
+                        sku: pr.sku,
+                        codigo: pr.codigo,
+                        cantidad: l.cantidad,
+                        precioUnitario: d.precioUnitario,
+                        descuentoUnitario: d.descuentoUnitario,
+                        stockAqui: pr.stockAqui,
+                        razonDescuento: d.razonDescuento,
+                        razonDescuentoOtro: d.razonDescuentoOtro,
+                        argumentoDescuento: d.argumentoDescuento,
+                        campana: d.campana,
+                      };
+                      return (
+                        <div key={l.varianteId} className="anim-revelar">
+                          <LineaDelTicket
+                            linea={linea}
+                            detalle={{ color: pr.color, talla: pr.talla }}
+                            bloqueado={enviando}
+                            onQuitar={quitarPrenda}
+                            onCantidad={(clave, valor) => {
+                              if (!Number.isFinite(valor) || valor < 1) return;
+                              // Subir de a una pasa por `agregar` (valida lo que queda y avisa); un número escrito se topa con el stock.
+                              if (valor === l.cantidad + 1) agregar(clave);
+                              else setLineas((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: Math.min(Math.floor(valor), pr.stockAqui) } : x)));
                             }}
-                            mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
-                          >
-                            {l.cantidad}
-                          </PasoCantidad>
-                          <span className="text-sm font-semibold tabular-nums">{money(pr.precio - (descuentoDe.get(l.varianteId)?.descuentoUnitario ?? 0))}</span>
-                          <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([descuentoDe.get(l.varianteId)!]))}</span>
+                            onDescuento={(clave) => setHojaDescuento([clave])}
+                            duenos={duenos}
+                            duenoElegido={duenoDeLinea[l.varianteId]}
+                            onDueno={(varianteId, empresaId) => setDuenoDeLinea((x) => ({ ...x, [varianteId]: empresaId }))}
+                            guiaDueno="apartar.dueno"
+                            pie={
+                              pedido && l.varianteId === pedido.varianteId
+                                ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
+                                : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`
+                            }
+                          />
                         </div>
-                        <DescuentoDeLinea linea={descuentoDe.get(l.varianteId)!} onAbrir={() => setHojaDescuento([l.varianteId])} />
-                        {duenosParaElegir(duenosPorVariante?.[l.varianteId]) && (
-                          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/65">
-                            <span>¿De quién es?</span>
-                            <ElegirDueno
-                              empresas={duenosParaElegir(duenosPorVariante?.[l.varianteId])!}
-                              duenoId={duenoDeLinea[l.varianteId] ?? ""}
-                              onElegir={(id) => setDuenoDeLinea((d) => ({ ...d, [l.varianteId]: id }))}
-                              chico
-                              guia="apartar.dueno"
-                            />
-                          </div>
-                        )}
-                        <p className="mt-2 text-[11px] text-taupe-profundo">
-                          {pedido && l.varianteId === pedido.varianteId
-                            ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
-                            : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                   {/* El descuento a mano (ADR-0584): el mismo de la venta, para todas las prendas o las que se marquen. */}
                   <div className="flex items-center justify-between gap-3 border-b border-sand px-5 py-3">
                     <button
