@@ -1,0 +1,4 @@
+## 2026-10-31 (La tienda web pasa a cayla.pe y Shopify se da de baja — ADR-0595)
+Qué hice: agregué `cayla.pe` y `www.cayla.pe` (308 a la raíz) al proyecto `cayla-tienda` en Vercel, cambié en el código todo lo que decía `tienda.cayla.pe` (QR del cartel, etiqueta, «Compartir tu look», cartel y página legal del Club), armé la tabla de redirecciones de Shopify (`apps/tienda/lib/redirecciones-shopify.ts`) y la migración `20261031205000` (`empresas.web` y avisos del Club).
+Por qué así: un corte único; cada paso depende del anterior (la redirección de `tienda.cayla.pe` va después del DNS, o los QR impresos llevarían a Shopify; el secreto del vigía se cambia antes de redirigir).
+Cómo verificas: pruebas de `apps/tienda` y `apps/web` en verde; migración probada con rollback en el Postgres local. Tras el corte: `curl -sI https://tienda.cayla.pe/catalogo?x=1` → 308 a `https://cayla.pe/catalogo?x=1`.
