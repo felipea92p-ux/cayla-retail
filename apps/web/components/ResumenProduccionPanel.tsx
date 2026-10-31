@@ -205,7 +205,7 @@ export function ResumenProduccionPanel({
                 )}
                 <div className="min-w-0">
                   <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
-                  <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
+                  <p className="mt-0.5 text-sm text-tinta/70">{d.detalle}</p>
                   <PorQue texto={d.porque} />
                 </div>
                 <Link
@@ -219,7 +219,7 @@ export function ResumenProduccionPanel({
           </ul>
         )}
         {ocultas.length > 0 && (
-          <p data-guia="prod-resumen.mas" className="px-1 text-[13px] text-tinta/70">
+          <p data-guia="prod-resumen.mas" className="px-1 text-sm text-tinta/70">
             Y{" "}
             {ocultas.map((o, i) => (
               <span key={o.tipo}>
@@ -266,7 +266,7 @@ export function ResumenProduccionPanel({
       <section id="produce" aria-label="Los demás modelos" className="space-y-2.5">
         <TituloSeccion dato="los que hoy no piden fabricar · días que dura el stock de las tiendas · marcas en 7 y 30 días">Los demás modelos</TituloSeccion>
         {resto.length === 0 ? (
-          <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora. No se ofrecen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias fuera de los motores (como Empaque).</p>
+          <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora.</p>
         ) : (
           <div className="card-cayla overflow-hidden">
             <div className="hidden grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] gap-x-3 border-b border-tinta/10 px-4 py-2.5 lg:grid xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]">
@@ -295,27 +295,27 @@ export function ResumenProduccionPanel({
                           <span className="line-clamp-2 break-words text-[14px] leading-snug text-tinta">{m.referencia}</span>
                           {/* De quién es y a quién se le compra: a la vista en la lista, sin abrir la hoja (Felipe 2026-10-15). */}
                           {origen && (
-                            <span data-origen className="line-clamp-2 break-words text-xs text-tinta/65">
+                            <span data-origen className="line-clamp-2 break-words text-sm text-tinta/65">
                               {origen}
                             </span>
                           )}
-                          <span className="block text-xs text-tinta/65 lg:hidden">
+                          <span className="block text-sm text-tinta/65 lg:hidden">
                             stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
                           </span>
                           {agotadas && (
-                            <span className="mt-0.5 flex items-start gap-1.5 text-xs leading-snug text-ambar">
+                            <span className="mt-0.5 flex items-start gap-1.5 text-sm leading-snug text-ambar">
                               <span aria-hidden className="mt-[5px] size-1.5 shrink-0 rounded-full bg-ambar" />
                               <span className="min-w-0">{agotadas}</span>
                             </span>
                           )}
                         </span>
                       </span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">{m.stockRed}</span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">
+                      <span className="hidden text-right text-sm tabular-nums text-tinta lg:block">{m.stockRed}</span>
+                      <span className="hidden text-right text-sm tabular-nums text-tinta lg:block">
                         {m.ritmoDia ? (
                           <>
                             {(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}
-                            <span className="mt-0.5 block text-[11px] leading-tight text-tinta/65">
+                            <span className="mt-0.5 block text-sm leading-tight text-tinta/65">
                               {baseDelRitmo(m.ventasBase).pocaBase ? <Chip tono="pizarra">Poca base</Chip> : `${m.ventasBase} en ${DIAS_RITMO_RECIENTE} d`}
                             </span>
                           </>
@@ -325,7 +325,7 @@ export function ResumenProduccionPanel({
                       </span>
                       <span className="col-span-2 lg:col-span-1">
                         {m.diasRed === null ? (
-                          <span className="text-xs text-tinta/65">Sin ventas medidas</span>
+                          <span className="text-sm text-tinta/65">Sin ventas medidas</span>
                         ) : (
                           <>
                             {/* Días de stock en las tiendas, con las rayitas de 7 y 30 días: una medida, no un avance (nunca pasa a verde). */}
@@ -335,13 +335,13 @@ export function ResumenProduccionPanel({
                               marca={[(7 / maxDias) * 100, (30 / maxDias) * 100]}
                               etiqueta={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}
                             />
-                            <span className="mt-1 block text-xs tabular-nums text-tinta/65">
+                            <span className="mt-1 block text-sm tabular-nums text-tinta/65">
                               {textoDiasDeStock(m.stockRed, m.diasRed)}{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
                             </span>
                           </>
                         )}
                       </span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta xl:block">{m.enProduccion || <span className="text-tinta/65">—</span>}</span>
+                      <span className="hidden text-right text-sm tabular-nums text-tinta xl:block">{m.enProduccion || <span className="text-tinta/65">—</span>}</span>
                       <span className="col-span-2 lg:col-span-1">
                         <Chip tono={TONO_ESTADO_MODELO[m.estado]}>{ETIQUETA_ESTADO_MODELO[m.estado]}</Chip>
                       </span>
@@ -371,17 +371,17 @@ export function ResumenProduccionPanel({
               <li key={t.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.5fr)_8rem_11rem]">
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] text-tinta">{t.nombre}</span>
-                  <span className="block text-xs text-tinta/65">
+                  <span className="block text-sm text-tinta/65">
                     hay {cantidadTexto(t.saldo, t.unidad)} · {loQueViene(t)}
                   </span>
                   {t.pedidos.length > 0 && (
-                    <span className="block text-xs text-tinta/65">
+                    <span className="block text-sm text-tinta/65">
                       En camino: {t.pedidos.slice(0, 2).map(textoDePedido).join("; ")}
                       {t.pedidos.length > 2 ? ` y ${t.pedidos.length - 2} más` : ""}
                     </span>
                   )}
                 </span>
-                <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
+                <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
                 <span className="sm:justify-self-end">
                   {t.estado === "sin_demanda" ? (
                     <Chip tono="neutro">Sin demanda</Chip>

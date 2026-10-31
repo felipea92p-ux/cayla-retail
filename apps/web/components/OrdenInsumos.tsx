@@ -189,11 +189,11 @@ export function OrdenInsumos({
             const abierto = g.insumoId === devolviendoId;
             const puedeDevolver = editable && g.neto > 0;
             return (
-              <li key={g.insumoId} className="border-b border-tinta/10 py-2.5 text-[13px]">
+              <li key={g.insumoId} className="border-b border-tinta/10 py-2.5 text-sm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-tinta">{g.nombre}</p>
-                    <p className="text-xs text-tinta/65">
+                    <p className="text-sm text-tinta/65">
                       {[...new Set(g.movs.filter((m) => m.lote).map((m) => `lote ${m.lote}`))].join(" · ") || "sin lote"}
                       {" · "}
                       {diaMes(diaLima(g.movs[g.movs.length - 1].creadoEn))}
@@ -202,7 +202,7 @@ export function OrdenInsumos({
                   </div>
                   <p className="text-right tabular-nums text-tinta">
                     {cantidadTexto(g.neto, g.unidad)}
-                    {esLider && g.costo !== null && <small className="block text-xs text-tinta/65">{soles(g.costo)}</small>}
+                    {esLider && g.costo !== null && <small className="block text-sm text-tinta/65">{soles(g.costo)}</small>}
                   </p>
                 </div>
                 {puedeDevolver && (
@@ -246,11 +246,11 @@ export function OrdenInsumos({
                       </Aviso>
                     )}
                     {previsionDev?.ok && (
-                      <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-[13px]">
+                      <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-sm">
                         <div className="flex items-baseline justify-between gap-3 px-3 py-2.5">
                           <dt>
                             Vuelve al lote <b className="font-semibold">{previsionDev.lote.codigo ?? "del que salió"}</b>
-                            <small className="block text-xs text-tinta/65">el último del que salió esta orden</small>
+                            <small className="block text-sm text-tinta/65">el último del que salió esta orden</small>
                           </dt>
                           <dd className="whitespace-nowrap tabular-nums">
                             <s className="mr-1.5 text-tinta/45">{cantidadTexto(previsionDev.lote.saldo, insumoDev.unidad)}</s>
@@ -293,7 +293,7 @@ export function OrdenInsumos({
         <div className="mt-3 rounded-2xl border border-sand bg-crema p-3.5">
           <p className="label-cayla text-[11px] text-tinta/65">Descontar al cortar</p>
           {insumos.length === 0 ? (
-            <p className="mt-2 text-[13px] text-tinta/75">
+            <p className="mt-2 text-sm text-tinta/75">
               Todavía no hay insumos en el catálogo.{" "}
               <Link href="/produccion/insumos" className="btn-enlace">
                 Cárgalos en Insumos
@@ -316,7 +316,7 @@ export function OrdenInsumos({
                         setCantidad("");
                         setDevolviendoId(null);
                       }}
-                      className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-tinta/15"
+                      className="rounded-full border border-tinta/15 px-3 py-1.5 text-sm text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-tinta/15"
                     >
                       {i.nombre}
                       <small className="ml-1.5 opacity-85">{sinSaldo ? "sin saldo" : cantidadTexto(i.saldo, i.unidad)}</small>
@@ -346,11 +346,11 @@ export function OrdenInsumos({
                     </Aviso>
                   )}
                   {prevision?.ok && (
-                    <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-[13px]">
+                    <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-sm">
                       <div className="flex items-baseline justify-between gap-3 px-3 py-2.5">
                         <dt>
                           Sale del lote <b className="font-semibold">{prevision.lote.codigo ?? "más antiguo"}</b>
-                          <small className="block text-xs text-tinta/65">el más antiguo con saldo{esLider && prevision.lote.costoUnitario !== null ? ` · ${soles(prevision.lote.costoUnitario)} por ${UNIDADES_INSUMO[insumo.unidad].corta}` : ""}</small>
+                          <small className="block text-sm text-tinta/65">el más antiguo con saldo{esLider && prevision.lote.costoUnitario !== null ? ` · ${soles(prevision.lote.costoUnitario)} por ${UNIDADES_INSUMO[insumo.unidad].corta}` : ""}</small>
                         </dt>
                         <dd className="whitespace-nowrap tabular-nums">
                           <s className="mr-1.5 text-tinta/45">{cantidadTexto(prevision.saldoLote, insumo.unidad)}</s>
@@ -362,7 +362,7 @@ export function OrdenInsumos({
                           <div className="flex items-baseline justify-between gap-3 px-3 py-2.5">
                             <dt>
                               {efectoEnCosto.etiqueta}
-                              <small className="block text-xs text-tinta/65">
+                              <small className="block text-sm text-tinta/65">
                                 {efectoEnCosto.reemplazaTecleado ? "reemplaza el monto anotado al abrir por lo real" : `este consumo suma ${soles(efectoEnCosto.costoConsumo)}`}
                               </small>
                             </dt>
@@ -387,7 +387,7 @@ export function OrdenInsumos({
                   <Boton textoCargando="Descontando…" peso="primario" cargando={cargando} disabled={!prevision?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={descontar} className="w-full">
                     Descontar del lote
                   </Boton>
-                  <p className="text-xs text-tinta/65">Si te equivocas, lo puedes devolver al estante mientras la orden siga en proceso.</p>
+                  <p className="text-sm text-tinta/65">Si te equivocas, lo puedes devolver al estante mientras la orden siga en proceso.</p>
                 </div>
               )}
             </>

@@ -82,7 +82,7 @@ export function TejidoYComposicion({
               crear={{ etiqueta: (t) => `+ Crear el tejido «${t.trim()}»`, onCrear: onCrearTejido, pista: "¿Es nuevo? Escribe su nombre arriba" }}
             />
           ) : (
-            <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
+            <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
           )}
         </Campo>
       </CampoGuiado>
@@ -179,7 +179,7 @@ export function CompraDeLaTela({
       </CampoGuiado>
       {avisoDeCompra && (
         <Aviso tono="atencion" chico>
-          Cambiaste cómo la compras: lo que habías escrito en «¿Ya tienes?» y en el costo estaba en la otra unidad. Vuelve a escribirlo.
+          Cambiaste la unidad: vuelve a escribir «¿Ya tienes?» y el costo.
         </Aviso>
       )}
       {avisosBlandos.map((t) => (

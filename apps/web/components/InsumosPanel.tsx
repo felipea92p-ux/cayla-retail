@@ -149,7 +149,7 @@ export function InsumosPanel({
               <span>
                 Capital en insumos: <b className="font-display text-lg tabular-nums text-tinta">{soles(capital)}</b> · a costo de cada lote
               </span>
-              <button type="button" className="btn-enlace text-xs" onClick={() => setVerCapital(false)}>
+              <button type="button" className="btn-enlace text-sm" onClick={() => setVerCapital(false)}>
                 Ocultar
               </button>
             </>
@@ -175,8 +175,8 @@ export function InsumosPanel({
               ) : null
             }
           >
-            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda.{" "}
-            {datos.hayTelas ? "Empieza con tu primera tela y todos sus colores, en una sola hoja." : esLider ? "Empieza agregando un insumo al catálogo; después ingresa su primer lote." : "El líder tiene que cargar el catálogo primero."}
+            La tela y los avíos del Taller: lo que entra, lo que sale al cortar y lo que queda.{" "}
+            {datos.hayTelas ? "Empieza con tu primera tela y sus colores." : esLider ? "Empieza agregando un insumo al catálogo." : "El líder tiene que cargar el catálogo primero."}
           </Vacio>
         </div>
       ) : (
@@ -198,7 +198,7 @@ export function InsumosPanel({
                           </TituloGrupo>
                           {t.valor === "tela" && (
                             <div className="flex items-center gap-1">
-                              <button type="button" className="btn-enlace text-xs" data-guia={g.material.id === primeraTelaId ? "prod-insumos.agregar-colores" : undefined} onClick={() => setNuevaTela({ agregarA: g.material })}>
+                              <button type="button" className="btn-enlace text-sm" data-guia={g.material.id === primeraTelaId ? "prod-insumos.agregar-colores" : undefined} onClick={() => setNuevaTela({ agregarA: g.material })}>
                                 + Agregar colores
                               </button>
                               {esLider && g.material && (
@@ -233,7 +233,7 @@ export function InsumosPanel({
           {/* ==================== libro de movimientos ==================== */}
           <aside data-guia="prod-insumos.libro" className="card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
             <TituloSeccion>Libro de movimientos</TituloSeccion>
-            <p className="mb-2 text-xs text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
+            <p className="mb-2 text-sm text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
             {libro.length === 0 ? (
               <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ArrowLeftRight />}>Todavía no se movió nada.</Vacio>
             ) : (
@@ -241,10 +241,10 @@ export function InsumosPanel({
                 {libro.map((m) => {
                   const entra = m.tipo === "compra" || m.tipo === "devolucion" || (m.tipo === "ajuste" && m.cantidad > 0);
                   return (
-                    <li key={m.id} className="grid grid-cols-[1fr_auto] gap-x-3 py-2.5 text-[13px]">
+                    <li key={m.id} className="grid grid-cols-[1fr_auto] gap-x-3 py-2.5 text-sm">
                       <div className="min-w-0">
                         <p className="text-tinta">{textoDeMovimiento(m)}</p>
-                        <p className="truncate text-xs text-tinta/65">
+                        <p className="truncate text-sm text-tinta/65">
                           {[m.insumo, m.orden, m.lote].filter(Boolean).join(" · ")} · {diaMes(diaLima(m.creadoEn))}
                         </p>
                       </div>
@@ -342,25 +342,25 @@ function FilaInsumo({
       >
         <div className="min-w-0">
           <p className="truncate text-[15px] text-tinta">{i.nombre}</p>
-          <p className="truncate text-xs text-tinta/65">
+          <p className="truncate text-sm text-tinta/65">
             <span className="font-mono">{i.codigo}</span> · {detalle}
           </p>
           {/* La ficha: de qué tejido y de qué color es. Sin ella «Nueva orden» no puede proponer la tela del color de la prenda. */}
-          <p data-guia={indice === 0 ? "prod-insumos.ficha" : undefined} className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-tinta/75">
+          <p data-guia={indice === 0 ? "prod-insumos.ficha" : undefined} className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-tinta/75">
             {ficha.color && <span aria-hidden data-color-dato className="size-2.5 shrink-0 rounded-full border border-tinta/20" style={ficha.color.hex ? { backgroundColor: ficha.color.hex } : undefined} />}
             <span className={`truncate ${ficha.tejido === null && ficha.color === null ? "text-tinta/70" : ""}`}>{textoDeLaFicha(ficha, i.tipo)}</span>
           </p>
         </div>
         <div className="max-sm:order-3 max-sm:col-span-2">
           <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo !== null ? marcaMinimo * 100 : null} decorativa indice={indice} title={marcaMinimo !== null ? `Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}` : undefined} />
-          <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-tinta/65">
+          <div className="mt-1.5 flex items-center justify-between text-sm text-tinta/65">
             <span>{i.minimo === null ? "sin mínimo definido" : `mínimo ${cantidadTexto(i.minimo, i.unidad)}`}</span>
             <Chip tono={TONO_ESTADO[i.estado.tono]}>{i.estado.etiqueta}</Chip>
           </div>
         </div>
         <p className="font-display whitespace-nowrap text-right text-2xl tabular-nums text-tinta">
           <CifraQueCuenta valor={i.saldo} formato="entero" />
-          <small className="font-sans ml-1 text-xs text-tinta/65">{UNIDADES_INSUMO[i.unidad].corta}</small>
+          <small className="font-sans ml-1 text-sm text-tinta/65">{UNIDADES_INSUMO[i.unidad].corta}</small>
         </p>
         <ChevronRight aria-hidden className={`h-4 w-4 text-tinta/45 transition-transform duration-300 ease-cayla max-sm:hidden ${abierto ? "rotate-90" : ""}`} />
       </button>
@@ -374,7 +374,7 @@ function FilaInsumo({
             ) : (
               <ul>
                 {lotes.map((l) => (
-                  <li key={l.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0">
+                  <li key={l.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0">
                     <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />

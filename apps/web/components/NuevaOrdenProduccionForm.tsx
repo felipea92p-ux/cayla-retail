@@ -913,7 +913,7 @@ export function NuevaOrdenProduccionForm({
               </Aviso>
             )}
             {!esNuevo && (
-              <p className="text-xs text-tinta/65">
+              <p className="text-sm text-tinta/65">
                 {tabla.excluidas.size > 0 && "Una raya (—) es una combinación que este modelo no tiene. "}
                 ¿Falta una talla o un color? Se agrega en{" "}
                 {puedeEditarCatalogo ? (
@@ -930,7 +930,7 @@ export function NuevaOrdenProduccionForm({
           </div>
         )}
 
-        {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
+        {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">{decision.fallo}</p>}
 
         {datos && modelo && !esNuevo && (
           <ConsejoDeLaRed
@@ -1022,7 +1022,7 @@ export function NuevaOrdenProduccionForm({
           entrega={fechaCorta(fechaEntrega)}
           notaSinPrecio={
             modelo && !esNuevo && verMargen && precio <= 0 ? (
-              <p className="text-xs text-tinta/70">
+              <p className="text-sm text-tinta/70">
                 Este modelo no tiene precio en el catálogo, así que no hay margen que calcular.{" "}
                 <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
                   Ponle precio en Editar producto

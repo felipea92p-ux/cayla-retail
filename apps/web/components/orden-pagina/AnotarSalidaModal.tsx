@@ -149,7 +149,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
                 return [l?.codigo, puede > 0 ? `pueden salir ${puede}` : "no hay nada listo para mandar"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Una salida no se borra: si te equivocas, la anulas desde «Todo lo que pasó».</p>
+            <p className="text-sm text-tinta/65">Una raya (—) es una combinación que no existe. Si te equivocas, anúlala desde «Todo lo que pasó».</p>
           </CampoGuiado>
         </div>
 
@@ -172,7 +172,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
                 />
               ))}
             </div>
-            <p className="text-xs text-tinta/65">{problemaTela ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela»."}</p>
+            <p className="text-sm text-tinta/65">{problemaTela ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela»."}</p>
           </div>
         )}
         <div className="grid gap-4 sm:grid-cols-2">

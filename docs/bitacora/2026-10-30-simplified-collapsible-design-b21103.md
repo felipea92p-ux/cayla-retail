@@ -51,3 +51,9 @@
 - **Qué:** Resumen, Gastos, Cuentas y dinero (por pagar, conciliación, CLAURE, efectivo), Reportes (resultados, presupuesto, balance, campañas, escenarios, flujo), Impuestos y Cierre: unos 100 tamaños del kit (`finanzas.css`), de Cuentas y dinero, del recorrido y de El telar suben de 10,5–13 px a 14 (y 13,5 a 15), mirando el bloque entero de cada regla (versalitas, pestañas, chips, controles, gráficos, calendario, teclas y agenda quedan igual). Treinta frases acortadas (notas del Estado de resultados, Balance, Campañas, Conciliación, bajadas de Reportes, vacíos). Configuración cambia también: usa el mismo kit. Se aparta a propósito del tamaño del spike (ADR-0195): se anotará en ese ADR al registrar la ronda 19.
 - **Por qué:** Felipe pidió seguir con Finanzas tras ver Gestión.
 - **Cómo verificas:** abre `/finanzas/gastos`, `/finanzas/reportes` y `/finanzas/dinero`. Visto de paso, sin arreglar: `/finanzas/reportes/campanas` a 375 px se corre 163 px al costado (ya pasaba antes).
+
+## 2026-10-31 — Producción con la letra a 14 px y frases más cortas (ronda 19, novena pasada)
+
+- **Qué:** Resumen, Órdenes y la página de una orden (con sus hojas), Insumos, Recibir, Por pagar, Eficiencia, Proveedores, Comprobantes y Órdenes de insumos: lo que se lee pasa de 10,5–13 px a 14 px (también el CSS de la página de la orden y de la lista). Treinta y cinco frases acortadas (sin Taller, Eficiencia, recibir insumos, fases, anular, tela de la orden, vacíos). Quedan igual la hoja impresa de la orden de insumos y la matriz de tallas del modelo.
+- **Por qué:** Felipe pidió seguir con Producción tras ver Finanzas.
+- **Cómo verificas:** con el Taller elegido en el selector de sede, abre `/produccion`, `/produccion/eficiencia` y `/ordenes-insumos/nueva`. No se miraron con datos la página de una orden ni sus hojas (la base local no tiene órdenes de producción).
