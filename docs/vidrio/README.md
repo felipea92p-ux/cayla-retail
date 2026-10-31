@@ -50,7 +50,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | Elegido | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
 | Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | Elegido | A · Placa Serena | `cifras-vidrio-2026-10/` |
 | Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | Elegido | B · Placa Serena, con superpoderes: A · Globo desde la cabecera, responsive de 320 a 1920 px | `tablas-vidrio-2026-10/`, `tabla-superpoderes-2026-10/` |
-| Pestañas de sección | `ui/Pestanas` | Por auditar | — | — |
+| Pestañas de sección | `ui/Pestanas` (35 archivos) | En maqueta | — (recomendada: A · La gota de Mi perfil) | `pestanas-vidrio-2026-10/` |
 | Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
 | Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | Por auditar | — | — |
 | Insignias de estado | `ui/Chip.tsx` | Por auditar | — | — |

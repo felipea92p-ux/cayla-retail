@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-ps="gota">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pestañas con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · las pestañas de sección con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pieza: `<Pestanas>` (components/ui/Pestanas.tsx + app/estilos/pestanas-y-segmentos.css), 35 archivos: lo que se toca para ir a
+   OTRA parte de la misma pantalla. Hoy: un vidrio al 45 % y una píldora de TINTA SÓLIDA que se desliza bajo la elegida (450 ms), la
+   palabra en versalitas de 12 px, el conteo en su globito (ámbar si pide algo, rojo si avisa un rechazo). No cambia qué hace: la URL o
+   el estado, las flechas ← →, la elegida centrada si la fila no cabe. La píldora de filtro y el segmento de modo son otras piezas.
+   Montada sobre el marco y las piezas ya elegidas (../vidrio-base-2026-10/). Colores: SOLO tokens. Movimiento: una vez por toque, sin
+   rebote; apagado con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+.ps-fila{position:relative;display:inline-flex;gap:2px;max-width:100%;padding:4px;border-radius:14px;overflow-x:auto;scrollbar-width:none;margin-top:28px;
+  animation:sube .6s var(--ease) .2s backwards}
+.ps-fila::-webkit-scrollbar{display:none}
+.ps{position:relative;z-index:1;display:inline-flex;flex:none;align-items:center;gap:7px;min-height:36px;padding:0 15px;border-radius:10px;
+  font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap;color:var(--tinta);transition:color .25s}
+.ps svg{width:16px;height:16px;stroke-width:2}
+.ps:focus-visible{outline:2px solid var(--tinta);outline-offset:-2px}
+.cuenta{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:10.5px;letter-spacing:0;
+  background:color-mix(in srgb,var(--tinta) 10%,transparent);transition:background .25s,color .25s}
+.cuenta.pide{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar)}
+.cuenta.rojo{background:color-mix(in srgb,var(--rojo) 16%,transparent);color:var(--rojo)}
+.ind{position:absolute;z-index:0;top:4px;bottom:4px;left:0;width:0;border-radius:10px;pointer-events:none;transition:left .45s var(--ease),width .45s var(--ease)}
+.ind .marca-ps{display:none}
+
+/* Como ahora: vidrio al 45 % y la píldora de tinta sólida; la elegida, crema */
+:root:not([data-ps]) .ps-fila{background:color-mix(in srgb,var(--papel) 45%,transparent);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 0 0 1px color-mix(in srgb,var(--tinta) 9%,transparent)}
+:root:not([data-ps]) .ind{background:var(--tinta);box-shadow:0 8px 18px -10px color-mix(in srgb,var(--sombra) 75%,transparent)}
+:root:not([data-ps]) .ps[aria-selected="true"]{color:var(--crema)}
+:root:not([data-ps]) .ps[aria-selected="true"] .cuenta:not(.pide):not(.rojo){background:color-mix(in srgb,var(--crema) 15%,transparent)}
+@media (hover:hover){.ps:not([aria-selected="true"]):hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}}
+
+/* ====================================================================
+   A · LA GOTA DE MI PERFIL (la que eligió para las hojas): la fila es un POZO hundido (espera que elijas) y la elegida es una gota de
+   vidrio claro que sobresale. Al tocar otra, la gota FLUYE: se estira hasta la nueva y se recoge en ella, como en «Tú · Cuenta ·
+   Seguridad». La palabra elegida, en tinta y más firme. Nada oscuro ni sólido.
+   ==================================================================== */
+[data-ps="gota"] .ps-fila{border-radius:999px;padding:4px;background:color-mix(in srgb,var(--tinta) 5%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
+[data-tema="oscuro"][data-ps="gota"] .ps-fila{background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-ps="gota"] .ps{border-radius:999px;color:var(--t65)}
+[data-ps="gota"] .ps[aria-selected="true"]{color:var(--tinta)}
+[data-ps="gota"] .ind{border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-ps="gota"] .ind{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 20%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 24%,transparent),0 6px 16px -8px var(--sombra)}
+@media (hover:hover){[data-ps="gota"] .ps:not([aria-selected="true"]):hover{background:none;color:var(--tinta)}}
+
+/* ====================================================================
+   B · VIDRIO AHUMADO: la fila es una placa de vidrio Serena (sobresale, como las cifras) y la elegida conserva la píldora oscura que
+   eligió el 2026-10-06, pero hecha vidrio ahumado de tinta (como el botón primario «A · Gota»): deja ver un poco lo de atrás.
+   ==================================================================== */
+[data-ps="humo"] .ps-fila{border-radius:999px;padding:5px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 16px 36px -24px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-ps="humo"] .ps-fila{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-ps="humo"] .ps{border-radius:999px}
+[data-ps="humo"] .ind{top:5px;bottom:5px;border-radius:999px;-webkit-backdrop-filter:blur(10px) saturate(1.4);backdrop-filter:blur(10px) saturate(1.4);
+  border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-ps="humo"] .ps[aria-selected="true"]{color:var(--crema)}
+[data-ps="humo"] .ps[aria-selected="true"] .cuenta:not(.pide):not(.rojo){background:color-mix(in srgb,var(--crema) 18%,transparent)}
+[data-ps="humo"] .ps[aria-selected="true"] .cuenta.pide{background:color-mix(in srgb,var(--ambar) 30%,var(--crema))}
+[data-ps="humo"] .ps[aria-selected="true"] .cuenta.rojo{background:color-mix(in srgb,var(--rojo) 25%,var(--crema))}
+
+/* ====================================================================
+   C · LA GOTA DEL MENÚ: la misma marca que la fila elegida del menú lateral: sin caja alrededor (la fila queda plana sobre la Aurora),
+   la elegida es la gota con su marca roja, aquí abajo, al centro. Quien ya sabe leer el menú, sabe leer las pestañas.
+   ==================================================================== */
+[data-ps="menu"] .ps-fila{padding:4px 0;gap:4px}
+[data-ps="menu"] .ps{color:var(--t65);border-radius:14px}
+[data-ps="menu"] .ps[aria-selected="true"]{color:var(--tinta)}
+[data-ps="menu"] .ind{top:4px;bottom:4px;border-radius:14px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-ps="menu"] .ind{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 16px -8px var(--sombra)}
+[data-ps="menu"] .ind .marca-ps{display:block;position:absolute;left:50%;bottom:4px;width:14px;height:3px;margin-left:-7px;border-radius:3px;background:var(--rojo)}
+@media (hover:hover){[data-ps="menu"] .ps:not([aria-selected="true"]):hover{background:color-mix(in srgb,var(--tinta) 6%,transparent);color:var(--tinta)}}
+
+/* ---------- lo que cambia al tocar (de muestra) ---------- */
+.vista{margin-top:20px;animation:enfoca .4s var(--ease) both}
+.lista-m{margin-top:16px;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6)}
+[data-tema="oscuro"] .lista-m{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.lista-m div{display:grid;grid-template-columns:110px minmax(0,1fr) 140px;gap:12px;align-items:center;min-height:58px;padding:0 20px;font-size:15px;text-align:center}
+.lista-m div+div{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.lista-m small{display:block;font-size:13px;color:var(--t65)}
+.nota-ps{margin-top:14px;font-size:13px;color:var(--t65)}
+@container disp (max-width:520px){
+  .ps-fila{margin-top:20px}
+  .lista-m div{grid-template-columns:90px minmax(0,1fr);padding:10px 16px}
+  .lista-m div>:last-child{display:none}
+}
+@media (prefers-reduced-motion:reduce){.ind{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Las pestañas de sección con vidrio · <code style="font-size:13px">Pestanas</code></span>
+  <span class="tag">Pestañas</span><div class="seg-m" data-ctl="ps"><button data-v="ahora">Como ahora</button><button data-v="gota">A · La gota de Mi perfil</button><button data-v="humo">B · Vidrio ahumado</button><button data-v="menu">C · La gota del menú</button></div>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pantalla"><button data-v="compras">Compras (con conteos)</button><button data-v="finanzas">Finanzas (seis, con íconos)</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy (<code>components/ui/Pestanas.tsx</code>)</h2>
+    <ul>
+      <li><b>Dónde vive:</b> 35 archivos: Compras, Comprobantes, Movimientos, Finanzas, Configuración, Análisis, la billetera de Traslados… Es la pestaña de vista: lleva a OTRA parte de la misma pantalla. La píldora que filtra (<code>pildora-cayla</code>, 101 archivos) y el segmento de modo (61) son otras piezas del tablero.</li>
+      <li><b>Cómo es:</b> un vidrio al 45 % con 4 px de aire y una píldora de <b>tinta sólida</b> que se desliza bajo la elegida (450 ms); la palabra en versalitas de 12 px; la elegida en crema. El conteo en su globito: ámbar si pide algo, rojo si avisa un rechazo, siempre con texto para lector.</li>
+      <li><b>Qué le pasa sobre el vidrio:</b> la píldora negra maciza es lo único sólido que queda en la pantalla, al lado de botones, cifras y tablas que ya son vidrio. Y en las hojas ya elegiste otra cosa para lo mismo: la gota de Mi perfil. Una pestaña se vería de dos maneras según esté en una hoja o en una pantalla.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>Como ahora</b></td><td>Vidrio al 45 %, píldora de tinta sólida que se desliza.</td><td>La elegida se ve desde lejos.</td><td>Lo único sólido de la pantalla; distinta de la pestaña de las hojas.</td></tr>
+      <tr><td><b>A · La gota de Mi perfil</b> <span class="ev">Recomendada</span></td><td>La fila es un pozo hundido; la elegida, una gota de vidrio claro que fluye (se estira hasta la nueva y se recoge en ella).</td><td>Es la que elegiste para las hojas: una sola pestaña en todo el ERP. Habla el idioma: el pozo espera que elijas, la gota es lo que elegiste. El flujo dice de dónde a dónde fuiste.</td><td>La elegida se distingue por relieve y por el texto firme, no por un negro: a pleno sol en el mostrador se nota menos que hoy. Hay que medir el contraste del texto tenue de las no elegidas.</td></tr>
+      <tr><td><b>B · Vidrio ahumado</b></td><td>La fila es una placa de vidrio; la elegida, la píldora oscura que eligiste el 2026-10-06, hecha vidrio ahumado (como el botón primario).</td><td>Conserva lo que ya conocen: la elegida en oscuro, que se ve desde lejos.</td><td>En una pantalla con un botón primario ahumado, la pestaña elegida se parece a un botón. Y no rima con la pestaña de las hojas.</td></tr>
+      <tr><td><b>C · La gota del menú</b></td><td>Sin caja: la fila plana sobre la Aurora; la elegida es la gota del menú lateral, con su marca roja abajo.</td><td>Quien ya lee el menú, lee las pestañas: «aquí estás» se dice igual en los dos lugares.</td><td>Sin caja, la fila de pestañas se confunde con una fila de enlaces o de filtros. Y suma un rojo más a la pantalla (ADR-0169: dos como máximo).</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>A · La gota de Mi perfil.</b> Ya la elegiste para las hojas; con ella, la pestaña es una sola pieza en todo el ERP, sin nada sólido. B cuida la costumbre, pero choca con el botón primario. C une con el menú, pero sin caja se pierde el «esto es un grupo de vistas».</p>
+    <h3>Lo que no cambia</h3>
+    <p>Qué hace la pestaña: la vista en la URL o en el estado, las flechas ← → e Inicio / Fin, la elegida centrada si la fila no cabe, el conteo con su tono y su texto para lector, la palabra en versalitas, el foco hacia adentro.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado…); la maqueta no los repite. -->
+<script>
+const ICP = { resumen: 'M3 3v18h18M7 14l4-4 4 4 5-6', gastos: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', cuentas: 'M3 10h18M5 6h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z',
+  impuestos: 'M9 14l6-6M9.5 8.5h.01M14.5 13.5h.01M4 4h16v16l-3-2-3 2-2-2-2 2-3-2-3 2z', cierre: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', reportes: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5' };
+const PANT = {
+  compras: { cab: { sede: 'Toda la empresa', titulo: 'Órdenes de compra', frase: 'Lo que le pediste a cada proveedor y lo que ya llegó.', acciones: [['pri', 'Nueva orden', 'mas']] },
+    tabs: [['ordenes', 'Órdenes', 14], ['aprobar', 'Por aprobar', 3, 'pide'], ['rechazadas', 'Rechazadas', 1, 'rojo'], ['resueltas', 'Resueltas', 52]] },
+  finanzas: { cab: { sede: 'Trujillo', titulo: 'Finanzas', frase: 'El dinero de la sede, de dónde viene y adónde va.' },
+    tabs: [['resumen', 'Resumen', null, '', 'resumen'], ['gastos', 'Gastos', 6, 'pide', 'gastos'], ['cuentas', 'Cuentas y dinero', null, '', 'cuentas'], ['impuestos', 'Impuestos', null, '', 'impuestos'], ['reportes', 'Reportes', null, '', 'reportes'], ['cierre', 'Cierre del mes', null, '', 'cierre']] },
+};
+let vistaActiva = { compras: 'aprobar', finanzas: 'gastos' };
+function vista(p, k) {
+  const t = PANT[p].tabs.find((x) => x[0] === k);
+  const filas = ['Hilados del Sur', 'Botones Lumbre', 'Telas Mistral', 'Avíos Quillay', 'Cierres Puna'].slice(0, t[2] ? Math.min(5, t[2]) : 4);
+  return `<div class="vista" role="tabpanel" aria-label="${t[1]}"><div class="lista-m">${filas.map((n, i) => `<div><span>${p === 'compras' ? 'OC-0' + (142 - i) : '0' + (i + 1) + ' nov'}</span><span>${n}<small>${t[1]}</small></span><span>S/ ${(4280 - i * 611).toLocaleString('es-PE')}.00</span></div>`).join('')}</div>
+    <p class="nota-ps">Estás en «${t[1]}». Toca otra pestaña o usa ← → con el teclado.</p></div>`;
+}
+function pintarPantalla(e) {
+  const p = PANT[e.pantalla];
+  $('#cont').innerHTML = `${encabezado(p.cab)}
+    <div class="ps-fila" role="tablist" aria-label="Vistas de ${p.cab.titulo}"><span class="ind" aria-hidden="true"><i class="marca-ps"></i></span>${p.tabs.map(([k, t, n, tono, ic]) => `<button class="ps" role="tab" data-k="${k}" aria-selected="${vistaActiva[e.pantalla] === k}" tabindex="${vistaActiva[e.pantalla] === k ? 0 : -1}">${ic ? sv(ICP[ic]) : ''}${t}${n != null ? `<span class="cuenta ${tono || ''}">${n}</span>` : ''}</button>`).join('')}</div>
+    <div id="la-vista">${vista(e.pantalla, vistaActiva[e.pantalla])}</div>`;
+  requestAnimationFrame(() => moverGota(false));
+}
+// La gota: con A fluye (se estira hasta la nueva y se recoge en ella); con las demás, se desliza como hoy.
+function moverGota(animar = true, desde) {
+  const fila = $('.ps-fila'), ind = $('.ind', fila), el = $('.ps[aria-selected="true"]', fila); if (!el) return;
+  const a = { l: el.offsetLeft, w: el.offsetWidth };
+  if (!animar || quieto()) { ind.style.transition = 'none'; ind.style.left = a.l + 'px'; ind.style.width = a.w + 'px'; requestAnimationFrame(() => (ind.style.transition = '')); return; }
+  if (document.documentElement.dataset.ps === 'gota' && desde) {
+    const l = Math.min(desde.l, a.l), r = Math.max(desde.l + desde.w, a.l + a.w);
+    ind.style.transition = 'left .22s var(--ease), width .22s var(--ease)'; ind.style.left = l + 'px'; ind.style.width = r - l + 'px';
+    setTimeout(() => { ind.style.transition = 'left .3s var(--ease), width .3s var(--ease)'; ind.style.left = a.l + 'px'; ind.style.width = a.w + 'px'; }, 200);
+  } else { ind.style.transition = ''; ind.style.left = a.l + 'px'; ind.style.width = a.w + 'px'; }
+  // si la fila no cabe, la elegida queda al centro
+  if (fila.scrollWidth > fila.clientWidth) fila.scrollTo({ left: el.offsetLeft - (fila.clientWidth - el.offsetWidth) / 2, behavior: quieto() ? 'auto' : 'smooth' });
+}
+function elegir(k) {
+  const fila = $('.ps-fila'), antes = $('.ps[aria-selected="true"]', fila);
+  const desde = antes ? { l: antes.offsetLeft, w: antes.offsetWidth } : null;
+  vistaActiva[estado.pantalla] = k;
+  $$('.ps', fila).forEach((b) => { const on = b.dataset.k === k; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+  $('#la-vista').innerHTML = vista(estado.pantalla, k);
+  moverGota(true, desde);
+}
+document.addEventListener('click', (ev) => { const b = ev.target.closest('.ps'); if (b) elegir(b.dataset.k); if (ev.target.closest('.cont a')) ev.preventDefault(); });
+document.addEventListener('keydown', (ev) => {
+  const b = ev.target.closest && ev.target.closest('.ps'); if (!b) return;
+  const todas = $$('.ps'), i = todas.indexOf(b), u = todas.length - 1;
+  const d = ev.key === 'ArrowRight' ? (i === u ? 0 : i + 1) : ev.key === 'ArrowLeft' ? (i === 0 ? u : i - 1) : ev.key === 'Home' ? 0 : ev.key === 'End' ? u : -1;
+  if (d < 0) return; ev.preventDefault(); elegir(todas[d].dataset.k); todas[d].focus();
+});
+addEventListener('resize', () => moverGota(false));
+$('#lat').addEventListener('transitionend', () => moverGota(false));
+Marco.iniciar({ estado: { ps: 'gota', pantalla: 'compras' }, alPintar: (e) => { $('#cont').scrollTop = 0; pintarPantalla(e); } });
+</script>
+</body>
+</html>
