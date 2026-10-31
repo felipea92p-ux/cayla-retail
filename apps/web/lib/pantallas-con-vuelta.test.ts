@@ -40,6 +40,7 @@ const EXCEPCIONES: Record<string, string> = {
   "/finanzas/reportes/balance": "una de las cuatro respuestas de Estados financieros: su tarjeta es la pestaña (ADR-0585)",
   "/finanzas/reportes/flujo": "una de las cuatro respuestas de Estados financieros: su tarjeta es la pestaña (ADR-0585)",
   "/finanzas/reportes/patrimonio": "una de las cuatro respuestas de Estados financieros: su tarjeta es la pestaña (ADR-0585)",
+  "/finanzas/reportes/cuentas": "Ver ▸ Saldos por cuenta o Libro diario de Estados financieros: las cuatro tarjetas y el menú «Ver» de su cabecera siempre están a la vista y son la navegación (ADR-0585)",
   "/vender/comprobantes/emitidos": "pestaña de Comprobantes",
   "/vender/comprobantes/por-reintentar": "pestaña de Comprobantes",
   "/vender/comprobantes/proformas": "pestaña de Comprobantes",

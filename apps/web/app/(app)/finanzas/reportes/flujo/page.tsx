@@ -6,7 +6,7 @@ import { getFlujoReal, getProyeccion } from "@/lib/flujo-caja";
 import { getEstadoResultados } from "@/lib/resultados";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { filaDeLaSede, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
+import { filaDeLaSede, formaDe, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
 import { fraseDeLaPlata, recomendacionesPlata } from "@/lib/plata-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { PlataPanel } from "@/components/finanzas/estados/PlataPanel";
@@ -17,7 +17,7 @@ import { SoloLiderFlujo } from "@/components/finanzas/SoloLiderFlujo";
 // entró y salió en el mes de la barra (`?mes=`, hasta hoy en el mes en curso), lo que viene (`?semanas=4|6|8`), la ganancia del mes (para
 // decir por qué la plata no la siguió) y el último mes completo (lo que usa «¿Y si…?», que es Escenarios). Es de CAYLA entera: lo ve quien
 // tiene el módulo (`fn_exigir_estados_financieros_de_todo`); una terminal no, y la pantalla lo explica en lugar de fallar.
-export default async function FlujoPage({ searchParams }: { searchParams: Promise<{ mes?: string; semanas?: string; sede?: string; ver?: string }> }) {
+export default async function FlujoPage({ searchParams }: { searchParams: Promise<{ mes?: string; semanas?: string; sede?: string; ver?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   if (!veEstadosFinancierosDeTodoDe(persona)) return <SoloLiderFlujo pestana="flujo" />;
   const sp = await searchParams;
@@ -49,7 +49,7 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <CabeceraEstados activa="plata" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} />
+      <CabeceraEstados pantalla="plata" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={formaDe(sp.forma)} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <PlataPanel
           real={real.datos}
@@ -60,6 +60,8 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
           enCurso={enCurso}
           hoy={hoy}
           escenarios={{ resultados: erBase.falla ? null : erBase.datos, mesBase }}
+          mes={mes}
+          forma={formaDe(sp.forma)}
         />
         <Recomendaciones recomendaciones={recomendaciones} />
       </div>

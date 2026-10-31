@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowRight, Download } from "lucide-react";
 import { Boton, BotonAncla, BotonEnlace } from "./campos";
-import { MenuAcciones, type ItemMenu } from "./MenuAcciones";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
 
 /* ====================================================================
@@ -85,15 +84,6 @@ export function BotonDescargar(
       {contenido}
     </Boton>
   );
-}
-
-/**
- * Descargar con opciones (ADR-0585, «Descargar para el contador»): cuando hay varios archivos y bajarlos todos sería bajar de más, el
- * botón de descarga abre la lista y cada opción baja UN archivo. Es el menú «Más» (`MenuAcciones`) con la cara de la descarga: el ícono
- * delante y «Descargar …» en la palabra. Una opción que esta cuenta no baja se ve con su motivo (`ItemMenu.motivo`).
- */
-export function MenuDescargar({ texto, items, guia }: { texto: string; items: ItemMenu[]; guia?: string }) {
-  return <MenuAcciones texto={texto} etiqueta={texto} items={items} guia={guia} icono={<Download aria-hidden className="-my-1 h-4 w-4 shrink-0" />} />;
 }
 
 export function BotonVer(props: Omit<Comun, "peso"> & ({ href: string; onClick?: never; alNavegar?: () => void } | { onClick: () => void; href?: never; alNavegar?: never })) {
