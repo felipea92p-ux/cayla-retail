@@ -1,0 +1,473 @@
+/* ====================================================================
+   BASE DE LAS MAQUETAS DEL VIDRIO (ADR-0596, 2026-10-31)
+   El marco YA ELEGIDO, copiado de docs/maquetas/marco-vidrio-2026-10/index.html: fondo B · Aurora, lateral B · Riel de vidrio con la gota,
+   submódulos en bandeja, plegado con nombre, cabecera C · Dos islas y combo A · Gota viajera. Cada maqueta de una pieza de pantalla
+   (docs/vidrio/README.md, sección 3) se monta encima con marco.js, para que la pieza se vea en su lugar y no suelta.
+   Si Felipe cambia el marco, se cambia en su maqueta y se vuelve a copiar aquí. Solo tokens; datos inventados (el repo es público).
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+--ease:cubic-bezier(.32,.72,.24,1);--lienzo:#ddd5c6}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t50:color-mix(in srgb,var(--tinta) 56%,transparent);
+--t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.vs{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}}
+@keyframes funde{from{opacity:0}}
+@keyframes enfoca{from{opacity:0;filter:blur(8px);transform:translateY(6px)}}
+
+/* ---------- barra de la maqueta (no es parte del diseño) ---------- */
+.spk{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px} /* tema-fijo: barra de la maqueta */
+.spk .titulo{font-family:'EB Garamond',serif;font-size:18px;width:100%}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)} /* tema-fijo: barra de la maqueta */
+.seg-m{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg-m button{height:26px;padding:0 9px;font-size:11.5px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.seg-m button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.spk .accion{height:28px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.25);color:#f5f0e8;font-size:12px} /* tema-fijo: barra de la maqueta */
+.spk .accion.on{background:#f5f0e8;color:#1a1a18} /* tema-fijo: barra de la maqueta */
+@media (max-width:1300px){.spk{position:relative}}
+.escena{padding:16px;display:flex;justify-content:center}
+
+/* ---------- el aparato ---------- */
+.disp{scroll-margin-top:110px;container:disp/inline-size;position:relative;width:min(1440px,100%);height:860px;border-radius:16px;overflow:hidden;border:1px solid var(--t25);isolation:isolate}
+.disp[data-ancho="movil"]{width:375px;height:780px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+
+/* ====================================================================
+   EL FONDO (lienzo)
+   ==================================================================== */
+.lienzo{position:absolute;inset:0;z-index:0;background:var(--crema);overflow:hidden}
+.lienzo i{display:none;position:absolute;border-radius:50%;filter:blur(90px)}
+/* A · Crema quieto: el crema de siempre con una luz suave que baja desde arriba; nada de color */
+[data-fondo="crema"] .lienzo{background:radial-gradient(120% 70% at 50% -10%,var(--papel),var(--crema) 60%)}
+/* B · Aurora de sede: tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo; le dan al vidrio algo que desenfocar */
+[data-fondo="aurora"] .lienzo i{display:block;opacity:.16;animation:funde 1.4s var(--ease) both}
+[data-fondo="aurora"] .lienzo i:nth-child(1){width:620px;height:520px;left:-160px;top:-180px;background:var(--rojo)}
+[data-fondo="aurora"] .lienzo i:nth-child(2){width:700px;height:560px;right:-220px;top:120px;background:var(--pizarra);opacity:.14}
+[data-fondo="aurora"] .lienzo i:nth-child(3){width:560px;height:460px;left:30%;bottom:-260px;background:var(--ambar);opacity:.12}
+[data-tema="oscuro"][data-fondo="aurora"] .lienzo i{opacity:.1}
+/* C · Tejido: el crema con la trama fina de una tela (CAYLA también teje) y una luz desde arriba */
+[data-fondo="tejido"] .lienzo{background:
+  radial-gradient(110% 60% at 50% -10%,color-mix(in srgb,var(--papel) 85%,transparent),transparent 65%),
+  repeating-linear-gradient(45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  repeating-linear-gradient(-45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  var(--crema)}
+
+/* ---------- el vidrio del marco (Serena) ---------- */
+.vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+.gota{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .gota{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 16px -8px var(--sombra)}
+
+/* ====================================================================
+   EL MENÚ LATERAL
+   ==================================================================== */
+.disp{--lat-x:0px;--lat-y:0px;--lat-w:272px;--lat-r:0px;--cont-x:272px}
+.disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="panel"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:256px;--lat-r:28px;--cont-x:280px}
+[data-lateral="panel"] .disp[data-plegado]{--lat-w:72px;--cont-x:96px}
+[data-lateral="riel"] .disp{--lat-w:268px;--cont-x:268px}
+[data-lateral="riel"] .disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="riel"][data-pmodo="nombre"] .disp[data-plegado]{--lat-w:84px;--cont-x:84px}
+[data-lateral="riel"][data-pmodo="iconos"] .disp[data-plegado]{--lat-w:64px;--cont-x:64px}
+:root:not([data-lateral])[data-pmodo="nombre"] .disp[data-plegado]{--lat-w:84px;--cont-x:84px}
+:root:not([data-lateral])[data-pmodo="iconos"] .disp[data-plegado]{--lat-w:64px;--cont-x:64px}
+[data-lateral="isla"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:72px;--lat-r:26px;--cont-x:96px}
+.lat{position:absolute;z-index:5;left:var(--lat-x);top:var(--lat-y);bottom:var(--lat-y);width:var(--lat-w);border-radius:var(--lat-r);display:flex;flex-direction:column;overflow:hidden;
+  transition:width .35s var(--ease)}
+/* Como ahora */
+:root:not([data-lateral]) .lat{background:var(--crema);border-right:1px solid var(--t12)}
+/* Arriba del menú, el logo entero. El botón para plegar FLOTA en el borde del menú, a la altura del logo (Felipe 2026-10-31: «que no
+   quite el logo, tal vez hacerlo flotante»): no le quita lugar al logo ni abierto ni plegado, y viaja con el borde al plegar. */
+.logo-fila{display:flex;align-items:center;gap:8px;padding:26px 24px 22px;transition:padding .35s var(--ease)}
+.logo{display:flex;align-items:center;gap:10px;min-width:0;flex:1;white-space:nowrap;overflow:hidden}
+.cerrar-cajon{display:none;flex:none;width:32px;height:32px;border-radius:50%;place-items:center;color:var(--t65)}
+.cerrar-cajon svg{width:18px;height:18px;stroke-width:1.6}
+.plegar-flota{position:absolute;z-index:7;left:calc(var(--lat-x) + var(--lat-w) - 14px);top:calc(var(--lat-y) + 30px);width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 45%,transparent);
+  transition:left .35s var(--ease),color .2s,transform .25s var(--ease),opacity .25s}
+[data-tema="oscuro"] .plegar-flota{background:linear-gradient(180deg,color-mix(in srgb,var(--hueso) 95%,transparent),color-mix(in srgb,var(--hueso) 80%,transparent));border-color:color-mix(in srgb,var(--tinta) 16%,transparent);box-shadow:0 6px 16px -8px var(--sombra)}
+.plegar-flota svg{width:14px;height:14px;stroke-width:2.2;transition:transform .35s var(--ease)}
+.disp[data-plegado] .plegar-flota svg{transform:rotate(180deg)}
+@media (hover:hover){.plegar-flota:hover{color:var(--tinta);transform:scale(1.1)}}
+.plegar-flota:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+[data-lateral="isla"] .plegar-flota{display:none}
+.disp[data-plegado] .logo-fila{justify-content:center;padding:26px 0 22px}
+.disp[data-plegado] .logo{flex:none}
+.disp[data-plegado] .logo>div{display:none}
+/* las islas de la cabecera se apartan del botón flotante */
+[data-cabecera] .disp:not([data-ancho="movil"]) .cab{--aire-cab:22px}
+.logo i{width:26px;height:26px;border-radius:50%;background:var(--rojo);flex:none}
+.logo span{font-family:'EB Garamond',serif;font-size:22px;letter-spacing:.2em}
+.logo small{display:block;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin-top:-4px}
+.nav{position:relative;flex:1;overflow:auto;padding:0 12px;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.grupo-t{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:14px 12px 6px;white-space:nowrap}
+.fila-m{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 12px;border-radius:10px;color:var(--t80);font-size:13.5px;white-space:nowrap;text-align:left;transition:color .2s,background .25s}
+.fila-m svg{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:var(--t65);transition:color .2s,transform .3s var(--ease)}
+.fila-m .et{flex:1;overflow:hidden;text-overflow:ellipsis;transition:opacity .2s}
+.fila-m .chev{width:14px;height:14px;stroke-width:2;transition:transform .3s var(--ease)}
+.fila-m[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.fila-m.on{color:var(--tinta);font-weight:600}
+.fila-m.on svg{color:var(--tinta)}
+.fila-m .glob{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:11px;font-weight:600;display:grid;place-items:center;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+@media (hover:hover){.fila-m:hover{color:var(--rojo)}.fila-m:hover svg{color:var(--rojo);transform:translateX(2px)}}
+/* Los submódulos (Felipe 2026-10-31: «todos los íconos, hasta para los submódulos, y una mejor animación al desplegar, ya que está muy
+   brusco»). Hoy (`.lateral-hijos`, globals.css) la caja crece en 300 ms y las hijas solo aparecen (opacidad, 30 ms de desfase): el alto
+   empuja de golpe todo lo de abajo. Ahora: la caja crece más lento y con una curva que frena, un HILO baja desde el ícono del módulo y
+   le da una rama a cada submódulo, y cada fila llega desde arriba, desenfocada, y se enfoca en cascada; al cerrar, todo se va más rápido
+   y sin cascada (un panel que se va, no uno que llega). Una vez, sin rebote, apagado con prefers-reduced-motion. */
+.sub{position:relative}
+.hijos{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.4,0,1,1)}
+.hijos[data-abierto]{grid-template-rows:1fr;transition:grid-template-rows .46s var(--ease)}
+.hijos>div{position:relative;min-height:0;overflow:hidden}
+.hijos .fila-m{height:36px;padding-left:44px;font-size:13px}
+.hijos .fila-m svg{width:18px;height:18px}
+.hijos .hijos .fila-m{height:34px;padding-left:66px;font-size:12.5px}
+.hijos .hijos .fila-m svg{width:16px;height:16px}
+/* Las ramas del hilo se fueron (Felipe 2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Tres caras, todas sin líneas: */
+/* A · Bandeja: los submódulos de un módulo abierto viven en una bandeja hundida bajo él, como una caja abierta. */
+[data-subs="bandeja"] .nav>.sub>.hijos>div{border-radius:16px;transition:margin .3s var(--ease),padding .3s var(--ease),background .3s,box-shadow .3s}
+[data-subs="bandeja"] .nav>.sub>.hijos[data-abierto]>div{margin:2px 0 6px;padding:4px 0;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+[data-tema="oscuro"][data-subs="bandeja"] .nav>.sub>.hijos[data-abierto]>div{background:color-mix(in srgb,var(--sombra) 26%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-subs="bandeja"] .hijos .fila-m{padding-left:20px}
+[data-subs="bandeja"] .hijos .hijos .fila-m{padding-left:40px}
+/* B · Sangría limpia: sin caja ni línea; los submódulos se alinean con el NOMBRE del módulo y sus íconos van más tenues. */
+[data-subs="sangria"] .hijos .fila-m{padding-left:44px}
+[data-subs="sangria"] .hijos .hijos .fila-m{padding-left:72px}
+[data-subs="sangria"] .hijos .fila-m:not(.on) svg{color:var(--t50)}
+[data-subs="sangria"] .fila-m[aria-expanded="true"]{color:var(--tinta);font-weight:600}
+/* C · Tarjeta: el módulo abierto y sus submódulos se vuelven UNA placa de vidrio que crece desde la fila; lo de abajo se corre. */
+[data-subs="tarjeta"] .nav>.sub{border-radius:18px;border:1px solid transparent;transition:background .35s var(--ease),border-color .35s,box-shadow .35s,margin .35s var(--ease)}
+[data-subs="tarjeta"] .nav>.sub:has(>.hijos[data-abierto]){margin:4px 0;border-color:color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 48%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 10px 24px -18px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-subs="tarjeta"] .nav>.sub:has(>.hijos[data-abierto]){border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-subs="tarjeta"] .nav>.sub>.hijos>div{padding-bottom:6px}
+[data-subs="tarjeta"] .hijos .fila-m{padding-left:44px}
+[data-subs="tarjeta"] .hijos .hijos .fila-m{padding-left:64px}
+[data-subs="tarjeta"] .fila-m[aria-expanded="true"]{color:var(--tinta);font-weight:600}
+/* la cascada: cada fila llega desde arriba, desenfocada, y se enfoca */
+.hijos>div>*{opacity:0;transform:translateY(-8px);filter:blur(3px);transition:opacity .14s,transform .14s,filter .14s}
+.hijos[data-abierto]>div>*{opacity:1;transform:none;filter:none;
+  transition:opacity .34s var(--ease),transform .42s var(--ease),filter .34s var(--ease);transition-delay:calc(80ms + var(--i,0) * 38ms)}
+/* el ícono del módulo que se abre asiente una vez */
+.fila-m[aria-expanded="true"] > svg:first-child{animation:asiente .5s var(--ease)}
+@keyframes asiente{40%{transform:scale(.86)}}
+@media (prefers-reduced-motion:reduce){.hijos>div>*{opacity:1;transform:none;filter:none}}
+/* el riel rojo de la fila activa (hoy) */
+.fila-m.on::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+.marca-activa{display:none}
+.firma{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe);padding:14px 24px;white-space:nowrap;overflow:hidden}
+.yo{display:flex;align-items:center;gap:12px;margin:0 12px 12px;padding:12px;border-top:1px solid var(--t12);white-space:nowrap;overflow:hidden}
+.av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;flex:none;font-family:'EB Garamond',serif;font-size:15px;position:relative}
+.av::after{content:"";position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--verde);border:2px solid var(--crema)}
+.yo .tx{flex:1;min-width:0}.yo b{display:block;font-size:13.5px;font-weight:500}.yo .tx>span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t65)}
+.yo .salir{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+/* plegado (hoy y A/B): solo íconos */
+.disp[data-plegado] .lat :is(.firma,.logo span,.logo small,.grupo-t){opacity:0;pointer-events:none}
+/* Plegado (Felipe 2026-10-31: «los íconos deben estar bien cuadrados; del lado derecho sobresale más, y se podría aprovechar más el
+   espacio»). Antes el nombre seguía ocupando su lugar invisible y empujaba el ícono a la izquierda. Ahora cada fila es un cuadrado con el
+   ícono al centro, la gota es ese cuadrado, y la marca roja sale al canto del menú para no descentrarlo. Dos caras: */
+.disp[data-plegado] .lat :is(.et,.chev,.glob,.yo .tx,.yo .salir){display:none}
+.disp[data-plegado] .nav{padding:0 10px}
+.disp[data-plegado] .lat .fila-m{justify-content:center;gap:0;padding:0;border-radius:14px}
+.disp[data-plegado] .lat .fila-m svg{transform:none!important}
+.disp[data-plegado] .marca-activa{border-radius:14px}
+.disp[data-plegado] .marca-activa::after{left:-8px!important}
+.fila-m .corto{display:none}
+/* A · Con nombre: bajo cada ícono, su nombre corto (10 px). No hace falta apuntar para saber qué es (ley 1: sin manual). */
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m{flex-direction:column;height:54px;gap:4px}
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m .corto{display:block;max-width:100%;padding:0 2px;font-size:10px;line-height:1.15;font-weight:500;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m.on .corto{font-weight:700}
+/* B · Solo íconos: la columna se angosta a 64 px y cada ícono vive en un cuadrado de 44. */
+[data-pmodo="iconos"] .disp[data-plegado] .lat .fila-m{height:44px}
+[data-pmodo="iconos"] .disp[data-plegado] .nav{padding:0 10px}
+.disp[data-plegado] .lat .hijos{display:none}
+
+.disp[data-plegado] .lat .yo{padding:12px 0;margin:0 8px 12px;justify-content:center}
+.disp[data-plegado] .lat .yo{border-radius:14px}
+
+/* A · Panel flotante: el lateral es una placa de vidrio a 12 px de los bordes; la fila activa es la gota, que viaja a la fila que tocas */
+[data-lateral="panel"] .lat{border-radius:28px}
+[data-lateral="panel"] .marca-activa,[data-lateral="riel"] .marca-activa,[data-lateral="isla"] .marca-activa{display:block;position:absolute;z-index:0;left:12px;right:12px;top:0;height:40px;border-radius:14px;
+  transition:top .38s var(--ease),height .38s var(--ease),left .38s var(--ease),width .38s var(--ease),opacity .25s}
+[data-lateral="panel"] .marca-activa::after,[data-lateral="riel"] .marca-activa::after,[data-lateral="isla"] .marca-activa::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
+[data-lateral="panel"] .fila-m.on::before,[data-lateral="riel"] .fila-m.on::before,[data-lateral="isla"] .fila-m.on::before{content:none}
+/* la fila elegida corre 6 px para que la marca roja no toque su ícono (Felipe 2026-10-31, «el efecto de seleccionado como en la foto») */
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m{transition:color .2s,background .25s,padding .38s var(--ease)}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m.on{padding-left:20px}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .hijos .fila-m.on{padding-left:calc(var(--sub-x,44px) + 8px)}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .hijos .hijos .fila-m.on{padding-left:calc(var(--sub-x2,66px) + 8px)}
+[data-subs="bandeja"]{--sub-x:20px;--sub-x2:40px}[data-subs="sangria"]{--sub-x:44px;--sub-x2:72px}[data-subs="tarjeta"]{--sub-x:44px;--sub-x2:64px}
+@media (hover:hover){:is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}
+  :is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover svg{color:var(--tinta)}}
+[data-lateral="panel"] .yo{border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));padding:10px}
+[data-tema="oscuro"][data-lateral="panel"] .yo{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+[data-lateral="panel"] .disp[data-plegado] .marca-activa{left:10px;right:10px}
+
+/* B · Riel de vidrio (elegido, 2026-10-31): pegado al borde, de arriba abajo, con su filo de luz a la derecha; la fila activa es la gota con su marca roja (Felipe eligió la gota del panel) */
+[data-lateral="riel"] .lat{border-width:0 1px 0 0;border-radius:0;box-shadow:inset -1px 0 0 color-mix(in srgb,var(--vidrio) 80%,transparent),12px 0 40px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+
+/* C · Isla de íconos: una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido y muestra los nombres */
+[data-lateral="isla"] .lat{border-radius:26px}
+[data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:0;transition:opacity .2s}
+[data-lateral="isla"] .lat .hijos{display:none}
+[data-lateral="isla"] .lat .logo-fila{padding-left:23px}
+[data-lateral="isla"] .lat .yo{border-top:0;padding:8px 6px;justify-content:flex-start}
+@media (hover:hover){
+  [data-lateral="isla"] .lat:hover{width:248px}
+  [data-lateral="isla"] .lat:hover :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1;transition-delay:.12s}
+  [data-lateral="isla"] .lat:hover .hijos{display:grid}
+}
+
+
+/* ====================================================================
+   LA CABECERA
+   ==================================================================== */
+.cab{position:absolute;z-index:4;top:0;left:var(--cont-x);right:0;height:60px;display:flex;align-items:center;gap:10px;padding:0 24px;transition:left .35s var(--ease)}
+:root:not([data-cabecera]) .cab{background:color-mix(in srgb,var(--crema) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--t12)}
+.cab .buscar{display:flex;align-items:center;gap:10px;height:38px;flex:0 1 340px;white-space:nowrap;overflow:hidden;padding:0 14px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);color:var(--t50);font-size:13px}
+.cab .buscar kbd{margin-left:auto;font:inherit;font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid var(--t25)}
+.cab .der{margin-left:auto;display:flex;align-items:center;gap:6px}
+.cab .ib{position:relative;width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:var(--t65);transition:background .2s,color .2s}
+.cab .ib svg{width:18px;height:18px;stroke-width:1.5}
+@media (hover:hover){.cab .ib:hover{background:var(--t06);color:var(--rojo)}}
+.cab .ib .pt{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;font-size:10px;font-weight:700;display:grid;place-items:center;background:var(--rojo);color:var(--crema)}
+.cab .sede{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500}
+.cab .sede i{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.cab .hamb,.cab .colibri{display:none}
+/* A · Barra flotante: una barra de vidrio a 12 px de los bordes; los botones, gotas redondas */
+[data-cabecera="flotante"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:56px;border-radius:20px;padding:0 10px 0 14px}
+[data-cabecera] .cab .ib{border-radius:50%}
+[data-cabecera] .cab .buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cabecera] .cab .buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cabecera] .cab .sede{border-color:color-mix(in srgb,var(--borde) 70%,transparent)}
+[data-cabecera] .cab :is(.ib,.sede){background:transparent}
+@media (hover:hover){[data-cabecera] .cab .ib:hover{background:var(--t06);color:var(--tinta)}}
+[data-cabecera="flotante"] .cab .sede,[data-cabecera="islas"] .cab .sede{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-cabecera] .cab .sede{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:none}
+/* B · Fundida: sin barra. El contenido se desvanece al llegar arriba bajo un desenfoque que se va apagando; los botones quedan sueltos */
+[data-cabecera="fundida"] .cab{height:76px;align-items:flex-start;padding-top:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 88%,transparent),color-mix(in srgb,var(--crema) 50%,transparent) 60%,transparent);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask:linear-gradient(#000 55%,transparent);mask:linear-gradient(#000 55%,transparent)}
+/* C · Dos islas: la búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha; entre ellas se ve el contenido */
+[data-cabecera="islas"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:52px;padding:0;background:none;border:0;box-shadow:none}
+[data-cabecera="islas"] .cab .izq,[data-cabecera="islas"] .cab .der{height:52px;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:999px}
+[data-cabecera="islas"] .cab .izq{flex:0 1 340px;min-width:54px}[data-cabecera="islas"] .cab .izq .buscar{flex:1 1 auto}
+[data-cabecera="islas"] .cab{justify-content:space-between;gap:12px}
+[data-cabecera="islas"] .cab .der{flex:none}
+/* El buscador nunca se sale de su isla (Felipe 2026-10-31): se encoge con la cabecera; angosta, pierde la tecla «/», y más angosta
+   queda en una lupa redonda. La cabecera es un contenedor: la regla mira SU ancho, no el de la pantalla. */
+.cab{container:cab/inline-size}
+.cab .buscar{min-width:0}
+.cab .buscar .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cab .buscar kbd{flex:none}
+@container cab (max-width:700px){.cab .buscar kbd{display:none}}
+@container cab (max-width:560px){:root[data-cabecera="islas"] .cab .izq{flex:0 0 auto}:root .cab .izq .buscar{flex:0 0 38px;width:38px;padding:0;justify-content:center;gap:0}.cab .buscar .txt{display:none}.cab .ocultable{display:none}}
+.cab .izq{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+
+/* ====================================================================
+   EL CONTENIDO (Existencias, de muestra; sus piezas son de otra auditoría)
+   ==================================================================== */
+.cont{position:absolute;z-index:1;top:0;bottom:0;left:var(--cont-x);right:0;overflow:auto;padding:92px 36px 40px;transition:left .35s var(--ease);scrollbar-width:thin}
+.enc .linea{display:flex;align-items:center;gap:10px}
+.enc .linea::before{content:"";width:22px;height:1px;background:var(--taupe)}
+.enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin:8px 0 6px}
+.enc p{color:var(--t65)}
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}
+.cifras div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+.cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.filtros>span:not(#filtro-cat){height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);display:inline-flex;align-items:center;font-size:12.5px;background:var(--papel)}
+.filtros>span.on:not(#filtro-cat){background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.prendas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.prenda{border-radius:16px;overflow:hidden;background:var(--papel);border:1px solid var(--sand)}
+.prenda .foto{aspect-ratio:4/5;display:grid;place-items:center;color:var(--crema-fija)}
+.prenda .foto.claro{color:var(--tinta-fija)}
+.prenda .foto svg{width:34px;height:34px;stroke-width:1.5;opacity:.85}
+.prenda .pie{padding:10px 12px}.prenda b{display:block;font-size:13.5px;font-weight:600}.prenda span{font-size:12px;color:var(--t65)}
+.cont .enc,.cont .cifras,.cont .filtros{animation:sube .5s var(--ease) backwards}
+.cont .cifras{animation-delay:.08s}.cont .filtros{animation-delay:.14s}
+
+/* ====================================================================
+   UNA HOJA ENCIMA (la elegida: Serena, campos hundidos, botones gota) — para ver cómo se apila sobre el marco
+   ==================================================================== */
+.capa{position:absolute;inset:0;z-index:20;display:none;justify-content:center;align-items:flex-start;padding:7% 24px 24px}
+.disp[data-hoja] .capa{display:flex}
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 20%,transparent);backdrop-filter:blur(1.5px);animation:funde .3s var(--ease) both}
+[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 42%,transparent)}
+.hoja{position:relative;width:min(448px,100%);padding:30px;border-radius:32px;background:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .62s var(--ease) both}
+[data-tema="oscuro"] .hoja{background:color-mix(in srgb,var(--vidrio) 82%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.hoja .sub{color:var(--taupe);font-size:13.5px;margin:4px 0 18px}
+.hoja .et{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:6px}
+.hoja .caja{height:42px;border-radius:14px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent);padding:0 14px;display:flex;align-items:center;margin-bottom:14px;font-size:14px}
+.hoja .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.hoja .b{height:42px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:500}
+.hoja .b.sec{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+.hoja .b.pri{color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+
+/* ====================================================================
+   EL COMBO (Felipe 2026-10-31: «mejorar el combo de las sedes y que quede así para todos los combos»)
+   Hoy es UNA pieza, `Desplegable` (components/ui/campos.tsx), con siete formas: campo, caja, cajaBaja, pildora, pastilla (la sede),
+   fin y finEnLinea; la usan ~105 archivos, más ComboBuscable (21), ComboResponsable y DesplegablePildora (20). Su lista: papel, el hilo
+   rojo de canto y el ✓ en la elegida, y un buscador con más de 8 opciones (ADR-0209). Lo que se elija aquí cambia la LISTA y el
+   DISPARADOR de todas las formas; en una hoja el disparador sigue siendo el pozo (campos «A · Hundido»).
+   ==================================================================== */
+:root{--sede-tru:#2f6aa3;--sede-aqp:#c26a2e;--sede-lim:#1d8a72;--sede-tal:#8a4fa8;--sede-emp:#9a8b7b}
+:root[data-tema="oscuro"]{--sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-tal:#a26cc6;--sede-emp:#8a7d70}
+.cb{position:relative;display:inline-block}
+.cb.ancho{display:block}
+.cb-btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500;white-space:nowrap;
+  transition:background .25s,border-color .25s,box-shadow .25s,transform .25s var(--ease)}
+.cb-btn .pto{width:8px;height:8px;border-radius:50%;flex:none;background:var(--c,var(--verde));box-shadow:0 0 0 3px color-mix(in srgb,var(--c,var(--verde)) 18%,transparent)}
+.cb-btn .flecha{width:14px;height:14px;transition:transform .3s var(--ease),color .2s}
+.cb.abierto .cb-btn .flecha{transform:rotate(180deg);color:var(--rojo)}
+.cb-btn .val{display:inline-block}
+.cb-btn .val.entra{animation:val-entra .32s var(--ease)}
+@keyframes val-entra{from{opacity:0;transform:translateY(60%)}}
+.cb-btn[data-forma="campo"]{width:100%;height:44px;border-radius:14px;justify-content:flex-start;padding:0 7px 0 14px;font-weight:400;font-size:14px;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.cb-btn[data-forma="campo"] .flecha-caja{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.cb-btn[data-forma="pildora"]{height:32px;font-size:12.5px;background:var(--papel)}
+/* Como ahora: la pastilla de la cabecera en versalitas, la caja de un formulario, la lista de papel */
+:root:not([data-combo]) .cb-btn[data-forma="pastilla"]{border-radius:6px;height:32px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;background:transparent;box-shadow:none}
+:root:not([data-combo]) .cb-btn[data-forma="campo"]{border-radius:10px;background:var(--hueso);box-shadow:none}
+:root:not([data-combo]) .cb-btn .pto{display:none}
+.cb-lista{position:absolute;z-index:40;top:calc(100% + 8px);left:0;width:max-content;max-width:340px;display:none;padding:6px;border-radius:12px;
+  background:var(--papel);border:1px solid var(--sand);box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+/* La lista flota en la capa del aparato, fuera del disparador (como `useDestinoFlotante`): un vidrio dentro de otro vidrio no ve lo de atrás. */
+.flotante{position:absolute;inset:0;z-index:30;pointer-events:none}
+.flotante .cb-lista{pointer-events:auto}
+.cb-lista.abierta{display:block;animation:sube .24s var(--ease)}
+.cb-buscar{display:flex;align-items:center;gap:8px;height:36px;margin:2px 2px 6px;padding:0 10px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);font-size:13px;color:var(--t65)}
+.cb-buscar input{flex:1;border:0;background:none;outline:0;min-width:0;color:var(--tinta)}
+.cb-grupo{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:8px 10px 4px}
+.cb-ops{position:relative;display:grid;gap:2px;max-height:300px;overflow:auto;scrollbar-width:thin}
+.cb-op{position:relative;z-index:1;display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;text-align:left;font-size:13.5px;transition:background .2s,padding .3s var(--ease)}
+.cb-op .lente{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.cb-op .lente svg{width:16px;height:16px;stroke-width:1.6}
+.cb-op .tx{min-width:0}.cb-op .tx b{display:block;font-weight:500}.cb-op .tx span{display:block;font-size:12px;color:var(--t65);white-space:nowrap}
+.cb-op .ok{margin-left:auto;opacity:0;width:15px;height:15px}
+.cb-op[aria-selected="true"] .ok{opacity:1}
+.cb-op[aria-selected="true"] .ok path{stroke-dasharray:24;animation:traza-cb .4s var(--ease) both}
+@keyframes traza-cb{from{stroke-dashoffset:24}}
+.cb-op[aria-selected="true"] .tx b{font-weight:600}
+.cb-op[aria-selected="true"]::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+@media (hover:hover){.cb-op:hover{background:var(--hueso)}}
+.cb-op[hidden],.cb-grupo[hidden]{display:none}
+.cb-vacio{padding:12px;font-size:13px;color:var(--t65)}
+.cb-gota{display:none}
+
+/* lo común del vidrio: el disparador es una gota (en una hoja, el pozo con su flecha en gota) y la lista, una placa de vidrio */
+[data-combo] .cb-btn:not([data-forma="campo"]){border-color:color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 32%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 12px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn:not([data-forma="campo"]){background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+[data-combo] .cb-btn[data-forma="campo"] .flecha-caja{border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 24%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"] .flecha-caja{background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-combo] .cb.abierto .cb-btn[data-forma="campo"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+@media (hover:hover){[data-combo] .cb-btn:not([data-forma="campo"]):hover{transform:translateY(-1px)}}
+[data-combo] .cb-lista{border-radius:20px;padding:8px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 74%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-lista{background:color-mix(in srgb,var(--vidrio) 88%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 26px 54px -24px var(--sombra)}
+[data-combo] .cb-buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo] .cb-op{border-radius:14px}
+[data-combo] .cb-op .lente{background:linear-gradient(145deg,color-mix(in srgb,var(--c) 18%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 8%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--c) 25%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-op .lente{background:color-mix(in srgb,var(--c) 18%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 30%,transparent)}
+
+/* A · Gota viajera: la gota del menú lateral, también en la lista. Se queda en la elegida y viaja a la que apuntas. */
+[data-combo="gota"] .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;
+  transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@media (hover:hover){:is([data-combo="gota"],[data-combo="tarjetas"]) .cb-op:hover{background:transparent}}
+[data-combo="gota"] .cb-op[aria-selected="true"]{padding-left:18px}
+[data-combo="gota"] .cb-op[aria-selected="true"]::before{left:7px;width:3px;height:14px;margin-top:-7px;border-radius:3px}
+
+/* B · Brota del botón: la lista nace del disparador, como una gota que se estira, y sus opciones se enfocan en cascada.
+   La elegida queda hundida (estás adentro), con su ✓. */
+[data-combo="brota"] .cb-lista.abierta{animation:brota .42s var(--ease) both;transform-origin:top left}
+[data-combo="brota"] .cb-lista.abierta[data-alinea="derecha"]{transform-origin:top right}
+@keyframes brota{from{opacity:0;transform:scale(.35,.15);border-radius:999px}to{opacity:1;transform:none}}
+[data-combo="brota"] .cb-lista.abierta .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(140ms + var(--k,0) * 35ms)}
+[data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo="brota"] .cb-op[aria-selected="true"]::before{left:6px}
+@media (hover:hover){[data-combo="brota"] .cb-op:not([aria-selected="true"]):hover{background:var(--t06)}}
+
+/* C · Tarjetas: con pocas opciones y su detalle (las sedes), la lista se vuelve un tablero de tarjetas de vidrio; con muchas, la lista
+   de A. La elegida sobresale con su anillo y su ✓ en la esquina. */
+[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:400px!important;max-width:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-grupo{display:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-ops{grid-template-columns:1fr 1fr;gap:8px;max-height:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent);transition:transform .25s var(--ease),background .25s}
+[data-tema="oscuro"][data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:first-child{grid-column:1/-1;flex-direction:row;align-items:center}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .lente{width:36px;height:36px}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .tx b{font-family:'EB Garamond',serif;font-size:19px;line-height:1.1}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .ok{position:absolute;top:10px;right:10px;width:18px;height:18px;padding:3px;border-radius:50%;box-sizing:content-box;background:var(--tinta);color:var(--crema)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]{border-color:var(--tinta);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px var(--tinta),0 10px 22px -14px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]::before{content:none}
+@media (hover:hover){[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:hover{transform:translateY(-2px)}}
+[data-combo="tarjetas"] .cb-lista.abierta[data-tarjetas] .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(80ms + var(--k,0) * 45ms)}
+[data-combo="tarjetas"] .cb-lista:not([data-tarjetas]) .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@container disp (max-width:520px){[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:300px!important}.cb-lista{max-width:300px}}
+
+/* ====================================================================
+   EL CELULAR: el lateral es un cajón que entra desde la izquierda; la cabecera, menú + colibrí + acciones
+   ==================================================================== */
+@container disp (max-width:520px){
+  /* una consulta de contenedor no alcanza al contenedor mismo: el corrimiento se apaga en quienes lo usan */
+  .cab,.cont{--cont-x:0px}
+  .lat,[data-lateral] .lat{left:0;top:0;bottom:0;width:min(300px,86%)!important;border-radius:0 28px 28px 0;transform:translateX(-105%);transition:transform .45s var(--ease)}
+  :root:not([data-lateral]) .lat{border-radius:0}
+  .disp[data-cajon] .lat{transform:none}
+  [data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1}
+  [data-lateral="isla"] .lat .hijos{display:grid}
+  .disp[data-cajon]::after{content:"";position:absolute;inset:0;z-index:4;background:color-mix(in srgb,var(--sombra) 22%,transparent)}
+  .cab{padding:0 10px}
+  [data-cabecera="flotante"] .cab,[data-cabecera="islas"] .cab{left:8px;right:8px;top:8px}
+  .cab .buscar,.cab .ocultable,.plegar-flota{display:none}
+  .lat .cerrar-cajon{display:grid}
+  .cab .hamb,.cab .colibri{display:grid}
+  .cab .colibri{width:26px;height:26px;border-radius:50%;background:var(--rojo)}
+  .cont{padding:84px 16px 32px}
+  .enc h1{font-size:34px}
+  .cifras{grid-template-columns:1fr 1fr}
+  .prendas{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- el análisis ---------- */
+.analisis{max-width:1180px;margin:20px auto 60px;padding:0 16px;display:grid;gap:18px}
+.analisis section{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 24px}
+.analisis h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.15;margin-bottom:6px}
+.analisis h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:16px 0 8px}
+.analisis p,.analisis li{font-size:14px;color:var(--t80);max-width:84ch}
+.analisis ul{padding-left:20px;display:grid;gap:6px}
+.analisis b{color:var(--tinta)}
+.analisis code{font-size:12.5px;background:var(--hueso);padding:1px 6px;border-radius:6px}
+.analisis table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.analisis th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:left;padding:8px 10px;border-bottom:1px solid var(--sand)}
+.analisis td{padding:8px 10px;border-bottom:1px solid var(--sand);vertical-align:top;color:var(--t80)}
+.ev{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:6px;vertical-align:1px;background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}

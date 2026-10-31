@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-ep="plana">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cabecera de pantalla con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la cabecera de pantalla con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pieza: `EncabezadoPagina` (components/ui/EncabezadoPagina.tsx), en 115 archivos: todo el ERP menos Finanzas. Arriba la línea
+   «sede · fecha» con el hilo taupe (y la flecha de Volver a su izquierda), el título serif de 46 px, la frase; a la derecha, las
+   cifras de la sede (`ResumenSede`) o el reloj, o si no hay, las acciones (que si no, bajan bajo la frase).
+   Montada sobre el marco ya elegido (../vidrio-base-2026-10/). Tres caras + «Como ahora». No cambia qué hace nada.
+   Colores: SOLO tokens (los de la base). Movimiento: una vez, sin rebote; todo se apaga con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+
+/* ---------- la cabecera (lo común a todas las caras) ---------- */
+.ep{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px;position:relative}
+.ep-izq{min-width:0;animation:sube .85s var(--ease) .08s backwards}
+.ep-linea{display:flex;align-items:center;gap:12px}
+.ep-sede{display:flex;min-width:0;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.ep-sede .hilo{display:block;width:32px;height:1px;flex:none;background:var(--taupe);transform-origin:left;animation:dibuja-x 1.1s var(--ease) .25s backwards}
+@keyframes dibuja-x{from{transform:scaleX(0)}}
+.ep-titulo{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+.ep-frase{margin-top:10px;max-width:28rem;font-size:15px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.ep-bajo{margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+.ep-acc{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;min-width:0;max-width:100%;animation:sube .85s var(--ease) .15s backwards}
+
+/* la flecha de Volver (ui/Volver.tsx) */
+.volver{position:relative;width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--tinta);border:1px solid var(--sand);background:var(--papel);transition:border-color .2s,transform .25s var(--ease)}
+.volver svg{width:16px;height:16px;stroke-width:1.8;transition:transform .2s var(--ease)}
+@media (hover:hover){.volver:hover{border-color:color-mix(in srgb,var(--tinta) 40%,transparent)}.volver:hover svg{transform:translateX(-2px)}}
+
+/* el chip de estado (ui/Chip.tsx), aquí solo para el «pie» */
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 12%,transparent)}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* los botones con la voz de la cabecera: versalitas de 11 px y 40 px de alto (ADR-0358, «Botones — las dos voces») */
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;border:1px solid transparent;
+  font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s,border-color .25s}
+.btn svg{width:16px;height:16px;stroke-width:2}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.sec{border-color:var(--borde);background:var(--papel)}
+.btn::before{content:"";position:absolute;inset:0;pointer-events:none;transform:translateX(-120%);background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--crema) 38%,transparent) 50%,transparent 65%)}
+.btn.sec::before{background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--vidrio) 80%,transparent) 50%,transparent 65%)}
+@media (hover:hover){.btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px -10px color-mix(in srgb,var(--sombra) 50%,transparent)}.btn.pri:hover{background:var(--rojo-p)}
+  .btn:hover::before{transform:translateX(120%);transition:transform .65s var(--ease)}}
+.btn:active{transform:scale(.97)}
+.btn .mas{transition:transform .3s var(--ease)}
+@media (hover:hover){.btn:hover .mas{transform:rotate(90deg)}}
+
+/* las cifras de la sede (ui/ResumenSede.tsx): hoy un recuadro de papel al 70 % con un desenfoque chico */
+.resumen{display:flex;border-radius:20px;background:color-mix(in srgb,var(--papel) 70%,transparent);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent),0 22px 44px -30px color-mix(in srgb,var(--sombra) 50%,transparent);animation:sube .85s var(--ease) .15s backwards}
+.resumen li{position:relative;list-style:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:9.5rem;padding:16px 28px;text-align:center}
+.resumen li+li::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:1px;background:linear-gradient(transparent,color-mix(in srgb,var(--tinta) 20%,transparent),transparent)}
+.resumen b{font-family:'EB Garamond',serif;font-weight:500;font-size:42px;line-height:1;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.resumen span{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.resumen span svg{width:14px;height:14px;color:var(--taupe);stroke-width:2}
+.resumen .alerta b,.resumen .alerta span{color:var(--ambar)}.resumen .alerta span{font-weight:600}.resumen .alerta span svg{color:currentColor}
+
+/* ====================================================================
+   A · PLANA CON GOTAS: lo que explica (sede, título, frase) queda plano sobre la Aurora; lo que haces sobresale: la flecha de Volver y
+   las acciones son gotas (los botones «A · Gota» de las hojas, con la voz de la cabecera); las cifras, una placa de vidrio Serena.
+   ==================================================================== */
+:root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .volver{border-color:color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+@media (hover:hover){:root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .volver:hover{transform:translateY(-1px)}}
+[data-tema="oscuro"]:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .volver{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 15%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra)}
+:root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn{border-radius:999px;padding:0 18px}
+:root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn.sec{border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent)}
+:root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn.pri{-webkit-backdrop-filter:blur(10px) saturate(1.4);backdrop-filter:blur(10px) saturate(1.4);
+  border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--vidrio) 8%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent)}
+@media (hover:hover){
+  :root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 64%,transparent),color-mix(in srgb,var(--rojo-p) 88%,transparent));border-color:color-mix(in srgb,var(--rojo-p) 70%,transparent)}
+  :root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn.sec:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent))}}
+[data-tema="oscuro"]:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn.sec{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 15%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra)}
+[data-tema="oscuro"]:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn.pri{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 74%,transparent),color-mix(in srgb,var(--tinta) 92%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 60%,transparent),0 8px 18px -10px var(--sombra)}
+@media (hover:hover){[data-tema="oscuro"]:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 74%,transparent),color-mix(in srgb,var(--rojo-p) 92%,transparent))}}
+/* el chip, también vidrio: su tono al 14 % sobre una lámina clara */
+:root:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--pizarra) 16%,color-mix(in srgb,var(--vidrio) 50%,transparent)),color-mix(in srgb,var(--pizarra) 10%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent),0 0 0 1px color-mix(in srgb,var(--pizarra) 22%,transparent)}
+[data-tema="oscuro"]:is([data-ep="plana"],[data-ep="placa"],[data-ep="dock"]) .chip{background:color-mix(in srgb,var(--pizarra) 16%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--pizarra) 30%,transparent)}
+/* las cifras: la placa Serena del marco (vidrio que desenfoca la Aurora), con su luz arriba */
+:root:is([data-ep="plana"],[data-ep="dock"]) .resumen{border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:is([data-ep="plana"],[data-ep="dock"]) .resumen{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+
+/* ====================================================================
+   B · PLACA: toda la cabecera es UNA placa de vidrio (el idioma de las dos islas de arriba, en grande). Adentro, las cifras quedan
+   planas, separadas del título por un hilo; los botones son las mismas gotas de A.
+   ==================================================================== */
+[data-ep="placa"] .ep{padding:24px 28px;border-radius:30px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 30px 60px -36px color-mix(in srgb,var(--sombra) 45%,transparent);animation:enfoca .62s var(--ease) both}
+[data-tema="oscuro"][data-ep="placa"] .ep{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 74%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 30px 60px -36px var(--sombra)}
+[data-ep="placa"] .resumen{background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:0;position:relative;padding-left:12px}
+[data-ep="placa"] .resumen::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:1px;background:linear-gradient(transparent,color-mix(in srgb,var(--tinta) 22%,transparent),transparent)}
+[data-ep="placa"] .resumen li{padding:8px 24px}
+
+/* ====================================================================
+   C · SE ACOMODA ENTRE LAS ISLAS: en reposo es A. Al bajar la pantalla y perder de vista el título, el nombre de la pantalla (y su
+   acción principal, si cabe) entra en el hueco entre las dos islas de arriba, como una tercera isla. Al volver arriba, se va.
+   Responde a tu desplazamiento: entra y se va una vez cada vez, sin rebote.
+   ==================================================================== */
+.ep-dock{position:absolute;z-index:3;top:0;height:52px;display:none;align-items:center;justify-content:center;pointer-events:none}
+.ep-dock>div{display:flex;align-items:center;gap:10px;height:52px;max-width:100%;min-width:0;padding:0 8px 0 20px;border-radius:999px;opacity:0;transform:translateY(-8px) scale(.96);filter:blur(4px);
+  transition:opacity .22s,transform .22s var(--ease),filter .22s}
+[data-ep="dock"] .ep-dock{display:flex}
+[data-ep="dock"] .disp[data-dock] .ep-dock>div{opacity:1;transform:none;filter:none;pointer-events:auto;transition:opacity .32s var(--ease),transform .42s var(--ease),filter .32s var(--ease)}
+.ep-dock .nom{font-family:'EB Garamond',serif;font-size:19px;font-weight:500;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ep-dock .btn{height:36px;padding:0 14px;flex:none}
+.ep-dock[data-solo-nombre] .btn{display:none}
+.ep-dock[data-solo-nombre]>div{padding:0 20px}
+.ep-dock[hidden]{display:none!important}
+/* mientras el nombre está arriba, el buscador cede su lugar y queda en su lupa (la misma que con la cabecera angosta) */
+[data-ep="dock"] .cab .izq{transition:flex-basis .35s var(--ease)}
+[data-ep="dock"] .disp[data-dock]:not([data-ancho="movil"]) .cab .izq{flex:0 0 54px}
+[data-ep="dock"] .disp[data-dock]:not([data-ancho="movil"]) .cab .izq .buscar{flex:0 0 38px;width:38px;padding:0;justify-content:center;gap:0}
+[data-ep="dock"] .disp[data-dock] .cab .buscar :is(.txt,kbd){display:none}
+
+/* ---------- lo de abajo de la cabecera (de muestra; sus piezas son otra auditoría) ---------- */
+.debajo{margin-top:28px;animation:sube .5s var(--ease) .2s backwards}
+.tarjeta-m{background:color-mix(in srgb,var(--papel) 88%,transparent);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.fila-t{display:grid;grid-template-columns:110px minmax(0,1fr) 110px 110px;gap:12px;align-items:center;padding:12px 18px;border-top:1px solid var(--sand);font-size:13.5px}
+.fila-t:first-child{border-top:0;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.fila-t .num{text-align:right;font-variant-numeric:tabular-nums}
+.fila-t small{color:var(--t65)}
+.linea-p{display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--sand);font-size:13.5px}
+.linea-p:first-child{border-top:0}
+.linea-p .mini{width:36px;height:44px;border-radius:8px;flex:none}
+.linea-p .tx{flex:1;min-width:0}.linea-p b{display:block;font-weight:600}.linea-p small{color:var(--t65)}
+.linea-p .num{font-variant-numeric:tabular-nums}
+
+/* ---------- el celular ---------- */
+@container disp (max-width:520px){
+  .ep{gap:16px}
+  .ep-titulo{font-size:36px}
+  .ep-izq{width:100%}
+  .resumen{width:100%}
+  .resumen li{min-width:0;flex:1;padding:14px 4px}
+  .resumen b{font-size:20px}
+  .resumen span{font-size:11px;margin-top:6px}
+  .resumen span svg{display:none}
+  [data-ep="placa"] .ep{padding:18px;border-radius:24px}
+  [data-ep="placa"] .resumen{padding:12px 0 0}
+  [data-ep="placa"] .resumen::before{left:8px;right:8px;top:0;bottom:auto;width:auto;height:1px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--tinta) 22%,transparent),transparent)}
+  [data-ep="placa"] .resumen li{padding:6px 4px}
+  .fila-t{grid-template-columns:minmax(0,1fr) 86px;padding:12px 14px}
+  .fila-t>:nth-child(1),.fila-t>:nth-child(3){display:none}
+  .ep-dock .nom{font-size:16px}
+  .ep-dock{height:38px}
+  .ep-dock>div,.ep-dock[data-solo-nombre]>div{padding:0 16px;height:38px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">La cabecera de pantalla con vidrio · <code style="font-size:13px">EncabezadoPagina</code></span>
+  <span class="tag">Cabecera</span><div class="seg-m" data-ctl="ep"><button data-v="ahora">Como ahora</button><button data-v="plana">A · Plana con gotas</button><button data-v="placa">B · Placa</button><button data-v="dock">C · Se acomoda arriba</button></div>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pantalla"><button data-v="existencias">Existencias (cifras)</button><button data-v="ordenes">Órdenes (acciones)</button><button data-v="orden">Una orden (volver)</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy (<code>components/ui/EncabezadoPagina.tsx</code>)</h2>
+    <ul>
+      <li><b>Dónde vive:</b> <b>115 archivos</b>, toda pantalla del ERP menos Finanzas (que usa <code>CabeceraPantalla</code> hasta que su pantalla pase a El telar, ADR-0493). Es la pieza que más se ve después del marco: es lo primero que se lee en cada pantalla.</li>
+      <li><b>Lo que trae:</b> la frase en 123 usos, la flecha de <b>Volver</b> en 57, <b>acciones</b> en 39, algo a la derecha (las cifras de la sede con <code>ResumenSede</code>, el reloj de Caja, el resumen de Facturación) en 21, un <b>detalle</b> tras la fecha en 20 y un <b>pie</b> de estado en 8. Las acciones se van a la derecha si está libre; si no, bajan bajo la frase.</li>
+      <li><b>Qué le pasa sobre el vidrio:</b> el título y la línea de la sede se leen bien sobre la Aurora (son tinta y taupe sobre un crema apenas teñido). Lo que choca es lo que se toca: <b>la flecha de Volver</b> es un disco de papel macizo con borde arena, y <b>los botones</b> son los de antes (el primario negro sólido de 8 px de esquina), justo lo que «A · Gota» quitó de las hojas. <b>Las cifras</b> ya eran casi vidrio (papel al 70 % con un desenfoque de 4 px): con el marco nuevo quedan como un vidrio a medias, ni sólido ni Serena.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>Como ahora</b></td><td>Título plano, Volver de papel, botones sólidos, cifras en papel al 70 %.</td><td>Nada que migrar.</td><td>Sobre el marco de vidrio, los botones y la flecha son lo único sólido de la pantalla: rompe «nada sólido sobre el vidrio».</td></tr>
+      <tr><td><b>A · Plana con gotas</b> <span class="ev">Recomendada</span></td><td>Lo que explica (sede, título, frase) sigue plano sobre la Aurora; lo que haces sobresale: Volver y las acciones son gotas (los botones de las hojas, con la voz de la cabecera); las cifras son una placa Serena.</td><td>Es el idioma tal cual: plano lo que explica, sobresale lo que haces. Cambia solo dos piezas (Volver y la placa de cifras) y los botones, que ya vienen con «A · Gota». El título conserva su presencia sin ninguna caja.</td><td>Casi nada. Hay que medir el contraste del taupe de la línea de la sede sobre la nube rojiza de la Aurora (arriba a la izquierda, donde cae).</td></tr>
+      <tr><td><b>B · Placa</b></td><td>Toda la cabecera dentro de una placa de vidrio; las cifras quedan planas adentro, separadas por un hilo.</td><td>Ancla fuerte: se ve dónde empieza la pantalla. Rima con las dos islas de arriba.</td><td>Abajo vienen las cifras, los filtros y la tabla, también en tarjetas: si todo es placa, nada sobresale. Gasta 48 px de alto en cada pantalla, y en el celular empuja la tabla medio pliegue. El título deja de ser «plano» aunque solo explica.</td></tr>
+      <tr><td><b>C · Se acomoda arriba</b></td><td>A en reposo. Al bajar y perder de vista el título, el nombre de la pantalla (y su acción principal, si cabe) entra en el hueco entre las dos islas; al subir, se va.</td><td>En una lista larga (Existencias, Productos, Movimientos) siempre sabes dónde estás y la acción principal sigue a un toque sin volver arriba.</td><td>Agrega algo que no estaba: un observador del título en cada pantalla y una tercera isla que mide el hueco. Para que quepa a 1024 px con el menú abierto, el buscador cede su lugar y queda en su lupa mientras el nombre está arriba (a 1024 el hueco libre es de 76 px: sin ceder, no cabría ni el nombre). En el celular el hueco entre las islas es de 23 px: el nombre baja a una isla delgada justo debajo de las dos, sin la acción.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>A · Plana con gotas.</b> Es la que obedece al idioma sin agregar nada: la cabecera explica, y lo único que sobresale es lo que tocas. B le pone una caja a algo que solo explica, y en una pantalla con cifras, filtros y tabla se pierde la jerarquía. C es A más un comportamiento: si te gusta que el nombre y la acción se queden arriba al bajar, se puede sumar después sin cambiar A.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Qué hace la cabecera y dónde va cada cosa (ADR-0220): la línea «sede · fecha» con el hilo que se dibuja, la flecha de Volver a su izquierda, el título de 46 px con el nombre del menú (36 en el celular), la frase, la derecha para las cifras o el reloj y si no las acciones, el pie de estado, la voz de la cabecera en los botones (versalitas de 11 px, 40 px). La tarjeta de cifra suelta (<code>TarjetaCifra</code>) es la pieza que sigue en el tablero.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+// ---------- la pantalla de muestra ----------
+const IC = {
+  volver: 'M19 12H5M11 6l-6 6 6 6', mas: 'M12 5v14M5 12h14', descargar: 'M12 3v12M7 10l5 5 5-5M5 21h14', imprimir: 'M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z',
+  recibir: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6', caja: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+};
+const PANTALLAS = {
+  existencias: {
+    sede: 'Trujillo', fecha: 'viernes, 31 de octubre', detalle: 'vista de las 16:42', titulo: 'Existencias', nombre: 'Existencias',
+    frase: 'Lo que hay colgado y guardado en la tienda, y lo que toca hacer hoy.',
+    cifras: [['1 284', 'En el piso', 'percha'], ['3 902', 'En el almacén', 'caja'], ['46', 'Por reponer', 'alerta', 1]],
+    debajo: () => `<div class="filtros"><span class="on">Todas</span><span>Por reponer</span><span>Sin foto</span><span>Dañadas</span></div>
+      <div class="prendas">${[...PRENDAS, ...PRENDAS].map(([c, n, i, q, claro]) => `<div class="prenda"><div class="foto${claro ? ' claro' : ''}" data-color-dato style="background:${c}">${sv(L[i])}</div><div class="pie"><b>${n}</b><span>${q} en la tienda</span></div></div>`).join('')}</div>`,
+  },
+  ordenes: {
+    sede: 'Toda la empresa', fecha: 'viernes, 31 de octubre · 16:42', titulo: 'Órdenes de compra', nombre: 'Órdenes de compra',
+    frase: 'Lo que le pediste a cada proveedor y lo que ya llegó.',
+    acciones: [['sec', 'Descargar Excel', 'descargar'], ['pri', 'Nueva orden', 'mas']],
+    debajo: () => {
+      const P = ['Hilados del Sur', 'Botones Lumbre', 'Telas Mistral', 'Avíos Quillay', 'Cierres Puna', 'Hilados del Sur', 'Etiquetas Cóndor', 'Telas Mistral', 'Avíos Quillay', 'Botones Lumbre', 'Cierres Puna', 'Telas Mistral'];
+      return `<div class="tarjeta-m"><div class="fila-t"><span>Orden</span><span>Proveedor</span><span class="num">Llega</span><span class="num">Total</span></div>${P.map((p, i) => `<div class="fila-t"><span>OC-0${142 - i}</span><span>${p}<br><small>${3 + (i % 4)} artículos</small></span><span class="num">${2 + i} nov</span><span class="num">S/ ${(4280 - i * 213).toLocaleString('es-PE')}</span></div>`).join('')}</div>`;
+    },
+  },
+  orden: {
+    sede: 'Toda la empresa', fecha: 'viernes, 31 de octubre · 16:42', detalle: 'Hilados del Sur', titulo: 'Orden OC-0142', nombre: 'Orden OC-0142', volver: 'Órdenes de compra',
+    pie: '<span class="chip"><i></i>En camino</span>',
+    acciones: [['sec', 'Imprimir la orden', 'imprimir'], ['pri', 'Recibir mercadería', 'recibir']],
+    debajo: () => `<div class="tarjeta-m">${PRENDAS.slice(0, 12).map(([c, n], i) => `<div class="linea-p"><span class="mini" data-color-dato style="background:${c}"></span><span class="tx"><b>${n}</b><small>Tallas S a L · ${6 + (i % 5) * 2} unidades</small></span><span class="num">S/ ${(38 + i * 4).toFixed(2)}</span></div>`).join('')}</div>`,
+  },
+};
+const svi = (d) => sv(d);
+const boton = ([peso, texto, ic]) => `<button class="btn ${peso}">${ic ? `<svg class="ic${ic === 'mas' ? ' mas' : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[ic]}"/></svg>` : ''}${texto}</button>`;
+
+function pintarPantalla(e) {
+  const p = PANTALLAS[e.pantalla];
+  const derecha = p.cifras
+    ? `<ul class="resumen" aria-label="Resumen de ${p.sede}">${p.cifras.map(([v, t, ic, alerta]) => `<li${alerta ? ' class="alerta"' : ''}><b>${v}</b><span>${svi(IC[ic])}${t}</span></li>`).join('')}</ul>`
+    : p.acciones ? `<div class="ep-acc">${p.acciones.map(boton).join('')}</div>` : '';
+  const bajo = p.pie || (p.cifras && p.acciones) ? `<div class="ep-bajo">${p.pie || ''}${p.cifras && p.acciones ? p.acciones.map(boton).join('') : ''}</div>` : '';
+  $('#cont').innerHTML = `<header class="ep" data-voz="cabecera">
+      <div class="ep-izq">
+        <div class="ep-linea">${p.volver ? `<a class="volver" href="#" aria-label="Volver a ${p.volver}" title="Volver a ${p.volver}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC.volver}"/></svg></a>` : ''}
+          <p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>${p.sede} · ${p.fecha}${p.detalle ? ` · ${p.detalle}` : ''}</span></p></div>
+        <h1 class="ep-titulo" id="ep-titulo">${p.titulo}</h1>
+        <p class="ep-frase">${p.frase || 'Lo que pediste, lo que llegó y lo que falta, prenda por prenda.'}</p>
+        ${bajo}
+      </div>
+      ${derecha}
+    </header>
+    <div class="debajo">${p.debajo()}</div>`;
+  pintarDock(e);
+}
+
+// C · el nombre de la pantalla en el hueco entre las dos islas
+function pintarDock(e) {
+  $$('.ep-dock').forEach((x) => x.remove());
+  const p = PANTALLAS[e.pantalla], pri = (p.acciones || []).find((a) => a[0] === 'pri');
+  $('#disp').insertAdjacentHTML('beforeend', `<div class="ep-dock" aria-hidden="true"><div class="vidrio"><span class="nom">${p.nombre}</span>${pri ? boton(['pri', pri[1], pri[2]]) : ''}</div></div>`);
+  $('#disp').removeAttribute('data-dock');
+  medirDock();
+}
+function medirDock() {
+  const dock = $('.ep-dock'); if (!dock) return;
+  const d = $('#disp').getBoundingClientRect(), izq = $('#cab .izq').getBoundingClientRect(), der = $('#cab .der').getBoundingClientRect();
+  // el ancho de la isla izquierda CON el nombre arriba: en escritorio, solo la lupa (54 px); en el celular, el menú y el colibrí
+  const izqDerecha = $('#disp').dataset.ancho === 'movil' ? izq.right : izq.left + 54;
+  const left = izqDerecha - d.left + 12, ancho = der.left - izqDerecha - 24;
+  dock.style.left = left + 'px'; dock.style.width = Math.max(0, ancho) + 'px'; dock.style.top = (izq.top - d.top) + 'px';
+  // en el celular no hay hueco (23 px): el nombre baja a una isla delgada justo bajo las dos de arriba
+  if ($('#disp').dataset.ancho === 'movil') {
+    dock.style.left = '0px'; dock.style.width = d.width - 20 + 'px'; dock.style.top = (izq.bottom - d.top + 6) + 'px';
+    dock.hidden = false; dock.setAttribute('data-solo-nombre', ''); return;
+  }
+  dock.hidden = ancho < 90;
+  dock.toggleAttribute('data-solo-nombre', ancho < 300);
+}
+function alScroll() {
+  const t = $('#ep-titulo'); if (!t) return;
+  const tope = $('#cab .izq').getBoundingClientRect().bottom;
+  const antes = $('#disp').hasAttribute('data-dock'), ahora = t.getBoundingClientRect().bottom < tope;
+  if (antes !== ahora) { $('#disp').toggleAttribute('data-dock', ahora); medirDock(); }
+}
+$('#cont').addEventListener('scroll', alScroll, { passive: true });
+addEventListener('resize', medirDock);
+$('#lat').addEventListener('transitionend', medirDock);
+
+Marco.iniciar({
+  estado: { ep: 'plana', pantalla: 'existencias' },
+  alPintar: (e) => { $('#cont').scrollTop = 0; pintarPantalla(e); requestAnimationFrame(medirDock); },
+  alAccion: (a) => { if (a === 'plegar') setTimeout(medirDock, 380); },
+});
+// «pantalla» no es un data-* que importe al CSS; «ep: ahora» quita el atributo (Como ahora)
+</script>
+</body>
+</html>
