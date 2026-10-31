@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilaPrenda } from "./existencias-prendas";
-import { celdaTarjeta, colorDeEntrada, destinoDeTalla, lineaGuardadas, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
+import { celdaTarjeta, colorDeEntrada, coloresDeChapa, destinoDeTalla, faltaColgar, filoDeTarjeta, lineaGuardadas, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
 import { conMotor } from "./piso-plan-fixtures";
 
 let n = 0;
@@ -29,10 +29,10 @@ describe("celdaTarjeta", () => {
   const [falta, normal, agotada] = conMotor([fila("S", 0, 3), fila("M", 2, 1), fila("L", 0, 0)]).filas;
 
   it("0 colgadas y algo en almacén: falta (ámbar)", () => {
-    expect(celdaTarjeta(falta, true)).toEqual({ estado: "falta", piso: 0, almacen: 3 });
+    expect(celdaTarjeta(falta, true)).toEqual({ estado: "falta", piso: 0, almacen: 3, noHaceFalta: false });
   });
   it("algo colgado: normal, con sus dos cifras", () => {
-    expect(celdaTarjeta(normal, true)).toEqual({ estado: "normal", piso: 2, almacen: 1 });
+    expect(celdaTarjeta(normal, true)).toEqual({ estado: "normal", piso: 2, almacen: 1, noHaceFalta: false });
   });
   it("nada libre en la sede: agotada (rojo)", () => {
     expect(celdaTarjeta(agotada, true).estado).toBe("agotada");
@@ -106,17 +106,19 @@ describe("colorDeEntrada", () => {
 });
 
 describe("lineaGuardadas (ADR-0391: lo colgado grande, lo guardado debajo con su palabra)", () => {
-  it("con 3 tallas o menos dice las palabras del modal: «+2 en almacén», «+1 en almacén», «0 en almacén» tenue", () => {
-    expect(lineaGuardadas({ estado: "normal", almacen: 2 }, 3)).toEqual({ texto: "+2 en almacén", cero: false });
-    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 2)).toEqual({ texto: "+1 en almacén", cero: false });
+  it("con 1 talla dice las palabras del modal: «+2 en almacén», «+1 en almacén», «0 en almacén» tenue", () => {
+    expect(lineaGuardadas({ estado: "normal", almacen: 2 }, 1)).toEqual({ texto: "+2 en almacén", cero: false });
+    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 1)).toEqual({ texto: "+1 en almacén", cero: false });
     expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 1)).toEqual({ texto: "0 en almacén", cero: true });
   });
-  it("con 4 tallas o más no cabe la palabra: solo el número (la leyenda del pie la pone)", () => {
+  it("con 2 tallas o más no cabe la palabra junto a la foto a 12 px (ADR-0589): solo el número (la leyenda del pie la pone)", () => {
+    expect(lineaGuardadas({ estado: "normal", almacen: 10 }, 2)).toEqual({ texto: "+10", cero: false });
+    expect(lineaGuardadas({ estado: "normal", almacen: 3 }, 3)).toEqual({ texto: "+3", cero: false });
     expect(lineaGuardadas({ estado: "normal", almacen: 3 }, 4)).toEqual({ texto: "+3", cero: false });
     expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 6)).toEqual({ texto: "0", cero: true });
   });
   it("agotada: «se acabó», apretado «acabó»; nunca tenue (es un aviso, no un cero)", () => {
-    expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 3)).toEqual({ texto: "se acabó", cero: false });
+    expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 1)).toEqual({ texto: "se acabó", cero: false });
     expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 5)).toEqual({ texto: "acabó", cero: false });
   });
 });
@@ -129,5 +131,72 @@ describe("tallasSinColgar no cuenta lo que el motor manda «mantener» (afinado 
       { pisoDisponible: 1, almacenDisponible: 2, planPiso: null },
     ] }];
     expect(tallasSinColgar(colores)).toBe(1);
+  });
+});
+
+describe("coloresDeChapa (tarjeta Vitrina, ADR-0589)", () => {
+  const colores = (k: number) => Array.from({ length: k }, (_, i) => ({ clave: `c${i}` }));
+  it("hasta 5 colores: todos a la vista, sin «+N»", () => {
+    for (const k of [1, 2, 5]) expect(coloresDeChapa(colores(k), "c0")).toEqual({ visibles: colores(k), ocultos: 0 });
+  });
+  it("6 o más: 3 a la vista y el resto en «+N» (el caso de 14 colores da «+11»)", () => {
+    expect(coloresDeChapa(colores(6), "c0").ocultos).toBe(3);
+    const r = coloresDeChapa(colores(14), "c1");
+    expect(r.visibles.map((c) => c.clave)).toEqual(["c0", "c1", "c2"]);
+    expect(r.ocultos).toBe(11);
+  });
+  it("el color que se ve, si quedó fuera, toma el tercer lugar; los dos primeros no se mueven", () => {
+    const r = coloresDeChapa(colores(14), "c9");
+    expect(r.visibles.map((c) => c.clave)).toEqual(["c0", "c1", "c9"]);
+    expect(r.ocultos).toBe(11);
+  });
+  it("un color que ya no existe no rompe nada: los tres primeros", () => {
+    expect(coloresDeChapa(colores(8), "nada").visibles.map((c) => c.clave)).toEqual(["c0", "c1", "c2"]);
+  });
+});
+
+describe("filoDeTarjeta (tarjeta Vitrina, ADR-0589)", () => {
+  // Con el motor del piso detrás, como `celdaTarjeta`: «falta colgar» lo decide `estadoTalla`, no la cifra sola.
+  const [falta, normal, agotada] = conMotor([fila("S", 0, 3), fila("M", 2, 1), fila("L", 0, 0)]).filas;
+  it("una talla agotada gana a una que falta colgar", () => {
+    expect(filoDeTarjeta([falta, normal, agotada], true)).toBe("agotada");
+  });
+  it("0 colgadas y algo en almacén: falta", () => {
+    expect(filoDeTarjeta([falta, normal], true)).toBe("falta");
+  });
+  it("todo colgado: sin filo", () => {
+    expect(filoDeTarjeta([normal], true)).toBeNull();
+  });
+});
+
+describe("faltaColgar: una sola respuesta en la tarjeta (Felipe 2026-10-31, opción A «manda lo físico»)", () => {
+  // El caso que la prueba ciega vio: Pantalón Carla en una sede que nunca se cuadró. 28, 30 y 32 son tallas centrales; 34, de las puntas
+  // y sin ventas, el motor la deja en «mantener» (pide 0 en el piso).
+  const pantalon = () => [fila("28", 0, 6), fila("30", 0, 6), fila("32", 0, 6), fila("34", 0, 6)];
+  const enPausa = conMotor(pantalon(), { cuadradoEn: null }).filas;
+  const cuadrado = conMotor(pantalon()).filas;
+
+  it("con el piso en pausa, las tallas vacías con almacén faltan colgar (el motor calla, manda lo físico)", () => {
+    expect(enPausa.slice(0, 3).map((f) => celdaTarjeta(f, true).estado)).toEqual(["falta", "falta", "falta"]);
+  });
+  it("la talla que el motor deja en «mantener» no falta: se marca «no hace falta», sin ámbar", () => {
+    expect(enPausa[3].planPiso?.accion).toBe("mantener");
+    expect(celdaTarjeta(enPausa[3], true)).toMatchObject({ estado: "normal", noHaceFalta: true });
+  });
+  it("el botón, las celdas, el filo y la talla de entrada dicen lo mismo: 3 tallas", () => {
+    const enAmbar = enPausa.filter((f) => celdaTarjeta(f, true).estado === "falta").length;
+    expect(enAmbar).toBe(tallasSinColgar([{ tallas: enPausa }]));
+    expect(enAmbar).toBe(3);
+    expect(filoDeTarjeta(enPausa, true)).toBe("falta");
+    expect(tallaDeEntrada(enPausa)?.talla).toBe("28");
+  });
+  it("con el piso cuadrado sigue igual: lo que el motor manda colgar falta, y coincide con lo físico", () => {
+    expect(cuadrado.map((f) => celdaTarjeta(f, true).estado)).toEqual(["falta", "falta", "falta", "normal"]);
+    expect(cuadrado.filter(faltaColgar).length).toBe(tallasSinColgar([{ tallas: cuadrado }]));
+  });
+  it("algo colgado o nada en almacén: no falta; en una sede que no separa piso y almacén, nunca", () => {
+    expect(faltaColgar(conMotor([fila("M", 1, 4)], { cuadradoEn: null }).filas[0])).toBe(false);
+    expect(faltaColgar(conMotor([fila("M", 0, 0)], { cuadradoEn: null }).filas[0])).toBe(false);
+    expect(celdaTarjeta(enPausa[0], false).estado).toBe("normal");
   });
 });

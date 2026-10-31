@@ -46,7 +46,7 @@ export function CabeceraDinero({
   /** La sede que se mira, como la dice la línea de arriba («Todas las sedes», «Trujillo»). */
   sede: string;
   /** La respuesta grande de la cara: su pregunta y su cifra (`valor: null` = no se pudo leer). */
-  respuesta: { pregunta: string; valor: number | null; chips?: ChipRespuesta[]; motivo?: string };
+  respuesta?: { pregunta: string; valor: number | null; chips?: ChipRespuesta[]; motivo?: string };
   /** Cuánto pone cada sede en esta cara (`null` en Cuadrar: los bancos son de CAYLA entera). */
   orillo: { porSede: Record<ClaveSede, number>; que: string } | null;
   /** Los hilos de sede de la barra (`getSedesDelTelar`). */
@@ -91,7 +91,7 @@ export function CabeceraDinero({
         subtitulo={subtitulo}
         acciones={acciones}
       >
-        {!panorama && <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />}
+        {respuesta && !panorama && <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />}
       </EncabezadoPagina>
       {orillo && !panorama && <Orillo porSede={orillo.porSede} sedes={sedes} que={orillo.que} hoy={hoy} />}
       <PestanasFin

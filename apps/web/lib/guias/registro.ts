@@ -77,6 +77,7 @@ import {
 import {
   GUIA_FIN_BALANCE,
   GUIA_FIN_PATRIMONIO,
+  GUIA_FIN_CONTADOR,
   GUIA_FIN_CAMPANAS,
   GUIA_FIN_CIERRE,
   GUIA_FIN_CONCILIACION,
@@ -215,6 +216,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FIN_FLUJO,
   GUIA_FIN_BALANCE,
   GUIA_FIN_PATRIMONIO,
+  GUIA_FIN_CONTADOR,
   GUIA_FIN_IMPUESTOS,
   GUIA_FIN_CIERRE,
   GUIA_PROD_RESUMEN,
@@ -333,6 +335,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/reportes": { estado: "aplicada", guia: GUIA_FIN_RESULTADOS.id },
   "/finanzas/reportes/balance": { estado: "aplicada", guia: GUIA_FIN_BALANCE.id },
   "/finanzas/reportes/patrimonio": { estado: "aplicada", guia: GUIA_FIN_PATRIMONIO.id },
+  "/finanzas/reportes/cuentas": { estado: "aplicada", guia: GUIA_FIN_CONTADOR.id },
   "/finanzas/reportes/campanas": { estado: "aplicada", guia: GUIA_FIN_CAMPANAS.id },
   "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de ¿Dónde está la plata? (ADR-0585). Su guía es la de esa pantalla." },
   "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },

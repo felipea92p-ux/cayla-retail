@@ -11,13 +11,13 @@ import { gruposDelBalance, medidores, recomendacionesVale } from "@/lib/vale-reg
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
-import { mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
+import { formaDe, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
 
 // Finanzas ▸ Estados financieros ▸ Balance (ADR-0195 F7; spike «¿Cuánto vale CAYLA?»). Lee en el servidor y deja a una sola pieza
 // cliente mirar. `?corte=2026-08-31` elige la fecha (por defecto, el último día del mes de la barra, o hoy en el mes en curso). Quien ve todo (ADR-0585: el líder o quien tiene el módulo,
 // salvo una terminal) ve CAYLA entera (la comprobación, el Balance si cuadra y lo que es de cada tienda) o, con `?sede=<tienda>`, lo
 // que es de una tienda; una terminal con el módulo, lo de SU tienda (lo decide la base). Los saldos de arranque los registra el líder.
-export default async function BalancePage({ searchParams }: { searchParams: Promise<{ corte?: string; ver?: string; sede?: string; mes?: string }> }) {
+export default async function BalancePage({ searchParams }: { searchParams: Promise<{ corte?: string; ver?: string; sede?: string; mes?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   const sp = await searchParams;
   const hoy = hoyLima();
@@ -29,7 +29,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
   const pedida = sedeDeLaUrl(sp);
   // «Empresa» no tiene un Balance aparte: es el de CAYLA entera.
   const ver = veTodo ? (pedida !== "cayla" && pedida !== "todas" && pedida !== "empresa" ? pedida : "cayla") : persona.ubicacionId;
-  const cabecera = <CabeceraEstados activa="vale" mes={mes} sede={veTodo ? pedida : (persona.ubicacionId ?? "todas")} hoy={hoy} params={paramsDe(sp)} />;
+  const cabecera = <CabeceraEstados pantalla="vale" mes={mes} sede={veTodo ? pedida : (persona.ubicacionId ?? "todas")} hoy={hoy} params={paramsDe(sp)} forma={formaDe(sp.forma)} />;
 
 
   const params = paramsDe(sp);
@@ -67,6 +67,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             unidades={unidades.datos}
             saldos={saldos.datos}
             costoDelMes={costoDelMes}
+            forma={formaDe(sp.forma)}
             fallas={[chequeos.falla, lineas.falla, unidades.falla, saldos.falla].filter((f): f is string => !!f)}
           />
         </div>

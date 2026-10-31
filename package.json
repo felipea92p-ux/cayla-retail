@@ -179,6 +179,7 @@
     "pruebas:tienda-lugares": "node scripts/pruebas/tienda_lugares.mjs",
     "pruebas:tienda-inicio": "node scripts/pruebas/tienda_inicio.mjs",
     "pruebas:tienda-rapida": "node scripts/pruebas/tienda_rapida.mjs",
+    "pruebas:tienda-precio-por-lotes": "node scripts/pruebas/tienda_precio_por_lotes.mjs",
     "pruebas:base-resiliencia": "node scripts/pruebas/base_resiliencia.mjs",
     "pruebas:vitrina-looks": "node scripts/pruebas/vitrina_looks.mjs",
     "pruebas:vitrina-probador": "node scripts/pruebas/vitrina_probador.mjs",
