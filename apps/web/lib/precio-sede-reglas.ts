@@ -13,6 +13,7 @@
  */
 
 import type { CampoDeGuia } from "./guia-campos";
+import { sinBlancosDeMiles } from "./numero-escrito";
 import { FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 /** Una sede con precio propio, como la devuelve `fn_precios_sede_producto`. */
@@ -95,7 +96,10 @@ export const AVISO_DIFERENCIA = 0.3;
 
 /** El monto como lo escribe una persona: «129,90», «S/ 129.90», «129». Nada válido → null. */
 export function leerMonto(texto: string): number | null {
-  const limpio = texto.replace(/s\/?/gi, "").replace(/\s/g, "").replace(",", ".");
+  // Los blancos los decide la regla única: «1 200» son mil doscientos, pero «12 8 5» es un pegado de tres celdas y no se adivina.
+  const sinBlancos = sinBlancosDeMiles(texto.replace(/s\/?/gi, ""));
+  if (sinBlancos === null) return null;
+  const limpio = sinBlancos.replace(",", ".");
   if (limpio === "" || !/^\d+(\.\d{1,2})?$/.test(limpio)) return null;
   const n = Number(limpio);
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;

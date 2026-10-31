@@ -61,7 +61,8 @@ import {
 
 const soloDigitos = (s: string) => s.replace(/[^\d]/g, "");
 const soloMonto = (s: string) => s.replace(/[^\d.,\s]/g, "");
-const soloDescuento = (s: string) => s.replace(/[^\d.,]/g, "");
+// Los blancos se conservan (como en `soloMonto`): si se borran aquí, `leerDescuento` ya no puede ver un pegado de varias celdas.
+const soloDescuento = (s: string) => s.replace(/[^\d.,\s]/g, "");
 
 function EfectoEnElTope({ efecto, tope }: { efecto: ReturnType<typeof efectoEnElTope>; tope: number }) {
   return (

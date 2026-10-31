@@ -2,6 +2,7 @@
 // Las mismas reglas las cierra la base (`guardar_metas_tienda`, `guardar_efecto_campana`, checks y disparadores de
 // 20260924210000); aquí solo se dicen con una frase clara ANTES de ir a la base.
 
+import { sinBlancosDeMiles } from "./numero-escrito";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
 
 export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"] as const;
@@ -20,7 +21,9 @@ export function parsearMonto(texto: string): Resultado<number | null> {
 
 /** "25", "+25", "-15", "25 %" → número. Vacío → 0 (la meta no cambia). Entre −99 y 300, como la base. */
 export function parsearPorcentaje(texto: string): Resultado<number> {
-  const limpio = texto.replace(/%|\s/g, "").replace(",", ".").replace(/^\+/, "");
+  const sinBlancos = sinBlancosDeMiles(texto.replace(/%/g, ""));
+  if (sinBlancos === null) return { ok: false, error: "Escribe cuánto sube la meta, por ejemplo 25 o −15." };
+  const limpio = sinBlancos.replace(",", ".").replace(/^\+/, "");
   if (limpio === "") return { ok: true, valor: 0 };
   if (!/^-?\d+(\.\d{1,2})?$/.test(limpio)) return { ok: false, error: "Escribe cuánto sube la meta, por ejemplo 25 o −15." };
   const n = Number(limpio);
@@ -290,7 +293,8 @@ export function leerParametrosFinanzas(data: unknown): ParametrosFinanzas | null
 export function validarParametrosFinanzas(b: { minimoCaja: string; avisoGastoPct: string; avisoVenceDias: string }): Resultado<ParametrosFinanzas> {
   const minimo = parsearMonto(b.minimoCaja);
   if (!minimo.ok) return { ok: false, error: `Mínimo de caja: ${minimo.error}` };
-  const pct = Number(b.avisoGastoPct.replace(/%|\s/g, "").replace(",", "."));
+  const pctEscrito = sinBlancosDeMiles(b.avisoGastoPct.replace(/%/g, ""));
+  const pct = pctEscrito === null ? Number.NaN : Number(pctEscrito.replace(",", "."));
   if (!Number.isFinite(pct) || pct <= 0 || pct > 500) return { ok: false, error: "El aviso de gasto va de 1 % a 500 %." };
   const dias = Number(b.avisoVenceDias.trim());
   if (!Number.isInteger(dias) || dias < 1 || dias > 60) return { ok: false, error: "Los días de aviso van de 1 a 60." };
