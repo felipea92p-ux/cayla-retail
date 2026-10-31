@@ -278,3 +278,29 @@ Buscador, filtros, píldoras de lo filtrado, pie y la hoja del gasto no cambian:
 **DECIDÍ:** el separador decidido (versalitas de 11 px) en vez del serif de la maqueta, porque `<SeparadorDia>` es la única pieza del día en el ERP. Y el porqué de la marca va en el `title` y en el texto del lector, no en una frase a la vista. **Corregido el mismo día (/formidable):** decía que la frase estaba en la hoja del gasto, a un toque, y no está; ponerla ahí es uno de los 3 cambios que esperan el OK de Felipe. **DESCARTÉ:** juntar
 lo repetido por nombre solamente (un «Baño» del cajón y otro por Yape se leerían como pagados igual) y esconder los anulados (un gasto nunca se
 borra de la vista). **SE ROMPE SI:** la mesa de mando deja de llamarse `.mesa-telar`: el separador se pega bajo la cabecera y queda tapado por la mesa.
+
+## Actualización 2026-10-30 (e) — Lo que pide algo no se esconde, y «sin comprobante» es un solo número (Felipe, los 3 cambios de /formidable)
+
+`/formidable` de la lista por día (`docs/formidable/finanzas-gastos.md`): la primera prueba ciega no lo logró al primer intento porque la única
+factura vencida estaba tras «Ver los días de antes»; el porqué de cada marca solo se veía con el mouse; y arriba se avisaba «21 sin comprobante»
+mientras la lista marcaba 1. Felipe aprobó los tres cambios (el tercero toca cómo se avisa del IGV, una regla de dinero):
+
+1. **«Ver los días de antes» dice lo que esconde** que pide algo, con el tono de su marca: «1 vencida» (rojo, con su punto que late, la
+   excepción de ADR-0136 para «Vencida»), «N vencen esta semana» y «N sin comprobante» (ámbar). Una factura vencida es vieja por definición:
+   casi siempre cae en los días de antes.
+2. **La hoja del gasto abre con la marca de la fila y su porqué** (`avisoDelGasto`, el mismo texto de la fila en un `<Aviso>`), con «Ir a Por
+   pagar» si la cuenta tiene el módulo `por_pagar`, y «Pago» en pasado si ya venció (`pagoACredito`). En el celular la acción baja bajo el
+   texto, como el aviso de Plan del piso (la pieza `Aviso` no cambia).
+3. **«Sin comprobante» se cuenta igual en todas partes:** el chip de la cifra, la bandeja y «Te toca» cuentan lo de S/ 300 o más
+   (`sinComprobanteGrande` sobre `pideComprobante`, la misma regla de la marca) y dicen el IGV que se recuperaría con factura; lo chico sin
+   papel (el mototaxi, el baño) ya no es una alarma. «Ver cuáles» pone el filtro nuevo «Sin comprobante, de S/ 300 o más»; «Sin comprobante» a
+   secas sigue en el filtro. «Te toca» lee la lista del mes junto al panel, en la misma vuelta.
+
+La segunda ciega lo logró al primer intento (leyes 6,4 → 7,6).
+
+**DECIDÍ:** contar lo grande sin papel con la lista del mes que la pantalla ya lee, y no con `fn_gastos_panel`, para no partir la regla de los
+S/ 300 entre el código y la base sin una migración. **DESCARTÉ:** poner «· 1 ya venció» en la tarjeta «Por pagar de gastos» contando con la lista
+del mes (la tarjeta suma la deuda de todos los meses: el número saldría falso con una vencida de un mes anterior) y leerlo de
+`fn_por_pagar_consolidado` (exige el módulo Cuentas y dinero). Queda pendiente de una migración que haga que `fn_gastos_panel` devuelva las vencidas.
+**SE ROMPE SI:** la lista del mes no responde: el chip y la bandeja no avisan lo sin comprobante (la pantalla ya dice que una parte no
+respondió) y «Te toca» se marca incompleto.
