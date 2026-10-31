@@ -16,6 +16,8 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { LeerQrComprobante } from "@/components/finanzas/gastos/LeerQrComprobante";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -24,6 +26,7 @@ import { soles } from "@/lib/compras-reglas";
 import { sugerirSerie } from "@/lib/sugerencias-hoja-gasto";
 import { proveedorDelRuc, serieNumeroLegible } from "@/lib/hoja-gasto-reglas";
 import type { GastoFila, ProveedorGasto } from "@/lib/gastos-reglas";
+import { leerQrComprobante, serieNumeroDelQr, type QrComprobante } from "@/lib/qr-comprobante-reglas";
 import {
   PAPELES_TARDIOS,
   RPC_AGREGAR_COMPROBANTE,
@@ -39,12 +42,15 @@ export function HojaComprobanteDeGasto({
   gasto: g,
   proveedores,
   hoy,
+  rucEmpresa,
   onVolver,
   onCerrar,
 }: {
   gasto: GastoFila;
   proveedores: ProveedorGasto[];
   hoy: string;
+  /** El RUC de CAYLA, para avisar si el QR dice que la factura está a nombre de otro. */
+  rucEmpresa: string | null;
   /** Vuelve a la hoja del gasto sin guardar. */
   onVolver: () => void;
   onCerrar: () => void;
@@ -53,12 +59,27 @@ export function HojaComprobanteDeGasto({
   const responsable = useResponsable();
   const [b, setB] = useState<BorradorComprobante>(() => borradorInicial(g));
   const [guardando, setGuardando] = useState(false);
+  const [qr, setQr] = useState<QrComprobante | null>(null);
+  const [camara, setCamara] = useState(false);
   const poner = <K extends keyof BorradorComprobante>(k: K, v: BorradorComprobante[K]) => setB((x) => ({ ...x, [k]: v }));
   const existente = proveedorDelRuc(b.ruc, proveedores);
   const proveedorListo = Boolean(existente) || (validarRuc(b.ruc).valido && b.razonSocial.trim().length > 1);
   const problema = problemaDelComprobante(b, { proveedorListo, hoy, monto: g.montoTotal });
   const guia = useGuiaCampos(camposDelComprobante(b, { proveedorListo, hoy }, { listo: responsable.listo, motivo: responsable.motivo }));
   const pasa = loQuePasaAlGuardar(g, b);
+
+  /** Lo leído llena la hoja. El IGV del papel se usa solo si su total es el del gasto (si no, es otro papel: lo avisa y se queda el de la tasa). */
+  function aplicarQr(leido: QrComprobante) {
+    setQr(leido);
+    setB((x) => ({
+      ...x,
+      tipo: leido.tipo,
+      ruc: leido.rucEmisor,
+      serieNumero: serieNumeroDelQr(leido),
+      fecha: leido.fecha,
+      igv: leido.tipo === "factura" && Math.abs(leido.total - g.montoTotal) < 0.01 ? leido.igv : null,
+    }));
+  }
 
   async function guardar() {
     if (problema) return avisar.error(problema);
@@ -86,6 +107,24 @@ export function HojaComprobanteDeGasto({
     router.refresh();
   }
 
+  // La cámara va EN LUGAR de la hoja (nunca una hoja sobre otra); lo escrito se queda, porque esta pieza sigue montada.
+  if (camara) {
+    return (
+      <EscanerBusqueda
+        titulo="Leer el QR del comprobante"
+        pista="Centra el QR de la factura o la boleta en el cuadro"
+        onCodigo={(codigo) => {
+          const leido = leerQrComprobante(codigo);
+          setCamara(false);
+          if (leido) aplicarQr(leido);
+          else avisar.error("Ese no es el QR de una factura o boleta electrónica.");
+        }}
+        onEscribir={() => setCamara(false)}
+        onClose={() => setCamara(false)}
+      />
+    );
+  }
+
   return (
     <Modal
       variante="hoja"
@@ -100,6 +139,8 @@ export function HojaComprobanteDeGasto({
           void guardar();
         }}
       >
+        <LeerQrComprobante leido={qr} monto={g.montoTotal} rucEmpresa={rucEmpresa} onLeido={aplicarQr} onCamara={() => setCamara(true)} />
+
         <CampoGuiado id="tipo" guia={guia} titulo="¿Qué llegó?">
           <div className="hoja-gasto-opciones" role="radiogroup" aria-label="Qué comprobante llegó">
             {PAPELES_TARDIOS.map((c) => (

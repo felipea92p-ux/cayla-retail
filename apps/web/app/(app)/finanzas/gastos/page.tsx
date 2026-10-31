@@ -17,6 +17,7 @@ import {
   getTiposActivo,
 } from "@/lib/gastos";
 import { getDestinosDeposito } from "@/lib/cuentas-dinero";
+import { getEmpresaParaOrden } from "@/lib/ordenes-compra";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
 import { verDeLaVista } from "@/lib/vista-global";
@@ -43,13 +44,15 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   const parametrosP = getParametrosFinanzas();
 
   // Los bancos para «¿A qué cuenta llegó?» al clasificar un depósito (vacío sin Cuentas y dinero, ADR-0195 F3).
-  const [contexto, categorias, proveedores, tiposActivo, destinosDeposito, telar] = await Promise.all([
+  const [contexto, categorias, proveedores, tiposActivo, destinosDeposito, telar, empresa] = await Promise.all([
     getContextoGastos(),
     getCategoriasGasto(),
     getProveedoresParaGasto(),
     getTiposActivo(),
     getDestinosDeposito(),
     getSedesDelTelar(),
+    // El RUC de CAYLA, para avisar si el QR de una factura dice que está a nombre de otro (ADR-0588). Sin él, no se compara.
+    getEmpresaParaOrden(),
   ]);
   // Varias sedes marcadas: `verDeVarias`; una, ninguna o quien no ve todo: como siempre.
   const elegidas = sedesElegidas(sedesDeLaUrl(sp), telar.sedes, veTodo, persona.ubicacionId);
@@ -109,6 +112,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       puedeConfigurar={persona.modulos.some((m) => m.clave === "configuracion")}
       puedeVerImpuestos={persona.modulos.some((m) => m.clave === "impuestos")}
       puedeVerPorPagar={persona.modulos.some((m) => m.clave === "por_pagar")}
+      rucEmpresa={empresa?.ruc ?? null}
       ver={ver}
       mes={mes}
       hoy={hoy}

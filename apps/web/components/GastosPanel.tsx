@@ -118,6 +118,7 @@ export function GastosPanel({
   puedeConfigurar = esLider,
   puedeVerImpuestos = esLider,
   puedeVerPorPagar = false,
+  rucEmpresa = null,
   ver,
   mes,
   hoy,
@@ -151,6 +152,8 @@ export function GastosPanel({
   puedeVerImpuestos?: boolean;
   /** Si la cuenta ve Compras ▸ Por pagar: el aviso de una factura que se debe lleva ahí. */
   puedeVerPorPagar?: boolean;
+  /** El RUC de CAYLA (Configuración ▸ Empresa), para el aviso del QR de una factura a nombre de otro (ADR-0588). */
+  rucEmpresa?: string | null;
   ver: Ver;
   mes: string;
   hoy: string;
@@ -517,6 +520,7 @@ export function GastosPanel({
           egreso={registrar.egreso}
           fijo={registrar.fijo}
           hoy={hoy}
+          rucEmpresa={rucEmpresa}
           onCerrar={() => setRegistrar(null)}
         />
       )}
@@ -542,7 +546,7 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} proveedores={proveedores} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
+      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} proveedores={proveedores} rucEmpresa={rucEmpresa} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -677,6 +681,7 @@ function GastoDetalleModal({
   gasto: g,
   categorias,
   proveedores,
+  rucEmpresa,
   hoy,
   puedeVerImpuestos,
   puedeVerPorPagar,
@@ -686,6 +691,7 @@ function GastoDetalleModal({
   /** Para corregir su categoría y para «Llegó el comprobante» (ADR-0588). */
   categorias: CategoriaGasto[];
   proveedores: ProveedorGasto[];
+  rucEmpresa: string | null;
   hoy: string;
   puedeVerImpuestos: boolean;
   /** Con el módulo Por pagar, el aviso de una factura que se debe lleva a pagarla (`/compras/por-pagar`); sin él, solo lo dice. */
@@ -729,7 +735,7 @@ function GastoDetalleModal({
 
   // Corregir abre en el lugar de esta hoja (nunca una hoja sobre otra) y vuelve a ella con la flecha (ADR-0588).
   if (corrigiendo) return <HojaCorregirGasto gasto={g} categorias={categorias} onVolver={() => setCorrigiendo(false)} onCerrar={onCerrar} />;
-  if (recibiendo) return <HojaComprobanteDeGasto gasto={g} proveedores={proveedores} hoy={hoy} onVolver={() => setRecibiendo(false)} onCerrar={onCerrar} />;
+  if (recibiendo) return <HojaComprobanteDeGasto gasto={g} proveedores={proveedores} hoy={hoy} rucEmpresa={rucEmpresa} onVolver={() => setRecibiendo(false)} onCerrar={onCerrar} />;
   if (sinPapel) return <HojaNoEmiteGasto gasto={g} onVolver={() => setSinPapel(false)} onCerrar={onCerrar} />;
 
   if (anulando) {

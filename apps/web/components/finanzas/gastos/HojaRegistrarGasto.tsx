@@ -14,6 +14,9 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { LeerQrComprobante } from "@/components/finanzas/gastos/LeerQrComprobante";
+import { leerQrComprobante, serieNumeroDelQr, type QrComprobante } from "@/lib/qr-comprobante-reglas";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import { FichaDePagoTarjeta } from "@/components/gasto-fijo/FichaDePagoTarjeta";
 import { diaLima } from "@/lib/fechas-lima";
@@ -83,6 +86,7 @@ export function HojaRegistrarGasto({
   egreso,
   fijo,
   hoy,
+  rucEmpresa = null,
   onCerrar,
 }: {
   categorias: CategoriaGasto[];
@@ -100,6 +104,8 @@ export function HojaRegistrarGasto({
   /** Registrar este gasto fijo del mes: llega lleno, con su sede y su categoría fijas, y lo cierra. */
   fijo?: GastoFijoMes;
   hoy: string;
+  /** El RUC de CAYLA, para avisar si el QR de una factura dice que está a nombre de otro (ADR-0588). */
+  rucEmpresa?: string | null;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -123,6 +129,24 @@ export function HojaRegistrarGasto({
     setH((x) => ({ ...x, [k]: v }));
     if (k === "categoria" || k === "sede" || k === "fecha") setGastoFijoId(undefined);
   };
+  // El QR del comprobante (ADR-0588): lo leído llena el tipo, el RUC, la serie y el número, la fecha y, si aún no hay, el monto. La cámara va EN
+  // LUGAR de la hoja (nunca una hoja sobre otra); lo escrito se queda, porque esta pieza sigue montada.
+  const [qr, setQr] = useState<QrComprobante | null>(null);
+  const [camara, setCamara] = useState(false);
+  function aplicarQr(leido: QrComprobante) {
+    setQr(leido);
+    // Como tocar «Factura» o «Boleta»: también deja el medio de pago en uno que sirva para ese papel.
+    elegirComprobante(leido.tipo);
+    setH((x) => ({
+      ...x,
+      comprobante: leido.tipo,
+      ruc: leido.rucEmisor,
+      serieNumero: serieNumeroDelQr(leido),
+      fecha: x.egresoId ? x.fecha : leido.fecha,
+      monto: x.monto.trim() ? x.monto : leido.total.toFixed(2),
+    }));
+    setGastoFijoId(undefined);
+  }
 
   // De dónde salió la plata: la cuenta (el cajón, la caja fuerte, un banco, la tarjeta) y, con un banco, por qué camino. Las mismas
   // reglas que la hoja de antes: un gasto de una tienda solo sale del cajón de ESA tienda; los de la empresa, de cualquiera.
@@ -290,6 +314,23 @@ export function HojaRegistrarGasto({
 
   const nombreSede = (s: SedeTelar) => s.nombre;
 
+  if (camara) {
+    return (
+      <EscanerBusqueda
+        titulo="Leer el QR del comprobante"
+        pista="Centra el QR de la factura o la boleta en el cuadro"
+        onCodigo={(codigo) => {
+          const leido = leerQrComprobante(codigo);
+          setCamara(false);
+          if (leido) aplicarQr(leido);
+          else avisar.error("Ese no es el QR de una factura o boleta electrónica.");
+        }}
+        onEscribir={() => setCamara(false)}
+        onClose={() => setCamara(false)}
+      />
+    );
+  }
+
   return (
     <Modal
       variante="hoja"
@@ -367,6 +408,7 @@ export function HojaRegistrarGasto({
 
           {papel && (
             <div className="hoja-gasto-papel anim-entra" data-sin-cascada>
+              <LeerQrComprobante leido={qr} monto={monto.ok ? monto.valor : null} rucEmpresa={rucEmpresa} onLeido={aplicarQr} onCamara={() => setCamara(true)} />
               <CampoGuiado id="ruc" guia={guia}>
                 <ConsultaDocumento
                   tipo="ruc"

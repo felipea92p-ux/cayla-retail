@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 119,
+  "total": 126,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -13,6 +13,13 @@
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
       "LapizEditar «la cuenta»",
       "BotonCopiar «{que}»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "SegmentoDeslizante «Qué hacer con la cámara»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
     ],
     "components/GastosFijosYActivos.tsx": [
       "BotonEditar «Editar fijos»",
@@ -135,6 +142,10 @@
       "Boton «Cancelar»",
       "Boton «Guardar y registrar otro (⌘⇧↵)»",
       "Boton «Registrar (⌘↵)»"
+    ],
+    "components/finanzas/gastos/LeerQrComprobante.tsx": [
+      "CampoTexto «QR del comprobante · opcional»",
+      "button «Con la cámara»"
     ],
     "components/finanzas/gastos/RitmoGastos.tsx": [
       "button «{g.descripcion}»",
