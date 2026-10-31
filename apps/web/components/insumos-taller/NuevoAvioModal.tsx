@@ -251,7 +251,7 @@ export function NuevoAvioModal({
               <section data-guia="prod-avio-nuevo.que-es" className="space-y-3">
                 <TituloGrupo>Qué avío es</TituloGrupo>
                 <CampoGuiado id="clase" guia={guia}>
-                  <Campo etiqueta={guia.etiqueta("clase", "Clase de avío")} pie="De aquí salen en qué se cuenta, si lleva color y qué medida se le pide." sinPie={false}>
+                  <Campo etiqueta={guia.etiqueta("clase", "Clase de avío")} pie="De aquí salen en qué se cuenta, si lleva color y qué medida se le pide. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller." sinPie={false}>
                     {leyoClases ? (
                       <ComboBuscable
                         valor={claseId}

@@ -1024,7 +1024,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-insumos.nuevo" }],
       titulo: "Qué avío es",
-      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen tres cosas solas: en qué se cuenta, si lleva color y qué medida se le pide. Si es otra cosa, la creas ahí mismo. El código se arma solo con las letras de su clase.",
+      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen solas la unidad, si lleva color y qué medida se le pide. El código se arma solo. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller.",
     },
     {
       id: "avio-unidad",
