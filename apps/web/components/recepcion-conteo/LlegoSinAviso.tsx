@@ -137,7 +137,7 @@ export function LlegoSinAviso({
     {!hayListaArriba && (
       <div className="flex flex-wrap items-center gap-3">
         <BotonSinAviso abierto={abierto} onCambiar={() => setAbierto((a) => !a)} />
-        {!abierto && <p className="text-[13.5px] text-taupe">¿Llegó algo que nadie despachó desde el sistema? Ábrelo aquí.</p>}
+        {!abierto && <p className="text-[15px] text-taupe">¿Llegó algo que nadie despachó desde el sistema? Ábrelo aquí.</p>}
       </div>
     )}
     {abierto && (
@@ -160,7 +160,7 @@ export function LlegoSinAviso({
           className="min-w-0 space-y-4"
         >
           <CampoGuiado id="sin-aviso-proveedor" guia={campos}>
-            <p className="mb-1.5 text-[13px] font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De quién es?")}</p>
+            <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De quién es?")}</p>
             <Buscador valor={buscar} onCambio={setBuscar} placeholder="Busca el proveedor por nombre, marca o RUC" etiqueta="Buscar el proveedor" />
             <ul className="mt-2 space-y-1.5" role="radiogroup" aria-label="Proveedor">
               {aLaVista.map((p) => (
@@ -179,7 +179,7 @@ export function LlegoSinAviso({
                     </span>
                     <span className="min-w-0 flex-1">
                       <b className="block truncate text-[14.5px] text-tinta">{p.nombre}</b>
-                      {(p.marcas ?? []).length > 0 && <small className="block truncate text-[12.5px] text-taupe">{(p.marcas ?? []).join(" · ")}</small>}
+                      {(p.marcas ?? []).length > 0 && <small className="block truncate text-sm text-taupe">{(p.marcas ?? []).join(" · ")}</small>}
                     </span>
                     {p.id === proveedorId && <Check aria-hidden className="h-4 w-4 text-verde" />}
                   </button>
@@ -192,7 +192,7 @@ export function LlegoSinAviso({
                   </Vacio>
                 </li>
               )}
-              {coinciden.length > primeros.length && <li className="px-1 text-xs text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
+              {coinciden.length > primeros.length && <li className="px-1 text-sm text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
               {/* Siempre a la vista, al final: no depende de lo que se busque. */}
               <li>
                 <button
@@ -209,21 +209,21 @@ export function LlegoSinAviso({
                   </span>
                   <span className="min-w-0 flex-1">
                     <b className="block text-[14.5px] text-tinta">No sé de quién es</b>
-                    <small className="block text-[12.5px] text-taupe">Se cuenta igual. Antes de cerrar, pregúntale a Compras y elígelo.</small>
+                    <small className="block text-sm text-taupe">Se cuenta igual. Antes de cerrar, pregúntale a Compras y elígelo.</small>
                   </span>
                   {proveedorId === SIN_PROVEEDOR && <Check aria-hidden className="h-4 w-4 text-verde" />}
                 </button>
               </li>
             </ul>
             {puedeAgregarProveedor ? (
-              <p className="mt-2 text-xs text-taupe">
+              <p className="mt-2 text-sm text-taupe">
                 ¿No está?{" "}
                 <button type="button" onClick={() => alta.abrir(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
                   + Agregar proveedor
                 </button>
               </p>
             ) : (
-              <p className="mt-2 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue, o elige «No sé de quién es».</p>
+              <p className="mt-2 text-sm text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue, o elige «No sé de quién es».</p>
             )}
           </CampoGuiado>
 
@@ -259,7 +259,7 @@ export function LlegoSinAviso({
               />
             </CampoGuiado>
             <CampoGuiado id="sin-aviso-quien" guia={campos}>
-              <p className="mb-1.5 text-[13px] font-semibold text-tinta">{campos.etiqueta("sin-aviso-quien", "Quién recibe")}</p>
+              <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-quien", "Quién recibe")}</p>
               <ComboResponsable control={responsable} compacto />
             </CampoGuiado>
           </div>
@@ -278,7 +278,7 @@ export function LlegoSinAviso({
             </span>
           </Boton>
 
-          <p className="nota-cayla text-[13.5px]">
+          <p className="nota-cayla text-[15px]">
             Cuando Compras lo despache, el envío aparecerá arriba con lo que dijeron por categoría y marca, y la pantalla comparará sola. Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b className="text-tinta">Traslados</b>.
           </p>
         </form>

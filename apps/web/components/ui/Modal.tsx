@@ -83,7 +83,10 @@ type Props = {
       sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
       rápido. Antes había tres: crema con sombra y título de 18 px (la de fábrica), «hoja» (esta) y «papel» (esta con la ✕). `hoja` y
       `papel` quedan como nombres que ya no cambian la cara: «papel» todavía pone la ✕ (como `conCerrar`). */
-  variante?: "papel" | "hoja" | "camara" | "ticket";
+  variante?: "papel" | "hoja" | "camara" | "ticket" | "vidrio";
+  /* «vidrio» (Mi perfil, Felipe 2026-10-31, maqueta docs/maquetas/mi-perfil-2026-10/, «A · Cristal líquido»): la hoja es vidrio
+     esmerilado que deja ver la pantalla de atrás (`.hoja-vidrio`, app/estilos/perfil-vidrio.css). Su contenido dibuja su propia
+     cabecera: el título y la frase quedan para lectores de pantalla. Es la única hoja de vidrio del ERP (excepción de ADR-0136). */
   /* «camara» (Vender en el teléfono, 2026-09-25): pantalla completa, sin padding ni borde, fondo tinta; el título queda
      para lectores de pantalla y el contenido dibuja su propia barra (EscanerCamara). Hereda igual el velo, la entrada,
      la cascada de sus piezas y el foco atrapado. */
@@ -108,6 +111,8 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   const ancho = anchoPropio ?? ANCHO_HOJA[tamano];
   // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
   const deCara = variante !== "camara" && variante !== "ticket";
+  // El vidrio tiene la forma de toda hoja, pero su cabecera la dibuja su contenido.
+  const vidrio = variante === "vidrio";
   const [cerrando, setCerrando] = useState(false);
   // La hoja se fue con el dedo (ADR-0479): ya está abajo, así que la salida de siempre no se pone encima, y el
   // desmontaje espera lo que tarda en llegar (`msSalidaPropia`) y no los 220 ms de la animación de salida.
@@ -261,7 +266,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
                     // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479). Con
                     // `viewport-fit=cover` la hoja llega a la barrita del iPhone: suma ese margen abajo y el pie pegado
                     // (`.pie-hoja-fijo`, que lee `--borde-abajo`) lo absorbe igual que absorbe el `p-6` (ADR-0479, actividad 9).
-                    `${altoFijo ? "scroll-cayla overflow-y-auto sm:flex sm:flex-col sm:overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
+                    `${altoFijo ? "scroll-cayla overflow-y-auto sm:flex sm:flex-col sm:overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl ${vidrio ? "hoja-vidrio" : "border border-sand bg-papel"} p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
               cerrando ? (salidaPropia ? "" : "anim-modal-sale") : "anim-modal-entra"
             } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}
@@ -293,18 +298,18 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
               disabled={bloqueado}
               aria-label="Cerrar"
               {...(variante === "papel" ? {} : { "data-sin-cascada": true })}
-              className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+              className="cerrar-hoja absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
             >
               <X aria-hidden className="h-4 w-4" />
             </button>
           )}
           {arriba}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${deCara ? "text-2xl leading-tight" : "sr-only"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${deCara && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${deCara && !vidrio ? "text-2xl leading-tight" : "sr-only"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${deCara && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>
-              <p className={deCara ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "sr-only"}>{subtitulo}</p>
+              <p className={deCara && !vidrio ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "sr-only"}>{subtitulo}</p>
             </Dialog.Description>
           ) : (
             // Radix exige una Description por accesibilidad aunque el modal no muestre una visualmente.

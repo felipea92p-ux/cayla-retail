@@ -60,7 +60,7 @@ export function BotonDeBolsas({ bolsas, carrito, bloqueado, soloIcono, onAbrir }
       onClick={onAbrir}
       disabled={bloqueado}
       data-guia="vender.bolsas"
-      className="h-11 shrink-0 px-3 text-[13px] sm:h-9"
+      className="h-11 shrink-0 px-3 text-sm sm:h-9"
     >
       <span className="flex items-center gap-2">
         <ShoppingBag className="h-4 w-4 shrink-0" aria-hidden />
@@ -104,13 +104,13 @@ export function AgregarBolsaModal({ bolsas, carrito, ubicacionEtiqueta, onAgrega
                     <ShoppingBag className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13.5px] font-semibold text-tinta">{nombreDeBolsa(b)}</span>
-                    <span className="block truncate text-[11.5px] text-tinta/60 tabular-nums">
+                    <span className="block truncate text-[15px] font-semibold text-tinta">{nombreDeBolsa(b)}</span>
+                    <span className="block truncate text-sm text-tinta/60 tabular-nums">
                       {cobrable ? `Quedan ${b.stockAqui - lleva > 0 ? b.stockAqui - lleva : 0} aquí` : "Sin stock aquí"}
                     </span>
                   </span>
                   {lleva > 0 && (
-                    <span key={lleva} className="anim-revelar shrink-0 text-[11px] font-semibold text-rojo tabular-nums">
+                    <span key={lleva} className="anim-revelar shrink-0 text-sm font-semibold text-rojo tabular-nums">
                       {lleva} en el ticket
                     </span>
                   )}

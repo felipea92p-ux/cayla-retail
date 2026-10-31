@@ -129,7 +129,7 @@ export function ClientasPanel({
       <EncabezadoPagina
         sede="Todas las sedes"
         titulo="Fichas"
-        subtitulo="Aquí están los clientes que la tienda recuerda. Toca uno para ver su historia y sus beneficios."
+        subtitulo="Los clientes que la tienda recuerda. Toca uno para ver su historia y sus beneficios."
         acciones={
           // A 375 px los botones van con `px-3`, «Descargar» a secas y «Cartel» sin su «del club» ni su ícono: «Descargar» y «Cartel»
           // caben en una fila y «+ Nuevo cliente» baja a la suya (con el «Más» de antes cabían los tres). La fila se parte sola.
@@ -224,8 +224,7 @@ export function ClientasPanel({
       </div>
 
       <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties} data-guia="clientas.nota">
-        La <b>sede</b> de cada cliente es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «No reciben novedades» son
-        miembros que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.
+        La <b>sede</b> de cada cliente es donde más compró en 12 meses. «No reciben novedades»: miembros que aún no las pidieron por WhatsApp; solo les llegan los avisos informativos.
       </p>
 
       {abriendoAlta && (
@@ -280,9 +279,9 @@ function FilaClienta({ c, hoy, verCompleto, onAbrir, guiaPrimera }: { c: Clienta
             </Chip>
           )}
         </span>
-        <span className="block text-[13px] text-tinta/70">{fraseDeLaFila(c)}</span>
+        <span className="block text-sm text-tinta/70">{fraseDeLaFila(c)}</span>
       </span>
-      <span className="col-span-2 grid gap-0.5 text-xs text-tinta/65 sm:col-span-1 sm:justify-items-end sm:text-right">
+      <span className="col-span-2 grid gap-0.5 text-sm text-tinta/65 sm:col-span-1 sm:justify-items-end sm:text-right">
         {ultima ? (
           <span>
             Última compra <b className="font-medium text-tinta">{ultima.hace}</b>

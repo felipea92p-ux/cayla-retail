@@ -240,10 +240,10 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
         </div>
 
         {!algunaElegida && telasDelEstante.length > 0 && (
-          <p className="text-[12.5px] text-tinta/70">Si eliges la tela, la orden te dice cuántos metros pedir y si alcanzan.</p>
+          <p className="text-sm text-tinta/70">Si eliges la tela, la orden te dice cuántos metros pedir y si alcanzan.</p>
         )}
         {tejidoId && nombreTejido && (
-          <p className="text-[12.5px] text-tinta/70">
+          <p className="text-sm text-tinta/70">
             {delTejido.length > 0 ? `El modelo es de ${nombreTejido}.` : `El modelo es de ${nombreTejido}, pero en Insumos todavía no hay telas de ${nombreTejido}.`}
           </p>
         )}
@@ -278,7 +278,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                     </span>
                     <div className="min-w-0">
                       <p className="truncate font-display text-[15px] leading-tight text-tinta">{fila.color.nombre}</p>
-                      <p className="text-[12px] tabular-nums text-taupe">{fila.color.prendas} {fila.color.prendas === 1 ? "prenda" : "prendas"}</p>
+                      <p className="text-sm tabular-nums text-taupe">{fila.color.prendas} {fila.color.prendas === 1 ? "prenda" : "prendas"}</p>
                     </div>
                   </div>
                   {insumo && plan > 0 && veredicto && <Derivado plan={plan} unidad={insumo.unidad} veredicto={veredicto} costo={costo !== undefined ? plan * costo : null} aproximado={puedePorTalla && !porTallaActiva} />}
@@ -366,21 +366,21 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
           {ofertaConsumo.tipo !== "ninguna" && (
             <div data-guia="prod-orden-nueva.consumo-modelo" className="space-y-1.5 px-3.5 py-3">
               {ofertaConsumo.tipo === "primera" ? (
-                <p className="text-[12.5px] text-tinta/70">
+                <p className="text-sm text-tinta/70">
                   Es la primera orden de este modelo: queda anotado que lleva <b className="font-semibold">{porPrenda(ofertaConsumo.nuevo, ofertaConsumo.unidad)}</b> por prenda. Lo medido al pasar un lote al stock lo corrige.
                 </p>
               ) : puedeCorregirConsumo ? (
                 <>
-                  <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta">
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm text-tinta">
                     <Casilla marcada={fijarConsumo} onCambio={() => onFijarConsumo(!fijarConsumo)} etiqueta="Dejar este consumo como el del modelo" />
                     Dejar <b className="font-semibold">{porPrenda(ofertaConsumo.nuevo, ofertaConsumo.unidad)}</b> por prenda como el consumo del modelo
                   </label>
-                  <p className="pl-[34px] text-[12.5px] text-tinta/70">
+                  <p className="pl-[34px] text-sm text-tinta/70">
                     Hoy el modelo dice {porPrenda(ofertaConsumo.actual, ofertaConsumo.unidad)} ({ofertaConsumo.fuente === "medido" ? "lo medido en las órdenes cerradas" : "lo que se anotó en una orden o se declaró"}). Sin marcar, solo esta orden usa lo que escribiste.
                   </p>
                 </>
               ) : (
-                <p className="text-[12.5px] text-tinta/70">
+                <p className="text-sm text-tinta/70">
                   El modelo dice {porPrenda(ofertaConsumo.actual, ofertaConsumo.unidad)} por prenda y escribiste otra cifra: solo esta orden usa la tuya. Para cambiar el consumo del modelo, pídeselo a quien edita el catálogo.
                 </p>
               )}
@@ -444,12 +444,12 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   </div>
                 );
               })}
-              {aviosDelModelo > 0 && avios.some((x) => !esTela(x.tela)) && <p className="text-[12.5px] text-tinta/70">Los avíos de esta lista los lleva ya el modelo: quita o cambia los que esta orden no use.</p>}
+              {aviosDelModelo > 0 && avios.some((x) => !esTela(x.tela)) && <p className="text-sm text-tinta/70">Los avíos de esta lista los lleva ya el modelo: quita o cambia los que esta orden no use.</p>}
               {avios.some((x) => esTela(x.tela)) && (
-                <p className="text-[12.5px] text-tinta/70">Un forro o una segunda tela se pide y se descuenta del estante aparte, y su costo entra al de la orden. No cambia cuánta tela lleva el modelo.</p>
+                <p className="text-sm text-tinta/70">Un forro o una segunda tela se descuenta aparte y su costo entra a la orden.</p>
               )}
               {mezclados.length > 0 && (
-                <p className="text-[12.5px] text-tinta/70">
+                <p className="text-sm text-tinta/70">
                   {mezclados.length === 1 ? `«${mezclados[0]}» ya es la tela de otro color` : `«${mezclados.join("», «")}» ya son la tela de otro color`}: lo que se gasta se anota por material, no por color, así que esta orden no aportará a lo que el modelo aprende de cuánta tela lleva.
                 </p>
               )}
@@ -458,25 +458,25 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   <Boton type="button" peso="fantasma" onClick={agregarAvio}>
                     + Agregar material
                   </Boton>
-                  {avios.length === 0 && <span className="text-[12.5px] text-tinta/70">Forro, otra tela, botones, cierres, etiquetas o hilo, si quieres que la orden los cuente.</span>}
+                  {avios.length === 0 && <span className="text-sm text-tinta/70">Forro, otra tela, botones, cierres, etiquetas o hilo, si quieres que la orden los cuente.</span>}
                 </div>
               )}
               {ofertaAvios.tipo === "primera" && (
-                <p className="text-[12.5px] text-tinta/70">Es la primera orden de este modelo con avíos: quedan anotados como los del modelo y la próxima orden los propone sola.</p>
+                <p className="text-sm text-tinta/70">Es la primera orden de este modelo con avíos: quedan anotados como los del modelo y la próxima orden los propone sola.</p>
               )}
               {ofertaAvios.tipo === "corregir" &&
                 (puedeCorregirAvios && onFijarAvios ? (
                   <div className="space-y-1.5">
-                    <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-tinta">
                       <Casilla marcada={fijarAvios} onCambio={() => onFijarAvios(!fijarAvios)} etiqueta="Dejar estos avíos como los del modelo" />
                       Dejar estos avíos como los del modelo
                     </label>
-                    <p className="pl-[34px] text-[12.5px] text-tinta/70">
+                    <p className="pl-[34px] text-sm text-tinta/70">
                       Hoy el modelo lleva {ofertaAvios.delModelo} {ofertaAvios.delModelo === 1 ? "avío" : "avíos"}. Sin marcar, solo esta orden usa los suyos y el modelo sigue igual.
                     </p>
                   </div>
                 ) : (
-                  <p className="text-[12.5px] text-tinta/70">El modelo ya tiene sus avíos y cambiaste algunos: solo esta orden usa los tuyos. Para cambiar los del modelo, pídeselo a quien edita el catálogo.</p>
+                  <p className="text-sm text-tinta/70">Cambiaste avíos del modelo: solo esta orden usa los tuyos.</p>
                 ))}
             </div>
           )}
@@ -489,7 +489,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
 /** «Plan 37.8 m · ya se usaron 10 m»: lo de una tela con consumo anotado. No se dice «Alcanza» aquí: el estante ya bajó con lo usado, y la sección Tela de la orden lo dice con la cuenta de lo que falta. */
 function YaUsado({ plan, usado, unidad }: { plan: number; usado: number; unidad: string }) {
   return (
-    <p className="text-[13px] tabular-nums text-taupe">
+    <p className="text-sm tabular-nums text-taupe">
       Plan {porPrenda(plan, unidad)} · ya {usado === 1 ? "se usó" : "se usaron"} {porPrenda(usado, unidad)}
     </p>
   );
@@ -498,7 +498,7 @@ function YaUsado({ plan, usado, unidad }: { plan: number; usado: number; unidad:
 /** «Pedir 37.8 m · Alcanza · ≈ S/ 756»: lo derivado de la fila. «Faltan» va en ámbar, nunca en rojo: la tela se pide, no es un error. */
 function Derivado({ plan, unidad, veredicto, costo, aproximado = false }: { plan: number; unidad: string; veredicto: { alcanza: boolean; faltan: number; conLoQueViene: boolean }; costo: number | null; aproximado?: boolean }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] tabular-nums">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm tabular-nums">
       <span className="text-tinta">
         Pedir <b className="font-semibold">{aproximado ? "≈ " : ""}{cantidad(cantidadAPedir(plan, unidad), unidad)}</b>
       </span>

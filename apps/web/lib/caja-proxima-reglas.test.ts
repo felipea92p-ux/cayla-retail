@@ -181,7 +181,7 @@ describe("el punto más bajo es UN solo número", () => {
 });
 
 describe("el aviso de «Hoy te toca» dice lo mismo que la tarjeta", () => {
-  const ESC = "/finanzas/reportes/escenarios";
+  const ESC = "/finanzas/reportes/flujo#y-si";
   /** El Resumen real (fixture) con la proyección puesta: así el aviso sale de `avisosParaDecidir`, como en la pantalla. */
   function avisoYTarjeta(p: Proyeccion, href: string | null = ESC) {
     const r = leerResumen(fixture.todas);

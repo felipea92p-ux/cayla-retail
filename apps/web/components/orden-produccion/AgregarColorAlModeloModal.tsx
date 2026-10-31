@@ -75,7 +75,7 @@ export function AgregarColorAlModeloModal({
         </div>
 
         {apagados.length > 0 && (
-          <p className="text-xs text-tinta/65">
+          <p className="text-sm text-tinta/65">
             {apagados.length === 1 ? `El color ${apagados[0]} está desactivado en este modelo: se reactiva` : `Los colores ${apagados.join(", ")} están desactivados en este modelo: se reactivan`} desde Editar producto.
           </p>
         )}

@@ -66,7 +66,7 @@ export function CurvaTallas({
               estado === "sin_stock" ? CLASE_TALLA.sin_stock : CLASE_TALLA.normal
             }`}
           >
-            <span className="text-[11px] font-semibold opacity-75 sm:font-normal">{f.talla ?? "Única"}</span>
+            <span className="text-sm font-semibold opacity-75 sm:font-normal">{f.talla ?? "Única"}</span>
             <span className={estado === "sin_stock" ? "line-through" : ""}>{cifra}</span>
           </button>
         );
@@ -83,12 +83,12 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
       {/* Las mismas palabras y el mismo tono del filtro «Hoy» y de la tarjeta (`lib/existencias-hoy.ts`). */}
       {q?.tipo === "por_colgar" && <ChipAlerta titulo={AYUDA_HOY.por_colgar}>{textoHoyDePrenda(q.tipo, q.n)}</ChipAlerta>}
       {q?.tipo === "sin_stock_atras" && (
-        <Chip tono={TONO_HOY[q.tipo]} className="text-xs">
+        <Chip tono={TONO_HOY[q.tipo]} className="text-sm">
           <span title={AYUDA_HOY[q.tipo]}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
       {q?.tipo === "en_pausa" && (
-        <Chip tono="pizarra" className="text-xs">
+        <Chip tono="pizarra" className="text-sm">
           <span title={AYUDA_HOY.en_pausa}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
@@ -198,17 +198,17 @@ export function ExistenciasPorPrenda({
               <span className="flex min-w-0 flex-1 items-center gap-3.5">
                 <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" {...categoriaDe(p)} />
                 <span className="min-w-0">
-                  <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta">
+                  <span className="block truncate text-[15px] font-semibold leading-snug text-tinta">
                     {p.referencia}
                     {mostrarMarca && p.marca && <span className="font-normal text-taupe"> · {p.marca}</span>}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-2 text-xs text-taupe">
+                  <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe">
                     {p.color ? <MuestraColor nombre={p.color} hex={p.colorHex} compacta /> : <span>Sin color</span>}
                     <span className="hidden whitespace-nowrap sm:inline">
                       {p.tallas.length} {p.tallas.length === 1 ? "talla" : "tallas"}
                     </span>
                     {p.danado > 0 && (
-                      <Chip tono="rojo" versalitas={false} className="text-xs">
+                      <Chip tono="rojo" versalitas={false} className="text-sm">
                         <AlertTriangle aria-hidden className="h-3 w-3" strokeWidth={2} />
                         {p.danado} {p.danado === 1 ? "dañada" : "dañadas"}
                       </Chip>
@@ -217,7 +217,7 @@ export function ExistenciasPorPrenda({
                 </span>
               </span>
               {/* Solo celular: las dos cifras de la prenda, a la derecha del nombre. */}
-              <span className="shrink-0 text-right text-xs leading-snug text-taupe sm:hidden">
+              <span className="shrink-0 text-right text-sm leading-snug text-taupe sm:hidden">
                 {separa ? (
                   <>
                     Piso <b className="text-sm font-semibold tabular-nums text-tinta">{p.piso ?? 0}</b>

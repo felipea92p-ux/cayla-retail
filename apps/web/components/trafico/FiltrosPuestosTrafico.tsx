@@ -18,7 +18,7 @@ export function FiltrosPuestosTrafico({
   limpiar: string;
 }) {
   const router = useRouter();
-  if (!camino && !ciudad) return <p className="text-[12.5px] text-tinta/70">Toca un camino o una ciudad para ver solo a esa gente.</p>;
+  if (!camino && !ciudad) return <p className="text-sm text-tinta/70">Toca un camino o una ciudad para ver solo a esa gente.</p>;
   return (
     <div role="group" aria-label="Filtros puestos" className="flex flex-wrap items-center gap-2" data-guia="trafico.filtros">
       {camino && (

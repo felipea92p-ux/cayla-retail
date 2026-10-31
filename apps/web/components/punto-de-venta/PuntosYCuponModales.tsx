@@ -110,10 +110,10 @@ export function UsarPuntosModal({ clientaId, nombre, saldo, config, min, max, pa
           </div>
           <p className="mt-2 text-center leading-tight">
             <b className="block font-display text-3xl tabular-nums text-tinta">{solesDelCupon(valor)}</b>
-            <span className="text-xs text-tinta/60">{numero(puntos)} puntos</span>
+            <span className="text-sm text-tinta/60">{numero(puntos)} puntos</span>
           </p>
 
-          <dl className="mt-4 divide-y divide-sand rounded-xl border border-sand bg-crema text-[13px]">
+          <dl className="mt-4 divide-y divide-sand rounded-xl border border-sand bg-crema text-sm">
             <div className="flex justify-between gap-3 px-3 py-2">
               <dt className="text-tinta/70">Compra del ticket</dt>
               <dd className="font-semibold tabular-nums text-tinta">{dinero(totalDelTicket)}</dd>
@@ -128,7 +128,7 @@ export function UsarPuntosModal({ clientaId, nombre, saldo, config, min, max, pa
             </div>
           </dl>
 
-          <p className="mt-3 text-xs text-tinta/60">
+          <p className="mt-3 text-sm text-tinta/60">
             Vale por {config.vigenciaDias} días y lo puede usar quien lo traiga. Si no se usa, los puntos vuelven a su saldo.
           </p>
 
@@ -247,9 +247,9 @@ export function CodigoDeCuponModal({ totalDelTicket, cuponesDeLaClienta, nombreC
           {bueno && (
             <div className="anim-revelar mt-3 flex items-center gap-3 rounded-xl border border-sand bg-crema px-3 py-2.5">
               <b className="font-display text-2xl text-verde tabular-nums">{solesDelCupon(bueno.valor)}</b>
-              <div className="min-w-0 flex-1 text-[13px] leading-snug text-tinta">
+              <div className="min-w-0 flex-1 text-sm leading-snug text-tinta">
                 <b className="font-semibold">Cupón válido</b>
-                <span className="block text-xs text-tinta/65">
+                <span className="block text-sm text-tinta/65">
                   {bueno.de ? `De ${bueno.de} · ` : ""}vence el {bueno.venceEl.slice(8, 10)}/{bueno.venceEl.slice(5, 7)}
                   <br />
                   Lo puede usar cualquier persona, una sola vez.
@@ -280,11 +280,11 @@ export function CodigoDeCuponModal({ totalDelTicket, cuponesDeLaClienta, nombreC
                       className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-sand/40"
                     >
                       <Ticket className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
-                      <span className="min-w-0 flex-1 text-[13px] text-tinta">
+                      <span className="min-w-0 flex-1 text-sm text-tinta">
                         <b className="font-semibold tabular-nums">{solesDelCupon(c.valor)}</b>
                         <span className="ml-2 font-mono text-xs tracking-wider text-tinta/65">{c.codigo}</span>
                       </span>
-                      <span className="text-xs text-tinta/60">vence {c.venceEl.slice(8, 10)}/{c.venceEl.slice(5, 7)}</span>
+                      <span className="text-sm text-tinta/60">vence {c.venceEl.slice(8, 10)}/{c.venceEl.slice(5, 7)}</span>
                     </button>
                   </li>
                 ))}
@@ -292,7 +292,7 @@ export function CodigoDeCuponModal({ totalDelTicket, cuponesDeLaClienta, nombreC
             </div>
           )}
 
-          <p className="mt-3 flex items-start gap-1.5 text-xs text-tinta/60">
+          <p className="mt-3 flex items-start gap-1.5 text-sm text-tinta/60">
             <Info className="mt-px h-3.5 w-3.5 shrink-0 text-taupe" aria-hidden />
             <span>Los intentos con códigos que no existen se cuentan: así nadie adivina cupones probando en la caja.</span>
           </p>

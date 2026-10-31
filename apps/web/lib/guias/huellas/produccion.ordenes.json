@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 136,
+  "total": 139,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -140,11 +140,14 @@
       "CampoMonto «{modoFijo === \"prenda\" ? \"Cobra por prenda\" : \"Cobra por esta orden\"}»",
       "SegmentoDeslizante «Cómo escribes el cobro del ploteo»",
       "CampoFecha «Prometido para»",
-      "CampoMonto «Por prenda»",
+      "CampoMonto «{modoTarifa === \"total\" ? `Total por las ${totalPrendas}»",
+      "SegmentoDeslizante «{`Cómo escribes lo que cobra ${nombreEnFrase}»",
       "CampoTexto «Cantidad mínima»",
       "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
-      "button «+ fijo por orden (ponchado, matriz)»"
+      "button «+ fijo por orden (ponchado, matriz)»",
+      "button «Sí, es por prenda»",
+      "button «Es el total de la orden»"
     ],
     "components/orden-produccion/FichaDeConsumoHoja.tsx": [
       "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",

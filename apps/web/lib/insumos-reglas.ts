@@ -5,6 +5,8 @@
 // las mismas reglas que la base: `v_insumo_saldos` y `registrar_consumo_insumo`
 // (supabase/migrations/20260917145000_insumos_taller_reconstruido.sql, 20260917141500_registrar_consumo_insumo.sql).
 
+import { sinBlancosDeMiles } from "./numero-escrito";
+
 export type TipoInsumo = "tela" | "avio";
 export type UnidadInsumo = "metro" | "unidad" | "kilo" | "cono" | "par" | "docena";
 export type TipoMovInsumo = "compra" | "consumo" | "devolucion" | "merma" | "ajuste";
@@ -52,8 +54,10 @@ export const CANTIDAD_ILEGIBLE = "No se entiende la cantidad: escríbela así, 4
  * «1.200» ¿son mil doscientos o uno con dos? No se adivina, igual que `leerMontoPlata`. Vacío es `null` (quien llama decide si «vacío» es 0 o falta).
  */
 export function leerCantidad(texto: string): number | null {
-  const t = texto.replace(/\s/g, "");
-  if (!/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
+  // Los blancos se quitan con la regla única: un espacio adentro solo separa miles, así que una columna de tres celdas
+  // de Excel pegada aquí («12 8 5») ya no entra como 1 285 (/chaos de «Nuevo avío», 2026-10-31).
+  const t = sinBlancosDeMiles(texto);
+  if (t === null || !/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
   return Number(t.replace(",", "."));
 }
 

@@ -65,13 +65,13 @@ const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
 ];
 
 const AYUDA: Record<Tipo, string> = {
-  colores: "Vocabulario cerrado de color. Lo que se agrega queda listo para usar; lo que quedó pendiente de antes se aprueba o rechaza aquí.",
-  tallas: "Vocabulario cerrado de talla. Aprobar exige un comentario: una talla mal aprobada ensucia la unicidad de variante y es más cara de deshacer con SKUs ya colgando.",
-  tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda. Haz clic en uno para ver su foto y las prendas que lo usan.",
-  patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto. Haz clic en uno para ver su foto y las prendas que lo usan.",
-  avios: "Las clases de avío del Taller (botón, cierre, hilo, etiqueta, elástico, pretina). De la clase salen, en «Nuevo avío», en qué se cuenta, si lleva color y qué medida se le pide: por eso se corrigen aquí y no en el código.",
+  colores: "Los colores del catálogo. Lo pendiente se aprueba o se rechaza aquí.",
+  tallas: "Las tallas del catálogo. Aprobar una pide un comentario: una talla mal aprobada cuesta deshacerla.",
+  tejidos: "Los tejidos del catálogo: van con la prenda, no con la talla. Toca uno para ver su foto y sus prendas.",
+  patrones: "Los patrones y estampados: van con la prenda, como el tejido. Toca uno para ver su foto y sus prendas.",
+  avios: "Las clases de avío del Taller (botón, cierre, hilo…). De la clase sale en qué se cuenta, si lleva color y qué medida pide.",
   temporadas:
-    "De qué temporada es la prenda: una sola, de una lista fija de nueve. La del color manda sobre la de la prenda, y la de la prenda sobre la de su categoría. Al empezar la estación que la termina, Frescura avisa «Temporada pasada» y sugiere qué hacer (nunca rebaja sola).",
+    "Una temporada por prenda. Manda la del color, luego la de la prenda y luego la de su categoría. Al terminar la estación, Frescura avisa.",
 };
 
 function IconoTab({ d, className = "h-4 w-4" }: { d: string; className?: string }) {
@@ -148,7 +148,7 @@ export function AtributosHub({
         }))}
       />
 
-      <p data-guia="atributos.ayuda" className="text-xs text-tinta/60">{AYUDA[tipo]}</p>
+      <p data-guia="atributos.ayuda" className="text-sm text-tinta/60">{AYUDA[tipo]}</p>
 
       {tipo === "colores" && <ColoresLista coloresIniciales={colores} puedeEditar={puedeEditar} />}
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}

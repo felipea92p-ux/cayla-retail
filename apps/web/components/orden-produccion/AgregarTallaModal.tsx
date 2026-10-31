@@ -62,7 +62,7 @@ export function AgregarTallaModal({
         </div>
 
         {apagadas.length > 0 && (
-          <p className="text-xs text-tinta/65">
+          <p className="text-sm text-tinta/65">
             {apagadas.length === 1 ? `La talla ${apagadas[0]} está desactivada en este modelo: se reactiva` : `Las tallas ${apagadas.join(", ")} están desactivadas en este modelo: se reactivan`} desde Editar producto.
           </p>
         )}

@@ -135,9 +135,9 @@ export function EditarMensajesAvisos({
               <button type="button" className="pildora-cayla" aria-pressed={tipo === t} onClick={() => setTipo(t)}>
                 {INFO_TIPO_AVISO[t].titulo}
                 {problemas[t] ? (
-                  <span className="text-[11px] font-semibold">· Revisar</span>
+                  <span className="text-sm font-semibold">· Revisar</span>
                 ) : cambiados.includes(t) ? (
-                  <span className="text-[11px]">· Cambiado</span>
+                  <span className="text-sm">· Cambiado</span>
                 ) : null}
               </button>
             </CampoGuiado>
@@ -164,7 +164,7 @@ export function EditarMensajesAvisos({
                 />
               </Campo>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-taupe">Pon un dato del miembro:</span>
+                <span className="text-sm text-taupe">Pon un dato del miembro:</span>
                 {DATOS_POR_TIPO[tipo].map((d) => (
                   <button key={d} type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => poner(d)}>
                     + {NOMBRE_DEL_DATO[d]}
@@ -207,7 +207,7 @@ export function EditarMensajesAvisos({
           <aside className="self-start rounded-xl border border-sand bg-crema p-4 md:sticky md:top-0" aria-label="Así le llega" data-guia="avisos.editar-previa">
             <p className="label-cayla mb-2.5 text-[11px] text-taupe">Así le llega a {nombreDeEjemplo(tipo)}</p>
             <BurbujaAviso texto={mensajeDeEjemplo(tipo, cuerpo, cierre, sede.nombre)} cierre={cierre} hora="10:24" />
-            <p className="mt-2.5 text-xs text-taupe">Con los datos de un miembro de ejemplo. A cada miembro le llegan los suyos.</p>
+            <p className="mt-2.5 text-sm text-taupe">Con los datos de un miembro de ejemplo. A cada miembro le llegan los suyos.</p>
           </aside>
         </div>
 

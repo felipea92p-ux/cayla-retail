@@ -55,7 +55,7 @@ export function FrescuraTablero({
           // Las cifras de la barra en texto (nunca solo al pasar el mouse: Formidable, ley 6); el lector de pantalla ya las oye en el
           // resumen de la barra, así que aquí van ocultas para él.
           const cifras = segmentos.length > 0 && (
-            <span aria-hidden className={`flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] leading-snug text-taupe tabular-nums ${compacto ? "shrink-0" : "mt-1"}`}>
+            <span aria-hidden className={`flex flex-wrap gap-x-3 gap-y-0.5 text-sm leading-snug text-taupe tabular-nums ${compacto ? "shrink-0" : "mt-1"}`}>
               {segmentos.map((s) => (
                 <span key={s.clave} className="flex items-center gap-1" title={s.nombre}>
                   <MuestraTramo clase={s.clase} />
@@ -77,7 +77,7 @@ export function FrescuraTablero({
               ) : (
                 <span className="min-w-0">
                   <span className="block truncate text-[15px] font-semibold leading-tight">{f.nombre}</span>
-                  <span className="block text-[12.5px] leading-snug text-taupe">
+                  <span className="block text-sm leading-snug text-taupe">
                     {f.prendas} {f.prendas === 1 ? "prenda" : "prendas"} · {f.total} {f.total === 1 ? "unidad" : "unidades"}
                   </span>
                 </span>
@@ -94,11 +94,11 @@ export function FrescuraTablero({
                 </span>
               )}
               {/* «N por decidir» solo cuando hay (Formidable, ley 8: «Nada por decidir» en cada fila era ruido). */}
-              <span className="text-[13.5px] font-semibold tabular-nums text-ambar-profundo">{f.porDecidir > 0 ? `${f.porDecidir} por decidir` : ""}</span>
+              <span className="text-[15px] font-semibold tabular-nums text-ambar-profundo">{f.porDecidir > 0 ? `${f.porDecidir} por decidir` : ""}</span>
               <span className="md:justify-self-start">
                 {f.vara && (
                   // `tachado={false}`: el tono apagado tacha por defecto (es lo que pide «Anulado»); «Sin ventas aún» no es una anulación.
-                  <Chip tono={f.vara.tono} tachado={false} className="!px-2 !text-[12px] !leading-[18px]">
+                  <Chip tono={f.vara.tono} tachado={false} className="!px-2 !text-sm !leading-[18px]">
                     {f.vara.texto}
                   </Chip>
                 )}

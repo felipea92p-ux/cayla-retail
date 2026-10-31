@@ -84,7 +84,7 @@ import type { PrecargaDePedido } from "@/lib/pedir-insumo-reglas";
 // (`editar_orden_insumo`, con la versión que se vio al abrir). Lo que ya venía completo no se llena de ✓. Si una línea trae un insumo cuya
 // unidad cambió desde que se hizo la orden, su cantidad viene vacía y su aviso lo dice [provisional, revisar con Felipe].
 
-const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1 text-sm font-semibold text-tinta";
 // El título de un campo de la cabecera: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier estado de la
 // guía (✓, «Sigue aquí», falta, opcional).
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
@@ -408,7 +408,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
             <CampoGuiado id="entrega" guia={guia}>
               <p className={TITULO_FIJO}>
                 {etiqueta("entrega", "Entrega estimada")}
-                <span className="text-[12px] font-normal text-taupe">si la sabes</span>
+                <span className="text-sm font-normal text-taupe">si la sabes</span>
               </p>
               <CampoFecha
                 id="oi-entrega"
@@ -423,7 +423,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
             <CampoGuiado id="nota" guia={guia}>
               <p className={TITULO_FIJO}>
                 {etiqueta("nota", "Nota")}
-                <span className="text-[12px] font-normal text-taupe">opcional</span>
+                <span className="text-sm font-normal text-taupe">opcional</span>
               </p>
               <CampoTexto
                 id="oi-nota"
@@ -470,7 +470,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
           {/* Con lugar, una FILA por línea: los títulos van una sola vez, aquí arriba (los lectores de pantalla tienen la etiqueta de cada
               caja, por eso este encabezado se les oculta). Hablan con la misma voz que los títulos de los campos de arriba. */}
           {orden.lineas.length > 0 && (
-            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[60rem]:grid ${FILA_ANCHA}`}>
+            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-sm font-semibold text-tinta @min-[60rem]:grid ${FILA_ANCHA}`}>
               <span />
               <span>Insumo</span>
               {/* Sin «opcional» a la vista: en la columna angosta se cortaba; cada caja lo dice con su ejemplo y la línea con su punto. */}
@@ -480,7 +480,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
               <span>Cantidad</span>
               <span>Costo u.</span>
               <span className="truncate">
-                Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
+                Descuento <span className="text-sm font-normal text-taupe">si hay</span>
               </span>
               <span className="text-right">Subtotal</span>
               <span />
@@ -619,8 +619,8 @@ function LineaOrdenInsumo({
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[60rem]:rounded-lg @min-[60rem]:py-2">
       <div data-guia="oi-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[60rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[60rem]:col-span-1 @min-[60rem]:justify-start">
-          <p className="text-[13px] font-semibold text-tinta @min-[60rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
-          <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[60rem]:inline-flex" title={`Línea ${numero}`}>
+          <p className="text-sm font-semibold text-tinta @min-[60rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
+          <span className="hidden items-center gap-1 text-sm tabular-nums text-taupe @min-[60rem]:inline-flex" title={`Línea ${numero}`}>
             {estado(id) ? <MarcaCampo estado={estado(id)!} /> : <span aria-hidden className="inline-block h-[18px] w-[18px]" />}
             {numero}
           </span>
@@ -639,7 +639,7 @@ function LineaOrdenInsumo({
         </div>
         <div className="col-span-2 @min-[60rem]:col-span-1">
           <p className={`${TITULO} @min-[60rem]:hidden`}>
-            Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
+            Descripción <span className="text-sm font-normal text-taupe">opcional</span>
           </p>
           <CampoTexto
             caja
@@ -666,7 +666,7 @@ function LineaOrdenInsumo({
               />
             </div>
             {unidadALaVista && (
-              <span aria-hidden className="shrink-0 text-[13px] text-taupe-profundo">
+              <span aria-hidden className="shrink-0 text-sm text-taupe-profundo">
                 {unidadALaVista}
               </span>
             )}
@@ -686,7 +686,7 @@ function LineaOrdenInsumo({
         </div>
         <div className="col-span-2 @min-[60rem]:col-span-1">
           <p className={`${TITULO} @min-[60rem]:hidden`}>
-            Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
+            Descuento <span className="text-sm font-normal text-taupe">si hay</span>
           </p>
           <div className="flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
@@ -714,7 +714,7 @@ function LineaOrdenInsumo({
           {/* En la tarjeta, el descuento va delante del monto, en la misma línea; en la fila ancha, debajo del monto. */}
           <p className="flex items-baseline justify-end gap-x-2 @min-[60rem]:flex-col-reverse @min-[60rem]:items-end @min-[60rem]:gap-0">
             {equivalente && (
-              <span className="text-xs tabular-nums text-taupe" title={`Descuento de la línea: ${descuentoSoles} (${descuentoPct})`}>
+              <span className="text-sm tabular-nums text-taupe" title={`Descuento de la línea: ${descuentoSoles} (${descuentoPct})`}>
                 {equivalente}
                 <span className="sr-only"> de descuento</span>
               </span>

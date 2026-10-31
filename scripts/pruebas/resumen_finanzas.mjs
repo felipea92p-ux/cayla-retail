@@ -408,14 +408,17 @@ select 'C · sin el módulo, tampoco los gastos fuera de lo normal', (select m f
 select 'C · con el módulo, mira SU tienda aunque pida CAYLA entera', (select j -> 'ver' from rep) @> jsonb_build_object('ubicacion_id', :'tru', 'todas', false, 'tipo', 'tienda');
 select 'C · pedir su tienda da lo mismo', (select j - 'ms' from rep) = (select j - 'ms' from rep_tru);
 select 'C · otra tienda o la empresa: 42501', (select m from otra) like '%solo tu tienda%' and (select m from emp) like '%solo tu tienda%';
-select 'C · los gastos fuera de lo normal de otra tienda o de la empresa: no',
-  (select m from raros_lim) like '%esa ubicación%' and (select m from raros_emp) like '%líder%';
+-- ADR-0585 (Felipe 2026-10-30): con el módulo se mira CAYLA entera. El Resumen sigue armándose con SU tienda (fn_resumen_finanzas no
+-- cambió), pero lo que lee por debajo ya no le dice «sin permiso».
+select 'C · los gastos fuera de lo normal de otra tienda o de la empresa: con el módulo, sí',
+  (select m from raros_lim) = 'SIN_ERROR' and (select m from raros_emp) = 'SIN_ERROR';
 select 'C · sus números del mes son los de F5 para su tienda', (select j -> 'resultados_mes' -> 'filas' from rep) = (select j from er_tru);
 select 'C · el presupuesto, solo su tienda',
   (select coalesce(bool_and(f ->> 'ubicacion_id' = :'tru'), true) from rep, jsonb_array_elements(rep.j -> 'presupuesto' -> 'filas') f);
-select 'C · saldos y lo que se debe: «sin permiso» (son de Cuentas y dinero), con el mensaje de F3/F4',
-  (select j -> 'cuentas' ? 'sin_permiso' and j -> 'por_pagar' ? 'sin_permiso' from rep);
-select 'C · egresos y fijos: «sin permiso» (son de Gastos)', (select j -> 'egresos' ? 'sin_permiso' and j -> 'fijos' ? 'sin_permiso' from rep);
+select 'C · saldos y lo que se debe: con el módulo aparecen, solo de su tienda (antes, «sin permiso»)',
+  (select not (j -> 'cuentas' ? 'sin_permiso') and not (j -> 'por_pagar' ? 'sin_permiso') from rep)
+  and (select coalesce(bool_and(f ->> 'ubicacion_id' = :'tru'), true) from rep, jsonb_array_elements(rep.j -> 'cuentas' -> 'filas') f);
+select 'C · los egresos siguen siendo de Gastos («sin permiso»); los fijos, de su tienda', (select j -> 'egresos' ? 'sin_permiso' and not (j -> 'fijos' ? 'sin_permiso') from rep);
 select 'C · flujo, IGV, lo sin cuenta y el cierre no aplican (son de CAYLA entera o del líder)',
   (select j -> 'flujo' = '{"no_aplica": true}' and j -> 'igv' = '{"no_aplica": true}' and j -> 'sin_cuenta' = '{"no_aplica": true}'
           and j -> 'cierre' = '{"no_aplica": true}' from rep);

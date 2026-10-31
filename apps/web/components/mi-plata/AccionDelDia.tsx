@@ -39,7 +39,7 @@ export function AccionDelDia({
       </span>
       <span className="min-w-0">
         <span className={`block font-serif leading-tight ${grande ? "text-2xl" : "text-xl text-tinta"}`}>{titulo}</span>
-        <span className={`mt-0.5 block text-xs ${grande ? "text-crema/75" : "text-taupe"}`}>{detalle}</span>
+        <span className={`mt-0.5 block text-sm ${grande ? "text-crema/75" : "text-taupe"}`}>{detalle}</span>
       </span>
     </>
   );

@@ -29,18 +29,18 @@ export function ResumenResuelta({
       <div>
         <p className="text-base font-semibold text-tinta">{fila.estado === "regularizada" ? fila.prendaReal : fila.descripcion}</p>
         {fila.estado === "regularizada" && fila.diferencia !== null && (
-          <p className="mt-0.5 text-[13px] text-taupe-profundo">
+          <p className="mt-0.5 text-sm text-taupe-profundo">
             {textoDeDiferencia(fila.diferencia)}
             {fila.forma === "llego_nueva" ? " · llegó nueva" : " · perdió la etiqueta"}
           </p>
         )}
         {fila.estado === "cerrada_sin_prenda" && fila.cierre && (
-          <p className="mt-0.5 text-[13px] text-taupe-profundo">
+          <p className="mt-0.5 text-sm text-taupe-profundo">
             {motivoLegible(fila.cierre.motivo)}. Cerrada el {diaYHoraLima(fila.cierre.cerradoEn).dia}: el stock no cambió.
           </p>
         )}
         {fila.estado === "cerrada_sin_prenda" && (
-          <p className="mt-0.5 text-[13px] text-taupe-profundo">
+          <p className="mt-0.5 text-sm text-taupe-profundo">
             <LineaCorregida fila={fila} />
           </p>
         )}

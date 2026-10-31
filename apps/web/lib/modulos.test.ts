@@ -12,7 +12,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veEstadosFinancierosDeTodo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -289,6 +289,26 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(veFinanzasDeTodo("integrante", con("reportes_financieros", "gastos", "cuentas_dinero", "impuestos"))).toBe(false); // ven SU tienda
     for (const clave of MODULOS_QUE_VEN_TODO_FINANZAS) expect(veFinanzasDeTodo("integrante", con(clave))).toBe(true);
     expect(veFinanzasDeTodo("integrante", [{ clave: "cierre_mes", completo: false }])).toBe(false); // «limitado como hoy» no abre nada
+  });
+
+  // ADR-0585 (Felipe 2026-10-30): «puede ver todo del módulo quien lo tenga». Solo MIRAR los Estados financieros de CAYLA entera:
+  // registrar gastos sigue en veFinanzasDeTodo. Una terminal con el módulo sigue viendo solo su tienda (ADR-0161 P6).
+  it("ADR-0585: veEstadosFinancierosDeTodo espeja fn_ve_estados_financieros_de_todo — el líder, o el módulo completo sin ser terminal", () => {
+    const con = (...cs: ClaveModulo[]) => cs.map((clave) => ({ clave, completo: true }));
+    expect(veEstadosFinancierosDeTodo("lider", [], false)).toBe(true);
+    expect(veEstadosFinancierosDeTodo("integrante", con("reportes_financieros"), false)).toBe(true);
+    expect(veEstadosFinancierosDeTodo("integrante", con("reportes_financieros"), true)).toBe(false); // la terminal, su tienda
+    expect(veEstadosFinancierosDeTodo("integrante", [{ clave: "reportes_financieros", completo: false }], false)).toBe(false);
+    expect(veEstadosFinancierosDeTodo("integrante", con("cierre_mes", "configuracion", "gastos"), false)).toBe(false); // otros módulos no lo abren
+    expect(veFinanzasDeTodo("integrante", con("reportes_financieros"))).toBe(false); // y mirar no abre escribir
+  });
+
+  it("ADR-0585: la base pregunta lo mismo que la web (el módulo y no ser terminal)", () => {
+    const definicion = TODAS.map((m) => /create or replace function retail\.fn_ve_estados_financieros_de_todo\(\)[\s\S]*?\$\$([\s\S]*?)\$\$/i.exec(m.sql)?.[1]).filter(Boolean).at(-1);
+    expect(definicion).toBeDefined();
+    expect(definicion).toMatch(/fn_es_lider\(\)/);
+    expect(definicion).toMatch(/fn_capacidad_por_modulos\(array\['reportes_financieros'\]\)/);
+    expect(definicion).toMatch(/not exists \(select 1 from retail\.fn_terminal_actual\(\)\)/);
   });
 
   it("G16: los módulos que abren «todo» son exactamente los de la última migración que define fn_ve_finanzas_de_todo()", () => {

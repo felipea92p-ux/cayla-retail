@@ -94,7 +94,7 @@ export function ParaHoy({
             {t.cifra !== null && <span className="font-display text-[26px] leading-none tabular-nums">{t.cifra.toLocaleString("es-PE")}</span>}
             <span className="font-medium">{t.texto}</span>
           </p>
-          <p className="mt-0.5 text-[13px] leading-5 text-taupe">
+          <p className="mt-0.5 text-sm leading-5 text-taupe">
             {t.detalle}
             {alVer && (
               <>
@@ -125,7 +125,7 @@ export function ParaHoy({
     <section data-guia="existencias.pendientes-lista" aria-labelledby="para-hoy-titulo" className="card-cayla anim-sube overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-5 pb-2 pt-4 max-sm:px-4">
         <TituloSeccion id="para-hoy-titulo">Para hoy</TituloSeccion>
-        {extra && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">{extra}</div>}
+        {extra && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">{extra}</div>}
       </div>
 
       {/* Celular: la línea plegada. En pantallas más anchas no existe y la lista va siempre abierta. */}

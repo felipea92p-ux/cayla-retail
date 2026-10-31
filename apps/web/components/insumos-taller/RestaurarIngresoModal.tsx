@@ -74,7 +74,7 @@ export function RestaurarIngresoModal({ insumo, eliminado, onClose }: { insumo: 
             <b className="font-medium tabular-nums">{cantidadTexto(eliminado.cantidad, insumo.unidad)}</b> de {insumo.nombre}, del {diaMes(eliminado.ingreso)}
             {eliminado.documento ? ` · ${eliminado.documento}` : ""}
           </p>
-          <p className="text-xs text-tinta/70">
+          <p className="text-sm text-tinta/70">
             {eliminado.quien ? `Lo eliminó ${eliminado.quien}` : "Se eliminó"}
             {eliminadoElDia ? ` el ${diaMes(eliminadoElDia)}` : ""}: «{eliminado.motivo}».
           </p>

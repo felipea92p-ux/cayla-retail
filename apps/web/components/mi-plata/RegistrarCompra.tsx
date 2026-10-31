@@ -560,7 +560,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           <div role="heading" aria-level={1} className="font-serif text-[28px] leading-none text-tinta">
             Apunte de compras
           </div>
-          <div className="mt-1 truncate text-xs text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</div>
+          <div className="mt-1 truncate text-sm text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</div>
         </div>
       </div>
       <CaminoDePasos pasos={PASOS_DE_LA_COMPRA} ahora={fase - 1} etiqueta={textoAvance(paso)} />
@@ -660,7 +660,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                     2026-10-23): la describe como la conoce, y Recibir la registra después. */}
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold leading-tight text-tinta">Algo nuevo</span>
-                  <span className="block truncate text-xs text-taupe">Una prenda que no está en la lista</span>
+                  <span className="block truncate text-sm text-taupe">Una prenda que no está en la lista</span>
                 </span>
               </button>
             )}
@@ -709,7 +709,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                       <MiniaturaPrenda fotoUrl={(pr.productoId && fotos.get(pr.productoId)) || null} tamano="lg" prefijo={c?.prefijo} familia={c?.familia} categoria={pr.categoria} />
                       <span className="min-w-0">
                         <span className="block truncate font-medium text-tinta">{pr.nombre}</span>
-                        <span className="block text-xs tabular-nums text-taupe">
+                        <span className="block text-sm tabular-nums text-taupe">
                           {pr.cantidad} × {soles(pr.costo)}
                         </span>
                         <span className="mt-1.5 flex flex-wrap gap-1.5">
@@ -767,7 +767,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                 >
                   <span className="text-tinta">
                     Si se vende todo, ganas
-                    <span className="block text-xs text-taupe">Vendes {soles(ganancia.vendes)}</span>
+                    <span className="block text-sm text-taupe">Vendes {soles(ganancia.vendes)}</span>
                   </span>
                   <b className="text-[17px] tabular-nums text-verde">{soles(ganancia.ganas)}</b>
                 </p>
@@ -819,7 +819,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                     {TIPOS_PAPEL[k].nombre}
                     {tipo === k && <Check className="h-4 w-4" aria-hidden />}
                   </span>
-                  <span className="text-xs text-taupe">{TIPOS_PAPEL[k].ayuda}</span>
+                  <span className="text-sm text-taupe">{TIPOS_PAPEL[k].ayuda}</span>
                 </button>
               ))}
             </div>
@@ -909,7 +909,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               }}
             />
             {cuadra && (
-              <p className={`mt-1.5 flex items-start gap-2 text-[13px] ${cuadra.cuadra ? "text-verde" : "text-ambar"}`}>
+              <p className={`mt-1.5 flex items-start gap-2 text-sm ${cuadra.cuadra ? "text-verde" : "text-ambar"}`}>
                 {cuadra.cuadra ? <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> : <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />}
                 {cuadra.texto}
               </p>
@@ -939,7 +939,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                     {o.nombre}
                     {pago.forma === o.forma && <Check className="h-4 w-4" aria-hidden />}
                   </span>
-                  <span className="text-xs text-taupe">{o.ayuda}</span>
+                  <span className="text-sm text-taupe">{o.ayuda}</span>
                 </button>
               ))}
             </div>
@@ -977,7 +977,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                       setPago((p) => ({ ...p, pagado: e.target.value }));
                     }}
                   />
-                  {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-1.5 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
+                  {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-1.5 text-sm text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
                   <button
                     type="button"
                     className="btn-cayla btn-enlace mt-1 min-h-7 self-start max-sm:min-h-11 pointer-coarse:min-h-11"
@@ -1197,13 +1197,13 @@ function PasoProveedor({
         <span className="min-w-0">
           <span className="block truncate font-medium text-tinta">{p.nombre}</span>
           {p.marcas.length > 0 && (
-            <span className="block truncate text-xs text-tinta/70">
+            <span className="block truncate text-sm text-tinta/70">
               {p.marcas.length === 1 ? "Marca" : "Marcas"}: {p.marcas.slice(0, 3).join(", ")}
               {p.marcas.length > 3 ? ` y ${p.marcas.length - 3} más` : ""}
             </span>
           )}
           {/* Hasta dos líneas: a 375 px «Le compraste hace una semana · 4 compras» se cortaba en «4 c…». */}
-          <span className="line-clamp-2 block text-xs text-taupe">
+          <span className="line-clamp-2 block text-sm text-taupe">
             {p.compras > 0
               ? detalleProveedor(p, hoy)
               : p.categorias.length
@@ -1239,7 +1239,7 @@ function PasoProveedor({
         </span>
         <span className="min-w-0">
           <span className="block font-medium text-tinta">Es un proveedor nuevo</span>
-          <span className="block text-xs text-taupe">¿Primera vez que le compras? Regístralo aquí</span>
+          <span className="block text-sm text-taupe">¿Primera vez que le compras? Regístralo aquí</span>
         </span>
         <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
       </button>
@@ -1359,7 +1359,7 @@ function ListaHabituales({
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[14.5px] font-semibold leading-tight text-tinta">{nombre}</span>
-            <span className="mt-0.5 block text-[12.5px] leading-snug text-taupe">
+            <span className="mt-0.5 block text-sm leading-snug text-taupe">
               {piezas.length > 0
                 ? piezas.map((p, i) => (
                     <span key={p.etiqueta}>
@@ -1390,7 +1390,7 @@ function ListaHabituales({
           >
             <span className="flex flex-col items-center leading-tight">
               <span className="font-semibold tabular-nums">+ {atajo}</span>
-              <span className="hidden text-[10.5px] font-normal text-taupe sm:block">como la vez pasada</span>
+              <span className="hidden text-sm font-normal text-taupe sm:block">como la vez pasada</span>
             </span>
           </Boton>
         ) : null}

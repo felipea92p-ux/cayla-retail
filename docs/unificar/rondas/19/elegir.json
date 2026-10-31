@@ -1,0 +1,182 @@
+{
+  "titulo": "Ronda 19 · El texto del ERP: más grande y más corto",
+  "clave": "unificar-ronda19",
+  "nota": "Medí el texto de 107 pantallas. Hay 779 frases (5 palabras o más) y 484 de ellas, el 62 %, están por debajo de 14 px. Las escriben 13 tamaños distintos a mano: 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5… (más de 3.400 usos en el código). Una nota al pie tiene 33 palabras de mediana, en 13 px y gris. Todas las fotos son pantallas reales con la opción aplicada encima: no se guardó nada.",
+  "familias": [
+    {
+      "id": "texto",
+      "nombre": "El texto que se lee",
+      "pregunta": "Tres preguntas: de qué tamaño, qué se queda a la vista y con qué se abre lo que no.",
+      "grupos": [
+        {
+          "id": "escala",
+          "nombre": "1 · El tamaño de la letra",
+          "pregunta": "¿Cuántos tamaños y desde cuánto?",
+          "ayuda": "Hoy cada pantalla elige su tamaño. La propuesta deja tres voces con nombre, y ninguna frase baja del piso. Los títulos, las cifras y las versalitas de una etiqueta no cambian. En las fotos el cambio es automático (por eso alguna línea se parte rara): al migrar, cada pantalla se acomoda a mano.",
+          "opciones": [
+            {
+              "id": "E0",
+              "tipo": "hoy",
+              "nombre": "Hoy · 13 tamaños",
+              "detalle": "La frase que explica va casi siempre en 12,5 o 13 px y gris. Lo que acompaña a una cifra («hoy 39», «ayer a esta hora: 0»), en 11 a 13 px.",
+              "donde": "En todo el ERP; 62 % de las frases bajo 14 px",
+              "imagenes": [
+                {
+                  "src": "img/piso-E0.png",
+                  "pie": "Plan del piso"
+                },
+                {
+                  "src": "img/benef-E0.png",
+                  "pie": "Beneficios del club"
+                }
+              ]
+            },
+            {
+              "id": "E1",
+              "tipo": "propuesta",
+              "nombre": "E1 · Tres voces: 16 · 14 · 11 (mi recomendación)",
+              "detalle": "Lectura 16 px en tinta: toda frase que se lee (bajadas, notas, avisos, el globo). Detalle 14 px en taupe: lo corto que acompaña a una cifra. Etiqueta 11 px en versalitas: solo nombres cortos, nunca una frase. Nada que se lea por debajo de 14. Sube todo lo chico sin que las pantallas densas (Plan del piso) se rompan.",
+              "imagenes": [
+                {
+                  "src": "img/piso-E1.png",
+                  "pie": "Plan del piso"
+                },
+                {
+                  "src": "img/benef-E1.png",
+                  "pie": "Beneficios del club"
+                }
+              ]
+            },
+            {
+              "id": "E2",
+              "tipo": "propuesta",
+              "nombre": "E2 · Más grande: 17 · 15 · 12",
+              "detalle": "Lo mismo, un punto más arriba. Se lee de lejos (el mostrador, una tablet), pero las pantallas densas crecen mucho hacia abajo y algunas tarjetas se parten en dos líneas.",
+              "imagenes": [
+                {
+                  "src": "img/piso-E2.png",
+                  "pie": "Plan del piso"
+                },
+                {
+                  "src": "img/benef-E2.png",
+                  "pie": "Beneficios del club"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frase",
+          "nombre": "2 · La frase que explica",
+          "pregunta": "Bajadas de sección, instrucciones, leyendas y notas: ¿qué se queda a la vista?",
+          "ayuda": "Las fotos son de Caja con el tamaño E1. Hoy Caja tiene siete frases que explican: tres son instrucciones («Pasa el mouse…», «Toca cualquier fila…») y dos explican cómo leer un gráfico. Lo que dice qué pasa (un veredicto: «Aún no superas a ayer») se queda a la vista en las tres opciones.",
+          "opciones": [
+            {
+              "id": "F0",
+              "tipo": "hoy",
+              "nombre": "Hoy",
+              "detalle": "Siete frases de 13 px; la más larga, 22 palabras.",
+              "donde": "Caja",
+              "imagenes": [
+                {
+                  "src": "img/caja-hoy.png",
+                  "pie": "Caja"
+                }
+              ]
+            },
+            {
+              "id": "F1",
+              "tipo": "propuesta",
+              "ancha": true,
+              "nombre": "F1 · Una línea a la vista, el resto al «?» (mi recomendación)",
+              "detalle": "La bajada de una sección queda en UNA línea de 16 px (máximo 12 palabras, una idea: «Hora por hora, contra ayer»). Las instrucciones de uso se quitan: tocar y pasar el mouse se descubren solos. Cómo leer un gráfico y el porqué de una regla van al «?» junto al título de su sección, en el mismo globo de vidrio de la cabecera. La nota al pie solo queda si cambia lo que la persona hace, y en una frase.",
+              "imagenes": [
+                {
+                  "src": "img/caja-F1.png",
+                  "pie": "Caja"
+                },
+                {
+                  "src": "img/caja-F1-abierto.png",
+                  "pie": "Caja, con el «?» abierto"
+                },
+                {
+                  "src": "img/caja-F1-oscuro.png",
+                  "pie": "Caja en oscuro"
+                }
+              ]
+            },
+            {
+              "id": "F2",
+              "tipo": "propuesta",
+              "nombre": "F2 · Todo al «?»",
+              "detalle": "Ninguna bajada a la vista: cada sección muestra solo su título, su «?» y su dato. La pantalla queda más limpia, pero para entender qué compara una tarjeta («contra ayer») hay que tocar.",
+              "imagenes": [
+                {
+                  "src": "img/caja-F2.png",
+                  "pie": "Caja"
+                }
+              ]
+            },
+            {
+              "id": "F3",
+              "tipo": "propuesta",
+              "nombre": "F3 · Todo a la vista, solo más grande",
+              "detalle": "Las mismas siete frases, en 16 px. No se pierde nada, pero la pantalla crece hacia abajo y la cantidad de texto sigue siendo la misma que nadie lee.",
+              "imagenes": [
+                {
+                  "src": "img/caja-F3.png",
+                  "pie": "Caja"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "boton",
+          "nombre": "3 · El botón que abre la explicación",
+          "pregunta": "Junto a una cifra o un campo, el «!» de hoy (27 archivos, globo de 12 px): ¿qué pasa con él?",
+          "ayuda": "Foto de Comercial ▸ Cómo va cada tienda, con la explicación de «Ventas de hoy» abierta. En la cabecera ya está el «?» de vidrio (ronda 18).",
+          "opciones": [
+            {
+              "id": "A0",
+              "tipo": "hoy",
+              "nombre": "Hoy · el «!»",
+              "detalle": "Un «!» de 20 px que se pone rojo al abrir; el globo de papel con la letra en 12 px gris. Junto al «?» de la cabecera, la pantalla tiene dos botones de ayuda distintos.",
+              "donde": "Tarjetas de cifra, campos, Análisis, Plan de campaña, Rendimiento",
+              "imagenes": [
+                {
+                  "src": "img/ayuda-A0.png",
+                  "pie": "Comercial"
+                }
+              ]
+            },
+            {
+              "id": "A1",
+              "tipo": "propuesta",
+              "nombre": "A1 · El mismo «?» de vidrio que la cabecera (mi recomendación)",
+              "detalle": "Una sola ayuda en todo el ERP: el «?» de vidrio de 20 px y su globo con la letra a 16 px en tinta. El «!» queda solo para lo que de verdad FALTA (el ticket de Vender), que es un aviso y no una ayuda. En la foto, además, el texto del globo se acortó a dos frases: así se escribiría al migrar.",
+              "imagenes": [
+                {
+                  "src": "img/ayuda-A1.png",
+                  "pie": "Comercial"
+                }
+              ]
+            },
+            {
+              "id": "A2",
+              "tipo": "propuesta",
+              "nombre": "A2 · Se queda el «!», con el globo a 16 px",
+              "detalle": "Cambia solo el tamaño del globo. Siguen conviviendo dos botones de ayuda con caras distintas («?» en la cabecera, «!» en lo demás).",
+              "imagenes": [
+                {
+                  "src": "img/ayuda-A2.png",
+                  "pie": "Comercial"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

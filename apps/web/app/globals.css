@@ -12,10 +12,13 @@
 @import "./estilos/paso-2-plan.css";
 @import "./estilos/pagos-plan.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/estados-financieros.css";
 @import "./estilos/finanzas-dinero.css";
+@import "./estilos/finanzas-que-debes.css";
 @import "./estilos/finanzas-recorrido.css";
 @import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
+@import "./estilos/ayuda-cabecera.css"; /* El «?» de la cabecera y su globo (ronda 18 de /unificar) */
 @import "./estilos/campana-efectos.css";
 @import "./estilos/etiqueta-prendas.css";
 @import "./estilos/campana-hoja.css";
@@ -29,6 +32,7 @@
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
 @import "./estilos/rotulo.css";
+@import "./estilos/perfil-vidrio.css";
 /* Rótulos de anaquel, la pantalla: la Brother y la tira que sale (ADR-0366, act. 2026-10-12, maqueta A «Rollo»). */
 @import "./estilos/rotulos-brother.css";
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
@@ -90,12 +94,15 @@
 @import "./estilos/historial-tickets.css";
 /* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
 @import "./estilos/tienda-web.css";
+@import "./estilos/existencias-vitrina.css";
 /* Tienda web ▸ Conf. Tienda: las puertas, el teléfono y la fachada (ADR-0518, maqueta 2026-10-26). */
 @import "./estilos/tienda-web-conf.css";
 /* La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`). */
 @import "./estilos/barra-abajo.css";
 /* Tienda web ▸ Tráfico (ADR-0495): el punto de «ahora mirando» y, después, la vitrina. */
 @import "./estilos/trafico.css";
+/* La cifra que rueda (`<CifraAnimada>`, ADR-0136 act. 2026-10-31). */
+@import "./estilos/cifra-rueda.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
@@ -188,6 +195,10 @@
   --color-borde-control: #96786a;
 
   --color-ambar-profundo: #734f15;
+  /* Naranja de GRÁFICO (Felipe, 2026-10-31, «C · La cifra manda» de Tráfico): el tramo donde se pierde la gente. Es relleno o línea, nunca
+     texto (el texto del mismo aviso va en `ambar`). El de la maqueta (#c98a2b) daba 2.77:1 sobre papel y no llegaba a 3:1; este es el más
+     claro de su misma familia que sí llega (3.13:1 sobre papel). Para marcar «aquí pasa algo» sin gritar como un error (que es rojo). */
+  --color-naranja: #bf8029;
 
   /* Categóricos de método de pago (2026-09-18, rediseño de Caja/Vender) — NO son
      parte de la identidad de marca (esa sigue siendo solo rojo/crema/tinta): son
@@ -601,7 +612,8 @@ body {
     color: var(--color-rojo);
   }
 
-  /* Píldora de filtro (Todos · Entradas · Salidas…): la activa se rellena de tinta. */
+  /* Píldora de filtro (Todos · Entradas · Salidas…): la activa se rellena de tinta. 14 px desde la ronda 19 (Felipe 2026-10-30):
+     a 13 se veía chica junto al texto que subió. */
   .pildora-cayla {
     display: inline-flex;
     align-items: center;
@@ -609,7 +621,7 @@ body {
     border-radius: 999px;
     border: 1px solid var(--color-sand);
     padding: 0.3125rem 0.875rem;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-taupe);
     white-space: nowrap;
@@ -651,7 +663,7 @@ body {
     background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
     border-radius: var(--radius-xl);
     padding: 0.875rem 1.125rem;
-    font-size: 13px;
+    font-size: 14px; /* ronda 19: a 13 nadie la leía */
     line-height: 1.6;
     color: var(--color-taupe);
   }

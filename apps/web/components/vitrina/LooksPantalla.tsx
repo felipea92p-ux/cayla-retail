@@ -108,7 +108,7 @@ export function LooksPantalla({ lectura, porTienda = null }: { lectura: LecturaL
 
       <section className="card-cayla space-y-0">
         <div className="flex flex-wrap items-center gap-3 border-b border-sand px-5 py-4">
-          <p className="min-w-[14rem] flex-1 text-[13px] text-taupe" data-guia="looks.ayuda">
+          <p className="min-w-[14rem] flex-1 text-sm text-taupe" data-guia="looks.ayuda">
             En la tienda salen en este orden. Toca un look para cambiar sus prendas, su nombre o su lugar; el interruptor lo muestra u oculta.
           </p>
           {looks.length > 0 && nuevoLook}
@@ -134,11 +134,9 @@ export function LooksPantalla({ lectura, porTienda = null }: { lectura: LecturaL
         )}
       </section>
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="looks.nota">
+      <div className="nota-cayla space-y-2 text-sm" data-guia="looks.nota">
         <p>
-          El cliente ve cada look en «Arma tu look», con el precio de la tienda que elige (con «Todas», el más alto entre ellas) y la campaña
-          encima, y lo agrega completo eligiendo la talla de cada prenda. Un look sale en una tienda solo si TODAS sus prendas están a la venta ahí
-          (los chips dicen en cuáles); el total de cada fila es el que ve con «Todas».
+          Un look sale en una tienda solo si <b>todas</b> sus prendas se venden ahí (los chips dicen en cuáles). El cliente lo agrega completo, eligiendo la talla de cada prenda.
         </p>
       </div>
 
@@ -209,7 +207,7 @@ function CartaLook({
         <button type="button" onClick={onAbrir} data-guia="looks.abrir" className="tw-carta-nombre">
           {l.nombre}
         </button>
-        <span className="text-[12px] leading-snug text-taupe">{`${resumenLook(l)} · ${l.piezas.map((p) => p.nombre).join(", ")}`}</span>
+        <span className="text-sm leading-snug text-taupe">{`${resumenLook(l)} · ${l.piezas.map((p) => p.nombre).join(", ")}`}</span>
         {chips.length > 0 && (
           // En qué tiendas sale el look: la web lo muestra solo donde TODAS sus prendas están a la venta (ADR-0468). Verde = sale; ámbar = cuántas faltan.
           <span className="flex flex-wrap items-center gap-1.5" data-guia="looks.tiendas" role="group" aria-label="En qué tiendas sale este look">
@@ -221,7 +219,7 @@ function CartaLook({
           </span>
         )}
         {estado === "no_se_ve" && motivo && (
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ambar-profundo">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ambar-profundo">
             <Chip tono="ambar">{deLasTiendas ? "No sale en ninguna tienda" : "No se ve en la web"}</Chip>
             <span className="min-w-0">{motivo}</span>
           </span>
