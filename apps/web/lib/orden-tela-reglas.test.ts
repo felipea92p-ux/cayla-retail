@@ -19,6 +19,7 @@ import {
   ofertaDeAviosDelModelo,
   ofertaDeConsumoDelModelo,
   planDeFila,
+  ponerEnTodosLosColores,
   prendasDeLaFila,
   problemasTela,
   separarPorTalla,
@@ -707,5 +708,40 @@ describe("paridad con la migración 20261029021000 (complementos)", () => {
   it("un valor que no es verdadero o falso se rechaza con un hint que la hoja ya conoce", () => {
     const hint = /using hint = '(\w+)'/.exec(SQL_COMPLEMENTOS)?.[1];
     expect(HINTS_TELA).toContain(hint);
+  });
+});
+
+describe("ponerEnTodosLosColores — «Para todos los colores»", () => {
+  const fila = (colorCodigo: string | null, insumoId: string | null = null, consumoPorPrenda = ""): TelaBorrador => ({ insumoId, colorCodigo, consumoPorPrenda });
+  const beige = fila("BEI", "tela-vieja", "1.1");
+  const negro = fila("NEG");
+  const hilo: TelaBorrador = { insumoId: "hilo", colorCodigo: null, consumoPorPrenda: "0.02" };
+
+  it("copia el parche a la fila de cada color y deja intacto lo demás (el hilo, el orden)", () => {
+    const telas = [beige, negro, hilo];
+    const r = ponerEnTodosLosColores(telas, [{ indice: 0, tela: beige }, { indice: 1, tela: negro }], { insumoId: "lino", consumoPorPrenda: "1.2" });
+    expect(r).toEqual([{ ...beige, insumoId: "lino", consumoPorPrenda: "1.2" }, { ...negro, insumoId: "lino", consumoPorPrenda: "1.2" }, hilo]);
+    expect(r[2]).toBe(hilo);
+  });
+  it("un color sin fila nace con el parche, antes del primer material que no es de ningún color", () => {
+    const telas = [beige, hilo];
+    const vacio = fila("NEG");
+    const r = ponerEnTodosLosColores(telas, [{ indice: 0, tela: beige }, { indice: null, tela: vacio }], { consumoPorPrenda: "0.9" });
+    expect(r.map((t) => [t.colorCodigo, t.consumoPorPrenda])).toEqual([["BEI", "0.9"], ["NEG", "0.9"], [null, "0.02"]]);
+  });
+  it("sin materiales extra, las filas nuevas van al final; sin filas de color, no hace nada", () => {
+    expect(ponerEnTodosLosColores([beige], [{ indice: 0, tela: beige }, { indice: null, tela: fila("NEG") }], { insumoId: "x" }).map((t) => t.colorCodigo)).toEqual(["BEI", "NEG"]);
+    expect(ponerEnTodosLosColores([hilo], [], { insumoId: "x" })).toEqual([hilo]);
+  });
+  it("una cifra para todos suelta la cifra por talla que tenía cada fila", () => {
+    const porTalla = { ...beige, porTalla: { S: "1.0", M: "1.2" } };
+    const [r] = ponerEnTodosLosColores([porTalla], [{ indice: 0, tela: porTalla }], { consumoPorPrenda: "1.1", porTalla: null });
+    expect(r).toMatchObject({ consumoPorPrenda: "1.1", porTalla: null });
+  });
+  it("no muta lo que recibe", () => {
+    const telas = [beige, negro];
+    const copia = JSON.parse(JSON.stringify(telas));
+    ponerEnTodosLosColores(telas, [{ indice: 0, tela: beige }, { indice: 1, tela: negro }], { insumoId: "x" });
+    expect(telas).toEqual(copia);
   });
 });

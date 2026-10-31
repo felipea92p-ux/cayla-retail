@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 137,
+  "total": 139,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -169,6 +169,8 @@
     "components/orden-produccion/TelaDeLaOrden.tsx": [
       "Boton «Ficha del modelo»",
       "CampoSelect «Tela»",
+      "CampoTexto «{consumoSugerido(consumoDeclarado) || \"0.000\"}»",
+      "CampoSelect «Tela» #2",
       "CampoTexto «{`${unidadDeLaFila}»",
       "CampoTexto «{`Talla ${x.talla}»",
       "button «Una cifra para todas las tallas»",

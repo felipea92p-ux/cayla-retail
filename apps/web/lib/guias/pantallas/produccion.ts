@@ -328,6 +328,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Por cada color eliges la tela y cuántos metros lleva cada prenda (el modelo ya lo sugiere). «Separar por talla» deja escribir cada talla; con una sola cifra el pedido sale «Aproximado». Te dice cuántos pedir y si alcanza. «Ficha del modelo» guarda tela y avíos; «+ Agregar material» suma un forro, otra tela o un avío.",
     },
     {
+      id: "tela-todos",
+      ancla: "prod-orden-nueva.tela-todos",
+      opcional: true,
+      titulo: "La misma tela en todos los colores",
+      texto: "Con dos colores o más, la primera fila dice «Para todos los colores»: eliges la tela y escribes los metros por prenda una sola vez, y se copian a la fila de cada color. Después puedes cambiar un color por su cuenta.",
+    },
+    {
       id: "consumo-modelo",
       ancla: "prod-orden-nueva.consumo-modelo",
       opcional: true,

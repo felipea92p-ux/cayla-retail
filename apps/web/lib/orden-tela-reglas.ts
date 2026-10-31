@@ -293,6 +293,25 @@ export function planDeFila(t: TelaBorrador, tallas: readonly TallaDeLaOrden[], p
   return aMilesimas(tallas.reduce((s, x) => s + c[x.talla] * x.cantidad, 0) * (1 + merma));
 }
 
+/**
+ * «Para todos los colores» (Felipe, 2026-10-31): lo mismo en la fila de cada color de la orden, de una vez, en vez de una por una. `filasDeColor` son las filas de la tabla de telas que reclamó cada
+ * color (`indice` nulo = el color todavía no tiene fila). Las que existen reciben el `parche`; las que no, nacen con él ANTES del primer material que no es de ningún color (los avíos y el forro
+ * van siempre al final, como en `ponerColor`). Lo demás no se toca: ni los avíos, ni el forro, ni el orden. Sin filas de color, no hace nada.
+ */
+export function ponerEnTodosLosColores(
+  telas: readonly TelaBorrador[],
+  filasDeColor: readonly { indice: number | null; tela: TelaBorrador }[],
+  parche: Partial<TelaBorrador>
+): TelaBorrador[] {
+  if (filasDeColor.length === 0) return [...telas];
+  const reclamadas = new Set(filasDeColor.flatMap((f) => (f.indice === null ? [] : [f.indice])));
+  const nuevas = filasDeColor.filter((f) => f.indice === null).map((f) => ({ ...f.tela, ...parche }));
+  const actualizadas = telas.map((t, i) => (reclamadas.has(i) ? { ...t, ...parche } : t));
+  const primerMaterial = telas.findIndex((_, i) => !reclamadas.has(i));
+  const corte = primerMaterial === -1 ? telas.length : primerMaterial;
+  return [...actualizadas.slice(0, corte), ...nuevas, ...actualizadas.slice(corte)];
+}
+
 /** «Separar por talla»: cada talla parte de la cifra única que ya había (o de la que ya tenía escrita). Sin dos tallas, no hace nada. */
 export function separarPorTalla(t: TelaBorrador, tallas: readonly TallaDeLaOrden[]): TelaBorrador {
   if (!admitePorTalla(tallas)) return t;

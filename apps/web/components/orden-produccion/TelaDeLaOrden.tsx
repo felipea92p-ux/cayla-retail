@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Punto } from "@/components/alta-producto/Punto";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -16,6 +17,7 @@ import {
   cantidadAPedir,
   consumoSugerido,
   planDeFila,
+  ponerEnTodosLosColores,
   prendasDeLaFila,
   separarPorTalla,
   tallasDeLaFila,
@@ -167,6 +169,13 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
       onTelas([...telas.slice(0, primerAvio), nueva, ...telas.slice(primerAvio)]);
     }
   }
+  // «Para todos los colores» (2026-10-31): una tela y unos metros por prenda que se copian a la fila de cada color, como «Llenar todas con» de la tabla de cantidades: cada tecla o cada
+  // elección se aplica sola, vaciar la caja no borra nada, y cada fila se puede corregir después por su cuenta. Solo en Nueva orden (editar una orden abierta no repite lo ya anotado).
+  const [paraTodos, setParaTodos] = useState({ insumoId: "", consumo: "" });
+  const hayVariosColores = !edicion && colores.length >= 2;
+  function ponerEnTodos(parche: Partial<TelaBorrador>) {
+    onTelas(ponerEnTodosLosColores(telas, porColor.map((f) => ({ indice: f.indice, tela: f.tela })), parche));
+  }
   function ponerAvio(indice: number, parche: Partial<TelaBorrador>) {
     onTelas(telas.map((t, i) => (i === indice ? { ...t, ...parche } : t)));
   }
@@ -188,9 +197,9 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
   const problemasDe = (indice: number | null) => (indice === null ? [] : problemas.filter((p) => p.indice === indice));
 
   /** Las opciones del combo de tela: las del tejido del modelo primero (y entre ellas, la del color de la fila), las demás bajo «Otras telas». */
-  function opcionesTela(fila: (typeof porColor)[number]): Opcion<string>[] {
+  function opcionesTela(colorCodigo: string | null, elegidaId: string | null): Opcion<string>[] {
     const texto = (i: InsumoDelTaller) => `${i.nombre} · hay ${cantidad(i.saldo, i.unidad)}`;
-    const delColor = (lista: InsumoDelTaller[]) => [...lista].sort((a, b) => Number(b.colorCodigo === fila.color.codigo) - Number(a.colorCodigo === fila.color.codigo));
+    const delColor = (lista: InsumoDelTaller[]) => [...lista].sort((a, b) => Number(b.colorCodigo === colorCodigo) - Number(a.colorCodigo === colorCodigo));
     const primero = tejidoId ? delColor(delTejido) : delColor(telasDelEstante);
     const resto = tejidoId ? telasDelEstante.filter((i) => i.tejidoId !== tejidoId) : [];
     // Los grupos solo cuando hay dos: con el tejido del modelo sin telas en el estante, las demás van sueltas (la frase de arriba ya lo explica).
@@ -200,7 +209,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
       ...resto.map((i) => ({ valor: i.id, texto: texto(i), grupo: conGrupos ? "Otras telas" : undefined })),
     ];
     // La elegida que ya no está en el estante (se archivó) se sigue viendo con su nombre, pero no se vuelve a elegir.
-    const elegida = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
+    const elegida = elegidaId ? porId.get(elegidaId) : undefined;
     if (elegida && !opciones.some((o) => o.valor === elegida.id)) opciones.unshift({ valor: elegida.id, texto: `${elegida.nombre} · archivada`, deshabilitada: true });
     return opciones;
   }
@@ -254,6 +263,42 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
         )}
 
         <div className="divide-y divide-sand rounded-2xl border border-sand bg-crema">
+          {hayVariosColores && (
+            <div data-guia="prod-orden-nueva.tela-todos" className="space-y-2 rounded-t-2xl bg-hueso/60 px-3.5 py-3">
+              <div className="min-w-0">
+                <p className="truncate font-display text-[15px] leading-tight text-tinta">Para todos los colores</p>
+                <p className="text-[12px] text-taupe">Se copia a los {colores.length} colores; después puedes cambiar uno.</p>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1">
+                <CampoSelect
+                  id="tela-todos"
+                  etiqueta="Tela"
+                  valor={paraTodos.insumoId}
+                  onValor={(v) => {
+                    setParaTodos((p) => ({ ...p, insumoId: v }));
+                    if (v) ponerEnTodos({ insumoId: v });
+                  }}
+                  opciones={opcionesTela(null, paraTodos.insumoId || null)}
+                  marcador="Elegir la tela"
+                  deshabilitado={telasDelEstante.length === 0}
+                />
+                <CampoTexto
+                  id="tela-todos-consumo"
+                  etiqueta={`${paraTodos.insumoId && porId.get(paraTodos.insumoId) ? unidadCorta(porId.get(paraTodos.insumoId)!.unidad) : "m"} por prenda`}
+                  mono
+                  inputMode="decimal"
+                  placeholder={consumoSugerido(consumoDeclarado) || "0.000"}
+                  value={paraTodos.consumo}
+                  onChange={(e) => {
+                    setParaTodos((p) => ({ ...p, consumo: e.target.value }));
+                    if (e.target.value.trim() !== "") ponerEnTodos({ consumoPorPrenda: e.target.value, porTalla: null });
+                  }}
+                  pie={pieDelConsumo(consumoDeclarado)}
+                  tono="neutro"
+                />
+              </div>
+            </div>
+          )}
           {porColor.map((fila) => {
             const insumo = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
             const plan = fila.indice !== null ? (planPorIndice.get(fila.indice) ?? 0) : 0;
@@ -261,7 +306,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
             const veredicto = insumo && plan > 0 && usado === 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, fila.indice), enCamino.get(insumo.id) ?? 0) : null;
             const costo = conCostos && insumo && plan > 0 ? costoPorMetro.get(insumo.id) : undefined;
             const pies = piesDe(problemasDe(fila.indice), fila.tela);
-            const opciones = opcionesTela(fila);
+            const opciones = opcionesTela(fila.color.codigo, fila.tela.insumoId);
             const tallas = fila.color.tallas ?? [];
             const porTallaActiva = usaPorTalla(fila.tela, tallas);
             const puedePorTalla = admitePorTalla(tallas);
