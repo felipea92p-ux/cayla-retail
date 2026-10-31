@@ -21,7 +21,12 @@ Abrir `index.html` (o con la config `maquetas` del navegador integrado). Va sobr
    esquinas de arriba redondeadas de verdad (la tabla se recorta desde la cabecera con su radio de 22 px, así que detrás de cada esquina se ve
    la Aurora; Felipe: «que los bordes se redondeen») y su sombra abajo. Lo que sube por encima de ella se esconde, y detrás de las islas queda la Aurora:
    ninguna fila se ve encima ni a través (Felipe 2026-10-31: «se confunde con el contenido»; y después, «no me gusta que se extienda
-   tanto hacia arriba»: se quitó la franja de vidrio que subía hasta el borde).
+   tanto hacia arriba»: se quitó la franja de vidrio que subía hasta el borde). **Aunque bajes muy rápido, nada se asoma** («si se
+   hace el scroll muy rápido, igual pasa a la cabecera el contenido»): el recorte ya no lo calcula JavaScript en cada desplazamiento
+   (llegaba un cuadro tarde), lo hace el navegador con CSS guiado por el desplazamiento (`animation-timeline: view()`), en el mismo
+   cuadro en que mueve la lista. Medido: en cada posición, la fila que cruza se ve exactamente desde el borde de la cabecera (normal,
+   letra grande y fila de filtros). Donde el navegador no sabe hacerlo, queda el arreglo con JavaScript.
+   **Para el código:** Chrome y Edge 115+, Safari 26+; Firefox todavía no (cae al respaldo).
 6. **La fecha dice cuánto falta** («en 4 días»; si ya pasó y no llegó, «hace 2 días» en ámbar).
 7. **Al pie, el total de lo que ves**, no el de todo.
 8. **Cuando los filtros no dejan nada**, se dice qué pasó y cómo volver.

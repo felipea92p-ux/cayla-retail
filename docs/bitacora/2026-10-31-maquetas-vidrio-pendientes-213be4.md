@@ -28,3 +28,7 @@
 - **Cabecera pegada, tercera vuelta** (Felipe: «que los bordes se redondeen»): detrás de sus esquinas seguía el vidrio de la tabla y se
   veían cuadradas. Ahora la tabla pegada se recorta desde la cabecera con `clip-path: inset(… round 22px)` (reemplaza la máscara de
   `#cont`): esquinas redondas de verdad, con la Aurora detrás, en claro y oscuro.
+- **Cabecera pegada, cuarta vuelta** (Felipe: «si se hace el scroll muy rápido, igual pasa a la cabecera el contenido»): el recorte lo
+  hacía JavaScript en cada evento de desplazamiento y llegaba un cuadro tarde. Ahora es CSS guiado por el desplazamiento
+  (`animation-timeline: view()`): cada fila se recorta al pasar bajo la cabecera, el vidrio de la tabla (en su capa `.t-fondo`) se
+  recorta con sus esquinas y la cabecera se vuelve opaca, todo en el mismo cuadro. Medido al píxel; JavaScript queda de respaldo.

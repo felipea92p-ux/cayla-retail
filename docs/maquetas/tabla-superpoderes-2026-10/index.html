@@ -19,11 +19,14 @@
    ==================================================================== */
 
 /* ---------- la placa (B · Placa Serena, la elegida) ---------- */
-.tabla{position:relative;margin-top:20px;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);overflow:clip;
+.tabla{position:relative;isolation:isolate;margin-top:20px;border-radius:22px;animation:sube .5s var(--ease) .2s backwards}
+.tabla.quieta{animation:none}
+/* la piel de la placa vive en su propia capa, detrás de las filas: así se recorta sola cuando la cabecera se pega */
+.t-fondo{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
   background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
   -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
-  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) .2s backwards}
-[data-tema="oscuro"] .tabla{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .t-fondo{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
   border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
 .t-enc,.t-fila,.t-filtros{display:grid;grid-template-columns:var(--cols);gap:0 12px;align-items:center;padding:0 20px}
 .t-fila{position:relative;min-height:52px;padding-top:10px;padding-bottom:10px;font-size:13.5px;color:var(--tinta);text-decoration:none;
@@ -36,7 +39,7 @@
 .t-fila .sec{display:block;font-size:12px;color:var(--t65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .t-enc{min-height:40px;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
 .t-enc>span{font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t-pie{padding:12px 20px;font-size:12px;color:var(--taupe);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.t-pie{border-radius:0 0 22px 22px;padding:12px 20px;font-size:12px;color:var(--taupe);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
 .der{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 /* la fila abierta: la gota del menú con su marca roja (la de la cara elegida) */
 a.t-fila{cursor:pointer;isolation:isolate}
@@ -87,15 +90,36 @@ a.t-fila[aria-current="true"] .marca{display:block}
      la Aurora, no el vidrio de la tabla (Felipe: «que los bordes se redondeen»). Se lee como el comienzo de la tabla, no como una barra;
    · y gana una sombra abajo y un filo más marcado: se ve que está por encima de las filas, no entre ellas. */
 /* `top` se mide desde el borde del contenido de #cont, que tiene 92 px de relleno arriba: -20 px la deja a 72 px del borde, justo bajo las islas */
-:root:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{position:sticky;top:-20px;z-index:3;transition:box-shadow .25s var(--ease),background .25s}
-.tabla[data-pegada] .t-cabeza{background:color-mix(in srgb,var(--vidrio) 98%,transparent);
-  -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
-  box-shadow:0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 14px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
-.tabla[data-pegada] .t-enc{box-shadow:none}
-.tabla[data-pegada] .t-cabeza{border-radius:22px 22px 0 0}
-.tabla[data-pegada]{clip-path:inset(var(--recorte,0px) 0 0 0 round 22px)}
-[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza{background:color-mix(in srgb,var(--vidrio) 98%,transparent)}
-[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza{box-shadow:0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 14px 26px -16px var(--sombra)}
+:root:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{position:sticky;top:-20px;z-index:3;border-radius:22px 22px 0 0;
+  --cab-fondo:color-mix(in srgb,var(--vidrio) 98%,transparent);
+  --cab-sombra:0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 14px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"] .t-cabeza{--cab-sombra:0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 14px 26px -16px var(--sombra)}
+/* Felipe 2026-10-31: «si se hace el scroll muy rápido, igual pasa a la cabecera el contenido». El recorte lo calculaba JavaScript en cada
+   evento de desplazamiento, y al bajar rápido llegaba un cuadro tarde. Ahora es CSS guiado por el desplazamiento (`animation-timeline:
+   view()`): el navegador recorta en el MISMO cuadro en que mueve la lista, sin JavaScript de por medio. Tres piezas:
+   · cada fila se recorta desde arriba al pasar bajo el borde de abajo de la cabecera (`--corte`): no hay cuadro en que asome encima;
+   · el vidrio de la tabla se recorta en el borde de arriba de la cabecera, con sus esquinas de 22 px: detrás de ellas, la Aurora;
+   · la cabecera se vuelve opaca, con su sombra, en los primeros 4 px de pegarse.
+   JavaScript solo mide UNA vez (al pintar, al cambiar el ancho o la letra) dónde está el borde: `medirCorte()`. Donde el navegador no
+   sabe hacerlo (Firefox, sin la bandera), queda el arreglo con JavaScript de antes. */
+@keyframes recorte-fila{from{clip-path:inset(0 -24px -32px -24px)}to{clip-path:inset(100% -24px -32px -24px)}}
+@keyframes recorte-fondo{from{clip-path:inset(0 0 -80px 0 round 22px 22px 0 0)}to{clip-path:inset(100% 0 -80px 0 round 22px 22px 0 0)}}
+@keyframes cabeza-pega{from{background-color:transparent;box-shadow:none}
+  to{background-color:var(--cab-fondo);box-shadow:var(--cab-sombra);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5)}}
+@supports (animation-timeline: view()) {
+  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla{view-timeline:--tabla block;view-timeline-inset:var(--corte-fondo,-100000px) 0px}
+  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla .t-fondo{animation:recorte-fondo linear both;animation-timeline:--tabla;animation-range:exit-crossing}
+  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla .t-cabeza{animation:cabeza-pega linear both;animation-timeline:--tabla;animation-range:exit-crossing 0px exit-crossing 4px}
+  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla .t-fila{animation-name:sube-fila,recorte-fila;animation-duration:.42s,1ms;animation-timing-function:var(--ease),linear;
+    animation-fill-mode:backwards,both;animation-delay:calc(260ms + var(--k,0) * 28ms),0s;animation-timeline:auto,view(block var(--corte,-100000px) 0px);animation-range:normal,exit-crossing}
+  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla.quieta .t-fila{animation-name:none,recorte-fila}
+  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla :is(.t-pie,.vacio-t){animation:recorte-fila linear both;animation-timeline:view(block var(--corte,-100000px) 0px);animation-range:exit-crossing}
+}
+@supports not (animation-timeline: view()) {
+  .tabla.quieta .t-fila{animation:none}
+  .tabla[data-pegada] .t-cabeza{background:var(--cab-fondo);box-shadow:var(--cab-sombra);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5)}
+  .tabla[data-pegada]{clip-path:inset(var(--recorte,0px) 0 -80px 0 round 22px 22px 0 0)}
+}
 /* la cabecera que se toca: el nombre, su flecha de orden y su punto de filtro */
 .col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;
   font-size:inherit;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t80);transition:background .2s,color .2s}
@@ -425,6 +449,7 @@ function tabla() {
   const cols840 = COLS.filter((c) => !c.m.startsWith('oc-')).map((c) => c.ancho).join(' ');
   const suma = xs.reduce((a, o) => a + o.total, 0);
   return `<div class="tabla" role="table" aria-label="Órdenes de compra" ${letraGrande ? 'data-letra="grande"' : ''} style="--cols:${cols};--cols-1060:${cols1060};--cols-840:${cols840};--w-monto:${ancho}ch">
+    <div class="t-fondo" aria-hidden="true"></div>
     <div class="t-cabeza">${cabecera()}${filaDeFiltros()}</div>
     ${xs.length ? xs.map((o, k) => `<a href="#" class="t-fila" role="row" data-id="${o.oc}" aria-current="${o.oc === abierta}" style="--k:${Math.min(k, 11)}"><span class="marca" aria-hidden="true"></span>${celdas(o)}</a>`).join('') : vacio()}
     <div class="t-pie">${sp() ? (hayFiltros() ? `Lo que ves suma <b>${soles(suma)}</b> · ${xs.length} órdenes` : `${DATOS.length} órdenes · ${soles(suma)} en total`) : `${DATOS.length} órdenes · ${soles(suma)} en total`}</div></div>`;
@@ -448,9 +473,9 @@ function repintar(primera) {
   $('#filtros-m').innerHTML = filtrosMovil();
   const foco = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.texto, pos = foco && document.activeElement.selectionStart;
   $('#la-tabla').innerHTML = tabla();
-  if (!primera) $$('.t-fila,.tabla').forEach((x) => (x.style.animation = 'none'));
+  if (!primera) $('.tabla').classList.add('quieta');
   if (foco) { const i = $(`[data-texto="${foco}"]`); i.focus(); i.setSelectionRange(pos, pos); }
-  marcarPegada();
+  medirCorte(); marcarPegada();
   if (globoDe) pintarGlobo();
 }
 
@@ -511,7 +536,7 @@ document.addEventListener('click', (ev) => {
   if (q) { const [t, k, v] = q.dataset.quitar.split('|'); if (t === 'l') F[k].delete(v); if (t === 'r') F[k] = RANGOS[k][0][0]; if (t === 't') F.texto[k] = ''; repintar(); return; }
   if (ev.target.closest('[data-limpiar]')) { F = vacioF(); cerrarGlobo(); repintar(); return; }
   const le = ev.target.closest('[data-letra]');
-  if (le) { letraGrande = !letraGrande; try { localStorage.setItem('cayla-letra-tabla', letraGrande ? 'grande' : 'normal'); } catch (e) {} le.setAttribute('aria-checked', letraGrande); $('.tabla').toggleAttribute('data-letra', letraGrande); if (letraGrande) $('.tabla').dataset.letra = 'grande'; return; }
+  if (le) { letraGrande = !letraGrande; try { localStorage.setItem('cayla-letra-tabla', letraGrande ? 'grande' : 'normal'); } catch (e) {} le.setAttribute('aria-checked', letraGrande); $('.tabla').toggleAttribute('data-letra', letraGrande); if (letraGrande) $('.tabla').dataset.letra = 'grande'; medirCorte(); return; }
   const f = ev.target.closest('a.t-fila');
   if (f) { ev.preventDefault(); abierta = +f.dataset.id; $$('a.t-fila').forEach((x) => x.setAttribute('aria-current', x === f)); cerrarGlobo(); return; }
   if (ev.target.closest('.cont a')) ev.preventDefault();
@@ -522,7 +547,17 @@ document.addEventListener('input', (ev) => {
   if (ev.target.matches('[data-g-buscar]')) { const q = sinTilde(ev.target.value.trim()); $$('.globo [data-elegir]').forEach((o) => (o.hidden = q && !sinTilde(o.dataset.t).includes(q))); }
 });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && globoDe) { const k = globoDe; cerrarGlobo(); const b = [...$$(`[data-col="${k}"]`)].find((x) => x.offsetParent); if (b) b.focus(); } });
-// ¿la cabecera está pegada? (la tabla ya empezó más arriba que ella)
+// Dónde se pega la cabecera y dónde termina: se mide al pintar, al cambiar el ancho o la letra; el recorte lo hace el navegador.
+// Sin cabecera pegada (Como ahora, o en tarjetas, donde no hay cabecera) no se recorta nada.
+function medirCorte() {
+  const t = $('.tabla'), c = t && $('.t-cabeza', t); if (!t) return;
+  const activa = !!sp() && c && c.offsetHeight > 0 && getComputedStyle(c).position === 'sticky';
+  t.style.setProperty('--corte-fondo', activa ? '72px' : '-100000px');
+  t.style.setProperty('--corte', activa ? 72 + c.offsetHeight + 'px' : '-100000px');
+}
+addEventListener('resize', medirCorte);
+$('#lat').addEventListener('transitionend', medirCorte); // al plegar el menú, la tabla puede pasar a tarjetas o volver
+// ¿la cabecera está pegada? (la tabla ya empezó más arriba que ella) — solo para el arreglo de respaldo
 function marcarPegada() {
   const t = $('.tabla'), c = t && $('.t-cabeza', t); if (!t || !c) return;
   const pegada = getComputedStyle(c).position === 'sticky' && t.getBoundingClientRect().top < c.getBoundingClientRect().top - 1;
