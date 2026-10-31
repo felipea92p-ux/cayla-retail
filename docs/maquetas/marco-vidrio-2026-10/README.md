@@ -51,4 +51,5 @@ menú real (`lib/menu.ts`, con los subgrupos de tercer nivel) y los 61 trazos de
 Después pidió **el botón de plegar arriba a la derecha del menú** (junto al logo; plegado, bajo el colibrí; en el celular, la ✕ del cajón)
 y **quitar las ramas del hilo** que salían a cada submódulo. El selector **Submódulos** muestra tres caras sin líneas: A · Bandeja
 (hundida bajo el módulo), B · Sangría limpia (sin caja ni línea) y C · Tarjeta (el módulo abierto y sus submódulos en una placa de vidrio;
-recomendada). Pendiente que elija.
+recomendada). Felipe eligió **A · Bandeja**. Y pidió que el botón de plegar **no le quite lugar al logo**: ahora flota sobre el borde derecho
+del menú, a la altura del logo (una gota de 28 px que viaja con el borde y da vuelta su flecha); plegado, el colibrí queda centrado.

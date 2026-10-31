@@ -77,3 +77,8 @@ Felipe se lleva: mirar el despliegue; después siguen los íconos del marco (si 
 Qué hice: Felipe pidió el botón para plegar arriba a la derecha del menú y que las ramas del hilo que salían a cada submódulo se rediseñaran. El botón pasó de la cabecera al lado del logo (plegado, baja bajo el colibrí y su ícono se da vuelta; en el celular, en su lugar va la ✕ del cajón). Quité el hilo y sus ramas y sumé el selector «Submódulos» con tres caras sin líneas —A · Bandeja, B · Sangría limpia, C · Tarjeta—; la cascada de entrada se queda. La gota ahora toma el ancho de su fila, para caber dentro de una bandeja o una tarjeta. De paso: una fila tocada encendía todas las demás (`classList.toggle` con `undefined`).
 Por qué así: recomiendo C, porque lo que abriste sobresale como en las hojas y se ve dónde termina cada módulo; A se lee como un campo y B se pierde con dos niveles abiertos.
 Felipe se lleva: elegir la cara de los submódulos.
+
+## 2026-10-31 (Submódulos en bandeja; plegar flotante)
+Qué hice: Felipe eligió los submódulos «A · Bandeja» y pidió que el botón de plegar no le quite el logo, quizá flotante. El botón ahora es una gota de 28 px montada sobre el borde derecho del menú, a la altura del logo, que viaja con el borde al plegar y da vuelta su flecha; el logo queda entero y, plegado, el colibrí centrado (antes quedaba corrido fuera de la columna). Las islas de la cabecera se apartan 22 px para no tocarlo; en el celular no aparece (ahí está la ✕ del cajón).
+Por qué así: en el borde no compite con nada y se encuentra siempre en el mismo lugar, abierto o plegado.
+Felipe se lleva: el marco completo para revisar; después, los íconos y las piezas de pantalla.

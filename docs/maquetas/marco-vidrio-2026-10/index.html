@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-fondo="aurora" data-lateral="riel" data-cabecera="islas" data-combo="gota" data-subs="tarjeta">
+<html lang="es" data-tema="claro" data-fondo="aurora" data-lateral="riel" data-cabecera="islas" data-combo="gota" data-subs="bandeja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -95,18 +95,29 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
   transition:width .35s var(--ease)}
 /* Como ahora */
 :root:not([data-lateral]) .lat{background:var(--crema);border-right:1px solid var(--t12)}
-/* Arriba del menú: el logo y, a su derecha, el botón para plegarlo (Felipe 2026-10-31). Plegado, el botón baja bajo el colibrí. */
-.logo-fila{display:flex;align-items:center;gap:8px;padding:22px 14px 18px 24px;transition:padding .35s var(--ease)}
+/* Arriba del menú, el logo entero. El botón para plegar FLOTA en el borde del menú, a la altura del logo (Felipe 2026-10-31: «que no
+   quite el logo, tal vez hacerlo flotante»): no le quita lugar al logo ni abierto ni plegado, y viaja con el borde al plegar. */
+.logo-fila{display:flex;align-items:center;gap:8px;padding:26px 24px 22px;transition:padding .35s var(--ease)}
 .logo{display:flex;align-items:center;gap:10px;min-width:0;flex:1;white-space:nowrap;overflow:hidden}
-.plegar,.cerrar-cajon{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65);transition:background .2s,color .2s,transform .35s var(--ease)}
-.plegar svg,.cerrar-cajon svg{width:18px;height:18px;stroke-width:1.6}
-.cerrar-cajon{display:none}
-@media (hover:hover){.plegar:hover,.cerrar-cajon:hover{color:var(--tinta);background:var(--t06)}}
-[data-lateral] .plegar{border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 24%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
-[data-tema="oscuro"][data-lateral] .plegar{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:none}
-.disp[data-plegado] .logo-fila{flex-direction:column;gap:12px;padding:22px 0 14px}
+.cerrar-cajon{display:none;flex:none;width:32px;height:32px;border-radius:50%;place-items:center;color:var(--t65)}
+.cerrar-cajon svg{width:18px;height:18px;stroke-width:1.6}
+.plegar-flota{position:absolute;z-index:7;left:calc(var(--lat-x) + var(--lat-w) - 14px);top:calc(var(--lat-y) + 30px);width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 45%,transparent);
+  transition:left .35s var(--ease),color .2s,transform .25s var(--ease),opacity .25s}
+[data-tema="oscuro"] .plegar-flota{background:linear-gradient(180deg,color-mix(in srgb,var(--hueso) 95%,transparent),color-mix(in srgb,var(--hueso) 80%,transparent));border-color:color-mix(in srgb,var(--tinta) 16%,transparent);box-shadow:0 6px 16px -8px var(--sombra)}
+.plegar-flota svg{width:14px;height:14px;stroke-width:2.2;transition:transform .35s var(--ease)}
+.disp[data-plegado] .plegar-flota svg{transform:rotate(180deg)}
+@media (hover:hover){.plegar-flota:hover{color:var(--tinta);transform:scale(1.1)}}
+.plegar-flota:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+[data-lateral="isla"] .plegar-flota{display:none}
+.disp[data-plegado] .logo-fila{justify-content:center;padding:26px 0 22px}
 .disp[data-plegado] .logo{flex:none}
-.disp[data-plegado] .plegar svg{transform:scaleX(-1)}
+.disp[data-plegado] .logo>div{display:none}
+/* las islas de la cabecera se apartan del botón flotante */
+[data-cabecera] .disp:not([data-ancho="movil"]) .cab{--aire-cab:22px}
 .logo i{width:26px;height:26px;border-radius:50%;background:var(--rojo);flex:none}
 .logo span{font-family:'EB Garamond',serif;font-size:22px;letter-spacing:.2em}
 .logo small{display:block;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin-top:-4px}
@@ -211,7 +222,7 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
   [data-lateral="isla"] .lat:hover :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1;transition-delay:.12s}
   [data-lateral="isla"] .lat:hover .hijos{display:grid}
 }
-[data-lateral="isla"] .lat .plegar{display:none}
+
 
 /* ====================================================================
    LA CABECERA
@@ -229,7 +240,7 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .cab .sede i{width:8px;height:8px;border-radius:50%;background:var(--verde)}
 .cab .hamb,.cab .colibri{display:none}
 /* A · Barra flotante: una barra de vidrio a 12 px de los bordes; los botones, gotas redondas */
-[data-cabecera="flotante"] .cab{top:12px;left:calc(var(--cont-x) + 12px);right:12px;height:56px;border-radius:20px;padding:0 10px 0 14px}
+[data-cabecera="flotante"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:56px;border-radius:20px;padding:0 10px 0 14px}
 [data-cabecera] .cab .ib{border-radius:50%}
 [data-cabecera] .cab .buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
 [data-tema="oscuro"][data-cabecera] .cab .buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
@@ -242,7 +253,7 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 [data-cabecera="fundida"] .cab{height:76px;align-items:flex-start;padding-top:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 88%,transparent),color-mix(in srgb,var(--crema) 50%,transparent) 60%,transparent);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask:linear-gradient(#000 55%,transparent);mask:linear-gradient(#000 55%,transparent)}
 /* C · Dos islas: la búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha; entre ellas se ve el contenido */
-[data-cabecera="islas"] .cab{top:12px;left:calc(var(--cont-x) + 12px);right:12px;height:52px;padding:0;background:none;border:0;box-shadow:none}
+[data-cabecera="islas"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:52px;padding:0;background:none;border:0;box-shadow:none}
 [data-cabecera="islas"] .cab .izq,[data-cabecera="islas"] .cab .der{height:52px;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:999px}
 [data-cabecera="islas"] .cab .izq{flex:0 1 auto}[data-cabecera="islas"] .cab .izq .buscar{flex-basis:300px}
 .cab .izq{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
@@ -415,7 +426,7 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
   .disp[data-cajon]::after{content:"";position:absolute;inset:0;z-index:4;background:color-mix(in srgb,var(--sombra) 22%,transparent)}
   .cab{padding:0 10px}
   [data-cabecera="flotante"] .cab,[data-cabecera="islas"] .cab{left:8px;right:8px;top:8px}
-  .cab .buscar,.cab .ocultable,.lat .plegar{display:none}
+  .cab .buscar,.cab .ocultable,.plegar-flota{display:none}
   .lat .cerrar-cajon{display:grid}
   .cab .hamb,.cab .colibri{display:grid}
   .cab .colibri{width:26px;height:26px;border-radius:50%;background:var(--rojo)}
@@ -448,7 +459,7 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
   <span class="tag">Fondo</span><div class="seg-m" data-ctl="fondo"><button data-v="ahora">Como ahora</button><button data-v="crema">A · Crema quieto</button><button data-v="aurora">B · Aurora ✓</button><button data-v="tejido">C · Tejido</button></div>
   <span class="tag">Lateral</span><div class="seg-m" data-ctl="lateral"><button data-v="ahora">Como ahora</button><button data-v="panel">A · Panel flotante</button><button data-v="riel">B · Riel con gota ✓</button><button data-v="isla">C · Isla de íconos</button></div>
   <span class="tag">Cabecera</span><div class="seg-m" data-ctl="cabecera"><button data-v="ahora">Como ahora</button><button data-v="flotante">A · Barra flotante</button><button data-v="fundida">B · Fundida</button><button data-v="islas">C · Dos islas ✓</button></div>
-  <span class="tag">Submódulos</span><div class="seg-m" data-ctl="subs"><button data-v="bandeja">A · Bandeja</button><button data-v="sangria">B · Sangría limpia</button><button data-v="tarjeta">C · Tarjeta</button></div>
+  <span class="tag">Submódulos</span><div class="seg-m" data-ctl="subs"><button data-v="bandeja">A · Bandeja ✓</button><button data-v="sangria">B · Sangría limpia</button><button data-v="tarjeta">C · Tarjeta</button></div>
   <span class="tag">Combo</span><div class="seg-m" data-ctl="combo"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota viajera ✓</button><button data-v="brota">B · Brota del botón</button><button data-v="tarjetas">C · Tarjetas</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
@@ -458,6 +469,7 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 <div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
   <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
   <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
   <header class="cab" id="cab"></header>
   <main class="cont" id="cont"></main>
   <div class="flotante" id="flotante"></div>
@@ -508,13 +520,13 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
     <h2>El menú completo y cómo se despliega</h2>
     <p>El lateral de la maqueta es el menú real de una líder (<code>lib/menu.ts</code>, lo que está «viva»): 11 módulos, sus submódulos y los dos subgrupos de tercer nivel (Producción ▸ Abastecimiento y Ventas ▸ Posventa), <b>cada uno con su ícono de hoy</b> (los 61 trazos de <code>lib/menu-iconos.ts</code>, copiados tal cual). Los globitos suman lo que hay dentro de un módulo cerrado, y abrir un módulo cierra sus hermanos, como en el ERP.</p>
     <p style="margin-top:8px"><b>El despliegue.</b> Hoy (<code>.lateral-hijos</code> en <code>globals.css</code>) la caja crece en 300 ms y las filas solo aparecen, así que todo lo de abajo baja de golpe. Ahora la caja crece en 460 ms con una curva que frena, cada submódulo llega desde arriba, desenfocado, y se enfoca en cascada (38 ms entre uno y otro), el ícono del módulo asiente una vez y la gota de la fila activa acompaña a su fila; al cerrar, 300 ms sin cascada. Sin rebote, y con <code>prefers-reduced-motion</code> todo aparece de una.</p>
-    <p style="margin-top:8px"><b>Plegar, arriba a la derecha del menú</b> (Felipe 2026-10-31): el botón vive junto al logo, ya no en la cabecera; plegado, baja bajo el colibrí y su ícono se da vuelta. En el celular, en su lugar va la ✕ que cierra el cajón.</p>
+    <p style="margin-top:8px"><b>Plegar: un botón que flota en el borde del menú</b> (Felipe 2026-10-31: «que no quite el logo, tal vez hacerlo flotante»). Ya no está en la cabecera ni en la fila del logo: es una gota redonda de 28 px montada sobre el borde derecho del menú, a la altura del logo, que viaja con el borde al plegar y da vuelta su flecha. El logo queda entero abierto y, plegado, el colibrí centrado; las islas de la cabecera se apartan 22 px para no tocarlo. En el celular no está: ahí va la ✕ que cierra el cajón.</p>
     <p style="margin-top:8px"><b>Cómo se agrupan los submódulos</b> (Felipe no quiso las ramas del hilo). Selector <b>Submódulos</b>, las tres sin líneas:</p>
     <table>
       <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
-      <tr><td>A · Bandeja</td><td>Los submódulos viven en una bandeja hundida bajo su módulo, como una caja abierta.</td><td>Agrupa con claridad. Pero «hundido» ya quiere decir «espera tu dato», y la bandeja se lee un poco como un campo.</td></tr>
+      <tr><td>A · Bandeja <span class="ev">Elegida</span></td><td>Los submódulos viven en una bandeja hundida bajo su módulo, como una caja abierta.</td><td>Agrupa con claridad. Pero «hundido» ya quiere decir «espera tu dato», y la bandeja se lee un poco como un campo.</td></tr>
       <tr><td>B · Sangría limpia</td><td>Sin caja ni línea: los submódulos se alinean con el nombre del módulo y sus íconos van más tenues.</td><td>Lo más liviano. Con dos módulos abiertos (Producción y Abastecimiento) cuesta ver dónde termina cada uno.</td></tr>
-      <tr><td>C · Tarjeta <span class="ev">Recomendada</span></td><td>El módulo abierto y sus submódulos se vuelven una sola placa de vidrio que crece desde la fila; lo de abajo se corre.</td><td>Lo que abriste sobresale, como en las hojas: el idioma de siempre. Se ve de un vistazo qué está abierto y dónde termina.</td></tr>
+      <tr><td>C · Tarjeta</td><td>El módulo abierto y sus submódulos se vuelven una sola placa de vidrio que crece desde la fila; lo de abajo se corre.</td><td>Lo que abriste sobresale, como en las hojas: el idioma de siempre. Se ve de un vistazo qué está abierto y dónde termina.</td></tr>
     </table>
   </section>
 </div>
@@ -555,8 +567,8 @@ function pintarLateral() {
   // Plegado o en la isla las hijas no se ven: el módulo lleva la marca de la pantalla en la que estás.
   const sinHijas = document.documentElement.dataset.lateral === 'isla' || $('#disp').hasAttribute('data-plegado');
   const plegado = $('#disp').hasAttribute('data-plegado');
+  const bp = $('#plegar-flota'); bp.setAttribute('aria-label', plegado ? 'Expandir el menú' : 'Plegar el menú'); bp.title = bp.getAttribute('aria-label');
   lat.innerHTML = `<div class="logo-fila"><div class="logo"><i></i><div><span>CAYLA</span><small>Retail</small></div></div>
-      <button class="plegar" data-acc="plegar" aria-label="${plegado ? 'Expandir el menú' : 'Plegar el menú'}" title="${plegado ? 'Expandir el menú' : 'Plegar el menú'}">${sv(L.plegar)}</button>
       <button class="cerrar-cajon" data-acc="cajon" aria-label="Cerrar el menú">${sv(L.cerrar)}</button></div>
     <nav class="nav"><span class="marca-activa gota" aria-hidden="true"></span>${MENU.map((n, i) => fila(n, 0, i, sinHijas)).join('')}</nav>
     <p class="firma">Donde el estilo transforma.</p>
@@ -716,7 +728,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- estado ----------
-const estado = { fondo: 'aurora', lateral: 'riel', cabecera: 'islas', combo: 'gota', subs: 'tarjeta', tema: 'claro', ancho: 'escritorio' };
+const estado = { fondo: 'aurora', lateral: 'riel', cabecera: 'islas', combo: 'gota', subs: 'bandeja', tema: 'claro', ancho: 'escritorio' };
 function pintar() {
   const r = document.documentElement;
   r.dataset.tema = estado.tema;
