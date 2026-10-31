@@ -180,7 +180,7 @@ export function normalizarFicha(f: FichaFijo): FichaFijo {
   return {
     ...f,
     beneficiario: limpio(f.beneficiario),
-    documentoNumero: dni ? f.documentoNumero.replace(/[\s.-]/g, "") : limpio(f.documentoNumero),
+    documentoNumero: dni ? f.documentoNumero.replace(/[\s.-]/g, "") : limpio(f.documentoNumero), // blanco-fijo: un DNI no es una cifra que se sume
     telefono: limpio(f.telefono),
     correo: limpio(f.correo).toLowerCase(),
     banco: limpio(f.banco),
