@@ -45,7 +45,7 @@ al Balance, que parte de los saldos de arranque.
 | Regla | Decisión |
 |---|---|
 | Costo | **El total pagado, con IGV**, sin separar el IGV (CAYLA tiene mucho IGV a favor por la mercadería; «lo que importa es reconstruir con información real de ahora en adelante»). |
-| Monto mínimo para ser activo | **S/ 150** por unidad; lo de menos queda como gasto. |
+| Monto mínimo para ser activo | **S/ 150** por unidad; lo de menos queda como gasto. **Reemplazado el 2026-10-31 por ¼ de la UIT por unidad (S/ 1,375 en 2026), con aviso en la pantalla: ADR-0594.** |
 | Ya depreciado | **Si al arranque ya está depreciado por completo, no se carga.** |
 | Compras repartidas entre sedes en SINATRA | **Tal cual cada hoja:** cada sede carga su porción, con la nota «porción de compra compartida». |
 | Día de arranque del Balance | **1-oct-2026.** Todo lo comprado hasta septiembre es carga inicial; desde octubre, compra normal con su pago. |
