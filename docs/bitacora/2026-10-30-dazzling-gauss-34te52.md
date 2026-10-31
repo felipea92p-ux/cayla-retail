@@ -6,3 +6,6 @@
   recomiendo» y lo formal plegado, sin cuentas en pantalla. Las cuentas van en «Descargar para el contador», que tiene seis archivos y
   baja uno por opción. Nacieron `fn_patrimonio_cambios` y `fn_saldos_por_cuenta`. Probado: tipos, 750 archivos de vitest, Knip, eslint y
   las pruebas de Postgres de Finanzas. Las tres migraciones se pegaron en producción el 2026-10-31 y se verificaron; las pantallas no se probaron en el navegador con sesión.
+- **2026-10-31 · Estados financieros igual a la maqueta (ADR-0585, actualización).** Felipe vio que ¿Ganamos? no se parecía a la maqueta:
+  se había reusado la cascada del Resumen. Ahora los cuatro estados usan la cascada de la maqueta y su respuesta, y el formato formal es una
+  opción arriba («Respuesta | Formato formal») en vez de ir plegado al final. Comparado en capturas con la maqueta antes de subir.
