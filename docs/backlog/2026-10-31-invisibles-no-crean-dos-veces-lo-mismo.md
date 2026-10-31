@@ -2,6 +2,13 @@
 
 ## SQL PARA PRODUCCIÓN · `20261031200000_invisibles_no_crean_dos_veces_lo_mismo.sql`
 
+> **YA ESTÁ PEGADO.** Felipe la pegó en producción el 2026-10-31 y la comprobación devolvió lo esperado:
+> `los_junta: true · indices: 16`. **Y eso prueba una cosa más:** la migración se niega si encuentra dos filas que
+> solo se diferencian por un carácter invisible, así que, como entró sin quejarse, **en producción no había ningún
+> duplicado de ese tipo guardado**. No hubo que decidir nada sobre datos existentes.
+
+Lo de abajo queda como estaba, para cuando haya que repetirlo o deshacerlo.
+
 **ANTES de pegar, corre la sonda de solo lectura** (`sonda-invisibles.sql`, en el PR; no escribe nada). Lo que decide
 todo es su respuesta 3:
 

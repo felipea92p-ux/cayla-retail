@@ -57,6 +57,13 @@ En una base al día, con la migración:
 **165 183 pruebas** de la web en verde, `typecheck`, `knip`, `knip:produccion`, `lint`, `migraciones:versiones` (la
 reserva `20261031200000` es de esta rama) y `adr:numeros`.
 
+## En producción desde el 2026-10-31
+
+Felipe la pegó el mismo día y la comprobación dio lo esperado: `los_junta: true · indices: 16`. **Y el solo hecho de
+que entrara prueba algo que no se podía saber antes:** la migración se niega si encuentra dos filas que solo se
+diferencian por un carácter invisible, así que **en producción no había ningún duplicado de ese tipo guardado**. No
+hubo que decidir nada sobre datos existentes, que era el único punto que podía frenar esto.
+
 ## Lo que NO hace, dicho sin adornos
 
 - **No corrige lo que ya existe.** Si hoy hubiera dos filas que solo se diferencian por un invisible, la migración se
