@@ -50,6 +50,29 @@ Los tres que apareció el candado, y que nadie había contado:
 | `configuracion-reglas.ts:23` `parsearPorcentaje` | cuánto sube la meta |
 | `configuracion-reglas.ts:293` | el porcentaje del aviso de gasto |
 
+## Y los dos filtros de tecleo de Caja (Felipe: «sí, ciérralos»)
+
+El gasto rápido y el ingreso rápido no tienen un «lector» como los doce de arriba: tienen un **filtro de tecleo**
+que limpia lo que se escribe y lo devuelve al campo. Por eso se habían dejado fuera: ahí lo pegado **se ve**, y
+cerrarlo bien no era repetir una línea sino decidir qué ve la persona al pegar. Felipe dijo que se cerraran, y la
+decisión fue: **el campo muestra lo que pegaste, y el aviso de abajo dice que no se entiende.** Es lo que ya hacía
+`soloMonto` del plan de compra, y no hizo falta inventar validación: `parsearMonto` usa `leerMontoPlata`, que desde
+hoy ya sabe distinguir «1 200» de un pegado. Lo único que hacía falta era **dejar de borrarlo** antes de que el
+lector lo viera. El «S/» sí se sigue quitando con su espacio.
+
+Verificado en la caja abierta de la tienda, con login real:
+
+| En «Cuánto» del gasto rápido | Antes | Ahora |
+|---|---|---|
+| pegar «12 ⏎ 8 ⏎ 5» | el campo decía **1285** y «Cuánto» quedaba hecho: se registraba un gasto de S/ 1 285 | el campo dice **«12 8 5»** y la hoja sigue pidiendo «Faltan: … **Cuánto**» |
+| pegar «12 ⇥ 8 ⇥ 5» | **1285** | «12⇥8⇥5», y «Cuánto» sigue faltando |
+| escribir «1 200» | 1 200 | 1 200, y «Cuánto» queda hecho |
+| escribir «20.50» | 20.50 | 20.50, y «Cuánto» queda hecho |
+
+**Lo que sigue fuera, y se dice:** los campos de **días** (`PlazoModal`, `RelojDelPedido`) borran todo lo que no sea
+dígito, así que pegar tres celdas daría 1 285 días. No es plata ni stock, se ve escrito, y no entraba en lo que
+Felipe aprobó.
+
 ## Cómo se verificó
 
 1. **La prueba de regresión primero, y falló:** `lib/pegado-de-celdas.test.ts` con los doce lectores · **23 pruebas

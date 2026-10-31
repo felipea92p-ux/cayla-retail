@@ -15,14 +15,14 @@ Reglas puras de `apps/web/lib/`, un filtro de campo y una prueba. Sin migración
 
 ## LO QUE QUEDÓ FUERA, A PROPÓSITO
 
-**Los filtros de tecleo de Caja** (`gasto-rapido-reglas.ts:294` `limpiarMonto` e `ingreso-rapido-reglas.ts:101`
-`limpiarMontoIngreso`) borran los blancos de lo que se escribe, así que pegar tres celdas deja «1285» en el campo.
-**No son lectores: son filtros**, y la diferencia importa — ahí lo pegado **se ve** escrito, mientras que en los doce
-de este PR el campo mostraba «12 8 5» y por debajo entraba 1 285. Cerrarlos bien no es la misma línea: hay que
-decidir qué se le muestra a la persona cuando pega, y eso es diseño de pantalla. Queda para cuando lo quieras.
+~~Los filtros de tecleo de Caja~~ **HECHOS en este PR** (Felipe, 31-oct: «sí, ciérralos»): `limpiarMonto` del gasto
+rápido y `limpiarMontoIngreso` del ingreso rápido conservan los blancos de adentro, así que el campo muestra «12 8 5»
+y la hoja sigue pidiendo «Cuánto», en vez de dejar escrito «1285» y darlo por bueno. No hizo falta validación nueva:
+`parsearMonto` ya usa `leerMontoPlata`.
 
-Lo mismo, más abajo en la lista: los campos de **días** (`PlazoModal`, `RelojDelPedido`) borran todo lo que no sea
-dígito; pegar tres celdas daría 1 285 días. No es plata ni stock y se ve escrito, pero es el mismo molde.
+**Lo que sigue fuera:** los campos de **días** (`PlazoModal`, `RelojDelPedido`) borran todo lo que no sea dígito, así
+que pegar tres celdas daría 1 285 días. No es plata ni stock, se ve escrito, y no entraba en lo aprobado. Es el mismo
+molde si algún día lo quieres cerrar.
 
 ## EL CANDADO, Y CÓMO SE CONVIVE CON ÉL
 
