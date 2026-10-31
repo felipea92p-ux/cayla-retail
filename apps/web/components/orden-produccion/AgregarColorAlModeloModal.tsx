@@ -37,6 +37,8 @@ export function AgregarColorAlModeloModal({
   // Un color creado desde el buscador todavía no está en `colores` (la lista llega de la página): se suma aquí y se elige.
   const [creados, setCreados] = useState<ColorAlta[]>([]);
   const [elegidos, setElegidos] = useState<string[]>([]);
+  // El cursor llega al buscador solo donde hay teclado físico: en el celular abriría el teclado y la lista taparía los botones del pie. La hoja se abre con un toque, nunca en el servidor.
+  const [enfocar] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches);
   const disponibles = useMemo(() => {
     const vistos = new Set<string>();
     return coloresQueFaltan([...colores, ...creados], variantes).filter((c) => !vistos.has(c.codigo) && vistos.add(c.codigo));
@@ -61,7 +63,7 @@ export function AgregarColorAlModeloModal({
               setElegidos((xs) => (xs.includes(c.codigo) ? xs : [...xs, c.codigo]));
             }}
             cartaAbierta={false}
-            enfocarBuscador
+            enfocarBuscador={enfocar}
           />
         </div>
 
