@@ -257,6 +257,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
+      id: "talla-nueva",
+      ancla: "prod-orden-nueva.talla-nueva-boton",
+      opcional: true,
+      titulo: "¿Falta una talla?",
+      texto: "«+ Talla» le agrega al modelo una talla de su categoría sin salir de la orden: se crea una prenda por cada color, con el precio y el costo del modelo y sin stock, y la columna nueva aparece en la tabla para llenarla. Es de quien edita el catálogo; si no, el botón sale apagado y dice por qué.",
+    },
+    {
       id: "red",
       ancla: "prod-orden-nueva.red",
       opcional: true,

@@ -42,6 +42,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
 import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
 import { AgregarColor, QuitarColor } from "@/components/orden-produccion/AgregarColor";
+import { AgregarTallaModal } from "@/components/orden-produccion/AgregarTallaModal";
+import { puedeAgregarTalla } from "@/lib/agregar-variantes-orden-reglas";
 import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
@@ -301,6 +303,13 @@ export function NuevaOrdenProduccionForm({
   );
   const vocab = vocabulario?.datos ?? null;
   const categoriaNueva = useMemo(() => vocab?.categorias.find((cat) => cat.id === categoriaNuevaId) ?? null, [vocab, categoriaNuevaId]);
+  // «+ Talla» de un modelo que ya existe (2026-10-31): las tallas que le faltan son las de SU categoría, y la base decide de verdad (`agregar_variantes_a_modelo`).
+  const [tallaAbierta, setTallaAbierta] = useState(false);
+  const categoriaDelModelo = useMemo(() => vocab?.categorias.find((cat) => cat.id === modeloExistente?.categoriaId) ?? null, [vocab, modeloExistente]);
+  const puedeTalla = useMemo(
+    () => (modeloExistente ? puedeAgregarTalla({ puedeEditarCatalogo, categoria: categoriaDelModelo, variantes: modeloExistente.variantes }) : null),
+    [modeloExistente, puedeEditarCatalogo, categoriaDelModelo]
+  );
   const coloresDisponibles = useMemo<ColorAlta[]>(() => {
     const vistos = new Set<string>();
     return [...(vocab?.colores ?? []), ...coloresCreados].filter((col) => !vistos.has(col.codigo) && vistos.add(col.codigo));
@@ -906,6 +915,14 @@ export function NuevaOrdenProduccionForm({
             {mostrarMatriz ? (
               <>
                 {esNuevo && vocab && <AgregarColor colores={coloresDisponibles} elegidos={coloresNuevos} onAlternar={alternarColor} onCreado={colorCreado} />}
+                {!esNuevo && modeloExistente && puedeTalla && (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-guia="prod-orden-nueva.talla-nueva-boton">
+                    <Boton type="button" peso="fantasma" disabled={!puedeTalla.puede || cargando} onClick={() => setTallaAbierta(true)}>
+                      + Talla
+                    </Boton>
+                    {!puedeTalla.puede && <span className="text-[12.5px] text-tinta/70">{puedeTalla.motivo}</span>}
+                  </div>
+                )}
                 {/* La misma tabla de Nuevo producto (ADR-0396, A2). `key`: «Llenar todas con» arranca vacío al cambiar de modelo o de categoría (las cantidades también se vacían). */}
                 <MatrizCantidades
                   key={esNuevo ? `nuevo-${categoriaNuevaId}` : productoId}
@@ -932,7 +949,7 @@ export function NuevaOrdenProduccionForm({
             {!esNuevo && (
               <p className="text-xs text-tinta/65">
                 {tabla.excluidas.size > 0 && "Una raya (—) es una combinación que este modelo no tiene. "}
-                ¿Falta una talla o un color? Se agrega en{" "}
+                ¿Falta un color? Se agrega en{" "}
                 {puedeEditarCatalogo ? (
                   <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
                     Editar producto
@@ -945,6 +962,16 @@ export function NuevaOrdenProduccionForm({
             )}
           </CampoGuiado>
           </div>
+        )}
+        {tallaAbierta && modeloExistente && (
+          <AgregarTallaModal
+            tallerId={tallerId}
+            productoId={modeloExistente.productoId}
+            referencia={modeloExistente.referencia}
+            categoria={categoriaDelModelo}
+            variantes={modeloExistente.variantes}
+            onClose={() => setTallaAbierta(false)}
+          />
         )}
 
         {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}

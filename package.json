@@ -295,6 +295,7 @@
     "pruebas:produccion-corte-con-su-tela": "node scripts/pruebas/produccion_corte_con_su_tela.mjs",
     "pruebas:produccion-cambiar-tipo": "node scripts/pruebas/produccion_cambiar_tipo.mjs",
     "pruebas:produccion-catalogo-de-procesos": "node scripts/pruebas/produccion_catalogo_de_procesos.mjs",
+    "pruebas:produccion-agregar-variantes": "node scripts/pruebas/produccion_agregar_variantes_al_modelo.mjs",
     "pruebas:producto-taller": "node scripts/pruebas/producto_taller.mjs",
     "pruebas:produccion-avances": "node scripts/pruebas/produccion_avances.mjs",
     "pruebas:produccion-anulaciones": "node scripts/pruebas/produccion_anulaciones.mjs",
