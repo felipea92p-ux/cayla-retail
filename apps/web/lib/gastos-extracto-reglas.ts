@@ -67,9 +67,18 @@ function diasEntre(desde: string, hasta: string): number {
  * ¿Es de lo grande sin comprobante? Vigente, sin boleta ni factura (la planilla de movilidad es el papel del viaje) y de S/ 300 o más. Es
  * la única regla: la usan la marca de la fila, el filtro «Sin comprobante, desde S/ 300», el chip de la cifra, la bandeja y «Te toca».
  */
-export function pideComprobante(g: Pick<GastoFila, "estado" | "comprobanteTipo" | "montoTotal">): boolean {
+export function pideComprobante(g: { estado: string; comprobanteTipo: string; montoTotal: number }): boolean {
   return g.estado !== "anulado" && g.comprobanteTipo === "sin_comprobante" && g.montoTotal >= UMBRAL_SIN_COMPROBANTE;
 }
+
+/** Lo grande sin comprobante del mes, como lo marca la lista: cuántos y el IGV que se recuperaría con factura (para el chip, la bandeja y «Te toca»). */
+export function sinComprobanteGrande(gastos: readonly { estado: string; comprobanteTipo: string; montoTotal: number }[]): { n: number; igv: number } {
+  const grandes = gastos.filter(pideComprobante);
+  return { n: grandes.length, igv: redondear(grandes.reduce((s, g) => s + igvDeFactura(g.montoTotal), 0)) };
+}
+
+/** «de S/ 300 o más», para decirlo igual en todas partes. */
+export const DESDE_EL_UMBRAL = `de S/\u00a0${UMBRAL_SIN_COMPROBANTE} o más`;
 
 /**
  * La marca de un gasto, o `null` si es un gasto normal. Una sola por fila, de la más importante a la menos: anulado, después lo que

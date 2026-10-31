@@ -13,6 +13,7 @@ import {
   marcaDelGasto,
   pagoACredito,
   resumenDelDia,
+  sinComprobanteGrande,
   textoDiasDeAntes,
   tituloDelDia,
   TOPE_REPETIDO,
@@ -99,6 +100,14 @@ describe("lo que dice la hoja del gasto", () => {
     expect(pagoACredito(HOY, HOY)).toBe("A crédito, vence hoy");
     expect(pagoACredito("2026-11-04", HOY)).toBe("A crédito, vence el 4 nov");
     expect(pagoACredito(null, HOY)).toBe("A crédito");
+  });
+});
+
+describe("lo grande sin comprobante del mes", () => {
+  it("cuenta lo que marca la lista (vigente, sin papel, desde S/ 300) y suma el IGV que se recuperaría", () => {
+    const r = sinComprobanteGrande([g(HOY, 354), g(HOY, 472), g(HOY, 299), g(HOY, 600, { estado: "anulado", motivoAnulacion: "x" }), g(HOY, 500, { comprobanteTipo: "planilla_movilidad" })]);
+    expect(r).toEqual({ n: 2, igv: 126 });
+    expect(sinComprobanteGrande([])).toEqual({ n: 0, igv: 0 });
   });
 });
 

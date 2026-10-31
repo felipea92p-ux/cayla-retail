@@ -16,7 +16,7 @@ import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { plantillasDe } from "@/lib/hoja-gasto-reglas";
 import { HojaRegistrarGasto } from "@/components/finanzas/gastos/HojaRegistrarGasto";
-import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
+import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltroComprobante, type FiltrosLista } from "@/lib/gastos-telar-reglas";
 import { Buscador as BuscadorLista } from "@/components/ui/Buscador";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -26,7 +26,7 @@ import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
 import { ExtractoGastos } from "@/components/finanzas/gastos/ExtractoGastos";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
-import { avisoDelGasto, pagoACredito } from "@/lib/gastos-extracto-reglas";
+import { avisoDelGasto, DESDE_EL_UMBRAL, pagoACredito, sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
 import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -232,7 +232,11 @@ export function GastosPanel({
   // Y el mes entero contra el anterior, si ese mes se puede comparar (hilos, Felipe 2026-10-30).
   const nombreMesAnterior = textoMes(mesesDeAntes(mes, 1)[0]!).split(" ")[0]!;
   const chipAnterior = panel ? chipDelMesAnterior(panel.total, contra, nombreMesAnterior, enCurso) : null;
-  const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
+  // Lo grande sin comprobante, como lo marca la lista: el chip y la bandeja dicen el mismo número (/formidable, cambio 3; Felipe 2026-10-30).
+  const sinPapel = useMemo(() => sinComprobanteGrande(gastos), [gastos]);
+  const chipsRespuesta = panel
+    ? [...chipsDeGastos({ n: panel.n, sinComprobante: sinPapel.n }), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -334,8 +338,8 @@ export function GastosPanel({
 
       <GastosPulso
         bandeja={bandeja}
-        sinComprobante={panel?.sinComprobante ?? 0}
-        onVerSinComprobante={() => elegirFiltro({ comprobante: "sin" })}
+        sinComprobante={sinPapel}
+        onVerSinComprobante={() => elegirFiltro({ comprobante: "sin_grande" })}
         onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
         onVerTodas={() => irALasPestanas(bandeja.cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
       />
@@ -603,11 +607,12 @@ function TablaGastos({
             icono={Receipt}
             etiqueta="Comprobante"
             valor={filtros.comprobante === "todos" ? TODOS : filtros.comprobante}
-            onValor={(v) => onFiltros({ comprobante: v === TODOS ? "todos" : (v as "sin" | "con") })}
+            onValor={(v) => onFiltros({ comprobante: v === TODOS ? "todos" : (v as FiltroComprobante) })}
             opciones={[
               { valor: TODOS, texto: "Todos" },
               { valor: "con", texto: "Con boleta o factura" },
               { valor: "sin", texto: "Sin comprobante" },
+              { valor: "sin_grande", texto: `Sin comprobante, ${DESDE_EL_UMBRAL}` },
             ]}
           />
         </Herramientas>

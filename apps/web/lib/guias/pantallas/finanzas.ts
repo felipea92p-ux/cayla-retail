@@ -413,8 +413,8 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "sin-comprobante",
       ancla: "fin-gastos.sin-comprobante",
       opcional: true,
-      titulo: "Los gastos sin comprobante",
-      texto: "Dice cuántos gastos del mes no tienen boleta ni factura: sin comprobante no recuperas su IGV. «Ver cuáles» deja en la lista solo esos, para ir pidiendo sus comprobantes.",
+      titulo: "Lo grande sin comprobante",
+      texto: "Dice cuántos gastos de S/\u00a0300 o más no tienen boleta ni factura y cuánto IGV recuperarías con factura (lo chico, como el mototaxi, no se avisa). «Ver cuáles» deja en la lista solo esos, para ir pidiendo sus comprobantes.",
     },
     {
       id: "resolver",
