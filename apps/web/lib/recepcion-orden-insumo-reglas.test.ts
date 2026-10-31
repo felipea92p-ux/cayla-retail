@@ -14,6 +14,7 @@ import {
   lotesQueSeAbren,
   milesimasQueLlegan,
   milesimasQueQuedan,
+  pedidosSinFacturaDe,
   problemaDeLineaRecepcion,
   resumenDeRecepcionOI,
   textoDelRestoOI,
@@ -202,5 +203,22 @@ describe("recibir contra la orden de insumos: lo que viaja y lo que vuelve", () 
     expect(detalleDeRecepcionOI({ lotes: 2, cierres: 0, queda: true })).toBe("Se abrieron 2 lotes. Todavía queda algo por recibir de esta orden.");
     expect(detalleDeRecepcionOI({ lotes: 1, cierres: 1, queda: false })).toBe("Se abrió 1 lote y quedó anotado 1 insumo que no va a llegar. Ya no queda nada por recibir de esta orden.");
     expect(detalleDeRecepcionOI({ lotes: 0, cierres: 2, queda: true })).toBe("Quedaron anotados 2 insumos que no van a llegar. Todavía queda algo por recibir de esta orden.");
+  });
+});
+
+describe("la factura suelta y el pedido abierto del proveedor (ADR-0587, mejora 3)", () => {
+  it("el pedido con metros sin factura se ofrece, con lo que falta facturar; lo de fuera de la orden no cuenta", () => {
+    expect(pedidosSinFacturaDe([orden()], "Telas Peña SAC")).toEqual([{ id: "o1", documento: "OI-000012", detalle: "12.5 metros de Lino crudo, 4 conos de Hilo" }]);
+  });
+  it("otro proveedor, sin proveedor elegido o un pedido ya facturado entero: no se pregunta nada", () => {
+    expect(pedidosSinFacturaDe([orden()], "Otro")).toEqual([]);
+    expect(pedidosSinFacturaDe([orden()], null)).toEqual([]);
+    const facturado = { ...orden(), lineas: orden().lineas.map((l) => (l.tipo === "orden" && l.pedido != null ? { ...l, facturado: l.pedido } : l)) };
+    expect(pedidosSinFacturaDe([facturado], "Telas Peña SAC")).toEqual([]);
+  });
+  it("con más de dos insumos sin factura, nombra dos y cuenta el resto", () => {
+    const l = orden().lineas[0]!;
+    const muchas = { ...orden(), lineas: [l, { ...l, itemId: "a", insumo: "Pima" }, { ...l, itemId: "b", insumo: "Forro" }] };
+    expect(pedidosSinFacturaDe([muchas], "Telas Peña SAC")[0]!.detalle).toBe("12.5 metros de Lino crudo, 12.5 metros de Pima y 1 más");
   });
 });

@@ -2,7 +2,7 @@
   "guia": "produccion.comprobantes",
   "ruta": "/produccion/comprobantes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 37,
+  "total": 39,
   "controles": {
     "components/ComprobanteProduccionDetalle.tsx": [
       "CampoTexto «Motivo de la anulación»",
@@ -13,6 +13,8 @@
     ],
     "components/ComprobanteProduccionForm.tsx": [
       "CampoSelect «Proveedor»",
+      "BotonEnlace «Registrarla en el pedido»",
+      "Link «{p.documento}»",
       "SegmentoDeslizante «Tipo de comprobante»",
       "CampoTexto «{<span className=\"sr-only\">Serie</span>}»",
       "CampoTexto «{<span className=\"sr-only\">Número</span>}»",
