@@ -30,6 +30,7 @@
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
 @import "./estilos/rotulo.css";
+@import "./estilos/perfil-vidrio.css";
 /* Rótulos de anaquel, la pantalla: la Brother y la tira que sale (ADR-0366, act. 2026-10-12, maqueta A «Rollo»). */
 @import "./estilos/rotulos-brother.css";
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
