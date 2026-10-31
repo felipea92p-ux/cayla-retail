@@ -216,6 +216,7 @@
     "pruebas:sunat-estado-no-retrocede-concurrencia": "node scripts/pruebas/sunat_estado_no_retrocede_concurrencia.mjs",
     "pruebas:insumos-devolucion": "node scripts/pruebas/insumos_devolucion.mjs",
     "pruebas:insumos-candados": "node scripts/pruebas/insumos_candados.mjs",
+    "pruebas:medio-boton-no-existe": "node scripts/pruebas/medio-boton-no-existe.mjs",
     "pruebas:materiales": "node scripts/pruebas/materiales.mjs",
     "pruebas:insumos-corregir-ingreso": "node scripts/pruebas/insumos_corregir_ingreso.mjs",
     "pruebas:proveedores-produccion": "node scripts/pruebas/proveedores_produccion.mjs",

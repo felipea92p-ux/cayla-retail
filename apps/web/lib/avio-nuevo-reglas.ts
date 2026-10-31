@@ -11,7 +11,7 @@ import {
   type ClaseDeAvio,
   type UnidadMedidaAvio,
 } from "./avio-clases-reglas";
-import { CANTIDAD_ILEGIBLE, leerCantidad, UNIDADES_INSUMO, type MaterialVista, type UnidadInsumo } from "./insumos-reglas";
+import { CANTIDAD_ILEGIBLE, leerCantidad, problemaDeCantidad, UNIDADES_INSUMO, type MaterialVista, type UnidadInsumo } from "./insumos-reglas";
 import { MONTO_ILEGIBLE, numeroDeMonto } from "./monto-plata-reglas";
 import { claveTexto, nombresParecidos } from "./nombres-parecidos";
 // Las filas de colores son las MISMAS que las de una tela: una fila, su saldo, su costo y su mínimo, todo como se escribe. Lo único que cambia es que un avío no convierte nada
@@ -102,6 +102,12 @@ export function costoTotalDeFilaAvio(f: FilaDeColor): number | null {
 function problemasDeFila(e: EntradaAvioNuevo, f: FilaDeColor): string[] {
   const p: string[] = [];
   if (numeroMalEscrito(f.ya) || numeroMalEscrito(f.minimo)) p.push(CANTIDAD_ILEGIBLE);
+  // Medio botón no existe. La base también lo rechaza (20261031211000), pero quien escribe se entera aquí, antes de guardar,
+  // y con el nombre de lo que está contando (/chaos 2026-10-31).
+  for (const texto of [f.ya, f.minimo]) {
+    const problema = problemaDeCantidad(texto.trim() === "" ? null : leerCantidad(texto), e.unidad);
+    if (problema && !p.includes(problema)) p.push(problema);
+  }
   if (f.costo.trim() !== "" && !Number.isFinite(numeroDeMonto(f.costo))) p.push(MONTO_ILEGIBLE);
   if (tieneSaldo(f)) {
     if (!e.puedeSaldo) p.push(MENSAJE_SALDO_DEL_LIDER);
