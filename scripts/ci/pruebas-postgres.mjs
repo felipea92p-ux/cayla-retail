@@ -32,7 +32,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DURACIONES = join(RAIZ, "scripts", "ci", "pruebas-postgres-duraciones.json");
-export const TANDAS = 4;
+export const TANDAS = 6;
 
 export const PRUEBAS = [
   // Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
@@ -1786,6 +1786,9 @@ export const PRUEBAS = [
   // La tela al cortar (ADR-0570, actividad 4): «¿cuánto quedó?» descuenta de los lotes del más antiguo al más nuevo, todo o nada; «Encontré tela» entra como lote «encontrada» al último
   // precio; sin tela anotada (también un forro) no pasa al stock salvo el permiso de un líder, que queda en la historia; una muestra y una orden sin tela declarada pasan. ROLLBACK.
   "pruebas:produccion-tela-al-cortar",
+  // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
+  // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
+  "pruebas:produccion-corte-con-su-tela",
   // Cambiar el tipo de una orden abierta (ADR-0581): de muestra a lote y al revés, con su rastro (historia y Actividad); pedir el mismo tipo no hace nada; sin precio no pasa a lote; una orden
   // cerrada no cambia; una muestra que pasa a lote entra al stock al cerrar y una que sigue muestra no. ROLLBACK.
   "pruebas:produccion-cambiar-tipo",
@@ -1968,6 +1971,10 @@ export const PRUEBAS = [
   // `variantes.costo`; quien registra con el módulo Facturas de compra confirma aunque no sea líder (sin el módulo, el permiso
   // de siempre); sin referencia solo vale el precio; costo 0 (obsequio) no se juzga; se puede pegar dos veces.
   "pruebas:factura-costo-atipico",
+
+  // Una compra sin fecha de emisión queda en el día de Lima a cualquier hora (20261031013000): el default de `registrar_compra`
+  // era `current_date` (UTC) y de 19:00 a 24:00 en Lima toda compra sin fecha salía «futura». Reloj falso; ROLLBACK.
+  "pruebas:registrar-compra-emision-lima",
 
   // Recibir lo FUERA de comprobante de un envío pide confirmación si su costo es atípico (20260930124000, Felipe 2026-09-30): el
   // líder recibe `costo_atipico` con los extras raros que faltan por confirmar (numerados por su posición en `p_extras`) y no se

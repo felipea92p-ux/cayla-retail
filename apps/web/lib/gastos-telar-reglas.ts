@@ -2,6 +2,7 @@
 // arriba. Lógica pura, probada en `gastos-telar-reglas.test.ts`; el total sale de `fn_gastos_panel` y no se recalcula aquí.
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { sinTildes } from "./marcas";
+import { DESDE_EL_UMBRAL, pideComprobante } from "./gastos-extracto-reglas";
 import { textoMes, type PanelGastos, type UbicacionGastos, type Ver } from "./gastos-reglas";
 import { nombresDeVarias } from "./gastos-varias-sedes";
 import type { TonoChip } from "@/components/ui/Chip";
@@ -28,7 +29,10 @@ export function sedeDeLaCabecera(ver: Ver, ubicaciones: readonly UbicacionGastos
   return nombreCortoSede(ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "Tu sede");
 }
 
-/** Bajo la cifra: cuántos gastos son y, si hay, cuántos no tienen comprobante (sin él no se recupera el IGV). */
+/**
+ * Bajo la cifra: cuántos gastos son y, si hay, cuántos de S/ 300 o más no tienen comprobante. `sinComprobante` es esa cuenta
+ * (`sinComprobanteGrande`), la misma que marca la lista: lo chico sin papel (el mototaxi, el baño) no es una alarma (Felipe 2026-10-30).
+ */
 export function chipsDeGastos(panel: Pick<PanelGastos, "n" | "sinComprobante">): { texto: string; tono: TonoChip }[] {
   const chips: { texto: string; tono: TonoChip }[] = [{ texto: `${panel.n} ${panel.n === 1 ? "gasto" : "gastos"}`, tono: "pizarra" }];
   if (panel.sinComprobante > 0) chips.push({ texto: `${panel.sinComprobante} sin comprobante`, tono: "ambar" });
@@ -37,7 +41,8 @@ export function chipsDeGastos(panel: Pick<PanelGastos, "n" | "sinComprobante">):
 
 // ---- La lista: los filtros a la vista y la búsqueda que no mira tildes ----------------------------------------------------------
 
-export type FiltroComprobante = "todos" | "sin" | "con";
+/** `sin_grande`: sin comprobante y de S/ 300 o más, lo que marca la lista (lo pone «Ver cuáles» de la bandeja). */
+export type FiltroComprobante = "todos" | "sin" | "con" | "sin_grande";
 /** `sede`: la sede de un gasto (`empresa` = lo que no es de ninguna), puesta desde el desglose de «En qué se va»; "" = todas. */
 export type FiltrosLista = { q: string; categoria: string; sede: string; dia: number | null; comprobante: FiltroComprobante };
 
@@ -46,6 +51,8 @@ export const SIN_FILTROS: FiltrosLista = { q: "", categoria: "", sede: "", dia: 
 
 type GastoParaFiltrar = {
   categoria: string;
+  estado: "vigente" | "anulado";
+  montoTotal: number;
   ubicacionId: string | null;
   fecha: string;
   descripcion: string;
@@ -64,7 +71,8 @@ export function filtrarGastos<T extends GastoParaFiltrar>(gastos: readonly T[], 
       (!f.categoria || g.categoria === f.categoria) &&
       (!f.sede || (g.ubicacionId ?? SEDE_EMPRESA) === f.sede) &&
       (!fechaDia || g.fecha === fechaDia) &&
-      (f.comprobante === "todos" || (f.comprobante === "sin") === (g.comprobanteTipo === "sin_comprobante")) &&
+      (f.comprobante === "todos" ||
+        (f.comprobante === "sin_grande" ? pideComprobante(g) : (f.comprobante === "sin") === (g.comprobanteTipo === "sin_comprobante"))) &&
       (!q || [g.descripcion, g.proveedorNombre ?? "", g.comprobante ?? "", g.categoriaNombre].some((t) => sinTildes(t).includes(q))),
   );
 }
@@ -77,7 +85,8 @@ export function filtrosPuestosDeGastos(f: FiltrosLista, nombreCategoria: (c: str
   if (f.categoria) r.push({ clave: "categoria", texto: nombreCategoria(f.categoria) });
   if (f.sede) r.push({ clave: "sede", texto: `En ${nombreSede(f.sede)}` });
   if (f.dia) r.push({ clave: "dia", texto: `El ${f.dia} de ${mesNombre}` });
-  if (f.comprobante !== "todos") r.push({ clave: "comprobante", texto: f.comprobante === "sin" ? "Sin comprobante" : "Con comprobante" });
+  if (f.comprobante !== "todos")
+    r.push({ clave: "comprobante", texto: f.comprobante === "sin" ? "Sin comprobante" : f.comprobante === "sin_grande" ? `Sin comprobante, ${DESDE_EL_UMBRAL}` : "Con comprobante" });
   if (f.q.trim()) r.push({ clave: "q", texto: `«${f.q.trim()}»` });
   return r;
 }

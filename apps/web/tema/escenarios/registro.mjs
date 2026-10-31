@@ -1706,6 +1706,16 @@ ESCENARIOS.push(
       await nota.click({ timeout: 8000 });
       await esperar(pagina, 1100);
     } },
+  { id: "gastos.extracto", ruta: "/finanzas/gastos", cuentas: FIN, abre: ".extracto-repetidos[data-abierto]", nombre: "Gastos · la lista por día con una fila «×N» abierta y los días de antes",
+    // La lista va bajo los gráficos: se centra la fila antes del clic (o queda bajo la barra fija de la sede y el mes).
+    preparar: async (pagina) => {
+      const fila = pagina.locator('[data-guia="fin-gastos.repetidos"]').first();
+      await fila.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await fila.click({ timeout: 8000 });
+      const antes = pagina.locator('[data-guia="fin-gastos.dias-de-antes"]');
+      if (await antes.count()) await antes.click({ timeout: 8000 });
+      await esperar(pagina, 600);
+    } },
   { id: "gastos.fijos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Fijos del mes»", preparar: clicRol("tab", /Fijos del mes/i) },
   { id: "gastos.activos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Activos fijos»", preparar: clicRol("tab", /Activos fijos/i) },
   { id: "gastos.egresos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Egresos de caja por clasificar»", preparar: clicRol("tab", /Egresos de caja por clasificar/i) },
