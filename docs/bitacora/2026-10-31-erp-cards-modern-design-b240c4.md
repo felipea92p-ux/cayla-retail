@@ -12,3 +12,13 @@ fuera de la tarjeta ni de la chapa. Cambiar de color, el menú «Más» (abre ha
 colores, se cierra con Escape) funcionan. El auditor del tema da 0 hallazgos en oscuro, a 1440 y a 375 px.
 Qué queda: probar «+N» con un modelo real de más de 5 colores (la base local no tiene uno) y ver si en oscuro la chapa necesita un
 filo más claro sobre las prendas negras.
+
+## 2026-10-31 (b) (Existencias: Formidable de la tarjeta Vitrina y sus cambios 1 y 2)
+Qué hice: corrí `/formidable` sobre la tarjeta (una prueba ciega y un escéptico, Sonnet; medido a 1440, 1024 y 375 px) y `guias:recorrer` de
+Existencias (36/36 pasos a 1440 px en claro y oscuro, 35/35 a 375, sin escrituras). Con el OK de Felipe hice los cambios 1 y 2. El 1: el nombre
+de la talla y la línea del almacén a 12 px exactos (el rediseño los había bajado a 10,5 y 10), y la palabra «en almacén» solo con 1 talla. El 2:
+la línea del color dice solo el color que se ve; «Beige · 2 colores» hacía dudar de qué color era el número.
+Qué se verificó: `tsc`, `eslint` y 808 pruebas de las que vigilan la pantalla. Barrido con Playwright en 26 anchos sin un texto cortado, ningún
+texto de la tarjeta bajo 12 px, y la celda de 2 tallas medida a 320 px (83 px contra ~90 de «+10 en almacén»).
+Qué queda: el cambio 3 (que la celda en ámbar y el filo usen la misma regla que el botón «Colgar · N tallas») espera la decisión de Felipe, y
+falta repetir la prueba ciega sobre la tarjeta corregida.

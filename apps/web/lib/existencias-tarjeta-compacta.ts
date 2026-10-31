@@ -32,13 +32,14 @@ export function celdaTarjeta(f: FilaCelda, separa: boolean): CeldaTarjeta {
 
 /** La línea chica bajo el número grande de cada columna (ADR-0391, Felipe 2026-10-12): el número grande es lo COLGADO (lo que el
  *  cliente puede comprar) y debajo va lo del almacén, con las palabras del modal («+2 en almacén»; Felipe, 2026-10-13: antes «+2
- *  guardadas»). Con 3 tallas o más las palabras no caben y queda solo el número («+2», «0»): la leyenda del pie las pone. Antes el
- *  corte era en 4 (la tira medía 304 px); desde la tarjeta Vitrina (ADR-0589) la tira va al lado de la foto y mide ~224 px, y con 3
- *  tallas «0 en almacén» se cortaba a media palabra (medido). Agotada: «se acabó» («acabó» apretado).
+ *  guardadas»). Con 2 tallas o más las palabras no caben y queda solo el número («+2», «0»): la leyenda del pie las pone. Antes el
+ *  corte era en 4 (la tira medía 304 px). Desde la tarjeta Vitrina (ADR-0589) la tira va al lado de la foto (176 px por dentro en la
+ *  tarjeta más angosta, de 320), y desde Formidable 2026-10-31 la línea va a 12 px: con 2 tallas «+10 en almacén» pide ~90 px y la
+ *  celda tiene 83 (medido). Con 1 talla la palabra cabe siempre. Agotada: «se acabó» («acabó» apretado).
  *  `cero` = no hay nada en el almacén: la línea va toda en taupe y sin negrita, para que un «0 en almacén» no pese lo mismo que un «+3»
  *  (en taupe pleno, no atenuado: el auditor del tema midió 2,3:1 con `taupe/55` y un 0 también se tiene que leer). */
 export function lineaGuardadas(c: Pick<CeldaTarjeta, "estado" | "almacen">, tallasEnTarjeta: number): { texto: string; cero: boolean } {
-  const apretada = tallasEnTarjeta >= 3;
+  const apretada = tallasEnTarjeta >= 2;
   if (c.estado === "agotada") return { texto: apretada ? "acabó" : "se acabó", cero: false };
   if (c.almacen === 0) return { texto: apretada ? "0" : "0 en almacén", cero: true };
   return { texto: apretada ? `+${c.almacen}` : `+${c.almacen} en almacén`, cero: false };

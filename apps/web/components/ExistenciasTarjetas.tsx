@@ -128,7 +128,7 @@ function ColumnasTallas({
             aria-label={`${lectura}${marca === "cumple" || marca === "principal" ? `. ${marcaDelFiltro?.etiqueta ?? ""}` : ""}${marca === "principal" ? ", la que más se vende" : ""}`}
             className={`grid min-w-0 cursor-pointer gap-px rounded-[8px] border px-0.5 pb-1 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
           >
-            <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-[10.5px] font-semibold tracking-[0.04em] ${c.estado === "agotada" ? "" : "text-taupe"} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
+            <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-[12px] font-semibold tracking-[0.04em] ${c.estado === "agotada" ? "" : "text-taupe"} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
               {nombre}
               {(marca === "cumple" || marca === "principal") &&
                 (Simbolo ? (
@@ -143,7 +143,7 @@ function ColumnasTallas({
               {c.estado === "agotada" ? "—" : c.piso}
             </span>
             {separa && (
-              <span className={`truncate whitespace-nowrap text-[10px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
+              <span className={`truncate whitespace-nowrap text-[12px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
                 {c.estado === "normal" && !linea.cero ? (
                   <>
                     <b className="font-bold text-tinta">{numero}</b>
@@ -407,10 +407,9 @@ export function ExistenciasTarjetas({
                 )}
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-                <span className="min-w-0 truncate text-xs text-taupe">
-                  <span className="font-semibold text-tinta">{p.color ?? "Sin color"}</span>
-                  {m.colores.length > 1 && ` · ${m.colores.length} colores`}
-                </span>
+                {/* Solo el color que se ve: las cifras de la tira son de él, y los otros colores ya están en los puntos de la foto. «Beige · 2
+                    colores» hacía dudar de qué color era el número (Formidable 2026-10-31, prueba ciega). */}
+                <span className="min-w-0 truncate text-xs font-semibold text-tinta">{p.color ?? "Sin color"}</span>
                 {p.danado > 0 && <Chip tono="rojo" className="shrink-0">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</Chip>}
                 {p.apartado > 0 && <Chip tono="pizarra" className="shrink-0">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</Chip>}
               </div>

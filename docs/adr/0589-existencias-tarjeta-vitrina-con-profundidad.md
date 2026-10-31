@@ -26,8 +26,8 @@ Cada tarjeta de Existencias pasa a ser una **vitrina**:
 - **Los colores en una chapa de vidrio sobre la foto, en una sola línea** (`coloresDeChapa`). Hasta 5 colores se ven todos. Con 6 o más
   se ven 3 y «+N»; si el color que se ve quedó fuera, toma el tercer lugar. **«+N» abre el modal de la prenda**, que ya muestra todos
   los colores del modelo. La chapa nunca se abre ni crece.
-- **A la derecha:** nombre y precio, el color («Arena · 14 colores») con sus insignias, y **la tira de tallas en un pozo de hueso
-  hundido**.
+- **A la derecha:** nombre y precio, el color que se ve («Arena»; los demás están en los puntos de la foto) con sus insignias, y **la
+  tira de tallas en un pozo de hueso hundido**, con el nombre de la talla y la línea del almacén a 12 px.
 - **El pie a todo el ancho, debajo.** Al lado de la foto, «Colgar en el piso · 3 tallas» y «Más» no cabían: se cortaban 22 px a
   1920 px y 47 px a 375 px, medido en local. En la maqueta no apareció porque sus datos no tenían el «· N tallas».
 - **Sombra de reposo y filo de luz**, y al pasar el mouse la tarjeta sube 3 px y su sombra se alarga (320 ms, `--ease-cayla`, sin rebote
@@ -35,8 +35,9 @@ Cada tarjeta de Existencias pasa a ser una **vitrina**:
   sin ella.
 - **Un filo de 3 px en el canto** (rojo si una talla se acabó, ámbar si falta colgar; `filoDeTarjeta`) dice desde lejos qué tarjetas
   piden algo. Repite lo que ya dicen la tira y el pie.
-- **La línea chica se acorta desde 3 tallas** (`lineaGuardadas`: «+2», «0»), no desde 4. La tira ahora mide ~224 px y no 304, y con
-  3 tallas «0 en almacén» se cortaba a media palabra.
+- **La línea chica se acorta desde 2 tallas** (`lineaGuardadas`: «+2», «0»), no desde 4. La tira mide 176 px por dentro en la tarjeta
+  más angosta (320 px), no 304, y con 2 tallas «+10 en almacén» a 12 px pide ~90 px en una celda de 83 (medido). Con 1 talla la palabra
+  cabe siempre.
 
 La rejilla pide 20 rem por tarjeta: dos columnas en un laptop de 1024 px, tres a 1440 px, cuatro a 1920 px y una en el celular.
 
@@ -65,6 +66,19 @@ Lo de adentro no cambió: qué dice cada talla, el pie, qué abre cada toque y e
 - `apps/web/components/ExistenciasTarjetas.tsx`: el dibujo de la tarjeta.
 - `apps/web/lib/existencias-tarjeta-compacta.ts`: `coloresDeChapa`, `filoDeTarjeta` y `lineaGuardadas`, con sus pruebas.
 - La guía interactiva de Existencias ganó el paso «Los demás colores» (`existencias.mas-colores`, opcional).
+
+## Actualización 2026-10-31 (b): Formidable
+
+`/formidable` sobre la tarjeta (`docs/formidable/inventario-existencias.md`, re-análisis del 2026-10-31) encontró dos cosas que Felipe mandó
+corregir («Haz 1 y 2»):
+
+1. **El rediseño había achicado el texto del almacén**: el nombre de la talla a 10,5 px y «+N en almacén» a 10 px. El informe del 12-oct ya
+   pedía 12 px. Ahora miden 12 px exactos (`text-[12px]`: en este ERP `text-xs` mide 13 px), y por eso la palabra se abrevia desde 2 tallas.
+2. **«Beige · 2 colores» confundía**: la prueba ciega no supo si el 20 de la talla M era del Beige o de los dos colores. La línea dice solo el
+   color que se ve; los demás están en los puntos de la foto.
+
+Medido después: 26 anchos (375, 414 y de 1000 a 1920 px, de 40 en 40) sin un texto cortado en ninguna tarjeta, y ningún texto de la tarjeta
+bajo 12 px. El tercer cambio (una sola regla de «falta colgar» en la tarjeta) espera la decisión de Felipe.
 
 ## Qué no se verificó
 

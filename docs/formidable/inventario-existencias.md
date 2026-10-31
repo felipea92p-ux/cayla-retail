@@ -105,8 +105,11 @@
    dice a la tienda sobre su stock: decide Felipe** (qué manda cuando el motor calla). Ley 3. Verifica: Pantalón Carla dice tantas tallas como celdas
    en ámbar. Esfuerzo M.
 
+**Hechos el 2026-10-31 con el OK de Felipe («Haz 1 y 2»):** el 1 (12 px exactos; como `text-xs` mide 13 px en este ERP, la palabra «en
+almacén» queda solo con 1 talla: con 2, «+10 en almacén» pedía ~90 px en una celda de 83 a 320 px) y el 2. El 3 espera su decisión.
+
 ## Lo que sobra (ley 8)
-- «· N colores» junto al color (cambio 2).
+- ~~«· N colores» junto al color (cambio 2).~~ Quitado.
 
 ## Lo que no pediste y importa más
 Lo mismo que el 12-oct, ahora visible en la tarjeta: **la tienda no se ha cuadrado nunca, así que el motor está en pausa en las tres sedes y todo lo que
@@ -146,3 +149,4 @@ Cuadrar el piso de cada sede vale más que cualquier ajuste de diseño.
 |---|---|---|---|---|
 | 2026-10-12 | `f2202e6ca` (+ arreglos de la corrida) | 6,9 · ley 1: 7 | 5 (crudo, 0 blockers) | primera corrida; F13, F8, B2, F7 y los tres ceros cerrados en la rama; los 3 cambios esperan OK |
 | 2026-10-31 | `621fe25f1` | 6,9 (solo la tarjeta) · ley 3: 5 | 6 (de la tarjeta) | re-análisis de la tarjeta Vitrina (ADR-0589); el cambio 3 del 12-oct ya estaba cerrado, el 1 empeoró; 3 cambios nuevos esperan OK |
+| 2026-10-31 (b) | ver el commit de «Formidable: cambios 1 y 2» | 7,3 (provisional, solo la tarjeta) · ley 3: 5 | 7 (de la tarjeta) | **cambios 1 y 2 hechos con el OK de Felipe** (talla y almacén a 12 px, abrevia desde 2 tallas; el color sin «· N colores»); medido sin cortes en 26 anchos y sin texto bajo 12 px; leyes 4 y 5 suben a 7 y 8 (provisional: falta repetir la ciega); el cambio 3 espera su decisión |
