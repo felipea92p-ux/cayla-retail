@@ -1477,6 +1477,13 @@ export const GUIA_PROD_FACTURAS: Guia = {
       texto: "Elige el proveedor. Si no está, primero se agrega en Proveedores del Taller.",
     },
     {
+      id: "modal-pedido-abierto",
+      ancla: "prod-factura-nueva.pedido-abierto",
+      opcional: true,
+      titulo: "Ese proveedor tiene un pedido",
+      texto: "Si el proveedor tiene un pedido con tela que todavía no tiene factura, aquí te lo dice. Si la factura es de ese pedido, regístrala desde el pedido: así la tela no se recibe dos veces. Si es de otra compra, sigue aquí.",
+    },
+    {
       id: "modal-documento",
       ancla: "prod-factura-nueva.documento",
       titulo: "El documento",

@@ -1786,6 +1786,9 @@ export const PRUEBAS = [
   // La tela al cortar (ADR-0570, actividad 4): «¿cuánto quedó?» descuenta de los lotes del más antiguo al más nuevo, todo o nada; «Encontré tela» entra como lote «encontrada» al último
   // precio; sin tela anotada (también un forro) no pasa al stock salvo el permiso de un líder, que queda en la historia; una muestra y una orden sin tela declarada pasan. ROLLBACK.
   "pruebas:produccion-tela-al-cortar",
+  // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
+  // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
+  "pruebas:produccion-corte-con-su-tela",
   // Cambiar el tipo de una orden abierta (ADR-0581): de muestra a lote y al revés, con su rastro (historia y Actividad); pedir el mismo tipo no hace nada; sin precio no pasa a lote; una orden
   // cerrada no cambia; una muestra que pasa a lote entra al stock al cerrar y una que sigue muestra no. ROLLBACK.
   "pruebas:produccion-cambiar-tipo",
