@@ -744,7 +744,6 @@ export const DECISIONES = {
       { "archivo": "components/finanzas/EstadoResultadosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/FlujoCajaPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/PorPagarConsolidado.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
-      { "archivo": "components/finanzas/PresupuestoPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/BoletaA4.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },
       { "archivo": "components/ProformaA4.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },
       { "archivo": "components/ordenes-compra/HojaOrdenCompra.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },

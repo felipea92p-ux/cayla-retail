@@ -15,6 +15,9 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
   (el `update` va en la `20261030235000`); `CabeceraEstados` con las cuatro `TarjetaCifra` como pestañas; página de «¿Lo tuyo creció?»;
   Presupuesto, Campañas y Escenarios como páginas internas con su vuelta; guías y huellas al día. Probado: tipos, 745 archivos de vitest,
   Knip y eslint. **Sin probar en el navegador logueado.**
-- [ ] 4 · ¿Ganamos? · 5 · ¿Dónde está la plata? · 6 · ¿Cuánto vale CAYLA? · 7 · ¿Lo tuyo creció?
+- [x] **4 · ¿Ganamos?** La cascada con la raya de lo planeado y sus partes, lo que dejó cada sede, las campañas, «Qué te recomiendo» y el
+  formato formal plegado (sin cuentas). Presupuesto retirado: redirige a ¿Ganamos?. Probado: tipos, 746 archivos de vitest, Knip y
+  eslint. **Sin probar en el navegador logueado.**
+- [ ] 5 · ¿Dónde está la plata? · 6 · ¿Cuánto vale CAYLA? · 7 · ¿Lo tuyo creció?
 - [ ] 8 · «Descargar para el contador» con opciones.
 - [ ] 9 · Cierre: oscuro, `/focus`, `/formidable`, `docs/ARQUITECTURA.md`.

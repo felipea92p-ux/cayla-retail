@@ -2182,6 +2182,103 @@
       width: 0;
     }
   }
+  /* ¿Ganamos? (ADR-0585): lo planeado como una raya sobre la barra, a la misma escala; la píldora del desvío; el tramo que se abre
+     con sus cuentas; y el tramo que lleva a su sede. */
+  .fin-pulso-tramo-barra {
+    position: relative;
+  }
+  .fin-pulso-tramo-plan {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: min(var(--p, 0%), calc(100% - 2px));
+    width: 2px;
+    background: var(--color-tinta);
+  }
+  .fin-pulso-tramo-chip {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .fin-pulso-tramo-abre,
+  .fin-pulso-tramo-enlace {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .fin-pulso-tramo-enlace {
+    text-decoration: underline;
+    text-decoration-color: var(--color-sand);
+    text-underline-offset: 3px;
+  }
+  .fin-pulso-tramo-flecha {
+    flex: none;
+    align-self: center;
+    color: var(--color-taupe);
+    transition: transform 200ms var(--ease-cayla);
+  }
+  .fin-pulso-tramo-abre[aria-expanded="true"] .fin-pulso-tramo-flecha {
+    transform: rotate(90deg);
+  }
+  @media (hover: hover) {
+    .fin-pulso-tramo-abre:hover,
+    .fin-pulso-tramo-enlace:hover {
+      color: var(--color-rojo-profundo);
+    }
+  }
+  .fin-pulso-tramo-lineas {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    padding: 8px 12px;
+    border-left: 2px solid var(--color-sand);
+    background: var(--color-papel);
+    border-radius: 0 10px 10px 0;
+    animation: fin-pulso-abre 300ms var(--ease-cayla) both;
+  }
+  .fin-pulso-tramo-lineas {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+  }
+  .fin-pulso-tramo-lineas > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
+    gap: 16px;
+  }
+  .fin-pulso-tramo-lineas[data-con-plan] > li {
+    grid-template-columns: minmax(0, 1fr) 6.5rem 6.5rem;
+  }
+  .fin-pulso-tramo-lineas .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .fin-pulso-tramo-lineas-cab > span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+    text-align: right;
+  }
+  .fin-pulso-tramo-lineas > li[data-pasa] > span:nth-child(2) {
+    color: var(--color-ambar);
+    font-weight: 600;
+  }
+  @keyframes fin-pulso-abre {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
 
   /* El ritmo: una pista con lo vendido por día y una marca donde está lo necesario. */
   .fin-pulso-ritmo {
@@ -2335,8 +2432,12 @@
   @media (prefers-reduced-motion: reduce) {
     .fin-pulso-tramo-barra > i,
     .fin-pulso-ritmo-relleno,
-    .fin-pulso-lugar-eje > i {
+    .fin-pulso-lugar-eje > i,
+    .fin-pulso-tramo-lineas {
       animation: none;
+    }
+    .fin-pulso-tramo-flecha {
+      transition: none;
     }
   }
 }

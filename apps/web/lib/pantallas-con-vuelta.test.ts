@@ -21,6 +21,7 @@ const EXCEPCIONES: Record<string, string> = {
   "/movimientos": "solo redirige a /inventario/movimientos",
   "/inventario/mover": "solo redirige a /inventario/traslados/nuevo (ADR-0242 D-4); el formulario nuevo sí tiene su «← Traslados»",
   "/finanzas": "solo redirige a Resumen o Gastos",
+  "/finanzas/reportes/presupuesto": "solo redirige a ¿Ganamos?: el presupuesto vive ahí (ADR-0585)",
   "/compras/notas-credito": "solo redirige a /compras: las notas de crédito se retiraron (ADR-0480)",
   "/gestion": "solo redirige a la primera de sus cuatro pantallas que la cuenta ve (ADR-0392)",
   "/buscar": "la abre la lupa de la cabecera, desde cualquier pantalla: no cuelga de un submódulo",

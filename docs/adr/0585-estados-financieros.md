@@ -1,6 +1,6 @@
 # ADR-0585 · Estados financieros: los cuatro estados como respuestas, y quien tiene el módulo ve todo
 
-- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos), 2 (patrimonio) y 3 (el nombre y las cuatro respuestas) hechas.
+- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos), 2 (patrimonio), 3 (el nombre y las cuatro respuestas) y 4 (¿Ganamos?) hechas.
 - **Decide:** Felipe, 2026-10-30, sobre la pizarra «4. Reportes» y la maqueta `docs/maquetas/finanzas-eeff-2026-10/`
   (https://claude.ai/artifact/UiZ2Pk8rnPkLYNLcDBo7kV).
 - **Toca:** ADR-0195 (Finanzas), ADR-0253 y ADR-0433 G16 (una sola regla de alcance), ADR-0161 P6 (las terminales no miran la
@@ -89,6 +89,38 @@ En la web, pasan los tipos, las 744 pruebas de vitest, Knip y eslint.
 - **Presupuesto, Campañas y Escenarios** dejan de ser pestañas: son páginas internas con la cabecera única y la flecha de volver. Hasta
   la actividad 5 (Escenarios dentro del flujo) y la 4 (el presupuesto dentro de ¿Ganamos?), siguen como estaban.
 - **Las guías** cambian «Los seis reportes» por «Las cuatro respuestas», y nace la guía de «¿Lo tuyo creció?».
+
+## Actividad 4 · ¿Ganamos?
+
+- **La cascada de la venta a la ganancia, siempre a la vista.** Es la misma pieza del «¿Por qué?» del Resumen (`CascadaPulso`, ADR-0358),
+  con propiedades opcionales: el Resumen se ve igual. Los gastos van agrupados como los dice una tienda, no por cuenta:
+  - Sueldos;
+  - Local y servicios;
+  - Publicidad, envíos y comisiones;
+  - Administración;
+  - Diferencias de caja, aparte, porque no son un gasto que se decide;
+  - Otros gastos;
+  - Desgaste.
+
+  Lo que los grupos no nombran va en «Otros ajustes»: la cascada siempre suma (`lib/ganamos-reglas.ts`, con su prueba).
+- **El presupuesto vive aquí y su pantalla se retiró** (Felipe 2026-10-30). Cada gasto con tope lleva una raya en «lo planeado» y,
+  desde un 10 % de desvío, una píldora que lo dice. En el mes en curso se compara la proyección al cierre que ya calcula
+  `fn_presupuesto_vs_real`, no lo que lleva gastado: a mitad de mes todo parecería «dentro». Al tocar el gasto se ven sus partes, con
+  lo real y lo planeado.
+  - `/finanzas/reportes/presupuesto` redirige a ¿Ganamos? con la sede y el mes.
+  - Se borraron `PresupuestoPanel` y las reglas que solo usaba esa pantalla.
+  - Los topes se siguen poniendo en Configuración ▸ Presupuesto. Sus enlaces y el del Resumen ahora llevan a ¿Ganamos?.
+- **Lo que dejó cada sede** (mirando todas): cada sede lleva a su vista sola.
+- **Las campañas del mes**, con «Ver las campañas», que es una página interna.
+- **«Qué te recomiendo»**, a la derecha. Son hasta tres acciones, cada una un `<Aviso>` con su `<BotonVer>`:
+  - una sede que pierde, con lo que necesita vender para cubrirse;
+  - el gasto que más se pasa de lo planeado;
+  - la campaña del mes;
+  - la meta de ventas.
+
+  Si no hay nada que decir, lo dice.
+- **El formato formal**, plegado al pie (`BotonVerMas`), es el cuadro de siempre, con «De dónde sale» en cada cifra y «Comparar». Se le
+  quitaron la columna de cuentas (las cuentas solo van en lo que se descarga) y el selector de mes y de sede, que ya están en la barra.
 
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 

@@ -668,9 +668,9 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         titulo: `${f.lineaNombre} ${deUnidad(f.nombre)} ${cerrado ? "se pasó" : "va a pasarse"} de su tope`,
         detalle: `${cerrado ? "Cerró" : "Al cierre llegaría"} en ${soles(f.proyeccion ?? 0)} contra un tope de ${soles(f.presupuesto ?? 0)} (${chip.texto}); lleva ${soles(f.aLaFecha)}.`,
         impacto: `${soles((f.proyeccion ?? 0) - (f.presupuesto ?? 0))} sobre el tope`,
-        href: enlace("reportes_financieros", conQuery("/finanzas/reportes/presupuesto", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
-        boton: "Ver presupuesto",
-        origen: "Reportes ▸ Presupuesto",
+        href: enlace("reportes_financieros", conQuery("/finanzas/reportes", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
+        boton: "Ver en ¿Ganamos?",
+        origen: "Estados financieros ▸ ¿Ganamos?",
         peso: (f.proyeccion ?? 0) - (f.presupuesto ?? 0),
       });
     }

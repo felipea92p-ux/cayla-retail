@@ -87,7 +87,6 @@ import {
   GUIA_FIN_IMPUESTOS,
   GUIA_FIN_CLAURE,
   GUIA_FIN_POR_PAGAR,
-  GUIA_FIN_PRESUPUESTO,
   GUIA_FIN_RESULTADOS,
   GUIA_FIN_RESUMEN,
 } from "./pantallas/finanzas";
@@ -213,7 +212,6 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FIN_POR_PAGAR,
   GUIA_FIN_CONCILIACION,
   GUIA_FIN_RESULTADOS,
-  GUIA_FIN_PRESUPUESTO,
   GUIA_FIN_CAMPANAS,
   GUIA_FIN_ESCENARIOS,
   GUIA_FIN_FLUJO,
@@ -340,7 +338,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/reportes/campanas": { estado: "aplicada", guia: GUIA_FIN_CAMPANAS.id },
   "/finanzas/reportes/escenarios": { estado: "aplicada", guia: GUIA_FIN_ESCENARIOS.id },
   "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },
-  "/finanzas/reportes/presupuesto": { estado: "aplicada", guia: GUIA_FIN_PRESUPUESTO.id },
+  "/finanzas/reportes/presupuesto": { estado: "no-aplica", motivo: "Solo redirige a ¿Ganamos?: el presupuesto vive ahí, como la raya de lo planeado sobre cada gasto (ADR-0585). Su guía es la de ¿Ganamos?." },
   "/finanzas/resumen": { estado: "aplicada", guia: GUIA_FIN_RESUMEN.id },
   // ---- gestion ----
   "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) lleva a la primera de sus cuatro pantallas que la cuenta ve (Análisis, Frescura del piso, Plan del piso o Rendimiento). La guía es la de la pantalla a la que llega." },
