@@ -332,7 +332,7 @@ function parcheDeUnaTalla(talla: string, valor: string): (fila: FilaDeColorParaT
 export type BorradorParaTodos = { insumoId: string; consumo: string; porTalla: Record<string, string> | null };
 
 /**
- * Lo que el botón «Usar en los N colores» copia a la fila de cada color, en UNA sola pasada (dos pasadas seguidas sobre la misma lista se pisarían): la tela si se eligió, y los metros si se
+ * Lo que el botón «Copiar a todos los colores» copia a la fila de cada color, en UNA sola pasada (dos pasadas seguidas sobre la misma lista se pisarían): la tela si se eligió, y los metros si se
  * escribieron —una cifra, o la de cada talla que tenga cifra—. Lo que está vacío no se copia ni borra nada (como «Llenar todas con»). `null` = no hay nada que copiar: el botón sale apagado.
  */
 export function parcheDeTodos(b: BorradorParaTodos): ((fila: FilaDeColorParaTodos) => Partial<TelaBorrador>) | null {

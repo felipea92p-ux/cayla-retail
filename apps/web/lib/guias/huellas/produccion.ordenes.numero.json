@@ -266,7 +266,7 @@
       "CampoTexto «{`Talla ${x.talla}»",
       "button «Una cifra para todas las tallas»",
       "button «Separar por talla»",
-      "Boton «Usar en los»",
+      "Boton «Copiar a todos los colores»",
       "CampoSelect «Tela» #2",
       "CampoTexto «{`${unidadDeLaFila}»",
       "CampoTexto «{`Talla ${x.talla}» #2",

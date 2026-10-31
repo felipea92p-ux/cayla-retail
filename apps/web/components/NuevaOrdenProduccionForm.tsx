@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -843,6 +844,25 @@ export function NuevaOrdenProduccionForm({
     </div>
   );
 
+  // «+ Talla» y «+ Color» van PEGADOS a la tabla (2026-10-31, Felipe): un «+» a la derecha de la última talla y otro debajo del último color, donde la persona los busca. Apagados
+  // dicen por qué debajo de la tabla (en el celular no hay «title»).
+  const botonDeLaTabla = (que: "Talla" | "Color", puede: boolean, abrir: () => void, anclaGuia?: boolean) => (
+    <button
+      type="button"
+      className="btn-cayla btn-secundario btn-chico"
+      disabled={!puede || cargando}
+      onClick={abrir}
+      aria-label={que === "Talla" ? "Agregar una talla" : "Agregar un color"}
+      data-guia={anclaGuia ? "prod-orden-nueva.talla-nueva-boton" : undefined}
+    >
+      <Plus className="h-3.5 w-3.5" aria-hidden />
+      {que}
+    </button>
+  );
+  const botonTalla = !esNuevo && modeloExistente && puedeTalla ? botonDeLaTabla("Talla", puedeTalla.puede, () => setTallaAbierta(true)) : undefined;
+  const botonColor = !esNuevo && modeloExistente && puedeColor ? botonDeLaTabla("Color", puedeColor.puede, () => setColorAbierto(true), true) : undefined;
+  const motivosSinAgregar = !esNuevo && puedeTalla && puedeColor ? [...new Set([puedeTalla, puedeColor].flatMap((p) => (p.puede ? [] : [p.motivo])))] : [];
+
   const Marco = marco;
   return (
     <Marco onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
@@ -921,22 +941,6 @@ export function NuevaOrdenProduccionForm({
             {mostrarMatriz ? (
               <>
                 {esNuevo && vocab && <AgregarColor colores={coloresDisponibles} elegidos={coloresNuevos} onAlternar={alternarColor} onCreado={colorCreado} />}
-                {!esNuevo && modeloExistente && puedeTalla && puedeColor && (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-guia="prod-orden-nueva.talla-nueva-boton">
-                    <Boton type="button" peso="fantasma" disabled={!puedeTalla.puede || cargando} onClick={() => setTallaAbierta(true)}>
-                      + Talla
-                    </Boton>
-                    <Boton type="button" peso="fantasma" disabled={!puedeColor.puede || cargando} onClick={() => setColorAbierto(true)}>
-                      + Color
-                    </Boton>
-                    {/* Lo que apaga un botón se dice con palabras (en el celular no hay «title»); si los dos dicen lo mismo, una sola vez. */}
-                    {[...new Set([puedeTalla, puedeColor].flatMap((p) => (p.puede ? [] : [p.motivo])))].map((motivo) => (
-                      <span key={motivo} className="text-[12.5px] text-tinta/70">
-                        {motivo}
-                      </span>
-                    ))}
-                  </div>
-                )}
                 {/* La misma tabla de Nuevo producto (ADR-0396, A2). `key`: «Llenar todas con» arranca vacío al cambiar de modelo o de categoría (las cantidades también se vacían). */}
                 <MatrizCantidades
                   key={esNuevo ? `nuevo-${categoriaNuevaId}` : productoId}
@@ -952,6 +956,8 @@ export function NuevaOrdenProduccionForm({
                   preguntaCelda="Cuántas prendas de"
                   fantasma={(clave) => String(curva.porVariante.get(clave)?.sugerido || 0)}
                   tituloDe={(clave) => [variantePorId.get(clave)?.sku, curva.porVariante.get(clave)?.motivo].filter(Boolean).join(" · ") || undefined}
+                  alFinalDeTallas={botonTalla}
+                  alFinalDeColores={botonColor}
                   accionFila={esNuevo ? (color) => <QuitarColor nombre={color.nombre} onQuitar={(conTeclado) => quitarColor(color.codigo, conTeclado)} /> : undefined}
                 />
               </>
@@ -961,6 +967,7 @@ export function NuevaOrdenProduccionForm({
               </Aviso>
             )}
             {!esNuevo && tabla.excluidas.size > 0 && <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene.</p>}
+            {motivosSinAgregar.length > 0 && <p className="text-xs text-tinta/65">{motivosSinAgregar.join(" ")}</p>}
           </CampoGuiado>
           </div>
         )}

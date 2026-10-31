@@ -747,7 +747,7 @@ describe("ponerEnTodosLosColores — «Para todos los colores»", () => {
   });
 });
 
-describe("parcheDeTodos — lo que copia el botón «Usar en los N colores»", () => {
+describe("parcheDeTodos — lo que copia el botón «Copiar a todos los colores»", () => {
   const tallasSM = [{ talla: "S", cantidad: 3 }, { talla: "M", cantidad: 2 }];
   const fila = (colorCodigo: string, c = "1.1"): TelaBorrador => ({ insumoId: "viejo", colorCodigo, consumoPorPrenda: c });
   const sml = [...tallasSM, { talla: "L", cantidad: 1 }];

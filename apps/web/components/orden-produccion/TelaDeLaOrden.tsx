@@ -170,7 +170,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
       onTelas([...telas.slice(0, primerAvio), nueva, ...telas.slice(primerAvio)]);
     }
   }
-  // «La misma tela en todos los colores» (2026-10-31): un recuadro aparte donde se elige una tela y unos metros por prenda (o una cifra por talla) y, SOLO al pulsar «Usar en los N colores»,
+  // «La misma tela en todos los colores» (2026-10-31): un recuadro aparte donde se elige una tela y unos metros por prenda (o una cifra por talla) y, SOLO al pulsar «Copiar a todos los colores»,
   // se copian a la fila de cada color. Lo vacío no se copia ni borra nada, y cada fila se corrige después por su cuenta. Solo en Nueva orden (editar una orden abierta no repite lo ya anotado).
   // `porTalla` nulo = una sola cifra; con valor = una cifra por talla (las tallas de toda la orden), que se copia a cada color que tiene esa talla.
   const [paraTodos, setParaTodos] = useState<{ insumoId: string; consumo: string; porTalla: Record<string, string> | null }>({ insumoId: "", consumo: "", porTalla: null });
@@ -273,7 +273,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
             <div className="min-w-0">
               <p className="font-display text-[15px] leading-tight text-tinta">La misma tela en todos los colores</p>
               <p className="text-[12.5px] text-tinta/70">
-                Elige la tela y los metros una vez y pulsa «Usar en los {colores.length} colores»: se ponen en cada color. Después puedes cambiar uno.
+                Elige la tela y los metros una vez y pulsa «Copiar a todos los colores»: se ponen en cada color. Después puedes cambiar uno.
               </p>
             </div>
             <div className={todosPorTalla ? "grid grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-1" : "grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1"}>
@@ -341,7 +341,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                 <span />
               )}
               <Boton type="button" peso="fantasma" disabled={copiaDeTodos === null} onClick={() => copiaDeTodos && ponerEnTodos(copiaDeTodos)}>
-                Usar en los {colores.length} colores
+                Copiar a todos los colores
               </Boton>
             </div>
           </div>

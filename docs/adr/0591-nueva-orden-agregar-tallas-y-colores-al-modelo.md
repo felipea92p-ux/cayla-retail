@@ -28,7 +28,7 @@ largo para algo que, en la mesa de corte, se decide en el momento. Y el pie de l
    - **Concurrencia:** un candado por modelo (`pg_advisory_xact_lock`, ADR-0190). Y sube la versión del producto (un update vacío que `productos_version_bu`
      convierte en versión + 1, ADR-0193): quien tenga el producto abierto en Editar producto recibe «Otra persona cambió esta prenda» en vez de guardar sin ver lo nuevo.
    - **Auditoría:** una línea en la actividad (`produccion` / `variantes_modelo`) con las tallas o colores y cuántas variantes nacieron; si la anotación falla, la función sigue.
-2. `NuevaOrdenProduccionForm` ofrece «+ Talla» y «+ Color» sobre la matriz de un modelo que existe. Cada una abre una hoja (`<Modal variante="hoja">`) que dice en una
+2. `NuevaOrdenProduccionForm` ofrece «+ Talla» y «+ Color» pegados a la tabla de un modelo que existe (Felipe, 2026-10-31: «al final de cada talla y al final de cada color, con un más»): «+ Talla» en una columna a la derecha de la última talla y «+ Color» en una fila debajo del último color. Son dos huecos opcionales de `MatrizCantidades` (`alFinalDeTallas`, `alFinalDeColores`), sin efecto en las demás pantallas que la usan. Cada una abre una hoja (`<Modal variante="hoja">`) que dice en una
    frase qué se va a crear («Se crean las tallas XS y XL en Beige, Gris perla, Negro y Nude: 8 prendas nuevas, con el precio y el costo del modelo y sin stock»),
    pide el responsable y llama a la función. Al volver, `router.refresh()` trae el modelo con sus variantes nuevas: la tabla dibuja la fila o la columna nueva
    **sin perder lo que ya se escribió** (probado: un «5» tecleado antes sigue ahí).

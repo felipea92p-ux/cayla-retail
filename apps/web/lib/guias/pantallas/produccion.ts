@@ -261,7 +261,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.talla-nueva-boton",
       opcional: true,
       titulo: "¿Falta una talla o un color?",
-      texto: "«+ Talla» y «+ Color» le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla para llenarlo. Es de quien edita el catálogo; si no, el botón sale apagado y dice por qué.",
+      texto: "El «+ Talla» de la derecha y el «+ Color» de abajo le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla. Es de quien edita el catálogo; si no, salen apagados y dicen por qué.",
     },
     {
       id: "red",
@@ -332,7 +332,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela-todos",
       opcional: true,
       titulo: "La misma tela en todos los colores",
-      texto: "Con dos colores o más aparece este recuadro: eliges la tela y los metros por prenda una vez (o, con «Separar por talla», una cifra por talla) y pulsas «Usar en los N colores»: se copian a cada color. Después puedes cambiar uno por su cuenta.",
+      texto: "Con dos colores o más aparece este recuadro: eliges la tela y los metros por prenda una vez (o, con «Separar por talla», una cifra por talla) y pulsas «Copiar a todos los colores»: se copian a cada color. Después puedes cambiar uno por su cuenta.",
     },
     {
       id: "consumo-modelo",
