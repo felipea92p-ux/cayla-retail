@@ -19,6 +19,7 @@ import {
   ofertaDeAviosDelModelo,
   ofertaDeConsumoDelModelo,
   planDeFila,
+  parchePorTalla,
   ponerEnTodosLosColores,
   prendasDeLaFila,
   problemasTela,
@@ -743,5 +744,44 @@ describe("ponerEnTodosLosColores — «Para todos los colores»", () => {
     const copia = JSON.parse(JSON.stringify(telas));
     ponerEnTodosLosColores(telas, [{ indice: 0, tela: beige }, { indice: 1, tela: negro }], { insumoId: "x" });
     expect(telas).toEqual(copia);
+  });
+});
+
+describe("parchePorTalla — «Separar por talla» una sola vez, para todos los colores", () => {
+  const tallasSM = [{ talla: "S", cantidad: 3 }, { talla: "M", cantidad: 2 }];
+  const tallasSML = [...tallasSM, { talla: "L", cantidad: 1 }];
+  const unica = (colorCodigo: string, c = "1.1"): TelaBorrador => ({ insumoId: "lino", colorCodigo, consumoPorPrenda: c });
+  const aplica = (telas: TelaBorrador[], filas: { indice: number; tallas: { talla: string; cantidad: number }[] }[], accion: Parameters<typeof parchePorTalla>[0]) =>
+    ponerEnTodosLosColores(telas, filas.map((f) => ({ indice: f.indice, tela: telas[f.indice], tallas: f.tallas })), parchePorTalla(accion));
+
+  it("separar: cada color de dos tallas o más parte de su cifra única; el de una sola talla no cambia", () => {
+    const telas = [unica("BEI", "1.1"), unica("NEG", "1.3"), unica("ROJ", "0.9")];
+    const r = aplica(telas, [{ indice: 0, tallas: tallasSM }, { indice: 1, tallas: tallasSML }, { indice: 2, tallas: [{ talla: "S", cantidad: 4 }] }], { tipo: "separar" });
+    expect(r[0].porTalla).toEqual({ S: "1.1", M: "1.1" });
+    expect(r[1].porTalla).toEqual({ S: "1.3", M: "1.3", L: "1.3" });
+    expect(r[2].porTalla).toBeUndefined();
+  });
+  it("talla: escribe la cifra de esa talla en cada color que la tiene, separándolo antes si hacía falta, y no toca al que no la tiene", () => {
+    const telas = [unica("BEI"), unica("NEG"), unica("ROJ")];
+    const r = aplica(telas, [{ indice: 0, tallas: tallasSM }, { indice: 1, tallas: tallasSML }, { indice: 2, tallas: [{ talla: "S", cantidad: 4 }] }], { tipo: "talla", talla: "L", valor: "1.5" });
+    expect(r[0].porTalla).toBeUndefined();
+    expect(r[1].porTalla).toEqual({ S: "1.1", M: "1.1", L: "1.5" });
+    expect(r[2].porTalla).toBeUndefined();
+  });
+  it("talla en un color que ya estaba por talla: cambia solo esa talla", () => {
+    const ya = { ...unica("BEI"), porTalla: { S: "1.0", M: "1.4" } };
+    const [r] = aplica([ya], [{ indice: 0, tallas: tallasSM }], { tipo: "talla", talla: "S", valor: "0.8" });
+    expect(r.porTalla).toEqual({ S: "0.8", M: "1.4" });
+  });
+  it("unir: vuelve a una sola cifra (el promedio ponderado) y suelta lo por talla; el que no estaba por talla no cambia", () => {
+    const ya = { ...unica("BEI"), porTalla: { S: "1.0", M: "2.0" } };
+    const [a, b] = aplica([ya, unica("NEG", "1.3")], [{ indice: 0, tallas: tallasSM }, { indice: 1, tallas: tallasSM }], { tipo: "unir" });
+    expect(a).toMatchObject({ consumoPorPrenda: "1.400", porTalla: null });
+    expect(b).toEqual(unica("NEG", "1.3"));
+  });
+  it("lo que se copia es lo mismo que haría «Separar por talla» a mano en esa fila (la regla de siempre)", () => {
+    const t = unica("BEI", "1.25");
+    const [r] = aplica([t], [{ indice: 0, tallas: tallasSML }], { tipo: "separar" });
+    expect(r.porTalla).toEqual(separarPorTalla(t, tallasSML).porTalla);
   });
 });

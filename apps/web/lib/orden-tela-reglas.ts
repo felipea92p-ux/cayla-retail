@@ -293,23 +293,51 @@ export function planDeFila(t: TelaBorrador, tallas: readonly TallaDeLaOrden[], p
   return aMilesimas(tallas.reduce((s, x) => s + c[x.talla] * x.cantidad, 0) * (1 + merma));
 }
 
+/** Una fila de color de la tabla de telas: cuál es (`indice` nulo = el color todavía no tiene fila), lo que tiene y las tallas con prendas de ese color. */
+export type FilaDeColorParaTodos = { indice: number | null; tela: TelaBorrador; tallas?: readonly TallaDeLaOrden[] };
+
 /**
- * «Para todos los colores» (Felipe, 2026-10-31): lo mismo en la fila de cada color de la orden, de una vez, en vez de una por una. `filasDeColor` son las filas de la tabla de telas que reclamó cada
- * color (`indice` nulo = el color todavía no tiene fila). Las que existen reciben el `parche`; las que no, nacen con él ANTES del primer material que no es de ningún color (los avíos y el forro
- * van siempre al final, como en `ponerColor`). Lo demás no se toca: ni los avíos, ni el forro, ni el orden. Sin filas de color, no hace nada.
+ * «Para todos los colores» (Felipe, 2026-10-31): lo mismo en la fila de cada color de la orden, de una vez, en vez de una por una. Las filas que existen reciben el `parche`; las que no, nacen
+ * con él ANTES del primer material que no es de ningún color (los avíos y el forro van siempre al final, como en `ponerColor`). Lo demás no se toca: ni los avíos, ni el forro, ni el orden.
+ * El parche puede depender de la fila (`parchePorTalla`: cada color tiene sus tallas). Sin filas de color, no hace nada.
  */
 export function ponerEnTodosLosColores(
   telas: readonly TelaBorrador[],
-  filasDeColor: readonly { indice: number | null; tela: TelaBorrador }[],
-  parche: Partial<TelaBorrador>
+  filasDeColor: readonly FilaDeColorParaTodos[],
+  parche: Partial<TelaBorrador> | ((fila: FilaDeColorParaTodos) => Partial<TelaBorrador>)
 ): TelaBorrador[] {
   if (filasDeColor.length === 0) return [...telas];
-  const reclamadas = new Set(filasDeColor.flatMap((f) => (f.indice === null ? [] : [f.indice])));
-  const nuevas = filasDeColor.filter((f) => f.indice === null).map((f) => ({ ...f.tela, ...parche }));
-  const actualizadas = telas.map((t, i) => (reclamadas.has(i) ? { ...t, ...parche } : t));
+  const de = (f: FilaDeColorParaTodos) => (typeof parche === "function" ? parche(f) : parche);
+  const reclamadas = new Map(filasDeColor.flatMap((f) => (f.indice === null ? [] : [[f.indice, f] as const])));
+  const nuevas = filasDeColor.filter((f) => f.indice === null).map((f) => ({ ...f.tela, ...de(f) }));
+  const actualizadas = telas.map((t, i) => {
+    const f = reclamadas.get(i);
+    return f ? { ...t, ...de({ ...f, tela: t }) } : t;
+  });
   const primerMaterial = telas.findIndex((_, i) => !reclamadas.has(i));
   const corte = primerMaterial === -1 ? telas.length : primerMaterial;
   return [...actualizadas.slice(0, corte), ...nuevas, ...actualizadas.slice(corte)];
+}
+
+/**
+ * Lo que «Para todos los colores» hace con la cifra POR TALLA, fila por fila (cada color tiene sus tallas):
+ *   · `separar`: cada color de dos tallas o más pasa a una cifra por talla, cada talla partiendo de la cifra única que ya tenía (`separarPorTalla`); los demás no cambian.
+ *   · `unir`: vuelve a una sola cifra, el promedio de lo que había (`unirEnUnaCifra`); la fila que no estaba por talla no cambia.
+ *   · `talla`: escribe `valor` en esa talla de cada color que la tiene (si el color aún no estaba por talla, se separa antes); un color sin esa talla no cambia.
+ */
+export function parchePorTalla(accion: { tipo: "separar" } | { tipo: "unir" } | { tipo: "talla"; talla: string; valor: string }): (fila: FilaDeColorParaTodos) => Partial<TelaBorrador> {
+  return ({ tela, tallas = [] }) => {
+    if (!admitePorTalla(tallas)) return {};
+    if (accion.tipo === "separar") return usaPorTalla(tela, tallas) ? {} : { porTalla: separarPorTalla(tela, tallas).porTalla };
+    if (accion.tipo === "unir") {
+      if (!usaPorTalla(tela, tallas)) return {};
+      const { consumoPorPrenda, porTalla } = unirEnUnaCifra(tela, tallas);
+      return { consumoPorPrenda, porTalla };
+    }
+    if (!tallas.some((x) => x.talla === accion.talla)) return {};
+    const base = usaPorTalla(tela, tallas) ? tela : separarPorTalla(tela, tallas);
+    return { porTalla: { ...(base.porTalla ?? {}), [accion.talla]: accion.valor } };
+  };
 }
 
 /** «Separar por talla»: cada talla parte de la cifra única que ya había (o de la que ya tenía escrita). Sin dos tallas, no hace nada. */

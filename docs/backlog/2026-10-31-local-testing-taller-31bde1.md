@@ -5,3 +5,5 @@
 - [ ] **Pegar `20261031172000` en producción** (con el OK de Felipe; sola, sin partes) y refrescar el volcado del diccionario. Mientras no esté, «+ Talla» y «+ Color» fallan en producción con «function … does not exist».
 - [ ] Las dos hojas son `no-aplica` en la guía de foco. Si se quiere el halo del campo que sigue, es un cambio de las hojas.
 - [ ] Reactivar una variante **desactivada** desde la orden: hoy avisa y manda a Editar producto (decisión de catálogo).
+- [x] Tela de Nueva orden: fila «Para todos los colores» (la tela y los m por prenda se copian a cada color) y su «Separar por talla» (una cifra por talla, copiada a cada color que la tiene). Sin migración; `ponerEnTodosLosColores` y `parchePorTalla` en `lib/orden-tela-reglas.ts`. Solo al abrir una orden: al editar una orden abierta (`EditarTelaModal`) no se ofrece.
+- [ ] La fila «Para todos los colores» no se «entera» de lo que se cambió en una fila suelta (no es un espejo, es una herramienta de copiar, como «Llenar todas con»): tras «Una cifra para todas las tallas» su caja puede decir 1.2 mientras un color quedó en 1.040 (el promedio de lo que tenía por talla).

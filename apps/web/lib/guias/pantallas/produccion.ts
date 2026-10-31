@@ -332,7 +332,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela-todos",
       opcional: true,
       titulo: "La misma tela en todos los colores",
-      texto: "Con dos colores o más, la primera fila dice «Para todos los colores»: eliges la tela y escribes los metros por prenda una sola vez, y se copian a la fila de cada color. Después puedes cambiar un color por su cuenta.",
+      texto: "Con dos colores o más, la primera fila dice «Para todos los colores»: eliges la tela y escribes los metros por prenda una sola vez, y se copian a cada color. «Separar por talla» hace lo mismo con una cifra por talla. Después puedes cambiar un color por su cuenta.",
     },
     {
       id: "consumo-modelo",
