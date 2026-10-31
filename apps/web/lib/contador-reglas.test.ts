@@ -9,6 +9,12 @@ import {
   leerSaldoCuenta,
   motivoArchivoContador,
   nombreArchivoContador,
+  balanzaCuadra,
+  leerVerCuentas,
+  opcionesVer,
+  vistaActiva,
+  filtrarDiario,
+  gruposDeSaldos,
   sedesDelDiario,
 } from "./contador-reglas";
 import type { FlujoReal } from "./flujo-caja-reglas";
@@ -119,5 +125,63 @@ describe("el libro diario", () => {
     // Una glosa con «;» va entre comillas: no parte la fila.
     expect(csv).toContain('"Venta; con punto y coma";De la empresa');
     expect(f.at(-1)).toEqual(["Total", "", "", "", "118.00", "118.00", "", ""]);
+  });
+});
+
+describe("ver en pantalla: los saldos por cuenta y el libro diario", () => {
+  const s = (cuenta: string, tipo: string, saldoInicial: number, debe: number, haber: number) => ({ cuenta, nombre: `Cuenta ${cuenta}`, tipo, saldoInicial, debe, haber, saldoFinal: saldoInicial + debe - haber });
+  const saldos = [s("70", "ingreso", 0, 0, 300), s("101", "activo", 500, 300, 100), s("50", "patrimonio", -500, 0, 0), s("63", "gasto", 0, 100, 0)];
+  it("agrupa por tipo en el orden del plan de cuentas, con el total de cada grupo", () => {
+    const g = gruposDeSaldos(saldos);
+    expect(g.map((x) => x.tipo)).toEqual(["activo", "patrimonio", "ingreso", "gasto"]);
+    expect(g[0]).toMatchObject({ nombre: "Lo que tiene (activo)", saldoFinal: 700, debe: 300, haber: 100 });
+  });
+  it("cuadra si los saldos suman 0 y el debe es igual al haber", () => {
+    expect(balanzaCuadra(saldos)).toBe(true);
+    expect(balanzaCuadra([...saldos, s("42", "pasivo", 0, 0, 1)])).toBe(false);
+  });
+  it("el buscador encuentra por número o nombre de cuenta, asiento o glosa, sin tildes", () => {
+    const base = { fecha: "2026-10-02", ubicacionId: null, regla: "venta", origenTabla: "ventas", origenId: "x", debe: 0, haber: 0 };
+    const lineas: LineaDiario[] = [
+      { ...base, asiento: "V-1", cuenta: "101", glosa: "Venta B001-1" },
+      { ...base, asiento: "G-7", cuenta: "63", glosa: "Alquiler de octubre" },
+    ];
+    const cuentas = new Map([["101", "Caja"], ["63", "Servicios"]]);
+    expect(filtrarDiario(lineas, "", cuentas)).toHaveLength(2);
+    expect(filtrarDiario(lineas, "caja", cuentas).map((l) => l.asiento)).toEqual(["V-1"]);
+    expect(filtrarDiario(lineas, "ALQUÍLER", cuentas).map((l) => l.asiento)).toEqual(["G-7"]);
+    expect(filtrarDiario(lineas, "63", cuentas).map((l) => l.asiento)).toEqual(["G-7"]);
+  });
+});
+
+describe("la barra de las siete vistas", () => {
+  const hrefEstado = (c: string, f: string) => `/${c}${f === "formal" ? "?forma=formal" : ""}`;
+  const hrefCuentas = (v: string) => `/cuentas?ver=${v}`;
+  it("siete opciones: las respuestas y los seis cuadros, cada uno a su lugar", () => {
+    const o = opcionesVer({ pantalla: "plata", hrefEstado, hrefCuentas, veTodo: true });
+    expect(o.map((x) => [x.clave, x.href])).toEqual([
+      ["respuestas", "/plata"],
+      ["resultados", "/ganamos?forma=formal"],
+      ["flujo", "/plata?forma=formal"],
+      ["balance", "/vale?forma=formal"],
+      ["patrimonio", "/tuyo?forma=formal"],
+      ["saldos", "/cuentas?ver=saldos"],
+      ["diario", "/cuentas?ver=diario"],
+    ]);
+    expect(o.every((x) => !x.motivo)).toBe(true);
+    expect(o.map((x) => x.corto)).toEqual(["Respuestas", "Resultados", "Flujo de efectivo", "Balance", "Patrimonio", "Saldos por cuenta", "Libro diario"]);
+  });
+  it("desde las cuentas, «Las respuestas» vuelve a ¿Ganamos?; una terminal ve lo de CAYLA entera con su motivo", () => {
+    const o = opcionesVer({ pantalla: "diario", hrefEstado, hrefCuentas, veTodo: false });
+    expect(o[0]!.href).toBe("/ganamos");
+    expect(o.filter((x) => x.motivo).map((x) => x.clave)).toEqual(["flujo", "balance", "patrimonio", "saldos", "diario"]);
+  });
+  it("lo que se está viendo", () => {
+    expect(vistaActiva("ganamos", "respuesta")).toBe("respuestas");
+    expect(vistaActiva("vale", "formal")).toBe("balance");
+    expect(vistaActiva("tuyo", "formal")).toBe("patrimonio");
+    expect(vistaActiva("diario", "respuesta")).toBe("diario");
+    expect(leerVerCuentas("diario")).toBe("diario");
+    expect(leerVerCuentas(undefined)).toBe("saldos");
   });
 });

@@ -7,7 +7,7 @@ import { getPatrimonioCambios } from "@/lib/estados-financieros";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { csvBalance } from "@/lib/balance-reglas";
-import { columnasER, conceptosER, csvDe, csvEstado, leerLineaDiario, mesTitulo, ORDEN_DIARIO } from "@/lib/resultados-reglas";
+import { columnasER, conceptosER, csvDe, csvEstado, leerLineaDiario, mesTitulo, ORDEN_DIARIO, type LineaDiario } from "@/lib/resultados-reglas";
 import {
   csvDiarioContador,
   csvFlujoContador,
@@ -27,7 +27,7 @@ type Armado = { csv: string; falla: null } | { csv: null; falla: string };
 const listo = (csv: string): Armado => ({ csv, falla: null });
 const fallo = (falla: string): Armado => ({ csv: null, falla });
 
-async function saldosDelMes(mes: string): Promise<{ datos: SaldoCuenta[]; falla: string | null }> {
+export async function saldosDelMes(mes: string): Promise<{ datos: SaldoCuenta[]; falla: string | null }> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_saldos_por_cuenta" as never, { p_mes: `${mes}-01` } as never);
   if (error) return { datos: [], falla: `No se pudieron leer los saldos por cuenta: ${error.message}` };
@@ -63,17 +63,27 @@ export async function armarArchivoContador(archivo: ArchivoContador, mes: string
       return s.falla ? fallo(s.falla) : listo(csvSaldosContador(s.datos, mes));
     }
     case "diario": {
-      const supabase = await createClient();
-      // Los nombres de las cuentas salen de los saldos del mes (toda cuenta del diario tiene movimiento ahí); los de las sedes, del
-      // estado de resultados. Sin ellos el archivo igual sale, con la cuenta por su número.
-      const [diario, saldos, er] = await Promise.all([
-        leerRpcPorPaginas(supabase, "fn_diario", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: null }, ORDEN_DIARIO),
-        saldosDelMes(mes),
-        getEstadoResultados(desde, hasta),
-      ]);
-      if (diario.error) return fallo(`No se pudo leer el libro diario: ${diario.error.message}`);
-      const cuentas = new Map(saldos.datos.map((s) => [s.cuenta, s.nombre]));
-      return listo(csvDiarioContador((diario.data ?? []).map(leerLineaDiario), cuentas, sedesDelDiario(er.datos), mes));
+      const d = await diarioDelMes(mes, hoy);
+      if (d.falla) return fallo(d.falla);
+      return listo(csvDiarioContador(d.lineas, d.cuentas, d.sedes, mes));
     }
   }
+}
+
+/**
+ * El libro diario del mes con lo que hace falta para leerlo: el nombre de cada cuenta (de los saldos del mes: toda cuenta del diario tiene
+ * movimiento ahí) y el de cada sede (del estado de resultados). Sin esos nombres el diario igual sale, con la cuenta por su número.
+ */
+export async function diarioDelMes(mes: string, hoy: string): Promise<{ lineas: LineaDiario[]; cuentas: Map<string, string>; sedes: Map<string, string>; falla: string | null }> {
+  const { desde, hasta } = rangoDelMes(mes, hoy);
+  const supabase = await createClient();
+  const [diario, saldos, er] = await Promise.all([
+    leerRpcPorPaginas(supabase, "fn_diario", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: null }, ORDEN_DIARIO),
+    saldosDelMes(mes),
+    getEstadoResultados(desde, hasta),
+  ]);
+  const cuentas = new Map(saldos.datos.map((s) => [s.cuenta, s.nombre]));
+  const sedes = sedesDelDiario(er.datos);
+  if (diario.error) return { lineas: [], cuentas, sedes, falla: `No se pudo leer el libro diario: ${diario.error.message}` };
+  return { lineas: (diario.data ?? []).map(leerLineaDiario), cuentas, sedes, falla: null };
 }
