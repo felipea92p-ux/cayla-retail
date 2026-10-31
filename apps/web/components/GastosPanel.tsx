@@ -27,12 +27,14 @@ import { CorreccionesDeCompra } from "@/components/mi-plata/CorreccionesDeCompra
 import { HojaCorregirGasto } from "@/components/finanzas/gastos/HojaCorregirGasto";
 import { HojaComprobanteDeGasto } from "@/components/finanzas/gastos/HojaComprobanteDeGasto";
 import { puedeRecibirComprobante } from "@/lib/gastos-comprobante-tardio-reglas";
+import { HojaNoEmiteGasto } from "@/components/finanzas/gastos/HojaNoEmiteGasto";
+import { textoNoEmite } from "@/lib/gastos-no-emite-reglas";
 import { porQueNoSeCorrige } from "@/lib/gastos-corregir-reglas";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
 import { ExtractoGastos } from "@/components/finanzas/gastos/ExtractoGastos";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
-import { avisoDelGasto, DESDE_EL_UMBRAL, pagoACredito, sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
+import { avisoDelGasto, DESDE_EL_UMBRAL, pagoACredito, pideComprobante, sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
 import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -695,6 +697,7 @@ function GastoDetalleModal({
   const [anulando, setAnulando] = useState(false);
   const [corrigiendo, setCorrigiendo] = useState(false);
   const [recibiendo, setRecibiendo] = useState(false);
+  const [sinPapel, setSinPapel] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
@@ -727,6 +730,7 @@ function GastoDetalleModal({
   // Corregir abre en el lugar de esta hoja (nunca una hoja sobre otra) y vuelve a ella con la flecha (ADR-0588).
   if (corrigiendo) return <HojaCorregirGasto gasto={g} categorias={categorias} onVolver={() => setCorrigiendo(false)} onCerrar={onCerrar} />;
   if (recibiendo) return <HojaComprobanteDeGasto gasto={g} proveedores={proveedores} hoy={hoy} onVolver={() => setRecibiendo(false)} onCerrar={onCerrar} />;
+  if (sinPapel) return <HojaNoEmiteGasto gasto={g} onVolver={() => setSinPapel(false)} onCerrar={onCerrar} />;
 
   if (anulando) {
     return (
@@ -766,7 +770,16 @@ function GastoDetalleModal({
           tono={aviso.tono}
           titulo={aviso.titulo}
           className="aviso-hoja-gasto mb-4"
-          accion={aviso.deuda && puedeVerPorPagar ? <EnlaceVer href="/compras/por-pagar">Ir a Por pagar</EnlaceVer> : undefined}
+          accion={
+            aviso.deuda && puedeVerPorPagar ? (
+              <EnlaceVer href="/compras/por-pagar">Ir a Por pagar</EnlaceVer>
+            ) : pideComprobante(g) ? (
+              // Lo que nunca tendrá comprobante se marca con su motivo y deja de pedirlo (ADR-0588).
+              <button type="button" className="btn-cayla btn-enlace" onClick={() => setSinPapel(true)}>
+                No tendrá comprobante
+              </button>
+            ) : undefined
+          }
         >
           {aviso.texto}
         </Aviso>
@@ -784,6 +797,8 @@ function GastoDetalleModal({
           { dato: "Pago", valor: pendiente ? pagoACredito(g.fechaVencimiento, hoy) : textoPago(g, (iso) => fechaCorta(iso)) },
           ...(pendiente && g.saldo !== g.montoTotal ? [{ dato: "Falta pagar", valor: soles(g.saldo ?? 0) }] : []),
           { dato: "Estado", valor: <Chip tono={e.tono}>{e.texto}</Chip> },
+          // Marcado «no emite comprobante» (ADR-0588): ya no pide nada; queda en gris con su motivo.
+          ...(g.noEmite ? [{ dato: "Comprobante", valor: `No tendrá · ${textoNoEmite(g.noEmite)}`, tenue: true }] : []),
           ...(g.registradoPor ? [{ dato: "Lo registró", valor: g.registradoPor, tenue: true }] : []),
           ...(g.motivoAnulacion ? [{ dato: "Anulado", valor: g.motivoAnulacion, tenue: true }] : []),
         ]}

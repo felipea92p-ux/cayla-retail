@@ -63,16 +63,20 @@ function diasEntre(desde: string, hasta: string): number {
   return Math.round((t(hasta) - t(desde)) / 86_400_000);
 }
 
+/** Lo que mira «¿pide comprobante?». `noEmite`: lo marcado «no emite comprobante» (ADR-0588), que ya no pide nada. */
+export type GastoQuePideComprobante = { estado: string; comprobanteTipo: string; montoTotal: number; noEmite?: unknown };
+
 /**
- * ¿Es de lo grande sin comprobante? Vigente, sin boleta ni factura (la planilla de movilidad es el papel del viaje) y de S/ 300 o más. Es
- * la única regla: la usan la marca de la fila, el filtro «Sin comprobante, desde S/ 300», el chip de la cifra, la bandeja y «Te toca».
+ * ¿Es de lo grande sin comprobante? Vigente, sin boleta ni factura (la planilla de movilidad es el papel del viaje), de S/ 300 o más y sin marcar
+ * «no emite comprobante» (ADR-0588: Felipe eligió que «sale de la cuenta»). Es la única regla: la usan la marca de la fila, el filtro «Sin
+ * comprobante, desde S/ 300», el chip de la cifra, la bandeja y «Te toca».
  */
-export function pideComprobante(g: { estado: string; comprobanteTipo: string; montoTotal: number }): boolean {
-  return g.estado !== "anulado" && g.comprobanteTipo === "sin_comprobante" && g.montoTotal >= UMBRAL_SIN_COMPROBANTE;
+export function pideComprobante(g: GastoQuePideComprobante): boolean {
+  return g.estado !== "anulado" && g.comprobanteTipo === "sin_comprobante" && g.montoTotal >= UMBRAL_SIN_COMPROBANTE && !g.noEmite;
 }
 
 /** Lo grande sin comprobante del mes, como lo marca la lista: cuántos y el IGV que se recuperaría con factura (para el chip, la bandeja y «Te toca»). */
-export function sinComprobanteGrande(gastos: readonly { estado: string; comprobanteTipo: string; montoTotal: number }[]): { n: number; igv: number } {
+export function sinComprobanteGrande(gastos: readonly GastoQuePideComprobante[]): { n: number; igv: number } {
   const grandes = gastos.filter(pideComprobante);
   return { n: grandes.length, igv: redondear(grandes.reduce((s, g) => s + igvDeFactura(g.montoTotal), 0)) };
 }

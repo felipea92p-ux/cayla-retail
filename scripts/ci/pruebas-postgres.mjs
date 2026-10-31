@@ -1707,6 +1707,9 @@ export const PRUEBAS = [
   // (transferencia y efectivo del cajón: el mismo egreso), sin mover el saldo de ninguna cuenta ni la caja; fecha del papel e IGV; dos toques;
   // todo o nada; anulado, viaje, fondo y mes cerrado; las marcas de los disparadores y los permisos por tienda. ROLLBACK siempre.
   "pruebas:gastos-comprobante-tardio",
+  // «No tendrá comprobante» (ADR-0588): la marca con su motivo y su rastro, «otro» con nota, idempotente; no en anulado, con comprobante ni
+  // del viaje (sí en mes cerrado); al llegar el papel deja de contar; inmutable; la lectura con la visibilidad de la lista. ROLLBACK siempre.
+  "pruebas:gastos-no-emite",
   // Lo que la base del fondo no acepta (ADR-0362, fase 6; /chaos 2026-10-14): un monto que no es un número (en las funciones y en las
   // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
   // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.

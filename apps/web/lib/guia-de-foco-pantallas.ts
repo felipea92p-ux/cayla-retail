@@ -455,6 +455,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0588 («Llegó el comprobante»): qué llegó, el RUC, la serie y el número, la fecha y el responsable; lo mismo que `agregar_comprobante_a_gasto`
   // exige. `lib/gastos-comprobante-tardio-reglas.test.ts` cruza la guía con lo que bloquea guardar.
   "components/finanzas/gastos/HojaComprobanteDeGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaComprobanteDeGasto.tsx"] },
+  // ADR-0588 («No tendrá comprobante»): el motivo, la nota solo con «Otro motivo», y el responsable (lo que exige `marcar_gasto_no_emite`).
+  "components/finanzas/gastos/HojaNoEmiteGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaNoEmiteGasto.tsx"] },
   "components/finanzas/AjustesResumen.tsx": { estado: "no-aplica", motivo: "«Qué se ve» en el Resumen (Felipe 2026-10-26): son interruptores que se aplican al momento y no hay nada que llenar ni un orden que seguir; no guarda, solo cambia lo que se ve. Su ícono tiene su paso en la guía de la pantalla." },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
