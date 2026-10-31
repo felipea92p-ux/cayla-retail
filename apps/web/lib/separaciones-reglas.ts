@@ -8,6 +8,8 @@ import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { TOPE_VUELTO, UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
 import { diaLima, diaMes } from "./fechas-lima";
+import { motivoDeLaLinea } from "./ticket-linea-reglas";
+import { porcentajeDeLinea, RAZON_CAMPANA } from "./vender-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -31,6 +33,13 @@ export type PrendaApartada = {
   cantidad: number;
   precioUnitario: number;
   descuentoUnitario: number;
+  /** ADR-0584: por qué se descontó A MANO (la lista de la venta). null sin descuento o con descuento de campaña (o con una base
+   *  anterior a 20261030234000, que no lo devuelve: todo descuento se ve como campaña, como antes). */
+  motivoDescuento: string | null;
+  /** El texto de un motivo «otro». */
+  motivoDescuentoDetalle: string | null;
+  /** El argumento escrito de un descuento a mano pasado el 15 %: es de la tienda, no se imprime. */
+  argumentoDescuento: string | null;
 };
 
 /** Un pago del apartado: el adelanto (abono = false) o un abono a cuenta (20260927100000). */
@@ -391,6 +400,41 @@ export function enlaceWhatsapp(celular: string, mensaje: string): string {
   return `https://wa.me/51${soloDigitos(celular)}?text=${encodeURIComponent(mensaje)}`;
 }
 
+const textoONulo = (x: unknown) => (typeof x === "string" && x.trim() ? x.trim() : null);
+
+/** El descuento de una prenda apartada, como lo ven el detalle, Entregar y la constancia (ADR-0584). */
+export type DescuentoDePrenda = {
+  /** De la campaña (sin motivo) o puesto a mano por la colaboradora. */
+  campana: boolean;
+  /** «Campaña», el nombre del motivo («Cerrar la venta») o, con «Otro», su texto. */
+  motivo: string;
+  pct: number;
+  /** El argumento escrito de un descuento a mano; null si no hay o es de campaña. */
+  argumento: string | null;
+  /** Lo que se cobra por unidad: el precio de etiqueta menos el descuento. */
+  precioAcordado: number;
+};
+
+/** De dónde viene el descuento de una prenda apartada y en palabras de la tienda; null si no tiene. Un descuento sin motivo es de
+ *  campaña: la base no deja guardar uno sin etiqueta de campaña ni motivo (`separacion_items_descuento_con_origen`). El nombre del
+ *  motivo es el de la fila del ticket de Vender (`motivoDeLaLinea`): la misma regla, no otra. */
+export function descuentoDePrenda(p: Pick<PrendaApartada, "precioUnitario" | "descuentoUnitario" | "motivoDescuento" | "motivoDescuentoDetalle" | "argumentoDescuento">): DescuentoDePrenda | null {
+  if (p.descuentoUnitario <= 0) return null;
+  const campana = !p.motivoDescuento;
+  return {
+    campana,
+    motivo: motivoDeLaLinea({
+      descuentoUnitario: p.descuentoUnitario,
+      razonDescuento: p.motivoDescuento ?? RAZON_CAMPANA,
+      razonDescuentoOtro: p.motivoDescuentoDetalle ?? "",
+      campana: null,
+    }),
+    pct: porcentajeDeLinea(p),
+    argumento: campana ? null : p.argumentoDescuento,
+    precioAcordado: Math.round((p.precioUnitario - p.descuentoUnitario) * 100) / 100,
+  };
+}
+
 /** Normaliza una fila cruda de `buscar_separaciones` (numeric llega como texto desde PostgREST). */
 export function apartadoDeFila(f: Record<string, unknown>): Apartado {
   const n = (x: unknown) => Number(x ?? 0);
@@ -426,6 +470,9 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
       cantidad: n(i.cantidad),
       precioUnitario: n(i.precio_unitario),
       descuentoUnitario: n(i.descuento_unitario),
+      motivoDescuento: textoONulo(i.motivo_descuento),
+      motivoDescuentoDetalle: textoONulo(i.motivo_descuento_detalle),
+      argumentoDescuento: textoONulo(i.argumento_descuento),
     })),
     pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto), fecha: (p.fecha as string | null) ?? null, abono: Boolean(p.abono) })),
     estante: (f.estante as string | null) ?? null,
