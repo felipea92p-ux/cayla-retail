@@ -218,7 +218,17 @@ export function ComboBuscable<T extends string>({
       abrir();
       return;
     }
-    if (!abierto) return;
+    if (!abierto) {
+      // Con la lista cerrada, el Enter sigue siendo del combo: sin esto cae al `<form>` como envío implícito y guarda la
+      // hoja sin que nadie toque el botón. Se llega aquí por tres caminos —elegir con Enter, elegir con el mouse, cerrar
+      // con Escape— y en los tres el foco se queda en la caja. Reabrir la lista es lo que ya hace `Desplegable`
+      // (`campos.tsx`), así que la tecla siempre tiene dueño y una respuesta visible (/chaos 2026-10-31).
+      if (e.key === "Enter") {
+        e.preventDefault();
+        abrir();
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActivo((a) => Math.min(ultimoTotal, a + 1));

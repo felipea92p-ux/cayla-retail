@@ -58,6 +58,7 @@ import {
 } from "@/lib/orden-insumo-alta";
 import { crearOrdenInsumo, editarOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 import type { PrecargaDePedido } from "@/lib/pedir-insumo-reglas";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 // Nueva orden de insumos del Taller (ADR-0362, fase 7 · actividad 2): la gemela de «Nueva orden de compra» (fase 1, aprobada por Felipe),
 // con la línea del Taller. Arriba, a quién se le pide, a qué taller llega, cuándo y una nota; abajo, lo que se pide, una línea por
@@ -354,7 +355,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
         </Aviso>
       )}
 
-      <form onSubmit={guardar} noValidate className="space-y-6">
+      <form onSubmit={guardar} onKeyDown={enterNoGuarda} noValidate className="space-y-6">
         {/* Proveedor, a qué taller llega, entrega y nota: dos por fila y, con lugar (tarjeta de 52 rem o más), los cuatro en una. */}
         <section data-guia="oi-form.datos" className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y a dónde llega">
           <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
