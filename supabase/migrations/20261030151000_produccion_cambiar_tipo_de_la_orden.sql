@@ -43,8 +43,11 @@
 set lock_timeout = '3s';
 
 -- 1. La historia de la orden guarda también el cambio de tipo, con su antes y su después (las columnas `antes` y `despues` ya existen para los «Terminé» corregidos).
+-- Las dos reglas se reescriben ENTERAS (un CHECK no se amplía) y llevan también `paso_tarde`, la acción de «agregar un paso olvidado» (ADR-0586, PR #1508, migración 20261031002000), con su
+-- misma forma. Esa migración ya está en producción y también lleva `tipo`: así da igual cuál de las dos se pegue primero (o se repegue), la segunda no borra la acción de la otra, y el estado de
+-- producción coincide con el de este archivo (el check «SQL pegado» compara los candados). Esta migración no escribe ningún `paso_tarde`: solo no lo borra.
 alter table retail.produccion_cambios drop constraint if exists produccion_cambios_accion_check;
-alter table retail.produccion_cambios add constraint produccion_cambios_accion_check check (accion in ('corregir', 'eliminar', 'restaurar', 'nota', 'sin_tela', 'tipo'));
+alter table retail.produccion_cambios add constraint produccion_cambios_accion_check check (accion in ('corregir', 'eliminar', 'restaurar', 'nota', 'sin_tela', 'tipo', 'paso_tarde'));
 alter table retail.produccion_cambios drop constraint if exists produccion_cambios_forma;
 alter table retail.produccion_cambios add constraint produccion_cambios_forma check (case accion
   when 'nota' then objeto is null and fase_id is null and cardinality(quita_ids) = 0 and cardinality(pone_ids) = 0 and restaura_id is null
@@ -56,6 +59,8 @@ alter table retail.produccion_cambios add constraint produccion_cambios_forma ch
   when 'eliminar' then objeto is not null and fase_id is not null and cardinality(quita_ids) > 0 and cardinality(pone_ids) = 0 and restaura_id is null
   when 'corregir' then objeto = 'termine' and fase_id is not null and cardinality(quita_ids) > 0 and cardinality(pone_ids) > 0 and restaura_id is null
   when 'restaurar' then objeto is not null and fase_id is not null and cardinality(quita_ids) = 0 and cardinality(pone_ids) > 0 and restaura_id is not null
+  -- Un paso agregado tarde (ADR-0586): dice qué fase nació y qué anotó en ella; no quita nada. Tal cual lo escribe 20261031002000.
+  when 'paso_tarde' then objeto is null and fase_id is not null and cardinality(quita_ids) = 0 and restaura_id is null
   else false end);
 
 -- 2. Pasar una orden abierta de muestra a lote, o de lote a muestra.

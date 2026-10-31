@@ -46,6 +46,11 @@ sistema deja crear y no deja corregir (principio 2).
 ANTES de pegar el script (las 16 prendas de OP-000002 no entran al stock y el botón ya no sirve: una orden cerrada no cambia de tipo, hay que «Revertir el cierre» primero); o una rama nueva vuelve a escribir el CHECK de
 `produccion_cambios` sin la acción «tipo» (la prueba lo detecta). Repegar `20261029190000` cuando ya existe algún cambio «tipo» falla en voz alta con `23514` y no pierde nada: se resuelve repegando esta.
 
+**Actualización 2026-10-31 (candados con `paso_tarde`):** #1508 (ADR-0586, `20261031002000`, ya en producción) reescribe los mismos dos CHECK de `produccion_cambios` para sumar la acción `paso_tarde`, y lleva `tipo` con la forma de esta
+migración. Producción quedó entonces con los dos candados de #1508 y el check «SQL pegado» de este PR dijo «FALTA…o allá está con otra versión» (la función `cambiar_tipo_orden_produccion` sí coincidía). Se hizo lo que pide el ADR-0251: esta
+migración trae al archivo lo que ya vive en producción —los dos CHECK llevan también `paso_tarde`, con el texto de #1508— y no escribe ninguna fila `paso_tarde`. **SE ROMPE SI:** una tercera acción se suma a esos CHECK en otra
+migración y esta se repega después sin ella (la prueba de cada una detecta la acción que le falta).
+
 ## Cómo se ve en producción al aplicarlo
 
 1. **Pegar primero el script de datos** (urgente: OP-000002 está lista para cerrarse). Por defecto ensaya y termina en «ENSAYO_OK …»; con el resultado esperado, `false` → `true` en la línea APLICAR. No depende de la migración.

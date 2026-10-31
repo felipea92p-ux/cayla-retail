@@ -305,6 +305,14 @@ caso(
   "SIN_ERROR,SIN_ERROR,23514"
 );
 caso(
+  "S2b los dos candados de la historia conservan `paso_tarde` (ADR-0586, #1508, ya en producción): reescribirlos sin ella la borraría",
+  `select concat_ws(',', pg_get_constraintdef(a.oid) like '%''paso_tarde''%', pg_get_constraintdef(f.oid) like '%WHEN ''paso_tarde''%', pg_get_constraintdef(a.oid) like '%''tipo''%')
+     from pg_constraint a, pg_constraint f
+    where a.conrelid = 'retail.produccion_cambios'::regclass and a.conname = 'produccion_cambios_accion_check'
+      and f.conrelid = 'retail.produccion_cambios'::regclass and f.conname = 'produccion_cambios_forma';`,
+  "t,t,t"
+);
+caso(
   "S3 la forma de la función: security definer con search_path, authenticated sí y anon no",
   `select concat_ws(',', p.prosecdef, array_to_string(p.proconfig, ',') like '%search_path%', has_function_privilege('authenticated', p.oid, 'execute'), has_function_privilege('anon', p.oid, 'execute'))
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'cambiar_tipo_orden_produccion';`,
