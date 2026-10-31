@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CAJERA_AUTH, escenaCajera } from "./_claure_cajera.mjs";
 import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
+import { MEDIODIA_LIMA } from "./_hora_de_lima.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -76,15 +77,15 @@ insert into retail.pos_maquinas (nombre, cuenta_id) select 'Izipay prueba', :'iz
 insert into retail.pos_tarifas (maquina_id, medio, tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono, vigente_desde)
   select m.id, 'tarjeta', 2.38, true, 0, 0, date '2026-01-01' from retail.pos_maquinas m where m.cuenta_id = :'izipay';
 insert into retail.cajas (id, ubicacion_id, estado, monto_apertura, abierta_en, cerrada_en) values
-  (${ID("e1")}, ${LIMA}, 'cerrada', 100, now() - interval '3 hours', now()),
-  (${ID("e2")}, ${LIMA}, 'cerrada', 100, now() - interval '1 day 3 hours', now() - interval '1 day'),
-  (${ID("e3")}, ${TRUJILLO}, 'cerrada', 100, now() - interval '3 hours', now());
+  (${ID("e1")}, ${LIMA}, 'cerrada', 100, ${MEDIODIA_LIMA} - interval '3 hours', ${MEDIODIA_LIMA}),
+  (${ID("e2")}, ${LIMA}, 'cerrada', 100, ${MEDIODIA_LIMA} - interval '1 day 3 hours', ${MEDIODIA_LIMA} - interval '1 day'),
+  (${ID("e3")}, ${TRUJILLO}, 'cerrada', 100, ${MEDIODIA_LIMA} - interval '3 hours', ${MEDIODIA_LIMA});
 insert into retail.ventas (id, ubicacion_id, created_at, estado, es_prueba, caja_id) values
-  (${ID("a1")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a2")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a3")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a5")}, ${LIMA}, now() - interval '1 day 2 hours', 'completada', false, ${ID("e2")}),
-  (${ID("a7")}, ${TRUJILLO}, now() - interval '2 hours', 'completada', false, ${ID("e3")});
+  (${ID("a1")}, ${LIMA}, ${MEDIODIA_LIMA} - interval '2 hours', 'completada', false, ${ID("e1")}),
+  (${ID("a2")}, ${LIMA}, ${MEDIODIA_LIMA} - interval '2 hours', 'completada', false, ${ID("e1")}),
+  (${ID("a3")}, ${LIMA}, ${MEDIODIA_LIMA} - interval '2 hours', 'completada', false, ${ID("e1")}),
+  (${ID("a5")}, ${LIMA}, ${MEDIODIA_LIMA} - interval '1 day 2 hours', 'completada', false, ${ID("e2")}),
+  (${ID("a7")}, ${TRUJILLO}, ${MEDIODIA_LIMA} - interval '2 hours', 'completada', false, ${ID("e3")});
 insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values
   (${ID("a1")}, :'va_a', 1, 100, 10), (${ID("a1")}, :'va_b', 1, 100, 10),
   (${ID("a2")}, :'va_a', 1, 118, 10),
@@ -110,7 +111,7 @@ select id as it_a2 from retail.venta_items where venta_id = ${ID("a2")} \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 set local session_replication_role = replica;
 insert into retail.devoluciones (id, venta_id, ubicacion_id, motivo, estado, reembolso_monto, reembolso_metodo, reembolso_cuenta_id, aprobado_en)
-  values (${ID("d1")}, ${ID("a2")}, ${LIMA}, 'prueba de IGV', 'aprobada', 118, 'yape', :'interbank', now());
+  values (${ID("d1")}, ${ID("a2")}, ${LIMA}, 'prueba de IGV', 'aprobada', 118, 'yape', :'interbank', ${MEDIODIA_LIMA});
 insert into retail.devolucion_items (devolucion_id, venta_item_id, cantidad, condicion) values (${ID("d1")}, :'it_a2', 1, 'vendible');
 set local session_replication_role = origin;
 `;
