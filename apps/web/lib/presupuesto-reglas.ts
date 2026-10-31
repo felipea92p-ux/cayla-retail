@@ -1,12 +1,12 @@
 // Reglas del Presupuesto (ADR-0195, capa «para decidir»; contrato en 20260925190000_finanzas_presupuesto.sql). Lógica
-// pura: la usan las dos pantallas (Reportes ▸ Presupuesto y Configuración ▸ Presupuesto) y sus pruebas.
+// pura: la usan Configuración ▸ Presupuesto y la raya de lo planeado de ¿Ganamos? (`ganamos-reglas.ts`, ADR-0585: el presupuesto ya no
+// tiene pantalla aparte), y sus pruebas.
 // Qué NO hace este archivo: calcular plata. El tope, lo real, la proyección al cierre y el estado de cada línea vienen de
 // `fn_presupuesto_vs_real`; la meta de ventas es la de las metas del día (`fn_meta_mes`, F1). Aquí solo se decide qué
 // bloques y filas se muestran, cómo se escribe cada cifra y cada estado, y cómo se lee una casilla antes de ir a la base.
 
 import { parsearMonto, type Resultado } from "./configuracion-reglas";
-import { solesRedondo } from "./gastos-reglas";
-import { csvDe, mesAnterior, mesNombre } from "./resultados-reglas";
+import { mesAnterior, mesNombre } from "./resultados-reglas";
 
 export type UnidadPpto = "tienda" | "taller" | "empresa" | "consolidado";
 export type MomentoPpto = "en_curso" | "cerrado" | "por_venir";
@@ -69,77 +69,6 @@ export function leerFilaPpto(r: Fila): FilaPpto {
   };
 }
 
-/** La llave de una unidad: la ubicación, o «empresa» / «consolidado». */
-export const claveUnidadPpto = (f: Pick<FilaPpto, "ubicacionId" | "unidad">): string => f.ubicacionId ?? f.unidad;
-
-// ---- «Ver» y los bloques ------------------------------------------------------------------------------------------------
-
-/**
- * `?ver=` → qué unidades se miran. El líder: una ubicación (por defecto, la sede donde trabaja), «todas» o «empresa». Quien
- * tiene el módulo sin ser líder ve solo su tienda: la base ya no le manda otra cosa.
- */
-export function leerVerPpto(param: string | undefined, filas: readonly FilaPpto[], esLider: boolean, sedeActual: string | null): string {
-  if (!esLider) return filas.find((f) => f.ubicacionId)?.ubicacionId ?? "todas";
-  if (param === "todas" || param === "empresa") return param;
-  const candidata = param ?? sedeActual;
-  if (candidata && filas.some((f) => f.ubicacionId === candidata)) return candidata;
-  return "todas";
-}
-
-export type SinTope = { aLaFecha: number; proyeccion: number | null; nombres: string[] };
-export type BloquePpto = {
-  clave: string;
-  unidad: UnidadPpto;
-  nombre: string;
-  /** Las filas que se dibujan: la de ventas (si la unidad vende o tiene meta) y cada rubro con tope. */
-  filas: FilaPpto[];
-  /** Lo gastado en rubros sin tope (no tiene fila: se dice al pie para que no se esconda). */
-  sinTope: SinTope | null;
-};
-
-/**
- * Los bloques del cuadro, uno por unidad, en el orden de la base (tiendas, Taller, empresa y CAYLA al final). Con «todas»,
- * todas las unidades y CAYLA; con una ubicación o «empresa», solo esa. Como el spike: dentro de cada bloque, las ventas y
- * luego cada rubro que tiene tope; lo gastado sin tope no tiene fila, se suma al pie.
- */
-export function bloquesPpto(filas: readonly FilaPpto[], ver: string): BloquePpto[] {
-  const vistas = filas.filter((f) =>
-    ver === "todas" ? true : ver === "empresa" ? f.unidad === "empresa" : f.ubicacionId === ver && f.unidad !== "consolidado",
-  );
-  const grupos = new Map<string, FilaPpto[]>();
-  for (const f of [...vistas].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es") || a.ordenLinea - b.ordenLinea)) {
-    const k = claveUnidadPpto(f);
-    grupos.set(k, [...(grupos.get(k) ?? []), f]);
-  }
-  return [...grupos.entries()].map(([clave, fs]) => {
-    const libres = fs.filter((f) => f.tipo === "tope" && f.presupuesto === null);
-    const proyecciones = libres.map((f) => f.proyeccion);
-    return {
-      clave,
-      unidad: fs[0]!.unidad,
-      nombre: fs[0]!.unidad === "consolidado" ? "CAYLA" : fs[0]!.nombre,
-      filas: fs.filter((f) => f.tipo === "meta" || f.presupuesto !== null),
-      sinTope: libres.length
-        ? {
-            aLaFecha: libres.reduce((a, f) => a + f.aLaFecha, 0),
-            proyeccion: proyecciones.some((p) => p === null) ? null : proyecciones.reduce<number>((a, p) => a + (p ?? 0), 0),
-            nombres: libres.map((f) => f.lineaNombre),
-          }
-        : null,
-    };
-  });
-}
-
-/** Las unidades por las que se puede elegir en «Ver» (sin CAYLA), en su orden. */
-export function unidadesParaVer(filas: readonly FilaPpto[]): { clave: string; nombre: string; unidad: UnidadPpto }[] {
-  const vistas = new Map<string, { clave: string; nombre: string; unidad: UnidadPpto; orden: number }>();
-  for (const f of filas) {
-    if (f.unidad === "consolidado") continue;
-    const clave = f.unidad === "empresa" ? "empresa" : (f.ubicacionId ?? "");
-    if (!vistas.has(clave)) vistas.set(clave, { clave, nombre: f.nombre, unidad: f.unidad, orden: f.orden });
-  }
-  return [...vistas.values()].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"));
-}
 
 // ---- Cómo se escribe ------------------------------------------------------------------------------------------------------
 
@@ -173,72 +102,8 @@ export function chipPpto(f: Pick<FilaPpto, "estado" | "avance" | "momento">): { 
   }
 }
 
-/** El ancho de la barra de avance (0–100): la proyección contra el tope o la meta. */
-export function anchoBarra(f: Pick<FilaPpto, "presupuesto" | "proyeccion">): number {
-  if (!f.presupuesto || f.proyeccion === null) return 0;
-  return Math.max(0, Math.min(100, (f.proyeccion / f.presupuesto) * 100));
-}
-
-const MAYUS = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
-
-/** La franja de arriba: «Septiembre · al día 24 de 30», «Agosto · mes cerrado», «Octubre · todavía no empieza». */
-export function tituloAvance(mes: string, filas: readonly Pick<FilaPpto, "momento" | "dia" | "dias">[]): string {
-  const nombre = MAYUS(mesNombre(mes));
-  const f = filas[0];
-  if (!f) return nombre;
-  if (f.momento === "cerrado") return `${nombre} · mes cerrado`;
-  if (f.momento === "por_venir") return `${nombre} · todavía no empieza`;
-  return `${nombre} · al día ${f.dia} de ${f.dias}`;
-}
-
-/** La bajada de la franja: la regla de la proyección, dicha según el momento del mes. */
-export function bajadaAvance(momento: MomentoPpto | undefined): string {
-  if (momento === "cerrado") return "El mes ya terminó: «al cierre» es lo que pasó.";
-  if (momento === "por_venir") return "Todavía no empieza: se ven las metas y los topes; lo real llega con el mes.";
-  return "«Al cierre» proyecta lo variable al ritmo de hoy; lo fijo (alquiler, luz de Gastos fijos) entra entero. Las ventas, al mismo % de la meta que llevas.";
-}
-
-/** De dónde sale «al cierre» de una fila (el `title` de la celda): la regla con sus números. */
-export function explicarProyeccion(f: FilaPpto): string {
-  if (f.proyeccion === null) return "El mes todavía no empieza.";
-  if (f.momento === "cerrado") return "El mes ya terminó: es lo que pasó.";
-  if (f.tipo === "meta") {
-    return f.presupuesto
-      ? `Vas al ${pctPpto(f.presupuesto ? f.proyeccion / f.presupuesto : 0)} de la meta de estos ${f.dia} días; al mismo ritmo cierras en ${solesRedondo(f.proyeccion)}.`
-      : `Sin meta: lo vendido en ${f.dia} días llevado a los ${f.dias} del mes.`;
-  }
-  const fijo = f.fijo ?? 0;
-  if (fijo <= 0) return `Lo gastado en ${f.dia} días llevado a los ${f.dias} del mes.`;
-  return `${solesRedondo(fijo)} fijos (Gastos fijos: lo que llegó y lo que falta) + lo demás al ritmo de hoy.`;
-}
-
 /** Nombre de la columna o del bloque: «Tienda Trujillo» → «Trujillo». */
 export const nombreCortoPpto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
-
-/** El pie de un bloque cuando hay gasto sin tope: «Además, S/ 50 sin tope (Transporte y movilidad)». */
-export function fraseSinTope(s: SinTope | null): string | null {
-  if (!s || Math.round(s.aLaFecha) === 0) return null;
-  return `Además, ${solesRedondo(s.aLaFecha)} en rubros sin tope (${s.nombres.join(", ")}).`;
-}
-
-/** «Descargar Excel»: un CSV separado por «;», una fila por línea del cuadro. */
-export function csvPresupuesto(bloques: readonly BloquePpto[]): string {
-  const filas: (string | number)[][] = [["Unidad", "Rubro", "Meta o tope", "A la fecha", "Al cierre", "Avance", "Estado"]];
-  for (const b of bloques) {
-    for (const f of b.filas) {
-      filas.push([
-        b.nombre,
-        f.tipo === "meta" ? "Ventas (sin IGV)" : f.lineaNombre,
-        f.presupuesto ?? "",
-        f.aLaFecha,
-        f.proyeccion ?? "",
-        f.avance === null ? "" : pctPpto(f.avance),
-        chipPpto(f).texto,
-      ]);
-    }
-  }
-  return csvDe(filas);
-}
 
 // ---- Configuración ▸ Presupuesto ----------------------------------------------------------------------------------------
 

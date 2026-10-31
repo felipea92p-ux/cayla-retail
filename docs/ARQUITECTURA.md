@@ -2090,11 +2090,28 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
     foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
     nada apunta) y `archivar_cuenta_dinero`. Solo el líder.
-  - `/finanzas/reportes` (Estado de resultados; `presupuesto`, `campanas`, `escenarios`, `flujo`, `balance`; cabecera
-    `CabeceraReportes`) → `lib/resultados.ts`, `lib/presupuesto.ts`, `lib/flujo-caja.ts`, `lib/balance.ts` →
-    `fn_asientos` (diario derivado, ADR-0198/0120), `fn_estado_resultados`, `fn_campanas_reporte`, `fn_presupuesto_vs_real`,
-    `fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`, `fn_balance_general`, `fn_conciliacion_contable`. Tablas
-    `presupuestos`, `saldos_iniciales`.
+  - `/finanzas/reportes` — **Estados financieros** (ADR-0585, 2026-10-30; la URL y la clave de módulo `reportes_financieros` no
+    cambiaron): cuatro pantallas con la cabecera común `components/finanzas/estados/CabeceraEstados.tsx` (las cuatro respuestas, que son
+    las pestañas, `lib/estados-financieros.ts` → `getRespuestasEstados`; y «Descargar para el contador»). Quién ve CAYLA entera:
+    `veEstadosFinancierosDeTodoDe` / `veDiarioDeTodoDe` (`lib/persona-actual.ts`) ↔ `fn_ve_estados_financieros_de_todo`,
+    `fn_ve_diario_de_todo` y `fn_exigir_estados_financieros_de_todo` (migración `20261030235000`).
+    - `/finanzas/reportes` ¿Ganamos? → `components/finanzas/estados/GanamosPanel.tsx`, `lib/ganamos-reglas.ts` → `lib/resultados.ts`
+      (`fn_estado_resultados`, `fn_campanas_reporte`, `fn_periodos_mes`), `lib/presupuesto.ts` (`fn_presupuesto_vs_real`); plegado,
+      `EstadoResultadosPanel.tsx` con «De dónde sale» (`fn_diario`, por páginas). `presupuesto` redirige aquí; `campanas` es una página
+      interna con su vuelta (`CampanasPanel.tsx`).
+    - `/finanzas/reportes/flujo` ¿Dónde está la plata? → `components/finanzas/estados/PlataPanel.tsx`, `lib/plata-reglas.ts` →
+      `lib/flujo-caja.ts` (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`); «¿Y si…?» es `EscenariosPanel.tsx` adentro (`escenarios`
+      redirige a `flujo#y-si`).
+    - `/finanzas/reportes/balance` ¿Cuánto vale CAYLA? → `BalancePanel.tsx` + `components/finanzas/estados/Balanza.tsx`,
+      `lib/vale-reglas.ts` → `lib/balance.ts` (`fn_balance_general`, `fn_conciliacion_contable`, `fn_balance_por_tienda`,
+      `fn_saldos_iniciales`; los registra el líder con `registrar_saldo_inicial`). Tabla `saldos_iniciales`.
+    - `/finanzas/reportes/patrimonio` ¿Lo tuyo creció? → `components/finanzas/estados/PatrimonioPanel.tsx`, `lib/patrimonio-reglas.ts`
+      → `getPatrimonioCambios` → `fn_patrimonio_cambios` (migración `20261030235100`).
+    - Las recomendaciones de cada una (`components/finanzas/estados/Recomendaciones.tsx`) salen de su `*-reglas.ts`, sin RPC propia.
+    - `GET /finanzas/reportes/descargar?archivo=&mes=` (route handler) → `lib/contador.ts` + `lib/contador-reglas.ts`: un CSV por
+      archivo (los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario), con las mismas lecturas de cada pantalla
+      más `fn_saldos_por_cuenta` (migración `20261031120000`) y `fn_diario`. Lo pide `components/finanzas/estados/DescargarContador.tsx`
+      (`MenuDescargar`, `components/ui/BotonDescargar.tsx`).
   - `/finanzas/impuestos` → `lib/impuestos.ts` → lecturas de IGV y registros (`parametros_tributarios` con vigencia y
     correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo).
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).

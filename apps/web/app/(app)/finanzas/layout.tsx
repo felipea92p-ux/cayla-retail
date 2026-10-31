@@ -22,13 +22,13 @@ export default async function FinanzasLayout({ children }: { children: React.Rea
       : [];
   if (!submodulos.length) return <>{children}</>;
 
-  const { sedes, veTodo, propia } = await getSedesDelTelar();
+  const { sedes, veTodo, propia, sedesEstados } = await getSedesDelTelar();
 
   return (
     <>
       {/* `useSearchParams` pide su Suspense; sin datos de la URL, la barra se dibuja con la sede y el mes por defecto. */}
       <Suspense fallback={null}>
-        <MesaDeMando submodulos={submodulos} sedes={sedes} veTodo={veTodo} sedePropia={propia} mesDeHoy={mesDelDia(hoyLima())} puedeRegistrarGasto={veModulo(persona, "gastos")} />
+        <MesaDeMando submodulos={submodulos} sedes={sedes} veTodo={veTodo} sedesEstados={sedesEstados} sedePropia={propia} mesDeHoy={mesDelDia(hoyLima())} puedeRegistrarGasto={veModulo(persona, "gastos")} />
       </Suspense>
       {children}
     </>

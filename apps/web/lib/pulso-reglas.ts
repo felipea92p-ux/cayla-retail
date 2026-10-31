@@ -62,7 +62,22 @@ export function respuestaDeFila(f: FilaER, ctx: { mes: string; vende: boolean; t
 // ---- 3. Por qué ese número: la cascada ---------------------------------------------------------------------------------------
 
 /** `negativo`: solo en «queda», cuando el resultado es una pérdida (`monto` va siempre en positivo; el color sale de aquí). */
-export type TramoCascada = { clave: string; nombre: string; monto: number; tipo: "entra" | "sale" | "queda"; detalle?: string; negativo?: boolean };
+export type TramoCascada = {
+  clave: string;
+  nombre: string;
+  monto: number;
+  tipo: "entra" | "sale" | "queda";
+  detalle?: string;
+  negativo?: boolean;
+  /** Lo planeado para este tramo (el tope del presupuesto, en positivo): la cascada dibuja su raya sobre la barra (ADR-0585). */
+  plan?: number;
+  /** Cuánto se pasa (o queda bajo) de lo planeado, como fracción: desde ±10 % la cascada lo dice con su píldora. */
+  desvio?: number;
+  /** Las cuentas del tramo, con lo real y lo planeado: el tramo se abre para verlas. */
+  lineas?: { nombre: string; real: number; plan: number | null }[];
+  /** El tramo lleva a otra pantalla (Lo que dejó cada sede: la sede). */
+  href?: string;
+};
 
 /** La cascada de una fila del Estado de resultados: la usan Resumen y Reportes. */
 export function cascadaDeFila(f: FilaER): TramoCascada[] {

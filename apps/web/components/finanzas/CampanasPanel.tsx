@@ -42,12 +42,16 @@ const lift = (c: CampanaFila) => (c.normal ? (c.ventas ?? 0) / c.normal - 1 : nu
 export function CampanasPanel({
   campanas,
   esLider,
+  veTodo,
   tiendaNombre,
   hoy,
   fallas,
 }: {
   campanas: CampanaFila[];
+  /** Lleva a Configuración ▸ Tiendas y caja (hoy, el líder). */
   esLider: boolean;
+  /** Mira las campañas de CAYLA entera (ADR-0585: el líder o quien tiene Estados financieros). */
+  veTodo: boolean;
   tiendaNombre: string;
   hoy: string;
   fallas: string[];
@@ -74,12 +78,11 @@ export function CampanasPanel({
   return (
     <div className="space-y-6">
       <CabeceraReportes
-        pestana="campanas"
         titulo="¿Valen la pena las campañas?"
         bajada="Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen."
         acciones={
           <>
-            <Chip versalitas={false}>{esLider ? "CAYLA entera" : tiendaNombre}</Chip>
+            <Chip versalitas={false}>{veTodo ? "CAYLA entera" : tiendaNombre}</Chip>
             <BotonDescargar onClick={descargar} guia="fin-reportes.excel">
               Descargar Excel
             </BotonDescargar>
@@ -166,7 +169,7 @@ export function CampanasPanel({
                   {!pasadas.length && (
                     <tr>
                       <td colSpan={5} className="fin-tenue">
-                        Ninguna campaña del último año tuvo ventas en {esLider ? "las tiendas" : "tu tienda"}.
+                        Ninguna campaña del último año tuvo ventas en {veTodo ? "las tiendas" : "tu tienda"}.
                       </td>
                     </tr>
                   )}

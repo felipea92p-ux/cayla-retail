@@ -1,26 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
-  anchoBarra,
-  bajadaAvance,
-  bloquesPpto,
   cambiosDePropuesta,
   chipPpto,
   claveCelda,
-  csvPresupuesto,
-  explicarProyeccion,
-  fraseSinTope,
   leerConfigPpto,
   leerFilaPpto,
   leerPropuesta,
-  leerVerPpto,
   lotePropuesta,
   mesesParaPresupuestar,
   parsearTope,
   pctPpto,
   textoOrigen,
   textoTope,
-  tituloAvance,
-  unidadesParaVer,
   type FilaPpto,
 } from "./presupuesto-reglas";
 
@@ -63,46 +54,6 @@ describe("leerFilaPpto", () => {
   });
 });
 
-describe("«Ver» y bloques", () => {
-  it("el líder mira su sede por defecto; «todas» y «empresa» valen; una sede que no existe cae en todas", () => {
-    expect(leerVerPpto(undefined, FILAS, true, TRU)).toBe(TRU);
-    expect(leerVerPpto("todas", FILAS, true, TRU)).toBe("todas");
-    expect(leerVerPpto("empresa", FILAS, true, TRU)).toBe("empresa");
-    expect(leerVerPpto("otra", FILAS, true, null)).toBe("todas");
-  });
-  it("sin ser líder, siempre su tienda (el parámetro se ignora)", () => {
-    const suyas = FILAS.filter((f) => f.ubicacionId === TRU);
-    expect(leerVerPpto("todas", suyas, false, LIM)).toBe(TRU);
-  });
-  it("una tienda: un solo bloque, ventas primero y solo los rubros con tope", () => {
-    const b = bloquesPpto(FILAS, TRU);
-    expect(b).toHaveLength(1);
-    expect(b[0]!.nombre).toBe("Tienda Trujillo");
-    expect(b[0]!.filas.map((f) => f.linea)).toEqual(["ventas", "635", "636"]);
-  });
-  it("lo gastado sin tope no tiene fila: se suma al pie", () => {
-    const b = bloquesPpto(FILAS, TRU)[0]!;
-    expect(b.sinTope).toEqual({ aLaFecha: 50, proyeccion: 155, nombres: ["Transporte y movilidad"] });
-    expect(fraseSinTope(b.sinTope)).toBe("Además, S/\u00a050 en rubros sin tope (Transporte y movilidad).");
-    expect(fraseSinTope(null)).toBeNull();
-  });
-  it("todas: tiendas, Taller, empresa y CAYLA al final", () => {
-    const b = bloquesPpto(FILAS, "todas");
-    expect(b.map((x) => x.nombre)).toEqual(["Tienda Lima", "Tienda Trujillo", "Taller", "De la empresa", "CAYLA"]);
-    expect(b.at(-1)!.unidad).toBe("consolidado");
-  });
-  it("«empresa»: solo lo de la empresa (sin CAYLA)", () => {
-    expect(bloquesPpto(FILAS, "empresa").map((x) => x.unidad)).toEqual(["empresa"]);
-  });
-  it("una tienda sin meta igual muestra sus ventas (para que se vea que falta la meta)", () => {
-    const b = bloquesPpto(FILAS, LIM)[0]!;
-    expect(b.filas.map((f) => f.estado)).toEqual(["sin_meta"]);
-  });
-  it("las unidades para elegir en «Ver», sin CAYLA y en orden", () => {
-    expect(unidadesParaVer(FILAS).map((u) => u.clave)).toEqual([LIM, TRU, TAL, "empresa"]);
-  });
-});
-
 describe("cómo se escribe", () => {
   it("el chip de cada estado, como el spike", () => {
     expect(chipPpto({ estado: "se_pasa", avance: 1.188, momento: "en_curso" })).toEqual({ texto: "te pasas 18,8 %", tono: "rojo" });
@@ -117,37 +68,6 @@ describe("cómo se escribe", () => {
   });
   it("el porcentaje lleva coma decimal", () => {
     expect(pctPpto(0.188)).toBe("18,8 %");
-  });
-  it("la barra: la proyección contra el tope, entre 0 y 100", () => {
-    expect(anchoBarra({ presupuesto: 650, proyeccion: 818.47 })).toBe(100);
-    expect(anchoBarra({ presupuesto: 300, proyeccion: 150 })).toBe(50);
-    expect(anchoBarra({ presupuesto: null, proyeccion: 150 })).toBe(0);
-    expect(anchoBarra({ presupuesto: 300, proyeccion: null })).toBe(0);
-  });
-  it("la franja de arriba dice en qué día va el mes", () => {
-    expect(tituloAvance("2026-09", [{ momento: "en_curso", dia: 24, dias: 30 }])).toBe("Septiembre · al día 24 de 30");
-    expect(tituloAvance("2026-08", [{ momento: "cerrado", dia: 31, dias: 31 }])).toBe("Agosto · mes cerrado");
-    expect(tituloAvance("2026-10", [{ momento: "por_venir", dia: 0, dias: 31 }])).toBe("Octubre · todavía no empieza");
-    expect(tituloAvance("2026-10", [])).toBe("Octubre");
-    expect(bajadaAvance("cerrado")).toMatch(/ya terminó/);
-    expect(bajadaAvance("en_curso")).toMatch(/ritmo de hoy/);
-  });
-  it("de dónde sale «al cierre»", () => {
-    const tru = (l: string) => FILAS.find((x) => x.ubicacionId === TRU && x.linea === l)!;
-    expect(explicarProyeccion(tru("ventas"))).toBe("Vas al 90,0 % de la meta de estos 10 días; al mismo ritmo cierras en S/\u00a032,400.");
-    expect(explicarProyeccion(tru("636"))).toMatch(/^S\/\u00a0508 fijos/);
-    expect(explicarProyeccion(tru("631"))).toBe("Lo gastado en 10 días llevado a los 31 del mes.");
-    expect(explicarProyeccion(FILAS.find((x) => x.ubicacionId === LIM)!)).toMatch(/^Sin meta/);
-    expect(explicarProyeccion({ ...tru("635"), momento: "cerrado" })).toMatch(/ya terminó/);
-    expect(explicarProyeccion({ ...tru("635"), proyeccion: null })).toMatch(/no empieza/);
-  });
-  it("el CSV: una fila por línea visible, separado por «;»", () => {
-    const csv = csvPresupuesto(bloquesPpto(FILAS, TRU));
-    const lineas = csv.trim().split(/\r?\n/);
-    expect(lineas[0]).toContain("Unidad;Rubro;Meta o tope");
-    expect(lineas).toHaveLength(4);
-    expect(lineas[1]).toContain("Ventas (sin IGV)");
-    expect(lineas[3]).toContain("te pasas 25,9 %");
   });
 });
 

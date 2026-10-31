@@ -141,7 +141,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
   const avisos = ordenarAvisos([
-    ...alinearAvisoDeCaja(avisosParaDecidir(resumen, acceso), caja, verReportes ? "/finanzas/reportes/escenarios" : null),
+    ...alinearAvisoDeCaja(avisosParaDecidir(resumen, acceso), caja, verReportes ? "/finanzas/reportes/flujo#y-si" : null),
     ...campanas.flatMap((c) => avisoDeInversion(c, hoy, ajustes.conIgv) ?? []),
   ]);
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
