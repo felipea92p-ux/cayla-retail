@@ -6,6 +6,8 @@ import {
   FASES,
   FIJO_MAXIMO,
   HINTS_FASE,
+  HINT_TARIFA_A_CONFIRMAR,
+  TARIFA_SIN_REFERENCIA_MAXIMA,
   TARIFA_MAXIMA,
   avisoMinimo,
   costoServiciosEstimado,
@@ -31,6 +33,9 @@ import {
   secuenciaDe,
   serviciosConCosto,
   tarifaSugerida,
+  tarifaDesdeTotal,
+  tarifaFueraDeLoNormal,
+  totalDeLaTarifa,
   type FaseBorrador,
   type FaseClave,
   type FaseRpc,
@@ -710,5 +715,70 @@ describe("ploteo: total de la orden o por prenda", () => {
     expect(fijoDesdePorPrenda("abc", 57)).toBe("");
     expect(fijoDesdePorPrenda("0,26", 57)).toBe("");
     expect(porPrendaDeFijo("", 57)).toBe("");
+  });
+});
+
+// Nació de «Ojales y botones» a S/ 34.80 «por prenda» en una orden de 57: era el total de la orden escrito donde va el precio de una prenda.
+describe("una tarifa por prenda que parece el total de la orden", () => {
+  const ojales = (tarifa: string, extra: Partial<FaseBorrador> = {}) => afuera("lavanderia", { tarifa, ...extra });
+  const fase = (fases: FaseBorrador[], clave: FaseClave) => fases.find((f) => f.clave === clave)!;
+  const fuera = (tarifa: string, prendas = 57, lista: TarifaDeLista[] = [], extra: Partial<FaseBorrador> = {}) =>
+    tarifaFueraDeLoNormal(fase(ojales(tarifa, extra), "lavanderia"), prendas, lista, HOY);
+
+  it("sin precio de referencia, pasar de S/ 15 por prenda pregunta, y dice cuánto serían las prendas", () => {
+    expect(fuera("34.80")).toEqual({ tarifa: 34.8, totalDeLaOrden: 1983.6, tope: TARIFA_SIN_REFERENCIA_MAXIMA, deLaLista: false });
+    expect(fuera("15")).toBeNull();
+    expect(fuera("15.01")).not.toBeNull();
+    expect(fuera("0.61")).toBeNull();
+  });
+  it("con precios de otros proveedores para esa fase, el tope es el triple del mayor (con un piso de S/ 5)", () => {
+    const lista: TarifaDeLista[] = [{ proveedorId: CONF.id, faseClave: "lavanderia", tarifa: 0.6, minimo: null, fijo: 0, vigenteDesde: "2026-01-01" }];
+    expect(fuera("4.99", 57, lista)).toBeNull();
+    expect(fuera("5.50", 57, lista)).toEqual({ tarifa: 5.5, totalDeLaOrden: 313.5, tope: 5, deLaLista: true });
+    const cara: TarifaDeLista[] = [{ proveedorId: CONF.id, faseClave: "lavanderia", tarifa: 4, minimo: null, fijo: 0, vigenteDesde: "2026-01-01" }];
+    expect(fuera("11.90", 57, cara)).toBeNull();
+    expect(fuera("12.10", 57, cara)).not.toBeNull();
+  });
+  it("no pregunta con una sola prenda, con el Taller, con el ploteo ni con una tarifa que viene de la lista del proveedor", () => {
+    expect(fuera("34.80", 1)).toBeNull();
+    expect(tarifaFueraDeLoNormal(fase(con("lavanderia", { encendida: true, quien: "taller", tarifa: "34.80" }), "lavanderia"), 57, [], HOY)).toBeNull();
+    expect(tarifaFueraDeLoNormal({ ...fase(ojales("34.80"), "lavanderia"), clave: "ploteo", tarifa: "34.80", fijo: "40" }, 57, [], HOY)).toBeNull();
+    const lista: TarifaDeLista[] = [{ proveedorId: CONF.id, faseClave: "lavanderia", tarifa: 34.8, minimo: null, fijo: 0, vigenteDesde: "2026-01-01" }];
+    expect(fuera("", 57, lista)).toBeNull();
+  });
+  it("contestar «sí, es por prenda» calla la pregunta solo para ese valor: si la caja cambia, vuelve", () => {
+    expect(fuera("34.80", 57, [], { tarifaConfirmada: "34.80" })).toBeNull();
+    expect(fuera("40", 57, [], { tarifaConfirmada: "34.80" })).not.toBeNull();
+  });
+  it("problemasFases la cuenta como lo que falta SOLO si la hoja le pasa las prendas, y no la mezcla con los errores de la base", () => {
+    const f = ojales("34.80");
+    expect(problemasFases(f, CTX).map((p) => p.hint)).toEqual([]);
+    const con57 = problemasFases(f, { ...CTX, totalPrendas: 57 });
+    expect(con57.map((p) => p.hint)).toEqual([HINT_TARIFA_A_CONFIRMAR]);
+    expect(con57[0].texto).toContain("1983.60");
+    expect(problemasFases(ojales("34,80"), { ...CTX, totalPrendas: 57 }).map((p) => p.hint)).toEqual(["fase_tarifa_invalida"]);
+    expect(problemasFases(ojales("34.80", { tarifaConfirmada: "34.80" }), { ...CTX, totalPrendas: 57 })).toEqual([]);
+  });
+  it("un servicio pendiente de registrar también pregunta: ahí no hay lista de precios que lo frene", () => {
+    const f = con("lavanderia", { encendida: true, quien: "servicio", pendiente: true, tarifa: "34.80" });
+    expect(problemasFases(f, { ...CTX, totalPrendas: 57 }).map((p) => p.hint)).toEqual([HINT_TARIFA_A_CONFIRMAR]);
+  });
+});
+
+describe("servicio: total de la orden o por prenda", () => {
+  it("el total se reparte entre las prendas a dos decimales, que es lo que guarda la base", () => {
+    expect(tarifaDesdeTotal("34.80", 57)).toBe("0.61");
+    expect(tarifaDesdeTotal("85.50", 57)).toBe("1.50");
+    expect(tarifaDesdeTotal("100", 3)).toBe("33.33");
+  });
+  it("dice cuánto suman de verdad las prendas con la tarifa ya redondeada (para avisar la diferencia)", () => {
+    expect(totalDeLaTarifa("0.61", 57)).toBe("34.77");
+    expect(totalDeLaTarifa("1.50", 57)).toBe("85.50");
+  });
+  it("sin prendas o con un texto que no es número no inventa una tarifa", () => {
+    expect(tarifaDesdeTotal("34.80", 0)).toBe("");
+    expect(tarifaDesdeTotal("34,80", 57)).toBe("");
+    expect(tarifaDesdeTotal("", 57)).toBe("");
+    expect(totalDeLaTarifa("abc", 57)).toBe("");
   });
 });
