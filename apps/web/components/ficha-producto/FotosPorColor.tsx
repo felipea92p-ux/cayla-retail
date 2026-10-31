@@ -108,7 +108,7 @@ export function FotosPorColor({
   return (
     <div className="space-y-3">
       <TituloSeccion dato={cuenta || undefined}>Fotos por color</TituloSeccion>
-      <p className="max-w-[72ch] text-[13px] text-taupe">
+      <p className="max-w-[72ch] text-sm text-taupe">
         {vista.general.sinColores ? (
           <>Toca el rectángulo para <b className="font-semibold text-tinta">agregar la foto de la prenda</b>, o para ver, cambiar o quitar las que ya tiene.</>
         ) : (
@@ -166,7 +166,7 @@ export function FotosPorColor({
           {vista.huerfanas.map((f) => (
             <div key={f.clientKey} className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
               <Miniatura foto={f} ancho="w-14" />
-              <p className="min-w-0 flex-1 basis-32 text-[13px] text-tinta">
+              <p className="min-w-0 flex-1 basis-32 text-sm text-tinta">
                 Era de <b className="font-semibold">{nombreColor(f.colorCodigo)}</b>
               </p>
               <Desplegable
@@ -187,7 +187,7 @@ export function FotosPorColor({
         </Aviso>
       )}
 
-      <p className="text-xs text-tinta/45">JPG, PNG o WebP, hasta 5 MB. Se sube tal cual la entregas. Un PNG con fondo transparente además entra al armador de looks.</p>
+      <p className="text-sm text-tinta/45">JPG, PNG o WebP, hasta 5 MB. Se sube tal cual la entregas. Un PNG con fondo transparente además entra al armador de looks.</p>
 
       {viendo !== undefined && (
         <HojaDeFotos
@@ -273,7 +273,7 @@ function Tarjeta({
             <ImagenDePrenda src={portada.url} alt="" fill sizes="220px" className="object-cover" fallback={null} />
             {fotos.some((f) => f.esPrincipal) && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
             {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
-            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-crema/95 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-tinta shadow-sm">
+            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-crema/95 px-2.5 py-1 text-sm font-semibold tabular-nums text-tinta shadow-sm">
               <Camera aria-hidden className="h-3 w-3" />
               {fotos.length}
             </span>
@@ -296,15 +296,15 @@ function Tarjeta({
           }`}
         >
           <Camera /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ aria-hidden className="h-6 w-6" strokeWidth={1.5} />
-          <span className="text-[12.5px] font-semibold leading-tight">{textoVacio}</span>
-          <span className="text-[11.5px] font-normal text-taupe">{subVacio}</span>
+          <span className="text-sm font-semibold leading-tight">{textoVacio}</span>
+          <span className="text-sm font-normal text-taupe">{subVacio}</span>
         </BotonFoto>
       )}
-      <div className="flex min-w-0 items-center gap-2 text-[13.5px] font-medium text-tinta">
+      <div className="flex min-w-0 items-center gap-2 text-[15px] font-medium text-tinta">
         {punto}
         <span className="min-w-0 truncate">{titulo}</span>
         {(!general || fotos.length > 0) && (
-          <small className={`ml-auto shrink-0 text-xs font-normal ${estado === "sin-foto" ? "font-medium text-ambar-profundo" : "text-taupe"}`}>{textoEstadoColor(estado, fotos.length)}</small>
+          <small className={`ml-auto shrink-0 text-sm font-normal ${estado === "sin-foto" ? "font-medium text-ambar-profundo" : "text-taupe"}`}>{textoEstadoColor(estado, fotos.length)}</small>
         )}
       </div>
     </div>
@@ -363,7 +363,7 @@ function HojaDeFotos({
                   <div className="grid gap-1.5">
                     <div className="grid grid-cols-2 gap-1.5">
                       {f.esPrincipal ? (
-                        <p className="self-center text-center text-xs text-taupe">Es la principal</p>
+                        <p className="self-center text-center text-sm text-taupe">Es la principal</p>
                       ) : (
                         <button type="button" disabled={bloqueado} onClick={() => onFotos(comoPrincipal(todas, f.clientKey))} className="btn-cayla btn-sutil btn-chico">
                           Principal

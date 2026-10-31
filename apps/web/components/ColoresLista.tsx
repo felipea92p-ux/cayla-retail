@@ -124,7 +124,7 @@ function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<strin
   const companeros = c.combinaCon.map((cod) => porCodigo.get(cod)).filter((x): x is Color => !!x && x.activo);
   return (
     <div className="space-y-1.5">
-      <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+      <p className="flex justify-between gap-2 text-sm text-tinta/60">
         <span className="font-mono">{c.codigo}</span>
         {c.pantoneTcx && (
           <span className="font-mono" title="Código Pantone para pedir la tela">
@@ -133,12 +133,12 @@ function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<strin
         )}
       </p>
       {c.descripcion && (
-        <p className="line-clamp-4 text-[12px] leading-snug text-tinta/75" title={c.descripcion}>
+        <p className="line-clamp-4 text-sm leading-snug text-tinta/75" title={c.descripcion}>
           {c.descripcion}
         </p>
       )}
       {companeros.length > 0 && (
-        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-tinta/60">
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-tinta/60">
           <span className="whitespace-nowrap">Combina con</span>
           <span className="flex flex-wrap items-center gap-1" aria-label={companeros.map((x) => x.nombre).join(", ")}>
             {companeros.map((x) => (
@@ -604,7 +604,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 nombre={c.nombre}
                 insignia={c.estado === "rechazado" ? "Rechazado" : null}
                 detalle={
-                  <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+                  <p className="flex justify-between gap-2 text-sm text-tinta/60">
                     <span className="font-mono">{c.codigo}</span>
                     <span>{textoDeFamilia(c.familiaColor)}</span>
                   </p>
@@ -847,7 +847,7 @@ function ColorEditarModal({
                 </div>
               </div>
             )}
-            <p className="mt-1 text-xs text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
+            <p className="mt-1 text-sm text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
           <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={vocabulario} excluir={color.codigo} />
 
@@ -886,7 +886,7 @@ function ColorEditarModal({
                 </Boton>
               </div>
             </div>
-            <p className="text-xs text-tinta/55">Desactivar se bloquea si todavía hay una prenda activa con este color.</p>
+            <p className="text-sm text-tinta/55">Desactivar se bloquea si todavía hay una prenda activa con este color.</p>
           </div>
         </div>
       )}

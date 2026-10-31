@@ -53,10 +53,10 @@ export function PorRevisarLista({
                     </Link>
                     {p.codigo && <span className="font-mono text-xs font-normal text-tinta/55">{p.codigo}</span>}
                   </p>
-                  <p className="text-[13px] text-tinta/75">
+                  <p className="text-sm text-tinta/75">
                     {textoVariantes(p)} · {textoPrecio(p.precioMin, p.precioMax)}
                   </p>
-                  <p className="text-[13px] text-tinta/60">
+                  <p className="text-sm text-tinta/60">
                     {textoPropuesta(p, ahora)} · {textoOrigen(p)}
                   </p>
                   {(p.ordenesAbiertas > 0 || p.stock > 0 || sinPrecio) && (

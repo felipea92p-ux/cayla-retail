@@ -102,7 +102,7 @@
   align-items: center;
   border-radius: 999px;
   padding: 1px 8px;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   line-height: 1.5;
@@ -138,7 +138,7 @@
   border: 1px solid var(--color-sand);
   background: var(--color-papel);
   padding: 0.25rem 0.625rem 0.25rem 0.4rem;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-tinta);
   transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);

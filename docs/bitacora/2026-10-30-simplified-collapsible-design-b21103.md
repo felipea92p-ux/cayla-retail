@@ -21,3 +21,9 @@
 - **Qué:** Existencias, Movimientos, Traslados, Conteo, Recibir mercadería y Por regularizar (y las hojas que abren): lo que se lee pasa de 10,5–13 px a 14 px y el título de una fila de 13,5 a 15 px. En CSS propio: el panel «Filtrar por tipo» y el trayecto de Movimientos (`movimientos-sellos.css`) y el texto de los pases de Traslados (`traslados-pases.css`), sin tocar sellos ni movimiento. El aviso del traslado en camino de Recibir, más corto. Quedan igual a propósito: la planilla de «Ajustar stock», las matrices de tallas y la hoja impresa de ingresos.
 - **Por qué:** Felipe pidió seguir con Inventario tras ver Ventas.
 - **Cómo verificas:** abre `/inventario`, `/inventario/movimientos` y `/inventario/traslados` (también a 375 px). No se miraron con datos las hojas que piden algo guardado (un conteo en curso, el cuadre del piso, una recepción abierta).
+
+## 2026-10-30 — Catálogo con la letra a 14 px y frases más cortas (ronda 19, cuarta pasada)
+
+- **Qué:** Productos (grilla, tabla, vista rápida), Categorías, Marcas, Atributos, Insignias, Liquidación, Nuevo producto y Por revisar (y las hojas que abren): lo que se lee pasa de 10,5–13 px a 14 px y el título de una fila de 13,5 a 15 px. En CSS propio: la vista rápida, los sellos de Insignias, las parecidas y la guía de Nuevo producto y la ficha del Taller, sin tocar sellos ni movimiento. Frases acortadas: Marcas, las cinco ayudas de Atributos, Temporadas, Liquidación, Nuevo producto, Por revisar y la identidad del alta; fuera la instrucción «Pasa el mouse…» de la vista rápida. Quedan igual a propósito: las descripciones de cada color (son datos), las etiquetas impresas y la matriz de stock de la ficha.
+- **Por qué:** Felipe pidió seguir con Catálogo tras ver Inventario.
+- **Cómo verificas:** abre `/productos` y toca una prenda (vista rápida), `/productos/atributos?tipo=temporadas` y `/productos/nuevo` (también a 375 px).
