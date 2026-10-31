@@ -2,8 +2,7 @@
 
 - **Fecha:** 2026-10-30 · **Estado:** construido y probado contra una base desechable con las 985 migraciones de `main` más la
   siembra. La nueva suite pasa 20/20 y las 32 suites de Producción e Insumos siguen en verde encima. **La migración
-  `20261031014000` NO está pegada en producción** (espera el OK de Felipe) y **la pantalla no se probó en el navegador**: el
-  clasificador de seguridad no dejó conectar la web a la base desechable (ver «Lo que falta»).
+  `20261031014000` está pegada en producción** (Felipe, 2026-10-30; verificada por md5) y las tres hojas se probaron en el navegador.
 - **Decide:** Felipe, 2026-10-30. De las 21 mejoras de `docs/pantallas/produccion-modulo-21-mejoras.md` eligió primero «Integridad
   (1–4)». Respondió «Deshacer devuelve la tela: sí» y pasó la 4 (ajustes por lote) a #1499.
 - **Toca:** ADR-0570 (actividades 2 y 4: «Terminé» con falla y la tela al cortar), ADR-0190 (token y candados), ADR-0400 (Salida,
@@ -85,8 +84,9 @@ guarda único (`proveedores_produccion_nombre_clave_unica`), porque la lectura d
    la derecha del aviso (`accion`) apretaba el texto en una columna angosta. Ahora va bajo el texto, como los enlaces de varios pedidos.
    El mismo defecto vive en la pieza `<Aviso>` para todo aviso con botón en una pantalla angosta (Plan del piso ya lo parchó solo para
    el suyo): arreglarlo en la pieza es decisión de Felipe (`/unificar`).
-2. **Pegar `20261031014000` en producción, con su OK.** Es una sola parte: un `alter table` sin valor por defecto y funciones, sin
-   políticas. Después, refrescar el diccionario (`pnpm datos:generar:produccion`).
+2. ~~Pegar `20261031014000` en producción~~ **Hecho el 2026-10-30** por Felipe. Verificado con lecturas: la columna con su permiso, el CHECK, el
+   índice y las 7 funciones (más las 7 de las que dependen) son idénticas, por md5 y permisos, a la base donde pasaron las 41 suites. Falta
+   refrescar el diccionario (`pnpm datos:generar:produccion`) cuando se renueve el volcado.
 3. `datos:comparar` va a marcar las tres funciones nuevas hasta que estén en producción. Es lo esperado.
 4. Avisar a la sesión de ADR-0570: una actividad suya que reescriba `anotar_insumos_de_la_orden` o `anotar_termine` tiene que partir de
    esta versión.
