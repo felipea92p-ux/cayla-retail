@@ -288,6 +288,7 @@
     "pruebas:produccion-cinco-pasos": "node scripts/pruebas/produccion_cinco_pasos.mjs",
     "pruebas:produccion-quitar-paso": "node scripts/pruebas/produccion_quitar_paso.mjs",
     "pruebas:produccion-agregar-paso": "node scripts/pruebas/produccion_agregar_paso.mjs",
+    "pruebas:produccion-paso-tarde": "node scripts/pruebas/produccion_paso_tarde.mjs",
     "pruebas:produccion-termine-con-falla": "node scripts/pruebas/produccion_termine_con_falla.mjs",
     "pruebas:produccion-correcciones": "node scripts/pruebas/produccion_correcciones.mjs",
     "pruebas:produccion-tela-al-cortar": "node scripts/pruebas/produccion_tela_al_cortar.mjs",
