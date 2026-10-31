@@ -247,7 +247,8 @@ empieza donde cerró marzo, y los permisos. La ruta y el menú no se probaron en
 
 - Probar las cuatro pantallas en el navegador con sesión: escritorio, 375 px, claro y oscuro. Probar también una cuenta con el módulo
   que no sea líder.
-- Pegar en producción las tres migraciones, en orden.
+- Registrar los saldos de arranque en producción: sin ellos, el Balance, ¿Lo tuyo creció? y los saldos por cuenta lo dicen en vez de
+  dar cifras.
 - Dos decisiones de Felipe:
   - si una terminal con el módulo ve todo (hoy no lo ve);
   - si el Resumen de Finanzas muestra CAYLA entera a quien tiene el módulo (hoy muestra su tienda).
@@ -282,5 +283,5 @@ Es justo lo que hace falta para la única decisión que ayuda a tomar: cuánto r
 
 ### Producción
 
-Se pegan en orden: primero la 20261030235000 (que además renombra el módulo en Roles y accesos), después la 20261030235100 y al final la 20261031120000. Cada una se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
+**Pegadas en producción por Felipe el 2026-10-31**, y verificadas con solo lectura (las cinco funciones nuevas, las lecturas ancladas, el módulo renombrado y los permisos). Se pegaron en orden: primero la 20261030235000 (que además renombra el módulo en Roles y accesos), después la 20261030235100 y al final la 20261031120000. Cada una se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
 anclado al texto vivo: si producción no coincide, la migración aborta sin cambiar nada.

@@ -5,4 +5,4 @@
   (¿Ganamos?, ¿Dónde está la plata?, ¿Cuánto vale CAYLA?, ¿Lo tuyo creció?), cada una con su respuesta, su cascada o balanza, «Qué te
   recomiendo» y lo formal plegado, sin cuentas en pantalla. Las cuentas van en «Descargar para el contador», que tiene seis archivos y
   baja uno por opción. Nacieron `fn_patrimonio_cambios` y `fn_saldos_por_cuenta`. Probado: tipos, 750 archivos de vitest, Knip, eslint y
-  las pruebas de Postgres de Finanzas. Las migraciones no están en producción y las pantallas no se probaron en el navegador con sesión.
+  las pruebas de Postgres de Finanzas. Las tres migraciones se pegaron en producción el 2026-10-31 y se verificaron; las pantallas no se probaron en el navegador con sesión.
