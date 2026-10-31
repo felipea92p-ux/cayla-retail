@@ -39,3 +39,9 @@
 - **Qué:** Fichas, la ficha del cliente (historia, permisos, tienda online), Avisos y Beneficios del club: lo que se lee pasa de 10,5–13 px a 14 px. Diez frases acortadas: la nota de reglas de Avisos (de ~75 palabras a ~35), la nota al pie de Fichas, Registrar BAJA, Restablecer acceso, la historia de permisos y el aviso sin celular. Solo letra y texto: lo que hace cada pantalla no cambia (el plan de Clientes es de Dany). El cartel del club (papel) queda igual.
 - **Por qué:** Felipe pidió seguir con Clientes tras ver Compras.
 - **Cómo verificas:** abre `/clientas` y toca un cliente, `/clientas/avisos` y `/clientas/beneficios` (también a 375 px). No se miraron con datos las hojas que guardan (Nuevo cliente, Editar datos, BAJA, Restablecer acceso).
+
+## 2026-10-31 — Gestión con la letra a 14 px y frases más cortas (ronda 19, séptima pasada)
+
+- **Qué:** Análisis (sus cinco vistas), Frescura del piso, Plan del piso, Preguntas del equipo y Rendimiento: lo que se lee pasa de 10,5–13 px a 14 px, también en el CSS propio de Análisis y de Plan del piso; las etiquetas pegadas a los gráficos (ejes, riel, semanas, días, banderas) quedan igual para no encimarse. Quince frases acortadas; en Plan del piso, cómo leer «Dónde está cada grupo» pasa al «?» de su título.
+- **Por qué:** Felipe pidió seguir con Gestión tras ver Clientes.
+- **Cómo verificas:** abre `/gestion/analisis`, `/gestion/plan-del-piso` y `/rendimiento`. Visto de paso, sin arreglar: `/rendimiento` a 375 px se corre 21 px al costado (ya pasaba antes).

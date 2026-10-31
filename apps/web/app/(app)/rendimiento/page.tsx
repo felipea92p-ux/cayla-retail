@@ -72,9 +72,7 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
       {sedes.length === 0 && (
         <div className="card-cayla">
           <Vacio icono={<Store />}>
-            No hay una tienda que mirar desde esta cuenta: Rendimiento es de quien lleva una tienda o
-            del Admin. Si crees que deberías verla, pídele a tu líder que revise tu sede en Colaboradores
-            ▸ Roles y accesos.
+            Rendimiento es de quien lleva una tienda. Si deberías verla, pídele a tu líder que revise tu sede en Colaboradores.
           </Vacio>
         </div>
 
