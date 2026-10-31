@@ -5,6 +5,7 @@ import {
   textoPagosDeFila,
   AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
+  descuentoDePrenda,
   avanceDelPlazo,
   cobroDelSaldo,
   coincide,
@@ -32,7 +33,7 @@ import {
   pedidoDeFila,
   paraQuienPedido,
 } from "./separaciones-reglas";
-import { totalDeLineas } from "./vender-reglas";
+import { RAZONES_DESCUENTO, totalDeLineas } from "./vender-reglas";
 import { diaLima } from "./fechas-lima";
 
 const formulario = (extra: Partial<FormularioApartado> = {}): FormularioApartado => ({
@@ -434,5 +435,48 @@ describe("lo que se lee de los pagos no miente (chaos y prueba ciega 2026-10-15)
     expect(avisoDeAbono(nuevo, { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90.");
     expect(avisoDeAbono(nuevo, { saldo: 0, venceEl: "2026-10-25" })).toBe("Ana: ya pagó todo · recoge hasta el 25/10.");
     expect(avisoDeAbono(apartado(), { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90. Sale su boleta de anticipo.");
+  });
+});
+
+describe("descuentoDePrenda — el apartado ya hecho dice su descuento (ADR-0584)", () => {
+  const prenda = (i: Record<string, unknown>) =>
+    apartadoDeFila({ id: "x", codigo: "APT", estado: "abierta", items: [{ variante_id: "v", cantidad: 1, precio_unitario: "79.90", ...i }], pagos: [] }).prendas[0];
+
+  it("apartadoDeFila lee el motivo, su detalle y el argumento; vacíos quedan en null", () => {
+    const p = prenda({ descuento_unitario: "20.00", motivo_descuento: "otro", motivo_descuento_detalle: " Botón flojo ", argumento_descuento: "Se cose en tienda" });
+    expect([p.motivoDescuento, p.motivoDescuentoDetalle, p.argumentoDescuento]).toEqual(["otro", "Botón flojo", "Se cose en tienda"]);
+    const sin = prenda({ descuento_unitario: "0", motivo_descuento: null, argumento_descuento: "  " });
+    expect([sin.motivoDescuento, sin.motivoDescuentoDetalle, sin.argumentoDescuento]).toEqual([null, null, null]);
+  });
+
+  it("una base anterior a 20261030234000 no trae los campos: todo descuento se ve como campaña, como antes", () => {
+    const p = prenda({ descuento_unitario: "8.00" });
+    expect(p.motivoDescuento).toBeNull();
+    expect(descuentoDePrenda(p)).toMatchObject({ campana: true, motivo: "Campaña" });
+  });
+
+  it("sin descuento no dice nada", () => {
+    expect(descuentoDePrenda(prenda({ descuento_unitario: "0" }))).toBeNull();
+  });
+
+  it("a mano: el nombre del motivo de la venta, el % y el precio acordado", () => {
+    expect(descuentoDePrenda(prenda({ descuento_unitario: "8.00", motivo_descuento: "cerrar_venta" }))).toEqual({
+      campana: false,
+      motivo: "Cerrar la venta",
+      pct: 10,
+      argumento: null,
+      precioAcordado: 71.9,
+    });
+  });
+
+  it("«Otro» dice su detalle, y el argumento viaja solo en un descuento a mano", () => {
+    const d = descuentoDePrenda(prenda({ descuento_unitario: "20.00", motivo_descuento: "otro", motivo_descuento_detalle: "Botón flojo", argumento_descuento: "Se cose" }));
+    expect(d).toMatchObject({ campana: false, motivo: "Botón flojo", argumento: "Se cose", precioAcordado: 59.9 });
+  });
+
+  it("cada motivo de la lista de la venta tiene su nombre (ninguno cae a «Descuento»)", () => {
+    for (const r of RAZONES_DESCUENTO.filter((x) => x.valor !== "otro")) {
+      expect(descuentoDePrenda(prenda({ descuento_unitario: "5", motivo_descuento: r.valor }))?.motivo).toBe(r.etiqueta);
+    }
   });
 });

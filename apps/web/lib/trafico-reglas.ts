@@ -447,8 +447,14 @@ export function atoraContraCostumbre(a: Atora, base: readonly number[]): { sigue
   return { siguen, costumbre: Math.round(c * 100), peor: !a.pocas && pasa < c * (1 - MARGEN_PEOR) };
 }
 
-/** Cuántos de los 100 puntos se encienden en cada paso: de cada 100 que entraron, cuántos llegaron hasta ahí. */
-export const puntosDelPaso = (pasos: readonly number[], i: number) => (i === 0 ? (pasos[0] > 0 ? 100 : 0) : de100(pasos[i], pasos[0]));
+/**
+ * Lo de costumbre dicho en personas de estos días, no «de cada 100» (Felipe, 2026-10-30): «De 43 que vieron una prenda, 6 eligieron
+ * talla; de costumbre, serían unos 19». Sin costumbre (los primeros días), nada.
+ */
+export function costumbreEnPersonas(a: Atora, base: readonly number[]): number | null {
+  if (!(base[a.i - 1] > 0)) return null;
+  return Math.round((a.llegaron * base[a.i]) / base[a.i - 1]);
+}
 
 /** Lo que dice el «¿Por qué?»: qué mide el veredicto y, con poca gente, que es una pista. */
 export function explicaAtora(a: Atora): string {
@@ -573,6 +579,8 @@ export type GraficoTrafico = {
   proyeccion: { x: number; y: number }[] | null;
   /** Dónde terminaría el día al ritmo de hoy. */
   cierre: number | null;
+  /** La hora o el día en curso, a medias: no entra a la línea (la haría «caer»), se dibuja aparte, punteado, con «hasta ahora». */
+  enCurso: { x: number; y: number } | null;
 };
 
 /**
@@ -583,17 +591,19 @@ export type GraficoTrafico = {
 export function graficoDe(s: SerieTrafico, metrica: MetricaTrafico, o: { largo: number; largoAntes: number; hastaX: number | null; acumulado: boolean }): GraficoTrafico {
   const actual = valoresDe(s.actual, metrica, o.largo, o.acumulado);
   const antes = valoresDe(s.antes, metrica, o.largoAntes, o.acumulado);
-  // Hora a hora, la hora en curso está a medias (a las 3:40 p. m., «3 p. m.» tiene 40 minutos): sin acumular no se dibuja, o la línea
-  // «cae» al final sin haber caído. Acumulado sí entra: es lo que lleva el día hasta ahora.
+  // Hora a hora, la hora en curso está a medias (a las 3:40 p. m., «3 p. m.» tiene 40 minutos), y lo mismo el día de hoy en varios días:
+  // sin acumular no entra a la línea, o la línea «cae» al final sin haber caído; va en `enCurso`. Acumulado sí entra: es lo que lleva el día.
   const fin = o.hastaX === null ? o.largo - 1 : Math.max(0, Math.min(o.acumulado ? o.hastaX : o.hastaX - 1, o.largo - 1));
   const serie = actual.slice(0, fin + 1).map((y, x) => ({ x, y }));
   const referencia = antes.map((y, x) => ({ x, y }));
-  if (o.hastaX === null || !o.acumulado || metrica === "de100" || o.largoAntes !== o.largo || fin >= o.largo - 1) return { serie, referencia, proyeccion: null, cierre: null };
+  // Lo que va de hoy (o de esta hora) no se esconde (Felipe, 2026-10-30: «¿por qué no toma en cuenta el día de hoy?»): va aparte.
+  const enCurso = o.hastaX !== null && !o.acumulado && o.hastaX > fin && o.hastaX <= o.largo - 1 ? { x: o.hastaX, y: actual[o.hastaX] ?? 0 } : null;
+  if (o.hastaX === null || !o.acumulado || metrica === "de100" || o.largoAntes !== o.largo || fin >= o.largo - 1) return { serie, referencia, proyeccion: null, cierre: null, enCurso };
   const base = antes[fin];
-  if (!base) return { serie, referencia, proyeccion: null, cierre: null };
+  if (!base) return { serie, referencia, proyeccion: null, cierre: null, enCurso };
   const ritmo = actual[fin] / base;
   const proyeccion = antes.slice(fin).map((y, i) => ({ x: fin + i, y: actual[fin] + (y - base) * ritmo }));
-  return { serie, referencia, proyeccion, cierre: Math.round(proyeccion.at(-1)!.y) };
+  return { serie, referencia, proyeccion, cierre: Math.round(proyeccion.at(-1)!.y), enCurso };
 }
 
 /** Cuánto suma una cifra en estos días y en los de antes; en Hoy, «antes» llega hasta esta hora de ayer (`hastaX`). */
