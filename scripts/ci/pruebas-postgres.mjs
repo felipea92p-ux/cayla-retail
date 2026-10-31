@@ -1812,6 +1812,9 @@ export const PRUEBAS = [
   // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
   // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
   "pruebas:produccion-corte-con-su-tela",
+  // El estimado de la tela y los avíos de una orden (ADR-0400, act. 2026-10-31): al gastarse el último lote de una tela su estimado ya no cae a 0 (en la orden real, Estimado 355.20 contra Real 761.92 con casi
+  // toda la tela usada): si la orden ya consumió de ese insumo, cuesta lo que le costó; si no, el lote con saldo; sin ninguno, 0. No cambia el costo real. Pegar dos veces, ancla perdida y camino de vuelta. ROLLBACK.
+  "pruebas:produccion-estimado-de-tela",
   // Las telas cortadas sin anotar (ADR-0570, actividad 4): Insumos avisa «la OP-3 ya cortó con esta tela y no tiene nada anotado» solo cuando el Corte tiene prendas y el libro no descontó
   // la tela; calla sin Corte, con la tela anotada, en una muestra o una orden anulada; quien no lee Producción en ese Taller recibe []. ROLLBACK.
   "pruebas:produccion-telas-cortadas-sin-anotar",
