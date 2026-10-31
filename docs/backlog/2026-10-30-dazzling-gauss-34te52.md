@@ -18,6 +18,9 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
 - [x] **4 · ¿Ganamos?** La cascada con la raya de lo planeado y sus partes, lo que dejó cada sede, las campañas, «Qué te recomiendo» y el
   formato formal plegado (sin cuentas). Presupuesto retirado: redirige a ¿Ganamos?. Probado: tipos, 746 archivos de vitest, Knip y
   eslint. **Sin probar en el navegador logueado.**
-- [ ] 5 · ¿Dónde está la plata? · 6 · ¿Cuánto vale CAYLA? · 7 · ¿Lo tuyo creció?
+- [x] **5 · ¿Dónde está la plata?** El puente del mes en el método directo, la frase de por qué la plata no siguió a la ganancia, lo que
+  viene, «¿Y si…?» (Escenarios entero, dentro; su ruta redirige), las recomendaciones y el formato formal plegado. Probado: tipos, 747
+  archivos de vitest, Knip y eslint. **Sin probar en el navegador logueado.**
+- [ ] 6 · ¿Cuánto vale CAYLA? · 7 · ¿Lo tuyo creció?
 - [ ] 8 · «Descargar para el contador» con opciones.
 - [ ] 9 · Cierre: oscuro, `/focus`, `/formidable`, `docs/ARQUITECTURA.md`.

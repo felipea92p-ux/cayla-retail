@@ -487,7 +487,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
           ? `Tienes ${soles(p.saldoHoy)} y tu mínimo es ${soles(p.minimoCaja)}.${peor.saldo < p.saldoHoy ? ` La semana del ${etiquetaSemana(peor.desde, peor.hasta)} llegarías a ${soles(peor.saldo)}: ${queVence(p.salidas, peor.desde, peor.hasta)}.` : ""}`
           : `Quedarías con ${soles(bajo.saldo)} (tu mínimo es ${soles(p.minimoCaja)}). Lo que más sale esa semana: ${queVence(p.salidas, bajo.desde, bajo.hasta)}.`,
         impacto: `faltan ${soles(p.minimoCaja - peor.saldo)}`,
-        href: enlace("reportes_financieros", "/finanzas/reportes/escenarios"),
+        href: enlace("reportes_financieros", "/finanzas/reportes/flujo#y-si"),
         boton: "Probar escenario",
         origen: "Reportes ▸ Flujo de caja",
         peso: p.minimoCaja - peor.saldo,
@@ -510,7 +510,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
           ? `Necesita vender ${soles(eq.pe)} al mes y vendió ${soles(eq.ventas)}.`
           : `Vendió ${soles(f.ventas)} y sus gastos fueron ${soles(f.gastos)}.`,
         impacto: `${soles(-f.resultado)} al mes`,
-        href: acceso.lider ? "/finanzas/reportes/escenarios" : enlace("reportes_financieros", "/finanzas/reportes"),
+        href: acceso.lider ? "/finanzas/reportes/flujo#y-si" : enlace("reportes_financieros", "/finanzas/reportes"),
         boton: acceso.lider ? "Probar escenario" : "Ver resultados",
         origen: "Reportes ▸ Estado de resultados",
         peso: -f.resultado,

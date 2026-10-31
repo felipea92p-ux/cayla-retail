@@ -2,15 +2,32 @@
   "guia": "finanzas.reportes.flujo",
   "ruta": "/finanzas/reportes/flujo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 9,
+  "total": 20,
   "controles": {
+    "components/finanzas/CascadaPulso.tsx": [
+      "Link «{nombre}»",
+      "button «{nombre}»"
+    ],
+    "components/finanzas/EscenariosPanel.tsx": [
+      "BotonDescargar «Descargar Excel»",
+      "button «fin-escenarios.volver»",
+      "input «(sin nombre)»",
+      "input «→(e) => cambiar({ cerrarTienda: e.target.checked»",
+      "input «(sin nombre)» #2",
+      "input «{id}»"
+    ],
     "components/finanzas/FaltanProyeccion.tsx": [
       "Link «Ir a cargarlo»"
     ],
-    "components/finanzas/FlujoCajaPanel.tsx": [
+    "components/finanzas/estados/PlataPanel.tsx": [
+      "BotonVerMas «fin-plata.y-si»",
+      "BotonVerMas «fin-plata.formal»",
       "BotonDescargar «Descargar Excel»",
       "Link «Configuración ▸ Tiendas y caja»",
       "Link «Configuración ▸ Caja y avisos»"
+    ],
+    "components/finanzas/estados/Recomendaciones.tsx": [
+      "BotonVer «{r.accion.texto}»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "button «Todas»",

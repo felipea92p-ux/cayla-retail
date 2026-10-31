@@ -1,6 +1,6 @@
 # ADR-0585 · Estados financieros: los cuatro estados como respuestas, y quien tiene el módulo ve todo
 
-- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos), 2 (patrimonio), 3 (el nombre y las cuatro respuestas) y 4 (¿Ganamos?) hechas.
+- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos), 2 (patrimonio), 3 (el nombre y las cuatro respuestas), 4 (¿Ganamos?) y 5 (¿Dónde está la plata?) hechas.
 - **Decide:** Felipe, 2026-10-30, sobre la pizarra «4. Reportes» y la maqueta `docs/maquetas/finanzas-eeff-2026-10/`
   (https://claude.ai/artifact/UiZ2Pk8rnPkLYNLcDBo7kV).
 - **Toca:** ADR-0195 (Finanzas), ADR-0253 y ADR-0433 G16 (una sola regla de alcance), ADR-0161 P6 (las terminales no miran la
@@ -121,6 +121,29 @@ En la web, pasan los tipos, las 744 pruebas de vitest, Knip y eslint.
   Si no hay nada que decir, lo dice.
 - **El formato formal**, plegado al pie (`BotonVerMas`), es el cuadro de siempre, con «De dónde sale» en cada cifra y «Comparar». Se le
   quitaron la columna de cuentas (las cuentas solo van en lo que se descarga) y el selector de mes y de sede, que ya están en la barra.
+
+## Actividad 5 · ¿Dónde está la plata?
+
+- **El método directo, que se lee como «cobraste / pagaste».** Las categorías que ya da `fn_flujo_caja_real` van a una de tres partes,
+  más las diferencias aparte (`lib/plata-reglas.ts`, con su prueba). Es una agrupación en la web: no hay plata nueva.
+  - **Del día a día:** todo lo demás.
+  - **Compras que duran años:** `activos`.
+  - **Tú y los préstamos:** `dueno_pone`, `dueno_saca` y `pago_tarjeta`. Pagar la tarjeta es pagar una deuda, porque el gasto ya se
+    contó al usarla.
+  - **Aparte:** las diferencias de caja y la plata en camino (lado `ajuste`).
+- **La respuesta y el puente.** La pantalla dice cuánta plata hay hoy, o con cuánta cerró el mes, y una frase de por qué no siguió a la
+  ganancia. La frase nombra solo lo que se fue fuera del día a día: compras que duran, retiros y la tarjeta. Debajo va el puente del
+  mes, en la misma `CascadaPulso`: lo que había al empezar, las tres partes (cada una se toca y muestra sus categorías) y lo que hay al
+  cerrar.
+- **Lo que viene** se queda como estaba: el gráfico de semanas con el mínimo de caja, los días de caja y qué vence cada semana.
+- **«¿Y si…?» es Escenarios entero, dentro.** No se rehicieron las palancas: se mantienen todas (ventas por tienda y de todas, el
+  alquiler, cerrar una tienda, pasar un pago, un gasto nuevo, la utilidad de cada unidad) y nada se guarda.
+  `/finanzas/reportes/escenarios` redirige a `#y-si`, y los enlaces del Resumen ya llevan ahí. Su guía se sumó a la del flujo.
+- **«Qué te recomiendo»:** si la plata alcanza las próximas semanas (o qué semana baja del mínimo), por qué bajó aunque se ganó, los días de
+  caja (menos de 15) y el próximo impuesto.
+- **El formato formal, plegado:** el estado de flujos de efectivo por el método directo (operación, inversión y financiamiento, sin
+  cuentas), la plata al empezar y al terminar, y lo que quedó semana a semana. `FlujoCajaPanel` se fue a `estados/PlataPanel.tsx`. Se
+  borraron las reglas que solo usaba la pantalla vieja (`fraseDelFlujo`, `textoPeriodo`, `listasDelFlujo`).
 
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 

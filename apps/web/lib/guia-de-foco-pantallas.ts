@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 52;
+export const PENDIENTES_HOY = 51;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -110,7 +110,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/reportes": PENDIENTE,
   "/finanzas/reportes/balance": PENDIENTE,
   "/finanzas/reportes/campanas": PENDIENTE,
-  "/finanzas/reportes/escenarios": PENDIENTE,
+  "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de ¿Dónde está la plata? (ADR-0585)." },
   "/finanzas/reportes/flujo": PENDIENTE,
   "/finanzas/reportes/patrimonio": { estado: "no-aplica", motivo: "¿Lo tuyo creció? (Estados financieros, ADR-0585) solo mira: lo tuyo al empezar y al cerrar el mes y lo que lo movió. No hay campos ni pasos; el mes y la sede los elige la barra del telar." },
   "/finanzas/reportes/presupuesto": { estado: "no-aplica", motivo: "Solo redirige a ¿Ganamos? (ADR-0585): el presupuesto vive dentro de esa pantalla y ya no tiene campos propios." },
