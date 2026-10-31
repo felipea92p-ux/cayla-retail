@@ -106,7 +106,7 @@ export function ConfirmarCambios({
                   ))}
                 </ul>
                 {(g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota) && (
-                  <p className="mt-1.5 text-[12px] leading-snug text-taupe">{g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota}</p>
+                  <p className="mt-1.5 text-sm leading-snug text-taupe">{g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota}</p>
                 )}
               </section>
             ))}
@@ -117,7 +117,7 @@ export function ConfirmarCambios({
           {avisos.length > 0 && (
             <div className="space-y-1">
               {avisos.map((a, i) => (
-                <p key={i} className="text-[12.5px] leading-snug text-ambar-profundo">
+                <p key={i} className="text-sm leading-snug text-ambar-profundo">
                   {a}
                 </p>
               ))}
@@ -128,7 +128,7 @@ export function ConfirmarCambios({
             <div id="confirmar-cambios-responsable" data-campo="confirmar-cambios-responsable" className="space-y-1.5">
               <p className="label-cayla text-[11px] text-taupe">Quién hace estos cambios</p>
               <ComboResponsable control={responsable} deshabilitado={enCurso} />
-              {faltaResponsable && responsable.motivo && <p className="text-[12px] leading-snug text-taupe">{responsable.motivo}</p>}
+              {faltaResponsable && responsable.motivo && <p className="text-sm leading-snug text-taupe">{responsable.motivo}</p>}
             </div>
           )}
 
@@ -203,7 +203,7 @@ function PrecioEnCadaTienda({
                 </span>
               </p>
               {t.puedeIgualar && (
-                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-tinta/80">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-tinta/80">
                   <Casilla
                     marcada={igualar.has(t.ubicacionId)}
                     onCambio={() => !deshabilitado && onIgualar(t.ubicacionId, !igualar.has(t.ubicacionId))}

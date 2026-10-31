@@ -53,7 +53,7 @@ export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: r
                 <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-tinta">{rotuloDeCampana(c)}</span>
-                    <span className="block text-[12.5px] text-tinta/70">
+                    <span className="block text-sm text-tinta/70">
                       {[c.conPlan > 0 ? `${c.conPlan} ${c.conPlan === 1 ? "categoría armada" : "categorías armadas"}` : null, c.conTope ? "con tope" : null].filter(Boolean).join(" · ") || "Sin categorías armadas"}
                     </span>
                   </span>

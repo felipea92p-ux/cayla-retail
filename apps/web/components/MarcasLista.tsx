@@ -35,7 +35,6 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { Ayuda } from "@/components/Ayuda";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ResumenMarcas } from "@/components/marcas/ResumenMarcas";
 import { FiltrosMarcas } from "@/components/marcas/FiltrosMarcas";
@@ -67,14 +66,14 @@ import { FiltrosMarcas } from "@/components/marcas/FiltrosMarcas";
 
 export type { MarcaFila };
 
-/** El «!» del título (el texto de la pantalla de siempre, con una frase adaptada: desactivar y eliminar viven en «Más»). */
+/** Lo que el globo del «?» agrega a la frase (el texto de la pantalla de siempre: desactivar y eliminar viven en «Más»). */
 const AYUDA_MARCAS = (
-  <Ayuda titulo="Marcas">
+  <>
     De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca: la base no
     deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un proveedor se quita solo si
     ninguno de sus productos lo usa. En «Más» desactivas la marca —no se puede si tiene productos activos— o la eliminas —solo si ningún producto la tiene,
     tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos en Productos.
-  </Ayuda>
+  </>
 );
 
 type Modo = { tipo: "nueva" } | { tipo: "editar"; marca: MarcaFila };
@@ -273,14 +272,8 @@ export function MarcasLista({
         {/* La cabecera de Catálogo ▸ Productos (ADR-0254); la de Marcas queda igual hasta que Felipe decida otra (CLAUDE.md). */}
         <EncabezadoPagina
           sede={sede}
-          titulo={
-            <>
-              Marcas
-              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px. */}
-              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">{AYUDA_MARCAS}</span>
-            </>
-          }
-          subtitulo="De quién es cada prenda y quién la trae. Todo producto lleva una marca y un proveedor que la traiga."
+          titulo="Marcas"
+          subtitulo={AYUDA_MARCAS}
           acciones={
             puedeEditar && (
               <Boton peso="primario" data-guia="marcas.nueva" onClick={() => setModo({ tipo: "nueva" })}>
@@ -417,8 +410,7 @@ export function MarcasLista({
       </section>
 
       <p className="nota-cayla">
-        Una marca con productos activos no se puede desactivar. «Eliminar» solo se puede si ningún producto la tuvo, tampoco uno descontinuado: así no se pierde
-        historia.
+        Con productos activos, una marca no se desactiva. Se elimina solo si ningún producto la tuvo: así no se pierde historia.
       </p>
 
       {modo?.tipo === "editar" && (

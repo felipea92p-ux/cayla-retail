@@ -15,6 +15,7 @@
 
 import { diaLima, horaLima, hoyLima, sumarDias } from "./fechas-lima";
 import { enlaceWhatsAppA } from "./facturacion-comprobantes-reglas";
+import { normalizar } from "./facturacion-busqueda";
 import { soles } from "./precio-sede-reglas";
 import { formatoCelular } from "./separaciones-reglas";
 import { haceCuanto } from "./vender-hoy-reglas";
@@ -120,6 +121,8 @@ export type LineaDetalle = PrendaWeb & {
   tiendaReserva: string | null;
   lugar: LugarWeb | null;
   fechaCompromiso: string | null;
+  /** Cómo se consigue si está por conseguir (compra | taller); null = no se dijo (lo de antes). ADR-0590. */
+  conseguirVia: ViaConseguir | null;
   disponible: { almacen: number; piso: number; sinLugar: number; otras: { ubicacionId: string; tienda: string; libres: number }[] };
   compiten: { codigo: string; separoAntes: boolean }[];
   puedoOperarAlli: boolean;
@@ -475,6 +478,7 @@ export function leerDetalle(data: unknown): PedidoDetalle | null {
           tiendaReserva: texto(l.tienda_reserva),
           lugar: lugarDe(l.lugar),
           fechaCompromiso: texto(l.fecha_compromiso),
+          conseguirVia: l.conseguir_via === "compra" || l.conseguir_via === "taller" ? l.conseguir_via : null,
           disponible: {
             almacen: numero(disp.almacen),
             piso: numero(disp.piso),
@@ -793,10 +797,10 @@ export function tramosDelCamino(plazos: PlazosPedidosWeb): [TramoPedidos, TramoP
 /** «¿Cómo funciona?»: una regla por estación, la que antes vivía en una nota de cinco reglas al pie de la pantalla. */
 export function reglasDelCamino(plazos: PlazosPedidosWeb): Record<PestanaPedidos, string> {
   return {
-    confirmar: `Separar no toca el stock: la prenda se reserva cuando confirmas. Si nadie lo confirma en ${plazos.horasParaConfirmar} h, se cierra solo.`,
-    cobrar: `Registra cada pago dentro del pedido; con el que lo completa sale su boleta. Si no paga nada en ${plazos.horasAvisoSinPagar} h, se anula solo y sus prendas se liberan; si pagó una parte, solo avisa.`,
-    entregar: "Se entrega con el código de 4 cifras que el cliente ve en su pedido. Recién ahí la prenda sale del stock.",
-    cerrados: "Quedan 30 días: lo entregado, lo anulado y lo que nadie confirmó a tiempo. Van aparte de los apartados de la tienda.",
+    confirmar: `Separar no toca el stock. Al confirmar, reservas las prendas. Si nadie confirma en ${plazos.horasParaConfirmar} h, se cierra solo.`,
+    cobrar: `Registra cada pago en el pedido. El que lo completa emite la boleta. Si no paga nada en ${plazos.horasAvisoSinPagar} h, se anula solo; si pagó una parte, solo avisa.`,
+    entregar: "Se entrega con el código de 4 cifras del cliente. Recién ahí la prenda sale del stock.",
+    cerrados: "Quedan 30 días: entregados, anulados y los que nadie confirmó.",
   };
 }
 
@@ -827,22 +831,51 @@ function limiteDe(p: Pick<PedidoDeLista, "estado" | "venceEn" | "confirmadoEn" |
  * vence antes arriba.
  */
 export function loQueTeToca(pedidos: readonly PedidoDeLista[], plazos: PlazosPedidosWeb, ahora: number): PedidoDeLista[] {
-  const grupo = (p: PedidoDeLista): number => {
-    if (p.estado === "por_confirmar") return p.venceEn && Date.parse(p.venceEn) - ahora < URGENTE_MS ? 0 : 2;
-    // Confirmado sin ningún pago: se anula solo, igual que lo que nadie confirma (pierde la venta).
-    if (p.estado === "confirmado" && p.pagado === 0) {
-      const l = limiteDe(p, plazos);
-      return l !== null && l - ahora < URGENTE_MS ? 0 : 2;
-    }
-    if (p.estado === "anulado" || p.sinPagar || p.sinRecoger) return 1;
-    if (p.estado === "pagado" && !p.listoParaRecoger) return 4;
-    return 3;
-  };
   return pedidos
     .filter(pideAlgo)
-    .map((p) => ({ p, g: grupo(p), l: limiteDe(p, plazos) ?? Number.POSITIVE_INFINITY }))
+    .map((p) => ({ p, g: grupoQueToca(p, plazos, ahora), l: limiteDe(p, plazos) ?? Number.POSITIVE_INFINITY }))
     .sort((a, b) => a.g - b.g || a.l - b.l || a.p.numero - b.p.numero)
     .map((x) => x.p);
+}
+
+/** En cuál de los cinco grupos de orden cae un pedido (0 = lo que se pierde en menos de 3 h … 4 = espera una prenda). */
+function grupoQueToca(p: PedidoDeLista, plazos: PlazosPedidosWeb, ahora: number): number {
+  if (p.estado === "por_confirmar") return p.venceEn && Date.parse(p.venceEn) - ahora < URGENTE_MS ? 0 : 2;
+  // Confirmado sin ningún pago: se anula solo, igual que lo que nadie confirma (pierde la venta).
+  if (p.estado === "confirmado" && p.pagado === 0) {
+    const l = limiteDe(p, plazos);
+    return l !== null && l - ahora < URGENTE_MS ? 0 : 2;
+  }
+  if (p.estado === "anulado" || p.sinPagar || p.sinRecoger) return 1;
+  if (p.estado === "pagado" && !p.listoParaRecoger) return 4;
+  return 3;
+}
+
+export type ClaveGrupoLista = "urgente" | "atencion" | "plazo" | "prenda";
+/** Un tramo de «Lo que te toca» con su título corto (y, si hace falta, por qué está ahí). */
+export type GrupoDeLista = { clave: ClaveGrupoLista; titulo: string; nota: string | null; pedidos: PedidoDeLista[] };
+
+const GRUPO_DE_LISTA: Record<number, { clave: ClaveGrupoLista; titulo: string; nota: string | null }> = {
+  0: { clave: "urgente", titulo: "Urgente", nota: "Se pierde en menos de 3 h" },
+  1: { clave: "atencion", titulo: "Pide tu atención", nota: "Ya pasó el aviso" },
+  2: { clave: "plazo", titulo: "En plazo", nota: null },
+  3: { clave: "plazo", titulo: "En plazo", nota: null },
+  4: { clave: "prenda", titulo: "Esperan una prenda", nota: "No depende de ti" },
+};
+
+/**
+ * «Lo que te toca» en tramos (mismo orden de `loQueTeToca`): lo que se pierde pronto, lo que ya pasó su aviso, lo que está en plazo y lo que
+ * espera una prenda. Los dos grupos «en plazo» (lo que se cierra solo y lo que solo avisa) se leen como uno. Un tramo sin pedidos no existe.
+ */
+export function gruposDeLaLista(pedidos: readonly PedidoDeLista[], plazos: PlazosPedidosWeb, ahora: number): GrupoDeLista[] {
+  const grupos: GrupoDeLista[] = [];
+  for (const p of loQueTeToca(pedidos, plazos, ahora)) {
+    const g = GRUPO_DE_LISTA[grupoQueToca(p, plazos, ahora)]!;
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.clave === g.clave) ultimo.pedidos.push(p);
+    else grupos.push({ ...g, pedidos: [p] });
+  }
+  return grupos;
 }
 
 /** «hoy a las 22:15», «mañana a las 10:44», «ayer a las 18:02» o «el 19 oct a las 10:44»: un instante, como se dice en la tienda. */
@@ -968,14 +1001,73 @@ export function porQueSeCerraron(pedidos: readonly Pick<PedidoDeLista, "estado" 
   return [...cuenta.values()].sort((a, b) => lugar(a.clave) - lugar(b.clave) || b.cuantos - a.cuantos || a.texto.localeCompare(b.texto, "es"));
 }
 
+/**
+ * La etiqueta del título de la hoja del pedido: corta, solo el estado («Por confirmar», «Por cobrar», «Por entregar»). El tiempo que le queda
+ * no va aquí sino en la ruta, a su derecha, como píldora aparte (`relojDeLaRuta`).
+ */
+export function etiquetaDeEstado(p: Pick<PedidoDetalle, "estado" | "pagado" | "sinPagar" | "sinRecoger" | "listoParaRecoger">): string {
+  if (p.estado === "por_confirmar") return "Por confirmar";
+  if (p.estado === "confirmado") return p.sinPagar ? "Sin pagar" : "Por cobrar";
+  if (p.estado === "pagado") return p.sinRecoger ? "Sin recoger" : p.listoParaRecoger ? "Por entregar" : "Espera una prenda";
+  if (p.estado === "entregado") return "Entregado";
+  if (p.estado === "vencido") return "Cerrado sin confirmar";
+  return p.pagado > 0 ? `Por devolver ${soles(p.pagado)}` : "Anulado";
+}
+
+/** En qué paso de la ruta (Confirmar → Cobrar → Entregar) va un pedido: 0, 1 o 2; null si ya se cerró (entregado, anulado o vencido). */
+export function pasoDeLaRuta(estado: EstadoPedidoWeb): 0 | 1 | 2 | null {
+  return estado === "por_confirmar" ? 0 : estado === "confirmado" ? 1 : estado === "pagado" ? 2 : null;
+}
+
+/** Lo que dice la hoja de un pedido ya cerrado, en una línea: cómo terminó y qué pasó con sus prendas y su plata. */
+export function textoDeCierreDelPedido(
+  p: Pick<PedidoDetalle, "estado" | "entregadoEn" | "entregadoPor" | "cierreMotivo" | "ventaId" | "plazos">,
+  ahora: number,
+): string {
+  if (p.estado === "entregado") return `Entregado ${p.entregadoEn ? haceCuanto(p.entregadoEn, ahora) : ""}${p.entregadoPor ? ` por ${p.entregadoPor}` : ""}. Sus prendas salieron del stock.`.replace(" .", ".");
+  if (p.estado === "vencido") return `Se cerró solo: nadie lo confirmó en ${p.plazos.horasParaConfirmar} h. Nada se había reservado.`;
+  const motivo = textoCierre(p.cierreMotivo).toLocaleLowerCase("es");
+  return p.ventaId ? `Anulado después de pagarse: ${motivo}. Se devolvió lo pagado y sus prendas quedaron libres.` : `Anulado: ${motivo}.`;
+}
+
+/**
+ * El ÚNICO WhatsApp de la hoja de un pedido (el botón de la tarjeta del cliente): para qué sirve y con qué mensaje se abre. Cada estado
+ * tiene el suyo (pedirle el pago, avisarle que ya puede recoger…); donde no hay uno específico se abre el mensaje predeterminado de la
+ * persona. `recien`: el pedido se acaba de confirmar en esta hoja.
+ */
+export function whatsappDeLaHoja(
+  p: Pick<PedidoDetalle, "estado" | "pagado" | "sinRecoger" | "listoParaRecoger">,
+  recien = false,
+): { plantilla: PlantillaWhatsapp | "predeterminado"; boton: string } {
+  if (p.estado === "confirmado") return recien ? { plantilla: "confirmado", boton: "Avisarle que se confirmó" } : { plantilla: "cobro", boton: "Pedirle el pago" };
+  if (p.estado === "pagado") {
+    if (p.sinRecoger) return { plantilla: "norecoge", boton: "Recordarle que lo recoja" };
+    return p.listoParaRecoger ? { plantilla: "listo", boton: "Avisarle que ya puede recoger" } : { plantilla: "libre", boton: "Avisarle cuando llegue" };
+  }
+  if (p.estado === "anulado" && p.pagado > 0) return { plantilla: "devolucion", boton: "Coordinar la devolución" };
+  return { plantilla: "predeterminado", boton: "Escribirle por WhatsApp" };
+}
+
+/**
+ * Los cerrados que se ven: los de un motivo (el de la barra: «entregado», «sin_stock»…) y/o los que coinciden con lo escrito. Se busca por
+ * número y por nombre del cliente, sin tildes ni mayúsculas; cada palabra escrita tiene que aparecer («w 12» no sirve, «lopez 0012» sí).
+ */
+export function filtrarCerrados<T extends Pick<PedidoDeLista, "codigo" | "cliente" | "estado" | "cierreMotivo">>(pedidos: readonly T[], filtros: { motivo: string | null; busca: string }): T[] {
+  const palabras = normalizar(filtros.busca).split(" ").filter(Boolean);
+  return pedidos.filter((p) => {
+    if (filtros.motivo !== null && motivoDeCierre(p).clave !== filtros.motivo) return false;
+    const campo = normalizar(`${p.codigo} ${p.cliente}`);
+    return palabras.every((w) => campo.includes(w));
+  });
+}
+
 /** «Todo al día»: no queda nada que hacer, en una línea, con lo último que pasó (que es lo que la persona quiere saber después). */
-export function todoAlDia(pedidos: readonly PedidoDeLista[], tienda: string, ahora: number): string {
+export function todoAlDia(pedidos: readonly PedidoDeLista[], ahora: number): string {
   const ultimo = [...pedidos].sort((a, b) => Date.parse(b.creadoEn) - Date.parse(a.creadoEn))[0];
-  const base = `No hay pedidos web esperando en ${tienda}.`;
-  if (!ultimo) return `${base} Todavía no llegó ninguno.`;
+  if (!ultimo) return "Todavía no llegó ningún pedido.";
   const m = motivoDeCierre(ultimo);
   const final = m.clave === "entregado" ? "ya se entregó" : m.clave === "sin_confirmar" ? "nadie lo confirmó a tiempo" : `se cerró: ${m.texto.toLocaleLowerCase("es")}`;
-  return `${base} El último (${ultimo.codigo}) llegó ${cuandoEnLima(ultimo.creadoEn, ahora)} y ${final}.`;
+  return `Nada por hacer. El último, ${ultimo.codigo}, llegó ${cuandoEnLima(ultimo.creadoEn, ahora)} y ${final}.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
@@ -983,9 +1075,31 @@ export function todoAlDia(pedidos: readonly PedidoDeLista[], tienda: string, aho
 // ---------------------------------------------------------------------------------------------------------------------------
 
 /** De dónde sale cada prenda: reservarla (en la tienda del pedido o en otra, y el lugar), conseguirla para una fecha, o quitarla. */
+/** Cómo se consigue una prenda que no hay en la tienda ni se pide a otra sede (ADR-0590): se compra a un proveedor o se pide al taller. */
+export type ViaConseguir = "compra" | "taller";
+export const VIAS_CONSEGUIR: readonly { clave: ViaConseguir; etiqueta: string; detalle: string }[] = [
+  { clave: "compra", etiqueta: "Comprarla", detalle: "Se compra a un proveedor." },
+  { clave: "taller", etiqueta: "Pedirla al taller", detalle: "Se avisa al taller para que la haga." },
+];
+
+/** Las salidas de una prenda que la tienda no tiene: pedirla a cada sede que sí (la clave lleva su id), comprarla o pedirla al taller. */
+export function opcionesSinStock(l: Pick<LineaDetalle, "disponible">): { clave: string; etiqueta: string }[] {
+  return [
+    ...l.disponible.otras.map((o) => ({ clave: `otra:${o.ubicacionId}`, etiqueta: `Pedirla a ${o.tienda} (${o.libres})` })),
+    ...VIAS_CONSEGUIR.map((v) => ({ clave: v.clave, etiqueta: v.etiqueta })),
+  ];
+}
+
+/** Lo primero que se le dice a quien decide qué hacer con una prenda que no hay: coordinar antes de elegir (Felipe, 2026-10-31). */
+export function avisoCoordinar(l: Pick<LineaDetalle, "disponible">): string {
+  return l.disponible.otras.length > 0
+    ? "Coordina antes de elegir: con la otra sede, con Compras o con el taller, y con el cliente."
+    : "Coordina antes de elegir: con Compras o con el taller, y con el cliente.";
+}
+
 export type DecisionLinea =
   | { tipo: "reservar"; ubicacionId: string; lugar: LugarWeb | null }
-  | { tipo: "por_conseguir"; fecha: string }
+  | { tipo: "por_conseguir"; fecha: string; via: ViaConseguir }
   | { tipo: "quitar" };
 
 /** Cuánto hay libre en la tienda del pedido, por lugar. */
@@ -1033,7 +1147,7 @@ export function problemaParaConfirmar(lineas: readonly Pick<LineaDetalle, "linea
 }
 
 /** Una decisión como la lee `confirmar_pedido_web`. */
-export type DecisionParaLaBase = { linea_id: string; decision: string | null; fecha?: string; ubicacion_id?: string; sububicacion_id?: string | null };
+export type DecisionParaLaBase = { linea_id: string; decision: string | null; fecha?: string; via?: ViaConseguir; ubicacion_id?: string; sububicacion_id?: string | null };
 
 /** Las decisiones como las pide `confirmar_pedido_web` (una por prenda). */
 export function decisionesParaLaBase(
@@ -1046,7 +1160,7 @@ export function decisionesParaLaBase(
     const d = decisiones[l.lineaId];
     if (!d) return { linea_id: l.lineaId, decision: null };
     if (d.tipo === "quitar") return { linea_id: l.lineaId, decision: "quitar" };
-    if (d.tipo === "por_conseguir") return { linea_id: l.lineaId, decision: "por_conseguir", fecha: d.fecha };
+    if (d.tipo === "por_conseguir") return { linea_id: l.lineaId, decision: "por_conseguir", fecha: d.fecha, via: d.via };
     // El lugar elegido solo existe en la tienda del pedido; en otra tienda, la base reserva del almacén primero.
     const sub = d.ubicacionId === tiendaPedidoId && d.lugar ? (lugares[d.lugar] ?? null) : null;
     return { linea_id: l.lineaId, decision: "reservar", ubicacion_id: d.ubicacionId, sububicacion_id: sub };
@@ -1115,7 +1229,7 @@ const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "s
 
 /** Dónde está una prenda de un pedido ya confirmado: el estado corto (la insignia) y, si hace falta, el detalle (una línea aparte). */
 export function estadoDeLinea(
-  l: Pick<LineaDetalle, "estado" | "ubicacionId" | "tiendaReserva" | "lugar" | "fechaCompromiso" | "traslado">,
+  l: Pick<LineaDetalle, "estado" | "ubicacionId" | "tiendaReserva" | "lugar" | "fechaCompromiso" | "conseguirVia" | "traslado">,
   tiendaPedidoId: string,
 ): { texto: string; tono: TonoEstado; detalle: string | null } {
   if (l.estado === "reservada") {
@@ -1133,7 +1247,8 @@ export function estadoDeLinea(
       };
     if (t && t.estado === "anulada") return { texto: "Por conseguir", tono: "ambar", detalle: `El envío desde ${t.desde} se anuló: resérvala de nuevo o consíguela` };
     if (t) return { texto: "Por conseguir", tono: "ambar", detalle: `No llegó en el traslado N.º ${t.numero}: resérvala en otra tienda o consíguela` };
-    return { texto: "Por conseguir", tono: "pizarra", detalle: `Prometida para el ${fechaCorta(l.fechaCompromiso)}` };
+    const texto = l.conseguirVia === "compra" ? "Por comprar" : l.conseguirVia === "taller" ? "En taller" : "Por conseguir";
+    return { texto, tono: "pizarra", detalle: `Prometida para el ${fechaCorta(l.fechaCompromiso)}` };
   }
   if (l.estado === "quitada") return { texto: "Quitada", tono: "apagado", detalle: "Se quitó del pedido al confirmar" };
   if (l.estado === "liberada") return { texto: "Liberada", tono: "apagado", detalle: "Volvió a estar disponible" };
@@ -1177,6 +1292,27 @@ export function faltaDeLlegada(fecha: string, hoy: string): string | null {
 /** El código como se guarda: solo cifras (al dictarlo se cuela un espacio o un guion), hasta 4. */
 export function limpiarCodigo(texto: string): string {
   return texto.replace(/\D/g, "").slice(0, 4);
+}
+
+/**
+ * El código de recojo en sus 4 casillas: lo que queda al escribir (o pegar) `entrante` en la casilla `indice`, y a cuál casilla pasa el
+ * cursor. Solo cifras; lo escrito reemplaza desde esa casilla; pegar «2094» en cualquiera llena las cuatro; escribir nada la vacía.
+ */
+export function escribirEnCasilla(valor: string, indice: number, entrante: string): { valor: string; cursor: number } {
+  const actual = limpiarCodigo(valor);
+  const cifras = entrante.replace(/\D/g, "");
+  if (cifras === "") return { valor: actual.slice(0, indice) + actual.slice(indice + 1), cursor: indice };
+  // Pegar un código entero (4 cifras o más) lo pone completo, sin importar en qué casilla se pegó.
+  const desde = cifras.length >= 4 ? 0 : indice;
+  const nuevo = limpiarCodigo(actual.slice(0, desde) + cifras + actual.slice(desde + cifras.length));
+  return { valor: nuevo, cursor: Math.min(3, desde + cifras.length) };
+}
+
+/** «Borrar» en una casilla ya vacía: quita la cifra de la anterior y el cursor vuelve a ella. */
+export function borrarCasillaAnterior(valor: string, indice: number): { valor: string; cursor: number } {
+  const actual = limpiarCodigo(valor);
+  if (indice <= 0) return { valor: actual, cursor: 0 };
+  return { valor: actual.slice(0, indice - 1) + actual.slice(indice), cursor: indice - 1 };
 }
 
 /** Lo que le falta al código para mandarlo, o null. La forma (4 cifras); si es EL del pedido lo dice la base, nunca la pantalla. */
@@ -1243,17 +1379,17 @@ export function mensajeWhatsapp(
   const cupon = p.cupon && p.cupon.estado !== "liberado" && p.cupon.descuento > 0 ? p.cupon : null;
   const conCupon = cupon ? `, ya con tu cupón ${cuponAMedias(cupon.codigo)} de − ${soles(cupon.descuento)}` : "";
   if (plantilla === "confirmado")
-    return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}${conCupon}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
-  if (plantilla === "cobro") return `Hola ${n}, te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}. ¿Te pasamos los datos para el Yape?`;
+    return `¡Hola ${n}! 🎉 Confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}${conCupon}).\n¿Cómo prefieres pagar? Yape, Plin, transferencia o en tienda 💳${p.tiendaWeb.direccion ? `\nLo recoges en ${p.tiendaWeb.direccion} 📍` : ""}`;
+  if (plantilla === "cobro") return `¡Hola ${n}! 😊 Te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}.\n¿Te pasamos los datos para el Yape? 💜`;
   if (plantilla === "devolucion")
-    return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}: quedó anulado y te devolvemos ${soles(p.pagado)}. ¿Cómo prefieres recibirlo?`;
+    return `Hola ${n} 🙏 Tu pedido ${p.codigo} de ${tienda} quedó anulado y te devolvemos ${soles(p.pagado)}.\n¿Cómo prefieres recibirlo?`;
   if (plantilla === "sinstock")
-    return `Hola ${n}, revisamos tu pedido ${p.codigo} y una prenda ya no está en ${tienda}. ¿Te ofrecemos otra talla, otro color o traerla de otra tienda?`;
+    return `Hola ${n} 😊 Revisamos tu pedido ${p.codigo} y una prenda ya no está en ${tienda}.\n¿Te ofrecemos otra talla, otro color o pedirla a otra sede? 👗`;
   if (plantilla === "listo")
-    return `Hola ${n}, tu pedido ${p.codigo} ya está listo para recoger en ${tienda}${p.tiendaWeb.direccion ? ` (${p.tiendaWeb.direccion})` : ""}. Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».`;
+    return `¡Hola ${n}! 🛍️ Tu pedido ${p.codigo} ya está listo para recoger en ${tienda}${p.tiendaWeb.direccion ? ` (${p.tiendaWeb.direccion})` : ""}.\nTu código está en «Mis pedidos», en tu cuenta de la web 🔑 Muéstralo en caja.`;
   if (plantilla === "norecoge")
-    return `Hola ${n}, tu pedido ${p.codigo} te espera en ${tienda}. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.`;
-  return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}.`;
+    return `Hola ${n} 😊 Tu pedido ${p.codigo} te espera en ${tienda}.\n¿Cuándo pasas a recogerlo? Tu código está en «Mis pedidos» 🔑`;
+  return `¡Hola ${n}! 👋 Te escribimos de ${tienda} por tu pedido ${p.codigo}.`;
 }
 
 /** El enlace de WhatsApp al celular del cliente (si su número se entiende; si no, WhatsApp pregunta a quién). */
@@ -1265,7 +1401,9 @@ export function enlaceWhatsappPedido(p: Parameters<typeof mensajeWhatsapp>[0], p
 type DatosDelMensaje = { codigo: string; cliente: { nombre: string; celular?: string | null }; tiendaWeb: { nombre: string } };
 
 /** El mensaje de fábrica de los pedidos web. Sus marcas se llenan con cada pedido: {nombre}, {tienda} y {codigo}. */
-export const MENSAJE_PREDETERMINADO_WEB = "Hola {nombre}, te escribimos de {tienda} por tu pedido {codigo}.";
+export const MENSAJE_PREDETERMINADO_WEB = "¡Hola {nombre}! 👋 Te escribimos de {tienda} por tu pedido {codigo} 🛍️\n¡Gracias por elegirnos! 💛";
+/** Los emojis que ofrece el editor del mensaje, para insertar con un toque. */
+export const EMOJIS_DEL_MENSAJE = ["👋", "😊", "🛍️", "💛", "🎉", "🙏", "✨", "👗"] as const;
 /** Tope de letras del mensaje propio (lo mismo que la base: `fn_guardar_mensaje_pedidos_web`). */
 export const MAX_MENSAJE_PREDETERMINADO_WEB = 600;
 

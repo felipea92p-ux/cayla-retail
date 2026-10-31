@@ -60,7 +60,7 @@ export function PlataDelDueno({
             </Chip>
           </div>
           {prestamos.length === 0 ? (
-            <p className="dp-tenue" style={{ fontSize: "13.5px" }}>
+            <p className="dp-tenue" style={{ fontSize: "15px" }}>
               Sin préstamos del dueño.
             </p>
           ) : (
@@ -155,7 +155,7 @@ export function PlataDelDueno({
                   </li>
                 ))}
               </ul>
-              <p className="dp-tenue" style={{ fontSize: "12.5px" }}>
+              <p className="dp-tenue" style={{ fontSize: "14px" }}>
                 Puso <b className="dp-num" style={{ color: "var(--color-verde)" }}>{solesRedondo(g.puso)}</b> · Sacó <b className="dp-num" style={{ color: "var(--color-ambar)" }}>{solesRedondo(g.saco)}</b> · Neto{" "}
                 <b className="dp-num text-tinta">
                   {neto < 0 ? "−" : "+"}

@@ -16,7 +16,7 @@ export function CifraSinSaber({ pct, cuantas, causas }: { pct: number; cuantas: 
   const conCausa = CAUSAS_SIN_SABER.filter((c) => causas[c] > 0);
   return (
     <div className="min-w-0">
-      <dt className="flex items-center gap-1.5 text-[13px] text-taupe">
+      <dt className="flex items-center gap-1.5 text-sm text-taupe">
         <MuestraTramo clase={CLASE_TRAMO_PISO.sin_saber} />
         {NOMBRE_TRAMO_PISO.sin_saber}
         {conCausa.length > 0 && (
@@ -33,11 +33,11 @@ export function CifraSinSaber({ pct, cuantas, causas }: { pct: number; cuantas: 
       </dt>
       <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span className="whitespace-nowrap font-display text-[28px] leading-none tabular-nums">{pct} %</span>
-        <span className="text-[12.5px] tabular-nums text-taupe">{unidades(cuantas)}</span>
+        <span className="text-sm tabular-nums text-taupe">{unidades(cuantas)}</span>
       </dd>
       {abierto && (
         <dd id={id} className="mt-1.5">
-          <ul className="space-y-0.5 text-[12.5px] leading-snug text-taupe">
+          <ul className="space-y-0.5 text-sm leading-snug text-taupe">
             {conCausa.map((c) => (
               <li key={c}>
                 <span className="tabular-nums text-tinta">{unidades(causas[c])}</span>: {TEXTO_CAUSA_SIN_SABER[c]}.

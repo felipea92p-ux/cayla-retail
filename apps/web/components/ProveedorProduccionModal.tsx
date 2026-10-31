@@ -178,13 +178,13 @@ export function ProveedorProduccionModal({
                 aria-pressed={rubro === r.valor}
                 title={r.ayuda}
                 onClick={() => setRubro(r.valor)}
-                className="rounded-full border border-tinta/15 px-3.5 py-1.5 text-[13px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+                className="rounded-full border border-tinta/15 px-3.5 py-1.5 text-sm text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
               >
                 {r.etiqueta}
               </button>
             ))}
           </div>
-          <p className="mt-1 min-h-4 text-xs text-tinta/65">{RUBROS_PRODUCCION.find((r) => r.valor === rubro)?.ayuda ?? ""}</p>
+          <p className="mt-1 min-h-4 text-sm text-tinta/65">{RUBROS_PRODUCCION.find((r) => r.valor === rubro)?.ayuda ?? ""}</p>
         </fieldset>
 
         <div data-guia="prod-proveedor-modal.ruc" className="grid gap-3 sm:grid-cols-2">
@@ -251,7 +251,7 @@ export function ProveedorProduccionModal({
                     type="button"
                     aria-pressed={billeteras.includes(b)}
                     onClick={() => alternarBilletera(b)}
-                    className="h-9 rounded-md border border-tinta/15 px-3 text-[13px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+                    className="h-9 rounded-md border border-tinta/15 px-3 text-sm text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
                   >
                     {ETIQUETA_BILLETERA[b]}
                   </button>

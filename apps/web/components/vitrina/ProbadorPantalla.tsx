@@ -302,8 +302,8 @@ export function ProbadorPantalla({
           <TituloSeccion cuenta={cifrasFotos.fotos}>Fotos de la web</TituloSeccion>
           <div className="card-cayla space-y-0">
             <div className="flex flex-wrap items-center gap-3 border-b border-sand px-5 py-4">
-              <p className="min-w-[14rem] flex-1 text-[13px] text-taupe" data-guia="probador.ayuda">
-                Así sale cada prenda en el probador de «Arma el tuyo»: recortada, sin fondo. Toca una para mirarla de cerca y usarla o descartarla.
+              <p className="min-w-[14rem] flex-1 text-sm text-taupe" data-guia="probador.ayuda">
+                Así sale cada prenda en «Arma el tuyo»: sin fondo. Toca una para usarla o descartarla.
               </p>
               {revisarTambien && (
                 <Boton type="button" aria-haspopup="dialog" data-guia="probador.revisar" onClick={(e) => revisarLosDudosos(e.currentTarget)}>
@@ -353,12 +353,9 @@ export function ProbadorPantalla({
           </div>
         </section>
 
-        <div className="nota-cayla space-y-2 text-[13px]" data-guia="probador.nota">
+        <div className="nota-cayla space-y-2 text-sm" data-guia="probador.nota">
           <p>
-            Una prenda sale en el probador con su largo y un recorte listo. El recorte es el fondo transparente de la propia foto (el PNG sin fondo
-            que entrega la IA): ninguna foto cambia, y una foto sin fondo transparente se queda sin recorte. Un color sin foto propia se elige igual: se ve otra
-            foto de la prenda y se avisa. Un look lleva como máximo 3 prendas: una de arriba (top, blusa, polo, camisa, chaleco, casaca o blazer), una de abajo y un bolso. Aquí solo
-            salen esas: los vestidos, enterizos y conjuntos, las capas, los demás accesorios, la bisutería y el calzado no entran.
+            Una prenda sale en el probador con su largo y su foto sin fondo. Un look lleva hasta 3 prendas: una de arriba, una de abajo y un bolso; vestidos, enterizos, conjuntos, capas, bisutería y calzado no entran.
           </p>
         </div>
 
@@ -421,18 +418,18 @@ function FilaPrenda({ prenda: p, i, onAbrir }: { prenda: PrendaDelProbador; i: n
         <span className={celda("izq", "flex items-center gap-3")}>
           <MiniaturaDelProbador prenda={p} />
           <span className="min-w-0">
-            <span className="block truncate text-[13.5px] font-medium text-tinta">{p.nombre}</span>
-            <span className="block truncate text-[12px] text-taupe">{[p.codigo, p.categoria?.nombre].filter(Boolean).join(" · ")}</span>
+            <span className="block truncate text-[15px] font-medium text-tinta">{p.nombre}</span>
+            <span className="block truncate text-sm text-taupe">{[p.codigo, p.categoria?.nombre].filter(Boolean).join(" · ")}</span>
             {faltanColores > 0 && (
-              <span className="block truncate text-[12px] text-taupe xl:hidden">{faltanColores === 1 ? "Falta la foto de 1 color" : `Faltan las fotos de ${faltanColores} colores`}</span>
+              <span className="block truncate text-sm text-taupe xl:hidden">{faltanColores === 1 ? "Falta la foto de 1 color" : `Faltan las fotos de ${faltanColores} colores`}</span>
             )}
           </span>
         </span>
-        <span className={celda("der", "text-[13px] text-tinta")}>{p.vendidas}</span>
-        <span className={celda("izq", `text-[13px] ${p.largo === null ? "text-taupe" : "text-tinta"}`)}>{largoEfectivo(p) === null ? "Sin largo" : textoDelLargo(p)}</span>
-        <span className={celda("izq", "hidden text-[13px] text-tinta xl:block")}>
+        <span className={celda("der", "text-sm text-tinta")}>{p.vendidas}</span>
+        <span className={celda("izq", `text-sm ${p.largo === null ? "text-taupe" : "text-tinta"}`)}>{largoEfectivo(p) === null ? "Sin largo" : textoDelLargo(p)}</span>
+        <span className={celda("izq", "hidden text-sm text-tinta xl:block")}>
           {`${conFoto} de ${p.colores.length} con foto`}
-          {faltanColores > 0 && <span className="block text-[12px] text-taupe">{faltanColores === 1 ? "falta 1 con stock" : `faltan ${faltanColores} con stock`}</span>}
+          {faltanColores > 0 && <span className="block text-sm text-taupe">{faltanColores === 1 ? "falta 1 con stock" : `faltan ${faltanColores} con stock`}</span>}
         </span>
         <span className={celda("izq")} data-guia={i === 0 ? "probador.veredicto" : undefined}>
           <Chip tono={veredicto.sale ? "verde" : "ambar"}>{veredicto.texto}</Chip>
@@ -485,10 +482,10 @@ function CeldaRecorte({ foto: f, i, onAbrir }: { foto: FotoDelProbador; i: numbe
             </span>
           )}
         </div>
-        <span className="block truncate text-[12.5px] font-medium leading-[1.4] text-tinta" title={f.nombre}>
+        <span className="block truncate text-sm font-medium leading-[1.4] text-tinta" title={f.nombre}>
           {f.nombre}
         </span>
-        <span className="block truncate text-[12px] leading-[1.4] text-taupe">{color}</span>
+        <span className="block truncate text-sm leading-[1.4] text-taupe">{color}</span>
       </button>
     </li>
   );

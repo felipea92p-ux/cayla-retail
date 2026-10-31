@@ -7,14 +7,17 @@ import {
   detalleDelGasto,
   detalleDeRepetidos,
   diasALaVista,
+  dondeEstaEnElExtracto,
   extractoPorDia,
   filasDelDia,
   loQueEsconden,
   marcaDelGasto,
+  ordenDelExtracto,
   pagoACredito,
   resumenDelDia,
   sinComprobanteGrande,
   textoDiasDeAntes,
+  textoDondeQuedo,
   tituloDelDia,
   TOPE_REPETIDO,
   UMBRAL_SIN_COMPROBANTE,
@@ -233,5 +236,44 @@ describe("cuántos días se ven", () => {
 
   it("el botón dice cuántos faltan", () => {
     expect(textoDiasDeAntes(12)).toBe("Ver los 12 días de antes");
+  });
+});
+
+describe("ordenDelExtracto", () => {
+  it("es el orden de la pantalla: el día más nuevo primero y, dentro de un «×N», cada gasto en su lugar", () => {
+    const alquiler = g("2026-10-28", 2100, { descripcion: "Alquiler", categoria: "alquileres" });
+    const bano1 = g("2026-10-30", 1, { descripcion: "Baño" });
+    const bano2 = g("2026-10-30", 1, { descripcion: "Baño" });
+    const luz = g("2026-10-30", 210, { descripcion: "Luz", categoria: "luz" });
+    const orden = ordenDelExtracto(extractoPorDia([alquiler, bano1, luz, bano2], HOY)).map((x) => x.descripcion);
+    expect(orden).toEqual(["Luz", "Baño", "Baño", "Alquiler"]);
+  });
+  it("no pierde ni repite ninguno", () => {
+    const todos = [g("2026-10-01", 5), g("2026-10-01", 5), g("2026-10-02", 900), g("2026-10-03", 40, { estado: "anulado" })];
+    const orden = ordenDelExtracto(extractoPorDia(todos, HOY));
+    expect(new Set(orden.map((x) => x.id))).toEqual(new Set(todos.map((x) => x.id)));
+    expect(orden).toHaveLength(todos.length);
+  });
+});
+
+describe("dondeEstaEnElExtracto", () => {
+  it("dice el día y, si va en un «×N», el grupo que hay que abrir", () => {
+    const solo = g("2026-10-28", 2100, { descripcion: "Alquiler" });
+    const b1 = g("2026-10-30", 1, { descripcion: "Baño" });
+    const b2 = g("2026-10-30", 1, { descripcion: "Baño" });
+    const dias = extractoPorDia([solo, b1, b2], HOY);
+    expect(dondeEstaEnElExtracto(dias, solo.id)).toEqual({ dia: 1, grupo: null });
+    expect(dondeEstaEnElExtracto(dias, b2.id)).toMatchObject({ dia: 0, grupo: expect.stringContaining("2026-10-30|") });
+    expect(dondeEstaEnElExtracto(dias, "otro")).toBeNull();
+    expect(dondeEstaEnElExtracto(dias, null)).toBeNull();
+  });
+});
+
+describe("textoDondeQuedo", () => {
+  it("dice el día en que quedó el gasto recién registrado", () => {
+    expect(textoDondeQuedo(HOY, HOY)).toBe("Quedó en el día de hoy.");
+    expect(textoDondeQuedo("2026-10-29", HOY)).toBe("Quedó en el día de ayer.");
+    expect(textoDondeQuedo("2026-10-26", HOY)).toBe("Quedó en el lunes 26 de octubre.");
+    expect(textoDondeQuedo("", HOY)).toBe("");
   });
 });

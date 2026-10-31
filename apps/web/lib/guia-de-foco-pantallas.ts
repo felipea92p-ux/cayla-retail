@@ -451,6 +451,14 @@ export const MODALES: Record<string, PantallaGuia> = {
   // fue, si tiene comprobante; con comprobante, el RUC y la serie; a crédito, cuándo vence; si no, de dónde salió) y el responsable;
   // `lib/hoja-gasto-reglas.test.ts` cruza la guía con la validación en cada camino.
   "components/finanzas/gastos/HojaRegistrarGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaRegistrarGasto.tsx"] },
+  // ADR-0588: los dos datos llegan llenos del gasto; lo que falta es CAMBIAR algo (lo que apaga «Guardar») y el responsable.
+  // `lib/gastos-corregir-reglas.test.ts` cruza la guía con lo que bloquea guardar.
+  "components/finanzas/gastos/HojaCorregirGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaCorregirGasto.tsx"] },
+  // ADR-0588 («Llegó el comprobante»): qué llegó, el RUC, la serie y el número, la fecha y el responsable; lo mismo que `agregar_comprobante_a_gasto`
+  // exige. `lib/gastos-comprobante-tardio-reglas.test.ts` cruza la guía con lo que bloquea guardar.
+  "components/finanzas/gastos/HojaComprobanteDeGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaComprobanteDeGasto.tsx"] },
+  // ADR-0588 («No tendrá comprobante»): el motivo, la nota solo con «Otro motivo», y el responsable (lo que exige `marcar_gasto_no_emite`).
+  "components/finanzas/gastos/HojaNoEmiteGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaNoEmiteGasto.tsx"] },
   "components/finanzas/PorPagarTodas.tsx": { estado: "no-aplica", motivo: "«Todo lo que CAYLA debe» (Felipe 2026-10-31): una lista de solo lectura con buscador, filtros y páginas; no hay nada que llenar ni guardar. «Pagar» abre el pago de siempre." },
   "components/finanzas/AjustesResumen.tsx": { estado: "no-aplica", motivo: "«Qué se ve» en el Resumen (Felipe 2026-10-26): son interruptores que se aplican al momento y no hay nada que llenar ni un orden que seguir; no guarda, solo cambia lo que se ve. Su ícono tiene su paso en la guía de la pantalla." },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).

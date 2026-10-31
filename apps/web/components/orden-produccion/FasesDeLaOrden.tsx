@@ -184,7 +184,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
           ))}
           {apagadas.length > 0 && (
             <div role="group" aria-label="Fases que se pueden agregar" className="flex flex-wrap items-center gap-2 px-3.5 py-2.5">
-              <span className="text-[12.5px] text-tinta/70">Si la orden también lleva</span>
+              <span className="text-sm text-tinta/70">Si la orden también lleva</span>
               {apagadas.map((def) => (
                 <ChipOpcion key={def.clave} elegido={false} onClick={() => encender(def.clave)}>
                   {def.nombre}
@@ -194,11 +194,11 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
           )}
         </div>
         {recordar && (
-          <label className="flex items-start gap-2.5 text-[13px] text-tinta" data-guia="prod-orden-nueva.recordar">
+          <label className="flex items-start gap-2.5 text-sm text-tinta" data-guia="prod-orden-nueva.recordar">
             <Casilla marcada={recordar.marcada} onCambio={recordar.onCambio} etiqueta="Recordar en la ficha del modelo" />
             <span>
               Recordar en la ficha del modelo
-              <span className="block text-[12.5px] text-tinta/70">
+              <span className="block text-sm text-tinta/70">
                 {ojalesDelModelo === null ? "Nadie ha dicho todavía qué procesos lleva este modelo. " : ""}
                 Las próximas órdenes nacen con los mismos procesos; en cada una se pueden cambiar.
               </span>
@@ -300,7 +300,7 @@ export function FilaFase({
   const avisoPendiente = fase.pendiente ? (
     <div className="sm:col-span-2">
       <Aviso tono="info" chico>
-        Aún sin proveedor, lo que escribas aquí ya cuenta como costo de la orden. Si todavía no sabes cuánto, déjalo en blanco: no suma nada hasta que lo registres con «Registrar quién».
+        Aún sin proveedor, esto ya cuenta como costo. Si no sabes cuánto, déjalo en blanco.
       </Aviso>
     </div>
   ) : null;
@@ -318,7 +318,7 @@ export function FilaFase({
             {/* La misma × de una fila de color (A2): apagar una fase opcional no borra lo escrito en ella; si vuelve a encenderse, reaparece. */}
             {!def.siempre && onApagar && <QuitarColor nombre={def.nombre} onQuitar={onApagar} />}
           </p>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-tinta/65">{def.ayuda}</p>
+          <p className="mt-0.5 text-sm leading-snug text-tinta/65">{def.ayuda}</p>
         </div>
         <SegmentoDeslizante
           etiqueta={`Quién hace ${nombreEnFrase}`}
@@ -336,7 +336,7 @@ export function FilaFase({
             onCambio={(v) => onCambiar({ posicion: v === "prenda" ? "prenda" : ("pieza" satisfies Posicion) })}
             opciones={OPCIONES_POSICION}
           />
-          <span className="text-[12.5px] text-tinta/70">{AYUDA_POSICION[fase.posicion ?? "pieza"]}</span>
+          <span className="text-sm text-tinta/70">{AYUDA_POSICION[fase.posicion ?? "pieza"]}</span>
         </div>
       )}
 

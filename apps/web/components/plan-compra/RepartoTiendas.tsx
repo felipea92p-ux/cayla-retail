@@ -10,7 +10,7 @@ export function RepartoTiendas({ objetivo, tiendas, taller }: { objetivo: number
   const r = repartir(objetivo, tiendas);
   return (
     <div data-guia="plan-modal.reparto" className="mt-4 border-t border-sand pt-3">
-      <p className="flex items-center gap-1.5 text-[13px] font-semibold text-tinta">
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-tinta">
         Cómo se reparte entre tiendas
         <Ayuda titulo="El reparto">
           <span className="block">Lo que conviene tener se reparte según lo que vendió cada tienda en 90 días (su ritmo por día, para no castigar a la que abrió después).</span>
@@ -21,7 +21,7 @@ export function RepartoTiendas({ objetivo, tiendas, taller }: { objetivo: number
       <div className="mt-2 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-xs text-taupe">
+            <tr className="text-sm text-taupe">
               <th className="py-1 pr-3 text-left font-normal">Tienda</th>
               <th className="py-1 pr-3 text-right font-normal">Le toca</th>
               <th className="py-1 pr-3 text-right font-normal">Ya tiene</th>
@@ -34,7 +34,7 @@ export function RepartoTiendas({ objetivo, tiendas, taller }: { objetivo: number
               <tr key={f.id} className="border-t border-sand/70">
                 <td className="py-1.5 pr-3 text-tinta">
                   {f.nombre}{" "}
-                  <span className="text-xs text-taupe">
+                  <span className="text-sm text-taupe">
                     {Math.round(f.pct * 100)} %{f.porMinimo ? " · mínimo" : ""}
                   </span>
                 </td>
@@ -47,7 +47,7 @@ export function RepartoTiendas({ objetivo, tiendas, taller }: { objetivo: number
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-tinta/65">
+      <p className="mt-2 text-sm text-tinta/65">
         Para mandar {enteroES.format(r.falta)}: {taller > 0 ? `primero lo del Taller (${enteroES.format(taller)})` : "el Taller no tiene"}
         {r.sobra > 0 ? `, después lo que sobra en otras tiendas (${enteroES.format(r.sobra)})` : ""}, y lo que falte, de lo que se compra.
       </p>

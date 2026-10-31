@@ -18,13 +18,13 @@ function Cara({ e, hoy, conRonda }: { e: EnvioMio; hoy?: string; conRonda: boole
         <span className="block text-sm text-tinta">
           <span className="envio-codigo-fila">{e.numero}</span> · {e.destino.replace(/^Tienda /, "")}
         </span>
-        <span className="block text-xs text-taupe">{detalleDeEnvio(e, hoy, conRonda)}</span>
+        <span className="block text-sm text-taupe">{detalleDeEnvio(e, hoy, conRonda)}</span>
       </span>
       <span className="flex flex-col items-end gap-1">
         <Chip tono={estado.tono} title={estado.texto}>
           {estado.texto}
         </Chip>
-        {nota && <span className="text-xs text-ambar">{nota}</span>}
+        {nota && <span className="text-sm text-ambar">{nota}</span>}
       </span>
     </>
   );

@@ -66,7 +66,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
       <div className="flex items-center gap-2 max-sm:flex-wrap max-sm:gap-y-1.5">
         <div className="min-w-0 flex-1 max-sm:order-1 max-sm:flex-[1_1_calc(100%-2.25rem)]" title={f.titulo}>
           <h3 className={`line-clamp-2 text-sm leading-snug font-semibold ${quitada ? "text-tinta/45 line-through" : "text-tinta"}`}>{/* unificar-fijo: el nombre de la prenda en el ticket es un dato */}{nombre}</h3>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] leading-snug text-tinta/65">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm leading-snug text-tinta/65">
             <span>{f.detalle}</span>
             {soloLectura ? (
               <span>{linea.cantidad} u.</span>
@@ -80,7 +80,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             )}
           </p>
           {duenos && onDueno && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/65">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta/65">
               <span>¿De quién sale?</span>
               <ElegirDueno empresas={duenos} duenoId={duenoElegido ?? ""} onElegir={(id) => onDueno(linea.varianteId, id)} deshabilitado={bloqueado} chico guia={guiaDueno} />
             </div>
@@ -123,14 +123,14 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             <Percent aria-hidden className={`h-3 w-3 shrink-0 ${f.pct > 0 ? "text-rojo-profundo" : "text-tinta/35"}`} />
             <span className="min-w-[4.25rem]">
               <span className="block text-sm font-semibold text-tinta tabular-nums">{money(f.importe)}</span>
-              {f.importeLista !== null && <s className="block text-[11px] text-tinta/45 tabular-nums">{money(f.importeLista)}</s>}
+              {f.importeLista !== null && <s className="block text-sm text-tinta/45 tabular-nums">{money(f.importeLista)}</s>}
             </span>
           </button>
         ) : (
           // Pieza de liquidación (ADR-0379) o prenda ya apartada: el importe no abre ningún descuento.
           <span className="min-w-[4.25rem] shrink-0 pr-1 text-right max-sm:order-4 max-sm:ml-auto">
             <span className={`block text-sm font-semibold tabular-nums ${quitada ? "text-tinta/45 line-through" : "text-tinta"}`}>{money(f.importe)}</span>
-            {f.importeLista !== null && <s className="block text-[11px] text-tinta/45 tabular-nums">{money(f.importeLista)}</s>}
+            {f.importeLista !== null && <s className="block text-sm text-tinta/45 tabular-nums">{money(f.importeLista)}</s>}
           </span>
         )}
 
@@ -148,8 +148,8 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           </button>
         )}
       </div>
-      {f.nota && <p className="mt-1 text-[11px] leading-snug text-rojo-profundo">{f.nota}</p>}
-      {pie && <div className="mt-1 text-[11px] leading-snug text-tinta/65">{pie}</div>}
+      {f.nota && <p className="mt-1 text-sm leading-snug text-rojo-profundo">{f.nota}</p>}
+      {pie && <div className="mt-1 text-sm leading-snug text-tinta/65">{pie}</div>}
       {tambienEn && tambienEn.length > 0 && (
         <Aviso tono="atencion" chico className="mt-1.5">
           {textoDePrendaEnOtroTicket(tambienEn, linea.stockAqui)}

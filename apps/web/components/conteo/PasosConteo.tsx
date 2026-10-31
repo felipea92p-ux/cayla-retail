@@ -138,7 +138,7 @@ export function PasosConteo({
           );
         })}
       </ol>
-      <p className="whitespace-nowrap text-xs tabular-nums text-taupe max-sm:sr-only">
+      <p className="whitespace-nowrap text-sm tabular-nums text-taupe max-sm:sr-only">
         Paso {indice + 1} de {pasos.length}
       </p>
     </nav>

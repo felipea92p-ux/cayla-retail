@@ -71,7 +71,7 @@ export function UltimosMovimientos({ movimientos, hoy, onElegir }: { movimientos
       </header>
       {movimientos.length === 0 ? (
         <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-          Sin movimientos todavía. Un depósito del cajón o el depósito de una máquina se registra con «+ Registrar movimiento».
+          Sin movimientos todavía. Un depósito se registra con «+ Registrar movimiento».
         </Vacio>
       ) : (
         <div className="dp-mov-lista">

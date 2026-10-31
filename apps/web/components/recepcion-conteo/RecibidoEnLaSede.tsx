@@ -136,9 +136,9 @@ function TablaPorTerminar({ envios }: { envios: ReturnType<typeof ordenarPorTerm
           return (
             <div key={e.despachoId} className={fila(PLANTILLA, "sm:items-center")}>
               <span className={celda("izq", "text-sm tabular-nums text-tinta")}>
-                <span className="text-xs text-taupe sm:hidden">Cerrado el </span>
+                <span className="text-sm text-taupe sm:hidden">Cerrado el </span>
                 {diaMes(diaLima(e.cerradoEn))}
-                {hace && <small className={`block text-xs ${viejo ? "text-tinta" : "text-taupe"}`}>{viejo ? <Chip tono="ambar" versalitas={false}>{hace}</Chip> : hace}</small>}
+                {hace && <small className={`block text-sm ${viejo ? "text-tinta" : "text-taupe"}`}>{viejo ? <Chip tono="ambar" versalitas={false}>{hace}</Chip> : hace}</small>}
               </span>
               <span className={celda("izq", "text-sm font-semibold tabular-nums text-tinta")}>{e.numero ?? "Envío"}</span>
               <span className={celda("izq", "text-sm text-taupe @4xl:hidden")} title={quFalta(e)}>
@@ -157,7 +157,7 @@ function TablaPorTerminar({ envios }: { envios: ReturnType<typeof ordenarPorTerm
           );
         })}
         {actual.totalPaginas > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
             <span>
               Mostrando {actual.desde}–{actual.hasta} de {envios.length}
             </span>

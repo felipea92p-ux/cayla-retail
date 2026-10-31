@@ -149,7 +149,7 @@ export function HojaPrenda({
           <CampoGuiado id="cantidad" guia={guia}>
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col items-start gap-1">
-                <span className="text-[13px] font-semibold text-tinta">
+                <span className="text-sm font-semibold text-tinta">
                   <ConMarca estado={guia.estado("cantidad")}>¿Cuántas unidades?</ConMarca>
                 </span>
                 {laVezPasada != null && (
@@ -266,7 +266,7 @@ export function HojaPrenda({
                   );
                 })}
               </ul>
-              <p className={`mt-2 flex items-center gap-1.5 text-[13px] ${faltaReparto ? "text-ambar" : "text-verde"}`}>
+              <p className={`mt-2 flex items-center gap-1.5 text-sm ${faltaReparto ? "text-ambar" : "text-verde"}`}>
                 {faltaReparto ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden /> : <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                 {faltaReparto ?? `Cuadra: ${sumaReparto} de ${cantidad ?? sumaReparto}`}
               </p>
@@ -338,7 +338,7 @@ function DescribirNueva({
   const marcaYaEsta = escrita && !escrita.id.startsWith(MARCA_NUEVA_PREFIJO) ? escrita : null;
   return (
     <div className="space-y-4 border-b border-sand pb-4">
-      <p className="text-[12.5px] leading-snug text-taupe">
+      <p className="text-sm leading-snug text-taupe">
         Úsala también si no la encuentras entre sus prendas o no sabes cómo la llaman en la tienda: descríbela como la conoces. Es solo una
         referencia para la compra: no se crea en el catálogo; la tienda la registra cuando la recibe, con su color y sus tallas.
       </p>
@@ -399,7 +399,7 @@ function DescribirNueva({
             </Boton>
           </div>
           {escribeMarca && marcaYaEsta && (
-            <p className="mt-1.5 text-xs text-taupe">Ya está en la lista: se usa «{marcaYaEsta.nombre}».</p>
+            <p className="mt-1.5 text-sm text-taupe">Ya está en la lista: se usa «{marcaYaEsta.nombre}».</p>
           )}
         </CampoGuiado>
       </div>

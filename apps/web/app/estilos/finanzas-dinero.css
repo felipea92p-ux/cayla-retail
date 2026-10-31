@@ -56,7 +56,7 @@
     padding: 14px 12px 8px;
   }
   .din-cuad-tenue {
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   .din-cuad-it {
@@ -84,7 +84,7 @@
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     background: var(--color-hueso);
     color: var(--color-tinta);
@@ -181,7 +181,7 @@
     flex-direction: column;
     gap: 2px;
     min-width: 0;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .din-par-monto {
@@ -306,7 +306,7 @@
     font-variant-numeric: lining-nums tabular-nums;
   }
   .cl-debe-pie {
-    font-size: 12px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-crema) 75%, transparent);
   }
 
@@ -344,7 +344,7 @@
     color: var(--color-taupe);
   }
   .cl-tenue {
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   .cl-num {
@@ -355,7 +355,7 @@
     flex-wrap: wrap;
     gap: 6px 16px;
     margin: 0;
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .cl-ley > span {
     display: inline-flex;
@@ -412,7 +412,7 @@
   .cl-aten .cl-d {
     display: block;
     margin-top: 2px;
-    font-size: 13.5px;
+    font-size: 15px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   @container (max-width: 560px) {
@@ -501,7 +501,7 @@
     }
   }
   .cl-sem small {
-    font-size: 11px;
+    font-size: 13px;
     white-space: nowrap;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
@@ -533,7 +533,7 @@
     font-weight: 600;
   }
   .cl-mov small {
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   .cl-mov .cl-m {
@@ -612,7 +612,7 @@
     font-weight: 600;
   }
   .cl-h-fila small {
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   .cl-h-fila .cl-m {
@@ -621,7 +621,7 @@
     font-variant-numeric: tabular-nums;
   }
   .cl-h-fila .cl-sd {
-    font-size: 12.5px;
+    font-size: 14px;
     text-align: right;
     font-variant-numeric: tabular-nums;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
@@ -633,7 +633,7 @@
     justify-content: space-between;
     gap: 10px 16px;
     padding-top: 12px;
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
   @media (max-width: 560px) {
@@ -747,7 +747,7 @@
     margin: 0 -8px;
     padding: 10px 20px 12px;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
   .dp-lista-pie b {
@@ -829,7 +829,7 @@
   }
   .dp-cuenta small {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   .dp-cuenta .dp-saldo {
@@ -943,7 +943,7 @@
     justify-content: space-between;
     gap: 10px 24px;
     padding-top: 12px;
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
 
@@ -1002,7 +1002,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    font-size: 13.5px;
+    font-size: 15px;
   }
   .dp-prestamos > li {
     display: grid;
@@ -1025,7 +1025,7 @@
     display: flex;
     gap: 14px;
     margin: 0;
-    font-size: 12px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
   .dp-ley i {
@@ -1051,7 +1051,7 @@
     border-top: 1px dashed var(--color-sand);
   }
   .dp-dueno-k {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     overflow-wrap: anywhere;
   }
@@ -1067,13 +1067,13 @@
     gap: 8px;
   }
   .dp-dueno-barras b {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
   }
   .dp-cobros-pie {
     padding: 10px 24px 14px;
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .dp-cobros .dp-dueno-cab + div {
     margin-inline: 24px;
@@ -1119,7 +1119,7 @@
   .dp-aten .dp-d {
     display: block;
     margin-top: 2px;
-    font-size: 13.5px;
+    font-size: 15px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
 
@@ -1200,7 +1200,7 @@
     font-variant-numeric: tabular-nums;
   }
   .dp-franja-celda .dp-q {
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
   }
   .dp-franja-celda[aria-pressed="true"] {
@@ -1218,7 +1218,7 @@
     gap: 8px 18px;
     padding: 11px 22px;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
   }
   .dp-franja-barra {
     width: min(220px, 100%);
@@ -1299,7 +1299,7 @@
     padding: 10px 14px;
     border-radius: 10px;
     background: var(--color-hueso);
-    font-size: 13px;
+    font-size: 14px;
   }
 
   /* ---- ¿Me alcanza? en la columna derecha ---- */
@@ -1355,7 +1355,7 @@
     display: grid;
     grid-template-columns: 4px minmax(0, 1fr);
     gap: 10px;
-    font-size: 12.5px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
   .dp-leyenda-etapas li i {
@@ -1364,7 +1364,7 @@
   }
   .dp-leyenda-etapas li b {
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-tinta);
   }

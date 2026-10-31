@@ -256,7 +256,7 @@ export function PanoramaDinero({
                 </span>
                 <TituloSeccion>{sel.nombre}</TituloSeccion>
                 {sel.detalle && (
-                  <p className="dp-tenue" style={{ fontSize: "13.5px", maxWidth: "52ch" }}>
+                  <p className="dp-tenue" style={{ fontSize: "15px", maxWidth: "52ch" }}>
                     {sel.detalle}
                   </p>
                 )}
@@ -301,7 +301,7 @@ export function PanoramaDinero({
               </Chip>
             </div>
             {items.length === 0 ? (
-              <p className="dp-tenue" style={{ padding: "0 24px 22px", fontSize: "13.5px" }}>
+              <p className="dp-tenue" style={{ padding: "0 24px 22px", fontSize: "15px" }}>
                 Ninguna cuenta ni cierre pide revisión.
               </p>
             ) : (
@@ -391,7 +391,7 @@ function MovimientosDeLaCuenta({ cuenta, movimientos, hoy }: { cuenta: { id: str
                 <span className="dp-versalita">{fechaCorta(m.fecha)}</span>
                 <span className="min-w-0">
                   <b style={{ display: "block", fontSize: "14px", fontWeight: 600 }}>{TEXTO_MOVIMIENTO[m.tipo]}</b>
-                  <small className="dp-tenue" style={{ fontSize: "12.5px" }}>
+                  <small className="dp-tenue" style={{ fontSize: "14px" }}>
                     {m.origenNombre ?? "El dueño"} → {m.destinoNombre ?? "Sale del negocio"}
                   </small>
                 </span>

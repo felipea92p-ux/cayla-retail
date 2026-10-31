@@ -333,7 +333,7 @@ export function CampanaDinero({
 /** Lo que se puede hacer con una cuenta, según por qué pide atención; sin nada pendiente, solo lo que es. */
 function DetalleDeCuenta({ f, abrirMovimiento, onCerrar }: { f: FilaEstado; abrirMovimiento: ReturnType<typeof useAbrirMovimiento>; onCerrar: () => void }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-sand bg-hueso px-5 py-3 text-[13px]" data-sin-cascada>
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-sand bg-hueso px-5 py-3 text-sm" data-sin-cascada>
       <span className="font-semibold text-tinta">{f.sinSede ? "Todavía no tiene sede" : f.sede}</span>
       <span className="text-tinta/70">{TEXTO_ETAPA[f.etapa]}</span>
       {f.detalle && <span className="text-tinta/70">{f.detalle}</span>}

@@ -242,7 +242,7 @@ export function IngresosTabla({
                         </Chip>
                       </span>
                     </span>
-                    {detalle && <span className="block truncate text-xs text-taupe">{detalle}</span>}
+                    {detalle && <span className="block truncate text-sm text-taupe">{detalle}</span>}
                   </span>
                 </div>
                 <span
@@ -277,7 +277,7 @@ export function IngresosTabla({
             <span className="min-w-0 truncate">Total</span>
             <span className="whitespace-nowrap tabular-nums sm:text-right">
               {prendas.toLocaleString("es-PE")}
-              <span className="text-xs font-normal text-taupe sm:hidden"> {prendas === 1 ? "prenda" : "prendas"}</span>
+              <span className="text-sm font-normal text-taupe sm:hidden"> {prendas === 1 ? "prenda" : "prendas"}</span>
             </span>
           </div>
         )}
@@ -311,7 +311,7 @@ function esperarImagenes(raiz: HTMLElement | null, tope: number): Promise<void> 
 
 /** En el celular el encabezado de la tabla se esconde y cada fila apila sus datos: cada cifra dice qué es. */
 function Etiqueta({ children }: { children: string }) {
-  return <span className="text-xs text-taupe sm:hidden">{children}</span>;
+  return <span className="text-sm text-taupe sm:hidden">{children}</span>;
 }
 
 /** La píldora de filtro del sistema (ADR-0358) con cuántos modelos tiene. */

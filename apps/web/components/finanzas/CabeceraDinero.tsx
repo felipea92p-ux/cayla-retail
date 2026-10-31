@@ -37,7 +37,7 @@ export function CabeceraDinero({
   acciones,
   onRegistrar,
   panorama = false,
-  subtitulo = "Dónde está la plata, qué debes y si cuadra con el banco. Un saldo nunca se escribe a mano: se suma de los movimientos.",
+  subtitulo = "Dónde está la plata, qué debes y si cuadra con el banco.",
 }: {
   pestana: PestanaDinero;
   esLider: boolean;

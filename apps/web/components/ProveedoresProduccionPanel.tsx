@@ -80,7 +80,7 @@ export function ProveedoresProduccionPanel({
       <EncabezadoPagina
         sede={sede}
         titulo="Proveedores"
-        subtitulo="Quién le vende tela y avíos al Taller y quién le hace servicios de afuera. Es un directorio aparte del de Compras."
+        subtitulo="Quién le vende tela y avíos al Taller y quién le hace servicios de afuera."
         acciones={
           vista === "tarifas" ? (
             tarifas !== null && servicios.length > 0 && (
@@ -161,8 +161,7 @@ export function ProveedoresProduccionPanel({
               </Boton>
             }
           >
-            Aquí van quienes le venden al Taller: la tela por metro, los avíos, la maquila. De cada lote que entregan salen cuánto se le compra, cuándo entrega y a qué
-            precio.
+            Aquí van quienes le venden al Taller: tela, avíos y maquila.
           </Vacio>
         </div>
       ) : (
@@ -185,7 +184,7 @@ export function ProveedoresProduccionPanel({
             </div>
             <Buscador guia="prod-proveedores.buscador" valor={busqueda} onCambio={setBusqueda} atajo placeholder="Nombre, RUC o contacto" etiqueta="Buscar proveedor" className="ml-auto min-w-56" />
             {resumen.archivados > 0 && (
-              <label data-guia="prod-proveedores.archivados" className="flex items-center gap-2 text-xs text-tinta/70">
+              <label data-guia="prod-proveedores.archivados" className="flex items-center gap-2 text-sm text-tinta/70">
                 <Casilla marcada={verArchivados} onCambio={() => setVerArchivados((v) => !v)} etiqueta="Ver archivados" />
                 Ver archivados
               </label>
@@ -240,14 +239,14 @@ export function ProveedoresProduccionPanel({
                     >
                       <span className="min-w-0">
                         <span data-guia="prod-proveedores.nombre" className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
-                        <span className="block text-xs text-tinta/65">
+                        <span className="block text-sm text-tinta/65">
                           {etiquetaRubro(p.rubro)} · {condicionDePago(p.plazoCreditoDias)}
                           {p.contacto ? ` · ${p.contacto}` : ""}
                         </span>
                       </span>
-                      <span className="text-right text-[13px] tabular-nums text-tinta">{p.totalComprado > 0 ? soles(p.totalComprado) : <span className="text-tinta/45">—</span>}</span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{p.lotes > 0 ? p.lotes : <span className="text-tinta/45">—</span>}</span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{p.ultimaEntrega ? diaMes(p.ultimaEntrega) : <span className="text-tinta/45">—</span>}</span>
+                      <span className="text-right text-sm tabular-nums text-tinta">{p.totalComprado > 0 ? soles(p.totalComprado) : <span className="text-tinta/45">—</span>}</span>
+                      <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{p.lotes > 0 ? p.lotes : <span className="text-tinta/45">—</span>}</span>
+                      <span className="hidden text-right text-sm tabular-nums text-tinta sm:block">{p.ultimaEntrega ? diaMes(p.ultimaEntrega) : <span className="text-tinta/45">—</span>}</span>
                       <span className="col-span-2 flex flex-wrap justify-end gap-1.5 sm:col-span-1 sm:w-24">
                         {!p.activo && <Chip tono="apagado">Archivado</Chip>}
                         {p.activo && sinDatosDePago(p) && <Chip tono="ambar">Sin datos de pago</Chip>}

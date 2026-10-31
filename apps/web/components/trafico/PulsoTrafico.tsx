@@ -64,7 +64,7 @@ export function PulsoTrafico({
   const ultimo = g.serie.at(-1)?.y ?? 0;
 
   const leyenda = (
-    <p className="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-tinta/70">
+    <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-tinta/70">
       <span>
         <span aria-hidden className="mr-1.5 inline-block h-0.5 w-5 bg-tinta align-middle" />
         {hoy ? "Hoy" : periodo.nombre}
@@ -106,7 +106,7 @@ export function PulsoTrafico({
                     {c.texto}
                   </Chip>
                 ) : (
-                  <span className="text-[12px] text-tinta/70">Sin comparar</span>
+                  <span className="text-sm text-tinta/70">Sin comparar</span>
                 )}
               </span>
               <Sparkline lleno serie={valoresDe(r.serie.actual, x.clave, hastaX !== null ? Math.max(1, hastaX) : largo, false)} indice={i} className="mt-1" />
@@ -228,7 +228,7 @@ function Lectura({ r, periodo, cierre }: { r: ResumenTrafico; periodo: { clave: 
           </>
         )}
       </p>
-      <dl className="mt-auto grid gap-2.5 border-t border-sand pt-3.5 text-[13.5px]">
+      <dl className="mt-auto grid gap-2.5 border-t border-sand pt-3.5 text-[15px]">
         {datos.map(([k, val]) => (
           <div key={k} className="flex items-baseline justify-between gap-3">
             <dt className="text-tinta/70">{k}</dt>
