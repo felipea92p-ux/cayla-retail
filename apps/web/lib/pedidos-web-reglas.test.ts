@@ -26,6 +26,7 @@ import {
   leerDetalle,
   leerTablero,
   limpiarCodigo,
+  filtrarCerrados,
   gruposDeLaLista,
   loQueTeToca,
   MENSAJE_PREDETERMINADO_WEB,
@@ -673,6 +674,23 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
         AHORA,
       ),
     ).toBe("Nada por hacer. El último, W-0009, llegó hoy a las 09:00 y se cerró: el cliente desistió.");
+  });
+
+  it("cerrados: se filtran por motivo y por lo escrito (número o cliente, sin tildes)", () => {
+    const cerrados = [
+      pedido({ codigo: "W-0019", cliente: "Felipe Álvarez", estado: "anulado", cierreMotivo: "cliente_no_respondio" }),
+      pedido({ codigo: "W-0018", cliente: "Lorena Chávez", estado: "vencido", cierreMotivo: "sin_confirmar" }),
+      pedido({ codigo: "W-0017", cliente: "Gabriela Soto", estado: "anulado", cierreMotivo: "sin_stock" }),
+      pedido({ codigo: "W-0016", cliente: "Natalia Álvarez", estado: "entregado" }),
+    ];
+    const codigos = (r: { codigo: string }[]) => r.map((p) => p.codigo);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "" }))).toEqual(["W-0019", "W-0018", "W-0017", "W-0016"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: "entregado", busca: "" }))).toEqual(["W-0016"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: "sin_confirmar", busca: "" }))).toEqual(["W-0018"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "ALVAREZ" }))).toEqual(["W-0019", "W-0016"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "w-0017" }))).toEqual(["W-0017"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: "entregado", busca: "felipe" }))).toEqual([]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "  natalia   alvarez " }))).toEqual(["W-0016"]);
   });
 
   it("los instantes, como se dicen en la tienda (en hora de Lima, también de noche)", () => {

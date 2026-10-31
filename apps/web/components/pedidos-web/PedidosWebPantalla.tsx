@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Banknote, BellRing, CircleCheck, CircleHelp, Inbox, MessageSquareText, Smartphone, Truck } from "lucide-react";
+import { ArrowRight, Banknote, BellRing, CircleCheck, CircleHelp, Inbox, MessageSquareText, SearchX, Smartphone, Truck } from "lucide-react";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { BarraAvance } from "@/components/ui/BarraAvance";
+import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -31,6 +32,7 @@ import {
   agruparPorPestana,
   MENSAJE_PREDETERMINADO_WEB,
   cifrasDe,
+  filtrarCerrados,
   gruposDeLaLista,
   loQueTeToca,
   momentoDe,
@@ -625,7 +627,7 @@ function FilaPedido({
  * con la estación «Cerrados» puesta, se ven todas.
  */
 function CerradosSeccion({
-  pedidos,
+  pedidos: todos,
   ahora,
   filtrado = false,
   aLaVista = 0,
@@ -642,10 +644,16 @@ function CerradosSeccion({
   onQuitar?: () => void;
 }) {
   const [abiertos, setAbiertos] = useState(false);
-  const motivos = porQueSeCerraron(pedidos);
+  // Lo que se ve de lo cerrado: un motivo (tocando la barra de abajo) y/o lo escrito en el buscador. Se filtra aquí, sin pedir nada.
+  const [motivo, setMotivo] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const hayFiltro = motivo !== null || busca.trim() !== "";
+  const pedidos = filtrarCerrados(todos, { motivo, busca });
+  const motivos = porQueSeCerraron(todos);
   const sinStock = motivos.find((m) => m.clave === "sin_stock")?.cuantos ?? 0;
-  const visibles = filtrado ? pedidos : pedidos.slice(0, aLaVista);
-  const guardados = filtrado ? [] : pedidos.slice(aLaVista);
+  // Con un filtro puesto se ven todos los que coinciden: ya son lo que se pidió.
+  const visibles = filtrado || hayFiltro ? pedidos : pedidos.slice(0, aLaVista);
+  const guardados = filtrado || hayFiltro ? [] : pedidos.slice(aLaVista);
   const filaCerrada = (p: PedidoDeLista) => {
     const m = motivoDeCierre(p);
     const porDevolver = p.estado === "anulado" && p.pagado > 0;
@@ -673,19 +681,31 @@ function CerradosSeccion({
   return (
     <section className="card-cayla space-y-0" data-guia="pedidos-web.cerrados">
       <TituloSeccion
-        cuenta={pedidos.length}
+        cuenta={todos.length}
         accion={
-          filtrado && onQuitar ? (
-            <FiltroPuesto onQuitar={onQuitar} etiqueta="Quitar el filtro «Cerrados»" guia="pedidos-web.quitar-filtro">
-              Cerrados
-            </FiltroPuesto>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            {filtrado && onQuitar && (
+              <FiltroPuesto onQuitar={onQuitar} etiqueta="Quitar el filtro «Cerrados»" guia="pedidos-web.quitar-filtro">
+                Cerrados
+              </FiltroPuesto>
+            )}
+            {todos.length > 0 && (
+              <Buscador
+                valor={busca}
+                onCambio={setBusca}
+                placeholder="Buscar por nombre o número"
+                etiqueta="Buscar entre los cerrados"
+                className="w-full sm:w-64"
+                data-guia="pedidos-web.buscar-cerrados"
+              />
+            )}
+          </div>
         }
         className="border-b border-sand px-5 py-4"
       >
         {filtrado ? "Cerrados" : "Cerrados en los últimos 30 días"}
       </TituloSeccion>
-      {pedidos.length === 0 ? (
+      {todos.length === 0 ? (
         <Vacio icono={<Smartphone />} titulo="Todavía no hay pedidos cerrados" filtros={onQuitar ? [{ texto: "Cerrados", onQuitar }] : undefined}>
           Aquí quedan, por 30 días, los entregados, los que nadie confirmó a tiempo y los anulados.
         </Vacio>
@@ -698,16 +718,16 @@ function CerradosSeccion({
               etiqueta="Por qué se cerraron"
               segmentos={motivos.map((m) => ({ clave: m.clave, nombre: m.texto, valor: m.cuantos, clase: TONO_MOTIVO[m.clave] ?? "bg-tinta/25" }))}
             />
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-tinta/75">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por cómo se cerraron" data-guia="pedidos-web.motivos">
               {motivos.map((m) => (
-                <li key={m.clave} className="inline-flex items-center gap-1.5">
+                <button key={m.clave} type="button" className="pildora-cayla" aria-pressed={motivo === m.clave} onClick={() => setMotivo(motivo === m.clave ? null : m.clave)}>
                   <MuestraTramo clase={TONO_MOTIVO[m.clave] ?? "bg-tinta/25"} />
-                  {m.texto} · <b className="font-semibold tabular-nums text-tinta">{m.cuantos}</b>
-                </li>
+                  {m.texto} · <b className="font-semibold tabular-nums">{m.cuantos}</b>
+                </button>
               ))}
-            </ul>
+            </div>
             {sinStock > 0 && (
-              <p className="text-[12.5px] text-taupe">Si «no hay stock» crece, la vitrina está mostrando prendas que esta tienda no tiene.</p>
+              <p className="text-[12.5px] text-taupe">Si «no hay stock» crece, la web muestra prendas que esta tienda no tiene.</p>
             )}
           </div>
           {(visibles.length > 0 || guardados.length > 0) && (
@@ -716,6 +736,19 @@ function CerradosSeccion({
               {visibles.map(filaCerrada)}
               {guardados.length > 0 && <FilasDeMas abierto={abiertos} id="pedidos-web-cerrados">{guardados.map(filaCerrada)}</FilasDeMas>}
             </Tabla>
+          )}
+          {hayFiltro && pedidos.length === 0 && (
+            <Vacio
+              tamano="chico"
+              icono={<SearchX />}
+              titulo="No encontré ese pedido"
+              filtros={[
+                ...(motivo !== null ? [{ texto: motivos.find((m) => m.clave === motivo)?.texto ?? "Motivo", onQuitar: () => setMotivo(null) }] : []),
+                ...(busca.trim() !== "" ? [{ texto: `«${busca.trim()}»`, onQuitar: () => setBusca("") }] : []),
+              ]}
+            >
+              Prueba con otro nombre o número.
+            </Vacio>
           )}
           {guardados.length > 0 && (
             <BotonVerMas

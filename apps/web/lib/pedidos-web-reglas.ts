@@ -15,6 +15,7 @@
 
 import { diaLima, horaLima, hoyLima, sumarDias } from "./fechas-lima";
 import { enlaceWhatsAppA } from "./facturacion-comprobantes-reglas";
+import { normalizar } from "./facturacion-busqueda";
 import { soles } from "./precio-sede-reglas";
 import { formatoCelular } from "./separaciones-reglas";
 import { haceCuanto } from "./vender-hoy-reglas";
@@ -995,6 +996,19 @@ export function porQueSeCerraron(pedidos: readonly Pick<PedidoDeLista, "estado" 
   }
   const lugar = (k: string) => (PRIMERO.includes(k) ? PRIMERO.indexOf(k) : PRIMERO.length);
   return [...cuenta.values()].sort((a, b) => lugar(a.clave) - lugar(b.clave) || b.cuantos - a.cuantos || a.texto.localeCompare(b.texto, "es"));
+}
+
+/**
+ * Los cerrados que se ven: los de un motivo (el de la barra: «entregado», «sin_stock»…) y/o los que coinciden con lo escrito. Se busca por
+ * número y por nombre del cliente, sin tildes ni mayúsculas; cada palabra escrita tiene que aparecer («w 12» no sirve, «lopez 0012» sí).
+ */
+export function filtrarCerrados<T extends Pick<PedidoDeLista, "codigo" | "cliente" | "estado" | "cierreMotivo">>(pedidos: readonly T[], filtros: { motivo: string | null; busca: string }): T[] {
+  const palabras = normalizar(filtros.busca).split(" ").filter(Boolean);
+  return pedidos.filter((p) => {
+    if (filtros.motivo !== null && motivoDeCierre(p).clave !== filtros.motivo) return false;
+    const campo = normalizar(`${p.codigo} ${p.cliente}`);
+    return palabras.every((w) => campo.includes(w));
+  });
 }
 
 /** «Todo al día»: no queda nada que hacer, en una línea, con lo último que pasó (que es lo que la persona quiere saber después). */
