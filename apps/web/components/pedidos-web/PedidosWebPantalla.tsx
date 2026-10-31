@@ -483,7 +483,7 @@ function ListaSeccion({
         (grupos ?? [{ clave: null, titulo: "", nota: null, pedidos }]).map((g, gi) => {
           const antes = (grupos ?? []).slice(0, gi).reduce((a, x) => a + x.pedidos.length, 0);
           return (
-            <div key={g.clave ?? "todo"} data-guia={g.clave === "urgente" || (gi === 0 && grupos) ? "pedidos-web.grupo" : undefined}>
+            <div key={g.clave ?? "todo"}>
               {g.clave && (
                 <div className="px-5 pb-1 pt-4">
                   <TituloGrupo nota={g.nota ?? undefined}>{g.titulo}</TituloGrupo>
