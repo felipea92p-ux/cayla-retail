@@ -1,0 +1,1501 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-intensidad="serena" data-campos="hundido" data-botones="gota" data-notas="placa" data-combo="pozo" data-aviso="lente" data-tabla="vivas" data-barra="tubo" data-prendas="lamina">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Modales con vidrio · simulación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SIMULACIÓN · todos los modales con la estética de «Mi perfil» (2026-10-31)
+   Felipe: «analiza el nuevo modal de Mi perfil y haz una simulación de cómo se verían todos los modales actuales si usáramos esa
+   misma estética». Mi perfil es «A · Cristal líquido» (docs/maquetas/mi-perfil-2026-10/, app/estilos/perfil-vidrio.css).
+   Aquí: 9 modales que representan los 275 <Modal>/<ModalRuta> y los 14 <Cajon> del ERP, cada uno HOY (la cara única de
+   ADR-0358 ronda 12: papel, borde fino, sin sombra) y CON VIDRIO, en dos intensidades: «Completa» (Mi perfil tal cual: filo y
+   brillo que siguen al mouse) y «Serena» (el vidrio sin el juego de luz, más opaco donde hay que leer).
+   No cambia qué hace ningún modal: los textos y campos son los de hoy (resumidos). Datos inventados (el repo es público).
+   Colores: SOLO los tokens de apps/web/app/globals.css y estilos/tema.css (ADR-0169 / ADR-0336), copiados abajo.
+   Movimiento: una vez, sin rebote, todo se apaga con prefers-reduced-motion (ADR-0136). Lo que responde al mouse no es bucle.
+   ==================================================================== */
+@property --ang{syntax:'<angle>';inherits:true;initial-value:-40deg}
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+--efectivo:#d19a12;--yape:#6b3fa0;
+--ease:cubic-bezier(.32,.72,.24,1);--ease-sal:cubic-bezier(.4,0,1,1);--lienzo:#ddd5c6}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c;--yape:#b99be0}
+/* el papel físico (ticket) vuelve a los tokens claros en los dos temas (ADR-0336, regla 3) */
+.papel-fijo{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;color:var(--tinta)}
+:root,.papel-fijo{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t50:color-mix(in srgb,var(--tinta) 56%,transparent);
+--t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.s{width:14px;height:14px}svg.ic.m{width:20px;height:20px}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.num{font-variant-numeric:tabular-nums}
+.vs{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.t65{color:var(--t65)}.t50{color:var(--t50)}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes funde{from{opacity:0}}
+@keyframes ranura{from{transform:translateY(105%)}to{transform:none}}
+@keyframes traza{from{stroke-dashoffset:var(--largo,60)}}
+
+/* ---------- barra de la maqueta (no es parte del diseño) ---------- */
+.spk{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 16px} /* tema-fijo: barra de la maqueta */
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)} /* tema-fijo: barra de la maqueta */
+.spk .titulo{font-family:'EB Garamond',serif;font-size:18px;margin-right:6px;width:100%}
+.seg-m{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg-m button{height:30px;padding:0 11px;font-size:12.5px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.seg-m button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.seg-m.apagado{opacity:.35;pointer-events:none}
+.seg-m button{height:26px;padding:0 9px;font-size:11.5px}
+@media (max-width:1300px){.spk{position:relative}}
+.spk .repetir{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.25);color:#f5f0e8;font-size:12.5px;margin-left:auto} /* tema-fijo: barra de la maqueta */
+
+.envoltura{max-width:1500px;margin:0 auto;padding:16px}
+.elegir{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:start}
+.elegir .bloque{display:grid;gap:4px;align-content:start}
+.elegir .bloque>div{display:flex;gap:6px}
+.elegir .grupo{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);padding-left:2px}
+.elegir button{text-align:left;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:8px 12px;font-size:12px;color:var(--t65);transition:border-color .2s,background .2s;max-width:250px}
+.elegir button b{display:block;color:var(--tinta);font-size:13.5px;font-weight:600}
+.elegir button.on{border-color:var(--tinta);background:var(--hueso)}
+@media (hover:hover){.elegir button:hover{border-color:var(--borde)}}
+.ficha{margin:14px 0 10px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;font-size:13px;color:var(--t80)}
+.ficha code{font-size:12px;background:var(--hueso);padding:1px 6px;border-radius:6px}
+.ficha .que{font-family:'EB Garamond',serif;font-size:22px;color:var(--tinta)}
+.escena{display:grid;gap:16px;grid-template-columns:repeat(var(--cols,1),minmax(0,1fr));justify-items:center}
+@media (max-width:1180px){.escena:not([data-ancho="movil"]){grid-template-columns:1fr}}
+.escena[data-ancho="movil"]{grid-template-columns:repeat(var(--cols,1),395px);justify-content:center}
+@media (max-width:860px){.escena[data-ancho="movil"]{grid-template-columns:395px}}
+.marco{scroll-margin-top:120px;width:100%;display:grid;justify-items:center;gap:8px}
+.marco figcaption{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.marco figcaption b{color:var(--tinta)}
+
+/* ---------- el aparato: escritorio o celular ---------- */
+.disp{container:disp/inline-size;position:relative;width:min(1320px,100%);height:820px;border-radius:16px;overflow:hidden;background:var(--crema);border:1px solid var(--t25)}
+.disp[data-ancho="movil"]{width:375px;height:760px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+
+/* ---------- el ERP de fondo (para que el vidrio tenga algo que refractar) ---------- */
+.erp{position:absolute;inset:0;display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-rows:60px minmax(0,1fr)}
+.erp-lat{grid-row:1/3;border-right:1px solid var(--sand);padding:18px 14px}
+.erp-logo{display:flex;align-items:center;gap:10px;padding:0 8px 22px;font-family:'EB Garamond',serif;font-size:22px;letter-spacing:.18em}
+.erp-logo i{width:24px;height:24px;border-radius:50%;background:var(--rojo)}
+.erp-lat .g{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:10px;color:var(--t80);font-size:13.5px}
+.erp-lat .g.on{background:var(--hueso);color:var(--tinta);font-weight:600}
+.erp-cab{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 28px;border-bottom:1px solid var(--sand)}
+.erp-cab .p{height:34px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--sand);border-radius:999px;font-size:12.5px;color:var(--t80)}
+.erp-cont{padding:28px 36px;overflow:hidden}
+.erp-cont h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin:6px 0 6px}
+.erp-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0}
+.erp-cifras div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+.erp-cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1}
+.erp-prendas{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.erp-prendas div{aspect-ratio:3/4;border-radius:14px;position:relative;overflow:hidden}
+.erp-prendas span{position:absolute;left:10px;bottom:8px;font-size:12px;font-weight:600;color:var(--crema-fija)}
+.erp-prendas div.claro span{color:var(--tinta-fija)}
+@container disp (max-width:860px){.erp{grid-template-columns:64px minmax(0,1fr)}.erp-lat .g span,.erp-logo b{display:none}.erp-prendas{grid-template-columns:repeat(4,1fr)}.erp-cifras{grid-template-columns:1fr 1fr}}
+@container disp (max-width:520px){
+  .erp{grid-template-columns:1fr;grid-template-rows:56px 1fr}.erp-lat{display:none}.erp-cab{padding:0 14px;justify-content:space-between}
+  .erp-cont{padding:18px 16px}.erp-cont h1{font-size:34px}.erp-prendas{grid-template-columns:repeat(3,1fr)}
+}
+
+/* ---------- capa, velo, la hoja ---------- */
+.capa{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-start;padding:6% 24px 24px;z-index:10}
+.capa.lado{justify-content:flex-end;align-items:stretch;padding:0}
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:funde .3s var(--ease) both}
+[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+.cerrado .velo,.cerrado .hoja{display:none}
+.reabrir{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:20;height:36px;padding:0 16px;border-radius:999px;background:var(--tinta);color:var(--crema);font-size:13px;font-weight:500;display:none}
+.cerrado .reabrir{display:block}
+.hoja{position:relative;width:min(var(--w,448px),100%);max-height:100%;overflow:auto;scrollbar-width:none;isolation:isolate}
+.hoja::-webkit-scrollbar{display:none}
+.hoja.cajon{height:100%;max-height:none;display:flex;flex-direction:column;overflow:hidden}
+.asa{display:none}
+.cerrar{position:absolute;top:18px;right:18px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--t80);z-index:5;transition:background .2s,color .2s}
+@media (hover:hover){.cerrar:hover{background:var(--t06);color:var(--tinta)}}
+.h-cab{padding-right:44px}
+.h-tit{overflow:hidden;color:var(--tinta)}
+.h-tit span{display:inline-block}
+.h-sub{color:var(--taupe);font-size:13.5px;margin:4px 0 18px}
+.cuerpo{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+
+/* piezas del sistema (resumidas, con la cara de HOY) */
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;border:1px solid var(--sand);background:var(--papel)}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde)}.chip.ambar{color:var(--ambar)}.chip.pizarra{color:var(--pizarra)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;font-size:13.5px;font-weight:500;position:relative;overflow:hidden;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s,color .25s,border-color .25s;white-space:nowrap}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.sec{border:1px solid var(--borde);background:var(--papel)}
+.btn.pel{background:var(--rojo);color:var(--crema)}
+@media (hover:hover){.btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px -10px color-mix(in srgb,var(--sombra) 50%,transparent)}.btn.pri:hover{background:var(--rojo-p)}}
+.btn:active{transform:scale(.97)}
+.enlace{font-size:12.5px;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+.pie{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}
+.pie .izq{margin-right:auto}
+.nota{display:flex;gap:10px;align-items:flex-start;background:var(--hueso);border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--t80)}
+.nota svg{margin-top:2px;color:var(--taupe)}
+.aviso{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--t80);border-left:3px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,var(--papel))}
+.aviso svg{color:var(--ambar);margin-top:2px}.aviso b{display:block;color:var(--tinta);font-size:13px}
+.campo-et{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:6px}
+.marca{font-size:10px;letter-spacing:.06em;text-transform:none;font-weight:600;padding:1px 8px;border-radius:99px}
+.marca[data-e="sigue"]{background:color-mix(in srgb,var(--pizarra) 14%,transparent);color:var(--pizarra)}
+.marca[data-e="ok"]{color:var(--verde)}.marca[data-e="op"]{color:var(--t50);font-weight:500}
+.caja{position:relative;display:flex;align-items:center;min-height:40px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);transition:background .25s,box-shadow .25s}
+.caja::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--rojo);transform:scaleX(0);transition:transform .35s var(--ease)}
+.caja:focus-within{background:var(--papel)}.caja:focus-within::after{transform:scaleX(1)}
+.campo.bien .caja::after{background:var(--verde);transform:scaleX(1)}
+.campo.sigue .caja{box-shadow:0 0 0 4px color-mix(in srgb,var(--pizarra) 12%,transparent);background:var(--papel)}
+.caja input,.caja textarea{flex:1;min-width:0;height:100%;min-height:38px;background:none;border:0;outline:0;padding:0 14px;font-size:14px}
+.caja textarea{padding:10px 14px;resize:none;min-height:64px}
+.caja input::placeholder,.caja textarea::placeholder{color:var(--t50)}
+.caja .pref{padding-left:14px;color:var(--t65);font-size:13px;display:inline-flex;align-items:center;gap:6px;border-right:1px solid var(--t12);padding-right:12px;height:24px}
+.caja.grande{min-height:56px}.caja.grande input{font-family:'EB Garamond',serif;font-size:28px;font-weight:500}
+.pie-campo{font-size:12px;color:var(--t65);margin-top:6px}
+.dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.av{width:var(--t,28px);height:var(--t,28px);border-radius:50%;background:var(--sand);display:grid;place-items:center;flex:none;font-family:'EB Garamond',serif;font-size:calc(var(--t,28px) * .42);position:relative}
+.av.turno::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;background:var(--verde);border:2px solid var(--papel)}
+.mini{width:40px;height:50px;border-radius:10px;flex:none}
+/* el segmento: HOY es la caja arena con su pieza de papel; con vidrio, la gota */
+.seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:3px;border-radius:10px;background:var(--sand)}
+.seg button{position:relative;z-index:1;height:36px;border-radius:8px;font-size:13px;font-weight:500;color:var(--t65);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:color .3s}
+.seg button[aria-selected="true"]{color:var(--tinta);font-weight:600}
+.gota{position:absolute;top:3px;bottom:3px;left:3px;border-radius:8px;background:var(--papel);box-shadow:0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+/* filas (destinos, datos) */
+.lista{display:grid;gap:8px}
+.fila{display:flex;align-items:center;gap:14px;min-height:56px;padding:8px 12px 8px 14px;border-radius:12px;background:var(--papel);border:1px solid var(--sand);transition:background .25s,transform .25s var(--ease),border-color .25s;width:100%;text-align:left}
+.fila .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--hueso);color:var(--t80)}
+.fila .tx{flex:1;min-width:0}.fila .tx b{display:block;font-size:14px;font-weight:600}.fila .tx span{display:block;font-size:12px;color:var(--t65)}
+.fila .der{font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.flecha{transition:transform .3s var(--ease);color:var(--t50)}
+@media (hover:hover){button.fila:hover{border-color:var(--borde)}button.fila:hover .flecha{transform:translateX(4px)}}
+.fila.on{border-color:var(--tinta)}
+/* mosaico de opciones (gasto rápido) */
+.mosaico{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mosaico button{border-radius:12px;border:1px solid var(--sand);background:var(--papel);padding:12px;text-align:left;display:grid;gap:6px;transition:border-color .25s,background .25s,transform .25s var(--ease)}
+.mosaico button b{font-size:13.5px;font-weight:600}.mosaico button span{font-size:11.5px;color:var(--t65)}
+.mosaico button.on{border-color:var(--tinta);background:var(--hueso)}
+.mosaico .ico{color:var(--t80)}
+@media (hover:hover){.mosaico button:hover{transform:translateY(-1px)}}
+/* tabla / planilla */
+.lamina{border-radius:14px;border:1px solid var(--sand);background:var(--papel);overflow:hidden}
+.tabla{width:100%;border-collapse:collapse;font-size:13px}
+.tabla th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);text-align:center;padding:10px 6px;border-bottom:1px solid var(--sand);background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.tabla th:first-child,.tabla td:first-child{text-align:left;padding-left:14px}
+.tabla td{padding:8px 6px;border-bottom:1px solid var(--sand);text-align:center}
+.tabla tr:last-child td{border-bottom:0}
+.color-dot{display:inline-block;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 1px var(--t25);margin-right:8px;vertical-align:-1px}
+.paso{display:inline-flex;align-items:center;height:30px;border-radius:8px;background:var(--hueso);border:1px solid var(--borde);font-variant-numeric:tabular-nums}
+.paso button{width:26px;height:28px;display:grid;place-items:center;color:var(--t65)}
+.paso b{min-width:22px;text-align:center;font-weight:600}
+.paso.cambio{border-color:var(--pizarra);box-shadow:0 0 0 3px color-mix(in srgb,var(--pizarra) 14%,transparent)}
+.paso.cambio b{color:var(--pizarra)}
+.pildoras{display:flex;flex-wrap:wrap;gap:6px}
+.pildoras button{height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);font-size:12.5px;background:var(--papel)}
+.pildoras button.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.barra{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--sand);gap:2px}
+.total{display:flex;justify-content:space-between;align-items:baseline}
+.total b{font-family:'EB Garamond',serif;font-weight:500;font-size:30px;font-variant-numeric:tabular-nums}
+.cifras{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cifra{border:1px solid var(--sand);border-radius:14px;padding:12px 14px;background:var(--papel)}
+.cifra b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.15}
+.listo{display:grid;place-items:center;gap:6px;text-align:center;padding:6px 0 4px}
+.listo svg{width:56px;height:56px;color:var(--verde)}
+.listo svg path,.listo svg circle{stroke-dasharray:60}
+.entra .listo svg path{animation:traza .6s .35s var(--ease) both;--largo:60}
+.entra .listo svg circle{animation:traza .7s .1s var(--ease) both;--largo:160;stroke-dasharray:160}
+.ticket{border-radius:6px;padding:18px 18px 22px;background:var(--papel);font-size:12.5px;font-family:ui-monospace,Menlo,monospace;color:var(--tinta);border:1px solid var(--sand)}
+.ticket hr{border:0;border-top:1px dashed var(--t25);margin:10px 0}
+.ticket .fl{display:flex;justify-content:space-between}
+/* el cajón: banda arriba, cuerpo que corre, pie con «3 de 12» */
+.c-banda{display:flex;gap:14px;align-items:center;padding:22px 64px 18px 22px;border-bottom:1px solid var(--sand)}
+.c-sello{width:40px;height:40px;border-radius:12px;background:var(--hueso);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:17px;flex:none}
+.c-cuerpo{flex:1;overflow:auto;padding:18px 22px;display:grid;gap:16px;align-content:start;scrollbar-width:none}
+.c-pie{display:flex;align-items:center;gap:8px;padding:12px 22px;border-top:1px solid var(--sand)}
+.c-pie .nav{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin-right:auto;font-size:12.5px;color:var(--t65)}
+.c-pie .nav button{width:30px;height:30px;border-radius:8px;border:1px solid var(--sand);display:grid;place-items:center}
+
+/* ======================================================================
+   HOY · la cara única de toda hoja (ADR-0358, ronda 12)
+   ====================================================================== */
+.hoja.hoy{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:24px}
+.hoja.hoy.cajon{border-radius:0;border-width:0 0 0 1px;padding:0}
+.hoy .h-tit{font-size:24px;line-height:1.15}
+.hoja.hoy.entra{animation:hoy-entra .34s var(--ease) both}
+.hoja.hoy.cajon.entra{animation:cajon-entra .4s var(--ease) both}
+@keyframes hoy-entra{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes cajon-entra{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+
+/* ======================================================================
+   CON VIDRIO · la cara de Mi perfil (app/estilos/perfil-vidrio.css)
+   ====================================================================== */
+:root{--alfa:54%;--desenfoque:28px;--saturar:1.9;--velo-v:14%}
+[data-intensidad="serena"]{--alfa:70%;--desenfoque:22px;--saturar:1.5;--velo-v:20%}
+.disp[data-look="vidrio"] .velo{background:color-mix(in srgb,var(--sombra) var(--velo-v),transparent);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px)}
+[data-tema="oscuro"] .disp[data-look="vidrio"] .velo{background:color-mix(in srgb,var(--sombra) 42%,transparent)}
+.hoja.vidrio{padding:30px 30px 28px;border-radius:32px;
+  background:color-mix(in srgb,var(--vidrio) var(--alfa),transparent);
+  -webkit-backdrop-filter:blur(var(--desenfoque)) saturate(var(--saturar));backdrop-filter:blur(var(--desenfoque)) saturate(var(--saturar));
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"] .hoja.vidrio{background:color-mix(in srgb,var(--vidrio) calc(var(--alfa) + 12%),transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent),0 50px 90px -40px var(--sombra)}
+.hoja.vidrio.cajon{margin:12px;height:calc(100% - 24px);border-radius:28px;padding:0}
+.hoja.vidrio .c-banda,.hoja.vidrio .c-pie{border-color:color-mix(in srgb,var(--vidrio) 50%,transparent)}
+[data-tema="oscuro"] .hoja.vidrio .c-banda,[data-tema="oscuro"] .hoja.vidrio .c-pie{border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.vidrio .h-tit{font-size:30px;line-height:1.1;margin-top:2px}
+[data-intensidad="serena"] .vidrio .h-tit{font-size:27px}
+/* el filo de luz y el brillo: SOLO en «Completa» */
+.v-filo,.v-brillo{display:none}
+[data-intensidad="completa"] .vidrio .v-filo,[data-intensidad="completa"] .vidrio .v-brillo{display:block}
+.v-filo{position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:2;
+  background:conic-gradient(from var(--ang),transparent 0 8%,color-mix(in srgb,var(--vidrio) 95%,transparent) 16%,transparent 30% 55%,color-mix(in srgb,var(--vidrio) 70%,transparent) 64%,transparent 78%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;transition:--ang .6s var(--ease)}
+[data-tema="oscuro"] .v-filo{background:conic-gradient(from var(--ang),transparent 0 8%,color-mix(in srgb,var(--tinta) 45%,transparent) 16%,transparent 30% 55%,color-mix(in srgb,var(--tinta) 25%,transparent) 64%,transparent 78%)}
+.v-brillo{position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(420px circle at var(--mx,30%) var(--my,0%),color-mix(in srgb,var(--vidrio) 55%,transparent),transparent 60%)}
+[data-tema="oscuro"] .v-brillo{background:radial-gradient(420px circle at var(--mx,30%) var(--my,0%),color-mix(in srgb,var(--tinta) 8%,transparent),transparent 60%)}
+.hoja.cajon .v-filo,.hoja.cajon .v-brillo{position:absolute}
+/* la × de vidrio */
+.vidrio .cerrar{top:16px;right:16px;background:color-mix(in srgb,var(--vidrio) 40%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent)}
+[data-tema="oscuro"] .vidrio .cerrar{background:color-mix(in srgb,var(--tinta) 8%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+/* las piezas sobre el vidrio */
+.vidrio .caja{border-radius:14px;background:color-mix(in srgb,var(--vidrio) 45%,transparent);border-color:color-mix(in srgb,var(--borde) 80%,transparent)}
+.vidrio .caja:focus-within,.vidrio .campo.sigue .caja{background:color-mix(in srgb,var(--vidrio) 75%,transparent)}
+[data-tema="oscuro"] .vidrio .caja{background:color-mix(in srgb,var(--crema) 50%,transparent)}
+[data-tema="oscuro"] .vidrio .caja:focus-within,[data-tema="oscuro"] .vidrio .campo.sigue .caja{background:color-mix(in srgb,var(--papel) 85%,transparent)}
+.vidrio .chip{background:color-mix(in srgb,var(--vidrio) 45%,transparent);border-color:var(--t12)}
+[data-tema="oscuro"] .vidrio .chip{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.vidrio .btn{border-radius:12px}
+.vidrio .btn.sec{background:color-mix(in srgb,var(--vidrio) 40%,transparent);border-color:color-mix(in srgb,var(--borde) 70%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .vidrio .btn.sec{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:none}
+.vidrio .nota{background:color-mix(in srgb,var(--hueso) 72%,transparent)}
+.vidrio .aviso{background:color-mix(in srgb,var(--ambar) 10%,color-mix(in srgb,var(--vidrio) 45%,transparent))}
+.vidrio .seg{padding:5px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.vidrio .seg button{height:38px;border-radius:999px}
+.vidrio .gota{top:5px;bottom:5px;border-radius:999px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -6px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .vidrio .gota{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 20%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 25%,transparent),0 6px 16px -6px var(--sombra)}
+.vidrio .fila,.vidrio .mosaico button,.vidrio .cifra{border-radius:18px;background:color-mix(in srgb,var(--vidrio) 40%,transparent);border-color:color-mix(in srgb,var(--vidrio) 55%,transparent)}
+[data-tema="oscuro"] .vidrio .fila,[data-tema="oscuro"] .vidrio .mosaico button,[data-tema="oscuro"] .vidrio .cifra{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.vidrio .fila .ico{border-radius:11px;background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+@media (hover:hover){.vidrio button.fila:hover,.vidrio .mosaico button:hover{background:color-mix(in srgb,var(--vidrio) 65%,transparent);transform:translateY(-1px)}
+  [data-tema="oscuro"] .vidrio button.fila:hover,[data-tema="oscuro"] .vidrio .mosaico button:hover{background:color-mix(in srgb,var(--tinta) 10%,transparent)}}
+.vidrio .fila.on,.vidrio .mosaico button.on{background:color-mix(in srgb,var(--vidrio) 80%,transparent);border-color:var(--tinta)}
+[data-tema="oscuro"] .vidrio .fila.on,[data-tema="oscuro"] .vidrio .mosaico button.on{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.vidrio .pildoras button{background:color-mix(in srgb,var(--vidrio) 40%,transparent)}
+.vidrio .pildoras button.on{background:var(--tinta)}
+.vidrio .paso{border-radius:10px;background:color-mix(in srgb,var(--vidrio) 45%,transparent)}
+[data-tema="oscuro"] .vidrio .paso{background:color-mix(in srgb,var(--crema) 50%,transparent)}
+.vidrio .c-sello{border-radius:14px;background:linear-gradient(145deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 95%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"] .vidrio .c-sello{background:color-mix(in srgb,var(--tinta) 12%,transparent)}
+.vidrio .c-pie .nav button{border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);background:color-mix(in srgb,var(--vidrio) 35%,transparent);border-radius:10px}
+[data-tema="oscuro"] .vidrio .c-pie .nav button{background:color-mix(in srgb,var(--tinta) 6%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+/* la lámina: donde se lee en serio (tablas, planillas). Completa = vidrio leve; Serena = casi papel */
+.vidrio .lamina{border-radius:18px;background:color-mix(in srgb,var(--vidrio) 32%,transparent);border-color:color-mix(in srgb,var(--vidrio) 55%,transparent)}
+[data-intensidad="serena"] .vidrio .lamina{background:color-mix(in srgb,var(--papel) 82%,transparent)}
+[data-tema="oscuro"] .vidrio .lamina{background:color-mix(in srgb,var(--tinta) 4%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-tema="oscuro"][data-intensidad="serena"] .vidrio .lamina{background:color-mix(in srgb,var(--papel) 80%,transparent)}
+.vidrio .tabla th{background:transparent;border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.vidrio .tabla td{border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-intensidad="serena"] .hoja.vidrio:has(.btn.pel){background:color-mix(in srgb,var(--papel) 94%,transparent)}
+.vidrio .ticket{box-shadow:0 18px 40px -22px color-mix(in srgb,var(--sombra) 55%,transparent)}
+/* ======================================================================
+   LOS CAMPOS SOBRE EL VIDRIO (Felipe 2026-10-31: «los text box ya no van con el modal»)
+   La caja de hoy (hueso con borde) es un objeto de papel puesto encima del vidrio. Tres caras para elegir mirando.
+   Las tres conservan el borde-control pleno (el 3:1 de ADR-0516), el hilo rojo que nace del centro (verde si el dato está
+   bien) y la luz de «Sigue aquí» de la guía de foco (ADR-0284), que sobre el vidrio de antes casi no se veía.
+   ====================================================================== */
+/* A · Hundido: la caja es un pozo tallado en el vidrio, la misma pista hundida del segmento. Al escribir, sube como la gota. */
+[data-campos="hundido"] .vidrio .caja,[data-campos="hundido"] .vidrio .paso{border-color:var(--borde);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--vidrio) 75%,transparent);
+  transition:background .3s var(--ease),box-shadow .3s var(--ease),transform .3s var(--ease)}
+[data-campos="hundido"] .vidrio .caja{border-radius:14px}
+/* al escribir sube, pero sigue siendo vidrio (Felipe 2026-10-31: «que no se pongan con un color sólido»): se ilumina por arriba,
+   gana su sombra afuera y deja ver lo de atrás */
+[data-campos="hundido"] .vidrio .caja:focus-within{transform:translateY(-1px);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-campos="hundido"] .vidrio .campo.sigue .caja:not(:focus-within),[data-campos="hundido"] .vidrio .paso.cambio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 40%,transparent),color-mix(in srgb,var(--vidrio) 16%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 3px color-mix(in srgb,var(--pizarra) 26%,transparent)}
+[data-tema="oscuro"][data-campos="hundido"] .vidrio .caja,[data-tema="oscuro"][data-campos="hundido"] .vidrio .paso{background:color-mix(in srgb,var(--sombra) 30%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 55%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-tema="oscuro"][data-campos="hundido"] .vidrio .caja:focus-within{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent),color-mix(in srgb,var(--tinta) 6%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 10px 22px -12px var(--sombra)}
+[data-tema="oscuro"][data-campos="hundido"] .vidrio .campo.sigue .caja:not(:focus-within),[data-tema="oscuro"][data-campos="hundido"] .vidrio .paso.cambio{background:color-mix(in srgb,var(--tinta) 8%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--pizarra) 32%,transparent)}
+
+/* B · Placa: la caja es una placa de vidrio más, igual que las filas (18 px de radio, su línea de luz arriba). */
+[data-campos="placa"] .vidrio .caja,[data-campos="placa"] .vidrio .paso{border-color:var(--borde);
+  background:color-mix(in srgb,var(--vidrio) 58%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 2px 6px -3px color-mix(in srgb,var(--sombra) 14%,transparent);
+  transition:background .3s var(--ease),box-shadow .3s var(--ease)}
+[data-campos="placa"] .vidrio .caja{border-radius:18px}
+[data-campos="placa"] .vidrio .caja:focus-within{background:color-mix(in srgb,var(--vidrio) 94%,transparent);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 4px color-mix(in srgb,var(--tinta) 7%,transparent)}
+[data-campos="placa"] .vidrio .campo.sigue .caja:not(:focus-within),[data-campos="placa"] .vidrio .paso.cambio{background:color-mix(in srgb,var(--vidrio) 80%,transparent);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 3px color-mix(in srgb,var(--pizarra) 26%,transparent)}
+[data-tema="oscuro"][data-campos="placa"] .vidrio .caja,[data-tema="oscuro"][data-campos="placa"] .vidrio .paso{background:color-mix(in srgb,var(--tinta) 7%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-tema="oscuro"][data-campos="placa"] .vidrio .caja:focus-within{background:color-mix(in srgb,var(--tinta) 13%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-tema="oscuro"][data-campos="placa"] .vidrio .campo.sigue .caja:not(:focus-within),[data-tema="oscuro"][data-campos="placa"] .vidrio .paso.cambio{background:color-mix(in srgb,var(--tinta) 10%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--pizarra) 32%,transparent)}
+
+/* C · Hilo: sin caja. El dato se escribe directo sobre el vidrio, sobre una línea; al escribir, un velo de luz sube desde ella. */
+[data-campos="hilo"] .vidrio .caja{border-radius:0;border-width:0 0 1px;border-color:var(--borde);background:transparent;box-shadow:none;transition:background .3s var(--ease)}
+[data-campos="hilo"] .vidrio .caja::after{left:0;right:0}
+[data-campos="hilo"] .vidrio .caja input,[data-campos="hilo"] .vidrio .caja textarea{padding-left:2px}
+[data-campos="hilo"] .vidrio .caja .pref{padding-left:2px}
+[data-campos="hilo"] .vidrio .caja:focus-within{background:linear-gradient(to top,color-mix(in srgb,var(--vidrio) 70%,transparent),transparent)}
+[data-campos="hilo"] .vidrio .campo.sigue .caja:not(:focus-within){box-shadow:none;border-bottom-color:var(--pizarra);background:linear-gradient(to top,color-mix(in srgb,var(--pizarra) 12%,transparent),transparent)}
+[data-tema="oscuro"][data-campos="hilo"] .vidrio .caja{background:transparent}
+[data-tema="oscuro"][data-campos="hilo"] .vidrio .caja:focus-within{background:linear-gradient(to top,color-mix(in srgb,var(--tinta) 10%,transparent),transparent)}
+[data-campos="hilo"] .vidrio .paso{border-radius:10px;background:color-mix(in srgb,var(--vidrio) 50%,transparent)}
+[data-tema="oscuro"][data-campos="hilo"] .vidrio .paso{background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+[data-campos="hilo"] .vidrio .paso.cambio{box-shadow:0 0 0 3px color-mix(in srgb,var(--pizarra) 26%,transparent)}
+
+/* ======================================================================
+   LOS BOTONES SOBRE EL VIDRIO (Felipe 2026-10-31: «A, pero ahora también faltan los botones»)
+   Con los campos hundidos (A), el idioma es: lo que espera tu dato está hundido; lo que haces sobresale. Tres caras para elegir
+   mirando. Las tres conservan lo del sistema (ADR-0358): el secundario lleva borde-control (3:1), el primario negro pasa a rojo
+   profundo al pasar el mouse, sube 2 px con su sombra y cruza una luz, y se encoge al presionar.
+   ====================================================================== */
+/* la luz que cruza al pasar el mouse (.mov-boton, la del sistema) */
+.btn::before{content:"";position:absolute;inset:0;pointer-events:none;transform:translateX(-120%);
+  background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--crema) 38%,transparent) 50%,transparent 65%)}
+.btn.sec::before{background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--vidrio) 80%,transparent) 50%,transparent 65%)}
+@media (hover:hover){.btn:hover::before{transform:translateX(120%);transition:transform .65s var(--ease)}}
+
+/* A · Gota: el secundario es la gota del segmento (vidrio que sobresale, con su luz arriba); el primario, tinta con brillo de vidrio. Píldora. */
+[data-botones="gota"] .vidrio :is(.btn,.pildoras button){border-radius:999px}
+[data-botones="gota"] .vidrio .btn{height:42px;padding:0 20px}
+[data-botones="gota"] .vidrio .c-pie .btn,[data-botones="humo"] .vidrio .c-pie .btn{padding:0 15px}
+/* Sin color sólido (Felipe 2026-10-31): los tres pesos son vidrio. El primario es vidrio ahumado de tinta (más denso abajo, con su
+   luz arriba) y el peligroso, vidrio rojo; los dos desenfocan lo de atrás. El secundario es la gota, más clara. */
+[data-botones="gota"] .vidrio :is(.btn.sec,.pildoras button:not(.on),.c-pie .nav button,.cerrar){border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-botones="gota"] .vidrio .c-pie .nav button{border-radius:999px}
+[data-botones="gota"] .vidrio :is(.btn.pri,.btn.pel,.pildoras button.on){-webkit-backdrop-filter:blur(10px) saturate(1.4);backdrop-filter:blur(10px) saturate(1.4)}
+[data-botones="gota"] .vidrio :is(.btn.pri,.pildoras button.on){border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--vidrio) 8%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-botones="gota"] .vidrio .btn.pel{border:1px solid color-mix(in srgb,var(--rojo) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 66%,transparent),color-mix(in srgb,var(--rojo) 90%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 8px 18px -10px color-mix(in srgb,var(--rojo) 55%,transparent)}
+@media (hover:hover){
+  [data-botones="gota"] .vidrio .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 64%,transparent),color-mix(in srgb,var(--rojo-p) 88%,transparent));border-color:color-mix(in srgb,var(--rojo-p) 70%,transparent)}
+  [data-botones="gota"] .vidrio :is(.btn.sec,.pildoras button:not(.on)):hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent))}
+}
+[data-tema="oscuro"][data-botones="gota"] .vidrio :is(.btn.sec,.pildoras button:not(.on),.c-pie .nav button,.cerrar){
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 15%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra)}
+[data-tema="oscuro"][data-botones="gota"] .vidrio :is(.btn.pri,.pildoras button.on){
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 74%,transparent),color-mix(in srgb,var(--tinta) 92%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 60%,transparent),0 8px 18px -10px var(--sombra)}
+[data-tema="oscuro"][data-botones="gota"] .vidrio .btn.pel{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 74%,transparent),color-mix(in srgb,var(--rojo) 92%,transparent))}
+@media (hover:hover){
+  [data-tema="oscuro"][data-botones="gota"] .vidrio .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 74%,transparent),color-mix(in srgb,var(--rojo-p) 92%,transparent))}
+  [data-tema="oscuro"][data-botones="gota"] .vidrio :is(.btn.sec,.pildoras button:not(.on)):hover{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent))}
+}
+/* lo elegido en un mosaico o una lista: tampoco sólido; se marca con su borde de tinta y su luz, y deja ver el vidrio */
+[data-botones="gota"] .vidrio :is(.fila.on,.mosaico button.on){
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 28%,transparent));
+  border-color:var(--tinta);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px var(--tinta),0 8px 18px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-botones="gota"] .vidrio :is(.fila.on,.mosaico button.on){
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 0 0 1px var(--tinta)}
+
+/* B · Placa: el mismo radio que los campos (14 px); el secundario es una placa de vidrio, el primario tinta con su línea de luz. */
+[data-botones="placa"] .vidrio :is(.btn,.c-pie .nav button){border-radius:14px}
+[data-botones="placa"] .vidrio .pildoras button{border-radius:12px}
+[data-botones="placa"] .vidrio :is(.btn.sec,.pildoras button:not(.on),.c-pie .nav button){border:1px solid var(--borde);
+  background:color-mix(in srgb,var(--vidrio) 60%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+[data-botones="placa"] .vidrio :is(.btn.pri,.btn.pel,.pildoras button.on){box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 24%,transparent)}
+@media (hover:hover){[data-botones="placa"] .vidrio :is(.btn.sec,.pildoras button:not(.on)):hover{background:color-mix(in srgb,var(--vidrio) 88%,transparent)}}
+[data-tema="oscuro"][data-botones="placa"] .vidrio :is(.btn.sec,.pildoras button:not(.on),.c-pie .nav button){background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-tema="oscuro"][data-botones="placa"] .vidrio :is(.btn.pri,.btn.pel,.pildoras button.on){box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema) 14%,transparent)}
+
+/* C · Humo: el primario también es vidrio, pero ahumado (tinta translúcida que desenfoca lo de atrás); el secundario, la gota. Píldora. */
+[data-botones="humo"] .vidrio :is(.btn,.pildoras button,.c-pie .nav button){border-radius:999px}
+[data-botones="humo"] .vidrio .btn{height:42px;padding:0 20px}
+[data-botones="humo"] .vidrio :is(.btn.sec,.pildoras button:not(.on),.c-pie .nav button,.cerrar){border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-botones="humo"] .vidrio :is(.btn.pri,.pildoras button.on){border:1px solid color-mix(in srgb,var(--tinta) 30%,transparent);
+  background:color-mix(in srgb,var(--tinta) 80%,transparent);-webkit-backdrop-filter:blur(12px) saturate(1.6);backdrop-filter:blur(12px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--vidrio) 10%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-botones="humo"] .vidrio .btn.pel{background:color-mix(in srgb,var(--rojo) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent)}
+@media (hover:hover){[data-botones="humo"] .vidrio .btn.pri:hover{background:color-mix(in srgb,var(--rojo-p) 86%,transparent)}}
+[data-tema="oscuro"][data-botones="humo"] .vidrio :is(.btn.sec,.pildoras button:not(.on),.c-pie .nav button,.cerrar){
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 8%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent)}
+[data-tema="oscuro"][data-botones="humo"] .vidrio :is(.btn.pri,.pildoras button.on){background:color-mix(in srgb,var(--tinta) 86%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema) 10%,transparent)}
+
+/* ======================================================================
+   LA NOTA Y EL AVISO SOBRE EL VIDRIO (Felipe 2026-10-31: «quiero mejorar el diseño de eso también»)
+   La nota de hoy es una losa de hueso: sobre el vidrio se ve como un bloque plano (en oscuro, una losa negra). Tres caras para
+   elegir mirando. El idioma del modal: hundido = espera tu dato; sobresale = lo que haces. Una nota no es ninguna de las dos:
+   explica. El aviso (atención) sigue la misma cara, con su ámbar y su franja.
+   ====================================================================== */
+/* la «i» y el ícono del aviso en su lente de vidrio (las tres caras la comparten, menos «Al pie») */
+[data-notas] .vidrio :is(.nota,.aviso)>svg{box-sizing:content-box;width:14px;height:14px;padding:6px;margin-top:0;border-radius:50%;flex:none;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 25%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-notas] .vidrio :is(.nota,.aviso)>svg{background:linear-gradient(145deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+[data-notas] .vidrio :is(.nota,.aviso){align-items:center;gap:12px;font-size:13px;line-height:1.45}
+
+/* A · Placa: una lámina de vidrio, como las filas (su luz arriba, su borde de vidrio) */
+[data-notas="placa"] .vidrio .nota{border-radius:18px;padding:12px 16px 12px 12px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-notas="placa"] .vidrio .aviso{border-radius:18px;padding:12px 16px 12px 12px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-left:3px solid var(--ambar);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 8%,color-mix(in srgb,var(--vidrio) 45%,transparent)),color-mix(in srgb,var(--vidrio) 20%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-notas="placa"] .vidrio :is(.nota,.aviso){border-color:color-mix(in srgb,var(--tinta) 10%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 7%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-tema="oscuro"][data-notas="placa"] .vidrio .aviso{border-left-color:var(--ambar);background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 10%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent))}
+
+/* B · Tinte: sin borde ni relieve; un tinte del color de la nota que nace donde está la «i» y se desvanece en el vidrio */
+[data-notas="tinte"] .vidrio :is(.nota,.aviso){border:0;border-radius:18px;padding:10px 16px 10px 10px;box-shadow:none;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--taupe) 13%,transparent),color-mix(in srgb,var(--taupe) 4%,transparent) 70%,transparent)}
+[data-notas="tinte"] .vidrio .aviso{background:linear-gradient(90deg,color-mix(in srgb,var(--ambar) 18%,transparent),color-mix(in srgb,var(--ambar) 5%,transparent) 70%,transparent)}
+[data-notas="tinte"] .vidrio .aviso>svg{color:var(--ambar)}
+[data-tema="oscuro"][data-notas="tinte"] .vidrio .nota{background:linear-gradient(90deg,color-mix(in srgb,var(--taupe) 16%,transparent),color-mix(in srgb,var(--taupe) 5%,transparent) 70%,transparent)}
+[data-tema="oscuro"][data-notas="tinte"] .vidrio .aviso{background:linear-gradient(90deg,color-mix(in srgb,var(--ambar) 16%,transparent),color-mix(in srgb,var(--ambar) 4%,transparent) 70%,transparent)}
+
+/* C · Al pie: sin caja; la nota se escribe sobre el vidrio, bajo una línea fina, como una nota al pie */
+[data-notas="pie"] .vidrio :is(.nota,.aviso){border:0;border-top:1px solid color-mix(in srgb,var(--tinta) 12%,transparent);border-radius:0;
+  background:transparent;box-shadow:none;padding:12px 2px 0;color:var(--t65)}
+[data-notas="pie"] .vidrio .aviso{border-top:2px solid var(--ambar);color:var(--t80)}
+[data-notas="pie"] .vidrio :is(.nota,.aviso)>svg{background:none;box-shadow:none;padding:0;margin-top:0}
+[data-notas="pie"] .vidrio .aviso>svg{color:var(--ambar)}
+
+/* ======================================================================
+   EL COMBO (Felipe 2026-10-31: «quiero mejorar el combo también»). La pieza: ComboResponsable (48 px con avatar). Su lista flota
+   (useDestinoFlotante), entra en 240 ms, la opción activa lleva el hilo de canto y el ✓ que se dibuja (ADR-0209 / ronda de combos).
+   ====================================================================== */
+.combo{position:relative}
+.combo-boton{width:100%;display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 8px;text-align:left;cursor:pointer}
+.combo-boton .av{--t:34px}
+.combo-tx{min-width:0}.combo-tx b{display:block;font-size:13.5px;font-weight:600}.combo-tx span{display:block;font-size:12px;color:var(--t65);line-height:1.25}
+.combo-cambiar{display:none;font-size:12px;font-weight:500;color:var(--t65)}
+.combo-flecha{margin-left:auto;width:32px;height:32px;flex:none;display:grid;place-items:center;color:var(--t65);border-radius:50%}
+.combo-flecha svg{transition:transform .3s var(--ease)}
+.combo.abierto .combo-flecha svg{transform:rotate(180deg)}
+.combo-lista{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:30;padding:6px;border-radius:12px;background:var(--papel);border:1px solid var(--sand);
+  box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent);display:none}
+.combo.abierto .combo-lista{display:grid;gap:2px;animation:sube .24s var(--ease)}
+.combo-op{position:relative;display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;text-align:left}
+.combo-op .av{--t:30px}
+.combo-op .combo-tx b{font-weight:500}
+.combo-op[aria-selected="true"] .combo-tx b{font-weight:600}
+.combo-op[aria-selected="true"]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:2px;background:var(--rojo)}
+.combo-op .ok{margin-left:auto;color:var(--tinta);opacity:0}
+.combo-op[aria-selected="true"] .ok{opacity:1}
+.combo-op[aria-selected="true"] .ok path{stroke-dasharray:24;animation:traza .4s var(--ease) both;--largo:24}
+.combo-op:disabled{opacity:.55;cursor:not-allowed}
+@media (hover:hover){.combo-op:not(:disabled):hover{background:var(--hueso)}}
+
+/* el avatar en su lente de vidrio y la lista de vidrio: las tres caras la comparten */
+[data-combo] .vidrio .combo .av{background:linear-gradient(145deg,color-mix(in srgb,var(--sand) 90%,var(--vidrio)),var(--sand));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--vidrio) 70%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-combo] .vidrio .combo .av{background:var(--sand);box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-combo] .vidrio .combo-lista{border-radius:20px;padding:8px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 72%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 24px 50px -22px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"][data-combo] .vidrio .combo-lista{background:color-mix(in srgb,var(--vidrio) 86%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 24px 50px -22px var(--sombra)}
+[data-combo] .vidrio .combo-op{border-radius:14px}
+[data-combo] .vidrio .combo-op[aria-selected="true"]::before{left:5px;top:12px;bottom:12px}
+[data-combo] .vidrio .combo-op[aria-selected="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-combo] .vidrio .combo-op[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+@media (hover:hover){[data-combo] .vidrio .combo-op:not(:disabled):not([aria-selected="true"]):hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+[data-combo] .vidrio .combo.abierto .combo-boton{transform:translateY(-1px);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-combo] .vidrio .combo.abierto .combo-boton{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent),color-mix(in srgb,var(--tinta) 6%,transparent))}
+
+/* A · Pozo y gota: el cuerpo es el pozo de los campos (guarda tu dato) y la flecha, una gota que sobresale (lo que aprietas). */
+[data-combo="pozo"] .vidrio .combo-flecha{color:var(--t80);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 24%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-combo="pozo"] .vidrio .combo-flecha{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 16%,transparent),color-mix(in srgb,var(--tinta) 6%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 20%,transparent)}
+
+/* B · Ficha: el responsable es una ficha de vidrio en relieve (como las filas) con «Cambiar» a la derecha. */
+[data-combo="ficha"] .vidrio .combo-boton{border-radius:18px;border:1px solid color-mix(in srgb,var(--borde) 75%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 6px 14px -10px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-combo="ficha"] .vidrio .combo-boton{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 10%,transparent),color-mix(in srgb,var(--tinta) 4%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent)}
+[data-combo="ficha"] .vidrio .combo-boton::after{display:none}
+[data-combo="ficha"] .vidrio .combo-cambiar{display:inline;margin-left:auto}
+[data-combo="ficha"] .vidrio .combo-flecha{margin-left:0;width:24px}
+
+/* C · Píldora: compacto (44 px), una sola línea; la sede y la hora quedan en el «✓ de turno» del título. */
+[data-combo="pildora"] .vidrio .combo-boton{border-radius:999px;min-height:44px;padding:4px 6px}
+[data-combo="pildora"] .vidrio .combo-boton .av{--t:30px}
+[data-combo="pildora"] .vidrio .combo-boton .combo-tx span{display:none}
+[data-combo="pildora"] .vidrio .combo-boton::after{left:22px;right:22px}
+[data-combo="pildora"] .vidrio .combo-lista{border-radius:22px}
+
+/* ======================================================================
+   EL AVISO SOBRE EL VIDRIO (Felipe 2026-10-31: «también quiero mejorar eso»). La pieza: <Aviso tono> (la franja a la izquierda y
+   el ícono que se dibuja). Sobre la placa de 18 px, la franja de 3 px se curvaba con la esquina como una medialuna, y el ámbar
+   solo vivía en ella. Tres caras; las tres ponen el ícono en una lente ámbar que se dibuja al entrar, y valen igual para los
+   otros tonos (error, éxito, info) con su color.
+   ====================================================================== */
+:root[data-aviso] .vidrio .aviso{position:relative;isolation:isolate;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-radius:18px;padding:12px 16px 12px 14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+:root[data-tema="oscuro"][data-aviso] .vidrio .aviso{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 7%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+:root[data-aviso] .vidrio .aviso>svg{color:var(--ambar);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--ambar) 16%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--ambar) 8%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--ambar) 22%,transparent),0 4px 10px -6px color-mix(in srgb,var(--ambar) 45%,transparent)}
+:root[data-tema="oscuro"][data-aviso] .vidrio .aviso>svg{background:linear-gradient(145deg,color-mix(in srgb,var(--ambar) 22%,transparent),color-mix(in srgb,var(--ambar) 8%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 0 0 1px color-mix(in srgb,var(--ambar) 25%,transparent)}
+:root[data-aviso] .vidrio.entra .aviso>svg path{stroke-dasharray:70;animation:traza .7s .5s var(--ease) backwards;--largo:70}
+
+/* A · Filo: la franja se despega del borde y queda como un filo ámbar redondeado adentro; un tinte ámbar nace desde ella. */
+:root[data-aviso="filo"] .vidrio .aviso{padding-left:22px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--ambar) 11%,transparent),transparent 55%),linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent))}
+:root[data-tema="oscuro"][data-aviso="filo"] .vidrio .aviso{background:linear-gradient(90deg,color-mix(in srgb,var(--ambar) 13%,transparent),transparent 55%),linear-gradient(180deg,color-mix(in srgb,var(--tinta) 7%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent))}
+:root[data-aviso="filo"] .vidrio .aviso::before{content:"";position:absolute;left:8px;top:12px;bottom:12px;width:3px;border-radius:3px;background:var(--ambar);transform-origin:top}
+:root[data-aviso="filo"] .vidrio.entra .aviso::before{animation:filo-baja .5s .35s var(--ease) backwards}
+@keyframes filo-baja{from{transform:scaleY(0)}}
+
+/* B · Lente: sin franja. La señal es la lente ámbar (más grande) y un borde ámbar tenue alrededor de toda la placa. */
+:root[data-aviso="lente"] .vidrio .aviso{border-color:color-mix(in srgb,var(--ambar) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 7%,color-mix(in srgb,var(--vidrio) 45%,transparent)),color-mix(in srgb,var(--vidrio) 20%,transparent))}
+:root[data-tema="oscuro"][data-aviso="lente"] .vidrio .aviso{border-color:color-mix(in srgb,var(--ambar) 30%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 9%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent))}
+:root[data-aviso="lente"] .vidrio .aviso>svg{width:18px;height:18px;padding:9px}
+
+/* C · Borde de luz: el borde de la placa se enciende de ámbar desde la izquierda y se apaga hacia la derecha (el filo de Mi perfil, quieto). */
+:root[data-aviso="luz"] .vidrio .aviso{border-color:transparent}
+:root[data-aviso="luz"] .vidrio .aviso::after{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;pointer-events:none;
+  background:linear-gradient(90deg,var(--ambar),color-mix(in srgb,var(--ambar) 35%,transparent) 40%,color-mix(in srgb,var(--vidrio) 60%,transparent) 75%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+:root[data-tema="oscuro"][data-aviso="luz"] .vidrio .aviso::after{background:linear-gradient(90deg,var(--ambar),color-mix(in srgb,var(--ambar) 30%,transparent) 40%,color-mix(in srgb,var(--tinta) 10%,transparent) 75%)}
+:root[data-aviso="luz"] .vidrio .aviso{background:linear-gradient(90deg,color-mix(in srgb,var(--ambar) 7%,transparent),transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent))}
+:root[data-tema="oscuro"][data-aviso="luz"] .vidrio .aviso{background:linear-gradient(90deg,color-mix(in srgb,var(--ambar) 9%,transparent),transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--tinta) 7%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent))}
+
+/* ======================================================================
+   LA PLANILLA (Felipe 2026-10-31: «quiero mejorar ese tipo de tablas y darle más animaciones»). La matriz de tallas de Ajustar
+   inventario: 12 pasos de cantidad con borde, todos iguales, y el cambio solo se notaba por un anillo gris. Ahora la planilla dice
+   cuánto cambió cada talla (+1 / −1), suma cada color y el número rueda al tocar −/+. El movimiento es el vocabulario que ya existe en
+   «Ajustar stock» de Existencias (ADR-0494): luz que cruza, filas en cascada, celdas en ola, número que rueda, cada talla que se sella
+   al guardar y cifras que cuentan. Una vez, sin rebote ni bucle, apagado con prefers-reduced-motion. Tres caras para elegir mirando.
+   ====================================================================== */
+.tabla .tot,.delta{display:none}
+.paso{position:relative}
+.rueda{display:inline-grid;overflow:hidden;height:1.5em;line-height:1.5em;vertical-align:middle}
+.rueda b{grid-area:1/1;display:block;font-variant-numeric:tabular-nums;min-width:22px;text-align:center}
+.rueda b.entra-arriba{animation:rueda-ea .28s var(--ease) both}.rueda b.sale-arriba{animation:rueda-sa .28s var(--ease) both}
+.rueda b.entra-abajo{animation:rueda-eb .28s var(--ease) both}.rueda b.sale-abajo{animation:rueda-sb .28s var(--ease) both}
+@keyframes rueda-ea{from{transform:translateY(100%)}}@keyframes rueda-sa{to{transform:translateY(-100%)}}
+@keyframes rueda-eb{from{transform:translateY(-100%)}}@keyframes rueda-sb{to{transform:translateY(100%)}}
+
+/* lo común de las tres caras */
+[data-tabla] .vidrio .planilla .tabla .tot{display:table-cell;text-align:right;padding-right:16px;font-weight:600}
+[data-tabla] .vidrio .planilla .tabla th.tot{font-weight:600}
+[data-tabla] .vidrio .planilla .delta{display:block;position:absolute;top:-9px;right:-8px;z-index:2;font-style:normal;font-size:10.5px;font-weight:700;line-height:1;padding:3px 6px;border-radius:99px;
+  color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 14%,color-mix(in srgb,var(--vidrio) 85%,transparent));box-shadow:0 0 0 1px color-mix(in srgb,var(--pizarra) 30%,transparent);
+  opacity:0;transform:scale(.6);transition:opacity .25s var(--ease),transform .3s var(--ease);pointer-events:none}
+[data-tema="oscuro"][data-tabla] .vidrio .planilla .delta{background:color-mix(in srgb,var(--pizarra) 20%,var(--papel))}
+[data-tabla] .vidrio .planilla .paso.cambio .delta{opacity:1;transform:none}
+[data-tabla] .vidrio .planilla .delta.pop{animation:delta-pop .35s var(--ease)}
+@keyframes delta-pop{from{transform:scale(.6);opacity:0}}
+[data-tabla] .vidrio .planilla .paso.cambio b{color:var(--pizarra);font-weight:700}
+/* la cruz: al pasar el mouse se iluminan su fila y su talla (responde al mouse, nunca se mueve sola) */
+[data-tabla] .vidrio .planilla :is(th,td){transition:background-color .25s,color .25s}
+[data-tabla] .vidrio .planilla th.cruz{color:var(--tinta)}
+[data-tabla] .vidrio .planilla :is(td.cruz,tr.cruz td){background-color:color-mix(in srgb,var(--tinta) 4%,transparent)}
+/* el sello al guardar: cada talla que cambió se estampa, una tras otra */
+.paso .sello{position:absolute;left:-8px;top:-9px;z-index:3;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:var(--verde);
+  background:color-mix(in srgb,var(--verde) 16%,var(--papel));box-shadow:0 0 0 1px color-mix(in srgb,var(--verde) 35%,transparent);animation:sello .42s var(--ease) both;animation-delay:var(--s,0ms)}
+.paso .sello svg{width:12px;height:12px;stroke-width:3}
+@keyframes sello{from{opacity:0;transform:scale(1.8)}to{opacity:1;transform:none}}
+.paso.sellada{border-color:var(--verde)!important;transition:border-color .3s var(--delay,0ms)}
+
+/* la entrada: la luz cruza la planilla, las filas bajan en cascada y las celdas se encienden en ola diagonal */
+[data-tabla] .vidrio .planilla{position:relative}
+[data-tabla] .vidrio.entra .planilla::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--vidrio) 75%,transparent) 50%,transparent 70%);transform:translateX(-110%);animation:barrido 1.1s .35s var(--ease) both}
+[data-tema="oscuro"][data-tabla] .vidrio.entra .planilla::after{background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--tinta) 10%,transparent) 50%,transparent 70%)}
+@keyframes barrido{to{transform:translateX(110%)}}
+[data-tabla] .vidrio.entra .planilla tbody tr{animation:sube .45s var(--ease) backwards;animation-delay:calc(320ms + var(--f,0) * 70ms)}
+[data-tabla] .vidrio.entra .planilla td[data-c] .paso{animation:enfoca .45s var(--ease) backwards;animation-delay:calc(440ms + (var(--f,0) + var(--c,0)) * 45ms)}
+[data-tabla] .vidrio.entra .planilla .tot .rueda b{animation:rueda-ea .5s var(--ease) backwards;animation-delay:calc(700ms + var(--f,0) * 70ms)}
+
+/* A · Celdas vivas: la planilla muestra números, no 12 cajas. La caja de cada talla aparece al pasar el mouse o con el foco (en una
+   pantalla táctil, siempre); lo que cambió sube como la gota, con su diferencia. */
+[data-tabla="vivas"] .vidrio .planilla .paso{border-color:transparent;background:color-mix(in srgb,var(--tinta) 3%,transparent);box-shadow:none;border-radius:999px;height:34px;
+  transition:background .25s,border-color .25s,box-shadow .25s}
+[data-tabla="vivas"] .vidrio .planilla .paso b{font-size:15px}
+[data-tabla="vivas"] .vidrio .planilla .paso button{opacity:.35;transition:opacity .2s}
+@media (hover:hover){
+  [data-tabla="vivas"] .vidrio .planilla td:hover .paso{border-color:var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+  [data-tabla="vivas"] .vidrio .planilla td:hover .paso button{opacity:1}
+}
+@media (hover:none){[data-tabla="vivas"] .vidrio .planilla .paso button{opacity:1}}
+[data-tabla="vivas"] .vidrio .planilla td:focus-within .paso{border-color:var(--borde)}
+[data-tabla="vivas"] .vidrio .planilla td:focus-within .paso button{opacity:1}
+[data-tabla="vivas"] .vidrio .planilla .paso.cambio{border-color:color-mix(in srgb,var(--pizarra) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 3px color-mix(in srgb,var(--pizarra) 16%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-tabla="vivas"] .vidrio .planilla .paso{background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:none}
+[data-tema="oscuro"][data-tabla="vivas"] .vidrio .planilla .paso.cambio{background:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--pizarra) 22%,transparent)}
+
+/* B · Filas de vidrio: cada color es una placa de vidrio (como las filas) y sus tallas, pozos en píldora; lo que cambió sube como la gota. */
+[data-tabla="filas"] .vidrio .planilla{background:transparent;border:0;overflow:visible}
+[data-tabla="filas"] .vidrio .planilla .tabla{border-collapse:separate;border-spacing:0 8px;margin-top:-8px}
+[data-tabla="filas"] .vidrio .planilla th{background:transparent;border:0;padding-bottom:0}
+[data-tabla="filas"] .vidrio .planilla tbody td{border:0;padding:10px 6px;border-top:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);border-bottom:1px solid color-mix(in srgb,var(--vidrio) 35%,transparent);
+  background-image:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent))}
+[data-tabla="filas"] .vidrio .planilla tbody td:first-child{border-radius:18px 0 0 18px;border-left:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);padding-left:16px}
+[data-tabla="filas"] .vidrio .planilla tbody td:last-child{border-radius:0 18px 18px 0;border-right:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent)}
+[data-tema="oscuro"][data-tabla="filas"] .vidrio .planilla tbody td{border-color:color-mix(in srgb,var(--tinta) 9%,transparent);background-image:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 7%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent))}
+[data-tabla="filas"] .vidrio .planilla .paso{border-radius:999px;height:32px}
+[data-tabla="filas"] .vidrio .planilla .paso.cambio{border-color:color-mix(in srgb,var(--pizarra) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 3px color-mix(in srgb,var(--pizarra) 16%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-tabla="filas"] .vidrio .planilla .paso.cambio{background:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--pizarra) 22%,transparent)}
+
+/* C · Baldosas: cada color es una tarjeta y cada talla, una baldosa hundida con su número grande en serif; la que cambió sube. */
+[data-tabla="baldosas"] .vidrio .planilla{background:transparent;border:0;overflow:visible}
+[data-tabla="baldosas"] .vidrio .planilla :is(.tabla,tbody){display:block}
+[data-tabla="baldosas"] .vidrio .planilla thead{display:none}
+[data-tabla="baldosas"] .vidrio .planilla tbody{display:grid;gap:10px}
+[data-tabla="baldosas"] .vidrio .planilla tbody tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px;border-radius:20px;
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-tabla="baldosas"] .vidrio .planilla tbody tr{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 7%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent));box-shadow:none}
+[data-tabla="baldosas"] .vidrio .planilla td{border:0;padding:0;text-align:left}
+[data-tabla="baldosas"] .vidrio .planilla td:first-child{grid-column:1/4;grid-row:1;display:flex;align-items:center;font-weight:600;padding:2px 4px}
+[data-tabla="baldosas"] .vidrio .planilla td.tot{display:block;grid-column:4/5;grid-row:1;text-align:right;padding:2px 4px;font-size:13px;color:var(--t65);font-weight:500}
+[data-tabla="baldosas"] .vidrio .planilla td.tot::before{content:"Total ";font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+[data-tabla="baldosas"] .vidrio .planilla td[data-talla]{position:relative;display:grid;justify-items:center;gap:2px;padding:10px 4px 8px;border-radius:16px;border:1px solid var(--borde);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);transition:background .3s,box-shadow .3s,transform .3s var(--ease)}
+[data-tema="oscuro"][data-tabla="baldosas"] .vidrio .planilla td[data-talla]{background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tabla="baldosas"] .vidrio .planilla td[data-talla]::before{content:attr(data-talla);font-size:10.5px;letter-spacing:.12em;font-weight:600;color:var(--t65)}
+:root[data-tabla="baldosas"] .vidrio .planilla :is(.paso,.paso.cambio,.paso.sellada){position:static;height:auto;border:0;background:none;box-shadow:none;gap:4px}
+[data-tabla="baldosas"] .vidrio .planilla .paso b{font-family:'EB Garamond',serif;font-size:26px;font-weight:500}
+[data-tabla="baldosas"] .vidrio .planilla .paso button{width:26px;height:26px;border-radius:50%;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 24%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+[data-tema="oscuro"][data-tabla="baldosas"] .vidrio .planilla .paso button{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+[data-tabla="baldosas"] .vidrio .planilla .delta{top:6px;right:6px}
+[data-tabla="baldosas"] .vidrio .planilla .sello{left:6px;top:6px}
+[data-tabla="baldosas"] .vidrio .planilla td[data-talla]:has(.paso.cambio){transform:translateY(-1px);border-color:color-mix(in srgb,var(--pizarra) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 3px color-mix(in srgb,var(--pizarra) 16%,transparent),0 8px 16px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-tabla="baldosas"] .vidrio .planilla td[data-talla]:has(.paso.cambio){background:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--pizarra) 22%,transparent)}
+[data-tabla="baldosas"] .vidrio .planilla td[data-talla]:has(.paso.sellada){border-color:var(--verde)}
+
+/* el celular: la cifra del total se va (cabe en la fila de las baldosas) y los pasos se compactan */
+@container disp (max-width:520px){
+  [data-tabla]:not([data-tabla="baldosas"]) .vidrio .planilla .tabla .tot{display:none}
+  [data-tabla="vivas"] .vidrio .planilla .paso,[data-tabla="filas"] .vidrio .planilla .paso{height:30px}
+  [data-tabla="filas"] .vidrio .planilla tbody td:first-child{padding-left:10px}
+  [data-barra="etiquetas"] .vidrio .tramo em span{display:none}
+  [data-barra="etiquetas"] .vidrio .tramo{padding:0 10px}
+  [data-tabla="baldosas"] .vidrio .planilla .paso b{font-size:24px}
+  [data-tabla="baldosas"] .vidrio .planilla tbody tr{grid-template-columns:repeat(2,minmax(0,1fr))}
+  [data-tabla="baldosas"] .vidrio .planilla td:first-child{grid-column:1/2}
+  [data-tabla="baldosas"] .vidrio .planilla td.tot{grid-column:2/3}
+  [data-tabla="filas"] .vidrio .planilla tbody td{padding:8px 2px;font-size:13px}
+  [data-tabla="filas"] .vidrio .planilla tbody td:first-child{padding-left:10px}
+  [data-tabla="filas"] .vidrio .planilla .color-dot{margin-right:5px}
+  [data-tabla="baldosas"] .vidrio .planilla .paso button{width:22px;height:22px}
+}
+
+/* ======================================================================
+   LA BARRA DE PAGOS (Felipe 2026-10-31: «también quiero mejorar esa barra»). La pieza: <BarraApilada> (pista de arena, entra tramo a
+   tramo, el tramo apuntado se estira y los demás bajan). Sobre el vidrio eran dos bloques planos y saturados, sin decir cuánto es cada
+   uno salvo en la línea de abajo. Tres caras; las tres dicen cuánto y qué parte es cada medio, y el total cuenta al abrir.
+   ====================================================================== */
+.tramo{flex:var(--p) 1 0;background:var(--col);min-width:0}
+.tramo em{display:none}
+.leyenda{display:none;list-style:none}
+[data-barra] .vidrio .pagos-hoy{display:none}
+[data-barra] .vidrio .leyenda{display:grid;gap:6px;margin-top:12px}
+[data-barra] .vidrio .leyenda li{display:flex;align-items:center;gap:10px;font-size:13px}
+[data-barra] .vidrio .leyenda .muestra{width:10px;height:10px;border-radius:50%;flex:none;background:var(--col);box-shadow:0 0 0 3px color-mix(in srgb,var(--col) 18%,transparent)}
+[data-barra] .vidrio .leyenda b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+[data-barra] .vidrio .leyenda .pct{width:44px;text-align:right;color:var(--t65);font-variant-numeric:tabular-nums}
+[data-barra] .vidrio .leyenda .ico,[data-barra] .vidrio .leyenda .parte{display:none}
+/* el tramo apuntado se estira y los demás bajan (la pieza ya lo hace) */
+[data-barra] .vidrio .tramo{transition:flex-grow .4s var(--ease),opacity .25s,filter .25s}
+@media (hover:hover){
+  [data-barra] .vidrio .barra:hover .tramo{opacity:.45}
+  [data-barra] .vidrio .barra .tramo:hover{opacity:1;flex-grow:calc(var(--p) * 1.15)}
+}
+/* la entrada: cada tramo crece desde la izquierda, uno tras otro; la leyenda llega en cascada */
+[data-barra] .vidrio.entra .tramo{transform-origin:left;animation:tramo-entra .6s var(--ease) backwards;animation-delay:calc(480ms + var(--k,0) * 160ms)}
+@keyframes tramo-entra{from{transform:scaleX(0);opacity:0}}
+[data-barra] .vidrio.entra .leyenda li{animation:sube .45s var(--ease) backwards;animation-delay:calc(620ms + var(--k,0) * 90ms)}
+
+/* A · Tubo de vidrio: la pista es un pozo (como los campos) y cada tramo, vidrio de color con su luz arriba. Debajo, cada medio con
+   su monto y su parte. */
+[data-barra="tubo"] .vidrio .barra{height:16px;padding:3px;gap:3px;border-radius:99px;overflow:visible;
+  background:color-mix(in srgb,var(--tinta) 6%,transparent);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"][data-barra="tubo"] .vidrio .barra{background:color-mix(in srgb,var(--sombra) 30%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-barra="tubo"] .vidrio .tramo{border-radius:99px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--col) 62%,var(--vidrio)),var(--col) 70%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent),0 3px 8px -3px color-mix(in srgb,var(--col) 60%,transparent)}
+[data-tema="oscuro"][data-barra="tubo"] .vidrio .tramo{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 80%,var(--tinta)),var(--col) 70%)}
+
+/* B · Etiquetas: la barra se engrosa y cada tramo dice adentro qué es, cuánto y qué parte; no necesita leyenda. */
+[data-barra="etiquetas"] .vidrio .barra{height:38px;gap:4px;border-radius:14px;overflow:visible;background:transparent}
+[data-barra="etiquetas"] .vidrio .tramo{display:flex;align-items:center;padding:0 12px;border-radius:12px;overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--col) 72%,var(--vidrio)),color-mix(in srgb,var(--col) 92%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent),0 6px 14px -8px color-mix(in srgb,var(--col) 70%,transparent)}
+[data-tema="oscuro"][data-barra="etiquetas"] .vidrio .tramo{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 85%,var(--tinta)),var(--col))}
+[data-barra="etiquetas"] .vidrio .tramo em{display:block;font-style:normal;font-size:12.5px;font-weight:600;color:var(--txt,var(--tinta-fija));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-barra="etiquetas"] .vidrio .tramo em span{font-weight:500;opacity:.8}
+[data-barra="etiquetas"] .vidrio.entra .tramo em{animation:funde .4s var(--ease) backwards;animation-delay:calc(900ms + var(--k,0) * 160ms)}
+[data-barra="etiquetas"] .vidrio .leyenda{display:none}
+[data-tema="oscuro"] .tramo{--txt:var(--tinta-fija)!important}
+
+/* C · Fichas: cada medio es una fila de vidrio con su ícono en una lente, su monto y una barra fina de su parte; arriba, la barra delgada. */
+[data-barra="fichas"] .vidrio .barra{height:6px;gap:2px;background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+[data-barra="fichas"] .vidrio .leyenda{gap:8px}
+[data-barra="fichas"] .vidrio .leyenda li{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:4px 12px;padding:10px 14px 10px 10px;border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-barra="fichas"] .vidrio .leyenda li{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-barra="fichas"] .vidrio .leyenda .muestra{display:none}
+[data-barra="fichas"] .vidrio .leyenda .ico{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;grid-row:1/3;color:var(--col);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--col) 18%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--col) 8%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--col) 25%,transparent)}
+[data-tema="oscuro"][data-barra="fichas"] .vidrio .leyenda .ico{background:color-mix(in srgb,var(--col) 18%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--col) 30%,transparent)}
+[data-barra="fichas"] .vidrio .leyenda .nombre{font-weight:600}
+[data-barra="fichas"] .vidrio .leyenda b{margin-left:0;grid-column:3}
+[data-barra="fichas"] .vidrio .leyenda .pct{grid-column:4}
+[data-barra="fichas"] .vidrio .leyenda .parte{display:block;grid-column:2/5;height:4px;border-radius:99px;background:color-mix(in srgb,var(--tinta) 7%,transparent);overflow:hidden}
+[data-barra="fichas"] .vidrio .leyenda .parte span{display:block;height:100%;width:calc(var(--p) * 1%);border-radius:inherit;background:var(--col);transform-origin:left}
+[data-barra="fichas"] .vidrio.entra .leyenda .parte span{animation:tramo-entra .6s var(--ease) backwards;animation-delay:calc(800ms + var(--k,0) * 120ms)}
+
+/* ======================================================================
+   LA LISTA DE PRENDAS (Felipe 2026-10-31: «quiero mejorar eso también»). La de «Detalle de la venta»: una losa casi papel con tres filas
+   y una muestra de color plana. Dos cosas se arreglan en todas las caras: la prenda sin foto se dibuja como manda ADR-0333 (el ícono de
+   su categoría sobre su color, `MosaicoPrenda`; el color es dato y no cambia con el tema) y la talla y el color dejan de ser texto corrido.
+   ====================================================================== */
+.prendas-lista{list-style:none;display:grid}
+.prendas-lista li{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px}
+.prendas-lista li+li{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.mosaico-prenda{position:relative;flex:none;width:40px;height:50px;border-radius:10px;display:grid;place-items:center;color:var(--crema-fija)}
+.mosaico-prenda.claro{color:var(--tinta-fija)}
+.mosaico-prenda svg{width:18px;height:18px;opacity:.85}
+.mosaico-prenda .talla{display:none}
+.pr-tx{flex:1;min-width:0}.pr-tx b{display:block;font-size:14px;font-weight:600}
+.pr-det{display:block;font-size:12px;color:var(--t65)}
+.pr-det>span+span::before{content:" · "}
+.pr-color i,.guia{display:none}
+.pr-precio{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* lo común de las tres caras nuevas: la muestra es una lente con su luz, la talla una pastilla y el color su punto */
+[data-prendas] .vidrio .mosaico-prenda{width:46px;height:56px;border-radius:14px;
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema-fija) 35%,transparent),inset 0 -8px 16px -10px color-mix(in srgb,var(--tinta-fija) 35%,transparent),0 8px 16px -10px color-mix(in srgb,var(--sombra) 55%,transparent);
+  transition:transform .3s var(--ease)}
+[data-prendas] .vidrio .pr-det{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:3px}
+[data-prendas] .vidrio .pr-det>span+span::before{content:none}
+[data-prendas] .vidrio .pr-talla{display:inline-grid;place-items:center;min-width:24px;height:20px;padding:0 7px;border-radius:99px;font-size:11px;font-weight:700;color:var(--tinta);
+  background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-prendas] .vidrio .pr-color{display:inline-flex;align-items:center;gap:5px}
+[data-prendas] .vidrio .pr-color i{display:block;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1px var(--t25)}
+[data-prendas] .vidrio .pr-precio{font-family:'EB Garamond',serif;font-weight:500;font-size:19px}
+@media (hover:hover){[data-prendas] .vidrio .prendas-lista li:hover .mosaico-prenda{transform:scale(1.05) rotate(-2deg)}}
+/* la entrada: cada prenda se enfoca en cascada y su lente aparece */
+[data-prendas] .vidrio.entra .prendas-lista li{animation:enfoca .5s var(--ease) backwards;animation-delay:calc(330ms + var(--k,0) * 80ms)}
+[data-prendas] .vidrio.entra .mosaico-prenda{animation:lente-prenda .6s var(--ease) backwards;animation-delay:calc(390ms + var(--k,0) * 80ms)}
+@keyframes lente-prenda{from{opacity:0;transform:scale(.7);filter:blur(4px)}}
+
+/* A · Filas de vidrio: cada prenda es su propia fila de vidrio, como los destinos y los datos de Mi perfil. */
+[data-prendas="filas"] .vidrio .prendas{background:transparent;border:0;overflow:visible}
+[data-prendas="filas"] .vidrio .prendas-lista{gap:8px}
+[data-prendas="filas"] .vidrio .prendas-lista li{padding:10px 16px 10px 10px;border-radius:18px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent);
+  transition:transform .25s var(--ease),background .25s}
+[data-tema="oscuro"][data-prendas="filas"] .vidrio .prendas-lista li{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+@media (hover:hover){[data-prendas="filas"] .vidrio .prendas-lista li:hover{transform:translateY(-1px);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 32%,transparent))}}
+
+/* B · Lámina de vidrio: una sola placa de vidrio (no papel), las prendas separadas por un hilo que empieza después de la lente,
+   y la talla como una insignia sobre la esquina de la lente. */
+[data-prendas="lamina"] .vidrio .prendas{border-radius:20px;border-color:color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-prendas="lamina"] .vidrio .prendas{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-prendas="lamina"] .vidrio .prendas-lista li{padding:12px 16px}
+[data-prendas="lamina"] .vidrio .prendas-lista li+li{border-top:0}
+[data-prendas="lamina"] .vidrio .prendas-lista li+li::before{content:"";position:absolute;top:0;left:76px;right:16px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+[data-prendas="lamina"] .vidrio .mosaico-prenda .talla{display:grid;place-items:center;position:absolute;right:-7px;bottom:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:99px;
+  font-style:normal;font-size:10.5px;font-weight:700;color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 72%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px var(--t12),0 3px 8px -4px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-prendas="lamina"] .vidrio .mosaico-prenda .talla{background:var(--hueso);box-shadow:0 0 0 1px var(--t12)}
+[data-prendas="lamina"] .vidrio .pr-talla{display:none}
+@media (hover:hover){[data-prendas="lamina"] .vidrio .prendas-lista li:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}}
+[data-prendas="lamina"] .vidrio .prendas-lista li:first-child{border-radius:20px 20px 0 0}
+[data-prendas="lamina"] .vidrio .prendas-lista li:last-child{border-radius:0 0 20px 20px}
+
+/* C · Ticket vivo: una línea por prenda, como en un ticket: lente chica, nombre y talla, puntos guía hasta el precio. */
+[data-prendas="ticket"] .vidrio .prendas{border-radius:20px;border-color:color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-prendas="ticket"] .vidrio .prendas{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-prendas="ticket"] .vidrio .prendas-lista{padding:6px 0}
+[data-prendas="ticket"] .vidrio .prendas-lista li{gap:10px;padding:7px 16px}
+[data-prendas="ticket"] .vidrio .prendas-lista li+li{border-top:0}
+[data-prendas="ticket"] .vidrio .mosaico-prenda{width:32px;height:32px;border-radius:10px}
+[data-prendas="ticket"] .vidrio .mosaico-prenda svg{width:15px;height:15px}
+[data-prendas="ticket"] .vidrio .pr-tx{flex:0 1 auto;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden}
+[data-prendas="ticket"] .vidrio .pr-tx b{display:inline}
+[data-prendas="ticket"] .vidrio .pr-det{margin-top:0;flex-wrap:nowrap}
+[data-prendas="ticket"] .vidrio .pr-q{display:none}
+[data-prendas="ticket"] .vidrio .guia{display:block;flex:1;min-width:18px;align-self:center;height:0;border-bottom:1.5px dotted var(--t25);transform:translateY(4px)}
+[data-prendas="ticket"] .vidrio .pr-precio{font-size:17px}
+[data-prendas="ticket"] .vidrio.entra .guia{transform-origin:left;animation:guia-dibuja .5s var(--ease) backwards;animation-delay:calc(520ms + var(--k,0) * 80ms)}
+@keyframes guia-dibuja{from{transform:translateY(4px) scaleX(0)}}
+@container disp (max-width:520px){[data-prendas="ticket"] .vidrio .pr-color{display:none}}
+
+/* la entrada del vidrio: la de Mi perfil */
+.hoja.vidrio.entra{animation:vid-entra .62s var(--ease) both}
+.hoja.vidrio.cajon.entra{animation:vid-cajon .6s var(--ease) both}
+@keyframes vid-entra{from{opacity:0;transform:translateY(18px) scale(.94);filter:blur(10px)}to{opacity:1;transform:none;filter:none}}
+@keyframes vid-cajon{from{opacity:0;transform:translateX(48px) scale(.97);filter:blur(10px)}to{opacity:1;transform:none;filter:none}}
+.vidrio.entra .v-filo{animation:filo-gira 1.6s .1s var(--ease) both}
+@keyframes filo-gira{from{--ang:-160deg}}
+.vidrio.entra .h-tit span{animation:ranura .7s var(--ease) backwards;animation-delay:calc(.18s + var(--i,0) * 70ms)}
+
+/* la cascada de siempre (ADR-0136): título, bajada y campos, 55 ms de desfase */
+.entra .cas>*{animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--i,0) * 55ms + 120ms)}
+.vidrio.entra .cas>*{animation-name:enfoca;animation-duration:.55s;animation-delay:calc(var(--i,0) * 55ms + 260ms)}
+@keyframes enfoca{from{opacity:0;filter:blur(8px);transform:translateY(6px)}to{opacity:1;filter:none;transform:none}}
+
+/* el celular: la hoja llega desde abajo, con su asa (ADR-0479) */
+@container disp (max-width:520px){
+  .capa,.capa.lado{align-items:flex-end;justify-content:stretch;padding:0}
+  .hoja,.hoja.cajon{width:100%;max-height:92%;height:auto;margin:0;border-radius:24px 24px 0 0!important;padding-top:28px}
+  .hoja.cajon{height:88%;padding-top:16px}
+  .hoja.vidrio{padding-left:18px;padding-right:18px;border-radius:26px 26px 0 0!important}
+  .hoja.vidrio.cajon{padding:16px 0 0}
+  .hoja.entra,.hoja.cajon.entra{animation:hoja-movil .5s var(--ease) both!important}
+  .asa{display:block;position:absolute;top:8px;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:99px;background:var(--t25);z-index:6}
+  .cerrar{top:14px;right:12px}
+  .dos,.cifras{grid-template-columns:minmax(0,1fr)}
+  .pie .btn{flex:1 1 auto}.mosaico{grid-template-columns:1fr 1fr}
+  .vidrio .h-tit{font-size:26px}
+  .seg{grid-auto-columns:minmax(0,1fr)}.seg button{font-size:12.5px;padding:0 4px}.seg button svg{display:none}
+  .tabla .paso button{width:20px}.tabla th,.tabla td{padding-left:2px;padding-right:2px}
+}
+@keyframes hoja-movil{from{transform:translateY(100%)}to{transform:none}}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- el análisis ---------- */
+.analisis{max-width:1180px;margin:34px auto 60px;padding:0 16px;display:grid;gap:18px}
+.analisis section{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 24px}
+.analisis h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.15;margin-bottom:6px}
+.analisis h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:16px 0 8px}
+.analisis p,.analisis li{font-size:14px;color:var(--t80);max-width:80ch}
+.analisis ul,.analisis ol{padding-left:20px;display:grid;gap:6px}
+.analisis b{color:var(--tinta)}
+.analisis code{font-size:12.5px;background:var(--hueso);padding:1px 6px;border-radius:6px}
+.analisis table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.analisis th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:left;padding:8px 10px;border-bottom:1px solid var(--sand)}
+.analisis td{padding:8px 10px;border-bottom:1px solid var(--sand);vertical-align:top;color:var(--t80)}
+.analisis td:nth-child(2){font-variant-numeric:tabular-nums}
+.ev{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:6px;vertical-align:1px}
+.ev.med{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+.ev.obs{background:color-mix(in srgb,var(--pizarra) 14%,transparent);color:var(--pizarra)}
+.ev.op{background:color-mix(in srgb,var(--ambar) 14%,transparent);color:var(--ambar)}
+.dos-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:860px){.dos-col{grid-template-columns:1fr}}
+.reco{border-color:var(--tinta)!important}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Modales con el vidrio de Mi perfil</span>
+  <span class="tag">Vista</span><div class="seg-m" data-ctl="vista"><button data-v="hoy">Hoy</button><button data-v="vidrio">Vidrio</button><button data-v="lado">Lado a lado</button></div>
+  <span class="tag">Vidrio</span><div class="seg-m" data-ctl="intensidad"><button data-v="completa" title="Como Mi perfil: filo y brillo que siguen al mouse">Completa</button><button data-v="serena">Serena</button></div>
+  <span class="tag">Campos</span><div class="seg-m" data-ctl="campos"><button data-v="ahora">Como ahora</button><button data-v="hundido">A · Hundido ✓</button><button data-v="placa">B · Placa</button><button data-v="hilo">C · Hilo</button></div>
+  <span class="tag">Botones</span><div class="seg-m" data-ctl="botones"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota ✓</button><button data-v="placa">B · Placa</button><button data-v="humo">C · Humo</button></div>
+  <span class="tag">Notas</span><div class="seg-m" data-ctl="notas"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa ✓</button><button data-v="tinte">B · Tinte</button><button data-v="pie">C · Al pie</button></div>
+  <span class="tag">Combo</span><div class="seg-m" data-ctl="combo"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo y gota ✓</button><button data-v="ficha">B · Ficha</button><button data-v="pildora">C · Píldora</button></div>
+  <span class="tag">Aviso</span><div class="seg-m" data-ctl="aviso"><button data-v="ahora">Como ahora</button><button data-v="filo">A · Filo</button><button data-v="lente">B · Lente ✓</button><button data-v="luz">C · Borde de luz</button></div>
+  <span class="tag">Tabla</span><div class="seg-m" data-ctl="tabla"><button data-v="ahora">Como ahora</button><button data-v="vivas">A · Celdas vivas ✓</button><button data-v="filas">B · Filas de vidrio</button><button data-v="baldosas">C · Baldosas</button></div>
+  <span class="tag">Barra</span><div class="seg-m" data-ctl="barra"><button data-v="ahora">Como ahora</button><button data-v="tubo">A · Tubo ✓</button><button data-v="etiquetas">B · Etiquetas</button><button data-v="fichas">C · Fichas</button></div>
+  <span class="tag">Prendas</span><div class="seg-m" data-ctl="prendas"><button data-v="ahora">Como ahora</button><button data-v="filas">A · Filas de vidrio</button><button data-v="lamina">B · Lámina ✓</button><button data-v="ticket">C · Ticket vivo</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+  <button class="repetir" id="repetir">↻ Ver la entrada otra vez</button>
+</div>
+
+<div class="envoltura">
+  <div class="elegir" id="elegir"></div>
+  <div class="ficha" id="ficha"></div>
+  <div class="escena" id="escena"></div>
+</div>
+
+<div class="analisis">
+  <section>
+    <h2>Qué hace al vidrio de «Mi perfil»</h2>
+    <p>Lo que se lleva a cada modal en esta simulación son las mismas piezas de <code>app/estilos/perfil-vidrio.css</code>, sin inventar otras:</p>
+    <ol>
+      <li><b>La hoja es vidrio esmerilado</b>: <code>--color-vidrio</code> al 54 %, desenfoque de 28 px y saturación 1,9 de lo que hay atrás. Radio de 32 px (hoy, 16).</li>
+      <li><b>Un borde que capta la luz</b> (una línea clara por dentro, arriba) y <b>una sombra larga</b>: es la única hoja con sombra del ERP, la excepción de «hojas sin sombra» de la ronda 12.</li>
+      <li><b>El filo</b>: un degradado cónico en el borde que da una vuelta al entrar y después gira hacia el mouse. <b>El brillo</b>: una mancha de luz que sigue al mouse por debajo del contenido.</li>
+      <li><b>Un velo más liviano</b> (16 % en vez de 25 %, casi sin desenfoque) para que se vea lo de atrás a través del vidrio.</li>
+      <li><b>La cabecera propia</b>: el título en serif de 30 px, que sube palabra por palabra por su ranura.</li>
+      <li><b>El segmento con gota</b>: «Tú · Cuenta · Seguridad» en una pista hundida, con una gota de vidrio que se estira hasta la pestaña nueva.</li>
+      <li><b>Filas de vidrio</b>: cada dato o destino es una placa translúcida de 18 px de radio con su ícono en una baldosa de 34 px; las cajas de texto también se vuelven translúcidas.</li>
+    </ol>
+    <p style="margin-top:10px">Y todo se mueve <b>una sola vez</b>: la hoja entra desenfocada (620 ms en vez de 340), el contenido «se enfoca» en cascada. Es la excepción de ADR-0136 del 2026-10-31.</p>
+  </section>
+
+  <section>
+    <h2>Lo que hay hoy: 275 modales y 14 cajones</h2>
+    <p>Contado en el código el 2026-10-31 (archivos que dibujan <code>&lt;Modal&gt;</code> o <code>&lt;ModalRuta&gt;</code>; un archivo puede tener varias hojas). Todos comparten una cara desde la ronda 12, así que <b>cambiar el vidrio es tocar dos piezas</b> —<code>components/ui/Modal.tsx</code> y <code>components/ui/Cajon.tsx</code>— y el contenido lo hereda sin tocar cada modal.</p>
+    <table>
+      <tr><th>Tipo</th><th>Cuántos (≈)</th><th>Lo representa en la simulación</th><th>Cómo le va al vidrio</th></tr>
+      <tr><td>Formularios con campos</td><td>152</td><td>Registrar cliente · Registrar gasto</td><td>Bien: las cajas y el mosaico se leen. La luz de la guía de foco (pizarra) se ve menos sobre el vidrio.</td></tr>
+      <tr><td>Confirmaciones y avisos sin campos</td><td>70</td><td>Apartado registrado</td><td>Bien. Es donde el vidrio luce más y cuesta menos.</td></tr>
+      <tr><td>Con botón peligroso (anular, desactivar)</td><td>43</td><td>Anular orden</td><td>Regular: el rojo sobre vidrio claro pierde peso; lo que está detrás se cuela en una decisión que debería verse seria.</td></tr>
+      <tr><td>Solo lectura (con la ×)</td><td>53</td><td>Detalle de la venta · A qué tienda le pides</td><td>Bien con filas de vidrio; la lista de prendas necesita su lámina.</td></tr>
+      <tr><td>Con tabla o planilla</td><td>16</td><td>Ajustar inventario</td><td>Mal en «Completa»: las prendas de atrás atraviesan la planilla. En «Serena» se lee, porque la tabla va sobre una lámina casi papel.</td></tr>
+      <tr><td>Mostrador (Vender, Cobrar)</td><td>9</td><td>Cobrar</td><td>Muy bien: la gota en «Efectivo · Tarjeta · Yape» es el mejor uso del segmento fuera de Mi perfil.</td></tr>
+      <tr><td>Cajones laterales</td><td>14</td><td>Proveedor (Compras)</td><td>Bien como panel flotante a 12 px del borde, pero un cajón con una hoja encima suma dos capas de desenfoque.</td></tr>
+      <tr><td>Ticket y papel impreso</td><td>2 + reimpresiones</td><td>Reimprimir ticket</td><td>El papel <b>no</b> se vuelve vidrio (ADR-0336, regla 3): queda blanco dentro de la hoja de vidrio, y el contraste le sienta bien.</td></tr>
+      <tr><td>Cámara</td><td>6</td><td>— (no se simula)</td><td>Se queda negra en los dos temas: no hay nada que ver a través.</td></tr>
+      <tr><td>Hojas con diseño propio</td><td>≈6</td><td>— (no se simula)</td><td>Vista rápida, Configuración de campaña, Insignias, Ajustar stock de Existencias: tienen movimiento decidido aparte; Felipe dice si se unifican.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Los campos sobre el vidrio</h2>
+    <p>Con «Serena» elegida, la caja de texto de hoy (hueso, con su borde) se ve como un papel pegado encima del vidrio: es la única pieza que no cambió de material. Tres caras para elegir mirando, con el selector <b>Campos</b> de la barra. Las tres conservan lo que la caja ya promete: el borde que pasa 3:1 (ADR-0516), el hilo rojo que nace del centro (verde si el dato está bien) y la luz de «Sigue aquí».</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Hundido</b><br><span class="ev med">Recomendada</span></td><td>Un pozo tallado en el vidrio: la misma pista hundida del segmento de «Tú · Cuenta · Seguridad». Al escribir, la caja <b>sube como la gota</b>, pero sigue siendo vidrio: se ilumina por arriba, pierde la sombra de adentro, gana una afuera y deja ver lo de atrás (Felipe: «que no se pongan con un color sólido»).</td><td>Habla el mismo idioma que el segmento: lo hundido espera tu dato, lo que sube es lo que estás tocando. El campo se reconoce por dos señales (borde y profundidad), así que aguanta mejor un fondo oscuro detrás del vidrio.</td></tr>
+      <tr><td><b>B · Placa</b></td><td>Una placa de vidrio más, como las filas: 18 px de radio y su línea de luz arriba. Al escribir, se aclara y suma un halo.</td><td>La más parecida a Mi perfil. Pero un campo y una fila que solo se lee quedan casi iguales: hay que mirar dos veces para saber dónde se escribe.</td></tr>
+      <tr><td><b>C · Hilo</b></td><td>Sin caja: el dato se escribe directo sobre el vidrio, sobre una línea; al escribir, un velo de luz sube desde ella.</td><td>La más liviana y elegante. Pero un campo vacío es solo una raya: para quien no es técnica cuesta más ver dónde tocar (ley 1 de Formidable), y el combo «Responsable» pierde su forma.</td></tr>
+    </table>
+    <p style="margin-top:10px"><span class="ev obs">Observado</span>Las tres arreglan algo que el vidrio había roto: la luz de «Sigue aquí» y la celda cambiada de la planilla ahora se ven (anillo pizarra al 26 %, antes 12 %). <span class="ev op">Por medir</span>El borde-control pasa 3:1 sobre papel; sobre vidrio, el fondo real depende de lo que hay detrás. Con una prenda oscura justo detrás, hay que medirlo con <code>tema:auditar</code> antes de decidir.</p>
+  </section>
+
+  <section>
+    <h2>Los botones sobre el vidrio</h2>
+    <p>Con los campos hundidos (A, elegida), el modal habla un solo idioma: <b>lo que espera tu dato está hundido; lo que haces sobresale</b>. El botón de hoy (secundario transparente con borde, primario negro plano, radio chico) no dice ninguna de las dos cosas. Tres caras, con el selector <b>Botones</b> de la barra. Las tres conservan lo decidido para los botones (ADR-0358): el secundario lleva borde-control (3:1), el negro pasa a rojo profundo al pasar el mouse, sube 2 px con su sombra, cruza una luz y se encoge al presionar. Se aplican también a las píldoras (Conteo, Dañada…), a las flechas del cajón y a la ×.</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Gota</b><br><span class="ev med">Recomendada</span></td><td>Píldora. El secundario es la gota del segmento: vidrio que sobresale, con su luz arriba y una sombra corta. El primario, tinta con un brillo de vidrio arriba.</td><td>Cierra el idioma: el campo se hunde, el botón sobresale, y la gota de las pestañas y la del botón son la misma pieza. Cuesta que dentro de una hoja los botones son píldora y en la pantalla siguen con su radio de hoy: se ven parientes, no iguales.</td></tr>
+      <tr><td><b>B · Placa</b></td><td>El radio de los campos (14 px). El secundario es una placa de vidrio; el primario, tinta con su línea de luz arriba.</td><td>El cambio más chico: la forma casi no cambia, solo el material. Pero se parece demasiado a un campo, y en una hoja con campos hundidos los botones quedan planos.</td></tr>
+      <tr><td><b>C · Humo</b></td><td>Píldora. El secundario es la gota; el primario también es vidrio, pero ahumado: tinta translúcida que desenfoca lo de atrás.</td><td>La más «Mi perfil». <span class="ev obs">Observado</span>El primario pierde peso: en Cobrar, «Cobrar S/ 289.00» se ve gris, casi apagado, justo el botón que más importa.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>La nota y el aviso sobre el vidrio</h2>
+    <p>La nota de hoy (<code>nota-cayla</code>: una losa de hueso con su «i») sobre el vidrio se ve como un bloque plano; en oscuro, una losa negra. El modal ya tiene dos idiomas: <b>hundido</b> (espera tu dato) y <b>lo que sobresale</b> (lo que haces). Una nota no es ninguna de las dos: explica. Tres caras con el selector <b>Notas</b>; el aviso de atención (Anular orden) sigue la misma cara, con su ámbar. En las dos primeras la «i» va en una lente de vidrio, como la foto de Mi perfil.</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Placa</b><br><span class="ev med">Elegida</span></td><td>Una lámina de vidrio con su luz arriba y su borde de vidrio, como las filas.</td><td>La más «de vidrio». Pero una nota con relieve parece una fila que se toca: en «A qué tienda le pides» queda igual que las tiendas que sí se eligen.</td></tr>
+      <tr><td><b>B · Tinte</b></td><td>Sin borde ni relieve: un tinte suave del color de la nota (taupe; ámbar en el aviso) que nace en la «i» y se desvanece en el vidrio.</td><td>Ni hundida ni en relieve: se lee como lo que es, una explicación. Se separa de las filas sin competir con ellas, y en oscuro deja de ser una losa negra.</td></tr>
+      <tr><td><b>C · Al pie</b></td><td>Sin caja: la nota sobre una línea fina, como una nota al pie; el aviso, con su línea ámbar.</td><td>La más liviana. Pero un aviso de atención sin caja pierde fuerza: «Ya se cortaron 24 prendas» se lee como un comentario más.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>El combo sobre el vidrio</h2>
+    <p>El combo «Responsable» (<code>ComboResponsable</code>, 48 px con avatar) era una caja hundida más, con el avatar plano sobre arena y una flecha suelta. Un combo guarda tu dato <i>y</i> se aprieta para cambiarlo. Tres caras con el selector <b>Combo</b>; las tres comparten el avatar en una lente de vidrio (como la foto de Mi perfil) y la <b>lista de vidrio</b> que se abre al tocarlo (con su hilo de canto, su ✓ y la persona sin asistencia que se ve pero no se elige). El primer Escape cierra la lista; el segundo, la hoja.</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Pozo y gota</b><br><span class="ev med">Elegida</span></td><td>El cuerpo es el pozo de los campos (guarda tu dato) y la flecha, una gota redonda que sobresale (lo que aprietas). Abierto, sube como un campo al escribir.</td><td>Dice las dos cosas con el idioma que ya tiene el modal. Se ve de la familia de los campos, sin parecer uno.</td></tr>
+      <tr><td><b>B · Ficha</b></td><td>El responsable es una ficha de vidrio en relieve, como las filas, con «Cambiar» a la derecha.</td><td>Se lee como «quién firma», muy claro. Pero queda en relieve como un botón, y en una hoja con campos hundidos se separa de ellos.</td></tr>
+      <tr><td><b>C · Píldora</b></td><td>Compacta, 44 px, una sola línea: avatar y nombre; la sede y la hora quedan fuera.</td><td>La más liviana. Pierde «entró a las 9:42», que es justo lo que confirma que la persona marcó asistencia.</td></tr>
+    </table>
+    <p style="margin-top:10px"><b>Botones sin color sólido.</b> El primario pasó a vidrio ahumado de tinta (72 % arriba, 93 % abajo, con su luz) y el peligroso a vidrio rojo; los dos desenfocan lo de atrás. El secundario, la gota, quedó más clara (58 % → 22 %). Lo elegido en un mosaico o una lista (Movilidad) dejó de ser blanco sólido: se marca con su borde de tinta y su luz. <span class="ev obs">Observado</span>Por debajo de ~70 % el primario empieza a verse gris, como el «Humo»; por eso es más denso abajo.</p>
+  </section>
+
+  <section>
+    <h2>El aviso sobre el vidrio</h2>
+    <p>El aviso (<code>&lt;Aviso tono&gt;</code>: la franja a la izquierda y el ícono que se dibuja) sobre la placa de 18 px quedaba mal: la franja de 3 px se curvaba con la esquina como una medialuna, y el ámbar solo vivía en ella. Tres caras con el selector <b>Aviso</b>. Las tres ponen el ícono en una <b>lente ámbar</b> y lo dibujan una vez al entrar, y valen igual para los otros tonos (error en rojo, éxito en verde, info en pizarra).</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Filo</b></td><td>La franja se despega del borde y queda como un filo ámbar redondeado adentro, que baja al entrar; un tinte ámbar nace desde él.</td><td>Conserva la franja, que es lo que hace reconocible al aviso en todo el ERP, sin la medialuna. Se distingue de la nota de un vistazo.</td></tr>
+      <tr><td><b>B · Lente</b><br><span class="ev med">Elegida</span></td><td>Sin franja: la señal es la lente ámbar, más grande, y un borde ámbar tenue alrededor de toda la placa.</td><td>La más tranquila. Pero sin franja se parece mucho a la nota (A · Placa), y un aviso tiene que verse distinto de una explicación.</td></tr>
+      <tr><td><b>C · Borde de luz</b></td><td>El borde de la placa se enciende de ámbar desde la izquierda y se apaga hacia la derecha: el filo de Mi perfil, quieto.</td><td>La más bonita y la más «vidrio». Pero en error, éxito e info serían cuatro bordes de colores: mucha luz para un ERP que ya pidió serenidad.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>La planilla sobre el vidrio, y su movimiento</h2>
+    <p>La matriz de tallas de Ajustar inventario eran 12 cajas iguales con borde, y lo que cambiaba solo se notaba por un anillo gris. Ahora la planilla, en las tres caras, <b>dice cuánto cambió cada talla</b> (+1 / −1 en un globito), <b>suma cada color</b> (columna Total) y el pie lo resume («3 tallas cambian · +3 −1»). Tres caras con el selector <b>Tabla</b>:</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Celdas vivas</b><br><span class="ev med">Elegida</span></td><td>La planilla muestra números, no cajas; la caja de una talla aparece al pasar el mouse o con el foco (en una pantalla táctil, siempre). Lo que cambió sube como la gota.</td><td>La más limpia, y la que mejor escala a 6 tallas × 8 colores. Pero esconde el − y el + hasta que apuntas (ley 6 de Formidable: nada solo con el mouse) y la celda quieta no lleva el borde de control (ADR-0516).</td></tr>
+      <tr><td><b>B · Filas de vidrio</b></td><td>Cada color es una placa de vidrio, como las filas, y sus tallas son pozos en píldora; lo que cambió sube como la gota.</td><td>Todo a la vista y con su borde, cada color se lee como una fila propia y escala bien a más tallas. Es la que menos se aparta de la tabla de hoy.</td></tr>
+      <tr><td><b>C · Baldosas</b></td><td>Cada color es una tarjeta y cada talla una baldosa hundida con el número grande en serif y botones redondos. En el celular, dos por fila.</td><td>La mejor para el dedo y la más bonita. Pero ocupa el doble de alto: con 6 tallas × 5 colores la hoja se vuelve larga.</td></tr>
+    </table>
+    <h3>El movimiento</h3>
+    <p>Es el que ya existe en «Ajustar stock» de Existencias (ADR-0494), llevado a toda planilla en una hoja: una <b>luz cruza</b> la planilla al abrir, las <b>filas bajan en cascada</b> y las <b>celdas se encienden en ola</b> diagonal; el <b>número rueda</b> hacia arriba o abajo al tocar − o +, la <b>diferencia aparece</b> con un pequeño estallido y el <b>total cuenta</b>; al pasar el mouse se iluminan <b>la fila y la talla</b> (la cruz); y al guardar, <b>cada talla se sella</b> con un ✓ verde, una tras otra. Una vez, sin rebote ni bucle, y apagado con <code>prefers-reduced-motion</code>. <span class="ev op">Ojo</span>Hoy ese movimiento es una excepción de ADR-0136 solo para Existencias: llevarlo a las 16 hojas con tabla es una actualización de esa regla que decides tú.</p>
+  </section>
+
+  <section>
+    <h2>La barra de pagos sobre el vidrio</h2>
+    <p>La barra de «Detalle de la venta» (<code>&lt;BarraApilada&gt;</code>) eran dos bloques planos y saturados que no decían cuánto es cada uno; eso quedaba en una línea gris debajo. Tres caras con el selector <b>Barra</b>; en las tres el <b>total cuenta</b> al abrir, cada tramo <b>crece uno tras otro</b>, y al pasar el mouse el tramo apuntado se estira y los demás bajan (lo que la pieza ya hace).</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Tubo de vidrio</b><br><span class="ev med">Elegida</span></td><td>La pista es un pozo, como los campos, y cada tramo es vidrio de color con su luz arriba. Debajo, cada medio con su punto, su monto y su parte.</td><td>Habla el idioma del modal y sirve igual con 2 medios que con 5. Es la que menos cambia la pieza de hoy.</td></tr>
+      <tr><td><b>B · Etiquetas</b></td><td>La barra se engrosa a 38 px y cada tramo dice adentro qué es, cuánto y qué parte; no necesita leyenda.</td><td>Se lee de un vistazo. <span class="ev obs">Observado</span>Un tramo chico no tiene dónde escribir: a 375 px «Yape · S/ 89» ya no deja ver su porcentaje, y con un pago mixto de 3 medios se corta.</td></tr>
+      <tr><td><b>C · Fichas</b></td><td>Arriba, la barra delgada; debajo, cada medio es una fila de vidrio con su ícono en una lente, su monto y una barra fina de su parte.</td><td>La más clara para quien revisa un cierre. Pero ocupa el triple de alto por una información que es secundaria en el detalle de una venta.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>La lista de prendas sobre el vidrio</h2>
+    <p>La lista de «Detalle de la venta» era una losa casi papel con una muestra de color plana y «M · Vino · 1 u.» en texto corrido. Dos cosas se arreglan en las tres caras: <b>la prenda sin foto se dibuja como manda ADR-0333</b> (el ícono de su categoría sobre su color: la blusa y el polo con su polo, el jean con su pantalón) y <b>la talla y el color dejan de ser texto</b> (la talla en una pastilla, el color con su punto). La muestra es una lente con su luz, el precio va en serif, y al abrir cada prenda se enfoca en cascada. Selector <b>Prendas</b>:</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td><b>A · Filas de vidrio</b></td><td>Cada prenda es su propia fila de vidrio, como los destinos y los datos de Mi perfil.</td><td>La más «vidrio». Pero se ve igual que «A qué tienda le pides», donde las filas se eligen: parece que cada prenda se toca, y con 8 prendas son 8 placas.</td></tr>
+      <tr><td><b>B · Lámina de vidrio</b><br><span class="ev med">Elegida</span></td><td>Una sola placa de vidrio (ya no papel), las prendas separadas por un hilo que empieza después de la lente, y la talla como una insignia en la esquina de la lente.</td><td>Se lee como una lista, no como botones, y aguanta 10 prendas sin hacerse pesada. La talla pegada a la prenda se entiende de un vistazo.</td></tr>
+      <tr><td><b>C · Ticket vivo</b></td><td>Una línea por prenda, como en un ticket: lente chica, nombre y talla, y puntos guía que se dibujan hasta el precio.</td><td>La más compacta y la que más se parece a lo que la persona tiene en la mano. En el celular el color no cabe y se va.</td></tr>
+    </table>
+  </section>
+
+  <div class="dos-col">
+    <section>
+      <h2>Lo que gana y lo que cuesta</h2>
+      <h3>Gana</h3>
+      <ul>
+        <li><span class="ev obs">Observado</span>Todo el ERP se siente de la misma familia que Mi perfil y que el login del colibrí: hoy, Mi perfil es la única hoja que parece de otra aplicación.</li>
+        <li><span class="ev obs">Observado</span>Se ve dónde estabas: el vidrio deja ver la pantalla de atrás, y en Cobrar o en «A qué tienda le pides» eso da contexto.</li>
+        <li><span class="ev op">Opinión</span>La gota del segmento y las filas de vidrio son las dos piezas que más se notan y las que más fácil se llevan.</li>
+      </ul>
+      <h3>Cuesta</h3>
+      <ul>
+        <li><span class="ev obs">Observado</span><b>Leer sobre vidrio depende de lo que hay atrás.</b> Sobre Existencias (fotos de colores) una tabla en «Completa» se ensucia; sobre una pantalla de texto casi no se nota. El contraste deja de ser fijo, y <code>tema:auditar</code> mide hoy un fondo, no uno que cambia.</li>
+        <li><span class="ev op">Opinión</span><b>El filo y el brillo en 275 hojas dejan de ser un detalle y se vuelven ruido</b>: en un formulario que la colaboradora llena 40 veces al día, la luz que sigue al mouse no le dice nada (ley 8 de Formidable: quitar antes de agregar).</li>
+        <li><span class="ev op">Opinión</span>Rendimiento: un <code>backdrop-filter</code> de 28 px es barato en una hoja, pero un cajón + una hoja + la lista flotante de un combo son tres capas desenfocando. En el Mac mini de tienda hay que medirlo antes de decidir.</li>
+        <li><span class="ev med">Del código</span>En oscuro el vidrio es <code>#33302a</code> al 66 %: casi opaco. La diferencia con hoy es poca, salvo la sombra y los radios.</li>
+        <li><span class="ev obs">Observado</span>Reglas que habría que reescribir: ADR-0358 ronda 12 («una cara: papel, sin sombra»), la familia <code>modal</code> de <code>lib/unificar.test.ts</code>, la excepción de movimiento de ADR-0136 (pasaría de excepción a regla) y la frase «la única hoja de vidrio» del CLAUDE.md.</li>
+      </ul>
+    </section>
+    <section class="reco">
+      <h2>Mi recomendación</h2>
+      <p><b>Vidrio «Serena» para todas las hojas y cajones; «Completa» se queda solo en Mi perfil.</b></p>
+      <ul style="margin-top:10px">
+        <li><b>Los campos, «A · Hundido» (elegida):</b> la caja de texto pasa a ser un pozo del vidrio que sube al escribir (ver «Los campos sobre el vidrio»).</li>
+        <li><b>Los botones, «A · Gota» (elegida):</b> píldoras sin color sólido; el secundario es la gota del segmento y el primario vidrio ahumado de tinta (ver «Los botones sobre el vidrio»).</li>
+        <li><b>Las notas y avisos, «A · Placa» (elegida):</b> una lámina de vidrio con la «i» en su lente.</li>
+        <li><b>El aviso, «B · Lente» (elegida):</b> sin franja, la lente ámbar y un borde ámbar tenue.</li>
+        <li><b>La planilla, «A · Celdas vivas» (elegida):</b> números sin cajas, con su total, la diferencia de cada talla y el movimiento de Ajustar stock.</li>
+        <li><b>La lista de prendas, «B · Lámina de vidrio» (elegida):</b> una placa de vidrio, la prenda con el ícono de su categoría y su talla en la lente (ver «La lista de prendas sobre el vidrio»).</li>
+        <li><b>La barra de pagos, «A · Tubo de vidrio» (elegida):</b> un pozo con tramos de vidrio de color y cada medio con su monto y su parte (ver «La barra de pagos sobre el vidrio»).</li>
+        <li><b>El combo, «A · Pozo y gota» (elegida):</b> el pozo guarda tu dato y la flecha es una gota; su lista también es vidrio (ver «El combo sobre el vidrio»).</li>
+        <li><b>Qué lleva Serena:</b> la hoja de vidrio (más opaca: 70 %), el borde de luz, la sombra larga, el radio de 32, la × de vidrio, la gota en todo segmento, las filas de vidrio y la entrada que se enfoca. <b>Sin</b> el filo ni el brillo que siguen al mouse.</li>
+        <li><b>Donde se lee en serio, una lámina:</b> tablas, planillas y listas de prendas van sobre una placa casi papel (82 %). Así el contraste no depende de lo de atrás.</li>
+        <li><b>Lo peligroso pide papel:</b> una hoja con botón rojo (anular, desactivar) sube su opacidad a papel pleno. La decisión seria no se mira a través de nada.</li>
+        <li><b>Fuera del vidrio:</b> ticket e impresos (papel), cámara (negra), y las hojas de diseño propio hasta que tú digas.</li>
+        <li><b>Por qué no «Completa» en todo:</b> lo que hace especial a Mi perfil es que sea tuyo; si todas brillan igual, Mi perfil deja de ser especial y las demás ganan movimiento que no ayuda a terminar la tarea.</li>
+      </ul>
+      <h3>Cómo entraría, si lo eliges</h3>
+      <ol>
+        <li>Pasa por <code>/unificar</code> (familia <code>modal</code>): eliges mirando esta maqueta, no por esta descripción.</li>
+        <li>Una variante de cara en <code>Modal.tsx</code> y <code>Cajon.tsx</code> + un CSS (lo de <code>perfil-vidrio.css</code> que sirve a todos sube a uno común); el contenido no se toca.</li>
+        <li>La lámina para tablas y el «papel si hay peligro» en el mismo PR. Respetar <code>prefers-reduced-transparency</code> (vuelve a papel).</li>
+        <li><code>tema:auditar</code> con los escenarios de modales sobre Existencias (el peor fondo) y medir el desenfoque en el Mac mini.</li>
+      </ol>
+    </section>
+  </div>
+</div>
+
+<script>
+const EASE = 'cubic-bezier(.32,.72,.24,1)';
+const quieto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+const I = {
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  derecha: '<path d="m9 18 6-6-6-6"/>',
+  arriba: '<path d="m18 15-6-6-6 6"/>', abajo: '<path d="m6 9 6 6 6-6"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  alerta: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+  tienda: '<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M2 7h20"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>',
+  taller: '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',
+  bus: '<path d="M8 6v6M15 6v6M2 12h19.6M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+  limpieza: '<path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/>',
+  lapiz: '<path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/>',
+  cafe: '<path d="M10 2v2M14 2v2M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>',
+  rayo: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  mas: '<path d="M5 12h14M12 5v14"/>', menos: '<path d="M5 12h14"/>',
+  billete: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  tarjeta: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>',
+  celular: '<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  mezcla: '<path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>',
+  impresora: '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+  telefono: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  recibo: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11"/>',
+  estrella: '<path d="M11.52 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.9l5.16-.76a2.12 2.12 0 0 0 1.6-1.16z"/>',
+  camisa: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+  pantalon: '<path d="M7 2h10l1.2 20h-4.7L12 10l-1.5 12H5.8z"/><path d="M7 6h10"/>',
+  caja: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+};
+const ic = (n, c = '') => `<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
+const palabras = (t) => t.split(' ').map((p, i) => `<span style="--i:${i}">${p}</span>`).join(' ');
+
+// ---------- piezas comunes ----------
+const cab = (titulo, sub, sobre) => `<header class="h-cab">${sobre ? `<p class="vs">${sobre}</p>` : ''}<h2 class="h-tit serif">${palabras(titulo)}</h2>${sub ? `<p class="h-sub">${sub}</p>` : '<div style="height:14px"></div>'}</header>`;
+const campo = (et, marca, caja, pie = '', clase = '') => `<div class="campo ${clase}"><div class="campo-et">${et}${marca ? `<span class="marca" data-e="${marca[0]}">${marca[1]}</span>` : ''}</div>${caja}${pie ? `<p class="pie-campo">${pie}</p>` : ''}</div>`;
+const seg = (opciones, elegida, nombre) => `<div class="seg" role="tablist" data-seg="${nombre}"><span class="gota" aria-hidden="true"></span>${opciones.map(([v, t, i]) => `<button role="tab" aria-selected="${v === elegida}" data-v="${v}">${i ? ic(i, 's') : ''}${t}</button>`).join('')}</div>`;
+const PERSONAS = [['LR', 'Lucía Ramos', 'Trujillo · entró a las 9:42 a. m.', 1], ['MH', 'Marco Huamán', 'Trujillo · entró a las 10:05 a. m.', 1], ['AT', 'Ana Torres', 'No marcó su entrada hoy', 0]];
+const responsable = `<div class="campo"><div class="campo-et">Responsable<span class="marca" data-e="ok">✓ de turno</span></div>
+  <div class="combo"><button type="button" class="caja combo-boton" aria-haspopup="listbox" aria-expanded="false"><span class="av turno">LR</span><span class="combo-tx"><b>Lucía Ramos</b><span>Trujillo · entró a las 9:42 a. m.</span></span><span class="combo-cambiar">Cambiar</span><span class="combo-flecha">${ic('abajo')}</span></button>
+  <div class="combo-lista" role="listbox">${PERSONAS.map(([ini, n, d, turno], i) => `<button type="button" role="option" class="combo-op" aria-selected="${i === 0}" ${turno ? '' : 'disabled title="Sin asistencia hoy: no puede firmar"'} data-ini="${ini}" data-n="${n}" data-d="${d}"><span class="av ${turno ? 'turno' : ''}">${ini}</span><span class="combo-tx"><b>${n}</b><span>${d}</span></span>${ic('check', 'ok')}</button>`).join('')}</div></div></div>`;
+
+// [medio, monto, parte del total, token de color, ícono]
+const PAGOS = [['Efectivo', '200', 69, 'efectivo', 'billete'], ['Yape', '89', 31, 'yape', 'celular']];
+// Lo vendido: [color de la prenda, nombre, talla, color, unidades, precio, ícono de su categoría, es claro]
+const VENDIDAS = [['#7a2e2a', 'Blusa Emma', 'M', 'Vino', 1, '89.00', 'camisa', 0], ['#1f2f4a', 'Jean Río', '28', 'Azul', 1, '149.00', 'pantalon', 0], ['#d8cbb3', 'Polo Nube', 'S', 'Crudo', 1, '51.00', 'camisa', 1]]; // tema-fijo: colores de prenda, son dato
+const deltaTxt = (d) => (d > 0 ? `+${d}` : d < 0 ? `−${-d}` : '');
+
+// ---------- los modales ----------
+const MODALES = [
+  { id: 'cliente', grupo: 'Formularios', nombre: 'Registrar cliente', cuenta: '≈152 formularios', archivo: 'components/NuevaClientaModal.tsx', ancho: 448,
+    html: () => `${cab('Registrar cliente', 'Solo su documento: vino, preguntó, se probó. Para ser del club, se une por su cuenta escaneando el cartel.')}
+    <div class="cuerpo cas">
+      ${campo('Documento', ['ok', '✓'], `<div class="caja"><span class="pref">DNI ${ic('abajo', 's')}</span><input value="47210385" inputmode="numeric"></div>`, 'Lo encontramos en el padrón: el nombre se llenó solo.', 'bien')}
+      ${campo('Nombre', ['ok', '✓'], `<div class="caja"><input value="Rosa Quispe Mendoza" readonly></div>`, '', 'bien')}
+      ${campo('Celular', ['sigue', 'Sigue aquí'], `<div class="caja"><span class="pref">+51</span><input placeholder="9 dígitos"></div>`, 'Opcional: para avisarle cuando llegue su talla.', 'sigue')}
+      <div class="nota">${ic('info', 's')}<span>Si ya tiene ficha, te avisamos antes de registrar: no se duplica.</span></div>
+      <div class="pie"><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn pri">Registrar cliente</button></div>
+    </div>` },
+
+  { id: 'gasto', grupo: 'Formularios', nombre: 'Registrar gasto', cuenta: 'Caja y Finanzas', archivo: 'components/GastoRapidoModal.tsx', ancho: 576,
+    html: () => `${cab('Registrar gasto', 'Sale de la caja de Trujillo y queda en Finanzas con tu nombre.', 'Caja · Trujillo')}
+    <div class="cuerpo cas">
+      ${campo('Cuánto', ['ok', '✓'], `<div class="caja grande"><span class="pref" style="font-size:16px">S/</span><input value="48.50" inputmode="decimal"></div>`, '', 'bien')}
+      <div><div class="campo-et">Qué fue<span class="marca" data-e="ok">✓</span></div>
+      <div class="mosaico" data-elige>
+        <button class="on">${ic('bus')}<b>Movilidad</b><span>★ 12 veces este mes</span></button>
+        <button>${ic('limpieza')}<b>Limpieza</b><span>4 veces</span></button>
+        <button>${ic('lapiz')}<b>Útiles</b><span>2 veces</span></button>
+        <button>${ic('cafe')}<b>Refrigerio</b><span>6 veces</span></button>
+        <button>${ic('rayo')}<b>Servicios</b><span>Luz, agua, internet</span></button>
+        <button>${ic('mas')}<b>Otro</b><span>Escribes qué fue</span></button>
+      </div></div>
+      ${responsable}
+      <div class="pie"><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn pri">Registrar gasto</button></div>
+    </div>` },
+
+  { id: 'anular', grupo: 'Confirmaciones', nombre: 'Anular orden', cuenta: '≈43 con botón rojo', archivo: 'components/OrdenModales.tsx', ancho: 448,
+    html: () => `${cab('Anular orden', 'OP-0142 · 60 planeadas', 'Producción')}
+    <div class="cuerpo cas">
+      <p style="font-size:14px;color:var(--t80)">La orden queda anulada y no toca el stock de prendas. Sigue visible abajo, para que no se pierda el registro.</p>
+      <div class="aviso">${ic('alerta', 's')}<span><b>Ya se cortaron 24 prendas</b>La tela usada queda en el Taller como retazo.</span></div>
+      ${campo('Por qué se anula', ['sigue', 'Sigue aquí'], `<div class="caja"><textarea placeholder="Ej. el cliente canceló el pedido"></textarea></div>`, '', 'sigue')}
+      ${responsable}
+      <div class="pie"><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn pel">Anular orden</button></div>
+    </div>` },
+
+  { id: 'listo', grupo: 'Confirmaciones', nombre: 'Apartado registrado', cuenta: '≈70 sin campos', archivo: 'components/apartados/ModalesApartado.tsx', ancho: 448,
+    html: () => `${cab('Apartado registrado', '')}
+    <div class="cuerpo cas">
+      <div class="listo"><svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="28" cy="28" r="25"/><path d="m17 29 7 7 15-16"/></svg>
+        <p class="serif" style="font-size:22px">AP-0087</p><p class="t65" style="font-size:13px">Rosa Quispe · se guarda hasta el 14 de noviembre</p></div>
+      <div class="lista">
+        <div class="fila"><span class="ico">${ic('celular')}</span><span class="tx"><b>Adelanto</b><span>Yape · hoy 4:18 p. m.</span></span><span class="der">S/ 50.00</span></div>
+        <div class="fila"><span class="ico">${ic('recibo')}</span><span class="tx"><b>Falta pagar</b><span>Al recoger, en cualquier sede</span></span><span class="der"><b>S/ 239.00</b></span></div>
+      </div>
+      <div class="pie"><button class="btn sec">${ic('impresora')}Imprimir ticket</button><button class="btn pri" data-acc="cerrar">Listo</button></div>
+    </div>` },
+
+  { id: 'venta', grupo: 'Lectura', nombre: 'Detalle de la venta', cuenta: '≈53 de solo lectura', archivo: 'components/DetalleVentaModal.tsx', ancho: 576, cerrar: true,
+    html: () => `${cab('Detalle de la venta', 'Trujillo · B001-00231 · hoy 4:12 p. m.', 'Ventas')}
+    <div class="cuerpo cas">
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip verde"><i></i>Pagada</span><span class="chip pizarra"><i></i>Boleta enviada</span><span class="chip">Rosa Quispe</span></div>
+      <div class="lamina prendas"><ul class="prendas-lista">${VENDIDAS.map(([c, n, talla, color, q, p, cat, claro], k) => `<li style="--k:${k}"><span class="mosaico-prenda${claro ? ' claro' : ''}" data-color-dato style="background:${c}">${ic(cat)}<i class="talla">${talla}</i></span><span class="pr-tx"><b>${n}</b><span class="pr-det"><span class="pr-talla">${talla}</span><span class="pr-color"><i data-color-dato style="background:${c}"></i>${color}</span><span class="pr-q">${q} u.</span></span></span><span class="guia" aria-hidden="true"></span><span class="pr-precio">S/ ${p}</span></li>`).join('')}</ul></div>
+      <div class="pagos"><div class="total"><span class="vs">Total</span><b class="cuenta" data-hasta="289">S/ 289.00</b></div>
+        <div class="barra" style="margin-top:8px" role="img" aria-label="Efectivo S/ 200.00 (69 %) y Yape S/ 89.00 (31 %)">${PAGOS.map(([n, monto, p, col, icono], k) => `<span class="tramo" style="--p:${p};--col:var(--${col});--k:${k}${col === 'yape' ? ';--txt:var(--crema-fija)' : ''}"><em>${n} · S/ ${monto} <span>${p} %</span></em></span>`).join('')}</div>
+        <ul class="leyenda">${PAGOS.map(([n, monto, p, col, icono], k) => `<li style="--p:${p};--col:var(--${col});--k:${k}"><i class="muestra"></i><span class="ico">${ic(icono)}</span><span class="nombre">${n}</span><b>S/ ${monto}.00</b><span class="pct">${p} %</span><span class="parte"><span></span></span></li>`).join('')}</ul>
+        <p class="t65 pagos-hoy" style="font-size:12px;margin-top:6px">Efectivo S/ 200.00 · Yape S/ 89.00</p></div>
+      <div class="pie"><button class="enlace izq">Reabrir la venta</button><button class="btn sec">${ic('impresora')}Imprimir A4</button><button class="btn pri">${ic('impresora')}Imprimir ticket</button></div>
+    </div>` },
+
+  { id: 'tienda', grupo: 'Lectura', nombre: 'A qué tienda le pides', cuenta: 'Elegir de una lista', archivo: 'components/punto-de-venta/…', ancho: 448, cerrar: true,
+    html: () => `${cab('A qué tienda le pides', 'Blusa Emma · M · Vino. Te la mandan en el próximo traslado.', 'Vender')}
+    <div class="cuerpo cas">
+      <div class="lista">
+        <button class="fila"><span class="ico">${ic('tienda')}</span><span class="tx"><b>Arequipa</b><span>4 en el piso · 2 en almacén</span></span>${ic('derecha', 'flecha')}</button>
+        <button class="fila"><span class="ico">${ic('tienda')}</span><span class="tx"><b>Lima</b><span>1 en almacén</span></span>${ic('derecha', 'flecha')}</button>
+        <button class="fila"><span class="ico">${ic('taller')}</span><span class="tx"><b>Taller</b><span>No hay hecha: se puede coser en 3 días</span></span>${ic('derecha', 'flecha')}</button>
+      </div>
+      <div class="nota">${ic('info', 's')}<span>Al elegir, la prenda queda apartada en esa tienda para tu cliente.</span></div>
+    </div>` },
+
+  { id: 'ajustar', grupo: 'Tablas y planillas', nombre: 'Ajustar inventario', cuenta: '≈16 con tabla', archivo: 'components/AjustarInventarioModal.tsx', ancho: 768,
+    html: () => {
+      const tallas = ['S', 'M', 'L', 'XL'];
+      // [color, su muestra, lo que había, lo que se contó]: dos tallas ya vienen cambiadas para ver la diferencia
+      const filas = [['Vino', '#7a2e2a', [3, 5, 2, 1], [3, 6, 2, 1]], ['Crudo', '#e7d7c1', [2, 4, 4, 0], [2, 4, 4, 0]], ['Negro', '#2b2b2b', [1, 3, 2, 2], [1, 3, 1, 2]]]; // tema-fijo: colores de prenda, son dato
+      return `${cab('Ajustar inventario', 'Corrige lo que hay de cada talla. Queda en Movimientos con tu nombre.', 'Existencias · Trujillo')}
+    <div class="cuerpo cas">
+      <div style="display:flex;align-items:center;gap:12px"><span class="mini" data-color-dato style="background:#7a2e2a"></span><span><b class="serif" style="font-size:20px">Blusa Emma</b><span class="t65" style="font-size:12.5px;display:block">S/ 89.00 · 3 colores · 34 en la tienda</span></span></div>
+      <div class="lamina planilla"><table class="tabla">
+        <thead><tr><th>Color</th>${tallas.map((t, c) => `<th data-c="${c}">${t}</th>`).join('')}<th class="tot">Total</th></tr></thead>
+        <tbody>${filas.map(([n, col, antes, ahora], f) => `<tr style="--f:${f}"><td><span class="color-dot" data-color-dato style="background:${col}"></span>${n}</td>${ahora.map((v, c) => `<td data-talla="${tallas[c]}" data-c="${c}" style="--c:${c}"><span class="paso${v !== antes[c] ? ' cambio' : ''}" data-orig="${antes[c]}"><button data-paso="-1" aria-label="Uno menos de ${n} ${tallas[c]}">${ic('menos', 's')}</button><span class="rueda"><b>${v}</b></span><button data-paso="1" aria-label="Uno más de ${n} ${tallas[c]}">${ic('mas', 's')}</button><i class="delta">${deltaTxt(v - antes[c])}</i></span></td>`).join('')}<td class="tot"><span class="rueda"><b>${ahora.reduce((a, b) => a + b, 0)}</b></span></td></tr>`).join('')}</tbody>
+      </table></div>
+      <div><div class="campo-et">Por qué<span class="marca" data-e="sigue">Sigue aquí</span></div><div class="pildoras" data-elige><button class="on">Conteo</button><button>Dañada</button><button>Encontrada</button><button>Otro</button></div></div>
+      <div class="pie"><span class="izq t65 resumen-ajuste" style="font-size:12.5px"></span><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn pri" data-guardar-ajuste>Guardar ajuste</button></div>
+    </div>`;
+    } },
+
+  { id: 'cobrar', grupo: 'Mostrador', nombre: 'Cobrar', cuenta: 'Vender · celular obligatorio', archivo: 'components/punto-de-venta/…', ancho: 576,
+    html: () => `${cab('Cobrar', 'Ticket de 3 prendas · Rosa Quispe', 'Vender · Trujillo')}
+    <div class="cuerpo cas">
+      <div class="total"><span class="vs">A cobrar</span><b style="font-size:38px">S/ 289.00</b></div>
+      ${seg([['efectivo', 'Efectivo', 'billete'], ['tarjeta', 'Tarjeta', 'tarjeta'], ['yape', 'Yape · Plin', 'celular'], ['mixto', 'Mixto', 'mezcla']], 'efectivo', 'medio')}
+      <div class="dos">
+        ${campo('Te da', ['ok', '✓'], `<div class="caja grande"><span class="pref" style="font-size:16px">S/</span><input value="300.00" inputmode="decimal"></div>`, '', 'bien')}
+        <div class="cifra"><span class="vs">Vuelto</span><b style="color:var(--verde)">S/ 11.00</b><span class="t65" style="font-size:12px">Un billete de 10 y una moneda de 1</span></div>
+      </div>
+      <div><div class="campo-et">Comprobante</div>${seg([['boleta', 'Boleta'], ['factura', 'Factura']], 'boleta', 'comprobante')}</div>
+      <div class="pie"><button class="btn sec" data-acc="cerrar">Volver al ticket</button><button class="btn pri" style="min-width:12rem">Cobrar S/ 289.00</button></div>
+    </div>` },
+
+  { id: 'cajon', grupo: 'Cajones', nombre: 'Proveedor (cajón)', cuenta: '14 cajones laterales', archivo: 'components/ProveedorVistaRapida.tsx', ancho: 456, cajon: true, cerrar: true,
+    html: () => `<div class="c-banda cas" style="display:flex"><span class="c-sello">TA</span><span><p class="vs">Proveedor</p><h2 class="h-tit serif" style="font-size:24px;line-height:1.15">${palabras('Textiles Andinos')}</h2><p class="t65" style="font-size:12.5px">RUC 20481234567 · crédito a 30 días</p></span></div>
+    <div class="c-cuerpo cas">
+      <div class="cifras"><div class="cifra"><span class="vs">Le debes</span><b>S/ 4 820</b></div><div class="cifra"><span class="vs">Lo próximo vence</span><b style="color:var(--ambar)">en 6 días</b></div></div>
+      <div><p class="vs" style="margin-bottom:8px">Facturas</p><div class="lista">
+        <div class="fila"><span class="ico">${ic('recibo')}</span><span class="tx"><b>F001-881</b><span>Vence el 6 de noviembre</span></span><span class="chip ambar"><i></i>Vence pronto</span></div>
+        <div class="fila"><span class="ico">${ic('recibo')}</span><span class="tx"><b>F001-877</b><span>Vence el 28 de noviembre</span></span><span class="der">S/ 2 520</span></div>
+        <div class="fila"><span class="ico">${ic('recibo')}</span><span class="tx"><b>F001-874</b><span>Pagada el 20 de octubre</span></span><span class="chip verde"><i></i>Pagada</span></div>
+      </div></div>
+      <div><p class="vs" style="margin-bottom:8px">Contacto</p><div class="fila"><span class="ico">${ic('telefono')}</span><span class="tx"><b>Marco Huamán</b><span>987 654 321</span></span></div></div>
+    </div>
+    <div class="c-pie"><span class="nav"><button aria-label="Anterior">${ic('arriba', 's')}</button><button aria-label="Siguiente">${ic('abajo', 's')}</button>3 de 12</span><button class="btn sec">Ver en Compras ${ic('derecha', 's')}</button><button class="btn pri">Registrar pago</button></div>` },
+
+  { id: 'ticket', grupo: 'Se quedan como papel', nombre: 'Reimprimir ticket', cuenta: 'Ticket, boleta, etiqueta', archivo: 'components/apartados/ModalesApartado.tsx', ancho: 448,
+    html: () => `${cab('Reimprimir ticket', 'Así sale de la impresora. El papel no cambia con el tema ni con el vidrio.', 'Apartados')}
+    <div class="cuerpo cas">
+      <div class="ticket papel-fijo" data-papel>
+        <p style="text-align:center;font-weight:700;letter-spacing:.2em">CAYLA</p><p style="text-align:center">Trujillo · Jr. Pizarro 512</p><hr>
+        <p>APARTADO AP-0087</p><p>Cliente: Rosa Quispe</p><hr>
+        <div class="fl"><span>Blusa Emma M Vino</span><span>89.00</span></div><div class="fl"><span>Jean Río 28 Azul</span><span>149.00</span></div><div class="fl"><span>Polo Nube S Crudo</span><span>51.00</span></div><hr>
+        <div class="fl"><b>TOTAL</b><b>S/ 289.00</b></div><div class="fl"><span>Adelanto (Yape)</span><span>50.00</span></div><div class="fl"><span>Falta</span><span>239.00</span></div><hr>
+        <p style="text-align:center">Se guarda hasta el 14/11/2026</p>
+      </div>
+      <div class="pie"><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn pri">${ic('impresora')}Imprimir ticket</button></div>
+    </div>` },
+];
+
+// ---------- estado ----------
+const estado = { vista: 'lado', intensidad: 'serena', campos: 'hundido', botones: 'gota', notas: 'placa', combo: 'pozo', aviso: 'lente', tabla: 'vivas', barra: 'tubo', prendas: 'lamina', tema: 'claro', ancho: 'escritorio', modal: 'cliente' };
+try { Object.assign(estado, JSON.parse(localStorage.getItem('modales-vidrio') || '{}')); } catch {}
+const guardar = () => { try { localStorage.setItem('modales-vidrio', JSON.stringify(estado)); } catch {} };
+
+const PRENDAS = [['#7a2e2a', 'Blusa Emma'], ['#c9a27e', 'Casaca Lía', 1], ['#2f4a3a', 'Vestido Ara'], ['#d8cbb3', 'Polo Nube', 1], ['#1f2f4a', 'Jean Río'], ['#b5643a', 'Falda Inti'],
+  ['#e7d7c1', 'Top Brisa', 1], ['#5b3a5e', 'Saco Malva'], ['#8c9a6b', 'Short Oliva', 1], ['#2b2b2b', 'Pantalón Noa'], ['#c2876b', 'Blusa Coral'], ['#4f6f8f', 'Camisa Mar']]; // tema-fijo: colores de prenda, son dato
+const erp = () => `<div class="erp" aria-hidden="true">
+  <aside class="erp-lat"><div class="erp-logo"><i></i><b>CAYLA</b></div>
+    ${[['Inicio', 'tienda'], ['Vender', 'recibo'], ['Inventario', 'caja', 1], ['Compras', 'recibo'], ['Finanzas', 'tarjeta'], ['Producción', 'taller']].map(([n, i, on]) => `<div class="g ${on ? 'on' : ''}">${ic(i, 'm')}<span>${n}</span></div>`).join('')}</aside>
+  <div class="erp-cab"><span class="p">Trujillo</span><span class="p"><span class="av" style="--t:24px">LR</span>Lucía</span></div>
+  <main class="erp-cont"><p class="vs">Trujillo · viernes 31 de octubre</p><h1>Existencias</h1><p class="t65">Lo que hay en la tienda y en el almacén, prenda por prenda.</p>
+    <div class="erp-cifras"><div><span class="vs">En tienda</span><b>1 284</b></div><div><span class="vs">En almacén</span><b>3 902</b></div><div><span class="vs">Por reponer</span><b>46</b></div><div><span class="vs">Sin foto</span><b>12</b></div></div>
+    <div class="erp-prendas">${PRENDAS.map(([c, n, claro]) => `<div data-color-dato class="${claro ? 'claro' : ''}" style="background:${c}"><span>${n}</span></div>`).join('')}</div></main></div>`;
+
+function aparato(look, m) {
+  const etiqueta = look === 'hoy' ? '<b>Hoy</b> · papel, borde fino, sin sombra (ADR-0358)' : `<b>Con vidrio</b> · ${estado.intensidad === 'completa' ? 'Completa, como Mi perfil' : 'Serena'} · campos ${{ ahora: 'como ahora', hundido: 'A · Hundido', placa: 'B · Placa', hilo: 'C · Hilo' }[estado.campos]} · botones ${{ ahora: 'como ahora', gota: 'A · Gota', placa: 'B · Placa', humo: 'C · Humo' }[estado.botones]} · notas ${{ ahora: 'como ahora', placa: 'A · Placa', tinte: 'B · Tinte', pie: 'C · Al pie' }[estado.notas]} · combo ${{ ahora: 'como ahora', pozo: 'A · Pozo y gota', ficha: 'B · Ficha', pildora: 'C · Píldora' }[estado.combo]} · aviso ${{ ahora: 'como ahora', filo: 'A · Filo', lente: 'B · Lente', luz: 'C · Borde de luz' }[estado.aviso]} · tabla ${{ ahora: 'como ahora', vivas: 'A · Celdas vivas', filas: 'B · Filas de vidrio', baldosas: 'C · Baldosas' }[estado.tabla]} · barra ${{ ahora: 'como ahora', tubo: 'A · Tubo de vidrio', etiquetas: 'B · Etiquetas', fichas: 'C · Fichas' }[estado.barra]} · prendas ${{ ahora: 'como ahora', filas: 'A · Filas de vidrio', lamina: 'B · Lámina de vidrio', ticket: 'C · Ticket vivo' }[estado.prendas]}`;
+  return `<figure class="marco"><figcaption>${etiqueta}</figcaption>
+    <div class="disp" data-look="${look}" data-ancho="${estado.ancho}">${erp()}
+      <div class="capa ${m.cajon ? 'lado' : ''}"><div class="velo" data-acc="cerrar"></div>
+        <div class="hoja ${look} ${m.cajon ? 'cajon' : ''} entra" style="--w:${m.ancho}px" role="dialog" aria-label="${m.nombre}">
+          <span class="v-filo" aria-hidden="true"></span><span class="v-brillo" aria-hidden="true"></span><span class="asa" aria-hidden="true"></span>
+          ${m.cerrar ? `<button class="cerrar" data-acc="cerrar" aria-label="Cerrar">${ic('x')}</button>` : ''}
+          ${m.html()}
+        </div></div>
+      <button class="reabrir" data-acc="abrir">Abrir de nuevo</button></div></figure>`;
+}
+
+function pintar() {
+  const r = document.documentElement;
+  r.dataset.tema = estado.tema; r.dataset.intensidad = estado.intensidad; r.dataset.campos = estado.campos; r.dataset.botones = estado.botones; if (estado.notas === 'ahora') delete r.dataset.notas; else r.dataset.notas = estado.notas;
+  if (estado.combo === 'ahora') delete r.dataset.combo; else r.dataset.combo = estado.combo;
+  if (estado.aviso === 'ahora') delete r.dataset.aviso; else r.dataset.aviso = estado.aviso;
+  if (estado.tabla === 'ahora') delete r.dataset.tabla; else r.dataset.tabla = estado.tabla;
+  if (estado.barra === 'ahora') delete r.dataset.barra; else r.dataset.barra = estado.barra;
+  if (estado.prendas === 'ahora') delete r.dataset.prendas; else r.dataset.prendas = estado.prendas;
+  $$('.seg-m').forEach((s) => $$('button', s).forEach((b) => b.classList.toggle('on', b.dataset.v === estado[s.dataset.ctl])));
+  $('[data-ctl="intensidad"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="campos"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="botones"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="notas"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="combo"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="aviso"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="tabla"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="barra"]').classList.toggle('apagado', estado.vista === 'hoy');
+  $('[data-ctl="prendas"]').classList.toggle('apagado', estado.vista === 'hoy');
+  // el selector de modales
+  const grupos = [...new Set(MODALES.map((m) => m.grupo))];
+  $('#elegir').innerHTML = grupos.map((g) => `<div class="bloque"><span class="grupo">${g}</span><div>${MODALES.filter((m) => m.grupo === g)
+    .map((m) => `<button data-modal="${m.id}" class="${m.id === estado.modal ? 'on' : ''}"><b>${m.nombre}</b>${m.cuenta}</button>`).join('')}</div></div>`).join('');
+  const m = MODALES.find((x) => x.id === estado.modal) || MODALES[0];
+  $('#ficha').innerHTML = `<span class="que">${m.nombre}</span><span>Representa: ${m.cuenta}</span><span>Hoy vive en <code>${m.archivo}</code></span>`;
+  const looks = estado.vista === 'lado' ? ['hoy', 'vidrio'] : [estado.vista];
+  const esc = $('#escena');
+  esc.style.setProperty('--cols', looks.length);
+  esc.dataset.ancho = estado.ancho;
+  esc.innerHTML = looks.map((l) => aparato(l, m)).join('');
+  preparar();
+}
+
+// ---------- la planilla: el número rueda, la diferencia aparece, el total cuenta, y al guardar cada talla se sella ----------
+function rodar(rueda, valor, dir) {
+  const viejo = rueda.lastElementChild;
+  if (+viejo.textContent === valor) return;
+  if (quieto() || !document.documentElement.dataset.tabla) { rueda.innerHTML = `<b>${valor}</b>`; return; }
+  const nuevo = document.createElement('b');
+  nuevo.textContent = valor; nuevo.className = dir > 0 ? 'entra-arriba' : 'entra-abajo';
+  viejo.className = dir > 0 ? 'sale-arriba' : 'sale-abajo';
+  rueda.append(nuevo);
+  setTimeout(() => viejo.remove(), 290);
+}
+const valorDe = (rueda) => +rueda.lastElementChild.textContent;
+function cambiarPaso(p, d) {
+  const r = $('.rueda', p), antes = valorDe(r), v = Math.max(0, antes + d);
+  if (v === antes) return;
+  $$('.sello', p.closest('.planilla')).forEach((x) => x.remove());
+  $$('.sellada', p.closest('.planilla')).forEach((x) => x.classList.remove('sellada'));
+  rodar(r, v, d);
+  const dif = v - +p.dataset.orig, del = $('.delta', p);
+  p.classList.toggle('cambio', dif !== 0);
+  if (dif) { del.textContent = deltaTxt(dif); del.classList.remove('pop'); void del.offsetWidth; del.classList.add('pop'); }
+  const tr = p.closest('tr');
+  rodar($('.tot .rueda', tr), $$('.paso .rueda', tr).reduce((a, x) => a + valorDe(x), 0), d);
+  resumenAjuste(p.closest('.hoja'));
+}
+function resumenAjuste(h) {
+  const r = h && $('.resumen-ajuste', h);
+  if (!r) return;
+  const cambios = $$('.paso.cambio', h).map((p) => valorDe($('.rueda', p)) - +p.dataset.orig);
+  if (!cambios.length) { r.textContent = 'Sin cambios todavía'; return; }
+  const mas = cambios.filter((x) => x > 0).reduce((a, x) => a + x, 0), menos = cambios.filter((x) => x < 0).reduce((a, x) => a - x, 0);
+  r.innerHTML = `${cambios.length} ${cambios.length === 1 ? 'talla cambia' : 'tallas cambian'} · <b style="color:var(--tinta)">${[mas ? '+' + mas : '', menos ? '−' + menos : ''].filter(Boolean).join(' ')}</b>`;
+}
+// Guardar (en la maqueta no se guarda nada): el botón dice «Guardando…» con su hilo y cada talla que cambió se sella, una tras otra.
+function sellarAjuste(btn) {
+  const h = btn.closest('.hoja'), cambios = $$('.paso.cambio', h);
+  if (!cambios.length || btn.classList.contains('cargando')) return;
+  btn.classList.add('cargando'); btn.textContent = 'Guardando…';
+  setTimeout(() => {
+    cambios.forEach((p, i) => {
+      const s = document.createElement('i');
+      s.className = 'sello'; s.style.setProperty('--s', i * 120 + 'ms'); s.innerHTML = ic('check');
+      p.append(s); p.style.setProperty('--delay', i * 120 + 'ms'); p.classList.add('sellada');
+    });
+    setTimeout(() => {
+      cambios.forEach((p) => { p.dataset.orig = valorDe($('.rueda', p)); p.classList.remove('cambio'); });
+      btn.classList.remove('cargando'); btn.innerHTML = `${ic('check', 's')}Guardado`;
+      const r = $('.resumen-ajuste', h); if (r) r.textContent = `${cambios.length} ${cambios.length === 1 ? 'talla quedó' : 'tallas quedaron'} en Movimientos`;
+    }, 300 + cambios.length * 120);
+  }, 700);
+}
+// La cruz: al pasar el mouse por una talla se iluminan su fila y su columna.
+document.addEventListener('pointerover', (e) => {
+  const td = e.target.closest('.planilla td[data-c]');
+  const t = e.target.closest('.planilla');
+  $$('.planilla .cruz').forEach((x) => x.classList.remove('cruz'));
+  if (!td || !t || !document.documentElement.dataset.tabla) return;
+  td.parentElement.classList.add('cruz');
+  $$(`[data-c="${td.dataset.c}"]`, t).forEach((x) => x.classList.add('cruz'));
+});
+
+// El total cuenta al abrir (las cifras que cuentan de ADR-0136), solo con la barra nueva y sin reducir movimiento.
+function contar(el) {
+  const hasta = +el.dataset.hasta, t0 = performance.now() + 450, dura = 800;
+  const paso = (t) => {
+    const x = Math.min(1, Math.max(0, (t - t0) / dura)), e = 1 - Math.pow(1 - x, 3);
+    el.textContent = 'S/ ' + (hasta * e).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (x < 1) requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+
+function preparar() {
+  if (document.documentElement.dataset.barra && !quieto()) $$('.hoja.vidrio.entra .cuenta').forEach(contar);
+  $$('.hoja').forEach(resumenAjuste);
+  $$('.cas').forEach((c) => [...c.children].forEach((h, i) => h.style.setProperty('--i', i)));
+  requestAnimationFrame(() => $$('.seg').forEach((s) => { const b = $('[aria-selected="true"]', s); if (b) moverGota(s, b, false); }));
+}
+
+// La gota: se estira hasta la pestaña nueva y suelta la vieja (la de Mi perfil). Con la cara de hoy, solo se desliza.
+function moverGota(s, b, animar) {
+  const g = $('.gota', s);
+  const l = b.offsetLeft, w = b.offsetWidth;
+  if (!animar || quieto()) { g.style.transition = 'none'; g.style.left = l + 'px'; g.style.width = w + 'px'; return; }
+  const liquida = !!s.closest('.vidrio');
+  if (!liquida) { g.style.transition = `left .3s ${EASE}, width .3s ${EASE}`; g.style.left = l + 'px'; g.style.width = w + 'px'; return; }
+  const l0 = g.offsetLeft, w0 = g.offsetWidth, izq = Math.min(l0, l), der = Math.max(l0 + w0, l + w);
+  g.style.transition = `left .2s ${EASE}, width .2s ${EASE}`; g.style.left = izq + 'px'; g.style.width = der - izq + 'px';
+  setTimeout(() => { g.style.transition = `left .34s ${EASE}, width .34s ${EASE}`; g.style.left = l + 'px'; g.style.width = w + 'px'; }, 190);
+}
+
+document.addEventListener('click', (e) => {
+  const ctl = e.target.closest('.seg-m button');
+  if (ctl) { estado[ctl.parentElement.dataset.ctl] = ctl.dataset.v; guardar(); pintar(); return; }
+  const mod = e.target.closest('[data-modal]');
+  if (mod) { estado.modal = mod.dataset.modal; guardar(); pintar(); return; }
+  const acc = e.target.closest('[data-acc]');
+  if (acc) {
+    const disp = acc.closest('.disp');
+    if (acc.dataset.acc === 'cerrar') disp.classList.add('cerrado');
+    if (acc.dataset.acc === 'abrir') { disp.classList.remove('cerrado'); const h = $('.hoja', disp); h.classList.remove('entra'); void h.offsetWidth; h.classList.add('entra'); preparar(); }
+    return;
+  }
+  const cb = e.target.closest('.combo-boton');
+  if (cb) { const c = cb.parentElement, abre = !c.classList.contains('abierto'); $$('.combo.abierto').forEach((x) => { x.classList.remove('abierto'); $('.combo-boton', x).setAttribute('aria-expanded', 'false'); }); c.classList.toggle('abierto', abre); cb.setAttribute('aria-expanded', abre); return; }
+  const opc = e.target.closest('.combo-op');
+  if (opc) { const c = opc.closest('.combo'); $$('.combo-op', c).forEach((o) => o.setAttribute('aria-selected', o === opc)); const b = $('.combo-boton', c);
+    $('.av', b).textContent = opc.dataset.ini; $('.combo-tx b', b).textContent = opc.dataset.n; $('.combo-tx span', b).textContent = opc.dataset.d; c.classList.remove('abierto'); b.setAttribute('aria-expanded', 'false'); return; }
+  if (!e.target.closest('.combo')) $$('.combo.abierto').forEach((x) => x.classList.remove('abierto'));
+  const tab = e.target.closest('.seg [role="tab"]');
+  if (tab) { const s = tab.parentElement; $$('[role="tab"]', s).forEach((b) => b.setAttribute('aria-selected', b === tab)); moverGota(s, tab, true); return; }
+  const op = e.target.closest('[data-elige] > button');
+  if (op) { $$('button', op.parentElement).forEach((b) => b.classList.toggle('on', b === op)); return; }
+  const paso = e.target.closest('[data-paso]');
+  if (paso) { cambiarPaso(paso.parentElement, +paso.dataset.paso); return; }
+  const guardarAj = e.target.closest('[data-guardar-ajuste]');
+  if (guardarAj) sellarAjuste(guardarAj);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  // Escape dentro de una hoja: primero cierra la lista abierta, y recién el segundo cierra la hoja (useEscapeLibre)
+  const abierto = $$('.combo.abierto');
+  if (abierto.length) { abierto.forEach((x) => x.classList.remove('abierto')); return; }
+  $$('.disp').forEach((d) => d.classList.add('cerrado'));
+});
+$('#repetir').addEventListener('click', pintar);
+
+// La luz del vidrio (solo «Completa»): el brillo sigue al mouse y el filo gira hacia él. Si el mouse se queda quieto, todo se queda quieto.
+document.addEventListener('pointermove', (e) => {
+  if (estado.intensidad !== 'completa' || quieto()) return;
+  $$('.hoja.vidrio').forEach((h) => {
+    const r = h.getBoundingClientRect();
+    h.style.setProperty('--mx', ((e.clientX - r.left) / r.width) * 100 + '%');
+    h.style.setProperty('--my', ((e.clientY - r.top) / r.height) * 100 + '%');
+    const ang = (Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180) / Math.PI - 58;
+    h.style.setProperty('--ang', ang + 'deg');
+  });
+});
+addEventListener('resize', () => preparar());
+
+pintar();
+</script>
+</body>
+</html>

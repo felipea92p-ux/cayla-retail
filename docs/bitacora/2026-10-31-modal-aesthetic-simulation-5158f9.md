@@ -1,0 +1,59 @@
+## 2026-10-31 (Simulación: todos los modales con el vidrio de «Mi perfil»)
+Qué hice: analicé la hoja de vidrio de Mi perfil (`perfil-vidrio.css`: vidrio al 54 % con desenfoque, borde de luz y sombra, filo y brillo que siguen al mouse, velo liviano, título de 30 px por su ranura, segmento con gota, filas de vidrio) y armé `docs/maquetas/modales-vidrio-2026-10/`: 9 modales que representan los 275 `<Modal>` y los 14 `<Cajon>`, cada uno hoy y con vidrio, en dos intensidades (Completa = Mi perfil tal cual; Serena = sin filo ni brillo, más opaco, tablas sobre lámina y papel si hay botón rojo), en claro, oscuro y 375 px.
+Por qué así: la cara de toda hoja es una sola desde la ronda 12 (ADR-0358), así que el cambio real serían dos piezas (`Modal.tsx`, `Cajon.tsx`) y conviene decidirlo mirando. Lo que se vio: Cobrar y las filas lucen; la planilla de Ajustar inventario y el rojo de Anular pierden con «Completa»; la luz de la guía de foco se apaga sobre el vidrio.
+Felipe se lleva: la recomendación es «Serena» para todas y «Completa» solo en Mi perfil; nada del código cambió, la decisión es suya y pasaría por `/unificar`.
+
+## 2026-10-31 (Los campos sobre el vidrio «Serena»)
+Qué hice: Felipe eligió «Serena» y vio que las cajas de texto ya no iban con el modal (hueso con borde: papel pegado sobre el vidrio). Sumé a la maqueta el selector «Campos» con tres caras —A · Hundido (un pozo del vidrio que sube como la gota al escribir), B · Placa (vidrio como las filas) y C · Hilo (sin caja, sobre una línea)—, aplicadas a cajas, combos, montos y los pasos de cantidad, en claro, oscuro y 375 px.
+Por qué así: las tres conservan el borde-control (3:1), el hilo rojo y la luz de «Sigue aquí», que además vuelve a verse (pizarra al 26 %). Recomiendo A: habla el idioma del segmento y el campo se reconoce por borde y profundidad.
+Felipe se lleva: elegir A, B o C mirando; falta medir el borde sobre el vidrio con una prenda oscura detrás antes de llevarlo al código.
+
+## 2026-10-31 (Los botones sobre el vidrio)
+Qué hice: Felipe eligió los campos «A · Hundido» y pidió los botones. Sumé el selector «Botones» con tres caras —A · Gota (píldora; el secundario es la gota del segmento, el primario tinta con brillo), B · Placa (el radio de los campos) y C · Humo (el primario también es vidrio ahumado)—, aplicadas a botones, píldoras, flechas del cajón y la ×, en claro, oscuro y 375 px.
+Por qué así: con los campos hundidos, lo que haces tiene que sobresalir; las tres conservan el borde-control, el negro → rojo profundo, la subida de 2 px y la luz que cruza. Recomiendo A; C deja el primario casi apagado (se vio en Cobrar).
+Felipe se lleva: elegir A, B o C mirando; con A, dentro de una hoja los botones son píldora y en la pantalla no, y eso lo decide él.
+
+## 2026-10-31 (Botones «A · Gota» y el campo que no se vuelve sólido)
+Qué hice: Felipe eligió los botones «A · Gota» y pidió que el campo no se pusiera de un color sólido al escribir. Al escribir, el campo hundido ahora sube y se ilumina con un degradado de vidrio (50 % → 22 %, en oscuro tinta 14 % → 6 %), gana su sombra afuera y sigue dejando ver lo de atrás; «Sigue aquí» también pasó a vidrio.
+Por qué así: el foco lo dicen la subida, la sombra y el hilo rojo, no el relleno; un relleno sólido era papel otra vez sobre el vidrio.
+Felipe se lleva: queda la cara completa —vidrio Serena, campos A · Hundido, botones A · Gota— para llevarla al código por `/unificar`; antes, medir el contraste del borde con una prenda oscura detrás.
+
+## 2026-10-31 (La nota y el aviso sobre el vidrio)
+Qué hice: Felipe pidió mejorar la nota («Si ya tiene ficha…»), que sobre el vidrio era una losa plana y en oscuro negra. Sumé el selector «Notas» con tres caras —A · Placa (vidrio como las filas), B · Tinte (sin caja, un tinte que nace en la «i») y C · Al pie (sobre una línea fina)—; la «i» va en una lente de vidrio y el aviso de atención sigue la misma cara con su ámbar.
+Por qué así: el modal ya habla dos idiomas (hundido = tu dato; relieve = tu acción) y una nota no es ninguno; recomiendo B. A parece una fila que se toca y C le quita fuerza al aviso.
+Felipe se lleva: elegir A, B o C mirando.
+
+## 2026-10-31 (El combo, y botones sin color sólido)
+Qué hice: Felipe eligió la nota «A · Placa» y pidió mejorar el combo y que los botones no fueran sólidos. El primario pasó a vidrio ahumado de tinta (72 % → 93 %) y el peligroso a vidrio rojo, los dos con desenfoque; la gota secundaria quedó más clara y lo elegido en un mosaico ya no es blanco sólido. Sumé el selector «Combo» —A · Pozo y gota, B · Ficha, C · Píldora— con el avatar en una lente y una lista de vidrio que se abre de verdad (hilo de canto, ✓, la persona sin asistencia que no se elige; el primer Escape cierra la lista). De paso: a 375 px el contenido de la hoja ya no se sale por la derecha (la cuadrícula no se encogía) y los botones del pie van a lo ancho.
+Por qué así: el combo guarda un dato y se aprieta; A lo dice con el idioma del modal (pozo + gota). Por debajo de ~70 % el primario se ve gris, por eso es más denso abajo.
+Felipe se lleva: elegir A, B o C para el combo mirando.
+
+## 2026-10-31 (El aviso sobre el vidrio)
+Qué hice: Felipe eligió el combo «A · Pozo y gota» y pidió mejorar el aviso («Ya se cortaron 24 prendas»): sobre la placa de 18 px la franja se curvaba como una medialuna. Sumé el selector «Aviso» —A · Filo (la franja como un filo redondeado adentro), B · Lente (sin franja, lente ámbar grande y borde tenue) y C · Borde de luz (el borde se enciende de ámbar desde la izquierda)—; las tres ponen el ícono en una lente ámbar que se dibuja al entrar.
+Por qué así: recomiendo A porque conserva la franja, lo que hace reconocible al aviso en todo el ERP; B se confunde con la nota y C, en cuatro tonos, sería mucha luz.
+Felipe se lleva: elegir A, B o C mirando.
+
+## 2026-10-31 (La planilla de tallas y su movimiento)
+Qué hice: Felipe eligió el aviso «B · Lente» y pidió mejorar las tablas tipo planilla y darles más animación. La matriz de Ajustar inventario ahora dice la diferencia de cada talla (+1 / −1), suma cada color (Total) y el pie resume los cambios; sumé el selector «Tabla» —A · Celdas vivas, B · Filas de vidrio, C · Baldosas (dos por fila en el celular)— y el movimiento de «Ajustar stock» (ADR-0494): luz que cruza, filas en cascada, celdas en ola, número que rueda, diferencia que aparece, total que cuenta, la cruz de fila y talla al pasar el mouse y el sello de cada talla al guardar (la maqueta no guarda). De paso: la barra de controles es más compacta y deja de quedarse fija bajo 1300 px.
+Por qué así: recomiendo B (todo a la vista, con su borde de control, y escala a más tallas); A esconde − y + al mouse y C es el doble de alta.
+Felipe se lleva: elegir A, B o C mirando; y decidir si el movimiento de Ajustar stock pasa a toda planilla en una hoja (actualización de ADR-0136).
+
+## 2026-10-31 (La barra de pagos sobre el vidrio)
+Qué hice: Felipe eligió la planilla «A · Celdas vivas» y pidió mejorar la barra de pagos de «Detalle de la venta». Sumé el selector «Barra» —A · Tubo de vidrio (pozo con tramos de vidrio de color y una leyenda con monto y parte), B · Etiquetas (el texto dentro de cada tramo) y C · Fichas (cada medio en una fila de vidrio con su barra fina)—; en las tres el total cuenta al abrir, los tramos crecen uno tras otro y el apuntado se estira. De paso: una tabla del análisis forzaba la página a 2 000 px de ancho, y la barrita de las fichas chocaba con la clase de la miniatura de prenda.
+Por qué así: recomiendo A (el idioma del modal, sirve con 2 o 5 medios); B se corta con un tramo chico (visto a 375 px) y C ocupa el triple de alto.
+Felipe se lleva: elegir A, B o C mirando.
+
+## 2026-10-31 (La cara completa del vidrio, elegida)
+Qué hice: Felipe eligió la barra «A · Tubo de vidrio» y con eso quedó toda la cara: vidrio Serena, campos A · Hundido, botones A · Gota sin color sólido, notas A · Placa, combo A · Pozo y gota, aviso B · Lente, planilla A · Celdas vivas y barra A · Tubo de vidrio. La maqueta abre así y el README lo deja escrito.
+Por qué así: cada pieza se eligió mirando, una por una, sobre los mismos 9 modales.
+Felipe se lleva: antes del código faltan dos medidas (contraste sobre el vidrio con una prenda oscura detrás; desenfoque en el Mac mini) y tres decisiones de regla suyas (ADR-0358 ronda 12, ADR-0136 para el movimiento de las planillas, y el − + al apuntar en Celdas vivas).
+
+## 2026-10-31 (La lista de prendas sobre el vidrio)
+Qué hice: Felipe pidió mejorar la lista de prendas de «Detalle de la venta». Sumé el selector «Prendas» —A · Filas de vidrio, B · Lámina de vidrio (talla como insignia en la lente) y C · Ticket vivo (puntos guía hasta el precio)—; en las tres la prenda sin foto lleva el ícono de su categoría sobre su color (ADR-0333, que la maqueta no cumplía), la talla va en una pastilla, el color con su punto y el precio en serif, con su entrada en cascada.
+Por qué así: recomiendo B porque se lee como lista y no como botones, y aguanta muchas prendas; A parece tocable y C pierde el color en el celular.
+Felipe se lleva: elegir A, B o C mirando.
+
+## 2026-10-31 (Lista de prendas elegida)
+Qué hice: Felipe eligió la lista de prendas «B · Lámina de vidrio»; queda marcada en la maqueta y sumada a la cara completa del README (Serena · campos A · botones A · notas A · combo A · aviso B · planilla A · barra A · prendas B).
+Por qué así: se lee como lista y no como botones, y aguanta muchas prendas.
+Felipe se lleva: siguen pendientes las dos medidas (contraste sobre el vidrio, desenfoque en el Mac mini) y las tres decisiones de regla antes de llevarlo al código.
