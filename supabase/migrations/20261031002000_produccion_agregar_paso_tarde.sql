@@ -45,12 +45,16 @@
 set lock_timeout = '3s';
 
 -- 1. La historia de la orden guarda también un paso agregado tarde: con su motivo, la fase que se agregó y lo que se anotó en ella.
+--    Las dos reglas se reescriben ENTERAS (un CHECK no se amplía): llevan también `tipo`, la acción de «cambiar el tipo de una orden» (ADR-0581, PR #1500, migración 20261030151000), con su
+--    misma forma. Así da igual cuál de las dos migraciones se pegue primero: la segunda no borra la acción de la otra ni choca con sus filas.
 alter table retail.produccion_cambios drop constraint if exists produccion_cambios_accion_check;
-alter table retail.produccion_cambios add constraint produccion_cambios_accion_check check (accion in ('corregir', 'eliminar', 'restaurar', 'nota', 'sin_tela', 'paso_tarde'));
+alter table retail.produccion_cambios add constraint produccion_cambios_accion_check check (accion in ('corregir', 'eliminar', 'restaurar', 'nota', 'sin_tela', 'tipo', 'paso_tarde'));
 alter table retail.produccion_cambios drop constraint if exists produccion_cambios_forma;
 alter table retail.produccion_cambios add constraint produccion_cambios_forma check (case accion
   when 'nota' then objeto is null and fase_id is null and cardinality(quita_ids) = 0 and cardinality(pone_ids) = 0 and restaura_id is null
   when 'sin_tela' then objeto is null and fase_id is null and cardinality(quita_ids) = 0 and cardinality(pone_ids) = 0 and restaura_id is null
+  when 'tipo' then objeto is null and fase_id is null and cardinality(quita_ids) = 0 and cardinality(pone_ids) = 0 and restaura_id is null
+                   and coalesce((antes ->> 'es_muestra') in ('true', 'false') and (despues ->> 'es_muestra') in ('true', 'false') and (antes ->> 'es_muestra') <> (despues ->> 'es_muestra'), false)
   when 'eliminar' then objeto is not null and fase_id is not null and cardinality(quita_ids) > 0 and cardinality(pone_ids) = 0 and restaura_id is null
   when 'corregir' then objeto = 'termine' and fase_id is not null and cardinality(quita_ids) > 0 and cardinality(pone_ids) > 0 and restaura_id is null
   when 'restaurar' then objeto is not null and fase_id is not null and cardinality(quita_ids) = 0 and cardinality(pone_ids) > 0 and restaura_id is not null
