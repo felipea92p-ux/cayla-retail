@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 51;
+export const PENDIENTES_HOY = 47;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -107,11 +107,11 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
-  "/finanzas/reportes": PENDIENTE,
-  "/finanzas/reportes/balance": PENDIENTE,
-  "/finanzas/reportes/campanas": PENDIENTE,
+  "/finanzas/reportes": { estado: "no-aplica", motivo: "¿Ganamos? (Estados financieros, ADR-0585) solo mira: la respuesta, la cascada y lo de cada sede se tocan para ver más, nada se llena. El mes y la sede los elige la barra del telar." },
+  "/finanzas/reportes/balance": { estado: "no-aplica", motivo: "¿Cuánto vale CAYLA? (ADR-0585) solo mira: su único control es la fecha del Balance, un filtro. Los saldos de arranque se llenan en su propia hoja (SaldosArranqueModal), que lleva su registro aparte." },
+  "/finanzas/reportes/campanas": { estado: "no-aplica", motivo: "La lista de campañas y cómo le fue a cada una (ADR-0585: la puerta desde ¿Ganamos?): solo mira, sin campos ni pasos." },
   "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de ¿Dónde está la plata? (ADR-0585)." },
-  "/finanzas/reportes/flujo": PENDIENTE,
+  "/finanzas/reportes/flujo": { estado: "no-aplica", motivo: "¿Dónde está la plata? (ADR-0585) solo mira. Sus controles son un filtro (cuántas semanas) y las palancas de «¿Y si…?», una simulación que no guarda: ninguna es obligatoria ni sigue a otra, así que no hay «qué falta». Lo explica su guía interactiva." },
   "/finanzas/reportes/patrimonio": { estado: "no-aplica", motivo: "¿Lo tuyo creció? (Estados financieros, ADR-0585) solo mira: lo tuyo al empezar y al cerrar el mes y lo que lo movió. No hay campos ni pasos; el mes y la sede los elige la barra del telar." },
   "/finanzas/reportes/presupuesto": { estado: "no-aplica", motivo: "Solo redirige a ¿Ganamos? (ADR-0585): el presupuesto vive dentro de esa pantalla y ya no tiene campos propios." },
   "/finanzas/resumen": PENDIENTE,

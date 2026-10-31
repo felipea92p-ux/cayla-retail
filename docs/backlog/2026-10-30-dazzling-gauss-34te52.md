@@ -31,4 +31,13 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
   cuatro «Descargar Excel» sueltos. Nueva `fn_saldos_por_cuenta` (17 de 17 en `pruebas:saldos-por-cuenta`). Probado: tipos, 750 archivos de
   vitest, Knip y eslint. **Sin probar en el navegador logueado. La migración 20261031120000 no está en producción** (se pega después de
   la 20261030235100).
-- [ ] 9 · Cierre: oscuro, `/focus`, `/formidable`, `docs/ARQUITECTURA.md`.
+- [x] **9 · Cierre.** Guía de foco: ¿Ganamos?, Flujo, Balance y Campañas pasan a `no-aplica` (solo miran), `PENDIENTES_HOY` 51 → 47.
+  Formidable por lectura de código (`docs/formidable/finanzas-estados-financieros.md`). `docs/ARQUITECTURA.md` al día.
+- [ ] **Formidable: los 3 cambios esperan OK de Felipe.** La línea de lo tuyo cerca del mes más bajo; «Qué te recomiendo» bajo la
+  respuesta bajo 1280 px; las dos tarjetas de CAYLA entera apagadas para una terminal.
+- [ ] **Modo oscuro y responsive sin medir:** `pnpm --filter web tema:auditar -- --ruta /finanzas/reportes,/finanzas/reportes/flujo,/finanzas/reportes/balance,/finanzas/reportes/patrimonio --escenarios`
+  y `/multi-view-responsive finanzas`, en local con sesión.
+- [ ] **Producción:** pegar en orden `20261030235000`, `20261030235100` y `20261031120000`, cada una entera; después refrescar el volcado.
+- [ ] **Decisión de Felipe:** ¿una terminal con el módulo ve todo? Hoy no (precedente ADR-0161 P6).
+- [ ] **Cierre del año (enero 2027):** los saldos por cuenta acumulan ingresos y gastos desde el arranque hasta que exista el asiento
+  de cierre.

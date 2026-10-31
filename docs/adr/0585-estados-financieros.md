@@ -231,6 +231,28 @@ de comprobación (cada cuenta con su saldo, el debe y el haber del mes) y el lib
 cuadra, lo que tiene y lo tuyo coinciden con `fn_balance_general`, ingresos y gastos dan la ganancia de `fn_patrimonio_cambios`, abril
 empieza donde cerró marzo, y los permisos. La ruta y el menú no se probaron en el navegador con sesión.
 
+## Actividad 9 · Cierre
+
+- **Guía de foco** (`lib/guia-de-foco-pantallas.ts`): ¿Ganamos?, ¿Dónde está la plata?, ¿Cuánto vale CAYLA? y Campañas pasan de
+  `pendiente` a `no-aplica`, cada una con su motivo: solo miran. Sus controles son filtros (la fecha del Balance, cuántas semanas) o las
+  palancas de «¿Y si…?», que no guardan. `PENDIENTES_HOY` baja de 51 a 47. Los saldos de arranque (`SaldosArranqueModal`) siguen
+  `pendiente`: es un formulario de verdad y no se tocó aquí.
+- **Formidable**: pasada por lectura de código (`docs/formidable/finanzas-estados-financieros.md`), con tres cambios propuestos que
+  esperan el OK de Felipe. Sin ciega y sin oficio medido: el contenedor no tenía Supabase.
+- **Modo oscuro**: las piezas nuevas usan solo tokens; `lib/tema-colores.test.ts` y `lib/tema-tokens.test.ts` pasan. **Falta**
+  `tema:auditar` en local, con sesión, en las cuatro pantallas.
+- `docs/ARQUITECTURA.md` describe las cuatro pantallas, sus `*-reglas.ts`, sus RPC y la ruta de descarga.
+
+### Lo que queda abierto
+
+- Probar las cuatro pantallas en el navegador con sesión: escritorio, 375 px, claro y oscuro. Probar también una cuenta con el módulo
+  que no sea líder.
+- Pegar en producción las tres migraciones, en orden.
+- Dos decisiones de Felipe:
+  - si una terminal con el módulo ve todo (hoy no lo ve);
+  - si el Resumen de Finanzas muestra CAYLA entera a quien tiene el módulo (hoy muestra su tienda).
+- El cierre del año: los saldos por cuenta acumulan ingresos y gastos desde el arranque hasta que exista el asiento de cierre.
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero
