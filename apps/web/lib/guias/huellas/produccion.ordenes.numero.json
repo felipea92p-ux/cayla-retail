@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 186,
+  "total": 195,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -45,6 +45,7 @@
       "button «›»"
     ],
     "components/orden-pagina/AccionesDeLaOrden.tsx": [
+      "Boton «prod-orden.cambiar-tipo»",
       "Boton «prod-orden.anular-orden»",
       "Boton «prod-orden.pasar-al-stock»",
       "Boton «prod-orden.revertir»"
@@ -54,6 +55,9 @@
       "CampoTexto «Nombre del proceso»",
       "CampoSelect «Va después de»",
       "Casilla «Recordar en la ficha del modelo»",
+      "CampoFecha «agregar-paso-dia»",
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
@@ -105,6 +109,12 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/CambiarTipoModal.tsx": [
+      "CampoTexto «Por qué lo cambias»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/CambioConMotivoModal.tsx": [
       "button «{m}»",
@@ -224,7 +234,8 @@
       "button «+ Registrar proveedor nuevo»",
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
       "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
-      "CampoMonto «Cobra por esta orden»",
+      "CampoMonto «{modoFijo === \"prenda\" ? \"Cobra por prenda\" : \"Cobra por esta orden\"}»",
+      "SegmentoDeslizante «Cómo escribes el cobro del ploteo»",
       "CampoFecha «Prometido para»",
       "CampoMonto «Por prenda»",
       "CampoTexto «Cantidad mínima»",
