@@ -98,7 +98,7 @@ export function ConfiguracionCuentas({
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al cambiarla, a nombre de quien figure como responsable. Cada cambio queda en la historia.</p>
+        <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al cambiarla y queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
@@ -225,7 +225,7 @@ export function ConfiguracionCuentas({
         <Superficie className="anim-sube" guia="config.planilla-cuentas">
           <TituloDeTarjeta
             titulo="De qué cuenta sale la planilla"
-            bajada="Dynamic le paga a cada persona en el banco donde cobra. Elige de qué cuenta de CAYLA sale lo de quienes cobran en cada uno: Cuentas y dinero la propone al registrar la salida."
+            bajada="De qué cuenta de CAYLA sale la planilla de quienes cobran en cada banco."
           />
           {/* Dos campos y no una tabla: las tablas de Finanzas piden 900 px y aquí solo hay dos filas. */}
           <div className="grid gap-4 p-[14px] sm:grid-cols-2">
@@ -250,14 +250,14 @@ export function ConfiguracionCuentas({
             ))}
           </div>
           <PieTabla>
-            <span>Quien no tiene banco anotado en Dynamic sale aparte: eliges la cuenta al registrar su salida. Cambiar esto no mueve lo ya registrado.</span>
+            <span>Quien no tiene banco en Dynamic sale aparte. Cambiar esto no mueve lo ya registrado.</span>
           </PieTabla>
         </Superficie>
       )}
 
       {maquinas && (
         <Superficie className="anim-sube" guia="config.maquinas">
-          <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra con tarjeta y QR en cada tienda, y en qué cuenta espera lo cobrado hasta que la máquina lo deposita, sin su comisión." />
+          <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra tarjeta y QR en cada tienda, y dónde espera lo cobrado hasta el depósito." />
           {maquinas.length === 0 ? (
             <Vacio tamano="chico" icono={<CreditCard />}>
               No hay máquinas de cobro.
@@ -308,7 +308,7 @@ export function ConfiguracionCuentas({
             </div>
           )}
           <PieTabla>
-            <span>Donde una tienda tiene dos máquinas para un mismo medio, la hoja de cobro pregunta cuál y marca de entrada la de «A qué cuenta entra cada cobro». La tarifa solo sirve para estimar la comisión y avisar si la máquina se atrasa: la comisión real sale de cada depósito.</span>
+            <span>Con dos máquinas para un mismo medio, el cobro pregunta cuál. La tarifa solo estima la comisión: la real sale de cada depósito.</span>
           </PieTabla>
         </Superficie>
       )}
@@ -456,7 +456,7 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
           <InputFin id="cta-desde" type="date" max={hoy} value={desde} onChange={(e) => setDesde(e.target.value)} />
         </CampoFin>
       </div>
-      <p className="-mt-2 mb-4 text-[12.5px] text-taupe">El saldo inicial se registra una vez; después el saldo solo cambia con movimientos, cobros y pagos desde ese día.</p>
+      <p className="-mt-2 mb-4 text-sm text-taupe">El saldo inicial se registra una vez; después el saldo solo cambia con movimientos, cobros y pagos desde ese día.</p>
       <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="fin-botones mt-4">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>

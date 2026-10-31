@@ -157,9 +157,7 @@ describe("la lista de operaciones es la de la base", () => {
  * Los archivos que llaman a una de esas funciones SIN `useIntento` (la marca atada al contenido). Es deuda de otro módulo
  * (se cierra con su /chaos), nunca un archivo nuevo: la prueba falla si uno aparece, y si uno de la lista ya no lo necesita.
  */
-const SIN_INTENTO_TODAVIA: Record<string, string> = {
-  "components/GastosPanel.tsx": "Finanzas: registra cada gasto con un token nuevo por llamada; va con el /chaos de Finanzas.",
-};
+const SIN_INTENTO_TODAVIA: Record<string, string> = {};
 
 function archivos(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(join(RAIZ_WEB, dir), { withFileTypes: true })) {

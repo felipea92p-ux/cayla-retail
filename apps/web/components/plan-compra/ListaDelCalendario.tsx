@@ -106,7 +106,7 @@ export function ListaDelCalendario({
 
   return (
     <div className="space-y-8">
-      <GrupoDeCampanas guia="calendario.en-mi-plan" titulo="En mi plan" nota="Aquí te ofrece armar el plan cuando faltan 90 días" vacio="Todavía no elegiste ninguna: prende el interruptor de las que sí compras." lista={grupos.enMiPlan} tienda={tienda}>
+      <GrupoDeCampanas guia="calendario.en-mi-plan" titulo="En mi plan" nota="Te ofrece armar el plan 90 días antes" vacio="Todavía no elegiste ninguna: prende el interruptor de las que sí compras." lista={grupos.enMiPlan} tienda={tienda}>
         {grupos.enMiPlan.map((c) => (
           <FilaDeCampana key={c.clave} c={c} anio={anio} hoy={hoy} evidencia={evidencias[c.clave] ?? null} ocupada={trabajando === c.clave} alAlternar={alternar} alEditar={alEditar} alArmar={alArmar} />
         ))}
@@ -118,7 +118,7 @@ export function ListaDelCalendario({
           ))}
         </GrupoDeCampanas>
       )}
-      <GrupoDeCampanas guia="calendario.no-las-compro" titulo="Otras fechas — no las compro" nota="Las del sistema vienen de Catálogo ▸ Insignias; prende una para sumarla" vacio="Todas entran a tu plan." lista={grupos.noLasCompro} tienda={tienda}>
+      <GrupoDeCampanas guia="calendario.no-las-compro" titulo="Otras fechas — no las compro" nota="Prende una para sumarla" vacio="Todas entran a tu plan." lista={grupos.noLasCompro} tienda={tienda}>
         {grupos.noLasCompro.map((c) => (
           <FilaDeCampana key={c.clave} c={c} anio={anio} hoy={hoy} evidencia={evidencias[c.clave] ?? null} ocupada={trabajando === c.clave} alAlternar={alternar} alEditar={alEditar} alArmar={alArmar} />
         ))}
@@ -239,7 +239,7 @@ function FilaDeCampana({
         <Chip tono={v.tono} versalitas={false}>
           {v.texto}
         </Chip>
-        {evidencia && pocaHistoria(evidencia) && <span className="mt-0.5 block text-xs text-taupe">{textoDeAnios(evidencia.porAnio.length)}: poca historia</span>}
+        {evidencia && pocaHistoria(evidencia) && <span className="mt-0.5 block text-sm text-taupe">{textoDeAnios(evidencia.porAnio.length)}: poca historia</span>}
       </span>
       <span className="min-w-0 @max-[639px]:col-span-2" data-guia="calendario.rango">
         <RangoDeVentas evidencia={evidencia} />

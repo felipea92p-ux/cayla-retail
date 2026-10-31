@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.por-pagar",
   "ruta": "/finanzas/dinero/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 49,
+  "total": 60,
   "controles": {
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -51,11 +51,24 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/finanzas/PorPagarConsolidado.tsx": [
-      "Link «fin-por-pagar.varias»",
-      "button «{TEXTO_NATURALEZA[t]}»",
       "FiltroPuesto «{`Quitar el filtro ${p.texto}»",
       "BotonLimpiar «Limpiar todo»",
-      "Link «fin-por-pagar.pagar»"
+      "Link «fin-por-pagar.pagar»",
+      "button «fin-por-pagar.todas»",
+      "button «{TEXTO_NATURALEZA[p.tipo]}»",
+      "Link «{`Pagar ${a.proveedor}»",
+      "button «Ver las vencidas»",
+      "Link «fin-por-pagar.varias»",
+      "button «{p.proveedor}»"
+    ],
+    "components/finanzas/PorPagarTodas.tsx": [
+      "button «Todas»",
+      "button «{t.etiqueta}»",
+      "button «{TEXTO_NATURALEZA[t]}»",
+      "button «{u.texto}»",
+      "button «Limpiar filtros»",
+      "Link «{`Pagar ${x.proveedor}»",
+      "SegmentoDeslizante «Cuántas por página»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",

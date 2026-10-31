@@ -48,11 +48,11 @@ export function TarjetaFoto({
       <span className="min-w-0">
         <span className="block truncate font-medium text-tinta">{archivo ? `Lista: ${archivo.name}` : titulo}</span>
         {rechazo ? (
-          <span className="block text-xs text-rojo-profundo" role="alert">
+          <span className="block text-sm text-rojo-profundo" role="alert">
             {rechazo} Elige otra.
           </span>
         ) : (
-          <span className="block text-xs text-taupe">{archivo ? "Toca para cambiarla" : ayuda}</span>
+          <span className="block text-sm text-taupe">{archivo ? "Toca para cambiarla" : ayuda}</span>
         )}
       </span>
       <input

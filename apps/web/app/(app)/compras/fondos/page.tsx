@@ -73,7 +73,7 @@ const TITULOS_DESDE = "hidden @min-[36rem]:grid";
 // Una celda que solo es columna propia en la tabla ancha.
 const SOLO_ANCHA = "hidden @min-[60rem]:block";
 // Lo que en una tabla menos ancha va en la segunda línea de la primera celda (que puede partirse).
-const SEGUNDA_LINEA = "block whitespace-normal text-xs text-taupe @min-[60rem]:hidden";
+const SEGUNDA_LINEA = "block whitespace-normal text-sm text-taupe @min-[60rem]:hidden";
 // La acción de la fila: al borde derecho cuando hay columnas; apilada, bajo lo demás.
 const ACCION = "flex min-w-0 justify-start @min-[36rem]:justify-end";
 
@@ -152,7 +152,7 @@ export default async function FondosPage() {
               Por persona
             </TituloGrupo>
             {/* La leyenda de las barras; cada barra dice lo suyo al lector (su `etiqueta`), así que esta solo se ve. */}
-            <span aria-hidden className="flex items-center gap-3 text-xs text-taupe">
+            <span aria-hidden className="flex items-center gap-3 text-sm text-taupe">
               {TRAMOS_FONDO.map((t) => (
                 <span key={t.clave} className="inline-flex items-center gap-1.5">
                   <MuestraTramo clase={t.clase} />
@@ -181,7 +181,7 @@ export default async function FondosPage() {
                       <span className="truncate font-medium text-tinta" title={f.sede ?? undefined}>
                         {f.persona}
                       </span>
-                      <span className="shrink-0 whitespace-nowrap text-xs text-taupe">de {soles(f.entregado)}</span>
+                      <span className="shrink-0 whitespace-nowrap text-sm text-taupe">de {soles(f.entregado)}</span>
                     </p>
                     <BarraApilada
                       alto={4}
@@ -223,7 +223,7 @@ export default async function FondosPage() {
                   </p>
                   <div className="col-span-full flex flex-wrap justify-end gap-2 @min-[36rem]:col-span-1">
                     {f.esMio ? (
-                      <span className="text-right text-xs text-taupe">Tu fondo: lo mueve otra persona</span>
+                      <span className="text-right text-sm text-taupe">Tu fondo: lo mueve otra persona</span>
                     ) : (
                       <>
                         {/* Con su rendición por aprobar, lo que tiene en la mano es el saldo menos su faltante (Felipe 2026-10-14). */}
@@ -282,7 +282,7 @@ export default async function FondosPage() {
                       {m.persona}
                       <span className="sr-only"> · {TEXTO_MOVIMIENTO_FONDO[m.tipo]}</span>
                     </p>
-                    <p className="truncate text-xs text-taupe" title={linea}>
+                    <p className="truncate text-sm text-taupe" title={linea}>
                       {linea}
                     </p>
                   </div>
@@ -413,7 +413,7 @@ export default async function FondosPage() {
                     <span className={celda("izq", "text-tinta")}>
                       <span className="block truncate font-medium">{r.persona}</span>
                       {/* Se parte en vez de cortarse: «papeles sin foto» es justo lo que quien aprueba tiene que ver. */}
-                      <span className="block whitespace-normal text-xs text-taupe">
+                      <span className="block whitespace-normal text-sm text-taupe">
                         La rindió el {r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"}
                         {r.sinFoto > 0 ? ` · ${plural(r.sinFoto, "papel sin foto", "papeles sin foto")}` : ""}
                       </span>

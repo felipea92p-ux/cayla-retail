@@ -99,7 +99,7 @@ export function EncontreTelaModal({ datos, onClose }: { datos: OrdenPagina; onCl
   return (
     <Modal
       titulo="¿Qué tela encontraste?"
-      subtitulo="Un retazo o un rollo que no estaba anotado entra al estante del Taller, sin factura ni pago. Después anotas lo que quedó."
+      subtitulo="Entra al estante del Taller, sin factura ni pago."
       variante="hoja"
       tamano="mediana"
       onClose={onClose}

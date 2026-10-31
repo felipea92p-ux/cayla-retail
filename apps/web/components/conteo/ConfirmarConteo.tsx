@@ -216,7 +216,7 @@ export function ConfirmarConteo({
                       <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="sm" {...categoriaDe(f)} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-tinta">{f.referencia}</p>
-                        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-taupe">
+                        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-sm text-taupe">
                           {f.color ? <MuestraColor nombre={f.color} hex={f.colorHex} compacta /> : null}
                           <span className={`min-w-0 truncate ${f.color ? "max-sm:hidden" : ""}`}>{f.color ?? "Sin color"}</span>
                           <span className="whitespace-nowrap">· {f.talla ?? "Única"}</span>
@@ -237,7 +237,7 @@ export function ConfirmarConteo({
                     </div>
                   </div>
                   {opcionesDe(f) && (
-                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/65">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta/65">
                       <span>{(f.diferencia ?? 0) > 0 ? "¿De quién es lo que apareció?" : "¿De quién falta?"}</span>
                       <ElegirDueno
                         empresas={opcionesDe(f)!}
@@ -255,7 +255,7 @@ export function ConfirmarConteo({
                     </Aviso>
                   )}
                   {nota && (
-                    <p className="mt-2 flex items-start gap-2 rounded-lg bg-hueso px-3 py-2 text-xs text-tinta/80">
+                    <p className="mt-2 flex items-start gap-2 rounded-lg bg-hueso px-3 py-2 text-sm text-tinta/80">
                       <Info aria-hidden className="mt-px h-3.5 w-3.5 shrink-0 text-taupe" />
                       {nota}
                     </p>

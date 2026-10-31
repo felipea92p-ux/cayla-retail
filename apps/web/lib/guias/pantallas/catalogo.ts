@@ -693,8 +693,8 @@ export const GUIA_ATRIBUTOS: Guia = {
     {
       id: "cabecera",
       ancla: "atributos.cabecera",
-      titulo: "Atributos y su «!»",
-      texto: "El «!» junto al título cuenta la regla de estas listas: cualquiera con sesión agrega un valor nuevo y ya lo puede usar. La temporada es distinta: una lista fija de nueve.",
+      titulo: "Atributos y su «?»",
+      texto: "El «?» junto al título cuenta la regla de estas listas: cualquiera con sesión agrega un valor nuevo y ya lo puede usar. La temporada es distinta: una lista fija de nueve.",
     },
     {
       id: "pestanas",
@@ -1163,7 +1163,7 @@ export const GUIA_CATEGORIAS: Guia = {
       id: "resumen",
       ancla: "categorias.cabecera",
       titulo: "Cuántas hay",
-      texto: "Cuántas categorías están activas y cuántas prendas tienen una. El «!» junto al título explica cómo se ordena todo: las familias y las marcas tienen su propia pantalla, y una categoría puede tener subcategorías.",
+      texto: "El «?» junto al título dice cuántas categorías están activas y cuántas prendas tienen una, y explica cómo se ordena todo: las familias y las marcas tienen su propia pantalla, y una categoría puede tener subcategorías.",
     },
     {
       id: "filtros",
@@ -1285,7 +1285,7 @@ export const GUIA_FAMILIAS: Guia = {
       id: "cabecera",
       ancla: "familias.cabecera",
       titulo: "Viene de Categorías",
-      texto: "La flecha te regresa a Categorías, donde se usan estas familias. El «!» explica la regla completa.",
+      texto: "La flecha te regresa a Categorías, donde se usan estas familias. El «?» junto al título explica la regla completa.",
     },
     {
       id: "agregar",
@@ -1357,7 +1357,7 @@ export const GUIA_MARCAS: Guia = {
       id: "cabecera",
       ancla: "marcas.cabecera",
       titulo: "La regla de las marcas",
-      texto: "El «!» junto al título la explica: todo producto tiene una marca y un proveedor que la trae, y la tienda no deja guardar otra pareja. Una marca puede llegar por más de un proveedor.",
+      texto: "El «?» junto al título la explica: todo producto tiene una marca y un proveedor que la trae, y la tienda no deja guardar otra pareja. Una marca puede llegar por más de un proveedor.",
     },
     {
       id: "nueva",

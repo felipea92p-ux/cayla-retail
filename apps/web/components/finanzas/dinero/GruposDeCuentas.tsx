@@ -41,7 +41,7 @@ export function GruposDeCuentas({ grupos }: { grupos: GrupoCuentas[] }) {
     return (
       <Superficie>
         <Vacio icono={<Landmark />} titulo="Todavía no hay cuentas: agrega los bancos de CAYLA">
-          Los cajones y las cajas fuertes nacen con cada tienda. Los bancos, las billeteras, el POS y la tarjeta se agregan en Configuración ▸ Cuentas y cobros.
+          Los bancos, las billeteras, el POS y la tarjeta se agregan en Configuración ▸ Cuentas y cobros.
         </Vacio>
       </Superficie>
     );

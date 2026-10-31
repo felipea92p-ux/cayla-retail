@@ -109,7 +109,7 @@ export function PorPagarVistaRapida({
 
       <div className="mt-[18px] space-y-3" data-guia="por-pagar.vista-pasos">
         {pasos.map((p, i) => (
-          <div key={i} className={`card-cayla anim-revelar border-l-2 px-4 py-3 text-[13.5px] text-tinta ${BORDE[p.tono]}`} style={{ animationDelay: `${180 + i * 80}ms` }}>
+          <div key={i} className={`card-cayla anim-revelar border-l-2 px-4 py-3 text-[15px] text-tinta ${BORDE[p.tono]}`} style={{ animationDelay: `${180 + i * 80}ms` }}>
             <b className="font-semibold">{p.fuerte}</b>
             {p.resto}
           </div>
@@ -125,11 +125,11 @@ export function PorPagarVistaRapida({
           ) : (
             <ul>
               {pagos.map((p, i) => (
-                <li key={p.id} className="anim-revelar grid grid-cols-[3.4rem_1fr_auto] items-baseline gap-3 border-t border-tinta/10 py-2.5 text-[13px]" style={{ animationDelay: `${260 + i * 60}ms` }}>
+                <li key={p.id} className="anim-revelar grid grid-cols-[3.4rem_1fr_auto] items-baseline gap-3 border-t border-tinta/10 py-2.5 text-sm" style={{ animationDelay: `${260 + i * 60}ms` }}>
                   <span className="tabular-nums text-tinta/55">{diaMes(p.fecha)}</span>
                   <span>
                     {ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}
-                    {p.referencia && <span className="block text-xs text-tinta/55">{p.referencia}</span>}
+                    {p.referencia && <span className="block text-sm text-tinta/55">{p.referencia}</span>}
                   </span>
                   <b className="font-medium tabular-nums">{soles(p.monto)}</b>
                   {p.noDeducible && <MarcaNoDeducible nd={p.noDeducible} montoDeLaFila={p.monto} className="col-span-full" />}
@@ -170,13 +170,13 @@ function LineaDeVida({ emision, vencimiento, ahora }: { emision: string; vencimi
         <line x1={xv} y1="22" x2={xv} y2="38" strokeWidth="2" strokeLinecap="round" className="stroke-tinta" />
         <circle cx={xh} cy="30" r="5" className="anim-vivo-onda fill-rojo" style={{ transformBox: "fill-box", transformOrigin: "center", animationDelay: "1200ms" }} />
         <circle cx={xh} cy="30" r="5" className="anim-revelar fill-rojo" style={{ animationDelay: "900ms" }} />
-        <text x={xe} y="56" textAnchor={xe < 40 ? "start" : "middle"} className="fill-tinta/65 text-[10.5px] font-medium">
+        <text x={xe} y="56" textAnchor={xe < 40 ? "start" : "middle"} className="fill-tinta/65 text-sm font-medium">
           Emitida {diaMes(emision)}
         </text>
-        <text x={Math.min(xv, x1 - 30)} y="14" textAnchor={xv > x1 - 50 ? "end" : "middle"} className="fill-tinta text-[10.5px] font-semibold">
+        <text x={Math.min(xv, x1 - 30)} y="14" textAnchor={xv > x1 - 50 ? "end" : "middle"} className="fill-tinta text-sm font-semibold">
           Vence {diaMes(vencimiento)}
         </text>
-        <text x={xh} y={cerca ? 70 : 56} textAnchor="middle" className="fill-rojo text-[10.5px] font-semibold">
+        <text x={xh} y={cerca ? 70 : 56} textAnchor="middle" className="fill-rojo text-sm font-semibold">
           Hoy {diaMes(hoyLima(ahora))}
         </text>
       </svg>

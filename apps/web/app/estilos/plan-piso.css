@@ -64,7 +64,7 @@
   .pp-riel { display: grid; gap: 10px; min-width: 0; }
   .pp-rcab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
   .pp-rtit { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
-  .pp-rsub { font-size: 13px; color: var(--color-tinta-60); }
+  .pp-rsub { font-size: 14px; color: var(--color-tinta-60); }
   .pp-banda { background: color-mix(in srgb, var(--color-hueso) 52%, var(--color-papel)); border-radius: var(--radius-lg); padding: 14px var(--pp-banda) 16px; min-width: 0; position: relative; }
 
   .pp-rail {
@@ -91,7 +91,7 @@
   .pp-libre::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: 3px dashed color-mix(in srgb, var(--color-tinta) 30%, transparent); }
   .pp-libre b { font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
   .pp-libre span { font-size: 14px; font-weight: 500; }
-  .pp-libre small { font-size: 12.5px; color: var(--color-tinta-60); max-width: 260px; line-height: 1.35; margin-top: 3px; }
+  .pp-libre small { font-size: 14px; color: var(--color-tinta-60); max-width: 260px; line-height: 1.35; margin-top: 3px; }
 
   /* el rótulo sobre cada tramo (solo cuando el riel es ancho). La caja mide lo que el tramo y es el contenedor que decide si cabe el nombre completo; NO envuelve a las
      perchas: las medidas de una percha usan `cqi` y, si su contenedor fuera el tramo, medirían contra él y no contra la tarjeta. */
@@ -126,7 +126,7 @@
   .pp-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; list-style: none; }
   .pp-chip {
     display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 3px 12px 3px 8px; border-radius: 999px;
-    border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 12.5px; line-height: 1.2;
+    border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 14px; line-height: 1.2;
   }
   .pp-chip .pp-ic { width: 15px; height: 19px; }
   /* con colores el ícono mide siempre el ancho de tres prendas (54 de 43 de alto): la misma altura, más ancho */
@@ -157,8 +157,8 @@
   .pp-lg .pp-ic { width: 30px; height: 38px; }
   .pp-lg .pp-ic-colores { width: 48px; }
   .pp-lg-t { display: grid; gap: 2px; min-width: 0; flex: 1; }
-  .pp-lg-t b { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
-  .pp-lg-t small { font-size: 12.5px; color: var(--color-tinta-60); line-height: 1.3; font-variant-numeric: lining-nums tabular-nums; }
+  .pp-lg-t b { font-size: 15px; font-weight: 600; line-height: 1.25; }
+  .pp-lg-t small { font-size: 14px; color: var(--color-tinta-60); line-height: 1.3; font-variant-numeric: lining-nums tabular-nums; }
   .pp-lg-n { font-family: var(--font-serif); font-size: 26px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
   .pp-lg.pp-on { background: color-mix(in srgb, var(--pp-c) 10%, var(--color-papel)); border-color: var(--pp-c); }
   @media (hover: hover) {
@@ -167,7 +167,7 @@
   .pp-zona[data-sel] .pp-lg:not(.pp-on) .pp-ic, .pp-zona[data-sel] .pp-chip:not(.pp-on) .pp-ic { opacity: 0.35; }
 
   /* el pie del riel: la escala y la frase que cambia al pasar por un grupo */
-  .pp-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; font-size: 12.5px; line-height: 1.4; color: var(--color-tinta-60); }
+  .pp-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; font-size: 14px; line-height: 1.4; color: var(--color-tinta-60); }
   .pp-escala { display: inline-flex; align-items: center; gap: 8px; }
   .pp-escala .pp-ic { width: 16px; height: 24px; }
   .pp-escala .pp-hg { stroke-width: 1.5; }
@@ -182,7 +182,7 @@
   /* el botón «¿Por qué?» y su panel «cómo se calcula» */
   .pp-porque {
     display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 12px 4px 6px; border-radius: 999px;
-    border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 12.5px; font-weight: 500; line-height: 1.2;
+    border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 14px; font-weight: 500; line-height: 1.2;
     transition: background-color 200ms var(--ease-cayla);
   }
   @media (hover: hover) {
@@ -190,14 +190,14 @@
   }
   .pp-porque[aria-expanded="true"] { background: var(--color-hueso); border-color: var(--color-taupe); }
   .pp-q { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--color-sand); font-family: var(--font-serif); font-size: 14px; font-weight: 600; line-height: 1; }
-  .pp-panel { flex: 1 1 100%; background: var(--color-hueso); border-radius: var(--radius-lg); padding: 16px 18px; display: grid; gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--color-tinta-60); animation: pp-entra 260ms var(--ease-cayla) both; }
+  .pp-panel { flex: 1 1 100%; background: var(--color-hueso); border-radius: var(--radius-lg); padding: 16px 18px; display: grid; gap: 10px; font-size: 15px; line-height: 1.5; color: var(--color-tinta-60); animation: pp-entra 260ms var(--ease-cayla) both; }
   .pp-panel[hidden] { display: none; }
   .pp-panel p { max-width: 620px; }
   .pp-panel b { color: var(--color-tinta); font-weight: 600; }
   .pp-pt { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe-profundo); margin-top: 4px; }
   .pp-panel ul { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 22px; }
   @container pp (max-width: 700px) { .pp-panel ul { grid-template-columns: minmax(0, 1fr); } }
-  .pp-panel li { font-size: 13px; line-height: 1.4; }
+  .pp-panel li { font-size: 14px; line-height: 1.4; }
   .pp-panel li b { display: block; }
   @keyframes pp-entra { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
@@ -211,7 +211,7 @@
   /* lo que no cuelga del riel */
   .pp-fuera { display: grid; gap: 10px; }
   .pp-fuera-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
-  .pp-fuera-cab span:last-child { font-size: 13px; color: var(--color-tinta-60); }
+  .pp-fuera-cab span:last-child { font-size: 14px; color: var(--color-tinta-60); }
   .pp-fichas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; list-style: none; }
   @container pp (max-width: 640px) { .pp-fichas { grid-template-columns: minmax(0, 1fr); } }
   .pp-ficha {
@@ -219,8 +219,8 @@
     background: color-mix(in srgb, var(--color-hueso) 40%, var(--color-papel)); --pp-c: var(--grupo-fuera);
   }
   .pp-ficha .pp-ic { width: 28px; height: 36px; }
-  .pp-ficha b { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.25; }
-  .pp-ficha span { display: block; font-size: 12.5px; color: var(--color-tinta-60); line-height: 1.35; font-variant-numeric: lining-nums tabular-nums; }
+  .pp-ficha b { display: block; font-size: 15px; font-weight: 600; line-height: 1.25; }
+  .pp-ficha span { display: block; font-size: 14px; color: var(--color-tinta-60); line-height: 1.35; font-variant-numeric: lining-nums tabular-nums; }
   /* «Para empezar»: la línea que responde a lo que se pidió, un peso por encima del resto de la ficha */
   .pp-ficha .pp-ficha-ref { margin-top: 3px; color: var(--color-tinta); font-weight: 500; }
 
@@ -233,9 +233,9 @@
      lleva su cifra en una etiqueta y arriba se lee el grupo con sus cuatro cifras. Felipe, 2026-10-11. El ancho que manda es el de la tarjeta (`container mc`).
      ===================================================================== */
   .mc { container-type: inline-size; container-name: mc; padding: 20px; }
-  .mc-bajada { margin-top: 2px; max-width: 42rem; font-size: 13px; line-height: 1.45; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+  .mc-bajada { margin-top: 2px; max-width: 42rem; font-size: 14px; line-height: 1.45; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
   .mc-leyenda { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 12px; list-style: none; }
-  .mc-leg { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 3px 12px 3px 10px; border-radius: 999px; border: 1px solid transparent; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background-color 180ms var(--ease-cayla), border-color 180ms var(--ease-cayla); cursor: pointer; }
+  .mc-leg { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 3px 12px 3px 10px; border-radius: 999px; border: 1px solid transparent; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background-color 180ms var(--ease-cayla), border-color 180ms var(--ease-cayla); cursor: pointer; }
   @media (hover: hover) {
     .mc-leg:hover { background: color-mix(in srgb, var(--color-hueso) 60%, var(--color-papel)); }
   }
@@ -267,15 +267,15 @@
   @keyframes mc-pop-arriba { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
   .mc-lec-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 18px; }
   .mc-lec-nom { display: flex; align-items: center; gap: 10px; font-family: var(--font-serif); font-size: 19px; line-height: 1.2; }
-  .mc-frase { font-size: 13px; line-height: 1.4; color: var(--color-tinta); }
+  .mc-frase { font-size: 14px; line-height: 1.4; color: var(--color-tinta); }
   .mc-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin-top: 8px; }
   @container mc (min-width: 560px) { .mc-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .mc-cifra { display: grid; gap: 1px; min-width: 0; align-content: start; }
-  .mc-cifra-t { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--color-tinta-60); }
+  .mc-cifra-t { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: var(--color-tinta-60); }
   .mc-cifra-t .mc-g[data-m="ventas"] { width: 20px; }
   .mc-cifra-v { font-family: var(--font-serif); font-weight: 400; font-size: 24px; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
   .mc-cifra[data-vacia="si"] .mc-cifra-v { color: var(--color-tinta-60); }
-  .mc-cifra-d { font-size: 12px; line-height: 1.3; color: var(--color-tinta-60); }
+  .mc-cifra-d { font-size: 14px; line-height: 1.3; color: var(--color-tinta-60); }
 
   /* Las filas */
   .mc-lista { display: grid; gap: 10px; margin-top: 18px; }
@@ -288,9 +288,9 @@
   }
   .mc-fila[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--color-taupe); }
   .mc-lista[data-sel] .mc-fila:not([data-act]) { opacity: 0.42; }
-  .mc-nombre { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; color: var(--color-tinta); }
+  .mc-nombre { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; color: var(--color-tinta); }
   .mc-nombre-t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-  .mc-pct { grid-column: 2; grid-row: 1; text-align: right; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--color-tinta); }
+  .mc-pct { grid-column: 2; grid-row: 1; text-align: right; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--color-tinta); }
   @container mc (min-width: 560px) { .mc-pct { grid-column: 3; } }
 
   /* La pista de un grupo */
@@ -334,7 +334,7 @@
   .mc-eje-n { position: absolute; transform: translateX(-50%); }
   .mc-eje-n:not([data-par]) { display: none; }
   @container mc (min-width: 560px) { .mc-eje-n:not([data-par]) { display: block; } }
-  .mc-nota { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--color-taupe); }
+  .mc-nota { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; color: var(--color-taupe); }
 
   /* ---------- «Color de la tienda»: la franja de familias de color (ADR-0352, actualización 2026-10-12; maqueta: docs/maquetas/color-de-la-tienda-2026-10/) ----------
      La franja es la pieza `<BarraApilada>`; aquí solo está lo que ella no trae: la frase, las celdas con el porcentaje de cada familia y las rayas de «Otras». El color de un
@@ -356,12 +356,12 @@
   }
   /* la familia abierta: la misma cara que el botón «¿Por qué?» cuando su panel está abierto */
   .pp-col-celda[aria-expanded="true"] { background: var(--color-hueso); border-color: var(--color-taupe); }
-  .pp-col-n { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; line-height: 1.2; }
+  .pp-col-n { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; line-height: 1.2; }
   .pp-col-m { display: block; flex: none; width: 12px; height: 12px; border-radius: 50%; overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-tinta) 30%, transparent); background: var(--color-sand); }
   :root[data-tema="oscuro"] .pp-col-m { border-color: color-mix(in srgb, var(--color-tinta) 60%, transparent); }
   .pp-col-m i { display: block; width: 100%; height: 100%; }
   .pp-col-pct { font-family: var(--font-serif); font-size: 26px; line-height: 1.05; font-variant-numeric: lining-nums tabular-nums; }
-  .pp-col-nota { font-size: 12.5px; line-height: 1.4; color: var(--color-tinta-60); max-width: 62ch; }
+  .pp-col-nota { font-size: 14px; line-height: 1.4; color: var(--color-tinta-60); max-width: 62ch; }
   @container pp (max-width: 560px) { .pp-col-celdas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
   /* ---------- el desglose de una familia: el mismo panel hueso de «¿Por qué?», con la tabla de colores adentro ---------- */
@@ -369,7 +369,7 @@
   @container pp (max-width: 560px) { .pp-des { padding: 16px 14px; } }
   .pp-des-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .pp-des-t { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; font-family: var(--font-serif); font-size: 24px; font-weight: 400; line-height: 1.15; color: var(--color-tinta); }
-  .pp-des-t small { font-family: var(--font-sans); font-size: 13px; color: var(--color-tinta-60); }
+  .pp-des-t small { font-family: var(--font-sans); font-size: 14px; color: var(--color-tinta-60); }
   .pp-des-x {
     display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--color-sand); background: var(--color-papel); color: var(--color-tinta);
     transition: background-color 200ms var(--ease-cayla);
@@ -400,10 +400,10 @@
   @container pp (max-width: 560px) {
     .pp-det, .pp-det-abajo { position: static; width: auto; margin-top: 12px; box-shadow: none; background: var(--color-papel); }
   }
-  .pp-det-t { font-size: 13px; font-weight: 600; line-height: 1.3; }
-  .pp-det-s { margin-top: 1px; font-size: 12px; line-height: 1.35; color: var(--color-tinta-60); }
+  .pp-det-t { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .pp-det-s { margin-top: 1px; font-size: 14px; line-height: 1.35; color: var(--color-tinta-60); }
   .pp-det-l { margin-top: 8px; display: grid; gap: 5px; list-style: none; }
-  .pp-det-f { display: grid; grid-template-columns: 12px minmax(0, 72px) minmax(0, 1fr) 46px; align-items: center; gap: 8px; font-size: 12px; line-height: 1.2; }
+  .pp-det-f { display: grid; grid-template-columns: 12px minmax(0, 72px) minmax(0, 1fr) 46px; align-items: center; gap: 8px; font-size: 14px; line-height: 1.2; }
   .pp-det-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pp-det-b { display: block; height: 6px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--color-tinta) 12%, transparent); }
   .pp-det-b i { display: block; height: 100%; border-radius: inherit; background: var(--color-tinta-60); }

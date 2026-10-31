@@ -36,26 +36,26 @@ export function RecibidoPorEnvio({ recepciones, vacio, costos, porPagina }: { re
         <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Llegó" }, { titulo: "Terminado" }, { titulo: "Envío" }, { titulo: "Proveedor" }, { titulo: "Unidades", alinear: "der" }]} />
         {actual.filas.map((e) => (
           <button key={e.clave} type="button" data-guia="recibir.reciente" onClick={() => setAbierto(e)} className={`${fila(PLANTILLA)} w-full text-left`}>
-            <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{e.llegoEn ? fechaCorta(e.llegoEn) : "—"}</span>
-            <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(e.fecha)}</span>
+            <span className={celda("izq", "text-sm tabular-nums text-tinta/65")}>{e.llegoEn ? fechaCorta(e.llegoEn) : "—"}</span>
+            <span className={celda("izq", "text-sm tabular-nums text-tinta/65")}>{fechaCorta(e.fecha)}</span>
             <span className={celda("izq", "text-sm font-semibold tabular-nums text-tinta")}>{e.numero ?? <span className="font-normal text-taupe">Sin envío</span>}</span>
             <span className={celda("izq", "whitespace-normal")}>
               <span className="text-sm font-medium text-tinta">{e.proveedores.join(" · ")}</span>
-              <span className="block truncate text-xs text-tinta/65">
+              <span className="block truncate text-sm text-tinta/65">
                 {e.ubicacion}
                 {e.recibidoPor ? ` · ${e.recibidoPor}` : ""}
               </span>
             </span>
             <span className={celda("der", "text-sm text-tinta")}>
               {unidades(e.unidades)}
-              <span className="block text-xs text-tinta/55">
+              <span className="block text-sm text-tinta/55">
                 {e.lineas} {e.lineas === 1 ? "línea" : "líneas"}
               </span>
             </span>
           </button>
         ))}
         {actual.totalPaginas > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
             <span>
               Mostrando {actual.desde}–{actual.hasta} de {envios.length}
             </span>
@@ -114,7 +114,7 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
                   {p.modelo}
                   {p.sku ? ` · ${p.sku}` : ""}
                 </span>
-                {variosProveedores && <span className={celda("izq", "truncate text-xs text-tinta/65")}>{p.proveedor}</span>}
+                {variosProveedores && <span className={celda("izq", "truncate text-sm text-tinta/65")}>{p.proveedor}</span>}
                 <span className={celda("der", "text-sm tabular-nums text-tinta")}>{p.unidades}</span>
               </button>,
               <FilasDeMas key={`${p.clave}-d`} id={panel} abierto={abierta} className="!border-t-0">
@@ -132,7 +132,7 @@ function EnvioAbierto({ envio, costos, onClose }: { envio: EnvioRecibido; costos
         ))}
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 pt-3">
-          <p className="text-xs text-tinta/55">{unidades(envio.unidades)} en total</p>
+          <p className="text-sm text-tinta/55">{unidades(envio.unidades)} en total</p>
           {facturas.map((l) => (
             // Cierra este modal antes de navegar: la ruta de factura abre SU propio modal interceptado, y sin esto quedaban los dos apilados.
             <EnlaceVer key={l.loteId} href={`/compras/factura/${l.compraId}`} alNavegar={onClose}>
@@ -153,7 +153,7 @@ function ColoresYTallas({ prenda, costo }: { prenda: PrendaRecibida; costo?: Cos
       <div className="overflow-x-auto">
         <table /* unificar-fijo: matriz color × talla de lo recibido, como las de la ficha (las matrices de tallas quedan aparte) */ className="min-w-[16rem] text-sm tabular-nums">
           <thead>
-            <tr className="text-xs font-normal text-taupe">
+            <tr className="text-sm font-normal text-taupe">
               <th scope="col" className="py-1 pr-4 text-left font-normal">Color</th>
               {m.tallas.map((t) => (
                 <th key={t} scope="col" className="px-3 py-1 text-right font-normal">{t}</th>

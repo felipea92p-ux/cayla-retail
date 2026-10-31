@@ -15,7 +15,7 @@ export function Dato({ etiqueta, valor, nota }: { etiqueta: string; valor: numbe
     <div className="min-w-0">
       <dt className="label-cayla text-[11px] text-tinta/65">{etiqueta}</dt>
       <dd className="mt-0.5 text-xl leading-tight tabular-nums text-tinta">{valor}</dd>
-      {nota && <dd className="text-xs text-tinta/65">{nota}</dd>}
+      {nota && <dd className="text-sm text-tinta/65">{nota}</dd>}
     </div>
   );
 }
@@ -31,12 +31,12 @@ export function Cifras({ ventas, stock, fuerte = false, celda = false }: { venta
     <span className="flex flex-col items-end leading-tight">
       <span className={`text-sm tabular-nums ${pocaBase ? "text-tinta/65" : "font-medium text-tinta"} ${fuerte ? "font-semibold" : ""}`}>{ventas}</span>
       {yaNoHay ? (
-        <span className="mt-0.5 text-[11px] text-ambar">
+        <span className="mt-0.5 text-sm text-ambar">
           <span aria-hidden className="mr-1 inline-block size-1.5 rounded-full bg-ambar align-middle" />
           ya no hay
         </span>
       ) : (
-        stock > 0 && <span className="mt-0.5 text-[11px] text-tinta/65">hay {stock}</span>
+        stock > 0 && <span className="mt-0.5 text-sm text-tinta/65">hay {stock}</span>
       )}
     </span>
   );

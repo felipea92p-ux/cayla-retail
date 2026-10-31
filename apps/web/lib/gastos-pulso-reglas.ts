@@ -90,6 +90,8 @@ export type Bandeja = {
   bajadaVacia: string;
   /** «Al día» solo si de verdad no queda nada; con fijos por llegar o sin haber leído los cajones, «Sin atrasos». */
   chip: string;
+  /** El chip de cuando ya no queda nada por revisar, aunque la lista de la base todavía no se entere (la pila de la bandeja lo usa al vaciarse). */
+  chipVacio: "Al día" | "Sin atrasos";
 };
 
 /**
@@ -145,6 +147,7 @@ export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: rea
     frase: n === 0 && sinAtrasos ? "No hay nada atrasado por revisar." : frase,
     bajadaVacia,
     chip: n > 0 ? `${n} por revisar` : sinAtrasos ? "Sin atrasos" : "Al día",
+    chipVacio: sinAtrasos ? "Sin atrasos" : "Al día",
   };
 }
 

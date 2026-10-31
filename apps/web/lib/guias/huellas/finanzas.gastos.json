@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 99,
+  "total": 134,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -13,6 +13,13 @@
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
       "LapizEditar «la cuenta»",
       "BotonCopiar «{que}»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "SegmentoDeslizante «Qué hacer con la cámara»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
     ],
     "components/GastosFijosYActivos.tsx": [
       "BotonEditar «Editar fijos»",
@@ -50,12 +57,15 @@
       "ComboResponsable «{responsable}»",
       "Volver «→() => setAnulando(false)»",
       "Boton «Anular gasto»",
+      "button «No tendrá comprobante»",
       "Link «Impuestos»",
       "button «Anular…»",
+      "button «Llegó el comprobante»",
+      "BotonEditar «Corregir»",
       "button «Regístralo con su comprobante»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
-      "Boton «{que === \"activo\" ? \"Seguir: registrar el activo\" : \"Guardar\"}»",
+      "Boton «→guardar»",
       "button «{abierto ? \"Ocultar\" : \"Ver\"}»",
       "ComboResponsable «{responsable}» #3",
       "Boton «Revertir»"
@@ -76,14 +86,24 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/finanzas/GastosPulso.tsx": [
-      "button «fin-gastos.resolver»",
+      "Boton «fin-gastos.resolver»",
       "button «Ver»",
-      "button «Ver todas»"
+      "button «Ver todas»",
+      "button «{o.texto}»",
+      "button «Es un activo fijo»",
+      "button «Regístralo con su comprobante»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fin-gastos.resolver» #2"
     ],
     "components/finanzas/gastos/ExtractoGastos.tsx": [
       "button «{dentro ? undefined : \"fin-gastos.fila\"}»",
       "button «fin-gastos.repetidos»",
       "BotonVerMas «fin-gastos.dias-de-antes»"
+    ],
+    "components/finanzas/gastos/FotoDelComprobante.tsx": [
+      "a «{a.nombre}»",
+      "input «(sin nombre)»",
+      "Boton «→() => input.current?.click()»"
     ],
     "components/finanzas/gastos/HilosGastos.tsx": [
       "BotonVerMas «{`Ver ${filas.length - aLaVista}»",
@@ -92,6 +112,28 @@
       "button «Todas»",
       "button «{t.nombre}»",
       "BotonVerMas «{`Ver ${lista.length - A_LA_VISTA}»"
+    ],
+    "components/finanzas/gastos/HojaComprobanteDeGasto.tsx": [
+      "button «{c.texto}»",
+      "CampoTexto «Serie y número»",
+      "CampoFecha «Fecha del comprobante»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→onVolver»",
+      "Boton «Agregar comprobante»"
+    ],
+    "components/finanzas/gastos/HojaCorregirGasto.tsx": [
+      "CampoSelect «Categoría»",
+      "CampoTexto «Qué fue»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→onVolver»",
+      "Boton «{textoGuardarCorreccion(cambios.length)}»"
+    ],
+    "components/finanzas/gastos/HojaNoEmiteGasto.tsx": [
+      "button «{m.texto}»",
+      "CampoTexto «El motivo»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→onVolver»",
+      "Boton «Marcar sin comprobante»"
     ],
     "components/finanzas/gastos/HojaRegistrarGasto.tsx": [
       "button «{`${p.descripcion}»",
@@ -110,6 +152,10 @@
       "Boton «Cancelar»",
       "Boton «Guardar y registrar otro (⌘⇧↵)»",
       "Boton «Registrar (⌘↵)»"
+    ],
+    "components/finanzas/gastos/LeerQrComprobante.tsx": [
+      "CampoTexto «QR del comprobante · opcional»",
+      "button «Con la cámara»"
     ],
     "components/finanzas/gastos/RitmoGastos.tsx": [
       "button «{g.descripcion}»",
@@ -138,6 +184,9 @@
     "components/gasto-fijo/FichaDePagoTarjeta.tsx": [
       "BotonCopiar «{que}»",
       "a «{tel.texto}»"
+    ],
+    "components/mi-plata/CorreccionesDeCompra.tsx": [
+      "BotonVerMas «Ver qué cambió»"
     ]
   }
 }

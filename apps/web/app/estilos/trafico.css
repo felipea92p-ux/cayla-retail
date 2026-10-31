@@ -64,7 +64,7 @@
     min-height: 32px;
     padding: 0 6px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 14px;
     transition: background-color 180ms var(--ease-cayla);
   }
   @media (hover: hover) {
@@ -87,7 +87,7 @@
     padding: 6px 10px;
     border-radius: 10px;
     background: var(--color-hueso);
-    font-size: 12px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
   .trafico-talla b {
@@ -199,61 +199,33 @@
     font-weight: 600;
     color: var(--color-tinta);
   }
+  /* «C · La cifra manda» (Felipe, 2026-10-31, tras ver tres intensidades de «que se note dónde se pierde la gente»; antes fue «B · Zona
+     marcada», con recuadro y rótulo): el tramo donde se atora la gente se vuelve un riel punteado grueso y naranja —«cortado»—, la
+     estación que se atora se llena de naranja y lo que se fue sale como un «−42» grande en serif con su porcentaje. Sin recuadro ni
+     rótulo: el chip de arriba ya dice si es «Aquí se atora», «Una pista» o «Como de costumbre». El naranja es solo línea y relleno
+     (`--color-naranja`, 3.1:1 sobre papel); el texto va en `ámbar`. Entra UNA vez (el riel que se dibuja), sin rebote ni bucle. */
   .trafico-estacion[data-atora] .trafico-estacion-nodo {
-    border-color: var(--color-ambar);
-    background: var(--color-ambar);
+    border-color: var(--color-naranja);
+    background: var(--color-naranja);
     color: var(--color-papel);
   }
-  .trafico-salida[data-atora],
-  .trafico-salida[data-atora] b {
+  .trafico-estacion[data-hacia-atora]::before {
+    left: calc(var(--trafico-nodo) / 2 - 3px);
+    width: 6px;
+    background: repeating-linear-gradient(180deg, var(--color-naranja) 0 12px, transparent 12px 18px);
+  }
+  .trafico-salida[data-atora] {
     font-weight: 600;
     color: var(--color-ambar);
   }
-  .trafico-salida[data-atora] b {
-    font-size: 18px;
-  }
-  /* «B · Zona marcada» (Felipe, 2026-10-31: «que se note dónde se pierde la gente»): la estación de ANTES del paso donde se atora dibuja un
-     recuadro ámbar suave —de su centro al de la estación que se atora— con su rótulo, y el riel de ese tramo se engruesa. Va translúcido
-     para que el riel de al lado se siga viendo, y detrás del contenido (`isolation` en la estación). Angosta, el recuadro baja: abraza a las
-     dos estaciones apiladas. Entra UNA vez, sin rebote. */
-  .trafico-estacion {
-    isolation: isolate;
-  }
-  .trafico-estacion[data-hacia-atora]::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    height: calc(100% + var(--trafico-nodo) + 18px);
-    border: 1.5px solid var(--color-ambar);
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--color-ambar) 12%, transparent);
-    animation: trafico-zona-entra 360ms var(--ease-cayla) both;
-    animation-delay: calc(var(--k, 0) * 90ms + 300ms);
-  }
-  .trafico-estacion[data-hacia-atora]::before {
-    left: calc(var(--trafico-nodo) / 2 - 2.5px);
-    width: 5px;
-    border-radius: 3px;
-    background: var(--color-ambar);
-  }
-  .trafico-zona-rotulo {
-    position: absolute;
-    top: -10px;
-    left: 16px;
-    transform: translateY(-50%);
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: var(--color-ambar);
-    color: var(--color-papel);
-    font-size: 11px;
+  .trafico-menos {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 40px;
+    font-style: normal;
     font-weight: 600;
     line-height: 1;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .trafico-estacion[data-fin] .trafico-estacion-nodo {
     border-color: var(--color-verde);
@@ -264,33 +236,15 @@
     .trafico-linea {
       grid-template-columns: repeat(6, minmax(0, 1fr));
     }
-    /* Con la zona marcada, el rótulo cuelga encima de la línea: deja su lugar. */
-    .trafico-linea[data-zona] {
-      margin-top: 44px;
-    }
-    /* De la mitad de esta estación a la mitad de la siguiente, con 14 px de aire a cada lado. */
-    .trafico-estacion[data-hacia-atora]::after {
-      top: -14px;
-      bottom: -6px;
-      left: calc(50% - 14px);
-      right: auto;
-      width: calc(100% + 22px);
-      height: auto;
-    }
-    /* Lo que se fue DESPUÉS del paso que se atora cuelga justo del borde derecho del recuadro: más angosto, para que no lo cruce. */
-    .trafico-estacion[data-atora] .trafico-salida {
-      max-width: 13ch;
-    }
     .trafico-estacion[data-hacia-atora]::before {
-      top: calc(36px + 34px + 12px + var(--trafico-nodo) / 2 - 2.5px);
+      top: calc(36px + 34px + 12px + var(--trafico-nodo) / 2 - 3px);
       left: 50%;
       width: 100%;
-      height: 5px;
+      height: 6px;
+      background: repeating-linear-gradient(90deg, var(--color-naranja) 0 12px, transparent 12px 18px);
     }
-    .trafico-zona-rotulo {
-      top: -14px;
-      left: 100%;
-      transform: translate(-50%, -50%);
+    .trafico-menos {
+      font-size: 46px;
     }
     .trafico-estacion {
       grid-template-rows: 36px 34px var(--trafico-nodo) auto;
@@ -345,17 +299,15 @@
       margin-bottom: 4px;
       background: repeating-linear-gradient(var(--color-borde-control) 0 3px, transparent 3px 6px);
     }
+    .trafico-salida[data-atora]::before {
+      width: 3px;
+      background: repeating-linear-gradient(var(--color-naranja) 0 3px, transparent 3px 6px);
+    }
   }
   @keyframes trafico-estacion-entra {
     from {
       opacity: 0;
       transform: translateY(8px);
-    }
-  }
-  @keyframes trafico-zona-entra {
-    from {
-      opacity: 0;
-      transform: scale(0.97);
     }
   }
   @keyframes trafico-riel-baja {
@@ -500,7 +452,7 @@
     align-items: center;
     padding: 12px 8px;
     border-top: 1px solid var(--color-sand);
-    font-size: 13.5px;
+    font-size: 15px;
     transition: background-color 180ms var(--ease-cayla);
   }
   li:first-child > .trafico-camino {

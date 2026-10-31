@@ -1,17 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CalendarX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
-import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { SelectEnLineaFin, Superficie } from "@/components/finanzas/kit";
-import { CascadaPulso } from "@/components/finanzas/CascadaPulso";
+import { CascadaEstados } from "@/components/finanzas/estados/CascadaEstados";
+import { TitularEstado } from "@/components/finanzas/estados/TitularEstado";
+import { filasDeTramos } from "@/lib/cascada-estados-reglas";
+import type { FormaEstado } from "@/lib/estados-financieros-reglas";
+import { mesNombre } from "@/lib/resultados-reglas";
 import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
 import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
 import { EscenariosPanel } from "@/components/finanzas/EscenariosPanel";
@@ -38,10 +41,10 @@ import type { FilaER } from "@/lib/resultados-reglas";
 // Estados financieros ▸ ¿Dónde está la plata? (flujo de efectivo; ADR-0195 F6, ADR-0585, actividad 5). De arriba abajo: la respuesta (lo
 // que hay hoy o al cerrar el mes) con la frase de por qué la plata no siguió a la ganancia; el puente del mes en el método directo (del día
 // a día, compras que duran años, tú y los préstamos; cada parte se toca y muestra sus categorías); lo que viene semana a semana contra tu
-// mínimo; «¿Y si…?», que es Escenarios entero (ya no tiene pantalla aparte: nada se guarda); y, plegado, el formato formal. Es de CAYLA
+// mínimo; y «¿Y si…?», que es Escenarios entero (ya no tiene pantalla aparte: nada se guarda). Todo en una tarjeta, como la maqueta
+// aprobada; con «Formato formal» arriba (`?forma=formal`), el estado de flujos del contador en su lugar. Es de CAYLA
 // entera. La pantalla no calcula plata: la base da las cifras (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`).
 
-const entra = (i: number, clase = "") => ({ className: `anim-entra ${clase}`.trim(), style: { ["--i" as string]: i } as CSSProperties });
 
 export function PlataPanel({
   real,
@@ -52,6 +55,8 @@ export function PlataPanel({
   enCurso,
   hoy,
   escenarios,
+  mes,
+  forma,
 }: {
   real: FlujoReal | null;
   proyeccion: Proyeccion | null;
@@ -63,50 +68,60 @@ export function PlataPanel({
   hoy: string;
   /** Lo que «¿Y si…?» necesita: el estado de resultados del último mes completo. */
   escenarios: { resultados: FilaER[] | null; mesBase: string };
+  mes: string;
+  forma: FormaEstado;
 }) {
   const router = useRouter();
   const ruta = usePathname();
   const params = useSearchParams();
   const [verYSi, setVerYSi] = useState(false);
-  const [verFormal, setVerFormal] = useState(false);
   const ponerSemanas = (n: number) => {
     const p = new URLSearchParams(params.toString());
     p.set("semanas", String(n));
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
 
-  return (
-    <div className="min-w-0 space-y-8">
-      {fallas.map((f) => (
-        <Aviso key={f} tono="error">
-          {f}
-        </Aviso>
-      ))}
-
-      <section className="fin-pulso-hero" aria-labelledby="fin-plata-pregunta" data-guia="fin-plata.respuesta">
-        <p id="fin-plata-pregunta" {...entra(1, "fin-pulso-pregunta")}>
-          {enCurso ? "¿Cuánta plata tiene CAYLA hoy?" : "¿Con cuánta plata cerró el mes?"}
-        </p>
+  const avisos = fallas.map((f) => (
+    <Aviso key={f} tono="error">
+      {f}
+    </Aviso>
+  ));
+  if (forma === "formal")
+    return (
+      <div className="min-w-0 space-y-4" data-guia="fin-plata.formal">
+        {avisos}
         {real ? (
+          <Formal real={real} />
+        ) : (
+          <Vacio tamano="chico" icono={<CalendarX />}>
+            Sin movimientos de plata en este mes.
+          </Vacio>
+        )}
+      </div>
+    );
+  const cambio = real ? Math.round(real.saldoFinal - real.saldoInicial) : 0;
+  return (
+    <div className="fin-estado min-w-0 space-y-8">
+      {avisos}
+
+      <section data-guia="fin-plata.respuesta">
+        <TitularEstado
+          formal={`Flujo de efectivo · ${mesNombre(mes)}`}
+          respuesta={
+            real
+              ? `${cambio === 0 ? "Quedó igual" : `${cambio > 0 ? "Subió" : "Bajó"} ${soles(Math.abs(cambio))}`}. ${enCurso ? "Tienes" : "Cerró con"} ${soles(real.saldoFinal)}`
+              : "Sin movimientos de plata"
+          }
+          bajada={real ? frase : "No entró ni salió plata en este mes."}
+        />
+        {real && (
           <>
-            <p {...entra(2, "fin-pulso-respuesta")}>
-              <span className="fin-pulso-verbo">{enCurso ? "Tienes" : "Cerró con"}</span>
-              <span className="fin-pulso-monto">
-                <CifraAnimada valor={Math.round(real.saldoFinal)} formato="soles" />
-              </span>
-            </p>
-            {frase && <p {...entra(3, "fin-pulso-explica")}>{frase}</p>}
-            <div {...entra(4, "fin-pulso-porque")}>
-              <CascadaPulso id="fin-plata-puente" tramos={puentePlata(real, enCurso)} etiqueta="De dónde vino y a dónde fue la plata" guia="fin-plata.puente" />
-              <p className="text-center text-[12.5px] text-taupe">Toca una parte para ver de qué está hecha.</p>
+            <div className="fin-estado-sep" />
+            <TituloSeccion accion={<span className="text-sm text-taupe">Toca una fila para ver qué tiene</span>}>De dónde vino y a dónde fue</TituloSeccion>
+            <div className="mt-3">
+              <CascadaEstados id="fin-plata-puente" filas={filasDeTramos(puentePlata(real, enCurso))} etiqueta="De dónde vino y a dónde fue la plata" guia="fin-plata.puente" />
             </div>
           </>
-        ) : (
-          <div {...entra(2)}>
-            <Vacio tamano="chico" icono={<CalendarX />}>
-              Sin movimientos de plata en este mes.
-            </Vacio>
-          </div>
         )}
       </section>
 
@@ -142,12 +157,6 @@ export function PlataPanel({
         </FilasDeMas>
       </section>
 
-      <section className="space-y-4">
-        <BotonVerMas abierto={verFormal} onCambiar={setVerFormal} texto="Ver el formato formal: flujo de efectivo" forma="enlace" controla="fin-plata-formal" data-guia="fin-plata.formal" />
-        <FilasDeMas abierto={verFormal} id="fin-plata-formal">
-          {real ? <Formal real={real} /> : null}
-        </FilasDeMas>
-      </section>
     </div>
   );
 }
@@ -157,7 +166,7 @@ function Formal({ real }: { real: FlujoReal }) {
   const partes = partesDelFlujo(real);
   return (
     <Superficie pad>
-      <p className="mb-3 text-[13px] text-taupe">Estado de flujos de efectivo, método directo.</p>
+      <p className="mb-3 text-sm text-taupe">Estado de flujos de efectivo, método directo.</p>
       <div className="fin-tabla-wrap" data-guia="fin-plata.formal-tabla">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Estado de flujos de efectivo</caption>
@@ -293,7 +302,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         )}
       </h3>
       <FaltanProyeccion provisional={provisional} faltan={faltan} className="mb-3" />
-      <p className="mb-2 text-[13px] leading-snug text-taupe">
+      <p className="mb-2 text-sm leading-snug text-taupe">
         Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos).
       </p>
       {p.diasDeCaja !== null && (

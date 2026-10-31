@@ -8,6 +8,7 @@ import { soles } from "./compras-reglas";
 import { UMBRAL_BANCARIZACION } from "./no-deducible-reglas";
 import { MAX_MONTO_FINANZAS } from "./finanzas-topes";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
+import type { NoEmite } from "./gastos-no-emite-reglas";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -219,6 +220,8 @@ export type GastoFila = {
   igvPerdido: number;
   /** Los pagos en efectivo o desde un fondo que se llevaron su parte del IGV (`fn_gastos_igv_perdido`), del más viejo al más nuevo. */
   pagosSinBanco: PagoSinBanco[];
+  /** Marcado «no emite comprobante», con su motivo (ADR-0588, `fn_gastos_no_emiten`): ya no pide comprobante. Sin la lectura, `undefined`. */
+  noEmite?: NoEmite | null;
 };
 
 /** Un pago en efectivo o desde un fondo de una factura de S/ 2 000 o más: la base dice cuánto IGV se llevó (`fn_igv_perdido`). */

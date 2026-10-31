@@ -192,7 +192,7 @@ export function BuscadorVentas({
       </div>
 
       {escaneando && (
-        <p className="anim-revelar text-xs text-tinta/70" role="status">
+        <p className="anim-revelar text-sm text-tinta/70" role="status">
           Listo para escanear: apunta la pistola a la etiqueta. La búsqueda sale sola.
         </p>
       )}

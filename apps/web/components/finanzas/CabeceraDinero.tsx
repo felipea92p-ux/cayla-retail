@@ -36,6 +36,8 @@ export function CabeceraDinero({
   hoy,
   acciones,
   onRegistrar,
+  panorama = false,
+  subtitulo = "Dónde está la plata, qué debes y si cuadra con el banco.",
 }: {
   pestana: PestanaDinero;
   esLider: boolean;
@@ -44,7 +46,7 @@ export function CabeceraDinero({
   /** La sede que se mira, como la dice la línea de arriba («Todas las sedes», «Trujillo»). */
   sede: string;
   /** La respuesta grande de la cara: su pregunta y su cifra (`valor: null` = no se pudo leer). */
-  respuesta: { pregunta: string; valor: number | null; chips?: ChipRespuesta[]; motivo?: string };
+  respuesta?: { pregunta: string; valor: number | null; chips?: ChipRespuesta[]; motivo?: string };
   /** Cuánto pone cada sede en esta cara (`null` en Cuadrar: los bancos son de CAYLA entera). */
   orillo: { porSede: Record<ClaveSede, number>; que: string } | null;
   /** Los hilos de sede de la barra (`getSedesDelTelar`). */
@@ -54,6 +56,10 @@ export function CabeceraDinero({
   acciones?: ReactNode;
   /** Abre «Registrar movimiento» aquí mismo; sin él, el dock lleva a Dónde está con la hoja abierta. */
   onRegistrar?: () => void;
+  /** La cara dibuja su propio resumen (fichas, tarjeta de total): la cabecera no repite la respuesta grande ni el orillo. */
+  panorama?: boolean;
+  /** La frase bajo el título; cada cara puede decir la suya (CLAURE: desde cuándo se cuenta y qué entra). */
+  subtitulo?: string;
 }) {
   const params = useSearchParams();
   // Al cambiar de cara viaja solo la sede (la de la barra, o la vieja `?ver=` mientras dure el cambio), como en la barra común.
@@ -82,12 +88,12 @@ export function CabeceraDinero({
       <EncabezadoPagina
         sede={sede}
         titulo="Cuentas y dinero"
-        subtitulo="Dónde está la plata, qué debes y si cuadra con el banco. Un saldo nunca se escribe a mano: se suma de los movimientos."
+        subtitulo={subtitulo}
         acciones={acciones}
       >
-        <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />
+        {respuesta && !panorama && <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />}
       </EncabezadoPagina>
-      {orillo && <Orillo porSede={orillo.porSede} sedes={sedes} que={orillo.que} hoy={hoy} />}
+      {orillo && !panorama && <Orillo porSede={orillo.porSede} sedes={sedes} que={orillo.que} hoy={hoy} />}
       <PestanasFin
         etiqueta="Las caras de Cuentas y dinero"
         guia="fin-dinero.pestanas"

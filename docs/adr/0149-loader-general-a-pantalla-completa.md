@@ -210,3 +210,21 @@ Nace en el ADR-0146 («Actualización 2026-10-14») y cambia un costo asumido de
 pantalla, las tarjetas que ya se vieron se retiran en vez de esconderse y volver con el reloj desde cero; las que no se vieron
 siguen esperando a que el loader se vaya, exactamente como antes. El orden «primero el loader, después el aviso» no cambia. La
 regla es pura (`lib/avisos-reglas.ts`) y `Avisos.tsx` la aplica en el oyente de `suscribirEspera`.
+
+## Actualización 2026-10-31 — la pila de la bandeja de Gastos guarda sin el loader (Felipe)
+
+**Qué cambió.** En Finanzas ▸ Gastos, la bandeja de «lo que falta revisar» pasó a ser una pila (la 03 del benchmark visual,
+`docs/investigacion/2026-10-31-gastos-benchmark-visual.md`): la salida de caja de arriba se resuelve en su lugar y, al tocar «Listo»,
+**la tarjeta se va al instante**, la barra avanza y sube la siguiente. La llamada a la base va con `x-espera: no` y el refresco de después,
+con `navegacionSinEspera` (como `<PreciosEnVivo />`): ni el loader ni un rehacer a la vista. Si la base no acepta lo guardado, la
+tarjeta vuelve a su lugar con lo que se había elegido y un aviso de error. Felipe lo eligió el 2026-10-31 («Al instante»), sabiendo que
+choca con esta regla.
+
+**Por qué ahí y solo ahí.** Es la tarea que se repite de a muchas (clasificar las salidas de caja del mes, una tras otra) y la única donde
+el loader a pantalla completa cortaba el ritmo: cada «Clasificar» tapaba la pantalla y la rehacía para mostrar la siguiente. Lo que se
+guarda no cambia (`lib/clasificar-egreso.ts`, la misma regla que la hoja «¿Qué fue esta salida?»), y la base sigue siendo la que decide.
+
+**DECIDÍ:** que la tarjeta vuelva si falla, en vez de dejar una marca de «pendiente»: la pila va por fecha, y volver a la cima es la señal
+más clara de que eso no se guardó. **DESCARTÉ:** el guardado al instante en el resto de Gastos (registrar un gasto, anular): son de a uno,
+y ahí el loader dice «espera, se está guardando» sin estorbar. **SE ROMPE SI:** alguien quita el `setHeader("x-espera", "no")` de
+`GastosPulso` (vuelve el loader en cada «Listo») o el `navegacionSinEspera` del refresco (el loader vuelve después).

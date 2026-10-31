@@ -7,7 +7,8 @@
 // Las cuentas contables NO se muestran (Felipe 2026-10-30: solo en lo que se descarga); cada grupo dice sus cuentas por su nombre.
 
 import { soles } from "./flujo-caja-reglas";
-import { SEDE_EMPRESA, SEDE_TODAS, type ClaveSede } from "./finanzas-telar-reglas";
+import { colorDeSede, nombreCortoSede, SEDE_EMPRESA, SEDE_TODAS, type ClaveSede, type ColorSede } from "./finanzas-telar-reglas";
+import type { FilaCascada } from "./cascada-estados-reglas";
 import type { FilaPpto } from "./presupuesto-reglas";
 import type { TramoCascada } from "./pulso-reglas";
 import type { CampanaFila, FilaER } from "./resultados-reglas";
@@ -122,19 +123,50 @@ export function metaDeVentas(ppto: readonly FilaPpto[]): { meta: number; real: n
 }
 
 /** Lo que dejó cada sede (sin CAYLA, que es la suma): de la que más deja a la que menos. */
-export type DejaSede = { clave: ClaveSede; nombre: string; resultado: number; ventas: number; margen: number };
+export type DejaSede = { clave: ClaveSede; nombre: string; color: ColorSede; resultado: number; ventas: number; margen: number };
 export function porSede(filas: readonly FilaER[]): DejaSede[] {
   return filas
     .filter((f) => f.unidad !== "consolidado")
     .map((f) => ({
       clave: f.unidad === "empresa" ? SEDE_EMPRESA : (f.ubicacionId ?? ""),
       nombre: f.unidad === "empresa" ? "De la empresa" : f.nombre,
+      color: f.unidad === "empresa" ? ("emp" as const) : colorDeSede({ nombre: f.nombre, tipo: f.unidad }),
       resultado: f.resultado,
       ventas: f.ventas,
       margen: f.margen,
     }))
     .filter((s) => s.clave)
     .sort((a, b) => b.resultado - a.resultado);
+}
+
+/** El orden del telar (Trujillo, Arequipa, Lima, otras, Taller, Empresa), el mismo de la barra de sedes. */
+const ORDEN_COLOR: Record<ColorSede, number> = { tru: 0, aqp: 1, lim: 2, otra: 3, tal: 4, emp: 5 };
+
+/** «Lo que dejó cada sede» como la cascada de la maqueta: cada sede nace en cero con su color de hilo y lleva a su sede. */
+export function filasDeSedes(sedes: readonly DejaSede[], hrefDe: (clave: ClaveSede) => string): FilaCascada[] {
+  return [...sedes]
+    .sort((a, b) => ORDEN_COLOR[a.color] - ORDEN_COLOR[b.color] || a.nombre.localeCompare(b.nombre, "es"))
+    .map((s) => ({
+      clave: s.clave,
+      nombre: s.clave === SEDE_EMPRESA ? "Empresa" : nombreCortoSede(s.nombre),
+      valor: s.resultado,
+      tipo: "total" as const,
+      color: s.color === "otra" ? "var(--color-taupe)" : `var(--color-sede-${s.color})`,
+      href: hrefDe(s.clave),
+    }));
+}
+
+/** La respuesta de ¿Ganamos?: «Sí. Ganaste S/ X» o «No. Perdiste S/ X», y de cada S/ 100 vendidos cuánto quedó. */
+export function titularGanamos(f: Pick<FilaER, "resultado" | "ventas" | "unidad">): { si: boolean; respuesta: string; bajada: string } {
+  const r = Math.round(f.resultado);
+  const vende = f.ventas > 0;
+  const respuesta = r >= 0 ? `Ganaste ${soles(r)}` : vende ? `Perdiste ${soles(-r)}` : `Costó ${soles(-r)}`;
+  const bajada = vende
+    ? `De cada S/\u00a0100 que vendiste ${r >= 0 ? "te quedaron" : "perdiste"} S/\u00a0${Math.abs((f.resultado / f.ventas) * 100).toFixed(1).replace(".", ",")}.`
+    : f.unidad === "taller"
+      ? "El Taller no vende: sus prendas pasan a las tiendas a su costo. Esto es lo que costó tenerlo abierto."
+      : "La empresa no vende: estos gastos los cubren las tiendas.";
+  return { si: r >= 0, respuesta, bajada };
 }
 
 /** Las campañas que corrieron en el mes (alguno de sus días cae dentro) y ya terminaron o siguen. */
@@ -190,7 +222,7 @@ export function recomendacionesGanamos({
   const pierden: DejaSede[] = sedes
     ? sedes.filter((s) => s.resultado < 0 && s.ventas > 0)
     : fila && fila.resultado < 0 && fila.ventas > 0
-      ? [{ clave: "", nombre: fila.nombre, resultado: fila.resultado, ventas: fila.ventas, margen: fila.margen }]
+      ? [{ clave: "", nombre: fila.nombre, color: "otra", resultado: fila.resultado, ventas: fila.ventas, margen: fila.margen }]
       : [];
   for (const s of pierden.slice(0, 2)) {
     const cubre = ventaQueCubre(s);

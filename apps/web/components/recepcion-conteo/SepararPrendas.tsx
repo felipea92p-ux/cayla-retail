@@ -209,7 +209,7 @@ export function SepararPrendas({
             <BaldosaCategoria categoria={categoria} tamano="chico" />
             <span className="min-w-0">
               <b className="block truncate text-[14.5px] text-tinta">{p.nombre ?? "Prenda"}</b>
-              <small className="block text-[12.5px] text-taupe">
+              <small className="block text-sm text-taupe">
                 {[
                   marca.nombre,
                   p.variantes
@@ -236,7 +236,7 @@ export function SepararPrendas({
                       Tallas y colores ahora
                     </span>
                   </Boton>
-                  {!enHacerAhora && <span className="text-[12.5px] text-taupe">o queda pendiente</span>}
+                  {!enHacerAhora && <span className="text-sm text-taupe">o queda pendiente</span>}
                 </>
               )}
               <span className="inline-flex items-center gap-2">
@@ -254,7 +254,7 @@ export function SepararPrendas({
             </span>
             <span className="min-w-0">
               <b className="block truncate text-[14.5px] text-tinta">{n.descripcion}</b>
-              <small className="block text-[12.5px] text-taupe">Nueva · se crea después, con su nombre, tallas y precio</small>
+              <small className="block text-sm text-taupe">Nueva · se crea después, con su nombre, tallas y precio</small>
             </span>
             <span className="rc-fila-fin">
               {onCrearNueva && (
@@ -280,7 +280,7 @@ export function SepararPrendas({
           </span>
           <span className="min-w-0">
             <b className="block text-[14.5px] text-tinta">Nuevas, no están en el catálogo</b>
-            <small className="block text-[12.5px] text-taupe">
+            <small className="block text-sm text-taupe">
               {enHacerAhora ? "Solo cuántas; describirlas (nombre, color, tallas) puede quedar para después" : "Pon cuántas y descríbelas con un nombre corto; el color y las tallas pueden quedar para después"}
             </small>
           </span>
@@ -295,13 +295,13 @@ export function SepararPrendas({
       </ul>
 
       {!enHacerAhora && sinIdentificar > 0 && (
-        <p className="text-xs text-taupe">Hasta que identifiques {sinIdentificar === 1 ? "la que falta" : `las ${sinIdentificar} que faltan`} no se puede pasar a «Cerrar». Las tallas y los colores pueden esperar.</p>
+        <p className="text-sm text-taupe">Hasta que identifiques {sinIdentificar === 1 ? "la que falta" : `las ${sinIdentificar} que faltan`} no se puede pasar a «Cerrar». Las tallas y los colores pueden esperar.</p>
       )}
       {total > tope &&
         (enHacerAhora ? (
-          <p className="text-xs text-ambar">Solo quedan {textoPrendas(tope)} sin separar: si llegaron más, reabre el conteo.</p>
+          <p className="text-sm text-ambar">Solo quedan {textoPrendas(tope)} sin separar: si llegaron más, reabre el conteo.</p>
         ) : (
-          <p className="text-xs text-ambar">Separaste más de las que contaste: al guardar, lo contado sube a {total}.</p>
+          <p className="text-sm text-ambar">Separaste más de las que contaste: al guardar, lo contado sube a {total}.</p>
         ))}
 
       {describiendo && (
@@ -373,7 +373,7 @@ function BuscarPrendaEnLinea({
       />
       {texto && !buscando && prendas !== null && (
         <ul data-resultados className="space-y-0.5 rounded-2xl border border-sand bg-papel p-1.5 shadow-[0_8px_24px_color-mix(in_srgb,var(--color-sombra)_12%,transparent)]">
-          {fallo && <li className="px-2 py-1.5 text-[13px] text-ambar">No se pudo buscar: vuelve a escribir en un momento.</li>}
+          {fallo && <li className="px-2 py-1.5 text-sm text-ambar">No se pudo buscar: vuelve a escribir en un momento.</li>}
           {prendas.slice(0, 6).map((p) => (
             <li key={p.productoId}>
               <button
@@ -387,7 +387,7 @@ function BuscarPrendaEnLinea({
                 <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />
                 <span className="min-w-0 flex-1">
                   <b className="text-sm text-tinta">{p.nombre}</b>
-                  <small className="ml-1.5 text-xs text-taupe">{[p.codigo, `${new Set(p.variantes.map((v) => v.talla ?? "Única")).size} tallas`].filter(Boolean).join(" · ")}</small>
+                  <small className="ml-1.5 text-sm text-taupe">{[p.codigo, `${new Set(p.variantes.map((v) => v.talla ?? "Única")).size} tallas`].filter(Boolean).join(" · ")}</small>
                 </span>
                 <span className="label-cayla text-[10px] text-taupe">Elegir</span>
               </button>

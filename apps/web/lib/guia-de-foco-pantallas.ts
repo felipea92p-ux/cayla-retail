@@ -110,6 +110,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/reportes": { estado: "no-aplica", motivo: "¿Ganamos? (Estados financieros, ADR-0585) solo mira: la respuesta, la cascada y lo de cada sede se tocan para ver más, nada se llena. El mes y la sede los elige la barra del telar." },
   "/finanzas/reportes/balance": { estado: "no-aplica", motivo: "¿Cuánto vale CAYLA? (ADR-0585) solo mira: su único control es la fecha del Balance, un filtro. Los saldos de arranque se llenan en su propia hoja (SaldosArranqueModal), que lleva su registro aparte." },
   "/finanzas/reportes/campanas": { estado: "no-aplica", motivo: "La lista de campañas y cómo le fue a cada una (ADR-0585: la puerta desde ¿Ganamos?): solo mira, sin campos ni pasos." },
+  "/finanzas/reportes/cuentas": { estado: "no-aplica", motivo: "Ver ▸ Saldos por cuenta o Libro diario (ADR-0585): solo mira. Su único campo es el buscador del diario, que filtra; no hay nada que llenar." },
   "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de ¿Dónde está la plata? (ADR-0585)." },
   "/finanzas/reportes/flujo": { estado: "no-aplica", motivo: "¿Dónde está la plata? (ADR-0585) solo mira. Sus controles son un filtro (cuántas semanas) y las palancas de «¿Y si…?», una simulación que no guarda: ninguna es obligatoria ni sigue a otra, así que no hay «qué falta». Lo explica su guía interactiva." },
   "/finanzas/reportes/patrimonio": { estado: "no-aplica", motivo: "¿Lo tuyo creció? (Estados financieros, ADR-0585) solo mira: lo tuyo al empezar y al cerrar el mes y lo que lo movió. No hay campos ni pasos; el mes y la sede los elige la barra del telar." },
@@ -266,7 +267,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 51;
+export const MODALES_PENDIENTES_HOY = 50;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -429,7 +430,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0328 act. 17: «Pedir y apartar para el cliente» (Vender y Apartados). «Falta» = lo que apaga el botón y la base rechaza:
   // talla y tienda (si hay más de una), nombres, apellidos, celular de 9 dígitos que empieza en 9, y quién atiende. Nota opcional.
   "components/PedirYApartarModal.tsx": { estado: "aplicada", evidencia: ["components/PedirYApartarModal.tsx"] },
-  "components/PerfilModal.tsx": PENDIENTE, // 12 controles
+  "components/PerfilModal.tsx": { estado: "aplicada", evidencia: ["components/PerfilModal.tsx"] }, // la contraseña (2026-10-31): nueva y confírmala
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
   "components/ProveedorModal.tsx": PENDIENTE, // 13 controles
@@ -450,6 +451,15 @@ export const MODALES: Record<string, PantallaGuia> = {
   // fue, si tiene comprobante; con comprobante, el RUC y la serie; a crédito, cuándo vence; si no, de dónde salió) y el responsable;
   // `lib/hoja-gasto-reglas.test.ts` cruza la guía con la validación en cada camino.
   "components/finanzas/gastos/HojaRegistrarGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaRegistrarGasto.tsx"] },
+  // ADR-0588: los dos datos llegan llenos del gasto; lo que falta es CAMBIAR algo (lo que apaga «Guardar») y el responsable.
+  // `lib/gastos-corregir-reglas.test.ts` cruza la guía con lo que bloquea guardar.
+  "components/finanzas/gastos/HojaCorregirGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaCorregirGasto.tsx"] },
+  // ADR-0588 («Llegó el comprobante»): qué llegó, el RUC, la serie y el número, la fecha y el responsable; lo mismo que `agregar_comprobante_a_gasto`
+  // exige. `lib/gastos-comprobante-tardio-reglas.test.ts` cruza la guía con lo que bloquea guardar.
+  "components/finanzas/gastos/HojaComprobanteDeGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaComprobanteDeGasto.tsx"] },
+  // ADR-0588 («No tendrá comprobante»): el motivo, la nota solo con «Otro motivo», y el responsable (lo que exige `marcar_gasto_no_emite`).
+  "components/finanzas/gastos/HojaNoEmiteGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaNoEmiteGasto.tsx"] },
+  "components/finanzas/PorPagarTodas.tsx": { estado: "no-aplica", motivo: "«Todo lo que CAYLA debe» (Felipe 2026-10-31): una lista de solo lectura con buscador, filtros y páginas; no hay nada que llenar ni guardar. «Pagar» abre el pago de siempre." },
   "components/finanzas/AjustesResumen.tsx": { estado: "no-aplica", motivo: "«Qué se ve» en el Resumen (Felipe 2026-10-26): son interruptores que se aplican al momento y no hay nada que llenar ni un orden que seguir; no guarda, solo cambia lo que se ve. Su ícono tiene su paso en la guía de la pantalla." },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y

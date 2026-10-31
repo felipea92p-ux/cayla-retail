@@ -58,12 +58,21 @@ const RESPUESTAS_ESTADOS: PasoGuia = {
   texto: "Cada tarjeta responde una pregunta con su cifra: ¿Ganamos? (ganancias y pérdidas), ¿Dónde está la plata? (flujo de efectivo), ¿Cuánto vale CAYLA? (balance) y ¿Lo tuyo creció? (cambios en el patrimonio). La que estás mirando queda marcada; tocas otra y pasas a ella, con la misma sede y el mismo mes.",
 };
 
-/** «Descargar para el contador» en la cabecera de los cuatro estados (ADR-0585, actividad 8): se explica, no se toca. */
+/** «Descargar Excel» de cada cuadro del contador (ADR-0585): se explica, no se toca. Solo está en un cuadro, no en «Respuestas». */
 const CONTADOR: PasoGuia = {
   id: "contador",
-  ancla: "fin-estados.contador",
-  titulo: "Descargar para el contador",
-  texto: "Abre la lista de archivos del mes: los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario. Bajas solo el que eliges. No cambia nada en el sistema. En la demo no lo descargamos.",
+  ancla: "fin-estados.descargar",
+  opcional: true,
+  titulo: "Descargar Excel",
+  texto: "Cada cuadro del contador trae su botón: baja solo ese cuadro, con sus cuentas, en un archivo que abre Excel. No cambia nada en el sistema. En la demo no lo descargamos.",
+};
+
+/** La barra de las siete vistas de Estados financieros (Felipe 2026-10-31): se explica, no se toca. */
+const VISTAS: PasoGuia = {
+  id: "vistas",
+  ancla: "fin-estados.vistas",
+  titulo: "Qué ver: siete vistas",
+  texto: "«Respuestas» muestra cada estado en palabras de tienda. Después vienen los cuadros del contador: los cuatro estados en formato formal, los saldos por cuenta y el libro diario del mes. Un toque y cambias.",
 };
 
 const EXCEL: PasoGuia = {
@@ -283,7 +292,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }],
       titulo: "Cinco toques",
-      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie, que escribes como sea.",
+      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie. Con el QR del papel (la pistola, pegarlo o la cámara) se llena solo.",
     },
     {
       id: "hoja-repetir",
@@ -407,21 +416,21 @@ export const GUIA_FIN_GASTOS: Guia = {
       prepararSoloAlAvanzar: true,
       opcional: true,
       titulo: "Lo que falta revisar, de a uno",
-      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya venció sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
+      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes vencido sin registrar, en una pila: se resuelve la de arriba. En una salida el sistema ya propone qué fue; eliges la categoría y quién lo hace. Si era un activo o llegó con boleta o factura, su enlace abre el registro completo.",
     },
     {
       id: "sin-comprobante",
       ancla: "fin-gastos.sin-comprobante",
       opcional: true,
       titulo: "Lo grande sin comprobante",
-      texto: "Dice cuántos gastos de S/\u00a0300 o más no tienen boleta ni factura y cuánto IGV recuperarías con factura (lo chico, como el mototaxi, no se avisa). «Ver cuáles» deja en la lista solo esos, para ir pidiendo sus comprobantes.",
+      texto: "Dice cuántos gastos de S/\u00a0300 o más no tienen boleta ni factura y cuánto IGV recuperarías con factura (lo chico, como el mototaxi, no se avisa). «Ver cuáles» los deja solos en la lista. En su hoja: «Llegó el comprobante» o «No tendrá comprobante».",
     },
     {
       id: "resolver",
       ancla: "fin-gastos.resolver",
       opcional: true,
-      titulo: "Resolverlo desde aquí",
-      texto: "El botón abre la misma hoja de siempre: «¿Qué fue esta salida?» para una salida de caja, o el formulario del gasto ya armado con el fijo. En la demo no se guarda nada.",
+      titulo: "Listo, y sube la siguiente",
+      texto: "«Listo» guarda lo que elegiste: la tarjeta se va al instante, la barra avanza y sube la siguiente. Si la base no lo acepta, vuelve con lo que elegiste y te dice por qué. Un gasto fijo se registra con su formulario ya armado. En la demo no se guarda nada.",
     },
     {
       id: "cifras",
@@ -481,15 +490,15 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.detalle",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.fila" }],
-      titulo: "El detalle de un gasto",
-      texto: "Si el gasto pide algo, arriba dice qué y por qué (una factura vencida, lo grande sin comprobante). Debajo, el total, el IGV que se descuenta y el que se perdió por pagar sin banco, cómo se pagó (o cuándo vence), su estado y quién lo registró.",
+      titulo: "El detalle de un gasto, al costado",
+      texto: "Se abre al lado y la lista sigue a la vista: tocar otra fila, o ↑ ↓, pasa al siguiente. Arriba, el total y, si el gasto pide algo, qué y por qué; «Ver los de…» deja la lista con su categoría. Debajo, el IGV que se descuenta y el que se perdió, cómo se pagó, su estado y quién lo registró.",
     },
     {
       id: "detalle-botones",
       ancla: "fin-gastos.detalle-botones",
       opcional: true,
-      titulo: "Anular un gasto",
-      texto: "«Anular…» pide el motivo y lo deja a la vista como anulado: nunca se borra. Si ya tiene pagos, no se anula. En la demo no anulamos: cerramos.",
+      titulo: "Corregir, comprobante o anular",
+      texto: "«Corregir» cambia en qué se gastó o qué fue. Si se pagó sin comprobante y lo trajeron después, «Llegó el comprobante» se lo agrega sin pagarlo otra vez. «Anular…» lo deja a la vista como anulado. En la demo no tocamos nada: cerramos.",
     },
     {
       id: "fijos",
@@ -801,24 +810,44 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       texto: "Lo que ya venció (se paga primero), lo que vence esta semana, la próxima y más adelante, con cuántas facturas hay en cada tramo. Toca una cifra para ver solo esas facturas; tócala otra vez para verlas todas.",
     },
     {
-      id: "burbujas",
-      ancla: "fin-por-pagar.burbujas",
-      opcional: true,
-      titulo: "Las deudas en el calendario",
-      texto: "Cada círculo es una factura, del color de su sede y del tamaño de lo que falta pagar, sobre los próximos 30 días. Lo vencido va a la izquierda con borde rojo. Tocar un círculo abre su pago.",
-    },
-    {
-      id: "filtros",
-      ancla: "fin-por-pagar.filtros",
-      opcional: true,
-      titulo: "Buscar y filtrar",
-      texto: "Escribe un proveedor o el número de la factura, o elige el tipo. Cada filtro puesto aparece debajo con su ✕ para quitarlo, y «Limpiar todo» los quita juntos.",
-    },
-    {
       id: "lista",
       ancla: "fin-por-pagar.lista",
-      titulo: "La lista de lo que se debe",
-      texto: "Cada factura con su vencimiento, el proveedor, de qué es (mercadería, gasto, activo o insumo), el total, lo pagado y el saldo. Mirando una tienda, cada factura cuenta entera para la tienda que la pidió, aunque parte de la mercadería vaya a otra. Si no se debe nada, aquí lo dice.",
+      titulo: "Lo que vence primero",
+      texto: "Las facturas que vencen antes, con su fecha, el proveedor, de qué es (mercadería, gasto, activo o insumo), la sede y el saldo. Mirando una tienda, cada factura cuenta entera para la tienda que la pidió, aunque parte de la mercadería vaya a otra. Si no se debe nada, aquí lo dice.",
+    },
+    {
+      id: "todas",
+      ancla: "fin-por-pagar.todas",
+      opcional: true,
+      titulo: "Todas las facturas, con filtros",
+      texto: "Abre una ventana con todo lo que se debe: busca un proveedor o el número de la factura, filtra por cuándo vence, el tipo o la sede, ordena por cualquier columna y pasa de página (30 o 40 por página). En la demo no la abrimos.",
+    },
+    {
+      id: "carriles",
+      ancla: "fin-por-pagar.burbujas",
+      opcional: true,
+      titulo: "Lo que vence en 30 días",
+      texto: "Una fila por sede; cada punto es una factura, del color de su sede y del tamaño de lo que falta pagar. Lo vencido va a la izquierda con borde rojo, y la franja es esta semana. Tocar un punto abre su pago.",
+    },
+    {
+      id: "tipo",
+      ancla: "fin-por-pagar.tipo",
+      opcional: true,
+      titulo: "En qué se va",
+      texto: "Lo que se debe partido por tipo: mercadería, gasto, activo fijo e insumo del Taller, con su monto y su porcentaje. Tocar un tipo deja en la lista solo esas facturas; tocarlo otra vez las muestra todas.",
+    },
+    {
+      id: "atencion",
+      ancla: "fin-por-pagar.atencion",
+      titulo: "Pide tu atención",
+      texto: "Lo que ya venció (en rojo) y lo que vence hoy o en los próximos 3 días (en ámbar), lo más urgente primero. «Pagar» abre su pago.",
+    },
+    {
+      id: "proveedores",
+      ancla: "fin-por-pagar.proveedores",
+      opcional: true,
+      titulo: "A quién le debes más",
+      texto: "Los cinco proveedores a los que más se les debe, con cuánto de eso ya venció. Tocar uno abre la ventana de todas las facturas, ya buscando a ese proveedor.",
     },
     {
       id: "pagar",
@@ -854,43 +883,44 @@ export const GUIA_FIN_CLAURE: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Lo que se le debe a CLAURE",
-      texto: "El POS y los Yape de Lima caen en cuentas de CAYLA, pero parte de lo que se vende es de CLAURE, la empresa de Claudia. Aquí ves cuánto de lo cobrado es suyo, día por día. Es una demo: no se paga nada.",
+      texto: "El POS y los Yape de Lima caen en cuentas de CAYLA, pero parte de lo que se vende es de CLAURE, la empresa de Claudia. Aquí ves cuánto de lo cobrado es suyo, por dónde entró y cuándo se le pagó. Es una demo: no se paga nada.",
     },
     ...TELAR,
-    {
-      id: "respuesta",
-      ancla: "telar.respuesta",
-      titulo: "¿Cuánto le debes a CLAURE?",
-      texto: "Lo que CLAURE cobró en cuentas de CAYLA, menos lo devuelto, el IGV, la comisión del POS y lo que ya se le pagó. Debajo, de dónde sale y lo que pide atención. El efectivo no entra: lo tiene Claudia. La sede de arriba no lo cambia.",
-    },
     PESTANAS_DINERO,
     {
       id: "cifras",
       ancla: "fin-claure.cifras",
       opcional: true,
-      titulo: "De dónde sale la cifra",
-      texto: "Lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto desde ellas, el IGV (lo declara y paga CAYLA, así que se descuenta), la comisión del POS (estimada con su tarifa; la asume CLAURE) y lo que ya se le pagó. Se le debe: cobrado menos todo eso.",
+      titulo: "¿Cuánto le debes?",
+      texto: "La ficha oscura es lo que se le debe a Claudia. Al lado, de dónde sale: lo cobrado de prendas de CLAURE en tus cuentas, lo devuelto, el IGV (lo declara y paga CAYLA, así que se descuenta), la comisión del POS (la asume CLAURE), sus gastos que pagó CAYLA y lo ya pagado. Toca una ficha y se abre el historial de eso.",
     },
     {
-      id: "tabla",
-      ancla: "fin-claure.tabla",
+      id: "entra",
+      ancla: "fin-claure.entra",
       opcional: true,
-      titulo: "Día por día",
-      texto: "Cada fila es un día, un medio de pago y la cuenta donde cayó; «Se le debe» ya viene sin IGV ni comisión. En un cambio, la plata sigue a la prenda que se lleva el cliente. Una venta con prendas de las dos empresas se reparte según lo que vale cada una. «Sin tarifa» quiere decir que falta cargar la tarifa de esa máquina.",
+      titulo: "Por dónde entra la plata",
+      texto: "La barra reparte lo cobrado por medio de pago (tarjeta, QR, Yape, Plin, transferencia). Abajo, a qué cuenta de CAYLA llegó y cuánto deja cada medio para Claudia, ya sin IGV ni comisión. «Falta asignar» es plata que entró a un medio sin cuenta en Configuración.",
     },
     {
-      id: "gastos",
-      ancla: "fin-claure.gastos",
+      id: "atencion",
+      ancla: "fin-claure.atencion",
       opcional: true,
-      titulo: "Gastos de CLAURE que pagó CAYLA",
-      texto: "El alquiler, la luz, la limpieza… los paga CAYLA, pero una parte (o todo) es de CLAURE. Cada categoría tiene su parte (de fábrica: alquiler, luz y mantenimiento, la mitad; agua, internet, baño, limpieza y bolsas, todo). Esa parte baja lo que se le debe y sale del gasto de CAYLA.",
+      titulo: "Pide tu atención",
+      texto: "Lo que conviene revisar: un cambio con prendas de CLAURE (no entra al saldo todavía), cobros con tarjeta sin tarifa (el saldo está de más hasta cargarla), cobros sin cuenta y, si pasan los días, que no se le paga. Cada aviso trae su enlace. Debajo, la cuenta en renglones.",
+    },
+    {
+      id: "semana",
+      ancla: "fin-claure.semana",
+      opcional: true,
+      titulo: "Cobrado y pagado por semana",
+      texto: "Dos barras por semana: lo que entró de CLAURE (verde) y lo que ya se le pagó (azul). Sirve para ver si se le está pagando al ritmo en que cobra.",
     },
     {
       id: "pagos",
       ancla: "fin-claure.pagos",
       opcional: true,
       titulo: "Lo que ya se le pagó",
-      texto: "Cada pago a Claudia: el día, el banco de donde salió, su número de operación y quién lo registró. Lo pagado baja lo que se le debe. Un pago equivocado se anula en Dónde está ▸ Movimientos y el saldo vuelve a subir.",
+      texto: "Los últimos pagos a Claudia: el día, el banco de donde salió, su número de operación y quién lo registró. Lo pagado baja lo que se le debe. «Ver historial completo» abre todos los movimientos. Un pago equivocado se anula en Dónde está ▸ Movimientos.",
     },
     {
       id: "pagar",
@@ -936,6 +966,13 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "Si todavía no hay bancos, aquí lo dice: se agregan en Configuración ▸ Cuentas y cobros. Desde ese día ya se pueden conciliar.",
     },
     {
+      id: "otras",
+      ancla: "fin-conciliacion.otras",
+      opcional: true,
+      titulo: "Qué banco cuadrar",
+      texto: "A la izquierda están tus bancos: cada uno dice cuánto suma el sistema, cuándo lo cuadraste por última vez y si cuadra, no cuadra o tiene líneas por revisar. Tocas uno y a la derecha aparece su detalle. Los bancos son de CAYLA entera, no de una sede.",
+    },
+    {
       id: "responsable",
       ancla: "fin-conciliacion.responsable",
       opcional: true,
@@ -947,14 +984,14 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       ancla: "fin-conciliacion.lineas",
       opcional: true,
       titulo: "Lo anotado y el extracto, en pares",
-      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Lo que no encuentres en el banco es lo que hay que aclarar.",
+      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Arriba, la barra dice cuántas llevas revisadas y el filtro deja ver solo las que faltan. Lo que no encuentres en el banco es lo que hay que aclarar.",
     },
     {
       id: "anotar",
       ancla: "fin-conciliacion.anotar",
       opcional: true,
       titulo: "El saldo del banco",
-      texto: "Escribes el saldo que muestra el banco y la fecha. Con «Anotar» el sistema lo compara con el suyo y dice si coinciden o cuánto es la diferencia. En la demo no anotamos nada.",
+      texto: "Junto a lo que suma el sistema, escribes el saldo que muestra el banco y la fecha. Con «Anotar» el sistema lo compara con el suyo y dice si coinciden o cuánto es la diferencia. En la demo no anotamos nada.",
     },
     {
       id: "historial",
@@ -962,13 +999,6 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       opcional: true,
       titulo: "Las conciliaciones anteriores",
       texto: "Cada vez que se anotó el saldo de esta cuenta: lo que dijo el banco, lo que dijo el sistema y si coincidieron.",
-    },
-    {
-      id: "otras",
-      ancla: "fin-conciliacion.otras",
-      opcional: true,
-      titulo: "Qué banco cuadrar",
-      texto: "Arriba eliges el banco o la cuenta que vas a cuadrar; el número dice cuántas líneas le faltan revisar. Los bancos son de CAYLA entera, no de una sede.",
     },
     DOCK_DINERO,
     {
@@ -994,12 +1024,14 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
-      id: "pulso",
-      ancla: "fin-resultados.pulso",
-      titulo: "La respuesta",
-      texto: "Si ganó o perdió en el mes, y cuánto, para la sede que elegiste en la barra. En el mes en curso dice «en lo que va»: todavía puede cambiar.",
+      id: "respuesta",
+      ancla: "fin-ganamos.respuesta",
+      opcional: true,
+      titulo: "¿Ganamos?",
+      texto: "La respuesta del mes: sí o no, cuánto, y de cada S/\u00a0100 que vendiste cuánto te quedó.",
     },
     {
       id: "cascada",
@@ -1028,20 +1060,22 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     },
     {
       id: "formal",
-      ancla: "fin-ganamos.formal-abrir",
+      ancla: "fin-ganamos.formal",
+      opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-ganamos.formal-abrir" }],
+      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Se ve en la barra de arriba.",
     },
     {
       id: "comparar",
       ancla: "fin-resultados.comparar",
+      opcional: true,
       titulo: "Comparar con el mes anterior",
       texto: "Al marcarlo, debajo de cada cifra aparece cuánto subió o bajó contra el mes anterior.",
     },
     {
       id: "tabla",
       ancla: "fin-resultados.tabla",
+      opcional: true,
       titulo: "De la venta a la utilidad, por sede",
       texto: "Arriba las ventas; restas lo que costó lo vendido, las mermas y los fletes, y queda el margen bruto. Restas los gastos y queda la utilidad. Una columna por sede y al final CAYLA, la suma.",
     },
@@ -1079,6 +1113,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     {
       id: "notas",
       ancla: "fin-resultados.notas",
+      opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo se reparte",
       texto: "El Taller no le vende a las tiendas: lo que cuesta hacer una prenda entra en el costo de la tienda que la vende. Y lo de la empresa (contador, publicidad) no se reparte entre tiendas.",
@@ -1153,6 +1188,7 @@ export const GUIA_FIN_FLUJO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
       id: "respuesta",
@@ -1338,9 +1374,9 @@ export const GUIA_FIN_FLUJO: Guia = {
     {
       id: "formal",
       ancla: "fin-plata.formal",
+      opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-plata.formal" }],
+      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Se ve en la barra de arriba.",
     },
     {
       id: "formal-tabla",
@@ -1379,6 +1415,7 @@ export const GUIA_FIN_BALANCE: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
       id: "respuesta",
@@ -1433,8 +1470,7 @@ export const GUIA_FIN_BALANCE: Guia = {
       ancla: "fin-vale.formal",
       opcional: true,
       titulo: "El formato formal",
-      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-vale.formal" }],
+      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Se ve en la barra de arriba.",
     },
     {
       id: "arranque",
@@ -1554,6 +1590,7 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
       id: "respuesta",
@@ -1561,6 +1598,13 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       opcional: true,
       titulo: "Creció o bajó, y cuánto",
       texto: "La respuesta del mes y, debajo, qué parte de lo que ganaste retiraste. Si retiras más de lo que ganas, lo tuyo baja aunque el negocio gane.",
+    },
+    {
+      id: "extremos",
+      ancla: "fin-patrimonio.extremos",
+      opcional: true,
+      titulo: "Al empezar y al cerrar",
+      texto: "Cuánto era lo tuyo el primer día del mes y cuánto es al cerrarlo (o hoy, si el mes sigue).",
     },
     {
       id: "puente",
@@ -1585,11 +1629,10 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     },
     {
       id: "formal",
-      ancla: "fin-patrimonio.formal-abrir",
+      ancla: "fin-patrimonio.formal",
       opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-patrimonio.formal-abrir" }],
+      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Se ve en la barra de arriba.",
     },
     {
       id: "formal-tabla",
@@ -1610,6 +1653,44 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes si lo tuyo creció y por qué. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Lo tuyo creció?.",
+    },
+  ],
+};
+
+export const GUIA_FIN_CONTADOR: Guia = {
+  id: "finanzas.reportes.cuentas",
+  ruta: "/finanzas/reportes/cuentas",
+  titulo: "Saldos por cuenta y libro diario",
+  resumen: "Los dos cuadros del contador que no son un estado: cada cuenta con su saldo, y cada línea de cada asiento del mes.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Para el contador",
+      texto: "Aquí se ven los saldos por cuenta y el libro diario del mes: los mismos datos del archivo que se descarga, sin bajar nada. Es una demo.",
+    },
+    ...TELAR,
+    VISTAS,
+    CONTADOR,
+    {
+      id: "saldos",
+      ancla: "fin-contador.saldos",
+      opcional: true,
+      titulo: "Saldos por cuenta",
+      texto: "Cada cuenta con su saldo al empezar el mes, lo que se cargó (debe) y abonó (haber) y su saldo al cerrar, agrupadas con su total. Arriba dice si cuadra.",
+    },
+    {
+      id: "diario",
+      ancla: "fin-contador.diario",
+      opcional: true,
+      titulo: "El libro diario",
+      texto: "Cada línea de cada asiento del mes, con su cuenta y su sede. Busca por cuenta, asiento o glosa; al pie, el debe y el haber de lo que ves deben ser iguales.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Para volver a las respuestas, toca «Respuestas» en la barra de arriba.",
     },
   ],
 };

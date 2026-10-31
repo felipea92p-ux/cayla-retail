@@ -48,21 +48,23 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
         sede={varias ? "Todas las tiendas" : (elegida?.nombre ?? persona.ubicacionEtiqueta)}
         titulo="Rendimiento"
         subtitulo={
-          // Una frase corta y el «!» con el resto (Felipe, 2026-10-03, como Productos): las notas de abajo explicaban cada cifra y no se leían.
+          // Una frase corta y, un paso más abajo en el globo del «?», cómo se lee (Felipe, 2026-10-03; ronda 18 de /unificar).
           <>
             {varias
               ? "Las ventas de cada persona de cada tienda, contra su meta."
               : `Las ventas de cada persona de ${elegida?.nombre ?? persona.ubicacionEtiqueta}, contra su meta.`}{" "}
             Para reconocer y acompañar — sin comisión ni bono.
-            <Ayuda titulo="Cómo se lee Rendimiento">
-              <span className="block">
-                Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta. No cuenta lo que se vendió
-                de CLAURE (de Claudia, en Tienda Lima): no es venta de CAYLA.
-              </span>
-              <span className="mt-2 block">
-                La meta es para <b>reconocer y acompañar</b>: no se usa para pagar ni para evaluar.
-              </span>
-            </Ayuda>
+          </>
+        }
+        ayuda={
+          <>
+            <span className="block">
+              Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta. No cuenta lo que se vendió
+              de CLAURE (de Claudia, en Tienda Lima): no es venta de CAYLA.
+            </span>
+            <span className="mt-2 block">
+              La meta es para <b>reconocer y acompañar</b>: no se usa para pagar ni para evaluar.
+            </span>
           </>
         }
       />
@@ -70,9 +72,7 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
       {sedes.length === 0 && (
         <div className="card-cayla">
           <Vacio icono={<Store />}>
-            No hay una tienda que mirar desde esta cuenta: Rendimiento es de quien lleva una tienda o
-            del Admin. Si crees que deberías verla, pídele a tu líder que revise tu sede en Colaboradores
-            ▸ Roles y accesos.
+            Rendimiento es de quien lleva una tienda. Si deberías verla, pídele a tu líder que revise tu sede en Colaboradores.
           </Vacio>
         </div>
 

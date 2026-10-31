@@ -453,10 +453,10 @@ export function ApartarVista({
           <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} colorHex={v.colorHex} categoria={v.categoria} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={44} className="w-11" />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
-            <span className="block truncate text-xs text-tinta/60">
+            <span className="block truncate text-sm text-tinta/60">
               {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
             </span>
-            <span className="mt-0.5 block text-xs @[19rem]:hidden">
+            <span className="mt-0.5 block text-sm @[19rem]:hidden">
               <span className="font-semibold tabular-nums text-tinta">{money(precioFinal(v))}</span>
               <span className={puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}>
                 {" · "}
@@ -466,13 +466,13 @@ export function ApartarVista({
           </span>
           <span className="hidden shrink-0 text-right @[19rem]:block">
             <span className="block text-sm font-semibold tabular-nums text-tinta">
-              {v.campana && <span className="mr-1.5 text-xs font-normal text-tinta/45 line-through">{money(v.precio)}</span>}
+              {v.campana && <span className="mr-1.5 text-sm font-normal text-tinta/45 line-through">{money(v.precio)}</span>}
               {money(precioFinal(v))}
             </span>
-            <span className={`block text-xs ${puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}`}>
+            <span className={`block text-sm ${puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}`}>
               {puede ? `${v.stockAqui} disp.` : atras ? `${atras} en el almacén: tráela al piso` : "sin disponible aquí"}
             </span>
-            {otras && <span className="block text-[11px] text-tinta/55">{otras}</span>}
+            {otras && <span className="block text-sm text-tinta/55">{otras}</span>}
           </span>
         </button>
       </li>
@@ -738,7 +738,7 @@ export function ApartarVista({
           )}
         </div>
         {mensaje && (
-          <p role="status" className={`text-[13px] ${mensaje.tono === "error" ? "text-rojo-profundo" : mensaje.tono === "ok" ? "text-verde-profundo" : "text-tinta/70"}`}>
+          <p role="status" className={`text-sm ${mensaje.tono === "error" ? "text-rojo-profundo" : mensaje.tono === "ok" ? "text-verde-profundo" : "text-tinta/70"}`}>
             {mensaje.texto}
           </p>
         )}
@@ -757,12 +757,12 @@ export function ApartarVista({
               </div>
               <div className="mt-3 flex flex-wrap justify-center gap-1.5 @lg:justify-start" role="group" aria-label="Tallas">
                 {hermanas.map((h) => (
-                  <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`h-9 min-w-9 rounded-lg border px-2 text-xs font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
+                  <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`h-9 min-w-9 rounded-lg border px-2 text-sm font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
                     {h.talla ?? "—"}
                   </button>
                 ))}
               </div>
-              <dl className="mt-3 divide-y divide-sand border-t border-sand text-[13px]">
+              <dl className="mt-3 divide-y divide-sand border-t border-sand text-sm">
                 <div className="flex justify-between gap-3 py-2"><dt className="shrink-0 text-tinta/60">Código</dt><dd className="min-w-0 break-all text-right font-mono">{codigoPrenda(p)}</dd></div>
                 <div className="flex justify-between py-2">
                   <dt className="text-tinta/60">Precio</dt>
@@ -774,7 +774,7 @@ export function ApartarVista({
                 <div className="flex justify-between gap-3 py-2"><dt className="min-w-0 text-tinta/60">En {ubicacionEtiqueta}</dt><dd className="shrink-0 tabular-nums">{p.stockAqui} disponibles</dd></div>
               </dl>
               {tiendasConPrenda.length > 0 ? (
-                <div className="mt-3 space-y-2 rounded-xl bg-ambar/10 p-3 text-[12.5px] text-ambar-profundo">
+                <div className="mt-3 space-y-2 rounded-xl bg-ambar/10 p-3 text-sm text-ambar-profundo">
                   <p><b>No queda en {ubicacionEtiqueta}.</b> {tiendasConPrenda.map((t) => `${t.nombre} tiene ${t.cantidad}`).join(" · ")}.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {tiendasConPrenda.map((t) => (
@@ -783,10 +783,10 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la aparta al instante y la envía en el próximo traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
+                  <p className="text-sm text-tinta/60">{tiendasConPrenda[0].nombre} la aparta al instante y la envía en el próximo traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
                 </div>
               ) : (
-                <p className="mt-auto flex items-center gap-1.5 pt-3 text-[12.5px] text-verde-profundo">
+                <p className="mt-auto flex items-center gap-1.5 pt-3 text-sm text-verde-profundo">
                   <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Al apartarla, ninguna caja la podrá vender.
                 </p>
               )}
@@ -812,8 +812,8 @@ export function ApartarVista({
                 return (
                   <button key={id} type="button" onClick={() => agregar(id)} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
                     <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} colorHex={r.colorHex} categoria={r.categoria} categoriaPrefijo={r.categoriaPrefijo} categoriaFamilia={r.categoriaFamilia} ancho={44} className="w-11" />
-                    <span className="min-w-0 text-xs">
-                      <b className="block truncate text-[13px] font-semibold">{r.referencia}</b>
+                    <span className="min-w-0 text-sm">
+                      <b className="block truncate text-sm font-semibold">{r.referencia}</b>
                       <span className="text-tinta/60">{r.color ?? "—"} · {r.talla ?? "—"} · {r.stockAqui} disp.</span>
                     </span>
                   </button>
@@ -836,7 +836,7 @@ export function ApartarVista({
                   <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Por apartar
                 </span>
               </TituloSeccion>
-              {prendasEnTicket > 0 && <span className="text-xs text-tinta/60">{prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"}</span>}
+              {prendasEnTicket > 0 && <span className="text-sm text-tinta/60">{prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"}</span>}
             </div>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
               {lineas.length === 0 ? (
@@ -905,10 +905,10 @@ export function ApartarVista({
                     >
                       <BadgePercent className="h-4 w-4" aria-hidden /> Descuento
                     </button>
-                    {descontado > 0 && <span className="text-[12.5px] tabular-nums text-tinta/70">Descuento −{money(descontado)}</span>}
+                    {descontado > 0 && <span className="text-sm tabular-nums text-tinta/70">Descuento −{money(descontado)}</span>}
                   </div>
                   <label className="block px-5 py-4">
-                    <span className="mb-2 flex items-center gap-1.5 text-[11.5px] text-tinta/60">
+                    <span className="mb-2 flex items-center gap-1.5 text-sm text-tinta/60">
                       <StickyNote className="h-3.5 w-3.5" aria-hidden /> Nota del apartado (opcional)
                     </span>
                     <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Viene el sábado, quiere probársela otra vez…" className="caja-campo-input h-11 w-full text-sm" />
@@ -918,7 +918,7 @@ export function ApartarVista({
             </div>
             <div className="space-y-3 border-t border-sand px-5 py-5 max-lg:hidden">
               <div className="flex items-end justify-between gap-3">
-                <p className="text-[12.5px] text-tinta/60">
+                <p className="text-sm text-tinta/60">
                   Precio congelado
                   <br />hasta el {fechaCorta(vence)}
                 </p>
@@ -931,7 +931,7 @@ export function ApartarVista({
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> Apartar</span>
                 <span className="font-display text-xl tabular-nums">{money(total)}</span>
               </button>
-              {lineas.length === 0 && <p className="text-center text-xs text-tinta/55">Agrega una prenda para apartar.</p>}
+              {lineas.length === 0 && <p className="text-center text-sm text-tinta/55">Agrega una prenda para apartar.</p>}
             </div>
           </>
         ) : (
@@ -948,7 +948,7 @@ export function ApartarVista({
                     <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Apartado
                   </span>
                 </TituloSeccion>
-                <p className="mt-1 text-xs text-tinta/60">
+                <p className="mt-1 text-sm text-tinta/60">
                   {prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"} · recoger hasta el {fechaCorta(vence)}
                 </p>
               </div>
@@ -961,11 +961,11 @@ export function ApartarVista({
                       <span key={i} className={`h-1 flex-1 rounded-full transition-colors duration-500 ${i < pasoForm ? "bg-tinta" : i === pasoForm ? "bg-rojo" : "bg-sand"}`} />
                     ))}
                   </div>
-                  <p role="status" className="mt-2 text-[13px] text-taupe-profundo">{TEXTO_PASO_APARTADO[pasoForm]}</p>
+                  <p role="status" className="mt-2 text-sm text-taupe-profundo">{TEXTO_PASO_APARTADO[pasoForm]}</p>
                 </div>
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
                   {/* Sin el módulo Clientas (o con la ficha apagada) el buscador sigue: solo por DNI, al padrón de SUNAT. */}
                   <div className="space-y-1.5">
                     {clientaId ? (
@@ -993,10 +993,10 @@ export function ApartarVista({
                       </div>
                     )}
                     {sinFicha === "padron" && (
-                      <p className="text-xs text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
+                      <p className="text-sm text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
                     )}
                     {sinFicha === "nada" && (
-                      <p className="text-xs text-tinta/60">
+                      <p className="text-sm text-tinta/60">
                         {soloDigitos(clientaQ).length === 8 ? `${conClienta ? "No tiene ficha y " : ""}SUNAT no devolvió su nombre: escríbelo abajo.` : "No tiene ficha todavía: completa sus datos abajo."}
                       </p>
                     )}
@@ -1015,7 +1015,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <p className="-mt-1 text-xs text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
+                  <p className="-mt-1 text-sm text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
                   {f.comprobante === "factura" && (
                     <div className="grid gap-3.5 sm:grid-cols-2">
                       <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
@@ -1025,12 +1025,12 @@ export function ApartarVista({
                 </fieldset>
 
                 <fieldset className={`space-y-2 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó el cliente</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó el cliente</legend>
                   <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
                     {METODOS_PAGO.map((m, i) => {
                       const puesto = f.pagos.some((x) => x.metodo === m);
                       return (
-                        <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-[10px] leading-tight capitalize ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
+                        <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-sm leading-tight capitalize ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
                           <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold opacity-45">F{i + 1}</span>
                           {ICONO_METODO[m]}
                           {m}
@@ -1051,7 +1051,7 @@ export function ApartarVista({
                           </span>
                           {pg.metodo === "efectivo" && (
                             <span className="flex items-center gap-1 border-b border-tinta/20 text-sm" title="Con cuánto pagó (para el vuelto)">
-                              <span className="text-[11px] text-tinta/50">Recibe</span>
+                              <span className="text-sm text-tinta/50">Recibe</span>
                               <CampoMonto aria-label="Efectivo recibido" valor={pg.recibido ?? 0} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, recibido: v || undefined } : y)) }))} className="w-16 bg-transparent py-1 text-right tabular-nums outline-none" />
                             </span>
                           )}
@@ -1064,13 +1064,13 @@ export function ApartarVista({
                   )}
                   <div className="flex flex-wrap gap-1.5">
                     {([[0.3, "30%"], [0.5, "La mitad"], [1, "Todo"]] as const).map(([k, n]) => (
-                      <button key={n} type="button" onClick={() => atajo(k)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+                      <button key={n} type="button" onClick={() => atajo(k)} className="rounded-full border border-sand px-3 py-1 text-sm tabular-nums hover:border-taupe">
                         {n} · {money(k === 1 ? total : Math.ceil(total * k))}
                       </button>
                     ))}
                   </div>
                   <BarraAvance pct={total ? (adelanto / total) * 100 : 0} decorativa />
-                  <p className="flex justify-between text-xs text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
+                  <p className="flex justify-between text-sm text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
                   {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
                   {vuelto > 0 && (
                     <div className="anim-revelar flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-2.5">
@@ -1081,7 +1081,7 @@ export function ApartarVista({
                 </fieldset>
 
                 <fieldset className={`space-y-2.5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Undo2 className="h-3.5 w-3.5" aria-hidden /> Si no recoge, le devolvemos por</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><Undo2 className="h-3.5 w-3.5" aria-hidden /> Si no recoge, le devolvemos por</legend>
                   <div className="grid grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1">
                     {(["yape", "plin", "transferencia"] as const).map((k) => (
                       <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-10 text-[10.5px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
@@ -1094,21 +1094,21 @@ export function ApartarVista({
                   ) : (
                     <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   )}
-                  <p className="text-xs text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
+                  <p className="text-sm text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
                 </fieldset>
 
-                <label className={`flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
+                <label className={`flex cursor-pointer items-start gap-2.5 text-sm text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
                   <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="mt-0.5 shrink-0" />
                   <span>
                     Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su constancia o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
-                    {ver("acepta") && <span className="block text-xs text-rojo-profundo">{ver("acepta")}</span>}
+                    {ver("acepta") && <span className="block text-sm text-rojo-profundo">{ver("acepta")}</span>}
                   </span>
                 </label>
               </div>
             </div>
             <div className={`space-y-3 border-t border-sand px-5 py-5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
               <div className="flex items-end justify-between gap-3 max-lg:hidden">
-                <dl className="grid grid-cols-[auto_auto] gap-x-3 text-[12.5px] text-tinta/60 tabular-nums">
+                <dl className="grid grid-cols-[auto_auto] gap-x-3 text-sm text-tinta/60 tabular-nums">
                   <dt>Total prendas</dt><dd className="text-tinta">{money(total)}</dd>
                   <dt>Saldo al recoger</dt><dd className="text-tinta">{money(total - adelanto)}</dd>
                 </dl>
@@ -1124,7 +1124,7 @@ export function ApartarVista({
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>
               </button>
-              <p className={`text-center text-xs ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
+              <p className={`text-center text-sm ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
                 {!cajaAbierta
                   ? "Abre la caja para poder apartar."
                   : intento && Object.keys(errores).length
@@ -1238,7 +1238,7 @@ function Campo({ etiqueta, error, onBlur, children }: { etiqueta: string; error?
     <label className="campo block" onBlur={onBlur}>
       <span className="campo-etiqueta">{etiqueta}</span>
       {children}
-      {error && <span className="mt-0.5 block text-xs text-rojo-profundo">{error}</span>}
+      {error && <span className="mt-0.5 block text-sm text-rojo-profundo">{error}</span>}
     </label>
   );
 }
