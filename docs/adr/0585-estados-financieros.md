@@ -1,6 +1,6 @@
 # ADR-0585 · Estados financieros: los cuatro estados como respuestas, y quien tiene el módulo ve todo
 
-- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividad 1 hecha (permisos).
+- **Fecha:** 2026-10-30 · **Estado:** en construcción, actividad por actividad (`/construir`). Actividades 1 (permisos) y 2 (patrimonio) hechas.
 - **Decide:** Felipe, 2026-10-30, sobre la pizarra «4. Reportes» y la maqueta `docs/maquetas/finanzas-eeff-2026-10/`
   (https://claude.ai/artifact/UiZ2Pk8rnPkLYNLcDBo7kV).
 - **Toca:** ADR-0195 (Finanzas), ADR-0253 y ADR-0433 G16 (una sola regla de alcance), ADR-0161 P6 (las terminales no miran la
@@ -67,7 +67,34 @@ En un Postgres local armado con todas las migraciones y `seed.sql`, se corrieron
 
 En la web, pasan los tipos, las 744 pruebas de vitest, Knip y eslint.
 
+## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
+
+### El problema primero
+
+El cuarto estado, «¿Lo tuyo creció?», no existía. El Balance decía cuánto es tuyo a una fecha, pero no por qué cambió de un mes a otro.
+Es justo lo que hace falta para la única decisión que ayuda a tomar: cuánto retirar.
+
+### Lo que se decidió
+
+- `fn_patrimonio_cambios(p_mes, p_meses)` lee el **mismo diario que el Balance** (`fn_bal_diario` desde el arranque, más los saldos de
+  arranque), en una sola pasada. No suma una regla contable nueva: lo tuyo al cerrar el mes es, por construcción, la sección
+  «patrimonio» de `fn_balance_general` a esa fecha, y la prueba lo exige.
+- Devuelve lo tuyo al empezar y al cerrar, partido como el estado formal (capital 50 · aportes 52 · utilidades: la 591 más los
+  resultados sin cerrar). Devuelve también lo que lo movió en el mes:
+  - la ganancia, que es el «Resultado del mes» del Balance;
+  - los aportes, que son el haber de la 52;
+  - los retiros, que son el debe de la 591 con la regla `retiro`;
+  - `otros`, que es lo que esos tres no explican. Debe ser 0; si no lo es, la pantalla lo dirá, como la comprobación del Balance.
+- La serie trae lo tuyo al cierre de los últimos meses (6 por defecto, 24 como máximo), sin los meses anteriores al arranque. Un mes
+  anterior al arranque dice `sin_arranque`, y uno que no empezó se rechaza.
+- La ve lo mismo que el Balance de CAYLA entera: `fn_exigir_estados_financieros_de_todo()`. Lo tuyo no se reparte por sede.
+
+### Cómo se verificó
+
+`pnpm pruebas:patrimonio-cambios` pasa 19 de 19, sobre una escena en marzo y abril de 2024 con arranque, un aporte de 1,000, un gasto de
+100 y retiros de 300 y 50. La prueba entró en la lista del CI (`scripts/ci/pruebas-postgres.mjs`).
+
 ### Producción
 
-Se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
+Se pegan en orden: primero la 20261030235000 y después la 20261030235100. Cada una se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
 anclado al texto vivo: si producción no coincide, la migración aborta sin cambiar nada.

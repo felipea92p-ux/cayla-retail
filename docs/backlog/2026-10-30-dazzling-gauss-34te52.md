@@ -9,7 +9,8 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
   con una cuenta con el módulo que no sea líder y ver el flujo y el Balance entero.
 - [ ] El diccionario (`docs/datos/generado/`) entra cuando la migración esté en producción y se refresque el volcado.
 - [ ] **Decisión de Felipe:** ¿el Resumen de Finanzas también muestra CAYLA entera a quien tiene el módulo? Hoy sigue con su tienda.
-- [ ] 2 · El estado de cambios en el patrimonio en la base.
+- [x] **2 · El estado de cambios en el patrimonio en la base.** Migración `20261030235100` (`fn_patrimonio_cambios`), lee el mismo
+  diario que el Balance; `pnpm pruebas:patrimonio-cambios` 19/19. **No está en producción:** se pega después de la `20261030235000`.
 - [ ] 3 · El nombre y las cuatro respuestas.
 - [ ] 4 · ¿Ganamos? · 5 · ¿Dónde está la plata? · 6 · ¿Cuánto vale CAYLA? · 7 · ¿Lo tuyo creció?
 - [ ] 8 · «Descargar para el contador» con opciones.
