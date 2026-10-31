@@ -6,6 +6,9 @@ import { leerCantidad as leerCantidadEnvio } from "./envio-orden-reglas";
 import { parsearPorcentaje } from "./configuracion-reglas";
 import { leerMonto as leerMontoDePagoCorregido } from "./corregir-pago-reglas";
 import { leerCantidad } from "./insumos-reglas";
+import { sinBlancosDeMiles, soloCifrasEscritas } from "./numero-escrito";
+import { leerDiasParaLlegar } from "./plan-compra-plazo";
+import { parametroFueraDeRango } from "./tienda-web-reglas";
 import { leerCostoUnitario, leerMontoPlata } from "./monto-plata-reglas";
 import { leerNumero } from "./orden-compra-alta";
 import { leerCantidadInsumo, leerPrecioInsumo } from "./ordenes-insumo-reglas";
@@ -173,5 +176,26 @@ describe("ningún lector de cifras vuelve a borrar los blancos por su cuenta", (
     }
     // Un borrado legítimo lo dice en su línea: `// blanco-fijo: <motivo de 10 caracteres o más>`.
     expect(culpables).toEqual([]);
+  });
+});
+
+describe("soloCifrasEscritas: un campo de entero deja ver el pegado en vez de juntarlo", () => {
+  it("quita lo que no es cifra pero conserva los blancos, para que el validador pueda hablar", () => {
+    expect(soloCifrasEscritas("12 8 5")).toBe("12 8 5");
+    expect(soloCifrasEscritas("12\t8\t5")).toBe("12\t8\t5");
+    expect(soloCifrasEscritas("14 días")).toBe("14 ");
+    expect(soloCifrasEscritas("14")).toBe("14");
+    expect(soloCifrasEscritas("")).toBe("");
+  });
+  it("el signo solo pasa donde el campo lo admite", () => {
+    expect(soloCifrasEscritas("-2")).toBe("2");
+    expect(soloCifrasEscritas("-2", { signo: true })).toBe("-2");
+  });
+  it("y lo que deja pasar, los validadores de días y de plazos lo rechazan", () => {
+    // `leerDiasParaLlegar` y `parametroFueraDeRango` son estrictos (`/^\d{1,3}$/`, `/^-?\d+$/` sobre el texto recortado):
+    // por eso basta con NO borrar el blanco. Si alguien los afloja, estas dos líneas se ponen en rojo.
+    expect(leerDiasParaLlegar(soloCifrasEscritas("12 8 5"))).toBeNull();
+    expect(parametroFueraDeRango("diasAvisoSinRecoger", soloCifrasEscritas("12 8 5", { signo: true }))).toBe(true);
+    expect(leerDiasParaLlegar(soloCifrasEscritas("14"))).toBe(14);
   });
 });

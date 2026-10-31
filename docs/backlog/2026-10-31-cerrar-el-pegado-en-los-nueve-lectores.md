@@ -20,9 +20,21 @@ rápido y `limpiarMontoIngreso` del ingreso rápido conservan los blancos de ade
 y la hoja sigue pidiendo «Cuánto», en vez de dejar escrito «1285» y darlo por bueno. No hizo falta validación nueva:
 `parsearMonto` ya usa `leerMontoPlata`.
 
-**Lo que sigue fuera:** los campos de **días** (`PlazoModal`, `RelojDelPedido`) borran todo lo que no sea dígito, así
-que pegar tres celdas daría 1 285 días. No es plata ni stock, se ve escrito, y no entraba en lo aprobado. Es el mismo
-molde si algún día lo quieres cerrar.
+~~Los campos de días~~ **HECHOS** (Felipe: «sí, los días»): `PlazoModal` y `RelojDelPedido` usan `soloCifrasEscritas`,
+el helper nuevo con su prueba, y sus validadores —que ya eran estrictos— rechazan el pegado solos.
+
+**LO QUE QUEDA, medido y sin tocar** (tres filtros que dan «1285» con las mismas tres celdas):
+
+| Filtro | Dónde | Por qué espera |
+|---|---|---|
+| `precioEscribible` (`prenda-sin-registrar-reglas.ts:149`) | «Precio cobrado» de **Vender** | plata en el mostrador, y Vender es celular obligatorio (PL-105): prueba a 375 px con captura |
+| `limpiarPrecio` (`tabla-alta-reglas.ts:97`) | el precio del **alta de productos** | tiene la rama de `leerMontoPlata` del 28-oct, pero «12 8 5» no la dispara y cae al borrado viejo |
+| `soloDigitos` (`FormularioCategoria.tsx:62`) | «Flojo/Normal/Bueno, prendas», «Lo que sobre %» y la curva de tallas | son cantidades de prendas; hay que mirar qué valida cada una antes de dejar pasar el blanco |
+
+**Y lo que el candado NO cubre:** persigue el borrado explícito (`replace(/\s+/g, "")`), no el implícito de una clase
+negada (`replace(/[^\d]/g, "")`). Cubrirlo daría 21 falsos positivos (identificadores de SVG, extensiones de archivo,
+nombres compactados) y una lista de exentos que nadie leería. Los tres de arriba son, hoy, todos los de ese patrón
+que leen una cifra: contados a mano, no por el candado.
 
 ## EL CANDADO, Y CÓMO SE CONVIVE CON ÉL
 

@@ -69,9 +69,33 @@ Verificado en la caja abierta de la tienda, con login real:
 | escribir «1 200» | 1 200 | 1 200, y «Cuánto» queda hecho |
 | escribir «20.50» | 20.50 | 20.50, y «Cuánto» queda hecho |
 
-**Lo que sigue fuera, y se dice:** los campos de **días** (`PlazoModal`, `RelojDelPedido`) borran todo lo que no sea
-dígito, así que pegar tres celdas daría 1 285 días. No es plata ni stock, se ve escrito, y no entraba en lo que
-Felipe aprobó.
+## Y los campos de días (Felipe: «sí, los días»)
+
+Los dos campos de días —«Días para llegar a las tiendas» del plan y los plazos del reloj del pedido de la tienda
+web— borraban todo lo que no fuera dígito, así que pegar tres celdas dejaba **1 285 días** escritos. Mismo arreglo:
+dejar de borrar el blanco. Sus validadores (`leerDiasParaLlegar`, `/^\d{1,3}$/`, y `parametroFueraDeRango`,
+`/^-?\d+$/`) ya eran estrictos y lo rechazan solos.
+
+Como eran filtros escritos a mano dentro de los componentes, sin prueba, se sacó **uno solo** para los dos:
+`soloCifrasEscritas` (en `numero-escrito.ts`, al lado de `sinBlancosDeMiles`), con su prueba y con el caso que
+importa: que lo que el filtro deja pasar, los dos validadores lo rechacen. Si alguien los afloja, la prueba avisa.
+
+## Los que QUEDAN, medidos y sin tocar
+
+Tres filtros más dan **1285** con las mismas tres celdas. No entran aquí porque dos están en pantallas que piden su
+propio cuidado, y prefiero que lo decidas:
+
+| Filtro | Dónde | Por qué no lo toqué |
+|---|---|---|
+| `precioEscribible` (`prenda-sin-registrar-reglas.ts:149`) | «Precio cobrado» de **Vender** | es plata en el mostrador y Vender es celular obligatorio (PL-105): pide prueba a 375 px con captura |
+| `limpiarPrecio` (`tabla-alta-reglas.ts:97`) | el precio en el **alta de productos** | ya tiene delante la rama de `leerMontoPlata` del 28-oct, pero «12 8 5» no la dispara y cae al borrado viejo |
+| `soloDigitos` (`FormularioCategoria.tsx:62`) | «Flojo/Normal/Bueno, prendas», «Lo que sobre %» y la curva de tallas del plan | son cantidades de prendas; hay que mirar qué valida cada una antes de dejar pasar el blanco |
+
+**Y una cosa que el candado NO cubre, dicha para que nadie se confíe:** persigue el borrado explícito
+(`replace(/\s+/g, "")`), no el implícito de una clase negada (`replace(/[^\d]/g, "")`), que borra los blancos sin
+nombrarlos. Cubrirlo daría 21 falsos positivos —identificadores de SVG, extensiones de archivo, nombres
+compactados para comparar— y una lista de exentos que nadie leería. Los tres de arriba son, hoy, todos los casos de
+ese patrón que leen una cifra; están contados a mano.
 
 ## Cómo se verificó
 
