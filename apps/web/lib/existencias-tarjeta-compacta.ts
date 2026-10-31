@@ -32,12 +32,13 @@ export function celdaTarjeta(f: FilaCelda, separa: boolean): CeldaTarjeta {
 
 /** La línea chica bajo el número grande de cada columna (ADR-0391, Felipe 2026-10-12): el número grande es lo COLGADO (lo que el
  *  cliente puede comprar) y debajo va lo del almacén, con las palabras del modal («+2 en almacén»; Felipe, 2026-10-13: antes «+2
- *  guardadas»). Con 4 tallas o más en la tarjeta las palabras no caben en los 304 px y queda solo el número («+2», «0»): la leyenda del
- *  pie las pone. Agotada: «se acabó» («acabó» apretado).
+ *  guardadas»). Con 3 tallas o más las palabras no caben y queda solo el número («+2», «0»): la leyenda del pie las pone. Antes el
+ *  corte era en 4 (la tira medía 304 px); desde la tarjeta Vitrina (ADR-0589) la tira va al lado de la foto y mide ~224 px, y con 3
+ *  tallas «0 en almacén» se cortaba a media palabra (medido). Agotada: «se acabó» («acabó» apretado).
  *  `cero` = no hay nada en el almacén: la línea va toda en taupe y sin negrita, para que un «0 en almacén» no pese lo mismo que un «+3»
  *  (en taupe pleno, no atenuado: el auditor del tema midió 2,3:1 con `taupe/55` y un 0 también se tiene que leer). */
 export function lineaGuardadas(c: Pick<CeldaTarjeta, "estado" | "almacen">, tallasEnTarjeta: number): { texto: string; cero: boolean } {
-  const apretada = tallasEnTarjeta >= 4;
+  const apretada = tallasEnTarjeta >= 3;
   if (c.estado === "agotada") return { texto: apretada ? "acabó" : "se acabó", cero: false };
   if (c.almacen === 0) return { texto: apretada ? "0" : "0 en almacén", cero: true };
   return { texto: apretada ? `+${c.almacen}` : `+${c.almacen} en almacén`, cero: false };
@@ -86,4 +87,25 @@ export function colorDeEntrada<C extends { tallas: readonly FilaCelda[]; fotoUrl
     colores.find(conFoto) ??
     colores[0]
   );
+}
+
+/** La chapa de colores de la tarjeta Vitrina (ADR-0589): una sola línea sobre la foto. Hasta 5 colores caben todos; con 6 o más, 3 y
+ *  «+N» (medido: 4 puntos y un «+10» se pasaban de los 86 px de la chapa). «+N» abre el modal de la prenda, que ya muestra todos los
+ *  colores (Felipe 2026-10-31): la chapa nunca se abre ni crece.
+ *  El color que se ve tiene que estar a la vista: si quedó fuera de los tres primeros (el de entrada puede ser el sexto), ocupa el
+ *  tercer lugar. Los dos primeros no se mueven nunca, para que un punto no se corra debajo del mouse. */
+export const COLORES_EN_CHAPA = 5;
+export function coloresDeChapa<C extends { clave: string }>(colores: readonly C[], claveQueSeVe: string | undefined): { visibles: C[]; ocultos: number } {
+  if (colores.length <= COLORES_EN_CHAPA) return { visibles: [...colores], ocultos: 0 };
+  const tres = colores.slice(0, 3);
+  const elegido = colores.find((c) => c.clave === claveQueSeVe);
+  const visibles = elegido && !tres.includes(elegido) ? [tres[0], tres[1], elegido] : tres;
+  return { visibles, ocultos: colores.length - visibles.length };
+}
+
+/** El filo de color en el canto de la tarjeta Vitrina: «agotada» si alguna talla del color que se ve se acabó en la sede, «falta» si
+ *  alguna tiene 0 colgadas y algo en almacén; si no, nada. Lo mismo que ya pintan las celdas de la tira (`celdaTarjeta`): se ve de lejos. */
+export function filoDeTarjeta(tallas: readonly FilaCelda[], separa: boolean): "agotada" | "falta" | null {
+  const estados = tallas.map((t) => celdaTarjeta(t, separa).estado);
+  return estados.includes("agotada") ? "agotada" : estados.includes("falta") ? "falta" : null;
 }

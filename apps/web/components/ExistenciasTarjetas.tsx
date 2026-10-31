@@ -8,7 +8,7 @@ import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { PieTarjeta } from "@/components/existencias/PieTarjeta";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { celdaTarjeta, destinoDeTalla, colorDeEntrada, lineaGuardadas, tallaDeEntrada as tallaDeEntradaDe, tallasAgotadas, tallasSinColgar } from "@/lib/existencias-tarjeta-compacta";
+import { celdaTarjeta, coloresDeChapa, destinoDeTalla, colorDeEntrada, filoDeTarjeta, lineaGuardadas, tallaDeEntrada as tallaDeEntradaDe, tallasAgotadas, tallasSinColgar } from "@/lib/existencias-tarjeta-compacta";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { textoHoyDePrenda } from "@/lib/existencias-hoy";
 import { botonDeTarjeta, opcionesDeMas, type ClaveAccion } from "@/lib/existencias-acciones";
@@ -26,6 +26,13 @@ import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
    Con un caso de «Hoy» elegido, la tarjeta es de una PRENDA (modelo + color, un solo punto): la lista es la de trabajo y la suma de
    sus pastillas tiene que dar la cifra de «Para hoy» (`lib/existencias-tarjetas.ts`, ADR-0331 act. c). Qué junta cada tarjeta y en
    qué orden van lo decide esa lógica, no este componente.
+
+   LA VITRINA (2026-10-31, ADR-0589, maqueta `existencias-tarjetas-profundidad-2026-10`, opción B): la prenda manda. La foto va a
+   todo el alto a la izquierda (104 px, antes una miniatura de 40) con sus colores en una chapa de vidrio encima; a la derecha nombre y
+   precio, el color y la tira de tallas hundida; el pie, a todo el ancho debajo (al lado de la foto no cabía «Colgar en el piso · 3 tallas»). La tarjeta tiene sombra en reposo y sube al pasar el mouse (la única superficie
+   pegada al fondo con sombra, `app/estilos/existencias-vitrina.css`), y un filo rojo o ámbar en el canto dice desde lejos cuáles piden
+   algo (`filoDeTarjeta`). Hasta 5 colores se ven todos; con más, 3 y «+N», que abre el modal de la prenda con todos (`coloresDeChapa`):
+   la tarjeta nunca cambia de forma. Lo de adentro (qué dice cada talla, el pie, qué abre cada toque) no cambió.
 
    LA TARJETA COMPACTA (2026-10-07, maqueta `existencias-tarjeta-cajon-2026-10`, contrato en su `LOGICA.md`): una columna por talla
    con lo LIBRE. Desde el 2026-10-12 (ADR-0391, maqueta `existencias-almacen-cajon-2026-10`) cada columna lleva lo COLGADO en grande
@@ -90,7 +97,7 @@ function ColumnasTallas({
   const Simbolo: SimboloFiltro | undefined = marcaDelFiltro?.simbolo;
   const tono = marcaDelFiltro?.tono ?? "ambar";
   return (
-    <div data-guia="existencias.tallas" role="group" aria-label="Tallas" className="grid auto-cols-fr grid-flow-col gap-1">
+    <div data-guia="existencias.tallas" role="group" aria-label="Tallas" className="vitrina-tira">
       {tallas.map((f) => {
         const c = celdaTarjeta(f, separa);
         const nombre = f.talla ?? "Única";
@@ -105,7 +112,7 @@ function ColumnasTallas({
             ? "border-rojo/25 bg-rojo/[0.10] text-rojo-profundo"
             : c.estado === "falta"
               ? "border-ambar/30 bg-ambar/[0.13] text-ambar-profundo"
-              : "border-transparent text-tinta";
+              : "border-transparent text-tinta hover:bg-papel";
         // «+2 en almacén»: el número en negrita, las palabras en taupe; en ámbar y en rojo toda la línea lleva el color de la columna.
         const [numero, ...palabra] = linea.texto.split(" ");
         return (
@@ -119,9 +126,9 @@ function ColumnasTallas({
             }}
             title={lectura}
             aria-label={`${lectura}${marca === "cumple" || marca === "principal" ? `. ${marcaDelFiltro?.etiqueta ?? ""}` : ""}${marca === "principal" ? ", la que más se vende" : ""}`}
-            className={`grid cursor-pointer gap-px rounded-[9px] border px-0.5 pb-1.5 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
+            className={`grid min-w-0 cursor-pointer gap-px rounded-[8px] border px-0.5 pb-1 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
           >
-            <span className={`inline-flex items-center justify-center gap-1 text-[11px] font-semibold tracking-[0.02em] ${c.estado === "agotada" ? "" : "text-taupe"} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
+            <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-[10.5px] font-semibold tracking-[0.04em] ${c.estado === "agotada" ? "" : "text-taupe"} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
               {nombre}
               {(marca === "cumple" || marca === "principal") &&
                 (Simbolo ? (
@@ -132,11 +139,11 @@ function ColumnasTallas({
                   <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />
                 ))}
             </span>
-            <span className={`mt-0.5 text-[22px] leading-[1.05] tabular-nums ${c.estado === "agotada" ? "font-medium" : c.estado === "falta" ? "font-semibold" : c.piso === 0 ? "font-normal text-taupe" : "font-semibold"}`}>
+            <span className={`text-[19px] leading-[1.1] tabular-nums ${c.estado === "agotada" ? "font-medium" : c.estado === "falta" ? "font-semibold" : c.piso === 0 ? "font-normal text-taupe" : "font-semibold"}`}>
               {c.estado === "agotada" ? "—" : c.piso}
             </span>
             {separa && (
-              <span className={`whitespace-nowrap text-[10.5px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
+              <span className={`truncate whitespace-nowrap text-[10px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
                 {c.estado === "normal" && !linea.cero ? (
                   <>
                     <b className="font-bold text-tinta">{numero}</b>
@@ -220,8 +227,9 @@ export function ExistenciasTarjetas({
   const ventas = (f: FilaExistencias) => (f.ritmoReciente?.tipo === "medida" ? f.ritmoReciente.unidadesDia : 0);
 
   return (
-    // Tantas columnas como caben (cada tarjeta pide ~19 rem), como en la maqueta: tres o cuatro en una computadora, una en el celular.
-    <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))]">
+    // Tantas columnas como caben (cada tarjeta pide 20 rem: la foto de 104 px y la tira al lado), dos en un laptop de 1024 px, tres o
+    // cuatro en una computadora, una en el celular.
+    <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr))]">
       {modelos.map((m) => {
         const faltanModelo = tallasQueFaltan(m.colores);
         // Sin elegir, el color que importa (`colorDeEntrada`), no el primero: uno agotado dejaba la tarjeta vacía.
@@ -239,6 +247,12 @@ export function ExistenciasTarjetas({
         // Subir: alguna talla de algún color con algo LIBRE en el piso (lo apartado para una clienta no se sube).
         const hayEnElPiso = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
         const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
+        // La chapa de colores sobre la foto: hasta 5 todos; con más, 3 (el que se ve entre ellos) y «+N», que abre el modal.
+        const chapa = coloresDeChapa(m.colores, pFijo.clave);
+        const filo = separa ? filoDeTarjeta(tallasVista, separa) : null;
+        // Con un filtro, cuántas tallas de un color lo cumplen (el punto del color lleva la marca; «+N» la lleva si la cumple uno escondido).
+        const cumplenDe = (h: PrendaAgrupada<FilaExistencias>) => (marcaDelFiltro ? (tallasCompletas?.(h) ?? h.tallas).filter(marcaDelFiltro.coincide).length : 0);
+        const ocultosCumplen = chapa.ocultos > 0 ? m.colores.filter((h) => !chapa.visibles.includes(h) && cumplenDe(h) > 0).length : 0;
         const recortada = tallasCompletas
           ? null
           : textoTallasRecortadas(
@@ -323,25 +337,19 @@ export function ExistenciasTarjetas({
                 abrirEntrada();
               }
             }}
-            className="card-cayla relative flex min-w-0 cursor-pointer flex-col gap-2 p-3 transition-colors hover:border-tinta/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+            data-estado={filo ?? undefined}
+            className="tarjeta-vitrina min-w-0 cursor-pointer"
           >
-            {/* Foto (o su categoría sobre su color), nombre, los colores con el nombre del que se ve (y lo dañado o apartado) y el precio. */}
-            <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5">
-              <span data-miniatura className="relative block h-[46px] w-10 shrink-0 overflow-hidden rounded-[9px] bg-sand/50">
-                {/* La miniatura pasa por el optimizador (`ImagenDePrenda`): una foto real pesa ~200 KB y aquí se ve a 40 px (ADR-0168). */}
+            {/* La foto a todo el alto (o su categoría sobre su color), con los colores en la chapa de vidrio encima. */}
+            <span data-miniatura className="vitrina-foto">
+              <span className="vitrina-foto-img">
+                {/* La foto pasa por el optimizador (`ImagenDePrenda`): una foto real pesa ~200 KB y aquí se ve a 104 px (ADR-0168). */}
                 {p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" fill sizes={SIZES_MINIATURA_EXISTENCIAS} className="object-cover" fondo={p.colorHex} fallback={sinFotoDe(p)} /> : sinFotoDe(p)}
               </span>
-              <span className="min-w-0">
-                <span data-guia="existencias.prenda-nombre" className="block truncate font-display text-[16.5px] leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
-                  {p.referencia}
-                </span>
-                {/* Con muchos colores los puntos bajan a otra línea dentro de la tarjeta, nunca se salen de ella (Felipe 2026-10-26: un
-                    modelo de 14 colores pasaba el borde). El nombre del color va detrás del último punto, o abajo si no cabe. */}
-                <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1.5">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-2 pl-0.5" role="radiogroup" aria-label={`Color de ${p.referencia}`} onPointerLeave={() => setMirando(null)}>
-                {m.colores.map((h) => {
+              <span className="vitrina-chapa" role="radiogroup" aria-label={`Color de ${p.referencia}`} onPointerLeave={() => setMirando(null)}>
+                {chapa.visibles.map((h) => {
                   const propia = h.clave === pFijo.clave;
-                  const n = marcaDelFiltro ? (tallasCompletas?.(h) ?? h.tallas).filter(marcaDelFiltro.coincide).length : 0;
+                  const n = cumplenDe(h);
                   return (
                     <button
                       key={h.clave}
@@ -356,10 +364,10 @@ export function ExistenciasTarjetas({
                       title={`${h.color ?? "Sin color"}${propia ? " (el que ves)" : " · ver este color"}`}
                       aria-label={`${h.color ?? "Sin color"}${n ? `: ${n} ${n === 1 ? "talla" : "tallas"} ${marcaDelFiltro?.etiqueta.toLocaleLowerCase("es") ?? ""}` : ""}`}
                       aria-checked={propia}
-                      // El área para tocar crece sin que el círculo: 28 px con mouse y 36 con el dedo (`pointer-coarse`).
-                      // El color que se ve, bien distinto (Felipe, 2026-10-07): más grande, con aro oscuro separado; los otros, chicos.
-                      className={`relative shrink-0 cursor-pointer rounded-full outline transition-[transform,width,height] after:absolute after:-inset-1.5 after:content-[''] pointer-coarse:after:-inset-2 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
-                        propia ? "onda-color h-5 w-5 outline-2 outline-offset-2 outline-tinta" : "h-3.5 w-3.5 outline-1 outline-tinta/20"
+                      // El área para tocar crece sin que el círculo: 24 px con mouse y 32 con el dedo (`pointer-coarse`); en la chapa
+                      // caben 5 puntos en 86 px. El color que se ve, bien distinto (Felipe, 2026-10-07): más grande, con aro oscuro separado.
+                      className={`relative shrink-0 cursor-pointer rounded-full outline transition-[transform,width,height] after:absolute after:-inset-1.5 after:content-[''] pointer-coarse:after:-inset-2.5 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
+                        propia ? "onda-color h-4 w-4 outline-[1.5px] outline-offset-[1.5px] outline-tinta" : "h-3 w-3 outline-1 outline-tinta/20"
                       }`}
                       style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
                     >
@@ -367,33 +375,63 @@ export function ExistenciasTarjetas({
                     </button>
                   );
                 })}
-              </div>
-                  <span className="min-w-0 truncate text-xs font-semibold text-tinta">{p.color ?? "Sin color"}</span>
-                  {p.danado > 0 && <Chip tono="rojo" className="shrink-0">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</Chip>}
-                  {p.apartado > 0 && <Chip tono="pizarra" className="shrink-0">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</Chip>}
-                </span>
+                {chapa.ocultos > 0 && (
+                  // «+N» abre el modal de la prenda, que muestra todos los colores (Felipe 2026-10-31): la chapa nunca se abre.
+                  <button
+                    type="button"
+                    data-guia="existencias.mas-colores"
+                    onClick={abrirEntrada}
+                    title={`Ver los ${m.colores.length} colores`}
+                    aria-label={`Ver los ${m.colores.length} colores de ${p.referencia}${ocultosCumplen ? `: ${ocultosCumplen} con tallas ${marcaDelFiltro?.etiqueta.toLocaleLowerCase("es") ?? ""}` : ""}`}
+                    className="vitrina-mas-colores relative cursor-pointer"
+                  >
+                    +{chapa.ocultos}
+                    {ocultosCumplen > 0 && marcaDelFiltro && <i aria-hidden className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-[1.5px] border-papel ${TONO_PUNTO[marcaDelFiltro.tono]}`} />}
+                  </button>
+                )}
               </span>
-              {p.precio != null && (
-                <span className="flex flex-col items-end self-start">
-                  <span className="font-display text-[15px] tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
-                  {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
-                  {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
+            </span>
+
+            {/* A la derecha: nombre y precio; el color (y lo dañado o apartado); la tira de tallas. */}
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] gap-y-1 pt-1">
+              <div className="flex min-w-0 items-baseline justify-between gap-2">
+                <span data-guia="existencias.prenda-nombre" className="min-w-0 truncate font-display text-[17.5px] leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
+                  {p.referencia}
                 </span>
-              )}
+                {p.precio != null && (
+                  <span className="flex shrink-0 flex-col items-end">
+                    <span className="font-display text-[15px] tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
+                    {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
+                    {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
+                  </span>
+                )}
+              </div>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+                <span className="min-w-0 truncate text-xs text-taupe">
+                  <span className="font-semibold text-tinta">{p.color ?? "Sin color"}</span>
+                  {m.colores.length > 1 && ` · ${m.colores.length} colores`}
+                </span>
+                {p.danado > 0 && <Chip tono="rojo" className="shrink-0">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</Chip>}
+                {p.apartado > 0 && <Chip tono="pizarra" className="shrink-0">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</Chip>}
+              </div>
+              <span className="sr-only">{separa && <EstadoParaLector prenda={p} />}</span>
+
+              {/* Las columnas: una por talla, lo colgado en grande y «+N en almacén» debajo. Ámbar = falta colgar; rojo = se acabó. */}
+              <div className="grid content-center gap-1 py-1">
+                <ColumnasTallas tallas={tallasVista} separa={separa} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
+                {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
+                {recortada && (
+                  <p className="text-[11px] leading-snug text-taupe" title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla o el texto buscado para ver todas.">
+                    {recortada}
+                  </p>
+                )}
+              </div>
             </div>
-            <span className="sr-only">{separa && <EstadoParaLector prenda={p} />}</span>
 
-            {/* Las columnas: una por talla, lo colgado en grande y «+N en almacén» debajo. Ámbar = falta colgar; rojo = se acabó. */}
-            <ColumnasTallas tallas={tallasVista} separa={separa} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
-
-            {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
-            {recortada && (
-              <p className="text-[11px] leading-snug text-taupe" title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla o el texto buscado para ver todas.">
-                {recortada}
-              </p>
-            )}
-
-            <PieTarjeta etiqueta={etiqueta} boton={boton} opciones={opciones} onBoton={alBoton} onOpcion={alElegir} />
+            {/* El pie, a todo el ancho (debajo de la foto y de la tira): lo que toca con su nombre y «Más». */}
+            <div className="col-span-2 grid min-w-0">
+              <PieTarjeta etiqueta={etiqueta} boton={boton} opciones={opciones} onBoton={alBoton} onOpcion={alElegir} />
+            </div>
           </article>
         );
       })}
