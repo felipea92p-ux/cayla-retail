@@ -1,0 +1,292 @@
+<title>Para el contador</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+/* Maqueta: Estados financieros ▸ cómo ver y bajar los seis cuadros del contador. Dos opciones lado a lado, con los tokens del ERP
+   (ADR-0169 claro, ADR-0336 oscuro). Cabecera única del ERP → cuatro tarjetas → el cuerpo de lo que se mira. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+  --borde: #96786a; --rojo: #b8412d; --rojo-p: #8b2a1f; --verde: #48603f; --ambar: #74501a; --sombra: #1a1a18;
+  --serif: "EB Garamond", ui-serif, Georgia, serif; --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0.24, 1);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --taupe: #c4a898;
+  --borde: #8d7a6e; --rojo: #e8806a; --rojo-p: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --sombra: #000; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --taupe: #c4a898;
+  --borde: #8d7a6e; --rojo: #e8806a; --rojo-p: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --sombra: #000; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--crema); color: var(--tinta); font: 14px/1.5 var(--sans); padding-block: 20px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.envoltura { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
+button { font: inherit; color: inherit; cursor: pointer }
+.num { font-variant-numeric: tabular-nums }
+.versalita { font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe) }
+
+/* La barra de la maqueta: qué opción se mira */
+.barra-maqueta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 16px; border: 1px dashed var(--borde); border-radius: 14px }
+.barra-maqueta p { margin: 0; color: var(--taupe); font-size: 13px; flex: 1 1 260px; min-width: 0 }
+.opciones { display: inline-flex; padding: 3px; gap: 3px; border-radius: 10px; background: var(--hueso); border: 1px solid var(--sand); flex-wrap: wrap }
+.opciones button { border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 7px 12px; font-size: 13.5px; font-weight: 500 }
+.opciones button[aria-pressed="true"] { background: var(--papel); border-color: var(--tinta) }
+.nota-opcion { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.nota-opcion div { background: var(--hueso); border-radius: 12px; padding: 12px 14px; font-size: 13.5px }
+.nota-opcion b { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin-bottom: 4px }
+@media (max-width: 640px) { .nota-opcion { grid-template-columns: 1fr } }
+
+/* La pantalla del ERP */
+.erp { background: var(--crema); border: 1px solid var(--sand); border-radius: 18px; padding: 28px clamp(16px, 3vw, 32px); display: flex; flex-direction: column; gap: 20px }
+.cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 32px }
+.linea-sede { display: flex; align-items: center; gap: 12px }
+.linea-sede::before { content: ""; width: 32px; height: 1px; background: var(--taupe) }
+.cab h1 { font: 400 clamp(34px, 5vw, 46px)/1 var(--serif); margin: 12px 0 0; letter-spacing: -.01em }
+.cab .frase { margin: 10px 0 0; color: var(--taupe); font-size: 15px }
+.acciones { display: flex; flex-wrap: wrap; gap: 10px; position: relative }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--borde);
+  background: transparent; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; transition: background-color .2s var(--ease) }
+.btn[aria-expanded="true"] { background: var(--hueso) }
+.btn svg { width: 16px; height: 16px; flex: none }
+.btn .chev { width: 10px; transition: transform .25s var(--ease) }
+.btn[aria-expanded="true"] .chev { transform: rotate(180deg) }
+.btn.chico { height: 34px; font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 500 }
+@media (hover: hover) { .btn:hover { background: var(--hueso) } }
+.menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; min-width: 240px; background: var(--papel); border: 1px solid var(--sand);
+  border-radius: 12px; padding: 6px; box-shadow: 0 16px 40px color-mix(in srgb, var(--sombra) 18%, transparent); animation: revela .24s var(--ease) }
+.menu button { display: flex; width: 100%; justify-content: space-between; gap: 12px; align-items: center; border: 0; background: transparent; text-align: left;
+  padding: 10px 12px; border-radius: 8px; font-size: 14px }
+.menu button:focus-visible, .menu button:hover { background: var(--hueso); outline: none }
+.menu .grupo { padding: 8px 12px 4px; }
+.menu .marca { color: var(--verde); font-weight: 600 }
+@keyframes revela { from { opacity: 0; transform: translateY(-4px) } }
+
+.tarjetas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+.tarjeta { text-align: left; border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px }
+.tarjeta[aria-current="true"] { background: var(--hueso); border-color: var(--borde) }
+.tarjeta .preg { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--taupe); display: flex; align-items: center; gap: 6px }
+.tarjeta .preg i { width: 6px; height: 6px; border-radius: 50%; background: var(--verde) }
+.tarjeta .preg i.ambar { background: var(--ambar) }
+.tarjeta .v { font: 500 26px/1.1 var(--serif) }
+.tarjeta small { color: var(--taupe); font-size: 12.5px }
+@media (max-width: 900px) { .tarjetas { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+
+/* El cuerpo */
+.cuerpo { background: var(--papel); border: 1px solid var(--sand); border-radius: 20px; padding: 24px clamp(16px, 3vw, 28px); min-width: 0 }
+.cuerpo-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px }
+.cuerpo-cab h2 { font: 400 26px/1.15 var(--serif); margin: 4px 0 0 }
+.cuerpo-cab .izq { display: flex; align-items: center; gap: 12px; min-width: 0 }
+.volver { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--borde); background: transparent; display: grid; place-items: center; flex: none }
+.volver svg { width: 16px; height: 16px }
+.titular h2 { font: 400 30px/1.1 var(--serif); margin: 6px 0 0 }
+.titular h2 span { color: var(--verde) }
+.titular p { margin: 6px 0 0; color: var(--taupe) }
+.casc { display: grid; gap: 4px; margin-top: 20px }
+.fila-c { display: grid; grid-template-columns: minmax(130px, 220px) minmax(0, 1fr) 100px; align-items: center; gap: 14px; padding: 7px 0 }
+.fila-c .pista { position: relative; height: 18px }
+.fila-c .pista i { position: absolute; top: 0; height: 100%; border-radius: 5px }
+.fila-c .m { text-align: right }
+.fila-c.total b, .fila-c.total .m { font: 500 19px var(--serif) }
+.tabla-wrap { overflow-x: auto }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px }
+th { text-align: left; font-weight: 500; color: var(--taupe); font-size: 12.5px; padding: 10px 12px; background: var(--hueso) }
+td { padding: 10px 12px; border-top: 1px solid var(--sand) }
+th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap }
+tr.suave td { background: color-mix(in srgb, var(--hueso) 55%, transparent); font-weight: 600 }
+td .cta { color: var(--taupe); margin-right: 6px }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px; font: 600 12px/1.4 var(--sans); vertical-align: middle; background: color-mix(in srgb, var(--verde) 14%, transparent); color: var(--verde) }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor }
+.leyenda-v { margin: 14px 0 0; font-size: 12.5px; color: var(--taupe) }
+
+.aviso { position: fixed; z-index: 20; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 360px;
+  background: var(--tinta); color: var(--crema); border-radius: 12px; padding: 12px 16px; font-size: 13.5px; animation: revela .24s var(--ease) }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important } }
+@media (max-width: 640px) { .fila-c { grid-template-columns: minmax(0, 1fr) auto } .fila-c .pista { grid-column: 1 / -1; grid-row: 2 } .menu { right: auto; left: 0 } }
+</style>
+
+<div class="envoltura">
+  <div class="barra-maqueta">
+    <p><b>Maqueta</b> · Estados financieros, números de ejemplo de octubre. Toca los botones de arriba a la derecha de la pantalla para probar cada opción.</p>
+    <div class="opciones" role="group" aria-label="Qué opción mirar">
+      <button type="button" id="opA" aria-pressed="false">A · Dos menús (hoy)</button>
+      <button type="button" id="opB" aria-pressed="true">B · Un menú «Para el contador»</button>
+    </div>
+  </div>
+  <div class="nota-opcion" id="nota"></div>
+
+  <section class="erp" aria-label="Pantalla del ERP">
+    <header class="cab">
+      <div>
+        <div class="linea-sede versalita">Todas las sedes · sábado, 31 de octubre</div>
+        <h1>Estados financieros</h1>
+        <p class="frase">Cómo le fue a CAYLA en octubre, en cuatro respuestas.</p>
+      </div>
+      <div class="acciones" id="acciones"></div>
+    </header>
+    <div class="tarjetas" id="tarjetas"></div>
+    <div class="cuerpo" id="cuerpo"></div>
+  </section>
+</div>
+<div class="aviso" id="aviso" hidden role="status"></div>
+
+<script>
+const ICO = {
+  ojo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
+  bajar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 10l5 5 5-5M5 21h14"/></svg>',
+  libro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Z"/><path d="M8 7h7M8 11h7"/></svg>',
+  chev: '<svg class="chev" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  atras: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>',
+};
+const soles = (n) => (n < 0 ? "−" : "") + "S/ " + Math.abs(Math.round(n)).toLocaleString("en-US");
+const ESTADOS = [
+  { k: "ganamos", preg: "¿Ganamos?", v: "S/ 3,850", c: "De cada S/ 100 te quedaron S/ 7,9", p: "", cuadro: "resultados" },
+  { k: "plata", preg: "¿Dónde está la plata?", v: "S/ 27,450", c: "Bajó S/ 3,750 en el mes", p: "ambar", cuadro: "flujo" },
+  { k: "vale", preg: "¿Cuánto vale CAYLA?", v: "S/ 97,700", c: "Lo que tiene menos lo que debe", p: "", cuadro: "balance" },
+  { k: "tuyo", preg: "¿Lo tuyo creció?", v: "+S/ 7,500", c: "Ganaste S/ 3,850 y retiraste S/ 2,350", p: "", cuadro: "patrimonio" },
+];
+const CUADROS = [
+  { k: "resultados", n: "Estado de resultados", estado: "ganamos" },
+  { k: "flujo", n: "Flujo de efectivo", estado: "plata" },
+  { k: "balance", n: "Balance general", estado: "vale" },
+  { k: "patrimonio", n: "Cambios en el patrimonio", estado: "tuyo" },
+  { k: "saldos", n: "Saldos por cuenta" },
+  { k: "diario", n: "Libro diario del mes" },
+];
+const archivo = (k) => ({ resultados: "estado-de-resultados", flujo: "flujo-de-efectivo", balance: "balance-general", patrimonio: "cambios-en-el-patrimonio", saldos: "saldos-por-cuenta", diario: "libro-diario" })[k] + "-2026-10.csv";
+
+const TABLAS = {
+  resultados: { cols: ["Concepto", "Trujillo", "Arequipa", "Lima", "CAYLA"], filas: [
+    ["Ventas (sin IGV)", 21000, 15000, 12600, 48600], ["Costo de lo vendido", -10500, -7500, -6300, -24300], ["= Margen", 10500, 7500, 6300, 24300, 1],
+    ["Sueldos", -3600, -3000, -3200, -9800], ["Alquileres y servicios", -2200, -1700, -4300, -8200], ["Otros gastos", -500, -500, -850, -1850], ["Desgaste de equipos", 0, 0, 0, -600],
+    ["= Resultado del mes", 4200, 2300, -1400, 3850, 1]] },
+  flujo: { cols: ["Partida", "S/"], filas: [["Cobros de ventas", 55900], ["Pagos de mercadería", -27600], ["Sueldos, gastos e impuestos", -22950], ["= Del día a día", 5350, 1],
+    ["Compras que duran años", -4800], ["= De inversión", -4800, 1], ["Retiros del dueño", -3000], ["Pago de la tarjeta", -1300], ["= De financiamiento", -4300, 1],
+    ["Efectivo al inicio", 31200], ["= Efectivo al final", 27450, 1]] },
+  balance: { cols: ["Partida", "S/"], filas: [["Plata en cajas y bancos", 27450], ["Lo que te deben", 3650], ["Mercadería", 86400], ["Muebles y equipos", 18500], ["= Lo que tiene", 135950, 1],
+    ["Proveedores", 22300], ["Impuestos", 4200], ["Sueldos por pagar", 6800], ["Préstamos", 5000], ["= Lo que debe", 38300, 1], ["= Lo tuyo", 97650, 1]] },
+  patrimonio: { cols: ["Partida", "Capital", "Aportes", "Resultados", "Total"], filas: [["Saldo al inicio", 80000, 0, 16100, 96100, 1], ["Resultado del mes", 0, 0, 3850, 3850],
+    ["Aportes del dueño", 0, 6000, 0, 6000], ["Retiro de utilidades", 0, 0, -2350, -2350], ["Saldo al cierre", 80000, 6000, 17600, 103600, 1]] },
+  saldos: { cuentas: 1, cols: ["Cuenta", "Al empezar", "Debe", "Haber", "Al cerrar"], filas: [["101 Caja", 9800, 30000, 28600, 11200], ["104 Cuentas corrientes", 21400, 25900, 32300, 15000],
+    ["201 Mercaderías", 83100, 27600, 24300, 86400], ["421 Facturas por pagar", -24100, 27600, 25800, -22300], ["50 Capital", -80000, 0, 0, -80000],
+    ["70 Ventas", 0, 0, 48600, -48600], ["69 Costo de ventas", 0, 24300, 0, 24300], ["= Total del mes", null, 181700, 181700, null, 1]] },
+  diario: { cuentas: 1, cols: ["Fecha", "Asiento", "Cuenta", "Debe", "Haber", "Glosa"], texto: [0, 1, 2, 5], filas: [
+    ["1 oct", "V-10", "101 Caja", 590, null, "Venta B001-10"], ["1 oct", "V-10", "70 Ventas", null, 500, "Venta B001-10"], ["1 oct", "V-10", "4011 IGV por pagar", null, 90, "Venta B001-10"],
+    ["1 oct", "V-11", "101 Caja", 590, null, "Venta B002-11"], ["1 oct", "V-11", "70 Ventas", null, 500, "Venta B002-11"], ["7 oct", "G-7", "63 Servicios de terceros", 1200, null, "Alquiler de octubre"],
+    ["7 oct", "G-7", "104 Cuentas corrientes", null, 1200, "Alquiler de octubre"]] },
+};
+
+const estado = { opcion: "B", estado: "ganamos", cuadro: null, abierto: null };
+
+function avisar(t) { const a = document.getElementById("aviso"); a.textContent = t; a.hidden = false; clearTimeout(avisar.t); avisar.t = setTimeout(() => (a.hidden = true), 2800); }
+
+function menuHtml(id, items) {
+  return '<div class="menu" role="menu" id="' + id + '">' + items.map((i) => i.grupo
+    ? '<div class="grupo versalita">' + i.grupo + "</div>"
+    : '<button type="button" role="menuitem" data-accion="' + i.accion + '" data-k="' + i.k + '"><span>' + i.n + "</span>" + (i.marca ? '<span class="marca">✓</span>' : "") + "</button>").join("") + "</div>";
+}
+
+function pintarAcciones() {
+  const el = document.getElementById("acciones");
+  const actual = estado.cuadro ? CUADROS.find((c) => c.k === estado.cuadro).n : "Las respuestas";
+  let h = "";
+  if (estado.opcion === "A") {
+    h += '<div style="position:relative"><button type="button" class="btn" data-abre="ver" aria-expanded="' + (estado.abierto === "ver") + '">' + ICO.ojo + "Ver: " + actual + ICO.chev + "</button>";
+    if (estado.abierto === "ver") h += menuHtml("m-ver", [{ k: "respuestas", n: "Las respuestas", accion: "ver", marca: !estado.cuadro }, ...CUADROS.map((c) => ({ k: c.k, n: c.n, accion: "ver", marca: estado.cuadro === c.k }))]);
+    h += '</div><div style="position:relative"><button type="button" class="btn" data-abre="bajar" aria-expanded="' + (estado.abierto === "bajar") + '">' + ICO.bajar + "Descargar para el contador" + ICO.chev + "</button>";
+    if (estado.abierto === "bajar") h += menuHtml("m-bajar", CUADROS.map((c) => ({ k: c.k, n: c.n, accion: "bajar" })));
+    h += "</div>";
+  } else {
+    h += '<div style="position:relative"><button type="button" class="btn" data-abre="contador" aria-expanded="' + (estado.abierto === "contador") + '">' + ICO.libro + "Para el contador" + ICO.chev + "</button>";
+    if (estado.abierto === "contador") h += menuHtml("m-contador", [{ grupo: "Los cuatro estados, en su formato" }, ...CUADROS.slice(0, 4).map((c) => ({ k: c.k, n: c.n, accion: "ver", marca: estado.cuadro === c.k })),
+      { grupo: "Para cuadrar" }, ...CUADROS.slice(4).map((c) => ({ k: c.k, n: c.n, accion: "ver", marca: estado.cuadro === c.k }))]);
+    h += "</div>";
+  }
+  el.innerHTML = h;
+}
+
+function pintarTarjetas() {
+  const activa = estado.opcion === "B" && estado.cuadro ? null : estado.estado;
+  document.getElementById("tarjetas").innerHTML = ESTADOS.map((e) =>
+    '<button type="button" class="tarjeta" data-estado="' + e.k + '" aria-current="' + (e.k === activa) + '"><span class="preg"><i class="' + e.p + '"></i>' + e.preg +
+    '</span><span class="v num">' + e.v + "</span><small>" + e.c + "</small></button>").join("");
+}
+
+function tabla(k) {
+  const t = TABLAS[k];
+  const esTexto = (i) => (t.texto ? t.texto.includes(i) : i === 0);
+  let h = '<div class="tabla-wrap"><table><thead><tr>' + t.cols.map((c, i) => '<th class="' + (esTexto(i) ? "" : "n") + '">' + c + "</th>").join("") + "</tr></thead><tbody>";
+  for (const f of t.filas) {
+    const fuerte = f.length > t.cols.length;
+    h += '<tr class="' + (fuerte ? "suave" : "") + '">' + t.cols.map((_, i) => {
+      const v = f[i];
+      if (esTexto(i)) {
+        const s = String(v).replace(/^= /, "");
+        if (t.cuentas && i === 2 && /^\d/.test(s)) return '<td><span class="cta num">' + s.split(" ")[0] + "</span>" + s.split(" ").slice(1).join(" ") + "</td>";
+        if (t.cuentas && i === 0 && /^\d/.test(s)) return '<td><span class="cta num">' + s.split(" ")[0] + "</span>" + s.split(" ").slice(1).join(" ") + "</td>";
+        return "<td>" + s + "</td>";
+      }
+      return '<td class="n">' + (v == null ? "" : v === 0 ? "—" : soles(v)) + "</td>";
+    }).join("") + "</tr>";
+  }
+  return h + "</tbody></table></div>";
+}
+
+function respuestas() {
+  const e = ESTADOS.find((x) => x.k === estado.estado);
+  if (estado.estado !== "ganamos") return '<div class="titular"><span class="versalita">' + e.preg + '</span><h2>' + e.v + '</h2><p>' + e.c + '. (En la maqueta solo ¿Ganamos? tiene su cascada dibujada.)</p></div>';
+  const filas = [["Vendiste", 0, 100, "var(--tinta)", "S/ 48,600", 1], ["Lo que costaron esas prendas", 50, 50, "var(--ambar)", "−S/ 24,300"], ["Te quedó de margen", 0, 50, "var(--sand)", "S/ 24,300"],
+    ["Sueldos", 29.8, 20.2, "var(--ambar)", "−S/ 9,800"], ["Alquileres y servicios", 12.9, 16.9, "var(--ambar)", "−S/ 8,200"], ["Otros gastos", 9.1, 3.8, "var(--ambar)", "−S/ 1,850"],
+    ["Desgaste de equipos", 7.9, 1.2, "var(--ambar)", "−S/ 600"], ["Ganaste", 0, 7.9, "var(--tinta)", "S/ 3,850", 1]];
+  return '<div class="titular"><span class="versalita">Ganancias y pérdidas · octubre</span><h2><span>Sí.</span> Ganaste S/ 3,850</h2><p>De cada S/ 100 que vendiste te quedaron S/ 7,9.</p></div>' +
+    '<div class="casc">' + filas.map((f) => '<div class="fila-c ' + (f[5] ? "total" : "") + '"><b style="font-weight:' + (f[5] ? 500 : 400) + '">' + f[0] + '</b><span class="pista"><i style="left:' + f[1] + "%;width:" + f[2] + "%;background:" + f[3] + '"></i></span><span class="m num">' + f[4] + "</span></div>").join("") + "</div>";
+}
+
+function pintarCuerpo() {
+  const el = document.getElementById("cuerpo");
+  if (!estado.cuadro) { el.innerHTML = respuestas(); return; }
+  const c = CUADROS.find((x) => x.k === estado.cuadro);
+  const cuadra = estado.cuadro === "saldos" ? ' <span class="chip">Cuadra</span>' : "";
+  let cab = '<div class="cuerpo-cab"><div class="izq">';
+  if (estado.opcion === "B") cab += '<button type="button" class="volver" data-volver aria-label="Volver a las respuestas" title="Volver a las respuestas">' + ICO.atras + "</button>";
+  cab += '<div><span class="versalita">Para el contador · octubre</span><h2>' + c.n + cuadra + "</h2></div></div>";
+  if (estado.opcion === "B") cab += '<button type="button" class="btn chico" data-bajar="' + c.k + '">' + ICO.bajar + "Descargar Excel</button>";
+  cab += "</div>";
+  const pie = estado.cuadro === "diario" ? '<p class="leyenda-v">El mes real pasa de 5,000 líneas: se busca por cuenta, asiento o glosa y se ve de a 100.</p>' : "";
+  el.innerHTML = cab + tabla(estado.cuadro) + pie;
+}
+
+function pintarNota() {
+  document.getElementById("nota").innerHTML = estado.opcion === "A"
+    ? "<div><b>Cómo funciona</b>«Ver» cambia lo que ves en pantalla. Al lado, «Descargar para el contador» tiene la misma lista de seis y baja un archivo sin abrirlo.</div><div><b>Lo que cuesta</b>Dos menús con la misma lista, uno junto al otro: hay que saber cuál tocar.</div>"
+    : "<div><b>Cómo funciona</b>Un solo menú abre cualquiera de los seis cuadros. Cada cuadro trae su «Descargar Excel», y la flecha o una tarjeta vuelven a las respuestas.</div><div><b>Lo que cuesta</b>Para bajar un archivo primero se abre el cuadro: un clic más, pero ves lo que bajas.</div>";
+  document.getElementById("opA").setAttribute("aria-pressed", estado.opcion === "A");
+  document.getElementById("opB").setAttribute("aria-pressed", estado.opcion === "B");
+}
+
+function pintar() { pintarNota(); pintarAcciones(); pintarTarjetas(); pintarCuerpo(); }
+
+document.addEventListener("click", (ev) => {
+  const t = ev.target.closest("button");
+  if (!t) { if (estado.abierto) { estado.abierto = null; pintarAcciones(); } return; }
+  if (t.id === "opA" || t.id === "opB") { estado.opcion = t.id === "opA" ? "A" : "B"; estado.abierto = null; pintar(); return; }
+  if (t.dataset.abre) { estado.abierto = estado.abierto === t.dataset.abre ? null : t.dataset.abre; pintarAcciones(); return; }
+  if (t.dataset.accion === "ver") {
+    const k = t.dataset.k;
+    if (k === "respuestas") estado.cuadro = null;
+    else { estado.cuadro = k; const c = CUADROS.find((x) => x.k === k); if (c.estado) estado.estado = c.estado; }
+    estado.abierto = null; pintar(); return;
+  }
+  if (t.dataset.accion === "bajar" || t.dataset.bajar) { const k = t.dataset.k || t.dataset.bajar; estado.abierto = null; pintarAcciones(); avisar("Se descargaría «" + archivo(k) + "». En la maqueta no se baja nada."); return; }
+  if (t.dataset.volver !== undefined) { estado.cuadro = null; pintar(); return; }
+  if (t.dataset.estado) {
+    estado.estado = t.dataset.estado;
+    // En A, si se mira un estado formal, la tarjeta pasa al formal de ese otro estado; saldos o diario vuelven a las respuestas.
+    if (estado.opcion === "A" && estado.cuadro && CUADROS.find((c) => c.k === estado.cuadro).estado) estado.cuadro = ESTADOS.find((e) => e.k === t.dataset.estado).cuadro;
+    else estado.cuadro = null;
+    estado.abierto = null; pintar();
+  }
+});
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && estado.abierto) { estado.abierto = null; pintarAcciones(); } });
+pintar();
+</script>
