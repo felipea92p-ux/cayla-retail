@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Balanza } from "@/components/finanzas/estados/Balanza";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import type { FormaEstado } from "@/lib/estados-financieros-reglas";
 import { CabeceraBloque, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { SaldosArranqueModal } from "@/components/finanzas/SaldosArranqueModal";
 import {
@@ -60,6 +60,7 @@ export function BalancePanel({
   propuestaArranque,
   costoDelMes,
   fallas,
+  forma = "respuesta",
 }: {
   /** Solo el líder registra los saldos de arranque (`registrar_saldo_inicial`). */
   esLider: boolean;
@@ -78,6 +79,8 @@ export function BalancePanel({
   /** Lo que costó lo vendido en el último mes completo (CAYLA): para cuántos meses de venta alcanza la mercadería. */
   costoDelMes: number | null;
   fallas: string[];
+  /** La respuesta (la balanza) o el formato formal (el balance del contador, cómo se comprobó y los saldos de arranque). */
+  forma?: FormaEstado;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -129,6 +132,7 @@ export function BalancePanel({
           costoDelMes={costoDelMes}
           esLider={esLider}
           onArranque={() => setArranqueAbierto(true)}
+          forma={forma}
         />
       ) : (
         <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} veTodo={veTodo} />
@@ -154,6 +158,7 @@ function VistaCayla({
   costoDelMes,
   esLider,
   onArranque,
+  forma,
 }: {
   hoy: string;
   corte: string;
@@ -164,10 +169,10 @@ function VistaCayla({
   costoDelMes: number | null;
   esLider: boolean;
   onArranque: () => void;
+  forma: FormaEstado;
 }) {
   const sit = situacion(chequeos);
   const visibles = chequeos.filter((c) => c.clave !== "corte");
-  const [verFormal, setVerFormal] = useState(false);
   if (sit.tipo === "cuadra") {
     const comprobacion = (
       <Superficie pad className="fin-balance-tarjeta">
@@ -179,37 +184,44 @@ function VistaCayla({
         </ul>
       </Superficie>
     );
-    return (
-      <>
-        <Balanza lineas={lineas} corte={corte} hoy={hoy} selectorCorte={selectorCorte} costoDelMes={costoDelMes} />
-        {unidades.length > 0 && (
-          <div {...entra(3)} data-guia="fin-balance.tiendas">
-            <TablaTiendas unidades={unidades} />
-          </div>
-        )}
-        <section className="space-y-4">
-          <BotonVerMas abierto={verFormal} onCambiar={setVerFormal} texto="Ver el formato formal y cómo se comprobó" forma="enlace" controla="fin-vale-formal" data-guia="fin-vale.formal" />
-          <FilasDeMas abierto={verFormal} id="fin-vale-formal" className="space-y-4">
-            {esLider && (
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
-                  Saldos de arranque
-                </button>
+    if (forma === "respuesta")
+      return (
+        <Balanza
+          lineas={lineas}
+          corte={corte}
+          hoy={hoy}
+          selectorCorte={selectorCorte}
+          costoDelMes={costoDelMes}
+          pie={
+            unidades.length > 0 ? (
+              <div data-guia="fin-balance.tiendas">
+                <TablaTiendas unidades={unidades} />
               </div>
-            )}
-            {comprobacion}
-            <div data-guia="fin-balance.resultado">
-              <BalanceCuadra lineas={lineas} corte={corte} hoy={hoy} />
-            </div>
-            <div className="nota-cayla" data-guia="fin-balance.nota">
-              El <b>capital</b> se registra una vez, al arrancar (lo que pusiste en el negocio), con las utilidades que ya traía. Nunca se
-              calcula como «lo que falta para que cuadre»: si así fuera, el Balance cuadraría siempre y no probaría nada. Por sede se muestra
-              <b> lo que es suyo</b> (su cajón, su mercadería, sus muebles y las facturas que pidió, enteras); el banco, el capital y el IGV son de
-              CAYLA entera y no se reparten.
-            </div>
-          </FilasDeMas>
-        </section>
-      </>
+            ) : undefined
+          }
+        />
+      );
+    return (
+      <div className="space-y-4" data-guia="fin-vale.formal">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {selectorCorte}
+          {esLider && (
+            <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
+              Saldos de arranque
+            </button>
+          )}
+        </div>
+        <div data-guia="fin-balance.resultado">
+          <BalanceCuadra lineas={lineas} corte={corte} hoy={hoy} />
+        </div>
+        {comprobacion}
+        <div className="nota-cayla" data-guia="fin-balance.nota">
+          El <b>capital</b> se registra una vez, al arrancar (lo que pusiste en el negocio), con las utilidades que ya traía. Nunca se
+          calcula como «lo que falta para que cuadre»: si así fuera, el Balance cuadraría siempre y no probaría nada. Por sede se muestra
+          <b> lo que es suyo</b> (su cajón, su mercadería, sus muebles y las facturas que pidió, enteras); el banco, el capital y el IGV son de
+          CAYLA entera y no se reparten.
+        </div>
+      </div>
     );
   }
 

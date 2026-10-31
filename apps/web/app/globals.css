@@ -12,7 +12,9 @@
 @import "./estilos/paso-2-plan.css";
 @import "./estilos/pagos-plan.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/estados-financieros.css";
 @import "./estilos/finanzas-dinero.css";
+@import "./estilos/finanzas-que-debes.css";
 @import "./estilos/finanzas-recorrido.css";
 @import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
@@ -29,6 +31,7 @@
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
 @import "./estilos/rotulo.css";
+@import "./estilos/perfil-vidrio.css";
 /* Rótulos de anaquel, la pantalla: la Brother y la tira que sale (ADR-0366, act. 2026-10-12, maqueta A «Rollo»). */
 @import "./estilos/rotulos-brother.css";
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
