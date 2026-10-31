@@ -18,15 +18,19 @@
  * Lo que no cumple, `null`: la hoja dice cómo escribirlo y no deja guardar.
  */
 
+import { sinBlancosDeMiles } from "./numero-escrito";
+
 /** Lo que dice la hoja cuando el monto escrito no se entiende. */
 export const MONTO_ILEGIBLE = "No se entiende el monto: escríbelo así, 1299.50 o 1299,50.";
 
 export function leerMontoPlata(texto: string): number | null {
   // Un menos adelante se lee (la hoja dice «tiene que ser mayor que cero», que se entiende mejor que «no se entiende»).
-  const crudo = texto.replace(/\s/g, "");
+  const crudo = texto.trim();
   const negativo = crudo.startsWith("-");
-  const t = (negativo ? crudo.slice(1) : crudo).replace(/^s\/\.?/i, "");
-  if (!/^[\d.,]+$/.test(t) || !/\d/.test(t)) return null;
+  // El «S/» se quita ANTES que los blancos, y estos con la regla única: un blanco que no separa miles delata un pegado de
+  // varias celdas y no se adivina («12 8 5» ya no son S/ 1,285.00; /chaos de «Nuevo avío», 2026-10-31).
+  const t = sinBlancosDeMiles((negativo ? crudo.slice(1) : crudo).replace(/^s\s*\/\s*\.?/i, ""));
+  if (t === null || !/^[\d.,]+$/.test(t) || !/\d/.test(t)) return null;
   // «100.» o «100,» mientras se escribe: el separador final no cuenta (uno solo).
   const sinFinal = t.replace(/[.,]$/, "");
   if (sinFinal === "" || /[.,]$/.test(sinFinal)) return null;
@@ -89,7 +93,8 @@ export const COSTO_UNITARIO_ILEGIBLE = "No se entiende el costo: escríbelo así
  * Lo que no cumple, `null`.
  */
 export function leerCostoUnitario(texto: string): number | null {
-  const t = texto.replace(/\s/g, "").replace(/^s\/\.?/i, "");
+  const t = sinBlancosDeMiles(texto.trim().replace(/^s\s*\/\s*\.?/i, ""));
+  if (t === null) return null;
   const menorQueUno = /^0?[.,](\d{1,4})$/.exec(t);
   if (menorQueUno) return Number(`0.${menorQueUno[1]}`);
   const cuatroDecimales = /^(\d+)[.,](\d{4})$/.exec(t);
