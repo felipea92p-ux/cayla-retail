@@ -80,22 +80,42 @@ Como eran filtros escritos a mano dentro de los componentes, sin prueba, se sac�
 `soloCifrasEscritas` (en `numero-escrito.ts`, al lado de `sinBlancosDeMiles`), con su prueba y con el caso que
 importa: que lo que el filtro deja pasar, los dos validadores lo rechacen. Si alguien los afloja, la prueba avisa.
 
-## Los que QUEDAN, medidos y sin tocar
+## Y los tres últimos, Vender incluido (Felipe: «sí, los tres»)
 
-Tres filtros más dan **1285** con las mismas tres celdas. No entran aquí porque dos están en pantallas que piden su
-propio cuidado, y prefiero que lo decidas:
+Los tres filtros que quedaban daban **1285** con las mismas tres celdas. Aquí hubo que pensar distinto que en Caja:
+dos son filtros de un **precio**, donde «1 200» sí es un separador de miles de verdad y el modal de Vender hace
+`Number(precio)`. Si solo se conservaba el blanco, «1 200» también se habría roto. Así que el filtro **junta los
+miles con la regla única y deja a la vista únicamente lo que esa regla no entiende**: el pegado queda escrito,
+`Number` da `NaN`, y `pasoSiguiente` —que ya bloqueaba con un precio falsy— vuelve a pedir el precio.
 
-| Filtro | Dónde | Por qué no lo toqué |
+| Filtro | Dónde | Cómo se cerró |
 |---|---|---|
-| `precioEscribible` (`prenda-sin-registrar-reglas.ts:149`) | «Precio cobrado» de **Vender** | es plata en el mostrador y Vender es celular obligatorio (PL-105): pide prueba a 375 px con captura |
-| `limpiarPrecio` (`tabla-alta-reglas.ts:97`) | el precio en el **alta de productos** | ya tiene delante la rama de `leerMontoPlata` del 28-oct, pero «12 8 5» no la dispara y cae al borrado viejo |
-| `soloDigitos` (`FormularioCategoria.tsx:62`) | «Flojo/Normal/Bueno, prendas», «Lo que sobre %» y la curva de tallas del plan | son cantidades de prendas; hay que mirar qué valida cada una antes de dejar pasar el blanco |
+| `precioEscribible` | «Precio cobrado» de **Vender** | junta los miles, deja ver el pegado; el `.trim()` quita solo el blanco que deja el «S/» |
+| `limpiarPrecio` | el precio del **alta de productos** | igual |
+| `soloDigitos` | «Flojo/Normal/Bueno, prendas», «Lo que sobre %» y la curva de tallas | `soloCifrasEscritas`: son enteros, y `entero()` (`/^\d+$/`) los rechaza solo |
+
+**Verificado en Vender a 375 px (PL-105)**, con login real y una prenda ya elegida (Abrigos · S · Blanco), de modo
+que el precio fuera lo único que faltaba:
+
+| En «Precio cobrado» | El campo | «Falta: Precio» | «Agregar al ticket» |
+|---|---|---|---|
+| pegar «12 ⏎ 8 ⏎ 5» | **«12 8 5»** | sí | **apagado** |
+| pegar «12 ⇥ 8 ⇥ 5» | «12⇥8⇥5» | sí | **apagado** |
+| escribir «1 200» | **«1200»** (se juntó) | no | encendido |
+| escribir «59,90» | «59.90» | no | encendido |
+
+Antes, «12 8 5» quedaba en **1285** y se cobraban S/ 1 285 por una prenda de S/ 59. Captura a 375 px con el campo
+en «12 8 5» y «Falta: ● Precio» debajo.
+
+**Dos pruebas existentes se pusieron en rojo al hacerlo** y estaban en lo cierto: `precioEscribible("S/ 39")` y
+`limpiarPrecio("S/ 45.50")` devolvían el blanco que dejaba el símbolo. Se resolvió con un `.trim()` al final, que
+toca los extremos y no los de adentro —que son justamente la huella del pegado—.
 
 **Y una cosa que el candado NO cubre, dicha para que nadie se confíe:** persigue el borrado explícito
 (`replace(/\s+/g, "")`), no el implícito de una clase negada (`replace(/[^\d]/g, "")`), que borra los blancos sin
 nombrarlos. Cubrirlo daría 21 falsos positivos —identificadores de SVG, extensiones de archivo, nombres
-compactados para comparar— y una lista de exentos que nadie leería. Los tres de arriba son, hoy, todos los casos de
-ese patrón que leen una cifra; están contados a mano.
+compactados para comparar— y una lista de exentos que nadie leería. Esos tres se encontraron a mano, mirando uno
+por uno los 24 sitios con ese patrón.
 
 ## Cómo se verificó
 

@@ -6,13 +6,15 @@ import { leerCantidad as leerCantidadEnvio } from "./envio-orden-reglas";
 import { parsearPorcentaje } from "./configuracion-reglas";
 import { leerMonto as leerMontoDePagoCorregido } from "./corregir-pago-reglas";
 import { leerCantidad } from "./insumos-reglas";
+import { precioEscribible } from "./prenda-sin-registrar-reglas";
+import { limpiarPrecio } from "./tabla-alta-reglas";
 import { sinBlancosDeMiles, soloCifrasEscritas } from "./numero-escrito";
 import { leerDiasParaLlegar } from "./plan-compra-plazo";
 import { parametroFueraDeRango } from "./tienda-web-reglas";
 import { leerCostoUnitario, leerMontoPlata } from "./monto-plata-reglas";
 import { leerNumero } from "./orden-compra-alta";
 import { leerCantidadInsumo, leerPrecioInsumo } from "./ordenes-insumo-reglas";
-import { leerDescuento, leerNumeroDeMonto } from "./plan-compra-reglas";
+import { leerDescuento, leerNumeroDeMonto, problemasDelBorrador } from "./plan-compra-reglas";
 import { leerMonto as leerPrecioDeSede } from "./precio-sede-reglas";
 import { leerCosto, leerPrecioVenta } from "./recepcion-envio-reglas";
 import { leerSoles } from "./rendimiento-meta-reglas";
@@ -197,5 +199,35 @@ describe("soloCifrasEscritas: un campo de entero deja ver el pegado en vez de ju
     expect(leerDiasParaLlegar(soloCifrasEscritas("12 8 5"))).toBeNull();
     expect(parametroFueraDeRango("diasAvisoSinRecoger", soloCifrasEscritas("12 8 5", { signo: true }))).toBe(true);
     expect(leerDiasParaLlegar(soloCifrasEscritas("14"))).toBe(14);
+  });
+});
+
+describe("los filtros de tecleo de un precio: juntan los miles y dejan ver el pegado", () => {
+  // Estos no son lectores ni campos de entero: son filtros de un PRECIO, donde «1 200» sí es un separador de miles
+  // legítimo. Por eso no basta con conservar el blanco (el modal de Vender hace `Number(precio)`, y «1 200» daría NaN):
+  // el filtro junta los miles con la regla única y solo deja a la vista lo que esa regla no entiende, que es el pegado.
+  for (const [nombre, filtrar] of [
+    ["precioEscribible (Vender)", precioEscribible],
+    ["limpiarPrecio (alta de productos)", limpiarPrecio],
+  ] as const) {
+    it(`${nombre}: «1 200» se junta, «12 8 5» se queda a la vista`, () => {
+      expect(filtrar("1 200")).toBe("1200");
+      expect(Number(filtrar("1 200"))).toBe(1200);
+      expect(filtrar("12 8 5")).toContain(" ");
+      expect(Number(filtrar("12 8 5"))).toBeNaN(); // y así ninguna pantalla lo cobra ni lo guarda
+      expect(Number(filtrar("12\t8\t5"))).toBeNaN();
+    });
+    it(`${nombre}: lo de siempre no cambia`, () => {
+      expect(filtrar("59.90")).toBe("59.90");
+      expect(filtrar("59,90")).toBe("59.90");
+      expect(filtrar("abc")).toBe("");
+    });
+  }
+  it("y las cantidades de prendas del plan (enteros) se quedan con el blanco a la vista", () => {
+    // `entero()` de plan-compra-reglas es estricto (`/^\d+$/` sobre el trim), así que rechaza el pegado solo.
+    expect(soloCifrasEscritas("12 8 5")).toBe("12 8 5");
+    const b = { flojo: "12 8 5", normal: "10", bueno: "20", precio: "50", costo: "20", recupero: "30", curva: {} };
+    expect(problemasDelBorrador(b, []).flojo).toBeTruthy();
+    expect(problemasDelBorrador({ ...b, flojo: "5" }, []).flojo).toBeFalsy();
   });
 });

@@ -23,28 +23,18 @@ y la hoja sigue pidiendo «Cuánto», en vez de dejar escrito «1285» y darlo p
 ~~Los campos de días~~ **HECHOS** (Felipe: «sí, los días»): `PlazoModal` y `RelojDelPedido` usan `soloCifrasEscritas`,
 el helper nuevo con su prueba, y sus validadores —que ya eran estrictos— rechazan el pegado solos.
 
-**LO QUE QUEDA, medido y sin tocar** (tres filtros que dan «1285» con las mismas tres celdas):
+~~Los tres últimos~~ **HECHOS** (Felipe: «sí, los tres»): `precioEscribible` (Vender), `limpiarPrecio` (el alta) y
+`soloDigitos` (cantidades del plan). Los dos de precio juntan los miles con la regla única y dejan a la vista solo
+lo que no entienden, porque ahí «1 200» es un separador legítimo y el modal hace `Number(precio)`.
+**Verificado en Vender a 375 px (PL-105)** con captura: pegar tres celdas deja «12 8 5» escrito, «Falta: Precio» y
+«Agregar al ticket» apagado; «1 200» se junta y entra.
 
-| Filtro | Dónde | Por qué espera |
-|---|---|---|
-| `precioEscribible` (`prenda-sin-registrar-reglas.ts:149`) | «Precio cobrado» de **Vender** | plata en el mostrador, y Vender es celular obligatorio (PL-105): prueba a 375 px con captura |
-| `limpiarPrecio` (`tabla-alta-reglas.ts:97`) | el precio del **alta de productos** | tiene la rama de `leerMontoPlata` del 28-oct, pero «12 8 5» no la dispara y cae al borrado viejo |
-| `soloDigitos` (`FormularioCategoria.tsx:62`) | «Flojo/Normal/Bueno, prendas», «Lo que sobre %» y la curva de tallas | son cantidades de prendas; hay que mirar qué valida cada una antes de dejar pasar el blanco |
+**Ya no queda ningún filtro ni lector de cifras con este agujero**, hasta donde alcanzan el candado y el repaso a
+mano de los 24 sitios con clase negada.
 
-**Y lo que el candado NO cubre:** persigue el borrado explícito (`replace(/\s+/g, "")`), no el implícito de una clase
-negada (`replace(/[^\d]/g, "")`). Cubrirlo daría 21 falsos positivos (identificadores de SVG, extensiones de archivo,
-nombres compactados) y una lista de exentos que nadie leería. Los tres de arriba son, hoy, todos los de ese patrón
-que leen una cifra: contados a mano, no por el candado.
-
-## EL CANDADO, Y CÓMO SE CONVIVE CON ÉL
-
-`lib/pegado-de-celdas.test.ts` recorre `lib/` y `components/` y falla si un archivo vuelve a borrar TODOS los blancos
-de un texto. Lo que no persigue, porque es correcto: colapsarlos a un espacio (`, " "`) y recortar un prefijo o un
-sufijo (lleva ancla: `/^Tienda\s+/`). Un borrado legítimo se declara en su propia línea con
-`// blanco-fijo: <motivo de 10 caracteres o más>`; hoy lo usan el DNI de un gasto fijo, el código del escáner de
-Liquidación, los dígitos de un RUC, una plantilla del asistente, el XML de SUNAT y los tres `limpio` que solo arman
-la frase de la duda de miles. La lista `NO_LEEN_CIFRAS` (teléfonos, búsquedas) **solo baja**: un archivo nuevo no
-entra ahí.
+**Lo que el candado NO cubre:** el borrado implícito de una clase negada (`replace(/[^\d]/g, "")`). Cubrirlo daría
+21 falsos positivos (ids de SVG, extensiones de archivo, nombres compactados) y una lista que nadie leería. Si
+mañana nace un filtro así en un campo de cifra, el candado no lo verá: se encuentra mirando, como estos tres.
 
 ## SIGUE PENDIENTE DE `/chaos` SOBRE «NUEVO AVÍO» (informe en `.chaos/`)
 
