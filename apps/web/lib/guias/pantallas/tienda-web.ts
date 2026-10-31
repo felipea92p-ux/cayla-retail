@@ -1476,7 +1476,7 @@ export const GUIA_TRAFICO: Guia = {
       ancla: "trafico.veredicto",
       opcional: true,
       titulo: "Dónde se atora",
-      texto: "El recuadro ámbar marca el tramo donde más gente se va de la que le llega, comparada con lo de costumbre. Si va peor que siempre, lo dice el chip y el rótulo del recuadro: ahí conviene mejorar la tienda.",
+      texto: "El tramo punteado naranja marca dónde más gente se va de la que le llega, y el número grande dice cuántas personas fueron. Si va peor que siempre, lo dice el chip de arriba: ahí conviene mejorar la tienda.",
     },
     {
       id: "porque",
