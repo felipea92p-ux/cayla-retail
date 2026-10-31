@@ -681,7 +681,16 @@ export function cifrasDeLaOrden(p: OrdenPagina, hoy: string): CifrasDeLaOrden {
   return {
     prendas: { valor: o.estado === "terminada" && o.cantidadBuenas !== null ? o.cantidadBuenas : o.cantidadPlan, etiqueta: o.estado === "terminada" ? "Prendas buenas" : "Prendas", aparte },
     entrega,
-    costo: p.permisos.veCostos && p.costos ? { valor: p.costos.totalRealHastaHoy, nota: `de ${soles(p.costos.totalEstimado)}`, etiqueta: "Costo hasta hoy" } : null,
+    // El costo real sale del libro de insumos (lo descontado del estante): mientras nadie anote lo que se usó, la tela cuenta 0 y la cifra queda corta frente al estimado.
+    // La etiqueta lo dice para que no parezca un error de cálculo.
+    costo:
+      p.permisos.veCostos && p.costos
+        ? {
+            valor: p.costos.totalRealHastaHoy,
+            nota: `de ${soles(p.costos.totalEstimado)}`,
+            etiqueta: p.costos.telaEstimado > 0 && p.costos.telaReal <= 0 ? "Costo hasta hoy · sin la tela" : "Costo hasta hoy",
+          }
+        : null,
   };
 }
 
