@@ -471,3 +471,67 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .analisis th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:left;padding:8px 10px;border-bottom:1px solid var(--sand)}
 .analisis td{padding:8px 10px;border-bottom:1px solid var(--sand);vertical-align:top;color:var(--t80)}
 .ev{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:6px;vertical-align:1px;background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+
+/* ====================================================================
+   PIEZAS YA ELEGIDAS QUE TODA PANTALLA TRAE (se suman aquí a medida que Felipe elige)
+   ==================================================================== */
+
+/* ---------- los botones · A · Gota (docs/maquetas/modales-vidrio-2026-10/): nada sólido; el primario es vidrio ahumado de tinta ---------- */
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 20px;border-radius:999px;border:1px solid transparent;
+  font-size:13.5px;font-weight:500;white-space:nowrap;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s,border-color .25s}
+.btn svg{width:16px;height:16px;stroke-width:2}
+.btn.sec{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent)}
+.btn.pri{color:var(--crema);-webkit-backdrop-filter:blur(10px) saturate(1.4);backdrop-filter:blur(10px) saturate(1.4);border-color:color-mix(in srgb,var(--tinta) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--vidrio) 8%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.btn::before{content:"";position:absolute;inset:0;pointer-events:none;transform:translateX(-120%);background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--crema) 38%,transparent) 50%,transparent 65%)}
+.btn.sec::before{background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--vidrio) 80%,transparent) 50%,transparent 65%)}
+@media (hover:hover){.btn:hover{transform:translateY(-2px)}.btn:hover::before{transform:translateX(120%);transition:transform .65s var(--ease)}
+  .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 64%,transparent),color-mix(in srgb,var(--rojo-p) 88%,transparent));border-color:color-mix(in srgb,var(--rojo-p) 70%,transparent)}
+  .btn.sec:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent))}
+  .btn:hover .mas{transform:rotate(90deg)}}
+.btn:active{transform:scale(.97)}
+.btn .mas{transition:transform .3s var(--ease)}
+[data-tema="oscuro"] .btn.sec{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 15%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra)}
+[data-tema="oscuro"] .btn.pri{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 74%,transparent),color-mix(in srgb,var(--tinta) 92%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 60%,transparent),0 8px 18px -10px var(--sombra)}
+@media (hover:hover){[data-tema="oscuro"] .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 74%,transparent),color-mix(in srgb,var(--rojo-p) 92%,transparent))}
+  [data-tema="oscuro"] .btn.sec:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent))}}
+/* la voz de la cabecera: versalitas de 11 px y 40 px (ADR-0358, «Botones — las dos voces») */
+[data-voz="cabecera"] .btn{height:40px;padding:0 18px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase}
+
+/* ---------- la cabecera de pantalla · A · Plana con gotas (docs/maquetas/cabecera-vidrio-2026-10/) ---------- */
+.ep{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px;position:relative}
+.ep-izq{min-width:0;animation:sube .85s var(--ease) .08s backwards}
+.ep-linea{display:flex;align-items:center;gap:12px}
+.ep-sede{display:flex;min-width:0;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.ep-sede .hilo{display:block;width:32px;height:1px;flex:none;background:var(--taupe);transform-origin:left;animation:dibuja-x 1.1s var(--ease) .25s backwards}
+@keyframes dibuja-x{from{transform:scaleX(0)}}
+.ep-titulo{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+.ep-frase{margin-top:10px;max-width:28rem;font-size:15px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.ep-bajo{margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+.ep-acc{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;min-width:0;max-width:100%;animation:sube .85s var(--ease) .15s backwards}
+.volver{position:relative;width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--tinta);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent);transition:transform .25s var(--ease)}
+.volver svg{width:16px;height:16px;stroke-width:1.8;transition:transform .2s var(--ease)}
+@media (hover:hover){.volver:hover{transform:translateY(-1px)}.volver:hover svg{transform:translateX(-2px)}}
+[data-tema="oscuro"] .volver{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 15%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra)}
+/* las cifras de la sede (ResumenSede): la placa Serena */
+.resumen{display:flex;border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .85s var(--ease) .15s backwards}
+[data-tema="oscuro"] .resumen{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+.resumen li{position:relative;list-style:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:9.5rem;padding:16px 28px;text-align:center}
+.resumen li+li::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:1px;background:linear-gradient(transparent,color-mix(in srgb,var(--tinta) 20%,transparent),transparent)}
+.resumen b{font-family:'EB Garamond',serif;font-weight:500;font-size:42px;line-height:1;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.resumen span{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.resumen span svg{width:14px;height:14px;color:var(--taupe);stroke-width:2}
+.resumen .alerta b,.resumen .alerta span{color:var(--ambar)}.resumen .alerta span{font-weight:600}.resumen .alerta span svg{color:currentColor}
+@container disp (max-width:520px){
+  .ep{gap:16px}.ep-titulo{font-size:36px}.ep-izq{width:100%}
+  .resumen{width:100%}.resumen li{min-width:0;flex:1;padding:14px 4px}.resumen b{font-size:20px}.resumen span{font-size:11px;margin-top:6px}.resumen span svg{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}

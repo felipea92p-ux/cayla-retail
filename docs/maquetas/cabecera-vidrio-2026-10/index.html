@@ -142,6 +142,13 @@
 .linea-p .tx{flex:1;min-width:0}.linea-p b{display:block;font-weight:600}.linea-p small{color:var(--t65)}
 .linea-p .num{font-variant-numeric:tabular-nums}
 
+/* La base ya trae las caras elegidas (botones gota, Volver gota, cifras Serena): «Como ahora» y B se las quitan para seguir fieles. */
+:root:not([data-ep]) .btn{box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+:root:not([data-ep]) .btn.pri{border-color:transparent}
+:root:not([data-ep]) .volver{box-shadow:none}
+:root:not([data-ep]) .resumen{border:0;border-radius:20px}
+[data-ep="placa"] .resumen{border:0}
+
 /* ---------- el celular ---------- */
 @container disp (max-width:520px){
   .ep{gap:16px}
@@ -241,7 +248,6 @@ const PANTALLAS = {
   },
 };
 const svi = (d) => sv(d);
-const boton = ([peso, texto, ic]) => `<button class="btn ${peso}">${ic ? `<svg class="ic${ic === 'mas' ? ' mas' : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[ic]}"/></svg>` : ''}${texto}</button>`;
 
 function pintarPantalla(e) {
   const p = PANTALLAS[e.pantalla];

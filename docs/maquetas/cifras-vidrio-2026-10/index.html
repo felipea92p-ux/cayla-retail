@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-tc="placa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tarjetas de cifra con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · las tarjetas de cifra con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pieza: `TarjetaCifra` (components/ui/TarjetaCifra.tsx), 238 usos en 68 archivos. Un nombre (con su punto), un número serif de
+   28 px y una línea de contexto. Cuatro conductas que se ven antes de tocar (ADR-0358, ronda 1): INFORMA (sin marca), LLEVA (la flecha),
+   FILTRA (puesta: fondo arena al 40 %) y SIN DATO (borde punteado y «—» con su motivo; «no se pudo leer» con borde entero).
+   Montada sobre el marco y la cabecera ya elegidos (../vidrio-base-2026-10/). Tres caras + «Como ahora». No cambia qué hace nada.
+   Colores: SOLO tokens. Movimiento: una vez, sin rebote; apagado con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+
+/* ---------- la tarjeta (lo común) ---------- */
+.fila-c{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:28px}
+.tc{position:relative;container-type:inline-size;display:flex;flex-direction:column;text-align:left;width:100%;padding:16px 20px;border-radius:16px;
+  background:var(--papel);border:1px solid var(--sand);animation:sube .6s var(--ease) backwards;animation-delay:calc(180ms + var(--i,0) * 60ms);
+  transition:background .2s var(--ease),border-color .2s,transform .25s var(--ease),box-shadow .25s var(--ease)}
+.tc>*{position:relative;z-index:1}
+a.tc{color:inherit;text-decoration:none}
+.tc-nom{display:block;min-height:20px;font-size:11px;font-weight:700;line-height:20px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+.tc-nom .pto{position:relative;top:-1px;display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;vertical-align:middle;background:color-mix(in srgb,var(--tinta) 25%,transparent)}
+.pto.ambar{background:var(--ambar)!important}.pto.verde{background:var(--verde)!important}.pto.rojo{background:var(--rojo)!important}
+.tc-val{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin-top:4px}
+.tc-val .num{font-family:'EB Garamond',serif;font-weight:600;font-size:28px;line-height:1.25;white-space:nowrap;font-variant-numeric:lining-nums tabular-nums}
+.tc-val .uni{font-size:14px;color:var(--taupe);white-space:nowrap}
+@container (max-width:148px){.tc-val .num{font-size:22px}}
+.tc-ctx{margin-top:4px;display:flex;align-items:flex-end;gap:4px;font-size:12px;color:var(--taupe)}
+.tc-ctx>span{flex:1;min-width:0}
+.tc-ctx.verde{color:var(--verde)}.tc-ctx.ambar{color:var(--ambar)}
+.tc-pie{margin-top:auto;padding-top:8px;font-size:12px;color:var(--taupe)}
+.flecha{width:14px;height:14px;flex:none;stroke-width:2;color:var(--tinta);margin-bottom:1px;transition:transform .25s var(--ease)}
+.ayuda{display:inline-grid;place-items:center;width:18px;height:18px;margin-left:4px;border-radius:50%;border:1px solid var(--borde);font-size:11px;font-weight:700;letter-spacing:0;color:var(--taupe);vertical-align:-4px}
+.enlace{display:inline-flex;align-items:center;gap:4px;min-height:24px;font-size:13px;font-weight:500;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+.enlace svg{width:14px;height:14px;stroke-width:2}
+.reparto{display:block;height:4px;margin-top:8px;border-radius:99px;background:var(--hueso);overflow:hidden}
+.reparto i{display:block;height:100%;width:calc(var(--p) * 100%);border-radius:inherit;background:var(--ambar);transform-origin:left;animation:dibuja-x .9s var(--ease) .5s backwards}
+/* sin dato y no se pudo leer */
+.tc.sindato{background:transparent;border-style:dashed;border-color:var(--borde)}
+.tc.sindato .num{color:var(--t65);font-weight:500}
+.tc.fallo .num{color:var(--t65);font-weight:500}
+.tc.fallo .tc-ctx{color:var(--tinta)}
+/* Como ahora: lleva y filtra, el arena del encima y de la puesta */
+.tc.toca{cursor:pointer}
+@media (hover:hover){:root:not([data-tc]) .tc.toca:not(.puesta):hover{background:color-mix(in srgb,var(--sand) 30%,var(--papel))}}
+:root:not([data-tc]) .tc.puesta{background:color-mix(in srgb,var(--sand) 40%,var(--papel))}
+.tc.puesta .tc-pie{color:var(--tinta);font-weight:600}
+
+/* ====================================================================
+   A · PLACA SERENA: cada tarjeta es la placa de vidrio de las cifras de la cabecera (la misma de ResumenSede). La que lleva se alza al
+   pasar el mouse y su flecha avanza; la que filtra, puesta, se HUNDE: estás adentro de ese filtro.
+   ==================================================================== */
+[data-tc="placa"] .tc:not(.sindato){border-radius:20px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 20px 44px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-tc="placa"] .tc:not(.sindato){background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 20px 44px -30px var(--sombra)}
+[data-tc="placa"] .tc.sindato{border-radius:20px}
+@media (hover:hover){
+  [data-tc="placa"] .tc.toca:not(.puesta):hover{transform:translateY(-2px);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 56%,transparent));
+    box-shadow:inset 0 1px 0 var(--vidrio),0 22px 40px -24px color-mix(in srgb,var(--sombra) 45%,transparent)}
+  [data-tema="oscuro"][data-tc="placa"] .tc.toca:not(.puesta):hover{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,var(--vidrio)),color-mix(in srgb,var(--tinta) 6%,var(--vidrio)))}
+  :is([data-tc="placa"],[data-tc="gotas"]) .tc.toca:hover .flecha{transform:translateX(4px)}
+}
+/* la puesta: hundida, como un campo que ya tiene tu dato */
+:is([data-tc="placa"],[data-tc="gotas"]) .tc.puesta{transform:none;border-color:color-mix(in srgb,var(--borde) 70%,transparent)!important;
+  background:color-mix(in srgb,var(--tinta) 6%,transparent)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 16%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)!important}
+[data-tema="oscuro"]:is([data-tc="placa"],[data-tc="gotas"]) .tc.puesta{background:color-mix(in srgb,var(--sombra) 34%,transparent)!important;box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 50%,transparent)!important}
+:is([data-tc="placa"],[data-tc="gotas"],[data-tc="franja"]) .tc.puesta .tc-nom{color:var(--tinta)}
+
+/* ====================================================================
+   B · PLANA Y GOTAS (el idioma al pie de la letra): la cifra que solo informa no lleva caja —es lo que explica, y queda plana sobre
+   la Aurora, con un hilo arriba—; la que se toca (lleva o filtra) es una gota de vidrio que sobresale; la puesta se hunde.
+   ==================================================================== */
+[data-tc="gotas"] .tc:not(.toca):not(.sindato){background:none;border:0;border-radius:0;padding:14px 4px 4px;box-shadow:none}
+[data-tc="gotas"] .tc:not(.toca):not(.sindato)::before{content:"";position:absolute;left:4px;right:4px;top:0;height:1px;background:linear-gradient(90deg,var(--taupe),color-mix(in srgb,var(--taupe) 0%,transparent));opacity:.55;
+  transform-origin:left;animation:dibuja-x .9s var(--ease) .3s backwards}
+[data-tc="gotas"] .tc.toca{border-radius:22px;border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 42%,transparent));
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 12px 26px -16px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-tc="gotas"] .tc.toca{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 16%,transparent),color-mix(in srgb,var(--tinta) 6%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 12px 26px -16px var(--sombra)}
+@media (hover:hover){[data-tc="gotas"] .tc.toca:not(.puesta):hover{transform:translateY(-2px)}}
+[data-tc="gotas"] .tc.sindato{border-radius:22px}
+
+/* ====================================================================
+   C · FRANJA DE VIDRIO: la fila entera es UNA placa (como las cifras de la cabecera), con un hilo entre cifra y cifra. Lo que se toca se
+   enciende como una gota adentro al pasar el mouse; la puesta es un pozo dentro de la franja.
+   ==================================================================== */
+[data-tc="franja"] .fila-c{gap:0;overflow:hidden;border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .6s var(--ease) .18s backwards}
+[data-tema="oscuro"][data-tc="franja"] .fila-c{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+[data-tc="franja"] .tc{border:0;border-radius:0;background:none;padding:18px 22px;animation:none;
+  box-shadow:-1px 0 0 0 color-mix(in srgb,var(--tinta) 11%,transparent),0 -1px 0 0 color-mix(in srgb,var(--tinta) 11%,transparent)}
+[data-tc="franja"] .tc::after{content:"";position:absolute;inset:6px;z-index:0;border-radius:16px;opacity:0;transition:opacity .25s var(--ease),background .25s}
+@media (hover:hover){[data-tc="franja"] .tc.toca:not(.puesta):hover::after{opacity:1;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));
+    box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+  [data-tema="oscuro"][data-tc="franja"] .tc.toca:not(.puesta):hover::after{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+  [data-tc="franja"] .tc.toca:hover .flecha{transform:translateX(4px)}}
+[data-tc="franja"] .tc.puesta::after{opacity:1;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"][data-tc="franja"] .tc.puesta::after{background:color-mix(in srgb,var(--sombra) 34%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tc="franja"] .tc.sindato .num{color:var(--t65)}
+[data-tc="franja"] .tc.sindato::after{opacity:1;inset:8px;border:1px dashed var(--borde);background:none}
+
+/* ---------- lo de abajo (de muestra; sus piezas son otra auditoría) ---------- */
+.debajo{margin-top:24px;animation:sube .5s var(--ease) .45s backwards}
+.tarjeta-m{background:color-mix(in srgb,var(--papel) 88%,transparent);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.fila-t{display:grid;grid-template-columns:minmax(0,1fr) 140px 120px;gap:12px;align-items:center;padding:12px 18px;border-top:1px solid var(--sand);font-size:13.5px}
+.fila-t:first-child{border-top:0;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.fila-t .num{text-align:right;font-variant-numeric:tabular-nums}
+.fila-t small{display:block;color:var(--t65)}
+.estado{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.estado i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.estado.ambar{color:var(--ambar)}.estado.verde{color:var(--verde)}.estado.rojo{color:var(--rojo)}
+.fila-t.fuera{display:none}
+
+/* ---------- el celular ---------- */
+@container disp (max-width:520px){
+  .fila-c{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  [data-tc="franja"] .fila-c{gap:0}
+  .tc{padding:14px 16px}
+  [data-tc="franja"] .tc{padding:14px 16px}
+  .fila-t{grid-template-columns:minmax(0,1fr) 96px;padding:12px 14px}
+  .fila-t>:nth-child(2){display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Las tarjetas de cifra con vidrio · <code style="font-size:13px">TarjetaCifra</code></span>
+  <span class="tag">Tarjeta</span><div class="seg-m" data-ctl="tc"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa Serena</button><button data-v="gotas">B · Plana y gotas</button><button data-v="franja">C · Franja de vidrio</button></div>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pantalla"><button data-v="compras">Compras (informa y lleva)</button><button data-v="gastos">Gastos (filtra)</button><button data-v="inicio">Inicio (ayuda, acción, sin leer)</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy (<code>components/ui/TarjetaCifra.tsx</code>)</h2>
+    <ul>
+      <li><b>Dónde vive:</b> <b>238 usos en 68 archivos</b>: Compras, Gastos, Caja, Inicio, Existencias, Análisis, Producción, Facturación… Es la única pieza de su familia desde el 2026-10-06 (ADR-0358).</li>
+      <li><b>Cuatro conductas que se ven antes de tocar:</b> informa (sin marca), <b>lleva</b> a otra pantalla (la flecha; 16 con <code>href</code> y otras con <code>onClick</code>), <b>filtra</b> la lista de abajo (32 usos; la puesta en arena al 40 %) y <b>sin dato</b> (46: borde punteado y «—» con su motivo; 13 de ellas «no se pudo leer», con borde entero). 100 llevan su punto de color junto al nombre.</li>
+      <li><b>Qué le pasa sobre el vidrio:</b> hoy es <code>card-cayla</code>: papel macizo con filo arena. Sobre la Aurora, una fila de cuatro tarjetas es el bloque más sólido de la pantalla, justo debajo de la cabecera que acaba de volverse plana con su placa de cifras Serena: dos maneras distintas de mostrar una cifra, una encima de la otra. Y la puesta (arena al 40 %) apenas se distingue del encima (arena al 30 %).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>Como ahora</b></td><td>Papel con filo arena; la que lleva o filtra se tiñe de arena al pasar el mouse; la puesta, arena al 40 %.</td><td>Nada que migrar.</td><td>Es lo sólido que el vidrio quiere quitar, y no se parece a las cifras de la cabecera que eligió Felipe.</td></tr>
+      <tr><td><b>A · Placa Serena</b> <span class="ev">Recomendada</span></td><td>Cada tarjeta es la placa de las cifras de la cabecera. La que lleva se alza 2 px y su flecha avanza; la que filtra, puesta, se hunde.</td><td>Una cifra se ve igual en la cabecera y en la fila: una sola cara para «un número que importa». La puesta hundida se distingue de verdad (antes 1,02:1 contra el encima) y habla el idioma: hundido es «aquí ya está tu elección». Cambia una clase, no la estructura.</td><td>Muchas placas desenfocando a la vez (una fila de 4 a 6, más la de la cabecera): hay que medir en el Mac mini. Con todo en placa, lo que lleva y lo que informa se distinguen solo por la flecha, como hoy.</td></tr>
+      <tr><td><b>B · Plana y gotas</b></td><td>La que solo informa queda sin caja, con un hilo arriba; la que lleva o filtra es una gota que sobresale; la puesta se hunde.</td><td>Es el idioma al pie de la letra: de un vistazo se sabe qué se toca. Menos vidrio que desenfocar.</td><td>Una fila que mezcla (Compras: dos que llevan, una que informa, una sin dato) se ve dispareja, con cajas y huecos. En Inicio, donde casi todo informa, la fila pierde su forma. Y las cifras de la cabecera quedaron en placa: una cifra se vería de dos maneras.</td></tr>
+      <tr><td><b>C · Franja de vidrio</b></td><td>La fila entera es una placa con un hilo entre cifra y cifra, como las de la cabecera. Lo que se toca se enciende adentro al pasar el mouse; la puesta es un pozo dentro de la franja.</td><td>La más serena: un solo vidrio por fila, y rima exacta con las cifras de la cabecera.</td><td>Una cifra suelta (una sola en una columna, la de un cajón) no tiene franja, así que la pieza tendría dos caras. Con pie, acción o una barra de reparto, las celdas se estiran a la más alta. En el celular la franja se parte en 2 × 2 con hilos en cruz.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>A · Placa Serena.</b> Una cifra que importa se ve igual en la cabecera y en la fila, sirve sola o en fila, y la puesta hundida por fin se distingue. B es la más fiel al idioma, pero en las pantallas que mezclan conductas la fila se desarma. C es preciosa en una fila de cuatro iguales, pero la pieza tendría que saber si está sola o acompañada.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Qué hace cada tarjeta y cómo lo dice: el nombre en versalitas con su punto, el número serif de 28 px (22 cuando la tarjeta es angosta), la unidad y el contexto en taupe, la flecha de la que lleva, el «—» punteado de la que no tiene dato y el borde entero de la que no se pudo leer, el (!) de la ayuda, la acción al pie y la barra de reparto. <code>compacta</code> (solo la Vitrina) sigue igual en cualquier cara.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+// ---------- la pantalla de muestra ----------
+const flecha = `<svg class="ic flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="${TRAZOS.flecha}"/></svg>`;
+// t: {nom, pto, num, uni, ctx, ctxTono, pie, conducta: 'informa'|'lleva'|'filtra', filtro, sinDato, fallo, ayuda, accion, reparto}
+function tarjeta(t, i) {
+  const toca = t.conducta === 'lleva' || t.conducta === 'filtra';
+  const tag = t.conducta === 'lleva' ? 'a href="#"' : t.conducta === 'filtra' ? `button type="button" aria-pressed="${filtroPuesto === t.filtro}" data-filtro="${t.filtro}"` : 'div';
+  const cierra = tag.split(' ')[0];
+  const cls = ['tc', toca && 'toca', t.conducta === 'filtra' && filtroPuesto === t.filtro && 'puesta', t.sinDato && 'sindato', t.fallo && 'fallo'].filter(Boolean).join(' ');
+  const ultima = t.pie ? 'pie' : t.ctx ? 'ctx' : 'val';
+  const fl = (donde) => (t.conducta === 'lleva' && ultima === donde ? flecha : '');
+  const num = t.sinDato || t.fallo ? `<span aria-hidden="true">—</span>` : t.num;
+  return `<${tag} class="${cls}" style="--i:${i}">
+    <p class="tc-nom">${t.pto ? `<i class="pto ${t.pto}"></i>` : ''}${t.ayuda ? `${t.nom.slice(0, t.nom.lastIndexOf(' ') + 1)}<span style="white-space:nowrap">${t.nom.slice(t.nom.lastIndexOf(' ') + 1)}<span class="ayuda" title="Lo cobrado hoy, sin anulaciones ni devoluciones.">!</span></span>` : t.nom}</p>
+    <p class="tc-val"><span class="num">${num}</span>${t.uni && !t.sinDato ? `<span class="uni">${t.uni}</span>` : ''}${fl('val') ? `<span style="margin-left:auto;align-self:center">${flecha}</span>` : ''}</p>
+    ${t.ctx ? `<div class="tc-ctx ${t.ctxTono || ''}"><span>${t.ctx}</span>${fl('ctx')}</div>` : ''}
+    ${t.reparto ? `<span class="reparto" aria-hidden="true"><i style="--p:${t.reparto}"></i></span>` : ''}
+    ${t.pie || t.accion ? `<div class="tc-pie">${t.pie ? `<div class="tc-ctx" style="margin:0;color:inherit"><span>${t.pie}</span>${fl('pie')}</div>` : ''}${t.accion ? `<a class="enlace" href="#">${t.accion}${sv(TRAZOS.flecha)}</a>` : ''}</div>` : ''}
+  </${cierra}>`;
+}
+const GASTOS = [['Taxi al proveedor de botones', 'Trujillo', 18, 'aprobado'], ['Bolsas kraft (200)', 'Arequipa', 96, 'por-aprobar'], ['Luz de octubre', 'Lima', 412, 'aprobado'],
+  ['Almuerzo de inventario', 'Trujillo', 64, 'por-aprobar'], ['Pintura de la vitrina', 'Arequipa', 150, 'rechazado'], ['Internet', 'Trujillo', 129, 'aprobado'],
+  ['Hilo y agujas', 'Taller', 38, 'por-aprobar'], ['Courier a Lima', 'Arequipa', 45, 'aprobado'], ['Café de la tienda', 'Lima', 22, 'rechazado'], ['Mantenimiento del POS', 'Trujillo', 80, 'aprobado']];
+const ESTADO = { aprobado: ['verde', 'Aprobado'], 'por-aprobar': ['ambar', 'Por aprobar'], rechazado: ['rojo', 'Rechazado'] };
+let filtroPuesto = 'por-aprobar';
+const PANTALLAS = {
+  compras: {
+    cab: { sede: 'Toda la empresa', titulo: 'Compras', frase: 'Lo que debes, lo que pediste y lo que ya llegó.', acciones: [['pri', 'Nueva orden', 'mas']] },
+    cifras: [
+      { nom: 'Por pagar', pto: 'ambar', num: 'S/ 12,480', ctx: '3 vencen esta semana', ctxTono: 'ambar', conducta: 'lleva' },
+      { nom: 'Comprado en octubre', num: 'S/ 38,920', ctx: '▲ 12 % vs. septiembre', ctxTono: 'verde', conducta: 'informa' },
+      { nom: 'Órdenes en camino', pto: 'neutro', num: '7', uni: 'órdenes', ctx: '2 llegan mañana', conducta: 'lleva' },
+      { nom: 'Facturas sin registrar', sinDato: true, ctx: 'Todavía no llegó ninguna factura este mes.', conducta: 'informa' },
+    ],
+    debajo: () => `<div class="tarjeta-m"><div class="fila-t"><span>Proveedor</span><span>Vence</span><span class="num">Debes</span></div>${['Hilados del Sur', 'Botones Lumbre', 'Telas Mistral', 'Avíos Quillay', 'Cierres Puna', 'Etiquetas Cóndor'].map((p, i) => `<div class="fila-t"><span>${p}<small>${2 + i} facturas</small></span><span>${3 + i * 2} nov</span><span class="num">S/ ${(3420 - i * 410).toLocaleString('es-PE')}</span></div>`).join('')}</div>`,
+  },
+  gastos: {
+    cab: { sede: 'Toda la empresa', titulo: 'Gastos', frase: 'Lo que salió de caja y de las cuentas, y quién lo aprobó.', acciones: [['pri', 'Registrar gasto', 'mas']] },
+    cifras: () => [
+      { nom: 'Todos', num: '48', ctx: 'S/ 6,240 en octubre', conducta: 'filtra', filtro: 'todos' },
+      { nom: 'Por aprobar', pto: 'ambar', num: '6', ctx: 'S/ 412 esperan tu visto', conducta: 'filtra', filtro: 'por-aprobar' },
+      { nom: 'Aprobados', pto: 'verde', num: '39', ctx: 'S/ 5,508', conducta: 'filtra', filtro: 'aprobado' },
+      { nom: 'Rechazados', pto: 'rojo', num: '3', ctx: 'S/ 320', conducta: 'filtra', filtro: 'rechazado' },
+    ],
+    debajo: () => `<div class="tarjeta-m"><div class="fila-t"><span>Gasto</span><span>Estado</span><span class="num">Monto</span></div>${GASTOS.map(([g, s, m, e]) => `<div class="fila-t${filtroPuesto !== 'todos' && filtroPuesto !== e ? ' fuera' : ''}"><span>${g}<small>${s}</small></span><span class="estado ${ESTADO[e][0]}"><i></i>${ESTADO[e][1]}</span><span class="num">S/ ${m.toFixed(2)}</span></div>`).join('')}</div>`,
+  },
+  inicio: {
+    cab: { sede: 'Trujillo', titulo: 'Inicio', frase: 'Cómo va la tienda hoy.' },
+    cifras: [
+      { nom: 'Vendido hoy', pto: 'verde', num: 'S/ 2,520', ayuda: true, ctx: '▲ 8 % vs. el viernes pasado', ctxTono: 'verde', pie: 'Tienda S/ 2,140 · Web S/ 380', conducta: 'informa' },
+      { nom: 'Meta de octubre', num: '84', uni: '%', ctx: 'Faltan S/ 6,900 en 1 día', reparto: 0.84, accion: 'Ver el plan', conducta: 'informa' },
+      { nom: 'Por reponer', pto: 'ambar', num: '46', uni: 'prendas', ctx: '12 se acabaron en el piso', ctxTono: 'ambar', conducta: 'lleva' },
+      { nom: 'Clientes nuevos', fallo: true, ctx: 'No se pudo leer: la base no respondió. Vuelve a intentar en un rato.', conducta: 'informa' },
+    ],
+    debajo: () => `<div class="tarjeta-m"><div class="fila-t"><span>Lo que toca hoy</span><span>Quién</span><span class="num">Hora</span></div>${['Bajar al piso las blusas Emma', 'Recibir el envío de Lima', 'Cerrar la caja', 'Contar los jeans Río', 'Etiquetar lo que llegó ayer'].map((x, i) => `<div class="fila-t"><span>${x}</span><span>${['Rosa', 'Lucía', 'Carmen', 'Rosa', 'Ana'][i]}</span><span class="num">${10 + i * 2}:00</span></div>`).join('')}</div>`,
+  },
+};
+function pintarPantalla(e) {
+  const p = PANTALLAS[e.pantalla];
+  const cifras = typeof p.cifras === 'function' ? p.cifras() : p.cifras;
+  $('#cont').innerHTML = `${encabezado(p.cab)}<div class="fila-c">${cifras.map(tarjeta).join('')}</div><div class="debajo">${p.debajo()}</div>`;
+}
+document.addEventListener('click', (ev) => {
+  const f = ev.target.closest('[data-filtro]');
+  if (f) { filtroPuesto = f.dataset.filtro;
+    // cambia la puesta sin volver a pintar (si no, la fila entraría otra vez en cascada)
+    $$('[data-filtro]').forEach((b) => { const on = b === f; b.classList.toggle('puesta', on); b.setAttribute('aria-pressed', on); });
+    $$('.debajo .fila-t').forEach((r, i) => { if (i) r.classList.toggle('fuera', filtroPuesto !== 'todos' && filtroPuesto !== GASTOS[i - 1][3]); });
+    return; }
+  if (ev.target.closest('.cont a')) ev.preventDefault();
+});
+Marco.iniciar({ estado: { tc: 'placa', pantalla: 'compras' }, alPintar: (e) => { $('#cont').scrollTop = 0; pintarPantalla(e); } });
+</script>
+</body>
+</html>

@@ -238,3 +238,23 @@ Marco.iniciar = ({ estado: propio = {}, alPintar, alAccion } = {}) => {
   pintar(); pintarCombosDelContenido();
 };
 $('#cont').addEventListener('scroll', () => { if ($('.cb-lista.abierta')) cerrarCombos(); }, { passive: true });
+
+// ---------- piezas ya elegidas que toda pantalla trae ----------
+// La cabecera de pantalla · A · Plana con gotas (EncabezadoPagina). `cifras`: [[valor, etiqueta, trazo, alerta]]; `acciones`: [[peso, texto, trazo]].
+const TRAZOS = {
+  volver: 'M19 12H5M11 6l-6 6 6 6', mas: 'M12 5v14M5 12h14', descargar: 'M12 3v12M7 10l5 5 5-5M5 21h14', flecha: 'M5 12h14M13 6l6 6-6 6',
+  imprimir: 'M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z',
+  recibir: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6',
+  caja: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+};
+const boton = ([peso, texto, ic]) => `<button class="btn ${peso}">${ic ? `<svg class="ic${ic === 'mas' ? ' mas' : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${TRAZOS[ic]}"/></svg>` : ''}${texto}</button>`;
+function encabezado({ sede, fecha = 'viernes, 31 de octubre · 16:42', detalle, titulo, frase, volver, pie, cifras, acciones }) {
+  const derecha = cifras
+    ? `<ul class="resumen" aria-label="Resumen de ${sede}">${cifras.map(([v, t, ic, alerta]) => `<li${alerta ? ' class="alerta"' : ''}><b>${v}</b><span>${sv(TRAZOS[ic])}${t}</span></li>`).join('')}</ul>`
+    : acciones ? `<div class="ep-acc">${acciones.map(boton).join('')}</div>` : '';
+  const bajo = pie || (cifras && acciones) ? `<div class="ep-bajo">${pie || ''}${cifras && acciones ? acciones.map(boton).join('') : ''}</div>` : '';
+  return `<header class="ep" data-voz="cabecera"><div class="ep-izq">
+      <div class="ep-linea">${volver ? `<a class="volver" href="#" aria-label="Volver a ${volver}" title="Volver a ${volver}">${sv(TRAZOS.volver)}</a>` : ''}
+        <p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>${sede} · ${fecha}${detalle ? ` · ${detalle}` : ''}</span></p></div>
+      <h1 class="ep-titulo">${titulo}</h1>${frase ? `<p class="ep-frase">${frase}</p>` : ''}${bajo}</div>${derecha}</header>`;
+}

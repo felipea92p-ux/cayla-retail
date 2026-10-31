@@ -42,12 +42,13 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 
 ## 3. Las pantallas (por cuántas veces se ven)
 
-Cada maqueta de esta sección va montada sobre el marco ya elegido, que vive aparte en `docs/maquetas/vidrio-base-2026-10/`.
+Cada maqueta de esta sección va montada sobre el marco ya elegido, que vive aparte en `docs/maquetas/vidrio-base-2026-10/` junto con
+las piezas que ya eligió Felipe y toda pantalla trae (los botones gota y la cabecera A).
 
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
 | Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | Elegido | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
-| Tarjetas de cifra | `ui/TarjetaCifra.tsx` | Por auditar | — | — |
+| Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | En maqueta | — (recomendada: A · Placa Serena) | `cifras-vidrio-2026-10/` |
 | Tablas | `ui/Tabla` + `.fila-cayla` | Por auditar | — | — |
 | Pestañas de sección | `ui/Pestanas` | Por auditar | — | — |
 | Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
