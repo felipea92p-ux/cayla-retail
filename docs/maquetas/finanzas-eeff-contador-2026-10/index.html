@@ -19,6 +19,7 @@
   --borde: #8d7a6e; --rojo: #e8806a; --rojo-p: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --sombra: #000; color-scheme: dark }
 
 * { box-sizing: border-box }
+[hidden] { display: none !important }
 body { background: var(--crema); color: var(--tinta); font: 14px/1.5 var(--sans); padding-block: 20px 64px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
 .envoltura { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
@@ -72,6 +73,18 @@ button { font: inherit; color: inherit; cursor: pointer }
 .tarjeta small { color: var(--taupe); font-size: 12.5px }
 @media (max-width: 900px) { .tarjetas { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 
+/* C · La barra horizontal: la pestaña de vista del ERP (vidrio con 4 px de aire, la elegida en una píldora de tinta, versalitas) */
+.barra-vistas { display: flex; align-items: center; gap: 2px; max-width: 100%; padding: 4px; border-radius: 14px; overflow-x: auto; scrollbar-width: none;
+  background: color-mix(in srgb, var(--papel) 70%, transparent); border: 1px solid var(--sand) }
+.barra-vistas::-webkit-scrollbar { display: none }
+.vista { flex: none; min-height: 36px; padding: 0 15px; border: 0; border-radius: 10px; background: none; font-size: 12px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; white-space: nowrap; color: var(--tinta); transition: background-color .2s, color .2s }
+@media (hover: hover) { .vista:hover { background: color-mix(in srgb, var(--tinta) 6%, transparent) } }
+.vista[aria-current="page"] { background: var(--tinta); color: var(--crema) }
+@media (max-width: 1180px) { .vista { padding: 0 10px; letter-spacing: .08em } .separa { margin: 0 3px } }
+.vista:focus-visible { outline: 2px solid var(--tinta); outline-offset: -2px }
+.separa { flex: none; width: 1px; height: 20px; background: var(--sand); margin: 0 6px }
+
 /* El cuerpo */
 .cuerpo { background: var(--papel); border: 1px solid var(--sand); border-radius: 20px; padding: 24px clamp(16px, 3vw, 28px); min-width: 0 }
 .cuerpo-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px }
@@ -107,10 +120,11 @@ td .cta { color: var(--taupe); margin-right: 6px }
 
 <div class="envoltura">
   <div class="barra-maqueta">
-    <p><b>Maqueta</b> · Estados financieros, números de ejemplo de octubre. Toca los botones de arriba a la derecha de la pantalla para probar cada opción.</p>
+    <p><b>Maqueta</b> · Estados financieros, números de ejemplo de octubre. Cambia de opción aquí al lado y toca la pantalla como si fuera el ERP.</p>
     <div class="opciones" role="group" aria-label="Qué opción mirar">
       <button type="button" id="opA" aria-pressed="false">A · Dos menús (hoy)</button>
-      <button type="button" id="opB" aria-pressed="true">B · Un menú «Para el contador»</button>
+      <button type="button" id="opB" aria-pressed="false">B · Un menú «Para el contador»</button>
+      <button type="button" id="opC" aria-pressed="true">C · Barra horizontal</button>
     </div>
   </div>
   <div class="nota-opcion" id="nota"></div>
@@ -124,6 +138,7 @@ td .cta { color: var(--taupe); margin-right: 6px }
       </div>
       <div class="acciones" id="acciones"></div>
     </header>
+    <nav class="barra-vistas" id="barra" aria-label="Qué ver" hidden></nav>
     <div class="tarjetas" id="tarjetas"></div>
     <div class="cuerpo" id="cuerpo"></div>
   </section>
@@ -176,7 +191,7 @@ const TABLAS = {
     ["7 oct", "G-7", "104 Cuentas corrientes", null, 1200, "Alquiler de octubre"]] },
 };
 
-const estado = { opcion: "B", estado: "ganamos", cuadro: null, abierto: null };
+const estado = { opcion: "C", estado: "ganamos", cuadro: null, abierto: null };
 
 function avisar(t) { const a = document.getElementById("aviso"); a.textContent = t; a.hidden = false; clearTimeout(avisar.t); avisar.t = setTimeout(() => (a.hidden = true), 2800); }
 
@@ -196,6 +211,8 @@ function pintarAcciones() {
     h += '</div><div style="position:relative"><button type="button" class="btn" data-abre="bajar" aria-expanded="' + (estado.abierto === "bajar") + '">' + ICO.bajar + "Descargar para el contador" + ICO.chev + "</button>";
     if (estado.abierto === "bajar") h += menuHtml("m-bajar", CUADROS.map((c) => ({ k: c.k, n: c.n, accion: "bajar" })));
     h += "</div>";
+  } else if (estado.opcion === "C") {
+    h = "";
   } else {
     h += '<div style="position:relative"><button type="button" class="btn" data-abre="contador" aria-expanded="' + (estado.abierto === "contador") + '">' + ICO.libro + "Para el contador" + ICO.chev + "</button>";
     if (estado.abierto === "contador") h += menuHtml("m-contador", [{ grupo: "Los cuatro estados, en su formato" }, ...CUADROS.slice(0, 4).map((c) => ({ k: c.k, n: c.n, accion: "ver", marca: estado.cuadro === c.k })),
@@ -205,9 +222,22 @@ function pintarAcciones() {
   el.innerHTML = h;
 }
 
+function pintarBarra() {
+  const el = document.getElementById("barra");
+  el.hidden = estado.opcion !== "C";
+  if (el.hidden) return;
+  const b = (k, n) => '<button type="button" class="vista" data-vista="' + k + '" aria-current="' + ((estado.cuadro ?? "respuestas") === k ? "page" : "false") + '">' + n + "</button>";
+  // Nombres cortos para que las siete entren en una fila de escritorio; el nombre completo va en el título de cada cuadro.
+  const corto = { resultados: "Resultados", flujo: "Flujo de efectivo", balance: "Balance", patrimonio: "Patrimonio", saldos: "Saldos por cuenta", diario: "Libro diario" };
+  const sep = '<span class="separa" aria-hidden="true"></span>';
+  el.innerHTML = b("respuestas", "Respuestas") + sep + CUADROS.slice(0, 4).map((c) => b(c.k, corto[c.k])).join("") + sep + CUADROS.slice(4).map((c) => b(c.k, corto[c.k])).join("");
+}
+
 function pintarTarjetas() {
   const activa = estado.opcion === "B" && estado.cuadro ? null : estado.estado;
-  document.getElementById("tarjetas").innerHTML = ESTADOS.map((e) =>
+  const t = document.getElementById("tarjetas");
+  t.hidden = estado.opcion === "C" && !!estado.cuadro;
+  t.innerHTML = ESTADOS.map((e) =>
     '<button type="button" class="tarjeta" data-estado="' + e.k + '" aria-current="' + (e.k === activa) + '"><span class="preg"><i class="' + e.p + '"></i>' + e.preg +
     '</span><span class="v num">' + e.v + "</span><small>" + e.c + "</small></button>").join("");
 }
@@ -223,7 +253,7 @@ function tabla(k) {
       if (esTexto(i)) {
         const s = String(v).replace(/^= /, "");
         if (t.cuentas && i === 2 && /^\d/.test(s)) return '<td><span class="cta num">' + s.split(" ")[0] + "</span>" + s.split(" ").slice(1).join(" ") + "</td>";
-        if (t.cuentas && i === 0 && /^\d/.test(s)) return '<td><span class="cta num">' + s.split(" ")[0] + "</span>" + s.split(" ").slice(1).join(" ") + "</td>";
+        if (t.cuentas && !t.texto && i === 0 && /^\d/.test(s)) return '<td><span class="cta num">' + s.split(" ")[0] + "</span>" + s.split(" ").slice(1).join(" ") + "</td>";
         return "<td>" + s + "</td>";
       }
       return '<td class="n">' + (v == null ? "" : v === 0 ? "—" : soles(v)) + "</td>";
@@ -250,26 +280,35 @@ function pintarCuerpo() {
   let cab = '<div class="cuerpo-cab"><div class="izq">';
   if (estado.opcion === "B") cab += '<button type="button" class="volver" data-volver aria-label="Volver a las respuestas" title="Volver a las respuestas">' + ICO.atras + "</button>";
   cab += '<div><span class="versalita">Para el contador · octubre</span><h2>' + c.n + cuadra + "</h2></div></div>";
-  if (estado.opcion === "B") cab += '<button type="button" class="btn chico" data-bajar="' + c.k + '">' + ICO.bajar + "Descargar Excel</button>";
+  if (estado.opcion !== "A") cab += '<button type="button" class="btn chico" data-bajar="' + c.k + '">' + ICO.bajar + "Descargar Excel</button>";
   cab += "</div>";
   const pie = estado.cuadro === "diario" ? '<p class="leyenda-v">El mes real pasa de 5,000 líneas: se busca por cuenta, asiento o glosa y se ve de a 100.</p>' : "";
   el.innerHTML = cab + tabla(estado.cuadro) + pie;
 }
 
 function pintarNota() {
-  document.getElementById("nota").innerHTML = estado.opcion === "A"
+  document.getElementById("nota").innerHTML = estado.opcion === "C"
+    ? "<div><b>Cómo funciona</b>Las siete vistas siempre a la vista en una barra, con la elegida en negro: un toque y cambias. Primero las respuestas, después los cuatro estados en formato formal y al final lo que sirve para cuadrar. Cada cuadro trae su «Descargar Excel».</div><div><b>Lo que cuesta</b>Una fila más en la pantalla. En el celular la barra se desliza de costado.</div>"
+    : estado.opcion === "A"
     ? "<div><b>Cómo funciona</b>«Ver» cambia lo que ves en pantalla. Al lado, «Descargar para el contador» tiene la misma lista de seis y baja un archivo sin abrirlo.</div><div><b>Lo que cuesta</b>Dos menús con la misma lista, uno junto al otro: hay que saber cuál tocar.</div>"
     : "<div><b>Cómo funciona</b>Un solo menú abre cualquiera de los seis cuadros. Cada cuadro trae su «Descargar Excel», y la flecha o una tarjeta vuelven a las respuestas.</div><div><b>Lo que cuesta</b>Para bajar un archivo primero se abre el cuadro: un clic más, pero ves lo que bajas.</div>";
   document.getElementById("opA").setAttribute("aria-pressed", estado.opcion === "A");
   document.getElementById("opB").setAttribute("aria-pressed", estado.opcion === "B");
+  document.getElementById("opC").setAttribute("aria-pressed", estado.opcion === "C");
 }
 
-function pintar() { pintarNota(); pintarAcciones(); pintarTarjetas(); pintarCuerpo(); }
+function pintar() { pintarNota(); pintarAcciones(); pintarBarra(); pintarTarjetas(); pintarCuerpo(); }
 
 document.addEventListener("click", (ev) => {
   const t = ev.target.closest("button");
   if (!t) { if (estado.abierto) { estado.abierto = null; pintarAcciones(); } return; }
-  if (t.id === "opA" || t.id === "opB") { estado.opcion = t.id === "opA" ? "A" : "B"; estado.abierto = null; pintar(); return; }
+  if (t.id === "opA" || t.id === "opB" || t.id === "opC") { estado.opcion = t.id.slice(2); estado.abierto = null; pintar(); return; }
+  if (t.dataset.vista) {
+    const k = t.dataset.vista;
+    if (k === "respuestas") estado.cuadro = null;
+    else { estado.cuadro = k; const c = CUADROS.find((x) => x.k === k); if (c.estado) estado.estado = c.estado; }
+    pintar(); return;
+  }
   if (t.dataset.abre) { estado.abierto = estado.abierto === t.dataset.abre ? null : t.dataset.abre; pintarAcciones(); return; }
   if (t.dataset.accion === "ver") {
     const k = t.dataset.k;
