@@ -293,66 +293,6 @@ export function planDeFila(t: TelaBorrador, tallas: readonly TallaDeLaOrden[], p
   return aMilesimas(tallas.reduce((s, x) => s + c[x.talla] * x.cantidad, 0) * (1 + merma));
 }
 
-/** Una fila de color de la tabla de telas: cuál es (`indice` nulo = el color todavía no tiene fila), lo que tiene y las tallas con prendas de ese color. */
-export type FilaDeColorParaTodos = { indice: number | null; tela: TelaBorrador; tallas?: readonly TallaDeLaOrden[] };
-
-/**
- * «Para todos los colores» (Felipe, 2026-10-31): lo mismo en la fila de cada color de la orden, de una vez, en vez de una por una. Las filas que existen reciben el `parche`; las que no, nacen
- * con él ANTES del primer material que no es de ningún color (los avíos y el forro van siempre al final, como en `ponerColor`). Lo demás no se toca: ni los avíos, ni el forro, ni el orden.
- * El parche puede depender de la fila (`parcheDeTodos`: cada color tiene sus tallas). Sin filas de color, no hace nada.
- */
-export function ponerEnTodosLosColores(
-  telas: readonly TelaBorrador[],
-  filasDeColor: readonly FilaDeColorParaTodos[],
-  parche: Partial<TelaBorrador> | ((fila: FilaDeColorParaTodos) => Partial<TelaBorrador>)
-): TelaBorrador[] {
-  if (filasDeColor.length === 0) return [...telas];
-  const de = (f: FilaDeColorParaTodos) => (typeof parche === "function" ? parche(f) : parche);
-  const reclamadas = new Map(filasDeColor.flatMap((f) => (f.indice === null ? [] : [[f.indice, f] as const])));
-  const nuevas = filasDeColor.filter((f) => f.indice === null).map((f) => ({ ...f.tela, ...de(f) }));
-  const actualizadas = telas.map((t, i) => {
-    const f = reclamadas.get(i);
-    return f ? { ...t, ...de({ ...f, tela: t }) } : t;
-  });
-  const primerMaterial = telas.findIndex((_, i) => !reclamadas.has(i));
-  const corte = primerMaterial === -1 ? telas.length : primerMaterial;
-  return [...actualizadas.slice(0, corte), ...nuevas, ...actualizadas.slice(corte)];
-}
-
-/** Escribe `valor` en la talla `talla` de la fila de un color que la tiene (si el color aún no estaba por talla, se separa antes, partiendo de su cifra única); un color sin esa talla, o de una sola, no cambia. */
-function parcheDeUnaTalla(talla: string, valor: string): (fila: FilaDeColorParaTodos) => Partial<TelaBorrador> {
-  return ({ tela, tallas = [] }) => {
-    if (!admitePorTalla(tallas) || !tallas.some((x) => x.talla === talla)) return {};
-    const base = usaPorTalla(tela, tallas) ? tela : separarPorTalla(tela, tallas);
-    return { porTalla: { ...(base.porTalla ?? {}), [talla]: valor } };
-  };
-}
-
-/** Lo que la persona escribió en el recuadro «Los mismos metros en todos los colores» y todavía no copió: UNA cifra o una por talla (`porTalla` con valor = modo por talla). La tela NO se copia: cada color lleva la suya. */
-export type BorradorParaTodos = { consumo: string; porTalla: Record<string, string> | null };
-
-/**
- * Lo que el botón «Copiar a todos los colores» copia a la fila de cada color, en UNA sola pasada (dos seguidas sobre la misma lista se pisarían): los metros por prenda —una cifra, o la de cada
- * talla que tenga cifra—. La tela de cada color no se toca (Felipe, 2026-10-31: «solo copiarse el input de los números, no del combo»). Lo que está vacío no se copia ni borra nada (como
- * «Llenar todas con»). `null` = no hay nada que copiar: el botón sale apagado.
- */
-export function parcheDeTodos(b: BorradorParaTodos): ((fila: FilaDeColorParaTodos) => Partial<TelaBorrador>) | null {
-  const tallas = b.porTalla === null ? [] : Object.entries(b.porTalla).filter(([, v]) => v.trim() !== "");
-  const unaCifra = b.porTalla === null && b.consumo.trim() !== "";
-  if (!unaCifra && tallas.length === 0) return null;
-  return (fila) => {
-    let tela = fila.tela;
-    let junto: Partial<TelaBorrador> = {};
-    const sumar = (p: Partial<TelaBorrador>) => {
-      junto = { ...junto, ...p };
-      tela = { ...tela, ...p };
-    };
-    if (unaCifra) sumar({ consumoPorPrenda: b.consumo, porTalla: null });
-    for (const [talla, valor] of tallas) sumar(parcheDeUnaTalla(talla, valor)({ ...fila, tela }));
-    return junto;
-  };
-}
-
 /** «Separar por talla»: cada talla parte de la cifra única que ya había (o de la que ya tenía escrita). Sin dos tallas, no hace nada. */
 export function separarPorTalla(t: TelaBorrador, tallas: readonly TallaDeLaOrden[]): TelaBorrador {
   if (!admitePorTalla(tallas)) return t;

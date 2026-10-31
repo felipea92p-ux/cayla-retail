@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Punto } from "@/components/alta-producto/Punto";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -17,8 +16,6 @@ import {
   cantidadAPedir,
   consumoSugerido,
   planDeFila,
-  parcheDeTodos,
-  ponerEnTodosLosColores,
   prendasDeLaFila,
   separarPorTalla,
   tallasDeLaFila,
@@ -170,18 +167,6 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
       onTelas([...telas.slice(0, primerAvio), nueva, ...telas.slice(primerAvio)]);
     }
   }
-  // «Los mismos metros en todos los colores» (2026-10-31): un recuadro aparte donde se escriben los metros por prenda (o una cifra por talla) y, SOLO al pulsar «Copiar a todos los colores»,
-  // se copian a la fila de cada color. La TELA no se copia (cada color lleva la suya). Lo vacío no se copia ni borra nada, y cada fila se corrige después por su cuenta. Solo en Nueva orden (editar una orden abierta no repite lo ya anotado).
-  // `porTalla` nulo = una sola cifra; con valor = una cifra por talla (las tallas de toda la orden), que se copia a cada color que tiene esa talla.
-  const [paraTodos, setParaTodos] = useState<{ consumo: string; porTalla: Record<string, string> | null }>({ consumo: "", porTalla: null });
-  const hayVariosColores = !edicion && colores.length >= 2;
-  const tallasDeTodas = tallasDeLaFila(null, coloresOrden);
-  const puedeSepararParaTodos = porColor.some((f) => admitePorTalla(f.color.tallas ?? [])) && admitePorTalla(tallasDeTodas);
-  const todosPorTalla = paraTodos.porTalla !== null && puedeSepararParaTodos;
-  const copiaDeTodos = parcheDeTodos({ ...paraTodos, porTalla: todosPorTalla ? paraTodos.porTalla : null });
-  function ponerEnTodos(parche: Parameters<typeof ponerEnTodosLosColores>[2]) {
-    onTelas(ponerEnTodosLosColores(telas, porColor.map((f) => ({ indice: f.indice, tela: f.tela, tallas: f.color.tallas ?? [] })), parche));
-  }
   function ponerAvio(indice: number, parche: Partial<TelaBorrador>) {
     onTelas(telas.map((t, i) => (i === indice ? { ...t, ...parche } : t)));
   }
@@ -203,9 +188,9 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
   const problemasDe = (indice: number | null) => (indice === null ? [] : problemas.filter((p) => p.indice === indice));
 
   /** Las opciones del combo de tela: las del tejido del modelo primero (y entre ellas, la del color de la fila), las demás bajo «Otras telas». */
-  function opcionesTela(colorCodigo: string | null, elegidaId: string | null): Opcion<string>[] {
+  function opcionesTela(fila: (typeof porColor)[number]): Opcion<string>[] {
     const texto = (i: InsumoDelTaller) => `${i.nombre} · hay ${cantidad(i.saldo, i.unidad)}`;
-    const delColor = (lista: InsumoDelTaller[]) => [...lista].sort((a, b) => Number(b.colorCodigo === colorCodigo) - Number(a.colorCodigo === colorCodigo));
+    const delColor = (lista: InsumoDelTaller[]) => [...lista].sort((a, b) => Number(b.colorCodigo === fila.color.codigo) - Number(a.colorCodigo === fila.color.codigo));
     const primero = tejidoId ? delColor(delTejido) : delColor(telasDelEstante);
     const resto = tejidoId ? telasDelEstante.filter((i) => i.tejidoId !== tejidoId) : [];
     // Los grupos solo cuando hay dos: con el tejido del modelo sin telas en el estante, las demás van sueltas (la frase de arriba ya lo explica).
@@ -215,7 +200,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
       ...resto.map((i) => ({ valor: i.id, texto: texto(i), grupo: conGrupos ? "Otras telas" : undefined })),
     ];
     // La elegida que ya no está en el estante (se archivó) se sigue viendo con su nombre, pero no se vuelve a elegir.
-    const elegida = elegidaId ? porId.get(elegidaId) : undefined;
+    const elegida = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
     if (elegida && !opciones.some((o) => o.valor === elegida.id)) opciones.unshift({ valor: elegida.id, texto: `${elegida.nombre} · archivada`, deshabilitada: true });
     return opciones;
   }
@@ -268,76 +253,6 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
           </Aviso>
         )}
 
-        {hayVariosColores && (
-          <div data-guia="prod-orden-nueva.tela-todos" className="space-y-3 rounded-2xl border border-dashed border-borde-control bg-hueso/40 px-3.5 py-3">
-            <div className="min-w-0">
-              <p className="font-display text-[15px] leading-tight text-tinta">Los mismos metros en todos los colores</p>
-              <p className="text-[12.5px] text-tinta/70">
-                Escribe cuánto lleva cada prenda una sola vez y pulsa «Copiar a todos los colores»: se pone en cada color. La tela de cada color la eliges abajo, y después puedes cambiar uno.
-              </p>
-            </div>
-            {!todosPorTalla && (
-              <div className="w-[8.5rem]">
-                <CampoTexto
-                  id="tela-todos-consumo"
-                  etiqueta="m por prenda"
-                  mono
-                  inputMode="decimal"
-                  placeholder={consumoSugerido(consumoDeclarado) || "0.000"}
-                  value={paraTodos.consumo}
-                  onChange={(e) => setParaTodos((p) => ({ ...p, consumo: e.target.value }))}
-                  pie={pieDelConsumo(consumoDeclarado)}
-                  tono="neutro"
-                />
-              </div>
-            )}
-            {todosPorTalla && (
-              <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-                {tallasDeTodas.map((x) => (
-                  <div key={x.talla} className="w-[6.75rem]">
-                    <CampoTexto
-                      id={`tela-todos-consumo-${x.talla}`}
-                      etiqueta={`Talla ${x.talla}`}
-                      mono
-                      inputMode="decimal"
-                      placeholder="0.000"
-                      value={paraTodos.porTalla?.[x.talla] ?? ""}
-                      onChange={(e) => {
-                        const valor = e.target.value;
-                        setParaTodos((p) => ({ ...p, porTalla: { ...(p.porTalla ?? {}), [x.talla]: valor } }));
-                      }}
-                      pie={`${x.cantidad} ${x.cantidad === 1 ? "prenda" : "prendas"}`}
-                      tono="neutro"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              {puedeSepararParaTodos ? (
-                todosPorTalla ? (
-                  <button type="button" className="btn-cayla btn-enlace" onClick={() => setParaTodos((p) => ({ ...p, porTalla: null }))}>
-                    Una cifra para todas las tallas
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-cayla btn-enlace"
-                    onClick={() => setParaTodos((p) => ({ ...p, porTalla: Object.fromEntries(tallasDeTodas.map((x) => [x.talla, p.consumo])) }))}
-                  >
-                    Separar por talla
-                  </button>
-                )
-              ) : (
-                <span />
-              )}
-              <Boton type="button" peso="fantasma" disabled={copiaDeTodos === null} onClick={() => copiaDeTodos && ponerEnTodos(copiaDeTodos)}>
-                Copiar a todos los colores
-              </Boton>
-            </div>
-          </div>
-        )}
-
         <div className="divide-y divide-sand rounded-2xl border border-sand bg-crema">
           {porColor.map((fila) => {
             const insumo = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
@@ -346,7 +261,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
             const veredicto = insumo && plan > 0 && usado === 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, fila.indice), enCamino.get(insumo.id) ?? 0) : null;
             const costo = conCostos && insumo && plan > 0 ? costoPorMetro.get(insumo.id) : undefined;
             const pies = piesDe(problemasDe(fila.indice), fila.tela);
-            const opciones = opcionesTela(fila.color.codigo, fila.tela.insumoId);
+            const opciones = opcionesTela(fila);
             const tallas = fila.color.tallas ?? [];
             const porTallaActiva = usaPorTalla(fila.tela, tallas);
             const puedePorTalla = admitePorTalla(tallas);
