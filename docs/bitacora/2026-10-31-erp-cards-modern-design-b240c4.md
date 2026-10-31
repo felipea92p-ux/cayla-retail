@@ -32,3 +32,8 @@ y cuadrado). En local, las 15 tarjetas dicen en el botón tantas tallas como cel
 sobre el ámbar a 3,8:1; se corrigió y la tarjeta queda sin hallazgos en claro y oscuro, a 1440 y a 375 px.
 Qué queda: los filtros «Hoy» y «Por colgar» y el consejo del modal siguen al motor (con el piso en pausa dicen «en pausa»), y falta repetir la
 prueba ciega sobre la tarjeta corregida.
+
+## 2026-10-31 (d) (Existencias: la prueba ciega, repetida sobre la tarjeta corregida)
+Qué hice: repetí la prueba ciega (Sonnet, la misma tarea, capturas nuevas). Armó bien la lista de lo que hay que colgar, con tallas, en 4 toques (antes 6).
+En Pantalón Carla contó 28, 30 y 32 y dejó fuera la 34 «porque tiene ✓», y leyó piso y almacén sin preguntar. Ley 1 y ley 3 suben a 8; la tarjeta,
+7,8. Quedan tres dudas de la tarjeta en la lista aparte: que el número es del color que se ve, el porqué del ✓ y «· 2 tallas» leído como unidades.

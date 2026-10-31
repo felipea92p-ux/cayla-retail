@@ -127,6 +127,8 @@ Cuadrar el piso de cada sede vale más que cualquier ajuste de diseño.
 - H6 (heredado): tocar el nombre abre la primera talla «por colgar»; con el motor en pausa cae a la primera (S).
 - H8: la chapa sobre una prenda negra en oscuro, sin captura que lo pruebe.
 - Refutado: H7 (la primera tarjeta bajo el pliegue a 1024 es el marco, no la tarjeta: F4 del 12-oct).
+- De la segunda ciega (2026-10-31): el número es del color que se ve y nada lo dice en la tira (la duda volvió por los puntos); el ✓ de la talla «mantener»
+  no dice por qué no hace falta colgarla; «Colgar en el piso · 2 tallas» se puede leer como 2 unidades.
 
 ## Estado de los 3 cambios del 12-oct
 1. Talla y almacén a 12 px: **abierto y empeorado** por este rediseño (es el cambio 1 de arriba).
@@ -144,6 +146,22 @@ Cuadrar el piso de cada sede vale más que cualquier ajuste de diseño.
 | Errores evitables | esperaba «Colgar» dentro de «Más» (vive en el botón de al lado) | — |
 | Orden de la mirada | foto → nombre y precio → número grande y botón | sí (contenido primero) |
 
+## Segunda prueba ciega (2026-10-31, después de los 3 cambios; mismo agente Sonnet, misma tarea, capturas nuevas)
+| Medida | Primera (antes) | Segunda (después) |
+|---|---|---|
+| Lectura de 5 s | bien, pero «no entendí qué es piso y qué es almacén» | bien, y sin preguntar: «los números grandes, lo colgado; los chiquitos de abajo (+6, +10), lo guardado» |
+| Primer intento | sí, con dudas | sí, con dudas (las del aviso del cuadre, que son del marco) |
+| Pasos | 6 toques (+2 para cerrar) | 4 toques; con lo que ya dice la lista, 2 |
+| Lista de lo que hay que colgar | armada a mano; no supo cuáles son «las 3 tallas» de Pantalón Carla | **correcta y con tallas**: Pantalón Carla 28, 30 y 32, «la 34 tiene ✓ y no la conté» |
+| Dudas de la tarjeta | «Beige · 2 colores» · «3 tallas» con 4 vacías | el 20 ¿es solo del Beige? (ahora por los puntos, no por el texto) · por qué la 34 lleva ✓ con 0 colgadas · «2 tallas» ¿tallas o unidades? · la letra de la talla ¿es talla o cantidad? |
+| Dudas del marco | «275 de 180», el aviso del cuadre, «Piso en pausa», la leyenda | las mismas, más «2 pendientes hoy», «Recomendados», «Sin stock atrás» |
+| Palabras no entendidas de la tarjeta | ninguna | ninguna («+6» se entendió con la leyenda) |
+
+**Lo que cerró:** «3 tallas vs 4» (ley 3) y «Beige · 2 colores» como texto (ley 4); la lectura de piso y almacén ya no pide explicación. **Lo que queda de la tarjeta**,
+a la lista aparte: que el número es del color que se ve (la duda volvió por los puntos), el porqué del ✓ con 0 colgadas (la leyenda lo nombra, pero no dice
+por qué) y «· 2 tallas», que se puede leer como unidades. Notas que suben con evidencia [Observado]: **ley 1 a 8** (el tope sin la pasada real), **ley 3 a 8**.
+Real: **sin probar**.
+
 ## Antes de decir «listo»
 - Concurrencia: la tarjeta no guarda nada; lo que guarda (colgar, ajustar) no cambió y su `/chaos` es el del 12-oct. · Caída externa: sin foto se dibuja la
   categoría sobre el color (ADR-0333), sin cambio. · Persona sin contexto: la ciega la entendió en 5 s; real: **sin probar**.
@@ -153,5 +171,5 @@ Cuadrar el piso de cada sede vale más que cualquier ajuste de diseño.
 |---|---|---|---|---|
 | 2026-10-12 | `f2202e6ca` (+ arreglos de la corrida) | 6,9 · ley 1: 7 | 5 (crudo, 0 blockers) | primera corrida; F13, F8, B2, F7 y los tres ceros cerrados en la rama; los 3 cambios esperan OK |
 | 2026-10-31 | `621fe25f1` | 6,9 (solo la tarjeta) · ley 3: 5 | 6 (de la tarjeta) | re-análisis de la tarjeta Vitrina (ADR-0589); el cambio 3 del 12-oct ya estaba cerrado, el 1 empeoró; 3 cambios nuevos esperan OK |
-| 2026-10-31 (c) | ver el commit de «una sola regla de falta colgar» | 7,6 (provisional, solo la tarjeta) · ley 3: 8 | 7 (de la tarjeta) | **cambio 3 hecho (opción A de Felipe)**: el botón, las celdas, el filo y la talla de entrada dicen lo mismo; la talla «mantener» con su visto; contraste del nombre sobre el ámbar corregido; falta repetir la ciega |
+| 2026-10-31 (c) | ver el commit de «una sola regla de falta colgar» | 7,8 (solo la tarjeta) · leyes 1 y 3: 8 | 7 (de la tarjeta) | **cambio 3 hecho (opción A de Felipe)**: el botón, las celdas, el filo y la talla de entrada dicen lo mismo; la talla «mantener» con su visto; contraste del nombre sobre el ámbar corregido; **ciega repetida**: armó bien la lista de lo que hay que colgar, con tallas, en 4 toques (antes 6) |
 | 2026-10-31 (b) | ver el commit de «Formidable: cambios 1 y 2» | 7,3 (provisional, solo la tarjeta) · ley 3: 5 | 7 (de la tarjeta) | **cambios 1 y 2 hechos con el OK de Felipe** (talla y almacén a 12 px, abrevia desde 2 tallas; el color sin «· N colores»); medido sin cortes en 26 anchos y sin texto bajo 12 px; leyes 4 y 5 suben a 7 y 8 (provisional: falta repetir la ciega); el cambio 3 espera su decisión |
