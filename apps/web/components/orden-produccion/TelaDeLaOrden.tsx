@@ -17,7 +17,7 @@ import {
   cantidadAPedir,
   consumoSugerido,
   planDeFila,
-  parchePorTalla,
+  parcheDeTodos,
   ponerEnTodosLosColores,
   prendasDeLaFila,
   separarPorTalla,
@@ -170,14 +170,15 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
       onTelas([...telas.slice(0, primerAvio), nueva, ...telas.slice(primerAvio)]);
     }
   }
-  // «Para todos los colores» (2026-10-31): una tela y unos metros por prenda que se copian a la fila de cada color, como «Llenar todas con» de la tabla de cantidades: cada tecla o cada
-  // elección se aplica sola, vaciar la caja no borra nada, y cada fila se puede corregir después por su cuenta. Solo en Nueva orden (editar una orden abierta no repite lo ya anotado).
+  // «La misma tela en todos los colores» (2026-10-31): un recuadro aparte donde se elige una tela y unos metros por prenda (o una cifra por talla) y, SOLO al pulsar «Usar en los N colores»,
+  // se copian a la fila de cada color. Lo vacío no se copia ni borra nada, y cada fila se corrige después por su cuenta. Solo en Nueva orden (editar una orden abierta no repite lo ya anotado).
   // `porTalla` nulo = una sola cifra; con valor = una cifra por talla (las tallas de toda la orden), que se copia a cada color que tiene esa talla.
   const [paraTodos, setParaTodos] = useState<{ insumoId: string; consumo: string; porTalla: Record<string, string> | null }>({ insumoId: "", consumo: "", porTalla: null });
   const hayVariosColores = !edicion && colores.length >= 2;
   const tallasDeTodas = tallasDeLaFila(null, coloresOrden);
   const puedeSepararParaTodos = porColor.some((f) => admitePorTalla(f.color.tallas ?? [])) && admitePorTalla(tallasDeTodas);
   const todosPorTalla = paraTodos.porTalla !== null && puedeSepararParaTodos;
+  const copiaDeTodos = parcheDeTodos({ ...paraTodos, porTalla: todosPorTalla ? paraTodos.porTalla : null });
   function ponerEnTodos(parche: Parameters<typeof ponerEnTodosLosColores>[2]) {
     onTelas(ponerEnTodosLosColores(telas, porColor.map((f) => ({ indice: f.indice, tela: f.tela, tallas: f.color.tallas ?? [] })), parche));
   }
@@ -267,95 +268,86 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
           </Aviso>
         )}
 
-        <div className="divide-y divide-sand rounded-2xl border border-sand bg-crema">
-          {hayVariosColores && (
-            <div data-guia="prod-orden-nueva.tela-todos" className="space-y-2 rounded-t-2xl bg-hueso/60 px-3.5 py-3">
-              <div className="min-w-0">
-                <p className="truncate font-display text-[15px] leading-tight text-tinta">Para todos los colores</p>
-                <p className="text-[12px] text-taupe">Se copia a los {colores.length} colores; después puedes cambiar uno.</p>
-              </div>
-              <div className={todosPorTalla ? "grid grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-1" : "grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1"}>
-                <CampoSelect
-                  id="tela-todos"
-                  etiqueta="Tela"
-                  valor={paraTodos.insumoId}
-                  onValor={(v) => {
-                    setParaTodos((p) => ({ ...p, insumoId: v }));
-                    if (v) ponerEnTodos({ insumoId: v });
-                  }}
-                  opciones={opcionesTela(null, paraTodos.insumoId || null)}
-                  marcador="Elegir la tela"
-                  deshabilitado={telasDelEstante.length === 0}
+        {hayVariosColores && (
+          <div data-guia="prod-orden-nueva.tela-todos" className="space-y-3 rounded-2xl border border-dashed border-borde-control bg-hueso/40 px-3.5 py-3">
+            <div className="min-w-0">
+              <p className="font-display text-[15px] leading-tight text-tinta">La misma tela en todos los colores</p>
+              <p className="text-[12.5px] text-tinta/70">
+                Elige la tela y los metros una vez y pulsa «Usar en los {colores.length} colores»: se ponen en cada color. Después puedes cambiar uno.
+              </p>
+            </div>
+            <div className={todosPorTalla ? "grid grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-1" : "grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1"}>
+              <CampoSelect
+                id="tela-todos"
+                etiqueta="Tela"
+                valor={paraTodos.insumoId}
+                onValor={(v) => setParaTodos((p) => ({ ...p, insumoId: v }))}
+                opciones={opcionesTela(null, paraTodos.insumoId || null)}
+                marcador="Elegir la tela"
+                deshabilitado={telasDelEstante.length === 0}
+              />
+              {!todosPorTalla && (
+                <CampoTexto
+                  id="tela-todos-consumo"
+                  etiqueta={`${paraTodos.insumoId && porId.get(paraTodos.insumoId) ? unidadCorta(porId.get(paraTodos.insumoId)!.unidad) : "m"} por prenda`}
+                  mono
+                  inputMode="decimal"
+                  placeholder={consumoSugerido(consumoDeclarado) || "0.000"}
+                  value={paraTodos.consumo}
+                  onChange={(e) => setParaTodos((p) => ({ ...p, consumo: e.target.value }))}
+                  pie={pieDelConsumo(consumoDeclarado)}
+                  tono="neutro"
                 />
-                {!todosPorTalla && (
-                  <CampoTexto
-                    id="tela-todos-consumo"
-                    etiqueta={`${paraTodos.insumoId && porId.get(paraTodos.insumoId) ? unidadCorta(porId.get(paraTodos.insumoId)!.unidad) : "m"} por prenda`}
-                    mono
-                    inputMode="decimal"
-                    placeholder={consumoSugerido(consumoDeclarado) || "0.000"}
-                    value={paraTodos.consumo}
-                    onChange={(e) => {
-                      setParaTodos((p) => ({ ...p, consumo: e.target.value }));
-                      if (e.target.value.trim() !== "") ponerEnTodos({ consumoPorPrenda: e.target.value, porTalla: null });
-                    }}
-                    pie={pieDelConsumo(consumoDeclarado)}
-                    tono="neutro"
-                  />
-                )}
-              </div>
-              {todosPorTalla && (
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-                  {tallasDeTodas.map((x) => (
-                    <div key={x.talla} className="w-[6.75rem]">
-                      <CampoTexto
-                        id={`tela-todos-consumo-${x.talla}`}
-                        etiqueta={`Talla ${x.talla}`}
-                        mono
-                        inputMode="decimal"
-                        placeholder="0.000"
-                        value={paraTodos.porTalla?.[x.talla] ?? ""}
-                        onChange={(e) => {
-                          const valor = e.target.value;
-                          setParaTodos((p) => ({ ...p, porTalla: { ...(p.porTalla ?? {}), [x.talla]: valor } }));
-                          if (valor.trim() !== "") ponerEnTodos(parchePorTalla({ tipo: "talla", talla: x.talla, valor }));
-                        }}
-                        pie={`${x.cantidad} ${x.cantidad === 1 ? "prenda" : "prendas"}`}
-                        tono="neutro"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {puedeSepararParaTodos && (
-                <div>
-                  {todosPorTalla ? (
-                    <button
-                      type="button"
-                      className="btn-cayla btn-enlace"
-                      onClick={() => {
-                        setParaTodos((p) => ({ ...p, porTalla: null }));
-                        ponerEnTodos(parchePorTalla({ tipo: "unir" }));
-                      }}
-                    >
-                      Una cifra para todas las tallas
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn-cayla btn-enlace"
-                      onClick={() => {
-                        setParaTodos((p) => ({ ...p, porTalla: Object.fromEntries(tallasDeTodas.map((x) => [x.talla, p.consumo])) }));
-                        ponerEnTodos(parchePorTalla({ tipo: "separar" }));
-                      }}
-                    >
-                      Separar por talla
-                    </button>
-                  )}
-                </div>
               )}
             </div>
-          )}
+            {todosPorTalla && (
+              <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+                {tallasDeTodas.map((x) => (
+                  <div key={x.talla} className="w-[6.75rem]">
+                    <CampoTexto
+                      id={`tela-todos-consumo-${x.talla}`}
+                      etiqueta={`Talla ${x.talla}`}
+                      mono
+                      inputMode="decimal"
+                      placeholder="0.000"
+                      value={paraTodos.porTalla?.[x.talla] ?? ""}
+                      onChange={(e) => {
+                        const valor = e.target.value;
+                        setParaTodos((p) => ({ ...p, porTalla: { ...(p.porTalla ?? {}), [x.talla]: valor } }));
+                      }}
+                      pie={`${x.cantidad} ${x.cantidad === 1 ? "prenda" : "prendas"}`}
+                      tono="neutro"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              {puedeSepararParaTodos ? (
+                todosPorTalla ? (
+                  <button type="button" className="btn-cayla btn-enlace" onClick={() => setParaTodos((p) => ({ ...p, porTalla: null }))}>
+                    Una cifra para todas las tallas
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-cayla btn-enlace"
+                    onClick={() => setParaTodos((p) => ({ ...p, porTalla: Object.fromEntries(tallasDeTodas.map((x) => [x.talla, p.consumo])) }))}
+                  >
+                    Separar por talla
+                  </button>
+                )
+              ) : (
+                <span />
+              )}
+              <Boton type="button" peso="fantasma" disabled={copiaDeTodos === null} onClick={() => copiaDeTodos && ponerEnTodos(copiaDeTodos)}>
+                Usar en los {colores.length} colores
+              </Boton>
+            </div>
+          </div>
+        )}
+
+        <div className="divide-y divide-sand rounded-2xl border border-sand bg-crema">
           {porColor.map((fila) => {
             const insumo = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
             const plan = fila.indice !== null ? (planPorIndice.get(fila.indice) ?? 0) : 0;
