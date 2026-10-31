@@ -459,6 +459,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/gastos/HojaComprobanteDeGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaComprobanteDeGasto.tsx"] },
   // ADR-0588 («No tendrá comprobante»): el motivo, la nota solo con «Otro motivo», y el responsable (lo que exige `marcar_gasto_no_emite`).
   "components/finanzas/gastos/HojaNoEmiteGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaNoEmiteGasto.tsx"] },
+  "components/finanzas/PorPagarTodas.tsx": { estado: "no-aplica", motivo: "«Todo lo que CAYLA debe» (Felipe 2026-10-31): una lista de solo lectura con buscador, filtros y páginas; no hay nada que llenar ni guardar. «Pagar» abre el pago de siempre." },
   "components/finanzas/AjustesResumen.tsx": { estado: "no-aplica", motivo: "«Qué se ve» en el Resumen (Felipe 2026-10-26): son interruptores que se aplican al momento y no hay nada que llenar ni un orden que seguir; no guarda, solo cambia lo que se ve. Su ícono tiene su paso en la guía de la pantalla." },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
