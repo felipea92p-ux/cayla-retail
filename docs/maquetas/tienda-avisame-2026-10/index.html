@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avísame · quién espera y cómo se le escribe · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Maqueta (2026-10-31): ¿qué ve la tienda de quien tocó «Avísame», y con qué permiso de la clienta?
+   Datos inventados. Paleta: guía «CAYLA Dynamic». Nada de esto toca la app: es para elegir mirando. */
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-profundo:#8b2a1f;--verde:#48603f;--ambar:#74501a;--lienzo:#e6ddcd;--sombra:rgba(26,26,24,.16);
+--serif:"EB Garamond",ui-serif,Georgia,serif;--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--ease:cubic-bezier(.2,.7,.2,1)}
+:root[data-theme="dark"]{--crema:#1c1a17;--papel:#262420;--hueso:#33302b;--sand:#3d3a34;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-profundo:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--lienzo:#14130f;--sombra:rgba(0,0,0,.55);color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--lienzo);color:var(--tinta);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+.barra{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:10px 20px;background:color-mix(in srgb,var(--lienzo) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--sand)}
+.barra b{font:500 20px var(--serif);margin-right:auto}
+.etq{font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+.seg{display:inline-flex;padding:3px;gap:2px;border-radius:999px;background:var(--hueso);border:1px solid var(--sand)}
+.seg button{height:30px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--taupe);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+main{max-width:1280px;margin:0 auto;padding:20px 20px 70px;display:grid;gap:18px}
+.pregunta{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px 20px}
+.pregunta h1{font:500 26px var(--serif);margin:0 0 4px}
+.pregunta p{margin:0;color:var(--taupe);max-width:70ch}
+.dos{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:18px;align-items:start}
+@media(max-width:900px){.dos{grid-template-columns:1fr}}
+.marco{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px 18px}
+.marco>h2{margin:0 0 2px;font:500 19px var(--serif)}
+.marco>.sub{margin:0 0 12px;color:var(--taupe);font-size:12.5px}
+/* teléfono de la tienda */
+.cel{background:var(--crema);border:1px solid var(--sand);border-radius:26px;padding:16px;display:grid;gap:12px}
+.foto{height:150px;border-radius:14px;background:linear-gradient(135deg,#3b3a37,#6b6a66);display:grid;place-items:end start;padding:12px;color:#f5f0e8;font:500 18px var(--serif)}
+.tallas{display:flex;gap:6px;flex-wrap:wrap}
+.talla{min-width:40px;height:36px;padding:0 10px;border-radius:10px;border:1px solid var(--sand);display:grid;place-items:center;font-weight:600;font-size:13px}
+.talla.sel{border-color:var(--tinta);background:var(--tinta);color:var(--crema)}
+.talla.no{color:color-mix(in srgb,var(--tinta) 45%,transparent);text-decoration:line-through}
+.btn{height:46px;border-radius:999px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;background:var(--tinta);color:var(--crema);transition:transform .2s var(--ease),background .2s}
+.btn:hover{background:var(--rojo-profundo)}
+.btn.sec{background:transparent;color:var(--tinta);border:1px solid var(--tinta)}
+.btn.sec:hover{background:var(--hueso)}
+.casilla{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--sand);border-radius:12px;background:var(--papel);font-size:12.5px}
+.casilla i{flex:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--tinta);display:grid;place-items:center;margin-top:1px}
+.casilla.on i{background:var(--tinta);color:var(--crema)}
+.casilla.on i::after{content:"✓";font-size:12px;font-style:normal;line-height:1}
+.chico{font-size:11.5px;color:var(--taupe)}
+.aviso{padding:10px 12px;border-radius:12px;background:var(--hueso);font-size:12.5px}
+.aviso.ok{border-left:3px solid var(--verde)}
+.paso{display:flex;gap:6px;margin-bottom:10px}
+.paso button{flex:1;height:28px;border-radius:8px;border:1px solid var(--sand);font-size:11.5px;font-weight:600;color:var(--taupe);text-align:center}
+.paso button[aria-pressed="true"]{border-color:var(--tinta);color:var(--tinta);background:var(--hueso)}
+/* ERP */
+.tabla{border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:var(--papel)}
+.cab,.fila{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.1fr;gap:12px;padding:10px 14px;align-items:center}
+.cab{background:var(--hueso);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+.fila{border-top:1px solid var(--sand)}
+.fila .p{font-weight:600}
+.fila .s{color:var(--taupe);font-size:12.5px}
+.enl{color:var(--rojo-profundo);font-weight:600;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--rojo) 40%,transparent);text-underline-offset:3px}
+.quienes{border-top:1px solid var(--sand);background:var(--hueso);padding:12px 14px;display:grid;gap:10px}
+.quien{display:grid;grid-template-columns:1.4fr 1.6fr auto;gap:8px 14px;align-items:center;font-size:13px}
+@media(max-width:700px){.quien{grid-template-columns:1fr}}
+.quien b{font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--sand);color:var(--tinta)}
+.chip.v{background:color-mix(in srgb,var(--verde) 22%,transparent);color:var(--verde)}
+.chip.a{background:color-mix(in srgb,var(--ambar) 20%,transparent);color:var(--ambar)}
+.btn-c{height:30px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--tinta)}
+.btn-c:hover{background:var(--tinta);color:var(--crema)}
+.btn-c[disabled]{opacity:.5;cursor:default;background:none;color:var(--tinta)}
+/* comparación */
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.opts{grid-template-columns:1fr}}
+.opt{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.opt[data-activa="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.opt h3{margin:0;font:500 20px var(--serif)}
+.opt .rec{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--verde)}
+.opt dl{margin:0;display:grid;gap:6px;font-size:12.5px}
+.opt dt{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+.opt dd{margin:0}
+.nota{background:var(--hueso);border-radius:14px;padding:12px 16px;font-size:13px}
+.nota b{font-weight:700}
+</style>
+</head>
+<body>
+<div class="barra">
+  <b>Avísame · quién espera y cómo se le escribe</b>
+  <span class="etq">Opción</span>
+  <div class="seg" id="opciones" role="group" aria-label="Opción">
+    <button aria-pressed="false" data-o="A">A · Solo el nombre</button>
+    <button aria-pressed="true" data-o="B">B · Ella elige el WhatsApp</button>
+    <button aria-pressed="false" data-o="C">C · Todo a la vista</button>
+  </div>
+  <button class="seg" style="height:36px;padding:0 14px;font-weight:600;font-size:12.5px" id="tema" aria-pressed="false">Oscuro</button>
+</div>
+
+<main>
+  <section class="pregunta">
+    <h1>¿Qué ve la tienda de quien tocó «Avísame»?</h1>
+    <p>Hoy la clienta lee en el botón «Te avisaremos <b>en tu cuenta</b>», y la política de privacidad dice «sin publicidad por WhatsApp; te escribimos solo por tus pedidos». Lo que dejé construido en el PR #1541 (opción C) enseña su celular y su correo a la tienda, y eso contradice esa promesa. Elige mirando; nada de esto está en la app.</p>
+  </section>
+
+  <section class="dos">
+    <div class="marco">
+      <h2>1 · Lo que ve ella (tienda online)</h2>
+      <p class="sub">Toca los pasos: el cambio está en el momento de pedir el aviso.</p>
+      <div class="paso" id="pasos">
+        <button aria-pressed="true" data-p="0">1 · Talla agotada</button>
+        <button aria-pressed="false" data-p="1">2 · Al tocar</button>
+        <button aria-pressed="false" data-p="2">3 · Anotado</button>
+      </div>
+      <div class="cel" id="cel"></div>
+    </div>
+
+    <div class="marco">
+      <h2>2 · Lo que ve la tienda (ERP ▸ Tienda web ▸ Vitrina ▸ Esperan una talla)</h2>
+      <p class="sub" id="subErp"></p>
+      <div class="tabla">
+        <div class="cab"><span>Prenda</span><span>Tienda</span><span>Personas</span><span>Desde</span></div>
+        <div class="fila"><div><div class="p">Blusa Emma · Negro</div><div class="s">Talla M</div></div><span>Lima</span><button class="enl" id="abrir">3 personas ▾</button><span class="s">hace 2 días</span></div>
+        <div class="quienes" id="quienes"></div>
+      </div>
+      <p class="chico" style="margin:10px 0 0">Datos inventados. La tabla es la de hoy; lo que cambia es lo que hay dentro de «N personas».</p>
+    </div>
+  </section>
+
+  <section class="opts" id="comparacion"></section>
+
+  <section class="nota"><b>Lo que decido yo y lo que decides tú.</b> Lo de arriba cambia qué datos personales ve el equipo y qué le prometemos a la clienta: eso es tuyo. Lo demás (dónde cae el botón, los textos, la migración) lo resuelvo yo con la opción que elijas. Recomiendo <b>B</b>.</section>
+</main>
+
+<script>
+const GENTE = [
+  {n:"Lucía P.", cel:"987 654 321", mail:"lucia@ejemplo.pe", pide:true,  desde:"hace 2 días"},
+  {n:"Camila R.", cel:"912 345 678", mail:"camila@ejemplo.pe", pide:false, desde:"hace 1 día"},
+  {n:"Andrea V.", cel:"955 111 222", mail:"andrea@ejemplo.pe", pide:true, desde:"hoy"},
+];
+const OPC = {
+ A:{t:"A · Solo el nombre",
+    ganas:"Cumple la promesa de hoy sin tocar la privacidad. El equipo sabe CUÁNTAS y quiénes, y nada más.",
+    pagas:"Si alguien quiere avisar a mano, no tiene cómo: solo avisa la cuenta y el celular de la clienta (push).",
+    rompe:"Si Felipe quiere llamar a la clienta que esperaba la M, no hay a dónde.",
+    cambia:"Sin migración nueva: se quita el celular y el correo de la función. Se corrigen la guía y el texto de la pantalla.",
+    sub:"Solo el nombre y desde cuándo espera. Sin celular ni correo."},
+ B:{t:"B · Ella elige el WhatsApp",
+    ganas:"Quien quiere que le escriban lo dice al pedir el aviso, y eso queda guardado con fecha. El equipo ve el celular solo de quien lo pidió.",
+    pagas:"Una casilla más en el botón (apagada de fábrica), una columna en la base, y una línea nueva en la política de privacidad.",
+    rompe:"Si la casilla se pre-marca o se esconde, el permiso deja de valer (Ley 29733). Debe quedar apagada y a la vista.",
+    cambia:"Migración: columna «acepta WhatsApp» en la espera, con su fecha. La función muestra el celular solo si la marcó. Se actualiza la política de privacidad.",
+    sub:"Quien marcó «escríbeme por WhatsApp» muestra su celular; las demás, solo el nombre. Se puede marcar «avisada»."},
+ C:{t:"C · Todo a la vista",
+    ganas:"Es lo que ya está construido: nada que cambiar, se ve todo.",
+    pagas:"Contradice lo que la tienda le dice hoy a la clienta. Quien no pidió que le escriban igual aparece con su celular.",
+    rompe:"Una clienta se queja de un WhatsApp que no esperaba: la política dice lo contrario y el permiso del Club no cubre esto.",
+    cambia:"Nada en la base. Habría que corregir la política de privacidad para que diga lo que ya hacemos.",
+    sub:"Todos con nombre, celular y correo. Quien no aceptó WhatsApp del Club lleva una marca, pero igual se ve."}
+};
+let o="B", paso=0, abierto=true, avisadas=new Set();
+
+function celda(){
+  const c=document.getElementById("cel");
+  const caja = (on)=>`<div class="casilla ${on?"on":""}" id="cas"><i></i><span><b>Escríbeme por WhatsApp</b> cuando llegue.<br><span class="chico">Solo para avisarte de esta prenda. Puedes quitarlo cuando quieras.</span></span></div>`;
+  const fi = `<div class="foto">Blusa Emma · Negro</div><div class="tallas"><span class="talla no">S</span><span class="talla sel">M</span><span class="talla">L</span><span class="talla no">XL</span></div>`;
+  let r = fi;
+  if(paso===0){
+    r += `<button class="btn" disabled style="opacity:.55">Talla M agotada en Lima</button><button class="btn sec" id="av">Avísame cuando llegue la M</button>`;
+    if(o==="B") r += `<p class="chico" style="margin:0">Al tocar, te preguntamos cómo avisarte.</p>`;
+  } else if(paso===1){
+    if(o==="B") r += caja(false)+`<button class="btn" id="conf">Avísame cuando llegue</button><p class="chico" style="margin:0">Sin marcar, te avisamos solo en tu cuenta y en tu celular (si lo permitiste).</p>`;
+    else r += `<div class="aviso">Te avisaremos <b>en tu cuenta</b> cuando llegue la M a Lima.</div><button class="btn sec" id="conf">Aceptar</button>`;
+  } else {
+    r += `<button class="btn sec">Te avisaremos cuando llegue ×</button><div class="aviso ok">${o==="B"?"Listo. Te avisamos en tu cuenta; y por WhatsApp si lo marcaste.":"Te avisaremos en tu cuenta cuando llegue la M a Lima."}</div>`;
+  }
+  c.innerHTML=r;
+  const av=document.getElementById("av"); if(av) av.onclick=()=>setPaso(1);
+  const cf=document.getElementById("conf"); if(cf) cf.onclick=()=>setPaso(2);
+  const cs=document.getElementById("cas"); if(cs) cs.onclick=()=>cs.classList.toggle("on");
+}
+function erp(){
+  document.getElementById("subErp").textContent=OPC[o].sub;
+  const q=document.getElementById("quienes");
+  document.getElementById("abrir").textContent="3 personas "+(abierto?"▴":"▾");
+  q.style.display=abierto?"grid":"none";
+  q.innerHTML=GENTE.map((g,i)=>{
+    let contacto="", extra="";
+    if(o==="A") contacto=`<span class="chico">Se le avisa en su cuenta</span>`;
+    if(o==="B"){
+      contacto = g.pide ? `${g.cel} <span class="chip v">Pidió WhatsApp</span>` : `<span class="chico">Se le avisa en su cuenta</span>`;
+      if(g.pide) extra = avisadas.has(i) ? `<span class="chip">Avisada ✓</span>` : `<button class="btn-c" data-i="${i}">Marcar avisada</button>`;
+    }
+    if(o==="C") contacto = `${g.cel} · ${g.mail} ${g.pide?"":'<span class="chip a">Sin permiso de WhatsApp</span>'}`;
+    return `<div class="quien"><span><b>${g.n}</b> <span class="chico">· ${g.desde}</span></span><span>${contacto}</span><span>${extra}</span></div>`;
+  }).join("");
+  q.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{avisadas.add(+b.dataset.i);erp();});
+}
+function comparacion(){
+  document.getElementById("comparacion").innerHTML=["A","B","C"].map(k=>{
+    const x=OPC[k];
+    return `<article class="opt" data-activa="${k===o}">${k==="B"?'<span class="rec">Recomendada</span>':""}<h3>${x.t}</h3>
+    <dl><div><dt>Ganas</dt><dd>${x.ganas}</dd></div><div><dt>Pagas</dt><dd>${x.pagas}</dd></div><div><dt>Se rompe si</dt><dd>${x.rompe}</dd></div><div><dt>Qué cambia</dt><dd>${x.cambia}</dd></div></dl></article>`;
+  }).join("");
+}
+function setPaso(p){paso=p;document.querySelectorAll("#pasos button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.p===p));celda();}
+function setO(k){o=k;avisadas.clear();document.querySelectorAll("#opciones button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.o===k));celda();erp();comparacion();}
+document.querySelectorAll("#opciones button").forEach(b=>b.onclick=()=>setO(b.dataset.o));
+document.querySelectorAll("#pasos button").forEach(b=>b.onclick=()=>setPaso(+b.dataset.p));
+document.getElementById("abrir").onclick=()=>{abierto=!abierto;erp();};
+document.getElementById("tema").onclick=e=>{const d=document.documentElement.dataset.theme==="dark";document.documentElement.dataset.theme=d?"":"dark";e.currentTarget.textContent=d?"Oscuro":"Claro";};
+setO("B");
+</script>
+</body>
+</html>
