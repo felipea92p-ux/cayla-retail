@@ -49,7 +49,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 |---|---|---|---|---|
 | Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | Elegido | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
 | Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | Elegido | A · Placa Serena | `cifras-vidrio-2026-10/` |
-| Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | En maqueta | — (recomendada: A · Lámina casi papel) | `tablas-vidrio-2026-10/` |
+| Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | Elegido (la cara); los superpoderes, en maqueta | B · Placa Serena | `tablas-vidrio-2026-10/`, `tabla-superpoderes-2026-10/` |
 | Pestañas de sección | `ui/Pestanas` | Por auditar | — | — |
 | Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
 | Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | Por auditar | — | — |

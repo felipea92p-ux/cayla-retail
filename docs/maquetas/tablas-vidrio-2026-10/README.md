@@ -22,8 +22,8 @@ miniatura de la prenda), el tema y el ancho. «Guardar una fila nueva» muestra 
 | Cara | Cómo es |
 |---|---|
 | Como ahora | Papel con filo arena, encabezado arena, rayado hueso. |
-| **A · Lámina casi papel** (recomendada) | La lámina de las hojas en Serena (papel al 82 % con desenfoque); encabezado tenue con hilo, rayado apenas un tinte; la fila abierta es la gota del menú con su marca roja. |
-| B · Placa Serena | La placa de las tarjetas de cifra, sin rayado; filas separadas por un hilo que empieza tras la primera columna. |
+| A · Lámina casi papel (era la recomendada) | La lámina de las hojas en Serena (papel al 82 % con desenfoque); encabezado tenue con hilo, rayado apenas un tinte; la fila abierta es la gota del menú con su marca roja. |
+| **B · Placa Serena** (elegida) | La placa de las tarjetas de cifra, sin rayado; filas separadas por un hilo que empieza tras la primera columna. |
 | C · Plana sobre la Aurora | Sin caja: filas sueltas con hilos; al pasar el mouse la fila se enciende como gota; abierta, la gota con su marca. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -41,4 +41,6 @@ Solo tokens, en claro y oscuro; los colores de las prendas son dato. Movimiento 
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**B · Placa Serena** (2026-10-31): la placa de las tarjetas de cifra, sin rayado, con un hilo entre filas. Y pidió ir más allá del
+diseño: una tabla «con superpoderes», lo más entendible posible, con filtros desde las cabeceras, todo al centro y letra que cualquiera
+lea. Esa maqueta está en `../tabla-superpoderes-2026-10/`.
