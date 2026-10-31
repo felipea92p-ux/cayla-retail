@@ -46,5 +46,9 @@ toque el ícono) **· Cabecera C · Dos islas · Combo A · Gota viajera** (2026
 
 Además pidió que el lateral tenga **todos los íconos de hoy, también en los submódulos**, y un despliegue menos brusco: la maqueta usa el
 menú real (`lib/menu.ts`, con los subgrupos de tercer nivel) y los 61 trazos de `lib/menu-iconos.ts`; al abrir un módulo, la caja crece en
-460 ms con una curva que frena, un hilo baja desde su ícono y da una rama a cada submódulo, las filas se enfocan en cascada y la gota de la
-fila activa las acompaña; al cerrar, 300 ms sin cascada.
+460 ms con una curva que frena, las filas se enfocan en cascada y la gota de la fila activa las acompaña; al cerrar, 300 ms sin cascada.
+
+Después pidió **el botón de plegar arriba a la derecha del menú** (junto al logo; plegado, bajo el colibrí; en el celular, la ✕ del cajón)
+y **quitar las ramas del hilo** que salían a cada submódulo. El selector **Submódulos** muestra tres caras sin líneas: A · Bandeja
+(hundida bajo el módulo), B · Sangría limpia (sin caja ni línea) y C · Tarjeta (el módulo abierto y sus submódulos en una placa de vidrio;
+recomendada). Pendiente que elija.
