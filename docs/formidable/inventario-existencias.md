@@ -63,7 +63,86 @@
 ## Antes de decir «listo»
 - Concurrencia: `/chaos` CON-09, 10 sesiones a la vez sobre la misma talla: 7 colgaron, 3 recibieron «pides 1 y en el almacén hay 0», 0 deadlocks, stock = movimientos. · Caída externa: sin red, «Se cortó la conexión y no sabemos si se guardó» y lo escrito se conserva; con la respuesta perdida, «Confirmar de nuevo» devuelve lo ya guardado sin duplicar; con el motor del piso caído, la pantalla sigue y lo dice (B5: con un texto que hay que mejorar). · Persona sin contexto: la ciega la entendió en 5 s y llegó a colgar; real: **sin probar**.
 
+---
+
+# Re-análisis 2026-10-31 · la tarjeta Vitrina (ADR-0589)
+
+- **Fecha / SHA:** 2026-10-31 · `621fe25f1` · **Dispositivo que manda:** escritorio (Mac mini)
+- **Alcance:** solo la tarjeta nueva (foto grande con la chapa de colores, tira hundida, pie a todo el ancho, sombra y filo de estado). El modal de la
+  prenda y la barra de filtros no cambiaron y no se re-calificaron.
+- **Veredicto en una línea:** «Se entiende en 5 s (la ciega miró foto → nombre → número, en ese orden), pero la tarjeta se contradice con el piso en
+  pausa ("Colgar · 3 tallas" con 4 tallas vacías y ninguna celda en ámbar), y este rediseño **achicó** el texto que el informe anterior pedía agrandar.»
+- **Cómo se midió:** `medir-oficio.js` con Playwright (Chrome sin ventana, sesión del auditor del tema) a 1440×900, 1024×768 y 375×812, más una medida
+  propia de la tarjeta (tamaños de texto y blancos). `tema:auditar` en claro y oscuro a 1440 y 375 px: 0 hallazgos solo en oscuro. `guias:recorrer`
+  de la guía de Existencias: 36/36 pasos a 1440 px en claro y en oscuro, 35/35 a 375 px, sin escrituras en la base y sin modales abiertos al final.
+  Una prueba ciega (Sonnet, sobre 3 capturas) y un escéptico (Sonnet, con el código: 2 confirmados, 5 matizados, 1 refutado, 1 no verificable).
+  **La base local tiene el motor del piso en pausa** (la tienda nunca se cuadró): ninguna celda sale ámbar y ningún filo se pinta; eso fabrica parte de lo visto.
+
+## Notas (0–10) · solo la tarjeta
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 7 | [Observado] a los 5 s: «la lista de la ropa de mi tienda, cada prenda con foto y números por talla»; respondió bien «20 Blusa Emma M en el piso» y armó la lista de lo que hay que colgar mirando los botones; dudó de las cifras por el aviso «nunca se ha cuadrado» (marco) · real: sin probar |
+| 2 Una pregunta, una respuesta | 7 | [Observado] una sola acción con nombre por tarjeta («Colgar en el piso», «Todo en el piso»); la ciega la encontró sin buscar |
+| 3 Simplicidad profunda | 5 | [Observado H4 + escéptico] Pantalón Carla: «Colgar en el piso · 3 tallas» con 4 tallas en 0 y +6 (`tallasSinColgar` descuenta la talla «mantener», la tira no); [código] con el motor en pausa el botón cuenta lo físico pero ni las celdas ni el filo se pintan: la tarjeta dice dos cosas (heredado de las «tres reglas» del 12-oct) |
+| 4 Lenguaje de tienda | 6 | [Observado H2 CONFIRMADO] «Beige · 2 colores»: no supo si el 20 era del Beige o de los dos (las cifras son solo del color que se ve; «· N colores» es nuevo de este rediseño) |
+| 5 Contenido primero | 7 | [Observado] la foto manda (primera en el orden de la mirada); [Medido H1 CONFIRMADO] el nombre de la talla a 10,5 px y «+N en almacén» a 10 px: **regresión** (antes 11 y 10,5; el cambio 1 del 12-oct pedía 12) |
+| 6 Lo difícil, a un toque | 7 | sin cambio (no se tocó el modal) |
+| 7 Perdonar antes que preguntar | 9 | sin cambio (la tarjeta no guarda nada) |
+| 8 Quitar antes de agregar | 7 | [Opinión] «· N colores» repite lo que dicen los puntos y además confunde (H2); el filo repite la tira a propósito (se ve de lejos) |
+| 9 De punta a punta | 7 | [Medido] alto parejo de 202 px a todo ancho, sin texto cortado a 1920/1440/1024/375, oscuro 0 hallazgos, guía al día; **sin ver:** «+N» con un modelo real de más de 5 colores (la base no tiene uno) y el filo dibujado (el motor está en pausa) |
+| **Leyes (promedio)** | **6,9** | la ley 3 está en 5: la tarjeta se contradice con el piso en pausa |
+| **Oficio visual** | **6** | [Medido] de la tarjeta fallan 2: texto bajo 12 px (10 y 10,5) y los puntos de color (área de 24 px con mouse que se pisa con la del vecino: ~17 px de centro a centro, escéptico H3). Pasan: alineación de la rejilla (filas rectas, 202 px), contraste (auditor), solo tokens, `:hover` con mouse. El resto de lo que marca `medir-oficio.js` (7 de 8 a cada ancho) es del marco: lateral, cabecera, «Salir» a 16 px, el «1» de la paginación |
+
+## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+1. **Que el almacén se lea (cierra la regresión y el cambio 1 del 12-oct).** El nombre de la talla 10,5 → 12 px y «+N en almacén» 10 → 12 px en la
+   tira. Con 3 tallas o más ya va abreviado («+6») y cabe; con 1 o 2 tallas, «en almacén» se queda solo si cabe a 320 px (si no, abrevia desde 2).
+   Ley 5 y oficio #6. Verifica: medida de la tarjeta sin texto bajo 12 px y sin `truncate` cortando a 320, 1024 y 1440. Esfuerzo S. Decide Felipe (presentación).
+2. **El color, sin «· 2 colores».** «Beige · 2 colores» → «Beige»: las cifras son de ese color y los otros ya están en los puntos de la foto (con
+   «+N» si son más de 5). Leyes 4 y 8. Verifica: ciega nueva con la misma tarea, que no dude de qué color es el 20. Esfuerzo S. Decide Felipe (presentación).
+3. **Una sola respuesta a «¿falta colgar?» dentro de la tarjeta.** Hoy, con el piso en pausa, el botón cuenta lo físico («· 3 tallas») y las celdas y el
+   filo solo siguen al motor (que calla). Propuesta: que la celda en ámbar y el filo usen la misma regla que el botón (0 colgadas y algo en almacén,
+   menos lo que el motor marca «mantener»), y que esa talla «mantener» se vea distinta en la tira (sin ámbar, con un «se queda»). **Toca qué se le
+   dice a la tienda sobre su stock: decide Felipe** (qué manda cuando el motor calla). Ley 3. Verifica: Pantalón Carla dice tantas tallas como celdas
+   en ámbar. Esfuerzo M.
+
+## Lo que sobra (ley 8)
+- «· N colores» junto al color (cambio 2).
+
+## Lo que no pediste y importa más
+Lo mismo que el 12-oct, ahora visible en la tarjeta: **la tienda no se ha cuadrado nunca, así que el motor está en pausa en las tres sedes y todo lo que
+depende de él (ámbar, filo, «Por colgar», el modal) calla mientras el botón habla.** Hasta el primer cuadre, la tarjeta Vitrina nunca mostrará su filo.
+Cuadrar el piso de cada sede vale más que cualquier ajuste de diseño.
+
+## Lista aparte (no se ejecuta)
+- H3: los puntos de color a ~17 px de centro a centro (las áreas de 24 px se pisan). Darles 24 px de verdad pide 3 puntos visibles en vez de 5, y eso
+  cambia lo que Felipe aprobó («con que salga así está bien»).
+- H5 (heredado): los cuadritos de la leyenda al pie (`InventarioPanel.tsx`) son casi beige; con el motor en pausa no hay con qué compararlos.
+- H6 (heredado): tocar el nombre abre la primera talla «por colgar»; con el motor en pausa cae a la primera (S).
+- H8: la chapa sobre una prenda negra en oscuro, sin captura que lo pruebe.
+- Refutado: H7 (la primera tarjeta bajo el pliegue a 1024 es el marco, no la tarjeta: F4 del 12-oct).
+
+## Estado de los 3 cambios del 12-oct
+1. Talla y almacén a 12 px: **abierto y empeorado** por este rediseño (es el cambio 1 de arriba).
+2. La leyenda sin cifras de ejemplo y los atajos con rótulo: **abierto** (la leyenda sigue con «2 en piso · +1 en almacén»).
+3. Un solo vocabulario en el modal: **cerrado** (2026-10-13).
+
+## Prueba ciega (agente Sonnet sobre 3 capturas a 1440 px; real: sin probar)
+| Medida | Resultado | Pasa |
+|---|---|---|
+| Lectura de 5 s | «la lista de la ropa de mi tienda; cada prenda con foto y números por talla; sigue tocar una prenda o "Colgar en el piso"» | sí |
+| Primer intento | respondió las dos cosas (20 Blusa Emma M; la lista de prendas a colgar), con reservas por el aviso del cuadre | sí, con dudas |
+| Pasos | 6 toques (+2 para cerrar); para la lista de colgar, recorrió las tarjetas a mano | el mínimo es 1 («Por colgar»), que no se leyó por estar en pausa |
+| Dudas | «275 de 180 (provisional)» · el aviso «nunca se ha cuadrado» · «Piso en pausa» en el modal · **«Beige · 2 colores»** · **«3 tallas» con 4 vacías** · los cuadritos de la leyenda | no: 7 (2 de la tarjeta, en negrita) |
+| Palabras no entendidas | «provisional», «por cuadrar», «Se acaban», «Sin ventas» (todas del marco o de los filtros) | no: 4, ninguna de la tarjeta |
+| Errores evitables | esperaba «Colgar» dentro de «Más» (vive en el botón de al lado) | — |
+| Orden de la mirada | foto → nombre y precio → número grande y botón | sí (contenido primero) |
+
+## Antes de decir «listo»
+- Concurrencia: la tarjeta no guarda nada; lo que guarda (colgar, ajustar) no cambió y su `/chaos` es el del 12-oct. · Caída externa: sin foto se dibuja la
+  categoría sobre el color (ADR-0333), sin cambio. · Persona sin contexto: la ciega la entendió en 5 s; real: **sin probar**.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-12 | `f2202e6ca` (+ arreglos de la corrida) | 6,9 · ley 1: 7 | 5 (crudo, 0 blockers) | primera corrida; F13, F8, B2, F7 y los tres ceros cerrados en la rama; los 3 cambios esperan OK |
+| 2026-10-31 | `621fe25f1` | 6,9 (solo la tarjeta) · ley 3: 5 | 6 (de la tarjeta) | re-análisis de la tarjeta Vitrina (ADR-0589); el cambio 3 del 12-oct ya estaba cerrado, el 1 empeoró; 3 cambios nuevos esperan OK |
