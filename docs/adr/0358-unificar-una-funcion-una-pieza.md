@@ -173,6 +173,17 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   sistema** (P1: los pendientes del turno en Caja). Migrado el mismo día: 31 pantallas en 33 archivos (la frase de la pieza pasó a ser opcional
   y lo que decía el sobretítulo va tras la fecha, en `detalle`), 5 íconos y 1 enlace; deuda 0. Registro nuevo: `titulo-pagina.md`.
 
+- **2026-10-30/31 · ronda 19, el texto del ERP más grande y más corto, mirando las fotos** (fuentes en `docs/unificar/rondas/19/`). Tras
+  la cabecera, todo lo demás que se lee: el censo midió 779 frases en 107 pantallas, el 62 % bajo 14 px, en 13 tamaños escritos a mano. Felipe
+  eligió **F1** (una línea a la vista; lo que explica, detrás del «?») y **A1** (el mismo «?» de vidrio de la cabecera en todo el ERP: `<Ayuda>`
+  pasa a ser ese «?» en 14 px y `<TituloSeccion ayuda>` lo pone en 16 px junto al título de un bloque; el «!» queda solo para «falta algo»). El
+  tamaño lo dejó para después de condensar «texto por texto»: con las frases acortadas (de ~7.000 palabras a la vista a ~2.500 en el
+  inventario), lo que se lee pasó a **14 px como piso** (la bajada de un bloque y el título de una fila, a 15), módulo por módulo, cada uno con
+  fotos antes y después y su commit. Quedan igual las versalitas, los gráficos, el papel impreso, las matrices de tallas, la planilla de
+  «Ajustar stock», la persiana de Caja, el marco y la vista previa de la tienda online. En Finanzas se aparta a propósito del tamaño del spike
+  (ADR-0195). Familia nueva: `texto` (firma: un párrafo de lectura bajo 14 px dibujado a mano; deuda de 63 archivos fuera de los trece
+  módulos). Registro: `texto.md`.
+
 - **2026-10-30 · ronda 18, la frase de la cabecera detrás de un «?», mirando las fotos y tocando las demos** (fuentes en
   `docs/unificar/rondas/18/`). Las colaboradoras decían que el texto era chico y que nadie lo leía. Felipe eligió en dos vueltas: **el globo**
   (P2, sobre la frase que baja en su lugar y el botón «Qué es esto»), **también la frase que dice un dato** (D2: el turno de Caja, la cuenta de

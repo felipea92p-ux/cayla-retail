@@ -81,3 +81,9 @@
 - **Qué:** las cuatro caras de Inicio (tienda, integrante, almacén y el Observatorio de CAYLA Global): lo que se lee pasa de 10,5–13 px a 14 px, también en el CSS del Inicio de almacén y del Observatorio. Quedan igual el mapa, el ritmo, el mapa de calor, las órbitas y la línea de tiempo del Observatorio, y el dial, las teclas, los contadores y el eje del almacén. Sus frases ya eran cortas; las de «Te toca» del almacén salen de `lib/` y quedan para otra pasada.
 - **Por qué:** Felipe pidió cerrar con Inicio. Con esto, los trece módulos tienen la letra a 14 px.
 - **Cómo verificas:** entra a `/` como líder, con CAYLA Global, como integrante y como terminal de almacén. Pendiente: registrar la ronda 19 (docs/unificar, ADR-0358, ADR-0195, CLAUDE.md) y decidir con Felipe la escala final.
+
+## 2026-10-31 — Ronda 19 registrada (ADR-0358)
+
+- **Qué:** la familia nueva `texto` («La letra de lectura y su «?»») en `apps/web/unificar/familias.mjs`, con su firma (un párrafo de lectura bajo 14 px dibujado a mano), su deuda (63 archivos fuera de los trece módulos) y 8 excepciones con su motivo; el registro `docs/unificar/texto.md` con las fotos; las fuentes y herramientas en `docs/unificar/rondas/19/`; la fila del tablero, la entrada en ADR-0358, la actualización de ADR-0195 (Finanzas ya no mide como su spike) y la fila de la tabla «Piezas únicas» de `CLAUDE.md`. Los pendientes, en `docs/backlog/2026-10-30-simplified-collapsible-design-b21103.md`.
+- **Por qué:** para que la regla «lo que se lee no baja de 14 px» quede escrita y la prueba del CI la vigile en lo que venga.
+- **Cómo verificas:** `pnpm --filter web unificar:deuda texto` lista los 63 archivos; un `<p className="text-xs …">` nuevo en cualquier pantalla hace fallar `lib/unificar.test.ts`.
