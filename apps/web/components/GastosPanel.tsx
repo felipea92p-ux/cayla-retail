@@ -29,6 +29,7 @@ import { HojaComprobanteDeGasto } from "@/components/finanzas/gastos/HojaComprob
 import { puedeRecibirComprobante } from "@/lib/gastos-comprobante-tardio-reglas";
 import { HojaNoEmiteGasto } from "@/components/finanzas/gastos/HojaNoEmiteGasto";
 import { textoNoEmite } from "@/lib/gastos-no-emite-reglas";
+import { FotoDelComprobante } from "@/components/finanzas/gastos/FotoDelComprobante";
 import { porQueNoSeCorrige } from "@/lib/gastos-corregir-reglas";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
@@ -119,6 +120,7 @@ export function GastosPanel({
   puedeVerImpuestos = esLider,
   puedeVerPorPagar = false,
   rucEmpresa = null,
+  puedeAdjuntarFacturas = false,
   ver,
   mes,
   hoy,
@@ -154,6 +156,8 @@ export function GastosPanel({
   puedeVerPorPagar?: boolean;
   /** El RUC de CAYLA (Configuración ▸ Empresa), para el aviso del QR de una factura a nombre de otro (ADR-0588). */
   rucEmpresa?: string | null;
+  /** Quien ya adjunta documentos a una factura en Compras (líder o «Facturas de compra»): suma la foto del comprobante desde la hoja del gasto. */
+  puedeAdjuntarFacturas?: boolean;
   ver: Ver;
   mes: string;
   hoy: string;
@@ -546,7 +550,7 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} proveedores={proveedores} rucEmpresa={rucEmpresa} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
+      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} proveedores={proveedores} rucEmpresa={rucEmpresa} puedeAdjuntarFacturas={puedeAdjuntarFacturas} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -682,6 +686,7 @@ function GastoDetalleModal({
   categorias,
   proveedores,
   rucEmpresa,
+  puedeAdjuntarFacturas,
   hoy,
   puedeVerImpuestos,
   puedeVerPorPagar,
@@ -692,6 +697,7 @@ function GastoDetalleModal({
   categorias: CategoriaGasto[];
   proveedores: ProveedorGasto[];
   rucEmpresa: string | null;
+  puedeAdjuntarFacturas: boolean;
   hoy: string;
   puedeVerImpuestos: boolean;
   /** Con el módulo Por pagar, el aviso de una factura que se debe lleva a pagarla (`/compras/por-pagar`); sin él, solo lo dice. */
@@ -809,6 +815,8 @@ function GastoDetalleModal({
           ...(g.motivoAnulacion ? [{ dato: "Anulado", valor: g.motivoAnulacion, tenue: true }] : []),
         ]}
       />
+      {/* La foto del comprobante (ADR-0588): la misma de la factura en Compras; sin permiso para verla, no dibuja nada. */}
+      {g.compraId && <FotoDelComprobante compraId={g.compraId} puedeAgregar={puedeAdjuntarFacturas && g.estado === "vigente"} />}
       {/* Qué se le corrigió, quién y cuándo (ADR-0588): sin correcciones no dibuja nada. */}
       <div className="mb-4 empty:hidden">
         <CorreccionesDeCompra gastoDeFinanzasId={g.id} />

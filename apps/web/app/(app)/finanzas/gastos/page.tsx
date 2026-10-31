@@ -113,6 +113,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       puedeVerImpuestos={persona.modulos.some((m) => m.clave === "impuestos")}
       puedeVerPorPagar={persona.modulos.some((m) => m.clave === "por_pagar")}
       rucEmpresa={empresa?.ruc ?? null}
+      puedeAdjuntarFacturas={esLider || persona.modulos.some((m) => m.clave === "facturas_compra")}
       ver={ver}
       mes={mes}
       hoy={hoy}
