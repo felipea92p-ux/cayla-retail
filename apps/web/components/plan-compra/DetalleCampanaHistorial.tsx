@@ -116,25 +116,25 @@ export function DetalleCampanaHistorial({
           <>
             <dl data-guia="plan-historial.resumen" className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-xl bg-hueso px-4 py-3">
-                <dt className="text-xs text-taupe">Vendió</dt>
+                <dt className="text-sm text-taupe">Vendió</dt>
                 <dd className="font-serif text-xl text-tinta">{solesSinCentimos(medida.soles)}</dd>
-                <dd className="text-xs text-tinta/70">{medida.multiplicador !== null ? `${textoMultiplicador(medida.multiplicador)} un día normal` : "Sin base para comparar"}</dd>
+                <dd className="text-sm text-tinta/70">{medida.multiplicador !== null ? `${textoMultiplicador(medida.multiplicador)} un día normal` : "Sin base para comparar"}</dd>
               </div>
               <div className="rounded-xl bg-hueso px-4 py-3">
-                <dt className="text-xs text-taupe">El mejor día</dt>
+                <dt className="text-sm text-taupe">El mejor día</dt>
                 <dd className="font-serif text-xl text-tinta">{detalle.mejor ? solesSinCentimos(detalle.mejor.soles) : "—"}</dd>
-                <dd className="text-xs text-tinta/70">{detalle.mejor ? `${diaDeSemana(detalle.mejor.fecha)} ${fechaCortaES(detalle.mejor.fecha)}` : ""}</dd>
+                <dd className="text-sm text-tinta/70">{detalle.mejor ? `${diaDeSemana(detalle.mejor.fecha)} ${fechaCortaES(detalle.mejor.fecha)}` : ""}</dd>
               </div>
               <div className="rounded-xl bg-hueso px-4 py-3">
-                <dt className="text-xs text-taupe">El día más flojo</dt>
+                <dt className="text-sm text-taupe">El día más flojo</dt>
                 <dd className="font-serif text-xl text-tinta">{detalle.flojo ? solesSinCentimos(detalle.flojo.soles) : "—"}</dd>
-                <dd className="text-xs text-tinta/70">{detalle.flojo ? `${diaDeSemana(detalle.flojo.fecha)} ${fechaCortaES(detalle.flojo.fecha)}` : ""}</dd>
+                <dd className="text-sm text-tinta/70">{detalle.flojo ? `${diaDeSemana(detalle.flojo.fecha)} ${fechaCortaES(detalle.flojo.fecha)}` : ""}</dd>
               </div>
             </dl>
 
             <section data-guia="plan-historial.dias">
               <TituloGrupo>Día a día</TituloGrupo>
-              <p className="text-xs text-tinta/70">
+              <p className="text-sm text-tinta/70">
                 {detalle.diaNormal !== null ? `La línea es un día normal: ${solesSinCentimos(detalle.diaNormal)} (el promedio de los 60 días de antes).` : "Sin los 60 días de antes no hay día normal con qué comparar."}
               </p>
               {/* Las barras por tiempo del sistema (ronda 14 de /unificar): el mejor día en tinta con su cifra; la raya, un día normal. */}
@@ -151,7 +151,7 @@ export function DetalleCampanaHistorial({
                 referencia={detalle.diaNormal !== null ? { valor: detalle.diaNormal } : null}
                 etiqueta={`Ventas por día de ${campana.nombre} ${anio} en ${tienda?.nombre ?? ""}`}
               />
-              <div className="mt-1 flex justify-between text-[11px] text-taupe">
+              <div className="mt-1 flex justify-between text-sm text-taupe">
                 <span>{fechaCortaES(detalle.dias[0]?.fecha ?? campana.desde)}</span>
                 <span>{fechaCortaES(detalle.dias.at(-1)?.fecha ?? campana.hasta)}</span>
               </div>
@@ -178,7 +178,7 @@ export function DetalleCampanaHistorial({
                     <BarraAvance pct={(m.soles / maxAnual) * 100} tono="tinta" decorativa indice={i} />
                     <span className="whitespace-nowrap text-right tabular-nums text-tinta">
                       {solesSinCentimos(m.soles)}
-                      <span className="text-xs text-taupe">
+                      <span className="text-sm text-taupe">
                         {m.multiplicador !== null ? ` · ${textoMultiplicador(m.multiplicador)}` : ""}
                         {c !== null ? ` · ${textoCrecimiento(c)}` : ""}
                         {m.enCurso ? " · hasta ayer" : ""}

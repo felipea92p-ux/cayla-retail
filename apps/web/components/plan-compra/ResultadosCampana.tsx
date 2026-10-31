@@ -292,7 +292,7 @@ export function ResultadosCampana({
                   {c.nombre}
                   <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
                 </span>
-                <span className="block text-xs text-taupe">{c.familia}</span>
+                <span className="block text-sm text-taupe">{c.familia}</span>
               </span>
               <span className={celda("der", "text-tinta")}>{enteroES.format(c.unidades)}</span>
               <span className={celda("der", "text-tinta/80")}>{solesES(c.soles)}</span>
@@ -320,7 +320,7 @@ export function ResultadosCampana({
           ))
         )}
         {filtrando && categorias.length > 0 && (
-          <p className="px-5 py-3 text-xs text-taupe">
+          <p className="px-5 py-3 text-sm text-taupe">
             Quedan {enCurso?.faltan ?? 0} {enCurso?.faltan === 1 ? "día" : "días"} de campaña. Toca una para ver sus prendas y, si ves Análisis, ir a las que se acaban.
           </p>
         )}

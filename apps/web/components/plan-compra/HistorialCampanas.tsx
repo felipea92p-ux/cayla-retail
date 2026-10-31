@@ -60,7 +60,7 @@ function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
   return (
     <span className="block">
       <span className="block font-semibold text-tinta tabular-nums">{solesSinCentimos(m.soles)}</span>
-      <span className="block text-xs text-taupe">
+      <span className="block text-sm text-taupe">
         {m.enCurso ? `Hasta ayer${partes.length ? " · " : ""}` : ""}
         {partes.join(" · ") || (m.enCurso ? "" : "Sin base para comparar")}
       </span>
@@ -274,14 +274,14 @@ export function HistorialCampanas({
                 {/* Dónde estás parado en el calendario: la campaña que cae en estos días (en otro año, «en esta fecha»). */}
                 {faltaEnElCalendario(campana, historial.hoy) === 0 && <Chip tono="verde">{anioEnCurso ? "Ahora" : "En esta fecha"}</Chip>}
               </span>
-              <span className="block text-xs text-taupe">
+              <span className="block text-sm text-taupe">
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}
               </span>
             </span>
             {/* En el orden de las columnas (la tienda de la cabecera primero), no en el de la base. */}
             {tiendas.flatMap((t) => celdas.filter((c) => c.tienda.id === t.id)).map((c) => (
               <span key={c.tienda.id} className="min-w-0">
-                <span className="block text-[11px] text-taupe sm:hidden">{c.tienda.nombre}</span>
+                <span className="block text-sm text-taupe sm:hidden">{c.tienda.nombre}</span>
                 <Celda c={c} anio={anio} />
               </span>
             ))}

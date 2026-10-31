@@ -155,7 +155,7 @@ export function ProveedoresLoQueNoSeVe({
           <FilaTarea key={t.clave} t={t} i={i} />
         ))}
       </div>
-      {!soloHoy && pie.length > 0 && <p className="mx-2.5 mt-2 border-t border-sand pt-2.5 text-xs leading-relaxed text-taupe">{pie.join(" · ")}</p>}
+      {!soloHoy && pie.length > 0 && <p className="mx-2.5 mt-2 border-t border-sand pt-2.5 text-sm leading-relaxed text-taupe">{pie.join(" · ")}</p>}
     </aside>
   );
 }

@@ -62,13 +62,13 @@ export function SaldoFavorProveedor({
                   <li key={m.id} className="flex items-baseline justify-between gap-4 py-2">
                     <span className="min-w-0">
                       <span className="text-sm text-tinta">{etiquetaMovimientoCredito(m)}</span>
-                      {detalle && <span className="block truncate text-xs text-tinta/60">{detalle}</span>}
+                      {detalle && <span className="block truncate text-sm text-tinta/60">{detalle}</span>}
                     </span>
                     <span className="shrink-0 text-right">
                       <span className={`block text-sm tabular-nums ${suma ? "font-semibold text-verde-profundo" : "text-tinta"}`}>
                         {suma ? "+" : "−"} {soles(m.monto)}
                       </span>
-                      <span className="block text-xs text-tinta/55">{fechaCorta(m.fecha)}</span>
+                      <span className="block text-sm text-tinta/55">{fechaCorta(m.fecha)}</span>
                     </span>
                   </li>
                 );

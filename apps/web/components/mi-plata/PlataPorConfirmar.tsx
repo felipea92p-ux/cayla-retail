@@ -155,7 +155,7 @@ export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fi
         {!esLider && yaTenia ? (
           <div className="flex flex-col items-start gap-2">
             <Chip tono="pizarra">Solo un líder</Chip>
-            <p className="text-sm text-taupe">La plata que ya tenía antes de usar el sistema la confirma un líder: no sale de ningún banco, solo fija con cuánto empieza su fondo.</p>
+            <p className="text-sm text-taupe">La plata de antes del sistema la confirma un líder: solo fija con cuánto empieza su fondo.</p>
           </div>
         ) : fila.esMia ? (
           <div className="flex flex-col items-start gap-2">
@@ -185,10 +185,10 @@ export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fi
                 }}
               />
               {otroMonto ? (
-                <p className="mt-1.5 text-xs text-taupe">Anotó {soles(fila.monto)}: en su plata se verán los dos montos.</p>
+                <p className="mt-1.5 text-sm text-taupe">Anotó {soles(fila.monto)}: en su plata se verán los dos montos.</p>
               ) : (
                 montoLeido != null && (
-                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-verde">
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm text-verde">
                     <Check className="h-3.5 w-3.5" aria-hidden />
                     Igual a lo que anotó
                   </p>
@@ -202,7 +202,7 @@ export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fi
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-tinta">Saldo de apertura</span>
-                  <span className="block text-xs text-taupe">No sale de ningún banco.</span>
+                  <span className="block text-sm text-taupe">No sale de ningún banco.</span>
                 </span>
               </div>
             ) : (
@@ -217,7 +217,7 @@ export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fi
                   }}
                   deshabilitado={guardando}
                 />
-                {textoBancoIndicado(nombre, fila.cuentaIndicada) && <p className="mt-1.5 text-xs text-taupe">{textoBancoIndicado(nombre, fila.cuentaIndicada)}</p>}
+                {textoBancoIndicado(nombre, fila.cuentaIndicada) && <p className="mt-1.5 text-sm text-taupe">{textoBancoIndicado(nombre, fila.cuentaIndicada)}</p>}
               </CampoGuiado>
             )}
             {!esPersona && (
