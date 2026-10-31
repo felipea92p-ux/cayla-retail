@@ -3,6 +3,7 @@ import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
 import { FASES, faseDe, leerProcesos, secuenciaDe, type FaseClave, type FaseDelCatalogo, type Posicion, type Quien } from "./orden-fases-reglas";
 import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
+import { entradaDeCambioDeTipo } from "./orden-tipo-reglas";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
 // las importen la página (servidor) y sus piezas (cliente), y para probar cada frase que la persona lee sin abrir el navegador.
@@ -50,9 +51,9 @@ export const DIAS_SIN_MOVERSE = 4;
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
 export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
-/** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela y un paso
+/** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0581; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela, el cambio de tipo (muestra ↔ lote) y un paso
  *  agregado tarde, con quién, cuándo y el motivo. */
-export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela" | "paso_tarde";
+export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela" | "tipo" | "paso_tarde";
 /** Una entrada de la historia: lo que pasó en la orden o un cambio que se le hizo. */
 export type TipoEntrada = TipoEvento | AccionCambio;
 
@@ -83,6 +84,8 @@ export type CambioOrden = {
   despues: TermineGuardado | null;
   /** El motivo de un cambio o el texto de una nota. */
   texto: string;
+  /** Solo en un cambio de tipo (ADR-0581): `true` si pasó a muestra, `false` si pasó a lote; `null` en lo demás. Sale del dato guardado, no del texto. */
+  pasoAMuestra: boolean | null;
   /** Un paso agregado tarde (ADR-0586): con cuántas prendas entró ya hecho y quién lo hizo. */
   tarde?: PasoTardeGuardado | null;
   restaurado: boolean;
@@ -412,8 +415,10 @@ function leerCambio(crudo: unknown): CambioOrden | null {
   const id = texto(crudo.id);
   const cuando = texto(crudo.cuando);
   const accion = crudo.accion;
-  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "sin_tela" && accion !== "paso_tarde")) return null;
+  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "sin_tela" && accion !== "tipo" && accion !== "paso_tarde")) return null;
   const faseClave = texto(crudo.fase_clave);
+  // Un cambio de tipo no guarda un «Terminé»: su antes y su después son `{ es_muestra }` y se leen aparte, no como buenas y fallas.
+  const esTipo = accion === "tipo";
   // Un paso agregado tarde guarda otra cosa en `despues` (quién lo hizo y cuántas prendas), no un «Terminé».
   const tarde = accion === "paso_tarde";
   return {
@@ -425,8 +430,8 @@ function leerCambio(crudo: unknown): CambioOrden | null {
     quitaIds: idsDe(crudo.quita_ids),
     poneIds: idsDe(crudo.pone_ids),
     deshaceIds: idsDe(crudo.deshace_ids),
-    antes: tarde ? null : leerTermineGuardado(crudo.antes),
-    despues: tarde ? null : leerTermineGuardado(crudo.despues),
+    antes: esTipo || tarde ? null : leerTermineGuardado(crudo.antes),
+    despues: esTipo || tarde ? null : leerTermineGuardado(crudo.despues),
     texto: texto(crudo.texto) ?? "",
     tarde: tarde && esObjeto(crudo.despues)
       ? {
@@ -436,6 +441,7 @@ function leerCambio(crudo: unknown): CambioOrden | null {
           hecho: texto(crudo.despues.hecho),
         }
       : null,
+    pasoAMuestra: esTipo && esObjeto(crudo.despues) && typeof crudo.despues.es_muestra === "boolean" ? crudo.despues.es_muestra : null,
     restaurado: crudo.restaurado === true,
     quienNombre: texto(crudo.quien_nombre),
     cuando,
@@ -1003,6 +1009,7 @@ export function tonoDeEntrada(tipo: TipoEntrada): TonoDeEntrada {
     case "eliminar":
     case "restaurar":
     case "sin_tela":
+    case "tipo":
     case "paso_tarde":
       return "cambio";
     // Una nota del equipo no es un hecho de la orden: punto neutro.
@@ -1154,7 +1161,11 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
     filas.push({
       clave: `servicio-${f.id}`,
       concepto: `${f.nombre} afuera`,
-      detalle: `${plan} × ${soles(tarifa)} · ${quienDeFase(f)}${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`,
+      // Un servicio que se cobra UNA vez por toda la orden (el ploteo) no se lee «57 × S/ 0.00 + S/ 15.00 fijo»: se dice como es, y cuánto toca por prenda.
+      detalle:
+        tarifa === 0 && f.fijoOrden > 0 && plan > 0
+          ? `Pago único por las ${plan} prendas · ${quienDeFase(f)} · ${soles(f.fijoOrden / plan)} por prenda`
+          : `${plan} × ${soles(tarifa)} · ${quienDeFase(f)}${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`,
       estimado: monto(tarifa * plan + f.fijoOrden),
       real: hayVuelta ? monto(f.devengado ?? 0) : "al volver",
       realPendiente: !hayVuelta,
@@ -1607,6 +1618,8 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     detalle = c.texto;
   } else if (c.accion === "sin_tela") {
     titulo = "Dejó pasar al stock sin tela";
+  } else if (c.accion === "tipo") {
+    ({ titulo, detalle } = entradaDeCambioDeTipo(c.pasoAMuestra, c.texto));
   } else if (c.accion === "paso_tarde") {
     titulo = `Agregó ${fase} tarde`;
     cuanto = c.tarde && c.tarde.prendas > 0 ? `${cuantas(c.tarde.prendas, "prenda", "prendas")} ya ${c.tarde.prendas === 1 ? "hecha" : "hechas"}` : null;

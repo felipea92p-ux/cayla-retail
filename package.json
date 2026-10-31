@@ -292,6 +292,7 @@
     "pruebas:produccion-termine-con-falla": "node scripts/pruebas/produccion_termine_con_falla.mjs",
     "pruebas:produccion-correcciones": "node scripts/pruebas/produccion_correcciones.mjs",
     "pruebas:produccion-tela-al-cortar": "node scripts/pruebas/produccion_tela_al_cortar.mjs",
+    "pruebas:produccion-cambiar-tipo": "node scripts/pruebas/produccion_cambiar_tipo.mjs",
     "pruebas:produccion-catalogo-de-procesos": "node scripts/pruebas/produccion_catalogo_de_procesos.mjs",
     "pruebas:producto-taller": "node scripts/pruebas/producto_taller.mjs",
     "pruebas:produccion-avances": "node scripts/pruebas/produccion_avances.mjs",
