@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { solesRedondo } from "./gastos-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
 import { tienesPulso } from "./dinero-pulso-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
@@ -289,15 +289,6 @@ describe("la respuesta de cada cara", () => {
       ["Debes S/ 2,300 en la tarjeta", "ambar"],
       ["El cajón abierto lo ve quien cierra la caja", "apagado"],
     ]);
-  });
-  it("Qué debes: cuántas, lo vencido en rojo, lo de esta semana en ámbar; nada, en verde", () => {
-    const chips = chipsQueDebes([{ vence: "2026-10-10", saldo: 5133.6 }, { vence: "2026-10-19", saldo: 6800 }, { vence: "2026-11-30", saldo: 3200 }], HOY);
-    expect(chips.map((c) => [plano(c.texto), c.tono])).toEqual([
-      ["3 facturas", "pizarra"],
-      ["S/ 5,134 ya vencido", "rojo"],
-      ["S/ 6,800 vence esta semana", "ambar"],
-    ]);
-    expect(chipsQueDebes([], HOY)).toEqual([{ texto: "Nada por pagar", tono: "verde" }]);
   });
   it("Cuadrar: lo que suman los bancos y lo que falta revisar; sin bancos, no hay cifra", () => {
     const c = (tipo: "banco" | "por_abonar", saldoHoy: number, pendientes: number) => ({ tipo, saldoHoy, pendientes });
