@@ -38,6 +38,14 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 /* ---------- el aparato ---------- */
 .disp{scroll-margin-top:110px;container:disp/inline-size;position:relative;width:min(1440px,100%);height:860px;border-radius:16px;overflow:hidden;border:1px solid var(--t25);isolation:isolate}
 .disp[data-ancho="movil"]{width:375px;height:780px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+/* Todos los anchos (Felipe 2026-10-31: «super responsive, en todas las resoluciones posibles y en teléfono»). El aparato mide de verdad lo
+   que dice; si no cabe en la ventana, marco.js lo achica con `zoom` para verlo entero (sus consultas de contenedor siguen midiendo su ancho real). */
+.disp:is([data-ancho="m320"],[data-ancho="m430"]){height:720px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+.disp[data-ancho="m320"]{width:320px;height:640px}.disp[data-ancho="m430"]{width:430px;height:900px}
+.disp[data-ancho="tablet"]{width:768px;height:1024px;border-radius:32px;border:10px solid #171614} /* tema-fijo: marco de la tableta de la maqueta */
+.disp:not([data-ancho="escritorio"]){flex:none} /* mide lo que dice, aunque no quepa: lo achica el zoom */
+.disp[data-ancho="w1024"]{width:1024px;height:768px}.disp[data-ancho="w1280"]{width:1280px;height:800px}
+.disp[data-ancho="w1440"]{width:1440px;height:900px}.disp[data-ancho="w1920"]{width:1920px;height:1080px}
 
 /* ====================================================================
    EL FONDO (lienzo)

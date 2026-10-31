@@ -182,23 +182,40 @@ input.f-ctl:focus{background:linear-gradient(180deg,color-mix(in srgb,var(--vidr
 .vacio-t h3{font-family:'EB Garamond',serif;font-weight:500;font-size:24px}
 .vacio-t p{margin:6px auto 16px;max-width:30rem;font-size:15px;color:var(--t80)}
 
-/* ---------- el celular: cada fila una tarjeta; los filtros, píldoras arriba ---------- */
+/* ====================================================================
+   SUPER RESPONSIVE (Felipe 2026-10-31: «que siempre sea super responsive, en todas las resoluciones posibles y en teléfono»)
+   La tabla no mira el ancho de la pantalla: mira el SUYO (`container: zona`). Así responde igual con el menú abierto o plegado, en una
+   hoja, en un cajón o a media pantalla. Cuatro escalones, y lo que se esconde nunca se pierde: pasa a la línea de debajo.
+     · 1060 px o más: las siete columnas.
+     · 840 a 1060: se van Sede y Artículos; bajo el proveedor aparece «6 artículos · Trujillo».
+     · 660 a 840: se va también Llega; el proveedor suma «llega en 4 días».
+     · menos de 660: cada fila es una tarjeta, y los filtros, píldoras arriba (la cabecera no cabe).
+   ==================================================================== */
+.zona-t{container:zona/inline-size}
+.sec .s-llega{display:none}
+.sec.si-falta{display:none}
 .filtros-m{display:none}
-@container disp (max-width:520px){
+@container zona (max-width:1060px){.tabla{--cols:var(--cols-1060)!important}.oc-1060{display:none!important}.sec.si-falta{display:block}}
+@container zona (max-width:840px){.tabla{--cols:var(--cols-840)!important}.oc-840{display:none!important}.sec .s-llega{display:inline}}
+@container zona (max-width:660px){
   .t-cabeza{display:none}
-  .filtros-m{display:flex;gap:8px;overflow-x:auto;margin:16px -16px 0;padding:2px 16px 4px;scrollbar-width:none}
+  .filtros-m{display:flex;gap:8px;overflow-x:auto;margin:16px 0 0;padding:2px 2px 4px;scrollbar-width:none}
   .filtros-m::-webkit-scrollbar{display:none}
   :root:not([data-sp]) .filtros-m{display:none}
-  .filtros-m .f-ctl{width:auto;flex:none;max-width:200px}
-  .t-fila{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"a d" "b c";gap:6px 12px;padding:14px 16px!important;min-height:0!important}
+  .filtros-m .f-ctl{width:auto;flex:none;max-width:220px}
+  .t-fila{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"a d" "b b" "c c";gap:6px 12px;padding:14px 18px!important;min-height:0!important}
   .t-fila>*{text-align:left!important;justify-self:start!important}
-  .t-fila>.m-a{grid-area:a}.t-fila>.m-b{grid-area:b}.t-fila>.m-c{grid-area:c;justify-self:end!important}.t-fila>.m-d{grid-area:d;justify-self:end!important;text-align:right!important}
-  .t-fila>.m-x{display:none}
-  .t-fila+.t-fila::before{left:16px;right:16px}
+  .t-fila>.m-a{grid-area:a;font-weight:600}.t-fila>.m-b{grid-area:b}.t-fila>.m-c{grid-area:c}.t-fila>.m-d{grid-area:d;justify-self:end!important;text-align:right!important}
+  .t-fila>.m-b{justify-self:stretch!important}
+  .t-fila .sec{white-space:normal}
+  .t-fila .monto{min-width:0}
+  .t-fila+.t-fila::before{left:18px;right:18px}
+  .t-pie{padding:12px 18px}
+}
+/* el teléfono: la frase a lo ancho y el globo como la hoja a media altura (ADR-0479: opciones que se aplican al momento), con su asa */
+@container disp (max-width:520px){
   .barra-t{gap:10px}
   .frase-t{flex-basis:100%}
-  .t-pie{padding:12px 16px}
-  /* en el celular el globo es la hoja a media altura (ADR-0479: opciones que se aplican al momento), con su asa */
   .globo{left:8px!important;right:8px;bottom:8px;top:auto!important;width:auto;max-width:none;max-height:70%;overflow:auto;padding:22px 16px 16px;border-radius:28px;animation:sube-hoja .38s var(--ease) both}
   .globo::before{content:"";position:absolute;top:8px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:99px;background:var(--t25)}
   .globo .g-op{min-height:44px}
@@ -210,9 +227,9 @@ input.f-ctl:focus{background:linear-gradient(180deg,color-mix(in srgb,var(--vidr
 
 <div class="spk">
   <span class="titulo">La tabla con superpoderes · sobre la cara elegida, B · Placa Serena</span>
-  <span class="tag">Filtrar</span><div class="seg-m" data-ctl="sp"><button data-v="ahora">Como ahora (sin superpoderes)</button><button data-v="globo">A · Globo desde la cabecera</button><button data-v="fila">B · Fila de filtros</button></div>
+  <span class="tag">Filtrar</span><div class="seg-m" data-ctl="sp"><button data-v="ahora">Como ahora (sin superpoderes)</button><button data-v="globo">A · Globo desde la cabecera ✓</button><button data-v="fila">B · Fila de filtros</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
-  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="m430">430</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
 
 <div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
@@ -250,10 +267,12 @@ input.f-ctl:focus{background:linear-gradient(180deg,color-mix(in srgb,var(--vidr
     <h2>A o B: cómo se filtra desde la cabecera</h2>
     <table>
       <tr><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td><b>A · Globo desde la cabecera</b> <span class="ev">Recomendada</span></td><td>La cabecera queda limpia; un toque abre todo lo de esa columna: ordenar, buscar, elegir varias, con cuántas hay de cada una. Sirve igual con 3 columnas que con 8, y en el celular es la misma hoja.</td><td>Hay que saber que la cabecera se toca: lo dice el embudo junto a cada nombre y el punto rojo cuando hay algo puesto.</td></tr>
+      <tr><td><b>A · Globo desde la cabecera</b> <span class="ev">Elegida</span></td><td>La cabecera queda limpia; un toque abre todo lo de esa columna: ordenar, buscar, elegir varias, con cuántas hay de cada una. Sirve igual con 3 columnas que con 8, y en el celular es la misma hoja.</td><td>Hay que saber que la cabecera se toca: lo dice el embudo junto a cada nombre y el punto rojo cuando hay algo puesto.</td></tr>
       <tr><td><b>B · Fila de filtros</b></td><td>Cero descubrimiento: el filtro está a la vista bajo cada columna; el proveedor se busca escribiendo ahí mismo.</td><td>Gasta 54 px de alto en cada tabla, aunque nadie filtre. En una columna angosta (Artículos) el control queda apretado o vacío, y en una tabla de 8 columnas la fila se vuelve una planilla de campos.</td></tr>
     </table>
-    <h3>Recomendación</h3>
+    <h3>Lo que decidió Felipe (2026-10-31): A · Globo desde la cabecera</h3>
+    <p>«Que siempre sea super responsive, en todas las resoluciones posibles y en teléfono»: la tabla se acomoda a SU ancho (no al de la pantalla), y la maqueta se mide de 320 a 1920 px, con el menú abierto y plegado.</p>
+    <h3>La recomendación</h3>
     <p><b>A · Globo desde la cabecera</b>, con los ocho superpoderes. Es la que escala a todas las tablas del ERP sin llenarlas de controles, y lo que tiene puesto se ve igual de claro gracias a la frase y a las píldoras.</p>
     <h3>Lo que hay que decidir aparte</h3>
     <p>Llevar esto al código cambia qué hace la tabla, no solo cómo se ve: <code>&lt;Tabla&gt;</code> tendría que saber filtrar (hoy cada pantalla filtra por su cuenta, a veces en la base con <code>?q=</code>). Lo sensato es empezar por las tablas que ya cargan todo en el navegador (Órdenes, Movimientos del día, Gastos) y dejar para después las que paginan en la base.</p>
@@ -285,10 +304,10 @@ const RANGOS = {
 const COLS = [
   { k: 'oc', t: 'Orden', ancho: '110px', orden: ['Más nueva primero', 'Más vieja primero'], m: 'm-a' },
   { k: 'prov', t: 'Proveedor', ancho: 'minmax(0,1.5fr)', filtro: 'lista', orden: ['A → Z', 'Z → A'], m: 'm-b' },
-  { k: 'sede', t: 'Sede', ancho: '120px', filtro: 'lista', orden: ['A → Z', 'Z → A'], m: 'm-x' },
+  { k: 'sede', t: 'Sede', ancho: '120px', filtro: 'lista', orden: ['A → Z', 'Z → A'], m: 'oc-1060' },
   { k: 'est', t: 'Estado', ancho: '150px', filtro: 'lista', orden: ['A → Z', 'Z → A'], m: 'm-c' },
-  { k: 'dias', t: 'Llega', ancho: '130px', filtro: 'rango', orden: ['Lo más pronto primero', 'Lo más lejano primero'], m: 'm-x' },
-  { k: 'art', t: 'Artículos', ancho: '100px', orden: ['Menos primero', 'Más primero'], m: 'm-x' },
+  { k: 'dias', t: 'Llega', ancho: '130px', filtro: 'rango', orden: ['Lo más pronto primero', 'Lo más lejano primero'], m: 'oc-840' },
+  { k: 'art', t: 'Artículos', ancho: '124px', orden: ['Menos primero', 'Más primero'], m: 'oc-1060' },
   { k: 'total', t: 'Total', ancho: '150px', filtro: 'rango', orden: ['Menor primero', 'Mayor primero'], m: 'm-d' },
 ];
 const etiquetaDe = (k, v) => (k === 'est' ? EST[v][0] : v);
@@ -346,7 +365,7 @@ function cabecera() {
   return `<div class="t-enc" role="row">${COLS.map((c) => {
     const ord = O.k === c.k ? O.dir : '';
     const abrible = sp() === 'globo' || (sp() === 'fila');
-    return `<span role="columnheader" class="${c.m === 'm-x' ? 'desde-lg' : ''}"><button class="col-btn" data-col="${c.k}" ${ord ? `data-ordenada="${ord}"` : ''} ${filtrada(c.k) ? 'data-filtrada' : ''}
+    return `<span role="columnheader" class="${c.m.startsWith('oc-') ? c.m : ''}"><button class="col-btn" data-col="${c.k}" ${ord ? `data-ordenada="${ord}"` : ''} ${filtrada(c.k) ? 'data-filtrada' : ''}
       aria-expanded="${globoDe === c.k}" aria-label="${c.t}${abrible && sp() === 'globo' ? ': ordenar' + (c.filtro ? ' y filtrar' : '') : ': ordenar'}">
       <span class="nom">${c.t}</span>${sp() === 'globo' && c.filtro ? `<svg class="ic embudo" viewBox="0 0 24 24" aria-hidden="true"><path d="${EMBUDO}"/></svg>` : ''}
       ${ord || !sp() ? `<svg class="ic flecha-o" viewBox="0 0 24 24" aria-hidden="true"${ord ? '' : ' style="opacity:.35"'}><path d="${FLECHA_O}"/></svg>` : ''}<span class="pt" aria-hidden="true"></span></button></span>`;
@@ -354,7 +373,7 @@ function cabecera() {
 }
 function filaDeFiltros() {
   return `<div class="t-filtros">${COLS.map((c) => {
-    const cl = c.m === 'm-x' ? ' class="desde-lg"' : '';
+    const cl = c.m.startsWith('oc-') ? ` class="${c.m}"` : '';
     if (c.k === 'oc' || c.k === 'prov') return `<span${cl}><input class="f-ctl" data-texto="${c.k}" value="${F.texto[c.k]}" placeholder="${c.k === 'oc' ? 'Número' : 'Busca un proveedor'}" aria-label="Filtrar por ${c.t.toLowerCase()}"></span>`;
     if (!c.filtro) return `<span${cl}><span class="f-vacio"></span></span>`;
     return `<span${cl}>${controlFiltro(c)}</span>`;
@@ -372,11 +391,11 @@ function celdas(o) {
   const falta = o.est === 'llego' ? 'llegó' : o.dias === 0 ? 'hoy' : o.dias > 0 ? `en ${o.dias} día${o.dias > 1 ? 's' : ''}` : `hace ${-o.dias} día${o.dias < -1 ? 's' : ''}`;
   return [
     `<span class="m-a">OC-0${o.oc}</span>`,
-    `<span class="m-b">${o.prov}<span class="sec si-falta">${o.art} artículos · ${o.sede}</span></span>`,
-    `<span class="m-x desde-lg">${o.sede}</span>`,
+    `<span class="m-b">${o.prov}<span class="sec si-falta">${o.art} artículos · ${o.sede}<span class="s-llega"> · ${o.est === 'llego' ? 'llegó' : o.dias < 0 ? `debía llegar ${falta}` : `llega ${falta}`}</span></span></span>`,
+    `<span class="oc-1060">${o.sede}</span>`,
     `<span class="m-c"><span class="chip" style="--c:${EST[o.est][1]}"><i></i>${EST[o.est][0]}</span></span>`,
-    `<span class="m-x desde-lg">${fechaDe(o.dias)}${sp() ? `<span class="falta${paso ? ' paso' : ''}">${falta}</span>` : ''}</span>`,
-    `<span class="m-x der desde-lg">${o.art}</span>`,
+    `<span class="oc-840">${fechaDe(o.dias)}${sp() ? `<span class="falta${paso ? ' paso' : ''}">${falta}</span>` : ''}</span>`,
+    `<span class="der oc-1060">${o.art}</span>`,
     `<span class="m-d der"><span class="monto">${soles(o.total)}</span></span>`,
   ].join('');
 }
@@ -388,9 +407,10 @@ function tabla() {
   const xs = filas();
   const ancho = Math.max(...DATOS.map((o) => soles(o.total).length));
   const cols = COLS.map((c) => c.ancho).join(' ');
-  const colsAng = COLS.filter((c) => c.m !== 'm-x').map((c) => c.ancho).join(' ');
+  const cols1060 = COLS.filter((c) => c.m !== 'oc-1060').map((c) => c.ancho).join(' ');
+  const cols840 = COLS.filter((c) => !c.m.startsWith('oc-')).map((c) => c.ancho).join(' ');
   const suma = xs.reduce((a, o) => a + o.total, 0);
-  return `<div class="tabla" role="table" aria-label="Órdenes de compra" ${letraGrande ? 'data-letra="grande"' : ''} style="--cols:${cols};--cols-ang:${colsAng};--w-monto:${ancho}ch">
+  return `<div class="tabla" role="table" aria-label="Órdenes de compra" ${letraGrande ? 'data-letra="grande"' : ''} style="--cols:${cols};--cols-1060:${cols1060};--cols-840:${cols840};--w-monto:${ancho}ch">
     <div class="t-cabeza">${cabecera()}${filaDeFiltros()}</div>
     ${xs.length ? xs.map((o, k) => `<a href="#" class="t-fila" role="row" data-id="${o.oc}" aria-current="${o.oc === abierta}" style="--k:${Math.min(k, 11)}"><span class="marca" aria-hidden="true"></span>${celdas(o)}</a>`).join('') : vacio()}
     <div class="t-pie">${sp() ? (hayFiltros() ? `Lo que ves suma <b>${soles(suma)}</b> · ${xs.length} órdenes` : `${DATOS.length} órdenes · ${soles(suma)} en total`) : `${DATOS.length} órdenes · ${soles(suma)} en total`}</div></div>`;
@@ -403,7 +423,7 @@ function pintarPantalla() {
     <div class="barra-t"><p class="frase-t" aria-live="polite"></p>
       <button class="letra" role="switch" aria-checked="${letraGrande}" data-letra><span class="aa" aria-hidden="true">Aa</span>Letra grande<span class="inter" aria-hidden="true"></span></button>
       <div class="puestos"></div></div>
-    <div id="filtros-m"></div><div id="la-tabla"></div>`;
+    <div class="zona-t"><div id="filtros-m"></div><div id="la-tabla"></div></div>`;
   repintar(true);
 }
 // Repinta solo la tabla, la frase y las píldoras (no la pantalla): así no se repite la entrada de la cabecera.
@@ -445,8 +465,8 @@ function pintarGlobo() {
   // se mide contra la capa flotante (dentro del borde del aparato), no contra el aparato
   const g = $('.globo'), d = $('#flotante').getBoundingClientRect(), r = ancla.getBoundingClientRect();
   if ($('#disp').dataset.ancho === 'movil') { g.style.left = ''; g.style.top = ''; return; }
-  const w = g.offsetWidth, izq = Math.min(Math.max(8, r.left - d.left + r.width / 2 - w / 2), d.width - w - 8);
-  g.style.left = izq + 'px'; g.style.top = r.bottom - d.top + 8 + 'px';
+  const z = zoomDisp(), w = g.offsetWidth, izq = Math.min(Math.max(8, (r.left - d.left + r.width / 2) / z - w / 2), d.width / z - w - 8);
+  g.style.left = izq + 'px'; g.style.top = (r.bottom - d.top) / z + 8 + 'px';
   $$('[data-col]').forEach((b) => b.setAttribute('aria-expanded', b.dataset.col === globoDe));
 }
 function cerrarGlobo() { globoDe = null; $$('.globo').forEach((g) => g.remove()); $$('[data-col]').forEach((b) => b.setAttribute('aria-expanded', 'false')); }
@@ -493,10 +513,7 @@ addEventListener('resize', () => { if (globoDe) pintarGlobo(); });
 Marco.iniciar({ estado: { sp: 'globo' }, alPintar: () => { cerrarGlobo(); $('#cont').scrollTop = 0; pintarPantalla(); } });
 </script>
 <style>
-/* con la pantalla angosta, las columnas que sobran se van (como `desdeLg` de <Encabezado>) */
-/* lo de debajo del proveedor (artículos · sede) sale solo cuando sus columnas se van: no se repite lo que ya está a la vista */
-.sec.si-falta{display:none!important}
-@container disp (max-width:1150px){.tabla{--cols:var(--cols-ang)!important}.desde-lg{display:none!important}.sec.si-falta{display:block!important}}
+
 </style>
 </body>
 </html>

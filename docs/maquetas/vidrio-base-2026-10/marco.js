@@ -77,8 +77,9 @@ function moverMarca(animar = true) {
   m.style.opacity = 1;
   if (!animar || quieto()) m.style.transition = 'none'; else m.style.transition = '';
   const nav = $('.nav'), r = on.getBoundingClientRect(), rn = nav.getBoundingClientRect();
-  m.style.top = r.top - rn.top + nav.scrollTop + 'px'; m.style.height = r.height + 'px';
-  m.style.left = r.left - rn.left + 'px'; m.style.width = r.width + 'px'; m.style.right = 'auto';
+  const z = zoomDisp();
+  m.style.top = (r.top - rn.top) / z + nav.scrollTop + 'px'; m.style.height = r.height / z + 'px';
+  m.style.left = (r.left - rn.left) / z + 'px'; m.style.width = r.width / z + 'px'; m.style.right = 'auto';
   requestAnimationFrame(() => (m.style.transition = ''));
 }
 
@@ -150,12 +151,13 @@ function cerrarCombos() {
 function abrirCombo(cb) {
   const lista = listaDe(cb.dataset.cb), btn = $('.cb-btn', cb), d = $('#disp').getBoundingClientRect(), r = btn.getBoundingClientRect();
   cb.classList.add('abierto'); btn.setAttribute('aria-expanded', 'true');
-  lista.style.width = lista.hasAttribute('data-ancho') ? r.width + 'px' : '';
-  lista.style.minWidth = r.width + 'px';
+  const z = zoomDisp();
+  lista.style.width = lista.hasAttribute('data-ancho') ? r.width / z + 'px' : '';
+  lista.style.minWidth = r.width / z + 'px';
   lista.classList.add('abierta');
   const w = lista.offsetWidth;
-  lista.style.top = r.bottom - d.top + 8 + 'px';
-  lista.style.left = Math.max(8, lista.dataset.alinea === 'derecha' ? r.right - d.left - w : r.left - d.left) + 'px';
+  lista.style.top = (r.bottom - d.top) / z + 8 + 'px';
+  lista.style.left = Math.max(8, lista.dataset.alinea === 'derecha' ? (r.right - d.left) / z - w : (r.left - d.left) / z) + 'px';
   requestAnimationFrame(() => gotaA(lista, null, false));
   const b = $('[data-buscar]', lista); if (b) setTimeout(() => b.focus(), 30);
 }
@@ -199,6 +201,14 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- estado ----------
+// Un aparato más ancho que la ventana (1920 en un portátil) se ve entero con `zoom`; los que miden posiciones dividen por zoomDisp().
+const zoomDisp = () => parseFloat($('#disp').style.zoom) || 1;
+function ajustarZoom() {
+  const d = $('#disp'); d.style.zoom = '';
+  const libre = d.parentElement.clientWidth - 32, ancho = d.offsetWidth;
+  if (ancho > libre) d.style.zoom = String(libre / ancho);
+}
+addEventListener('resize', ajustarZoom);
 // Lo elegido del marco, más lo que cada maqueta agrega (Marco.iniciar({ estado })): toda clave que no sea tema ni ancho va al <html> como data-*.
 const estado = { fondo: 'aurora', lateral: 'riel', cabecera: 'islas', combo: 'gota', subs: 'bandeja', pmodo: 'nombre', tema: 'claro', ancho: 'escritorio' };
 const Marco = { alPintar: null, alAccion: null };
@@ -208,6 +218,7 @@ function pintar() {
   for (const k of Object.keys(estado).filter((x) => x !== 'tema' && x !== 'ancho')) { if (estado[k] === 'ahora') delete r.dataset[k]; else r.dataset[k] = estado[k]; }
   $$('.seg-m').forEach((s) => $$('button', s).forEach((b) => b.classList.toggle('on', b.dataset.v === estado[s.dataset.ctl])));
   $('#disp').dataset.ancho = estado.ancho;
+  ajustarZoom();
   cerrarCombos(); pintarLateral(); pintarCabecera();
   if (Marco.alPintar) Marco.alPintar(estado);
 }
