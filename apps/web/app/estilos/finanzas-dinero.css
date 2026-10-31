@@ -334,106 +334,16 @@
     color: var(--color-tinta);
     max-width: 60ch;
   }
-  .din-agenda-marco {
-    overflow-x: auto;
-    padding: 4px 14px 0;
-  }
-  .din-agenda {
-    display: block;
-    width: 100%;
-    min-width: 560px;
-    height: auto;
-    overflow: visible;
-  }
-  .din-agenda-semana {
-    fill: color-mix(in srgb, var(--color-ambar) 9%, transparent);
-  }
-  .din-agenda-rotulo {
-    fill: var(--color-ambar);
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .din-agenda-linea {
-    stroke: var(--color-tinta);
-    stroke-width: 1.5;
-  }
-  .din-agenda-marca {
-    stroke: var(--color-taupe);
-  }
-  .din-agenda-dia {
-    fill: var(--color-taupe);
-    font-size: 12px;
-  }
-  .din-agenda-hoy {
-    stroke: var(--color-rojo);
-    stroke-width: 1.5;
-  }
-  .din-burbuja circle {
-    fill: color-mix(in srgb, var(--c) 78%, transparent);
-    stroke: var(--color-papel);
-    stroke-width: 1.5;
-    transition: transform 0.25s var(--ease-cayla);
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-  .din-burbuja[data-vencida] circle {
-    stroke: var(--color-rojo-profundo);
-    stroke-width: 2.5;
-  }
-  .din-burbuja[role="link"] {
-    cursor: pointer;
-  }
-  .din-burbuja[role="link"]:focus-visible {
-    outline: none;
-  }
-  .din-burbuja[role="link"]:focus-visible circle {
-    stroke: var(--color-tinta);
-    stroke-width: 3;
-  }
-  @media (hover: hover) {
-    .din-burbuja[role="link"]:hover circle {
-      transform: translateY(-3px);
-      stroke: var(--color-tinta);
-    }
-  }
-  /* Las burbujas caen a su fecha, una vez, en cascada. */
-  .din-burbuja {
-    animation: din-cae 0.6s var(--ease-cayla) backwards;
-    animation-delay: calc(var(--i, 0) * 70ms + 300ms);
-  }
-  @keyframes din-cae {
-    from {
-      opacity: 0;
-      transform: translateY(-24px);
-    }
-  }
-  .din-agenda-leyenda {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 16px;
-    padding: 6px 18px 14px;
-    font-size: 12.5px;
-    color: var(--color-taupe);
-  }
-  .din-agenda-leyenda li,
   .din-sede-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
-  .din-agenda-leyenda i,
   .din-sede-chip i {
     width: 9px;
     height: 9px;
     border-radius: 50%;
     background: var(--c);
-  }
-  .din-filtros {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    padding: 0 18px 12px;
   }
   .din-puestos {
     display: flex;
@@ -548,12 +458,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     .din-anillo-arco,
-    .din-burbuja,
     .din-par[data-estado="revisada"] .din-par-hilo path {
       animation: none;
-    }
-    .din-burbuja circle {
-      transition: none;
     }
   }
 }
