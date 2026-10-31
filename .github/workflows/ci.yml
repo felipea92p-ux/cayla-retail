@@ -75,11 +75,69 @@ jobs:
       - id: medir
         run: node scripts/ci/alcance.mjs
 
+  # TRES TRABAJOS A LA VEZ EN VEZ DE UNO EN FILA (2026-10-31). Tipos (1:39), lint (2:13) y pruebas (2:06) corrían uno detrás
+  # de otro en un solo job de ~7 min; cada «Update branch» que pide el ruleset (rama al día) volvía a pagar esos 7 min. Ahora
+  # cada uno es su propio job y los tres corren a la vez (~2,5 min el más lento). Los candados chicos (knip, aviario, números
+  # de ADR, bitácora…) van con «Tipos», el más corto. El check obligatorio «Tipos, lint y pruebas» es un job que solo junta
+  # los tres resultados, igual que «Pruebas de RPC contra Postgres» junta sus tandas.
+  #
+  # En un push a `main` que viene de un PR estos jobs ya corrieron sobre el mismo árbol (el ruleset exige la rama al día:
+  # ADR-0345) y `alcance` dice `verificar=no`. Con `!cancelled()` y `!= 'no'` y no `== 'si'`: si `alcance` falla, su salida
+  # llega vacía y los jobs corren; nunca se saltan por no saber. En un PR `alcance` siempre dice `si`.
+  lint:
+    name: Lint
+    needs: alcance
+    if: ${{ !cancelled() && needs.alcance.outputs.verificar != 'no' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+
+  pruebas-unidad:
+    name: Pruebas sin base
+    needs: alcance
+    if: ${{ !cancelled() && needs.alcance.outputs.verificar != 'no' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pruebas
+        run: pnpm test
+
+  # El check que exige el ruleset `main-protegida`: verde solo si los tres jobs de arriba salieron bien. Con `!cancelled()`:
+  # corre aunque uno falle, para decir cuál; si la corrida se cancela, se cancela con ella.
   verificar:
     name: Tipos, lint y pruebas
-    # En un push a `main` que viene de un PR este job ya corrió sobre el mismo árbol (el ruleset exige la rama al día: ADR-0345)
-    # y `alcance` dice `verificar=no`. Con `!cancelled()` y `!= 'no'` y no `== 'si'`: si `alcance` falla, su salida llega
-    # vacía y el job corre; nunca se salta por no saber. En un PR `alcance` siempre dice `si`.
+    needs: [alcance, tipos, lint, pruebas-unidad]
+    if: ${{ !cancelled() && needs.alcance.outputs.verificar != 'no' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Juntar tipos, lint y pruebas
+        env:
+          TIPOS: ${{ needs.tipos.result }}
+          LINT: ${{ needs.lint.result }}
+          PRUEBAS: ${{ needs.pruebas-unidad.result }}
+        run: |
+          echo "tipos y candados=$TIPOS · lint=$LINT · pruebas=$PRUEBAS"
+          if [ "$TIPOS" = success ] && [ "$LINT" = success ] && [ "$PRUEBAS" = success ]; then echo "✓ Los tres pasaron."; exit 0; fi
+          echo "::error::No pasaron todos (tipos y candados: $TIPOS · lint: $LINT · pruebas: $PRUEBAS). Mira el job en rojo."
+          exit 1
+
+  tipos:
+    name: Tipos y candados
     needs: alcance
     if: ${{ !cancelled() && needs.alcance.outputs.verificar != 'no' }}
     runs-on: ubuntu-latest
@@ -111,8 +169,8 @@ jobs:
 
       # Todos corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
       # (si no hay node_modules, todos fallarían por la misma razón y el informe sería
-      # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
-      # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
+      # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta. Lint y
+      # pruebas corren en sus propios jobs, a la vez que este.
       # Más memoria para `tsc`: el 2026-10-16 revisar los tipos de la web pedía ~1,98 GB y Node corta en ~2 GB por defecto, así que un
       # PR que sumaba unos pocos archivos moría con «JavaScript heap out of memory» (código 134) sin ningún error de tipos. El runner
       # tiene memoria de sobra; 6 GB deja margen para que el ERP siga creciendo.
@@ -121,14 +179,6 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm typecheck
-
-      - name: Lint
-        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
-        run: pnpm lint
-
-      - name: Pruebas
-        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
-        run: pnpm test
 
       # Código muerto (ADR-0406): un archivo que nadie importa, una exportación que nadie lee o una dependencia que nadie carga
       # ponen el PR en rojo. Lee todo el monorepo en ~3 s; lo que se queda sin uso a propósito se declara en `knip.ts` o con
@@ -324,7 +374,7 @@ jobs:
       # Un PR «solo web» corre UNA tanda (las pruebas que leen la web); todo lo demás, las cuatro. El número de tandas es
       # `TANDAS` de pruebas-postgres.mjs (lo vigila su prueba).
       matrix:
-        tanda: ${{ fromJSON(needs.alcance.outputs.alcance == 'web' && '[1]' || '[1,2,3,4]') }}
+        tanda: ${{ fromJSON(needs.alcance.outputs.alcance == 'web' && '[1]' || '[1,2,3,4,5,6]') }}
     # SOLO LA BASE (ADR-0286, Parte 2). Las pruebas de este job hablan con el contenedor `supabase_db_cayla-retail` por
     # `docker exec … psql`; ninguna usa la API, auth, storage ni el panel. Levantarlos costaba ~60 de los ~88 s de
     # `supabase start` (bajar 7 imágenes, con reintentos por «Rate exceeded») sin que nada los llamara. Se excluyen los siete
