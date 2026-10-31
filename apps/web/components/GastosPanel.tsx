@@ -25,6 +25,8 @@ import { Volver } from "@/components/ui/Volver";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { CorreccionesDeCompra } from "@/components/mi-plata/CorreccionesDeCompra";
 import { HojaCorregirGasto } from "@/components/finanzas/gastos/HojaCorregirGasto";
+import { HojaComprobanteDeGasto } from "@/components/finanzas/gastos/HojaComprobanteDeGasto";
+import { puedeRecibirComprobante } from "@/lib/gastos-comprobante-tardio-reglas";
 import { porQueNoSeCorrige } from "@/lib/gastos-corregir-reglas";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
@@ -538,7 +540,7 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
+      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} proveedores={proveedores} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -672,14 +674,16 @@ function TablaGastos({
 function GastoDetalleModal({
   gasto: g,
   categorias,
+  proveedores,
   hoy,
   puedeVerImpuestos,
   puedeVerPorPagar,
   onCerrar,
 }: {
   gasto: GastoFila;
-  /** Para corregir su categoría (ADR-0588). */
+  /** Para corregir su categoría y para «Llegó el comprobante» (ADR-0588). */
   categorias: CategoriaGasto[];
+  proveedores: ProveedorGasto[];
   hoy: string;
   puedeVerImpuestos: boolean;
   /** Con el módulo Por pagar, el aviso de una factura que se debe lleva a pagarla (`/compras/por-pagar`); sin él, solo lo dice. */
@@ -690,6 +694,7 @@ function GastoDetalleModal({
   const responsable = useResponsable();
   const [anulando, setAnulando] = useState(false);
   const [corrigiendo, setCorrigiendo] = useState(false);
+  const [recibiendo, setRecibiendo] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
@@ -721,6 +726,7 @@ function GastoDetalleModal({
 
   // Corregir abre en el lugar de esta hoja (nunca una hoja sobre otra) y vuelve a ella con la flecha (ADR-0588).
   if (corrigiendo) return <HojaCorregirGasto gasto={g} categorias={categorias} onVolver={() => setCorrigiendo(false)} onCerrar={onCerrar} />;
+  if (recibiendo) return <HojaComprobanteDeGasto gasto={g} proveedores={proveedores} hoy={hoy} onVolver={() => setRecibiendo(false)} onCerrar={onCerrar} />;
 
   if (anulando) {
     return (
@@ -818,6 +824,12 @@ function GastoDetalleModal({
           </button>
         )}
         {/* Lo peligroso a la izquierda, corregir a la derecha (ADR-0358, «Lo peligroso»). */}
+        {puedeRecibirComprobante(g) && (
+          <button type="button" className="btn-cayla btn-secundario" onClick={() => setRecibiendo(true)}>
+            <Receipt aria-hidden className="h-4 w-4" />
+            Llegó el comprobante
+          </button>
+        )}
         {!porQueNoSeCorrige(g) && <BotonEditar onClick={() => setCorrigiendo(true)}>Corregir</BotonEditar>}
       </div>
     </Modal>

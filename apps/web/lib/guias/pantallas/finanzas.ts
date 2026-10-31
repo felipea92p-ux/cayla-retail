@@ -488,8 +488,8 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "detalle-botones",
       ancla: "fin-gastos.detalle-botones",
       opcional: true,
-      titulo: "Corregir o anular",
-      texto: "«Corregir» cambia en qué se gastó o qué fue, y deja escrito qué había antes. Lo que mueve plata no se corrige: «Anular…» lo deja a la vista como anulado, nunca se borra. En la demo no tocamos nada: cerramos.",
+      titulo: "Corregir, comprobante o anular",
+      texto: "«Corregir» cambia en qué se gastó o qué fue. Si se pagó sin comprobante y lo trajeron después, «Llegó el comprobante» se lo agrega sin pagarlo otra vez. «Anular…» lo deja a la vista como anulado. En la demo no tocamos nada: cerramos.",
     },
     {
       id: "fijos",

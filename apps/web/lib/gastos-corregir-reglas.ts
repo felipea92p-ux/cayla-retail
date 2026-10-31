@@ -11,16 +11,21 @@ export const RPC_CORRECCIONES_DE_GASTO = "fn_correcciones_de_gasto";
 /** Las categorías del viaje de compra no se eligen ni se corrigen aquí: su IGV vive sin comprobante y se corrigen en Compras. */
 const DEL_VIAJE: readonly string[] = ["traer_mercaderia", "viaje_compra"];
 
+/** Un gasto del viaje de compra (su papel y sus correcciones viven en Compras). */
+export function esDelViaje(categoria: string): boolean {
+  return DEL_VIAJE.includes(categoria);
+}
+
 /** Por qué este gasto no se corrige desde Gastos, o `null` si sí. Lo demás (mes cerrado, rendición, comisión) lo dice la base al guardar. */
 export function porQueNoSeCorrige(g: Pick<GastoFila, "estado" | "categoria">): string | null {
   if (g.estado === "anulado") return "Está anulado: ya no se corrige.";
-  if (DEL_VIAJE.includes(g.categoria)) return "Es un gasto del viaje de compra: se corrige en Compras.";
+  if (esDelViaje(g.categoria)) return "Es un gasto del viaje de compra: se corrige en Compras.";
   return null;
 }
 
 /** Las categorías que se pueden elegir al corregir: todas las de la lista menos las del viaje. */
 export function categoriasParaCorregir(categorias: readonly CategoriaGasto[]): CategoriaGasto[] {
-  return categorias.filter((c) => !DEL_VIAJE.includes(c.codigo));
+  return categorias.filter((c) => !esDelViaje(c.codigo));
 }
 
 export type BorradorCorreccion = { categoria: string; descripcion: string };
@@ -61,7 +66,7 @@ export function textoGuardarCorreccion(n: number): string {
   return `Guardar ${n} ${n === 1 ? "cambio" : "cambios"}`;
 }
 
-const NOMBRE_DEL_DATO: Record<string, string> = { categoria: "En qué", descripcion: "Qué fue" };
+const NOMBRE_DEL_DATO: Record<string, string> = { categoria: "En qué", descripcion: "Qué fue", comprobante: "Comprobante" };
 
 /** Un cambio en una frase, para la hoja y para el rastro: «En qué: Limpieza → Bolsas y empaque». */
 export function textoDeCambioDeGasto(c: Pick<CambioHecho, "campo" | "antes" | "despues">): string {

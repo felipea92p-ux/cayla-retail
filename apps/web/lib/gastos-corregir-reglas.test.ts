@@ -74,6 +74,7 @@ describe("textoDeCambioDeGasto y detalleDelGuardado", () => {
   it("dice el dato con el nombre de la hoja", () => {
     expect(textoDeCambioDeGasto({ campo: "categoria", antes: "Limpieza", despues: "Bolsas y empaque" })).toBe("En qué: Limpieza → Bolsas y empaque");
     expect(textoDeCambioDeGasto({ campo: "descripcion", antes: "Bolsas", despues: null })).toBe("Qué fue: Bolsas → nada");
+    expect(textoDeCambioDeGasto({ campo: "comprobante", antes: "Sin comprobante", despues: "Factura F001-288" })).toBe("Comprobante: Sin comprobante → Factura F001-288");
   });
   it("el aviso dice dónde cuenta ahora solo si cambió la categoría", () => {
     expect(detalleDelGuardado([{ campo: "categoria", antes: "Limpieza", despues: "Bolsas y empaque" }])).toBe("Ahora cuenta en «Bolsas y empaque».");

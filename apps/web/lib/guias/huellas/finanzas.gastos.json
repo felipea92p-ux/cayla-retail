@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 106,
+  "total": 113,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -52,6 +52,7 @@
       "Boton «Anular gasto»",
       "Link «Impuestos»",
       "button «Anular…»",
+      "button «Llegó el comprobante»",
       "BotonEditar «Corregir»",
       "button «Regístralo con su comprobante»",
       "ComboResponsable «{responsable}» #2",
@@ -93,6 +94,14 @@
       "button «Todas»",
       "button «{t.nombre}»",
       "BotonVerMas «{`Ver ${lista.length - A_LA_VISTA}»"
+    ],
+    "components/finanzas/gastos/HojaComprobanteDeGasto.tsx": [
+      "button «{c.texto}»",
+      "CampoTexto «Serie y número»",
+      "CampoFecha «Fecha del comprobante»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→onVolver»",
+      "Boton «Agregar comprobante»"
     ],
     "components/finanzas/gastos/HojaCorregirGasto.tsx": [
       "CampoSelect «Categoría»",
