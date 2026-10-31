@@ -609,3 +609,18 @@ tocables (`docs/maquetas/mi-perfil-2026-10/`), la **«A · Cristal líquido»**.
   la misma salida que «Salir» del lateral (`useCerrarSesion`, `components/LogoutButton.tsx`): el colibrí, las copias sin conexión y la
   pregunta si hay trabajo sin subir; el perfil se cierra antes para que el colibrí no vuele bajo la hoja.
 - **Se rompe si:** el vidrio se copia a otra hoja sin pasar por `/unificar`, o el filo o el brillo empiezan a moverse solos.
+
+## Actualización 2026-10-31 (b) — la cifra rueda del valor viejo al nuevo (`CifraAnimada`, Felipe)
+
+`<CifraAnimada>` contaba desde 0 hasta su valor en 900 ms y, como se armaba de nuevo con cada valor (`key={valor}`, el arreglo del
+2026-10-28), **volvía a contar desde cero** cada vez que la cifra cambiaba: al pasar de una sede a otra, S/ 23,480 → 0 → S/ 6,120. Desde
+el 2026-10-31 cada dígito es una columna que **gira** a su valor (como la librería NumberFlow, sin su resorte): al aparecer, desde 0; al
+cambiar, del valor viejo al nuevo. 700 ms con `--ease-cayla`, una vez, sin rebote; quieta con `prefers-reduced-motion`. Lo eligió Felipe
+mirando la lámina 08 de `docs/maquetas/gastos-benchmark-2026-10/` y vale para todas las pantallas que la usan (Finanzas, Comprobantes,
+Proformas, Resumen de sede).
+
+- **Dónde vive:** las columnas y sus claves en `lib/cifra-rueda.ts` (pura, con su prueba); la pieza en `components/ui/CifraAnimada.tsx`;
+  el CSS en `app/estilos/cifra-rueda.css`. Cada columna mide `1ch` por `1lh`: la cifra no cambia de tamaño. La tira del 0 al 9 se
+  escribe con CSS (`::before`), no con texto: no aparece al copiar la cifra ni en lo que lee una prueba; el lector lee el valor entero.
+- **Lo que no puede volver:** el número que se ve sale siempre del valor de ahora; cada dígito solo guarda si está en su primer cuadro.
+  Así no reaparece el error del 2026-10-28 (la plata de otra sede), y `lib/cifra-rueda.test.ts` lo vigila en el código.
