@@ -730,7 +730,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         tono: tono === "rojo" ? "rojo" : "pizarra",
         titulo: u.cruzado ? `Cruzaste el límite de ${uit ?? 300} UIT` : `Vas al ${porcentaje(u.avance ?? 0, 1)} del límite de ${uit ?? 300} UIT`,
         detalle: u.cruzado
-          ? "Cambian el régimen y los libros que exige SUNAT: conviene verlo con el contador."
+          ? "Cambian el pago a cuenta de renta y los libros que exige SUNAT: coordina las obligaciones nuevas con el contador."
           : `Al cruzarlo cambian el régimen y los libros que exige SUNAT.${proy.mesCruce ? ` A este ritmo, en ${nombreMes(proy.mesCruce)}.` : ""}`,
         impacto: null,
         href: enlace("impuestos", "/finanzas/impuestos"),
