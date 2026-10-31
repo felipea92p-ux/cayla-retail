@@ -1,4 +1,5 @@
 import { Check, CircleCheck, Clock, Info } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
 import { pasoDeLaRuta, relojDeFila, textoDeCierreDelPedido, type PedidoDetalle } from "@/lib/pedidos-web-reglas";
 
 const PASOS = ["Confirmar", "Cobrar", "Entregar"] as const;
@@ -23,7 +24,9 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
     p.plazos,
     ahora,
   );
-  const urge = reloj.tono === "rojo" || reloj.tono === "ambar";
+  // El plazo que corre: lo que le queda para confirmar, o para pagar si no paga nada. Un pedido pagado y listo no tiene plazo que apure.
+  const correPlazo = p.estado === "por_confirmar" || (p.estado === "confirmado" && p.pagado === 0) || p.sinRecoger;
+  const tono = reloj.tono === "rojo" ? "rojo" : reloj.tono === "ambar" ? "ambar" : "neutro";
   return (
     <ol aria-label="Dónde va el pedido" className="flex flex-wrap items-center gap-x-0 gap-y-2 rounded-xl bg-hueso px-4 py-3" data-guia="pedido-web.ruta">
       {PASOS.map((nombre, i) => {
@@ -47,10 +50,12 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
           </li>
         );
       })}
-      {urge && (
-        <li className={`ml-auto flex items-center gap-1.5 text-[12.5px] font-semibold max-sm:w-full ${reloj.tono === "rojo" ? "text-rojo-profundo" : "text-ambar"}`}>
-          <Clock aria-hidden className="h-4 w-4 shrink-0" />
-          {reloj.texto}
+      {correPlazo && (
+        <li className="ml-auto max-sm:w-full">
+          <Chip tono={tono} versalitas={false}>
+            <Clock aria-hidden className="h-3.5 w-3.5 shrink-0" />
+            {reloj.texto.replace("Se cierra solo en", "Se cierra en")}
+          </Chip>
         </li>
       )}
     </ol>

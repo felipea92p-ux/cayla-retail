@@ -34,6 +34,7 @@ import { camposConfirmar, camposEntregar, camposMotivo, camposReservar, campoDeL
 import { detalleDelPago, esAdelanto, estadoDelPago, porDevolver, sePuedeAnular, textoDelPago } from "@/lib/pedidos-web-cobro-reglas";
 import { devueltoAlCliente } from "@/lib/pedidos-web-anular-reglas";
 import {
+  avisoCoordinar,
   avisosDeLinea,
   empresaDeLaPrenda,
   datosDelCliente,
@@ -46,11 +47,13 @@ import {
   estadoDeBoleta,
   estadoDeLinea,
   estadoVisible,
+  etiquetaDeEstado,
   faltanParaEntregar,
   fechaCorta,
   fechasSugeridas,
   libresAqui,
   limpiarCodigo,
+  opcionesSinStock,
   lugarDeFabrica,
   MOTIVOS_ANULAR,
   MOTIVOS_NO_CONFIRMAR,
@@ -60,6 +63,7 @@ import {
   sePuedeReservarYa,
   textoDeDonde,
   textoDisponible,
+  VIAS_CONSEGUIR,
   whatsappDeLaHoja,
   textoDelCupon,
   type BoletaWeb,
@@ -74,6 +78,11 @@ import {
 } from "@/lib/pedidos-web-reglas";
 
 type Modo = "revisar" | "no_confirmar" | "anular" | "reservar";
+
+// Una opción que se elige entre pocas (qué hacer con una prenda que no hay, para qué fecha): la píldora de la maqueta del rediseño, con borde de
+// control, texto en tinta y, elegida, rellena de tinta.
+const PILDORA_ELIGE =
+  "inline-flex min-h-[34px] items-center rounded-full border border-borde-control bg-papel px-3.5 text-[13px] font-medium text-tinta transition-colors hover:border-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:opacity-50";
 
 // En el celular, el botón de un aviso baja bajo su texto: en la hoja angosta, a su derecha dejaba el texto a una palabra por línea.
 const AVISO_CON_BOTON =
@@ -345,8 +354,9 @@ export function PedidoWebHoja({
       titulo={
         <span className="inline-flex flex-wrap items-center gap-2">
           Pedido {p.codigo}
-          <Chip tono={estado.tono} vivo={estado.vivo} className="font-sans">
-            {estado.texto}
+          {/* Solo el estado, corto y en versalitas; lo que le queda va en la ruta, a su derecha. */}
+          <Chip tono={estado.tono} vivo={estado.vivo} className="font-sans text-[11px] font-semibold uppercase tracking-[0.07em]">
+            {etiquetaDeEstado(p)}
           </Chip>
         </span>
       }
@@ -444,7 +454,7 @@ export function PedidoWebHoja({
                   </BotonAncla>
                 }
               >
-                A veces se resuelve con otra talla, otro color u otra tienda.
+                A veces se resuelve con otra talla, otro color o pidiéndola a otra sede.
               </Aviso>
               <CampoGuiado id="motivo" guia={guia} titulo="¿Por qué no se confirma?">
                 <SegmentoDeslizante
@@ -772,7 +782,12 @@ function BloqueCliente({ pedido: p, whatsapp, boton }: { pedido: PedidoDetalle; 
         </span>
       </div>
       {/* El único WhatsApp de la hoja: su texto dice para qué es (pedirle el pago, avisarle que ya puede recoger…). */}
-      <BotonAncla href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn-chico w-full">
+      <BotonAncla
+        href={whatsapp}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-chico w-full !border-camino-whatsapp/50 !bg-camino-whatsapp/10 !text-camino-whatsapp hover:!border-camino-whatsapp"
+      >
         <MessageCircle aria-hidden className="h-4 w-4" />
         {boton}
       </BotonAncla>
@@ -895,11 +910,8 @@ function LineaPorConfirmar({
   const avisos = avisosDeLinea(l, decision, tiendaId, tienda);
   const quitada = decision?.tipo === "quitar";
   // Las opciones cuando NO hay en esta tienda: traerla de otra (una por tienda que la tiene) o conseguirla para una fecha.
-  const opciones = [
-    ...l.disponible.otras.map((o) => ({ clave: `otra:${o.ubicacionId}`, etiqueta: `Traer de ${o.tienda} (${o.libres})` })),
-    { clave: "conseguir", etiqueta: "Conseguirla" },
-  ];
-  const elegida = decision?.tipo === "reservar" && decision.ubicacionId !== tiendaId ? `otra:${decision.ubicacionId}` : decision?.tipo === "por_conseguir" ? "conseguir" : "";
+  const opciones = opcionesSinStock(l);
+  const elegida = decision?.tipo === "reservar" && decision.ubicacionId !== tiendaId ? `otra:${decision.ubicacionId}` : decision?.tipo === "por_conseguir" ? decision.via : "";
 
   return (
     <div className={`space-y-2.5 rounded-xl border px-4 py-3 ${quitada ? "border-sand bg-hueso/40" : aqui ? "border-sand" : "border-ambar/40"}`}>
@@ -936,32 +948,43 @@ function LineaPorConfirmar({
         </div>
       ) : (
         <div className="space-y-2">
-          <SegmentoDeslizante
-            etiqueta={`Qué hacer con ${l.referencia}`}
-            opciones={opciones}
-            valor={elegida}
-            onCambio={(c) => {
-              if (c === "conseguir") onDecision({ tipo: "por_conseguir", fecha: decision?.tipo === "por_conseguir" ? decision.fecha : "" });
-              else onDecision({ tipo: "reservar", ubicacionId: c.slice("otra:".length), lugar: null });
-            }}
-          />
+          {/* Antes de elegir, coordinar: con la otra sede, con Compras o el taller, y con el cliente (Felipe, 2026-10-31). */}
+          <Aviso tono="atencion" chico>
+            {avisoCoordinar(l)}
+          </Aviso>
+          {/* Tres salidas con nombres largos: píldoras que saltan de línea (un segmento de una sola fila se cortaba en la hoja). */}
+          <div className="flex flex-wrap gap-2" role="group" aria-label={`Qué hacer con ${l.referencia}`}>
+            {opciones.map((o) => (
+              <button
+                key={o.clave}
+                type="button"
+                className={PILDORA_ELIGE}
+                aria-pressed={elegida === o.clave}
+                disabled={deshabilitado}
+                onClick={() => {
+                  if (o.clave === "compra" || o.clave === "taller") onDecision({ tipo: "por_conseguir", via: o.clave, fecha: decision?.tipo === "por_conseguir" ? decision.fecha : "" });
+                  else onDecision({ tipo: "reservar", ubicacionId: o.clave.slice("otra:".length), lugar: null });
+                }}
+              >
+                {o.etiqueta}
+              </button>
+            ))}
+          </div>
           {decision?.tipo === "reservar" && (
-            <p className="text-[12.5px] text-taupe">
-              Se reserva allá y esa tienda la envía en un traslado; al llegar queda reservada aquí sola.
-            </p>
+            <p className="text-[12.5px] text-taupe">Se reserva allá y esa sede la envía en un traslado. Al llegar, queda reservada aquí.</p>
           )}
           {decision?.tipo === "por_conseguir" && (
             <div className="space-y-1.5">
-              <p className="text-[12.5px] text-taupe">Comprarla o hacerla en el taller; la fecha la coordinas con el cliente.</p>
+              <p className="text-[12.5px] text-taupe">{VIAS_CONSEGUIR.find((v) => v.clave === decision.via)?.detalle} La fecha la coordinas con el cliente.</p>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Para qué fecha la consigues">
                 {fechasSugeridas(hoy).map((f) => (
                   <button
                     key={f.fecha}
                     type="button"
-                    className="pildora-cayla"
+                    className={PILDORA_ELIGE}
                     aria-pressed={decision.fecha === f.fecha}
                     disabled={deshabilitado}
-                    onClick={() => onDecision({ tipo: "por_conseguir", fecha: f.fecha })}
+                    onClick={() => onDecision({ tipo: "por_conseguir", via: decision.via, fecha: f.fecha })}
                   >
                     {f.etiqueta}
                   </button>

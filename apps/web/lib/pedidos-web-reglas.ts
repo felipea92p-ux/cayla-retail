@@ -121,6 +121,8 @@ export type LineaDetalle = PrendaWeb & {
   tiendaReserva: string | null;
   lugar: LugarWeb | null;
   fechaCompromiso: string | null;
+  /** Cómo se consigue si está por conseguir (compra | taller); null = no se dijo (lo de antes). ADR-0590. */
+  conseguirVia: ViaConseguir | null;
   disponible: { almacen: number; piso: number; sinLugar: number; otras: { ubicacionId: string; tienda: string; libres: number }[] };
   compiten: { codigo: string; separoAntes: boolean }[];
   puedoOperarAlli: boolean;
@@ -476,6 +478,7 @@ export function leerDetalle(data: unknown): PedidoDetalle | null {
           tiendaReserva: texto(l.tienda_reserva),
           lugar: lugarDe(l.lugar),
           fechaCompromiso: texto(l.fecha_compromiso),
+          conseguirVia: l.conseguir_via === "compra" || l.conseguir_via === "taller" ? l.conseguir_via : null,
           disponible: {
             almacen: numero(disp.almacen),
             piso: numero(disp.piso),
@@ -998,6 +1001,19 @@ export function porQueSeCerraron(pedidos: readonly Pick<PedidoDeLista, "estado" 
   return [...cuenta.values()].sort((a, b) => lugar(a.clave) - lugar(b.clave) || b.cuantos - a.cuantos || a.texto.localeCompare(b.texto, "es"));
 }
 
+/**
+ * La etiqueta del título de la hoja del pedido: corta, solo el estado («Por confirmar», «Por cobrar», «Por entregar»). El tiempo que le queda
+ * no va aquí sino en la ruta, a su derecha, como píldora aparte (`relojDeLaRuta`).
+ */
+export function etiquetaDeEstado(p: Pick<PedidoDetalle, "estado" | "pagado" | "sinPagar" | "sinRecoger" | "listoParaRecoger">): string {
+  if (p.estado === "por_confirmar") return "Por confirmar";
+  if (p.estado === "confirmado") return p.sinPagar ? "Sin pagar" : "Por cobrar";
+  if (p.estado === "pagado") return p.sinRecoger ? "Sin recoger" : p.listoParaRecoger ? "Por entregar" : "Espera una prenda";
+  if (p.estado === "entregado") return "Entregado";
+  if (p.estado === "vencido") return "Cerrado sin confirmar";
+  return p.pagado > 0 ? `Por devolver ${soles(p.pagado)}` : "Anulado";
+}
+
 /** En qué paso de la ruta (Confirmar → Cobrar → Entregar) va un pedido: 0, 1 o 2; null si ya se cerró (entregado, anulado o vencido). */
 export function pasoDeLaRuta(estado: EstadoPedidoWeb): 0 | 1 | 2 | null {
   return estado === "por_confirmar" ? 0 : estado === "confirmado" ? 1 : estado === "pagado" ? 2 : null;
@@ -1059,9 +1075,31 @@ export function todoAlDia(pedidos: readonly PedidoDeLista[], ahora: number): str
 // ---------------------------------------------------------------------------------------------------------------------------
 
 /** De dónde sale cada prenda: reservarla (en la tienda del pedido o en otra, y el lugar), conseguirla para una fecha, o quitarla. */
+/** Cómo se consigue una prenda que no hay en la tienda ni se pide a otra sede (ADR-0590): se compra a un proveedor o se pide al taller. */
+export type ViaConseguir = "compra" | "taller";
+export const VIAS_CONSEGUIR: readonly { clave: ViaConseguir; etiqueta: string; detalle: string }[] = [
+  { clave: "compra", etiqueta: "Comprarla", detalle: "Se compra a un proveedor." },
+  { clave: "taller", etiqueta: "Pedirla al taller", detalle: "Se avisa al taller para que la haga." },
+];
+
+/** Las salidas de una prenda que la tienda no tiene: pedirla a cada sede que sí (la clave lleva su id), comprarla o pedirla al taller. */
+export function opcionesSinStock(l: Pick<LineaDetalle, "disponible">): { clave: string; etiqueta: string }[] {
+  return [
+    ...l.disponible.otras.map((o) => ({ clave: `otra:${o.ubicacionId}`, etiqueta: `Pedirla a ${o.tienda} (${o.libres})` })),
+    ...VIAS_CONSEGUIR.map((v) => ({ clave: v.clave, etiqueta: v.etiqueta })),
+  ];
+}
+
+/** Lo primero que se le dice a quien decide qué hacer con una prenda que no hay: coordinar antes de elegir (Felipe, 2026-10-31). */
+export function avisoCoordinar(l: Pick<LineaDetalle, "disponible">): string {
+  return l.disponible.otras.length > 0
+    ? "Coordina antes de elegir: con la otra sede, con Compras o con el taller, y con el cliente."
+    : "Coordina antes de elegir: con Compras o con el taller, y con el cliente.";
+}
+
 export type DecisionLinea =
   | { tipo: "reservar"; ubicacionId: string; lugar: LugarWeb | null }
-  | { tipo: "por_conseguir"; fecha: string }
+  | { tipo: "por_conseguir"; fecha: string; via: ViaConseguir }
   | { tipo: "quitar" };
 
 /** Cuánto hay libre en la tienda del pedido, por lugar. */
@@ -1109,7 +1147,7 @@ export function problemaParaConfirmar(lineas: readonly Pick<LineaDetalle, "linea
 }
 
 /** Una decisión como la lee `confirmar_pedido_web`. */
-export type DecisionParaLaBase = { linea_id: string; decision: string | null; fecha?: string; ubicacion_id?: string; sububicacion_id?: string | null };
+export type DecisionParaLaBase = { linea_id: string; decision: string | null; fecha?: string; via?: ViaConseguir; ubicacion_id?: string; sububicacion_id?: string | null };
 
 /** Las decisiones como las pide `confirmar_pedido_web` (una por prenda). */
 export function decisionesParaLaBase(
@@ -1122,7 +1160,7 @@ export function decisionesParaLaBase(
     const d = decisiones[l.lineaId];
     if (!d) return { linea_id: l.lineaId, decision: null };
     if (d.tipo === "quitar") return { linea_id: l.lineaId, decision: "quitar" };
-    if (d.tipo === "por_conseguir") return { linea_id: l.lineaId, decision: "por_conseguir", fecha: d.fecha };
+    if (d.tipo === "por_conseguir") return { linea_id: l.lineaId, decision: "por_conseguir", fecha: d.fecha, via: d.via };
     // El lugar elegido solo existe en la tienda del pedido; en otra tienda, la base reserva del almacén primero.
     const sub = d.ubicacionId === tiendaPedidoId && d.lugar ? (lugares[d.lugar] ?? null) : null;
     return { linea_id: l.lineaId, decision: "reservar", ubicacion_id: d.ubicacionId, sububicacion_id: sub };
@@ -1191,7 +1229,7 @@ const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "s
 
 /** Dónde está una prenda de un pedido ya confirmado: el estado corto (la insignia) y, si hace falta, el detalle (una línea aparte). */
 export function estadoDeLinea(
-  l: Pick<LineaDetalle, "estado" | "ubicacionId" | "tiendaReserva" | "lugar" | "fechaCompromiso" | "traslado">,
+  l: Pick<LineaDetalle, "estado" | "ubicacionId" | "tiendaReserva" | "lugar" | "fechaCompromiso" | "conseguirVia" | "traslado">,
   tiendaPedidoId: string,
 ): { texto: string; tono: TonoEstado; detalle: string | null } {
   if (l.estado === "reservada") {
@@ -1209,7 +1247,8 @@ export function estadoDeLinea(
       };
     if (t && t.estado === "anulada") return { texto: "Por conseguir", tono: "ambar", detalle: `El envío desde ${t.desde} se anuló: resérvala de nuevo o consíguela` };
     if (t) return { texto: "Por conseguir", tono: "ambar", detalle: `No llegó en el traslado N.º ${t.numero}: resérvala en otra tienda o consíguela` };
-    return { texto: "Por conseguir", tono: "pizarra", detalle: `Prometida para el ${fechaCorta(l.fechaCompromiso)}` };
+    const texto = l.conseguirVia === "compra" ? "Por comprar" : l.conseguirVia === "taller" ? "En taller" : "Por conseguir";
+    return { texto, tono: "pizarra", detalle: `Prometida para el ${fechaCorta(l.fechaCompromiso)}` };
   }
   if (l.estado === "quitada") return { texto: "Quitada", tono: "apagado", detalle: "Se quitó del pedido al confirmar" };
   if (l.estado === "liberada") return { texto: "Liberada", tono: "apagado", detalle: "Volvió a estar disponible" };

@@ -26,7 +26,10 @@ import {
   leerDetalle,
   leerTablero,
   limpiarCodigo,
+  avisoCoordinar,
+  etiquetaDeEstado,
   filtrarCerrados,
+  opcionesSinStock,
   pasoDeLaRuta,
   textoDeCierreDelPedido,
   whatsappDeLaHoja,
@@ -252,7 +255,7 @@ describe("Confirmar: la decisión de cada prenda", () => {
         {
           a: { tipo: "reservar", ubicacionId: TRU, lugar: "piso" },
           b: { tipo: "reservar", ubicacionId: LIM, lugar: "piso" },
-          c: { tipo: "por_conseguir", fecha: "2026-10-21" },
+          c: { tipo: "por_conseguir", via: "compra", fecha: "2026-10-21" },
           d: { tipo: "quitar" },
         },
         { almacen: "s-alm", piso: "s-piso" },
@@ -261,7 +264,7 @@ describe("Confirmar: la decisión de cada prenda", () => {
     ).toEqual([
       { linea_id: "a", decision: "reservar", ubicacion_id: TRU, sububicacion_id: "s-piso" },
       { linea_id: "b", decision: "reservar", ubicacion_id: LIM, sububicacion_id: null },
-      { linea_id: "c", decision: "por_conseguir", fecha: "2026-10-21" },
+      { linea_id: "c", decision: "por_conseguir", fecha: "2026-10-21", via: "compra" },
       { linea_id: "d", decision: "quitar" },
       { linea_id: "e", decision: null },
     ]);
@@ -327,7 +330,7 @@ describe("Lo que la base rechaza", () => {
 });
 
 describe("Después de confirmar: en qué está cada prenda", () => {
-  const base = { ubicacionId: TRU, tiendaReserva: "Tienda Trujillo", lugar: "almacen" as const, fechaCompromiso: null, traslado: null };
+  const base = { ubicacionId: TRU, tiendaReserva: "Tienda Trujillo", lugar: "almacen" as const, fechaCompromiso: null, conseguirVia: null, traslado: null };
 
   it("reservada aquí, por traer de otra tienda, en camino, o el envío que se anuló", () => {
     expect(estadoDeLinea({ ...base, estado: "reservada" }, TRU)).toEqual({ texto: "Reservada", tono: "verde", detalle: "En el almacén" });
@@ -336,6 +339,28 @@ describe("Después de confirmar: en qué está cada prenda", () => {
     expect(estadoDeLinea({ ...base, estado: "por_conseguir", traslado }, TRU)).toEqual({ texto: "En camino", tono: "pizarra", detalle: "Desde Tienda Lima · traslado N.º 698 · llega el 15 oct" });
     expect(estadoDeLinea({ ...base, estado: "por_conseguir", traslado: { ...traslado, estado: "anulada" } }, TRU).detalle).toMatch(/se anuló/);
     expect(estadoDeLinea({ ...base, estado: "por_conseguir", fechaCompromiso: "2026-10-21" }, TRU).detalle).toBe("Prometida para el 21 oct");
+  });
+
+  it("lo que se consigue con compra o taller lo dice (por comprar, en taller); sin decirlo, «Por conseguir» como siempre", () => {
+    const conFecha = { ...base, estado: "por_conseguir" as const, fechaCompromiso: "2026-11-08" };
+    expect(estadoDeLinea({ ...conFecha, conseguirVia: "compra" }, TRU)).toEqual({ texto: "Por comprar", tono: "pizarra", detalle: "Prometida para el 8 nov" });
+    expect(estadoDeLinea({ ...conFecha, conseguirVia: "taller" }, TRU).texto).toBe("En taller");
+    expect(estadoDeLinea(conFecha, TRU).texto).toBe("Por conseguir");
+  });
+
+  it("una prenda que no hay: pedirla a cada sede que la tiene, comprarla o pedirla al taller; y coordinar antes de elegir", () => {
+    const sinStock = { disponible: { almacen: 0, piso: 0, sinLugar: 0, otras: [{ ubicacionId: LIM, tienda: "Tienda Lima", libres: 2 }] } };
+    expect(opcionesSinStock(sinStock)).toEqual([
+      { clave: `otra:${LIM}`, etiqueta: "Pedirla a Tienda Lima (2)" },
+      { clave: "compra", etiqueta: "Comprarla" },
+      { clave: "taller", etiqueta: "Pedirla al taller" },
+    ]);
+    expect(opcionesSinStock({ disponible: { ...sinStock.disponible, otras: [] } }).map((o) => o.clave)).toEqual(["compra", "taller"]);
+    expect(avisoCoordinar(sinStock)).toContain("con la otra sede");
+    expect(avisoCoordinar({ disponible: { ...sinStock.disponible, otras: [] } })).not.toContain("otra sede");
+    // La decisión de comprarla o pedirla al taller viaja a la base con su vía.
+    const dec = decisionesParaLaBase([{ lineaId: "a" }], { a: { tipo: "por_conseguir", via: "taller", fecha: "2026-11-08" } }, {}, TRU);
+    expect(dec).toEqual([{ linea_id: "a", decision: "por_conseguir", fecha: "2026-11-08", via: "taller" }]);
   });
 
   it("«Reservarla»: una prenda por conseguir que ya está en la tienda y no viene en camino", () => {
@@ -701,6 +726,21 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     expect(pasoDeLaRuta("confirmado")).toBe(1);
     expect(pasoDeLaRuta("pagado")).toBe(2);
     for (const e of ["entregado", "vencido", "anulado"] as const) expect(pasoDeLaRuta(e)).toBeNull();
+  });
+
+  it("la etiqueta del título de la hoja: corta, solo el estado", () => {
+    const f = (estado: PedidoDeLista["estado"], x: Partial<{ pagado: number; sinPagar: boolean; sinRecoger: boolean; listoParaRecoger: boolean }> = {}) =>
+      etiquetaDeEstado({ estado, pagado: 0, sinPagar: false, sinRecoger: false, listoParaRecoger: false, ...x });
+    expect(f("por_confirmar")).toBe("Por confirmar");
+    expect(f("confirmado")).toBe("Por cobrar");
+    expect(f("confirmado", { sinPagar: true })).toBe("Sin pagar");
+    expect(f("pagado", { listoParaRecoger: true })).toBe("Por entregar");
+    expect(f("pagado", { listoParaRecoger: true, sinRecoger: true })).toBe("Sin recoger");
+    expect(f("pagado")).toBe("Espera una prenda");
+    expect(f("anulado", { pagado: 50 })).toBe("Por devolver S/\u00a050.00");
+    expect(f("anulado")).toBe("Anulado");
+    expect(f("vencido")).toBe("Cerrado sin confirmar");
+    expect(f("entregado")).toBe("Entregado");
   });
 
   it("un cerrado dice cómo terminó en una línea", () => {
