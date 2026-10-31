@@ -10,9 +10,8 @@ import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-re
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
-import { filaDeLaSede, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
-import { campanasDelMes, cascadaGanamos, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
-import type { TramoCascada } from "@/lib/pulso-reglas";
+import { filaDeLaSede, formaDe, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
+import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { GanamosPanel } from "@/components/finanzas/estados/GanamosPanel";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
@@ -22,7 +21,7 @@ import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 // pantalla aparte) y las campañas. La sede y el mes son los de la barra del telar (`?sede=`, `?mes=`); `?comparar=1` pone en el formato
 // formal cuánto cambió cada total contra el mes anterior. Quien ve todo (el líder, Configuración, Cierre de mes, CAYLA Global o este
 // módulo, ADR-0585) elige la sede; una terminal mira la suya (lo decide la base).
-export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ mes?: string; ver?: string; sede?: string; comparar?: string }> }) {
+export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ mes?: string; ver?: string; sede?: string; comparar?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   const sp = await searchParams;
   const hoy = hoyLima();
@@ -52,6 +51,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const avisoCorte = inicio && mesAntesDelCorte(mes, inicio) ? avisoAntesDelCorte(inicio) : null;
 
   const params = paramsDe(sp);
+  const forma = formaDe(sp.forma);
   const mesDeHoy = mesDelDia(hoy);
   const href = (ruta: string, otra?: ClaveSede) => hrefTelar(ruta, params, otra ? { sede: otra } : {}, { mismaPantalla: false, mesDeHoy });
 
@@ -61,14 +61,12 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const meta = metaDeVentas(pptoSede);
   const deCadaSede = sede === SEDE_TODAS && veTodo ? porSede(actual.datos) : null;
   const delMes = campanasDelMes(campanas.datos, mes);
-  const sedesCascada: TramoCascada[] | null = deCadaSede
-    ? deCadaSede.map((s) => ({ clave: s.clave, nombre: s.nombre, monto: Math.abs(s.resultado), tipo: "queda", ...(s.resultado < 0 ? { negativo: true } : {}), href: href("/finanzas/reportes", s.clave) }))
-    : null;
+  const sedesCascada = deCadaSede ? filasDeSedes(deCadaSede, (c) => href("/finanzas/reportes", c)) : null;
   const recomendaciones = recomendacionesGanamos({ fila, sedes: deCadaSede, tramos, meta, campanas: delMes, enCurso, href });
 
   return (
     <div className="space-y-6">
-      <CabeceraEstados activa="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} />
+      <CabeceraEstados activa="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} forma={forma} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <GanamosPanel
           fila={fila}
@@ -79,6 +77,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           hrefCampanas={href("/finanzas/reportes/campanas")}
           mes={mes}
           enCurso={enCurso}
+          forma={forma}
           formal={{
             filas: actual.datos,
             anteriores: anterior?.datos ?? null,

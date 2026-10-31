@@ -4,13 +4,15 @@
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 10,
   "controles": {
-    "components/finanzas/CascadaPulso.tsx": [
-      "Link «{nombre}»",
-      "button «{nombre}»"
+    "components/finanzas/estados/CabeceraEstados.tsx": [
+      "SegmentoEnlaces «(sin nombre)»"
+    ],
+    "components/finanzas/estados/CascadaEstados.tsx": [
+      "Link «{contenido}»",
+      "button «{contenido}»"
     ],
     "components/finanzas/estados/PatrimonioPanel.tsx": [
-      "Link «¿Cuánto vale CAYLA?»",
-      "BotonVerMas «fin-patrimonio.formal-abrir»"
+      "Link «¿Cuánto vale CAYLA?»"
     ],
     "components/finanzas/estados/Recomendaciones.tsx": [
       "BotonVer «{r.accion.texto}»"

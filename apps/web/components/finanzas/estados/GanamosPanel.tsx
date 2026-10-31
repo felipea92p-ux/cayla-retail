@@ -1,24 +1,25 @@
 "use client";
 
-import { useState, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 import { BadgePercent } from "lucide-react";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
-import { ListaDatos } from "@/components/finanzas/kit";
-import { CascadaPulso } from "@/components/finanzas/CascadaPulso";
-import { ResultadoPulso } from "@/components/finanzas/ResultadoPulso";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { CascadaEstados, LeyendaCascada } from "@/components/finanzas/estados/CascadaEstados";
+import { TitularEstado } from "@/components/finanzas/estados/TitularEstado";
+import { soles, solesConSigno } from "@/lib/flujo-caja-reglas";
 import { mesNombre, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
+import type { FormaEstado } from "@/lib/estados-financieros-reglas";
+import { filasDeTramos, type FilaCascada } from "@/lib/cascada-estados-reglas";
+import { titularGanamos, type metaDeVentas } from "@/lib/ganamos-reglas";
 import type { TramoCascada } from "@/lib/pulso-reglas";
-import type { metaDeVentas } from "@/lib/ganamos-reglas";
 
-// Estados financieros ▸ ¿Ganamos? (ganancias y pérdidas; ADR-0585, actividad 4). De arriba abajo: la respuesta grande con la cascada de la
-// venta a la ganancia siempre a la vista (cada gasto con la raya de lo planeado y su desvío; se toca y muestra sus cuentas, real contra
-// planeado); lo que dejó cada sede; las campañas del mes; y, plegado al pie, el estado en su formato formal (el cuadro de siempre, con
-// «De dónde sale» en cada cifra). El presupuesto vive aquí: ya no tiene pantalla aparte (Felipe 2026-10-30).
+// Estados financieros ▸ ¿Ganamos? (ganancias y pérdidas; ADR-0585, actividad 4), dibujado como la maqueta aprobada
+// (`docs/maquetas/finanzas-eeff-2026-10/`): en una tarjeta, la respuesta («Sí. Ganaste S/ X» y de cada S/ 100 cuánto quedó); la
+// cascada de la venta a la ganancia, que flota (cada gasto empieza donde terminó el anterior), con el margen, la raya de lo planeado y
+// su píldora; las campañas del mes y lo que dejó cada sede. Con «Formato formal» arriba (`?forma=formal`), el estado de resultados del
+// contador en su lugar. El presupuesto vive aquí.
 
 const fechaCorta = (iso: string | null) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "");
 
@@ -31,66 +32,102 @@ export function GanamosPanel({
   hrefCampanas,
   mes,
   enCurso,
+  forma,
   formal,
 }: {
   fila: FilaER | null;
   tramos: TramoCascada[];
   meta: ReturnType<typeof metaDeVentas>;
   /** Lo que dejó cada sede, cuando se mira CAYLA entera (cada una lleva a su sede); `null` mirando una sede. */
-  sedes: TramoCascada[] | null;
+  sedes: FilaCascada[] | null;
   campanas: CampanaFila[];
   hrefCampanas: string;
   mes: string;
   enCurso: boolean;
-  /** El cuadro de siempre, plegado al pie. */
+  forma: FormaEstado;
+  /** El cuadro del contador, cuando se pide el formato formal. */
   formal: ComponentProps<typeof EstadoResultadosPanel>;
 }) {
-  const [verFormal, setVerFormal] = useState(false);
-  const conPlan = tramos.some((t) => t.plan !== undefined);
-  const leyenda = (
-    <p className="text-center text-[12.5px] text-taupe">
-      {meta ? `Meta de ventas ${soles(meta.meta)}: ${enCurso ? "al ritmo de hoy llegas al" : "llegaste al"} ${Math.round(meta.avance * 100)} %. ` : ""}
-      {conPlan ? "La raya sobre un gasto es lo planeado; tócalo para ver sus partes. Los topes se ponen en Configuración ▸ Presupuesto." : "Toca un gasto para ver sus partes."}
-    </p>
+  if (forma === "formal")
+    return (
+      <div className="min-w-0" data-guia="fin-ganamos.formal">
+        <EstadoResultadosPanel {...formal} />
+      </div>
+    );
+  const formalNombre = `Ganancias y pérdidas · ${mesNombre(mes)}`;
+  if (!fila)
+    return (
+      <div className="fin-estado min-w-0">
+        <TitularEstado formal={formalNombre} respuesta="Sin números este mes" bajada="Todavía no hay ventas ni gastos registrados en este mes." />
+      </div>
+    );
+  const t = titularGanamos(fila);
+  const vende = fila.ventas > 0;
+  const filas = filasDeTramos(
+    tramos,
+    vende && tramos.some((x) => x.clave === "costo")
+      ? { tras: "costo", clave: "margen", nombre: "Te quedó de margen", detalle: (v) => `${Math.round((v / fila.ventas) * 100)} % de lo vendido` }
+      : undefined,
+  ).map((f) =>
+    f.clave === "ventas" && meta
+      ? { ...f, detalle: `Meta: ${soles(meta.meta)} · ${enCurso ? "al ritmo de hoy, " : ""}${Math.round(meta.avance * 100)} %` }
+      : f.tipo === "final"
+        ? { ...f, nombre: t.respuesta.split(" ")[0]! }
+        : f,
   );
+  const conPlan = filas.some((f) => f.plan !== undefined);
   return (
-    <div className="min-w-0 space-y-8">
-      <ResultadoPulso fila={fila} mes={mes} enCurso={enCurso} tramos={tramos} siempreAbierta pie={leyenda} />
+    <div className="fin-estado min-w-0">
+      <TitularEstado formal={formalNombre} si={t.si} respuesta={t.respuesta} bajada={t.bajada} guia="fin-ganamos.respuesta" />
+
+      <div className="fin-estado-sep" />
+      <section data-guia="fin-ganamos.cascada">
+        <TituloSeccion accion={<LeyendaCascada plan={conPlan} />}>De la venta a la ganancia</TituloSeccion>
+        <div className="mt-3">
+          <CascadaEstados id="fin-ganamos-cascada" filas={filas} etiqueta="De la venta a la ganancia; toca un gasto para ver sus partes" />
+        </div>
+        {conPlan && <p className="mt-2 text-[12.5px] text-taupe">Los topes de lo planeado se ponen en Configuración ▸ Presupuesto.</p>}
+      </section>
+
+      <div className="fin-estado-sep" />
+      <section data-guia="fin-ganamos.campanas">
+        <TituloSeccion accion={<EnlaceVer href={hrefCampanas}>Ver las campañas</EnlaceVer>}>{`Campañas de ${mesNombre(mes)}`}</TituloSeccion>
+        <div className="mt-3 flex flex-col gap-2.5">
+          {campanas.length ? (
+            campanas.map((c) => (
+              <div key={c.id} className="fin-camp">
+                <span className="fin-camp-sello" aria-hidden>
+                  %
+                </span>
+                <span className="min-w-0">
+                  <b>{`${c.nombre}${c.descuentoPct ? ` · ${c.descuentoPct} % de descuento` : ""}`}</b>
+                  <small>{`${fechaCorta(c.desde)} al ${fechaCorta(c.hasta)}${c.tiendas ? ` · ${c.tiendas} ${c.tiendas === 1 ? "tienda" : "tiendas"}` : ""}`}</small>
+                </span>
+                <span className="fin-camp-valor" data-tono={c.margenExtra === null ? undefined : c.margenExtra >= 0 ? "verde" : "rojo"} title="Lo que dejó de más (o de menos) que días normales">
+                  {c.margenExtra === null ? "Sin comparar" : solesConSigno(c.margenExtra)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <Vacio tamano="chico" icono={<BadgePercent />}>
+              No hubo campañas en {mesNombre(mes)}.
+            </Vacio>
+          )}
+        </div>
+      </section>
 
       {sedes && sedes.length > 1 && (
-        <section className="space-y-3" data-guia="fin-ganamos.sedes">
-          <TituloSeccion>Lo que dejó cada sede</TituloSeccion>
-          <CascadaPulso id="fin-ganamos-sedes" tramos={sedes} etiqueta="Lo que dejó cada sede; toca una para verla sola" />
-        </section>
+        <>
+          <div className="fin-estado-sep" />
+          <section data-guia="fin-ganamos.sedes">
+            <TituloSeccion accion={<span className="text-[13px] text-taupe">Toca una para verla sola</span>}>Lo que dejó cada sede</TituloSeccion>
+            <div className="mt-3">
+              <CascadaEstados id="fin-ganamos-sedes" filas={sedes} etiqueta="Lo que dejó cada sede; toca una para verla sola" sedes />
+            </div>
+          </section>
+        </>
       )}
 
-      <section className="space-y-3" data-guia="fin-ganamos.campanas">
-        <TituloSeccion accion={<EnlaceVer href={hrefCampanas}>Ver las campañas</EnlaceVer>}>{`Campañas de ${mesNombre(mes)}`}</TituloSeccion>
-        {campanas.length ? (
-          <ListaDatos
-            filas={campanas.map((c) => ({
-              dato: `${c.nombre}${c.descuentoPct ? ` · ${c.descuentoPct} % de descuento` : ""} · ${fechaCorta(c.desde)} al ${fechaCorta(c.hasta)}`,
-              valor:
-                c.margenExtra === null
-                  ? "Todavía sin comparar"
-                  : c.margenExtra >= 0
-                    ? `Dejó ${soles(c.margenExtra)} más que días normales`
-                    : `Dejó ${soles(-c.margenExtra)} menos que días normales`,
-            }))}
-          />
-        ) : (
-          <Vacio tamano="chico" icono={<BadgePercent />}>
-            No hubo campañas en {mesNombre(mes)}.
-          </Vacio>
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <BotonVerMas abierto={verFormal} onCambiar={setVerFormal} texto="Ver el formato formal: estado de resultados" forma="enlace" controla="fin-ganamos-formal" data-guia="fin-ganamos.formal-abrir" />
-        <FilasDeMas abierto={verFormal} id="fin-ganamos-formal">
-          <EstadoResultadosPanel {...formal} />
-        </FilasDeMas>
-      </section>
     </div>
   );
 }

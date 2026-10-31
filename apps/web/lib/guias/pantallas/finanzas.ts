@@ -66,6 +66,14 @@ const CONTADOR: PasoGuia = {
   texto: "Abre la lista de archivos del mes: los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario. Bajas solo el que eliges. No cambia nada en el sistema. En la demo no lo descargamos.",
 };
 
+/** «Respuesta | Formato formal» en la cabecera de los cuatro estados (Felipe 2026-10-31): se explica, no se toca. */
+const FORMA: PasoGuia = {
+  id: "forma",
+  ancla: "fin-estados.forma",
+  titulo: "Respuesta o formato formal",
+  texto: "«Respuesta» muestra cada estado en palabras de tienda. «Formato formal» muestra el cuadro como lo lee el contador. Al pasar a otro estado, sigues en la misma forma.",
+};
+
 const EXCEL: PasoGuia = {
   id: "excel",
   ancla: "fin-reportes.excel",
@@ -994,12 +1002,14 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    FORMA,
     CONTADOR,
     {
-      id: "pulso",
-      ancla: "fin-resultados.pulso",
-      titulo: "La respuesta",
-      texto: "Si ganó o perdió en el mes, y cuánto, para la sede que elegiste en la barra. En el mes en curso dice «en lo que va»: todavía puede cambiar.",
+      id: "respuesta",
+      ancla: "fin-ganamos.respuesta",
+      opcional: true,
+      titulo: "¿Ganamos?",
+      texto: "La respuesta del mes: sí o no, cuánto, y de cada S/\u00a0100 que vendiste cuánto te quedó.",
     },
     {
       id: "cascada",
@@ -1028,20 +1038,22 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     },
     {
       id: "formal",
-      ancla: "fin-ganamos.formal-abrir",
+      ancla: "fin-ganamos.formal",
+      opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-ganamos.formal-abrir" }],
+      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Se ve con «Formato formal», arriba.",
     },
     {
       id: "comparar",
       ancla: "fin-resultados.comparar",
+      opcional: true,
       titulo: "Comparar con el mes anterior",
       texto: "Al marcarlo, debajo de cada cifra aparece cuánto subió o bajó contra el mes anterior.",
     },
     {
       id: "tabla",
       ancla: "fin-resultados.tabla",
+      opcional: true,
       titulo: "De la venta a la utilidad, por sede",
       texto: "Arriba las ventas; restas lo que costó lo vendido, las mermas y los fletes, y queda el margen bruto. Restas los gastos y queda la utilidad. Una columna por sede y al final CAYLA, la suma.",
     },
@@ -1079,6 +1091,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     {
       id: "notas",
       ancla: "fin-resultados.notas",
+      opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo se reparte",
       texto: "El Taller no le vende a las tiendas: lo que cuesta hacer una prenda entra en el costo de la tienda que la vende. Y lo de la empresa (contador, publicidad) no se reparte entre tiendas.",
@@ -1153,6 +1166,7 @@ export const GUIA_FIN_FLUJO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    FORMA,
     CONTADOR,
     {
       id: "respuesta",
@@ -1338,9 +1352,9 @@ export const GUIA_FIN_FLUJO: Guia = {
     {
       id: "formal",
       ancla: "fin-plata.formal",
+      opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-plata.formal" }],
+      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Se ve con «Formato formal», arriba.",
     },
     {
       id: "formal-tabla",
@@ -1379,6 +1393,7 @@ export const GUIA_FIN_BALANCE: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    FORMA,
     CONTADOR,
     {
       id: "respuesta",
@@ -1433,8 +1448,7 @@ export const GUIA_FIN_BALANCE: Guia = {
       ancla: "fin-vale.formal",
       opcional: true,
       titulo: "El formato formal",
-      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-vale.formal" }],
+      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Se ve con «Formato formal», arriba.",
     },
     {
       id: "arranque",
@@ -1554,6 +1568,7 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    FORMA,
     CONTADOR,
     {
       id: "respuesta",
@@ -1561,6 +1576,13 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       opcional: true,
       titulo: "Creció o bajó, y cuánto",
       texto: "La respuesta del mes y, debajo, qué parte de lo que ganaste retiraste. Si retiras más de lo que ganas, lo tuyo baja aunque el negocio gane.",
+    },
+    {
+      id: "extremos",
+      ancla: "fin-patrimonio.extremos",
+      opcional: true,
+      titulo: "Al empezar y al cerrar",
+      texto: "Cuánto era lo tuyo el primer día del mes y cuánto es al cerrarlo (o hoy, si el mes sigue).",
     },
     {
       id: "puente",
@@ -1585,11 +1607,10 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     },
     {
       id: "formal",
-      ancla: "fin-patrimonio.formal-abrir",
+      ancla: "fin-patrimonio.formal",
       opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-patrimonio.formal-abrir" }],
+      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Se ve con «Formato formal», arriba.",
     },
     {
       id: "formal-tabla",

@@ -5,7 +5,6 @@
   "total": 17,
   "controles": {
     "components/finanzas/BalancePanel.tsx": [
-      "BotonVerMas «fin-vale.formal»",
       "button «fin-balance.arranque»",
       "button «fin-balance.arranque» #2",
       "Boton «Registrar saldos de arranque»",
@@ -20,6 +19,9 @@
     ],
     "components/finanzas/estados/Balanza.tsx": [
       "button «{g.nombre}»"
+    ],
+    "components/finanzas/estados/CabeceraEstados.tsx": [
+      "SegmentoEnlaces «(sin nombre)»"
     ],
     "components/finanzas/estados/Recomendaciones.tsx": [
       "BotonVer «{r.accion.texto}»"

@@ -254,6 +254,37 @@ empieza donde cerró marzo, y los permisos. La ruta y el menú no se probaron en
   - si el Resumen de Finanzas muestra CAYLA entera a quien tiene el módulo (hoy muestra su tienda).
 - El cierre del año: los saldos por cuenta acumulan ingresos y gastos desde el arranque hasta que exista el asiento de cierre.
 
+## Actualización 2026-10-31 · Igual a la maqueta, y el formato formal arriba
+
+### El problema primero
+
+Felipe abrió la rama y ¿Ganamos? no se parecía a la maqueta que aprobó. En vez de la cascada de la maqueta, se había reusado la del
+Resumen (`ResultadoPulso` y `CascadaPulso`): barras que nacían todas a la izquierda, la respuesta centrada («te faltan S/ 29,016.00») y
+sin el margen. Lo mismo pasaba en la plata, en lo tuyo y en «Lo que dejó cada sede». La regla de Finanzas («se captura al mismo ancho que
+el spike y se comparan las dos imágenes») no se cumplió: no había navegador, y no se avisó.
+
+### Lo que se decidió
+
+- **La cascada de la maqueta es la pieza de Estados financieros** (`components/finanzas/estados/CascadaEstados.tsx`, la geometría en
+  `lib/cascada-estados-reglas.ts` con su prueba): cada paso flota desde donde terminó el anterior, los totales nacen en cero, hay subtotal
+  (el margen), la raya de lo planeado con su píldora, la leyenda «Suma · Resta · Lo planeado» y las sedes con su color de hilo. La usan
+  ¿Ganamos?, ¿Dónde está la plata?, ¿Lo tuyo creció? y «Lo que dejó cada sede». `CascadaPulso`, `ResultadoPulso` y lo que solo ellas
+  usaban (`respuestaDeFila`, `cascadaDeFila` y su CSS) se borraron: ninguna otra pantalla las usaba. La prueba de ADR-0453 (los sueldos
+  contados dos veces) pasó a `ganamos-reglas.test.ts`, sobre `cascadaGanamos`.
+- **La respuesta como la maqueta** (`TitularEstado`): el nombre formal en versalitas, «Sí.» o «No.» con la cifra sin decimales, y la frase.
+  Cada estado va en una tarjeta. La balanza pasa a dos platillos con bloques apilados de alto proporcional, como la maqueta (no dos barras),
+  y lo tuyo gana sus dos cajas «Al empezar → Al cerrar» y la línea cerca del mes más bajo (el cambio 1 de Formidable).
+- **El formato formal ya no va plegado al final** (Felipe 2026-10-31: «que no estén al final, sino opciones visibles en la parte superior»):
+  en la cabecera de los cuatro estados, junto a «Descargar para el contador», el segmento **Respuesta | Formato formal**
+  (`SegmentoEnlaces`, la pieza de ADR-0358 para ver lo mismo de otra forma). Va en la URL (`?forma=formal`, `formaDe` y `conForma` en
+  `lib/estados-financieros-reglas.ts`): al pasar de un estado a otro, se queda la forma elegida.
+- Solo Estados financieros (Felipe): el Resumen de Finanzas no cambia.
+
+### Cómo se verificó
+
+En local, una página de prueba (no se subió) dibujó las cuatro pantallas con los números de la maqueta. Se capturó a 1440 px, en claro y
+en oscuro, junto a la maqueta, y se miraron las dos imágenes. Tipos, vitest, Knip y eslint en verde. Sin probar con sesión ni contra la base.
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero

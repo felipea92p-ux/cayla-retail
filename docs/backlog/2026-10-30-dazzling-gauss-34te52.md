@@ -45,3 +45,6 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
 - [ ] **Decisión de Felipe:** ¿una terminal con el módulo ve todo? Hoy no (precedente ADR-0161 P6).
 - [ ] **Cierre del año (enero 2027):** los saldos por cuenta acumulan ingresos y gastos desde el arranque hasta que exista el asiento
   de cierre.
+- [x] **2026-10-31 · Igual a la maqueta y el formato formal arriba.** La cascada de la maqueta (`CascadaEstados`) en los cuatro estados, la
+  respuesta como la maqueta, la balanza de bloques y las cajas de lo tuyo; «Respuesta | Formato formal» en la cabecera (`?forma=formal`).
+  Comparado con la maqueta en capturas locales a 1440 px, claro y oscuro. **Sin probar con sesión.**
