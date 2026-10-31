@@ -91,8 +91,7 @@ export function EnviarPedidoWebHoja({ envio, onClose, onEnviado }: { envio: Envi
             </div>
           </CampoGuiado>
           <p className="nota-cayla text-[13px]">
-            Sale como un traslado más{colgadas > 0 ? " (lo colgado pasa antes al almacén)" : ""}: Traslados lo muestra en camino hasta que{" "}
-            {envio.tiendaPedido} lo reciba, y ahí queda reservado solo para el pedido.
+            Sale como un traslado más{colgadas > 0 ? " (lo colgado pasa antes al almacén)" : ""}. Al llegar a {envio.tiendaPedido}, queda reservado para el pedido.
           </p>
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={enviando} />
