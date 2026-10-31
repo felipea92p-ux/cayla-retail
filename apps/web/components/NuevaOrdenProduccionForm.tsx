@@ -414,7 +414,7 @@ export function NuevaOrdenProduccionForm({
     () => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller, avios: aviosSugeridosAhora }),
     [telasManual, telasSugeridasAhora, insumosDelTaller, aviosSugeridosAhora]
   );
-  const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios, catalogo }), [fases, hoy, proveedoresServicio, listaDePrecios, catalogo]);
+  const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios, catalogo, totalPrendas: total }), [fases, hoy, proveedoresServicio, listaDePrecios, catalogo, total]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
   const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado, coloresOrden), [telas, insumosDelTaller, consumoDeclarado, coloresOrden]);
   const fijarElConsumo = fijarConsumo && !esNuevo && ofertaConsumo.tipo === "corregir" && puedeEditarCatalogo;

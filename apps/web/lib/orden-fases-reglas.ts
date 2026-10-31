@@ -6,7 +6,8 @@ import { aCentimos, leerDinero, type LecturaDinero } from "./modelo-nuevo-reglas
 //
 // LA BASE MANDA: `fn_produccion_fases_normalizar` (migración 20261014154000) valida todo otra vez y rechaza con un `hint` estable. Acá solo se
 // adelanta, en la pantalla, lo que ya se sabe. Regla del repo (CLAUDE.md «Guía de foco», punto 5): `problemasFases` NO agrega reglas de negocio;
-// sale de lo que la base rechaza, y `orden-fases-reglas.test.ts` lee la migración y exige que cada `hint` exista allá.
+// sale de lo que la base rechaza, y `orden-fases-reglas.test.ts` lee la migración y exige que cada `hint` exista allá. ÚNICA excepción, y es una pregunta y no una regla:
+// `tarifa_a_confirmar` («¿es por prenda o es el total?», `tarifaFueraDeLoNormal`): solo sale si la hoja pasa `totalPrendas`, y se contesta con un clic.
 //
 // CONTRATO
 //   PROMETE: que si `problemasFases` no dice nada, `fasesParaRpc` arma un `p_fases` que `fn_produccion_fases_normalizar` acepta (la espina
@@ -178,6 +179,8 @@ export type FaseBorrador = {
   posicion: Posicion | null;
   /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): sale afuera, pero todavía no se sabe con quién. Sin proveedor; puede llevar su costo (tarifa, fijo, mínimo), que se devenga como el de cualquier servicio, y sin costo no suma nada hasta que se registre. Solo cuenta en un servicio. */
   pendiente?: boolean;
+  /** La tarifa por prenda (el texto de la caja) que la persona ya confirmó como «sí, es por prenda» tras la pregunta de `tarifaFueraDeLoNormal`. Si la caja cambia, la pregunta vuelve. No viaja a la base. */
+  tarifaConfirmada?: string;
 };
 
 /** Lo que la hoja sabe antes de pintar las fases (ADR-0551). Sin él, el bloque nace como siempre: la espina en el Taller y los opcionales apagados. */
@@ -420,7 +423,12 @@ export const HINTS_FASE = [
 ] as const;
 export type HintFase = (typeof HINTS_FASE)[number];
 
-export type ProblemaFase = { clave: FaseClave; hint: HintFase; texto: string };
+/**
+ * Una PREGUNTA, no una regla de la base: la tarifa por prenda escrita se ve fuera de lo normal («¿es por prenda o es el total de la orden?»). No está en `HINTS_FASE` porque la base no la
+ * rechaza; la hoja la cuenta como lo que falta hasta que la persona contesta (mismo camino que «Existe también», ADR-0576).
+ */
+export const HINT_TARIFA_A_CONFIRMAR = "tarifa_a_confirmar";
+export type ProblemaFase = { clave: FaseClave; hint: HintFase | typeof HINT_TARIFA_A_CONFIRMAR; texto: string };
 
 export type ContextoFases = {
   /** `aaaa-mm-dd` de Lima: con él se elige la tarifa vigente y se juzga la fecha prometida, como `fn_hoy_lima()`. */
@@ -430,6 +438,8 @@ export type ContextoFases = {
   lista?: readonly TarifaDeLista[];
   /** El catálogo leído de la base (los nombres de los procesos propios); sin él, el de respaldo. */
   catalogo?: ReadonlyArray<FaseDelCatalogo>;
+  /** Las prendas de la orden. Con ellas, una tarifa por prenda fuera de lo normal pregunta si era el total (`tarifaFueraDeLoNormal`); sin ellas, no se pregunta nada. */
+  totalPrendas?: number;
 };
 
 /**
@@ -444,7 +454,7 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
   for (const f of fasesEncendidas(fases, ctx.catalogo)) {
     const cat = faseDe(f.clave, ctx.catalogo);
     const nombre = `«${cat.nombre}»`;
-    const di = (hint: HintFase, texto: string) => problemas.push({ clave: f.clave, hint, texto });
+    const di = (hint: ProblemaFase["hint"], texto: string) => problemas.push({ clave: f.clave, hint, texto });
 
     if (cat.posicionable && f.posicion === null) {
       di("fase_sin_posicion", `${nombre} dice si va sobre la pieza cortada o sobre la prenda armada.`);
@@ -481,11 +491,79 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede pasar de S/\u00a099,999.99.`);
     else if (s.cantidadMinima !== null && s.cantidadMinima <= 0) di("fase_tarifa_invalida", `La cantidad mínima de ${nombre} tiene que ser mayor que cero.`);
 
+    // La pregunta va solo si la tarifa está bien escrita: un número mal escrito ya tiene su frase.
+    if (ctx.totalPrendas !== undefined && !problemas.some((p) => p.clave === f.clave && (p.hint === "fase_tarifa_invalida" || p.hint === "fase_sin_tarifa"))) {
+      const fuera = tarifaFueraDeLoNormal(f, ctx.totalPrendas, lista, ctx.hoy, ctx.catalogo);
+      if (fuera) {
+        di(HINT_TARIFA_A_CONFIRMAR, `${nombre}: S/\u00a0${fuera.tarifa.toFixed(2)} por prenda son S/\u00a0${fuera.totalDeLaOrden.toFixed(2)} por las ${ctx.totalPrendas} prendas. ¿Es por prenda o es el total de la orden?`);
+      }
+    }
+
     const fecha = f.fechaPrometida.trim();
     if (fecha !== "" && !esFechaIso(fecha)) di("fase_fecha_invalida", `La fecha prometida de ${nombre} no es una fecha válida.`);
     else if (fecha !== "" && fecha < ctx.hoy && !f.pendiente) di("fase_fecha_pasada", `La fecha prometida de ${nombre} ya pasó: elige una de hoy en adelante.`);
   }
   return problemas;
+}
+
+// ---------- La tarifa por prenda que parece un total ----------
+
+/**
+ * Hasta dónde una tarifa por prenda se lee normal cuando NADIE ha puesto un precio para esa fase (S/ por prenda). Pasarla no es un error —una casaca cosida afuera puede costar más—,
+ * solo pregunta una vez. Con precios en alguna lista de proveedores manda el triple del mayor (`TARIFA_TOPE_SOBRE_LISTA`), con este piso para no preguntar por una subida pequeña.
+ */
+export const TARIFA_SIN_REFERENCIA_MAXIMA = 15;
+export const TARIFA_TOPE_SOBRE_LISTA = 3;
+export const TARIFA_PISO_DEL_TOPE = 5;
+
+export type TarifaFuera = {
+  tarifa: number;
+  /** Lo que costaría en toda la orden si de verdad fuera por prenda. */
+  totalDeLaOrden: number;
+  /** Hasta dónde se lee normal para esa fase y de dónde sale: la lista de precios de los proveedores o el tope general. */
+  tope: number;
+  deLaLista: boolean;
+};
+
+/**
+ * ¿La tarifa por prenda ESCRITA se ve fuera de lo normal? Nació de «Ojales y botones» a S/ 34.80 «por prenda»: era el total de la orden escrito donde va el precio de una prenda, y el costo
+ * por prenda quedó cinco veces más alto sin que nada avisara (el único tope era S/ 9,999.99). Solo mira lo que la persona ESCRIBIÓ (una tarifa copiada de la lista ya es lo que cobra el
+ * proveedor), de un servicio que cobra por prenda, con más de una prenda (con una, total y por prenda son lo mismo), y que no se haya confirmado ya con ese mismo valor.
+ */
+export function tarifaFueraDeLoNormal(
+  fase: FaseBorrador,
+  totalPrendas: number,
+  lista: readonly TarifaDeLista[],
+  hoy: string,
+  catalogo: ReadonlyArray<FaseDelCatalogo> = FASES
+): TarifaFuera | null {
+  if (!faseViaja(fase, catalogo) || fase.quien !== "servicio" || totalPrendas < 2) return null;
+  if (faseDe(fase.clave, catalogo).hito) return null;
+  const s = leerServicio(fase, lista, hoy);
+  if (s.tarifa.tipo !== "ok" || s.tarifa.valor <= 0 || s.tarifa.valor > TARIFA_MAXIMA) return null;
+  if ((fase.tarifaConfirmada ?? "") === fase.tarifa.trim()) return null;
+  const precios = lista.filter((t) => t.faseClave === fase.clave && t.tarifa > 0).map((t) => t.tarifa);
+  const deLaLista = precios.length > 0;
+  const tope = deLaLista ? Math.max(Math.max(...precios) * TARIFA_TOPE_SOBRE_LISTA, TARIFA_PISO_DEL_TOPE) : TARIFA_SIN_REFERENCIA_MAXIMA;
+  if (s.tarifa.valor <= tope) return null;
+  return { tarifa: s.tarifa.valor, totalDeLaOrden: aCentimos(s.tarifa.valor * totalPrendas), tope, deLaLista };
+}
+
+/**
+ * Un servicio se puede escribir de dos maneras: lo que cobra por prenda o lo que cobra por TODA la orden. La base guarda la tarifa por prenda a dos decimales (`numeric(10,2)`), así
+ * que el total se reparte entre las prendas y se redondea: `tarifaDesdeTotal("34.80", 57)` da «0.61». Devuelve "" si lo escrito no es un número válido o no hay prendas.
+ */
+export function tarifaDesdeTotal(total: string, totalPrendas: number): string {
+  const l = leerDinero(total);
+  if (l.tipo !== "ok" || totalPrendas <= 0) return "";
+  return aCentimos(l.valor / totalPrendas).toFixed(2);
+}
+
+/** Lo que cuesta de verdad la orden con la tarifa por prenda ya redondeada, para decir la diferencia con el total escrito («queda S/ 34.77»); "" sin tarifa válida. */
+export function totalDeLaTarifa(tarifa: string, totalPrendas: number): string {
+  const l = leerDinero(tarifa);
+  if (l.tipo !== "ok" || totalPrendas <= 0) return "";
+  return aCentimos(l.valor * totalPrendas).toFixed(2);
 }
 
 // ---------- Avisos y textos ----------
