@@ -965,6 +965,13 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "Si todavía no hay bancos, aquí lo dice: se agregan en Configuración ▸ Cuentas y cobros. Desde ese día ya se pueden conciliar.",
     },
     {
+      id: "otras",
+      ancla: "fin-conciliacion.otras",
+      opcional: true,
+      titulo: "Qué banco cuadrar",
+      texto: "A la izquierda están tus bancos: cada uno dice cuánto suma el sistema, cuándo lo cuadraste por última vez y si cuadra, no cuadra o tiene líneas por revisar. Tocas uno y a la derecha aparece su detalle. Los bancos son de CAYLA entera, no de una sede.",
+    },
+    {
       id: "responsable",
       ancla: "fin-conciliacion.responsable",
       opcional: true,
@@ -976,14 +983,14 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       ancla: "fin-conciliacion.lineas",
       opcional: true,
       titulo: "Lo anotado y el extracto, en pares",
-      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Lo que no encuentres en el banco es lo que hay que aclarar.",
+      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Arriba, la barra dice cuántas llevas revisadas y el filtro deja ver solo las que faltan. Lo que no encuentres en el banco es lo que hay que aclarar.",
     },
     {
       id: "anotar",
       ancla: "fin-conciliacion.anotar",
       opcional: true,
       titulo: "El saldo del banco",
-      texto: "Escribes el saldo que muestra el banco y la fecha. Con «Anotar» el sistema lo compara con el suyo y dice si coinciden o cuánto es la diferencia. En la demo no anotamos nada.",
+      texto: "Junto a lo que suma el sistema, escribes el saldo que muestra el banco y la fecha. Con «Anotar» el sistema lo compara con el suyo y dice si coinciden o cuánto es la diferencia. En la demo no anotamos nada.",
     },
     {
       id: "historial",
@@ -991,13 +998,6 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       opcional: true,
       titulo: "Las conciliaciones anteriores",
       texto: "Cada vez que se anotó el saldo de esta cuenta: lo que dijo el banco, lo que dijo el sistema y si coincidieron.",
-    },
-    {
-      id: "otras",
-      ancla: "fin-conciliacion.otras",
-      opcional: true,
-      titulo: "Qué banco cuadrar",
-      texto: "Arriba eliges el banco o la cuenta que vas a cuadrar; el número dice cuántas líneas le faltan revisar. Los bancos son de CAYLA entera, no de una sede.",
     },
     DOCK_DINERO,
     {
