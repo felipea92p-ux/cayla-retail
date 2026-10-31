@@ -248,9 +248,9 @@ export function ResumenProduccionPanel({
               <TarjetaCifra
                 key={c.clave}
                 etiqueta={c.titulo}
-                punto={c.lotes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
-                valor={<CifraQueCuenta valor={c.lotes} alMontar />}
-                unidad={c.lotes === 1 ? "lote" : "lotes"}
+                punto={c.ordenes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
+                valor={<CifraQueCuenta valor={c.ordenes} alMontar />}
+                unidad={c.unidad}
                 href="/produccion/ordenes"
                 className="anim-entra"
                 style={{ ["--i" as string]: i }}

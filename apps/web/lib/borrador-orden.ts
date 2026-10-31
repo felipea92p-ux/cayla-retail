@@ -21,7 +21,8 @@ export type ModoDeModelo = "existe" | "nuevo";
 
 /** Todo lo que la persona escribió o eligió y que se perdería: lo mismo que el formulario cuenta como «trabajo» para preguntar «¿Salir sin guardar?». */
 export type FotoDelBorrador = {
-  tipo: TipoDeOrden;
+  /** `null`: un modelo nuevo al que todavía no se le eligió el tipo (no trae uno de fábrica, ADR-0396 act. 2026-10-30). */
+  tipo: TipoDeOrden | null;
   modoModelo: ModoDeModelo;
   productoId: string;
   nombreNuevo: string;
@@ -106,7 +107,7 @@ function esTela(x: unknown): x is TelaBorrador {
 function esFoto(x: unknown): x is FotoDelBorrador {
   if (!esObjeto(x)) return false;
   return (
-    (x.tipo === "produccion" || x.tipo === "muestra") && (x.modoModelo === "existe" || x.modoModelo === "nuevo") && esTexto(x.productoId) && esTexto(x.nombreNuevo) && esTexto(x.categoriaNuevaId) &&
+    (x.tipo === "produccion" || x.tipo === "muestra" || x.tipo === null) && (x.modoModelo === "existe" || x.modoModelo === "nuevo") && esTexto(x.productoId) && esTexto(x.nombreNuevo) && esTexto(x.categoriaNuevaId) &&
     esListaDeTextos(x.tallasNuevas) && esListaDeTextos(x.coloresNuevos) && esTexto(x.precioNuevo) && esObjeto(x.cantidades) && Object.values(x.cantidades).every(esTexto) &&
     Array.isArray(x.fases) && x.fases.every(esFase) && (x.telasManual === null || (Array.isArray(x.telasManual) && x.telasManual.every(esTela))) && esTexto(x.fechaEntrega) && esTexto(x.nota)
   );
