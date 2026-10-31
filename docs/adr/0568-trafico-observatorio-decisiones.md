@@ -123,3 +123,21 @@ antes sigue funcionando (los otros tres tienen valor de fábrica).
   «más personas» es una línea en `dondeSeAtora`; la maqueta (`index.html`, «Qué marca en ámbar») deja compararlas.
 - **Verificación:** el componente real renderizado a HTML con el CSS real (la base local no tiene visitas ni estaba levantada), en claro y oscuro, a ancho de
   escritorio y a 375 px, con los datos de la captura, un caso donde se atora el primer paso y otro de poca gente. Falta mirarlo con visitas de producción.
+
+## Actualización 2026-10-31 (b) — «C · La cifra manda» reemplaza a «B · Zona marcada», con el naranja de la maqueta
+
+- **Qué pasó:** al mirar «B» ya aplicada en el ERP, se vio que no era lo que se eligió en la maqueta: el naranja había pasado a café (`--color-ambar`,
+  #74501a) y el rótulo cambiaba de texto («Como de costumbre» dentro de una zona resaltada: dos mensajes opuestos). Se volvió a mirar la ronda
+  (`docs/maquetas/trafico-perdida-2026-10/realce-del-tramo.html`) y se prefirió **«C · La cifra manda»**, con el naranja más claro del diseño.
+- **Qué cambió:** el recuadro y su rótulo se fueron. El tramo donde se atora es un riel **punteado grueso (6 px) y naranja**, la estación que se atora se llena de
+  naranja y lo que se fue sale como un **«−42» grande en serif** (40 px; 46 en tarjeta ancha) con «82 % se fue sin elegir talla» en ámbar, colgando de una raya
+  punteada naranja. Para un lector de pantalla, el texto es el de siempre («42 se fueron sin elegir talla»); el «−42» es visual (`aria-hidden`). El chip de arriba
+  sigue diciendo «Aquí se atora» o «Como de costumbre». Entra una vez (el riel que se dibuja), sin rebote ni bucle; sin la animación `trafico-zona-entra`.
+- **El naranja es un token nuevo, `--color-naranja`** (`globals.css`, `tema.css` en oscuro y en `.papel-fijo`): #bf8029 en claro, #dba04a en oscuro. Es de GRÁFICO
+  —línea y relleno—, nunca texto (el texto va en `ambar`). El de la maqueta (#c98a2b) daba 2.77:1 sobre papel y no llegaba al 3:1 que se exige a un gráfico; #bf8029
+  es el más claro de su misma familia que sí llega (3.13:1). `lib/tema-tokens.test.ts` lo mide en claro y en oscuro.
+- **DESCARTÉ:** (1) usar `--color-grafico-baja` (#a8741f, 3.8:1): ya existe, pero es más oscuro y sale más café que el naranja que se pidió. (2) Bajar de tono lo demás
+  (`opacity .72` de la maqueta), por el piso de contraste del texto. (3) Dejar un rótulo sobre el tramo: ya lo dice el chip.
+- **Sigue siendo de Felipe:** *qué* se marca (`dondeSeAtora`), como en la actualización anterior; y que la paleta del ERP gane un naranja.
+- **Verificación:** el componente real, con datos inventados en una página temporal (ya borrada), en claro, oscuro y a 375 px; pruebas de tokens, colores, movimiento,
+  guías y unificar, `tsc` y `eslint` en verde. Falta mirarlo con visitas de producción.
