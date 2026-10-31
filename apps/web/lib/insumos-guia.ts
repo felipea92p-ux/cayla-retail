@@ -56,3 +56,29 @@ export function camposDeIngresoDeInsumo(e: EntradaIngresoDeInsumo): CampoDeGuia[
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién ingresa este lote." },
   ];
 }
+
+export type EntradaCorreccionDeIngreso = {
+  /** Lo que la hoja rechaza de lo escrito (`problemasDelIngreso`): vacío = se puede guardar. */
+  problemas: string[];
+  /** Algún dato distinto del lote (`cambiosDelIngreso(...).alguno`). */
+  hayCambios: boolean;
+  /** `null` si el motivo está bien (`problemaDeMotivoIngreso`). */
+  problemaMotivo: string | null;
+  responsableListo: boolean;
+};
+
+/** «Corregir un ingreso» (ADR-0570, actividad 6a): lo que cambia, por qué y quién. `corregir_ingreso_insumo` rechaza exactamente eso (sin cambios no escribe, sin motivo se niega). «Eliminar» (en la misma hoja)
+ *  solo pide el motivo y quién. */
+export function camposDeCorreccionDeIngreso(e: EntradaCorreccionDeIngreso): CampoDeGuia[] {
+  return [
+    {
+      id: "cambios",
+      nombre: "Qué corriges",
+      requerido: true,
+      hecho: e.problemas.length === 0 && e.hayCambios,
+      pendiente: e.problemas[0] ?? "Cambia la cantidad, el costo o el día que estaba mal. Si el ingreso entero fue un error, usa «Eliminar».",
+    },
+    { id: "porque", nombre: "Por qué lo corriges", requerido: true, hecho: e.problemaMotivo === null, pendiente: e.problemaMotivo ?? "Cuenta por qué lo corriges." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este cambio." },
+  ];
+}
