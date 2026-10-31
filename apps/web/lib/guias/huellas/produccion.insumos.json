@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 73,
+  "total": 78,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -22,7 +22,7 @@
       "Boton «prod-insumos.ingresar»",
       "button «Ocultar»",
       "button «Ver el capital en insumos»",
-      "Boton «→() => (datos.hayTelas ? setNuevaTela({ agregarA: null»",
+      "Boton «Crear la primera tela»",
       "button «{g.material.id === primeraTelaId ? \"prod-insumos.agregar-colores\" : undefined}»",
       "LapizEditar «{`la tela ${g.material.nombre}»",
       "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
@@ -78,14 +78,19 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
-    "components/insumos-taller/NuevoInsumoModal.tsx": [
-      "CampoSelect «Tipo»",
-      "CampoSelect «Se mide en»",
-      "CampoTexto «{guia.etiqueta(\"codigo\", \"Código\")}»",
-      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
-      "CampoTexto «{guia.etiqueta(\"minimo\", \"Mínimo\")}»",
+    "components/insumos-taller/NuevoAvioModal.tsx": [
+      "ComboBuscable «{claseId}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del avío\")}»",
+      "Boton «Agregar colores a ese»",
+      "CampoTexto «{guia.etiqueta(\"medida\", laMedida.titulo)}»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»",
-      "CampoTexto «Nota»",
+      "CampoTexto «{`Cuánto hay de ${nombreColor}»",
+      "CampoTexto «{`Costo de ${nombreColor}»",
+      "CampoTexto «{`Mínimo de ${nombreColor}»",
+      "button «{`Quitar ${nombreColor}»",
+      "CampoTexto «{`¿Ya tienes? (${corta}»",
+      "CampoTexto «{`Costo por ${unidadSingular(e.unidad)}»",
+      "CampoTexto «{`Mínimo (${corta}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"

@@ -14,6 +14,7 @@ import {
   type TipoInsumo,
   type TipoMovInsumo,
   type UnidadInsumo,
+  type UnidadMedidaAvio,
 } from "@/lib/insumos-reglas";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Solo lecturas: toda escritura pasa por las RPC de ADR-0090
@@ -121,6 +122,9 @@ type FilaMaterial = {
   ancho_cm: number | string | null;
   gramaje_gm2: number | string | null;
   metros_por_rollo: number | string | null;
+  clase_id?: string | null;
+  medida_valor?: number | string | null;
+  medida_unidad?: string | null;
   updated_at: string;
 };
 
@@ -133,11 +137,15 @@ function leerInsumos(supabase: Awaited<ReturnType<typeof createClient>>, columna
   return (supabase.from("insumos") as unknown as { select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => Respuesta<FilaInsumo> } } }).select(columnas).is("archivado_at", null).order("nombre");
 }
 
-function leerMateriales(supabase: Awaited<ReturnType<typeof createClient>>): Respuesta<FilaMaterial> {
+const COLUMNAS_MATERIAL = "id, codigo, nombre, tipo, tejido_id, composicion, unidad_medida, merma_pct, unidad_compra, ancho_cm, gramaje_gm2, metros_por_rollo";
+/** Lo que agregó ADR-0580 (la clase y la medida de un avío). Se pide aparte porque la web puede publicarse antes de que su SQL esté pegado. */
+const COLUMNAS_MATERIAL_AVIO = "clase_id, medida_valor, medida_unidad";
+
+function leerMateriales(supabase: Awaited<ReturnType<typeof createClient>>, columnas: string): Respuesta<FilaMaterial> {
   // La tabla es nueva (ADR-0554) y no está en los tipos generados: se tipa el cliente, no el resultado.
   return (supabase as unknown as { from: (t: string) => { select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => Respuesta<FilaMaterial> } } } })
     .from("materiales")
-    .select("id, codigo, nombre, tipo, tejido_id, composicion, unidad_medida, merma_pct, unidad_compra, ancho_cm, gramaje_gm2, metros_por_rollo, updated_at")
+    .select(columnas)
     .is("archivado_at", null)
     .order("nombre");
 }
@@ -160,8 +168,12 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       .order("created_at", { ascending: false }),
     // Solo quien ve los costos del Taller recibe filas (`fn_ve_costos_del_taller`: el líder, o quien ve Producción parado en él); a los demás la base les responde vacío.
     opciones.conCostos ? supabase.rpc("fn_costos_insumos_taller", { p_ubicacion_id: tallerId }) : Promise.resolve({ data: [] as { lote_id: string; costo_unitario: number }[], error: null }),
-    leerMateriales(supabase),
+    leerMateriales(supabase, `${COLUMNAS_MATERIAL}, ${COLUMNAS_MATERIAL_AVIO}, updated_at`),
   ]);
+  // La web puede salir antes que `20261030144000` (ADR-0580): sin la clase ni la medida, las telas se leen igual que hasta hoy y la lista no se queda vacía (que es lo que pasaría al tratar
+  // un 42703 como «no hay telas»).
+  const sinClase = !!materialesRes.error && (materialesRes.error.code === "42703" || /clase_id|medida_/.test(materialesRes.error.message));
+  const materialesLeidos = sinClase ? await leerMateriales(supabase, `${COLUMNAS_MATERIAL}, updated_at`) : materialesRes;
   const costoDeLote = new Map(exigir(costos, "los costos de los lotes").map((c) => [c.lote_id, Number(c.costo_unitario)]));
 
   const filasInsumos = exigir(insumos, "los insumos");
@@ -193,10 +205,10 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
   }));
 
   // Sin las telas (la base todavía no las tiene) la lista queda vacía y la pantalla se ve como antes; se avisa en el registro, no a la persona.
-  if (materialesRes.error) console.error(`telas de los insumos: ${materialesRes.error.message}`);
-  const materiales: MaterialVista[] = materialesRes.error
+  if (materialesLeidos.error) console.error(`telas de los insumos: ${materialesLeidos.error.message}`);
+  const materiales: MaterialVista[] = materialesLeidos.error
     ? []
-    : (materialesRes.data ?? []).map((m) => ({
+    : (materialesLeidos.data ?? []).map((m) => ({
         id: m.id,
         codigo: m.codigo,
         nombre: m.nombre,
@@ -209,6 +221,9 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
         ancho: m.ancho_cm === null ? null : Number(m.ancho_cm),
         gramaje: m.gramaje_gm2 === null ? null : Number(m.gramaje_gm2),
         metrosPorRollo: m.metros_por_rollo === null ? null : Number(m.metros_por_rollo),
+        claseId: m.clase_id ?? null,
+        // Las dos van juntas o no van (`materiales_medida_completa`): una medida a medias se lee como «sin medida» en vez de dibujar «18 undefined».
+        medida: m.medida_valor === null || m.medida_valor === undefined || !m.medida_unidad ? null : { valor: Number(m.medida_valor), unidad: m.medida_unidad as UnidadMedidaAvio },
         version: String(m.updated_at),
       }));
 
@@ -283,6 +298,6 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     capital: veCostos ? capitalEnLotes(vistas.flatMap((v) => v.lotes)) : null,
     veCostos,
     materiales,
-    hayTelas: !sinMaterialId && !materialesRes.error,
+    hayTelas: !sinMaterialId && !materialesLeidos.error,
   };
 }
