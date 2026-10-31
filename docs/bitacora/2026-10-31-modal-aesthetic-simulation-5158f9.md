@@ -101,3 +101,8 @@ Qué se verificó: `tema-colores`, `tema-tokens`, `hover-con-mouse`, `unificar`,
 ## 2026-10-31 (El menú usa el alto que tiene)
 Qué hice: Felipe vio mucho espacio vacío bajo el menú y pidió módulos más holgados que se acomoden siempre al desplegar submódulos. `components/useMenuHolgado.ts` reparte el alto del `<nav>` entre las filas de primer nivel: crecen hasta 56 px (plegado, 66) y lo que sobra es aire entre filas (hasta 14 px), con la letra medio punto más grande; al abrir un módulo su bandeja toma lo que necesita y las demás bajan hasta 40 px (plegado, 54), y recién ahí el menú corre. Se recalcula cuadro a cuadro mientras una bandeja crece (un `ResizeObserver` por bandeja) y la gota se vuelve a medir sobre las filas acomodadas.
 Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de aire; con Catálogo abierto, 47 px llenando justo el alto), plegado (64 px) y en el celular (40 px y corre con un módulo abierto); la gota queda sobre su fila. Pruebas del menú, guías, tema, hover y unificar en verde; Knip limpio.
+
+- **El pie del menú (Felipe 2026-10-31):** se fue la firma «Donde el estilo transforma.» y la persona pasó a una placa de vidrio (`.marco-yo`,
+  `vidrio/marco.css`): el avatar en su lente, el nombre y «Líder · Tienda Lima» en letra normal, y «Salir» como una gota redonda con el ícono
+  (`LogoutButton forma="icono"`, que pasa a rojo profundo al apuntar). Plegado queda solo el avatar, centrado. Verificado a 1440 claro y
+  oscuro, plegado y a 375 px; las pruebas de menú, guías, tema, hover, unificar y ancho, tsc y Knip en verde.

@@ -392,3 +392,58 @@
   .lateral-hijo,
   .lateral-hijos[data-abierto="true"] > div > .lateral-hijo { transition: none; transform: none; filter: none; }
 }
+
+/* ===================================================================== */
+/* ---------- Abajo del menú: la persona (Felipe 2026-10-31: «elimina lo de “el estilo transforma” y mejora lo de abajo») ---------- */
+/* Una placa de vidrio con la foto en su lente, el nombre y el rol en la sede (en letra normal: en versalitas se cortaba «TIENDA LIM…») y
+   «Salir» como una gota redonda con su puerta, la misma de Mi perfil. Toda la placa abre Mi perfil y sube 1 px al pasar el mouse; «Salir»
+   pasa a rojo profundo. Plegado queda la foto sola, centrada. */
+.marco-yo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 12px 14px;
+  padding: 8px 8px 8px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--placa-borde);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+  transition: margin 300ms var(--ease-cayla), padding 300ms var(--ease-cayla), background 250ms var(--ease-cayla), transform 250ms var(--ease-cayla);
+}
+.marco-yo-quien { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; border-radius: 14px; }
+.marco-yo-lente {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--lente-fondo);
+  box-shadow: var(--lente-luz);
+  transition: transform 300ms var(--ease-cayla);
+}
+.marco-yo-texto { display: flex; min-width: 0; flex: 1; flex-direction: column; line-height: 1.25; }
+.marco-yo-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
+.marco-yo-rol { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.marco-yo-salida { flex: none; }
+.marco-yo-salir {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--placa-borde);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  transition: color 200ms, background 200ms, transform 250ms var(--ease-cayla);
+}
+.marco-yo-salir:focus-visible, .marco-yo-quien:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+@media (hover: hover) {
+  .marco-yo:has(.marco-yo-quien:hover) { background: var(--gota-fondo-encima); transform: translateY(-1px); }
+  .marco-yo-quien:hover .marco-yo-lente { transform: scale(1.05); }
+  .marco-yo-salir:hover { color: var(--color-rojo-profundo); background: var(--gota-fondo-encima); transform: scale(1.06); }
+}
+/* Plegado: la foto sola, centrada en la columna; sin placa. */
+.marco-riel[data-compacto] .marco-yo { justify-content: center; margin: 8px 10px 14px; padding: 8px 0; border-color: transparent; background: none; box-shadow: none; }
+.marco-riel[data-compacto] :is(.marco-yo-texto, .marco-yo-salida) { display: none; }
+.marco-riel[data-compacto] .marco-yo-quien { flex: none; }

@@ -1009,64 +1009,53 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           ))}
         </nav>
 
-        {/* El lateral terminaba en un vacío de media pantalla. La firma de la
-            marca le da un piso al bloque de abajo, en vez de dejar el aire
-            colgando entre el último ítem y la persona. */}
-        <p aria-hidden={compacto} data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-          Donde el estilo transforma.
-        </p>
-
-        {/* Plegado el avatar queda centrado en la columna (px-6 + 36 de avatar = centro en 42 px, la mitad de 84). */}
-        <div data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${compacto ? "px-6" : "px-7"}`}>
-          <div className="flex items-center gap-3">
-            {esAparato ? (
-              // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
-              // (no tiene ficha de RRHH en Dynamic). No es botón: nada que hacer al tocarlo. Plegado, el nombre sale al pasar
-              // el mouse igual que en las filas del menú.
-              <div
-                className="flex min-w-0 flex-1 items-center gap-3"
-                onMouseEnter={(e) => entrarFila(e.currentTarget, persona.nombre)}
-                onMouseLeave={salirFila}
-              >
-                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-tinta text-crema">
+        {/* Abajo, la persona: una placa de vidrio con su foto, su nombre y su rol en la sede, y «Salir» como una gota redonda (Felipe
+            2026-10-31: sin la firma de la marca, que ocupaba lugar sin decir nada; el aire de abajo ahora lo usan los módulos,
+            useMenuHolgado). Plegado queda la foto sola, centrada. */}
+        <div data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className="marco-yo">
+          {esAparato ? (
+            // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
+            // (no tiene ficha de RRHH en Dynamic). No es botón: nada que hacer al tocarlo. Plegado, el nombre sale al pasar
+            // el mouse igual que en las filas del menú.
+            <div className="marco-yo-quien" onMouseEnter={(e) => entrarFila(e.currentTarget, persona.nombre)} onMouseLeave={salirFila}>
+              <span aria-hidden className="marco-yo-lente">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-tinta text-crema">
                   <IconoAparato />
                 </span>
-                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-                  <p className="truncate text-sm text-tinta">{persona.nombre}</p>
-                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">Aparato · {persona.ubicacionEtiqueta}</p>
-                </div>
-              </div>
-            ) : (
-              // Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
-              // botón, como hermano — un clic ahí nunca dispara el perfil.
-              <button
-                type="button"
-                onClick={() => setPerfilAbierto(true)}
-                onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-                onMouseLeave={salirFila}
-                onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-                onBlur={salirFila}
-                aria-label={compacto ? "Mi perfil" : undefined}
-                className="group flex min-w-0 flex-1 items-center gap-3 text-left"
-              >
-                <AvatarPersona
-                  personaId={persona.personaId}
-                  nombre={persona.nombre}
-                  className="transition-colors group-hover:bg-rojo/15"
-                />
-                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-                  <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
-                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                    {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
-                  </p>
-                </div>
-              </button>
-            )}
-            {/* Plegado «Salir» no cabe: se apaga y sale del tabulador (`inert`); el perfil sigue a un clic. */}
-            <span className={`transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`} inert={compacto}>
-              <LogoutButton nombre={persona.nombre} terminal={!!persona.terminal} />
-            </span>
-          </div>
+              </span>
+              <span className="marco-yo-texto">
+                <span className="marco-yo-nombre">{persona.nombre}</span>
+                <span className="marco-yo-rol">Aparato · {persona.ubicacionEtiqueta}</span>
+              </span>
+            </div>
+          ) : (
+            // Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este botón, como hermano — un clic ahí nunca dispara el perfil.
+            <button
+              type="button"
+              onClick={() => setPerfilAbierto(true)}
+              onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+              onMouseLeave={salirFila}
+              onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+              onBlur={salirFila}
+              aria-label={compacto ? "Mi perfil" : undefined}
+              title={compacto ? undefined : "Mi perfil"}
+              className="marco-yo-quien group text-left"
+            >
+              <span className="marco-yo-lente">
+                <AvatarPersona personaId={persona.personaId} nombre={persona.nombre} />
+              </span>
+              <span className="marco-yo-texto">
+                <span className="marco-yo-nombre">{persona.nombre}</span>
+                <span className="marco-yo-rol">
+                  {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
+                </span>
+              </span>
+            </button>
+          )}
+          {/* Plegado «Salir» no cabe: se esconde y sale del tabulador (`inert`); el perfil sigue a un clic y ahí también se sale. */}
+          <span className="marco-yo-salida" inert={compacto}>
+            <LogoutButton nombre={persona.nombre} terminal={!!persona.terminal} forma="icono" />
+          </span>
         </div>
       </aside>
 
