@@ -62,7 +62,7 @@ export function FilasDeFalla({
                 valor={f.destino}
                 onCambio={(v) => cambiarFila(i, { destino: v as DestinoFalla })}
               />
-              <p className="text-xs text-tinta/65">{destinoDe(f.destino)?.ayuda}</p>
+              <p className="text-sm text-tinta/65">{destinoDe(f.destino)?.ayuda}</p>
             </div>
           ))}
           {opciones.length > 1 && (
@@ -81,7 +81,7 @@ export function FilasDeFalla({
             </div>
             <CampoTexto etiqueta="O cuéntalo con tus palabras" id="falla-motivo" value={motivo} onChange={(e) => onMotivo(e.target.value)} maxLength={MAX_MOTIVO_FALLA} />
           </div>
-          {problema && <p className="text-xs text-tinta/75">{problema}</p>}
+          {problema && <p className="text-sm text-tinta/75">{problema}</p>}
         </CampoGuiado>
       )}
     </div>

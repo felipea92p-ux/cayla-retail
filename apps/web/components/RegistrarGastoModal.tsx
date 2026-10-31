@@ -12,6 +12,7 @@ import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/component
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Aviso } from "@/components/ui/Aviso";
+import { sePuedeLlevarAGasto } from "@/lib/activo-umbral-reglas";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
@@ -86,6 +87,7 @@ export function RegistrarGastoModal({
   fijo,
   clase = "gasto",
   tiposActivo = [],
+  umbralActivo = null,
   fijosDelMes = [],
   hoy,
   onCerrar,
@@ -103,6 +105,8 @@ export function RegistrarGastoModal({
   /** F2b: «activo» registra un activo fijo en vez de un gasto. */
   clase?: "gasto" | "activo";
   tiposActivo?: TipoActivo[];
+  /** ¼ de la UIT del año (ADR-0594): un activo que cuesta menos avisa que puede llevarse a gasto. Es un aviso, no un candado; sin él (`null`) no se dice nada. */
+  umbralActivo?: { soles: number; uit: number } | null;
   /** Los fijos (de varios meses y de todas las tiendas, cada fila con su fecha esperada): con ellos, un gasto suelto pregunta si es uno de los que faltan. Sin ellos, no pregunta. */
   fijosDelMes?: GastoFijoMes[];
   hoy: string;
@@ -591,6 +595,15 @@ export function RegistrarGastoModal({
             <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/\u00a00.00"}</SalidaFin>
           </CampoFin>
         </div>
+
+        {/* ADR-0594: bajo ¼ de la UIT se puede llevar a gasto. Un aviso, nunca un candado: un conjunto de piezas que solo funciona junto sí es activo. */}
+        {esActivo && monto.ok && umbralActivo && sePuedeLlevarAGasto(monto.valor - igv, umbralActivo.soles) && (
+          <div className="mb-4" data-sin-cascada>
+            <Aviso tono="atencion" chico titulo={`Cuesta ${soles(monto.valor - igv)} sin IGV: ¼ de la UIT es ${soles(umbralActivo.soles)}`}>
+              Lo normal es llevarlo a gasto, para no depreciarlo durante años. Déjalo como activo solo si es parte de un conjunto que funciona junto, como una máquina con sus piezas. Puedes registrarlo igual.
+            </Aviso>
+          </div>
+        )}
 
         {/* Guía interactiva (ADR-0389): la condición y de dónde salió, juntas en un recorte. */}
         {!egreso && (

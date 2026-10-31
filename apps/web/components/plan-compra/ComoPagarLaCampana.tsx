@@ -72,8 +72,8 @@ export function ComoPagarLaCampana({
               <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
                 <span className="min-w-0 font-semibold" title={f.requiere ?? undefined}>
                   {f.nombre}
-                  {f.requiere && <span className="block text-xs font-normal text-taupe">Pide crédito del proveedor</span>}
-                  {formaActual === f.clave && <span className="block text-xs font-normal text-taupe">La que tienes ahora</span>}
+                  {f.requiere && <span className="block text-sm font-normal text-taupe">Pide crédito del proveedor</span>}
+                  {formaActual === f.clave && <span className="block text-sm font-normal text-taupe">La que tienes ahora</span>}
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <Resultado f={f} minimo={caja.minimoCaja} />
@@ -84,7 +84,7 @@ export function ComoPagarLaCampana({
                   )}
                 </span>
               </div>
-              <p className="text-xs text-taupe">
+              <p className="text-sm text-taupe">
                 Tu caja más baja <b className="font-semibold tabular-nums text-tinta">{f.esperado ? soles(f.esperado.masBajo.saldo) : "—"}</b> · si se cobra {Math.round(BAJA_DE_COBROS * 100)} % menos{" "}
                 <b className="font-semibold tabular-nums text-tinta">{f.flojo ? soles(f.flojo.masBajo.saldo) : "—"}</b>
               </p>
@@ -92,9 +92,9 @@ export function ComoPagarLaCampana({
           );
         })}
       </Tabla>
-      <p className="text-xs text-taupe">
-        Compara cada forma de pagar, aplicada a tus mismas tandas, con la caja que Finanzas ya proyecta
-        {caja.minimoCaja > 0 ? ` y tu mínimo de ${soles(caja.minimoCaja)}` : ""}. El «{Math.round(BAJA_DE_COBROS * 100)} % menos» es un «¿y si me va peor?», no una predicción.{provisional ? " Como tu caja todavía es provisional, esta comparación también." : ""}{" "}
+      <p className="text-sm text-taupe">
+        Cada forma de pagar contra la caja que proyecta Finanzas
+        {caja.minimoCaja > 0 ? ` y tu mínimo de ${soles(caja.minimoCaja)}` : ""}. «{Math.round(BAJA_DE_COBROS * 100)} % menos» es un «¿y si me va peor?».{provisional ? " Tu caja aún es provisional." : ""}{" "}
         <Ayuda titulo="Qué mide y qué no">
           <span className="block">
             «Aguanta» quiere decir que tu caja no baja de tu mínimo (ni de cero) en ningún momento de las próximas 12 semanas, contando lo que Finanzas ya sabe que entra y sale.

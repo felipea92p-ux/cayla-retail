@@ -56,7 +56,7 @@
   border-radius: 99px;
   display: grid;
   place-items: center;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 700;
   background: var(--color-ambar);
   /* La letra se invierte junto con el relleno (ámbar oscuro con letra crema en claro; ámbar claro con letra oscura en oscuro): con `crema-fija` pasaba 1,6:1 en oscuro. */
@@ -79,7 +79,7 @@
 }
 .ca-txt {
   display: none;
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .ca-boton[aria-expanded="true"] .ca-txt {
   display: inline;
@@ -97,7 +97,7 @@
   border: 1px solid color-mix(in srgb, var(--color-rojo) 45%, transparent);
   color: var(--color-rojo-profundo);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -137,7 +137,7 @@
 }
 .ca-titulo {
   padding: 2px 4px;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-tinta-60);
@@ -213,14 +213,14 @@
 }
 .ca-etiqueta {
   margin-right: 6px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--c);
 }
 .ca-d {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-tinta-60);
 }
 .ca-acc {
@@ -239,7 +239,7 @@
   background: transparent;
   color: var(--color-tinta);
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   text-decoration: none;
   cursor: pointer;

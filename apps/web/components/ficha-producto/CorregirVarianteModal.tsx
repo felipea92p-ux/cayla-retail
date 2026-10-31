@@ -142,13 +142,13 @@ export function CorregirVarianteModal({
               etiquetas de campaña. Si llegó mercadería nueva, usa {otroGesto}.
             </p>
           )}
-          <p className="text-[12.5px] text-taupe">
+          <p className="text-sm text-taupe">
             {nuevas ? "Se cambia" : "Se corrige"}: <span className="text-tinta">{alcance}</span>
           </p>
 
           {tocaColor && (
             <div>
-              <p className="mb-1 text-[12.5px] font-semibold text-tinta">Su color de verdad</p>
+              <p className="mb-1 text-sm font-semibold text-tinta">Su color de verdad</p>
               <ElegirUnColor
                 valor={color}
                 onValor={(v) => {
@@ -164,7 +164,7 @@ export function CorregirVarianteModal({
 
           {tocaTalla && (
             <div>
-              <p className="mb-1.5 text-[12.5px] font-semibold text-tinta">Su talla de verdad</p>
+              <p className="mb-1.5 text-sm font-semibold text-tinta">Su talla de verdad</p>
               {opcionesTalla.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {opcionesTalla.map((t) => (
@@ -182,12 +182,12 @@ export function CorregirVarianteModal({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-taupe">{ejes === "talla" ? "Esta categoría no tiene otras tallas habilitadas." : "Esta categoría no tiene tallas habilitadas."}</p>
+                <p className="text-sm text-taupe">{ejes === "talla" ? "Esta categoría no tiene otras tallas habilitadas." : "Esta categoría no tiene tallas habilitadas."}</p>
               )}
             </div>
           )}
 
-          {esElQueTiene && <p className="text-[12.5px] text-ambar-profundo">{queTiene}</p>}
+          {esElQueTiene && <p className="text-sm text-ambar-profundo">{queTiene}</p>}
           {bloqueo && (
             <Aviso tono="atencion">
               {bloqueo}

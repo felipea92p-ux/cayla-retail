@@ -74,10 +74,10 @@ export function ConsejoDeLaRed({
 
       {abierto && (
         <div id={idPanel} className="anim-revelar mt-2 space-y-3 border-t border-sand pt-3">
-          <p className="text-xs text-tinta/70">{explicacion}</p>
+          <p className="text-sm text-tinta/70">{explicacion}</p>
 
           <div data-guia="prod-orden-nueva.cubrir" className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-xs text-tinta/70">
+            <label className="flex items-center gap-1.5 text-sm text-tinta/70">
               Días de venta que cubre
               <Desplegable
                 valor={String(diasObjetivo)}
@@ -91,7 +91,7 @@ export function ConsejoDeLaRed({
 
           {curva.porVariante.size > 0 && (
             <details data-guia="prod-orden-nueva.por-que">
-              <summary data-guia="prod-orden-nueva.por-que-abrir" className="cursor-pointer py-1.5 text-xs text-tinta/75">
+              <summary data-guia="prod-orden-nueva.por-que-abrir" className="cursor-pointer py-1.5 text-sm text-tinta/75">
                 Ver el detalle por talla y color
               </summary>
               <ul className="mt-2 divide-y divide-tinta/10">
@@ -102,7 +102,7 @@ export function ConsejoDeLaRed({
                     const d = demandaPorVariante.get(v.varianteId);
                     const sug = curva.porVariante.get(v.varianteId);
                     return (
-                      <li key={v.varianteId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 py-1.5 text-[13px]">
+                      <li key={v.varianteId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 py-1.5 text-sm">
                         <span className="min-w-0">
                           <span className="text-tinta">
                             {v.color ?? "Sin color"} · {v.talla ?? "Única"}
@@ -112,13 +112,13 @@ export function ConsejoDeLaRed({
                               <Chip tono={d.banda === "agotado" || d.banda === "critica" || d.banda === "atencion" ? "ambar" : "neutro"}>{ETIQUETA_BANDA[d.banda]}</Chip>
                             </span>
                           )}
-                          <small className="block text-xs text-tinta/65">
+                          <small className="block text-sm text-tinta/65">
                             {d ? `Red ${d.stockRed} · Taller ${d.stockTaller}${d.enCamino > 0 ? ` · en camino ${d.enCamino}` : ""}${enProduccion.get(v.varianteId) ? ` · fabricando ${enProduccion.get(v.varianteId)}` : ""}` : ""}
                           </small>
                         </span>
                         <span className="text-right tabular-nums">
                           <b className="font-semibold text-tinta">{sug?.sugerido ?? 0}</b>
-                          <small className="block max-w-[15rem] text-xs text-tinta/70">{sug?.motivo}</small>
+                          <small className="block max-w-[15rem] text-sm text-tinta/70">{sug?.motivo}</small>
                         </span>
                       </li>
                     );

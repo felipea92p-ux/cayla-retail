@@ -29,7 +29,7 @@ export function FichaDeLaOrden({ datos, hoy }: { datos: OrdenPagina; hoy: string
           </Chip>
         </div>
         {que && <p className="text-sm text-tinta/75">{que}</p>}
-        <p className="text-[13px] text-tinta/70">{textoApertura(orden)}</p>
+        <p className="text-sm text-tinta/70">{textoApertura(orden)}</p>
         {siguiente && <p className="pt-1 text-sm text-tinta">{siguiente}</p>}
       </div>
       <div className="w-full sm:w-auto sm:max-w-sm">

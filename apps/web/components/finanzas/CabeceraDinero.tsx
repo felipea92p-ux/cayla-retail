@@ -37,7 +37,7 @@ export function CabeceraDinero({
   acciones,
   onRegistrar,
   panorama = false,
-  subtitulo = "Dónde está la plata, qué debes y si cuadra con el banco. Un saldo nunca se escribe a mano: se suma de los movimientos.",
+  subtitulo = "Dónde está la plata, qué debes y si cuadra con el banco.",
 }: {
   pestana: PestanaDinero;
   esLider: boolean;
@@ -56,7 +56,7 @@ export function CabeceraDinero({
   acciones?: ReactNode;
   /** Abre «Registrar movimiento» aquí mismo; sin él, el dock lleva a Dónde está con la hoja abierta. */
   onRegistrar?: () => void;
-  /** La cara dibuja su propio resumen (fichas, tarjeta de total): la cabecera no repite la respuesta grande ni el orillo. */
+  /** «Dónde está» dibuja su propia tarjeta de total (PanoramaDinero): sin la respuesta grande ni el orillo de la barra común. */
   panorama?: boolean;
   /** La frase bajo el título; cada cara puede decir la suya (CLAURE: desde cuándo se cuenta y qué entra). */
   subtitulo?: string;

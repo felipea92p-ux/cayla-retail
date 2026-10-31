@@ -243,19 +243,20 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
           )}
         </span>
         {unidad && !sinDato && <span className="whitespace-nowrap text-sm text-taupe">{unidad}</span>}
-        {compacta && children && <span className={`text-xs ${tonoContexto}`}>{children}</span>}
+        {compacta && children && <span className={`text-sm ${tonoContexto}`}>{children}</span>}
         {flechaEn === "valor" && <Flecha viva={esViva} className="ml-auto self-center" />}
       </p>
+      {/* El detalle va a 14 px desde la ronda 19 (Felipe 2026-10-30): a 12 no se leía. */}
       {/* `div` y no `p`: el contexto puede llevar una barra dentro (Concentración de Por pagar) y un bloque no cabe en un párrafo. */}
       {children &&
         !compacta &&
         (flechaEn === "contexto" ? (
-          <div className={`mt-1 flex items-end gap-1 text-xs ${tonoContexto}`}>
+          <div className={`mt-1 flex items-end gap-1 text-sm ${tonoContexto}`}>
             <div className="min-w-0 flex-1">{children}</div>
             <Flecha viva={esViva} className="mb-px" />
           </div>
         ) : (
-          <div className={`mt-1 text-xs ${tonoContexto}`}>{children}</div>
+          <div className={`mt-1 text-sm ${tonoContexto}`}>{children}</div>
         ))}
       {reparto && (
         <span aria-hidden className="cmp-reparto">
@@ -263,7 +264,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
         </span>
       )}
       {(piePropio || conAccion) && (
-        <div className={`mt-auto pt-2 text-xs ${puesta ? "font-semibold text-tinta" : "text-taupe"}`}>
+        <div className={`mt-auto pt-2 text-sm ${puesta ? "font-semibold text-tinta" : "text-taupe"}`}>
           {flechaEn === "pie" ? (
             <div className="flex items-end gap-1">
               <div className="min-w-0 flex-1">{piePropio}</div>

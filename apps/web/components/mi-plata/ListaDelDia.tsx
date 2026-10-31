@@ -60,13 +60,13 @@ function Cara({
         {/* Hasta dos líneas, no una cortada: a 375 px el monto y el estado se llevan la derecha y «Compra a CAYLA S…» o
             «RC-000001 · 23/10 · Si…» ya no decían a quién ni qué faltaba. */}
         <span className="line-clamp-2 block text-sm font-medium text-tinta">{titulo}</span>
-        <span className="line-clamp-2 block text-xs text-taupe">{detalle}</span>
+        <span className="line-clamp-2 block text-sm text-taupe">{detalle}</span>
       </span>
       <span className="flex flex-col items-end gap-1">
         <span className={`whitespace-nowrap text-sm tabular-nums ${entra ? "text-verde" : "text-tinta"}`}>
           {entra ? "+" : "−"} {monto}
         </span>
-        {hora && <span className="text-xs tabular-nums text-taupe">{hora}</span>}
+        {hora && <span className="text-sm tabular-nums text-taupe">{hora}</span>}
         {estado && !chips && (
           <Chip tono={estado.pendiente ? "pizarra" : "verde"} title={estado.detalle}>
             {estado.texto}
@@ -167,12 +167,12 @@ function TarjetaDeRonda({ e, envios, hoy }: { e: EntradaRonda; envios: EnvioMio[
             </Chip>
           )}
         </span>
-        <span className="text-xs text-taupe">{e.detalle}</span>
+        <span className="text-sm text-taupe">{e.detalle}</span>
         <span className="mt-1 flex items-baseline justify-between gap-3 text-sm">
           <span className="text-taupe">Salió de tu plata</span>
           <b className="whitespace-nowrap font-semibold tabular-nums text-tinta">{e.monto}</b>
         </span>
-        {e.cierre && <span className="text-xs text-taupe">{e.cierre}</span>}
+        {e.cierre && <span className="text-sm text-taupe">{e.cierre}</span>}
       </button>
       {abierta && <HojaDeRonda e={e} envios={envios} hoy={hoy} onClose={() => setAbierta(false)} volverA={origen} />}
     </>
@@ -240,7 +240,7 @@ function FilaHistorial({ e, envios, hoy }: { e: EntradaHistorial; envios: EnvioM
 function PieDeLaLista({ actuales, className = "" }: { actuales: MovimientoCompradora[]; className?: string }) {
   const { entro, salio } = totalesDeLaLista(actuales);
   return (
-    <p className={`flex flex-wrap justify-between gap-x-3 gap-y-0.5 border-t border-sand pt-2.5 text-xs text-taupe ${className}`}>
+    <p className={`flex flex-wrap justify-between gap-x-3 gap-y-0.5 border-t border-sand pt-2.5 text-sm text-taupe ${className}`}>
       <span>
         Entró <b className="font-semibold tabular-nums text-tinta">{soles(entro)}</b> · salió <b className="font-semibold tabular-nums text-tinta">{soles(salio)}</b>
       </span>

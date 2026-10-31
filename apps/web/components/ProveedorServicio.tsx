@@ -22,7 +22,7 @@ export function ProveedorServicio({ resumen }: { resumen: ResumenServicio }) {
         <TituloSeccion>Lo que le pago</TituloSeccion>
         <div className="card-cayla">
           <Vacio icono={<Receipt />} titulo="Todavía no hay pagos a este proveedor">
-            Cuando registres un gasto con su comprobante, aquí verás cuánto te cuesta al mes, cuánto al año y si va subiendo.
+            Con su primer gasto verás cuánto te cuesta al mes, al año y si va subiendo.
           </Vacio>
         </div>
       </section>
@@ -80,7 +80,7 @@ export function ProveedorServicio({ resumen }: { resumen: ResumenServicio }) {
               <div key={u.id} className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-x-4 px-5 py-3">
                 <span>
                   <span className="block text-sm tabular-nums text-tinta">{u.documento ?? "Sin número"}</span>
-                  <span className="block text-xs text-taupe">{fechaCorta(u.fecha)}</span>
+                  <span className="block text-sm text-taupe">{fechaCorta(u.fecha)}</span>
                 </span>
                 <span>{u.saldo > 0 ? <Chip tono="ambar">Debe {soles(u.saldo)}</Chip> : <Chip tono="verde">Pagado</Chip>}</span>
                 <span className="text-right text-sm tabular-nums text-tinta">{soles(u.total)}</span>

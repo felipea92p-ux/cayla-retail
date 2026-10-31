@@ -37,7 +37,7 @@ export function AccionSinAviso() {
   const ctx = useSinAviso();
   return (
     <div className="flex flex-col items-end gap-2">
-      {!ctx?.abierto && <p className="text-[13.5px] text-taupe">¿Llegó algo que no está en la lista? Ábrelo aquí.</p>}
+      {!ctx?.abierto && <p className="text-[15px] text-taupe">¿Llegó algo que no está en la lista? Ábrelo aquí.</p>}
       <BotonSinAviso />
     </div>
   );

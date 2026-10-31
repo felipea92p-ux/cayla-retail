@@ -97,7 +97,7 @@ export function ArbolCategoria({
             <p className="text-sm font-medium text-tinta">
               {familiaDeElegida?.nombre ?? "Sin familia"} <span className="text-tinta/40">›</span> {nombreVisible(elegida)}
             </p>
-            {elegida.prefijo && <p className="text-xs text-tinta/60">Código empieza con {elegida.prefijo}-</p>}
+            {elegida.prefijo && <p className="text-sm text-tinta/60">Código empieza con {elegida.prefijo}-</p>}
           </div>
         </div>
         <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace text-xs">
@@ -135,7 +135,7 @@ export function ArbolCategoria({
         <IconoFamilia familia={f.codigo as Familia} className="h-5 w-5 text-tinta/70" />
         <span className="min-w-0">
           <span className="block break-words text-sm font-medium leading-tight text-tinta">{f.nombre}</span>
-          <span className="text-xs text-tinta/55">
+          <span className="text-sm text-tinta/55">
             {n} categoría{n === 1 ? "" : "s"}
           </span>
         </span>
@@ -171,7 +171,7 @@ export function ArbolCategoria({
                   className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm text-tinta hover:bg-tinta/[0.04]"
                 >
                   <span>{nombreVisible(c)}</span>
-                  <span className="text-xs text-tinta/55">{familias.find((f) => f.codigo === c.familia)?.nombre}</span>
+                  <span className="text-sm text-tinta/55">{familias.find((f) => f.codigo === c.familia)?.nombre}</span>
                 </button>
               </li>
             ))}
@@ -201,7 +201,7 @@ export function ArbolCategoria({
               <span className="min-w-0">
                 <span className="block text-sm font-medium leading-tight">{/* unificar-fijo: una tecla más entre las tarjetas de familia (dice lo que esconde), no el pie de una lista */}{verTodas ? "Ver menos" : "Ver más"}</span>
                 {/* Los nombres de lo escondido, no «3 más»: quien busca zapatos tiene que leer «Calzado» para saber dónde tocar. */}
-                <span className="line-clamp-2 text-xs text-tinta/55" title={nombresOcultos}>
+                <span className="line-clamp-2 text-sm text-tinta/55" title={nombresOcultos}>
                   {verTodas ? "Solo las principales" : nombresOcultos}
                 </span>
               </span>

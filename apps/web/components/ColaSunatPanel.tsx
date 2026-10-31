@@ -96,7 +96,7 @@ export function ColaSunatPanel({
       <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div className="min-w-0">
           <TituloSeccion>Por enviar a SUNAT</TituloSeccion>
-          <p className="mt-0.5 text-xs text-tinta/65">
+          <p className="mt-0.5 text-sm text-tinta/65">
             Todo lo que todavía no llegó: lo que nunca se intentó, lo que falló y lo que SUNAT rechazó. No pierden su número; si uno pasa de {HORAS_AVISO_COLA} hora, mira el error.
           </p>
         </div>
@@ -129,7 +129,7 @@ export function ColaSunatPanel({
                 <p className="text-[15px] text-tinta">
                   <span className="text-tinta/65">{nombreDelTipo(f.tipo)}</span> <b data-guia="por-enviar.numero" className="whitespace-nowrap font-semibold tabular-nums">{numero(f)}</b>
                 </p>
-                <p className="text-[13px] text-tinta/65">{nombreDe(f.ubicacion_id)}</p>
+                <p className="text-sm text-tinta/65">{nombreDe(f.ubicacion_id)}</p>
               </div>
               {/* En el celular, el estado y el error bajan a su propia línea a todo el ancho: al lado del número quedaban cortados. */}
               <div data-guia="por-enviar.estado" className="min-w-0 flex-1 max-sm:basis-full">
@@ -147,11 +147,11 @@ export function ColaSunatPanel({
                   )}
                   {plazo && <Chip tono={plazo.tono}>{plazo.texto}</Chip>}
                 </div>
-                <p className="mt-1 text-[13px] leading-snug text-tinta/70">
+                <p className="mt-1 text-sm leading-snug text-tinta/70">
                   {f.intentos_transmision} {f.intentos_transmision === 1 ? "intento" : "intentos"}
                   {f.ultimo_error_transmision ? ` · ${errorDeColaLegible(f.ultimo_error_transmision)}` : ""}
                 </p>
-                {queHacer && <p className="mt-0.5 text-[13px] leading-snug text-tinta">Qué hacer: {queHacer}</p>}
+                {queHacer && <p className="mt-0.5 text-sm leading-snug text-tinta">Qué hacer: {queHacer}</p>}
               </div>
               <BotonCompacto variante="fila-alerta" data-guia="por-enviar.reintentar" cargando={enVuelo} textoCargando="Enviando…" disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
                 {f.estado === "pendiente" && f.intentos_transmision === 0 ? "Enviar ahora" : "Reintentar ahora"}

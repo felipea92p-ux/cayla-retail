@@ -51,7 +51,7 @@ export function CostoEIgv({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="min-w-[14rem] flex-1 text-sm text-taupe">
-          Marca las categorías cuyo costo <b className="font-semibold text-tinta">ya incluye el IGV</b>. A las demás el sistema les suma el 18 % para decirte cuánto le pagas al proveedor y cuánto sale de tu caja.
+          Marca las categorías cuyo costo <b className="font-semibold text-tinta">ya incluye el IGV</b>. A las demás se les suma el 18 %.
         </p>
         <div className="flex gap-2">
           <Boton type="button" peso="fantasma" className="btn-chico" onClick={() => onTodas(true)} disabled={deshabilitado || todas}>
@@ -78,7 +78,7 @@ export function CostoEIgv({
                 etiqueta={
                   <>
                     <span className="sr-only">{f.nombre}: el costo ya incluye el IGV. </span>
-                    <span className="text-xs text-taupe">{f.incluido ? "Ya lo incluye" : "No lo incluye"}</span>
+                    <span className="text-sm text-taupe">{f.incluido ? "Ya lo incluye" : "No lo incluye"}</span>
                   </>
                 }
               />
@@ -86,7 +86,7 @@ export function CostoEIgv({
             <span className={celda("der", DESDE_ANCHA)}>{solesES(f.sinIgv)}</span>
             <span className={celda("der", DESDE_ANCHA)}>{solesES(f.igv)}</span>
             <span className={celda("der", "font-semibold")}>
-              <span className="text-xs font-normal text-taupe sm:hidden">Sale de caja </span>
+              <span className="text-sm font-normal text-taupe sm:hidden">Sale de caja </span>
               {solesES(f.saleDeCaja)}
             </span>
           </div>
@@ -100,7 +100,7 @@ export function CostoEIgv({
           <span className={celda("der")}>{solesES(costos.saleDeCaja)}</span>
         </div>
       </Tabla>
-      <p className="text-xs text-taupe">
+      <p className="text-sm text-taupe">
         El IGV de una compra sale de tu caja ahora y después baja lo que le pagas a SUNAT (crédito fiscal); confírmalo con tu contador. Esta marca es de esta campaña: no cambia el costo de la ficha.
       </p>
     </div>

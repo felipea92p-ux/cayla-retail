@@ -149,7 +149,7 @@ export function OrdenPanel({
         llevarUrl ? (
           <section aria-label="Siguiente paso" className="mx-5 mb-4 rounded-2xl border border-sand bg-crema p-3.5">
             <p className="label-cayla text-[11px] text-tinta/65">Siguiente paso</p>
-            <p className="mt-1 text-[13px] text-tinta/80">
+            <p className="mt-1 text-sm text-tinta/80">
               Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que etiquetarlas y llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
             </p>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -241,11 +241,11 @@ export function OrdenPanel({
                           <path d="M5 12h14M13 6l6 6-6 6" />
                         </svg>
                       ) : (
-                        <span className="text-xs font-semibold tabular-nums">{i + 1}</span>
+                        <span className="text-sm font-semibold tabular-nums">{i + 1}</span>
                       )}
                     </span>
-                    <p className="text-[13px] font-semibold text-tinta">{e.etiqueta}</p>
-                    <p className="px-1 text-[11.5px] leading-snug text-tinta/65">
+                    <p className="text-sm font-semibold text-tinta">{e.etiqueta}</p>
+                    <p className="px-1 text-sm leading-snug text-tinta/65">
                       {estado === "tercerizado" ? "Afuera con un servicio" : e.detalle}
                     </p>
                     {abierta && esActual && (
@@ -277,7 +277,7 @@ export function OrdenPanel({
                         type="button"
                         disabled={ocupada || !responsable.listo}
                         onClick={() => fijarEtapa(e.clave, "pendiente", estado, `${e.etiqueta} reabierta`)}
-                        className="mt-1.5 text-[11.5px] text-tinta/65 underline underline-offset-2 outline-none hover:text-tinta focus-visible:text-tinta disabled:opacity-50"
+                        className="mt-1.5 text-sm text-tinta/65 underline underline-offset-2 outline-none hover:text-tinta focus-visible:text-tinta disabled:opacity-50"
                       >
                         Reabrir
                       </button>
@@ -308,7 +308,7 @@ export function OrdenPanel({
                 <p className="font-display text-4xl leading-none tabular-nums text-tinta">
                   {costo.total > 0 ? <CifraQueCuenta valor={orden.costoUnitario} formato="soles" alMontar /> : "—"}
                 </p>
-                <p className="mt-1 text-xs text-tinta/65">
+                <p className="mt-1 text-sm text-tinta/65">
                   por prenda · {soles(costo.total)} entre {orden.cantidadBuenas ?? orden.cantidadPlan}
                 </p>
               </div>
@@ -318,9 +318,9 @@ export function OrdenPanel({
                     {sem.texto} · {Math.round(sem.margen * 100)}%
                   </Chip>
                 )}
-                {orden.precioVenta > 0 && <p className="mt-1.5 text-xs text-tinta/65">precio de venta {soles(orden.precioVenta)}</p>}
+                {orden.precioVenta > 0 && <p className="mt-1.5 text-sm text-tinta/65">precio de venta {soles(orden.precioVenta)}</p>}
                 {sem?.sede && orden.precioMasBajo && (
-                  <p className="mt-0.5 text-xs text-tinta/65">
+                  <p className="mt-0.5 text-sm text-tinta/65">
                     el margen usa {soles(orden.precioMasBajo.precio)}, el precio propio de {sem.sede}
                   </p>
                 )}
@@ -330,7 +330,7 @@ export function OrdenPanel({
               <>
                 {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, las cifras del costo van debajo. */}
                 <BarraApilada decorativa className="mt-4" alto={12} segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: COLOR_PARTE[p.clave] }))} />
-                <ul className="mt-3 space-y-1.5 text-[13px]">
+                <ul className="mt-3 space-y-1.5 text-sm">
                   {costo.partes.map((p) => (
                     <li key={p.clave} className="flex items-center gap-2.5">
                       <MuestraTramo /* unificar-fijo: el cuadrito de color de una leyenda, no un ícono */ clase={COLOR_PARTE[p.clave]} className="h-2.5 w-2.5 rounded-sm" />
@@ -357,7 +357,7 @@ export function OrdenPanel({
                     }}
                   />
                 </div>
-                <div className="mt-2 flex justify-between text-[11px] text-tinta/65">
+                <div className="mt-2 flex justify-between text-sm text-tinta/65">
                   <span>{LEYENDA_SEMAFORO.pierde}</span>
                   <span>{LEYENDA_SEMAFORO.filo}</span>
                   <span>{LEYENDA_SEMAFORO.gana}</span>

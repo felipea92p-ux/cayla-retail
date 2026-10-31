@@ -138,7 +138,7 @@ export function PlanConTope({
             </div>
           </div>
 
-          <p className="text-[13px] text-tinta-60">
+          <p className="text-sm text-tinta-60">
             {difInversion < 0
               ? `Recortas ${recorte ?? 0} % de lo que gastas${pierde !== null ? ` y dejas de ganar ${pierde} % de lo que esperabas` : ""}${
                   porSolAhorrado !== null && porSolAhorrado > 0 ? `: por cada sol que ahorras, dejas de ganar ${solesES(porSolAhorrado)}` : ""
@@ -185,7 +185,7 @@ export function PlanConTope({
             )}
           </div>
           {onUsar && (
-            <p className="text-xs text-tinta-60">
+            <p className="text-sm text-tinta-60">
               «Usar» guarda una versión nueva (la actual queda guardada para volver). Nada se compra: solo cambia el plan.{" "}
               <Link href={hrefPlan} className="btn-cayla btn-enlace">
                 Ver el plan

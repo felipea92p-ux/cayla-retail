@@ -237,7 +237,7 @@ export function CambiosPanel({
             // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
             <span data-guia="cambios.caja" className="flex items-center gap-2 text-sm text-tinta/70">
               <Chip tono={cajaAbierta ? "verde" : "ambar"}>{cajaAbierta ? "Caja abierta" : "Caja cerrada"}</Chip>
-              <span className="hidden lg:inline">{cajaAbierta ? "una diferencia en efectivo entra a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
+              <span className="hidden lg:inline">{cajaAbierta ? "la diferencia en efectivo va a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
             </span>
           }
         />
@@ -275,7 +275,7 @@ export function CambiosPanel({
               <h2 id="actividad-reciente" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
                 Actividad reciente
               </h2>
-              <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días en {sede}: las que todavía se pueden cambiar.</p>
+              <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días: aún se pueden cambiar.</p>
             </div>
             <FiltrosActividad
               valor={filtro}

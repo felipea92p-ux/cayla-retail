@@ -73,7 +73,7 @@ export function NotaDeLaOrdenModal({ datos, onClose }: { datos: OrdenPagina; onC
   return (
     <Modal
       titulo="Escribe una nota para el equipo"
-      subtitulo="Lo que hay que saber de esta orden y no es una anotación. Queda en la historia con tu nombre y la hora."
+      subtitulo="Queda en la historia con tu nombre y la hora."
       variante="hoja"
       tamano="mediana"
       onClose={onClose}

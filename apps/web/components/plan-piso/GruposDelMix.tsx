@@ -116,7 +116,7 @@ export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categ
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-sand px-5 py-4">
           <div className="min-w-0">
             <TituloSeccion>Grupos del plan</TituloSeccion>
-            <p className="mt-0.5 max-w-xl text-[13px] text-tinta/70">
+            <p className="mt-0.5 max-w-xl text-sm text-tinta/70">
               Revisa a qué grupo va cada categoría. Lo que cambies o confirmes queda con tu firma.
             </p>
           </div>
@@ -133,7 +133,7 @@ export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categ
         </div>
 
         {quitadas.length > 0 && (
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-sand bg-ambar/10 px-5 py-3 text-[13px] text-tinta">
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-sand bg-ambar/10 px-5 py-3 text-sm text-tinta">
             <p className="min-w-0">
               Otra persona cambió {quitadas.map((q) => `«${q.categoria}»`).join(", ")} mientras tenías cambios preparados. Quité {quitadas.length === 1 ? "ese cambio" : "esos cambios"}{" "}
               de lo tuyo para no pisarla: revisa cómo quedó {quitadas.length === 1 ? "y vuelve a decidir si hace falta" : "y vuelve a decidir lo que haga falta"}.
@@ -177,7 +177,7 @@ export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categ
             <span aria-hidden className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-ambar" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-tinta">Tienes {cambios.length === 1 ? "1 cambio" : `${cambios.length} cambios`} sin guardar</p>
-              <p className="text-[13px] text-tinta/65">
+              <p className="text-sm text-tinta/65">
                 Aún no se guardó nada.<span className="hidden sm:inline"> Cuando termines, pulsa «Revisar y guardar».</span>
               </p>
             </div>
@@ -215,7 +215,7 @@ function CabeceraDeSeccion({ children, derecha }: { children: React.ReactNode; d
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 bg-hueso/70 px-5 py-2.5">
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">{children}</div>
-      <p className="text-xs text-taupe">{derecha}</p>
+      <p className="text-sm text-taupe">{derecha}</p>
     </div>
   );
 }
@@ -243,7 +243,7 @@ function SeccionDeGrupo({ s, children }: { s: Seccion; children: React.ReactNode
         <span title={ROL_AYUDA[s.grupo.rol]}>
           <Chip tono="pizarra">{ROL_ETIQUETA[s.grupo.rol]}</Chip>
         </span>
-        <span className="text-xs text-taupe">{s.grupo.enRiel ? "En el riel" : "Fuera del riel: se mide como % de la venta"}</span>
+        <span className="text-sm text-taupe">{s.grupo.enRiel ? "En el riel" : "Fuera del riel: se mide como % de la venta"}</span>
       </CabeceraDeSeccion>
       {n === 0 ? (
         <Vacio tamano="chico" icono={<Tag />}>
@@ -388,16 +388,16 @@ function HojaGuardarGrupos({
       bloqueado={enviando}
     >
       <form onSubmit={guardar} className="space-y-4" noValidate>
-        <p className="text-[13px] text-taupe">
-          Se guardan todas juntas: si una no se puede guardar, no se guarda ninguna. Cada una queda confirmada con tu firma.
+        <p className="text-sm text-taupe">
+          Se guardan todas juntas o ninguna, con tu firma.
         </p>
-        <ul className="max-h-56 space-y-1.5 overflow-y-auto rounded-md bg-hueso px-4 py-3 text-[13px] text-tinta">
+        <ul className="max-h-56 space-y-1.5 overflow-y-auto rounded-md bg-hueso px-4 py-3 text-sm text-tinta">
           {cambios.map((c) => (
             <li key={c.categoriaId}>{describirCambio(c, grupos)}</li>
           ))}
         </ul>
 
-        <div className="min-h-[1rem] text-xs text-rojo-profundo" role="alert">
+        <div className="min-h-[1rem] text-sm text-rojo-profundo" role="alert">
           {error}
         </div>
 

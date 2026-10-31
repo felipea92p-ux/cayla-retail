@@ -87,7 +87,7 @@ function Pastilla({
       disabled={!activa && cuenta === 0}
       className={
         sutil
-          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
+          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
               activa ? "border-taupe bg-hueso text-tinta" : "border-sand text-taupe hover:bg-sand/40 hover:text-tinta"
             }`
           : // La píldora de filtro del sistema (ADR-0358): el foco es el anillo común y el conteo, del color del texto.

@@ -183,7 +183,7 @@ export function PanelDelTaller({
               const conBotones = stock.puedeAjustar;
               return (
                 <div key={f.clave} className="taller-barra-talla">
-                  <b className="min-w-0 text-[12px] text-taupe">{talla}</b>
+                  <b className="min-w-0 text-sm text-taupe">{talla}</b>
                   {/* La barra a escala del sistema (ronda 14 de /unificar): en tinta, ámbar si quedan pocas (lo pinta la pantalla). */}
                   <BarraAvance
                     pct={esperando ? 0 : (u / max) * 100}
@@ -223,7 +223,7 @@ export function PanelDelTaller({
                     )
                   ) : (
                     <>
-                      <span className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`} title={tituloNumero}>
+                      <span className={`text-right text-sm tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`} title={tituloNumero}>
                         {esperando ? "…" : u}
                       </span>
                       <span />
@@ -245,7 +245,7 @@ export function PanelDelTaller({
           {/* La campaña no toca el precio guardado: la caja la descuenta al cobrar. Sin esta línea, poner una etiqueta con descuento
               parecía no hacer nada (ADR-0472). Lo que cambia al guardar va en ámbar, como todo lo cambiado de la ficha. */}
           {campana && (
-            <p role="status" className={`mt-2 border-t border-sand pt-2 text-[12.5px] leading-snug ${campana.alGuardar ? "text-ambar-profundo" : "text-tinta/75"}`}>
+            <p role="status" className={`mt-2 border-t border-sand pt-2 text-sm leading-snug ${campana.alGuardar ? "text-ambar-profundo" : "text-tinta/75"}`}>
               {campana.texto}
             </p>
           )}
@@ -260,7 +260,7 @@ export function PanelDelTaller({
               Abrir la ficha
             </Boton>
           </div>
-          <p className="mt-2 text-[12.5px] leading-snug text-tinta/75">Cuánta tela y qué avíos lleva una prenda. Las órdenes de producción la proponen solas.</p>
+          <p className="mt-2 text-sm leading-snug text-tinta/75">Cuánta tela y qué avíos lleva una prenda. Las órdenes de producción la proponen solas.</p>
         </div>
       )}
 
@@ -281,7 +281,7 @@ export function PanelDelTaller({
         )
       )}
 
-      <p data-guia="editar.guardar" className="text-center text-[11.5px] text-tinta/45">Guardar sigue abajo, en la barra.</p>
+      <p data-guia="editar.guardar" className="text-center text-sm text-tinta/45">Guardar sigue abajo, en la barra.</p>
       {fichaAbierta && fichaConsumo && (
         <FichaDeConsumoHoja tallerId={fichaConsumo.tallerId} tallerNombre={fichaConsumo.tallerNombre} productoId={fichaConsumo.productoId} referencia={fichaConsumo.referencia} insumos={fichaConsumo.insumos} onClose={() => setFichaAbierta(false)} />
       )}

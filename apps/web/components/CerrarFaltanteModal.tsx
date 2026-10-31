@@ -150,7 +150,7 @@ export function CerrarFaltanteModal({
             </div>
           </div>
 
-          <p className="text-xs leading-relaxed text-tinta/60">
+          <p className="text-sm leading-relaxed text-tinta/60">
             {cubreTodo ? `Con este cierre ${compra.documento} queda resuelto al 100 % (recibido o cerrado). ` : ""}
             No se borra nada: el cierre queda como un registro nuevo en el historial del comprobante. La nota de crédito del proveedor, si emite una, se registra aparte, cuando el comprobante esté resuelto.
           </p>

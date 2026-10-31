@@ -131,7 +131,7 @@ export function AgregarPasoModal({
     [opciones]
   );
   // La fila de un proceso nuevo todavía no tiene clave: se valida con la de un proceso del Taller cualquiera (las reglas de quién lo hace no dependen del proceso, salvo el Ploteo).
-  const problemas = useMemo(() => problemasFases([esOtro ? { ...borrador, clave: "pegar_cierre" } : borrador], { hoy, proveedores, lista, catalogo: datos.procesos }), [borrador, esOtro, hoy, proveedores, lista, datos.procesos]);
+  const problemas = useMemo(() => problemasFases([esOtro ? { ...borrador, clave: "pegar_cierre" } : borrador], { hoy, proveedores, lista, catalogo: datos.procesos, totalPrendas: datos.orden.cantidadPlan }), [borrador, esOtro, hoy, proveedores, lista, datos.procesos, datos.orden.cantidadPlan]);
   const faltas = [...(esOtro && !esLider ? ["Solo un líder da de alta un proceso nuevo. Pídeselo, o elige uno de la lista."] : []), ...(problemaNombre ? [problemaNombre] : []), ...(otroTarde ? [`${otroTarde.nombre} ya empezó, y ${paso.nombre === "Otro proceso" ? "un proceso nuevo" : paso.nombre} iría antes. Elige un paso de más adelante en «Va después de».`] : []), ...problemas.map((p) => p.texto)];
   const guia = useGuiaCampos(camposDeAgregarPaso({ faltas, responsableListo: responsable.listo, tarde: tarde ? { problemaDia, problemaMotivo } : null }));
 
@@ -322,7 +322,7 @@ export function AgregarPasoModal({
               </>
             ) : (
               <Aviso tono="info" chico>
-                Solo un líder da de alta un proceso nuevo, en Producción ▸ Proveedores ▸ Servicios y tarifas. Pídeselo, o elige uno de la lista.
+                Un proceso nuevo lo da de alta un líder. Pídeselo, o elige uno de la lista.
               </Aviso>
             )}
           </div>
@@ -352,11 +352,11 @@ export function AgregarPasoModal({
               </Aviso>
             )}
             {sePuedeRecordar && respuestaDelModelo !== true && (
-              <label className="flex items-start gap-2.5 text-[13px] text-tinta" data-guia="prod-orden-agregar.recordar">
+              <label className="flex items-start gap-2.5 text-sm text-tinta" data-guia="prod-orden-agregar.recordar">
                 <Casilla marcada={recordarMarcada} onCambio={() => setRecordarPor((r) => ({ ...r, [clave]: !recordarMarcada }))} etiqueta="Recordar en la ficha del modelo" />
                 <span>
                   Recordar en la ficha del modelo
-                  <span className="block text-[12.5px] text-tinta/70">
+                  <span className="block text-sm text-tinta/70">
                     {respuestaDelModelo === false
                       ? `La ficha de «${datos.orden.producto.referencia}» dice que no lleva ${nombreMinuscula}: márcala si de ahora en adelante sí lo lleva.`
                       : `Las próximas órdenes de «${datos.orden.producto.referencia}» nacen con este paso.`}

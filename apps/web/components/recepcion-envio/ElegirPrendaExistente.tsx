@@ -96,11 +96,11 @@ export function ElegirPrendaExistente({
                   <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-tinta">{p.nombre}</span>
-                    <span className="block truncate text-xs text-taupe">
+                    <span className="block truncate text-sm text-taupe">
                       {[p.codigo, `${tallas} ${tallas === 1 ? "talla" : "tallas"} · ${colores} ${colores === 1 ? "color" : "colores"}`].filter(Boolean).join(" · ")}
                     </span>
                   </span>
-                  <span className="text-xs font-medium text-tinta/70">Elegir</span>
+                  <span className="text-sm font-medium text-tinta/70">Elegir</span>
                 </button>
               </li>
             );

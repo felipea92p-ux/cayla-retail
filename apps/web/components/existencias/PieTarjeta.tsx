@@ -71,7 +71,7 @@ export function PieTarjeta({
           <span className="truncate">{boton.etiqueta}</span>
         </button>
       ) : (
-        <span className={`flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 text-[12.5px] font-semibold ${boton.tipo === "agotada" ? "text-rojo-profundo" : boton.tipo === "sinColgar" ? "text-ambar-profundo" : "text-verde"}`}>
+        <span className={`flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 text-sm font-semibold ${boton.tipo === "agotada" ? "text-rojo-profundo" : boton.tipo === "sinColgar" ? "text-ambar-profundo" : "text-verde"}`}>
           {boton.tipo === "ok" && <Check aria-hidden className="h-4 w-4 shrink-0" />}
           <span className="truncate">{boton.etiqueta}</span>
         </span>
@@ -124,12 +124,12 @@ export function PieTarjeta({
                   setAbierto(false);
                   onOpcion(o.clave);
                 }}
-                className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] outline-none transition-colors focus-visible:bg-hueso ${apagada ? "cursor-not-allowed text-tinta/45" : "text-tinta hover:bg-hueso"}`}
+                className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm outline-none transition-colors focus-visible:bg-hueso ${apagada ? "cursor-not-allowed text-tinta/45" : "text-tinta hover:bg-hueso"}`}
               >
                 <Ico aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                 <span className="min-w-0">
                   {o.etiqueta}
-                  {o.motivo && <span className="mt-0.5 block text-[11.5px] leading-snug text-tinta/55">{o.motivo}</span>}
+                  {o.motivo && <span className="mt-0.5 block text-sm leading-snug text-tinta/55">{o.motivo}</span>}
                 </span>
               </button>
             );

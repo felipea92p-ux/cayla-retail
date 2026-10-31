@@ -50,7 +50,6 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
     <div data-guia="por-pagar.vencimiento" className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <p className="label-cayla flex items-baseline justify-between gap-3 text-[11px] text-tinta/65">
         Deuda por vencimiento
-        {total > 0 && <span className="text-[12px] font-normal normal-case tracking-normal text-tinta/70">clic para filtrar la lista</span>}
       </p>
       {total <= 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Receipt />}>No hay deuda pendiente con proveedores.</Vacio>
@@ -77,20 +76,20 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
                 {...props(f.k)}
                 className={`-mx-1.5 -my-1 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-tinta/[0.04] ${filtroLocal?.clave === `tramo:${f.k}` ? "bg-tinta/[0.04]" : ""}`}
               >
-                <span className="flex items-center gap-1.5 text-xs text-tinta/65">
+                <span className="flex items-center gap-1.5 text-sm text-tinta/65">
                   <MuestraTramo clase={COLOR[f.k]} />
                   {TITULO[f.k]}
                 </span>
                 <span className="font-display mt-0.5 block text-[19px] tabular-nums text-tinta">
                   <CifraQueCuenta valor={f.monto} formato="soles" alMontar />
                 </span>
-                <span className="block text-xs tabular-nums text-tinta/70">{Math.round((f.monto / total) * 100)} %</span>
+                <span className="block text-sm tabular-nums text-tinta/70">{Math.round((f.monto / total) * 100)} %</span>
               </button>
             ))}
           </div>
         </>
       )}
-      <div className="mt-3.5 flex flex-wrap justify-between gap-x-4 gap-y-1 rounded-[10px] border border-dashed border-tinta/25 px-3 py-2 text-xs">
+      <div className="mt-3.5 flex flex-wrap justify-between gap-x-4 gap-y-1 rounded-[10px] border border-dashed border-tinta/25 px-3 py-2 text-sm">
         <span className="text-tinta/65">Días promedio de pago · % pagado a tiempo</span>
         <span className="text-tinta/70">Aparecen con el primer comprobante pagado</span>
       </div>

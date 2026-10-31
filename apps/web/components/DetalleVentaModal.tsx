@@ -200,7 +200,7 @@ export function DetalleVentaModal({
                     {textoNumeroRecibo(d.comprobante)}
                   </span>
                 </span>
-                <span className="text-[11px] text-tinta/60">
+                <span className="text-sm text-tinta/60">
                   {ESTADO_ETIQUETA[d.comprobante.estado]}
                 </span>
               </div>
@@ -218,7 +218,7 @@ export function DetalleVentaModal({
                     <p className="text-tinta">
                       {l.cantidad} × {l.nombre}
                     </p>
-                    <p className="text-[11.5px] text-tinta/55">
+                    <p className="text-sm text-tinta/55">
                       {[l.detalle, l.codigo].filter(Boolean).join(" · ")}
                       {l.descuentoUnitario > 0 &&
                         ` · dscto. −${money(l.descuentoUnitario)} c/u`}
@@ -239,7 +239,7 @@ export function DetalleVentaModal({
                     <span>{money(p.monto)}</span>
                   </p>
                   {p.metodo === "efectivo" && p.recibido !== null && (
-                    <p className="flex justify-between text-xs tabular-nums text-tinta/60">
+                    <p className="flex justify-between text-sm tabular-nums text-tinta/60">
                       <span>Recibió {money(p.recibido)}</span>
                       <span>Vuelto {money(p.vuelto)}</span>
                     </p>
@@ -252,11 +252,11 @@ export function DetalleVentaModal({
                     <span>{TEXTO_REDONDEO}</span>
                     <span>{money(d.redondeo)}</span>
                   </p>
-                  <p className="text-xs text-tinta/60">{LEY_REDONDEO}</p>
+                  <p className="text-sm text-tinta/60">{LEY_REDONDEO}</p>
                 </div>
               )}
               {d.recibo && d.recibo.tipo !== "nota_venta" && (
-                <div className="space-y-0.5 border-t border-sand pt-2 text-xs tabular-nums text-tinta/65">
+                <div className="space-y-0.5 border-t border-sand pt-2 text-sm tabular-nums text-tinta/65">
                   <p className="flex justify-between">
                     <span>Subtotal</span>
                     <span>{money(d.recibo.subtotal)}</span>
@@ -281,7 +281,7 @@ export function DetalleVentaModal({
                 </div>
               )}
               {corregible && !corregible.ok && corregible.motivo && (
-                <p className="border-t border-sand pt-2 text-xs text-tinta/65">
+                <p className="border-t border-sand pt-2 text-sm text-tinta/65">
                   {corregible.motivo}
                 </p>
               )}
@@ -316,10 +316,10 @@ export function DetalleVentaModal({
                 </BotonImprimir>
               </div>
               {!permiso.ok && (
-                <p className="text-xs text-tinta/65">{permiso.motivo}</p>
+                <p className="text-sm text-tinta/65">{permiso.motivo}</p>
               )}
               {permiso.ok && permiso.leyenda && (
-                <p className="text-xs text-ambar-profundo">{permiso.leyenda}</p>
+                <p className="text-sm text-ambar-profundo">{permiso.leyenda}</p>
               )}
             </div>
 

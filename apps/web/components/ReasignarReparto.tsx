@@ -187,7 +187,7 @@ function ReasignarRepartoModal({
             className="space-y-5"
           >
             <p className="text-sm leading-relaxed text-tinta/70">
-              Úsalo cuando la mercadería llegó a una tienda distinta de la que decía el comprobante, o se repartió mal al registrarlo. Solo se mueve lo que <b className="font-semibold">aún no se recibió</b>.
+              Para mercadería que llegó a otra tienda o se repartió mal. Solo se mueve lo que <b className="font-semibold">aún no se recibió</b>.
             </p>
 
             <div className="space-y-5" data-guia="reasignar-modal.tiendas">
@@ -244,7 +244,7 @@ function ReasignarRepartoModal({
               </div>
               {/* El efecto, antes de confirmar: cómo queda lo que le toca a cada tienda. */}
               {cantidadOk && haciaId && (
-                <p className="mt-2 text-xs tabular-nums text-tinta/70" aria-live="polite">
+                <p className="mt-2 text-sm tabular-nums text-tinta/70" aria-live="polite">
                   {nombreDe(desdeId)}: {origen?.asignado} → <b className="font-semibold text-tinta">{(origen?.asignado ?? 0) - n}</b> · {nombreDe(haciaId)}: {destino?.asignado ?? 0} →{" "}
                   <b className="font-semibold text-tinta">{(destino?.asignado ?? 0) + n}</b>
                 </p>
@@ -273,8 +273,8 @@ function ReasignarRepartoModal({
               />
             </div>
 
-            <p className="text-xs leading-relaxed text-tinta/60">
-              No se borra nada: queda un registro en el historial del comprobante con quién lo movió, cuánto y por qué. Lo que una tienda ya recibió no se toca.
+            <p className="text-sm leading-relaxed text-tinta/60">
+              Queda en el historial del comprobante: quién lo movió, cuánto y por qué.
             </p>
 
             <div className="space-y-5" data-guia="reasignar-modal.pie">

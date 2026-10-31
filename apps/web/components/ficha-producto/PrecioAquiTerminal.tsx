@@ -52,7 +52,7 @@ export function PrecioAquiTerminal({
       )}
       {detalle()}
       {/* La frase del bloque de antes, que Felipe pidió conservar (2026-10-27): deja claro que el cambio es SOLO de esta tienda. */}
-      <p className="flex items-center gap-2 text-[12.5px] text-tinta/70">
+      <p className="flex items-center gap-2 text-sm text-tinta/70">
         <Store aria-hidden className="h-3.5 w-3.5 shrink-0 text-taupe" />
         Este precio solo vale en {sede}: las otras tiendas no cambian.
       </p>
@@ -63,7 +63,7 @@ export function PrecioAquiTerminal({
     if (cambio.que === "poner") {
       return (
         <div className="max-w-xl space-y-2">
-          <p className="text-[12.5px] text-tinta/70">
+          <p className="text-sm text-tinta/70">
             {corto} pasa a vender toda la prenda a {soles(cambio.precio)}.
           </p>
           {/* Lo que la base rechazaría (bajo el costo, sobre el tope): se dice aquí mismo, antes de «Revisar y guardar». */}
@@ -78,7 +78,7 @@ export function PrecioAquiTerminal({
 
     if (cambio.que === "quitar") {
       return (
-        <p className="text-[12.5px] text-tinta/70">
+        <p className="text-sm text-tinta/70">
           {corto} vuelve al precio de la prenda ({soles(cambio.general)}) y deja de tener precio propio.
         </p>
       );
@@ -87,7 +87,7 @@ export function PrecioAquiTerminal({
     if (!propio) return null;
     const bajoCosto = quedaBajoElCosto(propio.precio, costoMaximo);
     return (
-      <div className="space-y-1 text-[12.5px] text-tinta/70">
+      <div className="space-y-1 text-sm text-tinta/70">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <Chip tono="ambar">Precio propio</Chip>
           <span>

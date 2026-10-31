@@ -484,7 +484,7 @@ export function CambiosFlujo({
                       <span className={`min-w-0 flex-1 ${estado.cambiable ? "" : "opacity-60"}`}>
                         <span className="block text-[15px] font-semibold text-tinta">{l.referencia}</span>
                         <span className="block text-sm text-tinta/75">{varianteLegible(l)}</span>
-                        <span className="mt-0.5 block text-xs text-tinta/70">
+                        <span className="mt-0.5 block text-sm text-tinta/70">
                           <span className="font-mono">{codigoPrenda(l)}</span> · {soles(pagadoPorUnidad(l))}
                         </span>
                       </span>

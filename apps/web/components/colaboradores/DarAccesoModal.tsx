@@ -140,7 +140,7 @@ export function DarAccesoModal({
                         <AvatarPersona personaId={d.persona_id} nombre={d.nombre} />
                         <span className="min-w-0">
                           <span className="block truncate text-[14px] font-semibold text-tinta">{d.nombre}</span>
-                          <span className="block truncate text-xs text-tinta/60">{[d.sede, d.correo].filter(Boolean).join(" · ")}</span>
+                          <span className="block truncate text-sm text-tinta/60">{[d.sede, d.correo].filter(Boolean).join(" · ")}</span>
                         </span>
                         <span className={`grid h-6 w-6 place-items-center rounded-full ${marcada ? "bg-tinta text-crema" : "border-2 border-sand text-transparent"}`}>
                           <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
@@ -184,7 +184,7 @@ export function DarAccesoModal({
                       </Chip>
                     ))}
                   {rol.modulos.filter((m) => m !== "inicio").length > 6 && <Chip tono="apagado" tachado={false} versalitas={false}>+{rol.modulos.filter((m) => m !== "inicio").length - 6}</Chip>}
-                  {rol.modulos.filter((m) => m !== "inicio").length === 0 && <span className="text-xs text-tinta/60">Solo Inicio</span>}
+                  {rol.modulos.filter((m) => m !== "inicio").length === 0 && <span className="text-sm text-tinta/60">Solo Inicio</span>}
                 </p>
               )}
             </CampoGuiado>

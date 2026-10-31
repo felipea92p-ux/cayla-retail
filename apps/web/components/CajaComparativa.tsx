@@ -7,6 +7,7 @@ import { Linea } from "@/components/ui/Linea";
 import { useCountUp } from "@/lib/useCountUp";
 import { Wallet } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import {
   curvaAcumulada,
   horaTexto,
@@ -53,7 +54,7 @@ export function VeredictoCaja({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierreMi
         <p className="cmp-sobre">Hoy contra ayer · a las {horaTexto(ahoraMin)}</p>
         <h2 className="cmp-frase">
           {v.ayerDia === 0 ? (
-            <>Ayer no hubo ventas con las que compararte</>
+            <>Ayer no hubo ventas para comparar</>
           ) : v.superado ? (
             <>
               Ya <em>superaste</em> lo que vendiste ayer
@@ -100,20 +101,20 @@ export function ClientesYTicket({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierre
   const tpAyer = v.ticketsAyerAEstaHora > 0 ? v.ayerAEstaHora / v.ticketsAyerAEstaHora : 0;
   return (
     <div data-guia="caja.ventas-hechas" className="card-cayla anim-sube p-5" style={{ "--i": 2 } as CSSProperties}>
-      <p className="text-sm font-bold text-tinta">Ventas hechas</p>
-      <p className="text-xs text-tinta/50">Hoy, comparado con ayer a esta misma hora</p>
+      <TituloSeccion nivel={3}>Ventas hechas</TituloSeccion>
+      <p className="texto-bajada">Hoy contra ayer a esta hora</p>
       <div className="mt-3 grid grid-cols-2 gap-4">
         <div>
           <p className="label-cayla text-[10.5px] text-tinta/50">Número de ventas</p>
           <p className="font-display text-[34px] leading-tight tabular-nums text-tinta"><Cuenta valor={v.ticketsHoy} formato={(n) => String(Math.round(n))} /></p>
           <Delta a={v.ticketsHoy} b={v.ticketsAyerAEstaHora} />
-          <p className="mt-1 text-[12.5px] text-tinta/65">ayer a esta hora: {v.ticketsAyerAEstaHora}</p>
+          <p className="texto-detalle mt-1">Ayer: {v.ticketsAyerAEstaHora}</p>
         </div>
         <div>
           <p className="label-cayla text-[10.5px] text-tinta/50">Cuánto vale cada venta</p>
           <p className="font-display text-[34px] leading-tight tabular-nums text-tinta"><Cuenta valor={v.ticketPromedio} formato={soles} /></p>
           <Delta a={v.ticketPromedio} b={tpAyer} />
-          <p className="mt-1 text-[12.5px] text-tinta/65">ayer a esta hora: {soles(tpAyer)}</p>
+          <p className="texto-detalle mt-1">Ayer: {soles(tpAyer)}</p>
         </div>
       </div>
     </div>
@@ -142,8 +143,7 @@ export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) 
 
   return (
     <div data-guia="caja.acumulada" className="card-cayla anim-sube p-5" style={{ "--i": 4 } as CSSProperties}>
-      <p className="text-sm font-bold text-tinta">Venta acumulada del día</p>
-      <p className="text-xs text-tinta/50">Pasa el mouse por la línea: cada hora te dice cuánto ganas o pierdes</p>
+      <TituloSeccion nivel={3}>Venta acumulada del día</TituloSeccion>
       <Linea
         className="mt-2"
         serie={lineaHoy}
@@ -171,7 +171,7 @@ export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) 
         alto={240}
         etiqueta="Venta acumulada por hora, hoy contra ayer"
       />
-      <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-tinta/65">
+      <p className="texto-detalle mt-2 flex flex-wrap gap-x-4 gap-y-1">
         <span><i className="cmp-leyenda" style={{ borderColor: "var(--color-tinta)" }} />Hoy, hasta ahora</span>
         <span><i className="cmp-leyenda cmp-leyenda-raya" style={{ borderColor: "var(--color-taupe)" }} />Ayer, día completo</span>
       </p>
@@ -190,25 +190,24 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
   }, []);
   return (
     <div data-guia="caja.como-pagaron" className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
-      <p className="text-sm font-bold text-tinta">Cómo te pagaron</p>
-      <p className="text-xs text-tinta/50">Lo que cobraste hoy por cada medio, y lo que cobraste ayer en todo el día</p>
+      <TituloSeccion nivel={3} ayuda="La barra de color es hoy; la marca negra, dónde terminó ayer ese medio.">Cómo te pagaron</TituloSeccion>
+      <p className="texto-bajada">Cada medio: hoy contra todo ayer</p>
       {filas.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Wallet />}>Sin ventas todavía.</Vacio>
       ) : (
         <div className="mt-2">
           {filas.map((f, i) => (
             <div key={f.metodo} className="cmp-metodo">
-              <span className="inline-flex items-center gap-1.5 text-[13px]"><i className="h-2 w-2 rounded-full" style={{ background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)" }} />{NOMBRE_METODO[f.metodo] ?? f.metodo}</span>
+              <span className="inline-flex items-center gap-1.5 text-[15px]"><i className="h-2 w-2 rounded-full" style={{ background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)" }} />{NOMBRE_METODO[f.metodo] ?? f.metodo}</span>
               <span className="cmp-carril">
                 <span className="cmp-carril-barra" style={{ width: dentro ? `${(f.hoy / mx) * 100}%` : 0, background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)", transitionDelay: `${i * 70}ms` }} />
                 <span className="cmp-carril-marca" style={{ left: `${(f.ayerDia / mx) * 100}%` }} title="Dónde terminó ayer este medio" />
               </span>
-              <span className="text-right text-[13px] tabular-nums"><b>{soles(f.hoy)}</b><br /><span className="text-[11.5px] text-tinta/60">ayer {soles(f.ayerDia)}</span></span>
+              <span className="text-right text-[15px] tabular-nums"><b>{soles(f.hoy)}</b><br /><span className="texto-detalle">ayer {soles(f.ayerDia)}</span></span>
             </div>
           ))}
         </div>
       )}
-      <p className="mt-2 text-xs text-tinta/65">La barra de color es hoy. La marca negra es dónde terminó ayer ese medio.</p>
     </div>
   );
 }
@@ -220,9 +219,14 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
   const rotulo = (f: HoraComparada) => (f.enCurso ? `${f.hora}:00–${horaTexto(ahoraMin)}` : `${f.hora}–${f.hora + 1}h`);
   return (
     <div data-guia="caja.donde-ganas" className="card-cayla anim-sube p-5" style={{ "--i": 6 } as CSSProperties}>
-      <p className="text-sm font-bold text-tinta">Dónde ganas y dónde pierdes</p>
-      <p className="text-xs text-tinta/65">Cada barra es una hora: lo que vendiste hoy en ella, menos lo que vendiste ayer en esa misma hora</p>
-      <p className="mt-2 flex flex-wrap gap-x-4 text-xs font-semibold"><span className="text-verde-profundo">▲ Hacia arriba: vendiste más que ayer</span><span className="text-ambar">▼ Hacia abajo: vendiste menos que ayer</span></p>
+      <TituloSeccion
+        nivel={3}
+        ayuda="Cada barra es una hora: lo vendido hoy menos lo vendido ayer a esa misma hora. La barra rayada es la hora en curso: se compara hasta el mismo minuto de ayer."
+      >
+        Dónde ganas y dónde pierdes
+      </TituloSeccion>
+      <p className="texto-bajada">Hora por hora, contra ayer</p>
+      <p className="texto-detalle mt-2 flex flex-wrap gap-x-4 font-semibold"><span className="text-verde-profundo">▲ Más que ayer</span><span className="text-ambar">▼ Menos que ayer</span></p>
       {/* Las barras por tiempo del sistema (ronda 14): hacia arriba en verde lo que vendiste de más, hacia abajo en ámbar lo de menos. */}
       <BarrasTiempo
         className="mt-4"
@@ -240,10 +244,16 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
         }))}
         etiqueta="Dónde ganas y dónde pierdes: cada hora de hoy menos la misma hora de ayer"
       />
-      <p className="mt-3 text-xs text-tinta/65"><b>La barra rayada es la hora que aún no termina:</b> se compara solo hasta los mismos minutos de ayer.</p>
-      <p className="mt-3 rounded-xl bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">
-        {mejor ? <>Tu mejor hora fue la de las <b>{mejor.hora}:00</b> (+{soles(mejor.diferencia)}). </> : <>Todavía no superas a ayer en ninguna hora. </>}
-        {peor ? <>La más floja, las <b>{peor.hora}:00</b> (−{soles(-peor.diferencia)}).</> : <>No has cedido terreno en ninguna hora.</>}
+      {/* El veredicto en una frase (ronda 19): sin mejor ni peor hora es una sola idea, no dos frases que se niegan. */}
+      <p className="mt-3 rounded-xl bg-hueso px-3.5 py-3 text-[15px] text-tinta">
+        {!mejor && !peor ? (
+          <>Ninguna hora mejor ni peor que ayer.</>
+        ) : (
+          <>
+            {mejor ? <>Tu mejor hora: las <b>{mejor.hora}:00</b> (+{soles(mejor.diferencia)}). </> : <>Aún ninguna hora supera a ayer. </>}
+            {peor ? <>La más floja: las <b>{peor.hora}:00</b> (−{soles(-peor.diferencia)}).</> : <>Ninguna por debajo de ayer.</>}
+          </>
+        )}
       </p>
     </div>
   );

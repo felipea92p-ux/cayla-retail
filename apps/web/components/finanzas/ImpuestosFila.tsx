@@ -95,7 +95,7 @@ export function LimiteAnio({ limite, panel, guia }: { limite: LimiteImpuestos; p
           <span style={{ left: `${limite.avisoPct}%` }}>Aviso{limite.avisoUit !== null ? ` · ${limite.avisoUit.toLocaleString("es-PE")} UIT` : ""}</span>
         </div>
       )}
-      <p className="text-[13.5px] text-tinta">
+      <p className="text-[15px] text-tinta">
         {limite.frase} <span className="fin-tenue">Tope: {solesRedondo(limite.umbralSoles)}.</span>
       </p>
       {aviso.titulo && (aviso.nivel === "aviso" || aviso.nivel === "cruzado") && (
@@ -103,7 +103,7 @@ export function LimiteAnio({ limite, panel, guia }: { limite: LimiteImpuestos; p
           {aviso.detalle}
         </Aviso>
       )}
-      <p className="fin-tenue mt-2 text-[12px]">
+      <p className="fin-tenue mt-2 text-sm">
         Sin IGV, solo lo registrado en el sistema, de enero a hoy. UIT (la medida de SUNAT) {limite.uit.anio}: {solesRedondo(limite.uit.valor)}
         {limite.uit.provisional ? " (por confirmar)" : ""}.
         {aviso.ajuste > 0 && ` Incluye ${solesRedondo(aviso.ajuste)} de ajuste (${solesRedondo(aviso.ventasSistema)} en el sistema).`}
@@ -118,7 +118,7 @@ export function MesesImpuestos({ barras, destacada, onElegir, guia }: { barras: 
     <Superficie pad className="anim-sube" guia={guia}>
       <div className="fin-imp-cab">
         <h3 className="fin-imp-titulo">IGV a pagar de cada mes</h3>
-        {barras.some((b) => b.tono === "verde") && <span className="fin-tenue text-[12px]">verde: quedó a favor</span>}
+        {barras.some((b) => b.tono === "verde") && <span className="fin-tenue text-sm">verde: quedó a favor</span>}
       </div>
       <BarrasTiempo
         barras={barras}

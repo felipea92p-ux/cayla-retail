@@ -103,7 +103,7 @@ export function ServiciosYTarifas({
               </Boton>
             }
           >
-            Para ponerle precio a quien corta, cose, borda o lava fuera del Taller, primero agrégalo en Proveedores como «Servicio de afuera».
+            Primero agrégalo en Proveedores como «Servicio de afuera».
           </Vacio>
         </div>
       ) : (
@@ -112,7 +112,7 @@ export function ServiciosYTarifas({
           {filas.flatMap((s) =>
             s.tarifas.length === 0
               ? [
-                  <div key={s.proveedorId} role="row" className={fila(PLANTILLA, "text-[13px]")}>
+                  <div key={s.proveedorId} role="row" className={fila(PLANTILLA, "text-sm")}>
                     <span className={celda("izq", "text-tinta")} title={s.nombre}>{s.nombre}</span>
                     <span className="col-span-full @min-[1056px]:col-span-5">
                       <Chip tono="ambar">Sin tarifa</Chip>
@@ -125,7 +125,7 @@ export function ServiciosYTarifas({
                   </div>,
                 ]
               : s.tarifas.map((t, i) => (
-                  <div key={`${t.proveedorId}-${t.fase}`} role="row" className={fila(PLANTILLA, "text-[13px]")}>
+                  <div key={`${t.proveedorId}-${t.fase}`} role="row" className={fila(PLANTILLA, "text-sm")}>
                     {/* Ancho: el nombre va solo en la primera fase del servicio (las demás lo traen para el lector). Apilada, cada fila lleva su nombre: ya no hay una columna que lo sostenga. */}
                     <span className={celda("izq", "text-tinta")} title={s.nombre}>
                       <span className={i === 0 ? undefined : "@min-[1056px]:sr-only"}>{s.nombre}</span>

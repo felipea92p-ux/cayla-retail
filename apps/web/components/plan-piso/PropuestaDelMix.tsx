@@ -59,7 +59,7 @@ const pct = pctEs;
 function Dato({ etiqueta, children, apagado = false }: { etiqueta: string; children: React.ReactNode; apagado?: boolean }) {
   return (
     <div className={celda("der", apagado ? "text-taupe" : "")}>
-      <span className="mr-2 text-xs text-taupe sm:hidden">{etiqueta}</span>
+      <span className="mr-2 text-sm text-taupe sm:hidden">{etiqueta}</span>
       {children}
     </div>
   );
@@ -88,7 +88,7 @@ function FilaGrupo({ f, indice, cuadrado, capacidad }: { f: FilaDelRiel; indice:
             {/* Sin cuadrar, la lectura es la MISMA frase en las seis filas («Por cuadrar: sin saber lo que cuelga…») y la nota al pie de la tabla ya la dice una vez: solo se repite
                 por fila cuando dice algo distinto en cada una (la sede cuadrada: «Faltan 12», «Dentro de lo esperado»). */}
             {lectura && cuadrado && (
-              <p className="mt-1 flex items-start gap-1.5 text-xs text-tinta/75">
+              <p className="mt-1 flex items-start gap-1.5 text-sm text-tinta/75">
                 <span aria-hidden className={`mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO_LECTURA[lectura.tono]}`} />
                 <span>{lectura.texto}</span>
               </p>
@@ -108,7 +108,7 @@ function FilaGrupo({ f, indice, cuadrado, capacidad }: { f: FilaDelRiel; indice:
         ) : (
           <span>
             {pct(f.ventaPct)}
-            <span className="block text-xs text-taupe">
+            <span className="block text-sm text-taupe">
               {f.rangoDeVenta !== null && `entre ${n(f.rangoDeVenta.desde)} y ${n(f.rangoDeVenta.hasta)} · `}
               {f.ventasConfirmadas} {f.ventasConfirmadas === 1 ? "venta" : "ventas"}
             </span>
@@ -231,7 +231,7 @@ export function PropuestaDelMix({
       {p.motivoSinPropuesta && (
         <div className="card-cayla p-5" role="status">
           <p className="text-sm font-semibold text-tinta">No hay propuesta para esta sede.</p>
-          <p className="mt-1 text-[13px] text-tinta/70">{p.motivoSinPropuesta}</p>
+          <p className="mt-1 text-sm text-tinta/70">{p.motivoSinPropuesta}</p>
         </div>
       )}
 
@@ -321,8 +321,8 @@ export function PropuestaDelMix({
       <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Propuesta del mix en el riel" data-guia="plan-piso.tabla">
         <div className="border-b border-sand px-5 py-4">
           <TituloSeccion nivel={3}>Lugar de cada grupo en el riel</TituloSeccion>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-tinta/70">
-            La propuesta mezcla el punto de partida con lo que vendió la sede. Aquí no se guarda nada: es para mirarla y compararla con lo que cuelga.
+          <p className="mt-0.5 max-w-2xl text-sm text-tinta/70">
+            Mezcla el punto de partida con lo que vendió la sede, para compararla con lo que cuelga.
           </p>
         </div>
         {/* La tabla se desplaza dentro de su tarjeta (como `Tabla`, ADR-0169) y tiene un ancho mínimo: las columnas fijas suman 38 rem y con las separaciones (5 × 1 rem) y el
@@ -338,7 +338,7 @@ export function PropuestaDelMix({
               <div className={fila(PLANTILLA, "sm:items-center bg-hueso/60")}>
                 <div className={celda("izq", "text-sm text-tinta")}>
                   Sin grupo
-                  <span className="ml-2 text-xs text-taupe">
+                  <span className="ml-2 text-sm text-taupe">
                     {p.sinGrupo.categorias} {p.sinGrupo.categorias === 1 ? "categoría" : "categorías"}: no entra al reparto
                   </span>
                 </div>
@@ -365,7 +365,7 @@ export function PropuestaDelMix({
         </div>
         {!p.cuadrado && (
           <p className={`${TABLA.pie} border-t border-sand`} role="note">
-            <Chip tono="ambar">Por cuadrar</Chip> <span className="ml-2">Esta sede todavía no cuadró su piso: «Hoy» y la diferencia salen apagados porque el sistema puede tener como guardadas prendas que ya cuelgan.</span>
+            <Chip tono="ambar">Por cuadrar</Chip> <span className="ml-2">Sin cuadrar el piso, «Hoy» y la diferencia salen apagados.</span>
           </p>
         )}
       </section>

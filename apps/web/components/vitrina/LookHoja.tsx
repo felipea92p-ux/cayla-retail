@@ -217,7 +217,7 @@ export function LookHoja({
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
             {/* Lo que lleva el look, en el orden de la lámina: se queda a la vista mientras se recorre la grilla. */}
             <div className="space-y-2.5 lg:sticky lg:top-0" data-guia="look.prendas">
-              <p className="text-[13px] text-taupe">De 2 a 4 prendas que se vean bien juntas. Salen en este orden en la lámina.</p>
+              <p className="text-sm text-taupe">De 2 a 4 prendas que se vean bien juntas. Salen en este orden en la lámina.</p>
               {piezas.length > 0 && (
               <ol className="divide-y divide-sand rounded-xl border border-sand bg-papel">
                 {piezas.map((p, i) => {
@@ -257,7 +257,7 @@ export function LookHoja({
                             className="max-w-[16rem]"
                           />
                         ) : (
-                          <span className="block text-[12px] text-taupe">{color?.nombre ?? antes?.color.nombre ?? p.color}</span>
+                          <span className="block text-sm text-taupe">{color?.nombre ?? antes?.color.nombre ?? p.color}</span>
                         )}
                       </span>
                       <button
@@ -288,7 +288,7 @@ export function LookHoja({
                 </div>
               )}
               {Array.from({ length: Math.max(0, MIN_PRENDAS_LOOK - piezas.length) }, (_, k) => (
-                <div key={`falta-${k}`} className="grid h-[4.75rem] place-items-center rounded-xl border border-dashed border-borde-control px-3 text-center text-[13px] text-taupe">
+                <div key={`falta-${k}`} className="grid h-[4.75rem] place-items-center rounded-xl border border-dashed border-borde-control px-3 text-center text-sm text-taupe">
                   {`Elige la prenda ${piezas.length + k + 1} en la grilla`}
                 </div>
               ))}
@@ -379,7 +379,7 @@ function IdeasDelLook({
   if (visibles.length === 0) return null;
   return (
     <div className="mt-2 space-y-1.5">
-      <p className="text-[12px] text-taupe">{titulo}</p>
+      <p className="text-sm text-taupe">{titulo}</p>
       <div className="flex flex-wrap items-center gap-1.5">
         {visibles.map((i) => (
           <button key={i} type="button" disabled={deshabilitado} onClick={() => onElegir(i)} className="btn-cayla btn-sutil btn-chico h-auto whitespace-normal py-1.5 text-left">

@@ -2,20 +2,22 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getAlertasPos, getCierresConDiferencia, getContextoDinero, getEfectivo, getMediosDeCobro, getMovimientos, getPlanillaCuentas, getPlanillaPorRegistrar, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { avisosDePlanilla } from "@/lib/planilla-salidas-reglas";
-import { CuentasPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
-import { DineroPulso } from "@/components/finanzas/DineroPulso";
+import { CuentasPanel, MovimientosEnPantalla, PantallaDinero } from "@/components/finanzas/CuentasDinero";
+import { AlcanzaDinero } from "@/components/finanzas/dinero/AlcanzaDinero";
 import { alcanzaPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
 import { getProyeccion } from "@/lib/flujo-caja";
 import { verDeLaVista } from "@/lib/vista-global";
-import { explicacionCuenta, type EfectivoFila } from "@/lib/cuentas-dinero-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, cuentasDelAlcance, detalleCajon, gruposDelAlcance, movimientosDeLaEmpresa, orilloDeDinero, preguntaDeDinero, gruposDeDinero } from "@/lib/dinero-telar-reglas";
+import { deudaConDueno, explicacionCuenta, type EfectivoFila } from "@/lib/cuentas-dinero-reglas";
+import { avisoCajaFuerte, avisoCajon, chipsDondeEsta, cuentasDelAlcance, detalleCajon, gruposDelAlcance, movimientosDeLaEmpresa, orilloDeDinero, preguntaDeDinero, gruposDeDinero } from "@/lib/dinero-telar-reglas";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
 import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { GruposDeCuentas } from "@/components/finanzas/dinero/GruposDeCuentas";
-import { RepartoDeDinero } from "@/components/finanzas/dinero/RepartoDeDinero";
-import { repartoDeDinero, textosDelReparto } from "@/lib/dinero-reparto-reglas";
-import { CierresConDiferencia } from "@/components/finanzas/dinero/CierresConDiferencia";
+import { PanoramaDinero } from "@/components/finanzas/dinero/PanoramaDinero";
+import { PlataDelDueno } from "@/components/finanzas/dinero/PlataDelDueno";
+import { CobrosDinero } from "@/components/finanzas/dinero/CobrosDinero";
+import { filasDeCobros, movimientosDelDueno } from "@/lib/dinero-dueno-cobros-reglas";
+import { CampanaDinero } from "@/components/finanzas/dinero/CampanaDinero";
+import { contadorDeCampana, filasDeCierres, filasDeEstado, itemsDeAtencion, porRegistrar } from "@/lib/dinero-estados-reglas";
 import { getCuentaClaure } from "@/lib/cuenta-claure";
 import { chipsDisponible, resumenClaure } from "@/lib/cuenta-claure-reglas";
 
@@ -64,11 +66,19 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   const grupos = gruposDeDinero(ctx.cuentas.datos, ctx.ubicaciones, alcance, hoy, {
     explicar: (c) =>
       (c.tipo === "cajon" ? detalleCajon(efectivo.datos.find((f) => f.ubicacionId === c.ubicacionId), esTaller(c)) : null) ?? explicacionCuenta(c, medios.datos, esTaller(c)),
-    avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy),
+    // La caja fuerte sin depositar y, en el cajón, si la caja está abierta o cerrada (la campana y las filas lo muestran como estado).
+    avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy) ?? avisoCajon(c, efectivo.datos, esTaller(c)),
   });
 
-  // El resumen de arriba (un círculo con la plata de lo que se mira, partido por cuenta): está con todas las sedes, con una sola y con la empresa, también si tiene una cuenta con plata o ninguna.
-  const reparto = repartoDeDinero(grupos);
+  // La campana «Estado de las cuentas»: los mismos datos de la pantalla, ordenados por lo que pide mirada (lib/dinero-estados-reglas.ts).
+  const atrasadas = new Set(alertas.filter((a) => a.atrasados > 0).map((a) => a.cuentaId));
+  const filasEstado = filasDeEstado(grupos, atrasadas);
+  const filasCierres = filasDeCierres(cierres);
+  const avisosPlanilla = avisosDePlanilla(planilla, cuentasPlanilla ?? []);
+  const pendientes = porRegistrar(alertas, avisosPlanilla);
+  const contador = contadorDeCampana(filasEstado, filasCierres, pendientes);
+  const itemsAtencion = itemsDeAtencion(filasEstado, filasCierres, pendientes, ctx.esLider, ctx.esLider && !sedeId ? deudaConDueno(ctx.plata) : null);
+  const movimientosVisibles = deLaEmpresa ? movimientosDeLaEmpresa(movimientos.datos, ctx.cuentas.datos) : movimientos.datos;
 
   const sede = sedeDeLaCabecera(ctx.ver, ctx.ubicaciones);
   // «¿Cuánta plata tiene la empresa hoy?», como lo dice Gastos; «tienes» solo cuando se mira todo.
@@ -92,26 +102,30 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       deuda={ctx.deuda}
       hoy={hoy}
       fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, efectivo.falla].filter((f): f is string => !!f)}
+      panorama
+      campana={<CampanaDinero filas={filasEstado} cierres={filasCierres} pendientes={pendientes} planilla={avisosPlanilla} cuentas={ctx.cuentas.datos} contador={contador} esLider={ctx.esLider} />}
     >
-      <DineroPulso
-        alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado)}
-        deCaylaEntera={!!sedeId}
-        grupos={
-          <>
-            {reparto && <RepartoDeDinero reparto={reparto} textos={textosDelReparto(sedeId ? sede : null, deLaEmpresa)} />}
-            <GruposDeCuentas grupos={grupos} />
-            <CierresConDiferencia cierres={cierres} />
-          </>
-        }
-      />
-      <CuentasPanel
+      <PanoramaDinero
+        titulo={quien ? `Tiene ${quien}` : "Tienes en total"}
+        total={ctx.cuentas.falla ? null : tienes.total}
+        tarjeta={tienes.tarjeta}
+        notas={[
+          ...(claure && !claure.falla ? chipsDisponible(tienes.total, resumenClaure(claure.datos.filas, claure.datos.pagos, claure.datos.gastos).saldo) : []),
+          ...(tienes.ocultas ? [{ texto: "El cajón abierto lo ve quien cierra la caja", tono: "apagado" as const }] : []),
+        ]}
+        filas={filasEstado}
         cuentas={ctx.cuentas.datos}
-        movimientos={deLaEmpresa ? movimientosDeLaEmpresa(movimientos.datos, ctx.cuentas.datos) : movimientos.datos}
-        medios={medios.datos}
-        plata={ctx.plata}
+        movimientos={movimientosVisibles}
+        hoy={hoy}
+        items={itemsAtencion}
+        alcanza={<AlcanzaDinero alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado)} deCaylaEntera={!!sedeId} />}
+        ultimos={<MovimientosEnPantalla movimientos={movimientosVisibles} hoy={hoy} />}
+      />
+      {/* Solo el líder y con todas las sedes: lo del dueño es de CAYLA entera, y a qué cuenta entra cada cobro se explica sede por sede (no la empresa). */}
+      {ctx.esLider && !sedeId && <PlataDelDueno deuda={ctx.deuda} prestamos={deudaConDueno(ctx.plata).prestamos} movimientos={movimientosDelDueno(movimientosVisibles)} />}
+      {ctx.esLider && !sedeId && !deLaEmpresa && <CobrosDinero filas={filasDeCobros(medios.datos, ctx.cuentas.datos)} />}
+      <CuentasPanel
         sinCuenta={sinCuenta}
-        alertas={alertas}
-        planilla={avisosDePlanilla(planilla, cuentasPlanilla ?? [])}
         ver={ctx.ver}
         esLider={ctx.esLider}
       />

@@ -41,7 +41,7 @@ export function ConfiguracionCargaInicial({ lectura, esLider, esAdmin }: { lectu
     <Superficie className="anim-sube" guia="config.carga-inicial">
       <TituloDeTarjeta
         titulo="Carga inicial de cada sede"
-        bajada="Hasta qué día cada sede carga, sin comprobante, lo que ya tenía al pasar al sistema. Pasada esa fecha, lo que aparezca entra por «Encontré prendas» (Existencias ▸ Ajustar), con su nota."
+        bajada="Hasta qué día cada sede carga lo que ya tenía, sin comprobante. Después, lo que aparezca entra por «Encontré prendas»."
       />
       <div className="fin-tabla-wrap">
         <table className="fin-tabla fin-tabla-apretada">
@@ -171,7 +171,7 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
   return (
     <Modal variante="hoja" titulo="Cierre de la carga inicial" subtitulo={sede.nombre} onClose={onClose} bloqueado={enviando}>
       <form onSubmit={guardar} className="space-y-4" noValidate>
-        <p className="text-[13px] text-taupe">{aviso ?? `${sede.nombre} todavía no tiene fecha: la carga inicial sigue abierta.`}</p>
+        <p className="text-sm text-taupe">{aviso ?? `${sede.nombre} todavía no tiene fecha: la carga inicial sigue abierta.`}</p>
 
         <CampoGuiado id="fecha" guia={guia}>
           <CampoFin
@@ -207,7 +207,7 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
           )}
         </CampoGuiado>
 
-        <div className="min-h-[1rem] text-xs text-rojo-profundo" role="alert">
+        <div className="min-h-[1rem] text-sm text-rojo-profundo" role="alert">
           {error}
         </div>
 

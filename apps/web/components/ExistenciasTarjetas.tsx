@@ -148,7 +148,7 @@ function ColumnasTallas({
               {c.estado === "agotada" ? "—" : c.piso}
             </span>
             {separa && (
-              <span className={`truncate whitespace-nowrap text-[12px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
+              <span className={`truncate whitespace-nowrap text-sm tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
                 {c.estado === "normal" && !linea.cero ? (
                   <>
                     <b className="font-bold text-tinta">{numero}</b>
@@ -407,14 +407,14 @@ export function ExistenciasTarjetas({
                   <span className="flex shrink-0 flex-col items-end">
                     <span className="font-display text-[15px] tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
                     {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
-                    {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
+                    {p.precioDeSede && <span className="whitespace-nowrap text-sm font-semibold text-ambar-profundo">Precio de esta tienda</span>}
                   </span>
                 )}
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
                 {/* Solo el color que se ve: las cifras de la tira son de él, y los otros colores ya están en los puntos de la foto. «Beige · 2
                     colores» hacía dudar de qué color era el número (Formidable 2026-10-31, prueba ciega). */}
-                <span className="min-w-0 truncate text-xs font-semibold text-tinta">{p.color ?? "Sin color"}</span>
+                <span className="min-w-0 truncate text-sm font-semibold text-tinta">{p.color ?? "Sin color"}</span>
                 {p.danado > 0 && <Chip tono="rojo" className="shrink-0">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</Chip>}
                 {p.apartado > 0 && <Chip tono="pizarra" className="shrink-0">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</Chip>}
               </div>
@@ -425,7 +425,7 @@ export function ExistenciasTarjetas({
                 <ColumnasTallas tallas={tallasVista} separa={separa} marcaDe={marcaDe} marcaDelFiltro={marcaDelFiltro} onTalla={alTocarTalla} />
                 {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
                 {recortada && (
-                  <p className="text-[11px] leading-snug text-taupe" title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla o el texto buscado para ver todas.">
+                  <p className="text-sm leading-snug text-taupe" title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla o el texto buscado para ver todas.">
                     {recortada}
                   </p>
                 )}

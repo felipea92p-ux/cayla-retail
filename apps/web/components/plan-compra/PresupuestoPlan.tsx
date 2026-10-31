@@ -201,7 +201,7 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis, puedeVerCompras 
           accion={{ texto: cifras.tope === null ? "Poner un tope" : "Editar el tope", onClick: () => setEditandoTope(true) }}
         >
           {cifras.pasa === null
-            ? "Ponle uno para ver si el plan cabe"
+            ? null
             : pasaDelTope
               ? `Te pasas ${solesEnterosES(cifras.pasa)}${cifras.pasaPct !== null ? ` (${cifras.pasaPct} %)` : ""}`
               : `Te quedan ${solesEnterosES(-cifras.pasa)} para comprar`}
@@ -215,9 +215,7 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis, puedeVerCompras 
               Sale de tus tres escenarios: es una estimación, no una promesa.
             </Ayuda>
           }
-        >
-          Con lo que compras, después de lo que sobra
-        </TarjetaCifra>
+        />
         {cifras.porSol === null ? (
           <TarjetaCifra etiqueta={"Por cada S/\u00a01 que compras"} valor={null}>
             Todavía no hay nada por comprar
@@ -260,7 +258,7 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis, puedeVerCompras 
           </section>
 
           <section>
-            <TituloSeccion dato="el sistema ajusta cuánta seguridad quiere en cada categoría" className="mb-3">
+            <TituloSeccion ayuda="El sistema ajusta cuánta seguridad quiere en cada categoría." className="mb-3">
               Plan con tu tope
             </TituloSeccion>
             <PlanConTope key={`${plan.plan.id}|${plan.tope.valor ?? "sin"}|${precioGuardado}`} lineas={lineas} precioGuardado={precioGuardado} topeGuardado={plan.tope.valor} hrefPlan={hrefPlan} onUsar={versiones ? usarElPlanConTope : undefined} />
@@ -290,21 +288,21 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis, puedeVerCompras 
                       )}
                     </span>
                     <span className={celda("der")}>
-                      <span className="text-xs text-taupe sm:hidden">Comprar </span>
+                      <span className="text-sm text-taupe sm:hidden">Comprar </span>
                       {f.comprar ? enteroES.format(f.comprar) : "—"}
                     </span>
                     <span className={celda("der")}>
-                      <span className="text-xs text-taupe sm:hidden">Costo por prenda </span>
+                      <span className="text-sm text-taupe sm:hidden">Costo por prenda </span>
                       {solesES(f.costo)}
                     </span>
                     <span className={celda("der")}>
-                      <span className="text-xs text-taupe sm:hidden">Inversión </span>
+                      <span className="text-sm text-taupe sm:hidden">Inversión </span>
                       {f.inversion ? solesEnterosES(f.inversion) : "—"}
-                      {f.pctDelTotal !== null && f.inversion ? <span className="block text-xs text-taupe @min-[760px]:hidden">{f.pctDelTotal} % del total</span> : null}
+                      {f.pctDelTotal !== null && f.inversion ? <span className="block text-sm text-taupe @min-[760px]:hidden">{f.pctDelTotal} % del total</span> : null}
                     </span>
                     <span className={celda("der", SOLO_ANCHA)}>{f.pctDelTotal !== null && f.inversion ? `${f.pctDelTotal} %` : "—"}</span>
                     <span className={celda("der")}>
-                      <span className="text-xs text-taupe sm:hidden">Gana por cada S/&nbsp;1 </span>
+                      <span className="text-sm text-taupe sm:hidden">Gana por cada S/&nbsp;1 </span>
                       {f.retorno === null ? "—" : solesES(f.retorno)}
                     </span>
                     <span className={celda("izq", SOLO_ANCHA)}>

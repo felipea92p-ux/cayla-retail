@@ -99,7 +99,7 @@ export function ElegirPrendasLook({
 
       {porTiendaContadas.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Dónde hay la prenda" data-guia="look.tienda">
-          <span className="text-[12px] text-taupe">Hay en</span>
+          <span className="text-sm text-taupe">Hay en</span>
           <button type="button" className="pildora-cayla" aria-pressed={tienda === null} onClick={() => setTienda(null)}>
             Cualquier tienda
           </button>

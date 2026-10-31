@@ -55,7 +55,7 @@ function MatrizDeTallas({ color, separaPiso }: { color: ColorConsultado; separaP
             className={`flex min-w-10 flex-1 flex-col items-center rounded-xl ${t.leida ? "bg-hueso" : ""}`}
           >
             <span aria-hidden className="flex h-7 items-center">
-              <span className={t.leida ? "rounded-full bg-tinta px-2 py-0.5 text-xs font-medium text-crema" : "text-xs text-taupe"}>{t.talla}</span>
+              <span className={t.leida ? "rounded-full bg-tinta px-2 py-0.5 text-sm font-medium text-crema" : "text-sm text-taupe"}>{t.talla}</span>
             </span>
             {filas.map((f) => {
               const n = f.valor(t);
@@ -84,7 +84,7 @@ function Prenda({ r, claveColor, onColor }: { r: ExistenciasDeLaPrenda; claveCol
         <MiniaturaPrenda fotoUrl={leido.fotoUrl} colorHex={leido.colorHex} tamano="md" {...categoriaDe(r.categoria)} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm text-tinta">{r.referencia}</span>
-          <span className="block truncate text-xs text-taupe">{[leido.nombre, tallaLeida?.talla].filter(Boolean).join(" · ") || "Sin color ni talla"}</span>
+          <span className="block truncate text-sm text-taupe">{[leido.nombre, tallaLeida?.talla].filter(Boolean).join(" · ") || "Sin color ni talla"}</span>
         </span>
         {veredicto && (
           <Chip tono={veredicto.tono} versalitas={false}>

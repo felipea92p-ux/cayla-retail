@@ -210,7 +210,7 @@ export function AltaAlVuelo({
             onValor={setColorCodigo}
             opciones={[{ valor: "", texto: "Sin color" }, ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre }))]}
           />
-          <p className="text-xs text-taupe">Un líder revisa la prenda después y completa su costo y su precio.</p>
+          <p className="text-sm text-taupe">Un líder revisa la prenda después y completa su costo y su precio.</p>
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={guardando} />}
           {error && (
             <Aviso tono="error">{error}</Aviso>

@@ -44,7 +44,7 @@ export function MetaCompra({ compra, dia, derecha }: { compra: LineaVentaRecient
     (d): d is string => !!d
   );
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-tinta/70">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-tinta/70">
       <span className="flex items-center gap-2">
         {compra.comprobante ? (
           <span className="font-semibold text-tinta">{compra.comprobante}</span>
@@ -178,7 +178,7 @@ export function FilaPrendaVenta({
             {linea.coincideConBusqueda && <span className="sr-only"> (la prenda buscada)</span>}
           </p>
           <p className="text-sm text-tinta/75">{varianteLegible(linea)}</p>
-          <p className="mt-1 text-xs text-tinta/70">
+          <p className="mt-1 text-sm text-tinta/70">
             <span className="font-mono">{codigoPrenda(linea)}</span> · {soles(valorPagado(linea, 1))}
             {linea.cantidad > 1 && ` · compró ${linea.cantidad}`}
           </p>

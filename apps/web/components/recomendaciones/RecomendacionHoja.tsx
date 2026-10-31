@@ -423,7 +423,7 @@ export function RecomendacionHoja({
           >
             {r.texto}
           </blockquote>
-          <p className="mt-1.5 pl-1 text-[12px] text-taupe">
+          <p className="mt-1.5 pl-1 text-sm text-taupe">
             Llegó {haceCuanto(r.creadaEn, ahora)} · {cuando(r.creadaEn)}
             {/* Una vieja que alguien marcó leída sin responder: el «visto» dice algo mientras no hay respuesta. */}
             {v.leidaEn && v.respuesta === null && !v.archivadaEn && <> · vista {v.leidaPor ? `por ${v.leidaPor}` : `el ${cuando(v.leidaEn)}`}</>}
@@ -435,7 +435,7 @@ export function RecomendacionHoja({
             <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema">
               {v.respuesta}
             </p>
-            <p className="mt-1.5 pr-1 text-right text-[12px] text-taupe">
+            <p className="mt-1.5 pr-1 text-right text-sm text-taupe">
               Respondió {v.respondidaPor ?? "CAYLA"}
               {v.respondidaEn ? ` · ${cuando(v.respondidaEn)}` : ""} · lo lee en su cuenta de la tienda online
             </p>
@@ -448,7 +448,7 @@ export function RecomendacionHoja({
             <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema opacity-60">
               {pendiente.texto}
             </p>
-            <p className="mt-1.5 flex flex-wrap items-center justify-end gap-x-2 pr-1 text-right text-[12px] text-taupe" role="status">
+            <p className="mt-1.5 flex flex-wrap items-center justify-end gap-x-2 pr-1 text-right text-sm text-taupe" role="status">
               Se envía en {segundosQueFaltan(pendiente.vence, ahoraMs)} s
               <BotonDeshacer onClick={deshacerEnvio} disabled={ocupado} />
             </p>
@@ -456,14 +456,14 @@ export function RecomendacionHoja({
         )}
 
         {!r.cliente && (
-          <p className="flex items-center gap-2 text-[13px] text-taupe">
+          <p className="flex items-center gap-2 text-sm text-taupe">
             <UserX aria-hidden className="h-5 w-5 shrink-0" />
-            Su ficha se anonimizó: la recomendación se queda, sin su nombre ni sus datos, y ya no se le responde.
+            Su ficha se anonimizó: la recomendación queda sin su nombre y ya no se le responde.
           </p>
         )}
 
         {v.archivadaEn && (
-          <p className="flex items-center gap-1.5 text-[12px] text-taupe">
+          <p className="flex items-center gap-1.5 text-sm text-taupe">
             <Archive aria-hidden className="h-3.5 w-3.5 shrink-0" />
             Archivada {v.archivadaPor ? `por ${v.archivadaPor} ` : ""}el {cuando(v.archivadaEn)}
             {v.respuesta === null ? " sin responder: el cliente la ve como leída" : ""}
@@ -484,7 +484,7 @@ export function RecomendacionHoja({
       {puedeResponder && !pendiente && (
         // Formas de empezar que siguen lo que escribió (ADR-0290): saludan por su nombre y dicen qué se hará; el resto lo escribe quien responde.
         <div className="flex flex-wrap items-center gap-1.5" data-guia="recomendacion.inicios">
-          <span className="mr-0.5 text-[12px] text-taupe">Empieza con</span>
+          <span className="mr-0.5 text-sm text-taupe">Empieza con</span>
           {inicios.map((i) => (
             <button key={i.etiqueta} type="button" className="pildora-cayla" disabled={ocupado} onClick={() => usarInicio(i.texto)}>
               {i.etiqueta}

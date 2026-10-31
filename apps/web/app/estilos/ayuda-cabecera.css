@@ -1,0 +1,193 @@
+/* ==================================================================
+   El «?» de la cabecera y su globo de vidrio (ADR-0358, ronda 18 de /unificar; Felipe 2026-10-30 eligió mirando P2 + D2 + V1).
+   La frase bajo el título ya no se ve siempre: vive en un globo que abre el «?» junto al título (`AyudaCabecera`, que pone
+   `EncabezadoPagina`). El material es el vidrio del ERP (`.vidrio-cayla`, las pestañas y las tarjetas de cifra): deja pasar el
+   color de detrás, difuminado, con el filo claro arriba. La letra sube de 15 px gris a 16 px en tinta: quien lo abre, lo lee bien.
+   Movimiento (ADR-0136): el globo crece desde el pico, se enfoca y se aclara una vez (340 ms), el hilo del nombre se dibuja y la
+   frase sube un paso después; sin rebote ni bucle, y nada con prefers-reduced-motion.
+   ================================================================== */
+@layer components {
+  /* El «?»: una lente de vidrio de 20 px que cuelga como un superíndice arriba a la derecha de la última palabra del título
+     (Felipe 2026-10-30, tras verlo aplicado: más chico y como nota al pie). Lo de tocar es más grande que lo que se ve: el
+     `::before` lo estira a 32 px con mouse y a 44 con el dedo (ADR-0350), sin mover la letra del título. */
+  .ayuda-cab-q {
+    position: relative;
+    /* Su borde de arriba, 2 px sobre la altura de las mayúsculas del título (46 px; 36 en el celular): se lee como una nota, no
+       como un botón suelto. En px y no en `em`: el `em` de aquí es la letra del «?», no la del título. */
+    top: 7px;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-left: 3px;
+    padding: 0;
+    vertical-align: top;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    color: color-mix(in srgb, var(--color-tinta) 72%, transparent); /* contraste: texto grande sobre crema y papel */
+    background: color-mix(in srgb, var(--color-vidrio) 55%, transparent);
+    box-shadow:
+      inset 0 1px 0 var(--brillo-superior),
+      0 0 0 1px color-mix(in srgb, var(--color-tinta) 14%, transparent),
+      0 2px 5px -2px color-mix(in srgb, var(--color-sombra) 14%, transparent);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    backdrop-filter: blur(10px) saturate(1.2);
+    font: 600 13.5px/1 var(--font-eb-garamond), Georgia, serif;
+    letter-spacing: 0;
+    transition:
+      color 240ms var(--ease-cayla),
+      background-color 240ms var(--ease-cayla),
+      box-shadow 240ms var(--ease-cayla),
+      transform 160ms var(--ease-cayla);
+  }
+  .ayuda-cab-q::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 999px;
+  }
+  .ayuda-cab-q > span { display: block; transform: translateY(0.5px); }
+  @media (hover: hover) {
+    .ayuda-cab-q:hover {
+      color: var(--color-tinta);
+      transform: translateY(-1px);
+      box-shadow:
+        inset 0 1px 0 var(--brillo-superior),
+        0 0 0 1px color-mix(in srgb, var(--color-tinta) 30%, transparent),
+        0 5px 12px -5px color-mix(in srgb, var(--color-sombra) 28%, transparent);
+    }
+  }
+  .ayuda-cab-q:active { transform: scale(0.9); }
+  .ayuda-cab-q:focus-visible { outline: 2px solid var(--color-pizarra); outline-offset: 2px; }
+  .ayuda-cab-q[aria-expanded="true"] {
+    color: var(--color-tinta);
+    background: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+    box-shadow:
+      inset 0 1px 0 var(--brillo-superior),
+      0 0 0 1px color-mix(in srgb, var(--color-tinta) 34%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  }
+  @media (max-width: 639px) {
+    .ayuda-cab-q { top: 5px; }
+  }
+  @media (pointer: coarse) {
+    .ayuda-cab-q::before { inset: -12px; }
+  }
+  /* Ronda 19 (A1 + F1): el mismo «?», más chico, junto al título de una sección (serif de 21 px) y junto a una cifra o un campo
+     (donde antes iba el «!» de `<Ayuda>`). También cuelga arriba a la derecha de la última palabra: `text-top` pega su borde de
+     arriba al de la letra de al lado, y `top` lo sube un poco más, como un superíndice. Lo de tocar sigue en 32 y 44 px. */
+  .ayuda-cab-q[data-tamano] { vertical-align: text-top; margin-left: 2px; }
+  .ayuda-cab-q[data-tamano="seccion"] { top: -2px; width: 16px; height: 16px; font-size: 11.5px; }
+  .ayuda-cab-q[data-tamano="texto"] { top: -4px; width: 14px; height: 14px; font-size: 10.5px; }
+  .ayuda-cab-q[data-tamano="seccion"]::before { inset: -8px; }
+  .ayuda-cab-q[data-tamano="texto"]::before { inset: -9px; }
+  @media (pointer: coarse) {
+    .ayuda-cab-q[data-tamano="seccion"]::before { inset: -14px; }
+    .ayuda-cab-q[data-tamano="texto"]::before { inset: -15px; }
+  }
+
+  /* El globo: vidrio esmerilado que flota en la capa de arriba (`position: fixed`; lo coloca `AyudaCabecera`). */
+  .ayuda-cab-globo {
+    --pico-x: 22px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 40;
+    box-sizing: border-box;
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
+    padding: 16px 20px 18px;
+    border-radius: 18px;
+    color: var(--color-tinta);
+    text-align: left;
+    white-space: normal;
+    background: color-mix(in srgb, var(--color-vidrio) 52%, transparent);
+    -webkit-backdrop-filter: blur(22px) saturate(1.35);
+    backdrop-filter: blur(22px) saturate(1.35);
+    box-shadow:
+      inset 0 1px 0 var(--brillo-superior),
+      0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent),
+      0 24px 48px -20px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+    font: 400 16px/1.6 var(--font-dm-sans), system-ui, sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    transform-origin: var(--pico-x) -8px;
+    animation: ayuda-cab-entra 340ms var(--ease-cayla) both;
+  }
+  .ayuda-cab-globo[data-lado="arriba"] { transform-origin: var(--pico-x) calc(100% + 8px); }
+  /* Con scroll propio el pico se cortaría: lo dibuja el contenedor de afuera. */
+  .ayuda-cab-pico {
+    position: fixed;
+    z-index: 41;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px 0 0 0;
+    transform: rotate(45deg);
+    pointer-events: none;
+    /* Solo la mitad que asoma: la otra quedaría encima del globo y se vería el doble de vidrio. */
+    clip-path: polygon(-2px -2px, calc(100% + 2px) -2px, -2px calc(100% + 2px)); /* 2 px de más: el filo de afuera no se corta */
+    background: color-mix(in srgb, var(--color-vidrio) 52%, transparent);
+    -webkit-backdrop-filter: blur(22px);
+    backdrop-filter: blur(22px);
+    box-shadow:
+      inset 1px 1px 0 var(--brillo-superior),
+      -1px -1px 0 color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    animation: ayuda-cab-aparece 340ms var(--ease-cayla) both;
+  }
+  .ayuda-cab-pico[data-lado="arriba"] { transform: rotate(225deg); }
+  .ayuda-cab-nombre {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--color-taupe-profundo);
+    font: 600 10.5px/1.4 var(--font-dm-sans), system-ui, sans-serif;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .ayuda-cab-nombre::before {
+    content: "";
+    display: block;
+    flex-shrink: 0;
+    width: 24px;
+    height: 1px;
+    background: var(--color-taupe);
+    transform-origin: left;
+    animation: ayuda-cab-hilo 500ms 120ms var(--ease-cayla) both;
+  }
+  .ayuda-cab-texto { animation: ayuda-cab-sube 340ms 80ms var(--ease-cayla) both; }
+  /* Lo que antes vivía en el «!» (cómo se lee una cifra, qué cuenta): un paso más abajo, separado por una línea fina. */
+  .ayuda-cab-mas {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    font-size: 15px;
+    animation: ayuda-cab-sube 340ms 140ms var(--ease-cayla) both;
+  }
+  .ayuda-cab-mas > * + * { margin-top: 8px; }
+
+  @keyframes ayuda-cab-entra {
+    from { opacity: 0; transform: translateY(-6px) scale(0.96); filter: blur(4px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+  @keyframes ayuda-cab-aparece { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ayuda-cab-hilo { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes ayuda-cab-sube { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ayuda-cab-q { transition: none; }
+    .ayuda-cab-globo,
+    .ayuda-cab-pico,
+    .ayuda-cab-nombre::before,
+    .ayuda-cab-texto,
+    .ayuda-cab-mas { animation: none; }
+  }
+}
+
+/* Papel e impresión: la cabecera de una hoja que se imprime no lleva el «?». */
+@media print {
+  .ayuda-cab-q { display: none; }
+}

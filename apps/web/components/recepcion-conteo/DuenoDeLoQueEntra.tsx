@@ -9,7 +9,7 @@ export function DuenoDeLoQueEntra({ empresas, duenoId, onElegir, deshabilitado }
   return (
     <div id="hacer-ahora-dueno" data-campo="hacer-ahora-dueno" className="space-y-1.5">
       <p className="text-sm font-medium text-tinta">¿De quién es la mercadería?</p>
-      <p className="text-xs text-taupe">CAYLA o CLAURE: lo marcas tú, no la marca de la prenda.</p>
+      <p className="text-sm text-taupe">CAYLA o CLAURE: lo marcas tú, no la marca de la prenda.</p>
       <ElegirDueno empresas={empresas} duenoId={duenoId} onElegir={onElegir} deshabilitado={deshabilitado} guia="recibir.hacer-dueno" />
     </div>
   );

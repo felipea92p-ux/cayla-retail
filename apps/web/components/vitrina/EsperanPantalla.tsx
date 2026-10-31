@@ -111,7 +111,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
         {visibles.length === 0 ? (
           lectura.filas.length === 0 ? (
             <Vacio icono={<BellRing />} titulo="Nadie espera una talla todavía">
-              Cuando un cliente de la tienda online toque «Avísame» en una talla que no hay, aparece aquí con cuántas personas la esperan.
+              Cuando un cliente toque «Avísame» en una talla que no hay, sale aquí.
             </Vacio>
           ) : texto.trim() ? (
             <Vacio icono={<SearchX />} titulo={`Nada coincide con «${texto.trim()}»`} acciones={<Boton onClick={() => setTexto("")}>Borrar la búsqueda</Boton>}>
@@ -145,15 +145,15 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
                       <span className="block truncate font-medium text-tinta" data-guia={i === 0 ? "esperan.modelo" : undefined}>
                         {f.producto.nombre}
                       </span>
-                      <span className="block truncate text-[12px] text-taupe">{prendaDicha(f) || "—"}</span>
+                      <span className="block truncate text-sm text-taupe">{prendaDicha(f) || "—"}</span>
                     </span>
                   </span>
-                  <span className={celda("izq", "text-[13px] text-tinta")}>
+                  <span className={celda("izq", "text-sm text-tinta")}>
                     <span className="text-taupe sm:hidden">En </span>
                     {tiendaDicha(f)}
                   </span>
-                  <span className={celda("der", "text-[13px] font-semibold text-tinta")}>{personasDichas(f.personas)}</span>
-                  <span className={celda("izq", "text-[13px] text-taupe")} title={`La más nueva: ${desdeCuando(f.ultima, hoy)}`}>
+                  <span className={celda("der", "text-sm font-semibold text-tinta")}>{personasDichas(f.personas)}</span>
+                  <span className={celda("izq", "text-sm text-taupe")} title={`La más nueva: ${desdeCuando(f.ultima, hoy)}`}>
                     {desdeCuando(f.desde, hoy)}
                   </span>
                   <span className={celda("izq", "col-span-3 pt-1 sm:col-span-1 sm:pt-0")} data-guia={i === 0 ? "esperan.ahora" : undefined}>
@@ -165,17 +165,15 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
           </Tabla>
         )}
         {hayFiltro && visibles.length > 0 && (
-          <p className="border-t border-sand px-5 py-2.5 text-xs text-taupe">
+          <p className="border-t border-sand px-5 py-2.5 text-sm text-taupe">
             {visibles.length} de {lectura.filas.length} {lectura.filas.length === 1 ? "talla" : "tallas"}
           </p>
         )}
       </section>
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="esperan.nota">
+      <div className="nota-cayla space-y-2 text-sm" data-guia="esperan.nota">
         <p>
-          Aquí no salen nombres: solo cuántas personas esperan cada talla. A cada una le avisa su cuenta de la tienda online apenas hay donde
-          la espera (no se le escribe por WhatsApp: el Club no manda mensajes personales). Si una talla falta en una tienda y hay en otra,
-          pídela con un traslado.
+          Sin nombres: solo cuántas personas esperan cada talla. La tienda online les avisa sola. Si falta en una tienda y hay en otra, pídela con un traslado.
         </p>
       </div>
     </div>

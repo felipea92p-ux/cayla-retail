@@ -224,7 +224,7 @@ function RevisarRendicionModal({
                 {r.explicacion ? `«${r.explicacion}»` : fraseFaltanteSinExplicar(r.faltante, deuda)}
               </Aviso>
             ) : (
-              <p className="text-xs font-medium text-verde-profundo">Cuadra.</p>
+              <p className="text-sm font-medium text-verde-profundo">Cuadra.</p>
             )}
           </section>
 
@@ -256,7 +256,7 @@ function RevisarRendicionModal({
                   <li key={i.clave} className="flex items-start gap-3 px-3.5 py-2.5 text-sm">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-tinta">{etiquetaItem(i, "revisa")}</p>
-                      <p className="truncate text-xs text-taupe" title={i.detalle}>
+                      <p className="truncate text-sm text-taupe" title={i.detalle}>
                         {i.detalle || "—"}
                         {i.fecha ? ` · ${diaMes(i.fecha)}` : ""}
                       </p>
@@ -275,7 +275,7 @@ function RevisarRendicionModal({
                 ))}
               </ul>
             )}
-            {fraseSinFoto(sinFoto, "revisa") && <p className="nota-cayla text-xs">{fraseSinFoto(sinFoto, "revisa")}</p>}
+            {fraseSinFoto(sinFoto, "revisa") && <p className="nota-cayla text-sm">{fraseSinFoto(sinFoto, "revisa")}</p>}
           </section>
 
           {r.porQueNoAprueba ? (

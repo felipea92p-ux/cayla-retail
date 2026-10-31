@@ -56,13 +56,19 @@ export function EditarMensajePredeterminadoHoja({
   const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
   const vista = mensajePredeterminadoDelPedido({ ...PEDIDO_DE_MUESTRA, tiendaWeb: { nombre: tienda } }, texto);
 
-  /** Inserta una marca o un emoji donde está el cursor (al final si el texto no tiene el foco) y deja el cursor tras lo insertado. */
+  /** Dónde estaba el cursor la última vez que la persona tocó el texto. Al apretar un botón la caja pierde el foco, y el foco
+   *  dejaba de decir dónde insertar: todo caía al final. Sin toque todavía (null), se inserta al final. */
+  const cursor = useRef<{ a: number; b: number } | null>(null);
+  function recordarCursor(caja: HTMLTextAreaElement) {
+    cursor.current = { a: caja.selectionStart, b: caja.selectionEnd };
+  }
+
+  /** Inserta una marca o un emoji donde estaba el cursor (al final si la persona no ha tocado el texto) y deja el cursor tras lo insertado. */
   function insertar(que: string) {
-    const caja = cajaRef.current;
-    const enfocado = caja !== null && document.activeElement === caja;
-    const a = enfocado ? caja.selectionStart : texto.length;
-    const b = enfocado ? caja.selectionEnd : texto.length;
+    const a = Math.min(cursor.current?.a ?? texto.length, texto.length);
+    const b = Math.min(cursor.current?.b ?? texto.length, texto.length);
     setTexto(texto.slice(0, a) + que + texto.slice(b));
+    cursor.current = { a: a + que.length, b: a + que.length };
     requestAnimationFrame(() => {
       cajaRef.current?.focus();
       cajaRef.current?.setSelectionRange(a + que.length, a + que.length);
@@ -104,7 +110,7 @@ export function EditarMensajePredeterminadoHoja({
             if (!demasiado) void guardar(cerrar, texto.trim());
           }}
         >
-          <p className="text-[13px] text-taupe">Es el texto que se abre en WhatsApp con el botón «Mensaje» de cada pedido.</p>
+          <p className="text-sm text-taupe">Es el texto que se abre en WhatsApp con el botón «Mensaje» de cada pedido.</p>
 
           <Campo
             etiqueta="Mensaje"
@@ -122,7 +128,12 @@ export function EditarMensajePredeterminadoHoja({
                 rows={5}
                 value={texto}
                 placeholder={MENSAJE_PREDETERMINADO_WEB}
-                onChange={(e) => setTexto(e.target.value)}
+                onChange={(e) => {
+                  setTexto(e.target.value);
+                  recordarCursor(e.target);
+                }}
+                onSelect={(e) => recordarCursor(e.currentTarget)}
+                onBlur={(e) => recordarCursor(e.currentTarget)}
                 aria-label="Mensaje predeterminado"
                 disabled={guardando}
               />
@@ -131,7 +142,7 @@ export function EditarMensajePredeterminadoHoja({
 
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-[12.5px] text-taupe">Tocar para insertar:</span>
+              <span className="mr-1 text-sm text-taupe">Tocar para insertar:</span>
               {MARCAS.map((m) => (
                 <button key={m.marca} type="button" className="pildora-cayla" disabled={guardando} onClick={() => insertar(m.marca)}>
                   <Plus aria-hidden className="h-3 w-3" />
@@ -140,7 +151,7 @@ export function EditarMensajePredeterminadoHoja({
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-[12.5px] text-taupe">Emojis:</span>
+              <span className="mr-1 text-sm text-taupe">Emojis:</span>
               {EMOJIS_DEL_MENSAJE.map((e) => (
                 <button key={e} type="button" className="pildora-cayla" aria-label={`Insertar ${e}`} disabled={guardando} onClick={() => insertar(e)}>
                   {e}
@@ -150,7 +161,7 @@ export function EditarMensajePredeterminadoHoja({
           </div>
 
           <div>
-            <span className="mb-2 block text-[12px] text-taupe">Así lo verá el cliente en WhatsApp</span>
+            <span className="mb-2 block text-sm text-taupe">Así lo verá el cliente en WhatsApp</span>
             {/* Una captura del chat del celular: la cabecera verde con el nombre, el fondo de la conversación y la burbuja de salida
                 (la de quien atiende) con la hora y las dos marcas de «leído». Solo es una vista: no envía nada. */}
             <div className="overflow-hidden rounded-xl border border-sand">
@@ -163,7 +174,7 @@ export function EditarMensajePredeterminadoHoja({
               <div className="bg-hueso/50 px-4 py-4">
                 <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-verde/15 px-3 py-2">
                   <p className="whitespace-pre-wrap break-words text-[14px] text-tinta">{vista}</p>
-                  <p className="mt-1 flex items-center justify-end gap-1 text-[11px] text-taupe">
+                  <p className="mt-1 flex items-center justify-end gap-1 text-sm text-taupe">
                     <span className="tabular-nums">{hora}</span>
                     <CheckCheck aria-hidden className="h-3.5 w-3.5 text-verde" />
                   </p>

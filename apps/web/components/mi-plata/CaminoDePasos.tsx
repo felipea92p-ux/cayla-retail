@@ -38,7 +38,7 @@ export function CaminoDePasos({
           <li
             key={p}
             aria-current={enCurso ? "step" : undefined}
-            className={`flex min-w-0 flex-col items-start gap-1.5 text-xs leading-tight ${hecho ? "text-verde" : enCurso ? "font-semibold text-tinta" : "text-taupe"}`}
+            className={`flex min-w-0 flex-col items-start gap-1.5 text-sm leading-tight ${hecho ? "text-verde" : enCurso ? "font-semibold text-tinta" : "text-taupe"}`}
           >
             <span aria-hidden className={`block h-1 w-full rounded-full ${hecho ? "bg-verde" : enCurso ? "bg-tinta" : "bg-sand"}`} />
             <span className="inline-flex items-start gap-0.5">
@@ -55,7 +55,7 @@ export function CaminoDePasos({
   return (
     <div data-guia={guia}>
       {rayitas}
-      {lado && <p className="mt-2 text-xs text-taupe lg:hidden">{lado}</p>}
+      {lado && <p className="mt-2 text-sm text-taupe lg:hidden">{lado}</p>}
       <div className="hidden items-center gap-5 lg:flex">
         <ol aria-label={etiqueta} className="flex min-w-0 flex-1 items-center">
           {pasos.map((p, i) => {
@@ -81,7 +81,7 @@ export function CaminoDePasos({
             );
           })}
         </ol>
-        {lado && <span className="whitespace-nowrap text-xs text-taupe">{lado}</span>}
+        {lado && <span className="whitespace-nowrap text-sm text-taupe">{lado}</span>}
       </div>
     </div>
   );

@@ -576,7 +576,7 @@ export function CerrarEnvio({
                       <p className="font-medium text-tinta">{p.categoria?.nombre ?? "Categoría"}</p>
                       {faltaCosto && !abierta && <Chip tono="ambar">Falta el costo</Chip>}
                       {conCambios && !abierta && <Chip tono="ambar">{textoCambios}</Chip>}
-                      <p className="text-xs text-taupe">
+                      <p className="text-sm text-taupe">
                         {[p.categoria ? marcaDeLinea(p).nombre : null, contaron.length > 0 ? `contó ${contaron.join(" y ")}` : null, !p.linea && !sinAviso ? "no estaba en la guía" : null]
                           .filter(Boolean)
                           .join(" · ")}
@@ -598,7 +598,7 @@ export function CerrarEnvio({
                         <div className={FRANJA}>
                           <Chip tono="pizarra">{para} para después</Chip>
                         </div>
-                        <ul className="space-y-0.5 text-xs leading-snug text-taupe">
+                        <ul className="space-y-0.5 text-sm leading-snug text-taupe">
                           {detalleParaDespues(l).map((t) => (
                             <li key={t}>{t}</li>
                           ))}
@@ -624,7 +624,7 @@ export function CerrarEnvio({
                             {/* Como la maqueta: el chip de la diferencia en la franja y, debajo, qué pasó. Una sola respuesta vale para todas las líneas de la categoría. */}
                             <div className={`${FRANJA} gap-2`}>
                               <Chip tono="ambar">{c.tipo === "faltante" ? `Faltan ${c.cantidad}` : !c.lineas[0].linea ? `${c.cantidad} que no venían` : `Sobran ${c.cantidad}`}</Chip>
-                              <span className="text-xs text-taupe">¿Qué pasó?</span>
+                              <span className="text-sm text-taupe">¿Qué pasó?</span>
                             </div>
                             <div className="mt-1">
                               <ElegirOpcion
@@ -679,7 +679,7 @@ export function CerrarEnvio({
                   <div id={`precios-${idFila}`} className="border-t border-sand bg-tinta/[0.02] px-5 py-4" data-precios-de={g.clave}>
                     <div className="space-y-3">
                       {regaloFuera && (
-                        <p className="text-xs text-taupe" data-regalo-sin-costo>
+                        <p className="text-sm text-taupe" data-regalo-sin-costo>
                           Es un regalo: entra con costo S/&nbsp;0.00 (obsequio), sin que escribas nada.
                         </p>
                       )}
@@ -763,7 +763,7 @@ export function CerrarEnvio({
                         </div>
                       )}
                       {sinIdentificarTexto && (conNombre.length > 0 || costoDeLaLineaObligatorio) && (
-                        <p className="text-xs text-taupe" data-sin-identificar={sinIdentificar}>
+                        <p className="text-sm text-taupe" data-sin-identificar={sinIdentificar}>
                           {sinIdentificarTexto}
                         </p>
                       )}
@@ -821,7 +821,7 @@ export function CerrarEnvio({
               marcador="Elige el proveedor"
               deshabilitado={proveedorPuesto || guardando}
             />
-            <p className="text-xs text-taupe">
+            <p className="text-sm text-taupe">
               Se abrió sin saber de quién era. Pregúntale a Compras: sin proveedor no entra al stock, porque el lote, el costo y la factura se
               unen por él. Las prendas pueden quedar sin marca.
             </p>
@@ -830,9 +830,9 @@ export function CerrarEnvio({
       )}
 
       <CampoGuiado id="responsable" guia={guia} className="card-cayla p-4 sm:p-5">
-        <p className="mb-2 text-[13px] font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>
+        <p className="mb-2 text-sm font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>
         <ComboResponsable control={responsable} />
-        {!sinAviso && <p className="mt-2 text-xs text-taupe">Quien hizo una orden no puede cerrar su envío (solo un Admin cierra lo que él mismo compró): firma otra persona de la tienda.</p>}
+        {!sinAviso && <p className="mt-2 text-sm text-taupe">Quien hizo una orden no puede cerrar su envío (solo un Admin cierra lo que él mismo compró): firma otra persona de la tienda.</p>}
       </CampoGuiado>
 
       {error && (

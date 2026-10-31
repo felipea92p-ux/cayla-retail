@@ -260,7 +260,7 @@ export function PanelRendimiento({
                 destacada={String(porHora.mejor.hora)}
                 etiqueta={`Ventas por hora ${t.enPeriodo}. La mejor hora fue ${etiquetaDeHora(porHora.mejor.hora)}, con ${SOLES.format(porHora.mejor.total)}.`}
               />
-              <p className="mt-2 text-xs text-tinta/65">
+              <p className="mt-2 text-sm text-tinta/65">
                 La mejor franja fue la de las <b className="font-semibold text-tinta">{etiquetaDeHora(porHora.mejor.hora)}</b>: {SOLES.format(porHora.mejor.total)} en{" "}
                 {porHora.mejor.ventas} {plural(porHora.mejor.ventas, "venta", "ventas")}. Sirve para repartir turnos, no para juzgar a nadie.
               </p>
@@ -276,8 +276,7 @@ export function PanelRendimiento({
 
       {res.meta === null && (
         <p className="nota-cayla">
-          Sin meta de la sede no hay qué repartir: cárgala en <b>Configuración ▸ Tiendas y caja</b> y la meta de cada persona se calcula sola, por sus horas
-          programadas. Mientras tanto, esta pantalla muestra lo vendido.
+          Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Tiendas y caja</b> y se reparte sola, por horas.
         </p>
       )}
       {res.meta !== null && personas.length > 0 && !porHoras && (
@@ -335,18 +334,18 @@ export function PanelRendimiento({
                       )}
                     </p>
                     {vista === "hoy" && (
-                      <p className="text-xs text-taupe">{turno ?? (porHoras ? "Sin turno cargado hoy" : "")}</p>
+                      <p className="text-sm text-taupe">{turno ?? (porHoras ? "Sin turno cargado hoy" : "")}</p>
                     )}
                   </div>
                   <p className="tabular-nums text-sm text-tinta">
-                    <span className="mr-1 text-xs text-taupe sm:hidden">Vendió</span>
+                    <span className="mr-1 text-sm text-taupe sm:hidden">Vendió</span>
                     {SOLES.format(c.vendido)}
-                    <small className="block text-xs text-taupe">{c.ventas > 0 ? `${c.ventas} ${plural(c.ventas, "venta", "ventas")}` : " "}</small>
+                    <small className="block text-sm text-taupe">{c.ventas > 0 ? `${c.ventas} ${plural(c.ventas, "venta", "ventas")}` : " "}</small>
                   </p>
                   <p className="tabular-nums text-sm text-tinta">
-                    <span className="mr-1 text-xs text-taupe sm:hidden">Meta</span>
+                    <span className="mr-1 text-sm text-taupe sm:hidden">Meta</span>
                     {c.meta !== null ? SOLES.format(c.meta) : "—"}
-                    <small className="block text-xs text-taupe">
+                    <small className="block text-sm text-taupe">
                       {c.meta === null ? (vista === "hoy" ? "Sin parte hoy" : "Sin parte") : p.metaAjustadaMes !== null ? <Chip tono="ambar" versalitas={false}>Ajustada</Chip> : p.base === "horas" ? "por horas" : "partes iguales"}
                     </small>
                   </p>
@@ -354,13 +353,13 @@ export function PanelRendimiento({
                     {av !== null ? (
                       <>
                         <BarraAvance pct={av} alto="fina" marca={vista === "mes" ? res.tocabaPct : marcaRitmo} etiqueta="Avance contra su meta" className="mt-2" />
-                        <p className="mt-1 text-xs tabular-nums text-taupe">
+                        <p className="mt-1 text-sm tabular-nums text-taupe">
                           {av} %{lectura && <> · {lectura}</>}
                           {marcaRitmo !== null && marcaRitmo < 100 && <> · ritmo {marcaRitmo} %</>}
                         </p>
                       </>
                     ) : (
-                      <p className="text-xs text-taupe">{c.vendido > 0 ? "Sin meta" : "—"}</p>
+                      <p className="text-sm text-taupe">{c.vendido > 0 ? "Sin meta" : "—"}</p>
                     )}
                   </div>
                   <div className="sm:text-right">
@@ -434,7 +433,7 @@ function BotonOrden({ activo, onClick, children }: { activo: boolean; onClick: (
       onClick={onClick}
       aria-pressed={activo}
       title="Ordenar por esta columna"
-      className={`text-xs ${activo ? "font-semibold text-tinta" : "font-normal text-taupe"} hover:text-tinta`}
+      className={`text-sm ${activo ? "font-semibold text-tinta" : "font-normal text-taupe"} hover:text-tinta`}
     >
       {children}
       {activo && <span aria-hidden> ↓</span>}
@@ -458,7 +457,7 @@ function Historial({ cambios }: { cambios: CambioMeta[] }) {
           const motivo = c.motivo === "otro" && c.detalle ? `Otro: ${c.detalle}` : (ETIQUETA_MOTIVO[c.motivo] ?? c.motivo);
           return (
             <li key={c.id} className="grid grid-cols-[5.5rem_1fr] gap-3 py-2 text-sm">
-              <span className="text-xs tabular-nums text-taupe">
+              <span className="text-sm tabular-nums text-taupe">
                 {dia} · {hora}
               </span>
               <div>
@@ -469,7 +468,7 @@ function Historial({ cambios }: { cambios: CambioMeta[] }) {
                   </span>{" "}
                   <span className="text-taupe">al mes</span>
                 </p>
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   {c.cambiadoPor} · {motivo}
                 </p>
               </div>

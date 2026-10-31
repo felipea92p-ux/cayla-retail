@@ -183,7 +183,7 @@ export function BajarEnManoModal({
             </div>
           </div>
 
-          <ol className="space-y-1.5 rounded-xl bg-hueso px-4 py-3 text-[13px] leading-snug text-tinta">
+          <ol className="space-y-1.5 rounded-xl bg-hueso px-4 py-3 text-sm leading-snug text-tinta">
             {pasos.map((paso, i) => (
               <li key={paso} className="flex gap-2">
                 <span aria-hidden className="tabular-nums text-taupe">
@@ -195,10 +195,10 @@ export function BajarEnManoModal({
           </ol>
 
           {yaCuentaEnPiso > 0 && (
-            <p className="text-[13px] text-ambar-profundo">{textoUnaMasEnPiso(yaCuentaEnPiso)}</p>
+            <p className="text-sm text-ambar-profundo">{textoUnaMasEnPiso(yaCuentaEnPiso)}</p>
           )}
           {prenda.danado > 0 && (
-            <p className="text-[13px] text-ambar-profundo">
+            <p className="text-sm text-ambar-profundo">
               Hay {prenda.danado === 1 ? "1 dañada" : `${prenda.danado} dañadas`} de esta prenda en cuarentena: si la que tienes es esa, no la cuelgues.
             </p>
           )}

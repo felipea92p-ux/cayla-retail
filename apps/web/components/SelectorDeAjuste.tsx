@@ -61,7 +61,7 @@ export function SelectorDeAjuste({
               <span className="grid h-9 min-w-9 shrink-0 place-items-center rounded-lg bg-hueso px-1.5 text-sm font-semibold text-tinta">{f.talla}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-tinta">{f.principal}</p>
-                {f.detalle && <p className="text-xs text-taupe">{f.detalle}</p>}
+                {f.detalle && <p className="text-sm text-taupe">{f.detalle}</p>}
               </div>
               <PasoCantidad
                 className="shrink-0"

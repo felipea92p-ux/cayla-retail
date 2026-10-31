@@ -97,7 +97,7 @@
     align-items: flex-start;
     gap: 8px;
     margin: -4px 0 12px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ia-t65);
   }
   .ia-ayuda svg {
@@ -110,7 +110,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--color-taupe);
     transition: gap 260ms var(--ease-cayla), color 260ms var(--ease-cayla);
@@ -134,7 +134,7 @@
     padding: 0 14px;
     border: 1px solid var(--ia-t12);
     border-radius: 10px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
@@ -392,7 +392,7 @@
     align-items: center;
     gap: 8px;
     color: var(--h-80);
-    font-size: 12.5px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: color 260ms var(--ease-cayla), gap 300ms var(--ease-cayla);
@@ -478,12 +478,12 @@
     align-items: center;
     gap: 8px;
     color: var(--h-60);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-rs .ia-ya {
     margin-left: auto;
     color: var(--color-verde-profundo);
-    font-size: 12.5px;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
   }
@@ -629,7 +629,7 @@
   .ia-dp .ia-n {
     min-width: 24px;
     padding: 1px 9px;
-    font-size: 12px;
+    font-size: 14px;
   }
   .ia-dp svg.ia-ic {
     width: 15px;
@@ -647,7 +647,7 @@
   }
   .ia-fila .ia-t {
     color: var(--h-80);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.35;
   }
   .ia-fila .ia-t b {
@@ -728,7 +728,7 @@
   .ia-ap .ia-d {
     margin-top: 1px;
     color: var(--ia-t65);
-    font-size: 13px;
+    font-size: 14px;
   }
   .ia-tag {
     color: var(--color-rojo);
@@ -742,7 +742,7 @@
     min-width: 28px;
     padding: 2px 10px;
     border-radius: 99px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     text-align: center;
@@ -751,7 +751,7 @@
   .ia-n.ia-toca { background: var(--color-ambar); color: var(--color-crema); }
   .ia-n.ia-info { background: var(--color-pizarra); color: var(--color-crema); }
   .ia-n.ia-dia { background: var(--color-verde); color: var(--color-crema); }
-  .ia-n.ia-sinleer { background: var(--ia-t08); color: var(--ia-t80); font-size: 12px; }
+  .ia-n.ia-sinleer { background: var(--ia-t08); color: var(--ia-t80); font-size: 14px; }
   .ia-ap .ia-chev {
     flex: none;
     width: 16px;
@@ -817,7 +817,7 @@
   }
   .ia-vacio span {
     color: var(--ia-t65);
-    font-size: 13px;
+    font-size: 14px;
   }
   .ia-err {
     display: flex;
@@ -1014,7 +1014,7 @@
   .ia-sw b {
     margin-left: 8px;
     color: var(--ia-t65);
-    font-size: 11.5px;
+    font-size: 14px;
     font-weight: 500;
   }
   .ia-pie-pc {
@@ -1025,7 +1025,7 @@
     margin-top: auto;
     padding-top: 10px;
     border-top: 1px dashed var(--ia-t12);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-pie-pc .ia-pr {
     font-weight: 600;
@@ -1085,7 +1085,7 @@
   .ia-k .ia-s {
     margin-top: 2px;
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   /* El anillo chico del sistema (<Anillo>, ronda 13 de /unificar), a la derecha de la cifra. */
   .ia-k .ia-k-anillo {
@@ -1121,7 +1121,7 @@
   }
   .ia-rr .ia-hd span {
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-via {
     position: relative;
@@ -1205,7 +1205,7 @@
     justify-content: space-between;
     gap: 10px;
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
 
   /* ── «Por colgar» (antes «Reponer a piso hoy») ── */
@@ -1250,7 +1250,7 @@
   }
   .ia-rp .ia-cl {
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-tl {
     display: flex;
@@ -1281,7 +1281,7 @@
     padding: 12px 18px;
     border-top: 1px solid var(--ia-t08);
     color: var(--ia-t65);
-    font-size: 13px;
+    font-size: 14px;
   }
 
   /* ── «Accesos» ── */

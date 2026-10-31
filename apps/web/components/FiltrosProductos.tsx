@@ -659,7 +659,7 @@ function BloquePrecio({
                 type="button"
                 aria-pressed={activo}
                 onClick={() => onTramo(t)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm transition-colors ${
                   activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/75 hover:border-tinta/35 hover:text-tinta"
                 }`}
               >
@@ -693,7 +693,7 @@ function CajaMonto({
 }) {
   return (
     <label className="caja-cayla caja-campo caja-campo-baja h-7 min-h-7 w-[4.75rem] shrink-0 gap-1 px-2">
-      <span aria-hidden className="text-[11px] text-tinta/45">
+      <span aria-hidden className="text-sm text-tinta/45">
         S/
       </span>
       <input
@@ -705,7 +705,7 @@ function CajaMonto({
         inputMode="decimal"
         autoComplete="off"
         aria-label={etiqueta}
-        className="self-stretch py-0 text-[12px] tabular-nums"
+        className="self-stretch py-0 text-sm tabular-nums"
       />
     </label>
   );

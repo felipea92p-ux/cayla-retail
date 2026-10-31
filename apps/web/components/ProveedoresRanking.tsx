@@ -87,7 +87,7 @@ export function MedidaDelRanking({ medida, onMedida, prendas, gasto, cargaPct, p
           };
         })}
       />
-      <span className="min-w-0 text-xs text-tinta/65">{elegida.nota}</span>
+      <span className="min-w-0 text-sm text-tinta/65">{elegida.nota}</span>
     </div>
   );
 }
@@ -155,7 +155,7 @@ export function ProveedoresRanking({
           <span>
             <b className="font-semibold">Producción propia</b> · {taller.nombre}: {taller.unidadesCompradas.toLocaleString("es-PE")} prendas, {Math.round(taller.pesoPct)} % del gasto
           </span>
-          <span className="text-xs text-taupe">No entra al ranking: es lo que hace el Taller, no un proveedor.</span>
+          <span className="text-sm text-taupe">No entra al ranking: es lo que hace el Taller, no un proveedor.</span>
         </p>
       )}
     </div>
@@ -235,7 +235,7 @@ function FilaDelRanking({
             )}
           </span>
         </button>
-        <span className="block truncate text-xs text-tinta/65">
+        <span className="block truncate text-sm text-tinta/65">
           {saldo > 0 ? (
             <>
               <Link href={`/compras/por-pagar?prov=${f.proveedorId}`} data-guia="proveedores.saldo" className="btn-enlace relative">
@@ -252,7 +252,7 @@ function FilaDelRanking({
       <VentasDeLaSemana serie={serie} indice={indice} />
       <span className="hidden justify-self-center @2xl:block">
         <Anillo pct={vendidoPct} tamano="chico" indice={indice} etiqueta={`${f.nombre}: vendiste el ${Math.round(vendidoPct)} % de lo que le compraste`}>
-          <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
+          <span className="text-sm font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
         </Anillo>
       </span>
       <span className="col-start-3 row-start-2 flex min-w-0 items-center gap-2.5 @2xl:col-start-auto @2xl:row-start-auto">
@@ -287,7 +287,7 @@ function FilaDelRanking({
         {/* Las semanas arriba y la insignia con lo que toca hacer debajo («Frena compras» no cabía junto a «100+ sem»); en una tabla angosta
             (el teléfono), solo la insignia. Su porqué, a un toque: la fila abre la vista rápida, que lo explica con los números. */}
         <span className="flex flex-col items-end gap-0.5 @2xl:items-center">
-          {semanasCortas(f.ritmo) && <span className="hidden text-xs tabular-nums text-tinta/70 @md:block">{semanasCortas(f.ritmo)}</span>}
+          {semanasCortas(f.ritmo) && <span className="hidden text-sm tabular-nums text-tinta/70 @md:block">{semanasCortas(f.ritmo)}</span>}
           <Chip tono={ritmo.tono} title={`${textoRitmo(f)}. ${ritmo.ayuda}`}>
             {ritmo.palabra}
           </Chip>
@@ -306,7 +306,7 @@ function VentasDeLaSemana({ serie, indice }: { serie: number[] | null; indice: n
   return (
     <span className="hidden min-w-0 flex-col items-center gap-0.5 @4xl:flex" title={`${s.estaSemana} vendidas en los últimos 7 días; ${s.anterior} los 7 de antes`}>
       <Sparkline serie={serie} indice={indice} />
-      <span className="flex items-center gap-1 text-xs text-tinta/70">
+      <span className="flex items-center gap-1 text-sm text-tinta/70">
         <b className="font-semibold tabular-nums text-tinta">{s.estaSemana}</b> esta semana
         {s.tendencia === "sube" && <ArrowUp aria-label="sube" className="h-3 w-3" />}
         {s.tendencia === "baja" && <ArrowDown aria-label="baja" className="h-3 w-3" />}

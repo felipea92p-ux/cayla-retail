@@ -5,7 +5,6 @@ import { ArrowUpDown, ChartColumn, ChevronRight, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { DetalleCategoriaResultados } from "@/components/plan-compra/DetalleCategoriaResultados";
 import { Aviso } from "@/components/ui/Aviso";
-import { Ayuda } from "@/components/Ayuda";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
@@ -99,7 +98,7 @@ export function ResultadosCampana({
   const lecturaPropuesta = useMemo(() => leerPropuesta(propuesta), [propuesta]);
   // El «!» con lo que la frase no alcanza a decir, como en Productos y en el Historial (Felipe 2026-10-12).
   const ayuda = (
-    <Ayuda titulo="Resultados">
+    <>
       <span className="block">
         «×2.0 un día normal» quiere decir que la tienda vendió, por día, el doble de prendas que en los 60 días anteriores a la campaña. El año que
         viene, la propuesta del Plan usa ese número.
@@ -118,24 +117,14 @@ export function ResultadosCampana({
         deja solo esas.
       </span>
       <span className="mt-2 block">«Lo que sobró» es lo vendido de esa categoría en los 60 días después de la campaña, contra su precio de etiqueta.</span>
-    </Ayuda>
+    </>
   );
   const cabecera = (subtitulo: string) => (
     <EncabezadoPagina
       sede="Todas las tiendas"
-      titulo={
-        <>
-          Plan de campaña
-          {/* En el celular la frase se esconde y el «!» sube junto al título, como en Productos. */}
-          <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayuda}</span>
-        </>
-      }
-      subtitulo={
-        <>
-          <span className="max-sm:hidden">{subtitulo} </span>
-          <span className="max-sm:hidden">{ayuda}</span>
-        </>
-      }
+      titulo="Plan de campaña"
+      subtitulo={subtitulo}
+      ayuda={ayuda}
       acciones={r && campanas ? <SelectorCampana estirarEnCelular campanas={campanas} actualId={r.plan.id} hoy={r.hoy} ruta="/compras/plan/resultados" puedeCrear={false} onNueva={() => {}} onEditar={() => {}} onArchivadas={() => {}} /> : undefined}
     />
   );
@@ -303,7 +292,7 @@ export function ResultadosCampana({
                   {c.nombre}
                   <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
                 </span>
-                <span className="block text-xs text-taupe">{c.familia}</span>
+                <span className="block text-sm text-taupe">{c.familia}</span>
               </span>
               <span className={celda("der", "text-tinta")}>{enteroES.format(c.unidades)}</span>
               <span className={celda("der", "text-tinta/80")}>{solesES(c.soles)}</span>
@@ -331,7 +320,7 @@ export function ResultadosCampana({
           ))
         )}
         {filtrando && categorias.length > 0 && (
-          <p className="px-5 py-3 text-xs text-taupe">
+          <p className="px-5 py-3 text-sm text-taupe">
             Quedan {enCurso?.faltan ?? 0} {enCurso?.faltan === 1 ? "día" : "días"} de campaña. Toca una para ver sus prendas y, si ves Análisis, ir a las que se acaban.
           </p>
         )}

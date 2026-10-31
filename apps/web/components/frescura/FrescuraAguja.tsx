@@ -25,19 +25,19 @@ function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBa
         <Chip tono={s.tipo === "se_queda" ? "ambar" : "verde"}>{s.tipo === "se_lleva" ? "Se lleva más" : s.motivo === "edad" ? "Envejeciendo" : "Le sobra piso"}</Chip>
       </div>
       {a && (
-        <p className="text-[13.5px] leading-snug">
+        <p className="text-[15px] leading-snug">
           Ocupa {pct(a.partePiso)} del piso y hace {pct(a.parteVentas)} de lo vendido en {a.dias} días.
         </p>
       )}
       {s.envejeciendo > 0 && (
-        <p className="text-[13px] leading-snug text-taupe">
+        <p className="text-sm leading-snug text-taupe">
           {s.envejeciendo} de sus {unidades(s.piso)} ya pasaron lo que tarda en venderse.
         </p>
       )}
       <div className="mt-auto pt-1">
         {accion.tipo === "completar_tallas" && (
           <>
-            <p className="mb-2 text-[12.5px] leading-snug text-taupe">
+            <p className="mb-2 text-sm leading-snug text-taupe">
               {accion.lineas.length === 1 ? "1 talla guardada" : `${accion.lineas.length} tallas guardadas`} de modelos que ya cuelgan: una talla que falta hace parecer lento al modelo.
             </p>
             {puedeBajar ? (
@@ -54,7 +54,7 @@ function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBa
         )}
         {accion.tipo === "colgar_mas" && (
           <>
-            <p className="mb-2 text-[12.5px] leading-snug text-taupe">Tienes {unidades(accion.enAlmacen)} en el almacén.</p>
+            <p className="mb-2 text-sm leading-snug text-taupe">Tienes {unidades(accion.enAlmacen)} en el almacén.</p>
             {puedeBajar ? (
               <BotonEnlace href={enlaceBajar(accion.lineas)}>
                 Cuelga más
@@ -62,7 +62,7 @@ function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBa
             ) : null}
           </>
         )}
-        {accion.tipo === "pedir" && <p className="text-[12.5px] leading-snug text-taupe">No queda en el almacén: conviene pedir más.</p>}
+        {accion.tipo === "pedir" && <p className="text-sm leading-snug text-taupe">No queda en el almacén: conviene pedir más.</p>}
       </div>
     </li>
   );
@@ -92,11 +92,11 @@ export function FrescuraAguja({
       <TituloSeccion id="frescura-aguja-titulo">{pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}</TituloSeccion>
       {!pisoCuadrado ? (
         <>
-          <p className="mt-1 text-[13.5px] leading-snug">
+          <p className="mt-1 text-[15px] leading-snug">
             {seLlevan.map((c) => `${c.nombre} ${c.unidades}`).join(" · ")} <span className="text-taupe">en 14 días, con lo anotado en caja.</span>
           </p>
-          <p className="mt-1 text-[12.5px] leading-snug text-taupe">
-            Cuando el piso esté cuadrado, aquí vas a ver qué categoría se queda y cuál se lleva más que lo que ocupa.
+          <p className="mt-1 text-sm leading-snug text-taupe">
+            Con el piso cuadrado verás qué categoría vende más de lo que ocupa.
           </p>
         </>
       ) : senales.length === 0 ? (
@@ -113,7 +113,7 @@ export function FrescuraAguja({
       {pisoCuadrado && estrenar.prendas > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand pt-3">
           <Sparkles aria-hidden className="h-5 w-5 shrink-0 text-taupe" />
-          <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
+          <p className="min-w-0 flex-1 text-[15px] leading-snug">
             <span className="font-semibold">
               Sin estrenar: {estrenar.prendas} {estrenar.prendas === 1 ? "prenda" : "prendas"}
             </span>{" "}

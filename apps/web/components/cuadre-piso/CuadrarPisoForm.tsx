@@ -765,7 +765,7 @@ export function CuadrarPisoForm({
               <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.</li>
             </ul>
           ) : (
-            <p className="text-xs text-taupe">Solo lo guardado · sin dañadas ni Apartados · termina hoy y en este equipo.</p>
+            <p className="text-sm text-taupe">Solo lo guardado · sin dañadas ni Apartados · termina hoy y en este equipo.</p>
           )}
 
           {datos.pendientes.length > 0 && (
@@ -868,7 +868,7 @@ export function CuadrarPisoForm({
                         <div className="min-w-0">
                           <p className="text-sm text-tinta">{nombre}</p>
                           {p?.sku && <p className="font-mono text-xs text-tinta/65">{p.sku}</p>}
-                          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-taupe">
+                          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-taupe">
                             <span className="tabular-nums">
                               En el sistema: {cuantas(libre[l.varianteId]?.almacen ?? 0, "guardada", "guardadas")} · {cuantas(libre[l.varianteId]?.piso ?? 0, "colgada", "colgadas")}
                             </span>
@@ -880,7 +880,7 @@ export function CuadrarPisoForm({
                                 </Chip>
                                 <button
                                   type="button"
-                                  className="btn-enlace text-xs"
+                                  className="btn-enlace text-sm"
                                   onClick={() => {
                                     cambiarRepetida({ ...repetidaRef.current, pilas: soltarPila(repetidaRef.current.pilas, l.varianteId) });
                                     volverAlEscaner();

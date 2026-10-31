@@ -154,7 +154,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
               }}
               deshabilitado={guardando}
             />
-            {devuelve && textoCuentaDevuelta(nombre, cierre.cuentaIndicada) && <p className="mt-1.5 text-xs text-taupe">{textoCuentaDevuelta(nombre, cierre.cuentaIndicada)}</p>}
+            {devuelve && textoCuentaDevuelta(nombre, cierre.cuentaIndicada) && <p className="mt-1.5 text-sm text-taupe">{textoCuentaDevuelta(nombre, cierre.cuentaIndicada)}</p>}
           </CampoGuiado>
           <CampoGuiado id="monto" guia={guia} titulo={devuelve ? "¿Cuánto trajo?" : "¿Cuánto le pagas?"} ayuda={devuelve ? "Cuéntala antes" : undefined} className="max-w-xs">
             <CampoMonto
@@ -169,7 +169,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
                 setMonto(e.target.value);
               }}
             />
-            {otroMonto && devuelve && <p className="mt-1.5 text-xs text-taupe">Lo que no trajo sigue en su plata.</p>}
+            {otroMonto && devuelve && <p className="mt-1.5 text-sm text-taupe">Lo que no trajo sigue en su plata.</p>}
           </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo={devuelve ? "Quién recibe" : "Quién paga"}>

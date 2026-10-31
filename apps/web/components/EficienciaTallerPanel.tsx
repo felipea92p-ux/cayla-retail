@@ -66,7 +66,7 @@ export function EficienciaTallerPanel({
       <EncabezadoPagina
         sede={sede}
         titulo="Eficiencia"
-        subtitulo="Cuánto cuesta de verdad cada prenda que sale del Taller: la tela, los avíos y los servicios de afuera de lo que pasó al stock, más lo que cuesta transformarlo —la planilla y los gastos del Taller— repartido entre las prendas buenas."
+        subtitulo="Cuánto cuesta de verdad cada prenda del Taller: materiales más planilla y gastos, repartidos entre las prendas buenas."
       />
 
       {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
@@ -153,7 +153,7 @@ export function EficienciaTallerPanel({
           <section data-guia="prod-eficiencia.reparto" aria-label="En qué se fue la plata" className="card-cayla space-y-3 p-5">
             <div>
               <TituloSeccion>¿En qué se fue la plata del Taller?</TituloSeccion>
-              <p className="text-xs text-tinta/65">Período {actual.ventana.etiqueta}. Lo que gastó el Taller: la planilla, los gastos generales y los materiales y los servicios de afuera de lo que pasó al stock.</p>
+              <p className="text-sm text-tinta/65">Período {actual.ventana.etiqueta}. Lo que gastó el Taller: la planilla, los gastos generales y los materiales y los servicios de afuera de lo que pasó al stock.</p>
             </div>
             {reparto.length === 0 ? (
               <p className="text-sm text-tinta/70">No hay gasto del Taller registrado en este período.</p>
@@ -163,25 +163,25 @@ export function EficienciaTallerPanel({
                 <BarraApilada alto={12} etiqueta="Reparto del gasto del Taller" formato={soles} segmentos={reparto.map((p) => ({ clave: p.clave, nombre: p.etiqueta, valor: p.monto, clase: COLOR_PARTE[p.clave] }))} />
                 <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
                   {reparto.map((p) => (
-                    <li key={p.clave} className="flex items-baseline justify-between gap-3 text-[13px]">
+                    <li key={p.clave} className="flex items-baseline justify-between gap-3 text-sm">
                       <span className="flex items-center gap-2 text-tinta/80">
                         <MuestraTramo clase={COLOR_PARTE[p.clave]} className="h-2 w-2 rounded-full" />
                         {p.etiqueta}
                       </span>
                       <span className="tabular-nums text-tinta">
-                        {soles(p.monto)} <small className="text-xs text-tinta/60">{pct(p.parte)}</small>
+                        {soles(p.monto)} <small className="text-sm text-tinta/60">{pct(p.parte)}</small>
                       </span>
                     </li>
                   ))}
                 </ul>
                 {actual.gastosPorCategoria.length > 0 && (
-                  <p className="text-xs text-tinta/65">Gastos generales: {actual.gastosPorCategoria.map((g) => `${g.categoria} ${soles(g.total)}`).join(" · ")}.</p>
+                  <p className="text-sm text-tinta/65">Gastos generales: {actual.gastosPorCategoria.map((g) => `${g.categoria} ${soles(g.total)}`).join(" · ")}.</p>
                 )}
               </>
             )}
-            {actual.planilla !== null && <p className="text-xs text-tinta/60">Planilla: costo total para CAYLA (sueldos, provisiones de gratificación, CTS y vacaciones, y aportes) de {plural(actual.ventana.planilla?.personas ?? 0, "persona", "personas")}, tal como se pagó.</p>}
+            {actual.planilla !== null && <p className="text-sm text-tinta/60">Planilla: costo total para CAYLA (sueldos, provisiones de gratificación, CTS y vacaciones, y aportes) de {plural(actual.ventana.planilla?.personas ?? 0, "persona", "personas")}, tal como se pagó.</p>}
             {!hayGastos && (
-              <p className="text-xs text-tinta/60">
+              <p className="text-sm text-tinta/60">
                 Alquiler y servicios del Taller aparecerán aquí cuando se registren como gastos del Taller en Finanzas (modelo de gastos, ADR-0117); Producción no lleva una tabla aparte.
               </p>
             )}
@@ -196,7 +196,7 @@ export function EficienciaTallerPanel({
                 <Chip tono="verde">{plural(actual.entregas.aTiempo, "a tiempo", "a tiempo")}</Chip>
                 <Chip tono={actual.entregas.tarde > 0 ? "ambar" : "neutro"}>{plural(actual.entregas.tarde, "tarde", "tarde")}</Chip>
                 {actual.entregas.sinFecha > 0 && <Chip tono="apagado">{plural(actual.entregas.sinFecha, "sin fecha de entrega", "sin fecha de entrega")}</Chip>}
-                <small className="text-xs text-tinta/60">cerrada a tiempo = cerrada en o antes de su fecha de entrega</small>
+                <small className="text-sm text-tinta/60">cerrada a tiempo = cerrada en o antes de su fecha de entrega</small>
               </div>
             )}
           </section>
@@ -208,7 +208,7 @@ export function EficienciaTallerPanel({
               <Tabla>
                 <Encabezado siempre columnas={COLUMNAS_PERIODOS} plantilla={PLANTILLA_PERIODOS} />
                 {periodos.map((p) => (
-                  <div key={p.ventana.clave} role="row" className={fila(PLANTILLA_PERIODOS, `text-[13px] ${p.ventana.clave === actual.ventana.clave ? "bg-sand/40" : ""}`)}>
+                  <div key={p.ventana.clave} role="row" className={fila(PLANTILLA_PERIODOS, `text-sm ${p.ventana.clave === actual.ventana.clave ? "bg-sand/40" : ""}`)}>
                     <span className={celda("izq", "text-tinta")}>{p.ventana.etiqueta}</span>
                     <span className={celda("der")}>{p.prendasBuenas || <span className="text-tinta/45">—</span>}</span>
                     <span className={celda("der")}>{p.materialesPorPrenda !== null ? soles(p.materialesPorPrenda) : <span className="text-tinta/45">—</span>}</span>
@@ -222,7 +222,7 @@ export function EficienciaTallerPanel({
         </>
       )}
 
-      <p data-guia="prod-eficiencia.nota" className="text-xs text-tinta/60">
+      <p data-guia="prod-eficiencia.nota" className="text-sm text-tinta/60">
         Las prendas segundas no se cuentan: el costo de lo que salió mal lo pagan las buenas. Para ver cuánto rinde la tela de cada modelo, mira{" "}
         <Link href="/produccion" className="btn-enlace">
           el Resumen

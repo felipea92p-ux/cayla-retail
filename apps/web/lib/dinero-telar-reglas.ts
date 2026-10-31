@@ -238,6 +238,17 @@ export function avisoCajaFuerte(
 }
 
 /**
+ * El estado del cajón en su fila (rediseño 2026-10-31): «Abierta ahora» si la tienda tiene la caja abierta, «Cerrada» si no. El Taller no
+ * tiene caja (tiene un fondo fijo) y una tienda de la que no se leyó el efectivo no dice nada: nunca se inventa un estado.
+ */
+export function avisoCajon(c: Pick<CuentaDinero, "tipo" | "ubicacionId">, efectivo: readonly Pick<EfectivoFila, "ubicacionId" | "abierta">[], esTaller: boolean): Insignia | null {
+  if (c.tipo !== "cajon" || esTaller || !c.ubicacionId) return null;
+  const f = efectivo.find((e) => e.ubicacionId === c.ubicacionId);
+  if (!f) return null;
+  return f.abierta ? { texto: "Abierta ahora", tono: "verde" } : { texto: "Cerrada", tono: "pizarra" };
+}
+
+/**
  * Lo que dice la fila del cajón bajo su nombre: abierta, desde qué hora y cuánto se vendió en efectivo (la misma cuenta del cierre,
  * `fn_efectivo_por_tienda`); cerrada, desde cuándo. El Taller no tiene caja: tiene un fondo fijo.
  */

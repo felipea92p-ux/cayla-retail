@@ -107,7 +107,7 @@ function BloqueDeHistoria({ evidencia, tienda, nueva, historiaFallo }: { evidenc
     <div className="cal-ev" data-guia="calendario-hoja.historia">
       <p className="mt-0! mb-1.5 text-[15px] font-semibold text-tinta">
         Qué dice tu historia{" "}
-        <small className="text-xs font-normal text-taupe">
+        <small className="text-sm font-normal text-taupe">
           {tienda ? `${tienda.nombre} · ` : ""}
           {textoDeAnios(evidencia.porAnio.length)}
         </small>
@@ -320,13 +320,13 @@ export function HojaDeCampanaCalendario({
               </div>
               {sinFechasEnInsignias && (
                 <p className="nota-cayla">
-                  <b className="font-semibold">«{campana.nombre}» no tiene fechas en Insignias.</b> Ponlas aquí para tu plan de compra: no cambian la insignia, la tienda web ni la meta de caja. Tú decides si participas.
+                  <b className="font-semibold">«{campana.nombre}» no tiene fechas en Insignias.</b> Ponlas aquí: valen solo para tu plan de compra.
                 </p>
               )}
               {ensancha && <p className="nota-cayla">Las fechas del plan pueden ser más anchas que las de la venta: una ventana de compra empieza antes.</p>}
 
               <div className="space-y-1.5">
-                <p className="text-[13px] font-semibold text-tinta">¿Se repite?</p>
+                <p className="text-sm font-semibold text-tinta">¿Se repite?</p>
                 <OpcionesDeRepeticion valor={b.repite} anio={anioDeLaCampana} onValor={(repite) => cambiar({ repite })} />
               </div>
 
@@ -351,12 +351,12 @@ export function HojaDeCampanaCalendario({
                         {...(problemas.pausaHasta ? { tono: "error" as const, pie: problemas.pausaHasta } : {})}
                       />
                     </CampoGuiado>
-                    <p className="text-[12.5px] text-taupe">
+                    <p className="text-sm text-taupe">
                       {b.pausaHasta && !problemas.pausaHasta ? `No se ofrece armar su plan hasta el ${textoDelRegreso(b.pausaHasta)}; ese día vuelve sola.` : "Queda pausada hasta que tú la reactives."} Lo que ya armaste se conserva.
                     </p>
                   </div>
                 )}
-                {b.uso === "no" && <p className="text-[12.5px] text-taupe">No se ofrece armar su plan. Lo que ya armaste se conserva.</p>}
+                {b.uso === "no" && <p className="text-sm text-taupe">No se ofrece armar su plan. Lo que ya armaste se conserva.</p>}
               </div>
             </div>
 
@@ -364,7 +364,7 @@ export function HojaDeCampanaCalendario({
               <BloqueDeHistoria evidencia={evidencia} tienda={tienda} nueva={nueva} historiaFallo={historiaFallo} />
               {nueva && (
                 <p className="nota-cayla">
-                  Vive solo en tu plan de compra. Si también la quieres en la tienda web, créala en Catálogo ▸ Insignias: aparecerá aquí sola.
+                  Vive solo en tu plan. Para la tienda web, créala en Catálogo ▸ Insignias.
                 </p>
               )}
               {!nueva && campana.plan && (

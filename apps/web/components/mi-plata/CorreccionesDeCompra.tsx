@@ -52,7 +52,7 @@ export function CorreccionesDeCompra({ papelId, gastoId, gastoDeFinanzasId }: { 
         <ul className="flex flex-col gap-2 text-sm">
           {lista.map((c) => (
             <li key={c.lote} className="rounded-[12px] bg-hueso px-3 py-2">
-              <span className="block text-xs text-taupe">
+              <span className="block text-sm text-taupe">
                 {c.quien ?? "Alguien"} · {fechaCorta(c.cuando)}
               </span>
               <ul className="mt-0.5">

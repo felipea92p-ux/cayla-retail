@@ -576,7 +576,7 @@ export function PrendasDeEtiquetaModal({
             {leida ? (
               <LecturaReciente leida={leida} pct={etiqueta.descuentoPct} onDeshacer={deshacerLeida} onOtras={ponerOtras} deshabilitado={guardando} />
             ) : (
-              <p className="flex items-center gap-2 text-[12.5px] text-taupe max-md:hidden">
+              <p className="flex items-center gap-2 text-sm text-taupe max-md:hidden">
                 <ScanLine aria-hidden className="h-4 w-4 shrink-0" />
                 {tactil
                   ? "Toca «Cámara» y escanea las etiquetas una tras otra: cada prenda leída se marca sola."
@@ -585,7 +585,7 @@ export function PrendasDeEtiquetaModal({
             )}
 
             <CampoGuiado id="prendas" guia={guia} className="eqp-caja-lista">
-              <div className="flex items-center justify-between gap-2 border-b border-tinta/10 px-3 py-1.5 text-xs text-taupe">
+              <div className="flex items-center justify-between gap-2 border-b border-tinta/10 px-3 py-1.5 text-sm text-taupe">
                 <span className="min-w-0 truncate tabular-nums">
                   {listo ? (
                     <>
@@ -669,7 +669,7 @@ export function PrendasDeEtiquetaModal({
                               </span>
                               <span className="min-w-0 flex-1">
                                 <span className="block truncate text-sm text-tinta">{nombre}</span>
-                                <span className="block truncate text-xs text-taupe">
+                                <span className="block truncate text-sm text-taupe">
                                   {p.categoria} · {textoTallas(p, marcadas, heredada)}
                                   {p.codigo ? <span> · {p.codigo}</span> : null}
                                 </span>
@@ -762,7 +762,7 @@ export function PrendasDeEtiquetaModal({
           {/* ---- Quién registra y los botones, siempre a la vista ---- */}
           <div className="eqp-pie space-y-2.5">
             {!enConfirmacion && (
-              <p className="text-[12.5px] leading-snug text-tinta/75 max-md:hidden" aria-live="polite">
+              <p className="text-sm leading-snug text-tinta/75 max-md:hidden" aria-live="polite">
                 {hayCambio ? textoCambio(cambio, productos, quitadasFuera.length) : "Todavía no cambias nada: marca o escanea prendas."}
               </p>
             )}
@@ -838,11 +838,11 @@ function LecturaReciente({ leida, pct, onDeshacer, onOtras, deshabilitado }: { l
       <span className="min-w-0 flex-1">
         <span className="eqp-leida-estado block">{leida.estado}</span>
         <span className="block truncate text-sm font-medium text-tinta">{leida.titulo}</span>
-        <span className="block truncate text-xs text-taupe">{leida.detalle}</span>
+        <span className="block truncate text-sm text-taupe">{leida.detalle}</span>
       </span>
       {precio && (
         <span className="hidden shrink-0 text-right tabular-nums leading-tight sm:block">
-          <span className="block text-[11px] text-taupe line-through">{soles(precio.antes)}</span>
+          <span className="block text-sm text-taupe line-through">{soles(precio.antes)}</span>
           <span className="block text-sm font-medium text-tinta">{precio.despues === 0 ? "Gratis" : soles(precio.despues)}</span>
         </span>
       )}
@@ -907,7 +907,7 @@ function Revision({
           </div>
         )}
         {quitadasFuera > 0 && (
-          <p className="text-xs text-tinta/65">
+          <p className="text-sm text-tinta/65">
             Además se la quitarás a {quitadasFuera} {quitadasFuera === 1 ? "prenda que ya no se vende" : "prendas que ya no se venden"}.
           </p>
         )}
@@ -920,10 +920,10 @@ function Revision({
  *  baja el precio a la vista, que es justo lo que va a pasar en la caja. */
 function PrecioFila({ precio, lleva }: { precio: { antes: number; despues: number; desde: boolean }; lleva: boolean }) {
   const desde = precio.desde ? "desde " : "";
-  if (!lleva) return <span className="shrink-0 text-right text-xs tabular-nums text-taupe">{desde}{soles(precio.antes)}</span>;
+  if (!lleva) return <span className="shrink-0 text-right text-sm tabular-nums text-taupe">{desde}{soles(precio.antes)}</span>;
   return (
     <span className="shrink-0 text-right tabular-nums leading-tight">
-      <span className="block text-[11px] text-taupe line-through">{soles(precio.antes)}</span>
+      <span className="block text-sm text-taupe line-through">{soles(precio.antes)}</span>
       <span className="block text-sm text-tinta">{desde}{precio.despues === 0 ? "Gratis" : soles(precio.despues)}</span>
     </span>
   );

@@ -217,7 +217,7 @@ function EnvioConBase({
     <div className="space-y-4">
       {cambioElPlan && (
         <Aviso tono="atencion" titulo="El plan cambió después de enviar">
-          Lo que está pendiente en Compras tiene lo de antes (versión anterior del paso 2). Rectifica el envío y vuelve a enviar para que coincidan.
+          Compras tiene la versión anterior del paso 2. Rectifica el envío y vuelve a enviar.
         </Aviso>
       )}
       {porRevisar && (
@@ -230,7 +230,7 @@ function EnvioConBase({
             </Boton>
           }
         >
-          El total del paso 1 cambió desde que lo guardaste. Revisa el paso 2 antes de enviar: lo que se manda a Compras es lo que está repartido.
+          El total del paso 1 cambió. Revisa el paso 2: a Compras va lo que está repartido ahí.
         </Aviso>
       )}
       {costo === null && (
@@ -241,7 +241,7 @@ function EnvioConBase({
 
       <p className="text-sm text-tinta/80">
         {planNombre} · <b className="font-semibold text-tinta">{enteroES.format(enviables)} prendas</b> de {filaPlan.c.nombre} con modelo, color, talla y proveedor. Enviar{" "}
-        <b className="font-semibold text-tinta">no pide nada</b>: deja cada pedido como «Pendiente de campaña, falta confirmar» en Compras, con la fecha en que piensas pedirlo.
+        <b className="font-semibold text-tinta">no pide nada</b>: deja cada pedido como «Pendiente de campaña, falta confirmar» en Compras.
       </p>
 
       {estados.length === 0 ? (
@@ -301,7 +301,7 @@ function EnvioConBase({
         </div>
       )}
 
-      <p className="text-xs text-taupe">En Finanzas, lo pendiente sigue contando como «falta pedir»; al confirmar cada pedido pasa a «pedido sin pagar».</p>
+      <p className="text-sm text-taupe">En Finanzas, lo pendiente sigue contando como «falta pedir»; al confirmar cada pedido pasa a «pedido sin pagar».</p>
 
       {conflicto && (
         <Aviso
@@ -414,7 +414,7 @@ function FilaDeProveedor({
     <div className={fila(PLANTILLA)} data-proveedor={g.proveedorId}>
       <span className={celda("izq", "min-w-0")}>
         <b className="block truncate font-semibold text-tinta">{g.proveedor}</b>
-        <span className="block whitespace-normal text-xs text-taupe">
+        <span className="block whitespace-normal text-sm text-taupe">
           {g.modelos} {g.modelos === 1 ? "modelo" : "modelos"} · va a Compras ▸ Órdenes
         </span>
       </span>
@@ -484,12 +484,12 @@ function FilaDeProveedor({
               </Chip>
             )}
             {e.anterior && (
-              <span className="basis-full text-xs text-taupe">
+              <span className="basis-full text-sm text-taupe">
                 Ya se pidió antes{e.anterior.ordenTexto ? ` (${e.anterior.ordenTexto}, ${enteroES.format(e.anterior.unidades)} prendas)` : ""}: esto es una segunda tanda.
               </span>
             )}
             {e.rectificado && (
-              <span className="basis-full text-xs text-taupe">
+              <span className="basis-full text-sm text-taupe">
                 Antes se rectificó{e.rectificado.motivo ? `: ${e.rectificado.motivo}` : ""}.
               </span>
             )}

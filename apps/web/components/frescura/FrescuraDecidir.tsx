@@ -107,7 +107,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
       }}
       className="space-y-5"
     >
-      <p className="text-[13.5px] leading-relaxed text-tinta/80">Elige lo que hiciste. Solo se anota: aquí no se mueve nada de stock ni se cambia ningún precio.</p>
+      <p className="text-[15px] leading-relaxed text-tinta/80">Elige lo que hiciste. Solo se anota: no mueve stock ni cambia precios.</p>
 
       <CampoGuiado id="opcion" guia={guia} titulo="Qué hiciste con ella">
         <div role="radiogroup" aria-label="Qué hiciste con la prenda" className="grid gap-2">
@@ -116,7 +116,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
               {o.clave === "traslade" && !o.deshabilitada && opcion === "traslade" && traslados.length > 1 && (
                 <div role="radiogroup" aria-label="Cuál traslado" className="mt-2 grid gap-1.5">
                   {traslados.map((t) => (
-                    <label key={t.id} className="flex cursor-pointer items-start gap-2 rounded-lg bg-hueso px-3 py-2 text-[13px]">
+                    <label key={t.id} className="flex cursor-pointer items-start gap-2 rounded-lg bg-hueso px-3 py-2 text-sm">
                       <input type="radio" name="traslado" checked={trasladoElegido?.id === t.id} onChange={() => setTrasladoId(t.id)} className="mt-0.5" />
                       <span>{textoTrasladoElegible(t, ahora)}</span>
                     </label>
@@ -124,14 +124,14 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
                 </div>
               )}
               {o.clave === "traslade" && !o.deshabilitada && opcion === "traslade" && traslados.length === 1 && (
-                <p className="mt-2 rounded-lg bg-hueso px-3 py-2 text-[13px]">{textoTrasladoElegible(traslados[0], ahora)}</p>
+                <p className="mt-2 rounded-lg bg-hueso px-3 py-2 text-sm">{textoTrasladoElegible(traslados[0], ahora)}</p>
               )}
               {o.clave === "traslade" && o.deshabilitada && o.motivo === "Armar el traslado" && hrefArmarTraslado(prenda) && acceso.traslados && (
                 <Link href={hrefArmarTraslado(prenda)!} className="btn-cayla btn-secundario btn-chico mt-2 inline-flex">
                   Armar traslado
                 </Link>
               )}
-              {o.deshabilitada && o.clave === "traslade" && o.motivo && o.motivo !== "Armar el traslado" && <p className="mt-1.5 text-[12.5px] text-taupe">{o.motivo}</p>}
+              {o.deshabilitada && o.clave === "traslade" && o.motivo && o.motivo !== "Armar el traslado" && <p className="mt-1.5 text-sm text-taupe">{o.motivo}</p>}
               {o.clave === "sacar" && opcion === "sacar" && hrefExistencias(prenda) && acceso.existencias && (
                 <Link href={hrefExistencias(prenda)!} className="btn-cayla btn-secundario btn-chico mt-2 inline-flex">
                   Retirar del piso en Existencias
@@ -168,7 +168,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
       )}
 
       {error && (
-        <div role="alert" className="rounded-xl bg-hueso px-3.5 py-3 text-[13.5px] leading-relaxed">
+        <div role="alert" className="rounded-xl bg-hueso px-3.5 py-3 text-[15px] leading-relaxed">
           <p>{error.texto}</p>
           {error.conVer && (
             <button type="button" className="btn-cayla btn-enlace mt-1 text-[13px]" onClick={() => (anotador.limpiarError(), router.refresh())}>
@@ -179,7 +179,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
       )}
 
       {opcion === "sacar" ? (
-        <p className="text-[13px] text-taupe">
+        <p className="text-sm text-taupe">
           {elegida?.consecuencia} Cuando la retires, no hace falta anotar nada aquí.
         </p>
       ) : (
@@ -213,7 +213,7 @@ function TarjetaOpcion({ o, marcada, onElegir, children }: { o: OpcionDeDecision
         <input type="radio" name="accion" value={o.clave} checked={marcada} disabled={o.deshabilitada} onChange={onElegir} className="mt-1" />
         <span>
           <span className="block text-[15px] font-semibold leading-tight">{o.titulo}</span>
-          <span className="mt-0.5 block text-[13px] leading-snug text-taupe">{o.consecuencia}</span>
+          <span className="mt-0.5 block text-sm leading-snug text-taupe">{o.consecuencia}</span>
         </span>
       </label>
       {children}
@@ -268,7 +268,7 @@ export function FrescuraQuitar({ decisionId, sede, onNo, onListo }: { decisionId
       className="space-y-4 rounded-xl border border-sand bg-papel px-3.5 py-3.5"
     >
       <p className="text-[14px] font-semibold leading-snug">¿Quitar lo anotado?</p>
-      <p className="text-[13px] leading-relaxed text-taupe">Vuelve a «Por decidir» si sigue quieta, y lo que se había anotado queda en el historial.</p>
+      <p className="text-sm leading-relaxed text-taupe">Vuelve a «Por decidir» si sigue quieta, y lo que se había anotado queda en el historial.</p>
       <CampoGuiado id="nota" guia={guia}>
         <CampoTexto etiqueta={guia.etiqueta("nota", "¿Qué pasó? (opcional)")} value={nota} maxLength={280} caja onChange={(e) => setNota(e.target.value)} />
       </CampoGuiado>
@@ -276,7 +276,7 @@ export function FrescuraQuitar({ decisionId, sede, onNo, onListo }: { decisionId
         <ComboResponsable control={responsable} deshabilitado={enviando} />
       </CampoGuiado>
       {error && (
-        <p role="alert" className="rounded-lg bg-hueso px-3 py-2 text-[13px]">
+        <p role="alert" className="rounded-lg bg-hueso px-3 py-2 text-sm">
           {error}
         </p>
       )}

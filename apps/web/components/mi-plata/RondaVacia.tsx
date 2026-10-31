@@ -17,7 +17,7 @@ export function PrimeraRonda() {
   return (
     <div className="card-cayla hidden p-6 lg:block">
       <Vacio icono={<Flag aria-hidden />} titulo="Aquí van a vivir tus rondas de compras">
-        Cada salida a comprar es una ronda con su número. Ábrela al salir, anota lo que compras y gastas, y ciérrala al volver: aquí queda la cuenta de cada una.
+        Cada salida a comprar es una ronda con su número; aquí queda la cuenta de cada una.
       </Vacio>
     </div>
   );
@@ -37,7 +37,7 @@ export function RondaVacia({ texto }: { texto: string }) {
                   {p.n}
                 </span>
                 <b className="text-sm font-medium text-tinta">{p.titulo}</b>
-                <span className="text-[13px] text-taupe">{p.texto}</span>
+                <span className="text-sm text-taupe">{p.texto}</span>
               </li>
             ))}
           </ol>

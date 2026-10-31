@@ -86,7 +86,7 @@ function FotoPapel({ papel }: { papel: PapelConFoto }) {
       <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-2xl bg-hueso p-5 text-center">
         <ImageOff className="h-5 w-5 text-taupe" aria-hidden />
         <span className="text-sm font-medium text-tinta">{papel.fotoRuta ? "La foto no se pudo abrir" : "Sin foto"}</span>
-        <span className="text-xs text-taupe">
+        <span className="text-sm text-taupe">
           {papel.fotoRuta ? "Recarga la pantalla" : papel.tipo === "sin_comprobante" ? "No le dieron papel" : `Pídele el papel a ${primerNombre(papel.persona)}`}
         </span>
       </div>
@@ -144,7 +144,7 @@ function Bloque({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold text-tinta">{titulo}</span>
-          {linea && <span className="block text-[13px] text-taupe">{linea}</span>}
+          {linea && <span className="block text-sm text-taupe">{linea}</span>}
         </span>
         {derecha}
       </div>
@@ -191,7 +191,7 @@ function Veredicto({ papel: p, monto }: { papel: PapelConFoto; monto: number }) 
           <span className="block text-sm font-semibold tabular-nums text-tinta">{soles(v.anotado)}</span>
         </span>
       </div>
-      <span className="mt-2 block text-xs text-ambar-profundo">{notaNoCuadra(p.tipo)}</span>
+      <span className="mt-2 block text-sm text-ambar-profundo">{notaNoCuadra(p.tipo)}</span>
     </div>
   );
 }
@@ -259,7 +259,7 @@ function Prendas({ papel }: { papel: PapelConFoto }) {
                 <span className="block truncate text-tinta">
                   {x.cantidad} · {x.nombre}
                 </span>
-                <span className="block text-xs text-taupe">
+                <span className="block text-sm text-taupe">
                   {soles(x.costo)} c/u · {x.destino}
                   {textoFaltan(x) ? <span className="text-ambar-profundo"> · {textoFaltan(x)}</span> : null}
                 </span>
@@ -398,7 +398,7 @@ export function DetallePapel({
           />
         </CampoGuiado>
       ) : (
-        <p className="text-xs text-taupe">Va con un número interno (SC-…): no le dieron papel.</p>
+        <p className="text-sm text-taupe">Va con un número interno (SC-…): no le dieron papel.</p>
       )}
       {cambiaMonto && (
         <CampoGuiado id="monto" guia={guia} titulo="Lo que dice el papel">
@@ -411,7 +411,7 @@ export function DetallePapel({
             disabled={guardando}
             onChange={(e) => limpiar(setMonto)(e.target.value)}
           />
-          <p className="mt-1.5 text-xs text-taupe">
+          <p className="mt-1.5 text-sm text-taupe">
             {nombre} anotó {soles(papel.monto)}
           </p>
         </CampoGuiado>
@@ -432,7 +432,7 @@ export function DetallePapel({
             {papel.noPasoPor}
           </Aviso>
         )}
-        {papel.esMia && <p className="text-xs text-taupe">Que la complete otra persona de Compras.</p>}
+        {papel.esMia && <p className="text-sm text-taupe">Que la complete otra persona de Compras.</p>}
         {campos && <div className="mt-2 flex flex-col gap-3">{campos}</div>}
       </div>
     </div>
@@ -513,7 +513,7 @@ export function DetallePapel({
           )}
           <PieGuia guia={guia} listo="Todo listo para completarla." conFrase />
           <div className="flex flex-wrap items-center gap-3 border-t border-sand pt-4">
-            {posicion && <span className="text-[13px] text-taupe">{posicion}</span>}
+            {posicion && <span className="text-sm text-taupe">{posicion}</span>}
             <div className="pie-acciones ml-auto">
               {alSaltar && (
                 <Boton type="button" peso="fantasma" onClick={alSaltar} disabled={guardando}>

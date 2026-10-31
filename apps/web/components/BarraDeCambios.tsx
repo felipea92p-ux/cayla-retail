@@ -67,7 +67,7 @@ export function BarraDeCambios({
           <span aria-hidden className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-ambar" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-tinta">Tienes {cifra === 1 ? "1 cambio" : `${cifra} cambios`} sin guardar</p>
-            <p className="text-[13px] text-tinta/65">
+            <p className="text-sm text-tinta/65">
               {yaSeGuardoLoDemas ? "Lo demás ya quedó guardado; falta esto." : "Aún no se guardó nada."}
               <span className="hidden sm:inline">{yaSeGuardoLoDemas ? " Pulsa «Revisar y guardar»." : " Cuando termines, pulsa «Revisar y guardar»."}</span>
             </p>

@@ -12,7 +12,7 @@ export function SinRegistrarDeHoy({ conteo, verMesa }: { conteo: ConteoSinRegist
   const frase = fraseSinRegistrar(conteo);
   if (!frase) return null;
   return (
-    <p className="mt-3 text-center text-xs text-tinta/65" data-sin-registrar-hoy>
+    <p className="mt-3 text-center text-sm text-tinta/65" data-sin-registrar-hoy>
       {frase}
       {verMesa && (
         <>

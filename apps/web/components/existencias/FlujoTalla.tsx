@@ -87,7 +87,7 @@ function Opcion({ marcada, titulo, sub, onClick, deshabilitada = false }: { marc
       className="grid min-h-14 content-center gap-0.5 rounded-2xl border border-sand bg-papel px-3.5 py-2.5 text-left transition-colors hover:border-taupe disabled:cursor-not-allowed disabled:opacity-45 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel [&[aria-pressed=true]_small]:text-sand"
     >
       <b className="text-[15px] font-semibold">{titulo}</b>
-      {sub && <small className="text-xs leading-snug text-taupe">{sub}</small>}
+      {sub && <small className="text-sm leading-snug text-taupe">{sub}</small>}
     </button>
   );
 }
@@ -122,12 +122,12 @@ function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: b
   const Ico = lado.lugar === "piso" ? IconoPercha : Archive;
   return (
     <div className={`rounded-2xl border px-3 py-2.5 text-center ${destino ? "border-verde/40 bg-verde/[0.08]" : "border-sand bg-crema"}`}>
-      <p className="flex items-center justify-center gap-1.5 text-[12.5px] text-taupe">
+      <p className="flex items-center justify-center gap-1.5 text-sm text-taupe">
         <Ico aria-hidden className="h-3.5 w-3.5" />
         {lado.lugar === "piso" ? "En el piso" : "Almacén"}
       </p>
       <b className={`block font-display text-[38px] font-medium leading-[1.05] tabular-nums ${destino ? "text-verde" : "text-tinta"}`}>{lado.despues}</b>
-      <small className="text-[11.5px] text-taupe">antes {lado.antes}</small>
+      <small className="text-sm text-taupe">antes {lado.antes}</small>
     </div>
   );
 }
@@ -157,12 +157,12 @@ function NotaSubida({ valor, onValor }: { valor: string; onValor: (v: string) =>
  *  libre en la sede, «Se acabó». El mismo dibujo que la celda de Colgar varias, con el tope en el piso. */
 function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<typeof celdaSubirVarias>; n: number; etiqueta: string; fondo: string; onValor: (n: number, max: number) => void }) {
   if (celda.tipo === "acabo")
-    return <td className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-[12.5px] font-semibold text-rojo-profundo">Se acabó</td>;
+    return <td className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-sm font-semibold text-rojo-profundo">Se acabó</td>;
   if (celda.tipo === "sinPiso")
     return (
       <td title={`${etiqueta}: nada colgado`} className="border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe">
         <b className="block font-normal">—</b>
-        <small className="block text-[10.5px]">{celda.almacen} en almacén</small>
+        <small className="block text-sm">{celda.almacen} en almacén</small>
       </td>
     );
   return (
@@ -182,8 +182,8 @@ function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<
           className: n > 0 ? "text-verde" : "",
         }}
       />
-      <small className="mt-1 block text-[10.5px] text-taupe">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
-      <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
+      <small className="mt-1 block text-sm text-taupe">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
+      <small className="block text-sm text-taupe/75">{celda.almacen} en almacén</small>
     </td>
   );
 }
@@ -192,7 +192,7 @@ function Pregunta({ children, ayuda }: { children: ReactNode; ayuda?: ReactNode 
   return (
     <div className="mb-3">
       <p className="font-display text-[22px] leading-tight text-tinta">{children}</p>
-      {ayuda && <p className="mt-1 text-[13px] text-taupe">{ayuda}</p>}
+      {ayuda && <p className="mt-1 text-sm text-taupe">{ayuda}</p>}
     </div>
   );
 }
@@ -620,7 +620,7 @@ export function FlujoTalla({
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                   <LadoDelViaje lado={viaje.de} />
                   <span aria-hidden className="flex flex-col items-center gap-1 text-taupe">
-                    <b className="rounded-full bg-tinta px-2.5 py-0.5 text-[13px] text-papel tabular-nums">{d.n ?? 0}</b>
+                    <b className="rounded-full bg-tinta px-2.5 py-0.5 text-sm text-papel tabular-nums">{d.n ?? 0}</b>
                     <ArrowRight className="h-4 w-4" />
                   </span>
                   <LadoDelViaje lado={viaje.a} destino />
@@ -628,18 +628,18 @@ export function FlujoTalla({
               </div>
             )}
             {/* Subir: si la talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
-            {tipo === "subir" && (d.n ?? 0) > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-[13px] text-tinta">{textoDelBloqueSubir(tallasParaReponer([fila]), { [fila.varianteId]: d.n ?? 0 })}</p>}
+            {tipo === "subir" && (d.n ?? 0) > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-sm text-tinta">{textoDelBloqueSubir(tallasParaReponer([fila]), { [fila.varianteId]: d.n ?? 0 })}</p>}
             {tipo === "subir" && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
             {tipo === "subir" && (
               <p className="mt-4">
-                <button type="button" onClick={() => onCambiar("subirVarias", { cant: {} })} className="btn-enlace text-[13px]">
+                <button type="button" onClick={() => onCambiar("subirVarias", { cant: {} })} className="btn-enlace text-sm">
                   ¿Más tallas o colores? Subir varias
                 </button>
               </p>
             )}
             {tipo === "colgar" && (
               <p className="mt-4">
-                <button type="button" onClick={() => onCambiar("colgarVarias", { cant: {} })} className="btn-enlace text-[13px]">
+                <button type="button" onClick={() => onCambiar("colgarVarias", { cant: {} })} className="btn-enlace text-sm">
                   ¿Más tallas o colores? Colgar varias
                 </button>
               </p>
@@ -669,7 +669,7 @@ export function FlujoTalla({
           <>
             {/* Textos cortos (Felipe, 2026-10-07: «con una frase corta se debe entender»): las celdas ya dicen lo demás. */}
             <Pregunta ayuda={ayuda}>{subiendo ? "¿Cuántas descuelgas?" : "¿Cuántas sacas al piso?"}</Pregunta>
-            <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12.5px] text-taupe" role="group" aria-label="Llenar de un toque">
+            <div className="mb-2.5 flex flex-wrap items-center gap-2 text-sm text-taupe" role="group" aria-label="Llenar de un toque">
               <label htmlFor="colgar-llenar">Llenar todas con</label>
               <input
                 id="colgar-llenar"
@@ -699,14 +699,14 @@ export function FlujoTalla({
               </button>
             </div>
             <div className="scroll-cayla max-h-[52vh] overflow-auto rounded-xl border border-sand bg-papel">
-              <table className="w-full border-separate border-spacing-0 text-[13px]">
+              <table className="w-full border-separate border-spacing-0 text-sm">
                 <thead>
                   <tr>
-                    <th scope="col" className="sticky left-0 top-0 z-[3] border-r border-sand bg-hueso py-2 pl-3.5 pr-2 text-left text-xs font-semibold text-tinta">Color</th>
+                    <th scope="col" className="sticky left-0 top-0 z-[3] border-r border-sand bg-hueso py-2 pl-3.5 pr-2 text-left text-sm font-semibold text-tinta">Color</th>
                     {tallasDeTodos.map((t) => (
-                      <th key={t} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">{t}</th>
+                      <th key={t} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-2 text-center text-sm font-semibold tabular-nums text-tinta">{t}</th>
                     ))}
-                    {muchas && <th scope="col" className="sticky top-0 z-[2] border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe">Total</th>}
+                    {muchas && <th scope="col" className="sticky top-0 z-[2] border-l border-sand bg-hueso px-2 py-2 text-center text-sm font-semibold text-taupe">Total</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -714,7 +714,7 @@ export function FlujoTalla({
                     const fondo = i % 2 === 1 ? "bg-hueso/40" : "bg-papel";
                     return (
                       <tr key={c.clave}>
-                        <th scope="row" className={`sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand py-2 pl-3.5 pr-2.5 text-left text-[13px] font-semibold text-tinta ${fondo}`}>
+                        <th scope="row" className={`sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand py-2 pl-3.5 pr-2.5 text-left text-sm font-semibold text-tinta ${fondo}`}>
                           <span aria-hidden data-color-dato className="absolute inset-y-0 left-0 w-[5px]" style={{ background: c.colorHex ?? "var(--color-sand)" }} />
                           <span className="flex items-center gap-1.5">
                             <i aria-hidden data-color-dato className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
@@ -728,7 +728,7 @@ export function FlujoTalla({
                           const celda = celdaColgarVarias(t, faltan);
                           if (celda.tipo === "acabo")
                             return (
-                              <td key={nombre} className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-[12.5px] font-semibold text-rojo-profundo">
+                              <td key={nombre} className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-sm font-semibold text-rojo-profundo">
                                 Se acabó
                               </td>
                             );
@@ -736,7 +736,7 @@ export function FlujoTalla({
                             return (
                               <td key={nombre} title={`${c.color ?? ""} ${nombre}: no hay en almacén`} className={`border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe`}>
                                 <b className="block font-normal">—</b>
-                                <small className="block text-[10.5px]">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
+                                <small className="block text-sm">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
                               </td>
                             );
                           const n = cant[t.varianteId] ?? 0;
@@ -760,10 +760,10 @@ export function FlujoTalla({
                                   className: n > 0 ? "text-verde" : "",
                                 }}
                               />
-                              <small className={`mt-1 block text-[10.5px] ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
+                              <small className={`mt-1 block text-sm ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
                                 {celda.falta ? "falta" : celda.piso === 0 ? "nada colgado" : `${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
                               </small>
-                              <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
+                              <small className="block text-sm text-taupe/75">{celda.almacen} en almacén</small>
                             </td>
                           );
                         })}
@@ -775,7 +775,7 @@ export function FlujoTalla({
                 {colores.length > 1 && (
                   <tfoot>
                     <tr>
-                      <th scope="row" className="sticky left-0 z-[1] border-r border-t-[1.5px] border-sand bg-hueso py-2 pl-3.5 text-left text-xs font-semibold">Total</th>
+                      <th scope="row" className="sticky left-0 z-[1] border-r border-t-[1.5px] border-sand bg-hueso py-2 pl-3.5 text-left text-sm font-semibold">Total</th>
                       {tallasDeTodos.map((t) => (
                         <td key={t} className="border-t-[1.5px] border-sand bg-hueso py-2 text-center font-bold tabular-nums">{tot.porTalla[t] ?? 0}</td>
                       ))}
@@ -785,12 +785,12 @@ export function FlujoTalla({
                 )}
               </table>
             </div>
-            <p className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-[11.5px] text-taupe">
+            <p className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-sm text-taupe">
               {!subiendo && <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-ambar/40 bg-ambar/[0.14]" />falta en el piso</span>}
               <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />{subiendo ? "nada colgado" : "no hay en almacén"}</span>
             </p>
             {/* Subir: si alguna talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
-            {subiendo && tot.total > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-[13px] text-tinta">{textoDelBloqueSubir(tallasParaReponer(todas), cant)}</p>}
+            {subiendo && tot.total > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-sm text-tinta">{textoDelBloqueSubir(tallasParaReponer(todas), cant)}</p>}
             {subiendo && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
           </>
         );
@@ -885,7 +885,7 @@ export function FlujoTalla({
                 className={`${CLASE_TEXTO} sm:col-span-2`}
               />
             </div>
-            {(d.celular ?? "").length === 9 && !celularValido(d.celular) && <p className="mt-2 text-[13px] text-ambar-profundo">Un celular empieza en 9.</p>}
+            {(d.celular ?? "").length === 9 && !celularValido(d.celular) && <p className="mt-2 text-sm text-ambar-profundo">Un celular empieza en 9.</p>}
           </>
         );
       case "lugar": {
@@ -907,12 +907,12 @@ export function FlujoTalla({
             <Pregunta>¿Qué tiene?</Pregunta>
             <div role="group" aria-label="Qué tiene la prenda" className="mb-3 flex flex-wrap gap-1.5">
               {TIPOS_DANO.map((x) => (
-                <button key={x.valor} type="button" aria-pressed={d.tipoDano === x.valor} onClick={() => poner({ tipoDano: x.valor })} className="rounded-full border border-sand bg-papel px-3 py-1.5 text-[13px] text-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel">
+                <button key={x.valor} type="button" aria-pressed={d.tipoDano === x.valor} onClick={() => poner({ tipoDano: x.valor })} className="rounded-full border border-sand bg-papel px-3 py-1.5 text-sm text-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel">
                   {x.etiqueta}
                 </button>
               ))}
             </div>
-            <label htmlFor="flujo-quetiene" className="mb-1 block text-[13px] text-taupe">
+            <label htmlFor="flujo-quetiene" className="mb-1 block text-sm text-taupe">
               {d.tipoDano === "otro" ? "Cuéntanos qué tiene" : "Algo más (opcional)"}
             </label>
             <textarea
@@ -945,17 +945,17 @@ export function FlujoTalla({
                 {foto ? "Cambiar la foto" : "Agregar una foto del daño (opcional)"}
               </label>
               {foto && (
-                <p className="mt-1.5 flex items-center gap-2 text-[13px] text-taupe">
+                <p className="mt-1.5 flex items-center gap-2 text-sm text-taupe">
                   <span className="min-w-0 truncate">{foto.name}</span>
                   <button type="button" className="btn-cayla btn-enlace" onClick={() => setFoto(null)} disabled={enviando || incierto}>
                     Quitar
                   </button>
                 </p>
               )}
-              {objecionFoto && <p className="mt-1.5 text-[13px] text-ambar-profundo">{objecionFoto}</p>}
+              {objecionFoto && <p className="mt-1.5 text-sm text-ambar-profundo">{objecionFoto}</p>}
             </div>
             {/* Lo que pasa al reportar, ANTES de confirmar: el acto físico primero (si sigue colgada, se puede vender). */}
-            <p className="mt-3 rounded-xl bg-hueso px-3 py-2.5 text-[13px] text-tinta">{quePasaAlReportar(d.lugar ?? null)}{fraseDejarEn(lugarDanadas) ? ` ${fraseDejarEn(lugarDanadas)}` : ""}</p>
+            <p className="mt-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta">{quePasaAlReportar(d.lugar ?? null)}{fraseDejarEn(lugarDanadas) ? ` ${fraseDejarEn(lugarDanadas)}` : ""}</p>
           </>
         );
       case "quien": {
@@ -998,7 +998,7 @@ export function FlujoTalla({
           {pasos.map((p, j) => {
             const hecho = j < i && pasoCompleto(p, tipo, d, ctx);
             return (
-              <li key={p} aria-current={j === i ? "step" : undefined} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12.5px] ${j === i ? "border-tinta bg-tinta text-papel" : hecho ? "border-verde/40 text-verde" : "border-sand text-taupe"}`}>
+              <li key={p} aria-current={j === i ? "step" : undefined} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm ${j === i ? "border-tinta bg-tinta text-papel" : hecho ? "border-verde/40 text-verde" : "border-sand text-taupe"}`}>
                 <span className="tabular-nums">{hecho ? "✓" : j + 1}</span>
                 {ETIQUETA_PASO[p]}
               </li>

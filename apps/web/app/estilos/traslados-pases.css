@@ -1,5 +1,6 @@
 /* ====================================================================
    Traslados · la billetera de pases (ADR-0355; maqueta: docs/maquetas/traslados-visual-2026-10/d-pases.html)
+   Ronda 19 de /unificar (2026-10-30): el texto que se lee, de 11,5–13 px a 14 px; las versalitas y los sellos quedan igual.
 
    Cada traslado es un pase de abordar: de qué sede a cuál en grande, tres datos y un botón. El pase GIRA para contar (reverso)
    y, al terminar, le cae un sello de goma. Solo tokens de globals.css (el modo oscuro sale solo, ADR-0336). Movimiento
@@ -87,7 +88,7 @@
 
 .tp-pestanas { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--color-hueso); border-radius: 13px; padding: 4px; }
 .tp-pestanas-ind { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px; background: var(--color-papel); box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent); transform: translateX(calc(var(--tp-k, 0) * 100%)); transition: transform 0.45s var(--ease-cayla); }
-.tp-pestanas button { position: relative; z-index: 1; display: flex; gap: 6px; align-items: center; justify-content: center; padding: 8px 6px; font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); transition: color 0.25s; }
+.tp-pestanas button { position: relative; z-index: 1; display: flex; gap: 6px; align-items: center; justify-content: center; padding: 8px 6px; font-size: 14px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); transition: color 0.25s; }
 .tp-pestanas button[aria-selected="true"] { color: var(--color-tinta); }
 .tp-pestanas .tp-n { font-family: var(--font-serif); font-size: 17px; font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-pestanas .tp-bd { min-width: 20px; height: 20px; border-radius: 99px; background: var(--color-ambar); color: var(--color-papel); font-size: 11px; font-weight: 800; display: grid; place-items: center; padding: 0 6px; }
@@ -104,13 +105,13 @@
 .tp-mini-banda { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px 0 10px; background: var(--tp-md); color: var(--tp-c); }
 .tp-mini-banda .tp-sello { --tp-sz: 28px; border-radius: 9px; }
 .tp-mini-nombre { flex: 1; min-width: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tp-mini-num { font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); white-space: nowrap; }
+.tp-mini-num { font-size: 14px; font-weight: 700; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); white-space: nowrap; }
 .tp-mini-ruta { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; height: 58px; padding: 0 14px; color: var(--color-tinta); }
 .tp-mini-ruta .tp-cod { font-family: var(--font-serif); font-size: 26px; line-height: 1; letter-spacing: 0.03em; white-space: nowrap; }
 .tp-mini-ruta .tp-cod[data-largo] { font-size: 21px; letter-spacing: 0; }
 .tp-mini-cifra { text-align: right; line-height: 1; min-width: 62px; }
 .tp-mini-cifra b { font-family: var(--font-serif); font-weight: 400; font-size: 24px; color: var(--tp-c); white-space: nowrap; }
-.tp-mini-cifra small { display: block; margin-top: 3px; font-size: 10.5px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-mini-cifra small { display: block; margin-top: 3px; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-mini-sello { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; border: 2px double var(--tp-c); color: var(--tp-c); border-radius: 6px; padding: 1px 6px; transform: rotate(-8deg); }
 
 /* ── La línea del viaje (pase grande y franja) ── */
@@ -148,18 +149,18 @@
 .tp-banda { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 20px 0 14px; background: var(--tp-md); color: var(--tp-c); }
 .tp-banda .tp-sello { --tp-sz: 40px; border-radius: 12px; }
 .tp-banda-nombre { flex: 1; min-width: 0; font-size: 11.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
-.tp-banda-num { font-size: 13px; font-weight: 700; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); white-space: nowrap; }
+.tp-banda-num { font-size: 14px; font-weight: 700; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); white-space: nowrap; }
 .tp-ruta { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 26px 24px 8px; color: var(--color-tinta); }
 .tp-ruta .tp-cod { display: block; font-family: var(--font-serif); font-size: 58px; line-height: 0.95; letter-spacing: 0.03em; white-space: nowrap; }
 .tp-ruta .tp-cod[data-largo] { font-size: 46px; letter-spacing: 0; }
-.tp-ruta .tp-sede { display: block; margin-top: 6px; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-ruta .tp-sede { display: block; margin-top: 6px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-ruta .tp-der { text-align: right; }
 .tp-letra { display: inline-block; min-width: 0.55em; text-align: center; }
 .tp-letra[data-gira] { color: color-mix(in srgb, var(--color-tinta) 36%, transparent); } /* contraste: no aplica — la letra mientras gira (aria-hidden): dura un instante y se detiene en tinta plena */
 .tp-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 18px 24px 6px; }
 .tp-campos small { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-campos b { display: block; margin-top: 4px; font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.15; color: var(--color-tinta); }
-.tp-campos em { display: block; margin-top: 2px; font-style: normal; font-size: 11.5px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-campos em { display: block; margin-top: 2px; font-style: normal; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-campos [data-tarde] b, .tp-campos [data-tarde] em { color: var(--color-ambar); }
 .tp-perfo { position: relative; height: 30px; margin: 6px 0; }
 .tp-perfo::before { content: ""; position: absolute; left: 24px; right: 24px; top: 50%; border-top: 2px dashed var(--color-sand); }
@@ -168,19 +169,19 @@
 .tp-perfo i:last-child { right: -13px; }
 @media (max-width: 1023px) { .tp-perfo i { background: var(--color-crema); } }
 .tp-pie { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 24px 14px; }
-.tp-envia { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-envia { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-envia i { width: 22px; height: 22px; border-radius: 50%; background: var(--color-hueso); color: var(--color-taupe); display: inline-grid; place-items: center; font-size: 10.5px; font-weight: 700; font-style: normal; }
-.tp-nota { margin: 0 24px 12px; padding: 9px 12px; border-radius: 12px; background: var(--color-hueso); font-size: 12.5px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); }
+.tp-nota { margin: 0 24px 12px; padding: 9px 12px; border-radius: 12px; background: var(--color-hueso); font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); }
 .tp-boton { display: flex; width: calc(100% - 48px); margin: 4px 24px 24px; justify-content: center; align-items: center; gap: 8px; padding: 14px 18px; border-radius: 14px; font-size: 15px; }
 /* El frente de un pedido o de «Para enviar» lleva dos botones en la misma fila (maqueta D: «No la tengo» · «Enviar a LIM»). */
 .tp-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 24px 24px; }
 .tp-acciones > * { flex: 1 1 auto; justify-content: center; padding-top: 14px; padding-bottom: 14px; border-radius: 14px; }
 .tp-acciones .tp-boton { width: auto; margin: 0; flex: 2 1 auto; }
-.tp-siguiente { margin: 0 24px 8px; font-size: 12.5px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); }
+.tp-siguiente { margin: 0 24px 8px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); }
 @media (max-width: 640px) { .tp-siguiente { margin: 0 18px 8px; } }
 .tp-prenda.tp-prenda-sin-foto { grid-template-columns: minmax(0, 1fr) auto; }
 .tp-prenda-nombre [data-tarde] { color: var(--color-ambar); font-weight: 600; }
-.tp-aviso-prenda { display: block; margin-top: 2px; font-size: 12px; color: var(--color-ambar); }
+.tp-aviso-prenda { display: block; margin-top: 2px; font-size: 14px; color: var(--color-ambar); }
 .tp-boton svg { transition: transform 0.3s var(--ease-cayla); }
 @media (hover: hover) {
   .tp-boton:hover svg { transform: translateX(4px); }
@@ -201,18 +202,18 @@
   .tp-paginas a:hover { background: var(--color-hueso); }
 }
 .tp-paginas span[aria-disabled] { opacity: 0.3; }
-.tp-paginas p { min-width: 56px; text-align: center; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); font-variant-numeric: tabular-nums; }
+.tp-paginas p { min-width: 56px; text-align: center; font-size: 14px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); font-variant-numeric: tabular-nums; }
 @media (max-width: 1023px) { .tp-paginas { display: none; } }
 
 /* ── El reverso: aquí se cuenta ── */
-.tp-volver { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--tp-c); padding: 6px 10px 6px 6px; border-radius: 9px; background: var(--color-papel); }
+.tp-volver { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--tp-c); padding: 6px 10px 6px 6px; border-radius: 9px; background: var(--color-papel); }
 .tp-reverso-cuerpo { flex: 1; overflow: auto; padding: 14px 22px; display: grid; gap: 10px; align-content: start; }
 .tp-reverso-pie { flex: none; border-top: 1px solid var(--color-sand); padding: 14px 22px 18px; display: grid; gap: 10px; background: var(--color-papel); }
 .tp-aro { width: 40px; height: 40px; transform: rotate(-90deg); flex: none; }
 .tp-aro circle { fill: none; stroke-width: 4; }
 .tp-aro .tp-aro-fondo { stroke: var(--color-papel); }
 .tp-aro .tp-aro-valor { stroke: var(--tp-c); stroke-linecap: round; stroke-dasharray: 100.5; stroke-dashoffset: calc(100.5 * (1 - var(--tp-v, 0))); transition: stroke-dashoffset 0.5s var(--ease-cayla); }
-.tp-consejo { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); background: var(--tp-bg); border: 1px dashed var(--tp-ln); border-radius: 12px; padding: 9px 12px; }
+.tp-consejo { display: flex; align-items: center; gap: 10px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); background: var(--tp-bg); border: 1px dashed var(--tp-ln); border-radius: 12px; padding: 9px 12px; }
 .tp-consejo .tp-sello { --tp-sz: 30px; border-radius: 9px; }
 /* Al girar, el pase crece para que el reverso tenga dónde contar: la lista corre dentro, con la cabecera y el pie a la vista. */
 .tp-pase3d[data-vuelta] { min-height: min(700px, calc(100dvh - 150px)); }
@@ -227,9 +228,9 @@
 .tp-prenda-fila:first-child { border-top: 0; }
 .tp-prenda { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 4px; border-radius: 4px; }
 .tp-prenda-nombre { min-width: 0; }
-.tp-prenda-nombre b { display: block; font-weight: 600; font-size: 13.5px; color: var(--color-tinta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tp-prenda-nombre b em { font-style: normal; font-weight: 500; font-size: 12px; color: var(--color-ambar); }
-.tp-prenda-nombre > span { display: block; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-prenda-nombre b { display: block; font-weight: 600; font-size: 15px; color: var(--color-tinta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-prenda-nombre b em { font-style: normal; font-weight: 500; font-size: 14px; color: var(--color-ambar); }
+.tp-prenda-nombre > span { display: block; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tp-derecha { display: inline-flex; flex-direction: column; align-items: flex-end; }
 .tp-contador { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--color-hueso); }
 .tp-contador button { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background 0.2s; }
@@ -242,20 +243,20 @@
 .tp-contador input:focus { box-shadow: 0 0 0 2px var(--color-pizarra); border-radius: 6px; }
 @media (pointer: coarse) { .tp-contador button { width: 40px; height: 40px; } }
 .tp-guardado { display: flex; align-items: center; justify-content: flex-end; gap: 4px; height: 16px; margin-top: 3px; font-size: 11px; line-height: 16px; }
-.tp-cita { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--color-hueso); font-size: 13px; color: var(--color-tinta); }
-.tp-cita cite { display: block; margin-top: 2px; font-style: normal; font-size: 11.5px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-cita { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--color-hueso); font-size: 14px; color: var(--color-tinta); }
+.tp-cita cite { display: block; margin-top: 2px; font-style: normal; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-cita[data-error] { background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel)); color: var(--color-rojo-profundo); }
-.tp-dato { font-size: 12.5px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); }
+.tp-dato { font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); }
 .tp-campo-nota { width: 100%; min-height: 76px; padding: 10px 12px; border-radius: 12px; background: var(--color-hueso); color: var(--color-tinta); font-size: 14px; resize: vertical; outline: none; }
 .tp-campo-nota::placeholder { color: var(--color-taupe); }
 .tp-campo-nota:focus { box-shadow: 0 0 0 2px var(--color-pizarra); }
 .tp-fila { display: flex; flex-wrap: wrap; gap: 8px; }
 .tp-fila-conteo { align-items: center; }
 /* «Te faltan 2: ● Blusa Emma M · ○ Blusa Emma L» en lugar del botón, mientras falte contar. */
-.tp-faltan { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 12.5px; }
+.tp-faltan { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px; }
 .tp-faltan-titulo { color: color-mix(in srgb, var(--color-tinta) 72%, transparent); font-weight: 600; }
 /* El resumen corto antes de confirmar: lo que entra y lo que queda para revisar. */
-.tp-resumen { display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; background: var(--color-hueso); font-size: 13px; color: var(--color-tinta); }
+.tp-resumen { display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; background: var(--color-hueso); font-size: 14px; color: var(--color-tinta); }
 .tp-resumen span { color: color-mix(in srgb, var(--color-tinta) 72%, transparent); }
 /* Una casilla sin contar es un hueco por llenar, no un cero: borde punteado y nada adentro. */
 .tp-contador input[data-vacia] { border-radius: 6px; outline: 1.5px dashed color-mix(in srgb, var(--color-tinta) 40%, transparent); outline-offset: -4px; }
@@ -264,7 +265,7 @@
 .tp-grande { flex: 1; }
 .tp-prenda-fila[data-no-cuadra] { background: linear-gradient(90deg, color-mix(in srgb, var(--color-ambar) 10%, transparent), transparent); }
 .tp-comparar { display: flex; align-items: center; gap: 10px; }
-.tp-comparar .tp-venian { font-size: 11.5px; text-align: right; line-height: 1.15; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-comparar .tp-venian { font-size: 14px; text-align: right; line-height: 1.15; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-comparar .tp-venian b { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 20px; color: var(--color-tinta); }
 .tp-comparar .tp-llegaron { min-width: 30px; text-align: right; font-family: var(--font-serif); font-size: 24px; color: var(--color-tinta); }
 .tp-marca { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: var(--color-papel); }
@@ -274,7 +275,7 @@
 [data-revela] .tp-prenda-fila { animation: tp-revela 0.5s var(--ease-cayla) both; animation-delay: calc(var(--tp-k, 0) * 80ms); }
 @keyframes tp-revela { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
 .tp-lugar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.tp-lugar button { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--color-sand); font-size: 13px; font-weight: 600; transition: border-color 0.2s, background 0.2s; }
+.tp-lugar button { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--color-sand); font-size: 14px; font-weight: 600; transition: border-color 0.2s, background 0.2s; }
 .tp-lugar button[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--color-hueso); }
 
 @media (max-width: 640px) {
@@ -310,8 +311,8 @@
 .tp-sobrante-revision { display: grid; gap: 12px; }
 .tp-decision { display: grid; gap: 8px; }
 .tp-decision button { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--color-sand); transition: border-color 0.2s, background 0.2s; }
-.tp-decision button b { font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
-.tp-decision button small { font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-decision button b { font-size: 15px; font-weight: 600; color: var(--color-tinta); }
+.tp-decision button small { font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 @media (hover: hover) {
   .tp-decision button:hover:not(:disabled) { border-color: var(--color-taupe); }
 }

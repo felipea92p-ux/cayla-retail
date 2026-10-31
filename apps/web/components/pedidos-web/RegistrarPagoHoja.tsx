@@ -168,15 +168,15 @@ export function RegistrarPagoHoja({
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
             <dl className="grid grid-cols-3 gap-3 rounded-xl border border-sand px-4 py-3 text-center">
               <div>
-                <dt className="text-[12px] text-taupe">Total</dt>
+                <dt className="text-sm text-taupe">Total</dt>
                 <dd className="font-display text-lg tabular-nums text-tinta">{soles(p.total)}</dd>
               </div>
               <div>
-                <dt className="text-[12px] text-taupe">Pagado</dt>
+                <dt className="text-sm text-taupe">Pagado</dt>
                 <dd className="font-display text-lg tabular-nums text-tinta">{soles(p.pagado)}</dd>
               </div>
               <div>
-                <dt className="text-[12px] text-taupe">Falta</dt>
+                <dt className="text-sm text-taupe">Falta</dt>
                 <dd className="font-display text-lg tabular-nums text-ambar-profundo">{soles(p.falta)}</dd>
               </div>
             </dl>
@@ -239,7 +239,7 @@ export function RegistrarPagoHoja({
                   No hay caja abierta en {p.tienda}: ábrela o elige otro medio.
                 </Aviso>
               ) : form.medio === "efectivo" ? (
-                <p className="mt-1.5 text-[12.5px] text-taupe">Entra a la caja abierta de {p.tienda}.</p>
+                <p className="mt-1.5 text-sm text-taupe">Entra a la caja abierta de {p.tienda}.</p>
               ) : null}
               {errorEn("medio") && (
                 <Aviso tono="error" chico className="mt-2">

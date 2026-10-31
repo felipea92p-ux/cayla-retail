@@ -31,7 +31,7 @@ export function ConfiguracionEmpresa({ datos }: { datos: DatosEmpresa }) {
               dato: (
                 <>
                   <span className="block text-tinta">{t.nombre}</span>
-                  <span className="block text-[12px]">{[t.direccion, t.distrito].filter(Boolean).join(", ") || "Sin dirección fiscal"}</span>
+                  <span className="block text-sm">{[t.direccion, t.distrito].filter(Boolean).join(", ") || "Sin dirección fiscal"}</span>
                 </>
               ),
               valor: t.series.length ? `Serie ${t.series.map((s) => s.serie).join(" · ")}` : "Sin series",

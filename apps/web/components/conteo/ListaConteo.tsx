@@ -178,16 +178,16 @@ const TarjetaPercha = memo(function TarjetaPercha({
         </colgroup>
         <thead>
           <tr className="encabezado-tabla-cayla">
-            <th scope="col" className="py-2 pl-[18px] pr-1 text-left text-xs font-normal leading-tight text-taupe">
+            <th scope="col" className="py-2 pl-[18px] pr-1 text-left text-sm font-normal leading-tight text-taupe">
               Talla
             </th>
-            <th scope="col" className="px-1 py-2 text-center text-xs font-normal leading-tight text-taupe">
+            <th scope="col" className="px-1 py-2 text-center text-sm font-normal leading-tight text-taupe">
               Debe haber
             </th>
-            <th scope="col" className="px-1 py-2 text-center text-xs font-normal leading-tight text-taupe">
+            <th scope="col" className="px-1 py-2 text-center text-sm font-normal leading-tight text-taupe">
               Contaste
             </th>
-            <th scope="col" className="py-2 pl-2 pr-3 text-left text-xs font-normal leading-tight text-taupe">
+            <th scope="col" className="py-2 pl-2 pr-3 text-left text-sm font-normal leading-tight text-taupe">
               Estado
             </th>
           </tr>

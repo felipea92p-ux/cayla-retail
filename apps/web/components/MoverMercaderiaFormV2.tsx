@@ -481,9 +481,9 @@ export function MoverMercaderiaFormV2({
                 onBlur={() => normalizarCantidad(i)}
                 className="caja-campo-input w-20 text-center"
               />
-              {l.varianteId && <span className="text-xs text-tinta/65">de {tope}</span>}
+              {l.varianteId && <span className="text-sm text-tinta/65">de {tope}</span>}
               {lineas.length > 1 && (
-                <button type="button" onClick={() => quitarLinea(i)} className="text-xs text-rojo">
+                <button type="button" onClick={() => quitarLinea(i)} className="text-sm text-rojo">
                   Quitar
                 </button>
               )}

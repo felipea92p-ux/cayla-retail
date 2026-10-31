@@ -94,7 +94,7 @@ export function HistorialVentasLista({
                     </span>
                     {etiqueta}
                   </span>
-                  <span className="text-xs text-tinta/60">
+                  <span className="text-sm text-tinta/60">
                     {delDia && delDia.total > 0 ? (
                       <>
                         <span className="font-display text-lg tabular-nums text-tinta">{soles(delDia.total)}</span> · {ventas(delDia.ventas)}
@@ -170,7 +170,7 @@ function FilaVenta({
             {titulosDePrendas(v.piezas)}
           </p>
           {subtitulo && <p className={`mt-0.5 text-sm ${v.anulada ? "text-tinta/40" : "text-tinta/70"}`}>{subtitulo}</p>}
-          <p className="mt-1 truncate text-xs text-tinta/55" title={meta}>
+          <p className="mt-1 truncate text-sm text-tinta/55" title={meta}>
             {meta}
           </p>
         </div>
@@ -191,7 +191,7 @@ function FilaVenta({
           )}
           {v.comprobante ? (
             <>
-              <span className={`text-xs font-medium ${apagado}`}>
+              <span className={`text-sm font-medium ${apagado}`}>
                 {ETIQUETA_TIPO[v.comprobante.tipo]} {v.comprobante.numero}
               </span>
               {!v.anulada &&
@@ -222,7 +222,7 @@ function FilaVenta({
 
         <div className="ml-auto text-right @[30rem]:col-start-3 @[30rem]:row-start-1 @[30rem]:ml-0 @[54rem]:col-start-4">
           <p className={`font-display text-[22px] leading-none tabular-nums ${v.anulada ? "text-tinta/45 line-through" : "text-tinta"}`}>{soles(v.total)}</p>
-          {v.pagos && <p className="mt-1 text-xs text-tinta/55">{v.pagos}</p>}
+          {v.pagos && <p className="mt-1 text-sm text-tinta/55">{v.pagos}</p>}
         </div>
       </div>
     </li>
@@ -243,12 +243,12 @@ function Racimo({ piezas, anulada }: { piezas: PrendaDeVenta[]; anulada: boolean
           <Miniatura p={p} />
           {/* La misma prenda, talla y color más de una vez: un solo mosaico con ×N (`piezasDeVenta` las junta). */}
           {p.cantidad > 1 && (
-            <span className="absolute -bottom-1.5 -right-1.5 rounded-full bg-tinta px-1.5 text-[10px] font-semibold leading-4 text-crema ring-2 ring-papel">×{p.cantidad}</span>
+            <span className="absolute -bottom-1.5 -right-1.5 rounded-full bg-tinta px-1.5 text-sm font-semibold leading-4 text-crema ring-2 ring-papel">×{p.cantidad}</span>
           )}
         </span>
       ))}
       {resto > 0 && (
-        <span className="ml-1.5 flex h-10 w-10 items-center justify-center rounded-lg bg-sand text-xs font-semibold text-tinta/70 ring-2 ring-papel">+{resto}</span>
+        <span className="ml-1.5 flex h-10 w-10 items-center justify-center rounded-lg bg-sand text-sm font-semibold text-tinta/70 ring-2 ring-papel">+{resto}</span>
       )}
     </span>
   );

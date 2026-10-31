@@ -336,7 +336,7 @@ export function RolesPanel({
           </div>
 
           <details className="group border-t border-sand">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-[13px] text-tinta/70 [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm text-tinta/70 [&::-webkit-details-marker]:hidden">
               <span>
                 Siempre solo del líder <span className="text-tinta/60">· {SIEMPRE_SOLO_LIDER.length} acciones que ningún rol hereda</span>
               </span>
@@ -347,8 +347,8 @@ export function RolesPanel({
                 <li key={x.que} className="flex items-start gap-2">
                   <Lock aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-taupe-profundo" />
                   <span className="min-w-0">
-                    <span className="block text-[13px] leading-snug text-tinta/85">{x.que}</span>
-                    <span className="block text-[11px] text-tinta/60">{x.origen}</span>
+                    <span className="block text-sm leading-snug text-tinta/85">{x.que}</span>
+                    <span className="block text-sm text-tinta/60">{x.origen}</span>
                   </span>
                 </li>
               ))}
@@ -365,7 +365,7 @@ export function RolesPanel({
             {cambios.suma.length > 0 && <span className="font-semibold text-verde"> · +{cambios.suma.length} suma</span>}
             {cambios.quita.length > 0 && <span className="font-semibold text-rojo-profundo"> · −{cambios.quita.length} quita</span>}
             {cuentasDelElegido.length > 0 && ` · afecta a ${cuentasDelElegido.length === 1 ? "1 cuenta" : `${cuentasDelElegido.length} cuentas`}`}
-            {responsable.motivo && <span className="block text-[12px] text-rojo-profundo">{responsable.motivo}</span>}
+            {responsable.motivo && <span className="block text-sm text-rojo-profundo">{responsable.motivo}</span>}
           </>
         }
         acciones={
@@ -531,7 +531,7 @@ function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVist
           <Chip tono="neutro" versalitas={false} className="ml-auto shrink-0">Sin uso</Chip>
         ) : null}
       </span>
-      <span className="flex items-center gap-2 text-xs text-tinta/60">
+      <span className="flex items-center gap-2 text-sm text-tinta/60">
         {/* Cuántos módulos ve el rol: una medida, no un avance (un rol con todos no está «listo»): siempre en tinta. */}
         <span className="flex-1">
           <BarraAvance pct={(n / de) * 100} alto="fina" tono="tinta" decorativa />
@@ -571,7 +571,7 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
               <AvatarPersona personaId={null} nombre={c.nombre} tamano={32} terminal={c.tipo === "terminal"} />
               <span className="min-w-0">
                 <span className="block truncate text-tinta">{c.nombre}</span>
-                <span className="block text-xs text-tinta/60">
+                <span className="block text-sm text-tinta/60">
                   {c.tipo === "terminal" ? "Terminal" : "Persona"}
                   {c.ubicacion ? ` · ${c.ubicacion}` : ""}
                   {c.estado !== "activo" ? ` · ${c.estado}` : ""}
@@ -587,7 +587,7 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
             </li>
           )}
 
-          {filtradas.length > MAX && <li className="px-1 py-2 text-xs text-tinta/60">Y {filtradas.length - MAX} más. Escribe para encontrar a alguien.</li>}
+          {filtradas.length > MAX && <li className="px-1 py-2 text-sm text-tinta/60">Y {filtradas.length - MAX} más. Escribe para encontrar a alguien.</li>}
         </ul>
       </div>
     </Modal>

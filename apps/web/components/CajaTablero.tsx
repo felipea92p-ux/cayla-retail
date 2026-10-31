@@ -24,6 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { claveLocal, guardar, leer } from "@/lib/almacen-local";
@@ -89,7 +90,7 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
           <span className="text-[26px]">.{centimos}</span>
         </p>
       )}
-      <p className="mt-3.5 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-tinta/65 tabular-nums">
+      <p className="texto-detalle mt-3.5 flex flex-wrap gap-x-3 gap-y-1 tabular-nums">
         {piezas.map((p, i) => (
           <span key={p.etiqueta} className="whitespace-nowrap">
             {i > 0 && <span className="mr-2 text-tinta/40 dark:text-tinta/55">{p.signo}</span>}
@@ -97,7 +98,7 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
           </span>
         ))}
       </p>
-      <p className="mt-auto hidden pt-3 text-xs text-tinta/50 sm:block">Tarjeta, Yape y transferencias no entran al cajón.</p>
+      <p className="texto-detalle mt-auto hidden pt-3 sm:block">Tarjeta, Yape y transferencias no van al cajón.</p>
     </div>
   );
 }
@@ -366,8 +367,8 @@ function CabeceraPanel({ titulo, bajada, derecha }: { titulo: string; bajada: st
   return (
     <div className="mb-2 flex items-start justify-between gap-2">
       <div>
-        <p className="text-sm font-bold text-tinta">{titulo}</p>
-        <p className="text-xs text-tinta/50">{bajada}</p>
+        <TituloSeccion nivel={3}>{titulo}</TituloSeccion>
+        <p className="texto-bajada">{bajada}</p>
       </div>
       {derecha}
     </div>
@@ -567,8 +568,8 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
     <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": indice } as CSSProperties}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2.5">
         <div>
-          <p className="text-sm font-bold text-tinta">Cierres anteriores</p>
-          <p className="text-xs text-tinta/50">{info.bajada}</p>
+          <TituloSeccion nivel={3}>Cierres anteriores</TituloSeccion>
+          <p className="texto-bajada">{info.bajada}</p>
         </div>
         {/* Modo de vista (los mismos cierres de otra forma): el segmento del sistema, con la elegida en contorno de tinta
             (ADR-0358), no la pista hueso del spike. */}

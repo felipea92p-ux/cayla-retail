@@ -83,7 +83,7 @@ export default async function EnviarOrdenPage({ params }: { params: Promise<{ id
       <div className="space-y-6">
         {cabecera}
         <Aviso tono="info" titulo="Ya salió todo lo de esta orden" accion={verOrden}>
-          No queda nada por enviar. Si un envío salió mal, anúlalo desde la orden mientras siga en camino y vuelve a enviar.
+          No queda nada por enviar. Si un envío salió mal y sigue en camino, anúlalo desde la orden y vuelve a enviar.
         </Aviso>
       </div>
     );

@@ -32,7 +32,7 @@ function Salida({ href, icono, titulo, detalle, principal = false }: { href?: st
       <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${principal ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}>{icono}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-tinta">{titulo}</span>
-        <span className="block text-[13px] text-tinta/70">{detalle}</span>
+        <span className="block text-sm text-tinta/70">{detalle}</span>
       </span>
       {href && <ChevronRight className="h-4 w-4 shrink-0 text-tinta/45" aria-hidden />}
     </>

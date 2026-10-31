@@ -537,7 +537,7 @@ export function SellosPantalla({
               {avance && e.vigenteDesde && e.vigenteHasta && (
                 <div style={{ "--i": 2 } as CSSProperties}>
                   <BarraAvance pct={avance.pct} alto="fina" tono="tinta" etiqueta={`Lo que lleva ${e.nombre}`} texto={`Día ${avance.dia} de ${avance.total}`} />
-                  <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-tinta/65">
+                  <div className="mt-1.5 flex justify-between text-sm tabular-nums text-tinta/65">
                     <span>{fechaCorta(e.vigenteDesde)}</span>
                     <span>hoy, día {avance.dia} de {avance.total}</span>
                     <span>{fechaCorta(e.vigenteHasta)}</span>
@@ -581,7 +581,7 @@ export function SellosPantalla({
 
   // `conGuia`: solo el pase abierto lleva las anclas de la guía (los cerrados tienen los mismos botones, escondidos e inertes).
   function accionesDelPase(e: Etiqueta, conGuia: boolean) {
-    if (!puedeEditar(e)) return <p className="text-xs text-tinta/65">Solo lo cambia quien tiene el módulo {e.estilo === "campana" ? "Campañas o Insignias" : "Insignias"}.</p>;
+    if (!puedeEditar(e)) return <p className="text-sm text-tinta/65">Solo lo cambia quien tiene el módulo {e.estilo === "campana" ? "Campañas o Insignias" : "Insignias"}.</p>;
     if (!e.activo) {
       return (
         <div className="w-40">
@@ -818,7 +818,7 @@ export function SellosPantalla({
         />
       )}
 
-      {nota && <p className="nota-cayla max-w-3xl text-xs">{nota}</p>}
+      {nota && <p className="nota-cayla max-w-3xl text-sm">{nota}</p>}
 
       {pilas.length === 0 ? (
         <Vacio

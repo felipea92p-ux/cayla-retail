@@ -187,7 +187,7 @@ export function AvisosCelularHoja({
     >
       {(cerrar) => (
         <div className="space-y-4">
-          <p className="text-[13px] text-taupe">Cuando un cliente separa en la web, este celular suena y muestra el pedido.</p>
+          <p className="text-sm text-taupe">Cuando un cliente separa en la web, este celular suena y muestra el pedido.</p>
 
           {/* El aviso tal como llega (el texto «A · Directo» que eligió Felipe): número, sede, cuántas prendas y total. */}
           <div aria-hidden className="flex items-start gap-3 rounded-2xl border border-sand bg-hueso/60 px-3.5 py-3">
@@ -196,14 +196,14 @@ export function AvisosCelularHoja({
             </span>
             <span className="min-w-0">
               <span className="block truncate text-[14px] font-semibold text-tinta">{muestra.titulo}</span>
-              <span className="block truncate text-[13px] text-tinta/70">{muestra.texto.replace(/S\/ 0\.00/, "S/ 109.00")}</span>
+              <span className="block truncate text-sm text-tinta/70">{muestra.texto.replace(/S\/ 0\.00/, "S/ 109.00")}</span>
             </span>
           </div>
 
-          {estado.fase === "leyendo" && <p className="text-[13px] text-taupe">Revisando este celular…</p>}
+          {estado.fase === "leyendo" && <p className="text-sm text-taupe">Revisando este celular…</p>}
 
           {activoAqui && (
-            <p className="flex flex-wrap items-center gap-2 text-[13px] text-tinta">
+            <p className="flex flex-wrap items-center gap-2 text-sm text-tinta">
               <Chip tono="verde">Activo</Chip> Este celular suena con cada pedido web de {tienda}.
             </p>
           )}
@@ -212,7 +212,7 @@ export function AvisosCelularHoja({
               Si lo cambias, sonará solo con los pedidos de {tienda}.
             </Aviso>
           )}
-          {estado.fase === "apagado" && <p className="text-[13px] text-tinta">Este celular todavía no suena. Actívalo y elige «Permitir» cuando el teléfono pregunte.</p>}
+          {estado.fase === "apagado" && <p className="text-sm text-tinta">Este celular todavía no suena. Actívalo y elige «Permitir» cuando el teléfono pregunte.</p>}
 
           {estado.fase === "iphone_sin_instalar" && (
             <Aviso tono="atencion" titulo="Primero agrega el ERP a la pantalla de inicio">
@@ -246,8 +246,8 @@ export function AvisosCelularHoja({
 
           {telefono === "android" && activoAqui && (
             <div className="space-y-2 border-t border-sand pt-4">
-              <p className="text-[13px] font-semibold text-tinta">El sonido «Campanita»</p>
-              <ol className="list-decimal space-y-1 pl-5 text-[13px] text-tinta">
+              <p className="text-sm font-semibold text-tinta">El sonido «Campanita»</p>
+              <ol className="list-decimal space-y-1 pl-5 text-sm text-tinta">
                 <li>Descarga el sonido.</li>
                 <li>Ve a Ajustes ▸ Apps ▸ CAYLA ERP ▸ Notificaciones y toca el tipo de aviso.</li>
                 <li>Toca «Sonido», elige «Agregar» (o «+») y escoge «campanita-cayla».</li>
@@ -255,10 +255,10 @@ export function AvisosCelularHoja({
               <BotonDescargar href="/sonidos/campanita-cayla.wav" chico>
                 Descargar el sonido
               </BotonDescargar>
-              <p className="text-[12px] text-taupe">Los nombres cambian un poco según la marca del teléfono.</p>
+              <p className="text-sm text-taupe">Los nombres cambian un poco según la marca del teléfono.</p>
             </div>
           )}
-          {telefono === "iphone" && activoAqui && <p className="text-[12px] text-taupe">En el iPhone suena el tono de iOS: Apple no deja que una app web elija el suyo.</p>}
+          {telefono === "iphone" && activoAqui && <p className="text-sm text-taupe">En el iPhone suena el tono de iOS: Apple no deja que una app web elija el suyo.</p>}
 
           {errorBase && (
             <Aviso tono="error" titulo={errorBase.titulo}>

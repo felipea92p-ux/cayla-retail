@@ -268,7 +268,7 @@ function TarjetaProducto({
           </p>
           {/* De quién es y quién lo trae (ADR-0109). En «Pequeño» solo la marca: el proveedor no cabe y se ve en la Tabla. */}
           {/* Lo que falta sale como chip ámbar (ADR-0283): un producto puede crearse sin marca y/o sin proveedor. */}
-          <MarcaProveedorLinea marca={producto.marca} proveedor={producto.proveedor} compacta={compacta} className="mt-0.5 truncate text-[11px] text-tinta/60" />
+          <MarcaProveedorLinea marca={producto.marca} proveedor={producto.proveedor} compacta={compacta} className="mt-0.5 truncate text-sm text-tinta/60" />
         </div>
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
@@ -280,7 +280,7 @@ function TarjetaProducto({
           </span>
           <span
             title={EXPLICACION_STOCK_TOTAL}
-            className={`ml-auto font-semibold tabular-nums ${compacta ? "text-[11.5px]" : "whitespace-nowrap text-[12.5px]"} ${tonoStock}`}
+            className={`ml-auto font-semibold tabular-nums ${compacta ? "text-sm" : "whitespace-nowrap text-sm"} ${tonoStock}`}
           >
             {alerta === "sin_stock" ? (
               <Chip tono="neutro" versalitas={false}>
@@ -298,7 +298,7 @@ function TarjetaProducto({
             {/* Sin la cifra única (SQL sin pegar), el total de la red y debajo las unidades de la sede. Con ella, «N aquí» ya
                 lo dice arriba: dos cifras de «aquí» que no coinciden (una cuenta apartadas y dañadas) confunden (ADR-0270). */}
             {!lineas && <span
-              className="mt-1 block text-right text-[11.5px] font-normal text-tinta/60"
+              className="mt-1 block text-right text-sm font-normal text-tinta/60"
               title={stock === "error" ? "No se pudo leer el stock de la tienda" : `Unidades en ${sede || "tu sede"}`}
             >
               En tu sede:{" "}
@@ -309,7 +309,7 @@ function TarjetaProducto({
           </span>
         </div>
         {lineas && (lineas.detalle || lineas.avisos.length > 0 || alerta === "bajo") && (
-          <p className="-mt-1.5 text-right text-[11px] leading-snug text-tinta/60">
+          <p className="-mt-1.5 text-right text-sm leading-snug text-tinta/60">
             {alerta === "bajo" && (
               <span className="mr-1 inline-block align-middle">
                 <Chip tono="ambar" versalitas={false}>
@@ -322,7 +322,7 @@ function TarjetaProducto({
         )}
         <div data-guia="productos.colores" className="flex items-center justify-between gap-2">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
-          <span className="min-w-0 truncate text-right text-[11px] text-tinta/55" title={activo?.nombre ?? undefined}>{activo?.nombre ?? ""}</span>
+          <span className="min-w-0 truncate text-right text-sm text-tinta/55" title={activo?.nombre ?? undefined}>{activo?.nombre ?? ""}</span>
         </div>
       </div>
 

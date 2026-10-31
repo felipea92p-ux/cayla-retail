@@ -105,7 +105,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
           sinFoto
         )}
         {c.color && (
-          <span className="vg-capa-nombre absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-papel/90 px-2 py-0.5 text-[11px] font-semibold text-tinta">
+          <span className="vg-capa-nombre absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-papel/90 px-2 py-0.5 text-sm font-semibold text-tinta">
             {c.color}
           </span>
         )}
@@ -149,7 +149,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       <div className="pointer-events-none">
         {/* Dos líneas: en un celular de 320 la tarjeta mide ~140 px y una sola dejaba «Pantalón…» sin decir cuál. */}
         <p className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{nombre}</p>
-        <p className="mt-0.5 text-[11.5px] text-tinta/55">{resumenDePrenda(prenda)}</p>
+        <p className="mt-0.5 text-sm text-tinta/55">{resumenDePrenda(prenda)}</p>
         {/* ADR-0505: en Lima, «CLAURE» bajo el nombre, para no venderla como la blusa de CAYLA que se le parece. */}
         <InsigniaEmpresa nombre={elegido.tallas[0]?.variante.empresa} className="mt-1" />
       </div>
@@ -214,11 +214,11 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
           </span>
           {/* Para la colaboradora, no para el cliente: este precio es el de su tienda, distinto del de las demás. */}
           {elegido.tallas.some((t) => t.variante.precioDeSede) && (
-            <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioSede}</span>
+            <span className="whitespace-nowrap text-sm font-semibold text-ambar-profundo">{etiquetaPrecioSede}</span>
           )}
         </span>
         {/* En una tienda es solo el PISO del color elegido; en el Taller (sin almacén) es todo lo de la sede. */}
-        <span className={`whitespace-nowrap text-[11px] tabular-nums ${piso === 0 && almacen > 0 ? "text-ambar-profundo" : piso === 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
+        <span className={`whitespace-nowrap text-sm tabular-nums ${piso === 0 && almacen > 0 ? "text-ambar-profundo" : piso === 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
           {piso > 0
             ? `${piso} ${elegido.separaPiso ? "en piso" : "en sede"}${almacen > 0 ? ` · ${almacen} alm.` : ""}`
             : almacen > 0

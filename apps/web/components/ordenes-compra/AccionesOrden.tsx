@@ -251,7 +251,7 @@ function AnularOrdenModal({
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
             />
-            <p className="mt-1.5 text-xs text-taupe">Lo verá quien revise la orden después.</p>
+            <p className="mt-1.5 text-sm text-taupe">Lo verá quien revise la orden después.</p>
           </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo="Quién la anula">

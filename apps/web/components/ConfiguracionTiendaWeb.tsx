@@ -370,8 +370,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
       )}
 
       <div className="nota-cayla" data-guia="config.tienda-web-nota">
-        El WhatsApp de cada tienda es el mismo del QR del club: cambiarlo aquí también lo cambia en Tiendas y caja y en el cartel del
-        mostrador. Por ahora no hay envíos: todo pedido web se recoge en la tienda que eligió el cliente.
+        El WhatsApp de cada tienda es el del QR del club: cambiarlo aquí lo cambia también en el cartel. Por ahora no hay envíos: todo pedido se recoge en tienda.
       </div>
       {salida.aviso}
     </>
@@ -602,13 +601,13 @@ function TallerDeTienda({
           {faltan.length > 0 ? (
             <FaltanDelPaso faltan={faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
           ) : (
-            <p role="status" className="text-[12.5px] text-verde">
+            <p role="status" className="text-sm text-verde">
               Todo listo para mostrarla en la web.
             </p>
           )}
           <PieAcciones guia="config.tienda-web-guardar">
             {sucio && !guardando && (
-              <span role="status" className="mr-auto self-center text-[12.5px] text-taupe">
+              <span role="status" className="mr-auto self-center text-sm text-taupe">
                 Tienes cambios sin guardar.
               </span>
             )}
@@ -683,7 +682,7 @@ function Plazos({ parametros, guardar, onSucio }: { parametros: ParametrosTienda
       <EscalaDeStock valor={Number(b.quedanPocasDesde)} onValor={(n) => setB((x) => ({ ...x, quedanPocasDesde: String(n) }))} />
       <PieAcciones>
         {sucio && !guardando && (
-          <span role="status" className="mr-auto self-center text-[12.5px] text-taupe">
+          <span role="status" className="mr-auto self-center text-sm text-taupe">
             Tienes cambios sin guardar.
           </span>
         )}

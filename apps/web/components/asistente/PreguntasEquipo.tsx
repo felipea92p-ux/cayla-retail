@@ -50,25 +50,25 @@ function FilaPregunta({ p, todasLasSedes }: { p: PreguntaEquipo; todasLasSedes: 
   const quien = p.persona ?? "Una terminal";
   return (
     <div className={fila(PLANTILLA)} role="row">
-      <span className={celda("izq", "text-[13px] text-taupe")} role="cell">
+      <span className={celda("izq", "text-sm text-taupe")} role="cell">
         {cuando(p.creadaEn)}
       </span>
       <span className="flex min-w-0 items-center gap-2" role="cell">
         <AvatarPersona personaId={p.personaId} nombre={quien} tamano={24} terminal={!p.persona} />
         <span className="min-w-0">
           <span className="block truncate text-sm">{quien}</span>
-          {todasLasSedes && p.sede ? <span className="block truncate text-xs text-taupe">{p.sede}</span> : null}
+          {todasLasSedes && p.sede ? <span className="block truncate text-sm text-taupe">{p.sede}</span> : null}
         </span>
       </span>
       <span className="min-w-0 text-sm" role="cell">
         <span className="block break-words">{p.pregunta}</span>
-        {p.comentario ? <span className="mt-0.5 block break-words text-xs text-taupe">Buscaba: «{p.comentario}»</span> : null}
+        {p.comentario ? <span className="mt-0.5 block break-words text-sm text-taupe">Buscaba: «{p.comentario}»</span> : null}
       </span>
       <span className="min-w-0" role="cell">
         <Chip tono={clase.tono} title={queRespondio(p)}>
           {clase.nombre}
         </Chip>
-        <span className="mt-1 block truncate text-xs text-taupe" title={queRespondio(p)}>
+        <span className="mt-1 block truncate text-sm text-taupe" title={queRespondio(p)}>
           {respuestaCorta(p)}
         </span>
       </span>
@@ -186,7 +186,7 @@ export function PreguntasEquipo({
               ))}
             </ul>
           )}
-          <p className="text-xs text-taupe">Una pantalla que se pregunta mucho puede estar escondida: conviene acercarla en el menú.</p>
+          <p className="text-sm text-taupe">Una pantalla que se pregunta mucho puede estar escondida: conviene acercarla en el menú.</p>
         </section>
 
         <section className="card-cayla space-y-3 p-5" data-guia="preguntas.accesos">
@@ -206,7 +206,7 @@ export function PreguntasEquipo({
               ))}
             </ul>
           )}
-          <p className="text-xs text-taupe">Se dan en Colaboradores ▸ Roles y accesos.</p>
+          <p className="text-sm text-taupe">Se dan en Colaboradores ▸ Roles y accesos.</p>
         </section>
       </div>
 

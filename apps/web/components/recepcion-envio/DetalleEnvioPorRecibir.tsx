@@ -141,7 +141,7 @@ function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: st
                   <li key={l.id} className="flex items-center gap-2.5 rounded-xl bg-crema px-2.5 py-1.5">
                     <BaldosaCategoria categoria={l.categoria} tamano="chico" />
                     <b className="text-sm text-tinta">{l.categoria?.nombre ?? "Categoría"}</b>
-                    <span className="min-w-0 flex-1 truncate text-[13px] text-taupe">{[l.marca?.nombre, proveedores.length >= 2 ? l.proveedor?.nombre : null, l.descripcion].filter(Boolean).join(" · ")}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-taupe">{[l.marca?.nombre, proveedores.length >= 2 ? l.proveedor?.nombre : null, l.descripcion].filter(Boolean).join(" · ")}</span>
                     <b className="text-[17px] tabular-nums text-tinta">{l.enviado.toLocaleString("es-PE")}</b>
                   </li>
                 ))}
@@ -179,7 +179,7 @@ function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: st
                     </span>
                   </Boton>
                 </div>
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   Desde que empiezas, la compra ya no se puede anular. Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
                 </p>
               </div>

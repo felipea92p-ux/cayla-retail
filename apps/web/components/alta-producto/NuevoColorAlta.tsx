@@ -211,7 +211,7 @@ export function NuevoColorAlta({
             aria-describedby={`${id}-codigo-ayuda`}
             className="uppercase"
           />
-          <p id={`${id}-codigo-ayuda`} className="mt-1 text-[11px] text-taupe">
+          <p id={`${id}-codigo-ayuda`} className="mt-1 text-sm text-taupe">
             Va en el SKU
           </p>
         </div>

@@ -231,7 +231,7 @@ function VistaCayla({
         <Superficie pad className="fin-balance-tarjeta">
           <CabeceraBloque
             titulo="Antes de dibujarlo, el sistema lo comprueba"
-            bajada="Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra: un número falso es peor que ninguno."
+            bajada="Cada cuenta se calcula por dos caminos. Si no coinciden, el Balance no se muestra."
           >
             {selectorCorte}
             {esLider && (
@@ -274,9 +274,7 @@ function VistaCayla({
                 </Boton>
               }
             >
-              El sistema ya sabe lo que hay en cada cajón, la mercadería, los muebles y lo que se debe a cada proveedor. Lo que no sabe lo
-              pones tú, una sola vez, con el contador: lo que había en el banco, lo que se le debía a SUNAT, lo que le prestaste a CAYLA,
-              el capital y las utilidades acumuladas hasta ese día.
+              Una sola vez, con el contador: lo que había en el banco, lo que se le debía a SUNAT, lo que le prestaste a CAYLA, el capital y las utilidades hasta ese día.
             </Vacio>
           </Superficie>
         )}
@@ -289,10 +287,7 @@ function VistaCayla({
       )}
 
       <div {...entra(4, "nota-cayla")} data-guia="fin-balance.nota">
-        El <b>capital</b> se registra una vez, al arrancar (lo que pusiste en el negocio), con las utilidades que ya traía. Nunca se
-        calcula como «lo que falta para que cuadre»: si así fuera, el Balance cuadraría siempre y no probaría nada. Por tienda se
-        muestra <b>lo que es suyo</b> (su cajón, su mercadería, sus muebles y las facturas que pidió, enteras); el banco, el capital y el IGV
-        son de CAYLA entera y no se reparten.
+        El <b>capital</b> se registra una vez, al arrancar; nunca se calcula para que cuadre. Por tienda se muestra <b>lo que es suyo</b>; el banco, el capital y el IGV son de CAYLA entera.
       </div>
     </>
   );

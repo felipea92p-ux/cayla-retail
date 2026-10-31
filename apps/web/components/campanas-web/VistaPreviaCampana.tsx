@@ -77,7 +77,7 @@ export function VistaPreviaCampana({
       <div className="space-y-4">
         {creado === null ? (
           <>
-            <p className="text-[13.5px] leading-relaxed text-tinta/80">
+            <p className="text-[15px] leading-relaxed text-tinta/80">
               Se crea un enlace que muestra este diseño, tal como lo guardaste, con las prendas de la tienda. Quien lo tenga lo ve durante 7 días; sin el enlace, nadie.
             </p>
             {cambiosSinGuardar && (
@@ -108,7 +108,7 @@ export function VistaPreviaCampana({
               </div>
               <BotonCopiar texto={creado.enlace} que="el enlace" icono="enlace" />
             </div>
-            <p className="text-[13px] text-tinta/80">
+            <p className="text-sm text-tinta/80">
               Vale {creado.vence ?? "7 días"}. Cópialo ahora: por seguridad no se vuelve a mostrar (si lo pierdes, creas otro).
             </p>
             <p>

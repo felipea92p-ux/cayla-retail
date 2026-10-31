@@ -104,7 +104,7 @@ export function VeredictoDeLaCampana({ h, nombre, conCalendario }: { h: Historia
           <BarraDeEsteAnio v={v} />
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-taupe">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-taupe">
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="cal-leyenda-punto" data-tono={v.veredicto.tono} /> Esta vez
         </span>

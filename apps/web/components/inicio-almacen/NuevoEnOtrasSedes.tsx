@@ -58,7 +58,7 @@ export function NuevoEnOtrasSedes({
         <div className="ia-l">
           <p className="label-cayla text-[11px] text-tinta/65">{titulo.seccion}</p>
           {items && <span className="ia-cnt">{items.length}</span>}
-          <span className="text-[13px] text-tinta/65">hoy y ayer</span>
+          <span className="text-sm text-tinta/65">hoy y ayer</span>
         </div>
         {items && items.length > 0 && (
           <div className="ia-arr">
@@ -185,7 +185,7 @@ function Tarjeta({ p, indice, puedeEditar }: { p: NuevoProducto; indice: number;
         {/* «Precio de esta tienda» solo si es el propio de la sede (Felipe 2026-10-10), como en Existencias. Va ENCIMA de la línea del
             pie y no dentro: adentro ensanchaba el precio y la nota «en tu sede» se partía en dos líneas. */}
         <div className="mt-auto">
-          {p.precioDeSede && <span className="mb-1 block text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
+          {p.precioDeSede && <span className="mb-1 block text-sm font-semibold text-ambar-profundo">Precio de esta tienda</span>}
           <div className="ia-pie-pc">
             {/* Con céntimos (S/ 69.90, no «S/ 70»): el número de la caja y de la etiqueta. */}
             <span className="ia-pr">{p.precio === null ? "Sin precio" : soles(p.precio)}</span>

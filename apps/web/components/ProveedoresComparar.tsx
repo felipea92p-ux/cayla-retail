@@ -51,10 +51,10 @@ export function ProveedoresComparar({
   const cifra = `font-display font-normal leading-none tabular-nums ${n === 3 ? "text-[18px]" : "text-[21px]"}`;
   const fila = (titulo: ReactNode, celda: (f: FilaRanking) => ReactNode, i: number) => (
     <div className="anim-entra space-y-1.5 border-t border-sand py-2.5" style={{ ["--i" as string]: 2 + i }}>
-      <span className="flex items-center gap-1 text-xs font-semibold text-taupe">{titulo}</span>
+      <span className="flex items-center gap-1 text-sm font-semibold text-taupe">{titulo}</span>
       <div className="grid items-start gap-3" style={columnas}>
         {filas.map((f) => (
-          <span key={f.proveedorId} className="flex min-w-0 flex-col items-start gap-1 break-words text-[13.5px] text-tinta">
+          <span key={f.proveedorId} className="flex min-w-0 flex-col items-start gap-1 break-words text-[15px] text-tinta">
             {celda(f)}
           </span>
         ))}
@@ -135,7 +135,7 @@ export function ProveedoresComparar({
             return (
               <>
                 {sem && <b className={cifra}>{sem}</b>}
-                {f.ritmo.juzgable && f.ritmo.vendidas > 0 && <span className="text-xs text-tinta/70">vende {porSemanaTexto(f.ritmo)}</span>}
+                {f.ritmo.juzgable && f.ritmo.vendidas > 0 && <span className="text-sm text-tinta/70">vende {porSemanaTexto(f.ritmo)}</span>}
                 <Chip tono={RITMOS[f.clase].tono} title={RITMOS[f.clase].ayuda}>
                   {RITMOS[f.clase].palabra}
                 </Chip>
@@ -154,7 +154,7 @@ export function ProveedoresComparar({
                 <>
                   {/* La línea de la fila, entera en tinta: aquí se lee, no se pasa el mouse. */}
                   {serie && <Sparkline serie={serie} className="[&_path]:text-tinta" />}
-                  <span className="flex items-center gap-1 text-xs text-tinta/70">
+                  <span className="flex items-center gap-1 text-sm text-tinta/70">
                     <b className="font-semibold tabular-nums text-tinta">{s?.estaSemana ?? 0}</b> esta semana
                     {s?.tendencia === "sube" && <ArrowUp aria-label="sube" className="h-3 w-3" />}
                     {s?.tendencia === "baja" && <ArrowDown aria-label="baja" className="h-3 w-3" />}
@@ -169,13 +169,13 @@ export function ProveedoresComparar({
           "Talla que pide más",
           (f) => {
             const t = tallasYSedesDe(f.proveedorId)?.tallas;
-            if (t === undefined) return <span className="text-xs text-tinta/70">—</span>;
-            if (t === null) return <span className="text-xs text-tinta/70">talla única</span>;
-            if (!t.mide) return <span className="text-xs text-tinta/70">pocas ventas para decirlo ({t.vendidas})</span>;
+            if (t === undefined) return <span className="text-sm text-tinta/70">—</span>;
+            if (t === null) return <span className="text-sm text-tinta/70">talla única</span>;
+            if (!t.mide) return <span className="text-sm text-tinta/70">pocas ventas para decirlo ({t.vendidas})</span>;
             return (
               <>
                 <b className="font-semibold">{t.piden.length > 0 ? t.piden.join(", ") : "ninguna"}</b>
-                {t.sobran.length > 0 && <span className="text-xs text-tinta/70">le sobra {t.sobran.join(", ")}</span>}
+                {t.sobran.length > 0 && <span className="text-sm text-tinta/70">le sobra {t.sobran.join(", ")}</span>}
               </>
             );
           },
@@ -185,8 +185,8 @@ export function ProveedoresComparar({
           "La tienda que más vende",
           (f) => {
             const r = tallasYSedesDe(f.proveedorId);
-            if (!r) return <span className="text-xs text-tinta/70">—</span>;
-            if (!r.mejor) return <span className="text-xs text-tinta/70">aún no se mide</span>;
+            if (!r) return <span className="text-sm text-tinta/70">—</span>;
+            if (!r.mejor) return <span className="text-sm text-tinta/70">aún no se mide</span>;
             return (
               <>
                 <span className="font-semibold">{r.mejor.sede.replace(/^Tienda /, "")}</span>
@@ -202,9 +202,9 @@ export function ProveedoresComparar({
           "Ganas de cada venta",
           (f) =>
             f.unidadesVendidas < MIN_VENDIDAS_PARA_JUZGAR ? (
-              <span className="text-xs text-tinta/70">pocas ventas para decirlo ({f.unidadesVendidas})</span>
+              <span className="text-sm text-tinta/70">pocas ventas para decirlo ({f.unidadesVendidas})</span>
             ) : f.margenPct == null ? (
-              <span className="text-xs text-tinta/70" title="La mayoría de lo que te llegó vino por la carga inicial: su costo todavía no es real">
+              <span className="text-sm text-tinta/70" title="La mayoría de lo que te llegó vino por la carga inicial: su costo todavía no es real">
                 por confirmar
               </span>
             ) : (
@@ -224,8 +224,8 @@ export function ProveedoresComparar({
             return (
               <>
                 {saldo > 0 ? <b className="font-semibold tabular-nums">{soles(saldo)}</b> : <span className="text-tinta/70">Nada</span>}
-                {vencido > 0 && <span className="text-xs font-semibold text-rojo-profundo">{vencido >= saldo ? "todo vencido" : `${soles(vencido)} vencido`}</span>}
-                {facturado > 0 && <span className="text-xs text-tinta/70">de {soles(facturado)} facturados, con IGV</span>}
+                {vencido > 0 && <span className="text-sm font-semibold text-rojo-profundo">{vencido >= saldo ? "todo vencido" : `${soles(vencido)} vencido`}</span>}
+                {facturado > 0 && <span className="text-sm text-tinta/70">de {soles(facturado)} facturados, con IGV</span>}
               </>
             );
           },

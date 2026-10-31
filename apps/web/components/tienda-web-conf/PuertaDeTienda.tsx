@@ -143,7 +143,7 @@ export function PuertaDeTienda({
       </button>
       <div className="twc-pie">
         <Anillo pct={avance.pct} tamano="chico" etiqueta={`${nombre}: ${avance.listos} de ${avance.total} datos listos`}>
-          {avance.listos === avance.total ? <Check aria-hidden className="h-4 w-4" /> : <b className="text-[11px]">{avance.listos}</b>}
+          {avance.listos === avance.total ? <Check aria-hidden className="h-4 w-4" /> : <b className="text-sm">{avance.listos}</b>}
         </Anillo>
         <div className="twc-faltan">
           {falta.map((d) => (

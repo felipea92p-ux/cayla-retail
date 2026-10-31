@@ -111,7 +111,7 @@ export function SupuestosDelPlan({
           </Fila>
         )}
       </div>
-      <p className="mt-3 text-[12.5px] text-tinta-60">Son los supuestos de TODA la campaña: se cambian aquí o desde la hoja de cada categoría.</p>
+      <p className="mt-3 text-sm text-tinta-60">Son los supuestos de TODA la campaña: se cambian aquí o desde la hoja de cada categoría.</p>
     </div>
   );
 }

@@ -82,7 +82,7 @@ export function LookMostrarHoja({
       conCerrar
     >
       <form onSubmit={aplicar} className="space-y-5">
-        <p className="rounded-xl border border-sand bg-papel px-3.5 py-2.5 text-[13px] text-tinta">
+        <p className="rounded-xl border border-sand bg-papel px-3.5 py-2.5 text-sm text-tinta">
           <span className="font-medium">{look.nombre}</span>
           <span className="block text-taupe">{`${resumenLook(look)} · ${look.piezas.map((p) => p.nombre).join(", ")}`}</span>
         </p>

@@ -130,7 +130,7 @@ export function ApartadosPanel(props: Props) {
       </header>
 
       {(props.liberadosAhora > 0 || !props.cajaAbierta || props.hayMas) && (
-        <div className="space-y-1 border-b border-sand bg-crema px-6 py-2.5 text-[12.5px]">
+        <div className="space-y-1 border-b border-sand bg-crema px-6 py-2.5 text-sm">
           {props.liberadosAhora > 0 && (
             <p className="text-rojo-profundo">
               {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
@@ -201,7 +201,7 @@ export function ApartadosPanel(props: Props) {
             aria-current={vista === p.id ? "page" : "false"}
             data-guia={`apartados.pestana-${p.id}`}
             style={{ height: ALTO_PESTANAS_MOVIL }}
-            className={`relative flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${vista === p.id ? "text-tinta" : "text-tinta/50"}`}
+            className={`relative flex flex-col items-center justify-center gap-1 text-sm transition-colors ${vista === p.id ? "text-tinta" : "text-tinta/50"}`}
           >
             {p.icono}
             {p.etiqueta}

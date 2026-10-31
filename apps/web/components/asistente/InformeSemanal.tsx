@@ -43,7 +43,7 @@ function Mejora({ m, n }: { m: MejoraLeida; n: number }) {
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <Chip tono={TONO[m.tipo]}>{NOMBRE_MEJORA[m.tipo]}</Chip>
-            <span className="text-xs text-taupe">
+            <span className="text-sm text-taupe">
               {cuantas === 1 ? "1 pregunta" : `${cuantas} preguntas`}
               {noSirvio > 0 ? ` · a ${noSirvio} no le sirvió` : ""}
               {m.sedes.length > 0 ? ` · ${m.sedes.join(", ")}` : ""}
@@ -57,7 +57,7 @@ function Mejora({ m, n }: { m: MejoraLeida; n: number }) {
               {m.preguntas.map((p) => (
                 <li key={p.id} className="text-sm">
                   <span className="block break-words">«{p.pregunta}»</span>
-                  <span className="block text-xs text-taupe">
+                  <span className="block text-sm text-taupe">
                     {[p.persona ?? "Una terminal", p.sede, p.sirvio === false ? "no le sirvió" : null].filter(Boolean).join(" · ")}
                     {p.comentario ? ` · buscaba: «${p.comentario}»` : ""}
                   </span>
@@ -113,7 +113,7 @@ export function InformeSemanal({ informes }: { informes: InformeLeido[] }) {
       </TituloSeccion>
       {ultimo ? (
         <>
-          <p className="text-[13px] text-taupe">
+          <p className="text-sm text-taupe">
             Semana {rangoDeSemana(ultimo.semana)} · {ultimo.total === 1 ? "1 pregunta" : `${ultimo.total} preguntas`} ·{" "}
             {ultimo.automatico ? "armado el lunes" : "armado con el botón"}. Las mejoras las redacta la IA; cada una cita las preguntas que la sostienen.
           </p>
@@ -129,8 +129,7 @@ export function InformeSemanal({ informes }: { informes: InformeLeido[] }) {
         </>
       ) : (
         <p className="text-sm text-taupe">
-          Cada lunes a las 7:00, las preguntas de la semana anterior se vuelven hasta 5 mejoras, con las preguntas que las sostienen. Todavía no hay
-          ninguno.
+          Cada lunes a las 7:00, las preguntas de la semana se vuelven hasta 5 mejoras. Todavía no hay ninguno.
         </p>
       )}
     </section>

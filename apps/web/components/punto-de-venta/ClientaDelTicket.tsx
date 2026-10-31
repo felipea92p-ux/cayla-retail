@@ -57,7 +57,7 @@ const BOTON_CHICO_SECUNDARIO =
   "btn-cayla btn-secundario h-7 shrink-0 px-2.5 text-[12.5px]";
 /** Con lo del club plegado, su acción a la vista como píldora (spike, `accion` de `partesClub`): «Usar puntos». */
 const PILDORA_ACCION =
-  "inline-flex items-center gap-1.5 rounded-full bg-tinta px-2.5 py-0.5 text-xs leading-5 text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
+  "inline-flex items-center gap-1.5 rounded-full bg-tinta px-2.5 py-0.5 text-sm leading-5 text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /**
  * La clienta arriba del ticket (spike 2026-09-26, hallazgo 4; referentes: Shopify POS, Square y Odoo ponen al cliente arriba
@@ -174,8 +174,8 @@ export function ClientaDelTicket({
             <AvatarPersona personaId={null} nombre={soloPalabras(linea.titulo)} tamano={32} />
             <div className="min-w-0 flex-1">
               <button type="button" onClick={() => setAbierto(true)} disabled={bloqueado || fila === "elegida_fija"} className="block w-full min-w-0 text-left">
-                <span className="block truncate text-[13.5px] font-semibold text-tinta">{linea.titulo}</span>
-                {linea.detalle && <span className="block truncate text-[11.5px] text-tinta/60">{linea.detalle}</span>}
+                <span className="block truncate text-[15px] font-semibold text-tinta">{linea.titulo}</span>
+                {linea.detalle && <span className="block truncate text-sm text-tinta/60">{linea.detalle}</span>}
               </button>
               {caja.tipo !== "nada" && (
                 <span className="anim-revelar mt-1 flex flex-wrap gap-1">
@@ -261,11 +261,11 @@ export function ClientaDelTicket({
           onClick={() => setAbierto(true)}
           disabled={bloqueado}
           title="Búscalo por documento, celular o nombre. Es opcional."
-          className="flex h-11 w-full items-center gap-2 rounded-md border border-dashed border-tinta/25 px-3 text-left text-[13px] text-tinta/65 transition-colors hover:border-taupe hover:text-tinta sm:h-9"
+          className="flex h-11 w-full items-center gap-2 rounded-md border border-dashed border-tinta/25 px-3 text-left text-sm text-tinta/65 transition-colors hover:border-taupe hover:text-tinta sm:h-9"
         >
           <UserRound className="h-4 w-4 shrink-0" aria-hidden />
           <span className="truncate">Agregar cliente</span>
-          <span className="ml-auto hidden text-[11.5px] text-tinta/50 @min-[13.5rem]:inline">opcional</span>
+          <span className="ml-auto hidden text-sm text-tinta/50 @min-[13.5rem]:inline">opcional</span>
         </button>
       )}
 
@@ -310,13 +310,13 @@ function FilaDelClub({
   children: React.ReactNode;
 }) {
   return (
-    <div title={titulo} className={`flex items-center gap-2.5 border-t border-sand px-3 py-1.5 text-[12.5px] ${fondo ? "bg-hueso" : ""}`}>
+    <div title={titulo} className={`flex items-center gap-2.5 border-t border-sand px-3 py-1.5 text-sm ${fondo ? "bg-hueso" : ""}`}>
       <span className="text-taupe" aria-hidden>
         {icono}
       </span>
       <div className="min-w-0 flex-1 leading-snug text-tinta">
         {children}
-        {sm && <span className={`block text-[11px] text-tinta/60 ${smEntera ? "" : "truncate"}`}>{sm}</span>}
+        {sm && <span className={`block text-sm text-tinta/60 ${smEntera ? "" : "truncate"}`}>{sm}</span>}
       </div>
       {accion}
     </div>
@@ -508,7 +508,7 @@ function BuscarClientaModal({
             />
 
             <div className="mt-3 min-h-24" aria-live="polite">
-              {visible.tipo === "inicio" && <p className="py-4 text-center text-xs text-tinta/55">Escribe al menos 3 caracteres.</p>}
+              {visible.tipo === "inicio" && <p className="py-4 text-center text-sm text-tinta/55">Escribe al menos 3 caracteres.</p>}
               {visible.tipo === "error" && (
                 <Aviso tono="error" chico>
                   {visible.mensaje ?? "No se pudo buscar en la libreta."} La venta sigue: el DNI se puede poner al cobrar.
@@ -542,7 +542,7 @@ function BuscarClientaModal({
                         <button type="button" onClick={() => onElegir(c)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-sand/40">
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold text-tinta">{l.titulo}</span>
-                            <span className="block truncate text-[11.5px] text-tinta/60">{[l.detalle, estadoEnLaLibreta(clubDesde)].filter(Boolean).join(" · ")}</span>
+                            <span className="block truncate text-sm text-tinta/60">{[l.detalle, estadoEnLaLibreta(clubDesde)].filter(Boolean).join(" · ")}</span>
                           </span>
                           <span className="label-cayla text-[10.5px] text-tinta/70">Elegir</span>
                         </button>
@@ -727,7 +727,7 @@ function RegistrarClientaEnTicket({
         <ComboResponsable control={responsable} deshabilitado={guardando} />
         {/* «Nadie de turno» y «no se pudo leer» ya los explica el combo con su recuadro; aquí, solo lo que falta elegir. */}
         {(responsable.estado === "falta" || responsable.estado === "cargando") && responsable.motivo && (
-          <p className="mt-1.5 text-xs text-tinta/65">{responsable.motivo}</p>
+          <p className="mt-1.5 text-sm text-tinta/65">{responsable.motivo}</p>
         )}
       </CampoGuiado>
 

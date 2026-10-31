@@ -78,15 +78,15 @@ export function AnilloMision({
           : `Hoy: ${hechas} de ${total} tallas resueltas. Pendientes: ${pendientes}`
       }
       title="Lo de hoy: tallas por colgar y agotadas que otra tienda tiene. Toca para ver los pendientes de la sede."
-      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-sand bg-crema text-left text-[13px] transition-colors hover:border-taupe lg:pr-3.5"
+      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-sand bg-crema text-left text-sm transition-colors hover:border-taupe lg:pr-3.5"
     >
       {/* El anillo chico del sistema (ronda 13). Lo que falta va en ámbar a propósito: es el recordatorio de lo de hoy (2026-10-06). */}
       <Anillo pct={fraccion * 100} tamano="chico" tono={listo ? "verde" : "ambar"} decorativa>
         <span className="text-tinta lg:hidden">{adentro}</span>
       </Anillo>
       <span className="leading-tight max-lg:hidden">
-        <b className="block whitespace-nowrap text-[13.5px] font-semibold tabular-nums text-tinta">{texto}</b>
-        <small className="text-[11px] text-taupe">hoy</small>
+        <b className="block whitespace-nowrap text-[15px] font-semibold tabular-nums text-tinta">{texto}</b>
+        <small className="text-sm text-taupe">hoy</small>
       </span>
     </button>
   );

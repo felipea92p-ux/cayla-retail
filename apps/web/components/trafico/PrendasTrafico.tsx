@@ -137,7 +137,7 @@ function FilaPrenda({ p, guia, promedio, base, onAbrir }: { p: PrendaTrafico; gu
           />
           <span className="min-w-0">
             <b className="btn-enlace block truncate font-semibold">{p.nombre}</b>
-            <small className="block truncate text-[12px] text-tinta/70">{p.categoria ?? "Sin categoría"}</small>
+            <small className="block truncate text-sm text-tinta/70">{p.categoria ?? "Sin categoría"}</small>
           </span>
         </button>
       </span>
@@ -149,13 +149,13 @@ function FilaPrenda({ p, guia, promedio, base, onAbrir }: { p: PrendaTrafico; gu
       <span className={celda("der", "font-semibold")}>
         <span className="sm:hidden font-normal text-tinta/70">Miraron </span>
         {miles(p.recorrido[0])}
-        {cambio && <small className="block text-[11.5px] font-normal text-tinta/70">{cambio.texto}</small>}
+        {cambio && <small className="block text-sm font-normal text-tinta/70">{cambio.texto}</small>}
       </span>
       <span className="hidden sm:block">
         <MiniRecorrido p={p} base={base} />
       </span>
       <span className="grid gap-1">
-        <span className="text-[12.5px] font-semibold tabular-nums">{separanDe100(p)} de cada 100</span>
+        <span className="text-sm font-semibold tabular-nums">{separanDe100(p)} de cada 100</span>
         <BarraAvance pct={barraDeSeparan(p, promedio)} alto="normal" tono={estado.tono === "neutro" ? "tinta" : estado.tono} marca={50} decorativa />
       </span>
       <span className={celda("der", "hidden font-semibold sm:block")}>{miles(p.recorrido[3])}</span>

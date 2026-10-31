@@ -50,7 +50,7 @@ function BotonAccion({ icono: Icono, texto, activo, onClick, disabled }: { icono
       onClick={onClick}
       disabled={disabled}
       aria-expanded={activo}
-      className={`grid justify-items-center gap-1.5 rounded-xl border px-2 py-3 text-[13px] font-semibold text-tinta transition-colors duration-200 ease-cayla disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`grid justify-items-center gap-1.5 rounded-xl border px-2 py-3 text-sm font-semibold text-tinta transition-colors duration-200 ease-cayla disabled:cursor-not-allowed disabled:opacity-50 ${
         activo ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"
       }`}
     >
@@ -147,7 +147,7 @@ export function FichaColaborador({
       }
       debajo={
         // Una línea con lo importante y el correo (antes, una frase de dos líneas en una caja y el correo aparte).
-        <p className="truncate text-xs text-tinta/60" data-guia="colaboradores.ficha-frase">
+        <p className="truncate text-sm text-tinta/60" data-guia="colaboradores.ficha-frase">
           {frase.map((p, i) => (p.fuerte ? <strong key={i} className="font-semibold text-tinta">{p.texto}</strong> : <span key={i}>{p.texto}</span>))}
           {" · "}
           {persona.correo}
@@ -164,7 +164,7 @@ export function FichaColaborador({
           )}
           {quitable &&
             (panel === "quitar" ? (
-              <span className="flex flex-wrap items-center gap-2 text-[13.5px] text-tinta">
+              <span className="flex flex-wrap items-center gap-2 text-[15px] text-tinta">
                 ¿Quitar el acceso?
                 <button type="button" className="btn-cayla btn-chico btn-peligro" disabled={!listo} onClick={() => void acciones.quitar()}>
                   Sí, quitar
@@ -181,8 +181,8 @@ export function FichaColaborador({
         </div>
       }
     >
-      {persona.esYo && <p className="text-[13px] text-tinta/60">Es tu cuenta: otra persona te cambia el rol y la sede.</p>}
-      {!persona.esYo && !tocable && persona.estado !== "baja_dynamic" && <p className="text-[13px] text-tinta/60">La administra alguien con más acceso que tú.</p>}
+      {persona.esYo && <p className="text-sm text-tinta/60">Es tu cuenta: otra persona te cambia el rol y la sede.</p>}
+      {!persona.esYo && !tocable && persona.estado !== "baja_dynamic" && <p className="text-sm text-tinta/60">La administra alguien con más acceso que tú.</p>}
 
       {tocable && (
         <div className="space-y-3">
@@ -210,7 +210,7 @@ export function FichaColaborador({
                     <span aria-hidden className="h-[18px] w-[18px] rounded-full border-2 border-dashed border-borde-control" />
                     <span className="min-w-0">
                       <span className="block text-[14px] font-semibold leading-tight text-tinta">{persona.rolNombre}</span>
-                      {rolActual?.descripcion && <span className="block truncate text-xs text-tinta/60">{rolActual.descripcion}</span>}
+                      {rolActual?.descripcion && <span className="block truncate text-sm text-tinta/60">{rolActual.descripcion}</span>}
                     </span>
                     <Chip>Ahora</Chip>
                   </div>
@@ -230,9 +230,9 @@ export function FichaColaborador({
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[14px] font-semibold leading-tight text-tinta">{r.nombre}</span>
-                          {r.descripcion && <span className="block truncate text-xs text-tinta/60">{r.descripcion}</span>}
+                          {r.descripcion && <span className="block truncate text-sm text-tinta/60">{r.descripcion}</span>}
                         </span>
-                        <span className="text-xs text-tinta/60">{plural(r.modulos.filter((m) => m !== "inicio").length, "módulo", "módulos")}</span>
+                        <span className="text-sm text-tinta/60">{plural(r.modulos.filter((m) => m !== "inicio").length, "módulo", "módulos")}</span>
                       </button>
                     );
                   })}
@@ -262,7 +262,7 @@ export function FichaColaborador({
                   No podrá administrar líderes hasta que otro Admin se lo devuelva.
                 </Aviso>
               )}
-              {destino?.fijo && <p className="text-[13px] text-tinta/70">Como líder verá y hará todo en todas las sedes.</p>}
+              {destino?.fijo && <p className="text-sm text-tinta/70">Como líder verá y hará todo en todas las sedes.</p>}
               <PieGuia guia={guia} listo="Todo listo para cambiar el rol." />
               {destino && cuenta && (
                 <button
@@ -280,7 +280,7 @@ export function FichaColaborador({
 
           {panel === "sede" && (
             <div className="anim-revelar space-y-2 rounded-xl border border-sand p-3">
-              <p className="text-[13px] text-tinta/70">{persona.nivel === "lider" ? "Sede donde abre su sesión:" : "Sede donde trabaja:"}</p>
+              <p className="text-sm text-tinta/70">{persona.nivel === "lider" ? "Sede donde abre su sesión:" : "Sede donde trabaja:"}</p>
               <div className="grid grid-cols-2 gap-2">
                 {ubicaciones.map((u) => {
                   const actual = u.id === persona.ubicacionId;
@@ -295,12 +295,12 @@ export function FichaColaborador({
                       }`}
                     >
                       {u.nombre}
-                      {actual && <span className="block text-xs font-normal text-tinta/60">Aquí está</span>}
+                      {actual && <span className="block text-sm font-normal text-tinta/60">Aquí está</span>}
                     </button>
                   );
                 })}
               </div>
-              {persona.nivel === "lider" && <p className="text-xs text-tinta/60">Ve y opera todas las sedes; esta es solo la que se abre primero.</p>}
+              {persona.nivel === "lider" && <p className="text-sm text-tinta/60">Ve y opera todas las sedes; esta es solo la que se abre primero.</p>}
               {pieSiFalta}
             </div>
           )}

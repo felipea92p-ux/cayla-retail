@@ -56,7 +56,7 @@ export function RolesModulos({
   return (
     <div className="grid gap-4 px-5 pb-5 pt-4 @[860px]/mod:grid-cols-[minmax(0,1fr)_16.5rem] @[860px]/mod:items-start">
       <div className="space-y-2">
-        <p className="pb-1 text-[13px] text-tinta/65">
+        <p className="pb-1 text-sm text-tinta/65">
           Ve <strong className="font-semibold text-tinta">{borrador.length}</strong> de {rol.fijo ? `${MODULOS.length} módulos` : `${MODULOS.filter(esDelegable).length} que se pueden dar`}.
           Abre un área para encender o apagar sus módulos.
         </p>
@@ -87,10 +87,10 @@ export function RolesModulos({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-display text-[20px] leading-tight text-tinta">{grupo}</span>
-                  <span className="block truncate text-[12.5px] text-tinta/65">{bajada}</span>
+                  <span className="block truncate text-sm text-tinta/65">{bajada}</span>
                 </span>
                 <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums ${
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${
                     estado === "todo" ? "bg-verde text-papel" : estado === "algo" ? "bg-tinta text-papel" : "bg-hueso text-tinta/70"
                   }`}
                 >
@@ -123,17 +123,17 @@ export function RolesModulos({
                               <span className="flex flex-wrap items-center gap-x-2 text-[14px] font-semibold text-tinta">
                                 {m.nombre}
                                 {control.tipo === "candado" && (
-                                  <span className="inline-flex items-center gap-1 text-[11.5px] font-normal text-taupe-profundo">
+                                  <span className="inline-flex items-center gap-1 text-sm font-normal text-taupe-profundo">
                                     <Lock aria-hidden className="h-3 w-3" /> {control.texto}
                                   </span>
                                 )}
                                 {marca && (
-                                  <span className={`text-[11.5px] font-semibold ${marca === "suma" ? "text-verde" : "text-rojo-profundo"}`}>
+                                  <span className={`text-sm font-semibold ${marca === "suma" ? "text-verde" : "text-rojo-profundo"}`}>
                                     {marca === "suma" ? "se suma al guardar" : "se quita al guardar"}
                                   </span>
                                 )}
                               </span>
-                              <span className="line-clamp-2 text-[12.5px] leading-snug text-tinta/65">{m.incluye}</span>
+                              <span className="line-clamp-2 text-sm leading-snug text-tinta/65">{m.incluye}</span>
                             </span>
                           </label>
                         </li>
@@ -172,7 +172,7 @@ function MenuDelRol({ rolNombre, borrador, suma, quita }: { rolNombre: string; b
     .filter((g) => g.modulos.length > 0);
   return (
     <aside aria-label={`Así verá el menú ${rolNombre}`} data-guia="roles.vista-previa" className="@[860px]/mod:sticky @[860px]/mod:top-20">
-      <div className="mb-2 flex items-baseline justify-between gap-2 px-1 text-xs text-tinta/65">
+      <div className="mb-2 flex items-baseline justify-between gap-2 px-1 text-sm text-tinta/65">
         <span>Así verá el menú</span>
         <strong className="truncate font-semibold text-tinta">{rolNombre}</strong>
       </div>
@@ -196,7 +196,7 @@ function MenuDelRol({ rolNombre, borrador, suma, quita }: { rolNombre: string; b
                   return (
                     <div
                       key={m.clave}
-                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13.5px] ${entra ? "anim-revelar bg-verde/15 font-semibold text-tinta" : sale ? "text-tinta/60 line-through" : "text-tinta"}`}
+                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[15px] ${entra ? "anim-revelar bg-verde/15 font-semibold text-tinta" : sale ? "text-tinta/60 line-through" : "text-tinta"}`}
                     >
                       <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${entra ? "bg-verde" : sale ? "bg-rojo" : "bg-borde-control"}`} />
                       <span className="min-w-0 flex-1 truncate">{m.nombre}</span>

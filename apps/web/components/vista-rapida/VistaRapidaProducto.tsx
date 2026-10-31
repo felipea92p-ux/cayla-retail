@@ -287,7 +287,7 @@ export function VistaRapidaProducto({
               </span>
               <span className="vr-est">{vista !== null && vista !== fijado ? "vista previa" : "fijado"}</span>
             </div>
-            <p className="vr-pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
+            {/* Sin la instrucción «Pasa el mouse por un color…» (ronda 19): «vista previa» y «fijado», junto al color, ya lo dicen. */}
             {/* Con qué se combina el color de la foto (ADR-0316; Felipe 2026-10-10): sigue a la foto (vista previa al pasar, fijado al clic),
                 en una caja de alto fijo para que la hoja no cambie de tamaño bajo el mouse (ADR-0185); la frase, tras «¿Por qué?». */}
             {fichaEnFoto && (
@@ -391,7 +391,7 @@ export function VistaRapidaProducto({
           </button>
           {hrefExistencias && (
             // Lleva a otra pantalla: el botón secundario con la flecha que avanza (ADR-0358, ronda 10), nunca el negro.
-            <BotonVer href={hrefExistencias} className="min-h-10 text-[12.5px]">
+            <BotonVer href={hrefExistencias} className="min-h-10 text-sm">
               Ver en Existencias
             </BotonVer>
           )}

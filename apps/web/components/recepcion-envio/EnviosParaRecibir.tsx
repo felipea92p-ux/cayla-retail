@@ -108,7 +108,7 @@ export function EnviosParaRecibir({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
           <TituloSeccion id="recibir-envios-oc">{porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}</TituloSeccion>
-          <p className="text-[13.5px] text-taupe">{porCategoria ? <>Se cuentan por categoría y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
+          <p className="text-[15px] text-taupe">{porCategoria ? <>Se cuentan por categoría y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
         </div>
         {accionTitulo}
       </div>
@@ -142,7 +142,7 @@ export function EnviosParaRecibir({
             <span className={celda("izq", "hidden text-sm text-taupe @5xl:block")}>—</span>
             <span className={celda("der", "text-sm text-tinta")}>{prendas(o.unidadesPorEnviar)}</span>
             <span className={celda("der", "overflow-visible whitespace-normal sm:flex sm:justify-end")}>
-              {o.creadaPorMi ? <span className="whitespace-normal text-right text-[12.5px] leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span> : <RecibirSinGuia orden={o} sede={sede} />}
+              {o.creadaPorMi ? <span className="whitespace-normal text-right text-sm leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span> : <RecibirSinGuia orden={o} sede={sede} />}
             </span>
           </div>
             );
@@ -163,7 +163,7 @@ export function EnviosParaRecibir({
                 {salio ? (
                   <>
                     {salio.dia}
-                    {salio.hora && <small className="block text-xs text-taupe">{salio.hora}</small>}
+                    {salio.hora && <small className="block text-sm text-taupe">{salio.hora}</small>}
                   </>
                 ) : (
                   <span className="text-taupe">—</span>
@@ -173,7 +173,7 @@ export function EnviosParaRecibir({
                 {e.numero}
                 {/* Con la tarjeta angosta, la fecha de envío se lee bajo el número; con la ancha, tiene su columna (la primera). */}
                 {salio && (
-                  <small className="block text-xs font-normal text-taupe @3xl:hidden" title={`Enviado el ${salio.completa}`}>
+                  <small className="block text-sm font-normal text-taupe @3xl:hidden" title={`Enviado el ${salio.completa}`}>
                     <span className="sm:hidden">Enviado </span>
                     {salio.dia}
                     {salio.hora && ` · ${salio.hora}`}
@@ -191,14 +191,14 @@ export function EnviosParaRecibir({
               </span>
               <span className={celda("izq", "pointer-events-none relative text-sm text-tinta")} title={proveedor}>
                 {proveedor}
-                {sinAviso && <small className="block truncate text-xs text-taupe">Llegó sin aviso: se sigue contando</small>}
-                {e.numeroGuia && <small className="block truncate text-xs text-taupe @5xl:hidden">guía {e.numeroGuia}</small>}
+                {sinAviso && <small className="block truncate text-sm text-taupe">Llegó sin aviso: se sigue contando</small>}
+                {e.numeroGuia && <small className="block truncate text-sm text-taupe @5xl:hidden">guía {e.numeroGuia}</small>}
               </span>
               <span className={celda("izq", "pointer-events-none relative hidden text-sm tabular-nums text-taupe @5xl:block")}>{e.numeroGuia ?? "—"}</span>
               <span className={celda("der", "pointer-events-none relative text-sm text-tinta")}>{sinAviso ? "—" : prendas(e.unidades)}</span>
               <span className={celda("der", "relative overflow-visible whitespace-normal sm:flex sm:justify-end")}>
                 {e.creadoPorMi ? (
-                  <span className="whitespace-normal text-right text-[12.5px] leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span>
+                  <span className="whitespace-normal text-right text-sm leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span>
                 ) : (
                   e.estado === "abierto" ? (
                     <BotonEnlace href={`/recibir/envio/${e.id}`} peso="fantasma" aria-label={`Seguir recibiendo ${e.numero}`}>
@@ -219,7 +219,7 @@ export function EnviosParaRecibir({
           </Vacio>
         )}
         {paginaActual.totalPaginas > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
             <span>
               Mostrando {paginaActual.desde}–{paginaActual.hasta} de {coinciden}
             </span>

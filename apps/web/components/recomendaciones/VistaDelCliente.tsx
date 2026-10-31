@@ -16,7 +16,7 @@ export function VistaDelCliente({ recomendacion: r, respuesta, ahoraIso }: { rec
     <section className="space-y-2" data-guia="recomendacion.vista-cliente" aria-label="Así lo verá en su cuenta de la tienda online">
       <TituloGrupo nota="en su cuenta de la tienda online">Así lo verá {r.cliente?.nombre.split(" ")[0] ?? "el cliente"}</TituloGrupo>
       <div className="space-y-2 rounded-2xl border border-sand bg-crema px-4 py-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5 text-[12.5px] text-taupe">
+        <div className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5 text-sm text-taupe">
           <span>
             <b className="font-semibold text-tinta">{sobreQue(r)}</b> · {fechaDeLaTienda(r.creadaEn)}
           </span>
@@ -31,7 +31,7 @@ export function VistaDelCliente({ recomendacion: r, respuesta, ahoraIso }: { rec
           {texto ? (
             <p className="mt-1.5 whitespace-pre-line break-words text-[14px] leading-normal text-tinta">{texto}</p>
           ) : (
-            <p className="mt-1.5 text-[13px] italic text-taupe">Aquí aparece tu respuesta, tal como la escribas.</p>
+            <p className="mt-1.5 text-sm italic text-taupe">Aquí aparece tu respuesta, tal como la escribas.</p>
           )}
         </div>
       </div>

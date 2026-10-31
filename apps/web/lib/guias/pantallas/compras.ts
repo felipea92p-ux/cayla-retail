@@ -2153,7 +2153,7 @@ export const GUIA_PLAN_RESULTADOS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Lo que pasó de verdad",
-      texto: "Aquí ves lo que se vendió en una campaña, tienda por tienda: cuántas prendas, qué se agotó y a cuánto se vendió lo que sobró. Sirve para comparar con lo que planificaste y planificar mejor la próxima. El «!» junto al título explica cada cifra.",
+      texto: "Aquí ves lo que se vendió en una campaña, tienda por tienda: cuántas prendas, qué se agotó y a cuánto se vendió lo que sobró. Sirve para comparar con lo que planificaste y planificar mejor la próxima. El «?» junto al título explica cada cifra.",
     },
     {
       id: "selector",
@@ -2262,7 +2262,7 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Campaña por campaña",
-      texto: "Aquí ves lo que vendió cada tienda en cada campaña (Día de la Madre, Navidad…), un año a la vez, y cuánto creció contra el año anterior. Antes del ERP, las cifras salen de los Excel de Finanzas. El «!» junto al título explica cada cifra. Solo se mira: no se guarda nada.",
+      texto: "Aquí ves lo que vendió cada tienda en cada campaña (Día de la Madre, Navidad…), un año a la vez, y cuánto creció contra el año anterior. Antes del ERP, las cifras salen de los Excel de Finanzas. El «?» junto al título explica cada cifra. Solo se mira: no se guarda nada.",
     },
     VISTAS_DEL_PLAN("Historial"),
     {

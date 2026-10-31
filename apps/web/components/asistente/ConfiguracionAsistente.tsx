@@ -64,7 +64,7 @@ export function ConfiguracionAsistente({ sedes, gastado, hoy, guardar }: { sedes
     <Superficie className="anim-sube" guia="config.tiendas-asistente">
       <TituloDeTarjeta
         titulo="Pregúntale a CAYLA en cada sede"
-        bajada="La ayuda de la cabecera que responde «¿cómo hago…?» y lleva al botón. Se prende sede por sede: solo en las encendidas sale «Preguntar»."
+        bajada="La ayuda «Preguntar» de la cabecera, sede por sede."
       >
         {gasto ? <Chip tono={gasto.tono}>{gasto.texto}</Chip> : <Chip tono="neutro">{encendidas ? `${encendidas} encendida${encendidas === 1 ? "" : "s"}` : "Apagado en todas"}</Chip>}
       </TituloDeTarjeta>

@@ -342,7 +342,7 @@ export function DevolucionesFlujo({
                         <span className={`min-w-0 flex-1 ${estado.devolvible ? "" : "opacity-60"}`}>
                           <span className="block text-[15px] font-semibold text-tinta">{l.referencia}</span>
                           <span className="block text-sm text-tinta/75">{varianteLegible(l)}</span>
-                          <span className="mt-0.5 block text-xs text-tinta/70">
+                          <span className="mt-0.5 block text-sm text-tinta/70">
                             <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
                           </span>
                         </span>
@@ -474,7 +474,7 @@ export function DevolucionesFlujo({
               </dl>
 
               <div>
-                <h3 className="text-xs font-semibold text-tinta/70">{lineasElegidas.length === 1 ? "Prenda que devuelve" : "Prendas que devuelve"}</h3>
+                <TituloGrupo>{lineasElegidas.length === 1 ? "Prenda que devuelve" : "Prendas que devuelve"}</TituloGrupo>
                 <ul className="mt-3 space-y-2.5">
                   {lineasElegidas.map((l) => {
                     const item = elegidas[l.ventaItemId]!;
@@ -487,7 +487,7 @@ export function DevolucionesFlujo({
                             {l.referencia} <span className="font-normal text-tinta/70">× {item.cantidad}</span>
                           </p>
                           <p className="text-sm text-tinta/75">{varianteLegible(l)}</p>
-                          <p className="mt-0.5 text-xs text-tinta/70">
+                          <p className="mt-0.5 text-sm text-tinta/70">
                             <span className="font-mono">{codigoPrenda(l)}</span> · {soles(valorPagado(l, item.cantidad))}
                           </p>
                         </div>
@@ -596,14 +596,14 @@ function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente
               }`}
             >
               <span className="block text-sm font-semibold">{o.titulo}</span>
-              <span className={`mt-0.5 block text-xs ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
+              <span className={`mt-0.5 block text-sm ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
             </button>
           );
         })}
       </div>
       {item.grupo === "danada" && (
         <fieldset data-falta-destino={sinDestino ? "" : undefined} className="anim-revelar">
-          <legend className="text-xs font-semibold text-tinta/70">¿Qué se piensa hacer con ella?</legend>
+          <legend className="text-sm font-semibold text-tinta/70">¿Qué se piensa hacer con ella?</legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {DESTINOS_DANADA.map((d) => (
               <button

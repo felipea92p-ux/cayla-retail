@@ -179,7 +179,7 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
                 return [l?.codigo, hay > 0 ? `hay ${hay} afuera` : "no hay nada afuera"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65" aria-live="polite">
+            <p className="text-sm text-tinta/65" aria-live="polite">
               {quedan === 0 ? `Con esto no queda nada afuera con ${servicio}.` : `Con esto quedan ${quedan} afuera con ${servicio}.`} ¿Algo no volvió bien? Anótalo en «Segundas» o «Faltaron»: esas prendas dejan de contar como buenas. Una raya (—) es una
               combinación que este modelo no tiene.
             </p>

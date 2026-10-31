@@ -57,7 +57,7 @@ function FilaTabla({ e, hoy, conRonda, plantilla }: { e: EnvioMio; hoy?: string;
         {conRonda && <span className={celda("izq", "hidden text-taupe xl:block")}>{e.ronda ?? "—"}</span>}
         <span className={celda("izq", "flex items-center gap-2 overflow-visible")}>
           <Chip tono={estado.tono}>{estado.texto}</Chip>
-          {nota && <span className="text-xs text-ambar">{nota}</span>}
+          {nota && <span className="text-sm text-ambar">{nota}</span>}
         </span>
       </button>
       {abierta && <HojaEnvio e={e} hoy={hoy} onClose={() => setAbierta(false)} volverA={origen} />}
@@ -76,7 +76,7 @@ export function TablaEnvios({ grupos, hoy, conRonda = false, guia }: { grupos: G
             <div className="flex items-center justify-between gap-3 bg-hueso px-5 py-2">
               <span className="min-w-0 truncate text-sm">
                 <b className="font-display text-base font-medium text-tinta">{g.titulo}</b>
-                {g.detalle && <span className="ml-2 text-xs text-taupe">{g.detalle}</span>}
+                {g.detalle && <span className="ml-2 text-sm text-taupe">{g.detalle}</span>}
               </span>
               {g.chip && <Chip tono={g.chip.tono}>{g.chip.texto}</Chip>}
             </div>

@@ -10,7 +10,7 @@ export function PorQue({ children, guia }: { children: ReactNode; guia?: string 
     <>
       <button
         type="button"
-        className="btn-enlace ml-1.5 text-[13px] font-medium"
+        className="btn-enlace ml-1.5 text-sm font-medium"
         aria-expanded={abierto}
         aria-controls={id}
         onClick={() => setAbierto((v) => !v)}

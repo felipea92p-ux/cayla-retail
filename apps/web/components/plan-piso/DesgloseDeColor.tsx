@@ -32,7 +32,7 @@ const COLUMNAS = [
 function Dato({ etiqueta, children, alinear = "der" }: { etiqueta: string; children: React.ReactNode; alinear?: "izq" | "der" }) {
   return (
     <div className={celda(alinear)}>
-      <span className="mr-2 text-xs text-taupe sm:hidden">{etiqueta}</span>
+      <span className="mr-2 text-sm text-taupe sm:hidden">{etiqueta}</span>
       {children}
     </div>
   );
@@ -60,7 +60,7 @@ function FilaDeColor({ c, maximo, conVentas }: { c: ColorDeLaFamilia; maximo: nu
         </span>
         <span className="text-sm text-tinta tabular-nums">
           {cifraEs(c.colgadas)}
-          <span className="ml-1 text-xs text-taupe sm:hidden">cuelgan</span>
+          <span className="ml-1 text-sm text-taupe sm:hidden">cuelgan</span>
         </span>
       </div>
       <Dato etiqueta="Vendieron">{conVentas ? cifraEs(c.confirmadas) : "—"}</Dato>

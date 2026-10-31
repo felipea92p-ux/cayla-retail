@@ -9,8 +9,8 @@
     .q-numeros{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
     .q-numero{display:flex;flex-direction:column;gap:2px;min-width:120px;flex:1}
     .q-numero b{font:500 34px/1 var(--font-serif)}
-    .q-numero .et{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
-    .q-numero .sub{font-size:12px;color:var(--color-tinta-60)}
+    .q-numero .et{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+    .q-numero .sub{font-size:14px;color:var(--color-tinta-60)}
     .q-pie{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px}
     /* Una tienda sin unidades: la barra de edad queda en hueso y lo dice. */
     .edad .q-sin{flex:1;background:var(--color-hueso);color:var(--color-tinta-60);font-weight:500}
@@ -29,6 +29,6 @@
       text-align:center;font:600 15px var(--font-sans);font-variant-numeric:tabular-nums}
     .paso-dias input[aria-invalid="true"]{color:var(--color-rojo-profundo)}
     .paso-dias button:focus-visible,.paso-dias input:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
-    .umbral-error{font-size:12px;color:var(--color-rojo-profundo)}
+    .umbral-error{font-size:14px;color:var(--color-rojo-profundo)}
   }
 }

@@ -182,7 +182,7 @@ export function PorPagarConsolidado({
             <div {...entra(5)}>
               <Superficie>
                 <Vacio icono={<Check />} titulo={`Todo pagado: ${nombre ? `${mayuscula(nombre)} no debe nada` : "CAYLA no debe nada"}`}>
-                  Ninguna factura de mercadería, gasto, activo ni insumo del Taller tiene saldo. Lo pagado y lo anulado no aparecen aquí.
+                  Ninguna factura tiene saldo.
                 </Vacio>
               </Superficie>
             </div>

@@ -110,7 +110,7 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
                 <MiniaturaPrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} tamano="sm" {...categoriaDe(prenda)} />
                 <span className="min-w-0">
                   <span className="block truncate text-sm text-tinta">{prenda.referencia}</span>
-                  <span className="mt-0.5 flex items-center gap-2 text-xs text-taupe">
+                  <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe">
                     {prenda.color ? (
                       <>
                         {/* En el celular `MuestraColor` ya escribe el nombre al lado de la cápsula; en escritorio solo lo dice al pasar el mouse. */}
@@ -130,7 +130,7 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
                   <EstadoLinea estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
                 </div>
                 {/* La prenda que faltó y apareció después: el conteo conserva lo que se contó, y aquí se ve que ya se recuperó. */}
-                {textoHallazgoDeLinea(linea) && <p className="col-start-2 text-xs text-verde @[36rem]:col-span-full @[36rem]:col-start-2">✓ {textoHallazgoDeLinea(linea)}</p>}
+                {textoHallazgoDeLinea(linea) && <p className="col-start-2 text-sm text-verde @[36rem]:col-span-full @[36rem]:col-start-2">✓ {textoHallazgoDeLinea(linea)}</p>}
               </li>
             ))}
           </ul>

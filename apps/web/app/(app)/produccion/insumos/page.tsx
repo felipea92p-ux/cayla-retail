@@ -30,7 +30,7 @@ export default async function InsumosPage() {
         <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Insumos" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
-            Insumos necesita una ubicación de tipo Taller para saber dónde están la tela y los avíos. Pídele al líder que active el Taller.
+            Falta el Taller. Pídele al líder que lo active.
           </Vacio>
         </div>
       </div>

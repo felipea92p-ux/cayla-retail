@@ -102,7 +102,7 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
         <CampoFin etiqueta="IGV">
           <div className="flex min-h-10 items-center">
             <Casilla marcada={b.igvSobreTasa} onCambio={() => cambiar({ igvSobreTasa: !b.igvSobreTasa })} etiqueta="La tasa lleva IGV" />
-            <span className="ml-2 text-[13px] text-tinta">La tasa lleva IGV</span>
+            <span className="ml-2 text-sm text-tinta">La tasa lleva IGV</span>
           </div>
         </CampoFin>
       </div>

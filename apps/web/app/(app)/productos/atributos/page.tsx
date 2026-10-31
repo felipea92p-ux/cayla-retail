@@ -1,7 +1,6 @@
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
-import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 import type { EventoCalendario, Temporada, TemporadaEfectiva } from "@/lib/temporada-reglas";
 import {
@@ -189,20 +188,15 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       <div data-guia="atributos.cabecera">
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
-          titulo={
+          titulo="Atributos"
+          subtitulo={
             <>
-              Atributos
-              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
-              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
-                <Ayuda titulo="Atributos">
-                  Los vocabularios cerrados que describen una prenda además de su categoría: color,
-                  talla, tejido, patrón y temporada; y las clases de avío del Taller (botón, cierre, hilo…). En los cuatro primeros, cualquiera con sesión
-                  agrega un valor nuevo y lo puede usar de inmediato. La temporada es una lista
-                  fija de nueve: en su pestaña se ve el
-                  calendario y se completan las prendas que todavía no la tienen. Las insignias (Nuevo,
-                  Top ventas, las campañas) viven en Catálogo ▸ Insignias.
-                </Ayuda>
-              </span>
+              Los vocabularios cerrados que describen una prenda además de su categoría: color,
+              talla, tejido, patrón y temporada; y las clases de avío del Taller (botón, cierre, hilo…). En los cuatro primeros, cualquiera con sesión
+              agrega un valor nuevo y lo puede usar de inmediato. La temporada es una lista
+              fija de nueve: en su pestaña se ve el
+              calendario y se completan las prendas que todavía no la tienen. Las insignias (Nuevo,
+              Top ventas, las campañas) viven en Catálogo ▸ Insignias.
             </>
           }
         />

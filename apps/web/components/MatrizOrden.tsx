@@ -51,7 +51,7 @@ export function MatrizOrdenTabla({
         <tbody>
           {matriz.colores.map((c) => (
             <tr key={c.nombre}>
-              <th scope="row" className="whitespace-nowrap pr-2 text-left text-xs font-normal text-tinta/80">
+              <th scope="row" className="whitespace-nowrap pr-2 text-left text-sm font-normal text-tinta/80">
                 <span className="inline-flex items-center gap-1.5">
                   {c.hex && (
                     <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex }} />
@@ -90,7 +90,7 @@ export function MatrizOrdenTabla({
                   </td>
                 );
               })}
-              <td className="px-1 text-center text-xs font-medium tabular-nums text-tinta">{totalColor(c.nombre)}</td>
+              <td className="px-1 text-center text-sm font-medium tabular-nums text-tinta">{totalColor(c.nombre)}</td>
             </tr>
           ))}
         </tbody>
@@ -98,11 +98,11 @@ export function MatrizOrdenTabla({
           <tr>
             <td aria-hidden />
             {matriz.tallas.map((t) => (
-              <td key={t} className="pt-0.5 text-center text-xs tabular-nums text-tinta/65">
+              <td key={t} className="pt-0.5 text-center text-sm tabular-nums text-tinta/65">
                 {totalTalla(t)}
               </td>
             ))}
-            <td className="pt-0.5 text-center text-xs font-medium tabular-nums text-tinta">{total}</td>
+            <td className="pt-0.5 text-center text-sm font-medium tabular-nums text-tinta">{total}</td>
           </tr>
         </tfoot>
       </table>

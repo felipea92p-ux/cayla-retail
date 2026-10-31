@@ -30,7 +30,7 @@ function FilaDeTabla({ m }: { m: MovimientoCompradora }) {
           </span>
           <span className="min-w-0">
             <span className="block truncate font-medium">{m.titulo}</span>
-            <span className="block truncate text-xs text-taupe">{m.resumen}</span>
+            <span className="block truncate text-sm text-taupe">{m.resumen}</span>
           </span>
         </span>
         <span className={celda("izq", "flex flex-wrap items-center gap-1.5 overflow-visible")}>

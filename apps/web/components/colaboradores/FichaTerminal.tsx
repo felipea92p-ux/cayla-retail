@@ -18,7 +18,7 @@ function BotonAccion({ icono: Icono, texto, onClick, peligro = false }: { icono:
     <button
       type="button"
       onClick={onClick}
-      className={`grid justify-items-center gap-1.5 rounded-xl border px-2 py-3 text-[13px] font-semibold transition-colors duration-200 ease-cayla ${
+      className={`grid justify-items-center gap-1.5 rounded-xl border px-2 py-3 text-sm font-semibold transition-colors duration-200 ease-cayla ${
         peligro ? "border-sand text-rojo hover:border-rojo/50" : "border-sand text-tinta hover:border-taupe"
       }`}
     >
@@ -65,7 +65,7 @@ export function FichaTerminal({
       }
       debajo={
         // Una línea: cuándo inició sesión por última vez y el correo que se escribe en el aparato.
-        <p className="truncate text-xs text-tinta/60" data-guia="colaboradores.terminal-frase">
+        <p className="truncate text-sm text-tinta/60" data-guia="colaboradores.terminal-frase">
           {!t.activo ? (
             <strong className="font-semibold text-tinta">Desactivada</strong>
           ) : t.ultimo_acceso ? (

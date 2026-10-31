@@ -131,7 +131,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   if (estado === "admin") {
     return (
       <Aviso tono="info" chico className={className} titulo="Eres admin">
-        No necesitas autorización. Lo que guardes queda a tu nombre.
+        Guardas a tu nombre, sin autorización.
       </Aviso>
     );
   }

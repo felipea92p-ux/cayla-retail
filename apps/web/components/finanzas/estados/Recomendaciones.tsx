@@ -25,7 +25,7 @@ export function Recomendaciones({ recomendaciones }: { recomendaciones: readonly
           {r.texto}
         </Aviso>
       ))}
-      <p className="text-[12.5px] text-taupe">Sale de las cifras de este estado. Nada se cambia solo.</p>
+      <p className="text-sm text-taupe">Sale de las cifras de este estado. Nada se cambia solo.</p>
     </aside>
   );
 }

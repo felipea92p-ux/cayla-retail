@@ -83,7 +83,7 @@ function Quien({ p, onConfirmar }: { p: ParametroFila; onConfirmar: () => void }
     return (
       <small>
         por confirmar con el contador ·{" "}
-        <button type="button" className="btn-enlace text-[11.5px]" onClick={onConfirmar}>
+        <button type="button" className="btn-enlace text-sm" onClick={onConfirmar}>
           ya lo confirmó
         </button>
       </small>
@@ -161,7 +161,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Nada se borra: una corrección también queda en la historia.</p>
+        <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al salir de ella y queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
@@ -215,8 +215,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
         <Superficie pad className="anim-sube" guia="config.impuestos-tope">
           <CabeceraBloque titulo="Tope diario de la planilla de movilidad" bajada="Por persona y por día. Lo que pase se deja registrar y queda «no deducible»." />
           {topes.length === 0 ? (
-            <p className="fin-tenue text-[13px]">
-              Sin tope: lo fija el contador (SUNAT lo limita al 4 % de la remuneración mínima vital). Mientras no haya, ningún taxi ni cargador se marca.
+            <p className="fin-tenue text-sm">
+              Sin tope: lo fija el contador. Mientras no haya, ningún taxi ni cargador se marca.
             </p>
           ) : (
             <ul className="fin-vigencias">
@@ -250,8 +250,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
             bajada="El crédito fiscal con que CAYLA arrancó, de la última declaración. El IGV de cada mes parte de aquí en vez de cero."
           />
           {saldos.length === 0 ? (
-            <p className="fin-tenue text-[13px]">
-              Todavía no hay uno: tu contador lo ve en la última declaración («saldo a favor del periodo anterior»). Mientras no esté, el IGV de Impuestos y de la proyección se calcula desde cero y puede salir de más.
+            <p className="fin-tenue text-sm">
+              Todavía no hay uno: tu contador lo ve en la última declaración. Sin él, el IGV se calcula desde cero y puede salir de más.
             </p>
           ) : (
             <ul className="fin-vigencias">
@@ -311,8 +311,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
               );
             })}
           </ul>
-          <p className="fin-tenue mt-3 text-[13px]">
-            Si ese monto ya está registrado en el sistema, déjalo en 0: se contaría dos veces. Cada año va aparte: el de uno no pasa al siguiente.
+          <p className="fin-tenue mt-3 text-sm">
+            Si ya está registrado en el sistema, déjalo en 0: se contaría dos veces. Cada año va aparte.
           </p>
         </Superficie>
       </section>

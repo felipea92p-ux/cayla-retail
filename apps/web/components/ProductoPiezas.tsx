@@ -84,12 +84,12 @@ export function SwatchesColor({
               onMas();
             }}
             title="Ver todos los colores"
-            className="text-[11px] tabular-nums text-tinta/55 underline-offset-2 hover:text-tinta hover:underline"
+            className="text-sm tabular-nums text-tinta/55 underline-offset-2 hover:text-tinta hover:underline"
           >
             +{resto}
           </button>
         ) : (
-          <span className="text-[11px] tabular-nums text-tinta/55">+{resto}</span>
+          <span className="text-sm tabular-nums text-tinta/55">+{resto}</span>
         ))}
     </div>
   );

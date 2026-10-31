@@ -60,7 +60,7 @@ export function RetirarColorModal({ insumo, tallerId, onClose }: { insumo: Insum
   }
 
   return (
-    <Modal titulo={`¿Retirar «${insumo.nombre}»?`} subtitulo="Deja de salir en la lista de Insumos. No se borra nada: conserva su código y su historial." variante="hoja" onClose={onClose}>
+    <Modal titulo={`¿Retirar «${insumo.nombre}»?`} subtitulo="Deja de salir en Insumos; conserva su código y su historial." variante="hoja" onClose={onClose}>
       <form onSubmit={onSubmit} className="mt-3.5 space-y-4">
         {motivoSaldo ? (
           <Aviso tono="atencion" chico>

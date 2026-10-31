@@ -251,7 +251,7 @@ export function NuevoAvioModal({
               <section data-guia="prod-avio-nuevo.que-es" className="space-y-3">
                 <TituloGrupo>Qué avío es</TituloGrupo>
                 <CampoGuiado id="clase" guia={guia}>
-                  <Campo etiqueta={guia.etiqueta("clase", "Clase de avío")} pie="De aquí salen en qué se cuenta, si lleva color y qué medida se le pide." sinPie={false}>
+                  <Campo etiqueta={guia.etiqueta("clase", "Clase de avío")} pie="De aquí salen en qué se cuenta, si lleva color y qué medida se le pide. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller." sinPie={false}>
                     {leyoClases ? (
                       <ComboBuscable
                         valor={claseId}
@@ -262,7 +262,7 @@ export function NuevoAvioModal({
                         crear={{ etiqueta: (t) => `+ Crear la clase «${t.trim()}»`, onCrear: (t) => void crearClase(t), pista: "¿Es otra cosa? Escribe cómo se llama" }}
                       />
                     ) : (
-                      <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudieron cargar las clases de avío. Cierra esta ventana y vuelve a abrirla.</p>
+                      <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudieron cargar las clases de avío. Cierra esta ventana y vuelve a abrirla.</p>
                     )}
                   </Campo>
                 </CampoGuiado>
@@ -391,11 +391,11 @@ export function NuevoAvioModal({
                     enfocarBuscador={eligioColor}
                   />
                 ) : (
-                  <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
+                  <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
                 )}
               </CampoGuiado>
               {n === 0 ? (
-                <p className="text-[12.5px] text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
+                <p className="text-sm text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">

@@ -36,10 +36,10 @@ export const ANCHO_MINIMO_TABLA = "md:min-w-[840px]";
 function Decision({ d }: { d: FilaDeDecision }) {
   return (
     <div className="flex flex-col items-start gap-1">
-      <Chip tono={d.chip.tono} className="!px-2 !text-[12.5px] !leading-[18px]">
+      <Chip tono={d.chip.tono} className="!px-2 !text-sm !leading-[18px]">
         {d.chip.texto}
       </Chip>
-      <span className="text-[12.5px] leading-snug text-tinta/80">{d.frase}</span>
+      <span className="text-sm leading-snug text-tinta/80">{d.frase}</span>
     </div>
   );
 }
@@ -47,17 +47,17 @@ function Decision({ d }: { d: FilaDeDecision }) {
 /** «Qué hacer»: UNA frase —la primera sugerencia— y, si hay más, «y 1 más en el detalle»: el resto vive a un toque (ley 2 y 6). */
 function QueHacer({ fila, decision }: { fila: FilaVista; decision: FilaDeDecision | null }) {
   if (decision?.vigente) return <Decision d={decision} />;
-  if (fila.sugerencias.length === 0) return decision ? <Decision d={decision} /> : <span className="text-[13px] text-taupe">{fila.nada}</span>;
+  if (fila.sugerencias.length === 0) return decision ? <Decision d={decision} /> : <span className="text-sm text-taupe">{fila.nada}</span>;
   const [primera, ...otras] = fila.sugerencias;
   const Icono = ICONO_SUGERENCIA[primera.clave];
   return (
     <div className="flex flex-col items-start gap-1.5">
       {decision && <Decision d={decision} />}
-      <span className="flex items-start gap-1.5 text-[13.5px] leading-snug">
+      <span className="flex items-start gap-1.5 text-[15px] leading-snug">
         <Icono aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-taupe" />
         <span>{primera.texto}</span>
       </span>
-      {otras.length > 0 && <span className="pl-5 text-[12.5px] text-taupe">y {otras.length} más en el detalle</span>}
+      {otras.length > 0 && <span className="pl-5 text-sm text-taupe">y {otras.length} más en el detalle</span>}
     </div>
   );
 }
@@ -82,14 +82,14 @@ function Prenda({ fila, apariencia, categoria, onAbrir }: { fila: FilaVista; apa
         >
           {fila.nombre}
         </button>
-        {meta && <div className="text-[13px] leading-snug text-taupe">{meta}</div>}
+        {meta && <div className="text-sm leading-snug text-taupe">{meta}</div>}
         {/* «¿De qué temporada es?» ya no va en la fila (act. 2026-10-07): es una tarea de Catálogo y vive en «¿Cómo se lee esto?». */}
         {fila.temporadaPasada && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
+            <Chip tono="ambar" className="!px-2 !text-sm !leading-[18px]">
               Temporada pasada
             </Chip>
-            <span className="text-[12px] leading-snug text-taupe">{fila.temporadaPasada}</span>
+            <span className="text-sm leading-snug text-taupe">{fila.temporadaPasada}</span>
           </div>
         )}
       </div>
@@ -104,7 +104,7 @@ function Estado({ fila, marcarAproximado }: { fila: FilaVista; marcarAproximado:
   return (
     <div className="flex flex-col items-start gap-1">
       <EstadoChip estado={estado} />
-      {fila.llevaTexto && <span className="text-[13px] leading-snug text-taupe">{fila.llevaTexto}</span>}
+      {fila.llevaTexto && <span className="text-sm leading-snug text-taupe">{fila.llevaTexto}</span>}
     </div>
   );
 }
@@ -179,10 +179,10 @@ function Accion({
       </button>
       {/* La consecuencia ANTES de tocar (Formidable 2026-10-09): el botón afirma un hecho; esta línea dice cuándo tocarlo y qué pasa. */}
       {consecuencia && accion?.tipo === "anotar" && !error && (
-        <span className="basis-full text-[12.5px] leading-snug text-taupe md:text-right">{consecuencia}</span>
+        <span className="basis-full text-sm leading-snug text-taupe md:text-right">{consecuencia}</span>
       )}
       {error && (
-        <span role="alert" className="basis-full text-[12.5px] leading-snug text-tinta/80 md:text-right">
+        <span role="alert" className="basis-full text-sm leading-snug text-tinta/80 md:text-right">
           {error.texto}{" "}
           <button
             type="button"

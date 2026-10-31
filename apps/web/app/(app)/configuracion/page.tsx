@@ -51,7 +51,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
       <EncabezadoPagina
         sede="Toda CAYLA"
         titulo="Configuración"
-        subtitulo="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
+        subtitulo="Lo que se ajusta una vez y todas las pantallas leen."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...pestanasDeEsteLider]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}

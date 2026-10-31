@@ -114,12 +114,12 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
         )}
 
         {ultimaEtiqueta && (
-          <p role="status" className="text-xs text-taupe [@media(hover:hover)]:hidden">
+          <p role="status" className="text-sm text-taupe [@media(hover:hover)]:hidden">
             <strong className="text-tinta">{ultimaEtiqueta.nombre}:</strong> {ayudaUltima?.queEs} {ayudaUltima?.datos.join(" ")}
           </p>
         )}
 
-        <p className="text-xs text-taupe">
+        <p className="text-sm text-taupe">
           Se aplican a todas las variantes de la prenda.
         </p>
       </div>
@@ -222,7 +222,7 @@ function TarjetaEtiqueta({
             {(marcada || cubierta) && <span aria-hidden>✓ </span>}
             <Resaltado texto={et.nombre} busqueda={busqueda} />
           </span>
-          {cubierta && enHoja && <span className="px-0.5 text-[10px] leading-snug text-taupe">se aplica sola</span>}
+          {cubierta && enHoja && <span className="px-0.5 text-sm leading-snug text-taupe">se aplica sola</span>}
         </TarjetaMuestraBase>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={6} collisionPadding={8} className="max-w-[16rem] leading-snug">
@@ -336,7 +336,7 @@ function HojaEtiquetas({
       </div>
       {/* Lo escrito y no marcado ni creado se ve (y se dice), no se pierde en silencio al cerrar la hoja. */}
       {(notaTexto || (texto.trim() && creando === null)) && (
-        <p role="status" className="mt-2 text-xs text-ambar-profundo">
+        <p role="status" className="mt-2 text-sm text-ambar-profundo">
           {notaTexto ??
             (hayCrear && significado.tipo === "nueva"
               ? `Escribiste «${significado.nombre}»: elige una de abajo o pulsa «+ Crear» para agregarla.`
@@ -365,7 +365,7 @@ function HojaEtiquetas({
 
       <div className="scroll-cayla -mx-1 mt-3 max-h-[52vh] overflow-y-auto px-1 pb-1">
         {grupos.length === 0 ? (
-          <p className="py-4 text-[13px] text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay insignias ni campañas para elegir."}</p>
+          <p className="py-4 text-sm text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay insignias ni campañas para elegir."}</p>
         ) : (
           <div className="space-y-3">
             {grupos.map((g) => (
@@ -436,7 +436,7 @@ function NuevaEtiquetaModal({
             }}
           />
           {nota && (
-            <p role="status" className="text-xs text-ambar-profundo">
+            <p role="status" className="text-sm text-ambar-profundo">
               {nota}
             </p>
           )}
@@ -512,7 +512,7 @@ function CrearEtiquetaAbierta({
       <p className="text-sm text-tinta">
         Crear la insignia <strong>«{nombre}»</strong>
       </p>
-      <p className="text-xs text-taupe">Queda en el catálogo para usarla en otras prendas, y se marca en esta.</p>
+      <p className="text-sm text-taupe">Queda en el catálogo para usarla en otras prendas, y se marca en esta.</p>
       <AvisoSinIdentidad firma={firma} enHoja />
       <div className="flex flex-wrap items-center gap-2">
         <Boton peso="primario" cargando={trabajando} textoCargando="Creando…" type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined}>

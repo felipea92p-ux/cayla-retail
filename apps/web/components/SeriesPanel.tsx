@@ -122,7 +122,7 @@ export function SeriesPanel({
               lo lleva el sistema.
             </Ayuda>
           </TituloSeccion>
-          <p className="mt-0.5 text-xs text-tinta/65">En qué número va cada una. El siguiente comprobante que emita la tienda sale con ese número.</p>
+          <p className="mt-0.5 text-sm text-tinta/65">En qué número va cada una. El siguiente comprobante que emita la tienda sale con ese número.</p>
         </div>
         {esLider && (
           <BotonCompacto variante="primario" data-guia="series.nueva" onClick={() => abrir()}>
@@ -138,7 +138,7 @@ export function SeriesPanel({
           <section key={g.tienda.id} data-guia="series.tienda" className="anim-sube space-y-3" style={{ "--i": 4 + i } as CSSProperties} aria-labelledby={`tienda-${g.tienda.id}`}>
             <h3 id={`tienda-${g.tienda.id}`} className="flex items-baseline gap-2">
               <span className="font-display text-lg text-tinta">{g.tienda.nombre}</span>
-              <span className="text-xs text-tinta/60">
+              <span className="text-sm text-tinta/60">
                 {g.series.length === 0 ? "sin series: no emite comprobantes" : `${g.series.length} ${g.series.length === 1 ? "serie" : "series"}`}
               </span>
             </h3>
@@ -153,11 +153,11 @@ export function SeriesPanel({
                       {usados > 0 ? <Chip tono="verde">en uso</Chip> : <Chip tono="neutro">sin emitir</Chip>}
                     </div>
                     <p data-guia="series.codigo" className="font-display text-[28px] leading-none tracking-wide text-tinta">{s.serie}</p>
-                    <p className="text-[13px] text-tinta/70">
+                    <p className="text-sm text-tinta/70">
                       Próximo: <b className="font-semibold tabular-nums text-tinta">{s.serie}-{String(s.siguiente_numero).padStart(8, "0")}</b>
                     </p>
                     <div className="flex items-center justify-between gap-2 border-t border-tinta/10 pt-2">
-                      <p className="text-xs tabular-nums text-tinta/60">
+                      <p className="text-sm tabular-nums text-tinta/60">
                         {usados === 0 ? "Todavía no emitió ninguno" : `Sigue el ${s.siguiente_numero} · ${usados} ${usados === 1 ? "reservado" : "reservados"}`}
                         {ultimoPorSerie[s.id] && <span className="block">Último: {antiguedad(ultimoPorSerie[s.id], ahora)}</span>}
                       </p>
@@ -166,7 +166,7 @@ export function SeriesPanel({
                           type="button"
                           onClick={() => setArchivando(s)}
                           aria-label={`Archivar la serie ${s.serie}`}
-                          className="rounded-md px-1.5 py-0.5 text-xs text-tinta/60 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60"
+                          className="rounded-md px-1.5 py-0.5 text-sm text-tinta/60 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60"
                         >
                           Archivar
                         </button>
@@ -177,7 +177,7 @@ export function SeriesPanel({
               })}
               {!busqueda &&
                 g.faltan.map((t) => (
-                  <div key={t} data-guia="series.falta" className="flex flex-col justify-center gap-2 rounded-[14px] border border-dashed border-tinta/25 px-4 py-3.5 text-[13px] text-tinta/70">
+                  <div key={t} data-guia="series.falta" className="flex flex-col justify-center gap-2 rounded-[14px] border border-dashed border-tinta/25 px-4 py-3.5 text-sm text-tinta/70">
                     <p>
                       Sin serie de <b className="font-semibold text-tinta">{ETIQUETA_TIPO[t].toLowerCase()}</b>
                       {t === "nota_credito" ? ": las devoluciones de esta tienda no pueden emitir su nota de crédito." : "."}
@@ -199,7 +199,7 @@ export function SeriesPanel({
           <summary className="label-cayla cursor-pointer list-none text-[11px] text-tinta/65 outline-none hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
             {archivadas.length === 1 ? "1 serie archivada" : `${archivadas.length} series archivadas`} ›
           </summary>
-          <ul className="mt-3 space-y-1.5 text-[13px] text-tinta/70">
+          <ul className="mt-3 space-y-1.5 text-sm text-tinta/70">
             {archivadas.map((a) => (
               <li key={a.id}>
                 <b className="font-semibold text-tinta">{a.serie}</b> · {nombreDelTipo(a.tipo)} · {tiendas.find((t) => t.id === a.ubicacion_id)?.nombre ?? "—"} · llegó al{" "}
@@ -318,7 +318,7 @@ function ModalArchivarSerie({ serie, onClose }: { serie: SerieComprobante; onClo
     <Modal titulo="Archivar serie" onClose={onClose}>
       {(cerrar) => (
         <form onSubmit={onArchivar} className="mt-5 space-y-2">
-          <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+          <p className="border-l-2 border-ambar/50 pl-3 text-sm leading-relaxed text-tinta/75">
             <b className="font-semibold">{serie.serie}</b> deja de reservar números: los comprobantes que ya emitió se quedan como están.
             Después registra la serie nueva de esta tienda, que empieza en 1. Una serie archivada no se vuelve a usar.
           </p>

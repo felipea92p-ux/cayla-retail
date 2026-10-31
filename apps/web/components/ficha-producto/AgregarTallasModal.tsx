@@ -133,7 +133,7 @@ export function AgregarTallasModal({
               </div>
               </CampoGuiado>
               <YaEstan titulo="Ya están en esta prenda" items={ejes.tallas.map((t) => ({ clave: t ?? "unica", texto: n.talla(t) || "Única" }))} />
-              <p className="text-[12.5px] text-taupe">
+              <p className="text-sm text-taupe">
                 {coloresDeLaPrenda.length > 0
                   ? ref.deDesactivadas
                     ? `Todas sus variantes están desactivadas: cada talla nace en los colores que tuvo (${coloresDeLaPrenda.map((c) => n.color(c)).join(", ")}).`
@@ -145,7 +145,7 @@ export function AgregarTallasModal({
                       : "La prenda todavía no tiene colores: empieza por «Agregar color»."}
               </p>
               {ref.inactivos.length > 0 && coloresDeLaPrenda.length > 0 && (
-                <p className="text-[12.5px] text-taupe">
+                <p className="text-sm text-taupe">
                   {ref.inactivos.map((c) => n.color(c)).join(", ")} ya no {ref.inactivos.length === 1 ? "está activo" : "están activos"} en el vocabulario de
                   colores: ahí no nace.
                 </p>
@@ -168,7 +168,7 @@ export function AgregarTallasModal({
                 nombreColor={n.color}
               />
               {vuelven.length > 0 && (
-                <p className="text-[12.5px] text-taupe">
+                <p className="text-sm text-taupe">
                   {vuelven.map((c) => nombreVariante(c, n)).join(", ")} ya {vuelven.length === 1 ? "existía desactivada: vuelve" : "existían desactivadas: vuelven"} a
                   venderse (no se crea otra).
                 </p>
@@ -184,7 +184,7 @@ export function AgregarTallasModal({
                 </Aviso>
               )}
               {nacen > 0 && etiquetasTexto && (
-                <p className="text-[12.5px] text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
+                <p className="text-sm text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
               )}
             </section>
           )}
@@ -207,14 +207,14 @@ export function AgregarTallasModal({
               </CampoGuiado>
             </section>
           )}
-          {nacen > 0 && !puedeCargar && <p className="text-[12.5px] font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
+          {nacen > 0 && !puedeCargar && <p className="text-sm font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
           {celdas.length > 0 && (
             <section data-guia="agregar-talla.vista-previa" className="space-y-2">
-              <p className="text-[12.5px] font-semibold text-tinta">Así quedará en la tabla</p>
+              <p className="text-sm font-semibold text-tinta">Así quedará en la tabla</p>
               <VistaPreviaDeLaTabla columnas={columnasVista} filas={filasDeVista} />
             </section>
           )}
-          <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
+          <p className="text-sm text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
           <PieGuia guia={guia} listo={puedeCargar && nacen > 0 && totalUnidades > 0 ? `Listo: ${totalUnidades} ${totalUnidades === 1 ? "unidad" : "unidades"} de partida.` : "Todo listo."} />
           <PieModal
             guia="agregar-talla.pie"

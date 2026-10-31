@@ -9,7 +9,6 @@ import { Desplegable } from "@/components/ui/campos";
 import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
-import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
@@ -61,7 +60,7 @@ function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
   return (
     <span className="block">
       <span className="block font-semibold text-tinta tabular-nums">{solesSinCentimos(m.soles)}</span>
-      <span className="block text-xs text-taupe">
+      <span className="block text-sm text-taupe">
         {m.enCurso ? `Hasta ayer${partes.length ? " · " : ""}` : ""}
         {partes.join(" · ") || (m.enCurso ? "" : "Sin base para comparar")}
       </span>
@@ -151,7 +150,7 @@ export function HistorialCampanas({
   const arranqueErp = historial?.tiendas.map((t) => t.erpDesde).filter((x): x is string => !!x).sort()[0];
   // El «!» con lo que la frase no alcanza a decir, como en Productos (Felipe 2026-10-12): antes era una nota larga al pie de la tabla.
   const ayuda = (
-    <Ayuda titulo="Historial">
+    <>
       <span className="block">
         «×1.8 un día normal» quiere decir que en esa campaña la tienda vendió, por día, 1.8 veces lo que vendía por día en los 60 días anteriores.
       </span>
@@ -163,24 +162,14 @@ export function HistorialCampanas({
         Finanzas: son soles por tienda, sin categorías ni unidades.
       </span>
       <span className="mt-2 block">«Sin dato» es una tienda que todavía no abría o un tramo que no está en Sinatra (como los meses de la pandemia en 2020).</span>
-    </Ayuda>
+    </>
   );
   const cabecera = (
     <EncabezadoPagina
       sede="Todas las tiendas"
-      titulo={
-        <>
-          Plan de campaña
-          {/* En el celular la frase se esconde y el «!» sube junto al título, como en Productos. */}
-          <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayuda}</span>
-        </>
-      }
-      subtitulo={
-        <>
-          <span className="max-sm:hidden">Lo que vendió cada tienda en cada campaña, un año a la vez: cuánto más que un día normal y cuánto creció. </span>
-          <span className="max-sm:hidden">{ayuda}</span>
-        </>
-      }
+      titulo="Plan de campaña"
+      subtitulo="Lo que vendió cada tienda en cada campaña, un año a la vez: cuánto más que un día normal y cuánto creció."
+      ayuda={ayuda}
     />
   );
   if (!historial || historial.tiendas.length === 0) {
@@ -285,14 +274,14 @@ export function HistorialCampanas({
                 {/* Dónde estás parado en el calendario: la campaña que cae en estos días (en otro año, «en esta fecha»). */}
                 {faltaEnElCalendario(campana, historial.hoy) === 0 && <Chip tono="verde">{anioEnCurso ? "Ahora" : "En esta fecha"}</Chip>}
               </span>
-              <span className="block text-xs text-taupe">
+              <span className="block text-sm text-taupe">
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}
               </span>
             </span>
             {/* En el orden de las columnas (la tienda de la cabecera primero), no en el de la base. */}
             {tiendas.flatMap((t) => celdas.filter((c) => c.tienda.id === t.id)).map((c) => (
               <span key={c.tienda.id} className="min-w-0">
-                <span className="block text-[11px] text-taupe sm:hidden">{c.tienda.nombre}</span>
+                <span className="block text-sm text-taupe sm:hidden">{c.tienda.nombre}</span>
                 <Celda c={c} anio={anio} />
               </span>
             ))}

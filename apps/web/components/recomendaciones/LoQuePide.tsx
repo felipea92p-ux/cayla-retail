@@ -58,7 +58,7 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
   if (tema.id === "colores") {
     return (
       <div className="space-y-2 rounded-2xl border border-sand bg-crema px-4 py-3">
-        <p className="text-[13px] font-semibold text-tinta">
+        <p className="text-sm font-semibold text-tinta">
           {datos.colores.total} {datos.colores.total === 1 ? "color" : "colores"} en el catálogo hoy
         </p>
         {datos.colores.masUsados.length > 0 && (
@@ -75,7 +75,7 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
             ))}
           </div>
         )}
-        <p className="text-[12px] text-taupe">Los que más modelos usan, de los modelos activos del catálogo.</p>
+        <p className="text-sm text-taupe">Los que más modelos usan, de los modelos activos del catálogo.</p>
       </div>
     );
   }
@@ -84,12 +84,12 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
   const mayor = Math.max(1, ...tallas.map((t) => datos.modelosPorTalla[t] ?? 0));
   return (
     <div className="space-y-2 rounded-2xl border border-sand bg-crema px-4 py-3">
-      <p className="text-[13px] font-semibold text-tinta">Modelos del catálogo en esas tallas</p>
+      <p className="text-sm font-semibold text-tinta">Modelos del catálogo en esas tallas</p>
       <div className="space-y-1.5">
         {tallas.map((t) => {
           const n = datos.modelosPorTalla[t] ?? 0;
           return (
-            <div key={t} className="grid grid-cols-[3rem_minmax(0,1fr)_5.5rem] items-center gap-2.5 text-[12.5px] tabular-nums">
+            <div key={t} className="grid grid-cols-[3rem_minmax(0,1fr)_5.5rem] items-center gap-2.5 text-sm tabular-nums">
               <span className={`font-semibold ${t === tema.talla ? "text-tinta" : "text-tinta/70"}`}>{t}</span>
               <BarraAvance pct={(n / mayor) * 100} tono="tinta" decorativa />
               <span className={`text-right ${n === 0 ? "font-semibold text-ambar" : "text-taupe"}`}>
@@ -99,11 +99,11 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
           );
         })}
       </div>
-      <p className="text-[12px] text-taupe">Modelos activos con al menos una prenda en esa talla.</p>
+      <p className="text-sm text-taupe">Modelos activos con al menos una prenda en esa talla.</p>
     </div>
   );
 }
 
 const Nota = ({ children }: { children: ReactNode }) => (
-  <p className="rounded-2xl border border-sand bg-crema px-4 py-3 text-[13px] leading-snug text-tinta">{children}</p>
+  <p className="rounded-2xl border border-sand bg-crema px-4 py-3 text-sm leading-snug text-tinta">{children}</p>
 );

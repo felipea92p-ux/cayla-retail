@@ -75,7 +75,7 @@ const PLANTILLA =
 // Una celda que solo es columna propia en la tabla ancha.
 const SOLO_ANCHA = "hidden @min-[64rem]:block";
 // Lo que en una tabla menos ancha va en la segunda línea de otra celda.
-const SEGUNDA_LINEA = "block @min-[64rem]:hidden text-xs text-taupe";
+const SEGUNDA_LINEA = "block @min-[64rem]:hidden text-sm text-taupe";
 // Las columnas que solo existen con la tabla en columnas (desde 40 rem); en celular su dato va junto al número.
 const CON_COLUMNAS = "hidden @min-[40rem]:block";
 // Una cifra: a la derecha cuando hay columnas; apilada, a la izquierda como el resto.
@@ -156,7 +156,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
           )}
           <div className="card-cayla">
             <Vacio icono={<ClipboardList />} titulo="Todavía no hay órdenes de compra" acciones={nuevaOrden}>
-              Crea la primera con lo que le vas a pedir a un proveedor: aquí vas a ver su número, a qué tienda llega y cuánto suma.
+              Crea la primera con lo que le vas a pedir a un proveedor.
             </Vacio>
           </div>
         </>
@@ -288,9 +288,9 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                             </span>
                           </span>
                           {esRecien ? (
-                            <span className="block text-xs font-medium text-verde">Recién guardada</span>
+                            <span className="block text-sm font-medium text-verde">Recién guardada</span>
                           ) : (
-                            <span className="block text-xs text-taupe">del {diaMes(f.fechaEmision)}</span>
+                            <span className="block text-sm text-taupe">del {diaMes(f.fechaEmision)}</span>
                           )}
                         </span>
                         <span className={celda("izq", "text-tinta")} data-guia="ordenes.proveedor">
@@ -304,7 +304,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                         <span className={celda("izq", `${SOLO_ANCHA} tabular-nums text-tinta/80`)}>{diaMes(f.fechaEntregaEstimada)}</span>
                         <span className={`${CIFRA} ${SOLO_ANCHA} text-tinta/80`}>
                           {f.unidades.toLocaleString("es-PE")}
-                          {porEnviarDe != null && <span className="block text-xs font-normal text-taupe">{porEnviarDe.toLocaleString("es-PE")} por enviar</span>}
+                          {porEnviarDe != null && <span className="block text-sm font-normal text-taupe">{porEnviarDe.toLocaleString("es-PE")} por enviar</span>}
                         </span>
                         {/* Una anulada no suma: su total va tachado. */}
                         <span className={`${CIFRA} cmp-total font-medium`}>

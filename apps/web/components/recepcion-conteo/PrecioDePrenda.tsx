@@ -135,14 +135,14 @@ export function PrecioDePrenda({
       {sinNombre ? (
         // La hoja ya dice qué prenda es y el campo trae el precio de hoy: solo se dice aparte lo que el campo no muestra (un rango, sin precio, el de la sede).
         editado?.actual !== undefined && !hoyYaSeVeEnElCampo(editado) && (
-          <p className="text-xs text-taupe">{deHoy.startsWith("hoy") ? `Precio ${deHoy}` : deHoy.charAt(0).toUpperCase() + deHoy.slice(1)}</p>
+          <p className="text-sm text-taupe">{deHoy.startsWith("hoy") ? `Precio ${deHoy}` : deHoy.charAt(0).toUpperCase() + deHoy.slice(1)}</p>
         )
       ) : (
         <div className="min-w-0">
           <span className="campo-etiqueta block">Prenda</span>
           <div className={`mt-1.5 ${contenido}`}>
             <p className="truncate text-sm font-medium leading-tight text-tinta" title={nombre}>{nombre}</p>
-            <p className="truncate text-xs leading-tight text-taupe">{deHoy}</p>
+            <p className="truncate text-sm leading-tight text-taupe">{deHoy}</p>
           </div>
         </div>
       )}
@@ -195,7 +195,7 @@ export function PrecioDePrenda({
           <div className={`mt-1.5 ${sinNombre ? "flex min-h-10 items-center" : conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
             {soloSede ? (
               // Una terminal (Felipe 2026-10-26, ADR-0531): solo su sede; la base no le deja cambiar el de todas.
-              <p className="text-xs text-taupe">Solo en {sede}: las otras sedes no cambian.</p>
+              <p className="text-sm text-taupe">Solo en {sede}: las otras sedes no cambian.</p>
             ) : (
               <ElegirOpcion
                 chico
@@ -214,7 +214,7 @@ export function PrecioDePrenda({
       </div>
       {/* El motivo va bajo la fila, a todo el ancho (el campo es angosto y un motivo largo se partía en una columna), con el pie de error de siempre. */}
       {problema && (
-        <p role="alert" className="col-span-full text-xs leading-tight text-rojo-profundo">
+        <p role="alert" className="col-span-full text-sm leading-tight text-rojo-profundo">
           <span className="pie-error trazo-dibuja anim-revelar">
             <CircleAlert aria-hidden />
             <span>{problema}</span>
@@ -268,7 +268,7 @@ export function FilaDeCosto({
           <p className="truncate text-sm font-medium leading-tight text-tinta" title={titulo}>
             {titulo}
           </p>
-          <p className="truncate text-xs leading-tight text-taupe">{subtitulo}</p>
+          <p className="truncate text-sm leading-tight text-taupe">{subtitulo}</p>
         </div>
       </div>
       <div className="whitespace-nowrap text-right @min-[1000px]:text-left">

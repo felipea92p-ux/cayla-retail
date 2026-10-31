@@ -26,7 +26,7 @@
   border: 1px solid color-mix(in oklab, var(--color-tinta) 25%, transparent);
   display: grid;
   place-items: center;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 700;
   color: color-mix(in oklab, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel */
   transition: background-color 240ms var(--ease-cayla), border-color 240ms var(--ease-cayla), color 240ms var(--ease-cayla);
@@ -192,11 +192,11 @@
   line-height: 1.2;
 }
 .taller-agregar-texto b {
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 600;
 }
 .taller-agregar-texto small {
-  font-size: 11.5px;
+  font-size: 14px;
   color: var(--color-taupe);
 }
 .taller-banner-nueva {
@@ -209,7 +209,7 @@
   border-radius: 10px;
   padding: 9px 12px;
   margin-top: 10px;
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--color-ambar-profundo);
   animation: anim-revelar-taller 300ms var(--ease-cayla) both;
 }
@@ -224,7 +224,7 @@
   color: var(--color-crema);
   border-radius: 7px;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -277,7 +277,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-ambar-profundo);
   text-align: center;
   padding: 0 28px;
@@ -290,7 +290,7 @@
   background: color-mix(in srgb, var(--color-papel) 94%, transparent);
   border-radius: 999px;
   padding: 3px 11px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -307,7 +307,7 @@
   border: 1px solid color-mix(in srgb, var(--color-papel) 35%, transparent);
   border-radius: 999px;
   padding: 6px 13px;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 600;
   backdrop-filter: blur(2px);
   transition: background-color 150ms var(--ease-cayla), transform 150ms var(--ease-cayla);
@@ -358,7 +358,7 @@
   padding: 13px 14px;
 }
 .taller-tit {
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 700;
@@ -394,7 +394,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--color-taupe-profundo);
   text-align: left;
   width: 100%;

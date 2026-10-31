@@ -72,14 +72,14 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
               <li key={l.itemId} className="rounded-2xl border border-sand bg-crema p-3.5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-[14px] text-tinta">{l.insumo}</p>
-                  <p className="text-xs tabular-nums text-tinta/65">
+                  <p className="text-sm tabular-nums text-tinta/65">
                     faltan <b className="font-semibold text-tinta">{cantidadTexto(l.pendiente, l.unidad)}</b>
                     {(l.recibido > 0 || l.cerrado > 0) && ` de ${cantidadTexto(l.facturado, l.unidad)}`}
                   </p>
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-2">
-                    <span className="text-xs text-tinta/70">Llegó</span>
+                    <span className="text-sm text-tinta/70">Llegó</span>
                     <input
                       inputMode="decimal"
                       aria-label={`Cantidad que llegó de ${l.insumo}`}
@@ -100,7 +100,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
                 </div>
                 {resto > 0 && !Number.isNaN(q) && (
                   <div className="mt-2.5 space-y-2">
-                    <label className="flex items-center gap-2 text-[13px] text-tinta/80">
+                    <label className="flex items-center gap-2 text-sm text-tinta/80">
                       <Casilla marcada={e.noLlegara} onCambio={() => cambiar(l.itemId, { noLlegara: !e.noLlegara })} etiqueta={`El resto (${cantidadTexto(resto, l.unidad)}) no va a llegar`} />
                       El resto ({cantidadTexto(resto, l.unidad)}) no va a llegar
                     </label>
@@ -112,7 +112,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
                         opciones={MOTIVOS_CIERRE.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
                       />
                     )}
-                    {!e.noLlegara && q > 0 && <p className="text-xs text-tinta/60">El resto seguirá pendiente: podrás recibirlo en otra entrega.</p>}
+                    {!e.noLlegara && q > 0 && <p className="text-sm text-tinta/60">El resto seguirá pendiente: podrás recibirlo en otra entrega.</p>}
                   </div>
                 )}
               </li>
@@ -123,7 +123,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
         <CampoTexto etiqueta="Nota de la entrega" placeholder="Opcional · guía, quién la trajo…" value={nota} onChange={(e) => setNota(e.target.value)} />
 
         <div className="space-y-1.5">
-          <p className="min-h-4 text-xs text-tinta/65" role="status">
+          <p className="min-h-4 text-sm text-tinta/65" role="status">
             {armado.error ?? (armado.lotes > 0 ? `Se abrirá${armado.lotes === 1 ? " 1 lote" : `n ${armado.lotes} lotes`}, uno por cada línea que llegó.` : "")}
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />

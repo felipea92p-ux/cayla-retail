@@ -116,7 +116,7 @@ export function PrendaConCombinaciones({
       {abierta && (
         <div className="rc-vitrina-matriz">
           {combinaciones.length === 0 ? (
-            <p className="text-xs text-taupe" data-sin-conteo-combinaciones>
+            <p className="text-sm text-taupe" data-sin-conteo-combinaciones>
               {MENSAJE_SIN_CONTEO}
             </p>
           ) : (
@@ -313,7 +313,7 @@ function Matriz({
       </div>
 
       {cambiadas.length > 0 && !borrador && (
-        <p className="text-xs text-taupe">
+        <p className="text-sm text-taupe">
           Las casillas en ámbar ya tienen otro {palabra} que el de hoy.{" "}
           <BotonDeshacer onClick={() => onQuitar(cifraActiva, cambiadas)}>{`Deshacer los ${cambiadas.length === 1 ? "cambios" : `${cambiadas.length} cambios`}`}</BotonDeshacer>
         </p>
@@ -322,7 +322,7 @@ function Matriz({
       {borrador && origen && (
         <div className="rc-comb-barra space-y-1.5" data-comb-barra>
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <p className="text-[13px] text-tinta">
+            <p className="text-sm text-tinta">
               <b>{etiquetaDe(origen)}</b>
               {valorDe(origen) !== null ? ` ${montoTexto(valorDe(origen) as number)}` : ""} a <b>{lectura?.valor != null ? montoTexto(lectura.valor) : "…"}</b>
             </p>
@@ -338,7 +338,7 @@ function Matriz({
                 ]}
               />
             )}
-            {cifraActiva === "precio" && soloSede && <span className="text-xs text-taupe">Vale solo en {nombreCorto(sede)}.</span>}
+            {cifraActiva === "precio" && soloSede && <span className="text-sm text-taupe">Vale solo en {nombreCorto(sede)}.</span>}
             {opcionesAlcance.length > 1 && <span className="label-cayla text-[11px] text-taupe">Aplicar a</span>}
             {opcionesAlcance.length > 1 && <ElegirOpcion chico etiqueta="Aplicar a: hasta dónde llega lo que escribiste" opciones={opcionesAlcance} valor={alcanceVigente} onValor={(v) => setAlcance(v as Alcance)} />}
             <span className="ml-auto flex gap-2">
@@ -353,7 +353,7 @@ function Matriz({
           {lectura?.problema && <Aviso tono="error" chico titulo={lectura.problema} />}
           {/* Lo que cambia, en una línea de texto: solo cuando dice algo que la primera línea no dice (varias casillas, o una tienda con su propio precio). */}
           {descripcion && (descripcion.cuantas > 1 || descripcion.avisos.length > 0) && (
-            <p className="text-xs text-taupe" data-comb-resumen>
+            <p className="text-sm text-taupe" data-comb-resumen>
               {descripcion.cuantas > 1 ? `${descripcion.titulo} ${descripcion.detalle}` : ""} {descripcion.avisos.join(" ")}
             </p>
           )}
@@ -373,7 +373,7 @@ function Matriz({
 function FilaDeMatriz({ color, children }: { color: string; children: React.ReactNode }) {
   return (
     <>
-      <span className="rc-comb-color flex min-h-10 items-center text-[13px] font-semibold text-tinta">{color}</span>
+      <span className="rc-comb-color flex min-h-10 items-center text-sm font-semibold text-tinta">{color}</span>
       {children}
     </>
   );
@@ -468,7 +468,7 @@ function Vitrina({
         </span>
         <span className="min-w-0">
           <b className="block truncate text-[15px] text-tinta">{nombre}</b>
-          <span className="block truncate text-[13px] text-taupe">{sub}</span>
+          <span className="block truncate text-sm text-taupe">{sub}</span>
         </span>
         {/* La etiqueta con su título a la vista (Formidable 2026-10-29: la ciega no la reconocía como el precio). No se vuelve a montar al cambiar
             el precio: así Enter no saca el cursor de la caja ni la etiqueta parpadea; el cambio se nota en su color. */}
@@ -524,12 +524,12 @@ function Vitrina({
         </div>
         {problema && <Aviso tono="error" chico titulo={problema} />}
         {sinCombinaciones ? (
-          <p className="text-[13px] text-taupe">{MENSAJE_SIN_CONTEO} Su precio se pone cuando tenga tallas y colores.</p>
+          <p className="text-sm text-taupe">{MENSAJE_SIN_CONTEO} Su precio se pone cuando tenga tallas y colores.</p>
         ) : (
           <div className="space-y-2">
             <span className="label-cayla block text-[11px] text-taupe">El precio vale en</span>
             {soloSede ? (
-              <p className="text-[13px] text-taupe">Desde esta terminal, el precio vale solo en {nombreCorto(sede)}.</p>
+              <p className="text-sm text-taupe">Desde esta terminal, el precio vale solo en {nombreCorto(sede)}.</p>
             ) : (
               <SegmentoDeslizante
                 forma="modo"
@@ -542,7 +542,7 @@ function Vitrina({
                 ]}
               />
             )}
-            <p className="text-[13px] text-taupe">{hayPrecioCambiado ? "Precio nuevo: se guarda al cerrar el envío." : "Lo que cambies se guarda al cerrar el envío."}</p>
+            <p className="text-sm text-taupe">{hayPrecioCambiado ? "Precio nuevo: se guarda al cerrar el envío." : "Lo que cambies se guarda al cerrar el envío."}</p>
           </div>
         )}
         <button type="button" className="rc-vitrina-abrir btn-cayla btn-enlace" onClick={onAlternar} aria-expanded={abierta}>

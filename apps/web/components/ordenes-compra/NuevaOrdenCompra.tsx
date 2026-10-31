@@ -76,7 +76,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 // (regla 4 de la guía): solo lleva marca lo que llegó pendiente o lo que se deja pendiente al editar. Si otra persona guardó la orden
 // mientras tanto, el aviso lo dice y ofrece «Recargar»: la página trae la orden nueva y el formulario vuelve a empezar con ella.
 
-const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1 text-sm font-semibold text-tinta";
 // El título de un campo de la cabecera de la orden: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier
 // estado de la guía (✓, «Sigue aquí», falta, opcional).
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
@@ -436,12 +436,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               }}
               opciones={opcionesDestino}
             />
-            {orden.destino === POR_REPARTIR && <p className="mt-1.5 text-xs text-taupe">Se separa en Lima y se envía a cada tienda después.</p>}
+            {orden.destino === POR_REPARTIR && <p className="mt-1.5 text-sm text-taupe">Se separa en Lima y se envía a cada tienda después.</p>}
           </CampoGuiado>
           <CampoGuiado id="entrega" guia={guia}>
             <p className={TITULO_FIJO}>
               {etiqueta("entrega", "Entrega estimada")}
-              <span className="text-[12px] font-normal text-taupe">si la sabes</span>
+              <span className="text-sm font-normal text-taupe">si la sabes</span>
             </p>
             <CampoFecha
               id="oc-entrega"
@@ -456,7 +456,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           <CampoGuiado id="nota" guia={guia}>
             <p className={TITULO_FIJO}>
               {etiqueta("nota", "Nota")}
-              <span className="text-[12px] font-normal text-taupe">opcional</span>
+              <span className="text-sm font-normal text-taupe">opcional</span>
             </p>
             <CampoTexto
               id="oc-nota"
@@ -487,7 +487,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           >
             Lo que pides
           </TituloSeccion>
-          {textoAfinidad && <p className="text-xs text-taupe">{textoAfinidad}</p>}
+          {textoAfinidad && <p className="text-sm text-taupe">{textoAfinidad}</p>}
 
           {orden.lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>
@@ -499,17 +499,17 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               lectores de pantalla tienen la etiqueta de cada caja, por eso este encabezado se les oculta. Hablan con la misma voz que
               los títulos de los campos de arriba (13 px, semibold, tinta): en 12 px y taupe no se leían (Felipe, 2026-10-10). */}
           {orden.lineas.length > 0 && (
-            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[56rem]:grid ${FILA_ANCHA}`}>
+            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-sm font-semibold text-tinta @min-[56rem]:grid ${FILA_ANCHA}`}>
               <span />
               <span>Categoría</span>
               <span>Marca</span>
               <span className="truncate">
-                Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
+                Descripción <span className="text-sm font-normal text-taupe">opcional</span>
               </span>
               <span>Cantidad</span>
               <span>Costo u.</span>
               <span className="truncate">
-                Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
+                Descuento <span className="text-sm font-normal text-taupe">si hay</span>
               </span>
               <span className="text-right">Subtotal</span>
               <span />
@@ -633,8 +633,8 @@ function LineaOrden({
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
       <div data-guia="orden-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[56rem]:col-span-1 @min-[56rem]:justify-start">
-          <p className="text-[13px] font-semibold text-tinta @min-[56rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
-          <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Línea ${numero}`}>
+          <p className="text-sm font-semibold text-tinta @min-[56rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
+          <span className="hidden items-center gap-1 text-sm tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Línea ${numero}`}>
             {/* Sin marca (llegó completa al editar), un hueco del mismo ancho: el número no se corre. */}
             {estado(id) ? <MarcaCampo estado={estado(id)!} /> : <span aria-hidden className="inline-block h-[18px] w-[18px]" />}
             {numero}
@@ -651,7 +651,7 @@ function LineaOrden({
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>
-            Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
+            Descripción <span className="text-sm font-normal text-taupe">opcional</span>
           </p>
           <CampoTexto caja sinPie etiqueta={`Descripción de la línea ${numero}`} maxLength={TOPES.descripcion} placeholder={placeholderDescripcion} value={l.descripcion} onChange={(e) => onCambio({ descripcion: e.target.value })} />
         </div>
@@ -665,7 +665,7 @@ function LineaOrden({
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>
-            Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
+            Descuento <span className="text-sm font-normal text-taupe">si hay</span>
           </p>
           <div className="flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
@@ -693,7 +693,7 @@ function LineaOrden({
           {/* En la tarjeta, el descuento va delante del monto, en la misma línea; en la fila ancha, debajo del monto. */}
           <p className="flex items-baseline justify-end gap-x-2 @min-[56rem]:flex-col-reverse @min-[56rem]:items-end @min-[56rem]:gap-0">
             {equivalente && (
-              <span className="text-xs tabular-nums text-taupe" title={`Descuento de la línea: ${descuentoSoles} (${descuentoPct})`}>
+              <span className="text-sm tabular-nums text-taupe" title={`Descuento de la línea: ${descuentoSoles} (${descuentoPct})`}>
                 {equivalente}
                 <span className="sr-only"> de descuento</span>
               </span>

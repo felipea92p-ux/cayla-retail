@@ -82,7 +82,7 @@ type Modo = "revisar" | "no_confirmar" | "anular" | "reservar";
 // Una opción que se elige entre pocas (qué hacer con una prenda que no hay, para qué fecha): la píldora de la maqueta del rediseño, con borde de
 // control, texto en tinta y, elegida, rellena de tinta.
 const PILDORA_ELIGE =
-  "inline-flex min-h-[34px] items-center rounded-full border border-borde-control bg-papel px-3.5 text-[13px] font-medium text-tinta transition-colors hover:border-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:opacity-50";
+  "inline-flex min-h-[34px] items-center rounded-full border border-borde-control bg-papel px-3.5 text-sm font-medium text-tinta transition-colors hover:border-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:opacity-50";
 
 // En el celular, el botón de un aviso baja bajo su texto: en la hoja angosta, a su derecha dejaba el texto a una palabra por línea.
 const AVISO_CON_BOTON =
@@ -399,7 +399,7 @@ export function PedidoWebHoja({
                 der={
                   <>
                     {clienteWa}
-                    <p className="flex items-start gap-2 text-[13px] text-tinta/80" data-guia="pedido-web.llega">
+                    <p className="flex items-start gap-2 text-sm text-tinta/80" data-guia="pedido-web.llega">
                       <MessageCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                       <span>
                         El cliente te escribirá por WhatsApp con el número <b className="text-tinta">{p.codigo}</b>.
@@ -410,7 +410,7 @@ export function PedidoWebHoja({
                         <ComboResponsable control={responsable} deshabilitado={guardando} />
                       </div>
                     </CampoGuiado>
-                    <p className="text-[12.5px] text-taupe">Al confirmar, las prendas quedan reservadas y dejan de venderse en tienda. Salen del stock al entregarlas.</p>
+                    <p className="text-sm text-taupe">Al confirmar, las prendas quedan reservadas y dejan de venderse en tienda. Salen del stock al entregarlas.</p>
                   </>
                 }
               />
@@ -467,7 +467,7 @@ export function PedidoWebHoja({
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
-              <p className="text-[12.5px] text-taupe">El stock no cambia: nada se había reservado. El cliente ve «Anulado» con el motivo.</p>
+              <p className="text-sm text-taupe">El stock no cambia: nada se había reservado. El cliente ve «Anulado» con el motivo.</p>
               <div className="pie-hoja-fijo space-y-2 pt-2">
                 <PieGuia guia={guia} />
                 <PieAcciones>
@@ -517,7 +517,7 @@ export function PedidoWebHoja({
                   <>
                     {clienteWa}
                     <BloqueDinero pedido={p} ahora={ahora} onAnularPago={onAnularPago} />
-                    <p className="text-[12.5px] text-taupe">La boleta sale cuando queda todo pagado.</p>
+                    <p className="text-sm text-taupe">La boleta sale cuando queda todo pagado.</p>
                   </>
                 }
               />
@@ -549,8 +549,8 @@ export function PedidoWebHoja({
                 <MiniPrenda prenda={reservando.linea} tamano="lg" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium text-tinta">{[reservando.linea.referencia, reservando.linea.color, reservando.linea.talla].filter(Boolean).join(" · ")}</span>
-                  <span className="block text-[12.5px] text-taupe">{textoDisponible(reservando.linea, tienda)}</span>
-                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+                  <span className="block text-sm text-taupe">{textoDisponible(reservando.linea, tienda)}</span>
+                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     <span className="text-verde">{textoDeDonde(reservando.lugar)}</span>
                     {reservando.linea.disponible.almacen > 0 && reservando.linea.disponible.piso > 0 && (
                       <button
@@ -568,7 +568,7 @@ export function PedidoWebHoja({
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
-              <p className="text-[12.5px] text-taupe">
+              <p className="text-sm text-taupe">
                 Llegó lo que faltaba: queda separada para el cliente y deja de venderse en tienda. Sale del stock al entregarla.
               </p>
               <div className="pie-hoja-fijo space-y-2 pt-2">
@@ -661,7 +661,7 @@ export function PedidoWebHoja({
                     ) : (
                       <>
                         {/* Lo que le toca a quien atiende, en orden: avisar, decirle dónde está su código, y recién ahí pedirlo. */}
-                        <ol className="list-decimal space-y-1 rounded-xl border border-sand px-4 py-3 pl-9 text-[13px] text-tinta" data-guia="pedido-web.pasos-entrega">
+                        <ol className="list-decimal space-y-1 rounded-xl border border-sand px-4 py-3 pl-9 text-sm text-tinta" data-guia="pedido-web.pasos-entrega">
                           <li>{p.sinRecoger ? "Recuérdale que lo recoja" : "Avísale que ya puede recoger"}, con el botón de WhatsApp.</li>
                           <li>
                             <b>Dile que su código está en «Mis pedidos»</b>, en su cuenta de la tienda web.
@@ -702,7 +702,7 @@ export function PedidoWebHoja({
                         <CampoGuiado id="responsable" guia={guia}>
                           <ComboResponsable control={responsable} deshabilitado={entrega.enviando || entrega.incierto} />
                         </CampoGuiado>
-                        <p className="text-[12.5px] text-taupe">Al entregar, sus prendas salen del stock. La boleta ya salió al pagar.</p>
+                        <p className="text-sm text-taupe">Al entregar, sus prendas salen del stock. La boleta ya salió al pagar.</p>
                       </>
                     )}
                   </>
@@ -786,7 +786,7 @@ function BloqueCliente({ pedido: p, whatsapp, boton }: { pedido: PedidoDetalle; 
         <AvatarPersona personaId={null} nombre={p.cliente.nombre} tamano={40} />
         <span className="min-w-0 flex-1">
           <span className="block font-medium text-tinta">{p.cliente.nombre}</span>
-          <span className="block text-[12.5px] text-taupe">{datosDelCliente(p.cliente) || "Sin datos de contacto"}</span>
+          <span className="block text-sm text-taupe">{datosDelCliente(p.cliente) || "Sin datos de contacto"}</span>
         </span>
       </div>
       {/* El único WhatsApp de la hoja: su texto dice para qué es (pedirle el pago, avisarle que ya puede recoger…). */}
@@ -837,24 +837,24 @@ function BloqueBoleta({
   const estadoNota = nota ? estadoDeBoleta(nota.estado) : null;
   return (
     <div className="space-y-1" data-guia={anulado ? undefined : "pedido-web.boleta"}>
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-tinta">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta">
         <ReceiptText aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
         <span>
           Boleta <b className="tabular-nums">{boleta.texto}</b>
         </span>
         <Chip tono={estado.tono}>{estado.texto}</Chip>
-        <span className="text-[12.5px] text-taupe">
+        <span className="text-sm text-taupe">
           {!anulado ? "Salió al quedar pagado completo." : nota ? "La anula su nota de crédito." : boleta.estado === "no_emitido" ? "Se liberó sin enviarla a SUNAT." : ""}
         </span>
       </p>
       {acciones && <div className="flex flex-wrap gap-2 pl-6 pt-1">{acciones}</div>}
       {nota && estadoNota && (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-[13px] text-tinta">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-sm text-tinta">
           <span>
             Nota de crédito <b className="tabular-nums">{nota.texto}</b>
           </span>
           <Chip tono={estadoNota.tono}>{estadoNota.texto}</Chip>
-          <span className="text-[12.5px] text-taupe">
+          <span className="text-sm text-taupe">
             Por {soles(nota.total)}:{" "}
             {nota.estado === "aceptado"
               ? "SUNAT la aceptó."
@@ -930,18 +930,18 @@ function LineaPorConfirmar({
           <span className={`block font-medium text-tinta ${quitada ? "line-through decoration-tinta/40" : ""}`}>
             {[l.referencia, l.color, l.talla].filter(Boolean).join(" · ")}
           </span>
-          <span className="block text-[12.5px] text-taupe">{textoDisponible(l, tienda)}</span>
+          <span className="block text-sm text-taupe">{textoDisponible(l, tienda)}</span>
         </span>
         <b className="whitespace-nowrap tabular-nums text-tinta">{soles(l.precio)}</b>
       </div>
 
       {quitada ? (
-        <p className="flex flex-wrap items-center gap-x-3 text-[13px] text-taupe">
+        <p className="flex flex-wrap items-center gap-x-3 text-sm text-taupe">
           Se quita del pedido al confirmar (sale del total). Avísale al cliente por WhatsApp.
           <BotonDeshacer disabled={deshabilitado} onClick={() => onDecision(decisionDeFabrica(l, tiendaId))} />
         </p>
       ) : aqui ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
           <span className="text-verde">{textoDeDonde(decision?.tipo === "reservar" ? decision.lugar : null)}</span>
           {l.disponible.almacen > 0 && l.disponible.piso > 0 && decision?.tipo === "reservar" && (
             <button
@@ -979,11 +979,11 @@ function LineaPorConfirmar({
             ))}
           </div>
           {decision?.tipo === "reservar" && (
-            <p className="text-[12.5px] text-taupe">Se reserva allá y esa sede la envía en un traslado. Al llegar, queda reservada aquí.</p>
+            <p className="text-sm text-taupe">Se reserva allá y esa sede la envía en un traslado. Al llegar, queda reservada aquí.</p>
           )}
           {decision?.tipo === "por_conseguir" && (
             <div className="space-y-1.5">
-              <p className="text-[12.5px] text-taupe">{VIAS_CONSEGUIR.find((v) => v.clave === decision.via)?.detalle} La fecha la coordinas con el cliente.</p>
+              <p className="text-sm text-taupe">{VIAS_CONSEGUIR.find((v) => v.clave === decision.via)?.detalle} La fecha la coordinas con el cliente.</p>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Para qué fecha la consigues">
                 {fechasSugeridas(hoy).map((f) => (
                   <button
@@ -1058,11 +1058,11 @@ function LineasDelPedido({
                 </span>
                 <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Chip tono={e.tono}>{e.texto}</Chip>
-                  {e.detalle && <span className="text-[12.5px] text-taupe">{e.detalle}</span>}
+                  {e.detalle && <span className="text-sm text-taupe">{e.detalle}</span>}
                 </span>
                 {onReservar && sePuedeReservarYa(l) && (
                   // Lo que faltaba ya está en la tienda (se compró, salió del taller): se reserva desde aquí.
-                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12.5px]" data-guia="pedido-web.reservar">
+                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm" data-guia="pedido-web.reservar">
                     <span className="text-verde">Ya hay {libresAqui(l)} en {p.tienda}.</span>
                     <Boton type="button" className="btn-chico" onClick={() => onReservar(l)}>
                       Reservarla
@@ -1077,14 +1077,14 @@ function LineasDelPedido({
       </ul>
       {[...porEnviar.entries()].map(([desdeId, x]) =>
         x.puedo && desdeId !== tiendaId ? (
-          <div key={desdeId} className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-taupe">
+          <div key={desdeId} className="flex flex-wrap items-center justify-between gap-2 text-sm text-taupe">
             <span>Tú operas {x.tienda}: puedes enviarlas desde aquí.</span>
             <Boton type="button" className="btn-chico" aria-haspopup="dialog" onClick={() => onEnviar(desdeId)}>
               Enviar desde {x.tienda}
             </Boton>
           </div>
         ) : (
-          <p key={desdeId} className="flex items-start gap-2 text-[12.5px] text-taupe">
+          <p key={desdeId} className="flex items-start gap-2 text-sm text-taupe">
             <PackageSearch aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
             {x.tienda} la tiene reservada y la envía en un traslado.
           </p>
@@ -1114,15 +1114,15 @@ function BloqueDinero({
     <div className="space-y-2 rounded-xl border border-sand px-4 py-3" data-guia="pedido-web.dinero">
       <dl className="grid grid-cols-3 gap-3 text-center">
         <div>
-          <dt className="text-[12px] text-taupe">Total</dt>
+          <dt className="text-sm text-taupe">Total</dt>
           <dd className="font-display text-xl tabular-nums text-tinta">{soles(p.total)}</dd>
         </div>
         <div>
-          <dt className="text-[12px] text-taupe">Pagado</dt>
+          <dt className="text-sm text-taupe">Pagado</dt>
           <dd className="font-display text-xl tabular-nums text-tinta">{soles(p.pagado)}</dd>
         </div>
         <div>
-          <dt className="text-[12px] text-taupe">{anulado ? (devuelto > 0 ? "Devuelto" : "Por devolver") : "Falta"}</dt>
+          <dt className="text-sm text-taupe">{anulado ? (devuelto > 0 ? "Devuelto" : "Por devolver") : "Falta"}</dt>
           <dd className={`font-display text-xl tabular-nums ${anulado ? (devolver > 0 ? "text-rojo-profundo" : "text-verde") : p.falta > 0 ? "text-ambar-profundo" : "text-verde"}`}>
             {soles(anulado ? (devuelto > 0 ? devuelto : devolver) : p.falta)}
           </dd>
@@ -1130,10 +1130,10 @@ function BloqueDinero({
       </dl>
       {/* El cupón del Club que el cliente puso al separar (20261019224000): ya está restado del total. */}
       {p.cupon && (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-sand pt-2 text-[13px]">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-sand pt-2 text-sm">
           <span className="tabular-nums text-tinta">{textoDelCupon(p.cupon).titulo}</span>
           <Chip tono={p.cupon.estado === "liberado" ? "pizarra" : "verde"}>{textoDelCupon(p.cupon).chip}</Chip>
-          <span className="block w-full text-[12px] text-taupe">{textoDelCupon(p.cupon).detalle}</span>
+          <span className="block w-full text-sm text-taupe">{textoDelCupon(p.cupon).detalle}</span>
         </p>
       )}
       {p.pagos.length === 0 ? (
@@ -1141,7 +1141,7 @@ function BloqueDinero({
           Todavía no registra pagos.
         </Vacio>
       ) : (
-        <ul className="divide-y divide-sand text-[13px]">
+        <ul className="divide-y divide-sand text-sm">
           {p.pagos.map((g) => {
             const chip = estadoDelPago(g, p.estado);
             const tachado = g.estado === "anulado" || g.estado === "rechazado";
@@ -1152,7 +1152,7 @@ function BloqueDinero({
                     <span className={`tabular-nums ${tachado ? "text-taupe line-through decoration-tinta/40" : "text-tinta"}`}>{textoDelPago(g)}</span>
                     {chip && <Chip tono={chip.tono}>{chip.texto}</Chip>}
                   </span>
-                  <span className="block text-[12px] text-taupe">{detalleDelPago(g, ahora, p.tienda)}</span>
+                  <span className="block text-sm text-taupe">{detalleDelPago(g, ahora, p.tienda)}</span>
                 </span>
                 {onAnularPago && sePuedeAnular(g, p.estado) && (
                   <Boton type="button" peso="peligro" className="btn-chico" aria-haspopup="dialog" onClick={() => onAnularPago(g)}>
@@ -1165,7 +1165,7 @@ function BloqueDinero({
         </ul>
       )}
       {p.lineas.some((l) => l.estado === "por_conseguir") && !esAdelanto(p) && (
-        <p className="text-[12.5px] text-taupe">Espera una prenda: llega para el {fechaCorta(p.lineas.find((l) => l.estado === "por_conseguir")?.fechaCompromiso ?? null)}.</p>
+        <p className="text-sm text-taupe">Espera una prenda: llega para el {fechaCorta(p.lineas.find((l) => l.estado === "por_conseguir")?.fechaCompromiso ?? null)}.</p>
       )}
     </div>
   );

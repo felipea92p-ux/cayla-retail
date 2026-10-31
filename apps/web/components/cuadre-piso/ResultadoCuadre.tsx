@@ -30,7 +30,7 @@ export function ResultadoCuadre({ respuesta, sede, otraPersona = false }: { resp
         <section className="card-cayla overflow-hidden" aria-label="No cargadas">
           <header className="border-b border-tinta/10 px-4 py-3 sm:px-5">
             <TituloSeccion cuenta={respuesta.noCargado.length}>No cargadas</TituloSeccion>
-            <p className="mt-0.5 text-xs text-taupe">
+            <p className="mt-0.5 text-sm text-taupe">
               Se escanearon como guardadas pero el sistema no las tiene en {sede}. El cuadre no las creó: cárgalas con «Ajustar stock» en
               Existencias, o revisa si vinieron de otra sede.
             </p>
@@ -39,7 +39,7 @@ export function ResultadoCuadre({ respuesta, sede, otraPersona = false }: { resp
             {respuesta.noCargado.map((n) => (
               <li key={n.varianteId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
                 <span className="min-w-0 text-sm text-tinta">{n.prenda}</span>
-                <span className="flex items-center gap-2 text-xs tabular-nums text-taupe">
+                <span className="flex items-center gap-2 text-sm tabular-nums text-taupe">
                   Escaneadas {n.escaneadas} · el sistema tenía {n.almacen + n.piso}
                   <Chip tono="ambar">{n.noCargadas === 1 ? "1 no cargada" : `${n.noCargadas} no cargadas`}</Chip>
                 </span>

@@ -18,7 +18,7 @@ const ICONO: Record<IconoAcceso, LucideIcon> = {
 };
 
 const BOTON =
-  "inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-crema px-2.5 text-[12.5px] text-tinta/80 transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-taupe hover:text-tinta active:translate-y-px";
+  "inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-crema px-2.5 text-sm text-tinta/80 transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-taupe hover:text-tinta active:translate-y-px";
 
 /**
  * «Más» del Punto de venta (spike «el ticket a lo alto», `docs/maquetas/punto-venta-ticket-alto-2026-09/`, Felipe
@@ -51,7 +51,7 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
                         key={a.href}
                         href={a.href}
                         onClick={cerrar}
-                        className="flex flex-col items-center gap-2 rounded-xl border border-sand bg-crema px-2 py-4 text-center text-[13px] text-tinta transition-colors hover:border-taupe active:translate-y-px"
+                        className="flex flex-col items-center gap-2 rounded-xl border border-sand bg-crema px-2 py-4 text-center text-sm text-tinta transition-colors hover:border-taupe active:translate-y-px"
                       >
                         <Icono className="h-5 w-5 text-tinta/70" aria-hidden />
                         {a.texto}
@@ -96,7 +96,7 @@ export function BotonApartados({ prendas, onApartar, deshabilitado }: { prendas:
         data-guia="vender.apartados"
         disabled={deshabilitado}
         title={`Lleva ${prendas === 1 ? "la prenda" : `las ${prendas} prendas`} del ticket a Apartados`}
-        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-[12.5px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-sm text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
       >
         <Bookmark className="h-4 w-4" aria-hidden />
         Apartar

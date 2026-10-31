@@ -101,7 +101,7 @@ export function AnularPagoHoja({
         <div className="space-y-4">
           <div className="rounded-xl border border-sand px-4 py-3">
             <span className="block font-medium tabular-nums text-tinta">{textoDelPago(pago)}</span>
-            <span className="block text-[12.5px] text-taupe">{detalleDelPago(pago, ahora, p.tienda)}</span>
+            <span className="block text-sm text-taupe">{detalleDelPago(pago, ahora, p.tienda)}</span>
           </div>
 
           {efectivo ? (

@@ -52,7 +52,7 @@ export function TelaDelModelo({ materiales }: { materiales: MaterialesDeHoja | n
       <div>
         <TituloGrupo>Tela y avíos</TituloGrupo>
         <Vacio tamano="chico" icono={<Scissors />}>
-          Todavía no hay consumo medido de este modelo: se mide cuando se cierra una orden suya con la tela usada.
+          Sin consumo medido: se mide al cerrar una orden suya con la tela usada.
         </Vacio>
       </div>
     );
@@ -83,7 +83,7 @@ export function TelaDelModelo({ materiales }: { materiales: MaterialesDeHoja | n
             <span className={celda("der", "text-sm text-tinta")}>
               <Rotulo>Hay</Rotulo>
               {cantidadTexto(l.saldo, l.unidad)}
-              {l.porLlegar > 0 && <span className="block text-[11px] text-tinta/65">+ {cantidadTexto(l.porLlegar, l.unidad)} por llegar</span>}
+              {l.porLlegar > 0 && <span className="block text-sm text-tinta/65">+ {cantidadTexto(l.porLlegar, l.unidad)} por llegar</span>}
             </span>
             <span className={celda("der", "text-sm text-tinta")}>
               <Rotulo>{paraLas ? `Para las ${materiales.prendas}` : "Alcanza para"}</Rotulo>

@@ -56,7 +56,7 @@ export function DevolucionesResueltas({
                 </Chip>
               )}
             </p>
-            <p className="mt-0.5 text-[13px] text-tinta/70">
+            <p className="mt-0.5 text-sm text-tinta/70">
               {d.estado === "aprobada" ? "Aprobó" : "Rechazó"} {d.resueltaPorNombre} · {etiquetaDia(d.resueltaEn, ahora).toLowerCase()} {formatearHora(d.resueltaEn)}
             </p>
           </div>
@@ -70,7 +70,7 @@ export function DevolucionesResueltas({
                     {p.referencia}
                     {p.cantidad > 1 && <span className="text-tinta/70"> × {p.cantidad}</span>}
                   </span>
-                  <span className="text-[13px] text-tinta/65">{varianteLegible(p)}</span>
+                  <span className="text-sm text-tinta/65">{varianteLegible(p)}</span>
                   <Chip tono={destino.tono} versalitas={false}>
                     {destino.texto}
                   </Chip>
@@ -79,7 +79,7 @@ export function DevolucionesResueltas({
             })}
           </ul>
 
-          <div className="flex flex-col gap-0.5 text-[13px] md:items-end md:text-right">
+          <div className="flex flex-col gap-0.5 text-sm md:items-end md:text-right">
             <span className="tabular-nums text-tinta">{soles(d.valorPagado)}</span>
             {d.notaCredito &&
               (veComprobantes ? (

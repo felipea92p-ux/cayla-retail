@@ -99,8 +99,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
             titulo="Todavía no hay campañas"
             acciones={puedeIrACampanas ? irAEtiquetas : undefined}
           >
-            Una campaña se arma en Catálogo ▸ Insignias, con su descuento, sus fechas y sus prendas. Cuando exista, aparece aquí para
-            darle su diseño.
+            Una campaña se arma en Catálogo ▸ Insignias; aquí le das su diseño.
           </Vacio>
         </section>
       ) : (
@@ -160,7 +159,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
             <div className="relative space-y-2">
               {tiempo.barras.map((b) => (
                 <div key={b.campana.id} className="flex items-center gap-3">
-                  <span className="w-28 shrink-0 truncate text-[12px] font-semibold" title={b.campana.nombre}>
+                  <span className="w-28 shrink-0 truncate text-sm font-semibold" title={b.campana.nombre}>
                     {b.campana.nombre}
                   </span>
                   <div className="relative h-6 flex-1 rounded-md bg-hueso">
@@ -195,8 +194,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
       )}
 
       <p className="nota-cayla" data-guia="campanas.nota">
-        Al terminar una campaña, la tienda vuelve sola a su diseño de siempre. Una campaña sin diseño se ve como siempre: con su frase en la
-        franja de arriba y su cuenta regresiva.
+        Al terminar, la tienda vuelve sola a su diseño. Sin diseño, la campaña sale en la franja de arriba con su cuenta regresiva.
       </p>
     </div>
   );
@@ -215,7 +213,7 @@ function FilaCampana({ c, hoy }: { c: CampanaWeb; hoy: string }) {
         </span>
         <span className="min-w-0">
           <b className="block truncate font-semibold">{c.nombre}</b>
-          <small className="block text-[12px] text-tinta/65">
+          <small className="block text-sm text-tinta/65">
             {vigenciaDicha(c.desde, c.hasta)} · {cuandoDicho(c, hoy)}
           </small>
         </span>
@@ -235,7 +233,7 @@ function FilaCampana({ c, hoy }: { c: CampanaWeb; hoy: string }) {
           {c.estado === "fin" ? "Ver diseño" : "Diseñar"}
         </BotonEditar>
       </span>
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-tinta/65 sm:hidden">
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta/65 sm:hidden">
         <Chip tono={TONO_ESTADO[c.estado]}>{ESTADO_DICHO[c.estado]}</Chip>
         <span>
           {pctDicho(c.pct)} · {diseno.texto}

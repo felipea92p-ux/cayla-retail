@@ -97,7 +97,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               <span className="font-semibold tabular-nums">{textoDiferencia(ticket.diferencia)}</span>
             </Linea>
             <div className="my-1.5 border-t border-dashed border-sand" />
-            <p className="text-xs text-tinta/60">
+            <p className="text-sm text-tinta/60">
               {ticket.atendio ? `Atendió ${ticket.atendio} · ` : ""}
               {ticket.sede} · {fecha} {hora}
             </p>
@@ -127,7 +127,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               Nuevo cambio
             </button>
           </div>
-          <p className="mt-3 text-center text-xs text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>
+          <p className="mt-3 text-center text-sm text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>
 
           {typeof document !== "undefined" && createPortal(<TicketCambioTermico ticket={ticket} />, document.body)}
         </>

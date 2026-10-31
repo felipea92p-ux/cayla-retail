@@ -377,7 +377,7 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
             <span className="size-2 shrink-0 rounded-full bg-verde" />
             <div>
               <p className="text-sm font-medium text-tinta">Nada pendiente</p>
-              <p className="text-xs text-tinta/65">Todo lo que elegiste ver está al día.</p>
+              <p className="text-sm text-tinta/65">Todo lo que elegiste ver está al día.</p>
             </div>
           </div>
         ) : (
@@ -393,11 +393,11 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
                 <p className="flex flex-wrap items-baseline gap-x-2 text-sm font-medium text-tinta group-hover:text-rojo">
                   {a.titulo}
                   {a.nivel === "urgente" && <span className="text-[10px] font-bold tracking-[0.1em] text-rojo uppercase">Urgente</span>}
-                  {a.forzado && <span className="rounded-md bg-rojo/8 px-1.5 text-[10.5px] font-normal text-rojo-profundo">Lo ocultaste, pero es urgente</span>}
+                  {a.forzado && <span className="rounded-md bg-rojo/8 px-1.5 text-sm font-normal text-rojo-profundo">Lo ocultaste, pero es urgente</span>}
                 </p>
-                <p className="mt-0.5 text-xs text-tinta/65">{a.detalle}</p>
+                <p className="mt-0.5 text-sm text-tinta/65">{a.detalle}</p>
               </div>
-              <span className={`min-w-6 self-center rounded-full px-2 text-center text-xs font-semibold tabular-nums ${CANTIDAD[a.nivel]}`}>
+              <span className={`min-w-6 self-center rounded-full px-2 text-center text-sm font-semibold tabular-nums ${CANTIDAD[a.nivel]}`}>
                 {a.cantidad === null ? "Sin leer" : a.cantidad}
               </span>
               <Icono clave="chevron" className="size-4 self-center text-tinta/30" />
@@ -405,13 +405,13 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
           ))
         )}
         {activos.length > corte && (
-          <label className="block cursor-pointer px-4 py-3 text-center text-[13px] text-taupe has-[:checked]:hidden sm:hidden">
+          <label className="block cursor-pointer px-4 py-3 text-center text-sm text-taupe has-[:checked]:hidden sm:hidden">
             <input type="checkbox" data-ver-mas className="sr-only" />
             Ver {activos.length - corte} más
           </label>
         )}
         {alDia.length > 0 && (
-          <p className="flex items-center gap-2.5 px-4 py-3 text-xs text-tinta/65 sm:px-5">
+          <p className="flex items-center gap-2.5 px-4 py-3 text-sm text-tinta/65 sm:px-5">
             <Icono clave="check" className="size-4 text-verde" />
             <span>
               <span className="font-semibold text-verde">Al día:</span> {alDia.map((a) => a.titulo.toLowerCase()).join(" · ")}
@@ -419,7 +419,7 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
           </p>
         )}
         {ocultosConAlgo > 0 && (
-          <p className="px-4 py-3 text-xs text-taupe sm:px-5">
+          <p className="px-4 py-3 text-sm text-taupe sm:px-5">
             {ocultosConAlgo} {ocultosConAlgo === 1 ? "aviso que ocultaste tiene" : "avisos que ocultaste tienen"} algo pendiente.
           </p>
         )}
@@ -440,7 +440,7 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
           <Link
             key={a.href}
             href={a.href}
-            className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
+            className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-sm text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
           >
             <Icono clave={a.icono} className="size-5" />
             {a.etiqueta}
@@ -473,12 +473,12 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-tinta">{m.nombre}</p>
-                <p className="text-xs text-tinta/65">
+                <p className="text-sm text-tinta/65">
                   {textoEstado(m.estado)}
                   {m.ventas ? ` · ${m.ventas} ${m.ventas === 1 ? "venta" : "ventas"}` : ""}
                 </p>
                 {m.ultima && (
-                  <p className="mt-1 rounded-lg bg-hueso px-2 py-1 text-xs text-tinta/80">
+                  <p className="mt-1 rounded-lg bg-hueso px-2 py-1 text-sm text-tinta/80">
                     {m.ultima.texto} · {hora.format(new Date(m.ultima.hora))}
                   </p>
                 )}
@@ -488,7 +488,7 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
           ))
         )}
         {!esLider && equipo && equipo.length > 0 && (
-          <p className="px-4 py-2.5 text-xs text-tinta/60">Ves quién está; las cifras de cada una las ve la líder.</p>
+          <p className="px-4 py-2.5 text-sm text-tinta/60">Ves quién está; las cifras de cada una las ve la líder.</p>
         )}
       </div>
     </section>

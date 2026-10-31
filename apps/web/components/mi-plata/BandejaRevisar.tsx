@@ -144,9 +144,7 @@ export function BandejaRevisar(d: Datos) {
             <ul className="flex flex-col" aria-label={CIFRA_BANDEJA[tipo].nombre}>
               {lista.length === 0 ? (
                 <li className="p-5">
-                  <Vacio icono={<CheckCheck aria-hidden />} titulo="Nada por revisar aquí" tamano="chico">
-                    Elige otra cifra de arriba.
-                  </Vacio>
+                  <Vacio icono={<CheckCheck aria-hidden />} titulo="Nada por revisar aquí" tamano="chico" />
                 </li>
               ) : (
                 lista.map(({ fila, mini }) => {
@@ -166,7 +164,7 @@ export function BandejaRevisar(d: Datos) {
                         {mini}
                         <span className="min-w-0">
                           <span className="block truncate text-[15px] font-medium text-tinta">{fila.titulo}</span>
-                          <span className="mt-0.5 block truncate text-xs text-taupe">
+                          <span className="mt-0.5 block truncate text-sm text-taupe">
                             {fila.quien}
                             {fila.cuando ? ` · ${fila.cuando}` : ""}
                           </span>
@@ -198,11 +196,11 @@ export function BandejaRevisar(d: Datos) {
                       <span className="block truncate text-sm font-medium text-tinta">
                         {r.texto} · {primerNombre(r.persona)}
                       </span>
-                      <span className="block truncate text-xs text-taupe">
+                      <span className="block truncate text-sm text-taupe">
                         {[r.abiertaEn ? `Desde ${diaMes(diaLima(r.abiertaEn) ?? "")}` : null, r.tienda].filter(Boolean).join(" · ")}
                       </span>
                     </span>
-                    <span className="whitespace-nowrap text-xs text-taupe">{detalleRondaAbierta(r.cuenta)}</span>
+                    <span className="whitespace-nowrap text-sm text-taupe">{detalleRondaAbierta(r.cuenta)}</span>
                   </li>
                 ))}
               </ul>

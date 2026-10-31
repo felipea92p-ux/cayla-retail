@@ -69,7 +69,7 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
           <ControlesTrafico filtros={filtros} periodo={periodo} campana={campana} r={r} />
           {callada && (
             <Aviso tono="atencion" titulo={`La tienda online no manda visitas desde ${callada.desde}`}>
-              Las cifras de hoy pueden estar incompletas. Si sigue así, revisa que la tienda online esté publicada y abra bien.
+              Las cifras de hoy pueden estar incompletas. Si sigue así, revisa que la tienda online abra bien.
             </Aviso>
           )}
           {total === 0 ? (

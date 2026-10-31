@@ -39,7 +39,7 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
           <div className="min-w-0 flex-1 basis-80">
             <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
             <TituloSeccion className="mt-0.5">Cotizaciones de servicios de afuera</TituloSeccion>
-            <p className="mt-0.5 max-w-[46rem] text-xs text-tinta/65">
+            <p className="mt-0.5 max-w-[46rem] text-sm text-tinta/65">
               Lo que cobraría un taller externo por maquilar cada tipo de prenda — la referencia contra la que se mide el Taller (D-31). Una fila por tipo de
               prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.
             </p>
@@ -95,19 +95,19 @@ function FilaCotizacion({ cotizacion: c, hoy }: { cotizacion: CotizacionMaquila;
     >
       <div className="min-w-0">
         <p className="truncate text-[15px] font-semibold leading-normal text-tinta">{c.categoriaNombre}</p>
-        <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
+        <p className="mt-0.5 truncate text-sm text-tinta/65 @min-[900px]:hidden">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
       </div>
 
       <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">S/&nbsp;{c.precioMaquila.toFixed(2)}</p>
 
-      <p className="text-[13px] text-tinta/75">{textoDeVigencia(c)}</p>
+      <p className="text-sm text-tinta/75">{textoDeVigencia(c)}</p>
 
-      <p className="hidden min-w-0 truncate text-[13px] text-tinta/75 @min-[900px]:block">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
+      <p className="hidden min-w-0 truncate text-sm text-tinta/75 @min-[900px]:block">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-0">
           <Chip tono={chip.tono}>{chip.texto}</Chip>
-          <p className={`mt-1.5 text-[13px] leading-snug ${chip.tono !== "verde" ? "font-semibold text-ambar-profundo" : "text-tinta/65"}`}>{detalle}</p>
+          <p className={`mt-1.5 text-sm leading-snug ${chip.tono !== "verde" ? "font-semibold text-ambar-profundo" : "text-tinta/65"}`}>{detalle}</p>
         </div>
       </div>
     </div>

@@ -184,8 +184,8 @@ export function MisEnvios({
                   >
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold text-tinta">{r.rondaId ? `Ronda ${r.texto}` : r.texto}</span>
-                      <span className="block text-xs text-taupe">{[dias, r.rondaId ? "cerrada" : null].filter(Boolean).join(" · ")}</span>
-                      <span className="block text-xs text-taupe">{resumen.texto}</span>
+                      <span className="block text-sm text-taupe">{[dias, r.rondaId ? "cerrada" : null].filter(Boolean).join(" · ")}</span>
+                      <span className="block text-sm text-taupe">{resumen.texto}</span>
                     </span>
                     <span className="flex flex-col items-end gap-1.5">
                       {resumen.chip && <Chip tono={resumen.chip.tono}>{resumen.chip.texto}</Chip>}

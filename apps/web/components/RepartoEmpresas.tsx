@@ -39,8 +39,14 @@ export function RepartoEmpresas({
       className={`${enHoja ? "min-w-0 rounded-2xl border border-sand bg-papel px-[18px] py-4" : "card-cayla p-5"} ${indice !== undefined ? "anim-sube" : ""} ${className}`}
       style={indice !== undefined ? ({ "--i": indice } as CSSProperties) : undefined}
     >
-      <TituloSeccion nivel={enHoja ? 3 : 2} dato={<b className="tabular-nums">{soles(reparto.total)}</b>}>De quién es lo vendido</TituloSeccion>
-      <p className="mt-1 text-[13px] text-taupe">{frase}</p>
+      <TituloSeccion
+        nivel={enHoja ? 3 : 2}
+        dato={<b className="tabular-nums">{soles(reparto.total)}</b>}
+        ayuda="Cada prenda suma a la tienda dueña, por lo cobrado. Una boleta mixta se parte; los pagos no: es un solo cajón."
+      >
+        De quién es lo vendido
+      </TituloSeccion>
+      <p className="texto-bajada">{frase}</p>
       <BarraApilada
         className="mt-4"
         sinEntrada={enHoja}
@@ -57,7 +63,7 @@ export function RepartoEmpresas({
               {p.nombre}
             </dt>
             <dd className="font-display text-2xl leading-tight tabular-nums text-tinta sm:text-[28px]">{soles(p.total)}</dd>
-            <dd className="text-[12.5px] text-tinta/65">
+            <dd className="texto-detalle">
               {nada
                 ? "Sin ventas todavía"
                 : p.total === 0
@@ -67,9 +73,6 @@ export function RepartoEmpresas({
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-xs text-tinta/65">
-        Cada prenda suma a la tienda de la que es, por lo que se cobró de ella. Una boleta con prendas de las dos se parte; los pagos no, porque es un solo cajón.
-      </p>
     </section>
   );
 }

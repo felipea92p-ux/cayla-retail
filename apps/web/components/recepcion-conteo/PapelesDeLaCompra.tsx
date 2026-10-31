@@ -76,7 +76,7 @@ function SubirFoto({ papel, alSubir }: { papel: Papel; alSubir: (papelId: string
         }}
       />
       {rechazo && (
-        <span className="basis-full text-xs text-rojo-profundo" role="alert">
+        <span className="basis-full text-sm text-rojo-profundo" role="alert">
           {rechazo}
         </span>
       )}
@@ -140,7 +140,7 @@ export function PapelesDeLaCompra({
       {papeles.map((p) => (
         <div key={p.id} className="flex flex-col gap-2">
           <Visor papel={p} onGrande={() => setGrande(p)} alSubir={alSubirFoto} />
-          <span className="text-xs text-taupe">
+          <span className="text-sm text-taupe">
             {[nombreDelPapel(p), p.compradora ? `compró ${p.compradora.split(" ")[0]}` : null, p.fecha ? `el ${diaMes(p.fecha)}` : null].filter(Boolean).join(" · ")}
           </span>
         </div>
@@ -159,7 +159,7 @@ export function PapelesDeLaCompra({
                     <span className="block truncate text-sm font-medium text-tinta">
                       {l.dijeron} · {nombreAnotado(l)}
                     </span>
-                    <span className="block truncate text-xs text-taupe">{l.categoria?.nombre ?? ""}</span>
+                    <span className="block truncate text-sm text-taupe">{l.categoria?.nombre ?? ""}</span>
                   </span>
                   {e === "contada" ? (
                     <Chip tono="verde">Contada</Chip>
@@ -174,7 +174,7 @@ export function PapelesDeLaCompra({
           </ul>
         </div>
       )}
-      <p className="text-xs text-taupe">Cuenta mirando el papel: lo que dice es lo que se pagó.</p>
+      <p className="text-sm text-taupe">Cuenta mirando el papel: lo que dice es lo que se pagó.</p>
       {grande?.fotoUrl && (
         <Modal titulo={nombreDelPapel(grande)} subtitulo={grande.compradora ? `Lo compró ${grande.compradora}` : undefined} onClose={() => setGrande(null)} tamano="ancha" conCerrar>
           {/* eslint-disable-next-line @next/next/no-img-element */}

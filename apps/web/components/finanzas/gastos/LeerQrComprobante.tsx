@@ -85,7 +85,7 @@ export function LeerQrComprobante({
         </button>
       </div>
       {/* El aviso va bajo la fila (no bajo el campo): así el botón de la cámara no se descuadra. */}
-      {malo && <p className="mt-1 text-xs leading-tight text-ambar-profundo">Ese no es el QR de una factura o boleta electrónica.</p>}
+      {malo && <p className="mt-1 text-sm leading-tight text-ambar-profundo">Ese no es el QR de una factura o boleta electrónica.</p>}
       {leido && (
         <div className="mt-2 space-y-2">
           <Aviso tono="exito" chico titulo="Leído del QR">

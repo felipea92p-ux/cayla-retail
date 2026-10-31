@@ -121,7 +121,7 @@ export function ProcesoModal({ proceso, catalogo, onClose }: { proceso: FaseDelC
               <CampoSelect id="proceso-despues" etiqueta={guia.etiqueta("despues", "Va después de")} valor={e.despuesDe} onValor={(v) => cambia({ despuesDe: v })} opciones={lugares} />
             </CampoGuiado>
           ) : (
-            <p className="nota-cayla sin-i self-end text-[12.5px]">
+            <p className="nota-cayla sin-i self-end text-sm">
               Su lugar en la ruta no cambia: las órdenes que ya lo llevan lo tienen guardado.
               {proceso.usos !== undefined ? ` Hoy está en ${proceso.usos} ${proceso.usos === 1 ? "orden" : "órdenes"}.` : ""}
             </p>

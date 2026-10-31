@@ -78,7 +78,7 @@ export function EnviosDeOrden({ orden }: { orden: DetalleOrden }) {
               <span className={celda("izq", "whitespace-normal text-sm text-tinta")}>
                 {e.sede}
                 {/* Sin columnas: lo demás en un renglón, con su contexto. */}
-                <span className="mt-0.5 block text-xs tabular-nums text-taupe @min-[44rem]:hidden">
+                <span className="mt-0.5 block text-sm tabular-nums text-taupe @min-[44rem]:hidden">
                   {[e.numeroGuia ? `guía ${e.numeroGuia}` : null, cuando, unidadesTexto(e.unidades)].filter(Boolean).join(" · ")}
                 </span>
               </span>
@@ -92,7 +92,7 @@ export function EnviosDeOrden({ orden }: { orden: DetalleOrden }) {
                 {sePuedeAnularEnvio(e) && (
                   <Boton
                     peso="peligro"
-                    className="px-3 py-1.5 text-[11px]"
+                    className="px-3 py-1.5 text-sm"
                     data-guia="orden.anular-envio"
                     onClick={(ev) => {
                       origen.current = ev.currentTarget;
@@ -206,13 +206,12 @@ function AnularEnvioModal({
           className="space-y-5"
         >
           <p className="text-sm text-tinta/75">
-            El envío queda anulado y lo que llevaba vuelve a quedar por enviar en la orden. No se borra: queda a la vista, anulado y con su
-            motivo. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+            Lo que llevaba vuelve a quedar por enviar. El envío sigue a la vista, anulado y con su motivo. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
           </p>
           {/* El título va en el bloque (`titulo`, con su marca de la guía): la caja hundida deja su etiqueta solo para el lector. */}
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
             <CampoTexto etiqueta="Por qué se anula" caja autoFocus maxLength={TOPES_ENVIO.motivo} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-            <p className="mt-1.5 text-xs text-taupe">Lo verá quien revise la orden después.</p>
+            <p className="mt-1.5 text-sm text-taupe">Lo verá quien revise la orden después.</p>
           </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo="Quién lo anula">

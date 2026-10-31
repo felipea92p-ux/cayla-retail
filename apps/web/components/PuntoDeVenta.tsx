@@ -2292,7 +2292,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               </div>
             )}
             {/* La nota va FUERA de la caja del campo a propósito: ese `div` debe seguir con un solo hijo (ver arriba). */}
-            {notaCelularBoleta && <p className="mt-1 text-xs text-tinta/60">{notaCelularBoleta}</p>}
+            {notaCelularBoleta && <p className="mt-1 text-sm text-tinta/60">{notaCelularBoleta}</p>}
           </fieldset>
         )
       }
@@ -2587,7 +2587,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             <Globito n={prendas} esquina sobreOscuro late className="absolute -right-1.5 -top-1.5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[11px] text-crema/70">
+            <span className="block truncate text-sm text-crema/70">
               {carrito.length > 0
                 ? `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${carrito.map((it) => it.referencia).join(", ")}`
                 : `${enEspera.length} en espera`}

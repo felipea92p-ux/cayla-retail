@@ -35,7 +35,7 @@ export function PildoraRol({ nombre, lider }: { nombre: string; lider: boolean }
   return (
     <span
       title={nombre}
-      className={`inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-xs font-semibold ${lider ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}
+      className={`inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-sm font-semibold ${lider ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}
     >
       {nombre}
     </span>
@@ -55,7 +55,7 @@ export function EstadoPersona({ p }: { p: Pick<PersonaEquipo, "estado"> }) {
     return (
       <span className="inline-flex items-center gap-1.5">
         <Chip tono="ambar">Suspendido</Chip>
-        <span className="text-xs text-tinta/60">baja en Dynamic</span>
+        <span className="text-sm text-tinta/60">baja en Dynamic</span>
       </span>
     );
   return null;
@@ -80,7 +80,7 @@ function NombreMiembro({ m }: { m: MiembroEquipo }) {
   return (
     <>
       <span className="truncate" data-guia="colaboradores.nombre">{m.nombre}</span>
-      {m.tipo === "persona" && m.esYo && <span className="text-xs font-normal text-tinta/60">(tú)</span>}
+      {m.tipo === "persona" && m.esYo && <span className="text-sm font-normal text-tinta/60">(tú)</span>}
       {m.tipo === "persona" && m.esAdmin && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
     </>
   );
@@ -141,7 +141,7 @@ function FilaMiembro({
         <span className={`flex min-w-0 max-w-[9.5rem] sm:max-w-none ${apagado ? "opacity-70" : ""}`}>
           <PildoraRol nombre={m.rolNombre} lider={m.tipo === "persona" && m.nivel === "lider"} />
         </span>
-        <span className="hidden text-[12.5px] tabular-nums text-tinta/60 sm:block lg:text-left">
+        <span className="hidden text-sm tabular-nums text-tinta/60 sm:block lg:text-left">
           {m.tipo === "persona" && m.estado !== "activa" ? "—" : cuandoEntro(m.ultimoAcceso, ahoraIso)}
         </span>
         <span className="hidden lg:block">
@@ -204,12 +204,12 @@ function EsperanTuOk({
           <li
             key={p.persona_id}
             title={`Lo pidió ${p.propuesto_por ?? "un líder"} · ${fechaLima(p.propuesto_en)}`}
-            className={`flex max-w-full items-center justify-between gap-2 rounded-full bg-papel py-1 pl-3 pr-1 text-[13px] text-tinta ${ocupadoId === p.persona_id ? "opacity-50" : ""}`}
+            className={`flex max-w-full items-center justify-between gap-2 rounded-full bg-papel py-1 pl-3 pr-1 text-sm text-tinta ${ocupadoId === p.persona_id ? "opacity-50" : ""}`}
           >
             <strong className="truncate font-semibold">{p.nombre}</strong>
             <span className="shrink-0 text-tinta/60">→ {p.ubicacion_asignada ?? "retail"}</span>
             {preguntando === p.persona_id ? (
-              <span className="flex items-center gap-1.5 pr-1.5 text-[12.5px]">
+              <span className="flex items-center gap-1.5 pr-1.5 text-sm">
                 ¿Rechazar?
                 <button type="button" className="btn-cayla btn-chico btn-peligro" onClick={() => { setPreguntando(null); onRechazar(p); }}>
                   Sí

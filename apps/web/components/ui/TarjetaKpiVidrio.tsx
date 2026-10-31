@@ -61,7 +61,7 @@ export function TarjetaKpiVidrio({
           </span>
         </div>
         <p className={`font-display mt-1 text-3xl tabular-nums ${colorearCifra ? COLOR_DE_LA_CIFRA[tono] : "text-tinta"}`}>{valor}</p>
-        {contexto && <p className="mt-1 text-[13px] leading-[1.45] text-tinta/65">{contexto}</p>}
+        {contexto && <p className="mt-1 text-sm leading-[1.45] text-tinta/70">{contexto}</p>}
         {children}
       </div>
     </div>

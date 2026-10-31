@@ -41,7 +41,7 @@ export function useCierreClaure(cajaId: string): CierreClaure | null {
 export function EfectivoDeClaure({ cierre }: { cierre: CierreClaure }) {
   if (cierre.efectivo.claure <= 0) return null;
   return (
-    <p className="mt-1.5 text-[11px] leading-snug text-tinta/60">
+    <p className="mt-1.5 text-sm leading-snug text-tinta/60">
       De las ventas en efectivo, {soles(cierre.efectivo.claure)} es de CLAURE (lo tiene Claudia) y {soles(cierre.efectivo.cayla)} es de CAYLA.
     </p>
   );
@@ -60,16 +60,16 @@ export function CuentasConClaudia({ cierre }: { cierre: CierreClaure }) {
         <span className="text-sm text-tinta/70">{titular.frase}</span>
         <span className="font-display text-2xl tabular-nums text-tinta">{soles(titular.monto)}</span>
       </p>
-      <p className="mt-1.5 text-xs leading-snug text-tinta/65">{lineaDeHoy(cierre)}</p>
-      {cierre.efectivo.total > 0 && <p className="mt-1 text-xs leading-snug text-tinta/65">{lineaDelEfectivo(cierre)}</p>}
+      <p className="mt-1.5 text-sm leading-snug text-tinta/65">{lineaDeHoy(cierre)}</p>
+      {cierre.efectivo.total > 0 && <p className="mt-1 text-sm leading-snug text-tinta/65">{lineaDelEfectivo(cierre)}</p>}
       {cierre.cambiosPorRevisar > 0 && (
-        <p className="mt-1 text-xs leading-snug text-ambar-profundo">
+        <p className="mt-1 text-sm leading-snug text-ambar-profundo">
           Hay {cierre.cambiosPorRevisar} {cierre.cambiosPorRevisar === 1 ? "cambio" : "cambios"} con prendas de CLAURE por revisar: todavía no suman.
         </p>
       )}
       <details className="mt-2 rounded-lg border border-dashed border-sand px-3 py-2">
-        <summary className="cursor-pointer text-xs font-semibold text-tinta/80">Ver el detalle</summary>
-        <dl className="mt-2 space-y-0.5 text-xs text-tinta/70">
+        <summary className="cursor-pointer text-sm font-semibold text-tinta/80">Ver el detalle</summary>
+        <dl className="mt-2 space-y-0.5 text-sm text-tinta/70">
           <Fila etiqueta="Se le debía al empezar el día" valor={cierre.saldoAnterior} />
           <Fila etiqueta="+ Cobrado hoy en tus cuentas" valor={hoy.cobrado} />
           {cierre.porMedio
@@ -91,7 +91,7 @@ export function CuentasConClaudia({ cierre }: { cierre: CierreClaure }) {
             <dd className="tabular-nums">{soles(titular.monto)}</dd>
           </div>
         </dl>
-        <p className="mt-2 text-[11px] leading-snug text-tinta/55">
+        <p className="mt-2 text-sm leading-snug text-tinta/55">
           El IGV de la boleta lo declara y paga CAYLA, así que se le descuenta a Claudia. La comisión del POS es una estimación con la tarifa de la máquina y la asume CLAURE. El efectivo de CLAURE no entra a lo que se le debe: lo tiene Claudia.
         </p>
       </details>

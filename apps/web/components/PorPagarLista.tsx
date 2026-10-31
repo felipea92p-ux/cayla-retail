@@ -296,7 +296,7 @@ export function PorPagarLista({
     <div data-guia="por-pagar.lista" className={seleccion.length > 0 ? "pb-28 sm:pb-24" : ""}>
       {/* La línea de resumen del spike: cuántos comprobantes y cuánto suman lo que se ve. Con un filtro por clic lleva además su chip
           (para quitarlo) y dice «de cuántos». La cifra cuenta hasta su valor nuevo al filtrar. */}
-      <div className="anim-entra mb-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12.5px] text-tinta/65" style={{ ["--i" as string]: Math.max(0, indice - 1) }}>
+      <div className="anim-entra mb-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-sm text-tinta/65" style={{ ["--i" as string]: Math.max(0, indice - 1) }}>
         {filtroLocal && (
           <FiltroPuesto onQuitar={quitarFiltro} etiqueta={`Quitar filtro ${filtroLocal.etiqueta}`}>
             {filtroLocal.etiqueta}
@@ -367,7 +367,7 @@ export function PorPagarLista({
                 )}
                 <span>
                   <CifraQueCuenta valor={b.saldo} formato="soles" alMontar={llegando} />
-                  {b.parcial && <span className="ml-1 text-xs dark:opacity-85">en esta página</span>}
+                  {b.parcial && <span className="ml-1 text-sm dark:opacity-85">en esta página</span>}
                 </span>
               </p>
             </div>
@@ -405,7 +405,7 @@ export function PorPagarLista({
         resumen={
           enBarra.length > 0 && (
             <span className="flex flex-wrap items-center gap-x-[18px] gap-y-1.5">
-              <span key={enBarra.length} className="anim-pop grid h-[26px] w-[26px] place-items-center rounded-full bg-tinta text-xs font-semibold tabular-nums text-crema">
+              <span key={enBarra.length} className="anim-pop grid h-[26px] w-[26px] place-items-center rounded-full bg-tinta text-sm font-semibold tabular-nums text-crema">
                 {enBarra.length}
               </span>
               <span className="text-sm text-tinta/75">
@@ -423,7 +423,7 @@ export function PorPagarLista({
                 onAgregar={(id) => setSeleccion((s) => [...s, id])}
               />
               {aviso && (
-                <span key={aviso} role="status" className="anim-revelar basis-full text-xs text-ambar-profundo">
+                <span key={aviso} role="status" className="anim-revelar basis-full text-sm text-ambar-profundo">
                   {aviso}
                 </span>
               )}
@@ -482,7 +482,7 @@ function MezclaSeleccion({ filas, ahora }: { filas: CompraResumen[]; ahora: Date
     <span className="flex min-w-[9.5rem] max-w-[14.5rem] flex-1 flex-col gap-[5px]">
       {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, el texto de abajo ya dice lo mismo. */}
       <BarraApilada decorativa viva alto={4} segmentos={(["vencidas", "semana", "despues"] as const).map((k) => ({ clave: k, nombre: TITULO_TRAMO[k], valor: suma[k], clase: COLOR[k] }))} />
-      <small className="text-xs leading-tight text-tinta/65">{detalleSeleccion(filas, soles, ahora)}</small>
+      <small className="text-sm leading-tight text-tinta/65">{detalleSeleccion(filas, soles, ahora)}</small>
     </span>
   );
 }
@@ -503,7 +503,7 @@ function SugerenciasDelProveedor({ proveedorId, compras, seleccion, ahora, onAgr
           type="button"
           onClick={() => onAgregar(o.id)}
           title={o.fechaVencimiento ? etiquetaVence(o.fechaVencimiento, ahora) : "Sin fecha de vencimiento"}
-          className="anim-revelar shrink-0 whitespace-nowrap rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-xs tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo"
+          className="anim-revelar shrink-0 whitespace-nowrap rounded-full border border-dashed border-tinta/25 px-2.5 py-[3px] text-sm tabular-nums text-tinta/75 transition-colors duration-200 hover:border-solid hover:border-rojo hover:text-rojo"
           style={{ animationDelay: `${i * 50}ms` }}
         >
           ＋ {o.documento} · {soles(o.saldo)}
@@ -640,19 +640,19 @@ function FilaPorPagar({
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
         <span className="block truncate text-sm text-tinta">
           <Resaltar texto={c.proveedorNombre} q={busqueda} />{" "}
-          <Link href={`/compras/factura/${c.id}`} className="btn-enlace relative z-10 ml-1 text-xs tabular-nums">
+          <Link href={`/compras/factura/${c.id}`} className="btn-enlace relative z-10 ml-1 text-sm tabular-nums">
             <Resaltar texto={c.documento} q={busqueda} />
           </Link>
         </span>
         {/* ADR-0195 F2: una factura de GASTO (la luz) o de ACTIVO (un mueble) se paga aquí igual que la de mercadería; se dice qué fue. */}
         {(c.naturaleza === "gasto" || c.naturaleza === "activo") && (
-          <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-tinta/65">
+          <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-tinta/65">
             <Chip tono="pizarra">{c.naturaleza === "gasto" ? "Gasto" : "Activo fijo"}</Chip>
             <span className="truncate">{c.nota}</span>
           </span>
         )}
-        <span className="block text-xs text-tinta/70">Emitida {diaMes(c.fechaEmision)}</span>
-        <span className={`mt-1 block text-xs @[40rem]:hidden ${colorVence}`}>{vence}</span>
+        <span className="block text-sm text-tinta/70">Emitida {diaMes(c.fechaEmision)}</span>
+        <span className={`mt-1 block text-sm @[40rem]:hidden ${colorVence}`}>{vence}</span>
         {/* Lo que el proveedor todavía debe acreditar por un faltante cerrado: parte de este saldo que no
             hay que pagar. Va bajo el proveedor (la columna con sitio). Es su propio enlace al comprobante,
             por encima (`z-10`) para que el tooltip con la explicación funcione sin quitarle el clic: el detalle
@@ -665,7 +665,7 @@ function FilaPorPagar({
       </div>
       <div className={`hidden @[40rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${colorVence}`}>{vence}</span>
-        {c.fechaVencimiento && <span className="block text-xs tabular-nums text-tinta/70">{diaMes(c.fechaVencimiento)}</span>}
+        {c.fechaVencimiento && <span className="block text-sm tabular-nums text-tinta/70">{diaMes(c.fechaVencimiento)}</span>}
         {/* Plazo consumido (emisión → vencimiento): «vence en 14 días» no dice si era un plazo de 15 o de 60. */}
         {plazo && (
           <BarraAvance pct={plazo.fraccion * 100} alto="fina" tono={tonoPlazo} decorativa indice={posicion} title={`${plazo.usados} de ${plazo.total} días de plazo consumidos`} className="mt-[5px] w-[5.5rem]" />
@@ -673,7 +673,7 @@ function FilaPorPagar({
       </div>
       <div className={`hidden text-right tabular-nums @[56rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/70"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
-        <span className="block text-xs text-tinta/70">de {soles(c.total)}</span>
+        <span className="block text-sm text-tinta/70">de {soles(c.total)}</span>
         {c.pagado > 0 && (
           <BarraAvance pct={pctPagado * 100} alto="fina" decorativa indice={posicion} title={`${Math.round(pctPagado * 100)} % pagado`} className="ml-auto mt-[5px] w-[5.5rem]" />
         )}
@@ -681,7 +681,7 @@ function FilaPorPagar({
       <div className={`shrink-0 text-right ${sellada ? "opacity-55" : ""}`}>
         <span data-guia="por-pagar.saldo-fila" className="font-display block text-[18px] tabular-nums text-tinta">{soles(saldoMostrado)}</span>
         {/* Donde la columna «Pagado» no cabe (< 56rem), lo pagado se dice aquí, bajo el saldo. */}
-        {c.pagado > 0 && <span className="block text-xs tabular-nums text-verde-profundo @[56rem]:hidden">pagado {soles(c.pagado)}</span>}
+        {c.pagado > 0 && <span className="block text-sm tabular-nums text-verde-profundo @[56rem]:hidden">pagado {soles(c.pagado)}</span>}
         <span data-guia="por-pagar.pagar" className="relative z-10 mt-1.5 inline-block @[40rem]:hidden">
           <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
         </span>

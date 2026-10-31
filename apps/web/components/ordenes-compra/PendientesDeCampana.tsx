@@ -241,7 +241,7 @@ function LineasDelPedido({ id, pedidoId }: { id: string; pedidoId: string }) {
                 <span className="min-w-24 text-tinta">{c.colorNombre}</span>
                 <span className="flex flex-wrap gap-1">
                   {c.tallas.map((t) => (
-                    <span key={t.talla ?? "sin"} className="rounded-lg bg-hueso px-2 py-0.5 text-xs font-semibold tabular-nums text-tinta">
+                    <span key={t.talla ?? "sin"} className="rounded-lg bg-hueso px-2 py-0.5 text-sm font-semibold tabular-nums text-tinta">
                       {t.talla ?? "—"} {t.n}
                     </span>
                   ))}

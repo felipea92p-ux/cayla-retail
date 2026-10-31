@@ -14,7 +14,7 @@ export function ReglaDelPrecio() {
     <>
       <BotonVerMas forma="enlace" className="relative tw-toque ml-auto mt-2 sm:mt-0" data-guia="vitrina.nota" abierto={abierta} onCambiar={setAbierta} texto="¿Qué precio ve el cliente?" controla="vitrina-regla-precio" />
       <FilasDeMas abierto={abierta} id="vitrina-regla-precio" className="basis-full">
-        <div className="nota-cayla mt-3 space-y-2 text-[13px]">
+        <div className="nota-cayla mt-3 space-y-2 text-sm">
           <p>
             En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto entre ellas. Las campañas se
             aplican encima con la misma regla de la caja. El precio, las fotos, los colores y las tallas se cambian en su ficha, en Catálogo ▸
