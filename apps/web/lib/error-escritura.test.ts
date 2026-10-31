@@ -971,7 +971,7 @@ describe("«una tela con sus colores» (ADR-0554, revisión del 28-oct): ningún
     const casos: [string, string, string][] = [
       ['new row for relation "insumos" violates check constraint "insumos_tela_en_metros"', "23514", "se lleva en metros"],
       ['duplicate key value violates unique constraint "insumos_codigo_clave_unico"', "23505", "Ya hay un insumo con ese código"],
-      ['duplicate key value violates unique constraint "materiales_nombre_tipo_unico"', "23505", "Ya existe una tela con ese nombre"],
+      ['duplicate key value violates unique constraint "materiales_nombre_tipo_medida_unico"', "23505", "Ya existe una ficha con ese nombre y esa medida"],
       ['duplicate key value violates unique constraint "insumos_material_color_unico"', "23505", "Ese color ya está en la tela"],
       ['new row for relation "materiales" violates check constraint "materiales_medidas_plausibles"', "23514", "El ancho va en centímetros"],
     ];
