@@ -87,3 +87,13 @@ Planchado 65, y Planchado ya tenía algo anotado: `paso_despues_empezado`), pero
 - La fila «Quién lo hace» mostraba la clave interna `__otro__` como título; ahora muestra el nombre que se está escribiendo («Proceso nuevo» mientras tanto), y toma el catálogo de la orden (un proceso propio del líder ya no sale con su clave).
 
 **No se cambia (y es decisión de Felipe, no mía):** dejar agregar Ojales y botones con Planchado ya hecho exigiría cambiar `agregar_paso_orden` y volvería a abrir lo que el DESCARTÉ de arriba cerró (los conteos de las prendas ya planchadas quedarían contradictorios).
+
+## Actualización 2026-10-31 — las prendas con falla también cuentan como «ya empezó» (`20261031031000`)
+
+`agregar_paso_orden` decidía si un paso posterior ya había empezado mirando avances, salidas, vueltas y marcas, pero no `produccion_fallas`. Una fase puede tener solo prendas con falla (Planchado con 3 perdidas y ninguna buena): para la base no había empezado, el paso nuevo entraba antes, vacío, y Planchado quedaba con 3 perdidas de 0 que le llegaron. La pantalla ya lo evitaba; una llamada directa no.
+
+- **DECIDÍ:** sumar `produccion_fallas` (cualquier destino) a la condición, igual que ya hace `agregar_paso_tarde` (ADR-0586): las dos funciones hermanas dicen lo mismo de cuándo un paso «ya empezó».
+- **DESCARTÉ:** contar solo las fallas que no van a arreglo. Una prenda que vuelve a arreglo igual ya pasó por Planchado, y meter un paso vacío antes es la misma contradicción.
+- **SE ROMPE SI:** aparece otra tabla que anote prendas contra una fase y nadie la suma aquí ni en `agregar_paso_tarde`.
+- **Verificación:** caso R5b de `pnpm pruebas:produccion-agregar-paso`: falló antes del arreglo (6 fases, el paso entró) y pasa después (25/25).
+- **Producción:** SIN pegar. Una parte, re-ejecutable; va después de `20261029051000`.

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Pruebas de «agregar un paso a una orden abierta» (ADR-0566, actividad 1) — migración `20261029051000_produccion_agregar_paso_a_la_orden.sql`. CAYLA V2.
+ * Pruebas de «agregar un paso a una orden abierta» (ADR-0566, actividad 1) — migración `20261029051000_produccion_agregar_paso_a_la_orden.sql` y su arreglo
+ * `20261031031000_produccion_agregar_paso_cuenta_fallas.sql` (una fase con solo prendas con falla también «ya empezó»). CAYLA V2.
  *
  * LO QUE VIGILA. Que a una orden en proceso se le pueda sumar un paso opcional (Ojales y botones, el que pidió Felipe) y que quede en su lugar de la ruta, entre Costura y Planchado;
  * que la ruta resultante pase la MISMA validación que al abrir (paso repetido, clave que no existe, servicio sin proveedor ni tarifa, la ruta anterior mezclada con la nueva);
@@ -12,7 +13,7 @@
  *
  * QUÉ PRUEBA
  *   A  AGREGAR: en el Taller, con servicio y tarifa de la lista, con tarifa escrita, «pendiente de registrar», bordado sobre la prenda (su posición), y la orden del Chaleco (Costura hecha).
- *   R  REGLAS: repetido, clave desconocida, servicio sin proveedor o sin tarifa, paso posterior empezado (y deshecho), paso anterior empezado (no frena), ruta anterior, orden cerrada,
+ *   R  REGLAS: repetido, clave desconocida, servicio sin proveedor o sin tarifa, paso posterior empezado (y deshecho, o con solo prendas con falla), paso anterior empezado (no frena), ruta anterior, orden cerrada,
  *      orden inexistente, una integrante de otra sede.
  *   D  DATOS: Actividad con el nombre del proveedor, sin dinero movido, todo o nada.
  *   F  DE PUNTA A PUNTA: con el paso nuevo, Planchado espera a Ojales y botones y la orden pasa al stock; un servicio devenga su costo al volver, no al agregarse.
@@ -41,7 +42,9 @@ const BASE = arg("--base", "postgres");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
 const SIN_CANDADO = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "");
-const MIGRACION = SIN_CANDADO(readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261029051000_produccion_agregar_paso_a_la_orden.sql", import.meta.url)), "utf8"));
+const LEER = (archivo) => SIN_CANDADO(readFileSync(fileURLToPath(new URL(`../../supabase/migrations/${archivo}`, import.meta.url)), "utf8"));
+// La función como quedó con su arreglo: la original y, encima, la que también cuenta las prendas con falla.
+const MIGRACION = `${LEER("20261029051000_produccion_agregar_paso_a_la_orden.sql")}\n${LEER("20261031031000_produccion_agregar_paso_cuenta_fallas.sql")}`;
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function psql(sql) {
@@ -98,6 +101,9 @@ $f$;
 create function pg_temp.avanza(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_avance(%L, %L::jsonb, null)', p_fase, p_lineas)) $f$;
 create function pg_temp.marca(p_fase uuid) returns text language sql as $f$ select pg_temp.intento(format('select retail.marcar_fase_hecha(%L)', p_fase)) $f$;
 create function pg_temp.deshace(p_avance uuid) returns text language sql as $f$ select pg_temp.intento(format('select retail.deshacer_avance(%L)', p_avance)) $f$;
+create function pg_temp.perdidas(p_fase uuid, p_variante uuid, p_n int) returns text language sql as $f$
+  select pg_temp.intento(format('select retail.anotar_termine(%L, null, null, null, %L::jsonb)', p_fase,
+    jsonb_build_array(jsonb_build_object('variante_id', p_variante, 'cantidad', p_n, 'destino', 'perdida', 'motivo', 'Se quemó')))) $f$;
 create function pg_temp.sale(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_salida(%L, %L::jsonb, ''001-1'', null)', p_fase, p_lineas)) $f$;
 create function pg_temp.vuelve(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_vuelta(%L, %L::jsonb, ''001-2'', null)', p_fase, p_lineas)) $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb) returns text language sql as $f$
@@ -278,6 +284,16 @@ caso(
    select pg_temp.deshace(:'av') as dh \\gset
    select concat_ws(',', :'dh', pg_temp.eh(pg_temp.agrega('ojales_botones')), ${FILAS_FASES});`,
   "SIN_ERROR,P0001|paso_despues_empezado,5"
+);
+caso(
+  "R5b si Planchado solo tiene prendas con falla (3 perdidas, ninguna hecha), ya empezó: se rechaza igual; si no, Ojales entraría vacío y Planchado quedaría con 3 perdidas de 0 que le llegaron",
+  `${ABRE(...CINCO)}
+   ${IDS}
+   ${HASTA_COSTURA}
+   select pg_temp.perdidas(:'f_planch', :'v1', 3) as p \\gset
+   select pg_temp.agrega('ojales_botones') as ag \\gset
+   select concat_ws(',', :'p', pg_temp.eh(:'ag'), :'ag' like '%La fase «Planchado» ya tiene algo anotado%', ${FILAS_FASES});`,
+  "SIN_ERROR,P0001|paso_despues_empezado,t,5"
 );
 caso(
   "R6 un paso ANTERIOR empezado no frena nada: con Costura a medias (10 de 50) el paso se agrega",
