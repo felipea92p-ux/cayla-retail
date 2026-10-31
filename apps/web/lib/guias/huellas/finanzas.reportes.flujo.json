@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.flujo",
   "ruta": "/finanzas/reportes/flujo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 20,
+  "total": 19,
   "controles": {
     "components/finanzas/CascadaPulso.tsx": [
       "Link «{nombre}»",
@@ -22,7 +22,6 @@
     "components/finanzas/estados/PlataPanel.tsx": [
       "BotonVerMas «fin-plata.y-si»",
       "BotonVerMas «fin-plata.formal»",
-      "BotonDescargar «Descargar Excel»",
       "Link «Configuración ▸ Tiendas y caja»",
       "Link «Configuración ▸ Caja y avisos»"
     ],

@@ -650,25 +650,6 @@ const celda = (v: string | number) => {
 /** CSV separado por «;» (Excel en español), montos exactos con punto: el mismo formato de Reportes (F5). */
 const csv = (filas: (string | number)[][]) => "﻿" + filas.map((f) => f.map(celda).join(";")).join("\r\n");
 
-/** Lo que ya pasó (semana por semana y por categoría) y lo que viene, en un archivo. */
-export function csvFlujo(real: FlujoReal | null, p: Proyeccion | null): string {
-  const filas: (string | number)[][] = [];
-  if (real) {
-    filas.push(["Lo que ya pasó", real.desde, real.hasta], ["Semana", "Entró", "Salió", "Ajustes", "Quedó"]);
-    filas.push(["Saldo al empezar", "", "", "", real.saldoInicial]);
-    for (const s of real.semanas) filas.push([etiquetaSemana(s.desde, s.hasta), s.entro, s.salio, s.ajustes, s.saldo]);
-    filas.push([], ["Categoría", "Lado", "Monto"]);
-    for (const c of real.categorias) filas.push([textoCategoria(c.clave), c.lado, c.monto]);
-    filas.push([]);
-  }
-  if (p) {
-    filas.push(["Lo que viene", p.desde, p.hasta], ["Semana", "Entra", "Sale", "Queda", "Bajo el mínimo", "Qué vence"]);
-    filas.push(["Hoy", "", "", p.saldoHoy, "", ""]);
-    for (const w of p.semanas) filas.push([etiquetaSemana(w.desde, w.hasta), w.entra, w.sale, w.saldo, w.bajoMinimo ? "sí" : "no", queVence(p.salidas, w.desde, w.hasta)]);
-  }
-  return csv(filas);
-}
-
 /** El escenario: la caja semana por semana (hoy y con el cambio) y la utilidad de cada unidad. */
 export function csvEscenario(base: readonly SemanaProy[], nuevo: readonly SemanaProy[], u: ReturnType<typeof utilidadConCambios> | null): string {
   const filas: (string | number)[][] = [["Tu caja", "Hoy", "Con el cambio", "Diferencia"]];

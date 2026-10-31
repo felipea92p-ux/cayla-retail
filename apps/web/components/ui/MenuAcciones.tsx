@@ -1,7 +1,7 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export type ItemMenu = {
@@ -67,12 +67,18 @@ export function MenuAcciones({
   items,
   deshabilitado = false,
   texto,
+  icono,
+  guia,
 }: {
   etiqueta: string;
   items: ItemMenu[];
   deshabilitado?: boolean;
   /** Si viene, el botón dice esto (con la forma de un botón secundario) en vez de «⋯». */
   texto?: string;
+  /** Con `texto`: el ícono delante de la palabra. Solo lo pasa una pieza que es dueña de su ícono (`MenuDescargar`). */
+  icono?: ReactNode;
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
+  guia?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pos, setPos] = useState<Posicion | null>(null);
@@ -156,9 +162,11 @@ export function MenuAcciones({
         title={texto ? undefined : etiqueta}
         onClick={() => setAbierto((a) => !a)}
         className={texto ? "btn-cayla btn-secundario inline-flex items-center gap-2" : CLASE_PUNTOS}
+        data-guia={guia}
       >
         {texto ? (
           <>
+            {icono}
             {texto}
             <svg aria-hidden viewBox="0 0 10 6" className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierto ? "-rotate-180" : ""}`}>
               <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />

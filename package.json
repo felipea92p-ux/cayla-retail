@@ -82,6 +82,7 @@
     "pruebas:cierre-diferencias": "node scripts/pruebas/cierre_diferencias.mjs",
     "pruebas:balance": "node scripts/pruebas/balance.mjs",
     "pruebas:patrimonio-cambios": "node scripts/pruebas/patrimonio_cambios.mjs",
+    "pruebas:saldos-por-cuenta": "node scripts/pruebas/saldos_por_cuenta.mjs",
     "pruebas:reversa-de-cobro": "node scripts/pruebas/reversa_de_cobro_por_su_cuenta.mjs",
     "pruebas:perdidas": "node scripts/pruebas/perdidas.mjs",
     "pruebas:ingresos-por-modelo": "node scripts/pruebas/ingresos_por_modelo.mjs",

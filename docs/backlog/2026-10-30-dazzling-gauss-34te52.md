@@ -27,5 +27,8 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
 - [x] **7 · ¿Lo tuyo creció?** La respuesta con qué parte de lo ganado retiraste, el puente del mes (con «Sin explicar» si la base no
   cuadra), la línea de 6 meses, las recomendaciones y el cuadro formal plegado por columna. Probado: tipos, 749 archivos de vitest, Knip y
   eslint. **Sin probar en el navegador logueado.**
-- [ ] 8 · «Descargar para el contador» con opciones.
+- [x] **8 · «Descargar para el contador».** Un botón en la cabecera con la lista de seis archivos (cada uno se baja solo); se quitaron los
+  cuatro «Descargar Excel» sueltos. Nueva `fn_saldos_por_cuenta` (17 de 17 en `pruebas:saldos-por-cuenta`). Probado: tipos, 750 archivos de
+  vitest, Knip y eslint. **Sin probar en el navegador logueado. La migración 20261031120000 no está en producción** (se pega después de
+  la 20261030235100).
 - [ ] 9 · Cierre: oscuro, `/focus`, `/formidable`, `docs/ARQUITECTURA.md`.

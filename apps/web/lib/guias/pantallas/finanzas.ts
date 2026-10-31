@@ -58,6 +58,14 @@ const RESPUESTAS_ESTADOS: PasoGuia = {
   texto: "Cada tarjeta responde una pregunta con su cifra: ¿Ganamos? (ganancias y pérdidas), ¿Dónde está la plata? (flujo de efectivo), ¿Cuánto vale CAYLA? (balance) y ¿Lo tuyo creció? (cambios en el patrimonio). La que estás mirando queda marcada; tocas otra y pasas a ella, con la misma sede y el mismo mes.",
 };
 
+/** «Descargar para el contador» en la cabecera de los cuatro estados (ADR-0585, actividad 8): se explica, no se toca. */
+const CONTADOR: PasoGuia = {
+  id: "contador",
+  ancla: "fin-estados.contador",
+  titulo: "Descargar para el contador",
+  texto: "Abre la lista de archivos del mes: los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario. Bajas solo el que eliges. No cambia nada en el sistema. En la demo no lo descargamos.",
+};
+
 const EXCEL: PasoGuia = {
   id: "excel",
   ancla: "fin-reportes.excel",
@@ -954,6 +962,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    CONTADOR,
     {
       id: "pulso",
       ancla: "fin-resultados.pulso",
@@ -998,7 +1007,6 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       titulo: "Comparar con el mes anterior",
       texto: "Al marcarlo, debajo de cada cifra aparece cuánto subió o bajó contra el mes anterior.",
     },
-    EXCEL,
     {
       id: "tabla",
       ancla: "fin-resultados.tabla",
@@ -1113,6 +1121,7 @@ export const GUIA_FIN_FLUJO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-plata.respuesta",
@@ -1282,6 +1291,12 @@ export const GUIA_FIN_FLUJO: Guia = {
       texto: "El escenario no reemplaza la conversación: bajar un alquiler hay que negociarlo y vender más pide un plan. Lo que sí te da es cuánto vale cada decisión antes de tomarla.",
     },
     {
+      ...EXCEL,
+      opcional: true,
+      titulo: "Descargar el escenario",
+      texto: "Baja lo que probaste (tu caja semana a semana y la utilidad de cada sede) en un archivo para Excel. No guarda nada. En la demo no lo descargamos.",
+    },
+    {
       id: "volver",
       ancla: "fin-escenarios.volver",
       titulo: "Volver a como está",
@@ -1302,7 +1317,6 @@ export const GUIA_FIN_FLUJO: Guia = {
       titulo: "Las tres partes",
       texto: "Cada parte con lo que la forma y su total, y la plata al empezar y al terminar. Las cuentas contables no se muestran: van en lo que se descarga.",
     },
-    EXCEL,
     {
       id: "semana-a-semana",
       ancla: "fin-flujo.semana-a-semana",
@@ -1333,6 +1347,7 @@ export const GUIA_FIN_BALANCE: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-vale.respuesta",
@@ -1482,7 +1497,6 @@ export const GUIA_FIN_BALANCE: Guia = {
       titulo: "Por qué no está el banco",
       texto: "El banco, el capital y el IGV son de CAYLA entera: repartirlos entre tiendas sería inventar un número. Por eso aquí solo está lo que es de la tienda.",
     },
-    EXCEL,
     {
       id: "fin",
       ancla: null,
@@ -1508,6 +1522,7 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-patrimonio.respuesta",

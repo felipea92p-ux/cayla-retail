@@ -13,7 +13,6 @@ import {
   claveUnidad,
   columnasER,
   conceptosER,
-  csvEstado,
   deltaTexto,
   fuentesDe,
   leerLineaDiario,
@@ -32,7 +31,6 @@ import {
   type LineaDiario,
 } from "@/lib/resultados-reglas";
 import { Aviso } from "@/components/ui/Aviso";
-import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { CalendarX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { notaResultadosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
@@ -102,18 +100,6 @@ export function EstadoResultadosPanel({
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
 
-  const descargar = () => {
-    const url = URL.createObjectURL(
-      new Blob([csvEstado(conceptos, columnas, mes)], {
-        type: "text/csv;charset=utf-8",
-      }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `estado-de-resultados-${mes}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="space-y-6">
@@ -131,9 +117,6 @@ export function EstadoResultadosPanel({
               Comparar con {mesNombre(mesPrevio)}
             </label>
             <span className="ml-auto text-[12.5px] text-taupe">Toca una cifra para ver de qué filas sale.</span>
-            <BotonDescargar onClick={descargar} disabled={!columnas.length} guia="fin-reportes.excel" chico>
-              Descargar Excel
-            </BotonDescargar>
           </Herramientas>
 
           {columnas.length ? (

@@ -10,19 +10,16 @@ import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
-import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { SelectEnLineaFin, Superficie } from "@/components/finanzas/kit";
 import { CascadaPulso } from "@/components/finanzas/CascadaPulso";
 import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
 import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
 import { EscenariosPanel } from "@/components/finanzas/EscenariosPanel";
-import { descargarBlob } from "@/lib/exportar-csv";
 import { sumarDias } from "@/lib/fechas-lima";
 import { fechaCorta } from "@/lib/gastos-reglas";
 import {
   SEMANAS_POSIBLES,
   campanasDeSemana,
-  csvFlujo,
   etiquetaSemana,
   etiquetasEje,
   queFaltaEnLaProyeccion,
@@ -77,7 +74,6 @@ export function PlataPanel({
     p.set("semanas", String(n));
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
-  const descargar = () => descargarBlob(`flujo-de-efectivo-${hoy}.csv`, new Blob([csvFlujo(real, proyeccion)], { type: "text/csv;charset=utf-8" }));
 
   return (
     <div className="min-w-0 space-y-8">
@@ -149,7 +145,7 @@ export function PlataPanel({
       <section className="space-y-4">
         <BotonVerMas abierto={verFormal} onCambiar={setVerFormal} texto="Ver el formato formal: flujo de efectivo" forma="enlace" controla="fin-plata-formal" data-guia="fin-plata.formal" />
         <FilasDeMas abierto={verFormal} id="fin-plata-formal">
-          {real ? <Formal real={real} onDescargar={descargar} /> : null}
+          {real ? <Formal real={real} /> : null}
         </FilasDeMas>
       </section>
     </div>
@@ -157,16 +153,11 @@ export function PlataPanel({
 }
 
 /** El estado de flujos de efectivo como lo lee un contador (método directo), sin cuentas, y lo que quedó semana a semana. */
-function Formal({ real, onDescargar }: { real: FlujoReal; onDescargar: () => void }) {
+function Formal({ real }: { real: FlujoReal }) {
   const partes = partesDelFlujo(real);
   return (
     <Superficie pad>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-taupe">Estado de flujos de efectivo, método directo.</p>
-        <BotonDescargar onClick={onDescargar} guia="fin-reportes.excel" chico>
-          Descargar Excel
-        </BotonDescargar>
-      </div>
+      <p className="mb-3 text-[13px] text-taupe">Estado de flujos de efectivo, método directo.</p>
       <div className="fin-tabla-wrap" data-guia="fin-plata.formal-tabla">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Estado de flujos de efectivo</caption>

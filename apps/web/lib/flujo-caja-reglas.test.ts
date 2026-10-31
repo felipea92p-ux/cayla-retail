@@ -14,7 +14,6 @@ import {
   leerProyeccion,
   leerSemanas,
   csvEscenario,
-  csvFlujo,
   rangoDelMes,
   proyectar,
   queFaltaEnLaProyeccion,
@@ -327,12 +326,7 @@ describe("La URL y la descarga", () => {
     expect(rangoDelMes("2026-08", "2026-09-24")).toEqual({ desde: "2026-08-01", hasta: "2026-08-31" });
   });
 
-  it("el CSV lleva las dos partes, separado por «;» y con los montos exactos", () => {
-    const t = csvFlujo(REAL, PROY);
-    expect(t.startsWith("﻿Lo que ya pasó;2026-09-01;2026-09-24")).toBe(true);
-    expect(t).toContain(`Saldo al empezar;;;;${REAL.saldoInicial.toFixed(2)}`);
-    expect(t).toContain("Lo que viene;2026-09-25;2026-11-05");
-    expect(t.split("\r\n").filter((l) => l.includes(";sí;")).length).toBe(PROY.semanas.filter((w) => w.bajoMinimo).length);
+  it("el CSV del escenario va separado por «;» y con los montos exactos", () => {
     const e = csvEscenario(proyectar(CHICA), proyectar(CHICA, con({ ventasTodas: 10 })), null);
     expect(e.split("\r\n")[1]).toBe("25 sep – 1 oct;4500.00;4650.00;150.00");
   });

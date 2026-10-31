@@ -14,7 +14,6 @@ import {
   causaCorta,
   cifraChequeo,
   cortesDisponibles,
-  csvBalance,
   enlaceDeCausa,
   iconoChequeo,
   motivoNoCuadra,
@@ -35,7 +34,6 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CalendarX, Flag, Scale, Store } from "lucide-react";
-import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Estados financieros ▸ ¿Cuánto vale CAYLA? (balance general; ADR-0195 F7, ADR-0198, ADR-0585). Si todo cuadra: la respuesta (lo tuyo) y la
 // balanza (lo que tiene contra lo que debe y lo tuyo, en grupos que se tocan), dos medidores (si te cobraran todo hoy; para cuántos meses de
@@ -100,18 +98,7 @@ export function BalancePanel({
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
 
-  const descargar = () => {
-    const url = URL.createObjectURL(
-      new Blob([csvBalance(verCayla ? lineas : [], verCayla ? chequeos : [], verCayla ? unidades : unidad ? [unidad] : [], corte)], {
-        type: "text/csv;charset=utf-8",
-      }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `balance-${corte}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
 
   const selectorCorte = (
     <SelectFin
@@ -142,10 +129,9 @@ export function BalancePanel({
           costoDelMes={costoDelMes}
           esLider={esLider}
           onArranque={() => setArranqueAbierto(true)}
-          onDescargar={descargar}
         />
       ) : (
-        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} veTodo={veTodo} onDescargar={descargar} />
+        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} veTodo={veTodo} />
       )}
 
       {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} propuestaInicial={propuestaArranque} onCerrar={() => setArranqueAbierto(false)} />}
@@ -168,7 +154,6 @@ function VistaCayla({
   costoDelMes,
   esLider,
   onArranque,
-  onDescargar,
 }: {
   hoy: string;
   corte: string;
@@ -179,7 +164,6 @@ function VistaCayla({
   costoDelMes: number | null;
   esLider: boolean;
   onArranque: () => void;
-  onDescargar: () => void;
 }) {
   const sit = situacion(chequeos);
   const visibles = chequeos.filter((c) => c.clave !== "corte");
@@ -206,16 +190,13 @@ function VistaCayla({
         <section className="space-y-4">
           <BotonVerMas abierto={verFormal} onCambiar={setVerFormal} texto="Ver el formato formal y cómo se comprobó" forma="enlace" controla="fin-vale-formal" data-guia="fin-vale.formal" />
           <FilasDeMas abierto={verFormal} id="fin-vale-formal" className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {esLider && (
+            {esLider && (
+              <div className="flex flex-wrap items-center gap-2.5">
                 <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
                   Saldos de arranque
                 </button>
-              )}
-              <BotonDescargar onClick={onDescargar} guia="fin-reportes.excel" chico>
-                Descargar Excel
-              </BotonDescargar>
-            </div>
+              </div>
+            )}
             {comprobacion}
             <div data-guia="fin-balance.resultado">
               <BalanceCuadra lineas={lineas} corte={corte} hoy={hoy} />
@@ -548,14 +529,12 @@ function VistaTienda({
   corte,
   selectorCorte,
   veTodo,
-  onDescargar,
 }: {
   unidad: UnidadBalance | null;
   hoy: string;
   corte: string;
   selectorCorte: React.ReactNode;
   veTodo: boolean;
-  onDescargar: () => void;
 }) {
   if (!unidad) {
     return (
@@ -595,9 +574,6 @@ function VistaTienda({
         <Superficie pad className="fin-balance-tarjeta">
           <CabeceraBloque titulo={tituloCorte(corte, hoy)} bajada={`Lo que es de ${unidad.nombre}.`}>
             {selectorCorte}
-            <BotonDescargar onClick={onDescargar} guia="fin-reportes.excel" chico>
-              Descargar Excel
-            </BotonDescargar>
           </CabeceraBloque>
           <div className="fin-balance" data-guia="fin-balance.tienda-detalle">
             <div>

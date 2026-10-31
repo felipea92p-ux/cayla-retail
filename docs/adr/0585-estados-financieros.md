@@ -189,6 +189,48 @@ En la web, pasan los tipos, las 744 pruebas de vitest, Knip y eslint.
   - lo tuyo bajando 2 meses seguidos o más.
 - Se quitaron las cinco tarjetas de la versión de la actividad 3: decían lo mismo que el puente, en otro orden.
 
+## Actividad 8 · «Descargar para el contador» (migración 20261031120000)
+
+### El problema primero
+
+La pantalla ya no muestra cuentas (Felipe 2026-10-30): van solo en lo que se descarga. Pero cada estado tenía su propio «Descargar
+Excel» (cuatro, en tres pantallas), cada uno con un formato distinto. Y el contador pide además dos cosas que ninguno daba: la balanza
+de comprobación (cada cuenta con su saldo, el debe y el haber del mes) y el libro diario.
+
+### Lo que se decidió
+
+- **Un solo botón en la cabecera de los cuatro estados**, «Descargar para el contador» (`DescargarContador`). Abre la lista y cada opción
+  baja UN archivo, para no bajar lo que no hace falta. La lista: estado de resultados, flujo de efectivo, balance general, cambios en el
+  patrimonio, saldos por cuenta y libro diario del mes. La pieza es `MenuDescargar` (`components/ui/BotonDescargar.tsx`): el menú «Más»
+  (`MenuAcciones`, que gana un `icono` opcional) con la cara de la descarga, porque el ícono de descarga solo vive en esa pieza (ADR-0358).
+- Se quitaron los «Descargar Excel» de Estado de resultados, del formato formal del flujo y del Balance (los dos). El de «¿Y si…?» y el de
+  Campañas se quedan: bajan otra cosa.
+- **Cada archivo lo arma el servidor** (`GET /finanzas/reportes/descargar?archivo=&mes=`, `lib/contador.ts`), leyendo con la sesión de la
+  persona y con **la misma función que su pantalla**: el archivo no puede decir una cifra distinta de la que se ve. Mientras se arma, el
+  loader de pantalla dice cuál (ADR-0149); si falla, el aviso dice por qué y no baja un archivo a medias.
+- **Qué lleva cada uno** (`lib/contador-reglas.ts`, con su prueba; CSV con «;», como los demás de Finanzas):
+  - el estado de resultados y el balance, los CSV de siempre (con su columna «Cuenta»);
+  - el flujo, en el formato formal por actividad, con el efectivo al inicio y al final, y semana a semana. El flujo directo no tiene una
+    cuenta por línea: sus líneas son las categorías de la plata;
+  - el patrimonio, por columna, con la cuenta de cada una en el encabezado (50, 52, 59);
+  - los saldos por cuenta, de `fn_saldos_por_cuenta` (nueva);
+  - el libro diario, de `fn_diario`, leído por páginas (un mes pasa de 5,000 líneas), con el nombre de cada cuenta y su sede, y el debe
+    y el haber al pie.
+- **`fn_saldos_por_cuenta(p_mes)`** lee el mismo diario que el Balance (`fn_bal_diario` desde el arranque más los saldos de arranque).
+  Devuelve cada cuenta con algo: su saldo al empezar el mes, el debe y el haber del mes y su saldo al cerrar, en el signo del debe. La
+  ve lo mismo que el Balance de CAYLA entera (`fn_exigir_estados_financieros_de_todo`). Las cuentas de ingreso y gasto acumulan desde el
+  arranque porque todavía no hay cierre del año: cuando lo haya, ese asiento las deja en cero.
+- **Una terminal** con el módulo baja solo el estado de resultados (el de su tienda: la base no le manda otra cosa). Lo demás es de CAYLA
+  entera: se ve en la lista con su motivo y no se elige.
+- **La sede de la barra no cambia los archivos**: el contador trabaja con CAYLA entera, y el estado de resultados ya trae una columna por
+  sede.
+
+### Cómo se verificó
+
+`pnpm pruebas:saldos-por-cuenta` pasa 17 de 17 (en el CI, en `scripts/ci/pruebas-postgres.mjs`): el total de los saldos es 0, cada fila
+cuadra, lo que tiene y lo tuyo coinciden con `fn_balance_general`, ingresos y gastos dan la ganancia de `fn_patrimonio_cambios`, abril
+empieza donde cerró marzo, y los permisos. La ruta y el menú no se probaron en el navegador con sesión.
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero
@@ -218,5 +260,5 @@ Es justo lo que hace falta para la única decisión que ayuda a tomar: cuánto r
 
 ### Producción
 
-Se pegan en orden: primero la 20261030235000 (que además renombra el módulo en Roles y accesos) y después la 20261030235100. Cada una se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
+Se pegan en orden: primero la 20261030235000 (que además renombra el módulo en Roles y accesos), después la 20261030235100 y al final la 20261031120000. Cada una se pega entera, de una vez: no tiene `alter` de tablas en uso ni políticas (ADR-0195, «Políticas y deadlocks»). Cada reemplazo está
 anclado al texto vivo: si producción no coincide, la migración aborta sin cambiar nada.
