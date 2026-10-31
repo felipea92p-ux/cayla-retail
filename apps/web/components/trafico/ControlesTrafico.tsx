@@ -54,7 +54,7 @@ export function ControlesTrafico({
       />
       <AtajosPeriodo teclas={teclas} />
       <span
-        className="text-[12.5px] text-tinta/70"
+        className="text-sm text-tinta/70"
         title={`Se compara con ${rangoTexto(r.anteriorDesde, r.anteriorHasta).toLowerCase()}${r.anteriorCorte ? ", hasta esta hora" : ""}`}
       >
         {rangoTexto(periodo.desde, periodo.hasta)} · se compara con {periodo.antes}

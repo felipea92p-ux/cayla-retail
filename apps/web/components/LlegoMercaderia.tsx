@@ -405,19 +405,19 @@ export function LlegoMercaderia({
                 opciones={directorio.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
               />
               {puedeAgregarProveedor ? (
-                <p className="mt-1.5 text-xs text-taupe">
+                <p className="mt-1.5 text-sm text-taupe">
                   ¿No está?{" "}
                   <button type="button" onClick={() => setAgregando(true)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
                     + Agregar proveedor
                   </button>
                 </p>
               ) : (
-                <p className="mt-1.5 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
+                <p className="mt-1.5 text-sm text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
               )}
             </CampoGuiado>
             </div>
             <label data-guia="recibir.guia" className="block">
-              <span className="mb-1.5 block text-[13px] font-semibold text-tinta">
+              <span className="mb-1.5 block text-sm font-semibold text-tinta">
                 Guía <span className="font-normal text-taupe">opcional</span>
               </span>
               <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-campo-input" />
@@ -432,7 +432,7 @@ export function LlegoMercaderia({
 
           {susFacturas.length > 0 &&
             (sinFactura.includes(proveedorId) ? (
-              <p className="-mt-2 text-[13px] text-taupe">
+              <p className="-mt-2 text-sm text-taupe">
                 Se recibe sin factura.{" "}
                 <button type="button" onClick={() => setSinFactura((a) => a.filter((id) => id !== proveedorId))} className="btn-enlace">
                   Ver sus facturas pendientes
@@ -541,7 +541,7 @@ export function LlegoMercaderia({
             </p>
 
             {lineas.length > 0 && verMontos && (
-              <p className="mt-1 text-xs text-taupe">El costo por prenda es opcional: si todavía no lo sabes, recibe sin costo y llega con la factura.</p>
+              <p className="mt-1 text-sm text-taupe">El costo por prenda es opcional: si todavía no lo sabes, recibe sin costo y llega con la factura.</p>
             )}
             {lineas.length > 0 && (
               <ul className="mt-3 divide-y divide-tinta/10 border-y border-tinta/10">
@@ -556,7 +556,7 @@ export function LlegoMercaderia({
                       <Muestra prenda={p} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-tinta">{p.referencia}</p>
-                        <p className="truncate text-xs text-taupe">
+                        <p className="truncate text-sm text-taupe">
                           {detalle(p)} · {p.sku}
                         </p>
                       </div>

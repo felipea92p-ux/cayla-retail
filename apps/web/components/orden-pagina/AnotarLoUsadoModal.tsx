@@ -89,7 +89,7 @@ export function AnotarLoUsadoModal({ datos, onClose }: { datos: OrdenPagina; onC
   return (
     <Modal
       titulo="¿Cuánto quedó en el estante?"
-      subtitulo="Mide lo que quedó de cada tela: lo usado es lo que había menos eso, y queda en la orden. De los avíos, cuántos usaste. El costo lo calcula el sistema."
+      subtitulo="Mide lo que quedó de cada tela y cuenta los avíos que usaste. El costo lo calcula el sistema."
       variante="hoja"
       tamano="ancha"
       onClose={onClose}

@@ -64,7 +64,7 @@ export function RepartoPorTienda({
     reasignaciones.length > 0 ? (
       <div className="space-y-1.5">
         <p className="label-cayla text-[10.5px] text-tinta/55">Movimientos entre tiendas</p>
-        <ul className="space-y-1 text-xs leading-relaxed text-tinta/65">
+        <ul className="space-y-1 text-sm leading-relaxed text-tinta/65">
           {reasignaciones.slice(0, 5).map((r) => (
             <li key={r.id}>
               <span className="tabular-nums">{fechaCorta(diaLima(r.creadoEn))}</span> · {nombreDeLinea.get(r.compraItemId) ?? "Línea del comprobante"}: {textoDeReasignacion(r, nombreDe)} ·{" "}
@@ -73,7 +73,7 @@ export function RepartoPorTienda({
             </li>
           ))}
         </ul>
-        {reasignaciones.length > 5 && <p className="text-xs text-tinta/45">y {reasignaciones.length - 5} más antiguos.</p>}
+        {reasignaciones.length > 5 && <p className="text-sm text-tinta/45">y {reasignaciones.length - 5} más antiguos.</p>}
       </div>
     ) : null;
 
@@ -105,7 +105,7 @@ export function RepartoPorTienda({
         {titulo}
         {reasignar()}
       </div>
-      <p className="text-xs text-tinta/55">Cada casilla dice lo que ya recibió esa tienda y lo que le toca: 4/12 es «recibió 4 de sus 12».</p>
+      <p className="text-sm text-tinta/55">Cada casilla dice lo que ya recibió esa tienda y lo que le toca: 4/12 es «recibió 4 de sus 12».</p>
       <div className="card-cayla overflow-x-auto">
         <table className="w-full min-w-[30rem] border-collapse text-sm">
           <thead>
@@ -142,7 +142,7 @@ export function RepartoPorTienda({
                             <span className={f.pendiente === 0 ? "text-tinta" : f.recibido > 0 ? "text-ambar-profundo" : "text-tinta/70"}>
                               <b className="font-semibold">{f.recibido}</b>/{f.asignado}
                             </span>
-                            {f.cerrado > 0 && <span className="block text-[11px] text-ambar-profundo">{f.cerrado} cerradas</span>}
+                            {f.cerrado > 0 && <span className="block text-sm text-ambar-profundo">{f.cerrado} cerradas</span>}
                           </span>
                         ) : (
                           <span aria-label={`${nombreDe(id)}: nada de esta línea`} className="text-tinta/30">
@@ -170,7 +170,7 @@ export function RepartoPorTienda({
                       <b className="font-semibold">{t.recibido}</b>/{t.asignado}
                     </span>
                     <BarraAvance pct={avance * 100} alto="fina" etiqueta={nombreDe(t.ubicacionId)} texto={`${t.recibido} de ${t.asignado}`} className="mt-1" />
-                    <span className="mt-1 block text-[11px] text-tinta/55">{t.pendiente > 0 ? `faltan ${t.pendiente}` : "completa"}</span>
+                    <span className="mt-1 block text-sm text-tinta/55">{t.pendiente > 0 ? `faltan ${t.pendiente}` : "completa"}</span>
                   </td>
                 );
               })}

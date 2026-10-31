@@ -105,8 +105,8 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
           <div data-guia="traslados.dia" className="tp-dia">
             <Anillo fraccion={anillo.fraccion} />
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-tinta">{dia.titulo}</p>
-              <p className="text-xs text-tinta/65">{dia.detalle}</p>
+              <p className="text-[15px] font-semibold text-tinta">{dia.titulo}</p>
+              <p className="texto-detalle">{dia.detalle}</p>
             </div>
           </div>
 
@@ -150,9 +150,9 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
               )
             )}
           </nav>
-          {pestana === "terminadas" && billetera.terminadasAcotadas && <p className="px-1 text-xs text-tinta/60">Se ven las últimas 30 terminadas.</p>}
+          {pestana === "terminadas" && billetera.terminadasAcotadas && <p className="px-1 text-sm text-tinta/60">Se ven las últimas 30 terminadas.</p>}
           {puedeVerVacios && billetera.vacios > 0 && (
-            <p className="px-1 text-xs text-tinta/60">
+            <p className="px-1 text-sm text-tinta/60">
               {billetera.vacios === 1 ? "1 traslado sin prendas no se muestra" : `${billetera.vacios} traslados sin prendas no se muestran`} (cabeceras vacías de la limpieza de datos).
             </p>
           )}

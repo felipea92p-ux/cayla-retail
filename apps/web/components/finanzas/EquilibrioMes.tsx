@@ -42,7 +42,7 @@ export function EquilibrioMesPieza({ eq, provisional }: { eq: EquilibrioMes; pro
       </CabeceraBloque>
 
       <div className="relative mt-2 pb-9 pt-9">
-        <span className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-xs text-tinta" style={posicion(p(eq.pe))}>
+        <span className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-sm text-tinta" style={posicion(p(eq.pe))}>
           Pagas todo el mes con <b className="num">{soles(eq.pe)}</b>
         </span>
         <BarraAvance
@@ -53,7 +53,7 @@ export function EquilibrioMesPieza({ eq, provisional }: { eq: EquilibrioMes; pro
           etiqueta={`Vendido ${soles(eq.vendido)}; para pagar todo el mes hacen falta ${soles(eq.pe)}${eq.meta !== null ? `; tu meta es ${soles(eq.meta)}` : ""}`}
         />
         {eq.meta !== null && (
-          <span className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-xs text-taupe" style={posicion(p(eq.meta))}>
+          <span className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-sm text-taupe" style={posicion(p(eq.meta))}>
             Tu meta <b className="num">{soles(eq.meta)}</b>
           </span>
         )}
@@ -63,7 +63,7 @@ export function EquilibrioMesPieza({ eq, provisional }: { eq: EquilibrioMes; pro
         <b className="num">Llevas {soles(eq.vendido)}</b> vendidos sin IGV. {eq.detalle}
       </p>
       {provisional && (
-        <p className="nota-cayla mt-3">Es provisional: si todavía faltan gastos por registrar, para pagar el mes hace falta vender más de lo que dice aquí.</p>
+        <p className="nota-cayla mt-3">Provisional: si faltan gastos por registrar, hace falta vender más.</p>
       )}
     </Superficie>
   );

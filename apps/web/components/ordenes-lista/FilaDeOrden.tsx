@@ -46,7 +46,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
               <span className="truncate text-sm font-medium text-tinta">{f.referencia}</span>
               {f.esMuestra && <Chip tono="tinta">Muestra</Chip>}
             </span>
-            <span className="block break-words text-xs text-tinta/65 @min-[620px]:truncate">
+            <span className="block break-words text-sm text-tinta/65 @min-[620px]:truncate">
               {f.numeroTexto}
               {f.colores ? ` · ${f.colores}` : ""}
               <span className="@min-[900px]:hidden"> · {f.cuantas} {f.cuantas === 1 ? "prenda" : "prendas"}</span>
@@ -58,14 +58,14 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
 
         <span className="block min-w-0 space-y-1">
           <Chip tono={f.chip.tono}>{f.chip.texto}</Chip>
-          {f.quien && <span className="block text-xs text-tinta/65 @min-[620px]:truncate">{f.quien}</span>}
-          {enProceso && <span className="block text-xs text-tinta/65 @min-[900px]:hidden">{entregaEnLinea}</span>}
+          {f.quien && <span className="block text-sm text-tinta/65 @min-[620px]:truncate">{f.quien}</span>}
+          {enProceso && <span className="block text-sm text-tinta/65 @min-[900px]:hidden">{entregaEnLinea}</span>}
         </span>
 
         <span className={`${SOLO_ANCHA} min-w-0 text-sm tabular-nums text-tinta`}>
           {f.dias ? (
             <>
-              {f.dias.n} d<small className="block text-xs text-tinta/65">{f.dias.desde}</small>
+              {f.dias.n} d<small className="block text-sm text-tinta/65">{f.dias.desde}</small>
             </>
           ) : (
             <span className="text-tinta/50">—</span>
@@ -76,7 +76,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
           {f.entrega.fecha ? (
             <>
               {f.entrega.texto}
-              {f.entrega.relativo && <small className={`block text-xs ${f.entrega.atrasada ? "text-rojo-profundo" : "text-tinta/65"}`}>{f.entrega.relativo}</small>}
+              {f.entrega.relativo && <small className={`block text-sm ${f.entrega.atrasada ? "text-rojo-profundo" : "text-tinta/65"}`}>{f.entrega.relativo}</small>}
             </>
           ) : (
             <span className="text-tinta/65">Sin fecha</span>

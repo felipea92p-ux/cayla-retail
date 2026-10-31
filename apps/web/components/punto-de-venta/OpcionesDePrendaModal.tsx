@@ -121,7 +121,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                 <p className="mt-1 text-sm font-semibold tabular-nums text-tinta">
                   {mostrado.precioMin === mostrado.precioMax ? money(mostrado.precioMin) : `desde ${money(mostrado.precioMin)}`}
                 </p>
-                <p className="mt-0.5 text-xs text-tinta/60 tabular-nums">
+                <p className="mt-0.5 text-sm text-tinta/60 tabular-nums">
                   {mostrado.stockTotal > 0
                     ? `${mostrado.stockTotal} ${mostrado.separaPiso ? "en el piso" : "en la sede"}${mostrado.almacenTotal ? ` · ${mostrado.almacenTotal} en el almacén` : ""}`
                     : mostrado.almacenTotal > 0
@@ -171,9 +171,9 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
                         className="h-4 w-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_16%,transparent)]"
                         style={{ backgroundColor: estiloMosaicoColor(c.tallas[0]?.variante.colorHex)?.fondo ?? "var(--color-hueso)" }}
                       />
-                      <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-tinta">{c.color ?? "Sin color"}</span>
+                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-tinta">{c.color ?? "Sin color"}</span>
                       {lleva > 0 && (
-                        <span key={lleva} className="anim-revelar shrink-0 text-[11px] font-semibold text-rojo tabular-nums">
+                        <span key={lleva} className="anim-revelar shrink-0 text-sm font-semibold text-rojo tabular-nums">
                           {lleva} en el ticket
                         </span>
                       )}
@@ -314,8 +314,8 @@ function CombinaBienCon({
                   >
                     <MiniaturaPrenda fotoUrl={t.fotoUrl} colorHex={t.colorHex} tamano="md" {...categoriaDe(v)} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13.5px] font-semibold text-tinta">{t.referencia}</span>
-                      <span className="block truncate text-[12px] text-tinta/70">
+                      <span className="block truncate text-[15px] font-semibold text-tinta">{t.referencia}</span>
+                      <span className="block truncate text-sm text-tinta/70">
                         {t.colorNombre ?? "Sin color"}
                         <span className="inline-flex items-center gap-0.5 text-taupe">
                           {" · "}
@@ -347,7 +347,7 @@ function CombinaBienCon({
                     </button>
                   </span>
                 </div>
-                {porQueDe === clave && <p className="anim-revelar mt-1.5 pl-14 text-[12px] text-tinta/70">{s.porQue.join(" · ")}</p>}
+                {porQueDe === clave && <p className="anim-revelar mt-1.5 pl-14 text-sm text-tinta/70">{s.porQue.join(" · ")}</p>}
                 {abierta === clave && g && (
                   <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-1.5 pl-14 @sm:grid-cols-[repeat(auto-fill,minmax(6.75rem,1fr))]" role="group" aria-label={`Tallas de ${t.referencia} ${t.colorNombre ?? ""}`}>
                     {g.tallas.map((talla) => (
@@ -435,11 +435,11 @@ function Casilla({
       }`}
     >
       <span className={`font-display text-[17px] leading-tight ${agotada ? "line-through" : ""} ${apartada ? "text-pizarra" : ""}`}>{t.talla}</span>
-      <span aria-hidden className={`text-[11px] leading-snug ${apartada ? "text-pizarra" : ""}`}>
+      <span aria-hidden className={`text-sm leading-snug ${apartada ? "text-pizarra" : ""}`}>
         <span className="@sm:hidden">{corto}</span>
         <span className="hidden @sm:inline">{texto}</span>
       </span>
-      {t.variante.precio !== precioBase && <span className="text-[11px] font-semibold tabular-nums">{money(t.variante.precio)}</span>}
+      {t.variante.precio !== precioBase && <span className="text-sm font-semibold tabular-nums">{money(t.variante.precio)}</span>}
       {/* El visto se dibuja al entrar (`recien` lo vuelve a dibujar) y SE QUEDA mientras la talla lleve unidades; al quitarla se va
           (Formidable 2026-10-10, cambio 1). */}
       {enTicket > 0 && (

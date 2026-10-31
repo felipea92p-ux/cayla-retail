@@ -356,7 +356,7 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
     <Modal
       variante="hoja"
       titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} de CAYLA entera`}
-      subtitulo="Todas las unidades ya cerraron. El consolidado queda congelado con su huella y es el que se le entrega al contador."
+      subtitulo="Todas las unidades cerraron. El consolidado queda congelado: es el que se entrega al contador."
       onClose={onCerrar}
       tamano="mediana"
     >

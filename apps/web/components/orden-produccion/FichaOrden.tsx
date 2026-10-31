@@ -124,7 +124,7 @@ export function FichaOrden({
             </div>
             {/* Solo en la barra: el total al lado del nombre. */}
             <p className="shrink-0 text-right tabular-nums @min-[880px]:hidden">
-              <b className="font-display text-2xl text-tinta">{total}</b> <span className="text-[12.5px] text-taupe">prendas</span>
+              <b className="font-display text-2xl text-tinta">{total}</b> <span className="text-sm text-taupe">prendas</span>
             </p>
           </div>
 
@@ -134,16 +134,16 @@ export function FichaOrden({
               <span className="font-display text-5xl leading-none text-tinta">{total}</span>
               <span className="text-sm text-taupe">prendas</span>
             </p>
-            {coloresYTallas && <p className="mt-1 text-[12.5px] text-taupe">{coloresYTallas}</p>}
+            {coloresYTallas && <p className="mt-1 text-sm text-taupe">{coloresYTallas}</p>}
           </div>
 
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-sand pt-3 text-[13.5px] @max-[879px]:hidden">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-sand pt-3 text-[15px] @max-[879px]:hidden">
             {seVendeA !== null && (
               <>
                 <dt className="text-taupe">Se vende a</dt>
                 <dd className="text-right tabular-nums text-tinta">
                   {seVendeA}
-                  {precioMasBajo && <span className="block text-[12px] text-taupe">el más bajo: {precioMasBajo}</span>}
+                  {precioMasBajo && <span className="block text-sm text-taupe">el más bajo: {precioMasBajo}</span>}
                 </dd>
               </>
             )}
@@ -156,10 +156,10 @@ export function FichaOrden({
                   <dd className="col-span-2">
                     <ul aria-label="De qué se forma el costo de cada prenda" className="space-y-1 border-l border-sand pl-3">
                       {costo.partes.map((parte) => (
-                        <li key={parte.clave} className="flex items-baseline justify-between gap-3 text-[12.5px] leading-snug">
+                        <li key={parte.clave} className="flex items-baseline justify-between gap-3 text-sm leading-snug">
                           <span className="min-w-0 text-taupe">
                             {parte.nombre}
-                            {parte.detalle && <small className="block truncate text-[12px] text-taupe">{parte.detalle}</small>}
+                            {parte.detalle && <small className="block truncate text-sm text-taupe">{parte.detalle}</small>}
                           </span>
                           <span className="shrink-0 tabular-nums text-tinta">{parte.valor}</span>
                         </li>
@@ -191,7 +191,7 @@ export function FichaOrden({
                 <dt className="text-taupe">Afuera</dt>
                 <dd className="text-right text-tinta">
                   {afuera.map((linea) => (
-                    <span key={linea} className="block text-[12.5px] leading-snug">
+                    <span key={linea} className="block text-sm leading-snug">
                       {linea}
                     </span>
                   ))}

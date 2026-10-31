@@ -29,7 +29,7 @@ export function DiarioPanel({ lineas, cuentas, sedes, mes }: { lineas: LineaDiar
   return (
     <Superficie guia="fin-contador.diario">
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <p className="text-[13px] text-taupe">Libro diario de {mesNombre(mes)}: cada línea de cada asiento, de la más vieja a la más nueva.</p>
+        <p className="text-sm text-taupe">Libro diario de {mesNombre(mes)}: cada línea de cada asiento, de la más vieja a la más nueva.</p>
         <Buscador
           valor={buscado}
           onCambio={(v) => {

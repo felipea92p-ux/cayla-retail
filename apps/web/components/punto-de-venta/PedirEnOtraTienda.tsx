@@ -12,7 +12,7 @@ export function PedirEnOtraTienda({ candidatos, onPedir }: { candidatos: readonl
   const texto = textoSugerenciaPedir(candidatos);
   if (!texto) return null;
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-sand bg-papel px-3 py-2.5 text-xs text-tinta/80">
+    <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-sand bg-papel px-3 py-2.5 text-sm text-tinta/80">
       <Truck className="h-4 w-4 shrink-0" aria-hidden />
       <span className="min-w-[12rem] flex-1">{texto}</span>
       <button

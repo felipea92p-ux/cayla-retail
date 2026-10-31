@@ -23,7 +23,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
     <section aria-label="Tu plata para compras" data-guia="mi-plata.tienes" className="flex flex-col gap-2.5 rounded-[22px] bg-tinta px-5 pb-4 pt-[18px] text-crema">
       <span className="flex items-baseline justify-between gap-3">
         <span className="label-cayla text-[11px] text-crema/75">Tienes para comprar</span>
-        <span className="text-xs tabular-nums text-crema/75" data-guia="mi-plata.ronda" title="Lo comprado y gastado es de esta ronda">
+        <span className="text-sm tabular-nums text-crema/75" data-guia="mi-plata.ronda" title="Lo comprado y gastado es de esta ronda">
           {plata.ronda.abierta ? `Ronda ${plata.ronda.abierta.texto}` : "Sin ronda"}
         </span>
       </span>
@@ -37,12 +37,12 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
         // Cuánto de lo que te dieron ya usaste (maqueta mis-compras-pc-mesa, Felipe 2026-10-28): la barra y, debajo, lo dicho en palabras.
         <div className="flex flex-col gap-1.5">
           <BarraAvance pct={uso.pct} sobreTinta etiqueta="Lo usado de tu plata para comprar" texto={`${soles(uso.usado)} de ${soles(uso.base)}`} />
-          <p className="text-xs text-crema/75">{uso.texto}</p>
+          <p className="text-sm text-crema/75">{uso.texto}</p>
         </div>
       )}
-      {negativa && <p className="rounded-[10px] bg-crema/10 px-2.5 py-2 text-[12.5px]">{negativa}</p>}
+      {negativa && <p className="rounded-[10px] bg-crema/10 px-2.5 py-2 text-sm">{negativa}</p>}
       {cuenta && (
-        <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-xs">
+        <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-sm">
           {[
             { clave: "dieron", nombre: "Te dieron", monto: cuenta.dieron, resta: false },
             { clave: "compraste", nombre: "Compraste", monto: cuenta.compraste, resta: true },
@@ -57,12 +57,12 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
         </dl>
       )}
       {antes !== null && (
-        <p className="text-xs text-crema/75">
+        <p className="text-sm text-crema/75">
           {antes > 0 ? `Incluye ${soles(antes)} que ya tenías al abrir tu ronda.` : `Al abrir tu ronda te debían ${soles(-antes)}.`}
         </p>
       )}
       {revisando && (
-        <p className="flex items-center gap-2 rounded-[10px] bg-crema/10 px-2.5 py-2 text-xs" data-guia="mi-plata.revisando">
+        <p className="flex items-center gap-2 rounded-[10px] bg-crema/10 px-2.5 py-2 text-sm" data-guia="mi-plata.revisando">
           <HandCoins className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {revisando}
         </p>

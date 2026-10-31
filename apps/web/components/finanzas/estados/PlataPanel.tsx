@@ -117,7 +117,7 @@ export function PlataPanel({
         {real && (
           <>
             <div className="fin-estado-sep" />
-            <TituloSeccion accion={<span className="text-[13px] text-taupe">Toca una fila para ver qué tiene</span>}>De dónde vino y a dónde fue</TituloSeccion>
+            <TituloSeccion accion={<span className="text-sm text-taupe">Toca una fila para ver qué tiene</span>}>De dónde vino y a dónde fue</TituloSeccion>
             <div className="mt-3">
               <CascadaEstados id="fin-plata-puente" filas={filasDeTramos(puentePlata(real, enCurso))} etiqueta="De dónde vino y a dónde fue la plata" guia="fin-plata.puente" />
             </div>
@@ -166,7 +166,7 @@ function Formal({ real }: { real: FlujoReal }) {
   const partes = partesDelFlujo(real);
   return (
     <Superficie pad>
-      <p className="mb-3 text-[13px] text-taupe">Estado de flujos de efectivo, método directo.</p>
+      <p className="mb-3 text-sm text-taupe">Estado de flujos de efectivo, método directo.</p>
       <div className="fin-tabla-wrap" data-guia="fin-plata.formal-tabla">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Estado de flujos de efectivo</caption>
@@ -302,7 +302,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         )}
       </h3>
       <FaltanProyeccion provisional={provisional} faltan={faltan} className="mb-3" />
-      <p className="mb-2 text-[13px] leading-snug text-taupe">
+      <p className="mb-2 text-sm leading-snug text-taupe">
         Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos).
       </p>
       {p.diasDeCaja !== null && (

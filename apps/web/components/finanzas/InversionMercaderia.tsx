@@ -80,7 +80,7 @@ function BarraDeLaCompra({ c }: { c: CampanaInversion }) {
           { clave: "falta", nombre: "Falta pedir", valor: r.faltaPedir, clase: "bg-tinta/20" },
         ]}
       />
-      <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-taupe">
+      <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe">
         <span className="inline-flex items-center gap-1.5">
           <MuestraTramo clase="bg-verde" /> Pagado {soles(r.pagado)}
         </span>
@@ -92,7 +92,7 @@ function BarraDeLaCompra({ c }: { c: CampanaInversion }) {
         </span>
         {c.tope !== null && <span>Tu tope: {soles(c.tope)}</span>}
       </p>
-      {r.pasaDelPlan > 0 && <p className="mt-1 text-xs text-ambar-profundo">Ya pediste {soles(r.pasaDelPlan)} más de lo que planeaste.</p>}
+      {r.pasaDelPlan > 0 && <p className="mt-1 text-sm text-ambar-profundo">Ya pediste {soles(r.pasaDelPlan)} más de lo que planeaste.</p>}
     </div>
   );
 }
@@ -118,7 +118,7 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
     // Escondidas aquí: se dice, o parece que «no hay campañas». Sin campañas del Plan: no se dibuja nada (esta base aún no las trae).
     return ocultasAqui ? (
       <p className="nota-cayla" data-guia="fin-resumen.inversion">
-        La inversión en mercadería está oculta en este Resumen. Vuelve a mostrarla en «Qué se ve», junto al mes. Sigue en el Plan de campaña y en Compras.
+        La inversión en mercadería está oculta. Vuelve a mostrarla en «Qué se ve», junto al mes.
       </p>
     ) : (
       // Felipe 2026-10-29: la tarjeta está siempre, al final del Resumen; sin nada pendiente dice eso en una línea, no tres ceros.
@@ -178,7 +178,7 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
                   </Boton>
                 )}
                 {c.hrefPlan && <EnlaceVer href={c.hrefPlan}>Ver en el Plan de campaña</EnlaceVer>}
-                {!hayCuadro && pendienteDeCaja(c, conIgv) <= 0 && <span className="text-xs text-taupe">Todo pedido. Lo que falta pagar está en Por pagar.</span>}
+                {!hayCuadro && pendienteDeCaja(c, conIgv) <= 0 && <span className="text-sm text-taupe">Todo pedido. Lo que falta pagar está en Por pagar.</span>}
               </div>
             </div>
           );
@@ -209,7 +209,7 @@ function CuadroDeCampana({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c:
           <TituloSeccion nivel={3} dato={fechasDeCampana(c)}>
             {c.nombre}
           </TituloSeccion>
-          <p className="mt-1 text-sm text-taupe">Cuánto comprar, cuándo y cómo pagarlo. Mirar no guarda nada: eso se deja escrito en el Plan de campaña.</p>
+          <p className="mt-1 text-sm text-taupe">Cuánto comprar, cuándo y cómo pagarlo. Se decide en el Plan de campaña.</p>
         </div>
         {vistas.length > 1 && <Pestanas items={vistas.map((v) => ({ clave: v.clave, etiqueta: v.etiqueta }))} activa={activa.clave} etiquetaAccesible={`Qué ver de ${c.nombre}`} onCambio={(k) => setVista(k as VistaCuadro)} idIndicador={`inversion-${c.id}`} />}
       </div>
@@ -235,7 +235,7 @@ function HistoriaDeLaCampana({ h }: { h: HistoriaCampana }) {
               <li key={cat.nombre} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-2.5">
                 <span>
                   <b className="text-sm">{cat.nombre}</b>
-                  <span className="block text-xs text-taupe">
+                  <span className="block text-sm text-taupe">
                     compraste {cat.compradas} · vendiste {cat.vendidas}
                   </span>
                 </span>
@@ -266,7 +266,7 @@ function HistoriaDeLaCampana({ h }: { h: HistoriaCampana }) {
               <li key={cat.nombre} className="flex items-center justify-between gap-3 py-2.5">
                 <span>
                   <b className="text-sm">{cat.nombre}</b>
-                  <span className="block text-xs text-taupe">
+                  <span className="block text-sm text-taupe">
                     entre {cat.sugeridas.min} y {cat.sugeridas.max}
                   </span>
                 </span>
@@ -310,7 +310,7 @@ function CostoDeLaCampana({ c, costos, conIgv }: { c: CampanaInversion; costos: 
           etiqueta={`Por categoría: ${orden.map((x) => `${x.nombre} ${soles(x.monto)}`).join(", ")}`}
           segmentos={orden.map((x, i) => ({ clave: x.nombre, nombre: x.nombre, valor: x.monto, clase: COLOR_CATEGORIA[i % COLOR_CATEGORIA.length] }))}
         />
-        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-taupe">
+        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe">
           {orden.map((x, i) => (
             <span key={x.nombre} className="inline-flex items-center gap-1.5">
               <MuestraTramo clase={COLOR_CATEGORIA[i % COLOR_CATEGORIA.length]!} /> {x.nombre} {soles(x.monto)}
@@ -326,7 +326,7 @@ function CostoDeLaCampana({ c, costos, conIgv }: { c: CampanaInversion; costos: 
           ].map(([t, d]) => (
             <div key={t} className="rounded-xl bg-hueso p-3 text-sm">
               <b className="font-serif text-base">{t}</b>
-              <p className="mt-1 text-xs">{d}</p>
+              <p className="mt-1 text-sm">{d}</p>
             </div>
           ))}
         </div>
@@ -354,7 +354,7 @@ function CostoDeLaCampana({ c, costos, conIgv }: { c: CampanaInversion; costos: 
 /** Las formas de pagar lo que falta pedir, lado a lado, con la caja de la que se elija dibujada al lado. */
 function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: CampanaInversion; conIgv: boolean; hoy: string; proyeccion: Proyeccion | null; elegida: string | undefined; onElegir: (clave: string) => void }) {
   if (!proyeccion) {
-    return <p className="nota-cayla">No se pudo leer la caja de las próximas semanas, así que no se puede comparar cómo pagarla. Vuelve a cargar la página en un rato.</p>;
+    return <p className="nota-cayla">No se pudo leer la caja de las próximas semanas. Vuelve a cargar la página en un rato.</p>;
   }
   const formas: FormaEvaluada[] = evaluarFormas(proyeccion, formasDePago(c, hoy, conIgv));
   if (!formas.length) return null;
@@ -419,7 +419,7 @@ function PagarLaCompra({ c, conIgv, hoy, proyeccion, elegida, onElegir }: { c: C
               alto={220}
             />
           )}
-          <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-taupe">
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe">
             <span className="inline-flex items-center gap-1.5">
               <MuestraTramo clase="bg-tinta" /> Con la compra
             </span>

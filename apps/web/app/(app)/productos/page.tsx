@@ -31,7 +31,6 @@ import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
-import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 import { limitesRedondeados } from "@/lib/productos-filtro-precio";
@@ -212,9 +211,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     .map((t) => ({ id: t.id, nombre: t.valor }))
     .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
-  // El «!» con lo que la frase no alcanza a decir. En el celular va junto al título, porque ahí la frase se esconde (Felipe, 2026-10-09).
+  // Lo que la frase no alcanza a decir: en el globo del «?», un paso más abajo (ronda 18 de /unificar, 2026-10-30).
   const ayudaProductos = (
-    <Ayuda titulo="Productos">
+    <>
       <span className="block">
         Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
       </span>
@@ -226,7 +225,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </Link>
         .
       </span>
-    </Ayuda>
+    </>
   );
 
   return (
@@ -234,22 +233,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo={
-          <>
-            Productos
-            {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 36 px. */}
-            <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayudaProductos}</span>
-          </>
-        }
-        subtitulo={
-          // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
-          // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
-          <>
-            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero) y el «!» sube junto al título. */}
-            <span className="max-sm:hidden">Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.</span>
-            <span className="max-sm:hidden">{ayudaProductos}</span>
-          </>
-        }
+        titulo="Productos"
+        subtitulo="Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede."
+        ayuda={ayudaProductos}
         acciones={
           <>
             {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su

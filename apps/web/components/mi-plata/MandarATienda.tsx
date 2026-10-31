@@ -109,7 +109,7 @@ export function FranjaFaltaMandar({
       <Truck className="h-5 w-5 shrink-0 text-ambar" aria-hidden />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-tinta">{antes ? `Antes, manda: ${falta.titulo.replace(/^Falta mandar /, "")}` : falta.titulo}</span>
-        <span className="block text-xs">{falta.detalle}</span>
+        <span className="block text-sm">{falta.detalle}</span>
       </span>
       <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold">
         Mandar
@@ -215,14 +215,14 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
                   </span>
                   <span className="min-w-0">
                     <span className="block font-medium text-tinta">{t.tienda}</span>
-                    <span className="block text-xs text-taupe">{detalleEnvio(t)}</span>
+                    <span className="block text-sm text-taupe">{detalleEnvio(t)}</span>
                   </span>
                 </div>
                 <p className="text-sm text-tinta/75">{resumenPrendas(t.prendas)}</p>
                 <div className="flex items-center justify-between gap-3 border-t border-sand pt-3">
                   <span className="min-w-0">
                     <span className="block text-sm text-tinta">¿Cuántos fardos?</span>
-                    <span className="block text-xs text-taupe">Cada paquete que entregas. Si todo va junto, es 1</span>
+                    <span className="block text-sm text-taupe">Cada paquete que entregas. Si todo va junto, es 1</span>
                   </span>
                   <PasoCantidad
                     data-guia={t === porMandar[0] ? "mi-plata.fardos" : undefined}

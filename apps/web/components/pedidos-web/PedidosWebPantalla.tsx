@@ -529,7 +529,7 @@ function Prendas({ pedido: p }: { pedido: PedidoDeLista }) {
       {vistas.map((v, i) => (
         <MiniPrenda key={i} prenda={v} />
       ))}
-      {p.prendasVista.length > vistas.length && <span className="text-[12px] text-taupe">+{p.prendasVista.length - vistas.length}</span>}
+      {p.prendasVista.length > vistas.length && <span className="text-sm text-taupe">+{p.prendasVista.length - vistas.length}</span>}
     </span>
   );
 }
@@ -577,7 +577,7 @@ function FilaPedido({
         >
           {p.codigo}
         </button>
-        <span className="block text-[12px] text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
+        <span className="block text-sm text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
       </span>
       <span className="text-right font-medium tabular-nums text-tinta sm:hidden">{soles(p.total)}</span>
       <span className="col-span-2 flex min-w-0 items-center gap-3 sm:col-span-1">
@@ -589,11 +589,11 @@ function FilaPedido({
       </span>
       <span className="hidden text-right tabular-nums sm:block">
         <span className="block font-medium text-tinta">{soles(p.total)}</span>
-        {p.estado === "confirmado" && p.pagado > 0 && <span className="block text-[12px] text-taupe">falta {soles(p.falta)}</span>}
+        {p.estado === "confirmado" && p.pagado > 0 && <span className="block text-sm text-taupe">falta {soles(p.falta)}</span>}
       </span>
       <span className="col-span-2 min-w-0 sm:col-span-1" data-guia={primera ? "pedidos-web.plazo" : undefined}>
-        <span className={`block text-[13px] font-medium ${TONO_RELOJ[reloj.tono]}`}>{reloj.texto}</span>
-        {reloj.detalle && <span className="block text-[12px] text-taupe">{reloj.detalle}</span>}
+        <span className={`block text-sm font-medium ${TONO_RELOJ[reloj.tono]}`}>{reloj.texto}</span>
+        {reloj.detalle && <span className="block text-sm text-taupe">{reloj.detalle}</span>}
         {/* El reloj de su plazo (ADR-0430): cuánto lleva del tiempo de este paso; se llena una vez al verse. */}
         {reloj.barra && <BarraAvance pct={reloj.barra.pct} alto="fina" tono={reloj.barra.tono} indice={indice} etiqueta={reloj.barra.etiqueta} className="mt-1.5 block max-w-[11rem]" />}
       </span>
@@ -661,7 +661,7 @@ function CerradosSeccion({
       <div key={p.id} {...abreConLaFila(() => onAbrir(p.id))} aria-current={abiertoId === p.id ? "true" : undefined} className={fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}>
         <span className="min-w-0">
           <span className="font-semibold tabular-nums text-tinta">{p.codigo}</span>
-          <span className="block text-[12px] text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
+          <span className="block text-sm text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
         </span>
         <span className="text-right font-medium tabular-nums text-tinta sm:hidden">{soles(p.total)}</span>
         <span className="col-span-2 flex min-w-0 items-center gap-3 sm:col-span-1">
@@ -727,7 +727,7 @@ function CerradosSeccion({
               ))}
             </div>
             {sinStock > 0 && (
-              <p className="text-[12.5px] text-taupe">Si «no hay stock» crece, la web muestra prendas que esta tienda no tiene.</p>
+              <p className="text-sm text-taupe">Si «no hay stock» crece, la web muestra prendas que esta tienda no tiene.</p>
             )}
           </div>
           {(visibles.length > 0 || guardados.length > 0) && (
@@ -781,7 +781,7 @@ function ParaEnviarSeccion({ paraEnviar, onEnviar }: { paraEnviar: ParaEnviar[];
               <span className="block font-semibold text-tinta">
                 {e.codigo} <span className="font-normal text-taupe">· para {e.tienda}</span>
               </span>
-              <span className="mt-1 flex flex-wrap items-center gap-2 text-[12.5px] text-taupe">
+              <span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-taupe">
                 {e.lineas.map((l) => (
                   <span key={l.lineaId} className="inline-flex items-center gap-1.5">
                     <MiniPrenda prenda={l} />

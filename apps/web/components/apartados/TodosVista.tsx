@@ -243,7 +243,7 @@ export function TodosVista({
           >
             <p className={`label-cayla text-[11px] ${c.alerta ? "text-rojo-profundo" : "text-tinta/60"}`}>{c.etiqueta}</p>
             <p className={`font-display mt-1 text-3xl leading-tight tabular-nums ${c.alerta ? "text-rojo-profundo" : "text-tinta"}`}>{c.valor}</p>
-            <p className="text-xs text-tinta/60">{c.pie}</p>
+            <p className="text-sm text-tinta/60">{c.pie}</p>
           </div>
         ))}
       </div>
@@ -251,7 +251,7 @@ export function TodosVista({
       {conLote && porAvisar.length + avisadasHoy.length > 0 && (
         <div className={`anim-revelar flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 ${porAvisar.length ? "bg-ambar/10 text-ambar-profundo" : "bg-verde/10 text-verde-profundo"}`}>
           {porAvisar.length ? <Bell className="h-5 w-5 shrink-0" aria-hidden /> : <Check className="h-5 w-5 shrink-0" aria-hidden />}
-          <div className="min-w-0 flex-1 text-[13px]">
+          <div className="min-w-0 flex-1 text-sm">
             <p className="font-semibold">
               {porAvisar.length
                 ? `${porAvisar.length} ${porAvisar.length === 1 ? "cliente por avisar" : "clientes por avisar"} hoy`
@@ -286,14 +286,14 @@ export function TodosVista({
                     <p className="truncate text-sm font-semibold">
                       {pr?.referencia ?? "Prenda"} <span className="font-normal text-tinta/60">{[pr?.color, pr?.talla].filter(Boolean).join(" · ")}</span>
                     </p>
-                    <p className="text-xs text-tinta/60">
+                    <p className="text-sm text-tinta/60">
                       {paraQuienPedido(pe)}
                       {pe.guardadaHasta && ` · guardada hasta el ${fechaCorta(pe.guardadaHasta)}`}
                       {pe.trasladoNumero != null && ` · traslado N.º ${pe.trasladoNumero}`}
                       {pe.estado === "cancelado" && pe.canceladoMotivo && ` · ${pe.canceladoMotivo}`}
                     </p>
                   </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "bg-hueso text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
+                  <span className={`rounded-full px-2.5 py-0.5 text-sm ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "bg-hueso text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
                     {textoEstadoPedido(pe)}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -343,10 +343,10 @@ export function TodosVista({
           <div className="anim-revelar absolute top-12 right-0 z-30 w-64 rounded-xl border border-sand bg-papel p-2 shadow-lg">
             <p className="label-cayla px-2 pt-1 pb-1.5 text-[10px] text-tinta/55">Qué ver en cada apartado</p>
             {COLUMNAS_TODOS.filter((c) => c.id !== "estante" || conEstante).map((c) => (
-              <label key={c.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] hover:bg-crema">
+              <label key={c.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-crema">
                 <Casilla marcada={ver[c.id]} onCambio={() => cambiarVer({ ...ver, [c.id]: !ver[c.id] })} etiqueta={`Ver ${c.etiqueta}`} className="shrink-0" />
                 <span className="flex-1">{c.etiqueta}</span>
-                {COLUMNAS_DE_FABRICA[c.id] && <span className="text-[10.5px] text-tinta/45">de fábrica</span>}
+                {COLUMNAS_DE_FABRICA[c.id] && <span className="text-sm text-tinta/45">de fábrica</span>}
               </label>
             ))}
             <div className="mt-1 flex items-center justify-between border-t border-sand px-2 pt-2">
@@ -376,7 +376,7 @@ export function TodosVista({
                 </button>
               ))}
             </div>
-            <p className="text-[12px] text-tinta/60" aria-live="polite">
+            <p className="text-sm text-tinta/60" aria-live="polite">
               Cerrados {textoDelPeriodo(periodo, rango)} · los que siguen abiertos se ven siempre{cargandoRango ? " · Buscando…" : ""}
             </p>
           </div>
@@ -495,13 +495,13 @@ export function TodosVista({
                         >
                           {a.nombres} {a.apellidos}
                         </button>
-                        <p className="text-xs text-tinta/60 tabular-nums">
+                        <p className="text-sm text-tinta/60 tabular-nums">
                           {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
                             <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
                           )}
                         </p>
-                        {ver.asesora && a.asesora && <p className="text-[11.5px] text-tinta/55">atendió {a.asesora}</p>}
+                        {ver.asesora && a.asesora && <p className="text-sm text-tinta/55">atendió {a.asesora}</p>}
                       </div>
                     </div>
                     <div className={`flex min-w-0 items-center gap-2 max-md:hidden ${ver.prendas ? "" : "invisible"}`}>
@@ -510,11 +510,11 @@ export function TodosVista({
                           <FotoPrenda key={pr.varianteId} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
                         ))}
                       </span>
-                      <span className="truncate text-[12.5px] text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
+                      <span className="truncate text-sm text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
                     </div>
                     <div className={`text-sm tabular-nums max-md:hidden ${ver.pagado ? "" : "invisible"}`}>
-                      <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-xs text-tinta/55">de {money(a.total)}</span>
-                      <p className="text-xs text-tinta/60">
+                      <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-sm text-tinta/55">de {money(a.total)}</span>
+                      <p className="text-sm text-tinta/60">
                         {a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}
                         {textoPagosDeFila(a.pagos) && <span className="text-verde-profundo"> · {textoPagosDeFila(a.pagos)}</span>}
                       </p>
@@ -522,7 +522,7 @@ export function TodosVista({
                     <div className="space-y-1">
                       <EstadoChip {...e} />
                       {a.estado === "abierta" && <BarraPlazo creadaEl={diaLima(a.creadaEn)} hoy={hoy} />}
-                      <p className="text-[11.5px] text-tinta/60">
+                      <p className="text-sm text-tinta/60">
                         {a.estado === "abierta" ? `vence ${fechaCorta(a.venceEl)}${a.extensiones ? " · extendido" : ""}` : a.estado === "liberada" ? (a.liberadaSola ? "se liberó solo" : "liberado") : a.estado === "entregada" ? `boleta ${a.comprobanteFinal ?? a.comprobanteAnticipo ?? ""}` : a.notaCredito ? `NC ${a.notaCredito}` : "devuelto"}
                       </p>
                     </div>
@@ -570,7 +570,7 @@ export function TodosVista({
                         (puedeGestionar ? (
                           <button type="button" onClick={() => setDevolver(a)} className={BOTON_CHICO_NEGRO}>Devolver {money(a.adelanto)}</button>
                         ) : (
-                          <span className="text-[11px] text-tinta/55">Lo devuelve la líder</span>
+                          <span className="text-sm text-tinta/55">Lo devuelve la líder</span>
                         ))}
                     </div>
                   </li>

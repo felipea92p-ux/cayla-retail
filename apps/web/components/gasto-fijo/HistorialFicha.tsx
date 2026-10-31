@@ -65,7 +65,7 @@ export function HistorialFicha({ gastoFijoId }: { gastoFijoId: string }) {
                 <span className="text-tinta/65"> → </span>
                 <span className="tabular-nums text-tinta">{l.despues}</span>
               </span>
-              <span className="text-xs text-tinta/65">
+              <span className="text-sm text-tinta/65">
                 {dia} · {hora} · {c.por ?? "no se sabe quién"}
               </span>
             </li>

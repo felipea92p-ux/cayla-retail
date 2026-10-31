@@ -91,7 +91,7 @@ function TarjetaTemporada({ t, elegido, enHoja = false, onClick }: { t: Item; el
       )}
       <span className={`px-0.5 ${enHoja ? "break-words leading-tight" : "truncate"}`}>
         {elegido && (
-          <span aria-hidden className="text-[11px]">
+          <span aria-hidden className="text-sm">
             ✓{" "}
           </span>
         )}

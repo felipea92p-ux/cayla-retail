@@ -25,7 +25,7 @@ function Seccion({ titulo, bajada, children }: { titulo: string; bajada?: string
   return (
     <section>
       <TituloSeccion nivel={3}>{titulo}</TituloSeccion>
-      {bajada && <p className="mt-0.5 text-xs text-taupe">{bajada}</p>}
+      {bajada && <p className="mt-0.5 text-sm text-taupe">{bajada}</p>}
       <div className="mt-2.5">{children}</div>
     </section>
   );
@@ -41,7 +41,7 @@ function FilaPrenda({ p, derecha }: { p: Pick<PrendaDelResumen, "referencia" | "
       <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold text-tinta">{p.referencia}</span>
-        <span className="block truncate text-xs text-taupe">{[p.color, p.categoria].filter(Boolean).join(" · ") || "Sin color"}</span>
+        <span className="block truncate text-sm text-taupe">{[p.color, p.categoria].filter(Boolean).join(" · ") || "Sin color"}</span>
       </span>
       <span className="shrink-0 text-right text-sm tabular-nums text-tinta">{derecha}</span>
     </li>
@@ -52,7 +52,7 @@ function FilaPrenda({ p, derecha }: { p: Pick<PrendaDelResumen, "referencia" | "
 function YMas({ restantes, detalle }: { restantes: number; detalle?: string }) {
   if (restantes <= 0) return null;
   return (
-    <p className="pt-2 text-xs text-taupe">
+    <p className="pt-2 text-sm text-taupe">
       y {restantes} {restantes === 1 ? "prenda más" : "prendas más"}
       {detalle ? ` · ${detalle}` : ""}
     </p>
@@ -184,7 +184,7 @@ export function ResumenStockOverlay({
               </div>
             </div>
             {separa && (
-              <p className="mt-2 flex items-center gap-3 text-xs text-taupe">
+              <p className="mt-2 flex items-center gap-3 text-sm text-taupe">
                 <span className="flex items-center gap-1.5">
                   <span aria-hidden className="h-1.5 w-3 rounded-full bg-tinta" /> Piso
                 </span>
@@ -212,7 +212,7 @@ export function ResumenStockOverlay({
                   derecha={
                     <>
                       <b className="font-semibold">{n(p.vendidas)}</b> {p.vendidas === 1 ? "vendida" : "vendidas"}
-                      <span className="block text-xs text-taupe">{p.quedan === 0 ? "ya no quedan" : `${p.quedan === 1 ? "queda" : "quedan"} ${n(p.quedan)}`}</span>
+                      <span className="block text-sm text-taupe">{p.quedan === 0 ? "ya no quedan" : `${p.quedan === 1 ? "queda" : "quedan"} ${n(p.quedan)}`}</span>
                     </>
                   }
                 />
@@ -232,7 +232,7 @@ export function ResumenStockOverlay({
                     <>
                       <b className="font-semibold">{n(p.total)}</b> {p.total === 1 ? "prenda" : "prendas"}
                       {separa && (
-                        <span className="block text-xs text-taupe">
+                        <span className="block text-sm text-taupe">
                           {n(p.piso ?? 0)} en piso · {n(p.almacen ?? 0)} en almacén
                         </span>
                       )}
@@ -254,7 +254,7 @@ export function ResumenStockOverlay({
                   derecha={
                     <>
                       <b className="font-semibold">{n(p.almacen ?? 0)}</b> {p.almacen === 1 ? "prenda" : "prendas"}
-                      <span className="block text-xs text-taupe">en almacén</span>
+                      <span className="block text-sm text-taupe">en almacén</span>
                     </>
                   }
                 />
