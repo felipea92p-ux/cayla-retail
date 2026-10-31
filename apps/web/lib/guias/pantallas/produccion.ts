@@ -304,7 +304,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Pegar cierre, Ojales y botones o Lavado o teñido, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha. ¿Aún no lo tienes? «Pendiente de registrar». ¿No está? «+ Registrar proveedor nuevo».",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Pegar cierre, Ojales y botones o Lavado o teñido, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha (el ploteo se paga una vez: total o por prenda). ¿Aún no lo tienes? «Pendiente de registrar».",
     },
     {
       id: "recordar",
