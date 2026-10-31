@@ -1,0 +1,9 @@
+## ⚡ Tienda online · el precio por lotes (2026-10-31) — migración `20261031161000`; rama `claude/why-system-impact-0ba744`
+
+- [x] Diagnóstico de la memoria «SEVERE» del 31-oct (3,5 GB comprometidos en 2 GB, plan Small): pico de tráfico al abrir las tiendas + conexiones nuevas de PostgREST y de la tienda web, cada una con su copia del catálogo de 6 128 funciones. Sin caídas.
+- [x] Índices descartados con medida: tablas de menos de 2 MB, base de 128 MB.
+- [x] `fn_precios_en_sedes` (la regla del precio por tienda, por lotes), `fn_precio_en_sede` le pregunta a ella, `fn_tienda_precio_talla` en una consulta, `tienda_catalogo` con las empresas leídas una vez. Prueba `pnpm pruebas:tienda-precio-por-lotes` en el CI; mutantes de `registrar_venta`, `cambio_sin_precio`, `precio_sede` y `tienda_ficha` apuntan a la regla nueva; `tienda_rapida` y `tienda_empresas` deshacen la migración antes de volver a pegar las suyas.
+- [ ] **Pegar `20261031161000` en producción** con el OK de Felipe (toca `fn_precio_en_sede`, la que usa Vender). Una sola parte, sin políticas ni `alter`. Comprobar después: las tres huellas nuevas, `authenticated` ejecuta `fn_precio_en_sede`, nadie de afuera ejecuta `fn_precios_en_sedes`, y `select retail.tienda_catalogo(null)` en ~350 ms.
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté en producción.
+- [ ] Mirar la memoria comprometida en el próximo pico (sábado 10:00–11:00 de Lima). Si sigue en «SEVERE»: lo siguiente es la consulta de `public.marcajes` de Dynamic (0,9 s de media, la que más tiempo de base consume) y `fn_resumen_variantes_json` / `fn_demanda_sede` del ERP (1,4–1,9 s); subir a Medium (4 GB, ~US$45 más al mes) es decisión de Felipe.
+- [ ] Un parche futuro a la regla del precio va en `fn_precios_en_sedes`, no en `fn_precio_en_sede`. Sin `security definer` ni `set search_path` en ella: con uno, Postgres deja de meterla en la consulta y vuelve la lentitud (la prueba lo ve).
