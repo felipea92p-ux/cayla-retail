@@ -749,48 +749,50 @@ describe("ponerEnTodosLosColores — «Para todos los colores»", () => {
 
 describe("parcheDeTodos — lo que copia el botón «Copiar a todos los colores»", () => {
   const tallasSM = [{ talla: "S", cantidad: 3 }, { talla: "M", cantidad: 2 }];
-  const fila = (colorCodigo: string, c = "1.1"): TelaBorrador => ({ insumoId: "viejo", colorCodigo, consumoPorPrenda: c });
   const sml = [...tallasSM, { talla: "L", cantidad: 1 }];
+  const fila = (colorCodigo: string, c = "1.1", insumoId = `tela-de-${colorCodigo}`): TelaBorrador => ({ insumoId, colorCodigo, consumoPorPrenda: c });
   const usa = (telas: TelaBorrador[], b: Parameters<typeof parcheDeTodos>[0], tallas = tallasSM) => {
     const p = parcheDeTodos(b);
     return p ? ponerEnTodosLosColores(telas, telas.map((t, i) => ({ indice: i, tela: t, tallas })), p) : null;
   };
 
   it("sin nada escrito no hay qué copiar (el botón sale apagado)", () => {
-    expect(parcheDeTodos({ insumoId: "", consumo: "", porTalla: null })).toBeNull();
-    expect(parcheDeTodos({ insumoId: "", consumo: "  ", porTalla: { S: "", M: " " } })).toBeNull();
+    expect(parcheDeTodos({ consumo: "", porTalla: null })).toBeNull();
+    expect(parcheDeTodos({ consumo: "  ", porTalla: { S: "", M: " " } })).toBeNull();
   });
-  it("copia la tela y los metros a cada color, y lo vacío no borra nada", () => {
-    expect(usa([fila("BEI"), fila("NEG")], { insumoId: "lino", consumo: "1.2", porTalla: null })).toEqual([
+  it("copia los metros a cada color y NO toca la tela de ninguno", () => {
+    expect(usa([fila("BEI", "1.1", "lino"), fila("NEG", "1.3", "popelina")], { consumo: "1.2", porTalla: null })).toEqual([
       { insumoId: "lino", colorCodigo: "BEI", consumoPorPrenda: "1.2", porTalla: null },
-      { insumoId: "lino", colorCodigo: "NEG", consumoPorPrenda: "1.2", porTalla: null },
+      { insumoId: "popelina", colorCodigo: "NEG", consumoPorPrenda: "1.2", porTalla: null },
     ]);
-    expect(usa([fila("BEI")], { insumoId: "lino", consumo: "", porTalla: null })).toEqual([{ insumoId: "lino", colorCodigo: "BEI", consumoPorPrenda: "1.1" }]);
-    expect(usa([fila("BEI")], { insumoId: "", consumo: "0.9", porTalla: null })?.[0]).toMatchObject({ insumoId: "viejo", consumoPorPrenda: "0.9" });
   });
-  it("por talla: la tela y las cifras de cada talla se copian JUNTAS, sin pisarse", () => {
-    const r = usa([fila("BEI"), fila("NEG")], { insumoId: "lino", consumo: "", porTalla: { S: "1.0", M: "1.4" } });
-    expect(r?.map((t) => [t.insumoId, t.porTalla])).toEqual([["lino", { S: "1.0", M: "1.4" }], ["lino", { S: "1.0", M: "1.4" }]]);
+  it("una fila sin tela elegida sigue sin ella: se copian los metros y la tela queda para elegirla", () => {
+    const sinTela: TelaBorrador = { insumoId: null, colorCodigo: "BEI", consumoPorPrenda: "" };
+    expect(usa([sinTela], { consumo: "0.9", porTalla: null })?.[0]).toEqual({ insumoId: null, colorCodigo: "BEI", consumoPorPrenda: "0.9", porTalla: null });
+  });
+  it("por talla: las cifras de cada talla se copian JUNTAS, sin pisarse, y la tela de cada color sigue siendo la suya", () => {
+    const r = usa([fila("BEI", "1.1", "lino"), fila("NEG", "1.3", "popelina")], { consumo: "", porTalla: { S: "1.0", M: "1.4" } });
+    expect(r?.map((t) => [t.insumoId, t.porTalla])).toEqual([["lino", { S: "1.0", M: "1.4" }], ["popelina", { S: "1.0", M: "1.4" }]]);
   });
   it("por talla con una sola cifra escrita: la otra talla parte de la cifra única que ya tenía el color", () => {
-    const r = usa([fila("BEI", "1.1")], { insumoId: "", consumo: "", porTalla: { S: "1.0", M: "" } });
+    const r = usa([fila("BEI", "1.1")], { consumo: "", porTalla: { S: "1.0", M: "" } });
     expect(r?.[0].porTalla).toEqual({ S: "1.0", M: "1.1" });
   });
   it("un color de una sola talla conserva su cifra única aunque se copien cifras por talla", () => {
-    const r = usa([fila("BEI", "1.1")], { insumoId: "lino", consumo: "", porTalla: { S: "1.0", M: "1.4" } }, [{ talla: "S", cantidad: 3 }]);
-    expect(r?.[0]).toMatchObject({ insumoId: "lino", consumoPorPrenda: "1.1" });
+    const r = usa([fila("BEI", "1.1")], { consumo: "", porTalla: { S: "1.0", M: "1.4" } }, [{ talla: "S", cantidad: 3 }]);
+    expect(r?.[0]).toMatchObject({ consumoPorPrenda: "1.1" });
     expect(r?.[0].porTalla).toBeUndefined();
   });
   it("cada color recibe solo las tallas que tiene: el de S·M·L recibe la L, el de S·M no, y los dos parten de su cifra única", () => {
     const telas = [fila("BEI", "1.1"), fila("NEG", "1.3")];
-    const p = parcheDeTodos({ insumoId: "", consumo: "", porTalla: { L: "1.5" } });
+    const p = parcheDeTodos({ consumo: "", porTalla: { L: "1.5" } });
     const r = ponerEnTodosLosColores(telas, [{ indice: 0, tela: telas[0], tallas: tallasSM }, { indice: 1, tela: telas[1], tallas: sml }], p!);
     expect(r[0].porTalla).toBeUndefined();
     expect(r[1].porTalla).toEqual({ S: "1.3", M: "1.3", L: "1.5" });
   });
   it("un color que ya estaba por talla cambia solo la talla escrita", () => {
     const ya = { ...fila("BEI"), porTalla: { S: "1.0", M: "1.4" } };
-    const p = parcheDeTodos({ insumoId: "", consumo: "", porTalla: { S: "0.8" } });
+    const p = parcheDeTodos({ consumo: "", porTalla: { S: "0.8" } });
     expect(ponerEnTodosLosColores([ya], [{ indice: 0, tela: ya, tallas: tallasSM }], p!)[0].porTalla).toEqual({ S: "0.8", M: "1.4" });
   });
 });

@@ -170,10 +170,10 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
       onTelas([...telas.slice(0, primerAvio), nueva, ...telas.slice(primerAvio)]);
     }
   }
-  // «La misma tela en todos los colores» (2026-10-31): un recuadro aparte donde se elige una tela y unos metros por prenda (o una cifra por talla) y, SOLO al pulsar «Copiar a todos los colores»,
-  // se copian a la fila de cada color. Lo vacío no se copia ni borra nada, y cada fila se corrige después por su cuenta. Solo en Nueva orden (editar una orden abierta no repite lo ya anotado).
+  // «Los mismos metros en todos los colores» (2026-10-31): un recuadro aparte donde se escriben los metros por prenda (o una cifra por talla) y, SOLO al pulsar «Copiar a todos los colores»,
+  // se copian a la fila de cada color. La TELA no se copia (cada color lleva la suya). Lo vacío no se copia ni borra nada, y cada fila se corrige después por su cuenta. Solo en Nueva orden (editar una orden abierta no repite lo ya anotado).
   // `porTalla` nulo = una sola cifra; con valor = una cifra por talla (las tallas de toda la orden), que se copia a cada color que tiene esa talla.
-  const [paraTodos, setParaTodos] = useState<{ insumoId: string; consumo: string; porTalla: Record<string, string> | null }>({ insumoId: "", consumo: "", porTalla: null });
+  const [paraTodos, setParaTodos] = useState<{ consumo: string; porTalla: Record<string, string> | null }>({ consumo: "", porTalla: null });
   const hayVariosColores = !edicion && colores.length >= 2;
   const tallasDeTodas = tallasDeLaFila(null, coloresOrden);
   const puedeSepararParaTodos = porColor.some((f) => admitePorTalla(f.color.tallas ?? [])) && admitePorTalla(tallasDeTodas);
@@ -271,25 +271,16 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
         {hayVariosColores && (
           <div data-guia="prod-orden-nueva.tela-todos" className="space-y-3 rounded-2xl border border-dashed border-borde-control bg-hueso/40 px-3.5 py-3">
             <div className="min-w-0">
-              <p className="font-display text-[15px] leading-tight text-tinta">La misma tela en todos los colores</p>
+              <p className="font-display text-[15px] leading-tight text-tinta">Los mismos metros en todos los colores</p>
               <p className="text-[12.5px] text-tinta/70">
-                Elige la tela y los metros una vez y pulsa «Copiar a todos los colores»: se ponen en cada color. Después puedes cambiar uno.
+                Escribe cuánto lleva cada prenda una sola vez y pulsa «Copiar a todos los colores»: se pone en cada color. La tela de cada color la eliges abajo, y después puedes cambiar uno.
               </p>
             </div>
-            <div className={todosPorTalla ? "grid grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-1" : "grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1"}>
-              <CampoSelect
-                id="tela-todos"
-                etiqueta="Tela"
-                valor={paraTodos.insumoId}
-                onValor={(v) => setParaTodos((p) => ({ ...p, insumoId: v }))}
-                opciones={opcionesTela(null, paraTodos.insumoId || null)}
-                marcador="Elegir la tela"
-                deshabilitado={telasDelEstante.length === 0}
-              />
-              {!todosPorTalla && (
+            {!todosPorTalla && (
+              <div className="w-[8.5rem]">
                 <CampoTexto
                   id="tela-todos-consumo"
-                  etiqueta={`${paraTodos.insumoId && porId.get(paraTodos.insumoId) ? unidadCorta(porId.get(paraTodos.insumoId)!.unidad) : "m"} por prenda`}
+                  etiqueta="m por prenda"
                   mono
                   inputMode="decimal"
                   placeholder={consumoSugerido(consumoDeclarado) || "0.000"}
@@ -298,8 +289,8 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   pie={pieDelConsumo(consumoDeclarado)}
                   tono="neutro"
                 />
-              )}
-            </div>
+              </div>
+            )}
             {todosPorTalla && (
               <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
                 {tallasDeTodas.map((x) => (

@@ -328,17 +328,18 @@ function parcheDeUnaTalla(talla: string, valor: string): (fila: FilaDeColorParaT
   };
 }
 
-/** Lo que la persona escribió en el recuadro «Misma tela para todos los colores» y todavía no copió: la tela, y UNA cifra o una por talla (`porTalla` con valor = modo por talla). */
-export type BorradorParaTodos = { insumoId: string; consumo: string; porTalla: Record<string, string> | null };
+/** Lo que la persona escribió en el recuadro «Los mismos metros en todos los colores» y todavía no copió: UNA cifra o una por talla (`porTalla` con valor = modo por talla). La tela NO se copia: cada color lleva la suya. */
+export type BorradorParaTodos = { consumo: string; porTalla: Record<string, string> | null };
 
 /**
- * Lo que el botón «Copiar a todos los colores» copia a la fila de cada color, en UNA sola pasada (dos pasadas seguidas sobre la misma lista se pisarían): la tela si se eligió, y los metros si se
- * escribieron —una cifra, o la de cada talla que tenga cifra—. Lo que está vacío no se copia ni borra nada (como «Llenar todas con»). `null` = no hay nada que copiar: el botón sale apagado.
+ * Lo que el botón «Copiar a todos los colores» copia a la fila de cada color, en UNA sola pasada (dos seguidas sobre la misma lista se pisarían): los metros por prenda —una cifra, o la de cada
+ * talla que tenga cifra—. La tela de cada color no se toca (Felipe, 2026-10-31: «solo copiarse el input de los números, no del combo»). Lo que está vacío no se copia ni borra nada (como
+ * «Llenar todas con»). `null` = no hay nada que copiar: el botón sale apagado.
  */
 export function parcheDeTodos(b: BorradorParaTodos): ((fila: FilaDeColorParaTodos) => Partial<TelaBorrador>) | null {
   const tallas = b.porTalla === null ? [] : Object.entries(b.porTalla).filter(([, v]) => v.trim() !== "");
   const unaCifra = b.porTalla === null && b.consumo.trim() !== "";
-  if (b.insumoId === "" && !unaCifra && tallas.length === 0) return null;
+  if (!unaCifra && tallas.length === 0) return null;
   return (fila) => {
     let tela = fila.tela;
     let junto: Partial<TelaBorrador> = {};
@@ -346,7 +347,6 @@ export function parcheDeTodos(b: BorradorParaTodos): ((fila: FilaDeColorParaTodo
       junto = { ...junto, ...p };
       tela = { ...tela, ...p };
     };
-    if (b.insumoId !== "") sumar({ insumoId: b.insumoId });
     if (unaCifra) sumar({ consumoPorPrenda: b.consumo, porTalla: null });
     for (const [talla, valor] of tallas) sumar(parcheDeUnaTalla(talla, valor)({ ...fila, tela }));
     return junto;
