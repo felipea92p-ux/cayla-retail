@@ -281,7 +281,8 @@ select count(*) from retail.fn_categorias_gasto();`);
   esperar("nadie lee `categorias_gasto` directo", r.ok && catDirecto.includes("permission denied"), r);
   // 13 desde los gastos del viaje (ADR-0362 fase 6 · actividad 3, 20261013221000): «Traer la mercadería» (609) y «Viaje de compra» (631).
   // 18 desde Luz, Agua, Internet, Telefonía y Software (ADR-0477, 20261022205000): son 5 filas nuevas del catálogo.
-  esperar("las 20 categorías (las 18 de siempre y «limpieza» y «bolsas», 20261029044000) se leen por su función", r.ok && Number(categorias) === 20, r);
+  // 21 desde «Consumibles del Taller» (ADR-0594, 20261031195000).
+  esperar("las 21 categorías (las 18 de siempre, «limpieza» y «bolsas» de 20261029044000 y «consumibles_taller» de 20261031195000) se leen por su función", r.ok && Number(categorias) === 21, r);
 }
 
 // 9. El gasto rápido de Caja pagado con el Yape o el Plin de la tienda (ADR-0368, act. 2026-10-12): lo que manda la hoja (sin caja y
@@ -392,6 +393,33 @@ select count(*) from retail.fn_presupuesto_lineas('2026-09-01') where cuenta = '
   esperar("la lista de Gastos sí las separa: 5 categorías, todas con cuenta 636, que suman 295.85", c.ok && panel === "5|295.85", c);
   esperar("cada una con su nombre propio en el panel", c.ok && nombres === "agua=Agua,internet=Internet,luz=Luz,servicios_basicos=Servicios básicos,telefonia=Telefonía", c);
   esperar("el Presupuesto sigue con UNA sola línea para la cuenta 636", c.ok && Number(presupuesto) === 1, c);
+}
+
+// 10b. «Consumibles del Taller» (ADR-0594, 20261031195000): agujas, hilo general y aceite son un GASTO del Taller, no un insumo con estante. La categoría
+//      existe, activa, en la cuenta 656 y al final de la lista; un gasto del Taller en ella suma en la línea 656 «Suministros» de la sede TALLER (no de una
+//      tienda), se ve separado en la lista de Gastos, y no tiene parte de CLAURE (sin fila en `gasto_reparto_claure`: el Taller es de CAYLA).
+{
+  const sede = (sql) => `${ESCENA}\nselect id as taller from retail.ubicaciones where nombre = 'Taller' \\gset\n${sql}`;
+  const a = correr(sede(`
+select nombre || '|' || cuenta_pcge || '|' || activo::text from retail.categorias_gasto where codigo = 'consumibles_taller';
+select count(*) from retail.fn_categorias_gasto() where codigo = 'consumibles_taller' and cuenta = '656' and cuenta_nombre = 'Suministros';
+select count(*) from retail.categorias_gasto where codigo = 'consumibles_taller' and orden > (select max(orden) from retail.categorias_gasto where codigo in ('limpieza','bolsas'));
+select count(*) from retail.gasto_reparto_claure where categoria = 'consumibles_taller';
+select coalesce(sum((x->>'monto')::numeric), 0) as base_656 from retail.fn_estado_resultados('2026-09-01', '2026-09-30', :'taller') e, jsonb_array_elements(e.detalle_gastos) x where e.ubicacion_id = :'taller' and x->>'cuenta' = '656' \\gset
+select retail.registrar_gasto(:'taller', 'consumibles_taller', 'Agujas Clase B (prueba)', '2026-09-15', 45, null, 'yape') as _g1 \\gset
+select retail.registrar_gasto(:'taller', 'consumibles_taller', 'Hilo general (prueba)', '2026-09-16', 30.50, null, 'yape') as _g2 \\gset
+select sum((x->>'monto')::numeric) - :base_656 from retail.fn_estado_resultados('2026-09-01', '2026-09-30', :'taller') e, jsonb_array_elements(e.detalle_gastos) x where e.ubicacion_id = :'taller' and x->>'cuenta' = '656';
+select count(*) from retail.gastos where categoria = 'consumibles_taller' and ubicacion_id = :'taller';
+select count(*) from retail.gastos where categoria = 'consumibles_taller' and ubicacion_id <> :'taller';
+select count(*) || '|' || sum((x->>'monto')::numeric) from jsonb_array_elements(retail.fn_gastos_panel('2026-09-01', '2026-09-30', :'taller') -> 'por_categoria') x where x->>'categoria' = 'consumibles_taller' and x->>'cuenta' = '656' and x->>'nombre' = 'Consumibles del Taller';`));
+  const [fila, enLista, alFinal, reparto, sumaTaller, enElTaller, enOtraSede, panel] = lineas(a);
+  esperar("«Consumibles del Taller» existe, activa y en la cuenta 656", a.ok && fila === "Consumibles del Taller|656|true", a);
+  esperar("la función de la lista la trae con la cuenta «Suministros»", a.ok && Number(enLista) === 1, a);
+  esperar("va después de «Limpieza» y «Bolsas y empaque» en la lista", a.ok && Number(alFinal) === 1, a);
+  esperar("no tiene reparto con CLAURE: la parte de CLAURE es 0 (sin fila)", a.ok && Number(reparto) === 0, a);
+  esperar("dos gastos del Taller en ella suben la línea 656 del Estado de resultados de la sede Taller exactamente 75.50", a.ok && Number(sumaTaller) === 75.5, a);
+  esperar("quedan anotados en la sede Taller y en ninguna otra", a.ok && Number(enElTaller) >= 2 && Number(enOtraSede) === 0, a);
+  esperar("la lista de Gastos la muestra aparte, con su nombre, sumando 75.50", a.ok && panel === "1|75.50", a);
 }
 
 // 11. Desde Caja, sin el módulo Gastos (ADR-0491, 20261023212000): quien maneja la caja abierta de su tienda registra el gasto de HOY
