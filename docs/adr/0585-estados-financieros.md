@@ -301,6 +301,21 @@ en oscuro, junto a la maqueta, y se miraron las dos imágenes. Tipos, vitest, Kn
   las cuentas se lo dice si llega por URL.
 - Se vio con números de ejemplo en local (capturas a 1440 px) antes de conectarlo. Sin probar con sesión.
 
+## Actualización 2026-10-31 (c) · Una barra con las siete vistas
+
+- Con el menú «Ver» quedaban dos menús uno al lado del otro con la misma lista de seis («Ver» y «Descargar para el contador»). Felipe
+  comparó en una maqueta tocable (`docs/maquetas/finanzas-eeff-contador-2026-10/`) dos menús, un solo menú «Para el contador» y **una
+  barra horizontal**, y eligió la barra.
+- **La barra** va bajo el título, con la pieza de pestaña de vista del ERP (`<Pestanas>`, ADR-0358): Respuestas · Resultados · Flujo de
+  efectivo · Balance · Patrimonio · Saldos por cuenta · Libro diario. Los nombres son cortos para que las siete entren en una fila (949 px,
+  medido en local a 1024, 1280 y 1440 px); el nombre completo va en el título del cuadro y al pasar el mouse. La pieza no tiene
+  separadores, así que los tres grupos de la maqueta quedan en el orden, sin rayas.
+- **«Respuestas» muestra las cuatro tarjetas**; en un cuadro del contador, las tarjetas se van y queda su título con **«Descargar Excel»**
+  (`DescargarCuadro`), que baja solo ese cuadro. Se fueron los menús «Ver» y «Descargar para el contador» (y `MenuDescargar`, y el ícono
+  que se le había sumado a `MenuAcciones`).
+- Una terminal ve solo las vistas de su tienda: lo de CAYLA entera no aparece en su barra (una pestaña que la cuenta no ve, no está).
+- El PR #1519 se había fusionado antes de esto: la rama se reinició desde main con los commits que faltaban.
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero

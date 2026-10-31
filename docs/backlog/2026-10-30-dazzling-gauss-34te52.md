@@ -50,3 +50,5 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
   Comparado con la maqueta en capturas locales a 1440 px, claro y oscuro. **Sin probar con sesión.**
 - [x] **2026-10-31 · El menú «Ver».** Las respuestas o cualquiera de los seis cuadros del contador en pantalla; saldos por cuenta y libro
   diario en `/finanzas/reportes/cuentas`. Reemplaza al selector «Respuesta | Formato formal». **Sin probar con sesión.**
+- [x] **2026-10-31 · La barra de las siete vistas** (elegida en la maqueta `docs/maquetas/finanzas-eeff-contador-2026-10/`): reemplaza al
+  menú «Ver» y al menú de descarga; cada cuadro trae su «Descargar Excel». **Sin probar con sesión.**

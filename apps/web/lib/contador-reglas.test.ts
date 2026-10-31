@@ -154,7 +154,7 @@ describe("ver en pantalla: los saldos por cuenta y el libro diario", () => {
   });
 });
 
-describe("el menú «Ver»", () => {
+describe("la barra de las siete vistas", () => {
   const hrefEstado = (c: string, f: string) => `/${c}${f === "formal" ? "?forma=formal" : ""}`;
   const hrefCuentas = (v: string) => `/cuentas?ver=${v}`;
   it("siete opciones: las respuestas y los seis cuadros, cada uno a su lugar", () => {
@@ -169,6 +169,7 @@ describe("el menú «Ver»", () => {
       ["diario", "/cuentas?ver=diario"],
     ]);
     expect(o.every((x) => !x.motivo)).toBe(true);
+    expect(o.map((x) => x.corto)).toEqual(["Respuestas", "Resultados", "Flujo de efectivo", "Balance", "Patrimonio", "Saldos por cuenta", "Libro diario"]);
   });
   it("desde las cuentas, «Las respuestas» vuelve a ¿Ganamos?; una terminal ve lo de CAYLA entera con su motivo", () => {
     const o = opcionesVer({ pantalla: "diario", hrefEstado, hrefCuentas, veTodo: false });

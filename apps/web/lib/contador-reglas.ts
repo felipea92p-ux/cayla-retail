@@ -151,9 +151,9 @@ export function filtrarDiario(lineas: readonly LineaDiario[], buscado: string, c
   return lineas.filter((l) => [l.cuenta, cuentas.get(l.cuenta) ?? "", l.asiento, l.glosa].some((c) => sinTildes(c).includes(q)));
 }
 
-// ---- El menú «Ver» de la cabecera (Felipe 2026-10-31: «la 2, el menú Ver») -----------------------------------------------------
+// ---- La barra de las siete vistas (Felipe 2026-10-31: primero «el menú Ver», después «una barra horizontal») -------------------
 
-/** Lo que se puede mirar: las respuestas, o uno de los seis cuadros del contador (los mismos seis del menú de descarga). */
+/** Lo que se puede mirar: las respuestas, o uno de los seis cuadros del contador (los mismos seis que se descargan). */
 export type VistaVer = "respuestas" | ArchivoContador;
 
 /** La pantalla de los saldos por cuenta y el libro diario (`?cuadro=saldos|diario`: `?ver=` ya es la sede en el telar). */
@@ -166,7 +166,18 @@ const ESTADO_DEL_CUADRO = { resultados: "ganamos", flujo: "plata", balance: "val
 type CuadroDeEstado = keyof typeof ESTADO_DEL_CUADRO;
 const esCuadroDeEstado = (v: ArchivoContador): v is CuadroDeEstado => v in ESTADO_DEL_CUADRO;
 
-/** Lo que el menú dice que se está viendo: en un estado, sus respuestas o su cuadro formal; en la pantalla de las cuentas, saldos o diario. */
+/** El nombre en la barra de las siete vistas (Felipe 2026-10-31: «una barra horizontal»): corto, para que las siete entren en una fila
+ *  de escritorio; el nombre completo va en el título del cuadro. */
+const CORTO: Readonly<Record<ArchivoContador, string>> = {
+  resultados: "Resultados",
+  flujo: "Flujo de efectivo",
+  balance: "Balance",
+  patrimonio: "Patrimonio",
+  saldos: "Saldos por cuenta",
+  diario: "Libro diario",
+};
+
+/** Lo que la barra marca como elegido: en un estado, sus respuestas o su cuadro formal; en la pantalla de las cuentas, saldos o diario. */
 export function vistaActiva(pantalla: ClaveEstado | VerCuentas, forma: FormaEstado): VistaVer {
   if (pantalla === "saldos" || pantalla === "diario") return pantalla;
   if (forma === "respuesta") return "respuestas";
@@ -174,7 +185,7 @@ export function vistaActiva(pantalla: ClaveEstado | VerCuentas, forma: FormaEsta
 }
 
 /**
- * Las siete opciones del menú, en orden, con a dónde lleva cada una. «Las respuestas» vuelve al estado que se mira (desde las cuentas, a
+ * Las siete vistas de la barra, en orden, con a dónde lleva cada una. «Las respuestas» vuelve al estado que se mira (desde las cuentas, a
  * ¿Ganamos?); un cuadro formal lleva a su estado con `?forma=formal`; saldos y diario, a la pantalla de las cuentas. Lo que es de CAYLA
  * entera se ve con su motivo y no se elige en una terminal (la misma regla que la descarga).
  */
@@ -188,15 +199,16 @@ export function opcionesVer({
   hrefEstado: (clave: ClaveEstado, forma: FormaEstado) => string;
   hrefCuentas: (ver: VerCuentas) => string;
   veTodo: boolean;
-}): { clave: VistaVer; etiqueta: string; href: string; motivo?: string }[] {
+}): { clave: VistaVer; etiqueta: string; corto: string; href: string; motivo?: string }[] {
   const estado: ClaveEstado = pantalla === "saldos" || pantalla === "diario" ? "ganamos" : pantalla;
   return [
-    { clave: "respuestas" as const, etiqueta: "Las respuestas", href: hrefEstado(estado, "respuesta") },
+    { clave: "respuestas" as const, etiqueta: "Las respuestas", corto: "Respuestas", href: hrefEstado(estado, "respuesta") },
     ...ARCHIVOS_CONTADOR.map((a) => {
       const motivo = motivoArchivoContador(a.clave, veTodo);
       return {
         clave: a.clave,
         etiqueta: a.etiqueta,
+        corto: CORTO[a.clave],
         href: esCuadroDeEstado(a.clave) ? hrefEstado(ESTADO_DEL_CUADRO[a.clave], "formal") : hrefCuentas(a.clave as VerCuentas),
         ...(motivo ? { motivo } : {}),
       };
