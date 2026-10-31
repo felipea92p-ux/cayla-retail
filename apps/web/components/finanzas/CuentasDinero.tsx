@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -19,25 +18,19 @@ import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type Ver } from "@/lib/gastos-reglas";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
-  MEDIOS_COBRO,
   OPCIONES_QUE_PASO,
-  TEXTO_MEDIO_COBRO,
   TEXTO_MOVIMIENTO,
   TEXTO_SIN_CUENTA,
-  avisosDeMaquinas,
   cuadra,
   cuentasPara,
-  deudaConDueno,
   ejemploMontoDeposito,
   ejemploReferenciaDeposito,
   leerEgresoParaMovimiento,
   leerLotePendiente,
   lotesPorDefecto,
-  nombreCorto,
   nombreDeMaquinaDeLaPuente,
   saldoConCentimos,
   tituloDelMovimiento,
-  idsSoloTransferencia,
   opcionQuePaso,
   resumenAbono,
   resumenConciliacion,
@@ -46,22 +39,18 @@ import {
   tipoDeMovimiento,
   validarAbonoPos,
   validarMovimiento,
-  type AlertaPos,
   type BorradorMovimiento,
   type Conciliacion,
   type ConciliacionCuenta,
   type CuentaDinero,
   type EgresoParaMovimiento,
-  type FilaMedio,
   type LotePendiente,
   type MovimientoDinero,
-  type MovimientoDueno,
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
-import { textoRegistrar, type AvisoPlanilla } from "@/lib/planilla-salidas-reglas";
-import { SalidasPlanillaModal } from "@/components/finanzas/dinero/SalidasPlanillaModal";
 import { Boton } from "@/components/ui/campos";
+import { UltimosMovimientos } from "@/components/finanzas/dinero/HistorialDinero";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
@@ -107,6 +96,7 @@ export function PantallaDinero({
   deuda,
   hoy,
   fallas,
+  campana,
   acciones,
   panorama = false,
   subtitulo,
@@ -129,9 +119,11 @@ export function PantallaDinero({
   deuda: number;
   hoy: string;
   fallas: string[];
+  /** La campana «Estado de las cuentas», a la izquierda de «+ Registrar movimiento» (solo «Dónde está»). */
+  campana?: ReactNode;
   /** La acción de la cabecera si no es «+ Registrar movimiento» (CLAURE: «Pagar a CLAURE»); `null` = ninguna (el dock sigue con «Registrar movimiento»). */
   acciones?: ReactNode;
-  /** La cara dibuja su propio resumen: la cabecera no repite la respuesta grande ni el orillo. */
+  /** La cara dibuja su propio resumen (la tarjeta de total de «Dónde está»): la cabecera no repite la respuesta grande ni el orillo. */
   panorama?: boolean;
   /** La frase bajo el título, si la cara dice la suya. */
   subtitulo?: string;
@@ -171,9 +163,12 @@ export function PantallaDinero({
             acciones !== undefined ? (
               acciones
             ) : (
-              <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
-                + Registrar movimiento
-              </Boton>
+              <>
+                {campana}
+                <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+                  + Registrar movimiento
+                </Boton>
+              </>
             )
           }
         />
@@ -203,196 +198,35 @@ export function PantallaDinero({
 
 // ---- Pestaña «Cuentas» ------------------------------------------------------------------------------------------------
 
+/** «Últimos movimientos» con su detalle (donde se anula con motivo): vive en la columna derecha de «Dónde está» (`PanoramaDinero`). */
+export function MovimientosEnPantalla({ movimientos, hoy }: { movimientos: MovimientoDinero[]; hoy: string }) {
+  const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
+  return (
+    <>
+      <UltimosMovimientos movimientos={movimientos} hoy={hoy} onElegir={setDetalle} />
+      {detalle && <MovimientoDetalleModal movimiento={detalle} onCerrar={() => setDetalle(null)} />}
+    </>
+  );
+}
+
 export function CuentasPanel({
-  cuentas,
-  movimientos,
-  medios,
-  plata,
   sinCuenta,
-  alertas,
-  planilla,
   ver,
   esLider,
 }: {
-  cuentas: CuentaDinero[];
-  movimientos: MovimientoDinero[];
-  medios: FilaMedio[];
-  plata: MovimientoDueno[];
   sinCuenta: SinCuenta[];
-  /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
-  alertas?: AlertaPos[];
-  /** La planilla que Dynamic pagó y no dice de qué banco salió, partida por el banco de quien cobra (ADR-0567; solo el líder). */
-  planilla?: AvisoPlanilla[];
   ver: Ver;
   esLider: boolean;
 }) {
-  const abrir = useContext(ContextoMovimiento);
-  const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
-  const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
-  const [salidasDe, setSalidasDe] = useState<AvisoPlanilla | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
-  // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: la plata del dueño y lo que no dice su cuenta. Lo que se explica
-  // sede por sede (a qué cuenta entra el cobro de cada una) es solo de «todas»: la empresa no es una sede (Felipe 2026-10-28).
+  // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: lo que no dice su cuenta. La plata del dueño y a qué cuenta entra cada
+  // cobro tienen sus propias tarjetas (PlataDelDueno, CobrosDinero).
   const verTodas = !ver.ubicacionId;
-  const verPorSede = verTodas && !ver.soloEmpresa;
-  const dueno = deudaConDueno(plata);
   const totalSinCuenta = sinCuenta.reduce((a, s) => a + s.monto, 0);
 
   return (
     <>
-      {/* La máquina que no depositó a tiempo (ADR-0429, act. 4): se dice arriba de las cuentas, con el camino para registrarlo. */}
-      {avisosMaquinas.map((a) => (
-        <Aviso
-          key={a.maquina.maquinaId}
-          tono="atencion"
-          titulo={a.titulo}
-          guia="fin-dinero.aviso-maquina"
-          accion={
-            <button type="button" className="btn-cayla btn-enlace" onClick={() => abrir("abono_tarjeta", a.maquina.cuentaId)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-registrar">
-              Registrar el depósito
-            </button>
-          }
-        >
-          {a.detalle}
-        </Aviso>
-      ))}
-
-      {/* La planilla que Dynamic pagó (ADR-0567): una línea por banco de quien cobra, y la hoja que registra sus salidas de un toque. */}
-      {salidasDe && <SalidasPlanillaModal aviso={salidasDe} cuentas={cuentas} onCerrar={() => setSalidasDe(null)} />}
-      {(planilla ?? []).map((a) => (
-        <Aviso
-          key={a.clave}
-          tono="atencion"
-          titulo={a.titulo}
-          guia="fin-dinero.aviso-planilla"
-          accion={
-            a.porRegistrar.length > 0 ? (
-              <button type="button" className="btn-cayla btn-enlace" onClick={() => setSalidasDe(a)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-planilla-registrar">
-                {textoRegistrar(a.porRegistrar.length)}
-              </button>
-            ) : undefined
-          }
-        >
-          <ul className="mb-1 space-y-0.5 tabular-nums">
-            {a.tramos.map((t) => (
-              <li key={t.banco}>{t.texto}</li>
-            ))}
-          </ul>
-          {a.detalle}
-        </Aviso>
-      ))}
-
-      {esLider && verTodas && (
-        <Superficie pad className="anim-sube" guia="fin-dinero.dueno">
-          <CabeceraBloque
-            titulo="Plata del dueño"
-            bajada={
-              <>
-                Cuando pones plata en un mal momento, eliges si es un <b className="font-semibold text-tinta">aporte</b> (se queda en CAYLA) o un <b className="font-semibold text-tinta">préstamo</b> (CAYLA te lo devuelve).
-              </>
-            }
-          >
-            <div className="flex shrink-0 gap-2">
-              <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrir("dueno_pone")} aria-haspopup="dialog" data-guia="fin-dinero.poner-plata">
-                Poner plata
-              </button>
-              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => abrir("dueno_saca")} aria-haspopup="dialog">
-                Sacar plata
-              </button>
-            </div>
-          </CabeceraBloque>
-          <div className="fin-dueno-cifras">
-            <div>
-              <span className="fin-etq block">CAYLA te debe</span>
-              <div className="fin-cuenta-saldo">{solesRedondo(dueno.deuda)}</div>
-            </div>
-            <ul className="fin-lista-mov min-w-0 flex-1 border-t border-sand">
-              {dueno.prestamos.length === 0 ? (
-                <li>
-                  <span className="text-taupe">Sin préstamos del dueño.</span>
-                  <span />
-                </li>
-              ) : (
-                dueno.prestamos.map((p) => (
-                  <li key={p.id}>
-                    <span>
-                      {fechaCorta(p.fecha)} · préstamo{p.referencia ? ` · ${p.referencia}` : ""}
-                    </span>
-                    <span>
-                      {solesRedondo(p.monto)} · devuelto {solesRedondo(p.devuelto)}
-                    </span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        </Superficie>
-      )}
-
-      {esLider && verPorSede && medios.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-dinero.medios">
-          <Herramientas className="justify-between">
-            <div className="fin-herramientas-titulo min-w-0">
-              <b>A qué cuenta entra cada cobro</b>
-              <p>Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</p>
-            </div>
-            <Link href="/configuracion?tab=cuentas" className="btn-cayla btn-sutil btn-chico">
-              Cambiar en Configuración
-            </Link>
-          </Herramientas>
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla fin-tabla-medios">
-              <thead>
-                <tr>
-                  <th>Sede</th>
-                  <th>Efectivo</th>
-                  {MEDIOS_COBRO.map((m) => (
-                    <th key={m}>{TEXTO_MEDIO_COBRO[m]}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filasMedios(medios).map((f) => (
-                  <tr key={f.ubicacionId}>
-                    <td data-l="Sede">
-                      <b>{f.ubicacionNombre}</b>
-                    </td>
-                    {f.soloTransferencia ? (
-                      <td data-l="Efectivo" className="fin-tenue">
-                        <span role="img" aria-label={`${f.ubicacionNombre} no cobra con Efectivo`}>
-                          —
-                        </span>
-                      </td>
-                    ) : (
-                      <td data-l="Efectivo">
-                        <span className="fin-metodo" data-m="efectivo" />
-                        {(cuentas.find((c) => c.tipo === "cajon" && c.ubicacionId === f.ubicacionId)?.nombre ?? "Su cajón").replace("Cajón · ", "Cajón ")}
-                      </td>
-                    )}
-                    {MEDIOS_COBRO.map((m) =>
-                      f.soloTransferencia && m !== "transferencia" ? (
-                        // El Taller no cobra a clientes: solo guarda la cuenta de donde paga por transferencia. No es una configuración incompleta.
-                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className="fin-tenue">
-                          <span role="img" aria-label={`${f.ubicacionNombre} no cobra con ${TEXTO_MEDIO_COBRO[m]}`}>
-                            —
-                          </span>
-                        </td>
-                      ) : (
-                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className={f.porMedio[m] ? undefined : "fin-tenue"}>
-                          <span className="fin-metodo" data-m={m} />
-                          {f.porMedio[m] ? nombreCorto(f.porMedio[m]) : "Sin cuenta"}
-                        </td>
-                      ),
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Superficie>
-      )}
-
       {esLider && verTodas && totalSinCuenta !== 0 && (
         <p className="nota-cayla anim-sube" data-guia="fin-dinero.sin-cuenta">
           Este mes, <b>{soles(Math.abs(totalSinCuenta))}</b> movieron plata sin decir de qué cuenta:{" "}
@@ -408,87 +242,8 @@ export function CuentasPanel({
         </p>
       )}
       {decirCuenta && <PagosSinCuentaModal onClose={() => setDecirCuenta(false)} />}
-
-      <Superficie className="anim-sube" guia="fin-dinero.movimientos">
-        <Herramientas>
-          <b className="text-sm font-semibold text-tinta">Movimientos entre cuentas</b>
-          <span className="text-sm text-taupe">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span>
-        </Herramientas>
-        {movimientos.length === 0 ? (
-          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Sin movimientos todavía. Un depósito se registra con «+ Registrar movimiento».
-          </Vacio>
-        ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Qué</th>
-                  <th>De</th>
-                  <th>A</th>
-                  <th className="fin-num">Monto</th>
-                  <th>Responsable</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movimientos.map((m) => (
-                  <tr
-                    key={m.id}
-                    data-clic
-                    tabIndex={0}
-                    className={m.estado === "anulado" ? "fin-anulada" : undefined}
-                    data-guia="fin-dinero.movimiento"
-                    onClick={() => setDetalle(m)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        setDetalle(m);
-                      }
-                    }}
-                  >
-                    <td data-l="Fecha" className="whitespace-nowrap">
-                      {fechaCorta(m.fecha)}
-                    </td>
-                    <td className="fin-ancha" data-l="Qué">
-                      <b>{TEXTO_MOVIMIENTO[m.tipo]}</b>
-                      <span className="fin-sub">
-                        {[m.referencia, m.comision > 0 ? `comisión ${soles(m.comision)} → gasto` : null, m.estado === "anulado" ? `anulado: ${m.motivoAnulacion}` : null].filter(Boolean).join(" · ") || " "}
-                      </span>
-                    </td>
-                    <td data-l="De">{m.origenNombre ? nombreCorto(m.origenNombre) : <span className="fin-tenue">El dueño</span>}</td>
-                    <td data-l="A">{m.destinoNombre ? nombreCorto(m.destinoNombre) : <span className="fin-tenue">Sale del negocio</span>}</td>
-                    <td className="fin-num" data-l="Monto">
-                      {soles(m.monto)}
-                    </td>
-                    <td data-l="Responsable" className="whitespace-nowrap">
-                      {m.registradoPor ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <PieTabla>
-          <span>Solo se agregan filas; un error se anula con motivo.</span>
-        </PieTabla>
-      </Superficie>
-
-      {detalle && <MovimientoDetalleModal movimiento={detalle} onCerrar={() => setDetalle(null)} />}
     </>
   );
-}
-
-function filasMedios(medios: readonly FilaMedio[]) {
-  const soloTransferencia = idsSoloTransferencia(medios);
-  const porTienda = new Map<string, { ubicacionId: string; ubicacionNombre: string; soloTransferencia: boolean; porMedio: Partial<Record<string, string>> }>();
-  for (const m of medios) {
-    const f = porTienda.get(m.ubicacionId) ?? { ubicacionId: m.ubicacionId, ubicacionNombre: m.ubicacionNombre, soloTransferencia: soloTransferencia.has(m.ubicacionId), porMedio: {} };
-    if (m.cuentaNombre) f.porMedio[m.medio] = m.cuentaNombre;
-    porTienda.set(m.ubicacionId, f);
-  }
-  return [...porTienda.values()];
 }
 
 // ---- Pestaña «Conciliación» (solo el líder) ----------------------------------------------------------------------------

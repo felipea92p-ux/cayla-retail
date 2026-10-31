@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { solesRedondo } from "./gastos-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, avisoCajon, chipsDondeEsta, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
 import { tienesPulso } from "./dinero-pulso-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
@@ -295,5 +295,21 @@ describe("la respuesta de cada cara", () => {
     expect(respuestaCuadrar([c("banco", 18300, 1), c("banco", 9830, 4), c("por_abonar", 2140, 2)])).toEqual({ valor: 28130, chips: [{ texto: "7 líneas por revisar", tono: "ambar" }] });
     expect(respuestaCuadrar([c("banco", 100, 0)]).chips).toEqual([{ texto: "Todo revisado", tono: "verde" }]);
     expect(respuestaCuadrar([c("por_abonar", 50, 0)])).toEqual({ valor: null, chips: [] });
+  });
+});
+
+describe("avisoCajon: el estado del cajón en su fila", () => {
+  const efectivo = [
+    { ubicacionId: "tru", abierta: true },
+    { ubicacionId: "aqp", abierta: false },
+  ];
+  it("abierta ahora o cerrada, según la caja de su tienda", () => {
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "tru" }, efectivo, false)).toEqual({ texto: "Abierta ahora", tono: "verde" });
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "aqp" }, efectivo, false)).toEqual({ texto: "Cerrada", tono: "pizarra" });
+  });
+  it("no inventa nada: el Taller, una tienda sin efectivo leído o una cuenta que no es cajón no dicen estado", () => {
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "tal" }, efectivo, true)).toBeNull();
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "lim" }, efectivo, false)).toBeNull();
+    expect(avisoCajon({ tipo: "banco", ubicacionId: null }, efectivo, false)).toBeNull();
   });
 });
