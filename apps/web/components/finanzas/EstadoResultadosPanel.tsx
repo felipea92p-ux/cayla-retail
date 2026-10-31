@@ -6,16 +6,13 @@ import { createClient } from "@/lib/supabase/client";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
-import { ResultadoPulso } from "@/components/finanzas/ResultadoPulso";
-import { Herramientas, ListaDatos, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
-import { fechaCorta, mesDe, mesesRecientes, rangoMes } from "@/lib/gastos-reglas";
+import { Herramientas, ListaDatos, PieTabla, Superficie } from "@/components/finanzas/kit";
+import { fechaCorta, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import {
   avisosER,
   claveUnidad,
   columnasER,
   conceptosER,
-  csvEstado,
   deltaTexto,
   fuentesDe,
   leerLineaDiario,
@@ -34,15 +31,14 @@ import {
   type LineaDiario,
 } from "@/lib/resultados-reglas";
 import { Aviso } from "@/components/ui/Aviso";
-import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { CalendarX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { notaResultadosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 
-// Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/,
-// `vista-reportes.js` → `vistaResultados`): cabecera «¿Ganamos?» con «Ver» → pestañas → UNA tarjeta con el mes, «Comparar» y
-// el cuadro (conceptos en filas, unidades en columnas, CAYLA al final) → dos notas. Cada cifra se puede tocar: abre las
-// líneas del diario de las que sale. La pantalla no calcula plata: todo viene de `fn_estado_resultados`.
+// Estados financieros ▸ ¿Ganamos? ▸ el formato formal (ADR-0195 F5; desde ADR-0585 va plegado al pie de ¿Ganamos?): UNA tarjeta con
+// «Comparar» y el cuadro (conceptos en filas, unidades en columnas, CAYLA al final) → dos notas. Cada cifra se puede tocar: abre las
+// líneas del diario de las que sale. La sede y el mes los elige la barra del telar; las cuentas contables no se muestran (van en lo que
+// se descarga, Felipe 2026-10-30). La pantalla no calcula plata: todo viene de `fn_estado_resultados`.
 
 const entra = (i: number, clase = "") => ({
   className: `anim-entra ${clase}`.trim(),
@@ -93,7 +89,6 @@ export function EstadoResultadosPanel({
   const enCurso = mes === mesDe(hoy);
   const cerrada = (c: FilaER) => cerradas.includes(claveUnidad(c));
   const avisos = [...avisosER(columnas, enCurso), ...(columnas.some(cerrada) ? [{ tono: "pizarra" as const, texto: NOTA_MES_CERRADO }] : [])];
-  const unidades = filas.filter((f) => f.unidad !== "consolidado");
   const ventasDe = (f: FilaER) => f.ventas;
 
   const ir = (cambios: Record<string, string | null>) => {
@@ -105,69 +100,18 @@ export function EstadoResultadosPanel({
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
 
-  const descargar = () => {
-    const url = URL.createObjectURL(
-      new Blob([csvEstado(conceptos, columnas, mes)], {
-        type: "text/csv;charset=utf-8",
-      }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `estado-de-resultados-${mes}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="space-y-6">
-      <CabeceraReportes
-        pestana="resultados"
-        titulo="¿Ganamos?"
-        bajada="Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0198). Nadie escribe un asiento."
-        acciones={
-          <>
-            {veTodo ? (
-              <label className="fin-ver" data-guia="fin-ver.combo">
-                <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                <SelectFin
-                  etiqueta="Qué mirar"
-                  valor={ver}
-                  onValor={(v) => ir({ ver: v })}
-                  opciones={[
-                    { valor: "todas", texto: "Todas las tiendas" },
-                    ...unidades.filter((u) => u.ubicacionId).map((u) => ({ valor: u.ubicacionId ?? "", texto: u.nombre })),
-                    ...(unidades.some((u) => u.unidad === "empresa") ? [{ valor: "empresa", texto: "De la empresa" }] : []),
-                  ]}
-                />
-              </label>
-            ) : (
-              <Chip versalitas={false}>{columnas[0]?.nombre ?? "Tu tienda"}</Chip>
-            )}
-            <BotonDescargar onClick={descargar} disabled={!columnas.length} guia="fin-reportes.excel">
-              Descargar Excel
-            </BotonDescargar>
-          </>
-        }
-      />
-
       {fallas.map((f) => (
         <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
           {f}
         </p>
       ))}
 
-      {/* Camino A (Felipe 2026-10-15): la respuesta grande de lo que se mira, antes del cuadro. CAYLA entera es la columna del consolidado. */}
-      <ResultadoPulso fila={(ver === "todas" ? filas.find((f) => f.unidad === "consolidado") : columnas[0]) ?? null} mes={mes} enCurso={mes === mesDe(hoy)} />
-
       <div {...entra(1)}>
         <Superficie>
-          <Herramientas guia="fin-resultados.herramientas">
-            <SelectFin
-              etiqueta="Mes"
-              valor={mes}
-              onValor={(v) => ir({ mes: v })}
-              opciones={mesesRecientes(hoy, 12).map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · a la fecha" : ""}` }))}
-            />
+          <Herramientas>
             <label className="btn-cayla btn-sutil gap-2" data-guia="fin-resultados.comparar">
               <input type="checkbox" checked={comparar} onChange={(e) => ir({ comparar: e.target.checked ? "1" : null })} />
               Comparar con {mesNombre(mesPrevio)}
@@ -181,9 +125,6 @@ export function EstadoResultadosPanel({
                 <thead>
                   <tr>
                     <th scope="col">Concepto</th>
-                    <th scope="col" style={{ textAlign: "left" }}>
-                      Cuenta
-                    </th>
                     {columnas.map((c) => (
                       <th key={claveUnidad(c)} scope="col" className={c.unidad === "consolidado" ? "fin-eerr-cons" : undefined}>
                         {nombreCorto(c)}
@@ -197,7 +138,6 @@ export function EstadoResultadosPanel({
                     const fila = (
                       <tr key={k.clave} className={k.tipo === "sub" ? "fin-eerr-sub" : k.tipo === "total" ? "fin-eerr-total" : undefined}>
                         <td>{k.nombre}</td>
-                        <td className="fin-eerr-cta">{k.cuenta}</td>
                         {columnas.map((c) => (
                           <Celda
                             key={claveUnidad(c)}
@@ -214,7 +154,6 @@ export function EstadoResultadosPanel({
                     return [
                       fila,
                       <tr key={`${k.clave}-pct`} className="fin-eerr-pct">
-                        <td />
                         <td />
                         {columnas.map((c) => {
                           const p = porcentaje(k.valor(c), ventasDe(c));

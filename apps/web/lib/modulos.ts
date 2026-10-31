@@ -168,7 +168,7 @@ export const MODULOS: readonly Modulo[] = [
   // Cuentas y dinero y Reportes son delegables (con el módulo, su tienda). Impuestos y Cierre de mes nacieron del líder y
   // se abrieron con el ADR-0253 (20260928220000): son de CAYLA entera, así que quien los tiene los ve como el líder.
   { clave: "cuentas_dinero", grupo: "Finanzas", nombre: "Cuentas y dinero", incluye: "Ver las cuentas y el efectivo de su tienda; registrar depósitos del cajón al banco, abonos de tarjeta y movimientos entre cuentas; ver lo que se debe y cuándo vence" },
-  { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Reportes financieros", incluye: "Ver el resumen, el estado de resultados, el flujo de caja y el balance de su tienda; cómo rindieron las campañas" },
+  { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Resumen y estados financieros", incluye: "Ver el resumen y los estados financieros de CAYLA entera: lo que se ganó, dónde está la plata, cuánto vale y cuánto creció lo tuyo; el presupuesto y cómo rindieron las campañas" },
   { clave: "impuestos", grupo: "Finanzas", nombre: "Impuestos", incluye: "Ver el IGV del mes de CAYLA entera (ventas contra compras), la alerta del límite de ventas del régimen y bajar el reporte para el contador" },
   { clave: "cierre_mes", grupo: "Finanzas", nombre: "Cierre de mes", incluye: "Cerrar el mes de cada tienda y de la empresa, y reabrirlo con motivo, viendo los números de todas las tiendas" },
   // ADR-0207 (20260926090000): el historial de cada módulo. No es una pantalla del lateral: se abre desde la cabecera
@@ -356,6 +356,16 @@ export const MODULOS_QUE_VEN_TODO_FINANZAS: readonly ClaveModulo[] = ["configura
  */
 export function veFinanzasDeTodo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): boolean {
   return rol === "lider" || modulos.some((m) => m.completo && MODULOS_QUE_VEN_TODO_FINANZAS.includes(m.clave));
+}
+
+/**
+ * ¿Esta cuenta ve los Estados financieros de CAYLA entera (todas las sedes, la empresa, el flujo y el Balance entero)? ESPEJA
+ * `retail.fn_ve_estados_financieros_de_todo()` (ADR-0585, Felipe 2026-10-30: «puede ver todo del módulo quien lo tenga»): el líder, o
+ * quien tiene el módulo completo y no es una terminal (el aparato del mostrador sigue viendo solo su tienda, ADR-0161 P6). Es solo
+ * MIRAR: registrar gastos sigue en `veFinanzasDeTodo`.
+ */
+export function veEstadosFinancierosDeTodo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[], terminal: boolean): boolean {
+  return rol === "lider" || (!terminal && modulos.some((m) => m.completo && m.clave === "reportes_financieros"));
 }
 
 /** Qué hace cada cuenta con un comprobante de compra (ADR-0161 P1): cada acción es de UN módulo. */

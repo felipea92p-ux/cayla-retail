@@ -175,20 +175,15 @@ const SOLO_LIDER_GRUPOS = [
   // entra cada cobro, conciliar, la plata del dueño, lo pasado sin cuenta— dejaron de ser «solo líder» y salieron de aquí.
   // Deuda que queda (BACKLOG): Cuentas y dinero sigue mostrándolas solo si la cuenta es líder (`esLider`), aunque la
   // base ya las deja a quien tiene Configuración.
+  // ADR-0585 (Felipe 2026-10-30, «puede ver todo del módulo quien lo tenga»): el Balance de CAYLA entera, su comprobación, la lectura
+  // de los saldos de arranque y el flujo con su proyección pasaron a `fn_exigir_estados_financieros_de_todo()` (el líder o quien tiene
+  // el módulo, salvo una terminal) y salieron de aquí. Queda solo ESCRIBIR los saldos de arranque.
   {
     modulo: "reportes_financieros",
-    funciones: ["fn_balance_general", "fn_conciliacion_contable", "fn_saldos_iniciales", "fn_saldos_iniciales_propuesta", "registrar_saldo_inicial"],
+    funciones: ["registrar_saldo_inicial"],
     razon:
-      "Balance de CAYLA entera y saldos de arranque (app/(app)/finanzas/reportes/balance, BalancePanel.tsx, SaldosArranqueModal.tsx). El mensaje " +
-      "de fn_exigir_lider_balance lo dice a propósito: lo ve el líder y con «Reportes financieros» se ve lo de la tienda; la página solo pide " +
-      "estas funciones cuando la cuenta es líder (`esLider`) y a quien no lo es le muestra el balance de su tienda.",
-  },
-  {
-    modulo: "reportes_financieros",
-    funciones: ["fn_flujo_caja_real", "fn_flujo_caja_proyeccion"],
-    razon:
-      "Flujo de caja y Escenarios (app/(app)/finanzas/reportes/flujo y /escenarios): quien no es líder ve <SoloLiderFlujo> en lugar de la " +
-      "pantalla. El mensaje de fn_flujo_exigir_lider dice «por ahora lo ve el líder»: es una decisión provisional, no un olvido.",
+      "Registrar los saldos de arranque (SaldosArranqueModal.tsx, desde app/(app)/finanzas/reportes/balance): el botón «Saldos de arranque» " +
+      "se muestra solo al líder (`esLider` en BalancePanel.tsx), y fn_exigir_lider_balance lo dice: «Los saldos de arranque los registra el líder».",
   },
   {
     modulo: "liquidacion",

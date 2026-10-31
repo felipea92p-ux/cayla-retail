@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { Vacio } from "@/components/ui/Vacio";
 import { CascadaPulso } from "@/components/finanzas/CascadaPulso";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
-import { cascadaDeFila, respuestaDeFila } from "@/lib/pulso-reglas";
+import { cascadaDeFila, respuestaDeFila, type TramoCascada } from "@/lib/pulso-reglas";
 import { ChartColumn } from "lucide-react";
 
 // Reportes ▸ Estado de resultados en camino A (Felipe 2026-10-15): antes del cuadro, la respuesta grande «¿cuánto gané en
@@ -15,13 +15,30 @@ import { ChartColumn } from "lucide-react";
 
 const entra = (clase: string, i: number) => ({ className: `${clase} anim-entra`, style: { ["--i" as string]: i } as CSSProperties });
 
-export function ResultadoPulso({ fila, mes, enCurso }: { fila: FilaER | null; mes: string; enCurso: boolean }) {
+export function ResultadoPulso({
+  fila,
+  mes,
+  enCurso,
+  tramos,
+  siempreAbierta = false,
+  pie,
+}: {
+  fila: FilaER | null;
+  mes: string;
+  enCurso: boolean;
+  /** La cascada a dibujar (¿Ganamos? trae la suya, con lo planeado; ADR-0585). Por defecto, la de la fila. */
+  tramos?: TramoCascada[];
+  /** La cascada a la vista, sin «¿Por qué?» (¿Ganamos?: la cascada ES la pantalla). */
+  siempreAbierta?: boolean;
+  /** Bajo la cascada: la leyenda de la raya de lo planeado. */
+  pie?: ReactNode;
+}) {
   const [porque, setPorque] = useState(false);
   const vende = !fila || fila.unidad === "tienda" || fila.unidad === "consolidado";
   const nombre = fila ? (fila.unidad === "consolidado" ? "CAYLA" : fila.unidad === "empresa" ? "lo de la empresa" : fila.nombre) : "";
   const pregunta = vende ? `¿Cuánto ${enCurso ? "va ganando" : "ganó"} ${nombre} en ${mesNombre(mes)}?` : `¿Cuánto costó ${nombre} en ${mesNombre(mes)}?`;
   const resp = fila ? respuestaDeFila(fila, { mes, vende, taller: fila.unidad === "taller" }) : null;
-  const cascada = fila ? cascadaDeFila(fila) : [];
+  const cascada = tramos ?? (fila ? cascadaDeFila(fila) : []);
   return (
     <section className="fin-pulso-hero" aria-labelledby="fin-resultados-pregunta" data-guia="fin-resultados.pulso">
       <p id="fin-resultados-pregunta" {...entra("fin-pulso-pregunta", 1)}>
@@ -48,7 +65,13 @@ export function ResultadoPulso({ fila, mes, enCurso }: { fila: FilaER | null; me
             </span>
           </p>
           <p {...entra("fin-pulso-explica", 4)}>{resp.explica}</p>
-          {cascada.length > 0 && (
+          {cascada.length > 0 && siempreAbierta && (
+            <div {...entra("fin-pulso-porque", 5)}>
+              <CascadaPulso id="fin-ganamos-cascada" tramos={cascada} etiqueta="De la venta a la ganancia" guia="fin-ganamos.cascada" />
+              {pie}
+            </div>
+          )}
+          {cascada.length > 0 && !siempreAbierta && (
             <div {...entra("fin-pulso-porque", 5)}>
               <button type="button" className="btn-cayla btn-enlace" aria-expanded={porque} aria-controls="fin-resultados-cascada" onClick={() => setPorque((v) => !v)}>
                 {porque ? "Cerrar" : `¿Por qué ${soles(resp.monto)}?`}

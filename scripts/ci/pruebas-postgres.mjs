@@ -138,6 +138,13 @@ export const PRUEBAS = [
   // CLAURE mueve la mercadería del Balance (fn_bal_stock) igual que la 201 del diario; lo debido va a la 4699; un corte pasado; la
   // autoprueba (deshecha una mitad, la propiedad se rompe); pegar dos veces y permisos. ROLLBACK.
   "pruebas:balance-claure",
+  // El estado de cambios en el patrimonio (ADR-0585, actividad 2): lo tuyo al empezar y al cerrar es la sección «patrimonio» del Balance,
+  // la ganancia es su «Resultado del mes», los aportes y retiros son los del dueño, nada queda sin explicar, un mes no se mezcla con el
+  // siguiente y la serie empieza en el arranque. Lo ve quien ve los Estados financieros de CAYLA entera. ROLLBACK.
+  "pruebas:patrimonio-cambios",
+  // ADR-0585, actividad 8: los saldos por cuenta de un mes (la balanza de comprobación para el contador) cuadran en 0, coinciden con el
+  // Balance y con la ganancia, y abril empieza donde cerró marzo. Lo ve quien ve los Estados financieros de CAYLA entera. ROLLBACK.
+  "pruebas:saldos-por-cuenta",
 
   // La reversa de un cobro sale por su cuenta (ADR-0120 act. 2026-10-17): anulación, devolución, diferencia de un cambio y
   // adelanto devuelto van a la cuenta por la que entró el cobro (tarjeta: 105) y nunca a la 451, con cada medio; el parche de
@@ -387,6 +394,11 @@ export const PRUEBAS = [
   // La tienda online carga rápido sin cambiar lo que muestra (2026-10-17): el precio de cada talla se calcula una vez por tienda, la
   // revisión «¿se puede mostrar?» está en PL/pgSQL y el catálogo devuelve EXACTAMENTE el JSON de su versión de antes. ROLLBACK.
   "pruebas:tienda-rapida",
+
+  // La regla del precio por lotes (2026-10-31): `fn_precios_en_sedes` da el precio de antes en toda talla y sede, `fn_precio_en_sede` le
+  // pregunta a ella, el catálogo, los looks y el precio de la tienda son idénticos a los de antes, y una carga del catálogo no pregunta
+  // fila por fila (si Postgres deja de meter la regla en la consulta, la prueba lo ve). ROLLBACK.
+  "pruebas:tienda-precio-por-lotes",
 
   // La base se cae sin llevarse al ERP (ADR-0450): `fn_salud()` («¿responde la base?», solo true y solo para anon/authenticated/service_role)
   // y los topes de conexión/tiempo del usuario de la tienda (20 conexiones, 5 s, 10 s en transacción quieta) que no tocan a nadie más
@@ -1418,10 +1430,10 @@ export const PRUEBAS = [
   // `archivar_caja_prueba` recalcula lo esperado por la primera caja real posterior (el caso de Arequipa). ROLLBACK.
   "pruebas:caja-fondo-coherente",
 
-  // Una sola regla de «quién ve todas las tiendas y la empresa» en Finanzas (auditoría 2026-10-16, G16; ADR-0433 act. 8): el diario
-  // (también el congelado), el Estado de resultados, el Balance, el Balance por tienda y los gastos fuera de lo normal preguntan
-  // `fn_ve_finanzas_de_todo()` como `fn_asientos`; un candado estructural exige que ninguna función que reparta el alcance con
-  // `fn_diario_ubicaciones()` pregunte `fn_es_lider()` por su cuenta. Un encargado sigue viendo solo su tienda (42501 en otra). ROLLBACK.
+  // Una sola regla de «quién ve todas las tiendas y la empresa» en Finanzas (auditoría 2026-10-16, G16; ADR-0433 act. 8; ADR-0585): las
+  // doce lecturas del diario preguntan `fn_ve_diario_de_todo()`; un candado estructural exige que ninguna pregunte `fn_es_lider()` ni
+  // `fn_ve_finanzas_de_todo()` por su cuenta. Con Estados financieros se ve CAYLA entera (también el flujo y el Balance entero), sin
+  // escribir; una terminal con el módulo sigue con su tienda (42501 en otra). ROLLBACK.
   "pruebas:finanzas-alcance",
 
   // Un mes cerrado se queda cerrado (auditoría 2026-10-16, G09; ADR-0433 act. 9): el Estado de resultados lee el diario congelado, archivar una
