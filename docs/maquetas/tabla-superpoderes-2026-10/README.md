@@ -26,7 +26,15 @@ Abrir `index.html` (o con la config `maquetas` del navegador integrado). Va sobr
    (llegaba un cuadro tarde), lo hace el navegador con CSS guiado por el desplazamiento (`animation-timeline: view()`), en el mismo
    cuadro en que mueve la lista. Medido: en cada posición, la fila que cruza se ve exactamente desde el borde de la cabecera (normal,
    letra grande y fila de filtros). Donde el navegador no sabe hacerlo, queda el arreglo con JavaScript.
-   **Para el código:** Chrome y Edge 115+, Safari 26+; Firefox todavía no (cae al respaldo).
+   **Las puntas** («se siguen viendo las puntas del contenido»): la cabecera y el vidrio de la tabla tenían la misma esquina redondeada
+   una sobre otra, y el suavizado de las dos curvas dejaba un filo finísimo. Ahora la cabecera lleva su propio vidrio y el de la tabla
+   (`.t-fondo`) empieza bajo ella: detrás de cada esquina solo queda la Aurora.
+   **Medido** con `medir-cabeza.cjs` (Chrome sin ventana, a doble resolución): 384 mediciones durante desplazamientos con la rueda a toda
+   velocidad (claro y oscuro, letra normal y grande, globo y fila de filtros), 0 veces asomó una fila o el vidrio sobre la cabecera, y las
+   fotos de las esquinas salen limpias.
+   **Para el código:** funciona igual en Chrome y Edge 115+ y en Safari 26+, porque lo hace el navegador. En Firefox (todavía sin
+   `animation-timeline`) cae al respaldo con JavaScript, que sí puede dejar asomar una fila un instante. Al implementarlo, la prueba de
+   `medir-cabeza.cjs` se vuelve una prueba de Playwright de la pantalla.
 6. **La fecha dice cuánto falta** («en 4 días»; si ya pasó y no llegó, «hace 2 días» en ámbar).
 7. **Al pie, el total de lo que ves**, no el de todo.
 8. **Cuando los filtros no dejan nada**, se dice qué pasó y cómo volver.

@@ -32,3 +32,7 @@
   hacía JavaScript en cada evento de desplazamiento y llegaba un cuadro tarde. Ahora es CSS guiado por el desplazamiento
   (`animation-timeline: view()`): cada fila se recorta al pasar bajo la cabecera, el vidrio de la tabla (en su capa `.t-fondo`) se
   recorta con sus esquinas y la cabecera se vuelve opaca, todo en el mismo cuadro. Medido al píxel; JavaScript queda de respaldo.
+- **Cabecera pegada, quinta vuelta** (Felipe: «se siguen viendo las puntas del contenido»): dos esquinas redondeadas iguales, una sobre
+  otra (cabecera y vidrio de la tabla), dejaban un filo por el suavizado. La cabecera lleva su propio vidrio y `.t-fondo` empieza bajo
+  ella. Medido en Chrome sin ventana: 384 mediciones con la rueda a toda velocidad, 0 asomadas; esquinas limpias
+  (`docs/maquetas/tabla-superpoderes-2026-10/medir-cabeza.cjs`).

@@ -22,7 +22,7 @@
 .tabla{position:relative;isolation:isolate;margin-top:20px;border-radius:22px;animation:sube .5s var(--ease) .2s backwards}
 .tabla.quieta{animation:none}
 /* la piel de la placa vive en su propia capa, detrás de las filas: así se recorta sola cuando la cabecera se pega */
-.t-fondo{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+.t-fondo{position:absolute;inset:var(--alto-cabeza,0px) 0 0 0;z-index:-1;pointer-events:none;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
   background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
   -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
   box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
@@ -90,25 +90,31 @@ a.t-fila[aria-current="true"] .marca{display:block}
      la Aurora, no el vidrio de la tabla (Felipe: «que los bordes se redondeen»). Se lee como el comienzo de la tabla, no como una barra;
    · y gana una sombra abajo y un filo más marcado: se ve que está por encima de las filas, no entre ellas. */
 /* `top` se mide desde el borde del contenido de #cont, que tiene 92 px de relleno arriba: -20 px la deja a 72 px del borde, justo bajo las islas */
+.tabla[data-cabeza-propia] .t-fondo{border-top:0;border-radius:0 0 22px 22px}
 :root:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{position:sticky;top:-20px;z-index:3;border-radius:22px 22px 0 0;
+  /* la cabecera lleva su propio vidrio (el de la placa) y el de la tabla empieza bajo ella: así nunca hay dos esquinas redondas una sobre
+     otra, que es lo que dejaba asomar un filo finísimo en las puntas (Felipe 2026-10-31: «se siguen viendo las puntas del contenido») */
+  background-color:var(--cab-reposo);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);border-bottom:0;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent);
+  --cab-reposo:color-mix(in srgb,var(--vidrio) 64%,transparent);
   --cab-fondo:color-mix(in srgb,var(--vidrio) 98%,transparent);
   --cab-sombra:0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 14px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
-[data-tema="oscuro"] .t-cabeza{--cab-sombra:0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 14px 26px -16px var(--sombra)}
+[data-tema="oscuro"] .t-cabeza{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent);--cab-reposo:color-mix(in srgb,var(--vidrio) 72%,transparent);--cab-sombra:0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 14px 26px -16px var(--sombra)}
 /* Felipe 2026-10-31: «si se hace el scroll muy rápido, igual pasa a la cabecera el contenido». El recorte lo calculaba JavaScript en cada
    evento de desplazamiento, y al bajar rápido llegaba un cuadro tarde. Ahora es CSS guiado por el desplazamiento (`animation-timeline:
    view()`): el navegador recorta en el MISMO cuadro en que mueve la lista, sin JavaScript de por medio. Tres piezas:
    · cada fila se recorta desde arriba al pasar bajo el borde de abajo de la cabecera (`--corte`): no hay cuadro en que asome encima;
-   · el vidrio de la tabla se recorta en el borde de arriba de la cabecera, con sus esquinas de 22 px: detrás de ellas, la Aurora;
+   · el vidrio de la tabla empieza bajo la cabecera y se recorta en su borde de abajo; la cabecera lleva su propio vidrio con sus
+     esquinas de 22 px: detrás de ellas, solo la Aurora;
    · la cabecera se vuelve opaca, con su sombra, en los primeros 4 px de pegarse.
    JavaScript solo mide UNA vez (al pintar, al cambiar el ancho o la letra) dónde está el borde: `medirCorte()`. Donde el navegador no
    sabe hacerlo (Firefox, sin la bandera), queda el arreglo con JavaScript de antes. */
 @keyframes recorte-fila{from{clip-path:inset(0 -24px -32px -24px)}to{clip-path:inset(100% -24px -32px -24px)}}
-@keyframes recorte-fondo{from{clip-path:inset(0 0 -80px 0 round 22px 22px 0 0)}to{clip-path:inset(100% 0 -80px 0 round 22px 22px 0 0)}}
-@keyframes cabeza-pega{from{background-color:transparent;box-shadow:none}
-  to{background-color:var(--cab-fondo);box-shadow:var(--cab-sombra);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5)}}
+@keyframes recorte-fondo{from{clip-path:inset(0 0 -80px 0)}to{clip-path:inset(100% 0 -80px 0)}}
+@keyframes cabeza-pega{from{background-color:var(--cab-reposo)}to{background-color:var(--cab-fondo);box-shadow:var(--cab-sombra)}}
 @supports (animation-timeline: view()) {
   :root:is([data-sp="globo"],[data-sp="fila"]) .tabla{view-timeline:--tabla block;view-timeline-inset:var(--corte-fondo,-100000px) 0px}
-  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla .t-fondo{animation:recorte-fondo linear both;animation-timeline:--tabla;animation-range:exit-crossing}
+  :root:is([data-sp="globo"],[data-sp="fila"]) .tabla .t-fondo{animation:recorte-fondo linear both;animation-timeline:view(block var(--corte,-100000px) 0px);animation-range:exit-crossing}
   :root:is([data-sp="globo"],[data-sp="fila"]) .tabla .t-cabeza{animation:cabeza-pega linear both;animation-timeline:--tabla;animation-range:exit-crossing 0px exit-crossing 4px}
   :root:is([data-sp="globo"],[data-sp="fila"]) .tabla .t-fila{animation-name:sube-fila,recorte-fila;animation-duration:.42s,1ms;animation-timing-function:var(--ease),linear;
     animation-fill-mode:backwards,both;animation-delay:calc(260ms + var(--k,0) * 28ms),0s;animation-timeline:auto,view(block var(--corte,-100000px) 0px);animation-range:normal,exit-crossing}
@@ -118,7 +124,7 @@ a.t-fila[aria-current="true"] .marca{display:block}
 @supports not (animation-timeline: view()) {
   .tabla.quieta .t-fila{animation:none}
   .tabla[data-pegada] .t-cabeza{background:var(--cab-fondo);box-shadow:var(--cab-sombra);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5)}
-  .tabla[data-pegada]{clip-path:inset(var(--recorte,0px) 0 -80px 0 round 22px 22px 0 0)}
+  .tabla[data-pegada]{clip-path:inset(var(--recorte,0px) -1px -80px -1px round 22px 22px 0 0)}
 }
 /* la cabecera que se toca: el nombre, su flecha de orden y su punto de filtro */
 .col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;
@@ -552,8 +558,10 @@ document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && globoD
 function medirCorte() {
   const t = $('.tabla'), c = t && $('.t-cabeza', t); if (!t) return;
   const activa = !!sp() && c && c.offsetHeight > 0 && getComputedStyle(c).position === 'sticky';
-  t.style.setProperty('--corte-fondo', activa ? '72px' : '-100000px');
+  t.style.setProperty('--corte-fondo', activa ? '72px' : '-100000px'); // dónde se pega (lo usa la cabecera para volverse opaca)
   t.style.setProperty('--corte', activa ? 72 + c.offsetHeight + 'px' : '-100000px');
+  t.style.setProperty('--alto-cabeza', activa ? c.offsetHeight + 'px' : '0px');
+  t.toggleAttribute('data-cabeza-propia', activa);
 }
 addEventListener('resize', medirCorte);
 $('#lat').addEventListener('transitionend', medirCorte); // al plegar el menú, la tabla puede pasar a tarjetas o volver
