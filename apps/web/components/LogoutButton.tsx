@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { borrarCopiasSinConexion } from "@/components/SinConexion";
@@ -9,10 +9,15 @@ import { leerPendientesSinSubir } from "@/lib/usePendientesSinSubir";
 import { marcarSalidaPropia } from "@/lib/sesion-salida-propia";
 import { entradaActiva, iniciarSalida } from "@/lib/entrada-estado";
 
-/** `nombre` y `terminal`: a quién despide el colibrí («Hasta luego, Camila»; una terminal, por el nombre del aparato). */
-export function LogoutButton({ nombre, terminal }: { nombre: string; terminal: boolean }) {
+/**
+ * Cerrar sesión, con todo lo que eso implica (el vuelo del colibrí, las copias sin conexión, la pregunta si hay trabajo sin
+ * subir). Una sola lógica para las dos puertas: «Salir» del lateral y el ícono de «Mi perfil» (Felipe 2026-10-31).
+ * `pedir(antes)`: `antes` corre justo antes de empezar la salida (el perfil se cierra para que el colibrí no vuele bajo una hoja).
+ * `dialogo` se dibuja donde se usa: es la hoja «Hay trabajo sin subir en este equipo».
+ */
+export function useCerrarSesion({ nombre, terminal }: { nombre: string; terminal: boolean }): { pedir: (antes?: () => void) => void; dialogo: ReactNode } {
   const router = useRouter();
-  const [preguntando, setPreguntando] = useState<{ pendientes: number; rechazadas: number } | null>(null);
+  const [preguntando, setPreguntando] = useState<{ pendientes: number; rechazadas: number; antes?: () => void } | null>(null);
 
   // Lo que de verdad cierra la sesión. Con el colibrí (`iniciarSalida`) lo llama la capa cuando la ventana ya se cerró y el fondo está oscuro.
   async function cerrarSesion() {
@@ -28,55 +33,63 @@ export function LogoutButton({ nombre, terminal }: { nombre: string; terminal: b
     router.refresh();
   }
 
-  async function salir() {
+  async function salir(antes?: () => void) {
     // Con el vuelo del colibrí en curso (o un segundo clic/tecla sobre «Salir»), no se inicia otra salida.
     if (entradaActiva()) return;
     setPreguntando(null);
+    antes?.();
     // «El colibrí se abre» al revés (Felipe 2026-10-13): la pantalla se encoge en la silueta del colibrí y él vuela de vuelta al login; la capa cierra la
     // sesión cuando la ventana ya se cerró. Con «reducir movimiento» no hay vuelo: se cierra la sesión como siempre.
     if (!iniciarSalida(cerrarSesion, { nombre, terminal })) await cerrarSesion();
   }
 
+  function pedir(antes?: () => void) {
+    // Con algo guardado sin conexión todavía en este equipo, se pregunta antes (ADR-0210, «huecos»): al salir no se
+    // pierde, pero subirá recién cuando alguien vuelva a entrar AQUÍ, con su propia sesión.
+    const cuenta = leerPendientesSinSubir();
+    if (cuenta.pendientes + cuenta.rechazadas > 0) setPreguntando({ ...cuenta, antes });
+    else void salir(antes);
+  }
+
+  const dialogo = preguntando && (
+    <Modal
+      titulo="Hay trabajo sin subir en este equipo"
+      subtitulo={
+        preguntando.pendientes > 0
+          ? `${preguntando.pendientes === 1 ? "1 operación guardada sin conexión espera" : `${preguntando.pendientes} operaciones guardadas sin conexión esperan`} subir.`
+          : `${preguntando.rechazadas === 1 ? "1 operación no pudo subir" : `${preguntando.rechazadas} operaciones no pudieron subir`} y espera${preguntando.rechazadas === 1 ? "" : "n"} que alguien la revise.`
+      }
+      onClose={() => setPreguntando(null)}
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-tinta/75">
+          Si sales, no se pierde: queda en este equipo y sube la próxima vez que alguien entre aquí con internet. Lo mejor es esperar a que suba (o
+          revisar lo rechazado) antes de salir.
+        </p>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button type="button" onClick={() => setPreguntando(null)} className="btn-cayla btn-primario">
+            Quedarme
+          </button>
+          <button type="button" onClick={() => void salir(preguntando.antes)} className="btn-cayla btn-secundario">
+            Salir igual
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+
+  return { pedir, dialogo };
+}
+
+/** `nombre` y `terminal`: a quién despide el colibrí («Hasta luego, Camila»; una terminal, por el nombre del aparato). */
+export function LogoutButton({ nombre, terminal }: { nombre: string; terminal: boolean }) {
+  const salida = useCerrarSesion({ nombre, terminal });
   return (
     <>
-      <button
-        onClick={() => {
-          // Con algo guardado sin conexión todavía en este equipo, se pregunta antes (ADR-0210, «huecos»): al salir no se
-          // pierde, pero subirá recién cuando alguien vuelva a entrar AQUÍ, con su propia sesión.
-          const cuenta = leerPendientesSinSubir();
-          if (cuenta.pendientes + cuenta.rechazadas > 0) setPreguntando(cuenta);
-          else void salir();
-        }}
-        className="label-cayla text-[11px] text-tinta/70 transition-colors hover:text-rojo"
-      >
+      <button onClick={() => salida.pedir()} className="label-cayla text-[11px] text-tinta/70 transition-colors hover:text-rojo">
         Salir
       </button>
-      {preguntando && (
-        <Modal
-          titulo="Hay trabajo sin subir en este equipo"
-          subtitulo={
-            preguntando.pendientes > 0
-              ? `${preguntando.pendientes === 1 ? "1 operación guardada sin conexión espera" : `${preguntando.pendientes} operaciones guardadas sin conexión esperan`} subir.`
-              : `${preguntando.rechazadas === 1 ? "1 operación no pudo subir" : `${preguntando.rechazadas} operaciones no pudieron subir`} y espera${preguntando.rechazadas === 1 ? "" : "n"} que alguien la revise.`
-          }
-          onClose={() => setPreguntando(null)}
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-tinta/75">
-              Si sales, no se pierde: queda en este equipo y sube la próxima vez que alguien entre aquí con internet. Lo mejor es esperar a que suba (o
-              revisar lo rechazado) antes de salir.
-            </p>
-            <div className="flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={() => setPreguntando(null)} className="btn-cayla btn-primario">
-                Quedarme
-              </button>
-              <button type="button" onClick={() => void salir()} className="btn-cayla btn-secundario">
-                Salir igual
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {salida.dialogo}
     </>
   );
 }

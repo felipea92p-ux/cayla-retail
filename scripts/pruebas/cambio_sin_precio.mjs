@@ -176,13 +176,13 @@ ${QUEDO}`);
     obsequio.ok ? lo : obsequio.mensaje,
   );
 
-  // MUTANTE: una `fn_precio_en_sede` que confunde la ropa con el obsequio (toda talla en 0 sería de obsequio): el caso de Trujillo se
+  // MUTANTE: una regla del precio (`fn_precios_en_sedes`, la de `fn_precio_en_sede` desde 20261031161000) que confunde la ropa con el obsequio (toda talla en 0 sería de obsequio): el caso de Trujillo se
   // pone rojo. Vive solo dentro de su transacción.
   const mutante = correr(`do $m$
-declare d text := pg_get_functiondef('retail.fn_precio_en_sede(uuid, uuid)'::regprocedure);
+declare d text := pg_get_functiondef('retail.fn_precios_en_sedes(uuid[], uuid[])'::regprocedure);
 begin
   if position('retail.fn_categoria_admite_precio_cero(pr.categoria_id)' in d) = 0 then
-    raise exception 'mutante vacío: fn_precio_en_sede no pregunta la categoría de la prenda';
+    raise exception 'mutante vacío: fn_precios_en_sedes no pregunta la categoría de la prenda';
   end if;
   execute replace(d, 'retail.fn_categoria_admite_precio_cero(pr.categoria_id)', 'true');
 end $m$;

@@ -16,7 +16,6 @@ import {
   respuestaClaure,
   resumenClaure,
   seLeDebeDeFila,
-  solesConSigno,
   textoMedioClaure,
   textoOrigenClaure,
   type FilaClaure,
@@ -159,10 +158,6 @@ describe("textos", () => {
     expect(textoMedioClaure("qr")).toBe("QR");
     expect(textoMedioClaure("raro")).toBe("raro");
     expect(textoOrigenClaure("devolucion")).toBe("Devolución");
-  });
-  it("un monto negativo lleva su signo y su S/ no se parte", () => {
-    expect(solesConSigno(-168)).toBe("− S/ 168.00");
-    expect(solesConSigno(50)).toBe("S/ 50.00");
   });
   it("las chips dicen de dónde sale la cifra y lo que pide atención", () => {
     const textos = chipsClaure(resumenClaure(FILAS), true).map((c) => c.texto);

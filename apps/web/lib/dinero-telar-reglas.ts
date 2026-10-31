@@ -13,7 +13,6 @@ import { cuentasVisibles, diaYNumero, insigniaCuenta, type CuentaDinero, type Ef
 import { diaLima, diasEntreFechas, horaLima } from "./fechas-lima";
 import { solesRedondo } from "./gastos-reglas";
 import { soles } from "./flujo-caja-reglas";
-import { diasHasta, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import type { SedeTelar } from "./finanzas-telar-reglas";
 import type { TonoChip } from "@/components/ui/Chip";
 import type { Tienes } from "./dinero-pulso-reglas";
@@ -281,21 +280,6 @@ export function chipsDondeEsta(t: Pick<Tienes, "partes" | "tarjeta" | "ocultas">
   const chips: ChipRespuesta[] = t.partes.map((p) => ({ texto: `${p.titulo.replace(/ \(.*\)$/, "")} ${soles(p.monto)}`, tono: "pizarra" }));
   if (t.tarjeta > 0) chips.push({ texto: `Debes ${soles(t.tarjeta)} en la tarjeta`, tono: "ambar" });
   if (t.ocultas) chips.push({ texto: "El cajón abierto lo ve quien cierra la caja", tono: "apagado" });
-  return chips;
-}
-
-/** Bajo «¿Cuánto debes?»: cuántas facturas, cuánto ya venció (rojo) y cuánto vence esta semana (ámbar). */
-export function chipsQueDebes(filas: readonly Pick<FilaPorPagar, "vence" | "saldo">[], hoy: string): ChipRespuesta[] {
-  if (filas.length === 0) return [{ texto: "Nada por pagar", tono: "verde" }];
-  const vencido = filas.filter((f) => diasHasta(f.vence, hoy) < 0);
-  const semana = filas.filter((f) => {
-    const d = diasHasta(f.vence, hoy);
-    return d >= 0 && d <= 7;
-  });
-  const suma = (fs: typeof filas) => fs.reduce((a, f) => a + f.saldo, 0);
-  const chips: ChipRespuesta[] = [{ texto: `${filas.length} ${filas.length === 1 ? "factura" : "facturas"}`, tono: "pizarra" }];
-  if (vencido.length) chips.push({ texto: `${soles(suma(vencido))} ya vencido`, tono: "rojo" });
-  if (semana.length) chips.push({ texto: `${soles(suma(semana))} vence esta semana`, tono: "ambar" });
   return chips;
 }
 

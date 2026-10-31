@@ -199,14 +199,33 @@
     font-weight: 600;
     color: var(--color-tinta);
   }
+  /* «C · La cifra manda» (Felipe, 2026-10-31, tras ver tres intensidades de «que se note dónde se pierde la gente»; antes fue «B · Zona
+     marcada», con recuadro y rótulo): el tramo donde se atora la gente se vuelve un riel punteado grueso y naranja —«cortado»—, la
+     estación que se atora se llena de naranja y lo que se fue sale como un «−42» grande en serif con su porcentaje. Sin recuadro ni
+     rótulo: el chip de arriba ya dice si es «Aquí se atora», «Una pista» o «Como de costumbre». El naranja es solo línea y relleno
+     (`--color-naranja`, 3.1:1 sobre papel); el texto va en `ámbar`. Entra UNA vez (el riel que se dibuja), sin rebote ni bucle. */
   .trafico-estacion[data-atora] .trafico-estacion-nodo {
-    border-color: var(--color-ambar);
-    color: var(--color-ambar);
+    border-color: var(--color-naranja);
+    background: var(--color-naranja);
+    color: var(--color-papel);
   }
-  .trafico-salida[data-atora],
-  .trafico-salida[data-atora] b {
+  .trafico-estacion[data-hacia-atora]::before {
+    left: calc(var(--trafico-nodo) / 2 - 3px);
+    width: 6px;
+    background: repeating-linear-gradient(180deg, var(--color-naranja) 0 12px, transparent 12px 18px);
+  }
+  .trafico-salida[data-atora] {
     font-weight: 600;
     color: var(--color-ambar);
+  }
+  .trafico-menos {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 40px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
   }
   .trafico-estacion[data-fin] .trafico-estacion-nodo {
     border-color: var(--color-verde);
@@ -216,6 +235,16 @@
   @container recorrido (min-width: 760px) {
     .trafico-linea {
       grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .trafico-estacion[data-hacia-atora]::before {
+      top: calc(36px + 34px + 12px + var(--trafico-nodo) / 2 - 3px);
+      left: 50%;
+      width: 100%;
+      height: 6px;
+      background: repeating-linear-gradient(90deg, var(--color-naranja) 0 12px, transparent 12px 18px);
+    }
+    .trafico-menos {
+      font-size: 46px;
     }
     .trafico-estacion {
       grid-template-rows: 36px 34px var(--trafico-nodo) auto;
@@ -269,6 +298,10 @@
       height: 30px;
       margin-bottom: 4px;
       background: repeating-linear-gradient(var(--color-borde-control) 0 3px, transparent 3px 6px);
+    }
+    .trafico-salida[data-atora]::before {
+      width: 3px;
+      background: repeating-linear-gradient(var(--color-naranja) 0 3px, transparent 3px 6px);
     }
   }
   @keyframes trafico-estacion-entra {
@@ -745,6 +778,7 @@
   }
   .trafico-estacion,
   .trafico-estacion::before,
+  .trafico-estacion::after,
   .trafico-punto-vivo::after {
     animation: none;
   }

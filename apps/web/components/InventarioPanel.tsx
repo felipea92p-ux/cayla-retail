@@ -1078,7 +1078,7 @@ export function InventarioPanel({
                   <b className="text-[15px] font-semibold text-tinta">2</b> en piso
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <b className="text-[11px] font-bold text-tinta">+1</b> en almacén
+                  <b className="text-[12px] font-bold text-tinta">+1</b> en almacén
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.14]" />
@@ -1087,6 +1087,11 @@ export function InventarioPanel({
                 <span className="inline-flex items-center gap-1.5">
                   <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-rojo/[0.11]" />
                   Se acabó en esta sede
+                </span>
+                {/* La talla vacía que el motor del piso deja como está (Felipe 2026-10-31, opción A): el visto de la tarjeta. */}
+                <span className="inline-flex items-center gap-1.5">
+                  <Check aria-hidden className="h-3 w-3 text-verde" />
+                  No hace falta colgarla
                 </span>
                 <span>Toca una talla para colgarla</span>
               </span>
