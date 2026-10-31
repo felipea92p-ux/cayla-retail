@@ -236,7 +236,7 @@ export function RegistrarPagoHoja({
                     </BotonVer>
                   }
                 >
-                  No hay una caja abierta en {p.tienda}: ábrela para cobrar en efectivo, o elige otro medio.
+                  No hay caja abierta en {p.tienda}: ábrela o elige otro medio.
                 </Aviso>
               ) : form.medio === "efectivo" ? (
                 <p className="mt-1.5 text-sm text-taupe">Entra a la caja abierta de {p.tienda}.</p>
@@ -259,7 +259,7 @@ export function RegistrarPagoHoja({
                     onChange={(e) => cambiar({ operacion: limpiarOperacion(e.target.value) })}
                     placeholder="De 6 a 12 dígitos" // sugerir-fijo: el formato del n.º de operación no depende de lo elegido antes
                     tono={errorEn("operacion") ? "error" : undefined}
-                    pie={errorEn("operacion") ?? "Cópialo de tu app o del banco y confírmalo ahí: una foto se puede editar."}
+                    pie={errorEn("operacion") ?? "Cópialo de tu app o del banco. Una foto se puede editar."}
                   />
                 </div>
               </CampoGuiado>

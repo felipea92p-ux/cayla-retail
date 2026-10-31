@@ -36,6 +36,8 @@ export function CabeceraDinero({
   hoy,
   acciones,
   onRegistrar,
+  panorama = false,
+  subtitulo = "Dónde está la plata, qué debes y si cuadra con el banco.",
 }: {
   pestana: PestanaDinero;
   esLider: boolean;
@@ -54,6 +56,10 @@ export function CabeceraDinero({
   acciones?: ReactNode;
   /** Abre «Registrar movimiento» aquí mismo; sin él, el dock lleva a Dónde está con la hoja abierta. */
   onRegistrar?: () => void;
+  /** La cara dibuja su propio resumen (fichas, tarjeta de total): la cabecera no repite la respuesta grande ni el orillo. */
+  panorama?: boolean;
+  /** La frase bajo el título; cada cara puede decir la suya (CLAURE: desde cuándo se cuenta y qué entra). */
+  subtitulo?: string;
 }) {
   const params = useSearchParams();
   // Al cambiar de cara viaja solo la sede (la de la barra, o la vieja `?ver=` mientras dure el cambio), como en la barra común.
@@ -82,12 +88,12 @@ export function CabeceraDinero({
       <EncabezadoPagina
         sede={sede}
         titulo="Cuentas y dinero"
-        subtitulo="Dónde está la plata, qué debes y si cuadra con el banco."
+        subtitulo={subtitulo}
         acciones={acciones}
       >
-        {respuesta && <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />}
+        {respuesta && !panorama && <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />}
       </EncabezadoPagina>
-      {orillo && <Orillo porSede={orillo.porSede} sedes={sedes} que={orillo.que} hoy={hoy} />}
+      {orillo && !panorama && <Orillo porSede={orillo.porSede} sedes={sedes} que={orillo.que} hoy={hoy} />}
       <PestanasFin
         etiqueta="Las caras de Cuentas y dinero"
         guia="fin-dinero.pestanas"

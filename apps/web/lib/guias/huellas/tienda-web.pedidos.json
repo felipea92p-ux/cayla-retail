@@ -2,7 +2,7 @@
   "guia": "tienda-web.pedidos",
   "ruta": "/tienda-web/pedidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 92,
+  "total": 88,
   "controles": {
     "components/CorregirPagoModal.tsx": [
       "button «{NOMBRE_METODO[m]}»",
@@ -42,8 +42,13 @@
       "Boton «Apagar» #2",
       "Boton «Probar el aviso»"
     ],
+    "components/pedidos-web/CodigoEnCasillas.tsx": [
+      "input «{`Cifra ${i + 1}»"
+    ],
     "components/pedidos-web/EditarMensajePredeterminadoHoja.tsx": [
       "textarea «Mensaje predeterminado»",
+      "button «{m.texto}»",
+      "button «{`Insertar ${e}»",
       "Boton «Usar el de fábrica»",
       "Boton «Cancelar»",
       "Boton «Guardar»"
@@ -63,10 +68,7 @@
       "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}» #2",
-      "BotonAncla «Escribirle por WhatsApp» #2",
-      "BotonAncla «Avisarle por WhatsApp»",
       "Boton «Anular»",
-      "BotonAncla «WhatsApp»",
       "Boton «pedido-web.pagar»",
       "button «(sin nombre)»",
       "ComboResponsable «{responsable}» #3",
@@ -76,19 +78,14 @@
       "ComboResponsable «{responsable}» #4",
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}» #4",
-      "BotonAncla «Escribirle por WhatsApp» #3",
-      "BotonAncla «WhatsApp» #2",
-      "CampoTexto «{guia.etiqueta(\"codigo\", \"Código para recoger\")}»",
       "ComboResponsable «{responsable}» #5",
-      "BotonAncla «WhatsApp» #3",
       "Boton «{guia.frase ?? undefined}» #5",
-      "BotonAncla «Escribirle por WhatsApp» #4",
-      "BotonAncla «WhatsApp» #4",
+      "BotonAncla «{boton}»",
       "BotonImprimir «Imprimir ticket»",
       "Boton «pedido-web.anular-pagado»",
       "BotonDeshacer «→() => onDecision(decisionDeFabrica(l, tiendaId))»",
       "button «(sin nombre)» #2",
-      "SegmentoDeslizante «{`Qué hacer con ${l.referencia}»",
+      "button «{o.etiqueta}»",
       "button «{f.etiqueta}»",
       "Boton «Quitar del pedido»",
       "Boton «Reservarla»",
@@ -103,6 +100,7 @@
       "button «{primera ? \"pedidos-web.abrir\" : undefined}»",
       "Boton «{primera ? \"pedidos-web.verbo\" : undefined}»",
       "FiltroPuesto «Quitar el filtro «Cerrados»»",
+      "button «{m.texto}»",
       "BotonVerMas «{visibles.length > 0 ? `Ver ${guardados.length}»",
       "Boton «{i === 0 ? \"pedidos-web.enviar\" : undefined}»"
     ],
