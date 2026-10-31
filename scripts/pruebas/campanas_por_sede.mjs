@@ -219,10 +219,12 @@ select 'desc|' || coalesce(sum(descuento_unitario), 0) from retail.separacion_it
 rollback;`);
     esperar("Apartado en Lima: la línea nace a precio normal (sin el descuento de Trujillo)", r.ok && r.salida.includes("desc|0.00"), r.ok ? r.salida : r.mensaje);
   }
+  // Desde ADR-0584 un descuento mayor que la campaña de la sede es un descuento a mano: sin motivo, se rechaza por eso (antes, por no
+  // coincidir con la campaña). Lo que se prueba sigue igual: la campaña de Trujillo no se cuela en un apartado de Lima.
   esperarError(
     "Apartado en Lima con el descuento de la campaña de Trujillo se rechaza",
     correr(`${FIXTURE(SOLO_TRU)}\n${separar("lima", 16.0)}\nrollback;`),
-    "separacion_descuento_no_coincide",
+    "venta_descuento_requiere_motivo",
   );
 
   // ---- 7. La tienda web: el descuento solo desde la tienda de la campaña ----

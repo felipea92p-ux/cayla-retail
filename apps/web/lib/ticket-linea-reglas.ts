@@ -71,8 +71,9 @@ export function porcentajeVisible(l: LineaParaFila): number {
 }
 
 /** El porqué del descuento, en palabras de la tienda: el nombre de la campaña, el texto de «Otro» (una proforma
- *  deja ahí «Precio de la proforma P-…») o la etiqueta del motivo de la lista cerrada (R-45). */
-export function motivoDeLaLinea(l: LineaParaFila): string {
+ *  deja ahí «Precio de la proforma P-…») o la etiqueta del motivo de la lista cerrada (R-45). También la usa la prenda de un
+ *  apartado ya hecho (`descuentoDePrenda`, ADR-0584). */
+export function motivoDeLaLinea(l: Pick<LineaParaFila, "descuentoUnitario" | "razonDescuento" | "razonDescuentoOtro" | "campana">): string {
   if (esDescuentoDeCampana(l)) return l.campana?.nombre.trim() || "Campaña";
   if (l.razonDescuento === "otro") return l.razonDescuentoOtro.trim() || "Otro";
   return RAZONES_DESCUENTO.find((r) => r.valor === l.razonDescuento)?.etiqueta ?? "Descuento";

@@ -63,7 +63,7 @@ const HUELLAS: Huella[] = [
   // «Una tela con sus colores» (ADR-0554, revisión del 28-oct): las restricciones que la base deja sin mensaje propio. La pantalla frena casi todo antes; esto es el respaldo (y lo que ve la web vieja).
   { marca: "insumos_tela_en_metros", frase: "Una tela se lleva en metros: el kilo y el rollo se declaran al crear la tela, en «+ Nueva tela»." },
   { marca: "insumos_codigo_clave_unico", frase: "Ya hay un insumo con ese código (aunque cambien las mayúsculas, las tildes o los espacios). Elige otro código." },
-  { marca: "materiales_nombre_tipo_unico", frase: "Ya existe una tela con ese nombre (quizá otra persona la creó hace un momento). Actualiza la pantalla y agrégale los colores a esa." },
+  { marca: "materiales_nombre_tipo_medida_unico", frase: "Ya existe una ficha con ese nombre y esa medida (quizá otra persona la creó hace un momento). Actualiza la pantalla y agrégale los colores a esa." },
   { marca: "insumos_material_color_unico", frase: "Ese color ya está en la tela (quizá otra persona lo agregó hace un momento). Actualiza la pantalla." },
   { marca: "materiales_medidas_plausibles", frase: "El ancho va en centímetros, entre 20 y 400 (por ejemplo 160, no 1.60), y el gramaje en gramos por metro cuadrado, entre 30 y 1500." },
   // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.

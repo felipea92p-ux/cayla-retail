@@ -13,6 +13,8 @@ const tela = (extra: Partial<MaterialVista> = {}): MaterialVista => ({
   tipo: "tela",
   tejidoId: null,
   composicion: null,
+  claseId: null,
+  medida: null,
   unidad: "metro",
   merma: 0,
   compra: "metro",
