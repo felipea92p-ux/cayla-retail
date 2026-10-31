@@ -354,17 +354,118 @@
   }
 
   /* ---- Cuadrar con el banco: lo que anotó CAYLA y el extracto, unidos por un hilo ---- */
-  .din-cuadrar-cab {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px 24px;
+  /* «B · Lista y detalle» (Felipe 2026-10-31): los bancos a la izquierda, el elegido a la derecha. */
+  .din-cuad {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
   }
-  .din-cuadrar-bancos {
+  .din-cuad-lista {
+    padding: 6px 8px 12px;
+    position: sticky;
+    top: 76px;
+  }
+  .din-cuad-lista-cab {
+    padding: 14px 12px 8px;
+  }
+  .din-cuad-tenue {
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  }
+  .din-cuad-it {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 10px;
+    text-align: left;
+    background: transparent;
+  }
+  .din-cuad-it[aria-pressed="true"] {
+    background: var(--color-hueso);
+  }
+  @media (hover: hover) {
+    .din-cuad-it:hover {
+      background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+    }
+  }
+  .din-cuad-ini {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--color-hueso);
+    color: var(--color-tinta);
+  }
+  .din-cuad-it[aria-pressed="true"] .din-cuad-ini {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .din-cuad-it-der {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .din-cuad-num {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .din-cuad-det {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+  .din-cuad-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 24px;
+    padding: 22px 24px;
+    align-items: start;
+  }
+  .din-cuad-hero-lado {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .din-cuad-cifra {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: clamp(36px, 4.4vw, 52px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .din-cuad-cifra-chica {
+    font-size: clamp(28px, 3.2vw, 36px);
+  }
+  .din-cuad-avance {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    align-items: center;
+    gap: 10px 14px;
+    padding: 0 18px 10px;
+  }
+  .din-cuad-avance-barra {
+    width: 160px;
+  }
+  @media (max-width: 980px) {
+    .din-cuad,
+    .din-cuad-hero {
+      grid-template-columns: 1fr;
+    }
+    .din-cuad-lista {
+      position: static;
+    }
   }
   .din-pares {
     display: flex;
