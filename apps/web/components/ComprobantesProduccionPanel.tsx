@@ -13,6 +13,7 @@ import { ComprobanteProduccionForm } from "@/components/ComprobanteProduccionFor
 import { estadoVisible, etiquetaTipo, filtrarComprobantes, resumenComprobantes, type ComprobanteProduccion, type FiltroEstado } from "@/lib/comprobantes-produccion-reglas";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
+import type { OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
@@ -34,6 +35,7 @@ export function ComprobantesProduccionPanel({
   hoy,
   tallerId,
   sede,
+  pedidosPorRecibir,
 }: {
   comprobantes: ComprobanteProduccion[];
   proveedores: ProveedorProduccion[];
@@ -43,6 +45,8 @@ export function ComprobantesProduccionPanel({
   tallerId: string | null;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
+  /** Los pedidos de insumos con algo por recibir: «Nueva factura» pregunta si la factura es de uno (ADR-0587). */
+  pedidosPorRecibir: OrdenInsumoPorRecibir[];
 }) {
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [proveedorId, setProveedorId] = useState("");
@@ -235,7 +239,7 @@ export function ComprobantesProduccionPanel({
         </div>
       )}
 
-      {nuevo && <ComprobanteProduccionForm proveedores={proveedores} insumos={insumos} hoy={hoy} proveedorInicialId={proveedorId || null} onClose={() => setNuevo(false)} />}
+      {nuevo && <ComprobanteProduccionForm proveedores={proveedores} insumos={insumos} hoy={hoy} proveedorInicialId={proveedorId || null} pedidosPorRecibir={pedidosPorRecibir} onClose={() => setNuevo(false)} />}
       {detalle && <ComprobanteProduccionDetalle comprobante={detalle} hoy={hoy} tallerId={tallerId} onClose={() => setAbierto(null)} />}
     </div>
   );

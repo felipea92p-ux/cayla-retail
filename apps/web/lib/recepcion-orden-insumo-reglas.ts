@@ -362,3 +362,28 @@ export function detalleDeRecepcionOI(r: Pick<ResultadoRecepcionOI, "lotes" | "ci
   const hecho = [lotes, cierres].filter(Boolean).join(" y ");
   return `${hecho}. ${r.queda ? "Todavía queda algo por recibir de esta orden." : "Ya no queda nada por recibir de esta orden."}`;
 }
+
+// ---------- La factura suelta y el pedido abierto (ADR-0587, mejora 3) ----------
+// Una factura registrada suelta (Facturas de insumos ▸ Nueva factura) no se liga a ningún pedido. Si ese proveedor ya tenía un pedido (OI) con
+// metros sin facturar, Recibir mostraba después las dos cosas —el pedido y la «factura sin orden»— por la misma tela, y se podía recibir dos veces.
+// La hoja lo pregunta al elegir el proveedor; no lo bloquea: una factura de otra compra del mismo proveedor es normal.
+
+export type PedidoSinFactura = { id: string; documento: string; detalle: string };
+
+/**
+ * Los pedidos del proveedor (por su nombre, que la base guarda único: `proveedores_produccion_nombre_clave_unica`) que todavía tienen metros o
+ * unidades pedidos SIN factura. «detalle»: hasta dos líneas («48 metros de Milano Melange · Arena») y «y N más».
+ */
+export function pedidosSinFacturaDe(ordenes: readonly OrdenInsumoPorRecibir[], proveedorNombre: string | null): PedidoSinFactura[] {
+  if (!proveedorNombre) return [];
+  return ordenes.flatMap((o): PedidoSinFactura[] => {
+    if (o.proveedor !== proveedorNombre) return [];
+    const faltan = o.lineas.flatMap((l) => {
+      const sinFactura = l.tipo === "orden" && l.pedido != null ? Math.round((l.pedido - l.facturado) * 1000) / 1000 : 0;
+      return sinFactura > 0 ? [`${cantidadConUnidad(sinFactura, l.unidad)} de ${l.insumo}`] : [];
+    });
+    if (faltan.length === 0) return [];
+    const resto = faltan.length > 2 ? ` y ${faltan.length - 2} más` : "";
+    return [{ id: o.id, documento: o.documento, detalle: `${faltan.slice(0, 2).join(", ")}${resto}` }];
+  });
+}
