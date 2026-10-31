@@ -488,8 +488,8 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "detalle-botones",
       ancla: "fin-gastos.detalle-botones",
       opcional: true,
-      titulo: "Anular un gasto",
-      texto: "«Anular…» pide el motivo y lo deja a la vista como anulado: nunca se borra. Si ya tiene pagos, no se anula. En la demo no anulamos: cerramos.",
+      titulo: "Corregir o anular",
+      texto: "«Corregir» cambia en qué se gastó o qué fue, y deja escrito qué había antes. Lo que mueve plata no se corrige: «Anular…» lo deja a la vista como anulado, nunca se borra. En la demo no tocamos nada: cerramos.",
     },
     {
       id: "fijos",

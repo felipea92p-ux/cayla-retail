@@ -1699,6 +1699,10 @@ export const PRUEBAS = [
   // cuándo y cómo; la tarjeta lo resta en el mes del PAGO y se mueve igual que el crédito de gastos de Impuestos; misma visibilidad que
   // la lista; todo origen de fn_igv_perdido llega a un gasto o está fuera a propósito. ROLLBACK siempre.
   "pruebas:gastos-igv-perdido",
+  // Corregir un gasto de Finanzas sin anularlo (ADR-0588): la categoría y el «qué fue» cambian con rastro inmutable; el monto, el pago y el
+  // comprobante no; todo o nada, el mismo guardado dos veces, anulado, viaje, mes cerrado (solo la categoría), el disparador con su marca y los
+  // permisos por tienda. ROLLBACK siempre.
+  "pruebas:gastos-corregir",
   // Lo que la base del fondo no acepta (ADR-0362, fase 6; /chaos 2026-10-14): un monto que no es un número (en las funciones y en las
   // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
   // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.

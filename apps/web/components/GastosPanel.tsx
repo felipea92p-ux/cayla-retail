@@ -22,6 +22,10 @@ import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Volver } from "@/components/ui/Volver";
+import { BotonEditar } from "@/components/ui/BotonEditar";
+import { CorreccionesDeCompra } from "@/components/mi-plata/CorreccionesDeCompra";
+import { HojaCorregirGasto } from "@/components/finanzas/gastos/HojaCorregirGasto";
+import { porQueNoSeCorrige } from "@/lib/gastos-corregir-reglas";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
 import { ExtractoGastos } from "@/components/finanzas/gastos/ExtractoGastos";
@@ -534,7 +538,7 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
+      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -667,12 +671,15 @@ function TablaGastos({
 
 function GastoDetalleModal({
   gasto: g,
+  categorias,
   hoy,
   puedeVerImpuestos,
   puedeVerPorPagar,
   onCerrar,
 }: {
   gasto: GastoFila;
+  /** Para corregir su categoría (ADR-0588). */
+  categorias: CategoriaGasto[];
   hoy: string;
   puedeVerImpuestos: boolean;
   /** Con el módulo Por pagar, el aviso de una factura que se debe lleva a pagarla (`/compras/por-pagar`); sin él, solo lo dice. */
@@ -682,6 +689,7 @@ function GastoDetalleModal({
   const router = useRouter();
   const responsable = useResponsable();
   const [anulando, setAnulando] = useState(false);
+  const [corrigiendo, setCorrigiendo] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
@@ -710,6 +718,9 @@ function GastoDetalleModal({
   const notaPerdido = notaIgvPerdido(g);
   const enRiesgo = igvEnRiesgo(g);
   const aviso = avisoDelGasto(g, hoy);
+
+  // Corregir abre en el lugar de esta hoja (nunca una hoja sobre otra) y vuelve a ella con la flecha (ADR-0588).
+  if (corrigiendo) return <HojaCorregirGasto gasto={g} categorias={categorias} onVolver={() => setCorrigiendo(false)} onCerrar={onCerrar} />;
 
   if (anulando) {
     return (
@@ -771,6 +782,10 @@ function GastoDetalleModal({
           ...(g.motivoAnulacion ? [{ dato: "Anulado", valor: g.motivoAnulacion, tenue: true }] : []),
         ]}
       />
+      {/* Qué se le corrigió, quién y cuándo (ADR-0588): sin correcciones no dibuja nada. */}
+      <div className="mb-4 empty:hidden">
+        <CorreccionesDeCompra gastoDeFinanzasId={g.id} />
+      </div>
       {notaPerdido && (
         <p className="nota-cayla mb-4">
           {notaPerdido.texto}
@@ -798,10 +813,12 @@ function GastoDetalleModal({
       <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
         {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
         {puedeAnular(g) && (
-          <button type="button" className="btn-cayla btn-peligro" onClick={() => setAnulando(true)}>
+          <button type="button" className="btn-cayla btn-peligro mr-auto" onClick={() => setAnulando(true)}>
             Anular…
           </button>
         )}
+        {/* Lo peligroso a la izquierda, corregir a la derecha (ADR-0358, «Lo peligroso»). */}
+        {!porQueNoSeCorrige(g) && <BotonEditar onClick={() => setCorrigiendo(true)}>Corregir</BotonEditar>}
       </div>
     </Modal>
   );
