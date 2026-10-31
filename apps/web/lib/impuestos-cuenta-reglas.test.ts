@@ -143,7 +143,7 @@ describe("limiteImpuestos", () => {
     const l = limiteImpuestos({ ...PANEL, umbral: { ...PANEL.umbral, ventasAnio: 1700000, ventasAnioErp: 1700000, avance: 1.03, cruzado: true } });
     if (l.estado !== "ok") throw new Error("ok");
     expect(l.tono).toBe("rojo");
-    expect(l.frase.startsWith("Ya pasaste el límite: habla con el contador.")).toBe(true);
+    expect(l.frase.startsWith("Ya pasaste el límite: coordina con el contador las obligaciones nuevas.")).toBe(true);
   });
 });
 

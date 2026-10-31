@@ -254,6 +254,68 @@ empieza donde cerró marzo, y los permisos. La ruta y el menú no se probaron en
   - si el Resumen de Finanzas muestra CAYLA entera a quien tiene el módulo (hoy muestra su tienda).
 - El cierre del año: los saldos por cuenta acumulan ingresos y gastos desde el arranque hasta que exista el asiento de cierre.
 
+## Actualización 2026-10-31 · Igual a la maqueta, y el formato formal arriba
+
+### El problema primero
+
+Felipe abrió la rama y ¿Ganamos? no se parecía a la maqueta que aprobó. En vez de la cascada de la maqueta, se había reusado la del
+Resumen (`ResultadoPulso` y `CascadaPulso`): barras que nacían todas a la izquierda, la respuesta centrada («te faltan S/ 29,016.00») y
+sin el margen. Lo mismo pasaba en la plata, en lo tuyo y en «Lo que dejó cada sede». La regla de Finanzas («se captura al mismo ancho que
+el spike y se comparan las dos imágenes») no se cumplió: no había navegador, y no se avisó.
+
+### Lo que se decidió
+
+- **La cascada de la maqueta es la pieza de Estados financieros** (`components/finanzas/estados/CascadaEstados.tsx`, la geometría en
+  `lib/cascada-estados-reglas.ts` con su prueba): cada paso flota desde donde terminó el anterior, los totales nacen en cero, hay subtotal
+  (el margen), la raya de lo planeado con su píldora, la leyenda «Suma · Resta · Lo planeado» y las sedes con su color de hilo. La usan
+  ¿Ganamos?, ¿Dónde está la plata?, ¿Lo tuyo creció? y «Lo que dejó cada sede». `CascadaPulso`, `ResultadoPulso` y lo que solo ellas
+  usaban (`respuestaDeFila`, `cascadaDeFila` y su CSS) se borraron: ninguna otra pantalla las usaba. La prueba de ADR-0453 (los sueldos
+  contados dos veces) pasó a `ganamos-reglas.test.ts`, sobre `cascadaGanamos`.
+- **La respuesta como la maqueta** (`TitularEstado`): el nombre formal en versalitas, «Sí.» o «No.» con la cifra sin decimales, y la frase.
+  Cada estado va en una tarjeta. La balanza pasa a dos platillos con bloques apilados de alto proporcional, como la maqueta (no dos barras),
+  y lo tuyo gana sus dos cajas «Al empezar → Al cerrar» y la línea cerca del mes más bajo (el cambio 1 de Formidable).
+- **El formato formal ya no va plegado al final** (Felipe 2026-10-31: «que no estén al final, sino opciones visibles en la parte superior»):
+  en la cabecera de los cuatro estados, junto a «Descargar para el contador», el segmento **Respuesta | Formato formal**
+  (`SegmentoEnlaces`, la pieza de ADR-0358 para ver lo mismo de otra forma). Va en la URL (`?forma=formal`, `formaDe` y `conForma` en
+  `lib/estados-financieros-reglas.ts`): al pasar de un estado a otro, se queda la forma elegida.
+- Solo Estados financieros (Felipe): el Resumen de Finanzas no cambia.
+
+### Cómo se verificó
+
+En local, una página de prueba (no se subió) dibujó las cuatro pantallas con los números de la maqueta. Se capturó a 1440 px, en claro y
+en oscuro, junto a la maqueta, y se miraron las dos imágenes. Tipos, vitest, Knip y eslint en verde. Sin probar con sesión ni contra la base.
+
+## Actualización 2026-10-31 (b) · El menú «Ver»
+
+- Felipe eligió (entre dejar el selector, un menú o seis botones a la vista) **un menú «Ver»** en la cabecera, junto a «Descargar para el
+  contador»: «Las respuestas» y los mismos seis cuadros de la descarga, para mirarlos sin bajar nada. Reemplaza al selector «Respuesta |
+  Formato formal» de la actualización anterior: no hay dos controles para lo mismo.
+- Los cuatro estados se abren en su formato formal (`?forma=formal`). Los saldos por cuenta y el libro diario viven en una pantalla interna,
+  `/finanzas/reportes/cuentas?cuadro=saldos|diario` (`?ver=` ya es la sede en el telar), con la misma cabecera, sin tarjeta marcada. Leen
+  con las mismas funciones que la descarga (`saldosDelMes`, `diarioDelMes`).
+- **Las cuentas se ven en pantalla solo en estos dos cuadros**, donde son lo central. Las respuestas y los cuatro estados siguen sin
+  números de cuenta.
+- El libro diario de un mes pasa de 5,000 líneas: se lee entero una vez (por páginas de la base), se busca mientras se escribe (cuenta,
+  asiento o glosa) y se ve de a 100. Al pie, el debe y el haber de lo que se está viendo.
+- Una terminal ve en el menú lo que es de CAYLA entera con su motivo, sin poder elegirlo (la misma regla que la descarga), y la pantalla de
+  las cuentas se lo dice si llega por URL.
+- Se vio con números de ejemplo en local (capturas a 1440 px) antes de conectarlo. Sin probar con sesión.
+
+## Actualización 2026-10-31 (c) · Una barra con las siete vistas
+
+- Con el menú «Ver» quedaban dos menús uno al lado del otro con la misma lista de seis («Ver» y «Descargar para el contador»). Felipe
+  comparó en una maqueta tocable (`docs/maquetas/finanzas-eeff-contador-2026-10/`) dos menús, un solo menú «Para el contador» y **una
+  barra horizontal**, y eligió la barra.
+- **La barra** va bajo el título, con la pieza de pestaña de vista del ERP (`<Pestanas>`, ADR-0358): Respuestas · Resultados · Flujo de
+  efectivo · Balance · Patrimonio · Saldos por cuenta · Libro diario. Los nombres son cortos para que las siete entren en una fila (949 px,
+  medido en local a 1024, 1280 y 1440 px); el nombre completo va en el título del cuadro y al pasar el mouse. La pieza no tiene
+  separadores, así que los tres grupos de la maqueta quedan en el orden, sin rayas.
+- **«Respuestas» muestra las cuatro tarjetas**; en un cuadro del contador, las tarjetas se van y queda su título con **«Descargar Excel»**
+  (`DescargarCuadro`), que baja solo ese cuadro. Se fueron los menús «Ver» y «Descargar para el contador» (y `MenuDescargar`, y el ícono
+  que se le había sumado a `MenuAcciones`).
+- Una terminal ve solo las vistas de su tienda: lo de CAYLA entera no aparece en su barra (una pestaña que la cuenta no ve, no está).
+- El PR #1519 se había fusionado antes de esto: la rama se reinició desde main con los commits que faltaban.
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero
