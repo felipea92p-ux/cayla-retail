@@ -3,6 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { FASES, faseDe } from "./orden-fases-reglas";
 import {
+  RPC_ANOTAR_TERMINE_CON_TELA,
+  RPC_DESHACER_TERMINE,
+  RPC_REGISTRAR_SALIDA_CON_TELA,
+  argsDeshacerTermine,
+  fraseDelEnvioConToken,
+  leerEnvioConTela,
   DIAS_SIN_MOVERSE,
   MAX_MOTIVO_ANULACION,
   RPC_ANULAR_PRODUCCION,
@@ -16,7 +22,6 @@ import {
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
   accionesDeFase,
-  avancesNuevos,
   avisoMinimoDeFase,
   buenasAlAnotarExcepcion,
   cantidadConUnidad,
@@ -89,7 +94,6 @@ import {
   MAX_MOTIVO_FALLA,
   buenasConFallas,
   diaParaLaBase,
-  fallasNuevas,
   fallasQueCierran,
   lineasDeFallas,
   problemaDeDia,
@@ -607,24 +611,6 @@ describe("lineaDeTiempoAgrupada", () => {
   });
 });
 
-describe("avancesNuevos — lo que «Deshacer» del aviso tiene que deshacer", () => {
-  it("los avances de esa fase que no estaban antes y todavía se pueden deshacer", () => {
-    const antes = orden().lineaDeTiempo;
-    const c = crudo();
-    c.linea_de_tiempo.push(
-      { id: "nuevo-1", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 5, detalle: "", variante_id: "n28", avance_id: "av-1" } as never,
-      { id: "nuevo-2", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 5, detalle: "", variante_id: "n30", avance_id: "av-2" } as never,
-      { id: "nuevo-3", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "costura", fase_nombre: "Costura", cantidad: 5, detalle: "", variante_id: "n30", avance_id: "av-3" } as never,
-      { id: "nuevo-4", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 5, detalle: "", variante_id: "n32", avance_id: null } as never,
-    );
-    expect(avancesNuevos(antes, leerOrdenPagina(c)!.lineaDeTiempo, "acabado")).toEqual(["av-1", "av-2"]);
-    expect(avancesNuevos(antes, antes, "acabado")).toEqual([]);
-  });
-  it("textoTermine", () => {
-    expect(textoTermine(120, "Corte")).toBe("Terminaste 120 prendas de Corte");
-    expect(textoTermine(1, "Acabado")).toBe("Terminaste 1 prenda de Acabado");
-  });
-});
 
 // ---------- Paridad con la migración: lo que la página lee sale del SQL, no de la memoria ----------
 
@@ -1549,16 +1535,7 @@ describe("«Terminé» con falla y con fecha (ADR-0570, actividad 2)", () => {
     expect(tonoDeEntrada("falla_deshecha")).toBe("cambio");
   });
 
-  it("fallasNuevas: las que se anotaron después de `antes` en esa fase y todavía se pueden deshacer", () => {
-    const despues = orden({
-      linea_de_tiempo: [
-        { id: "fa-1", cuando: "2026-10-19T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 2, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-1" },
-        { id: "fa-0", cuando: "2026-10-18T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 1, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-0" },
-      ],
-    }).lineaDeTiempo;
-    expect(fallasNuevas(despues.filter((e) => e.id === "fa-0"), despues, "acabado")).toEqual(["fa-1"]);
-    expect(fallasNuevas([], despues, "corte")).toEqual([]);
-  });
+
 
   it("paridad con la migración 20261029164000: los mismos rechazos (hints), el mismo tope del motivo y las llaves que la página lee", () => {
     const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20261029164000_produccion_termine_con_falla_y_fecha.sql"), "utf8");
@@ -1727,5 +1704,45 @@ describe("corregir, eliminar y restaurar con su historia (ADR-0570, actividad 3)
     expect(mig).toContain(`length(v) > ${MAX_MOTIVO_CAMBIO}`);
     expect(mig).toContain(`length(v_texto) > ${MAX_NOTA_ORDEN}`);
     for (const k of ["cambios", "deshechos", "quita_ids", "pone_ids", "deshace_ids", "restaurado", "fase_clave", "quien_nombre"]) expect(mig, k).toContain(`'${k}'`);
+  });
+});
+
+// ---------- «Terminé» y la Salida con su tela, todo o nada (ADR-0587) ----------
+
+describe("leerEnvioConTela — lo que devuelve el envío con token", () => {
+  it("un envío nuevo trae los ids para «Deshacer»; solo los textos", () => {
+    const r = leerEnvioConTela({ repetido: false, avance_ids: ["av-1", "av-2"], falla_ids: [], consumo_ids: ["mi-1", 3] });
+    expect(r).toEqual({ repetido: false, deshacer: { avanceIds: ["av-1", "av-2"], fallaIds: [], consumoIds: ["mi-1"] } });
+    expect(argsDeshacerTermine(r.deshacer!)).toEqual({ p_avance_ids: ["av-1", "av-2"], p_falla_ids: [], p_consumo_ids: ["mi-1"] });
+  });
+  it("un reintento que la base ya tenía («repetido») no ofrece «Deshacer»: no sabe qué escribió el primero", () => {
+    expect(leerEnvioConTela({ repetido: true, fases: [] })).toEqual({ repetido: true, deshacer: null });
+  });
+  it("una Salida (sin prendas que deshacer) y una respuesta rara no ofrecen «Deshacer»", () => {
+    expect(leerEnvioConTela({ repetido: false, fases: [], tela: [], consumo_ids: [] }).deshacer).toBeNull();
+    expect(leerEnvioConTela(null)).toEqual({ repetido: false, deshacer: null });
+    expect(leerEnvioConTela([1, 2])).toEqual({ repetido: false, deshacer: null });
+  });
+});
+
+describe("fraseDelEnvioConToken — con token, repetir es seguro", () => {
+  it("si se cortó la red, pide volver a apretar el mismo botón y promete que no se anota dos veces", () => {
+    const frase = fraseDelEnvioConToken({ message: "TypeError: Failed to fetch", code: "" } as never, "anotar lo que terminaste en corte", "Terminé");
+    expect(frase).toContain("Vuelve a apretar «Terminé»");
+    expect(frase).toContain("no se anota dos veces");
+  });
+  it("un «no» de la base dice lo de la base", () => {
+    expect(fraseDelEnvioConToken({ message: "En el estante había 45 de Lino", code: "P0001", hint: "uso_quedo_de_mas" } as never, "anotar", "Terminé")).toBe("En el estante había 45 de Lino");
+  });
+});
+
+describe("Paridad con la migración del corte con su tela (20261031014000)", () => {
+  const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20261031014000_produccion_corte_con_su_tela_todo_o_nada.sql"), "utf8");
+  it("las tres funciones que llama la pantalla existen con los parámetros que se mandan, y devuelven lo que se lee", () => {
+    expect(mig).toContain(`create or replace function retail.${RPC_ANOTAR_TERMINE_CON_TELA}(`);
+    expect(mig).toContain(`create or replace function retail.${RPC_REGISTRAR_SALIDA_CON_TELA}(`);
+    expect(mig).toContain(`create or replace function retail.${RPC_DESHACER_TERMINE}(p_avance_ids uuid[], p_falla_ids uuid[], p_consumo_ids uuid[])`);
+    for (const p of ["p_fase_id", "p_lineas", "p_nota", "p_hecho_en", "p_fallas", "p_tela", "p_token", "p_guia"]) expect(mig, p).toContain(p);
+    for (const k of ["repetido", "avance_ids", "falla_ids", "consumo_ids"]) expect(mig, k).toContain(`'${k}'`);
   });
 });

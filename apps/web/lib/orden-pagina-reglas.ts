@@ -3,6 +3,7 @@ import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
 import { FASES, faseDe, leerProcesos, secuenciaDe, type FaseClave, type FaseDelCatalogo, type Posicion, type Quien } from "./orden-fases-reglas";
 import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
+import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
 // las importen la página (servidor) y sus piezas (cliente), y para probar cada frase que la persona lee sin abrir el navegador.
@@ -21,7 +22,6 @@ import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 
 export const RPC_ORDEN_PRODUCCION = "fn_orden_produccion";
 export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
-export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
 /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
 export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
@@ -31,7 +31,8 @@ export const RPC_QUITAR_PASO = "quitar_paso_orden";
 export const RPC_AGREGAR_PASO = "agregar_paso_orden";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
 export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
-export const RPC_REGISTRAR_SALIDA = "registrar_salida";
+/** La Salida a un servicio y la tela que sale con ella, en una transacción y con token (ADR-0587). */
+export const RPC_REGISTRAR_SALIDA_CON_TELA = "registrar_salida_con_tela";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
 export const RPC_ANULAR_VUELTA = "anular_vuelta";
@@ -1333,15 +1334,6 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
   return dias_;
 }
 
-/**
- * Los avances que se anotaron después de `antes` en una fase y que todavía se pueden deshacer: los ids que «Deshacer» del aviso tiene que deshacer. `registrar_avance` no devuelve los
- * ids de lo que escribió, así que se leen de la línea de tiempo recién traída y se restan los que ya estaban.
- */
-export function avancesNuevos(antes: readonly EventoTiempo[], despues: readonly EventoTiempo[], fase: FaseClave): string[] {
-  const conocidos = new Set(antes.map((e) => e.id));
-  return despues.flatMap((e) => (e.tipo === "avance" && e.faseClave === fase && e.avanceId !== null && !conocidos.has(e.id) ? [e.avanceId] : []));
-}
-
 /** El texto del aviso de éxito: «Terminaste 120 prendas de Corte». */
 export function textoTermine(total: number, faseNombre: string): string {
   return `Terminaste ${cuantas(total, "prenda", "prendas")} de ${faseNombre}`;
@@ -1352,8 +1344,44 @@ export function textoTermine(total: number, faseNombre: string): string {
 // fase y no pasan a la siguiente; el arreglo solo se cuenta en la historia. Y el día real de lo anotado. Nada de esto decide algo nuevo: los rechazos son los de `anotar_termine`
 // (20261029164000), con sus mismos hints.
 
-export const RPC_ANOTAR_TERMINE = "anotar_termine";
-export const RPC_DESHACER_FALLA = "deshacer_falla";
+// ---------- «Terminé» y la Salida con su tela, todo o nada (ADR-0587) ----------
+// La tela que quedó viaja con el «Terminé» (o con la Salida a un corte de afuera) en UNA transacción, con un token por hoja abierta: si se corta
+// la red y la persona vuelve a apretar, la base devuelve «repetido» y no anota dos veces. «Deshacer» deshace las prendas, las fallas y devuelve
+// la tela a su lote, también en una sola llamada, con los ids que devolvió el envío.
+export const RPC_ANOTAR_TERMINE_CON_TELA = "anotar_termine_con_tela";
+export const RPC_DESHACER_TERMINE = "deshacer_termine";
+
+/** Lo que «Deshacer» necesita: los ids que escribió el envío. */
+export type DeshacerTermine = { avanceIds: string[]; fallaIds: string[]; consumoIds: string[] };
+
+/**
+ * La respuesta de `anotar_termine_con_tela` o `registrar_salida_con_tela`. `repetido`: la base ya tenía ese envío (un reintento tras un corte) y no
+ * anotó nada; entonces no hay ids y no se ofrece «Deshacer». `deshacer` es null si no hay nada que deshacer (o si la respuesta no trae la forma esperada).
+ */
+export function leerEnvioConTela(json: unknown): { repetido: boolean; deshacer: DeshacerTermine | null } {
+  if (!json || typeof json !== "object") return { repetido: false, deshacer: null };
+  const r = json as Record<string, unknown>;
+  const repetido = r.repetido === true;
+  const deshacer = { avanceIds: idsDe(r.avance_ids), fallaIds: idsDe(r.falla_ids), consumoIds: idsDe(r.consumo_ids) };
+  const hay = deshacer.avanceIds.length + deshacer.fallaIds.length + deshacer.consumoIds.length > 0;
+  return { repetido, deshacer: repetido || !hay ? null : deshacer };
+}
+
+/** Los argumentos de `deshacer_termine`. */
+export function argsDeshacerTermine(d: DeshacerTermine): { p_avance_ids: string[]; p_falla_ids: string[]; p_consumo_ids: string[] } {
+  return { p_avance_ids: d.avanceIds, p_falla_ids: d.fallaIds, p_consumo_ids: d.consumoIds };
+}
+
+/**
+ * La frase de un envío con token que falló. Con el token, repetir es seguro: si no llegó el veredicto de la base (un corte de red, un 504), se dice que
+ * vuelva a apretar y que no se anota dos veces (la frase de siempre pedía revisar la historia antes de repetir, porque sin token repetir duplicaba). Un «no»
+ * de la base, la frase de siempre.
+ */
+export function fraseDelEnvioConToken(error: ErrorEscritura, contexto: string, boton: string): string {
+  if (esRespuestaIncierta(error)) return `Se cortó la conexión mientras se intentaba ${contexto}. Vuelve a apretar «${boton}»: si ya se había guardado, no se anota dos veces.`;
+  return traducirError(error, contexto);
+}
+
 
 export type DestinoFalla = "arreglo" | "segunda" | "perdida";
 
@@ -1458,12 +1486,6 @@ export function problemaDeDia(dia: string, hoy: string, apertura: string): strin
 /** El día que viaja a la base: `null` si es hoy (vale la hora en que se anota). */
 export function diaParaLaBase(dia: string, hoy: string): string | null {
   return dia === hoy ? null : dia;
-}
-
-/** Las prendas con falla anotadas después de `antes` en una fase, que todavía se pueden deshacer: lo que el «Deshacer» del aviso tiene que deshacer (como `avancesNuevos`). */
-export function fallasNuevas(antes: readonly EventoTiempo[], despues: readonly EventoTiempo[], fase: FaseClave): string[] {
-  const conocidos = new Set(antes.map((e) => e.id));
-  return despues.flatMap((e) => (e.tipo === "falla" && e.faseClave === fase && e.fallaId !== null && !conocidos.has(e.id) ? [e.fallaId] : []));
 }
 
 // ---------- Corregir, eliminar y restaurar, con su historia (ADR-0570, actividad 3) ----------
