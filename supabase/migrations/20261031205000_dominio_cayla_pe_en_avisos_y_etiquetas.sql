@@ -8,7 +8,7 @@
 --
 -- QUÉ HACE
 --   1. `empresas.web`: de 'tienda.cayla.pe' a 'cayla.pe'. Solo donde decía eso: si alguien puso otro link, no se toca.
---   2. `club_textos`: de cada aviso (`aviso_cierre`, `aviso_cumpleanos`, `aviso_puntos`, `aviso_novedades`, `aviso_rebaja`) se mira la versión
+--   2. `club_textos`: de cada aviso (`aviso_*`: el cierre y los mensajes) se mira la versión
 --      vigente y, SOLO si nombra 'tienda.cayla.pe', se guarda una versión nueva con 'cayla.pe'. Cada aviso guarda el mensaje COMPLETO
 --      (cuerpo + cierre + BAJA; ver 20261020144000), por eso se cambia en los cinco, no solo en el cierre.
 --
@@ -33,6 +33,6 @@ insert into retail.club_textos (tipo, version, texto)
 select v.tipo, v.version + 1, replace(v.texto, 'tienda.cayla.pe', 'cayla.pe')
   from (select distinct on (t.tipo) t.tipo, t.version, t.texto
           from retail.club_textos t
-         where t.tipo in ('aviso_cierre', 'aviso_cumpleanos', 'aviso_puntos', 'aviso_novedades', 'aviso_rebaja')
+         where t.tipo like 'aviso\_%'
          order by t.tipo, t.version desc) v
  where position('tienda.cayla.pe' in v.texto) > 0;

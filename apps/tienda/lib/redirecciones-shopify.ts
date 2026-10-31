@@ -12,7 +12,10 @@ export type RedireccionDeShopify = { source: string; destination: string; perman
 
 const permanente = (source: string, destination: string): RedireccionDeShopify => ({ source, destination, permanent: true });
 
-/** De más específica a más general: Next toma la primera que calza. */
+/**
+ * De más específica a más general: Next toma la primera que calza.
+ * @internal Lo importa `next.config.ts` (la configuración de Next no la ve `knip --production`) y la prueba cruza cada destino con las pantallas.
+ */
 export const REDIRECCIONES_DE_SHOPIFY: RedireccionDeShopify[] = [
   // Páginas con equivalente propio.
   permanente("/pages/ubicacion-cayla", "/tiendas"),
