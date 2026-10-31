@@ -50,10 +50,17 @@ export function camposDeCambiarQuien(e: EleccionCambioDeQuien): CampoDeGuia[] {
   ];
 }
 
-/** «Agregar un paso» (ADR-0566): igual que «Cambiar quién» —el paso entero es UN campo: quién lo hace, a quién y a cuánto— y después quién lo anota. */
-export function camposDeAgregarPaso(e: EleccionCambioDeQuien): CampoDeGuia[] {
+/** «Agregar un paso» (ADR-0566): igual que «Cambiar quién» —el paso entero es UN campo: quién lo hace, a quién y a cuánto— y después quién lo anota. Un paso que entra tarde (ADR-0586)
+ *  pide además cuándo se hizo y por qué se agrega tarde: los dos los exige la base (`avance_fecha_*`, `cambio_sin_motivo`). */
+export function camposDeAgregarPaso(e: EleccionCambioDeQuien & { tarde?: { problemaDia: string | null; problemaMotivo: string | null } | null }): CampoDeGuia[] {
   return [
     { id: "fase", nombre: "Quién lo hace", requerido: true, hecho: e.faltas.length === 0, pendiente: e.faltas[0] ?? "Elige quién hace este paso." },
+    ...(e.tarde
+      ? [
+          { id: "dia", nombre: "Cuándo se hizo", requerido: true, hecho: e.tarde.problemaDia === null, pendiente: e.tarde.problemaDia ?? "Elige el día en que se hizo." },
+          { id: "porque", nombre: "Por qué se agrega tarde", requerido: true, hecho: e.tarde.problemaMotivo === null, pendiente: e.tarde.problemaMotivo ?? "Cuenta por qué se agrega tarde." },
+        ]
+      : []),
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este paso." },
   ];
 }

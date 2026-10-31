@@ -118,6 +118,10 @@ import {
   problemaDeNota,
   queCambio,
   type AnotacionCorregible,
+  RPC_AGREGAR_PASO_TARDE,
+  avisoDePasoTarde,
+  pasoAgregadoTarde,
+  prendasQueYaPasaron,
 } from "./orden-pagina-reglas";
 
 // La respuesta de `fn_orden_produccion` tal como la escribe la migración 20261014155000: una orden de 48 pantalones (negro y caqui, tallas 28/30/32, 8 de cada una).
@@ -519,6 +523,11 @@ describe("el costo", () => {
     expect(textoCosto(conVuelta)!.filas[2]).toMatchObject({ real: "207.00", realPendiente: false, detalle: "48 × S/\u00a04.50 · Confecciones del Norte + S/\u00a080.00 fijo", estimado: "296.00" });
     const cerrada = { ...p, orden: { ...p.orden, estado: "terminada" as const, cantidadBuenas: 46 } };
     expect(textoCosto(cerrada)!.porPrenda).toEqual({ estimado: "29.00", real: "22.83", realPendiente: false });
+  });
+  it("un servicio de pago único (ploteo) dice «pago único» y lo que toca por prenda, no «48 × S/ 0.00»", () => {
+    const p = orden();
+    const unico = { ...p, fases: p.fases.map((f) => (f.clave === "costura" ? { ...f, tarifaPrenda: null, fijoOrden: 24 } : f)) };
+    expect(textoCosto(unico)!.filas[2]).toMatchObject({ estimado: "24.00", detalle: "Pago único por las 48 prendas · Confecciones del Norte · S/\u00a00.50 por prenda" });
   });
   it("sin lote recibido no inventa un precio; sin permiso, no hay tabla", () => {
     const p = orden({ costos: { tela_estimado: 0, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 216, servicios_devengado: 0, total_estimado: 216, total_real_hasta_hoy: 0 } });
@@ -1381,6 +1390,95 @@ describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () 
     for (const hint of ["paso_despues_empezado", "orden_cerrada", "orden_inexistente", "responsable_requerido"]) expect(sql, hint).toContain(`hint = '${hint}'`);
     // La ruta completa pasa la validación de abrir y el candado es el de las demás escrituras de la orden.
     expect(sql).toContain("retail.fn_produccion_fases_normalizar(");
+    expect(sql).toContain("pg_advisory_xact_lock(hashtextextended('produccion:'");
+  });
+});
+
+describe("agregar un paso que se olvidó (ADR-0586): el líder lo agrega ya hecho", () => {
+  const base = orden();
+  const fase = (clave: FasePagina["clave"], nombre: string, secuencia: number, extra: Partial<FasePagina> = {}): FasePagina => ({ ...base.fases[0], id: `f-${clave}`, clave, nombre, secuencia, estado: "pendiente", actual: false, empezada: false, hechas: 0, segundas: 0, faltantes: 0, salieron: 0, hito: false, ...extra });
+  // La orden del Short Sastre Recover (captura del 30-oct): todo hecho con las 16, Planchado incluido, y sin Ojales y botones.
+  const SHORT = [
+    fase("ploteo", "Ploteo", 5, { estado: "hecha", empezada: true, hito: true }),
+    fase("corte", "Corte", 10, { estado: "hecha", empezada: true, hechas: 16 }),
+    fase("habilitado", "Habilitado", 15, { estado: "hecha", empezada: true, hechas: 16 }),
+    fase("costura", "Costura", 30, { estado: "hecha", empezada: true, hechas: 16 }),
+    fase("planchado", "Planchado", 65, { estado: "hecha", empezada: true, hechas: 16 }),
+  ];
+  const q = (fases: FasePagina[]) => ({ orden: { ...base.orden, estado: "en_proceso" as const }, permisos: { puedeOperar: true, veCostos: true }, fases, procesos: FASES });
+
+  it("al líder se le ofrece Ojales y botones marcado «tarde»: va antes de Planchado y entra con las 16 que ya están en Planchado", () => {
+    const { ofrecidos, bloqueados } = pasosAgregables(q(SHORT), { esLider: true });
+    const ojales = ofrecidos.find((x) => x.clave === "ojales_botones");
+    expect(ojales?.tarde).toEqual({ antesDe: "Planchado", prendas: 16 });
+    expect(ofrecidos.every((x) => x.tarde !== null)).toBe(true);
+    expect(bloqueados).toEqual([]);
+  });
+  it("a quien no es líder no se le ofrece: sigue apagado con su porqué (la base repite: paso_tarde_solo_lider)", () => {
+    const { ofrecidos, bloqueados } = pasosAgregables(q(SHORT));
+    expect(ofrecidos).toEqual([]);
+    expect(bloqueados.find((b) => b.clave === "ojales_botones")?.porQue).toBe("Planchado ya empezó, y Ojales y botones iría antes");
+  });
+  it("Planchado anotado y deshecho entero ya no «empezó», pero la base igual lo frena: la línea de tiempo lo recuerda y es «tarde» (al líder con 0, a los demás apagado)", () => {
+    const deshecho = SHORT.map((f) => (f.clave === "planchado" ? { ...f, estado: "pendiente" as const, empezada: false, hechas: 0 } : f));
+    const linea = [{ ...orden().lineaDeTiempo[0], faseClave: "planchado" as const, tipo: "deshacer" as const }];
+    expect(pasosAgregables({ ...q(deshecho), lineaDeTiempo: linea }, { esLider: true }).ofrecidos.find((x) => x.clave === "ojales_botones")?.tarde).toEqual({ antesDe: "Planchado", prendas: 0 });
+    expect(pasosAgregables({ ...q(deshecho), lineaDeTiempo: linea }).bloqueados.map((b) => b.clave)).toContain("ojales_botones");
+    expect(pasoPosteriorEmpezado(deshecho, 35, linea)?.nombre).toBe("Planchado");
+    expect(pasoPosteriorEmpezado(deshecho, 35)).toBeUndefined();
+  });
+  it("lo que no empezó después se sigue agregando vacío, como antes (tarde: null)", () => {
+    const sinPlanchar = SHORT.map((f) => (f.clave === "planchado" ? { ...f, estado: "pendiente" as const, empezada: false, hechas: 0 } : f));
+    expect(pasosAgregables(q(sinPlanchar), { esLider: true }).ofrecidos.find((x) => x.clave === "ojales_botones")?.tarde).toBeNull();
+  });
+  it("las prendas que ya pasaron son las que el paso siguiente ya usó (buenas, segundas, perdidas o lo que salió a su servicio), no todas las del paso de antes", () => {
+    expect(prendasQueYaPasaron(SHORT, 35)).toBe(16);
+    expect(prendasQueYaPasaron(SHORT.map((f) => (f.clave === "planchado" ? { ...f, hechas: 2, segundas: 1, faltantes: 1 } : f)), 35)).toBe(4);
+    expect(prendasQueYaPasaron(SHORT.map((f) => (f.clave === "planchado" ? { ...f, quien: "servicio" as const, hechas: 3, salieron: 5 } : f)), 35)).toBe(5);
+    expect(prendasQueYaPasaron(SHORT, 70)).toBe(0);
+  });
+  it("la hoja lo dice en una frase: qué avanzó y con cuántas entra", () => {
+    expect(avisoDePasoTarde("Ojales y botones", { antesDe: "Planchado", prendas: 16 })).toBe(
+      "Ojales y botones entra hecho con las 16 prendas que ya están en Planchado. Lo que falte se anota cuando se haga. Queda en la historia con tu motivo."
+    );
+    expect(avisoDePasoTarde("Ojales y botones", { antesDe: "Planchado", prendas: 1 })).toContain("con la prenda que ya está en Planchado");
+    expect(avisoDePasoTarde("Ojales y botones", { antesDe: "Planchado", prendas: 0 })).toContain("entra vacío");
+  });
+  it("la historia lo cuenta («Agregó Ojales y botones tarde · 16 prendas ya hechas · Afuera con … · Por qué: …») y el paso sabe que entró tarde", () => {
+    const cambio = {
+      id: "c-t",
+      accion: "paso_tarde",
+      objeto: null,
+      fase_clave: "ojales_botones",
+      fase_nombre: "Ojales y botones",
+      quita_ids: [],
+      pone_ids: ["a-1", "a-2"],
+      deshace_ids: [],
+      antes: null,
+      despues: { clave: "ojales_botones", quien: "servicio", proveedor_nombre: "Ojalería Lima", prendas: 16, hecho: "2026-10-28T17:00:00+00:00", antes_de: "planchado" },
+      texto: "Se olvidó anotarlo",
+      restaurado: false,
+      quien_nombre: "Felipe",
+      cuando: "2026-10-16T16:00:00+00:00",
+    };
+    const p = orden({ cambios: [cambio] });
+    expect(p.cambios[0]).toMatchObject({ accion: "paso_tarde", faseClave: "ojales_botones", antes: null, despues: null, tarde: { prendas: 16, quien: "servicio", proveedorNombre: "Ojalería Lima", hecho: "2026-10-28T17:00:00+00:00" } });
+    const entrada = lineaDeTiempoAgrupada(p, "2026-10-16").flatMap((d) => d.entradas).find((e) => e.tipo === "paso_tarde");
+    expect(entrada).toMatchObject({ titulo: "Agregó Ojales y botones tarde", cuanto: "16 prendas ya hechas", detalle: "Afuera con Ojalería Lima · volvió el mié 28 oct · Por qué: Se olvidó anotarlo", restaurable: null });
+    expect(tonoDeEntrada("paso_tarde")).toBe("cambio");
+    expect(pasoAgregadoTarde({ clave: "ojales_botones" }, p.cambios)?.texto).toBe("Se olvidó anotarlo");
+    expect(pasoAgregadoTarde({ clave: "planchado" }, p.cambios)).toBeUndefined();
+  });
+  it("paridad con la migración 20261031002000: la RPC, los argumentos que manda la hoja y sus motivos", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261031002000_produccion_agregar_paso_tarde.sql"), "utf8");
+    expect(sql).toContain(`create or replace function retail.${RPC_AGREGAR_PASO_TARDE}(`);
+    for (const arg of ["p_produccion_id", "p_clave", "p_motivo", "p_hecho_en", "p_quien", "p_proveedor_id", "p_tarifa_prenda", "p_fijo_orden", "p_cantidad_minima", "p_proveedor_pendiente", "p_posicion"]) expect(sql, arg).toContain(arg);
+    for (const hint of ["paso_tarde_solo_lider", "paso_no_es_tarde", "paso_tarde_hito", "orden_cerrada", "responsable_requerido"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    // Lo que da por hecho es lo que el paso siguiente ya usó (la cuenta de fn_produccion_exigir_cadena), y bloquea la fila de la orden como cerrar_produccion.
+    expect(sql).toContain("retail.fn_produccion_fase_siguiente(v_fase)");
+    expect(sql).toContain("for update");
+    expect(sql).toContain("retail.fn_es_lider()");
+    expect(sql).toContain("retail.fn_produccion_motivo_cambio(p_motivo)");
     expect(sql).toContain("pg_advisory_xact_lock(hashtextextended('produccion:'");
   });
 });
