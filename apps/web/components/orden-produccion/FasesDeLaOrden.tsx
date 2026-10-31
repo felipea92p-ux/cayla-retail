@@ -221,6 +221,7 @@ export function FilaFase({
   onApagar,
   onAgregarProveedor,
   catalogo = FASES,
+  sinFechaPrometida = false,
 }: {
   fase: FaseBorrador;
   totalPrendas: number;
@@ -235,6 +236,8 @@ export function FilaFase({
   onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
   /** El catálogo de procesos (el nombre de un proceso propio); sin él, el de respaldo. */
   catalogo?: ReadonlyArray<FaseDelCatalogo>;
+  /** Un paso que entra ya hecho (ADR-0586, «Agregar un paso» tarde) no promete fecha de vuelta: ya volvió. */
+  sinFechaPrometida?: boolean;
 }) {
   const def = faseDe(fase.clave, catalogo);
   const nombreEnFrase = def.nombre.toLocaleLowerCase("es");
@@ -338,13 +341,15 @@ export function FilaFase({
             onChange={(e) => onCambiar({ fijo: e.target.value })}
             {...pieDe("fijo", sugerida && sugerida.fijo > 0 && fase.fijo.trim() === "" ? "de su lista de precios" : "una sola vez por la orden, sin IGV")}
           />
-          <CampoFecha
-            id={`${idBase}-fecha`}
-            etiqueta="Prometido para"
-            valor={fase.fechaPrometida}
-            onValor={(iso) => onCambiar({ fechaPrometida: iso })}
-            {...pieDe("fecha", "opcional · cuándo lo devuelve")}
-          />
+          {!sinFechaPrometida && (
+            <CampoFecha
+              id={`${idBase}-fecha`}
+              etiqueta="Prometido para"
+              valor={fase.fechaPrometida}
+              onValor={(iso) => onCambiar({ fechaPrometida: iso })}
+              {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+            />
+          )}
           {avisoPendiente}
         </div>
       )}
@@ -371,13 +376,15 @@ export function FilaFase({
             onChange={(e) => onCambiar({ minimo: e.target.value })}
             {...pieDe("minimo", pieMinimo)}
           />
-          <CampoFecha
-            id={`${idBase}-fecha`}
-            etiqueta="Prometido para"
-            valor={fase.fechaPrometida}
-            onValor={(iso) => onCambiar({ fechaPrometida: iso })}
-            {...pieDe("fecha", "opcional · cuándo lo devuelve")}
-          />
+          {!sinFechaPrometida && (
+            <CampoFecha
+              id={`${idBase}-fecha`}
+              etiqueta="Prometido para"
+              valor={fase.fechaPrometida}
+              onValor={(iso) => onCambiar({ fechaPrometida: iso })}
+              {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+            />
+          )}
           <div className="sm:col-span-2">
             {verFijo ? (
               <CampoMonto
