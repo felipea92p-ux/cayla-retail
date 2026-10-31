@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { leerTelasCortadasSinAnotar, type TelaCortadaSinAnotar } from "@/lib/telas-cortadas-sin-anotar-reglas";
 import { RPC_INGRESOS_ELIMINADOS, motivoParaNoTocarIngreso } from "@/lib/ingreso-insumo-reglas";
 import {
   capitalEnLotes,
@@ -380,4 +381,23 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     materiales,
     hayTelas: !sinMaterialId && !materialesLeidos.error,
   };
+}
+
+/**
+ * Las telas de órdenes abiertas que ya cortaron y no tienen nada descontado del libro (`fn_telas_cortadas_sin_anotar`, ADR-0570 actividad 4). Es un dato de apoyo: la web puede salir
+ * antes que su migración (`20261031173000`), y si la función no existe o la base no responde la pantalla sigue sin el aviso (se avisa en el registro, no a la persona).
+ */
+export async function getTelasCortadasSinAnotar(tallerId: string): Promise<TelaCortadaSinAnotar[]> {
+  const supabase = await createClient();
+  // La función es nueva y no está en los tipos generados: se tipa el cliente, no el resultado.
+  const { data, error } = await (supabase as unknown as { rpc: (n: string, a: object) => Promise<{ data: unknown; error: { code?: string; message: string } | null }> }).rpc(
+    "fn_telas_cortadas_sin_anotar",
+    { p_ubicacion_id: tallerId }
+  );
+  if (error) {
+    // 42883 / PGRST202: la base todavía no tiene la función. Es lo esperado hasta que se pegue la migración.
+    if (error.code !== "42883" && error.code !== "PGRST202") console.error(`telas cortadas sin anotar: ${error.message}`);
+    return [];
+  }
+  return leerTelasCortadasSinAnotar(data);
 }
