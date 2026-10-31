@@ -481,6 +481,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // «Aplazar». El modo «Registrar abono» es el formulario de `ModalesApartado.tsx` (pendiente, se cuenta allí).
   "components/apartados/DetalleApartado.tsx": { estado: "aplicada", evidencia: ["components/apartados/DetalleApartado.tsx"] },
   "components/apartados/ModalesApartado.tsx": PENDIENTE, // 22 controles
+  // ADR-0584: la hoja «Descuento» de Apartar. Cuentan como «falta» lo mismo que exige la base al apartar: cuánto, el motivo (y su
+  // detalle si es «Otro»), el argumento pasado el 15 % y al menos una prenda.
+  "components/apartados/DescuentoApartado.tsx": { estado: "aplicada", evidencia: ["components/apartados/DescuentoApartado.tsx"] },
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles
