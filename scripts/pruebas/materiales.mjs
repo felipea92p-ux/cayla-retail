@@ -75,7 +75,14 @@ select codigo as c1 from retail.colores where activo order by codigo limit 1 \\g
 select codigo as c2 from retail.colores where activo order by codigo offset 1 limit 1 \\gset
 select codigo as c3 from retail.colores where activo order by codigo offset 2 limit 1 \\gset
 select p.id as micaela_p from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
+select id as k_boton from retail.avio_clases where prefijo = 'BOT' \\gset
+select id as k_cierre from retail.avio_clases where prefijo = 'CIE' \\gset
+select id as k_hilo from retail.avio_clases where prefijo = 'HIL' \\gset
+select id as k_etiqueta from retail.avio_clases where prefijo = 'ETI' \\gset
 `;
+
+/** Un avío como lo manda la hoja: su clase es obligatoria (ADR-0580). */
+const AVIO = (nombre, clase, extra = "") => `jsonb_build_object('nombre', '${nombre}', 'tipo', 'avio', 'clase_id', :'${clase}'${extra})`;
 
 /** Los colores como los manda la hoja: `[{color_codigo, stock_minimo?, saldo_inicial?: {cantidad, costo_total}}]`. */
 const COLOR = (variable, saldo = null) => `jsonb_build_object('color_codigo', :'${variable}'${saldo ? `, 'saldo_inicial', jsonb_build_object('cantidad', ${saldo[0]}, 'costo_total', ${saldo[1]})` : ""})`;
@@ -231,8 +238,8 @@ select count(*), bool_or(i.id = :'id_c1') from retail.insumos i where i.material
   (c) => Number(c[0]) === 2 && c[1] === "t"
 );
 mal(
-  "F2 un saldo en un color que ya existía se rechaza (eso es «Llegó tela»)",
-  "Llegó tela",
+  "F2 un saldo en un color que ya existía se rechaza (eso es «Ingresar insumo»)",
+  "Ingresar insumo",
   `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1")))} as r \\gset
 select retail.agregar_colores_a_material((:'r'::jsonb -> 'material' ->> 'id')::uuid, :'taller', ${COLORES(COLOR("c1", [5, 50]))});`
 );
@@ -303,7 +310,7 @@ mal(
 mal(
   "H5 el tipo y la unidad de una tela no se cambian",
   "no se cambian",
-  `select ${CREAR("Zafiro Lana", COLORES(COLOR("c1")), `, 'tipo', 'avio', 'unidad_medida', 'unidad'`)} as r \\gset
+  `select ${CREAR("Zafiro Lana", COLORES(COLOR("c1")), `, 'tipo', 'avio', 'unidad_medida', 'unidad', 'clase_id', :'k_boton'`)} as r \\gset
 update retail.materiales set unidad_medida = 'kilo' where id = (:'r'::jsonb -> 'material' ->> 'id')::uuid;`
 );
 mal(
@@ -384,19 +391,22 @@ select (select count(*) from retail.materiales where nombre = 'Larga' and length
 
 // ---------------- J. Puertas ----------------
 ok(
-  "J1 anon no llama a nada; authenticated solo a las dos funciones de alta, no a las internas",
+  "J1 anon no llama a nada; authenticated solo a las dos funciones de alta, no a las internas (ni a `fn_medida_texto`/`fn_medida_cuadra`, ADR-0580)",
   `select concat_ws(',',
     has_function_privilege('anon', 'retail.crear_material(uuid,jsonb,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.crear_material(uuid,jsonb,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.agregar_colores_a_material(uuid,uuid,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_material_agregar_colores(uuid,uuid,jsonb,uuid)', 'execute'),
-    has_function_privilege('authenticated', 'retail.fn_codigo_de_material(text,text)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_codigo_de_material(text,text,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_materializar_insumos_sueltos(boolean)', 'execute'),
     has_function_privilege('authenticated', 'retail.editar_material(uuid,uuid,jsonb)', 'execute'),
     has_function_privilege('anon', 'retail.editar_material(uuid,uuid,jsonb)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_material_leer(jsonb,text,text)', 'execute'),
-    has_function_privilege('authenticated', 'retail.fn_materiales_propagar_a_colores()', 'execute'));`,
-  (c) => c[0] === "f,t,t,f,f,f,t,f,f,f"
+    has_function_privilege('authenticated', 'retail.fn_materiales_propagar_a_colores()', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_medida_texto(numeric,text)', 'execute'),
+    has_function_privilege('anon', 'retail.fn_medida_texto(numeric,text)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_medida_cuadra(text,text)', 'execute'));`,
+  (c) => c[0] === "f,t,t,f,f,f,t,f,f,f,f,f,f"
 );
 mal(
   "J2 la tabla de telas no se escribe desde la API",
@@ -427,7 +437,7 @@ select count(*) filter (where i.nombre like 'Zafiro Renombrado · %' and i.tejid
 );
 mal(
   "K2 editar una tela es del líder: un colaborador, aunque vea Producción en ese Taller, no la edita",
-  "Editar una tela es del líder",
+  "Corregir la tela es del líder",
   `${TELA_DOS_COLORES}
 ${MICAELA_EN_EL_TALLER}
 select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Otro')`)};`
@@ -541,15 +551,16 @@ mal(
   `select id as tienda from retail.ubicaciones where tipo <> 'taller' and activo order by nombre limit 1 \\gset
 select retail.crear_material(:'tienda', jsonb_build_object('nombre', 'Zafiro Prueba'), '[]'::jsonb, null);`
 );
-mal(
-  "N2 un avío lo crea el líder",
-  "Los avíos los crea el líder",
+ok(
+  "N2 un avío lo crea QUIEN OPERA el Taller, igual que una tela (ADR-0580, decisión 3 de Felipe)",
   `${MICAELA_EN_EL_TALLER}
-select retail.crear_material(:'taller', jsonb_build_object('nombre', 'Botón Prueba', 'tipo', 'avio', 'unidad_medida', 'unidad'), '[]'::jsonb, null);`
+select retail.crear_material(:'taller', ${AVIO("Botón Prueba", "k_boton", `, 'unidad_medida', 'unidad'`)}, '[]'::jsonb, null) as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'tipo'), (:'r'::jsonb -> 'material' ->> 'codigo') like 'BOT-%';`,
+  (c) => c[0] === "avio" && c[1] === "t"
 );
 ok(
-  "N3 el líder sí crea un avío",
-  `select retail.crear_material(:'taller', jsonb_build_object('nombre', 'Botón Prueba', 'tipo', 'avio', 'unidad_medida', 'unidad'), jsonb_build_array(jsonb_build_object('color_codigo', :'c1')), null) as r \\gset
+  "N3 el líder también, y el código sale del prefijo de la CLASE (no de la primera palabra del nombre)",
+  `select retail.crear_material(:'taller', ${AVIO("Nácar grande", "k_boton", `, 'unidad_medida', 'unidad'`)}, jsonb_build_array(jsonb_build_object('color_codigo', :'c1')), null) as r \\gset
 select (:'r'::jsonb -> 'material' ->> 'tipo'), (:'r'::jsonb -> 'material' ->> 'codigo') like 'BOT-%', (:'r'::jsonb -> 'material' ->> 'unidad_medida');`,
   (c) => c[0] === "avio" && c[1] === "t" && c[2] === "unidad"
 );
@@ -596,7 +607,7 @@ mal(
 );
 ok(
   "P4 un avío a peso (relleno) no necesita ancho ni gramaje; una tela por kilo sí",
-  `insert into retail.materiales (codigo, nombre, tipo, unidad_medida, unidad_compra) values ('ZZ-AK', 'Relleno', 'avio', 'kilo', 'kilo');
+  `insert into retail.materiales (codigo, nombre, tipo, unidad_medida, unidad_compra, clase_id) values ('ZZ-AK', 'Relleno', 'avio', 'kilo', 'kilo', :'k_boton');
 select count(*) from retail.materiales where codigo = 'ZZ-AK';`,
   (c) => Number(c[0]) === 1
 );
@@ -610,13 +621,13 @@ select (:'r'::jsonb -> 'material') ? 'token_cliente', (:'r'::jsonb -> 'material'
 // ---------------- K (continuación). Editar sin pisar a nadie y dejando rastro ----------------
 mal(
   "K10 una hoja VIEJA no pisa lo que otra persona guardó: la base rechaza una versión que ya no es la de la tela (PT409)",
-  "Otra persona cambió esta tela",
+  "Otra persona cambió la tela",
   `${TELA_DOS_COLORES}
 select retail.editar_material(:'mid', :'taller', jsonb_build_object('nombre', 'Zafiro Vieja', 'version', '2000-01-01T00:00:00+00:00'));`
 );
 mal(
   "K11 y una llamada sin versión tampoco pasa (no se puede pisar en silencio)",
-  "Otra persona cambió esta tela",
+  "Otra persona cambió la tela",
   `${TELA_DOS_COLORES}
 select retail.editar_material(:'mid', :'taller', jsonb_build_object('nombre', 'Zafiro Sin Version'));`
 );
@@ -663,12 +674,20 @@ mal(
 );
 
 // ---------------- N (continuación) ----------------
-mal(
-  "N5 sumarle colores a un avío también es del líder",
-  "Los avíos los crea el líder",
-  `select retail.crear_material(:'taller', jsonb_build_object('nombre', 'Botón Suma', 'tipo', 'avio', 'unidad_medida', 'unidad'), '[]'::jsonb, null) as r \\gset
+ok(
+  "N5 sumarle colores a un avío también lo hace quien opera el Taller, pero el SALDO con su costo sigue siendo del líder",
+  `select retail.crear_material(:'taller', ${AVIO("Botón Suma", "k_boton", `, 'unidad_medida', 'unidad'`)}, '[]'::jsonb, null) as r \\gset
 ${MICAELA_EN_EL_TALLER}
-select retail.agregar_colores_a_material((:'r'::jsonb -> 'material' ->> 'id')::uuid, :'taller', ${COLORES(COLOR("c1"))});`
+select retail.agregar_colores_a_material((:'r'::jsonb -> 'material' ->> 'id')::uuid, :'taller', ${COLORES(COLOR("c1"))}) as r2 \\gset
+select jsonb_array_length(:'r2'::jsonb -> 'insumos');`,
+  (c) => Number(c[0]) === 1
+);
+mal(
+  "N5b …y Micaela no puede anotarle el saldo inicial de un avío (es dinero)",
+  "lo anota el líder",
+  `select retail.crear_material(:'taller', ${AVIO("Botón Saldo", "k_boton", `, 'unidad_medida', 'unidad'`)}, '[]'::jsonb, null) as r \\gset
+${MICAELA_EN_EL_TALLER}
+select retail.agregar_colores_a_material((:'r'::jsonb -> 'material' ->> 'id')::uuid, :'taller', ${COLORES(COLOR("c1", [5, 50]))});`
 );
 
 // ---------------- I (continuación). Lo que el conversor cambiaría al adoptar se dice, y lo que no debe cambiar se frena ----------------
@@ -1046,6 +1065,149 @@ ok(
     has_function_privilege('authenticated', 'retail.fn_insumo_lotes_color_activo()', 'execute'));`,
   (c) => c[0] === "f,t,f,f,f"
 );
+
+// ---------------- V. El avío: su clase, su medida y quién lo crea (ADR-0580) ----------------
+// Hasta hoy un avío era «un insumo que no es tela»: ni clase, ni medida, y su unidad la proponía la pantalla (siempre «unidad»), que es irreversible al primer lote.
+ok(
+  "V1 un avío con su clase y sus colores: código del prefijo de la clase y el nombre de cada color con su MEDIDA",
+  `select retail.crear_material(:'taller', ${AVIO("Cierre invisible", "k_cierre", `, 'unidad_medida', 'unidad', 'medida_valor', 40, 'medida_unidad', 'centimetro'`)}, ${COLORES(COLOR("c1"), COLOR("c2"))}, null) as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'codigo') like 'CIE-%',
+       (:'r'::jsonb -> 'material' ->> 'nombre_largo'),
+       (select bool_and(i.nombre like 'Cierre invisible 40 cm · %') from retail.insumos i where i.material_id = (:'r'::jsonb -> 'material' ->> 'id')::uuid),
+       (select count(*) from retail.insumos i where i.material_id = (:'r'::jsonb -> 'material' ->> 'id')::uuid);`,
+  (c) => c[0] === "t" && c[1] === "Cierre invisible 40 cm" && c[2] === "t" && Number(c[3]) === 2
+);
+mal(
+  "V2 un avío SIN clase no entra: el sistema tiene que saber que un botón es un botón",
+  "Elige de qué clase es el avío",
+  `select retail.crear_material(:'taller', jsonb_build_object('nombre', 'Botón Huérfano', 'tipo', 'avio', 'unidad_medida', 'unidad'), '[]'::jsonb, null);`
+);
+mal(
+  "V2b …y el candado de verdad está en la TABLA, no en la función: un INSERT directo tampoco entra sin clase",
+  "materiales_avio_con_clase",
+  `insert into retail.materiales (codigo, nombre, tipo, unidad_medida, unidad_compra) values ('ZZ-SC', 'Avío sin clase', 'avio', 'unidad', 'unidad');`
+);
+mal(
+  "V3 una clase inventada tampoco",
+  "no existe o está desactivada",
+  `select retail.crear_material(:'taller', jsonb_build_object('nombre', 'Botón Raro', 'tipo', 'avio', 'unidad_medida', 'unidad', 'clase_id', gen_random_uuid()), '[]'::jsonb, null);`
+);
+mal(
+  "V4 una clase DESACTIVADA no se puede elegir",
+  "no existe o está desactivada",
+  `update retail.avio_clases set activo = false where id = :'k_boton';
+select retail.crear_material(:'taller', ${AVIO("Botón Apagado", "k_boton", `, 'unidad_medida', 'unidad'`)}, '[]'::jsonb, null);`
+);
+mal(
+  "V5 una TELA no lleva clase de avío (el CHECK de la tabla)",
+  "materiales_clase_solo_avio",
+  `insert into retail.materiales (codigo, nombre, tipo, unidad_medida, unidad_compra, clase_id) values ('ZZ-TC', 'Tela con clase', 'tela', 'metro', 'metro', :'k_boton');`
+);
+mal(
+  "V6 un cierre SIN su largo no entra: es lo que lo distingue de otro cierre",
+  "dos «Cierre» de distinta medida",
+  `select retail.crear_material(:'taller', ${AVIO("Cierre sin largo", "k_cierre", `, 'unidad_medida', 'unidad'`)}, '[]'::jsonb, null);`
+);
+mal(
+  "V7 una etiqueta NO lleva medida (lo que la distingue es su nombre)",
+  "no lleva medida",
+  `select retail.crear_material(:'taller', ${AVIO("Etiqueta de composición", "k_etiqueta", `, 'unidad_medida', 'unidad', 'medida_valor', 3, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null);`
+);
+mal(
+  "V8 la medida de un botón no se escribe en centímetros (cada comportamiento admite la suya)",
+  "Esa no es la medida de «Botón»",
+  `select retail.crear_material(:'taller', ${AVIO("Botón en cm", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'centimetro'`)}, '[]'::jsonb, null);`
+);
+mal(
+  "V9 la medida va completa: un número sin su unidad no se guarda",
+  "va con su unidad",
+  `select retail.crear_material(:'taller', ${AVIO("Botón a medias", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18`)}, '[]'::jsonb, null);`
+);
+ok(
+  "V10 DOS medidas del mismo botón son DOS fichas; la MISMA medida dos veces, no (el candado que antes dejaba entrar «18mm» y «18 mm»)",
+  `select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null) as r1 \\gset
+select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 24, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null) as r2 \\gset
+select (:'r1'::jsonb -> 'material' ->> 'nombre_largo'), (:'r2'::jsonb -> 'material' ->> 'nombre_largo'), (:'r1'::jsonb -> 'material' ->> 'codigo') <> (:'r2'::jsonb -> 'material' ->> 'codigo');`,
+  (c) => c[0] === "Botón nácar 18 L" && c[1] === "Botón nácar 24 L" && c[2] === "t"
+);
+mal(
+  "V10b …y el mismo botón con la MISMA medida avisa y apunta al que ya está",
+  "Ya existe «Botón nácar 18 L»",
+  `select retail.crear_material(:'taller', ${AVIO("Botón nácar", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null) as r1 \\gset
+select retail.crear_material(:'taller', ${AVIO("botón  NÁCAR", "k_boton", `, 'unidad_medida', 'unidad', 'medida_valor', 18, 'medida_unidad', 'linea'`)}, '[]'::jsonb, null);`
+);
+ok(
+  "V11 un hilo se puede llevar en CONOS (la unidad la elige quien lo tiene en la mano, y después no cambia)",
+  `select retail.crear_material(:'taller', ${AVIO("Hilo poliéster", "k_hilo", `, 'unidad_medida', 'cono', 'medida_valor', 40, 'medida_unidad', 'titulo'`)}, ${COLORES(COLOR("c1"))}, null) as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'unidad_medida'), (:'r'::jsonb -> 'material' ->> 'nombre_largo'),
+       (select unidad_medida || '~' || nombre from retail.insumos i where i.material_id = (:'r'::jsonb -> 'material' ->> 'id')::uuid);`,
+  (c) => c[0] === "cono" && c[1] === "Hilo poliéster título 40" && c[2].startsWith("cono~Hilo poliéster título 40 · ")
+);
+mal(
+  "V12 la merma al cortar es de lo que se mide en metros: un botón que se cuenta por unidad no la lleva",
+  "se mide en metros",
+  `select retail.crear_material(:'taller', ${AVIO("Botón con merma", "k_boton", `, 'unidad_medida', 'unidad', 'merma_pct', 0.05`)}, '[]'::jsonb, null);`
+);
+ok(
+  "V13 …pero un elástico por METRO sí la lleva, y les llega a sus colores",
+  `select retail.crear_material(:'taller', ${AVIO("Elástico plano", "k_cierre", `, 'unidad_medida', 'metro', 'merma_pct', 0.03, 'medida_valor', 3, 'medida_unidad', 'centimetro'`)}, ${COLORES(COLOR("c1"))}, null) as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'merma_pct'), (select merma_pct::text from retail.insumos i where i.material_id = (:'r'::jsonb -> 'material' ->> 'id')::uuid);`,
+  (c) => Number(c[0]) === 0.03 && Number(c[1]) === 0.03
+);
+ok(
+  "V14 corregir la MEDIDA de un avío reescribe el nombre de todos sus colores en la misma transacción",
+  `select retail.crear_material(:'taller', ${AVIO("Cierre metálico", "k_cierre", `, 'unidad_medida', 'unidad', 'medida_valor', 20, 'medida_unidad', 'centimetro'`)}, ${COLORES(COLOR("c1"), COLOR("c2"))}, null) as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'id') as mid, (:'r'::jsonb -> 'material' ->> 'updated_at') as ver \\gset
+select retail.editar_material(:'mid', :'taller', jsonb_build_object('medida_valor', 45, 'version', :'ver'));
+select (select bool_and(i.nombre like 'Cierre metálico 45 cm · %') from retail.insumos i where i.material_id = :'mid'),
+       (select count(*) from retail.actividad a where a.accion = 'avio_editado');`,
+  (c) => c[0] === "t" && Number(c[1]) >= 1
+);
+ok(
+  "V15 `fn_medida_texto` dice lo mismo que la web (`lib/avio-clases-reglas.ts`): punto decimal y sin decimales de más",
+  `select concat_ws('~', retail.fn_medida_texto(18, 'linea'), retail.fn_medida_texto(11.40, 'milimetro'), retail.fn_medida_texto(40, 'centimetro'), retail.fn_medida_texto(40, 'titulo'), coalesce(retail.fn_medida_texto(null, 'linea'), '-'));`,
+  (c) => c[0] === "18 L~11.4 mm~40 cm~título 40~-"
+);
+ok(
+  "V16 `fn_medida_cuadra` es la misma tabla que la web: cada comportamiento admite solo lo suyo",
+  `select concat_ws(',', retail.fn_medida_cuadra('pieza','linea'), retail.fn_medida_cuadra('pieza','milimetro'), retail.fn_medida_cuadra('pieza','centimetro'), retail.fn_medida_cuadra('largo','centimetro'),
+    retail.fn_medida_cuadra('ancho','centimetro'), retail.fn_medida_cuadra('titulo','titulo'), retail.fn_medida_cuadra('etiqueta','linea'), retail.fn_medida_cuadra('otro','titulo'));`,
+  // El 2.º es el candado de Felipe (2026-10-30): un botón NO se mide en milímetros, o el mismo botón entra dos veces y el stock queda partido.
+  (c) => c[0] === "t,f,f,t,t,t,f,t"
+);
+ok(
+  "V17 las siete clases nacen con su comportamiento, su unidad propuesta y si llevan color",
+  `select string_agg(prefijo || ':' || comportamiento || ':' || unidad_sugerida || ':' || pide_color::text, ' ' order by orden) from retail.avio_clases;`,
+  (c) => c[0] === "BOT:pieza:unidad:true CIE:largo:unidad:true HIL:titulo:cono:true ETI:etiqueta:unidad:false ELA:ancho:metro:true PRE:ancho:metro:true AVI:otro:unidad:true"
+);
+ok(
+  "V18 puertas: `anon` no lee las clases; `authenticated` las lee y las crea, pero no las borra",
+  `select concat_ws(',',
+    has_table_privilege('anon', 'retail.avio_clases', 'select'),
+    has_table_privilege('authenticated', 'retail.avio_clases', 'select'),
+    has_table_privilege('authenticated', 'retail.avio_clases', 'insert'),
+    has_table_privilege('authenticated', 'retail.avio_clases', 'update'),
+    has_table_privilege('authenticated', 'retail.avio_clases', 'delete'));`,
+  (c) => c[0] === "f,t,t,t,f"
+);
+ok(
+  "V19 una clase se crea con sesión (nace activa, ADR-0534) y solo el líder la corrige o la apaga",
+  `${MICAELA_EN_EL_TALLER}
+insert into retail.avio_clases (nombre, prefijo) values ('Broche Prueba', 'BPR');
+select comportamiento, activo::text from retail.avio_clases where prefijo = 'BPR';`,
+  (c) => c[0] === "otro" && c[1] === "true"
+);
+ok(
+  "V19b …y corregirla o apagarla es del líder: esa es su política (con el rol `postgres` la RLS no se aplica, así que se mira la regla)",
+  `select string_agg(polname || ':' || pg_get_expr(polqual, polrelid), ' ' order by polname) from pg_policy where polrelid = 'retail.avio_clases'::regclass and polcmd = 'w';`,
+  (c) => c[0] === "avio_clases_update_lider:retail.fn_es_lider()"
+);
+mal(
+  "V20 dos clases no pueden compartir el prefijo: el código de sus fichas se mezclaría",
+  "avio_clases_prefijo_unico",
+  `insert into retail.avio_clases (nombre, prefijo) values ('Botones Otra Vez', 'BOT');`
+);
+
 
 function main() {
   try {

@@ -32,6 +32,32 @@ const NEUTRO: Record<TipoInsumo, { codigo: string; nombre: string }> = { tela: {
 
 const clave = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 
+/**
+ * Los ejemplos de «Nuevo avío» siguen a la CLASE elegida (ADR-0290 / ADR-0580): con «Hilo» elegido, la caja de nombre no puede decir «Botón nácar».
+ *
+ * Se indexa por el PREFIJO de la clase, nunca por su nombre visible: el líder renombra una clase en Catálogo ▸ Atributos y el ejemplo tiene que seguir acertando. Una clase que el líder crea
+ * (nace con un prefijo derivado de su nombre y sin fila aquí) cae al texto neutro, nunca al ejemplo de otra clase.
+ */
+const EJEMPLOS_AVIO: Record<string, { nombre: string; nota: string }> = {
+  BOT: { nombre: "Botón nácar", nota: "Material, número de agujeros, proveedor habitual…" },
+  CIE: { nombre: "Cierre invisible", nota: "Si es separable, la marca, el proveedor habitual…" },
+  HIL: { nombre: "Hilo poliéster", nota: "Cabos, metros por cono, proveedor habitual…" },
+  ETI: { nombre: "Etiqueta tejida de marca", nota: "Qué dice y dónde va cosida…" },
+  ELA: { nombre: "Elástico plano", nota: "Si es suave o firme, proveedor habitual…" },
+  PRE: { nombre: "Pretina elasticada", nota: "Dónde se usa, proveedor habitual…" },
+};
+
+const NEUTRO_AVIO = { nombre: "Nombre del avío", nota: "Material, proveedor habitual…" };
+
+/** El ejemplo de nombre y de nota de un avío, según la clase elegida. Sin clase todavía, un texto que no promete nada. */
+export function sugerirAvio(prefijoDeLaClase: string | null, existentes: readonly { nombre: string }[]): { nombre: string; nota: string; origen: "tabla" | "neutro" } {
+  const e = prefijoDeLaClase ? EJEMPLOS_AVIO[prefijoDeLaClase.toUpperCase()] : undefined;
+  if (!e) return { ...NEUTRO_AVIO, origen: "neutro" };
+  // Un ejemplo que ya está en el catálogo llevaría a un «ya existe»: ahí el nombre se vuelve neutro, igual que en una tela.
+  const nombres = new Set(existentes.map((x) => clave(x.nombre)));
+  return nombres.has(clave(e.nombre)) ? { nombre: NEUTRO_AVIO.nombre, nota: e.nota, origen: "neutro" } : { ...e, origen: "tabla" };
+}
+
 export function sugerirInsumo(tipo: TipoInsumo, existentes: readonly { codigo: string; nombre: string }[]): SugerenciaDeInsumo {
   const codigos = new Set(existentes.map((e) => clave(e.codigo)));
   const nombres = new Set(existentes.map((e) => clave(e.nombre)));
