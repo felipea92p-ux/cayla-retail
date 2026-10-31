@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { campanasDelMes, cascadaGanamos, desvio, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
+import fixture from "./resumen-finanzas.fixture.json";
+import { filaDeVer, leerResumen } from "./resumen-finanzas-reglas";
+import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, porSede, titularGanamos, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
 import type { FilaPpto } from "./presupuesto-reglas";
 import type { CampanaFila, FilaER } from "./resultados-reglas";
 
@@ -122,5 +124,47 @@ describe("recomendacionesGanamos", () => {
   it("la meta lejos, al ritmo de hoy", () => {
     const r = recomendacionesGanamos({ fila: fila({}), sedes: [], tramos: [], meta: { meta: 52000, real: 40000, avance: 0.77, enCurso: true }, campanas: [], enCurso: true, href });
     expect(r[0]!.titulo).toBe("Al ritmo de hoy, llegas al 77 % de la meta");
+  });
+});
+
+describe("la respuesta y lo de cada sede como en la maqueta (ADR-0585)", () => {
+  it("«Sí. Ganaste» con cuánto quedó de cada S/ 100; «No. Perdiste»; el Taller y la empresa no venden", () => {
+    expect(titularGanamos({ resultado: 3850, ventas: 48600, unidad: "consolidado" })).toEqual({
+      si: true,
+      respuesta: "Ganaste S/\u00a03,850",
+      bajada: "De cada S/\u00a0100 que vendiste te quedaron S/\u00a07,9.",
+    });
+    expect(titularGanamos({ resultado: -29016, ventas: 106447, unidad: "consolidado" })).toMatchObject({ si: false, respuesta: "Perdiste S/\u00a029,016" });
+    expect(titularGanamos({ resultado: -5000, ventas: 0, unidad: "taller" }).bajada).toMatch(/^El Taller no vende/);
+    expect(titularGanamos({ resultado: -800, ventas: 0, unidad: "empresa" })).toMatchObject({ respuesta: "Costó S/\u00a0800" });
+  });
+  it("cada sede, en el orden del telar, con su color y su enlace", () => {
+    const f = filasDeSedes(
+      [
+        { clave: "u-lim", nombre: "Tienda Lima", color: "lim", resultado: -1400, ventas: 9000, margen: 4000 },
+        { clave: "empresa", nombre: "De la empresa", color: "emp", resultado: -900, ventas: 0, margen: 0 },
+        { clave: "u-tru", nombre: "Tienda Trujillo", color: "tru", resultado: 4200, ventas: 20000, margen: 9000 },
+      ],
+      (c) => `/finanzas/reportes?sede=${c}`,
+    );
+    expect(f.map((x) => [x.nombre, x.valor, x.color])).toEqual([
+      ["Trujillo", 4200, "var(--color-sede-tru)"],
+      ["Lima", -1400, "var(--color-sede-lim)"],
+      ["Empresa", -900, "var(--color-sede-emp)"],
+    ]);
+    expect(f[0]).toMatchObject({ tipo: "total", href: "/finanzas/reportes?sede=u-tru" });
+  });
+});
+
+describe("con la forma REAL de la base: `gastos` ya incluye los sueldos y el desgaste (ADR-0453, traída de la cascada del Pulso)", () => {
+  it("la cascada de una tienda real no repite los sueldos ni inventa ajustes, y sus tramos suman lo que quedó", () => {
+    const r = leerResumen(fixture.tru);
+    if (r.resultadosMes.estado !== "ok") throw new Error("el fixture trae el estado de resultados");
+    const f = filaDeVer(r.resultadosMes.datos, r.ver)!;
+    const c = cascadaGanamos(f, []);
+    expect(c.find((t) => t.clave === "planilla")!.monto).toBe(7800);
+    expect(c.map((t) => t.clave)).not.toContain("ajustes");
+    const suma = c.filter((t) => t.tipo !== "queda").reduce((a, t) => a + (t.tipo === "entra" ? t.monto : -t.monto), 0);
+    expect(Math.round(suma * 100) / 100).toBe(Math.round(f.resultado * 100) / 100);
   });
 });

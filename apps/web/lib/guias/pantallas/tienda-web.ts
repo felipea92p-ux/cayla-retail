@@ -48,6 +48,20 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       texto: "En qué tiendas se ve la vitrina y se recoge lo que el cliente separa. Una encendida a la que le falta un dato dice qué falta y no se ve; «Conf. Tienda» te lleva a completarla.",
     },
     {
+      id: "motivos",
+      ancla: "pedidos-web.motivos",
+      opcional: true,
+      titulo: "Por qué se cerraron",
+      texto: "Cada píldora cuenta los pedidos cerrados por ese motivo. Tócala para ver solo esos, y otra vez para volver a todos.",
+    },
+    {
+      id: "buscar-cerrados",
+      ancla: "pedidos-web.buscar-cerrados",
+      opcional: true,
+      titulo: "Buscar un cerrado",
+      texto: "Escribe un nombre o el número del pedido (W-0012): la lista se acota mientras escribes. La tecla «/» te lleva a la caja.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
@@ -91,7 +105,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       id: "mensaje",
       ancla: "pedidos-web.mensaje",
       titulo: "Mensaje predeterminado",
-      texto: "Edita tu texto para WhatsApp de los pedidos web. Es tuyo: cada persona tiene el suyo, y cada pedido lo llena con el nombre, la tienda y su código.",
+      texto: "Edita tu texto para WhatsApp de los pedidos web. Es tuyo: cada persona tiene el suyo. Con un toque insertas el nombre, la tienda, el código o un emoji; cada pedido los llena solo.",
     },
     {
       id: "como",
@@ -142,7 +156,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que te toca",
-      texto: "Todo lo que pide algo, junto: arriba lo que se pierde si no actúas (lo que se cierra solo en menos de 3 horas), después lo que ya pasó su aviso y la plata por devolver. Su número es el mismo que el cliente te manda por WhatsApp.",
+      texto: "Todo lo que pide algo, en tramos: Urgente (se pierde en menos de 3 h), Pide tu atención (ya pasó el aviso o falta devolver plata), En plazo y Esperan una prenda. La franja de color de cada fila dice cuán urgente es.",
     },
     {
       id: "plazo",
@@ -164,7 +178,14 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "pedidos-web.abrir" }],
       titulo: "Quién lo separó",
-      texto: "Su nombre, su DNI a medias, su celular y si es miembro del club. «WhatsApp» abre el chat con el cliente para coordinar el pago y cuándo lo recoge.",
+      texto: "Su nombre, su DNI a medias y su celular. El botón verde abre WhatsApp con el mensaje que toca en este paso: escribirle, pedirle el pago, avisarle que ya puede recoger o coordinar la devolución. Es el único WhatsApp de la hoja.",
+    },
+    {
+      id: "ruta",
+      ancla: "pedido-web.ruta",
+      opcional: true,
+      titulo: "Dónde va el pedido",
+      texto: "Confirmar, Cobrar, Entregar: lo hecho en verde y el paso de ahora marcado. A la derecha, cuánto le queda si corre un plazo. Un pedido cerrado dice, en una línea, cómo terminó.",
     },
     {
       id: "llega",
@@ -178,7 +199,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       ancla: "pedido-web.prendas",
       opcional: true,
       titulo: "Sus prendas",
-      texto: "Cada prenda dice cuántas hay libres y de dónde sale (el almacén primero). Si no hay aquí, la traes de otra tienda o la consigues para una fecha; si alguien más la pidió, te avisa. Ya confirmado, dice dónde está cada una.",
+      texto: "Cada prenda dice cuántas hay libres y de dónde sale (el almacén primero). Si no hay aquí: coordina primero y elige pedirla a otra sede, comprarla o pedirla al taller, con una fecha. Ya confirmado, dice dónde está cada una.",
     },
     {
       id: "reservar",
@@ -265,19 +286,26 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "Salió sola al quedar pagado completo y se manda a SUNAT por la cola de siempre: aquí ves en qué va. Si SUNAT no responde, espera en la cola; el cobro ya quedó. Debajo puedes imprimir su ticket.",
     },
     {
+      id: "pasos-entrega",
+      ancla: "pedido-web.pasos-entrega",
+      opcional: true,
+      titulo: "Para entregarlo",
+      texto: "Primero avísale que ya puede recoger, con el botón de WhatsApp. Dile que su código está en «Mis pedidos», en su cuenta de la tienda web. Cuando venga, escribe aquí el código que te muestre.",
+    },
+    {
       id: "codigo",
       ancla: "pedido-web.codigo",
       opcional: true,
       demostrar: [{ tipo: "escribir", ancla: "pedido-web.codigo", texto: "1234" }],
       titulo: "El código para recoger",
-      texto: "El cliente lo ve en su pedido, en la web. Pídeselo y escríbelo: si no es el de su pedido, no se entrega nada. Si algo todavía no llega a la tienda, aquí te dice qué falta.",
+      texto: "Las 4 cifras que el cliente ve en «Mis pedidos». Escríbelas una por casilla (o pégalas): si no son las de su pedido, no se entrega nada. Si algo todavía no llega a la tienda, aquí te dice qué falta.",
     },
     {
       id: "entregar",
       ancla: "pedido-web.entregar",
       opcional: true,
       titulo: "Entregarlo",
-      texto: "«Entregar» saca sus prendas del stock a nombre de quien está de turno, y el pedido pasa a «Cerrados». «WhatsApp» le escribe que ya puede recogerlo. En la demo no se entrega nada.",
+      texto: "«Entregar» saca sus prendas del stock a nombre de quien está de turno, y el pedido pasa a «Cerrados». En la demo no se entrega nada.",
     },
     {
       id: "anular-pagado",
@@ -332,7 +360,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       // lo cerrado se ve con la lista entera.
       preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.quitar-filtro", siEsta: true }],
       titulo: "Lo cerrado y por qué",
-      texto: "Lo entregado, lo anulado y lo que nadie confirmó de los últimos 30 días, con por qué se cerró cada uno. «Nadie lo confirmó a tiempo» es una venta perdida; si «no hay stock» crece, la vitrina está mostrando lo que esta tienda no tiene. «Ver los …» despliega sus filas.",
+      texto: "Lo entregado, lo anulado y lo que nadie confirmó de los últimos 30 días. «Nadie lo confirmó a tiempo» es una venta perdida; si «no hay stock» crece, la web muestra lo que esta tienda no tiene. «Ver los …» despliega sus filas.",
     },
     {
       id: "fin",
@@ -1448,7 +1476,7 @@ export const GUIA_TRAFICO: Guia = {
       ancla: "trafico.veredicto",
       opcional: true,
       titulo: "Dónde se atora",
-      texto: "La estación en ámbar es donde más gente se va de la que le llega, comparada con lo de costumbre. Si va peor que siempre, lo dice el chip: ahí conviene mejorar la tienda.",
+      texto: "El tramo punteado naranja marca dónde más gente se va de la que le llega, y el número grande dice cuántas personas fueron. Si va peor que siempre, lo dice el chip de arriba: ahí conviene mejorar la tienda.",
     },
     {
       id: "porque",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cambioDelMes, cuadroFormalPatrimonio, fraseTuyo, mesesBajando, puenteTuyo, recomendacionesTuyo, tieneExtremos } from "./patrimonio-reglas";
+import { cambioDelMes, cuadroFormalPatrimonio, fraseTuyo, mesesBajando, filasTuyo, recomendacionesTuyo, tieneExtremos } from "./patrimonio-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 
 const S = (s: string) => s.replace(/S\/ /g, "S/ ");
@@ -22,8 +22,7 @@ const datos = (p: Partial<PatrimonioCambios> = {}): PatrimonioCambios => ({
   ...p,
 });
 const href = (r: string) => `${r}?mes=2026-10`;
-const suma = (tramos: ReturnType<typeof puenteTuyo>) =>
-  tramos.filter((t) => t.tipo !== "queda").reduce((a, t) => a + (t.negativo ? -t.monto : t.tipo === "entra" ? t.monto : -t.monto), 0);
+const suma = (filas: ReturnType<typeof filasTuyo>) => filas.filter((f) => f.tipo === "paso").reduce((a, f) => a + f.valor, 0);
 
 describe("tieneExtremos", () => {
   it("sin arranque o sin extremos no hay con qué contar", () => {
@@ -34,23 +33,28 @@ describe("tieneExtremos", () => {
   });
 });
 
-describe("puenteTuyo", () => {
-  it("va de al empezar a al cerrar, y sus tramos suman al cerrar", () => {
+describe("filasTuyo", () => {
+  it("lo que lo movió, con su signo, y al final cuánto creció: los pasos suman el final", () => {
     const d = datos();
     if (!tieneExtremos(d)) throw new Error();
-    const t = puenteTuyo(d, false);
-    expect(t.map((x) => x.clave)).toEqual(["inicio", "ganancia", "aportes", "retiros", "fin"]);
-    expect(t.at(-1)).toMatchObject({ nombre: "Al cerrar el mes", monto: 159000, tipo: "queda" });
-    expect(suma(t)).toBe(159000);
+    const f = filasTuyo(d);
+    expect(f.map((x) => [x.clave, x.tipo, x.valor])).toEqual([
+      ["ganancia", "paso", 10000],
+      ["aportes", "paso", 5000],
+      ["retiros", "paso", -6000],
+      ["cambio", "final", 9000],
+    ]);
+    expect(f.at(-1)!.nombre).toBe("Creció");
+    expect(suma(f)).toBe(9000);
   });
-  it("una pérdida sale, lo que es cero no se dibuja y lo sin explicar se muestra", () => {
+  it("una pérdida resta, lo que es cero no se dibuja y lo sin explicar se muestra", () => {
     const d = datos({ ganancia: -2000, aportes: 0, retiros: 0, otros: 500, fin: { fecha: "2026-10-31", capital: 100000, aportes: 20000, utilidades: 28500, total: 148500 } });
     if (!tieneExtremos(d)) throw new Error();
-    const t = puenteTuyo(d, true);
-    expect(t.map((x) => x.clave)).toEqual(["inicio", "ganancia", "otros", "fin"]);
-    expect(t[1]).toMatchObject({ nombre: "Lo que perdiste", tipo: "sale", monto: 2000 });
-    expect(t.at(-1)!.nombre).toBe("Hoy");
-    expect(suma(t)).toBe(148500);
+    const f = filasTuyo(d);
+    expect(f.map((x) => x.clave)).toEqual(["ganancia", "otros", "cambio"]);
+    expect(f[0]).toMatchObject({ nombre: "Lo que perdiste", valor: -2000 });
+    expect(f.at(-1)).toMatchObject({ nombre: "Bajó", valor: -1500 });
+    expect(suma(f)).toBe(-1500);
   });
 });
 

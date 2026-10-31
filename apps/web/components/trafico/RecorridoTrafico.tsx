@@ -14,7 +14,9 @@ const ICONOS = [DoorOpen, Eye, Ruler, ShoppingBag, Tag, Store] as const;
  * eligieron talla, a la bolsa, separaron, recogieron— es una estación con su ícono y cuántas personas llegaron; entre una y otra, cuántas
  * se fueron y sin hacer qué. Se cuentan personas de verdad, nunca «de cada 100» (con 127 visitas, «1 de cada 100» era 1 persona). La
  * estación donde se atora va en ámbar (siempre, también con pocas personas: entonces la frase dice que es una pista) y la última en verde
- * si alguien llegó. Lo difícil, bajo «¿Por qué?».
+ * si alguien llegó. Lo difícil, bajo «¿Por qué?». **Que se note dónde se pierde la gente (Felipe,
+ * 2026-10-31, «C · La cifra manda» de `docs/maquetas/trafico-perdida-2026-10/`, antes «B · Zona marcada»):** el tramo donde se atora es un riel
+ * punteado grueso y naranja, la estación se llena de naranja y lo que se fue sale como un «−42» grande con su porcentaje.
  */
 export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
   const atora = dondeSeAtora(r.pasos, r.base);
@@ -57,11 +59,13 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
         {PASOS.map((paso, i) => {
           const Icono = ICONOS[i]!;
           const seFueron = i < PASOS.length - 1 ? r.pasos[i] - r.pasos[i + 1] : null;
+          const haciaAtora = atora?.i === i + 1;
           return (
             <li
               key={paso.nombre}
               className="trafico-estacion"
               data-atora={atora?.i === i || undefined}
+              data-hacia-atora={haciaAtora || undefined}
               data-fin={(i === PASOS.length - 1 && r.pasos[i] > 0) || undefined}
               style={{ "--k": i } as CSSProperties}
             >
@@ -72,7 +76,17 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
               </span>
               {seFueron !== null && (
                 <span className="trafico-salida" data-atora={atora?.i === i + 1 || undefined}>
-                  {seFueron > 0 ? (
+                  {seFueron > 0 && haciaAtora ? (
+                    <span>
+                      <span className="sr-only">
+                        {miles(seFueron)} {seFueron === 1 ? "se fue" : "se fueron"} {PASOS[i + 1].seFueron}
+                      </span>
+                      <span aria-hidden>
+                        <em className="trafico-menos">−{miles(seFueron)}</em>
+                        {Math.round((seFueron / r.pasos[i]!) * 100)} % se fue {PASOS[i + 1].seFueron}
+                      </span>
+                    </span>
+                  ) : seFueron > 0 ? (
                     <span>
                       <b>{miles(seFueron)}</b> {seFueron === 1 ? "se fue" : "se fueron"} {PASOS[i + 1].seFueron}
                     </span>
