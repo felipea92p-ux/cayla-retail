@@ -9,3 +9,4 @@
 - [ ] Fusionar el PR; cerrar Shopify.
 - [ ] **Supabase Auth (clientes):** agregar `https://cayla.pe/**` a Redirect URLs (y el origen en Google, si hay «Entrar con Google»); revisar `TIENDA_URL` en Vercel.
 - [ ] **Decide Felipe:** los textos legales del Club que nombran `tienda.cayla.pe` (versión nueva con el abogado) y crear `robots.txt`/`sitemap.xml` + Search Console.
+- [ ] **POR PEGAR (2026-10-31):** `20261031205000_dominio_cayla_pe_en_avisos_y_etiquetas.sql` en el SQL Editor de producción (una sola parte).
