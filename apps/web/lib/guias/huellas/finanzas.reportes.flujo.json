@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.flujo",
   "ruta": "/finanzas/reportes/flujo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 19,
+  "total": 18,
   "controles": {
     "components/finanzas/EscenariosPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
@@ -14,9 +14,6 @@
     ],
     "components/finanzas/FaltanProyeccion.tsx": [
       "Link «Ir a cargarlo»"
-    ],
-    "components/finanzas/estados/CabeceraEstados.tsx": [
-      "SegmentoEnlaces «(sin nombre)»"
     ],
     "components/finanzas/estados/CascadaEstados.tsx": [
       "Link «{contenido}»",

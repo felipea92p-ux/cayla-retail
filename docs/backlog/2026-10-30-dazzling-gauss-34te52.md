@@ -48,3 +48,5 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
 - [x] **2026-10-31 · Igual a la maqueta y el formato formal arriba.** La cascada de la maqueta (`CascadaEstados`) en los cuatro estados, la
   respuesta como la maqueta, la balanza de bloques y las cajas de lo tuyo; «Respuesta | Formato formal» en la cabecera (`?forma=formal`).
   Comparado con la maqueta en capturas locales a 1440 px, claro y oscuro. **Sin probar con sesión.**
+- [x] **2026-10-31 · El menú «Ver».** Las respuestas o cualquiera de los seis cuadros del contador en pantalla; saldos por cuenta y libro
+  diario en `/finanzas/reportes/cuentas`. Reemplaza al selector «Respuesta | Formato formal». **Sin probar con sesión.**

@@ -49,7 +49,7 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <CabeceraEstados activa="plata" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={formaDe(sp.forma)} />
+      <CabeceraEstados pantalla="plata" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={formaDe(sp.forma)} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <PlataPanel
           real={real.datos}

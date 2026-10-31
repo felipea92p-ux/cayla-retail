@@ -29,7 +29,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
   const pedida = sedeDeLaUrl(sp);
   // «Empresa» no tiene un Balance aparte: es el de CAYLA entera.
   const ver = veTodo ? (pedida !== "cayla" && pedida !== "todas" && pedida !== "empresa" ? pedida : "cayla") : persona.ubicacionId;
-  const cabecera = <CabeceraEstados activa="vale" mes={mes} sede={veTodo ? pedida : (persona.ubicacionId ?? "todas")} hoy={hoy} params={paramsDe(sp)} forma={formaDe(sp.forma)} />;
+  const cabecera = <CabeceraEstados pantalla="vale" mes={mes} sede={veTodo ? pedida : (persona.ubicacionId ?? "todas")} hoy={hoy} params={paramsDe(sp)} forma={formaDe(sp.forma)} />;
 
 
   const params = paramsDe(sp);

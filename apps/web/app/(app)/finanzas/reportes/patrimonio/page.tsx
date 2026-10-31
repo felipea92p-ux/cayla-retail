@@ -24,7 +24,7 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
   const recomendaciones = recomendacionesTuyo({ datos: patrimonio.datos, href });
   return (
     <div className="space-y-6">
-      <CabeceraEstados activa="tuyo" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={formaDe(sp.forma)} />
+      <CabeceraEstados pantalla="tuyo" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={formaDe(sp.forma)} />
       <div className={`grid items-start gap-6 ${recomendaciones.length ? "xl:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
         <PatrimonioPanel datos={patrimonio.datos} falla={patrimonio.falla} mes={mes} enCurso={mes === mesDe(hoy)} forma={formaDe(sp.forma)} />
         {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}

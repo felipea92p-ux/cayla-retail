@@ -11,7 +11,7 @@ import { csvDe, mesTitulo, nombreCorto, type FilaER, type LineaDiario } from "./
 import { partesDelFlujo } from "./plata-reglas";
 import { cuadroFormalPatrimonio, tieneExtremos } from "./patrimonio-reglas";
 import { etiquetaSemana, type FlujoReal } from "./flujo-caja-reglas";
-import type { PatrimonioCambios } from "./estados-financieros-reglas";
+import type { ClaveEstado, FormaEstado, PatrimonioCambios } from "./estados-financieros-reglas";
 
 export type ArchivoContador = "resultados" | "flujo" | "balance" | "patrimonio" | "saldos" | "diario";
 
@@ -113,4 +113,93 @@ export function csvDiarioContador(lineas: readonly LineaDiario[], cuentas: Reado
     ...lineas.map((l) => [l.fecha, l.asiento, l.cuenta, cuentas.get(l.cuenta) ?? "", l.debe, l.haber, l.glosa, l.ubicacionId ? (sedes.get(l.ubicacionId) ?? "") : "De la empresa"]),
     ["Total", "", "", "", debe, haber, "", ""],
   ]);
+}
+
+// ---- Ver en pantalla (Felipe 2026-10-31: «un menú para ver las seis en pantalla») ---------------------------------------------
+
+export type GrupoSaldos = { tipo: string; nombre: string; filas: SaldoCuenta[]; saldoInicial: number; debe: number; haber: number; saldoFinal: number };
+
+const ORDEN_TIPO = ["activo", "pasivo", "patrimonio", "ingreso", "gasto"] as const;
+const PLURAL_TIPO: Readonly<Record<string, string>> = { activo: "Lo que tiene (activo)", pasivo: "Lo que debe (pasivo)", patrimonio: "Lo tuyo (patrimonio)", ingreso: "Ingresos", gasto: "Gastos" };
+
+/** Los saldos por cuenta en la pantalla: por tipo (en el orden del plan de cuentas), cada grupo con su total. Lo que no tiene tipo va al final. */
+export function gruposDeSaldos(saldos: readonly SaldoCuenta[]): GrupoSaldos[] {
+  const tipos = [...ORDEN_TIPO, ...new Set(saldos.map((s) => s.tipo).filter((t) => !(ORDEN_TIPO as readonly string[]).includes(t)))];
+  return tipos
+    .map((tipo) => {
+      const filas = saldos.filter((s) => s.tipo === tipo);
+      const suma = (k: "saldoInicial" | "debe" | "haber" | "saldoFinal") => r2(filas.reduce((a, s) => a + s[k], 0));
+      return { tipo, nombre: PLURAL_TIPO[tipo] ?? (tipo || "Sin tipo"), filas, saldoInicial: suma("saldoInicial"), debe: suma("debe"), haber: suma("haber"), saldoFinal: suma("saldoFinal") };
+    })
+    .filter((g) => g.filas.length);
+}
+
+/** ¿Cuadra la balanza? La suma de los saldos al cerrar es 0 y el debe del mes es igual al haber (al céntimo). */
+export function balanzaCuadra(saldos: readonly SaldoCuenta[]): boolean {
+  const final = r2(saldos.reduce((a, s) => a + s.saldoFinal, 0));
+  const debe = r2(saldos.reduce((a, s) => a + s.debe, 0));
+  const haber = r2(saldos.reduce((a, s) => a + s.haber, 0));
+  return final === 0 && debe === haber;
+}
+
+const sinTildes = (t: string) => t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+/** El libro diario filtrado por lo que se escribe en el buscador: la cuenta (número o nombre), el asiento o la glosa. Sin tildes ni mayúsculas. */
+export function filtrarDiario(lineas: readonly LineaDiario[], buscado: string, cuentas: ReadonlyMap<string, string>): LineaDiario[] {
+  const q = sinTildes(buscado.trim());
+  if (!q) return [...lineas];
+  return lineas.filter((l) => [l.cuenta, cuentas.get(l.cuenta) ?? "", l.asiento, l.glosa].some((c) => sinTildes(c).includes(q)));
+}
+
+// ---- El menú «Ver» de la cabecera (Felipe 2026-10-31: «la 2, el menú Ver») -----------------------------------------------------
+
+/** Lo que se puede mirar: las respuestas, o uno de los seis cuadros del contador (los mismos seis del menú de descarga). */
+export type VistaVer = "respuestas" | ArchivoContador;
+
+/** La pantalla de los saldos por cuenta y el libro diario (`?cuadro=saldos|diario`: `?ver=` ya es la sede en el telar). */
+export const RUTA_CUENTAS = "/finanzas/reportes/cuentas";
+export type VerCuentas = "saldos" | "diario";
+export const leerVerCuentas = (v: string | undefined): VerCuentas => (v === "diario" ? "diario" : "saldos");
+
+/** Qué estado es cada cuadro formal (los otros dos viven en la pantalla de las cuentas). */
+const ESTADO_DEL_CUADRO = { resultados: "ganamos", flujo: "plata", balance: "vale", patrimonio: "tuyo" } as const satisfies Partial<Record<ArchivoContador, ClaveEstado>>;
+type CuadroDeEstado = keyof typeof ESTADO_DEL_CUADRO;
+const esCuadroDeEstado = (v: ArchivoContador): v is CuadroDeEstado => v in ESTADO_DEL_CUADRO;
+
+/** Lo que el menú dice que se está viendo: en un estado, sus respuestas o su cuadro formal; en la pantalla de las cuentas, saldos o diario. */
+export function vistaActiva(pantalla: ClaveEstado | VerCuentas, forma: FormaEstado): VistaVer {
+  if (pantalla === "saldos" || pantalla === "diario") return pantalla;
+  if (forma === "respuesta") return "respuestas";
+  return (Object.keys(ESTADO_DEL_CUADRO) as CuadroDeEstado[]).find((k) => ESTADO_DEL_CUADRO[k] === pantalla)!;
+}
+
+/**
+ * Las siete opciones del menú, en orden, con a dónde lleva cada una. «Las respuestas» vuelve al estado que se mira (desde las cuentas, a
+ * ¿Ganamos?); un cuadro formal lleva a su estado con `?forma=formal`; saldos y diario, a la pantalla de las cuentas. Lo que es de CAYLA
+ * entera se ve con su motivo y no se elige en una terminal (la misma regla que la descarga).
+ */
+export function opcionesVer({
+  pantalla,
+  hrefEstado,
+  hrefCuentas,
+  veTodo,
+}: {
+  pantalla: ClaveEstado | VerCuentas;
+  hrefEstado: (clave: ClaveEstado, forma: FormaEstado) => string;
+  hrefCuentas: (ver: VerCuentas) => string;
+  veTodo: boolean;
+}): { clave: VistaVer; etiqueta: string; href: string; motivo?: string }[] {
+  const estado: ClaveEstado = pantalla === "saldos" || pantalla === "diario" ? "ganamos" : pantalla;
+  return [
+    { clave: "respuestas" as const, etiqueta: "Las respuestas", href: hrefEstado(estado, "respuesta") },
+    ...ARCHIVOS_CONTADOR.map((a) => {
+      const motivo = motivoArchivoContador(a.clave, veTodo);
+      return {
+        clave: a.clave,
+        etiqueta: a.etiqueta,
+        href: esCuadroDeEstado(a.clave) ? hrefEstado(ESTADO_DEL_CUADRO[a.clave], "formal") : hrefCuentas(a.clave as VerCuentas),
+        ...(motivo ? { motivo } : {}),
+      };
+    }),
+  ];
 }

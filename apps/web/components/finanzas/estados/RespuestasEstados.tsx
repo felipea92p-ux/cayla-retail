@@ -13,7 +13,7 @@ import type { ClaveEstado, RespuestaEstado } from "@/lib/estados-financieros-reg
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
-export function RespuestasEstados({ respuestas, activa, hrefs }: { respuestas: readonly RespuestaEstado[]; activa: ClaveEstado; hrefs: Record<ClaveEstado, string> }) {
+export function RespuestasEstados({ respuestas, activa, hrefs }: { respuestas: readonly RespuestaEstado[]; activa: ClaveEstado | null; hrefs: Record<ClaveEstado, string> }) {
   const router = useRouter();
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-guia="fin-estados.respuestas" role="group" aria-label="Los cuatro estados financieros">

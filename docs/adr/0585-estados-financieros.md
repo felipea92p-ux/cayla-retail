@@ -285,6 +285,22 @@ el spike y se comparan las dos imágenes») no se cumplió: no había navegador,
 En local, una página de prueba (no se subió) dibujó las cuatro pantallas con los números de la maqueta. Se capturó a 1440 px, en claro y
 en oscuro, junto a la maqueta, y se miraron las dos imágenes. Tipos, vitest, Knip y eslint en verde. Sin probar con sesión ni contra la base.
 
+## Actualización 2026-10-31 (b) · El menú «Ver»
+
+- Felipe eligió (entre dejar el selector, un menú o seis botones a la vista) **un menú «Ver»** en la cabecera, junto a «Descargar para el
+  contador»: «Las respuestas» y los mismos seis cuadros de la descarga, para mirarlos sin bajar nada. Reemplaza al selector «Respuesta |
+  Formato formal» de la actualización anterior: no hay dos controles para lo mismo.
+- Los cuatro estados se abren en su formato formal (`?forma=formal`). Los saldos por cuenta y el libro diario viven en una pantalla interna,
+  `/finanzas/reportes/cuentas?cuadro=saldos|diario` (`?ver=` ya es la sede en el telar), con la misma cabecera, sin tarjeta marcada. Leen
+  con las mismas funciones que la descarga (`saldosDelMes`, `diarioDelMes`).
+- **Las cuentas se ven en pantalla solo en estos dos cuadros**, donde son lo central. Las respuestas y los cuatro estados siguen sin
+  números de cuenta.
+- El libro diario de un mes pasa de 5,000 líneas: se lee entero una vez (por páginas de la base), se busca mientras se escribe (cuenta,
+  asiento o glosa) y se ve de a 100. Al pie, el debe y el haber de lo que se está viendo.
+- Una terminal ve en el menú lo que es de CAYLA entera con su motivo, sin poder elegirlo (la misma regla que la descarga), y la pantalla de
+  las cuentas se lo dice si llega por URL.
+- Se vio con números de ejemplo en local (capturas a 1440 px) antes de conectarlo. Sin probar con sesión.
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero

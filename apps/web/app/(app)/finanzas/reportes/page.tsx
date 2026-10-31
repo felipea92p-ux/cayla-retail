@@ -66,7 +66,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <CabeceraEstados activa="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} forma={forma} />
+      <CabeceraEstados pantalla="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} forma={forma} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <GanamosPanel
           fila={fila}
