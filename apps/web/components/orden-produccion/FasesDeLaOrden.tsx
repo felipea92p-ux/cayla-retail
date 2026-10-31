@@ -18,8 +18,10 @@ import {
   avisoMinimo,
   faseDe,
   fasesDeLaHoja,
+  fijoDesdePorPrenda,
   leerServicio,
   ordenarFases,
+  porPrendaDeFijo,
   proveedoresQueSirven,
   type FaseBorrador,
   type FaseClave,
@@ -49,6 +51,12 @@ const PENDIENTE = "__pendiente__";
 const OPCIONES_QUIEN = [
   { clave: "taller", etiqueta: "Taller" },
   { clave: "servicio", etiqueta: "Afuera" },
+];
+
+// El ploteo se paga una sola vez por toda la orden, pero se puede escribir como el total o como lo que toca por prenda: en la base siempre vive el total.
+const OPCIONES_MODO_FIJO = [
+  { clave: "total", etiqueta: "Total de la orden" },
+  { clave: "prenda", etiqueta: "Por prenda" },
 ];
 
 const OPCIONES_POSICION = [
@@ -243,6 +251,9 @@ export function FilaFase({
   const sugerida = lectura?.sugerida ?? null;
   // El fijo por orden vive plegado: casi ningún servicio lo cobra. Se despliega al tocar el enlace, si ya trae algo escrito o si la base lo rechazó.
   const [fijoDesplegado, setFijoDesplegado] = useState(false);
+  // Cómo se escribe el pago único del ploteo: el total o por prenda (el texto por prenda se guarda aparte para que no se «redondee» mientras se escribe).
+  const [modoFijo, setModoFijo] = useState<"total" | "prenda">("total");
+  const [porPrendaTexto, setPorPrendaTexto] = useState("");
   const aviso = avisoMinimo(fase, totalPrendas, tarifas, { hoy, proveedores });
 
   // La primera falta de cada campo va en su pie; las que ninguna caja explica, en una línea aparte.
@@ -329,15 +340,45 @@ export function FilaFase({
       {servicio && def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
           {comboProveedor}
-          <CampoMonto
-            id={`${idBase}-fijo`}
-            etiqueta="Cobra por esta orden"
-            inputMode="decimal"
-            placeholder={sugerida && sugerida.fijo > 0 ? dosDecimales(sugerida.fijo) : "0.00"}
-            value={fase.fijo}
-            onChange={(e) => onCambiar({ fijo: e.target.value })}
-            {...pieDe("fijo", sugerida && sugerida.fijo > 0 && fase.fijo.trim() === "" ? "de su lista de precios" : "una sola vez por la orden, sin IGV")}
-          />
+          <div className="grid content-start gap-1.5">
+            <CampoMonto
+              id={`${idBase}-fijo`}
+              etiqueta={modoFijo === "prenda" ? "Cobra por prenda" : "Cobra por esta orden"}
+              inputMode="decimal"
+              placeholder={sugerida && sugerida.fijo > 0 ? (modoFijo === "prenda" ? porPrendaDeFijo(String(sugerida.fijo), totalPrendas) || "0.00" : dosDecimales(sugerida.fijo)) : "0.00"}
+              value={modoFijo === "prenda" ? porPrendaTexto : fase.fijo}
+              onChange={(e) => {
+                if (modoFijo === "prenda") {
+                  setPorPrendaTexto(e.target.value);
+                  onCambiar({ fijo: fijoDesdePorPrenda(e.target.value, totalPrendas) });
+                } else onCambiar({ fijo: e.target.value });
+              }}
+              {...pieDe(
+                "fijo",
+                modoFijo === "prenda"
+                  ? fase.fijo.trim() !== ""
+                    ? `${dosDecimales(lectura?.fijoOrden ?? 0)} en total por las ${totalPrendas} prendas, sin IGV`
+                    : `se multiplica por las ${totalPrendas} prendas de la orden, sin IGV`
+                  : sugerida && sugerida.fijo > 0 && fase.fijo.trim() === ""
+                    ? "de su lista de precios"
+                    : fase.fijo.trim() !== "" && totalPrendas > 0
+                      ? `una sola vez por la orden, sin IGV · ${porPrendaDeFijo(fase.fijo, totalPrendas) || "—"} por prenda`
+                      : "una sola vez por la orden, sin IGV"
+              )}
+            />
+            <SegmentoDeslizante
+              etiqueta="Cómo escribes el cobro del ploteo"
+              valor={modoFijo}
+              onCambio={(v) => {
+                if (v === "prenda") {
+                  if (totalPrendas <= 0) return;
+                  setPorPrendaTexto(porPrendaDeFijo(fase.fijo, totalPrendas));
+                  setModoFijo("prenda");
+                } else setModoFijo("total");
+              }}
+              opciones={OPCIONES_MODO_FIJO}
+            />
+          </div>
           <CampoFecha
             id={`${idBase}-fecha`}
             etiqueta="Prometido para"

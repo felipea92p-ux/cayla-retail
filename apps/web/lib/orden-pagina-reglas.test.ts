@@ -516,6 +516,11 @@ describe("el costo", () => {
     const cerrada = { ...p, orden: { ...p.orden, estado: "terminada" as const, cantidadBuenas: 46 } };
     expect(textoCosto(cerrada)!.porPrenda).toEqual({ estimado: "29.00", real: "22.83", realPendiente: false });
   });
+  it("un servicio de pago único (ploteo) dice «pago único» y lo que toca por prenda, no «48 × S/ 0.00»", () => {
+    const p = orden();
+    const unico = { ...p, fases: p.fases.map((f) => (f.clave === "costura" ? { ...f, tarifaPrenda: null, fijoOrden: 24 } : f)) };
+    expect(textoCosto(unico)!.filas[2]).toMatchObject({ estimado: "24.00", detalle: "Pago único por las 48 prendas · Confecciones del Norte · S/\u00a00.50 por prenda" });
+  });
   it("sin lote recibido no inventa un precio; sin permiso, no hay tabla", () => {
     const p = orden({ costos: { tela_estimado: 0, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 216, servicios_devengado: 0, total_estimado: 216, total_real_hasta_hoy: 0 } });
     expect(textoCosto(p)!.filas[0].estimado).toBe("sin lote recibido");
