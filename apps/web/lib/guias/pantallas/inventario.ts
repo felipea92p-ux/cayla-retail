@@ -193,7 +193,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.tallas",
       opcional: true,
       titulo: "Piso y almacén por talla",
-      texto: "Una columna por talla: el número grande es lo colgado en el piso, lo que el cliente puede comprar; debajo, «+2 en almacén» es lo que hay guardado. En ámbar, la talla que falta colgar; en rojo, la que se acabó en la sede.",
+      texto: "Una columna por talla: el número grande es lo colgado en el piso, lo que el cliente puede comprar; debajo, «+2 en almacén» es lo que hay guardado. En ámbar, la talla que falta colgar; en rojo, la que se acabó en la sede; con un visto verde, la que no hace falta colgar.",
     },
     {
       id: "colgar",

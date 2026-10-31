@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { precargarFotoFija, precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
 import { FOTO_PANEL_TALLA, SIZES_MINIATURA_EXISTENCIAS } from "@/lib/fotos-tamanos";
@@ -104,7 +105,7 @@ function ColumnasTallas({
         const marca = marcaDe(f);
         const linea = lineaGuardadas(c, tallas.length);
         const lectura = separa
-          ? `Talla ${nombre}: ${c.piso} en piso y ${c.almacen} en almacén${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : ""}`
+          ? `Talla ${nombre}: ${c.piso} en piso y ${c.almacen} en almacén${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : c.noHaceFalta ? ", no hace falta colgarla" : ""}`
           : `Talla ${nombre}: ${c.piso} disponibles`;
         // La columna entera dice su estado: rojo suave si se acabó, ámbar si falta colgar; las demás, sin fondo.
         const fondo =
@@ -128,8 +129,12 @@ function ColumnasTallas({
             aria-label={`${lectura}${marca === "cumple" || marca === "principal" ? `. ${marcaDelFiltro?.etiqueta ?? ""}` : ""}${marca === "principal" ? ", la que más se vende" : ""}`}
             className={`grid min-w-0 cursor-pointer gap-px rounded-[8px] border px-0.5 pb-1 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
           >
-            <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-[12px] font-semibold tracking-[0.04em] ${c.estado === "agotada" ? "" : "text-taupe"} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
+            {/* En ámbar o en rojo, el nombre toma el color de su celda: el taupe sobre el ámbar daba 3,8:1 (`tema:auditar`, 2026-10-31). */}
+            <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-[12px] font-semibold tracking-[0.04em] ${c.estado === "normal" ? "text-taupe" : ""} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>
               {nombre}
+              {/* 0 colgadas y algo en almacén, pero el motor del piso decidió que no hace falta (una talla de las puntas que no se vende):
+                  el visto verde del modal («No hace falta»), para que no se lea como una que falta colgar (Felipe 2026-10-31, opción A). */}
+              {c.noHaceFalta && !marca && <Check aria-hidden className="h-3 w-3 shrink-0 text-verde" />}
               {(marca === "cumple" || marca === "principal") &&
                 (Simbolo ? (
                   <span aria-hidden className={`grid h-3.5 w-3.5 place-items-center rounded-full bg-papel shadow-[0_0_0_1.25px_currentColor] ${TONO_INSIGNIA[tono]}`}>

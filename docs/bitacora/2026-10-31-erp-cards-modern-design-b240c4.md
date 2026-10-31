@@ -22,3 +22,13 @@ Qué se verificó: `tsc`, `eslint` y 808 pruebas de las que vigilan la pantalla.
 texto de la tarjeta bajo 12 px, y la celda de 2 tallas medida a 320 px (83 px contra ~90 de «+10 en almacén»).
 Qué queda: el cambio 3 (que la celda en ámbar y el filo usen la misma regla que el botón «Colgar · N tallas») espera la decisión de Felipe, y
 falta repetir la prueba ciega sobre la tarjeta corregida.
+
+## 2026-10-31 (c) (Existencias: una sola regla de «falta colgar» en la tarjeta, opción A)
+Qué hice: Felipe eligió «manda lo físico». `faltaColgar` (`lib/existencias-tarjeta-compacta.ts`) es la única regla. Una talla falta colgar si
+el motor la manda colgar, o si tiene 0 colgadas y algo en almacén y el motor no dice «mantener». La leen la celda en ámbar, el filo, el botón y
+la talla con la que abre el modal. La talla «mantener» vacía lleva un visto verde, también en la leyenda del pie. La guía de Existencias lo nombra.
+Qué se verificó: `tsc`, `eslint`, `knip` y las 761 pruebas de la web; 5 pruebas nuevas recorren el caso real (Pantalón Carla con el piso en pausa
+y cuadrado). En local, las 15 tarjetas dicen en el botón tantas tallas como celdas en ámbar. `tema:auditar` encontró el nombre de la talla en taupe
+sobre el ámbar a 3,8:1; se corrigió y la tarjeta queda sin hallazgos en claro y oscuro, a 1440 y a 375 px.
+Qué queda: los filtros «Hoy» y «Por colgar» y el consejo del modal siguen al motor (con el piso en pausa dicen «en pausa»), y falta repetir la
+prueba ciega sobre la tarjeta corregida.

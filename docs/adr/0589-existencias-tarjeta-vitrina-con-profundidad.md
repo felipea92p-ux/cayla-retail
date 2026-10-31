@@ -80,6 +80,28 @@ corregir («Haz 1 y 2»):
 Medido después: 26 anchos (375, 414 y de 1000 a 1920 px, de 40 en 40) sin un texto cortado en ninguna tarjeta, y ningún texto de la tarjeta
 bajo 12 px. El tercer cambio (una sola regla de «falta colgar» en la tarjeta) espera la decisión de Felipe.
 
+## Actualización 2026-10-31 (c): una sola respuesta a «¿falta colgar?» en la tarjeta (opción A, «manda lo físico»)
+
+**El problema (visto por la prueba ciega).** Ninguna de las tres tiendas ha cuadrado su piso, así que el motor del piso está en pausa
+(ADR-0328) y no manda colgar nada. El botón contaba lo físico («Colgar en el piso · 3 tallas»), pero las celdas en ámbar y el filo seguían
+al motor y no se pintaban. En Pantalón Carla se veían cuatro tallas en 0 con +6 y el botón decía 3: la talla 34, de las puntas y sin ventas,
+el motor la deja en «mantener» y el botón la descuenta, pero la tira la dibujaba igual que las otras.
+
+**Felipe eligió la opción A (2026-10-31), entre tres:** A, manda lo físico; B, manda el motor (en pausa, el botón diría «cuadra el piso
+primero»); C, dejarlo así. **La regla única es `faltaColgar`** (`lib/existencias-tarjeta-compacta.ts`): falta colgar la talla que el motor
+manda colgar, o la que tiene 0 colgadas y algo en almacén, salvo que el motor diga «mantener». La leen la celda en ámbar (`celdaTarjeta`),
+el filo (`filoDeTarjeta`), el botón (`tallasSinColgar`) y la talla con la que abre el modal (`tallaDeEntrada`). La grilla «Todas» del modal
+usa `celdaTarjeta` y dice lo mismo. La talla «mantener» vacía lleva el visto verde del modal («No hace falta colgarla»), también en la
+leyenda del pie.
+
+**Lo que se acepta a cambio.** Con el piso sin cuadrar, el número del almacén no está verificado: una talla en ámbar puede estar ya colgada.
+Lo cubre el aviso «El piso de esta tienda nunca se ha cuadrado» de arriba. El consejo del modal («En pausa: mira si ya cuelga antes de
+colgar más») sigue siendo el del motor, y los filtros «Hoy» y «Por colgar» también siguen al motor (fuera de esta decisión).
+
+**Medido.** Las 15 tarjetas de la base local: cada botón dice tantas tallas como celdas en ámbar, y el filo sale en las 9 que piden algo.
+Pantalón Carla: 3 en ámbar y la 34 con su visto. Al aparecer el ámbar, `tema:auditar` encontró el nombre de la talla en taupe sobre él a
+3,8:1; ahora toma el color de su celda y la tarjeta queda sin hallazgos en claro y oscuro, a 1440 y a 375 px.
+
 ## Qué no se verificó
 
 - **«+N» con datos reales:** la base local no tiene un modelo con más de 5 colores. Lo cubren la prueba de `coloresDeChapa` (6, 14 y

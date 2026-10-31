@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilaPrenda } from "./existencias-prendas";
-import { celdaTarjeta, colorDeEntrada, coloresDeChapa, destinoDeTalla, filoDeTarjeta, lineaGuardadas, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
+import { celdaTarjeta, colorDeEntrada, coloresDeChapa, destinoDeTalla, faltaColgar, filoDeTarjeta, lineaGuardadas, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
 import { conMotor } from "./piso-plan-fixtures";
 
 let n = 0;
@@ -29,10 +29,10 @@ describe("celdaTarjeta", () => {
   const [falta, normal, agotada] = conMotor([fila("S", 0, 3), fila("M", 2, 1), fila("L", 0, 0)]).filas;
 
   it("0 colgadas y algo en almacén: falta (ámbar)", () => {
-    expect(celdaTarjeta(falta, true)).toEqual({ estado: "falta", piso: 0, almacen: 3 });
+    expect(celdaTarjeta(falta, true)).toEqual({ estado: "falta", piso: 0, almacen: 3, noHaceFalta: false });
   });
   it("algo colgado: normal, con sus dos cifras", () => {
-    expect(celdaTarjeta(normal, true)).toEqual({ estado: "normal", piso: 2, almacen: 1 });
+    expect(celdaTarjeta(normal, true)).toEqual({ estado: "normal", piso: 2, almacen: 1, noHaceFalta: false });
   });
   it("nada libre en la sede: agotada (rojo)", () => {
     expect(celdaTarjeta(agotada, true).estado).toBe("agotada");
@@ -166,5 +166,37 @@ describe("filoDeTarjeta (tarjeta Vitrina, ADR-0589)", () => {
   });
   it("todo colgado: sin filo", () => {
     expect(filoDeTarjeta([normal], true)).toBeNull();
+  });
+});
+
+describe("faltaColgar: una sola respuesta en la tarjeta (Felipe 2026-10-31, opción A «manda lo físico»)", () => {
+  // El caso que la prueba ciega vio: Pantalón Carla en una sede que nunca se cuadró. 28, 30 y 32 son tallas centrales; 34, de las puntas
+  // y sin ventas, el motor la deja en «mantener» (pide 0 en el piso).
+  const pantalon = () => [fila("28", 0, 6), fila("30", 0, 6), fila("32", 0, 6), fila("34", 0, 6)];
+  const enPausa = conMotor(pantalon(), { cuadradoEn: null }).filas;
+  const cuadrado = conMotor(pantalon()).filas;
+
+  it("con el piso en pausa, las tallas vacías con almacén faltan colgar (el motor calla, manda lo físico)", () => {
+    expect(enPausa.slice(0, 3).map((f) => celdaTarjeta(f, true).estado)).toEqual(["falta", "falta", "falta"]);
+  });
+  it("la talla que el motor deja en «mantener» no falta: se marca «no hace falta», sin ámbar", () => {
+    expect(enPausa[3].planPiso?.accion).toBe("mantener");
+    expect(celdaTarjeta(enPausa[3], true)).toMatchObject({ estado: "normal", noHaceFalta: true });
+  });
+  it("el botón, las celdas, el filo y la talla de entrada dicen lo mismo: 3 tallas", () => {
+    const enAmbar = enPausa.filter((f) => celdaTarjeta(f, true).estado === "falta").length;
+    expect(enAmbar).toBe(tallasSinColgar([{ tallas: enPausa }]));
+    expect(enAmbar).toBe(3);
+    expect(filoDeTarjeta(enPausa, true)).toBe("falta");
+    expect(tallaDeEntrada(enPausa)?.talla).toBe("28");
+  });
+  it("con el piso cuadrado sigue igual: lo que el motor manda colgar falta, y coincide con lo físico", () => {
+    expect(cuadrado.map((f) => celdaTarjeta(f, true).estado)).toEqual(["falta", "falta", "falta", "normal"]);
+    expect(cuadrado.filter(faltaColgar).length).toBe(tallasSinColgar([{ tallas: cuadrado }]));
+  });
+  it("algo colgado o nada en almacén: no falta; en una sede que no separa piso y almacén, nunca", () => {
+    expect(faltaColgar(conMotor([fila("M", 1, 4)], { cuadradoEn: null }).filas[0])).toBe(false);
+    expect(faltaColgar(conMotor([fila("M", 0, 0)], { cuadradoEn: null }).filas[0])).toBe(false);
+    expect(celdaTarjeta(enPausa[0], false).estado).toBe("normal");
   });
 });
