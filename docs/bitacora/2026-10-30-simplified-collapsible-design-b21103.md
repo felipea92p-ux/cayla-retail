@@ -33,3 +33,9 @@
 - **Qué:** Historial de compras, Por pagar, Proveedores y su ficha, Notas de crédito, Órdenes, Plan de campaña (sus cinco pestañas), Mis compras y Fondos (y las hojas que abren): lo que se lee pasa de 10,5–13 px a 14 px y el título de una fila de 13,5 a 15 px. En CSS propio: Calendario, Centro de avisos, Presupuesto, Paso 2, «Compré ropa» y el registro de un comprobante. Unas 45 frases acortadas (hojas de «Te debe», reasignar reparto, reembolso, envíos, Enviar a Compras, vacíos de cada lista, nota de prendas del proveedor); en Presupuesto, dos detalles de tarjeta fuera y el dato de «Plan con tu tope» al «?». Quedan igual a propósito: la lista de compra impresa y la orden de compra impresa.
 - **Por qué:** Felipe pidió seguir con Compras tras ver Catálogo.
 - **Cómo verificas:** abre `/compras/por-pagar`, `/compras/plan/presupuesto` y `/compras/mi-plata` (también a 375 px). No se miraron con datos: el detalle de una orden (la base local no tiene) ni las hojas que piden guardar (pagar, reasignar, reembolso).
+
+## 2026-10-31 — Clientes con la letra a 14 px y frases más cortas (ronda 19, sexta pasada)
+
+- **Qué:** Fichas, la ficha del cliente (historia, permisos, tienda online), Avisos y Beneficios del club: lo que se lee pasa de 10,5–13 px a 14 px. Diez frases acortadas: la nota de reglas de Avisos (de ~75 palabras a ~35), la nota al pie de Fichas, Registrar BAJA, Restablecer acceso, la historia de permisos y el aviso sin celular. Solo letra y texto: lo que hace cada pantalla no cambia (el plan de Clientes es de Dany). El cartel del club (papel) queda igual.
+- **Por qué:** Felipe pidió seguir con Clientes tras ver Compras.
+- **Cómo verificas:** abre `/clientas` y toca un cliente, `/clientas/avisos` y `/clientas/beneficios` (también a 375 px). No se miraron con datos las hojas que guardan (Nuevo cliente, Editar datos, BAJA, Restablecer acceso).
