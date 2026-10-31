@@ -14,7 +14,9 @@ const ICONOS = [DoorOpen, Eye, Ruler, ShoppingBag, Tag, Store] as const;
  * eligieron talla, a la bolsa, separaron, recogieron— es una estación con su ícono y cuántas personas llegaron; entre una y otra, cuántas
  * se fueron y sin hacer qué. Se cuentan personas de verdad, nunca «de cada 100» (con 127 visitas, «1 de cada 100» era 1 persona). La
  * estación donde se atora va en ámbar (siempre, también con pocas personas: entonces la frase dice que es una pista) y la última en verde
- * si alguien llegó. Lo difícil, bajo «¿Por qué?».
+ * si alguien llegó. Lo difícil, bajo «¿Por qué?». **Que se note dónde se pierde la gente (Felipe, 2026-10-31, «B · Zona marcada» de
+ * `docs/maquetas/trafico-perdida-2026-10/`):** la línea no cambia de forma, pero el tramo donde se atora se marca con un recuadro ámbar
+ * suave con su rótulo, el riel de ese tramo se engruesa, el círculo se llena y el «42 se fueron…» sube de tamaño.
  */
 export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
   const atora = dondeSeAtora(r.pasos, r.base);
@@ -53,18 +55,25 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
           {atora && <PorQue guia="trafico.porque">{explicaAtora(atora)}</PorQue>}
         </p>
       </div>
-      <ol className="trafico-linea">
+      <ol className="trafico-linea" data-zona={atora ? "" : undefined}>
         {PASOS.map((paso, i) => {
           const Icono = ICONOS[i]!;
           const seFueron = i < PASOS.length - 1 ? r.pasos[i] - r.pasos[i + 1] : null;
+          const haciaAtora = atora?.i === i + 1;
           return (
             <li
               key={paso.nombre}
               className="trafico-estacion"
               data-atora={atora?.i === i || undefined}
+              data-hacia-atora={haciaAtora || undefined}
               data-fin={(i === PASOS.length - 1 && r.pasos[i] > 0) || undefined}
               style={{ "--k": i } as CSSProperties}
             >
+              {haciaAtora && (
+                <span className="trafico-zona-rotulo" aria-hidden>
+                  {vs?.peor ? "Aquí se atora" : atora?.pocas ? "Una pista" : "Como de costumbre"}
+                </span>
+              )}
               <span className="trafico-estacion-nombre">{paso.nombre}</span>
               <b className="trafico-estacion-cifra">{miles(r.pasos[i])}</b>
               <span className="trafico-estacion-nodo" aria-hidden>

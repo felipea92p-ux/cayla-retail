@@ -395,6 +395,11 @@ export const PRUEBAS = [
   // revisión «¿se puede mostrar?» está en PL/pgSQL y el catálogo devuelve EXACTAMENTE el JSON de su versión de antes. ROLLBACK.
   "pruebas:tienda-rapida",
 
+  // La regla del precio por lotes (2026-10-31): `fn_precios_en_sedes` da el precio de antes en toda talla y sede, `fn_precio_en_sede` le
+  // pregunta a ella, el catálogo, los looks y el precio de la tienda son idénticos a los de antes, y una carga del catálogo no pregunta
+  // fila por fila (si Postgres deja de meter la regla en la consulta, la prueba lo ve). ROLLBACK.
+  "pruebas:tienda-precio-por-lotes",
+
   // La base se cae sin llevarse al ERP (ADR-0450): `fn_salud()` («¿responde la base?», solo true y solo para anon/authenticated/service_role)
   // y los topes de conexión/tiempo del usuario de la tienda (20 conexiones, 5 s, 10 s en transacción quieta) que no tocan a nadie más
   // —ni a `postgres`, que queda como miembro de `tienda_web` por haberlo creado—, son idempotentes y no fallan sin usuario. ROLLBACK.

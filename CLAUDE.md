@@ -224,7 +224,7 @@ nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y
 sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados (`pie`);
 la frase es opcional y lo que diga de dónde se llegó («Productos · Blusa Emma») va tras la fecha (`detalle`); ADR-0220 y sus actualizaciones);
 solo en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195), hasta que su pantalla se rediseña con El telar (ADR-0493), que usa `<EncabezadoPagina>`. Lo vigila `lib/unificar.test.ts` (`titulo-pagina`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
-estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
+estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo (la única excepción es la tarjeta Vitrina de Existencias, ADR-0589). Detalle,
 contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
 2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
 
