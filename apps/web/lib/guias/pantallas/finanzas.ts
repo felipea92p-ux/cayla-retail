@@ -407,7 +407,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       prepararSoloAlAvanzar: true,
       opcional: true,
       titulo: "Lo que falta revisar, de a uno",
-      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya venció sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
+      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes vencido sin registrar, en una pila: se resuelve la de arriba. En una salida el sistema ya propone qué fue; eliges la categoría y quién lo hace. Si era un activo o llegó con boleta o factura, su enlace abre el registro completo.",
     },
     {
       id: "sin-comprobante",
@@ -420,8 +420,8 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "resolver",
       ancla: "fin-gastos.resolver",
       opcional: true,
-      titulo: "Resolverlo desde aquí",
-      texto: "El botón abre la misma hoja de siempre: «¿Qué fue esta salida?» para una salida de caja, o el formulario del gasto ya armado con el fijo. En la demo no se guarda nada.",
+      titulo: "Listo, y sube la siguiente",
+      texto: "«Listo» guarda lo que elegiste: la tarjeta se va al instante, la barra avanza y sube la siguiente. Si la base no lo acepta, vuelve con lo que elegiste y te dice por qué. Un gasto fijo se registra con su formulario ya armado. En la demo no se guarda nada.",
     },
     {
       id: "cifras",

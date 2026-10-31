@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 99,
+  "total": 104,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -55,7 +55,7 @@
       "button «Regístralo con su comprobante»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
-      "Boton «{que === \"activo\" ? \"Seguir: registrar el activo\" : \"Guardar\"}»",
+      "Boton «→guardar»",
       "button «{abierto ? \"Ocultar\" : \"Ver\"}»",
       "ComboResponsable «{responsable}» #3",
       "Boton «Revertir»"
@@ -76,9 +76,14 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/finanzas/GastosPulso.tsx": [
-      "button «fin-gastos.resolver»",
+      "Boton «fin-gastos.resolver»",
       "button «Ver»",
-      "button «Ver todas»"
+      "button «Ver todas»",
+      "button «{o.texto}»",
+      "button «Es un activo fijo»",
+      "button «Regístralo con su comprobante»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fin-gastos.resolver» #2"
     ],
     "components/finanzas/gastos/ExtractoGastos.tsx": [
       "button «{dentro ? undefined : \"fin-gastos.fila\"}»",

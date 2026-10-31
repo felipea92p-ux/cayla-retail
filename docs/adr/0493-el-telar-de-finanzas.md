@@ -304,3 +304,29 @@ del mes (la tarjeta suma la deuda de todos los meses: el número saldría falso 
 `fn_por_pagar_consolidado` (exige el módulo Cuentas y dinero). Queda pendiente de una migración que haga que `fn_gastos_panel` devuelva las vencidas.
 **SE ROMPE SI:** la lista del mes no responde: el chip y la bandeja no avisan lo sin comprobante (la pantalla ya dice que una parte no
 respondió) y «Te toca» se marca incompleto.
+
+## Actualización 2026-10-31 — la bandeja de Gastos es una pila (Felipe, la 03 del benchmark visual)
+
+Felipe miró las 8 propuestas de `docs/maquetas/gastos-benchmark-2026-10/` y pidió aplicar todas menos la 02 y la 07. Esta es la 03:
+
+1. **La bandeja de «lo que falta revisar» es una pila** (`components/finanzas/GastosPulso.tsx`, reglas en `lib/gastos-pila-reglas.ts`).
+   Arriba, la cosa más vieja, y bajo ella asoman una o dos capas (las que siguen). Una salida de caja se resuelve en la tarjeta misma:
+   el sistema ya propone qué fue (`sugerenciaParaEgreso`); si es un gasto, se elige la categoría (y «qué se pagó» llega con la nota del
+   cajón); quién lo hace va en la tarjeta; y «Listo». Un activo, o un gasto con boleta o factura, abre el registro completo. Un gasto fijo
+   sigue con su botón «Registrar», que abre la hoja ya armada.
+2. **«Listo» es al instante** (excepción de ADR-0149, act. 2026-10-31): la tarjeta se va 56 px a la izquierda y se apaga (360 ms), la
+   siguiente sube desde atrás (360 ms), el número de «Te faltan N» rueda (`CifraAnimada`) y la barra se llena; si la base dice que no,
+   la tarjeta vuelve con lo elegido. Al vaciarla, «Todo revisado» con el visto que se dibuja (`<Vacio>`). Una vez, sin rebote ni bucle.
+3. **Una sola regla para clasificar una salida** (`lib/clasificar-egreso.ts`): la pila y la hoja «¿Qué fue esta salida?» guardan con la
+   misma validación y la misma función de la base; la guía de foco de la tarjeta sale de esa misma regla y una prueba exige que coincidan
+   en todos los casos (`lib/gastos-pila-reglas.test.ts`).
+4. **La pila no se reordena bajo el dedo** (Copilot lo corrigió en marzo de 2026): va por fecha, la salida más vieja primero.
+5. **Un gasto va con su marca** (`useIntento("registrar_gasto")`, en la pila y en la hoja de siempre): si se corta la red, la tarjeta vuelve
+   con «No sabemos si se guardó», «Revisar si se guardó» y «Volver a intentar», que manda la MISMA marca (la base no lo duplica). Con eso
+   `GastosPanel` salió de la deuda de `lib/intento-reglas.test.ts`. Mientras un gasto de la pila va en camino, «Listo» espera (una marca
+   por vez): un doble clic manda una sola llamada.
+
+**DECIDÍ:** la tarjeta de arriba en papel con su línea (los campos y las píldoras en hueso con borde se ven encima) y las capas de atrás
+en hueso; un solo combo de responsable por tarjeta, que conserva lo elegido de una tarjeta a la otra. **DESCARTÉ:** sugerir la categoría
+(es la propuesta 6 de la pasada funcional, aparte) y resolver un gasto fijo en la tarjeta (pide medio de pago y comprobante: la hoja).
+**SE ROMPE SI:** `sugerenciaParaEgreso` deja de proponer, o la bandeja recibe las cosas en otro orden (la pila se reordenaría).

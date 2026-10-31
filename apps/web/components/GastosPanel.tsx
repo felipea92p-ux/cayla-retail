@@ -59,7 +59,6 @@ import {
   textoIgvPerdido,
   textoMes,
   textoPago,
-  validarGasto,
   type ActivoFila,
   type CategoriaGasto,
   type EgresoPorClasificar,
@@ -82,6 +81,10 @@ import { fijosDelMesVisibles } from "@/lib/fijos-del-mes-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Armchair, Check, FunnelX, Plus, Receipt, Repeat, SearchX, Store, Tag, Wallet } from "lucide-react";
 import { MAX_MOTIVO_ANULAR_GASTO } from "@/lib/finanzas-topes";
+import { avisoDeEgreso, guardadoDeEgreso, vaAlBanco, type QueFue } from "@/lib/clasificar-egreso";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
 // cabecera con «Ver» y la acción principal → cuatro cifras → pestañas → la tarjeta de la tabla con sus filtros → nota.
@@ -342,6 +345,10 @@ export function GastosPanel({
         onVerSinComprobante={() => elegirFiltro({ comprobante: "sin_grande" })}
         onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
         onVerTodas={() => irALasPestanas(bandeja.cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
+        categorias={categorias}
+        destinosDeposito={destinosDeposito}
+        hoy={hoy}
+        onRegistroCompleto={(egreso, clase) => setRegistrar({ egreso, clase })}
       />
 
       <section className="fin-cifras" data-guia="fin-gastos.cifras">
@@ -827,78 +834,65 @@ function ClasificarEgresoModal({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const [que, setQue] = useState<"gasto" | "activo" | TipoNoGasto>(() => sugerenciaParaEgreso(e.motivo));
+  const [que, setQue] = useState<QueFue>(() => sugerenciaParaEgreso(e.motivo));
   const [categoria, setCategoria] = useState("");
   const [descripcion, setDescripcion] = useState(e.nota ?? "");
   const [motivo, setMotivo] = useState("");
   const [destino, setDestino] = useState(destinosDeposito[0]?.id ?? "");
   const [guardando, setGuardando] = useState(false);
   const cat = categorias.find((c) => c.codigo === categoria) ?? null;
-  const aBanco = que === "deposito" && destinosDeposito.length > 0;
+  const aBanco = vaAlBanco({ que }, destinosDeposito);
+
+  // Lo que se guarda y su validación son los de la pila de la bandeja (`lib/clasificar-egreso.ts`): una sola regla para los dos lugares.
+  // Un gasto va con su marca (`useIntento`): si se corta la red, la hoja lo dice y reintentar lo mismo no lo duplica.
+  const intento = useIntento("registrar_gasto");
+  const [revisando, setRevisando] = useState(false);
+  const decision = { que, categoria, descripcion, motivo, destino };
+  const listo = () => {
+    const aviso = avisoDeEgreso(decision, destinosDeposito);
+    avisar.exito(aviso.texto, { detalle: aviso.detalle });
+    onCerrar();
+    router.refresh();
+  };
 
   async function guardar() {
     if (que === "activo") return onRegistroCompleto("activo");
-    if (que === "otro" && !motivo.trim()) return avisar.error("Escribe qué fue.");
-    if (aBanco && !destino) return avisar.error("Elige a qué cuenta llegó.");
-    let payload: Record<string, unknown> | null = null;
-    if (que === "gasto") {
-      const v = validarGasto(
-        {
-          ubicacion: e.ubicacionId,
-          categoria,
-          descripcion,
-          fecha: diaLima(e.creadoEn) ?? "",
-          monto: String(e.monto),
-          comprobante: "sin_comprobante",
-          proveedorId: "",
-          serie: "",
-          numero: "",
-          condicion: "contado",
-          vence: "",
-          medio: "efectivo",
-          cajaId: "",
-          egresoId: e.id,
-          referencia: "",
-        },
-        hoy,
-      );
-      if (!v.ok) return avisar.error(v.error);
-      payload = v.valor;
-    }
+    const g = guardadoDeEgreso(e, decision, destinosDeposito, hoy);
+    if (!g.ok) return avisar.error(g.error);
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    if (g.rpc === "registrar_gasto") {
+      const r = await intento.enviar(huellaDe(g.args), (token, senal) =>
+        firmar(createClient().rpc("registrar_gasto" as never, { ...g.args, p_token: token } as never), responsable.firma()).abortSignal(senal),
+      );
+      if (r.tipo === "ocupado") return;
+      if (r.tipo === "congelado") return avisarCongelado(avisar);
+      responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+      if (r.tipo === "incierto") return;
+      if (r.tipo === "error") return avisar.error(traducirError(r.error, "registrar el gasto"));
+      return listo();
+    }
     setGuardando(true);
-    const supabase = createClient();
-    const { error } = await firmar(
-      que === "gasto"
-        ? supabase.rpc("registrar_gasto" as never, { ...payload, p_token: crypto.randomUUID() } as never)
-        : aBanco
-          ? // El origen es el cajón de esa tienda: la base lo toma del egreso.
-            supabase.rpc(
-              "registrar_movimiento_dinero" as never,
-              { p_tipo: "deposito", p_monto: e.monto, p_cuenta_destino_id: destino, p_referencia: motivo.trim() || e.nota || null, p_caja_movimiento_id: e.id, p_token: crypto.randomUUID() } as never,
-            )
-          : supabase.rpc("marcar_egreso_no_gasto" as never, { p_caja_movimiento_id: e.id, p_tipo: que, p_motivo: motivo.trim() || null } as never),
-      responsable.firma(),
-    );
+    const args = g.conMarca ? { ...g.args, p_token: crypto.randomUUID() } : g.args;
+    const { error } = await firmar(createClient().rpc(g.rpc as never, args as never), responsable.firma());
     setGuardando(false);
     responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, que === "gasto" ? "registrar el gasto" : "clasificar el egreso"));
-    avisar.exito(que === "gasto" ? "Registrado como gasto" : aBanco ? "Registrado como depósito al banco" : `Registrado como ${TEXTO_NO_GASTO[que].titulo.replace(/^Un[a]? /, "").toLowerCase()}`, {
-      detalle:
-        que === "gasto"
-          ? undefined
-          : aBanco
-            ? `${destinosDeposito.find((d) => d.id === destino)?.nombre ?? "El banco"} sube en Cuentas y dinero. No cuenta como gasto; si fue un error, se anula allí.`
-            : "No cuenta como gasto. Si fue un error, se revierte en esta misma pestaña.",
-    });
-    onCerrar();
-    router.refresh();
+    if (error) return avisar.error(traducirError(error, "clasificar el egreso"));
+    listo();
   }
 
-  const opciones: { valor: "gasto" | "activo" | TipoNoGasto; titulo: string; detalle: string }[] = [
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return listo();
+    if (res.tipo === "no_llego") return avisar.aviso("El gasto no se registró", { detalle: "No quedó nada guardado. Revisa los datos y vuelve a guardarlo." });
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  const opciones: { valor: QueFue; titulo: string; detalle: string }[] = [
     { valor: "gasto", titulo: "Un gasto", detalle: "Se consumió en el negocio: movilidad, insumos, útiles." },
     { valor: "activo", titulo: "Un activo fijo", detalle: "Algo que sirve varios años: un mueble, un equipo, una máquina." },
     ...(["deposito", "retiro", "ajuste", "otro"] as TipoNoGasto[]).map((t) => ({ valor: t, titulo: TEXTO_NO_GASTO[t].titulo, detalle: TEXTO_NO_GASTO[t].detalle })),
@@ -956,13 +950,14 @@ function ClasificarEgresoModal({
           </CampoFin>
         </div>
       )}
-      {que !== "activo" && <ComboResponsable control={responsable} deshabilitado={guardando} />}
+      {que !== "activo" && <ComboResponsable control={responsable} deshabilitado={guardando || intento.enviando || intento.incierto} />}
+      {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} className="mt-4" />}
       <div className="fin-botones mt-4" data-guia="fin-gastos.clasificar-guardar">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando || intento.enviando || intento.incierto}>
           Cancelar
         </button>
-        <Boton type="button" peso="primario" cargando={guardando} onClick={guardar} disabled={que !== "activo" && !responsable.listo}>
-          {que === "activo" ? "Seguir: registrar el activo" : "Guardar"}
+        <Boton type="button" peso="primario" cargando={guardando || intento.enviando} onClick={guardar} disabled={(que !== "activo" && !responsable.listo) || revisando}>
+          {que === "activo" ? "Seguir: registrar el activo" : intento.incierto ? "Volver a intentar" : "Guardar"}
         </Boton>
       </div>
     </Modal>

@@ -805,3 +805,44 @@ span.sede-telar { cursor: default; }
 .vendido-sede-lista i[data-color="lim"] { --c: var(--color-sede-lim); }
 .vendido-sede-lista i[data-color="tal"] { --c: var(--color-sede-tal); }
 .vendido-sede-lista i[data-color="emp"] { --c: var(--color-sede-emp); }
+
+/* ---- Gastos · la bandeja como pila (la 03 del benchmark visual, Felipe 2026-10-31; docs/maquetas/gastos-benchmark-2026-10/) ----
+   La tarjeta de arriba se resuelve en su lugar; bajo ella asoman una o dos capas (las que siguen). Al decir «Listo» se va 56 px hacia la
+   izquierda y se apaga (360 ms, debe coincidir con MS_SALIDA de GastosPulso) mientras la siguiente sube desde atrás (360 ms). Una vez, sin
+   rebote ni bucle; con «menos movimiento», nada se mueve. */
+.pila-avance { display: flex; align-items: center; gap: 12px; margin: 2px 0 14px; font-size: 12.5px; color: var(--color-taupe); }
+.pila-avance > :first-child { flex: 1; }
+.pila { position: relative; display: grid; }
+.pila[data-capas="1"] { padding-bottom: 7px; }
+.pila[data-capas="2"] { padding-bottom: 14px; }
+.pila-capa { position: absolute; left: 12px; right: 12px; bottom: 7px; height: 24px; border-radius: 0 0 12px 12px; border: 1px solid var(--color-sand); border-top: 0; background: var(--color-hueso); }
+.pila-capa[data-capa="2"] { left: 26px; right: 26px; bottom: 0; background: color-mix(in oklab, var(--color-hueso) 55%, var(--color-papel)); }
+/* La de arriba es papel con su línea (sus campos y sus píldoras, en hueso y con borde, se ven encima); las de atrás, hueso. */
+.pila-tarjeta { position: relative; z-index: 1; display: grid; gap: 14px; padding: 14px 16px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-papel); }
+.pila-tarjeta[data-subio] { animation: pila-sube 360ms var(--ease-cayla) both; }
+@keyframes pila-sube { from { opacity: 0.4; transform: translate3d(0, 8px, 0) scale(0.985); } }
+.pila-sale { position: absolute; top: 0; left: 0; right: 0; z-index: 2; pointer-events: none; animation: pila-sale 360ms var(--ease-cayla) forwards; }
+@keyframes pila-sale { to { opacity: 0; transform: translate3d(-56px, 0, 0); } }
+.pila-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.pila-sobre { display: block; font-size: 11px; color: var(--color-taupe); }
+.pila-cabeza b { display: block; margin-top: 4px; font-family: var(--font-serif); font-size: 21px; font-weight: 500; line-height: 1.15; }
+.pila-cabeza p { margin-top: 4px; font-size: 13.5px; color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */ }
+.pila-monto { flex: none; font-family: var(--font-serif); font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+/* Lo elegido va en un <fieldset> que se congela mientras un gasto está en duda (`AvisoIntentoIncierto`). */
+.pila-decision { display: grid; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.pila-que { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pila-que .btn-enlace { margin-left: 6px; font-size: 13px; }
+.pila-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 16px; }
+.pila-nota { grid-column: 1 / -1; margin-top: -4px; font-size: 12.5px; color: var(--color-taupe); }
+.pila-pie { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
+.pila-responsable { flex: 1 1 240px; min-width: 0; max-width: 360px; }
+.pila-listo-boton { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; margin-left: auto; }
+.pila-listo { margin-top: 2px; }
+@media (max-width: 560px) {
+  .pila-cabeza { flex-direction: column; gap: 4px; }
+  .pila-listo-boton { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pila-tarjeta[data-subio] { animation: none; }
+  .pila-sale { display: none; }
+}
