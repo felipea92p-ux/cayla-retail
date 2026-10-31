@@ -38,6 +38,9 @@ import { LapizEditar } from "@/components/ui/BotonEditar";
 import { coloresConNombreDesfasado } from "@/lib/editar-tela-reglas";
 import { costoUnitarioTexto } from "@/lib/monto-plata-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import type { AvisoDeTelaCortada } from "@/lib/telas-cortadas-sin-anotar-reglas";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
@@ -68,6 +71,7 @@ export function InsumosPanel({
   leyoColores,
   clases,
   leyoClases,
+  avisosDeTela = [],
 }: {
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
@@ -85,6 +89,8 @@ export function InsumosPanel({
   /** Las clases de avío (ADR-0580): de ellas salen la unidad que se propone, si lleva color y qué medida se pide. */
   clases: ClaseDeAvio[];
   leyoClases: boolean;
+  /** Las órdenes que ya cortaron con una tela que hay en el estante y todavía no la anotaron (`avisosDeTelaCortada`); vacío si la base no lo dice. */
+  avisosDeTela?: AvisoDeTelaCortada[];
 }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   // «Nuevo avío»: abierta para crear uno (`agregarA: null`) o para sumarle colores a uno que ya existe, igual que la de tela (ADR-0580).
@@ -134,6 +140,13 @@ export function InsumosPanel({
           </>
         }
       />
+
+      {/* Una orden ya cortó con una tela que acaba de entrar al estante y su libro no la descontó: se dice aquí, donde la persona la carga (ADR-0570, actividad 4). */}
+      {avisosDeTela.map((a) => (
+        <Aviso key={a.produccionId} tono="atencion" titulo={a.titulo} accion={<EnlaceVer href={a.href}>Ir a la {a.numeroTexto}</EnlaceVer>}>
+          {a.texto}
+        </Aviso>
+      ))}
 
       {/* ==================== cifras ==================== */}
       <div data-guia="prod-insumos.cifras" className="grid gap-3 sm:grid-cols-2">
