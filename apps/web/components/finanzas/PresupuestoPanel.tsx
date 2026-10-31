@@ -39,6 +39,7 @@ const entra = (i: number, clase = "") => ({
 export function PresupuestoPanel({
   filas,
   esLider,
+  veTodo,
   sedeActual,
   tiendaNombre,
   verParam,
@@ -47,7 +48,10 @@ export function PresupuestoPanel({
   fallas,
 }: {
   filas: FilaPpto[];
+  /** Lleva a Configuración a cambiar metas y topes (hoy, el líder). */
   esLider: boolean;
+  /** Elige qué sede mirar (ADR-0585: el líder o quien tiene Estados financieros). */
+  veTodo: boolean;
   sedeActual: string | null;
   tiendaNombre: string | null;
   verParam: string | undefined;
@@ -59,7 +63,7 @@ export function PresupuestoPanel({
   const ruta = usePathname();
   const params = useSearchParams();
 
-  const ver = leerVerPpto(verParam, filas, esLider, sedeActual);
+  const ver = leerVerPpto(verParam, filas, veTodo, sedeActual);
   const bloques = useMemo(() => bloquesPpto(filas, ver), [filas, ver]);
   const unidades = useMemo(() => unidadesParaVer(filas), [filas]);
   const conTope = bloques.some((b) => b.filas.some((f) => f.tipo === "tope"));
@@ -99,7 +103,7 @@ export function PresupuestoPanel({
         bajada="Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo."
         acciones={
           <>
-            {esLider ? (
+            {veTodo ? (
               <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin

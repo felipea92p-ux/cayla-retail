@@ -358,6 +358,16 @@ export function veFinanzasDeTodo(rol: "lider" | "integrante", modulos: readonly 
   return rol === "lider" || modulos.some((m) => m.completo && MODULOS_QUE_VEN_TODO_FINANZAS.includes(m.clave));
 }
 
+/**
+ * ¿Esta cuenta ve los Estados financieros de CAYLA entera (todas las sedes, la empresa, el flujo y el Balance entero)? ESPEJA
+ * `retail.fn_ve_estados_financieros_de_todo()` (ADR-0585, Felipe 2026-10-30: «puede ver todo del módulo quien lo tenga»): el líder, o
+ * quien tiene el módulo completo y no es una terminal (el aparato del mostrador sigue viendo solo su tienda, ADR-0161 P6). Es solo
+ * MIRAR: registrar gastos sigue en `veFinanzasDeTodo`.
+ */
+export function veEstadosFinancierosDeTodo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[], terminal: boolean): boolean {
+  return rol === "lider" || (!terminal && modulos.some((m) => m.completo && m.clave === "reportes_financieros"));
+}
+
 /** Qué hace cada cuenta con un comprobante de compra (ADR-0161 P1): cada acción es de UN módulo. */
 export type AccionesDeCompra = { facturas: boolean; pagar: boolean; notas: boolean };
 export function accionesDeCompra(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): AccionesDeCompra {

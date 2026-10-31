@@ -1,4 +1,4 @@
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe } from "@/lib/gastos-reglas";
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
@@ -8,7 +8,7 @@ import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 
 // Finanzas ▸ Reportes ▸ Presupuesto (ADR-0195, capa «para decidir»; spike «¿Vamos según lo planeado?»): cada tope y la meta
 // de ventas del mes contra lo real a la fecha y la proyección al cierre. `?mes=2026-09` elige el mes (por defecto, el de
-// hoy); `?ver=` (solo el líder) elige qué unidad mirar: la sede donde trabaja (por defecto), una ubicación, «todas» (con
+// hoy); `?ver=` (quien ve todo: el líder o quien tiene el módulo, ADR-0585) elige qué unidad mirar: la sede donde trabaja (por defecto), una ubicación, «todas» (con
 // CAYLA al final) o «empresa». Con el módulo sin ser líder, su tienda: lo decide la base.
 export default async function PresupuestoPage({ searchParams }: { searchParams: Promise<{ mes?: string; ver?: string; sede?: string; }> }) {
   const persona = await exigirModulo("reportes_financieros");
@@ -21,6 +21,7 @@ export default async function PresupuestoPage({ searchParams }: { searchParams: 
     <PresupuestoPanel
       filas={datos}
       esLider={persona.rol === "lider"}
+      veTodo={veEstadosFinancierosDeTodoDe(persona)}
       sedeActual={persona.ubicacionId}
       tiendaNombre={persona.ubicacionEtiqueta}
       verParam={verDeLaVista(persona.vista, sedeDeLaUrl(sp))}

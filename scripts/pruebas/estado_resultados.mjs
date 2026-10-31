@@ -359,11 +359,12 @@ select 'R1 ni el diario', (select pg_temp.intento($$select * from retail.fn_asie
 select 'R1 ni las campañas', (select pg_temp.intento($$select * from retail.fn_campanas_reporte()$$) like '%Reportes financieros%');
 ${conModulo("reportes_financieros")}
 create temp table er as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
-select 'R2 con el módulo ve SU tienda y nada más: ni la empresa ni el consolidado', (select count(*) = 1 and bool_and(ubicacion_id = :'tru' and unidad = 'tienda') from er);
-select 'R2 sus números son los mismos que ve el líder (sin la planilla, que es de Dynamic)', (select ventas_netas = 396.43 and gastos_operacion = 1069.21 from er);
-select 'R2 su diario es solo de su tienda', (select count(*) > 0 and bool_and(ubicacion_id = :'tru') from retail.fn_asientos('2030-09-01', '2030-09-30'));
-select 'R2 pedir otra tienda falla', (select pg_temp.intento(format('select * from retail.fn_estado_resultados(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim')) like '%esa ubicación%');
-select 'R2 pedir el diario de otra tienda también', (select pg_temp.intento(format('select * from retail.fn_asientos(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim')) like '%esa ubicación%');
+-- ADR-0585 (Felipe 2026-10-30): con el módulo se ve CAYLA entera, como el líder (antes: solo su tienda).
+select 'R2 con el módulo ve CAYLA entera, como el líder: las tiendas, la empresa y el consolidado', (select bool_or(unidad = 'empresa') and bool_or(unidad = 'consolidado') and bool_or(ubicacion_id = :'lim') from er);
+select 'R2 los números de su tienda son los mismos que ve el líder (sin la planilla, que es de Dynamic)', (select ventas_netas = 396.43 and gastos_operacion = 1069.21 from er where ubicacion_id = :'tru');
+select 'R2 su diario trae también lo de las otras tiendas', (select count(distinct ubicacion_id) > 1 from retail.fn_asientos('2030-09-01', '2030-09-30'));
+select 'R2 puede pedir otra tienda', (select pg_temp.intento(format('select * from retail.fn_estado_resultados(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim')) = 'SIN_ERROR');
+select 'R2 y el diario de otra tienda', (select pg_temp.intento(format('select * from retail.fn_asientos(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim')) = 'SIN_ERROR');
 select 'R3 un rango al revés se rechaza', (select pg_temp.intento($$select * from retail.fn_asientos('2030-09-30', '2030-09-01')$$) like '%rango%');
 `;
 
@@ -445,8 +446,9 @@ select 'K2 su margen normal es el de las últimas 8 semanas sin campaña (70 %)'
 select 'K3 una campaña sin efecto en la caja lo dice (sin % de meta)', (select not con_efecto and meta_pct is null and meta_campana = meta_normal from cr where etiqueta_id = :'cs');
 ${cambiaA(MICAELA)}
 ${conModulo("reportes_financieros")}
-select 'K4 con el módulo, una colaboradora no ve las campañas de otra tienda', (select count(*) = 0 from retail.fn_campanas_reporte() where etiqueta_id in (:'cp', :'cv'));
-select 'K4 ni puede pedirlas', (select pg_temp.intento(format('select * from retail.fn_campanas_reporte(%L)', :'tc')) like '%esa ubicación%');
+-- ADR-0585: con el módulo ve las campañas de CAYLA entera (antes: solo las de su tienda).
+select 'K4 con el módulo, una colaboradora ve también las campañas de otra tienda', (select count(*) = 2 from retail.fn_campanas_reporte() where etiqueta_id in (:'cp', :'cv'));
+select 'K4 y puede pedirlas por tienda', (select pg_temp.intento(format('select * from retail.fn_campanas_reporte(%L)', :'tc')) = 'SIN_ERROR');
 `;
 
 // ============================================================================================================================

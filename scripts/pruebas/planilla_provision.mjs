@@ -51,6 +51,9 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MIGRACION_HOY = readFileSync(join(RAIZ, "supabase", "migrations", "20261022081000_planilla_provision_hoy_por_horario.sql"), "utf8");
 // La del costo real va ENCIMA de las dos: cambia la vista de lo pagado y el cuerpo de dos funciones (sin cambiar su forma).
 const MIGRACION_COSTO = readFileSync(join(RAIZ, "supabase", "migrations", "20261022164000_planilla_costo_real_con_cargas.sql"), "utf8");
+// Y la de ADR-0585 (quien tiene Estados financieros ve todo), que reescribe con un reemplazo anclado la pregunta de alcance de
+// `fn_planilla_provision`: pegar la de lo de hoy la deja con la pregunta vieja, así que se vuelve a pegar encima, como en la base real.
+const MIGRACION_EEFF = readFileSync(join(RAIZ, "supabase", "migrations", "20261030235000_estados_financieros_ve_todo_quien_tiene_el_modulo.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(
@@ -167,6 +170,7 @@ select 'f0f0f0f0-0000-4000-8000-0000000000b1'::uuid, 'TRU', 'planilla', false, 7
 
 ${MIGRACION_HOY}
 ${MIGRACION_COSTO}
+${MIGRACION_EEFF}
 `;
 
 // Todos los casos usan ESTE rango: el período A (termina el 28-oct) y el D (el 28-nov); el B ya está pagado y el C no existe.
@@ -230,8 +234,9 @@ select 'R1 el líder puede pedir una sola sede', (select count(*) = 1 and bool_a
 ${cambiaA(MICAELA)}
 select 'R2 sin el módulo, una colaboradora no ve la planilla estimada', (select pg_temp.intento($$select * from retail.fn_planilla_provision('2030-10-01', '2030-11-30')$$) like '%Reportes financieros%');
 ${conModulo("reportes_financieros")}
-select 'R3 con el módulo ve SU sede y nada más: ni el Taller ni la empresa', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
-select 'R3 pedir otra sede falla', (select pg_temp.intento(format('select * from retail.fn_planilla_provision(%L, %L, %L)', '2030-10-01', '2030-11-30', :'lim')) like '%esa ubicación%');
+-- ADR-0585 (Felipe 2026-10-30): con el módulo se ve CAYLA entera, como el líder (antes: solo su sede).
+select 'R3 con el módulo ve todas las sedes y «de la empresa», como el líder', (select count(*) = 4 and count(distinct unidad) = 3 from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
+select 'R3 y puede pedir otra sede', (select pg_temp.intento(format('select * from retail.fn_planilla_provision(%L, %L, %L)', '2030-10-01', '2030-11-30', :'lim')) = 'SIN_ERROR');
 -- La regla única de Finanzas (ADR-0433): quien cierra el mes ve «De la empresa» en el Estado de resultados, así que también su estimación.
 ${conModulo("cierre_mes")}
 select 'R3b con «Cierre de mes» ve lo mismo que el líder: todas las sedes y «de la empresa», como el Estado de resultados', (select count(*) = 4 and count(distinct unidad) = 3 from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));

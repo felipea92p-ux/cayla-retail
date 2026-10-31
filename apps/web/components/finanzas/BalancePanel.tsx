@@ -51,6 +51,7 @@ const entra = (i: number, clase = "") => ({
 
 export function BalancePanel({
   esLider,
+  veTodo,
   hoy,
   corte,
   ver,
@@ -62,10 +63,13 @@ export function BalancePanel({
   tiendaNombre,
   fallas,
 }: {
+  /** Solo el líder registra los saldos de arranque (`registrar_saldo_inicial`). */
   esLider: boolean;
+  /** Ve el Balance de CAYLA entera y el de cualquier tienda (ADR-0585: el líder o quien tiene Estados financieros). */
+  veTodo: boolean;
   hoy: string;
   corte: string;
-  /** «cayla» (el líder, CAYLA entera) o el id de la tienda que se mira. */
+  /** «cayla» (CAYLA entera, quien ve todo) o el id de la tienda que se mira. */
   ver: string;
   chequeos: Chequeo[];
   lineas: LineaBalance[];
@@ -81,10 +85,10 @@ export function BalancePanel({
   const params = useSearchParams();
   const [arranqueAbierto, setArranqueAbierto] = useState(false);
 
-  const verCayla = esLider && ver === "cayla";
+  const verCayla = veTodo && ver === "cayla";
   const unidad = verCayla ? null : (unidades.find((u) => u.ubicacionId === ver) ?? unidades[0] ?? null);
   const arranque = chequeos.find((c) => c.arranque)?.arranque ?? saldos.find((s) => s.vigente)?.fecha ?? null;
-  const cortes = cortesDisponibles(hoy, esLider ? arranque : null);
+  const cortes = cortesDisponibles(hoy, veTodo ? arranque : null);
 
   const ir = (cambios: Record<string, string | null>) => {
     const p = new URLSearchParams(params.toString());
@@ -130,7 +134,7 @@ export function BalancePanel({
         }
         acciones={
           <>
-            {esLider ? (
+            {veTodo ? (
               <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
@@ -172,7 +176,7 @@ export function BalancePanel({
           onArranque={() => setArranqueAbierto(true)}
         />
       ) : (
-        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} esLider={esLider} />
+        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} veTodo={veTodo} />
       )}
 
       {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} propuestaInicial={propuestaArranque} onCerrar={() => setArranqueAbierto(false)} />}
@@ -519,13 +523,13 @@ function VistaTienda({
   hoy,
   corte,
   selectorCorte,
-  esLider,
+  veTodo,
 }: {
   unidad: UnidadBalance | null;
   hoy: string;
   corte: string;
   selectorCorte: React.ReactNode;
-  esLider: boolean;
+  veTodo: boolean;
 }) {
   if (!unidad) {
     return (
@@ -637,7 +641,7 @@ function VistaTienda({
         tiendas (repartirlos sería inventar un número). Aquí está lo que es de la tienda y cuánto le rinde: la utilidad del mes (Estado
         de resultados) ÷ lo invertido.
         {!unidad.planillaVisible && " La utilidad no descuenta la planilla: esa la ve quien tiene acceso en Dynamic."}
-        {esLider && " El Balance de CAYLA entera, en «Ver»."}
+        {veTodo && " El Balance de CAYLA entera, en «Ver»."}
       </div>
     </>
   );

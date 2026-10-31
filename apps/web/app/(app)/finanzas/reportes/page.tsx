@@ -1,4 +1,4 @@
-import { exigirModulo, veFinanzasDeTodoDe } from "@/lib/persona-actual";
+import { exigirModulo, veDiarioDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { mesAnterior } from "@/lib/resultados-reglas";
@@ -11,8 +11,8 @@ import { verDeLaVista } from "@/lib/vista-global";
 import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5, spike «¿Ganamos?»). Lee en el servidor y deja a una sola pieza
-// cliente mirar. `?mes=2026-08` elige el mes (por defecto, el de hoy, «a la fecha»); `?ver=` (quien ve todo: el líder, o un
-// rol con Configuración, Cierre de mes o CAYLA Global) elige qué columnas: la sede donde trabaja (por defecto), una ubicación, «todas» o «empresa», siempre con CAYLA al lado; `?comparar=1`
+// cliente mirar. `?mes=2026-08` elige el mes (por defecto, el de hoy, «a la fecha»); `?ver=` (quien ve todo: el líder, un rol con
+// Configuración, Cierre de mes o CAYLA Global, o con este módulo, ADR-0585) elige qué columnas: la sede donde trabaja (por defecto), una ubicación, «todas» o «empresa», siempre con CAYLA al lado; `?comparar=1`
 // pone debajo de cada total cuánto cambió contra el mes anterior.
 export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ mes?: string; ver?: string; sede?: string; comparar?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
@@ -41,7 +41,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     <EstadoResultadosPanel
       filas={actual.datos}
       anteriores={anterior?.datos ?? null}
-      veTodo={veFinanzasDeTodoDe(persona)}
+      veTodo={veDiarioDeTodoDe(persona)}
       cerradas={cerradas}
       sedeActual={persona.ubicacionId}
       verParam={verDeLaVista(persona.vista, sedeDeLaUrl(sp))}
