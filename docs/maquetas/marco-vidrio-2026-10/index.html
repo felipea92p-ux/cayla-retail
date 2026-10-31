@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-fondo="aurora" data-lateral="panel" data-cabecera="flotante">
+<html lang="es" data-tema="claro" data-fondo="aurora" data-lateral="riel" data-cabecera="islas" data-combo="gota">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -132,22 +132,22 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 
 /* A · Panel flotante: el lateral es una placa de vidrio a 12 px de los bordes; la fila activa es la gota, que viaja a la fila que tocas */
 [data-lateral="panel"] .lat{border-radius:28px}
-[data-lateral="panel"] .marca-activa,[data-lateral="isla"] .marca-activa{display:block;position:absolute;z-index:0;left:12px;right:12px;top:0;height:40px;border-radius:14px;
+[data-lateral="panel"] .marca-activa,[data-lateral="riel"] .marca-activa,[data-lateral="isla"] .marca-activa{display:block;position:absolute;z-index:0;left:12px;right:12px;top:0;height:40px;border-radius:14px;
   transition:top .38s var(--ease),height .38s var(--ease),opacity .25s}
-[data-lateral="panel"] .marca-activa::after,[data-lateral="isla"] .marca-activa::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
-[data-lateral="panel"] .fila-m.on::before,[data-lateral="isla"] .fila-m.on::before{content:none}
-@media (hover:hover){[data-lateral="panel"] .fila-m:not(.on):hover,[data-lateral="isla"] .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}
-  [data-lateral="panel"] .fila-m:not(.on):hover svg,[data-lateral="isla"] .fila-m:not(.on):hover svg{color:var(--tinta)}}
+[data-lateral="panel"] .marca-activa::after,[data-lateral="riel"] .marca-activa::after,[data-lateral="isla"] .marca-activa::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
+[data-lateral="panel"] .fila-m.on::before,[data-lateral="riel"] .fila-m.on::before,[data-lateral="isla"] .fila-m.on::before{content:none}
+/* la fila elegida corre 6 px para que la marca roja no toque su ícono (Felipe 2026-10-31, «el efecto de seleccionado como en la foto») */
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m{transition:color .2s,background .25s,padding .38s var(--ease)}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m.on{padding-left:20px}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .hijos .fila-m.on{padding-left:50px}
+@media (hover:hover){:is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}
+  :is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover svg{color:var(--tinta)}}
 [data-lateral="panel"] .yo{border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));padding:10px}
 [data-tema="oscuro"][data-lateral="panel"] .yo{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
 [data-lateral="panel"] .disp[data-plegado] .marca-activa{left:10px;right:10px}
 
-/* B · Riel de vidrio: pegado al borde, de arriba abajo, con su filo de luz a la derecha; la fila activa es un pozo (estás adentro) con su riel rojo */
+/* B · Riel de vidrio (elegido, 2026-10-31): pegado al borde, de arriba abajo, con su filo de luz a la derecha; la fila activa es la gota con su marca roja (Felipe eligió la gota del panel) */
 [data-lateral="riel"] .lat{border-width:0 1px 0 0;border-radius:0;box-shadow:inset -1px 0 0 color-mix(in srgb,var(--vidrio) 80%,transparent),12px 0 40px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
-[data-lateral="riel"] .fila-m.on{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);border-radius:12px}
-[data-tema="oscuro"][data-lateral="riel"] .fila-m.on{background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 55%,transparent)}
-[data-lateral="riel"] .fila-m.on::before{left:6px}
-@media (hover:hover){[data-lateral="riel"] .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}[data-lateral="riel"] .fila-m:not(.on):hover svg{color:var(--tinta)}}
 
 /* C · Isla de íconos: una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido y muestra los nombres */
 [data-lateral="isla"] .lat{border-radius:26px}
@@ -208,8 +208,8 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .cifras div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
 .cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1}
 .filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.filtros span{height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);display:inline-flex;align-items:center;font-size:12.5px;background:var(--papel)}
-.filtros span.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.filtros>span:not(#filtro-cat){height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);display:inline-flex;align-items:center;font-size:12.5px;background:var(--papel)}
+.filtros>span.on:not(#filtro-cat){background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
 .prendas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
 .prenda{border-radius:16px;overflow:hidden;background:var(--papel);border:1px solid var(--sand)}
 .prenda .foto{aspect-ratio:4/5;display:grid;place-items:center;color:var(--crema-fija)}
@@ -238,6 +238,117 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .hoja .b{height:42px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:500}
 .hoja .b.sec{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
 .hoja .b.pri{color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+
+/* ====================================================================
+   EL COMBO (Felipe 2026-10-31: «mejorar el combo de las sedes y que quede así para todos los combos»)
+   Hoy es UNA pieza, `Desplegable` (components/ui/campos.tsx), con siete formas: campo, caja, cajaBaja, pildora, pastilla (la sede),
+   fin y finEnLinea; la usan ~105 archivos, más ComboBuscable (21), ComboResponsable y DesplegablePildora (20). Su lista: papel, el hilo
+   rojo de canto y el ✓ en la elegida, y un buscador con más de 8 opciones (ADR-0209). Lo que se elija aquí cambia la LISTA y el
+   DISPARADOR de todas las formas; en una hoja el disparador sigue siendo el pozo (campos «A · Hundido»).
+   ==================================================================== */
+:root{--sede-tru:#2f6aa3;--sede-aqp:#c26a2e;--sede-lim:#1d8a72;--sede-tal:#8a4fa8;--sede-emp:#9a8b7b}
+:root[data-tema="oscuro"]{--sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-tal:#a26cc6;--sede-emp:#8a7d70}
+.cb{position:relative;display:inline-block}
+.cb.ancho{display:block}
+.cb-btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500;white-space:nowrap;
+  transition:background .25s,border-color .25s,box-shadow .25s,transform .25s var(--ease)}
+.cb-btn .pto{width:8px;height:8px;border-radius:50%;flex:none;background:var(--c,var(--verde));box-shadow:0 0 0 3px color-mix(in srgb,var(--c,var(--verde)) 18%,transparent)}
+.cb-btn .flecha{width:14px;height:14px;transition:transform .3s var(--ease),color .2s}
+.cb.abierto .cb-btn .flecha{transform:rotate(180deg);color:var(--rojo)}
+.cb-btn .val{display:inline-block}
+.cb-btn .val.entra{animation:val-entra .32s var(--ease)}
+@keyframes val-entra{from{opacity:0;transform:translateY(60%)}}
+.cb-btn[data-forma="campo"]{width:100%;height:44px;border-radius:14px;justify-content:flex-start;padding:0 7px 0 14px;font-weight:400;font-size:14px;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.cb-btn[data-forma="campo"] .flecha-caja{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.cb-btn[data-forma="pildora"]{height:32px;font-size:12.5px;background:var(--papel)}
+/* Como ahora: la pastilla de la cabecera en versalitas, la caja de un formulario, la lista de papel */
+:root:not([data-combo]) .cb-btn[data-forma="pastilla"]{border-radius:6px;height:32px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;background:transparent;box-shadow:none}
+:root:not([data-combo]) .cb-btn[data-forma="campo"]{border-radius:10px;background:var(--hueso);box-shadow:none}
+:root:not([data-combo]) .cb-btn .pto{display:none}
+.cb-lista{position:absolute;z-index:40;top:calc(100% + 8px);left:0;width:max-content;max-width:340px;display:none;padding:6px;border-radius:12px;
+  background:var(--papel);border:1px solid var(--sand);box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+/* La lista flota en la capa del aparato, fuera del disparador (como `useDestinoFlotante`): un vidrio dentro de otro vidrio no ve lo de atrás. */
+.flotante{position:absolute;inset:0;z-index:30;pointer-events:none}
+.flotante .cb-lista{pointer-events:auto}
+.cb-lista.abierta{display:block;animation:sube .24s var(--ease)}
+.cb-buscar{display:flex;align-items:center;gap:8px;height:36px;margin:2px 2px 6px;padding:0 10px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);font-size:13px;color:var(--t65)}
+.cb-buscar input{flex:1;border:0;background:none;outline:0;min-width:0;color:var(--tinta)}
+.cb-grupo{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:8px 10px 4px}
+.cb-ops{position:relative;display:grid;gap:2px;max-height:300px;overflow:auto;scrollbar-width:thin}
+.cb-op{position:relative;z-index:1;display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;text-align:left;font-size:13.5px;transition:background .2s,padding .3s var(--ease)}
+.cb-op .lente{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.cb-op .lente svg{width:16px;height:16px;stroke-width:1.6}
+.cb-op .tx{min-width:0}.cb-op .tx b{display:block;font-weight:500}.cb-op .tx span{display:block;font-size:12px;color:var(--t65);white-space:nowrap}
+.cb-op .ok{margin-left:auto;opacity:0;width:15px;height:15px}
+.cb-op[aria-selected="true"] .ok{opacity:1}
+.cb-op[aria-selected="true"] .ok path{stroke-dasharray:24;animation:traza-cb .4s var(--ease) both}
+@keyframes traza-cb{from{stroke-dashoffset:24}}
+.cb-op[aria-selected="true"] .tx b{font-weight:600}
+.cb-op[aria-selected="true"]::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+@media (hover:hover){.cb-op:hover{background:var(--hueso)}}
+.cb-op[hidden],.cb-grupo[hidden]{display:none}
+.cb-vacio{padding:12px;font-size:13px;color:var(--t65)}
+.cb-gota{display:none}
+
+/* lo común del vidrio: el disparador es una gota (en una hoja, el pozo con su flecha en gota) y la lista, una placa de vidrio */
+[data-combo] .cb-btn:not([data-forma="campo"]){border-color:color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 32%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 12px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn:not([data-forma="campo"]){background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+[data-combo] .cb-btn[data-forma="campo"] .flecha-caja{border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 24%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"] .flecha-caja{background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-combo] .cb.abierto .cb-btn[data-forma="campo"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+@media (hover:hover){[data-combo] .cb-btn:not([data-forma="campo"]):hover{transform:translateY(-1px)}}
+[data-combo] .cb-lista{border-radius:20px;padding:8px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 74%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-lista{background:color-mix(in srgb,var(--vidrio) 88%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 26px 54px -24px var(--sombra)}
+[data-combo] .cb-buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo] .cb-op{border-radius:14px}
+[data-combo] .cb-op .lente{background:linear-gradient(145deg,color-mix(in srgb,var(--c) 18%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 8%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--c) 25%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-op .lente{background:color-mix(in srgb,var(--c) 18%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 30%,transparent)}
+
+/* A · Gota viajera: la gota del menú lateral, también en la lista. Se queda en la elegida y viaja a la que apuntas. */
+[data-combo="gota"] .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;
+  transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@media (hover:hover){:is([data-combo="gota"],[data-combo="tarjetas"]) .cb-op:hover{background:transparent}}
+[data-combo="gota"] .cb-op[aria-selected="true"]{padding-left:18px}
+[data-combo="gota"] .cb-op[aria-selected="true"]::before{left:7px;width:3px;height:14px;margin-top:-7px;border-radius:3px}
+
+/* B · Brota del botón: la lista nace del disparador, como una gota que se estira, y sus opciones se enfocan en cascada.
+   La elegida queda hundida (estás adentro), con su ✓. */
+[data-combo="brota"] .cb-lista.abierta{animation:brota .42s var(--ease) both;transform-origin:top left}
+[data-combo="brota"] .cb-lista.abierta[data-alinea="derecha"]{transform-origin:top right}
+@keyframes brota{from{opacity:0;transform:scale(.35,.15);border-radius:999px}to{opacity:1;transform:none}}
+[data-combo="brota"] .cb-lista.abierta .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(140ms + var(--k,0) * 35ms)}
+[data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo="brota"] .cb-op[aria-selected="true"]::before{left:6px}
+@media (hover:hover){[data-combo="brota"] .cb-op:not([aria-selected="true"]):hover{background:var(--t06)}}
+
+/* C · Tarjetas: con pocas opciones y su detalle (las sedes), la lista se vuelve un tablero de tarjetas de vidrio; con muchas, la lista
+   de A. La elegida sobresale con su anillo y su ✓ en la esquina. */
+[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:400px!important;max-width:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-grupo{display:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-ops{grid-template-columns:1fr 1fr;gap:8px;max-height:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent);transition:transform .25s var(--ease),background .25s}
+[data-tema="oscuro"][data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:first-child{grid-column:1/-1;flex-direction:row;align-items:center}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .lente{width:36px;height:36px}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .tx b{font-family:'EB Garamond',serif;font-size:19px;line-height:1.1}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .ok{position:absolute;top:10px;right:10px;width:18px;height:18px;padding:3px;border-radius:50%;box-sizing:content-box;background:var(--tinta);color:var(--crema)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]{border-color:var(--tinta);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px var(--tinta),0 10px 22px -14px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]::before{content:none}
+@media (hover:hover){[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:hover{transform:translateY(-2px)}}
+[data-combo="tarjetas"] .cb-lista.abierta[data-tarjetas] .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(80ms + var(--k,0) * 45ms)}
+[data-combo="tarjetas"] .cb-lista:not([data-tarjetas]) .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@container disp (max-width:520px){[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:300px!important}.cb-lista{max-width:300px}}
 
 /* ====================================================================
    EL CELULAR: el lateral es un cajón que entra desde la izquierda; la cabecera, menú + colibrí + acciones
@@ -282,9 +393,10 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 
 <div class="spk">
   <span class="titulo">El marco con vidrio · fondo, menú lateral y cabecera</span>
-  <span class="tag">Fondo</span><div class="seg-m" data-ctl="fondo"><button data-v="ahora">Como ahora</button><button data-v="crema">A · Crema quieto</button><button data-v="aurora">B · Aurora</button><button data-v="tejido">C · Tejido</button></div>
-  <span class="tag">Lateral</span><div class="seg-m" data-ctl="lateral"><button data-v="ahora">Como ahora</button><button data-v="panel">A · Panel flotante</button><button data-v="riel">B · Riel de vidrio</button><button data-v="isla">C · Isla de íconos</button></div>
-  <span class="tag">Cabecera</span><div class="seg-m" data-ctl="cabecera"><button data-v="ahora">Como ahora</button><button data-v="flotante">A · Barra flotante</button><button data-v="fundida">B · Fundida</button><button data-v="islas">C · Dos islas</button></div>
+  <span class="tag">Fondo</span><div class="seg-m" data-ctl="fondo"><button data-v="ahora">Como ahora</button><button data-v="crema">A · Crema quieto</button><button data-v="aurora">B · Aurora ✓</button><button data-v="tejido">C · Tejido</button></div>
+  <span class="tag">Lateral</span><div class="seg-m" data-ctl="lateral"><button data-v="ahora">Como ahora</button><button data-v="panel">A · Panel flotante</button><button data-v="riel">B · Riel con gota ✓</button><button data-v="isla">C · Isla de íconos</button></div>
+  <span class="tag">Cabecera</span><div class="seg-m" data-ctl="cabecera"><button data-v="ahora">Como ahora</button><button data-v="flotante">A · Barra flotante</button><button data-v="fundida">B · Fundida</button><button data-v="islas">C · Dos islas ✓</button></div>
+  <span class="tag">Combo</span><div class="seg-m" data-ctl="combo"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota viajera</button><button data-v="brota">B · Brota del botón</button><button data-v="tarjetas">C · Tarjetas</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
   <button class="accion" data-acc="hoja">Ver una hoja encima</button>
@@ -295,9 +407,11 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
   <aside class="lat" id="lat" aria-label="Menú principal"></aside>
   <header class="cab" id="cab"></header>
   <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
   <div class="capa"><div class="velo" data-acc="hoja"></div>
     <div class="hoja" role="dialog" aria-label="Registrar cliente"><h2>Registrar cliente</h2><p class="sub">Solo su documento: vino, preguntó, se probó.</p>
       <p class="et">Documento</p><div class="caja">DNI · 47210385</div><p class="et">Nombre</p><div class="caja">Rosa Quispe Mendoza</div>
+      <p class="et">Qué se probó</p><div id="campo-cat" style="margin-bottom:14px"></div>
       <div class="pie"><button class="b sec" data-acc="hoja">Cancelar</button><button class="b pri">Registrar cliente</button></div></div></div>
 </div></div>
 
@@ -315,16 +429,27 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
       <tr><td rowspan="3"><b>Fondo</b></td><td>A · Crema quieto</td><td>El crema de siempre con una luz suave que baja desde arriba.</td><td>Lo más sereno. El vidrio del marco casi no se nota: es crema sobre crema.</td></tr>
-      <tr><td>B · Aurora <span class="ev">Recomendada</span></td><td>Tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo.</td><td>Le da al vidrio algo que desenfocar sin distraer. Cuesta que el contraste ya no es sobre un solo color: hay que medirlo.</td></tr>
+      <tr><td>B · Aurora <span class="ev">Elegida</span></td><td>Tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo.</td><td>Le da al vidrio algo que desenfocar sin distraer. Cuesta que el contraste ya no es sobre un solo color: hay que medirlo.</td></tr>
       <tr><td>C · Tejido</td><td>La trama fina de una tela sobre el crema, con luz desde arriba.</td><td>Dice «taller textil». Pero detrás de una tabla, una trama se ve como ruido.</td></tr>
-      <tr><td rowspan="3"><b>Lateral</b></td><td>A · Panel flotante <span class="ev">Recomendada</span></td><td>Placa de vidrio a 12 px de los bordes; la fila activa es la gota de Mi perfil, que viaja a la fila que tocas, con su marca roja.</td><td>Es el mismo idioma de las hojas: donde estás sobresale. Cuesta 8 px de ancho.</td></tr>
-      <tr><td>B · Riel de vidrio</td><td>Pegado al borde, de arriba abajo, con un filo de luz; la fila activa es un pozo con el riel rojo.</td><td>El cambio más chico. Pero «hundido» ya quiere decir «espera tu dato»: la fila activa se lee como un campo.</td></tr>
+      <tr><td rowspan="3"><b>Lateral</b></td><td>A · Panel flotante</td><td>Placa de vidrio a 12 px de los bordes; la fila activa es la gota de Mi perfil, que viaja a la fila que tocas, con su marca roja.</td><td>Es el mismo idioma de las hojas: donde estás sobresale. Cuesta 8 px de ancho.</td></tr>
+      <tr><td>B · Riel de vidrio <span class="ev">Elegida, con la gota</span></td><td>Pegado al borde, de arriba abajo, con un filo de luz. Felipe lo eligió con la fila activa del panel: la gota con su marca roja, y la fila corre 6 px para que la marca no toque el ícono.</td><td>El cambio más chico en el ancho y el idioma de las hojas en la fila activa (donde estás sobresale).</td></tr>
       <tr><td>C · Isla de íconos</td><td>Una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido con los nombres.</td><td>Le da todo el ancho a la pantalla. Pero quien no conoce los íconos tiene que apuntar para leer (ley 1 de Formidable: sin manual).</td></tr>
-      <tr><td rowspan="3"><b>Cabecera</b></td><td>A · Barra flotante <span class="ev">Recomendada</span></td><td>Barra de vidrio a 12 px de los bordes, con botones redondos y la sede en una gota.</td><td>Hermana del panel lateral: el marco son dos placas flotando sobre el fondo.</td></tr>
+      <tr><td rowspan="3"><b>Cabecera</b></td><td>A · Barra flotante</td><td>Barra de vidrio a 12 px de los bordes, con botones redondos y la sede en una gota.</td><td>Hermana del panel lateral: el marco son dos placas flotando sobre el fondo.</td></tr>
       <tr><td>B · Fundida</td><td>Sin barra: el contenido se desvanece al llegar arriba bajo un desenfoque que se apaga.</td><td>La más limpia. Los botones quedan sueltos y sobre una prenda de color se pierden.</td></tr>
-      <tr><td>C · Dos islas</td><td>La búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha.</td><td>La más «iOS». Al bajar, el contenido se ve entre las dos islas y la página parece cortada.</td></tr>
+      <tr><td>C · Dos islas <span class="ev">Elegida</span></td><td>La búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha.</td><td>La más «iOS». Al bajar, el contenido se ve entre las dos islas y la página parece cortada.</td></tr>
     </table>
     <p style="margin-top:12px">Con «Ver una hoja encima» se ve cómo se apila una hoja Serena sobre el marco: el velo, el lateral y la cabecera de vidrio detrás, y el fondo debajo de todo. Ojo con las capas: el lateral, la cabecera y la hoja son tres <code>backdrop-filter</code> a la vez (por medir en el Mac mini).</p>
+  </section>
+  <section>
+    <h2>El combo (la sede, y todos los demás)</h2>
+    <p>Hoy el combo es <b>una sola pieza</b>, <code>Desplegable</code> (<code>components/ui/campos.tsx</code>), con siete formas: <code>campo</code>, <code>caja</code>, <code>cajaBaja</code>, <code>pildora</code>, <code>pastilla</code> (la sede de la cabecera, en versalitas de 11 px con su borde), <code>fin</code> y <code>finEnLinea</code>; la usan ~105 archivos, y además <code>ComboBuscable</code>, <code>ComboResponsable</code> y <code>DesplegablePildora</code> dibujan la misma lista. Su lista es de papel, con el hilo rojo de canto y el ✓ en la elegida, y un buscador desde las 9 opciones (ADR-0209). Por eso «que quede así para todos» se cumple cambiando la lista y los disparadores en un solo lugar. En la maqueta, el mismo combo se ve en tres lugares: <b>la sede</b> (cabecera), <b>el filtro «Categoría»</b> (pantalla) y <b>«Qué se probó»</b> dentro de «Ver una hoja encima» (con buscador).</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td>A · Gota viajera <span class="ev">Recomendada</span></td><td>El disparador es una gota; la lista, una placa de vidrio. La gota del menú lateral también vive en la lista: se queda en la elegida, con su marca roja, y viaja a la que apuntas. Cada sede lleva su lente con el color de la sede.</td><td>El mismo gesto que elegiste para el menú: la persona aprende uno solo. Sirve igual con 6 opciones que con 50.</td></tr>
+      <tr><td>B · Brota del botón</td><td>La lista nace del disparador como una gota que se estira, y sus opciones se enfocan en cascada; la elegida queda hundida con su ✓.</td><td>La entrada más líquida. Pero «hundido» ya quiere decir «espera tu dato», y la cascada demora una lista que se abre muchas veces al día.</td></tr>
+      <tr><td>C · Tarjetas</td><td>Con pocas opciones y su detalle (las sedes), la lista se vuelve un tablero de tarjetas de vidrio; con muchas, la lista de A.</td><td>La sede se ve como un lugar, no como una línea. Pero son dos combos distintos según cuántas opciones haya: la regla «una función, una pieza» se rompe un poco.</td></tr>
+    </table>
+    <p style="margin-top:10px">La lista flota en una capa propia, fuera del disparador, como ya lo hace <code>useDestinoFlotante</code>: un vidrio dentro de otro vidrio no ve lo que hay detrás. El detalle de cada sede («Tienda», «Lima · producción») es su tipo; mostrar ahí si la caja está abierta sería un dato nuevo que el combo no carga hoy.</p>
   </section>
 </div>
 
@@ -399,7 +524,7 @@ function pintarCabecera() {
     <div class="der${document.documentElement.dataset.cabecera === 'islas' ? ' vidrio' : ''}"><button class="ib ocultable" aria-label="Asistente">${sv(L.chispa)}</button>
       <button class="ib" aria-label="Actividad">${sv(L.actividad)}<span class="pt">3</span></button>
       <button class="ib" aria-label="Tema">${sv(L.luna)}</button>
-      <span class="sede"><i></i>Trujillo${sv(L.abajo, 'ic')}</span></div>`;
+      ${combo({ id: 'sede', forma: 'pastilla', opciones: SEDES, valor: estadoCombos.sede, alinea: 'derecha', tarjetas: true, etiqueta: 'Cambiar de sede' })}</div>`;
   $('#cab').className = 'cab' + (document.documentElement.dataset.cabecera === 'flotante' ? ' vidrio' : '');
 }
 
@@ -410,18 +535,118 @@ const PRENDAS = [['#7a2e2a', 'Blusa Emma', 'camisa', 34], ['#c9a27e', 'Casaca L�
   ['#7d5a3c', 'Chaleco Roble', 'camisa', 5], ['#a33b3b', 'Vestido Rubí', 'camisa', 11], ['#36474f', 'Jogger Pizarra', 'pantalon', 19], ['#d9b44a', 'Blusa Sol', 'camisa', 7, 1]]; // tema-fijo: colores de prenda, son dato
 $('#cont').innerHTML = `<div class="enc"><p class="vs linea">Trujillo · viernes 31 de octubre</p><h1>Existencias</h1><p>Lo que hay en la tienda y en el almacén, prenda por prenda.</p></div>
   <div class="cifras"><div><span class="vs">En tienda</span><b>1 284</b></div><div><span class="vs">En almacén</span><b>3 902</b></div><div><span class="vs">Por reponer</span><b>46</b></div><div><span class="vs">Sin foto</span><b>12</b></div></div>
-  <div class="filtros"><span class="on">Todas</span><span>Blusas</span><span>Pantalones</span><span>Vestidos</span><span>Por reponer</span></div>
+  <div class="filtros"><span class="on">Todas</span><span>Por reponer</span><span>Sin foto</span><span id="filtro-cat"></span></div>
   <div class="prendas">${PRENDAS.map(([c, n, i, q, claro]) => `<div class="prenda"><div class="foto${claro ? ' claro' : ''}" data-color-dato style="background:${c}">${sv(L[i])}</div><div class="pie"><b>${n}</b><span>${q} en la tienda</span></div></div>`).join('')}</div>`;
 
+// ---------- el combo: una sola pieza para la sede, el filtro y el campo de una hoja ----------
+const SEDES = [
+  { v: 'global', t: 'Toda la empresa', d: 'Las tres tiendas, el taller y el almacén', c: 'var(--sede-emp)', ic: 'pulso', g: 'Toda la empresa' },
+  { v: 'tru', t: 'Trujillo', d: 'Tienda', c: 'var(--sede-tru)', ic: 'inicio', g: 'Sedes' },
+  { v: 'aqp', t: 'Arequipa', d: 'Tienda', c: 'var(--sede-aqp)', ic: 'inicio', g: 'Sedes' },
+  { v: 'lim', t: 'Lima', d: 'Tienda', c: 'var(--sede-lim)', ic: 'inicio', g: 'Sedes' },
+  { v: 'tal', t: 'Taller', d: 'Lima · producción', c: 'var(--sede-tal)', ic: 'produccion', g: 'Sedes' },
+  { v: 'alm', t: 'Almacén', d: 'Lima · reserva', c: 'var(--taupe)', ic: 'inventario', g: 'Sedes' },
+];
+// Más de 8 opciones: aparece el buscador (ADR-0209, UMBRAL_BUSCAR_COMBO).
+const CATEGORIAS = ['Blusas', 'Bodys', 'Camisas', 'Casacas', 'Chalecos', 'Faldas', 'Jeans', 'Leggings', 'Polos', 'Sacos', 'Shorts', 'Tops', 'Vestidos'].map((t) => ({ v: t, t }));
+const estadoCombos = { sede: 'tru', filtro: '', campo: 'Blusas' };
+const sinTilde = (x) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const ICK = { ok: 'M20 6 9 17l-5-5', lupa: L.buscar };
+function combo({ id, forma, opciones, valor, alinea, ancho, tarjetas, etiqueta, marcador }) {
+  const el = opciones.find((o) => o.v === valor);
+  const conBuscar = opciones.length > 8;
+  let grupo = null, k = 0;
+  const ops = opciones.map((o) => {
+    const cab = o.g && o.g !== grupo ? `<p class="cb-grupo">${(grupo = o.g)}</p>` : '';
+    return `${cab}<button type="button" role="option" class="cb-op" style="--k:${k++}${o.c ? `;--c:${o.c}` : ''}" aria-selected="${o.v === valor}" data-v="${o.v}" data-t="${o.t}">${o.ic ? `<span class="lente">${sv(T[o.ic])}</span>` : ''}<span class="tx"><b>${o.t}</b>${o.d ? `<span>${o.d}</span>` : ''}</span>${sv(ICK.ok, 'ic ok')}</button>`;
+  }).join('');
+  // La lista se cuelga de la capa flotante del aparato (como useDestinoFlotante en el ERP); el disparador se queda en su lugar.
+  $$(`.flotante [data-de="${id}"]`).forEach((x) => x.remove());
+  $('#flotante').insertAdjacentHTML('beforeend', `<div class="cb-lista" role="listbox" data-de="${id}" ${alinea ? `data-alinea="${alinea}"` : ''} ${tarjetas ? 'data-tarjetas' : ''} ${ancho ? 'data-ancho' : ''}>${conBuscar ? `<label class="cb-buscar">${sv(ICK.lupa)}<input placeholder="Buscar" data-buscar></label>` : ''}<div class="cb-ops"><span class="cb-gota gota" aria-hidden="true"></span>${ops}<p class="cb-vacio" hidden>No hay nada con ese nombre.</p></div></div>`);
+  const flecha = forma === 'campo' ? `<span class="flecha-caja">${sv(L.abajo, 'ic flecha')}</span>` : sv(L.abajo, 'ic flecha');
+  return `<div class="cb${ancho ? ' ancho' : ''}" data-cb="${id}">
+    <button type="button" class="cb-btn" data-forma="${forma}" role="combobox" aria-expanded="false" aria-label="${etiqueta || ''}" style="${el && el.c ? `--c:${el.c}` : ''}">${forma === 'pastilla' ? '<span class="pto"></span>' : ''}<span class="val">${el ? el.t : marcador}</span>${flecha}</button></div>`;
+}
+function pintarCombosDelContenido() {
+  $('#filtro-cat').outerHTML = `<span id="filtro-cat">${combo({ id: 'filtro', forma: 'pildora', opciones: CATEGORIAS, valor: estadoCombos.filtro, marcador: 'Categoría', etiqueta: 'Filtrar por categoría' })}</span>`;
+  $('#campo-cat').innerHTML = combo({ id: 'campo', forma: 'campo', opciones: CATEGORIAS, valor: estadoCombos.campo, ancho: true, etiqueta: 'Qué se probó' });
+}
+const listaDe = (id) => $(`.flotante .cb-lista[data-de="${id}"]`);
+const cbDe = (lista) => $(`.cb[data-cb="${lista.dataset.de}"]`);
+// La gota de la lista (A, y las listas largas de C): se queda en la elegida y viaja a la que apuntas.
+function gotaA(lista, op, animar = true) {
+  const g = lista && $('.cb-gota', lista);
+  if (!g) return;
+  const destino = op || $('.cb-op[aria-selected="true"]:not([hidden])', lista);
+  if (!destino) { g.style.opacity = 0; return; }
+  if (!animar || quieto()) g.style.transition = 'none';
+  g.style.top = destino.offsetTop + 'px'; g.style.height = destino.offsetHeight + 'px'; g.style.opacity = 1;
+  if (!animar || quieto()) requestAnimationFrame(() => (g.style.transition = ''));
+}
+function cerrarCombos() {
+  $$('.cb.abierto').forEach((c) => { c.classList.remove('abierto'); $('.cb-btn', c).setAttribute('aria-expanded', 'false'); });
+  $$('.cb-lista.abierta').forEach((l) => l.classList.remove('abierta'));
+}
+function abrirCombo(cb) {
+  const lista = listaDe(cb.dataset.cb), btn = $('.cb-btn', cb), d = $('#disp').getBoundingClientRect(), r = btn.getBoundingClientRect();
+  cb.classList.add('abierto'); btn.setAttribute('aria-expanded', 'true');
+  lista.style.width = lista.hasAttribute('data-ancho') ? r.width + 'px' : '';
+  lista.style.minWidth = r.width + 'px';
+  lista.classList.add('abierta');
+  const w = lista.offsetWidth;
+  lista.style.top = r.bottom - d.top + 8 + 'px';
+  lista.style.left = Math.max(8, lista.dataset.alinea === 'derecha' ? r.right - d.left - w : r.left - d.left) + 'px';
+  requestAnimationFrame(() => gotaA(lista, null, false));
+  const b = $('[data-buscar]', lista); if (b) setTimeout(() => b.focus(), 30);
+}
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.cb-btn');
+  if (btn) { const cb = btn.parentElement, abre = !cb.classList.contains('abierto'); cerrarCombos(); if (abre) abrirCombo(cb); e.stopImmediatePropagation(); return; }
+  const op = e.target.closest('.cb-op');
+  if (op) {
+    const lista = op.closest('.cb-lista'), cb = cbDe(lista);
+    $$('.cb-op', lista).forEach((o) => o.setAttribute('aria-selected', o === op));
+    estadoCombos[lista.dataset.de] = op.dataset.v;
+    const b = $('.cb-btn', cb), val = $('.val', b);
+    val.textContent = op.dataset.t; val.classList.remove('entra'); void val.offsetWidth; val.classList.add('entra');
+    if (op.style.getPropertyValue('--c')) b.style.setProperty('--c', op.style.getPropertyValue('--c'));
+    setTimeout(cerrarCombos, 160);
+    e.stopImmediatePropagation(); return;
+  }
+  if (!e.target.closest('.cb-lista')) cerrarCombos();
+}, true);
+document.addEventListener('pointerover', (e) => {
+  const op = e.target.closest('.cb-op');
+  if (op) gotaA(op.closest('.cb-lista'), op);
+});
+document.addEventListener('pointerout', (e) => {
+  const ops = e.target.closest('.cb-ops');
+  if (ops && !ops.contains(e.relatedTarget)) gotaA(ops.closest('.cb-lista'));
+});
+document.addEventListener('input', (e) => {
+  if (!e.target.matches('[data-buscar]')) return;
+  const lista = e.target.closest('.cb-lista'), q = sinTilde(e.target.value.trim());
+  let hay = 0;
+  $$('.cb-op', lista).forEach((o) => { const ver = !q || sinTilde(o.dataset.t).includes(q); o.hidden = !ver; hay += ver; });
+  $('.cb-vacio', lista).hidden = hay > 0;
+  gotaA(lista, null, false);
+});
+document.addEventListener('keydown', (e) => {
+  // Escape: primero cierra la lista abierta; recién el segundo cierra la hoja (useEscapeLibre).
+  if (e.key !== 'Escape') return;
+  if ($('.cb-lista.abierta')) { cerrarCombos(); return; }
+  $('#disp').removeAttribute('data-hoja');
+});
+
 // ---------- estado ----------
-const estado = { fondo: 'aurora', lateral: 'panel', cabecera: 'flotante', tema: 'claro', ancho: 'escritorio' };
+const estado = { fondo: 'aurora', lateral: 'riel', cabecera: 'islas', combo: 'gota', tema: 'claro', ancho: 'escritorio' };
 function pintar() {
   const r = document.documentElement;
   r.dataset.tema = estado.tema;
-  for (const k of ['fondo', 'lateral', 'cabecera']) { if (estado[k] === 'ahora') delete r.dataset[k]; else r.dataset[k] = estado[k]; }
+  for (const k of ['fondo', 'lateral', 'cabecera', 'combo']) { if (estado[k] === 'ahora') delete r.dataset[k]; else r.dataset[k] = estado[k]; }
   $$('.seg-m').forEach((s) => $$('button', s).forEach((b) => b.classList.toggle('on', b.dataset.v === estado[s.dataset.ctl])));
   $('#disp').dataset.ancho = estado.ancho;
-  pintarLateral(); pintarCabecera();
+  cerrarCombos(); pintarLateral(); pintarCabecera();
 }
 document.addEventListener('click', (e) => {
   const ctl = e.target.closest('.seg-m button');
@@ -444,6 +669,8 @@ document.addEventListener('click', (e) => {
 $('#lat').addEventListener('transitionend', () => moverMarca(false));
 addEventListener('resize', () => moverMarca(false));
 pintar();
+pintarCombosDelContenido();
+$('#cont').addEventListener('scroll', () => { if ($('.cb-lista.abierta')) cerrarCombos(); }, { passive: true });
 </script>
 </body>
 </html>

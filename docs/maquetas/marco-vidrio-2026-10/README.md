@@ -29,6 +29,17 @@ auditoría es otra pieza del tablero).
 Solo tokens (ADR-0169 / ADR-0336), en claro y oscuro; el color de una prenda es dato. Movimiento una vez, sin rebote; la gota del menú se
 mueve solo al tocar una fila; todo se apaga con `prefers-reduced-motion` (ADR-0136). En el celular, 375 px.
 
+## El combo (Felipe 2026-10-31: «mejorar el combo de las sedes y que quede así para todos los combos»)
+
+El combo del ERP es una sola pieza (`Desplegable`, siete formas), así que la cara elegida vale para todos. El selector **Combo** la
+muestra en la sede (cabecera), en el filtro «Categoría» y en «Qué se probó» dentro de la hoja (con buscador):
+
+- **A · Gota viajera (recomendada):** disparador en gota; lista de vidrio donde la gota del menú se queda en la elegida y viaja a la que
+  apuntas; cada sede con su lente del color de la sede.
+- **B · Brota del botón:** la lista nace del disparador y sus opciones se enfocan en cascada; la elegida queda hundida.
+- **C · Tarjetas:** con pocas opciones (las sedes), un tablero de tarjetas de vidrio; con muchas, la lista de A.
+
 ## Lo que decidió Felipe
 
-Pendiente.
+**Fondo B · Aurora · Lateral B · Riel de vidrio, con la gota del panel en la fila activa** (la fila corre 6 px para que la marca roja no
+toque el ícono) **· Cabecera C · Dos islas** (2026-10-31). El combo: pendiente entre A, B y C.
