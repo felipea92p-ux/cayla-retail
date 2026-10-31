@@ -283,7 +283,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }],
       titulo: "Cinco toques",
-      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie, que escribes como sea.",
+      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie. Con el QR del papel (la pistola, pegarlo o la cámara) se llena solo.",
     },
     {
       id: "hoja-repetir",
@@ -414,7 +414,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.sin-comprobante",
       opcional: true,
       titulo: "Lo grande sin comprobante",
-      texto: "Dice cuántos gastos de S/\u00a0300 o más no tienen boleta ni factura y cuánto IGV recuperarías con factura (lo chico, como el mototaxi, no se avisa). «Ver cuáles» deja en la lista solo esos, para ir pidiendo sus comprobantes.",
+      texto: "Dice cuántos gastos de S/\u00a0300 o más no tienen boleta ni factura y cuánto IGV recuperarías con factura (lo chico, como el mototaxi, no se avisa). «Ver cuáles» los deja solos en la lista. En su hoja: «Llegó el comprobante» o «No tendrá comprobante».",
     },
     {
       id: "resolver",
@@ -488,8 +488,8 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "detalle-botones",
       ancla: "fin-gastos.detalle-botones",
       opcional: true,
-      titulo: "Anular un gasto",
-      texto: "«Anular…» pide el motivo y lo deja a la vista como anulado: nunca se borra. Si ya tiene pagos, no se anula. En la demo no anulamos: cerramos.",
+      titulo: "Corregir, comprobante o anular",
+      texto: "«Corregir» cambia en qué se gastó o qué fue. Si se pagó sin comprobante y lo trajeron después, «Llegó el comprobante» se lo agrega sin pagarlo otra vez. «Anular…» lo deja a la vista como anulado. En la demo no tocamos nada: cerramos.",
     },
     {
       id: "fijos",

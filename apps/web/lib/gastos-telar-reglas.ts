@@ -60,6 +60,8 @@ type GastoParaFiltrar = {
   comprobante: string | null;
   categoriaNombre: string;
   comprobanteTipo: string;
+  /** Lo marcado «no emite comprobante» ya no entra a «Sin comprobante, de S/ 300 o más» (ADR-0588). */
+  noEmite?: unknown;
 };
 
 /** Lo que calza con los filtros. La búsqueda va sin tildes ni mayúsculas («bano» encuentra «Baño») sobre lo que se lee en la fila. */

@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
+import { haceHoras } from "./_reloj_lima.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -68,13 +69,13 @@ select (now() at time zone 'America/Lima')::date as hoy \\gset
 set local session_replication_role = replica;
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 insert into retail.ventas (id, ubicacion_id, created_at, estado, es_prueba) values
-  (${ID("a1")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
-  (${ID("a2")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
-  (${ID("a3")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
+  (${ID("a1")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
+  (${ID("a2")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
+  (${ID("a3")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
   (${ID("a4")}, ${LIMA}, timestamptz '2026-10-20 12:00-05', 'completada', false),
-  (${ID("a5")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
-  (${ID("a6")}, ${TRUJILLO}, now() - interval '2 hours', 'completada', false);
-update retail.ventas set estado = 'anulada', anulado_en = now() - interval '1 hour', motivo_anulacion = 'prueba' where id = ${ID("a5")};
+  (${ID("a5")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
+  (${ID("a6")}, ${TRUJILLO}, ${haceHoras(2)}, 'completada', false);
+update retail.ventas set estado = 'anulada', anulado_en = ${haceHoras(1)}, motivo_anulacion = 'prueba' where id = ${ID("a5")};
 insert into retail.venta_items (id, venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values
   (${ID("b1")}, ${ID("a1")}, :'va_a', 1, 118, 10), (${ID("b2")}, ${ID("a1")}, :'va_b', 1, 118, 10),
   (${ID("b3")}, ${ID("a2")}, :'va_a', 1, 177, 10),
