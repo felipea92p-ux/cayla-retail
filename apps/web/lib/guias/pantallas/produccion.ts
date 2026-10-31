@@ -304,7 +304,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Pegar cierre, Ojales y botones o Lavado o teñido, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha (el ploteo se paga una vez: total o por prenda). ¿Aún no lo tienes? «Pendiente de registrar».",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; los demás pasos, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio (por prenda o el total de la orden; si se ve muy alto, te pregunta) y la fecha. ¿Aún no lo tienes? «Pendiente de registrar».",
     },
     {
       id: "recordar",
@@ -530,7 +530,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
       titulo: "Taller o afuera",
-      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra por prenda, desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
+      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra (por prenda o el total de la orden), desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
     },
     {
       id: "quitar-paso",
@@ -554,7 +554,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.agregar-paso" }],
       titulo: "Quién lo hace",
-      texto: "Igual que al abrir la orden: Taller o Afuera; si sale afuera, a qué servicio (¿aún no lo tienes? «Pendiente de registrar»), cuánto cobra por prenda y para cuándo. Agregarlo no mueve dinero: el costo sale cuando el servicio devuelve prendas. En la demo no guardamos nada.",
+      texto: "Igual que al abrir la orden: Taller o Afuera; si sale afuera, a qué servicio (¿aún no lo tienes? «Pendiente de registrar»), cuánto cobra (por prenda o el total de la orden) y para cuándo. Agregarlo no mueve dinero: el costo sale cuando el servicio devuelve prendas. En la demo no guardamos nada.",
     },
     {
       id: "agregar-paso-tarde",
