@@ -73,6 +73,8 @@ const MIGRACIONES = [
   "supabase/migrations/20261015024000_tienda_favoritos_y_esperas.sql",
   "supabase/migrations/20261015025000_tienda_mi_club.sql",
   "supabase/migrations/20261015030000_vitrina_esperan_una_talla.sql",
+  // 2026-10-31: «Avísame» pide el permiso de WhatsApp (tienda_avisame de 4 argumentos) y el ERP dice quién espera.
+  "supabase/migrations/20261031181000_vitrina_esperan_con_quien_espera.sql",
 ];
 const ANTES = process.env.APLICAR_ANTES ?? "";
 const APLICAR_ANTES = ANTES ? (ANTES === "1" ? MIGRACIONES : ANTES.split(",")).map((m) => readFileSync(m.trim(), "utf8")).join("\n") : "";
@@ -365,7 +367,7 @@ function main() {
     "cuentas_web_visitas:true:0:false,esperas_web:true:0:false,favoritos_web:true:0:false",
   );
   const DE_LA_TIENDA = [
-    "tienda_avisame(uuid,uuid,uuid)",
+    "tienda_avisame(uuid,uuid,uuid,boolean)",
     "tienda_favorito(uuid,uuid,boolean)",
     "tienda_mi_club(uuid)",
     "tienda_mis_favoritos_y_esperas(uuid)",
@@ -769,15 +771,29 @@ function main() {
     "t\nBlusa Emma|NEG|M|Tienda Trujillo|2|0|Tienda Lima:2|true # Blusa Emma|NEG|M|cualquiera|1|2|Tienda Lima:2|true",
   );
   esperarValor(
-    "sin datos personales: ni nombres, ni correos, ni DNI, ni celulares de quienes esperan; y si el modelo se oculta de la web, lo dice",
+    "sin correos, ni DNI, ni celulares de quienes no pidieron WhatsApp (el nombre sí sale, 2026-10-31); y si el modelo se oculta de la web, lo dice",
     escenario(`${ESPERAS_DE_PRUEBA}
       update retail.vitrina_productos set publicado = false where producto_id = :'emma';
       ${COMO(FELIPE)}
       select retail.fn_vitrina_esperan()::text as r \\gset
       ${COMO_POSTGRES}
-      select (:'r' ~* '(Ana Prueba|Bea Prueba|${CORREO("ana").replace(/\./g, "\\.")}|${DNI.ana}|${DNI.bea}|987000701|987000702|${U.ana}|${U.bea})')::text;
+      select (:'r' ~* '(${CORREO("ana").replace(/\./g, "\\.")}|${DNI.ana}|${DNI.bea}|987000701|987000702|${U.ana}|${U.bea})')::text;
       select string_agg(distinct x ->> 'se_ve', ',') from jsonb_array_elements(:'r'::jsonb -> 'filas') x where x ->> 'variante_id' = :'v1';`),
     "false\nfalse",
+  );
+
+  esperarValor(
+    "quien marca «escríbeme por WhatsApp» muestra su celular y lo dice; quien no, solo su nombre (permiso por espera, opción B)",
+    escenario(`${COMO_TIENDA}
+      select retail.tienda_avisame('${U.ana}', :'v1', :'tru', true) ->> 'whatsapp' as _w \\gset
+      select ${avisa(U.bea, ":'v1'", ":'tru'")} ->> 'estado' as _2 \\gset
+      ${COMO_POSTGRES}
+      ${COMO(FELIPE)}
+      select retail.fn_vitrina_esperan()::text as r \\gset
+      ${COMO_POSTGRES}
+      select string_agg((q ->> 'nombre') || '=' || coalesce(q ->> 'celular', '-') || '=' || (q ->> 'pidio_whatsapp'), ',' order by q ->> 'nombre')
+        from jsonb_array_elements(:'r'::jsonb -> 'filas') f, jsonb_array_elements(f -> 'quienes') q where f ->> 'variante_id' = :'v1';`),
+    "Ana Prueba Club=987000701=true,Bea Prueba Club=-=false",
   );
 
   // =================================================================================================================
@@ -955,7 +971,7 @@ end $f$;\n`;
   );
   esperarValor(
     "MUTANTE avisame sin «si hay, no se espera»: con Lima surtida se anota igual (la prueba A lo nota)",
-    escenario(`select pg_temp.mutar('retail.tienda_avisame(uuid, uuid, uuid)', 'end) > 0 then', 'end) > 999999 then');
+    escenario(`select pg_temp.mutar('retail.tienda_avisame(uuid, uuid, uuid, boolean)', 'end) > 0 then', 'end) > 999999 then');
       select pg_temp.dejar(:'v1', :'lim', :'lim_piso', 2) as _x \\gset
       ${COMO_TIENDA}
       select ${avisa(U.ana, ":'v1'", "null")} ->> 'estado';`),
