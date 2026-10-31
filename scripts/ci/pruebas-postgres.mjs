@@ -1812,6 +1812,9 @@ export const PRUEBAS = [
   // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
   // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
   "pruebas:produccion-corte-con-su-tela",
+  // Las telas cortadas sin anotar (ADR-0570, actividad 4): Insumos avisa «la OP-3 ya cortó con esta tela y no tiene nada anotado» solo cuando el Corte tiene prendas y el libro no descontó
+  // la tela; calla sin Corte, con la tela anotada, en una muestra o una orden anulada; quien no lee Producción en ese Taller recibe []. ROLLBACK.
+  "pruebas:produccion-telas-cortadas-sin-anotar",
   // Cambiar el tipo de una orden abierta (ADR-0581): de muestra a lote y al revés, con su rastro (historia y Actividad); pedir el mismo tipo no hace nada; sin precio no pasa a lote; una orden
   // cerrada no cambia; una muestra que pasa a lote entra al stock al cerrar y una que sigue muestra no. ROLLBACK.
   "pruebas:produccion-cambiar-tipo",
