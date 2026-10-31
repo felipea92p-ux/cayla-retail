@@ -594,3 +594,5 @@ a.tc{color:inherit;text-decoration:none}
 :root:not([data-maqueta-tc]) .tc.puesta .tc-nom{color:var(--tinta)}
 
 @container disp (max-width:520px){.fila-c{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tc{padding:14px 16px}}
+/* como en el ERP (grid-cols-2 lg:grid-cols-4): con la pantalla angosta, las cifras van de a dos */
+@container disp (max-width:1000px){.fila-c{grid-template-columns:repeat(2,minmax(0,1fr))}}

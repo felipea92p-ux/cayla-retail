@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-tb="lamina">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tablas con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · las tablas con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pieza: `<Tabla>` + `<Encabezado>` + `fila()`/`celda()` (components/ui/Tabla.tsx) y el movimiento de `.fila-cayla` (globals.css,
+   ADR-0358 ronda 7). Hoy: card-cayla (papel, filo arena, radio 16); el encabezado en arena al 70 %; el rayado en hueso al 50 %; al pasar
+   el mouse, crema al 60 %; la fila que lleva a su detalle dibuja el hilo rojo de canto desde el centro y asoma la «›»; abierta
+   (aria-current), hueso firme; la recién guardada respira en verde; al llegar, las filas entran en cascada (28 ms, hasta la 12).
+   Montada sobre el marco y las piezas ya elegidas (../vidrio-base-2026-10/). Tres caras + «Como ahora». No cambia qué hace nada.
+   Colores: SOLO tokens. Movimiento: una vez, sin rebote; apagado con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+
+/* ---------- la tabla (lo común y «Como ahora») ---------- */
+.tabla{margin-top:24px;border-radius:16px;border:1px solid var(--sand);background:var(--papel);overflow:hidden;overflow-x:auto;animation:sube .5s var(--ease) .25s backwards}
+.t-enc,.t-fila{display:grid;grid-template-columns:var(--cols);gap:4px 16px;align-items:baseline;padding:12px 20px}
+.t-enc{padding-top:8px;padding-bottom:8px;background:color-mix(in srgb,var(--sand) 70%,transparent)}
+.t-enc span{font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-enc button{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:inherit}
+.t-enc button svg{width:12px;height:12px;stroke-width:2;opacity:.35;transition:opacity .3s var(--ease),transform .3s var(--ease)}
+.t-enc button[aria-sort="descending"],.t-enc button[aria-sort="ascending"]{color:var(--tinta)}
+.t-enc button[aria-sort="descending"] svg,.t-enc button[aria-sort="ascending"] svg{opacity:1}
+.t-enc button[aria-sort="ascending"] svg{transform:rotate(180deg)}
+@media (hover:hover){.t-enc button:hover{color:var(--rojo)}}
+.der{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t-fila{position:relative;border-top:1px solid var(--sand);font-size:13.5px;color:var(--tinta);text-decoration:none;
+  animation:sube-fila .42s var(--ease) backwards;animation-delay:calc(300ms + var(--k,0) * 28ms);transition:background-color .18s var(--ease),background-size .22s var(--ease)}
+@keyframes sube-fila{from{opacity:0;transform:translateY(8px)}}
+.t-fila>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-fila small{display:block;font-size:12px;color:var(--t65);overflow:hidden;text-overflow:ellipsis}
+.t-fila:nth-child(odd of .t-fila){background-color:color-mix(in srgb,var(--hueso) 50%,transparent)}
+@media (hover:hover){.t-fila:hover{background-color:color-mix(in srgb,var(--crema) 60%,transparent)}}
+/* la fila que lleva a su detalle: el hilo rojo de canto y la «›» */
+a.t-fila{background-image:linear-gradient(var(--rojo),var(--rojo));background-repeat:no-repeat;background-position:0 50%;background-size:2px 0;cursor:pointer}
+a.t-fila::after{content:"";position:absolute;top:50%;right:6px;width:14px;height:14px;margin-top:-7px;background:var(--tinta);opacity:0;translate:-4px 0;transition:opacity .2s var(--ease),translate .2s var(--ease);
+  -webkit-mask:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+  mask:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E")}
+@media (hover:hover){a.t-fila:hover{background-size:2px calc(100% - 20px)}a.t-fila:hover::after{opacity:1;translate:0 0}}
+a.t-fila[aria-current="true"]{background-size:2px calc(100% - 20px);background-color:color-mix(in srgb,var(--hueso) 75%,transparent)}
+a.t-fila[aria-current="true"]::after{opacity:1;translate:0 0}
+.t-fila[data-recien]{animation:recien 1.4s var(--ease) both}
+@keyframes recien{0%{background-color:color-mix(in srgb,var(--verde) 16%,var(--papel))}100%{background-color:transparent}}
+.t-pie{padding:10px 20px;border-top:1px solid var(--sand);font-size:12px;color:var(--taupe)}
+.mini{display:inline-block;width:26px;height:32px;border-radius:6px;vertical-align:middle;margin-right:10px}
+.prenda-c{display:flex!important;align-items:center}
+.prenda-c>div{min-width:0}.prenda-c b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.cant.sale{color:var(--t80)}.cant.entra{color:var(--verde)}
+
+/* ====================================================================
+   A · LÁMINA CASI PAPEL: la tabla es la lámina de las hojas en Serena (papel al 82 %, con su desenfoque y su filo de vidrio): donde se
+   lee en serio, la Aurora casi no pasa. El encabezado es una franja tenue con un hilo; el rayado, apenas un tinte. La fila abierta es
+   la GOTA del menú, con su marca roja; el hilo rojo y la «›» del encima se quedan.
+   ==================================================================== */
+:root:is([data-tb="lamina"],[data-tb="placa"],[data-tb="plana"]) a.t-fila[aria-current="true"]{background-color:transparent;background-size:2px 0}
+:root:is([data-tb="lamina"],[data-tb="placa"],[data-tb="plana"]) a.t-fila[aria-current="true"]::before{content:"";position:absolute;inset:4px 6px;height:auto;opacity:1;z-index:-1;border-radius:14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"]:is([data-tb="lamina"],[data-tb="placa"],[data-tb="plana"]) a.t-fila[aria-current="true"]::before{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 16px -8px var(--sombra)}
+:root:is([data-tb="lamina"],[data-tb="placa"],[data-tb="plana"]) a.t-fila[aria-current="true"] .marca{display:block}
+.marca{display:none;position:absolute;left:13px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
+:root:is([data-tb="lamina"],[data-tb="placa"],[data-tb="plana"]) .t-fila{isolation:isolate}
+
+[data-tb="lamina"] .tabla{border-radius:20px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:color-mix(in srgb,var(--papel) 82%,transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -32px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-tb="lamina"] .tabla{background:color-mix(in srgb,var(--papel) 80%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent),0 24px 50px -32px var(--sombra)}
+[data-tb="lamina"] .t-enc{background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+[data-tb="lamina"] .t-fila{border-top-color:color-mix(in srgb,var(--tinta) 7%,transparent)}
+[data-tb="lamina"] .t-fila:nth-child(odd of .t-fila){background-color:color-mix(in srgb,var(--tinta) 2.5%,transparent)}
+@media (hover:hover){[data-tb="lamina"] .t-fila:hover{background-color:color-mix(in srgb,var(--vidrio) 55%,transparent)}
+  [data-tema="oscuro"][data-tb="lamina"] .t-fila:hover{background-color:color-mix(in srgb,var(--tinta) 6%,transparent)}}
+[data-tb="lamina"] .t-pie{border-top-color:color-mix(in srgb,var(--tinta) 9%,transparent)}
+
+/* ====================================================================
+   B · PLACA SERENA: la placa de las tarjetas de cifra (vidrio al 64→44 %), sin rayado; las filas separadas por un hilo que empieza
+   después de la primera columna (como la lámina de prendas de las hojas). El encabezado, texto suelto con su hilo.
+   ==================================================================== */
+[data-tb="placa"] .tabla{border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-tb="placa"] .tabla{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+:is([data-tb="placa"],[data-tb="plana"]) .t-enc{background:none;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+:is([data-tb="placa"],[data-tb="plana"]) .t-fila{border-top:0;background-color:transparent!important}
+:is([data-tb="placa"],[data-tb="plana"]) .t-fila+.t-fila::before{content:"";position:absolute;top:0;left:var(--hilo-x,20px);right:20px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+:is([data-tb="placa"],[data-tb="plana"]) a.t-fila[aria-current="true"]+.t-fila::before{opacity:0}
+@media (hover:hover){[data-tb="placa"] .t-fila:hover{background-color:color-mix(in srgb,var(--vidrio) 45%,transparent)!important}
+  [data-tema="oscuro"][data-tb="placa"] .t-fila:hover{background-color:color-mix(in srgb,var(--tinta) 6%,transparent)!important}}
+:is([data-tb="placa"],[data-tb="plana"]) .t-pie{border-top-color:color-mix(in srgb,var(--tinta) 9%,transparent)}
+
+/* ====================================================================
+   C · PLANA SOBRE LA AURORA: sin caja. Lo que se lee es lo que explica: plano. El encabezado y las filas van sueltos sobre la Aurora,
+   separados por hilos; al pasar el mouse, la fila se enciende como una gota tenue; abierta, la gota con su marca roja.
+   ==================================================================== */
+[data-tb="plana"] .tabla{background:none;border:0;border-radius:0;overflow:visible}
+[data-tb="plana"] .t-enc,[data-tb="plana"] .t-fila,[data-tb="plana"] .t-pie{padding-left:8px;padding-right:8px}
+[data-tb="plana"] .t-fila+.t-fila::before{left:8px;right:8px}
+[data-tb="plana"] a.t-fila::after{right:0}
+@media (hover:hover){[data-tb="plana"] .t-fila:not([aria-current="true"]):hover::before{content:"";position:absolute;inset:3px -4px;z-index:-1;height:auto;border-radius:14px;opacity:1!important;
+    background:color-mix(in srgb,var(--vidrio) 50%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent)}
+  [data-tema="oscuro"][data-tb="plana"] .t-fila:not([aria-current="true"]):hover::before{background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:none}
+  [data-tb="plana"] .t-fila:hover+.t-fila::before{opacity:0}}
+[data-tb="plana"] a.t-fila[aria-current="true"]::before{inset:3px -4px}
+
+/* con la pantalla angosta, las columnas que sobran se van (como `desdeLg` de <Encabezado>) */
+@container disp (max-width:1100px){.tabla{--cols:var(--cols-angosta)!important}.desde-lg{display:none!important}}
+@container disp (max-width:800px){.tabla{--cols:var(--cols-chica)!important}.desde-xl{display:none!important}}
+/* ---------- el celular: el encabezado se va y cada fila apila sus celdas, como hoy ---------- */
+@container disp (max-width:520px){
+  .t-enc{display:none}
+  .t-fila{grid-template-columns:minmax(0,1fr) auto;padding:12px 16px}
+  .t-fila>.solo-esc{display:none}
+  .t-fila>.mov-der{grid-column:2;grid-row:1}
+  .t-fila>.mov-izq{grid-column:1;grid-row:1 / span 2}
+  .t-fila>.mov-sub{grid-column:2;grid-row:2;justify-self:end}
+  [data-tb="plana"] .t-fila{padding-left:4px;padding-right:4px}
+  .t-pie{padding:10px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Las tablas con vidrio · <code style="font-size:13px">Tabla</code> y <code style="font-size:13px">.fila-cayla</code></span>
+  <span class="tag">Tabla</span><div class="seg-m" data-ctl="tb"><button data-v="ahora">Como ahora</button><button data-v="lamina">A · Lámina casi papel</button><button data-v="placa">B · Placa Serena</button><button data-v="plana">C · Plana sobre la Aurora</button></div>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pantalla"><button data-v="ordenes">Órdenes (filas que llevan)</button><button data-v="movimientos">Movimientos (lectura densa)</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+  <button class="accion" data-acc="recien">Guardar una fila nueva</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy (<code>components/ui/Tabla.tsx</code> y <code>.fila-cayla</code>)</h2>
+    <ul>
+      <li><b>Dónde vive:</b> <code>&lt;Tabla&gt;</code> en <b>75 archivos</b>, con 224 encabezados y 126 filas armadas con <code>fila()</code>; <code>.fila-cayla</code> además directo en 20 archivos (la planilla de Contar es un <code>&lt;table&gt;</code> con su cara). 8 tablas se ordenan por columna. Finanzas (<code>fin-tabla</code>), Productos y las matrices de tallas tienen la suya y quedan fuera.</li>
+      <li><b>Lo que hace:</b> un encabezado en arena al 70 %, rayado en hueso al 50 %, crema al pasar el mouse; la fila que lleva a su detalle dibuja el hilo rojo de canto y asoma la «›»; la abierta queda en hueso firme; la recién guardada respira en verde; al llegar, las filas entran en cascada. En el celular el encabezado se va y cada fila apila sus datos.</li>
+      <li><b>Qué le pasa sobre el vidrio:</b> es la superficie sólida más grande de casi toda pantalla, bajo una cabecera plana y unas tarjetas de vidrio. La franja arena del encabezado y el rayado hueso son colores macizos que el vidrio quita en todo lo demás. Pero es también donde se lee en serio: montos, códigos, fechas. Si la Aurora se ve mucho detrás, un número sobre la nube rojiza pierde contraste.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>Como ahora</b></td><td>Papel con filo arena, encabezado arena, rayado hueso.</td><td>Nada que migrar; la mejor lectura posible.</td><td>El bloque más sólido de la pantalla, en un idioma que ya no se usa arriba.</td></tr>
+      <tr><td><b>A · Lámina casi papel</b> <span class="ev">Recomendada</span></td><td>La lámina de las hojas en Serena: papel al 82 % con desenfoque y filo de vidrio. Encabezado tenue con su hilo, rayado apenas un tinte. La fila abierta es la gota del menú con su marca roja; el hilo rojo y la «›» del encima se quedan.</td><td>Lo que ya decidiste en las hojas («las tablas sobre una lámina casi papel»), ahora en la pantalla: una tabla se ve igual en una hoja y fuera. La lectura casi no cambia y deja de ser un bloque macizo. La fila abierta habla como la fila elegida del menú.</td><td>El vidrio se nota poco (es la idea: aquí se lee). Al lado de las tarjetas en placa se ve un escalón de opacidad: es a propósito, pero hay que mirarlo.</td></tr>
+      <tr><td><b>B · Placa Serena</b></td><td>La placa de las tarjetas de cifra, sin rayado; filas separadas por un hilo que empieza tras la primera columna; encabezado suelto con su hilo.</td><td>Todo lo de la pantalla es el mismo vidrio: tarjetas y tabla. La más liviana a la vista.</td><td>Sin rayado ni fondo firme, en una tabla densa (Movimientos, 30 filas) el ojo se salta de renglón. La Aurora pasa más: hay que medir contraste de montos y fechas. Y una tabla dentro de una hoja seguiría con otra cara.</td></tr>
+      <tr><td><b>C · Plana sobre la Aurora</b></td><td>Sin caja: encabezado y filas sueltos sobre el fondo, separados por hilos; al pasar el mouse la fila se enciende como gota; abierta, la gota con su marca.</td><td>El idioma al pie de la letra (lo que se lee es lo que explica: plano). La más ligera y la más «iPhone».</td><td>La tabla no tiene borde: se confunde con lo que hay alrededor (notas, vacíos, la paginación). Sobre la nube rojiza un número taupe baja de contraste. Una tabla con una columna fija o desplazamiento lateral no tiene dónde apoyarse.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>A · Lámina casi papel.</b> Es la tabla que ya elegiste para las hojas, así que una tabla es una sola pieza dentro y fuera de una hoja; la lectura queda intacta (que es para lo que existe) y deja de ser un bloque macizo. La fila abierta como la gota del menú une el lateral con la lista. B se ve más liviana pero en las tablas largas el renglón se pierde; C es preciosa en una lista corta y frágil en una de 30 filas.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Qué hace la tabla: la plantilla de columnas que comparten encabezado y filas, el orden por columna con su flecha, el hilo rojo y la «›» de la fila que lleva, la abierta marcada, la recién guardada en verde, la entrada en cascada, el pie, y en el celular el encabezado que se va y la fila que apila sus datos. Las insignias de estado (<code>Chip</code>) son otra pieza del tablero.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado…); la maqueta no los repite. -->
+<script>
+const ICS = { abajo: 'M12 5v14M19 12l-7 7-7-7' };
+const ESTADOS = { camino: ['En camino', 'var(--pizarra)'], llego: ['Llegó', 'var(--verde)'], parcial: ['A medias', 'var(--ambar)'], borrador: ['Borrador', 'var(--taupe)'] };
+const PROV = ['Hilados del Sur', 'Botones Lumbre', 'Telas Mistral', 'Avíos Quillay', 'Cierres Puna', 'Etiquetas Cóndor', 'Telas Mistral', 'Hilados del Sur', 'Avíos Quillay', 'Botones Lumbre', 'Cierres Puna', 'Telas Mistral'];
+const SEDES_T = ['Trujillo', 'Arequipa', 'Lima', 'Taller'];
+let ordenes = PROV.map((p, i) => ({ n: 142 - i, p, art: 3 + (i % 4), sede: SEDES_T[i % 4], est: ['camino', 'llego', 'parcial', 'camino', 'borrador', 'llego'][i % 6], llega: 2 + i, total: 4280 - i * 213 }));
+let orden = { campo: 'n', dir: 'desc' }, abierta = 140, recien = null;
+const MOV = PRENDAS.slice(0, 16).map(([c, n], i) => ({ c, n, talla: ['S', 'M', 'L', 'XL'][i % 4], tipo: ['Venta', 'Traslado', 'Ingreso', 'Venta', 'Ajuste'][i % 5], sede: SEDES_T[i % 3], cant: [-1, -6, 12, -2, -1][i % 5], quien: ['Rosa', 'Lucía', 'Carmen', 'Ana'][i % 4], hora: `${16 - Math.floor(i / 3)}:${String((i * 7) % 60).padStart(2, '0')}` }));
+const encabezadoTabla = (cols) => `<div class="t-enc" role="row">${cols.map(([t, campo, der, solo, lg, xl]) => `<span class="${der ? 'der' : ''}${solo ? ' solo-esc' : ''}${lg ? ' desde-lg' : ''}${xl ? ' desde-xl' : ''}" role="columnheader">${campo ? `<button data-orden="${campo}" aria-sort="${orden.campo === campo ? (orden.dir === 'desc' ? 'descending' : 'ascending') : 'none'}">${t}${sv(ICS.abajo)}</button>` : t}</span>`).join('')}</div>`;
+const chip = (e) => `<span class="chip" style="--c:${ESTADOS[e][1]}"><i></i>${ESTADOS[e][0]}</span>`;
+const soles = (x) => 'S/ ' + x.toLocaleString('es-PE', { minimumFractionDigits: 2 });
+
+function tablaOrdenes() {
+  const filas = [...ordenes].sort((a, b) => (orden.dir === 'desc' ? -1 : 1) * (a[orden.campo] > b[orden.campo] ? 1 : a[orden.campo] < b[orden.campo] ? -1 : 0));
+  return `<div class="tabla" role="table" style="--cols:100px minmax(0,1.6fr) 110px 120px 80px 110px;--cols-angosta:90px minmax(0,1fr) 120px 100px;--cols-chica:84px minmax(0,1fr) 96px">
+    ${encabezadoTabla([['Orden', 'n'], ['Proveedor'], ['Sede', null, 0, 1, 1], ['Estado', null, 0, 1, 0, 1], ['Llega', 'llega', 1, 1, 1], ['Total', 'total', 1]])}
+    ${filas.map((o, k) => `<a href="#" class="t-fila" role="row" data-orden-id="${o.n}" aria-current="${o.n === abierta}" ${o.n === recien ? 'data-recien' : ''} style="--k:${Math.min(k, 11)};--hilo-x:120px">
+      <span class="marca" aria-hidden="true"></span>
+      <span class="mov-izq">OC-0${o.n}<small>${o.sede}</small></span><span class="solo-esc">${o.p}<small>${o.art} artículos</small></span><span class="solo-esc desde-lg">${o.sede}</span><span class="solo-esc desde-xl">${chip(o.est)}</span>
+      <span class="der solo-esc desde-lg">${o.llega} nov</span><span class="der mov-der">${soles(o.total)}</span><span class="mov-sub" style="display:none"></span></a>`).join('')}
+    <div class="t-pie">${ordenes.length} órdenes · ${soles(ordenes.reduce((a, o) => a + o.total, 0))} en total</div></div>`;
+}
+function tablaMovimientos() {
+  return `<div class="tabla" role="table" style="--cols:minmax(0,1.8fr) 100px 100px 80px 90px 70px;--cols-angosta:minmax(0,1fr) 90px 70px 60px;--cols-chica:minmax(0,1fr) 70px 56px">
+    ${encabezadoTabla([['Prenda'], ['Qué pasó', null, 0, 1, 0, 1], ['Sede', null, 0, 1, 1], ['Cantidad', null, 1], ['Quién', null, 0, 1, 1], ['Hora', null, 1, 1]])}
+    ${MOV.map((m, k) => `<div class="t-fila" role="row" style="--k:${Math.min(k, 11)};--hilo-x:56px">
+      <span class="prenda-c mov-izq"><i class="mini" data-color-dato style="background:${m.c}"></i><div><b>${m.n}</b><small>Talla ${m.talla} · ${m.tipo} en ${m.sede}</small></div></span>
+      <span class="solo-esc desde-xl">${m.tipo}</span><span class="solo-esc desde-lg">${m.sede}</span><span class="der mov-der cant ${m.cant > 0 ? 'entra' : 'sale'}">${m.cant > 0 ? '+' : '−'}${Math.abs(m.cant)}</span><span class="solo-esc desde-lg">${m.quien}</span><span class="der solo-esc">${m.hora}</span></div>`).join('')}
+    <div class="t-pie">Hoy · 16 movimientos en Trujillo, Arequipa y Lima</div></div>`;
+}
+function pintarPantalla(e) {
+  if (e.pantalla === 'ordenes') {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Órdenes de compra', frase: 'Lo que le pediste a cada proveedor y lo que ya llegó.', acciones: [['sec', 'Descargar Excel', 'descargar'], ['pri', 'Nueva orden', 'mas']] })}
+      <div class="fila-c">${[['En camino', '5', 'S/ 18,240', 'neutro'], ['Llegaron este mes', '9', 'S/ 31,600', 'verde'], ['A medias', '2', 'Falta S/ 2,140', 'ambar'], ['Borradores', '2', 'Sin enviar', 'neutro']].map(([n, v, c, p], i) => `<div class="tc" style="--i:${i}"><p class="tc-nom"><i class="pto ${p}"></i>${n}</p><p class="tc-val"><span class="num">${v}</span></p><div class="tc-ctx"><span>${c}</span></div></div>`).join('')}</div>
+      ${tablaOrdenes()}`;
+  } else {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Movimientos', frase: 'Todo lo que entró, salió o se movió, prenda por prenda.' })}${tablaMovimientos()}`;
+  }
+}
+function repintarTabla() { const t = $('.tabla'); t.outerHTML = estado.pantalla === 'ordenes' ? tablaOrdenes() : tablaMovimientos(); $('.tabla').style.animation = 'none'; }
+document.addEventListener('click', (ev) => {
+  const o = ev.target.closest('[data-orden]');
+  if (o) { const c = o.dataset.orden; orden = { campo: c, dir: orden.campo === c && orden.dir === 'desc' ? 'asc' : 'desc' }; repintarTabla(); return; }
+  const f = ev.target.closest('a.t-fila');
+  if (f) { ev.preventDefault(); abierta = +f.dataset.ordenId; $$('a.t-fila').forEach((x) => x.setAttribute('aria-current', x === f)); return; }
+  if (ev.target.closest('.cont a')) ev.preventDefault();
+});
+Marco.iniciar({
+  estado: { tb: 'lamina', pantalla: 'ordenes' },
+  alPintar: (e) => { $('#cont').scrollTop = 0; pintarPantalla(e); },
+  alAccion: (a) => {
+    if (a !== 'recien') return;
+    if (estado.pantalla !== 'ordenes') { estado.pantalla = 'ordenes'; pintar(); }
+    const n = Math.max(...ordenes.map((x) => x.n)) + 1;
+    ordenes.unshift({ n, p: 'Telas Mistral', art: 2, sede: 'Trujillo', est: 'borrador', llega: 14, total: 1260 });
+    recien = n; orden = { campo: 'n', dir: 'desc' }; repintarTabla(); $('#cont').scrollTo({ top: 360, behavior: 'smooth' });
+  },
+});
+</script>
+</body>
+</html>
