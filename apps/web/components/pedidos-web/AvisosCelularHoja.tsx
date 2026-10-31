@@ -187,7 +187,7 @@ export function AvisosCelularHoja({
     >
       {(cerrar) => (
         <div className="space-y-4">
-          <p className="text-[13px] text-taupe">Cuando un cliente separa en la tienda web, este celular suena y muestra el pedido. Así:</p>
+          <p className="text-[13px] text-taupe">Cuando un cliente separa en la web, este celular suena y muestra el pedido.</p>
 
           {/* El aviso tal como llega (el texto «A · Directo» que eligió Felipe): número, sede, cuántas prendas y total. */}
           <div aria-hidden className="flex items-start gap-3 rounded-2xl border border-sand bg-hueso/60 px-3.5 py-3">
