@@ -9,6 +9,7 @@ import {
   Luggage,
   Megaphone,
   Monitor,
+  PencilRuler,
   Phone,
   Plug,
   Receipt,
@@ -45,6 +46,7 @@ const DIBUJO: Record<IconoGasto, LucideIcon> = {
   auto: Car,
   edificio: Landmark,
   maleta: Luggage,
+  regla: PencilRuler,
   recibo: Receipt,
 };
 
