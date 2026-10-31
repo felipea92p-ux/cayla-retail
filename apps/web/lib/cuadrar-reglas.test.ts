@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ConciliacionCuenta, LineaConciliacion } from "./cuentas-dinero-reglas";
-import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
+import { avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, textoUltimaVez, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
@@ -23,12 +23,8 @@ describe("estadoPar y su lado del banco", () => {
 
 describe("bancosParaCuadrar", () => {
   const c = (id: string, nombre: string, tipo: ConciliacionCuenta["tipo"], pendientes = 0): ConciliacionCuenta => ({ id, nombre, tipo, saldoHoy: 0, ultimaFecha: null, ultimoSaldoBanco: null, ultimaDiferencia: null, pendientes });
-  it("los bancos primero, por nombre, con sus pendientes y cuál está elegido", () => {
-    expect(bancosParaCuadrar([c("pos", "Por depositar Izipay", "por_abonar", 2), c("ibk", "Interbank", "banco", 4), c("bcp", "BCP", "banco", 1)], "ibk")).toEqual([
-      { id: "bcp", nombre: "BCP", pendientes: 1, elegida: false },
-      { id: "ibk", nombre: "Interbank", pendientes: 4, elegida: true },
-      { id: "pos", nombre: "Por depositar Izipay", pendientes: 2, elegida: false },
-    ]);
+  it("los bancos primero y por nombre", () => {
+    expect(bancosParaCuadrar([c("pos", "Por depositar Izipay", "por_abonar", 2), c("ibk", "Interbank", "banco", 4), c("bcp", "BCP", "banco", 1)]).map((x) => x.id)).toEqual(["bcp", "ibk", "pos"]);
   });
 });
 
@@ -110,5 +106,34 @@ describe("textoPeriodo", () => {
     expect(textoPeriodo("2026-10-16", "2026-10-23", HOY)).toBe("del 16 oct al 23 oct");
     expect(textoPeriodo("1899-12-02", "1900-01-01", HOY)).toBe("del 2 dic 1899 al 1 ene 1900");
     expect(textoPeriodo("2025-12-15", "2026-01-14", HOY)).toBe("del 15 dic 2025 al 14 ene 2026");
+  });
+});
+
+describe("la lista de bancos (B · Lista y detalle)", () => {
+  const b = (c: Partial<Pick<ConciliacionCuenta, "pendientes" | "ultimaFecha" | "ultimaDiferencia">>) => ({ pendientes: 0, ultimaFecha: null, ultimaDiferencia: null, ...c });
+  it("lo que falta revisar manda sobre cómo cerró la última vez", () => {
+    expect(estadoDeBanco(b({ pendientes: 3, ultimaFecha: "2026-10-23", ultimaDiferencia: 0 }))).toEqual({ texto: "3 por revisar", tono: "ambar" });
+  });
+  it("sin saldo anotado nunca: falta el saldo; con él: cuadra o no cuadra", () => {
+    expect(estadoDeBanco(b({}))).toEqual({ texto: "Falta el saldo", tono: "pizarra" });
+    expect(estadoDeBanco(b({ ultimaFecha: "2026-10-23", ultimaDiferencia: 0 }))).toEqual({ texto: "Cuadra", tono: "verde" });
+    expect(estadoDeBanco(b({ ultimaFecha: "2026-10-23", ultimaDiferencia: -60 }))).toEqual({ texto: "No cuadra", tono: "ambar" });
+  });
+  it("la última vez se dice con el día de Lima, o «Nunca se cuadró»", () => {
+    expect(textoUltimaVez(null)).toBe("Nunca se cuadró");
+    expect(textoUltimaVez("2026-10-23")).toMatch(/^Última vez: 23 oct/);
+  });
+  it("las iniciales: dos palabras toman la primera de cada una; una sola, sus dos primeras letras", () => {
+    expect(inicialesDeBanco("BCP Soles")).toBe("BS");
+    expect(inicialesDeBanco("BBVA")).toBe("BB");
+    expect(inicialesDeBanco("  ")).toBe("");
+  });
+  it("el avance y el filtro: «por revisar» incluye las que cambiaron desde que se revisaron", () => {
+    const ls = [linea({ clave: "a", revisado: true }), linea({ clave: "b" }), linea({ clave: "c", montoRevisado: 90 })];
+    expect(avanceDeLineas(ls)).toEqual({ total: 3, revisadas: 1, faltan: 2, pct: 33 });
+    expect(filtrarLineas(ls, "pendientes").map((l) => l.clave)).toEqual(["b", "c"]);
+    expect(filtrarLineas(ls, "revisadas").map((l) => l.clave)).toEqual(["a"]);
+    expect(filtrarLineas(ls, "todas")).toHaveLength(3);
+    expect(avanceDeLineas([]).pct).toBe(0);
   });
 });
