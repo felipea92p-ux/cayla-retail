@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 191,
+  "total": 192,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -231,7 +231,8 @@
       "button «+ Registrar proveedor nuevo»",
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
       "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
-      "CampoMonto «Cobra por esta orden»",
+      "CampoMonto «{modoFijo === \"prenda\" ? \"Cobra por prenda\" : \"Cobra por esta orden\"}»",
+      "SegmentoDeslizante «Cómo escribes el cobro del ploteo»",
       "CampoFecha «Prometido para»",
       "CampoMonto «Por prenda»",
       "CampoTexto «Cantidad mínima»",
