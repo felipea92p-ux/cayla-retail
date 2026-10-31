@@ -804,7 +804,7 @@ como dueña, y el remoto rechaza la repetida, así que dos sesiones nunca se lle
 reservó otra rama y avisan del que no tiene reserva. **Todo PR se abre con `/abrir-pr`**: trae main, revisa las reservas,
 compara contra main y contra los PR abiertos (`pnpm abrir-pr:choques`: números, funciones de la base parchadas, archivos de
 registro), corre las pruebas que toca y escribe los choques probables en la descripción. No pidas «Update branch» mientras
-el CI corre: lo cancela. Las pruebas de Postgres corren en 4 tandas paralelas (`scripts/ci/pruebas-postgres.mjs`): una
+el CI corre: lo cancela. Las pruebas de Postgres corren en 6 tandas paralelas (`scripts/ci/pruebas-postgres.mjs`): una
 prueba nueva va en su lista `PRUEBAS`, no en `ci.yml`.
 
 **Celular obligatorio (PL-105, Felipe 2026-09-23):** todo PR que toque Vender (`/vender`, `/vender/apartados`),

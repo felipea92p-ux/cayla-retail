@@ -110,12 +110,31 @@ test("el motivo siempre dice algo (sale en el log del CI)", () => {
   }
 });
 
-test("ci.yml: `Tipos, lint y pruebas` espera a «Qué toca el PR» y solo se salta con `verificar == 'no'`", () => {
+test("ci.yml: `Tipos, lint y pruebas` junta tres jobs paralelos que esperan a «Qué toca el PR» y solo se saltan con `verificar == 'no'`", () => {
   const yml = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
-  const verificar = yml.slice(yml.indexOf("  verificar:"), yml.indexOf("  pruebas-postgres:"));
-  assert.match(verificar, /needs: alcance/);
+  /** El bloque de un job: desde su clave hasta la siguiente clave de job (dos espacios + nombre + «:»). */
+  const job = (clave) => {
+    const desde = yml.indexOf(`\n  ${clave}:\n`);
+    assert.ok(desde >= 0, `falta el job ${clave}`);
+    const resto = yml.slice(desde + 1);
+    const hasta = resto.slice(1).search(/\n {2}[a-z][a-z0-9-]*:\n/);
+    return hasta < 0 ? resto : resto.slice(0, hasta + 2);
+  };
   // `!cancelled()` y `!= 'no'`: si «Qué toca el PR» falla, su salida llega vacía y el job corre. Nunca se salta por no saber.
-  assert.match(verificar, /if: \$\{\{ !cancelled\(\) && needs\.alcance\.outputs\.verificar != 'no' \}\}/);
+  const condicion = /if: \$\{\{ !cancelled\(\) && needs\.alcance\.outputs\.verificar != 'no' \}\}/;
+  for (const clave of ["tipos", "lint", "pruebas-unidad"]) {
+    assert.match(job(clave), /\n {4}needs: alcance\n/);
+    assert.match(job(clave), condicion);
+  }
+  assert.match(job("tipos"), /pnpm typecheck/);
+  assert.match(job("lint"), /pnpm lint/);
+  assert.match(job("pruebas-unidad"), /pnpm test/);
+  // El ruleset `main-protegida` exige un check llamado exactamente así: si cambia, ningún PR se puede fusionar.
+  const verificar = job("verificar");
+  assert.match(verificar, /\n {4}name: Tipos, lint y pruebas\n/);
+  assert.match(verificar, /needs: \[alcance, tipos, lint, pruebas-unidad\]/);
+  assert.match(verificar, condicion);
+  for (const resultado of ["needs.tipos.result", "needs.lint.result", "needs.pruebas-unidad.result"]) assert.ok(verificar.includes(resultado));
   assert.match(yml, /verificar: \$\{\{ steps\.medir\.outputs\.verificar \}\}/);
 });
 
