@@ -601,6 +601,23 @@ select i.id, i.codigo, i.archivado_at, l.ubicacion_id, l.cantidad_ingresada, 'lo
     corrompe: `update retail.insumos set archivado_at = now()
  where ctid = (select i.ctid from retail.insumos i join retail.v_insumo_saldos s on s.insumo_id = i.id where i.material_id is not null and i.archivado_at is null and s.fisico <> 0 limit 1);`,
   },
+  {
+    id: "INV-26",
+    nombre: "lote_de_insumo_cuadra_con_su_libro",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "La cantidad de cada lote de insumo es lo que su `compra` y sus `ajuste` suman en el libro de movimientos (ADR-0570: corregir o eliminar un ingreso cambia el lote Y deja el par «deshago + anoto» en el libro). Si no coinciden, el saldo del color que muestra la orden (la suma del libro) y el que descuenta el PEPS (la cantidad del lote) dicen cosas distintas: tela que se ve y no se puede cortar, o tela que se corta y no se ve.",
+    sql: `
+select l.id as lote_id, l.insumo_id, l.ubicacion_id, l.cantidad_ingresada as cantidad_del_lote, coalesce(m.suma, 0) as suma_del_libro
+  from retail.insumo_lotes l
+  left join lateral (
+    select sum(x.cantidad) as suma from retail.movimientos_insumo x where x.insumo_lote_id = l.id and x.tipo in ('compra', 'ajuste')
+  ) m on true
+ where l.cantidad_ingresada <> coalesce(m.suma, 0)`,
+    // Un lote cuya cantidad se toca por la puerta de atrás (un UPDATE directo, sin el par en el libro): lo que `corregir_ingreso_insumo` nunca hace.
+    corrompe: `update retail.insumo_lotes set cantidad_ingresada = cantidad_ingresada + 1
+ where ctid = (select ctid from retail.insumo_lotes where anulado_at is null limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────
