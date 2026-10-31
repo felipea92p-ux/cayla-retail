@@ -194,6 +194,10 @@
   --color-borde-control: #96786a;
 
   --color-ambar-profundo: #734f15;
+  /* Naranja de GRÁFICO (Felipe, 2026-10-31, «C · La cifra manda» de Tráfico): el tramo donde se pierde la gente. Es relleno o línea, nunca
+     texto (el texto del mismo aviso va en `ambar`). El de la maqueta (#c98a2b) daba 2.77:1 sobre papel y no llegaba a 3:1; este es el más
+     claro de su misma familia que sí llega (3.13:1 sobre papel). Para marcar «aquí pasa algo» sin gritar como un error (que es rojo). */
+  --color-naranja: #bf8029;
 
   /* Categóricos de método de pago (2026-09-18, rediseño de Caja/Vender) — NO son
      parte de la identidad de marca (esa sigue siendo solo rojo/crema/tinta): son
