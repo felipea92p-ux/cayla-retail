@@ -29,17 +29,26 @@ describe("pulsoCierre", () => {
     expect(p.cosas.map((c) => [c.clave, c.bloquea])).toEqual([["tru:egresos", true], ["aqp:cajas", true], ["tru:cerrada_sin_prenda", false]]);
     expect(p.cosas[0]!.href).toBe("/finanzas/gastos?tab=egresos&ver=tru");
     expect(p.cosas[0]!.unidad).toBe("Tienda Trujillo");
+    // El botón dice lo mismo que en los chequeos de abajo: una venta cerrada sin prenda solo se mira.
+    expect(p.cosas.map((c) => c.enlace)).toEqual(["Resolver", "Resolver", "Ver ventas"]);
   });
 
   it("sin nada que frene, se puede cerrar; lo que solo avisa queda en la lista", () => {
     const listo = { ...PANEL, unidades: [unidad({ ...TRU, chequeos: TRU.chequeos.map((c) => (c.clave === "egresos" ? { ...c, ok: true } : c)) }), unidad({ ...AQP, chequeos: AQP.chequeos.map((c) => (c.clave === "cajas" ? { ...c, ok: true } : c)) }), EMP] };
     const p = pulsoCierre(listo);
-    expect(p.estado).toBe("faltan");
+    // «listo» (el anillo verde con su ✓), nunca «faltan» con un 0: el anillo decía «0 cosas».
+    expect(p.estado).toBe("listo");
     expect(p.faltan).toBe(0);
     expect(p.pct).toBe(100);
     expect(p.frase).toBe("Puedes cerrar octubre.");
     expect(p.explica).toContain("Tienda Trujillo, Tienda Arequipa y De la empresa ya están listas");
     expect(p.cosas.map((c) => c.clave)).toEqual(["tru:cerrada_sin_prenda"]);
+  });
+
+  it("sin ningún chequeo que frene, el anillo igual se cierra (no queda vacío)", () => {
+    const sinFrenos = unidad({ clave: "lim", nombre: "Tienda Lima", chequeos: [chequeo("cerrada_sin_prenda", false, false, { n: 1 }), chequeo("huella", false, false)] });
+    const p = pulsoCierre({ ...PANEL, unidades: [sinFrenos] });
+    expect(p).toMatchObject({ estado: "listo", total: 0, faltan: 0, pct: 100, frase: "Puedes cerrar octubre." });
   });
 
   it("todas las unidades cerradas: queda CAYLA entera", () => {
@@ -76,6 +85,7 @@ describe("pulsoCierre con los pendientes por sede (envíos, conteos, sobrantes, 
     });
   it("en octubre avisan: no cuentan como lo que falta, pero salen en la lista con la sede en la frase y su enlace", () => {
     const p = pulsoCierre({ ...PANEL, unidades: [con(false)] });
+    expect(p.estado).toBe("listo");
     expect(p.faltan).toBe(0);
     expect(p.frase).toBe("Puedes cerrar octubre.");
     expect(p.total).toBe(3); // cajas, egresos y diario: los cuatro nuevos todavía no frenan
