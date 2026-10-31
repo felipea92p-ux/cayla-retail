@@ -105,6 +105,8 @@ export function LineaDeTiempo({ datos, hoy, esLider = false }: { datos: OrdenPag
                             </BotonDeshacer>
                           </span>
                         )}
+                        {/* A quien no es líder, la marca quitada le dice por qué no trae «Restaurar» (y las demás eliminaciones sí). */}
+                        {puedeCambiar && !esLider && e.restaurable?.marca && <div className="op-tiempo-detalle">Restaurarla es de un líder.</div>}
                       </div>
                       {puedeCambiar && e.corregible && (
                         <LapizEditar

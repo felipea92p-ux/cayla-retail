@@ -19,7 +19,10 @@
 --     Sus filas viejas siguen en `produccion_fase_marcas` (append-only) y la historia las sigue dibujando («Deshizo la marca»).
 --
 -- CONTRATO (Liskov)
---   PROMETE: la marca de un hito solo se quita o se restaura con la firma de un líder y con motivo, por UN solo camino que deja historia; nada más cambia de quién puede qué.
+--   PROMETE: la marca de un hito solo se QUITA con la firma de un líder y con motivo, por UN solo camino que deja historia; «Restaurar» (devolverla tal como era, con su nota,
+--            como si quitarla hubiera sido un error) también es del líder. Volver a MARCAR sigue abierto a quien opera (Felipe: el día que el plano sí se hace, lo marca quien
+--            lo hizo): una integrante puede dejar Ploteo «hecho» otra vez después de que un líder lo quitó, como una marca nueva, con su nombre y su hora, sin el motivo del líder.
+--            Lo que el líder decidió queda en la historia igual. Nada más cambia de quién puede qué.
 --   ASUME:   `fn_produccion_operar_fase` (permiso de operar, responsable, orden en proceso) como lo deja 20261014155000, y `fn_es_lider` (20260922170000).
 --   NO HACE: no toca `marcar_fase_hecha` (marcar sigue abierto a quien opera); no frena quitar la marca con Corte avanzado (decisión de Felipe); no corrige una orden ya cerrada.
 --
