@@ -4,9 +4,9 @@
 //
 // CONTRATO
 //   PROMETE: leer lo que devuelve `retail.fn_vitrina_esperan()` sin caerse ante un dato raro; las cifras y los filtros de la
-//            pantalla; y cada fila en palabras de tienda («2 personas», «hace 3 días», «Ya llegó: 2 libres»).
-//   ASUME:   que la base decide qué cuenta (las esperas vivas, lo libre sin Cuarentena, si el modelo se ve en la web) y que no manda
-//            ningún dato de quién espera: aquí solo hay cuántas personas.
+//            pantalla; y cada fila en palabras de tienda («2 personas», «hace 3 días», «Ya llegó: 2 libres»), con quién espera.
+//   ASUME:   que la base decide qué cuenta (las esperas vivas, lo libre sin Cuarentena, si el modelo se ve en la web) y qué datos de
+//            cada persona salen (Felipe 2026-10-31: nombre, celular y correo; nada si la ficha se anonimizó o la cuenta se cerró).
 //   NO HACE: leer la base ni decidir permisos (lo hace `fn_exigir_modulo('vitrina_web')`).
 
 import { normalizarBusqueda } from "./combo-reglas";
@@ -14,6 +14,16 @@ import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { nombreCortoSede } from "./stock-por-sede";
 
 export type TiendaEsperan = { id: string; nombre: string };
+/** Quien tocó «Avísame». Sin nombre, celular ni correo: su ficha se anonimizó o su cuenta se cerró (sigue contando como persona). */
+export type QuienEspera = {
+  fichaId: string | null;
+  nombre: string | null;
+  celular: string | null;
+  /** La ficha tiene el permiso de WhatsApp (Ley 29733): sin él, el celular se muestra pero no es para ofertas. */
+  aceptaWhatsapp: boolean;
+  correo: string | null;
+  desde: string;
+};
 export type FilaEsperan = {
   /** La prenda y la tienda: única en la lista. */
   clave: string;
@@ -31,6 +41,7 @@ export type FilaEsperan = {
   /** Las tiendas de la web con algo libre de esa prenda. */
   hayEn: { id: string; nombre: string; libre: number }[];
   seVe: boolean;
+  quienes: QuienEspera[];
 };
 export type LecturaEsperan = { tiendas: TiendaEsperan[]; personas: number; filas: FilaEsperan[] };
 
@@ -47,6 +58,20 @@ function tiendaDeJson(v: unknown): TiendaEsperan | null {
   const id = texto(v.id);
   const nombre = texto(v.nombre);
   return id && nombre ? { id, nombre } : null;
+}
+
+function quienDeJson(v: unknown): QuienEspera | null {
+  if (!esObjeto(v)) return null;
+  const desde = texto(v.desde);
+  if (!desde) return null;
+  return {
+    fichaId: texto(v.ficha_id),
+    nombre: texto(v.nombre),
+    celular: texto(v.celular),
+    aceptaWhatsapp: v.acepta_whatsapp === true,
+    correo: texto(v.correo),
+    desde,
+  };
 }
 
 /** Una fila como la manda la base, o `null` si le falta la prenda (no se dibuja a medias). */
@@ -84,6 +109,10 @@ export function filaDeJson(v: unknown): FilaEsperan | null {
       return t && esObjeto(h) ? [{ ...t, libre: entero(h.libre) }] : [];
     }),
     seVe: v.se_ve === true,
+    quienes: lista(v.quienes).flatMap((q) => {
+      const x = quienDeJson(q);
+      return x ? [x] : [];
+    }),
   };
 }
 
@@ -118,6 +147,9 @@ export const prendaDicha = (f: FilaEsperan): string => [f.color?.nombre, f.talla
 
 /** «Trujillo» o «Cualquier tienda». */
 export const tiendaDicha = (f: FilaEsperan): string => (f.sede ? nombreCortoSede(f.sede.nombre) : "Cualquier tienda");
+
+/** Cómo se dice quién es: su nombre, o que su ficha ya no tiene datos. */
+export const quienDicho = (w: QuienEspera): string => w.nombre ?? "Cliente sin datos (su ficha se borró)";
 
 /** «1 persona», «3 personas». */
 export const personasDichas = (n: number): string => `${n} ${n === 1 ? "persona" : "personas"}`;
@@ -166,7 +198,7 @@ export function filtrarEsperan(filas: readonly FilaEsperan[], { tienda, estado, 
     if (estado === "faltan" && estadoFila(f) !== "falta") return false;
     if (estado === "llegaron" && estadoFila(f) !== "llego") return false;
     if (!q) return true;
-    return normalizarBusqueda(`${f.producto.nombre} ${f.producto.codigo ?? ""} ${f.color?.nombre ?? ""} ${f.talla ?? ""} ${f.producto.categoria ?? ""}`).includes(q);
+    return normalizarBusqueda(`${f.producto.nombre} ${f.producto.codigo ?? ""} ${f.color?.nombre ?? ""} ${f.talla ?? ""} ${f.producto.categoria ?? ""} ${f.quienes.map((w) => `${w.nombre ?? ""} ${w.celular ?? ""} ${w.correo ?? ""}`).join(" ")}`).includes(q);
   });
 }
 

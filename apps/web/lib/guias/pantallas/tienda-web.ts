@@ -362,8 +362,8 @@ export const GUIA_VITRINA: Guia = {
     {
       id: "pestanas",
       ancla: "vitrina.pestanas",
-      titulo: "Modelos, looks y probador",
-      texto: "La vitrina tiene tres partes: aquí, los modelos que se ven en la web; en Looks, las combinaciones de «Arma tu look», que se arman con estos mismos modelos; y en Probador, sus prendas recortadas para «Arma el tuyo».",
+      titulo: "Modelos y looks",
+      texto: "La vitrina tiene dos partes: aquí, los modelos que se ven en la web; y en Looks, las combinaciones de «Arma tu look», que se arman con estos mismos modelos.",
     },
     {
       id: "cifras",
@@ -558,7 +558,14 @@ export const GUIA_VITRINA_ESPERAN: Guia = {
       ancla: "esperan.lista",
       opcional: true,
       titulo: "Cada talla que esperan",
-      texto: "El modelo con su color y su talla, la tienda donde la esperan, cuántas personas y desde cuándo. Aquí no salen nombres: solo cuántas personas.",
+      texto: "El modelo con su color y su talla, la tienda donde la esperan, cuántas personas y desde cuándo.",
+    },
+    {
+      id: "quienes",
+      ancla: "esperan.quienes",
+      opcional: true,
+      titulo: "Quién espera",
+      texto: "Toca «personas» y se abre la lista de quienes tocaron «Avísame»: su nombre, su celular y su correo. Si dice «Sin permiso de WhatsApp», escríbele solo para avisarle de esa prenda, no para ofrecerle otras.",
     },
     {
       id: "ahora",
@@ -571,7 +578,7 @@ export const GUIA_VITRINA_ESPERAN: Guia = {
       id: "nota",
       ancla: "esperan.nota",
       titulo: "Cómo se entera el cliente",
-      texto: "Su cuenta de la tienda online le dice «¡Llegó!» apenas hay donde la espera. No se le escribe por WhatsApp: el Club no manda mensajes personales.",
+      texto: "Su cuenta de la tienda online le dice «¡Llegó!» apenas hay donde la espera. Además tú puedes escribirle con los datos de la fila, respetando su permiso de WhatsApp.",
     },
     {
       id: "fin",
@@ -601,8 +608,8 @@ export const GUIA_VITRINA_LOOKS: Guia = {
     {
       id: "pestanas",
       ancla: "vitrina.pestanas",
-      titulo: "Modelos, looks y probador",
-      texto: "La vitrina tiene tres partes: Modelos (qué prendas se ven en la web), Looks y Probador (las prendas recortadas para «Arma el tuyo»). Un look solo lleva prendas que se ven en la web.",
+      titulo: "Modelos y looks",
+      texto: "La vitrina tiene dos partes: Modelos (qué prendas se ven en la web) y Looks. Un look solo lleva prendas que se ven en la web.",
     },
     {
       id: "cifras",
