@@ -49,7 +49,7 @@ export function CodigoEnCasillas({
   return (
     <div role="group" aria-label={etiqueta} className="flex gap-2.5">
       {CASILLAS.map((i) => (
-        <input
+        <input // unificar-fijo: las 4 casillas del código de recojo son una pieza propia del rediseño de Pedidos (2026-10-31); falta pasarla por /unificar
           key={i}
           ref={(el) => {
             refs.current[i] = el;
