@@ -14,7 +14,8 @@ import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
 import { RetirarColorModal } from "@/components/insumos-taller/RetirarColorModal";
 import { NuevaTelaModal } from "@/components/insumos-taller/NuevaTelaModal";
-import { NuevoInsumoModal } from "@/components/insumos-taller/NuevoInsumoModal";
+import { NuevoAvioModal } from "@/components/insumos-taller/NuevoAvioModal";
+import type { ClaseDeAvio } from "@/lib/avio-clases-reglas";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { fichaDeLaTela, textoDeLaFicha, type VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
 import {
@@ -62,6 +63,8 @@ export function InsumosPanel({
   leyoVocabulario,
   colores,
   leyoColores,
+  clases,
+  leyoClases,
 }: {
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
@@ -73,12 +76,16 @@ export function InsumosPanel({
   vocabulario: VocabularioDeTelas;
   /** `false`: no se pudieron leer los tejidos y los colores; la ficha lo dice. */
   leyoVocabulario: boolean;
-  /** La carta de colores de Catálogo, para «Nueva tela» (ADR-0554). */
+  /** La carta de colores de Catálogo, para «Nueva tela» y «Nuevo avío» (ADR-0554, ADR-0580). */
   colores: ColorAlta[];
   leyoColores: boolean;
+  /** Las clases de avío (ADR-0580): de ellas salen la unidad que se propone, si lleva color y qué medida se pide. */
+  clases: ClaseDeAvio[];
+  leyoClases: boolean;
 }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
-  const [nuevo, setNuevo] = useState(false);
+  // «Nuevo avío»: abierta para crear uno (`agregarA: null`) o para sumarle colores a uno que ya existe, igual que la de tela (ADR-0580).
+  const [nuevoAvio, setNuevoAvio] = useState<{ agregarA: MaterialVista | null } | null>(null);
   // «Nueva tela»: abierta para crear una (`agregarA: null`) o para sumarle colores a una que ya existe.
   const [nuevaTela, setNuevaTela] = useState<{ agregarA: MaterialVista | null } | null>(null);
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
@@ -102,26 +109,23 @@ export function InsumosPanel({
         titulo="Insumos"
         subtitulo="Tela y avíos del Taller: lo que hay por lote, cuánto dura y qué pedir."
         acciones={
-          datos.hayTelas || esLider ? (
-            <>
+          <>
               {/* Quien ve Producción en el Taller crea telas y colores (ADR-0554, decisión 3); el avío y el ingreso de un lote con su costo siguen siendo del líder. */}
               {datos.hayTelas && (
                 <Boton peso={esLider ? "fantasma" : "primario"} data-guia="prod-insumos.nueva-tela" onClick={() => setNuevaTela({ agregarA: null })}>
                   + Nueva tela
                 </Boton>
               )}
-              {esLider && (
-                <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevo(true)}>
-                  {datos.hayTelas ? "+ Nuevo avío" : "+ Nuevo insumo"}
-                </Boton>
-              )}
-              {esLider && (
-                <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
-                  Ingresar insumo
-                </Boton>
-              )}
-            </>
-          ) : undefined
+              {/* Un avío lo crea quien opera el Taller, igual que una tela (ADR-0580, decisión 3 de Felipe). */}
+              <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevoAvio({ agregarA: null })}>
+                + Nuevo avío
+              </Boton>
+            {esLider && (
+              <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
+                Ingresar insumo
+              </Boton>
+            )}
+          </>
         }
       />
 
@@ -168,15 +172,13 @@ export function InsumosPanel({
             icono={<Layers />}
             titulo="Todavía no hay insumos"
             acciones={
-              datos.hayTelas || esLider ? (
-                <Boton peso="primario" onClick={() => (datos.hayTelas ? setNuevaTela({ agregarA: null }) : setNuevo(true))}>
-                  {datos.hayTelas ? "Crear la primera tela" : "Agregar el primero"}
-                </Boton>
-              ) : null
+              <Boton peso="primario" onClick={() => setNuevaTela({ agregarA: null })}>
+                Crear la primera tela
+              </Boton>
             }
           >
-            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda.{" "}
-            {datos.hayTelas ? "Empieza con tu primera tela y todos sus colores, en una sola hoja." : esLider ? "Empieza agregando un insumo al catálogo; después ingresa su primer lote." : "El líder tiene que cargar el catálogo primero."}
+            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda. Empieza con tu primera tela y todos sus colores, en una sola hoja; los
+            botones, los cierres y el hilo van por «+ Nuevo avío», arriba.
           </Vacio>
         </div>
       ) : (
@@ -261,7 +263,22 @@ export function InsumosPanel({
         </div>
       )}
 
-      {nuevo && <NuevoInsumoModal existentes={insumos.map((i) => ({ codigo: i.codigo, nombre: i.nombre }))} vocabulario={vocabulario} leyoVocabulario={leyoVocabulario} soloAvios={datos.hayTelas} onClose={() => setNuevo(false)} />}
+      {nuevoAvio && (
+        <NuevoAvioModal
+          key={nuevoAvio.agregarA?.id ?? "nuevo"}
+          tallerId={tallerId}
+          materiales={datos.materiales}
+          clases={clases}
+          leyoClases={leyoClases}
+          colores={colores}
+          leyoColores={leyoColores}
+          puedeSaldo={esLider}
+          agregarA={nuevoAvio.agregarA}
+          coloresDelAvio={insumos.filter((i) => i.materialId && i.materialId === nuevoAvio.agregarA?.id && i.colorCodigo).map((i) => i.colorCodigo as string)}
+          alElegirExistente={(m) => setNuevoAvio({ agregarA: m })}
+          onClose={() => setNuevoAvio(null)}
+        />
+      )}
       {nuevaTela && (
         <NuevaTelaModal
           key={nuevaTela.agregarA?.id ?? "nueva"}
@@ -359,7 +376,7 @@ function FilaInsumo({
           </div>
         </div>
         <p className="font-display whitespace-nowrap text-right text-2xl tabular-nums text-tinta">
-          <CifraQueCuenta valor={i.saldo} formato="entero" />
+          <CifraQueCuenta valor={i.saldo} decimales={UNIDADES_INSUMO[i.unidad].vista} />
           <small className="font-sans ml-1 text-xs text-tinta/65">{UNIDADES_INSUMO[i.unidad].corta}</small>
         </p>
         <ChevronRight aria-hidden className={`h-4 w-4 text-tinta/45 transition-transform duration-300 ease-cayla max-sm:hidden ${abierto ? "rotate-90" : ""}`} />
@@ -374,7 +391,7 @@ function FilaInsumo({
             ) : (
               <ul>
                 {lotes.map((l) => (
-                  <li key={l.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0">
+                  <li key={l.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0">
                     <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />

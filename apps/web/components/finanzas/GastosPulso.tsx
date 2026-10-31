@@ -5,7 +5,7 @@ import { soles } from "@/lib/flujo-caja-reglas";
 import { montoBandeja, type Bandeja, type CosaPorRevisar } from "@/lib/gastos-pulso-reglas";
 
 // Gastos en camino A (Felipe 2026-10-15): la bandeja, lo que falta revisar, de a UNA cosa, con el botón que la resuelve
-// (clasificar la salida de caja o registrar el fijo). «¿En qué se fue la plata?» lo responde ahora el retazo del telar (ADR-0493).
+// (clasificar la salida de caja o registrar el fijo). «¿En qué se fue la plata?» lo responden ahora los hilos del telar (ADR-0493, act. 2026-10-30).
 // Los modales que resuelven ya existen en el panel: aquí solo se eligen. Sin estado propio.
 
 const entra = (clase: string, i: number) => ({ className: `${clase} anim-entra`, style: { ["--i" as string]: i } as CSSProperties });

@@ -194,6 +194,21 @@ export function tiendasDeLaLinea(r: ResumenFinanzas): string[] {
   return r.ver.tipo === "tienda" && r.ver.ubicacionId ? [r.ver.ubicacionId] : [];
 }
 
+/**
+ * Las tiendas de la línea ANTES de que responda la base (ADR-0583): lo que pide la URL sobre las tiendas activas que la cuenta lee (en orden de
+ * nombre, como `unidades`). Sirve para pedir las series de ventas a la vez que el resumen, sin esperarlo. Es una apuesta: la pantalla la compara
+ * con `tiendasDeLaLinea` y, si la base resolvió otra cosa (una cuenta que solo ve su sede, una sede que ya no está activa), las vuelve a pedir.
+ */
+export function tiendasAdivinadas(pedido: { clave: string; ubicacionId: string | null; soloEmpresa: boolean }, propia: string | null, tiendas: readonly string[]): string[] {
+  if (pedido.soloEmpresa) return [];
+  const una = pedido.clave === "propia" ? propia : pedido.ubicacionId;
+  if (pedido.clave === "propia" || una) return una && tiendas.includes(una) ? [una] : [];
+  return [...tiendas];
+}
+
+/** ¿La apuesta acertó? Mismas tiendas y en el mismo orden (las series se leen en ese orden). */
+export const mismasTiendas = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((id, i) => id === b[i]);
+
 /** La meta de ventas del mes del presupuesto, de lo que se mira (con IGV, como la meta de Caja). `null` si no hay. */
 export function metaVentasPresupuesto(r: ResumenFinanzas): number | null {
   if (r.presupuesto.estado !== "ok") return null;
