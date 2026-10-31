@@ -2,10 +2,18 @@
   "guia": "finanzas.reportes.patrimonio",
   "ruta": "/finanzas/reportes/patrimonio",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 6,
+  "total": 10,
   "controles": {
+    "components/finanzas/CascadaPulso.tsx": [
+      "Link «{nombre}»",
+      "button «{nombre}»"
+    ],
     "components/finanzas/estados/PatrimonioPanel.tsx": [
-      "Link «¿Cuánto vale CAYLA?»"
+      "Link «¿Cuánto vale CAYLA?»",
+      "BotonVerMas «fin-patrimonio.formal-abrir»"
+    ],
+    "components/finanzas/estados/Recomendaciones.tsx": [
+      "BotonVer «{r.accion.texto}»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "button «Todas»",

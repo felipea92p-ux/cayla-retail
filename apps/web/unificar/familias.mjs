@@ -743,6 +743,7 @@ export const DECISIONES = {
       { "archivo": "components/finanzas/EscenariosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/EstadoResultadosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/finanzas/estados/PlataPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7 (antes en FlujoCajaPanel; ADR-0585 la llevó al formato formal de ¿Dónde está la plata?)" },
+      { "archivo": "components/finanzas/estados/PatrimonioPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), como el formato formal de sus vecinas; ADR-0585 la usa para el estado de cambios en el patrimonio" },
       { "archivo": "components/finanzas/PorPagarConsolidado.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/BoletaA4.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },
       { "archivo": "components/ProformaA4.tsx", "motivo": "papel físico (ADR-0336): se imprime tal cual, fuera del censo" },

@@ -24,6 +24,8 @@ Implementación de la maqueta `docs/maquetas/finanzas-eeff-2026-10/`, actividad 
 - [x] **6 · ¿Cuánto vale CAYLA?** La balanza (dos `BarraApilada` del mismo largo, sus tramos se tocan), los dos medidores, lo de cada
   sede, las recomendaciones y lo formal plegado, sin cuentas. Probado: tipos, 748 archivos de vitest, Knip y eslint. **Sin probar en el
   navegador logueado.**
-- [ ] 7 · ¿Lo tuyo creció?
+- [x] **7 · ¿Lo tuyo creció?** La respuesta con qué parte de lo ganado retiraste, el puente del mes (con «Sin explicar» si la base no
+  cuadra), la línea de 6 meses, las recomendaciones y el cuadro formal plegado por columna. Probado: tipos, 749 archivos de vitest, Knip y
+  eslint. **Sin probar en el navegador logueado.**
 - [ ] 8 · «Descargar para el contador» con opciones.
 - [ ] 9 · Cierre: oscuro, `/focus`, `/formidable`, `docs/ARQUITECTURA.md`.

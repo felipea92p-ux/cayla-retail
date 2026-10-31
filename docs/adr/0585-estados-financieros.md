@@ -169,6 +169,26 @@ En la web, pasan los tipos, las 744 pruebas de vitest, Knip y eslint.
   - la sede que no devuelve lo invertido, comparada con la que más rinde.
 - **La fecha**, por defecto, es el último día del mes de la barra (hoy, en el mes en curso). El selector de fechas del Balance sigue.
 
+## Actividad 7 · ¿Lo tuyo creció?
+
+- **La pantalla**, de arriba abajo:
+  - la respuesta: «Sí, creció S/ X» o «No, bajó S/ X», con la frase de qué parte de lo ganado retiraste («De los S/ 10,000 que
+    ganaste, retiraste S/ 6,000: el 60 %»);
+  - **el puente del mes** (`CascadaPulso`): al empezar → lo que ganaste (o perdiste) → lo que pusiste → lo que retiraste → al cerrar.
+    Lo que es cero no se dibuja, y lo que la base no explica (`otros`) sale como su propio tramo, «Sin explicar»: sumar los tramos da
+    siempre «al cerrar»;
+  - **lo tuyo, mes a mes**: la `<Linea>` (la pieza de ADR-0358) con el cierre de los últimos 6 meses; con un solo mes, un vacío chico;
+  - plegado, **el formato formal**: capital, aportes y resultados acumulados en columnas, cada una del saldo al inicio al saldo al
+    cierre. Lo sin explicar cae en «Otros ajustes» de su columna, así cada columna suma. Sin cuentas.
+- **«Qué te recomiendo»** (`lib/patrimonio-reglas.ts`, con su prueba):
+  - lo sin explicar, primero, que lleva al Balance;
+  - si retiraste más de lo que ganaste;
+  - si retiraste más de la mitad, cuánto habría crecido lo tuyo retirando la mitad (la única cifra «¿y si?» de la pantalla: es la
+    decisión que este estado ayuda a tomar);
+  - una pérdida, que lleva a ¿Ganamos?;
+  - lo tuyo bajando 2 meses seguidos o más.
+- Se quitaron las cinco tarjetas de la versión de la actividad 3: decían lo mismo que el puente, en otro orden.
+
 ## Actividad 2 · El estado de cambios en el patrimonio (migración 20261030235100)
 
 ### El problema primero
