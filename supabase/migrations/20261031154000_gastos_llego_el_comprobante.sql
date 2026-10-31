@@ -99,10 +99,12 @@ begin
 end $$;
 
 -- ---------- 3. La cuenta de un gasto se sella al registrarlo, salvo al pasar a su comprobante ----------
--- Se reescribe entera (la anterior es de 20260925150000): queda igual salvo la excepción de la marca.
+-- Se reescribe entera (la anterior es de 20260925150000): queda igual, con sus mismos atributos, salvo la excepción de la marca.
 create or replace function retail.fn_gastos_sellar()
 returns trigger
 language plpgsql
+-- Como la de 20260925150000: con los permisos de su dueño (lee cuentas y cajas que la cuenta no ve directo).
+security definer
 set search_path = retail, public, extensions
 as $$
 declare v_tipo text;
@@ -153,6 +155,8 @@ end $$;
 create or replace function retail.fn_exigir_egreso_del_pago(p_caja_movimiento_id uuid, p_cuenta_id uuid, p_monto numeric)
 returns void
 language plpgsql
+-- Como la de 20260925150000: con los permisos de su dueño.
+security definer
 set search_path = retail, public, extensions
 as $$
 declare v_mov retail.caja_movimientos%rowtype; v_ubic uuid; v_usado text;

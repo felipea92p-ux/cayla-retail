@@ -235,5 +235,18 @@ ${agregar(`:'lima'`, papel("boleta", "1"))};`);
   esperar("con el módulo, no cambia un gasto de otra tienda", r.ok && otraTienda.includes("No puedes cambiar"), r);
 }
 
+// 8. Las funciones reescritas conservan sus atributos (un `create or replace` sin `security definer` los cambiaría en silencio).
+{
+  const r = correr(`begin;
+select string_agg(p.proname || '=' || p.prosecdef, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'retail' and p.proname in ('fn_exigir_egreso_del_pago', 'fn_gastos_sellar', 'fn_gastos_solo_anular');`);
+  const [atributos] = lineas(r);
+  esperar(
+    "el sello de la cuenta y el egreso del cajón siguen con los permisos de su dueño; el candado del gasto, no (como antes)",
+    r.ok && atributos === "fn_exigir_egreso_del_pago=true,fn_gastos_sellar=true,fn_gastos_solo_anular=false",
+    r
+  );
+}
+
 console.log(fallos === 0 ? "\nTodo bien." : `\n${fallos} ${fallos === 1 ? "falla" : "fallas"}.`);
 process.exit(fallos === 0 ? 0 : 1);
