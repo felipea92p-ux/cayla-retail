@@ -7,4 +7,4 @@
   temas sin desbordes. Felipe eligió **A · Plana con gotas**. Sin cambios en `apps/web`.
 - **Tarjetas de cifra (`TarjetaCifra`, 238 usos en 68 archivos):** la base suma lo ya elegido que toda pantalla trae (botones gota, la
   cabecera A). Maqueta `docs/maquetas/cifras-vidrio-2026-10/` con «Como ahora», A · Placa Serena (recomendada), B · Plana y gotas y
-  C · Franja de vidrio, sobre Compras, Gastos (las tarjetas filtran de verdad) e Inicio; medida a 375 px sin desbordes. Espera a Felipe.
+  C · Franja de vidrio, sobre Compras, Gastos (las tarjetas filtran de verdad) e Inicio; medida a 375 px sin desbordes. Felipe eligió **A · Placa Serena**.

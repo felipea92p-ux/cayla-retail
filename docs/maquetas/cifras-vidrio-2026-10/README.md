@@ -19,7 +19,7 @@ tarjetas se tocan; Inicio: ayuda, acción, barra de reparto y «no se pudo leer�
 | Cara | Cómo es |
 |---|---|
 | Como ahora | Papel con filo arena; arena al pasar el mouse y en la puesta. |
-| **A · Placa Serena** (recomendada) | Cada tarjeta es la placa de las cifras de la cabecera; la que lleva se alza y su flecha avanza; la puesta se hunde. |
+| **A · Placa Serena** (elegida) | Cada tarjeta es la placa de las cifras de la cabecera; la que lleva se alza y su flecha avanza; la puesta se hunde. |
 | B · Plana y gotas | La que informa queda sin caja, con un hilo arriba; la que se toca es una gota; la puesta se hunde. |
 | C · Franja de vidrio | La fila entera es una placa con hilos entre cifras; lo que se toca se enciende adentro; la puesta es un pozo. |
 
@@ -37,4 +37,5 @@ Solo tokens, en claro y oscuro. Movimiento una vez, sin rebote (la fila entra en
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**A · Placa Serena** (2026-10-31): cada tarjeta es la placa de las cifras de la cabecera; la que lleva se alza y su flecha avanza; la
+que filtra, puesta, se hunde. Sin dato: el borde punteado sin vidrio; «no se pudo leer»: la placa con su frase en tinta.

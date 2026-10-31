@@ -48,7 +48,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota y la cab
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
 | Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | Elegido | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
-| Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | En maqueta | — (recomendada: A · Placa Serena) | `cifras-vidrio-2026-10/` |
+| Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | Elegido | A · Placa Serena | `cifras-vidrio-2026-10/` |
 | Tablas | `ui/Tabla` + `.fila-cayla` | Por auditar | — | — |
 | Pestañas de sección | `ui/Pestanas` | Por auditar | — | — |
 | Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
