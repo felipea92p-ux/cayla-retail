@@ -47,7 +47,28 @@ Toda la suite de la web en verde: **164 841 pruebas**, 754 archivos. `typecheck`
 limpios. La base se restauró a su foto («idéntica, 304 tablas, ninguna cambió») y las 26 invariantes quedaron en
 verde.
 
-**Lo que NO toqué, a propósito:** los otros dos sitios con el mismo borrado de blancos
-(`lib/precio-sede-reglas.ts` y `lib/balance-reglas.ts`, este último el que lee un extracto bancario pegado, donde
-un pegado de varias celdas es lo normal y la regla tendría que ser otra). Son precios y dinero de otras pantallas:
-quedan anotados en el backlog para que los decidas tú.
+**Lo que NO toqué, y una corrección a lo que primero escribí.** Al verificar este arreglo con una revisión
+adversarial del cambio sobre sus llamadores, salió que el mismo borrado de blancos vive en **nueve lectores más**,
+no en dos como dije al principio; y que la razón que di para dejar `lib/balance-reglas.ts` fuera —que es el que lee
+un extracto bancario pegado— **era equivocada**: `leerMontoArranque` (línea 468) es «un monto escrito por el líder»
+en una celda de «Saldos de arranque», el primer número de todo el Balance de Finanzas. Su propio comentario dice
+«con la regla única de `leerMontoPlata`» y la anula borrando los blancos antes de llamarla.
+
+Medido con las funciones reales del repo, pegando las mismas tres celdas:
+
+| Lector | «12 8 5» | «12 ⇥ 8 ⇥ 5» | Dónde duele |
+|---|---|---|---|
+| `balance-reglas.ts:468` `leerMontoArranque` | 1285 | 1285 | el saldo de arranque del Balance |
+| `orden-compra-alta.ts:79` `leerNumero` | 1285 | 1285 | cantidad y precio de una orden de compra |
+| `ordenes-insumo-reglas.ts:174/180` | 1 285,000 | 1 285,000 | cantidad y precio de una orden de insumos |
+| `comprobante-orden-reglas.ts:359` | mismo `limpio` | — | la factura del proveedor |
+| `recepcion-envio-reglas.ts:820/1526` | S/ 1 285.00 | S/ 1 285.00 | costo y precio al recibir mercadería |
+| `plan-compra-reglas.ts:398/409` | 1285 | 1285 | tope, precio, costo y descuento del plan |
+| `precio-sede-reglas.ts:98` `leerMonto` | 1285 | 1285 | el precio por sede |
+| `rendimiento-meta-reglas.ts:409` `leerSoles` | 1285 | 1285 | la meta de una persona |
+| `envio-orden-reglas.ts:90` `leerCantidad` | mismo borrado | — | cuántas prendas se envían |
+
+**Ninguno es una regresión**: todos ya eran así antes de este cambio, y este arreglo no empeora ninguno. Lo que sí
+corrijo es la frase: esto cierra «Nuevo avío» y los tres lectores centrales, **no el agujero entero**. Lo que queda
+es plata de verdad —la factura de un proveedor, el saldo de arranque, el tope de inversión— así que la decisión de
+cerrarlos es de Felipe, y el censo con su medición queda en el backlog.

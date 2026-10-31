@@ -4,18 +4,45 @@
 
 Solo reglas puras de la web (`apps/web/lib/`) y su prueba. No hay migración, nada que pegar en producción.
 
-## EL MISMO AGUJERO, EN OTRAS DOS PANTALLAS (decisión tuya: es plata)
+## EL MISMO AGUJERO, EN NUEVE LECTORES MÁS (decisión tuya: es plata y es stock)
 
-El borrado de blancos que causaba esto vive en dos sitios más, que **no toqué**:
+Al verificar este arreglo con una revisión adversarial sobre sus llamadores salió que **el borrado de blancos no
+estaba en dos sitios, como escribí primero, sino en nueve más**. Y la razón que di para dejar fuera
+`lib/balance-reglas.ts` **era equivocada**: `leerMontoArranque` no es el lector de un extracto bancario pegado, es
+«un monto escrito por el líder» en una celda de «Saldos de arranque» —el primer número de todo el Balance de
+Finanzas—, y su propio comentario dice «con la regla única de `leerMontoPlata`» mientras la anula borrando los
+blancos antes de llamarla.
 
-1. **`lib/precio-sede-reglas.ts`** — el precio de una sede. Mismo caso exacto: pegar dos celdas da un precio
-   inventado. El arreglo es la misma línea.
-2. **`lib/balance-reglas.ts`** — lee cifras de un extracto bancario **pegado**, donde un pegado de varias celdas
-   es lo normal y lo esperado. Ahí la regla tiene que ser otra (partir por filas, no rechazarlas), así que no
-   es un copiar y pegar del arreglo: hay que mirar la pantalla primero.
+**Ninguno es una regresión de este PR:** todos ya eran así. Lo medí con las funciones reales del repo, pegando las
+mismas tres celdas (12, 8 y 5):
 
-Los lectores de teléfono (`club-*`, `clienta-ticket`) también borran blancos, pero un número de WhatsApp no es
-una cifra que se sume: quedan fuera a propósito.
+| Lector | «12 8 5» | «12 ⇥ 8 ⇥ 5» | Qué se inventa |
+|---|---|---|---|
+| `balance-reglas.ts:468` `leerMontoArranque` | 1285 | 1285 | el saldo de arranque del Balance (va a `registrar_saldo_inicial`) |
+| `orden-compra-alta.ts:79` `leerNumero` | ok 1285 | ok 1285 | cantidad y precio de una orden de compra |
+| `ordenes-insumo-reglas.ts:174` `leerCantidadInsumo` | 1 285,000 | 1 285,000 | cuánto se pide de un insumo |
+| `ordenes-insumo-reglas.ts:180` `leerPrecioInsumo` | S/ 1 285,0000 | S/ 1 285,0000 | a qué precio |
+| `comprobante-orden-reglas.ts:359` `limpio` | (mismo patrón) | | **la factura del proveedor** |
+| `recepcion-envio-reglas.ts:820` `leerCosto` | 128 500 céntimos | 128 500 | el costo al recibir mercadería |
+| `recepcion-envio-reglas.ts:1526` `leerPrecioVenta` | 128 500 céntimos | 128 500 | el precio de venta al recibir |
+| `plan-compra-reglas.ts:398` `leerNumeroDeMonto` | 1285 | 1285 | el tope de inversión, el precio y el costo del plan |
+| `plan-compra-reglas.ts:409` `leerDescuento` | 12 («1 2») | 12 | el descuento de una campaña |
+| `precio-sede-reglas.ts:98` `leerMonto` | 1285 | 1285 | el precio por sede |
+| `rendimiento-meta-reglas.ts:409` `leerSoles` | 1285 | 1285 | la meta de una persona |
+| `envio-orden-reglas.ts:90` `leerCantidad` | (mismo borrado) | | cuántas prendas se envían de una orden |
+
+**Qué haría yo, si lo apruebas:** un PR aparte que pase los nueve por `sinBlancosDeMiles`, uno por uno y con su
+prueba, empezando por los tres que tocan plata que sale de la empresa (el comprobante del proveedor, el costo al
+recibir y el saldo de arranque). Es mecánico, pero son precios, stock y dinero: no lo hago sin tu OK.
+
+En el camino hay que revisar dos cosas de verdad, no por encima: **`leerSoles` y `leerDescuento` borran también lo
+que no es cifra** (`replace(/[^\d.,]/g, "")`), que es un borrado más ancho todavía; y **`balance-reglas.ts` tiene
+además el lector del extracto bancario pegado**, donde varias celdas SÍ son lo normal y la regla tiene que ser
+otra (partir por filas, no rechazarlas). Ese no es copiar y pegar el arreglo.
+
+Los lectores de teléfono (`club-*`, `clienta-ticket`) también borran blancos, pero un número de WhatsApp no es una
+cifra que se sume: quedan fuera a propósito. Lo mismo los `replace(/\s+/g, " ")` que COLAPSAN espacios en un
+nombre: eso es correcto y no es este patrón.
 
 ## HALLAZGO NUEVO, encontrado al verificar este arreglo
 
