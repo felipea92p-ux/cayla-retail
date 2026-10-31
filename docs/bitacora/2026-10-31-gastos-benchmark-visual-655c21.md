@@ -1,0 +1,4 @@
+## 2026-10-31 (Gastos contra las mejores apps: cómo se ven y cómo se mueven)
+Qué hice: comparé Finanzas ▸ Gastos, pieza por pieza, contra más de 25 apps y guías de 2025-2026 (Stripe, New Expensify, Ramp, Brex, Mercury, Payhawk, Copilot, Monarch, YNAB, Linear, Geist, Emil Kowalski) y dejé el informe con su top 10 (`docs/investigacion/2026-10-31-gastos-benchmark-visual.md`) y una lámina tocable con 8 propuestas en claro, oscuro y 375 px (`docs/maquetas/gastos-benchmark-2026-10/`). No toqué `apps/web`.
+Por qué así: la pasada funcional ya estaba; faltaba ver la forma y el movimiento con nuestras piezas (el cajón, la píldora con su globito, la fila que respira), para que Felipe elija mirando y no por descripción.
+Felipe se lleva: 7 decisiones al final del informe; la primera es si el detalle del gasto pasa al cajón lateral antes de que la otra sesión termine «corregir sin anular» dentro de la hoja de hoy.
