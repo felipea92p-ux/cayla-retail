@@ -13,7 +13,8 @@
  *
  * QUÉ PRUEBA
  *   A  AGREGAR: en el Taller, con servicio y tarifa de la lista, con tarifa escrita, «pendiente de registrar», bordado sobre la prenda (su posición), y la orden del Chaleco (Costura hecha).
- *   R  REGLAS: repetido, clave desconocida, servicio sin proveedor o sin tarifa, paso posterior empezado (y deshecho, o con solo prendas con falla), paso anterior empezado (no frena), ruta anterior, orden cerrada,
+ *   R  REGLAS: repetido, clave desconocida, servicio sin proveedor o sin tarifa, paso posterior empezado (y deshecho, o con solo prendas con falla), el proceso apagado en el catálogo
+ *      (el arreglo de las fallas no borra ese candado), paso anterior empezado (no frena), ruta anterior, orden cerrada,
  *      orden inexistente, una integrante de otra sede.
  *   D  DATOS: Actividad con el nombre del proveedor, sin dinero movido, todo o nada.
  *   F  DE PUNTA A PUNTA: con el paso nuevo, Planchado espera a Ojales y botones y la orden pasa al stock; un servicio devenga su costo al volver, no al agregarse.
@@ -43,8 +44,9 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
 const SIN_CANDADO = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "");
 const LEER = (archivo) => SIN_CANDADO(readFileSync(fileURLToPath(new URL(`../../supabase/migrations/${archivo}`, import.meta.url)), "utf8"));
-// La función como quedó con su arreglo: la original y, encima, la que también cuenta las prendas con falla.
-const MIGRACION = `${LEER("20261029051000_produccion_agregar_paso_a_la_orden.sql")}\n${LEER("20261031031000_produccion_agregar_paso_cuenta_fallas.sql")}`;
+// El arreglo que cuenta las prendas con falla es un reemplazo ANCLADO sobre la función viva (la de 20261029051000 con el candado de «proceso apagado» de 20261029210000), y se carga
+// otra vez en cada caso: pegarlo dos veces no hace nada. No se recarga 20261029051000: borraría el candado del catálogo, que es justo lo que R5c vigila que siga ahí.
+const MIGRACION = LEER("20261031031000_produccion_agregar_paso_cuenta_fallas.sql");
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function psql(sql) {
@@ -249,11 +251,11 @@ caso(
   "OK,P0001|fase_repetida,P0001|fase_repetida,6"
 );
 caso(
-  "R2 una clave que no existe se rechaza (fase_desconocida)",
+  "R2 una clave que no existe se rechaza antes de tocar la ruta: el catálogo la frena como «proceso apagado» (20261029210000; antes del catálogo era fase_desconocida)",
   `${ABRE(...CINCO)}
    ${IDS}
    select concat_ws(',', pg_temp.eh(pg_temp.agrega('zapatos')), pg_temp.eh(pg_temp.agrega('')), ${FILAS_FASES});`,
-  "P0001|fase_desconocida,P0001|fase_desconocida,5"
+  "P0001|proceso_apagado,P0001|proceso_apagado,5"
 );
 caso(
   "R3 un servicio sin proveedor (y sin la marca de pendiente) se rechaza (fase_sin_proveedor); sin tarifa ni lista, también (fase_sin_tarifa); un proveedor de telas no hace servicios (fase_proveedor_rubro)",
@@ -294,6 +296,16 @@ caso(
    select pg_temp.agrega('ojales_botones') as ag \\gset
    select concat_ws(',', :'p', pg_temp.eh(:'ag'), :'ag' like '%La fase «Planchado» ya tiene algo anotado%', ${FILAS_FASES});`,
   "SIN_ERROR,P0001|paso_despues_empezado,t,5"
+);
+caso(
+  "R5c el arreglo de las fallas no borra el candado del catálogo (20261029210000): con Ojales y botones apagado en Servicios y tarifas, el paso no se agrega",
+  `${ABRE(...CINCO)}
+   ${IDS}
+   ${HASTA_COSTURA}
+   update retail.procesos_produccion set activo = false where clave = 'ojales_botones';
+   select pg_temp.agrega('ojales_botones') as ag \\gset
+   select concat_ws(',', pg_temp.eh(:'ag'), ${FILAS_FASES});`,
+  "P0001|proceso_apagado,5"
 );
 caso(
   "R6 un paso ANTERIOR empezado no frena nada: con Costura a medias (10 de 50) el paso se agrega",

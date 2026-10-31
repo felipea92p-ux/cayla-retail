@@ -1,6 +1,6 @@
 # ADR-0586 — Agregar un paso que se olvidó (ya hecho) y reabrir pasos de una orden
 
-**Estado:** aceptada; **actividad 1 construida y probada en local** (base con `pnpm pruebas:produccion-paso-tarde` 22/22 y la web con sus pruebas); **migración `20261031002000` SIN pegar en producción**
+**Estado:** aceptada; **actividad 1 construida y probada en local** (base con `pnpm pruebas:produccion-paso-tarde` 22/22 y la web con sus pruebas); **migración `20261031002000` YA en producción** (comprobado el 2026-10-31 en solo lectura: `agregar_paso_tarde` tiene la misma huella que en local y los dos CHECK de `produccion_cambios` ya aceptan `paso_tarde`)
 (va antes de publicar la web). Actividades 2 a 5: decididas, sin construir · **Fecha:** 2026-10-30 · **Decidió:** Felipe (preguntas del 2026-10-30) · **Sigue a:** ADR-0566 (agregar un paso) y
 ADR-0570 (correcciones con historia)
 
