@@ -75,3 +75,9 @@
 - **Qué:** las ocho pestañas (Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos, Gastos con CLAURE) y sus hojas: el texto propio de Configuración pasa a 14 px (el kit de Finanzas ya había subido con Finanzas). Veintitrés frases acortadas; «Cada casilla se guarda sola…», que se repetía en seis pestañas, queda en una línea.
 - **Por qué:** Felipe pidió seguir con Configuración tras ver Colaboradores.
 - **Cómo verificas:** abre `/configuracion?tab=tiendas`, `?tab=cuentas` y `?tab=impuestos`. Sin mirar a 375 px: Presupuesto, Impuestos y CLAURE (el servidor local no respondía, con la máquina cargada).
+
+## 2026-10-31 — Inicio con la letra a 14 px (ronda 19, última pasada)
+
+- **Qué:** las cuatro caras de Inicio (tienda, integrante, almacén y el Observatorio de CAYLA Global): lo que se lee pasa de 10,5–13 px a 14 px, también en el CSS del Inicio de almacén y del Observatorio. Quedan igual el mapa, el ritmo, el mapa de calor, las órbitas y la línea de tiempo del Observatorio, y el dial, las teclas, los contadores y el eje del almacén. Sus frases ya eran cortas; las de «Te toca» del almacén salen de `lib/` y quedan para otra pasada.
+- **Por qué:** Felipe pidió cerrar con Inicio. Con esto, los trece módulos tienen la letra a 14 px.
+- **Cómo verificas:** entra a `/` como líder, con CAYLA Global, como integrante y como terminal de almacén. Pendiente: registrar la ronda 19 (docs/unificar, ADR-0358, ADR-0195, CLAUDE.md) y decidir con Felipe la escala final.
