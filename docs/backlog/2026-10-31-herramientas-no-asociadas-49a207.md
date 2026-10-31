@@ -1,0 +1,12 @@
+## 🧵 Consumibles del Taller como gasto y umbral de activo a ¼ de la UIT (2026-10-31, ADR-0594) — 1 migración y 1 SQL de limpieza SIN pegar; rama `claude/herramientas-no-asociadas-49a207`
+
+Decidido por Felipe el 2026-10-31 con preguntas. El monto fijo por prenda (ADR-0570 act. 9) se descartó: contaba el consumible dos veces (P-31, ADR-0547). Detalle y alternativas: `docs/adr/0594-consumibles-del-taller-son-gasto-y-el-activo-empieza-en-un-cuarto-de-uit.md`.
+
+- [x] **1 · Consumibles del Taller como gasto.** Migración `20261031195000` (categoría `consumibles_taller`, cuenta 656, orden 21), su ícono, 7 casos nuevos en `scripts/pruebas/gastos.mjs` (todo en verde) y el texto en «Nuevo avío» y su guía.
+- [x] **2 · Umbral de activo a ¼ de la UIT con aviso.** `lib/activo-umbral-reglas.ts` (8 pruebas) y el aviso en «Registrar activo fijo»; sin migración. Verificado en la pantalla real (S/ 300 avisa, S/ 2,000 no).
+- [x] **3 · SQL de limpieza ensayado.** `scripts/produccion/2026-10-31-equipos-bajo-umbral-y-consumibles.sql`: anula 10 equipos (S/ 8,388.16) y elimina 2 ingresos de consumibles; modo ensayo por defecto; probado en local (ensayo, aplicar, vuelta atrás, repetición).
+- [ ] **POR PEGAR en producción (2026-10-31), en este orden:** (1) `supabase/migrations/20261031195000_categoria_gasto_consumibles_del_taller.sql`, debe responder `QUEDÓ BIEN`; (2) el SQL de la actividad 3, primero en modo `ensayo` (debe terminar en «ENSAYO TERMINADO … 10 equipos por S/ 8388.16 y eliminado 2 ingresos») y después con `'aplicar'`. Quien lo pega: Felipe.
+- [ ] **Antes de pegar el SQL de limpieza:** comprobar que `20261030134000` sigue en producción (lo estaba el 30-oct) y que los 2 ingresos del 31-oct no se pagaron desde una compra (`eliminar_ingreso_insumo` lo rechaza solo si llegaron con factura u orden).
+- [ ] **No verificado:** abrir «Nuevo avío» en el navegador, `tema:auditar`, `guias:recorrer` y `/chaos` sobre el aviso nuevo; que el SQL Editor de producción acepte el script tal cual.
+- [ ] **Diccionario de datos:** una fila nueva en `categorias_gasto` entra con el próximo refresco de la foto de producción (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] **Pendiente, sin construir:** «consumible por prenda» como lectura derivada (gasto del Taller ÷ prendas buenas del mes), que vive en «Resultado por negocio» de ADR-0547; y revisar que quien anota el gasto del Taller vea Finanzas ▸ Gastos (o esperar «Llegó una compra», ADR-0570 act. 7).
