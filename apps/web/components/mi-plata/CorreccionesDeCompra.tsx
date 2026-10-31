@@ -7,35 +7,40 @@ import { cargarCorrecciones } from "@/lib/corregir-compra-acciones";
 import { cargarCorreccionesDeGasto } from "@/lib/corregir-gasto-acciones";
 import { textoDeCambio, type CorreccionHecha } from "@/lib/corregir-compra-reglas";
 import { textoDeCambioGasto } from "@/lib/corregir-gasto-reglas";
+import { cargarCorreccionesDeGastoFinanzas } from "@/lib/gastos-corregir-acciones";
+import { textoDeCambioDeGasto } from "@/lib/gastos-corregir-reglas";
 import { fechaCorta } from "@/lib/compras-reglas";
 
-// El rastro de una compra corregida (ADR-0561) o de un gasto de «otra cosa» corregido (ADR-0572): quién lo corrigió, cuándo y qué cambió (antes →
-// ahora). Lo ven la compradora, en el detalle de su fila, y Compras, al revisarla. Se lee al abrirse; sin correcciones (o si no se pudo leer) no
-// dibuja nada. Con `papelId`, el de una compra; con `gastoId`, el de un gasto.
+// El rastro de una compra corregida (ADR-0561), de un gasto de «otra cosa» corregido (ADR-0572) o de un gasto de Finanzas corregido (ADR-0588):
+// quién lo corrigió, cuándo y qué cambió (antes → ahora). Lo ven la compradora, en el detalle de su fila; Compras, al revisarla; y quien ve los
+// gastos de esa tienda, en la hoja del gasto. Se lee al abrirse; sin correcciones (o si no se pudo leer) no dibuja nada. Con `papelId`, el de una
+// compra; con `gastoId`, el de un gasto de Mis compras; con `gastoDeFinanzasId`, el de un gasto de Finanzas.
 
-export function CorreccionesDeCompra({ papelId, gastoId }: { papelId?: string; gastoId?: string }) {
-  const id = papelId ?? gastoId ?? "";
+export function CorreccionesDeCompra({ papelId, gastoId, gastoDeFinanzasId }: { papelId?: string; gastoId?: string; gastoDeFinanzasId?: string }) {
+  const id = papelId ?? gastoId ?? gastoDeFinanzasId ?? "";
+  const deFinanzas = gastoDeFinanzasId !== undefined;
   const esGasto = papelId === undefined;
-  const que = esGasto ? "gasto" : "compra";
+  const que = deFinanzas ? "gasto-de-finanzas" : esGasto ? "gasto" : "compra";
   const [lista, setLista] = useState<CorreccionHecha[]>([]);
   const [abierto, setAbierto] = useState(false);
   useEffect(() => {
     let vigente = true;
-    const leer = esGasto ? cargarCorreccionesDeGasto(id) : cargarCorrecciones(id);
+    const leer = deFinanzas ? cargarCorreccionesDeGastoFinanzas(id) : esGasto ? cargarCorreccionesDeGasto(id) : cargarCorrecciones(id);
     void leer.then((c) => {
       if (vigente) setLista(c);
     });
     return () => {
       vigente = false;
     };
-  }, [id, esGasto]);
+  }, [id, esGasto, deFinanzas]);
   if (lista.length === 0) return null;
   const ultima = lista[0]!;
   return (
     <div className="flex flex-col gap-1.5" data-pieza={`correcciones-de-${que}`}>
       <p className="flex flex-wrap items-center gap-2 text-sm text-tinta">
         <Chip tono="ambar" versalitas={false}>
-          {lista.length === 1 ? "Corregida" : `Corregida ${lista.length} veces`}
+          {/* «el gasto» de Finanzas: corregido; «la compra», y el gasto de Mis compras de siempre: corregida. */}
+          {`${deFinanzas ? "Corregido" : "Corregida"}${lista.length === 1 ? "" : ` ${lista.length} veces`}`}
         </Chip>
         <span className="text-taupe">
           {ultima.quien ? `${ultima.quien} · ` : ""}
@@ -53,7 +58,7 @@ export function CorreccionesDeCompra({ papelId, gastoId }: { papelId?: string; g
               <ul className="mt-0.5">
                 {c.cambios.map((x, i) => (
                   <li key={i} className="tabular-nums text-tinta">
-                    {esGasto ? textoDeCambioGasto(x) : textoDeCambio(x)}
+                    {deFinanzas ? textoDeCambioDeGasto(x) : esGasto ? textoDeCambioGasto(x) : textoDeCambio(x)}
                   </li>
                 ))}
               </ul>

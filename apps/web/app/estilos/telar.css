@@ -465,19 +465,31 @@ span.sede-telar { cursor: default; }
 .extracto-gastos .separador-dia { padding-right: 32px; }
 .extracto-gastos .separador-dia-total { white-space: nowrap; }
 .extracto-titulo-corto { display: none; }
+/* A la izquierda, el ícono de su categoría (la 06 del benchmark visual, Felipe 2026-10-31): se sabe de qué es antes de leerla. */
 .extracto-fila {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px 120px;
-  grid-template-areas: "que marca monto";
+  grid-template-columns: 32px minmax(0, 1fr) 200px 120px;
+  grid-template-areas: "ico que marca monto";
   gap: 4px 16px;
   align-items: center;
   width: 100%;
-  padding: 10px 32px 10px 20px;
+  padding: 10px 32px 10px 16px;
   text-align: left;
   border-bottom: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent);
 }
 .extracto-filas > .extracto-fila:last-child { border-bottom: 0; }
-.extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 112px 200px 120px; grid-template-areas: "que sede marca monto"; }
+/* Sin rayado en el extracto (2026-10-31): la zebra de `fila-cayla` cuenta solo filas hermanas y los «×N» van envueltos, así que caía en una
+   fila cualquiera («Movilidad» sola en hueso) y se leía como «esta está marcada». El día ya agrupa, y la fila abierta tiene su propia marca.
+   Va sin capa, como el resto de esta hoja: le gana a la regla de `@layer components`, y por eso repite el fondo del mouse. */
+.extracto-filas > .extracto-fila:nth-child(even of .fila-cayla):not([aria-current="true"]) { background-color: transparent; }
+@media (hover: hover) {
+  .extracto-filas > .extracto-fila:nth-child(even of .fila-cayla):not([aria-current="true"]):hover { background-color: color-mix(in oklab, var(--color-crema) 60%, transparent); }
+}
+.extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: 32px minmax(0, 1fr) 112px 200px 120px; grid-template-areas: "ico que sede marca monto"; }
+.extracto-ico { grid-area: ico; }
+.icono-categoria-gasto { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--color-hueso); color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+.icono-categoria-gasto[data-tamano="40"] { width: 40px; height: 40px; border-radius: 12px; }
+.extracto-fila[data-dentro] .icono-categoria-gasto { visibility: hidden; }
 .extracto-que { grid-area: que; display: grid; min-width: 0; }
 .extracto-que b { font-weight: 500; }
 .extracto-proveedor { font-weight: 400; color: var(--color-taupe-profundo); }
@@ -509,7 +521,7 @@ span.sede-telar { cursor: default; }
    renglones; la sede pasa a ser el punto de color de la línea de abajo (como en el celular) y la marca se angosta. */
 @container extracto (max-width: 900px) {
   .extracto-fila,
-  .extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 176px 112px; grid-template-areas: "que marca monto"; }
+  .extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: 32px minmax(0, 1fr) 176px 112px; grid-template-areas: "ico que marca monto"; }
   .extracto-sede { display: none; }
   .extracto-punto-angosto { display: inline-flex; }
 }
@@ -517,9 +529,10 @@ span.sede-telar { cursor: default; }
 @container extracto (max-width: 640px) {
   .extracto-fila,
   .extracto-gastos[data-con-sede] .extracto-fila {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "que monto" "marca monto";
-    padding: 10px 28px 10px 14px;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-areas: "ico que monto" "ico marca monto";
+    column-gap: 12px;
+    padding: 10px 28px 10px 12px;
   }
   .extracto-fila[data-dentro] { padding-left: 28px; }
   .extracto-gastos .separador-dia { padding-inline: 14px 28px; }
@@ -805,3 +818,44 @@ span.sede-telar { cursor: default; }
 .vendido-sede-lista i[data-color="lim"] { --c: var(--color-sede-lim); }
 .vendido-sede-lista i[data-color="tal"] { --c: var(--color-sede-tal); }
 .vendido-sede-lista i[data-color="emp"] { --c: var(--color-sede-emp); }
+
+/* ---- Gastos · la bandeja como pila (la 03 del benchmark visual, Felipe 2026-10-31; docs/maquetas/gastos-benchmark-2026-10/) ----
+   La tarjeta de arriba se resuelve en su lugar; bajo ella asoman una o dos capas (las que siguen). Al decir «Listo» se va 56 px hacia la
+   izquierda y se apaga (360 ms, debe coincidir con MS_SALIDA de GastosPulso) mientras la siguiente sube desde atrás (360 ms). Una vez, sin
+   rebote ni bucle; con «menos movimiento», nada se mueve. */
+.pila-avance { display: flex; align-items: center; gap: 12px; margin: 2px 0 14px; font-size: 14px; color: var(--color-taupe); }
+.pila-avance > :first-child { flex: 1; }
+.pila { position: relative; display: grid; }
+.pila[data-capas="1"] { padding-bottom: 7px; }
+.pila[data-capas="2"] { padding-bottom: 14px; }
+.pila-capa { position: absolute; left: 12px; right: 12px; bottom: 7px; height: 24px; border-radius: 0 0 12px 12px; border: 1px solid var(--color-sand); border-top: 0; background: var(--color-hueso); }
+.pila-capa[data-capa="2"] { left: 26px; right: 26px; bottom: 0; background: color-mix(in oklab, var(--color-hueso) 55%, var(--color-papel)); }
+/* La de arriba es papel con su línea (sus campos y sus píldoras, en hueso y con borde, se ven encima); las de atrás, hueso. */
+.pila-tarjeta { position: relative; z-index: 1; display: grid; gap: 14px; padding: 14px 16px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-papel); }
+.pila-tarjeta[data-subio] { animation: pila-sube 360ms var(--ease-cayla) both; }
+@keyframes pila-sube { from { opacity: 0.4; transform: translate3d(0, 8px, 0) scale(0.985); } }
+.pila-sale { position: absolute; top: 0; left: 0; right: 0; z-index: 2; pointer-events: none; animation: pila-sale 360ms var(--ease-cayla) forwards; }
+@keyframes pila-sale { to { opacity: 0; transform: translate3d(-56px, 0, 0); } }
+.pila-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.pila-sobre { display: block; font-size: 13px; color: var(--color-taupe); }
+.pila-cabeza b { display: block; margin-top: 4px; font-family: var(--font-serif); font-size: 21px; font-weight: 500; line-height: 1.15; }
+.pila-cabeza p { margin-top: 4px; font-size: 15px; color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */ }
+.pila-monto { flex: none; font-family: var(--font-serif); font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+/* Lo elegido va en un <fieldset> que se congela mientras un gasto está en duda (`AvisoIntentoIncierto`). */
+.pila-decision { display: grid; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.pila-que { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pila-que .btn-enlace { margin-left: 6px; font-size: 14px; }
+.pila-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 16px; }
+.pila-nota { grid-column: 1 / -1; margin-top: -4px; font-size: 14px; color: var(--color-taupe); }
+.pila-pie { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
+.pila-responsable { flex: 1 1 240px; min-width: 0; max-width: 360px; }
+.pila-listo-boton { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; margin-left: auto; }
+.pila-listo { margin-top: 2px; }
+@media (max-width: 560px) {
+  .pila-cabeza { flex-direction: column; gap: 4px; }
+  .pila-listo-boton { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pila-tarjeta[data-subio] { animation: none; }
+  .pila-sale { display: none; }
+}
