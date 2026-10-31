@@ -65,7 +65,7 @@ export function TeToca({ submodulos }: { submodulos: { clave: string; etiqueta: 
                         <li key={p.id} className="te-toca-item" data-estado={p.estado}>
                           <div className="min-w-0">
                             <p className="text-[14px] font-medium text-tinta">{p.titulo}</p>
-                            <p className="text-[13px] text-tinta/70">{p.detalle}</p>
+                            <p className="text-sm text-tinta/70">{p.detalle}</p>
                           </div>
                           <BotonVer href={p.href} alNavegar={cerrar} chico>
                             {p.verbo}
@@ -75,7 +75,7 @@ export function TeToca({ submodulos }: { submodulos: { clave: string; etiqueta: 
                     </ul>
                   </section>
                 ))}
-                {incompleto && <p className="nota-cayla text-[13px]">Una parte de Finanzas no respondió: puede que falte algo en la lista.</p>}
+                {incompleto && <p className="nota-cayla text-sm">Una parte de Finanzas no respondió: puede que falte algo en la lista.</p>}
               </div>
             ) : (
               <Vacio

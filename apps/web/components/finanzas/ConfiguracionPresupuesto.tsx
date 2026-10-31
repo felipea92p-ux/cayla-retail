@@ -141,8 +141,8 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">
-          Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Cada cambio queda en la historia.
+        <p className="max-w-md text-sm text-taupe">
+          Cada casilla se guarda sola al salir de ella y queda en la historia.
         </p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -326,13 +326,13 @@ function HojaPropuesta({
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-[12.5px] text-taupe">
-            Nada se guardó todavía. Lo que la propuesta no trae se queda como está, y después puedes cambiar cualquier casilla.
+          <p className="mt-3 text-sm text-taupe">
+            Nada se guardó todavía. Después puedes cambiar cualquier casilla.
           </p>
           <div className="mt-4">{responsable}</div>
         </>
       ) : (
-        <p className="text-[13px] leading-relaxed text-taupe" data-guia="config.propuesta">
+        <p className="text-sm leading-relaxed text-taupe" data-guia="config.propuesta">
           {propuesta.filas.length
             ? "Los topes de este mes ya son los que se proponen: no hay nada que cambiar."
             : propuesta.origen === "mes_anterior"

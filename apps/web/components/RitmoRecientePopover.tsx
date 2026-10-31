@@ -50,7 +50,7 @@ export function RitmoRecientePopover({
     return () => document.removeEventListener("keydown", alTeclear);
   }, [abierto]);
 
-  if (!ritmo) return <span className="text-xs text-tinta/40">N/D</span>;
+  if (!ritmo) return <span className="text-sm text-tinta/40">N/D</span>;
 
   const totalVentas = ritmo.dias.reduce((acc, d) => acc + d.ventas, 0);
   const tono = ritmo.tipo === "medida" ? "text-tinta/75" : "text-tinta/65";
@@ -65,7 +65,7 @@ export function RitmoRecientePopover({
         onClick={() => setAbierto((a) => !a)}
         // Diseño aprobado de Existencias (2026-09-28): la cifra se lee como texto llano («1 ud/día», «Sin datos suficientes»,
         // en dos líneas si no cabe); sigue siendo un botón que abre el detalle, y lo dice con un subrayado punteado al pasar.
-        className={`max-w-full whitespace-normal rounded text-[13px] leading-tight tabular-nums underline decoration-transparent decoration-dotted underline-offset-2 transition-colors hover:decoration-tinta/40 focus-visible:decoration-tinta/40 ${tono}`} // unificar-fijo: diseño aprobado de Existencias, la cifra se lee como texto llano
+        className={`max-w-full whitespace-normal rounded text-sm leading-tight tabular-nums underline decoration-transparent decoration-dotted underline-offset-2 transition-colors hover:decoration-tinta/40 focus-visible:decoration-tinta/40 ${tono}`} // unificar-fijo: diseño aprobado de Existencias, la cifra se lee como texto llano
       >
         {textoRitmoRecienteCelda(ritmo)}
       </button>
@@ -79,10 +79,10 @@ export function RitmoRecientePopover({
               role="dialog"
               aria-label={`Ritmo reciente — ${referencia}`}
               style={{ top: pos.top, left: pos.left, width: ANCHO }}
-              className="card-cayla fixed z-[60] p-4 text-xs"
+              className="card-cayla fixed z-[60] p-4 text-sm"
             >
               <p className="label-cayla text-[10px] font-bold text-taupe">Ritmo reciente</p>
-              <p className="mt-0.5 text-[11px] text-tinta/55">
+              <p className="mt-0.5 text-sm text-tinta/55">
                 {referencia} · <span className="font-mono">{sku}</span>
               </p>
 
@@ -92,7 +92,7 @@ export function RitmoRecientePopover({
                     Aún no calculamos un Ritmo reciente: solo hay {ritmo.dias.length} {ritmo.dias.length === 1 ? "jornada" : "jornadas"} de exposición comercial.
                   </p>
                   <DesgloseDias dias={ritmo.dias} />
-                  <p className="mt-3 text-[11px] text-tinta/55">
+                  <p className="mt-3 text-sm text-tinta/55">
                     Desde {minDiasExposicionRitmo} jornadas completas de exposición se calcula el Ritmo reciente.
                   </p>
                 </>
@@ -108,7 +108,7 @@ export function RitmoRecientePopover({
                   <p className="mt-2 border-t border-tinta/10 pt-2 font-medium tabular-nums text-tinta">
                     Cálculo: {totalVentas} ÷ {ritmo.dias.length} = {textoRitmoReciente(ritmo)}
                   </p>
-                  <p className="mt-2 text-[11px] text-tinta/55">
+                  <p className="mt-2 text-sm text-tinta/55">
                     {ritmo.tipo === "sin_salida"
                       ? "No se vendió nada en las jornadas con stock disponible en piso — el número es real, no una falla del cálculo."
                       : "Solo se cuentan las jornadas en que la variante tuvo stock disponible en piso."}

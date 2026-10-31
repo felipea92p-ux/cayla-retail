@@ -77,7 +77,7 @@ export function CajaConLaCompra({ flujo, pagos, saleDeCaja, limite }: { flujo: F
         }}
         alto={220}
       />
-      <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-taupe">
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe">
         <span className="inline-flex items-center gap-1.5">
           <MuestraTramo clase="bg-tinta" /> Con esta compra
         </span>
@@ -96,7 +96,7 @@ export function CajaConLaCompra({ flujo, pagos, saleDeCaja, limite }: { flujo: F
         </Aviso>
       )}
       {conCompra.fueraDelHorizonte.length > 0 && conCompra.salePorLaCompra > 0 && (
-        <p className="text-xs text-taupe">
+        <p className="text-sm text-taupe">
           {conCompra.fueraDelHorizonte.length === 1 ? "Un pago cae" : `${conCompra.fueraDelHorizonte.length} pagos caen`} después de lo que la caja alcanza a ver (el {fechaEnPalabras(conCompra.fueraDelHorizonte[0]!.fecha)}): no está en la gráfica.
         </p>
       )}

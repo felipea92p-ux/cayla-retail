@@ -50,7 +50,7 @@ export function PorPagarProduccionPanel({
       <EncabezadoPagina
         sede={sede}
         titulo="Por pagar"
-        subtitulo="Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita."
+        subtitulo="Lo que el Taller le debe a sus proveedores, del más urgente al menos."
       />
 
       <div data-guia="prod-por-pagar.cifras" className="grid gap-3 sm:grid-cols-3">
@@ -110,7 +110,7 @@ export function PorPagarProduccionPanel({
                     <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.5fr)_9rem_7rem_auto]">
                       <span className="min-w-0">
                         <span className="block truncate text-[14px] text-tinta">{c.proveedor}</span>
-                        <span className="block text-xs text-tinta/65">
+                        <span className="block text-sm text-tinta/65">
                           {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero}
                           {c.pagado > 0 ? ` · pagado ${soles(c.pagado)} de ${soles(c.total)}` : ""}
                         </span>
@@ -138,7 +138,7 @@ export function PorPagarProduccionPanel({
       <section data-guia="prod-por-pagar.deuda-total" aria-label="Deuda total de CAYLA" className="card-cayla anim-entra space-y-4 p-5" style={{ ["--i" as string]: 3 }}>
         <div>
           <TituloSeccion>Deuda total de CAYLA</TituloSeccion>
-          <p className="text-xs text-tinta/65">Compras y Producción juntos, en un solo lugar. Solo se lee: cada deuda se paga en su propio módulo.</p>
+          <p className="text-sm text-tinta/65">Compras y Producción juntos. Cada deuda se paga en su propio módulo.</p>
         </div>
 
         {consolidado.total === 0 ? (
@@ -163,7 +163,7 @@ export function PorPagarProduccionPanel({
                   { clave: "compras", nombre: "Compras", valor: 1 - (consolidado.parteProduccion ?? 0), clase: "bg-tinta/30", titulo: `Compras: ${Math.round((1 - (consolidado.parteProduccion ?? 0)) * 100)} %` },
                 ]}
               />
-              <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
+              <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-tinta/70">
                 <span>
                   <MuestraTramo clase="bg-tinta" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Producción {soles(consolidado.porOrigen.produccion.saldo)} · {plural(consolidado.porOrigen.produccion.proveedores, "proveedor", "proveedores")}
@@ -176,13 +176,13 @@ export function PorPagarProduccionPanel({
             </div>
             <ul data-guia="prod-por-pagar.deudores">
               {deuda.slice(0, 8).map((f) => (
-                <li key={`${f.origen}-${f.proveedorId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-tinta/10 py-2 text-[13px] last:border-b-0">
+                <li key={`${f.origen}-${f.proveedorId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-tinta/10 py-2 text-sm last:border-b-0">
                   <span className="min-w-0">
                     <span className="truncate text-tinta">{f.proveedor}</span>
                     <span className="ml-2 align-middle">
                       <Chip tono="neutro">{f.origen === "produccion" ? "Producción" : "Compras"}</Chip>
                     </span>
-                    <small className="block text-xs text-tinta/65">
+                    <small className="block text-sm text-tinta/65">
                       {plural(f.comprobantes, "comprobante", "comprobantes")}
                       {f.proximoVencimiento ? ` · vence ${diaMes(f.proximoVencimiento)}` : ""}
                       {f.vencido > 0 ? ` · ${soles(f.vencido)} vencidos` : ""}
@@ -192,14 +192,14 @@ export function PorPagarProduccionPanel({
                 </li>
               ))}
             </ul>
-            {deuda.length > 8 && <p className="text-xs text-tinta/65">y {deuda.length - 8} proveedores más con saldos menores.</p>}
+            {deuda.length > 8 && <p className="text-sm text-tinta/65">y {deuda.length - 8} proveedores más con saldos menores.</p>}
           </>
         )}
 
         {igv && (
           <div data-guia="prod-por-pagar.igv" className="border-t border-tinta/10 pt-4">
             <TituloGrupo>IGV crédito fiscal · {nombreDeMes(igv.mes)}</TituloGrupo>
-            <dl className="mt-2 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
+            <dl className="mt-2 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-sm">
               <div className="flex justify-between gap-3 px-3 py-2">
                 <dt>Comprobantes de Compras</dt>
                 <dd className="tabular-nums">{soles(igv.igvCompras)}</dd>
@@ -217,7 +217,7 @@ export function PorPagarProduccionPanel({
                 <dd className="font-display text-lg tabular-nums">{soles(igv.igvNeto)}</dd>
               </div>
             </dl>
-            <p className="mt-2 text-xs text-tinta/65">Según la fecha de emisión de los comprobantes vigentes. Es una lectura de apoyo, no el registro de compras de SUNAT.</p>
+            <p className="mt-2 text-sm text-tinta/65">Por fecha de emisión. Es una ayuda, no el registro de compras de SUNAT.</p>
           </div>
         )}
       </section>

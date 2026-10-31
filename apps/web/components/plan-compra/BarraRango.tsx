@@ -69,7 +69,7 @@ export function BarraRango({
           />
         )}
       </span>
-      <span aria-hidden className="mt-1 block text-xs tabular-nums text-tinta/70">
+      <span aria-hidden className="mt-1 block text-sm tabular-nums text-tinta/70">
         {enteroES.format(linea.flojo)} · <b className="font-semibold text-tinta">{enteroES.format(linea.normal)}</b> · {enteroES.format(linea.bueno)}
       </span>
     </span>
@@ -80,7 +80,7 @@ export function BarraRango({
 export function LeyendaRango({ conVendido, conEnCamino = false }: { conVendido: boolean; conEnCamino?: boolean }) {
   const item = "inline-flex items-center gap-1.5";
   return (
-    <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-tinta/70">
+    <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-tinta/70">
       <span className="text-taupe-profundo">Cómo leer la barra:</span>
       <span className={item}>
         <i aria-hidden className="inline-block h-2 w-4 rounded-full bg-verde" />

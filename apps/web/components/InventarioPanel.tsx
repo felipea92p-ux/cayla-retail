@@ -83,7 +83,7 @@ const PUNTO_HOY = { ambar: "bg-ambar", verde: "bg-verde", pizarra: "bg-pizarra" 
  *  cuadre del piso. «N/D» solo cuando no se sabe (el motor no respondió). */
 function ChipHoy({ f }: { f: FilaExistencias }) {
   const h = estadoHoyDeTalla(f);
-  if (!h) return <span className="text-xs text-tinta/40">N/D</span>;
+  if (!h) return <span className="text-sm text-tinta/40">N/D</span>;
   if (h === "por_colgar") {
     const n = f.almacenDisponible ?? 0;
     return (
@@ -95,11 +95,11 @@ function ChipHoy({ f }: { f: FilaExistencias }) {
   if (h === "mantener") return <ChipMantener titulo={AYUDA_HOY.mantener}>{TEXTO_HOY.mantener}</ChipMantener>;
   return (
     <>
-      <Chip tono={TONO_HOY[h]} className="text-xs">
+      <Chip tono={TONO_HOY[h]} className="text-sm">
         <span title={AYUDA_HOY[h]}>{TEXTO_HOY[h]}</span>
       </Chip>
       {h === "sin_stock_atras" && f.enTransito > 0 && (
-        <span className="basis-full text-[11px] leading-tight text-taupe">
+        <span className="basis-full text-sm leading-tight text-taupe">
           {f.enTransito} {f.enTransito === 1 ? "ud" : "uds"} en camino
         </span>
       )}
@@ -141,7 +141,7 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
   const c = f.coberturaPiso;
   if (!c) {
     return (
-      <span className="text-xs text-tinta/40" title="Todavía no se pudo calcular">
+      <span className="text-sm text-tinta/40" title="Todavía no se pudo calcular">
         N/D
       </span>
     );
@@ -167,7 +167,7 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
       {textoCoberturaPiso(c)}
     </span>
   ) : (
-    <span className="text-xs tabular-nums text-tinta/65" title={ayuda}>
+    <span className="text-sm tabular-nums text-tinta/65" title={ayuda}>
       {textoCoberturaPiso(c)}
     </span>
   );
@@ -923,11 +923,11 @@ export function InventarioPanel({
                     · si se ven todas, que no es una orden de bajar todo (riesgo que nombró el plan): hay tallas que se guardan a
                       propósito, la lista es para decidir. */}
                 {separa && porColgarElegido && cuentaPorColgar.tallas > 0 && (
-                  <p className="text-xs leading-snug text-taupe">
+                  <p className="text-sm leading-snug text-taupe">
                     {filtradas.length < cuentaPorColgar.tallas ? (
                       <>
                         Ves {filtradas.length} de {cuentaPorColgar.tallas}: la búsqueda u otro filtro esconde el resto.{" "}
-                        <button type="button" onClick={quitarFiltrosMenosHoy} className="btn-enlace text-xs">
+                        <button type="button" onClick={quitarFiltrosMenosHoy} className="btn-enlace text-sm">
                           Ver todas
                         </button>
                       </>
@@ -942,11 +942,11 @@ export function InventarioPanel({
         </div>
       )}
 
-      {separa && coberturaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{coberturaFallo}</p>}
-      {separa && planFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{planFallo}</p>}
+      {separa && coberturaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-sm text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{coberturaFallo}</p>}
+      {separa && planFallo && stock.length > 0 && <p className={`px-4 pb-2 text-sm text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{planFallo}</p>}
       {/* El piso sin cuadrar (antes, una franja de texto aquí) lo dice el atajo «Por colgar», en pausa, y la lista vacía de ese atajo. */}
       {/* Si la marca no se pudo leer, se dice: sin el aviso, quien escribe una marca y no ve nada creería que no hay prendas. */}
-      {marcaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
+      {marcaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-sm text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
       {/* Hay resultados, pero también productos del catálogo que esta sede no recibió (con el vacío, los cuenta el propio estado vacío). */}
       {/* Desde 3 letras: con una sola («b») casi todo el catálogo «coincide» y la línea aparecía y desaparecía en cada tecla, moviendo la tabla. */}
       {sinRastroAqui.total > 0 && filtradas.length > 0 && busqueda.trim().length >= 3 && (
@@ -1060,7 +1060,7 @@ export function InventarioPanel({
             onColgarTalla={(prenda, fila, origen) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" }, origen })}
           />
           {tarjetasOrdenadas.length > 0 && (
-          <div data-guia="existencias.pie" className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
+          <div data-guia="existencias.pie" className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-sm text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
@@ -1078,7 +1078,7 @@ export function InventarioPanel({
                   <b className="text-[15px] font-semibold text-tinta">2</b> en piso
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <b className="text-[12px] font-bold text-tinta">+1</b> en almacén
+                  <b className="text-sm font-bold text-tinta">+1</b> en almacén
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.14]" />
@@ -1112,7 +1112,7 @@ export function InventarioPanel({
             abiertaClave={abierta?.clave ?? null}
             onAbrir={abrirPrenda}
           />
-          <div data-guia="existencias.tabla-pie" className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div data-guia="existencias.tabla-pie" className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaPrendas.totalPaginas > 1 ? `Mostrando ${paginaPrendas.desde}–${paginaPrendas.hasta} de ` : "Mostrando "}
@@ -1226,20 +1226,20 @@ export function InventarioPanel({
                   <span className="flex min-w-0 flex-1 items-center gap-3.5">
                     <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="md" {...categoriaDe(f)} />
                     <span className="min-w-0">
-                      <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta" title={mostrarMarca && f.marca ? `${f.referencia} · ${f.marca}` : f.referencia}>
+                      <span className="block truncate text-[15px] font-semibold leading-snug text-tinta" title={mostrarMarca && f.marca ? `${f.referencia} · ${f.marca}` : f.referencia}>
                         {f.referencia}
                         {mostrarMarca && f.marca && <span className="font-normal text-taupe"> · {f.marca}</span>}
                       </span>
                       <span className="mt-0.5 block truncate text-[11px] tracking-wide text-taupe/80">{f.sku}</span>
                       {/* Solo celular: el color y la talla, que en escritorio tienen su propia columna. */}
-                      <span className="mt-0.5 flex items-center gap-2 text-xs text-taupe sm:hidden">
+                      <span className="mt-0.5 flex items-center gap-2 text-sm text-taupe sm:hidden">
                         {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} compacta />}
                         {f.talla}
                       </span>
                     </span>
                   </span>
                 </div>
-                <span className="hidden items-center gap-2 overflow-visible whitespace-nowrap text-xs text-tinta/65 sm:flex">
+                <span className="hidden items-center gap-2 overflow-visible whitespace-nowrap text-sm text-tinta/65 sm:flex">
                   {f.color && <MuestraColor nombre={f.color} hex={f.colorHex} compacta />}
                   {f.talla}
                 </span>
@@ -1272,7 +1272,7 @@ export function InventarioPanel({
                       <span className="font-semibold text-tinta">{f.disponible}</span>
                     )}
                     {f.apartado > 0 && (
-                      <span className="block text-[10px] font-normal leading-3 text-ambar-profundo" title="Siguen en la tienda, pero apartadas para clientes: no se pueden vender">
+                      <span className="block text-sm font-normal leading-3 text-ambar-profundo" title="Siguen en la tienda, pero apartadas para clientes: no se pueden vender">
                         {f.apartado} {f.apartado === 1 ? "apartada" : "apartadas"}
                       </span>
                     )}
@@ -1293,7 +1293,7 @@ export function InventarioPanel({
                       <RitmoRecientePopover ritmo={f.ritmoReciente ?? null} referencia={f.referencia} sku={f.sku} minDiasExposicionRitmo={politica.minDiasExposicionRitmo} />
                     </span>
                   )}
-                  <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-[13px] tabular-nums text-tinta")}>
+                  <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-sm tabular-nums text-tinta")}>
                     <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">En camino</span>
                     {f.enTransito}
                   </span>
@@ -1325,7 +1325,7 @@ export function InventarioPanel({
                         {/* Solo en escritorio con la tarjeta angosta (< 1070 px): «En la red» no tiene columna propia y va aquí, debajo.
                             En el celular ya tiene su celda, y con la tarjeta ancha también. */}
                         {red && (
-                          <span className="basis-full truncate text-[11px] leading-tight text-taupe max-sm:hidden @min-[1070px]:hidden" title={red.detalle}>
+                          <span className="basis-full truncate text-sm leading-tight text-taupe max-sm:hidden @min-[1070px]:hidden" title={red.detalle}>
                             {red.linea}
                           </span>
                         )}
@@ -1335,7 +1335,7 @@ export function InventarioPanel({
                   <span
                     className={celda(
                       "izq",
-                      `col-start-1 row-start-1 text-[13px] text-tinta/75 sm:[grid-area:auto]${separa ? " hidden max-sm:block @min-[1070px]:block" : ""}`
+                      `col-start-1 row-start-1 text-sm text-tinta/75 sm:[grid-area:auto]${separa ? " hidden max-sm:block @min-[1070px]:block" : ""}`
                     )}
                     title={red?.detalle}
                   >
@@ -1349,7 +1349,7 @@ export function InventarioPanel({
               </div>
             );
           })}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>{textoMostrando(paginaActual, filtradas.length, stock.length)}</span>
               <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
@@ -1589,31 +1589,31 @@ export function InventarioPanel({
             </span>
             {/* Más de las que caben en un enlace (tarea #7): se dice, en vez de hacer desaparecer los botones sin explicación. */}
             {filasMarcadas.length > MAX_VARIANTES_EN_URL && (
-              <span role="status" className="order-last w-full px-3 pb-1 text-xs text-crema/80 sm:order-none sm:w-auto">
+              <span role="status" className="order-last w-full px-3 pb-1 text-sm text-crema/80 sm:order-none sm:w-auto">
                 Marcaste {filasMarcadas.length} tallas: se llevan hasta {MAX_VARIANTES_EN_URL} de una vez. Desmarca algunas.
               </span>
             )}
             <span className="order-last grid w-full grid-cols-3 gap-1 sm:order-none sm:flex sm:w-auto">
               {hrefBajarMarcadas && (
-                <Link href={hrefBajarMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
+                <Link href={hrefBajarMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-sm hover:bg-crema/10 sm:flex-row sm:text-sm">
                   <ArrowDownToLine aria-hidden className="h-4 w-4" />
                   Bajar al piso
                 </Link>
               )}
               {hrefTrasladarMarcadas && (
-                <Link href={hrefTrasladarMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
+                <Link href={hrefTrasladarMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-sm hover:bg-crema/10 sm:flex-row sm:text-sm">
                   <ArrowRight aria-hidden className="h-4 w-4" />
                   Trasladar
                 </Link>
               )}
               {hrefEtiquetasMarcadas && (
-                <Link href={hrefEtiquetasMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
+                <Link href={hrefEtiquetasMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-sm hover:bg-crema/10 sm:flex-row sm:text-sm">
                   <Tag aria-hidden className="h-4 w-4" />
                   Etiquetas
                 </Link>
               )}
               {hrefRotulosMarcadas && (
-                <Link href={hrefRotulosMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
+                <Link href={hrefRotulosMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-sm hover:bg-crema/10 sm:flex-row sm:text-sm">
                   <SignpostBig aria-hidden className="h-4 w-4" />
                   Rótulo
                 </Link>

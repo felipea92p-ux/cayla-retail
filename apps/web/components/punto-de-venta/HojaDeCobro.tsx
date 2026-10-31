@@ -250,7 +250,7 @@ export function HojaDeCobro({
                     </span>
                     {varios && pago && (
                       <label className="hoja-cobro-monto">
-                        <span className="text-[11px] opacity-85">S/</span>
+                        <span className="text-sm opacity-85">S/</span>
                         <CampoMonto
                           aria-label={`Monto en ${NOMBRE_METODO[m]}`}
                           data-monto-medio={m}
@@ -305,7 +305,7 @@ export function HojaDeCobro({
                   {redondeo > 0 && aCobrar > 0 && (
                     <p className="hoja-cobro-nota rounded-lg bg-hueso text-tinta/80" data-redondeo>
                       Cobra <b className="font-semibold text-tinta tabular-nums">{money(aCobrar)}</b> en efectivo
-                      <span className="block text-[12px] text-tinta/60">
+                      <span className="block text-sm text-tinta/60">
                         {TEXTO_REDONDEO} −{money(redondeo)} · {LEY_REDONDEO}
                       </span>
                     </p>
@@ -335,7 +335,7 @@ export function HojaDeCobro({
                           </button>
                         ))}
                         <label className={`hoja-cobro-billete es-otro ${recibido !== undefined && !enSugeridos ? "es-escrito" : ""}`}>
-                          <span className="text-xs text-tinta/50">S/</span>
+                          <span className="text-sm text-tinta/50">S/</span>
                           <input // unificar-fijo: el billete «Otro» es una baldosa más de la hoja de cobro (hoja-cobro-billete)
                             aria-label="Otro monto recibido"
                             {...atributosMontoTexto(otroTexto ?? "")}
@@ -460,7 +460,7 @@ function CabezaPaso({
       </span>
       <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
       {pista && (
-        <span className={`anim-revelar whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${pistaFuerte ? "bg-rojo/10 text-rojo-profundo" : "bg-hueso text-tinta"}`}>
+        <span className={`anim-revelar whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${pistaFuerte ? "bg-rojo/10 text-rojo-profundo" : "bg-hueso text-tinta"}`}>
           {pista}
         </span>
       )}

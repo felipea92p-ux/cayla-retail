@@ -287,11 +287,11 @@ export function NuevaTelaModal({
               {leyoColores ? (
                 <ElegirColores colores={disponibles} grupos={grupos} elegidos={filas.map((f) => f.color)} onAlternar={alternarColor} onCreado={(c) => { setColoresCarta((cs) => [...cs, c]); alternarColor(c.codigo); }} cartaAbierta={false} sinElegidos enfocarBuscador={eligioColor} />
               ) : (
-                <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
+                <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
               )}
             </CampoGuiado>
             {n === 0 ? (
-              <p className="text-[12.5px] text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
+              <p className="text-sm text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
             ) : (
               <div className="overflow-x-auto">
                 <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
@@ -318,7 +318,7 @@ export function NuevaTelaModal({
                         {puedeSaldo && (
                           <CampoTexto caja sinPie etiqueta={`Cuánto hay de ${nombreColor} (${unidadDeCompra})`} inputMode="decimal" className="text-right tabular-nums" placeholder="0" value={f.ya} onChange={(ev) => cambiarFila(f.color, { ya: ev.target.value })} tono={numeroMalEscrito(f.ya) ? "error" : undefined} />
                         )}
-                        {puedeSaldo && e.compra !== "metro" && <span className="text-right text-[13px] tabular-nums text-tinta/70">{metros === null ? "—" : `≈ ${metros.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m`}</span>}
+                        {puedeSaldo && e.compra !== "metro" && <span className="text-right text-sm tabular-nums text-tinta/70">{metros === null ? "—" : `≈ ${metros.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m`}</span>}
                         {puedeSaldo && (
                           <CampoTexto caja sinPie etiqueta={`Costo de ${nombreColor}`} inputMode="decimal" className="text-right tabular-nums" placeholder="0.00" value={f.costo} onChange={(ev) => cambiarFila(f.color, { costo: ev.target.value })} tono={montoIlegible(f.costo) ? "error" : undefined} />
                         )}
@@ -342,7 +342,7 @@ export function NuevaTelaModal({
                 {MONTO_ILEGIBLE}
               </Aviso>
             )}
-            {n > 0 && puedeSaldo && <p className="nota-cayla">«¿Ya tienes?» déjalo vacío si todavía no llegó nada: el color se crea en cero. Si lo llenas, se abre su lote de saldo inicial con ese costo.</p>}
+            {n > 0 && puedeSaldo && <p className="nota-cayla">Si todavía no llegó nada, deja «¿Ya tienes?» vacío: el color se crea en cero.</p>}
             {n > 0 && !puedeSaldo && <p className="nota-cayla">Los colores se crean en cero. Lo que ya hay de cada uno, con su costo, lo anota el líder.</p>}
           </section>
 

@@ -42,15 +42,15 @@ export function RecorridoVenta({ fila }: { fila: FilaHistorial }) {
       <TituloGrupo className="mb-2">Recorrido</TituloGrupo>
       <ol className="relative space-y-1.5 pl-5 before:absolute before:bottom-1.5 before:left-[4px] before:top-1.5 before:w-[1.5px] before:bg-sand">
         {pasos.map((p, i) => (
-          <li key={i} className="relative text-[13px] text-tinta">
+          <li key={i} className="relative text-sm text-tinta">
             <span aria-hidden className={`absolute -left-5 top-[5px] h-[9px] w-[9px] rounded-full ${PUNTO[p.tono]}`} />
             {p.texto}
-            {p.fecha && <span className="ml-1.5 text-xs text-tinta/55">{FECHA.format(new Date(p.fecha)).replace(".", "")}</span>}
+            {p.fecha && <span className="ml-1.5 text-sm text-tinta/55">{FECHA.format(new Date(p.fecha)).replace(".", "")}</span>}
           </li>
         ))}
       </ol>
       {fila.operaciones.length > 0 && (
-        <p className="mt-2 text-xs text-tinta/60">
+        <p className="mt-2 text-sm text-tinta/60">
           Nº de operación: <span className="font-mono text-tinta">{fila.operaciones.join(", ")}</span>
         </p>
       )}
@@ -71,13 +71,13 @@ export function AccionesVenta({ fila, contexto }: { fila: FilaHistorial; context
             <Link
               key={a.clave}
               href={a.href}
-              className={`flex min-h-[74px] flex-col items-start gap-1 rounded-xl px-3 py-2.5 text-[13px] font-medium ring-1 transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${
+              className={`flex min-h-[74px] flex-col items-start gap-1 rounded-xl px-3 py-2.5 text-sm font-medium ring-1 transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${
                 a.destacada ? "bg-tinta text-crema ring-tinta hover:ring-2" : a.peligro ? "bg-papel text-rojo-profundo ring-tinta/[0.07] hover:ring-rojo/60" : "bg-papel text-tinta ring-tinta/[0.07] hover:ring-taupe"
               }`}
             >
               <Icono className="h-4 w-4" aria-hidden />
               {a.etiqueta}
-              <span className={`text-[11.5px] font-normal leading-tight ${a.destacada ? "text-crema/65 dark:text-crema/75" : "text-tinta/55"}`}>{a.detalle}</span>
+              <span className={`text-sm font-normal leading-tight ${a.destacada ? "text-crema/65 dark:text-crema/75" : "text-tinta/55"}`}>{a.detalle}</span>
             </Link>
           );
         })}

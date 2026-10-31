@@ -79,7 +79,7 @@
   @media (max-width: 900px) { .twc-taller { grid-template-columns: 1fr; } }
   .twc-lado { position: sticky; top: 16px; display: grid; gap: 12px; justify-items: center; }
   @media (max-width: 900px) { .twc-lado { position: static; } }
-  .twc-nota-en-vivo { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+  .twc-nota-en-vivo { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--color-taupe); }
   .twc-nota-en-vivo svg { width: 14px; height: 14px; }
 
   .twc-cel { width: 300px; max-width: 100%; border: 1px solid var(--color-sand); border-radius: 34px; padding: 10px; background: var(--color-papel); }
@@ -90,14 +90,14 @@
   .twc-tarjeta .twc-fachada { height: 118px; }
   .twc-tarjeta-c { display: grid; gap: 10px; padding: 14px; }
   .twc-tarjeta h3 { font-family: var(--font-serif); font-size: 26px; font-weight: 500; line-height: 1.05; color: var(--color-tinta); overflow-wrap: anywhere; }
-  .twc-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 13px; color: var(--color-tinta); overflow-wrap: anywhere; }
+  .twc-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 14px; color: var(--color-tinta); overflow-wrap: anywhere; }
   .twc-dato svg { width: 14px; height: 14px; margin-top: 2px; color: var(--color-taupe); }
   .twc-dato[data-falta] { color: var(--color-taupe); font-style: italic; }
   .twc-botones { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); margin-top: 2px; }
   .twc-boton {
     display: flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 999px;
     border: 1px solid var(--color-tinta); background: var(--color-tinta); color: var(--color-crema);
-    font-size: 12.5px; font-weight: 700;
+    font-size: 14px; font-weight: 700;
   }
   .twc-boton svg { width: 14px; height: 14px; }
   .twc-boton-claro { background: transparent; color: var(--color-tinta); }
@@ -137,7 +137,7 @@
   .twc-boton[data-apagado] { opacity: 0.35; }
 
   /* «Abierta · cierra 9 p. m.»: el punto es verde si abre y ámbar si no (lleva la palabra escrita al lado). */
-  .twc-atencion { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+  .twc-atencion { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--color-taupe); }
   .twc-atencion::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-ambar); flex: none; }
   .twc-atencion[data-abierta] { color: var(--color-verde); }
   .twc-atencion[data-abierta]::before { background: var(--color-verde); }
@@ -172,13 +172,13 @@
   .twc-cierres .twc-cierre-hoy { height: 40px; }
   /* «u otro día» y su campo van juntos: si no caben en la fila, bajan JUNTOS y no se separa la etiqueta de su caja. */
   .twc-cierres-otro { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
-  .twc-cierres-o { font-size: 12.5px; color: var(--color-taupe); }
+  .twc-cierres-o { font-size: 14px; color: var(--color-taupe); }
   .twc-cierres-fecha { width: 11rem; }
   /* El campo de fecha reserva un renglón vacío bajo su caja para un error; sin error no se dibuja, o la caja queda más arriba que el botón de al lado. */
   .twc-cierres-fecha .campo > div:last-child:empty { display: none; }
   .twc-cierre {
     display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 6px 0 12px; border-radius: 999px;
-    background: var(--color-hueso); font-size: 12.5px; font-weight: 600; color: var(--color-tinta);
+    background: var(--color-hueso); font-size: 14px; font-weight: 600; color: var(--color-tinta);
   }
   .twc-cierre[data-hoy] { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar); }
   .twc-cierre button { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--color-taupe); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
@@ -209,7 +209,7 @@
   .twc-pista[data-cierre]::after { content: "Cerrado hoy"; color: var(--color-ambar); }
   .twc-tramo {
     position: absolute; top: 3px; bottom: 3px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px;
-    border-radius: 7px; background: var(--color-tinta); color: var(--color-crema); font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; cursor: grab;
+    border-radius: 7px; background: var(--color-tinta); color: var(--color-crema); font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; cursor: grab;
     transition: left 180ms var(--ease-cayla), width 180ms var(--ease-cayla);
   }
   .twc-tramo[data-moviendo] { transition: none; cursor: grabbing; }

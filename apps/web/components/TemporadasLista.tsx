@@ -322,8 +322,8 @@ function VistaNueve({
                     nombre={t.nombre}
                     detalle={
                       <>
-                        <p className="text-[11px] tabular-nums text-tinta/60">{textoPrendas(porTemporada[t.clave] ?? 0)}</p>
-                        <p className="text-[11px] text-tinta/60">{textoFinDeEstacion(t)}</p>
+                        <p className="text-sm tabular-nums text-tinta/60">{textoPrendas(porTemporada[t.clave] ?? 0)}</p>
+                        <p className="text-sm text-tinta/60">{textoFinDeEstacion(t)}</p>
                       </>
                     }
                   />
@@ -405,7 +405,7 @@ function VistaCalendario({
         {visibles.map((g) => (
           <Fragment key={g.anio}>
             {/* El año de la fila es el de su llave en el calendario: el verano de diciembre sigue hasta marzo del siguiente. */}
-            <p className="anim-entra px-5 pb-1.5 pt-4 text-xs font-semibold text-tinta" style={entra(pieza++).style}>
+            <p className="anim-entra px-5 pb-1.5 pt-4 text-sm font-semibold text-tinta" style={entra(pieza++).style}>
               {g.anio}
             </p>
             {g.eventos.map((e) => (
@@ -581,7 +581,7 @@ function ModalFecha({
               pie={PIE_FUENTE[fuente]}
             />
           </CampoGuiado>
-          <p className="text-xs text-taupe">
+          <p className="text-sm text-taupe">
             Tiene que quedar entre {limites.antes ? `el inicio de ${NOMBRE_ESTACION[limites.antes.estacion].toLowerCase()} (${textoInstanteLima(limites.antes.inicio)})` : "hoy"}
             {limites.despues ? ` y el de ${NOMBRE_ESTACION[limites.despues.estacion].toLowerCase()} (${textoInstanteLima(limites.despues.inicio)})` : ""}.
           </p>
@@ -1009,7 +1009,7 @@ function VistaPorCompletar({
       <TituloVista
         desfase={desfase}
         titulo="Por completar"
-        bajada="Prendas activas sin temporada propia, de un color ni de su categoría. Frescura del piso las mide igual que al resto, pero no puede avisarles cuándo termina su estación."
+        bajada="Prendas sin temporada: Frescura no puede avisar cuándo termina su estación."
       />
 
       {puedeEditar && conCategoria > 0 && (
@@ -1018,8 +1018,7 @@ function VistaPorCompletar({
           <b>
             {categoriasDeLaLista} {categoriasDeLaLista === 1 ? "categoría" : "categorías"}
           </b>
-          . Ponle la temporada a la categoría y se completan todas de una vez. Marca una prenda solo si es la excepción de su categoría (un
-          polo de manga larga en una categoría de verano).
+          . Ponle la temporada a la categoría y se completan todas. Marca una prenda solo si es la excepción.
         </p>
       )}
 
@@ -1076,7 +1075,7 @@ function VistaPorCompletar({
               : la temporada se {elegidas.length === 1 ? "le pone solo a ella" : "les pone solo a ellas"}, no a su categoría.
             </span>
             {marcadasOcultas > 0 && (
-              <span className="block text-xs text-crema/80">
+              <span className="block text-sm text-crema/80">
                 {marcadasOcultas} {marcadasOcultas === 1 ? "marcada no se ve" : "marcadas no se ven"} con esta búsqueda: no se{" "}
                 {marcadasOcultas === 1 ? "asigna" : "asignan"}.
               </span>
@@ -1163,7 +1162,7 @@ function GrupoPorCompletar({
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-sand/45 px-5 py-3">
               <p className="text-[15px] font-semibold text-tinta">
                 {g.categoria}
-                <span className="ml-1.5 text-[13px] font-normal text-taupe">
+                <span className="ml-1.5 text-sm font-normal text-taupe">
                   {n} {n === 1 ? "prenda" : "prendas"}
                 </span>
               </p>
@@ -1178,7 +1177,7 @@ function GrupoPorCompletar({
                 </div>
               )}
               {puedeEditar && !g.activa && (
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   {g.categoriaId ? "Su categoría está desactivada: complétalas una por una." : "Sin categoría: complétalas una por una o ponles categoría en su ficha."}
                 </p>
               )}
@@ -1200,7 +1199,7 @@ function GrupoPorCompletar({
                     {p.codigo && <span className="block truncate font-mono text-xs text-taupe">{p.codigo}</span>}
                     {/* Sin columnas de marca y proveedor (tarjeta < @3xl), bajan aquí, cada una con su rótulo. */}
                     <span
-                      className="block truncate text-xs text-taupe @3xl:hidden"
+                      className="block truncate text-sm text-taupe @3xl:hidden"
                       title={`Marca: ${p.marca ?? "sin registrar"} · Proveedor: ${p.proveedor ?? "sin registrar"}`}
                     >
                       Marca: {p.marca ?? "sin registrar"} · Proveedor: {p.proveedor ?? "sin registrar"}

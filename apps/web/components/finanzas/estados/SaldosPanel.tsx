@@ -17,7 +17,7 @@ export function SaldosPanel({ saldos, mes }: { saldos: SaldoCuenta[]; mes: strin
   return (
     <Superficie pad guia="fin-contador.saldos">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-taupe">
+        <p className="text-sm text-taupe">
           Saldos por cuenta de {mesNombre(mes)}, en el signo del debe: un pasivo, el patrimonio y un ingreso salen negativos.
         </p>
         <Chip tono={cuadra ? "verde" : "rojo"}>{cuadra ? "Cuadra" : "No cuadra"}</Chip>

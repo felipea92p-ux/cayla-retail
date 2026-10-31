@@ -1711,6 +1711,17 @@ export const PRUEBAS = [
   // cuándo y cómo; la tarjeta lo resta en el mes del PAGO y se mueve igual que el crédito de gastos de Impuestos; misma visibilidad que
   // la lista; todo origen de fn_igv_perdido llega a un gasto o está fuera a propósito. ROLLBACK siempre.
   "pruebas:gastos-igv-perdido",
+  // Corregir un gasto de Finanzas sin anularlo (ADR-0588): la categoría y el «qué fue» cambian con rastro inmutable; el monto, el pago y el
+  // comprobante no; todo o nada, el mismo guardado dos veces, anulado, viaje, mes cerrado (solo la categoría), el disparador con su marca y los
+  // permisos por tienda. ROLLBACK siempre.
+  "pruebas:gastos-corregir",
+  // «Llegó el comprobante» (ADR-0588): un gasto pagado sin comprobante recibe su papel y queda IGUAL a uno registrado con él al contado
+  // (transferencia y efectivo del cajón: el mismo egreso), sin mover el saldo de ninguna cuenta ni la caja; fecha del papel e IGV; dos toques;
+  // todo o nada; anulado, viaje, fondo y mes cerrado; las marcas de los disparadores y los permisos por tienda. ROLLBACK siempre.
+  "pruebas:gastos-comprobante-tardio",
+  // «No tendrá comprobante» (ADR-0588): la marca con su motivo y su rastro, «otro» con nota, idempotente; no en anulado, con comprobante ni
+  // del viaje (sí en mes cerrado); al llegar el papel deja de contar; inmutable; la lectura con la visibilidad de la lista. ROLLBACK siempre.
+  "pruebas:gastos-no-emite",
   // Lo que la base del fondo no acepta (ADR-0362, fase 6; /chaos 2026-10-14): un monto que no es un número (en las funciones y en las
   // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
   // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.
@@ -1801,6 +1812,9 @@ export const PRUEBAS = [
   // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
   // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
   "pruebas:produccion-corte-con-su-tela",
+  // Las telas cortadas sin anotar (ADR-0570, actividad 4): Insumos avisa «la OP-3 ya cortó con esta tela y no tiene nada anotado» solo cuando el Corte tiene prendas y el libro no descontó
+  // la tela; calla sin Corte, con la tela anotada, en una muestra o una orden anulada; quien no lee Producción en ese Taller recibe []. ROLLBACK.
+  "pruebas:produccion-telas-cortadas-sin-anotar",
   // Cambiar el tipo de una orden abierta (ADR-0581): de muestra a lote y al revés, con su rastro (historia y Actividad); pedir el mismo tipo no hace nada; sin precio no pasa a lote; una orden
   // cerrada no cambia; una muestra que pasa a lote entra al stock al cerrar y una que sigue muestra no. ROLLBACK.
   "pruebas:produccion-cambiar-tipo",

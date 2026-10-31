@@ -91,7 +91,7 @@ export function CambiarTipoModal({ datos, onClose }: { datos: OrdenPagina; onClo
               {sinPrecio}
             </Aviso>
           )}
-          <p className="text-[13px] text-tinta/70">No toca prendas, stock ni costos de hoy. Mientras la orden siga abierta, lo puedes volver a cambiar.</p>
+          <p className="text-sm text-tinta/70">No toca prendas, stock ni costos de hoy. Mientras la orden siga abierta, lo puedes volver a cambiar.</p>
         </div>
         <CampoTexto
           id="cambiar-tipo-motivo"

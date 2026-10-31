@@ -251,7 +251,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
                 return [l?.codigo, falta > 0 ? `faltan ${falta}` : "ya está completa"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65">Solo las prendas buenas pasan a la fase que sigue. Una raya (—) es una combinación que este modelo no tiene.</p>
+            <p className="text-sm text-tinta/65">Solo las prendas buenas pasan a la fase que sigue. Una raya (—) es una combinación que este modelo no tiene.</p>
           </CampoGuiado>
         </div>
 
@@ -288,7 +288,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
                 />
               ))}
             </div>
-            <p className="text-xs text-tinta/65">{problemasDeTela[0] ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela». Si apareció tela que no estaba anotada, anótala allí con «Encontré tela»."}</p>
+            <p className="text-sm text-tinta/65">{problemasDeTela[0] ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela». Si apareció tela que no estaba anotada, anótala allí con «Encontré tela»."}</p>
           </div>
         )}
 

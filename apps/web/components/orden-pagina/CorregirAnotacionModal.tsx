@@ -184,7 +184,7 @@ export function CorregirAnotacionModal({ datos, fase, anotacion, onClose }: { da
                 return [l?.codigo, `antes ${anotacion.buenas[clave] ?? 0}`, `caben ${disponibles[clave] ?? 0}`].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65">{problemaCantidades ?? "Escribe cómo debió quedar. Una raya (—) es una combinación que este modelo no tiene."}</p>
+            <p className="text-sm text-tinta/65">{problemaCantidades ?? "Escribe cómo debió quedar. Una raya (—) es una combinación que este modelo no tiene."}</p>
           </CampoGuiado>
         </div>
 

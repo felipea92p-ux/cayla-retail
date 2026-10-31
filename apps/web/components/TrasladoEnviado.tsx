@@ -159,7 +159,7 @@ export function TrasladoEnviado({
           </BotonCopiar>
         </div>
         {sinChatDirecto && (
-          <p className="text-xs text-taupe">{destino} no tiene un WhatsApp guardado: WhatsApp te va a preguntar a quién se lo mandas.</p>
+          <p className="text-sm text-taupe">{destino} no tiene un WhatsApp guardado: WhatsApp te va a preguntar a quién se lo mandas.</p>
         )}
       </section>
 

@@ -46,7 +46,7 @@ export function CambiosDelMesPieza({ cambios }: { cambios: CambiosMes }) {
             <li key={f.clave} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 border-b border-sand py-2.5 last:border-b-0 sm:grid-cols-[minmax(9rem,1.1fr)_minmax(0,2fr)_6rem]">
               <span className="min-w-0 text-sm">
                 <b className="font-semibold">{f.nombre}</b>
-                {detalleDe(f) && <small className="block text-xs text-taupe">{detalleDe(f)}</small>}
+                {detalleDe(f) && <small className="block text-sm text-taupe">{detalleDe(f)}</small>}
               </span>
               <span className={`num text-right text-sm font-semibold sm:order-3 ${f.efecto > 0 ? "text-verde" : "text-taupe"}`}>{solesConSigno(f.efecto)}</span>
               <div className="col-span-2 sm:order-2 sm:col-span-1">

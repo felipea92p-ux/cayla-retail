@@ -26,7 +26,7 @@ export function TicketsSinCobrarModal({ tickets, onSeguir, onClose }: { tickets:
             {tickets.map((t) => (
               <li key={t.id ?? "caja"} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                 <b className="min-w-0 flex-1 truncate font-semibold">{t.nombre}</b>
-                <span className="shrink-0 text-xs text-tinta/60">
+                <span className="shrink-0 text-sm text-tinta/60">
                   {t.prendas} {t.prendas === 1 ? "prenda" : "prendas"}
                 </span>
                 <span className="shrink-0 font-semibold tabular-nums">S/{t.total.toFixed(2)}</span>

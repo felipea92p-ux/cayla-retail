@@ -26,7 +26,7 @@ export default async function RecibirProduccionPage() {
         <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Recibir" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
-            Recibir necesita una ubicación de tipo Taller para saber dónde entran los insumos. Pídele al líder que active el Taller.
+            Falta el Taller. Pídele al líder que lo active.
           </Vacio>
         </div>
       </div>

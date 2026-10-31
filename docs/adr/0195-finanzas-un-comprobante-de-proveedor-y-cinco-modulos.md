@@ -535,3 +535,13 @@ Felipe eligió «El telar de Finanzas» (docs/maquetas/finanzas-telar-2026-10/) 
   maqueta, y la comparación de capturas se hace contra esa maqueta, no contra el spike de 2026-09.
 - **El kit** (`components/finanzas/kit.tsx`, `finanzas.css`) sigue vivo en lo que todavía no se rediseñó y se retira pantalla por pantalla.
   No se reemplaza de golpe.
+
+## Actualización 2026-10-31 — la letra del kit sube a 14 px (ronda 19 de `/unificar`, ADR-0358)
+
+Las colaboradoras decían que el texto del ERP era chico y nadie lo leía. En la ronda 19 Felipe pidió, mirando las fotos, que lo que se lee no
+baje de 14 px en todo el ERP, Finanzas incluida. En `app/estilos/finanzas.css` (el kit), `finanzas-dinero.css`, `finanzas-recorrido.css` y
+`telar.css`, el texto de lectura de 11,5–13 px pasó a 14 y el de 13,5 a 15 (unos 100 tamaños); las versalitas, las pestañas, los chips, los
+controles, los gráficos, el calendario, las teclas del dock y los rótulos de la agenda quedaron igual. **Por eso Finanzas ya no mide lo mismo
+que el spike de `docs/maquetas/finanzas-2026-09/`:** al comparar una pantalla con el spike, la letra de lectura se compara contra 14 px, no
+contra la del spike. Configuración, que usa el mismo kit, sube con ella. Registro: `docs/unificar/texto.md`.
+

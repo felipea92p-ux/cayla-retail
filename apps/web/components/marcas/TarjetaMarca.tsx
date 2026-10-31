@@ -98,10 +98,10 @@ export function TarjetaMarca({
             </p>
             <p className="mt-0.5 shrink-0 whitespace-nowrap" aria-label={`${m.productos} productos activos`}>
               <b className={`font-display text-lg font-semibold tabular-nums ${m.productos === 0 ? "text-taupe" : "text-tinta"}`}>{m.productos}</b>
-              <span className="ml-1 text-xs text-tinta/65">{m.productos === 1 ? "producto" : "productos"}</span>
+              <span className="ml-1 text-sm text-tinta/65">{m.productos === 1 ? "producto" : "productos"}</span>
             </p>
           </div>
-          <p className={`text-[12.5px] ${CLASE_FRASE[estado]}`}>{textoEstadoMarca(m)}</p>
+          <p className={`text-sm ${CLASE_FRASE[estado]}`}>{textoEstadoMarca(m)}</p>
         </div>
       </div>
 
@@ -111,7 +111,7 @@ export function TarjetaMarca({
           {m.proveedores.map((p) => (
             // Una línea siempre: un nombre largo se corta con «…» (el nombre entero va en el título) en vez de doblarse dentro de la
             // píldora y volverla un óvalo de cinco renglones en una tarjeta angosta.
-            <span key={p.id} title={`${p.nombre} · ${p.productos} productos`} className="inline-flex min-w-0 max-w-full items-baseline rounded-full border border-tinta/25 bg-papel px-2.5 py-0.5 text-[12.5px] text-tinta/80">
+            <span key={p.id} title={`${p.nombre} · ${p.productos} productos`} className="inline-flex min-w-0 max-w-full items-baseline rounded-full border border-tinta/25 bg-papel px-2.5 py-0.5 text-sm text-tinta/80">
               <span className="min-w-0 truncate">
                 <Resaltado texto={p.nombre} busqueda={busqueda} />
               </span>

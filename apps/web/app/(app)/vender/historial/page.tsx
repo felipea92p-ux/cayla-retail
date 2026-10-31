@@ -205,12 +205,12 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             <RepartoEmpresas
               reparto={reparto}
               guia="historial.reparto-empresas"
-              frase={`Lo vendido en ${alcance} · ${periodoEnPalabras.toLowerCase()}, prenda por prenda. Sin las ventas anuladas; el buscador no lo cambia.`}
+              frase={`${alcance} · ${periodoEnPalabras.toLowerCase()}, sin anuladas. No cambia al buscar.`}
             />
           )}
 
           {buscando && filas.length > 0 && (
-            <p className="text-[13px] text-tinta/65">
+            <p className="text-sm text-tinta/65">
               <b className="font-semibold text-tinta">
                 {filas.length}
                 {siguiente ? "+" : ""} {filas.length === 1 ? "venta" : "ventas"}
@@ -256,9 +256,8 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             sustantivo={["venta", "ventas"]}
           />
 
-          <p data-guia="historial.nota" className="max-w-2xl text-xs leading-relaxed text-tinta/60">
-            <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
-            sumar a lo vendido; si el cliente cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
+          <p data-guia="historial.nota" className="max-w-2xl text-sm leading-relaxed text-tinta/60">
+            Una venta no se edita ni se borra: si se anula, queda tachada y deja de sumar. Un cambio o una devolución se marca en su venta.
           </p>
         </div>
 
