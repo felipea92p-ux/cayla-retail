@@ -998,6 +998,40 @@ export function porQueSeCerraron(pedidos: readonly Pick<PedidoDeLista, "estado" 
   return [...cuenta.values()].sort((a, b) => lugar(a.clave) - lugar(b.clave) || b.cuantos - a.cuantos || a.texto.localeCompare(b.texto, "es"));
 }
 
+/** En qué paso de la ruta (Confirmar → Cobrar → Entregar) va un pedido: 0, 1 o 2; null si ya se cerró (entregado, anulado o vencido). */
+export function pasoDeLaRuta(estado: EstadoPedidoWeb): 0 | 1 | 2 | null {
+  return estado === "por_confirmar" ? 0 : estado === "confirmado" ? 1 : estado === "pagado" ? 2 : null;
+}
+
+/** Lo que dice la hoja de un pedido ya cerrado, en una línea: cómo terminó y qué pasó con sus prendas y su plata. */
+export function textoDeCierreDelPedido(
+  p: Pick<PedidoDetalle, "estado" | "entregadoEn" | "entregadoPor" | "cierreMotivo" | "ventaId" | "plazos">,
+  ahora: number,
+): string {
+  if (p.estado === "entregado") return `Entregado ${p.entregadoEn ? haceCuanto(p.entregadoEn, ahora) : ""}${p.entregadoPor ? ` por ${p.entregadoPor}` : ""}. Sus prendas salieron del stock.`.replace(" .", ".");
+  if (p.estado === "vencido") return `Se cerró solo: nadie lo confirmó en ${p.plazos.horasParaConfirmar} h. Nada se había reservado.`;
+  const motivo = textoCierre(p.cierreMotivo).toLocaleLowerCase("es");
+  return p.ventaId ? `Anulado después de pagarse: ${motivo}. Se devolvió lo pagado y sus prendas quedaron libres.` : `Anulado: ${motivo}.`;
+}
+
+/**
+ * El ÚNICO WhatsApp de la hoja de un pedido (el botón de la tarjeta del cliente): para qué sirve y con qué mensaje se abre. Cada estado
+ * tiene el suyo (pedirle el pago, avisarle que ya puede recoger…); donde no hay uno específico se abre el mensaje predeterminado de la
+ * persona. `recien`: el pedido se acaba de confirmar en esta hoja.
+ */
+export function whatsappDeLaHoja(
+  p: Pick<PedidoDetalle, "estado" | "pagado" | "sinRecoger" | "listoParaRecoger">,
+  recien = false,
+): { plantilla: PlantillaWhatsapp | "predeterminado"; boton: string } {
+  if (p.estado === "confirmado") return recien ? { plantilla: "confirmado", boton: "Avisarle que se confirmó" } : { plantilla: "cobro", boton: "Pedirle el pago" };
+  if (p.estado === "pagado") {
+    if (p.sinRecoger) return { plantilla: "norecoge", boton: "Recordarle que lo recoja" };
+    return p.listoParaRecoger ? { plantilla: "listo", boton: "Avisarle que ya puede recoger" } : { plantilla: "libre", boton: "Avisarle cuando llegue" };
+  }
+  if (p.estado === "anulado" && p.pagado > 0) return { plantilla: "devolucion", boton: "Coordinar la devolución" };
+  return { plantilla: "predeterminado", boton: "Escribirle por WhatsApp" };
+}
+
 /**
  * Los cerrados que se ven: los de un motivo (el de la barra: «entregado», «sin_stock»…) y/o los que coinciden con lo escrito. Se busca por
  * número y por nombre del cliente, sin tildes ni mayúsculas; cada palabra escrita tiene que aparecer («w 12» no sirve, «lopez 0012» sí).

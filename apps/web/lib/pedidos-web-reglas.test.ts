@@ -27,6 +27,9 @@ import {
   leerTablero,
   limpiarCodigo,
   filtrarCerrados,
+  pasoDeLaRuta,
+  textoDeCierreDelPedido,
+  whatsappDeLaHoja,
   gruposDeLaLista,
   loQueTeToca,
   MENSAJE_PREDETERMINADO_WEB,
@@ -691,6 +694,37 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "w-0017" }))).toEqual(["W-0017"]);
     expect(codigos(filtrarCerrados(cerrados, { motivo: "entregado", busca: "felipe" }))).toEqual([]);
     expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "  natalia   alvarez " }))).toEqual(["W-0016"]);
+  });
+
+  it("la ruta del pedido: en qué paso va (y null si ya se cerró)", () => {
+    expect(pasoDeLaRuta("por_confirmar")).toBe(0);
+    expect(pasoDeLaRuta("confirmado")).toBe(1);
+    expect(pasoDeLaRuta("pagado")).toBe(2);
+    for (const e of ["entregado", "vencido", "anulado"] as const) expect(pasoDeLaRuta(e)).toBeNull();
+  });
+
+  it("un cerrado dice cómo terminó en una línea", () => {
+    const base = { entregadoEn: null, entregadoPor: null, cierreMotivo: null, ventaId: null, plazos: PLAZOS };
+    expect(textoDeCierreDelPedido({ ...base, estado: "entregado", entregadoEn: hace(2), entregadoPor: "Rosa" }, AHORA)).toMatch(/^Entregado .* por Rosa\. Sus prendas salieron del stock\.$/);
+    expect(textoDeCierreDelPedido({ ...base, estado: "vencido" }, AHORA)).toBe(`Se cerró solo: nadie lo confirmó en ${PLAZOS.horasParaConfirmar} h. Nada se había reservado.`);
+    expect(textoDeCierreDelPedido({ ...base, estado: "anulado", cierreMotivo: "cliente_desistio" }, AHORA)).toBe("Anulado: el cliente desistió.");
+    expect(textoDeCierreDelPedido({ ...base, estado: "anulado", cierreMotivo: "error_en_pedido", ventaId: "v1" }, AHORA)).toBe(
+      "Anulado después de pagarse: error en el pedido. Se devolvió lo pagado y sus prendas quedaron libres.",
+    );
+  });
+
+  it("un solo WhatsApp por hoja: cada estado dice para qué es", () => {
+    const f = (estado: PedidoDeLista["estado"], x: Partial<{ pagado: number; sinRecoger: boolean; listoParaRecoger: boolean }> = {}, recien = false) =>
+      whatsappDeLaHoja({ estado, pagado: 0, sinRecoger: false, listoParaRecoger: false, ...x }, recien);
+    expect(f("por_confirmar")).toEqual({ plantilla: "predeterminado", boton: "Escribirle por WhatsApp" });
+    expect(f("confirmado")).toEqual({ plantilla: "cobro", boton: "Pedirle el pago" });
+    expect(f("confirmado", {}, true).plantilla).toBe("confirmado");
+    expect(f("pagado", { listoParaRecoger: true })).toEqual({ plantilla: "listo", boton: "Avisarle que ya puede recoger" });
+    expect(f("pagado", { listoParaRecoger: true, sinRecoger: true }).plantilla).toBe("norecoge");
+    expect(f("pagado", { listoParaRecoger: false }).plantilla).toBe("libre");
+    expect(f("anulado", { pagado: 50 }).plantilla).toBe("devolucion");
+    expect(f("anulado").plantilla).toBe("predeterminado");
+    expect(f("entregado").plantilla).toBe("predeterminado");
   });
 
   it("los instantes, como se dicen en la tienda (en hora de Lima, también de noche)", () => {

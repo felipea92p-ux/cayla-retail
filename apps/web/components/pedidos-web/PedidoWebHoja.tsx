@@ -20,6 +20,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { MiniPrenda } from "@/components/pedidos-web/PedidosWebPantalla";
+import { RutaDelPedido } from "@/components/pedidos-web/RutaDelPedido";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -57,9 +58,9 @@ import {
   rehacerDecisiones,
   sePuedeQuitar,
   sePuedeReservarYa,
-  textoCierre,
   textoDeDonde,
   textoDisponible,
+  whatsappDeLaHoja,
   textoDelCupon,
   type BoletaWeb,
   type DecisionLinea,
@@ -171,6 +172,9 @@ export function PedidoWebHoja({
   const porConfirmar = p.estado === "por_confirmar";
   const lineasVivas = p.lineas.filter((l) => l.estado !== "quitada");
   const whatsapp = (pl: PlantillaWhatsapp) => enlaceWhatsappPedido(p, pl);
+  // El único WhatsApp de la hoja (la tarjeta del cliente): cada estado abre el mensaje que le toca.
+  const wa = whatsappDeLaHoja(p, recien === "confirmado");
+  const clienteWa = <BloqueCliente pedido={p} boton={wa.boton} whatsapp={wa.plantilla === "predeterminado" ? enlaceWhatsappMensajePredeterminado(p, mensajePredeterminado) : whatsapp(wa.plantilla)} />;
 
   const camposRevisar = camposConfirmar({ lineas: p.lineas, decisiones, hoy, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const camposCierre = camposMotivo({ motivo, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
@@ -349,7 +353,7 @@ export function PedidoWebHoja({
       subtitulo={subtitulo}
       onClose={onClose}
       variante="hoja"
-      tamano="mediana"
+      tamano="ancha"
       bloqueado={guardando || entrega.enviando || entrega.incierto}
       conCerrar
       // Al abrir se LEE primero (quién pidió y qué): el foco va a la hoja, no a la ✕ ni al primer botón (Tab entra igual).
@@ -357,44 +361,49 @@ export function PedidoWebHoja({
     >
       {(cerrar) => (
         <div className="space-y-5">
-          <BloqueCliente pedido={p} whatsapp={enlaceWhatsappMensajePredeterminado(p, mensajePredeterminado)} />
+          {modo === "revisar" && <RutaDelPedido pedido={p} ahora={ahora} />}
 
           {porConfirmar && modo === "revisar" && (
             <>
-              <p className="flex items-start gap-2 text-[13px] text-tinta/80" data-guia="pedido-web.llega">
-                <MessageCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
-                <span>
-                  Llega por WhatsApp con el número <b className="text-tinta">{p.codigo}</b>. Revisa que esté todo y confírmalo; por el chat coordinan el
-                  pago y cuándo lo recoge.
-                </span>
-              </p>
-              <div className="space-y-3" data-guia="pedido-web.prendas">
-                <TituloGrupo cuenta={p.lineas.length}>Lo que pidió</TituloGrupo>
-                {p.lineas.map((l) => (
-                  <CampoGuiado key={l.lineaId} id={campoDeLinea(l.lineaId)} guia={guia} retiene="fila">
-                    <LineaPorConfirmar
-                      linea={l}
-                      decision={decisiones[l.lineaId] ?? null}
-                      puedeQuitar={sePuedeQuitar(p.lineas, decisiones, l.lineaId)}
-                      onDecision={(d) => setDecisiones((ds) => ({ ...ds, [l.lineaId]: d }))}
-                      tiendaId={p.ubicacionId}
-                      tienda={tienda}
-                      variasEmpresas={variasEmpresas}
-                      hoy={hoy}
-                      deshabilitado={guardando}
-                    />
-                  </CampoGuiado>
-                ))}
-              </div>
-              <CampoGuiado id="responsable" guia={guia}>
-                <div data-guia="pedido-web.responsable">
-                  <ComboResponsable control={responsable} deshabilitado={guardando} />
-                </div>
-              </CampoGuiado>
-              <p className="text-[12.5px] text-taupe">
-                Al confirmar, cada prenda queda reservada para el cliente (primero la del almacén) y deja de ofrecerse en la web y en Vender. Sale
-                del stock recién al entregarla. Si después se anula, vuelve a estar disponible.
-              </p>
+              <Columnas
+                izq={
+                  <div className="space-y-3" data-guia="pedido-web.prendas">
+                    <TituloGrupo cuenta={p.lineas.length}>Lo que pidió</TituloGrupo>
+                    {p.lineas.map((l) => (
+                      <CampoGuiado key={l.lineaId} id={campoDeLinea(l.lineaId)} guia={guia} retiene="fila">
+                        <LineaPorConfirmar
+                          linea={l}
+                          decision={decisiones[l.lineaId] ?? null}
+                          puedeQuitar={sePuedeQuitar(p.lineas, decisiones, l.lineaId)}
+                          onDecision={(d) => setDecisiones((ds) => ({ ...ds, [l.lineaId]: d }))}
+                          tiendaId={p.ubicacionId}
+                          tienda={tienda}
+                          variasEmpresas={variasEmpresas}
+                          hoy={hoy}
+                          deshabilitado={guardando}
+                        />
+                      </CampoGuiado>
+                    ))}
+                  </div>
+                }
+                der={
+                  <>
+                    {clienteWa}
+                    <p className="flex items-start gap-2 text-[13px] text-tinta/80" data-guia="pedido-web.llega">
+                      <MessageCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+                      <span>
+                        El cliente te escribirá por WhatsApp con el número <b className="text-tinta">{p.codigo}</b>.
+                      </span>
+                    </p>
+                    <CampoGuiado id="responsable" guia={guia}>
+                      <div data-guia="pedido-web.responsable">
+                        <ComboResponsable control={responsable} deshabilitado={guardando} />
+                      </div>
+                    </CampoGuiado>
+                    <p className="text-[12.5px] text-taupe">Al confirmar, las prendas quedan reservadas y dejan de venderse en tienda. Salen del stock al entregarlas.</p>
+                  </>
+                }
+              />
               <div className="pie-hoja-fijo space-y-2 pt-2">
                 <PieGuia guia={guia} />
                 <PieAcciones
@@ -415,7 +424,7 @@ export function PedidoWebHoja({
                     className={guia.claseConfirmar}
                     onClick={() => guardar("confirmar", cerrar)}
                   >
-                    Confirmar · reserva las prendas
+                    Confirmar y reservar
                   </Boton>
                 </PieAcciones>
               </div>
@@ -473,66 +482,54 @@ export function PedidoWebHoja({
 
           {p.estado === "confirmado" && modo === "revisar" && (
             <>
-              {p.sinPagar && (
-                <Aviso
-                  tono="error"
-                  titulo={`Lo confirmaron ${p.confirmadoEn ? haceCuanto(p.confirmadoEn, ahora) : ""} y no paga`}
-                  className={AVISO_CON_BOTON}
-                  accion={
-                    <BotonAncla href={whatsapp("cobro")} target="_blank" rel="noopener noreferrer" className="btn-chico">
-                      <MessageCircle aria-hidden className="h-4 w-4" />
-                      Escribirle por WhatsApp
-                    </BotonAncla>
-                  }
-                >
-                  Sus prendas siguen reservadas. Escríbele y decide: si lo anulas, vuelven a estar disponibles.
-                </Aviso>
-              )}
-              {recien === "confirmado" && (
-                <Aviso
-                  tono="exito"
-                  titulo="Confirmado"
-                  className={AVISO_CON_BOTON}
-                  accion={
-                    <BotonAncla href={whatsapp("confirmado")} target="_blank" rel="noopener noreferrer" className="btn-chico">
-                      <MessageCircle aria-hidden className="h-4 w-4" />
-                      Avisarle por WhatsApp
-                    </BotonAncla>
-                  }
-                >
-                  Sus prendas quedaron reservadas y el pedido queda por cobrar.
-                </Aviso>
-              )}
-              <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} onReservar={reservar} />
-              <BloqueDinero pedido={p} ahora={ahora} onAnularPago={onAnularPago} />
-              {esAdelanto(p) && (
-                <Aviso tono="info" titulo="Espera una prenda por conseguir">
-                  Llega para el {fechaCorta(p.lineas.find((l) => l.estado === "por_conseguir")?.fechaCompromiso ?? null)}. Cobra un adelanto ahora
-                  (tú decides cuánto) y el resto cuando la recoja.
-                </Aviso>
-              )}
-              <p className="text-[12.5px] text-taupe">La boleta sale cuando el pedido queda pagado completo.</p>
-              <PieAcciones
-                izquierda={
-                  <Boton type="button" peso="peligro" onClick={() => setModo("anular")}>
-                    Anular
-                  </Boton>
+              <Columnas
+                izq={
+                  <>
+                    {p.sinPagar && (
+                      <Aviso tono="error" titulo={`Lo confirmaron ${p.confirmadoEn ? haceCuanto(p.confirmadoEn, ahora) : ""} y no termina de pagar`}>
+                        Sus prendas siguen reservadas. Pídele el pago o decide si lo anulas.
+                      </Aviso>
+                    )}
+                    {recien === "confirmado" && (
+                      <Aviso tono="exito" titulo="Confirmado">
+                        Sus prendas quedaron reservadas. Avísale por WhatsApp para coordinar el pago.
+                      </Aviso>
+                    )}
+                    <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} onReservar={reservar} />
+                    {esAdelanto(p) && (
+                      <Aviso tono="info" titulo="Espera una prenda por conseguir">
+                        Llega el {fechaCorta(p.lineas.find((l) => l.estado === "por_conseguir")?.fechaCompromiso ?? null)}. Cobra un adelanto ahora y el resto al recoger.
+                      </Aviso>
+                    )}
+                  </>
                 }
-              >
-                <BotonAncla href={whatsapp("cobro")} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle aria-hidden className="h-4 w-4" />
-                  WhatsApp
-                </BotonAncla>
-                <Boton type="button" peso="primario" aria-haspopup="dialog" onClick={onPagar} data-guia="pedido-web.pagar">
-                  {/* En el celular el pie se reparte en mitades: ahí solo «Registrar pago» (lo que falta ya está arriba). */}
-                  <span className="inline-flex items-center gap-2">
-                    <Wallet aria-hidden className="h-4 w-4 max-sm:hidden" />
-                    <span>
-                      Registrar pago<span className="max-sm:hidden"> · falta {soles(p.falta)}</span>
+                der={
+                  <>
+                    {clienteWa}
+                    <BloqueDinero pedido={p} ahora={ahora} onAnularPago={onAnularPago} />
+                    <p className="text-[12.5px] text-taupe">La boleta sale cuando queda todo pagado.</p>
+                  </>
+                }
+              />
+              <div className="pie-hoja-fijo pt-2">
+                <PieAcciones
+                  izquierda={
+                    <Boton type="button" peso="peligro" onClick={() => setModo("anular")}>
+                      Anular
+                    </Boton>
+                  }
+                >
+                  <Boton type="button" peso="primario" aria-haspopup="dialog" onClick={onPagar} data-guia="pedido-web.pagar">
+                    {/* En el celular el pie se reparte en mitades: ahí solo «Registrar pago» (lo que falta ya está arriba). */}
+                    <span className="inline-flex items-center gap-2">
+                      <Wallet aria-hidden className="h-4 w-4 max-sm:hidden" />
+                      <span>
+                        Registrar pago<span className="max-sm:hidden"> · falta {soles(p.falta)}</span>
+                      </span>
                     </span>
-                  </span>
-                </Boton>
-              </PieAcciones>
+                  </Boton>
+                </PieAcciones>
+              </div>
             </>
           )}
 
@@ -640,131 +637,110 @@ export function PedidoWebHoja({
 
           {p.estado === "pagado" && modo === "revisar" && (
             <>
-              {p.sinRecoger && (
-                <Aviso
-                  tono="error"
-                  titulo={`Pagó ${p.pagadoEn ? haceCuanto(p.pagadoEn, ahora) : ""} y no lo recoge`}
-                  className={AVISO_CON_BOTON}
-                  accion={
-                    <BotonAncla href={whatsapp("norecoge")} target="_blank" rel="noopener noreferrer" className="btn-chico">
-                      <MessageCircle aria-hidden className="h-4 w-4" />
-                      Escribirle por WhatsApp
-                    </BotonAncla>
-                  }
-                >
-                  Ya pagó: el pedido no se libera solo. Escríbele y, si no lo va a recoger, decídelo con tu líder.
-                </Aviso>
-              )}
-              <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} onReservar={reservar} />
-              <BloqueDinero pedido={p} ahora={ahora} />
-              <BloqueBoleta boleta={p.boleta} acciones={<AccionesTicket pedido={p} />} />
-              {faltan.length > 0 ? (
-                <>
-                  <Aviso tono="info" titulo="Todavía no se puede entregar">
-                    Falta que llegue a {p.tienda}: {faltan.join(", ")}. Se entrega cuando todo esté aquí: avísale al cliente cuando esté.
-                  </Aviso>
-                  <PieAcciones izquierda={<BotonAnularPedido onClick={onAnularPedido} />}>
-                    <BotonAncla href={whatsapp(p.sinRecoger ? "norecoge" : "libre")} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle aria-hidden className="h-4 w-4" />
-                      WhatsApp
-                    </BotonAncla>
-                  </PieAcciones>
-                </>
-              ) : (
-                <>
-                  <CampoGuiado id="codigo" guia={guia}>
-                    <div data-guia="pedido-web.codigo">
-                      <CampoTexto
-                        etiqueta={guia.etiqueta("codigo", "Código para recoger")}
-                        mono
-                        inputMode="numeric"
-                        // Sin maxLength: el navegador cortaría «20 94» pegado en «20 9» antes de limpiarlo (/chaos 2026-10-15); las
-                        // 4 cifras las deja limpiarCodigo.
-                        value={codigo}
-                        onChange={(e) => {
-                          setCodigo(limpiarCodigo(e.target.value));
-                          setRechazoCodigo(null);
-                          setErrorEntrega(null);
-                        }}
-                        tono={rechazoCodigo ? "error" : undefined}
-                        pie={rechazoCodigo ?? "Pídeselo al cliente: lo ve en su pedido, en «Mis pedidos»."}
-                        disabled={entrega.incierto}
-                      />
-                    </div>
-                  </CampoGuiado>
-                  <CampoGuiado id="responsable" guia={guia}>
-                    <ComboResponsable control={responsable} deshabilitado={entrega.enviando || entrega.incierto} />
-                  </CampoGuiado>
-                  <p className="text-[12.5px] text-taupe">Al entregar, sus prendas salen del stock. La boleta ya salió cuando quedó pagado.</p>
-                  {/* El aviso de toda la hoja va en el pie pegado: con la hoja larga, debajo quedaba tapado (como «Registrar un pago»). */}
-                  <div className="pie-hoja-fijo space-y-2 pt-2">
-                    {errorEntrega && (
-                      <Aviso tono="error" titulo={errorEntrega.titulo}>
-                        {errorEntrega.detalle}
+              <Columnas
+                izq={
+                  <>
+                    {p.sinRecoger && (
+                      <Aviso tono="error" titulo={`Pagó ${p.pagadoEn ? haceCuanto(p.pagadoEn, ahora) : ""} y no lo recoge`}>
+                        Ya pagó: no se libera solo. Recuérdale que lo recoja. Si no lo hará, decídelo con tu líder.
                       </Aviso>
                     )}
-                    {entrega.incierto ? (
-                      <AvisoIntentoIncierto onRevisar={() => revisarEntrega(cerrar)} revisando={revisando} />
-                    ) : errorEntrega ? null : (
-                      <PieGuia guia={guia} />
+                    <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} onReservar={reservar} />
+                    {faltan.length > 0 ? (
+                      <Aviso tono="info" titulo="Todavía no se puede entregar">
+                        Falta que llegue a {p.tienda}: {faltan.join(", ")}. Avísale al cliente cuando esté.
+                      </Aviso>
+                    ) : (
+                      <CampoGuiado id="codigo" guia={guia}>
+                        <div data-guia="pedido-web.codigo">
+                          <CampoTexto
+                            etiqueta={guia.etiqueta("codigo", "Código para recoger")}
+                            mono
+                            inputMode="numeric"
+                            // Sin maxLength: el navegador cortaría «20 94» pegado en «20 9» antes de limpiarlo (/chaos 2026-10-15); las
+                            // 4 cifras las deja limpiarCodigo.
+                            value={codigo}
+                            onChange={(e) => {
+                              setCodigo(limpiarCodigo(e.target.value));
+                              setRechazoCodigo(null);
+                              setErrorEntrega(null);
+                            }}
+                            tono={rechazoCodigo ? "error" : undefined}
+                            pie={rechazoCodigo ?? "Lo ve en «Mis pedidos» de su cuenta en la web."}
+                            disabled={entrega.incierto}
+                          />
+                        </div>
+                      </CampoGuiado>
                     )}
-                    <PieAcciones guia="pedido-web.entregar" izquierda={<BotonAnularPedido onClick={onAnularPedido} deshabilitado={entrega.enviando || entrega.incierto} />}>
-                      <BotonAncla href={whatsapp(p.sinRecoger ? "norecoge" : "listo")} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle aria-hidden className="h-4 w-4" />
-                        WhatsApp
-                      </BotonAncla>
-                      <Boton
-                        type="button"
-                        peso="primario"
-                        cargando={entrega.enviando}
-                        textoCargando="Entregando…"
-                        disabled={!guia.puedeConfirmar || revisando}
-                        title={guia.frase ?? undefined}
-                        className={guia.claseConfirmar}
-                        onClick={() => entregar(cerrar)}
-                      >
-                        {entrega.incierto ? "Volver a intentar" : "Entregar"}
-                      </Boton>
-                    </PieAcciones>
-                  </div>
-                </>
-              )}
+                  </>
+                }
+                der={
+                  <>
+                    {clienteWa}
+                    <BloqueDinero pedido={p} ahora={ahora} />
+                    <BloqueBoleta boleta={p.boleta} acciones={<AccionesTicket pedido={p} />} />
+                    {faltan.length === 0 && (
+                      <>
+                        <CampoGuiado id="responsable" guia={guia}>
+                          <ComboResponsable control={responsable} deshabilitado={entrega.enviando || entrega.incierto} />
+                        </CampoGuiado>
+                        <p className="text-[12.5px] text-taupe">Al entregar, sus prendas salen del stock. La boleta ya salió al pagar.</p>
+                      </>
+                    )}
+                  </>
+                }
+              />
+              {/* El aviso de toda la hoja va en el pie pegado: con la hoja larga, debajo quedaba tapado (como «Registrar un pago»). */}
+              <div className="pie-hoja-fijo space-y-2 pt-2">
+                {faltan.length === 0 && errorEntrega && (
+                  <Aviso tono="error" titulo={errorEntrega.titulo}>
+                    {errorEntrega.detalle}
+                  </Aviso>
+                )}
+                {faltan.length === 0 && (entrega.incierto ? <AvisoIntentoIncierto onRevisar={() => revisarEntrega(cerrar)} revisando={revisando} /> : errorEntrega ? null : <PieGuia guia={guia} />)}
+                <PieAcciones guia="pedido-web.entregar" izquierda={<BotonAnularPedido onClick={onAnularPedido} deshabilitado={entrega.enviando || entrega.incierto} />}>
+                  {faltan.length === 0 && (
+                    <Boton
+                      type="button"
+                      peso="primario"
+                      cargando={entrega.enviando}
+                      textoCargando="Entregando…"
+                      disabled={!guia.puedeConfirmar || revisando}
+                      title={guia.frase ?? undefined}
+                      className={guia.claseConfirmar}
+                      onClick={() => entregar(cerrar)}
+                    >
+                      {entrega.incierto ? "Volver a intentar" : "Entregar"}
+                    </Boton>
+                  )}
+                </PieAcciones>
+              </div>
             </>
           )}
 
           {!porConfirmar && p.estado !== "confirmado" && p.estado !== "pagado" && modo !== "reservar" && (
-            <>
-              <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} />
-              {porDevolver(p) > 0 && (
-                <Aviso
-                  tono="atencion"
-                  titulo={`Falta devolverle ${soles(porDevolver(p))}`}
-                  className={AVISO_CON_BOTON}
-                  accion={
-                    <BotonAncla href={whatsapp("devolucion")} target="_blank" rel="noopener noreferrer" className="btn-chico">
-                      <MessageCircle aria-hidden className="h-4 w-4" />
-                      Escribirle por WhatsApp
-                    </BotonAncla>
-                  }
-                >
-                  El pedido está anulado y ya había pagado. Coordina cómo se lo devuelves y regístralo en cada pago con «Devolver».
-                </Aviso>
-              )}
-              {lineasVivas.length > 0 && p.estado !== "vencido" && (
-                <BloqueDinero pedido={p} ahora={ahora} onAnularPago={p.estado === "anulado" ? onAnularPago : undefined} />
-              )}
-              {p.estado === "entregado" && <BloqueBoleta boleta={p.boleta} acciones={<AccionesTicket pedido={p} />} />}
-              {p.estado === "anulado" && p.ventaId && <BloqueBoleta boleta={p.boleta} nota={p.notaCredito} anulado />}
-              <Aviso tono="info">
-                {p.estado === "entregado"
-                  ? `Entregado ${p.entregadoEn ? haceCuanto(p.entregadoEn, ahora) : ""}${p.entregadoPor ? ` por ${p.entregadoPor}` : ""}. Sus prendas salieron del stock.`
-                  : p.estado === "vencido"
-                    ? `Se cerró solo: nadie lo confirmó en ${p.plazos.horasParaConfirmar} horas. Nada se había reservado.`
-                    : p.ventaId
-                      ? `Anulado después de pagarse: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}. Sus prendas volvieron a estar libres y se le devolvió lo que pagó.`
-                      : `Anulado: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}.`}
-              </Aviso>
-            </>
+            <Columnas
+              izq={
+                <>
+                  {porDevolver(p) > 0 && (
+                    <Aviso tono="atencion" titulo={`Falta devolverle ${soles(porDevolver(p))}`}>
+                      El pedido está anulado y ya había pagado. Coordina cómo se lo devuelves y regístralo en cada pago con «Devolver».
+                    </Aviso>
+                  )}
+                  <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} />
+                </>
+              }
+              der={
+                <>
+                  {clienteWa}
+                  {lineasVivas.length > 0 && p.estado !== "vencido" && (
+                    <BloqueDinero pedido={p} ahora={ahora} onAnularPago={p.estado === "anulado" ? onAnularPago : undefined} />
+                  )}
+                  {p.estado === "entregado" && <BloqueBoleta boleta={p.boleta} acciones={<AccionesTicket pedido={p} />} />}
+                  {p.estado === "anulado" && p.ventaId && <BloqueBoleta boleta={p.boleta} nota={p.notaCredito} anulado />}
+                </>
+              }
+            />
           )}
         </div>
       )}
@@ -774,18 +750,31 @@ export function PedidoWebHoja({
 
 const lineasPorConseguir = (d: Record<string, DecisionLinea | null>) => Object.values(d).filter((x) => x?.tipo === "por_conseguir").length;
 
-/** Quién separó el pedido y cómo escribirle: lo necesario para coordinar por WhatsApp (decisión de Felipe, ADR-0408 act. c). */
-function BloqueCliente({ pedido: p, whatsapp }: { pedido: PedidoDetalle; whatsapp: string }) {
+/** La hoja del pedido en dos columnas desde 1024 px (lo del pedido a la izquierda; el cliente y el dinero, al costado y a la vista). */
+function Columnas({ izq, der }: { izq: ReactNode; der: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-sand bg-hueso/40 px-4 py-3" data-guia="pedido-web.cliente">
-      <AvatarPersona personaId={null} nombre={p.cliente.nombre} tamano={40} />
-      <span className="min-w-0 flex-1">
-        <span className="block font-medium text-tinta">{p.cliente.nombre}</span>
-        <span className="block text-[12.5px] text-taupe">{datosDelCliente(p.cliente) || "Sin datos de contacto"}</span>
-      </span>
-      <BotonAncla href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn-chico">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
+      <div className="min-w-0 space-y-4">{izq}</div>
+      <div className="min-w-0 space-y-4 lg:sticky lg:top-0">{der}</div>
+    </div>
+  );
+}
+
+/** Quién separó el pedido y cómo escribirle: lo necesario para coordinar por WhatsApp (decisión de Felipe, ADR-0408 act. c). */
+function BloqueCliente({ pedido: p, whatsapp, boton }: { pedido: PedidoDetalle; whatsapp: string; boton: string }) {
+  return (
+    <div className="space-y-3 rounded-xl border border-sand px-4 py-3" data-guia="pedido-web.cliente">
+      <div className="flex items-center gap-3">
+        <AvatarPersona personaId={null} nombre={p.cliente.nombre} tamano={40} />
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium text-tinta">{p.cliente.nombre}</span>
+          <span className="block text-[12.5px] text-taupe">{datosDelCliente(p.cliente) || "Sin datos de contacto"}</span>
+        </span>
+      </div>
+      {/* El único WhatsApp de la hoja: su texto dice para qué es (pedirle el pago, avisarle que ya puede recoger…). */}
+      <BotonAncla href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn-chico w-full">
         <MessageCircle aria-hidden className="h-4 w-4" />
-        WhatsApp
+        {boton}
       </BotonAncla>
     </div>
   );
