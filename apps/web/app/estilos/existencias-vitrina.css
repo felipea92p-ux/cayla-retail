@@ -1,0 +1,158 @@
+/* ==================================================================
+   LA TARJETA VITRINA DE EXISTENCIAS (ADR-0589, maqueta docs/maquetas/existencias-tarjetas-profundidad-2026-10/, opción B)
+
+   La prenda manda: la foto grande a la izquierda, con sus colores en una chapa de vidrio encima; a la derecha nombre, precio,
+   color y la tira de tallas hundida; el pie, a todo el ancho debajo. Es la ÚNICA superficie pegada al fondo con sombra en reposo (ADR-0012 la
+   prohíbe para tarjetas, tablas y celdas; Felipe 2026-10-31 abrió esta excepción para la rejilla de Existencias, que se veía «muy
+   plana, un recuadro y ya»). Las demás `card-cayla` siguen sin sombra.
+
+   Movimiento (ADR-0136): solo al pasar el mouse —sube 3 px y la sombra se alarga, 320 ms con `--ease-cayla`, sin rebote ni bucle—;
+   con movimiento reducido no se mueve. Solo tokens: la sombra es `--color-sombra` y el filo de luz es `--color-vidrio` (blanco en
+   claro, hueso en oscuro), los dos se invierten solos con el tema.
+   ================================================================== */
+
+.tarjeta-vitrina {
+  --vitrina-reposo:
+    0 1px 1px color-mix(in srgb, var(--color-sombra) 4%, transparent),
+    0 6px 16px -8px color-mix(in srgb, var(--color-sombra) 12%, transparent);
+  --vitrina-alzada:
+    0 2px 4px color-mix(in srgb, var(--color-sombra) 5%, transparent),
+    0 22px 40px -18px color-mix(in srgb, var(--color-sombra) 26%, transparent);
+  --vitrina-filo: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 85%, transparent);
+  position: relative;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  /* El pie va a todo el ancho, debajo de la foto y de la tira: «Colgar en el piso · 3 tallas» y «Más» no cabían al lado de la foto
+     (se cortaban 22 px a 1920 y 47 px a 375, medido en local). */
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 10px 12px;
+  padding: 9px;
+  border-radius: 20px;
+  background: var(--color-papel);
+  border: 1px solid color-mix(in srgb, var(--color-sand) 70%, transparent);
+  box-shadow: var(--vitrina-filo), var(--vitrina-reposo);
+  transition:
+    transform 320ms var(--ease-cayla),
+    box-shadow 320ms var(--ease-cayla);
+}
+/* En oscuro la sombra es negra y necesita más cuerpo para leerse sobre el negro cálido; el filo, apenas un hilo. */
+[data-tema="oscuro"] .tarjeta-vitrina {
+  --vitrina-reposo:
+    0 1px 1px color-mix(in srgb, var(--color-sombra) 30%, transparent),
+    0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  --vitrina-alzada:
+    0 2px 4px color-mix(in srgb, var(--color-sombra) 35%, transparent),
+    0 24px 44px -18px color-mix(in srgb, var(--color-sombra) 75%, transparent);
+  --vitrina-filo: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 45%, transparent);
+}
+@media (hover: hover) {
+  .tarjeta-vitrina:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--vitrina-filo), var(--vitrina-alzada);
+  }
+  .tarjeta-vitrina:hover .vitrina-foto-img {
+    transform: scale(1.04);
+  }
+}
+.tarjeta-vitrina:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+
+/* El filo de estado: 3 px en el canto izquierdo dicen desde lejos qué tarjetas piden algo (rojo = se acabó una talla, ámbar = falta
+   colgar). Repite lo que ya dicen la tira y el pie: es para ver la rejilla de una mirada, no reemplaza a ninguno. */
+.tarjeta-vitrina[data-estado="agotada"]::before,
+.tarjeta-vitrina[data-estado="falta"]::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 22px;
+  bottom: 22px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+.tarjeta-vitrina[data-estado="agotada"]::before { background: var(--color-rojo); }
+.tarjeta-vitrina[data-estado="falta"]::before { background: var(--color-ambar); }
+
+/* La foto, a todo el alto. El color de la prenda es dato (no cambia con el tema) y la sombra la despega del papel. */
+.vitrina-foto {
+  position: relative;
+  display: block;
+  min-height: 140px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-sand) 50%, transparent);
+  box-shadow: 0 10px 20px -14px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+}
+.vitrina-foto-img {
+  position: absolute;
+  inset: 0;
+  transition: transform 500ms var(--ease-cayla);
+}
+
+/* La chapa de colores: vidrio sobre la foto, en UNA línea. Hasta 5 colores se ven todos; con más, 3 y «+N», que abre el modal de la
+   prenda con todos (Felipe 2026-10-31). Nunca se abre ni crece: la tarjeta no cambia de forma. */
+.vitrina-chapa {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-papel) 82%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-tinta) 8%, transparent),
+    0 2px 8px -4px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+}
+.vitrina-mas-colores {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+  background: color-mix(in srgb, var(--color-tinta) 9%, transparent);
+  transition: background-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .vitrina-mas-colores:hover { background: color-mix(in srgb, var(--color-tinta) 16%, transparent); }
+}
+.vitrina-mas-colores:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+
+/* La tira de tallas: un pozo de hueso hundido. `minmax(0, 1fr)`: sin esto una tira de 5 tallas ensanchaba la columna y el precio,
+   la tira y el pie se salían de la tarjeta a 375 px (medido en la maqueta). */
+.vitrina-tira {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--color-hueso);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 9%, transparent);
+}
+[data-tema="oscuro"] .vitrina-tira {
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-vitrina,
+  .vitrina-foto-img,
+  .vitrina-mas-colores {
+    transition: none;
+  }
+  @media (hover: hover) {
+    .tarjeta-vitrina:hover { transform: none; }
+    .tarjeta-vitrina:hover .vitrina-foto-img { transform: none; }
+  }
+}
