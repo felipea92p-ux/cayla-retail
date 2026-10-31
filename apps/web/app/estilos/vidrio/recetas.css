@@ -1,0 +1,157 @@
+/* =====================================================================
+   EL VIDRIO «SERENA» — las recetas (ADR-0596, Felipe 2026-10-31; maquetas en docs/maquetas/modales-vidrio-2026-10/ y
+   docs/maquetas/marco-vidrio-2026-10/, tablero en docs/vidrio/README.md).
+
+   Este archivo es la ÚNICA fuente de cómo se ve el vidrio: cada pieza del ERP (la hoja, el cajón, el campo, el botón, el combo, la nota,
+   el aviso, la barra, el paso de cantidad, el segmento, el menú, la cabecera) se arma con estas recetas y no repite números. Cambiar una
+   receta aquí cambia esa materia en todo el sistema.
+
+   El idioma (lo eligió Felipe mirando): lo HUNDIDO espera tu dato (el pozo: campos, combos, buscador) · lo que SOBRESALE es lo que haces
+   o donde estás (la gota: botones, la opción elegida, la fila activa del menú) · lo que EXPLICA es plano (la placa: notas, filas, listas).
+   Nada sólido sobre el vidrio: hasta el botón principal es vidrio ahumado.
+
+   Solo tokens (ADR-0169 / ADR-0336): el claro usa `--color-vidrio` (blanco) para la luz; el oscuro, `--color-tinta` (crema) a poca
+   opacidad. Imprimir sale en claro (el oscuro vive en `@media screen`, como tema.css).
+   ===================================================================== */
+
+:root {
+  /* ---------- la hoja (Modal) y el cajón (Cajon) ---------- */
+  --vidrio-hoja-fondo: color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  --vidrio-hoja-filtro: blur(22px) saturate(1.5);
+  --vidrio-hoja-borde: color-mix(in srgb, var(--color-vidrio) 55%, transparent);
+  --vidrio-hoja-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent),
+    0 50px 90px -40px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  --vidrio-hoja-radio: 32px;
+  /* El velo, más liviano que el de papel: que se vea lo de atrás a través del vidrio. */
+  --vidrio-velo: color-mix(in srgb, var(--color-sombra) 20%, transparent);
+  /* El pie pegado de una hoja larga (`pie-hoja-fijo`): vidrio que desenfoca lo que pasa por detrás. */
+  --vidrio-pie-fondo: color-mix(in srgb, var(--color-vidrio) 62%, transparent);
+
+  /* ---------- la placa: lo que explica (nota, fila de datos, lista, lámina) ---------- */
+  --placa-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 45%, transparent), color-mix(in srgb, var(--color-vidrio) 20%, transparent));
+  --placa-borde: color-mix(in srgb, var(--color-vidrio) 55%, transparent);
+  --placa-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent);
+  /* La lámina: una placa casi papel, donde se lee en serio (tablas dentro de una hoja). */
+  --lamina-fondo: color-mix(in srgb, var(--color-papel) 82%, transparent);
+
+  /* ---------- la gota: lo que haces o donde estás (botón secundario, opción elegida, fila activa) ---------- */
+  --gota-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 58%, transparent), color-mix(in srgb, var(--color-vidrio) 22%, transparent));
+  --gota-fondo-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 78%, transparent), color-mix(in srgb, var(--color-vidrio) 40%, transparent));
+  /* La gota que marca dónde estás (menú, lista): más llena, para que se vea desde lejos. */
+  --gota-marca: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 92%, transparent), color-mix(in srgb, var(--color-vidrio) 60%, transparent));
+  --gota-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 95%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, var(--color-sombra) 6%, transparent),
+    0 6px 14px -8px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+
+  /* ---------- el pozo: lo que espera tu dato (campo, combo, buscador, paso de cantidad) ---------- */
+  --pozo-fondo: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --pozo-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-vidrio) 75%, transparent);
+  /* Al escribir sube como la gota, pero sigue siendo vidrio (Felipe: «que no se pongan con un color sólido»). */
+  --pozo-encendido-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 50%, transparent), color-mix(in srgb, var(--color-vidrio) 22%, transparent));
+  --pozo-encendido-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 95%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, var(--color-sombra) 6%, transparent),
+    0 10px 22px -12px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+  /* «Sigue aquí» de la guía de foco (ADR-0284): sube a medias y lleva su anillo pizarra, que sobre el vidrio sí se ve. */
+  --pozo-sigue-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 40%, transparent), color-mix(in srgb, var(--color-vidrio) 16%, transparent));
+  --pozo-sigue-anillo: 0 0 0 3px color-mix(in srgb, var(--color-pizarra) 26%, transparent);
+
+  /* ---------- el ahumado: el botón principal y la elegida en una fila de píldoras ---------- */
+  --ahumado-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 72%, transparent), color-mix(in srgb, var(--color-tinta) 93%, transparent));
+  --ahumado-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 92%, transparent));
+  --ahumado-borde: color-mix(in srgb, var(--color-tinta) 55%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --ahumado-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 45%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 8%, transparent),
+    0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  /* Lo peligroso es vidrio rojo: no se confunde, y tampoco es un bloque sólido. */
+  --rojo-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 70%, transparent), color-mix(in srgb, var(--color-rojo) 92%, transparent));
+  --rojo-vidrio-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 94%, transparent));
+
+  /* ---------- la lente: el ícono que se mira a través de un vidrio (la «i» de una nota, el ícono de un aviso) ---------- */
+  --lente-fondo: linear-gradient(145deg, color-mix(in srgb, var(--color-vidrio) 85%, transparent), color-mix(in srgb, var(--color-vidrio) 25%, transparent));
+  --lente-luz: inset 0 1px 0 var(--color-vidrio), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+
+  /* ---------- el desenfoque de lo que flota sobre la pantalla (lista de un combo, botón flotante) ---------- */
+  --vidrio-flota-fondo: color-mix(in srgb, var(--color-vidrio) 74%, transparent);
+  --vidrio-flota-filtro: blur(24px) saturate(1.6);
+  --vidrio-flota-sombra: inset 0 1px 0 var(--color-vidrio), 0 26px 54px -24px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+
+  /* ---------- el marco: el riel del menú y las islas de la cabecera (marco-vidrio-2026-10; piezas en vidrio/marco.css) ---------- */
+  /* Más transparente que una hoja: el marco está siempre a la vista y no debe tapar la aurora ni lo que pasa por debajo. El
+     desenfoque es el de lo que flota (`--vidrio-flota-filtro`). */
+  --marco-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 64%, transparent), color-mix(in srgb, var(--color-vidrio) 48%, transparent));
+  --marco-vidrio-borde: color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+  --marco-vidrio-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent),
+    0 24px 50px -30px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+  /* El riel va pegado al borde: su luz es el filo de la derecha y su sombra cae hacia el contenido. */
+  --marco-riel-sombra: inset -1px 0 0 color-mix(in srgb, var(--color-vidrio) 80%, transparent),
+    12px 0 40px -30px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  /* La bandeja: los submódulos de un módulo abierto, hundidos bajo él. Un pozo más suave que el de un campo: guarda filas, no espera un dato. */
+  --bandeja-fondo: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --bandeja-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 10%, transparent);
+  /* El botón de plegar: una gota redonda que flota sobre el borde del riel, mitad sobre el menú y mitad sobre el contenido. */
+  --plegar-fondo: var(--gota-marca);
+  --plegar-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  --plegar-sombra: inset 0 1px 0 var(--color-vidrio), 0 6px 16px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+}
+
+@media screen {
+  :root[data-tema="oscuro"] {
+    --vidrio-hoja-fondo: color-mix(in srgb, var(--color-vidrio) 82%, transparent);
+    --vidrio-hoja-borde: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --vidrio-hoja-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 18%, transparent), 0 50px 90px -40px var(--color-sombra);
+    --vidrio-velo: color-mix(in srgb, var(--color-sombra) 42%, transparent);
+    --vidrio-pie-fondo: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+
+    --placa-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 7%, transparent), color-mix(in srgb, var(--color-tinta) 3%, transparent));
+    --placa-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --placa-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    --lamina-fondo: color-mix(in srgb, var(--color-papel) 80%, transparent);
+
+    --gota-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 15%, transparent), color-mix(in srgb, var(--color-tinta) 5%, transparent));
+    --gota-fondo-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 22%, transparent), color-mix(in srgb, var(--color-tinta) 10%, transparent));
+    --gota-marca: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 18%, transparent), color-mix(in srgb, var(--color-tinta) 9%, transparent));
+    --gota-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent), 0 6px 14px -8px var(--color-sombra);
+
+    --pozo-fondo: color-mix(in srgb, var(--color-sombra) 30%, transparent);
+    --pozo-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 55%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--color-tinta) 8%, transparent);
+    --pozo-encendido-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 14%, transparent), color-mix(in srgb, var(--color-tinta) 6%, transparent));
+    --pozo-encendido-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 16%, transparent), 0 10px 22px -12px var(--color-sombra);
+    --pozo-sigue-fondo: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --pozo-sigue-anillo: 0 0 0 3px color-mix(in srgb, var(--color-pizarra) 32%, transparent);
+
+    --ahumado-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 74%, transparent), color-mix(in srgb, var(--color-tinta) 92%, transparent));
+    --ahumado-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 92%, transparent));
+    --ahumado-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 60%, transparent), 0 8px 18px -10px var(--color-sombra);
+    --rojo-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 74%, transparent), color-mix(in srgb, var(--color-rojo) 92%, transparent));
+
+    --lente-fondo: linear-gradient(145deg, color-mix(in srgb, var(--color-tinta) 18%, transparent), color-mix(in srgb, var(--color-tinta) 5%, transparent));
+    --lente-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 18%, transparent);
+
+    --vidrio-flota-fondo: color-mix(in srgb, var(--color-vidrio) 88%, transparent);
+    --vidrio-flota-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 26px 54px -24px var(--color-sombra);
+
+    --marco-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-vidrio) 60%, transparent));
+    --marco-vidrio-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --marco-vidrio-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 24px 50px -30px var(--color-sombra);
+    --marco-riel-sombra: inset -1px 0 0 color-mix(in srgb, var(--color-tinta) 10%, transparent), 12px 0 40px -30px var(--color-sombra);
+    --bandeja-fondo: color-mix(in srgb, var(--color-sombra) 26%, transparent);
+    --bandeja-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    /* En oscuro la gota es casi transparente: sobre el borde del riel se perdería. El botón va en hueso, como en la maqueta. */
+    --plegar-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 95%, transparent), color-mix(in srgb, var(--color-hueso) 80%, transparent));
+    --plegar-borde: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --plegar-sombra: 0 6px 16px -8px var(--color-sombra);
+  }
+}
+
+/* Quien pidió menos transparencia en su aparato ve el vidrio como papel: las mismas piezas, sin nada translúcido detrás. */
+@media (prefers-reduced-transparency: reduce) {
+  :root, :root[data-tema="oscuro"] {
+    --vidrio-hoja-fondo: var(--color-papel);
+    --vidrio-pie-fondo: var(--color-papel);
+    --vidrio-flota-fondo: var(--color-papel);
+    --vidrio-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);
+    --placa-fondo: var(--color-papel);
+    --lamina-fondo: var(--color-papel);
+  }
+}

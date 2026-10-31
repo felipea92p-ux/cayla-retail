@@ -1,0 +1,103 @@
+/* =====================================================================
+   CAMPOS Y BOTONES CON EL VIDRIO «SERENA» (ADR-0596; maqueta docs/maquetas/modales-vidrio-2026-10/, campos «A · Hundido» y botones
+   «A · Gota», los dos elegidos por Felipe el 2026-10-31). Todo sale de las recetas de recetas.css.
+
+   · El CAMPO (toda `caja-cayla`: CampoTexto, CampoMonto, CampoFecha, Desplegable, ComboBuscable, ComboResponsable, buscadores de filtro)
+     es un pozo tallado en el vidrio. Al escribir (o con la lista abierta) sube como la gota sin volverse sólido: se ilumina por arriba,
+     gana su sombra afuera y deja ver lo de atrás. El hilo rojo de abajo (campos-y-casillas.css) se queda: dice dónde estás escribiendo.
+     El borde sigue siendo el de control (3:1, ADR-0516).
+   · El BOTÓN es una píldora. El secundario es la gota; el principal, vidrio ahumado de tinta (más denso abajo, para no verse gris); lo
+     peligroso, vidrio rojo. Nada sólido. Lo de siempre se queda: el negro pasa a rojo profundo, sube 2 px, cruza la luz (`.mov-boton`) y
+     se encoge al presionar.
+   ===================================================================== */
+
+/* ---------- el campo: el pozo ---------- */
+.caja-cayla {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+  border-radius: 14px;
+  transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 220ms var(--ease-cayla), transform 300ms var(--ease-cayla);
+}
+.caja-campo:has(:is(input, textarea):focus),
+.caja-campo[aria-expanded="true"],
+.caja-campo:has([aria-expanded="true"]) {
+  background: var(--pozo-encendido-fondo);
+  box-shadow: var(--pozo-encendido-sombra);
+  transform: translateY(-1px);
+}
+/* «Sigue aquí» de la guía de foco (ADR-0284): sube a medias y lleva su anillo pizarra (el papel sólido de antes era papel sobre vidrio). */
+:is(.hilo-fila, .hilo-luz)[data-estado="ahora"] .caja-cayla:not(:focus-within) {
+  background: var(--pozo-sigue-fondo);
+  box-shadow: var(--pozo-sigue-anillo);
+}
+/* La flecha de un combo es una gota: lo que aprietas sobresale del pozo donde va tu dato (combo «A · Pozo y gota»). */
+.caja-campo .combo-flecha {
+  box-sizing: content-box;
+  width: 14px;
+  height: 14px;
+  padding: 6px;
+  margin-right: -0.375rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 60%, transparent);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+/* El buscador de una lista (<Buscador>): el mismo pozo, en píldora. */
+.buscador {
+  border-radius: 999px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+  transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+}
+.buscador:focus-within { background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra); }
+
+/* ---------- el botón: la píldora ---------- */
+.btn-cayla:not(.btn-enlace) {
+  border-radius: 999px;
+  min-height: 2.5rem;
+  padding-inline: 1.125rem;
+}
+.btn-primario {
+  background: var(--ahumado-fondo);
+  border-color: var(--ahumado-borde);
+  box-shadow: var(--ahumado-luz);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+}
+.btn-secundario {
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+.btn-sutil {
+  background: transparent;
+  border-color: var(--placa-borde);
+}
+.btn-peligro {
+  background: var(--rojo-vidrio-fondo);
+  border-color: color-mix(in srgb, var(--color-rojo) 70%, transparent);
+  color: var(--color-crema);
+  box-shadow: var(--ahumado-luz);
+}
+@media (hover: hover) {
+  .btn-primario:hover:not(:disabled) { background: var(--ahumado-hover); border-color: color-mix(in srgb, var(--color-rojo-profundo) 70%, transparent); }
+  .btn-secundario:hover:not(:disabled) { background: var(--gota-fondo-encima); }
+  .btn-sutil:hover:not(:disabled) { background: var(--gota-fondo); }
+  .btn-peligro:hover:not(:disabled) { background: var(--rojo-vidrio-hover); }
+}
+
+/* ---------- las píldoras que eligen (filtros, períodos): apagadas son gota; la elegida, ahumada ---------- */
+.pildora-cayla {
+  background: var(--gota-fondo);
+  border-color: color-mix(in srgb, var(--color-borde-control) 60%, transparent);
+  box-shadow: var(--gota-luz);
+}
+.pildora-cayla:is([aria-pressed="true"], [aria-current="page"], [data-activa="true"]),
+.pildora-filtro[data-puesta] {
+  background: var(--ahumado-fondo);
+  border-color: var(--ahumado-borde);
+  box-shadow: var(--ahumado-luz);
+}
+.pildora-filtro:not([data-puesta]) {
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}

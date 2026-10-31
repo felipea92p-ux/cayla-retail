@@ -1,0 +1,75 @@
+/* =====================================================================
+   SEGMENTO, BARRA APILADA Y PASO DE CANTIDAD CON EL VIDRIO «SERENA» (ADR-0596; maqueta docs/maquetas/modales-vidrio-2026-10/).
+   Elegidos por Felipe el 2026-10-31: el segmento con la gota de «Mi perfil», la barra «A · Tubo de vidrio» y la planilla «A · Celdas
+   vivas». Todo con las recetas de recetas.css; una vez, sin rebote, apagado con `prefers-reduced-motion`.
+   ===================================================================== */
+
+/* ---------- el segmento de un formulario (SegmentoDeslizante, cara de campo): pista hundida y la gota ---------- */
+.segmento-campo {
+  padding: 4px;
+  border-radius: 999px;
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--color-sombra) 12%, transparent);
+}
+.segmento-campo__gota {
+  top: 4px;
+  bottom: 4px;
+  border-radius: 999px;
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+.segmento-campo__op { border-radius: 999px; padding-block: 0.5rem; }
+.segmento-campo__op[aria-checked="true"] { color: var(--color-tinta); font-weight: 700; }
+
+/* ---------- la barra apilada: el tubo de vidrio ---------- */
+/* La pista es un pozo (como los campos) y cada tramo, vidrio de su color con la luz arriba. La de 4 px (una fila) se queda fina. */
+.barra-apilada:not([data-alto="4"]) {
+  height: 16px;
+  padding: 3px;
+  gap: 3px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+  border: 1px solid var(--placa-borde);
+}
+.barra-apilada[data-alto="8"] { height: 12px; padding: 2px; gap: 2px; }
+.barra-apilada:not([data-alto="4"]) .barra-tramo { border-radius: 999px; background: transparent; }
+.barra-apilada:not([data-alto="4"]) .barra-tramo-color {
+  border-radius: 999px;
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 38%, transparent), transparent 70%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 55%, transparent), 0 3px 8px -3px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+}
+@media screen {
+  [data-tema="oscuro"] .barra-apilada:not([data-alto="4"]) .barra-tramo-color {
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 18%, transparent), transparent 70%);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent);
+  }
+}
+
+/* ---------- el paso de cantidad de una planilla: las celdas vivas ---------- */
+/* En una matriz de tallas (`celda`, `planilla`) se ven NÚMEROS, no cajas: la caja de una talla aparece al apuntarla o con el foco (en una
+   pantalla táctil, siempre); el − y el + quedan tenues hasta entonces. Las demás formas (fila, grande) son el pozo de los campos. */
+.caja-campo.paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-tinta) 3%, transparent);
+  box-shadow: none;
+  border-radius: 999px;
+}
+.paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]) .paso-cantidad-b { opacity: 0.4; transition: opacity 200ms, background 200ms; }
+.caja-campo.paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]):focus-within {
+  border-color: var(--color-borde-control);
+  background: var(--pozo-encendido-fondo);
+  box-shadow: var(--pozo-encendido-sombra);
+}
+.paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]):focus-within .paso-cantidad-b { opacity: 1; }
+@media (hover: hover) {
+  .caja-campo.paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]):hover {
+    border-color: var(--color-borde-control);
+    background: var(--pozo-fondo);
+    box-shadow: var(--pozo-sombra);
+  }
+  .paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]):hover .paso-cantidad-b { opacity: 1; }
+}
+@media (hover: none) {
+  .paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]) .paso-cantidad-b { opacity: 1; }
+}

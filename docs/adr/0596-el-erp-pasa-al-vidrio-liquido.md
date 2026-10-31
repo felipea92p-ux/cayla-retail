@@ -41,3 +41,24 @@ elegido mirando.
 - **Cómo entra al código:** por `/unificar` (familia por familia, módulo por módulo, con el OK de Felipe), sin cambiar qué hace ninguna
   pieza. Lo de diseño propio (vista rápida, Insignias, Ajustar stock, Observatorio, la persiana de Caja, el telar de Finanzas) no se toca
   sin que Felipe lo diga.
+
+## Actualización 2026-10-31 (b) — lo elegido entra al código, de forma modular
+
+Felipe pidió llevar ya al sistema todo lo elegido, «de forma modular para solo tener que cambiar ese componente y que se aplique en todo».
+
+DECIDÍ: una sola fuente de recetas, `apps/web/app/estilos/vidrio/recetas.css` (placa, gota, pozo, ahumado, lente, velo, con su oscuro), y
+las piezas armadas con ellas en `app/estilos/vidrio/` (`hoja.css`, `campos-y-botones.css`, `notas-avisos-combos.css`,
+`graficos-y-pasos.css`, `marco.css`), importadas al final de `globals.css` y SIN capa: le ganan a `components` y a las utilidades, así que
+las ~275 hojas, los 14 cajones, todos los campos (`caja-cayla`), botones (`btn-cayla`), notas (`nota-cayla`), avisos (`aviso-linea`),
+listas de combo (`lista-flotante`), segmentos de campo, barras apiladas y pasos de cantidad cambian sin tocar una pantalla. En TSX solo se
+cambió la clase de la cara (`hoja-serena` en `Modal`, `cajon-serena` en `Cajon`), los ganchos del segmento (la gota que se estira) y la
+forma «pastilla» del combo (`combo-pastilla`); el marco, en `AppShell`.
+
+DESCARTÉ: el `backdrop-filter` en la hoja (como en la maqueta). Vuelve a la hoja el bloque contenedor de todo `position: fixed` de adentro,
+y la hoja es la que hace scroll: la lista de cada combo (el Responsable con que se firma casi todo) quedaría recortada y se iría con el
+scroll. El desenfoque lo pone el velo (12 px) y la hoja es vidrio translúcido encima: se ve esmerilado y ningún combo cambia de
+comportamiento. También descarté que la gota de las listas «viaje» con JavaScript: es la misma `opcion-activa` de siempre (que sigue al
+mouse y a las flechas), pintada como gota con un fundido corto; así la tienen todos los combos sin tocar ninguno.
+
+SE ROMPE SI: alguien le pone `backdrop-filter` (o `transform`/`filter` permanentes) a `.hoja-serena` o a `.cajon-serena`; o si una pieza
+nueva escribe su propio vidrio en vez de una receta.

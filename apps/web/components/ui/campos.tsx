@@ -476,8 +476,8 @@ const FORMA_DESPLEGABLE = {
   /** La `pildora-cayla` de una fila de píldoras que eligen un período (Historial: «Más años», 2026-10-12): la última píldora de la
    *  fila abre la lista de lo que no cupo. */
   pildora: { boton: "pildora-cayla", flecha: true, hilo: false, comoNativo: false, marcadorComoTexto: true },
-  /** Sola con su borde, en la cabecera (la sede). */
-  pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
+  /** Sola con su borde, en la cabecera (la sede). Con el vidrio (ADR-0596) es una gota en letra normal: `.combo-pastilla`, app/estilos/vidrio/. */
+  pastilla: { boton: "combo-pastilla gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
    *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
   caja: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },

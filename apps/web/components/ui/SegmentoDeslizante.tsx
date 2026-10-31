@@ -106,11 +106,14 @@ function SegmentoModo({ opciones, valor, onCambio, etiqueta, className = "" }: P
   );
 }
 
-/** La cara de campo de formulario (la de siempre, ADR-0128). */
+/** La cara de campo de formulario (ADR-0128). Con el vidrio (ADR-0596, `.segmento-campo` en app/estilos/vidrio/) el pulgar es la gota
+    de «Mi perfil»: al cambiar de opción se estira hasta cubrir las dos y suelta la vieja, como una gota de agua. */
 function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: PropsSegmento) {
   const contenedor = useRef<HTMLDivElement>(null);
   const [pulgar, setPulgar] = useState<{ x: number; w: number } | null>(null);
   const [listo, setListo] = useState(false);
+  // Dónde estaba la gota, para estirarla desde ahí (la gota líquida); `null` hasta la primera vez.
+  const previo = useRef<{ x: number; w: number } | null>(null);
 
   useLayoutEffect(() => {
     const cont = contenedor.current;
@@ -123,8 +126,24 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
       return;
     }
     if (!cont) return;
-    const medir = () => setPulgar({ x: activo.offsetLeft, w: activo.offsetWidth });
-    medir();
+    const medir = () => {
+      const destino = { x: activo.offsetLeft, w: activo.offsetWidth };
+      previo.current = destino;
+      setPulgar(destino);
+    };
+    // La gota líquida: si ya estaba en otra opción, primero se estira hasta cubrir las dos y después suelta la vieja. Una vez, sin rebote;
+    // con movimiento reducido va directo.
+    const antes = previo.current;
+    const destino = { x: activo.offsetLeft, w: activo.offsetWidth };
+    let estirar: number | undefined;
+    if (antes && (antes.x !== destino.x || antes.w !== destino.w) && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      const x = Math.min(antes.x, destino.x);
+      setPulgar({ x, w: Math.max(antes.x + antes.w, destino.x + destino.w) - x });
+      estirar = window.setTimeout(() => {
+        estirar = undefined;
+        medir();
+      }, 190);
+    } else medir();
     // Solo el desplazamiento HORIZONTAL de la propia tira (si la opción quedó fuera en celular). Antes era
     // `scrollIntoView`, que también movía la PÁGINA en vertical: si el cambio de opción acortaba lo de abajo y el
     // control quedaba fuera de vista, la página saltaba sola (2026-09-23, ADR-0185).
@@ -132,9 +151,14 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
     const der = izq + activo.offsetWidth;
     if (izq < cont.scrollLeft) cont.scrollLeft = izq;
     else if (der > cont.scrollLeft + cont.clientWidth) cont.scrollLeft = der - cont.clientWidth;
-    const ro = new ResizeObserver(medir);
+    const ro = new ResizeObserver(() => {
+      if (estirar === undefined) medir();
+    });
     ro.observe(activo);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (estirar !== undefined) window.clearTimeout(estirar);
+    };
   }, [valor, opciones]);
 
   // Activa la transición DESPUÉS del primer pintado con pulgar colocado.
@@ -145,11 +169,11 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
   }, [pulgar, listo]);
 
   return (
-    <div ref={contenedor} role="radiogroup" aria-label={etiqueta} className={`relative inline-flex max-w-full overflow-x-auto rounded-lg border border-tinta/15 [scrollbar-width:none] ${className}`}>
+    <div ref={contenedor} role="radiogroup" aria-label={etiqueta} className={`segmento-campo relative inline-flex max-w-full overflow-x-auto rounded-lg border border-tinta/15 [scrollbar-width:none] ${className}`}>
       {pulgar && (
         <span
           aria-hidden
-          className={`absolute inset-y-0 left-0 rounded-[7px] bg-tinta ${listo ? "transition-[transform,width] duration-[340ms] ease-cayla" : ""}`}
+          className={`segmento-campo__gota absolute inset-y-0 left-0 rounded-[7px] bg-tinta ${listo ? "transition-[transform,width] duration-[340ms] ease-cayla" : ""}`}
           style={{ width: pulgar.w, transform: `translateX(${pulgar.x}px)` }}
         />
       )}
@@ -163,7 +187,7 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
             aria-checked={activa}
             data-guia={o.guia}
             onClick={() => onCambio(o.clave)}
-            className={`label-cayla relative shrink-0 whitespace-nowrap px-3.5 py-2.5 text-[11px] transition-colors duration-200 ${activa ? "text-crema" : "text-tinta/65 hover:text-rojo"}`}
+            className={`segmento-campo__op label-cayla relative shrink-0 whitespace-nowrap px-3.5 py-2.5 text-[11px] transition-colors duration-200 ${activa ? "text-crema" : "text-tinta/65 hover:text-rojo"}`}
           >
             {o.etiqueta}
             {o.conteo != null && <span className="ml-1 font-medium tracking-normal dark:opacity-85">{o.conteo}</span>}
