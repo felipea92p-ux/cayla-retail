@@ -147,7 +147,7 @@ export function PiezaLiquidacionModal({
             {pieza.estado === "disponible" ? (pieza.etiquetas > 1 ? "Precio bajado" : "A la venta") : pieza.estado === "vendida" ? "Vendida" : "Retirada"}
           </Chip>
           {pieza.precioInicial > pieza.precio && (
-            <span className="text-[13px] text-taupe">
+            <span className="text-sm text-taupe">
               Entró a <span className="liq-tachado">S/&nbsp;{soles(pieza.precioInicial)}</span>
             </span>
           )}

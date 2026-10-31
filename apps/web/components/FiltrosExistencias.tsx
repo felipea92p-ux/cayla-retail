@@ -398,7 +398,7 @@ export function FiltrosExistencias({
         </div>
 
         {/* La cifra: cuántas tarjetas trae la lista (y, con «Hoy», cuántas tallas). Sin frase de ayuda: ocupaba una línea entera. */}
-        <p className="order-3 min-w-0 flex-1 text-[13px] text-tinta/70 xl:order-2 xl:flex-none">
+        <p className="order-3 min-w-0 flex-1 text-sm text-tinta/70 xl:order-2 xl:flex-none">
           <span aria-live="polite">
             <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
             {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}

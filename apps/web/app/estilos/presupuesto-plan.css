@@ -15,7 +15,7 @@
   flex-wrap: wrap;
   gap: 6px 14px;
   margin-top: 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-tinta-60);
 }
 .pp-leyenda > span {
@@ -42,7 +42,7 @@
 .pp-tope-valor small {
   display: block;
   margin-bottom: 2px;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-tinta-60);
@@ -68,7 +68,7 @@
 .pp-rango-extremos {
   display: flex;
   justify-content: space-between;
-  font-size: 11.5px;
+  font-size: 14px;
   color: var(--color-tinta-60);
 }
 
@@ -91,7 +91,7 @@
   background: var(--color-crema);
 }
 .pp-res3 .pp-t {
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-tinta-60);
@@ -125,11 +125,11 @@
   align-items: center;
   padding: 9px 6px;
   border-top: 1px solid var(--color-sand);
-  font-size: 13.5px;
+  font-size: 15px;
 }
 .pp-vrow.pp-h {
   border-top: 0;
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-tinta-60);
@@ -178,7 +178,7 @@
 .pp-sup {
   display: grid;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .pp-sup > div {
   display: flex;
@@ -198,7 +198,7 @@
 }
 .pp-sup .pp-pista {
   flex-basis: 100%;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-tinta-60);
 }
 .pp-sup .pp-valor {
@@ -231,7 +231,7 @@
   font-weight: 600;
 }
 .pp-ver-q {
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--color-tinta-60);
 }
 .pp-ver-nota {
@@ -263,10 +263,10 @@
   padding: 8px 12px;
   border-radius: 10px;
   background: var(--color-hueso);
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .pp-dif-pie {
-  font-size: 11.5px;
+  font-size: 14px;
   color: var(--color-tinta-60);
 }
 .pp-ver-pie {

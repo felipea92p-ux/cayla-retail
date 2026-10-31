@@ -414,7 +414,7 @@ export function NuevaOrdenProduccionForm({
     () => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller, avios: aviosSugeridosAhora }),
     [telasManual, telasSugeridasAhora, insumosDelTaller, aviosSugeridosAhora]
   );
-  const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios, catalogo }), [fases, hoy, proveedoresServicio, listaDePrecios, catalogo]);
+  const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios, catalogo, totalPrendas: total }), [fases, hoy, proveedoresServicio, listaDePrecios, catalogo, total]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
   const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado, coloresOrden), [telas, insumosDelTaller, consumoDeclarado, coloresOrden]);
   const fijarElConsumo = fijarConsumo && !esNuevo && ofertaConsumo.tipo === "corregir" && puedeEditarCatalogo;
@@ -824,7 +824,7 @@ export function NuevaOrdenProduccionForm({
     <div data-guia="prod-orden-nueva.tipo" className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <span className={campoEtiqueta}>{esNuevo ? guia.etiqueta("tipo", "Tipo de orden") : "Tipo de orden"}</span>
       <SegmentoDeslizante etiqueta="Tipo de orden" valor={tipo ?? ""} onCambio={cambiarTipo} opciones={OPCIONES_TIPO} />
-      <p className="min-w-[14rem] flex-1 text-[12.5px] leading-snug text-tinta/70">{frase.texto}</p>
+      <p className="min-w-[14rem] flex-1 text-sm leading-snug text-tinta/70">{frase.texto}</p>
     </div>
   );
 
@@ -930,7 +930,7 @@ export function NuevaOrdenProduccionForm({
               </Aviso>
             )}
             {!esNuevo && (
-              <p className="text-xs text-tinta/65">
+              <p className="text-sm text-tinta/65">
                 {tabla.excluidas.size > 0 && "Una raya (—) es una combinación que este modelo no tiene. "}
                 ¿Falta una talla o un color? Se agrega en{" "}
                 {puedeEditarCatalogo ? (
@@ -947,7 +947,7 @@ export function NuevaOrdenProduccionForm({
           </div>
         )}
 
-        {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
+        {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">{decision.fallo}</p>}
 
         {datos && modelo && !esNuevo && (
           <ConsejoDeLaRed
@@ -1039,7 +1039,7 @@ export function NuevaOrdenProduccionForm({
           entrega={fechaCorta(fechaEntrega)}
           notaSinPrecio={
             modelo && !esNuevo && verMargen && precio <= 0 ? (
-              <p className="text-xs text-tinta/70">
+              <p className="text-sm text-tinta/70">
                 Este modelo no tiene precio en el catálogo, así que no hay margen que calcular.{" "}
                 <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
                   Ponle precio en Editar producto

@@ -368,7 +368,7 @@ export function VitrinaPantalla({
                 </button>
               )}
               {lista.length > 0 && (
-                <p className="text-[13px] tabular-nums text-taupe" aria-live="polite">
+                <p className="text-sm tabular-nums text-taupe" aria-live="polite">
                   Mostrando{" "}
                   <b className="font-semibold text-tinta">
                     {pag.desde}–{pag.hasta}
@@ -382,8 +382,8 @@ export function VitrinaPantalla({
 
         {filtro === "empaque" && (
           <div className="border-b border-sand px-5 py-3">
-            <p className="nota-cayla text-[13px]">
-              El empaque (bolsas, cajas) se vende desde el ticket, en la caja: no va en la web ni se puede prender. Se ve aquí solo para saber cuánto hay.
+            <p className="nota-cayla text-sm">
+              El empaque se vende desde la caja, no en la web: aquí solo ves cuánto hay.
             </p>
           </div>
         )}
@@ -395,8 +395,7 @@ export function VitrinaPantalla({
             </Vacio>
           ) : !hayRopa && filtro !== "empaque" ? (
             <Vacio icono={<MonitorSmartphone />} titulo="Todavía no hay modelos para la web">
-              Los modelos que se pueden vender (activos y con precio en alguna tienda que se ve en la web) aparecen aquí para mostrarlos en la
-              tienda online.
+              Los modelos activos y con precio salen aquí para mostrarlos en la tienda online.
             </Vacio>
           ) : (
             <Vacio
@@ -487,7 +486,7 @@ export function VitrinaPantalla({
             <span className="font-semibold text-tinta">
               {elegidos.length} {elegidos.length === 1 ? "modelo elegido" : "modelos elegidos"}
             </span>
-            <button type="button" className="btn-enlace text-[13px]" data-guia="vitrina.desmarcar" onClick={() => setElegidos([])}>
+            <button type="button" className="btn-enlace text-sm" data-guia="vitrina.desmarcar" onClick={() => setElegidos([])}>
               Desmarcar todos
             </button>
           </span>
@@ -532,7 +531,7 @@ function RazonDelChip({ razon }: { razon: NonNullable<ReturnType<typeof razonNoS
       <button type="button" className="btn-cayla btn-enlace text-[12px]" aria-expanded={abierta} onClick={() => setAbierta((a) => !a)}>
         ¿Por qué?
       </button>
-      {abierta && <span className="basis-full text-[12px] leading-snug text-taupe">{razon.frase}</span>}
+      {abierta && <span className="basis-full text-sm leading-snug text-taupe">{razon.frase}</span>}
     </>
   );
 }
@@ -586,7 +585,7 @@ function FilaModelo({
           <button type="button" onClick={onAbrir} data-guia="vitrina.abrir" className="block max-w-full truncate text-left font-medium text-tinta hover:text-rojo-profundo">
             <span data-guia="vitrina.modelo">{m.nombre}</span>
           </button>
-          <span className="block truncate text-[12px] text-taupe">
+          <span className="block truncate text-sm text-taupe">
             {[m.categoria, `${m.colores.length} ${m.colores.length === 1 ? "color" : "colores"}`, sinFoto ? `${sinFoto} sin foto propia` : null]
               .filter(Boolean)
               .join(" · ")}
@@ -600,7 +599,7 @@ function FilaModelo({
           )}
         </span>
       </span>
-      <span className="col-start-2 row-start-2 text-[13px] tabular-nums text-tinta sm:col-start-auto sm:row-start-auto">
+      <span className="col-start-2 row-start-2 text-sm tabular-nums text-tinta sm:col-start-auto sm:row-start-auto">
         {stockEnTiendas(m, tiendas).map((s, i) => (
           <span key={s.sede} className={s.cantidad === 0 ? "text-tinta/40" : ""}>
             {i > 0 && <span className="text-taupe"> · </span>}
@@ -667,7 +666,7 @@ function FilaColumnas({
           <button type="button" onClick={onAbrir} data-guia="vitrina.abrir" className="block max-w-full truncate text-left font-medium text-tinta hover:text-rojo-profundo">
             <span data-guia="vitrina.modelo">{m.nombre}</span>
           </button>
-          {sinFoto > 0 && <span className="block truncate text-[12px] text-taupe">{sinFoto} sin foto propia</span>}
+          {sinFoto > 0 && <span className="block truncate text-sm text-taupe">{sinFoto} sin foto propia</span>}
           {(razon || (v && v.enLoNuevo !== "automatico")) && (
             <span className="mt-1 flex flex-wrap gap-1.5">
               {razon && <RazonDelChip razon={razon} />}
@@ -677,14 +676,14 @@ function FilaColumnas({
           )}
         </span>
       </span>
-      <span className="truncate text-[13px] text-taupe">{m.categoria ?? "—"}</span>
-      <span className="text-right text-[13px] tabular-nums text-tinta">{m.colores.length}</span>
+      <span className="truncate text-sm text-taupe">{m.categoria ?? "—"}</span>
+      <span className="text-right text-sm tabular-nums text-tinta">{m.colores.length}</span>
       {stockEnTiendas(m, tiendas).map((s) => (
-        <span key={s.sede} className={`text-right text-[13px] tabular-nums ${s.cantidad === 0 ? "text-tinta/40" : "text-tinta"}`}>
+        <span key={s.sede} className={`text-right text-sm tabular-nums ${s.cantidad === 0 ? "text-tinta/40" : "text-tinta"}`}>
           {s.cantidad}
         </span>
       ))}
-      <span className="text-[13px] text-taupe">{encendido ? "Se ve en la web" : "No se ve"}</span>
+      <span className="text-sm text-taupe">{encendido ? "Se ve en la web" : "No se ve"}</span>
       <span className="flex justify-end" data-guia="vitrina.interruptor">
         <button
           type="button"

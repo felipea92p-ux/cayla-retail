@@ -222,10 +222,10 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                           <MiniaturaPrenda fotoUrl={null} categoria={categoria} />
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-medium text-tinta">{nombre}</span>
-                            <span className="block truncate text-xs text-taupe">
+                            <span className="block truncate text-sm text-taupe">
                               {[categoria, marca, tienda].filter(Boolean).join(" · ")}
                             </span>
-                            <span className="block text-xs tabular-nums text-taupe">
+                            <span className="block text-sm tabular-nums text-taupe">
                               {cantidad === 1 ? "1 unidad" : `${cantidad} unidades`} · {soles(leerPrecioDe(b, p))} c/u
                             </span>
                           </span>
@@ -258,11 +258,11 @@ export function HojaCorregirCompra({ papelId, onClose, volverA }: { papelId: str
                 >
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-tinta">Papel y pago</span>
-                    <span className="block text-xs tabular-nums text-taupe">
+                    <span className="block text-sm tabular-nums text-taupe">
                       {TIPOS_PAPEL[compra.tipo as TipoPapel]?.nombre ?? "Papel"} · {soles(cuenta.monto)}
                       {cuenta.monto !== compra.monto && <span className="ml-1 line-through opacity-70">{soles(compra.monto)}</span>}
                     </span>
-                    <span className="block text-xs tabular-nums text-taupe">
+                    <span className="block text-sm tabular-nums text-taupe">
                       {cuenta.pagado > 0 ? `Pagaste ${soles(cuenta.pagado)}` : "Lo paga Compras"}
                       {cuenta.pagado > 0 && cuenta.pagado < cuenta.monto - 0.005 ? ` · falta ${soles(cuenta.falta)}` : ""}
                     </span>
@@ -430,7 +430,7 @@ function FormularioDePrenda({
           }}
           tono={problemas.cantidad ? "error" : undefined}
         />
-        <p className={`min-h-4 text-xs ${problemas.cantidad ? "text-rojo-profundo" : cambios.cantidad !== undefined ? "text-ambar" : "text-taupe"}`}>
+        <p className={`min-h-4 text-sm ${problemas.cantidad ? "text-rojo-profundo" : cambios.cantidad !== undefined ? "text-ambar" : "text-taupe"}`}>
           {problemas.cantidad ??
             antes(`${prenda.cantidad} ${prenda.cantidad === 1 ? "unidad" : "unidades"}`, cantidad !== null && cantidad !== prenda.cantidad) ??
             (prenda.enviadas > 0 ? `Ya salieron ${prenda.enviadas} en un envío: no puede quedar en menos.` : "")}
@@ -568,7 +568,7 @@ function RevisarYGuardar({ lineas, cuenta }: { lineas: ReturnType<typeof lineasA
       <ul className="rounded-[14px] bg-hueso px-3.5 py-1.5 text-sm" aria-label="Lo que cambia">
         {lineas.map((l) => (
           <li key={l.clave} className="border-t border-sand py-2 first:border-t-0">
-            <span className="block text-xs text-taupe">{l.titulo}</span>
+            <span className="block text-sm text-taupe">{l.titulo}</span>
             <span className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
               <span className="text-taupe line-through">{l.antes}</span>
               <span aria-hidden className="text-taupe">→</span>

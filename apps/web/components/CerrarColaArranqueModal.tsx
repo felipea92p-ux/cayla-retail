@@ -111,7 +111,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
               <p>
                 Se cerrarán <strong>{sede.pendientes} {sede.pendientes === 1 ? "prenda vendida" : "prendas vendidas"} sin registrar</strong> de {sede.sede} ({soles(sede.soles)}), vendidas {cuandoSeVendio(sede.desde, sede.corte)}.
               </p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-tinta/75">
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-tinta/75">
                 <li>El stock no cambia y el dinero de cada venta tampoco: solo queda sin identificar qué prenda era.</li>
                 <li>Lo que se venda desde ahora sigue pendiente.</li>
                 <li>Antes de cerrar, usa «Identificar con sugerencias»: las que tienen una sola prenda posible se pueden unir a su prenda y dejar el stock cuadrado.</li>
@@ -141,7 +141,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
                     }`}
                   >
                     <span className="block text-sm text-tinta">{m.titulo}</span>
-                    <span className="mt-0.5 block text-xs text-taupe">{m.ayuda}</span>
+                    <span className="mt-0.5 block text-sm text-taupe">{m.ayuda}</span>
                   </button>
                 );
               })}

@@ -158,7 +158,7 @@ export function EnvioCerrado({
                 </span>
                 <span className="min-w-0">
                   <b className="block text-[14.5px] text-tinta">{p.titulo}</b>
-                  <small className="block text-[12.5px] text-taupe">{p.sub}</small>
+                  <small className="block text-sm text-taupe">{p.sub}</small>
                 </span>
                 <Boton type="button" peso="fantasma" onClick={() => setHaciendo(p)}>
                   {BOTON_DE_PENDIENTE[p.tipo]}
@@ -181,7 +181,7 @@ export function EnvioCerrado({
               </li>
             ))}
           </ul>
-          <p className="text-xs text-taupe">La sede dice qué pasó; Compras decide qué pasa con la plata.</p>
+          <p className="text-sm text-taupe">La sede dice qué pasó; Compras decide qué pasa con la plata.</p>
         </section>
       )}
 
@@ -194,7 +194,7 @@ export function EnvioCerrado({
               : "Si aparecen las que faltaban o algo quedó mal contado, reabre el envío, corrige y ciérralo de nuevo. Lo que ya entró al stock no se toca."}
           </p>
           {conteos && conteos.cierres.length > 1 && (
-            <p className="mt-1 text-xs text-taupe">
+            <p className="mt-1 text-sm text-taupe">
               {conteos.cierres
                 .map((c) => {
                   const h = c.hechoEn ? diaYHoraLima(c.hechoEn) : null;

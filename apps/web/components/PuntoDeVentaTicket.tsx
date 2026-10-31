@@ -534,7 +534,7 @@ export function PuntoDeVentaTicket({
                   {cobrando ? "Cobro" : enLaEspera ? "En espera" : "Descuento"}
                 </span>
               </TituloSeccion>
-              <p className="mt-1 text-xs text-tinta/60">
+              <p className="mt-1 text-sm text-tinta/60">
                 {cobrando
                   ? etiquetaPrendas
                   : enLaEspera
@@ -567,7 +567,7 @@ export function PuntoDeVentaTicket({
             <div className={saliendo ? "anim-revelar-salida space-y-3 px-5 py-4" : "anim-revelar space-y-3 px-5 py-4"}>
               {/* Si el actual tiene líneas, retomar lo intercambia: se dice antes de tocar. */}
               {carrito.length > 0 && (
-                <p className="rounded-lg border border-sand bg-crema px-3 py-2 text-xs text-tinta/70">
+                <p className="rounded-lg border border-sand bg-crema px-3 py-2 text-sm text-tinta/70">
                   Tu ticket actual tiene {etiquetaPrendas}: al retomar uno, el actual pasa a espera.
                 </p>
               )}
@@ -589,7 +589,7 @@ export function PuntoDeVentaTicket({
                             <span className="font-semibold">{money(r.total)}</span>
                           </p>
                           {t.nota && (
-                            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-tinta/60">
+                            <p className="mt-0.5 flex items-center gap-1 truncate text-sm text-tinta/60">
                               <StickyNote className="h-3 w-3 shrink-0" aria-hidden />
                               {t.nota}
                             </p>
@@ -629,7 +629,7 @@ export function PuntoDeVentaTicket({
                   céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
                   «Otro» es para cualquier otro valor. */}
               <fieldset className="space-y-2">
-                <legend className="text-[11px] text-tinta/50">
+                <legend className="text-sm text-tinta/50">
                   <span className="flex items-center gap-1.5">
                     {porMonto ? <Banknote className={ICONO_CHICO} aria-hidden /> : <Percent className={ICONO_CHICO} aria-hidden />}
                     {porMonto ? "Monto" : "Porcentaje"}
@@ -662,7 +662,7 @@ export function PuntoDeVentaTicket({
                       ))}
                     </div>
                     <label className={`caja-cayla caja-campo h-11 gap-2 ${luz("valor") ? LUZ_CAMPO : ""}`}>
-                      <span className="text-[11px] text-tinta/50">Otro</span>
+                      <span className="text-sm text-tinta/50">Otro</span>
                       <span className="ml-auto text-sm text-tinta/60">S/</span>
                       <input
                         aria-label="Monto de descuento"
@@ -693,7 +693,7 @@ export function PuntoDeVentaTicket({
                       ))}
                     </div>
                     <label className={`caja-cayla caja-campo h-11 gap-2 ${luz("valor") ? LUZ_CAMPO : ""}`}>
-                      <span className="text-[11px] text-tinta/50">Otro</span>
+                      <span className="text-sm text-tinta/50">Otro</span>
                       <input
                         aria-label="Porcentaje de descuento"
                         type="number"
@@ -717,7 +717,7 @@ export function PuntoDeVentaTicket({
                   no se puede sumar; una lista sí, y a fin de mes se ve cuánto margen se
                   fue por cada motivo». `registrar_venta` lo exige apenas hay descuento. */}
               <fieldset className="space-y-2 border-t border-sand pt-4">
-                <legend className="text-[11px] text-tinta/50">
+                <legend className="text-sm text-tinta/50">
                   <span className="flex items-center gap-1.5">
                     <Tag className={ICONO_CHICO} aria-hidden />
                     Motivo
@@ -731,7 +731,7 @@ export function PuntoDeVentaTicket({
                       onClick={() => onDescuento({ razon: r.valor })}
                       disabled={bloqueado}
                       aria-pressed={descuento.razon === r.valor}
-                      className={`${OPCION} h-10 px-2 text-xs font-semibold ${descuento.razon === r.valor ? OPCION_ACTIVA : OPCION_INACTIVA}`}
+                      className={`${OPCION} h-10 px-2 text-sm font-semibold ${descuento.razon === r.valor ? OPCION_ACTIVA : OPCION_INACTIVA}`}
                     >
                       {r.etiqueta}
                     </button>
@@ -757,7 +757,7 @@ export function PuntoDeVentaTicket({
                   vive en la base; acá se pide antes de que llegue a rechazarlo. */}
               {mostrarArgumento && (
                 <fieldset className="anim-revelar space-y-2 border-t border-sand pt-4">
-                  <legend className="text-[11px] text-tinta/50">
+                  <legend className="text-sm text-tinta/50">
                     <span className="flex items-center gap-1.5">
                       <MessageSquareText className={ICONO_CHICO} aria-hidden />
                       Argumento — pasa el 15 %
@@ -778,7 +778,7 @@ export function PuntoDeVentaTicket({
 
               {/* 2 · A qué: todo el ticket, o solo las prendas que se marquen. */}
               <fieldset className="space-y-2 border-t border-sand pt-4">
-                <legend className="text-[11px] text-tinta/50">
+                <legend className="text-sm text-tinta/50">
                   <span className="flex items-center gap-1.5">
                     <ShoppingBag className={ICONO_CHICO} aria-hidden />
                     Aplicar a
@@ -818,7 +818,7 @@ export function PuntoDeVentaTicket({
                           {marcada && <IconoCheck />}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-tinta">{it.referencia}</span>
-                        <span className="shrink-0 text-xs text-tinta/60">
+                        <span className="shrink-0 text-sm text-tinta/60">
                           {it.cantidad > 1 ? `${it.cantidad} × ` : ""}
                           {money(it.precioUnitario)}
                         </span>
@@ -837,10 +837,10 @@ export function PuntoDeVentaTicket({
               )}
               {/* Por qué el % no da el precio «exacto»: cada prenda baja al S/ 0.10 de abajo para que se cobre sin céntimos
                   sueltos (ADR-0403). En S/ no hace falta: lo que se escribe es lo que se descuenta. */}
-              {valorValido && elegidasCuenta > 0 && !porMonto && <p className="-mt-3 text-xs text-tinta/50">Cada prenda baja a un precio sin céntimos sueltos.</p>}
+              {valorValido && elegidasCuenta > 0 && !porMonto && <p className="-mt-3 text-sm text-tinta/50">Cada prenda baja a un precio sin céntimos sueltos.</p>}
               {/* En S/ con más de una prenda: el monto no se resta a cada una, se reparte (Felipe, 2026-10-24). */}
               {valorValido && porMonto && unidadesAlcanzadas > 1 && (
-                <p className="-mt-3 text-xs text-tinta/50">Los {money(monto)} se reparten entre las prendas según su precio.</p>
+                <p className="-mt-3 text-sm text-tinta/50">Los {money(monto)} se reparten entre las prendas según su precio.</p>
               )}
             </div>
           ) : cobrando && cuerpoCobro ? (
@@ -887,7 +887,7 @@ export function PuntoDeVentaTicket({
               {!cobrando && (
               <div className="border-t border-sand px-5 py-4">
                 <label className="block">
-                  <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
+                  <span className="flex items-center gap-1.5 text-sm text-tinta/50">
                     <StickyNote className={ICONO_CHICO} aria-hidden />
                     Nota para esta venta (opcional)
                   </span>
@@ -911,7 +911,7 @@ export function PuntoDeVentaTicket({
                   }`}
                 >
                   <p
-                    className={`min-h-0 overflow-hidden text-right text-[11px] tabular-nums ${nota.length >= NOTA_MAX ? "text-rojo-profundo" : "text-tinta/50"}`}
+                    className={`min-h-0 overflow-hidden text-right text-sm tabular-nums ${nota.length >= NOTA_MAX ? "text-rojo-profundo" : "text-tinta/50"}`}
                   >
                     {nota.length}/{NOTA_MAX}
                   </p>
@@ -927,12 +927,12 @@ export function PuntoDeVentaTicket({
               porque el Total de abajo ya lo descuenta; el reparto por prenda queda en la base y el comprobante. Se puede quitar mientras
               se arma la venta. `key` en el monto: se asienta cuando cambia, como el Total. */}
           {vale && vale.monto > 0 && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-xs">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-sm">
               <span title={vale.cupon.ayuda} className="flex min-w-0 items-center gap-1.5 text-taupe-profundo">
                 <Ticket className={ICONO_CHICO} aria-hidden />
                 <span className="min-w-0">
                   {TEXTO_PIE_CUPON} <span className="font-mono tracking-wide">{vale.cupon.codigo}</span>
-                  <span className="block text-[11px] text-tinta/60">{vale.cupon.detalle}</span>
+                  <span className="block text-sm text-tinta/60">{vale.cupon.detalle}</span>
                 </span>
               </span>
               <span className="flex items-center gap-2">
@@ -949,7 +949,7 @@ export function PuntoDeVentaTicket({
           )}
           {/* Lo que gana la miembro con esta compra (programa de puntos): se dice antes de cobrar, para que la cajera se lo cuente. */}
           {gana && gana.puntos + gana.regalo > 0 && (
-            <p className="mb-3 flex items-start gap-1.5 text-xs text-taupe-profundo" data-guia="vender.gana-puntos">
+            <p className="mb-3 flex items-start gap-1.5 text-sm text-taupe-profundo" data-guia="vender.gana-puntos">
               <Star className={`${ICONO_CHICO} mt-px`} aria-hidden />
               <span key={gana.puntos + gana.regalo}>
                 {gana.nombre} gana <b className="font-semibold">{gana.puntos.toLocaleString("es-PE")} puntos</b> con esta compra
@@ -962,7 +962,7 @@ export function PuntoDeVentaTicket({
               se cobra, así que se decide antes de cobrar (decisión 3-A). Una sola línea con «Código de cupón»: «Dejar en
               espera» subió a la cabecera (Felipe 2026-10-22) para darle ese alto a la lista. */}
           {momentoMostrado === "armar" && (
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
               {totalDescuento > 0 ? (
                 <>
                   <span className="text-tinta/60">Descuento</span>
@@ -1024,7 +1024,7 @@ export function PuntoDeVentaTicket({
                 antes (el margen automático llega al mismo lugar que dejaba `justify-between`);
                 solo en un aside muy angosto el Total —que no puede encogerse, es un número sin
                 espacios— baja a su propia línea en vez de recortarse contra el borde derecho. */}
-            <div className="text-xs text-tinta/60">
+            <div className="text-sm text-tinta/60">
               <p>{etiquetaPrendas}</p>
               {/* La nota de venta no desglosa IGV (ADR-0164): el pie muestra solo el total. */}
               {tipoComprobante !== "nota_venta" && (
@@ -1066,7 +1066,7 @@ export function PuntoDeVentaTicket({
                 (descontando ? motivoDescuento : motivoBloqueo) !== null ? "mb-2 grid-rows-[1fr]" : "grid-rows-[0fr]"
               }`}
             >
-              <p id={ID_MOTIVO} className="min-h-0 overflow-hidden text-center text-[11px] text-tinta/60">
+              <p id={ID_MOTIVO} className="min-h-0 overflow-hidden text-center text-sm text-tinta/60">
                 {descontando ? motivoDescuento : motivoBloqueo}
               </p>
             </div>

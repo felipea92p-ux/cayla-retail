@@ -46,14 +46,14 @@ export function YaExiste({
   onVer: (id?: string) => void;
 }) {
   if (!disponible) {
-    return <p className="text-[13px] text-taupe">No puedo mostrarte las prendas de {categoria.nombre} sin conexión. Puedes seguir.</p>;
+    return <p className="text-sm text-taupe">No puedo mostrarte las prendas de {categoria.nombre} sin conexión. Puedes seguir.</p>;
   }
   if (cargando && lista.length === 0) {
-    return <p className="text-[13px] text-taupe">Buscando las prendas de {categoria.nombre}…</p>;
+    return <p className="text-sm text-taupe">Buscando las prendas de {categoria.nombre}…</p>;
   }
   if (lista.length === 0) {
     return fallo ? (
-      <p className="text-[13px] text-taupe">No pude traer las prendas de {categoria.nombre}. Puedes seguir.</p>
+      <p className="text-sm text-taupe">No pude traer las prendas de {categoria.nombre}. Puedes seguir.</p>
     ) : (
       <Vacio tamano="chico" alinear="izquierda" icono={<Shirt />}>
         Todavía no hay prendas en {categoria.nombre}: esta es la primera.
@@ -74,15 +74,15 @@ export function YaExiste({
               title={`Ver ${c.referencia}: sus colores, tallas y stock`}
             >
               <MiniaturaPrenda fotoUrl={c.fotoUrl} colorHex={c.colores[0]?.hex ?? null} tamano="xl" {...categoria} />
-              <span className="line-clamp-2 text-[12px] leading-tight text-tinta">{c.referencia}</span>
-              <span className="text-[11px] text-taupe">{c.colores.length > 0 ? plural(c.colores.length, "color", "colores") : "Sin color"}</span>
+              <span className="line-clamp-2 text-sm leading-tight text-tinta">{c.referencia}</span>
+              <span className="text-sm text-taupe">{c.colores.length > 0 ? plural(c.colores.length, "color", "colores") : "Sin color"}</span>
             </button>
           </li>
         ))}
       </ul>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {respondido ? (
-          <span className="inline-flex items-center gap-1.5 text-[13px] text-tinta">
+          <span className="inline-flex items-center gap-1.5 text-sm text-tinta">
             <Check aria-hidden className="h-3.5 w-3.5 text-verde" />
             Es un diseño nuevo.
             <button type="button" className="btn-cayla btn-enlace" onClick={() => onResponder(false)}>

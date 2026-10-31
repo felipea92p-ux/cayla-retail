@@ -111,7 +111,7 @@ export function EmpezarARecibir({
                 <li key={l.id} className="flex items-center gap-2.5 rounded-xl bg-crema px-2.5 py-1.5">
                   <BaldosaCategoria categoria={l.categoria} tamano="chico" />
                   <b className="text-sm text-tinta">{l.categoria?.nombre ?? "Categoría"}</b>
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-taupe">{[l.marca?.nombre, proveedores.length >= 2 ? l.proveedor?.nombre : null, l.descripcion].filter(Boolean).join(" · ")}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-taupe">{[l.marca?.nombre, proveedores.length >= 2 ? l.proveedor?.nombre : null, l.descripcion].filter(Boolean).join(" · ")}</span>
                   <b className="text-[17px] tabular-nums text-tinta">{l.enviado.toLocaleString("es-PE")}</b>
                 </li>
               ))}
@@ -138,7 +138,7 @@ export function EmpezarARecibir({
                   <ArrowRight aria-hidden className="h-4 w-4" />
                 </span>
               </Boton>
-              <p className="text-xs text-taupe">
+              <p className="text-sm text-taupe">
                 Desde que empiezas, la compra ya no se puede anular. Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
               </p>
             </div>
@@ -146,10 +146,10 @@ export function EmpezarARecibir({
         </article>
         <aside data-guia="recepcion.otro-sin-aviso" className="card-cayla space-y-2 p-5">
           <TituloSeccion nivel={3}>¿Llegó algo que no está aquí?</TituloSeccion>
-          <p className="text-[13.5px] text-taupe">
+          <p className="text-[15px] text-taupe">
             Si viene <b className="text-tinta">dentro de este envío</b>, empieza a recibirlo igual: al contar lo sumas con «+ Agregar categoría».
           </p>
-          <p className="text-[13.5px] text-taupe">
+          <p className="text-[15px] text-taupe">
             Si es <b className="text-tinta">otro paquete</b> que vino sin aviso de Compras (por WhatsApp, o directo del proveedor), se recibe aparte: cuentas lo mismo, solo que sin con qué comparar.
           </p>
           <BotonEnlace href="/recibir#sin-aviso" peso="fantasma">
@@ -158,7 +158,7 @@ export function EmpezarARecibir({
               Recibir sin aviso
             </span>
           </BotonEnlace>
-          <p className="pt-1 text-xs text-taupe">
+          <p className="pt-1 text-sm text-taupe">
             Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b className="text-tinta">Traslados</b>.
           </p>
         </aside>

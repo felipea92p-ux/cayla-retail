@@ -96,7 +96,7 @@ export function PlazoModal({
                   días
                 </span>
               </div>
-              <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80" aria-live="polite">
+              <p className="min-w-0 flex-1 basis-60 pt-2.5 text-sm leading-snug text-tinta/80" aria-live="polite">
                 {resultado ? resultado.detalle : `Escribe un número de días: sin historia de recepciones, el supuesto es de ${DIAS_PARA_LLEGAR_DE_FABRICA}.`}
               </p>
             </div>

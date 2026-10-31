@@ -43,7 +43,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
   const cobertura = cubrirCaja(hayCaja ? caja : 0, salidas.map((s) => s.monto));
   const hayFiltro = !!filtroLocal?.clave.startsWith("caja:");
 
-  let veredicto: React.ReactNode = "Monto que vence en cada semana (S/). La semana actual en ámbar. Escribe cuánta caja tienes y verás hasta dónde alcanza.";
+  let veredicto: React.ReactNode = "Cuánto vence cada semana. Escribe tu caja y verás hasta dónde alcanza.";
   if (hayCaja) {
     const { ultimaCubierta, primeraFaltante, sobra } = cobertura;
     if (primeraFaltante && ultimaCubierta === null) {
@@ -75,7 +75,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[11px] text-tinta/65">Salidas de caja · próximos 30 días</p>
         {max > 0 && (
-          <label data-guia="por-pagar.caja" className="flex items-center gap-1.5 text-xs text-tinta/65">
+          <label data-guia="por-pagar.caja" className="flex items-center gap-1.5 text-sm text-tinta/65">
             Tengo
             {/* La caja que se enciende, baja (ADR-0358, ronda 6): antes una raya con su propio hilo. */}
             <span className="caja-cayla caja-campo caja-campo-baja min-h-8 w-[7.5rem] gap-1 px-2">
@@ -86,7 +86,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
                 onChange={(e) => setCajaTxt(e.target.value)}
                 placeholder="caja"
                 aria-label="Caja disponible, para ver hasta dónde alcanza"
-                className="self-stretch py-0 text-right text-[13px] tabular-nums"
+                className="self-stretch py-0 text-right text-sm tabular-nums"
               />
             </span>
           </label>

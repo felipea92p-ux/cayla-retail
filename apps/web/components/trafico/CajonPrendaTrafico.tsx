@@ -89,7 +89,7 @@ export function CajonPrendaTrafico({
           <span className="font-display text-[40px] leading-[1.05] tabular-nums">{miles(miraron)}</span>
           <span className="text-[15px] text-tinta/70">{miraron === 1 ? "persona la miró" : "personas la miraron"}</span>
         </p>
-        <p className="mt-1 text-[13.5px] text-tinta/70">
+        <p className="mt-1 text-[15px] text-tinta/70">
           De cada 100 que vieron una prenda, <b className="font-semibold text-tinta">{de100QueVieron(p, vieron)} miraron esta</b>.
           {p.anterior !== null && ` ${antes}: ${personas(p.anterior)}.`}
         </p>
@@ -103,11 +103,11 @@ export function CajonPrendaTrafico({
             const pct = i === 0 ? 100 : de100(n, miraron);
             return (
               <li key={paso.nombre} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1">
-                <span className="text-[13.5px]">
+                <span className="text-[15px]">
                   {paso.nombre}
                   {atora?.i === i && <span className="label-cayla ml-2 text-[11px] font-bold text-rojo">Aquí se atora</span>}
                 </span>
-                <span className="text-[13px] tabular-nums">
+                <span className="text-sm tabular-nums">
                   {miles(n)}
                   {i > 0 && <span className="text-tinta/70"> · {pct} de cada 100</span>}
                 </span>
@@ -117,7 +117,7 @@ export function CajonPrendaTrafico({
           })}
         </ol>
         {atora && (
-          <p className="mt-2.5 text-[13px] text-tinta/70">
+          <p className="mt-2.5 text-sm text-tinta/70">
             De cada 100 que {PASOS_DE_LA_PRENDA[atora.i - 1].nombre.toLowerCase()}, {atora.seFueronDe100} se fueron {PASOS_DE_LA_PRENDA[atora.i].seFueron}.
           </p>
         )}
@@ -135,14 +135,14 @@ export function CajonPrendaTrafico({
             ))}
           </div>
         ) : (
-          <p className="mt-2 text-[13px] text-tinta/70">Nadie eligió talla en estos días.</p>
+          <p className="mt-2 text-sm text-tinta/70">Nadie eligió talla en estos días.</p>
         )}
       </section>
 
       <section>
         <TituloGrupo>Colores que eligieron</TituloGrupo>
         {totalColores ? (
-          <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 text-[13px]">
+          <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
             {p.colores.map((c) => (
               <li key={c.codigo} className="inline-flex items-center gap-2">
                 <span aria-hidden className="trafico-muestra" data-color-dato style={{ backgroundColor: c.hex ?? undefined }} />
@@ -152,7 +152,7 @@ export function CajonPrendaTrafico({
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-[13px] text-tinta/70">Nadie eligió color en estos días.</p>
+          <p className="mt-2 text-sm text-tinta/70">Nadie eligió color en estos días.</p>
         )}
       </section>
 
@@ -161,7 +161,7 @@ export function CajonPrendaTrafico({
         {totalCaminos ? (
           <ul className="mt-2.5 space-y-2">
             {p.caminos.map((x, i) => (
-              <li key={x.camino} className="grid grid-cols-[8rem_minmax(0,1fr)_3rem] items-center gap-3 text-[13px]">
+              <li key={x.camino} className="grid grid-cols-[8rem_minmax(0,1fr)_3rem] items-center gap-3 text-sm">
                 <span className="truncate">{CAMINOS[x.camino]}</span>
                 <BarraAvance pct={(x.n / maxCamino) * 100} alto="normal" tono="tinta" decorativa indice={i} />
                 <span className="text-right tabular-nums">{miles(x.n)}</span>
@@ -169,11 +169,11 @@ export function CajonPrendaTrafico({
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-[13px] text-tinta/70">Sin datos de por dónde llegaron.</p>
+          <p className="mt-2 text-sm text-tinta/70">Sin datos de por dónde llegaron.</p>
         )}
       </section>
 
-      {miraron < POCAS_PERSONAS && <p className="nota-cayla text-[13px]">Con tan poca gente, tómalo como una pista, no como una regla.</p>}
+      {miraron < POCAS_PERSONAS && <p className="nota-cayla text-sm">Con tan poca gente, tómalo como una pista, no como una regla.</p>}
     </Cajon>
   );
 }
