@@ -596,14 +596,15 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
   });
 });
 
-describe("el botón principal de Nueva orden cabe a 375 px", () => {
-  it("su etiqueta tiene a lo más 20 letras (a 375 px «Crear modelo y abrir orden» medía 180 px en un botón de 159 y se recortaba ~21 px)", () => {
+describe("el botón principal de Nueva orden cabe a 375 px y dice lo mismo siempre", () => {
+  it("dice «Abrir orden» con un modelo nuevo o uno que existe (con «Crear orden» la prueba ciega dudó si quedaba abierta), y cabe: a 375 px «Crear modelo y abrir orden» se recortaba ~21 px", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
     // Desde la ronda 12 de /unificar (ADR-0358) «Abriendo…» lo pone la pieza (`textoCargando`); la etiqueta es la del botón en reposo.
     expect(fuente).toContain('textoCargando="Abriendo…"');
-    const etiquetas = [...fuente.matchAll(/\{esNuevo \? "([^"]+)" : "([^"]+)"\}/g)];
-    expect(etiquetas.length).toBe(1);
-    for (const e of [etiquetas[0][1], etiquetas[0][2]]) expect(e.length, e).toBeLessThanOrEqual(20);
+    const boton = fuente.match(/textoCargando="Abriendo…"[\s\S]*?>([\s\S]*?)<\/Boton>/)?.[1] ?? "";
+    const etiqueta = boton.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").trim();
+    expect(etiqueta).toBe("Abrir orden");
+    expect(fuente).not.toMatch(/esNuevo \? "Crear orden"/);
   });
 });
 

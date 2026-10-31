@@ -120,7 +120,7 @@ terminar sin estante. El ADR-0581 agregó la salida («Pasar a lote» en la orde
 valor de fábrica se volvería a mirar si el error se repetía; se repitió con la OP-000005 el mismo día.
 
 **Lo decidido.** Con un modelo nuevo el tipo **no viene marcado**: el interruptor aparece sin ninguna opción elegida, es lo primero que pide
-la guía de foco («Tipo de orden · Sigue aquí»; «Elige si es un lote de producción o una muestra») y «Crear orden» no se habilita hasta
+la guía de foco («Tipo de orden · Sigue aquí»; «Elige si es un lote de producción o una muestra») y «Abrir orden» no se habilita hasta
 elegirlo. Cada opción dice qué pasa al cerrar (lote: entra al stock del Taller; muestra: no entra). Mientras no se elige, el precio cuenta
 como el de un lote: lo que libra de él es elegir Muestra. Un modelo que ya existe sigue naciendo en *Lote de producción* (sin marca de la
 guía, porque no es una falta), y lo que llega desde Resumen o con `?tipo=` no cambia.
@@ -142,3 +142,14 @@ vez de mandar «lote» por su cuenta). Sin migración.
 `tipo` en `problemasDelModelo` y `camposDeGuiaOrden`), `lib/borrador-orden.ts` (un borrador puede guardar el tipo sin elegir),
 `lib/sugerencias-orden-produccion.ts` (la nota neutra), `FichaOrden` («Lote o muestra: por elegir») y `SegmentoDeslizante`, que ya no deja el
 pulgar sobre la opción de antes cuando el valor queda sin elegir.
+
+**Ajuste del mismo día: tres textos de Formidable (Felipe dijo «sí, los 3»).** La prueba ciega eligió Lote a la primera, pero dudó en tres
+lugares, y los tres se corrigieron sin tocar ninguna regla:
+1. **La frase del tipo pregunta lo que decide.** Decía «Lote de producción: ya tienen el molde…»; ahora, «¿Se va a vender? Lote de
+   producción: al cerrarlo, entra al stock. ¿Es una prueba del modelo? Muestra: no entra al stock.» Con un modelo nuevo ninguna de sus
+   tres frases nombra el molde (la tarea de la ciega no lo decía); con un modelo que existe sigue hablando del molde, porque ahí sí hay
+   historial que leer (`frasesDelMolde`).
+2. **El botón dice siempre «Abrir orden».** Con un modelo nuevo pasaba a «Crear orden», y la ciega dudó si así también quedaba abierta.
+3. **«Hoy en el Taller» no llama «lotes» a las muestras** (Órdenes y Resumen de Producción). La cifra es de órdenes: «lotes» si todas
+   son lotes, «muestras» si todas lo son, y «órdenes» si hay de las dos, con «1 muestra» en el detalle (`cifrasHoyEnElTaller`, que ahora
+   devuelve `ordenes` y `unidad` en vez de `lotes`).

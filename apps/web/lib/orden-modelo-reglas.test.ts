@@ -247,26 +247,33 @@ describe("moldeDelModelo", () => {
 });
 
 describe("frasesDelMolde", () => {
-  it("un modelo nuevo sin tipo pide elegir y dice qué hace cada uno al cerrar, sin dar ninguno por hecho", () => {
+  it("un modelo nuevo sin tipo pregunta lo que decide (¿se va a vender?) y qué hace cada uno al cerrar, sin dar ninguno por hecho", () => {
     const r = frasesDelMolde({ tipo: null, esNuevo: true, molde: { estado: "sin_historia" } });
     expect(r.pregunta).toBe(true);
-    expect(r.texto).toMatch(/^Elige/);
+    expect(r.texto).toMatch(/^¿Se va a vender\? Lote de producción/);
+    expect(r.texto).toMatch(/¿Es una prueba del modelo\? Muestra/);
     expect(r.texto).toMatch(/entra al stock/);
     expect(r.texto).toMatch(/no entra al stock/);
     expect(r.texto).not.toMatch(/arranca como/);
+  });
+  it("con un modelo nuevo ninguna frase pregunta por el molde: su tarea no siempre lo dice (la prueba ciega dudó ahí)", () => {
+    for (const tipo of ["produccion", "muestra", null] as const) {
+      expect(frasesDelMolde({ tipo, esNuevo: true, molde: { estado: "sin_historia" } }).texto, String(tipo)).not.toMatch(/molde/);
+    }
   });
   it("un modelo nuevo con Muestra elegida dice que no entra al stock y cómo pasar a lote", () => {
     const r = frasesDelMolde({ tipo: "muestra", esNuevo: true, molde: { estado: "sin_historia" } });
     expect(r.pregunta).toBe(false);
     expect(r.texto).toMatch(/no entra al stock/);
-    expect(r.texto).toMatch(/elige Lote de producción/);
+    expect(r.texto).toMatch(/Si se va a vender, elige Lote de producción/);
     expect(r.texto).not.toMatch(/arranca como/);
   });
-  it("un modelo nuevo con Lote elegido da por dicho que ya tienen el molde", () => {
+  it("un modelo nuevo con Lote elegido dice que se fabrica para vender y entra al stock", () => {
     const r = frasesDelMolde({ tipo: "produccion", esNuevo: true, molde: { estado: "sin_historia" } });
     expect(r.pregunta).toBe(false);
-    expect(r.texto).toMatch(/ya tienen el molde/);
-    expect(r.texto).not.toMatch(/arranca como muestra/);
+    expect(r.texto).toMatch(/^Se fabrica para vender/);
+    expect(r.texto).toMatch(/entra al stock del Taller/);
+    expect(r.texto).toMatch(/elige Muestra/);
   });
   it("con el molde listo lo dice y no pregunta", () => {
     const lote = frasesDelMolde({ tipo: "produccion", esNuevo: false, molde: { estado: "listo", por: "muestra" } });

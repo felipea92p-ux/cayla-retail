@@ -1098,7 +1098,8 @@ export function NuevaOrdenProduccionForm({
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={`flex-1 ${guia.claseConfirmar}`}
               >
-                {esNuevo ? "Crear orden" : "Abrir orden"}
+                {/* Siempre «Abrir orden»: con un modelo nuevo decía «Crear orden» y la prueba ciega de Formidable dudó si así también quedaba abierta (2026-10-30). */}
+                Abrir orden
               </Boton>
             </div>
           </div>

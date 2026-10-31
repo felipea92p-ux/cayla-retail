@@ -180,7 +180,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "cifras",
       ancla: "prod-ordenes.cifras",
       titulo: "Hoy en el Taller",
-      texto: "Una tarjeta por fase: cuántos lotes y cuántas prendas hay ahí ahora, lo que está afuera y con quién, y los que esperan pasar al stock. Tócala para ver solo esos lotes; vuelve a tocarla para quitar el filtro.",
+      texto: "Una tarjeta por fase: cuántas órdenes y cuántas prendas hay ahí ahora (si alguna es una muestra, lo dice), lo que está afuera y con quién, y las que esperan pasar al stock. Tócala para ver solo esas órdenes; vuelve a tocarla para quitar el filtro.",
     },
     {
       id: "pestanas",
@@ -248,7 +248,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tipo",
       opcional: true,
       titulo: "¿Lote o muestra?",
-      texto: "Un modelo que ya existe se fabrica como «Lote de producción»: al cerrar, entra al stock del Taller. Uno nuevo no trae ninguno: eliges tú si es un lote o una «Muestra», para desarrollarlo (patrón y prototipo) sin stock. Si hace falta, lo cambias aquí.",
+      texto: "Un modelo que ya existe se fabrica como «Lote de producción»: al cerrar, entra al stock del Taller. Uno nuevo no trae ninguno: si se va a vender, eliges «Lote de producción»; si es una prueba del modelo (patrón y prototipo), «Muestra», que no entra al stock. Si hace falta, lo cambias aquí.",
     },
     {
       id: "matriz",

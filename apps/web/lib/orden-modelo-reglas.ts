@@ -190,19 +190,20 @@ export function moldeDelModelo(historial: readonly OrdenParaMolde[], productoId:
   return enDesarrollo ? { estado: "en_desarrollo" } : { estado: "sin_historia" };
 }
 
-/** Lo que dice la línea junto al interruptor del tipo: qué se sabe del molde y qué hacer. Cuando no se sabe, es la pregunta. */
+/**
+ * Lo que dice la línea junto al interruptor del tipo: qué se sabe del molde y qué hacer. Cuando no se sabe, es la pregunta.
+ * Un modelo nuevo no tiene historial que leer, así que la frase pregunta lo que decide: si se va a vender (lote) o es una prueba
+ * del modelo (muestra). Antes preguntaba por «el molde», y la prueba ciega de Formidable dudó porque su tarea no lo decía (2026-10-30).
+ */
 export function frasesDelMolde(o: { tipo: TipoOrden | null; esNuevo: boolean; molde: MoldeDelModelo }): { texto: string; pregunta: boolean } {
   if (o.esNuevo && o.tipo === "produccion") {
-    return { texto: "Es un modelo nuevo y ya tienen el molde: fabrica el lote y, al cerrarlo, entra al stock del Taller. Si todavía falta hacerlo, elige Muestra.", pregunta: false };
+    return { texto: "Se fabrica para vender: al cerrarlo, entra al stock del Taller. Si es una prueba del modelo, elige Muestra.", pregunta: false };
   }
   if (o.esNuevo && o.tipo === "muestra") {
-    return { texto: "Una muestra desarrolla el modelo y, al cerrarla, no entra al stock. Si ya tienen el molde y van a fabricar para vender, elige Lote de producción.", pregunta: false };
+    return { texto: "Una muestra es una prueba del modelo: al cerrarla, no entra al stock. Si se va a vender, elige Lote de producción.", pregunta: false };
   }
   if (o.esNuevo) {
-    return {
-      texto: "Elige qué vas a hacer. Lote de producción: ya tienen el molde y, al cerrarlo, entra al stock del Taller. Muestra: todavía hay que desarrollarlo y no entra al stock.",
-      pregunta: true,
-    };
+    return { texto: "¿Se va a vender? Lote de producción: al cerrarlo, entra al stock. ¿Es una prueba del modelo? Muestra: no entra al stock.", pregunta: true };
   }
   const { molde } = o;
   if (molde.estado === "listo") {

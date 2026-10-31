@@ -93,7 +93,8 @@ Cosas que tocó y no hicieron lo esperado: el primer clic en «Elegir la categor
 | 2026-10-10 | `4f90fdb2` | 4,8 (ley 1: 6 provisional; ley 5: 3) | 5 (crudo 4) | primera revisión; ninguno aplicado: esperan el OK de Felipe |
 | 2026-10-10 | `f05df49e` + migración | **5,4** (ley 1: 6 provisional; ley 5: 4) | 5 (5 de 8 fallan; no era parte de los cambios) | **los 3 cambios aplicados** (Felipe los eligió); ciega sin repetir |
 | 2026-10-13 | `/pantalla` (no es una corrida de `/formidable`) | — | — | **Corrección:** el «¿Salir sin guardar?» con Escape o clic fuera **sí fallaba**: la pregunta salía con la hoja ya cerrada y «Seguir editando» dejaba la pantalla sin responder. Las dos corridas anteriores (y `/chaos` NAV-04) lo dieron por resuelto porque miraron que la pregunta apareciera, no que se pudiera seguir. Arreglado con `antesDeCerrar` (también en Registrar gasto) y vigilado por `lib/hojas-salida-sin-guardar.test.ts` |
-| 2026-10-30 | `7fad81137` (rama `claude/modelo-nuevo-sin-tipo-de-fabrica`) | acotada al tipo: ley 1 **7** (ciega), ley 4 **6**, ley 8 **6** | 8 en el bloque del tipo (pasa todo lo medido); pantalla 6 de 8, ninguna en el bloque | tercera corrida, acotada al tipo sin valor de fábrica (ADR-0396 act.); 3 cambios propuestos, ninguno aplicado: esperan el OK de Felipe |
+| 2026-10-30 | `7fad81137` (rama `claude/modelo-nuevo-sin-tipo-de-fabrica`) | acotada al tipo: ley 1 **7** (ciega), ley 4 **6**, ley 8 **6** | 8 en el bloque del tipo (pasa todo lo medido); pantalla 6 de 8, ninguna en el bloque | tercera corrida, acotada al tipo sin valor de fábrica (ADR-0396 act.); 3 cambios propuestos |
+| 2026-10-30 | misma rama, commit de los textos | sin re-calificar (la ciega no se repitió) | sin cambio en el bloque | **los 3 cambios aplicados** (Felipe: «sí, los 3»): la frase «¿Se va a vender?…», el botón siempre «Abrir orden» y «Hoy en el Taller» en órdenes, lotes o muestras; vistos en el navegador |
 
 ## Segunda corrida (2026-10-10, tras aplicar los tres cambios que Felipe eligió)
 
@@ -150,7 +151,7 @@ la medición la hice yo en el DOM y **no hubo escéptico** (costo bajo): las not
 | 2, 5, 6 | sin cambio | el cambio no los toca |
 | **Oficio (bloque)** | **8** | [Medido] botones de 37 px (objetivo 32), contraste 5,3:1 en los botones, 4,78:1 en el título y 6,3:1 en la frase; solo la versalita de 11 px del sistema. En la pantalla fallan 6 de 8 comprobaciones, **ninguna en el bloque** («Taller» y las pestañas: falso contraste por el pulgar hermano; «Salir», el interruptor y un enlace bajo el precio) |
 
-### Los 3 cambios de mayor impacto (propuestos; ninguno aplicado: esperan el OK de Felipe)
+### Los 3 cambios de mayor impacto (aplicados el 2026-10-30: Felipe dijo «sí, los 3»)
 1. **La frase del tipo pregunta lo que decide, en palabras de tienda.** Antes: «Elige qué vas a hacer. Lote de producción: ya tienen el molde y, al cerrarlo,
    entra al stock del Taller. Muestra: todavía hay que desarrollarlo y no entra al stock.» → Después: «¿Se va a vender? Lote de producción: al cerrarlo, entra
    al stock. ¿Es una prueba del modelo? Muestra: no entra al stock.» Ley 4 y 8. Se verifica repitiendo la ciega con la misma tarea (sin la duda del molde) y
