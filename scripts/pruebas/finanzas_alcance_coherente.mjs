@@ -15,9 +15,16 @@
  *     cuenta (lista de excepciones vacía a propósito: una futura función hermana no puede volver a decidir sola);
  *   · una cuenta con SOLO «Cierre de mes» ve lo mismo que el líder en el diario, el Estado de resultados, el Balance por tienda y el
  *     Balance de una tienda (filas con ubicación nula incluidas);
- *   · un encargado (Reportes financieros, sin ninguno de los tres) sigue topado a SU tienda en cada una de esas funciones y recibe
- *     42501 al pedir otra;
  *   · una cuenta sin el módulo no ve nada.
+ *
+ * ACTUALIZACIÓN ADR-0585 (Felipe, 2026-10-30: «puede ver todo del módulo quien tenga dicho módulo»). Antes el encargado con
+ * «Reportes financieros» quedaba topado a SU tienda. Ahora, con el módulo (hoy «Estados financieros»), ve lo mismo que el líder:
+ * todas las tiendas, la empresa y el consolidado, el flujo, su proyección y el Balance de CAYLA entera. Lo que la prueba fija:
+ *   · las doce lecturas que reparten con `fn_diario_ubicaciones()` preguntan `fn_ve_diario_de_todo()` y ninguna `fn_ve_finanzas_de_todo()`
+ *     por su cuenta (esa sigue siendo la regla de ESCRIBIR gastos);
+ *   · el encargado con el módulo ve lo mismo que el líder y puede pedir cualquier tienda, pero NO escribe: registrar un gasto de la
+ *     empresa y registrar los saldos de arranque siguen dándole 42501;
+ *   · una TERMINAL con el módulo sigue viendo solo su tienda (ADR-0161 P6: CAYLA entera no se muestra en el aparato del mostrador).
  *
  * CÓMO. Todo dentro de una transacción con ROLLBACK (nada se confirma en el Postgres local compartido). La planilla de Dynamic se
  * apaga (`prueba.planilla = 'no'`) para que la comparación entre cuentas no dependa de quién puede ver sueldos.
@@ -150,7 +157,12 @@ create temp table lider_diario_cerrado as select * from retail.fn_diario('2025-0
 
 // Lo que pregunta una función, sin sus comentarios (un «fn_es_lider()» escrito en un comentario no cuenta ni como culpa ni como prueba).
 const SIN_COMENTARIOS = "regexp_replace(p.prosrc, '--[^\\n]*', '', 'g')";
-const HERMANAS = ["fn_diario", "fn_estado_resultados", "fn_balance_por_tienda", "fn_balance_general", "fn_gastos_fuera_de_lo_normal"];
+// Las doce lecturas del diario: todas deciden «ve todo» con la misma pregunta (ADR-0585).
+const HERMANAS = ["fn_diario_ubicaciones", "fn_asientos", "fn_diario", "fn_estado_resultados", "fn_balance_por_tienda", "fn_balance_general",
+  "fn_campanas_reporte", "fn_presupuesto_vs_real", "fn_periodos_mes", "fn_gastos_fuera_de_lo_normal", "fn_planilla_provision", "fn_claure_ventas_en"];
+// Lo que es de CAYLA entera: lo abre el módulo (ADR-0585). Registrar los saldos de arranque sigue siendo del líder.
+const DE_CAYLA_ENTERA = ["fn_flujo_caja_real", "fn_flujo_caja_proyeccion", "fn_balance_general", "fn_conciliacion_contable", "fn_saldos_iniciales",
+  "fn_saldos_iniciales_propuesta"];
 const CASOS_ESTRUCTURA = `
 begin;
 -- Toda función que reparta el alcance con fn_diario_ubicaciones() lo decide con fn_ve_finanzas_de_todo(), nunca con fn_es_lider().
@@ -159,9 +171,20 @@ select 'A1 ninguna función que reparte el alcance por tienda pregunta fn_es_lid
   (select count(*) = 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'retail' and p.prokind = 'f'
       and ${SIN_COMENTARIOS} ~ 'fn_diario_ubicaciones' and ${SIN_COMENTARIOS} ~ 'fn_es_lider\\s*\\(');
-${HERMANAS.map((f) => `select 'A2 ${f} pregunta fn_ve_finanzas_de_todo()',
+${HERMANAS.map((f) => `select 'A2 ${f} pregunta fn_ve_diario_de_todo() y no fn_ve_finanzas_de_todo()',
   exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'retail' and p.proname = '${f}' and ${SIN_COMENTARIOS} ~ 'fn_ve_finanzas_de_todo\\s*\\(');`).join("\n")}
+           where n.nspname = 'retail' and p.proname = '${f}' and ${SIN_COMENTARIOS} ~ 'fn_ve_diario_de_todo\\s*\\('
+             and ${SIN_COMENTARIOS} !~ 'fn_ve_finanzas_de_todo\\s*\\(');`).join("\n")}
+select 'A3 ninguna OTRA función que reparte el alcance con fn_diario_ubicaciones() pregunta fn_ve_finanzas_de_todo() por su cuenta',
+  (select count(*) = 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'retail' and p.prokind = 'f'
+      and ${SIN_COMENTARIOS} ~ 'fn_diario_ubicaciones' and ${SIN_COMENTARIOS} ~ 'fn_ve_finanzas_de_todo\\s*\\(');
+${DE_CAYLA_ENTERA.map((f) => `select 'A4 ${f} pide fn_exigir_estados_financieros_de_todo()',
+  exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'retail' and p.proname = '${f}' and ${SIN_COMENTARIOS} ~ 'fn_exigir_estados_financieros_de_todo\\s*\\(');`).join("\n")}
+select 'A5 registrar los saldos de arranque sigue siendo solo del líder (fn_exigir_lider_balance)',
+  exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'retail' and p.proname = 'registrar_saldo_inicial' and ${SIN_COMENTARIOS} ~ 'fn_exigir_lider_balance\\s*\\(');
 `;
 
 const CASOS_CIERRE_DE_MES = `
@@ -207,27 +230,62 @@ select 'B7 gastos fuera de lo normal: quien ve todo (con Configuración) puede p
 const CASOS_ENCARGADO = `
 ${cambiaA(MICAELA)}
 ${conModulo("reportes_financieros")}
-select 'C1 el encargado ve el Estado de resultados de SU tienda y nada más: ni otras tiendas, ni la empresa, ni el consolidado',
+select 'C1 con el módulo ve el Estado de resultados igual que el líder: tiendas, la empresa y el consolidado, con los mismos números',
+  (select count(*) from (
+     select ubicacion_id, unidad, ventas_netas, costo_ventas, mermas, gastos_operacion, resultado from lider_er
+     except select ubicacion_id, unidad, ventas_netas, costo_ventas, mermas, gastos_operacion, resultado
+              from retail.fn_estado_resultados('2030-09-01', '2030-09-30')) f) = 0
+  and (select count(*) from retail.fn_estado_resultados('2030-09-01', '2030-09-30')) = (select count(*) from lider_er)
+  and exists (select 1 from retail.fn_estado_resultados('2030-09-01', '2030-09-30') where unidad = 'consolidado');
+select 'C2 su diario trae las mismas líneas que el del líder, las de la empresa incluidas',
+  (select count(*) from retail.fn_diario('2030-09-01', '2030-09-30')) = (select count(*) from lider_diario)
+  and (select count(*) from retail.fn_diario('2030-09-01', '2030-09-30') where ubicacion_id is null) = (select count(*) from lider_diario where ubicacion_id is null);
+select 'C3 su Balance por tienda mide cada tienda igual que el líder',
+  (select count(*) from (
+     select ubicacion_id, nombre, mercaderia, activos_fijos, facturas_por_pagar, ventas_mes, utilidad_mes from lider_bpt
+     except select ubicacion_id, nombre, mercaderia, activos_fijos, facturas_por_pagar, ventas_mes, utilidad_mes
+              from retail.fn_balance_por_tienda('2030-09-30')) f) = 0
+  and (select count(*) from retail.fn_balance_por_tienda('2030-09-30')) = (select count(*) from lider_bpt);
+select 'C4 puede pedir el diario de Lima',
+  (select pg_temp.intento(format('select * from retail.fn_diario(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim'))) = 'SIN_ERROR';
+select 'C5 y el Estado de resultados, los asientos, el Balance y el presupuesto de Lima',
+  (select pg_temp.intento(format('select * from retail.fn_estado_resultados(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim'))) = 'SIN_ERROR'
+  and (select pg_temp.intento(format('select * from retail.fn_asientos(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim'))) = 'SIN_ERROR'
+  and (select pg_temp.intento(format('select * from retail.fn_balance_general(%L, %L)', '2030-09-30', :'lim'))) = 'SIN_ERROR'
+  and (select pg_temp.intento(format('select * from retail.fn_presupuesto_vs_real(%L, %L)', '2030-09-01', :'lim'))) = 'SIN_ERROR';
+select 'C6 el presupuesto real de la empresa y de CAYLA es el mismo que ve el líder',
+  (select count(*) from (
+     select ubicacion_id, unidad, linea, a_la_fecha from lider_ppto
+     except select ubicacion_id, unidad, linea, a_la_fecha from retail.fn_presupuesto_vs_real('2030-09-01', null, '2030-09-30')) f) = 0;
+select 'C7 abre el Balance de CAYLA entera y su comprobación (antes: solo el líder)',
+  (select pg_temp.intento($$select * from retail.fn_balance_general('2030-09-30')$$)) = 'SIN_ERROR'
+  and (select pg_temp.intento($$select * from retail.fn_conciliacion_contable('2030-09-30')$$)) = 'SIN_ERROR';
+select 'C8 abre el flujo de efectivo y su proyección (antes: solo el líder)',
+  (select pg_temp.intento($$select retail.fn_flujo_caja_real(retail.fn_hoy_lima() - 10, retail.fn_hoy_lima())$$)) = 'SIN_ERROR'
+  and (select pg_temp.intento($$select retail.fn_flujo_caja_proyeccion(6)$$)) = 'SIN_ERROR';
+select 'C9 lee los saldos de arranque',
+  (select pg_temp.intento($$select * from retail.fn_saldos_iniciales()$$)) = 'SIN_ERROR';
+select 'C10 NO escribe: registrar los saldos de arranque sigue dando 42501',
+  (select pg_temp.intento($$select retail.registrar_saldo_inicial('2030-09-01', '[]'::jsonb, 'prueba')$$)) = '42501';
+select 'C11 NO escribe: registrar un gasto de la empresa sigue dando 42501 (mirar no es registrar)',
+  (select pg_temp.intento($$select retail.registrar_gasto(null, 'publicidad', 'Gasto ajeno G16', '2030-09-12', 50, null, 'yape')$$)) = '42501';
+`;
+
+// Una TERMINAL (el aparato compartido del mostrador) con el módulo: sigue viendo solo su tienda (ADR-0585, ADR-0161 P6).
+const TERMINAL = "22222222-2222-4222-8222-0000000000f7";
+const CASOS_TERMINAL = `
+insert into auth.users (id, email) values ('${TERMINAL}', 'terminal-g16@cayla.local');
+insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id, rol_id)
+  values (:'tru', 'Caja G16', 'ventas', '${TERMINAL}', retail.fn_rol_por_clave('integrante'));
+${conModulo("reportes_financieros")}
+${cambiaA(TERMINAL)}
+select 'T1 la terminal con el módulo ve el Estado de resultados de SU tienda y nada más',
   (select count(*) = 1 and bool_and(ubicacion_id = :'tru' and unidad = 'tienda') from retail.fn_estado_resultados('2030-09-01', '2030-09-30'));
-select 'C2 su diario es solo de su tienda (sin las líneas de la empresa)',
-  (select count(*) > 0 and bool_and(ubicacion_id is not distinct from :'tru') from retail.fn_diario('2030-09-01', '2030-09-30'));
-select 'C3 su Balance por tienda trae solo su tienda',
-  (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_balance_por_tienda('2030-09-30'));
-select 'C4 pedir el diario de Lima falla con 42501',
+select 'T2 pedir el diario de Lima falla con 42501',
   (select pg_temp.intento(format('select * from retail.fn_diario(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim'))) = '42501';
-select 'C5 pedir el Estado de resultados de Lima falla con 42501',
-  (select pg_temp.intento(format('select * from retail.fn_estado_resultados(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim'))) = '42501';
-select 'C6 pedir los asientos de Lima falla con 42501',
-  (select pg_temp.intento(format('select * from retail.fn_asientos(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim'))) = '42501';
-select 'C7 pedir el Balance de Lima falla con 42501',
-  (select pg_temp.intento(format('select * from retail.fn_balance_general(%L, %L)', '2030-09-30', :'lim'))) = '42501';
-select 'C8 pedir el presupuesto real de Lima falla con 42501',
-  (select pg_temp.intento(format('select * from retail.fn_presupuesto_vs_real(%L, %L)', '2030-09-01', :'lim'))) = '42501';
-select 'C9 pedir lo de toda la empresa (sin tienda) en el diario devuelve solo lo suyo, y ninguna línea sin tienda',
-  (select count(*) from retail.fn_diario('2030-09-01', '2030-09-30')) < (select count(*) from lider_diario)
-  and (select count(*) from retail.fn_diario('2030-09-01', '2030-09-30') where ubicacion_id is null) = 0;
-select 'C10 gastos fuera de lo normal: lo de la empresa NO es del encargado',
-  (select pg_temp.intento($$select * from retail.fn_gastos_fuera_de_lo_normal(null, true)$$)) = '42501';
+select 'T3 el Balance de CAYLA entera y el flujo, tampoco',
+  (select pg_temp.intento($$select * from retail.fn_balance_general('2030-09-30')$$)) = '42501'
+  and (select pg_temp.intento($$select retail.fn_flujo_caja_real(retail.fn_hoy_lima() - 10, retail.fn_hoy_lima())$$)) = '42501';
 `;
 
 const CASOS_MES_CERRADO = `
@@ -248,12 +306,11 @@ select 'E2 y son las mismas líneas, una por una',
 const CASOS_MES_CERRADO_ENCARGADO = `
 ${cambiaA(MICAELA)}
 ${conModulo("reportes_financieros")}
-select 'F1 el encargado ve del mes cerrado solo las líneas de SU tienda',
-  (select count(*) > 0 and bool_and(ubicacion_id is not distinct from :'tru') from retail.fn_diario('2025-03-01', '2025-03-31'));
-select 'F2 pedir el mes cerrado de Lima falla con 42501',
-  (select pg_temp.intento(format('select * from retail.fn_diario(%L, %L, %L)', '2025-03-01', '2025-03-31', :'lim'))) = '42501';
-select 'F3 pedirlo sin tienda no le suma las líneas de la empresa congeladas',
-  (select count(*) from retail.fn_diario('2025-03-01', '2025-03-31') where ubicacion_id is null) = 0;
+select 'F1 con el módulo ve del mes cerrado las mismas líneas que el líder, las de la empresa incluidas',
+  (select count(*) from retail.fn_diario('2025-03-01', '2025-03-31')) = (select count(*) from lider_diario_cerrado)
+  and (select count(*) from retail.fn_diario('2025-03-01', '2025-03-31') where ubicacion_id is null) = (select count(*) from lider_diario_cerrado where ubicacion_id is null);
+select 'F2 y puede pedir el mes cerrado de Lima',
+  (select pg_temp.intento(format('select * from retail.fn_diario(%L, %L, %L)', '2025-03-01', '2025-03-31', :'lim'))) = 'SIN_ERROR';
 `;
 
 const CASOS_SIN_MODULO = `
@@ -266,10 +323,11 @@ select 'D2 ni el diario',
 
 verificar("Candado estructural", correr(CASOS_ESTRUCTURA), casosDe(CASOS_ESTRUCTURA));
 verificar("Cuenta con solo «Cierre de mes»", correr(`${ESCENA}${CASOS_CIERRE_DE_MES}`), casosDe(CASOS_CIERRE_DE_MES));
-verificar("Encargado de una tienda", correr(`${ESCENA}${CASOS_ENCARGADO}`), casosDe(CASOS_ENCARGADO));
+verificar("Encargado con el módulo", correr(`${ESCENA}${CASOS_ENCARGADO}`), casosDe(CASOS_ENCARGADO));
+verificar("Terminal con el módulo", correr(`${ESCENA}${CASOS_TERMINAL}`), casosDe(CASOS_TERMINAL));
 verificar("Cuenta sin módulo", correr(`${ESCENA}${CASOS_SIN_MODULO}`), casosDe(CASOS_SIN_MODULO));
 verificar("Mes cerrado (cuenta con Cierre de mes)", correr(`${ESCENA}${ESCENA_CERRADA}${CASOS_MES_CERRADO}`), casosDe(CASOS_MES_CERRADO));
-verificar("Mes cerrado (encargado)", correr(`${ESCENA}${ESCENA_CERRADA}${CASOS_MES_CERRADO_ENCARGADO}`), casosDe(CASOS_MES_CERRADO_ENCARGADO));
+verificar("Mes cerrado (encargado con el módulo)", correr(`${ESCENA}${ESCENA_CERRADA}${CASOS_MES_CERRADO_ENCARGADO}`), casosDe(CASOS_MES_CERRADO_ENCARGADO));
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);
 process.exit(fallos ? 1 : 0);

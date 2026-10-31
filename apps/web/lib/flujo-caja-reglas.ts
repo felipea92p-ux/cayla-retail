@@ -34,8 +34,6 @@ export function solesConSigno(n: number): string {
 
 export type Lado = "entra" | "sale" | "ajuste";
 
-/** El orden del spike: primero cómo se cobró, después la plata del dueño y lo demás. */
-const ORDEN_ENTRA = ["efectivo", "yape", "plin", "tarjeta", "transferencia", "qr", "dueno_pone", "otros_ingresos"];
 
 export const TEXTO_CATEGORIA: Record<string, string> = {
   efectivo: "Efectivo",
@@ -123,44 +121,6 @@ export function leerFlujoReal(data: unknown): FlujoReal {
     planillaVisible: d.planilla_visible === true,
     planilla: lista(d.planilla).map((p) => ({ nombre: String(p.nombre ?? ""), fechaFin: fecha(p.fecha_fin), pagado: num(p.pagado) })),
   };
-}
-
-/** Las listas del spike: lo que entró (en el orden de los medios) y lo que salió (de mayor a menor); los ajustes aparte. */
-export function listasDelFlujo(f: Pick<FlujoReal, "categorias">): { entradas: CategoriaFlujo[]; salidas: CategoriaFlujo[]; ajustes: CategoriaFlujo[] } {
-  const orden = (c: CategoriaFlujo) => {
-    const i = ORDEN_ENTRA.indexOf(c.clave);
-    return i < 0 ? ORDEN_ENTRA.length : i;
-  };
-  const conMonto = f.categorias.filter((c) => Math.round(c.monto * 100) !== 0);
-  return {
-    entradas: conMonto.filter((c) => c.lado === "entra").sort((a, b) => orden(a) - orden(b)),
-    salidas: conMonto.filter((c) => c.lado === "sale").sort((a, b) => b.monto - a.monto),
-    ajustes: conMonto.filter((c) => c.lado === "ajuste").sort((a, b) => Math.abs(b.monto) - Math.abs(a.monto)),
-  };
-}
-
-/** La frase de la nota del spike: por qué la plata subió o bajó en el período. */
-export function fraseDelFlujo(f: FlujoReal): { tono: "neutro" | "aviso"; partes: Parte[] } {
-  const { salidas } = listasDelFlujo(f);
-  const neto = f.entro - f.salio;
-  if (neto >= 0) {
-    return {
-      tono: "neutro",
-      partes: [
-        "Entró ",
-        { b: `${soles(neto)} más de lo que salió` },
-        `: la plata disponible pasó de ${soles(f.saldoInicial)} a ${soles(f.saldoFinal)}.`,
-      ],
-    };
-  }
-  const mayor = salidas[0];
-  const porque =
-    mayor?.clave === "mercaderia"
-      ? ": pagaste mercadería antes de venderla. Eso es normal en moda; lo que hay que vigilar es que el saldo no baje del mínimo."
-      : mayor
-        ? `: lo que más sacó plata fue «${textoCategoria(mayor.clave).toLowerCase()}» (${soles(mayor.monto)}).`
-        : ".";
-  return { tono: "aviso", partes: ["Salió ", { b: `${soles(-neto)} más de lo que entró` }, porque] };
 }
 
 /** Un pedazo de texto; `{ b }` va en negrita. Así las frases se arman aquí y la pantalla solo las pinta. */
@@ -683,39 +643,12 @@ export function rangoDelMes(mes: string, hoy: string): { desde: string; hasta: s
   return { desde: `${mes}-01`, hasta: ultimo < hoy ? ultimo : hoy };
 }
 
-const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-/** «septiembre al 24» (el mes en curso) o «agosto» (uno que ya terminó). */
-export function textoPeriodo(desde: string, hasta: string, hoy: string): string {
-  const nombre = MESES_LARGOS[Number(desde.slice(5, 7)) - 1] ?? "";
-  const anio = desde.slice(0, 4) !== hoy.slice(0, 4) ? ` ${desde.slice(0, 4)}` : "";
-  return hasta === hoy ? `${nombre}${anio} al ${dia(hasta)}` : `${nombre}${anio}`;
-}
-
 const celda = (v: string | number) => {
   const s = typeof v === "number" ? v.toFixed(2) : v;
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 /** CSV separado por «;» (Excel en español), montos exactos con punto: el mismo formato de Reportes (F5). */
 const csv = (filas: (string | number)[][]) => "﻿" + filas.map((f) => f.map(celda).join(";")).join("\r\n");
-
-/** Lo que ya pasó (semana por semana y por categoría) y lo que viene, en un archivo. */
-export function csvFlujo(real: FlujoReal | null, p: Proyeccion | null): string {
-  const filas: (string | number)[][] = [];
-  if (real) {
-    filas.push(["Lo que ya pasó", real.desde, real.hasta], ["Semana", "Entró", "Salió", "Ajustes", "Quedó"]);
-    filas.push(["Saldo al empezar", "", "", "", real.saldoInicial]);
-    for (const s of real.semanas) filas.push([etiquetaSemana(s.desde, s.hasta), s.entro, s.salio, s.ajustes, s.saldo]);
-    filas.push([], ["Categoría", "Lado", "Monto"]);
-    for (const c of real.categorias) filas.push([textoCategoria(c.clave), c.lado, c.monto]);
-    filas.push([]);
-  }
-  if (p) {
-    filas.push(["Lo que viene", p.desde, p.hasta], ["Semana", "Entra", "Sale", "Queda", "Bajo el mínimo", "Qué vence"]);
-    filas.push(["Hoy", "", "", p.saldoHoy, "", ""]);
-    for (const w of p.semanas) filas.push([etiquetaSemana(w.desde, w.hasta), w.entra, w.sale, w.saldo, w.bajoMinimo ? "sí" : "no", queVence(p.salidas, w.desde, w.hasta)]);
-  }
-  return csv(filas);
-}
 
 /** El escenario: la caja semana por semana (hoy y con el cambio) y la utilidad de cada unidad. */
 export function csvEscenario(base: readonly SemanaProy[], nuevo: readonly SemanaProy[], u: ReturnType<typeof utilidadConCambios> | null): string {

@@ -12,6 +12,7 @@ import {
   claveDeSedes,
   dichoDeLaSede,
   esMesTelar,
+  hilosDeLaRuta,
   hrefTelar,
   mesTelar,
   sedesDeLaUrl,
@@ -37,8 +38,9 @@ export type SubmoduloTelar = { clave: string; etiqueta: string; ruta: string };
  */
 export function MesaDeMando({
   submodulos,
-  sedes,
-  veTodo,
+  sedes: sedesBase,
+  veTodo: veTodoBase,
+  sedesEstados,
   sedePropia,
   mesDeHoy,
   puedeRegistrarGasto,
@@ -47,6 +49,8 @@ export function MesaDeMando({
   /** Los hilos que la cuenta puede elegir (quien no ve todo: solo el suyo). */
   sedes: SedeTelar[];
   veTodo: boolean;
+  /** ADR-0585: todos los hilos, para Estados financieros, si la cuenta tiene el módulo y no ve todo Finanzas (`hilosDeLaRuta`). */
+  sedesEstados: SedeTelar[] | null;
   sedePropia: ClaveSede | null;
   /** «2026-10»: el último mes que se puede elegir. */
   mesDeHoy: string;
@@ -54,6 +58,7 @@ export function MesaDeMando({
   puedeRegistrarGasto: boolean;
 }) {
   const pathname = usePathname();
+  const { sedes, veTodo } = hilosDeLaRuta(pathname, { sedes: sedesBase, veTodo: veTodoBase }, sedesEstados);
   const sp = useSearchParams();
   const router = useRouter();
   const actuales = [...sp.entries()];

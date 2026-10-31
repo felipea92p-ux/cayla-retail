@@ -104,7 +104,7 @@
     "components/finanzas/ConfiguracionPresupuesto.tsx": [
       "input «{etiqueta}»",
       "ComboResponsable «{responsable}»",
-      "Link «Reportes ▸ Presupuesto»",
+      "Link «Estados financieros ▸ ¿Ganamos?»",
       "Boton «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
       "Boton «config.presupuesto-sugerir»",
       "Link «Se cambia en Tiendas y caja»",

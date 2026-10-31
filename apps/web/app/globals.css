@@ -90,6 +90,7 @@
 @import "./estilos/historial-tickets.css";
 /* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
 @import "./estilos/tienda-web.css";
+@import "./estilos/existencias-vitrina.css";
 /* Tienda web ▸ Conf. Tienda: las puertas, el teléfono y la fachada (ADR-0518, maqueta 2026-10-26). */
 @import "./estilos/tienda-web-conf.css";
 /* La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`). */
