@@ -81,17 +81,19 @@ a.t-fila[aria-current="true"] .marca{display:block}
 /* Felipe 2026-10-31: «no me gusta que se quede así la cabecera, se confunde con el contenido». Antes era un vidrio al 72-86 % y las filas se
    leían a través, y por encima de ella seguían pasando filas: parecía una fila más, flotando en medio de la lista. Ahora, al pegarse:
    · es un vidrio casi opaco (98 %, con su desenfoque): nada se lee a través;
-   · la franja de arriba, desde el borde de la pantalla hasta ella, es el mismo vidrio: ninguna fila se ve encima de la cabecera;
+   · lo que sube por encima de ella se esconde (una máscara en #cont, solo mientras está pegada): ninguna fila se ve encima, y detrás
+     de las islas queda la Aurora, sin una franja que suba hasta el borde (Felipe: «no me gusta que se extienda tanto hacia arriba»);
+   · lleva las esquinas de arriba redondeadas, como el borde de la tabla: se lee como el comienzo de la tabla, no como una barra;
    · y gana una sombra abajo y un filo más marcado: se ve que está por encima de las filas, no entre ellas. */
 /* `top` se mide desde el borde del contenido de #cont, que tiene 92 px de relleno arriba: -20 px la deja a 72 px del borde, justo bajo las islas */
 :root:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{position:sticky;top:-20px;z-index:3;transition:box-shadow .25s var(--ease),background .25s}
 .tabla[data-pegada] .t-cabeza{background:color-mix(in srgb,var(--vidrio) 98%,transparent);
   -webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
   box-shadow:0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 14px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
-.tabla[data-pegada] .t-cabeza::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:72px;pointer-events:none;
-  background:color-mix(in srgb,var(--vidrio) 98%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5)}
 .tabla[data-pegada] .t-enc{box-shadow:none}
-[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza,[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza::before{background:color-mix(in srgb,var(--vidrio) 98%,transparent)}
+.tabla[data-pegada] .t-cabeza{border-radius:22px 22px 0 0}
+.disp[data-tabla-pegada] .cont{-webkit-mask-image:linear-gradient(to bottom,transparent 72px,var(--tinta) 72px);mask-image:linear-gradient(to bottom,transparent 72px,var(--tinta) 72px)}
+[data-tema="oscuro"] .tabla[data-pegada] .t-cabeza{background:color-mix(in srgb,var(--vidrio) 98%,transparent)}
 [data-tema="oscuro"] .tabla[data-pegada] .t-cabeza{box-shadow:0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 14px 26px -16px var(--sombra)}
 /* la cabecera que se toca: el nombre, su flecha de orden y su punto de filtro */
 .col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;
@@ -522,7 +524,8 @@ document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && globoD
 // ¿la cabecera está pegada? (la tabla ya empezó más arriba que ella)
 function marcarPegada() {
   const t = $('.tabla'), c = t && $('.t-cabeza', t); if (!t || !c) return;
-  t.toggleAttribute('data-pegada', getComputedStyle(c).position === 'sticky' && t.getBoundingClientRect().top < c.getBoundingClientRect().top - 1);
+  const pegada = getComputedStyle(c).position === 'sticky' && t.getBoundingClientRect().top < c.getBoundingClientRect().top - 1;
+  t.toggleAttribute('data-pegada', pegada); $('#disp').toggleAttribute('data-tabla-pegada', pegada);
 }
 $('#cont').addEventListener('scroll', () => { marcarPegada(); if (globoDe) pintarGlobo(); }, { passive: true });
 addEventListener('resize', () => { if (globoDe) pintarGlobo(); });

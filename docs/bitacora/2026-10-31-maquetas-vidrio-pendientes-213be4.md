@@ -22,3 +22,6 @@
 - **Cabecera pegada de la tabla** (Felipe: «se confunde con el contenido»): era vidrio al 72–86 % y se pegaba 92 px más abajo (el `top`
   de `sticky` se mide desde el relleno de #cont), así que se leían filas a través y por encima. Ahora se pega justo bajo las islas, al
   98 % con su sombra, y la franja de arriba es el mismo vidrio.
+- **Cabecera pegada, segunda vuelta** (Felipe: «no me gusta que se extienda tanto hacia arriba»): sin la franja de vidrio que subía al
+  borde; la cabecera queda de su tamaño, con las esquinas de arriba redondeadas, y lo que sube por encima se esconde con una máscara en
+  `#cont` solo mientras está pegada.

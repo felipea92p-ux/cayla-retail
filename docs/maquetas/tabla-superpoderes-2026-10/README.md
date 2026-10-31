@@ -17,8 +17,10 @@ Abrir `index.html` (o con la config `maquetas` del navegador integrado). Va sobr
 3. **Filtrar y ordenar desde la cabecera**, y se aplica al tocar: no hay botón «Aplicar». La cabecera filtrada lleva un punto rojo.
 4. **Lo que ves, en una frase:** «Ves 2 de 14 órdenes: de Telas Mistral, en camino. Suman S/ 9,120.» Además, lo puesto va en píldoras
    que se quitan con su ✕, y hay «Limpiar todo».
-5. **La cabecera te acompaña al bajar**: queda pegada justo bajo las islas, como un vidrio casi opaco (98 %) con su sombra abajo, y la
-   franja de arriba es el mismo vidrio: ninguna fila se ve encima ni a través de ella (Felipe 2026-10-31: «se confunde con el contenido»).
+5. **La cabecera te acompaña al bajar**: queda pegada justo bajo las islas, del tamaño de siempre, como un vidrio casi opaco (98 %), con sus
+   esquinas de arriba redondeadas y su sombra abajo. Lo que sube por encima de ella se esconde, y detrás de las islas queda la Aurora:
+   ninguna fila se ve encima ni a través (Felipe 2026-10-31: «se confunde con el contenido»; y después, «no me gusta que se extienda
+   tanto hacia arriba»: se quitó la franja de vidrio que subía hasta el borde).
 6. **La fecha dice cuánto falta** («en 4 días»; si ya pasó y no llegó, «hace 2 días» en ámbar).
 7. **Al pie, el total de lo que ves**, no el de todo.
 8. **Cuando los filtros no dejan nada**, se dice qué pasó y cómo volver.
