@@ -58,12 +58,21 @@ const RESPUESTAS_ESTADOS: PasoGuia = {
   texto: "Cada tarjeta responde una pregunta con su cifra: ¿Ganamos? (ganancias y pérdidas), ¿Dónde está la plata? (flujo de efectivo), ¿Cuánto vale CAYLA? (balance) y ¿Lo tuyo creció? (cambios en el patrimonio). La que estás mirando queda marcada; tocas otra y pasas a ella, con la misma sede y el mismo mes.",
 };
 
-/** «Descargar para el contador» en la cabecera de los cuatro estados (ADR-0585, actividad 8): se explica, no se toca. */
+/** «Descargar Excel» de cada cuadro del contador (ADR-0585): se explica, no se toca. Solo está en un cuadro, no en «Respuestas». */
 const CONTADOR: PasoGuia = {
   id: "contador",
-  ancla: "fin-estados.contador",
-  titulo: "Descargar para el contador",
-  texto: "Abre la lista de archivos del mes: los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario. Bajas solo el que eliges. No cambia nada en el sistema. En la demo no lo descargamos.",
+  ancla: "fin-estados.descargar",
+  opcional: true,
+  titulo: "Descargar Excel",
+  texto: "Cada cuadro del contador trae su botón: baja solo ese cuadro, con sus cuentas, en un archivo que abre Excel. No cambia nada en el sistema. En la demo no lo descargamos.",
+};
+
+/** La barra de las siete vistas de Estados financieros (Felipe 2026-10-31): se explica, no se toca. */
+const VISTAS: PasoGuia = {
+  id: "vistas",
+  ancla: "fin-estados.vistas",
+  titulo: "Qué ver: siete vistas",
+  texto: "«Respuestas» muestra cada estado en palabras de tienda. Después vienen los cuadros del contador: los cuatro estados en formato formal, los saldos por cuenta y el libro diario del mes. Un toque y cambias.",
 };
 
 const EXCEL: PasoGuia = {
@@ -1014,12 +1023,14 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
-      id: "pulso",
-      ancla: "fin-resultados.pulso",
-      titulo: "La respuesta",
-      texto: "Si ganó o perdió en el mes, y cuánto, para la sede que elegiste en la barra. En el mes en curso dice «en lo que va»: todavía puede cambiar.",
+      id: "respuesta",
+      ancla: "fin-ganamos.respuesta",
+      opcional: true,
+      titulo: "¿Ganamos?",
+      texto: "La respuesta del mes: sí o no, cuánto, y de cada S/\u00a0100 que vendiste cuánto te quedó.",
     },
     {
       id: "cascada",
@@ -1048,20 +1059,22 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     },
     {
       id: "formal",
-      ancla: "fin-ganamos.formal-abrir",
+      ancla: "fin-ganamos.formal",
+      opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-ganamos.formal-abrir" }],
+      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Se ve en la barra de arriba.",
     },
     {
       id: "comparar",
       ancla: "fin-resultados.comparar",
+      opcional: true,
       titulo: "Comparar con el mes anterior",
       texto: "Al marcarlo, debajo de cada cifra aparece cuánto subió o bajó contra el mes anterior.",
     },
     {
       id: "tabla",
       ancla: "fin-resultados.tabla",
+      opcional: true,
       titulo: "De la venta a la utilidad, por sede",
       texto: "Arriba las ventas; restas lo que costó lo vendido, las mermas y los fletes, y queda el margen bruto. Restas los gastos y queda la utilidad. Una columna por sede y al final CAYLA, la suma.",
     },
@@ -1099,6 +1112,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     {
       id: "notas",
       ancla: "fin-resultados.notas",
+      opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo se reparte",
       texto: "El Taller no le vende a las tiendas: lo que cuesta hacer una prenda entra en el costo de la tienda que la vende. Y lo de la empresa (contador, publicidad) no se reparte entre tiendas.",
@@ -1173,6 +1187,7 @@ export const GUIA_FIN_FLUJO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
       id: "respuesta",
@@ -1358,9 +1373,9 @@ export const GUIA_FIN_FLUJO: Guia = {
     {
       id: "formal",
       ancla: "fin-plata.formal",
+      opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-plata.formal" }],
+      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Se ve en la barra de arriba.",
     },
     {
       id: "formal-tabla",
@@ -1399,6 +1414,7 @@ export const GUIA_FIN_BALANCE: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
       id: "respuesta",
@@ -1453,8 +1469,7 @@ export const GUIA_FIN_BALANCE: Guia = {
       ancla: "fin-vale.formal",
       opcional: true,
       titulo: "El formato formal",
-      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-vale.formal" }],
+      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Se ve en la barra de arriba.",
     },
     {
       id: "arranque",
@@ -1574,6 +1589,7 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     },
     ...TELAR,
     RESPUESTAS_ESTADOS,
+    VISTAS,
     CONTADOR,
     {
       id: "respuesta",
@@ -1581,6 +1597,13 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       opcional: true,
       titulo: "Creció o bajó, y cuánto",
       texto: "La respuesta del mes y, debajo, qué parte de lo que ganaste retiraste. Si retiras más de lo que ganas, lo tuyo baja aunque el negocio gane.",
+    },
+    {
+      id: "extremos",
+      ancla: "fin-patrimonio.extremos",
+      opcional: true,
+      titulo: "Al empezar y al cerrar",
+      texto: "Cuánto era lo tuyo el primer día del mes y cuánto es al cerrarlo (o hoy, si el mes sigue).",
     },
     {
       id: "puente",
@@ -1605,11 +1628,10 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     },
     {
       id: "formal",
-      ancla: "fin-patrimonio.formal-abrir",
+      ancla: "fin-patrimonio.formal",
       opcional: true,
       titulo: "El formato formal",
-      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Lo abrimos.",
-      demostrar: [{ tipo: "clic", ancla: "fin-patrimonio.formal-abrir" }],
+      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Se ve en la barra de arriba.",
     },
     {
       id: "formal-tabla",
@@ -1630,6 +1652,44 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes si lo tuyo creció y por qué. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Lo tuyo creció?.",
+    },
+  ],
+};
+
+export const GUIA_FIN_CONTADOR: Guia = {
+  id: "finanzas.reportes.cuentas",
+  ruta: "/finanzas/reportes/cuentas",
+  titulo: "Saldos por cuenta y libro diario",
+  resumen: "Los dos cuadros del contador que no son un estado: cada cuenta con su saldo, y cada línea de cada asiento del mes.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Para el contador",
+      texto: "Aquí se ven los saldos por cuenta y el libro diario del mes: los mismos datos del archivo que se descarga, sin bajar nada. Es una demo.",
+    },
+    ...TELAR,
+    VISTAS,
+    CONTADOR,
+    {
+      id: "saldos",
+      ancla: "fin-contador.saldos",
+      opcional: true,
+      titulo: "Saldos por cuenta",
+      texto: "Cada cuenta con su saldo al empezar el mes, lo que se cargó (debe) y abonó (haber) y su saldo al cerrar, agrupadas con su total. Arriba dice si cuadra.",
+    },
+    {
+      id: "diario",
+      ancla: "fin-contador.diario",
+      opcional: true,
+      titulo: "El libro diario",
+      texto: "Cada línea de cada asiento del mes, con su cuenta y su sede. Busca por cuenta, asiento o glosa; al pie, el debe y el haber de lo que ves deben ser iguales.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Para volver a las respuestas, toca «Respuestas» en la barra de arriba.",
     },
   ],
 };
