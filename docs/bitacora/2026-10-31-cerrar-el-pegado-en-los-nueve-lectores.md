@@ -73,8 +73,24 @@ restauró a su foto («idéntica, 304 tablas»).
 modal pide un recorrido que no logré abrir desde el navegador; el cambio es de una línea y deja ese filtro igual que
 `soloMonto`, dos líneas más arriba del mismo archivo, pero **no lo vi funcionando**.
 
-## Un cambio de lectura que conviene mirar
+## Y de paso, «S/.» quiere decir lo mismo en todas partes (Felipe: «sí, unifícalo»)
 
-`leerNumero("S/. 25")` pasa de **0.25** a rechazarse. Antes el «S/.» dejaba un punto suelto y «S/. 25» se leía como
-veinticinco céntimos: cien veces menos, en silencio. Rechazar es más seguro, pero `leerMontoPlata` en ese caso lee
-25 (trata «S/.» como prefijo). Unificarlos es decisión de Felipe y queda en el backlog.
+**«S/.» es la abreviatura de toda la vida del sol: «S/. 25» son veinticinco SOLES.** Varios lectores dejaban el
+punto suelto y leían veinticinco **céntimos** —cien veces menos, en silencio— y otros directamente lo rechazaban:
+la misma cosa escrita igual daba **tres respuestas distintas** según en qué pantalla se escribiera.
+
+No era una decisión nueva: `/chaos` ya lo había encontrado el **2026-10-28** en el alta de productos («S/. 59» →
+0.59) y allá se arregló (`tabla-alta-reglas.ts`). Lo que faltaba era llevarlo al resto.
+
+| Lector | Antes de hoy | Ahora |
+|---|---|---|
+| `leerNumero` (órdenes, factura del proveedor, recepción, envío) | **0.25** | 25 |
+| `leerCosto` / `leerPrecioVenta` (recibir mercadería) | **S/ 0.25** | S/ 25.00 |
+| `leerCantidadInsumo` / `leerPrecioInsumo` | **0.25** | 25 |
+| `leerMonto` (precio por sede) | rechazado | 25 |
+| `leerMonto` (corregir un pago) | rechazado | S/ 25.00 |
+| `leerMontoPlata` y `leerCostoUnitario` | 25 (ya estaban bien) | 25 |
+
+Lo vigila un bloque nuevo de `lib/pegado-de-celdas.test.ts`: para cada lector, «S/. 25» y «S/.25» tienen que valer
+exactamente lo mismo que «S/ 25». Los que no llevan símbolo de moneda (la meta, el porcentaje, el descuento) quedan
+fuera por su naturaleza, no por olvido.

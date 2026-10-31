@@ -80,6 +80,20 @@ describe("ningún lector de cifras lee un pegado de varias celdas como un númer
   });
 });
 
+describe("y todos leen igual el símbolo del sol: «S/.» es el sol entero, no un punto decimal", () => {
+  // Felipe, 2026-10-31. «S/.» es la abreviatura de toda la vida del sol: «S/. 25» son veinticinco SOLES. Varios lectores dejaban
+  // el punto suelto y leían veinticinco CÉNTIMOS —cien veces menos, en silencio—, y otros lo rechazaban: la misma cosa escrita
+  // igual daba tres respuestas distintas. Es el caso que `/chaos` encontró el 2026-10-28 en el alta de productos («S/. 59» → 0.59).
+  for (const { nombre, leer } of LECTORES) {
+    // El de la meta y el del porcentaje no llevan símbolo de moneda; el descuento tampoco.
+    if (/leerSoles|parsearPorcentaje/.test(nombre)) continue;
+    it(`${nombre}: «S/. 25» vale lo mismo que «S/ 25»`, () => {
+      expect(leer("S/. 25")).toEqual(leer("S/ 25"));
+      expect(leer("S/.25")).toEqual(leer("S/ 25"));
+    });
+  }
+});
+
 describe("y el separador de miles no se pierde en ninguno", () => {
   for (const { nombre, leer, miles } of LECTORES) {
     it(`${nombre}: «1 200» siguen siendo mil doscientos`, () => {

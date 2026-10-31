@@ -55,7 +55,7 @@ export function alternarMedio(r: Reparto, medio: MetodoPagoVenta): Reparto {
 /** Un monto escrito como lo escribe una persona («40», «40.5», «40,50», «S/ 40»), en céntimos; null si no es un monto. */
 export function leerMonto(texto: string | undefined): number | null {
   // Los blancos los decide la regla única: «1 200» son mil doscientos, pero un pegado de varias celdas no es un monto.
-  const sinBlancos = sinBlancosDeMiles((texto ?? "").replace(/s\//gi, ""));
+  const sinBlancos = sinBlancosDeMiles((texto ?? "").replace(/s\/\.?/gi, "")); // «S/.» es el símbolo del sol, no un punto decimal
   if (sinBlancos === null) return null;
   const limpio = sinBlancos.replace(",", ".");
   if (!/^\d+(\.\d{1,2})?$/.test(limpio)) return null;

@@ -79,8 +79,12 @@ const MILES_CON_PUNTO = /^[1-9]\d{0,2}\.\d{3}$/;
  */
 export function leerNumero(texto: string, decimales: number): Lectura {
   // Los blancos los decide la regla única (`sinBlancosDeMiles`): un blanco adentro solo separa miles, así que pegar varias celdas de
-  // una hoja de cálculo ya no entra como un número («12 8 5» no son 1 285). El «S/» y el menos se miran antes, como en `leerMontoPlata`.
-  const crudo = texto.trim().replace(/^s\s*\/\s*/i, "").trimStart();
+  // una hoja de cálculo ya no entra como un número («12 8 5» no son 1 285). El «S/» y el menos se miran antes, con el MISMO literal
+  // que `leerMontoPlata`: «S/.» es el símbolo del sol entero, no «S/» con un punto decimal, así que «S/. 25» son veinticinco SOLES.
+  // Hasta el 2026-10-31 el punto quedaba suelto y se leían veinticinco CÉNTIMOS, cien veces menos y sin que nadie lo notara, en las
+  // órdenes de compra y de insumos, la factura del proveedor y la recepción. Es el mismo caso que `/chaos` encontró el 2026-10-28 en
+  // el alta de productos («S/. 59» → 0.59) y que allá ya se había corregido (`tabla-alta-reglas.ts`); aquí faltaba.
+  const crudo = texto.trim().replace(/^s\s*\/\s*\.?/i, "").trimStart();
   if (crudo === "") return { tipo: "vacio" };
   if (crudo.startsWith("-")) return { tipo: "mal", motivo: "negativo" };
   const sinBlancos = sinBlancosDeMiles(crudo);

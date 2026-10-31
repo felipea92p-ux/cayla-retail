@@ -6,11 +6,9 @@ Reglas puras de `apps/web/lib/`, un filtro de campo y una prueba. Sin migración
 
 ## DECISIONES QUE TE TOCAN A TI
 
-1. **`leerNumero("S/. 25")` pasa de 0.25 a rechazarse.** Antes el «S/.» dejaba un punto suelto y «S/. 25» se leía
-   como veinticinco **céntimos** —cien veces menos, en silencio—, en las órdenes de compra y de insumos, la factura
-   del proveedor y la recepción. Rechazar es más seguro, pero `leerMontoPlata` en el mismo caso lee **25** (trata
-   «S/.» como prefijo). **Hoy los dos no dicen lo mismo.** Unificarlos es una línea (`^s\s*\/\s*\.?\s*`), pero es
-   dinero y lo decides tú.
+1. ~~«S/. 25»~~ **HECHO en este PR** (Felipe, 31-oct: «sí, unifícalo»): los ocho lectores con símbolo de moneda
+   leen «S/. 25» como veinticinco soles, con su candado en `lib/pegado-de-celdas.test.ts`. Antes cuatro leían
+   veinticinco céntimos y dos lo rechazaban.
 2. **`parsearPorcentaje` sugiere algo que después rechaza.** Su mensaje dice «por ejemplo 25 o −15» con el menos
    tipográfico (U+2212), y la función solo acepta el guion: quien copie el ejemplo del aviso recibe otro aviso. Es
    anterior a este PR y es de una línea. Principio 12 (el error es del diseño, no de la persona).
