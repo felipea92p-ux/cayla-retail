@@ -115,7 +115,14 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
   useLayoutEffect(() => {
     const cont = contenedor.current;
     const activo = cont?.querySelector<HTMLElement>('[aria-checked="true"]');
-    if (!cont || !activo) return;
+    // Sin ninguna elegida (un valor que todavía no se eligió, como el tipo de un modelo nuevo) el pulgar se va: si se quedara, marcaría la opción de antes.
+    // Al elegir de nuevo se coloca sin viajar, como la primera vez.
+    if (!activo) {
+      setPulgar(null);
+      setListo(false);
+      return;
+    }
+    if (!cont) return;
     const medir = () => setPulgar({ x: activo.offsetLeft, w: activo.offsetWidth });
     medir();
     // Solo el desplazamiento HORIZONTAL de la propia tira (si la opción quedó fuera en celular). Antes era
