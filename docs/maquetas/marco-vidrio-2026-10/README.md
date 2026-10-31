@@ -42,4 +42,9 @@ muestra en la sede (cabecera), en el filtro «Categoría» y en «Qué se probó
 ## Lo que decidió Felipe
 
 **Fondo B · Aurora · Lateral B · Riel de vidrio, con la gota del panel en la fila activa** (la fila corre 6 px para que la marca roja no
-toque el ícono) **· Cabecera C · Dos islas** (2026-10-31). El combo: pendiente entre A, B y C.
+toque el ícono) **· Cabecera C · Dos islas · Combo A · Gota viajera** (2026-10-31), para todos los combos del ERP.
+
+Además pidió que el lateral tenga **todos los íconos de hoy, también en los submódulos**, y un despliegue menos brusco: la maqueta usa el
+menú real (`lib/menu.ts`, con los subgrupos de tercer nivel) y los 61 trazos de `lib/menu-iconos.ts`; al abrir un módulo, la caja crece en
+460 ms con una curva que frena, un hilo baja desde su ícono y da una rama a cada submódulo, las filas se enfocan en cascada y la gota de la
+fila activa las acompaña; al cerrar, 300 ms sin cascada.
