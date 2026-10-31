@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SIN_FILTROS } from "./gastos-telar-reglas";
 import {
+  avisoDelGasto,
   comoSePago,
   DIAS_A_LA_VISTA,
   detalleDelGasto,
@@ -10,6 +11,7 @@ import {
   filasDelDia,
   loQueEsconden,
   marcaDelGasto,
+  pagoACredito,
   resumenDelDia,
   textoDiasDeAntes,
   tituloDelDia,
@@ -76,6 +78,27 @@ describe("la marca de cada gasto", () => {
     expect(marcaDelGasto(g(HOY, 354), HOY)).toEqual({ clase: "sin-comprobante", texto: "Sin comprobante", tono: "ambar", porque: "Sin boleta ni factura: con factura recuperarías S/ 54.00 de IGV." });
     // La planilla de movilidad es el papel del viaje: no es «sin comprobante» aunque no dé IGV.
     expect(marcaDelGasto(g(HOY, 500, { comprobanteTipo: "planilla_movilidad" }), HOY)).toBeNull();
+  });
+});
+
+describe("lo que dice la hoja del gasto", () => {
+  it("la misma marca de la fila y su porqué; el tono del aviso sigue al de la marca", () => {
+    expect(avisoDelGasto(factura("2026-10-22", 708, "2026-10-27"), HOY)).toEqual({ tono: "error", titulo: "Vencida · 27 oct", texto: "Faltan S/\u00a0708.00: venció el 27 oct.", deuda: true });
+    expect(avisoDelGasto(factura("2026-10-29", 1770, "2026-11-04"), HOY)).toMatchObject({ tono: "atencion", titulo: "Por pagar · vence 4 nov", deuda: true });
+    expect(avisoDelGasto(factura("2026-10-29", 1770, "2026-11-20"), HOY)).toMatchObject({ tono: "info", deuda: true });
+    expect(avisoDelGasto(g(HOY, 450), HOY)).toMatchObject({ tono: "atencion", titulo: "Sin comprobante", deuda: false });
+  });
+
+  it("lo normal y lo anulado no llevan aviso (lo anulado ya lo dice la hoja)", () => {
+    expect(avisoDelGasto(g(HOY, 5), HOY)).toBeNull();
+    expect(avisoDelGasto(g(HOY, 900, { estado: "anulado", motivoAnulacion: "doble" }), HOY)).toBeNull();
+  });
+
+  it("«Pago» de una factura que se debe habla en pasado si ya venció", () => {
+    expect(pagoACredito("2026-10-27", HOY)).toBe("A crédito, venció el 27 oct");
+    expect(pagoACredito(HOY, HOY)).toBe("A crédito, vence hoy");
+    expect(pagoACredito("2026-11-04", HOY)).toBe("A crédito, vence el 4 nov");
+    expect(pagoACredito(null, HOY)).toBe("A crédito");
   });
 });
 

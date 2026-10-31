@@ -25,6 +25,8 @@ import { Volver } from "@/components/ui/Volver";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
 import { ExtractoGastos } from "@/components/finanzas/gastos/ExtractoGastos";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { avisoDelGasto, pagoACredito } from "@/lib/gastos-extracto-reglas";
 import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -107,6 +109,7 @@ export function GastosPanel({
   esLider,
   puedeConfigurar = esLider,
   puedeVerImpuestos = esLider,
+  puedeVerPorPagar = false,
   ver,
   mes,
   hoy,
@@ -138,6 +141,8 @@ export function GastosPanel({
   puedeConfigurar?: boolean;
   /** ¿Ve el módulo Impuestos? La nota del IGV perdido enlaza al mes del pago solo para quien lo ve (si no, sería «Sin acceso»). */
   puedeVerImpuestos?: boolean;
+  /** Si la cuenta ve Compras ▸ Por pagar: el aviso de una factura que se debe lleva ahí. */
+  puedeVerPorPagar?: boolean;
   ver: Ver;
   mes: string;
   hoy: string;
@@ -525,7 +530,7 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} puedeVerImpuestos={puedeVerImpuestos} onCerrar={() => setDetalle(null)} />}
+      {detalle && <GastoDetalleModal gasto={detalle} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -655,7 +660,20 @@ function TablaGastos({
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: GastoFila; puedeVerImpuestos: boolean; onCerrar: () => void }) {
+function GastoDetalleModal({
+  gasto: g,
+  hoy,
+  puedeVerImpuestos,
+  puedeVerPorPagar,
+  onCerrar,
+}: {
+  gasto: GastoFila;
+  hoy: string;
+  puedeVerImpuestos: boolean;
+  /** Con el módulo Por pagar, el aviso de una factura que se debe lleva a pagarla (`/compras/por-pagar`); sin él, solo lo dice. */
+  puedeVerPorPagar: boolean;
+  onCerrar: () => void;
+}) {
   const router = useRouter();
   const responsable = useResponsable();
   const [anulando, setAnulando] = useState(false);
@@ -686,6 +704,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
   const perdido = textoIgvPerdido(g);
   const notaPerdido = notaIgvPerdido(g);
   const enRiesgo = igvEnRiesgo(g);
+  const aviso = avisoDelGasto(g, hoy);
 
   if (anulando) {
     return (
@@ -719,6 +738,17 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
       onClose={onCerrar}
       tamano="mediana"
     >
+      {/* La misma marca de la fila y su porqué, a un toque (con el dedo no hay `title`; /formidable, 2026-10-30). */}
+      {aviso && (
+        <Aviso
+          tono={aviso.tono}
+          titulo={aviso.titulo}
+          className="aviso-hoja-gasto mb-4"
+          accion={aviso.deuda && puedeVerPorPagar ? <EnlaceVer href="/compras/por-pagar">Ir a Por pagar</EnlaceVer> : undefined}
+        >
+          {aviso.texto}
+        </Aviso>
+      )}
       <ListaDatos
         guia="fin-gastos.detalle"
         filas={[
@@ -729,7 +759,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
           ...(perdido
             ? [{ dato: <span className="whitespace-nowrap">IGV perdido</span>, valor: <span className="whitespace-normal text-ambar-profundo">{perdido}</span> }]
             : []),
-          { dato: "Pago", valor: pendiente ? `A crédito, vence ${fechaCorta(g.fechaVencimiento)}` : textoPago(g, (iso) => fechaCorta(iso)) },
+          { dato: "Pago", valor: pendiente ? pagoACredito(g.fechaVencimiento, hoy) : textoPago(g, (iso) => fechaCorta(iso)) },
           ...(pendiente && g.saldo !== g.montoTotal ? [{ dato: "Falta pagar", valor: soles(g.saldo ?? 0) }] : []),
           { dato: "Estado", valor: <Chip tono={e.tono}>{e.texto}</Chip> },
           ...(g.registradoPor ? [{ dato: "Lo registró", valor: g.registradoPor, tenue: true }] : []),
@@ -757,7 +787,8 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
             ({soles(enRiesgo)}).
           </p>
         ) : (
-          <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>
+          // Con el módulo, el aviso de arriba ya lleva a Por pagar: la nota lo repetiría.
+          !puedeVerPorPagar && <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>
         ))}
       <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
         {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}

@@ -3,6 +3,7 @@
 // debajo, en qué, cómo se pagó y su comprobante; solo se marca lo que no es normal (anulado, por pagar, sin comprobante en algo
 // grande). Lo chico que se repite el mismo día en la misma sede («Baño» seis veces) va en una sola fila que se abre.
 // Lógica pura, probada en `gastos-extracto-reglas.test.ts`: no cambia qué es un gasto ni cuánto suma el mes (eso es de la base).
+import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import type { TonoChip } from "@/components/ui/Chip";
 import { soles } from "./compras-reglas";
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
@@ -96,6 +97,25 @@ export function marcaDelGasto(g: GastoParaExtracto, hoy: string): MarcaGasto | n
     return { clase: "sin-comprobante", texto: "Sin comprobante", tono: "ambar", porque: `Sin boleta ni factura: con factura recuperarías ${soles(igvDeFactura(g.montoTotal))} de IGV.` };
   }
   return null;
+}
+
+/**
+ * Lo que la hoja del gasto dice arriba: la misma marca de la fila y su porqué, a un toque (con el dedo no hay `title`; /formidable,
+ * 2026-10-30). Lo anulado no lleva aviso: la hoja ya lo dice en su fila «Anulado». `deuda` = se paga desde Compras ▸ Por pagar.
+ */
+export function avisoDelGasto(g: GastoParaExtracto, hoy: string): { tono: TonoAvisoLinea; titulo: string; texto: string; deuda: boolean } | null {
+  const m = marcaDelGasto(g, hoy);
+  if (!m || m.clase === "anulado") return null;
+  const tono: TonoAvisoLinea = m.clase === "vencida" ? "error" : m.clase === "por-pagar" ? "info" : "atencion";
+  return { tono, titulo: m.texto, texto: m.porque, deuda: m.clase !== "sin-comprobante" };
+}
+
+/** «Pago» en la hoja de una factura que se debe: «A crédito, vence el 4 nov», «A crédito, vence hoy» o, si ya pasó, «A crédito, venció el 27 oct». */
+export function pagoACredito(fechaVencimiento: string | null, hoy: string): string {
+  if (!fechaVencimiento) return "A crédito";
+  const dias = diasEntre(hoy, fechaVencimiento);
+  if (dias === 0) return "A crédito, vence hoy";
+  return `A crédito, ${dias < 0 ? "venció" : "vence"} el ${fechaCorta(fechaVencimiento)}`;
 }
 
 /** Cómo se pagó, en pocas palabras: «A crédito» mientras se deba (el vencimiento lo dice la marca), el cajón de la tienda o el medio. */

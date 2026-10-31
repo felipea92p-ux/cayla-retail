@@ -482,7 +482,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.fila" }],
       titulo: "El detalle de un gasto",
-      texto: "El total, el IGV que se descuenta y el que se perdió por pagar sin banco una factura grande (la nota dice por qué y te lleva a Impuestos), cómo se pagó (o cuándo vence), su estado y quién lo registró. Un gasto a crédito se paga desde Compras ▸ Por pagar.",
+      texto: "Si el gasto pide algo, arriba dice qué y por qué (una factura vencida, lo grande sin comprobante). Debajo, el total, el IGV que se descuenta y el que se perdió por pagar sin banco, cómo se pagó (o cuándo vence), su estado y quién lo registró.",
     },
     {
       id: "detalle-botones",

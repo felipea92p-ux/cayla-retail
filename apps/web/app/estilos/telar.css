@@ -528,6 +528,13 @@ span.sede-telar { cursor: default; }
   .extracto-marca:empty { display: none; }
 }
 
+/* La hoja de un gasto en el celular: «Ir a Por pagar» baja debajo del texto del aviso (a su derecha le dejaba tres palabras por renglón).
+   Como el aviso de Plan del piso: la pieza `Aviso` no cambia. */
+@media (max-width: 520px) {
+  .aviso-hoja-gasto.aviso-linea { grid-template-columns: auto minmax(0, 1fr); }
+  .aviso-hoja-gasto .aviso-linea-acc { grid-column: 2; grid-row: auto; justify-self: start; align-self: start; margin: 6px 0 0 -10px; }
+}
+
 /* ---- La hoja «Registrar gasto»: el formulario a la izquierda y «Así queda» a la derecha ---- */
 .hoja-gasto {
   display: grid;
