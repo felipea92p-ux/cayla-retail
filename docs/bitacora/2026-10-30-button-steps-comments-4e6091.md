@@ -12,3 +12,8 @@ Felipe se lleva: `20261031031000` está SIN pegar en producción; es una sola pa
 Qué hice: antes de pegar `20261031031000` la comparé con la función viva de producción y no calzaba: mi versión reescribía «Agregar un paso» entera y borraba sin querer el candado «ese proceso está apagado» del catálogo de procesos. La rehice como reemplazo anclado (solo agrega la condición de las fallas) y devolví la base local a la función de producción con el arreglo encima. Prueba 26/26 (nuevo R5c). De paso: `20261031002000` ya estaba en producción, idéntica a la del repo.
 Por qué así: el catálogo ya había parchado esa función con un ancla; copiar la primera migración pisa lo que otro le agregó después. El ancla cambia solo lo suyo y, si la función cambió, falla con un error claro en vez de pisarla.
 Felipe se lleva: falta pegar solo `20261031031000` (una parte; si se pega dos veces, la segunda no hace nada).
+
+## 2026-10-31 (Las dos migraciones del PR, en producción)
+Qué hice: Felipe pegó `20261031031000`. Lo verifiqué en solo lectura: «Agregar un paso» en producción tiene la misma huella que en local, mantiene el candado del catálogo, cuenta las fallas y conserva sus permisos. Con eso, las dos migraciones del PR #1508 están en producción.
+Por qué así: se comprueba el efecto en la base viva, no el nombre de la migración (el historial de migraciones de producción no registra lo pegado a mano).
+Felipe se lleva: ya se puede fusionar el PR #1508 para publicar la web; la base no tiene nada pendiente.

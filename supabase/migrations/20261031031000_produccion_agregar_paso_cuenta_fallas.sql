@@ -18,7 +18,7 @@
 --   Planchado; agregar un paso antes y dejarlas sin pasar por él es la misma contradicción. Y descarté arreglarlo solo en la web: la pantalla no es la única que puede llamar a la base.
 -- SE ROMPE SI: aparece otra tabla que anote prendas contra una fase (una nueva clase de evento) y nadie la suma aquí ni en `agregar_paso_tarde`; la prueba R5b solo cubre las fallas.
 --
--- PRODUCCIÓN. NO está aplicada. Una sola parte, re-ejecutable, `lock_timeout = 3s`: un reemplazo anclado de una función que ya existe (el `create or replace` que
+-- PRODUCCIÓN. Aplicada el 2026-10-31 (verificada por md5 de la función contra la base local). Una sola parte, re-ejecutable, `lock_timeout = 3s`: un reemplazo anclado de una función que ya existe (el `create or replace` que
 --   arma conserva sus permisos) y su comentario; no toca las tablas de `auth` ni de `storage` (ADR-0195) y el texto entre comillas que inserta no lleva `select … into` (ADR-0288).
 --   Va DESPUÉS de 20261029051000, de 20261029164000 (crea `produccion_fallas`) y de 20261029210000. Si se pega dos veces, la segunda no hace nada.
 --   Prueba: `pnpm pruebas:produccion-agregar-paso` (caso R5b).

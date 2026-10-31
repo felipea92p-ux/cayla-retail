@@ -5,7 +5,7 @@
 - [x] **`20261031002000` ya está en producción** (comprobado el 2026-10-31: misma huella de `agregar_paso_tarde` que en local; los CHECK ya aceptan `paso_tarde`). Después, la orden del Short: «+ Agregar un paso» ▸ Ojales y botones ▸ afuera con su proveedor.
 - [ ] **No verificado en el navegador:** la base local compartida está atrasada (llega a `20261023190000`). Se probó en una copia (`prueba_paso_tarde`, en el mismo contenedor) con las migraciones que faltaban.
 - [x] Hallazgo aparte (preexistente, ADR-0566): `agregar_paso_orden` no miraba `produccion_fallas` al decidir si un paso de después empezó. Arreglado en `20261031031000` como reemplazo anclado (casos R5b y R5c de `pnpm pruebas:produccion-agregar-paso`, 26/26).
-- [ ] **Pegar `20261031031000` en producción** (una parte; reemplazo anclado de `agregar_paso_orden`, conserva el candado «proceso apagado»). Va después de `20261029051000` y `20261029210000`; no depende de `20261031002000`.
+- [x] **`20261031031000` pegada en producción** (2026-10-31; misma huella de `agregar_paso_orden` que en local, con el candado «proceso apagado» y las fallas).
 - [ ] Actividad 2: desmarcar Ploteo, solo el líder y con motivo.
 - [ ] Actividad 3: «Corregir lo anotado» a un toque desde el paso (sigue para quien opera; confirmar con Felipe).
 - [ ] Actividad 4: prendas que vuelven a arreglo (bajan en ese paso y en los de después; «¿cobra este arreglo?» se decide cada vez).

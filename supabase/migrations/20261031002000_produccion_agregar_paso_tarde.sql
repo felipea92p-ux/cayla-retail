@@ -37,7 +37,7 @@
 --   ve lo que dejó el primero. Y la orden se pasa al stock o se anula en el mismo instante: `cerrar_produccion` y `anular_produccion` bloquean la FILA de la orden (no el candado), así que
 --   esta función también la bloquea antes de mirar su estado; si no, el costo del servicio podría quedar fuera del costo de la orden ya cerrada.
 --
--- PRODUCCIÓN. NO está aplicada. Una sola parte, re-ejecutable, `lock_timeout = 3s`: el `alter` de dos CHECK de `produccion_cambios` (tabla sin políticas: no toma las de `auth`/`storage`,
+-- PRODUCCIÓN. Aplicada (verificada el 2026-10-31: misma huella de la función que en local). Una sola parte, re-ejecutable, `lock_timeout = 3s`: el `alter` de dos CHECK de `produccion_cambios` (tabla sin políticas: no toma las de `auth`/`storage`,
 --   ADR-0195) y una función nueva en un cuerpo `$$ … $$` (sin `select … into` dentro de un texto entre comillas, ADR-0288). Va DESPUÉS de 20261029210000.
 --   Prueba: `pnpm pruebas:produccion-paso-tarde`.
 -- ============================================================================
