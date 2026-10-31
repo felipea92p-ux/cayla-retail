@@ -90,6 +90,11 @@
   font-size: 13.5px;
   --fila-x: 12px;
 }
+/* El primer nivel reparte el alto del menú (`useMenuHolgado`: entre 40 y 56 px, y lo que sobra es aire entre filas; Felipe
+   2026-10-31). Las hijas conservan su alto: lo que crece es el índice, no la bandeja. */
+.marco-fila[data-prof="0"] { height: var(--fila-alto, 40px); }
+.marco-riel nav [data-pieza-cajon] + [data-pieza-cajon] { margin-top: var(--fila-aire, 0px); }
+.marco-riel nav[data-holgado] .marco-fila[data-prof="0"] { font-size: 14.5px; gap: 0.875rem; }
 .marco-fila[data-prof="1"] { height: 36px; font-size: 13px; --fila-x: 20px; }
 .marco-fila[data-prof="2"] { height: 34px; font-size: 12.5px; --fila-x: 40px; }
 .marco-fila[data-fila-activa] { padding-left: calc(var(--fila-x) + 8px); }
@@ -191,7 +196,7 @@
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  height: 54px;
+  height: var(--fila-alto, 54px);
   padding: 0;
   border-radius: 14px;
 }

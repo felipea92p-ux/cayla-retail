@@ -28,6 +28,7 @@ import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { hrefConSedeYMes } from "@/lib/finanzas-telar-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useLateralConElDedo } from "@/components/useLateralConElDedo";
+import { useMenuHolgado } from "@/components/useMenuHolgado";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -873,6 +874,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     gota.style.setProperty("--k", fila.closest<HTMLElement>("[data-pieza-cajon]")?.style.getPropertyValue("--k") || "0");
     gota.setAttribute("data-lista", "");
   }, []);
+  // Las filas de primer nivel se reparten el alto del menú y se acomodan cuadro a cuadro cuando una bandeja se abre (useMenuHolgado);
+  // la gota se vuelve a medir sobre ellas.
+  const reubicarGota = useCallback(() => ponerGota(false), [ponerGota]);
+  useMenuHolgado(navRef, reubicarGota, `${compacto}-${esCelular}-${grupos.length}`);
   useLayoutEffect(() => {
     const navego = rutaDeLaGota.current !== null && rutaDeLaGota.current !== pathname;
     rutaDeLaGota.current = pathname;
