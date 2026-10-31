@@ -6517,6 +6517,10 @@ export type Database = {
           similitud: number
         }[]
       }
+      campanas_firma: {
+        Args: { p_ubicacion_id?: string }
+        Returns: string
+      }
       campanas_sedes: {
         Args: never
         Returns: {

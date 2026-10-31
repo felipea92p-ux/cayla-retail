@@ -5,17 +5,26 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { navegacionSinEspera } from "@/components/ui/Espera";
-import { cambioLaFirma, escribiendoEn, firmaDePrecios, type FilaCampana } from "@/lib/precios-en-vivo-firma";
+import { cambioLaFirma, escribiendoEn, firmaConCampanasDeLaBase, firmaDePrecios, type FilaCampana } from "@/lib/precios-en-vivo-firma";
 import { hayPreciosPropios } from "@/lib/precios-en-vivo-registro";
 
 const CADA_MS = 10_000;
+
+/** La lista entera de campañas, solo de respaldo: si la base todavía no tiene `campanas_firma` (PGRST202). Sin la función de
+ *  campañas tampoco (PGRST202) no hay campañas: lista vacía, como al cargar Vender. Una lectura que falló es `null`. */
+async function campanasDeLaLista(supabase: ReturnType<typeof createClient>, ubicacionId: string): Promise<FilaCampana[] | null> {
+  const res = await leerCampanasVigentes(supabase, ubicacionId);
+  return res.error ? (res.error.code === "PGRST202" ? [] : null) : (res.data ?? []);
+}
 
 /**
  * Todo lo que muestra un precio se pone al día solo (Felipe, 2026-10-08: «quiero que todo lo que muestre precios se
  * actualice en tiempo real»). Montado UNA vez en `app/(app)/layout.tsx`: una pantalla nueva no tiene que hacer nada.
  *
- * Cada 10 s, al volver a la pestaña y al volver la red, mira la firma de los precios (`firmaDePrecios`: la versión del
- * catálogo y las campañas de hoy; dos lecturas chicas, sin loader). Si cambió, rehace la pantalla abierta con
+ * Cada 10 s, al volver a la pestaña y al volver la red, mira la firma de los precios (la versión del catálogo y la firma de
+ * las campañas de hoy que da la base, `campanas_firma`; dos lecturas de una fila, sin loader). Hasta el 2026-10-30 bajaba la
+ * lista ENTERA de campañas para compararla (`campanas_vigentes`, la función más llamada de retail: en el Aniversario, 3 páginas
+ * y ~420 KB por vuelta y pantalla); esa lista queda solo de respaldo, si la base aún no tiene la firma. Si cambió, rehace la pantalla abierta con
  * `router.refresh()`: los Server Components vuelven a leer y lo que la persona tiene en el navegador (lo tipeado, un
  * modal abierto, un ticket) se conserva. Ese refresco NO enciende el loader (`navegacionSinEspera`): no lo pidió nadie.
  *
@@ -52,13 +61,17 @@ export function PreciosEnVivo({ ubicacionId }: { ubicacionId: string }) {
       enCurso = true;
       try {
         const supabase = createClient();
-        const [resVersion, resCampanas] = await Promise.all([supabase.rpc("fn_catalogo_version"), leerCampanasVigentes(supabase, ubicacionId)]);
+        const [resVersion, resFirma] = await Promise.all([
+          supabase.rpc("fn_catalogo_version"),
+          supabase.rpc("campanas_firma", { p_ubicacion_id: ubicacionId }),
+        ]);
         if (cancelado) return;
         const version = resVersion.error || resVersion.data === null ? null : Number(resVersion.data);
-        // Sin la función de campañas en esa base (PGRST202) no hay campañas: lista vacía, como al cargar Vender.
-        const campanas: FilaCampana[] | null = resCampanas.error ? (resCampanas.error.code === "PGRST202" ? [] : null) : (resCampanas.data ?? []);
-        const nueva = firmaDePrecios(version, campanas);
-        if (nueva === null) return;
+        const nueva =
+          resFirma.error?.code === "PGRST202"
+            ? firmaDePrecios(version, await campanasDeLaLista(supabase, ubicacionId))
+            : firmaConCampanasDeLaBase(version, resFirma.error || typeof resFirma.data !== "string" ? null : resFirma.data);
+        if (cancelado || nueva === null) return;
         const anterior = firma;
         firma = nueva;
         // La primera lectura es la referencia: la pantalla acaba de cargar con esos precios.

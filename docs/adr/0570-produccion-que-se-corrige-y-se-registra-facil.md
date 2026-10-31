@@ -4,6 +4,7 @@
 - Actividad 1 (la «Ruta viva», solo web): construida y probada en local.
 - Actividad 2 («Terminé» con falla y con fecha): construida y probada en local. Su migración `20261029164000` está SIN pegar en producción: va después de `20261029021000` y `20261029051000`.
 - Actividad 3 (corregir, eliminar y restaurar cualquier anotación, con historia y notas): construida y probada en local. Su migración `20261029173000` está SIN pegar: va después de `20261029164000`.
+- Actividad 6a (corregir y eliminar un ingreso de insumo, con «Restaurar»): construida y probada en local, también en el navegador. Su migración `20261030134000` está **pegada en producción** (30-oct, a mano por Felipe; la consulta de comprobación respondió 4 funciones, la columna `anulado_at` y la tabla `insumo_lote_cambios`). La web sale cuando se fusione el PR: sin la migración no ofrecía el lápiz, con ella sí.
 - Actividades 4 a 10: sin construir, en el orden de abajo.
 **Fecha:** 2026-10-29.
 **Decidió:** Felipe, con 34 preguntas en 9 rondas, el 29-oct. Eligió la versión A de la orden y la A de Insumos mirando la maqueta `docs/maquetas/produccion-taller-2026-10/index.html`.
@@ -213,6 +214,42 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
 - 45 suites de Producción y de módulos vecinos en una base desde cero, con Postgres 17 y las 938 migraciones.
 - `tsc`, Knip y las 164 329 pruebas de la web en verde (prueba nueva: `lib/procesos-reglas.test.ts`).
 - **Sin probar en el navegador:** el contenedor de esta sesión tiene Postgres, pero no el resto de Supabase (sesiones y API). Queda para la actividad 10, junto con lo de la actividad 4.
+
+### Actividad 6a: corregir y eliminar un ingreso de insumo, con «Restaurar» (migración `20261030134000`, web)
+
+**El problema (Felipe, 2026-10-30, con dos capturas):** «esto ingresé por error, no me deja quitarlo porque tiene 9 metros: déjame editar y eliminar». Era el ingreso de 9 m en «Milano Melange · Arena (retirado)» (`MM-01-ARE`): «Retirar color» se niega porque el color tiene saldo, y ninguna pantalla corregía ni eliminaba un ingreso. Es la parte de la actividad 6 que Felipe decidió en las rondas 4, 5 y 8: *un ingreso equivocado se corrige libre mientras nadie lo use; si ya se usó, solo se ajusta lo que queda*, y *el ingreso de «Arena (retirado)» se elimina con su motivo*.
+
+**Qué hace:**
+- En cada lote de un color, el lápiz abre «Corregir este ingreso»: cantidad, costo, día, documento y código, con el motivo (atajos a un toque o con tus palabras) y quién. «Eliminar el ingreso» está en la misma hoja, a la izquierda del pie, como en la orden. Es del líder (mete dinero: el costo del lote).
+- Lo eliminado no se borra: queda bajo el color como «1 ingreso eliminado · 9 m · 30/10 · «Era de otro color»» con su «Restaurar».
+- Solo se deja en un lote que **nadie usó** (ningún consumo, merma ni devolución) y que **no llegó con una factura ni con una orden de insumos recibida** (esos se corrigen desde su recepción). Si de él ya salió material, el lápiz se apaga y dice por qué; la base repite la regla y es la última palabra.
+- «Retirar color» con saldo ahora dice dónde se arregla («¿Entró por error? … el lápiz de ese ingreso»), y al eliminar el último saldo de un color, el aviso de «listo» dice que ya se puede retirar.
+- Base: `corregir_ingreso_insumo`, `eliminar_ingreso_insumo`, `restaurar_ingreso_insumo`, `fn_ingresos_eliminados` (lectura, solo al líder), `fn_ingreso_insumo_corregible` (la ÚNICA lista de lo que lo impide) y la tabla `insumo_lote_cambios` (de solo agregar: quién, cuándo, motivo, antes y después), más `insumo_lotes.anulado_at`.
+
+**Cómo queda el libro (lo que más importa):** el ingreso original (`compra`) no se toca. Cada cambio se escribe como «deshago lo que había y anoto lo nuevo» con un `ajuste` ligado al lote: corregir 9 m a 7 m deja `−9` al costo viejo y `+7` al costo nuevo; eliminar deja `−9` y el lote queda **en cero** con su marca; restaurar deja `+9`. El saldo del color (suma del libro) y el del lote (su cantidad menos lo que salió) dicen siempre lo mismo: lo vigila el invariante INV-26 de `/chaos` (la cantidad de cada lote es la suma de su `compra` + sus `ajuste`).
+
+**DECIDÍ:** corregir el propio lote cuando nadie lo usó y dejar en el libro el par «deshago + anoto» con `ajuste` ligado al lote; eliminar = cantidad en cero + marca (`anulado_at`), con el candado `(anulado_at is null) = (cantidad_ingresada > 0)`: un lote en cero sin marca, o con marca y con cantidad, no pueden existir.
+
+**DESCARTÉ:**
+- **Un tipo de movimiento nuevo (`anulacion`).** Cambia el CHECK de `tipo` y obliga a reescribir, en producción, `registrar_consumo_insumo`, `fn_insumo_consumir_peps`, `devolver_insumo_de_produccion` y `fn_orden_produccion` (todas cuentan el saldo de un lote sin mirar el `ajuste`) y la web: si no, el PEPS seguiría sacando 9 m de un lote anulado y el color quedaría en −9. Era la advertencia de este mismo ADR («el saldo de un lote ignora el `ajuste`»). Con el lote en cero, esas cuatro funciones ven un lote vacío sin cambiar ni una línea.
+- **Una `merma` por toda la cantidad.** Las cuentas del lote la entienden, pero el consumo semanal la cuenta como tela usada y falsearía las «semanas que alcanza».
+- **Borrar el lote y su `compra`.** Rompe el libro de solo agregar.
+- **Corregir un lote que ya se usó.** Es la regla de Felipe: ahí «se ajusta lo que queda», que sigue sin construir.
+
+**SE ROMPE SI:** una pantalla nueva escribe `cantidad_ingresada` de un lote sin pasar por estas funciones (INV-26 lo ve: lote y libro dejan de coincidir); o dos personas corrigen el mismo ingreso a la vez con valores distintos: el candado del lote las pone en fila y la segunda recibe `ingreso_cambio_mientras_tanto` porque su pantalla vio una cantidad que ya cambió (gana la primera; probado con dos sesiones reales).
+
+**Dos hallazgos del navegador (los dos arreglados):**
+- Las columnas de `insumo_lotes` se leen una por una (candado del dinero, `20260921151000`): una columna **nueva** no se lee hasta que se le da permiso. Sin `grant select (anulado_at)` la pantalla de Insumos se caía con «permission denied for table insumo_lotes». La migración lo da, y la web, si recibe `42501` o `42703`, lee los lotes sin la columna (la web puede salir antes que el SQL).
+- El orden de la historia dentro de una transacción: `now()` es siempre lo mismo y eliminar y restaurar leen «el último» cambio. `insumo_lote_cambios.created_at` usa `clock_timestamp()`.
+
+**Lo que se probó:**
+- `pnpm pruebas:insumos-corregir-ingreso`: 46 casos (corregir cantidad y costo con el saldo y el valor al céntimo; solo día, documento o código; sin cambios no escribe; los rechazos con su `hint`; un lote con merma o con factura no se toca; eliminar, restaurar y retirar el color después; el PEPS no saca de un lote eliminado; quién puede; los estados imposibles; las cuentas; la migración dos veces y con algo faltante). Con tres mutaciones a propósito (se quita la regla del lote usado, se quita el libro al eliminar, se quita el candado) la prueba se pone roja, y vuelve a verde al restaurar.
+- Dos carreras reales con commit: dos eliminaciones del mismo ingreso (la segunda espera 1,5 s y recibe «ya estaba»; un solo ajuste) y dos correcciones con valores distintos (la segunda se rechaza con `ingreso_cambio_mientras_tanto`); INV-26 sin violaciones después.
+- En el navegador, con una base privada clonada de la local: eliminar el ingreso de 9 m, ver el color en «Sin saldo» con «1 ingreso eliminado», restaurarlo, corregirlo a 7,5 m, el lápiz apagado de un lote con merma, y el aviso de «Retirar color» con saldo. `tema:auditar` de las dos hojas en claro y oscuro (0 hallazgos) y a 375 px; `guias:recorrer` de `produccion.insumos` (32 pasos, sin escribir nada en la base).
+- La web: `tsc`, ESLint, Knip (y `knip:produccion`) y las 164 656 pruebas (prueba nueva: `lib/ingreso-insumo-reglas.test.ts`, que cruza las frases, los topes y los nombres de las funciones con la migración).
+- **Sin probar:** `/formidable`, `/chaos` formal sobre las dos hojas (el invariante nuevo ya está en el catálogo) y la web ya publicada contra producción (la migración sí está pegada y comprobada; el encabezado del SQL, que dice «NO está aplicada», quedó como se pegó y es lo único desactualizado).
+
+**Decisiones de Felipe abiertas:** (1) hoy corrige y elimina **solo el líder**: la ronda 2 dijo «quien ve Producción» para las anotaciones de una orden, pero un ingreso mueve el costo del lote (dinero), y la cuestión de permisos de quien escribe lotes con costo sigue abierta (ADR-0554). (2) Lo que ya se usó solo se ajusta («lo que queda»): sin pantalla todavía. (3) Un lote que llegó con una factura u orden recibida se corrige desde su recepción: tampoco tiene pantalla.
 
 ## Consecuencias
 

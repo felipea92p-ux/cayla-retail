@@ -729,7 +729,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vocabulario.buscador" }],
       titulo: "Agregar uno nuevo",
-      texto: "Abre una ventana para sumar un valor a la lista. Antes de crear uno, busca si ya existe con otro nombre: dos nombres para lo mismo ensucian el catálogo. En la demo no lo tocamos.",
+      texto: "Abre una ventana para sumar un valor a la lista. Mientras escribes el nombre, el sistema te muestra si ya existe uno igual o parecido (plural, femenino, una letra de diferencia): si es el mismo, úsalo. En la demo no lo tocamos.",
     },
     {
       id: "tarjeta",
@@ -744,7 +744,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vocabulario.buscador" }, { tipo: "clic", ancla: "atributos.pestana-colores" }],
       titulo: "Colores, por familia",
-      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» agrega uno nuevo: avisa si se parece mucho a otro que ya existe.",
+      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» agrega uno nuevo; si ya existe uno igual o casi igual («Verde Olivo» y «Verde oliva») o de tono muy parecido, te lo muestra antes de guardar.",
     },
     {
       id: "color-tarjeta",
@@ -829,10 +829,18 @@ export const GUIA_ATRIBUTOS: Guia = {
       texto: "Pasamos a Patrones, el estampado de la prenda: liso, rayas, flores… Funciona igual que Tejidos: en uso o sin prendas, un buscador, «+ Agregar patrón», y cada tarjeta abre su dibujo y las prendas que lo llevan.",
     },
     {
+      id: "avios",
+      ancla: "atributos.clases-de-avio",
+      opcional: true,
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "atributos.pestana-avios" }],
+      titulo: "Las clases de avío",
+      texto: "Botón, cierre, hilo, etiqueta, elástico, pretina. Son del Taller, no de la prenda, y deciden tres cosas al crear un avío: en qué se cuenta (el hilo en conos), si lleva color y qué medida se le pide. Se corrigen aquí para no tener que esperar una publicación.",
+    },
+    {
       id: "temporadas-filtros",
       ancla: "atributos.barra-temporadas",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "atributos.pestana-temporadas" }],
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "atributos.pestana-temporadas" }],
       titulo: "Temporadas, por cuánto duran",
       texto: "Pasamos a Temporadas. Las píldoras separan las de una estación, las de dos y las clásicas, que valen todo el año. Aquí no hay buscador ni «Agregar»: son nueve fijas y no se proponen nuevas.",
     },
@@ -1219,7 +1227,7 @@ export const GUIA_CATEGORIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "categorias.vista-editar" }],
       titulo: "Nombre, código y familia",
-      texto: "El nombre que ve todo el mundo, sus tres letras y su familia, y una nota interna. Las tres letras quedan fijas cuando ya hay prendas creadas con ellas: cambiarlas rompería sus códigos.",
+      texto: "El nombre que ve todo el mundo (si ya hay una parecida, como «Blusa» y «Blusas», te avisa), sus tres letras y su familia, y una nota interna. Las tres letras quedan fijas cuando ya hay prendas creadas con ellas: cambiarlas rompería sus códigos.",
     },
     {
       id: "form-subcategorias",
@@ -1305,7 +1313,7 @@ export const GUIA_FAMILIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "familias.editar" }],
       titulo: "El nombre y si cuenta",
-      texto: "El nombre, y si cuenta en Análisis, Frescura y el plan del piso: lo normal es que sí; apágalo solo para bolsas, cajas o empaques, que se venden pero no se piden al Taller ni a Compras. Debajo eliges quién registra el cambio.",
+      texto: "El nombre, y si cuenta en Análisis, Frescura y el plan del piso: lo normal es que sí; apágalo solo para bolsas, cajas o empaques, que se venden pero no se piden al Taller ni a Compras. Si el nombre se parece a otra familia, te lo avisa. Debajo eliges quién registra el cambio.",
     },
     {
       id: "form-pie",

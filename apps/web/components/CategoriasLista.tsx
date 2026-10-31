@@ -20,6 +20,9 @@ import { MuestraCategoria, tonoDeCategoria } from "@/components/MuestraCategoria
 import { BarraAtributos, GRILLA_ATRIBUTOS, SinCoincidencias, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
 import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
+import { existentesParecidos } from "@/lib/atributo-parecido";
+import { claveTexto } from "@/lib/nombres-parecidos";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEditar } from "@/components/ui/BotonEditar";
@@ -194,6 +197,9 @@ export function CategoriasLista({
   };
 
   function abrirBorrador(b: Borrador | null) {
+    // Lo que se contestó en la vez anterior («No, es otra») no vale para esta: el formulario es el mismo componente, no nace de nuevo.
+    existe.reiniciar();
+    existeSub.reiniciar();
     setViendoId(null);
     setBorrador(b);
     setPrefijoPropio(Boolean(b?.id));
@@ -386,6 +392,24 @@ export function CategoriasLista({
   const subChoquePrefijo = quienUsaPrefijo(subDraft.prefijo, categorias, null);
   const subChoqueNombre = quienUsaNombre(subDraft.nombre, categorias, null);
 
+  // «Existe también» (ADR-0576): lo que NO es idéntico pero se parece («Blusa» frente a «Blusas»). El idéntico ya lo dice `choqueNombre`,
+  // bajo el campo. Al editar, solo si cambió el nombre: una categoría que ya tiene un parecido no puede quedar sin poder editarse por eso.
+  const paraParecer = categorias.map((c) => ({ id: c.id, nombre: c.nombre, activo: c.activo }));
+  const nombreOriginal = borrador?.id ? (categorias.find((c) => c.id === borrador.id)?.nombre ?? "") : null;
+  const nombreCambio = borrador !== null && (nombreOriginal === null || claveTexto(borrador.nombre) !== claveTexto(nombreOriginal));
+  const existe = useExisteTambien(
+    borrador?.nombre ?? "",
+    borrador && nombreCambio ? existentesParecidos(borrador.nombre, paraParecer, { excluirId }).filter((c) => c.por !== "mismo-nombre") : []
+  );
+  const existeSub = useExisteTambien(subDraft.nombre, existentesParecidos(subDraft.nombre, paraParecer).filter((c) => c.por !== "mismo-nombre"));
+  const faltaExiste = faltaPorExistente("categoria", borrador?.nombre ?? "", existe);
+  const faltaExisteSub = faltaPorExistente("categoria", subDraft.nombre, existeSub);
+  // «Ver» lleva a la tarjeta que ya existe: la lista de atrás se queda buscándola, sin filtro de familia.
+  function verExistente(nombreExistente: string) {
+    setBusqueda(nombreExistente);
+    setFamiliaFiltro("todas");
+  }
+
   // Lo que se ve, calculado una vez: las familias (todas, o solo la elegida en las píldoras) con sus categorías raíz que responden
   // al buscador. Buscando, una familia sin nada que mostrar no aparece («Sin categorías todavía» mentiría); sin buscar, una
   // familia vacía sí (un Líder que acaba de crearla tiene que verla).
@@ -573,6 +597,14 @@ export function CategoriasLista({
               />
             </div>
 
+            <ExisteTambien
+              que="categoria"
+              nombre={borrador.nombre}
+              estado={existe}
+              si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { verExistente(o.nombre); cerrar(); } })}
+              deshabilitado={guardando}
+            />
+
             <Campo etiqueta="Notas internas (opcional)">
               <textarea
                 className="caja-campo-input resize-none"
@@ -628,6 +660,7 @@ export function CategoriasLista({
                 </Vacio>
               )}
               {puedeEditar && (
+                <>
                 <div className="mt-3 flex items-end gap-2">
                   <div className="flex-1">
                     <CampoTexto
@@ -661,13 +694,23 @@ export function CategoriasLista({
                   <Boton
                     peso="fantasma"
                     cargando={subGuardando}
-                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !!subChoquePrefijo || !!subChoqueNombre || !borrador.id || !responsable.listo}
-                    title={responsable.motivo ?? undefined}
+                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !!subChoquePrefijo || !!subChoqueNombre || existeSub.bloquea || !borrador.id || !responsable.listo}
+                    title={responsable.motivo ?? faltaExisteSub ?? undefined}
                     onClick={() => guardarSubcategoria({ id: borrador.id!, familia: borrador.familia })}
                   >
                     + Agregar
                   </Boton>
                 </div>
+                <div className="mt-3">
+                  <ExisteTambien
+                    que="categoria"
+                    nombre={subDraft.nombre}
+                    estado={existeSub}
+                    si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { verExistente(o.nombre); cerrar(); } })}
+                    deshabilitado={subGuardando}
+                  />
+                </div>
+                </>
               )}
             </div>
           )}
@@ -774,7 +817,7 @@ export function CategoriasLista({
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || !responsable.listo} title={responsable.motivo ?? undefined}>
+              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !!choquePrefijo || !!choqueNombre || existe.bloquea || !responsable.listo} title={responsable.motivo ?? faltaExiste ?? undefined}>
                 {editando ? "Guardar cambios" : "Guardar categoría"}
               </Boton>
             </div>

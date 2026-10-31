@@ -18,6 +18,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -64,8 +65,8 @@ insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, '
 update retail.empresas set cuenta_corriente_desde = ((now() at time zone 'America/Lima')::date - 10) where clave = 'claure';
 update public.personas set rol = 'admin' where auth_user_id = '${FELIPE}';
 select (now() at time zone 'America/Lima')::date::text as hoy \\gset
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+${ELEGIR_A}
+${ELEGIR_B}
 set local session_replication_role = replica;
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 -- Las unidades de A en Lima: se limpian para medir con la foto de antes (la escena de las quietas las pone después).

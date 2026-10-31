@@ -63,7 +63,7 @@ const HUELLAS: Huella[] = [
   // «Una tela con sus colores» (ADR-0554, revisión del 28-oct): las restricciones que la base deja sin mensaje propio. La pantalla frena casi todo antes; esto es el respaldo (y lo que ve la web vieja).
   { marca: "insumos_tela_en_metros", frase: "Una tela se lleva en metros: el kilo y el rollo se declaran al crear la tela, en «+ Nueva tela»." },
   { marca: "insumos_codigo_clave_unico", frase: "Ya hay un insumo con ese código (aunque cambien las mayúsculas, las tildes o los espacios). Elige otro código." },
-  { marca: "materiales_nombre_tipo_unico", frase: "Ya existe una tela con ese nombre (quizá otra persona la creó hace un momento). Actualiza la pantalla y agrégale los colores a esa." },
+  { marca: "materiales_nombre_tipo_medida_unico", frase: "Ya existe una ficha con ese nombre y esa medida (quizá otra persona la creó hace un momento). Actualiza la pantalla y agrégale los colores a esa." },
   { marca: "insumos_material_color_unico", frase: "Ese color ya está en la tela (quizá otra persona lo agregó hace un momento). Actualiza la pantalla." },
   { marca: "materiales_medidas_plausibles", frase: "El ancho va en centímetros, entre 20 y 400 (por ejemplo 160, no 1.60), y el gramaje en gramos por metro cuadrado, entre 30 y 1500." },
   // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.
@@ -525,10 +525,12 @@ export function frasesDeErrores(): { marca: string; frase: string }[] {
  * («Desde tu fondo pagas tú: elige tu nombre en «Responsable».») llegan con `42501` y una frase que dice qué hacer; y los de la rendición
  * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
  * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»). Y `plata_ya_tenia_solo_lider` (20261027231000, Mis compras):
- * confirmar la plata «Ya tenía» es del líder; llega con `42501` y una frase que dice a quién pedírselo.
+ * confirmar la plata «Ya tenía» es del líder; llega con `42501` y una frase que dice a quién pedírselo. Y los de corregir o eliminar un ingreso de insumo (`ingreso_*`,
+ * 20261030134000, ADR-0570): `ingreso_sin_lider` llega con `42501` y `ingreso_no_corregible` con `23514`; sin esto caerían al genérico con «Código:». Y `paso_tarde_solo_lider`
+ * (20261031002000, Producción): agregar un paso que se olvidó es del líder (ADR-0586).
  */
 const HINT_EN_CASTELLANO =
-  /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion|plata_ya_tenia_solo_lider|saldo_sin_lider|editar_material_sin_lider|avio_sin_lider|copia_de_la_tela|insumo_otra_unidad|insumo_otra_tela|insumo_sin_tela|insumo_unidad_firme|material_tipo_firme|retirar_color_[a-z_]+|insumo_retirado)$/;
+  /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion|plata_ya_tenia_solo_lider|paso_tarde_solo_lider|saldo_sin_lider|editar_material_sin_lider|avio_sin_lider|copia_de_la_tela|insumo_otra_unidad|insumo_otra_tela|insumo_sin_tela|insumo_unidad_firme|material_tipo_firme|retirar_color_[a-z_]+|insumo_retirado|ingreso_[a-z_]+)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano

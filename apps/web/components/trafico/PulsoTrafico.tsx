@@ -73,6 +73,12 @@ export function PulsoTrafico({
         <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dotted border-taupe align-middle" />
         {nombreAntes}
       </span>
+      {g.enCurso && (
+        <span>
+          <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dotted border-tinta align-middle" />
+          {porHora ? "Esta hora, hasta ahora" : "Hoy, hasta ahora"}
+        </span>
+      )}
       {g.proyeccion && (
         <span>
           <span aria-hidden className="mr-1.5 inline-block w-5 border-t-2 border-dashed border-tinta/50 align-middle" />
@@ -142,14 +148,15 @@ export function PulsoTrafico({
             marcasX={marcasDelTiempo(r.serie.por, largo, periodo.desde)}
             formatoY={(v) => cifraTexto(metrica, v)}
             ahora={hoy && hastaX !== null ? { x: hastaX, texto: `ahora · ${horaRedonda(hastaX)}` } : null}
-            cifra={cifraTexto(metrica, ultimo)}
+            cifra={g.enCurso ? null : cifraTexto(metrica, ultimo)}
+            enCurso={g.enCurso ? { ...g.enCurso, cifra: cifraTexto(metrica, g.enCurso.y), texto: "hasta ahora" } : null}
             cifraReferencia={g.cierre !== null ? { valor: miles(g.cierre), texto: "cierre esperado" } : null}
             // El globito dice qué momento es y con cuál se compara, cada uno con su cifra (Felipe, 2026-10-29: «Últimos 7 días: 69 · Los 7 días
             // anteriores: 0» confundía).
             leer={(x) => {
               const i = Math.round(x);
               const dibujado = g.serie.find((p) => p.x === i)?.y;
-              // La hora o el día en curso no se dibujan (la línea «caería» sin haber caído), pero el globito dice lo que va, «hasta ahora».
+              // La hora o el día en curso no entran a la línea (caería sin haber caído): van punteados aparte, y el globito dice «hasta ahora».
               const enCurso = dibujado === undefined && hastaX !== null && i === hastaX;
               const a = enCurso ? valoresDe(r.serie.actual, metrica, largo, acum)[i] : dibujado;
               const b = g.referencia.find((p) => p.x === i)?.y;

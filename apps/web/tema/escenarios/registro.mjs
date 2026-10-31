@@ -1384,6 +1384,8 @@ ESCENARIOS.push(
   { id: "produccion.orden-nueva-ficha", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: 'aside[aria-label="La orden, tal como va a quedar"]', nombre: "Producción · «Nueva orden»: la ficha viva de la orden con un modelo elegido", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }) },
   // ADR-0513, act. 4: la hoja «Ficha de consumo» del modelo (tela por talla, avíos y de dónde sale el número), abierta desde «Nueva orden» con un modelo que existe. `abre` exige su campo guiado dentro de la hoja.
   { id: "produccion.orden-ficha-consumo", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="ficha"]', nombre: "Producción · «Nueva orden»: la hoja «Ficha de consumo» del modelo, con la tela por talla y de dónde sale el número", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }, clicRol("button", /Ver y cambiar/i), clicRol("button", /^Ficha del modelo$/)) },
+  // ADR-0396, act. 2026-10-30: un modelo nuevo nace sin tipo; el interruptor sin ninguna opción, encendido por la guía, y la ficha con «Lote o muestra: por elegir». `abre` exige el tipo encendido, no solo el formulario.
+  { id: "produccion.orden-nueva-sin-tipo", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-campo="tipo"][data-estado="ahora"]', nombre: "Producción · «Nueva orden» con un modelo nuevo: el tipo sin elegir, encendido por la guía", preparar: secuencia(clicRol("button", /Nueva orden/i), clicRol("button", /Crear un modelo nuevo/i)) },
   { id: "produccion.orden-nueva-color", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden-nueva.matriz"] [role="combobox"]', nombre: "Producción · «Nueva orden» con un modelo nuevo: «+ Agregar color» abierto sobre la tabla", preparar: secuencia(clicRol("button", /Nueva orden/i), clicRol("button", /Crear un modelo nuevo/i), async (pagina) => { await pagina.getByRole("combobox", { name: /^Categoría/ }).first().click({ timeout: 8000 }); await esperar(pagina, 600); await pagina.getByRole("option").first().click({ timeout: 8000 }); await esperar(pagina, 800); }, clicRol("button", /Agregar color/i)) },
   // ADR-0509, A5: el borrador de «Nueva orden». Se escribe una cantidad (queda en el navegador, nada llega a la base) y se recarga: la lista ofrece lo que quedó a medias, y al elegir ese mismo modelo otra vez el formulario lo ofrece.
   // `abre` exige el aviso mismo: sin borrador el escenario no pasa en verde sin haberlo mostrado.
@@ -1422,6 +1424,23 @@ ESCENARIOS.push(
     await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
     await esperar(pagina, 600);
     await fila.getByRole("button", { name: /Retirar color/i }).click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
+  // «Corregir este ingreso» (ADR-0570, actividad 6a): la hoja con el lote tal como está, el motivo con atajos y «Eliminar el ingreso» a la izquierda. Necesita un lote que nadie haya usado (el lápiz de uno usado está apagado).
+  { id: "produccion.ingreso-corregir", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Corregir este ingreso»", preparar: secuencia(async (pagina) => {
+    const lapiz = 'button[aria-label="Editar este ingreso"]:not([disabled])';
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.locator(lapiz) }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.locator(lapiz).first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+  }) },
+  // «Restaurar» un ingreso eliminado: necesita uno eliminado en la base local (se elimina uno desde «Corregir este ingreso» y se vuelve a correr).
+  { id: "produccion.ingreso-restaurar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Restaurar este ingreso»", preparar: secuencia(async (pagina) => {
+    const fila = pagina.locator('article[data-guia="prod-insumos.fila"]').filter({ has: pagina.getByRole("button", { name: /^Restaurar$/ }) }).first();
+    await fila.locator("button[aria-expanded]").first().click({ timeout: 8000 });
+    await esperar(pagina, 600);
+    await fila.getByRole("button", { name: /^Restaurar$/ }).first().click({ timeout: 8000 });
     await esperar(pagina, 600);
   }) },
   { id: "produccion.cotizacion", ruta: "/produccion/cotizaciones-maquila", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva cotización» de maquila", preparar: clicRol("button", /Nueva cotización/i) },
@@ -1677,6 +1696,16 @@ ESCENARIOS.push(
   { id: "finanzas.que-mirar", ruta: "/finanzas/resumen", cuentas: FIN, abre: "[role=listbox]", nombre: "Finanzas · la lista «Qué mirar» (tienda o empresa)", preparar: clicRol("combobox", /Qué mirar/i) },
   { id: "finanzas.resumen-confianza", ruta: "/finanzas/resumen", cuentas: FIN, abre: "#fin-confianza-piezas", nombre: "Resumen · «cosas por revisar» abre el medidor de confianza", preparar: clicRol("button", /(cosas? por revisar|Ver el detalle)/i) },
   { id: "gastos.registrar", ruta: "/finanzas/gastos", cuentas: FIN, abre: "[role=dialog]", nombre: "Gastos · «Registrar gasto»", preparar: clicRol("button", /Registrar gasto/i) },
+  { id: "gastos.desglose", ruta: "/finanzas/gastos", cuentas: FIN, abre: '[data-guia="fin-gastos.desglose"]', nombre: "Gastos · el desglose de «En qué se va» (sedes en columna y sus gastos)", preparar: clicGuia("fin-gastos.hilo-primera") },
+  { id: "gastos.ritmo-dia", ruta: "/finanzas/gastos", cuentas: FIN, abre: '[data-guia="fin-gastos.ritmo-dia"]', nombre: "Gastos · «Cuándo» con un día abierto (lo que se gastó ese día)",
+    // La nota va arriba del gráfico: se centra antes del clic (o queda bajo la barra fija de la sede y el mes) y se toca su texto (el
+    // centro de la nota cae entre el texto y su punto, sobre el gráfico).
+    preparar: async (pagina) => {
+      const nota = pagina.locator('[data-guia="fin-gastos.ritmo-nota"] text').first();
+      await nota.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await nota.click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    } },
   { id: "gastos.fijos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Fijos del mes»", preparar: clicRol("tab", /Fijos del mes/i) },
   { id: "gastos.activos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Activos fijos»", preparar: clicRol("tab", /Activos fijos/i) },
   { id: "gastos.egresos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Egresos de caja por clasificar»", preparar: clicRol("tab", /Egresos de caja por clasificar/i) },

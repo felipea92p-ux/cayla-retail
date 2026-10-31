@@ -2,9 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Candado de los límites de ADR-0136 para Tienda web ▸ Tráfico (act. 2026-10-23 (d), ADR-0495; «Observatorio» desde 2026-10-28): los 100
-// puntos de «Hasta dónde llega la gente» se encienden UNA vez; con la curva del sistema, solo colores del tema y apagado con «reducir
-// movimiento». El único bucle es una señal: el punto verde de «N mirando ahora». (La vitrina de baldosas, con su cascada, su etiqueta que
+// Candado de los límites de ADR-0136 para Tienda web ▸ Tráfico (act. 2026-10-23 (d), ADR-0495; «Observatorio» desde 2026-10-28): las
+// estaciones de «Hasta dónde llega la gente» entran UNA vez y su riel se dibuja detrás (ADR-0568 act. 2026-10-30, antes eran 100 puntos);
+// con la curva del sistema, solo colores del tema y apagado con «reducir movimiento». El único bucle es una señal: el punto verde de «N mirando ahora». (La vitrina de baldosas, con su cascada, su etiqueta que
 // se cuelga y su luz, se fue en la actividad 6.)
 
 const hoja = readFileSync(join(__dirname, "../app/estilos/trafico.css"), "utf8");

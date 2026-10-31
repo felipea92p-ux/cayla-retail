@@ -3,6 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { FASES, faseDe } from "./orden-fases-reglas";
 import {
+  RPC_ANOTAR_TERMINE_CON_TELA,
+  RPC_DESHACER_TERMINE,
+  RPC_REGISTRAR_SALIDA_CON_TELA,
+  argsDeshacerTermine,
+  fraseDelEnvioConToken,
+  leerEnvioConTela,
   DIAS_SIN_MOVERSE,
   MAX_MOTIVO_ANULACION,
   RPC_ANULAR_PRODUCCION,
@@ -16,7 +22,6 @@ import {
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
   accionesDeFase,
-  avancesNuevos,
   avisoMinimoDeFase,
   buenasAlAnotarExcepcion,
   cantidadConUnidad,
@@ -56,6 +61,8 @@ import {
   fasesSinRegistrar,
   pendienteConCosto,
   pasosAgregables,
+  pasoPosteriorEmpezado,
+  textoDePasosBloqueados,
   puedeQuitarPaso,
   queSigue,
   quedanAfuera,
@@ -87,7 +94,6 @@ import {
   MAX_MOTIVO_FALLA,
   buenasConFallas,
   diaParaLaBase,
-  fallasNuevas,
   fallasQueCierran,
   lineasDeFallas,
   problemaDeDia,
@@ -112,6 +118,10 @@ import {
   problemaDeNota,
   queCambio,
   type AnotacionCorregible,
+  RPC_AGREGAR_PASO_TARDE,
+  avisoDePasoTarde,
+  pasoAgregadoTarde,
+  prendasQueYaPasaron,
 } from "./orden-pagina-reglas";
 
 // La respuesta de `fn_orden_produccion` tal como la escribe la migración 20261014155000: una orden de 48 pantalones (negro y caqui, tallas 28/30/32, 8 de cada una).
@@ -514,6 +524,11 @@ describe("el costo", () => {
     const cerrada = { ...p, orden: { ...p.orden, estado: "terminada" as const, cantidadBuenas: 46 } };
     expect(textoCosto(cerrada)!.porPrenda).toEqual({ estimado: "29.00", real: "22.83", realPendiente: false });
   });
+  it("un servicio de pago único (ploteo) dice «pago único» y lo que toca por prenda, no «48 × S/ 0.00»", () => {
+    const p = orden();
+    const unico = { ...p, fases: p.fases.map((f) => (f.clave === "costura" ? { ...f, tarifaPrenda: null, fijoOrden: 24 } : f)) };
+    expect(textoCosto(unico)!.filas[2]).toMatchObject({ estimado: "24.00", detalle: "Pago único por las 48 prendas · Confecciones del Norte · S/\u00a00.50 por prenda" });
+  });
   it("sin lote recibido no inventa un precio; sin permiso, no hay tabla", () => {
     const p = orden({ costos: { tela_estimado: 0, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 216, servicios_devengado: 0, total_estimado: 216, total_real_hasta_hoy: 0 } });
     expect(textoCosto(p)!.filas[0].estimado).toBe("sin lote recibido");
@@ -605,24 +620,6 @@ describe("lineaDeTiempoAgrupada", () => {
   });
 });
 
-describe("avancesNuevos — lo que «Deshacer» del aviso tiene que deshacer", () => {
-  it("los avances de esa fase que no estaban antes y todavía se pueden deshacer", () => {
-    const antes = orden().lineaDeTiempo;
-    const c = crudo();
-    c.linea_de_tiempo.push(
-      { id: "nuevo-1", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 5, detalle: "", variante_id: "n28", avance_id: "av-1" } as never,
-      { id: "nuevo-2", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 5, detalle: "", variante_id: "n30", avance_id: "av-2" } as never,
-      { id: "nuevo-3", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "costura", fase_nombre: "Costura", cantidad: 5, detalle: "", variante_id: "n30", avance_id: "av-3" } as never,
-      { id: "nuevo-4", cuando: "2026-10-19T15:00:00+00:00", quien_nombre: "Rosa", tipo: "avance", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 5, detalle: "", variante_id: "n32", avance_id: null } as never,
-    );
-    expect(avancesNuevos(antes, leerOrdenPagina(c)!.lineaDeTiempo, "acabado")).toEqual(["av-1", "av-2"]);
-    expect(avancesNuevos(antes, antes, "acabado")).toEqual([]);
-  });
-  it("textoTermine", () => {
-    expect(textoTermine(120, "Corte")).toBe("Terminaste 120 prendas de Corte");
-    expect(textoTermine(1, "Acabado")).toBe("Terminaste 1 prenda de Acabado");
-  });
-});
 
 // ---------- Paridad con la migración: lo que la página lee sale del SQL, no de la memoria ----------
 
@@ -1351,8 +1348,21 @@ describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () 
     const planchando = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "en_curso" as const }];
     const r = pasosAgregables(q(planchando));
     expect(r.ofrecidos).toEqual([]);
-    expect(r.bloqueados[1]).toEqual({ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes" });
+    expect(r.bloqueados[1]).toEqual({ clave: "ojales_botones", nombre: "Ojales y botones", porQue: "Planchado ya empezó, y Ojales y botones iría antes", yaEmpezo: "Planchado" });
     expect(r.bloqueados.map((b) => b.clave)).toEqual(["pegar_cierre", "ojales_botones", "lavanderia"]);
+  });
+  it("una orden con Planchado HECHO (la del Short, captura del 30-oct) tampoco ofrece nada, y lo dice con una frase para la hoja", () => {
+    const hecho = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "hecha" as const }];
+    const r = pasosAgregables(q(hecho));
+    expect(r.ofrecidos).toEqual([]);
+    expect(textoDePasosBloqueados(r.bloqueados)).toBe("Pegar cierre, Ojales y botones y Lavado o teñido ya no entran: Planchado ya empezó y irían antes.");
+    expect(textoDePasosBloqueados(r.bloqueados.slice(1, 2))).toBe("Ojales y botones ya no entra: Planchado ya empezó y iría antes.");
+    expect(textoDePasosBloqueados([])).toBeNull();
+  });
+  it("«Otro proceso…» pasa por la misma regla: un proceso que iría antes de un paso ya empezado se frena en la hoja, no después de dar de alta el proceso", () => {
+    const hecho = [...NUEVA.slice(0, 4), { ...NUEVA[4], empezada: true, estado: "hecha" as const }];
+    expect(pasoPosteriorEmpezado(hecho, 30.5)?.nombre).toBe("Planchado");
+    expect(pasoPosteriorEmpezado(hecho, 65.5)).toBeUndefined();
   });
   it("un paso ANTERIOR empezado no frena nada (Costura a medias)", () => {
     const a_medias = [...NUEVA.slice(0, 3), { ...NUEVA[3], estado: "en_curso" as const, actual: true, hechas: 10 }, NUEVA[4]];
@@ -1380,6 +1390,95 @@ describe("agregar un paso: cuándo se ofrece (la base repite todo y manda)", () 
     for (const hint of ["paso_despues_empezado", "orden_cerrada", "orden_inexistente", "responsable_requerido"]) expect(sql, hint).toContain(`hint = '${hint}'`);
     // La ruta completa pasa la validación de abrir y el candado es el de las demás escrituras de la orden.
     expect(sql).toContain("retail.fn_produccion_fases_normalizar(");
+    expect(sql).toContain("pg_advisory_xact_lock(hashtextextended('produccion:'");
+  });
+});
+
+describe("agregar un paso que se olvidó (ADR-0586): el líder lo agrega ya hecho", () => {
+  const base = orden();
+  const fase = (clave: FasePagina["clave"], nombre: string, secuencia: number, extra: Partial<FasePagina> = {}): FasePagina => ({ ...base.fases[0], id: `f-${clave}`, clave, nombre, secuencia, estado: "pendiente", actual: false, empezada: false, hechas: 0, segundas: 0, faltantes: 0, salieron: 0, hito: false, ...extra });
+  // La orden del Short Sastre Recover (captura del 30-oct): todo hecho con las 16, Planchado incluido, y sin Ojales y botones.
+  const SHORT = [
+    fase("ploteo", "Ploteo", 5, { estado: "hecha", empezada: true, hito: true }),
+    fase("corte", "Corte", 10, { estado: "hecha", empezada: true, hechas: 16 }),
+    fase("habilitado", "Habilitado", 15, { estado: "hecha", empezada: true, hechas: 16 }),
+    fase("costura", "Costura", 30, { estado: "hecha", empezada: true, hechas: 16 }),
+    fase("planchado", "Planchado", 65, { estado: "hecha", empezada: true, hechas: 16 }),
+  ];
+  const q = (fases: FasePagina[]) => ({ orden: { ...base.orden, estado: "en_proceso" as const }, permisos: { puedeOperar: true, veCostos: true }, fases, procesos: FASES });
+
+  it("al líder se le ofrece Ojales y botones marcado «tarde»: va antes de Planchado y entra con las 16 que ya están en Planchado", () => {
+    const { ofrecidos, bloqueados } = pasosAgregables(q(SHORT), { esLider: true });
+    const ojales = ofrecidos.find((x) => x.clave === "ojales_botones");
+    expect(ojales?.tarde).toEqual({ antesDe: "Planchado", prendas: 16 });
+    expect(ofrecidos.every((x) => x.tarde !== null)).toBe(true);
+    expect(bloqueados).toEqual([]);
+  });
+  it("a quien no es líder no se le ofrece: sigue apagado con su porqué (la base repite: paso_tarde_solo_lider)", () => {
+    const { ofrecidos, bloqueados } = pasosAgregables(q(SHORT));
+    expect(ofrecidos).toEqual([]);
+    expect(bloqueados.find((b) => b.clave === "ojales_botones")?.porQue).toBe("Planchado ya empezó, y Ojales y botones iría antes");
+  });
+  it("Planchado anotado y deshecho entero ya no «empezó», pero la base igual lo frena: la línea de tiempo lo recuerda y es «tarde» (al líder con 0, a los demás apagado)", () => {
+    const deshecho = SHORT.map((f) => (f.clave === "planchado" ? { ...f, estado: "pendiente" as const, empezada: false, hechas: 0 } : f));
+    const linea = [{ ...orden().lineaDeTiempo[0], faseClave: "planchado" as const, tipo: "deshacer" as const }];
+    expect(pasosAgregables({ ...q(deshecho), lineaDeTiempo: linea }, { esLider: true }).ofrecidos.find((x) => x.clave === "ojales_botones")?.tarde).toEqual({ antesDe: "Planchado", prendas: 0 });
+    expect(pasosAgregables({ ...q(deshecho), lineaDeTiempo: linea }).bloqueados.map((b) => b.clave)).toContain("ojales_botones");
+    expect(pasoPosteriorEmpezado(deshecho, 35, linea)?.nombre).toBe("Planchado");
+    expect(pasoPosteriorEmpezado(deshecho, 35)).toBeUndefined();
+  });
+  it("lo que no empezó después se sigue agregando vacío, como antes (tarde: null)", () => {
+    const sinPlanchar = SHORT.map((f) => (f.clave === "planchado" ? { ...f, estado: "pendiente" as const, empezada: false, hechas: 0 } : f));
+    expect(pasosAgregables(q(sinPlanchar), { esLider: true }).ofrecidos.find((x) => x.clave === "ojales_botones")?.tarde).toBeNull();
+  });
+  it("las prendas que ya pasaron son las que el paso siguiente ya usó (buenas, segundas, perdidas o lo que salió a su servicio), no todas las del paso de antes", () => {
+    expect(prendasQueYaPasaron(SHORT, 35)).toBe(16);
+    expect(prendasQueYaPasaron(SHORT.map((f) => (f.clave === "planchado" ? { ...f, hechas: 2, segundas: 1, faltantes: 1 } : f)), 35)).toBe(4);
+    expect(prendasQueYaPasaron(SHORT.map((f) => (f.clave === "planchado" ? { ...f, quien: "servicio" as const, hechas: 3, salieron: 5 } : f)), 35)).toBe(5);
+    expect(prendasQueYaPasaron(SHORT, 70)).toBe(0);
+  });
+  it("la hoja lo dice en una frase: qué avanzó y con cuántas entra", () => {
+    expect(avisoDePasoTarde("Ojales y botones", { antesDe: "Planchado", prendas: 16 })).toBe(
+      "Ojales y botones entra hecho con las 16 prendas que ya están en Planchado. Lo que falte se anota cuando se haga. Queda en la historia con tu motivo."
+    );
+    expect(avisoDePasoTarde("Ojales y botones", { antesDe: "Planchado", prendas: 1 })).toContain("con la prenda que ya está en Planchado");
+    expect(avisoDePasoTarde("Ojales y botones", { antesDe: "Planchado", prendas: 0 })).toContain("entra vacío");
+  });
+  it("la historia lo cuenta («Agregó Ojales y botones tarde · 16 prendas ya hechas · Afuera con … · Por qué: …») y el paso sabe que entró tarde", () => {
+    const cambio = {
+      id: "c-t",
+      accion: "paso_tarde",
+      objeto: null,
+      fase_clave: "ojales_botones",
+      fase_nombre: "Ojales y botones",
+      quita_ids: [],
+      pone_ids: ["a-1", "a-2"],
+      deshace_ids: [],
+      antes: null,
+      despues: { clave: "ojales_botones", quien: "servicio", proveedor_nombre: "Ojalería Lima", prendas: 16, hecho: "2026-10-28T17:00:00+00:00", antes_de: "planchado" },
+      texto: "Se olvidó anotarlo",
+      restaurado: false,
+      quien_nombre: "Felipe",
+      cuando: "2026-10-16T16:00:00+00:00",
+    };
+    const p = orden({ cambios: [cambio] });
+    expect(p.cambios[0]).toMatchObject({ accion: "paso_tarde", faseClave: "ojales_botones", antes: null, despues: null, tarde: { prendas: 16, quien: "servicio", proveedorNombre: "Ojalería Lima", hecho: "2026-10-28T17:00:00+00:00" } });
+    const entrada = lineaDeTiempoAgrupada(p, "2026-10-16").flatMap((d) => d.entradas).find((e) => e.tipo === "paso_tarde");
+    expect(entrada).toMatchObject({ titulo: "Agregó Ojales y botones tarde", cuanto: "16 prendas ya hechas", detalle: "Afuera con Ojalería Lima · volvió el mié 28 oct · Por qué: Se olvidó anotarlo", restaurable: null });
+    expect(tonoDeEntrada("paso_tarde")).toBe("cambio");
+    expect(pasoAgregadoTarde({ clave: "ojales_botones" }, p.cambios)?.texto).toBe("Se olvidó anotarlo");
+    expect(pasoAgregadoTarde({ clave: "planchado" }, p.cambios)).toBeUndefined();
+  });
+  it("paridad con la migración 20261031002000: la RPC, los argumentos que manda la hoja y sus motivos", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261031002000_produccion_agregar_paso_tarde.sql"), "utf8");
+    expect(sql).toContain(`create or replace function retail.${RPC_AGREGAR_PASO_TARDE}(`);
+    for (const arg of ["p_produccion_id", "p_clave", "p_motivo", "p_hecho_en", "p_quien", "p_proveedor_id", "p_tarifa_prenda", "p_fijo_orden", "p_cantidad_minima", "p_proveedor_pendiente", "p_posicion"]) expect(sql, arg).toContain(arg);
+    for (const hint of ["paso_tarde_solo_lider", "paso_no_es_tarde", "paso_tarde_hito", "orden_cerrada", "responsable_requerido"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    // Lo que da por hecho es lo que el paso siguiente ya usó (la cuenta de fn_produccion_exigir_cadena), y bloquea la fila de la orden como cerrar_produccion.
+    expect(sql).toContain("retail.fn_produccion_fase_siguiente(v_fase)");
+    expect(sql).toContain("for update");
+    expect(sql).toContain("retail.fn_es_lider()");
+    expect(sql).toContain("retail.fn_produccion_motivo_cambio(p_motivo)");
     expect(sql).toContain("pg_advisory_xact_lock(hashtextextended('produccion:'");
   });
 });
@@ -1534,16 +1633,7 @@ describe("«Terminé» con falla y con fecha (ADR-0570, actividad 2)", () => {
     expect(tonoDeEntrada("falla_deshecha")).toBe("cambio");
   });
 
-  it("fallasNuevas: las que se anotaron después de `antes` en esa fase y todavía se pueden deshacer", () => {
-    const despues = orden({
-      linea_de_tiempo: [
-        { id: "fa-1", cuando: "2026-10-19T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 2, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-1" },
-        { id: "fa-0", cuando: "2026-10-18T14:12:00+00:00", quien_nombre: "Claudia", tipo: "falla", fase_clave: "acabado", fase_nombre: "Acabado", cantidad: 1, destino: "segunda", motivo: "Mancha", variante_id: "n28", falla_id: "fa-0" },
-      ],
-    }).lineaDeTiempo;
-    expect(fallasNuevas(despues.filter((e) => e.id === "fa-0"), despues, "acabado")).toEqual(["fa-1"]);
-    expect(fallasNuevas([], despues, "corte")).toEqual([]);
-  });
+
 
   it("paridad con la migración 20261029164000: los mismos rechazos (hints), el mismo tope del motivo y las llaves que la página lee", () => {
     const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20261029164000_produccion_termine_con_falla_y_fecha.sql"), "utf8");
@@ -1649,6 +1739,20 @@ describe("corregir, eliminar y restaurar con su historia (ADR-0570, actividad 3)
     expect(hoy.entradas[1]).toMatchObject({ titulo: "Quitó la marca de Ploteo", detalle: "Por qué: Todavía no se hizo", restaurable: { cambioId: "m-c" } });
   });
 
+  it("un cambio de tipo (ADR-0581) cuenta de qué tipo a cuál pasó, con su motivo aparte, y es un cambio de la orden, no una anotación", () => {
+    const tipo = (despues: boolean, texto: string, cuando: string) => ({
+      id: `t-${cuando}`, accion: "tipo", objeto: null, fase_clave: null, fase_nombre: null, quita_ids: [], pone_ids: [], deshace_ids: [],
+      antes: { es_muestra: !despues }, despues: { es_muestra: despues }, texto, restaurado: false, quien_nombre: "Felipe", cuando,
+    });
+    const aLote = tipo(false, "Pasó de muestra a lote de producción · Ya tienen el molde", "2026-10-16T18:00:00+00:00");
+    const aMuestra = tipo(true, "Pasó de lote de producción a muestra", "2026-10-16T19:00:00+00:00");
+    const [hoy] = lineaDeTiempoAgrupada(orden({ cambios: [aLote, aMuestra] }), "2026-10-16");
+    // Lo más nuevo arriba.
+    expect(hoy.entradas[0]).toMatchObject({ tipo: "tipo", titulo: "Pasó de lote de producción a muestra", detalle: null, quien: "Felipe", cuanto: null, restaurable: null, corregible: null });
+    expect(hoy.entradas[1]).toMatchObject({ tipo: "tipo", titulo: "Pasó de muestra a lote de producción", detalle: "Por qué: Ya tienen el molde" });
+    expect(tonoDeEntrada("tipo")).toBe("cambio");
+  });
+
   const anotacion: AnotacionCorregible = {
     ids: ["a-1", "fa-1"],
     faseClave: "acabado",
@@ -1712,5 +1816,45 @@ describe("corregir, eliminar y restaurar con su historia (ADR-0570, actividad 3)
     expect(mig).toContain(`length(v) > ${MAX_MOTIVO_CAMBIO}`);
     expect(mig).toContain(`length(v_texto) > ${MAX_NOTA_ORDEN}`);
     for (const k of ["cambios", "deshechos", "quita_ids", "pone_ids", "deshace_ids", "restaurado", "fase_clave", "quien_nombre"]) expect(mig, k).toContain(`'${k}'`);
+  });
+});
+
+// ---------- «Terminé» y la Salida con su tela, todo o nada (ADR-0587) ----------
+
+describe("leerEnvioConTela — lo que devuelve el envío con token", () => {
+  it("un envío nuevo trae los ids para «Deshacer»; solo los textos", () => {
+    const r = leerEnvioConTela({ repetido: false, avance_ids: ["av-1", "av-2"], falla_ids: [], consumo_ids: ["mi-1", 3] });
+    expect(r).toEqual({ repetido: false, deshacer: { avanceIds: ["av-1", "av-2"], fallaIds: [], consumoIds: ["mi-1"] } });
+    expect(argsDeshacerTermine(r.deshacer!)).toEqual({ p_avance_ids: ["av-1", "av-2"], p_falla_ids: [], p_consumo_ids: ["mi-1"] });
+  });
+  it("un reintento que la base ya tenía («repetido») no ofrece «Deshacer»: no sabe qué escribió el primero", () => {
+    expect(leerEnvioConTela({ repetido: true, fases: [] })).toEqual({ repetido: true, deshacer: null });
+  });
+  it("una Salida (sin prendas que deshacer) y una respuesta rara no ofrecen «Deshacer»", () => {
+    expect(leerEnvioConTela({ repetido: false, fases: [], tela: [], consumo_ids: [] }).deshacer).toBeNull();
+    expect(leerEnvioConTela(null)).toEqual({ repetido: false, deshacer: null });
+    expect(leerEnvioConTela([1, 2])).toEqual({ repetido: false, deshacer: null });
+  });
+});
+
+describe("fraseDelEnvioConToken — con token, repetir es seguro", () => {
+  it("si se cortó la red, pide volver a apretar el mismo botón y promete que no se anota dos veces", () => {
+    const frase = fraseDelEnvioConToken({ message: "TypeError: Failed to fetch", code: "" } as never, "anotar lo que terminaste en corte", "Terminé");
+    expect(frase).toContain("Vuelve a apretar «Terminé»");
+    expect(frase).toContain("no se anota dos veces");
+  });
+  it("un «no» de la base dice lo de la base", () => {
+    expect(fraseDelEnvioConToken({ message: "En el estante había 45 de Lino", code: "P0001", hint: "uso_quedo_de_mas" } as never, "anotar", "Terminé")).toBe("En el estante había 45 de Lino");
+  });
+});
+
+describe("Paridad con la migración del corte con su tela (20261031014000)", () => {
+  const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20261031014000_produccion_corte_con_su_tela_todo_o_nada.sql"), "utf8");
+  it("las tres funciones que llama la pantalla existen con los parámetros que se mandan, y devuelven lo que se lee", () => {
+    expect(mig).toContain(`create or replace function retail.${RPC_ANOTAR_TERMINE_CON_TELA}(`);
+    expect(mig).toContain(`create or replace function retail.${RPC_REGISTRAR_SALIDA_CON_TELA}(`);
+    expect(mig).toContain(`create or replace function retail.${RPC_DESHACER_TERMINE}(p_avance_ids uuid[], p_falla_ids uuid[], p_consumo_ids uuid[])`);
+    for (const p of ["p_fase_id", "p_lineas", "p_nota", "p_hecho_en", "p_fallas", "p_tela", "p_token", "p_guia"]) expect(mig, p).toContain(p);
+    for (const k of ["repetido", "avance_ids", "falla_ids", "consumo_ids"]) expect(mig, k).toContain(`'${k}'`);
   });
 });

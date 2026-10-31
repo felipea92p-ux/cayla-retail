@@ -19,9 +19,9 @@
       "Link «Créalo en Productos»"
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
+      "SegmentoDeslizante «Tipo de orden»",
       "Boton «Retomarla»",
       "Boton «Descartarla»",
-      "SegmentoDeslizante «Tipo de orden»",
       "Link «Editar producto»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
@@ -97,9 +97,8 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
@@ -128,7 +127,8 @@
       "button «+ Registrar proveedor nuevo»",
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
       "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
-      "CampoMonto «Cobra por esta orden»",
+      "CampoMonto «{modoFijo === \"prenda\" ? \"Cobra por prenda\" : \"Cobra por esta orden\"}»",
+      "SegmentoDeslizante «Cómo escribes el cobro del ploteo»",
       "CampoFecha «Prometido para»",
       "CampoMonto «Por prenda»",
       "CampoTexto «Cantidad mínima»",
