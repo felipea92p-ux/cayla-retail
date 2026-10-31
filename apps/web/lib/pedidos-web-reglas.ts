@@ -1294,6 +1294,27 @@ export function limpiarCodigo(texto: string): string {
   return texto.replace(/\D/g, "").slice(0, 4);
 }
 
+/**
+ * El código de recojo en sus 4 casillas: lo que queda al escribir (o pegar) `entrante` en la casilla `indice`, y a cuál casilla pasa el
+ * cursor. Solo cifras; lo escrito reemplaza desde esa casilla; pegar «2094» en cualquiera llena las cuatro; escribir nada la vacía.
+ */
+export function escribirEnCasilla(valor: string, indice: number, entrante: string): { valor: string; cursor: number } {
+  const actual = limpiarCodigo(valor);
+  const cifras = entrante.replace(/\D/g, "");
+  if (cifras === "") return { valor: actual.slice(0, indice) + actual.slice(indice + 1), cursor: indice };
+  // Pegar un código entero (4 cifras o más) lo pone completo, sin importar en qué casilla se pegó.
+  const desde = cifras.length >= 4 ? 0 : indice;
+  const nuevo = limpiarCodigo(actual.slice(0, desde) + cifras + actual.slice(desde + cifras.length));
+  return { valor: nuevo, cursor: Math.min(3, desde + cifras.length) };
+}
+
+/** «Borrar» en una casilla ya vacía: quita la cifra de la anterior y el cursor vuelve a ella. */
+export function borrarCasillaAnterior(valor: string, indice: number): { valor: string; cursor: number } {
+  const actual = limpiarCodigo(valor);
+  if (indice <= 0) return { valor: actual, cursor: 0 };
+  return { valor: actual.slice(0, indice - 1) + actual.slice(indice), cursor: indice - 1 };
+}
+
 /** Lo que le falta al código para mandarlo, o null. La forma (4 cifras); si es EL del pedido lo dice la base, nunca la pantalla. */
 export function problemaDelCodigo(codigo: string): string | null {
   if (codigo === "") return "Escribe el código que el cliente ve en su pedido.";

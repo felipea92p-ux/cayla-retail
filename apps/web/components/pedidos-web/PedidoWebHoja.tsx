@@ -6,7 +6,7 @@ import { MessageCircle, PackageSearch, ReceiptText, Wallet } from "lucide-react"
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { Boton, BotonAncla, CampoTexto } from "@/components/ui/campos";
+import { Boton, BotonAncla, Campo } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -20,6 +20,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { MiniPrenda } from "@/components/pedidos-web/PedidosWebPantalla";
+import { CodigoEnCasillas } from "@/components/pedidos-web/CodigoEnCasillas";
 import { RutaDelPedido } from "@/components/pedidos-web/RutaDelPedido";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
@@ -52,7 +53,6 @@ import {
   fechaCorta,
   fechasSugeridas,
   libresAqui,
-  limpiarCodigo,
   opcionesSinStock,
   lugarDeFabrica,
   MOTIVOS_ANULAR,
@@ -661,26 +661,36 @@ export function PedidoWebHoja({
                         Falta que llegue a {p.tienda}: {faltan.join(", ")}. Avísale al cliente cuando esté.
                       </Aviso>
                     ) : (
-                      <CampoGuiado id="codigo" guia={guia}>
-                        <div data-guia="pedido-web.codigo">
-                          <CampoTexto
-                            etiqueta={guia.etiqueta("codigo", "Código para recoger")}
-                            mono
-                            inputMode="numeric"
-                            // Sin maxLength: el navegador cortaría «20 94» pegado en «20 9» antes de limpiarlo (/chaos 2026-10-15); las
-                            // 4 cifras las deja limpiarCodigo.
-                            value={codigo}
-                            onChange={(e) => {
-                              setCodigo(limpiarCodigo(e.target.value));
-                              setRechazoCodigo(null);
-                              setErrorEntrega(null);
-                            }}
-                            tono={rechazoCodigo ? "error" : undefined}
-                            pie={rechazoCodigo ?? "Lo ve en «Mis pedidos» de su cuenta en la web."}
-                            disabled={entrega.incierto}
-                          />
-                        </div>
-                      </CampoGuiado>
+                      <>
+                        {/* Lo que le toca a quien atiende, en orden: avisar, decirle dónde está su código, y recién ahí pedirlo. */}
+                        <ol className="list-decimal space-y-1 rounded-xl border border-sand px-4 py-3 pl-9 text-[13px] text-tinta" data-guia="pedido-web.pasos-entrega">
+                          <li>{p.sinRecoger ? "Recuérdale que lo recoja" : "Avísale que ya puede recoger"}, con el botón de WhatsApp.</li>
+                          <li>
+                            <b>Dile que su código está en «Mis pedidos»</b>, en su cuenta de la tienda web.
+                          </li>
+                          <li>Cuando venga, escribe aquí el código que te muestre.</li>
+                        </ol>
+                        <CampoGuiado id="codigo" guia={guia}>
+                          <div data-guia="pedido-web.codigo">
+                            <Campo
+                              etiqueta={guia.etiqueta("codigo", "Código para recoger")}
+                              tono={rechazoCodigo ? "error" : "neutro"}
+                              pie={rechazoCodigo ?? "Lo ve en «Mis pedidos» de su cuenta en la web."}
+                            >
+                              <CodigoEnCasillas
+                                valor={codigo}
+                                onCambio={(v) => {
+                                  setCodigo(v);
+                                  setRechazoCodigo(null);
+                                  setErrorEntrega(null);
+                                }}
+                                error={Boolean(rechazoCodigo)}
+                                disabled={entrega.incierto}
+                              />
+                            </Campo>
+                          </div>
+                        </CampoGuiado>
+                      </>
                     )}
                   </>
                 }

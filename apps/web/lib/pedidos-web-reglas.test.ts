@@ -27,6 +27,8 @@ import {
   leerTablero,
   limpiarCodigo,
   avisoCoordinar,
+  borrarCasillaAnterior,
+  escribirEnCasilla,
   etiquetaDeEstado,
   filtrarCerrados,
   opcionesSinStock,
@@ -741,6 +743,22 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     expect(f("anulado")).toBe("Anulado");
     expect(f("vencido")).toBe("Cerrado sin confirmar");
     expect(f("entregado")).toBe("Entregado");
+  });
+
+  it("el código en 4 casillas: se escribe de a una, se pega entero y se borra hacia atrás", () => {
+    expect(escribirEnCasilla("", 0, "2")).toEqual({ valor: "2", cursor: 1 });
+    expect(escribirEnCasilla("2", 1, "0")).toEqual({ valor: "20", cursor: 2 });
+    expect(escribirEnCasilla("209", 3, "4")).toEqual({ valor: "2094", cursor: 3 });
+    // Una letra o un espacio no entra; lo pegado se limpia.
+    expect(escribirEnCasilla("20", 2, "a")).toEqual({ valor: "20", cursor: 2 });
+    expect(escribirEnCasilla("", 2, "20 94")).toEqual({ valor: "2094", cursor: 3 });
+    expect(escribirEnCasilla("1111", 0, "2094")).toEqual({ valor: "2094", cursor: 3 });
+    // Corregir una casilla del medio la reemplaza y deja el resto.
+    expect(escribirEnCasilla("2194", 1, "0")).toEqual({ valor: "2094", cursor: 2 });
+    // Dejar una casilla vacía quita esa cifra; «borrar» en una vacía quita la anterior.
+    expect(escribirEnCasilla("2094", 3, "")).toEqual({ valor: "209", cursor: 3 });
+    expect(borrarCasillaAnterior("20", 2)).toEqual({ valor: "2", cursor: 1 });
+    expect(borrarCasillaAnterior("20", 0)).toEqual({ valor: "20", cursor: 0 });
   });
 
   it("un cerrado dice cómo terminó en una línea", () => {
