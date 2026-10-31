@@ -9,8 +9,8 @@
  * Cada caso corre en su propia transacción con ROLLBACK, y la migración se carga dentro de cada caso (así se prueba que se puede pegar otra vez).
  *
  * QUÉ PRUEBA
- *   T  UNA TALLA NUEVA: crea una variante por color, con precio y costo de su hermana, activas y sin stock; la segunda vez avisa que ya está.
- *   C  UN COLOR NUEVO: crea una variante por talla; un color apagado o inventado no entra.
+ *   T  UNA O VARIAS TALLAS NUEVAS: crea una variante por color, con precio y costo de su hermana, activas y sin stock; la segunda vez avisa que ya está; todo o nada.
+ *   C  UNO O VARIOS COLORES NUEVOS: crea una variante por talla; un color apagado o inventado no entra, ni siquiera acompañado de uno bueno.
  *   R  LAS REGLAS: talla no habilitada, ni talla ni color o las dos, talla única, sin color, desactivada, modelo sin variantes o inexistente.
  *   P  LOS PERMISOS: sin el módulo Producción, sin sesión, y quien opera el Taller pero no edita el catálogo.
  *   V  LA VERSIÓN: el producto sube de versión (Editar producto avisa a quien lo tenga abierto) y el stock no se toca.
@@ -68,8 +68,8 @@ exception when others then
 end;
 $f$;
 create function pg_temp.eh(p text) returns text language sql as $f$ select split_part(p, '|', 1) || '|' || split_part(p, '|', 2) $f$;
-create function pg_temp.agrega(p_taller uuid, p_prod uuid, p_talla uuid, p_color text) returns text language sql as $f$
-  select pg_temp.eh(pg_temp.intento(format('select retail.agregar_variantes_a_modelo(%L, %L, %L, %L)', p_taller, p_prod, p_talla, p_color))) $f$;
+create function pg_temp.agrega(p_taller uuid, p_prod uuid, p_tallas uuid[], p_colores text[]) returns text language sql as $f$
+  select pg_temp.eh(pg_temp.intento(format('select retail.agregar_variantes_a_modelo(%L, %L, %L, %L)', p_taller, p_prod, p_tallas, p_colores))) $f$;
 `;
 
 // Un modelo de prueba por caso: Blusa con dos colores (ACH 100/40 y ALB 120/50) y dos tallas (S, M) de su categoría. Todo dentro de la transacción.
@@ -82,9 +82,9 @@ select id as taller from retail.ubicaciones where tipo = 'taller' and activo ord
 select categoria_id as cat from retail.categoria_tallas ct join retail.categorias c on c.id = ct.categoria_id
   where (select count(*) from retail.categoria_tallas x where x.categoria_id = ct.categoria_id) >= 4 limit 1 \\gset
 select array_agg(talla_id order by talla_id) as tallas_cat from retail.categoria_tallas where categoria_id = :'cat' \\gset
-select (:'tallas_cat'::text[])[1] as t_s, (:'tallas_cat'::text[])[2] as t_m, (:'tallas_cat'::text[])[3] as t_l \\gset
+select (:'tallas_cat'::text[])[1] as t_s, (:'tallas_cat'::text[])[2] as t_m, (:'tallas_cat'::text[])[3] as t_l, (:'tallas_cat'::text[])[4] as t_4 \\gset
 select id as t_fuera from retail.tallas t where not exists (select 1 from retail.categoria_tallas x where x.categoria_id = :'cat' and x.talla_id = t.id) limit 1 \\gset
-select codigo as c_activo from retail.colores where activo and codigo not in ('ACH', 'ALB') order by codigo limit 1 \\gset
+select (array_agg(codigo order by codigo))[1] as c_activo, (array_agg(codigo order by codigo))[2] as c_activo2 from retail.colores where activo and codigo not in ('ACH', 'ALB') \\gset
 select codigo as c_apagado from retail.colores where not activo order by codigo limit 1 \\gset
 ${MIGRACION}
 insert into retail.productos (referencia, categoria_id) values ('Blusa Prueba Agregar', :'cat') returning id as prod \\gset
@@ -111,7 +111,7 @@ function caso(nombre, sql, esperado) {
 // T. UNA TALLA NUEVA ------------------------------------------------------------------------------------------------------------
 caso(
   "T1 agregar la talla L crea una variante por color, activas, con el precio y el costo de su hermana (el del mismo color) y sin stock",
-  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', :'t_l'::uuid, null)::text as n \\gset
+  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', array[:'t_l'::uuid], null)::text as n \\gset
    select concat_ws(',', :'n',
      (select string_agg(v.color_codigo || '=' || v.precio || '/' || v.costo || '/' || v.activo, ' ' order by v.color_codigo) from retail.variantes v where v.producto_id = :'prod' and v.talla_id = :'t_l'),
      (select count(*) from retail.variantes where producto_id = :'prod' and activo),
@@ -121,10 +121,10 @@ caso(
 );
 caso(
   "T2 la talla nueva recibe su código (el trigger de siempre) y la segunda vez avisa que ya está, sin duplicar",
-  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', :'t_l'::uuid, null) \\gset
+  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', array[:'t_l'::uuid], null) \\gset
    select concat_ws(',',
      (select count(*) from retail.variantes where producto_id = :'prod' and talla_id = :'t_l' and codigo is not null),
-     pg_temp.agrega(:'taller', :'prod', :'t_l'::uuid, null),
+     pg_temp.agrega(:'taller', :'prod', array[:'t_l'::uuid], null),
      (select count(*) from retail.variantes where producto_id = :'prod' and talla_id = :'t_l'));`,
   "2,P0001|agregar_variante_ya_existe,2"
 );
@@ -133,15 +133,30 @@ caso(
   `insert into retail.productos (referencia, categoria_id) values ('Blusa A Medias Prueba', :'cat') returning id as medias \\gset
    insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo) values
      (:'medias', 'ACH', :'t_s', 100, 40), (:'medias', 'ALB', :'t_s', 120, 50), (:'medias', 'ACH', :'t_m', 100, 40);
-   select retail.agregar_variantes_a_modelo(:'taller', :'medias', :'t_m'::uuid, null)::text as n \\gset
+   select retail.agregar_variantes_a_modelo(:'taller', :'medias', array[:'t_m'::uuid], null)::text as n \\gset
    select concat_ws(',', :'n', (select count(*) from retail.variantes where producto_id = :'medias' and talla_id = :'t_m'));`,
   "1,2"
+);
+
+caso(
+  "T4 varias tallas a la vez: cada una con cada color (2 tallas × 2 colores = 4 variantes), y repetir la misma talla en la lista no duplica",
+  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', array[:'t_l'::uuid, :'t_4'::uuid, :'t_l'::uuid], null)::text as n \\gset
+   select concat_ws(',', :'n', (select count(*) from retail.variantes where producto_id = :'prod' and activo));`,
+  "4,8"
+);
+caso(
+  "T5 todo o nada entre varias tallas: si una no está habilitada, no se crea ni la buena; y si una ya existe, se crea solo la que falta",
+  `select pg_temp.agrega(:'taller', :'prod', array[:'t_l'::uuid, :'t_fuera'::uuid], null) as r1 \\gset
+   select count(*)::text as despues1 from retail.variantes where producto_id = :'prod' \\gset
+   select retail.agregar_variantes_a_modelo(:'taller', :'prod', array[:'t_s'::uuid, :'t_l'::uuid], null)::text as n \\gset
+   select concat_ws(',', :'r1', :'despues1', :'n', (select count(*) from retail.variantes where producto_id = :'prod'));`,
+  "P0001|agregar_variante_talla_no_habilitada,4,2,6"
 );
 
 // C. UN COLOR NUEVO -------------------------------------------------------------------------------------------------------------
 caso(
   "C1 agregar un color crea una variante por talla del modelo con el precio y el costo de la hermana de esa talla (la de mayor precio), activas",
-  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', null, :'c_activo')::text as n \\gset
+  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', null, array[:'c_activo'])::text as n \\gset
    select concat_ws(',', :'n',
      (select count(*) from retail.variantes v where v.producto_id = :'prod' and v.color_codigo = :'c_activo' and v.talla_id in (:'t_s'::uuid, :'t_m'::uuid)),
      (select string_agg(distinct v.precio || '/' || v.costo || '/' || v.activo, ' ') from retail.variantes v where v.producto_id = :'prod' and v.color_codigo = :'c_activo'),
@@ -150,23 +165,33 @@ caso(
 );
 caso(
   "C2 un color apagado o inventado no entra; la segunda vez avisa que ya está",
-  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', null, :'c_activo') \\gset
+  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', null, array[:'c_activo']) \\gset
    select concat_ws(',',
-     pg_temp.agrega(:'taller', :'prod', null, :'c_apagado'),
-     pg_temp.agrega(:'taller', :'prod', null, 'NOEXISTE'),
-     pg_temp.agrega(:'taller', :'prod', null, :'c_activo'));`,
+     pg_temp.agrega(:'taller', :'prod', null, array[:'c_apagado']),
+     pg_temp.agrega(:'taller', :'prod', null, array['NOEXISTE']),
+     pg_temp.agrega(:'taller', :'prod', null, array[:'c_activo']));`,
   "P0001|agregar_variante_color_inactivo,P0001|agregar_variante_color_inactivo,P0001|agregar_variante_ya_existe"
+);
+
+caso(
+  "C3 varios colores a la vez: cada uno en cada talla (2 colores × 2 tallas = 4 variantes); uno apagado en la lista aborta todo",
+  `select pg_temp.agrega(:'taller', :'prod', null, array[:'c_activo', :'c_apagado']) as r1 \\gset
+   select count(*)::text as despues1 from retail.variantes where producto_id = :'prod' \\gset
+   select retail.agregar_variantes_a_modelo(:'taller', :'prod', null, array[:'c_activo', :'c_activo2'])::text as n \\gset
+   select concat_ws(',', :'r1', :'despues1', :'n', (select count(*) from retail.variantes where producto_id = :'prod'));`,
+  "P0001|agregar_variante_color_inactivo,4,4,8"
 );
 
 // R. LAS REGLAS -----------------------------------------------------------------------------------------------------------------
 caso(
   "R1 una talla que la categoría no habilita no entra; ni talla ni color, o las dos a la vez, tampoco",
   `select concat_ws(',',
-     pg_temp.agrega(:'taller', :'prod', :'t_fuera'::uuid, null),
+     pg_temp.agrega(:'taller', :'prod', array[:'t_fuera'::uuid], null),
      pg_temp.agrega(:'taller', :'prod', null, null),
-     pg_temp.agrega(:'taller', :'prod', :'t_l'::uuid, :'c_activo'),
+     pg_temp.agrega(:'taller', :'prod', '{}'::uuid[], '{}'::text[]),
+     pg_temp.agrega(:'taller', :'prod', array[:'t_l'::uuid], array[:'c_activo']),
      (select count(*) from retail.variantes where producto_id = :'prod'));`,
-  "P0001|agregar_variante_talla_no_habilitada,P0001|agregar_variante_un_eje,P0001|agregar_variante_un_eje,4"
+  "P0001|agregar_variante_talla_no_habilitada,P0001|agregar_variante_un_eje,P0001|agregar_variante_un_eje,P0001|agregar_variante_un_eje,4"
 );
 caso(
   "R2 un modelo en talla única no recibe una talla; un modelo sin color no recibe un color",
@@ -175,16 +200,16 @@ caso(
    insert into retail.productos (referencia, categoria_id) values ('Blusa Sin Color Prueba', :'cat') returning id as sincolor \\gset
    insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo) values (:'sincolor', null, :'t_s', 50, 20);
    select concat_ws(',',
-     pg_temp.agrega(:'taller', :'unica', :'t_l'::uuid, null),
-     pg_temp.agrega(:'taller', :'sincolor', null, :'c_activo'),
-     pg_temp.agrega(:'taller', :'sincolor', :'t_l'::uuid, null));`,
+     pg_temp.agrega(:'taller', :'unica', array[:'t_l'::uuid], null),
+     pg_temp.agrega(:'taller', :'sincolor', null, array[:'c_activo']),
+     pg_temp.agrega(:'taller', :'sincolor', array[:'t_l'::uuid], null));`,
   "P0001|agregar_variante_modelo_sin_talla,P0001|agregar_variante_modelo_sin_color,SIN_ERROR|"
 );
 caso(
   "R3 una combinación que existe pero está desactivada no se reclama: avisa y manda a Editar producto, sin crear nada",
   `update retail.variantes set activo = false where producto_id = :'prod' and color_codigo = 'ACH' and talla_id = :'t_m';
    select concat_ws(',',
-     pg_temp.agrega(:'taller', :'prod', :'t_m'::uuid, null),
+     pg_temp.agrega(:'taller', :'prod', array[:'t_m'::uuid], null),
      (select count(*) from retail.variantes where producto_id = :'prod'));`,
   "P0001|agregar_variante_desactivada,4"
 );
@@ -192,14 +217,14 @@ caso(
   "R4 un modelo sin ninguna variante activa o que no existe no recibe nada",
   `update retail.variantes set activo = false where producto_id = :'prod';
    select concat_ws(',',
-     pg_temp.agrega(:'taller', :'prod', :'t_l'::uuid, null),
-     pg_temp.agrega(:'taller', gen_random_uuid(), :'t_l'::uuid, null));`,
+     pg_temp.agrega(:'taller', :'prod', array[:'t_l'::uuid], null),
+     pg_temp.agrega(:'taller', gen_random_uuid(), array[:'t_l'::uuid], null));`,
   "P0001|agregar_variante_sin_variantes,P0001|agregar_variante_modelo_inexistente"
 );
 caso(
   "R5 solo en el Taller: en una tienda no se agrega",
   `select id as tienda from retail.ubicaciones where tipo = 'tienda' and activo order by nombre limit 1 \\gset
-   select pg_temp.agrega(:'tienda', :'prod', :'t_l'::uuid, null);`,
+   select pg_temp.agrega(:'tienda', :'prod', array[:'t_l'::uuid], null);`,
   "P0001|agregar_variante_no_es_taller"
 );
 
@@ -207,16 +232,16 @@ caso(
 caso(
   "P1 quien no opera ese Taller (Micaela) o no tiene sesión no puede; nada se crea",
   `${como(MICAELA)}
-   select pg_temp.agrega(:'taller', :'prod', :'t_l'::uuid, null) as p1 \\gset
+   select pg_temp.agrega(:'taller', :'prod', array[:'t_l'::uuid], null) as p1 \\gset
    ${como(SIN_CUENTA)}
-   select concat_ws(',', :'p1', pg_temp.agrega(:'taller', :'prod', :'t_l'::uuid, null));`,
+   select concat_ws(',', :'p1', pg_temp.agrega(:'taller', :'prod', array[:'t_l'::uuid], null));`,
   "42501|produccion_sin_taller,42501|produccion_sin_modulo"
 );
 caso(
   "P2 quien opera el Taller pero no edita el catálogo no puede (las variantes son del catálogo)",
   `-- Una cuenta con Producción y sin Productos ni Atributos: se simula con la llave de catálogo cerrada, dentro de la transacción (el ROLLBACK la devuelve).
    create or replace function retail.fn_puede_editar_catalogo() returns boolean language sql stable as $f$ select false $f$;
-   select concat_ws(',', pg_temp.agrega(:'taller', :'prod', :'t_l'::uuid, null), pg_temp.agrega(:'taller', :'prod', null, :'c_activo'),
+   select concat_ws(',', pg_temp.agrega(:'taller', :'prod', array[:'t_l'::uuid], null), pg_temp.agrega(:'taller', :'prod', null, array[:'c_activo']),
      (select count(*) from retail.variantes where producto_id = :'prod'));`,
   "42501|agregar_variante_sin_permiso,42501|agregar_variante_sin_permiso,4"
 );
@@ -224,7 +249,7 @@ caso(
 // V. LA VERSIÓN -----------------------------------------------------------------------------------------------------------------
 caso(
   "V1 el producto sube de versión (Editar producto avisa a quien lo tenga abierto) y el stock no se toca",
-  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', :'t_l'::uuid, null) \\gset
+  `select retail.agregar_variantes_a_modelo(:'taller', :'prod', array[:'t_l'::uuid], null) \\gset
    select concat_ws(',', (select version - :'v0'::int from retail.productos where id = :'prod'),
      (select count(*) from retail.stock s join retail.variantes v on v.id = s.variante_id where v.producto_id = :'prod'));`,
   "1,0"

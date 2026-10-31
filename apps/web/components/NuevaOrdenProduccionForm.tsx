@@ -43,7 +43,8 @@ import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
 import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
 import { AgregarColor, QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { AgregarTallaModal } from "@/components/orden-produccion/AgregarTallaModal";
-import { puedeAgregarTalla } from "@/lib/agregar-variantes-orden-reglas";
+import { AgregarColorAlModeloModal } from "@/components/orden-produccion/AgregarColorAlModeloModal";
+import { puedeAgregarColor, puedeAgregarTalla } from "@/lib/agregar-variantes-orden-reglas";
 import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
@@ -305,10 +306,15 @@ export function NuevaOrdenProduccionForm({
   const categoriaNueva = useMemo(() => vocab?.categorias.find((cat) => cat.id === categoriaNuevaId) ?? null, [vocab, categoriaNuevaId]);
   // «+ Talla» de un modelo que ya existe (2026-10-31): las tallas que le faltan son las de SU categoría, y la base decide de verdad (`agregar_variantes_a_modelo`).
   const [tallaAbierta, setTallaAbierta] = useState(false);
+  const [colorAbierto, setColorAbierto] = useState(false);
   const categoriaDelModelo = useMemo(() => vocab?.categorias.find((cat) => cat.id === modeloExistente?.categoriaId) ?? null, [vocab, modeloExistente]);
   const puedeTalla = useMemo(
     () => (modeloExistente ? puedeAgregarTalla({ puedeEditarCatalogo, categoria: categoriaDelModelo, variantes: modeloExistente.variantes }) : null),
     [modeloExistente, puedeEditarCatalogo, categoriaDelModelo]
+  );
+  const puedeColor = useMemo(
+    () => (modeloExistente ? puedeAgregarColor({ puedeEditarCatalogo, hayColores: (vocab?.colores.length ?? 0) > 0, variantes: modeloExistente.variantes }) : null),
+    [modeloExistente, puedeEditarCatalogo, vocab]
   );
   const coloresDisponibles = useMemo<ColorAlta[]>(() => {
     const vistos = new Set<string>();
@@ -915,12 +921,20 @@ export function NuevaOrdenProduccionForm({
             {mostrarMatriz ? (
               <>
                 {esNuevo && vocab && <AgregarColor colores={coloresDisponibles} elegidos={coloresNuevos} onAlternar={alternarColor} onCreado={colorCreado} />}
-                {!esNuevo && modeloExistente && puedeTalla && (
+                {!esNuevo && modeloExistente && puedeTalla && puedeColor && (
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-guia="prod-orden-nueva.talla-nueva-boton">
                     <Boton type="button" peso="fantasma" disabled={!puedeTalla.puede || cargando} onClick={() => setTallaAbierta(true)}>
                       + Talla
                     </Boton>
-                    {!puedeTalla.puede && <span className="text-[12.5px] text-tinta/70">{puedeTalla.motivo}</span>}
+                    <Boton type="button" peso="fantasma" disabled={!puedeColor.puede || cargando} onClick={() => setColorAbierto(true)}>
+                      + Color
+                    </Boton>
+                    {/* Lo que apaga un botón se dice con palabras (en el celular no hay «title»); si los dos dicen lo mismo, una sola vez. */}
+                    {[...new Set([puedeTalla, puedeColor].flatMap((p) => (p.puede ? [] : [p.motivo])))].map((motivo) => (
+                      <span key={motivo} className="text-[12.5px] text-tinta/70">
+                        {motivo}
+                      </span>
+                    ))}
                   </div>
                 )}
                 {/* La misma tabla de Nuevo producto (ADR-0396, A2). `key`: «Llenar todas con» arranca vacío al cambiar de modelo o de categoría (las cantidades también se vacían). */}
@@ -946,22 +960,19 @@ export function NuevaOrdenProduccionForm({
                 Elige la categoría y las tallas, y aquí aparece la matriz: una fila por color y una columna por talla.
               </Aviso>
             )}
-            {!esNuevo && (
-              <p className="text-xs text-tinta/65">
-                {tabla.excluidas.size > 0 && "Una raya (—) es una combinación que este modelo no tiene. "}
-                ¿Falta un color? Se agrega en{" "}
-                {puedeEditarCatalogo ? (
-                  <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
-                    Editar producto
-                  </Link>
-                ) : (
-                  "Productos (pídeselo a quien edita el catálogo)"
-                )}
-                , no desde la orden.
-              </p>
-            )}
+            {!esNuevo && tabla.excluidas.size > 0 && <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene.</p>}
           </CampoGuiado>
           </div>
+        )}
+        {colorAbierto && modeloExistente && (
+          <AgregarColorAlModeloModal
+            tallerId={tallerId}
+            productoId={modeloExistente.productoId}
+            referencia={modeloExistente.referencia}
+            colores={coloresDisponibles}
+            variantes={modeloExistente.variantes}
+            onClose={() => setColorAbierto(false)}
+          />
         )}
         {tallaAbierta && modeloExistente && (
           <AgregarTallaModal

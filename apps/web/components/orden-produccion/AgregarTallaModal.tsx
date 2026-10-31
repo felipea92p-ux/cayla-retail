@@ -1,28 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
-import { avisar } from "@/components/ui/Avisos";
+import { useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { useResponsable } from "@/lib/useResponsable";
-import { firmar } from "@/lib/responsable-reglas";
-import { fraseDeLaTallaNueva, tallasQueFaltan } from "@/lib/agregar-variantes-orden-reglas";
+import { fraseDeLasTallasNuevas, tallasQueFaltan } from "@/lib/agregar-variantes-orden-reglas";
 import type { CategoriaDeModelo } from "@/lib/modelo-nuevo-reglas";
+import { useAgregarVariantes } from "./useAgregarVariantes";
 
-// «+ Talla» de la matriz de Nueva orden (Felipe, 2026-10-31): una talla que le falta al modelo se agrega aquí, sin salir a Catálogo ▸ Editar producto. La base
-// (`agregar_variantes_a_modelo`, 20261031172000) crea una prenda por cada color del modelo, con su precio y su costo y sin stock, y vuelve a comprobar todo.
+// «+ Talla» de la matriz de Nueva orden (Felipe, 2026-10-31): las tallas que le faltan al modelo se agregan aquí, sin salir a Catálogo ▸ Editar producto. Se pueden elegir
+// varias de una vez: la base las crea todas o ninguna, una prenda por cada color del modelo, con su precio y su costo y sin stock.
 //
 // Va SIN `<form>` a propósito: la hoja se abre desde dentro del formulario de la orden y React hace subir los eventos de un portal por sus ancestros (ADR-0128), así que
 // un «submit» de acá abriría la orden entera. Un botón normal no tiene ese riesgo.
-
-// La función es nueva (migración 20261031172000) y los tipos generados no la conocen: se llama por su nombre.
-const RPC_AGREGAR_VARIANTES = "agregar_variantes_a_modelo";
 
 export function AgregarTallaModal({
   tallerId,
@@ -39,61 +31,32 @@ export function AgregarTallaModal({
   variantes: readonly { talla: string | null; color: string | null }[];
   onClose: () => void;
 }) {
-  const router = useRouter();
-  const responsable = useResponsable();
+  const { responsable, cargando, agregar } = useAgregarVariantes({ tallerId, productoId, onClose });
   const faltan = tallasQueFaltan(categoria, variantes);
-  const [elegidaId, setElegidaId] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(false);
-  const enVuelo = useRef(false);
-  const elegida = faltan.find((t) => t.id === elegidaId) ?? null;
+  const [elegidasIds, setElegidasIds] = useState<string[]>([]);
+  // En el orden de la lista (S · M · L), no en el de los clics.
+  const elegidas = faltan.filter((t) => elegidasIds.includes(t.id));
 
-  async function agregar() {
-    if (!elegida || enVuelo.current) return;
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
-    }
-    enVuelo.current = true;
-    setCargando(true);
-    let resultado;
-    try {
-      resultado = await firmar(
-        createClient().rpc(RPC_AGREGAR_VARIANTES as never, { p_ubicacion_id: tallerId, p_producto_id: productoId, p_talla_id: elegida.id, p_color_codigo: null } as never),
-        responsable.firma()
-      );
-    } finally {
-      enVuelo.current = false;
-    }
-    const { error } = resultado;
-    responsable.despues(error);
-    setCargando(false);
-    if (error) {
-      avisar.error(traducirError(error, "agregar la talla", { confirmarAntesDeRepetir: true }));
-      return;
-    }
-    avisar.exito(`Talla ${elegida.valor} agregada a ${referencia}`);
-    onClose();
-    // El modelo vuelve con su talla nueva: la tabla de la orden la dibuja sin perder lo que ya se escribió.
-    router.refresh();
-  }
+  const alternar = (id: string) => setElegidasIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  const nombres = elegidas.map((t) => t.valor);
 
   return (
-    <Modal titulo="Agregar una talla" subtitulo={`A ${referencia}. Queda en el catálogo, como si la hubieras agregado desde Editar producto.`} variante="hoja" tamano="angosta" onClose={onClose}>
+    <Modal titulo="Agregar tallas" subtitulo={`A ${referencia}. Quedan en el catálogo, como si las hubieras agregado desde Editar producto.`} variante="hoja" tamano="angosta" onClose={onClose}>
       <div className="mt-3.5 space-y-5">
         <div className="space-y-2">
-          <span className={campoEtiqueta}>Qué talla</span>
+          <span className={campoEtiqueta}>Qué tallas</span>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Tallas que le faltan al modelo">
             {faltan.map((t) => (
-              <ChipOpcion key={t.id} elegido={t.id === elegidaId} onClick={() => setElegidaId(t.id === elegidaId ? null : t.id)} disabled={cargando}>
+              <ChipOpcion key={t.id} elegido={elegidasIds.includes(t.id)} onClick={() => alternar(t.id)} disabled={cargando}>
                 {t.valor}
               </ChipOpcion>
             ))}
           </div>
         </div>
 
-        {elegida && (
+        {elegidas.length > 0 && (
           <Aviso tono="info" chico>
-            {fraseDeLaTallaNueva(elegida.valor, variantes)}
+            {fraseDeLasTallasNuevas(nombres, variantes)}
           </Aviso>
         )}
 
@@ -109,11 +72,17 @@ export function AgregarTallaModal({
               peso="primario"
               cargando={cargando}
               textoCargando="Agregando…"
-              onClick={agregar}
-              disabled={!elegida || !responsable.listo}
-              title={!elegida ? "Elige la talla que falta." : (responsable.motivo ?? undefined)}
+              onClick={() =>
+                void agregar(
+                  { tallaIds: elegidas.map((t) => t.id) },
+                  `${elegidas.length === 1 ? `Talla ${nombres[0]} agregada` : `Tallas ${nombres.join(", ")} agregadas`} a ${referencia}`,
+                  "agregar las tallas"
+                )
+              }
+              disabled={elegidas.length === 0 || !responsable.listo}
+              title={elegidas.length === 0 ? "Elige las tallas que faltan." : (responsable.motivo ?? undefined)}
             >
-              {elegida ? `Agregar la talla ${elegida.valor}` : "Agregar la talla"}
+              {elegidas.length === 0 ? "Agregar tallas" : elegidas.length === 1 ? `Agregar la talla ${nombres[0]}` : `Agregar ${elegidas.length} tallas`}
             </Boton>
           </div>
         </div>

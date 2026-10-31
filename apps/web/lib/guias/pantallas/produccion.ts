@@ -260,8 +260,8 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "talla-nueva",
       ancla: "prod-orden-nueva.talla-nueva-boton",
       opcional: true,
-      titulo: "¿Falta una talla?",
-      texto: "«+ Talla» le agrega al modelo una talla de su categoría sin salir de la orden: se crea una prenda por cada color, con el precio y el costo del modelo y sin stock, y la columna nueva aparece en la tabla para llenarla. Es de quien edita el catálogo; si no, el botón sale apagado y dice por qué.",
+      titulo: "¿Falta una talla o un color?",
+      texto: "«+ Talla» y «+ Color» le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla para llenarlo. Es de quien edita el catálogo; si no, el botón sale apagado y dice por qué.",
     },
     {
       id: "red",
