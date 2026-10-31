@@ -63,3 +63,9 @@
 - **Qué:** Resumen, Pedidos y su hoja, Vitrina (Modelos, Looks, Probador, Esperan), Campañas y su editor, Recomendaciones, Tráfico, Conf. Tienda y Pedidos no atendidos: lo que se lee pasa de 10,5–13 px a 14 px, también en el CSS de Tienda web, su configuración y Tráfico (quedan igual el mapa de calor, el calendario, la maqueta del navegador y la vista previa de la campaña). Veintidós frases acortadas (notas del Probador, Looks y Esperan, el editor de campaña, confirmar y anular un pedido). De paso: tres ayudas con ancho mínimo que el ajuste se había saltado (Probador, Looks y una de Nueva orden de Producción) también a 14 px.
 - **Por qué:** Felipe pidió seguir con Tienda web tras ver Producción.
 - **Cómo verificas:** abre `/tienda-web`, `/tienda-web/vitrina/probador` y `/tienda-web/pedidos`. No se miraron con datos el editor de una campaña ni las hojas que guardan.
+
+## 2026-10-31 — Colaboradores con la letra a 14 px (ronda 19, undécima pasada)
+
+- **Qué:** Equipo, Roles (la descripción de cada módulo y de cada grupo), Actividad, la ficha de una persona y de una terminal, y las hojas de dar acceso, cambiar rol y archivar rol: lo que se lee pasa de 10,5–13 px a 14 px. Sus frases ya eran cortas; solo se acortó la de cambiar el rol. La marca «ADMIN» en versalitas queda igual.
+- **Por qué:** Felipe pidió seguir con Colaboradores tras ver Tienda web.
+- **Cómo verificas:** abre `/colaboradores`, toca una persona, y `/colaboradores?pestana=roles`.
