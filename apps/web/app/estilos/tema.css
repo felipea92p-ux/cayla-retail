@@ -53,6 +53,7 @@
     --color-verde-profundo: #a8d49a;
     --color-ambar: #e4b968;
     --color-ambar-profundo: #ecc676;
+    --color-naranja: #dba04a;
     --color-pizarra: #a2b8cd;
 
     /* Marcas de gráfico: relleno, no texto. Separadas ΔE > 45 entre sí. El neutro sigue siendo el punto medio, claro a propósito. */
@@ -147,6 +148,7 @@
     --color-verde-profundo: #44583a;
     --color-taupe-profundo: #805c4c;
     --color-ambar-profundo: #734f15;
+    --color-naranja: #bf8029;
     --color-metodo-efectivo: #d19a12;
     --color-metodo-efectivo-tinta: #6b4a00;
     --color-metodo-tarjeta: #525a64;

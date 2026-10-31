@@ -162,8 +162,7 @@ export function AnularPedidoPagadoHoja({
           {/* En duda, nada se toca: otro motivo reenviado podría anular dos veces. */}
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-5">
             <Aviso tono="atencion" titulo="Se deshace todo de una vez">
-              Ya pagó y no se va a entregar: sus prendas vuelven a estar libres, se le devuelve lo que pagó y su boleta se anula. Avísale al
-              cliente antes.
+              Las prendas quedan libres, se devuelve lo que pagó y la boleta se anula. Avísale antes.
             </Aviso>
 
             <div className="space-y-2" data-guia="anular-pedido.prendas">
@@ -203,7 +202,7 @@ export function AnularPedidoPagadoHoja({
                         </BotonVer>
                       }
                     >
-                      {errorBase?.campo === "caja" ? errorBase.detalle : `Hay que devolverle ${soles(efectivo)} en efectivo y no hay una caja abierta en ${p.tienda}: ábrela.`}
+                      {errorBase?.campo === "caja" ? errorBase.detalle : `Hay que devolverle ${soles(efectivo)} en efectivo y no hay caja abierta en ${p.tienda}: ábrela.`}
                     </Aviso>
                   ) : (
                     <p className="text-[12.5px] text-taupe">
@@ -216,7 +215,7 @@ export function AnularPedidoPagadoHoja({
               {pasarela && (
                 <CampoGuiado id="pasarela" guia={guia}>
                   <Aviso tono="atencion" chico>
-                    Tiene un cobro de la pasarela: ese se devuelve desde la pasarela, no desde la tienda.
+                    Tiene un cobro de la pasarela: ese se devuelve desde la pasarela.
                   </Aviso>
                 </CampoGuiado>
               )}

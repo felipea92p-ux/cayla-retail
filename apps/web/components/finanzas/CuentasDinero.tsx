@@ -66,11 +66,13 @@ import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark } from "lucide-react";
-import { Globito } from "@/components/ui/Globito";
 import { Volver } from "@/components/ui/Volver";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, respuestaCuadre, textoLadoBanco, textoPeriodo } from "@/lib/cuadrar-reglas";
+import { avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoLadoBanco, textoPeriodo, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
@@ -105,6 +107,9 @@ export function PantallaDinero({
   deuda,
   hoy,
   fallas,
+  acciones,
+  panorama = false,
+  subtitulo,
   children,
 }: {
   pestana: PestanaDinero;
@@ -124,6 +129,12 @@ export function PantallaDinero({
   deuda: number;
   hoy: string;
   fallas: string[];
+  /** La acción de la cabecera si no es «+ Registrar movimiento» (CLAURE: «Pagar a CLAURE»); `null` = ninguna (el dock sigue con «Registrar movimiento»). */
+  acciones?: ReactNode;
+  /** La cara dibuja su propio resumen: la cabecera no repite la respuesta grande ni el orillo. */
+  panorama?: boolean;
+  /** La frase bajo el título, si la cara dice la suya. */
+  subtitulo?: string;
   children: ReactNode;
 }) {
   const params = useSearchParams();
@@ -154,10 +165,16 @@ export function PantallaDinero({
           sedes={sedes}
           hoy={hoy}
           onRegistrar={() => setModal({ que: "deposito" })}
+          panorama={panorama}
+          subtitulo={subtitulo}
           acciones={
-            <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
-              + Registrar movimiento
-            </Boton>
+            acciones !== undefined ? (
+              acciones
+            ) : (
+              <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+                + Registrar movimiento
+              </Boton>
+            )
           }
         />
         {fallas.map((f) => (
@@ -495,6 +512,7 @@ export function ConciliacionPanel({
   const [fecha, setFecha] = useState(actual?.hasta ?? hoy);
   const [guardando, setGuardando] = useState(false);
   const [anulando, setAnulando] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroLineas>("pendientes");
   // La guía de foco de «¿Qué saldo dice el banco?» (ADR-0284): enciende lo que sigue; «falta» es lo mismo que bloquea `anotar()`.
   const guia = useGuiaCampos(camposDeAnotarSaldo({ responsableListo: responsable.listo, saldo, fecha, hoy }), { enModal: false });
 
@@ -509,7 +527,6 @@ export function ConciliacionPanel({
   }
   const r = resumenConciliacion(actual.lineas);
   const k = actual.conciliacion;
-  const bancos = bancosParaCuadrar(cuentas, actual.cuenta.id);
   const respuesta = respuestaCuadre(actual);
   const ir = (cuenta: string, hasta?: string) => router.push(`${ruta}?cuenta=${cuenta}${hasta ? `&hasta=${hasta}` : ""}`, { scroll: false });
 
@@ -555,164 +572,228 @@ export function ConciliacionPanel({
   }
 
   const periodo = textoPeriodo(actual.desde, actual.hasta, hoy);
+  const av = avanceDeLineas(actual.lineas);
+  const visibles = filtrarLineas(actual.lineas, filtro);
+  const totalPendientes = cuentas.reduce((a, c) => a + c.pendientes, 0);
 
   return (
-    <>
-      {/* Qué banco cuadrar: a la vista arriba, con lo que falta revisar de cada uno (antes, tarjetas sueltas al pie). */}
-      <div className="din-cuadrar-cab" data-guia="fin-conciliacion.otras">
-        <div className="din-cuadrar-bancos" role="group" aria-label="Qué cuenta cuadrar">
-          {bancos.map((b) => (
-            <button key={b.id} type="button" className="pildora-cayla" aria-pressed={b.elegida} onClick={() => ir(b.id)}>
-              {b.nombre}
-              {b.pendientes > 0 && <Globito n={b.pendientes} pide etiqueta={`${b.pendientes} por revisar`} />}
-            </button>
-          ))}
+    <div className="din-cuad">
+      {/* «B · Lista y detalle» (Felipe 2026-10-31): a la izquierda, los bancos con su estado de un vistazo; a la derecha, el del elegido. */}
+      <aside className="card-cayla din-cuad-lista anim-sube" data-guia="fin-conciliacion.otras" aria-label="Tus bancos">
+        <header className="din-cuad-lista-cab">
+          <TituloSeccion cuenta={totalPendientes}>Tus bancos</TituloSeccion>
+          <p className="din-cuad-tenue">{totalPendientes === 0 ? "Todo revisado." : `${totalPendientes} ${totalPendientes === 1 ? "línea" : "líneas"} por revisar.`}</p>
+        </header>
+        <div role="group" aria-label="Qué cuenta cuadrar">
+          {bancosParaCuadrar(cuentas).map((c) => {
+            const e = estadoDeBanco(c);
+            return (
+              <button key={c.id} type="button" className="din-cuad-it" aria-pressed={c.id === actual.cuenta.id} onClick={() => ir(c.id)}>
+                <span className="din-cuad-ini" aria-hidden="true">
+                  {inicialesDeBanco(c.nombre)}
+                </span>
+                <span className="min-w-0">
+                  <b className="block truncate text-sm font-semibold text-tinta">{c.nombre}</b>
+                  <small className="din-cuad-tenue block">{textoUltimaVez(c.ultimaFecha)}</small>
+                </span>
+                <span className="din-cuad-it-der">
+                  <b className="din-cuad-num">{soles(c.saldoHoy)}</b>
+                  <Chip tono={e.tono} versalitas={false}>
+                    {e.texto}
+                  </Chip>
+                </span>
+              </button>
+            );
+          })}
         </div>
+      </aside>
+
+      <div className="din-cuad-det">
         <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
         </div>
-      </div>
 
-      <Superficie className="anim-sube" guia="fin-conciliacion.lineas">
-        <Herramientas className="justify-between">
-          <div className="fin-herramientas-titulo min-w-0">
-            <b className="flex items-center gap-2">
-              {deUnaFecha && <Volver onClick={() => ir(actual.cuenta.id)} a="Volver a hoy" />}
-              {actual.cuenta.nombre} · movimientos {periodo}
-            </b>
-            <p>
-              A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco. El sistema dice{" "}
-              <b className="font-semibold text-tinta">{soles(actual.saldoSistema)}</b> al {fechaCorta(actual.hasta)}.
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+        <section className="card-cayla din-cuad-hero anim-sube" aria-label={`Saldo de ${actual.cuenta.nombre}`}>
+          <div className="din-cuad-hero-lado">
+            <span className="label-cayla">{actual.cuenta.nombre} · el sistema dice</span>
+            <b className="din-cuad-cifra">{soles(actual.saldoSistema)}</b>
+            <span className="[&>*]:!whitespace-normal">
               <Chip tono={respuesta.tono}>{respuesta.texto}</Chip>
+            </span>
+          </div>
+          {k ? (
+            <div className="din-cuad-hero-lado">
+              <span className="label-cayla">El banco dijo</span>
+              <b className="din-cuad-cifra din-cuad-cifra-chica">{soles(k.saldoBanco)}</b>
+              <p className="din-cuad-tenue">
+                {cuadra(k.diferencia) ? "Coincide con el sistema." : `Diferencia de ${soles(Math.abs(k.diferencia))} con el sistema.`} Anotado al {fechaCorta(actual.hasta)}
+                {k.registradoPor ? ` por ${k.registradoPor}` : ""}.
+              </p>
+              <span>
+                <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setAnulando(true)}>
+                  Anular este saldo…
+                </button>
+              </span>
+            </div>
+          ) : (
+            <div className="din-cuad-hero-lado" data-guia="fin-conciliacion.anotar">
+              <span className="label-cayla">¿Qué saldo dice el banco?</span>
+              <p className="din-cuad-tenue">Lo que muestra la banca por internet al cierre del día; se compara con el del sistema.</p>
+              <div className="grid gap-3">
+                <CampoGuiado id="saldo" guia={guia}>
+                  <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
+                    <InputFin id="conc-saldo" inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="38,420.00" />
+                  </CampoFin>
+                </CampoGuiado>
+                <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+                  <CampoGuiado id="fecha" guia={guia}>
+                    <CampoFin etiqueta="Al" htmlFor="conc-fecha" className="!mb-0">
+                      <InputFin
+                        id="conc-fecha"
+                        type="date"
+                        value={fecha}
+                        min={actual.cuenta.saldoDesde?.slice(0, 10) ?? undefined}
+                        max={hoy}
+                        onChange={(e) => {
+                          setFecha(e.target.value);
+                          if (e.target.value) ir(actual.cuenta.id, e.target.value);
+                        }}
+                      />
+                    </CampoFin>
+                  </CampoGuiado>
+                  <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar} className={guia.claseConfirmar} title={guia.frase ?? undefined}>
+                    Anotar
+                  </Boton>
+                </div>
+              </div>
+              <PieGuia guia={guia} listo="Todo listo para anotar el saldo." />
+            </div>
+          )}
+        </section>
+
+        <Superficie className="anim-sube" guia="fin-conciliacion.lineas">
+          <Herramientas className="justify-between">
+            <div className="fin-herramientas-titulo min-w-0">
+              <b className="flex items-center gap-2">
+                {deUnaFecha && <Volver onClick={() => ir(actual.cuenta.id)} a="Volver a hoy" />}
+                {actual.cuenta.nombre} · movimientos {periodo}
+              </b>
+              <p>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco.</p>
+            </div>
+            <SegmentoDeslizante
+              etiqueta="Qué líneas ver"
+              forma="modo"
+              valor={filtro}
+              onCambio={(v) => setFiltro(v as FiltroLineas)}
+              opciones={[
+                { clave: "pendientes", etiqueta: `Por revisar ${av.faltan}` },
+                { clave: "revisadas", etiqueta: `Revisadas ${av.revisadas}` },
+                { clave: "todas", etiqueta: "Todas" },
+              ]}
+            />
+          </Herramientas>
+          {av.total > 0 && (
+            <div className="din-cuad-avance">
+              <div className="din-cuad-avance-barra">
+                <BarraAvance pct={av.pct} alto="normal" decorativa />
+              </div>
+              <span className="din-cuad-tenue">
+                {av.revisadas} de {av.total} revisadas
+              </span>
               {r.porRevisar.length > 0 && (
                 <button type="button" className="btn-cayla btn-primario btn-chico" disabled={guardando} onClick={() => marcar(r.porRevisar.map((l) => ({ clave: l.clave, monto: l.monto })), true)}>
                   {r.porRevisar.length === 1 ? "Marcar la que falta como revisada" : `Marcar las ${r.porRevisar.length} como revisadas`}
                 </button>
               )}
             </div>
-          </div>
-        </Herramientas>
-        {actual.lineas.length === 0 ? (
-          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Nada entró ni salió de esta cuenta {periodo}.
-          </Vacio>
-        ) : (
-          <ul className="din-pares" aria-label={`Líneas de ${actual.cuenta.nombre}`}>
-            {actual.lineas.map((l, i) => {
-              const estado = estadoPar(l);
-              return (
-                <li key={l.clave} className="din-par anim-entra" data-estado={estado} style={{ ["--i" as string]: Math.min(i, 12) } as CSSProperties}>
-                  <div className="din-par-lado">
-                    <b className={`din-par-monto ${l.monto < 0 ? "fin-sale" : ""}`}>
-                      {l.monto < 0 ? "−" : "+"}
-                      {soles(Math.abs(l.monto))}
-                    </b>
-                    <span>
-                      {fechaCorta(l.fecha)} · {l.detalle}
-                    </span>
-                  </div>
-                  <svg className="din-par-hilo" viewBox="0 0 90 24" preserveAspectRatio="none" aria-hidden="true">
-                    <path d="M0 12 C30 2, 60 22, 90 12" pathLength={1} />
-                  </svg>
-                  <div className="din-par-lado">
-                    <span className="din-par-banco">{textoLadoBanco(l)}</span>
-                  </div>
-                  <div className="din-par-accion">
-                    {estado === "revisada" ? (
-                      <button type="button" className="btn-enlace text-[12.5px]" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)} aria-label={`Desmarcar ${l.detalle}`}>
-                        <Chip tono="verde">revisada</Chip>
-                      </button>
-                    ) : (
-                      <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], true)}>
-                        Sí, está
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <PieTabla>
-          {k ? (
-            cuadra(k.diferencia) ? (
-              <span>
-                <b className="text-verde">{actual.cuenta.nombre} coincide con el banco</b> al {fechaCorta(actual.hasta)}: {soles(k.saldoBanco)}.
-              </span>
-            ) : (
-              <span>
-                El banco dijo <b className="text-tinta">{soles(k.saldoBanco)}</b> y el sistema <b className="text-tinta">{soles(k.saldoSistema)}</b>: la diferencia es{" "}
-                <b className="text-rojo-profundo">{soles(k.diferencia)}</b>. Busca en las líneas sin revisar lo que falta registrar.
-              </span>
-            )
+          )}
+          {actual.lineas.length === 0 ? (
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              Nada entró ni salió de esta cuenta {periodo}.
+            </Vacio>
+          ) : visibles.length === 0 ? (
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              {filtro === "pendientes" ? "No queda nada por revisar." : "Todavía no hay líneas revisadas."}
+            </Vacio>
           ) : (
-            <span>Cuando todas estén revisadas y anotes el saldo del banco, el sistema dice si coinciden.</span>
+            <ul className="din-pares" aria-label={`Líneas de ${actual.cuenta.nombre}`}>
+              {visibles.map((l, i) => {
+                const estado = estadoPar(l);
+                return (
+                  <li key={l.clave} className="din-par anim-entra" data-estado={estado} style={{ ["--i" as string]: Math.min(i, 12) } as CSSProperties}>
+                    <div className="din-par-lado">
+                      <b className={`din-par-monto ${l.monto < 0 ? "fin-sale" : ""}`}>
+                        {l.monto < 0 ? "−" : "+"}
+                        {soles(Math.abs(l.monto))}
+                      </b>
+                      <span>
+                        {fechaCorta(l.fecha)} · {l.detalle}
+                      </span>
+                    </div>
+                    <svg className="din-par-hilo" viewBox="0 0 90 24" preserveAspectRatio="none" aria-hidden="true">
+                      <path d="M0 12 C30 2, 60 22, 90 12" pathLength={1} />
+                    </svg>
+                    <div className="din-par-lado">
+                      <span className="din-par-banco">{textoLadoBanco(l)}</span>
+                    </div>
+                    <div className="din-par-accion">
+                      {estado === "revisada" ? (
+                        <button type="button" className="btn-enlace text-[12.5px]" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)} aria-label={`Desmarcar ${l.detalle}`}>
+                          <Chip tono="verde">revisada</Chip>
+                        </button>
+                      ) : (
+                        <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], true)}>
+                          Sí, está
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          {k && (
-            <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setAnulando(true)}>
-              Anular este saldo…
-            </button>
-          )}
-        </PieTabla>
-      </Superficie>
-
-      {!k && (
-        <Superficie pad className="anim-sube" guia="fin-conciliacion.anotar">
-          <CabeceraBloque titulo="¿Qué saldo dice el banco?" bajada={`Lo que muestra la banca por internet al cierre del día. Se compara con los ${soles(actual.saldoSistema)} que suma el sistema.`} />
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-            <CampoGuiado id="saldo" guia={guia}>
-            <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
-              <InputFin id="conc-saldo" inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="38,420.00" />
-            </CampoFin>
-            </CampoGuiado>
-            <CampoGuiado id="fecha" guia={guia}>
-            <CampoFin etiqueta="Al" htmlFor="conc-fecha" className="!mb-0">
-              <InputFin
-                id="conc-fecha"
-                type="date"
-                value={fecha}
-                min={actual.cuenta.saldoDesde?.slice(0, 10) ?? undefined}
-                max={hoy}
-                onChange={(e) => {
-                  setFecha(e.target.value);
-                  if (e.target.value) ir(actual.cuenta.id, e.target.value);
-                }}
-              />
-            </CampoFin>
-            </CampoGuiado>
-            <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar} className={guia.claseConfirmar} title={guia.frase ?? undefined}>
-              Anotar
-            </Boton>
-          </div>
-          <PieGuia guia={guia} listo="Todo listo para anotar el saldo." />
+          <PieTabla>
+            {k ? (
+              cuadra(k.diferencia) ? (
+                <span>
+                  <b className="text-verde">{actual.cuenta.nombre} coincide con el banco</b> al {fechaCorta(actual.hasta)}: {soles(k.saldoBanco)}.
+                </span>
+              ) : (
+                <span>
+                  El banco dijo <b className="text-tinta">{soles(k.saldoBanco)}</b> y el sistema <b className="text-tinta">{soles(k.saldoSistema)}</b>: la diferencia es{" "}
+                  <b className="text-rojo-profundo">{soles(k.diferencia)}</b>. Busca en las líneas sin revisar lo que falta registrar.
+                </span>
+              )
+            ) : (
+              <span>Cuando todas estén revisadas y anotes el saldo del banco, el sistema dice si coinciden.</span>
+            )}
+          </PieTabla>
         </Superficie>
-      )}
 
-      {actual.historial.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-conciliacion.historial">
-          <Herramientas>
-            <b className="text-sm font-semibold text-tinta">Conciliaciones de {actual.cuenta.nombre}</b>
-          </Herramientas>
-          <ul className="fin-lista-mov px-[14px] pb-1.5">
-            {actual.historial.map((h) => (
-              <li key={h.id}>
-                <button type="button" className="btn-enlace text-left text-[13px]" onClick={() => ir(actual.cuenta.id, h.fecha)}>
-                  {fechaCorta(h.fecha, true)} · banco {soles(h.saldoBanco)} · sistema {soles(h.saldoSistema)}
-                </button>
-                <span>{cuadra(h.diferencia) ? "coincide" : `diferencia ${soles(h.diferencia)}`}</span>
-              </li>
-            ))}
-          </ul>
-        </Superficie>
-      )}
+        {actual.historial.length > 0 && (
+          <Superficie className="anim-sube" guia="fin-conciliacion.historial">
+            <Herramientas>
+              <b className="text-sm font-semibold text-tinta">Conciliaciones de {actual.cuenta.nombre}</b>
+            </Herramientas>
+            <ul className="fin-lista-mov px-[14px] pb-1.5">
+              {actual.historial.map((h) => (
+                <li key={h.id}>
+                  <button type="button" className="btn-enlace text-left text-[13px]" onClick={() => ir(actual.cuenta.id, h.fecha)}>
+                    {fechaCorta(h.fecha, true)} · banco {soles(h.saldoBanco)} · sistema {soles(h.saldoSistema)}
+                  </button>
+                  <span>{cuadra(h.diferencia) ? "coincide" : `diferencia ${soles(h.diferencia)}`}</span>
+                </li>
+              ))}
+            </ul>
+          </Superficie>
+        )}
 
-      <p className="nota-cayla anim-sube">
-        Si el banco no deja descargar el extracto, se escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal es hacerlo <b>cada viernes</b>. Subir el extracto (Excel o CSV) para que el sistema proponga cada pareja queda para después.
-      </p>
+        <p className="nota-cayla anim-sube">
+          Si el banco no deja descargar el extracto, se escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal es hacerlo <b>cada viernes</b>. Subir el extracto (Excel o CSV) para que el sistema proponga cada pareja queda para después.
+        </p>
+      </div>
 
       {anulando && k && (
         <AnularModal
@@ -725,7 +806,7 @@ export function ConciliacionPanel({
           que="anular la conciliación"
         />
       )}
-    </>
+    </div>
   );
 }
 
