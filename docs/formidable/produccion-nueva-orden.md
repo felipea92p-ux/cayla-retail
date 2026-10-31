@@ -93,6 +93,7 @@ Cosas que tocó y no hicieron lo esperado: el primer clic en «Elegir la categor
 | 2026-10-10 | `4f90fdb2` | 4,8 (ley 1: 6 provisional; ley 5: 3) | 5 (crudo 4) | primera revisión; ninguno aplicado: esperan el OK de Felipe |
 | 2026-10-10 | `f05df49e` + migración | **5,4** (ley 1: 6 provisional; ley 5: 4) | 5 (5 de 8 fallan; no era parte de los cambios) | **los 3 cambios aplicados** (Felipe los eligió); ciega sin repetir |
 | 2026-10-13 | `/pantalla` (no es una corrida de `/formidable`) | — | — | **Corrección:** el «¿Salir sin guardar?» con Escape o clic fuera **sí fallaba**: la pregunta salía con la hoja ya cerrada y «Seguir editando» dejaba la pantalla sin responder. Las dos corridas anteriores (y `/chaos` NAV-04) lo dieron por resuelto porque miraron que la pregunta apareciera, no que se pudiera seguir. Arreglado con `antesDeCerrar` (también en Registrar gasto) y vigilado por `lib/hojas-salida-sin-guardar.test.ts` |
+| 2026-10-30 | `7fad81137` (rama `claude/modelo-nuevo-sin-tipo-de-fabrica`) | acotada al tipo: ley 1 **7** (ciega), ley 4 **6**, ley 8 **6** | 8 en el bloque del tipo (pasa todo lo medido); pantalla 6 de 8, ninguna en el bloque | tercera corrida, acotada al tipo sin valor de fábrica (ADR-0396 act.); 3 cambios propuestos, ninguno aplicado: esperan el OK de Felipe |
 
 ## Segunda corrida (2026-10-10, tras aplicar los tres cambios que Felipe eligió)
 
@@ -116,3 +117,64 @@ sin botón). **Leyes: 5,4** (49 / 9). Oficio: **5**. La ley 1 no puede pasar de 
 
 **Queda de la lista aparte** (no se aplicó): borrador que sobrevive a Escape (el aviso lo reemplazó en parte), callejones, rojo por celda, bordes dobles, rótulos «Modelo / Ya existe · Modelo nuevo», «ficha viva» de la prenda y el ADR
 del sistema para las etiquetas de 11 px.
+
+## Tercera corrida (2026-10-30): el tipo de un modelo nuevo, sin valor de fábrica
+
+**Acotada al cambio** (ADR-0396, act. 2026-10-30: con «Crear un modelo nuevo» el tipo ya no viene marcado como Muestra; se elige y la guía de foco lo pide
+primero). SHA `7fad81137`, base privada con las migraciones de `main` y datos inventados, escritorio 1440 × 900. **Escala: un solo agente** (la prueba ciega);
+la medición la hice yo en el DOM y **no hubo escéptico** (costo bajo): las notas son provisionales.
+
+- **Pregunta que debería resolver el bloque:** «¿Esto se fabrica para vender o es una prueba del modelo?»
+- **Veredicto en una línea:** «La ciega eligió bien a la primera, pero dudó porque el texto pregunta por el molde y no por lo que decide: si se va a vender.»
+
+### Prueba ciega (Opus, sesión de líder, tarea: «fabricar 20 faldas de un modelo nuevo que se van a vender a S/ 69.90»)
+| Medida | Resultado | Etiqueta |
+|---|---|---|
+| Lectura de 5 s | acertada: «pedirle al Taller que fabrique algo», y que sigue buscar o crear el modelo | [Observado] |
+| Primer intento | sí, sin retroceder; orden OP-000004 con `es_muestra = false` (lote) en la base | [Observado] [Medido] |
+| Pasos | 17 toques hasta crear la orden (11 clics y 7 veces escribiendo) | [Observado] |
+| Duda sobre el tipo | «Mi tarea no decía si ya tenemos el molde, y como el modelo era nuevo dudé si eso lo convertía en Muestra». Eligió Lote por «se van a vender» ↔ «entra al stock» | [Observado] |
+| Otras dudas | el botón cambió de «Abrir orden» a «Crear orden»; «Admin · queda a tu nombre» cuando abajo dice «Líder»; los dos enlaces bajo el precio («Mejor elegir uno que ya existe», «Créalo en Productos») | [Observado] |
+| Palabras no entendidas (del Taller, no del cambio) | C/U, margen, ploteo, marcada, habilitado, avíos, Afuera, Estándar | [Observado] |
+| Errores evitables | ninguno | [Observado] |
+
+### Notas del bloque del tipo (0–10)
+| Ley | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | **7** (provisional; no pasa de 8 sin colaboradora real) | [Observado] la ciega eligió bien a la primera, con una duda sobre el criterio |
+| 3 Simplicidad profunda | **7** | [Código] cada opción se traduce a un veredicto («entra / no entra al stock»); − [Medido] la frase tiene 164 letras y ocupa 4 líneas a 375 px |
+| 4 Lenguaje de tienda | **6** | [Observado] el criterio que se lee primero es «ya tienen el molde»; lo que decidió la ciega fue «se van a vender» |
+| 7 Perdonar antes que preguntar | **8** | [Código] elegir mal se corrige con «Pasar a lote / a muestra» de la orden abierta (#1500, cuando se publique) |
+| 8 Quitar antes de agregar | **6** | [Medido] la frase explica las dos opciones a la vez; cada botón podría decir su consecuencia |
+| 9 De punta a punta | **8** | [Medido] borrador con el tipo sin elegir, «crear otra», teclado, 375 px y oscuro probados (ver `/chaos` y `tema:auditar`) |
+| 2, 5, 6 | sin cambio | el cambio no los toca |
+| **Oficio (bloque)** | **8** | [Medido] botones de 37 px (objetivo 32), contraste 5,3:1 en los botones, 4,78:1 en el título y 6,3:1 en la frase; solo la versalita de 11 px del sistema. En la pantalla fallan 6 de 8 comprobaciones, **ninguna en el bloque** («Taller» y las pestañas: falso contraste por el pulgar hermano; «Salir», el interruptor y un enlace bajo el precio) |
+
+### Los 3 cambios de mayor impacto (propuestos; ninguno aplicado: esperan el OK de Felipe)
+1. **La frase del tipo pregunta lo que decide, en palabras de tienda.** Antes: «Elige qué vas a hacer. Lote de producción: ya tienen el molde y, al cerrarlo,
+   entra al stock del Taller. Muestra: todavía hay que desarrollarlo y no entra al stock.» → Después: «¿Se va a vender? Lote de producción: al cerrarlo, entra
+   al stock. ¿Es una prueba del modelo? Muestra: no entra al stock.» Ley 4 y 8. Se verifica repitiendo la ciega con la misma tarea (sin la duda del molde) y
+   midiendo el largo a 375 px. Esfuerzo S. Decide Felipe (texto; no cambia ninguna regla).
+2. **El botón dice lo mismo siempre: «Abrir orden».** Hoy cambia a «Crear orden» con un modelo nuevo (`NuevaOrdenProduccionForm.tsx`, el pie), y la ciega dudó
+   si «Crear» también la dejaba abierta. Ley 4 y 1. Se verifica con la ciega y con `lib/modelo-nuevo-reglas.test.ts` («el botón cabe a 375 px»). Esfuerzo S.
+   Decide Felipe.
+3. **«Hoy en el Taller» no llama «lotes» a las muestras.** Con una orden de lote y una de muestra abiertas, la cifra dice «Por plotear · 2 lotes · 18 prendas»
+   [Observado en la base privada]: la misma pantalla que pide distinguir lote de muestra los suma bajo «lotes». Después: «2 órdenes» (o «1 lote · 1
+   muestra»). Ley 3 y 4. Se verifica con una orden de cada tipo. Esfuerzo S–M. Decide Felipe.
+
+### Lo que sobra (ley 8)
+Los dos enlaces bajo el precio («Mejor elegir uno que ya existe» y «¿Cargarlo completo, con fotos? Créalo en Productos») hicieron dudar a la ciega de si tenía que
+ir antes a Productos: se propone dejar solo uno, o moverlos al buscador del modelo.
+
+### Lo que no pediste y importa más
+La ciega entró como líder (Admin). Las cuatro órdenes mal tipadas las abrió alguien del Taller: la prueba que de verdad dice si el tipo se elige bien es con una
+colaboradora del Taller, en su equipo, con la tarea «manda a fabricar esto para las tiendas» y sin nadie que le explique.
+
+### Lista aparte (no se ejecuta)
+- «Admin · queda a tu nombre» junto a «Líder · Taller» abajo: dos nombres para la misma persona (pieza del sistema `ComboResponsable`; pasa por `/unificar`).
+- El aviso de éxito «se fue rápido» para la ciega (la regla de los avisos con botón ya es de 7 s; percepción de un agente, sin medir).
+- Palabras del Taller sin traducir a la vista: ploteo, marcada, habilitado, avíos (de toda la pantalla, no del cambio).
+
+### Antes de decir «listo»
+- Concurrencia: triple clic en «Crear orden» → una sola orden (`/chaos` DC-01). · Caída externa: el envío y su token no cambiaron (corrido el 2026-10-10).
+  · Persona sin contexto: la ciega pasó; colaboradora real, sin probar.
