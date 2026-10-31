@@ -19,9 +19,9 @@
       "Link «Créalo en Productos»"
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
+      "SegmentoDeslizante «Tipo de orden»",
       "Boton «Retomarla»",
       "Boton «Descartarla»",
-      "SegmentoDeslizante «Tipo de orden»",
       "Link «Editar producto»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",

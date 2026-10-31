@@ -40,6 +40,7 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
     ["orden-pagina/EncontreTelaModal.tsx", "anotar la tela que encontraste"],
     ["orden-pagina/PasarAlStockModal.tsx", "pasar la orden al stock"],
     ["orden-pagina/AnularLaOrdenModal.tsx", "anular la orden"],
+    ["orden-pagina/CambiarTipoModal.tsx", "cambiar el tipo de la orden"],
     ["orden-pagina/RevertirLaOrdenModal.tsx", "revertir el cierre"],
   ];
   it.each(HOJAS_DEL_REDISENO)("%s pide confirmar antes de repetir (%s)", (archivo, contexto) => {
