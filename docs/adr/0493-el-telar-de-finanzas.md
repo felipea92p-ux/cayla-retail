@@ -330,3 +330,29 @@ Felipe miró las 8 propuestas de `docs/maquetas/gastos-benchmark-2026-10/` y pid
 en hueso; un solo combo de responsable por tarjeta, que conserva lo elegido de una tarjeta a la otra. **DESCARTÉ:** sugerir la categoría
 (es la propuesta 6 de la pasada funcional, aparte) y resolver un gasto fijo en la tarjeta (pide medio de pago y comprobante: la hoja).
 **SE ROMPE SI:** `sugerenciaParaEgreso` deja de proponer, o la bandeja recibe las cosas en otro orden (la pila se reordenaría).
+
+## Actualización 2026-10-31 (b) — El detalle al costado, el gasto que aterriza y el ícono de su categoría (Felipe, las 01, 05 y 06 del benchmark)
+
+Después de juntar «corregir sin anular» y el comprobante (ADR-0588) con la pila, en un solo PR como pidió Felipe:
+
+1. **01 · El detalle del gasto va en el cajón lateral** (`<Cajon>` sin velo, como Movimientos; antes, una hoja al centro que tapaba la
+   lista). La lista sigue viva detrás: tocar otra fila cambia el gasto, la fila abierta queda marcada (`aria-current`) y «3 de 12» con ↑ ↓
+   pasa al siguiente en el orden de la lista (`ordenDelExtracto`, que entra a los «×N»). Con el foco en la lista, ↑ ↓ (o J y K) hacen lo
+   mismo y el foco sigue a la fila; si el gasto está dentro de un «×N» cerrado o en los días de antes, eso se abre solo mientras se lo
+   muestra (`dondeEstaEnElExtracto`). Arriba van el ícono de su categoría, el total en grande y «Ver los de …», que deja la lista con su
+   categoría sin cerrar el cajón. Corregir, «Llegó el comprobante», «No tendrá comprobante» y anular siguen abriendo su hoja en el lugar de
+   este. En el celular, la hoja desde abajo de siempre (ADR-0479).
+2. **05 · Al registrar, el gasto aterriza en su día.** La hoja avisa el id que devuelve `registrar_gasto` y el aviso dice dónde quedó
+   («Quedó en el martes 28 de octubre.», `textoDondeQuedo`). La lista lo busca cuando llega con el refresco **y el loader ya se fue**, lo trae
+   al centro y la fila respira en verde una vez (`data-recien`, la pieza de `<Tabla>`); si nunca llega (otro mes, un filtro), la marca se
+   suelta sola a los 15 s. **Sin «Deshacer»** (Felipe): un error se arregla con «Corregir».
+3. **06 · Cada fila lleva el ícono de su categoría** (`IconoCategoriaGasto`, reglas en `lib/icono-categoria-gasto.ts`): lucide sobre su
+   cuadrito de hueso, por el código de la categoría y nunca por su nombre; la que se cree sin deploy cae al recibo. Una prueba exige que
+   toda categoría que crean las migraciones tenga el suyo y que no se repitan.
+4. **De paso:** el extracto ya no se raya. La zebra de `fila-cayla` contaba solo hermanos y los «×N» van envueltos, así que caía en una fila
+   cualquiera y se leía como «esta está marcada» (visto el 2026-10-31; el día ya agrupa).
+
+**DECIDÍ:** el cajón sin velo (la lista detrás es la que se usa para pasar de uno a otro) y que ↑ ↓ desde la lista sigan el orden del
+cajón aunque el foco esté en una fila «×N». **DESCARTÉ:** la miniatura del comprobante en la fila (la propuesta 06 la traía): la lista
+del mes no sabe qué gasto tiene foto sin una lectura más de la base; queda para cuando `fn_gastos_lista` lo diga. **SE ROMPE SI:**
+`registrar_gasto` deja de devolver el id (no aterriza, sin caerse) o la lista deja de marcar sus filas con `data-id`.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -35,7 +35,9 @@ import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
 import { ExtractoGastos } from "@/components/finanzas/gastos/ExtractoGastos";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
-import { avisoDelGasto, DESDE_EL_UMBRAL, pagoACredito, pideComprobante, sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
+import { avisoDelGasto, DESDE_EL_UMBRAL, extractoPorDia, ordenDelExtracto, pagoACredito, pideComprobante, sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
+import { Cajon } from "@/components/ui/Cajon";
+import { IconoCategoriaGasto } from "@/components/finanzas/gastos/IconoCategoriaGasto";
 import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -184,7 +186,19 @@ export function GastosPanel({
   const [registrar, setRegistrar] = useState<{ egreso?: EgresoPorClasificar; fijo?: GastoFijoMes; clase?: "gasto" | "activo" } | null>(() =>
     params.get("registrar") === "1" ? {} : null,
   );
-  const [detalle, setDetalle] = useState<GastoFila | null>(null);
+  // El gasto abierto en el cajón, por su id: al rehacerse la lista (tras corregirlo o recibir su comprobante) el cajón muestra el de ahora.
+  const [detalleId, setDetalleId] = useState<string | null>(null);
+  const detalle = detalleId ? (gastos.find((g) => g.id === detalleId) ?? null) : null;
+  const setDetalle = (g: GastoFila | null) => setDetalleId(g?.id ?? null);
+  // El gasto recién registrado (la 05 del benchmark visual): la lista lo busca y respira en verde una vez. Si no llega a la lista (otro
+  // mes, un filtro que lo deja afuera), la marca se suelta sola a los 15 s y no aparece de sorpresa más tarde.
+  const [recien, setRecien] = useState<string | null>(null);
+  const soltarRecien = useCallback(() => setRecien(null), []);
+  useEffect(() => {
+    if (!recien) return;
+    const t = setTimeout(soltarRecien, 15_000);
+    return () => clearTimeout(t);
+  }, [recien, soltarRecien]);
   const [activo, setActivo] = useState<ActivoFila | null>(null);
   const [nuevoFijo, setNuevoFijo] = useState<FijoSugerido | null>(null);
   const [noEsFijo, setNoEsFijo] = useState<FijoSugerido | null>(null);
@@ -210,6 +224,10 @@ export function GastosPanel({
     () => ritmoDelMes({ gastos, anteriores: gastosDelMesAnterior, fijos: fijosDelMes, mes, hoy }),
     [gastos, gastosDelMesAnterior, fijosDelMes, mes, hoy],
   );
+  // La lista que se ve (con sus filtros) y su orden en pantalla: el «3 de 12» y ↑ ↓ del cajón del detalle (la 01 del benchmark visual).
+  const visibles = useMemo(() => filtrarGastos(gastos, filtros, mes), [gastos, filtros, mes]);
+  const orden = useMemo(() => ordenDelExtracto(extractoPorDia(visibles, hoy)), [visibles, hoy]);
+  const enOrden = detalle ? orden.findIndex((g) => g.id === detalle.id) : -1;
   // El `?registrar=1` se quita apenas se abrió la hoja, para que recargar o volver atrás no la abra otra vez.
   useEffect(() => {
     if (params.get("registrar") !== "1") return;
@@ -321,7 +339,7 @@ export function GastosPanel({
                 gastos={gastos}
                 nombreMesAnterior={nombreMesAnterior}
                 aEstaAltura={enCurso}
-                onAbrirGasto={(id) => setDetalle(gastos.find((g) => g.id === id) ?? null)}
+                onAbrirGasto={setDetalleId}
                 onVerEnLaTabla={(categoria, sede) => {
                   setFiltros((a) => ({ ...a, categoria, sede: sede ?? "" }));
                   irALasPestanas("gastos");
@@ -344,7 +362,7 @@ export function GastosPanel({
               mes={mes}
               nombreMesAnterior={nombreMesAnterior}
               sedes={sedesTelar}
-              onAbrirGasto={(id) => setDetalle(gastos.find((g) => g.id === id) ?? null)}
+              onAbrirGasto={setDetalleId}
               onVerEnLaTabla={(dia) => {
                 setFiltros((a) => ({ ...a, dia }));
                 irALasPestanas("gastos");
@@ -416,11 +434,15 @@ export function GastosPanel({
       {pestana === "gastos" && (
         <TablaGastos
           gastos={gastos}
+          visibles={visibles}
           categorias={categorias}
           verTodas={verTodas}
           mes={mes}
           hoy={hoy}
           onAbrir={setDetalle}
+          abierto={detalleId}
+          recien={recien}
+          onRecienVisto={soltarRecien}
           filtros={filtros}
           onFiltros={(f) => setFiltros((a) => ({ ...a, ...f }))}
           sedes={sedesTelar}
@@ -532,6 +554,11 @@ export function GastosPanel({
           fijo={registrar.fijo}
           hoy={hoy}
           rucEmpresa={rucEmpresa}
+          onRegistrado={(id) => {
+            // Aterriza en su día (la 05): la lista de Gastos lo busca cuando llega la lista nueva.
+            setPestana("gastos");
+            setRecien(id);
+          }}
           onCerrar={() => setRegistrar(null)}
         />
       )}
@@ -557,7 +584,25 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} categorias={categorias} proveedores={proveedores} rucEmpresa={rucEmpresa} puedeAdjuntarFacturas={puedeAdjuntarFacturas} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
+      {detalle && (
+        <GastoDetalle
+          gasto={detalle}
+          categorias={categorias}
+          proveedores={proveedores}
+          rucEmpresa={rucEmpresa}
+          puedeAdjuntarFacturas={puedeAdjuntarFacturas}
+          hoy={hoy}
+          puedeVerImpuestos={puedeVerImpuestos}
+          puedeVerPorPagar={puedeVerPorPagar}
+          posicion={enOrden >= 0 ? { indice: enOrden, total: orden.length } : null}
+          onNavegar={(paso) => {
+            const otro = orden[enOrden + paso];
+            if (otro) setDetalleId(otro.id);
+          }}
+          onVerCategoria={() => elegirFiltro({ categoria: detalle.categoria })}
+          onCerrar={() => setDetalle(null)}
+        />
+      )}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -580,28 +625,36 @@ export function GastosPanel({
 
 function TablaGastos({
   gastos,
+  visibles,
   categorias,
   verTodas,
   mes,
   hoy,
   onAbrir,
+  abierto,
+  recien,
+  onRecienVisto,
   filtros,
   onFiltros,
   sedes,
 }: {
   gastos: GastoFila[];
+  /** Los que dejan los filtros (`filtrarGastos`): los calcula el panel, que también los usa para pasar de uno a otro en el cajón. */
+  visibles: GastoFila[];
   categorias: CategoriaGasto[];
   verTodas: boolean;
   mes: string;
   hoy: string;
   onAbrir: (g: GastoFila) => void;
+  abierto: string | null;
+  recien: string | null;
+  onRecienVisto: () => void;
   /** Los filtros los comparte con los hilos, el calendario y «Por ordenar»; el mes lo elige la mesa de mando de arriba. */
   filtros: FiltrosLista;
   onFiltros: (f: Partial<FiltrosLista>) => void;
   /** Para nombrar la sede de la píldora que pone el desglose de «En qué se va». */
   sedes: SedeTelar[];
 }) {
-  const visibles = useMemo(() => filtrarGastos(gastos, filtros, mes), [gastos, filtros, mes]);
   const nombreCategoria = (c: string) => categorias.find((x) => x.codigo === c)?.nombre ?? c;
   const nombreSede = (clave: string) => sedes.find((s) => s.clave === clave)?.nombre ?? "otra sede";
   const puestos = filtrosPuestosDeGastos(filtros, nombreCategoria, textoMes(mes).split(" ")[0]!, nombreSede);
@@ -615,6 +668,7 @@ function TablaGastos({
             valor={filtros.q}
             onCambio={(q) => onFiltros({ q })}
             etiqueta="Buscar un gasto"
+            atajo
             placeholder="Busca «luz», un proveedor o un número" // sugerir-fijo: lo que se busca no depende de lo elegido arriba
             conteo={filtros.q.trim() ? visibles.length : undefined}
             className="min-w-[14rem] flex-1"
@@ -671,7 +725,7 @@ function TablaGastos({
             </Vacio>
           )
         ) : (
-          <ExtractoGastos gastos={visibles} hoy={hoy} filtros={filtros} verTodas={verTodas} sedes={sedes} onAbrir={onAbrir} />
+          <ExtractoGastos gastos={visibles} hoy={hoy} filtros={filtros} verTodas={verTodas} sedes={sedes} onAbrir={onAbrir} abierto={abierto} recien={recien} onRecienVisto={onRecienVisto} />
         )}
         <PieTabla>
           <span>
@@ -688,7 +742,12 @@ function TablaGastos({
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GastoDetalleModal({
+/**
+ * El detalle de un gasto en el cajón lateral (la 01 del benchmark visual, Felipe 2026-10-31; antes, una hoja al centro que tapaba la lista):
+ * `<Cajon>` sin velo, como Movimientos, así la lista sigue viva detrás —tocar otra fila cambia el gasto— y la fila abierta queda marcada;
+ * «3 de 12» con ↑ ↓ en el orden de la lista. Corregir, el comprobante, «no tendrá» y anular siguen abriendo su hoja en el lugar de este.
+ */
+function GastoDetalle({
   gasto: g,
   categorias,
   proveedores,
@@ -697,6 +756,9 @@ function GastoDetalleModal({
   hoy,
   puedeVerImpuestos,
   puedeVerPorPagar,
+  posicion,
+  onNavegar,
+  onVerCategoria,
   onCerrar,
 }: {
   gasto: GastoFila;
@@ -709,6 +771,11 @@ function GastoDetalleModal({
   puedeVerImpuestos: boolean;
   /** Con el módulo Por pagar, el aviso de una factura que se debe lleva a pagarla (`/compras/por-pagar`); sin él, solo lo dice. */
   puedeVerPorPagar: boolean;
+  /** Dónde está en la lista que se ve; `null` si los filtros lo dejan afuera (se abrió desde «En qué se va» o «Cuándo»): sin «n de N». */
+  posicion: { indice: number; total: number } | null;
+  onNavegar: (paso: 1 | -1) => void;
+  /** Deja la lista con los gastos de su categoría (el cajón sigue abierto). */
+  onVerCategoria: () => void;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -769,20 +836,39 @@ function GastoDetalleModal({
   }
 
   return (
-    <Modal conCerrar
-      variante="hoja"
-      titulo={
+    <Cajon
+      onCerrar={onCerrar}
+      clave={g.id}
+      velo={false}
+      marca={<IconoCategoriaGasto codigo={g.categoria} tamano={40} />}
+      sobre={`${g.categoriaNombre} · cuenta ${g.cuenta}`}
+      titulo={g.descripcion}
+      frase={bajada}
+      navegacion={posicion ? { indice: posicion.indice, total: posicion.total, onNavegar, que: "Gasto" } : undefined}
+      guiaPie="fin-gastos.detalle-botones"
+      pie={
+        // Lo peligroso a la izquierda; corregir y el comprobante a la derecha, junto al «n de N» del cajón (ADR-0358, «Lo peligroso»).
         <>
-          <span className="label-cayla mb-1 block font-sans text-[11px] font-semibold text-taupe">
-            {g.categoriaNombre} · cuenta {g.cuenta}
-          </span>
-          {g.descripcion}
+          {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
+          {puedeAnular(g) && (
+            <button type="button" className="btn-cayla btn-peligro mr-auto" onClick={() => setAnulando(true)}>
+              Anular…
+            </button>
+          )}
+          {puedeRecibirComprobante(g) && (
+            <button type="button" className="btn-cayla btn-secundario" onClick={() => setRecibiendo(true)}>
+              <Receipt aria-hidden className="h-4 w-4" />
+              Llegó el comprobante
+            </button>
+          )}
+          {!porQueNoSeCorrige(g) && <BotonEditar onClick={() => setCorrigiendo(true)}>Corregir</BotonEditar>}
         </>
       }
-      subtitulo={bajada}
-      onClose={onCerrar}
-      tamano="mediana"
     >
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+        <p className={`font-display text-[34px] leading-none tabular-nums ${g.estado === "anulado" ? "text-taupe line-through" : "text-tinta"}`}>{soles(g.montoTotal)}</p>
+        <EnlaceVer onClick={onVerCategoria}>Ver los de {g.categoriaNombre.toLowerCase()}</EnlaceVer>
+      </div>
       {/* La misma marca de la fila y su porqué, a un toque (con el dedo no hay `title`; /formidable, 2026-10-30). */}
       {aviso && (
         <Aviso
@@ -806,7 +892,6 @@ function GastoDetalleModal({
       <ListaDatos
         guia="fin-gastos.detalle"
         filas={[
-          { dato: "Total", valor: soles(g.montoTotal) },
           { dato: "IGV descontable", valor: soles(igv.descontable) },
           // El valor puede ser largo («… · 3 pagos en efectivo (3 oct, 9 oct y 14 oct)»): se parte en renglones en vez de salirse de la
           // hoja (a 375 px se cortaba), y el título no se parte.
@@ -852,23 +937,7 @@ function GastoDetalleModal({
           // Con el módulo, el aviso de arriba ya lleva a Por pagar: la nota lo repetiría.
           !puedeVerPorPagar && <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>
         ))}
-      <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
-        {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
-        {puedeAnular(g) && (
-          <button type="button" className="btn-cayla btn-peligro mr-auto" onClick={() => setAnulando(true)}>
-            Anular…
-          </button>
-        )}
-        {/* Lo peligroso a la izquierda, corregir a la derecha (ADR-0358, «Lo peligroso»). */}
-        {puedeRecibirComprobante(g) && (
-          <button type="button" className="btn-cayla btn-secundario" onClick={() => setRecibiendo(true)}>
-            <Receipt aria-hidden className="h-4 w-4" />
-            Llegó el comprobante
-          </button>
-        )}
-        {!porQueNoSeCorrige(g) && <BotonEditar onClick={() => setCorrigiendo(true)}>Corregir</BotonEditar>}
-      </div>
-    </Modal>
+    </Cajon>
   );
 }
 

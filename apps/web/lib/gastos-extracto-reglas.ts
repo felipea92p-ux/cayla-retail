@@ -231,6 +231,34 @@ export function extractoPorDia<T extends GastoParaExtracto>(gastos: readonly T[]
     });
 }
 
+/**
+ * Los gastos en el orden en que se ven en el extracto (día por día, y dentro de un «×N» cada uno en su lugar): el orden de ↑ ↓ en el
+ * cajón del detalle (la 01 del benchmark visual, Felipe 2026-10-31) y su «3 de 12».
+ */
+export function ordenDelExtracto<T extends GastoParaExtracto>(dias: readonly DiaDelExtracto<T>[]): T[] {
+  return dias.flatMap((d) => d.filas.flatMap((f) => (f.tipo === "gasto" ? [f.gasto] : f.gastos)));
+}
+
+/** Lo que dice el aviso de un gasto recién registrado sobre dónde quedó en la lista: «Quedó en el día de hoy.», «Quedó en el martes 28 de octubre.». */
+export function textoDondeQuedo(fecha: string, hoy: string): string {
+  if (!fecha) return "";
+  const atras = diasEntre(fecha, hoy);
+  if (atras === 0) return "Quedó en el día de hoy.";
+  if (atras === 1) return "Quedó en el día de ayer.";
+  return `Quedó en el ${nombreDelDia(fecha.slice(0, 7), Number(fecha.slice(8, 10)))}.`;
+}
+
+/** En qué día de la lista está un gasto y, si va dentro de un «×N», en qué grupo: lo que hay que abrir para mostrarlo. */
+export function dondeEstaEnElExtracto<T extends GastoParaExtracto>(dias: readonly DiaDelExtracto<T>[], id: string | null | undefined): { dia: number; grupo: string | null } | null {
+  if (!id) return null;
+  for (const [i, d] of dias.entries())
+    for (const f of d.filas) {
+      if (f.tipo === "gasto" && f.gasto.id === id) return { dia: i, grupo: null };
+      if (f.tipo === "repetidos" && f.gastos.some((x) => x.id === id)) return { dia: i, grupo: f.clave };
+    }
+  return null;
+}
+
 /** Lo que dice el día a la derecha de su nombre: «S/ 514.50» y «· 7 gastos»; un día de solo anulados no suma nada. */
 export function resumenDelDia(d: Pick<DiaDelExtracto<GastoParaExtracto>, "total" | "n">): { monto: string | null; cuenta: string } {
   if (d.n === 0) return { monto: null, cuenta: "Solo anulados" };

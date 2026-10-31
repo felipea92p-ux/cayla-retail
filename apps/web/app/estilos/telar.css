@@ -465,19 +465,31 @@ span.sede-telar { cursor: default; }
 .extracto-gastos .separador-dia { padding-right: 32px; }
 .extracto-gastos .separador-dia-total { white-space: nowrap; }
 .extracto-titulo-corto { display: none; }
+/* A la izquierda, el ícono de su categoría (la 06 del benchmark visual, Felipe 2026-10-31): se sabe de qué es antes de leerla. */
 .extracto-fila {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px 120px;
-  grid-template-areas: "que marca monto";
+  grid-template-columns: 32px minmax(0, 1fr) 200px 120px;
+  grid-template-areas: "ico que marca monto";
   gap: 4px 16px;
   align-items: center;
   width: 100%;
-  padding: 10px 32px 10px 20px;
+  padding: 10px 32px 10px 16px;
   text-align: left;
   border-bottom: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent);
 }
 .extracto-filas > .extracto-fila:last-child { border-bottom: 0; }
-.extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 112px 200px 120px; grid-template-areas: "que sede marca monto"; }
+/* Sin rayado en el extracto (2026-10-31): la zebra de `fila-cayla` cuenta solo filas hermanas y los «×N» van envueltos, así que caía en una
+   fila cualquiera («Movilidad» sola en hueso) y se leía como «esta está marcada». El día ya agrupa, y la fila abierta tiene su propia marca.
+   Va sin capa, como el resto de esta hoja: le gana a la regla de `@layer components`, y por eso repite el fondo del mouse. */
+.extracto-filas > .extracto-fila:nth-child(even of .fila-cayla):not([aria-current="true"]) { background-color: transparent; }
+@media (hover: hover) {
+  .extracto-filas > .extracto-fila:nth-child(even of .fila-cayla):not([aria-current="true"]):hover { background-color: color-mix(in oklab, var(--color-crema) 60%, transparent); }
+}
+.extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: 32px minmax(0, 1fr) 112px 200px 120px; grid-template-areas: "ico que sede marca monto"; }
+.extracto-ico { grid-area: ico; }
+.icono-categoria-gasto { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--color-hueso); color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+.icono-categoria-gasto[data-tamano="40"] { width: 40px; height: 40px; border-radius: 12px; }
+.extracto-fila[data-dentro] .icono-categoria-gasto { visibility: hidden; }
 .extracto-que { grid-area: que; display: grid; min-width: 0; }
 .extracto-que b { font-weight: 500; }
 .extracto-proveedor { font-weight: 400; color: var(--color-taupe-profundo); }
@@ -509,7 +521,7 @@ span.sede-telar { cursor: default; }
    renglones; la sede pasa a ser el punto de color de la línea de abajo (como en el celular) y la marca se angosta. */
 @container extracto (max-width: 900px) {
   .extracto-fila,
-  .extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 176px 112px; grid-template-areas: "que marca monto"; }
+  .extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: 32px minmax(0, 1fr) 176px 112px; grid-template-areas: "ico que marca monto"; }
   .extracto-sede { display: none; }
   .extracto-punto-angosto { display: inline-flex; }
 }
@@ -517,9 +529,10 @@ span.sede-telar { cursor: default; }
 @container extracto (max-width: 640px) {
   .extracto-fila,
   .extracto-gastos[data-con-sede] .extracto-fila {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "que monto" "marca monto";
-    padding: 10px 28px 10px 14px;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-areas: "ico que monto" "ico marca monto";
+    column-gap: 12px;
+    padding: 10px 28px 10px 12px;
   }
   .extracto-fila[data-dentro] { padding-left: 28px; }
   .extracto-gastos .separador-dia { padding-inline: 14px 28px; }

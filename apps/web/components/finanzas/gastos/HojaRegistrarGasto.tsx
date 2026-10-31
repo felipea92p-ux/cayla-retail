@@ -20,6 +20,7 @@ import { leerQrComprobante, serieNumeroDelQr, type QrComprobante } from "@/lib/q
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import { FichaDePagoTarjeta } from "@/components/gasto-fijo/FichaDePagoTarjeta";
 import { diaLima } from "@/lib/fechas-lima";
+import { textoDondeQuedo } from "@/lib/gastos-extracto-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Aviso } from "@/components/ui/Aviso";
 import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
@@ -87,6 +88,7 @@ export function HojaRegistrarGasto({
   fijo,
   hoy,
   rucEmpresa = null,
+  onRegistrado,
   onCerrar,
 }: {
   categorias: CategoriaGasto[];
@@ -106,6 +108,8 @@ export function HojaRegistrarGasto({
   hoy: string;
   /** El RUC de CAYLA, para avisar si el QR de una factura dice que está a nombre de otro (ADR-0588). */
   rucEmpresa?: string | null;
+  /** Se registró (y la hoja se cierra): el id del gasto nuevo, para que la lista lo busque y respire (la 05 del benchmark visual). */
+  onRegistrado?: (id: string) => void;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -259,7 +263,7 @@ export function HojaRegistrarGasto({
       if (fijoDelGasto && r.error?.code === "23505") router.refresh();
       return avisar.error(traducirError(r.error, "registrar el gasto"));
     }
-    registrado(otro);
+    registrado(otro, r.tipo === "ok" && typeof r.data === "string" ? r.data : undefined);
   }
 
   async function revisar() {
@@ -271,8 +275,10 @@ export function HojaRegistrarGasto({
     avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
-  function registrado(otro: boolean) {
-    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", { detalle: ticket.pasara.at(-1) });
+  /** `id`: el del gasto nuevo, si la base lo devolvió (no al confirmarlo con «Revisar si se guardó»). */
+  function registrado(otro: boolean, id?: string) {
+    // El aviso dice en qué día quedó: si no es hoy, cae en un día de más abajo en la lista (la 05 del benchmark visual).
+    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", { detalle: [textoDondeQuedo(h.fecha, hoy), ticket.pasara.at(-1)].filter(Boolean).join(" ") });
     if (otro) {
       // Lo de recién se limpia; la sede, la fecha y de dónde salió se quedan para el siguiente. La foto de «¿Salir sin guardar?» se vuelve
       // a tomar con la hoja limpia (el /chaos del 2026-10-23: cerrar la hoja recién limpiada preguntaba si se perdía lo que no había).
@@ -285,6 +291,7 @@ export function HojaRegistrarGasto({
       return;
     }
     const guardiaFuera = avisoSalida.retirarYa();
+    if (id) onRegistrado?.(id);
     onCerrar();
     void guardiaFuera.then(() => router.refresh());
   }

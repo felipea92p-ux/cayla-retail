@@ -481,8 +481,8 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.detalle",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.fila" }],
-      titulo: "El detalle de un gasto",
-      texto: "Si el gasto pide algo, arriba dice qué y por qué (una factura vencida, lo grande sin comprobante). Debajo, el total, el IGV que se descuenta y el que se perdió por pagar sin banco, cómo se pagó (o cuándo vence), su estado y quién lo registró.",
+      titulo: "El detalle de un gasto, al costado",
+      texto: "Se abre al lado y la lista sigue a la vista: tocar otra fila, o ↑ ↓, pasa al siguiente. Arriba, el total y, si el gasto pide algo, qué y por qué; «Ver los de…» deja la lista con su categoría. Debajo, el IGV que se descuenta y el que se perdió, cómo se pagó, su estado y quién lo registró.",
     },
     {
       id: "detalle-botones",
