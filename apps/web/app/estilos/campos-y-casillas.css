@@ -261,7 +261,7 @@
     border-radius: inherit;
     background: none;
     color: inherit;
-    font-size: 13px;
+    font-size: 14px; /* ronda 19: la misma letra que la píldora que filtra al toque */
     font-weight: 500;
     white-space: nowrap;
     cursor: pointer;

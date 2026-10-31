@@ -253,7 +253,7 @@ export function FijosDelMes({
                     <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onMarcarFijo(s)}>
                       Marcar fijo
                     </button>
-                    <button type="button" className="btn-enlace text-[12.5px]" onClick={() => onNoEsFijo(s)}>
+                    <button type="button" className="btn-enlace text-sm" onClick={() => onNoEsFijo(s)}>
                       No es fijo
                     </button>
                   </span>
@@ -683,7 +683,7 @@ export function GastoFijoModal({
       {apoyo && !fichaOn && <ProveedorElegido proveedor={proveedores.find((p) => p.id === b.proveedorId)} />}
       {fichaOn && lectura === "leyendo" && <p className="nota-cayla mt-4">Leyendo los datos de pago…</p>}
       {fichaOn && lectura === "fallo" && (
-        <p className="nota-cayla mt-4">No pude leer los datos de pago de este gasto. Lo demás se guarda igual y los datos de pago quedan como estaban.</p>
+        <p className="nota-cayla mt-4">No se pudieron leer sus datos de pago. Lo demás se guarda igual.</p>
       )}
       {fichaOn && lectura === "lista" && <FichaDePagoCampos valor={ficha} onCambio={ponerFicha} categoria={b.categoria} puedeVerBanco={verBanco} deshabilitado={guardando} />}
       {fichaOn && lectura === "lista" && fijo && verBanco && <HistorialFicha gastoFijoId={fijo.id} />}
@@ -763,7 +763,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
       <>
         <Superficie>
           <Vacio guia="fin-gastos.activos" icono={<Laptop />} titulo="Sin activos fijos registrados">
-            Un mostrador, una laptop, una máquina del Taller: regístralos con «+ Registrar activo» y el sistema los deprecia cada mes.
+            Un mostrador, una laptop, una máquina: regístralos y el sistema los deprecia cada mes.
           </Vacio>
         </Superficie>
         <NotaActivos />

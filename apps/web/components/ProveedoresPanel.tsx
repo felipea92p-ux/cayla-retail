@@ -751,7 +751,7 @@ function NombreCelda({
         <span className="block truncate text-sm text-tinta">
           <Resaltado texto={p.nombre} busqueda={busqueda} />
         </span>
-        <span className="block truncate text-xs text-tinta/65">
+        <span className="block truncate text-sm text-tinta/65">
           {p.contacto ? <Resaltado texto={p.contacto} busqueda={busqueda} /> : "Sin contacto"}
           {p.rubros.length > 0 && ` · ${p.rubros.join(", ")}`}
           {p.plazo_credito_dias != null && ` · Crédito ${p.plazo_credito_dias} d`}
@@ -775,7 +775,7 @@ function NombreCelda({
               </Chip>
             ))}
             {ocultas > 0 && (
-              <span className="text-[11px] text-tinta/55" title={marcas.filter((m) => !visibles.includes(m)).join(", ")}>
+              <span className="text-sm text-tinta/55" title={marcas.filter((m) => !visibles.includes(m)).join(", ")}>
                 +{ocultas}
               </span>
             )}
@@ -875,14 +875,14 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
           <span className="text-tinta/45">—</span>
         )}
       </span>
-      <span className="hidden justify-end overflow-visible text-xs @5xl:flex">{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
+      <span className="hidden justify-end overflow-visible text-sm @5xl:flex">{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
       <span className={`hidden whitespace-nowrap text-right text-sm @7xl:block ${dormido ? "text-ambar-profundo" : "text-tinta/65"}`} title={p.ultima_compra ?? undefined}>
         {haceCuanto(dias)}
       </span>
       <span className="hidden items-center justify-end gap-2 overflow-visible @3xl:flex">
         {/* «+ Comprobante» se fue con el registro a mano (2026-10-23): la compra nace en «Mis compras». */}
         {!p.activo && (
-          <Boton textoCargando="Reactivando…" type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-[11px]">
+          <Boton textoCargando="Reactivando…" type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-sm">
             Reactivar
           </Boton>
         )}

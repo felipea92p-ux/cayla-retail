@@ -20,7 +20,7 @@ import type { ContextoFicha } from "./piezas";
 /** Los dos pasos de arriba. El 1.º se llena cuando ya se eligió lo que llegó; el 2.º dice «Unidades de partida» o «Cómo nace». */
 export function PasosDeAgregar({ primero, segundo, hechoPrimero }: { primero: string; segundo: string; hechoPrimero: boolean }) {
   const paso = (n: number, texto: string, hecho: boolean, ahora: boolean) => (
-    <li className={`flex items-center gap-2 text-[13px] font-medium transition-colors duration-300 ease-cayla ${ahora || hecho ? "text-tinta" : "text-tinta/50"}`}>
+    <li className={`flex items-center gap-2 text-sm font-medium transition-colors duration-300 ease-cayla ${ahora || hecho ? "text-tinta" : "text-tinta/50"}`}>
       <span
         aria-hidden
         className={`grid h-6 w-6 flex-none place-items-center rounded-full border text-[11px] font-semibold transition-[background-color,border-color,color] duration-300 ease-cayla ${
@@ -78,14 +78,14 @@ export function UnidadesDeLasNuevas({
   return (
     <div className="space-y-2">
       <div className="overflow-x-auto rounded-xl border border-sand">
-        <table /* unificar-fijo: matriz color × talla, como MatrizNuevas y las matrices de la ficha (las matrices de tallas quedan aparte) */ className="w-full border-collapse text-[13px]">
+        <table /* unificar-fijo: matriz color × talla, como MatrizNuevas y las matrices de la ficha (las matrices de tallas quedan aparte) */ className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-hueso">
-              <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-tinta">
+              <th scope="col" className="px-3 py-2 text-left text-sm font-semibold text-tinta">
                 Color
               </th>
               {columnas.map((c) => (
-                <th key={c.id ?? "unica"} scope="col" className="px-2 py-2 text-xs font-semibold tabular-nums text-tinta">
+                <th key={c.id ?? "unica"} scope="col" className="px-2 py-2 text-sm font-semibold tabular-nums text-tinta">
                   {c.texto}
                 </th>
               ))}
@@ -137,7 +137,7 @@ export function UnidadesDeLasNuevas({
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-tinta/80">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-tinta/80">
         <span>
           Entran <b className="font-serif text-[20px] font-medium tabular-nums text-tinta">{total}</b> {total === 1 ? "unidad" : "unidades"} al <b>almacén</b>
         </span>
@@ -160,12 +160,12 @@ export type FilaDeVistaPrevia = { nombre: string; punto?: ReactNode; nueva: bool
 export function VistaPreviaDeLaTabla({ columnas, filas }: { columnas: readonly { texto: string; nueva: boolean }[]; filas: readonly FilaDeVistaPrevia[] }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-sand">
-      <table /* unificar-fijo: matriz color × talla, como MatrizNuevas y las matrices de la ficha (las matrices de tallas quedan aparte) */ className="w-full border-collapse text-[13px]">
+      <table /* unificar-fijo: matriz color × talla, como MatrizNuevas y las matrices de la ficha (las matrices de tallas quedan aparte) */ className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-hueso">
             <th scope="col" className="px-3 py-2" />
             {columnas.map((c, i) => (
-              <th key={i} scope="col" className={`px-2 py-2 text-xs font-semibold tabular-nums ${c.nueva ? "bg-ambar/15 text-ambar-profundo" : "text-tinta"}`}>
+              <th key={i} scope="col" className={`px-2 py-2 text-sm font-semibold tabular-nums ${c.nueva ? "bg-ambar/15 text-ambar-profundo" : "text-tinta"}`}>
                 {c.texto}
               </th>
             ))}
@@ -198,7 +198,7 @@ export function VistaPreviaDeLaTabla({ columnas, filas }: { columnas: readonly {
 export function YaEstan({ titulo = "Ya están en esta prenda", items }: { titulo?: string; items: readonly { clave: string; texto: string; punto?: ReactNode }[] }) {
   if (items.length === 0) return null;
   return (
-    <p className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-taupe">
+    <p className="flex flex-wrap items-center gap-1.5 text-sm text-taupe">
       <span>{titulo}</span>
       {items.map((i) => (
         <span key={i.clave} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-borde-control px-2.5 py-0.5 text-tinta/80">

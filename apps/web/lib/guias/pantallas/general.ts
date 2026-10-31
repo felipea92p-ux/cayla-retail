@@ -502,7 +502,7 @@ export const GUIA_BUSCAR: Guia = {
       id: "ayuda",
       ancla: "buscar.ayuda",
       titulo: "La ayuda",
-      texto: "Si tienes dudas, el círculo con «!» explica la pantalla en dos líneas.",
+      texto: "Si tienes dudas, el «?» junto al título explica la pantalla en dos líneas.",
     },
     {
       id: "campo",

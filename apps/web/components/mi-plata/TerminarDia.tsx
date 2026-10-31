@@ -49,7 +49,7 @@ export function TerminarDia({ plata, envios, hoy, cuentasDevolver = [] }: { plat
   const sinCompras = !falta && ronda.compras === 0;
   return (
     <section aria-label="Tu ronda de compras" className="card-cayla flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-5 lg:px-5 lg:py-3.5">
-      <p className="flex items-start gap-2.5 text-[13.5px] text-taupe lg:items-center">
+      <p className="flex items-start gap-2.5 text-[15px] text-taupe lg:items-center">
         {falta ? (
           <Truck className="mt-0.5 h-4 w-4 shrink-0 lg:mt-0" aria-hidden />
         ) : sinCompras ? (
@@ -246,12 +246,12 @@ function TerminarModal({
             </Aviso>
           )}
           {!sePuedeCerrar ? (
-            <p className="text-xs text-taupe">Manda las prendas a la tienda y después cierras tu ronda.</p>
+            <p className="text-sm text-taupe">Manda las prendas a la tienda y después cierras tu ronda.</p>
           ) : (
             (!decision ? (
-              <p className="text-xs text-taupe">Elige qué haces con lo que te queda.</p>
+              <p className="text-sm text-taupe">Elige qué haces con lo que te queda.</p>
             ) : (
-              faltaCuenta && <p className="text-xs text-taupe">Elige a qué cuenta de CAYLA lo devuelves.</p>
+              faltaCuenta && <p className="text-sm text-taupe">Elige a qué cuenta de CAYLA lo devuelves.</p>
             ))
           )}
           <div className="pie-hoja-fijo pie-acciones pt-1">

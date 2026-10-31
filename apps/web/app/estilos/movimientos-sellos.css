@@ -93,7 +93,7 @@
   border-radius: 9999px;
   background: var(--color-hueso);
   padding: 0.125rem 0.625rem 0.125rem 0.5rem;
-  font-size: 11.5px;
+  font-size: 13px; /* ronda 19: el texto del ERP sube; el chip del trayecto, de 11,5 a 13 */
   font-weight: 600;
   line-height: 1.5;
   color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
@@ -102,7 +102,7 @@
 .mv-punto[data-fuera] { background: transparent; border: 1px dashed color-mix(in srgb, var(--color-tinta) 35%, transparent); padding-block: 0.0625rem; }
 .mv-punto svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .mv-punto span { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; }
-.mv-solo { font-size: 11.5px; color: var(--color-taupe); }
+.mv-solo { font-size: 14px; color: var(--color-taupe); }
 .mv-riel { position: relative; flex: 1 1 40px; min-width: 28px; max-width: 150px; height: 2px; border-radius: 2px; background: var(--color-sand); }
 .mv-riel i { position: absolute; }
 .mv-riel .mv-relleno { inset: 0; border-radius: 2px; background: var(--mv-c); transform-origin: left; transform: scaleX(1); }
@@ -213,11 +213,11 @@ ul[data-hay] .mv-tipo:not([aria-current]) { opacity: 0.6; }
 }
 .mv-tipo:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
 .mv-tipo .mv-sello { grid-area: s; }
-.mv-tipo-nombre { grid-area: n; align-self: end; font-size: 13px; font-weight: 600; line-height: 1.2; }
-.mv-tipo-prendas { grid-area: u; align-self: start; font-size: 11.5px; line-height: 1.35; color: var(--color-taupe); }
+.mv-tipo-nombre { grid-area: n; align-self: end; font-size: 15px; font-weight: 600; line-height: 1.2; }
+.mv-tipo-prendas { grid-area: u; align-self: start; font-size: 14px; line-height: 1.35; color: var(--color-taupe); }
 .mv-tipo-cifra { grid-area: c; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
 .mv-tipo-cifra b { font-family: var(--font-serif); font-size: 2rem; font-weight: 400; color: var(--color-tinta); }
-.mv-tipo-cifra small { margin-top: 2px; font-size: 10px; color: var(--color-taupe); }
+.mv-tipo-cifra small { margin-top: 2px; font-size: 12px; color: var(--color-taupe); }
 .mv-tipo-barra { grid-area: b; display: block; height: 3px; margin-top: 0.5rem; overflow: hidden; border-radius: 3px; background: var(--color-sand); }
 .mv-tipo-barra i { display: block; height: 100%; background: var(--mv-c); transform-origin: left; animation: mv-barra 0.9s 0.25s var(--ease-cayla) both; }
 @keyframes mv-barra { from { transform: scaleX(0); } to { transform: none; } }

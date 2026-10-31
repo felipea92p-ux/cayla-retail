@@ -67,7 +67,7 @@ export function CategoriasAcordeon({
               <BaldosaCategoria categoria={p.categoria} tamano="chico" />
               <span className="min-w-0 flex-1">
                 <b className="block truncate text-[15px] text-tinta">{nombre}</b>
-                <span className="block truncate text-[13px] text-taupe">
+                <span className="block truncate text-sm text-taupe">
                   {[marca, resumenDeCategoria(g, prendas.length), !p.linea && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")}
                 </span>
               </span>
@@ -78,14 +78,14 @@ export function CategoriasAcordeon({
             <div id={idCuerpo} className="rc-acord-cuerpo" inert={!esta}>
               <div className="rc-acord-dentro">
                 {prendas.length === 0 ? (
-                  <p className="px-3 py-2 text-[13px] text-taupe">{sinAviso || !p.linea ? "Las prendas que identifiques salen aquí." : "La compra no anotó qué prendas eran."}</p>
+                  <p className="px-3 py-2 text-sm text-taupe">{sinAviso || !p.linea ? "Las prendas que identifiques salen aquí." : "La compra no anotó qué prendas eran."}</p>
                 ) : (
                   <ul className="space-y-1.5 p-1.5">
                     {prendas.map((pr, k) => (
                       <li key={pr.clave} className="rc-acord-prenda" style={{ "--k": k } as React.CSSProperties}>
                         <span className="flex min-w-0 items-baseline gap-2">
                           <b className="min-w-0 truncate text-[14px] text-tinta">{pr.nombre}</b>
-                          {pr.esperadas != null && <span className="shrink-0 text-[13px] text-taupe">× {pr.esperadas} en la compra</span>}
+                          {pr.esperadas != null && <span className="shrink-0 text-sm text-taupe">× {pr.esperadas} en la compra</span>}
                         </span>
                         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                           {pr.esperadas != null && pr.esperadas <= MAX_PUNTOS && (

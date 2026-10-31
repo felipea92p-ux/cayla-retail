@@ -28,7 +28,7 @@ export function LoQueQuizaNoVes({ hallazgos, guia, enColumna = false, onVer }: {
             }
           >
             <p>{h.texto}</p>
-            <details className="mt-2 text-xs">
+            <details className="mt-2 text-sm">
               <summary className="cursor-pointer text-taupe">¿Por qué?</summary>
               <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-tinta">
                 {h.numeros.map((n) => (

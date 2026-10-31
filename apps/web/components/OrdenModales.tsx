@@ -54,7 +54,7 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
   return (
     <Modal titulo="Anular orden" subtitulo={`${orden.referencia} · ${orden.cantidadPlan} planeadas`} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <p className="text-sm text-tinta/75">La orden queda anulada y no toca el stock de prendas. Sigue visible abajo, para que no se pierda el registro.</p>
+        <p className="text-sm text-tinta/75">La orden queda anulada, sin tocar el stock, y sigue a la vista abajo.</p>
         {porDevolver.length > 0 && (
           <Aviso tono="atencion" titulo="La tela y los avíos que ya se usaron vuelven al estante">
             {porDevolver.map((g) => `${g.insumo} ${cantidadTexto(g.neto, g.unidad)}`).join(", ")}: cada uno a su lote y a su costo. Queda registrado como devolución.

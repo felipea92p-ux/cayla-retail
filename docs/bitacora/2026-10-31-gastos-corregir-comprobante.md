@@ -1,0 +1,9 @@
+## 2026-10-31 (Gastos: corregir sin anular, «Llegó el comprobante», «No tendrá comprobante», el QR y la foto)
+Qué hice: la hoja de un gasto suma «Corregir» (la categoría y qué fue, con rastro), «Llegó el comprobante» (el papel que llega después deja el gasto igual a uno registrado con él, sin mover plata) y, en lo grande sin comprobante, «No tendrá comprobante» (con su motivo: sale de «Te toca»). «Registrar gasto» y «Llegó el comprobante» leen el QR de la factura (pistola, pegar o cámara), y la hoja muestra y suma la foto del comprobante. Tres migraciones nuevas, solo en local; ADR-0588.
+Por qué así: salió de comparar Gastos con las apps de gastos de hoy; Felipe pidió los tres primeros puntos y decidió que el papel que llega cuenta «como si se registró con él», que lo marcado sin comprobante «sale de la cuenta» y que una factura a nombre de otro avise sin frenar. La plata nunca se mueve: el pago que ya existía pasa a su comprobante con su misma fecha, cuenta y egreso del cajón.
+Felipe se lleva: las tres migraciones esperan su OK para producción (tocan los candados de `gastos` y el del egreso del cajón); y decidir si quien solo tiene Gastos ve y sube la foto del comprobante (hoy, solo quien ya adjunta facturas en Compras).
+
+## 2026-10-31 (Gastos: las tres migraciones de ADR-0588 en producción)
+Qué hice: con el OK de Felipe pegué en producción, en orden y una por una, las tres migraciones (`20261031163305`, `20261031163834`, `20261031163913`) y verifiqué cada objeto; los gastos, comprobantes y pagos quedaron iguales.
+Por qué así: antes comparé la huella de las tres funciones vivas que se reescriben con las que usé de base (idénticas) y sus atributos; ahí apareció que dos son `security definer` y mi reescritura no lo decía: lo corregí antes de pegar y una prueba lo vigila.
+Felipe se lleva: la web todavía no está publicada (falta el PR); hasta entonces nadie ve los botones nuevos, y las funciones nuevas no las llama nadie.

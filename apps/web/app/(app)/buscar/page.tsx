@@ -4,7 +4,6 @@ import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { Ayuda } from "@/components/Ayuda";
 import { EsqueletoTabla } from "@/components/Esqueleto";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { CampoTexto, Boton } from "@/components/ui/campos";
@@ -31,18 +30,15 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
         {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
         <EncabezadoPagina
           sede="Todas las sedes"
-          titulo={
+          titulo={term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
+          nombre="Búsqueda"
+          guiaAyuda="buscar.ayuda"
+          ayuda={
             <>
-              {term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
-              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
-              <span data-guia="buscar.ayuda" className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
-                <Ayuda titulo="Búsqueda">
-                  Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
-                  prenda para vender y en qué sede: no cuenta lo apartado ni lo que está en
-                  Cuarentena. Puedes escribir la referencia, el SKU, la talla o el color, o escanear
-                  la etiqueta con la pistola: es lo mismo, la pistola solo escribe el código por ti.
-                </Ayuda>
-              </span>
+              Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
+              prenda para vender y en qué sede: no cuenta lo apartado ni lo que está en
+              Cuarentena. Puedes escribir la referencia, el SKU, la talla o el color, o escanear
+              la etiqueta con la pistola: es lo mismo, la pistola solo escribe el código por ti.
             </>
           }
           subtitulo="Cuánto hay de una prenda para vender y en qué sede."

@@ -36,13 +36,13 @@ export function ComprobantePagos({ pagos }: { pagos: PagoFila[] }) {
             return (
               <div
                 key={p.id}
-                className={`grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0.5 border-t border-tinta/10 py-2 text-[13px] sm:grid-cols-[auto_5.5rem_1fr_auto] ${nuevo ? "cd-pago-nuevo" : ""}`}
+                className={`grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0.5 border-t border-tinta/10 py-2 text-sm sm:grid-cols-[auto_5.5rem_1fr_auto] ${nuevo ? "cd-pago-nuevo" : ""}`}
                 style={nuevo ? ({ "--i": orden } as React.CSSProperties) : undefined}
               >
                 <Chip tono="neutro">{ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}</Chip>
-                <span className="text-xs tabular-nums text-tinta/65">{fechaCorta(p.fecha)}</span>
+                <span className="text-sm tabular-nums text-tinta/65">{fechaCorta(p.fecha)}</span>
                 <span className="text-right font-semibold tabular-nums text-tinta sm:col-start-4 sm:row-start-1">{soles(p.monto)}</span>
-                <span className={`col-span-3 truncate text-xs tabular-nums text-tinta/65 sm:col-span-1 sm:col-start-3 sm:row-start-1 ${p.referencia ? "" : "hidden sm:block"}`}>
+                <span className={`col-span-3 truncate text-sm tabular-nums text-tinta/65 sm:col-span-1 sm:col-start-3 sm:row-start-1 ${p.referencia ? "" : "hidden sm:block"}`}>
                   {p.referencia ? (p.metodo === METODO_SALDO_A_FAVOR ? p.referencia : `Op. ${p.referencia}`) : "—"}
                 </span>
                 {/* ADR-0362, fase 6 · actividad 6: un pago en efectivo o desde un fondo de un comprobante de S/ 2 000 o más. */}

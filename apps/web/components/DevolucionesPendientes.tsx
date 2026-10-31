@@ -97,7 +97,7 @@ function TarjetaPendiente({
     // tarjeta de una devolución que sigue pendiente tras un `router.refresh()` (no reanima) y
     // solo monte —y por lo tanto anime— la que recién se registró.
     <article className="anim-revelar rounded-xl bg-papel ring-1 ring-tinta/[0.07]">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 pt-4 text-[13px] text-tinta/70">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 pt-4 text-sm text-tinta/70">
         <span className="font-semibold text-tinta">{d.comprobante ?? "Venta sin comprobante"}</span>
         <span>
           Pidió {d.solicitadoPorNombre} · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
@@ -133,7 +133,7 @@ function TarjetaPendiente({
                 {i.referencia} <span className="font-normal text-tinta/70">× {i.cantidad}</span>
               </p>
               <p className="text-sm text-tinta/75">{varianteLegible(i)}</p>
-              <p className="mt-0.5 text-xs text-tinta/70">
+              <p className="mt-0.5 text-sm text-tinta/70">
                 <span className="font-mono">{codigoPrenda(i)}</span> · {soles(i.valorPagado)}
               </p>
             </div>
@@ -148,7 +148,7 @@ function TarjetaPendiente({
         <p className="text-tinta/80">
           <span className="font-semibold text-tinta">Motivo:</span> {d.motivo}
         </p>
-        <p className="text-xs text-tinta/70">
+        <p className="text-sm text-tinta/70">
           El cliente pagó {soles(d.valorPagado)} por esto.
           {d.comprobanteAceptado && " Al aprobarla se emite la nota de crédito."}
         </p>
@@ -156,7 +156,7 @@ function TarjetaPendiente({
 
       {!resolviendo && (
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-tinta/[0.07] px-5 py-3.5">
-          <p className="text-xs text-tinta/70">
+          <p className="text-sm text-tinta/70">
             {d.sinAceptar
               ? "Se aprueba cuando SUNAT acepte la boleta: así sale su nota de crédito."
               : "Al aprobarla, las prendas vuelven al piso o entran a cuarentena."}
@@ -294,7 +294,7 @@ function PanelResolver({
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
           <div>
             <TituloGrupo>¿Se le reembolsa algo?</TituloGrupo>
-            <p className="mt-0.5 text-xs text-tinta/70">
+            <p className="mt-0.5 text-sm text-tinta/70">
               Opcional, y es la última opción: primero un cambio, después una nota de crédito. Déjalo vacío si no hay reembolso.
             </p>
           </div>
@@ -348,7 +348,7 @@ function PanelResolver({
             )}
           </div>
           {hayReembolso && (
-            <p className="-mt-2 text-xs text-tinta/70">
+            <p className="-mt-2 text-sm text-tinta/70">
               {!conCuenta
                 ? "En efectivo sale del cajón y resta del cierre, como siempre."
                 : hayCuentas
@@ -392,7 +392,7 @@ function PanelResolver({
             <label htmlFor={`rechazo-${d.id}`} className="campo-etiqueta">
               ¿Por qué se rechaza?
             </label>
-            <p className="mt-0.5 text-xs text-tinta/70">Queda escrito en la devolución. El stock no cambia.</p>
+            <p className="mt-0.5 text-sm text-tinta/70">Queda escrito en la devolución. El stock no cambia.</p>
             <input
               id={`rechazo-${d.id}`}
               type="text"

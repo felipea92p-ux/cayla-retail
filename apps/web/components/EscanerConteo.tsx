@@ -196,7 +196,7 @@ export function EscanerConteo({
               <X aria-hidden className="h-5 w-5" />
             </button>
             <p className="label-cayla text-[11px] text-crema/90">{t.etiqueta}</p>
-            <span className="grid h-11 min-w-11 place-items-center rounded-full bg-crema/15 px-3 text-xs tabular-nums text-crema backdrop-blur-md">
+            <span className="grid h-11 min-w-11 place-items-center rounded-full bg-crema/15 px-3 text-sm tabular-nums text-crema backdrop-blur-md">
               {t.contador ?? `${avance.contadas}/${avance.total}`}
             </span>
           </div>
@@ -233,7 +233,7 @@ export function EscanerConteo({
                   </div>
                   {estado === "abriendo" && <p className="absolute inset-0 grid place-items-center text-sm text-crema/80">Abriendo la cámara…</p>}
                 </div>
-                <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-center text-[13px] text-crema/90 backdrop-blur-md">
+                <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-center text-sm text-crema/90 backdrop-blur-md">
                   {t.ayuda}
                 </p>
               </>
@@ -246,7 +246,7 @@ export function EscanerConteo({
             <div aria-live="polite" className="min-h-[4.75rem]">
               {pregunta ? (
                 // Con la pregunta abierta la bandeja no se toca: su − / + sumaría o restaría sin responder (en Cuadrar, a otra prenda).
-                <p className="grid h-[4.75rem] place-items-center text-center text-[13px] text-tinta/55">Responde arriba para seguir.</p>
+                <p className="grid h-[4.75rem] place-items-center text-center text-sm text-tinta/55">Responde arriba para seguir.</p>
               ) : aviso ? (
                 <div className="flex min-h-[4.75rem] items-center">{aviso}</div>
               ) : desconocido ? (
@@ -266,7 +266,7 @@ export function EscanerConteo({
                   <span className="min-w-0 flex-1">
                     <span className="label-cayla block text-[10px] text-taupe">{t.enCurso}</span>
                     <span className="block truncate text-[15px] text-tinta">{actual.referencia}</span>
-                    <span className="block truncate text-xs text-taupe">
+                    <span className="block truncate text-sm text-taupe">
                       {actual.detalle}
                       {actual.sku && <span className="font-mono text-[11px]"> · {actual.sku}</span>}
                     </span>
@@ -280,7 +280,7 @@ export function EscanerConteo({
                   </button>
                 </div>
               ) : (
-                <p className="grid h-[4.75rem] place-items-center text-center text-[13px] text-tinta/55">{t.vacio}</p>
+                <p className="grid h-[4.75rem] place-items-center text-center text-sm text-tinta/55">{t.vacio}</p>
               )}
             </div>
             <button type="button" onClick={cerrar} className="btn-cayla btn-primario mt-3 h-12 w-full">

@@ -36,7 +36,7 @@ function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaV
     <>
   {r.tallas.length > 1 && (
     <fieldset className="mt-6">
-      <legend className="text-xs font-semibold text-tinta/70">
+      <legend className="text-sm font-semibold text-tinta/70">
         Talla{r.esLaMisma && linea.talla ? ` · compró ${linea.talla}` : ""}
       </legend>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -53,7 +53,7 @@ function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaV
               onClick={() => onCambio({ talla: t })}
             >
               {t}
-              <span className="block text-[11.5px] font-normal opacity-70 dark:opacity-85">{subtitulo}</span>
+              <span className="block text-sm font-normal opacity-70 dark:opacity-85">{subtitulo}</span>
             </button>
           );
         })}
@@ -63,7 +63,7 @@ function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaV
 
   {r.colores.length > 1 && (
     <fieldset className="mt-5">
-      <legend className="text-xs font-semibold text-tinta/70">
+      <legend className="text-sm font-semibold text-tinta/70">
         Color{r.esLaMisma && linea.color ? ` · compró ${linea.color}` : ""}
       </legend>
       <div className="mt-2 flex flex-wrap items-center gap-2.5">
@@ -209,7 +209,7 @@ export function CambioReemplazo({
           </Aviso>
         ) : (
           esperandoPistola && (
-            <p className="anim-revelar mt-2 text-xs text-tinta/70" role="status">
+            <p className="anim-revelar mt-2 text-sm text-tinta/70" role="status">
               Listo para escanear: apunta la pistola a la etiqueta. La prenda, la talla y el color se eligen solos.
             </p>
           )
@@ -309,12 +309,12 @@ export function CambioReemplazo({
                 }`}
               >
                 <span className="block text-sm font-semibold">{o.titulo}</span>
-                <span className={`mt-0.5 block text-xs ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
+                <span className={`mt-0.5 block text-sm ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
               </button>
             );
           })}
         </div>
-        {r.condicionFija && <p className="mt-2 text-xs text-tinta/70">Una prenda con defecto no puede volver al piso: va a cuarentena sí o sí.</p>}
+        {r.condicionFija && <p className="mt-2 text-sm text-tinta/70">Una prenda con defecto no puede volver al piso: va a cuarentena sí o sí.</p>}
       </fieldset>
 
       {disponible > 1 && (
@@ -322,7 +322,7 @@ export function CambioReemplazo({
           <label htmlFor={`${idBase}-cantidad`} className="text-[15px] font-semibold text-tinta">
             ¿Cuántas cambia?
           </label>
-          <p className="text-xs text-tinta/70">Compró {linea.cantidad}; quedan {disponible} por cambiar.</p>
+          <p className="text-sm text-tinta/70">Compró {linea.cantidad}; quedan {disponible} por cambiar.</p>
           <input
             id={`${idBase}-cantidad`}
             type="number"

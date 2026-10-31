@@ -51,7 +51,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
         <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Órdenes" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
-            Producción necesita una ubicación de tipo Taller para saber dónde entra el stock. Pídele al líder que active el Taller.
+            Falta el Taller. Pídele al líder que lo active.
           </Vacio>
         </div>
       </div>

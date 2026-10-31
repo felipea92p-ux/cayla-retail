@@ -86,7 +86,7 @@ export function GanamosPanel({
         <div className="mt-3">
           <CascadaEstados id="fin-ganamos-cascada" filas={filas} etiqueta="De la venta a la ganancia; toca un gasto para ver sus partes" />
         </div>
-        {conPlan && <p className="mt-2 text-[12.5px] text-taupe">Los topes de lo planeado se ponen en Configuración ▸ Presupuesto.</p>}
+        {conPlan && <p className="mt-2 text-sm text-taupe">Los topes de lo planeado se ponen en Configuración ▸ Presupuesto.</p>}
       </section>
 
       <div className="fin-estado-sep" />
@@ -120,7 +120,7 @@ export function GanamosPanel({
         <>
           <div className="fin-estado-sep" />
           <section data-guia="fin-ganamos.sedes">
-            <TituloSeccion accion={<span className="text-[13px] text-taupe">Toca una para verla sola</span>}>Lo que dejó cada sede</TituloSeccion>
+            <TituloSeccion accion={<span className="text-sm text-taupe">Toca una para verla sola</span>}>Lo que dejó cada sede</TituloSeccion>
             <div className="mt-3">
               <CascadaEstados id="fin-ganamos-sedes" filas={sedes} etiqueta="Lo que dejó cada sede; toca una para verla sola" sedes />
             </div>

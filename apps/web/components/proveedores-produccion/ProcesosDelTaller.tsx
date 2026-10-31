@@ -29,14 +29,14 @@ export function ProcesosDelTaller({ procesos, onNuevo, onCambiar }: { procesos: 
       >
         Procesos del Taller
       </TituloSeccion>
-      <p className="op-sub text-[13px] text-tinta/75">Los pasos que puede llevar una orden, en el orden de la ruta. Uno nuevo se ofrece en «Nueva orden» y en «+ Agregar un paso»; apagado, deja de ofrecerse.</p>
+      <p className="op-sub text-sm text-tinta/75">Los pasos que puede llevar una orden, en el orden de la ruta. Uno nuevo se ofrece en «Nueva orden» y en «+ Agregar un paso»; apagado, deja de ofrecerse.</p>
       <Tabla className="@container">
         <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} visible="hidden @min-[760px]:grid" />
         {procesos.map((p) => (
-          <div key={p.clave} role="row" className={fila(PLANTILLA, "text-[13px]")}>
+          <div key={p.clave} role="row" className={fila(PLANTILLA, "text-sm")}>
             <span className={celda("izq", p.activo ? "text-tinta" : "text-tinta/70")} title={p.ayuda || undefined}>
               {p.nombre}
-              {p.ayuda && <span className="block truncate text-[12px] text-tinta/70">{p.ayuda}</span>}
+              {p.ayuda && <span className="block truncate text-sm text-tinta/70">{p.ayuda}</span>}
             </span>
             <div className="col-span-full flex flex-wrap gap-x-5 gap-y-0.5 @min-[760px]:contents">
               <span className={celda("izq", "text-tinta/75")}>{p.quienSugerido === "servicio" ? "Afuera" : "En el Taller"}</span>
