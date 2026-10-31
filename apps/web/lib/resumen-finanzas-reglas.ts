@@ -487,7 +487,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
           ? `Tienes ${soles(p.saldoHoy)} y tu mínimo es ${soles(p.minimoCaja)}.${peor.saldo < p.saldoHoy ? ` La semana del ${etiquetaSemana(peor.desde, peor.hasta)} llegarías a ${soles(peor.saldo)}: ${queVence(p.salidas, peor.desde, peor.hasta)}.` : ""}`
           : `Quedarías con ${soles(bajo.saldo)} (tu mínimo es ${soles(p.minimoCaja)}). Lo que más sale esa semana: ${queVence(p.salidas, bajo.desde, bajo.hasta)}.`,
         impacto: `faltan ${soles(p.minimoCaja - peor.saldo)}`,
-        href: enlace("reportes_financieros", "/finanzas/reportes/escenarios"),
+        href: enlace("reportes_financieros", "/finanzas/reportes/flujo#y-si"),
         boton: "Probar escenario",
         origen: "Reportes ▸ Flujo de caja",
         peso: p.minimoCaja - peor.saldo,
@@ -510,7 +510,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
           ? `Necesita vender ${soles(eq.pe)} al mes y vendió ${soles(eq.ventas)}.`
           : `Vendió ${soles(f.ventas)} y sus gastos fueron ${soles(f.gastos)}.`,
         impacto: `${soles(-f.resultado)} al mes`,
-        href: acceso.lider ? "/finanzas/reportes/escenarios" : enlace("reportes_financieros", "/finanzas/reportes"),
+        href: acceso.lider ? "/finanzas/reportes/flujo#y-si" : enlace("reportes_financieros", "/finanzas/reportes"),
         boton: acceso.lider ? "Probar escenario" : "Ver resultados",
         origen: "Reportes ▸ Estado de resultados",
         peso: -f.resultado,
@@ -668,9 +668,9 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         titulo: `${f.lineaNombre} ${deUnidad(f.nombre)} ${cerrado ? "se pasó" : "va a pasarse"} de su tope`,
         detalle: `${cerrado ? "Cerró" : "Al cierre llegaría"} en ${soles(f.proyeccion ?? 0)} contra un tope de ${soles(f.presupuesto ?? 0)} (${chip.texto}); lleva ${soles(f.aLaFecha)}.`,
         impacto: `${soles((f.proyeccion ?? 0) - (f.presupuesto ?? 0))} sobre el tope`,
-        href: enlace("reportes_financieros", conQuery("/finanzas/reportes/presupuesto", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
-        boton: "Ver presupuesto",
-        origen: "Reportes ▸ Presupuesto",
+        href: enlace("reportes_financieros", conQuery("/finanzas/reportes", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
+        boton: "Ver en ¿Ganamos?",
+        origen: "Estados financieros ▸ ¿Ganamos?",
         peso: (f.proyeccion ?? 0) - (f.presupuesto ?? 0),
       });
     }
@@ -730,7 +730,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         tono: tono === "rojo" ? "rojo" : "pizarra",
         titulo: u.cruzado ? `Cruzaste el límite de ${uit ?? 300} UIT` : `Vas al ${porcentaje(u.avance ?? 0, 1)} del límite de ${uit ?? 300} UIT`,
         detalle: u.cruzado
-          ? "Cambian el régimen y los libros que exige SUNAT: conviene verlo con el contador."
+          ? "Cambian el pago a cuenta de renta y los libros que exige SUNAT: coordina las obligaciones nuevas con el contador."
           : `Al cruzarlo cambian el régimen y los libros que exige SUNAT.${proy.mesCruce ? ` A este ritmo, en ${nombreMes(proy.mesCruce)}.` : ""}`,
         impacto: null,
         href: enlace("impuestos", "/finanzas/impuestos"),
@@ -750,9 +750,9 @@ export function noRevisado(r: ResumenFinanzas): string[] {
     [r.porPagar, "lo que vence", DINERO],
     [r.egresos, "los egresos de caja", "Gastos"],
     [r.fijos, "los gastos fijos", "Gastos"],
-    [r.raros, "los gastos fuera de lo normal", "Reportes financieros"],
-    [r.presupuesto, "el presupuesto", "Reportes financieros"],
-    [r.campanas, "las campañas", "Reportes financieros"],
+    [r.raros, "los gastos fuera de lo normal", "Resumen y estados financieros"],
+    [r.presupuesto, "el presupuesto", "Resumen y estados financieros"],
+    [r.campanas, "las campañas", "Resumen y estados financieros"],
     [r.flujo, "la caja de las próximas semanas", "el líder"],
     [r.cierre, "el cierre del mes", "el líder"],
   ];

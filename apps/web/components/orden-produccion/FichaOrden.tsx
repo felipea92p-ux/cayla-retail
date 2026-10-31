@@ -43,7 +43,8 @@ export function FichaOrden({
   nombre: string;
   /** Todavía no hay modelo o no tiene nombre: el nombre sale tenue. */
   nombreVacio: boolean;
-  esMuestra: boolean;
+  /** `null`: un modelo nuevo al que todavía no se le eligió el tipo (ADR-0396, act. 2026-10-30). */
+  esMuestra: boolean | null;
   esNuevo: boolean;
   /** Hay un modelo (elegido o en construcción): sin él no se dibujan los chips. */
   hayModelo: boolean;
@@ -110,8 +111,8 @@ export function FichaOrden({
               <p className={`truncate font-display leading-tight @max-[879px]:text-lg @min-[880px]:text-[22px] ${nombreVacio ? "text-tinta/60" : "text-tinta"}`}>{nombre}</p>
               {hayModelo && (
                 <div className="mt-1 flex flex-wrap gap-1.5 @max-[879px]:hidden">
-                  <Chip tono={esMuestra ? "ambar" : "pizarra"} versalitas={false}>
-                    {esMuestra ? "Muestra · no entra al stock" : "Lote de producción"}
+                  <Chip tono={esMuestra === null ? "neutro" : esMuestra ? "ambar" : "pizarra"} versalitas={false}>
+                    {esMuestra === null ? "Lote o muestra: por elegir" : esMuestra ? "Muestra · no entra al stock" : "Lote de producción"}
                   </Chip>
                   {esNuevo && (
                     <Chip tono="neutro" versalitas={false}>

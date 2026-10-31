@@ -1,7 +1,10 @@
 "use client";
 
 import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
-import { coloresParecidos } from "@/lib/color-parecido";
+import { coloresQueYaExisten } from "@/lib/color-alta-reglas";
+import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
+import { claveTexto } from "@/lib/nombres-parecidos";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { partirEnGamas } from "@/lib/color-escala";
 import { MAX_DESCRIPCION, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { CombinaConCampo, DescripcionColorCampo } from "@/components/CombinaConCampo";
@@ -31,7 +34,6 @@ import {
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
-import { Aviso } from "@/components/ui/Aviso";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
@@ -156,33 +158,8 @@ function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<strin
   );
 }
 
-// Aviso, no candado: el color que se está creando o editando se ve casi igual que otro del vocabulario
-// (ΔE2000 < 8, `lib/color-parecido.ts`). Es el criterio con que se armó la paleta esencial (20260926100000):
-// dos colores que no se distinguen terminan partiendo el stock de una misma prenda en dos filas. Decide la
-// persona: Blanco y Crudo se parecen en pantalla y en textil son dos colores de verdad.
-function AvisoParecido({
-  hex,
-  familiaColor,
-  vocabulario,
-  excluir,
-}: {
-  hex: string | null;
-  familiaColor: string | null;
-  vocabulario: Color[];
-  excluir?: string;
-}) {
-  const parecidos = coloresParecidos(hex, familiaColor, vocabulario, { excluir }).slice(0, 3);
-  if (parecidos.length === 0) return null;
-  const nombres = parecidos.map((p) => `«${p.color.nombre}»`);
-  const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
-  return (
-    <Aviso tono="atencion" chico>
-      Se ve casi igual que {lista}. Si es el mismo color, usa ese: con dos nombres, la misma prenda termina registrada de
-      dos formas. Si es otro, prueba un tono más distinto o guárdalo igual.
-    </Aviso>
-
-  );
-}
+// Un color de la lista como lo lee «Existe también» (ADR-0576): un desactivado también cuenta, y lo dice.
+const leerColorExistente = (c: Color) => ({ id: c.codigo, nombre: c.nombre, extra: c.activo ? undefined : "desactivado" });
 
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
@@ -246,13 +223,23 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const codigosUsados = new Set(colores.map((c) => c.codigo));
   const dueñoDelCodigo = codigo.length === 3 ? colores.find((c) => c.codigo === codigo) : undefined;
 
+  // «Existe también» (ADR-0576): lo que ya hay y se parece al nombre (y, aparte, al tono) que se está escribiendo.
+  const existe = useExisteTambien(nombre, vistaDeCoincidencias(coloresQueYaExisten(nombre, hex, familiaColor, colores), leerColorExistente));
+  const faltaExiste = faltaPorExistente("color", nombre, existe);
+  // «Ver» lleva a la tarjeta que ya existe: cierra la hoja y deja el buscador con su nombre (los filtros, quitados).
+  function verExistente(nombreExistente: string) {
+    setFamilia("todas");
+    setBusqueda(nombreExistente);
+    setAnimar(true);
+  }
+
   // Guía de foco de «Nuevo color» (CLAUDE.md «Guía de foco»): sale de lo que ya apaga «Guardar color». Notas y sinónimos son
   // opcionales y no entran; el Pantone solo es «requerido» cuando ya se escribió algo (mal escrito o repetido bloquea). La familia
   // es SUGERIDA, nunca un candado: ordena el color en la lista y en «Se ve casi igual que…», y «Neutro» de fábrica casi nunca es la
   // correcta para un color nuevo, así que la luz pasa por ella antes del tono.
   const pantoneEscrito = pantone.trim() !== "";
   const guia = useGuiaCampos([
-    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "" && !existe.bloquea, pendiente: faltaExiste ?? "Escribe el nombre del color." },
     {
       id: "codigo",
       nombre: "Código",
@@ -274,6 +261,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const rechazandoColor = colores.find((c) => c.codigo === rechazandoAbierto) ?? null;
 
   function abrir() {
+    existe.reiniciar();
     setAgregando(true);
     setNombre("");
     setCodigo("");
@@ -529,6 +517,15 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   />
                   </CampoGuiado>
                 </div>
+                <ExisteTambien
+                  que="color"
+                  nombre={nombre}
+                  solo="nombre"
+                  className="py-2"
+                  estado={existe}
+                  si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { verExistente(o.nombre); cerrar(); } })}
+                  deshabilitado={guardando}
+                />
                 <CampoGuiado id="familia" guia={guia}>
                   <CampoSelect
                     etiqueta={guia.etiqueta("familia", "Familia")}
@@ -566,7 +563,14 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               <CampoGuiado id="color" guia={guia}>
                 <SelectorColor hex={hex} onHex={setHex} etiqueta={guia.etiqueta("color", "Color")} />
               </CampoGuiado>
-              <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={activos} />
+              <ExisteTambien
+                que="color"
+                nombre={nombre}
+                solo="tono"
+                estado={existe}
+                si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { verExistente(o.nombre); cerrar(); } })}
+                deshabilitado={guardando}
+              />
 
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -581,8 +585,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   peso="primario"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || !responsable.listo}
-                  title={responsable.motivo ?? guia.frase ?? undefined}
+                  disabled={!nombre.trim() || existe.bloquea || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || !responsable.listo}
+                  title={responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}
                   className={`flex-1 ${guia.claseConfirmar}`}
                 >
                   Guardar color
@@ -650,6 +654,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         <ColorEditarModal
           color={editando}
           vocabulario={activos}
+          existentes={colores}
+          onVer={verExistente}
           responsable={responsable}
           onClose={() => setEditando(null)}
           onGuardado={(actualizado) => {
@@ -679,6 +685,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 function ColorEditarModal({
   color,
   vocabulario,
+  existentes,
+  onVer,
   responsable,
   onClose,
   onGuardado,
@@ -687,6 +695,10 @@ function ColorEditarModal({
   color: Color;
   /** Los colores activos, para avisar si el tono se ve casi igual que otro. */
   vocabulario: Color[];
+  /** Todos los colores, también los desactivados: renombrar uno al nombre de un desactivado lo rechaza la base. */
+  existentes: Color[];
+  /** «Ver» el color que ya existe: la lista de atrás se queda buscándolo. */
+  onVer: (nombre: string) => void;
   /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
   responsable: ControlResponsable;
   onClose: () => void;
@@ -715,10 +727,19 @@ function ColorEditarModal({
     return () => clearTimeout(t);
   }, [confirmandoDesactivar]);
 
+  // «Existe también» (ADR-0576). Por nombre solo si lo cambió: editar la descripción de un color que ya tiene un parecido no puede
+  // volver a preguntar por él cada vez. El tono sí avisa siempre, como antes.
+  const nombreCambio = claveTexto(nombre) !== claveTexto(color.nombre);
+  const existe = useExisteTambien(
+    nombre,
+    vistaDeCoincidencias(coloresQueYaExisten(nombre, hex, familiaColor, existentes, { excluir: color.codigo }).filter((c) => nombreCambio || c.por === "tono"), leerColorExistente)
+  );
+  const faltaExiste = faltaPorExistente("color", nombre, existe);
+
   // Guía de foco de «Editar color»: lo que ya apaga «Guardar» (nombre, Pantone) y quién firma. El color ya viene elegido.
   const pantoneEscrito = pantone.trim() !== "";
   const guia = useGuiaCampos([
-    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "" && !existe.bloquea, pendiente: faltaExiste ?? "Escribe el nombre del color." },
     {
       id: "pantone",
       nombre: "Pantone",
@@ -806,6 +827,15 @@ function ColorEditarModal({
               <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")}
                     maxLength={MAX_NOMBRE_CATALOGO} value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </CampoGuiado>
+            <ExisteTambien
+              que="color"
+              nombre={nombre}
+              solo="nombre"
+              className="py-2"
+              estado={existe}
+              si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { onVer(o.nombre); cerrar(); } })}
+              deshabilitado={ocupado}
+            />
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
             <CampoGuiado id="pantone" guia={guia}>
@@ -849,7 +879,14 @@ function ColorEditarModal({
             )}
             <p className="mt-1 text-sm text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
-          <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={vocabulario} excluir={color.codigo} />
+          <ExisteTambien
+            que="color"
+            nombre={nombre}
+            solo="tono"
+            estado={existe}
+            si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { onVer(o.nombre); cerrar(); } })}
+            deshabilitado={ocupado}
+          />
 
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={ocupado} />
@@ -878,8 +915,8 @@ function ColorEditarModal({
                   peso="primario"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || ocupado || !responsable.listo}
-                  title={responsable.motivo ?? guia.frase ?? undefined}
+                  disabled={!nombre.trim() || existe.bloquea || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || ocupado || !responsable.listo}
+                  title={responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}
                   className={guia.claseConfirmar}
                 >
                   Guardar

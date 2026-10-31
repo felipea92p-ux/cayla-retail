@@ -10,11 +10,11 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { traducirError } from "@/lib/error-escritura";
-import { cantidadConUnidad, cantidadesDeFabricaDeSalida, cantidadesQuePuedenSalir, esPrimeraFase, lineasDeSalida, problemasDeSalida, quienDeFase, RPC_REGISTRAR_SALIDA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
-import { RPC_ANOTAR_INSUMOS, cantidadDeFabrica, lineasDeTelaQueSale, problemaDeTelaQueSale, telasDeLaOrden } from "@/lib/orden-tela-usada-reglas";
+import { cantidadConUnidad, cantidadesDeFabricaDeSalida, cantidadesQuePuedenSalir, esPrimeraFase, lineasDeSalida, problemasDeSalida, fraseDelEnvioConToken, leerEnvioConTela, quienDeFase, RPC_REGISTRAR_SALIDA_CON_TELA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { cantidadDeFabrica, lineasDeTelaQueSale, problemaDeTelaQueSale, telasDeLaOrden } from "@/lib/orden-tela-usada-reglas";
 import { camposDeSalida } from "@/lib/orden-pagina-guia";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
+import { faseTrasError } from "@/lib/intento-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
@@ -28,8 +28,8 @@ import { useResponsable } from "@/lib/useResponsable";
 // Taller no emite comprobantes (ADR-0400, «Lo que NO cambia»). Un doble clic no anota dos salidas: una marca síncrona corta la segunda llamada.
 //
 // El corte de afuera (ADR-0570, actividad 4; Felipe: «si se corta afuera, sale al mandarla»): cuando la fase es la primera (Corte) y la hace un servicio, la hoja pregunta también cuánta tela
-// le mandas, que sale del estante y queda en la orden (`anotar_insumos_de_la_orden`, todo o nada). Va después de la salida: si la tela falla, la salida queda anotada y se dice. Lo que el
-// cortador devuelve se anota con «Devolver lo que sobró».
+// le mandas, que sale del estante y queda en la orden. La salida y su tela viajan JUNTAS (`registrar_salida_con_tela`, ADR-0587): o salen las dos o no sale nada, y la hoja lleva un token
+// para que un reintento tras un corte de red no mande dos veces. Lo que el cortador devuelve se anota con «Devolver lo que sobró».
 
 export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina; fase: FasePagina; onClose: () => void }) {
   const router = useRouter();
@@ -45,6 +45,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   const problemaTela = problemaDeTelaQueSale(telas, telaQueSale);
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
+  const token = useRef<string>(crypto.randomUUID());
 
   const servicio = quienDeFase(fase);
   const tabla = useMemo(() => tablaDeModeloExistente(datos.lineas.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [datos.lineas]);
@@ -88,33 +89,37 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
     const firma = responsable.firma();
     enVuelo.current = true;
     setCargando(true);
+    const sale = lineasDeTelaQueSale(telas, telaQueSale);
     let resultado;
     try {
       resultado = await firmar(
         createClient().rpc(
-          RPC_REGISTRAR_SALIDA as never,
-          { p_fase_id: fase.id, p_lineas: lineas, p_guia: guiaDeRemision.trim() === "" ? null : guiaDeRemision.trim(), p_nota: nota.trim() === "" ? null : nota.trim() } as never
+          RPC_REGISTRAR_SALIDA_CON_TELA as never,
+          {
+            p_fase_id: fase.id,
+            p_lineas: lineas,
+            p_guia: guiaDeRemision.trim() === "" ? null : guiaDeRemision.trim(),
+            p_nota: nota.trim() === "" ? null : nota.trim(),
+            p_tela: sale.length > 0 ? sale : null,
+            p_token: token.current,
+          } as never
         ),
         firma
       );
     } finally {
       enVuelo.current = false;
     }
-    const { error } = resultado;
+    const { data, error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      // La base pudo guardar y la respuesta perderse: «No se guardó nada» sería mentira. Se dice que no se sabe y se pide mirar la línea de tiempo antes de repetir.
-      avisar.error(traducirError(error, `anotar lo que mandas a ${servicio}`, { confirmarAntesDeRepetir: true }));
+      // Con un «no» de la base, lo que se corrija es otro envío: token nuevo. Sin respuesta, el mismo: reintentar no manda dos veces.
+      if (faseTrasError(error) === "libre") token.current = crypto.randomUUID();
+      avisar.error(fraseDelEnvioConToken(error, `anotar lo que mandas a ${servicio}`, "Mandar"));
       return;
     }
-    // La tela que sale con el corte, si se escribió: después de la salida, en una llamada. Si falla, la salida ya quedó anotada y se dice.
-    const sale = lineasDeTelaQueSale(telas, telaQueSale);
-    if (sale.length > 0) {
-      const { error: errorTela } = await firmar(createClient().rpc(RPC_ANOTAR_INSUMOS as never, { p_produccion_id: datos.orden.id, p_lineas: sale, p_nota: `sale a cortar con ${servicio}` } as never), firma);
-      if (errorTela) avisar.error(`La salida quedó anotada, pero la tela no: ${traducirError(errorTela, "anotar la tela que sale", { confirmarAntesDeRepetir: true })} Anótala desde «Tela».`);
-    }
-    avisar.exito(textoMandaste(total, servicio), { detalle: `${datos.orden.numeroTexto} · ${fase.nombre}${sale.length > 0 ? " · con su tela" : ""}` });
+    if (leerEnvioConTela(data).repetido) avisar.exito("Ya estaba anotado", { detalle: `${datos.orden.numeroTexto} · se había guardado antes de que se cortara la conexión; no se mandó dos veces` });
+    else avisar.exito(textoMandaste(total, servicio), { detalle: `${datos.orden.numeroTexto} · ${fase.nombre}${sale.length > 0 ? " · con su tela" : ""}` });
     cerrarTrasGuardar();
   }
 

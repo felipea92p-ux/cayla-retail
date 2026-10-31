@@ -3,9 +3,10 @@ import { Chip } from "@/components/ui/Chip";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { montoBandeja, type Bandeja, type CosaPorRevisar } from "@/lib/gastos-pulso-reglas";
+import { DESDE_EL_UMBRAL } from "@/lib/gastos-extracto-reglas";
 
 // Gastos en camino A (Felipe 2026-10-15): la bandeja, lo que falta revisar, de a UNA cosa, con el botón que la resuelve
-// (clasificar la salida de caja o registrar el fijo). «¿En qué se fue la plata?» lo responde ahora el retazo del telar (ADR-0493).
+// (clasificar la salida de caja o registrar el fijo). «¿En qué se fue la plata?» lo responden ahora los hilos del telar (ADR-0493, act. 2026-10-30).
 // Los modales que resuelven ya existen en el panel: aquí solo se eligen. Sin estado propio.
 
 const entra = (clase: string, i: number) => ({ className: `${clase} anim-entra`, style: { ["--i" as string]: i } as CSSProperties });
@@ -20,8 +21,11 @@ export function GastosPulso({
   bandeja: Bandeja;
   onResolver: (cosa: CosaPorRevisar) => void;
   onVerTodas: () => void;
-  /** Gastos del mes sin boleta ni factura (`fn_gastos_panel`): no se resuelven de a uno, se filtran en la lista. */
-  sinComprobante: number;
+  /**
+   * Lo grande sin boleta ni factura del mes y el IGV que se recuperaría (`sinComprobanteGrande`, lo mismo que marca la lista): no se resuelve
+   * de a uno, se filtra en la lista. Lo chico sin papel (el mototaxi, el baño) no se avisa (Felipe 2026-10-30).
+   */
+  sinComprobante: { n: number; igv: number };
   onVerSinComprobante: () => void;
 }) {
   const primera = bandeja.cosas[0];
@@ -49,11 +53,12 @@ export function GastosPulso({
               </div>
             </div>
           )}
-          {sinComprobante > 0 && (
+          {sinComprobante.n > 0 && (
             <p className="fin-gastos-cosa-mas" data-guia="fin-gastos.sin-comprobante">
-              {sinComprobante} {sinComprobante === 1 ? "gasto no tiene" : "gastos no tienen"} boleta ni factura: sin comprobante no recuperas su IGV.{" "}
+              {sinComprobante.n} {sinComprobante.n === 1 ? "gasto" : "gastos"} {DESDE_EL_UMBRAL} {sinComprobante.n === 1 ? "no tiene" : "no tienen"} boleta ni factura: con
+              factura recuperarías {soles(sinComprobante.igv)} de IGV.{" "}
               <button type="button" className="btn-cayla btn-enlace" onClick={onVerSinComprobante}>
-                Ver {sinComprobante === 1 ? "cuál" : "cuáles"}
+                Ver {sinComprobante.n === 1 ? "cuál" : "cuáles"}
               </button>
             </p>
           )}

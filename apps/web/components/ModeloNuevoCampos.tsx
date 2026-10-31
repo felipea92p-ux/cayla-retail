@@ -49,7 +49,8 @@ export function ModeloNuevoCampos({
   onPrecio: (v: string) => void;
   esMuestra: boolean;
   puedeEditarCatalogo: boolean;
-  tipo: "produccion" | "muestra";
+  /** `null`: todavía no se eligió (un modelo nuevo no trae tipo de fábrica, ADR-0396 act. 2026-10-30). */
+  tipo: "produccion" | "muestra" | null;
   /** «Mejor elegir uno que ya existe»: vuelve al buscador (ADR-0396). Sin él (el catálogo está vacío) no se ofrece. */
   onElegirExistente?: () => void;
 }) {
@@ -116,7 +117,13 @@ export function ModeloNuevoCampos({
       <CampoGuiado id="precio" guia={guia}>
         <CampoMonto
           etiqueta={guia.etiqueta("precio", "Precio a tienda (c/u)")}
-          pie={esMuestra ? "Una muestra puede ir sin precio: se completa al aprobarla." : "Con este precio sale el margen de la orden."}
+          pie={
+            tipo === null
+              ? "Un lote necesita el precio; una muestra puede ir sin él."
+              : esMuestra
+                ? "Una muestra puede ir sin precio: se completa al aprobarla."
+                : "Con este precio sale el margen de la orden."
+          }
           inputMode="decimal"
           placeholder="0.00"
           value={precio}

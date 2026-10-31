@@ -73,3 +73,29 @@ anotado como «sí lleva» (`guardar_ojales_botones_modelo`, que llama la web); 
 no tomar el candado). Con la migración aplicada de verdad pasan sin cambios las suites vecinas: quitar paso (13), cinco pasos (13), fases nuevas (17), avances (29),
 ploteo (20), proveedor pendiente (17), complementos (17), cierre (20) y anulaciones (18). La orden con el paso nuevo se trabaja y se pasa al stock de punta a punta (F1), y un servicio agregado devenga 90.00 al volver
 (F2), no al agregarse.
+
+## Actualización 2026-10-30 — el paso bloqueado se VE en la hoja (Felipe: «no me aparece ojal y botón»)
+
+**Qué pasó:** en la orden del Short (Planchado ya hecho) el combo «Qué paso» abría directo en «Otro proceso…» y no listaba Ojales y botones. La base y `pasosAgregables` hacían bien su trabajo (Ojales y botones va en 35, antes de
+Planchado 65, y Planchado ya tenía algo anotado: `paso_despues_empezado`), pero **la promesa de arriba —«la sección lo dice en vez de esconderlo»— se rompió con ADR-0570 act. 5**: un líder siempre ve «+ Agregar un paso» (puede dar de alta
+«Otro proceso…»), y la línea de la página que explica lo bloqueado solo sale cuando NO hay botón. Resultado: el paso desaparecía sin decir por qué.
+
+**Cambio (web, sin tocar la base ni la regla):**
+- La hoja lista los pasos bloqueados **apagados y con su motivo** («Ojales y botones · Planchado ya empezó») y una frase bajo el combo los explica (`textoDePasosBloqueados`). Quien no es líder sigue viendo la línea de la página.
+- **«Otro proceso…» pasa por la misma regla** (`pasoPosteriorEmpezado`, que `pasosAgregables` también usa): si iría antes de un paso ya empezado, la hoja lo frena y pide elegir otro «Va después de». Antes el alta del proceso iba primero y
+  luego la base rechazaba el paso: quedaba un proceso en el catálogo sin haberse agregado a ninguna orden.
+- La fila «Quién lo hace» mostraba la clave interna `__otro__` como título; ahora muestra el nombre que se está escribiendo («Proceso nuevo» mientras tanto), y toma el catálogo de la orden (un proceso propio del líder ya no sale con su clave).
+
+**No se cambia (y es decisión de Felipe, no mía):** dejar agregar Ojales y botones con Planchado ya hecho exigiría cambiar `agregar_paso_orden` y volvería a abrir lo que el DESCARTÉ de arriba cerró (los conteos de las prendas ya planchadas quedarían contradictorios).
+
+## Actualización 2026-10-31 — las prendas con falla también cuentan como «ya empezó» (`20261031031000`)
+
+`agregar_paso_orden` decidía si un paso posterior ya había empezado mirando avances, salidas, vueltas y marcas, pero no `produccion_fallas`. Una fase puede tener solo prendas con falla (Planchado con 3 perdidas y ninguna buena): para la base no había empezado, el paso nuevo entraba antes, vacío, y Planchado quedaba con 3 perdidas de 0 que le llegaron. La pantalla ya lo evitaba; una llamada directa no.
+
+- **DECIDÍ:** sumar `produccion_fallas` (cualquier destino) a la condición, igual que ya hace `agregar_paso_tarde` (ADR-0586): las dos funciones hermanas dicen lo mismo de cuándo un paso «ya empezó».
+- **DESCARTÉ:** contar solo las fallas que no van a arreglo. Una prenda que vuelve a arreglo igual ya pasó por Planchado, y meter un paso vacío antes es la misma contradicción.
+- **SE ROMPE SI:** aparece otra tabla que anote prendas contra una fase y nadie la suma aquí ni en `agregar_paso_tarde`.
+- **Verificación:** caso R5b de `pnpm pruebas:produccion-agregar-paso`: falló antes del arreglo (6 fases, el paso entró) y pasa después.
+- **Corrección antes de pegar (mismo día):** la primera versión de `20261031031000` reescribía la función entera copiando `20261029051000` y borraba sin querer el candado «proceso apagado» que le puso el catálogo de procesos (`20261029210000`, un reemplazo anclado). Pegada, «Agregar un paso» habría vuelto a aceptar un proceso apagado (y en la base local ya lo hacía). Lo vio la comparación contra la función viva de producción: su huella no era la del archivo de `20261029051000`. Ahora es un reemplazo **anclado**, como el del catálogo: cambia solo esa condición y falla con un error claro si la función cambió. La prueba ya no recarga `20261029051000` (era lo que escondía el hueco), suma R5c (con Ojales y botones apagado, no entra) y R2 dice lo que pasa de verdad: una clave inexistente responde `proceso_apagado`. 26/26.
+- **Lección:** una función que ya recibió un reemplazo anclado no se reescribe entera copiando su primera migración: se ancla también, o se parte de `pg_get_functiondef` de la base viva.
+- **Producción:** pegada el 2026-10-31 por Felipe. Verificado en solo lectura: la función tiene la misma huella que en local (`md5(prosrc)` = `73552140…`), conserva el candado «proceso apagado», cuenta las fallas y mantiene sus permisos (authenticated sí, anon no).

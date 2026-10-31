@@ -2077,105 +2077,14 @@
     font-size: 22px;
     color: var(--color-taupe);
   }
-  .fin-pulso-si {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-  }
-  .fin-pulso-respuesta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1;
-    gap: 6px;
-  }
   .fin-pulso-verbo {
     font-family: var(--font-serif);
     font-size: 26px;
-  }
-  .fin-pulso-monto {
-    font-family: var(--font-serif);
-    font-size: clamp(48px, 8vw, 84px);
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-  }
-  .fin-pulso-monto[data-estado="pierde"] {
-    color: var(--color-rojo-profundo);
   }
   .fin-pulso-explica {
     max-width: 62ch;
     font-size: 15px;
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
-  }
-  .fin-pulso-porque {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-  }
-  .fin-pulso-cascada {
-    width: 100%;
-    max-width: 640px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    text-align: left;
-  }
-  .fin-pulso-tramo {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 4px 12px;
-    align-items: baseline;
-    font-size: 14px;
-  }
-  .fin-pulso-tramo-nombre small {
-    display: block;
-    font-size: 14px;
-    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
-  }
-  .fin-pulso-tramo-monto {
-    font-variant-numeric: tabular-nums;
-  }
-  .fin-pulso-tramo[data-tipo="queda"] {
-    font-weight: 600;
-    padding-top: 6px;
-    border-top: 1px solid var(--color-sand);
-  }
-  .fin-pulso-tramo-barra {
-    grid-column: 1 / -1;
-    display: block;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-hueso);
-    overflow: hidden;
-  }
-  .fin-pulso-tramo-barra > i {
-    display: block;
-    height: 100%;
-    width: var(--w, 0%);
-    border-radius: 999px;
-    background: var(--color-tinta);
-    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
-    animation-delay: calc(var(--i, 0) * 60ms);
-  }
-  .fin-pulso-tramo[data-tipo="sale"] .fin-pulso-tramo-barra > i {
-    background: var(--color-taupe);
-  }
-  .fin-pulso-tramo[data-tipo="queda"] .fin-pulso-tramo-barra > i {
-    background: var(--color-verde);
-  }
-  /* Una pérdida no se pinta de verde (auditoría v3 del Resumen, hallazgo 3): el color sigue al signo, como la cifra grande. */
-  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-barra > i {
-    background: var(--color-rojo-profundo);
-  }
-  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-monto {
-    color: var(--color-rojo-profundo);
   }
   @keyframes fin-pulso-crece {
     from {
@@ -2335,8 +2244,12 @@
   @media (prefers-reduced-motion: reduce) {
     .fin-pulso-tramo-barra > i,
     .fin-pulso-ritmo-relleno,
-    .fin-pulso-lugar-eje > i {
+    .fin-pulso-lugar-eje > i,
+    .fin-pulso-tramo-lineas {
       animation: none;
+    }
+    .fin-pulso-tramo-flecha {
+      transition: none;
     }
   }
 }

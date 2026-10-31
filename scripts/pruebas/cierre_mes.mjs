@@ -330,9 +330,10 @@ ${cambiaA(MICAELA)}
 select 'F1 una colaboradora sin el módulo no ve el panel', (select pg_temp.intento('select retail.fn_cierre_panel()') = 'El cierre de mes necesita el módulo «Cierre de mes» en tu rol.');
 select 'F1 ni cierra', (select pg_temp.intento(format('select retail.cerrar_periodo(''2025-03-01'', ''ubicacion'', %L)', :'lim')) = 'Cerrar el mes necesita el módulo «Cierre de mes» en tu rol.');
 select 'F1 ni reabre', (select pg_temp.intento(format('select retail.reabrir_periodo(''2025-03-01'', ''ubicacion'', %L, ''porque sí, prueba'')', :'tru')) = 'Reabrir el mes necesita el módulo «Cierre de mes» en tu rol.');
-select 'F2 con «Reportes financieros» ve que SU tienda está cerrada (y nada más)', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_periodos_mes('2025-03-01'));
+select 'F2 con «Reportes financieros» ve que su tienda está cerrada (la única cerrada de la escena)', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_periodos_mes('2025-03-01'));
 select 'F2 y fn_diario le da lo congelado de su tienda', (select count(*) = (:'r'::jsonb ->> 'lineas')::int and bool_and(congelado) from retail.fn_diario('2025-03-01', '2025-03-31', :'tru'));
-select 'F2 pero no el de otra tienda', (select pg_temp.intento(format('select count(*) from retail.fn_diario(''2025-03-01'', ''2025-03-31'', %L)', :'lim')) = 'No puedes ver los números de esa ubicación.');
+-- ADR-0585: con el módulo se mira CAYLA entera (antes, pedir otra tienda daba «No puedes ver los números de esa ubicación»). Mirar no es cerrar (F1).
+select 'F2 y puede mirar el de otra tienda', (select pg_temp.intento(format('select count(*) from retail.fn_diario(''2025-03-01'', ''2025-03-31'', %L)', :'lim')) = 'SIN_ERROR');
 set local role authenticated;
 select 'F3 nadie lee las tablas directo (períodos, cierres, diario congelado)',
   (select pg_temp.intento('select count(*) from retail.periodos') like 'permission denied%')

@@ -2,16 +2,15 @@
 
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno } from "@/lib/dueno-reglas";
 import { useStockPorDueno } from "@/lib/useStockPorDueno";
-import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Volver } from "@/components/ui/Volver";
 import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, BadgePercent, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
@@ -35,7 +34,7 @@ import { nombreDePersona } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
-import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
+import { lineasApartables, tomarDescuentosParaApartar, type LineaApartar } from "@/lib/apartar-desde-ticket";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -68,6 +67,15 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
+import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
+import {
+  descuentoParaGuardar,
+  descuentosVigentes,
+  lineaDescontada,
+  quitarDelApartado,
+  totalDescontado,
+  type DescuentosDelApartado,
+} from "@/lib/apartar-descuento-reglas";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -112,6 +120,8 @@ type ApartadoArmado = {
   clientaId: string | null;
   sinFicha: null | "padron" | "nada";
   intento: InstantaneaIntento | null;
+  /** El descuento a mano de cada prenda (ADR-0584). */
+  descuentos?: DescuentosDelApartado;
 };
 
 const FORMULARIO_VACIO = {
@@ -215,11 +225,28 @@ export function ApartarVista({
   // ADR-0542: de quién es lo que se aparta cuando hay unidades de las dos empresas (Lima). Sin respuesta de fábrica.
   const duenosPorVariante = useStockPorDueno(ubicacionId);
   const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
+  // El descuento a mano de cada prenda (ADR-0584), con las reglas de la venta. Se guarda por variante: Apartar junta las unidades.
+  const [descuentos, setDescuentos] = useState<DescuentosDelApartado>(() => (pedido ? {} : (guardado?.descuentos ?? {})));
+  // La hoja «Descuento» abierta, con las prendas que arrancan marcadas.
+  const [hojaDescuento, setHojaDescuento] = useState<string[] | null>(null);
   const faltaDuenoEn = variantesSinDueno(lineas.map((l) => l.varianteId), duenosPorVariante, duenoDeLinea);
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
   }, [lineasIniciales, router]);
+  // ADR-0584: el descuento puesto a mano en el ticket llega con las prendas. Vive en el almacenamiento de la pestaña (lleva texto
+  // escrito: no va en la dirección), así que se lee ya montada la pantalla; se toma una sola vez y solo si es de estas prendas.
+  const descuentoDelTicketLeido = useRef(false);
+  useEffect(() => {
+    if (descuentoDelTicketLeido.current || pedido || guardado || !lineasIniciales?.length) return;
+    descuentoDelTicketLeido.current = true;
+    const delTicket = tomarDescuentosParaApartar(lineasIniciales);
+    if (Object.keys(delTicket).length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lo dejó el ticket en la pestaña: leerlo al iniciar el estado rompería la hidratación (misma decisión que BajarAlPisoForm)
+    setDescuentos(delTicket);
+    // Si alguna prenda no entró (aviso de error), ese aviso manda; si no, se dice que el descuento llegó.
+    setMensaje((m) => (m?.tono === "info" ? { tono: "info", texto: "Las prendas del ticket ya están en la lista, con su descuento. Revisa y sigue con los datos del cliente." } : m));
+  }, [lineasIniciales, pedido, guardado]);
   const [nota, setNota] = useState(guardado?.nota ?? "");
   const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
   const [f, setF] = useState(() =>
@@ -280,19 +307,24 @@ export function ApartarVista({
         ? {
             etiqueta: ubicacionEtiqueta,
             unidades: prendas,
-            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio() },
+            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio(), descuentos },
             ...avisosDelApartado({ etiqueta: ubicacionEtiqueta, nombres: f.nombres, apellidos: f.apellidos, prendas }),
           }
         : null,
     );
-  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio]);
+  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio, descuentos]);
 
-  const total = totalDeLineas(
-    lineas.map((l) => {
-      const p = porId.get(l.varianteId)!;
-      return { cantidad: l.cantidad, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) };
-    }),
-  );
+  // Cada prenda con el descuento que de verdad lleva: el puesto a mano si supera a su campaña; si no, la campaña (ADR-0584).
+  const conDescuento = descuentosVigentes(descuentos, lineas.map((l) => l.varianteId));
+  const lineasConDescuento = lineas.map((l) => lineaDescontada(porId.get(l.varianteId)!, l.cantidad, conDescuento[l.varianteId]));
+  const descuentoDe = new Map(lineasConDescuento.map((l) => [l.varianteId, l]));
+  const total = totalDeLineas(lineasConDescuento);
+  const descontado = totalDescontado(lineasConDescuento);
+  /** Quita una prenda del apartado y, con ella, su descuento a mano (si vuelve, vuelve sin él). */
+  const quitarPrenda = (varianteId: string) => {
+    setLineas((ls) => ls.filter((x) => x.varianteId !== varianteId));
+    setDescuentos((d) => quitarDelApartado(d, [varianteId]));
+  };
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);
   const vence = sumarDiasIso(hoy, PLAZO_DIAS);
   // Quién atiende ya no se valida como campo del formulario: lo exige el combo «Responsable», que apaga el botón.
@@ -540,7 +572,8 @@ export function ApartarVista({
           empresa_id: duenosParaElegir(duenosPorVariante?.[l.varianteId]) ? duenoDeLinea[l.varianteId] : undefined,
           cantidad: l.cantidad,
           precio_unitario: p.precio,
-          descuento_unitario: descuentoCampana(p),
+          // ADR-0584: la campaña sin motivo; el descuento a mano con su motivo y su argumento (la base los vuelve a exigir).
+          ...descuentoParaGuardar(lineaDescontada(p, l.cantidad, conDescuento[l.varianteId])),
         };
       }),
       p_pagos: pagosParaRpcApartado(f.pagos),
@@ -613,6 +646,7 @@ export function ApartarVista({
       avisar.exito("Apartado registrado");
     }
     setLineas([]);
+    setDescuentos({});
     setNota("");
     setF(FORMULARIO_VACIO);
     setIntento(false);
@@ -811,54 +845,68 @@ export function ApartarVista({
                 </Vacio>
               ) : (
                 <>
-                  {lineas.map((l, i) => {
-                    const pr = porId.get(l.varianteId)!;
-                    return (
-                      <div key={l.varianteId} className="anim-revelar border-b border-sand px-5 py-4">
-                        <div className="flex justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-[15px] font-semibold text-tinta">{pr.referencia}</p>
-                            <p className="truncate text-sm text-tinta/60">
-                              {variante(pr)} · <span className="font-mono text-[11px]">{codigoPrenda(pr)}</span>
-                            </p>
-                          </div>
-                          <button type="button" onClick={() => setLineas((ls) => ls.filter((_, j) => j !== i))} className="label-cayla flex h-7 items-center gap-1 text-[10.5px] text-rojo-profundo">
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden /> Quitar
-                          </button>
+                  {/* La fila de cada prenda es la del ticket de Vender (`LineaDelTicket`): nombre · color y talla · stock | − 1 + | importe | quitar.
+                      Lo propio de Apartar —cuántas quedan tras apartar, de qué sede llegó una prenda pedida— va en su `pie`. */}
+                  <div className="divide-y divide-sand border-b border-sand">
+                    {lineas.map((l) => {
+                      const pr = porId.get(l.varianteId)!;
+                      const d = descuentoDe.get(l.varianteId)!;
+                      const duenos = duenosParaElegir(duenosPorVariante?.[l.varianteId]);
+                      const linea: ItemCarrito = {
+                        claveLinea: l.varianteId,
+                        varianteId: l.varianteId,
+                        referencia: pr.referencia,
+                        sku: pr.sku,
+                        codigo: pr.codigo,
+                        cantidad: l.cantidad,
+                        precioUnitario: d.precioUnitario,
+                        descuentoUnitario: d.descuentoUnitario,
+                        stockAqui: pr.stockAqui,
+                        razonDescuento: d.razonDescuento,
+                        razonDescuentoOtro: d.razonDescuentoOtro,
+                        argumentoDescuento: d.argumentoDescuento,
+                        campana: d.campana,
+                      };
+                      return (
+                        <div key={l.varianteId} className="anim-revelar">
+                          <LineaDelTicket
+                            linea={linea}
+                            detalle={{ color: pr.color, talla: pr.talla }}
+                            bloqueado={enviando}
+                            onQuitar={quitarPrenda}
+                            onCantidad={(clave, valor) => {
+                              if (!Number.isFinite(valor) || valor < 1) return;
+                              // Subir de a una pasa por `agregar` (valida lo que queda y avisa); un número escrito se topa con el stock.
+                              if (valor === l.cantidad + 1) agregar(clave);
+                              else setLineas((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: Math.min(Math.floor(valor), pr.stockAqui) } : x)));
+                            }}
+                            onDescuento={(clave) => setHojaDescuento([clave])}
+                            duenos={duenos}
+                            duenoElegido={duenoDeLinea[l.varianteId]}
+                            onDueno={(varianteId, empresaId) => setDuenoDeLinea((x) => ({ ...x, [varianteId]: empresaId }))}
+                            guiaDueno="apartar.dueno"
+                            pie={
+                              pedido && l.varianteId === pedido.varianteId
+                                ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
+                                : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`
+                            }
+                          />
                         </div>
-                        <div className="mt-2.5 grid grid-cols-[auto_1fr_auto] items-end gap-x-4 gap-y-1">
-                          <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Cantidad</span>
-                          <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Precio</span>
-                          <span className="text-right text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Importe</span>
-                          <PasoCantidad
-                            menos={{ onClick: () => setLineas((ls) => ls.flatMap((x, j) => (j !== i ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
-                            mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
-                          >
-                            {l.cantidad}
-                          </PasoCantidad>
-                          <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
-                          <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([{ cantidad: l.cantidad, precioUnitario: pr.precio, descuentoUnitario: descuentoCampana(pr) }]))}</span>
-                        </div>
-                        {duenosParaElegir(duenosPorVariante?.[l.varianteId]) && (
-                          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta/65">
-                            <span>¿De quién es?</span>
-                            <ElegirDueno
-                              empresas={duenosParaElegir(duenosPorVariante?.[l.varianteId])!}
-                              duenoId={duenoDeLinea[l.varianteId] ?? ""}
-                              onElegir={(id) => setDuenoDeLinea((d) => ({ ...d, [l.varianteId]: id }))}
-                              chico
-                              guia="apartar.dueno"
-                            />
-                          </div>
-                        )}
-                        <p className="mt-2 text-sm text-taupe-profundo">
-                          {pedido && l.varianteId === pedido.varianteId
-                            ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
-                            : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                  {/* El descuento a mano (ADR-0584): el mismo de la venta, para todas las prendas o las que se marquen. */}
+                  <div className="flex items-center justify-between gap-3 border-b border-sand px-5 py-3">
+                    <button
+                      type="button"
+                      data-guia="apartados.descuento"
+                      onClick={() => setHojaDescuento(lineas.map((l) => l.varianteId))}
+                      className="btn-cayla btn-secundario btn-chico"
+                    >
+                      <BadgePercent className="h-4 w-4" aria-hidden /> Descuento
+                    </button>
+                    {descontado > 0 && <span className="text-sm tabular-nums text-tinta/70">Descuento −{money(descontado)}</span>}
+                  </div>
                   <label className="block px-5 py-4">
                     <span className="mb-2 flex items-center gap-1.5 text-sm text-tinta/60">
                       <StickyNote className="h-3.5 w-3.5" aria-hidden /> Nota del apartado (opcional)
@@ -1120,6 +1168,21 @@ export function ApartarVista({
           icono={<Check className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cajaAbierta || !responsable.listo}
           onClick={confirmar}
+        />
+      )}
+
+      {hojaDescuento && (
+        <DescuentoApartado
+          lineas={lineasConDescuento}
+          prendas={porId}
+          nombreDe={(id) => {
+            const p = porId.get(id);
+            return p ? [p.referencia, variante(p)].filter(Boolean).join(" · ") : "Prenda";
+          }}
+          elegidasAlAbrir={hojaDescuento}
+          onAplicar={setDescuentos}
+          onQuitar={(ids) => setDescuentos((d) => quitarDelApartado(d, ids))}
+          onClose={() => setHojaDescuento(null)}
         />
       )}
 

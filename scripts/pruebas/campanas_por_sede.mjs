@@ -219,10 +219,12 @@ select 'desc|' || coalesce(sum(descuento_unitario), 0) from retail.separacion_it
 rollback;`);
     esperar("Apartado en Lima: la línea nace a precio normal (sin el descuento de Trujillo)", r.ok && r.salida.includes("desc|0.00"), r.ok ? r.salida : r.mensaje);
   }
+  // Desde ADR-0584 un descuento mayor que la campaña de la sede es un descuento a mano: sin motivo, se rechaza por eso (antes, por no
+  // coincidir con la campaña). Lo que se prueba sigue igual: la campaña de Trujillo no se cuela en un apartado de Lima.
   esperarError(
     "Apartado en Lima con el descuento de la campaña de Trujillo se rechaza",
     correr(`${FIXTURE(SOLO_TRU)}\n${separar("lima", 16.0)}\nrollback;`),
-    "separacion_descuento_no_coincide",
+    "venta_descuento_requiere_motivo",
   );
 
   // ---- 7. La tienda web: el descuento solo desde la tienda de la campaña ----
@@ -305,6 +307,50 @@ rollback;`);
     const correctiva = readFileSync(CORRECTIVA, "utf8");
     const r = correr(`begin;\n${correctiva}\n${correctiva}\nselect 'ok';\nrollback;`);
     esperar("la corrección (una sola firma) es re-ejecutable (dos veces seguidas)", r.ok && ultimaLinea(r) === "ok", r.ok ? r.salida : r.mensaje);
+  }
+
+  // ---- 12. `campanas_firma` (20261030223000): cambia si y solo si cambia la lista de `campanas_vigentes` de ESA tienda ----
+  //      El ERP la sondea cada 10 s en vez de bajar la lista entera. Cambia al aparecer la campaña y al cambiar su %, NO al renombrarla ni
+  //      en otra tienda, y es el md5 de la misma lista. MUTANTE: una firma que ignora el % no ve el cambio de descuento.
+  {
+    const FIRMA_DE_LA_LISTA = `(select md5(coalesce(string_agg(c.variante_id::text || ':' || c.etiqueta_id::text || ':' || trim_scale(c.descuento_pct)::text, ','
+      order by c.variante_id), '')) from retail.campanas_vigentes(:'tru') c)`;
+    const escenario = (antes = "") => `begin;
+set local request.jwt.claim.sub = '${FELIPE}';
+${TIENDAS}
+${antes}
+select retail.campanas_firma(:'tru') as f0_tru \\gset
+select retail.campanas_firma(:'lima') as f0_lima \\gset
+${CAMPANA(SOLO_TRU)}
+select retail.campanas_firma(:'tru') as f1_tru \\gset
+update retail.etiquetas set nombre = 'ZZ Campaña renombrada (prueba)' where id = :'etq';
+select retail.campanas_firma(:'tru') as f2_tru \\gset
+select retail.actualizar_campana_etiqueta_con_sedes(:'etq', 30, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5, '{}'::uuid[], ${SOLO_TRU}) as _pct \\gset
+select concat_ws('|',
+  (:'f1_tru' <> :'f0_tru')::text,
+  (retail.campanas_firma(:'lima') = :'f0_lima')::text,
+  (:'f2_tru' = :'f1_tru')::text,
+  (retail.campanas_firma(:'tru') <> :'f2_tru')::text,
+  (retail.campanas_firma(:'tru') = ${FIRMA_DE_LA_LISTA})::text);
+rollback;`;
+    const r = correr(escenario());
+    esperar(
+      "campanas_firma cambia al aparecer la campaña y al cambiar su %, no al renombrarla ni en otra tienda, y es el md5 de la lista",
+      ultimaLinea(r) === "true|true|true|true|true",
+      r.ok ? r.salida : r.mensaje,
+    );
+
+    const mutante = correr(escenario(`create or replace function retail.campanas_firma(p_ubicacion_id uuid default null) returns text
+language sql stable as $$ select md5(coalesce(string_agg(c.variante_id::text || ':' || c.etiqueta_id::text, ',' order by c.variante_id), ''))
+  from retail.campanas_vigentes(p_ubicacion_id) c $$;`));
+    esperar("MUTANTE (una firma que ignora el %): el caso lo ve", mutante.ok && ultimaLinea(mutante).split("|")[3] === "false", mutante.ok ? mutante.salida : mutante.mensaje);
+
+    const anon = correr(`begin;
+${TIENDAS}
+set local role anon;
+select retail.campanas_firma(:'tru');
+rollback;`);
+    esperarError("sin sesión (anon) no se puede pedir la firma", anon, "permission denied");
   }
 
   console.log(`\n${total - fallos} de ${total} bien${fallos ? ` · ${fallos} FALLARON` : ""}.`);

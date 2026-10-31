@@ -155,9 +155,9 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
             <b>{mesTitulo(mes)}</b>
             <p>
               Topes de gasto por rubro (vacío = sin tope). La meta de ventas no se escribe aquí: sale de las metas del día de «Tiendas y
-              caja». Se ve en{" "}
-              <Link href={`/finanzas/reportes/presupuesto?mes=${mes}`} className="btn-enlace">
-                Reportes ▸ Presupuesto
+              caja». Lo planeado se ve en{" "}
+              <Link href={`/finanzas/reportes?mes=${mes}`} className="btn-enlace">
+                Estados financieros ▸ ¿Ganamos?
               </Link>
               .
             </p>

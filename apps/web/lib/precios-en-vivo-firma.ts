@@ -13,12 +13,25 @@ export function firmaDePrecios(version: number | null, campanas: FilaCampana[] |
   return `${version ?? "?"}|${partes}`;
 }
 
-/** ¿Cambió algo que se ve? Una parte desconocida («?») en cualquiera de las dos no cuenta como cambio de esa parte. */
+/**
+ * La misma firma, pero con las campañas firmadas POR LA BASE (`campanas_firma`, 20261030223000: el md5 de la misma lista prenda:campaña:%).
+ * Así el sondeo de cada 10 s no baja la lista entera (en el Aniversario eran 2 518 filas, ~420 KB por vuelta y pantalla) sino 32 letras.
+ * La parte de campañas lleva «#» delante para no compararla nunca con una firma armada desde la lista (ver `cambioLaFirma`).
+ */
+export function firmaConCampanasDeLaBase(version: number | null, campanas: string | null): string | null {
+  if (version === null && campanas === null) return null;
+  return `${version ?? "?"}|${campanas === null ? "?" : `#${campanas}`}`;
+}
+
+/** ¿Cambió algo que se ve? Una parte desconocida («?») en cualquiera de las dos no cuenta como cambio de esa parte. Tampoco
+ *  cuenta comparar una firma de la base («#…») con una armada desde la lista: son dos formas de decir lo mismo, no un cambio
+ *  (pasa una vez, el día que la función de la base aparece o deja de responder). */
 export function cambioLaFirma(antes: string, ahora: string): boolean {
   const [va, ca] = antes.split("|");
   const [vb, cb] = ahora.split("|");
   const versionCambio = va !== "?" && vb !== "?" && va !== vb;
-  const campanasCambiaron = ca !== "?" && cb !== "?" && ca !== cb;
+  const mismaForma = ca.startsWith("#") === cb.startsWith("#");
+  const campanasCambiaron = ca !== "?" && cb !== "?" && mismaForma && ca !== cb;
   return versionCambio || campanasCambiaron;
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { agruparPendientes, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "./finanzas-te-toca-reglas";
 import type { PendienteImpuesto } from "./impuestos-antes-reglas";
 
-const vacio = { egresosSinClasificar: 0, egresosSinClasificarMonto: 0, sinComprobante: 0, nPorPagar: 0, porPagar: 0 };
+const vacio = { egresosSinClasificar: 0, egresosSinClasificarMonto: 0, sinComprobante: 0, igvSinComprobante: 0, nPorPagar: 0, porPagar: 0 };
 
 describe("los pendientes de Gastos", () => {
   it("sin nada pendiente, nada", () => {
@@ -10,11 +10,13 @@ describe("los pendientes de Gastos", () => {
   });
 
   it("cada cifra que pide algo es un pendiente que lleva a su lugar, con la sede elegida", () => {
-    const p = pendientesDeGastos({ egresosSinClasificar: 2, egresosSinClasificarMonto: 120, sinComprobante: 1, nPorPagar: 0, porPagar: 0 }, "sede=l");
+    const p = pendientesDeGastos({ egresosSinClasificar: 2, egresosSinClasificarMonto: 120, sinComprobante: 1, igvSinComprobante: 68.64, nPorPagar: 0, porPagar: 0 }, "sede=l");
     expect(p.map((x) => [x.titulo, x.href])).toEqual([
       ["2 salidas de caja sin clasificar", "/finanzas/gastos?sede=l&tab=egresos"],
-      ["1 gasto sin boleta ni factura", "/finanzas/gastos?sede=l"],
+      ["1 gasto de S/\u00a0300 o más sin boleta ni factura", "/finanzas/gastos?sede=l"],
     ]);
+    // Lo mismo que dice la bandeja de Gastos: el IGV que se recuperaría con factura (en soles redondos, como el resto del cajón).
+    expect(p[1]!.detalle).toBe("Con factura recuperarías S/\u00a069 de IGV");
   });
 
   it("sin sede elegida la dirección queda limpia", () => {

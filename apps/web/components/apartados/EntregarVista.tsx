@@ -17,7 +17,7 @@ import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
-import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -222,13 +222,14 @@ export function EntregarVista({
             <LineaDeTiempo creadaEl={diaLima(a.creadaEn)} hoy={hoy} venceEl={a.venceEl} />
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
-                <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
+                <li key={pr.varianteId} className="flex flex-wrap items-center gap-x-3 py-2.5">
                   <FotoPrenda fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
                     <p className="text-sm text-tinta/60">{detallePrenda(porVariante.get(pr.varianteId), pr.sku)} · {pr.cantidad} u.</p>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums">{money((pr.precioUnitario - pr.descuentoUnitario) * pr.cantidad)}</span>
+                  <ImporteDePrenda prenda={pr} className="font-semibold" />
+                  <DescuentoDePrenda prenda={pr} className="mt-1.5 basis-full pl-14" />
                 </li>
               ))}
             </ul>

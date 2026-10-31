@@ -563,7 +563,7 @@ select variante_id, ubicacion_id, sububicacion_id, 'c1a07e00-0000-4000-8000-0000
     nombre: "copias_del_color_iguales_a_su_tela",
     gravedad: 2,
     nivel: "cruzada",
-    dice: "Cada color de una tela (un insumo con `material_id`, ADR-0554) es el reflejo de su tela: mismo tipo y unidad (una tela siempre en metros), mismo tejido, misma merma, el código «código de la tela-código del color» y un nombre que empieza por el de la tela. Si no, la orden pide una merma que la tela ya no tiene, el plan sugiere el tejido equivocado o dos colores de una misma tela se llaman distinto. Un disparador las copia en cada guardado; esto vigila lo que se cuele por un camino que lo salte (un arreglo a mano con los disparadores apagados, o una migración). El nombre se compara solo hasta el de la tela: el color puede haberse renombrado en Catálogo y el insumo no se entera hasta que se guarda su tela (se corrige guardándola desde «Editar tela»).",
+    dice: "Cada color de una tela (un insumo con `material_id`, ADR-0554) es el reflejo de su tela: mismo tipo y unidad (una tela siempre en metros), mismo tejido, misma merma, el código «código de la tela-código del color» y un nombre que empieza por el de la ficha MÁS SU MEDIDA si la tiene (ADR-0580: el disparador compone «Botón nácar 18 L · Negro», y sin contar la medida esta invariante gritaba en cada avío y se volvía ciega para un descuadre de verdad). Si no, la orden pide una merma que la tela ya no tiene, el plan sugiere el tejido equivocado o dos colores de una misma tela se llaman distinto. Un disparador las copia en cada guardado; esto vigila lo que se cuele por un camino que lo salte (un arreglo a mano con los disparadores apagados, o una migración). El nombre se compara solo hasta el de la tela: el color puede haberse renombrado en Catálogo y el insumo no se entera hasta que se guarda su tela (se corrige guardándola desde «Editar tela»).",
     sql: `
 select i.id as insumo_id, i.codigo, i.nombre, m.codigo as tela_codigo, m.nombre as tela,
        i.tipo as tipo_del_color, m.tipo as tipo_de_la_tela, i.unidad_medida as unidad_del_color, m.unidad_medida as unidad_de_la_tela,
@@ -575,7 +575,9 @@ select i.id as insumo_id, i.codigo, i.nombre, m.codigo as tela_codigo, m.nombre 
     or i.tejido_id is distinct from m.tejido_id
     or i.merma_pct is distinct from m.merma_pct
     or i.codigo is distinct from m.codigo || coalesce('-' || i.color_codigo, '')
-    or not (i.nombre = m.nombre or starts_with(i.nombre, m.nombre || ' · '))`,
+    or not (i.nombre = m.nombre
+         or i.nombre = m.nombre || coalesce(' ' || retail.fn_medida_texto(m.medida_valor, m.medida_unidad), '')
+         or starts_with(i.nombre, m.nombre || coalesce(' ' || retail.fn_medida_texto(m.medida_valor, m.medida_unidad), '') || ' · '))`,
     // El disparador `insumos_copias_de_la_tela` (BEFORE) las volvería a copiar: dentro de la transacción revertida se apagan los disparadores de usuario, y sin eso no se podría probar que el detector lo ve.
     corrompe: `set local session_replication_role = replica;
 update retail.insumos set merma_pct = case when merma_pct < 0.4 then merma_pct + 0.05 else merma_pct - 0.05 end
@@ -600,6 +602,23 @@ select i.id, i.codigo, i.archivado_at, l.ubicacion_id, l.cantidad_ingresada, 'lo
     // Retirar un color que SÍ tiene saldo: lo que la función y el disparador impiden, hecho por la puerta de atrás (un UPDATE directo, que la política de líder permite).
     corrompe: `update retail.insumos set archivado_at = now()
  where ctid = (select i.ctid from retail.insumos i join retail.v_insumo_saldos s on s.insumo_id = i.id where i.material_id is not null and i.archivado_at is null and s.fisico <> 0 limit 1);`,
+  },
+  {
+    id: "INV-26",
+    nombre: "lote_de_insumo_cuadra_con_su_libro",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "La cantidad de cada lote de insumo es lo que su `compra` y sus `ajuste` suman en el libro de movimientos (ADR-0570: corregir o eliminar un ingreso cambia el lote Y deja el par «deshago + anoto» en el libro). Si no coinciden, el saldo del color que muestra la orden (la suma del libro) y el que descuenta el PEPS (la cantidad del lote) dicen cosas distintas: tela que se ve y no se puede cortar, o tela que se corta y no se ve.",
+    sql: `
+select l.id as lote_id, l.insumo_id, l.ubicacion_id, l.cantidad_ingresada as cantidad_del_lote, coalesce(m.suma, 0) as suma_del_libro
+  from retail.insumo_lotes l
+  left join lateral (
+    select sum(x.cantidad) as suma from retail.movimientos_insumo x where x.insumo_lote_id = l.id and x.tipo in ('compra', 'ajuste')
+  ) m on true
+ where l.cantidad_ingresada <> coalesce(m.suma, 0)`,
+    // Un lote cuya cantidad se toca por la puerta de atrás (un UPDATE directo, sin el par en el libro): lo que `corregir_ingreso_insumo` nunca hace.
+    corrompe: `update retail.insumo_lotes set cantidad_ingresada = cantidad_ingresada + 1
+ where ctid = (select ctid from retail.insumo_lotes where anulado_at is null limit 1);`,
   },
 ];
 

@@ -42,7 +42,8 @@
     ],
     "components/ExistenciasTarjetas.tsx": [
       "button «{`${lectura}»",
-      "button «{`${h.color ?? \"Sin color\"}»"
+      "button «{`${h.color ?? \"Sin color\"}»",
+      "button «existencias.mas-colores»"
     ],
     "components/ExistenciasVacio.tsx": [
       "Link «{`Ver «${producto.referencia}»",
@@ -151,9 +152,8 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
+import { Balanza } from "@/components/finanzas/estados/Balanza";
+import type { FormaEstado } from "@/lib/estados-financieros-reglas";
 import { CabeceraBloque, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { SaldosArranqueModal } from "@/components/finanzas/SaldosArranqueModal";
 import {
@@ -13,8 +14,6 @@ import {
   causaCorta,
   cifraChequeo,
   cortesDisponibles,
-  csvBalance,
-  cuentaLinea,
   enlaceDeCausa,
   iconoChequeo,
   motivoNoCuadra,
@@ -35,14 +34,13 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CalendarX, Flag, Scale, Store } from "lucide-react";
-import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
-// Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; ADR-0198), dibujado como el spike aprobado (`vista-reportes.js` →
-// `vistaBalance`): cabecera «¿Cuánto vale CAYLA?» → la tarjeta «Antes de dibujarlo, el sistema lo comprueba» con cada
-// cuenta por dos caminos → el Balance (lo que tiene | lo que debe + lo que es tuyo) SOLO si todo cuadra; si no, la guía
-// que dice qué no cuadra, por cuánto y dónde se arregla → lo que es de cada tienda → la nota. Con una tienda (la
-// colaboradora, o el líder con «Ver»), lo que es de esa tienda y cuánto rinde. La pantalla no calcula plata: todo viene de
-// la base (`fn_conciliacion_contable`, `fn_balance_general`, `fn_balance_por_tienda`).
+// Estados financieros ▸ ¿Cuánto vale CAYLA? (balance general; ADR-0195 F7, ADR-0198, ADR-0585). Si todo cuadra: la respuesta (lo tuyo) y la
+// balanza (lo que tiene contra lo que debe y lo tuyo, en grupos que se tocan), dos medidores (si te cobraran todo hoy; para cuántos meses de
+// venta hay mercadería), lo que es de cada sede y, plegados, cómo se comprobó y el balance formal (sin cuentas: van en lo que se descarga).
+// Si no cuadra, la comprobación y la guía de qué falta siguen a la vista: el Balance no se dibuja (un número falso es peor que ninguno). Con
+// una sede, lo que es de ella y cuánto rinde. La pantalla no calcula plata: todo viene de la base (`fn_conciliacion_contable`,
+// `fn_balance_general`, `fn_balance_por_tienda`).
 
 const entra = (i: number, clase = "") => ({
   className: `anim-entra ${clase}`.trim(),
@@ -51,6 +49,7 @@ const entra = (i: number, clase = "") => ({
 
 export function BalancePanel({
   esLider,
+  veTodo,
   hoy,
   corte,
   ver,
@@ -59,13 +58,17 @@ export function BalancePanel({
   unidades,
   saldos,
   propuestaArranque,
-  tiendaNombre,
+  costoDelMes,
   fallas,
+  forma = "respuesta",
 }: {
+  /** Solo el líder registra los saldos de arranque (`registrar_saldo_inicial`). */
   esLider: boolean;
+  /** Ve el Balance de CAYLA entera y el de cualquier tienda (ADR-0585: el líder o quien tiene Estados financieros). */
+  veTodo: boolean;
   hoy: string;
   corte: string;
-  /** «cayla» (el líder, CAYLA entera) o el id de la tienda que se mira. */
+  /** «cayla» (CAYLA entera, quien ve todo) o el id de la tienda que se mira. */
   ver: string;
   chequeos: Chequeo[];
   lineas: LineaBalance[];
@@ -73,18 +76,21 @@ export function BalancePanel({
   saldos: SaldoInicial[];
   /** La propuesta de los saldos de arranque ya leída (opcional; si no viene, el modal la pide). */
   propuestaArranque?: LineaPropuesta[] | null;
-  tiendaNombre: string;
+  /** Lo que costó lo vendido en el último mes completo (CAYLA): para cuántos meses de venta alcanza la mercadería. */
+  costoDelMes: number | null;
   fallas: string[];
+  /** La respuesta (la balanza) o el formato formal (el balance del contador, cómo se comprobó y los saldos de arranque). */
+  forma?: FormaEstado;
 }) {
   const router = useRouter();
   const ruta = usePathname();
   const params = useSearchParams();
   const [arranqueAbierto, setArranqueAbierto] = useState(false);
 
-  const verCayla = esLider && ver === "cayla";
+  const verCayla = veTodo && ver === "cayla";
   const unidad = verCayla ? null : (unidades.find((u) => u.ubicacionId === ver) ?? unidades[0] ?? null);
   const arranque = chequeos.find((c) => c.arranque)?.arranque ?? saldos.find((s) => s.vigente)?.fecha ?? null;
-  const cortes = cortesDisponibles(hoy, esLider ? arranque : null);
+  const cortes = cortesDisponibles(hoy, veTodo ? arranque : null);
 
   const ir = (cambios: Record<string, string | null>) => {
     const p = new URLSearchParams(params.toString());
@@ -95,18 +101,7 @@ export function BalancePanel({
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
 
-  const descargar = () => {
-    const url = URL.createObjectURL(
-      new Blob([csvBalance(verCayla ? lineas : [], verCayla ? chequeos : [], verCayla ? unidades : unidad ? [unidad] : [], corte)], {
-        type: "text/csv;charset=utf-8",
-      }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `balance-${corte}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
 
   const selectorCorte = (
     <SelectFin
@@ -120,41 +115,6 @@ export function BalancePanel({
 
   return (
     <div className="space-y-6">
-      <CabeceraReportes
-        pestana="balance"
-        titulo={verCayla ? "¿Cuánto vale CAYLA?" : `¿Cuánto tiene invertido ${nombreCortoTienda(unidad?.nombre ?? tiendaNombre)}?`}
-        bajada={
-          verCayla
-            ? "Lo que CAYLA tiene, contra lo que debe y lo que es tuyo."
-            : "Lo que es de la tienda: su caja, su mercadería, sus muebles y lo que debe por las facturas que pidió. El banco y el capital son de CAYLA entera."
-        }
-        acciones={
-          <>
-            {esLider ? (
-              <label className="fin-ver" data-guia="fin-ver.combo">
-                <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                <SelectFin
-                  etiqueta="Qué mirar"
-                  valor={ver}
-                  onValor={(v) => ir({ ver: v === "cayla" ? null : v })}
-                  opciones={[{ valor: "cayla", texto: "CAYLA entera" }, ...unidades.map((u) => ({ valor: u.ubicacionId, texto: u.nombre }))]}
-                />
-              </label>
-            ) : (
-              <Chip versalitas={false}>{tiendaNombre}</Chip>
-            )}
-            {esLider && verCayla && (
-              <button type="button" className="btn-cayla btn-secundario" onClick={() => setArranqueAbierto(true)} data-guia="fin-balance.arranque">
-                Saldos de arranque
-              </button>
-            )}
-            <BotonDescargar onClick={descargar} guia="fin-reportes.excel">
-              Descargar Excel
-            </BotonDescargar>
-          </>
-        }
-      />
-
       {fallas.map((f) => (
         <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
           {f}
@@ -169,10 +129,13 @@ export function BalancePanel({
           lineas={lineas}
           unidades={unidades}
           selectorCorte={selectorCorte}
+          costoDelMes={costoDelMes}
+          esLider={esLider}
           onArranque={() => setArranqueAbierto(true)}
+          forma={forma}
         />
       ) : (
-        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} esLider={esLider} />
+        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} veTodo={veTodo} />
       )}
 
       {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} propuestaInicial={propuestaArranque} onCerrar={() => setArranqueAbierto(false)} />}
@@ -182,8 +145,6 @@ export function BalancePanel({
 
 const minuscula = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
-/** «Tienda Trujillo» → «Trujillo» (el título ya dice qué es). */
-const nombreCortoTienda = (n: string) => n.replace(/^Tienda\s+/i, "");
 
 // ---- CAYLA entera ---------------------------------------------------------------------------------------------------------
 
@@ -194,7 +155,10 @@ function VistaCayla({
   lineas,
   unidades,
   selectorCorte,
+  costoDelMes,
+  esLider,
   onArranque,
+  forma,
 }: {
   hoy: string;
   corte: string;
@@ -202,10 +166,64 @@ function VistaCayla({
   lineas: LineaBalance[];
   unidades: UnidadBalance[];
   selectorCorte: React.ReactNode;
+  costoDelMes: number | null;
+  esLider: boolean;
   onArranque: () => void;
+  forma: FormaEstado;
 }) {
   const sit = situacion(chequeos);
   const visibles = chequeos.filter((c) => c.clave !== "corte");
+  if (sit.tipo === "cuadra") {
+    const comprobacion = (
+      <Superficie pad className="fin-balance-tarjeta">
+        <CabeceraBloque titulo="Antes de dibujarlo, el sistema lo comprueba" bajada="Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra: un número falso es peor que ninguno." />
+        <ul className="fin-chequeos" data-guia="fin-balance.chequeos">
+          {visibles.map((c) => (
+            <FilaChequeo key={c.clave} c={c} onArranque={onArranque} />
+          ))}
+        </ul>
+      </Superficie>
+    );
+    if (forma === "respuesta")
+      return (
+        <Balanza
+          lineas={lineas}
+          corte={corte}
+          hoy={hoy}
+          selectorCorte={selectorCorte}
+          costoDelMes={costoDelMes}
+          pie={
+            unidades.length > 0 ? (
+              <div data-guia="fin-balance.tiendas">
+                <TablaTiendas unidades={unidades} />
+              </div>
+            ) : undefined
+          }
+        />
+      );
+    return (
+      <div className="space-y-4" data-guia="fin-vale.formal">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {selectorCorte}
+          {esLider && (
+            <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
+              Saldos de arranque
+            </button>
+          )}
+        </div>
+        <div data-guia="fin-balance.resultado">
+          <BalanceCuadra lineas={lineas} corte={corte} hoy={hoy} />
+        </div>
+        {comprobacion}
+        <div className="nota-cayla" data-guia="fin-balance.nota">
+          El <b>capital</b> se registra una vez, al arrancar (lo que pusiste en el negocio), con las utilidades que ya traía. Nunca se
+          calcula como «lo que falta para que cuadre»: si así fuera, el Balance cuadraría siempre y no probaría nada. Por sede se muestra
+          <b> lo que es suyo</b> (su cajón, su mercadería, sus muebles y las facturas que pidió, enteras); el banco, el capital y el IGV son de
+          CAYLA entera y no se reparten.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -216,6 +234,11 @@ function VistaCayla({
             bajada="Cada cuenta se calcula por dos caminos. Si no coinciden, el Balance no se muestra."
           >
             {selectorCorte}
+            {esLider && (
+              <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
+                Saldos de arranque
+              </button>
+            )}
           </CabeceraBloque>
           {sit.tipo === "sin_arranque" ? (
             <ul className="fin-chequeos">
@@ -232,9 +255,7 @@ function VistaCayla({
       </div>
 
       <div {...entra(2)} data-guia="fin-balance.resultado">
-        {sit.tipo === "cuadra" ? (
-          <BalanceCuadra lineas={lineas} corte={corte} hoy={hoy} />
-        ) : sit.tipo === "no_cuadra" ? (
+        {sit.tipo === "no_cuadra" ? (
           <GuiaNoCuadra bloqueos={sit.bloqueos} onArranque={onArranque} />
         ) : sit.tipo === "antes_del_arranque" ? (
           <Superficie>
@@ -390,7 +411,7 @@ function LineaFila({ l }: { l: LineaBalance }) {
   const nota = notaLinea(l);
   return (
     <li>
-      <span>{cuentaLinea(l)}</span>
+      <span />
       <span>
         {nombreLinea(l)}
         {nota && <small>{nota}</small>}
@@ -514,13 +535,13 @@ function VistaTienda({
   hoy,
   corte,
   selectorCorte,
-  esLider,
+  veTodo,
 }: {
   unidad: UnidadBalance | null;
   hoy: string;
   corte: string;
   selectorCorte: React.ReactNode;
-  esLider: boolean;
+  veTodo: boolean;
 }) {
   if (!unidad) {
     return (
@@ -566,7 +587,7 @@ function VistaTienda({
               <h3>Lo que tiene</h3>
               <ul>
                 <li>
-                  <span>101</span>
+                  <span />
                   <span>
                     Cajón y caja fuerte
                     {unidad.caja == null && <small>la caja está abierta: su cifra la ve quien la cierra</small>}
@@ -574,12 +595,12 @@ function VistaTienda({
                   <span>{unidad.caja == null ? "—" : solesBalance(unidad.caja)}</span>
                 </li>
                 <li>
-                  <span>201</span>
+                  <span />
                   <span>Mercadería</span>
                   <span>{solesBalance(unidad.mercaderia)}</span>
                 </li>
                 <li>
-                  <span>33</span>
+                  <span />
                   <span>
                     Muebles, equipos y mejoras
                     {unidad.activosDepreciacion > 0 && (
@@ -601,7 +622,7 @@ function VistaTienda({
               <h3>Lo que debe</h3>
               <ul>
                 <li>
-                  <span>421</span>
+                  <span />
                   <span>
                     Las facturas por pagar que pidió
                     <small>enteras, aunque parte de la mercadería vaya a otra tienda</small>
@@ -632,7 +653,7 @@ function VistaTienda({
         tiendas (repartirlos sería inventar un número). Aquí está lo que es de la tienda y cuánto le rinde: la utilidad del mes (Estado
         de resultados) ÷ lo invertido.
         {!unidad.planillaVisible && " La utilidad no descuenta la planilla: esa la ve quien tiene acceso en Dynamic."}
-        {esLider && " El Balance de CAYLA entera, en «Ver»."}
+        {veTodo && " El Balance de CAYLA entera, eligiendo «Todas» en la barra de sedes."}
       </div>
     </>
   );

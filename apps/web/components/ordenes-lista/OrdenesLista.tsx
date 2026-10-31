@@ -277,9 +277,9 @@ export function OrdenesLista({
               <TarjetaCifra
                 key={c.clave}
                 etiqueta={c.titulo}
-                punto={c.lotes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
-                valor={<CifraQueCuenta valor={c.lotes} alMontar />}
-                unidad={c.lotes === 1 ? "lote" : "lotes"}
+                punto={c.ordenes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
+                valor={<CifraQueCuenta valor={c.ordenes} alMontar />}
+                unidad={c.unidad}
                 onClick={() => setFase((f) => (f === c.clave ? null : c.clave))}
                 activa={fase === c.clave}
                 className="anim-entra"

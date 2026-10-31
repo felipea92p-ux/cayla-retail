@@ -5,6 +5,8 @@
 // las mismas reglas que la base: `v_insumo_saldos` y `registrar_consumo_insumo`
 // (supabase/migrations/20260917145000_insumos_taller_reconstruido.sql, 20260917141500_registrar_consumo_insumo.sql).
 
+import { sinBlancosDeMiles } from "./numero-escrito";
+
 export type TipoInsumo = "tela" | "avio";
 export type UnidadInsumo = "metro" | "unidad" | "kilo" | "cono" | "par" | "docena";
 export type TipoMovInsumo = "compra" | "consumo" | "devolucion" | "merma" | "ajuste";
@@ -14,20 +16,23 @@ export const TIPOS_INSUMO: { valor: TipoInsumo; etiqueta: string; plural: string
   { valor: "avio", etiqueta: "Avío", plural: "Avíos", ayuda: "botones, cierres, etiquetas e hilo" },
 ];
 
-/** `corta` acompaña a la cifra («12.5 m»); `larga` es lo que se lee en un selector. */
-export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; decimales: number }> = {
-  metro: { corta: "m", larga: "Metros", decimales: 1 },
-  kilo: { corta: "kg", larga: "Kilos", decimales: 2 },
-  unidad: { corta: "unid.", larga: "Unidades", decimales: 0 },
-  cono: { corta: "conos", larga: "Conos", decimales: 0 },
-  par: { corta: "pares", larga: "Pares", decimales: 0 },
-  docena: { corta: "doc.", larga: "Docenas", decimales: 0 },
+/** `corta` acompaña a la cifra («12.50 m»); `larga` es lo que se lee en un selector.
+ *  Son DOS resoluciones y no se mezclan: `decimales` es con la que se PIDE al proveedor (`cantidadAPedir`: metros de 10 en 10 cm, hacia arriba) y `vista` es con la que se MUESTRA,
+ *  siempre fija. Un lote de 12.25 m se escribe con dos decimales (`leerCantidad`), así que verlo «12.3 m» o, peor, un saldo de 0.70 m como «1 m» es mostrar menos de lo que hay
+ *  (Felipe 2026-10-30). */
+export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; decimales: number; vista: number }> = {
+  metro: { corta: "m", larga: "Metros", decimales: 1, vista: 2 },
+  kilo: { corta: "kg", larga: "Kilos", decimales: 2, vista: 2 },
+  unidad: { corta: "unid.", larga: "Unidades", decimales: 0, vista: 0 },
+  cono: { corta: "conos", larga: "Conos", decimales: 0, vista: 0 },
+  par: { corta: "pares", larga: "Pares", decimales: 0, vista: 0 },
+  docena: { corta: "doc.", larga: "Docenas", decimales: 0, vista: 0 },
 };
 
-/** `12.5 m`, `40 unid.`: los decimales que la unidad admite y no más. */
+/** `12.50 m`, `40 unid.`: los decimales de `vista` de la unidad, siempre los mismos (nunca «12.5» en una fila y «12.50» en la de al lado). */
 export function cantidadTexto(n: number, unidad: UnidadInsumo): string {
   const u = UNIDADES_INSUMO[unidad];
-  return `${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: u.decimales })} ${u.corta}`;
+  return `${n.toLocaleString("es-PE", { minimumFractionDigits: u.vista, maximumFractionDigits: u.vista })} ${u.corta}`;
 }
 
 /** En qué unidades se puede llevar el libro de cada tipo (ADR-0554). Una TELA va siempre en metros: el kilo y el rollo son unidades de COMPRA que se convierten al recibir, porque lo que el
@@ -49,13 +54,22 @@ export const CANTIDAD_ILEGIBLE = "No se entiende la cantidad: escríbela así, 4
  * «1.200» ¿son mil doscientos o uno con dos? No se adivina, igual que `leerMontoPlata`. Vacío es `null` (quien llama decide si «vacío» es 0 o falta).
  */
 export function leerCantidad(texto: string): number | null {
-  const t = texto.replace(/\s/g, "");
-  if (!/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
+  // Los blancos se quitan con la regla única: un espacio adentro solo separa miles, así que una columna de tres celdas
+  // de Excel pegada aquí («12 8 5») ya no entra como 1 285 (/chaos de «Nuevo avío», 2026-10-31).
+  const t = sinBlancosDeMiles(texto);
+  if (t === null || !/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
   return Number(t.replace(",", "."));
 }
 
 /** Cómo se COMPRA una tela (ADR-0554). El libro va siempre en metros: el kilo y el rollo se convierten al recibir. */
 export type CompraDeTela = "metro" | "kilo" | "rollo";
+
+/** En qué se mide un AVÍO (ADR-0580): no es la unidad en que se cuenta su stock, sino la medida que lo distingue de otro de su misma clase (18 líneas, 40 centímetros, título 40).
+ *  Vive aquí, y no en `avio-clases-reglas.ts`, para que `MaterialVista` no tenga que importar de un archivo que ya importa de este. */
+export type UnidadMedidaAvio = "linea" | "milimetro" | "centimetro" | "titulo";
+
+/** La medida de un avío, tal como la guarda la base (`materiales.medida_valor` + `medida_unidad`): las dos, o ninguna. */
+export type MedidaDeAvio = { valor: number; unidad: UnidadMedidaAvio };
 
 /** La tela (o el avío): lo que es y cómo se compra. Sus colores son los `InsumoVista` con su `materialId`. */
 export type MaterialVista = {
@@ -65,6 +79,10 @@ export type MaterialVista = {
   tipo: TipoInsumo;
   tejidoId: string | null;
   composicion: string | null;
+  /** La clase del avío (ADR-0580: botón, cierre, hilo…); `null` en una tela. */
+  claseId: string | null;
+  /** La medida que lo distingue de otro de su clase; `null` si no lleva, o si es una tela. */
+  medida: MedidaDeAvio | null;
   /** La unidad del libro (una tela, siempre metro). */
   unidad: UnidadInsumo;
   /** 0 a 0,5. */
@@ -151,6 +169,8 @@ export type LoteInsumo = {
   costoUnitario: number | null;
   documento: string | null;
   origen: "compra" | "saldo_inicial";
+  /** Por qué este ingreso no se corrige ni se elimina desde la pantalla (de él ya salió material); `null` o ausente si se puede (ADR-0570, `motivoParaNoTocarIngreso`). */
+  noSeToca?: string | null;
 };
 
 /** Lo que queda de un lote, como lo recalcula `registrar_consumo_insumo`: lo ingresado, menos consumo y merma,

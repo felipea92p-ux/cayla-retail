@@ -15,6 +15,7 @@ import {
   type ClaveModulo,
   type ModuloDeCuenta,
   type TipoTerminalLegado,
+  veEstadosFinancierosDeTodo,
   veFinanzasDeTodo,
 } from "@/lib/modulos";
 import { funcionaEnVistaGlobal, modulosEnLaVista, NOMBRE_VISTA_GLOBAL, RUTA_ELEGIR_SEDE, VALOR_VISTA_GLOBAL, type Vista } from "@/lib/vista-global";
@@ -267,6 +268,18 @@ export function accionesDeCompraDe(persona: Pick<PersonaActualV2, "rol" | "modul
  *  CAYLA Global ve todo estando donde esté, y eso lo dice `puedeVerGlobal`. */
 export function veFinanzasDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "puedeVerGlobal">): boolean {
   return veFinanzasDeTodo(persona.rol, persona.modulos) || persona.puedeVerGlobal;
+}
+
+/** ¿Ve los Estados financieros de CAYLA entera? (ADR-0585, `fn_ve_estados_financieros_de_todo`): el flujo, el Balance entero y todas
+ *  las sedes. Solo mirar. */
+export function veEstadosFinancierosDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "terminal">): boolean {
+  return veEstadosFinancierosDeTodo(persona.rol, persona.modulos, persona.terminal);
+}
+
+/** El alcance de las lecturas del diario (`fn_ve_diario_de_todo`, ADR-0585): quien ve las finanzas de todo o los Estados financieros
+ *  de todo. Lo usan las pantallas de Estados financieros para repartir columnas por sede. */
+export function veDiarioDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "puedeVerGlobal" | "terminal">): boolean {
+  return veFinanzasDeTodoDe(persona) || veEstadosFinancierosDeTodoDe(persona);
 }
 
 /** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en

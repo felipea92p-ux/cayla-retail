@@ -12,6 +12,9 @@ import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { existentesParecidos } from "@/lib/atributo-parecido";
+import { claveTexto } from "@/lib/nombres-parecidos";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
@@ -166,6 +169,7 @@ export function FamiliasLista({
         <FamiliaModal
           borrador={borrador}
           editando={editando}
+          existentes={familias.map((f) => ({ id: f.codigo, nombre: f.nombre, activo: f.activo }))}
           responsable={responsable}
           guardando={guardando}
           onCambio={setBorrador}
@@ -212,6 +216,7 @@ export function FamiliasLista({
 function FamiliaModal({
   borrador,
   editando,
+  existentes,
   responsable,
   guardando,
   onCambio,
@@ -220,14 +225,22 @@ function FamiliaModal({
 }: {
   borrador: Borrador;
   editando: boolean;
+  /** Todas las familias, también las desactivadas (el id es el código): la base rechaza un nombre que ya tuvo una (ADR-0576). */
+  existentes: readonly { id: string; nombre: string; activo: boolean }[];
   responsable: ControlResponsable;
   guardando: boolean;
   onCambio: (b: Borrador) => void;
   onGuardar: () => Promise<void>;
   onClose: () => void;
 }) {
+  // «Existe también» (ADR-0576). Al editar, solo si cambió el nombre: una familia que ya tiene un parecido no puede quedar sin poder
+  // cambiar su interruptor de Análisis por eso.
+  const original = editando ? (existentes.find((e) => e.id === borrador.codigo)?.nombre ?? "") : null;
+  const nombreCambio = original === null || claveTexto(borrador.nombre) !== claveTexto(original);
+  const existe = useExisteTambien(borrador.nombre, nombreCambio ? existentesParecidos(borrador.nombre, existentes, { excluirId: borrador.codigo }) : []);
+  const faltaExiste = faltaPorExistente("familia", borrador.nombre, existe);
   const guia = useGuiaCampos([
-    { id: "nombre", nombre: "Nombre", requerido: true, hecho: borrador.nombre.trim() !== "", pendiente: "Escribe el nombre de la familia." },
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: borrador.nombre.trim() !== "" && !existe.bloquea, pendiente: faltaExiste ?? "Escribe el nombre de la familia." },
     // Opcional: lo normal es que la familia cuente. Solo se apaga para lo que se vende pero no es mercadería (bolsas, cajas).
     { id: "motores", nombre: "Cuenta en Análisis y plan del piso", requerido: false, hecho: true, pendiente: "" },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
@@ -255,6 +268,13 @@ function FamiliaModal({
                 autoFocus
               />
             </CampoGuiado>
+            <ExisteTambien
+              que="familia"
+              nombre={borrador.nombre}
+              estado={existe}
+              si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: cerrar })}
+              deshabilitado={guardando}
+            />
             <CampoGuiado id="motores" guia={guia}>
               <Interruptor
                 activo={borrador.entraAMotores}
@@ -282,8 +302,8 @@ function FamiliaModal({
             <Boton
               peso="primario"
               cargando={guardando}
-              disabled={!borrador.nombre.trim() || !responsable.listo}
-              title={responsable.motivo ?? guia.frase ?? undefined}
+              disabled={!borrador.nombre.trim() || existe.bloquea || !responsable.listo}
+              title={responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}
               className={guia.claseConfirmar}
               onClick={async () => {
                 await onGuardar();

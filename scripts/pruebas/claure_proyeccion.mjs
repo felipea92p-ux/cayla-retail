@@ -15,6 +15,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sqlDeshacer } from "./_deshacer_claure.mjs";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
+import { haceHoras } from "./_reloj_lima.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -59,8 +61,8 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 // Más: 20 de efectivo que se quedaron con Claudia al cerrar la caja de hoy y un gasto de limpieza de 118 (100 % de CLAURE). Saldo a hoy: 227 − 34.63 − 1.40 − 50 − 20 − 118 = 2.97.
 // `granGasto` agrega un alquiler de 1180 (50 % → 590): lo que se le debe pasa a negativo.
 const escena = ({ granGasto = false, conClaure = true } = {}) => `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+${ELEGIR_A}
+${ELEGIR_B}
 select id as izipay from retail.cuentas_dinero where nombre = 'Por depositar Izipay' \\gset
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
@@ -75,13 +77,13 @@ insert into retail.pos_maquinas (nombre, cuenta_id) select 'Izipay prueba', :'iz
 insert into retail.pos_tarifas (maquina_id, medio, tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono, vigente_desde)
   select m.id, 'tarjeta', 2.38, true, 0, 0, date '2026-01-01' from retail.pos_maquinas m where m.cuenta_id = :'izipay';
 insert into retail.cajas (id, ubicacion_id, estado, monto_apertura, abierta_en, cerrada_en) values
-  (${ID("e1")}, ${LIMA}, 'cerrada', 100, now() - interval '3 hours', now() - interval '2 hours'),
-  (${ID("e2")}, ${LIMA}, 'cerrada', 100, now() - interval '1 day 3 hours', now() - interval '1 day');
+  (${ID("e1")}, ${LIMA}, 'cerrada', 100, ${haceHoras(3)}, ${haceHoras(2)}),
+  (${ID("e2")}, ${LIMA}, 'cerrada', 100, ${haceHoras(3, { diasAtras: 1 })}, now() - interval '1 day');
 insert into retail.ventas (id, ubicacion_id, created_at, estado, es_prueba, caja_id) values
-  (${ID("a1")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a2")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a3")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a5")}, ${LIMA}, now() - interval '1 day 2 hours', 'completada', false, ${ID("e2")});
+  (${ID("a1")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")}),
+  (${ID("a2")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")}),
+  (${ID("a3")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")}),
+  (${ID("a5")}, ${LIMA}, ${haceHoras(2, { diasAtras: 1 })}, 'completada', false, ${ID("e2")});
 insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values
   (${ID("a1")}, :'va_a', 1, 100, 10), (${ID("a1")}, :'va_b', 1, 100, 10), (${ID("a2")}, :'va_a', 1, 118, 10), (${ID("a3")}, :'va_b', 1, 100, 10), (${ID("a5")}, :'va_a', 1, 59, 10);
 insert into retail.venta_pagos (venta_id, metodo, monto, cuenta_dinero_id) values
@@ -89,7 +91,7 @@ insert into retail.venta_pagos (venta_id, metodo, monto, cuenta_dinero_id) value
 insert into retail.movimientos_dinero (tipo, fecha, cuenta_origen_id, monto, estado)
   values ('pago_claure', (now() at time zone 'America/Lima')::date, :'interbank', 40, 'vigente'),
          ('pago_claure', (now() at time zone 'America/Lima')::date - 1, :'interbank', 10, 'vigente');
-insert into retail.caja_traslados (caja_id, destino, monto, registrado_por, creado_en) values (${ID("e1")}, 'claudia', 20, :'yo', now() - interval '1 hour');
+insert into retail.caja_traslados (caja_id, destino, monto, registrado_por, creado_en) values (${ID("e1")}, 'claudia', 20, :'yo', ${haceHoras(1)});
 insert into retail.gastos (id, ubicacion_id, categoria, descripcion, fecha, monto_total, igv, medio_pago, estado, registrado_por) values
   (${ID("c1")}, ${LIMA}, 'limpieza', 'Lejía', (now() at time zone 'America/Lima')::date, 118, 0, 'transferencia', 'vigente', :'yo')${granGasto ? `,
   (${ID("c2")}, ${LIMA}, 'alquileres', 'Alquiler', (now() at time zone 'America/Lima')::date, 1180, 0, 'transferencia', 'vigente', :'yo')` : ""};

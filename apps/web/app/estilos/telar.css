@@ -234,118 +234,305 @@ span.sede-telar { cursor: default; }
   color: var(--color-crema);
 }
 
-/* ---- Gastos · el retazo: cada categoría es un pedazo del tamaño de su gasto ---- */
-.retazo-gastos {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 100 / 46;
-}
-.retazo-gastos[data-alto] { aspect-ratio: 100 / 110; }
-.retazo-pieza {
-  position: absolute;
-  padding: 3px;
-  animation: retazo-despliega 0.6s var(--ease-cayla) backwards;
-  animation-delay: calc(var(--i, 0) * 55ms);
-}
-@keyframes retazo-despliega {
-  from { opacity: 0; transform: scale(0.96); }
-}
-.retazo-pieza > button {
-  position: relative;
+/* ---- Gastos · los hilos: cada categoría es una fila con su hilo partido por sede (Felipe 2026-10-30, maqueta gastos-grafico-2026-10) ----
+   El hilo es <BarraApilada> a la escala de la categoría más grande; encima, la rayita de dónde estaba el mes anterior. Al cambiar de sede
+   las filas se deslizan a su nuevo puesto (FLIP, HilosGastos.tsx) y los hilos se reacomodan desde donde estaban. Una vez, sin rebote.
+   El ancho lo pone su caja (`@container`), no la ventana: el gráfico vive al lado del calendario. */
+.hilos-gastos { container: hilos / inline-size; }
+.hilos-leyenda {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  height: 100%;
-  padding: 12px 12px 0;
-  overflow: hidden;
-  text-align: left;
-  border: 1px solid var(--color-sand);
-  border-radius: 12px;
-  background: var(--color-papel);
-  color: var(--color-tinta);
-  transition: transform 0.3s var(--ease-cayla), border-color 0.2s var(--ease-cayla), background-color 0.3s var(--ease-cayla), color 0.3s var(--ease-cayla);
-}
-@media (hover: hover) {
-  .retazo-pieza > button:hover { transform: translateY(-2px); border-color: var(--color-taupe); }
-}
-.retazo-pieza > button:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-.retazo-pieza > button[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
-.retazo-nombre { font-size: 14px; font-weight: 500; line-height: 1.25; }
-.retazo-monto { font-family: var(--font-serif); font-size: clamp(18px, 2vw, 28px); line-height: 1.05; font-variant-numeric: tabular-nums; }
-/* contraste: texto sobre papel y tinta (tinta y crema al 70 %, sobre el piso del 64 %) */
-.retazo-pct { font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
-.retazo-pieza > button[aria-pressed="true"] .retazo-pct { color: color-mix(in srgb, var(--color-crema) 70%, transparent); }
-.retazo-pieza[data-chica] .retazo-monto,
-.retazo-pieza[data-chica] .retazo-pct { display: none; }
-.retazo-trama {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  gap: 1px;
-  height: 8px;
-}
-.retazo-trama i {
-  --c: var(--color-taupe);
-  flex: 1 1 0;
-  background: var(--c);
-  transform-origin: left;
-  animation: orillo-teje 0.8s var(--ease-cayla) backwards;
-  animation-delay: calc(200ms + var(--i, 0) * 55ms);
-}
-.retazo-trama i[data-color="tru"] { --c: var(--color-sede-tru); }
-.retazo-trama i[data-color="aqp"] { --c: var(--color-sede-aqp); }
-.retazo-trama i[data-color="lim"] { --c: var(--color-sede-lim); }
-.retazo-trama i[data-color="tal"] { --c: var(--color-sede-tal); }
-.retazo-trama i[data-color="emp"] {
-  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 45%, transparent) 3px 6px);
-}
-
-/* ---- Gastos · el calendario: más oscuro, más gasto ---- */
-.calendario-gastos {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
-}
-.calendario-dia-semana {
-  padding-bottom: 2px;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-align: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+  margin: 0 0 6px 12px;
+  font-size: 14px;
   color: var(--color-taupe-profundo);
 }
-.calendario-dia {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  min-height: 28px;
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-  background: color-mix(in srgb, var(--color-tinta) calc(var(--a, 0) * 1%), var(--color-hueso));
-  color: var(--color-tinta);
-  transition: transform 0.2s var(--ease-cayla), box-shadow 0.2s var(--ease-cayla);
-  animation: calendario-entra 0.4s var(--ease-cayla) backwards;
-  animation-delay: calc(var(--i, 0) * 12ms);
+.hilos-leyenda > span { display: inline-flex; gap: 6px; align-items: center; }
+.hilo-antes-muestra { display: inline-block; width: 2px; height: 12px; border-radius: 1px; background: var(--color-tinta); }
+.hilos-filas { margin: 0; padding: 0; list-style: none; }
+.hilo-fila {
+  border-radius: 12px;
+  transition: background-color 200ms var(--ease-cayla);
+  animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
-@keyframes calendario-entra {
-  from { opacity: 0; }
-}
-.calendario-dia[data-oscuro] { color: var(--color-crema); }
+/* La fila abierta, en hueso suave: el «Ver en la tabla» rojo de su pie necesita ese fondo claro para pasar 4.5:1. */
+.hilo-fila[data-abierta] { background: color-mix(in oklab, var(--color-hueso) 50%, transparent); }
 @media (hover: hover) {
-  .calendario-dia:hover:not(:disabled) { transform: scale(1.08); }
+  .hilo-fila:not([data-abierta]):hover { background: color-mix(in oklab, var(--color-hueso) 40%, transparent); }
 }
-.calendario-dia:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-.calendario-dia[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--color-rojo); }
-.calendario-dia:disabled {
-  background: transparent;
-  border: 1px dashed var(--color-sand);
-  /* contraste: texto sobre crema y papel (tinta al 64 %, el piso) */
-  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
-  cursor: default;
+.hilo-cabeza {
+  display: grid;
+  grid-template-columns: 22px minmax(150px, 1.3fr) minmax(0, 2fr) 76px 92px 46px;
+  column-gap: 16px;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+}
+.hilo-rango { font-size: 14px; font-weight: 500; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-nombre {
+  display: grid;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-tinta);
+  text-align: left;
+  cursor: pointer;
+}
+.hilo-nombre:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
+.hilo-nombre b { font-size: 14px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.hilo-nombre small { font-size: 14px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-barra { position: relative; display: block; }
+/* La rayita del mes anterior: un trazo de tinta sobre el hilo, que se corre al cambiar de sede como los tramos. Es gráfico, no texto. */
+.hilo-antes {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--color-tinta);
+  opacity: 0.6;
+  transition: left 700ms var(--ease-cayla);
+}
+.hilo-cambio { justify-self: start; }
+.hilo-monto { font-family: var(--font-serif); font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.hilo-linea { justify-self: end; color: var(--color-tinta); }
+@container hilos (max-width: 680px) {
+  .hilo-cabeza { grid-template-columns: 22px minmax(120px, 1fr) minmax(0, 1.6fr) 76px 88px; }
+  .hilo-linea { display: none; }
+}
+@container hilos (max-width: 480px) {
+  .hilo-cabeza { grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 8px; }
+  .hilo-rango { grid-row: 1; }
+  .hilo-nombre { grid-column: 2; grid-row: 1; }
+  .hilo-monto { grid-column: 3; grid-row: 1; }
+  .hilo-barra { grid-column: 2 / -1; grid-row: 2; }
+  .hilo-cambio { display: none; }
+}
+
+/* El desglose (la 3 que eligió Felipe): se abre debajo de la fila, desplegándose de 0 a su alto; a la izquierda las sedes en columna, con
+   la hoja clara y el hilo rojo que se desliza a la elegida; a la derecha, lo que se gastó exactamente (filas de <Tabla>, con su hilo y su «›»). */
+.hilo-cajon { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 450ms var(--ease-cayla); }
+.hilo-fila[data-abierta] .hilo-cajon { grid-template-rows: 1fr; }
+.hilo-cajon > div { min-height: 0; overflow: hidden; }
+.hilo-desglose { padding: 4px 12px 14px 50px; cursor: default; }
+.hilo-desglose[data-columna] { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 0 32px; align-items: start; }
+.hilo-sedes { position: relative; display: grid; gap: 2px; }
+.hilo-sedes-marca {
+  position: absolute;
+  border-radius: 10px;
+  background: var(--color-papel);
+  box-shadow: inset 2px 0 0 var(--color-rojo);
+  transition: left 450ms var(--ease-cayla), top 450ms var(--ease-cayla), width 450ms var(--ease-cayla), height 450ms var(--ease-cayla);
+}
+.hilo-sede {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 12px;
+  align-items: center;
+  padding: 10px 12px 11px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-taupe-profundo);
+  text-align: left;
+  cursor: pointer;
+  transition: color 250ms var(--ease-cayla);
+  animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 50ms);
+}
+.hilo-sede[aria-pressed="true"] { color: var(--color-tinta); }
+@media (hover: hover) {
+  .hilo-sede:not([aria-pressed="true"]):hover { color: var(--color-tinta); }
+}
+.hilo-sede:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.hilo-sede-nombre { display: inline-flex; gap: 7px; align-items: center; font-size: 14px; font-weight: 600; }
+.hilo-sede-monto { font-family: var(--font-serif); font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
+.hilo-sede-barra { grid-column: 1 / -1; }
+.hilo-detalle { min-width: 0; container: hilos-detalle / inline-size; }
+.hilo-resumen { margin: 6px 0; font-size: 14px; color: var(--color-taupe-profundo); }
+.hilo-resumen b { font-weight: 600; color: var(--color-tinta); }
+.hilo-caja { overflow: hidden; }
+.hilo-gastos { display: grid; }
+.hilo-gasto {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 96px 88px;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 28px 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--color-tinta);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.hilo-gastos[data-con-sede] .hilo-gasto { grid-template-columns: 52px minmax(0, 1fr) 84px 96px 88px; }
+.hilo-gasto-dia { font-size: 14px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-gasto-que { display: grid; min-width: 0; }
+.hilo-gasto-que b,
+.hilo-gasto-que small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hilo-gasto-que b { font-weight: 500; }
+.hilo-gasto-que small { font-size: 14px; color: var(--color-taupe-profundo); }
+.hilo-gasto-sede { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--color-taupe-profundo); }
+.hilo-gasto-monto { font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.hilo-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 10px; }
+@container hilos (max-width: 760px) {
+  .hilo-desglose { padding-left: 12px; }
+  .hilo-desglose[data-columna] { grid-template-columns: 180px minmax(0, 1fr); gap: 0 20px; }
+}
+@container hilos (max-width: 480px) {
+  .hilo-desglose[data-columna] { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .hilo-sedes { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .hilo-sede { flex: none; min-width: 128px; }
+}
+/* La lista de gastos se acomoda a SU ancho (al lado de la columna de sedes es angosta): primero se va la barra, después la sede. */
+@container hilos-detalle (max-width: 560px) {
+  .hilo-gasto { grid-template-columns: 52px minmax(0, 1fr) 88px; }
+  .hilo-gastos[data-con-sede] .hilo-gasto { grid-template-columns: 52px minmax(0, 1fr) 76px 84px; }
+  .hilo-gasto-barra { display: none; }
+}
+@container hilos-detalle (max-width: 380px) {
+  .hilo-gasto,
+  .hilo-gastos[data-con-sede] .hilo-gasto { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
+  .hilo-gasto-sede { display: none; }
+}
+
+/* ---- Gastos · «Cuándo», el ritmo del mes (la C2 que eligió Felipe, 2026-10-30): la línea es <Linea>; aquí, su leyenda, el pie del
+   gráfico angosto y el día elegido, que se abre debajo como el desglose de «En qué se va». ---- */
+.ritmo-gastos { container: ritmo / inline-size; }
+.ritmo-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 6px; font-size: 14px; color: var(--color-taupe-profundo); }
+.ritmo-leyenda span { display: inline-flex; gap: 6px; align-items: center; }
+.ritmo-muestra { display: inline-block; width: 18px; border-top: 2.5px solid var(--color-tinta); }
+.ritmo-muestra[data-tipo="ref"] { border-top: 2px dashed var(--color-taupe); }
+.ritmo-muestra[data-tipo="proy"] { border-top: 2px dotted var(--color-tinta); opacity: 0.55; }
+.ritmo-muestra[data-tipo="viene"] { width: 9px; height: 9px; border: 1.5px dashed var(--color-taupe); border-radius: 50%; }
+.ritmo-globo { display: grid; gap: 1px; }
+.ritmo-globo b { font-weight: 600; }
+/* Lo del final del mes va al final de las líneas y, en una frase debajo, de qué está hecho el «si sigue así» (antes solo en el angosto:
+   la prueba ciega de /formidable no sabía si contaba los fijos que faltan). */
+.ritmo-pie { margin: 4px 0 0; max-width: 75ch; font-size: 14px; color: var(--color-taupe-profundo); }
+.ritmo-cajon { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 450ms var(--ease-cayla); }
+.ritmo-cajon[data-abierto] { grid-template-rows: 1fr; }
+.ritmo-cajon > div { min-height: 0; overflow: hidden; }
+.ritmo-dia { margin-top: 14px; padding: 12px 14px 8px; border-radius: 12px; background: color-mix(in srgb, var(--color-hueso) 50%, transparent); container: ritmo-dia / inline-size; }
+.ritmo-dia-cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 0 10px; }
+.ritmo-dia-cabeza h4 { margin: 0; font-family: var(--font-serif); font-size: 18px; font-weight: 500; }
+.ritmo-dia-cabeza small { font-size: 14px; color: var(--color-taupe-profundo); }
+.ritmo-gastos-dia { display: grid; margin-top: 6px; }
+.ritmo-gasto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 96px 88px;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 28px 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--color-tinta);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.ritmo-gasto[data-viene] { cursor: default; color: var(--color-taupe-profundo); }
+.ritmo-gasto[data-viene] .hilo-gasto-que b { font-weight: 400; }
+.ritmo-pie-dia { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px 4px; }
+@container ritmo-dia (max-width: 560px) {
+  .ritmo-gasto { grid-template-columns: minmax(0, 1fr) 96px 84px; }
+  .ritmo-gasto .hilo-gasto-barra { display: none; }
+}
+@container ritmo-dia (max-width: 380px) {
+  .ritmo-gasto { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding-right: 10px; }
+  .ritmo-gasto .hilo-gasto-sede { display: none; }
+}
+
+/* ---- Gastos · la lista como el extracto del banco («L1 · Por día», Felipe 2026-10-30): el separador del día es <SeparadorDia>
+   (se pega bajo la mesa de mando: `--separador-tope` lo mide `ExtractoGastos`) y cada fila es `fila-cayla`. Lo que pide algo va en
+   su columna de marcas; la sede, solo con varias a la vista. ---- */
+/* `clip` y no `hidden`: recorta las esquinas igual, pero no vuelve a la tarjeta un contenedor de scroll, y el separador sí se pega. */
+.fin-superficie:has(> .extracto-gastos) { overflow: clip; }
+.extracto-gastos { container: extracto / inline-size; }
+.extracto-filas { display: grid; }
+/* El separador va alineado con las filas (su total con el monto) y su total no se parte en dos renglones. */
+.extracto-gastos .separador-dia { padding-right: 32px; }
+.extracto-gastos .separador-dia-total { white-space: nowrap; }
+.extracto-titulo-corto { display: none; }
+.extracto-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px 120px;
+  grid-template-areas: "que marca monto";
+  gap: 4px 16px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 32px 10px 20px;
+  text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent);
+}
+.extracto-filas > .extracto-fila:last-child { border-bottom: 0; }
+.extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 112px 200px 120px; grid-template-areas: "que sede marca monto"; }
+.extracto-que { grid-area: que; display: grid; min-width: 0; }
+.extracto-que b { font-weight: 500; }
+.extracto-proveedor { font-weight: 400; color: var(--color-taupe-profundo); }
+.extracto-que small { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--color-taupe-profundo); }
+.extracto-punto-angosto { display: none; }
+.extracto-sede { grid-area: sede; display: inline-flex; gap: 6px; align-items: center; min-width: 0; font-size: 14px; color: var(--color-taupe-profundo); }
+.extracto-marca { grid-area: marca; display: flex; justify-content: flex-start; min-width: 0; }
+.extracto-monto { grid-area: monto; display: grid; justify-items: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.extracto-monto b { font-weight: 500; }
+.extracto-monto small { font-size: 14px; color: var(--color-taupe-profundo); }
+.extracto-fila[data-anulado] .extracto-que b,
+.extracto-fila[data-anulado] .extracto-monto b { color: var(--color-taupe-profundo); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--color-taupe) 70%, transparent); }
+/* La fila «×N»: su flecha (la «›» de la fila-cayla) da un cuarto de vuelta al abrirse, y cada gasto de adentro va un paso más adentro, sin
+   rayado propio. Abierta, `FilasDeMas` recorta con `clip` y no con `hidden`: así los días de antes que se abren siguen pegando su separador. */
+.extracto-flecha { position: absolute; top: 50%; right: 0.375rem; width: 14px; height: 14px; margin-top: -7px; color: var(--color-taupe); transition: transform 220ms var(--ease-cayla); }
+.extracto-fila[aria-expanded="true"] .extracto-flecha { transform: rotate(90deg); color: var(--color-tinta); }
+.extracto-que .globito { margin-left: 6px; vertical-align: 1px; }
+.extracto-fila[data-dentro] { padding-left: 40px; background-color: color-mix(in oklab, var(--color-hueso) 35%, transparent); animation: none; }
+.extracto-fila[data-dentro] .extracto-que b { font-weight: 400; }
+.extracto-gastos .filas-de-mas[data-abierto] > div { overflow: clip; }
+.extracto-repetidos[data-abierto] { border-bottom: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent); }
+@media (prefers-reduced-motion: reduce) { .extracto-flecha { transition: none; } }
+/* En el celular el día va sin el mes (ya está en la barra de arriba): «Hoy · viernes 30 de octubre» y su total no caben en un renglón. */
+@container extracto (max-width: 480px) {
+  .extracto-titulo-largo { display: none; }
+  .extracto-titulo-corto { display: inline; }
+}
+/* Mediana (un laptop de 1024, la lista ~690 px): la columna de la sede le quitaba a «qué fue» hasta dejarlo en 150 px y partirlo en dos
+   renglones; la sede pasa a ser el punto de color de la línea de abajo (como en el celular) y la marca se angosta. */
+@container extracto (max-width: 900px) {
+  .extracto-fila,
+  .extracto-gastos[data-con-sede] .extracto-fila { grid-template-columns: minmax(0, 1fr) 176px 112px; grid-template-areas: "que marca monto"; }
+  .extracto-sede { display: none; }
+  .extracto-punto-angosto { display: inline-flex; }
+}
+/* Angosta (tablet en vertical, celular): qué fue y el monto arriba; la marca, debajo de qué fue; la sede, como un punto en la línea de abajo. */
+@container extracto (max-width: 640px) {
+  .extracto-fila,
+  .extracto-gastos[data-con-sede] .extracto-fila {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "que monto" "marca monto";
+    padding: 10px 28px 10px 14px;
+  }
+  .extracto-fila[data-dentro] { padding-left: 28px; }
+  .extracto-gastos .separador-dia { padding-inline: 14px 28px; }
+  .extracto-sede { display: none; }
+  .extracto-punto-angosto { display: inline-flex; }
+  .extracto-marca:empty { display: none; }
+}
+
+/* La hoja de un gasto en el celular: «Ir a Por pagar» baja debajo del texto del aviso (a su derecha le dejaba tres palabras por renglón).
+   Como el aviso de Plan del piso: la pieza `Aviso` no cambia. */
+@media (max-width: 520px) {
+  .aviso-hoja-gasto.aviso-linea { grid-template-columns: auto minmax(0, 1fr); }
+  .aviso-hoja-gasto .aviso-linea-acc { grid-column: 2; grid-row: auto; justify-self: start; align-self: start; margin: 6px 0 0 -10px; }
 }
 
 /* ---- La hoja «Registrar gasto»: el formulario a la izquierda y «Así queda» a la derecha ---- */
@@ -559,10 +746,12 @@ span.sede-telar { cursor: default; }
   .sede-telar,
   .sede-telar-punto,
   .orillo-tramo,
-  .retazo-pieza,
-  .retazo-pieza > button,
-  .retazo-trama i,
-  .calendario-dia,
+  .hilo-fila,
+  .hilo-antes,
+  .hilo-cajon,
+  .hilo-sede,
+  .hilo-sedes-marca,
+  .ritmo-cajon,
   .hoja-gasto-sede,
   .hoja-gasto-linea,
   .te-toca-telar,
@@ -572,3 +761,47 @@ span.sede-telar { cursor: default; }
     animation: none;
   }
 }
+
+/* ---- «Vendido por sede» (Resumen, 2026-10-29): el orillo más alto, con su leyenda, dentro de una tarjeta ---- */
+.vendido-sede {
+  display: flex;
+  gap: 3px;
+  height: 16px;
+  margin: 0.25rem 0 0.75rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-hueso);
+}
+.vendido-sede[data-una] .orillo-tramo:not([aria-current]) {
+  flex-grow: 0 !important;
+  opacity: 0;
+}
+.vendido-sede-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vendido-sede-lista li {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 0;
+  border-top: 1px solid var(--color-sand);
+  font-size: 0.875rem;
+}
+.vendido-sede-lista i {
+  --c: var(--color-taupe);
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.25rem;
+  background: var(--c);
+}
+.vendido-sede-lista i[data-color="tru"] { --c: var(--color-sede-tru); }
+.vendido-sede-lista i[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.vendido-sede-lista i[data-color="lim"] { --c: var(--color-sede-lim); }
+.vendido-sede-lista i[data-color="tal"] { --c: var(--color-sede-tal); }
+.vendido-sede-lista i[data-color="emp"] { --c: var(--color-sede-emp); }

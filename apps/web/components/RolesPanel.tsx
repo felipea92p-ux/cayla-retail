@@ -86,6 +86,7 @@ export function RolesPanel({
   admins = [],
   acciones = accionesRolesSupabase,
   responsable,
+  responsableArriba = false,
 }: {
   roles: RolVista[];
   /** `null` = no se pudieron leer: la pantalla sigue, sin la lista de cuentas. */
@@ -109,6 +110,8 @@ export function RolesPanel({
   /** El combo «Responsable» de Colaboradores (ADR-0161/0162, Felipe 2026-09-23: TODA acción que guarda lo pide).
    *  Uno solo para la pantalla: lo comparten la cabecera de esta sección, sus modales y la barra de guardar. */
   responsable: ControlResponsable;
+  /** El aviso del Admin ya vive en la fila de pestañas de Colaboradores: aquí no se repite. */
+  responsableArriba?: boolean;
 }) {
   const router = useRouter();
   // ADR-0193: lo que esta pantalla guardó (con la versión que devolvió la base) manda hasta que `router.refresh()` traiga
@@ -222,6 +225,7 @@ export function RolesPanel({
 
   return (
     <div className={`@container space-y-4 ${conCambios ? "pb-24" : ""}`}>
+      {!responsableArriba && (
       <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="w-full max-w-md" data-guia="roles.responsable">
           {/* UN combo para toda la sección (regla 10 de CLAUDE.md). El mismo control se ve en cada modal y apaga
@@ -229,6 +233,7 @@ export function RolesPanel({
           <ComboResponsable control={responsable} enLinea deshabilitado={guardando} />
         </div>
       </div>
+      )}
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 @[900px]:grid-cols-[17rem_minmax(0,1fr)] @[900px]:items-start">
         <ListaDeRoles

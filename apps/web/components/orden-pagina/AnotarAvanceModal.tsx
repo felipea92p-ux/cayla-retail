@@ -16,21 +16,19 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { hoyLima } from "@/lib/fechas-lima";
 import {
-  RPC_ANOTAR_TERMINE,
-  RPC_DESHACER_AVANCE,
-  RPC_DESHACER_FALLA,
-  RPC_ORDEN_PRODUCCION,
-  avancesNuevos,
+  RPC_ANOTAR_TERMINE_CON_TELA,
+  RPC_DESHACER_TERMINE,
+  argsDeshacerTermine,
   buenasConFallas,
   cantidadConUnidad,
   cantidadesQueFaltan,
   diaParaLaBase,
   esPrimeraFase,
-  fallasNuevas,
   fallasQueCierran,
   faltaTerminar,
   fechaLimaDe,
-  leerOrdenPagina,
+  fraseDelEnvioConToken,
+  leerEnvioConTela,
   lineasDeFallas,
   problemaDeDia,
   problemasDeFallas,
@@ -40,10 +38,11 @@ import {
   type FasePagina,
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
-import { RPC_ANOTAR_INSUMOS, lineasDeUso, problemaDeLoUsado, telasDeLaOrden, textoDeLoUsado, usoDeLaFila, valorDeFabrica } from "@/lib/orden-tela-usada-reglas";
+import { lineasDeUso, problemaDeLoUsado, telasDeLaOrden, textoDeLoUsado, usoDeLaFila, valorDeFabrica } from "@/lib/orden-tela-usada-reglas";
 import { camposDeAvance } from "@/lib/orden-pagina-guia";
 import { avisoCorteSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
 import { lineasDeModeloExistente, tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
+import { faseTrasError } from "@/lib/intento-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
@@ -58,13 +57,13 @@ import { useResponsable } from "@/lib/useResponsable";
 // antes una sola prenda manchada trababa la orden. Al anotar una falla, las buenas de esa talla y color bajan solas. «¿Cuándo lo terminaste?» viene en hoy; la base guarda aparte
 // cuándo se anotó. Todo viaja en UNA llamada (`anotar_termine`): buenas, fallas y día, todo o nada.
 //
-// Al terminar el corte se pregunta la tela (actividad 7): cuando lo que se anota completa el lote, la hoja ofrece anotar de una vez los metros usados de cada tela (precargados con lo que
-// falta según el plan; vacío = «después, desde Tela»). Primero se anota el avance y después la tela: si la tela falla, el corte queda anotado y la hoja lo dice.
+// Al terminar el corte se pregunta la tela (actividad 7): cuando lo que se anota completa el lote, la hoja ofrece anotar de una vez lo que quedó de cada tela (vacío = «después,
+// desde Tela»). El corte y su tela viajan JUNTOS (`anotar_termine_con_tela`, ADR-0587): o quedan los dos o no queda nada. Antes eran dos llamadas, y un corte de red entre las dos
+// dejaba el corte anotado sin su tela.
 //
-// Se anota con quien se elige en «Responsable» (ADR-0161/0162). El aviso de éxito trae «Deshacer» (ADR-0400): `anotar_termine` no devuelve los ids de lo que escribió, así que se leen de
-// la orden recién traída (`avancesNuevos`, `fallasNuevas`) y se deshacen con la misma firma. Un doble clic no escribe dos veces: una marca síncrona corta la segunda llamada.
-
-type Respuesta = PromiseLike<{ data: unknown; error: { message: string } | null }>;
+// Se anota con quien se elige en «Responsable» (ADR-0161/0162). Un doble clic no escribe dos veces (una marca síncrona corta la segunda llamada) y un reintento tras un corte de red
+// tampoco: la hoja lleva un token, y con el mismo token la base responde «repetido» sin anotar nada. El token se renueva solo cuando la base dijo que no (lo corregido es otro
+// envío). El aviso de éxito trae «Deshacer» (ADR-0400): con los ids que devolvió el envío, `deshacer_termine` deshace las prendas, las fallas y devuelve la tela a su lote, todo o nada.
 
 export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina; fase: FasePagina; onClose: () => void }) {
   const router = useRouter();
@@ -83,6 +82,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   const telas = useMemo(() => telasDeLaOrden(datos.insumos).filter((t) => t.tipo === "tela"), [datos.insumos]);
   const [telaUsada, setTelaUsada] = useState<Record<string, string>>(() => Object.fromEntries(telas.map((t) => [t.insumoId, valorDeFabrica(t)])));
   const enVuelo = useRef(false);
+  const token = useRef<string>(crypto.randomUUID());
 
   const tabla = useMemo(() => tablaDeModeloExistente(datos.lineas.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [datos.lineas]);
   const lineasPorId = useMemo(() => new Map(datos.lineas.map((l) => [l.varianteId, l] as const)), [datos.lineas]);
@@ -158,19 +158,20 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
     setCargando(true);
     // «Deshacer» firma con la misma persona que anotó: el combo pudo volver a vacío entre tanto.
     const firma = responsable.firma();
-    const antes = datos.lineaDeTiempo;
     const lineasFalla = lineasDeFallas(fallas, motivo);
     let resultado;
     try {
       resultado = await firmar(
         createClient().rpc(
-          RPC_ANOTAR_TERMINE as never,
+          RPC_ANOTAR_TERMINE_CON_TELA as never,
           {
             p_fase_id: fase.id,
             p_lineas: lineas,
             p_nota: nota.trim() === "" ? null : nota.trim(),
             p_hecho_en: diaParaLaBase(dia, hoy),
             p_fallas: lineasFalla.length > 0 ? lineasFalla : null,
+            p_tela: escribioTela ? lineasDeUso(telas, telaUsada) : null,
+            p_token: token.current,
           } as never
         ),
         firma
@@ -178,55 +179,36 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
     } finally {
       enVuelo.current = false;
     }
-    const { error } = resultado;
+    const { data, error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      // La base pudo guardar y la respuesta perderse: «No se guardó nada» sería mentira. Se dice que no se sabe y se pide revisar la historia antes de repetir.
-      avisar.error(traducirError(error, `anotar lo que terminaste en ${nombreMinuscula}`, { confirmarAntesDeRepetir: true }));
+      // Con un «no» de la base, lo que se corrija es otro envío: token nuevo. Sin respuesta, el mismo: reintentar no anota dos veces.
+      if (faseTrasError(error) === "libre") token.current = crypto.randomUUID();
+      avisar.error(fraseDelEnvioConToken(error, `anotar lo que terminaste en ${nombreMinuscula}`, conFalla > 0 ? "Anotar" : "Terminé"));
       return;
     }
-    // La tela, si se escribió: después del avance, en UNA llamada para todos los colores (todo o nada). Si falla, el corte ya quedó anotado y se dice.
-    let anotada: string | null = null;
-    let falloDeTela: string | null = null;
-    if (escribioTela) {
-      const { error: errorTela } = await firmar(
-        createClient().rpc(RPC_ANOTAR_INSUMOS as never, { p_produccion_id: datos.orden.id, p_lineas: lineasDeUso(telas, telaUsada), p_nota: "al terminar el corte" } as never),
-        firma
-      );
-      if (errorTela) falloDeTela = traducirError(errorTela, "anotar la tela", { confirmarAntesDeRepetir: true });
-      else anotada = textoDeLoUsado(telas, telaUsada);
+    const envio = leerEnvioConTela(data);
+    if (envio.repetido) {
+      avisar.exito("Ya estaba anotado", { detalle: `${datos.orden.numeroTexto} · se había guardado antes de que se cortara la conexión; no se anotó dos veces` });
+      cerrarTrasGuardar();
+      return;
     }
-    if (falloDeTela) avisar.error(`El corte quedó anotado, pero la tela no: ${falloDeTela} Anótala desde «Tela».`);
+    const anotada = escribioTela ? textoDeLoUsado(telas, telaUsada) : null;
+    const deshacer = envio.deshacer;
     avisar.exito(total > 0 ? textoTermine(total, fase.nombre) : `Anotaste ${conFalla} con falla en ${fase.nombre}`, {
-      detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}${total > 0 && conFalla > 0 ? ` · ${conFalla} con falla` : ""}${anotada ? ` · ${anotada.toLocaleLowerCase("es")} (Deshacer no la devuelve)` : ""}`,
-      accion: {
-        texto: "Deshacer",
-        onClick: async () => {
-          const cliente = createClient();
-          const leida = await (cliente.rpc(RPC_ORDEN_PRODUCCION as never, { p_produccion_id: datos.orden.id } as never) as unknown as Respuesta);
-          const fresca = leida.error ? null : leerOrdenPagina(leida.data);
-          const ids = fresca ? avancesNuevos(antes, fresca.lineaDeTiempo, fase.clave) : [];
-          const idsFalla = fresca ? fallasNuevas(antes, fresca.lineaDeTiempo, fase.clave) : [];
-          if (ids.length === 0 && idsFalla.length === 0) {
-            avisar.error("No se pudo deshacer desde aquí. Si ya no aparece «Deshacer» en la historia, otra anotación ya lo cambió.");
-            router.refresh();
-            return;
+      detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}${total > 0 && conFalla > 0 ? ` · ${conFalla} con falla` : ""}${anotada ? ` · ${anotada.toLocaleLowerCase("es")}` : ""}`,
+      accion: deshacer
+        ? {
+            texto: "Deshacer",
+            onClick: async () => {
+              const { error: e2 } = await firmar(createClient().rpc(RPC_DESHACER_TERMINE as never, argsDeshacerTermine(deshacer) as never), firma);
+              if (e2) avisar.error(traducirError(e2, "deshacer lo que anotaste"));
+              else avisar.exito(`Deshiciste lo que anotaste en ${fase.nombre}`, { detalle: `${datos.orden.numeroTexto}${deshacer.consumoIds.length > 0 ? " · la tela volvió al estante" : ""}` });
+              router.refresh();
+            },
           }
-          let fallo = false;
-          const pasos = [...ids.map((id) => ({ rpc: RPC_DESHACER_AVANCE, args: { p_avance_id: id } })), ...idsFalla.map((id) => ({ rpc: RPC_DESHACER_FALLA, args: { p_falla_id: id } }))];
-          for (const paso of pasos) {
-            const { error: e2 } = await firmar(cliente.rpc(paso.rpc as never, paso.args as never), firma);
-            if (e2) {
-              avisar.error(traducirError(e2, "deshacer lo que anotaste"));
-              fallo = true;
-              break;
-            }
-          }
-          if (!fallo) avisar.exito(`Deshiciste lo que anotaste en ${fase.nombre}`, { detalle: datos.orden.numeroTexto });
-          router.refresh();
-        },
-      },
+        : undefined,
     });
     cerrarTrasGuardar();
   }

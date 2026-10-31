@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 74,
+  "total": 96,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -22,10 +22,12 @@
       "Boton «prod-insumos.ingresar»",
       "button «Ocultar»",
       "button «Ver el capital en insumos»",
-      "Boton «→() => (datos.hayTelas ? setNuevaTela({ agregarA: null»",
+      "Boton «Crear la primera tela»",
       "button «{g.material.id === primeraTelaId ? \"prod-insumos.agregar-colores\" : undefined}»",
       "LapizEditar «{`la tela ${g.material.nombre}»",
       "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
+      "LapizEditar «este ingreso»",
+      "button «Restaurar»",
       "Boton «+ Ingresar lote»",
       "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»",
       "Boton «{indice === 0 ? \"prod-insumos.retirar-color\" : undefined}»"
@@ -49,13 +51,25 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/insumos-taller/CamposDeLaFicha.tsx": [
       "CampoSelect «{foco.etiqueta(\"tejido\", \"Tejido\")}»",
       "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
+    ],
+    "components/insumos-taller/CorregirIngresoModal.tsx": [
+      "CampoTexto «{`Cantidad (${unidad.corta}»",
+      "CampoMonto «{`Costo por ${unidad.corta}»",
+      "CampoFecha «¿Qué día llegó?»",
+      "CampoTexto «Documento»",
+      "CampoTexto «Código de lote»",
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
+      "ComboResponsable «{responsable}»",
+      "Boton «prod-insumos-corregir.eliminar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/insumos-taller/EditarTelaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
@@ -79,14 +93,19 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
-    "components/insumos-taller/NuevoInsumoModal.tsx": [
-      "CampoSelect «Tipo»",
-      "CampoSelect «Se mide en»",
-      "CampoTexto «{guia.etiqueta(\"codigo\", \"Código\")}»",
-      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
-      "CampoTexto «{guia.etiqueta(\"minimo\", \"Mínimo\")}»",
+    "components/insumos-taller/NuevoAvioModal.tsx": [
+      "ComboBuscable «{claseId}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del avío\")}»",
+      "Boton «Agregar colores a ese»",
+      "CampoTexto «{guia.etiqueta(\"medida\", laMedida.titulo)}»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»",
-      "CampoTexto «Nota»",
+      "CampoTexto «{`Cuánto hay de ${nombreColor}»",
+      "CampoTexto «{`Costo de ${nombreColor}»",
+      "CampoTexto «{`Mínimo de ${nombreColor}»",
+      "button «{`Quitar ${nombreColor}»",
+      "CampoTexto «{`¿Ya tienes? (${corta}»",
+      "CampoTexto «{`Costo por ${unidadSingular(e.unidad)}»",
+      "CampoTexto «{`Mínimo (${corta}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
@@ -98,6 +117,13 @@
       "CampoTexto «Gramaje (g/m²)»",
       "CampoTexto «¿Cuántos metros trae un rollo?»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»"
+    ],
+    "components/insumos-taller/RestaurarIngresoModal.tsx": [
+      "button «{m}»",
+      "CampoTexto «O cuéntalo con tus palabras»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/insumos-taller/RetirarColorModal.tsx": [
       "ComboResponsable «{responsable}»",

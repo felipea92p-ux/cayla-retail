@@ -6,6 +6,8 @@ import { TallasLista } from "@/components/TallasLista";
 import { TejidosLista } from "@/components/TejidosLista";
 import { PatronesLista } from "@/components/PatronesLista";
 import { TemporadasLista } from "@/components/TemporadasLista";
+import { AvioClasesLista } from "@/components/AvioClasesLista";
+import type { ClaseDeAvio } from "@/lib/avio-clases-reglas";
 import type { ComponentProps } from "react";
 
 /**
@@ -27,7 +29,7 @@ import type { ComponentProps } from "react";
  * de Categorías y Productos.
  */
 
-type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "temporadas";
+type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "avios" | "temporadas";
 
 // EL ORDEN ES DE RELEVANCIA, no cronológico ni alfabético:
 //   (Sellos —Nuevo, Top ventas, Para liquidar— fue la primera pestaña hasta el 2026-10-22: desde ese día es su propia
@@ -52,6 +54,8 @@ const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
   { tipo: "tejidos", etiqueta: "Tejidos", icono: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   // Rombos en quincunce: un estampado/patrón repetido.
   { tipo: "patrones", etiqueta: "Patrones", icono: "M12 2l2 2-2 2-2-2zM4 10l2 2-2 2-2-2zM20 10l2 2-2 2-2-2zM12 18l2 2-2 2-2-2zM12 10l2 2-2 2-2-2z" },
+  // Un botón con sus cuatro agujeros: el avío más común del Taller.
+  { tipo: "avios", etiqueta: "Avíos", icono: "M12 3a9 9 0 100 18 9 9 0 000-18zM10 10h.01M14 10h.01M10 14h.01M14 14h.01" },
   // Medio sol y medio copo: las dos mitades del año (Primavera-Verano, Otoño-Invierno).
   {
     tipo: "temporadas",
@@ -65,6 +69,7 @@ const AYUDA: Record<Tipo, string> = {
   tallas: "Las tallas del catálogo. Aprobar una pide un comentario: una talla mal aprobada cuesta deshacerla.",
   tejidos: "Los tejidos del catálogo: van con la prenda, no con la talla. Toca uno para ver su foto y sus prendas.",
   patrones: "Los patrones y estampados: van con la prenda, como el tejido. Toca uno para ver su foto y sus prendas.",
+  avios: "Las clases de avío del Taller (botón, cierre, hilo…). De la clase sale en qué se cuenta, si lleva color y qué medida pide.",
   temporadas:
     "Una temporada por prenda. Manda la del color, luego la de la prenda y luego la de su categoría. Al terminar la estación, Frescura avisa.",
 };
@@ -87,6 +92,7 @@ export function AtributosHub({
   prendasPorPatron = {},
   puedeEditar,
   temporadas = null,
+  avioClases = [],
   esLider = false,
   veProductos = false,
   tipos,
@@ -104,6 +110,8 @@ export function AtributosHub({
   /** Temporadas (ADR-0246): lo que armó el servidor al abrir esa pestaña, o la nota de por qué no pudo (su SQL todavía
    *  no está en esta base). `null` en las demás pestañas: no se lee. */
   temporadas?: ComponentProps<typeof TemporadasLista>["carga"];
+  /** Las clases de avío (ADR-0580). Vacío si su SQL todavía no está pegado: la pestaña lo dice en vez de caerse. */
+  avioClases?: ClaseDeAvio[];
   /** Corregir el calendario de estaciones: SOLO el líder (y los Admin, que lo son). Asignar temporadas usa `puedeEditar`. */
   esLider?: boolean;
   /** La cuenta ve el módulo «Productos» (ADR-0161): solo entonces «Sin temporada» y el detalle de un tejido o patrón
@@ -146,6 +154,7 @@ export function AtributosHub({
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
       {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} prendasPorId={prendasPorTejido} veProductos={veProductos} colores={coloresDibujo} />}
       {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} prendasPorId={prendasPorPatron} veProductos={veProductos} colores={coloresDibujo} />}
+      {tipo === "avios" && <AvioClasesLista clasesIniciales={avioClases} puedeEditar={puedeEditar} />}
       {tipo === "temporadas" && <TemporadasLista carga={temporadas} puedeEditar={puedeEditar} esLider={esLider} veProductos={veProductos} />}
     </div>
   );

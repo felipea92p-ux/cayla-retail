@@ -276,7 +276,7 @@
 .o-rk-b i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--o-foco); }
 .o-rk-b em { position: absolute; top: -4px; bottom: -4px; width: 1.5px; background: var(--o-ok); opacity: 0.7; }
 .o-rk-v { text-align: right; font-weight: 700; font-size: 15px; }
-.o-rk-v small { display: block; font-weight: 400; color: var(--o-tx3); font-size: 13px; }
+.o-rk-v small { display: block; font-weight: 400; color: var(--o-tx3); font-size: 14px; }
 .o-dl { display: grid; gap: 10px; }
 .o-dl-f { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) 52px; align-items: center; font-size: 14px; font-weight: 700; }
 .o-dl-f .eje { position: relative; height: 14px; }
@@ -361,7 +361,7 @@
 .o-prod b { display: block; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .o-prod small { display: block; font-size: 14px; color: var(--o-tx3); }
 .o-prod .u { text-align: right; font-family: var(--font-serif); font-size: 20px; line-height: 1; }
-.o-prod .u small { display: inline; font-family: var(--font-sans); font-size: 13px; color: var(--o-tx3); }
+.o-prod .u small { display: inline; font-family: var(--font-sans); font-size: 14px; color: var(--o-tx3); }
 .o-eq { display: grid; gap: 12px; }
 .o-eq-f { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
 .o-eq-f .n { font-size: 14px; font-weight: 600; }
@@ -370,7 +370,7 @@
 .o-eq-f .pista i { display: block; height: 100%; border-radius: 4px; background: var(--o-resto); }
 .o-eq-f:first-child .pista i { background: var(--o-foco); }
 .o-eq-f .v { grid-row: 1 / 3; grid-column: 3; text-align: right; font-family: var(--font-serif); font-size: 20px; line-height: 1; }
-.o-eq-f .v small { display: block; font-family: var(--font-sans); font-size: 13px; color: var(--o-tx3); margin-top: 3px; }
+.o-eq-f .v small { display: block; font-family: var(--font-sans); font-size: 14px; color: var(--o-tx3); margin-top: 3px; }
 .o-eq-f .o-av { grid-row: 1 / 3; }
 .o-stk { display: grid; gap: 12px; }
 .o-stk-f { display: grid; grid-template-columns: minmax(0, 1fr) 110px 62px; align-items: center; gap: 12px; font-size: 14px; }

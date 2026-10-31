@@ -18,6 +18,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
+import { haceHoras } from "./_reloj_lima.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -60,20 +62,20 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   S1 mixta: A 118 + B 118 · S2 solo CLAURE: A 177 (luego devuelta, desde Yape) · S3 solo CAYLA: B 100 · S4 CLAURE de antes del arranque: A 59
 //   S5 CLAURE anulada hoy: A 100 · S6 CAYLA en Trujillo: B 100
 const ESCENA = `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+${ELEGIR_A}
+${ELEGIR_B}
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 select (now() at time zone 'America/Lima')::date as hoy \\gset
 set local session_replication_role = replica;
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 insert into retail.ventas (id, ubicacion_id, created_at, estado, es_prueba) values
-  (${ID("a1")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
-  (${ID("a2")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
-  (${ID("a3")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
+  (${ID("a1")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
+  (${ID("a2")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
+  (${ID("a3")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
   (${ID("a4")}, ${LIMA}, timestamptz '2026-10-20 12:00-05', 'completada', false),
-  (${ID("a5")}, ${LIMA}, now() - interval '2 hours', 'completada', false),
-  (${ID("a6")}, ${TRUJILLO}, now() - interval '2 hours', 'completada', false);
-update retail.ventas set estado = 'anulada', anulado_en = now() - interval '1 hour', motivo_anulacion = 'prueba' where id = ${ID("a5")};
+  (${ID("a5")}, ${LIMA}, ${haceHoras(2)}, 'completada', false),
+  (${ID("a6")}, ${TRUJILLO}, ${haceHoras(2)}, 'completada', false);
+update retail.ventas set estado = 'anulada', anulado_en = ${haceHoras(1)}, motivo_anulacion = 'prueba' where id = ${ID("a5")};
 insert into retail.venta_items (id, venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values
   (${ID("b1")}, ${ID("a1")}, :'va_a', 1, 118, 10), (${ID("b2")}, ${ID("a1")}, :'va_b', 1, 118, 10),
   (${ID("b3")}, ${ID("a2")}, :'va_a', 1, 177, 10),

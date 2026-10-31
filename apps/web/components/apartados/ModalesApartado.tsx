@@ -3,17 +3,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Trash2 } from "lucide-react";
+import { BadgePercent, Check, MessageCircle } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { descuentoDeCampana } from "@/lib/vender-reglas";
+import { RAZON_CAMPANA, descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
+import {
+  descuentoParaGuardar,
+  descuentosVigentes,
+  lineaDescontada,
+  quitarDelApartado,
+  totalDescontado,
+  type DescuentoManual,
+} from "@/lib/apartar-descuento-reglas";
+import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { Modal, botonCancelar, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
-import { money } from "@/components/PuntoDeVenta";
+import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
+import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -41,7 +50,7 @@ import {
   type MedioDevolucionReal,
 } from "@/lib/separaciones-reglas";
 import { NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { EstadoChip, FotoPrenda, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
+import { EstadoChip, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { TicketDeEntrega, useReciboDeApartado } from "@/components/apartados/useReciboDeApartado";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -754,6 +763,8 @@ export function AbonarFormulario({
  * Editar las prendas de un apartado abierto (paso 4 — 20260927120000): quitar, sumar o cambiar la talla, todo o nada.
  * Lo nuevo entra con el precio y la campaña de HOY; el adelanto ya recibido no cambia. Si el nuevo total quedara por
  * debajo de lo que ya pagó, la base lo rechaza (qué hacer con esa diferencia lo decide Felipe).
+ * Lo que se suma puede llevar un descuento a mano (ADR-0584, Felipe 2026-10-30), con la misma hoja y las mismas cuentas que Apartar;
+ * lo que ya estaba conserva el suyo y no se toca.
  */
 export function EditarApartadoModal({
   apartado,
@@ -771,6 +782,9 @@ export function EditarApartadoModal({
   const [quitar, setQuitar] = useState<ReadonlySet<string>>(() => new Set());
   const [sumar, setSumar] = useState<{ varianteId: string; cantidad: number }[]>([]);
   const [texto, setTexto] = useState("");
+  // ADR-0584: los descuentos a mano de lo que se suma, por variante, y la hoja abierta (con las prendas que arrancan marcadas).
+  const [descuentos, setDescuentos] = useState<Record<string, DescuentoManual>>({});
+  const [hojaDescuento, setHojaDescuento] = useState<string[] | null>(null);
   // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
   // la edición quedó.
   const envio = useIntento("editar_separacion");
@@ -779,18 +793,27 @@ export function EditarApartadoModal({
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
 
   const quedan = apartado.prendas.filter((p) => !quitar.has(p.itemId));
-  const totalNuevo =
-    quedan.reduce((t, p) => t + (p.precioUnitario - p.descuentoUnitario) * p.cantidad, 0) +
-    sumar.reduce((t, l) => {
-      const p = porId.get(l.varianteId);
-      return p ? t + (p.precio - descuentoHoy(p)) * l.cantidad : t;
-    }, 0);
+  // Lo que se suma, con el descuento que de verdad lleva: el puesto a mano si supera a su campaña; si no, la campaña (ADR-0584).
+  const conDescuento = descuentosVigentes(descuentos, sumar.map((l) => l.varianteId));
+  const lineasNuevas = sumar.flatMap((l) => {
+    const p = porId.get(l.varianteId);
+    return p ? [lineaDescontada(p, l.cantidad, conDescuento[l.varianteId])] : [];
+  });
+  const nuevaDe = new Map(lineasNuevas.map((l) => [l.varianteId, l]));
+  const descontadoNuevo = totalDescontado(lineasNuevas);
+  const totalQuedan = quedan.reduce((t, p) => t + (p.precioUnitario - p.descuentoUnitario) * p.cantidad, 0);
+  const totalNuevo = totalQuedan + totalDeLineas(lineasNuevas);
   const debajo = totalNuevo < apartado.adelanto;
   const sinPrendas = quedan.length + sumar.length === 0;
   const cambio = quitar.size > 0 || sumar.length > 0;
   const sinId = apartado.prendas.some((p) => !p.itemId);
 
   const disponibleParaSumar = (id: string) => (porId.get(id)?.stockAqui ?? 0) - (sumar.find((l) => l.varianteId === id)?.cantidad ?? 0);
+  /** Deja de sumar una prenda y, con ella, su descuento a mano (si vuelve, vuelve sin él). */
+  function noSumar(varianteId: string) {
+    setSumar((ls) => ls.filter((x) => x.varianteId !== varianteId));
+    setDescuentos((d) => quitarDelApartado(d, [varianteId]));
+  }
   function agregar(varianteId: string) {
     if (disponibleParaSumar(varianteId) <= 0) return avisar.error("No queda disponible para apartar en esta tienda.");
     setSumar((ls) => (ls.some((l) => l.varianteId === varianteId) ? ls.map((l) => (l.varianteId === varianteId ? { ...l, cantidad: l.cantidad + 1 } : l)) : [...ls, { varianteId, cantidad: 1 }]));
@@ -814,10 +837,12 @@ export function EditarApartadoModal({
     const params = {
       p_separacion_id: apartado.id,
       p_quitar: [...quitar],
-      p_agregar: sumar.map((l) => {
-        const p = porId.get(l.varianteId)!;
-        return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoHoy(p) };
-      }),
+      p_agregar: lineasNuevas.map((l) => ({
+        variante_id: l.varianteId,
+        cantidad: l.cantidad,
+        precio_unitario: l.precioUnitario,
+        ...descuentoParaGuardar(l),
+      })),
     };
     const res = await envio.enviar(huellaDe(params), (token, senal) =>
       firmar(createClient().rpc("editar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
@@ -857,65 +882,112 @@ export function EditarApartadoModal({
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           {sinId && <Aviso tono="atencion" chico>Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</Aviso>}
           <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
+            {/* Cada prenda es la fila del ticket de Vender (`LineaDelTicket`). Las que ya estaban apartadas van de solo lectura
+                (su cantidad y su descuento no se tocan aquí): se pueden quitar —con «Deshacer»— o cambiar de talla; las que se suman
+                llevan su «− 1 +» y su descuento, como en Apartar. */}
             {apartado.prendas.map((pr) => {
               const v = porId.get(pr.varianteId);
               const fuera = quitar.has(pr.itemId);
               const hermanas = v ? prendas.filter((h) => h.referencia === v.referencia && h.color === v.color) : [];
+              const linea: ItemCarrito = {
+                claveLinea: pr.itemId || pr.varianteId,
+                varianteId: pr.varianteId,
+                referencia: pr.referencia,
+                sku: pr.sku,
+                codigo: v?.codigo ?? null,
+                cantidad: pr.cantidad,
+                precioUnitario: pr.precioUnitario,
+                descuentoUnitario: pr.descuentoUnitario,
+                stockAqui: v?.stockAqui ?? 0,
+                razonDescuento: pr.motivoDescuento ?? (pr.descuentoUnitario > 0 ? RAZON_CAMPANA : ""),
+                razonDescuentoOtro: pr.motivoDescuentoDetalle ?? "",
+                argumentoDescuento: pr.argumentoDescuento ?? "",
+                campana: null,
+              };
               return (
-                <li key={pr.itemId || pr.varianteId} className={`flex flex-wrap items-center gap-3 px-3.5 py-3 ${fuera ? "bg-crema/70" : ""}`}>
-                  <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} colorHex={v?.colorHex} categoria={v?.categoria} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={40} className="w-10" />
-                  <div className="min-w-0 flex-1">
-                    <p className={`truncate text-sm font-semibold ${fuera ? "text-tinta/45 line-through" : "text-tinta"}`}>{pr.referencia}</p>
-                    <p className="text-sm text-tinta/60">{v ? detalleVariante(v) : pr.sku} · {pr.cantidad} u.</p>
-                  </div>
-                  {!fuera && hermanas.length > 1 && (
-                    <div className="flex gap-1" role="group" aria-label="Cambiar la talla">
-                      {hermanas.map((h) => (
-                        <button
-                          key={h.varianteId}
-                          type="button"
-                          disabled={h.varianteId !== pr.varianteId && h.stockAqui <= 0}
-                          onClick={() => h.varianteId !== pr.varianteId && cambiarTalla(pr.itemId, h.varianteId)}
-                          className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-semibold disabled:opacity-35 ${h.varianteId === pr.varianteId ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}
-                        >
-                          {h.talla ?? "—"}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <span className="w-20 text-right text-sm tabular-nums">{money((pr.precioUnitario - pr.descuentoUnitario) * pr.cantidad)}</span>
-                  <button
-                    type="button"
-                    disabled={!pr.itemId}
-                    onClick={() => setQuitar((q) => (q.has(pr.itemId) ? new Set([...q].filter((x) => x !== pr.itemId)) : new Set([...q, pr.itemId])))}
-                    className="label-cayla text-[10px] text-rojo-profundo disabled:opacity-40"
-                  >
-                    {fuera ? "Dejar" : "Quitar"}
-                  </button>
+                <li key={pr.itemId || pr.varianteId} className={fuera ? "bg-crema/70" : ""}>
+                  <LineaDelTicket
+                    linea={linea}
+                    detalle={v ? { color: v.color, talla: v.talla } : undefined}
+                    bloqueado={enviando}
+                    soloLectura
+                    quitada={fuera}
+                    onQuitar={() => {
+                      if (!pr.itemId) return;
+                      setQuitar((q) => (q.has(pr.itemId) ? new Set([...q].filter((x) => x !== pr.itemId)) : new Set([...q, pr.itemId])));
+                    }}
+                    onCantidad={() => {}}
+                    onDescuento={() => {}}
+                    pie={
+                      !fuera && hermanas.length > 1 ? (
+                        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Cambiar la talla">
+                          <span>Cambiar talla</span>
+                          {hermanas.map((h) => (
+                            <button
+                              key={h.varianteId}
+                              type="button"
+                              disabled={h.varianteId !== pr.varianteId && h.stockAqui <= 0}
+                              onClick={() => h.varianteId !== pr.varianteId && cambiarTalla(pr.itemId, h.varianteId)}
+                              className={`h-7 min-w-7 rounded-lg border px-2 text-xs font-semibold disabled:opacity-35 ${h.varianteId === pr.varianteId ? "border-tinta bg-tinta text-papel" : "border-sand hover:border-tinta/40"}`}
+                            >
+                              {h.talla ?? "—"}
+                            </button>
+                          ))}
+                        </div>
+                      ) : undefined
+                    }
+                  />
                 </li>
               );
             })}
             {sumar.map((l) => {
               const p = porId.get(l.varianteId)!;
+              const nueva = nuevaDe.get(l.varianteId);
+              if (!nueva) return null;
+              const linea: ItemCarrito = {
+                claveLinea: l.varianteId,
+                varianteId: l.varianteId,
+                referencia: p.referencia,
+                sku: p.sku,
+                codigo: p.codigo,
+                cantidad: l.cantidad,
+                precioUnitario: nueva.precioUnitario,
+                descuentoUnitario: nueva.descuentoUnitario,
+                stockAqui: p.stockAqui,
+                razonDescuento: nueva.razonDescuento,
+                razonDescuentoOtro: nueva.razonDescuentoOtro,
+                argumentoDescuento: nueva.argumentoDescuento,
+                campana: nueva.campana,
+              };
               return (
-                <li key={`n-${l.varianteId}`} className="flex flex-wrap items-center gap-3 bg-verde/5 px-3.5 py-3">
-                  <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={40} className="w-10" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{p.referencia} <span className="ml-1 text-sm font-normal text-verde-profundo">nueva</span></p>
-                    <p className="text-sm text-tinta/60">{detalleVariante(p)}</p>
-                  </div>
-                  <PasoCantidad
-                    menos={{ onClick: () => setSumar((ls) => ls.flatMap((x) => (x.varianteId !== l.varianteId ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
-                    mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
-                  >
-                    {l.cantidad}
-                  </PasoCantidad>
-                  <span className="w-20 text-right text-sm tabular-nums">{money((p.precio - descuentoHoy(p)) * l.cantidad)}</span>
-                  <button type="button" aria-label="No sumar" onClick={() => setSumar((ls) => ls.filter((x) => x.varianteId !== l.varianteId))} className="text-rojo-profundo"><Trash2 className="h-3.5 w-3.5" aria-hidden /></button>
+                <li key={`n-${l.varianteId}`} className="bg-verde/5">
+                  <LineaDelTicket
+                    linea={linea}
+                    detalle={{ color: p.color, talla: p.talla }}
+                    bloqueado={enviando}
+                    onQuitar={noSumar}
+                    onCantidad={(clave, valor) => {
+                      if (!Number.isFinite(valor) || valor < 1) return;
+                      // Subir de a una pasa por `agregar` (avisa si ya no queda); un número escrito se topa con el stock.
+                      if (valor === l.cantidad + 1) agregar(clave);
+                      else setSumar((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: Math.min(Math.floor(valor), p.stockAqui) } : x)));
+                    }}
+                    onDescuento={(clave) => setHojaDescuento([clave])}
+                    pie={<span className="text-verde-profundo">Se suma al apartado</span>}
+                  />
                 </li>
               );
             })}
           </ul>
+          {/* El descuento a mano de lo que se suma (ADR-0584): el mismo de Apartar y de la venta. Lo que ya estaba conserva el suyo. */}
+          {sumar.length > 0 && (
+            <div className="flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setHojaDescuento(sumar.map((l) => l.varianteId))} className="btn-cayla btn-secundario btn-chico">
+                <BadgePercent className="h-4 w-4" aria-hidden /> Descuento a lo nuevo
+              </button>
+              {descontadoNuevo > 0 && <span className="text-sm tabular-nums text-tinta/70">Descuento −{money(descontadoNuevo)}</span>}
+            </div>
+          )}
           <div className="relative">
             <Buscador valor={texto} onCambio={setTexto} placeholder="Sumar una prenda: nombre, color o código" />
             {buscados.length > 0 && (
@@ -939,7 +1011,7 @@ export function EditarApartadoModal({
           </div>
           {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El adelanto ya recibido sigue valiendo.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-sm text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy (y su descuento, si le pones uno); lo que ya estaba conserva el suyo. El adelanto ya recibido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           </fieldset>
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
@@ -954,6 +1026,21 @@ export function EditarApartadoModal({
               {envio.incierto ? "Volver a intentar" : "Guardar cambios"}
             </Boton>
           </div>
+          {hojaDescuento && (
+            <DescuentoApartado
+              lineas={lineasNuevas}
+              prendas={porId}
+              nombreDe={(id) => {
+                const p = porId.get(id);
+                return p ? [p.referencia, detalleVariante(p)].filter(Boolean).join(" · ") : "Prenda";
+              }}
+              elegidasAlAbrir={hojaDescuento}
+              totalAparte={totalQuedan}
+              onAplicar={setDescuentos}
+              onQuitar={(ids) => setDescuentos((d) => quitarDelApartado(d, ids))}
+              onClose={() => setHojaDescuento(null)}
+            />
+          )}
         </div>
       )}
     </Modal>

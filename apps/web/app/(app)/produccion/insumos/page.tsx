@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller } from "@/lib/produccion";
 import { getInsumosDelTaller } from "@/lib/insumos";
-import { getColoresDeLaCarta, getVocabularioDeTelas } from "@/lib/telas-vocabulario";
+import { getClasesDeAvio, getColoresDeLaCarta, getVocabularioDeTelas } from "@/lib/telas-vocabulario";
 import { hoyLima } from "@/lib/fechas-lima";
 import { InsumosPanel } from "@/components/InsumosPanel";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -37,12 +37,14 @@ export default async function InsumosPage() {
   }
 
   const esLider = persona.rol === "lider";
-  const [datosConCostos, vocabulario, carta] = await Promise.all([
+  const [datosConCostos, vocabulario, carta, clases] = await Promise.all([
     getInsumosDelTaller(taller.id, { conCostos: true, hoy: hoyLima() }),
     // Dato de apoyo (la ficha de la tela): si no se lee, la lista sigue en pie y la ficha lo dice.
     getVocabularioDeTelas(),
-    // La carta de colores de «Nueva tela» (la misma de Catálogo): también de apoyo.
+    // La carta de colores de «Nueva tela» y «Nuevo avío» (la misma de Catálogo): también de apoyo.
     getColoresDeLaCarta(),
+    // Las clases de avío (ADR-0580): sin ellas, «Nuevo avío» lo dice en vez de preguntar a ciegas.
+    getClasesDeAvio(),
   ]);
   // `veCostos` lo dice la base (si no entregó costo teniendo lotes, no se dibuja «S/ 0.00» como si fuera un dato). El capital total es solo del líder.
   const veCostos = datosConCostos.veCostos;
@@ -60,6 +62,8 @@ export default async function InsumosPage() {
         leyoVocabulario={vocabulario.leyo}
         colores={carta.colores}
         leyoColores={carta.leyo}
+        clases={clases.clases}
+        leyoClases={clases.leyo}
       />
     </div>
   );

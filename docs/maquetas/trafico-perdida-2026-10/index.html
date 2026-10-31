@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dónde se pierde la gente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+/* Maqueta · Tienda web ▸ Tráfico ▸ «Hasta dónde llega la gente», ronda 3 (Felipe, 2026-10-31): «no se nota dónde se pierde la gente».
+   El problema de la línea de hoy: las 6 estaciones pesan lo mismo y lo que se perdió es una línea gris chica; lo que se pierde no tiene
+   tamaño. Aquí lo perdido se DIBUJA con su tamaño. Mismos tokens del ERP. Datos inventados (los 3 primeros son los de la captura). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --tinta70: #4f4a43; --taupe: #805c4c; --borde: #96786a;
+  --rojo: #b8412d; --verde: #48603f; --ambar: #74501a; --ambar-suave: #f1e3c6; --ambar-fuerte: #c98a2b;
+  --serif: "EB Garamond", ui-serif, Georgia, serif; --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --barra-bg: #111110; --barra-fg: #f5f0e8;
+}
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --tinta70: #c7c0b5;
+  --taupe: #c4a898; --borde: #8d7a6e; --rojo: #e8806a; --verde: #9ccb8d; --ambar: #e4b968; --ambar-suave: #3d3222; --ambar-fuerte: #b8863a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--crema); color: var(--tinta); font: 400 14px/1.5 var(--sans); margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+b { font-weight: 600; }
+:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---- barra de la maqueta (no es del diseño) ---- */
+.mq { position: sticky; top: 0; z-index: 30; background: var(--barra-bg); color: var(--barra-fg);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: 12px; padding: 8px 16px; }
+.mq-t { font-weight: 600; }
+.mq-g { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.mq-g > span { opacity: .6; margin-right: 4px; }
+.mq button { background: transparent; border: 1px solid #ffffff33; color: inherit; border-radius: 999px; padding: 3px 10px; font-size: 12px; }
+.mq button[aria-pressed="true"] { background: var(--barra-fg); color: var(--barra-bg); border-color: var(--barra-fg); }
+
+.lienzo { padding: 24px 16px 64px; max-width: 1280px; margin: 0 auto; display: grid; gap: 28px; }
+.lienzo[data-ancho="375"] { max-width: 375px; }
+.intro { max-width: 76ch; color: var(--tinta70); }
+.intro h1 { font: 500 34px/1.1 var(--serif); color: var(--tinta); margin: 0 0 6px; }
+
+.card { container-type: inline-size; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 18px 22px 22px; }
+.cual { font: 600 11px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); margin-bottom: 8px; }
+.cab h2 { font: 500 21px/1.2 var(--serif); margin: 0; }
+.cab .dato { font-size: 12.5px; color: var(--tinta70); }
+.ver { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0 0; }
+.ver p { margin: 0; flex: 1 1 18rem; font-size: 14.5px; color: var(--tinta70); }
+.ver p b { color: var(--tinta); }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600;
+  background: var(--ambar-suave); color: var(--ambar); white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.nota { margin-top: 18px; padding: 12px 14px; background: var(--hueso); border-radius: 12px; font-size: 13px; color: var(--tinta70); }
+.nota b { color: var(--tinta); }
+.entra { animation: sube .45s var(--ease) both; animation-delay: calc(var(--k, 0) * 70ms); }
+@keyframes sube { from { transform: translateY(10px); opacity: 0; } }
+@keyframes crece { from { transform: scaleY(0); } }
+@keyframes creceX { from { transform: scaleX(0); } }
+@keyframes aparece { from { opacity: 0; } }
+
+/* la señal de «lo que se fue»: rayas en diagonal (se distingue sin depender del color) */
+.perdido { background:
+  repeating-linear-gradient(135deg, color-mix(in srgb, var(--taupe) 55%, transparent) 0 2px, transparent 2px 7px),
+  color-mix(in srgb, var(--taupe) 10%, var(--papel)); }
+.perdido[data-traba] { background:
+  repeating-linear-gradient(135deg, var(--ambar-fuerte) 0 2px, transparent 2px 7px),
+  var(--ambar-suave); }
+
+/* ===== HOY (la que no se nota) ===== */
+.lin { position: relative; margin-top: 18px; }
+.lin-riel { position: absolute; left: 8%; right: 8%; top: 92px; height: 4px; border-radius: 2px; background: var(--tinta); }
+.lin-estaciones { display: grid; grid-template-columns: repeat(6, 1fr); position: relative; }
+.lin-est { display: grid; align-content: start; justify-items: center; text-align: center; gap: 6px; }
+.lin-est b { font: 500 34px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.lin-est .nom { font-size: 13px; font-weight: 600; height: 18px; }
+.lin-nodo { width: 44px; height: 44px; border-radius: 50%; background: var(--papel); border: 3px solid var(--tinta); display: grid; place-items: center; }
+.lin-est[data-traba] .lin-nodo { border-color: var(--ambar); color: var(--ambar); }
+.lin-est[data-fin] .lin-nodo { background: var(--verde); border-color: var(--verde); color: var(--papel); }
+.lin-salida { display: grid; justify-items: center; gap: 2px; font-size: 12.5px; color: var(--tinta70); margin-top: -26px; min-height: 64px; position: relative; left: 50%; text-align: center; }
+.lin-salida::before { content: ""; width: 2px; height: 34px; background: repeating-linear-gradient(var(--borde) 0 3px, transparent 3px 6px); }
+.lin-salida b { font: 600 15px/1 var(--sans); color: var(--tinta); }
+.lin-salida[data-traba], .lin-salida[data-traba] b { color: var(--ambar); }
+
+/* ===== A · La caída a escala ===== */
+.esc { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0 10px; margin-top: 20px; align-items: end; }
+.esc-col { display: grid; justify-items: stretch; align-content: end; min-width: 0; }
+.esc-resta { justify-self: center; display: flex; flex-direction: column; align-items: center; margin-bottom: 6px; min-height: 40px; justify-content: flex-end; text-align: center; }
+.esc-resta b { font: 600 20px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--tinta); }
+.esc-resta small { font-size: 12px; color: var(--tinta70); }
+.esc-col[data-traba] .esc-resta b, .esc-col[data-traba] .esc-resta small { color: var(--ambar); }
+.esc-pila { display: flex; flex-direction: column; justify-content: flex-end; height: 170px; }
+.esc-fue { border-radius: 8px 8px 0 0; border: 1px dashed color-mix(in srgb, var(--taupe) 70%, transparent); border-bottom: 0;
+  transform-origin: bottom; animation: crece .5s var(--ease) both; animation-delay: calc(var(--k) * 90ms + 200ms); min-height: 0; }
+.esc-col[data-traba] .esc-fue { border-color: var(--ambar-fuerte); }
+.esc-sigue { background: var(--tinta); border-radius: 0 0 8px 8px; min-height: 3px; transform-origin: bottom; animation: crece .5s var(--ease) both; animation-delay: calc(var(--k) * 90ms); }
+.esc-sigue[data-fin] { background: var(--verde); }
+.esc-sigue[data-uno] { border-radius: 8px; }
+.esc-base { display: grid; justify-items: center; text-align: center; gap: 3px; padding-top: 10px; border-top: 2px solid var(--tinta); margin-top: 0; }
+.esc-base b { font: 500 32px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.esc-base span { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+.esc-base svg { color: var(--tinta70); }
+.esc-que { list-style: none; margin: 18px 0 0; padding: 14px 0 0; border-top: 1px solid var(--sand); display: grid; gap: 4px; font-size: 13.5px; color: var(--tinta70); }
+.esc-que b { color: var(--tinta); }
+.esc-que li[data-traba], .esc-que li[data-traba] b { color: var(--ambar); }
+.leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--tinta70); margin-top: 14px; }
+.leyenda i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.leyenda .l-sigue { background: var(--tinta); } .leyenda .l-fue { border: 1px dashed var(--taupe); }
+
+/* ===== B · Cada paso, a su medida ===== */
+.cp { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 0; }
+.cp li { display: grid; grid-template-columns: minmax(150px, 230px) minmax(0, 1fr) minmax(130px, 190px); gap: 6px 18px; align-items: center; padding: 14px 0; border-top: 1px solid var(--sand); }
+.cp li:first-child { border-top: 0; }
+.cp-que { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; }
+.cp-ico { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--tinta); display: grid; place-items: center; background: var(--papel); }
+.cp li[data-traba] .cp-ico { border-color: var(--ambar); color: var(--ambar); }
+.cp-que b { display: block; font-size: 14px; line-height: 1.25; }
+.cp-que small { font-size: 12.5px; color: var(--tinta70); }
+.cp-pista { height: 26px; display: flex; }
+.cp-tramo { display: flex; width: 100%; transform-origin: left; animation: creceX .6s var(--ease) both; animation-delay: calc(var(--k) * 80ms); }
+.cp-sigue { background: var(--tinta); border-radius: 8px 0 0 8px; min-width: 3px; }
+.cp-sigue[data-todo] { border-radius: 8px; }
+.cp-fue { border-radius: 0 8px 8px 0; border: 1px dashed color-mix(in srgb, var(--taupe) 70%, transparent); border-left: 0; }
+.cp-fue[data-todo] { border-radius: 8px; border-left: 1px dashed color-mix(in srgb, var(--taupe) 70%, transparent); }
+.cp li[data-traba] .cp-fue { border-color: var(--ambar-fuerte); }
+.cp-cifra { display: grid; gap: 1px; }
+.cp-cifra b { font: 500 30px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.cp-cifra span { font-size: 12.5px; color: var(--tinta70); }
+.cp li[data-traba] .cp-cifra b, .cp li[data-traba] .cp-cifra span { color: var(--ambar); }
+.cp-cifra .chip { justify-self: start; margin-top: 4px; }
+.cp-vacio { font-size: 13px; color: var(--tinta70); }
+
+/* ===== C · El río ===== */
+.rio { position: relative; margin-top: 16px; }
+.rio-cab { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); text-align: center; align-items: end; }
+.rio-cab > div { display: grid; justify-items: center; gap: 2px; }
+.rio-cab b { font: 500 34px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.rio-cab span { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+.rio-cab svg { color: var(--tinta70); margin-bottom: 2px; }
+.rio-cab [data-fin] b { color: var(--verde); }
+.rio svg.fig { display: block; width: 100%; height: auto; overflow: visible; }
+.rio-fig { margin-top: 8px; padding-top: 26px; }
+.rio .banda { fill: var(--tinta); animation: aparece .7s var(--ease) both; }
+.rio .banda[data-fin] { fill: var(--verde); }
+.rio .fantasma { fill: url(#rayas); stroke: color-mix(in srgb, var(--taupe) 70%, transparent); stroke-dasharray: 3 4; animation: aparece .7s var(--ease) both; animation-delay: .25s; }
+.rio .fantasma[data-traba] { fill: url(#rayasAmbar); stroke: var(--ambar-fuerte); }
+.rio-in { position: relative; }
+.rio-sal { position: absolute; transform: translate(-50%, calc(-100% - 4px)); text-align: center; pointer-events: none; display: grid; gap: 1px; justify-items: center; width: 15%; }
+.rio-sal b { font: 600 20px/1 var(--sans); font-variant-numeric: tabular-nums; background: var(--papel); border-radius: 999px; padding: 2px 8px; }
+.rio-sal small { font-size: 12px; color: var(--tinta70); line-height: 1.25; background: color-mix(in srgb, var(--papel) 88%, transparent); border-radius: 6px; padding: 0 3px; }
+.rio-sal[data-traba] b, .rio-sal[data-traba] small { color: var(--ambar); }
+.rio-sal[data-traba] b { background: var(--ambar-suave); }
+.rio-sal { animation: aparece .5s var(--ease) both; animation-delay: calc(var(--k) * 90ms + 350ms); }
+
+/* a la cifra siempre la acompaña lo que dice en palabras (en pantalla angosta, una lista) */
+.solo-ancho { display: block; } .solo-angosto { display: none; }
+@container (max-width: 640px) {
+  .solo-ancho { display: none; } .solo-angosto { display: grid; }
+  .esc { gap: 0 4px; } .esc-base b { font-size: 24px; } .esc-base span { font-size: 11px; } .esc-base svg { display: none; }
+  .esc-resta b { font-size: 16px; } .esc-resta small { display: none; }
+  .cp li { grid-template-columns: 1fr; gap: 8px; } .cp-cifra { grid-template-columns: auto 1fr; align-items: baseline; gap: 4px 10px; }
+  .rio-cab b { font-size: 24px; } .rio-cab span { font-size: 11px; } .rio-cab svg { display: none; }
+  .rio-sal small { display: none; } .rio-sal b { font-size: 14px; padding: 1px 5px; }
+  .card { padding: 16px; }
+}
+.lienzo[data-ancho="375"] .lin-riel { display: none; }
+.lienzo[data-ancho="375"] .lin-estaciones { grid-template-columns: 1fr 1fr 1fr; row-gap: 18px; }
+.lienzo[data-ancho="375"] .lin-salida { left: 0; margin-top: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="mq">
+  <span class="mq-t">Dónde se pierde la gente · ronda 3</span>
+  <div class="mq-g" id="mq-datos"><span>Datos</span></div>
+  <div class="mq-g" id="mq-marca"><span>Qué marca en ámbar</span></div>
+  <div class="mq-g" id="mq-tema"><span>Tema</span></div>
+  <div class="mq-g" id="mq-ancho"><span>Ancho</span></div>
+</div>
+<main class="lienzo" id="lienzo">
+  <div class="intro">
+    <h1>Que se vea dónde se va la gente</h1>
+    <p>La de hoy pone seis estaciones del mismo tamaño y lo perdido en una línea gris chica: entre 146 y 51 hay 95 personas que se fueron, y no se ve.
+      Las tres de abajo le dan <b>tamaño a lo que se perdió</b>. Elige una (o mezcla) mirando; arriba, «Datos» cambia la tienda y «Qué marca en ámbar»
+      cambia la regla de la marca.</p>
+  </div>
+  <div id="vista" style="display:grid;gap:28px"></div>
+</main>
+<script>
+const est = Object.assign({ datos: "captura", marca: "pct", tema: "claro", ancho: "escritorio" }, Object.fromEntries(new URLSearchParams(location.search)));
+const DATOS = {
+  captura: { nombre: "La captura (146)", pasos: [146, 51, 9, 4, 2, 1] },
+  poca: { nombre: "Poca gente", pasos: [12, 5, 2, 1, 1, 0] },
+  mes: { nombre: "Un mes con más gente", pasos: [2480, 1190, 420, 190, 88, 61] },
+};
+const PASOS = [
+  { nombre: "Entraron", frase: "entraron a la tienda", donde: "", seFueron: "", ic: "puerta" },
+  { nombre: "Vieron una prenda", frase: "vieron una prenda", donde: "apenas entran", seFueron: "sin mirar ninguna prenda", ic: "ojo" },
+  { nombre: "Eligieron talla", frase: "eligieron talla", donde: "al elegir talla", seFueron: "sin elegir talla", ic: "regla" },
+  { nombre: "A la bolsa", frase: "la pusieron en la bolsa", donde: "al ponerla en la bolsa", seFueron: "sin ponerla en la bolsa", ic: "bolsa" },
+  { nombre: "Separaron", frase: "separaron", donde: "al separar", seFueron: "sin separar", ic: "etiqueta" },
+  { nombre: "Recogieron", frase: "recogieron en la tienda", donde: "al recoger", seFueron: "sin recoger", ic: "tienda" },
+];
+const ICONOS = {
+  puerta: '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/>',
+  ojo: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+  regla: '<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>',
+  bolsa: '<path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/>',
+  etiqueta: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+  tienda: '<path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/>',
+};
+const ico = (n) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONOS[n]}</svg>`;
+const miles = (n) => n.toLocaleString("es-PE");
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+
+// Quién se marca. «pct»: la regla de hoy (el paso que deja pasar a menos gente, con 30+ personas llegando; si nadie llega a 30, el mayor
+// de todos). «personas»: el paso donde se va más gente en números. La decisión de cuál es de Felipe; aquí se alternan para mirarlas.
+function marcada(p) {
+  if (!p[0]) return null;
+  let mejor = null;
+  const pasos = [];
+  for (let i = 1; i < 6; i++) pasos.push({ i, llegaron: p[i - 1], fueron: p[i - 1] - p[i], prop: p[i - 1] ? (p[i - 1] - p[i]) / p[i - 1] : 0 });
+  if (est.marca === "personas") {
+    mejor = pasos.reduce((a, b) => (b.fueron > a.fueron ? b : a));
+  } else {
+    const suf = pasos.filter((x) => x.llegaron >= 30);
+    const lista = suf.length ? suf : pasos.filter((x) => x.llegaron > 0);
+    mejor = lista.reduce((a, b) => (b.prop > a.prop ? b : a), lista[0]);
+  }
+  return mejor && mejor.fueron > 0 ? mejor : null;
+}
+function titular(p) {
+  const m = marcada(p);
+  if (!p[0]) return "Todavía no entró nadie en estos días.";
+  if (!m) return "Nadie se fue en el camino.";
+  const a = PASOS[m.i - 1], s = PASOS[m.i];
+  if (est.marca === "personas") return `Donde más gente se va es <b>${s.donde}</b>: <b>${miles(m.fueron)}</b> de ${miles(m.llegaron)} se fueron ${s.seFueron}.`;
+  return `Donde más se atora es <b>${s.donde}</b>: de <b>${miles(m.llegaron)}</b> que ${a.frase}, solo <b>${miles(p[m.i])}</b> ${s.frase}.`;
+}
+function veredicto(p, etiqueta) {
+  const m = marcada(p);
+  const chip = m ? `<span class="chip">${est.marca === "personas" ? "Aquí se va más gente" : "Aquí se atora"}</span>` : "";
+  return `<div class="ver">${chip}<p>${titular(p)}</p></div>`;
+}
+const cab = (t, d) => `<div class="cab"><h2>${t}</h2><div class="dato">${d || "De la puerta a recoger en la tienda"}</div></div>`;
+
+// ---------- HOY ----------
+function hoy(p) {
+  const m = marcada(p);
+  return `<section class="card"><div class="cual">Hoy · lo que no se nota</div>${cab("Hasta dónde llega la gente")}${veredicto(p)}
+    <div class="lin"><div class="lin-riel"></div><div class="lin-estaciones">${PASOS.map((s, i) => `
+      <div class="lin-est" ${m && m.i === i ? "data-traba" : ""} ${i === 5 && p[5] ? "data-fin" : ""}>
+        <span class="nom">${s.nombre}</span><b>${miles(p[i])}</b><span class="lin-nodo">${ico(s.ic)}</span>
+        ${i < 5 ? `<span class="lin-salida" ${m && m.i === i + 1 ? "data-traba" : ""}>${p[i] - p[i + 1] ? `<span><b>${miles(p[i] - p[i + 1])}</b> se fueron ${PASOS[i + 1].seFueron}</span>` : ""}</span>` : ""}
+      </div>`).join("")}</div></div>
+  </section>`;
+}
+
+// ---------- A · La caída a escala ----------
+function caida(p) {
+  const m = marcada(p), max = Math.max(p[0], 1), ALTO = 170;
+  const h = (n) => (n <= 0 ? 0 : Math.max(3, (n / max) * ALTO));
+  const cols = PASOS.map((s, i) => {
+    const fue = i > 0 ? p[i - 1] - p[i] : 0;
+    const traba = m && m.i === i;
+    const altFue = i > 0 ? Math.max(0, h(p[i - 1]) - h(p[i])) : 0;
+    return `<div class="esc-col" ${traba ? "data-traba" : ""} style="--k:${i}">
+      <div class="esc-resta">${i > 0 && fue ? `<b>−${miles(fue)}</b><small>${pct(fue, p[i - 1])} % se fue</small>` : ""}</div>
+      <div class="esc-pila">
+        ${altFue ? `<div class="esc-fue perdido" ${traba ? "data-traba" : ""} style="height:${altFue}px"></div>` : ""}
+        ${p[i] > 0 ? `<div class="esc-sigue" ${i === 5 ? "data-fin" : ""} ${i === 0 ? "data-uno" : ""} style="height:${h(p[i])}px"></div>` : ""}
+      </div>
+      <div class="esc-base">${ico(s.ic)}<b>${miles(p[i])}</b><span>${s.nombre}</span></div>
+    </div>`;
+  }).join("");
+  const lista = PASOS.slice(1).map((s, k) => {
+    const i = k + 1, fue = p[i - 1] - p[i];
+    return fue ? `<li ${m && m.i === i ? "data-traba" : ""}><b>${miles(fue)}</b> se fueron ${s.seFueron}</li>` : "";
+  }).join("");
+  return `<section class="card"><div class="cual">A · La caída a escala</div>${cab("Cada columna es la gente que llegó; lo rayado, la que se fue ahí")}${veredicto(p)}
+    <div class="esc">${cols}</div>
+    <ul class="esc-que solo-angosto">${lista}</ul>
+    <div class="leyenda"><span><i class="l-sigue"></i>Siguió</span><span><i class="l-fue perdido"></i>Se fue en este paso</span><span>Las alturas están a escala: 146 contra 9 se ve como 146 contra 9.</span></div>
+    <div class="nota"><b>Se ve de golpe</b>: el hueco rayado es la gente que desapareció, y entre más grande, más duele. Sale del mismo recorrido de hoy,
+      pero lo perdido deja de ser un renglón y pasa a ser un bloque. Lo malo: los últimos pasos son muy bajitos (con 4, 2 y 1 apenas hay barra), y el número es lo que dice.</div>
+  </section>`;
+}
+
+// ---------- B · Cada paso, a su medida ----------
+function cadaPaso(p) {
+  const m = marcada(p), max = Math.max(p[0], 1);
+  const filas = PASOS.slice(1).map((s, k) => {
+    const i = k + 1, llegaron = p[i - 1], sigue = p[i], fue = llegaron - sigue, traba = m && m.i === i;
+    const ancho = llegaron ? Math.max(4, (llegaron / max) * 100) : 0;
+    return `<li class="entra" style="--k:${k}" ${traba ? "data-traba" : ""}>
+      <div class="cp-que"><span class="cp-ico">${ico(PASOS[i - 1].ic)}</span><span><b>De «${PASOS[i - 1].nombre.toLowerCase()}» a «${s.nombre.toLowerCase()}»</b><small>${miles(llegaron)} llegaron</small></span></div>
+      <div class="cp-pista" title="${miles(llegaron)} llegaron · ${miles(sigue)} siguieron · ${miles(fue)} se fueron">${llegaron ? `<div class="cp-tramo" style="width:${ancho}%;--k:${k}">
+        ${sigue ? `<div class="cp-sigue" ${fue ? "" : "data-todo"} style="flex:${sigue}"></div>` : ""}${fue ? `<div class="cp-fue perdido" ${sigue ? "" : "data-todo"} ${traba ? "data-traba" : ""} style="flex:${fue}"></div>` : ""}</div>` : `<span class="cp-vacio">Nadie llegó hasta aquí.</span>`}</div>
+      <div class="cp-cifra">${llegaron ? `<b>${miles(fue)}</b><span>${fue === 1 ? "se fue" : "se fueron"} ${s.seFueron} · ${pct(fue, llegaron)} %</span>${traba ? `<span class="chip">${est.marca === "personas" ? "Aquí se va más gente" : "Aquí se atora"}</span>` : ""}` : ""}</div>
+    </li>`;
+  }).join("");
+  return `<section class="card"><div class="cual">B · Cada paso, a su medida</div>${cab("De cada paso al siguiente: cuántos llegaron, cuántos siguieron y cuántos se fueron")}${veredicto(p)}
+    <ol class="cp">${filas}</ol>
+    <div class="leyenda"><span><i class="l-sigue"></i>Siguieron</span><span><i class="l-fue perdido"></i>Se fueron</span><span>El largo de cada barra es cuánta gente llegó a ese paso.</span></div>
+    <div class="nota"><b>Una fila por pregunta</b>: «¿cuántos pasaron de aquí a allá?». La barra dice dos cosas a la vez: qué tan larga es (cuánta gente llegó) y qué parte
+      está rayada (cuántos se fueron). Es la más fácil de leer en el celular, y la única que pone a la vista el porcentaje de cada salto.</div>
+  </section>`;
+}
+
+// ---------- C · El río ----------
+function rio(p) {
+  const m = marcada(p), max = Math.max(p[0], 1);
+  const W = 1200, H = 250, CY = 140, MEDIO = 80;
+  const X = (i) => ((i + 0.5) / 6) * W;
+  const hm = (n) => (n <= 0 ? 0 : Math.max(2.5, (n / max) * MEDIO));
+  // la banda: sigue el recorrido, se angosta de una estación a la siguiente (curvas suaves)
+  let arriba = "";
+  for (let i = 0; i < 6; i++) {
+    const x = X(i), y1 = CY - hm(p[i]);
+    if (i === 0) { arriba = `M${x},${y1}`; continue; }
+    const xa = X(i - 1), c = (x - xa) * 0.5;
+    arriba += ` C${xa + c},${CY - hm(p[i - 1])} ${x - c},${y1} ${x},${y1}`;
+  }
+  // la banda completa: arriba de izquierda a derecha y abajo de derecha a izquierda
+  let tramosAbajo = "";
+  for (let i = 5; i >= 1; i--) {
+    const x = X(i), xa = X(i - 1), c = (x - xa) * 0.5;
+    tramosAbajo += ` C${x - c},${CY + hm(p[i])} ${xa + c},${CY + hm(p[i - 1])} ${xa},${CY + hm(p[i - 1])}`;
+  }
+  const banda = `${arriba} L${X(5)},${CY + hm(p[5])}${tramosAbajo} L${X(0)},${CY - hm(p[0])} Z`;
+  // lo perdido: el contorno de la gente que había (rectángulo de la estación de antes) hasta la siguiente estación
+  const fantasmas = PASOS.slice(1).map((s, k) => {
+    const i = k + 1, xa = X(i - 1), x = X(i), a = hm(p[i - 1]);
+    if (p[i - 1] - p[i] <= 0) return "";
+    return `<rect class="fantasma" ${m && m.i === i ? "data-traba" : ""} x="${xa}" y="${CY - a}" width="${x - xa}" height="${a * 2}" rx="10"/>`;
+  }).join("");
+  const sal = PASOS.slice(1).map((s, k) => {
+    const i = k + 1, fue = p[i - 1] - p[i];
+    if (fue <= 0) return "";
+    const midX = ((X(i - 1) + X(i)) / 2 / W) * 100;
+    return `<div class="rio-sal" ${m && m.i === i ? "data-traba" : ""} style="left:${midX}%;top:${((CY - hm(p[i - 1])) / H) * 100}%;--k:${k}"><b>−${miles(fue)}</b><small>${s.seFueron}</small></div>`;
+  }).join("");
+  const lista = PASOS.slice(1).map((s, k) => {
+    const i = k + 1, fue = p[i - 1] - p[i];
+    return fue ? `<li ${m && m.i === i ? "data-traba" : ""}><b>${miles(fue)}</b> se fueron ${s.seFueron}</li>` : "";
+  }).join("");
+  return `<section class="card"><div class="cual">C · El río</div>${cab("El recorrido se angosta: lo que se sale del cauce es lo que se fue")}${veredicto(p)}
+    <div class="rio">
+      <div class="rio-cab">${PASOS.map((s, i) => `<div ${i === 5 && p[5] ? "data-fin" : ""}>${ico(s.ic)}<b>${miles(p[i])}</b><span>${s.nombre}</span></div>`).join("")}</div>
+      <div class="rio-fig"><div class="rio-in"><svg class="fig" viewBox="0 0 ${W} ${H}" role="img" aria-label="Recorrido de la gente, cada vez más angosto">
+        <defs>
+          <pattern id="rayas" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="color-mix(in srgb, var(--taupe) 10%, var(--papel))"/><line x1="0" y1="0" x2="0" y2="9" stroke="color-mix(in srgb, var(--taupe) 55%, transparent)" stroke-width="2"/></pattern>
+          <pattern id="rayasAmbar" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="var(--ambar-suave)"/><line x1="0" y1="0" x2="0" y2="9" stroke="var(--ambar-fuerte)" stroke-width="2"/></pattern>
+        </defs>
+        ${fantasmas}
+        <path class="banda" d="${banda}"/>${p[5] ? `<circle class="fin" cx="${X(5)}" cy="${CY}" r="${Math.max(hm(p[5]), 5)}" fill="var(--verde)"/>` : ""}
+      </svg>
+      ${sal}</div></div>
+    </div>
+    <ul class="esc-que solo-angosto">${lista}</ul>
+    <div class="leyenda"><span><i class="l-sigue"></i>Siguió</span><span><i class="l-fue perdido"></i>Se fue</span><span>El ancho del río es cuánta gente sigue ahí.</span></div>
+    <div class="nota"><b>La forma lo dice sola</b>: el río empieza ancho y se estrecha; el espacio rayado a su alrededor es cada fuga. Es la más parecida a «un embudo» y la
+      más bonita, pero la que más se apoya en la forma (los números de las fugas van sobre ella). Con poca gente el río casi no se ve y manda la cifra.</div>
+  </section>`;
+}
+
+function botones(id, opciones, clave) {
+  const g = document.getElementById(id);
+  opciones.forEach(([v, t]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = t; b.dataset.v = v; b.dataset.clave = clave;
+    b.onclick = () => { est[clave] = v; pinta(); };
+    g.appendChild(b);
+  });
+}
+botones("mq-datos", Object.entries(DATOS).map(([k, v]) => [k, v.nombre]), "datos");
+botones("mq-marca", [["pct", "Mayor proporción (como hoy)"], ["personas", "Más personas"]], "marca");
+botones("mq-tema", [["claro", "Claro"], ["oscuro", "Oscuro"]], "tema");
+botones("mq-ancho", [["escritorio", "Escritorio"], ["375", "375 px"]], "ancho");
+
+function pinta() {
+  document.querySelectorAll(".mq button").forEach((b) => b.setAttribute("aria-pressed", String(est[b.dataset.clave] === b.dataset.v)));
+  document.documentElement.dataset.theme = est.tema === "oscuro" ? "dark" : "light";
+  document.getElementById("lienzo").dataset.ancho = est.ancho;
+  history.replaceState(null, "", `?${new URLSearchParams(est)}`);
+  const p = DATOS[est.datos].pasos;
+  document.getElementById("vista").innerHTML = [hoy, caida, cadaPaso, rio].map((f) => f(p)).join("");
+}
+pinta();
+</script>
+</body>
+</html>

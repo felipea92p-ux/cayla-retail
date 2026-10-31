@@ -17,6 +17,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PRODUCTO_SIN_HISTORIA } from "./_claure_prendas.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -65,11 +66,12 @@ select (now() at time zone 'America/Lima')::date::text as hoy \\gset
 select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
 select va.id as va_a, va.producto_id as p_a
   from retail.variantes va join retail.productos pr on pr.id = va.producto_id
- where pr.categoria_id is not null and retail.fn_categoria_entra_a_motores(pr.categoria_id) and not pr.es_prueba
+ where pr.categoria_id is not null and retail.fn_categoria_entra_a_motores(pr.categoria_id) and not pr.es_prueba and ${PRODUCTO_SIN_HISTORIA}
  order by va.id limit 1 \\gset
 select va.id as va_b
   from retail.variantes va join retail.productos pr on pr.id = va.producto_id
  where pr.categoria_id is not null and retail.fn_categoria_entra_a_motores(pr.categoria_id) and not pr.es_prueba and va.producto_id <> :'p_a'
+   and ${PRODUCTO_SIN_HISTORIA}
  order by va.id limit 1 \\gset
 set local session_replication_role = replica;
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';

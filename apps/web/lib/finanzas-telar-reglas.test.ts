@@ -8,6 +8,7 @@ import {
   esMesTelar,
   hrefConSedeYMes,
   hrefTelar,
+  hilosDeLaRuta,
   mesTelar,
   porSedeDe,
   RUTAS_CON_VARIAS_SEDES,
@@ -211,5 +212,23 @@ describe("el orillo", () => {
   it("sin nada gastado no hay orillo, y una ubicación que no se ve no se dibuja", () => {
     expect(tramosDelOrillo({}, SEDES)).toEqual([]);
     expect(tramosDelOrillo({ otra: 50 }, SEDES)).toEqual([]);
+  });
+});
+
+describe("hilosDeLaRuta (ADR-0585)", () => {
+  const propia = [{ clave: "u-lim", nombre: "Lima", color: "lim" as const }];
+  const todas = sedesDelTelar([{ id: "u-lim", nombre: "Tienda Lima" }, { id: "u-tru", nombre: "Tienda Trujillo" }], true);
+  const base = { sedes: propia, veTodo: false };
+  it("en Estados financieros, quien tiene el módulo ve todas las sedes y la empresa", () => {
+    expect(hilosDeLaRuta("/finanzas/reportes", base, todas)).toEqual({ sedes: todas, veTodo: true });
+    expect(hilosDeLaRuta("/finanzas/reportes/balance", base, todas)).toEqual({ sedes: todas, veTodo: true });
+  });
+  it("en los demás submódulos sigue viendo solo su sede", () => {
+    expect(hilosDeLaRuta("/finanzas/gastos", base, todas)).toBe(base);
+    expect(hilosDeLaRuta("/finanzas/resumen", base, todas)).toBe(base);
+    expect(hilosDeLaRuta("/finanzas/reportesx", base, todas)).toBe(base);
+  });
+  it("sin el módulo (o si ya ve todo Finanzas), nada cambia", () => {
+    expect(hilosDeLaRuta("/finanzas/reportes", base, null)).toBe(base);
   });
 });

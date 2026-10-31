@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { radioDeToque, separarMarcas, textosQueCaben } from "@/lib/linea-marcas-reglas";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { anchoDeTexto, radioDeToque, separarMarcas, textosQueCaben } from "@/lib/linea-marcas-reglas";
+import { filasDeNotas, lugarDeLaCifra, muestrearTrazo, separarAlFinal } from "@/lib/linea-textos-reglas";
 
 /* ====================================================================
    La línea — una sola pieza (ADR-0358, ronda 14, Felipe eligió P1 el 2026-10-15)
@@ -18,6 +19,11 @@ import { radioDeToque, separarMarcas, textosQueCaben } from "@/lib/linea-marcas-
      `marcas`, cada salto lleva su número (①②③) y lo que pasó en dos palabras; el número se toca y lleva a su detalle (la pestaña «Costo»
      del Historial de la prenda, 2026-10-24). `arreglos`: un lápiz punteado sobre la fecha de algo que se corrigió (un costo mal
      anotado), fuera de la línea: lo arreglado no mueve la línea, solo se avisa que pasó.
+   · Ninguna línea tapa un texto (Felipe 2026-10-30, «Cuándo» de Gastos): todo texto sobre el dibujo lleva un borde del color del fondo
+     (`--linea-fondo`, de fábrica papel), la cifra del último punto busca un hueco si su lugar de siempre choca con un trazo, las cifras del
+     final se separan si caen juntas, y las `notas` (lo que pasó en un punto, «Alquileres · 3 al 5 oct») van en una franja SOBRE el gráfico
+     con un hilo hasta su punto (lib/linea-textos-reglas.ts). `vienen`: puntos huecos sobre el «si sigue así» (un fijo que falta pagar).
+     `onElegir`: tocar un momento lo elige (con el teclado, ← → y Enter) y queda marcado en rojo (`elegido`).
    En una fila de una lista, la mini es `<Sparkline>` (components/ui/Sparkline.tsx). Registro: docs/unificar/grafico.linea.md.
    Nunca una `<polyline>` ni un `<path>` de datos dibujados a mano.
    ==================================================================== */
@@ -42,6 +48,22 @@ export type MarcaLinea = {
   etiqueta: string;
   onElegir?: () => void;
 };
+
+/** Lo que pasó en un punto de la serie, en la franja de arriba con un hilo hasta él: «Alquileres · 3 al 5 oct» y su `detalle` («S/ 7.2k»). */
+export type NotaLinea = {
+  x: number;
+  texto: string;
+  detalle?: string;
+  /** Si las notas no caben en dos filas con `texto`, todas pasan a su `corto` («Alquileres»). */
+  corto?: string;
+  etiqueta: string;
+  onElegir?: () => void;
+  /** Su ancla para la guía interactiva (`data-guia`). */
+  guia?: string;
+};
+
+/** Algo que se sabe que viene, sobre el «si sigue así»: un punto hueco (un fijo que falta pagar). */
+export type VieneLinea = { x: number; y: number; etiqueta: string };
 
 type Props = {
   /** Lo de hoy (lo vendido, el costo): la línea de tinta con su área. Puede llegar solo hasta «ahora». */
@@ -72,12 +94,28 @@ type Props = {
   marcas?: readonly MarcaLinea[];
   /** Lápices sobre la fecha de lo que se corrigió (fuera de la línea). */
   arreglos?: readonly ArregloLinea[];
-  /** La raya punteada vertical de «ahora», con su texto. */
+  /** Lo que pasó en algunos puntos, en una franja sobre el gráfico. */
+  notas?: readonly NotaLinea[];
+  /** Lo que viene, en puntos huecos sobre la proyección. */
+  vienen?: readonly VieneLinea[];
+  /** La raya punteada vertical de «ahora», con su texto (vacío: solo la raya). */
   ahora?: { x: number; texto: string } | null;
+  /** Lo que va del momento en curso (el día o la hora a medias): sigue desde el último punto en tinta punteada, con un punto hueco y su
+   *  cifra («3 · hasta ahora»). No es parte de la línea: dibujarlo dentro la haría «caer» sin haber caído. */
+  enCurso?: { x: number; y: number; cifra: string; texto: string } | null;
+  /** Lo que queda bajo la referencia se tiñe de rojo suave y el tramo de la línea que cae ahí se pinta de rojo (la caja bajo tu mínimo, Resumen). */
+  bajoReferencia?: boolean;
+  /** El punto más bajo, marcado en rojo con su texto («31 oct · S/ 4,842»). */
+  minimo?: { x: number; y: number; texto: string } | null;
   /** La cifra del último punto, en serif. */
   cifra?: string | null;
   /** La cifra al final de la referencia («15,500 · meta»). */
   cifraReferencia?: { valor: string; texto: string } | null;
+  /** La cifra al final de la proyección («≈ 16 mil · si sigue así»). */
+  cifraProyeccion?: { valor: string; texto: string } | null;
+  /** Tocar un momento lo elige; `elegido` lo marca. */
+  onElegir?: (x: number) => void;
+  elegido?: number | null;
   /** El globito al pasar el mouse: qué dice en ese momento. Sin `leer`, no hay guía. */
   leer?: (x: number) => ReactNode;
   /** La guía recorre cualquier momento (de fábrica, salta al punto más cercano). */
@@ -99,7 +137,18 @@ export function topeRedondo(mx: number): number {
   return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((k) => k * mag).find((t) => t >= mx) ?? mx;
 }
 
-const montoCorto = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} mil` : Math.round(v).toLocaleString("es-PE"));
+// Un solo lienzo para medir textos en toda la página (el gráfico se dibuja recién cuando conoce su ancho, ya en el navegador).
+let lienzo: CanvasRenderingContext2D | null | undefined;
+/** El ancho de un texto con su letra («600 12px DM Sans»); sin lienzo, una cuenta gruesa. */
+function anchoDe(texto: string, letra: string): number {
+  if (lienzo === undefined) lienzo = typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d");
+  if (!lienzo) return anchoDeTexto(texto);
+  lienzo.font = letra;
+  return lienzo.measureText(texto).width;
+}
+
+/** Un monto corto, como los del eje: «13,1 mil». */
+export const montoCorto = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} mil` : Math.round(v).toLocaleString("es-PE"));
 
 /** El valor de una línea en el momento `x` (interpolado entre sus dos puntos vecinos; con `escalones`, el del último punto que pasó). */
 export function valorEnLinea(puntos: readonly PuntoLinea[], x: number, escalones = false): number | null {
@@ -129,9 +178,17 @@ export function Linea({
   escalones = false,
   marcas = [],
   arreglos = [],
+  notas = [],
+  vienen = [],
   ahora = null,
+  enCurso = null,
+  bajoReferencia = false,
+  minimo = null,
   cifra = null,
   cifraReferencia = null,
+  cifraProyeccion = null,
+  onElegir,
+  elegido = null,
   leer,
   continuo = false,
   guiaHasta,
@@ -143,27 +200,45 @@ export function Linea({
   // El gráfico mide su ancho real: el texto y los puntos conservan su tamaño en vez de encogerse con el dibujo.
   const caja = useRef<HTMLDivElement>(null);
   const [ancho, setAncho] = useState(0);
+  // Las letras de verdad, para medir los textos que se acomodan (las notas, la cifra): la del cuerpo y la serif de la cifra.
+  const [letras, setLetras] = useState({ sans: "sans-serif", serif: "serif" });
   useEffect(() => {
     const el = caja.current;
     if (!el) return;
     const medir = () => setAncho(Math.floor(el.clientWidth));
     medir();
+    const estilo = getComputedStyle(el);
+    setLetras({ sans: estilo.fontFamily || "sans-serif", serif: estilo.getPropertyValue("--font-serif").trim() || "serif" });
     const ro = new ResizeObserver(medir);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
   const [guia, setGuia] = useState<number | null>(null);
+  const idBajo = useId();
 
-  const todos = [...serie, ...(referencia ?? []), ...(proyeccion ?? [])].map((p) => p.y);
+  const todos = [...serie, ...(referencia ?? []), ...(proyeccion ?? []), ...(enCurso ? [enCurso] : [])].map((p) => p.y);
   const techo = maxY ?? topeRedondo(Math.max(1, ...todos));
   const W = Math.max(ancho, 1);
-  const H = alto;
   const angosto = W < 420;
   const L = ejes ? (angosto ? 36 : 44) : 8;
-  const R = cifra || cifraReferencia ? (angosto ? 52 : 64) : 12;
-  const T = 16;
+  const R = cifra || cifraReferencia || cifraProyeccion || enCurso ? (angosto ? 52 : 64) : 12;
   const B = marcasX.length > 0 ? 24 : 8;
   const X = (x: number) => L + (hasta === desde ? 0 : ((x - desde) / (hasta - desde)) * (W - L - R));
+  // Las notas se acomodan antes que nada: cuántas filas ocupan decide dónde empieza el gráfico, que crece hacia arriba para no achicarse.
+  const anchoNota = (n: NotaLinea, largo: boolean) =>
+    anchoDe(largo ? n.texto : (n.corto ?? n.texto), `600 12px ${letras.sans}`) + (n.detalle ? anchoDe(` ${n.detalle}`, `12px ${letras.sans}`) : 0);
+  const ubicarNotas = (largo: boolean) => filasDeNotas(notas.map((n) => ({ x: X(n.x), ancho: anchoNota(n, largo) })), 4, W - 4);
+  let notasLargas = true;
+  let lugarNotas = ancho > 0 && notas.length > 0 ? ubicarNotas(true) : [];
+  if (lugarNotas.some((u) => u.fila < 0 || u.fila > 1) && notas.some((n) => n.corto)) {
+    notasLargas = false;
+    lugarNotas = ubicarNotas(false);
+  }
+  const FILA = 19;
+  const filasNotas = Math.max(0, ...lugarNotas.map((u) => u.fila + 1));
+  const T = filasNotas > 0 ? filasNotas * FILA + 18 : 16;
+  const H = alto + (T - 16);
+  const baseNota = (fila: number) => T - 14 - fila * FILA;
   const Y = (v: number) => T + (H - T - B) * (1 - (v - minY) / Math.max(techo - minY, 1e-9));
   const camino = (ps: readonly PuntoLinea[], escalon = false) =>
     ps.map((p, i) => (i === 0 ? `M${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}` : escalon ? `H${X(p.x).toFixed(1)} V${Y(p.y).toFixed(1)}` : `L${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`)).join(" ");
@@ -172,24 +247,87 @@ export function Linea({
   const textoCabe = textosQueCaben(lugarMarcas, marcas.map((m) => m.texto));
   const ultimo = serie.at(-1) ?? null;
   const finRef = referencia?.at(-1) ?? null;
+  const finProy = proyeccion?.at(-1) ?? null;
+  const yNota = (n: NotaLinea) => valorEnLinea(serie, n.x, escalones) ?? minY;
+  // La raya de la referencia (un mínimo es una línea recta): lo de abajo es «bajo la referencia».
+  const yBajo = bajoReferencia && referencia && referencia.length > 0 ? Y(referencia[0]!.y) : null;
 
-  function alMover(e: React.PointerEvent<SVGSVGElement>) {
-    if (!leer) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    const px = ((e.clientX - r.left) / r.width) * W;
+  // Las cifras del final (la referencia y el «si sigue así»), en el margen derecho y separadas si caen juntas: cada una ocupa dos líneas.
+  const finales = [
+    finRef && cifraReferencia ? { clave: "ref" as const, punto: finRef, ...cifraReferencia } : null,
+    finProy && cifraProyeccion ? { clave: "proy" as const, punto: finProy, ...cifraProyeccion } : null,
+  ].filter((f): f is NonNullable<typeof f> => !!f);
+  const yFinales = separarAlFinal(finales.map((f) => Y(f.punto.y)), 28);
+  const xFinal = W - R + 8;
+
+  // Lo que ya está dibujado, para que la cifra del último punto no lo pise: los trazos, los puntos, los hilos y las cifras del final.
+  const trazo = (ps: readonly PuntoLinea[], escalon = false): [number, number][] =>
+    ps.flatMap((p, i) => (escalon && i > 0 ? [[X(p.x), Y(ps[i - 1]!.y)] as [number, number], [X(p.x), Y(p.y)] as [number, number]] : [[X(p.x), Y(p.y)] as [number, number]]));
+  let lugarCifra: { x: number; y: number; anclaje: "start" | "middle" | "end" } | null = null;
+  if (cifra && ultimo && ancho > 0) {
+    const obstaculos: [number, number][] = [
+      ...muestrearTrazo(trazo(serie, escalones)),
+      ...(referencia ? muestrearTrazo(trazo(referencia)) : []),
+      ...(proyeccion ? muestrearTrazo(trazo(proyeccion)) : []),
+      ...vienen.map((v) => [X(v.x), Y(v.y)] as [number, number]),
+      ...notas.flatMap((n, i) =>
+        (lugarNotas[i]?.fila ?? -1) >= 0 ? muestrearTrazo([[X(n.x), baseNota(lugarNotas[i]!.fila) + 5], [X(n.x), Y(yNota(n))]]) : [[X(n.x), Y(yNota(n))] as [number, number]],
+      ),
+      ...finales.flatMap((_, i) => muestrearTrazo([[xFinal, yFinales[i]! - 6], [W - 4, yFinales[i]! - 6], [W - 4, yFinales[i]! + 16], [xFinal, yFinales[i]! + 16]], 4)),
+      // El punto más bajo y su texto («31 oct · S/ 4,842»), que van debajo y a la derecha del punto.
+      ...(minimo
+        ? muestrearTrazo([[X(minimo.x), Y(minimo.y)], [X(minimo.x) + 12, Y(minimo.y) + 10], [X(minimo.x) + 12 + anchoDe(minimo.texto, `600 12.5px ${letras.sans}`), Y(minimo.y) + 10], [X(minimo.x) + 12 + anchoDe(minimo.texto, `600 12.5px ${letras.sans}`), Y(minimo.y) + 26]], 4)
+        : []),
+    ];
+    const anchoCifra = anchoDe(cifra, `15px ${letras.serif}`);
+    // Hacia la derecha puede asomarse hasta 24 px fuera del dibujo, como siempre lo hizo (el margen de la tarjeta lo recibe).
+    lugarCifra = lugarDeLaCifra(X(ultimo.x), Y(ultimo.y), anchoCifra, 15, obstaculos, { x: L - 2, y: T - 4, ancho: W - L + 26, alto: H - B - T + 4 }, [9, 5, "start"]);
+  }
+
+  const momentos = [...new Set([...serie, ...(referencia ?? []), ...(proyeccion ?? [])].map((p) => p.x))].sort((a, b) => a - b);
+  /** El momento bajo el puntero: cualquiera (`continuo`) o el punto más cercano de la serie, la referencia o la proyección. */
+  function momentoEn(clientX: number, svg: SVGSVGElement): number | null {
+    const r = svg.getBoundingClientRect();
+    const px = ((clientX - r.left) / r.width) * W;
     const xv = desde + ((px - L) / (W - L - R)) * (hasta - desde);
     const tope = guiaHasta ?? hasta;
-    if (continuo) return setGuia(Math.max(desde, Math.min(tope, xv)));
-    // Salta al punto más cercano entre los de la serie y los de la referencia (los días que faltan también se leen).
-    const xs = [...serie, ...(referencia ?? [])].map((p) => p.x).filter((x) => x <= tope);
-    if (xs.length === 0) return;
-    setGuia(xs.reduce((m, x) => (Math.abs(x - xv) < Math.abs(m - xv) ? x : m), xs[0]!));
+    if (continuo) return Math.max(desde, Math.min(tope, xv));
+    const xs = momentos.filter((x) => x <= tope);
+    if (xs.length === 0) return null;
+    return xs.reduce((m, x) => (Math.abs(x - xv) < Math.abs(m - xv) ? x : m), xs[0]!);
+  }
+
+  function alMover(e: React.PointerEvent<SVGSVGElement>) {
+    if (!leer && !onElegir) return;
+    const x = momentoEn(e.clientX, e.currentTarget);
+    if (x !== null) setGuia(x);
+  }
+
+  // Con el teclado: la guía aparece en el momento elegido (o el último), ← → la llevan al momento de al lado y Enter lo elige.
+  const momentoInicial = () => elegido ?? ultimo?.x ?? momentos[0] ?? null;
+  function alTeclear(e: React.KeyboardEvent<SVGSVGElement>) {
+    if (!onElegir) return;
+    const xs = momentos.filter((x) => x <= (guiaHasta ?? hasta));
+    const actual = guia ?? momentoInicial();
+    if (xs.length === 0 || actual === null) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      const i = xs.reduce((m, x, k) => (Math.abs(x - actual) < Math.abs(xs[m]! - actual) ? k : m), 0);
+      setGuia(xs[Math.max(0, Math.min(xs.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)))]!);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onElegir(actual);
+    } else if (e.key === "Escape" && guia !== null) {
+      e.stopPropagation();
+      setGuia(null);
+    }
   }
 
   const gSerie = guia === null || !ultimo || guia > ultimo.x ? null : valorEnLinea(serie, guia, escalones);
   const gRef = guia === null || !referencia ? null : valorEnLinea(referencia, guia);
+  const gProy = guia === null || !proyeccion || !ultimo || guia <= ultimo.x ? null : valorEnLinea(proyeccion, guia);
   const contenido = guia === null || !leer ? null : leer(guia);
-  const yGlobo = guia === null ? 0 : Math.min(...[gSerie, gRef].filter((v): v is number => v !== null).map(Y), H);
+  const yGlobo = guia === null ? 0 : Math.min(...[gSerie, gRef, gProy].filter((v): v is number => v !== null).map(Y), H);
 
   return (
     <div ref={caja} className={`linea-cayla relative ${className}`} style={{ height: H }}>
@@ -198,11 +336,33 @@ export function Linea({
           width={W}
           height={H}
           viewBox={`0 0 ${W} ${H}`}
-          role="img"
           aria-label={etiqueta}
-          className="block overflow-visible"
+          className={`block overflow-visible ${onElegir ? "linea-elegible" : ""}`}
           onPointerMove={alMover}
           onPointerLeave={() => setGuia(null)}
+          {...(onElegir
+            ? {
+                // Tocar un momento lo elige; con el teclado se recorre como un deslizador (← →) y Enter elige.
+                role: "slider",
+                tabIndex: 0,
+                "aria-valuemin": desde,
+                "aria-valuemax": guiaHasta ?? hasta,
+                "aria-valuenow": guia ?? momentoInicial() ?? desde,
+                onKeyDown: alTeclear,
+                // Solo con el teclado: un clic o un toque también da el foco, y la guía saltaría a «hoy» antes de que el clic elija su día
+                // (en el teléfono quedaba pegada encima de la cifra). Y solo al gráfico: el foco de una nota de adentro también sube hasta aquí.
+                onFocus: (e: React.FocusEvent<SVGSVGElement>) => {
+                  if (e.target === e.currentTarget && e.currentTarget.matches(":focus-visible")) setGuia(momentoInicial());
+                },
+                onBlur: () => setGuia(null),
+                onClick: (e: React.MouseEvent<SVGSVGElement>) => {
+                  // Un clic en una nota o una marca es de ellas, no del momento que hay debajo.
+                  if ((e.target as Element).closest("[role=button]")) return;
+                  const x = momentoEn(e.clientX, e.currentTarget);
+                  if (x !== null) onElegir(x);
+                },
+              }
+            : { role: "img" })}
         >
           {ejes &&
             [minY, minY + (techo - minY) / 2, techo].map((v) => (
@@ -221,37 +381,74 @@ export function Linea({
           {ahora && (
             <g>
               <line x1={X(ahora.x)} x2={X(ahora.x)} y1={T} y2={H - B} className="linea-ahora" />
-              <text x={X(ahora.x) + 5} y={T + 8} className="linea-eje linea-eje-fuerte">
-                {ahora.texto}
-              </text>
+              {ahora.texto && (
+                <text x={X(ahora.x) + 5} y={T + 8} className="linea-eje linea-eje-fuerte linea-sobre">
+                  {ahora.texto}
+                </text>
+              )}
             </g>
+          )}
+          {yBajo !== null && (
+            <>
+              <clipPath id={idBajo}>
+                <rect x={L} y={yBajo} width={Math.max(W - L - R, 0)} height={Math.max(Y(minY) - yBajo, 0)} />
+              </clipPath>
+              <rect x={L} y={yBajo} width={Math.max(W - L - R, 0)} height={Math.max(Y(minY) - yBajo, 0)} className="linea-zona-baja" />
+            </>
           )}
           {referencia && referencia.length > 1 && <path d={camino(referencia)} className="linea-referencia" />}
-          {finRef && cifraReferencia && (
-            <g>
-              <circle cx={X(finRef.x)} cy={Y(finRef.y)} r={4} className="linea-punto-ref" />
-              <text x={X(finRef.x) + 8} y={Y(finRef.y) + 3.5} className="linea-cifra-chica">
-                {cifraReferencia.valor}
+          {proyeccion && proyeccion.length > 1 && <path d={camino(proyeccion)} className="linea-proyeccion" />}
+          {vienen.map((v, i) => (
+            <circle key={`${v.x}-${i}`} cx={X(v.x)} cy={Y(v.y)} r={4.5} className="linea-viene" style={{ "--i": i } as CSSProperties}>
+              <title>{v.etiqueta}</title>
+            </circle>
+          ))}
+          {/* Las cifras del final, en el margen: la de la referencia (con su punto) y la del «si sigue así», separadas si caen juntas. */}
+          {finales.map((f, i) => (
+            <g key={f.clave}>
+              {f.clave === "ref" && <circle cx={X(f.punto.x)} cy={Y(f.punto.y)} r={4} className="linea-punto-ref" />}
+              <text x={xFinal} y={yFinales[i]! + 3.5} className="linea-cifra-chica linea-sobre">
+                {f.valor}
               </text>
-              <text x={X(finRef.x) + 8} y={Y(finRef.y) + 15} className="linea-eje">
-                {cifraReferencia.texto}
+              <text x={xFinal} y={yFinales[i]! + 15} className="linea-eje linea-sobre">
+                {f.texto}
               </text>
             </g>
-          )}
-          {proyeccion && proyeccion.length > 1 && <path d={camino(proyeccion)} className="linea-proyeccion" />}
+          ))}
           {serie.length > 0 && ultimo ? (
             <>
               {area && serie.length > 1 && (
                 <path d={`${camino(serie, escalones)} L${X(ultimo.x).toFixed(1)},${Y(minY).toFixed(1)} L${X(serie[0]!.x).toFixed(1)},${Y(minY).toFixed(1)} Z`} className="linea-area" />
               )}
               {serie.length > 1 && <path d={camino(serie, escalones)} pathLength={1} className="linea-trazo" />}
+              {yBajo !== null && serie.length > 1 && <path d={camino(serie, escalones)} clipPath={`url(#${idBajo})`} className="linea-trazo-bajo" />}
               {puntos &&
                 serie.map((p, i) => (
                   <circle key={i} cx={X(p.x)} cy={Y(p.y)} r={guia === p.x ? 6.5 : 4.5} className="linea-punto" style={{ "--i": i } as CSSProperties} />
                 ))}
               {!puntos && <circle cx={X(ultimo.x)} cy={Y(ultimo.y)} r={4.5} className="linea-punto-fin" />}
-              {cifra && (
-                <text x={X(ultimo.x) + 9} y={Y(ultimo.y) + 5} className="linea-cifra">
+              {enCurso && (
+                <g className="linea-en-curso">
+                  <path d={`M${X(ultimo.x).toFixed(1)},${Y(ultimo.y).toFixed(1)} L${X(enCurso.x).toFixed(1)},${Y(enCurso.y).toFixed(1)}`} className="linea-en-curso-trazo" />
+                  <circle cx={X(enCurso.x)} cy={Y(enCurso.y)} r={4.5} className="linea-punto-curso" />
+                  <text x={X(enCurso.x) + 9} y={Y(enCurso.y) + 1} className="linea-cifra">
+                    {enCurso.cifra}
+                  </text>
+                  <text x={X(enCurso.x) + 9} y={Y(enCurso.y) + 14} className="linea-eje">
+                    {enCurso.texto}
+                  </text>
+                </g>
+              )}
+              {minimo && (
+                <g>
+                  <circle cx={X(minimo.x)} cy={Y(minimo.y)} r={6} className="linea-punto-bajo" />
+                  <text x={X(minimo.x) + 12} y={Y(minimo.y) + 22} className="linea-texto-bajo linea-sobre">
+                    {minimo.texto}
+                  </text>
+                </g>
+              )}
+              {cifra && lugarCifra && (
+                <text x={lugarCifra.x} y={lugarCifra.y} textAnchor={lugarCifra.anclaje} className="linea-cifra linea-sobre">
                   {cifra}
                 </text>
               )}
@@ -315,7 +512,7 @@ export function Linea({
                         {m.n}
                       </text>
                       {verTexto && (
-                        <text x={cx} y={m.tono === "baja" ? cy + 30 : cy - 20} textAnchor="middle" className="linea-marca-texto">
+                        <text x={cx} y={m.tono === "baja" ? cy + 30 : cy - 20} textAnchor="middle" className="linea-marca-texto linea-sobre">
                           {m.texto}
                         </text>
                       )}
@@ -330,10 +527,63 @@ export function Linea({
               </text>
             )
           )}
+          {/* Las notas, en su franja sobre el gráfico: el punto en la línea, el hilo que sube y el texto, encima de todo. */}
+          {notas.map((n, i) => {
+            const u = lugarNotas[i];
+            const px = X(n.x);
+            const py = Y(yNota(n));
+            if (!u) return null;
+            const dibujo = (
+              <>
+                <circle cx={px} cy={py} r={4} className="linea-nota-punto" />
+                {u.fila >= 0 && (
+                  <>
+                    {/* Todo el texto se toca, no solo sus letras; y su hilo, con un margen. */}
+                    <rect x={u.desde - 4} y={baseNota(u.fila) - 13} width={u.hasta - u.desde + 8} height={18} className="linea-nota-toque" />
+                    <rect x={px - 6} y={baseNota(u.fila) + 5} width={12} height={Math.max(0, py - baseNota(u.fila) - 5)} className="linea-nota-toque" />
+                    <line x1={px} x2={px} y1={baseNota(u.fila) + 5} y2={py - 6} className="linea-nota-hilo" />
+                    <text x={u.desde} y={baseNota(u.fila)} className="linea-nota linea-sobre">
+                      <tspan className="linea-nota-texto">{notasLargas ? n.texto : (n.corto ?? n.texto)}</tspan>
+                      {n.detalle && ` ${n.detalle}`}
+                    </text>
+                  </>
+                )}
+              </>
+            );
+            return n.onElegir ? (
+              <g
+                key={`${n.x}-${i}`}
+                role="button"
+                tabIndex={0}
+                aria-label={n.etiqueta}
+                data-guia={n.guia}
+                className="linea-nota-g"
+                style={{ "--i": i } as CSSProperties}
+                onClick={n.onElegir}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    n.onElegir?.();
+                  }
+                }}
+              >
+                <title>{n.etiqueta}</title>
+                {dibujo}
+              </g>
+            ) : (
+              <g key={`${n.x}-${i}`} className="linea-nota-g" style={{ "--i": i } as CSSProperties}>
+                <title>{n.etiqueta}</title>
+                {dibujo}
+              </g>
+            );
+          })}
+          {elegido !== null && <line x1={X(elegido)} x2={X(elegido)} y1={T} y2={H - B} className="linea-elegido" aria-hidden />}
           {guia !== null && (
             <g aria-hidden>
               <line x1={X(guia)} x2={X(guia)} y1={T} y2={H - B} className="linea-guia" />
               {gRef !== null && <circle cx={X(guia)} cy={Y(gRef)} r={4} className="linea-punto-ref" />}
+              {gProy !== null && <circle cx={X(guia)} cy={Y(gProy)} r={4} className="linea-punto-proy" />}
               {gSerie !== null && <circle cx={X(guia)} cy={Y(gSerie)} r={5} className="linea-punto-fin" />}
             </g>
           )}

@@ -85,7 +85,7 @@ export function NuevaTelaModal({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const { tejidos, crearTejido } = useTejidosDeLaTela(vocabulario.tejidos, responsable);
+  const { tejidos, crearTejido, pregunta: preguntaTejido } = useTejidosDeLaTela(vocabulario.tejidos, responsable);
   const [nombre, setNombre] = useState("");
   const [tejidoId, setTejidoId] = useState("");
   const [composicion, setComposicion] = useState("");
@@ -120,7 +120,7 @@ export function NuevaTelaModal({
         puedeSaldo,
         responsableListo: responsable.listo,
       }
-    : { nombre, tejidoId, composicion, compra, ancho, gramaje, metrosPorRollo, merma, filas, puedeSaldo, responsableListo: responsable.listo };
+    : { nombre, tejidoId, composicion, compra, ancho, gramaje, metrosPorRollo, merma, filas, puedeSaldo, responsableListo: responsable.listo, tejidoPorContestar: preguntaTejido?.nombre };
   const datosDeLaTela: DatosDeLaTela = { nombre: e.nombre, tejidoId: e.tejidoId, composicion: e.composicion, compra: e.compra, ancho: e.ancho, gramaje: e.gramaje, metrosPorRollo: e.metrosPorRollo, merma: e.merma };
   const problemas = problemasDeTelaNueva(e);
   const campos = camposDeTelaNueva(e);
@@ -259,6 +259,7 @@ export function NuevaTelaModal({
                   tejidoId={tejidoId}
                   onTejido={setTejidoId}
                   onCrearTejido={(t) => void crearTejido(t, setTejidoId)}
+                  pregunta={preguntaTejido}
                   composicion={composicion}
                   onComposicion={setComposicion}
                 />

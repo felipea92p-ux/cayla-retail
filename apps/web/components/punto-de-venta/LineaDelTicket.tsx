@@ -1,11 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Percent, Trash2 } from "lucide-react";
 import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
 import { filaDelTicket, type DetalleVariante, type TonoStock } from "@/lib/ticket-linea-reglas";
 import { textoDePrendaEnOtroTicket } from "@/lib/tickets-abiertos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import type { EmpresaElegible } from "@/lib/dueno-reglas";
 
@@ -27,6 +29,15 @@ type Props = {
   duenos?: readonly EmpresaElegible[] | null;
   duenoElegido?: string;
   onDueno?: (varianteId: string, empresaId: string) => void;
+  /** El `data-guia` del «¿De quién sale?» de esta pantalla (Vender y Apartar tienen cada una su paso de guía). */
+  guiaDueno?: string;
+  /** Lo que una pantalla agrega bajo la fila y es solo suyo: en Apartar, cuántas quedan en la sede tras apartar. */
+  pie?: ReactNode;
+  /** Una prenda que ya está apartada (la hoja «Editar apartado»): su cantidad y su descuento no se tocan aquí, así que no lleva el
+   *  «− 1 +» ni abre el descuento, y en lugar del stock dice cuántas unidades son. Se puede quitar (`quitada`). */
+  soloLectura?: boolean;
+  /** Marcada para salir del apartado: el nombre va tachado y, en lugar de la papelera, un «Deshacer» (`onQuitar` la vuelve a dejar). */
+  quitada?: boolean;
 };
 
 /**
@@ -45,7 +56,7 @@ type Props = {
  * Sin estado ni hooks: todo llega por props desde `PuntoDeVentaTicket`. Es hija directa de la lista (`listaRef`),
  * que el padre anima con `Flip`.
  */
-export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, onDescuento, tambienEn, duenos, duenoElegido, onDueno }: Props) {
+export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, onDescuento, tambienEn, duenos, duenoElegido, onDueno, guiaDueno = "vender.dueno", pie, soloLectura = false, quitada = false }: Props) {
   const f = filaDelTicket(linea, detalle);
   const nombre = linea.referencia;
   return (
@@ -54,26 +65,30 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           fila el nombre se quedaba con ~90 px y se partía por palabra («Blusa / Emma»; hallazgo 10 de la auditoría del celular, 2026-10-23). */}
       <div className="flex items-center gap-2 max-sm:flex-wrap max-sm:gap-y-1.5">
         <div className="min-w-0 flex-1 max-sm:order-1 max-sm:flex-[1_1_calc(100%-2.25rem)]" title={f.titulo}>
-          <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{/* unificar-fijo: el nombre de la prenda en el ticket es un dato */}{nombre}</h3>
+          <h3 className={`line-clamp-2 text-sm leading-snug font-semibold ${quitada ? "text-tinta/45 line-through" : "text-tinta"}`}>{/* unificar-fijo: el nombre de la prenda en el ticket es un dato */}{nombre}</h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm leading-snug text-tinta/65">
             <span>{f.detalle}</span>
-            {f.stock && (
-              <span className={`inline-flex items-center gap-1 ${f.stock.tono === "excedido" ? "text-rojo-profundo" : ""}`}>
-                <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${PUNTO[f.stock.tono]}`} />
-                Stock: {f.stock.cantidad}
-              </span>
+            {soloLectura ? (
+              <span>{linea.cantidad} u.</span>
+            ) : (
+              f.stock && (
+                <span className={`inline-flex items-center gap-1 ${f.stock.tono === "excedido" ? "text-rojo-profundo" : ""}`}>
+                  <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${PUNTO[f.stock.tono]}`} />
+                  Stock: {f.stock.cantidad}
+                </span>
+              )
             )}
           </p>
           {duenos && onDueno && (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta/65">
               <span>¿De quién sale?</span>
-              <ElegirDueno empresas={duenos} duenoId={duenoElegido ?? ""} onElegir={(id) => onDueno(linea.varianteId, id)} deshabilitado={bloqueado} chico guia="vender.dueno" />
+              <ElegirDueno empresas={duenos} duenoId={duenoElegido ?? ""} onElegir={(id) => onDueno(linea.varianteId, id)} deshabilitado={bloqueado} chico guia={guiaDueno} />
             </div>
           )}
         </div>
 
         {/* El paso de cantidad del sistema (ADR-0358, ronda 17): la caja del campo con el − y el + adentro. */}
-        {f.conPaso && (
+        {f.conPaso && !soloLectura && (
           <PasoCantidad
             className="shrink-0 max-sm:order-3"
             menos={{ onClick: () => onCantidad(linea.claveLinea, linea.cantidad - 1), deshabilitado: linea.cantidad <= 1, etiqueta: "Reducir cantidad" }}
@@ -96,7 +111,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
 
         {/* El importe abre el descuento de esta prenda (el ex «Desc.»): el «%» chico lo anuncia y, con descuento, se
             tiñe como la nota de abajo. Es el blanco más grande de la fila y queda lejos del basurero. */}
-{f.conDescuento ? (
+{f.conDescuento && !soloLectura ? (
                   <button
             type="button"
             onClick={() => onDescuento(linea.claveLinea)}
@@ -112,21 +127,29 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             </span>
           </button>
         ) : (
-          // Pieza de liquidación (ADR-0379): precio final, el importe no abre ningún descuento.
-          <span className="min-w-[4.25rem] shrink-0 pr-1 text-right text-sm font-semibold text-tinta tabular-nums max-sm:order-4 max-sm:ml-auto">{money(f.importe)}</span>
+          // Pieza de liquidación (ADR-0379) o prenda ya apartada: el importe no abre ningún descuento.
+          <span className="min-w-[4.25rem] shrink-0 pr-1 text-right max-sm:order-4 max-sm:ml-auto">
+            <span className={`block text-sm font-semibold tabular-nums ${quitada ? "text-tinta/45 line-through" : "text-tinta"}`}>{money(f.importe)}</span>
+            {f.importeLista !== null && <s className="block text-sm text-tinta/45 tabular-nums">{money(f.importeLista)}</s>}
+          </span>
         )}
 
-        <button
-          type="button"
-          aria-label={`Quitar ${nombre}`}
-          title="Quitar"
-          onClick={() => onQuitar(linea.claveLinea)}
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo max-sm:order-2"
-        >
-          <Trash2 className="h-4 w-4" aria-hidden />
-        </button>
+        {quitada ? (
+          <BotonDeshacer onClick={() => onQuitar(linea.claveLinea)} title={`Dejar ${nombre} en el apartado`} className="shrink-0 max-sm:order-2" />
+        ) : (
+          <button
+            type="button"
+            aria-label={`Quitar ${nombre}`}
+            title="Quitar"
+            onClick={() => onQuitar(linea.claveLinea)}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo max-sm:order-2"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden />
+          </button>
+        )}
       </div>
       {f.nota && <p className="mt-1 text-sm leading-snug text-rojo-profundo">{f.nota}</p>}
+      {pie && <div className="mt-1 text-sm leading-snug text-tinta/65">{pie}</div>}
       {tambienEn && tambienEn.length > 0 && (
         <Aviso tono="atencion" chico className="mt-1.5">
           {textoDePrendaEnOtroTicket(tambienEn, linea.stockAqui)}

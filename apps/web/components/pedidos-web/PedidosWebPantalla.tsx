@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Banknote, CircleCheck, CircleHelp, Inbox, MessageSquareText, Smartphone, Truck } from "lucide-react";
+import { ArrowRight, Banknote, BellRing, CircleCheck, CircleHelp, Inbox, MessageSquareText, Smartphone, Truck } from "lucide-react";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
@@ -21,6 +21,7 @@ import { CaminoDePedidos } from "@/components/tienda-web/CaminoDePedidos";
 import { PedidoWebHoja } from "@/components/pedidos-web/PedidoWebHoja";
 import { EnviarPedidoWebHoja } from "@/components/pedidos-web/EnviarPedidoWebHoja";
 import { EditarMensajePredeterminadoHoja } from "@/components/pedidos-web/EditarMensajePredeterminadoHoja";
+import { AvisosCelularHoja } from "@/components/pedidos-web/AvisosCelularHoja";
 import { RegistrarPagoHoja } from "@/components/pedidos-web/RegistrarPagoHoja";
 import { AnularPagoHoja } from "@/components/pedidos-web/AnularPagoHoja";
 import { AnularPedidoPagadoHoja } from "@/components/pedidos-web/AnularPedidoPagadoHoja";
@@ -119,6 +120,7 @@ export function PedidosWebPantalla({
   detalle,
   detalleFallo,
   mensajePredeterminado: mensajeInicial,
+  clavePublicaAvisos,
 }: {
   tablero: TableroPedidosWeb;
   tiendaId: string;
@@ -131,6 +133,8 @@ export function PedidosWebPantalla({
   detalleFallo: boolean;
   /** El texto del mensaje predeterminado que guardó la tienda (todas las tiendas). */
   mensajePredeterminado: string;
+  /** La clave pública de envío de los avisos en el celular (ADR-0582); null si aún no se configuró. */
+  clavePublicaAvisos: string | null;
 }) {
   const router = useRouter();
   const [filtro, setFiltro] = useState<PestanaPedidos | null>(filtroInicial);
@@ -139,6 +143,7 @@ export function PedidosWebPantalla({
   // Siempre hay texto: si la página no lo trajo, el de fábrica (un `undefined` aquí tumba la pantalla al abrir el editor).
   const [mensaje, setMensaje] = useState(mensajeInicial || MENSAJE_PREDETERMINADO_WEB);
   const [editandoMensaje, setEditandoMensaje] = useState(false);
+  const [avisosAbierto, setAvisosAbierto] = useState(false);
   // «Ahora» parte de la hora del servidor (el primer dibujo es idéntico en los dos lados) y avanza cada minuto: «se cierra en 3 h».
   const [ahora, setAhora] = useState(() => Date.parse(ahoraIso));
   useEffect(() => {
@@ -206,6 +211,12 @@ export function PedidosWebPantalla({
         subtitulo={`Lo que separaron en la web para ${tienda}.`}
         acciones={
           <div className="flex flex-wrap items-center gap-2">
+            <Boton type="button" peso="fantasma" aria-haspopup="dialog" onClick={() => setAvisosAbierto(true)} data-guia="pedidos-web.avisos">
+              <span className="flex items-center gap-2">
+                <BellRing aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+                Avisos de pedidos
+              </span>
+            </Boton>
             <Boton type="button" peso="fantasma" onClick={() => setEditandoMensaje(true)} data-guia="pedidos-web.mensaje">
               <span className="flex items-center gap-2">
                 <MessageSquareText aria-hidden className="-my-1 h-4 w-4 shrink-0" />
@@ -228,6 +239,8 @@ export function PedidosWebPantalla({
           />
         ) : undefined}
       </EncabezadoPagina>
+
+      {avisosAbierto && <AvisosCelularHoja tiendaId={tiendaId} tienda={tienda} clavePublica={clavePublicaAvisos} onClose={() => setAvisosAbierto(false)} />}
 
       {editandoMensaje && (
         <EditarMensajePredeterminadoHoja textoActual={mensaje} tienda={tienda} onClose={() => setEditandoMensaje(false)} onGuardado={setMensaje} />

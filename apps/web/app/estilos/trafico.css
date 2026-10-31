@@ -115,74 +115,257 @@
   }
 }
 
-/* ---------- Hasta dónde llega la gente (actividad 3): 100 puntos por paso ----------
-   Cada punto es una persona de cada 100 que entraron; se encienden los que llegaron hasta ese paso, UNA vez al llegar, paso tras paso
-   (`--k`) y punto tras punto (`--d`). El paso donde se pierde más gente de lo de costumbre va en ámbar, con su globo encima. */
+/* ---------- Hasta dónde llega la gente (actividad 3): la línea de la tienda ----------
+   Felipe eligió «F · La línea de la tienda» el 2026-10-30 (maqueta `docs/maquetas/trafico-recorrido-2026-10/`), en vez de los 100 puntos
+   por paso: con poca gente, cinco de las seis grillas quedaban grises. Cada paso es una estación con su ícono y su cifra (personas de
+   verdad, nunca «de cada 100»); entre una y otra, cuántos se fueron y sin hacer qué. La estación donde se atora va en ámbar y la última en
+   verde si alguien llegó. Angosta, la línea baja de arriba abajo; desde 760 px de tarjeta, corre de izquierda a derecha. Entra UNA vez:
+   las estaciones en cascada (`--k`) y el riel que se dibuja detrás. */
 @layer components {
   .trafico-recorrido {
     container: recorrido / inline-size;
   }
-  .trafico-pasos {
-    --trafico-punto-apagado: color-mix(in srgb, var(--color-tinta) 11%, var(--color-hueso));
+  .trafico-linea {
+    --trafico-nodo: 44px;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    /* Entre filas cabe el globo del paso de abajo, sin pisar el «de cada 100» del de arriba. */
-    gap: 40px 18px;
-    padding-top: 28px;
+    margin: 18px 0 0;
+    padding: 0;
+    list-style: none;
   }
-  @container recorrido (min-width: 560px) {
-    .trafico-pasos {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-  @container recorrido (min-width: 1000px) {
-    .trafico-pasos {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-  }
-  .trafico-paso {
+  .trafico-estacion {
     position: relative;
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .trafico-puntos {
     display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-    gap: 3px;
-    padding: 9px;
-    border-radius: 14px;
-    background: var(--color-hueso);
+    grid-template-columns: var(--trafico-nodo) minmax(0, 1fr) auto;
+    column-gap: 14px;
+    align-items: center;
+    min-width: 0;
+    animation: trafico-estacion-entra 420ms var(--ease-cayla) both;
+    animation-delay: calc(var(--k, 0) * 90ms);
   }
-  .trafico-puntos > i {
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: var(--trafico-punto-apagado);
-  }
-  .trafico-puntos > .trafico-punto-on {
+  /* El riel: de esta estación a la siguiente. */
+  .trafico-estacion::before {
+    content: "";
+    position: absolute;
+    top: var(--trafico-nodo);
+    bottom: 0;
+    left: calc(var(--trafico-nodo) / 2 - 1.25px);
+    width: 2.5px;
     background: var(--color-tinta);
-    animation: trafico-enciende 360ms var(--ease-cayla) both;
-    animation-delay: calc(var(--k, 0) * 90ms + var(--d, 0) * 6ms);
+    transform-origin: top;
+    animation: trafico-riel-baja 360ms var(--ease-cayla) both;
+    animation-delay: calc(var(--k, 0) * 90ms + 180ms);
   }
-  .trafico-paso[data-fuga] .trafico-puntos {
-    outline: 2.5px solid var(--color-ambar);
-    outline-offset: 2px;
+  .trafico-estacion:last-child::before {
+    display: none;
   }
-  .trafico-paso[data-fuga] .trafico-puntos > .trafico-punto-on {
+  .trafico-estacion-nodo {
+    position: relative;
+    z-index: 1;
+    grid-row: 1;
+    grid-column: 1;
+    display: grid;
+    width: var(--trafico-nodo);
+    height: var(--trafico-nodo);
+    place-items: center;
+    border: 2.5px solid var(--color-tinta);
+    border-radius: 50%;
+    background: var(--color-papel);
+  }
+  .trafico-estacion-nombre {
+    grid-row: 1;
+    grid-column: 2;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .trafico-estacion-cifra {
+    grid-row: 1;
+    grid-column: 3;
+    font-family: var(--font-serif);
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .trafico-salida {
+    grid-row: 2;
+    grid-column: 2 / 4;
+    padding: 6px 0 16px;
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  .trafico-salida b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .trafico-estacion[data-atora] .trafico-estacion-nodo {
+    border-color: var(--color-ambar);
+    background: var(--color-ambar);
+    color: var(--color-papel);
+  }
+  .trafico-salida[data-atora],
+  .trafico-salida[data-atora] b {
+    font-weight: 600;
+    color: var(--color-ambar);
+  }
+  .trafico-salida[data-atora] b {
+    font-size: 18px;
+  }
+  /* «B · Zona marcada» (Felipe, 2026-10-31: «que se note dónde se pierde la gente»): la estación de ANTES del paso donde se atora dibuja un
+     recuadro ámbar suave —de su centro al de la estación que se atora— con su rótulo, y el riel de ese tramo se engruesa. Va translúcido
+     para que el riel de al lado se siga viendo, y detrás del contenido (`isolation` en la estación). Angosta, el recuadro baja: abraza a las
+     dos estaciones apiladas. Entra UNA vez, sin rebote. */
+  .trafico-estacion {
+    isolation: isolate;
+  }
+  .trafico-estacion[data-hacia-atora]::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    height: calc(100% + var(--trafico-nodo) + 18px);
+    border: 1.5px solid var(--color-ambar);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--color-ambar) 12%, transparent);
+    animation: trafico-zona-entra 360ms var(--ease-cayla) both;
+    animation-delay: calc(var(--k, 0) * 90ms + 300ms);
+  }
+  .trafico-estacion[data-hacia-atora]::before {
+    left: calc(var(--trafico-nodo) / 2 - 2.5px);
+    width: 5px;
+    border-radius: 3px;
     background: var(--color-ambar);
   }
-  .trafico-paso-globo {
+  .trafico-zona-rotulo {
     position: absolute;
-    top: -28px;
-    right: 0;
-    left: 0;
-    display: flex;
-    justify-content: center;
+    top: -10px;
+    left: 16px;
+    transform: translateY(-50%);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--color-ambar);
+    color: var(--color-papel);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
-  @keyframes trafico-enciende {
+  .trafico-estacion[data-fin] .trafico-estacion-nodo {
+    border-color: var(--color-verde);
+    background: var(--color-verde);
+    color: var(--color-papel);
+  }
+  @container recorrido (min-width: 760px) {
+    .trafico-linea {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    /* Con la zona marcada, el rótulo cuelga encima de la línea: deja su lugar. */
+    .trafico-linea[data-zona] {
+      margin-top: 44px;
+    }
+    /* De la mitad de esta estación a la mitad de la siguiente, con 14 px de aire a cada lado. */
+    .trafico-estacion[data-hacia-atora]::after {
+      top: -14px;
+      bottom: -6px;
+      left: calc(50% - 14px);
+      right: auto;
+      width: calc(100% + 22px);
+      height: auto;
+    }
+    /* Lo que se fue DESPUÉS del paso que se atora cuelga justo del borde derecho del recuadro: más angosto, para que no lo cruce. */
+    .trafico-estacion[data-atora] .trafico-salida {
+      max-width: 13ch;
+    }
+    .trafico-estacion[data-hacia-atora]::before {
+      top: calc(36px + 34px + 12px + var(--trafico-nodo) / 2 - 2.5px);
+      left: 50%;
+      width: 100%;
+      height: 5px;
+    }
+    .trafico-zona-rotulo {
+      top: -14px;
+      left: 100%;
+      transform: translate(-50%, -50%);
+    }
+    .trafico-estacion {
+      grid-template-rows: 36px 34px var(--trafico-nodo) auto;
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 6px;
+      align-items: end;
+      justify-items: center;
+      text-align: center;
+    }
+    .trafico-estacion::before {
+      top: calc(36px + 34px + 12px + var(--trafico-nodo) / 2 - 1.25px);
+      bottom: auto;
+      left: 50%;
+      width: 100%;
+      height: 2.5px;
+      transform-origin: left;
+      animation-name: trafico-riel-corre;
+    }
+    .trafico-estacion-nombre,
+    .trafico-estacion-cifra,
+    .trafico-estacion-nodo,
+    .trafico-salida {
+      grid-column: 1;
+    }
+    .trafico-estacion-nombre {
+      grid-row: 1;
+      max-width: 14ch;
+    }
+    .trafico-estacion-cifra {
+      grid-row: 2;
+      font-size: 34px;
+    }
+    .trafico-estacion-nodo {
+      grid-row: 3;
+    }
+    /* Lo que se fue entre esta estación y la siguiente: bajo el tramo de riel, colgando de una raya punteada. */
+    .trafico-salida {
+      position: relative;
+      left: 50%;
+      grid-row: 4;
+      align-self: start;
+      display: grid;
+      justify-items: center;
+      max-width: 18ch;
+      margin-top: -28px;
+      padding: 0;
+    }
+    .trafico-salida::before {
+      content: "";
+      width: 2px;
+      height: 30px;
+      margin-bottom: 4px;
+      background: repeating-linear-gradient(var(--color-borde-control) 0 3px, transparent 3px 6px);
+    }
+  }
+  @keyframes trafico-estacion-entra {
     from {
-      background-color: var(--trafico-punto-apagado);
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes trafico-zona-entra {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes trafico-riel-baja {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  @keyframes trafico-riel-corre {
+    from {
+      transform: scaleX(0);
     }
   }
 }
@@ -641,7 +824,9 @@
   .trafico-fila {
     transition: none;
   }
-  .trafico-puntos > .trafico-punto-on,
+  .trafico-estacion,
+  .trafico-estacion::before,
+  .trafico-estacion::after,
   .trafico-punto-vivo::after {
     animation: none;
   }

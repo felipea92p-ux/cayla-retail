@@ -15,6 +15,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ELEGIR_A, ELEGIR_B } from "./_claure_prendas.mjs";
+import { haceHoras } from "./_reloj_lima.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -62,18 +64,18 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   C4 devuelve A pagada en EFECTIVO y se lleva B → no mueve nada (el efectivo lo tiene Claudia)
 //   C5 devuelve B y se lleva B → CAYLA con CAYLA: nada
 const ESCENA = `
-select va.id as va_a, va.producto_id as p_a from retail.variantes va order by va.id limit 1 \\gset
-select va.id as va_b from retail.variantes va where va.producto_id <> :'p_a' order by va.id limit 1 \\gset
+${ELEGIR_A}
+${ELEGIR_B}
 select id as interbank from retail.cuentas_dinero where nombre = 'Interbank' \\gset
 reset role;
 set local session_replication_role = replica;
 update retail.productos set empresa_id = ${CLAURE} where id = :'p_a';
 insert into retail.cajas (id, ubicacion_id, estado, monto_apertura, abierta_en, cerrada_en)
-  values (${ID("e1")}, ${LIMA}, 'cerrada', 100, now() - interval '3 hours', now() - interval '1 hour');
+  values (${ID("e1")}, ${LIMA}, 'cerrada', 100, ${haceHoras(3)}, ${haceHoras(1)});
 insert into retail.ventas (id, ubicacion_id, created_at, estado, es_prueba, caja_id) values
-  (${ID("a1")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}), (${ID("a2")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a3")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}), (${ID("a4")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")}),
-  (${ID("a5")}, ${LIMA}, now() - interval '2 hours', 'completada', false, ${ID("e1")});
+  (${ID("a1")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")}), (${ID("a2")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")}),
+  (${ID("a3")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")}), (${ID("a4")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")}),
+  (${ID("a5")}, ${LIMA}, ${haceHoras(2)}, 'completada', false, ${ID("e1")});
 insert into retail.venta_items (id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario, costo_unitario) values
   (${ID("b1")}, ${ID("a1")}, :'va_a', 1, 100, 0, 10), (${ID("b2")}, ${ID("a2")}, :'va_b', 1, 100, 0, 10), (${ID("b3")}, ${ID("a3")}, :'va_a', 1, 100, 0, 10),
   (${ID("b4")}, ${ID("a4")}, :'va_a', 1, 100, 0, 10), (${ID("b5")}, ${ID("a5")}, :'va_b', 1, 100, 0, 10);

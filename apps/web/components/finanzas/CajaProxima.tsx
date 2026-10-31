@@ -15,7 +15,7 @@ import { soles } from "@/lib/flujo-caja-reglas";
 // pantalla con JavaScript). Mirando una sede no hay línea: el saldo de los bancos es de CAYLA entera y repartirlo sería inventarlo.
 // Las piezas son las del sistema (`Linea`, `TarjetaCifra`, `BarraApilada`): esta no dibuja nada a mano.
 
-const tituloDe = (dias: number) => `Tu caja en las próximas ${ventanaEnPalabras(dias)}`;
+const tituloDe = (dias: number) => `Tu caja, ${ventanaEnPalabras(dias)}`;
 const TITULO = tituloDe(14);
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -75,7 +75,8 @@ function Estados({ c, estado, className, incluye }: { c: CajaCayla; estado: stri
 function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCayla; hrefFlujo: string; className: string; incluye?: string }) {
   const titulo = tituloDe(diasEntre(c.hoy, c.hasta));
   const ultimo = c.puntos.at(-1)!;
-  const menor = Math.min(...c.puntos.map((p) => p.saldo));
+  const puntoBajo = c.puntos.reduce((a, p) => (p.saldo < a.saldo ? p : a), c.puntos[0]!);
+  const menor = puntoBajo.saldo;
   const minY = menor < 0 ? -topeRedondo(-menor) : 0;
   const hayMinimo = c.minimo > 0;
   const bajo = hayMinimo && c.queda < c.minimo;
@@ -102,6 +103,8 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
           etiqueta={etiqueta}
           serie={c.puntos.map((p) => ({ x: p.dia, y: p.saldo }))}
           referencia={hayMinimo ? [{ x: 0, y: c.minimo }, { x: ultimo.dia, y: c.minimo }] : null}
+          bajoReferencia={hayMinimo}
+          minimo={hayMinimo && puntoBajo.saldo < c.minimo ? { x: puntoBajo.dia, y: puntoBajo.saldo, texto: `${diaYMes(puntoBajo.fecha)} · ${soles(puntoBajo.saldo)}` } : null}
           proyeccion={c.conInversion ? c.conInversion.sin.map((p) => ({ x: p.dia, y: p.saldo })) : null}
           desde={0}
           hasta={ultimo.dia}

@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 154,
+  "total": 170,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -55,7 +55,7 @@
       "button «{codigoPrenda(h)}»",
       "button «Pedir a»",
       "button «→() => agregar(id)»",
-      "button «Quitar»",
+      "button «apartados.descuento»",
       "input «Viene el sábado, quiere probársela otra vez…»",
       "button «{faltaDuenoEn.length > 0 ? \"Marca de quién es lo que apartas.\" : undefined}»",
       "Volver «(sin nombre)»",
@@ -79,6 +79,20 @@
       "Casilla «Le leí las condiciones del apartado»",
       "ComboResponsable «{responsable}»",
       "button «{cajaAbierta ? (responsable.motivo ?? undefined) : undefined}»"
+    ],
+    "components/apartados/DescuentoApartado.tsx": [
+      "SegmentoDeslizante «Cómo escribir el descuento»",
+      "button «{porMonto ? `S/${v}»",
+      "input «Monto de descuento»",
+      "input «Porcentaje de descuento»",
+      "button «{r.etiqueta}»",
+      "input «Detalle del motivo»",
+      "textarea «Argumento del descuento»",
+      "Casilla «Todas las prendas»",
+      "Casilla «{nombreDe(l.varianteId)}»",
+      "Boton «Quitar descuento»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/apartados/DetalleApartado.tsx": [
       "Boton «{aplazar.bloqueo ?? undefined}»",
@@ -136,8 +150,7 @@
       "button «Mejor no» #3",
       "Boton «→() => abonar(cerrar)»",
       "button «{h.talla ?? \"—\"}»",
-      "button «{fuera ? \"Dejar\" : \"Quitar\"}»",
-      "button «No sumar»",
+      "button «Descuento a lo nuevo»",
       "button «{p.referencia}»",
       "ComboResponsable «{responsable}» #4",
       "button «Mejor no» #4",
@@ -185,6 +198,11 @@
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"
+    ],
+    "components/punto-de-venta/LineaDelTicket.tsx": [
+      "button «{`Descuento para ${nombre}»",
+      "BotonDeshacer «{`Dejar ${nombre}»",
+      "button «{`Quitar ${nombre}»"
     ]
   }
 }

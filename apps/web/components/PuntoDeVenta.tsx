@@ -112,7 +112,7 @@ import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-v
 import { accionDelEnter, buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
 import { usePistola } from "@/components/ui/usePistola";
 import type { AccesoVenta } from "@/lib/vender-accesos";
-import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
+import { hrefApartarDesdeTicket, descuentosDelTicket, dejarDescuentosParaApartar } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
 import { documentoParaComprobante, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 import { cobroDeTicketGuardado, type CobroDelTicket } from "@/lib/ticket-cobro-reglas";
@@ -1898,6 +1898,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function apartarDesdeTicket() {
     const lineas = lineasParaLlevar("apartar");
     if (lineas.length === 0) return;
+    // ADR-0584: el descuento puesto a mano viaja con las prendas (Apartados lo vuelve a exigir con las reglas de la venta).
+    const { descuentos, sinLlevar } = descuentosDelTicket(carrito.filter((it) => it.varianteId !== ID_CARGO_ESPECIAL));
+    dejarDescuentosParaApartar(lineas, descuentos);
+    if (sinLlevar > 0) {
+      avisar.aviso(
+        sinLlevar === 1
+          ? "Una prenda tenía dos descuentos distintos en el ticket: llega a Apartar sin descuento. Vuelve a ponérselo allá."
+          : `${sinLlevar} prendas tenían descuentos distintos en el ticket: llegan a Apartar sin descuento. Vuelve a ponérselos allá.`,
+      );
+    }
     setHojaTicket(false);
     router.push(hrefApartarDesdeTicket(lineas));
   }

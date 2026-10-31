@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, PackageCheck } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
@@ -9,6 +9,7 @@ import { Linea, topeRedondo } from "@/components/ui/Linea";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton } from "@/components/ui/campos";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { CabeceraBloque, ListaDatos, OpcionesFin, Superficie } from "@/components/finanzas/kit";
 import { diasEntre, fechaEnPalabras, sumarDias } from "@/lib/caja-proxima-reglas";
@@ -57,8 +58,8 @@ function EstadoDeLaCompra({ c, hoy, conIgv }: { c: CampanaInversion; hoy: string
   if (dias === null) return <Chip tono="pizarra">Sin fecha para pedir</Chip>;
   if (dias < 0) return <Chip tono="ambar">Ya pasó la fecha de pedir</Chip>;
   return (
-    <Chip tono={dias <= 7 ? "ambar" : "pizarra"}>
-      Pide antes del {diaYMes(c.fechaLimite!)} ({dias === 0 ? "es hoy" : dias === 1 ? "falta 1 día" : `faltan ${dias} días`})
+    <Chip tono={dias <= 7 ? "ambar" : "pizarra"} title={`Pide antes del ${diaYMes(c.fechaLimite!)}`}>
+      {dias === 0 ? "Pedir hoy" : dias === 1 ? "Pedir mañana" : `Pedir en ${dias} días`}
     </Chip>
   );
 }
@@ -119,7 +120,17 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
       <p className="nota-cayla" data-guia="fin-resumen.inversion">
         La inversión en mercadería está oculta. Vuelve a mostrarla en «Qué se ve», junto al mes.
       </p>
-    ) : null;
+    ) : (
+      // Felipe 2026-10-29: la tarjeta está siempre, al final del Resumen; sin nada pendiente dice eso en una línea, no tres ceros.
+      <Superficie pad guia="fin-resumen.inversion">
+        <CabeceraBloque titulo="Inversión en mercadería" bajada="Sale de tu caja cuando pagas. Aún no es gasto.">
+          <Chip tono="verde">Todo pedido</Chip>
+        </CabeceraBloque>
+        <Vacio tamano="chico" icono={<PackageCheck />}>
+          Nada pendiente: no hay campañas por pedir ni por pagar.
+        </Vacio>
+      </Superficie>
+    );
   }
   const total = campanas.reduce((a, c) => a + saleDeCajaDelPlan(c, conIgv), 0);
   const delCuadro = campanas.find((c) => c.id === abierta) ?? null;
@@ -127,12 +138,7 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
     <Superficie pad guia="fin-resumen.inversion">
       <CabeceraBloque
         titulo="Inversión en mercadería"
-        bajada={
-          <>
-            Lo que vas a poner en prendas para las campañas que vienen. <b>No entra a «Te deja»</b>: es plata comprometida que sale de tu caja cuando pagas, y se vuelve costo cuando vendes.{" "}
-            {conIgv ? `Con IGV, de caja saldrán ${soles(total)} en total.` : "Sin contar el IGV."}
-          </>
-        }
+        bajada={conIgv ? `Sale de tu caja cuando pagas. Aún no es gasto. Con IGV, ${soles(total)} en total.` : "Sale de tu caja cuando pagas. Aún no es gasto. Sin contar el IGV."}
       />
       <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))]">
         {campanas.map((c, i) => {
@@ -140,6 +146,21 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
           // El cuadro de la campaña se abre si tiene algo que enseñar: cómo pagarla, lo que dice la historia o cuánto cuesta.
           const hayCuadro = hayQuePagar || c.historia !== null || c.costos !== null;
           const estaAbierta = abierta === c.id;
+          const reparto = repartoDeLaCompra(c);
+          // Una campaña sin nada que pagar ni pedir no necesita su barra: «Todo pedido» y el enlace al Plan.
+          const enCero = reparto.pagado + reparto.pedidoSinPagar + reparto.faltaPedir <= 0 && !hayCuadro;
+          if (enCero)
+            return (
+              <div key={c.id} {...entra(i)} className="anim-entra card-cayla flex flex-wrap items-center justify-between gap-2 p-4">
+                <TituloSeccion nivel={3} dato={fechasDeCampana(c)}>
+                  {c.nombre}
+                </TituloSeccion>
+                <span className="flex flex-wrap items-center gap-3">
+                  <EstadoDeLaCompra c={c} hoy={hoy} conIgv={conIgv} />
+                  {c.hrefPlan && <EnlaceVer href={c.hrefPlan}>Ver en el Plan de campaña</EnlaceVer>}
+                </span>
+              </div>
+            );
           return (
             <div key={c.id} {...entra(i)} className="anim-entra card-cayla space-y-3 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -157,7 +178,7 @@ export function InversionMercaderia({ campanas, conIgv, hoy, proyeccion, elegida
                   </Boton>
                 )}
                 {c.hrefPlan && <EnlaceVer href={c.hrefPlan}>Ver en el Plan de campaña</EnlaceVer>}
-                {!hayCuadro && pendienteDeCaja(c, conIgv) <= 0 && <span className="text-sm text-taupe">Ya está todo pedido: lo que falta pagar está en Por pagar.</span>}
+                {!hayCuadro && pendienteDeCaja(c, conIgv) <= 0 && <span className="text-sm text-taupe">Todo pedido. Lo que falta pagar está en Por pagar.</span>}
               </div>
             </div>
           );

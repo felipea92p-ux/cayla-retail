@@ -86,3 +86,40 @@ antes sigue funcionando (los otros tres tienen valor de fábrica).
 - **«Ver más» abre una hoja** en «Qué prendas miran» (la tabla entera, con su orden) y en «Tallas que piden y no hay» (todas las categorías). Las
   tallas muestran las 8 categorías donde más gente eligió talla, con celdas más chicas, para que midan lo mismo que las 8 prendas de al lado.
 - **El paso donde más gente se pierde se marca siempre**, también con pocas personas (entonces la frase dice que es una pista).
+
+## Actualización 2026-10-30 — «Hasta dónde llega la gente» pasa a ser la línea de la tienda, y hoy entra al gráfico
+
+- **Los 100 puntos por paso se fueron.** Con pocas visitas (127 en 7 días) cinco de las seis grillas quedaban casi grises, y «1 de cada 100»
+  era, en verdad, 1 persona. Felipe vio dos rondas de maquetas (`docs/maquetas/trafico-recorrido-2026-10/`: escalera, un solo 100, anillos,
+  cinta; después solo cifras, la línea de la tienda, la gente de verdad, la respuesta y el seguimiento) y eligió **F · La línea de la tienda**:
+  cada paso es una estación con su ícono de lucide y **cuántas personas llegaron**; entre una y otra, cuántas se fueron y sin hacer qué. La
+  estación donde se atora va en ámbar y la última en verde si alguien llegó. Angosta (menos de 760 px de tarjeta) baja de arriba abajo.
+- **Sin «de cada 100» en este bloque** (Felipe: «¿es necesario?»). La frase dice personas de estos días: «de 43 que vieron una prenda, solo 6
+  eligieron talla. De costumbre, serían unos 19» (`costumbreEnPersonas`). La regla de dónde se atora (`dondeSeAtora`) no cambió.
+- **Movimiento (ADR-0136):** las estaciones entran una vez en cascada y el riel se dibuja detrás; sin rebote ni bucle, apagado con «reducir
+  movimiento». Reemplaza a «los 100 puntos que se encienden», que era la excepción anotada en CLAUDE.md.
+- **Hoy entra al gráfico de «Entraron».** En «Por día», el día en curso no entraba a la línea a propósito (a medias, la línea «caía» sin haber
+  caído), pero el 30 quedaba vacío sin explicación y Felipe preguntó por qué. Ahora `graficoDe` lo devuelve aparte (`enCurso`) y `<Linea>`
+  lo dibuja con un tramo punteado hasta un punto hueco con su cifra y «hasta ahora» (prop `enCurso`, nueva en la pieza única). Lo mismo con
+  la hora en curso en Hoy. En «Acumulado» no cambia nada: ahí ya entraba.
+
+## Actualización 2026-10-31 — que se note dónde se pierde la gente: «B · Zona marcada» (Felipe)
+
+- **Qué pasó:** Felipe miró «Hasta dónde llega la gente» con una captura real (146 · 51 · 9 · 4 · 2 · 1) y dijo que «no se nota mucho dónde se pierde la
+  gente». Se le mostraron tres formas nuevas (columnas a escala, una fila por paso, un río que se angosta) y dijo que **lo de hoy está bien, solo que el
+  tramo naranja se note más**. Se le mostraron entonces tres intensidades sobre la misma línea y eligió **B · Zona marcada**
+  (`docs/maquetas/trafico-perdida-2026-10/realce-del-tramo.html`).
+- **Qué cambió:** la línea conserva su forma. El tramo donde se atora lleva un **recuadro ámbar suave** con su rótulo (de la mitad de la estación de antes a
+  la mitad de la que se atora; angosta, abraza a las dos estaciones apiladas), el **riel de ese tramo se engruesa** (5 px), el círculo del paso se llena de
+  ámbar y el «42 se fueron…» sube a 18 px. El rótulo dice lo mismo que el veredicto: «Aquí se atora» si va peor que de costumbre, «Una pista» con pocas
+  personas, «Como de costumbre» si no. Entra una vez, sin rebote ni bucle (`trafico-zona-entra`), y se apaga con `prefers-reduced-motion`.
+- **Cómo está hecho (sin script):** la estación de ANTES del paso que se atora (`data-hacia-atora`) dibuja el recuadro con su `::after`, translúcido para que
+  el riel vecino se vea, detrás del contenido (`isolation: isolate`); el rótulo es un `<span aria-hidden>` (el chip ya lo dice con letras). Solo tokens
+  (`--color-ambar`, `--color-papel`); en oscuro el ámbar es el claro de la paleta y el rótulo pasa a texto oscuro. `RecorridoTrafico.tsx`, `trafico.css`.
+- **DESCARTÉ:** (1) bajar de tono lo demás, como en la maqueta (`opacity .72`): el texto de las salidas ya va al 70 % y quedaría bajo el piso de contraste.
+  (2) Las tres formas nuevas (A/B/C de `index.html`): Felipe prefirió conservar la línea de hoy.
+- **No cambió, y es de Felipe:** *qué* se marca. La regla sigue siendo la de siempre (el paso que deja pasar a menos gente de la que le llega, comparado con lo de
+  costumbre): con esos datos marca «al elegir talla» (42 de 51, 82 %), aunque donde más PERSONAS se van es apenas entran (95 de 146, 65 %). Cambiar a
+  «más personas» es una línea en `dondeSeAtora`; la maqueta (`index.html`, «Qué marca en ámbar») deja compararlas.
+- **Verificación:** el componente real renderizado a HTML con el CSS real (la base local no tiene visitas ni estaba levantada), en claro y oscuro, a ancho de
+  escritorio y a 375 px, con los datos de la captura, un caso donde se atora el primer paso y otro de poca gente. Falta mirarlo con visitas de producción.

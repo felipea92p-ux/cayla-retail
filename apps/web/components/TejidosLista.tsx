@@ -11,6 +11,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { existentesParecidos } from "@/lib/atributo-parecido";
+import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components/ui/ExisteTambien";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
   BarraAtributos,
@@ -336,6 +338,12 @@ export function TejidosLista({
         <NuevoTejidoModal
           nombre={nombre}
           onNombre={setNombre}
+          existentes={tejidos}
+          onVer={(nombreExistente) => {
+            setUso("todos");
+            setBusqueda(nombreExistente);
+            setAnimar(true);
+          }}
           descripcion={descripcion}
           onDescripcion={setDescripcion}
           conDescripcion={puedeEditar}
@@ -425,6 +433,8 @@ export function TejidosLista({
 function NuevoTejidoModal({
   nombre,
   onNombre,
+  existentes,
+  onVer,
   descripcion,
   onDescripcion,
   conDescripcion,
@@ -435,6 +445,10 @@ function NuevoTejidoModal({
 }: {
   nombre: string;
   onNombre: (v: string) => void;
+  /** Todos, también los desactivados: la base rechaza un nombre que ya tuvo uno (ADR-0576). */
+  existentes: readonly { id: string; nombre: string; activo: boolean }[];
+  /** «Ver» el que ya existe: la lista de atrás se queda buscándolo. */
+  onVer: (nombre: string) => void;
   descripcion: string;
   onDescripcion: (v: string) => void;
   /** Solo quien puede editar propone un dibujo desde una frase. */
@@ -444,8 +458,11 @@ function NuevoTejidoModal({
   onGuardar: () => void;
   onClose: () => void;
 }) {
+  // «Existe también» (ADR-0576): al abrir la ventana el estado nace limpio, y muere con ella.
+  const existe = useExisteTambien(nombre, existentesParecidos(nombre, existentes));
+  const faltaExiste = faltaPorExistente("tejido", nombre, existe);
   const guia = useGuiaCampos([
-    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del tejido." },
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "" && !existe.bloquea, pendiente: faltaExiste ?? "Escribe el nombre del tejido." },
     ...(conDescripcion ? [{ id: "descripcion", nombre: "Cómo se ve", requerido: false, hecho: descripcion.trim() !== "", pendiente: "" }] : []),
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
@@ -456,6 +473,13 @@ function NuevoTejidoModal({
           <CampoGuiado id="nombre" guia={guia}>
             <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre del tejido")} value={nombre} onChange={(e) => onNombre(e.target.value)} placeholder="Ej. Algodón" autoFocus />
           </CampoGuiado>
+          <ExisteTambien
+            que="tejido"
+            nombre={nombre}
+            estado={existe}
+            si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { onVer(o.nombre); cerrar(); } })}
+            deshabilitado={guardando}
+          />
           {conDescripcion && (
             <CampoGuiado id="descripcion" guia={guia}>
               <CampoTexto
@@ -480,8 +504,8 @@ function NuevoTejidoModal({
               peso="primario"
               onClick={onGuardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !responsable.listo}
-              title={responsable.motivo ?? guia.frase ?? undefined}
+              disabled={!nombre.trim() || existe.bloquea || !responsable.listo}
+              title={responsable.motivo ?? faltaExiste ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
               Guardar

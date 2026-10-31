@@ -82,6 +82,12 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "Cuando no queda nada por hacer, te lo dice en una línea, con lo último que pasó. Abajo quedan los pedidos cerrados de los últimos 30 días.",
     },
     {
+      id: "avisos",
+      ancla: "pedidos-web.avisos",
+      titulo: "Avisos en el celular",
+      texto: "Haz que el celular de la tienda suene cuando llega un pedido web: lo activas una vez en cada teléfono y avisa al minuto, aunque el ERP esté cerrado.",
+    },
+    {
       id: "mensaje",
       ancla: "pedidos-web.mensaje",
       titulo: "Mensaje predeterminado",
@@ -1435,14 +1441,14 @@ export const GUIA_TRAFICO: Guia = {
       ancla: "trafico.recorrido",
       opcional: true,
       titulo: "Hasta dónde llega la gente",
-      texto: "Cada punto es una persona de cada 100 que entraron. Paso a paso se apagan los que se fueron: lo que ves encendido es quienes llegaron hasta ahí.",
+      texto: "Como recorrer la tienda: cada estación es un paso, con cuántas personas llegaron hasta ahí. Entre una y otra, cuántas se fueron y sin hacer qué. La última se pinta de verde si alguien llegó a recoger.",
     },
     {
       id: "veredicto",
       ancla: "trafico.veredicto",
       opcional: true,
       titulo: "Dónde se atora",
-      texto: "El paso donde más gente se pierde, comparado con lo de costumbre. Si va peor que siempre, se pinta en ámbar: ahí conviene mejorar la tienda.",
+      texto: "El recuadro ámbar marca el tramo donde más gente se va de la que le llega, comparada con lo de costumbre. Si va peor que siempre, lo dice el chip y el rótulo del recuadro: ahí conviene mejorar la tienda.",
     },
     {
       id: "porque",

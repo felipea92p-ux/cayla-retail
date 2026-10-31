@@ -32,7 +32,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DURACIONES = join(RAIZ, "scripts", "ci", "pruebas-postgres-duraciones.json");
-export const TANDAS = 4;
+export const TANDAS = 6;
 
 export const PRUEBAS = [
   // Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
@@ -138,6 +138,13 @@ export const PRUEBAS = [
   // CLAURE mueve la mercadería del Balance (fn_bal_stock) igual que la 201 del diario; lo debido va a la 4699; un corte pasado; la
   // autoprueba (deshecha una mitad, la propiedad se rompe); pegar dos veces y permisos. ROLLBACK.
   "pruebas:balance-claure",
+  // El estado de cambios en el patrimonio (ADR-0585, actividad 2): lo tuyo al empezar y al cerrar es la sección «patrimonio» del Balance,
+  // la ganancia es su «Resultado del mes», los aportes y retiros son los del dueño, nada queda sin explicar, un mes no se mezcla con el
+  // siguiente y la serie empieza en el arranque. Lo ve quien ve los Estados financieros de CAYLA entera. ROLLBACK.
+  "pruebas:patrimonio-cambios",
+  // ADR-0585, actividad 8: los saldos por cuenta de un mes (la balanza de comprobación para el contador) cuadran en 0, coinciden con el
+  // Balance y con la ganancia, y abril empieza donde cerró marzo. Lo ve quien ve los Estados financieros de CAYLA entera. ROLLBACK.
+  "pruebas:saldos-por-cuenta",
 
   // La reversa de un cobro sale por su cuenta (ADR-0120 act. 2026-10-17): anulación, devolución, diferencia de un cambio y
   // adelanto devuelto van a la cuenta por la que entró el cobro (tarjeta: 105) y nunca a la 451, con cada medio; el parche de
@@ -388,6 +395,11 @@ export const PRUEBAS = [
   // revisión «¿se puede mostrar?» está en PL/pgSQL y el catálogo devuelve EXACTAMENTE el JSON de su versión de antes. ROLLBACK.
   "pruebas:tienda-rapida",
 
+  // La regla del precio por lotes (2026-10-31): `fn_precios_en_sedes` da el precio de antes en toda talla y sede, `fn_precio_en_sede` le
+  // pregunta a ella, el catálogo, los looks y el precio de la tienda son idénticos a los de antes, y una carga del catálogo no pregunta
+  // fila por fila (si Postgres deja de meter la regla en la consulta, la prueba lo ve). ROLLBACK.
+  "pruebas:tienda-precio-por-lotes",
+
   // La base se cae sin llevarse al ERP (ADR-0450): `fn_salud()` («¿responde la base?», solo true y solo para anon/authenticated/service_role)
   // y los topes de conexión/tiempo del usuario de la tienda (20 conexiones, 5 s, 10 s en transacción quieta) que no tocan a nadie más
   // —ni a `postgres`, que queda como miembro de `tienda_web` por haberlo creado—, son idempotentes y no fallan sin usuario. ROLLBACK.
@@ -422,6 +434,9 @@ export const PRUEBAS = [
   // salen de Configuración ▸ Tienda web; el aviso de 48 h calla con adelanto y una prenda por conseguir o en camino; enviar desde
   // otra tienda arma un traslado que se reserva solo al llegar (y vuelve si se anula); Catálogo dice «tiene pedidos web». ROLLBACK.
   "pruebas:pedidos-web-erp",
+  // El aviso en el celular de la sede (ADR-0582): cada pedido nuevo deja su ficha (y nace aunque la cola falle); activar pide el
+  // módulo y la sede; el envío lleva solo los teléfonos de esa sede y vuelve a preguntar el permiso; lo viejo o cerrado no sale. ROLLBACK.
+  "pruebas:pedidos-web-push",
   // La bolsa y «Separar» de la tienda online (ADR-0408, actividad 7): la bolsa da el precio de la tienda elegida (o el mayor) con
   // la campaña y solo «alcanza / hay» por tienda, nunca la cifra; separar vuelve a calcular cada precio, crea el pedido por
   // confirmar SIN tocar el stock y la misma marca da el mismo pedido; cada cliente ve solo sus pedidos (el código de recojo, recién
@@ -605,6 +620,12 @@ export const PRUEBAS = [
   // Separaciones (ADR-0166): separar con adelanto en custodia, entregar cobrando el saldo con el precio
   // congelado, vencer con 2 días de gracia, devolver el 100% y que el arqueo de caja cuadre al céntimo.
   "pruebas:separaciones",
+
+  // Apartar con descuento a mano (ADR-0584): se guarda con su motivo y la entrega lo lleva a la venta; cada regla (motivo,
+  // «Otro» sin detalle, argumento pasado el 15 %, bajo el costo, Líder pasado el 35 %) rechaza igual al apartar que al vender,
+  // porque la regla vive en dos lugares; la lista de apartados dice el motivo de cada prenda (20261030234000); y las dos
+  // migraciones se pegan dos veces. Cada caso: ROLLBACK.
+  "pruebas:apartar-con-descuento",
 
   // Conteo vacío (ADR-0174): cerrar_conteo rechaza un conteo sin prendas (hint conteo_vacio) y lo deja abierto para
   // contar o cancelar; con prendas cierra como siempre; la migración se puede pegar dos veces. Cada caso: ROLLBACK.
@@ -843,6 +864,10 @@ export const PRUEBAS = [
   // que pone la base y el saldo inicial solo del líder; un reintento con el mismo token no duplica nada; una tela repetida AVISA y dice cuál; el nombre, el
   // código, el tejido y la merma de un color son los de su tela; y los estados imposibles (un color dos veces, kilo sin medidas, NaN, unidad cambiada) no caben. ROLLBACK.
   "pruebas:materiales",
+
+  // Corregir y eliminar un ingreso de insumo (ADR-0570, actividad 6a; migración 20261030134000): el lote se corrige o queda en cero con su marca, el libro deja el ingreso y el par «deshago + anoto»,
+  // el saldo y el valor del color cuadran, un lote que ya se usó no se toca, es del líder, la historia no se edita ni se borra, y la migración se pega dos veces. ROLLBACK.
+  "pruebas:insumos-corregir-ingreso",
 
   // Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
   // RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin
@@ -1405,16 +1430,20 @@ export const PRUEBAS = [
   // `archivar_caja_prueba` recalcula lo esperado por la primera caja real posterior (el caso de Arequipa). ROLLBACK.
   "pruebas:caja-fondo-coherente",
 
-  // Una sola regla de «quién ve todas las tiendas y la empresa» en Finanzas (auditoría 2026-10-16, G16; ADR-0433 act. 8): el diario
-  // (también el congelado), el Estado de resultados, el Balance, el Balance por tienda y los gastos fuera de lo normal preguntan
-  // `fn_ve_finanzas_de_todo()` como `fn_asientos`; un candado estructural exige que ninguna función que reparta el alcance con
-  // `fn_diario_ubicaciones()` pregunte `fn_es_lider()` por su cuenta. Un encargado sigue viendo solo su tienda (42501 en otra). ROLLBACK.
+  // Una sola regla de «quién ve todas las tiendas y la empresa» en Finanzas (auditoría 2026-10-16, G16; ADR-0433 act. 8; ADR-0585): las
+  // doce lecturas del diario preguntan `fn_ve_diario_de_todo()`; un candado estructural exige que ninguna pregunte `fn_es_lider()` ni
+  // `fn_ve_finanzas_de_todo()` por su cuenta. Con Estados financieros se ve CAYLA entera (también el flujo y el Balance entero), sin
+  // escribir; una terminal con el módulo sigue con su tienda (42501 en otra). ROLLBACK.
   "pruebas:finanzas-alcance",
 
   // Un mes cerrado se queda cerrado (auditoría 2026-10-16, G09; ADR-0433 act. 9): el Estado de resultados lee el diario congelado, archivar una
   // caja de prueba y una vigencia retroactiva del IGV o del tope de planilla de un mes cerrado se rechazan, y DOS SESIONES reales prueban el
   // entrelazado del cerrojo de cierre (quien registra espera al cierre y el cierre espera a quien registra; lo de hoy no espera). ROLLBACK.
   "pruebas:finanzas-mes-cerrado",
+
+  // Lecturas de Finanzas que escalan (ADR-0583): `fn_diario` no rearma el diario vivo de un mes cerrado entero y `fn_item_es_de_claure` mira
+  // la sede antes que el dueño de la línea; las dos responden EXACTAMENTE lo mismo que antes (comparadas con su copia). ROLLBACK.
+  "pruebas:finanzas-lecturas-que-escalan",
 
   // Cada pago de un apartado se asienta el día en que entró la plata (auditoría 2026-10-16, G02; ADR-0433 act. 10): el diario trae un asiento por pago
   // (el primero y cada abono) con su IGV por pago; agregar un abono no cambia el diario de un mes anterior; devolver el adelanto o entregar el apartado
@@ -1757,6 +1786,9 @@ export const PRUEBAS = [
 
   // Agregar un paso a una orden abierta (ADR-0566, actividad 1): hermana de «quitar paso». Entra en su lugar de la ruta (Ojales y botones entre Costura y Planchado), la ruta resultante pasa la validación de abrir, no se agrega si un paso posterior ya empezó (aunque esté deshecho), no mueve dinero, todo o nada y comparte el candado por orden. ROLLBACK.
   "pruebas:produccion-agregar-paso",
+  // Agregar un paso que se olvidó (ADR-0586, actividad 1): solo el líder y con motivo; entra en su lugar YA hecho con todas las prendas que le llegaron (Taller: «Terminé»; afuera: salida y
+  // vuelta que devengan), la cadena queda cuadrada (Planchado sigue y la orden cierra), queda en la historia (paso_tarde) y en Actividad; sin un paso posterior empezado, no es «tarde». ROLLBACK.
+  "pruebas:produccion-paso-tarde",
   // «Terminé» con falla y con fecha (ADR-0570, actividad 2): segunda y perdida cierran la fase sin pasar a la siguiente; un arreglo no cierra hasta volver bueno; buenas + fallas
   // nunca pasan de lo que entró (tampoco por el registrar_avance de siempre); el día real, desde la apertura y nunca futuro; una falla se deshace una vez; nada se edita. ROLLBACK.
   "pruebas:produccion-termine-con-falla",
@@ -1766,6 +1798,12 @@ export const PRUEBAS = [
   // La tela al cortar (ADR-0570, actividad 4): «¿cuánto quedó?» descuenta de los lotes del más antiguo al más nuevo, todo o nada; «Encontré tela» entra como lote «encontrada» al último
   // precio; sin tela anotada (también un forro) no pasa al stock salvo el permiso de un líder, que queda en la historia; una muestra y una orden sin tela declarada pasan. ROLLBACK.
   "pruebas:produccion-tela-al-cortar",
+  // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
+  // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
+  "pruebas:produccion-corte-con-su-tela",
+  // Cambiar el tipo de una orden abierta (ADR-0581): de muestra a lote y al revés, con su rastro (historia y Actividad); pedir el mismo tipo no hace nada; sin precio no pasa a lote; una orden
+  // cerrada no cambia; una muestra que pasa a lote entra al stock al cerrar y una que sigue muestra no. ROLLBACK.
+  "pruebas:produccion-cambiar-tipo",
   // El catálogo de procesos (ADR-0570, actividad 5): los doce de siempre con su mismo lugar en la ruta, Pegar cierre y Lavado o teñido, la llave foránea en fases y tarifas;
   // solo un líder da de alta o apaga (el nuevo cae entre sus vecinos; la espina no se apaga; lo apagado no entra a una orden ni a una tarifa); lo que lleva cada modelo. ROLLBACK.
   "pruebas:produccion-catalogo-de-procesos",
@@ -1945,6 +1983,10 @@ export const PRUEBAS = [
   // `variantes.costo`; quien registra con el módulo Facturas de compra confirma aunque no sea líder (sin el módulo, el permiso
   // de siempre); sin referencia solo vale el precio; costo 0 (obsequio) no se juzga; se puede pegar dos veces.
   "pruebas:factura-costo-atipico",
+
+  // Una compra sin fecha de emisión queda en el día de Lima a cualquier hora (20261031013000): el default de `registrar_compra`
+  // era `current_date` (UTC) y de 19:00 a 24:00 en Lima toda compra sin fecha salía «futura». Reloj falso; ROLLBACK.
+  "pruebas:registrar-compra-emision-lima",
 
   // Recibir lo FUERA de comprobante de un envío pide confirmación si su costo es atípico (20260930124000, Felipe 2026-09-30): el
   // líder recibe `costo_atipico` con los extras raros que faltan por confirmar (numerados por su posición en `p_extras`) y no se

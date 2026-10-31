@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { lineaVentasMeta, mesPasadoComparable, respuestaResumen, tramoAnteriorALaFecha, tramoDeSueldos, vendidoPorSede } from "./resumen-telar-reglas";
+import { lineaVentasMeta, mesPasadoComparable, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, tramoDeSueldos, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -129,5 +129,27 @@ describe("los sueldos del mes en el Resumen", () => {
     expect(mesPasadoComparable(con(base, 41717.28), con(base, 30062.23))).toEqual(con(base, 30062.23));
     expect(mesPasadoComparable(con(base, 0), con(base, 0))).toEqual(con(base, 0));
     expect(mesPasadoComparable(con(base, 41717.28), null)).toBeNull();
+  });
+});
+
+describe("tiendasAdivinadas y mismasTiendas (ADR-0583: la línea de ventas se pide sin esperar al resumen)", () => {
+  const activas = ["a", "b", "c"];
+  it("todas: las tiendas activas, en su orden", () => {
+    expect(tiendasAdivinadas({ clave: "todas", ubicacionId: null, soloEmpresa: false }, "b", activas)).toEqual(["a", "b", "c"]);
+  });
+  it("una tienda elegida: solo ella; una ubicación que no es tienda activa (el Taller): ninguna", () => {
+    expect(tiendasAdivinadas({ clave: "b", ubicacionId: "b", soloEmpresa: false }, null, activas)).toEqual(["b"]);
+    expect(tiendasAdivinadas({ clave: "t", ubicacionId: "t", soloEmpresa: false }, null, activas)).toEqual([]);
+  });
+  it("la empresa no vende; quien mira su sede, su sede si es tienda", () => {
+    expect(tiendasAdivinadas({ clave: "empresa", ubicacionId: null, soloEmpresa: true }, "a", activas)).toEqual([]);
+    expect(tiendasAdivinadas({ clave: "propia", ubicacionId: null, soloEmpresa: false }, "c", activas)).toEqual(["c"]);
+    expect(tiendasAdivinadas({ clave: "propia", ubicacionId: null, soloEmpresa: false }, null, activas)).toEqual([]);
+  });
+  it("la apuesta solo vale con las mismas tiendas en el mismo orden (si no, se vuelven a pedir)", () => {
+    expect(mismasTiendas(["a", "b"], ["a", "b"])).toBe(true);
+    expect(mismasTiendas(["b", "a"], ["a", "b"])).toBe(false);
+    expect(mismasTiendas(["a"], ["a", "b"])).toBe(false);
+    expect(mismasTiendas([], [])).toBe(true);
   });
 });

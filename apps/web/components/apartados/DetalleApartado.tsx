@@ -16,7 +16,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
 import { AbonarFormulario, type UbicacionApartado } from "@/components/apartados/ModalesApartado";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
@@ -220,13 +220,14 @@ function VistaDetalle({
           {a.prendas.map((pr) => {
             const v = porVariante.get(pr.varianteId);
             return (
-              <li key={pr.itemId || pr.varianteId} className="flex items-center gap-3 px-4 py-2.5">
+              <li key={pr.itemId || pr.varianteId} className="flex flex-wrap items-center gap-x-3 px-4 py-2.5">
                 <FotoPrenda fotoUrl={v?.fotoUrl} referencia={pr.referencia} colorHex={v?.colorHex} categoria={v?.categoria} categoriaPrefijo={v?.categoriaPrefijo} categoriaFamilia={v?.categoriaFamilia} ancho={36} className="w-9" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
                   <p className="text-sm text-tinta/60">{[v?.color, v?.talla].filter(Boolean).join(" · ") || pr.sku} · {pr.cantidad} u.</p>
                 </div>
-                <span className="text-sm tabular-nums">{money((pr.precioUnitario - pr.descuentoUnitario) * pr.cantidad)}</span>
+                <ImporteDePrenda prenda={pr} />
+                <DescuentoDePrenda prenda={pr} conArgumento className="mt-1.5 basis-full pl-12" />
               </li>
             );
           })}

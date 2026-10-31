@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 90,
+  "total": 99,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -80,8 +80,18 @@
       "button «Ver»",
       "button «Ver todas»"
     ],
-    "components/finanzas/gastos/CalendarioGastos.tsx": [
-      "button «{`${d.dia}»"
+    "components/finanzas/gastos/ExtractoGastos.tsx": [
+      "button «{dentro ? undefined : \"fin-gastos.fila\"}»",
+      "button «fin-gastos.repetidos»",
+      "BotonVerMas «fin-gastos.dias-de-antes»"
+    ],
+    "components/finanzas/gastos/HilosGastos.tsx": [
+      "BotonVerMas «{`Ver ${filas.length - aLaVista}»",
+      "button «{i === 0 ? \"fin-gastos.hilo-primera\" : undefined}»",
+      "button «{fechaCorta(g.fecha)}»",
+      "button «Todas»",
+      "button «{t.nombre}»",
+      "BotonVerMas «{`Ver ${lista.length - A_LA_VISTA}»"
     ],
     "components/finanzas/gastos/HojaRegistrarGasto.tsx": [
       "button «{`${p.descripcion}»",
@@ -101,8 +111,9 @@
       "Boton «Guardar y registrar otro (⌘⇧↵)»",
       "Boton «Registrar (⌘↵)»"
     ],
-    "components/finanzas/gastos/RetazoGastos.tsx": [
-      "button «{`${p.nombre}»"
+    "components/finanzas/gastos/RitmoGastos.tsx": [
+      "button «{g.descripcion}»",
+      "BotonVerMas «{`Ver ${elDia.gastos.length - A_LA_VISTA}»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",

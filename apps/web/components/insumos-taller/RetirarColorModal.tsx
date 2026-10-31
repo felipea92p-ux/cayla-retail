@@ -65,6 +65,8 @@ export function RetirarColorModal({ insumo, tallerId, onClose }: { insumo: Insum
         {motivoSaldo ? (
           <Aviso tono="atencion" chico>
             {motivoSaldo}
+            {/* La salida del callejón («esto lo ingresé por error y no me deja quitarlo porque tiene 9 metros»): se dice dónde se arregla, no solo que no se puede. */}
+            <span className="mt-1 block text-tinta/75">¿Entró por error? Cierra esta hoja, abre el color y toca el lápiz de ese ingreso: ahí lo corriges o lo eliminas, y el color queda sin saldo.</span>
           </Aviso>
         ) : (
           <p className="nota-cayla">Desde la pantalla no se vuelve a mostrar: si lo necesitas otra vez, hay que pedirlo aparte.</p>
