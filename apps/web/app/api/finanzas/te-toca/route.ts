@@ -1,7 +1,8 @@
 import { requirePersonaActualV2, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { leerVer, mesDe, rangoMes } from "@/lib/gastos-reglas";
-import { getContextoGastos, getPanelGastos } from "@/lib/gastos";
+import { getContextoGastos, getGastos, getPanelGastos } from "@/lib/gastos";
+import { sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
 import { sedeDeLaUrl, SEDE_TODAS } from "@/lib/finanzas-telar-reglas";
 import { pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "@/lib/finanzas-te-toca-reglas";
 import { getContextoDinero, getMovimientos, pendientesDeConciliar } from "@/lib/cuentas-dinero";
@@ -30,8 +31,13 @@ export async function GET(request: Request) {
       const { desde, hasta } = rangoMes(mesDe(hoyLima()));
       const contexto = await getContextoGastos();
       const ver = leerVer(sede, contexto.ubicaciones, veFinanzasDeTodoDe(persona), persona.ubicacionId);
-      const panel = await getPanelGastos(desde, hasta, ver);
-      if (panel.datos) pendientes.push(...pendientesDeGastos(panel.datos, consulta));
+      // La lista del mes va junto al panel (en la misma vuelta): de ella sale lo grande sin papel, lo mismo que marca la lista de Gastos
+      // (Felipe 2026-10-30). Si no responde, ese pendiente no sale y el cajón dice que está incompleto; los demás sí.
+      const [panel, lista] = await Promise.all([getPanelGastos(desde, hasta, ver), getGastos(desde, hasta, ver)]);
+      // Si solo falló el IGV perdido, la lista llega entera (y esta cuenta no depende de él): se cuenta igual.
+      const sinPapel = sinComprobanteGrande(lista.datos);
+      if (lista.falla && lista.datos.length === 0) incompleto = true;
+      if (panel.datos) pendientes.push(...pendientesDeGastos({ ...panel.datos, sinComprobante: sinPapel.n, igvSinComprobante: sinPapel.igv }, consulta));
       else incompleto = true;
     } catch (e) {
       console.error("Te toca: no se pudieron leer los pendientes de Gastos", e);
