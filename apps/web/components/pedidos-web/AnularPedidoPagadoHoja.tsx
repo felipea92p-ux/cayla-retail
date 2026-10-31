@@ -162,8 +162,7 @@ export function AnularPedidoPagadoHoja({
           {/* En duda, nada se toca: otro motivo reenviado podría anular dos veces. */}
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-5">
             <Aviso tono="atencion" titulo="Se deshace todo de una vez">
-              Ya pagó y no se va a entregar: sus prendas vuelven a estar libres, se le devuelve lo que pagó y su boleta se anula. Avísale al
-              cliente antes.
+              Sus prendas quedan libres, se le devuelve lo que pagó y su boleta se anula. Avísale antes.
             </Aviso>
 
             <div className="space-y-2" data-guia="anular-pedido.prendas">
@@ -174,7 +173,7 @@ export function AnularPedidoPagadoHoja({
                     <MiniPrenda prenda={l} tamano="md" />
                     <span className="min-w-0 flex-1">
                       <span className="block text-tinta">{[l.referencia, l.color, l.talla].filter(Boolean).join(" · ")}</span>
-                      <span className="block text-[12.5px] text-taupe">{texto}</span>
+                      <span className="block text-sm text-taupe">{texto}</span>
                     </span>
                   </li>
                 ))}
@@ -183,11 +182,11 @@ export function AnularPedidoPagadoHoja({
 
             <div className="space-y-2" data-guia="anular-pedido.plata">
               <TituloGrupo nota={`se le devuelven ${soles(total)}`}>Su plata</TituloGrupo>
-              <ul className="divide-y divide-sand rounded-xl border border-sand text-[13px]">
+              <ul className="divide-y divide-sand rounded-xl border border-sand text-sm">
                 {pagos.map((g) => (
                   <li key={g.id} className="px-4 py-2.5">
                     <span className="block tabular-nums text-tinta">{textoDelPago(g)}</span>
-                    <span className="block text-[12.5px] text-taupe">{textoDeDevolucion(g, p.tienda)}</span>
+                    <span className="block text-sm text-taupe">{textoDeDevolucion(g, p.tienda)}</span>
                   </li>
                 ))}
               </ul>
@@ -206,7 +205,7 @@ export function AnularPedidoPagadoHoja({
                       {errorBase?.campo === "caja" ? errorBase.detalle : `Hay que devolverle ${soles(efectivo)} en efectivo y no hay una caja abierta en ${p.tienda}: ábrela.`}
                     </Aviso>
                   ) : (
-                    <p className="text-[12.5px] text-taupe">
+                    <p className="text-sm text-taupe">
                       {soles(efectivo)} salen de la caja abierta de hoy de {p.tienda}, aunque se haya cobrado otro día. Si esa caja no tiene ese
                       efectivo, no se anula nada.
                     </p>
@@ -227,7 +226,7 @@ export function AnularPedidoPagadoHoja({
                 <TituloGrupo>Su boleta</TituloGrupo>
                 {camino ? (
                   <div className="space-y-2 rounded-xl border border-sand px-4 py-3">
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-tinta">
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta">
                       <ReceiptText aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
                       {camino.texto && (
                         <span>
@@ -264,13 +263,13 @@ export function AnularPedidoPagadoHoja({
                         {errorBase?.campo === "boleta" ? errorBase.detalle : camino.explicacion}
                       </Aviso>
                     ) : (
-                      <p className="text-[12.5px] text-taupe">
+                      <p className="text-sm text-taupe">
                         <b className="font-semibold text-tinta">{tituloDeBoleta(camino)}.</b> {camino.explicacion}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-[12.5px] text-taupe">Su boleta se anula por el camino de siempre: lo dice la base al anular.</p>
+                  <p className="text-sm text-taupe">Su boleta se anula por el camino de siempre: lo dice la base al anular.</p>
                 )}
               </div>
             </CampoGuiado>

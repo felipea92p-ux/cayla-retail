@@ -78,7 +78,7 @@ export function EnviarPedidoWebHoja({ envio, onClose, onEnviado }: { envio: Envi
                 <MiniPrenda prenda={l} tamano="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-tinta">{[l.referencia, l.color, l.talla].filter(Boolean).join(" · ")}</span>
-                  <span className="block text-[12.5px] text-taupe">
+                  <span className="block text-sm text-taupe">
                     {l.lugar === "piso" ? "Está colgada en el piso: descuélgala para empacarla" : l.lugar === "almacen" ? "Está en el almacén" : "Reservada aquí"}
                   </span>
                 </span>
@@ -90,7 +90,7 @@ export function EnviarPedidoWebHoja({ envio, onClose, onEnviado }: { envio: Envi
               <CampoFecha etiqueta={guia.etiqueta("llega", "¿Cuándo llega?")} valor={llega} onValor={setLlega} required />
             </div>
           </CampoGuiado>
-          <p className="nota-cayla text-[13px]">
+          <p className="nota-cayla text-sm">
             Sale como un traslado más{colgadas > 0 ? " (lo colgado pasa antes al almacén)" : ""}: Traslados lo muestra en camino hasta que{" "}
             {envio.tiendaPedido} lo reciba, y ahí queda reservado solo para el pedido.
           </p>

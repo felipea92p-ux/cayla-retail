@@ -124,7 +124,7 @@ export function EtiquetaColgada({
         <span className="eqp-solo-ancho eqp-alto label-cayla block text-center text-[10.5px] text-taupe">Etiqueta de campaña</span>
         <h3 className="eqp-nombre mt-1">{nombre}</h3>
         {descuentoPct !== null ? <p className="eqp-pct">−{pct} %</p> : <p className="eqp-pct-info">Informativa · no cambia el precio</p>}
-        <p className="eqp-solo-ancho mt-1 text-center text-xs text-taupe">
+        <p className="eqp-solo-ancho mt-1 text-center text-sm text-taupe">
           {rango ?? "Sin fechas"}
           {conCategorias ? " · y sus categorías" : ""}
         </p>
@@ -133,10 +133,10 @@ export function EtiquetaColgada({
           <span ref={total} className="eqp-cifra">
             <CifraQueCuenta valor={colgada.total} />
           </span>
-          <span className="text-[13px] text-taupe">{colgada.total === 1 ? "prenda la lleva" : "prendas la llevan"}</span>
+          <span className="text-sm text-taupe">{colgada.total === 1 ? "prenda la lleva" : "prendas la llevan"}</span>
           {/* En el celular la franja no tiene lugar para las insignias: lo que cambia va en la misma línea. */}
           {colgada.agregar + colgada.quitar > 0 && (
-            <span className="text-[12.5px] font-medium md:hidden">
+            <span className="text-sm font-medium md:hidden">
               {colgada.agregar > 0 && <span className="text-verde">+{colgada.agregar}</span>}
               {colgada.agregar > 0 && colgada.quitar > 0 && " "}
               {colgada.quitar > 0 && <span className="text-taupe">−{colgada.quitar}</span>}
@@ -146,7 +146,7 @@ export function EtiquetaColgada({
         <div className="eqp-solo-ancho mt-1.5 flex min-h-6 flex-wrap justify-center gap-1.5">
           {colgada.agregar > 0 && <Chip tono="verde">+{colgada.agregar} por poner</Chip>}
           {colgada.quitar > 0 && <Chip tono="neutro">−{colgada.quitar} por quitar</Chip>}
-          {colgada.agregar + colgada.quitar === 0 && <span className="text-xs text-taupe">Escanea o marca prendas para sumarlas</span>}
+          {colgada.agregar + colgada.quitar === 0 && <span className="text-sm text-taupe">Escanea o marca prendas para sumarlas</span>}
         </div>
 
         <TooltipProvider delayDuration={150} skipDelayDuration={400}>
@@ -212,10 +212,10 @@ export function EtiquetaColgada({
                     </span>
                   </span>
                 </div>
-                <p className="eqp-alto mt-1 text-center text-[11.5px] text-taupe">Lo que pones ahora, una de cada talla y color</p>
+                <p className="eqp-alto mt-1 text-center text-sm text-taupe">Lo que pones ahora, una de cada talla y color</p>
               </>
             ) : (
-              <p className="text-center text-[12.5px] text-taupe">
+              <p className="text-center text-sm text-taupe">
                 {colgada.quitar > 0
                   ? `Las que le quitas vuelven a cobrarse sin este ${pct} %.`
                   : "Al marcar una prenda, aquí ves cuánto cobra la caja antes y después."}

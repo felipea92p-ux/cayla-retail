@@ -91,13 +91,13 @@ export function RevisarRecorteHoja({
       <div className="space-y-5">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <p className="text-[14px] font-medium text-tinta">{f.nombre}</p>
-          <p className="text-[13px] text-taupe">{color}</p>
+          <p className="text-sm text-taupe">{color}</p>
           {r?.estado === "listo" && <Chip tono="verde">En el probador</Chip>}
           {r?.estado === "descartado" && <Chip tono="apagado" tachado={false}>Descartada</Chip>}
           {r?.estado === "por_revisar" && <Chip tono="ambar">Por revisar</Chip>}
-          {lista.length > 1 && <span className="ml-auto text-[12.5px] text-taupe">{`${i + 1} de ${lista.length}`}</span>}
+          {lista.length > 1 && <span className="ml-auto text-sm text-taupe">{`${i + 1} de ${lista.length}`}</span>}
         </div>
-        {motivo && <p className="text-[13px] text-tinta">{motivo}</p>}
+        {motivo && <p className="text-sm text-tinta">{motivo}</p>}
 
         {r && (
           <div className="grid grid-cols-2 gap-3" data-guia="recortes.vista">

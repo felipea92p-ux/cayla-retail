@@ -854,7 +854,7 @@ export function NuevaOrdenProduccionForm({
             <div data-guia="prod-orden-nueva.tipo" className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <span className={campoEtiqueta}>Tipo de orden</span>
               <SegmentoDeslizante etiqueta="Tipo de orden" valor={tipo} onCambio={cambiarTipo} opciones={OPCIONES_TIPO} />
-              <p className="min-w-[14rem] flex-1 text-[12.5px] leading-snug text-tinta/70">{frase.texto}</p>
+              <p className="min-w-[14rem] flex-1 text-sm leading-snug text-tinta/70">{frase.texto}</p>
             </div>
           )}
 

@@ -72,7 +72,7 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
               </span>
               <b className="mt-1.5 font-display text-[32px] leading-none tabular-nums">{miles(r.pasos[i])}</b>
               <span className="text-[14px] font-semibold">{paso.nombre}</span>
-              <span className="text-[12.5px] text-tinta/70">{encendidos} de cada 100</span>
+              <span className="text-sm text-tinta/70">{encendidos} de cada 100</span>
             </li>
           );
         })}

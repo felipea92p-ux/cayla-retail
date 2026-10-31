@@ -84,7 +84,7 @@ export function EditarMensajePredeterminadoHoja({
             if (!demasiado) void guardar(cerrar, texto.trim());
           }}
         >
-          <p className="text-[13px] text-taupe">
+          <p className="text-sm text-taupe">
             Es el texto que se abre en WhatsApp con «Enviar mensaje predeterminado» en los pedidos de la tienda web. Escribe{" "}
             <b className="text-tinta">{"{nombre}"}</b>, <b className="text-tinta">{"{tienda}"}</b> y <b className="text-tinta">{"{codigo}"}</b> donde van
             el nombre del cliente, la tienda y el código del pedido: se llenan solos.
@@ -113,7 +113,7 @@ export function EditarMensajePredeterminadoHoja({
           </Campo>
 
           <div>
-            <span className="mb-2 block text-[12px] text-taupe">Así lo verá el cliente en WhatsApp</span>
+            <span className="mb-2 block text-sm text-taupe">Así lo verá el cliente en WhatsApp</span>
             {/* Una captura del chat del celular: la cabecera verde con el nombre, el fondo de la conversación y la burbuja de salida
                 (la de quien atiende) con la hora y las dos marcas de «leído». Solo es una vista: no envía nada. */}
             <div className="overflow-hidden rounded-xl border border-sand">
@@ -126,7 +126,7 @@ export function EditarMensajePredeterminadoHoja({
               <div className="bg-hueso/50 px-4 py-4">
                 <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-verde/15 px-3 py-2">
                   <p className="whitespace-pre-wrap break-words text-[14px] text-tinta">{vista}</p>
-                  <p className="mt-1 flex items-center justify-end gap-1 text-[11px] text-taupe">
+                  <p className="mt-1 flex items-center justify-end gap-1 text-sm text-taupe">
                     <span className="tabular-nums">{hora}</span>
                     <CheckCheck aria-hidden className="h-3.5 w-3.5 text-verde" />
                   </p>

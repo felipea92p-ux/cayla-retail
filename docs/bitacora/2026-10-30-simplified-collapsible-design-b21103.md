@@ -57,3 +57,9 @@
 - **Qué:** Resumen, Órdenes y la página de una orden (con sus hojas), Insumos, Recibir, Por pagar, Eficiencia, Proveedores, Comprobantes y Órdenes de insumos: lo que se lee pasa de 10,5–13 px a 14 px (también el CSS de la página de la orden y de la lista). Treinta y cinco frases acortadas (sin Taller, Eficiencia, recibir insumos, fases, anular, tela de la orden, vacíos). Quedan igual la hoja impresa de la orden de insumos y la matriz de tallas del modelo.
 - **Por qué:** Felipe pidió seguir con Producción tras ver Finanzas.
 - **Cómo verificas:** con el Taller elegido en el selector de sede, abre `/produccion`, `/produccion/eficiencia` y `/ordenes-insumos/nueva`. No se miraron con datos la página de una orden ni sus hojas (la base local no tiene órdenes de producción).
+
+## 2026-10-31 — Tienda web con la letra a 14 px y frases más cortas (ronda 19, décima pasada)
+
+- **Qué:** Resumen, Pedidos y su hoja, Vitrina (Modelos, Looks, Probador, Esperan), Campañas y su editor, Recomendaciones, Tráfico, Conf. Tienda y Pedidos no atendidos: lo que se lee pasa de 10,5–13 px a 14 px, también en el CSS de Tienda web, su configuración y Tráfico (quedan igual el mapa de calor, el calendario, la maqueta del navegador y la vista previa de la campaña). Veintidós frases acortadas (notas del Probador, Looks y Esperan, el editor de campaña, confirmar y anular un pedido). De paso: tres ayudas con ancho mínimo que el ajuste se había saltado (Probador, Looks y una de Nueva orden de Producción) también a 14 px.
+- **Por qué:** Felipe pidió seguir con Tienda web tras ver Producción.
+- **Cómo verificas:** abre `/tienda-web`, `/tienda-web/vitrina/probador` y `/tienda-web/pedidos`. No se miraron con datos el editor de una campaña ni las hojas que guardan.
