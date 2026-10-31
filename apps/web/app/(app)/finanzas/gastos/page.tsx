@@ -17,6 +17,8 @@ import {
   getTiposActivo,
 } from "@/lib/gastos";
 import { getDestinosDeposito } from "@/lib/cuentas-dinero";
+import { getParametrosTributarios } from "@/lib/impuestos";
+import { umbralDeActivo } from "@/lib/activo-umbral-reglas";
 import { getEmpresaParaOrden } from "@/lib/ordenes-compra";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
@@ -42,6 +44,9 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   const veTodo = veFinanzasDeTodoDe(persona);
   // El inicio de Finanzas no depende de nada: se pide desde ya (antes era una vuelta más de espera, después de las lecturas del mes).
   const parametrosP = getParametrosFinanzas();
+  // La UIT (Configuración ▸ Impuestos) para avisar, al registrar un activo, que cuesta menos de ¼ de UIT y puede llevarse a gasto (ADR-0594). Esa lectura
+  // es solo del líder: quien no lo es, o si falla, no ve el aviso y registra igual (nada depende de él).
+  const tributariosP = esLider ? getParametrosTributarios() : Promise.resolve(null);
 
   // Los bancos para «¿A qué cuenta llegó?» al clasificar un depósito (vacío sin Cuentas y dinero, ADR-0195 F3).
   const [contexto, categorias, proveedores, tiposActivo, destinosDeposito, telar, empresa] = await Promise.all([
@@ -85,6 +90,8 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
     ),
     parametrosP.then((p) => (seCompara(mesAnterior, p?.inicioFinanzas ?? null) ? getGastos(rangoMes(mesAnterior).desde, rangoMes(mesAnterior).hasta, ver) : null)),
   ]);
+  const tributarios = await tributariosP;
+  const umbralActivo = tributarios ? umbralDeActivo(tributarios.datos, Number(hoy.slice(0, 4))) : null;
   const fijosDeTodas = fijosDeOtras ?? fijos;
   const previos = meses.map((m, i) => mesPrevio(m, panelesDeAntes[i]?.datos ?? null));
   // Si la lista del mes anterior no se pudo leer, «Cuándo» no compara (un mes vacío no es un mes barato); el IGV perdido no hace falta aquí.
@@ -104,6 +111,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       inicioFinanzas={parametros?.inicioFinanzas ?? null}
       sugeridos={sugeridos}
       tiposActivo={tiposActivo}
+      umbralActivo={umbralActivo}
       categorias={categorias}
       ubicaciones={contexto.ubicaciones}
       proveedores={proveedores}

@@ -1360,7 +1360,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/club/[tienda]`, `/club/privacidad`, `/club/terminos` (PÚBLICAS, sin sesión; `proxy.ts` deja pasar solo `/club/<uuid>` y
   esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g). **Desde el 2026-10-16 el Club empieza al crear la cuenta en la tienda
   online** (Felipe; `20261016154000`, ADR-0288 act. p): `/club/<uuid>`, la dirección de los carteles ya impresos, solo redirige (307) a
-  `DIRECCION_TIENDA_ONLINE` (https://tienda.cayla.pe, `lib/club-qr-reglas.ts`); su registro, sus acciones de servidor y
+  `DIRECCION_TIENDA_ONLINE` (https://cayla.pe desde ADR-0595, `lib/club-qr-reglas.ts`); su registro, sus acciones de servidor y
   `/api/club/nombre` se retiraron, y `registrarse_en_el_club` quedó sin llamador en la web (la usan las pruebas del Club). La política
   y los términos siguen: `lib/club-pagina.ts` → `fn_club_pagina` (como `anon`) → `PaginaLegalClub.tsx`, con las reglas que quedan en
   `lib/club-registro-reglas.ts` (lectura de la página, marcadores, fechas, bloques del texto legal).
