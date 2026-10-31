@@ -18,7 +18,8 @@ Abrir `index.html` (o con la config `maquetas` del navegador integrado). Va sobr
 4. **Lo que ves, en una frase:** «Ves 2 de 14 órdenes: de Telas Mistral, en camino. Suman S/ 9,120.» Además, lo puesto va en píldoras
    que se quitan con su ✕, y hay «Limpiar todo».
 5. **La cabecera te acompaña al bajar**: queda pegada justo bajo las islas, del tamaño de siempre, como un vidrio casi opaco (98 %), con sus
-   esquinas de arriba redondeadas y su sombra abajo. Lo que sube por encima de ella se esconde, y detrás de las islas queda la Aurora:
+   esquinas de arriba redondeadas de verdad (la tabla se recorta desde la cabecera con su radio de 22 px, así que detrás de cada esquina se ve
+   la Aurora; Felipe: «que los bordes se redondeen») y su sombra abajo. Lo que sube por encima de ella se esconde, y detrás de las islas queda la Aurora:
    ninguna fila se ve encima ni a través (Felipe 2026-10-31: «se confunde con el contenido»; y después, «no me gusta que se extienda
    tanto hacia arriba»: se quitó la franja de vidrio que subía hasta el borde).
 6. **La fecha dice cuánto falta** («en 4 días»; si ya pasó y no llegó, «hace 2 días» en ámbar).

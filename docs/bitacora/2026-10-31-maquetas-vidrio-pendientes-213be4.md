@@ -25,3 +25,6 @@
 - **Cabecera pegada, segunda vuelta** (Felipe: «no me gusta que se extienda tanto hacia arriba»): sin la franja de vidrio que subía al
   borde; la cabecera queda de su tamaño, con las esquinas de arriba redondeadas, y lo que sube por encima se esconde con una máscara en
   `#cont` solo mientras está pegada.
+- **Cabecera pegada, tercera vuelta** (Felipe: «que los bordes se redondeen»): detrás de sus esquinas seguía el vidrio de la tabla y se
+  veían cuadradas. Ahora la tabla pegada se recorta desde la cabecera con `clip-path: inset(… round 22px)` (reemplaza la máscara de
+  `#cont`): esquinas redondas de verdad, con la Aurora detrás, en claro y oscuro.
