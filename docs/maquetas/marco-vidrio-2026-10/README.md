@@ -53,3 +53,8 @@ y **quitar las ramas del hilo** que salían a cada submódulo. El selector **Sub
 (hundida bajo el módulo), B · Sangría limpia (sin caja ni línea) y C · Tarjeta (el módulo abierto y sus submódulos en una placa de vidrio;
 recomendada). Felipe eligió **A · Bandeja**. Y pidió que el botón de plegar **no le quite lugar al logo**: ahora flota sobre el borde derecho
 del menú, a la altura del logo (una gota de 28 px que viaja con el borde y da vuelta su flecha); plegado, el colibrí queda centrado.
+
+Después: **el buscador no se sale de su isla** (la cabecera es un contenedor: angosta, el buscador pierde la «/» y luego queda en una lupa;
+medido de 1440 a 600 px, abierto y plegado) y **el menú plegado con los íconos bien cuadrados** (cada fila un cuadrado con el ícono al
+centro, la marca roja al canto). Para aprovechar el espacio plegado, el selector **Plegado**: A · Con nombre (84 px, el nombre corto bajo
+cada ícono; recomendada) o B · Solo íconos (64 px). Pendiente que elija.

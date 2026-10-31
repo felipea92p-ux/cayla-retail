@@ -82,3 +82,8 @@ Felipe se lleva: elegir la cara de los submódulos.
 Qué hice: Felipe eligió los submódulos «A · Bandeja» y pidió que el botón de plegar no le quite el logo, quizá flotante. El botón ahora es una gota de 28 px montada sobre el borde derecho del menú, a la altura del logo, que viaja con el borde al plegar y da vuelta su flecha; el logo queda entero y, plegado, el colibrí centrado (antes quedaba corrido fuera de la columna). Las islas de la cabecera se apartan 22 px para no tocarlo; en el celular no aparece (ahí está la ✕ del cajón).
 Por qué así: en el borde no compite con nada y se encuentra siempre en el mismo lugar, abierto o plegado.
 Felipe se lleva: el marco completo para revisar; después, los íconos y las piezas de pantalla.
+
+## 2026-10-31 (Buscador que no se sale; plegado cuadrado)
+Qué hice: Felipe vio el buscador saliéndose de su isla y los íconos del menú plegado corridos a la izquierda, con espacio de sobra. La cabecera pasó a ser un contenedor: el buscador se encoge con ella, pierde la «/» bajo 700 px y queda en una lupa bajo 560 (medido de 1440 a 600 px, abierto y plegado: sin solapes ni cortes). En el plegado, el nombre invisible ya no ocupa lugar: cada fila es un cuadrado con el ícono al centro (0 px de corrimiento medido), la gota es ese cuadrado y la marca roja sale al canto. Nuevo selector «Plegado»: A · Con nombre (84 px, nombre corto bajo cada ícono) o B · Solo íconos (64 px).
+Por qué así: recomiendo A, porque usa el espacio para que nadie tenga que apuntar para saber qué es cada ícono (ley 1 de Formidable).
+Felipe se lleva: elegir cómo se ve plegado.
