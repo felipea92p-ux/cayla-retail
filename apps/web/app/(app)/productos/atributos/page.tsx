@@ -15,6 +15,7 @@ import {
   type ProductoParaTemporadas,
 } from "@/lib/temporadas-pantalla";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { getClasesDeAvio } from "@/lib/telas-vocabulario";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -113,10 +114,12 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const persona = await exigirModulo("atributos");
   const supabase = await createClient();
   // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
-  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
+  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "avios", "temporadas"] as const;
   const tipo = TIPOS.find((t) => t === tipoParam) ?? TIPOS[0];
   // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
+  // Las clases de avío (ADR-0580): solo al abrir su pestaña, como Temporadas. Si su SQL todavía no está pegado, la pestaña lo dice (lista vacía) en vez de tumbar las otras cuatro.
+  const cargaAvios = tipo === "avios" ? getClasesDeAvio() : Promise.resolve({ clases: [], leyo: true });
 
   const [resColores, resTallas, resTejidos, resPatrones, resUsos] = await Promise.all([
     supabase
@@ -179,6 +182,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     if (u.patron_id) prendasPorPatron[u.patron_id] = (prendasPorPatron[u.patron_id] ?? 0) + 1;
   }
   const temporadas = await cargaTemporadas;
+  const avios = await cargaAvios;
 
   return (
     <div className="space-y-6">
@@ -192,7 +196,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
               <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
                 <Ayuda titulo="Atributos">
                   Los vocabularios cerrados que describen una prenda además de su categoría: color,
-                  talla, tejido, patrón y temporada. En los cuatro primeros, cualquiera con sesión
+                  talla, tejido, patrón y temporada; y las clases de avío del Taller (botón, cierre, hilo…). En los cuatro primeros, cualquiera con sesión
                   agrega un valor nuevo y lo puede usar de inmediato. La temporada es una lista
                   fija de nueve: en su pestaña se ve el
                   calendario y se completan las prendas que todavía no la tienen. Las insignias (Nuevo,
@@ -212,6 +216,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         patrones={patrones}
         prendasPorTejido={prendasPorTejido}
         prendasPorPatron={prendasPorPatron}
+        avioClases={avios.clases}
         puedeEditar={puede(persona, "editarCatalogo")}
         temporadas={temporadas}
         esLider={persona.rol === "lider"}
