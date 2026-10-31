@@ -254,7 +254,9 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
         )}
 
         <div className="divide-y divide-sand rounded-2xl border border-sand bg-crema">
-          {porColor.map((fila) => {
+          {porColor.map((fila, posicion) => {
+            // Compacto (2026-10-31, Felipe: «ahorrar espacios en blanco»): las etiquetas «Tela» / «m por prenda» y la ayuda de la caja se ven en la PRIMERA fila; en las demás quedan para el lector de pantalla.
+            const primera = posicion === 0;
             const insumo = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
             const plan = fila.indice !== null ? (planPorIndice.get(fila.indice) ?? 0) : 0;
             const usado = insumo ? (edicion?.usado.get(insumo.id) ?? 0) : 0;
@@ -267,7 +269,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
             const puedePorTalla = admitePorTalla(tallas);
             const unidadDeLaFila = insumo ? unidadCorta(insumo.unidad) : "m";
             return (
-              <div key={fila.color.codigo ?? "sin-color"} className="space-y-2 px-3.5 py-3">
+              <div key={fila.color.codigo ?? "sin-color"} className="space-y-1.5 px-3.5 py-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <div className="flex min-w-0 items-center gap-2.5">
                     {/* El color de la prenda es dato: no cambia con el tema (ADR-0336). */}
@@ -276,7 +278,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                     </span>
                     <div className="min-w-0">
                       <p className="truncate font-display text-[15px] leading-tight text-tinta">{fila.color.nombre}</p>
-                      <p className="text-[12px] tabular-nums text-taupe">{fila.color.prendas} prendas</p>
+                      <p className="text-[12px] tabular-nums text-taupe">{fila.color.prendas} {fila.color.prendas === 1 ? "prenda" : "prendas"}</p>
                     </div>
                   </div>
                   {insumo && plan > 0 && veredicto && <Derivado plan={plan} unidad={insumo.unidad} veredicto={veredicto} costo={costo !== undefined ? plan * costo : null} aproximado={puedePorTalla && !porTallaActiva} />}
@@ -297,6 +299,8 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                     opciones={opciones}
                     marcador={opciones.length === 0 ? "Sin telas en Insumos" : "Elegir la tela"}
                     deshabilitado={opciones.length === 0}
+                    caja={!primera}
+                    sinPie={!primera}
                     {...pies.tela}
                   />
                   {!porTallaActiva && (
@@ -308,11 +312,13 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                       placeholder={consumoSugerido(consumoDeclarado) || "0.000"}
                       value={fila.tela.consumoPorPrenda}
                       onChange={(e) => ponerColor(fila, { consumoPorPrenda: e.target.value })}
-                      {...(pies.consumo.pie ? pies.consumo : { pie: pieDelConsumo(consumoDeclarado), tono: "neutro" as const })}
+                      caja={!primera}
+                      sinPie={!primera}
+                      {...(pies.consumo.pie ? pies.consumo : primera ? { pie: pieDelConsumo(consumoDeclarado), tono: "neutro" as const } : {})}
                     />
                   )}
                   {edicion?.puedeQuitarTela && (
-                    <div className="w-6 pt-[1.625rem]">
+                    <div className={`w-6 ${primera ? "pt-[1.625rem]" : ""}`}>
                       {fila.tela.insumoId && <QuitarColor nombre={insumo?.nombre ?? "esta tela"} onQuitar={() => ponerColor(fila, { insumoId: null, consumoPorPrenda: "", porTalla: null })} />}
                     </div>
                   )}
