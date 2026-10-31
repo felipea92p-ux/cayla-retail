@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fondo="aurora" data-lateral="panel" data-cabecera="flotante">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>El marco con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · el marco del ERP con el vidrio «Serena» (ADR-0596, 2026-10-31)
+   Primera pieza del tablero docs/vidrio/README.md: el fondo, el menú lateral y la cabecera (components/AppShell.tsx).
+   Hoy: fondo crema plano; lateral de 288 px en crema con borde y riel rojo de 2 px en la fila activa; cabecera fija en crema al 85 %
+   con desenfoque y borde abajo. El vidrio necesita algo detrás: sobre un fondo plano, una placa de vidrio es una placa crema.
+   Tres caras por pieza + «Como ahora». No cambia qué hace nada: el menú, sus grupos, plegar, el cajón del celular, la sede, el buscador.
+   Colores: SOLO los tokens de apps/web/app/globals.css y estilos/tema.css, copiados abajo. Datos inventados (el repo es público).
+   Movimiento: una vez, sin rebote; lo que se mueve después responde a un clic; todo se apaga con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+--ease:cubic-bezier(.32,.72,.24,1);--lienzo:#ddd5c6}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t50:color-mix(in srgb,var(--tinta) 56%,transparent);
+--t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.vs{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}}
+@keyframes funde{from{opacity:0}}
+@keyframes enfoca{from{opacity:0;filter:blur(8px);transform:translateY(6px)}}
+
+/* ---------- barra de la maqueta (no es parte del diseño) ---------- */
+.spk{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px} /* tema-fijo: barra de la maqueta */
+.spk .titulo{font-family:'EB Garamond',serif;font-size:18px;width:100%}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)} /* tema-fijo: barra de la maqueta */
+.seg-m{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg-m button{height:26px;padding:0 9px;font-size:11.5px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.seg-m button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.spk .accion{height:28px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.25);color:#f5f0e8;font-size:12px} /* tema-fijo: barra de la maqueta */
+.spk .accion.on{background:#f5f0e8;color:#1a1a18} /* tema-fijo: barra de la maqueta */
+@media (max-width:1300px){.spk{position:relative}}
+.escena{padding:16px;display:flex;justify-content:center}
+
+/* ---------- el aparato ---------- */
+.disp{scroll-margin-top:110px;container:disp/inline-size;position:relative;width:min(1440px,100%);height:860px;border-radius:16px;overflow:hidden;border:1px solid var(--t25);isolation:isolate}
+.disp[data-ancho="movil"]{width:375px;height:780px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+
+/* ====================================================================
+   EL FONDO (lienzo)
+   ==================================================================== */
+.lienzo{position:absolute;inset:0;z-index:0;background:var(--crema);overflow:hidden}
+.lienzo i{display:none;position:absolute;border-radius:50%;filter:blur(90px)}
+/* A · Crema quieto: el crema de siempre con una luz suave que baja desde arriba; nada de color */
+[data-fondo="crema"] .lienzo{background:radial-gradient(120% 70% at 50% -10%,var(--papel),var(--crema) 60%)}
+/* B · Aurora de sede: tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo; le dan al vidrio algo que desenfocar */
+[data-fondo="aurora"] .lienzo i{display:block;opacity:.16;animation:funde 1.4s var(--ease) both}
+[data-fondo="aurora"] .lienzo i:nth-child(1){width:620px;height:520px;left:-160px;top:-180px;background:var(--rojo)}
+[data-fondo="aurora"] .lienzo i:nth-child(2){width:700px;height:560px;right:-220px;top:120px;background:var(--pizarra);opacity:.14}
+[data-fondo="aurora"] .lienzo i:nth-child(3){width:560px;height:460px;left:30%;bottom:-260px;background:var(--ambar);opacity:.12}
+[data-tema="oscuro"][data-fondo="aurora"] .lienzo i{opacity:.1}
+/* C · Tejido: el crema con la trama fina de una tela (CAYLA también teje) y una luz desde arriba */
+[data-fondo="tejido"] .lienzo{background:
+  radial-gradient(110% 60% at 50% -10%,color-mix(in srgb,var(--papel) 85%,transparent),transparent 65%),
+  repeating-linear-gradient(45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  repeating-linear-gradient(-45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  var(--crema)}
+
+/* ---------- el vidrio del marco (Serena) ---------- */
+.vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+.gota{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .gota{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 16px -8px var(--sombra)}
+
+/* ====================================================================
+   EL MENÚ LATERAL
+   ==================================================================== */
+.disp{--lat-x:0px;--lat-y:0px;--lat-w:272px;--lat-r:0px;--cont-x:272px}
+.disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="panel"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:256px;--lat-r:28px;--cont-x:280px}
+[data-lateral="panel"] .disp[data-plegado]{--lat-w:72px;--cont-x:96px}
+[data-lateral="riel"] .disp{--lat-w:268px;--cont-x:268px}
+[data-lateral="riel"] .disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="isla"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:72px;--lat-r:26px;--cont-x:96px}
+.lat{position:absolute;z-index:5;left:var(--lat-x);top:var(--lat-y);bottom:var(--lat-y);width:var(--lat-w);border-radius:var(--lat-r);display:flex;flex-direction:column;overflow:hidden;
+  transition:width .35s var(--ease)}
+/* Como ahora */
+:root:not([data-lateral]) .lat{background:var(--crema);border-right:1px solid var(--t12)}
+.logo{display:flex;align-items:center;gap:10px;padding:26px 24px 22px;white-space:nowrap;overflow:hidden}
+.logo i{width:26px;height:26px;border-radius:50%;background:var(--rojo);flex:none}
+.logo span{font-family:'EB Garamond',serif;font-size:22px;letter-spacing:.2em}
+.logo small{display:block;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin-top:-4px}
+.nav{position:relative;flex:1;overflow:auto;padding:0 12px;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.grupo-t{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:14px 12px 6px;white-space:nowrap}
+.fila-m{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 12px;border-radius:10px;color:var(--t80);font-size:13.5px;white-space:nowrap;text-align:left;transition:color .2s,background .25s}
+.fila-m svg{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:var(--t65);transition:color .2s,transform .3s var(--ease)}
+.fila-m .et{flex:1;overflow:hidden;text-overflow:ellipsis;transition:opacity .2s}
+.fila-m .chev{width:14px;height:14px;stroke-width:2;transition:transform .3s var(--ease)}
+.fila-m[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.fila-m.on{color:var(--tinta);font-weight:600}
+.fila-m.on svg{color:var(--tinta)}
+.fila-m .glob{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:11px;font-weight:600;display:grid;place-items:center;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+@media (hover:hover){.fila-m:hover{color:var(--rojo)}.fila-m:hover svg{color:var(--rojo);transform:translateX(2px)}}
+.hijos{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease)}
+.hijos>div{overflow:hidden}
+.hijos[data-abierto]{grid-template-rows:1fr}
+.hijos .fila-m{height:34px;padding-left:44px;font-size:13px}
+/* el riel rojo de la fila activa (hoy) */
+.fila-m.on::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+.marca-activa{display:none}
+.firma{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe);padding:14px 24px;white-space:nowrap;overflow:hidden}
+.yo{display:flex;align-items:center;gap:12px;margin:0 12px 12px;padding:12px;border-top:1px solid var(--t12);white-space:nowrap;overflow:hidden}
+.av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;flex:none;font-family:'EB Garamond',serif;font-size:15px;position:relative}
+.av::after{content:"";position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--verde);border:2px solid var(--crema)}
+.yo .tx{flex:1;min-width:0}.yo b{display:block;font-size:13.5px;font-weight:500}.yo .tx>span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t65)}
+.yo .salir{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+/* plegado (hoy y A/B): solo íconos */
+.disp[data-plegado] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:0;pointer-events:none}
+.disp[data-plegado] .lat .hijos{display:none}
+.disp[data-plegado] .lat .logo{padding-left:24px}
+.disp[data-plegado] .lat .yo{padding:12px 8px;justify-content:center}
+
+/* A · Panel flotante: el lateral es una placa de vidrio a 12 px de los bordes; la fila activa es la gota, que viaja a la fila que tocas */
+[data-lateral="panel"] .lat{border-radius:28px}
+[data-lateral="panel"] .marca-activa,[data-lateral="isla"] .marca-activa{display:block;position:absolute;z-index:0;left:12px;right:12px;top:0;height:40px;border-radius:14px;
+  transition:top .38s var(--ease),height .38s var(--ease),opacity .25s}
+[data-lateral="panel"] .marca-activa::after,[data-lateral="isla"] .marca-activa::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
+[data-lateral="panel"] .fila-m.on::before,[data-lateral="isla"] .fila-m.on::before{content:none}
+@media (hover:hover){[data-lateral="panel"] .fila-m:not(.on):hover,[data-lateral="isla"] .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}
+  [data-lateral="panel"] .fila-m:not(.on):hover svg,[data-lateral="isla"] .fila-m:not(.on):hover svg{color:var(--tinta)}}
+[data-lateral="panel"] .yo{border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));padding:10px}
+[data-tema="oscuro"][data-lateral="panel"] .yo{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+[data-lateral="panel"] .disp[data-plegado] .marca-activa{left:10px;right:10px}
+
+/* B · Riel de vidrio: pegado al borde, de arriba abajo, con su filo de luz a la derecha; la fila activa es un pozo (estás adentro) con su riel rojo */
+[data-lateral="riel"] .lat{border-width:0 1px 0 0;border-radius:0;box-shadow:inset -1px 0 0 color-mix(in srgb,var(--vidrio) 80%,transparent),12px 0 40px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-lateral="riel"] .fila-m.on{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);border-radius:12px}
+[data-tema="oscuro"][data-lateral="riel"] .fila-m.on{background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-lateral="riel"] .fila-m.on::before{left:6px}
+@media (hover:hover){[data-lateral="riel"] .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}[data-lateral="riel"] .fila-m:not(.on):hover svg{color:var(--tinta)}}
+
+/* C · Isla de íconos: una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido y muestra los nombres */
+[data-lateral="isla"] .lat{border-radius:26px}
+[data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:0;transition:opacity .2s}
+[data-lateral="isla"] .lat .hijos{display:none}
+[data-lateral="isla"] .lat .logo{padding-left:23px}
+[data-lateral="isla"] .lat .yo{border-top:0;padding:8px 6px;justify-content:flex-start}
+@media (hover:hover){
+  [data-lateral="isla"] .lat:hover{width:248px}
+  [data-lateral="isla"] .lat:hover :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1;transition-delay:.12s}
+  [data-lateral="isla"] .lat:hover .hijos{display:grid}
+}
+[data-lateral="isla"] .disp [data-acc="plegar"]{display:none}
+
+/* ====================================================================
+   LA CABECERA
+   ==================================================================== */
+.cab{position:absolute;z-index:4;top:0;left:var(--cont-x);right:0;height:60px;display:flex;align-items:center;gap:10px;padding:0 24px;transition:left .35s var(--ease)}
+:root:not([data-cabecera]) .cab{background:color-mix(in srgb,var(--crema) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--t12)}
+.cab .buscar{display:flex;align-items:center;gap:10px;height:38px;flex:0 1 340px;min-width:180px;white-space:nowrap;overflow:hidden;padding:0 14px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);color:var(--t50);font-size:13px}
+.cab .buscar kbd{margin-left:auto;font:inherit;font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid var(--t25)}
+.cab .der{margin-left:auto;display:flex;align-items:center;gap:6px}
+.cab .ib{position:relative;width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:var(--t65);transition:background .2s,color .2s}
+.cab .ib svg{width:18px;height:18px;stroke-width:1.5}
+@media (hover:hover){.cab .ib:hover{background:var(--t06);color:var(--rojo)}}
+.cab .ib .pt{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;font-size:10px;font-weight:700;display:grid;place-items:center;background:var(--rojo);color:var(--crema)}
+.cab .sede{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500}
+.cab .sede i{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.cab .hamb,.cab .colibri{display:none}
+/* A · Barra flotante: una barra de vidrio a 12 px de los bordes; los botones, gotas redondas */
+[data-cabecera="flotante"] .cab{top:12px;left:calc(var(--cont-x) + 12px);right:12px;height:56px;border-radius:20px;padding:0 10px 0 14px}
+[data-cabecera] .cab .ib{border-radius:50%}
+[data-cabecera] .cab .buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cabecera] .cab .buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cabecera] .cab .sede{border-color:color-mix(in srgb,var(--borde) 70%,transparent)}
+[data-cabecera] .cab :is(.ib,.sede){background:transparent}
+@media (hover:hover){[data-cabecera] .cab .ib:hover{background:var(--t06);color:var(--tinta)}}
+[data-cabecera="flotante"] .cab .sede,[data-cabecera="islas"] .cab .sede{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-cabecera] .cab .sede{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:none}
+/* B · Fundida: sin barra. El contenido se desvanece al llegar arriba bajo un desenfoque que se va apagando; los botones quedan sueltos */
+[data-cabecera="fundida"] .cab{height:76px;align-items:flex-start;padding-top:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 88%,transparent),color-mix(in srgb,var(--crema) 50%,transparent) 60%,transparent);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask:linear-gradient(#000 55%,transparent);mask:linear-gradient(#000 55%,transparent)}
+/* C · Dos islas: la búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha; entre ellas se ve el contenido */
+[data-cabecera="islas"] .cab{top:12px;left:calc(var(--cont-x) + 12px);right:12px;height:52px;padding:0;background:none;border:0;box-shadow:none}
+[data-cabecera="islas"] .cab .izq,[data-cabecera="islas"] .cab .der{height:52px;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:999px}
+[data-cabecera="islas"] .cab .izq{flex:0 1 auto}[data-cabecera="islas"] .cab .izq .buscar{flex-basis:300px}
+.cab .izq{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+
+/* ====================================================================
+   EL CONTENIDO (Existencias, de muestra; sus piezas son de otra auditoría)
+   ==================================================================== */
+.cont{position:absolute;z-index:1;top:0;bottom:0;left:var(--cont-x);right:0;overflow:auto;padding:92px 36px 40px;transition:left .35s var(--ease);scrollbar-width:thin}
+.enc .linea{display:flex;align-items:center;gap:10px}
+.enc .linea::before{content:"";width:22px;height:1px;background:var(--taupe)}
+.enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin:8px 0 6px}
+.enc p{color:var(--t65)}
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}
+.cifras div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+.cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.filtros span{height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);display:inline-flex;align-items:center;font-size:12.5px;background:var(--papel)}
+.filtros span.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.prendas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.prenda{border-radius:16px;overflow:hidden;background:var(--papel);border:1px solid var(--sand)}
+.prenda .foto{aspect-ratio:4/5;display:grid;place-items:center;color:var(--crema-fija)}
+.prenda .foto.claro{color:var(--tinta-fija)}
+.prenda .foto svg{width:34px;height:34px;stroke-width:1.5;opacity:.85}
+.prenda .pie{padding:10px 12px}.prenda b{display:block;font-size:13.5px;font-weight:600}.prenda span{font-size:12px;color:var(--t65)}
+.cont .enc,.cont .cifras,.cont .filtros{animation:sube .5s var(--ease) backwards}
+.cont .cifras{animation-delay:.08s}.cont .filtros{animation-delay:.14s}
+
+/* ====================================================================
+   UNA HOJA ENCIMA (la elegida: Serena, campos hundidos, botones gota) — para ver cómo se apila sobre el marco
+   ==================================================================== */
+.capa{position:absolute;inset:0;z-index:20;display:none;justify-content:center;align-items:flex-start;padding:7% 24px 24px}
+.disp[data-hoja] .capa{display:flex}
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 20%,transparent);backdrop-filter:blur(1.5px);animation:funde .3s var(--ease) both}
+[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 42%,transparent)}
+.hoja{position:relative;width:min(448px,100%);padding:30px;border-radius:32px;background:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .62s var(--ease) both}
+[data-tema="oscuro"] .hoja{background:color-mix(in srgb,var(--vidrio) 82%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.hoja .sub{color:var(--taupe);font-size:13.5px;margin:4px 0 18px}
+.hoja .et{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:6px}
+.hoja .caja{height:42px;border-radius:14px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent);padding:0 14px;display:flex;align-items:center;margin-bottom:14px;font-size:14px}
+.hoja .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.hoja .b{height:42px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:500}
+.hoja .b.sec{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+.hoja .b.pri{color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+
+/* ====================================================================
+   EL CELULAR: el lateral es un cajón que entra desde la izquierda; la cabecera, menú + colibrí + acciones
+   ==================================================================== */
+@container disp (max-width:520px){
+  /* una consulta de contenedor no alcanza al contenedor mismo: el corrimiento se apaga en quienes lo usan */
+  .cab,.cont{--cont-x:0px}
+  .lat,[data-lateral] .lat{left:0;top:0;bottom:0;width:min(300px,86%)!important;border-radius:0 28px 28px 0;transform:translateX(-105%);transition:transform .45s var(--ease)}
+  :root:not([data-lateral]) .lat{border-radius:0}
+  .disp[data-cajon] .lat{transform:none}
+  [data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1}
+  [data-lateral="isla"] .lat .hijos{display:grid}
+  .disp[data-cajon]::after{content:"";position:absolute;inset:0;z-index:4;background:color-mix(in srgb,var(--sombra) 22%,transparent)}
+  .cab{padding:0 10px}
+  [data-cabecera="flotante"] .cab,[data-cabecera="islas"] .cab{left:8px;right:8px;top:8px}
+  .cab .buscar,.cab [data-acc="plegar"],.cab .ocultable{display:none}
+  .cab .hamb,.cab .colibri{display:grid}
+  .cab .colibri{width:26px;height:26px;border-radius:50%;background:var(--rojo)}
+  .cont{padding:84px 16px 32px}
+  .enc h1{font-size:34px}
+  .cifras{grid-template-columns:1fr 1fr}
+  .prendas{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- el análisis ---------- */
+.analisis{max-width:1180px;margin:20px auto 60px;padding:0 16px;display:grid;gap:18px}
+.analisis section{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 24px}
+.analisis h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.15;margin-bottom:6px}
+.analisis h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:16px 0 8px}
+.analisis p,.analisis li{font-size:14px;color:var(--t80);max-width:84ch}
+.analisis ul{padding-left:20px;display:grid;gap:6px}
+.analisis b{color:var(--tinta)}
+.analisis code{font-size:12.5px;background:var(--hueso);padding:1px 6px;border-radius:6px}
+.analisis table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.analisis th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:left;padding:8px 10px;border-bottom:1px solid var(--sand)}
+.analisis td{padding:8px 10px;border-bottom:1px solid var(--sand);vertical-align:top;color:var(--t80)}
+.ev{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:6px;vertical-align:1px;background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">El marco con vidrio · fondo, menú lateral y cabecera</span>
+  <span class="tag">Fondo</span><div class="seg-m" data-ctl="fondo"><button data-v="ahora">Como ahora</button><button data-v="crema">A · Crema quieto</button><button data-v="aurora">B · Aurora</button><button data-v="tejido">C · Tejido</button></div>
+  <span class="tag">Lateral</span><div class="seg-m" data-ctl="lateral"><button data-v="ahora">Como ahora</button><button data-v="panel">A · Panel flotante</button><button data-v="riel">B · Riel de vidrio</button><button data-v="isla">C · Isla de íconos</button></div>
+  <span class="tag">Cabecera</span><div class="seg-m" data-ctl="cabecera"><button data-v="ahora">Como ahora</button><button data-v="flotante">A · Barra flotante</button><button data-v="fundida">B · Fundida</button><button data-v="islas">C · Dos islas</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+  <button class="accion" data-acc="hoja">Ver una hoja encima</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="capa"><div class="velo" data-acc="hoja"></div>
+    <div class="hoja" role="dialog" aria-label="Registrar cliente"><h2>Registrar cliente</h2><p class="sub">Solo su documento: vino, preguntó, se probó.</p>
+      <p class="et">Documento</p><div class="caja">DNI · 47210385</div><p class="et">Nombre</p><div class="caja">Rosa Quispe Mendoza</div>
+      <div class="pie"><button class="b sec" data-acc="hoja">Cancelar</button><button class="b pri">Registrar cliente</button></div></div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy (<code>components/AppShell.tsx</code>)</h2>
+    <ul>
+      <li><b>El fondo</b> es <code>bg-crema</code> plano. Sobre un fondo plano, una placa de vidrio es una placa crema: el vidrio de las hojas solo se nota cuando hay prendas con color detrás.</li>
+      <li><b>El menú lateral</b> mide 288 px (76 plegado), es crema con un borde a la derecha; la fila activa lleva el riel rojo de 2 px; los íconos son de 20 px a trazo 1,5 y se van a la derecha al pasar el mouse. Abajo, la firma «Donde el estilo transforma.» y la persona, que abre Mi perfil. Plegado, cada grupo abre un cajón al costado; en el celular, el lateral es un cajón que entra desde la izquierda.</li>
+      <li><b>La cabecera</b> es fija, crema al 85 % con desenfoque y una línea abajo: botón de plegar, buscador, Asistente, Actividad, Demo (terminales), tema y la sede.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td rowspan="3"><b>Fondo</b></td><td>A · Crema quieto</td><td>El crema de siempre con una luz suave que baja desde arriba.</td><td>Lo más sereno. El vidrio del marco casi no se nota: es crema sobre crema.</td></tr>
+      <tr><td>B · Aurora <span class="ev">Recomendada</span></td><td>Tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo.</td><td>Le da al vidrio algo que desenfocar sin distraer. Cuesta que el contraste ya no es sobre un solo color: hay que medirlo.</td></tr>
+      <tr><td>C · Tejido</td><td>La trama fina de una tela sobre el crema, con luz desde arriba.</td><td>Dice «taller textil». Pero detrás de una tabla, una trama se ve como ruido.</td></tr>
+      <tr><td rowspan="3"><b>Lateral</b></td><td>A · Panel flotante <span class="ev">Recomendada</span></td><td>Placa de vidrio a 12 px de los bordes; la fila activa es la gota de Mi perfil, que viaja a la fila que tocas, con su marca roja.</td><td>Es el mismo idioma de las hojas: donde estás sobresale. Cuesta 8 px de ancho.</td></tr>
+      <tr><td>B · Riel de vidrio</td><td>Pegado al borde, de arriba abajo, con un filo de luz; la fila activa es un pozo con el riel rojo.</td><td>El cambio más chico. Pero «hundido» ya quiere decir «espera tu dato»: la fila activa se lee como un campo.</td></tr>
+      <tr><td>C · Isla de íconos</td><td>Una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido con los nombres.</td><td>Le da todo el ancho a la pantalla. Pero quien no conoce los íconos tiene que apuntar para leer (ley 1 de Formidable: sin manual).</td></tr>
+      <tr><td rowspan="3"><b>Cabecera</b></td><td>A · Barra flotante <span class="ev">Recomendada</span></td><td>Barra de vidrio a 12 px de los bordes, con botones redondos y la sede en una gota.</td><td>Hermana del panel lateral: el marco son dos placas flotando sobre el fondo.</td></tr>
+      <tr><td>B · Fundida</td><td>Sin barra: el contenido se desvanece al llegar arriba bajo un desenfoque que se apaga.</td><td>La más limpia. Los botones quedan sueltos y sobre una prenda de color se pierden.</td></tr>
+      <tr><td>C · Dos islas</td><td>La búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha.</td><td>La más «iOS». Al bajar, el contenido se ve entre las dos islas y la página parece cortada.</td></tr>
+    </table>
+    <p style="margin-top:12px">Con «Ver una hoja encima» se ve cómo se apila una hoja Serena sobre el marco: el velo, el lateral y la cabecera de vidrio detrás, y el fondo debajo de todo. Ojo con las capas: el lateral, la cabecera y la hoja son tres <code>backdrop-filter</code> a la vez (por medir en el Mac mini).</p>
+  </section>
+</div>
+
+<script>
+const EASE = 'cubic-bezier(.32,.72,.24,1)';
+const quieto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+// Los trazos del menú, copiados de apps/web/lib/menu-iconos.ts (TRAZOS_MENU) para que se vea el lateral de verdad.
+const T = {"inicio":"M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5 M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244 M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05","pulso":"M3 12h4l2.5-6 4 12 2.5-6H21","produccion":"M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12","gestion":"M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M16.24 7.76l-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z","venta":"M16 10a4 4 0 0 1-8 0 M3.103 6.034h17.794 M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z","tiendaWeb":"M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20 M2 12h20","inventario":"M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z M7 16.5l-4.74-2.85 M7 16.5l5-3 M7 16.5v5.17 M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z M17 16.5l-5-3 M17 16.5l4.74-2.85 M17 16.5v5.17 M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z M12 8 7.26 5.15 M12 8l4.74-2.85 M12 13.5V8","catalogo":"M12 7v14 M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z","compras":"M7 21a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M18 21a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12","finanzas":"M13.744 17.736a6 6 0 1 1-7.48-7.48 M15 6h1v4 M6.134 14.768l.866-.5 2 3.464 M10 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0","club":"M18 21a8 8 0 0 0-16 0 M5 8a5 5 0 1 0 10 0a5 5 0 1 0 -10 0 M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3","existencias":"M11.3 3a1.3 1.3 0 102 1c0 .5-.3.9-.7 1.1v1.3L4 13.5a1.5 1.5 0 00-.7 1.3V16h17.4v-1.2a1.5 1.5 0 00-.7-1.3l-7.7-6.1V5.4","movimientos":"M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4","traslados":"M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2 M15 18H9 M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14 M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M5 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0","conteo":"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4","recibir":"M12 22V12 M16 17l2 2 4-4 M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753 M3.29 7 12 12l8.71-5 M7.5 4.27l8.997 5.148"};
+const L = { chev: 'M9 6l6 6-6 6', menu: 'M4 7h16M4 12h16M4 17h16', plegar: 'M15 6l-6 6 6 6', buscar: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8',
+  actividad: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0', luna: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z', chispa: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z',
+  salir: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9', abajo: 'M6 9l6 6 6-6',
+  camisa: 'M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z',
+  pantalon: 'M7 2h10l1.2 20h-4.7L12 10l-1.5 12H5.8z M7 6h10' };
+const sv = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+
+// El menú de una líder de Trujillo (lib/menu.ts, resumido): grupos con su ícono; Inventario abierto con Existencias activa.
+const MENU = [
+  { titulo: 'Operación', filas: [
+    { id: 'inicio', et: 'Inicio', ic: 'inicio' },
+    { id: 'venta', et: 'Ventas', ic: 'venta', hijos: ['Punto de Venta', 'Apartados', 'Caja', 'Historial', 'Posventa', 'Comprobantes'] },
+    { id: 'inventario', et: 'Inventario', ic: 'inventario', glob: 3, hijos: [['Existencias', 'existencias'], ['Movimientos', 'movimientos'], ['Traslados', 'traslados', 3], ['Conteo', 'conteo'], ['Recibir mercadería', 'recibir']] },
+    { id: 'catalogo', et: 'Catálogo', ic: 'catalogo' },
+    { id: 'compras', et: 'Compras', ic: 'compras' },
+    { id: 'clientas', et: 'Clientes', ic: 'club' },
+  ] },
+  { titulo: 'Administración', filas: [
+    { id: 'global', et: 'Salud del negocio', ic: 'pulso' },
+    { id: 'finanzas', et: 'Finanzas', ic: 'finanzas' },
+    { id: 'produccion', et: 'Producción', ic: 'produccion' },
+    { id: 'tiendaWeb', et: 'Tienda web', ic: 'tiendaWeb' },
+    { id: 'gestion', et: 'Gestión', ic: 'gestion' },
+  ] },
+];
+const abiertos = new Set(['inventario']);
+let activa = 'inventario/Existencias';
+
+function pintarLateral() {
+  const lat = $('#lat');
+  lat.className = 'lat' + (document.documentElement.dataset.lateral ? ' vidrio' : '');
+  lat.innerHTML = `<div class="logo"><i></i><div><span>CAYLA</span><small>Retail</small></div></div>
+    <nav class="nav"><span class="marca-activa gota" aria-hidden="true"></span>${MENU.map((g) => `<p class="grupo-t">${g.titulo}</p>${g.filas.map((f) => {
+      if (!f.hijos) return `<button class="fila-m${activa === f.id ? ' on' : ''}" data-ir="${f.id}" title="${f.et}">${sv(T[f.ic])}<span class="et">${f.et}</span></button>`;
+      // Plegado o en la isla las hijas no se ven: el grupo lleva la marca de la pantalla en la que estás.
+      const sinHijas = document.documentElement.dataset.lateral === 'isla' || $('#disp').hasAttribute('data-plegado');
+      const ab = abiertos.has(f.id), dentro = activa.startsWith(f.id + '/');
+      return `<button class="fila-m${dentro && (!ab || sinHijas) ? ' on' : ''}" data-grupo="${f.id}" aria-expanded="${ab}" title="${f.et}">${sv(T[f.ic])}<span class="et">${f.et}</span>${f.glob && !ab ? `<span class="glob">${f.glob}</span>` : ''}${sv(L.chev, 'ic chev')}</button>
+        <div class="hijos"${ab ? ' data-abierto' : ''}><div>${f.hijos.map((h) => { const [n, i, gl] = Array.isArray(h) ? h : [h]; const id = `${f.id}/${n}`;
+          return `<button class="fila-m${activa === id ? ' on' : ''}" data-ir="${id}"><span class="et">${n}</span>${gl ? `<span class="glob">${gl}</span>` : ''}</button>`; }).join('')}</div></div>`;
+    }).join('')}`).join('')}</nav>
+    <p class="firma">Donde el estilo transforma.</p>
+    <div class="yo"><span class="av">LR</span><span class="tx"><b>Lucía Ramos</b><span>Líder · Trujillo</span></span><button class="salir" aria-label="Salir">${sv(L.salir)}</button></div>`;
+  requestAnimationFrame(() => moverMarca(false));
+}
+// La gota de la fila activa (A y C): viaja hasta la fila que tocaste.
+function moverMarca(animar = true) {
+  const m = $('.marca-activa'), on = $('.lat .fila-m.on');
+  if (!m) return;
+  if (!on || !on.offsetParent) { m.style.opacity = 0; return; }
+  m.style.opacity = 1;
+  if (!animar || quieto()) m.style.transition = 'none'; else m.style.transition = '';
+  const nav = $('.nav'), r = on.getBoundingClientRect(), rn = nav.getBoundingClientRect();
+  m.style.top = r.top - rn.top + nav.scrollTop + 'px'; m.style.height = r.height + 'px';
+  requestAnimationFrame(() => (m.style.transition = ''));
+}
+
+function pintarCabecera() {
+  $('#cab').innerHTML = `<div class="izq${document.documentElement.dataset.cabecera === 'islas' ? ' vidrio' : ''}"><button class="ib hamb" data-acc="cajon" aria-label="Abrir menú">${sv(L.menu)}</button><span class="colibri" aria-hidden="true"></span>
+      <button class="ib" data-acc="plegar" aria-label="Plegar el menú">${sv(L.plegar)}</button>
+      <span class="buscar">${sv(L.buscar)}Buscar en el ERP<kbd>/</kbd></span></div>
+    <div class="der${document.documentElement.dataset.cabecera === 'islas' ? ' vidrio' : ''}"><button class="ib ocultable" aria-label="Asistente">${sv(L.chispa)}</button>
+      <button class="ib" aria-label="Actividad">${sv(L.actividad)}<span class="pt">3</span></button>
+      <button class="ib" aria-label="Tema">${sv(L.luna)}</button>
+      <span class="sede"><i></i>Trujillo${sv(L.abajo, 'ic')}</span></div>`;
+  $('#cab').className = 'cab' + (document.documentElement.dataset.cabecera === 'flotante' ? ' vidrio' : '');
+}
+
+// La pantalla de muestra: Existencias, con prendas de color para que el vidrio tenga qué desenfocar al bajar.
+const PRENDAS = [['#7a2e2a', 'Blusa Emma', 'camisa', 34], ['#c9a27e', 'Casaca Lía', 'camisa', 12, 1], ['#2f4a3a', 'Vestido Ara', 'camisa', 8], ['#d8cbb3', 'Polo Nube', 'camisa', 41, 1],
+  ['#1f2f4a', 'Jean Río', 'pantalon', 22], ['#b5643a', 'Falda Inti', 'camisa', 6], ['#e7d7c1', 'Top Brisa', 'camisa', 17, 1], ['#5b3a5e', 'Saco Malva', 'camisa', 4],
+  ['#8c9a6b', 'Short Oliva', 'pantalon', 15, 1], ['#2b2b2b', 'Pantalón Noa', 'pantalon', 28], ['#c2876b', 'Blusa Coral', 'camisa', 9], ['#4f6f8f', 'Camisa Mar', 'camisa', 13],
+  ['#7d5a3c', 'Chaleco Roble', 'camisa', 5], ['#a33b3b', 'Vestido Rubí', 'camisa', 11], ['#36474f', 'Jogger Pizarra', 'pantalon', 19], ['#d9b44a', 'Blusa Sol', 'camisa', 7, 1]]; // tema-fijo: colores de prenda, son dato
+$('#cont').innerHTML = `<div class="enc"><p class="vs linea">Trujillo · viernes 31 de octubre</p><h1>Existencias</h1><p>Lo que hay en la tienda y en el almacén, prenda por prenda.</p></div>
+  <div class="cifras"><div><span class="vs">En tienda</span><b>1 284</b></div><div><span class="vs">En almacén</span><b>3 902</b></div><div><span class="vs">Por reponer</span><b>46</b></div><div><span class="vs">Sin foto</span><b>12</b></div></div>
+  <div class="filtros"><span class="on">Todas</span><span>Blusas</span><span>Pantalones</span><span>Vestidos</span><span>Por reponer</span></div>
+  <div class="prendas">${PRENDAS.map(([c, n, i, q, claro]) => `<div class="prenda"><div class="foto${claro ? ' claro' : ''}" data-color-dato style="background:${c}">${sv(L[i])}</div><div class="pie"><b>${n}</b><span>${q} en la tienda</span></div></div>`).join('')}</div>`;
+
+// ---------- estado ----------
+const estado = { fondo: 'aurora', lateral: 'panel', cabecera: 'flotante', tema: 'claro', ancho: 'escritorio' };
+function pintar() {
+  const r = document.documentElement;
+  r.dataset.tema = estado.tema;
+  for (const k of ['fondo', 'lateral', 'cabecera']) { if (estado[k] === 'ahora') delete r.dataset[k]; else r.dataset[k] = estado[k]; }
+  $$('.seg-m').forEach((s) => $$('button', s).forEach((b) => b.classList.toggle('on', b.dataset.v === estado[s.dataset.ctl])));
+  $('#disp').dataset.ancho = estado.ancho;
+  pintarLateral(); pintarCabecera();
+}
+document.addEventListener('click', (e) => {
+  const ctl = e.target.closest('.seg-m button');
+  if (ctl) { estado[ctl.parentElement.dataset.ctl] = ctl.dataset.v; pintar(); return; }
+  const acc = e.target.closest('[data-acc]');
+  const d = $('#disp');
+  if (acc) {
+    const a = acc.dataset.acc;
+    if (a === 'hoja') { d.toggleAttribute('data-hoja'); $('.spk [data-acc="hoja"]').classList.toggle('on', d.hasAttribute('data-hoja')); }
+    if (a === 'plegar') { d.toggleAttribute('data-plegado'); pintarLateral(); setTimeout(() => moverMarca(false), 360); }
+    if (a === 'cajon') d.toggleAttribute('data-cajon');
+    return;
+  }
+  const g = e.target.closest('[data-grupo]');
+  if (g) { const id = g.dataset.grupo; abiertos.has(id) ? abiertos.delete(id) : abiertos.add(id); pintarLateral(); return; }
+  const ir = e.target.closest('[data-ir]');
+  if (ir) { activa = ir.dataset.ir; $$('.lat .fila-m').forEach((f) => f.classList.toggle('on', f === ir)); moverMarca(true); return; }
+  if (d.hasAttribute('data-cajon') && !e.target.closest('.lat')) d.removeAttribute('data-cajon');
+});
+$('#lat').addEventListener('transitionend', () => moverMarca(false));
+addEventListener('resize', () => moverMarca(false));
+pintar();
+</script>
+</body>
+</html>

@@ -57,3 +57,8 @@ Felipe se lleva: elegir A, B o C mirando.
 Qué hice: Felipe eligió la lista de prendas «B · Lámina de vidrio»; queda marcada en la maqueta y sumada a la cara completa del README (Serena · campos A · botones A · notas A · combo A · aviso B · planilla A · barra A · prendas B).
 Por qué así: se lee como lista y no como botones, y aguanta muchas prendas.
 Felipe se lleva: siguen pendientes las dos medidas (contraste sobre el vidrio, desenfoque en el Mac mini) y las tres decisiones de regla antes de llevarlo al código.
+
+## 2026-10-31 (El ERP pasa al vidrio: decisión, tablero y el marco)
+Qué hice: Felipe decidió llevar todo el ERP al vidrio «Serena», componente por componente. Lo dejé en el ADR-0596 (reservado con `pnpm reservar adr`), armé el tablero `docs/vidrio/README.md` (marco, hojas ya elegidas y 22 piezas de pantalla por auditar) y empecé por el marco: `docs/maquetas/marco-vidrio-2026-10/` con tres caras de fondo (Crema quieto, Aurora, Tejido), de menú lateral (Panel flotante, Riel de vidrio, Isla de íconos) y de cabecera (Barra flotante, Fundida, Dos islas), con el menú real de una líder, plegar, el cajón del celular y una hoja Serena encima.
+Por qué así: el vidrio necesita algo detrás; sobre el crema plano de hoy, una placa de vidrio es una placa crema. Recomiendo Aurora + Panel flotante + Barra flotante (el marco como dos placas sobre el fondo, la fila activa como la gota).
+Felipe se lleva: elegir fondo, lateral y cabecera mirando; después siguen los íconos del marco.
