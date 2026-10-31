@@ -87,3 +87,15 @@ Planchado 65, y Planchado ya tenía algo anotado: `paso_despues_empezado`), pero
 - La fila «Quién lo hace» mostraba la clave interna `__otro__` como título; ahora muestra el nombre que se está escribiendo («Proceso nuevo» mientras tanto), y toma el catálogo de la orden (un proceso propio del líder ya no sale con su clave).
 
 **No se cambia (y es decisión de Felipe, no mía):** dejar agregar Ojales y botones con Planchado ya hecho exigiría cambiar `agregar_paso_orden` y volvería a abrir lo que el DESCARTÉ de arriba cerró (los conteos de las prendas ya planchadas quedarían contradictorios).
+
+## Actualización 2026-10-31 — las prendas con falla también cuentan como «ya empezó» (`20261031031000`)
+
+`agregar_paso_orden` decidía si un paso posterior ya había empezado mirando avances, salidas, vueltas y marcas, pero no `produccion_fallas`. Una fase puede tener solo prendas con falla (Planchado con 3 perdidas y ninguna buena): para la base no había empezado, el paso nuevo entraba antes, vacío, y Planchado quedaba con 3 perdidas de 0 que le llegaron. La pantalla ya lo evitaba; una llamada directa no.
+
+- **DECIDÍ:** sumar `produccion_fallas` (cualquier destino) a la condición, igual que ya hace `agregar_paso_tarde` (ADR-0586): las dos funciones hermanas dicen lo mismo de cuándo un paso «ya empezó».
+- **DESCARTÉ:** contar solo las fallas que no van a arreglo. Una prenda que vuelve a arreglo igual ya pasó por Planchado, y meter un paso vacío antes es la misma contradicción.
+- **SE ROMPE SI:** aparece otra tabla que anote prendas contra una fase y nadie la suma aquí ni en `agregar_paso_tarde`.
+- **Verificación:** caso R5b de `pnpm pruebas:produccion-agregar-paso`: falló antes del arreglo (6 fases, el paso entró) y pasa después.
+- **Corrección antes de pegar (mismo día):** la primera versión de `20261031031000` reescribía la función entera copiando `20261029051000` y borraba sin querer el candado «proceso apagado» que le puso el catálogo de procesos (`20261029210000`, un reemplazo anclado). Pegada, «Agregar un paso» habría vuelto a aceptar un proceso apagado (y en la base local ya lo hacía). Lo vio la comparación contra la función viva de producción: su huella no era la del archivo de `20261029051000`. Ahora es un reemplazo **anclado**, como el del catálogo: cambia solo esa condición y falla con un error claro si la función cambió. La prueba ya no recarga `20261029051000` (era lo que escondía el hueco), suma R5c (con Ojales y botones apagado, no entra) y R2 dice lo que pasa de verdad: una clave inexistente responde `proceso_apagado`. 26/26.
+- **Lección:** una función que ya recibió un reemplazo anclado no se reescribe entera copiando su primera migración: se ancla también, o se parte de `pg_get_functiondef` de la base viva.
+- **Producción:** pegada el 2026-10-31 por Felipe. Verificado en solo lectura: la función tiene la misma huella que en local (`md5(prosrc)` = `73552140…`), conserva el candado «proceso apagado», cuenta las fallas y mantiene sus permisos (authenticated sí, anon no).

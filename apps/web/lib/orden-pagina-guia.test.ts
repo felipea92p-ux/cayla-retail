@@ -200,4 +200,12 @@ describe("camposDeAgregarPaso — la guía de «Agregar un paso» dice lo mismo 
     expect(siguienteDe(camposDeAgregarPaso({ faltas: ["Si «Ojales y botones» sale afuera, elige a quién."], responsableListo: true }))).toMatchObject({ id: "fase", pendiente: "Si «Ojales y botones» sale afuera, elige a quién." });
     expect(estadosDe(camposDeAgregarPaso({ faltas: [], responsableListo: false }))).toEqual({ fase: "hecho", quien: "ahora" });
   });
+  it("un paso que entra tarde (ADR-0586) pide además el día y el motivo, en ese orden, y sin cualquiera de los dos no se confirma", () => {
+    const tarde = (problemaDia: string | null, problemaMotivo: string | null) => camposDeAgregarPaso({ faltas: [], responsableListo: true, tarde: { problemaDia, problemaMotivo } });
+    expect(tarde(null, "Cuenta por qué: queda en la historia de la orden.").map((c) => c.id)).toEqual(["fase", "dia", "porque", "quien"]);
+    expect(siguienteDe(tarde(null, "Cuenta por qué: queda en la historia de la orden."))).toMatchObject({ id: "porque", pendiente: "Cuenta por qué: queda en la historia de la orden." });
+    expect(sePuedeConfirmar(tarde("Ese día todavía no llega: elige hoy o un día anterior.", null))).toBe(false);
+    expect(sePuedeConfirmar(tarde(null, null))).toBe(true);
+    expect(camposDeAgregarPaso({ faltas: [], responsableListo: true, tarde: null }).map((c) => c.id)).toEqual(["fase", "quien"]);
+  });
 });

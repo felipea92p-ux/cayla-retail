@@ -538,7 +538,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Quitar un paso que no se hace",
-      texto: "Si la orden trae un paso opcional que ya no se hace (por ejemplo, Limpiar hilos y revisar), lo quitas mientras nadie lo haya empezado. Pide confirmar, y se puede volver a agregar con «+ Agregar un paso» mientras ningún paso de después haya empezado. En la demo no lo quitamos.",
+      texto: "Si la orden trae un paso opcional que ya no se hace (por ejemplo, Limpiar hilos y revisar), lo quitas mientras nadie lo haya empezado. Pide confirmar, y se puede volver a agregar con «+ Agregar un paso». En la demo no lo quitamos.",
     },
     {
       id: "agregar-paso",
@@ -546,7 +546,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Agregar un paso a la orden",
-      texto: "¿La orden se abrió sin Pegar cierre u Ojales y botones? Con «+ Agregar un paso» lo sumas en su lugar de la ruta. Solo se puede mientras ningún paso de después haya empezado; si no, aquí mismo te dice cuál ya empezó.",
+      texto: "¿La orden se abrió sin Pegar cierre u Ojales y botones? Con «+ Agregar un paso» lo sumas en su lugar de la ruta. Si un paso de después ya avanzó, solo un líder puede agregarlo tarde, con lo que ya se hizo.",
     },
     {
       id: "agregar-paso-fila",
@@ -555,6 +555,20 @@ export const GUIA_PROD_ORDEN: Guia = {
       preparar: [{ tipo: "clic", ancla: "prod-orden.agregar-paso" }],
       titulo: "Quién lo hace",
       texto: "Igual que al abrir la orden: Taller o Afuera; si sale afuera, a qué servicio (¿aún no lo tienes? «Pendiente de registrar»), cuánto cobra por prenda y para cuándo. Agregarlo no mueve dinero: el costo sale cuando el servicio devuelve prendas. En la demo no guardamos nada.",
+    },
+    {
+      id: "agregar-paso-tarde",
+      ancla: "prod-orden-agregar.tarde",
+      opcional: true,
+      titulo: "Un paso que se olvidó anotar",
+      texto: "Si un paso de después ya avanzó, el que agregas entra hecho con las prendas que ya están en ese paso; lo que falte se anota cuando se haga. Si lo hizo un servicio, su costo se suma a la orden. Solo un líder puede hacerlo.",
+    },
+    {
+      id: "agregar-paso-dia-y-porque",
+      ancla: "prod-orden-agregar.dia-y-porque",
+      opcional: true,
+      titulo: "Cuándo se hizo y por qué",
+      texto: "Pon el día en que se hizo o volvió (si no lo cambias, queda hoy) y cuenta por qué se agrega tarde: queda en la historia de la orden con tu nombre. En la demo no guardamos nada.",
     },
     {
       id: "agregar-paso-recordar",
