@@ -157,7 +157,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
       )}
 
       {/* Quién la usa: decide si se elimina o se archiva. El lugar se reserva mientras llega, para que la hoja no salte. */}
-      <p className="mb-4 min-h-[2.6em] text-[12.5px] leading-snug text-taupe">
+      <p className="mb-4 min-h-[2.6em] text-sm leading-snug text-taupe">
         {!detalle
           ? " "
           : detalle.automatica
@@ -166,13 +166,13 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
               ? `Por esta cuenta ya pasaron ${usos}. Por eso no se elimina: si deja de usarse, se archiva y su historia se queda.`
               : "Todavía no se usó: puedes cambiarle todo, o eliminarla si fue un error."}
       </p>
-      {salida?.accion === "archivar" && salida.bloqueo && <p className="nota-cayla mb-4 text-[12.5px]">{salida.bloqueo}</p>}
+      {salida?.accion === "archivar" && salida.bloqueo && <p className="nota-cayla mb-4 text-sm">{salida.bloqueo}</p>}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
 
       {confirmarEliminar ? (
         <div /* unificar-fijo: la confirmación de eliminar con sus dos botones (Finanzas), no un aviso */ className="mt-4 rounded-[10px] border border-rojo/30 bg-rojo/5 px-4 py-3" role="alertdialog" aria-label="Confirmar eliminación">
-          <p className="text-[13.5px]">
+          <p className="text-[15px]">
             <b>¿Eliminar «{detalle?.nombre}»?</b> Desaparece de Finanzas y no se puede deshacer; queda anotada en la historia de Configuración.
           </p>
           <div className="fin-botones mt-3">

@@ -69,3 +69,9 @@
 - **Qué:** Equipo, Roles (la descripción de cada módulo y de cada grupo), Actividad, la ficha de una persona y de una terminal, y las hojas de dar acceso, cambiar rol y archivar rol: lo que se lee pasa de 10,5–13 px a 14 px. Sus frases ya eran cortas; solo se acortó la de cambiar el rol. La marca «ADMIN» en versalitas queda igual.
 - **Por qué:** Felipe pidió seguir con Colaboradores tras ver Tienda web.
 - **Cómo verificas:** abre `/colaboradores`, toca una persona, y `/colaboradores?pestana=roles`.
+
+## 2026-10-31 — Configuración con la letra a 14 px y frases más cortas (ronda 19, duodécima pasada)
+
+- **Qué:** las ocho pestañas (Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos, Gastos con CLAURE) y sus hojas: el texto propio de Configuración pasa a 14 px (el kit de Finanzas ya había subido con Finanzas). Veintitrés frases acortadas; «Cada casilla se guarda sola…», que se repetía en seis pestañas, queda en una línea.
+- **Por qué:** Felipe pidió seguir con Configuración tras ver Colaboradores.
+- **Cómo verificas:** abre `/configuracion?tab=tiendas`, `?tab=cuentas` y `?tab=impuestos`. Sin mirar a 375 px: Presupuesto, Impuestos y CLAURE (el servidor local no respondía, con la máquina cargada).

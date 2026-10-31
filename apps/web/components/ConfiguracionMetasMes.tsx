@@ -152,7 +152,7 @@ function FechasEspeciales({ metas, guardar }: { metas: ConfiguracionMetas; guard
     <Superficie className="anim-sube" guia="config.tiendas-fechas">
       <TituloDeTarjeta
         titulo="Fechas especiales"
-        bajada="Un día con su propia meta: Nochebuena, Año Nuevo, un feriado. Gana sobre la semana del mes y sobre la campaña. Con 0, esa tienda no abre ese día."
+        bajada="Un día con su propia meta (Nochebuena, un feriado): gana sobre la semana y la campaña. Con 0, la tienda no abre."
       />
       <div className="fin-tabla-wrap">
         <table className="fin-tabla fin-tabla-apretada">
