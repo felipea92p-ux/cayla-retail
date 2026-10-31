@@ -2,6 +2,11 @@
 
 ## SQL PARA PRODUCCIÓN · `20261031211000_medio_boton_no_existe.sql`
 
+> **YA ESTÁ PEGADO.** Felipe la pegó en producción el 2026-10-31 y la comprobación devolvió lo esperado:
+> `unidad_entera: true · metro_entera: false · candados: 2`.
+
+Lo de abajo queda como estaba, para cuando haya que repetirlo o deshacerlo.
+
 **Se pega de una sola vez.** No lleva partes, no trae políticas ni `alter` de tablas en uso (ADR-0195), y **no toca
 ni una fila guardada**: es un disparador, así que solo mira lo que se escribe de ahora en adelante. Por eso no hace
 falta sonda ni revisar datos antes.

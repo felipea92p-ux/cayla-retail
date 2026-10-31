@@ -62,6 +62,11 @@ llevaba por delante el ingreso de una tela. Va con `if/else`, que evalúa solo l
 tabla de unidades, al lado del nombre, y hay una prueba que lo exige: «Las unidades», «Los conos», «Los pares»,
 «Las docenas».
 
+## En producción desde el 2026-10-31
+
+Felipe la pegó el mismo día y la comprobación dio lo esperado: `unidad_entera: true · metro_entera: false ·
+candados: 2`. Los dos disparadores están puestos, y la base distingue lo que se cuenta de lo que se mide.
+
 ## Lo que NO hace
 
 - **No toca lo que ya está guardado.** Un disparador solo mira lo que se escribe de ahora en adelante, así que esto
