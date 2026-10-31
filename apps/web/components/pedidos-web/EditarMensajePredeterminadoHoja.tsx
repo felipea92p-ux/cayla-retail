@@ -56,13 +56,19 @@ export function EditarMensajePredeterminadoHoja({
   const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
   const vista = mensajePredeterminadoDelPedido({ ...PEDIDO_DE_MUESTRA, tiendaWeb: { nombre: tienda } }, texto);
 
-  /** Inserta una marca o un emoji donde está el cursor (al final si el texto no tiene el foco) y deja el cursor tras lo insertado. */
+  /** Dónde estaba el cursor la última vez que la persona tocó el texto. Al apretar un botón la caja pierde el foco, y el foco
+   *  dejaba de decir dónde insertar: todo caía al final. Sin toque todavía (null), se inserta al final. */
+  const cursor = useRef<{ a: number; b: number } | null>(null);
+  function recordarCursor(caja: HTMLTextAreaElement) {
+    cursor.current = { a: caja.selectionStart, b: caja.selectionEnd };
+  }
+
+  /** Inserta una marca o un emoji donde estaba el cursor (al final si la persona no ha tocado el texto) y deja el cursor tras lo insertado. */
   function insertar(que: string) {
-    const caja = cajaRef.current;
-    const enfocado = caja !== null && document.activeElement === caja;
-    const a = enfocado ? caja.selectionStart : texto.length;
-    const b = enfocado ? caja.selectionEnd : texto.length;
+    const a = Math.min(cursor.current?.a ?? texto.length, texto.length);
+    const b = Math.min(cursor.current?.b ?? texto.length, texto.length);
     setTexto(texto.slice(0, a) + que + texto.slice(b));
+    cursor.current = { a: a + que.length, b: a + que.length };
     requestAnimationFrame(() => {
       cajaRef.current?.focus();
       cajaRef.current?.setSelectionRange(a + que.length, a + que.length);
@@ -122,7 +128,12 @@ export function EditarMensajePredeterminadoHoja({
                 rows={5}
                 value={texto}
                 placeholder={MENSAJE_PREDETERMINADO_WEB}
-                onChange={(e) => setTexto(e.target.value)}
+                onChange={(e) => {
+                  setTexto(e.target.value);
+                  recordarCursor(e.target);
+                }}
+                onSelect={(e) => recordarCursor(e.currentTarget)}
+                onBlur={(e) => recordarCursor(e.currentTarget)}
                 aria-label="Mensaje predeterminado"
                 disabled={guardando}
               />
