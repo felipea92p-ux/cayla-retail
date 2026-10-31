@@ -96,14 +96,14 @@ describe("armarEtiquetas · la marca de la prenda (Felipe, 2026-09-29)", () => {
 });
 
 describe("la empresa en el papel (ADR-0463, Felipe 2026-10-20)", () => {
-  it("CAYLA lleva el colibrí y CLAURE solo su nombre; las dos con el link de la tienda online, no «cayla.pe»", () => {
-    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "CAYLA", web: null })).toEqual({ nombre: "CAYLA", conLogo: true, web: "tienda.cayla.pe" });
-    expect(empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: "tienda.cayla.pe" })).toEqual({ nombre: "CLAURE", conLogo: false, web: "tienda.cayla.pe" });
-    expect(WEB_DE_LA_ETIQUETA).toBe("tienda.cayla.pe");
+  it("CAYLA lleva el colibrí y CLAURE solo su nombre; las dos con el link de la web (cayla.pe)", () => {
+    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "CAYLA", web: null })).toEqual({ nombre: "CAYLA", conLogo: true, web: "cayla.pe" });
+    expect(empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: "cayla.pe" })).toEqual({ nombre: "CLAURE", conLogo: false, web: "cayla.pe" });
+    expect(WEB_DE_LA_ETIQUETA).toBe("cayla.pe");
   });
   it("el colibrí se decide por la clave, no por si la empresa tiene logo cargado", () => {
     expect(empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: null }).conLogo).toBe(false);
-    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "  ", web: "  " })).toEqual({ nombre: "CAYLA", conLogo: true, web: "tienda.cayla.pe" });
+    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "  ", web: "  " })).toEqual({ nombre: "CAYLA", conLogo: true, web: "cayla.pe" });
   });
   it("una prenda sin empresa conocida sale como CAYLA (datos viejos, base sin empresas)", () => {
     const { etiquetas } = armarEtiquetas(new Map([["m", 1]]), [blusa("m", "M")], [hermana("M")]);
