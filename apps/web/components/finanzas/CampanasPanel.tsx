@@ -76,7 +76,7 @@ export function CampanasPanel({
       <CabeceraReportes
         pestana="campanas"
         titulo="¿Valen la pena las campañas?"
-        bajada="Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen."
+        bajada="Cada campaña contra un día normal: cuánto más vendió, cuánto se descontó y si dejó más margen."
         acciones={
           <>
             <Chip versalitas={false}>{esLider ? "CAYLA entera" : tiendaNombre}</Chip>
@@ -116,7 +116,7 @@ export function CampanasPanel({
                 Todavía no terminó ninguna campaña con ventas y días normales para comparar.
               </Vacio>
             )}
-            {malas && <p className="mt-2.5 text-[13px] text-taupe">{malas}</p>}
+            {malas && <p className="mt-2.5 text-sm text-taupe">{malas}</p>}
           </Superficie>
         </div>
 
@@ -184,7 +184,7 @@ export function CampanasPanel({
         <Superficie>
           <Herramientas>
             <b className="text-[14px]">Las que vienen</b>
-            <span className="text-[12.5px] text-taupe">
+            <span className="text-sm text-taupe">
               Antes de lanzarla: con ese descuento, ¿cuánto más hay que vender para ganar lo mismo que un día normal?
             </span>
           </Herramientas>
@@ -271,8 +271,7 @@ export function CampanasPanel({
       </div>
 
       <div {...entra(4, "nota-cayla")} data-guia="fin-campanas.nota">
-        Una campaña también puede valer por otras cosas (clientes nuevos, sacar mercadería que no rota). El sistema no decide por ti: te
-        dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en
+        Una campaña también vale por otras cosas (clientes nuevos, sacar lo que no rota): aquí ves <b>cuánto cuesta</b> en margen. Las fechas, el descuento y las categorías se cambian en
         Catálogo ▸ Insignias; la meta y el fondo, en{" "}
         {esLider ? (
           <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2">

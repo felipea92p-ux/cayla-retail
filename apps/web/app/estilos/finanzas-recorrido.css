@@ -59,7 +59,7 @@
 }
 .fin-recorrido-nombre {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   fill: var(--color-tinta);
 }
@@ -78,7 +78,7 @@
 }
 .fin-recorrido-pct {
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 13px;
   fill: var(--color-taupe);
 }
 
@@ -125,7 +125,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--color-tinta);
 }
 .fin-recorrido-tira-ley li[data-tenue] {

@@ -395,11 +395,11 @@ export function CuentasPanel({
       <Superficie className="anim-sube" guia="fin-dinero.movimientos">
         <Herramientas>
           <b className="text-sm font-semibold text-tinta">Movimientos entre cuentas</b>
-          <span className="text-[12.5px] text-taupe">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span>
+          <span className="text-sm text-taupe">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span>
         </Herramientas>
         {movimientos.length === 0 ? (
           <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Sin movimientos todavía. Un depósito del cajón o el depósito de una máquina se registra con «+ Registrar movimiento».
+            Sin movimientos todavía. Un depósito se registra con «+ Registrar movimiento».
           </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
@@ -502,7 +502,7 @@ export function ConciliacionPanel({
     return (
       <Superficie>
         <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
-          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros. Cada viernes se anota lo que dice el banco y el sistema dice si coincide.
+          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros.
         </Vacio>
       </Superficie>
     );
@@ -623,7 +623,7 @@ export function ConciliacionPanel({
                   </div>
                   <div className="din-par-accion">
                     {estado === "revisada" ? (
-                      <button type="button" className="btn-enlace text-[12.5px]" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)} aria-label={`Desmarcar ${l.detalle}`}>
+                      <button type="button" className="btn-enlace text-sm" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)} aria-label={`Desmarcar ${l.detalle}`}>
                         <Chip tono="verde">revisada</Chip>
                       </button>
                     ) : (
@@ -700,7 +700,7 @@ export function ConciliacionPanel({
           <ul className="fin-lista-mov px-[14px] pb-1.5">
             {actual.historial.map((h) => (
               <li key={h.id}>
-                <button type="button" className="btn-enlace text-left text-[13px]" onClick={() => ir(actual.cuenta.id, h.fecha)}>
+                <button type="button" className="btn-enlace text-left text-sm" onClick={() => ir(actual.cuenta.id, h.fecha)}>
                   {fechaCorta(h.fecha, true)} · banco {soles(h.saldoBanco)} · sistema {soles(h.saldoSistema)}
                 </button>
                 <span>{cuadra(h.diferencia) ? "coincide" : `diferencia ${soles(h.diferencia)}`}</span>
@@ -711,7 +711,7 @@ export function ConciliacionPanel({
       )}
 
       <p className="nota-cayla anim-sube">
-        Si el banco no deja descargar el extracto, se escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal es hacerlo <b>cada viernes</b>. Subir el extracto (Excel o CSV) para que el sistema proponga cada pareja queda para después.
+        Escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal: <b>cada viernes</b>.
       </p>
 
       {anulando && k && (
@@ -871,7 +871,7 @@ function RegistrarMovimientoModal({
 
       {b.que === "dueno_pone" && (
         <div data-sin-cascada>
-          <span className="fin-etiqueta mb-1.5 block text-xs text-taupe">¿Cómo entra esta plata?</span>
+          <span className="fin-etiqueta mb-1.5 block text-sm text-taupe">¿Cómo entra esta plata?</span>
           <OpcionesFin
             guia="fin-dinero.mov-dueno"
             nombre="mov-dueno"
@@ -887,7 +887,7 @@ function RegistrarMovimientoModal({
       )}
       {b.que === "dueno_saca" && (
         <div data-sin-cascada>
-          <span className="fin-etiqueta mb-1.5 block text-xs text-taupe">¿Qué es esta salida?</span>
+          <span className="fin-etiqueta mb-1.5 block text-sm text-taupe">¿Qué es esta salida?</span>
           <OpcionesFin
             nombre="mov-saca"
             etiqueta="Qué es esta salida"

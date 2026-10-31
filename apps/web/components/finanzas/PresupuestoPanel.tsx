@@ -96,7 +96,7 @@ export function PresupuestoPanel({
       <CabeceraReportes
         pestana="presupuesto"
         titulo="¿Vamos según lo planeado?"
-        bajada="Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo."
+        bajada="Tu meta y tu tope contra lo que va pasando. La proyección supone que el mes sigue al mismo ritmo."
         acciones={
           <>
             {esLider ? (

@@ -213,7 +213,7 @@ export function GastosPanel({
       <EncabezadoPagina
         sede={sedeDeLaCabecera}
         titulo="Gastos"
-        subtitulo="Lo que se paga para que el negocio funcione y no es mercadería. Si llegó con factura de un proveedor, compártela con Compras: un solo Por pagar y un solo IGV."
+        subtitulo="Lo que se paga para que el negocio funcione y no es mercadería. Si llegó con factura de un proveedor, compártela con Compras."
         acciones={
           pestana === "activos" ? (
             <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
@@ -776,7 +776,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
           <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>
         ))}
       <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
-        {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
+        {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-sm text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
         {puedeAnular(g) && (
           <button type="button" className="btn-cayla btn-peligro" onClick={() => setAnulando(true)}>
             Anular…
@@ -914,9 +914,9 @@ function ClasificarEgresoModal({
               <InputFin id="clas-descripcion" value={descripcion} onChange={(ev) => setDescripcion(ev.target.value)} placeholder="Mototaxi al banco" />
             </CampoFin>
           </div>
-          <p className="-mt-2 mb-4 text-[12.5px] text-taupe">
+          <p className="-mt-2 mb-4 text-sm text-taupe">
             ¿Llegó con factura o boleta?{" "}
-            <button type="button" className="btn-enlace text-[12.5px]" onClick={() => onRegistroCompleto("gasto")}>
+            <button type="button" className="btn-enlace text-sm" onClick={() => onRegistroCompleto("gasto")}>
               Regístralo con su comprobante
             </button>
           </p>
@@ -924,7 +924,7 @@ function ClasificarEgresoModal({
       )}
       {aBanco && (
         <div data-sin-cascada>
-          <CampoFin etiqueta="¿A qué cuenta llegó?" htmlFor="clas-destino" ayuda="Queda como depósito en Cuentas y dinero: el cajón ya bajó con esta salida y ahora sube el banco.">
+          <CampoFin etiqueta="¿A qué cuenta llegó?" htmlFor="clas-destino" ayuda="Queda como depósito: baja el cajón y sube el banco.">
             <SelectFin id="clas-destino" valor={destino} onValor={setDestino} opciones={destinosDeposito.map((d) => ({ valor: d.id, texto: d.nombre }))} />
           </CampoFin>
         </div>

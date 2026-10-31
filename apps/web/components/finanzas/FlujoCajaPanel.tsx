@@ -268,7 +268,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         )}
       </h3>
       <FaltanProyeccion provisional={provisional} faltan={faltan} className="mb-3" />
-      <p className="mb-2 text-[13px] leading-snug text-taupe">
+      <p className="mb-2 text-sm leading-snug text-taupe">
         Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos).
       </p>
       {p.diasDeCaja !== null && (

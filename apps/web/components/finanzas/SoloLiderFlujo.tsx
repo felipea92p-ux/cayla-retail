@@ -16,8 +16,7 @@ export function SoloLiderFlujo({ pestana }: { pestana: "flujo" | "escenarios" })
       />
       <Superficie>
         <Vacio icono={<Lock />} titulo="Solo el líder: el flujo de caja es de CAYLA entera">
-          Mira los bancos y todo lo que CAYLA debe, que por ahora ve el líder. Lo de tu tienda está en Cuentas y dinero (tu cajón y tu caja fuerte) y en el
-          Estado de resultados.
+          Lo de tu tienda está en Cuentas y dinero y en el Estado de resultados.
         </Vacio>
       </Superficie>
     </div>

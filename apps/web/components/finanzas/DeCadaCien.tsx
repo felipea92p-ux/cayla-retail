@@ -33,7 +33,7 @@ export function DeCadaCienPieza({ cien, colorDeSede }: { cien: DeCadaCien; color
           </div>
           <div>
             <p className="m-0 font-serif text-xl leading-snug">{cien.titular}</p>
-            <p className="mb-2 mt-1 text-xs text-taupe">Cada cuadro es un sol de cada cien. Toca un renglón para ver dónde están sus cuadros.</p>
+            <p className="mb-2 mt-1 text-sm text-taupe">Cada cuadro es un sol de cada cien. Toca un renglón para ver dónde están sus cuadros.</p>
             <ul className="fin-cien-lista" aria-label={"A dónde va cada S/\u00a0100"}>
               {cien.partes.map((p, i) => (
                 <li key={p.clave}>
@@ -41,7 +41,7 @@ export function DeCadaCienPieza({ cien, colorDeSede }: { cien: DeCadaCien; color
                     <i aria-hidden />
                     <span>{p.nombre}</span>
                     <b className="num">{p.cuadros > 0 ? `S/ ${p.cuadros}` : "menos de S/ 1"}</b>
-                    <span className="num text-xs text-taupe">{soles(p.monto)}</span>
+                    <span className="num text-sm text-taupe">{soles(p.monto)}</span>
                   </button>
                 </li>
               ))}

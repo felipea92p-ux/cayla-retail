@@ -82,7 +82,7 @@ export function CabeceraDinero({
       <EncabezadoPagina
         sede={sede}
         titulo="Cuentas y dinero"
-        subtitulo="Dónde está la plata, qué debes y si cuadra con el banco. Un saldo nunca se escribe a mano: se suma de los movimientos."
+        subtitulo="Dónde está la plata, qué debes y si cuadra con el banco."
         acciones={acciones}
       >
         <RespuestaTelar pregunta={respuesta.pregunta} valor={respuesta.valor} chips={respuesta.chips} motivo={respuesta.motivo} />

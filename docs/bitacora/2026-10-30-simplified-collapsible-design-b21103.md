@@ -45,3 +45,9 @@
 - **Qué:** Análisis (sus cinco vistas), Frescura del piso, Plan del piso, Preguntas del equipo y Rendimiento: lo que se lee pasa de 10,5–13 px a 14 px, también en el CSS propio de Análisis y de Plan del piso; las etiquetas pegadas a los gráficos (ejes, riel, semanas, días, banderas) quedan igual para no encimarse. Quince frases acortadas; en Plan del piso, cómo leer «Dónde está cada grupo» pasa al «?» de su título.
 - **Por qué:** Felipe pidió seguir con Gestión tras ver Clientes.
 - **Cómo verificas:** abre `/gestion/analisis`, `/gestion/plan-del-piso` y `/rendimiento`. Visto de paso, sin arreglar: `/rendimiento` a 375 px se corre 21 px al costado (ya pasaba antes).
+
+## 2026-10-31 — Finanzas con la letra a 14 px y frases más cortas (ronda 19, octava pasada)
+
+- **Qué:** Resumen, Gastos, Cuentas y dinero (por pagar, conciliación, CLAURE, efectivo), Reportes (resultados, presupuesto, balance, campañas, escenarios, flujo), Impuestos y Cierre: unos 100 tamaños del kit (`finanzas.css`), de Cuentas y dinero, del recorrido y de El telar suben de 10,5–13 px a 14 (y 13,5 a 15), mirando el bloque entero de cada regla (versalitas, pestañas, chips, controles, gráficos, calendario, teclas y agenda quedan igual). Treinta frases acortadas (notas del Estado de resultados, Balance, Campañas, Conciliación, bajadas de Reportes, vacíos). Configuración cambia también: usa el mismo kit. Se aparta a propósito del tamaño del spike (ADR-0195): se anotará en ese ADR al registrar la ronda 19.
+- **Por qué:** Felipe pidió seguir con Finanzas tras ver Gestión.
+- **Cómo verificas:** abre `/finanzas/gastos`, `/finanzas/reportes` y `/finanzas/dinero`. Visto de paso, sin arreglar: `/finanzas/reportes/campanas` a 375 px se corre 163 px al costado (ya pasaba antes).

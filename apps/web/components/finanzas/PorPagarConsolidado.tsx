@@ -156,7 +156,7 @@ export function PorPagarConsolidado({
             <div {...entra(5)}>
               <Superficie>
                 <Vacio icono={<Check />} titulo={`Todo pagado: ${nombre ? `${mayuscula(nombre)} no debe nada` : "CAYLA no debe nada"}`}>
-                  Ninguna factura de mercadería, gasto, activo ni insumo del Taller tiene saldo. Lo pagado y lo anulado no aparecen aquí.
+                  Ninguna factura tiene saldo.
                 </Vacio>
               </Superficie>
             </div>
@@ -165,7 +165,7 @@ export function PorPagarConsolidado({
               <Superficie className="anim-sube" guia="fin-por-pagar.burbujas">
                 <TituloDeTarjeta
                   titulo="Lo que vence en 30 días"
-                  bajada="Cada círculo es una factura, del color de su sede y del tamaño de lo que falta pagar. Tócalo para pagarla."
+                  bajada="Cada círculo es una factura: su color es la sede y su tamaño, lo que falta pagar."
                 />
                 <div className="din-agenda-marco">
                   <svg className="din-agenda" viewBox={`0 0 ${ANCHO} ${ALTO}`} role="img" aria-label={`Calendario de pagos: ${plural(vistas.length)} por ${solesRedondo(total.saldo)}`}>

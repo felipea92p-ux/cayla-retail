@@ -154,7 +154,7 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
             { clave: "sale", nombre: "Lo que sale", valor: c.sale, clase: "bg-tinta/25" },
           ]}
         />
-        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-taupe">
+        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe">
           <span className="inline-flex items-center gap-1.5">
             <MuestraTramo clase={bajo ? "bg-rojo" : "bg-verde"} /> Lo que te queda
           </span>

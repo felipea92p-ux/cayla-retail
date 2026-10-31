@@ -48,7 +48,7 @@ export function CuentaClaure({ filas, pagos, gastos, desde, esLider }: { filas: 
         <div {...entra(1)}>
           <Superficie>
             <Vacio icono={<Handshake />} titulo="Todavía no hay cobros de CLAURE en cuentas de CAYLA">
-              Cuando una venta de una prenda de CLAURE se cobre con tarjeta, QR, Yape o transferencia, aparecerá aquí con lo que se le debe a Claudia.
+              Las ventas de CLAURE cobradas con tarjeta, QR, Yape o transferencia salen aquí, con lo que se le debe a Claudia.
             </Vacio>
           </Superficie>
         </div>
