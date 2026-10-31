@@ -17,6 +17,15 @@
  * encima es lo único que hay de ellas. Sigue siendo determinista: la primera por id entre las limpias. Si no queda ninguna, `\gset` no recibe
  * filas y psql falla en voz alta (nunca se prueba sobre una prenda sucia en silencio).
  * Lo de «mercadería»: la primera prenda limpia por id resultó ser un borrador sin categoría, apagado y a S/ 0, que Pérdidas no lista.
+ *
+ * POR QUÉ ESTO NO HACE FALTA EN EL RESTO DEL REPO (medido el 2026-10-30, `docs/bitacora/2026-10-30-nostalgic-knuth-9ae74d.md`).
+ * Otras 41 pruebas de `scripts/pruebas/` también toman «la primera variante o producto por id», y se barrieron sorteo por sorteo
+ * (`offset K` en cada sitio, 1 190 corridas válidas): NINGUNA se pone roja según el sorteo. La diferencia no es elegir al azar,
+ * es lo que se hace con lo elegido. Estas pruebas de CLAURE le cambian el DUEÑO al producto prestado
+ * (`update retail.productos set empresa_id`), y eso reescribe hacia atrás de quién era la historia que ya estaba en la base: la
+ * cifra medida por diferencia sale mal. Las otras 41 solo SUMAN sobre la prenda que les toca, o miden en relativo (una foto
+ * «antes» en tabla temporal, «más lo que ya hubiera hoy»), o se crean su propia variante dentro de la transacción. Regla para la
+ * próxima prueba: elegir al azar y sumar encima es inofensivo; elegir al azar y reinterpretar lo ya escrito, no.
  */
 
 /** La talla de `va` es mercadería y ninguna talla de su producto tiene historia comercial (la condición, para sumarla a un `where` con el alias `va`). */

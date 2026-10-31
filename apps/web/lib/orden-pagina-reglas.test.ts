@@ -516,6 +516,11 @@ describe("el costo", () => {
     const cerrada = { ...p, orden: { ...p.orden, estado: "terminada" as const, cantidadBuenas: 46 } };
     expect(textoCosto(cerrada)!.porPrenda).toEqual({ estimado: "29.00", real: "22.83", realPendiente: false });
   });
+  it("un servicio de pago único (ploteo) dice «pago único» y lo que toca por prenda, no «48 × S/ 0.00»", () => {
+    const p = orden();
+    const unico = { ...p, fases: p.fases.map((f) => (f.clave === "costura" ? { ...f, tarifaPrenda: null, fijoOrden: 24 } : f)) };
+    expect(textoCosto(unico)!.filas[2]).toMatchObject({ estimado: "24.00", detalle: "Pago único por las 48 prendas · Confecciones del Norte · S/\u00a00.50 por prenda" });
+  });
   it("sin lote recibido no inventa un precio; sin permiso, no hay tabla", () => {
     const p = orden({ costos: { tela_estimado: 0, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 216, servicios_devengado: 0, total_estimado: 216, total_real_hasta_hoy: 0 } });
     expect(textoCosto(p)!.filas[0].estimado).toBe("sin lote recibido");
@@ -1662,6 +1667,20 @@ describe("corregir, eliminar y restaurar con su historia (ADR-0570, actividad 3)
     expect(hoy.entradas[0]).toMatchObject({ tipo: "nota", titulo: "Nota", detalle: "La tela llegó con una mancha", quien: "Rosa", hora: "13:00", cuanto: null, restaurable: null });
     expect(tonoDeEntrada("nota")).toBe("neutro");
     expect(hoy.entradas[1]).toMatchObject({ titulo: "Quitó la marca de Ploteo", detalle: "Por qué: Todavía no se hizo", restaurable: { cambioId: "m-c" } });
+  });
+
+  it("un cambio de tipo (ADR-0581) cuenta de qué tipo a cuál pasó, con su motivo aparte, y es un cambio de la orden, no una anotación", () => {
+    const tipo = (despues: boolean, texto: string, cuando: string) => ({
+      id: `t-${cuando}`, accion: "tipo", objeto: null, fase_clave: null, fase_nombre: null, quita_ids: [], pone_ids: [], deshace_ids: [],
+      antes: { es_muestra: !despues }, despues: { es_muestra: despues }, texto, restaurado: false, quien_nombre: "Felipe", cuando,
+    });
+    const aLote = tipo(false, "Pasó de muestra a lote de producción · Ya tienen el molde", "2026-10-16T18:00:00+00:00");
+    const aMuestra = tipo(true, "Pasó de lote de producción a muestra", "2026-10-16T19:00:00+00:00");
+    const [hoy] = lineaDeTiempoAgrupada(orden({ cambios: [aLote, aMuestra] }), "2026-10-16");
+    // Lo más nuevo arriba.
+    expect(hoy.entradas[0]).toMatchObject({ tipo: "tipo", titulo: "Pasó de lote de producción a muestra", detalle: null, quien: "Felipe", cuanto: null, restaurable: null, corregible: null });
+    expect(hoy.entradas[1]).toMatchObject({ tipo: "tipo", titulo: "Pasó de muestra a lote de producción", detalle: "Por qué: Ya tienen el molde" });
+    expect(tonoDeEntrada("tipo")).toBe("cambio");
   });
 
   const anotacion: AnotacionCorregible = {
