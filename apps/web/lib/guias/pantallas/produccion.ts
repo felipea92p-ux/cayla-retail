@@ -546,7 +546,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Agregar un paso a la orden",
-      texto: "¿La orden se abrió sin Pegar cierre u Ojales y botones? Con «+ Agregar un paso» lo sumas en su lugar de la ruta. Si un paso de después ya avanzó, solo un líder puede agregarlo, y entra ya hecho.",
+      texto: "¿La orden se abrió sin Pegar cierre u Ojales y botones? Con «+ Agregar un paso» lo sumas en su lugar de la ruta. Si un paso de después ya avanzó, solo un líder puede agregarlo tarde, con lo que ya se hizo.",
     },
     {
       id: "agregar-paso-fila",
@@ -561,7 +561,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden-agregar.tarde",
       opcional: true,
       titulo: "Un paso que se olvidó anotar",
-      texto: "Si un paso de después ya avanzó, el que agregas entra ya hecho, con todas las prendas que le llegaron. Si lo hizo un servicio, su costo se suma a la orden. Solo un líder puede hacerlo.",
+      texto: "Si un paso de después ya avanzó, el que agregas entra hecho con las prendas que ya están en ese paso; lo que falte se anota cuando se haga. Si lo hizo un servicio, su costo se suma a la orden. Solo un líder puede hacerlo.",
     },
     {
       id: "agregar-paso-dia-y-porque",

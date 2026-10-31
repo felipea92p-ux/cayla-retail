@@ -100,7 +100,7 @@ export function RutaViva({
         </TituloSeccion>
         {!sePuedeAgregar && pasosBloqueados.length > 0 && (
           <p className="op-sub">
-            {pasosBloqueados.map((p) => `${p.nombre} ya no se puede agregar: ${p.porQue}.`).join(" ")} Si se olvidó anotarlo, un líder puede agregarlo ya hecho.
+            {pasosBloqueados.map((p) => `${p.nombre} ya no se puede agregar: ${p.porQue}.`).join(" ")} Si se olvidó anotarlo, un líder puede agregarlo tarde, con lo que ya se hizo.
           </p>
         )}
         {fases.length === 0 ? (

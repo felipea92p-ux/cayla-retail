@@ -95,6 +95,11 @@ exception when others then
 end;
 $f$;
 create function pg_temp.avanza(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_avance(%L, %L::jsonb, null)', p_fase, p_lineas)) $f$;
+create function pg_temp.sale(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_salida(%L, %L::jsonb, ''001-1'', null)', p_fase, p_lineas)) $f$;
+create function pg_temp.vuelve(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_vuelta(%L, %L::jsonb, ''001-2'', null)', p_fase, p_lineas)) $f$;
+create function pg_temp.perdidas(p_fase uuid, p_variante uuid, p_n int) returns text language sql as $f$
+  select pg_temp.intento(format('select retail.anotar_termine(%L, null, null, null, %L::jsonb)', p_fase,
+    jsonb_build_array(jsonb_build_object('variante_id', p_variante, 'cantidad', p_n, 'destino', 'perdida', 'motivo', 'Se quemó')))) $f$;
 create function pg_temp.marca(p_fase uuid) returns text language sql as $f$ select pg_temp.intento(format('select retail.marcar_fase_hecha(%L)', p_fase)) $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb) returns text language sql as $f$
   select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, 1400, 200, null, true)', p_oid, p_buenas)) $f$;
@@ -135,6 +140,8 @@ select id as f_hab from retail.produccion_fases where produccion_id = :'oid' and
 select id as f_cost from retail.produccion_fases where produccion_id = :'oid' and clave = 'costura' \\gset
 select id as f_planch from retail.produccion_fases where produccion_id = :'oid' and clave = 'planchado' \\gset
 `;
+const VL = (...pares) => `jsonb_build_array(${pares.map(([v, n]) => `jsonb_build_object('variante_id', :'${v}', 'buenas', '${n}', 'segundas', '0', 'faltantes', '0', 'motivo', null)`).join(", ")})`;
+const F_OJALES = `(select id from retail.produccion_fases where produccion_id = :'oid' and clave = 'ojales_botones')`;
 const L = (...pares) => `jsonb_build_array(${pares.map(([v, n]) => `jsonb_build_object('variante_id', :'${v}', 'cantidad', '${n}')`).join(", ")})`;
 const SECUENCIAS = `(select string_agg(clave || ':' || secuencia, ' ' order by secuencia) from retail.produccion_fases where produccion_id = :'oid')`;
 // Clave:estado:entrada:hechas de cada fase que cuenta prendas (sin Ploteo), en el orden de la ruta.
@@ -145,6 +152,12 @@ const ESTADO = `(select estado from retail.producciones where id = :'oid')`;
 const FILAS_FASES = `(select count(*) from retail.produccion_fases where produccion_id = :'oid')`;
 const CAMBIOS_TARDE = `(select count(*) from retail.produccion_cambios where produccion_id = :'oid' and accion = 'paso_tarde')`;
 const MOV_ENTRADA = `(select coalesce(sum(cantidad), 0) from retail.movimientos where produccion_id = :'oid' and motivo = 'produccion')`;
+// Todo hecho hasta Costura (las 50), Planchado sin nada.
+const HASTA_COSTURA = `
+   select pg_temp.marca(:'f_plot') as m \\gset
+   select pg_temp.avanza(:'f_corte', ${L(["v1", 30], ["v2", 20])}) as a1 \\gset
+   select pg_temp.avanza(:'f_hab', ${L(["v1", 30], ["v2", 20])}) as a2 \\gset
+   select pg_temp.avanza(:'f_cost', ${L(["v1", 30], ["v2", 20])}) as a3 \\gset`;
 // La orden del Short: Ploteo marcado, todo hecho hasta Costura y Planchado ya terminado (las 50).
 const TODO_HECHO = `
    select pg_temp.marca(:'f_plot') as m \\gset
@@ -224,7 +237,7 @@ caso(
   "OK,t,t"
 );
 caso(
-  "A5 con la mitad en Costura (30 del primer color hechas y Planchado por 10): Ojales entra con las 30 que llegaron; cuando Costura termina, Ojales espera las 20 que faltan",
+  "A5 con la mitad en Costura (30 del primer color) y Planchado por 10: Ojales entra con las 10 que YA pasaron a Planchado, no con las 30; las otras se anotan cuando se hagan",
   `${ABRE}
    ${IDS}
    select pg_temp.marca(:'f_plot') as m \\gset
@@ -234,22 +247,62 @@ caso(
    select pg_temp.avanza(:'f_planch', ${L(["v1", 10])}) as a4 \\gset
    select pg_temp.tarde('ojales_botones') as t \\gset
    select ${CADENA} as antes \\gset
-   select pg_temp.avanza(:'f_cost', ${L(["v2", 20])}) as a5 \\gset
-   select concat_ws(',', :'t', :'antes', ${CADENA});`,
-  "OK,corte:hecha:50:50 habilitado:hecha:50:50 costura:en_curso:50:30 ojales_botones:en_curso:30:30 planchado:en_curso:30:10,corte:hecha:50:50 habilitado:hecha:50:50 costura:hecha:50:50 ojales_botones:en_curso:50:30 planchado:en_curso:30:10"
+   select pg_temp.avanza(${F_OJALES}, ${L(["v1", 20])}) as a5 \\gset
+   select concat_ws(',', :'t', :'antes', :'a5', ${CADENA});`,
+  "OK,corte:hecha:50:50 habilitado:hecha:50:50 costura:en_curso:50:30 ojales_botones:en_curso:30:10 planchado:en_curso:10:10,SIN_ERROR,corte:hecha:50:50 habilitado:hecha:50:50 costura:en_curso:50:30 ojales_botones:en_curso:30:30 planchado:en_curso:30:10"
+);
+caso(
+  "A6 afuera con Costura en 50 y Planchado en 2: salieron y volvieron solo 2 (devenga 3.60, no 90.00) y las 48 que faltan salen después como siempre",
+  `${ABRE}
+   ${IDS}
+   select pg_temp.marca(:'f_plot') as m \\gset
+   select pg_temp.avanza(:'f_corte', ${L(["v1", 30], ["v2", 20])}) as a1 \\gset
+   select pg_temp.avanza(:'f_hab', ${L(["v1", 30], ["v2", 20])}) as a2 \\gset
+   select pg_temp.avanza(:'f_cost', ${L(["v1", 30], ["v2", 20])}) as a3 \\gset
+   select pg_temp.avanza(:'f_planch', ${L(["v1", 2])}) as a4 \\gset
+   select pg_temp.tarde('ojales_botones', 'Se olvidó', null, 'servicio', :'ojalero') as t \\gset
+   select concat_ws(',', ${FASE_OJALES("salieron")}, ${FASE_OJALES("hechas")}, (${FASE_OJALES("devengado")})::numeric) as dentro \\gset
+   select pg_temp.sale(${F_OJALES}, ${L(["v1", 28], ["v2", 20])}) as s \\gset
+   select concat_ws(',', :'t', :'dentro', :'s', ${FASE_OJALES("salieron")});`,
+  "OK,2,2,3.60,SIN_ERROR,50"
+);
+caso(
+  "A7 si en Planchado se anotó y se deshizo todo (no usó nada), el paso entra vacío: sin filas, la historia lo dice y se trabaja como cualquier paso",
+  `${ABRE}
+   ${IDS}
+   ${HASTA_COSTURA}
+   select pg_temp.avanza(:'f_planch', ${L(["v1", 5])}) as a4 \\gset
+   select pg_temp.intento(format('select retail.deshacer_avance(%L)', (select a.id from retail.produccion_avances a where a.fase_id = :'f_planch' limit 1))) as d \\gset
+   select pg_temp.tarde('ojales_botones') as t \\gset
+   select concat_ws(',', :'t', ${FASE_OJALES("estado")}, ${FASE_OJALES("hechas")},
+     (select cardinality(pone_ids) from retail.produccion_cambios where produccion_id = :'oid' and accion = 'paso_tarde'),
+     pg_temp.avanza(${F_OJALES}, ${L(["v1", 30], ["v2", 20])}));`,
+  "OK,pendiente,0,0,SIN_ERROR"
+);
+caso(
+  "A8 si Planchado solo tiene prendas con falla (3 perdidas), ya empezó: es «tarde» y Ojales entra con esas 3, así Planchado no queda con más de lo que le entró",
+  `${ABRE}
+   ${IDS}
+   ${HASTA_COSTURA}
+   select pg_temp.perdidas(:'f_planch', :'v1', 3) as p \\gset
+   select pg_temp.tarde('ojales_botones') as t \\gset
+   select concat_ws(',', :'p', :'t', ${FASE_OJALES("hechas")}, (select f ->> 'entrada' from jsonb_array_elements(retail.fn_fases_de_orden(:'oid')) f where f ->> 'clave' = 'planchado'));`,
+  "SIN_ERROR,OK,3,3"
 );
 
 // F. DE PUNTA A PUNTA -----------------------------------------------------------------------------------------------------------
 caso(
-  "F1 Planchado iba por 10: después del paso tarde termina las 40 que le faltan (le siguen entrando las 50) y la orden pasa al stock con las 50",
+  "F1 Planchado iba por 10: el paso tarde entra con esas 10; las 40 que faltan salen y vuelven del ojalero, Planchado las termina y la orden pasa al stock con las 50",
   `${ABRE}
    ${IDS}
    ${PLANCHADO_EMPEZADO}
    select pg_temp.tarde('ojales_botones', 'Se olvidó', null, 'servicio', :'ojalero') as t \\gset
+   select pg_temp.sale(${F_OJALES}, ${L(["v1", 20], ["v2", 20])}) as s \\gset
+   select pg_temp.vuelve(${F_OJALES}, ${VL(["v1", 20], ["v2", 20])}) as v \\gset
    select pg_temp.avanza(:'f_planch', ${L(["v1", 20], ["v2", 20])}) as a5 \\gset
    select pg_temp.cierra(:'oid', ${L(["v1", 30], ["v2", 20])}) as c \\gset
-   select concat_ws(',', :'t', :'a5', :'c', ${ESTADO}, ${MOV_ENTRADA});`,
-  (s) => s.startsWith("OK,SIN_ERROR,SIN_ERROR,") && s.endsWith(",50")
+   select concat_ws(',', :'t', :'s', :'v', :'a5', :'c', ${ESTADO}, ${MOV_ENTRADA});`,
+  (s) => s.startsWith("OK,SIN_ERROR,SIN_ERROR,SIN_ERROR,SIN_ERROR,") && s.endsWith(",50")
 );
 caso(
   "F2 Costura sigue con su candado: con Ojales agregado (que usó las 50), Costura ya no se puede bajar con un Deshacer",
@@ -344,7 +397,7 @@ caso(
   "OK,1"
 );
 caso(
-  "D3 la forma de la historia: un «paso_tarde» sin fase o sin filas puestas no entra (produccion_cambios_forma)",
+  "D3 la forma de la historia: un «paso_tarde» sin fase no entra (produccion_cambios_forma); sin filas puestas sí (el paso entró vacío)",
   `${ABRE}
    ${IDS}
    select pg_temp.eh(pg_temp.intento(format($q$insert into retail.produccion_cambios (produccion_id, accion, pone_ids, texto, hecho_por)
@@ -352,7 +405,7 @@ caso(
    select pg_temp.eh(pg_temp.intento(format($q$insert into retail.produccion_cambios (produccion_id, fase_id, accion, texto, hecho_por)
      values (%L, %L, 'paso_tarde', 'x', (select id from public.personas limit 1))$q$, :'oid', :'f_cost'))) as sin_filas \\gset
    select concat_ws(',', :'sin_fase', :'sin_filas');`,
-  "23514|,23514|"
+  "23514|,SIN_ERROR|"
 );
 caso(
   "D4 volver a pegar la migración no cambia nada: la función queda idéntica, hay una sola con ese nombre y sigue agregando",
