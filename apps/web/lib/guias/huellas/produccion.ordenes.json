@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 133,
+  "total": 139,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -20,9 +20,9 @@
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
       "SegmentoDeslizante «Tipo de orden»",
+      "button «{anclaGuia ? \"prod-orden-nueva.talla-nueva-boton\" : undefined}»",
       "Boton «Retomarla»",
       "Boton «Descartarla»",
-      "Link «Editar producto»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
       "Link «Ponle precio en Editar producto»",
@@ -110,6 +110,16 @@
     "components/orden-produccion/AgregarColor.tsx": [
       "button «{`Quitar ${nombre}»",
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/AgregarColorAlModeloModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
+    "components/orden-produccion/AgregarTallaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
     ],
     "components/orden-produccion/ConsejoDeLaRed.tsx": [
       "Boton «{`Usarla: pone las ${curva.total}»",
