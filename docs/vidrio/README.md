@@ -18,8 +18,8 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
 | El fondo (lienzo) | `AppShell.tsx` (`bg-crema`), `globals.css` | Elegido | B · Aurora | `marco-vidrio-2026-10/` |
-| Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | Elegido | B · Riel de vidrio con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en bandeja (A); plegar con un botón que flota en el borde, a la altura del logo | `marco-vidrio-2026-10/` |
-| Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | Elegido | C · Dos islas | `marco-vidrio-2026-10/` |
+| Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | Elegido | B · Riel de vidrio con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en bandeja (A); plegar con un botón que flota en el borde, a la altura del logo; plegado con nombre corto bajo cada ícono (A, 84 px) | `marco-vidrio-2026-10/` |
+| Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | Elegido | C · Dos islas; el buscador se encoge con la cabecera hasta quedar en una lupa | `marco-vidrio-2026-10/` |
 | El combo: la sede y todos los demás | `ui/campos.tsx` (`Desplegable`, 7 formas), `UbicacionSwitcher.tsx` | Elegido | A · Gota viajera | `marco-vidrio-2026-10/` |
 | Íconos del marco | `lib/menu-iconos.ts` (trazo 1,5) | Por auditar (hoy se usan todos tal cual, también en submódulos) | — | — |
 | Cajón del menú en el celular | `AppShell.tsx` (`cajon-lateral`), `useLateralConElDedo.ts` | Por auditar | — | — |

@@ -87,3 +87,8 @@ Felipe se lleva: el marco completo para revisar; después, los íconos y las pie
 Qué hice: Felipe vio el buscador saliéndose de su isla y los íconos del menú plegado corridos a la izquierda, con espacio de sobra. La cabecera pasó a ser un contenedor: el buscador se encoge con ella, pierde la «/» bajo 700 px y queda en una lupa bajo 560 (medido de 1440 a 600 px, abierto y plegado: sin solapes ni cortes). En el plegado, el nombre invisible ya no ocupa lugar: cada fila es un cuadrado con el ícono al centro (0 px de corrimiento medido), la gota es ese cuadrado y la marca roja sale al canto. Nuevo selector «Plegado»: A · Con nombre (84 px, nombre corto bajo cada ícono) o B · Solo íconos (64 px).
 Por qué así: recomiendo A, porque usa el espacio para que nadie tenga que apuntar para saber qué es cada ícono (ley 1 de Formidable).
 Felipe se lleva: elegir cómo se ve plegado.
+
+## 2026-10-31 (Plegado con nombre: el marco, completo)
+Qué hice: Felipe eligió el plegado «A · Con nombre» (84 px, nombre corto bajo cada ícono). Con eso el marco queda entero en la maqueta y en el tablero: fondo Aurora; menú en riel de vidrio con todos los íconos de hoy, la gota de selección, submódulos en bandeja con despliegue en cascada, botón de plegar flotante y plegado con nombre; cabecera en dos islas con el buscador que se encoge; combo con la gota viajera.
+Por qué así: cada pieza la eligió Felipe mirando la maqueta.
+Felipe se lleva: siguen los íconos del marco (si se rediseñan) y las piezas de pantalla del tablero.

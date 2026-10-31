@@ -57,4 +57,4 @@ del menú, a la altura del logo (una gota de 28 px que viaja con el borde y da v
 Después: **el buscador no se sale de su isla** (la cabecera es un contenedor: angosta, el buscador pierde la «/» y luego queda en una lupa;
 medido de 1440 a 600 px, abierto y plegado) y **el menú plegado con los íconos bien cuadrados** (cada fila un cuadrado con el ícono al
 centro, la marca roja al canto). Para aprovechar el espacio plegado, el selector **Plegado**: A · Con nombre (84 px, el nombre corto bajo
-cada ícono; recomendada) o B · Solo íconos (64 px). Pendiente que elija.
+cada ícono) o B · Solo íconos (64 px). Felipe eligió **A · Con nombre**.
