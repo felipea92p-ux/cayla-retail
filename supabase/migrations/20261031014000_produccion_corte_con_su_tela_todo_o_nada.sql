@@ -48,6 +48,10 @@ set lock_timeout = '3s';
 
 -- 1. Una devolución puede decir qué consumo deshace. Solo una devolución, y cada consumo una sola vez.
 alter table retail.movimientos_insumo add column if not exists deshace_id uuid references retail.movimientos_insumo(id);
+-- Las columnas de `movimientos_insumo` se leen una por una (candado del dinero, 20260921151000: `costo_unitario` no es legible por la API): una columna
+-- NUEVA no se lee hasta que se le da permiso, y una lectura que la pida entera se cae con «permission denied». `deshace_id` no es dinero.
+-- Lo vigila la guardia 6 de `pruebas:candado-dinero-produccion`.
+grant select (deshace_id) on retail.movimientos_insumo to authenticated;
 alter table retail.movimientos_insumo drop constraint if exists movimientos_insumo_deshace_es_devolucion;
 alter table retail.movimientos_insumo add constraint movimientos_insumo_deshace_es_devolucion check (deshace_id is null or tipo = 'devolucion');
 create unique index if not exists movimientos_insumo_deshace_una_vez on retail.movimientos_insumo (deshace_id) where deshace_id is not null;

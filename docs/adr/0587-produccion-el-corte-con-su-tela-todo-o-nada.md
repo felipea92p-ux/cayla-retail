@@ -69,6 +69,10 @@ guarda único (`proveedores_produccion_nombre_clave_unica`), porque la lectura d
   contenedor fijo, corridas con una copia temporal que se borró.
 - La carrera real con dos sesiones se corrió a mano dos veces (sin y con ajuste) contra la función de `main` y contra la nueva. Está
   descrita arriba.
+- Al abrir el PR, sobre `main` fusionado (con #1499) y la base desechable reconstruida desde cero, se corrieron 41 suites de Producción e
+  Insumos. Una cayó: `candado-dinero-produccion` (guardia 6). La columna nueva `deshace_id` no tenía su permiso de lectura. Las columnas de
+  `movimientos_insumo` se abren una por una por el candado del dinero, así que una pantalla que leyera la tabla entera habría recibido «permission
+  denied». La migración ahora la abre con `grant select (deshace_id)`, como hizo #1499 con `anulado_at`.
 - En la web: `tsc` limpio, toda la suite de vitest (748 archivos, 164.762 casos), `knip`, `knip:produccion` y los candados de migraciones del CI.
 
 ## Lo que falta
