@@ -80,7 +80,7 @@ export function RectificarPedidos({
           )}
           {yaSonOrden.length > 0 && (
             <Aviso tono="atencion" titulo={yaSonOrden.length === 1 ? `${yaSonOrden[0]} ya es una orden` : `${yaSonOrden.length} ya son órdenes: ${yaSonOrden.join(", ")}`}>
-              Lo pedido no se rectifica desde el Plan: se anula en Compras ▸ Órdenes, para que la orden y el plan no queden contradiciéndose.
+              Lo pedido se anula en Compras ▸ Órdenes, no desde el Plan.
             </Aviso>
           )}
           {pendientes.length > 0 && (

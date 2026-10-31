@@ -224,7 +224,7 @@ function FilaCampana({ campana, tiendas, hoy, guardar }: { campana: CampanaConfi
             ) : (
               <span className="fin-par-inp">
                 <Casilla valor={ef?.meta_pct ? String(ef.meta_pct) : ""} etiqueta={`Cuánto sube la meta en ${campana.nombre}, ${t.nombre}`} ancho="w-[3.6rem]" alGuardar={(n) => guardarCelda(t, "pct", n)} />
-                <span className="text-xs text-taupe">%</span>
+                <span className="text-sm text-taupe">%</span>
                 <Casilla valor={texto(ef?.fondo ?? null)} etiqueta={`Fondo de caja en ${campana.nombre}, ${t.nombre}`} ancho="w-[4.4rem]" alGuardar={(n) => guardarCelda(t, "fondo", n)} />
               </span>
             )}
@@ -283,14 +283,14 @@ export function ConfiguracionTiendas({
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-guia="config.guardado">
-        <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Cada cambio queda en la historia.</p>
+        <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al salir de ella y queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
       </div>
 
       <Superficie className="anim-sube" guia="config.tiendas-normal">
-        <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de venta de cada día de la semana (con IGV, lo que ve la caja), lo que debe quedar en el cajón al cerrar y a qué hora cierra.">
+        <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de cada día (con IGV), lo que queda en el cajón al cerrar y a qué hora cierra.">
           <Chip tono={rigenHoy.length ? "ambar" : "verde"}>Hoy rige: {rigenHoy.length ? rigenHoy.map((c) => c.nombre).join(" y ") : "lo normal"}</Chip>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
@@ -325,7 +325,7 @@ export function ConfiguracionTiendas({
       <Superficie className="anim-sube" guia="config.tiendas-whatsapp">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
-          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador) y desde la tienda web, donde llegan sus pedidos. Sin número, esa tienda no muestra QR ni sale en la web, y el club sigue, sin novedades por WhatsApp."
+          bajada="El número del QR del club y de la tienda web. Sin número, la tienda no muestra QR ni sale en la web."
         >
           <BotonVer href="/clientas/cartel" chico>
             Ver el cartel del club
@@ -386,7 +386,7 @@ export function ConfiguracionTiendas({
           </table>
         </div>
         <PieTabla>
-          <span>Si dos campañas se cruzan (Fiestas Patrias y el Día del Gato), gana la que más sube la meta y el fondo más alto: la misma regla que el descuento de una prenda.</span>
+          <span>Si dos campañas se cruzan, gana la que más sube la meta y el fondo más alto.</span>
         </PieTabla>
       </Superficie>
 

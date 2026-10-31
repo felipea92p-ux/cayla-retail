@@ -30,7 +30,7 @@ export function ComprobantesListaVacia({ hayFiltros, busqueda }: { hayFiltros: b
         </Vacio>
       ) : (
         <Vacio icono={<Receipt />} titulo="Todavía no hay compras">
-          Cuando en «Revisar compras» se complete la primera compra aparecerá aquí, con su papel, lo que falta pagar y lo que falta llegar.
+          Cada compra completada en «Revisar compras» sale aquí, con lo que falta pagar y llegar.
         </Vacio>
       )}
     </div>

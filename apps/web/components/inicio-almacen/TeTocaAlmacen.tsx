@@ -21,7 +21,7 @@ function Fila({ a, i, primera }: { a: FilaDeAviso; i: number; primera: boolean }
         <p className="ia-t">
           {a.titulo}
           {a.nivel === "urgente" && <span className="ia-tag">Urgente</span>}
-          {a.forzado && <span className="rounded-md bg-rojo/8 px-1.5 text-[10.5px] font-normal text-rojo-profundo">Lo ocultaste, pero es urgente</span>}
+          {a.forzado && <span className="rounded-md bg-rojo/8 px-1.5 text-sm font-normal text-rojo-profundo">Lo ocultaste, pero es urgente</span>}
         </p>
         <p className="ia-d">{a.detalle}</p>
       </div>
@@ -80,7 +80,7 @@ export function TeTocaAlmacen({ visibles, ajustar }: { visibles: AvisosVisibles;
           </p>
         )}
         {ocultosConAlgo > 0 && (
-          <p className="px-4 py-3 text-xs text-taupe sm:px-5">
+          <p className="px-4 py-3 text-sm text-taupe sm:px-5">
             {ocultosConAlgo} {ocultosConAlgo === 1 ? "aviso que ocultaste tiene" : "avisos que ocultaste tienen"} algo pendiente.
           </p>
         )}

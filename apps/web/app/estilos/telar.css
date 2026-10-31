@@ -42,7 +42,7 @@
   flex: 1 1 0;
   min-width: 0;
   max-width: 42ch;
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.35;
   color: var(--color-taupe-profundo);
   display: -webkit-box;
@@ -90,7 +90,7 @@
   border: 1px solid var(--color-sand);
   background: var(--color-papel);
   color: var(--color-tinta);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
@@ -149,7 +149,7 @@ span.sede-telar { cursor: default; }
   border: 1px solid var(--color-sand);
   border-radius: 999px;
   background: var(--color-papel);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-tinta);
   transition: border-color 0.2s var(--ease-cayla), transform 0.2s var(--ease-cayla);
@@ -208,7 +208,7 @@ span.sede-telar { cursor: default; }
   height: 40px;
   padding: 0 12px;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-tinta);
   white-space: nowrap;
   transition: background-color 0.2s var(--ease-cayla);
@@ -245,7 +245,7 @@ span.sede-telar { cursor: default; }
   gap: 4px 14px;
   align-items: center;
   margin: 0 0 6px 12px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-taupe-profundo);
 }
 .hilos-leyenda > span { display: inline-flex; gap: 6px; align-items: center; }
@@ -270,7 +270,7 @@ span.sede-telar { cursor: default; }
   padding: 12px;
   cursor: pointer;
 }
-.hilo-rango { font-size: 12px; font-weight: 500; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-rango { font-size: 14px; font-weight: 500; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
 .hilo-nombre {
   display: grid;
   min-width: 0;
@@ -284,7 +284,7 @@ span.sede-telar { cursor: default; }
 }
 .hilo-nombre:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
 .hilo-nombre b { font-size: 14px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
-.hilo-nombre small { font-size: 12px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-nombre small { font-size: 14px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
 .hilo-barra { position: relative; display: block; }
 /* La rayita del mes anterior: un trazo de tinta sobre el hilo, que se corre al cambiar de sede como los tramos. Es gráfico, no texto. */
 .hilo-antes {
@@ -351,11 +351,11 @@ span.sede-telar { cursor: default; }
   .hilo-sede:not([aria-pressed="true"]):hover { color: var(--color-tinta); }
 }
 .hilo-sede:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-.hilo-sede-nombre { display: inline-flex; gap: 7px; align-items: center; font-size: 13px; font-weight: 600; }
+.hilo-sede-nombre { display: inline-flex; gap: 7px; align-items: center; font-size: 14px; font-weight: 600; }
 .hilo-sede-monto { font-family: var(--font-serif); font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
 .hilo-sede-barra { grid-column: 1 / -1; }
 .hilo-detalle { min-width: 0; container: hilos-detalle / inline-size; }
-.hilo-resumen { margin: 6px 0; font-size: 13px; color: var(--color-taupe-profundo); }
+.hilo-resumen { margin: 6px 0; font-size: 14px; color: var(--color-taupe-profundo); }
 .hilo-resumen b { font-weight: 600; color: var(--color-tinta); }
 .hilo-caja { overflow: hidden; }
 .hilo-gastos { display: grid; }
@@ -370,18 +370,18 @@ span.sede-telar { cursor: default; }
   border-radius: 8px;
   background-color: transparent;
   color: var(--color-tinta);
-  font-size: 13px;
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
 .hilo-gastos[data-con-sede] .hilo-gasto { grid-template-columns: 52px minmax(0, 1fr) 84px 96px 88px; }
-.hilo-gasto-dia { font-size: 12px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+.hilo-gasto-dia { font-size: 14px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
 .hilo-gasto-que { display: grid; min-width: 0; }
 .hilo-gasto-que b,
 .hilo-gasto-que small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hilo-gasto-que b { font-weight: 500; }
-.hilo-gasto-que small { font-size: 12px; color: var(--color-taupe-profundo); }
-.hilo-gasto-sede { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--color-taupe-profundo); }
+.hilo-gasto-que small { font-size: 14px; color: var(--color-taupe-profundo); }
+.hilo-gasto-sede { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--color-taupe-profundo); }
 .hilo-gasto-monto { font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .hilo-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 10px; }
 @container hilos (max-width: 760px) {
@@ -408,7 +408,7 @@ span.sede-telar { cursor: default; }
 /* ---- Gastos · «Cuándo», el ritmo del mes (la C2 que eligió Felipe, 2026-10-30): la línea es <Linea>; aquí, su leyenda, el pie del
    gráfico angosto y el día elegido, que se abre debajo como el desglose de «En qué se va». ---- */
 .ritmo-gastos { container: ritmo / inline-size; }
-.ritmo-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 6px; font-size: 12px; color: var(--color-taupe-profundo); }
+.ritmo-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 6px; font-size: 14px; color: var(--color-taupe-profundo); }
 .ritmo-leyenda span { display: inline-flex; gap: 6px; align-items: center; }
 .ritmo-muestra { display: inline-block; width: 18px; border-top: 2.5px solid var(--color-tinta); }
 .ritmo-muestra[data-tipo="ref"] { border-top: 2px dashed var(--color-taupe); }
@@ -418,14 +418,14 @@ span.sede-telar { cursor: default; }
 .ritmo-globo b { font-weight: 600; }
 /* Lo del final del mes va al final de las líneas y, en una frase debajo, de qué está hecho el «si sigue así» (antes solo en el angosto:
    la prueba ciega de /formidable no sabía si contaba los fijos que faltan). */
-.ritmo-pie { margin: 4px 0 0; max-width: 75ch; font-size: 13px; color: var(--color-taupe-profundo); }
+.ritmo-pie { margin: 4px 0 0; max-width: 75ch; font-size: 14px; color: var(--color-taupe-profundo); }
 .ritmo-cajon { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 450ms var(--ease-cayla); }
 .ritmo-cajon[data-abierto] { grid-template-rows: 1fr; }
 .ritmo-cajon > div { min-height: 0; overflow: hidden; }
 .ritmo-dia { margin-top: 14px; padding: 12px 14px 8px; border-radius: 12px; background: color-mix(in srgb, var(--color-hueso) 50%, transparent); container: ritmo-dia / inline-size; }
 .ritmo-dia-cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 0 10px; }
 .ritmo-dia-cabeza h4 { margin: 0; font-family: var(--font-serif); font-size: 18px; font-weight: 500; }
-.ritmo-dia-cabeza small { font-size: 13px; color: var(--color-taupe-profundo); }
+.ritmo-dia-cabeza small { font-size: 14px; color: var(--color-taupe-profundo); }
 .ritmo-gastos-dia { display: grid; margin-top: 6px; }
 .ritmo-gasto {
   display: grid;
@@ -438,7 +438,7 @@ span.sede-telar { cursor: default; }
   border-radius: 8px;
   background-color: transparent;
   color: var(--color-tinta);
-  font-size: 13px;
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
@@ -493,13 +493,13 @@ span.sede-telar { cursor: default; }
 .extracto-que { grid-area: que; display: grid; min-width: 0; }
 .extracto-que b { font-weight: 500; }
 .extracto-proveedor { font-weight: 400; color: var(--color-taupe-profundo); }
-.extracto-que small { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--color-taupe-profundo); }
+.extracto-que small { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--color-taupe-profundo); }
 .extracto-punto-angosto { display: none; }
-.extracto-sede { grid-area: sede; display: inline-flex; gap: 6px; align-items: center; min-width: 0; font-size: 12.5px; color: var(--color-taupe-profundo); }
+.extracto-sede { grid-area: sede; display: inline-flex; gap: 6px; align-items: center; min-width: 0; font-size: 14px; color: var(--color-taupe-profundo); }
 .extracto-marca { grid-area: marca; display: flex; justify-content: flex-start; min-width: 0; }
 .extracto-monto { grid-area: monto; display: grid; justify-items: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .extracto-monto b { font-weight: 500; }
-.extracto-monto small { font-size: 12px; color: var(--color-taupe-profundo); }
+.extracto-monto small { font-size: 14px; color: var(--color-taupe-profundo); }
 .extracto-fila[data-anulado] .extracto-que b,
 .extracto-fila[data-anulado] .extracto-monto b { color: var(--color-taupe-profundo); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--color-taupe) 70%, transparent); }
 /* La fila «×N»: su flecha (la «›» de la fila-cayla) da un cuarto de vuelta al abrirse, y cada gasto de adentro va un paso más adentro, sin
@@ -570,7 +570,7 @@ span.sede-telar { cursor: default; }
   border: 1px solid var(--color-sand);
   border-radius: 999px;
   background: var(--color-papel);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-tinta);
   transition: border-color 0.2s var(--ease-cayla), background-color 0.2s var(--ease-cayla), color 0.2s var(--ease-cayla);
 }
@@ -599,7 +599,7 @@ span.sede-telar { cursor: default; }
   border-radius: 6px;
   background: var(--color-papel);
   color: var(--color-tinta);
-  font-size: 13px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 .hoja-gasto-linea {
@@ -616,7 +616,7 @@ span.sede-telar { cursor: default; }
   from { opacity: 0; transform: translateY(2px); }
 }
 .hoja-gasto-ticket-vacio { color: var(--color-taupe-profundo); }
-.hoja-gasto-pasara { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--color-taupe-profundo); }
+.hoja-gasto-pasara { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--color-taupe-profundo); }
 .hoja-gasto-pasara li { padding-left: 14px; position: relative; }
 .hoja-gasto-pasara li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 6px; height: 6px; border-radius: 50%; background: var(--color-sand); }
 
@@ -823,7 +823,7 @@ span.sede-telar { cursor: default; }
    La tarjeta de arriba se resuelve en su lugar; bajo ella asoman una o dos capas (las que siguen). Al decir «Listo» se va 56 px hacia la
    izquierda y se apaga (360 ms, debe coincidir con MS_SALIDA de GastosPulso) mientras la siguiente sube desde atrás (360 ms). Una vez, sin
    rebote ni bucle; con «menos movimiento», nada se mueve. */
-.pila-avance { display: flex; align-items: center; gap: 12px; margin: 2px 0 14px; font-size: 12.5px; color: var(--color-taupe); }
+.pila-avance { display: flex; align-items: center; gap: 12px; margin: 2px 0 14px; font-size: 14px; color: var(--color-taupe); }
 .pila-avance > :first-child { flex: 1; }
 .pila { position: relative; display: grid; }
 .pila[data-capas="1"] { padding-bottom: 7px; }
@@ -837,16 +837,16 @@ span.sede-telar { cursor: default; }
 .pila-sale { position: absolute; top: 0; left: 0; right: 0; z-index: 2; pointer-events: none; animation: pila-sale 360ms var(--ease-cayla) forwards; }
 @keyframes pila-sale { to { opacity: 0; transform: translate3d(-56px, 0, 0); } }
 .pila-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.pila-sobre { display: block; font-size: 11px; color: var(--color-taupe); }
+.pila-sobre { display: block; font-size: 13px; color: var(--color-taupe); }
 .pila-cabeza b { display: block; margin-top: 4px; font-family: var(--font-serif); font-size: 21px; font-weight: 500; line-height: 1.15; }
-.pila-cabeza p { margin-top: 4px; font-size: 13.5px; color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */ }
+.pila-cabeza p { margin-top: 4px; font-size: 15px; color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */ }
 .pila-monto { flex: none; font-family: var(--font-serif); font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
 /* Lo elegido va en un <fieldset> que se congela mientras un gasto está en duda (`AvisoIntentoIncierto`). */
 .pila-decision { display: grid; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .pila-que { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.pila-que .btn-enlace { margin-left: 6px; font-size: 13px; }
+.pila-que .btn-enlace { margin-left: 6px; font-size: 14px; }
 .pila-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 16px; }
-.pila-nota { grid-column: 1 / -1; margin-top: -4px; font-size: 12.5px; color: var(--color-taupe); }
+.pila-nota { grid-column: 1 / -1; margin-top: -4px; font-size: 14px; color: var(--color-taupe); }
 .pila-pie { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
 .pila-responsable { flex: 1 1 240px; min-width: 0; max-width: 360px; }
 .pila-listo-boton { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; margin-left: auto; }

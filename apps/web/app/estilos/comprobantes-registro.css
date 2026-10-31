@@ -25,7 +25,7 @@
     border-radius: 9999px;
     border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent);
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: normal;
     text-transform: none;

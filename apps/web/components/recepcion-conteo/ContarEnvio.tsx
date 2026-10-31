@@ -267,13 +267,13 @@ export function ContarEnvio({
             </div>
             <ComboResponsable control={responsable} compacto className="min-w-0" />
             {verAyuda && (
-              <p id="rc-ayuda-quien" className="nota-cayla text-[13px]">
+              <p id="rc-ayuda-quien" className="nota-cayla text-sm">
                 Cada categoría guarda quién la contó. Varias personas pueden contar a la vez; firma quien cierra.
               </p>
             )}
           </div>
           {proveedorPorConfirmar && (
-            <p className="nota-cayla text-[13px]">
+            <p className="nota-cayla text-sm">
               <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
             </p>
           )}
@@ -538,7 +538,7 @@ function ContadorDeGrupo({
             </p>
           </div>
           {llevaCuenta && (
-            <p className="w-full pl-13 text-xs text-taupe sm:w-auto sm:pl-0" aria-live="polite">
+            <p className="w-full pl-13 text-sm text-taupe sm:w-auto sm:pl-0" aria-live="polite">
               {llevaCuenta}
             </p>
           )}
@@ -580,7 +580,7 @@ function ContadorDeGrupo({
             <div className="rc-franja-cuadra">
               {/* El aro ya dice si cuadra, faltan o sobran (Formidable 2026-10-29: el veredicto se decía 4 veces): aquí solo lo que hacer si no cuadra. */}
               {v.tono === "ambar" && <p className="text-[14px] text-taupe">Si no coincide, al cerrar dices por qué.</p>}
-              {grupo.enStock > 0 && <p className="text-xs text-taupe">Ya entraron {textoPrendas(grupo.enStock)} al stock: lo contado no baja de ahí.</p>}
+              {grupo.enStock > 0 && <p className="text-sm text-taupe">Ya entraron {textoPrendas(grupo.enStock)} al stock: lo contado no baja de ahí.</p>}
             </div>
           </div>
         </div>

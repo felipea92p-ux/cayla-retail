@@ -64,19 +64,19 @@ export function TallasTrafico({ tallas, quienes, ampliado }: { tallas: Tallas; q
                 { clave: "vuelven", nombre: "Ya habían venido", valor: quienes.vuelven, clase: "bg-verde" },
               ]}
             />
-            <ul className="mt-2.5 grid gap-1.5 text-[13px]">
+            <ul className="mt-2.5 grid gap-1.5 text-sm">
               <li className="flex items-start gap-2">
                 <MuestraTramo clase="bg-tinta" className="mt-1 shrink-0" />
                 <span>
                   <b className="font-semibold">{q.nuevos} de cada 100</b> entran por primera vez{" "}
-                  <small className="text-[12px] text-tinta/70">({q.nuevosSeparan} de cada 100 separan)</small>
+                  <small className="text-sm text-tinta/70">({q.nuevosSeparan} de cada 100 separan)</small>
                 </span>
               </li>
               <li className="flex items-start gap-2">
                 <MuestraTramo clase="bg-verde" className="mt-1 shrink-0" />
                 <span>
                   <b className="font-semibold">{q.vuelven} de cada 100</b> ya habían venido{" "}
-                  <small className="text-[12px] text-tinta/70">({q.vuelvenSeparan} de cada 100 separan)</small>
+                  <small className="text-sm text-tinta/70">({q.vuelvenSeparan} de cada 100 separan)</small>
                 </span>
               </li>
             </ul>
@@ -132,8 +132,8 @@ function FilasDeTallas({ filas, max }: { filas: CategoriaTallas[]; max: number }
       {filas.map((f) => (
         <li key={f.categoria} className="trafico-tallas-fila">
           <span className="min-w-0">
-            <b className="block truncate text-[13px] font-semibold">{f.categoria}</b>
-            <small className="text-[11px] text-tinta/70">{f.modelos === 1 ? "1 modelo" : `${f.modelos} modelos`}</small>
+            <b className="block truncate text-sm font-semibold">{f.categoria}</b>
+            <small className="text-sm text-tinta/70">{f.modelos === 1 ? "1 modelo" : `${f.modelos} modelos`}</small>
           </span>
           <span className="trafico-tallas-celdas">
             {f.tallas.map((t) => (
@@ -159,7 +159,7 @@ function FilasDeTallas({ filas, max }: { filas: CategoriaTallas[]; max: number }
 /** Qué dice cada cuadro. En la tarjeta, corta (una línea, para que mida lo mismo que «Qué prendas miran»); en la hoja, entera. */
 function Leyenda({ corta = false }: { corta?: boolean }) {
   return (
-    <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-tinta/70">
+    <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-tinta/70">
       <span>Número: personas que eligieron esa talla · u.: unidades que quedan</span>
       {!corta && (
         <span className="inline-flex items-center gap-1.5">

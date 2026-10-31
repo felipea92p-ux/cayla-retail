@@ -271,7 +271,7 @@ export function PagoJuntosModal({
                     <span className="text-sm tabular-nums text-tinta">{c.documento}</span>
                     <span className={`text-sm ${colorVence}`}>{c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha"}</span>
                     <span className="text-sm tabular-nums text-tinta/75 sm:text-right">
-                      <span className="text-xs text-tinta/55 sm:hidden">Saldo </span>
+                      <span className="text-sm text-tinta/55 sm:hidden">Saldo </span>
                       {c.saldo.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {/* La caja que se enciende (ADR-0358, ronda 6): con el monto mal, su borde rojo (`data-tono`) y la cifra en rojo. */}
@@ -289,7 +289,7 @@ export function PagoJuntosModal({
                     </div>
                     {/* La cascada: cuánto del pago recibe este comprobante. Verde = queda en cero; rojo = se pasa del saldo. */}
                     <BarraAvance pct={armada && c.saldo > 0 ? (aplicado / c.saldo) * 100 : 0} alto="fina" tono={pasa ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
-                    <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${pasa || invalido ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
+                    <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-sm sm:col-start-4 sm:justify-end ${pasa || invalido ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                       {invalido ? (
                         "Monto no válido"
                       ) : pasa ? (
@@ -373,7 +373,7 @@ export function PagoJuntosModal({
                 </button>
                 <div>
                   <p className="text-sm font-semibold text-tinta">Tienes {soles(saldoFavor)} a favor con {proveedorNombre}</p>
-                  <p className="text-xs text-tinta/65">
+                  <p className="text-sm text-tinta/65">
                     Es plata que el proveedor te debe (una nota de crédito que superó lo que se le debía). {usarFavor ? "Se descuenta de este pago." : "Actívalo para descontarlo de este pago; si no, sigue a tu favor."}
                   </p>
                 </div>
@@ -405,7 +405,7 @@ export function PagoJuntosModal({
               )}{" "}
               · quedarán en cero <b className="font-semibold">{enCero === 1 ? "1 comprobante" : `${enCero} comprobantes`}</b>
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-tinta/65">
+            <p className="mt-1 text-sm leading-relaxed text-tinta/65">
               {aTransferir > 0 ? (
                 variosMedios ? (
                   <>
@@ -417,7 +417,7 @@ export function PagoJuntosModal({
                   </>
                 )
               ) : (
-                <>Se cubre entero con tu saldo a favor: no sale plata del banco. Cada comprobante lo muestra en su historial como «Saldo a favor».</>
+                <>Se cubre entero con tu saldo a favor: no sale plata del banco.</>
               )}
             </p>
           </div>
@@ -429,7 +429,7 @@ export function PagoJuntosModal({
               dos botones, uno bajo el otro, porque la etiqueta lleva el monto y no cabe en media fila. */}
           <div className="-mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
             <div className="pie-acciones">
-              <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55 max-sm:basis-full">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
+              <p className="min-w-0 flex-1 basis-48 text-sm text-tinta/55 max-sm:basis-full">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
               <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                 Cancelar
               </button>

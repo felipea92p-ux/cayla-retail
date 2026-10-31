@@ -136,7 +136,7 @@ export function FamiliasLista({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-tinta">{f.nombre}</p>
-                <p className="mt-0.5 text-[11px] text-tinta/65">
+                <p className="mt-0.5 text-sm text-tinta/65">
                   {f.categoriasActivas} {f.categoriasActivas === 1 ? "categoría" : "categorías"}
                 </p>
               </div>
@@ -191,7 +191,7 @@ export function FamiliasLista({
                 {puedeEditar && (
                   <Boton textoCargando="Reactivando…"
                     peso="discreto"
-                    className="px-2 py-1 text-[10.5px]"
+                    className="px-2 py-1 text-sm"
                     cargando={cambiandoCodigo === f.codigo}
                     onClick={() => setConfirmando(confirmacionCatalogo("reactivar", f.nombre, () => cambiarEstado(f)))}
                   >

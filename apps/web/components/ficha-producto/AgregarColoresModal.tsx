@@ -217,8 +217,8 @@ export function AgregarColoresModal({
           <PasosDeAgregar primero="Elige el color" segundo={puedeCargar ? "Unidades de partida" : "Cómo nacen"} hechoPrimero={nuevos.length > 0 && (!eraSinColor || !!colorDeLasQueTiene)} />
           {eraSinColor && (
             <section className="space-y-2">
-              <p className="text-[12.5px] font-semibold text-tinta">1 · ¿De qué color son las que ya tienes?</p>
-              <p className="text-[12.5px] text-taupe">
+              <p className="text-sm font-semibold text-tinta">1 · ¿De qué color son las que ya tienes?</p>
+              <p className="text-sm text-taupe">
                 Hoy {sinColor.length === 1 ? "su variante es" : `sus ${sinColor.length} variantes son`} «Sin color»
                 {unidades ? ` (${unidades} u.)` : ""}. Una prenda no mezcla «Sin color» con colores: dales primero el suyo. Conservan su stock y su
                 historia.
@@ -274,7 +274,7 @@ export function AgregarColoresModal({
 
           {nuevos.length > 0 && (
             <section className="space-y-2">
-              <p className="text-[12.5px] font-semibold text-tinta">
+              <p className="text-sm font-semibold text-tinta">
                 Foto de cada color <span className="font-normal text-taupe">· opcional</span>
               </p>
               <ul className="space-y-2">
@@ -309,13 +309,13 @@ export function AgregarColoresModal({
                           Quitar
                         </button>
                       ) : (
-                        <span className="ml-auto text-[12.5px] text-taupe">agrega su foto</span>
+                        <span className="ml-auto text-sm text-taupe">agrega su foto</span>
                       )}
                     </li>
                   );
                 })}
               </ul>
-              <p className="text-[12.5px] text-taupe">Si no la tienes a la mano, la agregas después en «Fotos por color».</p>
+              <p className="text-sm text-taupe">Si no la tienes a la mano, la agregas después en «Fotos por color».</p>
             </section>
           )}
 
@@ -336,8 +336,8 @@ export function AgregarColoresModal({
                 ))}
               </div>
               </CampoGuiado>
-              {apagadas.length > 0 && <p className="text-[12.5px] text-taupe">{textoTallasApagadas(apagadas, n, categoriaNombre)}</p>}
-              {tallasDeDesactivadas && <p className="text-[12.5px] text-taupe">Todas sus variantes están desactivadas: se proponen las tallas que tuvo.</p>}
+              {apagadas.length > 0 && <p className="text-sm text-taupe">{textoTallasApagadas(apagadas, n, categoriaNombre)}</p>}
+              {tallasDeDesactivadas && <p className="text-sm text-taupe">Todas sus variantes están desactivadas: se proponen las tallas que tuvo.</p>}
             </section>
           )}
 
@@ -356,7 +356,7 @@ export function AgregarColoresModal({
                 nombreColor={n.color}
               />
               {vuelven.length > 0 && (
-                <p className="text-[12.5px] text-taupe">
+                <p className="text-sm text-taupe">
                   {vuelven.map((c) => nombreVariante(c, n)).join(", ")} ya {vuelven.length === 1 ? "existía desactivada: vuelve" : "existían desactivadas: vuelven"} a
                   venderse (no se crea otra).
                 </p>
@@ -372,12 +372,12 @@ export function AgregarColoresModal({
                 </Aviso>
               )}
               {nacen > 0 && etiquetasTexto && (
-                <p className="text-[12.5px] text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
+                <p className="text-sm text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
               )}
             </section>
           )}
 
-          {faltaPrimero && nuevos.length > 0 && <p className="text-[12.5px] text-ambar-profundo">Primero di de qué color son las que ya tienes (arriba).</p>}
+          {faltaPrimero && nuevos.length > 0 && <p className="text-sm text-ambar-profundo">Primero di de qué color son las que ya tienes (arriba).</p>}
 
           {/* ADR-0494: con cuántas unidades NACE cada variante. Es la única vez que se escribe stock desde Editar: al guardar se sella y
               después solo se ajusta en Existencias. Sin «Ajustar stock» nacen en 0 y la línea de siempre lo dice. */}
@@ -398,14 +398,14 @@ export function AgregarColoresModal({
               </CampoGuiado>
             </section>
           )}
-          {nacen > 0 && !puedeCargar && <p className="text-[12.5px] font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
+          {nacen > 0 && !puedeCargar && <p className="text-sm font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
           {celdas.length > 0 && (
             <section data-guia="agregar-color.vista-previa" className="space-y-2">
-              <p className="text-[12.5px] font-semibold text-tinta">Así quedará en la tabla</p>
+              <p className="text-sm font-semibold text-tinta">Así quedará en la tabla</p>
               <VistaPreviaDeLaTabla columnas={columnasVista} filas={filasDeVista} />
             </section>
           )}
-          <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
+          <p className="text-sm text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
           <PieGuia guia={guia} listo={puedeCargar && nacen > 0 && totalUnidades > 0 ? `Listo: ${totalUnidades} ${totalUnidades === 1 ? "unidad" : "unidades"} de partida.` : "Todo listo."} />
           <PieModal
             guia="agregar-color.pie"

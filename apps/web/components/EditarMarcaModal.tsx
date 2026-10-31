@@ -130,18 +130,18 @@ export function EditarMarcaModal({
                   <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
                     <span className="min-w-0">
                       <span className={quitado ? "text-tinta/45 line-through" : "text-tinta"}>{p.nombre}</span>
-                      <span className="ml-1.5 text-xs text-tinta/50">
+                      <span className="ml-1.5 text-sm text-tinta/50">
                         · {quitado ? "se quita al guardar" : p.productosTotal === 0 ? "sin productos" : `${p.productosTotal} producto${p.productosTotal === 1 ? "" : "s"}`}
                       </span>
                     </span>
                     {quitado ? (
-                      <BotonDeshacer onClick={() => cambiar(() => setQuitar((q) => q.filter((x) => x !== p.id)))} className="shrink-0 text-xs" />
+                      <BotonDeshacer onClick={() => cambiar(() => setQuitar((q) => q.filter((x) => x !== p.id)))} className="shrink-0 text-sm" />
                     ) : sePuedeQuitar(p) ? (
                       <button type="button" onClick={() => cambiar(() => setQuitar((q) => [...q, p.id]))} className={accion}>
                         Quitar
                       </button>
                     ) : (
-                      <span className="shrink-0 text-xs text-tinta/45">Con productos</span>
+                      <span className="shrink-0 text-sm text-tinta/45">Con productos</span>
                     )}
                   </li>
                 );
@@ -151,7 +151,7 @@ export function EditarMarcaModal({
                 <li key={id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
                   <span className="min-w-0 text-tinta">
                     {nombreDe.get(id)}
-                    <span className="ml-1.5 text-xs text-verde">· se suma al guardar</span>
+                    <span className="ml-1.5 text-sm text-verde">· se suma al guardar</span>
                   </span>
                   <button type="button" onClick={() => cambiar(() => setSumar((s) => s.filter((x) => x !== id)))} className={accion}>
                     Quitar
@@ -162,7 +162,7 @@ export function EditarMarcaModal({
               {nuevos.map((n, i) => (
                 <li key={i} className="space-y-2 px-3 py-2.5">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-verde">Proveedor nuevo · se registra al guardar</span>
+                    <span className="text-sm text-verde">Proveedor nuevo · se registra al guardar</span>
                     <button type="button" onClick={() => cambiar(() => setNuevos((xs) => xs.filter((_, j) => j !== i)))} className={accion}>
                       Quitar
                     </button>
@@ -208,7 +208,7 @@ export function EditarMarcaModal({
               />
             </div>
             {hayConProductos && (
-              <p className="mt-2 text-xs text-tinta/55">Un proveedor con productos no se quita aquí: cámbiales el proveedor en Productos primero.</p>
+              <p className="mt-2 text-sm text-tinta/55">Un proveedor con productos no se quita aquí: cámbiales el proveedor en Productos primero.</p>
             )}
           </CampoGuiado>
 

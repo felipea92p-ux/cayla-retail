@@ -25,15 +25,15 @@
     container-name: analisis;
     /* ───────── Botones, chips, píldoras ───────── */
     .btn-cayla svg{width:15px;height:15px}
-    .btn-s{padding:6px 10px;font-size:12.5px;border-radius:8px}
-    .chip{--c:var(--color-pizarra);display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;line-height:1;padding:4px 9px 4px 7px;border-radius:999px;
+    .btn-s{padding:6px 10px;font-size:14px;border-radius:8px}
+    .chip{--c:var(--color-pizarra);display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:600;line-height:1;padding:4px 9px 4px 7px;border-radius:999px;
       color:var(--c);background:color-mix(in srgb,var(--c) 11%,transparent);white-space:nowrap;border:0}
     .chip svg{width:12px;height:12px}
     .chip.urg{--c:var(--color-rojo-profundo)} .chip.ate{--c:var(--color-ambar)} .chip.bien{--c:var(--color-verde)} .chip.info{--c:var(--color-pizarra)} .chip.nd{--c:var(--color-taupe)}
     @media (hover: hover) {
       button.chip:hover{background:color-mix(in srgb,var(--c) 18%,transparent)}
     }
-    .pil{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:999px;padding:3px 9px;white-space:nowrap}
+    .pil{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:999px;padding:3px 9px;white-space:nowrap}
     .pil b{color:var(--color-tinta)}
     .pil .cod{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--color-taupe)}
     .ayuda{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--color-taupe);background:transparent;
@@ -55,8 +55,8 @@
     .bloque{padding:16px 18px}
     .b-cab{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-bottom:14px}
     .b-tit{font:500 21px/1.2 var(--font-serif);margin:0;display:flex;align-items:center;gap:8px}
-    .b-nota{font-size:12.5px;color:var(--color-tinta-60);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:12px;color:var(--color-tinta-60);margin-top:12px}
+    .b-nota{font-size:14px;color:var(--color-tinta-60);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px;color:var(--color-tinta-60);margin-top:12px}
     .leyenda span{display:inline-flex;align-items:center;gap:6px}
     .leyenda i{display:inline-block;width:12px;height:12px;border-radius:3px}
     .sec{display:flex;align-items:baseline;gap:10px;justify-content:space-between;margin:10px 0 -4px;font-size:12px;font-weight:600;letter-spacing:.11em;
@@ -81,21 +81,21 @@
     .i-num{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:auto}
     .i-num b{font:500 44px/1 var(--font-serif);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
     .i-num b.palabras{font-size:28px;line-height:1.05}
-    .i-num > span{font-size:13px;color:var(--color-tinta-60);line-height:1.3}
+    .i-num > span{font-size:14px;color:var(--color-tinta-60);line-height:1.3}
     .i-num em{font:inherit;font-style:normal}
     /* Tarjetas 1 y 2: solo prendas */
     .lista5{display:flex;flex-direction:column}
-    .l5{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:9px;align-items:center;padding:6px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--color-sand)}
+    .l5{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:9px;align-items:center;padding:6px 0;font-size:14px;cursor:pointer;border-bottom:1px solid var(--color-sand)}
     .l5:last-child{border-bottom:0}
     @media (hover: hover) {
       .l5:hover .nm{text-decoration:underline;text-underline-offset:3px}
     }
     .l5 .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
     .l5 .nm .tl{color:var(--color-tinta-60);font-weight:400}
-    .l5 .es{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--c);white-space:nowrap}
+    .l5 .es{display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:600;color:var(--c);white-space:nowrap}
     .l5 .es svg{width:13px;height:13px}
     .l5 .es.dias b{font:500 17px/1 var(--font-serif)}
-    .ver5{margin-top:auto;padding-top:6px;font-size:12.5px;font-weight:600;color:var(--color-taupe);display:inline-flex;align-items:center;gap:6px}
+    .ver5{margin-top:auto;padding-top:6px;font-size:14px;font-weight:600;color:var(--color-taupe);display:inline-flex;align-items:center;gap:6px}
     .ver5 svg{width:13px;height:13px}
     @media (hover: hover) {
       .inst:hover .ver5{color:var(--color-tinta)}
@@ -128,13 +128,13 @@
     .fl-l1 .est svg{width:14px;height:14px;display:block}
     .fl-l1 .tile{border-radius:4px !important}
     .fl-l1 .mas3{font-size:11px;font-weight:600;background:var(--color-hueso);border-radius:5px;padding:1px 5px}
-    .fl-l2{font-size:11.5px;color:var(--color-tinta-60);white-space:nowrap}
+    .fl-l2{font-size:14px;color:var(--color-tinta-60);white-space:nowrap}
     .fl-lista{display:none;flex-direction:column;gap:8px}
     .fl-gr{font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-taupe);margin-top:6px}
     .fl-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--color-crema);border:1px solid var(--color-sand);text-align:left}
     .fl-item .est svg{width:16px;height:16px;display:block}
     .fl-item b{display:block;font-size:14px}
-    .fl-item small{display:block;font-size:12px;color:var(--color-tinta-60)}
+    .fl-item small{display:block;font-size:14px;color:var(--color-tinta-60)}
     .fl-item .pts{display:flex;gap:3px;margin-top:5px}
     .fl-item .pts i{width:12px;height:12px;border-radius:50%;background:var(--prenda);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta) 18%,transparent)}
     @container analisis (max-width:760px){ .fl-svg{display:none} .fl-lista{display:flex} }
@@ -145,8 +145,8 @@
     .fl-pie .ic{--c:var(--color-rojo-profundo);width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
     .fl-pie .ic svg{width:16px;height:16px}
     .fl-pie b{font-size:14px}
-    .fl-pie > span:not(.ic):not(.ir){font-size:13px;color:var(--color-tinta-60)}
-    .fl-pie .ir{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
+    .fl-pie > span:not(.ic):not(.ir){font-size:14px;color:var(--color-tinta-60)}
+    .fl-pie .ir{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600}
     .fl-pie .ir svg{width:14px;height:14px}
     /* Por tienda (líder) */
     /* ───────── Carriles: gráfico y lista en una sola pieza ───────── */
@@ -163,14 +163,14 @@
     .c-grupo .ic{--c:var(--color-ambar);width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);flex:none}
     .c-grupo .ic svg{width:16px;height:16px}
     .c-grupo h4{margin:0;font-size:15px;font-weight:600}
-    .c-grupo .n{font-size:12px;font-weight:600;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:999px;padding:2px 8px}
+    .c-grupo .n{font-size:14px;font-weight:600;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:999px;padding:2px 8px}
     .c-grupo .btn-cayla{margin-left:auto}
     .c-grupo.mudo h4{color:var(--color-tinta-60);font-weight:500}
-    .c-grupo .detalle{font-size:12.5px;color:var(--color-tinta-60)}
-    .c-cab .c-sub{display:block;font-size:12.5px;color:var(--color-tinta-60);margin-top:2px}
+    .c-grupo .detalle{font-size:14px;color:var(--color-tinta-60)}
+    .c-cab .c-sub{display:block;font-size:14px;color:var(--color-tinta-60);margin-top:2px}
     /* «Ver N más»: lo que un grupo con corte deja bajo sus primeras filas (los tipos de «Nunca salió al piso»). */
     .c-mas{display:inline-flex;align-items:center;gap:6px;margin:2px 0 6px 66px;padding:4px 0;border:0;background:transparent;
-      font-size:12.5px;font-weight:600;color:var(--color-taupe);cursor:pointer;transition:color 160ms var(--ease-cayla)}
+      font-size:14px;font-weight:600;color:var(--color-taupe);cursor:pointer;transition:color 160ms var(--ease-cayla)}
     .c-mas svg{width:13px;height:13px}
     @media (hover: hover) {
       .c-mas:hover{color:var(--color-tinta)}
@@ -183,13 +183,13 @@
     .c-fila.mudo .tile, .c-fila.mudo .c-nom{opacity:.6}
     .c-fila .tile{grid-area:tile}
     .c-nom{grid-area:nom;min-width:0;line-height:1.25}
-    .c-nom b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .c-nom span{font-size:12px;color:var(--color-tinta-60)}
+    .c-nom b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .c-nom span{font-size:14px;color:var(--color-tinta-60)}
     .c-pil{grid-area:pil;display:flex;gap:6px;flex-wrap:wrap}
     .c-acc{grid-area:acc;justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
-    .alt{border:0;background:transparent;padding:0;font-size:12px;font-weight:600;color:var(--color-pizarra);text-decoration:underline;text-underline-offset:3px}
+    .alt{border:0;background:transparent;padding:0;font-size:14px;font-weight:600;color:var(--color-pizarra);text-decoration:underline;text-underline-offset:3px}
     .filtro-a{display:inline-flex;gap:6px;flex-wrap:wrap}
-    .pildora{border:1px solid var(--color-sand);background:var(--color-papel);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:500;color:var(--color-tinta-60);transition:background-color 160ms var(--ease-cayla),color 160ms var(--ease-cayla)}
+    .pildora{border:1px solid var(--color-sand);background:var(--color-papel);border-radius:999px;padding:5px 12px;font-size:14px;font-weight:500;color:var(--color-tinta-60);transition:background-color 160ms var(--ease-cayla),color 160ms var(--ease-cayla)}
     @media (hover: hover) {
       .pildora:hover{border-color:var(--color-taupe)}
     }
@@ -223,20 +223,20 @@
       .c-grupo .detalle{order:9;flex-basis:100%;padding-left:40px}
       .c-mas{margin-left:68px}
     }
-    .umbral{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--color-tinta-60);flex-wrap:wrap}
+    .umbral{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--color-tinta-60);flex-wrap:wrap}
     /* El modelo en tu tienda (opción B, Felipe 2026-10-10): la frase, la tabla talla × color con palabras y totales, la leyenda y las
        otras tiendas. Lo agotado va en ámbar (una tarea, no un error: sin rojo); lo que queda, en verde; lo que no hay, solo el filo. */
     .m-frase{font:500 19px/1.25 var(--font-serif);margin:0 0 12px;text-wrap:balance}
     .m-tabla{overflow-x:auto}
-    .m-tabla table{border-collapse:separate;border-spacing:4px;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+    .m-tabla table{border-collapse:separate;border-spacing:4px;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
     .m-tabla thead th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--color-taupe);text-align:center;padding:0 0 2px}
     .m-tabla thead th.col-color{text-align:left}
-    .m-tabla th.color{text-align:left;white-space:nowrap;font-size:13px;font-weight:600;padding-right:6px}
+    .m-tabla th.color{text-align:left;white-space:nowrap;font-size:14px;font-weight:600;padding-right:6px}
     .m-tabla th.color .pt{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--prenda);margin-right:6px;vertical-align:-1px;
       box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta) 18%,transparent)}
     .m-tabla td{border-radius:8px;padding:6px 8px;text-align:center;line-height:1.25;min-width:82px}
-    .m-tabla td b{display:block;font-size:13px;font-weight:600}
-    .m-tabla td span{display:block;font-size:11.5px}
+    .m-tabla td b{display:block;font-size:14px;font-weight:600}
+    .m-tabla td span{display:block;font-size:14px}
     .m-tabla td.pedir{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
     .m-tabla td.queda{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
     .m-tabla td.nada{color:var(--color-tinta-60);box-shadow:inset 0 0 0 1px var(--color-sand)}
@@ -246,7 +246,7 @@
       color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 14%,transparent);border-radius:999px;padding:2px 7px;vertical-align:1px}
     .m-tabla .m-alerta{display:inline-grid;place-items:center;width:14px;height:14px;margin-right:5px;border-radius:50%;font-size:10px;font-weight:800;line-height:1;
       color:var(--color-papel);background:var(--color-ambar);vertical-align:1px}
-    .m-tabla td.total{min-width:0;color:var(--color-tinta-60);font-weight:600;font-size:13px}
+    .m-tabla td.total{min-width:0;color:var(--color-tinta-60);font-weight:600;font-size:14px}
     .m-tabla tfoot th.color{color:var(--color-tinta-60)}
     .m-tabla td:focus-visible{outline:2px solid var(--color-pizarra);outline-offset:1px}
     /* En un teléfono la tabla no cabe (color + una columna por talla + «Vendiste» = ~420 px en una hoja de ~325) y se desliza dentro de su
@@ -265,13 +265,13 @@
       .m-tabla thead th.col-color,.m-tabla th.color{position:sticky;left:0;z-index:1;background:var(--color-papel)}
     }
     .m-leyenda{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-    .m-leyenda span{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 9px}
+    .m-leyenda span{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:600;border-radius:999px;padding:3px 9px}
     .m-leyenda span::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
     .m-leyenda .pedir{color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
     .m-leyenda .queda{color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 12%,transparent)}
     .m-leyenda .nada{color:var(--color-tinta-60);background:var(--color-hueso)}
     .m-leyenda .nada::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
-    .m-otras{margin:12px 0 0;font-size:13px;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:10px;padding:10px 12px}
+    .m-otras{margin:12px 0 0;font-size:14px;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:10px;padding:10px 12px}
     .mu-falta{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-rojo-profundo) 16%,transparent) 0 3px,transparent 3px 6px);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--color-rojo-profundo) 55%,transparent)}
     .mu-poco{background:color-mix(in srgb,var(--color-ambar) 18%,transparent)}
     .mu-hay{background:var(--color-hueso)}
@@ -285,7 +285,7 @@
     .ct .v{background:var(--color-tinta)} .ct .t{background:var(--color-grafico-neutro)}
     .ct .nom{font:500 22px/1 var(--font-serif)}
     .ct .flag{font-size:10.5px;font-weight:700;color:var(--color-ambar);min-height:14px}
-    .unica{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;min-height:190px;color:var(--color-tinta-60);font-size:13px}
+    .unica{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;min-height:190px;color:var(--color-tinta-60);font-size:14px}
     .unica svg{width:56px;height:56px;color:var(--color-taupe)}
     .unica b{font-size:15px;color:var(--color-tinta)}
     /* Ranking */
@@ -295,16 +295,16 @@
       .rank-f:hover{background:var(--color-hueso)}
     }
     .rank-f .nm{min-width:0}
-    .rank-f .nm b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .rank-f .nm span{font-size:11.5px;color:var(--color-tinta-60)}
+    .rank-f .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .rank-f .nm span{font-size:14px;color:var(--color-tinta-60)}
     .rank-f .tr{position:relative;height:16px}
     .rank-f .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--color-tinta);width:calc(var(--n) * 100%)}
-    .rank-f .tr em{position:absolute;top:50%;transform:translateY(-50%);left:calc(var(--n) * 100% + 6px);font-style:normal;font-size:12px;font-weight:600;white-space:nowrap}
+    .rank-f .tr em{position:absolute;top:50%;transform:translateY(-50%);left:calc(var(--n) * 100% + 6px);font-style:normal;font-size:14px;font-weight:600;white-space:nowrap}
     .rank-f .q{justify-self:end}
     @container analisis (max-width:620px){ .rank-f{grid-template-columns:32px minmax(0,1fr) 92px} .rank-f .tr{grid-column:2 / -1} }
     /* Rinde */
     .rinde{display:flex;flex-direction:column;gap:9px}
-    .rinde .r{display:grid;grid-template-columns:132px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:13px}
+    .rinde .r{display:grid;grid-template-columns:132px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:14px}
     .rinde .pista2{position:relative;height:14px}
     .rinde .pista2 .tallo{position:absolute;left:0;top:6px;height:2px;background:var(--color-grafico-neutro);width:calc(var(--n) * 100%)}
     .rinde .pista2 .cab{position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c);left:calc(var(--n) * 100%)}
@@ -315,7 +315,7 @@
     .cuenta-reg{display:flex;align-items:center;gap:12px}
     .cuenta-reg svg{width:64px;height:64px;flex:none}
     .cuenta-reg b{font:500 34px/1 var(--font-serif);display:block}
-    .cuenta-reg span{font-size:12.5px;color:var(--color-tinta-60)}
+    .cuenta-reg span{font-size:14px;color:var(--color-tinta-60)}
     .riel{position:relative;height:50px}
     .riel .linea-r{position:absolute;left:0;right:0;top:23px;height:4px;border-radius:2px;background:var(--color-hueso)}
     .riel .pasado{position:absolute;left:0;top:23px;height:4px;border-radius:2px;background:var(--color-taupe)}
@@ -340,8 +340,8 @@
        `position:absolute; inset:0`, para dibujar el arco debajo de la cifra). Sin `position:static` el SVG de aquí flotaba sobre su
        título y su botón y los tres anillos de «Datos incompletos» se pisaban (hallazgo 5 de la auditoría del celular, 2026-10-23). */
     .anillo svg{position:static;inset:auto;flex:none;width:96px;height:96px}
-    .anillo .et{font-size:12.5px;font-weight:600;line-height:1.25}
-    .anillo .sub{font-size:11.5px;color:var(--color-tinta-60)}
+    .anillo .et{font-size:14px;font-weight:600;line-height:1.25}
+    .anillo .sub{font-size:14px;color:var(--color-tinta-60)}
     .anillo .btn-cayla{margin-top:4px}
     /* En un teléfono caben dos anillos por fila, no tres: las filas se centran para que el tercero no quede huérfano a la izquierda. */
     @container analisis (max-width:460px){ .anillos{justify-content:center} }
@@ -368,28 +368,28 @@
     .todavia h2{font:500 32px/1.15 var(--font-serif);margin:8px 0 6px}
     .todavia .uno{margin:0 0 18px;color:var(--color-tinta-60)}
     .sabe{padding:14px 16px}
-    .sabe h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
-    .sabe .nota{font-size:12px;color:var(--color-tinta-60);margin-top:8px}
+    .sabe h4{margin:0 0 10px;font-size:15px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
+    .sabe .nota{font-size:14px;color:var(--color-tinta-60);margin-top:8px}
     .h-cab{display:flex;gap:14px;align-items:center;margin:4px 0 14px;padding-right:44px}
     .h-cab h2{font:500 28px/1.1 var(--font-serif);margin:0 0 4px}
-    .h-cab .meta{font-size:13px;color:var(--color-tinta-60)}
+    .h-cab .meta{font-size:14px;color:var(--color-tinta-60)}
     .h-sec{margin-top:20px}
     .h-sec h3{font-size:12px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--color-taupe);margin:0 0 10px}
     .hechos{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
     .hecho{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c) 9%,var(--color-crema));border:1px solid color-mix(in srgb,var(--c) 22%,transparent)}
     .hecho svg{width:18px;height:18px;color:var(--c);margin-bottom:4px}
     .hecho b{font:500 19px/1.1 var(--font-serif)}
-    .hecho small{font-size:11.5px;color:var(--color-tinta-60)}
+    .hecho small{font-size:14px;color:var(--color-tinta-60)}
     .h-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--color-sand)}
-    .h-nota{font-size:12.5px;color:var(--color-tinta-60);margin-top:10px}
-    .dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:0;font-size:13.5px}
+    .h-nota{font-size:14px;color:var(--color-tinta-60);margin-top:10px}
+    .dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:0;font-size:15px}
     .dl dt{color:var(--color-tinta-60)} .dl dd{margin:0;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 
     /* ───────── Piezas del ERP dentro de Análisis ───────── */
     .tile-prenda{display:inline-flex;overflow:hidden;flex:none}
     .tile-foto{display:block;border:1px solid color-mix(in srgb,var(--color-tinta) 10%,transparent)}
     .tip-rico{display:none}
-    .top-f{display:grid;grid-template-columns:20px minmax(0,1fr) 84px;gap:8px;align-items:center;font-size:12.5px;padding:3px 0;width:100%;
+    .top-f{display:grid;grid-template-columns:20px minmax(0,1fr) 84px;gap:8px;align-items:center;font-size:14px;padding:3px 0;width:100%;
       border:0;background:transparent;text-align:left;border-radius:6px}
     @media (hover: hover) {
       .top-f:hover .nm{text-decoration:underline;text-underline-offset:3px}
@@ -398,8 +398,8 @@
     .top-f .nm .tl{color:var(--color-tinta-60)}
     .top-f .tr{position:relative;height:12px}
     .top-f .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 3px 3px 0;background:var(--color-tinta)}
-    .top-f .tr em{position:absolute;top:50%;transform:translateY(-50%);font-style:normal;font-size:11px;font-weight:600}
-    .nh-f{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--color-sand)}
+    .top-f .tr em{position:absolute;top:50%;transform:translateY(-50%);font-style:normal;font-size:13px;font-weight:600}
+    .nh-f{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:5px 0;border-bottom:1px solid var(--color-sand)}
     .nh-f span:last-child{color:var(--color-tinta-60);white-space:nowrap}
     .modelos-barra{display:flex;gap:2px;height:22px;border-radius:6px;overflow:hidden}
     .modelos-barra i{display:block}
@@ -409,7 +409,7 @@
 
 /* El tooltip de la pantalla vive en el `body` (fuera de `.analisis`): sale al pasar el mouse, al enfocar y al tocar un «?». */
 @layer components {
-  .an-tip{position:fixed;z-index:70;pointer-events:none;background:var(--color-tinta);color:var(--color-crema);font-size:12px;line-height:1.4;padding:8px 10px;
+  .an-tip{position:fixed;z-index:70;pointer-events:none;background:var(--color-tinta);color:var(--color-crema);font-size:14px;line-height:1.4;padding:8px 10px;
     border-radius:8px;max-width:280px;opacity:0;transition:opacity 120ms var(--ease-cayla)}
   .an-tip.ver{opacity:1}
   .an-tip b{font-weight:600}

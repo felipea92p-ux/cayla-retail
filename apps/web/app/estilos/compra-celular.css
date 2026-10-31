@@ -29,7 +29,7 @@
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* «Cerrar mi ronda»: la cuenta de la ronda como un cuaderno rayado (la maqueta). Cada renglón mide 44 px y la raya de arena cae
@@ -80,7 +80,7 @@
 .compra-atajo {
   min-height: 2rem;
   padding: 0.25rem 0.75rem;
-  font-size: 12.5px;
+  font-size: 14px;
   border-radius: 999px;
 }
 @media (pointer: coarse) {
@@ -131,7 +131,7 @@
   grid-template-columns: 18px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--color-taupe);
 }
 .envio-tiempo > li::before {
@@ -188,7 +188,7 @@
   border-radius: 999px;
   background: var(--color-verde);
   color: var(--color-crema-fija);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 24px;
   text-align: center;

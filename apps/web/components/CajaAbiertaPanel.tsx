@@ -314,7 +314,7 @@ export function CajaAbiertaPanel({
       reparto={repartoEmpresas}
       guia="caja.reparto-empresas"
       indice={1}
-      frase="Lo vendido desde que se abrió esta caja, prenda por prenda. Sin las ventas anuladas."
+      frase="Desde que abriste la caja, sin anuladas."
     />
   ) : null;
 
@@ -323,8 +323,7 @@ export function CajaAbiertaPanel({
           <div data-guia="caja.movimientos" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
-                <p className="text-xs text-tinta/50">Toca cualquier fila para ver el detalle</p>
+                <TituloSeccion nivel={3}>Movimientos del turno</TituloSeccion>
               </div>
               {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
               <div role="group" aria-label="Filtrar movimientos" data-guia="caja.movimientos-filtro" className="flex flex-wrap items-center gap-2">
@@ -349,7 +348,7 @@ export function CajaAbiertaPanel({
             </div>
             {metodosUsados.length > 0 && (
               <div role="group" aria-label="Filtrar ventas por medio de pago" className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-[11.5px] text-tinta/50">Medio de pago</span>
+                <span className="texto-detalle mr-1">Medio de pago</span>
                 {metodosUsados.map(({ clave, ventas }) => (
                   <button
                     key={clave}
@@ -365,7 +364,7 @@ export function CajaAbiertaPanel({
                 ))}
               </div>
             )}
-            {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
+            {hayMixtas && <p className="texto-detalle mt-1.5">Una venta con dos medios sale en cada uno.</p>}
             {eventos.length === 0 ? (
               todosLosEventos.length === 0 ? (
                 <Vacio tamano="chico" icono={<Receipt />}>
@@ -446,8 +445,8 @@ export function CajaAbiertaPanel({
           <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
           <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
           <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
-            <p className="text-sm font-bold text-tinta">Ritmo del turno</p>
-            <p className="mb-3.5 text-xs text-tinta/50">Cada punto es una venta, desde que abrió la caja</p>
+            <TituloSeccion nivel={3}>Ritmo del turno</TituloSeccion>
+            <p className="texto-bajada mb-3.5">Cada punto, una venta del turno</p>
             <RitmoDelDia ventas={ventasHoy} abiertaEn={caja.abiertaEn} idsNuevos={idsNuevos} />
           </div>
         </div>
@@ -615,8 +614,8 @@ function AvisoTurnoLargo({ abiertaEn, esLider }: { abiertaEn: string; esLider: b
   if (!turnoLargo(minutos)) return null;
   return (
     <div role="status" className="card-cayla border-l-2 border-l-rojo px-5 py-3 text-sm text-tinta">
-      Esta caja lleva <b className="font-medium">{formatoDuracion(minutos)}</b> abierta.{" "}
-      {esLider ? "Ciérrala para que el arqueo quede día por día." : "Avisa a un líder de equipo para que la cierre."}
+      Caja abierta hace <b className="font-medium">{formatoDuracion(minutos)}</b>:{" "}
+      {esLider ? "ciérrala para cuadrar día por día." : "avisa a un líder de equipo para que la cierre."}
     </div>
   );
 }

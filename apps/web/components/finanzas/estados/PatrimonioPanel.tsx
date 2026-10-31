@@ -81,7 +81,7 @@ export function PatrimonioPanel({ datos, falla, mes, enCurso, forma }: { datos: 
 
       <div className="fin-estado-sep" />
       <section data-guia="fin-patrimonio.linea">
-        <TituloSeccion accion={serie.length >= 2 ? <span className="text-[13px] text-taupe">{solesConSigno(serie.at(-1)!.y - serie[0]!.y)}</span> : undefined}>
+        <TituloSeccion accion={serie.length >= 2 ? <span className="text-sm text-taupe">{solesConSigno(serie.at(-1)!.y - serie[0]!.y)}</span> : undefined}>
           {`Últimos ${serie.length} ${serie.length === 1 ? "mes" : "meses"}`}
         </TituloSeccion>
         <div className="mt-3">
@@ -125,7 +125,7 @@ function Formal({ datos, mes }: { datos: Parameters<typeof cuadroFormalPatrimoni
   const filas = cuadroFormalPatrimonio(datos);
   return (
     <Superficie pad guia="fin-patrimonio.formal">
-      <p className="mb-3 text-[13px] text-taupe">Estado de cambios en el patrimonio de {mesNombre(mes)}.</p>
+      <p className="mb-3 text-sm text-taupe">Estado de cambios en el patrimonio de {mesNombre(mes)}.</p>
       <div className="fin-tabla-wrap" data-guia="fin-patrimonio.formal-tabla">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Estado de cambios en el patrimonio de {mesNombre(mes)}</caption>

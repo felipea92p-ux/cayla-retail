@@ -78,7 +78,7 @@ export function FilaCategoria({
           {c.nombre}
         </span>
         {/* «Vendiste 366 en los 26 días que lleva el ERP» es el doble de larga que «en 90 días»: la celda no envuelve y la cortaba a 980 px. */}
-        <span className={`block whitespace-normal text-[13px] ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
+        <span className={`block whitespace-normal text-sm ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
           {agotada
             ? `Se agotó: vendía ${enteroES.format(ventas)} en ${periodoDeVentas(diasDeVentas)}`
             : ventas > 0
@@ -90,7 +90,7 @@ export function FilaCategoria({
             <Chip tono="ambar" versalitas={false}>
               −{descuento.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % en la campaña
             </Chip>
-            <span className={`text-[12.5px] ${margen.pierde ? "font-medium text-rojo-profundo" : "text-tinta/70"}`}>
+            <span className={`text-sm ${margen.pierde ? "font-medium text-rojo-profundo" : "text-tinta/70"}`}>
               {margen.pierde ? "no deja ganancia" : `ganas ${solesES(margen.enCampana)} por prenda`}
             </span>
           </span>
@@ -119,13 +119,13 @@ export function FilaCategoria({
             <span className="font-normal text-taupe-profundo sm:hidden">Comprar: </span>
             {calculo ? enteroES.format(calculo.comprar) : "—"}
             {fraseDelPedido(f.pedido, calculo ?? null) && (
-              <span className="block text-xs font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo ?? null)}</span>
+              <span className="block text-sm font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo ?? null)}</span>
             )}
             {f.paso2 !== undefined && calculo && calculo.comprar > 0 && (
               // El paso 2 (ADR-0526): qué modelos, colores y tallas. Si el total del paso 1 cambió después de guardarlo, lo dice: lo repartido ya no es lo que se compra.
               <span className="mt-1 block font-normal" data-guia="plan.paso2-marca">
                 {f.paso2 === null ? (
-                  <span className="text-xs text-taupe-profundo">Paso 2 por hacer</span>
+                  <span className="text-sm text-taupe-profundo">Paso 2 por hacer</span>
                 ) : paso2PorRevisar(f.paso2.total, calculo.comprar, f.envio?.confirmadas ?? 0) ? (
                   <Chip tono="ambar" versalitas={false} title={`El total del paso 1 cambió de ${f.paso2.total} a ${calculo.comprar + (f.envio?.confirmadas ?? 0)} desde que se guardó el paso 2`}>
                     Paso 2 por revisar

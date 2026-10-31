@@ -212,7 +212,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
                   />
                   <span>
                     {MEDIOS_PLATA.ya_tenia.nombre} de antes
-                    <span className="block text-xs text-taupe">{MEDIOS_PLATA.ya_tenia.ejemplo}. Solo esta primera vez.</span>
+                    <span className="block text-sm text-taupe">{MEDIOS_PLATA.ya_tenia.ejemplo}. Solo esta primera vez.</span>
                   </span>
                 </label>
               )}
@@ -220,7 +220,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
             {medio === "transferencia" && bancos.length > 0 && (
               <CampoGuiado id="banco" guia={guia} titulo="¿De qué banco salió?">
                 <FichasCuenta etiqueta="¿De qué banco salió?" cuentas={bancos} valor={banco ?? ""} onValor={limpiar(setBanco)} deshabilitado={guardando} guia="mi-plata.banco" />
-                <p className="mt-1.5 text-xs text-taupe">La cuenta de la empresa de donde salió la plata: así queda en Finanzas. Compras la confirma.</p>
+                <p className="mt-1.5 text-sm text-taupe">La cuenta de la empresa de donde salió la plata: así queda en Finanzas. Compras la confirma.</p>
               </CampoGuiado>
             )}
             </div>

@@ -98,7 +98,7 @@ function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | n
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
     // En una tarjeta angosta (celular) no se dibujan: viven en el «⋯», con botones del tamaño de un dedo.
-    <div className="mt-0.5 hidden flex-wrap gap-x-3 text-[12.5px] @min-[640px]:flex">
+    <div className="mt-0.5 hidden flex-wrap gap-x-3 text-sm @min-[640px]:flex">
       {c.pdfUrl && (
         <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="btn-enlace font-medium">
           Ver PDF
@@ -304,7 +304,7 @@ export function ComprobantesPanel({
             </Ayuda>
           </p>
           <TituloSeccion className="mt-0.5">Todos los comprobantes</TituloSeccion>
-          <p className="mt-0.5 text-xs text-tinta/65">Los de {periodo}, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
+          <p className="mt-0.5 text-sm text-tinta/65">Los de {periodo}, con su estado ante SUNAT.</p>
           {comprobantes.length > 0 && (
             <div data-guia="comprobantes.filtros" className="mt-3 flex">
               <PanelPildoras>
@@ -376,15 +376,15 @@ export function ComprobantesPanel({
                         {c.serie}-{String(c.numero).padStart(6, "0")}
                       </b>
                     </p>
-                    <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{cliente}</p>
+                    <p className="mt-0.5 truncate text-sm text-tinta/65 @min-[900px]:hidden">{cliente}</p>
                     {extras[c.id]?.notaDeCredito && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-sm text-pizarra">
                         <Link2 aria-hidden size={12} />
                         Tiene {extras[c.id]!.notaDeCredito!.numero}
                       </p>
                     )}
                     {extras[c.id]?.corrige && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-sm text-pizarra">
                         <Link2 aria-hidden size={12} />
                         Corrige {extras[c.id]!.corrige!.numero}
                       </p>
@@ -392,7 +392,7 @@ export function ComprobantesPanel({
                     <DocumentosSunat c={c} telefono={extras[c.id]?.telefono ?? null} />
                   </div>
 
-                  <p className="hidden min-w-0 truncate text-[13px] text-tinta/75 @min-[900px]:block">{cliente}</p>
+                  <p className="hidden min-w-0 truncate text-sm text-tinta/75 @min-[900px]:block">{cliente}</p>
 
                   <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">{soles(Number(c.total))}</p>
 
@@ -401,7 +401,7 @@ export function ComprobantesPanel({
                       <Chip tono={chip.tono} className={chip.punteado ? "border-dashed border-tinta/30" : ""}>
                         {chip.texto}
                       </Chip>
-                      {motivo && <p className={`mt-1.5 text-[13px] leading-snug ${esRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>{motivo}</p>}
+                      {motivo && <p className={`mt-1.5 text-sm leading-snug ${esRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>{motivo}</p>}
                     </div>
                     <div data-guia="comprobantes.acciones" className="flex flex-wrap items-center gap-1.5">
                       {botones}
@@ -413,7 +413,7 @@ export function ComprobantesPanel({
               );
             })}
             {paginaActual.totalPaginas > 1 && (
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 px-5 py-3 text-xs text-taupe">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 px-5 py-3 text-sm text-taupe">
                 <span>
                   Mostrando {paginaActual.desde}–{paginaActual.hasta} de {visibles.length}
                 </span>
@@ -421,7 +421,7 @@ export function ComprobantesPanel({
               </div>
             )}
             {totales.length > 0 && (
-              <p className="flex flex-wrap gap-x-5 gap-y-1 border-t border-tinta/10 bg-tinta/[0.02] px-5 py-3 text-[13px] text-tinta/70">
+              <p className="flex flex-wrap gap-x-5 gap-y-1 border-t border-tinta/10 bg-tinta/[0.02] px-5 py-3 text-sm text-tinta/70">
                 {totales.map((t) => (
                   <span key={t.tipo}>
                     {ETIQUETA_TIPO[t.tipo]}: <b className="font-semibold tabular-nums text-tinta">{t.cantidad}</b> ·{" "}
@@ -509,18 +509,18 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
             <p className="font-display text-base text-tinta">
               {ETIQUETA_TIPO[comprobante.tipo]} {comprobante.serie}-{String(comprobante.numero).padStart(6, "0")}
             </p>
-            <p className="text-xs leading-relaxed text-tinta/75">
+            <p className="text-sm leading-relaxed text-tinta/75">
               {comprobante.cliente_nombre ?? "Cliente varios"} · {soles(Number(comprobante.total))}
             </p>
           </div>
 
-          <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+          <p className="border-l-2 border-ambar/50 pl-3 text-sm leading-relaxed text-tinta/75">
             {comprobante.tipo === "boleta"
               ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que queda en “Anulación en trámite” hasta que confirme — no es un error."
               : "Se envía la comunicación de baja. SUNAT también la procesa después, así que queda en “Anulación en trámite”. Si ya pasó el plazo la rechaza, y entonces toca una nota de crédito en vez de anular."}
           </p>
           {laBajaAnulaLaVenta(comprobante.tipo, comprobante.venta_id) && (
-            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+            <p className="border-l-2 border-ambar/50 pl-3 text-sm leading-relaxed text-tinta/75">
               Este comprobante documenta una venta: al darlo de baja, la venta se anula en el mismo acto, sus prendas vuelven al stock y
               la caja lo descuenta. Si la venta fue real y solo el documento estaba mal, vuelve a cobrarla después. Si su caja ya cerró
               o es de otro día, no se puede: usa Devolución, que sale con su nota de crédito.
@@ -615,12 +615,12 @@ function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onCl
             <p className="font-display text-base text-tinta">
               {ETIQUETA_TIPO[comprobante.tipo]} {comprobante.serie}-{String(comprobante.numero).padStart(6, "0")}
             </p>
-            <p className="text-xs leading-relaxed text-tinta/75">
+            <p className="text-sm leading-relaxed text-tinta/75">
               {comprobante.cliente_nombre ?? "Cliente varios"} · {soles(Number(comprobante.total))}
             </p>
           </div>
 
-          <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+          <p className="border-l-2 border-ambar/50 pl-3 text-sm leading-relaxed text-tinta/75">
             Este comprobante reservó su número pero nunca se transmitió a SUNAT — no hay nada
             que avisarle. Su número queda sin usar para siempre (un hueco en la numeración es
             normal y legal); lo único que cambia es que deja de aparecer como pendiente. Esta
