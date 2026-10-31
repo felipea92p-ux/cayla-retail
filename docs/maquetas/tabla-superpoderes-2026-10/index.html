@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-sp="globo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tabla con superpoderes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la tabla con superpoderes (ADR-0596; Felipe 2026-10-31, al elegir las tablas «B · Placa Serena»: «más allá del diseño quiero
+   que sea lo más entendible posible y mejorar la tabla en todo aspecto: los filtros desde las cabeceras, que todo esté alineado al
+   centro, cabeceras y datos, que se vean claramente los datos y no con fuentes muy pequeñas, para que cualquiera pueda verla»).
+   La cara es la elegida (B · Placa Serena: el vidrio de las tarjetas de cifra, sin rayado, con un hilo entre filas). Lo nuevo es lo que
+   hace. Dos maneras de filtrar desde la cabecera (A · Globo, B · Fila de filtros) + «Como ahora» (la B elegida, sin superpoderes).
+   Montada sobre el marco y las piezas ya elegidas (../vidrio-base-2026-10/). Colores: SOLO tokens. Movimiento: una vez, sin rebote;
+   apagado con prefers-reduced-motion (ADR-0136). Datos inventados (el repo es público).
+   ==================================================================== */
+
+/* ---------- la placa (B · Placa Serena, la elegida) ---------- */
+.tabla{position:relative;margin-top:20px;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);overflow:clip;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) .2s backwards}
+[data-tema="oscuro"] .tabla{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+.t-enc,.t-fila,.t-filtros{display:grid;grid-template-columns:var(--cols);gap:0 12px;align-items:center;padding:0 20px}
+.t-fila{position:relative;min-height:52px;padding-top:10px;padding-bottom:10px;font-size:13.5px;color:var(--tinta);text-decoration:none;
+  animation:sube-fila .42s var(--ease) backwards;animation-delay:calc(260ms + var(--k,0) * 28ms);transition:background-color .18s var(--ease)}
+@keyframes sube-fila{from{opacity:0;transform:translateY(8px)}}
+.t-fila+.t-fila::before{content:"";position:absolute;top:0;left:20px;right:20px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+@media (hover:hover){.t-fila:hover{background-color:color-mix(in srgb,var(--vidrio) 45%,transparent)}[data-tema="oscuro"] .t-fila:hover{background-color:color-mix(in srgb,var(--tinta) 6%,transparent)}
+  .t-fila:hover+.t-fila::before{opacity:0}}
+.t-fila>span{min-width:0}
+.t-fila .sec{display:block;font-size:12px;color:var(--t65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-enc{min-height:40px;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+.t-enc>span{font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-pie{padding:12px 20px;font-size:12px;color:var(--taupe);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.der{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* la fila abierta: la gota del menú con su marca roja (la de la cara elegida) */
+a.t-fila{cursor:pointer;isolation:isolate}
+a.t-fila[aria-current="true"]::before{content:"";position:absolute;inset:4px 6px;height:auto;z-index:-1;border-radius:14px;opacity:1;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] a.t-fila[aria-current="true"]::before{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 16px -8px var(--sombra)}
+a.t-fila[aria-current="true"]+.t-fila::before{opacity:0}
+.marca{display:none;position:absolute;left:13px;top:50%;width:3px;height:16px;margin-top:-8px;border-radius:3px;background:var(--rojo)}
+a.t-fila[aria-current="true"] .marca{display:block}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* ====================================================================
+   LOS SUPERPODERES (A y B; «Como ahora» no los tiene)
+   1. Letra que cualquiera lee: el dato a 15 px (hoy 13,5), lo de debajo a 13 (hoy 12), la cabecera a 12,5 en tinta y versalitas. Y
+      «Letra grande» (17 px), para quien lo necesite: se recuerda en el aparato.
+   2. Todo al centro: cabecera y dato. Un monto va centrado en su columna, pero sus cifras quedan una bajo otra (la caja del monto
+      tiene el ancho del más largo y adentro va a la derecha): se ve ordenado y se puede comparar.
+   3. Filtrar y ordenar desde la cabecera (A · Globo / B · Fila de filtros). Lo puesto se ve en la cabecera (el punto) y arriba,
+      en una frase y en píldoras que se quitan con su ✕.
+   4. La frase: «Ves 4 de 14 órdenes: de Telas Mistral, en camino. Suman S/ 9,120.» Sin contar ni sumar a mano.
+   5. La cabecera te acompaña al bajar (pegada bajo las islas, en vidrio).
+   6. La fecha dice cuánto falta («en 3 días», «hace 2 días» en ámbar si ya pasó y no llegó).
+   7. Al pie, el total de LO QUE VES, no de todo.
+   8. Si los filtros no dejan nada: qué falta y cómo volver, nunca una tabla vacía.
+   ==================================================================== */
+:root:is([data-sp="globo"],[data-sp="fila"]) .t-fila{min-height:60px;padding-top:12px;padding-bottom:12px;font-size:15px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .t-fila .sec{font-size:13px;margin-top:2px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .t-enc>span{font-size:12.5px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .chip{height:26px;font-size:11.5px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .tabla[data-letra="grande"] .t-fila{font-size:17px;min-height:68px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .tabla[data-letra="grande"] .t-fila .sec{font-size:14.5px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .tabla[data-letra="grande"] .chip{height:28px;font-size:12.5px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .tabla[data-letra="grande"] .t-enc>span{font-size:13.5px}
+/* todo al centro */
+:root:is([data-sp="globo"],[data-sp="fila"]) :is(.t-enc,.t-fila,.t-filtros)>*{text-align:center;justify-self:stretch}
+:root:is([data-sp="globo"],[data-sp="fila"]) .t-fila .der{text-align:center}
+.monto{display:inline-block;min-width:var(--w-monto,auto);text-align:right;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
+:root:not([data-sp]) .monto{min-width:0}
+/* la cabecera pegada, en vidrio */
+:root:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{position:sticky;top:72px;z-index:3;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 72%,transparent));
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5)}
+[data-tema="oscuro"]:is([data-sp="globo"],[data-sp="fila"]) .t-cabeza{background:color-mix(in srgb,var(--vidrio) 92%,transparent)}
+/* la cabecera que se toca: el nombre, su flecha de orden y su punto de filtro */
+.col-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;height:32px;padding:0 10px;border-radius:999px;
+  font-size:inherit;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t80);transition:background .2s,color .2s}
+:root:not([data-sp]) .col-btn{font-weight:400;letter-spacing:0;text-transform:none;color:var(--taupe);padding:0;height:auto}
+.col-btn .nom{overflow:hidden;text-overflow:ellipsis}
+.col-btn svg{width:14px;height:14px;flex:none;stroke-width:2;color:var(--t50);transition:transform .3s var(--ease),color .2s}
+.col-btn .pt{width:7px;height:7px;flex:none;border-radius:50%;background:var(--rojo);display:none}
+.col-btn[data-filtrada] .pt{display:block}
+.col-btn[data-ordenada] svg.flecha-o{color:var(--tinta)}
+.col-btn[data-ordenada="asc"] svg.flecha-o{transform:rotate(180deg)}
+.col-btn[aria-expanded="true"]{color:var(--tinta)}
+@media (hover:hover){:root:is([data-sp="globo"],[data-sp="fila"]) .col-btn:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent);color:var(--tinta)}}
+:root:is([data-sp="globo"],[data-sp="fila"]) .col-btn[aria-expanded="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 12px -6px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .col-btn[aria-expanded="true"]{background:color-mix(in srgb,var(--tinta) 12%,transparent)!important;box-shadow:none!important}
+.col-btn:focus-visible{outline:2px solid var(--tinta);outline-offset:1px}
+/* en «Fila de filtros» el embudo no hace falta: el filtro está a la vista */
+[data-sp="fila"] .col-btn .embudo{display:none}
+:root:not([data-sp]) .col-btn .embudo,:root:not([data-sp]) .col-btn .pt{display:none}
+
+/* ---------- B · la fila de filtros, siempre a la vista bajo la cabecera ---------- */
+.t-filtros{display:none;padding-top:8px;padding-bottom:10px;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-sp="fila"] .t-filtros{display:grid}
+[data-sp="fila"] .t-enc{box-shadow:none}
+.f-ctl{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-width:0;height:36px;padding:0 12px;border-radius:999px;font-size:13px;color:var(--t65);
+  border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent);transition:background .2s,color .2s,border-color .2s}
+[data-tema="oscuro"] .f-ctl{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.f-ctl span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f-ctl svg{width:14px;height:14px;flex:none;stroke-width:2}
+.f-ctl[data-puesto]{color:var(--tinta);font-weight:600;border-color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .f-ctl[data-puesto]{background:color-mix(in srgb,var(--tinta) 12%,transparent)}
+input.f-ctl{text-align:center;outline:0}
+input.f-ctl::placeholder{color:var(--t50)}
+input.f-ctl:focus{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 25%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px var(--tinta)}
+.f-vacio{display:block;width:100%;height:36px}
+
+/* ---------- la barra de arriba: la frase, las píldoras y la letra ---------- */
+.barra-t{display:none;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:24px}
+:root:is([data-sp="globo"],[data-sp="fila"]) .barra-t{display:flex}
+.frase-t{flex:1 1 360px;min-width:0;font-size:15px;color:var(--t80);animation:sube .4s var(--ease) both}
+.frase-t b{color:var(--tinta);font-weight:600}
+.puestos{display:flex;flex-wrap:wrap;gap:8px;width:100%;order:3}
+.puestos:empty{display:none}
+.puesto{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 6px 0 14px;border-radius:999px;font-size:13px;font-weight:500;color:var(--crema);
+  border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));animation:enfoca .3s var(--ease) both}
+.puesto button{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:inherit}
+.puesto button svg{width:12px;height:12px;stroke-width:2.4}
+@media (hover:hover){.puesto button:hover{background:color-mix(in srgb,var(--crema) 20%,transparent)}}
+.limpiar{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:13px;color:var(--t80);border:1px dashed var(--borde)}
+.limpiar svg{width:14px;height:14px;stroke-width:2}
+.letra{display:inline-flex;align-items:center;gap:10px;font-size:13.5px;color:var(--t80);cursor:pointer;user-select:none}
+.letra .aa{font-family:'EB Garamond',serif;font-size:18px;color:var(--tinta)}
+.inter{position:relative;width:38px;height:22px;border-radius:99px;flex:none;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 6%,transparent);transition:background .25s,border-color .25s}
+.inter::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--papel);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 35%,transparent);transition:transform .3s var(--ease)}
+.letra[aria-checked="true"] .inter{background:var(--tinta);border-color:var(--tinta)}
+.letra[aria-checked="true"] .inter::after{transform:translateX(16px);background:var(--crema)}
+.letra:focus-visible{outline:2px solid var(--tinta);outline-offset:4px;border-radius:8px}
+
+/* ---------- el globo del filtro (A) ---------- */
+.globo{position:absolute;z-index:45;width:300px;max-width:calc(100% - 16px);padding:14px;border-radius:22px;pointer-events:auto;
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:color-mix(in srgb,var(--vidrio) 82%,transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent);animation:brota-g .26s var(--ease) both;transform-origin:top center}
+@keyframes brota-g{from{opacity:0;transform:translateY(-6px) scale(.97)}}
+[data-tema="oscuro"] .globo{background:color-mix(in srgb,var(--vidrio) 94%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 26px 54px -24px var(--sombra)}
+.globo h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:2px 4px 8px}
+.globo h4+.seg,.globo .seg+h4{margin-top:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:14px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+[data-tema="oscuro"] .seg{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.seg button{height:34px;border-radius:999px;font-size:13px;color:var(--t80);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px}
+.seg button[aria-pressed="true"]{color:var(--tinta);font-weight:600;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 12px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 16%,transparent);box-shadow:none}
+.g-buscar{display:flex;align-items:center;gap:8px;height:38px;margin-bottom:8px;padding:0 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.g-buscar svg{width:15px;height:15px;color:var(--t65);stroke-width:2}
+.g-buscar input{flex:1;min-width:0;border:0;background:none;outline:0;font-size:14px}
+.g-ops{display:grid;gap:2px;max-height:260px;overflow:auto;scrollbar-width:thin}
+.g-op{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:6px 10px;border-radius:12px;text-align:left;font-size:14px}
+@media (hover:hover){.g-op:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}}
+.g-op .cuenta{margin-left:auto;font-size:12.5px;color:var(--t65);font-variant-numeric:tabular-nums}
+.g-op[aria-checked="true"]{font-weight:600}
+.caja-v{width:20px;height:20px;flex:none;border-radius:6px;border:1.5px solid var(--borde);display:grid;place-items:center;transition:background .2s,border-color .2s}
+.g-op[role="radio"] .caja-v{border-radius:50%}
+.caja-v svg{width:13px;height:13px;stroke-width:3;color:var(--crema);opacity:0}
+.g-op[aria-checked="true"] .caja-v{background:var(--tinta);border-color:var(--tinta)}
+.g-op[aria-checked="true"] .caja-v svg{opacity:1}
+.g-op[aria-checked="true"] .caja-v svg path{stroke-dasharray:24;animation:traza .35s var(--ease) both}
+@keyframes traza{from{stroke-dashoffset:24}}
+.g-op[disabled]{opacity:.45;cursor:default}
+.g-pie{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent);font-size:13px;color:var(--t65)}
+.g-pie button{font-size:13px;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+
+/* ---------- la fecha que dice cuánto falta ---------- */
+.falta{display:block;font-size:13px;color:var(--t65)}
+.falta.paso{color:var(--ambar);font-weight:600}
+
+/* ---------- cuando los filtros no dejan nada ---------- */
+.vacio-t{padding:44px 20px;text-align:center}
+.vacio-t svg{width:40px;height:40px;stroke-width:1.5;color:var(--taupe);margin-bottom:10px}
+.vacio-t h3{font-family:'EB Garamond',serif;font-weight:500;font-size:24px}
+.vacio-t p{margin:6px auto 16px;max-width:30rem;font-size:15px;color:var(--t80)}
+
+/* ---------- el celular: cada fila una tarjeta; los filtros, píldoras arriba ---------- */
+.filtros-m{display:none}
+@container disp (max-width:520px){
+  .t-cabeza{display:none}
+  .filtros-m{display:flex;gap:8px;overflow-x:auto;margin:16px -16px 0;padding:2px 16px 4px;scrollbar-width:none}
+  .filtros-m::-webkit-scrollbar{display:none}
+  :root:not([data-sp]) .filtros-m{display:none}
+  .filtros-m .f-ctl{width:auto;flex:none;max-width:200px}
+  .t-fila{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"a d" "b c";gap:6px 12px;padding:14px 16px!important;min-height:0!important}
+  .t-fila>*{text-align:left!important;justify-self:start!important}
+  .t-fila>.m-a{grid-area:a}.t-fila>.m-b{grid-area:b}.t-fila>.m-c{grid-area:c;justify-self:end!important}.t-fila>.m-d{grid-area:d;justify-self:end!important;text-align:right!important}
+  .t-fila>.m-x{display:none}
+  .t-fila+.t-fila::before{left:16px;right:16px}
+  .barra-t{gap:10px}
+  .frase-t{flex-basis:100%}
+  .t-pie{padding:12px 16px}
+  /* en el celular el globo es la hoja a media altura (ADR-0479: opciones que se aplican al momento), con su asa */
+  .globo{left:8px!important;right:8px;bottom:8px;top:auto!important;width:auto;max-width:none;max-height:70%;overflow:auto;padding:22px 16px 16px;border-radius:28px;animation:sube-hoja .38s var(--ease) both}
+  .globo::before{content:"";position:absolute;top:8px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:99px;background:var(--t25)}
+  .globo .g-op{min-height:44px}
+}
+@keyframes sube-hoja{from{transform:translateY(40px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">La tabla con superpoderes · sobre la cara elegida, B · Placa Serena</span>
+  <span class="tag">Filtrar</span><div class="seg-m" data-ctl="sp"><button data-v="ahora">Como ahora (sin superpoderes)</button><button data-v="globo">A · Globo desde la cabecera</button><button data-v="fila">B · Fila de filtros</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Qué se pidió y qué tiene hoy la tabla</h2>
+    <ul>
+      <li><b>Felipe (2026-10-31):</b> «más allá del diseño, que sea lo más entendible posible y mejorar la tabla en todo aspecto: los filtros desde las cabeceras, que todo esté alineado al centro, cabeceras y datos, que se vean claramente los datos y no con fuentes muy pequeñas, para que cualquiera pueda verla».</li>
+      <li><b>Hoy</b> (<code>components/ui/Tabla.tsx</code>): el dato a 13,5 px, lo de debajo a 12 y la cabecera a 12 en taupe; texto a la izquierda y cifras a la derecha; 8 tablas se ordenan tocando la cabecera, y <b>ninguna filtra desde ella</b>: los filtros viven aparte, en píldoras sobre la tabla (<code>FiltrosPildora</code>), lejos de la columna que filtran. Nadie dice cuántas filas quedaron ni cuánto suman.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Los superpoderes (en A y en B)</h2>
+    <table>
+      <tr><th>Superpoder</th><th>Cómo se ve</th><th>Por qué</th></tr>
+      <tr><td><b>Letra que cualquiera lee</b></td><td>El dato a 15 px (hoy 13,5), lo de debajo a 13 (hoy 12), la cabecera a 12,5 en tinta. Filas de 60 px. Y «Letra grande» (17 px), que se recuerda en el aparato.</td><td>Una encargada de 55 años en el mostrador, con luz de tienda. 15 px es el tamaño de lectura cómoda en pantalla; 17 es para quien lo necesite, sin agrandar todo el ERP.</td></tr>
+      <tr><td><b>Todo al centro</b></td><td>Cabecera y dato centrados en su columna. Un monto va centrado, pero sus cifras quedan una bajo la otra: la caja del monto mide lo del más largo y adentro va a la derecha.</td><td>Lo que pediste, sin perder lo que el centrado suele romper: comparar montos de un vistazo (S/ 980 y S/ 12,480 no quedan corridos).</td></tr>
+      <tr><td><b>Filtrar y ordenar desde la cabecera</b></td><td>A · Globo: tocas «Proveedor» y se abre ahí mismo, con «Ordenar» y las opciones con cuántas hay de cada una. B · Fila de filtros: bajo cada cabecera, su filtro siempre a la vista.</td><td>El filtro vive en la columna que filtra: no hay que buscarlo en otro lado. Se aplica al tocar (nada de «Aplicar»): si te equivocas, se quita con su ✕.</td></tr>
+      <tr><td><b>Lo que ves, en una frase</b></td><td>«Ves 4 de 14 órdenes: de Telas Mistral, en camino. Suman S/ 9,120.» Y lo puesto en píldoras que se quitan con su ✕, y «Limpiar todo».</td><td>Ley 1 de Formidable: sin manual. Nadie cuenta filas ni suma a mano, ni se olvida de que dejó un filtro puesto.</td></tr>
+      <tr><td><b>La cabecera te acompaña</b></td><td>Al bajar, la cabecera queda pegada bajo las islas, en vidrio.</td><td>En la fila 30 sigues sabiendo qué es cada columna y puedes filtrar sin volver arriba.</td></tr>
+      <tr><td><b>La fecha dice cuánto falta</b></td><td>«4 nov» y debajo «en 4 días»; si ya pasó y no llegó, «hace 2 días» en ámbar.</td><td>Nadie hace la cuenta del calendario. Ámbar, no rojo: avisa sin gritar (ADR-0169).</td></tr>
+      <tr><td><b>El total de lo que ves</b></td><td>Al pie, la suma de las filas que quedaron.</td><td>Con un filtro puesto, el total de todo es un dato equivocado.</td></tr>
+      <tr><td><b>Cuando no queda nada</b></td><td>«Ninguna orden cumple con estos filtros», los filtros puestos y «Quitar los filtros».</td><td>Nunca una tabla vacía que parece rota.</td></tr>
+    </table>
+  </section>
+  <section>
+    <h2>A o B: cómo se filtra desde la cabecera</h2>
+    <table>
+      <tr><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>A · Globo desde la cabecera</b> <span class="ev">Recomendada</span></td><td>La cabecera queda limpia; un toque abre todo lo de esa columna: ordenar, buscar, elegir varias, con cuántas hay de cada una. Sirve igual con 3 columnas que con 8, y en el celular es la misma hoja.</td><td>Hay que saber que la cabecera se toca: lo dice el embudo junto a cada nombre y el punto rojo cuando hay algo puesto.</td></tr>
+      <tr><td><b>B · Fila de filtros</b></td><td>Cero descubrimiento: el filtro está a la vista bajo cada columna; el proveedor se busca escribiendo ahí mismo.</td><td>Gasta 54 px de alto en cada tabla, aunque nadie filtre. En una columna angosta (Artículos) el control queda apretado o vacío, y en una tabla de 8 columnas la fila se vuelve una planilla de campos.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>A · Globo desde la cabecera</b>, con los ocho superpoderes. Es la que escala a todas las tablas del ERP sin llenarlas de controles, y lo que tiene puesto se ve igual de claro gracias a la frase y a las píldoras.</p>
+    <h3>Lo que hay que decidir aparte</h3>
+    <p>Llevar esto al código cambia qué hace la tabla, no solo cómo se ve: <code>&lt;Tabla&gt;</code> tendría que saber filtrar (hoy cada pantalla filtra por su cuenta, a veces en la base con <code>?q=</code>). Lo sensato es empezar por las tablas que ya cargan todo en el navegador (Órdenes, Movimientos del día, Gastos) y dejar para después las que paginan en la base.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado…); la maqueta no los repite. -->
+<script>
+// ---------- los datos (inventados) ----------
+const HOY = 31; // 31 de octubre
+const EST = { camino: ['En camino', 'var(--pizarra)'], llego: ['Llegó', 'var(--verde)'], parcial: ['A medias', 'var(--ambar)'], borrador: ['Borrador', 'var(--taupe)'] };
+const DATOS = [
+  ['Hilados del Sur', 'Trujillo', 'camino', 4, 6, 4280], ['Botones Lumbre', 'Arequipa', 'llego', -2, 3, 980], ['Telas Mistral', 'Lima', 'camino', 2, 5, 3854],
+  ['Avíos Quillay', 'Taller', 'parcial', -1, 6, 1641], ['Cierres Puna', 'Trujillo', 'borrador', 12, 2, 428], ['Etiquetas Cóndor', 'Arequipa', 'llego', -5, 4, 3215],
+  ['Telas Mistral', 'Lima', 'camino', 6, 5, 5266], ['Hilados del Sur', 'Taller', 'camino', -2, 4, 2789], ['Avíos Quillay', 'Trujillo', 'llego', -8, 3, 576],
+  ['Botones Lumbre', 'Lima', 'parcial', 1, 2, 1363], ['Cierres Puna', 'Arequipa', 'camino', 9, 3, 2150], ['Telas Mistral', 'Taller', 'borrador', 15, 6, 12480],
+  ['Etiquetas Cóndor', 'Trujillo', 'camino', 3, 2, 1937], ['Hilados del Sur', 'Lima', 'llego', -3, 5, 724],
+].map(([prov, sede, est, dias, art, total], i) => ({ oc: 142 - i, prov, sede, est, dias, art, total }));
+const fechaDe = (dias) => { const d = HOY + dias; return d > 31 ? `${d - 31} nov` : `${d} oct`; };
+const soles = (x) => 'S/ ' + x.toLocaleString('es-PE', { minimumFractionDigits: 2 });
+const soles0 = (x) => 'S/ ' + x.toLocaleString('es-PE');
+
+// ---------- las columnas: qué es cada una y cómo se filtra ----------
+const RANGOS = {
+  dias: [['todas', 'Todas', () => true], ['paso', 'Ya debía llegar', (o) => o.dias < 0], ['semana', 'Esta semana (hasta el 7 nov)', (o) => o.dias >= 0 && o.dias <= 7], ['despues', 'Más adelante', (o) => o.dias > 7]],
+  total: [['todos', 'Todos', () => true], ['menos', 'Menos de S/ 1,000', (o) => o.total < 1000], ['medio', 'De S/ 1,000 a S/ 3,000', (o) => o.total >= 1000 && o.total <= 3000], ['mas', 'Más de S/ 3,000', (o) => o.total > 3000]],
+};
+const COLS = [
+  { k: 'oc', t: 'Orden', ancho: '110px', orden: ['Más nueva primero', 'Más vieja primero'], m: 'm-a' },
+  { k: 'prov', t: 'Proveedor', ancho: 'minmax(0,1.5fr)', filtro: 'lista', orden: ['A → Z', 'Z → A'], m: 'm-b' },
+  { k: 'sede', t: 'Sede', ancho: '120px', filtro: 'lista', orden: ['A → Z', 'Z → A'], m: 'm-x' },
+  { k: 'est', t: 'Estado', ancho: '150px', filtro: 'lista', orden: ['A → Z', 'Z → A'], m: 'm-c' },
+  { k: 'dias', t: 'Llega', ancho: '130px', filtro: 'rango', orden: ['Lo más pronto primero', 'Lo más lejano primero'], m: 'm-x' },
+  { k: 'art', t: 'Artículos', ancho: '100px', orden: ['Menos primero', 'Más primero'], m: 'm-x' },
+  { k: 'total', t: 'Total', ancho: '150px', filtro: 'rango', orden: ['Menor primero', 'Mayor primero'], m: 'm-d' },
+];
+const etiquetaDe = (k, v) => (k === 'est' ? EST[v][0] : v);
+
+// ---------- el estado de la tabla ----------
+const vacioF = () => ({ prov: new Set(), sede: new Set(), est: new Set(), dias: 'todas', total: 'todos', texto: { oc: '', prov: '' } });
+let F = vacioF(), O = { k: 'oc', dir: 'desc' }, abierta = 140, globoDe = null;
+let letraGrande = false; try { letraGrande = localStorage.getItem('cayla-letra-tabla') === 'grande'; } catch (e) {}
+const sp = () => document.documentElement.dataset.sp; // 'globo' | 'fila' | undefined (como ahora)
+const pasa = (o, salvo) => COLS.every((c) => {
+  if (c.k === salvo) return true;
+  if (c.filtro === 'lista' && F[c.k].size && !F[c.k].has(o[c.k])) return false;
+  if (c.filtro === 'rango' && !RANGOS[c.k].find((r) => r[0] === F[c.k])[2](o)) return false;
+  return true;
+}) && (!F.texto.oc || String(o.oc).includes(F.texto.oc.replace(/\D/g, ''))) && (!F.texto.prov || sinTilde(o.prov).includes(sinTilde(F.texto.prov)));
+const filtrada = (k) => { const c = COLS.find((x) => x.k === k); return c.filtro === 'lista' ? F[k].size > 0 : c.filtro === 'rango' ? F[k] !== RANGOS[k][0][0] : false; };
+const hayFiltros = () => COLS.some((c) => filtrada(c.k)) || F.texto.oc || F.texto.prov;
+function filas() {
+  const xs = sp() ? DATOS.filter((o) => pasa(o)) : [...DATOS];
+  const v = (o) => (O.k === 'est' ? EST[o.est][0] : o[O.k]);
+  return xs.sort((a, b) => (O.dir === 'desc' ? -1 : 1) * (v(a) > v(b) ? 1 : v(a) < v(b) ? -1 : 0));
+}
+
+// ---------- la frase: lo que ves, en palabras ----------
+function frase(xs) {
+  const partes = [];
+  if (F.prov.size) partes.push('de ' + [...F.prov].join(' o '));
+  if (F.texto.prov) partes.push(`cuyo proveedor dice «${F.texto.prov}»`);
+  if (F.sede.size) partes.push('para ' + [...F.sede].join(' o '));
+  if (F.est.size) partes.push([...F.est].map((e) => EST[e][0].toLowerCase()).join(' o '));
+  if (F.dias !== 'todas') partes.push({ paso: 'que ya debían llegar', semana: 'que llegan esta semana', despues: 'que llegan más adelante' }[F.dias]);
+  if (F.total !== 'todos') partes.push({ menos: 'de menos de S/ 1,000', medio: 'de S/ 1,000 a S/ 3,000', mas: 'de más de S/ 3,000' }[F.total]);
+  if (F.texto.oc) partes.push(`con «${F.texto.oc}» en el número`);
+  const suma = xs.reduce((a, o) => a + o.total, 0);
+  if (!partes.length) return `Ves las <b>${DATOS.length} órdenes</b>. Suman <b>${soles0(suma)}</b>.`;
+  if (!xs.length) return `<b>Ninguna orden</b> ${partes.join(', ')}.`;
+  return `Ves <b>${xs.length} de ${DATOS.length} órdenes</b>: ${partes.join(', ')}. Suman <b>${soles0(suma)}</b>.`;
+}
+function puestos() {
+  const p = [];
+  for (const c of COLS) {
+    if (c.filtro === 'lista') F[c.k].forEach((v) => p.push([`${c.t}: ${etiquetaDe(c.k, v)}`, `l|${c.k}|${v}`]));
+    if (c.filtro === 'rango' && filtrada(c.k)) p.push([`${c.t}: ${RANGOS[c.k].find((r) => r[0] === F[c.k])[1]}`, `r|${c.k}`]);
+  }
+  for (const k of ['oc', 'prov']) if (F.texto[k]) p.push([`${k === 'oc' ? 'Orden' : 'Proveedor'}: «${F.texto[k]}»`, `t|${k}`]);
+  if (!p.length) return '';
+  return p.map(([t, q]) => `<span class="puesto">${t}<button data-quitar="${q}" aria-label="Quitar ${t}">${sv('M18 6 6 18M6 6l12 12')}</button></span>`).join('') +
+    `<button class="limpiar" data-limpiar>${sv('M3 4h18l-7 8v6l-4 2v-8z M17 17l4 4m0-4-4 4')}Limpiar todo</button>`;
+}
+
+// ---------- la tabla ----------
+const EMBUDO = 'M3 4h18l-7 8v6l-4 2v-8z';
+const FLECHA_O = 'M12 5v14M19 12l-7 7-7-7';
+function cabecera() {
+  return `<div class="t-enc" role="row">${COLS.map((c) => {
+    const ord = O.k === c.k ? O.dir : '';
+    const abrible = sp() === 'globo' || (sp() === 'fila');
+    return `<span role="columnheader" class="${c.m === 'm-x' ? 'desde-lg' : ''}"><button class="col-btn" data-col="${c.k}" ${ord ? `data-ordenada="${ord}"` : ''} ${filtrada(c.k) ? 'data-filtrada' : ''}
+      aria-expanded="${globoDe === c.k}" aria-label="${c.t}${abrible && sp() === 'globo' ? ': ordenar' + (c.filtro ? ' y filtrar' : '') : ': ordenar'}">
+      <span class="nom">${c.t}</span>${sp() === 'globo' && c.filtro ? `<svg class="ic embudo" viewBox="0 0 24 24" aria-hidden="true"><path d="${EMBUDO}"/></svg>` : ''}
+      ${ord || !sp() ? `<svg class="ic flecha-o" viewBox="0 0 24 24" aria-hidden="true"${ord ? '' : ' style="opacity:.35"'}><path d="${FLECHA_O}"/></svg>` : ''}<span class="pt" aria-hidden="true"></span></button></span>`;
+  }).join('')}</div>`;
+}
+function filaDeFiltros() {
+  return `<div class="t-filtros">${COLS.map((c) => {
+    const cl = c.m === 'm-x' ? ' class="desde-lg"' : '';
+    if (c.k === 'oc' || c.k === 'prov') return `<span${cl}><input class="f-ctl" data-texto="${c.k}" value="${F.texto[c.k]}" placeholder="${c.k === 'oc' ? 'Número' : 'Busca un proveedor'}" aria-label="Filtrar por ${c.t.toLowerCase()}"></span>`;
+    if (!c.filtro) return `<span${cl}><span class="f-vacio"></span></span>`;
+    return `<span${cl}>${controlFiltro(c)}</span>`;
+  }).join('')}</div>`;
+}
+function controlFiltro(c) {
+  let txt = 'Todos';
+  if (c.filtro === 'lista' && F[c.k].size) txt = F[c.k].size === 1 ? etiquetaDe(c.k, [...F[c.k]][0]) : `${F[c.k].size} elegidos`;
+  if (c.filtro === 'rango' && filtrada(c.k)) txt = RANGOS[c.k].find((r) => r[0] === F[c.k])[1];
+  if (c.filtro === 'rango' && !filtrada(c.k)) txt = RANGOS[c.k][0][1];
+  return `<button class="f-ctl" data-col="${c.k}" ${filtrada(c.k) ? 'data-puesto' : ''} aria-expanded="${globoDe === c.k}" aria-label="Filtrar ${c.t.toLowerCase()}: ${txt}"><span>${txt}</span>${sv('M6 9l6 6 6-6')}</button>`;
+}
+function celdas(o) {
+  const paso = o.dias < 0 && o.est !== 'llego';
+  const falta = o.est === 'llego' ? 'llegó' : o.dias === 0 ? 'hoy' : o.dias > 0 ? `en ${o.dias} día${o.dias > 1 ? 's' : ''}` : `hace ${-o.dias} día${o.dias < -1 ? 's' : ''}`;
+  return [
+    `<span class="m-a">OC-0${o.oc}</span>`,
+    `<span class="m-b">${o.prov}<span class="sec si-falta">${o.art} artículos · ${o.sede}</span></span>`,
+    `<span class="m-x desde-lg">${o.sede}</span>`,
+    `<span class="m-c"><span class="chip" style="--c:${EST[o.est][1]}"><i></i>${EST[o.est][0]}</span></span>`,
+    `<span class="m-x desde-lg">${fechaDe(o.dias)}${sp() ? `<span class="falta${paso ? ' paso' : ''}">${falta}</span>` : ''}</span>`,
+    `<span class="m-x der desde-lg">${o.art}</span>`,
+    `<span class="m-d der"><span class="monto">${soles(o.total)}</span></span>`,
+  ].join('');
+}
+function vacio() {
+  return `<div class="vacio-t">${sv('M3 4h18l-7 8v6l-4 2v-8z M17 17l4 4m0-4-4 4')}<h3>Ninguna orden cumple con estos filtros</h3>
+    <p>Quita alguno de los de arriba, o todos de una vez.</p><button class="btn sec" data-limpiar>Quitar los filtros</button></div>`;
+}
+function tabla() {
+  const xs = filas();
+  const ancho = Math.max(...DATOS.map((o) => soles(o.total).length));
+  const cols = COLS.map((c) => c.ancho).join(' ');
+  const colsAng = COLS.filter((c) => c.m !== 'm-x').map((c) => c.ancho).join(' ');
+  const suma = xs.reduce((a, o) => a + o.total, 0);
+  return `<div class="tabla" role="table" aria-label="Órdenes de compra" ${letraGrande ? 'data-letra="grande"' : ''} style="--cols:${cols};--cols-ang:${colsAng};--w-monto:${ancho}ch">
+    <div class="t-cabeza">${cabecera()}${filaDeFiltros()}</div>
+    ${xs.length ? xs.map((o, k) => `<a href="#" class="t-fila" role="row" data-id="${o.oc}" aria-current="${o.oc === abierta}" style="--k:${Math.min(k, 11)}"><span class="marca" aria-hidden="true"></span>${celdas(o)}</a>`).join('') : vacio()}
+    <div class="t-pie">${sp() ? (hayFiltros() ? `Lo que ves suma <b>${soles(suma)}</b> · ${xs.length} órdenes` : `${DATOS.length} órdenes · ${soles(suma)} en total`) : `${DATOS.length} órdenes · ${soles(suma)} en total`}</div></div>`;
+}
+function filtrosMovil() {
+  return `<div class="filtros-m">${COLS.filter((c) => c.filtro).map((c) => controlFiltro(c).replace('<span>', `<span>${c.t}: `)).join('')}</div>`;
+}
+function pintarPantalla() {
+  $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Órdenes de compra', frase: 'Lo que le pediste a cada proveedor y lo que ya llegó.', acciones: [['sec', 'Descargar Excel', 'descargar'], ['pri', 'Nueva orden', 'mas']] })}
+    <div class="barra-t"><p class="frase-t" aria-live="polite"></p>
+      <button class="letra" role="switch" aria-checked="${letraGrande}" data-letra><span class="aa" aria-hidden="true">Aa</span>Letra grande<span class="inter" aria-hidden="true"></span></button>
+      <div class="puestos"></div></div>
+    <div id="filtros-m"></div><div id="la-tabla"></div>`;
+  repintar(true);
+}
+// Repinta solo la tabla, la frase y las píldoras (no la pantalla): así no se repite la entrada de la cabecera.
+function repintar(primera) {
+  const xs = filas();
+  $('.frase-t').innerHTML = frase(xs);
+  $('.puestos').innerHTML = sp() ? puestos() : '';
+  $('#filtros-m').innerHTML = filtrosMovil();
+  const foco = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.texto, pos = foco && document.activeElement.selectionStart;
+  $('#la-tabla').innerHTML = tabla();
+  if (!primera) $$('.t-fila,.tabla').forEach((x) => (x.style.animation = 'none'));
+  if (foco) { const i = $(`[data-texto="${foco}"]`); i.focus(); i.setSelectionRange(pos, pos); }
+  if (globoDe) pintarGlobo();
+}
+
+// ---------- el globo ----------
+function pintarGlobo() {
+  $$('.globo').forEach((g) => g.remove());
+  const c = COLS.find((x) => x.k === globoDe);
+  // en «Fila de filtros», el globo cuelga de su control, no del nombre de la columna
+  const visibles = [...$$(`[data-col="${globoDe}"]`)].filter((x) => x.offsetParent);
+  const ancla = visibles.find((x) => x.classList.contains('f-ctl')) || visibles[0];
+  if (!c || !ancla) { globoDe = null; return; }
+  let cuerpo = '';
+  if (c.filtro === 'lista') {
+    const valores = [...new Set(DATOS.map((o) => o[c.k]))].sort((a, b) => etiquetaDe(c.k, a).localeCompare(etiquetaDe(c.k, b)));
+    const cuenta = (v) => DATOS.filter((o) => o[c.k] === v && pasa(o, c.k)).length;
+    cuerpo = `<h4>Mostrar solo</h4>${valores.length > 5 ? `<label class="g-buscar">${sv(L.buscar)}<input data-g-buscar placeholder="Busca un ${c.t.toLowerCase()}"></label>` : ''}
+      <div class="g-ops" role="group" aria-label="${c.t}">${valores.map((v) => { const n = cuenta(v); return `<button class="g-op" role="checkbox" aria-checked="${F[c.k].has(v)}" data-elegir="${v}" data-t="${etiquetaDe(c.k, v)}" ${n || F[c.k].has(v) ? '' : 'disabled'}>
+        <span class="caja-v">${sv('M20 6 9 17l-5-5')}</span>${c.k === 'est' ? `<span class="chip" style="--c:${EST[v][1]}"><i></i>${EST[v][0]}</span>` : v}<span class="cuenta">${n}</span></button>`; }).join('')}</div>`;
+  } else if (c.filtro === 'rango') {
+    cuerpo = `<h4>Mostrar</h4><div class="g-ops" role="radiogroup" aria-label="${c.t}">${RANGOS[c.k].map(([v, t, f]) => { const n = DATOS.filter((o) => f(o) && pasa(o, c.k)).length; return `<button class="g-op" role="radio" aria-checked="${F[c.k] === v}" data-rango="${v}">
+        <span class="caja-v">${sv('M20 6 9 17l-5-5')}</span>${t}<span class="cuenta">${n}</span></button>`; }).join('')}</div>`;
+  }
+  const html = `<div class="globo" role="dialog" aria-label="${c.t}: ordenar${c.filtro ? ' y filtrar' : ''}">
+    <h4>Ordenar</h4><div class="seg">${['asc', 'desc'].map((d, i) => `<button data-dir="${d}" aria-pressed="${O.k === c.k && O.dir === d}" title="${c.orden[i]}">${c.orden[i]}</button>`).join('')}</div>
+    ${cuerpo}${filtrada(c.k) ? `<div class="g-pie"><span>${c.filtro === 'lista' ? `${F[c.k].size} elegido${F[c.k].size > 1 ? 's' : ''}` : 'Filtro puesto'}</span><button data-quitar-col="${c.k}">Quitar este filtro</button></div>` : ''}</div>`;
+  $('#flotante').insertAdjacentHTML('beforeend', html);
+  // se mide contra la capa flotante (dentro del borde del aparato), no contra el aparato
+  const g = $('.globo'), d = $('#flotante').getBoundingClientRect(), r = ancla.getBoundingClientRect();
+  if ($('#disp').dataset.ancho === 'movil') { g.style.left = ''; g.style.top = ''; return; }
+  const w = g.offsetWidth, izq = Math.min(Math.max(8, r.left - d.left + r.width / 2 - w / 2), d.width - w - 8);
+  g.style.left = izq + 'px'; g.style.top = r.bottom - d.top + 8 + 'px';
+  $$('[data-col]').forEach((b) => b.setAttribute('aria-expanded', b.dataset.col === globoDe));
+}
+function cerrarGlobo() { globoDe = null; $$('.globo').forEach((g) => g.remove()); $$('[data-col]').forEach((b) => b.setAttribute('aria-expanded', 'false')); }
+
+document.addEventListener('click', (ev) => {
+  const col = ev.target.closest('[data-col]');
+  if (col && $('#cont').contains(col)) {
+    const k = col.dataset.col, c = COLS.find((x) => x.k === k);
+    // Como ahora: tocar la cabecera solo ordena. B: el nombre ordena y el control de abajo filtra. A: abre el globo.
+    if (!sp() || (sp() === 'fila' && col.classList.contains('col-btn'))) {
+      O = { k, dir: O.k === k && O.dir === 'desc' ? 'asc' : 'desc' }; cerrarGlobo(); repintar(); return;
+    }
+    globoDe = globoDe === k ? null : k; globoDe ? pintarGlobo() : cerrarGlobo(); ev.stopPropagation(); return;
+  }
+  const g = ev.target.closest('.globo');
+  if (g) {
+    const c = COLS.find((x) => x.k === globoDe);
+    const dir = ev.target.closest('[data-dir]'), el = ev.target.closest('[data-elegir]'), ra = ev.target.closest('[data-rango]'), qc = ev.target.closest('[data-quitar-col]');
+    if (dir) O = { k: c.k, dir: dir.dataset.dir };
+    else if (el) { const v = el.dataset.elegir; F[c.k].has(v) ? F[c.k].delete(v) : F[c.k].add(v); }
+    else if (ra) F[c.k] = ra.dataset.rango;
+    else if (qc) { if (c.filtro === 'lista') F[c.k].clear(); else F[c.k] = RANGOS[c.k][0][0]; }
+    else return;
+    repintar(); return;
+  }
+  const q = ev.target.closest('[data-quitar]');
+  if (q) { const [t, k, v] = q.dataset.quitar.split('|'); if (t === 'l') F[k].delete(v); if (t === 'r') F[k] = RANGOS[k][0][0]; if (t === 't') F.texto[k] = ''; repintar(); return; }
+  if (ev.target.closest('[data-limpiar]')) { F = vacioF(); cerrarGlobo(); repintar(); return; }
+  const le = ev.target.closest('[data-letra]');
+  if (le) { letraGrande = !letraGrande; try { localStorage.setItem('cayla-letra-tabla', letraGrande ? 'grande' : 'normal'); } catch (e) {} le.setAttribute('aria-checked', letraGrande); $('.tabla').toggleAttribute('data-letra', letraGrande); if (letraGrande) $('.tabla').dataset.letra = 'grande'; return; }
+  const f = ev.target.closest('a.t-fila');
+  if (f) { ev.preventDefault(); abierta = +f.dataset.id; $$('a.t-fila').forEach((x) => x.setAttribute('aria-current', x === f)); cerrarGlobo(); return; }
+  if (ev.target.closest('.cont a')) ev.preventDefault();
+  if (globoDe && !ev.target.closest('.spk')) cerrarGlobo();
+});
+document.addEventListener('input', (ev) => {
+  if (ev.target.matches('[data-texto]')) { F.texto[ev.target.dataset.texto] = ev.target.value.trim(); repintar(); }
+  if (ev.target.matches('[data-g-buscar]')) { const q = sinTilde(ev.target.value.trim()); $$('.globo [data-elegir]').forEach((o) => (o.hidden = q && !sinTilde(o.dataset.t).includes(q))); }
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && globoDe) { const k = globoDe; cerrarGlobo(); const b = [...$$(`[data-col="${k}"]`)].find((x) => x.offsetParent); if (b) b.focus(); } });
+$('#cont').addEventListener('scroll', () => { if (globoDe) pintarGlobo(); }, { passive: true });
+addEventListener('resize', () => { if (globoDe) pintarGlobo(); });
+
+Marco.iniciar({ estado: { sp: 'globo' }, alPintar: () => { cerrarGlobo(); $('#cont').scrollTop = 0; pintarPantalla(); } });
+</script>
+<style>
+/* con la pantalla angosta, las columnas que sobran se van (como `desdeLg` de <Encabezado>) */
+/* lo de debajo del proveedor (artículos · sede) sale solo cuando sus columnas se van: no se repite lo que ya está a la vista */
+.sec.si-falta{display:none!important}
+@container disp (max-width:1150px){.tabla{--cols:var(--cols-ang)!important}.desde-lg{display:none!important}.sec.si-falta{display:block!important}}
+</style>
+</body>
+</html>

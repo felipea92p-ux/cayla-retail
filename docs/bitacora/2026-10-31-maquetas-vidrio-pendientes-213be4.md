@@ -11,3 +11,7 @@
 - **Tablas (`Tabla` en 75 archivos + `.fila-cayla` en 20):** las tarjetas de cifra A pasan a la base. Maqueta
   `docs/maquetas/tablas-vidrio-2026-10/` con «Como ahora», A · Lámina casi papel (recomendada: la de las hojas en Serena), B · Placa Serena
   y C · Plana sobre la Aurora, sobre Órdenes (se ordenan y se abren) y Movimientos; medida a 375, 723 y 1500 px. Espera a Felipe.
+- **Tablas, elegida B · Placa Serena,** y Felipe pidió una tabla «con superpoderes»: maqueta `docs/maquetas/tabla-superpoderes-2026-10/`,
+  con letra de 15 px (17 con «Letra grande»), todo al centro con los montos alineados por sus cifras, filtros y orden desde la cabecera
+  (A · Globo, recomendada; B · Fila de filtros), la frase de lo que ves, cabecera pegada, fechas que dicen cuánto falta, total de lo que
+  ves y vacío con salida. Probada al tocar (filtros, orden, vacío, limpiar) y medida a 1500 y 375 px. Espera a Felipe.
