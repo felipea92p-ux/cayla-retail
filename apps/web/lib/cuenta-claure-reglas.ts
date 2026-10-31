@@ -189,11 +189,6 @@ export function textoOrigenClaure(origen: OrigenClaure): string {
   return TEXTO_ORIGEN[origen];
 }
 
-/** «S/ 118.00» o, si es negativo, «− S/ 118.00». */
-export function solesConSigno(n: number): string {
-  return n < 0 ? `− ${soles(-n)}` : soles(n);
-}
-
 /** La pregunta de la cabecera y su cifra: lo que se le debe a CLAURE o, si se le pagó de más, lo que CLAURE le debe a CAYLA (siempre en positivo). */
 export function respuestaClaure(saldo: number): { pregunta: string; valor: number } {
   return saldo < 0 ? { pregunta: "¿Cuánto te debe CLAURE?", valor: -saldo } : { pregunta: "¿Cuánto le debes a CLAURE?", valor: saldo };

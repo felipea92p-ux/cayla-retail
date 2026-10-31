@@ -563,4 +563,412 @@
       animation: none;
     }
   }
+
+  /* ---- CLAURE (rediseño Felipe 2026-10-31, maqueta docs/maquetas/finanzas-claure-rediseno-2026-10/, vista «B+C · Fusión») ----
+     Las fichas, «Por dónde entra», «Pide tu atención», la semana y los pagos se arman con las piezas del ERP (TarjetaCifra, BarraApilada,
+     BarraAvance, TituloSeccion, Tabla, Paginas); aquí solo vive la composición. Solo tokens. Movimiento: una vez al verse, sin rebote ni bucle
+     (ADR-0136 y excepción de Finanzas, D7). */
+  .cl-marco {
+    container-type: inline-size;
+  }
+  .cl-fichas {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .cl-debe {
+    grid-column: span 2;
+  }
+  @container (min-width: 1150px) {
+    .cl-fichas {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+    .cl-debe {
+      grid-column: span 1;
+    }
+  }
+  @container (max-width: 600px) {
+    .cl-fichas {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .cl-debe {
+      grid-column: 1 / -1;
+    }
+  }
+  /* La ficha oscura: lo que se le debe. En oscuro `tinta` y `crema` se invierten, como en el botón negro del ERP. */
+  .cl-debe {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .cl-debe-etq {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-crema) 75%, transparent);
+  }
+  .cl-debe-valor {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 28px;
+    line-height: 1.15;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .cl-debe-pie {
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-crema) 75%, transparent);
+  }
+
+  /* Dos tarjetas por fila, siempre de la misma altura: lo que le sobra a la más corta lo llena su contenido, no el aire. */
+  .cl-dos {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+  @container (max-width: 980px) {
+    .cl-dos {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .cl-dos > .card-cayla {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 24px;
+    min-width: 0;
+  }
+  .cl-llena {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .cl-versalita {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .cl-tenue {
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  }
+  .cl-num {
+    font-variant-numeric: tabular-nums;
+  }
+  .cl-ley {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 0;
+    font-size: 12.5px;
+  }
+  .cl-ley > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cl-cta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .cl-cta > b {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Pide tu atención: una fila por aviso (ícono en su círculo, título, detalle y el enlace a la derecha). */
+  .cl-aten {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .cl-aten > li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+  }
+  .cl-aten > li + li {
+    border-top: 1px solid var(--color-sand);
+  }
+  .cl-ic {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--c) 15%, transparent);
+    color: var(--c);
+  }
+  .cl-aten b {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .cl-aten .cl-d {
+    display: block;
+    margin-top: 2px;
+    font-size: 13.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  }
+  @container (max-width: 560px) {
+    .cl-aten > li {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+    .cl-aten > li > :last-child {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+
+  /* Cómo se llega a lo que se le debe: la cuenta en renglones, para que la tarjeta de los avisos nunca quede con aire. */
+  .cl-cuenta {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cl-cuenta > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    font-size: 14px;
+  }
+  .cl-cuenta dt {
+    color: color-mix(in srgb, var(--color-tinta) 78%, transparent);
+  }
+  .cl-cuenta dd {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .cl-cuenta-tot {
+    margin-top: 4px;
+    padding-top: 10px !important;
+    border-top: 1px solid var(--color-sand);
+  }
+  .cl-cuenta-tot dt {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .cl-cuenta-tot dd {
+    font-family: var(--font-serif);
+    font-size: 20px;
+  }
+
+  /* Cobrado y pagado por semana: dos barras por semana, la altura es lo que se mueve. */
+  .cl-sem {
+    flex: 1;
+    min-height: 150px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 6px 4px 0;
+  }
+  .cl-sem > div {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    height: 100%;
+  }
+  .cl-sem-bb {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+  }
+  .cl-sem-bb > i {
+    flex: 1;
+    height: var(--h);
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+    background: var(--c);
+    animation: cl-crece 0.8s var(--ease-cayla) backwards;
+  }
+  @keyframes cl-crece {
+    from {
+      height: 0;
+    }
+  }
+  .cl-sem small {
+    font-size: 11px;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  }
+
+  /* Lo que ya se le pagó: fecha, qué y cuánto. */
+  .cl-mov {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .cl-mov > li {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .cl-mov .cl-f {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .cl-mov b {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .cl-mov small {
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  }
+  .cl-mov .cl-m {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .cl-pos {
+    color: var(--color-verde);
+  }
+
+  /* La ventana del historial: filtros, período, un día por bloque y las páginas. */
+  .cl-h-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+  }
+  .cl-h-per {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: auto;
+  }
+  .cl-h-per > b {
+    min-width: 11rem;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .cl-h-per > b::first-letter {
+    text-transform: uppercase;
+  }
+  .cl-h-flecha {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-borde-control);
+    border-radius: 50%;
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    cursor: pointer;
+  }
+  .cl-h-flecha:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .cl-h-cab {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 9rem 8.5rem;
+    gap: 6px 18px;
+    padding: 12px 0;
+    border-block: 1px solid var(--color-sand);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .cl-h-cab > :not(:first-child) {
+    text-align: right;
+  }
+  .cl-h-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 9rem 8.5rem;
+    align-items: center;
+    gap: 6px 18px;
+    padding: 10px 0;
+  }
+  .cl-h-fila + .cl-h-fila {
+    border-top: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent);
+  }
+  .cl-h-fila b {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .cl-h-fila small {
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  }
+  .cl-h-fila .cl-m {
+    font-weight: 600;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .cl-h-fila .cl-sd {
+    font-size: 12.5px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  }
+  .cl-h-pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    padding-top: 12px;
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  }
+  @media (max-width: 560px) {
+    .cl-h-fila {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .cl-h-fila .cl-sd,
+    .cl-h-cab > :last-child {
+      display: none;
+    }
+    .cl-h-cab {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .cl-h-per > b {
+      min-width: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cl-sem-bb > i {
+      animation: none;
+    }
+  }
 }

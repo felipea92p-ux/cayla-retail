@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.claure",
   "ruta": "/finanzas/dinero/claure",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 46,
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
@@ -36,7 +36,18 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/finanzas/dinero/BotonPagarClaure.tsx": [
-      "Boton «fin-claure.pagar»"
+      "Boton «{conGuia ? \"fin-claure.pagar\" : undefined}»"
+    ],
+    "components/finanzas/dinero/CuentaClaure.tsx": [
+      "Link «{a.accion.texto}»",
+      "button «{a.accion.texto}»"
+    ],
+    "components/finanzas/dinero/HistorialClaure.tsx": [
+      "Pestanas «(sin nombre)»",
+      "button «{p.texto}»",
+      "button «Período anterior»",
+      "button «Período siguiente»",
+      "SegmentoDeslizante «Cuántos por página»"
     ],
     "components/finanzas/dinero/SalidasPlanillaModal.tsx": [
       "ComboResponsable «{responsable}»",
