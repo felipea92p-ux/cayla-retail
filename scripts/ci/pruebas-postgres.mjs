@@ -853,6 +853,10 @@ export const PRUEBAS = [
   // código, el tejido y la merma de un color son los de su tela; y los estados imposibles (un color dos veces, kilo sin medidas, NaN, unidad cambiada) no caben. ROLLBACK.
   "pruebas:materiales",
 
+  // Corregir y eliminar un ingreso de insumo (ADR-0570, actividad 6a; migración 20261030134000): el lote se corrige o queda en cero con su marca, el libro deja el ingreso y el par «deshago + anoto»,
+  // el saldo y el valor del color cuadran, un lote que ya se usó no se toca, es del líder, la historia no se edita ni se borra, y la migración se pega dos veces. ROLLBACK.
+  "pruebas:insumos-corregir-ingreso",
+
   // Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
   // RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin
   // borrar, la lista suma lotes y total comprado, y un lote no acepta un proveedor del directorio de Compras.
