@@ -589,7 +589,28 @@ sin rebote ni bucle, con `--ease-cayla`, y se apaga con `prefers-reduced-motion`
 - **Sello de lacre:** el lacre cae y se asienta (600 ms) y las cuatro cifras ruedan desde 0.
 - **Se rompe si:** alguna de estas se pone en bucle o se copia a otra pantalla sin pasar por `/unificar`.
 
-## Actualización 2026-10-31 — la cifra rueda del valor viejo al nuevo (`CifraAnimada`, Felipe)
+## Actualización 2026-10-31 — «Mi perfil», la hoja de vidrio (elegida por Felipe)
+
+Felipe pidió rehacer «Mi perfil» («está demasiado básico», con liquid glass y las tendencias de hoy) y eligió, mirando tres maquetas
+tocables (`docs/maquetas/mi-perfil-2026-10/`), la **«A · Cristal líquido»**. Es la única hoja de vidrio del ERP: `<Modal variante="vidrio">`
+(`components/ui/Modal.tsx`), estilos en `app/estilos/perfil-vidrio.css`, usada solo por `components/PerfilModal.tsx`.
+
+- **La hoja:** vidrio esmerilado (`--color-vidrio` al 54 %, `backdrop-filter: blur(28px) saturate(1.9)`) sobre un velo más liviano
+  (`--color-sombra` al 16 %; 42 % en oscuro) para que se vea la pantalla de atrás. Lleva sombra: sin ella el vidrio no se despega (es la
+  excepción de «hojas sin sombra» de la ronda 12). Su título y su frase quedan para lectores: la cabecera la dibuja el perfil.
+- **Entrada (una vez):** la hoja sube 18 px y crece desde .94 (620 ms); el filo de luz da su vuelta (1,6 s); la lente de la foto aparece
+  desenfocada (800 ms); el nombre sube palabra por palabra por su ranura (700 ms, 70 ms entre palabras).
+- **La gota:** «Tú · Cuenta · Seguridad» es un segmento cuya gota se estira hasta tocar la pestaña nueva y recién ahí suelta la vieja
+  (520 ms, se aplana a .86 en el medio). No rebota: nunca pasa de su lugar. El panel cambia de alto sin saltar (420 ms) y su contenido
+  entra desenfocado y se enfoca (450 ms). Por decisión de Felipe no es `<Pestanas>` (lleva su `unificar-fijo`).
+- **Lo que sigue al mouse:** el filo de luz gira hacia el mouse (600 ms) y un brillo lo sigue. No es un bucle: si el mouse no se mueve,
+  nada se mueve; con una pantalla táctil o con `prefers-reduced-motion`, quietos.
+- **Cerrar sesión** (pedido por Felipe al elegir): un ícono sutil junto a la ×, con «Cerrar sesión» para el lector y al pasar el mouse. Usa
+  la misma salida que «Salir» del lateral (`useCerrarSesion`, `components/LogoutButton.tsx`): el colibrí, las copias sin conexión y la
+  pregunta si hay trabajo sin subir; el perfil se cierra antes para que el colibrí no vuele bajo la hoja.
+- **Se rompe si:** el vidrio se copia a otra hoja sin pasar por `/unificar`, o el filo o el brillo empiezan a moverse solos.
+
+## Actualización 2026-10-31 (b) — la cifra rueda del valor viejo al nuevo (`CifraAnimada`, Felipe)
 
 `<CifraAnimada>` contaba desde 0 hasta su valor en 900 ms y, como se armaba de nuevo con cada valor (`key={valor}`, el arreglo del
 2026-10-28), **volvía a contar desde cero** cada vez que la cifra cambiaba: al pasar de una sede a otra, S/ 23,480 → 0 → S/ 6,120. Desde

@@ -2108,10 +2108,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     - `/finanzas/reportes/patrimonio` ¿Lo tuyo creció? → `components/finanzas/estados/PatrimonioPanel.tsx`, `lib/patrimonio-reglas.ts`
       → `getPatrimonioCambios` → `fn_patrimonio_cambios` (migración `20261030235100`).
     - Las recomendaciones de cada una (`components/finanzas/estados/Recomendaciones.tsx`) salen de su `*-reglas.ts`, sin RPC propia.
+    - La barra de las siete vistas en la cabecera (`<Pestanas>` en `CabeceraEstados.tsx`, opciones en `opcionesVer` de `lib/contador-reglas.ts`): las
+      respuestas, los cuatro estados en formato formal (`?forma=formal`) o los dos cuadros de `/finanzas/reportes/cuentas`
+      (`?cuadro=saldos` → `SaldosPanel`, `fn_saldos_por_cuenta`; `?cuadro=diario` → `DiarioPanel`, `fn_diario` por páginas; los dos por
+      `saldosDelMes` y `diarioDelMes` de `lib/contador.ts`). La cascada de los cuatro estados es `CascadaEstados`
+      (`lib/cascada-estados-reglas.ts`) y su respuesta, `TitularEstado`.
     - `GET /finanzas/reportes/descargar?archivo=&mes=` (route handler) → `lib/contador.ts` + `lib/contador-reglas.ts`: un CSV por
       archivo (los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario), con las mismas lecturas de cada pantalla
-      más `fn_saldos_por_cuenta` (migración `20261031120000`) y `fn_diario`. Lo pide `components/finanzas/estados/DescargarContador.tsx`
-      (`MenuDescargar`, `components/ui/BotonDescargar.tsx`).
+      más `fn_saldos_por_cuenta` (migración `20261031120000`) y `fn_diario`. Lo pide el «Descargar Excel» de cada cuadro
+      (`DescargarCuadro`, `components/finanzas/estados/DescargarContador.tsx`).
   - `/finanzas/impuestos` → `lib/impuestos.ts` → lecturas de IGV y registros (`parametros_tributarios` con vigencia y
     correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo).
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
