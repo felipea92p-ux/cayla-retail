@@ -1243,17 +1243,17 @@ export function mensajeWhatsapp(
   const cupon = p.cupon && p.cupon.estado !== "liberado" && p.cupon.descuento > 0 ? p.cupon : null;
   const conCupon = cupon ? `, ya con tu cupón ${cuponAMedias(cupon.codigo)} de − ${soles(cupon.descuento)}` : "";
   if (plantilla === "confirmado")
-    return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}${conCupon}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
-  if (plantilla === "cobro") return `Hola ${n}, te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}. ¿Te pasamos los datos para el Yape?`;
+    return `¡Hola ${n}! 🎉 Confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}${conCupon}).\n¿Cómo prefieres pagar? Yape, Plin, transferencia o en tienda 💳${p.tiendaWeb.direccion ? `\nLo recoges en ${p.tiendaWeb.direccion} 📍` : ""}`;
+  if (plantilla === "cobro") return `¡Hola ${n}! 😊 Te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}.\n¿Te pasamos los datos para el Yape? 💜`;
   if (plantilla === "devolucion")
-    return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}: quedó anulado y te devolvemos ${soles(p.pagado)}. ¿Cómo prefieres recibirlo?`;
+    return `Hola ${n} 🙏 Tu pedido ${p.codigo} de ${tienda} quedó anulado y te devolvemos ${soles(p.pagado)}.\n¿Cómo prefieres recibirlo?`;
   if (plantilla === "sinstock")
-    return `Hola ${n}, revisamos tu pedido ${p.codigo} y una prenda ya no está en ${tienda}. ¿Te ofrecemos otra talla, otro color o traerla de otra tienda?`;
+    return `Hola ${n} 😊 Revisamos tu pedido ${p.codigo} y una prenda ya no está en ${tienda}.\n¿Te ofrecemos otra talla, otro color o pedirla a otra sede? 👗`;
   if (plantilla === "listo")
-    return `Hola ${n}, tu pedido ${p.codigo} ya está listo para recoger en ${tienda}${p.tiendaWeb.direccion ? ` (${p.tiendaWeb.direccion})` : ""}. Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».`;
+    return `¡Hola ${n}! 🛍️ Tu pedido ${p.codigo} ya está listo para recoger en ${tienda}${p.tiendaWeb.direccion ? ` (${p.tiendaWeb.direccion})` : ""}.\nTu código está en «Mis pedidos», en tu cuenta de la web 🔑 Muéstralo en caja.`;
   if (plantilla === "norecoge")
-    return `Hola ${n}, tu pedido ${p.codigo} te espera en ${tienda}. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.`;
-  return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}.`;
+    return `Hola ${n} 😊 Tu pedido ${p.codigo} te espera en ${tienda}.\n¿Cuándo pasas a recogerlo? Tu código está en «Mis pedidos» 🔑`;
+  return `¡Hola ${n}! 👋 Te escribimos de ${tienda} por tu pedido ${p.codigo}.`;
 }
 
 /** El enlace de WhatsApp al celular del cliente (si su número se entiende; si no, WhatsApp pregunta a quién). */
@@ -1265,7 +1265,9 @@ export function enlaceWhatsappPedido(p: Parameters<typeof mensajeWhatsapp>[0], p
 type DatosDelMensaje = { codigo: string; cliente: { nombre: string; celular?: string | null }; tiendaWeb: { nombre: string } };
 
 /** El mensaje de fábrica de los pedidos web. Sus marcas se llenan con cada pedido: {nombre}, {tienda} y {codigo}. */
-export const MENSAJE_PREDETERMINADO_WEB = "Hola {nombre}, te escribimos de {tienda} por tu pedido {codigo}.";
+export const MENSAJE_PREDETERMINADO_WEB = "¡Hola {nombre}! 👋 Te escribimos de {tienda} por tu pedido {codigo} 🛍️\n¡Gracias por elegirnos! 💛";
+/** Los emojis que ofrece el editor del mensaje, para insertar con un toque. */
+export const EMOJIS_DEL_MENSAJE = ["👋", "😊", "🛍️", "💛", "🎉", "🙏", "✨", "👗"] as const;
 /** Tope de letras del mensaje propio (lo mismo que la base: `fn_guardar_mensaje_pedidos_web`). */
 export const MAX_MENSAJE_PREDETERMINADO_WEB = 600;
 

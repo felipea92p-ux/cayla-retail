@@ -363,25 +363,28 @@ describe("El cliente y WhatsApp", () => {
     expect(datosDelCliente(p.cliente)).toBe("DNI ••••4415 · Cel. 900 000 440 · Miembro del club");
   });
 
-  it("los mensajes de la maqueta, con el primer nombre y la dirección de Configuración", () => {
+  it("los mensajes, con el primer nombre, emojis y la dirección de Configuración", () => {
     expect(mensajeWhatsapp(p, "confirmado")).toBe(
-      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0229.80). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
+      "¡Hola Andrea! 🎉 Confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0229.80).\n¿Cómo prefieres pagar? Yape, Plin, transferencia o en tienda 💳\nLo recoges en Jr. Pizarro 123 📍",
     );
     expect(mensajeWhatsapp(p, "cobro")).toMatch(/Falta pagar S\/\u00a0229\.80/);
     expect(mensajeWhatsapp(p, "sinstock")).toMatch(/una prenda ya no está/);
+    expect(mensajeWhatsapp(p, "sinstock")).toContain("pedirla a otra sede");
     // Actividad 9: un pedido anulado que ya había pagado.
     expect(mensajeWhatsapp(p, "devolucion")).toBe(
-      "Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012: quedó anulado y te devolvemos S/\u00a050.00. ¿Cómo prefieres recibirlo?",
+      "Hola Andrea 🙏 Tu pedido W-0012 de CAYLA Trujillo quedó anulado y te devolvemos S/\u00a050.00.\n¿Cómo prefieres recibirlo?",
     );
     // Actividad 10: listo para recoger, y el que no viene. Nunca dicen el código (lo ve el cliente en su pedido).
     expect(mensajeWhatsapp(p, "listo")).toBe(
-      "Hola Andrea, tu pedido W-0012 ya está listo para recoger en CAYLA Trujillo (Jr. Pizarro 123). Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».",
+      "¡Hola Andrea! 🛍️ Tu pedido W-0012 ya está listo para recoger en CAYLA Trujillo (Jr. Pizarro 123).\nTu código está en «Mis pedidos», en tu cuenta de la web 🔑 Muéstralo en caja.",
     );
-    expect(mensajeWhatsapp(p, "norecoge")).toBe("Hola Andrea, tu pedido W-0012 te espera en CAYLA Trujillo. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.");
+    expect(mensajeWhatsapp(p, "norecoge")).toBe("Hola Andrea 😊 Tu pedido W-0012 te espera en CAYLA Trujillo.\n¿Cuándo pasas a recogerlo? Tu código está en «Mis pedidos» 🔑");
+    // Los mensajes que hablan de recoger mandan al cliente a «Mis pedidos»; ninguno trae el código.
+    for (const pl of ["listo", "norecoge"] as const) expect(mensajeWhatsapp(p, pl)).toContain("«Mis pedidos»");
   });
 
-  it("el mensaje de fábrica llena sus marcas con el pedido y coincide con el de antes", () => {
-    expect(mensajePredeterminadoDelPedido(p, null)).toBe("Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012.");
+  it("el mensaje de fábrica llena sus marcas con el pedido", () => {
+    expect(mensajePredeterminadoDelPedido(p, null)).toBe("¡Hola Andrea! 👋 Te escribimos de CAYLA Trujillo por tu pedido W-0012 🛍️\n¡Gracias por elegirnos! 💛");
     expect(mensajePredeterminadoDelPedido(p, "   ")).toBe(mensajePredeterminadoDelPedido(p, MENSAJE_PREDETERMINADO_WEB));
   });
 
@@ -395,7 +398,7 @@ describe("El cliente y WhatsApp", () => {
     const cupon = { codigo: "CAY-4K7P-9H2M", valor: 10, descuento: 10, estado: "reservado" as const, liberadoMotivo: null };
     const conCupon = { ...p, total: 219.8, cupon };
     expect(mensajeWhatsapp(conCupon, "confirmado")).toBe(
-      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0219.80, ya con tu cupón CAY-••••-9H2M de − S/\u00a010.00). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
+      "¡Hola Andrea! 🎉 Confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0219.80, ya con tu cupón CAY-••••-9H2M de − S/\u00a010.00).\n¿Cómo prefieres pagar? Yape, Plin, transferencia o en tienda 💳\nLo recoges en Jr. Pizarro 123 📍",
     );
     // El código entero nunca viaja por WhatsApp.
     expect(mensajeWhatsapp(conCupon, "confirmado")).not.toContain("4K7P");
