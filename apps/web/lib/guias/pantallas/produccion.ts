@@ -1094,6 +1094,36 @@ export const GUIA_PROD_INSUMOS: Guia = {
     },
     {
       // La fila de arriba ya quedó abierta por los pasos de la ficha (o por su primer clic, aunque la ficha no aplique a ese insumo): aquí solo se cierra la ventana de antes.
+      id: "corregir-ingreso",
+      ancla: "prod-insumos.corregir-ingreso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Corregir un ingreso anotado mal",
+      texto: "En cada lote, el lápiz corrige un ingreso que se anotó mal: cantidad, costo, día, documento o código. Solo mientras nadie haya usado ese lote; si ya salió tela, el lápiz se apaga y dice por qué.",
+    },
+    {
+      id: "corregir-ingreso-hoja",
+      ancla: "prod-insumos-corregir.cambios",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "prod-insumos.corregir-ingreso" }],
+      titulo: "Cambia solo lo que estaba mal",
+      texto: "La hoja nace con el ingreso tal como está. Cambias lo que estaba mal y nada se pisa: el ingreso original queda en el libro y la historia guarda cómo estaba y cómo quedó.",
+    },
+    {
+      id: "corregir-ingreso-porque",
+      ancla: "prod-insumos-corregir.porque",
+      opcional: true,
+      titulo: "Siempre con el porqué",
+      texto: "Tocas el motivo más común o lo escribes con tus palabras. Queda en la historia del ingreso, con quién lo hizo, para que mañana se entienda qué pasó.",
+    },
+    {
+      id: "corregir-ingreso-eliminar",
+      ancla: "prod-insumos-corregir.eliminar",
+      opcional: true,
+      titulo: "Si todo el ingreso fue un error",
+      texto: "«Eliminar el ingreso» lo saca del estante con el mismo porqué. No se borra: bajo el color queda «ingreso eliminado», con «Restaurar». Si era lo único que tenía el color, ya puedes retirarlo. En la demo no eliminamos.",
+    },
+    {
       id: "retirar-color",
       ancla: "prod-insumos.retirar-color",
       opcional: true,
