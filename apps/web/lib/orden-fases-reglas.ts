@@ -604,3 +604,21 @@ export function fasesParaRpc(fases: readonly FaseBorrador[], lista: readonly Tar
     };
   });
 }
+
+/**
+ * El ploteo (y todo lo que se paga UNA vez por la orden) se puede escribir de dos maneras: el total de la orden o lo que toca por prenda. En la base
+ * siempre vive el TOTAL (`fijo_orden`); «por prenda» es solo una forma de escribirlo: este es el puente. Devuelve el total a dos decimales como
+ * texto ("" si lo escrito no es un número válido o no hay prendas), listo para el campo `fijo`.
+ */
+export function fijoDesdePorPrenda(porPrenda: string, totalPrendas: number): string {
+  const l = leerDinero(porPrenda);
+  if (l.tipo !== "ok" || totalPrendas <= 0) return "";
+  return aCentimos(l.valor * totalPrendas).toFixed(2);
+}
+
+/** Lo que toca por prenda de un total pagado una sola vez, a dos decimales ("" sin total válido o sin prendas). */
+export function porPrendaDeFijo(fijo: string, totalPrendas: number): string {
+  const l = leerDinero(fijo);
+  if (l.tipo !== "ok" || totalPrendas <= 0) return "";
+  return aCentimos(l.valor / totalPrendas).toFixed(2);
+}

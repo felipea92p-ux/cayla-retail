@@ -3,6 +3,8 @@ import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
 import { FASES, faseDe, leerProcesos, secuenciaDe, type FaseClave, type FaseDelCatalogo, type Posicion, type Quien } from "./orden-fases-reglas";
 import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
+import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
+import { entradaDeCambioDeTipo } from "./orden-tipo-reglas";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
 // las importen la página (servidor) y sus piezas (cliente), y para probar cada frase que la persona lee sin abrir el navegador.
@@ -21,7 +23,6 @@ import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 
 export const RPC_ORDEN_PRODUCCION = "fn_orden_produccion";
 export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
-export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
 /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
 export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
@@ -32,7 +33,8 @@ export const RPC_AGREGAR_PASO = "agregar_paso_orden";
 /** ADR-0586: un líder suma un paso que se olvidó, cuando uno de después ya avanzó; entra ya hecho con todas las prendas que le llegaron. */
 export const RPC_AGREGAR_PASO_TARDE = "agregar_paso_tarde";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
-export const RPC_REGISTRAR_SALIDA = "registrar_salida";
+/** La Salida a un servicio y la tela que sale con ella, en una transacción y con token (ADR-0587). */
+export const RPC_REGISTRAR_SALIDA_CON_TELA = "registrar_salida_con_tela";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
 export const RPC_ANULAR_VUELTA = "anular_vuelta";
@@ -49,9 +51,9 @@ export const DIAS_SIN_MOVERSE = 4;
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
 export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
-/** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela y un paso
+/** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0581; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela, el cambio de tipo (muestra ↔ lote) y un paso
  *  agregado tarde, con quién, cuándo y el motivo. */
-export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela" | "paso_tarde";
+export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela" | "tipo" | "paso_tarde";
 /** Una entrada de la historia: lo que pasó en la orden o un cambio que se le hizo. */
 export type TipoEntrada = TipoEvento | AccionCambio;
 
@@ -82,6 +84,8 @@ export type CambioOrden = {
   despues: TermineGuardado | null;
   /** El motivo de un cambio o el texto de una nota. */
   texto: string;
+  /** Solo en un cambio de tipo (ADR-0581): `true` si pasó a muestra, `false` si pasó a lote; `null` en lo demás. Sale del dato guardado, no del texto. */
+  pasoAMuestra: boolean | null;
   /** Un paso agregado tarde (ADR-0586): con cuántas prendas entró ya hecho y quién lo hizo. */
   tarde?: PasoTardeGuardado | null;
   restaurado: boolean;
@@ -411,8 +415,10 @@ function leerCambio(crudo: unknown): CambioOrden | null {
   const id = texto(crudo.id);
   const cuando = texto(crudo.cuando);
   const accion = crudo.accion;
-  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "sin_tela" && accion !== "paso_tarde")) return null;
+  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "sin_tela" && accion !== "tipo" && accion !== "paso_tarde")) return null;
   const faseClave = texto(crudo.fase_clave);
+  // Un cambio de tipo no guarda un «Terminé»: su antes y su después son `{ es_muestra }` y se leen aparte, no como buenas y fallas.
+  const esTipo = accion === "tipo";
   // Un paso agregado tarde guarda otra cosa en `despues` (quién lo hizo y cuántas prendas), no un «Terminé».
   const tarde = accion === "paso_tarde";
   return {
@@ -424,8 +430,8 @@ function leerCambio(crudo: unknown): CambioOrden | null {
     quitaIds: idsDe(crudo.quita_ids),
     poneIds: idsDe(crudo.pone_ids),
     deshaceIds: idsDe(crudo.deshace_ids),
-    antes: tarde ? null : leerTermineGuardado(crudo.antes),
-    despues: tarde ? null : leerTermineGuardado(crudo.despues),
+    antes: esTipo || tarde ? null : leerTermineGuardado(crudo.antes),
+    despues: esTipo || tarde ? null : leerTermineGuardado(crudo.despues),
     texto: texto(crudo.texto) ?? "",
     tarde: tarde && esObjeto(crudo.despues)
       ? {
@@ -435,6 +441,7 @@ function leerCambio(crudo: unknown): CambioOrden | null {
           hecho: texto(crudo.despues.hecho),
         }
       : null,
+    pasoAMuestra: esTipo && esObjeto(crudo.despues) && typeof crudo.despues.es_muestra === "boolean" ? crudo.despues.es_muestra : null,
     restaurado: crudo.restaurado === true,
     quienNombre: texto(crudo.quien_nombre),
     cuando,
@@ -1017,6 +1024,7 @@ export function tonoDeEntrada(tipo: TipoEntrada): TonoDeEntrada {
     case "eliminar":
     case "restaurar":
     case "sin_tela":
+    case "tipo":
     case "paso_tarde":
       return "cambio";
     // Una nota del equipo no es un hecho de la orden: punto neutro.
@@ -1168,7 +1176,11 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
     filas.push({
       clave: `servicio-${f.id}`,
       concepto: `${f.nombre} afuera`,
-      detalle: `${plan} × ${soles(tarifa)} · ${quienDeFase(f)}${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`,
+      // Un servicio que se cobra UNA vez por toda la orden (el ploteo) no se lee «57 × S/ 0.00 + S/ 15.00 fijo»: se dice como es, y cuánto toca por prenda.
+      detalle:
+        tarifa === 0 && f.fijoOrden > 0 && plan > 0
+          ? `Pago único por las ${plan} prendas · ${quienDeFase(f)} · ${soles(f.fijoOrden / plan)} por prenda`
+          : `${plan} × ${soles(tarifa)} · ${quienDeFase(f)}${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`,
       estimado: monto(tarifa * plan + f.fijoOrden),
       real: hayVuelta ? monto(f.devengado ?? 0) : "al volver",
       realPendiente: !hayVuelta,
@@ -1402,15 +1414,6 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
   return dias_;
 }
 
-/**
- * Los avances que se anotaron después de `antes` en una fase y que todavía se pueden deshacer: los ids que «Deshacer» del aviso tiene que deshacer. `registrar_avance` no devuelve los
- * ids de lo que escribió, así que se leen de la línea de tiempo recién traída y se restan los que ya estaban.
- */
-export function avancesNuevos(antes: readonly EventoTiempo[], despues: readonly EventoTiempo[], fase: FaseClave): string[] {
-  const conocidos = new Set(antes.map((e) => e.id));
-  return despues.flatMap((e) => (e.tipo === "avance" && e.faseClave === fase && e.avanceId !== null && !conocidos.has(e.id) ? [e.avanceId] : []));
-}
-
 /** El texto del aviso de éxito: «Terminaste 120 prendas de Corte». */
 export function textoTermine(total: number, faseNombre: string): string {
   return `Terminaste ${cuantas(total, "prenda", "prendas")} de ${faseNombre}`;
@@ -1421,8 +1424,44 @@ export function textoTermine(total: number, faseNombre: string): string {
 // fase y no pasan a la siguiente; el arreglo solo se cuenta en la historia. Y el día real de lo anotado. Nada de esto decide algo nuevo: los rechazos son los de `anotar_termine`
 // (20261029164000), con sus mismos hints.
 
-export const RPC_ANOTAR_TERMINE = "anotar_termine";
-export const RPC_DESHACER_FALLA = "deshacer_falla";
+// ---------- «Terminé» y la Salida con su tela, todo o nada (ADR-0587) ----------
+// La tela que quedó viaja con el «Terminé» (o con la Salida a un corte de afuera) en UNA transacción, con un token por hoja abierta: si se corta
+// la red y la persona vuelve a apretar, la base devuelve «repetido» y no anota dos veces. «Deshacer» deshace las prendas, las fallas y devuelve
+// la tela a su lote, también en una sola llamada, con los ids que devolvió el envío.
+export const RPC_ANOTAR_TERMINE_CON_TELA = "anotar_termine_con_tela";
+export const RPC_DESHACER_TERMINE = "deshacer_termine";
+
+/** Lo que «Deshacer» necesita: los ids que escribió el envío. */
+export type DeshacerTermine = { avanceIds: string[]; fallaIds: string[]; consumoIds: string[] };
+
+/**
+ * La respuesta de `anotar_termine_con_tela` o `registrar_salida_con_tela`. `repetido`: la base ya tenía ese envío (un reintento tras un corte) y no
+ * anotó nada; entonces no hay ids y no se ofrece «Deshacer». `deshacer` es null si no hay nada que deshacer (o si la respuesta no trae la forma esperada).
+ */
+export function leerEnvioConTela(json: unknown): { repetido: boolean; deshacer: DeshacerTermine | null } {
+  if (!json || typeof json !== "object") return { repetido: false, deshacer: null };
+  const r = json as Record<string, unknown>;
+  const repetido = r.repetido === true;
+  const deshacer = { avanceIds: idsDe(r.avance_ids), fallaIds: idsDe(r.falla_ids), consumoIds: idsDe(r.consumo_ids) };
+  const hay = deshacer.avanceIds.length + deshacer.fallaIds.length + deshacer.consumoIds.length > 0;
+  return { repetido, deshacer: repetido || !hay ? null : deshacer };
+}
+
+/** Los argumentos de `deshacer_termine`. */
+export function argsDeshacerTermine(d: DeshacerTermine): { p_avance_ids: string[]; p_falla_ids: string[]; p_consumo_ids: string[] } {
+  return { p_avance_ids: d.avanceIds, p_falla_ids: d.fallaIds, p_consumo_ids: d.consumoIds };
+}
+
+/**
+ * La frase de un envío con token que falló. Con el token, repetir es seguro: si no llegó el veredicto de la base (un corte de red, un 504), se dice que
+ * vuelva a apretar y que no se anota dos veces (la frase de siempre pedía revisar la historia antes de repetir, porque sin token repetir duplicaba). Un «no»
+ * de la base, la frase de siempre.
+ */
+export function fraseDelEnvioConToken(error: ErrorEscritura, contexto: string, boton: string): string {
+  if (esRespuestaIncierta(error)) return `Se cortó la conexión mientras se intentaba ${contexto}. Vuelve a apretar «${boton}»: si ya se había guardado, no se anota dos veces.`;
+  return traducirError(error, contexto);
+}
+
 
 export type DestinoFalla = "arreglo" | "segunda" | "perdida";
 
@@ -1529,12 +1568,6 @@ export function diaParaLaBase(dia: string, hoy: string): string | null {
   return dia === hoy ? null : dia;
 }
 
-/** Las prendas con falla anotadas después de `antes` en una fase, que todavía se pueden deshacer: lo que el «Deshacer» del aviso tiene que deshacer (como `avancesNuevos`). */
-export function fallasNuevas(antes: readonly EventoTiempo[], despues: readonly EventoTiempo[], fase: FaseClave): string[] {
-  const conocidos = new Set(antes.map((e) => e.id));
-  return despues.flatMap((e) => (e.tipo === "falla" && e.faseClave === fase && e.fallaId !== null && !conocidos.has(e.id) ? [e.fallaId] : []));
-}
-
 // ---------- Corregir, eliminar y restaurar, con su historia (ADR-0570, actividad 3) ----------
 // Felipe (2026-10-29): «editar con facilidad, eliminar con historial de cambio y comentario para entender qué pasó». Cualquier «Terminé» —de cualquier día, no solo el último— se
 // corrige (cantidades, fallas y día) o se elimina, siempre con su motivo, y lo eliminado se restaura. Nada se borra: la base deshace lo viejo y anota lo nuevo en un solo paso, y cada
@@ -1621,6 +1654,8 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     detalle = c.texto;
   } else if (c.accion === "sin_tela") {
     titulo = "Dejó pasar al stock sin tela";
+  } else if (c.accion === "tipo") {
+    ({ titulo, detalle } = entradaDeCambioDeTipo(c.pasoAMuestra, c.texto));
   } else if (c.accion === "paso_tarde") {
     titulo = `Agregó ${fase} tarde`;
     cuanto = c.tarde && c.tarde.prendas > 0 ? `${cuantas(c.tarde.prendas, "prenda", "prendas")} ya ${c.tarde.prendas === 1 ? "hecha" : "hechas"}` : null;

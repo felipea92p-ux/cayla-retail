@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
 import { aplicarProvision } from "@/lib/planilla-provision-reglas";
@@ -19,7 +20,7 @@ const falla = (que: string, e: { message: string }) => `No se pudo leer ${que}: 
  * `provisionHasta` deja pedir la provisión con otro «hasta» que el diario: el Resumen mira el mes «a hoy», pero el período de Dynamic que termina
  * más adelante en el mes (el 28) ya devenga sueldos hoy y solo aparece si se pide hasta fin de mes (`tramoDeSueldos`).
  */
-export async function getEstadoResultados(desde: string, hasta: string, provisionHasta: string = hasta): Promise<Lectura<FilaER[]>> {
+export const getEstadoResultados = cache(async function getEstadoResultados(desde: string, hasta: string, provisionHasta: string = hasta): Promise<Lectura<FilaER[]>> {
   const supabase = await createClient();
   const [{ data, error }, provision] = await Promise.all([
     supabase.rpc("fn_estado_resultados" as never, { p_desde: desde, p_hasta: hasta } as never),
@@ -30,7 +31,7 @@ export async function getEstadoResultados(desde: string, hasta: string, provisio
     datos: aplicarProvision(((data ?? []) as Record<string, unknown>[]).map(leerFilaER), provision),
     falla: null,
   };
-}
+});
 
 /**
  * Qué unidades del mes ya están cerradas (`fn_periodos_mes`): su columna del Estado de resultados lee lo congelado y la pantalla lo dice.

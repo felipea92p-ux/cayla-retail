@@ -113,7 +113,7 @@ describe("Para decidir hoy", () => {
       origen: "Cuentas y dinero ▸ Por pagar",
     });
     expect(as[0]!.href).toMatch(/^\/finanzas\/dinero\/por-pagar\?ver=todas&pagar=/);
-    expect(as[1]).toMatchObject({ tono: "ambar", titulo: "La semana del 12 – 18 oct quedas bajo tu mínimo de caja", impacto: "faltan S/\u00a0490", href: "/finanzas/reportes/escenarios" });
+    expect(as[1]).toMatchObject({ tono: "ambar", titulo: "La semana del 12 – 18 oct quedas bajo tu mínimo de caja", impacto: "faltan S/\u00a0490", href: "/finanzas/reportes/flujo#y-si" });
     expect(as[1]!.detalle).toContain("Distribuidora Norte S/\u00a015,300");
     expect(as[3]).toMatchObject({ titulo: "LIM perdió S/\u00a02,484 en agosto", detalle: "Necesita vender S/\u00a024,763 al mes y vendió S/\u00a019,800." });
   });

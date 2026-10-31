@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
-import { Chip } from "@/components/ui/Chip";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
@@ -12,7 +11,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { money } from "@/components/PuntoDeVenta";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
-import { RAZONES_DESCUENTO, RAZON_CAMPANA, porcentajeDeLinea, totalDeLineas, type ModoDescuento } from "@/lib/vender-reglas";
+import { RAZONES_DESCUENTO, RAZON_CAMPANA, totalDeLineas, type ModoDescuento } from "@/lib/vender-reglas";
 import {
   aplicarAlApartado,
   lineasSiSeAplica,
@@ -285,32 +284,5 @@ export function DescuentoApartado({
         </form>
       )}
     </Modal>
-  );
-}
-
-/** Bajo una prenda del apartado (al apartarla o al sumarla a uno ya hecho), su descuento: el de la campaña, o el puesto a mano con
- *  su motivo y un «Cambiar» que abre la hoja solo para ella. Sin descuento no dibuja nada: el botón «Descuento» de abajo es para eso. */
-export function DescuentoDeLinea({ linea, onAbrir }: { linea: LineaDescontada; onAbrir: () => void }) {
-  if (linea.descuentoUnitario <= 0) return null;
-  const pct = porcentajeDeLinea(linea);
-  if (linea.razonDescuento === RAZON_CAMPANA) {
-    return (
-      <p className="mt-2 text-[12px] text-tinta/70">
-        <Chip tono="pizarra" versalitas={false}>
-          {linea.campana?.nombre ?? "Campaña"} · −{pct} %
-        </Chip>
-      </p>
-    );
-  }
-  const motivo = RAZONES_DESCUENTO.find((r) => r.valor === linea.razonDescuento)?.etiqueta ?? "Descuento";
-  return (
-    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/70">
-      <Chip tono="ambar" versalitas={false} title={linea.argumentoDescuento || undefined}>
-        −{money(linea.descuentoUnitario)} c/u · {linea.razonDescuento === "otro" ? linea.razonDescuentoOtro || motivo : motivo}
-      </Chip>
-      <button type="button" onClick={onAbrir} className="btn-cayla btn-enlace">
-        Cambiar
-      </button>
-    </p>
   );
 }

@@ -180,7 +180,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "cifras",
       ancla: "prod-ordenes.cifras",
       titulo: "Hoy en el Taller",
-      texto: "Una tarjeta por fase: cuántos lotes y cuántas prendas hay ahí ahora, lo que está afuera y con quién, y los que esperan pasar al stock. Tócala para ver solo esos lotes; vuelve a tocarla para quitar el filtro.",
+      texto: "Una tarjeta por fase: cuántas órdenes y cuántas prendas hay ahí ahora (si alguna es una muestra, lo dice), lo que está afuera y con quién, y las que esperan pasar al stock. Tócala para ver solo esas órdenes; vuelve a tocarla para quitar el filtro.",
     },
     {
       id: "pestanas",
@@ -248,7 +248,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tipo",
       opcional: true,
       titulo: "¿Lote o muestra?",
-      texto: "Se elige solo: un modelo que ya existe se fabrica como «Lote de producción» y, al cerrar, entra al stock del Taller; uno nuevo arranca como «Muestra», para desarrollarlo (patrón y prototipo) sin stock. Si hace falta, lo cambias aquí.",
+      texto: "Un modelo que ya existe se fabrica como «Lote de producción»: al cerrar, entra al stock del Taller. Uno nuevo no trae ninguno: si se va a vender, eliges «Lote de producción»; si es una prueba del modelo (patrón y prototipo), «Muestra», que no entra al stock. Si hace falta, lo cambias aquí.",
     },
     {
       id: "matriz",
@@ -304,7 +304,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Pegar cierre, Ojales y botones o Lavado o teñido, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha. ¿Aún no lo tienes? «Pendiente de registrar». ¿No está? «+ Registrar proveedor nuevo».",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Pegar cierre, Ojales y botones o Lavado o teñido, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha (el ploteo se paga una vez: total o por prenda). ¿Aún no lo tienes? «Pendiente de registrar».",
     },
     {
       id: "recordar",
@@ -854,9 +854,25 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Aquí se cierra la orden: «Pasar al stock» cuando todas las fases terminaron (las prendas buenas entran al stock del Taller), «Anular orden» si se abrió por error y «Revertir el cierre» si ya pasó al stock y hay que corregir. En la demo no tocamos ninguno.",
     },
     {
+      id: "cambiar-tipo",
+      ancla: "prod-orden.cambiar-tipo",
+      opcional: true,
+      titulo: "¿Lote o muestra?",
+      texto: "Si la orden se abrió con el tipo equivocado, aquí lo corriges mientras sigue abierta: una muestra no entra al stock al cerrarse y un lote sí. Te abrimos la hoja para mostrártela; no se cambia nada.",
+    },
+    {
+      id: "tipo-efecto",
+      ancla: "prod-orden-tipo.efecto",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-tipo" }],
+      titulo: "Qué cambia",
+      texto: "Dice qué pasa al cerrar la orden: si entra al stock con su costo y si Análisis la cuenta como «en camino». No toca prendas ni costos de hoy, y mientras siga abierta lo puedes volver a cambiar. En la demo cerramos la hoja sin cambiar nada.",
+    },
+    {
       id: "pasar-al-stock",
       ancla: "prod-orden.pasar-al-stock",
       opcional: true,
+      preparar: [{ tipo: "escape" }],
       titulo: "Pasar al stock",
       texto: "Solo aparece cuando todas las fases terminaron. Te abrimos la hoja para mostrártela; no se pasa nada al stock.",
     },
@@ -1466,6 +1482,13 @@ export const GUIA_PROD_FACTURAS: Guia = {
       preparar: [{ tipo: "clic", ancla: "prod-facturas.nueva" }],
       titulo: "De quién es",
       texto: "Elige el proveedor. Si no está, primero se agrega en Proveedores del Taller.",
+    },
+    {
+      id: "modal-pedido-abierto",
+      ancla: "prod-factura-nueva.pedido-abierto",
+      opcional: true,
+      titulo: "Ese proveedor tiene un pedido",
+      texto: "Si el proveedor tiene un pedido con tela que todavía no tiene factura, aquí te lo dice. Si la factura es de ese pedido, regístrala desde el pedido: así la tela no se recibe dos veces. Si es de otra compra, sigue aquí.",
     },
     {
       id: "modal-documento",

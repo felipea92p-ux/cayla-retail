@@ -81,6 +81,23 @@ export const RUTAS_CON_VARIAS_SEDES: readonly string[] = [
 
 export const aceptaVariasSedes = (ruta: string) => RUTAS_CON_VARIAS_SEDES.some((r) => ruta === r || ruta.startsWith(`${r}/`));
 
+/** Estados financieros (antes «Reportes»): su ruta no se renombró (ADR-0585, como `/clientas`). */
+export const RUTA_ESTADOS_FINANCIEROS = "/finanzas/reportes";
+
+/**
+ * Los hilos de la barra en ESTA pantalla. Quien tiene Estados financieros ve ahí CAYLA entera (ADR-0585: `fn_ve_estados_financieros_de_todo`),
+ * aunque en Gastos o en Cuentas y dinero siga viendo solo su sede (esas lecturas no cambiaron). `estados` son los hilos de todas las
+ * sedes y la empresa, o `null` si la cuenta ya los ve en todo Finanzas o no tiene el módulo.
+ */
+export function hilosDeLaRuta(
+  ruta: string,
+  base: { sedes: SedeTelar[]; veTodo: boolean },
+  estados: SedeTelar[] | null
+): { sedes: SedeTelar[]; veTodo: boolean } {
+  const enEstados = ruta === RUTA_ESTADOS_FINANCIEROS || ruta.startsWith(`${RUTA_ESTADOS_FINANCIEROS}/`);
+  return enEstados && estados ? { sedes: estados, veTodo: true } : base;
+}
+
 /**
  * La sede y el mes de Finanzas viajan también por el menú lateral: un enlace a otra pantalla de Finanzas, tocado DESDE Finanzas,
  * lleva `?sede=` y `?mes=` tal como están. Fuera de Finanzas, o hacia otro módulo, el enlace queda igual.

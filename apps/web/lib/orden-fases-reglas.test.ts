@@ -9,6 +9,8 @@ import {
   TARIFA_MAXIMA,
   avisoMinimo,
   costoServiciosEstimado,
+  fijoDesdePorPrenda,
+  porPrendaDeFijo,
   esFechaIso,
   faseViaja,
   faseDe,
@@ -696,3 +698,17 @@ describe("Ploteo y Corte nacen afuera solo si hay a quién mandarlos", () => {
 function hintsDe(fases: FaseBorrador[], proveedores: ProveedorServicio[], lista: TarifaDeLista[]) {
   return problemasFases(fases, { hoy: HOY, proveedores, lista }).map((p) => p.hint);
 }
+
+describe("ploteo: total de la orden o por prenda", () => {
+  it("por prenda se convierte al total que viaja a la base, y de vuelta", () => {
+    expect(fijoDesdePorPrenda("0.26", 57)).toBe("14.82");
+    expect(fijoDesdePorPrenda("1.50", 48)).toBe("72.00");
+    expect(porPrendaDeFijo("15", 57)).toBe("0.26");
+  });
+  it("sin prendas o con un texto que no es número no inventa un total", () => {
+    expect(fijoDesdePorPrenda("0.26", 0)).toBe("");
+    expect(fijoDesdePorPrenda("abc", 57)).toBe("");
+    expect(fijoDesdePorPrenda("0,26", 57)).toBe("");
+    expect(porPrendaDeFijo("", 57)).toBe("");
+  });
+});
