@@ -251,3 +251,56 @@ el gráfico (en el teléfono quedaba pegado) y las lecturas para comparar, que e
 evita que la línea baje. **DESCARTÉ:** quitar el chip de la cifra grande (ya no contradice a «Cuándo» y la ciega lo usó a los 5 segundos) y
 abreviar «a esta altura» (a 1024 px el chip pasa a una segunda fila, +30 px; se acepta). **SE ROMPE SI:** la lista del mes anterior no se lee:
 en el mes en curso ya no hay contra qué comparar y el chip, las píldoras y la rayita se callan (no vuelven a comparar contra el mes entero).
+
+## Actualización 2026-10-30 (d) — La lista de Gastos va por día, como el extracto del banco (Felipe, eligiendo mirando)
+
+**Qué cambió.** Felipe miró cuatro propuestas para la lista de la pestaña «Gastos» (`docs/maquetas/gastos-lista-2026-10/`: L1 por día, L2
+primero lo que pide algo, L3 la tabla depurada, L4 por tamaño) y eligió **L1 · Por día**. La tabla de 8 columnas (fecha, gasto, categoría ·
+cuenta, sede, comprobante, cómo se pagó, monto, estado) se va; queda `ExtractoGastos` (`components/finanzas/gastos/`, reglas en
+`lib/gastos-extracto-reglas.ts`):
+
+1. **Por día, del más nuevo al más viejo**, cada día con `<SeparadorDia>` (la pieza decidida, ADR-0358): «Hoy · viernes 30 de octubre» y, a la
+   derecha, lo que se fue y en cuántos gastos, sin los anulados. Se pega bajo la mesa de mando al bajar (la mesa también va pegada y cambia de
+   alto: `ExtractoGastos` la mide y se lo pasa en `--separador-tope`). La tarjeta recorta con `overflow: clip` y no `hidden`, que rompería el pegado.
+2. **Cada fila dice qué fue** (y el proveedor) y debajo **en qué, cómo se pagó y su comprobante**; la sede, con su color, solo cuando se ven varias.
+   El IGV y el «perdido» siguen bajo el monto, como decidió Felipe el 2026-10-14. La cuenta contable sale de la fila: sigue en la hoja del gasto.
+3. **Solo se marca lo que no es normal**, una marca por fila: anulado; lo que falta pagar (vencido en rojo, como en Por pagar; ámbar si vence en
+   7 días o menos; pizarra si hay tiempo); y **sin comprobante desde S/ 300** (`UMBRAL_SIN_COMPROBANTE`, regla de dinero de Felipe, 2026-10-30): por
+   debajo están el mototaxi, el baño y los útiles, que nunca traen factura, y marcarlos haría que la marca deje de verse. La marca dice su porqué
+   (el IGV que se recuperaría, cuánto falta y cuándo vence) al lector y al pasar el mouse.
+4. **Lo chico que se repite el mismo día** (mismo nombre, sede, categoría y forma de pago; cada uno bajo S/ 50 y sin marca) va en una fila con el
+   globito de cuántas veces y lo que sumó, y se abre en su lugar (`<FilasDeMas>`).
+5. **Se ven los últimos 5 días**; el resto, con «Ver los N días de antes» (`<BotonVerMas>`). Con cualquier filtro puesto (buscar, un día, una categoría, una sede o el comprobante) se ven todos; si los de
+   antes serían uno solo, también.
+
+Buscador, filtros, píldoras de lo filtrado, pie y la hoja del gasto no cambian: migrar cambió cómo se ve, no qué hace.
+
+**DECIDÍ:** el separador decidido (versalitas de 11 px) en vez del serif de la maqueta, porque `<SeparadorDia>` es la única pieza del día en el ERP. Y el porqué de la marca va en el `title` y en el texto del lector, no en una frase a la vista. **Corregido el mismo día (/formidable):** decía que la frase estaba en la hoja del gasto, a un toque, y no está; ponerla ahí es uno de los 3 cambios que esperan el OK de Felipe. **DESCARTÉ:** juntar
+lo repetido por nombre solamente (un «Baño» del cajón y otro por Yape se leerían como pagados igual) y esconder los anulados (un gasto nunca se
+borra de la vista). **SE ROMPE SI:** la mesa de mando deja de llamarse `.mesa-telar`: el separador se pega bajo la cabecera y queda tapado por la mesa.
+
+## Actualización 2026-10-30 (e) — Lo que pide algo no se esconde, y «sin comprobante» es un solo número (Felipe, los 3 cambios de /formidable)
+
+`/formidable` de la lista por día (`docs/formidable/finanzas-gastos.md`): la primera prueba ciega no lo logró al primer intento porque la única
+factura vencida estaba tras «Ver los días de antes»; el porqué de cada marca solo se veía con el mouse; y arriba se avisaba «21 sin comprobante»
+mientras la lista marcaba 1. Felipe aprobó los tres cambios (el tercero toca cómo se avisa del IGV, una regla de dinero):
+
+1. **«Ver los días de antes» dice lo que esconde** que pide algo, con el tono de su marca: «1 vencida» (rojo, con su punto que late, la
+   excepción de ADR-0136 para «Vencida»), «N vencen esta semana» y «N sin comprobante» (ámbar). Una factura vencida es vieja por definición:
+   casi siempre cae en los días de antes.
+2. **La hoja del gasto abre con la marca de la fila y su porqué** (`avisoDelGasto`, el mismo texto de la fila en un `<Aviso>`), con «Ir a Por
+   pagar» si la cuenta tiene el módulo `por_pagar`, y «Pago» en pasado si ya venció (`pagoACredito`). En el celular la acción baja bajo el
+   texto, como el aviso de Plan del piso (la pieza `Aviso` no cambia).
+3. **«Sin comprobante» se cuenta igual en todas partes:** el chip de la cifra, la bandeja y «Te toca» cuentan lo de S/ 300 o más
+   (`sinComprobanteGrande` sobre `pideComprobante`, la misma regla de la marca) y dicen el IGV que se recuperaría con factura; lo chico sin
+   papel (el mototaxi, el baño) ya no es una alarma. «Ver cuáles» pone el filtro nuevo «Sin comprobante, de S/ 300 o más»; «Sin comprobante» a
+   secas sigue en el filtro. «Te toca» lee la lista del mes junto al panel, en la misma vuelta.
+
+La segunda ciega lo logró al primer intento (leyes 6,4 → 7,6).
+
+**DECIDÍ:** contar lo grande sin papel con la lista del mes que la pantalla ya lee, y no con `fn_gastos_panel`, para no partir la regla de los
+S/ 300 entre el código y la base sin una migración. **DESCARTÉ:** poner «· 1 ya venció» en la tarjeta «Por pagar de gastos» contando con la lista
+del mes (la tarjeta suma la deuda de todos los meses: el número saldría falso con una vencida de un mes anterior) y leerlo de
+`fn_por_pagar_consolidado` (exige el módulo Cuentas y dinero). Queda pendiente de una migración que haga que `fn_gastos_panel` devuelva las vencidas.
+**SE ROMPE SI:** la lista del mes no responde: el chip y la bandeja no avisan lo sin comprobante (la pantalla ya dice que una parte no
+respondió) y «Te toca» se marca incompleto.

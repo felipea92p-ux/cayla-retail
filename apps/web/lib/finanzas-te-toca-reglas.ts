@@ -3,6 +3,7 @@
 // submódulo donde se está. Lógica pura, probada en `finanzas-te-toca-reglas.test.ts`. No inventa reglas: cada pendiente sale de una
 // cifra que su pantalla ya muestra.
 import { soles } from "./flujo-caja-reglas";
+import { DESDE_EL_UMBRAL } from "./gastos-extracto-reglas";
 import type { PendienteImpuesto } from "./impuestos-antes-reglas";
 
 /** «frena»: no deja seguir (un cierre, un pago que vence). «avisa»: conviene hacerlo. */
@@ -20,9 +21,13 @@ export type PendienteTelar = {
   href: string;
 };
 
-/** Los pendientes de Gastos, de su panel del mes (`fn_gastos_panel`). `consulta` es lo que viaja en la dirección (`?sede=…`). */
+/**
+ * Los pendientes de Gastos, de su panel del mes (`fn_gastos_panel`). `sinComprobante` e `igvSinComprobante` NO son los del panel: son lo
+ * grande sin papel de la lista del mes (`sinComprobanteGrande`), lo mismo que marca la lista (Felipe 2026-10-30). `consulta` es lo que viaja
+ * en la dirección (`?sede=…`).
+ */
 export function pendientesDeGastos(
-  panel: { egresosSinClasificar: number; egresosSinClasificarMonto: number; sinComprobante: number; nPorPagar: number; porPagar: number },
+  panel: { egresosSinClasificar: number; egresosSinClasificarMonto: number; sinComprobante: number; igvSinComprobante: number; nPorPagar: number; porPagar: number },
   consulta: string,
 ): PendienteTelar[] {
   const con = (extra: string) => {
@@ -48,8 +53,8 @@ export function pendientesDeGastos(
       submodulo: "finanzas.gastos",
       id: "gastos.sin-comprobante",
       estado: "avisa",
-      titulo: `${n} ${n === 1 ? "gasto" : "gastos"} sin boleta ni factura`,
-      detalle: "Sin comprobante no recuperas su IGV",
+      titulo: `${n} ${n === 1 ? "gasto" : "gastos"} ${DESDE_EL_UMBRAL} sin boleta ni factura`,
+      detalle: `Con factura recuperarías ${soles(panel.igvSinComprobante)} de IGV`,
       verbo: "Ver",
       href: con(""),
     });

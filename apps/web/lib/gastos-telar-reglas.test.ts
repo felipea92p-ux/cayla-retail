@@ -33,8 +33,8 @@ describe("la cabecera de Gastos en el telar", () => {
 
 describe("la lista de Gastos", () => {
   const G = [
-    { categoria: "luz", ubicacionId: "l", categoriaNombre: "Servicios básicos", fecha: "2026-10-05", descripcion: "Luz del Baño", proveedorNombre: "Hidrandina", comprobante: "F001-1", comprobanteTipo: "factura" },
-    { categoria: "taxi", ubicacionId: null, categoriaNombre: "Movilidad", fecha: "2026-10-07", descripcion: "Taxi a Gamarra", proveedorNombre: null, comprobante: null, comprobanteTipo: "sin_comprobante" },
+    { categoria: "luz", estado: "vigente" as const, montoTotal: 180, ubicacionId: "l", categoriaNombre: "Servicios básicos", fecha: "2026-10-05", descripcion: "Luz del Baño", proveedorNombre: "Hidrandina", comprobante: "F001-1", comprobanteTipo: "factura" },
+    { categoria: "taxi", estado: "vigente" as const, montoTotal: 12, ubicacionId: null, categoriaNombre: "Movilidad", fecha: "2026-10-07", descripcion: "Taxi a Gamarra", proveedorNombre: null, comprobante: null, comprobanteTipo: "sin_comprobante" },
   ];
   const nada = SIN_FILTROS;
 
@@ -48,6 +48,13 @@ describe("la lista de Gastos", () => {
     expect(filtrarGastos(G, { ...nada, comprobante: "sin" }, "2026-10").map((g) => g.categoria)).toEqual(["taxi"]);
     expect(filtrarGastos(G, { ...nada, comprobante: "con" }, "2026-10").map((g) => g.categoria)).toEqual(["luz"]);
     expect(filtrarGastos(G, { ...nada, categoria: "luz", dia: 7 }, "2026-10")).toEqual([]);
+  });
+
+  it("«sin comprobante, de S/ 300 o más» deja solo lo que marca la lista (lo chico sin papel no)", () => {
+    const grande = { ...G[1]!, descripcion: "Arreglo de la vitrina", montoTotal: 450 };
+    const anulado = { ...grande, estado: "anulado" as const };
+    expect(filtrarGastos([...G, grande, anulado], { ...nada, comprobante: "sin_grande" }, "2026-10").map((g) => g.descripcion)).toEqual(["Arreglo de la vitrina"]);
+    expect(filtrosPuestosDeGastos({ ...nada, comprobante: "sin_grande" }, () => "", "octubre").map((f) => f.texto)).toEqual(["Sin comprobante, de S/\u00a0300 o más"]);
   });
 
   it("filtra por la sede que se eligió en «En qué se va» (la empresa también)", () => {

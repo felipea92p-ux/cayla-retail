@@ -13,10 +13,10 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
-import { nombreCortoSede, porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { plantillasDe } from "@/lib/hoja-gasto-reglas";
 import { HojaRegistrarGasto } from "@/components/finanzas/gastos/HojaRegistrarGasto";
-import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
+import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, SIN_FILTROS, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltroComprobante, type FiltrosLista } from "@/lib/gastos-telar-reglas";
 import { Buscador as BuscadorLista } from "@/components/ui/Buscador";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -24,6 +24,9 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Volver } from "@/components/ui/Volver";
 import { HilosGastos } from "@/components/finanzas/gastos/HilosGastos";
 import { RitmoGastos } from "@/components/finanzas/gastos/RitmoGastos";
+import { ExtractoGastos } from "@/components/finanzas/gastos/ExtractoGastos";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { avisoDelGasto, DESDE_EL_UMBRAL, pagoACredito, sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
 import { fraseDelRitmo, ritmoDelMes } from "@/lib/gastos-ritmo-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -40,13 +43,11 @@ import {
   bajadaIgvDelMes,
   estadoGasto,
   fechaCorta,
-  igvBajoElMonto,
   igvDelGasto,
   igvEnRiesgo,
   igvParaLaTarjeta,
   mesDe,
   notaIgvPerdido,
-  papelDelGasto,
   papelEnUnaLinea,
   perdidoEnOtroMes,
   prefijoALaFecha,
@@ -108,6 +109,7 @@ export function GastosPanel({
   esLider,
   puedeConfigurar = esLider,
   puedeVerImpuestos = esLider,
+  puedeVerPorPagar = false,
   ver,
   mes,
   hoy,
@@ -139,6 +141,8 @@ export function GastosPanel({
   puedeConfigurar?: boolean;
   /** ¿Ve el módulo Impuestos? La nota del IGV perdido enlaza al mes del pago solo para quien lo ve (si no, sería «Sin acceso»). */
   puedeVerImpuestos?: boolean;
+  /** Si la cuenta ve Compras ▸ Por pagar: el aviso de una factura que se debe lleva ahí. */
+  puedeVerPorPagar?: boolean;
   ver: Ver;
   mes: string;
   hoy: string;
@@ -228,7 +232,11 @@ export function GastosPanel({
   // Y el mes entero contra el anterior, si ese mes se puede comparar (hilos, Felipe 2026-10-30).
   const nombreMesAnterior = textoMes(mesesDeAntes(mes, 1)[0]!).split(" ")[0]!;
   const chipAnterior = panel ? chipDelMesAnterior(panel.total, contra, nombreMesAnterior, enCurso) : null;
-  const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
+  // Lo grande sin comprobante, como lo marca la lista: el chip y la bandeja dicen el mismo número (/formidable, cambio 3; Felipe 2026-10-30).
+  const sinPapel = useMemo(() => sinComprobanteGrande(gastos), [gastos]);
+  const chipsRespuesta = panel
+    ? [...chipsDeGastos({ n: panel.n, sinComprobante: sinPapel.n }), ...(chipAnterior ? [chipAnterior] : []), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -330,8 +338,8 @@ export function GastosPanel({
 
       <GastosPulso
         bandeja={bandeja}
-        sinComprobante={panel?.sinComprobante ?? 0}
-        onVerSinComprobante={() => elegirFiltro({ comprobante: "sin" })}
+        sinComprobante={sinPapel}
+        onVerSinComprobante={() => elegirFiltro({ comprobante: "sin_grande" })}
         onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
         onVerTodas={() => irALasPestanas(bandeja.cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
       />
@@ -389,6 +397,7 @@ export function GastosPanel({
           categorias={categorias}
           verTodas={verTodas}
           mes={mes}
+          hoy={hoy}
           onAbrir={setDetalle}
           filtros={filtros}
           onFiltros={(f) => setFiltros((a) => ({ ...a, ...f }))}
@@ -525,7 +534,7 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} puedeVerImpuestos={puedeVerImpuestos} onCerrar={() => setDetalle(null)} />}
+      {detalle && <GastoDetalleModal gasto={detalle} hoy={hoy} puedeVerImpuestos={puedeVerImpuestos} puedeVerPorPagar={puedeVerPorPagar} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -544,13 +553,14 @@ export function GastosPanel({
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// La tabla de gastos: filtros arriba (buscar, categoría, mes), la tabla y el pie, en una sola tarjeta.
+// La lista de gastos: filtros arriba (buscar, categoría, comprobante), el extracto por día y el pie, en una sola tarjeta.
 
 function TablaGastos({
   gastos,
   categorias,
   verTodas,
   mes,
+  hoy,
   onAbrir,
   filtros,
   onFiltros,
@@ -560,6 +570,7 @@ function TablaGastos({
   categorias: CategoriaGasto[];
   verTodas: boolean;
   mes: string;
+  hoy: string;
   onAbrir: (g: GastoFila) => void;
   /** Los filtros los comparte con los hilos, el calendario y «Por ordenar»; el mes lo elige la mesa de mando de arriba. */
   filtros: FiltrosLista;
@@ -596,11 +607,12 @@ function TablaGastos({
             icono={Receipt}
             etiqueta="Comprobante"
             valor={filtros.comprobante === "todos" ? TODOS : filtros.comprobante}
-            onValor={(v) => onFiltros({ comprobante: v === TODOS ? "todos" : (v as "sin" | "con") })}
+            onValor={(v) => onFiltros({ comprobante: v === TODOS ? "todos" : (v as FiltroComprobante) })}
             opciones={[
               { valor: TODOS, texto: "Todos" },
               { valor: "con", texto: "Con boleta o factura" },
               { valor: "sin", texto: "Sin comprobante" },
+              { valor: "sin_grande", texto: `Sin comprobante, ${DESDE_EL_UMBRAL}` },
             ]}
           />
         </Herramientas>
@@ -636,75 +648,7 @@ function TablaGastos({
             </Vacio>
           )
         ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Gasto</th>
-                  <th>Categoría · cuenta</th>
-                  {verTodas && <th>Sede</th>}
-                  <th>Comprobante</th>
-                  <th>Cómo se pagó</th>
-                  <th className="fin-num">Monto</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((g) => {
-                  const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
-                  const pago = textoPago(g, (iso) => fechaCorta(iso));
-                  const papel = papelDelGasto(g);
-                  const igvFila = igvBajoElMonto(g);
-                  return (
-                    <tr
-                      key={g.id}
-                      data-clic
-                      tabIndex={0}
-                      className={g.estado === "anulado" ? "fin-anulada" : undefined}
-                      data-guia="fin-gastos.fila"
-                      onClick={() => onAbrir(g)}
-                      onKeyDown={(ev) => {
-                        if (ev.key === "Enter" || ev.key === " ") {
-                          ev.preventDefault();
-                          onAbrir(g);
-                        }
-                      }}
-                    >
-                      <td data-l="Fecha">{fechaCorta(g.fecha)}</td>
-                      <td className="fin-ancha" data-l="Gasto">
-                        <b>{g.descripcion}</b>
-                        <span className="fin-sub">{g.proveedorNombre ?? "Sin proveedor"}</span>
-                      </td>
-                      <td data-l="Categoría">
-                        {g.categoriaNombre} <span className="fin-tenue">· {g.cuenta}</span>
-                      </td>
-                      {verTodas && <td data-l="Sede">{g.ubicacionNombre ? nombreCortoSede(g.ubicacionNombre) : "Empresa"}</td>}
-                      <td data-l="Comprobante">
-                        {papel.tipo}
-                        {papel.detalle && <span className="fin-sub">{papel.detalle}</span>}
-                      </td>
-                      <td data-l="Pago" className={pago.startsWith("vence") ? "fin-tenue" : undefined}>
-                        {pago}
-                      </td>
-                      <td className="fin-num" data-l="Monto">
-                        <b>{soles(g.montoTotal)}</b>
-                        {igvFila && <span className="fin-sub">{igvFila.igv}</span>}
-                        {igvFila?.perdido && (
-                          <span className="fin-sub">
-                            <span className="text-ambar-profundo">{igvFila.perdido}</span>
-                          </span>
-                        )}
-                      </td>
-                      <td data-l="Estado">
-                        <Chip tono={e.tono}>{e.texto}</Chip>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ExtractoGastos gastos={visibles} hoy={hoy} filtros={filtros} verTodas={verTodas} sedes={sedes} onAbrir={onAbrir} />
         )}
         <PieTabla>
           <span>
@@ -721,7 +665,20 @@ function TablaGastos({
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: GastoFila; puedeVerImpuestos: boolean; onCerrar: () => void }) {
+function GastoDetalleModal({
+  gasto: g,
+  hoy,
+  puedeVerImpuestos,
+  puedeVerPorPagar,
+  onCerrar,
+}: {
+  gasto: GastoFila;
+  hoy: string;
+  puedeVerImpuestos: boolean;
+  /** Con el módulo Por pagar, el aviso de una factura que se debe lleva a pagarla (`/compras/por-pagar`); sin él, solo lo dice. */
+  puedeVerPorPagar: boolean;
+  onCerrar: () => void;
+}) {
   const router = useRouter();
   const responsable = useResponsable();
   const [anulando, setAnulando] = useState(false);
@@ -752,6 +709,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
   const perdido = textoIgvPerdido(g);
   const notaPerdido = notaIgvPerdido(g);
   const enRiesgo = igvEnRiesgo(g);
+  const aviso = avisoDelGasto(g, hoy);
 
   if (anulando) {
     return (
@@ -785,6 +743,17 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
       onClose={onCerrar}
       tamano="mediana"
     >
+      {/* La misma marca de la fila y su porqué, a un toque (con el dedo no hay `title`; /formidable, 2026-10-30). */}
+      {aviso && (
+        <Aviso
+          tono={aviso.tono}
+          titulo={aviso.titulo}
+          className="aviso-hoja-gasto mb-4"
+          accion={aviso.deuda && puedeVerPorPagar ? <EnlaceVer href="/compras/por-pagar">Ir a Por pagar</EnlaceVer> : undefined}
+        >
+          {aviso.texto}
+        </Aviso>
+      )}
       <ListaDatos
         guia="fin-gastos.detalle"
         filas={[
@@ -795,7 +764,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
           ...(perdido
             ? [{ dato: <span className="whitespace-nowrap">IGV perdido</span>, valor: <span className="whitespace-normal text-ambar-profundo">{perdido}</span> }]
             : []),
-          { dato: "Pago", valor: pendiente ? `A crédito, vence ${fechaCorta(g.fechaVencimiento)}` : textoPago(g, (iso) => fechaCorta(iso)) },
+          { dato: "Pago", valor: pendiente ? pagoACredito(g.fechaVencimiento, hoy) : textoPago(g, (iso) => fechaCorta(iso)) },
           ...(pendiente && g.saldo !== g.montoTotal ? [{ dato: "Falta pagar", valor: soles(g.saldo ?? 0) }] : []),
           { dato: "Estado", valor: <Chip tono={e.tono}>{e.texto}</Chip> },
           ...(g.registradoPor ? [{ dato: "Lo registró", valor: g.registradoPor, tenue: true }] : []),
@@ -823,7 +792,8 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
             ({soles(enRiesgo)}).
           </p>
         ) : (
-          <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>
+          // Con el módulo, el aviso de arriba ya lleva a Por pagar: la nota lo repetiría.
+          !puedeVerPorPagar && <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>
         ))}
       <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
         {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
