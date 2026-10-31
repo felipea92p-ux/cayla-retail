@@ -116,6 +116,7 @@ export function GastosPanel({
   inicioFinanzas = null,
   sugeridos,
   tiposActivo,
+  umbralActivo = null,
   categorias,
   ubicaciones,
   proveedores,
@@ -148,6 +149,8 @@ export function GastosPanel({
   inicioFinanzas?: string | null;
   sugeridos: FijoSugerido[];
   tiposActivo: TipoActivo[];
+  /** ¼ de la UIT del año (ADR-0594): bajo ese costo, registrar un activo avisa que puede llevarse a gasto. Sin UIT o sin permiso: `null`, sin aviso. */
+  umbralActivo?: { soles: number; uit: number } | null;
   categorias: CategoriaGasto[];
   ubicaciones: UbicacionGastos[];
   proveedores: ProveedorGasto[];
@@ -574,6 +577,7 @@ export function GastosPanel({
           fijo={registrar.fijo}
           clase={registrar.clase}
           tiposActivo={tiposActivo}
+          umbralActivo={umbralActivo}
           fijosDelMes={fijosParaPreguntar}
           hoy={hoy}
           onCerrar={() => setRegistrar(null)}
