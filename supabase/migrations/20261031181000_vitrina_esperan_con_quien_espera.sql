@@ -1,24 +1,23 @@
 -- ============================================================================
--- 20261031181000_vitrina_esperan_con_quien_espera.sql — Tienda web ▸ Vitrina ▸ «Esperan una talla»: ahora dice QUIÉN espera
+-- 20261031181000_vitrina_esperan_con_quien_espera.sql — «Avísame»: quién espera, y escribirle SOLO si ella lo pidió
 --
--- EL PROBLEMA PRIMERO. La pantalla decía «3 personas esperan la M negra» y ahí se cortaba: para avisarle a alguien, o para decidir
--- si vale la pena traer la talla de otra sede, el equipo tenía que adivinar quiénes eran. Felipe (2026-10-31) pidió ver los datos de
--- quienes tocaron «Avísame»: nombre y contacto.
+-- EL PROBLEMA PRIMERO. «Esperan una talla» decía «3 personas esperan la M negra» y ahí se cortaba: para decidir si vale la pena traer la
+-- talla de otra sede, el equipo tenía que adivinar quiénes eran. Felipe (2026-10-31) pidió ver quién espera. Pero la clienta lee hoy
+-- «Te avisaremos EN TU CUENTA» y la política dice «sin publicidad por WhatsApp, te escribimos solo por tus pedidos»: mostrar el celular de
+-- todas contradecía esa promesa (maqueta docs/maquetas/tienda-avisame-2026-10, opción B elegida por Felipe).
 --
--- DECIDÍ (cambia lo que dijo 20261015030000): `fn_vitrina_esperan()` ahora devuelve, por cada prenda y tienda, `quienes`: una fila
---   por persona con su nombre (de la ficha, leído al momento), su celular, su correo de la cuenta de la tienda y desde cuándo espera.
---   Antes decía «SIN datos personales» y que a cada persona le avisa su cuenta, nunca por WhatsApp (ADR-0288 G-5). Eso lo revierte
---   Felipe a propósito: el equipo puede escribirles.
--- DECIDÍ: el celular sale SIEMPRE, pero con `acepta_whatsapp` al lado (la ficha guarda `whatsapp_consentimiento_en`; Ley 29733: el
---   permiso de marketing es un dato aparte del celular). La pantalla marca «Sin permiso de WhatsApp» a quien no lo dio: un «Avísame» pide
---   que le avisen de esa prenda, no recibir ofertas.
--- DECIDÍ: una ficha anonimizada o una cuenta cerrada sale SIN nombre, celular, correo ni ficha (solo cuenta como persona): lo que se
---   borró no reaparece aquí. El permiso sigue siendo el del módulo `vitrina_web` (el vigilante de fichas lo conoce: ver
---   `DE_VITRINA_ESPERAN` en scripts/pruebas/clientas_por_modulo_y_anonimizar.mjs).
--- NO CAMBIA: las cifras, `libre`, `hay_en`, `se_ve`, ni el orden. Solo agrega `quienes` a cada fila. Una sola función, re-ejecutable,
---   sin tablas ni políticas ni disparadores.
+-- DECIDÍ: el permiso de escribirle por WhatsApp se pide EN EL MOMENTO de pedir el aviso, con una casilla apagada de fábrica, y se
+--   guarda con su fecha en `esperas_web.whatsapp_pedido_en` (vacío = no lo pidió). Quitar el aviso lo retira: una espera quitada no
+--   sale. Es un dato de ESA espera, no de la ficha: el permiso de publicidad del Club (`whatsapp_consentimiento_en`) es otra cosa y no
+--   cubre este uso (Ley 29733).
+-- DECIDÍ: `fn_vitrina_esperan()` devuelve por cada prenda y tienda `quienes`: nombre y desde cuándo, de todas; el celular SOLO de quien
+--   lo pidió (y si su ficha no se anonimizó ni su cuenta se cerró). Nunca el correo. El módulo sigue siendo `vitrina_web`.
+-- DESCARTÉ: mostrar el celular de todas con una marca «sin permiso» (opción C): la marca avisa pero no impide escribirle.
+-- SE ROMPE SI: la casilla se pre-marca o se esconde en la tienda (el permiso deja de valer) o alguien lee `esperas_web` por fuera de estas
+--   dos funciones. La tabla sigue sin políticas ni grants: solo estas funciones la tocan.
+-- `tienda_avisame` gana un parámetro (`p_whatsapp boolean default false`): se cambia el 3-argumentos por el de 4, sin dejar los dos.
 --
--- PRODUCCIÓN. NO está aplicada: espera el OK de Felipe. Va después de 20261015030000 y de cuentas_web con `cerrada_en`.
+-- PRODUCCIÓN. NO está aplicada: espera el OK de Felipe. Va después de 20261015024000 y 20261015030000. Re-ejecutable.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -35,6 +34,97 @@ begin
   end if;
 end
 $$;
+
+alter table retail.esperas_web add column if not exists whatsapp_pedido_en timestamptz;
+comment on column retail.esperas_web.whatsapp_pedido_en is
+  'Cuándo la persona marcó «escríbeme por WhatsApp cuando llegue» al pedir el aviso. Vacío: no lo pidió, y el ERP no ve su celular. Se retira quitando el aviso.';
+
+do $$
+begin
+  if to_regprocedure('retail.tienda_avisame(uuid, uuid, uuid)') is null
+     and to_regprocedure('retail.tienda_avisame(uuid, uuid, uuid, boolean)') is null then
+    raise exception 'Falta tienda_avisame: pega antes 20261015024000_tienda_favoritos_y_esperas.sql.';
+  end if;
+end
+$$;
+
+drop function if exists retail.tienda_avisame(uuid, uuid, uuid);
+
+create or replace function retail.tienda_avisame(p_usuario_web_id uuid, p_variante_id uuid, p_ubicacion_id uuid, p_whatsapp boolean default false)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public
+as $fn$
+declare
+  v_cuenta uuid;
+  v_activa boolean;
+  v_celular text;
+  v_producto uuid;
+  v_sedes uuid[];
+  v_sede uuid;
+  v_id uuid;
+  v_pidio timestamptz;
+begin
+  if p_usuario_web_id is null or p_variante_id is null then
+    return jsonb_build_object('estado', 'invalido');
+  end if;
+  for v_cuenta, v_activa, v_celular in
+    select w.id, c.archivada_en is null, nullif(btrim(c.telefono_whatsapp), '')
+      from retail.cuentas_web w
+      join retail.clientas c on c.id = w.clienta_id
+     where w.usuario_web_id = p_usuario_web_id
+       for update of w
+  loop
+    exit;
+  end loop;
+  if v_cuenta is null then
+    return jsonb_build_object('estado', 'sin_cuenta');
+  end if;
+  if not v_activa then
+    return jsonb_build_object('estado', 'cuenta_inactiva');
+  end if;
+
+  v_sedes := retail.fn_tienda_sedes_web();
+  v_sede := retail.fn_tienda_sede_elegida(p_ubicacion_id, v_sedes);
+
+  v_producto := (select t.producto_id from retail.fn_tienda_precio_talla(array[p_variante_id], v_sede) t where t.se_ofrece);
+  if v_producto is null or not retail.fn_tienda_modelo_se_ve(v_producto) then
+    return jsonb_build_object('estado', 'no_disponible');
+  end if;
+
+  if retail.fn_tienda_libre(p_variante_id, case when v_sede is null then v_sedes else array[v_sede] end) > 0 then
+    return jsonb_build_object('estado', 'hay', 'sede', v_sede);
+  end if;
+
+  for v_id, v_pidio in
+    select e.id, e.whatsapp_pedido_en from retail.esperas_web e
+     where e.cuenta_web_id = v_cuenta and e.variante_id = p_variante_id
+       and e.ubicacion_id is not distinct from v_sede and e.quitada_en is null
+  loop
+    exit;
+  end loop;
+  if v_id is not null then
+    return jsonb_build_object('estado', 'anotada', 'id', v_id, 'sede', v_sede, 'nueva', false, 'whatsapp', v_pidio is not null);
+  end if;
+  if (select count(*) from retail.esperas_web e where e.cuenta_web_id = v_cuenta and e.quitada_en is null) >= 30 then
+    return jsonb_build_object('estado', 'tope', 'tope', 30);
+  end if;
+
+  -- El permiso vale solo si hay un celular a donde escribir: sin él, se anota el aviso y NO se registra el permiso.
+  insert into retail.esperas_web (cuenta_web_id, variante_id, ubicacion_id, whatsapp_pedido_en)
+  values (v_cuenta, p_variante_id, v_sede, case when coalesce(p_whatsapp, false) and v_celular is not null then now() end)
+  returning id, whatsapp_pedido_en into v_id, v_pidio;
+  return jsonb_build_object('estado', 'anotada', 'id', v_id, 'sede', v_sede, 'nueva', true, 'whatsapp', v_pidio is not null);
+end;
+$fn$;
+
+comment on function retail.tienda_avisame(uuid, uuid, uuid, boolean) is
+  'Tienda online (ADR-0408 act. 12; permiso de WhatsApp, 2026-10-31): «Avísame cuando llegue» de esa prenda en esa tienda (vacía o no web: cualquier tienda de la web). Solo si NO hay libre en ese alcance. p_whatsapp: la persona marcó «escríbeme por WhatsApp»; se guarda con su fecha solo si su ficha tiene celular. {estado: anotada (id, sede, nueva, whatsapp) | hay (sede) | tope | no_disponible | cuenta_inactiva | sin_cuenta | invalido}. Solo la llama tienda_web.';
+
+revoke all on function retail.tienda_avisame(uuid, uuid, uuid, boolean) from public, anon, authenticated;
+grant execute on function retail.tienda_avisame(uuid, uuid, uuid, boolean) to tienda_web;
+
 
 create or replace function retail.fn_vitrina_esperan()
 returns jsonb
@@ -56,7 +146,7 @@ begin
     'filas', coalesce((
       -- Por prenda y tienda; la tienda, con la regla con que se anota (una escondida es «cualquier tienda»).
       with base as (
-        select e.variante_id, retail.fn_tienda_sede_elegida(e.ubicacion_id, v_sedes) as ubicacion_id, e.cuenta_web_id, e.creada_en
+        select e.variante_id, retail.fn_tienda_sede_elegida(e.ubicacion_id, v_sedes) as ubicacion_id, e.cuenta_web_id, e.creada_en, e.whatsapp_pedido_en
           from retail.esperas_web e
          where e.quitada_en is null
       ),
@@ -74,12 +164,13 @@ begin
                jsonb_agg(jsonb_build_object(
                  'ficha_id', case when c.anonimizada or w.cerrada_en is not null then null else c.id end,
                  'nombre', case when c.anonimizada or w.cerrada_en is not null then null else c.nombre end,
-                 'celular', case when c.anonimizada or w.cerrada_en is not null then null else nullif(btrim(c.telefono_whatsapp), '') end,
-                 'acepta_whatsapp', (c.whatsapp_consentimiento_en is not null and not c.anonimizada and w.cerrada_en is null),
-                 'correo', case when c.anonimizada or w.cerrada_en is not null then null else w.correo end,
+                 'pidio_whatsapp', (q.pidio and not c.anonimizada and w.cerrada_en is null),
+                 'celular', case when q.pidio and not c.anonimizada and w.cerrada_en is null
+                                 then nullif(btrim(c.telefono_whatsapp), '') end,
                  'desde', q.desde
                ) order by q.desde, c.id) as gente
-          from (select b.variante_id, b.ubicacion_id, b.cuenta_web_id, min(b.creada_en) as desde
+          from (select b.variante_id, b.ubicacion_id, b.cuenta_web_id, min(b.creada_en) as desde,
+                       bool_or(b.whatsapp_pedido_en is not null) as pidio
                   from base b group by 1, 2, 3) q
           join retail.cuentas_web w on w.id = q.cuenta_web_id
           join retail.clientas c on c.id = w.clienta_id
@@ -132,7 +223,7 @@ end;
 $fn$;
 
 comment on function retail.fn_vitrina_esperan() is
-  'Tienda web ▸ Vitrina ▸ «Esperan una talla» (ADR-0408 act. 12; con quién espera, 2026-10-31): {tiendas, personas, filas: [{variante_id, producto, color, talla, sede, personas, desde, ultima, libre, hay_en, se_ve, quienes: [{ficha_id, nombre, celular, acepta_whatsapp, correo, desde}]}]}. quienes sale sin datos si la ficha se anonimizó o la cuenta se cerró. Pide el módulo vitrina_web.';
+  'Tienda web ▸ Vitrina ▸ «Esperan una talla» (ADR-0408 act. 12; con quién espera, 2026-10-31): {tiendas, personas, filas: [{variante_id, producto, color, talla, sede, personas, desde, ultima, libre, hay_en, se_ve, quienes: [{ficha_id, nombre, pidio_whatsapp, celular, desde}]}]}. El celular sale solo de quien marcó «escríbeme por WhatsApp» al pedir el aviso (esperas_web.whatsapp_pedido_en); nunca el correo. quienes sale sin datos si la ficha se anonimizó o la cuenta se cerró. Pide el módulo vitrina_web.';
 
 revoke all on function retail.fn_vitrina_esperan() from public, anon;
 grant execute on function retail.fn_vitrina_esperan() to authenticated;
@@ -142,6 +233,17 @@ begin
   if has_function_privilege('anon', 'retail.fn_vitrina_esperan()', 'EXECUTE')
      or has_function_privilege('tienda_web', 'retail.fn_vitrina_esperan()', 'EXECUTE') then
     raise exception 'vitrina esperan: fn_vitrina_esperan es del ERP (authenticated, con el módulo), nunca de anon ni de la tienda';
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if has_function_privilege('anon', 'retail.tienda_avisame(uuid, uuid, uuid, boolean)', 'EXECUTE')
+     or has_function_privilege('authenticated', 'retail.tienda_avisame(uuid, uuid, uuid, boolean)', 'EXECUTE')
+     or not has_function_privilege('tienda_web', 'retail.tienda_avisame(uuid, uuid, uuid, boolean)', 'EXECUTE')
+     or to_regprocedure('retail.tienda_avisame(uuid, uuid, uuid)') is not null then
+    raise exception 'tienda_avisame: una sola firma, y solo de tienda_web';
   end if;
 end;
 $$;

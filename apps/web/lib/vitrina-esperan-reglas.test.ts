@@ -132,8 +132,8 @@ describe("quién espera cada talla (Felipe 2026-10-31)", () => {
     filas: [
       fila({
         quienes: [
-          { ficha_id: "a", nombre: "Ana Prueba", celular: "999111222", acepta_whatsapp: true, correo: "ana@x.pe", desde: "2026-10-30T15:00:00Z" },
-          { ficha_id: null, nombre: null, celular: null, acepta_whatsapp: false, correo: null, desde: "2026-10-31T15:00:00Z" },
+          { ficha_id: "a", nombre: "Ana Prueba", celular: "999111222", pidio_whatsapp: true, desde: "2026-10-30T15:00:00Z" },
+          { ficha_id: null, nombre: null, celular: null, pidio_whatsapp: false, desde: "2026-10-31T15:00:00Z" },
           "basura",
         ],
       }),
@@ -143,7 +143,12 @@ describe("quién espera cada talla (Felipe 2026-10-31)", () => {
 
   it("lee a cada persona y se salta lo mal formado", () => {
     expect(f.quienes).toHaveLength(2);
-    expect(f.quienes[0]).toMatchObject({ nombre: "Ana Prueba", celular: "999111222", aceptaWhatsapp: true, correo: "ana@x.pe" });
+    expect(f.quienes[0]).toMatchObject({ nombre: "Ana Prueba", celular: "999111222", pidioWhatsapp: true });
+    expect(f.quienes[1]).toMatchObject({ celular: null, pidioWhatsapp: false });
+  });
+  it("sin permiso no hay celular: buscar un número que no se le ve a esa persona no la encuentra", () => {
+    const sinPermiso = leerEsperan({ filas: [fila({ quienes: [{ ficha_id: "b", nombre: "Bea", celular: null, pidio_whatsapp: false, desde: "2026-10-30T15:00:00Z" }] })] });
+    expect(filtrarEsperan(sinPermiso.filas, { tienda: "todas", estado: "todos", busqueda: "999111222" })).toHaveLength(0);
   });
   it("una ficha sin datos se dice sin inventar un nombre", () => {
     expect(quienDicho(f.quienes[1]!)).toContain("sin datos");

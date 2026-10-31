@@ -36,7 +36,7 @@ const TONO: Record<EstadoEspera, TonoChip> = { falta: "ambar", llego: "verde", f
 /**
  * Tienda web ▸ Vitrina ▸ Esperan una talla (ADR-0408, actividad 12). Lo que los clientes de la tienda online pidieron con
  * «Avísame cuando llegue», por prenda y tienda: cuántas personas, desde cuándo, y si ya llegó o dónde hay para pedirla a otra sede.
- * Solo se lee: no tiene nada que guardar. Cada fila se abre y dice quién espera, con su celular y su correo (Felipe 2026-10-31).
+ * Solo se lee: no tiene nada que guardar. Cada fila se abre y dice quién espera; el celular sale solo de quien pidió que le escribamos por WhatsApp (Felipe 2026-10-31, opción B).
  */
 export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy: string }) {
   const [tienda, setTienda] = useState<FiltroTienda>("todas");
@@ -181,17 +181,16 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
                     {f.quienes.map((w, k) => (
                       <li key={w.fichaId ?? `sin-${k}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
                         <span className="min-w-[10rem] font-medium text-tinta">{quienDicho(w)}</span>
-                        {w.celular && (
+                        {w.pidioWhatsapp ? (
                           <span className="text-tinta">
-                            {w.celular}
-                            {!w.aceptaWhatsapp && (
-                              <span className="ml-2 inline-block" title="No aceptó mensajes de WhatsApp: úsalo solo para avisarle de esta prenda">
-                                <Chip tono="neutro" versalitas={false}>Sin permiso de WhatsApp</Chip>
-                              </span>
-                            )}
+                            {w.celular ?? "Sin celular guardado"}
+                            <span className="ml-2 inline-block" title="Marcó «escríbeme por WhatsApp» al pedir el aviso: escríbele solo para avisarle de esta prenda">
+                              <Chip tono="verde" versalitas={false}>Pidió WhatsApp</Chip>
+                            </span>
                           </span>
+                        ) : (
+                          w.nombre && <span className="text-taupe">Se le avisa en su cuenta</span>
                         )}
-                        {w.correo && <span className="text-taupe">{w.correo}</span>}
                         <span className="text-taupe">Espera {desdeCuando(w.desde, hoy)}</span>
                       </li>
                     ))}
@@ -211,8 +210,8 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
 
       <div className="nota-cayla space-y-2 text-sm" data-guia="esperan.nota">
         <p>
-          Toca «personas» para ver quién espera cada talla, con su celular y su correo. A cada una también le avisa su cuenta de la tienda
-          online apenas hay donde la espera. Quien no aceptó WhatsApp lleva su marca: escríbele solo para avisarle de esa prenda, no para
+          Toca «personas» para ver quién espera cada talla. A todas les avisa su cuenta de la tienda online apenas hay donde la esperan.
+          Solo quien marcó «Escríbeme por WhatsApp» al pedirlo muestra su celular: escríbele solo para avisarle de esa prenda, no para
           ofrecerle otras. Si una talla falta en una tienda y hay en otra, pídela con un traslado.
         </p>
       </div>

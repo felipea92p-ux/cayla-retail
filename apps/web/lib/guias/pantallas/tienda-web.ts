@@ -593,7 +593,7 @@ export const GUIA_VITRINA_ESPERAN: Guia = {
       ancla: "esperan.quienes",
       opcional: true,
       titulo: "Quién espera",
-      texto: "Toca «personas» y se abre la lista de quienes tocaron «Avísame»: su nombre, su celular y su correo. Si dice «Sin permiso de WhatsApp», escríbele solo para avisarle de esa prenda, no para ofrecerle otras.",
+      texto: "Toca «personas» y se abre la lista de quienes tocaron «Avísame»: su nombre y desde cuándo espera. Solo quien marcó «Escríbeme por WhatsApp» al pedirlo muestra su celular: escríbele solo para avisarle de esa prenda, no para ofrecerle otras.",
     },
     {
       id: "ahora",
@@ -606,7 +606,7 @@ export const GUIA_VITRINA_ESPERAN: Guia = {
       id: "nota",
       ancla: "esperan.nota",
       titulo: "Cómo se entera el cliente",
-      texto: "Su cuenta de la tienda online le dice «¡Llegó!» apenas hay donde la espera. Además tú puedes escribirle con los datos de la fila, respetando su permiso de WhatsApp.",
+      texto: "Su cuenta de la tienda online le dice «¡Llegó!» apenas hay donde la espera. Además, si ella marcó «Escríbeme por WhatsApp», tú puedes escribirle con su celular de la fila.",
     },
     {
       id: "fin",

@@ -6,7 +6,7 @@
 //   PROMETE: leer lo que devuelve `retail.fn_vitrina_esperan()` sin caerse ante un dato raro; las cifras y los filtros de la
 //            pantalla; y cada fila en palabras de tienda («2 personas», «hace 3 días», «Ya llegó: 2 libres»), con quién espera.
 //   ASUME:   que la base decide qué cuenta (las esperas vivas, lo libre sin Cuarentena, si el modelo se ve en la web) y qué datos de
-//            cada persona salen (Felipe 2026-10-31: nombre, celular y correo; nada si la ficha se anonimizó o la cuenta se cerró).
+//            cada persona salen (Felipe 2026-10-31, opción B de la maqueta tienda-avisame: el nombre de todas, y el celular SOLO de quien marcó «escríbeme por WhatsApp» al pedir el aviso; nunca el correo; nada si la ficha se anonimizó o la cuenta se cerró).
 //   NO HACE: leer la base ni decidir permisos (lo hace `fn_exigir_modulo('vitrina_web')`).
 
 import { normalizarBusqueda } from "./combo-reglas";
@@ -14,14 +14,13 @@ import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { nombreCortoSede } from "./stock-por-sede";
 
 export type TiendaEsperan = { id: string; nombre: string };
-/** Quien tocó «Avísame». Sin nombre, celular ni correo: su ficha se anonimizó o su cuenta se cerró (sigue contando como persona). */
+/** Quien tocó «Avísame». Sin nombre ni celular: su ficha se anonimizó o su cuenta se cerró (sigue contando como persona). */
 export type QuienEspera = {
   fichaId: string | null;
   nombre: string | null;
   celular: string | null;
-  /** La ficha tiene el permiso de WhatsApp (Ley 29733): sin él, el celular se muestra pero no es para ofertas. */
-  aceptaWhatsapp: boolean;
-  correo: string | null;
+  /** Marcó «escríbeme por WhatsApp» al pedir ESTE aviso (Ley 29733). Sin ello, `celular` viene vacío: se le avisa solo en su cuenta. */
+  pidioWhatsapp: boolean;
   desde: string;
 };
 export type FilaEsperan = {
@@ -68,8 +67,7 @@ function quienDeJson(v: unknown): QuienEspera | null {
     fichaId: texto(v.ficha_id),
     nombre: texto(v.nombre),
     celular: texto(v.celular),
-    aceptaWhatsapp: v.acepta_whatsapp === true,
-    correo: texto(v.correo),
+    pidioWhatsapp: v.pidio_whatsapp === true,
     desde,
   };
 }
@@ -198,7 +196,7 @@ export function filtrarEsperan(filas: readonly FilaEsperan[], { tienda, estado, 
     if (estado === "faltan" && estadoFila(f) !== "falta") return false;
     if (estado === "llegaron" && estadoFila(f) !== "llego") return false;
     if (!q) return true;
-    return normalizarBusqueda(`${f.producto.nombre} ${f.producto.codigo ?? ""} ${f.color?.nombre ?? ""} ${f.talla ?? ""} ${f.producto.categoria ?? ""} ${f.quienes.map((w) => `${w.nombre ?? ""} ${w.celular ?? ""} ${w.correo ?? ""}`).join(" ")}`).includes(q);
+    return normalizarBusqueda(`${f.producto.nombre} ${f.producto.codigo ?? ""} ${f.color?.nombre ?? ""} ${f.talla ?? ""} ${f.producto.categoria ?? ""} ${f.quienes.map((w) => `${w.nombre ?? ""} ${w.celular ?? ""}`).join(" ")}`).includes(q);
   });
 }
 
