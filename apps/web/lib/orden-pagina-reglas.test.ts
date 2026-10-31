@@ -1641,6 +1641,20 @@ describe("corregir, eliminar y restaurar con su historia (ADR-0570, actividad 3)
     expect(hoy.entradas[1]).toMatchObject({ titulo: "Quitó la marca de Ploteo", detalle: "Por qué: Todavía no se hizo", restaurable: { cambioId: "m-c" } });
   });
 
+  it("un cambio de tipo (ADR-0581) cuenta de qué tipo a cuál pasó, con su motivo aparte, y es un cambio de la orden, no una anotación", () => {
+    const tipo = (despues: boolean, texto: string, cuando: string) => ({
+      id: `t-${cuando}`, accion: "tipo", objeto: null, fase_clave: null, fase_nombre: null, quita_ids: [], pone_ids: [], deshace_ids: [],
+      antes: { es_muestra: !despues }, despues: { es_muestra: despues }, texto, restaurado: false, quien_nombre: "Felipe", cuando,
+    });
+    const aLote = tipo(false, "Pasó de muestra a lote de producción · Ya tienen el molde", "2026-10-16T18:00:00+00:00");
+    const aMuestra = tipo(true, "Pasó de lote de producción a muestra", "2026-10-16T19:00:00+00:00");
+    const [hoy] = lineaDeTiempoAgrupada(orden({ cambios: [aLote, aMuestra] }), "2026-10-16");
+    // Lo más nuevo arriba.
+    expect(hoy.entradas[0]).toMatchObject({ tipo: "tipo", titulo: "Pasó de lote de producción a muestra", detalle: null, quien: "Felipe", cuanto: null, restaurable: null, corregible: null });
+    expect(hoy.entradas[1]).toMatchObject({ tipo: "tipo", titulo: "Pasó de muestra a lote de producción", detalle: "Por qué: Ya tienen el molde" });
+    expect(tonoDeEntrada("tipo")).toBe("cambio");
+  });
+
   const anotacion: AnotacionCorregible = {
     ids: ["a-1", "fa-1"],
     faseClave: "acabado",

@@ -25,7 +25,7 @@ import {
 // contradecirse porque no hay una segunda fórmula.
 //
 // CONTRATO
-//   PROMETE: que una fila dice dónde está la orden, quién la tiene y cuánto lleva ahí; que «pide algo» es exactamente `rojoDeLaOrden`; que «Hoy en el Taller» cuenta lotes y prendas
+//   PROMETE: que una fila dice dónde está la orden, quién la tiene y cuánto lleva ahí; que «pide algo» es exactamente `rojoDeLaOrden`; que «Hoy en el Taller» cuenta órdenes y prendas
 //            por la fase en que está cada orden abierta (una orden con todas las fases hechas cuenta en la última: espera pasar al stock); que una orden no se pierde al filtrar sin
 //            que la pantalla diga cuántas hay; y que la búsqueda no distingue tildes ni mayúsculas ni el guion de «OP-000012».
 //   ASUME:   las fechas llegan como `aaaa-mm-dd` y «hoy» es el de Lima (`hoyLima()`), como en la página de la orden.
@@ -211,7 +211,8 @@ export function leerListaDeOrdenes(crudo: unknown, hoy: string): ListaDeOrdenes 
 
 // ---------- Hoy en el Taller ----------
 
-export type CifraDeFase = { clave: FaseClave; titulo: string; lotes: number; prendas: number; contexto: string; atencion: boolean };
+/** `ordenes` cuenta las órdenes abiertas en la fase (lotes y muestras); `unidad` es la palabra que va junto a esa cifra. */
+export type CifraDeFase = { clave: FaseClave; titulo: string; ordenes: number; unidad: string; prendas: number; contexto: string; atencion: boolean };
 
 const TITULO_DE_FASE: Record<FaseClave, string> = {
   ploteo: "Por plotear",
@@ -246,7 +247,10 @@ const ORDEN_DE_FASES: FaseClave[] = [
 const TARJETAS_SIEMPRE: readonly FaseClave[] = ["corte", "costura"];
 
 /**
- * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (lotes y prendas de las órdenes abiertas, muestras incluidas). Corte y Costura siempre; las demás fases (Ploteo, Habilitado, Limpiar y revisar, Planchado, Etiquetar, Acabado de las órdenes de antes, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
+ * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (órdenes y prendas de las abiertas, muestras incluidas). La cifra no llama «lotes» a una
+ * muestra (la misma pantalla pide distinguirlas, y una muestra no entra al stock): son «lotes» si todas son lotes, «muestras» si todas lo son y «órdenes» si
+ * hay de las dos, con «1 muestra» en su detalle (Formidable, 2026-10-30).
+ * Corte y Costura siempre; las demás fases (Ploteo, Habilitado, Limpiar y revisar, Planchado, Etiquetar, Acabado de las órdenes de antes, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
  */
 export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[] {
   const abiertas = filas.filter((f) => f.estado === "en_proceso" && f.grupo !== null);
@@ -258,15 +262,19 @@ export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[
     const afuera = aca.reduce((s, f) => s + f.afuera, 0);
     const listas = aca.filter((f) => f.lista).length;
     const servicios = [...new Set(aca.filter((f) => f.afuera > 0).map((f) => f.quien.split(" · ")[0]))];
+    const muestras = aca.filter((f) => f.esMuestra).length;
+    const mezcla = muestras > 0 && muestras < aca.length;
+    const unidad = muestras === 0 ? (aca.length === 1 ? "lote" : "lotes") : mezcla ? (aca.length === 1 ? "orden" : "órdenes") : muestras === 1 ? "muestra" : "muestras";
     const partes: string[] = [];
     if (aca.length === 0) partes.push("ninguna ahora");
     else {
       partes.push(cuantas(prendas, "prenda", "prendas"));
+      if (mezcla) partes.push(cuantas(muestras, "muestra", "muestras"));
       if (afuera > 0) partes.push(`${afuera} afuera${servicios.length > 0 ? ` con ${servicios.join(" y ")}` : ""}`);
       if (sinTela > 0) partes.push(`${sinTela} sin tela`);
       if (listas > 0) partes.push(`${cuantas(listas, "lista", "listas")} para el stock`);
     }
-    return { clave, titulo: TITULO_DE_FASE[clave], lotes: aca.length, prendas, contexto: partes.join(" · "), atencion: sinTela > 0 || aca.some((f) => f.causas.length > 0) };
+    return { clave, titulo: TITULO_DE_FASE[clave], ordenes: aca.length, unidad, prendas, contexto: partes.join(" · "), atencion: sinTela > 0 || aca.some((f) => f.causas.length > 0) };
   });
 }
 
