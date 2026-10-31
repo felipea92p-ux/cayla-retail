@@ -201,9 +201,11 @@ select c.cliente_tipo_doc || ':' || c.cliente_num_doc from retail.comprobantes c
   (s) => s === "dni:70124598");
 error("el precio de la caja distinto al del catálogo se rechaza",
   `${preparar()}${separar().replace("'precio_unitario', :'precio'::numeric", "'precio_unitario', 1.00")}`, "venta_precio_cambiado");
-error("un descuento manual se rechaza (solo vale la campaña del día)",
+// Desde ADR-0584 (2026-10-30) se puede descontar a mano al apartar, con las reglas de la venta: sin motivo, se rechaza. Los demás
+// casos del descuento a mano viven en `apartar_con_descuento.mjs`.
+error("un descuento manual sin motivo se rechaza (ADR-0584: lleva el motivo, como en la venta)",
   `${preparar()}${separar().replace("'precio_unitario', :'precio'::numeric", "'precio_unitario', :'precio'::numeric, 'descuento_unitario', 5")}`,
-  "separacion_descuento_no_coincide");
+  "venta_descuento_requiere_motivo");
 error("no se puede separar más de lo disponible (y no queda nada a medias)",
   `${preparar(MICAELA, { colchon: 1 })}
 select greatest(1, :cant0 - :apart0 + 1) as pedir \\gset
