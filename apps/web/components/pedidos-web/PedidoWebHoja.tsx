@@ -467,7 +467,7 @@ export function PedidoWebHoja({
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
-              <p className="text-[12.5px] text-taupe">El stock no cambia: nada se había reservado. El cliente ve su pedido «Anulado» con el motivo.</p>
+              <p className="text-[12.5px] text-taupe">El stock no cambia: nada se había reservado. El cliente ve «Anulado» con el motivo.</p>
               <div className="pie-hoja-fijo space-y-2 pt-2">
                 <PieGuia guia={guia} />
                 <PieAcciones>
@@ -569,8 +569,7 @@ export function PedidoWebHoja({
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
               <p className="text-[12.5px] text-taupe">
-                Llegó lo que faltaba: queda separada para el cliente y deja de ofrecerse en la web y en Vender. Sale del stock recién al
-                entregarla.
+                Llegó lo que faltaba: queda separada para el cliente y deja de venderse en tienda. Sale del stock al entregarla.
               </p>
               <div className="pie-hoja-fijo space-y-2 pt-2">
                 <PieGuia guia={guia} />
@@ -604,13 +603,12 @@ export function PedidoWebHoja({
 
           {p.estado === "confirmado" && modo === "anular" && (
             <>
-              <Aviso tono="error" titulo="Anular devuelve sus prendas">
-                Lo reservado vuelve a estar disponible
-                {p.lineas.some((l) => l.estado === "reservada" && l.ubicacionId && l.ubicacionId !== p.ubicacionId) ? " (también en la otra tienda)" : ""}.
+              <Aviso tono="error" titulo="Las prendas vuelven a estar libres">
+                {p.lineas.some((l) => l.estado === "reservada" && l.ubicacionId && l.ubicacionId !== p.ubicacionId) ? "También en la otra sede. " : ""}
                 {p.lineas.some((l) => l.estado === "por_conseguir" && l.traslado && (l.traslado.estado === "en_transito" || l.traslado.estado === "recibido_con_diferencia"))
-                  ? ` Lo que viene en camino entra libre a ${p.tienda} al llegar.`
+                  ? `Lo que viene en camino entra libre a ${p.tienda}. `
                   : ""}
-                {p.pagado > 0 ? ` Ya pagó ${soles(p.pagado)}: coordina la devolución del dinero por WhatsApp.` : ""}
+                {p.pagado > 0 ? `Ya pagó ${soles(p.pagado)}: después coordinas la devolución.` : ""}
               </Aviso>
               <CampoGuiado id="motivo" guia={guia} titulo="¿Por qué se anula?">
                 <SegmentoDeslizante
@@ -1088,7 +1086,7 @@ function LineasDelPedido({
         ) : (
           <p key={desdeId} className="flex items-start gap-2 text-[12.5px] text-taupe">
             <PackageSearch aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-            {x.tienda} la tiene reservada: la envía desde Tienda web ▸ Pedidos, en «Para enviar a otra tienda».
+            {x.tienda} la tiene reservada y la envía en un traslado.
           </p>
         ),
       )}
