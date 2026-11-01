@@ -11,6 +11,7 @@
 - [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`): `funciones-produccion.txt` y `DRIFT.md` todavía nombran `deshacer_marca_fase`.
 - [ ] Para el día que haya una tablet en el Taller (hoy no puede existir): sumar al candado de la marca la regla «terminal sin firma de respaldo + líder de turno en Responsable» (ADR-0586, act. 2, punto 5).
 - [ ] Decisión de Felipe al verlo: «Quitar la marca» y «Quitar este paso» del paso abierto son enlaces; la tabla de piezas pide `btn-peligro` para «quitar» (la firma de `lib/unificar.test.ts` no mira «Quit»). Lo decide `/unificar`.
-- [ ] Actividad 3: «Corregir lo anotado» a un toque desde el paso (sigue para quien opera; confirmar con Felipe).
+- [x] Actividad 3 (2026-11-01): «Lo anotado aquí» en el paso abierto, con el lápiz de la historia; lo corrige quien opera (Felipe lo confirmó mirando). Solo pantalla, sin migración. Probado en el navegador con Felipe (líder) y Micaela (integrante del Taller), en claro, oscuro y a 375 px.
+- [ ] Hallazgo aparte (preexistente): `guias:recorrer` de la orden falla a 375 px en el paso «Quién lo anota» de la hoja «Terminé» (el recorte queda sin alto); falla igual sin este cambio.
 - [ ] Actividad 4: prendas que vuelven a arreglo (bajan en ese paso y en los de después; «¿cobra este arreglo?» se decide cada vez).
 - [ ] Actividad 5: anotar más de lo planeado en el primer paso, sin tope para el líder y con motivo.

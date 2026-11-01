@@ -1,7 +1,7 @@
 # ADR-0586 — Agregar un paso que se olvidó (ya hecho) y reabrir pasos de una orden
 
 **Estado:** aceptada; **actividad 1 construida y probada en local** (base con `pnpm pruebas:produccion-paso-tarde` 22/22 y la web con sus pruebas); **migración `20261031002000` YA en producción** (comprobado el 2026-10-31 en solo lectura: `agregar_paso_tarde` tiene la misma huella que en local y los dos CHECK de `produccion_cambios` ya aceptan `paso_tarde`)
-(va antes de publicar la web). **Actividad 2 construida y probada en local** (migración `20261031160000` YA en producción desde el 2026-10-31; ver «Actualización 2026-10-31»). Actividades 3 a 5: decididas, sin construir · **Fecha:** 2026-10-30 · **Decidió:** Felipe (preguntas del 2026-10-30) · **Sigue a:** ADR-0566 (agregar un paso) y
+(va antes de publicar la web). **Actividad 2 construida y probada en local** (migración `20261031160000` YA en producción desde el 2026-10-31; ver «Actualización 2026-10-31»). **Actividad 3 construida** (solo pantalla, sin migración; ver «Actualización 2026-11-01»). Actividades 4 y 5: decididas, sin construir · **Fecha:** 2026-10-30 · **Decidió:** Felipe (preguntas del 2026-10-30) · **Sigue a:** ADR-0566 (agregar un paso) y
 ADR-0570 (correcciones con historia)
 
 ## Contexto
@@ -77,8 +77,7 @@ decidir si un paso de después empezó; la pantalla ya manda ese caso al camino 
 ## Lo que sigue (decidido, sin construir)
 
 - **Actividad 2 — Desmarcar Ploteo, solo el líder y con motivo.** Construida el 2026-10-31: ver «Actualización 2026-10-31 — actividad 2».
-- **Actividad 3 — «Corregir lo anotado» a un toque desde el paso.** Abre la corrección que ya existe (ADR-0570, con motivo). Queda para quien opera el Taller, no solo el líder: la objeción
-  de 2026-10-30 (que la colaboradora que se equivocó no tenga que esperar al líder para arreglar su propio dato) va con esta actividad, para que Felipe la confirme al verla.
+- **Actividad 3 — «Corregir lo anotado» a un toque desde el paso.** Construida el 2026-11-01: ver «Actualización 2026-11-01 — actividad 3».
 - **Actividad 4 — Prendas que vuelven a arreglo.** El líder elige el paso, las tallas y cuántas; bajan en ese paso y en todos los de después (filas contrarias, nada se borra), que las vuelven a
   esperar. Si un paso de después era un servicio ya cobrado, al anotar su vuelta la hoja pregunta «¿cobra este arreglo?».
 - **Actividad 5 — Anotar más de lo planeado.** Solo en el primer paso que cuenta prendas (donde nacen): el líder pasa el tope de plan + 10 %, sin otro tope y con motivo; la tela y el costo por
@@ -121,3 +120,35 @@ servicio, su fijo sale del costo de la orden.
 - **Producción:** `20261031160000` APLICADA el 2026-10-31 (la pegó Felipe; su consulta de verificación dio las dos funciones con `marca_solo_lider`, `deshacer_marca_fase` borrada
   y el permiso de `authenticated` intacto en las dos). Una parte, re-ejecutable; iba ANTES de publicar la web (la web nueva ya no llama a `deshacer_marca_fase`; la vieja sí, y entre el pegado y la
   publicación su «Deshacer» responde con un error unos minutos). Las dos anclas se comprobaron contra la función viva de producción el 2026-10-31 (una sola vez cada una).
+
+## Actualización 2026-11-01 — actividad 3: «Lo anotado aquí», corregir desde el paso
+
+Corregir lo anotado ya existía (ADR-0570): el lápiz de cada entrada de la historia abre «Corregir» (un «Terminé») o «Anular» (una Salida o una Vuelta), con motivo y con «Restaurar». Lo que
+faltaba era llegar desde donde se anotó: quien se equivocó en Corte tenía que bajar a la historia, que mezcla todos los pasos y todos los días, y encontrar su fila.
+
+**Decisiones de Felipe (preguntas del 2026-11-01, mirando dos maquetas):**
+1. **La forma:** una lista dentro del paso abierto, «Lo anotado aquí», con cada anotación de ese paso y su lápiz (descartó «un botón y elegir»).
+2. **Quién:** quien opera el Taller, como en la historia; no solo el líder. Confirma la objeción del 2026-10-30: la colaboradora arregla su propio dato sin esperar al líder, siempre con
+   motivo y con su rastro.
+
+**Lo que se construyó (solo pantalla; la base no cambia):**
+- `anotadoDelPaso(fase, orden, hoy)` y `filaDelPaso(entrada)` en `lib/orden-pagina-reglas.ts`: son las mismas entradas de la historia (`lineaDeTiempoAgrupada`), filtradas por el paso
+  (`EntradaDeTiempo.faseClave`, nuevo). El lápiz sale solo si la historia ya se lo pone (`corregible` o `anulable`, que vienen de la base): no hay regla nueva que pueda contradecirla.
+  Una Salida o una Vuelta viva que ya no se anula se queda en la lista, sin lápiz y con su porqué («sus prendas ya volvieron»; «el paso siguiente ya usó estas prendas»): la base tiene un
+  solo motivo para cada una cuando sigue viva (`anular_ya_volvio`, `anular_ya_avanzo`), y una prueba lee la migración para que no se aparten. Si desapareciera, la colaboradora creería que
+  se borró (revisión independiente del 2026-11-01).
+  Un hito (Ploteo) no trae lista: su marca tiene su propio botón (actividad 2). Un cambio de la historia (una corrección, una eliminación) no es de ningún paso: su «Restaurar» sigue en la historia.
+- `PasoAbierto` (`components/orden-pagina/RutaViva.tsx`): bajo los botones, `<TituloGrupo cuenta>` «Lo anotado aquí» y una fila por anotación —qué fue («Terminó», «Prendas con falla»,
+  «Salida», «Vuelta»), día y hora, quién, cuánto y, debajo, las tallas («2 de Beige · S»), porque dos del mismo día por la misma persona se veían iguales; el texto pasa a la línea siguiente
+  en vez de cortarse— con `<LapizEditar>` (su nombre para el lector lleva el día, la hora y las tallas). Se ven 3; las
+  demás, con «Ver N más» (`<BotonVerMas>` + `<FilasDeMas>`). El lápiz abre las mismas hojas que el de la historia. El permiso es el mismo: `permisos.puedeOperar` y la orden en proceso.
+- Guía interactiva: pasos `anotado-paso` y `corregir-paso` (opcionales; explican, no tocan); huella aceptada tras recorrerla.
+
+- **DECIDÍ:** reusar las entradas y las hojas de la historia, filtradas por el paso, en vez de una vista o una regla propia.
+- **DESCARTÉ:** (a) «Corregir lo anotado» como un botón que abre una hoja para elegir cuál: un toque más y una hoja más que mantener, y Felipe eligió ver la lista; (b) una regla propia de
+  «qué se puede corregir desde el paso»: dos reglas para lo mismo terminan diciendo cosas distintas (Brooks); (c) pasar corregir a solo el líder: la colaboradora esperaría al líder para
+  arreglar un número que ella misma anotó mal, y pedía una migración sin ganar nada que la historia (motivo, quién, «Restaurar») no dé ya.
+- **SE ROMPE SI:** la base suma otro motivo para no anular una salida o una vuelta viva (la prueba de `orden-pagina-reglas.test.ts` que lee `20261015160000` falla y avisa: el porqué
+  de la fila diría algo falso). O una ruta trae dos veces la misma clave de paso: la lista —como el lápiz de la historia, que abre la fase por su clave (`faseDeLaAnotacion`)— no
+  distinguiría a cuál pertenece cada anotación.
+
