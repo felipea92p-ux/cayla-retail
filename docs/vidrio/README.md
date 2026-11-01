@@ -22,7 +22,7 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 | Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | Elegido | C · Dos islas; el buscador se encoge con la cabecera hasta quedar en una lupa | `marco-vidrio-2026-10/` |
 | El combo: la sede y todos los demás | `ui/campos.tsx` (`Desplegable`, 7 formas), `UbicacionSwitcher.tsx` | Elegido | A · Gota viajera | `marco-vidrio-2026-10/` |
 | Íconos del marco | `lib/menu-iconos.ts` (trazo 1,5) | Elegido | A · Se llena al elegir: la pantalla en que estás, con su dibujo lleno de vidrio (34 %) | `iconos-vidrio-2026-11/` |
-| Cajón del menú en el celular | `AppShell.tsx` (`cajon-lateral`), `useLateralConElDedo.ts` | En maqueta | — (recomendada: A · Hoja con profundidad) | `cajon-menu-vidrio-2026-11/` |
+| Cajón del menú en el celular | `AppShell.tsx` (`cajon-lateral`), `useLateralConElDedo.ts` | Elegido | A · Hoja con profundidad | `cajon-menu-vidrio-2026-11/` |
 
 ## 2. Las hojas
 
