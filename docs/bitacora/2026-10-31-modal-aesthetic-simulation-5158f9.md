@@ -137,3 +137,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   tono al 10→18 %, luz arriba y filo del tono al 26 %, 24 px; neutro sin arena maciza; apagado y tinta, vidrio claro con su contorno) y
   `<Globito>` en «A · Gota» (gota de vidrio teñida: ámbar si pide, rojo si es error; el de la esquina, gota ahumada con anillo de vidrio),
   en `vidrio/pantalla.css`. Visto en Compras, claro y oscuro.
+
+- **Vacío y paginación al vidrio (Felipe 2026-11-01):** `<Vacio>` en «B · Pozo» (`.vacio-ic` es un hueco: tinta al 6 %, filo de
+  `borde-control` al 45 %, sombra interior; el ícono que se dibuja y su onda no cambian; sus filtros puestos ya iban en el ahumado) y
+  `<Paginas>` en «A · Gota en su pozo» (la fila en un pozo, números de 34 px, la actual es la gota clara que viaja 320 ms con letra tinta en
+  negrita). En un teléfono (≤ 400 px de ventana; la maqueta lo pedía por ancho del contenedor, pero `.paginas` no tiene uno propio) se
+  esconden las páginas lejanas y los «…»: queda «‹ 2 3 4 ›». `Paginas` marca `lejana` y `lib/paginas.test.ts` lo vigila.
