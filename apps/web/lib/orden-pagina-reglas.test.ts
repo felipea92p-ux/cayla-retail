@@ -105,6 +105,8 @@ import {
   type FasePagina,
   type OrdenPagina,
   type TipoEvento,
+  anotadoDelPaso,
+  filaDelPaso,
   MAX_MOTIVO_CAMBIO,
   MAX_NOTA_ORDEN,
   RPC_COMENTAR_ORDEN,
@@ -586,6 +588,82 @@ describe("rojoDeLaOrden — las tres causas, cada una con su porqué", () => {
   });
   it("una orden cerrada o anulada no pide nada, aunque su fecha ya pasó", () => {
     for (const estado of ["terminada", "anulada"]) expect(rojoDeLaOrden(orden({ orden: { ...crudo().orden, estado } }), "2026-12-01")).toEqual([]);
+  });
+});
+
+describe("anotadoDelPaso (ADR-0586, actividad 3: corregir desde el paso)", () => {
+  const faseDeLaOrden = (p: OrdenPagina, clave: string) => {
+    const f = p.fases.find((x) => x.clave === clave);
+    if (!f) throw new Error(`la orden de prueba no tiene ${clave}`);
+    return f;
+  };
+  const evento = (e: Record<string, unknown>) => ({ cuando: "2026-10-16T16:00:00+00:00", quien_nombre: "Rosa", fase_clave: "costura", fase_nombre: "Costura", cantidad: 20, detalle: null, avance_id: null, ...e });
+
+  it("el paso trae su «Terminé» con lo mismo que la historia, y la fila no repite el paso", () => {
+    const p = orden();
+    const [terminado, ...resto] = anotadoDelPaso(faseDeLaOrden(p, "corte"), p, "2026-10-16");
+    expect(resto).toEqual([]);
+    expect(terminado.corregible).toMatchObject({ faseClave: "corte", dia: "2026-10-15" });
+    expect(terminado.ids).toEqual(lineaDeTiempoAgrupada(p, "2026-10-16")[1].entradas[0].ids);
+    expect(filaDelPaso(terminado)).toEqual({ que: "Terminó", cuando: `jue 15 oct, ${terminado.hora}`, quien: "Rosa", cuanto: "48 prendas", detalle: "Negro 24 · Caqui 24", fija: null });
+  });
+
+  it("un «Terminé» con una talla deshecha ya no está vivo y sale; una Salida que la base no deja anular se queda, sin lápiz y con su porqué", () => {
+    const p = orden({ deshechos: ["a-c32"] });
+    expect(anotadoDelPaso(faseDeLaOrden(p, "corte"), p, "2026-10-16")).toEqual([]);
+    const sinAnular = orden();
+    const [salida, ...resto] = anotadoDelPaso(faseDeLaOrden(sinAnular, "costura"), sinAnular, "2026-10-16");
+    expect(resto).toEqual([]);
+    expect(salida.anulable).toBeNull();
+    expect(filaDelPaso(salida)).toMatchObject({ que: "Salida", fija: "Ya no se anula: sus prendas ya volvieron. Si la vuelta estaba mal, anula primero la vuelta." });
+  });
+
+  it("una Vuelta viva que ya no se anula dice que el paso siguiente ya la usó; una anulada sale de la lista", () => {
+    const p = orden({ linea_de_tiempo: [evento({ id: "v-1", tipo: "vuelta", anulable: false }), evento({ id: "v-2", tipo: "vuelta", anulable: false, anulada: true, cuando: "2026-10-16T15:00:00+00:00" })] });
+    const lista = anotadoDelPaso(faseDeLaOrden(p, "costura"), p, "2026-10-16");
+    expect(lista.map((e) => e.ids[0])).toEqual(["v-1"]);
+    expect(filaDelPaso(lista[0]).fija).toBe("Ya no se anula: el paso siguiente ya usó estas prendas.");
+  });
+
+  it("el porqué de «ya no se anula» es el único motivo que la base tiene para una salida o una vuelta viva (20261015160000)", () => {
+    const sql = readFileSync(join(RAIZ, "supabase", "migrations", "20261015160000_produccion_anular_salida_y_vuelta.sql"), "utf8");
+    const cuerpo = (nombre: string) => sql.slice(sql.indexOf(`function retail.${nombre}`), sql.indexOf("$$;", sql.indexOf(`function retail.${nombre}`)));
+    // Fuera de inexistente, anulación y ya anulada (que la lista ya saca), cada una devuelve un solo motivo.
+    const motivos = (c: string) => [...c.matchAll(/return '([a-z_]+)'/g)].map((m) => m[1]).filter((m) => !["anular_inexistente", "anular_es_anulacion", "anular_ya_anulada"].includes(m));
+    expect(motivos(cuerpo("fn_produccion_salida_anulable"))).toEqual(["anular_ya_volvio"]);
+    expect(motivos(cuerpo("fn_produccion_vuelta_anulable"))).toEqual(["anular_ya_avanzo"]);
+  });
+
+  it("una Salida y una Vuelta anulables entran a su paso con su lápiz, de la más reciente a la más vieja; lo de otro paso y lo ya anulado, no", () => {
+    const p = orden({
+      linea_de_tiempo: [
+        evento({ id: "s-1", tipo: "salida", anulable: true, cuando: "2026-10-15T15:00:00+00:00" }),
+        evento({ id: "v-1", tipo: "vuelta", anulable: true, cuando: "2026-10-16T15:00:00+00:00" }),
+        evento({ id: "s-otra", tipo: "salida", anulable: true, fase_clave: "acabado", fase_nombre: "Acabado" }),
+        evento({ id: "s-anulada", tipo: "salida", anulable: true, anulada: true }),
+      ],
+    });
+    const lista = anotadoDelPaso(faseDeLaOrden(p, "costura"), p, "2026-10-16");
+    expect(lista.map((e) => e.ids[0])).toEqual(["v-1", "s-1"]);
+    expect(lista.map((e) => filaDelPaso(e).que)).toEqual(["Vuelta", "Salida"]);
+    expect(lista.map((e) => filaDelPaso(e).fija)).toEqual([null, null]);
+  });
+
+  it("un cambio de la historia (una corrección, una eliminación) no es de ningún paso: no tiene fase", () => {
+    // Una eliminación lleva la fase de lo que quitó, pero la entrada es del cambio: el paso no la lista (su «Restaurar» vive en la historia).
+    const nota = { id: "c-1", accion: "eliminar", objeto: "avance", fase_clave: "corte", fase_nombre: "Corte", quita_ids: [], pone_ids: [], deshace_ids: [], antes: null, despues: null, texto: "Se anotó dos veces", restaurado: false, quien_nombre: "Felipe", cuando: "2026-10-16T17:00:00+00:00" };
+    const p = orden({ cambios: [nota] });
+    const delCambio = lineaDeTiempoAgrupada(p, "2026-10-16").flatMap((d) => d.entradas).find((e) => e.ids[0] === "c-1");
+    expect(delCambio?.faseClave).toBeNull();
+    expect(anotadoDelPaso(faseDeLaOrden(p, "corte"), p, "2026-10-16").map((e) => e.ids[0])).not.toContain("c-1");
+  });
+
+  it("un hito (Ploteo) no trae lista aunque la historia tenga algo suyo que se anula: su marca ya tiene su botón (ADR-0586 act. 2)", () => {
+    const p = orden({ linea_de_tiempo: [evento({ id: "s-pl", tipo: "salida", anulable: true, fase_clave: "ploteo", fase_nombre: "Ploteo" })] });
+    const ploteo: FasePagina = { ...faseDeLaOrden(p, "corte"), clave: "ploteo", nombre: "Ploteo", hito: true, marcada: true, hechas: 0 };
+    // Sin la guarda del hito la salida entraría: es la misma fase y la historia la deja anular.
+    expect(anotadoDelPaso({ ...ploteo, hito: false }, p, "2026-10-16").map((e) => e.ids[0])).toEqual(["s-pl"]);
+    expect(anotadoDelPaso(ploteo, p, "2026-10-16")).toEqual([]);
   });
 });
 
