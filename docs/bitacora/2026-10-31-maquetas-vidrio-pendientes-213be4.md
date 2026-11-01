@@ -40,3 +40,8 @@
   sólida), A · La gota de Mi perfil (recomendada: la de las hojas, que fluye de una a otra), B · Vidrio ahumado y C · La gota del menú,
   sobre Compras (conteos que piden y que avisan) y Finanzas (seis con ícono). Medidas 96 combinaciones (320 a 1920 px, claro y oscuro)
   en Chrome sin ventana: sin desbordes y la gota siempre sobre la elegida. Felipe eligió **A · La gota de Mi perfil**.
+- **Lo elegido, a la sesión que implementa** (Felipe: «pásale todo lo que elegí a la otra sesión y que lo implemente en local»): mensaje
+  a la sesión de los modales con las cuatro piezas de pantalla y la técnica de la cabecera pegada; la rama subió a origin.
+- **Inicio del líder, entero:** maqueta `docs/maquetas/inicio-lider-vidrio-2026-10/` con lo ya elegido y un selector por cada pieza que
+  faltaba (títulos, «Te toca», accesos, equipo, barra de avance, interruptor de «Ajustar», barra del celular); medida en 72 + 6
+  combinaciones sin desbordes. Espera a Felipe.
