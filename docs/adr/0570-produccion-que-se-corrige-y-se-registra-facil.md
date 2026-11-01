@@ -75,7 +75,7 @@ Se analizó con 4 agentes: Insumos, la página de la orden, el modelo de pasos c
 6. Insumos como «Estante en tabla», con corregir y eliminar ingresos.
 7. «Llegó una compra», con su pago.
 8. Avíos simples y detallados en la ficha del modelo.
-9. Consumibles con monto fijo por prenda.
+9. ~~Consumibles con monto fijo por prenda.~~ **Descartada el 2026-10-31 (ADR-0594):** el consumible es un gasto de la sede Taller y no entra al costo de la prenda; el monto fijo contaba el mismo dinero dos veces.
 10. Cierre: `/chaos`, `/formidable`, guías y documentos.
 
 La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566): «+ Agregar un paso» deja usar Ojal y botón desde el primer día. **Sus dos SQL van antes que los de esta obra.**

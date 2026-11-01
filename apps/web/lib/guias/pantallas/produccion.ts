@@ -257,6 +257,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
+      id: "talla-nueva",
+      ancla: "prod-orden-nueva.talla-nueva-boton",
+      opcional: true,
+      titulo: "¿Falta una talla o un color?",
+      texto: "El «+ Talla» de la derecha y el «+ Color» de abajo le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla. Es de quien edita el catálogo; si no, salen apagados y dicen por qué.",
+    },
+    {
       id: "red",
       ancla: "prod-orden-nueva.red",
       opcional: true,
@@ -1024,7 +1031,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-insumos.nuevo" }],
       titulo: "Qué avío es",
-      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen tres cosas solas: en qué se cuenta, si lleva color y qué medida se le pide. Si es otra cosa, la creas ahí mismo. El código se arma solo con las letras de su clase.",
+      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen solas la unidad, si lleva color y qué medida se le pide. El código se arma solo. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller.",
     },
     {
       id: "avio-unidad",

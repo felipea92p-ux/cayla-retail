@@ -242,6 +242,10 @@ export function NuevoAvioModal({
       variante="hoja"
       tamano="ancha"
       onClose={onClose}
+      // Mientras la escritura está en camino, la hoja no se cierra: antes ofrecía «todavía no se creó… se pierde lo que
+      // escribiste», se pulsaba «Salir sin guardar» y el avío se creaba igual. Afirmar lo que no se sabe, justo en el
+      // momento en que la persona decide (/chaos 2026-10-31).
+      bloqueado={cargando}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
       <IdentidadAltaProveedor control={responsable}>
@@ -251,7 +255,7 @@ export function NuevoAvioModal({
               <section data-guia="prod-avio-nuevo.que-es" className="space-y-3">
                 <TituloGrupo>Qué avío es</TituloGrupo>
                 <CampoGuiado id="clase" guia={guia}>
-                  <Campo etiqueta={guia.etiqueta("clase", "Clase de avío")} pie="De aquí salen en qué se cuenta, si lleva color y qué medida se le pide." sinPie={false}>
+                  <Campo etiqueta={guia.etiqueta("clase", "Clase de avío")} pie="De aquí salen en qué se cuenta, si lleva color y qué medida se le pide. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller." sinPie={false}>
                     {leyoClases ? (
                       <ComboBuscable
                         valor={claseId}
@@ -532,7 +536,7 @@ export function NuevoAvioModal({
 
           <div className="pie-hoja-fijo">
             <div className="pie-acciones border-t border-sand pt-3">
-              <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
+              <Boton type="button" disabled={cargando} onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
               </Boton>
               <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>

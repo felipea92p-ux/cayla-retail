@@ -1077,6 +1077,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - **Nueva orden con decisión (F5, solo líder):** `app/(app)/produccion/ordenes/page.tsx` → `lib/decision-produccion.ts:getDecisionProduccion` (ritmo y stock de cada sede por `getFilasRecientesDeSede` →
   `fn_resumen_variantes`; consumo real de órdenes cerradas; saldo de Insumos; lo facturado por llegar) + `lib/produccion-decision-reglas.ts` (puro: demanda de la red, curva sugerida, rendimiento medido, ¿alcanza?) →
   `OrdenesLista.tsx` → `NuevaOrdenProduccionForm.tsx`. Sin esquema nuevo.
+  **«+ Talla» y «+ Color» (2026-10-31, ADR-0591):** sobre la matriz de un modelo que existe, `NuevaOrdenProduccionForm.tsx` abre `orden-produccion/AgregarTallaModal.tsx` y `AgregarColorAlModeloModal.tsx` (llamada, responsable y refresco en `useAgregarVariantes.ts`; qué se ofrece y qué se dice en `lib/agregar-variantes-orden-reglas.ts`) → RPC `agregar_variantes_a_modelo(taller, modelo, tallas[], colores[])` (migración `20261031172000`, todo o nada, sin stock).
 - **Candado del dinero de Producción (F4e, D-G):** `authenticated` no tiene SELECT sobre `insumo_lotes.costo_unitario`, `movimientos_insumo.costo_unitario` ni `producciones.costo_*` (privilegio por columna).
   El líder los lee por `fn_costos_insumos_taller` y `fn_costos_producciones` (`lib/insumos.ts`, `lib/produccion.ts`); las RPC `security definer` los leen por su dueño. `v_insumo_saldos` cerrada.
 - `/produccion/recibir` (Taller: líder y colaborador del Taller, SIN montos) → `lib/recibir-produccion.ts` (RPC `fn_lineas_comprobantes_produccion`: solo cantidades) +
@@ -1360,7 +1361,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/club/[tienda]`, `/club/privacidad`, `/club/terminos` (PÚBLICAS, sin sesión; `proxy.ts` deja pasar solo `/club/<uuid>` y
   esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g). **Desde el 2026-10-16 el Club empieza al crear la cuenta en la tienda
   online** (Felipe; `20261016154000`, ADR-0288 act. p): `/club/<uuid>`, la dirección de los carteles ya impresos, solo redirige (307) a
-  `DIRECCION_TIENDA_ONLINE` (https://tienda.cayla.pe, `lib/club-qr-reglas.ts`); su registro, sus acciones de servidor y
+  `DIRECCION_TIENDA_ONLINE` (https://cayla.pe desde ADR-0595, `lib/club-qr-reglas.ts`); su registro, sus acciones de servidor y
   `/api/club/nombre` se retiraron, y `registrarse_en_el_club` quedó sin llamador en la web (la usan las pruebas del Club). La política
   y los términos siguen: `lib/club-pagina.ts` → `fn_club_pagina` (como `anon`) → `PaginaLegalClub.tsx`, con las reglas que quedan en
   `lib/club-registro-reglas.ts` (lectura de la página, marcadores, fechas, bloques del texto legal).

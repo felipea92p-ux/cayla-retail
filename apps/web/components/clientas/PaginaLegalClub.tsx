@@ -42,7 +42,7 @@ export async function PaginaLegalClub({ cual, t }: { cual: "privacidad" | "termi
           {TITULOS[otro]}
         </a>
         <a href={DIRECCION_TIENDA_ONLINE} className="club-enlace club-enlace-amplio">
-          Únete al Club en tienda.cayla.pe
+          Únete al Club en cayla.pe
         </a>
       </p>
     </HojaClub>
