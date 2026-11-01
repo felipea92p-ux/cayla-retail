@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-av="lente" data-es="hoja" data-vn="ahumada">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>El sistema que habla, con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · «el sistema que habla» con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Tres piezas que nadie monta: salen solas cuando el ERP tiene algo que decir.
+   · Los avisos de la esquina (components/ui/Avisos.tsx, estilos/avisos.css, ADR-0146): éxito, error, advertencia y proceso; el anillo que
+     se dibuja, el glifo que se traza, el texto que se revela, la onda, y el anillo que se vacía como reloj. Hoy: tarjeta de PAPEL macizo.
+   · El loader a pantalla completa (components/ui/Espera.tsx, ADR-0149): velo crema/60 con desenfoque de 3 px y una tarjeta de PAPEL con
+     el colibrí, el arco rojo que gira y el hilo que barre.
+   · «Hay una versión nueva» (components/VersionNueva.tsx, ADR-0422): la gota que cae, rebota una vez y se riega hasta ser una píldora de
+     TINTA SÓLIDA. El movimiento está decidido (el único rebote del ERP): aquí se copia tal cual y solo cambia el material.
+   Montada sobre el marco y las piezas elegidas (../vidrio-base-2026-10/). Solo tokens, claro y oscuro. Movimiento como hoy (ADR-0136):
+   nada nuevo en bucle; todo se apaga con prefers-reduced-motion. El círculo rojo es el lugar del colibrí del logo.
+   ==================================================================== */
+
+/* ---------- la capa donde hablan (dentro del aparato) ---------- */
+.capas{position:absolute;inset:0;z-index:40;pointer-events:none}
+.capas>*{pointer-events:auto}
+
+/* ============ 1 · LOS AVISOS DE LA ESQUINA ============ */
+.pila{position:absolute;top:16px;right:16px;z-index:70;width:min(352px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.pila[hidden]{display:none}
+.aviso-e{--c:var(--verde);--anillo:106.81;position:relative;display:flex;align-items:flex-start;gap:12px;overflow:hidden;pointer-events:auto;
+  border:1px solid var(--sand);border-radius:12px;background:var(--papel);padding:12px 10px 12px 12px;
+  box-shadow:0 10px 24px -8px color-mix(in srgb,var(--sombra) 18%,transparent),0 2px 4px color-mix(in srgb,var(--sombra) 6%,transparent);
+  animation:av-entra .26s var(--ease) both}
+.aviso-e[data-tono="error"]{--c:var(--rojo)}.aviso-e[data-tono="aviso"]{--c:var(--ambar)}.aviso-e[data-tono="proceso"]{--c:var(--tinta)}
+.aviso-e[data-sale]{animation:av-sale .26s var(--ease) forwards;pointer-events:none}
+.av-tit{padding-top:6px;font-size:14px;font-weight:600;line-height:1.35;animation:av-revela .36s var(--ease) .2s both}
+.av-tit:has(+.av-det){padding-top:4px}
+.av-det{margin-top:1px;font-size:13px;line-height:1.4;color:var(--t65);animation:av-revela .36s var(--ease) .255s both}
+.av-acc{margin:-2px 0 -8px;padding:8px 0;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px;animation:av-revela .36s var(--ease) .255s both}
+.av-x{border-radius:6px;padding:4px;line-height:0;color:var(--t50);opacity:0;transition:opacity .2s var(--ease)}
+.av-x svg{width:14px;height:14px}
+@media (hover:hover){.aviso-e:hover .av-x{opacity:1}.av-x:hover{color:var(--tinta)}}
+@media (hover:none){.av-x{opacity:1}}
+.av-ico{position:relative;flex:none;display:grid;place-items:center;width:32px;height:32px}
+.av-anillo{position:absolute;inset:-2px;width:36px;height:36px;overflow:visible;transform:rotate(-90deg)}
+:where(.av-anillo circle){fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
+.av-disco{stroke:none!important;fill:color-mix(in srgb,var(--c) 11%,transparent);animation:av-disco .3s var(--ease) .06s both}
+.av-pista{opacity:.16}
+.av-onda{stroke-width:1.5!important;opacity:0;animation:av-onda .6s var(--ease) .52s both}
+.av-reloj{stroke-dasharray:var(--anillo);animation:av-dibuja .46s var(--ease) .06s both,av-reloj var(--ms) linear .52s forwards}
+@media (hover:hover){.aviso-e:hover .av-reloj{animation-play-state:paused,paused}}
+.aviso-e[data-tono="proceso"] .av-disco{animation:none;fill:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.aviso-e[data-tono="proceso"] .av-onda{display:none}
+.aviso-e[data-tono="proceso"] .av-reloj{animation:none;stroke-dashoffset:calc(var(--anillo) * (1 - var(--p,.28)));transition:stroke-dashoffset .5s var(--ease)}
+.aviso-e[data-continua] .av-disco{animation:none}
+.aviso-e[data-continua] .av-reloj{animation:av-reloj var(--ms) linear .52s forwards}
+.av-glifo{position:relative;width:16px;height:16px;overflow:visible;fill:none;stroke:var(--c);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.av-trazo{stroke-dasharray:1;stroke-dashoffset:1;animation:av-traza .36s var(--ease) .26s forwards}
+.av-trazo-2{animation-delay:.4s}
+.av-punto{fill:var(--c);stroke:none;transform-box:fill-box;transform-origin:center;animation:av-pop .24s var(--ease) .56s both}
+@keyframes av-entra{from{opacity:0;transform:translateX(14px)}}
+@keyframes av-sale{0%{opacity:1;max-height:var(--h,6rem)}55%{opacity:0;transform:translateX(8px);max-height:var(--h,6rem)}100%{opacity:0;transform:translateX(8px);max-height:0;padding-top:0;padding-bottom:0;margin-bottom:-8px;border-width:0}}
+@keyframes av-disco{from{opacity:0;transform:scale(.55)}}
+@keyframes av-dibuja{from{stroke-dashoffset:106.81}to{stroke-dashoffset:0}}
+@keyframes av-reloj{from{stroke-dashoffset:0}to{stroke-dashoffset:106.81}}
+@keyframes av-onda{0%{opacity:.4;transform:scale(1)}100%{opacity:0;transform:scale(1.55)}}
+@keyframes av-traza{to{stroke-dashoffset:0}}
+@keyframes av-pop{from{opacity:0;transform:scale(.3)}}
+@keyframes av-revela{from{opacity:.2;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0)}}
+
+/* A · Placa Serena: la tarjeta pasa a la placa de vidrio de las hojas (Serena): se ve lo de atrás, con su luz arriba. El tono vive solo
+   en el anillo, como hoy. */
+[data-av="placa"] .aviso-e{border-radius:20px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 22px 40px -22px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-av="placa"] .aviso-e{background:color-mix(in srgb,var(--vidrio) 84%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 22px 40px -22px var(--sombra)}
+/* B · Lente del tono: la misma placa, teñida apenas de lo que dice (verde, rojo, ámbar) con un filo del tono: la lente del aviso de las
+   hojas (elegido: «Aviso B · Lente») y de la insignia (A · Lente de color). Un error se reconoce antes de leerlo. */
+[data-av="lente"] .aviso-e{border-radius:20px;border:1px solid color-mix(in srgb,var(--c) 28%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 5%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 60%,transparent)));
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 22px 40px -22px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-av="lente"] .aviso-e[data-tono="proceso"]{border-color:color-mix(in srgb,var(--vidrio) 55%,transparent)}
+[data-tema="oscuro"][data-av="lente"] .aviso-e{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 12%,color-mix(in srgb,var(--vidrio) 86%,transparent)),color-mix(in srgb,var(--c) 18%,color-mix(in srgb,var(--vidrio) 80%,transparent)));
+  border-color:color-mix(in srgb,var(--c) 34%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 22px 40px -22px var(--sombra)}
+/* C · Isla ahumada: la notificación del celular: vidrio ahumado de tinta (como el botón primario), letra crema; el anillo del tono
+   sobre lo oscuro. En oscuro se invierte, como todo lo ahumado. */
+[data-av="isla"] .aviso-e{border-radius:22px;border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 28%,transparent),0 22px 40px -20px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-av="isla"] .av-det{color:color-mix(in srgb,var(--crema) 76%,transparent)}
+[data-av="isla"] .av-x{color:color-mix(in srgb,var(--crema) 72%,transparent)}
+[data-av="isla"] .aviso-e[data-tono="exito"]{--c:color-mix(in srgb,var(--verde) 55%,var(--crema))}
+[data-av="isla"] .aviso-e[data-tono="error"]{--c:color-mix(in srgb,var(--rojo) 70%,var(--crema))}
+[data-av="isla"] .aviso-e[data-tono="aviso"]{--c:color-mix(in srgb,var(--ambar) 55%,var(--crema))}
+[data-av="isla"] .aviso-e[data-tono="proceso"]{--c:var(--crema)}
+[data-tema="oscuro"][data-av="isla"] .aviso-e[data-tono="exito"]{--c:color-mix(in srgb,var(--verde) 70%,var(--crema))}
+[data-tema="oscuro"][data-av="isla"] .aviso-e[data-tono="error"]{--c:color-mix(in srgb,var(--rojo) 75%,var(--crema))}
+[data-tema="oscuro"][data-av="isla"] .aviso-e[data-tono="aviso"]{--c:color-mix(in srgb,var(--ambar) 70%,var(--crema))}
+
+/* ============ 2 · EL LOADER A PANTALLA COMPLETA ============ */
+.espera{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:0 16px;cursor:progress;
+  background:color-mix(in srgb,var(--crema) 60%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:funde .22s var(--ease) both}
+.espera[hidden]{display:none}
+.espera[data-sale]{animation:es-sale .22s var(--ease) forwards}
+.es-hoja{position:relative;width:100%;max-width:380px;overflow:hidden;border-radius:20px;background:var(--papel);padding:24px;text-align:center;
+  box-shadow:0 22px 44px -22px color-mix(in srgb,var(--sombra) 50%,transparent),0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent);animation:es-entra .32s var(--ease) both}
+.es-marca{position:relative;margin:0 auto 14px;display:grid;place-items:center;width:64px;height:64px}
+.es-marca .colibri-m{width:22px;height:22px;border-radius:50%;background:var(--rojo)}
+.es-marca svg{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke-width:2}
+.es-pista{stroke:var(--sand)}
+.es-arco{stroke:var(--rojo);stroke-linecap:round;transform-origin:center;animation:es-gira 1.1s linear infinite}
+.es-et{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.es-tit{margin-top:6px;font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:26px;line-height:1.15}
+.es-tit em{font-style:normal;color:var(--rojo-p)}
+.es-det{margin-top:8px;font-size:13px;color:var(--t65)}
+.es-hilo{position:absolute;left:0;right:0;bottom:0;height:2px;overflow:hidden}
+.es-hilo i{display:block;height:100%;width:33%;background:var(--rojo);animation:es-barre 1.1s linear infinite}
+@keyframes es-gira{to{transform:rotate(360deg)}}
+@keyframes es-barre{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
+@keyframes es-entra{from{opacity:0;transform:translateY(18px) scale(.97)}}
+@keyframes es-sale{to{opacity:0}}
+
+/* A · Hoja Serena: el loader es una hoja más. El velo de las hojas (sombra, no crema: la pantalla se oscurece apenas en vez de lavarse)
+   y la tarjeta en la hoja Serena elegida; el arco y el hilo, como hoy. */
+[data-es="hoja"] .espera{background:color-mix(in srgb,var(--sombra) 20%,transparent);-webkit-backdrop-filter:blur(1.5px);backdrop-filter:blur(1.5px)}
+[data-tema="oscuro"][data-es="hoja"] .espera{background:color-mix(in srgb,var(--sombra) 42%,transparent)}
+[data-es="hoja"] .es-hoja{border-radius:32px;padding:30px 28px 28px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 70%,transparent);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"][data-es="hoja"] .es-hoja{background:color-mix(in srgb,var(--vidrio) 82%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent),0 50px 90px -40px var(--sombra)}
+[data-es="hoja"] .es-pista{stroke:color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-es="hoja"] .es-hilo{left:32px;right:32px}
+/* B · Lente sola: sin tarjeta. Toda la pantalla se vuelve vidrio esmerilado (el velo desenfoca 8 px) y en el centro queda una lente con el
+   colibrí y su arco; las palabras van sueltas debajo, sobre el esmerilado. Lo más liviano, y lo más «se está pensando». */
+[data-es="lente"] .espera{background:color-mix(in srgb,var(--crema) 46%,transparent);-webkit-backdrop-filter:blur(8px) saturate(1.3);backdrop-filter:blur(8px) saturate(1.3)}
+[data-es="lente"] .es-hoja{background:none;box-shadow:none;padding:0;overflow:visible}
+[data-es="lente"] .es-marca{width:96px;height:96px;margin-bottom:18px;border-radius:50%;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent) 62%,color-mix(in srgb,var(--vidrio) 30%,transparent));
+  -webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+  box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -8px 16px -10px color-mix(in srgb,var(--sombra) 30%,transparent),0 18px 36px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-es="lente"] .es-marca{background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--vidrio) 75%,transparent) 62%);border-color:color-mix(in srgb,var(--tinta) 16%,transparent)}
+[data-es="lente"] .es-marca svg{inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px)}
+[data-es="lente"] .es-pista{stroke:transparent}
+[data-es="lente"] .es-det{color:var(--t80)}
+[data-es="lente"] .es-hilo{position:relative;margin:18px auto 0;width:120px;border-radius:2px;background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+
+/* ============ 3 · «HAY UNA VERSIÓN NUEVA» (movimiento copiado de estilos/avisos.css, ADR-0422) ============ */
+.vn{position:absolute;z-index:45;left:50%;translate:-50% 0;top:76px;display:flex;align-items:center;gap:10px;height:42px;max-width:calc(100% - 32px);
+  padding:0 5px 0 14px;border-radius:999px;background:transparent;color:var(--crema);font-size:13px;transform-origin:50% 100%;
+  animation:vn-cae 1s linear both,vn-sombra .4s var(--ease) 2.05s both}
+/* Hoy, en escritorio, va en la banda de la cabecera, centrada sobre el contenido. Con la cabecera «Dos islas» el centro lo ocupa a veces
+   el buscador: la píldora va en el HUECO entre las dos islas si cabe (colocarVersion(), abajo) y, si no cabe, justo bajo la cabecera,
+   centrada sobre el contenido (como hoy bajo 1024 px). */
+@container disp (min-width:1024px){.vn{left:calc(var(--cont-x) + (100% - var(--cont-x)) / 2)}}
+.vn[hidden]{display:none}
+.vn>:not(.vn-agua):not(.vn-luz){position:relative;flex:none;animation:vn-contenido .38s var(--ease) 1.65s backwards}
+.vn-punto{width:8px;height:8px;border-radius:50%;background:var(--crema)}
+.vn-texto{font-weight:500;white-space:nowrap}
+.vn-texto span{display:none;font-weight:400;color:color-mix(in srgb,var(--crema) 78%,transparent)}
+@container disp (min-width:640px){.vn-texto span{display:inline}}
+.vn-act{height:32px;padding:0 14px;border-radius:999px;font-size:13.5px;background:var(--crema);color:var(--tinta)}
+.vn-x{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.vn-x svg{width:16px;height:16px}
+@media (hover:hover){.vn-x:hover{background:color-mix(in srgb,var(--crema) 16%,transparent);color:var(--crema)}}
+.vn-agua{position:absolute;inset:0;border-radius:999px;overflow:hidden;pointer-events:none}
+.vn-goo{position:absolute;inset:-30px;filter:url(#liquido)}
+.vn-goo>i{position:absolute;display:block;background:var(--tinta)}
+.vn-gota{left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;animation:vn-gota .26s cubic-bezier(.4,0,.3,1) .95s both}
+.vn-piso{left:50%;bottom:30px;height:20px;border-radius:999px;translate:-50% 0;animation:vn-piso .7s cubic-bezier(.2,.7,.3,1) 1s both}
+.vn-cab-l,.vn-cab-r{left:50%;bottom:30px;width:26px;height:26px;margin-left:-13px;border-radius:50%;animation:vn-cabeza .7s cubic-bezier(.2,.7,.3,1) 1s both}
+.vn-cab-l{--dx:calc(var(--m,258px) * -1 + 13px)}.vn-cab-r{--dx:calc(var(--m,258px) - 13px)}
+.vn-col{left:50%;bottom:30px;width:calc(var(--m,258px) * .75);margin-left:calc(var(--m,258px) * -.375);border-radius:999px 999px 0 0;height:0;translate:calc(var(--m,258px) * var(--k)) 0;animation:vn-nivel .7s cubic-bezier(.3,.55,.3,1) var(--d) both}
+.vn-col-0{--k:0;--d:1.28s}.vn-col-1{--k:-.45;--d:1.37s}.vn-col-2{--k:.45;--d:1.37s}.vn-col-3{--k:-.9;--d:1.47s}.vn-col-4{--k:.9;--d:1.47s}
+.vn.sale{animation:vn-sombra-off .2s var(--ease) both,vn-cae-sale .5s cubic-bezier(.55,.05,.9,.5) .95s both}
+.vn.sale>:not(.vn-agua):not(.vn-luz){animation:vn-apaga .2s var(--ease) both;pointer-events:none}
+.vn.sale .vn-piso{animation:vn-piso-sale .6s cubic-bezier(.6,0,.3,1) .2s both}
+.vn.sale .vn-cab-l,.vn.sale .vn-cab-r{animation:vn-cabeza-sale .6s cubic-bezier(.6,0,.3,1) .2s both}
+.vn.sale .vn-col{animation:vn-nivel-sale .45s cubic-bezier(.5,0,.5,1) var(--ds) both}
+.vn.sale .vn-col-3,.vn.sale .vn-col-4{--ds:0ms}.vn.sale .vn-col-1,.vn.sale .vn-col-2{--ds:70ms}.vn.sale .vn-col-0{--ds:150ms}
+.vn.sale .vn-gota{animation:vn-gota-sale .15s var(--ease) .8s both}
+@keyframes vn-cae{0%{transform:translate3d(0,-90px,0) scale(1,1);animation-timing-function:cubic-bezier(.45,.05,.7,.55)}48%{transform:translate3d(0,12px,0) scale(1,1);animation-timing-function:cubic-bezier(.2,.6,.3,1)}54%{transform:translate3d(0,12px,0) scale(1.16,.84);animation-timing-function:cubic-bezier(.3,.1,.25,1)}90%,100%{transform:none}}
+@keyframes vn-sombra{from{box-shadow:0 12px 24px -10px transparent}to{box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}}
+@keyframes vn-contenido{from{opacity:0;transform:translate3d(0,4px,0)}}
+@keyframes vn-gota{from{translate:0 0;scale:1 1}to{translate:0 9px;scale:1.25 .8}}
+@keyframes vn-piso{from{width:18px;opacity:0}1%{opacity:1}to{width:calc(var(--m,258px) * 2 + 40px);opacity:1}}
+@keyframes vn-cabeza{from{translate:0 0;scale:.7;opacity:0}1%{opacity:1}to{translate:var(--dx) 0;scale:1;opacity:1}}
+@keyframes vn-nivel{from{height:0}to{height:64px}}
+@keyframes vn-sombra-off{from{box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}to{box-shadow:0 12px 24px -10px transparent}}
+@keyframes vn-apaga{to{opacity:0}}
+@keyframes vn-piso-sale{from{width:calc(var(--m,258px) * 2 + 40px);opacity:1}to{width:18px;opacity:1}}
+@keyframes vn-cabeza-sale{from{translate:var(--dx) 0;scale:1;opacity:1}to{translate:0 0;scale:.7;opacity:1}}
+@keyframes vn-nivel-sale{from{height:64px}to{height:0}}
+@keyframes vn-gota-sale{from{translate:0 9px;scale:1.25 .8}to{translate:0 0;scale:1 1}}
+@keyframes vn-cae-sale{from{transform:none;opacity:1}to{transform:translate3d(0,110px,0) scale(.85,1.15);opacity:0}}
+/* El vidrio de las dos caras llega cuando el líquido termina de llenar (1,65 s), con el contenido: así la gota que cae sigue siendo gota. */
+.vn-luz{position:absolute;inset:0;border-radius:999px;pointer-events:none;opacity:0;animation:vn-contenido .38s var(--ease) 1.65s forwards}
+.vn.sale .vn-luz{animation:vn-apaga .2s var(--ease) both}
+@keyframes vn-luz{to{opacity:1}}
+/* A · Gota ahumada: el mismo líquido, de tinta al 88 % (deja ver lo de atrás, desenfocado), con la luz de vidrio arriba y un filo: la
+   gota ahumada del botón primario. «Actualizar» es la gota clara. */
+[data-vn="ahumada"] .vn-agua{opacity:.88}
+[data-vn="ahumada"] .vn-luz{-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);animation-name:vn-luz}
+[data-vn] .vn::after{content:"";position:absolute;inset:0;border-radius:999px;pointer-events:none;opacity:0;animation:vn-luz .38s var(--ease) 1.65s forwards}
+[data-vn] .vn.sale::after{animation:vn-apaga .2s var(--ease) both}
+[data-vn="ahumada"] .vn::after{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 32%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 55%,transparent)}
+[data-vn="ahumada"] .vn-act{background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 98%,transparent),color-mix(in srgb,var(--crema) 84%,transparent));
+  box-shadow:inset 0 1px 0 var(--crema),0 4px 10px -6px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-tema="oscuro"][data-vn="ahumada"] .vn::after{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema) 40%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 55%,transparent)}
+/* B · Gota de vidrio claro: el líquido es vidrio claro (con un filo para que la gota se vea al caer sobre la crema), la letra tinta y
+   «Actualizar» la gota ahumada (el botón primario). Igual a una hoja, no a un aviso urgente. */
+[data-vn="claro"] .vn{color:var(--tinta)}
+[data-vn="claro"] .vn-goo{filter:url(#liquido) drop-shadow(0 0 .6px var(--borde)) drop-shadow(0 6px 10px color-mix(in srgb,var(--sombra) 18%,transparent))}
+[data-vn="claro"] .vn-goo>i{background:var(--vidrio)}
+[data-vn="claro"] .vn-agua{opacity:.78}
+[data-vn="claro"] .vn>.vn-luz{-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);animation-name:vn-luz}
+[data-vn="claro"] .vn::after{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--borde) 45%,transparent)}
+[data-vn="claro"] .vn-punto{background:var(--rojo)}
+[data-vn="claro"] .vn-texto span{color:var(--t65)}
+[data-vn="claro"] .vn-x{color:var(--t65)}
+@media (hover:hover){[data-vn="claro"] .vn-x:hover{background:var(--t06);color:var(--tinta)}}
+[data-vn="claro"] .vn-act{color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+[data-tema="oscuro"][data-vn="claro"] .vn-goo>i{background:color-mix(in srgb,var(--tinta) 30%,var(--vidrio))}
+
+/* ---------- la pantalla de fondo ---------- */
+.lista-p{margin-top:26px;border-radius:22px;overflow:hidden;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) .14s backwards}
+[data-tema="oscuro"] .lista-p{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.fp{position:relative;display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 1fr auto;gap:14px;align-items:center;min-height:62px;padding:0 20px;font-size:15px;text-align:center}
+.fp+.fp::before{content:"";position:absolute;top:0;left:20px;right:20px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.fp>:first-child{text-align:left}
+.fp small{display:block;font-size:13px;color:var(--t65)}
+.fp .btn{height:36px;padding:0 14px;font-size:13px}
+.prueba{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:16px 20px;border-radius:22px;border:1px dashed var(--borde);animation:sube .5s var(--ease) .2s backwards}
+.prueba .vs{width:100%}
+@container disp (max-width:760px){.fp{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px}.fp>:nth-child(2),.fp>:nth-child(3){display:none}}
+
+@media (prefers-reduced-motion:reduce){
+  .aviso-e,.aviso-e *{animation-duration:1ms!important;animation-delay:0s!important}
+  .aviso-e .av-reloj{animation-duration:1ms,var(--ms)!important}
+  .es-arco,.es-hilo i{animation:none}
+  .vn,.vn>*,.vn-goo>i,.vn-luz,.vn::after{animation:none!important}
+  .vn::after{opacity:1}
+  .vn-agua{display:none}.vn-luz{opacity:1}
+  [data-vn="ahumada"] .vn,:root:not([data-vn]) .vn{background:color-mix(in srgb,var(--tinta) 92%,transparent)}
+  [data-vn="claro"] .vn{background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:0 0 0 1px var(--borde)}
+}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">El sistema que habla, con vidrio: avisos de la esquina, el loader y «Hay una versión nueva»</span>
+  <span class="tag">Avisos</span><div class="seg-m" data-ctl="av"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa Serena</button><button data-v="lente">B · Lente del tono</button><button data-v="isla">C · Isla ahumada</button></div>
+  <span class="tag">Loader</span><div class="seg-m" data-ctl="es"><button data-v="ahora">Como ahora</button><button data-v="hoja">A · Hoja Serena</button><button data-v="lente">B · Lente sola</button></div>
+  <span class="tag">Versión nueva</span><div class="seg-m" data-ctl="vn"><button data-v="ahora">Como ahora</button><button data-v="ahumada">A · Gota ahumada</button><button data-v="claro">B · Gota de vidrio claro</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Probar</span>
+  <button class="accion" data-acc="guardar">Guardar → éxito</button><button class="accion" data-acc="error">Error</button><button class="accion" data-acc="advertencia">Advertencia</button><button class="accion" data-acc="proceso">Proceso con avance</button><button class="accion" data-acc="todos">Los cuatro juntos</button><button class="accion" data-acc="quieto">Loader quieto</button><button class="accion" data-acc="version">Versión nueva otra vez</button>
+</div>
+
+<svg width="0" height="0" aria-hidden="true" style="position:absolute"><filter id="liquido" x="-10%" y="-250%" width="120%" height="600%"><feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"/></filter></svg>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+  <div class="capas" id="capas">
+    <div class="vn" id="vn" role="status" hidden>
+      <span class="vn-luz" aria-hidden="true"></span>
+      <div class="vn-agua" aria-hidden="true"><div class="vn-goo"><i class="vn-gota"></i><i class="vn-piso"></i><i class="vn-cab-l"></i><i class="vn-cab-r"></i><i class="vn-col vn-col-0"></i><i class="vn-col vn-col-1"></i><i class="vn-col vn-col-2"></i><i class="vn-col vn-col-3"></i><i class="vn-col vn-col-4"></i></div></div>
+      <span class="vn-punto" aria-hidden="true"></span>
+      <p class="vn-texto" title="Termina lo que estás haciendo y actualiza.">Hay una versión nueva <span>· actualiza cuando termines</span></p>
+      <button class="vn-act" data-acc="actualizar">Actualizar</button>
+      <button class="vn-x" data-acc="mas-tarde" aria-label="Más tarde" title="Más tarde"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="espera" id="espera" role="status" aria-live="polite" hidden>
+      <div class="es-hoja">
+        <div class="es-marca"><span class="colibri-m" aria-hidden="true"></span><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="es-pista" cx="32" cy="32" r="29"/><circle class="es-arco" cx="32" cy="32" r="29" stroke-dasharray="46 137"/></svg></div>
+        <p class="es-et">Un momento</p>
+        <p class="es-tit" id="es-tit">Cargando</p>
+        <p class="es-det" id="es-det">Estamos procesando tu solicitud…</p>
+        <span class="es-hilo" aria-hidden="true"><i></i></span>
+      </div>
+    </div>
+    <div class="pila" id="pila" aria-live="polite"></div>
+  </div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>Los avisos de la esquina</b> (<code>Avisos.tsx</code>, ADR-0146): arriba a la derecha, máximo cuatro. Éxito 4 s, advertencia 6 s, error 8 s; el anillo se dibuja, el glifo se traza (✓, !, ⚠), el texto se revela y, recién a los 520 ms, el anillo empieza a vaciarse como reloj (con el mouse encima se detiene). El proceso llena el anillo con el avance real y se transforma en éxito sin cerrarse. <b>La tarjeta es papel macizo</b> con borde de arena y sombra: lo único sólido que flota sobre el vidrio.</li>
+      <li><b>El loader</b> (<code>Espera.tsx</code>, ADR-0149): sale solo tras 200 ms de espera y dura al menos 400. Velo crema al 60 % con 3 px de desenfoque, y una <b>tarjeta de papel</b> con el colibrí, el arco rojo que gira, «Un momento · Cargando» y el hilo que barre abajo. A los 4 s dice «Está tardando más de lo normal». Los avisos esperan a que se vaya.</li>
+      <li><b>«Hay una versión nueva»</b> (<code>VersionNueva.tsx</code>, ADR-0422): la gota que cae, rebota una vez (el único rebote del ERP) y se riega hasta ser una <b>píldora de tinta sólida</b>; la ✕ la recoge y se va como gota. El movimiento está decidido: aquí se copia tal cual y <b>solo cambia el material</b>.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="3"><b>Avisos</b></td><td>A · Placa Serena</td><td>La misma placa de las hojas y las tarjetas: se ve lo de atrás, nada sólido. El tono vive en el anillo, como hoy.</td><td>Un éxito y un error se distinguen solo por el anillo: hay que mirar el ícono para saber qué pasó.</td></tr>
+      <tr><td>B · Lente del tono <span class="ev">Recomendada</span></td><td>La placa teñida apenas de lo que dice, con un filo del tono: la misma lente del aviso de las hojas y de la insignia que ya elegiste. Un error se reconoce de reojo, antes de leerlo.</td><td>Cuatro tintes que cuidar en claro y oscuro (ya existen en la insignia).</td></tr>
+      <tr><td>C · Isla ahumada</td><td>La notificación del celular: oscura, se ve sobre cualquier pantalla, también sobre una tabla blanca.</td><td>Es la pieza más pesada de la pantalla y compite con el botón primario; el verde y el ámbar sobre lo oscuro hay que aclararlos y pierden su tono de siempre.</td></tr>
+      <tr><td rowspan="2"><b>Loader</b></td><td>A · Hoja Serena <span class="ev">Recomendada</span></td><td>El loader es una hoja más: el velo y la placa de las hojas. «Una función, una pieza»: quien ve una hoja ya sabe que espere.</td><td>Casi nada; el velo oscurece apenas en vez de lavar la pantalla con crema.</td></tr>
+      <tr><td>B · Lente sola</td><td>Lo más liviano y lo más vidrio: la pantalla entera se esmerila y queda una lente con el colibrí.</td><td>Las palabras quedan sueltas sobre lo esmerilado: sobre una pantalla muy cargada se leen peor que en una tarjeta; y es otra forma más (ninguna hoja se ve así).</td></tr>
+      <tr><td rowspan="2"><b>Versión nueva</b></td><td>A · Gota ahumada <span class="ev">Recomendada</span></td><td>La misma gota y la misma píldora oscura que ya conoces, ahora de vidrio ahumado: al llenarse se desenfoca lo de atrás y le llega su luz arriba. Sigue destacando sobre todo.</td><td>Casi nada: el cambio se nota de cerca.</td></tr>
+      <tr><td>B · Gota de vidrio claro</td><td>Se integra a la pantalla como una hoja; «Actualizar» pasa a ser el botón primario.</td><td>Una gota clara sobre la crema casi no se ve caer (por eso lleva un filo), y un aviso que se confunde con el resto se ignora.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Dónde sale cada uno, sus tiempos y su orden (los avisos esperan al loader; lo visto no vuelve; un aviso con «Deshacer» dura 7 s como mínimo; el loader sale a los 200 ms y dura al menos 400), la coreografía de los avisos, el arco y el hilo del loader, la gota con su único rebote, el texto para lector y que con <i>reducir movimiento</i> todo llega ya hecho (menos el reloj del aviso, que es función).</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const PROVEEDORES = [['Hilados del Sur', 'Lima', '12 facturas', 'S/ 4 820'], ['Botones Lumbre', 'Arequipa', '4 facturas', 'S/ 1 160'], ['Telas Mistral', 'Lima', '9 facturas', 'S/ 7 305'], ['Avíos Quillay', 'Trujillo', '2 facturas', 'S/ 380'], ['Etiquetas Cóndor', 'Lima', '6 facturas', 'S/ 915']];
+  const MS = { exito: 4000, aviso: 6000, error: 8000 };
+  const GLIFO = {
+    exito: '<path class="av-trazo" pathLength="1" d="M3.5 8.5l3 3 6-7"/>',
+    error: '<path class="av-trazo" pathLength="1" d="M8 3.4v5.4"/><circle class="av-punto" cx="8" cy="11.7" r="1.05"/>',
+    aviso: '<path class="av-trazo" pathLength="1" d="M8 2.6l5.8 10.2H2.2z"/><path class="av-trazo av-trazo-2" pathLength="1" d="M8 6.6v2.6"/><circle class="av-punto" cx="8" cy="11.1" r=".95"/>',
+  };
+  let id = 1;
+
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Proveedores', frase: 'A quién le compras y cuánto le debes.', acciones: [['pri', 'Registrar proveedor', 'mas']] })}
+      <div class="lista-p">${PROVEEDORES.map(([n, s, f, d]) => `<div class="fp"><span>${n}<small>${s}</small></span><span>${f}</span><span>${d}</span><button class="btn sec" data-acc="guardar">Guardar</button></div>`).join('')}</div>
+      <div class="prueba"><span class="vs">Para probar dentro de la pantalla</span>${['sec:Guardar:guardar', 'sec:Error:error', 'sec:Advertencia:advertencia', 'sec:Subir 5 adjuntos:proceso'].map((x) => { const [p, t, a] = x.split(':'); return `<button class="btn ${p}" data-acc="${a}">${t}</button>`; }).join('')}</div>`;
+  }
+
+  // ---- avisos: la misma regla que Avisos.tsx, en chico ----
+  function tarjeta(tono, titulo, { detalle, accion, ms, continua } = {}) {
+    const dur = tono === 'proceso' ? 0 : ms || (accion ? Math.max(7000, MS[tono]) : MS[tono]);
+    const el = document.createElement('div');
+    el.className = 'aviso-e'; el.dataset.tono = tono; el.dataset.id = id++;
+    el.setAttribute('role', tono === 'error' ? 'alert' : 'status');
+    if (continua) el.dataset.continua = '';
+    el.style.setProperty('--ms', `${dur}ms`);
+    el.innerHTML = `<span class="av-ico" aria-hidden="true"><svg class="av-anillo" viewBox="0 0 36 36"><circle class="av-disco" cx="18" cy="18" r="16"/><circle class="av-pista" cx="18" cy="18" r="17"/><circle class="av-onda" cx="18" cy="18" r="17"/><circle class="av-reloj" cx="18" cy="18" r="17"/></svg>${tono === 'proceso' ? '' : `<svg class="av-glifo" viewBox="0 0 16 16">${GLIFO[tono]}</svg>`}</span>
+      <div style="min-width:0;flex:1"><p class="av-tit">${titulo}</p>${detalle ? `<p class="av-det">${detalle}</p>` : ''}${accion ? `<button class="av-acc" data-acc="quitar-aviso">${accion}</button>` : ''}</div>
+      ${tono === 'proceso' ? '' : `<button class="av-x" data-acc="quitar-aviso" aria-label="Cerrar aviso"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`}`;
+    $('.av-reloj', el).addEventListener('animationend', (e) => { if (e.animationName === 'av-reloj' && dur) quitar(el); });
+    return el;
+  }
+  function avisar(tono, titulo, op) {
+    const pila = $('#pila');
+    $$('.aviso-e', pila).filter((a) => $('.av-tit', a).textContent === titulo).forEach((a) => a.remove());
+    const el = tarjeta(tono, titulo, op);
+    pila.append(el);
+    const sobran = $$('.aviso-e:not([data-sale])', pila).filter((a) => a.dataset.tono !== 'error' && a.dataset.tono !== 'proceso' && a !== el);
+    while ($$('.aviso-e:not([data-sale])', pila).length > 4 && sobran.length) quitar(sobran.shift(), true);
+    return el;
+  }
+  function quitar(el, ya) {
+    if (!el || el.hasAttribute('data-sale')) return;
+    if (ya) { el.remove(); return; }
+    el.style.setProperty('--h', `${el.offsetHeight}px`); el.dataset.sale = '';
+    setTimeout(() => el.remove(), 260);
+  }
+
+  // ---- el loader: los avisos esperan a que se vaya (ADR-0149) ----
+  let quietoActivo = false, tardaReloj = 0;
+  function esperar(ms, luego) {
+    const es = $('#espera');
+    $('#es-det').textContent = 'Estamos procesando tu solicitud…';
+    es.hidden = false; es.removeAttribute('data-sale'); $('#pila').hidden = true;
+    tardaReloj = setTimeout(() => { $('#es-det').textContent = 'Está tardando más de lo normal. No cierres ni recargues la página.'; }, 4000);
+    if (ms) setTimeout(() => soltar(luego), ms);
+  }
+  function soltar(luego) {
+    clearTimeout(tardaReloj);
+    const es = $('#espera');
+    es.dataset.sale = '';
+    setTimeout(() => { es.hidden = true; es.removeAttribute('data-sale'); $('#pila').hidden = false; if (luego) luego(); }, quieto() ? 0 : 220);
+  }
+
+  function proceso() {
+    const el = avisar('proceso', 'Subiendo adjuntos…', { detalle: '0 de 5 archivos' });
+    el.dataset.prog = ''; el.style.setProperty('--p', 0);
+    let n = 0;
+    const paso = setInterval(() => {
+      n++; el.style.setProperty('--p', n / 5); $('.av-det', el).textContent = `${n} de 5 archivos`;
+      if (n === 5) { clearInterval(paso); setTimeout(() => { const nuevo = tarjeta('exito', 'Adjuntos subidos', { detalle: '5 archivos', continua: true }); el.replaceWith(nuevo); }, 500); }
+    }, 700);
+  }
+
+  // ---- la versión nueva: la gota de VersionNueva.tsx ----
+  // En el hueco entre las islas de la cabecera si cabe con 12 px de aire por lado; si no, bajo la cabecera.
+  function colocarVersion() {
+    const vn = $('#vn'); if (vn.hidden) return;
+    const z = zoomDisp(), d = $('#disp').getBoundingClientRect(), izq = $('#cab .izq'), der = $('#cab .der');
+    vn.style.left = ''; vn.style.top = '';
+    if (!izq || !der || d.width / z < 1024) return;
+    const a = (izq.querySelector('.buscar') || izq).getBoundingClientRect().right + 10, b = der.getBoundingClientRect().left;
+    const hueco = (b - a) / z;
+    if (hueco >= vn.offsetWidth + 24) { vn.style.left = `${((a + b) / 2 - d.left) / z}px`; vn.style.top = '9px'; }
+  }
+  addEventListener('resize', colocarVersion);
+  function version() {
+    const vn = $('#vn');
+    vn.hidden = true; vn.classList.remove('sale');
+    requestAnimationFrame(() => { vn.hidden = false; vn.style.setProperty('--m', `${vn.offsetWidth / 2}px`); colocarVersion(); vn.getAnimations({ subtree: true }).forEach((a) => { a.cancel(); a.play(); }); });
+  }
+
+  const ACCIONES = {
+    guardar: () => esperar(1400, () => avisar('exito', 'Proveedor actualizado', { detalle: 'Hilados del Sur', accion: 'Deshacer' })),
+    error: () => avisar('error', 'Falta el RUC', { detalle: 'Escríbelo para poder emitir facturas a este proveedor.' }),
+    advertencia: () => avisar('aviso', '2 adjuntos no subieron', { detalle: 'Los demás quedaron guardados.' }),
+    proceso,
+    todos: () => { avisar('exito', 'Pago registrado', { detalle: 'Telas Mistral · S/ 1 200' }); setTimeout(() => ACCIONES.advertencia(), 250); setTimeout(() => ACCIONES.error(), 500); setTimeout(proceso, 750); },
+    quieto: (btn) => { quietoActivo = !quietoActivo; btn?.classList.toggle('on', quietoActivo); if (quietoActivo) esperar(0); else soltar(); },
+    version,
+    'mas-tarde': () => { const vn = $('#vn'); if (quieto()) { vn.hidden = true; return; } vn.classList.add('sale'); setTimeout(() => { vn.hidden = true; vn.classList.remove('sale'); }, 1450); },
+    actualizar: () => avisar('exito', 'Actualizado', { detalle: 'En el ERP de verdad, la página se recarga.' }),
+    'quitar-aviso': (btn) => quitar(btn.closest('.aviso-e')),
+  };
+
+  Marco.iniciar({
+    estado: { av: 'lente', es: 'hoja', vn: 'ahumada' },
+    alPintar: () => { $('#cont').scrollTop = 0; pantalla(); requestAnimationFrame(colocarVersion); },
+    alAccion: (a, btn) => ACCIONES[a]?.(btn),
+  });
+  // Al abrir: la gota cae y, al rato, un guardado de ejemplo pasa por el loader y deja su aviso.
+  version();
+  setTimeout(() => ACCIONES.guardar(), 2600);
+})();
+</script>
+</body>
+</html>
