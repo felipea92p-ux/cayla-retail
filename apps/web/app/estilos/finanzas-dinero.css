@@ -1138,22 +1138,87 @@
   }
   .dp-franja-total {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 16px 22px;
+    padding: 18px 22px;
   }
-  .dp-franja-cifra {
+
+  /* El círculo de la franja (vuelve el del 28-oct): toda la plata, una porción por cuenta con el color de su etapa, el total al centro. */
+  .dp-circulo {
+    position: relative;
+    width: min(100%, 212px);
+    aspect-ratio: 1;
+    container-type: inline-size;
+  }
+  .dp-circulo svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .dp-circulo-pista {
+    fill: none;
+    stroke: var(--color-sand);
+    stroke-width: 16;
+    opacity: 0.55;
+  }
+  .dp-circulo-arco {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 16;
+    stroke-dasharray: 1;
+    transition: opacity 0.25s var(--ease-cayla);
+    animation: dp-traza 0.9s var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 110ms + 200ms);
+  }
+  .dp-circulo-arco[data-apagada] {
+    opacity: 0.22;
+  }
+  @keyframes dp-traza {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dp-circulo-arco {
+      animation: none;
+      transition: none;
+    }
+  }
+  .dp-circulo-centro {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 19%;
+    text-align: center;
+    pointer-events: none;
+  }
+  .dp-circulo-centro .dp-versalita {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dp-circulo-cifra {
     font-family: var(--font-serif);
     font-weight: 500;
-    font-size: 40px;
-    line-height: 1;
+    font-size: clamp(22px, 15cqw, 34px);
+    line-height: 1.05;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
-  .dp-franja-cifra small {
-    font-size: 0.42em;
+  .dp-circulo-cifra small {
+    font-size: 0.45em;
     color: var(--color-taupe);
-    margin-right: 5px;
+    margin-right: 4px;
+  }
+  .dp-circulo-pie {
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--color-taupe);
   }
   .dp-franja-etapas {
     display: grid;
@@ -1174,6 +1239,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    /* Al lado del círculo la franja es alta: la cifra va al medio, no colgada arriba con aire debajo. */
+    justify-content: center;
     gap: 4px;
     padding: 14px 18px 16px;
     border: 0;
@@ -1219,9 +1286,6 @@
     padding: 11px 22px;
     border-top: 1px solid var(--color-sand);
     font-size: 14px;
-  }
-  .dp-franja-barra {
-    width: min(220px, 100%);
   }
   .dp-franja-pie p {
     margin: 0;
