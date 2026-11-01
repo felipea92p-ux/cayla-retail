@@ -10,6 +10,7 @@ import { FilasQueSeDeslizan } from "@/components/ui/FilasQueSeDeslizan";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 import { EntradaColibri } from "@/components/login/EntradaColibri";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
+import { SCRIPT_UUID_SIN_HTTPS } from "@/lib/uuid-sin-https";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -38,6 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // `suppressHydrationWarning`: el script de abajo pone `data-tema` en <html> antes de que React hidrate (ADR-0336).
     <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
       <head>
+        {/* Solo en `next dev`: probando desde otro equipo de la red (HTTP, no HTTPS) `crypto.randomUUID` no existe y ningún guardado
+            puede crear su token. Producción es siempre HTTPS y no lleva este script. */}
+        {process.env.NODE_ENV === "development" && <script dangerouslySetInnerHTML={{ __html: SCRIPT_UUID_SIN_HTTPS }} />}
         {/* El tema guardado se aplica ANTES de la primera pintura: sin esto, quien eligió oscuro vería un destello claro en cada carga. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_DE_PINTAR }} />
       </head>
