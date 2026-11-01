@@ -143,3 +143,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   `<Paginas>` en «A · Gota en su pozo» (la fila en un pozo, números de 34 px, la actual es la gota clara que viaja 320 ms con letra tinta en
   negrita). En un teléfono (≤ 400 px de ventana; la maqueta lo pedía por ancho del contenedor, pero `.paginas` no tiene uno propio) se
   esconden las páginas lejanas y los «…»: queda «‹ 2 3 4 ›». `Paginas` marca `lejana` y `lib/paginas.test.ts` lo vigila.
+
+- **Casilla, interruptor, títulos y separador al vidrio (Felipe 2026-11-01):** casilla e interruptor «A · Pozo y gota» (vacía un pozo;
+  marcada, el fondo se llena de ahumado con su luz y el ✓ en crema; el interruptor es pozo con perilla gota y encendido ahumado; en oscuro
+  el pozo va con `:not([aria-checked="true"])`), en `campos-y-botones.css`. El separador de día «B · Gotas que flotan» (sin franja: el día
+  y su total son gotas de 28 px con desenfoque, el contenedor sin clics), la ranura del título de grupo, el globito de los títulos en gota
+  y `<EnlaceVer>` como gota chica con borde rojo al 30 % («B · "Ver" en gota»), en `pantalla.css`. Visto en Ingresos y en Caja ▸ Historial.

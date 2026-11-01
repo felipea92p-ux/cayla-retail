@@ -162,3 +162,37 @@
     box-shadow: var(--ahumado-denso-luz);
   }
 }
+
+/* ---------- La casilla y el interruptor: «A · Pozo y gota» (Felipe 2026-11-01, docs/maquetas/casilla-enlaces-vidrio-2026-11/) ----------
+   Vacía, la casilla es un POZO (espera tu dato); marcada, se llena de vidrio AHUMADO de tinta con su luz arriba y el ✓ se dibuja en crema.
+   El interruptor: la pista es un pozo y la perilla una gota; encendido, la pista se vuelve ahumada. El crecimiento del fondo, el ✓ que se
+   traza y la perilla que se estira al presionar no cambian. */
+.casilla-input {
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  background: var(--pozo-fondo);
+  box-shadow: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 18%, transparent);
+}
+.casilla-fondo {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 72%, transparent), color-mix(in srgb, var(--color-tinta) 95%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 32%, transparent), 0 3px 8px -4px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+}
+.interruptor {
+  background: var(--pozo-fondo);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-borde-control) 70%, transparent), inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent);
+}
+.interruptor-perilla {
+  background: linear-gradient(180deg, var(--color-vidrio), color-mix(in srgb, var(--color-vidrio) 80%, var(--color-hueso)));
+  box-shadow: inset 0 -1px 2px color-mix(in srgb, var(--color-sombra) 10%, transparent), 0 2px 6px -1px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+}
+.interruptor[aria-checked="true"] {
+  background: var(--ahumado-fondo);
+  box-shadow: inset 0 0 0 1px var(--ahumado-borde), inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 30%, transparent);
+}
+/* En oscuro el pozo es sombra y la perilla apagada, tinta (que allí es clara). OJO: el pozo oscuro va con `:not([aria-checked="true"])`,
+   o pisa al encendido y se ve apagado (le pasó a la maqueta del Inicio). */
+@media screen {
+  :root[data-tema="oscuro"] .casilla-input { background: color-mix(in srgb, var(--color-sombra) 35%, transparent); }
+  :root[data-tema="oscuro"] .interruptor:not([aria-checked="true"]) { background: color-mix(in srgb, var(--color-sombra) 30%, transparent); }
+  :root[data-tema="oscuro"] .interruptor-perilla { background: linear-gradient(180deg, var(--color-tinta), color-mix(in srgb, var(--color-tinta) 80%, var(--color-sand))); }
+  :root[data-tema="oscuro"] .interruptor[aria-checked="true"] .interruptor-perilla { background: var(--color-crema); }
+}

@@ -319,3 +319,70 @@
   }
   :root[data-tema="oscuro"] .paginas { background: color-mix(in srgb, var(--color-sombra) 30%, transparent); }
 }
+
+/* ---------- Títulos y enlaces: «B · "Ver" en gota» (Felipe 2026-11-01, docs/maquetas/casilla-enlaces-vidrio-2026-11/) ----------
+   Los títulos siguen PLANOS (lo que explica es plano): la raya arena del título de grupo pasa a una RANURA tallada en el vidrio (sombra
+   arriba, luz abajo) y el globito del título es la gota ya elegida. El enlace suelto que lleva a otra pantalla (<EnlaceVer>) es una gota
+   chica con su borde rojo y su flecha. `btn-enlace` y `<TituloSeccion>` no cambian. */
+.titulo-grupo-texto::after {
+  height: 2px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 14%, transparent) 50%, color-mix(in srgb, var(--color-vidrio) 95%, transparent) 50%); /* contraste: no aplica — es la ranura, no un texto */
+}
+.titulo-cuenta {
+  min-width: 22px;
+  height: 22px;
+  background: var(--gota-marca);
+  box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent), 0 2px 5px -2px color-mix(in srgb, var(--color-sombra) 30%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+.enlace-ver {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-rojo) 30%, transparent);
+  background: var(--gota-fondo-encima);
+  box-shadow: inset 0 1px 0 var(--color-vidrio), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+}
+
+/* ---------- El separador de día (<SeparadorDia>): «B · Gotas que flotan» ----------
+   Sin franja: el día y su total son dos gotas de vidrio de 28 px pegadas arriba mientras la lista pasa por debajo, como la fecha de un
+   chat. El contenedor no recibe clics (`pointer-events: none`): lo de abajo sigue tocable entre las gotas. */
+.separador-dia {
+  border-bottom: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  padding-top: 10px;
+  padding-bottom: 6px;
+  pointer-events: none;
+}
+.separador-dia > * {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 92%, transparent), color-mix(in srgb, var(--color-vidrio) 70%, transparent));
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow: inset 0 1px 0 var(--color-vidrio), 0 6px 14px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+}
+@media screen {
+  :root[data-tema="oscuro"] .titulo-grupo-texto::after {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-sombra) 60%, transparent) 50%, color-mix(in srgb, var(--color-tinta) 12%, transparent) 50%); /* contraste: no aplica — es la ranura, no un texto */
+  }
+  :root[data-tema="oscuro"] .titulo-cuenta {
+    background: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 18%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+  :root[data-tema="oscuro"] .enlace-ver {
+    background: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+  :root[data-tema="oscuro"] .separador-dia > * {
+    border-color: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    background: color-mix(in srgb, var(--color-vidrio) 90%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent), 0 6px 14px -8px color-mix(in srgb, var(--color-sombra) 70%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}
