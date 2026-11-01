@@ -27,8 +27,8 @@ es la gota elegida** (botones A · Gota). Se ven en su lugar y no llevan caras.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | Íconos de fila | Como ahora | Cuadrado de hueso al pasar el mouse. |
-| | A · Gota al pasar | En reposo, solo el ícono; al pasar el mouse, con el foco o con su menú abierto, la gota redonda de los botones. |
-| | **B · Gota siempre** (elegida) | Cada ícono en su gota chica con el filo que se toca. |
+| | **A · Gota al pasar** (elegida) | En reposo, solo el ícono; al pasar el mouse, con el foco o con su menú abierto, la gota redonda de los botones. |
+| | B · Gota siempre | Cada ícono en su gota chica con el filo que se toca. |
 | Menú «Más» | Como ahora | Papel macizo. |
 | | **A · La lista del combo** (elegida) | La lista de vidrio de los combos, con la gota que viaja a lo que apuntas; sobre «Anular», teñida de rojo. |
 | | B · Placa con hundido | La misma placa; lo que apuntas se hunde. |
@@ -51,7 +51,8 @@ apaga con `prefers-reduced-motion`. Datos inventados. Medida de 320 a 1920 px si
 
 ## Lo que decidió Felipe
 
-**2026-11-01: íconos de fila B · Gota siempre, menú «Más» A · La lista del combo y selector de mes B · Gota entera** (en íconos y mes no
-tomó la recomendada). Al implementar: el lápiz, el copiar y el «⋯» de una fila llevan siempre su gota chica de 32 px con el filo de
-`borde-control` (pasan el 3:1 de lo que se toca); el menú «Más» usa la misma lista y la misma gota viajera de `Desplegable`, nunca otra; el
-selector de mes es la gota del botón secundario y el mes elegido de la grilla, la gota ahumada del filtro puesto.
+**2026-11-01: íconos de fila A · Gota al pasar, menú «Más» A · La lista del combo y selector de mes B · Gota entera.** Primero dijo
+«B, A y B» y después mandó su selección de la barra con los íconos en A: vale la última. En el mes no tomó la recomendada. Al implementar:
+el lápiz, el copiar y el «⋯» de una fila quedan como el ícono solo en reposo y muestran la gota redonda de 32 px al pasar el mouse, con el
+foco (`:focus-visible`) o con su menú abierto (`aria-expanded`); el menú «Más» usa la misma lista y la misma gota viajera de `Desplegable`,
+nunca otra; el selector de mes es la gota del botón secundario y el mes elegido de la grilla, la gota ahumada del filtro puesto.

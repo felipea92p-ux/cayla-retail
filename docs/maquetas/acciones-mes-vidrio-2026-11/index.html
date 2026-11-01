@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-ic="siempre" data-mn="combo" data-ms="gota">
+<html lang="es" data-tema="claro" data-ic="pasar" data-mn="combo" data-ms="gota">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -206,7 +206,7 @@
 
 <div class="spk">
   <span class="titulo">Las acciones chicas y el selector de mes, con vidrio</span>
-  <span class="tag">Íconos de fila</span><div class="seg-m" data-ctl="ic"><button data-v="ahora">Como ahora</button><button data-v="pasar">A · Gota al pasar</button><button data-v="siempre">B · Gota siempre ✓</button></div>
+  <span class="tag">Íconos de fila</span><div class="seg-m" data-ctl="ic"><button data-v="ahora">Como ahora</button><button data-v="pasar">A · Gota al pasar ✓</button><button data-v="siempre">B · Gota siempre</button></div>
   <span class="tag">Menú «Más»</span><div class="seg-m" data-ctl="mn"><button data-v="ahora">Como ahora</button><button data-v="combo">A · La lista del combo ✓</button><button data-v="placa">B · Placa con hundido</button></div>
   <span class="tag">Mes</span><div class="seg-m" data-ctl="ms"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Gota en su pozo</button><button data-v="gota">B · Gota entera ✓</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
@@ -239,15 +239,15 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>Íconos de fila</b></td><td>A · Gota al pasar</td><td>En reposo, solo el ícono: una lista de 30 filas no se llena de botones. Al pasar el mouse, con el foco o con su menú abierto, aparece la gota redonda de los botones.</td><td>Con el dedo no hay «pasar»: en el celular se ve solo el ícono hasta que se toca (como hoy).</td></tr>
-      <tr><td>B · Gota siempre <span class="ev">Elegida</span></td><td>Se ve de un vistazo qué se toca, también en el celular.</td><td>Tres gotas por fila en una tabla larga: ruido, y compiten con la insignia de estado.</td></tr>
+      <tr><td rowspan="2"><b>Íconos de fila</b></td><td>A · Gota al pasar <span class="ev">Elegida</span></td><td>En reposo, solo el ícono: una lista de 30 filas no se llena de botones. Al pasar el mouse, con el foco o con su menú abierto, aparece la gota redonda de los botones.</td><td>Con el dedo no hay «pasar»: en el celular se ve solo el ícono hasta que se toca (como hoy).</td></tr>
+      <tr><td>B · Gota siempre</td><td>Se ve de un vistazo qué se toca, también en el celular.</td><td>Tres gotas por fila en una tabla larga: ruido, y compiten con la insignia de estado.</td></tr>
       <tr><td rowspan="2"><b>Menú «Más»</b></td><td>A · La lista del combo <span class="ev">Elegida</span></td><td>La misma lista de vidrio de todo combo, con la gota que viaja a lo que apuntas: «una función, una pieza». «Anular» se tiñe apenas de rojo.</td><td>Casi nada.</td></tr>
       <tr><td>B · Placa con hundido</td><td>Más quieta: lo que apuntas se hunde, como un campo.</td><td>«Hundido» ya dice «espera tu dato» en todo el ERP; aquí diría otra cosa.</td></tr>
       <tr><td rowspan="2"><b>Selector de mes</b></td><td>A · Gota en su pozo</td><td>Igual que la paginación elegida: el mes en que estás es la gota clara, dentro de su pozo; la grilla es la lista de los combos y el mes elegido, la misma gota.</td><td>Se parece a una fila de pestañas (como la paginación).</td></tr>
       <tr><td>B · Gota entera <span class="ev">Elegida</span></td><td>Se ve como un botón, que es lo que es; el elegido de la grilla, ahumado, se encuentra rápido.</td><td>Es la única pieza de «dónde estás» que no usa la gota clara; y un ahumado más en la pantalla.</td></tr>
     </table>
-    <h3>Lo que decidió Felipe (2026-11-01): B, A y B</h3>
-    <p><b>Íconos de fila B · Gota siempre, menú «Más» A · La lista del combo y selector de mes B · Gota entera.</b> Lo que se toca se ve siempre como algo que se toca (también en el celular, donde no hay mouse que lo descubra); el menú es la lista de todos los combos; el selector de mes es un botón, y el mes elegido de la grilla, la gota ahumada.</p>
+    <h3>Lo que decidió Felipe (2026-11-01): A, A y B</h3>
+    <p><b>Íconos de fila A · Gota al pasar, menú «Más» A · La lista del combo y selector de mes B · Gota entera.</b> En reposo la fila queda limpia y la gota aparece al pasar el mouse, con el foco o con su menú abierto; el menú es la lista de todos los combos; el selector de mes es un botón, y el mes elegido de la grilla, la gota ahumada.</p>
     <h3>Lo que no cambia</h3>
     <p>Qué hace cada uno y su texto para lector («Editar el RUC», «Más acciones de F001-4821»); el «✓ Copiado» que no cambia de ancho; la flecha del «Más» que da media vuelta; lo que no se puede, apagado con su motivo; el Escape y las flechas dentro del menú; el mes de hoy con su punto rojo, los que no llegan con candado y la flecha de la derecha apagada en el mes de hoy.</p>
   </section>
@@ -377,7 +377,7 @@
     nada: () => {},
   };
   Marco.iniciar({
-    estado: { ic: 'siempre', mn: 'combo', ms: 'gota' },
+    estado: { ic: 'pasar', mn: 'combo', ms: 'gota' },
     alPintar: () => { cerrarTodo(); $('#cont').scrollTop = 0; pantalla(); },
     alAccion: (a, b) => ACC[a]?.(b),
   });
