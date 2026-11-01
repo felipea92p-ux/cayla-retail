@@ -20,6 +20,7 @@
 //            de foco y el botón digan lo mismo que la base); cantidades enteras que suman exacto (resto mayor).
 //   NO HACE: no compra nada ni decide por la persona: propone y muestra el porqué.
 
+import { sinBlancosDeMiles } from "./numero-escrito";
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
 import type { PropuestaGuardada } from "./plan-compra-propuesta-guardada";
@@ -395,8 +396,9 @@ const entero = (s: string): number | null => (/^\d+$/.test(s.trim()) ? Number(s.
  * precio rechazaba «1,299.50» con «Falta: Precio» mientras el tope de la misma pantalla lo aceptaba).
  */
 export function leerNumeroDeMonto(t: string): number | null {
-  const limpio = t.replace(/\s+/g, "");
-  if (!limpio) return null;
+  // Un blanco adentro solo separa miles: pegar varias celdas no es un monto (`sinBlancosDeMiles`).
+  const limpio = sinBlancosDeMiles(t);
+  if (limpio === null || !limpio) return null;
   const sinMiles = /^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(limpio) ? limpio.replace(/,/g, "") : limpio.replace(",", ".");
   return /^\d+(\.\d{1,2})?$/.test(sinMiles) ? Number(sinMiles) : null;
 }
@@ -406,7 +408,9 @@ export function leerNumeroDeMonto(t: string): number | null {
  * Es el mismo rango que acepta la base (0 a menos de 100): un 100 % deja el precio en cero y no hay nada que planear.
  */
 export function leerDescuento(t: string | undefined): number | null {
-  const limpio = (t ?? "").replace(/\s+/g, "").replace(",", ".");
+  const sinBlancos = sinBlancosDeMiles(t ?? "");
+  if (sinBlancos === null) return null;
+  const limpio = sinBlancos.replace(",", ".");
   if (limpio === "") return 0;
   return /^\d{1,2}(\.\d{1,2})?$/.test(limpio) ? Number(limpio) : null;
 }

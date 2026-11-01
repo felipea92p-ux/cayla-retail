@@ -42,6 +42,7 @@ import { sugerirAvio } from "@/lib/sugerencias-insumos";
 import { createClient } from "@/lib/supabase/client";
 import { numeroMalEscrito, tieneSaldo, type FilaDeColor } from "@/lib/tela-nueva-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 // «Nuevo avío» (ADR-0580; Felipe, 2026-10-30: «en los avíos también hay colores, hazlo así como en tela, fácil de registrar»): UN avío y todos sus colores en una sola hoja, como «Nueva tela».
 // Antes, seis botones de colores eran seis altas con seis códigos tecleados a mano, un combo de color con un solo valor, y una caja de «Merma al cortar» que le preguntaba a un botón cuánto se
@@ -249,7 +250,7 @@ export function NuevoAvioModal({
       antesDeCerrar={avisoSalida.pedirAccion}
     >
       <IdentidadAltaProveedor control={responsable}>
-        <form onSubmit={guardar} className="mt-3.5 space-y-6">
+        <form onSubmit={guardar} onKeyDown={enterNoGuarda} className="mt-3.5 space-y-6">
           {!agregarA && (
             <>
               <section data-guia="prod-avio-nuevo.que-es" className="space-y-3">

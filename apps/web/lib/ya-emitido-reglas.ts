@@ -82,9 +82,10 @@ export function leerXmlComprobante(xml: string): DocumentoXml | null {
   const raizM = /<(?:[\w.-]+:)?(Invoice|CreditNote|DebitNote)[\s>]/.exec(xml);
   if (!raizM) return null;
   const raiz = raizM[1] as RaizUbl;
+  // blanco-fijo: quita dos bloques enteros del XML de SUNAT (la firma y sus extensiones); no lee ninguna cifra
   const cuerpo = xml
-    .replace(/<(?:[\w.-]+:)?UBLExtensions[\s>][\s\S]*?<\/(?:[\w.-]+:)?UBLExtensions>/g, "")
-    .replace(/<(?:[\w.-]+:)?Signature[\s>][\s\S]*?<\/(?:[\w.-]+:)?Signature>/g, "");
+    .replace(/<(?:[\w.-]+:)?UBLExtensions[\s>][\s\S]*?<\/(?:[\w.-]+:)?UBLExtensions>/g, "") // blanco-fijo: un bloque del XML de SUNAT
+    .replace(/<(?:[\w.-]+:)?Signature[\s>][\s\S]*?<\/(?:[\w.-]+:)?Signature>/g, ""); // blanco-fijo: la firma del XML de SUNAT
 
   const id = etiqueta(cuerpo, "ID");
   const numero = id ? partirNumero(id.valor) : null;

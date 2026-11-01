@@ -58,6 +58,7 @@ import {
   type DatosNuevaOrden,
 } from "@/lib/ordenes-compra-reglas";
 import { crearOrdenCompra, editarOrdenCompra } from "@/lib/ordenes-compra-acciones";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Nueva orden de compra (ADR-0362, fase 1 · actividad 2). Arriba, a quién se le pide y a dónde llega; abajo, lo que se pide, una
@@ -394,7 +395,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
         </Aviso>
       )}
 
-      <form onSubmit={guardar} noValidate className="space-y-6">
+      <form onSubmit={guardar} onKeyDown={enterNoGuarda} noValidate className="space-y-6">
         {/* Proveedor, destino, entrega y nota: dos por fila y, con lugar (tarjeta de 52 rem o más), los cuatro en una (Felipe, 2026-10-10:
             «hay mucho espacio, se puede compactar más»). */}
         <section data-guia="orden-form.datos" className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y destino">

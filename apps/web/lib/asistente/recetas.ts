@@ -187,7 +187,7 @@ export function pasosDeReceta(receta: Receta, datos: DatosDichos, pregunta: stri
     const nombrados = [...p.orden.matchAll(/\{(\w+)\}/g)].map((m) => m[1] as Dato);
     const valores = new Map(nombrados.map((d) => [d, datoDicho(datos[d], pregunta)]));
     const completa = nombrados.every((d) => valores.get(d));
-    const orden = completa ? p.orden.replace(/\{(\w+)\}/g, (_, d: Dato) => valores.get(d)!) : (p.sinDato ?? p.orden.replace(/\s*\{\w+\}/g, ""));
+    const orden = completa ? p.orden.replace(/\{(\w+)\}/g, (_, d: Dato) => valores.get(d)!) : (p.sinDato ?? p.orden.replace(/\s*\{\w+\}/g, "")) // blanco-fijo: quita un hueco «{dato}» de una plantilla de texto;
     return { guia_id: p.guia, paso_id: p.paso, orden, rellenar: p.rellenar ? (datoDicho(datos[p.rellenar], pregunta) ?? "") : "" };
   });
 }
