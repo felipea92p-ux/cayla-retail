@@ -29,3 +29,7 @@ cerrarlo. Un toque en una fila sigue siendo un toque: el arrastre empieza recié
 
 En Chrome sin ventana: 18 combinaciones (320, 375 y 430; claro y oscuro; las tres caras), el cajón no se sale del aparato; sin errores de
 JS. Arrastrar 40 px corre el cajón y aclara el velo al 87 %; pasado un tercio, se cierra; tocar «Producción» sigue abriendo su grupo.
+
+## Lo que decidió Felipe
+
+**A · Hoja con profundidad** (2026-11-01).

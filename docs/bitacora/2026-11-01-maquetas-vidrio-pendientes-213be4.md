@@ -21,3 +21,4 @@
 - **Barra de avance: Tubo en todo el ERP** (Felipe). Lo demás de gráficos sigue en B · Tinta sobre vidrio.
 - **Cajón del menú en el celular, en maqueta** (`docs/maquetas/cajon-menu-vidrio-2026-11/`): A · Hoja con profundidad (recomendada) y
   B · Panel que flota, con el arrastre para cerrar. 18 combinaciones sin desborde. Los íconos del marco y del contenido pasaron a la otra sesión.
+- **Cajón del menú, elegido:** A · Hoja con profundidad; pasado a la sesión que implementa. Fusionados los íconos de la otra sesión (marco A, contenido A · Duotono).
