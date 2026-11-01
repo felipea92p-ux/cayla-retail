@@ -571,6 +571,21 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Si la orden trae un paso opcional que ya no se hace (por ejemplo, Limpiar hilos y revisar), lo quitas mientras nadie lo haya empezado. Pide confirmar, y se puede volver a agregar con «+ Agregar un paso». En la demo no lo quitamos.",
     },
     {
+      id: "anotado-paso",
+      ancla: "prod-orden.anotado-paso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo anotado en este paso",
+      texto: "Debajo de los botones ves lo que se anotó en este paso: cada «Terminé», prendas con falla, Salida o Vuelta, con su día, su hora y quién. Si algo quedó mal, lo arreglas desde aquí, sin buscarlo en la historia. Lo que ya no se puede cambiar dice por qué.",
+    },
+    {
+      id: "corregir-paso",
+      ancla: "prod-orden.corregir-paso",
+      opcional: true,
+      titulo: "Corregir desde el paso",
+      texto: "Su lápiz abre la misma hoja que el de la historia: un «Terminé» o unas prendas con falla se corrigen o se eliminan, y una Salida o una Vuelta se anula. Siempre pide por qué y queda en la historia. En la demo no se cambia nada.",
+    },
+    {
       id: "agregar-paso",
       ancla: "prod-orden.agregar-paso",
       opcional: true,
