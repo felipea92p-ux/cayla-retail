@@ -57,8 +57,8 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Estados vacíos | `ui/Vacio.tsx` (217 archivos) | Elegido | B · Pozo | `vacio-paginas-vidrio-2026-10/` |
 | Paginación | `ui/Paginas.tsx` (31 archivos con sus usuarios) | Elegido | A · Gota en su pozo | `vacio-paginas-vidrio-2026-10/` |
 | Globito con número | `ui/Globito.tsx` (15 archivos) | Elegido | A · Gota | `insignias-vidrio-2026-10/` |
-| Avatares | `ui/AvatarPersona.tsx` | En maqueta (el equipo del Inicio) | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
-| Barra de avance, apilada, anillo, línea, barras por tiempo | `ui/BarraAvance` (61), `BarraApilada` (39), `Anillo` (16), `Linea` (17) + `Sparkline` (6), `BarrasTiempo` (12) | Elegido | B · Tinta sobre vidrio y globito B · Ahumado | `graficos-vidrio-2026-11/` (la barra de avance también en `inicio-lider-vidrio-2026-10/`) |
+| Avatares | `ui/AvatarPersona.tsx` | Elegido (el equipo del Inicio) | A · Placa (avatar en lente) | `inicio-lider-vidrio-2026-10/` |
+| Barra de avance, apilada, anillo, línea, barras por tiempo | `ui/BarraAvance` (61), `BarraApilada` (39), `Anillo` (16), `Linea` (17) + `Sparkline` (6), `BarrasTiempo` (12) | Elegido | B · Tinta sobre vidrio y globito B · Ahumado; **la barra de avance tiene dos elecciones** (A · Tubo en las hojas y en el Inicio, B en la maqueta de gráficos): falta que Felipe diga cuál vale para todo el ERP | `graficos-vidrio-2026-11/` (la barra de avance también en `inicio-lider-vidrio-2026-10/`) |
 | Casillas e interruptores | `ui/Casilla` (38 archivos), `Interruptor` (19) | Elegido | A · Pozo y gota (casilla e interruptor) | `casilla-enlaces-vidrio-2026-11/` (el interruptor también en `inicio-lider-vidrio-2026-10/`) |
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar`, `LapizEditar` | Elegido (los botones con palabra ya eran la gota elegida) | Íconos de fila B · Gota siempre; menú «Más» A · La lista del combo | `acciones-mes-vidrio-2026-11/` |
 | Selector de mes | `ui/SelectorMes.tsx` (4 archivos) | Elegido | B · Gota entera; el mes elegido de la grilla, la gota ahumada | `acciones-mes-vidrio-2026-11/` |
@@ -66,9 +66,9 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Avisos de la esquina (éxito, error, advertencia, proceso) | `ui/Avisos.tsx`, `estilos/avisos.css` | Elegido | B · Lente del tono | `avisos-espera-vidrio-2026-10/` |
 | Loader a pantalla completa | `ui/Espera.tsx` | Elegido | B · Lente sola: la pantalla se esmerila y queda la lente con el colibrí | `avisos-espera-vidrio-2026-10/` |
 | «Hay una versión nueva» | `VersionNueva.tsx` | Elegido (el movimiento no cambia: solo el material) | A · Gota ahumada; con «Dos islas», en el hueco entre las islas o bajo la cabecera | `avisos-espera-vidrio-2026-10/` |
-| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | En maqueta (la del Inicio, con una acción) | — (recomendada: A · Gota ahumada) | `inicio-lider-vidrio-2026-10/` |
-| «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
-| Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |
+| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | Elegido (la del Inicio, con una acción) | A · Gota ahumada | `inicio-lider-vidrio-2026-10/` |
+| «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | Elegido | A · Placa | `inicio-lider-vidrio-2026-10/` |
+| Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | Elegido | A · Gotas | `inicio-lider-vidrio-2026-10/` |
 | Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar | — | — |
 | **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 

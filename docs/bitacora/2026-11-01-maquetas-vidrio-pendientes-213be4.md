@@ -15,3 +15,6 @@
   acciones chicas y selector de mes de la otra sesión (`e5d0b2278`), aún sin elegir.
 - **«Copiar mi selección» en todas las maquetas con barra** (24): `docs/maquetas/vidrio-base-2026-10/copiar-seleccion.js`, cargado por
   `marco.js` y sumado a mano en las 11 que no usan la base. Probado en Chrome sin ventana: copia un renglón por grupo y aparte cómo se miró.
+- **Inicio de la líder, elegido** (con «Copiar mi selección»): títulos B · Con hilo, «Te toca» A · Placa, accesos A · Gotas, equipo A ·
+  Placa, barra de avance A · Tubo, interruptor A · Pozo y gota y barra del celular A · Gota ahumada. Abierto: la barra de avance quedó A ·
+  Tubo aquí y en las hojas, pero B · Tinta sobre vidrio en la maqueta de gráficos; falta saber cuál vale para todo el ERP.
