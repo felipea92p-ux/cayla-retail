@@ -1,7 +1,7 @@
 # ADR-0586 — Agregar un paso que se olvidó (ya hecho) y reabrir pasos de una orden
 
 **Estado:** aceptada; **actividad 1 construida y probada en local** (base con `pnpm pruebas:produccion-paso-tarde` 22/22 y la web con sus pruebas); **migración `20261031002000` YA en producción** (comprobado el 2026-10-31 en solo lectura: `agregar_paso_tarde` tiene la misma huella que en local y los dos CHECK de `produccion_cambios` ya aceptan `paso_tarde`)
-(va antes de publicar la web). **Actividad 2 construida y probada en local** (migración `20261031160000` SIN pegar en producción; ver «Actualización 2026-10-31»). Actividades 3 a 5: decididas, sin construir · **Fecha:** 2026-10-30 · **Decidió:** Felipe (preguntas del 2026-10-30) · **Sigue a:** ADR-0566 (agregar un paso) y
+(va antes de publicar la web). **Actividad 2 construida y probada en local** (migración `20261031160000` YA en producción desde el 2026-10-31; ver «Actualización 2026-10-31»). Actividades 3 a 5: decididas, sin construir · **Fecha:** 2026-10-30 · **Decidió:** Felipe (preguntas del 2026-10-30) · **Sigue a:** ADR-0566 (agregar un paso) y
 ADR-0570 (correcciones con historia)
 
 ## Contexto
@@ -118,5 +118,6 @@ servicio, su fijo sale del costo de la orden.
   (d) frenar si Corte ya empezó: un ploteo marcado por error quedaría para siempre, con su costo.
 - **SE ROMPE SI:** alguien vuelve a pegar `20261029173000` entera en producción: le quita el candado a las dos funciones (lo vigila S4 de `produccion_correcciones`, que carga las dos), o se
   habilita una tablet en el Taller sin sumar la regla de arriba.
-- **Producción:** `20261031160000` SIN pegar. Una parte, re-ejecutable; va ANTES de publicar la web (la web nueva ya no llama a `deshacer_marca_fase`; la vieja sí, y entre el pegado y la
+- **Producción:** `20261031160000` APLICADA el 2026-10-31 (la pegó Felipe; su consulta de verificación dio las dos funciones con `marca_solo_lider`, `deshacer_marca_fase` borrada
+  y el permiso de `authenticated` intacto en las dos). Una parte, re-ejecutable; iba ANTES de publicar la web (la web nueva ya no llama a `deshacer_marca_fase`; la vieja sí, y entre el pegado y la
   publicación su «Deshacer» responde con un error unos minutos). Las dos anclas se comprobaron contra la función viva de producción el 2026-10-31 (una sola vez cada una).
