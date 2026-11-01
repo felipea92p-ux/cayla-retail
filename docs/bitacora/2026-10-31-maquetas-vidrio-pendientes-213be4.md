@@ -45,3 +45,6 @@
 - **Inicio del líder, entero:** maqueta `docs/maquetas/inicio-lider-vidrio-2026-10/` con lo ya elegido y un selector por cada pieza que
   faltaba (títulos, «Te toca», accesos, equipo, barra de avance, interruptor de «Ajustar», barra del celular); medida en 72 + 6
   combinaciones sin desbordes. Espera a Felipe.
+- **El Observatorio con vidrio** (Felipe: «me refería al observatorio»): sale de «fuera hasta que Felipe diga». Maqueta
+  `docs/maquetas/observatorio-vidrio-2026-10/`: la v3 aprobada tal cual con una capa de vidrio (Aurora, marco elegido, placas, controles
+  en pozo y gota, orbes en lente, barras en tubo) y tres selectores. La del Inicio de una líder de tienda queda aparte. Espera a Felipe.

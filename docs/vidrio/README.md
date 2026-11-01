@@ -70,10 +70,11 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |
 | Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar | — | — |
+| **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | En maqueta (Felipe lo sacó de «fuera» el 2026-10-31) | — (recomendada: A · Serena, controles A · Pozo y gota, orbes A · Lente) | `observatorio-vidrio-2026-10/` |
 
 ## Fuera hasta que Felipe diga
 
-Lo que tiene diseño propio decidido: la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock de Existencias, el Observatorio,
+Lo que tiene diseño propio decidido: la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock de Existencias,
 la persiana de Caja, El telar de Finanzas, el login «El vuelo vivo», las guías interactivas. Y lo que es papel o cámara: ticket, boleta,
 etiqueta, QR y los visores de cámara (ADR-0336, regla 3).
 

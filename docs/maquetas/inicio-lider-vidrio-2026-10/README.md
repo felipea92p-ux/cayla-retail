@@ -1,4 +1,7 @@
-# Maqueta · el Inicio del líder con vidrio, entero (2026-10-31)
+# Maqueta · el Inicio de una líder de tienda con vidrio, entero (2026-10-31)
+
+> Ojo: Felipe se refería al **Observatorio** (el Inicio del Admin): ver `../observatorio-vidrio-2026-10/`. Esta maqueta queda para el
+> Inicio de una líder de tienda, que no es Admin; espera hasta que Felipe la mire.
 
 Felipe: «vamos con todos los componentes que se encuentren en el inicio del líder para que quede ya lista esa vista». Pantalla:
 `app/(app)/page.tsx` para una líder de tienda.
