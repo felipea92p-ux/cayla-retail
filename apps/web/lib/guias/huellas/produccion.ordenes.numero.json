@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 205,
+  "total": 207,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -206,6 +206,7 @@
     "components/orden-pagina/RutaViva.tsx": [
       "Boton «prod-orden.agregar-paso»",
       "button «{estado === \"hecha\" && <Check />}»",
+      "LapizEditar «{que}»",
       "Boton «prod-orden.marcar»",
       "button «prod-orden.quitar-marca-paso»",
       "Boton «prod-orden.terminar»",
@@ -213,7 +214,8 @@
       "Boton «prod-orden.salida»",
       "button «prod-orden.cambiar-quien»",
       "button «prod-orden.poner-costo»",
-      "button «prod-orden.quitar-paso»"
+      "button «prod-orden.quitar-paso»",
+      "BotonVerMas «{`Ver ${anotado.length - ANOTADO_A_LA_VISTA}»"
     ],
     "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
       "Boton «prod-orden.ficha-modelo»",
