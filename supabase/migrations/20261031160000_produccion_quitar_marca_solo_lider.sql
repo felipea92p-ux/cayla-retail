@@ -34,8 +34,7 @@
 -- SE ROMPE SI: se habilita una tablet en el Taller (cambiando la regla de 20260923040000) y nadie suma aquí la regla de ADR-0586 para ella: un líder no podría quitar la marca desde ahí,
 --   tendría que entrar con su cuenta. Falla cerrado (nadie quita de más), no abierto.
 --
--- PRODUCCIÓN. Aplicada el 2026-10-31 (la pegó Felipe; verificada en solo lectura: las dos funciones llevan `marca_solo_lider`, `deshacer_marca_fase` ya no existe
---   y `authenticated` conserva el permiso de ejecutar las dos). Una sola parte, re-ejecutable, `lock_timeout = 3s`: dos reemplazos anclados (el texto entre comillas que insertan no lleva
+-- PRODUCCIÓN. NO está aplicada. Una sola parte, re-ejecutable, `lock_timeout = 3s`: dos reemplazos anclados (el texto entre comillas que insertan no lleva
 --   `select … into`, ADR-0288) y un `drop function` (no toma las tablas de `auth` ni de `storage`, ADR-0195). Va DESPUÉS de 20261029173000. ANTES de publicar la web: la web vieja
 --   llama a `deshacer_marca_fase`; entre el pegado y la publicación su «Deshacer» responde con un error (unos minutos).
 --   Prueba: `pnpm pruebas:produccion-ploteo` y `pnpm pruebas:produccion-correcciones`.
