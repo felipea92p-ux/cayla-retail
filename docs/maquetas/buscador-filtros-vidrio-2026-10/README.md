@@ -31,4 +31,4 @@ al medir: el navegador agregaba su propia × al campo, y en oscuro la píldora p
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**Buscador A · Pozo y filtros A · Gotas, la puesta ahumada** (2026-10-31).

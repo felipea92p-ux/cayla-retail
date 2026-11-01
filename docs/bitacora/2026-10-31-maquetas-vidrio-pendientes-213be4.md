@@ -59,4 +59,4 @@
 - **Observatorio, corrección:** Felipe quitó también el panel que nace del mapa; quedan seis extras. Avisado a la sesión que implementa.
 - **Buscador y filtros:** maqueta `docs/maquetas/buscador-filtros-vidrio-2026-10/` (Productos), con buscador A · Pozo / B · Lente y filtros
   A · Gotas con la puesta ahumada / B · Chips con ✓; funciona entera y medida en 30 combinaciones. La base avisa la elección de un combo
-  (`window.alElegirCombo`). Espera a Felipe.
+  (`window.alElegirCombo`). Felipe eligió las dos A; pasadas a la sesión que implementa.
