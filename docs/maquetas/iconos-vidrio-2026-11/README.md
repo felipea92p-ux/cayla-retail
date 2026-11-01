@@ -22,10 +22,10 @@ Las tarjetas de los medios de pago se marcan y desmarcan.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | Marco | Como ahora | Línea; la elegida, en tinta. |
-| | **A · Se llena al elegir** (recomendada) | Como la barra de un iPhone: la pantalla en que estás lleva su dibujo lleno de vidrio tintado (34 %), y las demás quedan en línea. |
+| | **A · Se llena al elegir** (elegida) | Como la barra de un iPhone: la pantalla en que estás lleva su dibujo lleno de vidrio tintado (34 %), y las demás quedan en línea. |
 | | B · Duotono siempre | Todos llevan un velo adentro (15 %), y la elegida, más (34 %). |
-| Contenido | **Como ahora** (recomendada) | Línea, con la regla de tamaños de hoy. |
-| | A · Duotono en los de 20 | Solo el ícono de un título o de una tarjeta de opción lleva un velo adentro (12 %). |
+| Contenido | Como ahora | Línea, con la regla de tamaños de hoy. |
+| | **A · Duotono en los de 20** (elegida) | Solo el ícono de un título o de una tarjeta de opción lleva un velo adentro (12 %). |
 | | B · Lente para los de 20 | El ícono de 20 px vive en una lente redonda de 40 px, como la de los avisos y el loader. |
 
 En ninguna cara cambian los íconos de 12, 14 y 16 px: rellenar un dibujo de 14 px lo vuelve una mancha. Lo que gana y lo que cuesta cada
@@ -49,4 +49,7 @@ Solo tokens, en claro y oscuro. Sin movimiento nuevo: el relleno entra con la tr
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-01: marco A · Se llena al elegir y contenido A · Duotono en los de 20.** En el contenido no tomó la recomendada («como ahora»). Al
+implementar: en `lib/iconos.ts`, un ícono de 20 px (`h-5 w-5`, el de un título o una tarjeta de opción) y un dibujo grande de 24 px o más llevan
+`fill: color-mix(in srgb, currentColor 12%, transparent)` en sus trazos; los de 12, 14 y 16, solo línea. Igual que en el marco, hay que mirar
+los dibujos abiertos de lucide que se usen a 20 px y, al que se rellene raro, dejarlo en línea con su motivo.

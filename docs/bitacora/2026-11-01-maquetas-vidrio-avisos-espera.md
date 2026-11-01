@@ -23,3 +23,5 @@
   sobre Configuración ▸ «Cómo cobra la sede». En el marco: A · Se llena al elegir (recomendada) y B · Duotono siempre. En el contenido:
   «Como ahora» (recomendada), A · Duotono en los de 20 y B · Lente para los de 20. Los de 12, 14 y 16 px no cambian en ninguna cara. Medida
   de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en los íconos:** marco A · Se llena al elegir y contenido A · Duotono en los de 20 (en el contenido no tomó la
+  recomendada).

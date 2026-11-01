@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-im="relleno" data-icc="ahora">
+<html lang="es" data-tema="claro" data-im="relleno" data-icc="duotono">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -100,8 +100,8 @@ svg.lc{flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:rou
 
 <div class="spk">
   <span class="titulo">Los íconos del marco y del contenido, con vidrio</span>
-  <span class="tag">Íconos del marco</span><div class="seg-m" data-ctl="im"><button data-v="ahora">Como ahora</button><button data-v="relleno">A · Se llena al elegir</button><button data-v="duotono">B · Duotono siempre</button></div>
-  <span class="tag">Íconos del contenido</span><div class="seg-m" data-ctl="icc"><button data-v="ahora">Como ahora</button><button data-v="duotono">A · Duotono en los de 20</button><button data-v="lente">B · Lente para los de 20</button></div>
+  <span class="tag">Íconos del marco</span><div class="seg-m" data-ctl="im"><button data-v="ahora">Como ahora</button><button data-v="relleno">A · Se llena al elegir ✓</button><button data-v="duotono">B · Duotono siempre</button></div>
+  <span class="tag">Íconos del contenido</span><div class="seg-m" data-ctl="icc"><button data-v="ahora">Como ahora</button><button data-v="duotono">A · Duotono en los de 20 ✓</button><button data-v="lente">B · Lente para los de 20</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
   <span class="tag">Menú</span><button class="accion" data-acc="plegar">Plegar o abrir el menú</button>
@@ -129,12 +129,14 @@ svg.lc{flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:rou
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>Marco</b></td><td>A · Se llena al elegir <span class="ev">Recomendada</span></td><td>Como la barra de un iPhone: la pantalla en que estás lleva su dibujo lleno de vidrio tintado; las demás, línea. Con el menú plegado, donde solo queda el ícono, «dónde estás» se ve igual.</td><td>Algunos dibujos abiertos (flechas, el reloj del historial) se llenan con una forma rara: hay que revisar los 85 uno por uno al implementar.</td></tr>
+      <tr><td rowspan="2"><b>Marco</b></td><td>A · Se llena al elegir <span class="ev">Elegida</span></td><td>Como la barra de un iPhone: la pantalla en que estás lleva su dibujo lleno de vidrio tintado; las demás, línea. Con el menú plegado, donde solo queda el ícono, «dónde estás» se ve igual.</td><td>Algunos dibujos abiertos (flechas, el reloj del historial) se llenan con una forma rara: hay que revisar los 85 uno por uno al implementar.</td></tr>
       <tr><td>B · Duotono siempre</td><td>El menú entero se ve más «objeto de vidrio», menos dibujo de línea.</td><td>Veinte íconos con relleno es ruido; y la elegida se distingue menos de las demás (solo por un velo más fuerte).</td></tr>
-      <tr><td rowspan="3"><b>Contenido</b></td><td>Como ahora <span class="ev">Recomendada</span></td><td>El ícono es contenido, no superficie: la línea se lee nítida sobre cualquier vidrio, y la regla de tamaños sigue igual en 477 archivos.</td><td>Nada.</td></tr>
-      <tr><td>A · Duotono en los de 20</td><td>Los íconos de los títulos y de las tarjetas de opción ganan cuerpo, a juego con el marco.</td><td>Dos estilos de ícono según el tamaño; y un 20 px junto a un título compite con el título.</td></tr>
+      <tr><td rowspan="3"><b>Contenido</b></td><td>Como ahora</td><td>El ícono es contenido, no superficie: la línea se lee nítida sobre cualquier vidrio, y la regla de tamaños sigue igual en 477 archivos.</td><td>Nada.</td></tr>
+      <tr><td>A · Duotono en los de 20 <span class="ev">Elegida</span></td><td>Los íconos de los títulos y de las tarjetas de opción ganan cuerpo, a juego con el marco.</td><td>Dos estilos de ícono según el tamaño; y un 20 px junto a un título compite con el título.</td></tr>
       <tr><td>B · Lente para los de 20</td><td>Las tarjetas de opción y los títulos se ven como las lentes de los avisos y del loader.</td><td>Una lente de 40 px en cada título es mucho adorno; y en una fila de tarjetas, cuatro lentes repiten lo mismo.</td></tr>
     </table>
+    <h3>Lo que decidió Felipe (2026-11-01): A y A</h3>
+    <p><b>Marco A · Se llena al elegir y contenido A · Duotono en los de 20.</b> La pantalla en que estás lleva su dibujo lleno de vidrio; en el contenido, el ícono de un título o de una tarjeta de opción lleva el mismo velo adentro, a juego con el marco. Los de 12, 14 y 16 px siguen en línea.</p>
     <h3>Lo que no cambia</h3>
     <p>Qué dibujo lleva cada pantalla, los 85 trazos del marco y sus tres tamaños, los cuatro tamaños del contenido, el grosor de 1,5 del marco y de los dibujos grandes, la marca a 3 sobre un punto lleno, y que los íconos de 12, 14 y 16 px son línea en todas las caras.</p>
   </section>
@@ -178,7 +180,7 @@ svg.lc{flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:rou
         <span>${ic('ok', 12)}12 · insignia</span><span>${ic('reloj', 14)}14 · junto a un texto</span><span>${ic('lupa', 16)}16 · botón o campo</span><span>${ic('caja', 20)}20 · título u opción</span><span>${ic('vacio', 40)}40 · dibujo grande, a 1,5</span></div>`;
   }
   document.addEventListener('click', (e) => { const op = e.target.closest('[data-op]'); if (!op) return; const k = op.dataset.op; elegidas.has(k) ? elegidas.delete(k) : elegidas.add(k); op.setAttribute('aria-pressed', elegidas.has(k)); });
-  Marco.iniciar({ estado: { im: 'relleno', icc: 'ahora' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+  Marco.iniciar({ estado: { im: 'relleno', icc: 'duotono' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
 })();
 </script>
 </body>
