@@ -196,3 +196,82 @@
   :root[data-tema="oscuro"] .interruptor-perilla { background: linear-gradient(180deg, var(--color-tinta), color-mix(in srgb, var(--color-tinta) 80%, var(--color-sand))); }
   :root[data-tema="oscuro"] .interruptor[aria-checked="true"] .interruptor-perilla { background: var(--color-crema); }
 }
+
+/* ---------- Los íconos solos de una fila: «A · Gota al pasar» (Felipe 2026-11-01, docs/maquetas/acciones-mes-vidrio-2026-11/) ----------
+   El lápiz (`LapizEditar`), el copiar junto a un dato (`BotonCopiar forma="icono"`) y el «⋯» (`MenuAcciones` sin `texto`, `BotonPuntos`):
+   en reposo, solo el ícono (una lista de 30 filas no se llena de botones); al pasar el mouse, al llegar con el teclado (`:focus-visible`)
+   o con su menú abierto (`aria-expanded`), aparece la gota redonda de los botones con el filo de lo que se toca (`borde-control`, 3:1).
+   En reposo el filo existe pero es transparente: la gota aparece sin que nada se corra. En un aparato táctil no hay «pasar»: se ve el
+   ícono solo y se toca igual (el área de 32 px es la misma). El «✓ Copiado» tiñe la gota de verde (y no cambia de ancho). */
+.icono-fila {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: gráfico sobre crema, papel, hueso */
+  transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+.icono-fila:focus-visible,
+.icono-fila[aria-expanded="true"] {
+  color: var(--color-tinta);
+  border-color: var(--color-borde-control);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .icono-fila:hover:not(:disabled, [aria-disabled="true"]) {
+    color: var(--color-tinta);
+    border-color: var(--color-borde-control);
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
+  }
+}
+.icono-fila.copiar-icono[data-copiado] {
+  color: var(--color-verde-profundo);
+  border-color: color-mix(in srgb, var(--color-verde) 55%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 8%, transparent), color-mix(in srgb, var(--color-verde) 16%, transparent)), var(--gota-fondo);
+}
+
+/* ---------- El selector de mes: «B · Gota entera» (Felipe 2026-11-01, docs/maquetas/acciones-mes-vidrio-2026-11/) ----------
+   «‹ Octubre 2026 ›» es UNA gota, la del botón secundario, con el filo de lo que se toca: se ve como un botón, que es lo que es. Cada parte
+   (las dos flechas y el nombre) se ilumina por dentro al pasar el mouse, y la flecha se asoma 2 px hacia donde lleva. El panel de los doce
+   meses es la lista de vidrio de los combos (`lista-flotante`, notas-avisos-combos.css); el mes elegido, la gota AHUMADA del filtro puesto
+   (se encuentra rápido); el de hoy conserva su punto rojo y los que no llegan, su candado. */
+.selector-mes {
+  border-color: var(--color-borde-control);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+.selector-mes > button,
+.selector-mes-panel button,
+.selector-mes > button svg {
+  transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla);
+}
+.selector-mes > button[aria-expanded="true"] { background: color-mix(in srgb, var(--color-vidrio) 70%, transparent); }
+@media (hover: hover) {
+  .selector-mes > button:not(:disabled):hover { background: color-mix(in srgb, var(--color-vidrio) 70%, transparent); }
+  .selector-mes > [data-flecha="atras"]:not(:disabled):hover svg { translate: -2px 0; }
+  .selector-mes > [data-flecha="adelante"]:not(:disabled):hover svg { translate: 2px 0; }
+  .selector-mes-panel button:not(:disabled, [aria-current="true"]):hover { background: color-mix(in srgb, var(--color-tinta) 6%, transparent); } /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+.selector-mes-grilla > button { border-radius: 14px; border: 1px solid transparent; }
+.selector-mes-grilla > button[aria-current="true"] {
+  color: var(--color-crema);
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+@media screen {
+  :root[data-tema="oscuro"] .selector-mes > button[aria-expanded="true"] { background: color-mix(in srgb, var(--color-tinta) 12%, transparent); } /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+@media screen and (hover: hover) {
+  :root[data-tema="oscuro"] .selector-mes > button:not(:disabled):hover { background: color-mix(in srgb, var(--color-tinta) 12%, transparent); } /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icono-fila,
+  .selector-mes > button,
+  .selector-mes > button svg,
+  .selector-mes-panel button { transition: none; }
+}
+@media (prefers-reduced-motion: reduce) and (hover: hover) {
+  .selector-mes.selector-mes > [data-flecha]:not(:disabled):hover svg { translate: none; }
+}

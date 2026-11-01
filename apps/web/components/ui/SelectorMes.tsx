@@ -17,6 +17,10 @@ const ANCHO = 268;
  *
  * Dentro de una hoja, el panel se cuelga de su capa flotante (`useDestinoFlotante`, ADR-0211) y su Escape no cierra la
  * hoja: lo usa para cerrarse y corta la propagación (ADR-0136, «Escape dentro de una hoja»).
+ *
+ * Con el vidrio (ADR-0596, «B · Gota entera», Felipe 2026-11-01): todo el selector es una gota, la del botón secundario (`selector-mes`),
+ * y el panel de los doce meses es la lista de vidrio de los combos (`lista-flotante`), con el mes elegido en la gota ahumada del filtro
+ * puesto (`selector-mes-grilla`). Las piezas, en app/estilos/vidrio/campos-y-botones.css.
  */
 export function SelectorMes({
   valor,
@@ -88,14 +92,15 @@ export function SelectorMes({
   }, [abierto]);
 
   return (
-    <div ref={grupo} data-guia={guia} className="inline-flex items-center gap-0.5 rounded-full border border-sand bg-papel p-[3px]">
+    <div ref={grupo} data-guia={guia} className="selector-mes inline-flex items-center gap-0.5 rounded-full border p-[3px]">
       <button
         type="button"
         data-guia={guiaAnterior}
+        data-flecha="atras"
         aria-label={`Ir a ${nombreDelMes(previo)}`}
         disabled={!hayPrevio}
         onClick={() => onCambiar(previo)}
-        className="grid h-8 w-8 place-items-center rounded-full text-tinta transition-colors hover:bg-sand/60 disabled:pointer-events-none disabled:text-tinta/25"
+        className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
       >
         <ChevronLeft className="h-4 w-4" aria-hidden />
       </button>
@@ -105,17 +110,22 @@ export function SelectorMes({
         aria-haspopup="dialog"
         aria-expanded={abierto}
         onClick={() => (abierto ? cerrar() : abrir())}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold text-tinta transition-colors hover:bg-sand/60 aria-expanded:bg-sand/60"
+        className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold text-tinta"
       >
         {nombreDelMes(valor)}
-        <ChevronDown className="h-3.5 w-3.5 text-tinta/60" aria-hidden />
+        {/* Da media vuelta al abrir, como la flecha del «Más». */}
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-tinta/60 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierto ? "-rotate-180" : ""}`}
+          aria-hidden
+        />
       </button>
       <button
         type="button"
+        data-flecha="adelante"
         aria-label={haySiguiente ? `Ir a ${nombreDelMes(mesSiguiente(valor))}` : "Ya estás en el mes actual"}
         disabled={!haySiguiente}
         onClick={() => onCambiar(mesSiguiente(valor))}
-        className="grid h-8 w-8 place-items-center rounded-full text-tinta transition-colors hover:bg-sand/60 disabled:pointer-events-none disabled:text-tinta/25"
+        className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
       >
         <ChevronRight className="h-4 w-4" aria-hidden />
       </button>
@@ -132,7 +142,7 @@ export function SelectorMes({
               role="dialog"
               aria-label="Elegir el mes"
               style={{ top: pos.top, left: pos.left, width: ANCHO }}
-              className="anim-revelar fixed z-[60] rounded-[14px] border border-sand bg-papel p-2 shadow-[0_18px_40px_-16px_color-mix(in_srgb,var(--color-sombra)_40%,transparent)]"
+              className="selector-mes-panel lista-flotante anim-revelar fixed z-[60] p-2"
             >
               <div className="flex items-center justify-between px-1 pb-2 pt-0.5">
                 <button
@@ -140,7 +150,7 @@ export function SelectorMes({
                   aria-label={`Ver los meses de ${anio - 1}`}
                   disabled={anio - 1 < anioMinimo}
                   onClick={() => setAnio((a) => a - 1)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-tinta transition-colors hover:bg-sand/60 disabled:pointer-events-none disabled:text-tinta/25"
+                  className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
                 >
                   <ChevronLeft className="h-4 w-4" aria-hidden />
                 </button>
@@ -152,12 +162,12 @@ export function SelectorMes({
                   aria-label={`Ver los meses de ${anio + 1}`}
                   disabled={anio + 1 > actual.anio}
                   onClick={() => setAnio((a) => a + 1)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-tinta transition-colors hover:bg-sand/60 disabled:pointer-events-none disabled:text-tinta/25"
+                  className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
                 >
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="selector-mes-grilla grid grid-cols-3 gap-1.5">
                 {mesesDelSelector(anio, actual).map((m) => {
                   const elegido = esMismoMes({ anio, mes: m.mes }, valor);
                   const esActual = esMismoMes({ anio, mes: m.mes }, actual);
@@ -170,12 +180,8 @@ export function SelectorMes({
                       aria-current={elegido ? "true" : undefined}
                       aria-label={m.bloqueado ? `${m.nombre} ${anio}: todavía no llega` : `${m.nombre} ${anio}`}
                       onClick={() => elegir({ anio, mes: m.mes })}
-                      className={`relative flex h-10 items-center justify-center gap-1 rounded-[10px] text-[13px] font-semibold transition-colors ${
-                        elegido
-                          ? "bg-tinta text-crema"
-                          : m.bloqueado
-                            ? "cursor-not-allowed text-tinta/30"
-                            : "text-tinta hover:bg-sand/60"
+                      className={`relative flex h-10 items-center justify-center gap-1 text-[13px] font-semibold ${
+                        elegido ? "text-crema" : m.bloqueado ? "cursor-not-allowed text-tinta/30" : "text-tinta"
                       }`}
                     >
                       {m.nombre.slice(0, 3)}

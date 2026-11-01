@@ -162,3 +162,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   versión nueva» «A · Gota ahumada» (líquido de tinta al 88 % con su luz y su filo; el movimiento no cambia; va en el hueco entre las dos
   islas si cabe y si no, bajo la cabecera, centrada sobre el contenido). En `vidrio/avisos-espera.css` + recetas nuevas; `Espera.tsx` pasa a
   clases propias (sin cambiar cuándo sale) y `VersionNueva.tsx` mide dónde ponerse. Falta mirar a 375 px exactos la píldora.
+
+- **Íconos de fila, menú «Más» y selector de mes al vidrio (Felipe 2026-11-01):** íconos de fila «A · Gota al pasar» (lápiz, copiar en
+  ícono y «⋯», clase `icono-fila`: planos en reposo; la gota con su filo de `borde-control` al pasar el mouse, con el foco o con el menú
+  abierto; el área no cambia), el menú «Más» «A · La lista del combo» (`lista-flotante` + `opcion-activa`, en rojo sobre lo peligroso) y el
+  selector de mes «B · Gota entera» (la gota del secundario; el mes elegido, ahumado denso). Encontrado de paso: `Desplegable` pinta la
+  opción bajo el mouse con su propio fondo y no usa `opcion-activa`, así que en sus listas la gota no viaja con el mouse (sí en ComboBuscable).
