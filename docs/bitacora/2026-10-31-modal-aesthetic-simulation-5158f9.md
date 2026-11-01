@@ -155,3 +155,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   bajo `<Linea>` es un degradado de vidrio (nuevo `<linearGradient>` con `useId`, colores por tema en CSS). El globito que lee el dato es
   ahumado con letra crema («B · Ahumado»). El tubo de la barra apilada («A · Tubo», la barra de pagos) queda solo dentro de hojas y cajones;
   el `Sparkline` conserva su área de tinta al 7 %. Todo en `vidrio/graficos-y-pasos.css`.
+
+- **Avisos, loader y versión nueva al vidrio (Felipe 2026-11-01):** avisos de la esquina «B · Lente del tono» (placa teñida 5→10 % del
+  tono con filo al 28 %; el detalle sube a tinta al 78 % para pasar 4,5:1 en oscuro), loader «B · Lente sola» (sin tarjeta: velo crema al
+  46 % esmerilado, la lente de 96 px con el colibrí y un halo detrás de las palabras: el peor caso medido da 4,7:1 en la etiqueta) y «Hay una
+  versión nueva» «A · Gota ahumada» (líquido de tinta al 88 % con su luz y su filo; el movimiento no cambia; va en el hueco entre las dos
+  islas si cabe y si no, bajo la cabecera, centrada sobre el contenido). En `vidrio/avisos-espera.css` + recetas nuevas; `Espera.tsx` pasa a
+  clases propias (sin cambiar cuándo sale) y `VersionNueva.tsx` mide dónde ponerse. Falta mirar a 375 px exactos la píldora.

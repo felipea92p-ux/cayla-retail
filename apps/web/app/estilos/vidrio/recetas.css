@@ -157,6 +157,30 @@
   --globo-fondo: color-mix(in srgb, var(--color-tinta) 84%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --globo-filtro: blur(14px) saturate(1.4);
   --globo-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 25%, transparent), 0 14px 30px -14px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+
+  /* ---------- el sistema que habla (docs/maquetas/avisos-espera-vidrio-2026-10/; piezas en vidrio/avisos-espera.css) ---------- */
+  /* La lente del tono: el aviso de la esquina. La placa de las hojas (la base) teñida apenas del tono de cada aviso (`--c`, que pone la
+     pieza: por eso aquí van la base y los porcentajes, y la mezcla la hace la pieza). Arriba más claro, abajo más tono. */
+  --lente-tono-base-arriba: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+  --lente-tono-base-abajo: color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+  --lente-tono-tinte-arriba: 5%;
+  --lente-tono-tinte-abajo: 10%;
+  --lente-tono-filo: 28%;
+  --lente-tono-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent),
+    0 22px 40px -22px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  /* El loader: la pantalla esmerilada (más desenfoque que el velo de una hoja: no hay hoja que mirar) y el halo de crema detrás de sus
+     palabras sueltas. */
+  --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 46%, transparent);
+  --espera-velo-filtro: blur(8px) saturate(1.3);
+  --espera-halo: color-mix(in srgb, var(--color-crema) 90%, transparent);
+  /* «Hay una versión nueva»: el líquido de tinta ahumado (su opacidad), el filo con la luz de arriba, y «Actualizar», la gota clara. */
+  --version-agua-opacidad: 0.88;
+  --version-filo: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 32%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 55%, transparent);
+  --version-gota-clara: linear-gradient(180deg, color-mix(in srgb, var(--color-crema) 98%, transparent), color-mix(in srgb, var(--color-crema) 84%, transparent));
+  --version-gota-clara-luz: inset 0 1px 0 var(--color-crema), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  /* Con «reducir movimiento» no hay líquido: la píldora es el ahumado quieto. */
+  --version-ahumado-quieto: color-mix(in srgb, var(--color-tinta) 92%, transparent);
 }
 
 @media screen {
@@ -235,6 +259,16 @@
     --grafico-vidrio-linea: drop-shadow(0 2px 3px color-mix(in srgb, var(--color-sombra) 50%, transparent));
     --globo-fondo: color-mix(in srgb, var(--color-tinta) 88%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --globo-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 25%, transparent), 0 14px 30px -14px var(--color-sombra);
+    /* El sistema que habla: en oscuro la lente del tono es más llena y más teñida (sobre el negro cálido el tono se apaga), y el filo de
+       la píldora de la versión nueva toma su luz de la crema (en oscuro la píldora es clara). */
+    --lente-tono-base-arriba: color-mix(in srgb, var(--color-vidrio) 86%, transparent);
+    --lente-tono-base-abajo: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+    --lente-tono-tinte-arriba: 12%;
+    --lente-tono-tinte-abajo: 18%;
+    --lente-tono-filo: 34%;
+    --lente-tono-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent), 0 22px 40px -22px var(--color-sombra);
+    --version-filo: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 40%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 55%, transparent);
   }
 }
 
@@ -252,5 +286,10 @@
     --lente-grande-fondo: var(--color-papel);
     --lamina-mapa-fondo: var(--color-papel);
     --globo-fondo: var(--color-tinta);
+    --lente-tono-base-arriba: var(--color-papel);
+    --lente-tono-base-abajo: var(--color-papel);
+    --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 90%, transparent);
+    --espera-halo: var(--color-crema);
+    --version-agua-opacidad: 1;
   }
 }

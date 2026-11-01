@@ -115,6 +115,7 @@
 @import "./estilos/vidrio/campos-y-botones.css";
 @import "./estilos/vidrio/notas-avisos-combos.css";
 @import "./estilos/vidrio/graficos-y-pasos.css";
+@import "./estilos/vidrio/avisos-espera.css"; /* Los avisos de la esquina, el loader y «Hay una versión nueva» (avisos-espera-vidrio-2026-10) */
 /* El marco con vidrio (ADR-0596): la aurora del fondo, el riel del menú con su gota, la bandeja de submódulos y las dos islas
    de la cabecera. La estructura vive en components/AppShell.tsx. */
 @import "./estilos/vidrio/marco.css";
