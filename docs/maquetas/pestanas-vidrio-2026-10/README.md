@@ -20,7 +20,7 @@ se tocan y se recorren con ← → Inicio Fin.
 | Cara | Cómo es |
 |---|---|
 | Como ahora | Vidrio al 45 %, píldora de tinta sólida. |
-| **A · La gota de Mi perfil** (recomendada) | La fila es un pozo hundido; la elegida, una gota de vidrio claro que fluye: se estira hasta la nueva y se recoge en ella. |
+| **A · La gota de Mi perfil** (elegida) | La fila es un pozo hundido; la elegida, una gota de vidrio claro que fluye: se estira hasta la nueva y se recoge en ella. |
 | B · Vidrio ahumado | La fila es una placa de vidrio; la elegida, la píldora oscura de hoy hecha vidrio ahumado (como el botón primario). |
 | C · La gota del menú | Sin caja; la elegida es la gota del menú lateral con su marca roja abajo. |
 
@@ -38,4 +38,5 @@ que recogen); todo se apaga con `prefers-reduced-motion`.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**A · La gota de Mi perfil** (2026-10-31): la misma pestaña de las hojas en todo el ERP; la fila es un pozo hundido y la elegida una
+gota de vidrio claro que fluye de una a otra.

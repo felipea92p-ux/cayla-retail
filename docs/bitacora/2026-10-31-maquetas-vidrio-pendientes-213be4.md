@@ -39,4 +39,4 @@
 - **Pestañas de sección (`Pestanas`, 35 archivos):** maqueta `docs/maquetas/pestanas-vidrio-2026-10/` con «Como ahora» (píldora de tinta
   sólida), A · La gota de Mi perfil (recomendada: la de las hojas, que fluye de una a otra), B · Vidrio ahumado y C · La gota del menú,
   sobre Compras (conteos que piden y que avisan) y Finanzas (seis con ícono). Medidas 96 combinaciones (320 a 1920 px, claro y oscuro)
-  en Chrome sin ventana: sin desbordes y la gota siempre sobre la elegida. Espera a Felipe.
+  en Chrome sin ventana: sin desbordes y la gota siempre sobre la elegida. Felipe eligió **A · La gota de Mi perfil**.
