@@ -15,13 +15,13 @@ import {
   RPC_ANULAR_SALIDA,
   RPC_ANULAR_VUELTA,
   RPC_CERRAR_PRODUCCION,
-  RPC_DESHACER_MARCA,
   RPC_MARCAR_FASE,
   RPC_AGREGAR_PASO,
   RPC_QUITAR_PASO,
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
   accionesDeFase,
+  avisoMarcaSoloLider,
   avisoMinimoDeFase,
   buenasAlAnotarExcepcion,
   cantidadConUnidad,
@@ -39,6 +39,7 @@ import {
   estadoDeLaOrden,
   faltaTerminar,
   fechaLimaDe,
+  marcaVivaDeFase,
   filasDeTela,
   fraseDeLaOrden,
   horaLima,
@@ -1201,15 +1202,42 @@ describe("una fase que se marca (Ploteo, ADR-0400 act. k y l): hecha con un toqu
     expect(faltaTerminar(pl, p.fases)).toBe(0);
   });
 
-  it("accionesDeFase: «marcar» si no está marcada, «desmarcar» si ya; ninguna sin permiso o con la orden cerrada", () => {
+  it("accionesDeFase: «marcar» si no está marcada (quien opera); «desmarcar» (quitar la marca) solo a un líder (ADR-0586 act. 2); ninguna sin permiso o con la orden cerrada", () => {
     const sin = conPloteo();
     expect(accionesDeFase(sin.fases[0], sin)).toEqual(["marcar"]);
+    expect(accionesDeFase(sin.fases[0], sin, { esLider: true })).toEqual(["marcar"]);
     const con = conPloteo(MARCADA);
-    expect(accionesDeFase(con.fases[0], con)).toEqual(["desmarcar"]);
+    expect(accionesDeFase(con.fases[0], con)).toEqual([]);
+    expect(accionesDeFase(con.fases[0], con, { esLider: true })).toEqual(["desmarcar"]);
     const ajena = conPloteo({}, {}, { permisos: { puede_operar: false, ve_costos: true } });
-    expect(accionesDeFase(ajena.fases[0], ajena)).toEqual([]);
+    expect(accionesDeFase(ajena.fases[0], ajena, { esLider: true })).toEqual([]);
     const cerrada = orden({ orden: { ...crudo().orden, estado: "terminada" }, fases: [ploteo(MARCADA)] });
-    expect(accionesDeFase(cerrada.fases[0], cerrada)).toEqual([]);
+    expect(accionesDeFase(cerrada.fases[0], cerrada, { esLider: true })).toEqual([]);
+  });
+
+  it("a quien opera y no es líder, Ploteo marcado le dice que un líder quita la marca; al líder, sin permiso, con la orden cerrada o sin marcar, nada", () => {
+    const con = conPloteo(MARCADA);
+    expect(avisoMarcaSoloLider(con.fases[0], con)).toBe("Si se marcó por error, un líder puede quitar la marca.");
+    expect(avisoMarcaSoloLider(con.fases[0], con, { esLider: true })).toBeNull();
+    expect(avisoMarcaSoloLider(conPloteo().fases[0], conPloteo())).toBeNull();
+    expect(avisoMarcaSoloLider(con.fases[1], con)).toBeNull();
+    const ajena = conPloteo(MARCADA, {}, { permisos: { puede_operar: false, ve_costos: true } });
+    expect(avisoMarcaSoloLider(ajena.fases[0], ajena)).toBeNull();
+    const cerrada = orden({ orden: { ...crudo().orden, estado: "terminada" }, fases: [ploteo(MARCADA)] });
+    expect(avisoMarcaSoloLider(cerrada.fases[0], cerrada)).toBeNull();
+  });
+
+  it("marcaVivaDeFase: la marca más reciente que nadie deshizo (la que «Quitar la marca» quita desde el paso); sin marca, o en otra fase, null", () => {
+    const linea = [
+      { id: "m-2", cuando: "2026-10-16T15:00:00+00:00", quien_nombre: "Rosa", tipo: "marca", fase_clave: "ploteo", fase_nombre: "Ploteo", cantidad: 0, detalle: null, nota: null, avance_id: null },
+      { id: "m-1b", cuando: "2026-10-15T23:00:00+00:00", quien_nombre: "Rosa", tipo: "desmarca", fase_clave: "ploteo", fase_nombre: "Ploteo", cantidad: 0, detalle: null, nota: null, avance_id: null },
+      { id: "m-1", cuando: "2026-10-15T22:40:00+00:00", quien_nombre: "Rosa", tipo: "marca", fase_clave: "ploteo", fase_nombre: "Ploteo", cantidad: 0, detalle: null, nota: null, avance_id: null },
+    ];
+    const p = conPloteo(MARCADA, {}, { linea_de_tiempo: linea, deshechos: ["m-1"] });
+    expect(marcaVivaDeFase(p.fases[0], p)).toBe("m-2");
+    expect(marcaVivaDeFase(p.fases[1], p)).toBeNull();
+    const sinMarcar = conPloteo({}, {}, { linea_de_tiempo: linea });
+    expect(marcaVivaDeFase(sinMarcar.fases[0], sinMarcar)).toBeNull();
   });
 
   it("queSigue y textoQueSigue: lo primero es marcar el ploteo; después, terminar el corte", () => {
@@ -1266,13 +1294,20 @@ describe("una fase que se marca (Ploteo, ADR-0400 act. k y l): hecha con un toqu
     expect(cuandoTerminoLaFase("ploteo", p.lineaDeTiempo)).toBe("2026-10-16T15:00:00+00:00");
   });
 
-  it("paridad con la migración 20261019192000: las dos RPC y sus motivos existen, y la línea de tiempo usa «marca» y «desmarca»", () => {
+  it("paridad con la migración 20261019192000: marcar y sus motivos existen, y la línea de tiempo usa «marca» y «desmarca»", () => {
     const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261019192000_produccion_ploteo_la_fase_de_un_toque.sql"), "utf8");
     expect(sql).toContain(`create or replace function retail.${RPC_MARCAR_FASE}(`);
-    expect(sql).toContain(`create or replace function retail.${RPC_DESHACER_MARCA}(`);
-    for (const hint of ["fase_no_es_hito", "marca_ya_hecha", "marca_inexistente", "fase_es_hito"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    for (const hint of ["fase_no_es_hito", "marca_ya_hecha", "fase_es_hito"]) expect(sql, hint).toContain(`hint = '${hint}'`);
     expect(sql).toContain("then 'marca' else 'desmarca'");
     expect(sql).toContain("'hito', true, 'marcada', v_empezada");
+  });
+
+  it("paridad con la migración 20261031160000 (ADR-0586 act. 2): quitar y restaurar la marca piden un líder (marca_solo_lider) y el camino viejo sin motivo se borra", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261031160000_produccion_quitar_marca_solo_lider.sql"), "utf8");
+    expect(sql).toContain("drop function if exists retail.deshacer_marca_fase(uuid);");
+    expect(sql.match(/hint = 'marca_solo_lider'/g)).toHaveLength(2);
+    expect(sql).toContain("pg_temp.reemplazar_anclado('retail.eliminar_anotacion_orden(uuid[],text)'");
+    expect(sql).toContain("pg_temp.reemplazar_anclado('retail.restaurar_anotacion_orden(uuid,text)'");
   });
 });
 
@@ -1739,7 +1774,7 @@ describe("corregir, eliminar y restaurar con su historia (ADR-0570, actividad 3)
     const [hoy] = lineaDeTiempoAgrupada(orden({ cambios: [nota, marca] }), "2026-10-16");
     expect(hoy.entradas[0]).toMatchObject({ tipo: "nota", titulo: "Nota", detalle: "La tela llegó con una mancha", quien: "Rosa", hora: "13:00", cuanto: null, restaurable: null });
     expect(tonoDeEntrada("nota")).toBe("neutro");
-    expect(hoy.entradas[1]).toMatchObject({ titulo: "Quitó la marca de Ploteo", detalle: "Por qué: Todavía no se hizo", restaurable: { cambioId: "m-c" } });
+    expect(hoy.entradas[1]).toMatchObject({ titulo: "Quitó la marca de Ploteo", detalle: "Por qué: Todavía no se hizo", restaurable: { cambioId: "m-c", marca: true } });
   });
 
   it("un cambio de tipo (ADR-0581) cuenta de qué tipo a cuál pasó, con su motivo aparte, y es un cambio de la orden, no una anotación", () => {
