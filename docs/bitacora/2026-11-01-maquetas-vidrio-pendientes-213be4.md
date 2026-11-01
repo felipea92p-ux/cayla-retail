@@ -11,3 +11,5 @@
   enlaces B · «Ver» en gota; pasados a la sesión que implementa. Fusionada la rama de avisos, loader y versión nueva (`claude/admiring-hellman-fe61aa`).
 - **Gráficos, en maqueta** (`docs/maquetas/graficos-vidrio-2026-11/`): barra de avance, apilada, anillo, línea y barras por tiempo, con su
   globito. Recomendadas A · Tubo de vidrio (lo del Observatorio a todo el sistema) y globito A · Placa. 30 combinaciones sin desborde.
+- **Gráficos, elegidos:** B · Tinta sobre vidrio y globito B · Ahumado; pasados a la sesión que implementa. Fusionada la maqueta de
+  acciones chicas y selector de mes de la otra sesión (`e5d0b2278`), aún sin elegir.

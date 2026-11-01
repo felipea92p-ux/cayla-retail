@@ -34,3 +34,10 @@ punteada, la proyección, el día en curso rayado y las cifras; el movimiento (s
 En Chrome sin ventana: 30 combinaciones (320 a 1440 px, claro y oscuro, las tres caras), nada se desborda; sin errores de JS. Dos cosas que
 aparecieron al medir y quedaron resueltas: a 768 px la meta de hoy no cabía en media fila (ahora la meta y la línea ocupan la fila entera
 bajo 1180 px), y la cifra de la última barra se salía de la tarjeta (ahora se apoya en el borde derecho).
+
+## Lo que decidió Felipe
+
+**Gráficos B · Tinta sobre vidrio y globito B · Ahumado** (2026-11-01). El dato sigue en su color pleno (rellenos, arcos, trazos y
+barras); solo lo que no es dato pasa a vidrio: la pista es un pozo fino, la rejilla una ranura y el área bajo la línea, esmerilada. El
+globito que lee el dato es el vidrio ahumado de tinta con letra crema. Los anillos de tubo y el área de vidrio del Observatorio siguen
+siendo de él (su diseño propio).
