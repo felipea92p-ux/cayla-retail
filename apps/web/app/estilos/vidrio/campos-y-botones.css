@@ -42,14 +42,20 @@
   background: var(--gota-fondo);
   box-shadow: var(--gota-luz);
 }
-/* El buscador de una lista (<Buscador>): el mismo pozo, en píldora. */
+/* El buscador de una lista (<Buscador>): «A · Pozo» (Felipe 2026-10-31, docs/maquetas/buscador-filtros-vidrio-2026-10/): el mismo pozo de
+   los campos, en píldora de 44 px; al escribir SUBE sin volverse sólido, y el hilo de «Buscando…» corre por su fondo, lejos de los bordes.
+   El del mostrador (60 px) conserva su alto y toma la misma piel. */
 .buscador {
   border-radius: 999px;
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
   transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
 }
-.buscador:focus-within { background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra); }
+.buscador:not(.mostrador) { height: 44px; padding-left: 16px; }
+.buscador:focus-within { border-color: var(--color-borde-control); background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra); }
+.buscador .buscador-hilo { left: 20px; right: 20px; }
+.buscador .buscador-atajo { border-radius: 999px; }
 
 /* ---------- el botón: la píldora ---------- */
 .btn-cayla:not(.btn-enlace) {
@@ -85,19 +91,74 @@
   .btn-peligro:hover:not(:disabled) { background: var(--rojo-vidrio-hover); }
 }
 
-/* ---------- las píldoras que eligen (filtros, períodos): apagadas son gota; la elegida, ahumada ---------- */
-.pildora-cayla {
-  background: var(--gota-fondo);
-  border-color: color-mix(in srgb, var(--color-borde-control) 60%, transparent);
-  box-shadow: var(--gota-luz);
-}
-.pildora-cayla:is([aria-pressed="true"], [aria-current="page"], [data-activa="true"]),
-.pildora-filtro[data-puesta] {
-  background: var(--ahumado-fondo);
-  border-color: var(--ahumado-borde);
-  box-shadow: var(--ahumado-luz);
-}
+/* ---------- las píldoras que filtran o eligen: «A · Gotas, la puesta ahumada» (Felipe 2026-10-31, buscador-filtros-vidrio-2026-10/) ----------
+   Cada píldora es una gota SUELTA con el borde de lo que se toca (3:1); la puesta, el ahumado denso de los controles del Observatorio con
+   su ✓. Nunca dentro de un pozo: así no se confunde con la pestaña de sección, que es pozo y gota. Vale para `pildora-cayla`,
+   `DesplegablePildora` y `BotonFiltros` (`pildora-filtro`); lo puesto (`FiltroPuesto`, `vacio-filtro`) va en el mismo ahumado con su ✕ en
+   una lente, y «Limpiar todo» (`pildora-limpiar`) sigue punteado. */
+.pildora-cayla,
 .pildora-filtro:not([data-puesta]) {
-  background: var(--gota-fondo);
+  border-color: var(--color-borde-control);
+  color: color-mix(in srgb, var(--color-tinta) 82%, transparent); /* contraste: texto sobre la gota de una píldora (crema, papel, Aurora) */
+  background: var(--gota-fondo-encima);
   box-shadow: var(--gota-luz);
+  transition: background 200ms var(--ease-cayla), border-color 200ms, color 200ms, transform 250ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .pildora-cayla:not([aria-pressed="true"], [aria-current="page"], [data-activa="true"], .pildora-limpiar):hover,
+  .pildora-filtro:not([data-puesta]):hover {
+    transform: translateY(-1px);
+    color: var(--color-tinta);
+    background: var(--gota-marca);
+  }
+}
+.pildora-cayla.pildora-cayla:is([aria-pressed="true"], [aria-current="page"], [data-activa="true"]),
+.pildora-filtro.pildora-filtro[data-puesta],
+.vacio-filtro.vacio-filtro {
+  color: var(--color-crema);
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+/* La puesta lleva su ✓ delante: dice «esto está puesto», sea un filtro o el período elegido. */
+.pildora-cayla:is([aria-pressed="true"], [aria-current="page"], [data-activa="true"])::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  mask: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+/* Lo puesto: su ✕ en una lente clara. */
+.vacio-filtro svg {
+  box-sizing: content-box;
+  padding: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-crema) 20%, transparent); /* contraste: no aplica — es la lente de la ✕, no un texto */
+}
+@media (hover: hover) {
+  .vacio-filtro.vacio-filtro:hover { background: var(--ahumado-hover); }
+}
+/* «Limpiar todo»: punteado, sobre una gota apenas. */
+.pildora-limpiar.pildora-limpiar {
+  border-style: dashed;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 50%, transparent), color-mix(in srgb, var(--color-vidrio) 15%, transparent));
+  box-shadow: none;
+}
+
+/* En oscuro la gota es casi tinta: el borde y el fondo se aclaran con tinta. La puesta va DESPUÉS y con más peso: si no, la píldora
+   puesta quedaba con la letra oscura sobre fondo oscuro (lo encontró la maqueta). */
+@media screen {
+  :root[data-tema="oscuro"] :is(.pildora-cayla, .pildora-filtro:not([data-puesta])) {
+    border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    background: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    box-shadow: none;
+  }
+  :root[data-tema="oscuro"] :is(.pildora-cayla.pildora-cayla:is([aria-pressed="true"], [aria-current="page"], [data-activa="true"]), .pildora-filtro.pildora-filtro[data-puesta], .vacio-filtro.vacio-filtro) {
+    color: var(--color-crema);
+    border-color: var(--ahumado-denso-borde);
+    background: var(--ahumado-denso-fondo);
+    box-shadow: var(--ahumado-denso-luz);
+  }
 }

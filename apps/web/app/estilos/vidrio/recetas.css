@@ -63,6 +63,12 @@
   --ahumado-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 45%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 8%, transparent),
     0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  /* El ahumado DENSO: lo que está puesto en un filtro o un control (la píldora puesta, «Hoy» en el Observatorio). Más tinta que el botón
+     primario para que se distinga de lo no elegido sobre la Aurora (Felipe 2026-10-31: «no se distinguen bien los controles»). */
+  --ahumado-denso-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 84%, transparent), color-mix(in srgb, var(--color-tinta) 97%, transparent));
+  --ahumado-denso-borde: color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --ahumado-denso-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 35%, transparent),
+    0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
   /* Lo peligroso es vidrio rojo: no se confunde, y tampoco es un bloque sólido. */
   --rojo-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 70%, transparent), color-mix(in srgb, var(--color-rojo) 92%, transparent));
   --rojo-vidrio-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 94%, transparent));
@@ -111,6 +117,46 @@
   --plegar-fondo: var(--gota-marca);
   --plegar-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
   --plegar-sombra: inset 0 1px 0 var(--color-vidrio), 0 6px 16px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+
+  /* ---------- el Observatorio con vidrio (docs/maquetas/observatorio-vidrio-2026-10/; piezas en vidrio/observatorio.css) ---------- */
+  /* La pista de un control segmentado sobre la Aurora («B · Ahumado con contraste»): una placa casi llena que se separa de lo de atrás
+     con su sombra; el borde lo pone la pieza (`borde-control`, 3:1, como todo lo que se toca). */
+  --pista-control-sombra: inset 0 1px 0 var(--color-vidrio), inset 0 -1px 2px color-mix(in srgb, var(--color-sombra) 8%, transparent),
+    0 10px 24px -16px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  /* Lo que va encima del ahumado denso (el ícono de «Repetir el día» mientras corre): una gota clara. */
+  --ahumado-denso-gota: color-mix(in srgb, var(--color-crema) 94%, transparent);
+  /* El tubo de vidrio: la pista hundida de una barra o un anillo, y la luz que se pone ENCIMA del color del dato (el color no cambia). */
+  --tubo-fondo: color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --tubo-borde: color-mix(in srgb, var(--color-vidrio) 55%, transparent);
+  --tubo-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent);
+  --tubo-brillo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 42%, transparent), transparent 70%);
+  --tubo-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 55%, transparent), 0 3px 8px -3px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+  --tubo-anillo: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --tubo-anillo-sombra: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-sombra) 12%, transparent));
+  /* La lente grande: un círculo de vidrio que sobresale (los orbes de «Por revisar»), más llena arriba a la izquierda. */
+  --lente-grande-fondo: radial-gradient(120% 90% at 30% 15%, color-mix(in srgb, var(--color-vidrio) 95%, transparent), color-mix(in srgb, var(--color-vidrio) 45%, transparent) 70%);
+  --lente-grande-borde: color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+  --lente-grande-filtro: blur(18px) saturate(1.5);
+  --lente-grande-sombra: inset 0 1px 0 var(--color-vidrio), inset 0 -2px 6px color-mix(in srgb, var(--color-sombra) 8%, transparent),
+    0 14px 30px -18px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+  /* El filo de luz del líquido que llena una lente (el nivel de un orbe). */
+  --liquido-filo: color-mix(in srgb, var(--color-vidrio) 85%, transparent);
+  /* El avatar en su lente: la arena de siempre vista a través de un vidrio. */
+  --lente-avatar-fondo: linear-gradient(145deg, color-mix(in srgb, var(--color-sand) 90%, var(--color-vidrio)), color-mix(in srgb, var(--color-sand) 60%, transparent));
+  --lente-avatar-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 80%, transparent), 0 0 0 2px color-mix(in srgb, var(--color-vidrio) 55%, transparent);
+  /* La lámina del mapa: el Perú como un vidrio que flota sobre la Aurora y proyecta su sombra. */
+  --lamina-mapa-fondo: color-mix(in srgb, var(--color-vidrio) 58%, transparent);
+  --lamina-mapa-sombra: drop-shadow(0 22px 26px color-mix(in srgb, var(--color-sombra) 18%, transparent));
+  /* El vidrio esmerilado bajo una curva (el área de un gráfico): el color y las tres opacidades de su degradado (arriba → abajo). */
+  --grafico-vidrio: var(--color-vidrio);
+  --grafico-vidrio-o1: 0.95;
+  --grafico-vidrio-o2: 0.55;
+  --grafico-vidrio-o3: 0.05;
+  --grafico-vidrio-linea: drop-shadow(0 2px 3px color-mix(in srgb, var(--color-sombra) 22%, transparent));
+  /* El globito al pasar el mouse: ahumado que deja ver lo de atrás (no tinta maciza). */
+  --globo-fondo: color-mix(in srgb, var(--color-tinta) 84%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --globo-filtro: blur(14px) saturate(1.4);
+  --globo-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 25%, transparent), 0 14px 30px -14px color-mix(in srgb, var(--color-sombra) 55%, transparent);
 }
 
 @media screen {
@@ -166,6 +212,29 @@
     --plegar-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 95%, transparent), color-mix(in srgb, var(--color-hueso) 80%, transparent));
     --plegar-borde: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --plegar-sombra: 0 6px 16px -8px var(--color-sombra);
+    /* El Observatorio con vidrio: en oscuro la luz es crema a poca opacidad y las sombras, negras. */
+    --pista-control-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 10%, transparent), 0 10px 24px -16px var(--color-sombra);
+    --tubo-fondo: color-mix(in srgb, var(--color-sombra) 30%, transparent);
+    --tubo-borde: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --tubo-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+    --tubo-brillo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 18%, transparent), transparent 70%);
+    --tubo-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent);
+    --tubo-anillo: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --tubo-anillo-sombra: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-sombra) 40%, transparent));
+    --lente-grande-fondo: radial-gradient(120% 90% at 30% 15%, color-mix(in srgb, var(--color-tinta) 18%, transparent), color-mix(in srgb, var(--color-tinta) 5%, transparent) 70%);
+    --lente-grande-borde: color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --lente-grande-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 20%, transparent), 0 14px 30px -18px var(--color-sombra);
+    --lente-avatar-fondo: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --lente-avatar-luz: 0 0 0 2px color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    --lamina-mapa-fondo: color-mix(in srgb, var(--color-tinta) 7%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --lamina-mapa-sombra: drop-shadow(0 22px 26px color-mix(in srgb, var(--color-sombra) 60%, transparent));
+    --grafico-vidrio: var(--color-tinta);
+    --grafico-vidrio-o1: 0.2;
+    --grafico-vidrio-o2: 0.08;
+    --grafico-vidrio-o3: 0;
+    --grafico-vidrio-linea: drop-shadow(0 2px 3px color-mix(in srgb, var(--color-sombra) 50%, transparent));
+    --globo-fondo: color-mix(in srgb, var(--color-tinta) 88%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --globo-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 25%, transparent), 0 14px 30px -14px var(--color-sombra);
   }
 }
 
@@ -180,5 +249,8 @@
     --lamina-fondo: var(--color-papel);
     --serena-fondo: var(--color-papel);
     --serena-fondo-encima: var(--color-papel);
+    --lente-grande-fondo: var(--color-papel);
+    --lamina-mapa-fondo: var(--color-papel);
+    --globo-fondo: var(--color-tinta);
   }
 }

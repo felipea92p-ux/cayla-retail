@@ -22,7 +22,7 @@ import {
   type TiendaObs,
 } from "@/lib/observatorio-reglas";
 import { Ic } from "./iconos";
-import { Anillo, Cifra, Odometro, Revela, Segmento, Trazo, ancho, fmt, iniciales, useArranque, useObs, type Arranque } from "./piezas";
+import { Anillo, AreaVidrio, Cifra, Odometro, Revela, Segmento, Trazo, ancho, fmt, iniciales, useArranque, useObs, type Arranque } from "./piezas";
 
 export type Tab = "ritmo" | "productos" | "equipo" | "stock";
 export const TABS: readonly (readonly [Tab, string])[] = [
@@ -228,6 +228,7 @@ function Ritmo({
           {enPct && <line className="meta" x1="0" x2="100" y1={Y(100)} y2={Y(100)} />}
           <Trazo pts={c.curvaAnterior.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln ant" />
           {conCmp && <Trazo key={`cmp-${conCmp.foco}`} pts={conCmp.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln cmp" />}
+          <AreaVidrio pts={c.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} />
           <Trazo pts={c.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln f" />
         </Revela>
         {enPct && (

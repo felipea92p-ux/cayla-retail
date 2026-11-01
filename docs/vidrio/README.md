@@ -53,8 +53,8 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | En código | A · Placa Serena | `cifras-vidrio-2026-10/` |
 | Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | En código (la placa); superpoderes en un piloto | B · Placa Serena, con superpoderes: A · Globo desde la cabecera, responsive de 320 a 1920 px | `tablas-vidrio-2026-10/`, `tabla-superpoderes-2026-10/` |
 | Pestañas de sección | `ui/Pestanas` (35 archivos) | En código | A · La gota de Mi perfil | `pestanas-vidrio-2026-10/` |
-| Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
-| Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | Por auditar | — | — |
+| Buscador | `ui/Buscador.tsx` | En código | A · Pozo (píldora hundida de 44 px que sube al escribir) | `buscador-filtros-vidrio-2026-10/` |
+| Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | En código | A · Gotas, la puesta ahumada con su ✓ | `buscador-filtros-vidrio-2026-10/` |
 | Insignias de estado | `ui/Chip.tsx` | Por auditar | — | — |
 | Estados vacíos | `ui/Vacio.tsx` | Por auditar | — | — |
 | Paginación | `ui/Paginas.tsx` | Por auditar | — | — |
@@ -72,7 +72,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |
 | Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar | — | — |
-| **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
+| **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | En código | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 
 ## Fuera hasta que Felipe diga
 

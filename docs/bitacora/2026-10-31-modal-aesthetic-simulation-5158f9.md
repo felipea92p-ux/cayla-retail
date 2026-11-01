@@ -123,3 +123,12 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   fecha que dice cuánto pasó; el total de lo que ves; el vacío con salida; responsive por el ancho de la tabla; la cabecera pegada con
   `animation-timeline: view()` (medida: 0 filas asoman al bajar rápido). Lo que se apartó de la maqueta: la segunda línea a 14 px (el
   piso de lectura), el Modelo a la izquierda (lleva foto), «Limpiar» en vez de «Borrar», y sin trampa de foco en el globo.
+
+- **Buscador, filtros y Observatorio al vidrio (Felipe 2026-10-31, lo elegido en la sesión de maquetas):** el buscador «A · Pozo» (píldora
+  hundida de 44 px; el del mostrador conserva su alto) y los filtros «A · Gotas, la puesta ahumada» (gota suelta con `borde-control`; la
+  puesta en `--ahumado-denso-*`, receta nueva, con su ✓; lo puesto en el mismo ahumado con su ✕ en lente; «Limpiar todo» punteado; en
+  oscuro la puesta va después y con más peso), en `campos-y-botones.css`. El Observatorio (ADR-0322) en `vidrio/observatorio.css` + recetas
+  nuevas (tubo, lente grande, líquido, lámina del mapa, gráfico de vidrio, globo): el mapa al aire, controles ahumados con contraste (9–14:1
+  la elegida, 6–9:1 lo demás), orbes en lente con líquido, cinta de la venta en vivo, anillos y ranking en tubo, el Perú de vidrio, área de
+  vidrio bajo las curvas (`AreaVidrio` con `useId`) y la estela del cometa (el mismo bucle-señal). Sin la línea del día ni el panel que nace
+  del mapa (Felipe los quitó). `.o-repetir.va` va después de la piel: la hora se lee mientras repite el día.
