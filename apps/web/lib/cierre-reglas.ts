@@ -165,11 +165,6 @@ export function leerPanelCierre(data: unknown): PanelCierre | null {
 export const nombreMes = (mes: string): string => textoMes(mes).split(" ")[0] ?? mes;
 /** «Cerrar agosto 2026». */
 export const tituloPantalla = (mes: string): string => `Cerrar ${textoMes(mes)}`;
-/** «Agosto 2026», para el selector. */
-export const mesEnSelector = (mes: string): string => {
-  const t = textoMes(mes);
-  return t.charAt(0).toUpperCase() + t.slice(1);
-};
 /** «19ce…40ab»: la huella corta, como el spike. */
 export const huellaCorta = (h: string | null | undefined): string => (h && h.length > 8 ? `${h.slice(0, 4)}…${h.slice(-4)}` : h ?? "");
 /** «Felipe» de «Felipe Alvarez». */
@@ -477,14 +472,6 @@ export function unidadInicial(unidades: readonly Unidad[], pedida?: string | nul
 /** El motivo de una reapertura: obligatorio, al menos 5 letras (la base pide lo mismo). */
 export function validarMotivo(motivo: string): string | null {
   return motivo.trim().length >= 5 ? null : "Escribe el motivo (al menos 5 letras): queda en la historia.";
-}
-
-/** Lo que dice una opción del selector de mes: «Agosto 2026 · CAYLA cerrada», «· 2 cerradas». */
-export function textoOpcionMes(m: MesCierre): string {
-  const base = mesEnSelector(m.mes);
-  if (m.consolidado) return `${base} · cerrado`;
-  if (m.cerradas > 0) return `${base} · ${plural(m.cerradas, "cerrada", "cerradas")}`;
-  return base;
 }
 
 /** La historia de una unidad (o del consolidado) en el mes, en líneas: «3 sep · Felipe cerró (19ce…40ab)», «5 sep · Felipe
