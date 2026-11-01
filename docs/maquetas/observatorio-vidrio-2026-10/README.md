@@ -52,3 +52,6 @@ Probado en Chrome sin ventana: la gota del panel aparece y se va, los degradados
 también»): la piel de vidrio le ganaba al botón mientras corre y dejaba la hora en crema sobre vidrio claro. Mientras corre, el botón es el
 primario ahumado (oscuro, hora en crema, 14:1) y su ícono una gota clara; en oscuro, al revés (13,8:1). En el ERP de hoy se veía bien
 porque ahí la piel de vidrio todavía no existe: **al implementarla, la regla de `.o-repetir.va` tiene que ir después de la del vidrio**.
+
+**Elegido entero (2026-10-31)**, sin la línea del día («no me gustó la 5, también quítalo y pásaselo»): B · El mapa al aire, controles
+B · Ahumado con contraste, orbes A · Lente y los siete extras que quedan encendidos en la maqueta. Pasado a la sesión que implementa.
