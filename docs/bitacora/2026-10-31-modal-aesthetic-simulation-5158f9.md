@@ -168,3 +168,11 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   abierto; el área no cambia), el menú «Más» «A · La lista del combo» (`lista-flotante` + `opcion-activa`, en rojo sobre lo peligroso) y el
   selector de mes «B · Gota entera» (la gota del secundario; el mes elegido, ahumado denso). Encontrado de paso: `Desplegable` pinta la
   opción bajo el mouse con su propio fondo y no usa `opcion-activa`, así que en sus listas la gota no viaja con el mouse (sí en ComboBuscable).
+
+- **El Inicio de la líder, la barra de avance y la barra de abajo al vidrio (Felipe 2026-11-01):** en `vidrio/inicio.css`, acotado a
+  `[data-inicio]`: títulos «B · Con hilo» (versalitas con su hilo taupe; `<TituloSeccion>` fuera del Inicio no cambia), «Te toca» «A · Placa»
+  (cantidad en globito teñido por `data-nivel`, lo urgente con la marca roja), accesos «A · Gotas» (ícono en lente) y equipo «A · Placa»
+  (avatar en lente, monto en serif). En `vidrio/barras.css`, para todo el ERP: la barra de avance «A · Tubo» (fina 8 px, normal 14, gruesa
+  20; relleno de vidrio teñido de su tono) y la barra de abajo del celular «A · Gota ahumada» (`sola` = el primario ahumado; clara con varias
+  acciones = vidrio de lo que flota; `tinta` = ahumado denso con su principal en gota crema; se corrigió de paso que el primario ahumado le
+  ganaba al principal crema de la isla oscura). Por mirar con datos reales: las 34 barras `alto="fina"` que pasan de 3 a 8 px en sus filas.

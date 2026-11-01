@@ -181,6 +181,18 @@
   --version-gota-clara-luz: inset 0 1px 0 var(--color-crema), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 60%, transparent);
   /* Con «reducir movimiento» no hay líquido: la píldora es el ahumado quieto. */
   --version-ahumado-quieto: color-mix(in srgb, var(--color-tinta) 92%, transparent);
+  /* La barra de abajo del celular, «A · Gota ahumada» (inicio-lider-vidrio-2026-10): el botón que ES la isla flota, con una sombra más
+     honda que la del primario de una fila; y sobre la isla oscura (el ahumado denso), el botón principal es la gota clara de crema. */
+  --ahumado-flota-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 45%, transparent),
+    0 16px 32px -14px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  --gota-crema-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-crema) 98%, transparent), color-mix(in srgb, var(--color-crema) 86%, transparent));
+  --gota-crema-hover: var(--color-crema);
+  --gota-crema-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 70%, transparent), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  /* La barra de avance, «A · Tubo» en todo el ERP (Felipe 2026-11-01): el relleno es vidrio teñido de su tono, con la luz arriba
+     (`--tubo-relleno-*`: cuánto vidrio entra arriba y cuánto del tono abajo) y una sombra de su color. */
+  --tubo-relleno-arriba: var(--color-vidrio);
+  --tubo-relleno-mezcla: 62%;
+  --tubo-relleno-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 60%, transparent);
 }
 
 @media screen {
@@ -269,6 +281,12 @@
     --lente-tono-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent), 0 22px 40px -22px var(--color-sombra);
     --version-filo: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 40%, transparent),
       inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 55%, transparent);
+    /* La isla y el tubo en oscuro: la luz de arriba toma la crema a poca opacidad (el vidrio es oscuro) y el relleno se apaga hacia la sombra. */
+    --ahumado-flota-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 60%, transparent), 0 16px 32px -14px var(--color-sombra);
+    --gota-crema-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 30%, transparent), 0 4px 10px -6px var(--color-sombra);
+    --tubo-relleno-arriba: var(--color-sombra);
+    --tubo-relleno-mezcla: 80%;
+    --tubo-relleno-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent);
   }
 }
 
