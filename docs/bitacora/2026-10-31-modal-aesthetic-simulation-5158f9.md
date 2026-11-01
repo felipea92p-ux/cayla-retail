@@ -114,3 +114,12 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   (pozo + `IndicadorDeslizante` variante `gota` que se estira 220 ms y se recoge 300 ms, también al cambiar de ruta) y tablas
   «B · Placa Serena» (`tabla-cayla` en `TABLA.contenedor`: sin rayado, hilo entre filas, encabezado suelto). Dentro de una hoja manda la
   lámina de la hoja (pantalla.css se importa antes que hoja.css). Verificado en Compras, Por pagar e Inventario, claro y oscuro.
+
+- **La tabla con superpoderes, en piloto (Felipe 2026-10-31, «A · Globo desde la cabecera»):** pieza nueva `ui/TablaViva.tsx` (+ `useTablaViva`)
+  con su lógica pura en `lib/tabla-viva-reglas.ts` (24 pruebas) y su CSS en `vidrio/tabla-viva.css`; `<Tabla>` no cambia para las demás.
+  Piloto: Inventario ▸ Movimientos ▸ Ingresos (todas las filas ya en el navegador; la página es la que corre, donde la cabecera pegada se
+  luce). Letra de 15 px y «Letra grande» recordada en el aparato; todo al centro con los montos en su caja; globo de vidrio desde cada
+  cabecera con ordenar y «mostrar solo» con su conteo (en el celular, la hoja a media altura); la frase de lo que ves con sus píldoras; la
+  fecha que dice cuánto pasó; el total de lo que ves; el vacío con salida; responsive por el ancho de la tabla; la cabecera pegada con
+  `animation-timeline: view()` (medida: 0 filas asoman al bajar rápido). Lo que se apartó de la maqueta: la segunda línea a 14 px (el
+  piso de lectura), el Modelo a la izquierda (lleva foto), «Limpiar» en vez de «Borrar», y sin trampa de foco en el globo.

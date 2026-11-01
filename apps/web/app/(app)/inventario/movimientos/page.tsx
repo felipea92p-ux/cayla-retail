@@ -242,14 +242,15 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "ingresos" | 
 /** La pestaña «Ingresos»: el rango de la URL (por defecto, 7 días) y la lectura por modelo. Sin filtros de Movimientos: es otra
  *  pregunta («¿qué llegó?»), con su propio período. Si la base no responde, la vista lo dice (`null`), nunca un 0. */
 async function PaginaIngresos({ ubicacionId, params }: { ubicacionId: string; params: ParamsIngresos }) {
-  const rango = rangoIngresos(params, hoyLima());
+  const hoy = hoyLima();
+  const rango = rangoIngresos(params, hoy);
   const [ubicaciones, ingresos] = await Promise.all([getUbicaciones(), getIngresosPorModelo(ubicacionId, rango.desde, rango.hasta)]);
   const sede = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "esta sede";
   return (
     <div className="space-y-6">
       <EncabezadoPagina sede={sede} titulo="Movimientos" subtitulo="Ingresos: qué prendas entraron a esta sede, por modelo." />
       <PestanasMovimientos activa="ingresos" />
-      <IngresosVista ingresos={ingresos} rango={rango} sede={sede} />
+      <IngresosVista ingresos={ingresos} rango={rango} sede={sede} hoy={hoy} />
     </div>
   );
 }

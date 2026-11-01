@@ -19,9 +19,9 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
-| El fondo (lienzo) | `AppShell.tsx` (`bg-crema`), `globals.css` | Elegido | B · Aurora | `marco-vidrio-2026-10/` |
-| Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | Elegido | B · Riel de vidrio con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en bandeja (A); plegar con un botón que flota en el borde, a la altura del logo; plegado con nombre corto bajo cada ícono (A, 84 px) | `marco-vidrio-2026-10/` |
-| Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | Elegido | C · Dos islas; el buscador se encoge con la cabecera hasta quedar en una lupa | `marco-vidrio-2026-10/` |
+| El fondo (lienzo) | `AppShell.tsx` (`bg-crema`), `globals.css` | En código | B · Aurora | `marco-vidrio-2026-10/` |
+| Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | En código | B · Riel de vidrio con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en bandeja (A); plegar con un botón que flota en el borde, a la altura del logo; plegado con nombre corto bajo cada ícono (A, 84 px) | `marco-vidrio-2026-10/` |
+| Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | En código | C · Dos islas; el buscador se encoge con la cabecera hasta quedar en una lupa | `marco-vidrio-2026-10/` |
 | El combo: la sede y todos los demás | `ui/campos.tsx` (`Desplegable`, 7 formas), `UbicacionSwitcher.tsx` | En código | A · Gota viajera | `marco-vidrio-2026-10/` |
 | Íconos del marco | `lib/menu-iconos.ts` (trazo 1,5) | Por auditar (hoy se usan todos tal cual, también en submódulos) | — | — |
 | Cajón del menú en el celular | `AppShell.tsx` (`cajon-lateral`), `useLateralConElDedo.ts` | Por auditar | — | — |
@@ -49,10 +49,10 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
-| Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | Elegido | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
-| Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | Elegido | A · Placa Serena | `cifras-vidrio-2026-10/` |
-| Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | Elegido | B · Placa Serena, con superpoderes: A · Globo desde la cabecera, responsive de 320 a 1920 px | `tablas-vidrio-2026-10/`, `tabla-superpoderes-2026-10/` |
-| Pestañas de sección | `ui/Pestanas` (35 archivos) | Elegido | A · La gota de Mi perfil | `pestanas-vidrio-2026-10/` |
+| Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | En código | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
+| Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | En código | A · Placa Serena | `cifras-vidrio-2026-10/` |
+| Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | En código (la placa); superpoderes en un piloto | B · Placa Serena, con superpoderes: A · Globo desde la cabecera, responsive de 320 a 1920 px | `tablas-vidrio-2026-10/`, `tabla-superpoderes-2026-10/` |
+| Pestañas de sección | `ui/Pestanas` (35 archivos) | En código | A · La gota de Mi perfil | `pestanas-vidrio-2026-10/` |
 | Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
 | Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | Por auditar | — | — |
 | Insignias de estado | `ui/Chip.tsx` | Por auditar | — | — |

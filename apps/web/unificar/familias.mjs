@@ -725,7 +725,8 @@ export const DECISIONES = {
     "registro": "docs/unificar/tabla.md",
     "elegida": "P1 · <Tabla> de hoy con movimiento: banda arena, títulos taupe, zebra hueso; las filas entran en cascada, la que lleva a su detalle muestra el hilo rojo de canto y la «›» al pasar el mouse, la abierta se queda marcada, la recién guardada respira en verde; elegida tocándola el 2026-10-13",
     "pieza": "components/ui/Tabla.tsx",
-    "tambien": ["app/globals.css"],
+    // La tabla con superpoderes (ADR-0596, «A · Globo desde la cabecera», Felipe 2026-10-31): la otra pieza elegida, para las tablas cuyas filas ya están en el navegador.
+    "tambien": ["app/globals.css", "components/ui/TablaViva.tsx"],
     "firmas": [
       // Una tabla de registros dibujada a mano con <table> (la pieza es <Tabla> + `fila()` + `celda()`).
       "<table\\b",
