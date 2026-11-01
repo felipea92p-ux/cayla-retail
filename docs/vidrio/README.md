@@ -51,8 +51,8 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | Elegido | A · Placa Serena | `cifras-vidrio-2026-10/` |
 | Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | Elegido | B · Placa Serena, con superpoderes: A · Globo desde la cabecera, responsive de 320 a 1920 px | `tablas-vidrio-2026-10/`, `tabla-superpoderes-2026-10/` |
 | Pestañas de sección | `ui/Pestanas` (35 archivos) | Elegido | A · La gota de Mi perfil | `pestanas-vidrio-2026-10/` |
-| Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
-| Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | Por auditar | — | — |
+| Buscador | `ui/Buscador.tsx` (67 archivos) | En maqueta | — (recomendada: A · Pozo) | `buscador-filtros-vidrio-2026-10/` |
+| Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx`, `pildora-cayla` | En maqueta | — (recomendada: A · Gotas, la puesta ahumada) | `buscador-filtros-vidrio-2026-10/` |
 | Insignias de estado | `ui/Chip.tsx` | Por auditar | — | — |
 | Estados vacíos | `ui/Vacio.tsx` | Por auditar | — | — |
 | Paginación | `ui/Paginas.tsx` | Por auditar | — | — |

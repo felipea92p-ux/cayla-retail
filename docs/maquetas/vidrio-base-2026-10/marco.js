@@ -169,6 +169,7 @@ document.addEventListener('click', (e) => {
     const lista = op.closest('.cb-lista'), cb = cbDe(lista);
     $$('.cb-op', lista).forEach((o) => o.setAttribute('aria-selected', o === op));
     estadoCombos[lista.dataset.de] = op.dataset.v;
+    if (window.alElegirCombo) window.alElegirCombo(lista.dataset.de, op.dataset.v); // la maqueta que lo use se entera de la elección
     const b = $('.cb-btn', cb), val = $('.val', b);
     val.textContent = op.dataset.t; val.classList.remove('entra'); void val.offsetWidth; val.classList.add('entra');
     if (op.style.getPropertyValue('--c')) b.style.setProperty('--c', op.style.getPropertyValue('--c'));

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-bu="pozo" data-fl="gotas">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buscador y filtros con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · el buscador y los filtros con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Las piezas, que viven juntas en la barra de arriba de una lista:
+   · `<Buscador>` (components/ui/Buscador.tsx, estilos/vacio-aviso-buscador.css), 67 archivos: caja hueso de 40 px con borde de control,
+     lupa, «/», ×, «Buscando…» con su hilo rojo y el conteo debajo; busca mientras se escribe.
+   · `pildora-cayla` (globals.css), 101 archivos: la píldora que deja menos filas; la puesta, rellena de TINTA SÓLIDA.
+   · `<DesplegablePildora>` y `<BotonFiltros>` (ui/FiltrosPildora.tsx), 20 y 6: la píldora con su ícono que abre una lista.
+   · `<FiltroPuesto>` y `<BotonLimpiar>` (ui/FiltrosPuestos.tsx), 12 y 17: lo puesto, en tinta con su ✕, y «Limpiar todo» punteado.
+   Regla que se cuida (ADR-0358, «Pestañas y segmentos»): la píldora que FILTRA no puede parecerse a la pestaña, que ya es pozo y gota.
+   Montada sobre el marco y las piezas elegidas (../vidrio-base-2026-10/). Colores: SOLO tokens. Movimiento: una vez, sin rebote.
+   ==================================================================== */
+.barra-f{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:28px;animation:sube .6s var(--ease) .2s backwards}
+.zona-b{flex:1 1 320px;max-width:440px;min-width:0}
+
+/* ---------- el buscador (como hoy) ---------- */
+.buscador{position:relative;display:flex;align-items:center;gap:8px;height:40px;padding:0 6px 0 12px;border-radius:10px;overflow:hidden;
+  background:var(--hueso);border:1px solid var(--borde);transition:background .2s var(--ease),border-color .2s,box-shadow .3s var(--ease),transform .3s var(--ease)}
+.buscador:focus-within{background:var(--papel);border-color:color-mix(in srgb,var(--tinta) 65%,var(--papel))}
+.buscador .lupa{width:16px;height:16px;flex:none;color:var(--t50);stroke-width:1.8;transition:color .2s,transform .3s var(--ease)}
+.buscador:focus-within .lupa{color:var(--tinta);transform:scale(1.08)}
+.buscador input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:14px}
+.buscador input::placeholder{color:var(--t65)}
+.buscador input::-webkit-search-cancel-button{display:none}
+.buscador kbd{flex:none;margin-right:6px;padding:0 6px;border-radius:5px;border:1px solid var(--t25);font:600 10.5px/18px 'DM Sans';color:var(--t65);transition:opacity .2s}
+.buscador:focus-within kbd,.buscador[data-con-texto] kbd{opacity:0}
+.buscador .borrar{display:none;width:28px;height:28px;flex:none;border-radius:50%;place-items:center;color:var(--t65)}
+.buscador[data-con-texto] .borrar{display:grid}
+.buscador .borrar svg{width:14px;height:14px;stroke-width:2}
+.buscador .senal{position:absolute;right:44px;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--rojo);opacity:0;transition:opacity .2s;pointer-events:none}
+.buscador .hilo-b{position:absolute;left:0;right:0;bottom:0;height:2px;overflow:hidden;opacity:0;transition:opacity .2s}
+.buscador .hilo-b::before{content:"";display:block;width:33%;height:100%;border-radius:99px;background:var(--rojo);animation:barre 1.1s linear infinite}
+@keyframes barre{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
+.buscador[data-buscando] :is(.senal,.hilo-b){opacity:1}
+.conteo{margin-top:6px;min-height:18px;font-size:12.5px;color:var(--taupe)}
+
+/* A · Pozo: el campo hundido que eligió para las hojas (y el buscador de la cabecera): una píldora hundida que espera tu dato; al
+   escribir SUBE sin volverse sólida (se aclara y gana un filo), y el hilo de «buscando» corre por su fondo */
+[data-bu="pozo"] .buscador{height:44px;border-radius:999px;padding:0 8px 0 16px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-bu="pozo"] .buscador{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-bu="pozo"] .buscador:focus-within{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-bu="pozo"] .buscador:focus-within{background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-bu="pozo"] .buscador kbd{border-radius:99px}
+[data-bu="pozo"] .buscador .hilo-b{left:20px;right:20px}
+/* B · Lente: el buscador sobresale como una placa de vidrio y la lupa vive en su propia lente a la izquierda; con el cursor adentro,
+   la lente se enciende */
+[data-bu="lente"] .buscador{height:48px;border-radius:999px;padding:0 8px 0 5px;gap:10px;border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));-webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 12px 26px -16px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-bu="lente"] .buscador{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent)}
+[data-bu="lente"] .buscador .lupa{box-sizing:content-box;padding:10px;border-radius:50%;background:linear-gradient(145deg,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--borde) 45%,transparent)}
+[data-tema="oscuro"][data-bu="lente"] .buscador .lupa{background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:none}
+[data-bu="lente"] .buscador:focus-within{border-color:var(--borde);transform:translateY(-1px);box-shadow:inset 0 1px 0 var(--vidrio),0 16px 30px -16px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-bu="lente"] .buscador:focus-within .lupa{color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+[data-bu="lente"] .buscador kbd{border-radius:99px}
+[data-bu="lente"] .buscador .hilo-b{left:56px;right:24px}
+
+/* ---------- los filtros (como hoy) ---------- */
+.fp{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);font-size:13px;font-weight:600;color:var(--taupe);
+  white-space:nowrap;transition:background .2s,border-color .2s,color .2s,transform .25s var(--ease)}
+.fp svg{width:15px;height:15px;stroke-width:1.8}
+.fp .n{min-width:20px;height:20px;padding:0 6px;border-radius:99px;display:inline-grid;place-items:center;font-size:11px;background:var(--t10)}
+@media (hover:hover){.fp:not([aria-pressed="true"]):hover{color:var(--tinta);background:color-mix(in srgb,var(--sand) 40%,transparent)}}
+.fp[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.fp[aria-pressed="true"] .n{background:color-mix(in srgb,var(--crema) 18%,transparent)}
+.fp .chk{display:none}
+.puestos{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;min-height:0}
+.puestos:empty{display:none}
+.puesto{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px 0 12px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--tinta);color:var(--crema);animation:enfoca .3s var(--ease) both}
+.puesto button{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:inherit}
+.puesto button svg{width:11px;height:11px;stroke-width:2.6}
+.limpiar{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;color:var(--t80);border:1px dashed var(--borde)}
+.limpiar svg{width:14px;height:14px;stroke-width:1.8}
+/* el combo de la píldora: como hoy (sin el vidrio del combo elegido) */
+:root:not([data-fl]) .cb-btn[data-forma="pildora"]{height:34px;border-color:var(--sand);background:transparent;box-shadow:none;color:var(--taupe);font-weight:600}
+
+/* A · Gotas sueltas, la puesta ahumada: cada píldora es una gota de vidrio clara con el borde de lo que se toca (3:1); la puesta es el
+   ahumado de los controles del Observatorio (lo que eligió), con su ✓. Sueltas, nunca dentro de un pozo: así no se confunden con la
+   pestaña. Lo puesto, arriba, en ahumado con su ✕ en una lente. */
+[data-fl="gotas"] .fp,[data-fl="gotas"] .cb-btn[data-forma="pildora"]{border:1px solid var(--borde);color:color-mix(in srgb,var(--tinta) 82%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -9px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-fl="gotas"] :is(.fp,.cb-btn[data-forma="pildora"]){border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+@media (hover:hover){[data-fl="gotas"] .fp:not([aria-pressed="true"]):hover{transform:translateY(-1px);color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent))}}
+:is([data-fl="gotas"],[data-fl="chips"]) .fp .chk{width:14px;height:14px;stroke-width:2.6}
+[data-fl="gotas"] .fp.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-fl="gotas"] .fp[aria-pressed="true"] .chk{display:block}
+[data-fl="gotas"] .puesto{color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+:is([data-fl="gotas"],[data-fl="chips"]) .puesto button{background:color-mix(in srgb,var(--crema) 20%,transparent)}
+[data-fl="chips"] .puesto button{background:var(--t10)}
+:is([data-fl="gotas"],[data-fl="chips"]) .limpiar{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 15%,transparent))}
+/* B · Chips con ✓: nada oscuro. La píldora es una lámina de vidrio fina; la puesta SE HUNDE (como un campo que ya tiene tu dato) y
+   muestra su ✓ en tinta; lo puesto, arriba, en láminas claras con su ✕ */
+[data-fl="chips"] .fp,[data-fl="chips"] .cb-btn[data-forma="pildora"]{border:1px solid var(--borde);color:color-mix(in srgb,var(--tinta) 82%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-fl="chips"] :is(.fp,.cb-btn[data-forma="pildora"]){border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:none}
+[data-fl="chips"] .fp.fp[aria-pressed="true"]{color:var(--tinta);border-color:var(--tinta);background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 2px 4px color-mix(in srgb,var(--sombra) 18%,transparent)}
+[data-tema="oscuro"][data-fl="chips"] .fp.fp[aria-pressed="true"]{background:color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-fl="chips"] .fp[aria-pressed="true"] .chk{display:block}
+[data-fl="chips"] .fp[aria-pressed="true"] .n{background:color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-fl="chips"] .puesto{color:var(--tinta);border:1px solid var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent))}
+[data-tema="oscuro"][data-fl="chips"] .puesto{background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+
+/* ---------- la lista (la tabla elegida, en corto) ---------- */
+.lista-p{margin-top:16px;border-radius:22px;overflow:hidden;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .lista-p{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.fila-p{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr) 120px 110px;gap:14px;align-items:center;padding:10px 20px;font-size:15px;text-align:center}
+.fila-p+.fila-p::before{content:"";position:absolute;top:0;left:78px;right:20px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.fila-p .mini{width:40px;height:48px;border-radius:10px}
+.fila-p small{display:block;font-size:13px;color:var(--t65)}
+.fila-p .ch{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.vacio-l{padding:40px 20px;text-align:center;font-size:15px;color:var(--t80)}
+.vacio-l b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:22px;color:var(--tinta)}
+.filtros-l{display:contents}
+@container disp (max-width:520px){
+  .zona-b{flex-basis:100%;max-width:none}
+  .filtros-l{display:flex;gap:8px;overflow-x:auto;width:100%;scrollbar-width:none;padding-bottom:2px}
+  .filtros-l::-webkit-scrollbar{display:none}
+  .fila-p{grid-template-columns:44px minmax(0,1fr) auto;padding:10px 14px;text-align:left}
+  .fila-p>:nth-child(3){display:none}
+  .fila-p+.fila-p::before{left:72px;right:14px}
+  .btn-filtros .nom{display:none}
+}
+@media (prefers-reduced-motion:reduce){.buscador .hilo-b::before{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">El buscador y los filtros con vidrio</span>
+  <span class="tag">Buscador</span><div class="seg-m" data-ctl="bu"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo</button><button data-v="lente">B · Lente</button></div>
+  <span class="tag">Filtros</span><div class="seg-m" data-ctl="fl"><button data-v="ahora">Como ahora</button><button data-v="gotas">A · Gotas, la puesta ahumada</button><button data-v="chips">B · Chips con ✓</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  <button class="accion" data-acc="buscando">Ver «Buscando…»</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>El buscador</b> (<code>Buscador</code>, 67 archivos): una caja hueso de 40 px con el borde de control, la lupa, «/» para llegar a él, la × para borrar, «Buscando…» con un hilo rojo que barre si la espera pasa de 350 ms, y el conteo debajo. Busca mientras se escribe. En el mostrador (Vender, Cambios, Devoluciones, Apartados) es la píldora de 60 px: esa cara sigue a la que se elija aquí.</li>
+      <li><b>Los filtros:</b> la píldora que deja menos filas (<code>pildora-cayla</code>, 101 archivos; la puesta, rellena de <b>tinta sólida</b>), la que abre una lista (<code>DesplegablePildora</code>, 20), «Filtros» con su cuenta (<code>BotonFiltros</code>, 6), lo puesto en tinta con su ✕ (<code>FiltroPuesto</code>, 12) y «Limpiar todo» punteado (<code>BotonLimpiar</code>, 17).</li>
+      <li><b>Qué les pasa sobre el vidrio:</b> la caja hueso y la píldora negra son lo último sólido de la barra. Y hay una regla que cuidar: la píldora que FILTRA no puede parecerse a la pestaña, que ya elegiste en pozo y gota (ADR-0358).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Buscador</b></td><td>A · Pozo <span class="ev">Recomendada</span></td><td>Es el campo hundido que elegiste para las hojas y el buscador de la cabecera: espera tu dato. Al escribir sube sin volverse sólido. Una sola cara para «aquí escribes» en todo el ERP.</td><td>Hundido, se nota menos que una caja; por eso conserva el borde de control (3:1) y la lupa.</td></tr>
+      <tr><td>B · Lente</td><td>Sobresale y la lupa en su lente se ve desde lejos; con el cursor adentro, la lente se oscurece.</td><td>Un campo que sobresale dice «tócame» como un botón, y no rima con los campos de las hojas.</td></tr>
+      <tr><td rowspan="2"><b>Filtros</b></td><td>A · Gotas, la puesta ahumada <span class="ev">Recomendada</span></td><td>La puesta se ve desde lejos (el ahumado que elegiste para los controles del Observatorio, con su ✓). Sueltas y nunca dentro de un pozo: no se confunden con la pestaña. Lo puesto, arriba, igual.</td><td>Una píldora puesta y un botón primario se parecen; los separa el tamaño (34 px contra 42) y el ✓.</td></tr>
+      <tr><td>B · Chips con ✓</td><td>Nada oscuro: la puesta se hunde y muestra su ✓, como un campo que ya tiene tu dato.</td><td>Hundida y en tinta clara, la puesta se ve menos que hoy: es justo lo que le pediste al Observatorio que no pasara.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Buscador A · Pozo y filtros A · Gotas, la puesta ahumada.</b> El buscador habla como todos los campos; los filtros, como los controles que ya elegiste en el Observatorio, y quedan distintos de las pestañas.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Busca mientras se escribe, «/» lleva a él, la × borra, «Buscando…» y su hilo solo después de 350 ms, el conteo; la píldora filtra al tocar; el combo de la píldora abre la lista elegida (gota viajera, con buscador desde 8 opciones); lo puesto se quita con su ✕ y «Limpiar todo» quita todo.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, CATEGORIAS…); la maqueta no los repite. -->
+<script>
+const IC = { x: 'M18 6 6 18M6 6l12 12', chk: 'M20 6 9 17l-5-5', filtros: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12 M16 4v4 M10 10v4 M18 16v4', limpiar: 'M3 4h18l-7 8v6l-4 2v-8z M17 17l4 4m0-4-4 4',
+  categoria: 'M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z' };
+const PROD = PRENDAS.map(([c, n, , q], i) => ({ c, n, cat: n.split(' ')[0] + (n.split(' ')[0].endsWith('s') ? '' : 's').replace(/as$/, 'as'), stock: q, foto: i % 4 !== 1, completo: i % 5 !== 2 }));
+PROD.forEach((p) => { const m = { Blusa: 'Blusas', Casaca: 'Casacas', Vestido: 'Vestidos', Polo: 'Polos', Jean: 'Jeans', Falda: 'Faldas', Top: 'Tops', Saco: 'Sacos', Short: 'Shorts', Pantalón: 'Pantalones', Camisa: 'Camisas', Chaleco: 'Chalecos', Jogger: 'Joggers' }; p.cat = m[p.n.split(' ')[0]] || 'Otros'; });
+let F = { q: '', pild: 'todos', cat: '' };
+const PILD = [['todos', 'Todos'], ['completar', 'Por completar'], ['sinfoto', 'Sin foto']];
+const pasa = (p) => (!F.q || sinTilde(p.n).includes(sinTilde(F.q))) && (F.pild === 'todos' || (F.pild === 'completar' && !p.completo) || (F.pild === 'sinfoto' && !p.foto)) && (!F.cat || p.cat === F.cat);
+const cuenta = (k) => PROD.filter((p) => (!F.q || sinTilde(p.n).includes(sinTilde(F.q))) && (!F.cat || p.cat === F.cat) && (k === 'todos' || (k === 'completar' && !p.completo) || (k === 'sinfoto' && !p.foto))).length;
+const svi = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+function pintarPantalla() {
+  $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Productos', frase: 'Cada modelo, con sus colores y tallas.', acciones: [['pri', 'Nuevo producto', 'mas']] })}
+    <div class="barra-f">
+      <div class="zona-b"><label class="buscador" ${F.q ? 'data-con-texto' : ''}>${svi(L.buscar, 'ic lupa')}<input id="q" type="search" placeholder="Busca por nombre o código" value="${F.q}" aria-label="Buscar productos">
+        <span class="senal">Buscando…</span><button class="borrar" aria-label="Borrar la búsqueda">${svi(IC.x)}</button><kbd>/</kbd><span class="hilo-b"></span></label></div>
+      <div class="filtros-l"><span id="pildoras"></span><span id="filtro-cat-p"></span><button class="fp btn-filtros" aria-expanded="false">${svi(IC.filtros)}<span class="nom">Filtros</span><span class="n">2</span></button></div>
+    </div>
+    <p class="conteo" aria-live="polite"></p>
+    <div class="puestos"></div>
+    <div class="lista-p"></div>`;
+  pintarFiltros(); pintarLista();
+}
+function pintarFiltros() {
+  $('#pildoras').outerHTML = `<span id="pildoras" style="display:contents">${PILD.map(([k, t]) => `<button class="fp" data-pild="${k}" aria-pressed="${F.pild === k}">${svi(IC.chk, 'chk')}${t}<span class="n">${cuenta(k)}</span></button>`).join('')}</span>`;
+  $('#filtro-cat-p').outerHTML = `<span id="filtro-cat-p" style="display:contents">${combo({ id: 'catp', forma: 'pildora', opciones: [...new Set(PROD.map((p) => p.cat))].sort().map((t) => ({ v: t, t })), valor: F.cat, marcador: 'Categoría', etiqueta: 'Filtrar por categoría' })}</span>`;
+}
+function pintarLista() {
+  const xs = PROD.filter(pasa);
+  $('.conteo').textContent = F.q ? `${xs.length} de ${PROD.length} productos con «${F.q}»` : '';
+  const p = [];
+  if (F.pild !== 'todos') p.push([PILD.find((x) => x[0] === F.pild)[1], 'pild']);
+  if (F.cat) p.push([`Categoría: ${F.cat}`, 'cat']);
+  $('.puestos').innerHTML = p.length ? p.map(([t, k]) => `<span class="puesto">${t}<button data-quitar="${k}" aria-label="Quitar ${t}">${svi(IC.x)}</button></span>`).join('') + `<button class="limpiar" data-limpiar>${svi(IC.limpiar)}Limpiar todo</button>` : '';
+  $$('[data-pild]').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.pild === F.pild); $('.n', b).textContent = cuenta(b.dataset.pild); });
+  $('.lista-p').innerHTML = xs.length ? xs.map((x) => `<div class="fila-p"><span class="mini" data-color-dato style="background:${x.c}"></span><span>${x.n}<small>${x.cat}</small></span><span>${x.stock} en stock</span>
+      <span>${!x.foto ? '<span class="ch" style="--c:var(--ambar)">Sin foto</span>' : !x.completo ? '<span class="ch" style="--c:var(--pizarra)">Por completar</span>' : '<span class="ch" style="--c:var(--verde)">Completo</span>'}</span></div>`).join('')
+    : `<div class="vacio-l"><b>No hay productos con estos filtros</b>Quita alguno o búscalo con otro nombre.</div>`;
+}
+window.alElegirCombo = (id, v) => { if (id === 'catp') { F.cat = v; pintarLista(); } };
+document.addEventListener('input', (e) => { if (e.target.id === 'q') { F.q = e.target.value.trim(); e.target.closest('.buscador').toggleAttribute('data-con-texto', !!F.q); pintarLista(); } });
+document.addEventListener('click', (e) => {
+  const pl = e.target.closest('[data-pild]'); if (pl) { F.pild = pl.dataset.pild; pintarLista(); return; }
+  if (e.target.closest('.borrar')) { e.preventDefault(); F.q = ''; $('#q').value = ''; $('.buscador').removeAttribute('data-con-texto'); $('#q').focus(); pintarLista(); return; }
+  const q = e.target.closest('[data-quitar]'); if (q) { if (q.dataset.quitar === 'pild') F.pild = 'todos'; else { F.cat = ''; estadoCombos.catp = ''; pintarFiltros(); } pintarLista(); return; }
+  if (e.target.closest('[data-limpiar]')) { F.pild = 'todos'; F.cat = ''; estadoCombos.catp = ''; pintarFiltros(); pintarLista(); return; }
+});
+document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement?.id !== 'q') { e.preventDefault(); $('#q')?.focus(); } });
+Marco.iniciar({ estado: { bu: 'pozo', fl: 'gotas' }, alPintar: () => { $('#cont').scrollTop = 0; pintarPantalla(); },
+  alAccion: (a) => { if (a === 'buscando') { const b = $('.buscador'); b.toggleAttribute('data-buscando'); $('.spk [data-acc="buscando"]').classList.toggle('on', b.hasAttribute('data-buscando')); } } });
+</script>
+</body>
+</html>
