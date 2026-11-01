@@ -9,3 +9,5 @@
   oscuro de la maqueta del Inicio, que se pintaba como apagado.
 - **Casilla, separador y enlaces, elegidos:** casilla e interruptor A · Pozo y gota, separador de día B · Gotas que flotan, títulos y
   enlaces B · «Ver» en gota; pasados a la sesión que implementa. Fusionada la rama de avisos, loader y versión nueva (`claude/admiring-hellman-fe61aa`).
+- **Gráficos, en maqueta** (`docs/maquetas/graficos-vidrio-2026-11/`): barra de avance, apilada, anillo, línea y barras por tiempo, con su
+  globito. Recomendadas A · Tubo de vidrio (lo del Observatorio a todo el sistema) y globito A · Placa. 30 combinaciones sin desborde.

@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-gr="tubo" data-gb="placa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gráficos con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · los gráficos del sistema con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   · `<BarraAvance>` (61 archivos) y `<Anillo>` (16), estilos/avance-anillo-copiar.css: pista ARENA o HUESO maciza, relleno o arco de TINTA SÓLIDA.
+   · `<BarraApilada>` (39), estilos/barra-apilada.css: la píldora de arena con sus tramos de color.
+   · `<Linea>` (17) y `<Sparkline>` (6) y `<BarrasTiempo>` (12), estilos/graficos-tiempo.css: rejilla arena, área de tinta al 6 %, barras
+     en gris neutro y la que importa en tinta; el globito que lee el dato es una caja de TINTA SÓLIDA.
+   En el Observatorio Felipe ya eligió «anillos de tubo» y «área de vidrio bajo las curvas»: la cara A los lleva a todo el sistema.
+   Montada sobre el marco y las piezas elegidas (../vidrio-base-2026-10/). Solo tokens. Movimiento: una vez, sin rebote ni bucle.
+   ==================================================================== */
+:root{--neutro:color-mix(in srgb,var(--taupe) 38%,var(--sand))}
+.placa-g{position:relative;border-radius:22px;padding:20px 22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);container-type:inline-size;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--i,0) * 70ms + 100ms)}
+[data-tema="oscuro"] .placa-g{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.rej-g{display:grid;gap:18px;margin-top:22px;grid-template-columns:repeat(12,minmax(0,1fr))}
+.c4{grid-column:span 4}.c5{grid-column:span 5}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+@container disp (max-width:1180px){.c5,.c7{grid-column:span 12}.c4,.c8{grid-column:span 6}.c4.ancho{grid-column:span 12}}
+@container disp (max-width:700px){.rej-g{gap:14px}.c4,.c5,.c7,.c8,.c12{grid-column:span 12}}
+.tit-g{display:flex;align-items:baseline;justify-content:space-between;gap:6px 14px;flex-wrap:wrap;margin-bottom:14px}
+.tit-g h2{margin:0;font-family:'EB Garamond',serif;font-size:21px;font-weight:400}
+.tit-g span{font-size:13px;color:var(--taupe)}.tit-g b{color:var(--tinta);font-weight:600}
+.cifra-g{font-family:'EB Garamond',serif;font-size:34px;line-height:1}
+.frase-g{font-size:13.5px;color:var(--taupe);margin-top:6px;line-height:1.5}
+
+/* ---------- la barra de avance (como hoy) ---------- */
+.avance{position:relative;display:block;width:100%;height:6px;border-radius:999px;background:var(--sand)}
+.avance[data-alto="fina"]{height:3px}.avance[data-alto="gruesa"]{height:12px}
+.avance i{position:absolute;inset:0 auto 0 0;width:var(--p);border-radius:inherit;background:var(--tinta);transform-origin:left;animation:llena .76s var(--ease) backwards;animation-delay:calc(var(--i,0) * 38ms + 180ms)}
+.avance[data-tono="verde"] i{background:var(--verde)}.avance[data-tono="ambar"] i{background:var(--ambar)}.avance[data-tono="rojo"] i{background:var(--rojo)}
+.avance .marca-g{position:absolute;top:50%;left:var(--m);width:2px;height:calc(100% + 6px);border-radius:1px;background:var(--taupe);transform:translate(-1px,-50%)}
+@keyframes llena{from{transform:scaleX(0)}}
+/* ---------- el anillo (como hoy) ---------- */
+.anillo{position:relative;display:inline-grid;place-items:center;flex:none}
+.anillo>svg{position:absolute;inset:0;overflow:visible}
+.an-pista{stroke:var(--hueso);fill:none}
+.an-arco{stroke:var(--tinta);fill:none;stroke-linecap:round;stroke-dasharray:var(--p) 100;animation:cierra 1.1s var(--ease) backwards;animation-delay:calc(var(--i,0) * 38ms + 160ms)}
+.anillo[data-tono="verde"] .an-arco{stroke:var(--verde)}.anillo[data-tono="ambar"] .an-arco{stroke:var(--ambar)}
+.an-centro{position:relative;text-align:center;line-height:1.1;font-variant-numeric:tabular-nums}
+.anillo[data-t="chico"] .an-centro{font-size:11.5px;font-weight:600}
+.anillo[data-t="grande"] .an-centro b{display:block;font-family:'EB Garamond',serif;font-size:38px;font-weight:400}
+.anillo[data-t="grande"] .an-centro small{font-size:12.5px;color:var(--taupe)}
+@keyframes cierra{from{stroke-dasharray:0 100}}
+/* ---------- la barra apilada (como hoy) ---------- */
+.apilada{display:flex;gap:2px;height:12px;border-radius:999px;background:var(--sand)}
+.tramo{height:100%;min-width:3px;background:var(--sand);transform-origin:left;animation:llena .62s var(--ease) backwards;animation-delay:calc(var(--i,0) * 38ms + 200ms)}
+.tramo:first-child{border-radius:999px 0 0 999px}.tramo:last-child{border-radius:0 999px 999px 0}
+.tramo i{display:block;height:100%;border-radius:inherit;background:var(--col)}
+.leyenda-g{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--taupe)}
+.leyenda-g span{display:inline-flex;align-items:center;gap:6px}.leyenda-g b{color:var(--tinta);font-weight:600}
+.muestra{width:9px;height:9px;border-radius:3px;background:var(--col)}
+/* ---------- línea y barras por tiempo (como hoy) ---------- */
+.lienzo-g{position:relative}
+.lienzo-g svg{display:block;width:100%;overflow:visible}
+.rejilla{stroke:var(--sand);stroke-width:1}
+.eje{font-size:10.5px;fill:var(--taupe);font-variant-numeric:tabular-nums}
+.l-area{fill:color-mix(in srgb,var(--tinta) 6%,transparent);animation:aparece .6s var(--ease) .5s backwards}
+.l-trazo{fill:none;stroke:var(--tinta);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:1;animation:dibuja-l .9s var(--ease) .15s backwards}
+.l-ref{fill:none;stroke:var(--taupe);stroke-width:2;stroke-dasharray:6 4}
+.l-proy{fill:none;stroke:color-mix(in srgb,var(--tinta) 40%,transparent);stroke-width:2;stroke-dasharray:2 4;stroke-linecap:round}
+.l-fin{fill:var(--tinta);stroke:var(--papel);stroke-width:2;animation:aparece .3s var(--ease) .95s backwards}
+.l-cifra{font-family:'EB Garamond',serif;font-size:15px;fill:var(--tinta);paint-order:stroke;stroke:var(--fondo-l,var(--papel));stroke-width:4px;stroke-linejoin:round}
+.l-guia{stroke:color-mix(in srgb,var(--rojo) 55%,transparent);stroke-width:1.5}
+.l-punto-g{fill:var(--tinta);stroke:var(--papel);stroke-width:2}
+@keyframes dibuja-l{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes aparece{from{opacity:0}}
+.barras{position:relative;display:grid;align-items:end;height:170px;border-bottom:1px solid var(--sand)}
+.bt{position:relative;height:100%}
+.bt>i{position:absolute;bottom:0;left:50%;width:min(78%,28px);translate:-50% 0;height:var(--h);border-radius:4px 4px 0 0;background:var(--neutro);transform-origin:bottom;animation:crece .56s var(--ease) backwards;animation-delay:calc(140ms + var(--i,0) * 34ms);transition:background-color .2s}
+.bt[data-tono="tinta"]>i{background:var(--tinta)}.bt[data-tono="rojo"]>i{background:var(--rojo)}
+.bt[data-curso]>i{background-image:repeating-linear-gradient(135deg,transparent 0 3px,color-mix(in srgb,var(--papel) 55%,transparent) 3px 6px)}
+.bt .meta-b{position:absolute;left:50%;bottom:var(--m);width:min(100%,34px);height:2px;border-radius:1px;translate:-50% 0;background:var(--taupe);z-index:1}
+.bt .cifra-b{position:absolute;left:50%;bottom:calc(var(--h) + 6px);translate:-50% 0;z-index:2;font-size:11px;font-weight:600;white-space:nowrap;animation:aparece .3s var(--ease) .6s backwards}
+@media (hover:hover){.bt:not([data-tono]):hover>i{background-color:color-mix(in srgb,var(--tinta) 70%,var(--neutro))}}
+.ref-b{position:absolute;left:0;right:0;bottom:var(--r);border-top:2px dashed var(--taupe);z-index:1;pointer-events:none}
+.ref-b span{position:absolute;left:0;bottom:3px;font-size:10.5px;color:var(--taupe)}
+.eje-b{display:grid;margin-top:6px}.eje-b span{text-align:center;font-size:10.5px;color:var(--taupe);white-space:nowrap}
+.eje-b .hoy{font-weight:600;color:var(--tinta)}
+/* la cifra de la última barra se apoya en el borde derecho, para no salirse de la tarjeta */
+.bt:last-child .cifra-b{left:auto;right:0;translate:0 0}
+@keyframes crece{from{transform:scaleY(0)}}
+/* el globito que lee el dato (como hoy: caja de tinta sólida) */
+.globo-g{position:absolute;z-index:10;padding:6px 10px;border-radius:10px;white-space:nowrap;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:12px;line-height:1.4;font-variant-numeric:tabular-nums;
+  box-shadow:0 10px 24px -10px color-mix(in srgb,var(--sombra) 60%,transparent);transform:translate(-50%,calc(-100% - 10px));animation:aparece .16s var(--ease) both}
+.globo-g b{font-weight:600}
+.globo-g small{display:block;opacity:.75}
+
+/* ====================================================================
+   A · TUBO DE VIDRIO (lo del Observatorio, a todo el sistema): toda pista es un POZO hundido; todo relleno es VIDRIO TEÑIDO del dato
+   con su luz arriba; el área bajo la línea es vidrio esmerilado; las barras son columnas de vidrio y la que importa, ahumada.
+   ==================================================================== */
+[data-gr="tubo"] .avance{height:14px;padding:3px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-gr="tubo"] .avance[data-alto="fina"]{height:8px;padding:2px}[data-gr="tubo"] .avance[data-alto="gruesa"]{height:20px;padding:4px}
+[data-gr="tubo"] .avance i{inset:3px auto 3px 3px;width:calc(var(--p) - 6px);--col:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--col) 62%,var(--vidrio)),var(--col) 70%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent),0 3px 8px -3px color-mix(in srgb,var(--col) 50%,transparent)}
+[data-gr="tubo"] .avance[data-alto="fina"] i{inset:2px auto 2px 2px;width:calc(var(--p) - 4px)}[data-gr="tubo"] .avance[data-alto="gruesa"] i{inset:4px auto 4px 4px;width:calc(var(--p) - 8px)}
+[data-gr="tubo"] .avance[data-tono="verde"] i{--col:var(--verde)}[data-gr="tubo"] .avance[data-tono="ambar"] i{--col:var(--ambar)}[data-gr="tubo"] .avance[data-tono="rojo"] i{--col:var(--rojo)}
+[data-tema="oscuro"][data-gr="tubo"] .avance{background:color-mix(in srgb,var(--sombra) 30%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-tema="oscuro"][data-gr="tubo"] .avance i{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 80%,var(--sombra)),var(--col) 70%)}
+[data-gr="tubo"] .avance .marca-g{height:calc(100% + 4px)}
+[data-gr="tubo"] .an-pista{stroke:color-mix(in srgb,var(--tinta) 8%,transparent);filter:drop-shadow(0 1px 1px color-mix(in srgb,var(--sombra) 14%,transparent))}
+[data-gr="tubo"] .an-arco{filter:drop-shadow(0 2px 4px color-mix(in srgb,var(--tinta) 30%,transparent))}
+[data-gr="tubo"] .anillo[data-tono="verde"] .an-arco{filter:drop-shadow(0 2px 5px color-mix(in srgb,var(--verde) 45%,transparent))}
+[data-gr="tubo"] .anillo[data-tono="ambar"] .an-arco{filter:drop-shadow(0 2px 5px color-mix(in srgb,var(--ambar) 45%,transparent))}
+[data-gr="tubo"] .an-brillo{display:inline}
+.an-brillo{display:none;fill:none;stroke:var(--vidrio);stroke-linecap:round;opacity:.55}
+[data-tema="oscuro"] .an-brillo{opacity:.18}
+[data-gr="tubo"] .apilada{height:16px;padding:2px;gap:2px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"][data-gr="tubo"] .apilada{background:color-mix(in srgb,var(--sombra) 30%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-gr="tubo"] .tramo{background:none}
+[data-gr="tubo"] .tramo i{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 62%,var(--vidrio)),var(--col) 70%);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 55%,transparent)}
+[data-tema="oscuro"][data-gr="tubo"] .tramo i{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 80%,var(--sombra)),var(--col) 70%)}
+[data-gr="tubo"] .muestra{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 62%,var(--vidrio)),var(--col) 70%)}
+[data-gr="tubo"] .rejilla{stroke:color-mix(in srgb,var(--tinta) 9%,transparent)}
+[data-gr="tubo"] .l-area{fill:url(#area-claro)}
+[data-tema="oscuro"][data-gr="tubo"] .l-area{fill:url(#area-oscuro)}
+[data-gr="tubo"] .l-trazo{filter:drop-shadow(0 2px 3px color-mix(in srgb,var(--sombra) 25%,transparent))}
+.ga1{stop-color:var(--vidrio);stop-opacity:.95}.ga2{stop-color:var(--vidrio);stop-opacity:.55}.ga3{stop-color:var(--vidrio);stop-opacity:.05}
+.go1{stop-color:var(--tinta);stop-opacity:.16}.go2{stop-color:var(--tinta);stop-opacity:0}
+[data-gr="tubo"] .barras{border-bottom-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-gr="tubo"] .bt>i{border-radius:8px 8px 3px 3px;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);border-bottom:0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--neutro) 45%,var(--vidrio)),color-mix(in srgb,var(--neutro) 92%,transparent) 55%);box-shadow:inset 0 1px 0 var(--vidrio),inset 1px 0 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 6px 12px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-gr="tubo"] .bt>i{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--tinta) 8%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent)}
+[data-gr="tubo"] .bt[data-tono="tinta"]>i{border-color:color-mix(in srgb,var(--tinta) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 8px 16px -8px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-gr="tubo"] .bt[data-tono="rojo"]>i{border-color:color-mix(in srgb,var(--rojo) 45%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 55%,var(--vidrio)),var(--rojo) 80%)}
+[data-gr="tubo"] .bt[data-curso]>i{background-image:repeating-linear-gradient(135deg,transparent 0 3px,color-mix(in srgb,var(--vidrio) 55%,transparent) 3px 6px),linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent))}
+@media (hover:hover){[data-gr="tubo"] .bt:not([data-tono]):hover>i{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--tinta) 45%,transparent))}}
+
+/* ====================================================================
+   B · TINTA SOBRE VIDRIO: el dato no cambia (rellenos, arcos, trazos y barras siguen en su color pleno: el color ES el dato); solo
+   lo que no es dato se vuelve vidrio: la pista es un pozo fino, la rejilla una ranura y el área bajo la línea, esmerilada.
+   ==================================================================== */
+[data-gr="tinta"] .avance,[data-gr="tinta"] .apilada{background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+[data-tema="oscuro"][data-gr="tinta"] :is(.avance,.apilada){background:color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-gr="tinta"] .tramo{background:none}
+[data-gr="tinta"] .an-pista{stroke:color-mix(in srgb,var(--tinta) 7%,transparent)}
+[data-gr="tinta"] .rejilla{stroke:color-mix(in srgb,var(--tinta) 9%,transparent)}
+[data-gr="tinta"] .l-area{fill:url(#area-claro)}
+[data-tema="oscuro"][data-gr="tinta"] .l-area{fill:url(#area-oscuro)}
+[data-gr="tinta"] .barras{border-bottom-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+
+/* ---------- el globito que lee el dato ---------- */
+/* A · Placa: la placa de vidrio clara (la de las cifras), con la letra en tinta */
+[data-gb="placa"] .globo-g{color:var(--tinta);border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 94%,transparent),color-mix(in srgb,var(--vidrio) 78%,transparent));
+  -webkit-backdrop-filter:blur(16px) saturate(1.6);backdrop-filter:blur(16px) saturate(1.6);box-shadow:inset 0 1px 0 var(--vidrio),0 14px 28px -14px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"][data-gb="placa"] .globo-g{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);background:color-mix(in srgb,var(--vidrio) 92%,transparent)}
+[data-gb="placa"] .globo-g small{color:var(--taupe);opacity:1}
+/* B · Ahumado: el vidrio ahumado de tinta (el del botón primario), con la letra en crema */
+[data-gb="humo"] .globo-g{border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+
+/* ---------- piezas de la pantalla ---------- */
+.meta-hoy{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.meta-hoy .lado{flex:1;min-width:180px}
+.sedes-g{display:grid;gap:12px}
+.sede-g{display:flex;align-items:center;gap:12px;font-size:14.5px}
+.sede-g .tx{flex:1;min-width:0}.sede-g small{display:block;font-size:12.5px;color:var(--taupe)}
+.cats{display:grid;gap:12px}
+.cat-g{display:grid;grid-template-columns:96px minmax(0,1fr) 64px;align-items:center;gap:12px;font-size:14px}
+.cat-g b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+@container (max-width:340px){.cat-g{grid-template-columns:76px minmax(0,1fr) 54px;gap:8px;font-size:13px}}
+@media (prefers-reduced-motion:reduce){.placa-g,.avance i,.an-arco,.tramo,.l-area,.l-trazo,.l-fin,.bt>i,.bt .cifra-b,.globo-g{animation:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="area-claro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ga1"/><stop offset=".55" class="ga2"/><stop offset="1" class="ga3"/></linearGradient>
+  <linearGradient id="area-oscuro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="go1"/><stop offset="1" class="go2"/></linearGradient></defs></svg>
+
+<div class="spk">
+  <span class="titulo">Los gráficos, con vidrio</span>
+  <span class="tag">Gráficos</span><div class="seg-m" data-ctl="gr"><button data-v="ahora">Como ahora</button><button data-v="tubo">A · Tubo de vidrio</button><button data-v="tinta">B · Tinta sobre vidrio</button></div>
+  <span class="tag">Globito del dato</span><div class="seg-m" data-ctl="gb"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa</button><button data-v="humo">B · Ahumado</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La barra de avance</b> (61 archivos) y <b>la apilada</b> (39): pista de <b>arena maciza</b> y relleno o tramos de color lleno.</li>
+      <li><b>El anillo</b> (16): pista <b>hueso</b> y arco de tinta.</li>
+      <li><b>La línea</b> (17, más 6 <code>Sparkline</code>) y <b>las barras por tiempo</b> (12): rejilla arena, área de tinta al 6 %, barras en gris neutro y la que importa en tinta.</li>
+      <li><b>El globito que lee el dato</b>, en la línea y las barras: una <b>caja de tinta sólida</b>, la única pieza oscura y maciza que aparece al pasar el mouse.</li>
+      <li>En el Observatorio ya elegiste <b>anillos de tubo</b> y <b>área de vidrio bajo las curvas</b>: hoy viven solo ahí.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Gráficos</b></td><td>A · Tubo de vidrio <span class="ev">Recomendada</span></td><td>Lo que elegiste en el Observatorio, en todo el ERP: la pista es un tubo hundido y el dato es vidrio teñido con su luz; el área bajo la línea, esmerilada; las barras, columnas de vidrio, y la que importa, ahumada. Un gráfico se ve igual en el Inicio, en Caja y en Finanzas.</td><td>Las barras neutras pierden algo de peso frente al fondo (siguen leyéndose por su borde y su altura); la barra de avance crece de 6 a 14 px.</td></tr>
+      <tr><td>B · Tinta sobre vidrio</td><td>El dato queda como hoy, en color pleno (el color ES el dato); solo la pista, la rejilla y el área pasan a vidrio. Cambio chico y seguro.</td><td>No es lo del Observatorio: habría dos clases de anillo en el ERP. Las barras macizas siguen pesando sobre el vidrio.</td></tr>
+      <tr><td rowspan="2"><b>Globito del dato</b></td><td>A · Placa <span class="ev">Recomendada</span></td><td>El globito es la misma placa de las cifras: se lee la cifra en tinta, sin un bloque oscuro que salta al pasar el mouse.</td><td>Sobre la línea, una placa clara contrasta menos que la caja negra; lo separa su sombra.</td></tr>
+      <tr><td>B · Ahumado</td><td>Se ve de inmediato, como hoy, pero ya es vidrio (el del botón primario).</td><td>Sigue siendo la pieza más oscura de la pantalla cada vez que pasas el mouse.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Gráficos A · Tubo de vidrio y globito A · Placa.</b> Pasa el mouse por la línea y por las barras para ver el globito.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Los colores del dato (tinta; verde al cumplir; ámbar y rojo los pone la pantalla), la rayita de «a esta hora tocaba», la referencia punteada, la proyección, el día en curso rayado, las cifras; y el movimiento: la barra se llena, el anillo se cierra, la línea se dibuja y las barras crecen, una vez y sin rebote.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, fila, buscar…); la maqueta no los repite. -->
+<script>
+const soles = (n) => 'S/ ' + Math.round(n).toLocaleString('es-PE');
+const anilloHTML = (p, t, tono, centro, i = 0) => {
+  const tam = { chico: 40, mediano: 72, grande: 160 }[t], g = { chico: 4, mediano: 6, grande: 12 }[t] * ({ tubo: 1.4 }[document.documentElement.dataset.gr] || 1), r = (tam - g) / 2;
+  return `<span class="anillo" data-t="${t}" ${tono ? `data-tono="${tono}"` : ''} style="width:${tam}px;height:${tam}px;--p:${Math.min(p, 100)};--i:${i}">
+    <svg viewBox="0 0 ${tam} ${tam}" aria-hidden="true"><circle class="an-pista" cx="${tam / 2}" cy="${tam / 2}" r="${r}" stroke-width="${g}"/>
+    <circle class="an-arco" cx="${tam / 2}" cy="${tam / 2}" r="${r}" stroke-width="${g}" pathLength="100" transform="rotate(-90 ${tam / 2} ${tam / 2})"/>
+    <circle class="an-brillo" cx="${tam / 2}" cy="${tam / 2}" r="${r - g * 0.18}" stroke-width="${g * 0.28}" pathLength="100" stroke-dasharray="${Math.max(0, Math.min(p, 100) - 4)} 100" transform="rotate(-88 ${tam / 2} ${tam / 2})"/></svg>
+    <span class="an-centro">${centro}</span></span>`;
+};
+const avanceHTML = (p, alto, tono, m, i = 0) => `<span class="avance" ${alto ? `data-alto="${alto}"` : ''} ${tono ? `data-tono="${tono}"` : ''} style="--p:${p}%;--i:${i}" role="img" aria-label="${p} %"><i></i>${m ? `<span class="marca-g" style="--m:${m}%"></span>` : ''}</span>`;
+// ventas acumuladas por hora (9:00 a 21:00); hoy llega hasta las 16:42
+const HORAS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+const AYER = [0, 180, 420, 760, 1150, 1480, 1890, 2310, 2780, 3240, 3720, 4080, 4260];
+const HOY = [0, 240, 610, 980, 1420, 1830, 2400, 2960, 3240];
+const AHORA = 16.7;
+const DIAS = [['L 20', 3120, 3800], ['M 21', 4010, 3800], ['M 22', 2860, 3800], ['J 23', 3540, 3800], ['V 24', 4420, 4200], ['S 25', 5980, 5200], ['D 26', 3300, 4000],
+  ['L 27', 2410, 3800, 'rojo'], ['M 28', 3880, 3800], ['M 29', 3620, 3800], ['J 30', 4105, 3800], ['V 31', 3240, 4500, 'tinta', 1]];
+function lineaSVG(ancho) {
+  const W = Math.max(200, ancho), H = 210, iz = 44, de = 14, ar = 18, ab = 26, max = 4800;
+  const x = (h) => iz + ((h - 9) / 12) * (W - iz - de), y = (v) => ar + (1 - v / max) * (H - ar - ab);
+  const pts = (arr) => arr.map((v, k) => `${x(HORAS[k] === 16 && arr === HOY && k === 8 ? AHORA : HORAS[k]).toFixed(1)},${y(v).toFixed(1)}`);
+  const hoyP = HOY.map((v, k) => [k === 8 ? AHORA : HORAS[k], v]);
+  const d = 'M' + hoyP.map(([h, v]) => `${x(h).toFixed(1)},${y(v).toFixed(1)}`).join('L');
+  const area = d + `L${x(AHORA).toFixed(1)},${y(0)}L${x(9)},${y(0)}Z`;
+  const rejas = [0, 1500, 3000, 4500].map((v) => `<line class="rejilla" x1="${iz}" x2="${W - de}" y1="${y(v)}" y2="${y(v)}"/><text class="eje" x="${iz - 8}" y="${y(v) + 3.5}" text-anchor="end">${v ? (v / 1000).toFixed(1).replace('.0', '') + ' mil' : '0'}</text>`).join('');
+  const ejes = [9, 12, 15, 18, 21].map((h) => `<text class="eje" x="${x(h)}" y="${H - 6}" text-anchor="middle">${h}:00</text>`).join('');
+  const fx = x(AHORA), fy = y(3240);
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Ventas de hoy contra ayer">${rejas}${ejes}
+    <polyline class="l-ref" points="${AYER.map((v, k) => `${x(HORAS[k]).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/>
+    <path class="l-area" d="${area}"/><path class="l-trazo" d="${d}" pathLength="1"/>
+    <line class="l-proy" x1="${fx}" y1="${fy}" x2="${x(21)}" y2="${y(4620)}"/>
+    <circle class="l-fin" cx="${fx}" cy="${fy}" r="5"/>
+    <text class="l-cifra" x="${fx - 10}" y="${fy - 12}" text-anchor="end">${soles(3240)}</text>
+    <g class="l-lee" style="display:none"><line class="l-guia" y1="${ar}" y2="${H - ab}"/><circle class="l-punto-g" r="5"/></g>
+    <rect class="l-toque" x="${iz}" y="0" width="${W - iz - de}" height="${H - ab}" fill="transparent"/></svg>`;
+}
+function barrasHTML() {
+  const max = 6400, n = DIAS.length, prom = 3700;
+  return `<div class="barras" style="grid-template-columns:repeat(${n},minmax(0,1fr))">
+    <div class="ref-b" style="--r:${(prom / max) * 100}%"><span>promedio ${soles(prom)}</span></div>
+    ${DIAS.map(([d, v, m, tono, curso], i) => `<div class="bt" ${tono ? `data-tono="${tono}"` : ''} ${curso ? 'data-curso' : ''} data-d="${d}" data-v="${v}" data-m="${m}" style="--h:${(v / max) * 100}%;--m:${(m / max) * 100}%;--i:${i}">
+      <i></i><span class="meta-b"></span>${tono ? `<span class="cifra-b">${soles(v)}</span>` : ''}</div>`).join('')}</div>
+    <div class="eje-b" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${DIAS.map(([d], i) => `<span class="${i === n - 1 ? 'hoy' : ''}">${i % 2 && i !== n - 1 ? '' : d}</span>`).join('')}</div>`;
+}
+const COBROS = [['Efectivo', 1180, 'var(--tinta)'], ['Tarjeta', 1240, 'var(--pizarra)'], ['Yape', 820, 'var(--verde)']];
+const CATS = [['Blusas', 1240], ['Vestidos', 860], ['Casacas', 610], ['Polos', 330], ['Faldas', 200]];
+function pintarGraficos() {
+  const total = COBROS.reduce((a, c) => a + c[1], 0);
+  $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Resumen', frase: 'Cómo va el día, la semana y cada sede.' })}
+  <div class="rej-g">
+    <section class="placa-g c5" style="--i:0"><div class="tit-g"><h2>La meta de hoy</h2><span>faltan <b>${soles(1260)}</b></span></div>
+      <div class="meta-hoy">${anilloHTML(72, 'grande', '', `<b>72 %</b><small>de ${soles(4500)}</small>`)}
+        <div class="lado"><div class="cifra-g">${soles(3240)}</div><p class="frase-g">A esta hora tocaba el 64 %: vas adelante.</p>
+          <div style="margin-top:14px">${avanceHTML(72, 'gruesa', '', 64, 1)}</div></div></div></section>
+    <section class="placa-g c7" style="--i:1"><div class="tit-g"><h2>Ventas de hoy</h2><span>ayer a esta hora <b>${soles(2960)}</b></span></div>
+      <div class="lienzo-g" id="g-linea"></div></section>
+    <section class="placa-g c4" style="--i:2"><div class="tit-g"><h2>Cada sede</h2><span>meta del día</span></div>
+      <div class="sedes-g">${[['Trujillo', 72, '', 'S/ 3,240 de 4,500'], ['Arequipa', 104, 'verde', 'S/ 3,950 de 3,800'], ['Lima', 48, 'ambar', 'S/ 1,920 de 4,000']].map(([s, p, t, d], i) =>
+        `<div class="sede-g">${anilloHTML(p, 'chico', t, `${p > 99 ? '✓' : p}`, i)}<span class="tx">${s}<small>${d}</small></span></div>`).join('')}</div></section>
+    <section class="placa-g c4" style="--i:3"><div class="tit-g"><h2>Cómo cobraste</h2><span><b>${soles(total)}</b></span></div>
+      <div class="apilada" role="img" aria-label="Efectivo, tarjeta y Yape">${COBROS.map(([n, v, c], i) => `<span class="tramo" style="flex-grow:${v};--col:${c};--i:${i}"><i></i></span>`).join('')}</div>
+      <div class="leyenda-g">${COBROS.map(([n, v, c]) => `<span><i class="muestra" style="--col:${c}"></i>${n} <b>${Math.round((v / total) * 100)} %</b></span>`).join('')}</div>
+      <p class="frase-g" style="margin-top:16px">La meta del mes</p>
+      <div style="margin-top:8px">${avanceHTML(58, '', '', 61, 2)}</div><p class="frase-g">S/ 52,140 de 90,000 · día 31 de 31</p></section>
+    <section class="placa-g c4 ancho" style="--i:4"><div class="tit-g"><h2>Lo que más se vendió</h2><span>por categoría</span></div>
+      <div class="cats">${CATS.map(([c, v], i) => `<div class="cat-g"><span>${c}</span>${avanceHTML(Math.round((v / CATS[0][1]) * 100), 'fina', 'tinta', 0, i)}<b>${soles(v)}</b></div>`).join('')}</div></section>
+    <section class="placa-g c12" style="--i:5"><div class="tit-g"><h2>Cómo cerró cada día</h2><span>octubre · la rayita es la meta</span></div>
+      <div class="lienzo-g" id="g-barras">${barrasHTML()}</div></section>
+  </div>`;
+  dibujarLinea();
+}
+function dibujarLinea() {
+  const caja = $('#g-linea'); if (!caja) return;
+  caja.innerHTML = lineaSVG(caja.clientWidth);
+}
+// el globito que lee el dato
+function quitarGlobo() { $$('.globo-g').forEach((g) => g.remove()); const l = $('.l-lee'); if (l) l.style.display = 'none'; }
+document.addEventListener('mousemove', (ev) => {
+  const t = ev.target.closest('.l-toque'), b = ev.target.closest('.bt');
+  if (!t && !b) { quitarGlobo(); return; }
+  const lien = (t || b).closest('.lienzo-g'), rl = lien.getBoundingClientRect(), z = zoomDisp();
+  if (t) {
+    const svg = t.ownerSVGElement, W = +svg.getAttribute('width'), iz = 44, de = 14, px = (ev.clientX - rl.left) / z;
+    const h = Math.max(9, Math.min(21, 9 + ((px - iz) / (W - iz - de)) * 12)), k = Math.round(h - 9), hh = 9 + k;
+    const max = 4800, H = 210, y = (v) => 18 + (1 - v / max) * (H - 18 - 26), x = iz + ((hh - 9) / 12) * (W - iz - de);
+    const hoy = HOY[k], ayer = AYER[k];
+    const lee = $('.l-lee', svg); lee.style.display = ''; $('line', lee).setAttribute('x1', x); $('line', lee).setAttribute('x2', x);
+    const pc = $('circle', lee); pc.setAttribute('cx', x); pc.setAttribute('cy', y(hoy ?? ayer));
+    let g = $('.globo-g', lien); if (!g) { g = document.createElement('div'); g.className = 'globo-g'; lien.appendChild(g); }
+    g.style.left = Math.max(70, Math.min(W - 70, x)) + 'px'; g.style.top = y(hoy ?? ayer) + 'px';
+    g.innerHTML = hoy != null ? `<b>${hh}:00 · ${soles(hoy)}</b><small>ayer ${soles(ayer)}</small>` : `<b>${hh}:00</b><small>ayer ${soles(ayer)} · aún no llega</small>`;
+  } else {
+    const rb = b.getBoundingClientRect(); let g = $('.globo-g', lien); if (!g) { g = document.createElement('div'); g.className = 'globo-g'; lien.appendChild(g); }
+    const cx = (rb.left + rb.width / 2 - rl.left) / z;
+    g.style.left = Math.max(80, Math.min(rl.width / z - 80, cx)) + 'px'; g.style.top = (rb.bottom - rl.top) / z - b.querySelector('i').offsetHeight + 'px';
+    g.innerHTML = `<b>${b.dataset.d} · ${soles(+b.dataset.v)}</b><small>meta ${soles(+b.dataset.m)}${b.hasAttribute('data-curso') ? ' · el día sigue' : ''}</small>`;
+  }
+});
+Marco.iniciar({ estado: { gr: 'tubo', gb: 'placa' }, alPintar: (e) => { $('#cont').scrollTop = 0; pintarGraficos(); } });
+new ResizeObserver(() => { const c = $('#g-linea'); if (c && c.firstElementChild && Math.abs(+c.firstElementChild.getAttribute('width') - c.clientWidth) > 2) dibujarLinea(); }).observe($('#cont'));
+</script>
+</body>
+</html>

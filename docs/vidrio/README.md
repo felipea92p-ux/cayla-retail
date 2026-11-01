@@ -58,7 +58,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Paginación | `ui/Paginas.tsx` (31 archivos con sus usuarios) | Elegido | A · Gota en su pozo | `vacio-paginas-vidrio-2026-10/` |
 | Globito con número | `ui/Globito.tsx` (15 archivos) | Elegido | A · Gota | `insignias-vidrio-2026-10/` |
 | Avatares | `ui/AvatarPersona.tsx` | En maqueta (el equipo del Inicio) | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
-| Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Barra de avance en maqueta; lo demás, por auditar | — (recomendada: A · Tubo) | `inicio-lider-vidrio-2026-10/` |
+| Barra de avance, apilada, anillo, línea, barras por tiempo | `ui/BarraAvance` (61), `BarraApilada` (39), `Anillo` (16), `Linea` (17) + `Sparkline` (6), `BarrasTiempo` (12) | En maqueta | — (recomendadas: A · Tubo de vidrio y globito A · Placa) | `graficos-vidrio-2026-11/` (la barra de avance también en `inicio-lider-vidrio-2026-10/`) |
 | Casillas e interruptores | `ui/Casilla` (38 archivos), `Interruptor` (19) | Elegido | A · Pozo y gota (casilla e interruptor) | `casilla-enlaces-vidrio-2026-11/` (el interruptor también en `inicio-lider-vidrio-2026-10/`) |
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
 | Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
