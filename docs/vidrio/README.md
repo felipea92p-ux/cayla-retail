@@ -59,10 +59,10 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Globito con número | `ui/Globito.tsx` (15 archivos) | Elegido | A · Gota | `insignias-vidrio-2026-10/` |
 | Avatares | `ui/AvatarPersona.tsx` | En maqueta (el equipo del Inicio) | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Barra de avance en maqueta; lo demás, por auditar | — (recomendada: A · Tubo) | `inicio-lider-vidrio-2026-10/` |
-| Casillas e interruptores | `ui/Casilla`, `Interruptor` | Interruptor en maqueta; la casilla, por auditar | — (recomendada: A · Pozo y gota) | `inicio-lider-vidrio-2026-10/` |
+| Casillas e interruptores | `ui/Casilla` (38 archivos), `Interruptor` (19) | En maqueta | — (recomendada: A · Pozo y gota) | `casilla-enlaces-vidrio-2026-11/` (el interruptor también en `inicio-lider-vidrio-2026-10/`) |
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
 | Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
-| Títulos de sección y enlaces | `ui/TituloSeccion`, `btn-enlace`, `EnlaceVer` | Títulos en maqueta; los enlaces, por auditar | — (recomendada: A · Serif) | `inicio-lider-vidrio-2026-10/` |
+| Títulos de sección y enlaces | `ui/TituloSeccion` (140), `TituloGrupo` (60), `SeparadorDia` (6), `btn-enlace` (181), `EnlaceVer` (45) | En maqueta | — (recomendadas: A · Raya de luz y separador B · Gotas que flotan) | `casilla-enlaces-vidrio-2026-11/` (los títulos del Inicio, en `inicio-lider-vidrio-2026-10/`) |
 | Avisos de éxito (esquina) | `ui/Avisos` | Por auditar | — | — |
 | Loader a pantalla completa | `ui/Espera.tsx` | Por auditar | — | — |
 | «Hay una versión nueva» | `VersionNueva.tsx` | Por auditar | — | — |

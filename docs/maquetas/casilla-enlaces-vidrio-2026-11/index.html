@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-ci="pozo" data-sd="gota" data-en="luz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Casilla y enlaces con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la casilla, el interruptor, los enlaces y los títulos de sección con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   · `<Casilla>` (38 archivos) e `<Interruptor>` (19), estilos/campos-y-casillas.css: caja de PAPEL con filo `borde-control` que, marcada, se
+     llena de TINTA SÓLIDA y dibuja el ✓; el interruptor se prende en TINTA SÓLIDA con la perilla de papel.
+   · `btn-enlace` (181) y `<EnlaceVer>` (45), estilos/enlaces-paginas-caras.css: subrayado tenue con el hilo rojo que corre; versalitas rojas con la flecha.
+   · `<TituloSeccion>` (140), `<TituloGrupo>` (60) y `<SeparadorDia>` (6), estilos/titulos.css: serif de 21 px; versalitas con la raya
+     ARENA que se dibuja; el separador pegado arriba al bajar, en una franja de PAPEL al 92 % con desenfoque.
+   Montada sobre el marco y las piezas elegidas (../vidrio-base-2026-10/). Solo tokens. Movimiento: una vez, sin rebote.
+   ==================================================================== */
+.placa-a{margin-top:22px;border-radius:22px;padding:20px 22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) .15s backwards}
+[data-tema="oscuro"] .placa-a{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.dos-a{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+.dos-a .placa-a{margin-top:22px}
+@container disp (max-width:900px){.dos-a{grid-template-columns:minmax(0,1fr);gap:0}}
+
+/* ---------- títulos (como hoy) ---------- */
+.titulo-seccion{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.ts-texto{margin:0;font-family:'EB Garamond',serif;font-size:21px;font-weight:400;line-height:1.2}
+.titulo-cuenta{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:8px;padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent);
+  font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:600;color:var(--tinta);vertical-align:.2em}
+.titulo-grupo{margin:22px 0 6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;line-height:1.3;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.tg-texto{display:flex;align-items:center;gap:12px}
+.tg-texto::after{content:"";flex:1;height:1px;background:var(--sand);transform-origin:left;animation:raya .52s var(--ease) .2s backwards}
+@keyframes raya{from{transform:scaleX(0)}}
+/* ---------- enlaces (como hoy) ---------- */
+.btn-enlace{color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px;text-decoration-thickness:1px;
+  background:linear-gradient(var(--rojo),var(--rojo)) left bottom/0 1px no-repeat;transition:color .2s,background-size .3s var(--ease)}
+@media (hover:hover){.btn-enlace:hover{color:var(--rojo-p);background-size:100% 1px;text-decoration-color:transparent}}
+.enlace-ver{text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;line-height:1.3;color:var(--rojo);transition:color .2s}
+.enlace-ver svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:translate .22s var(--ease)}
+@media (hover:hover){.enlace-ver:hover{color:var(--rojo-p)}.enlace-ver:hover svg{translate:3px 0}}
+/* A · Raya de luz: los títulos y los enlaces siguen PLANOS (lo que explica es plano); la raya arena pasa a una ranura tallada en el
+   vidrio (una línea de sombra y otra de luz debajo) y el globito del título es la gota elegida */
+[data-en="luz"] .tg-texto::after{height:2px;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent) 50%,color-mix(in srgb,var(--vidrio) 95%,transparent) 50%)}
+[data-tema="oscuro"][data-en="luz"] .tg-texto::after{background:linear-gradient(180deg,color-mix(in srgb,var(--sombra) 60%,transparent) 50%,color-mix(in srgb,var(--tinta) 12%,transparent) 50%)}
+:is([data-en="luz"],[data-en="gota"]) .titulo-cuenta{min-width:22px;height:22px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent),0 2px 5px -2px color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"]:is([data-en="luz"],[data-en="gota"]) .titulo-cuenta{background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+/* B · «Ver» en gota: lo mismo, y además el enlace suelto que lleva a otra pantalla (EnlaceVer) es una gota chica con su flecha */
+[data-en="gota"] .tg-texto::after{height:2px;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent) 50%,color-mix(in srgb,var(--vidrio) 95%,transparent) 50%)}
+[data-tema="oscuro"][data-en="gota"] .tg-texto::after{background:linear-gradient(180deg,color-mix(in srgb,var(--sombra) 60%,transparent) 50%,color-mix(in srgb,var(--tinta) 12%,transparent) 50%)}
+[data-en="gota"] .enlace-ver{height:30px;padding:0 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--rojo) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-en="gota"] .enlace-ver{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent)}
+
+/* ---------- filas de ajustes ---------- */
+.aj{display:flex;align-items:center;gap:14px;padding:12px 0}
+.aj+.aj{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+.aj .tx{flex:1;min-width:0;font-size:15px}
+.aj .tx small{display:block;margin-top:3px;font-size:13px;line-height:1.45;color:var(--taupe)}
+.cs-fila{display:flex;align-items:flex-start;gap:12px;padding:9px 0;font-size:15px;cursor:pointer}
+.cs-fila small{display:block;font-size:13px;color:var(--taupe);margin-top:2px}
+.cs-fila.apagada{cursor:not-allowed}
+.cs-fila .casilla{margin-top:1px}
+
+/* ---------- la casilla (como hoy) ---------- */
+.casilla{position:relative;display:inline-grid;place-items:center;width:20px;height:20px;flex-shrink:0}
+.casilla-input{position:absolute;inset:0;margin:0;appearance:none;-webkit-appearance:none;cursor:pointer;border-radius:6px;border:1.5px solid var(--borde);background:var(--papel);transition:border-color .15s,scale .12s var(--ease),background .25s,box-shadow .25s}
+@media (hover:hover){.casilla-input:hover:not(:disabled){border-color:var(--tinta)}}
+.casilla-input:active:not(:disabled){scale:.92}
+.casilla-input:disabled{cursor:not-allowed;opacity:.5}
+.casilla-input:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.casilla-fondo{position:absolute;inset:0;border-radius:6px;background:var(--tinta);scale:.4;opacity:0;pointer-events:none;transition:scale .22s var(--ease),opacity .16s var(--ease)}
+.casilla-input:is(:checked,:indeterminate)~.casilla-fondo{scale:1;opacity:1}
+.casilla-marca{position:absolute;inset:0;margin:auto;width:13px;height:13px;color:var(--crema);pointer-events:none;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.casilla-marca path{stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .26s var(--ease)}
+.casilla-input:checked:not(:indeterminate)~.casilla-visto path,.casilla-input:indeterminate~.casilla-medio path{stroke-dashoffset:0;transition-delay:90ms}
+/* A · Pozo y gota: vacía, la casilla es un pozo hundido (espera tu dato); marcada, se llena de vidrio AHUMADO de tinta (el del filtro
+   puesto y el botón primario) y el ✓ se dibuja en crema. Nada sólido. */
+[data-ci="pozo"] .casilla-input{border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 18%,transparent)}
+[data-tema="oscuro"][data-ci="pozo"] .casilla-input{background:color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-ci="pozo"] .casilla-fondo{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 32%,transparent),0 3px 8px -4px color-mix(in srgb,var(--sombra) 55%,transparent)}
+/* B · Gota que se marca: la casilla es siempre una gota clara; marcada, su filo pasa a tinta y el ✓ se dibuja en tinta, sin relleno */
+[data-ci="tinte"] .casilla-input{border-color:color-mix(in srgb,var(--borde) 75%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 2px 5px -2px color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"][data-ci="tinte"] .casilla-input{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent)}
+[data-ci="tinte"] .casilla-input:is(:checked,:indeterminate){border-color:var(--tinta)}
+[data-ci="tinte"] .casilla-fondo{background:transparent}
+[data-ci="tinte"] .casilla-marca{color:var(--tinta)}
+
+/* ---------- el interruptor (como hoy; las mismas caras de la maqueta del Inicio de la líder) ---------- */
+.inter{position:relative;width:44px;height:26px;flex:none;border-radius:99px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 6%,transparent);transition:background .3s var(--ease),border-color .3s}
+.inter::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--papel);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 35%,transparent);transition:transform .35s var(--ease),width .2s var(--ease)}
+.inter[aria-checked="true"]{background:var(--tinta);border-color:var(--tinta)}
+.inter[aria-checked="true"]::after{transform:translateX(18px);background:var(--crema)}
+.inter:active::after{width:24px}
+.inter[aria-checked="true"]:active::after{transform:translateX(14px)}
+.inter:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+[data-ci="pozo"] .inter{border-color:color-mix(in srgb,var(--borde) 70%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-ci="pozo"] .inter::after{background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 80%,var(--hueso)));box-shadow:inset 0 -1px 2px color-mix(in srgb,var(--sombra) 10%,transparent),0 2px 6px -1px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-ci="pozo"] .inter[aria-checked="true"]{border-color:color-mix(in srgb,var(--tinta) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+[data-tema="oscuro"][data-ci="pozo"] .inter:not([aria-checked="true"]){background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"][data-ci="pozo"] .inter::after{background:linear-gradient(180deg,var(--tinta),color-mix(in srgb,var(--tinta) 80%,var(--sand)))}
+[data-tema="oscuro"][data-ci="pozo"] .inter[aria-checked="true"]::after{background:var(--crema)}
+[data-ci="tinte"] .inter{border-color:color-mix(in srgb,var(--borde) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-ci="tinte"] .inter[aria-checked="true"]{border-color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent))}
+[data-ci="tinte"] .inter[aria-checked="true"]::after{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 40%,transparent),0 2px 6px -1px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-ci="tinte"] .inter:not([aria-checked="true"]){background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+[data-tema="oscuro"][data-ci="tinte"] .inter[aria-checked="true"]::after{background:var(--crema)}
+
+/* ---------- lo enviado: la lista que corre con su separador de día (como hoy) ---------- */
+.enviados{position:relative;margin:14px -22px -20px;max-height:430px;overflow:auto;border-radius:0 0 22px 22px;overscroll-behavior:contain}
+.separador-dia{position:sticky;top:0;z-index:2;display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0;padding:10px 22px 8px;
+  border-bottom:1px solid var(--sand);background:color-mix(in srgb,var(--papel) 92%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;line-height:1.3;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.sd-texto{display:inline-flex;align-items:center;gap:8px}
+.separador-dia.hoy{color:var(--tinta)}
+.separador-dia.hoy .sd-texto::before{content:"";width:6px;height:6px;border-radius:99px;background:var(--rojo)}
+.sd-total{font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--taupe)}
+.sd-total b{color:var(--tinta);font-weight:600}
+.env{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 22px;font-size:14.5px}
+.env+.env{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 7%,transparent)}
+.env .av-e{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;background:color-mix(in srgb,var(--sand) 70%,transparent)}
+.env small{display:block;font-size:12.5px;color:var(--taupe)}
+.env .h{font-size:13px;color:var(--t65);font-variant-numeric:tabular-nums}
+/* A · Franja de vidrio: el separador es una franja del mismo vidrio de la placa (más desenfoque, su luz arriba y una ranura abajo) */
+[data-sd="franja"] .separador-dia{border-bottom:0;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);box-shadow:inset 0 1px 0 var(--vidrio),0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent),0 8px 16px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-sd="franja"] .separador-dia{background:color-mix(in srgb,var(--vidrio) 88%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 1px 0 color-mix(in srgb,var(--sombra) 60%,transparent)}
+/* B · Gotas que flotan: no hay franja; el día y su total son dos gotas que se quedan arriba mientras la lista pasa por debajo,
+   como la fecha de un chat en el teléfono */
+[data-sd="gota"] .separador-dia{border-bottom:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:10px 14px 6px;pointer-events:none}
+[data-sd="gota"] .separador-dia>*{pointer-events:auto;display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-sd="gota"] .separador-dia>*{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);background:color-mix(in srgb,var(--vidrio) 90%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 70%,transparent)}
+[data-sd="gota"] .separador-dia+.env{margin-top:-2px}
+
+@container disp (max-width:520px){
+  .placa-a{padding:16px 16px;border-radius:18px}
+  .enviados{margin:14px -16px -16px;border-radius:0 0 18px 18px}
+  .env{padding:10px 16px}
+  .separador-dia{padding-left:16px;padding-right:16px}
+  [data-sd="gota"] .separador-dia{padding:8px 10px 6px}
+  .aj{align-items:flex-start}.aj .inter{margin-top:2px}
+}
+@media (prefers-reduced-motion:reduce){.tg-texto::after,.placa-a{animation:none}.casilla-input,.casilla-fondo,.casilla-marca path,.inter,.inter::after{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">La casilla, los enlaces y los títulos, con vidrio</span>
+  <span class="tag">Casilla e interruptor</span><div class="seg-m" data-ctl="ci"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo y gota</button><button data-v="tinte">B · Gota que se marca</button></div>
+  <span class="tag">Separador de día</span><div class="seg-m" data-ctl="sd"><button data-v="ahora">Como ahora</button><button data-v="franja">A · Franja de vidrio</button><button data-v="gota">B · Gotas que flotan</button></div>
+  <span class="tag">Títulos y enlaces</span><div class="seg-m" data-ctl="en"><button data-v="ahora">Como ahora</button><button data-v="luz">A · Raya de luz</button><button data-v="gota">B · «Ver» en gota</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La casilla</b> (<code>Casilla</code>, 38 archivos) y <b>el interruptor</b> (<code>Interruptor</code>, 19): una caja de <b>papel macizo</b> que, marcada, se llena de <b>tinta sólida</b> y dibuja el ✓; el interruptor se prende en <b>tinta sólida</b>. Sobre el vidrio son los últimos cuadros de color lleno de una hoja.</li>
+      <li><b>Los enlaces</b> (<code>btn-enlace</code> 181, <code>EnlaceVer</code> 45): texto subrayado con el hilo rojo que corre; versalitas rojas con la flecha. Ya son planos: no tienen nada macizo.</li>
+      <li><b>Los títulos</b> (<code>TituloSeccion</code> 140, <code>TituloGrupo</code> 60, <code>SeparadorDia</code> 6): serif plano; versalitas con una <b>raya arena</b>; y el separador de día, una <b>franja de papel al 92 %</b> pegada arriba al bajar, que sobre el vidrio se ve como un parche opaco.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Casilla e interruptor</b></td><td>A · Pozo y gota <span class="ev">Recomendada</span></td><td>El idioma al pie de la letra: vacía, espera (hundida); marcada, el ahumado del filtro puesto. Se distingue de lejos, como hoy.</td><td>Casi nada; el ahumado es un poco más suave que la tinta sólida.</td></tr>
+      <tr><td>B · Gota que se marca</td><td>Más liviana: ningún relleno oscuro en una hoja llena de casillas.</td><td>Marcada y sin marcar se parecen: solo el ✓ y el filo las separan. En una lista larga cuesta ver cuáles están puestas.</td></tr>
+      <tr><td rowspan="2"><b>Separador de día</b></td><td>A · Franja de vidrio</td><td>La misma franja que la cabecera pegada de la tabla: ordenado, se lee siempre.</td><td>Una franja que tapa la lista entera de lado a lado; con tres o cuatro días se siente pesada.</td></tr>
+      <tr><td>B · Gotas que flotan <span class="ev">Recomendada</span></td><td>El día y su total flotan en dos gotas y la lista pasa por debajo, como la fecha de un chat: no se confunde con una fila y no tapa nada.</td><td>Entre las dos gotas se ve pasar la lista; si el día es muy largo («Miércoles 29 de octubre») la gota crece.</td></tr>
+      <tr><td rowspan="2"><b>Títulos y enlaces</b></td><td>A · Raya de luz <span class="ev">Recomendada</span></td><td>Lo que explica sigue plano: solo la raya arena pasa a una ranura tallada en el vidrio y el número del título es la gota elegida.</td><td>Un cambio chico; casi no se nota, que es lo que se busca.</td></tr>
+      <tr><td>B · «Ver» en gota</td><td>El enlace que lleva a otra pantalla se encuentra rápido.</td><td>Una gota sobresale, y lo que sobresale es un botón: se confunde con <code>BotonVer</code>, que ya existe para eso.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Casilla e interruptor A · Pozo y gota, separador B · Gotas que flotan, títulos y enlaces A · Raya de luz.</b> El interruptor es el mismo de la maqueta del Inicio de una líder: lo que elijas aquí vale para los dos.</p>
+    <h3>Lo que no cambia</h3>
+    <p>El ✓ que se dibuja, «a medias», la casilla apagada; la perilla que se estira al presionar; el hilo rojo del enlace al pasar el mouse y la flecha que avanza; la raya que se dibuja una vez; el separador pegado arriba con «Hoy» y su punto rojo.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, fila, buscar…); la maqueta no los repite. -->
+<script>
+const svA = (d, c = '') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const casillaHTML = (marcada, apagada, medio) => `<span class="casilla"><input type="checkbox" class="casilla-input" ${marcada ? 'checked' : ''} ${apagada ? 'disabled' : ''} ${medio ? 'data-medio' : ''}>
+  <span class="casilla-fondo"></span>${svA('M5 12.5l4.5 4.5L19 7.5', 'casilla-marca casilla-visto')}${svA('M6 12h12', 'casilla-marca casilla-medio')}</span>`;
+const interHTML = (on, nombre) => `<button class="inter" role="switch" aria-checked="${on}" aria-label="${nombre}"></button>`;
+const AVISOS = [
+  ['Cumpleaños y fechas', [['Saludo de cumpleaños', 'Sale a las 9:00 con un 10 % de regalo por 7 días.', true], ['Aniversario en el club', 'Al cumplir un año como miembro.', false]]],
+  ['Después de comprar', [['Gracias por tu compra', 'Al día siguiente, con el ticket y cómo cuidar la prenda.', true], ['Te extrañamos', 'A los 60 días sin comprar.', true]]],
+];
+const ENVIADOS = [
+  ['hoy', 'Hoy', '18', [['RM', 'Rosa Mendívil', 'Saludo de cumpleaños', '11:42'], ['JC', 'Jorge Cárdenas', 'Gracias por tu compra', '10:15'], ['LP', 'Lucía Paredes', 'Gracias por tu compra', '09:58'], ['AT', 'Ana Torres', 'Saludo de cumpleaños', '09:00']]],
+  ['', 'Ayer', '31', [['MV', 'Marco Valdivia', 'Te extrañamos', '18:20'], ['SQ', 'Sara Quispe', 'Gracias por tu compra', '16:04'], ['DR', 'Diana Ríos', 'Gracias por tu compra', '12:31'], ['CF', 'Carla Flores', 'Saludo de cumpleaños', '09:00']]],
+  ['', 'Miércoles 29', '22', [['PA', 'Pedro Alva', 'Te extrañamos', '17:45'], ['VN', 'Vania Núñez', 'Gracias por tu compra', '15:12'], ['EH', 'Elena Huamán', 'Gracias por tu compra', '11:08'], ['GL', 'Gabriel León', 'Saludo de cumpleaños', '09:00']]],
+];
+function pintarAvisos() {
+  const grupos = AVISOS.map(([g, filas]) => `<h3 class="titulo-grupo"><span class="tg-texto">${g}</span></h3>` +
+    filas.map(([t, d, on]) => `<div class="aj"><span class="tx">${t}<small>${d} <a href="#" class="btn-enlace">Cambiar el texto</a></small></span>${interHTML(on, t)}</div>`).join('')).join('');
+  const canales = `<h3 class="titulo-grupo"><span class="tg-texto">Por dónde salen</span></h3>
+    <label class="cs-fila">${casillaHTML(false, false, true)}<span>Todos los canales</span></label>
+    <label class="cs-fila">${casillaHTML(true)}<span>WhatsApp<small>Al número que dejó en su ficha.</small></span></label>
+    <label class="cs-fila">${casillaHTML(true)}<span>Correo</span></label>
+    <label class="cs-fila apagada">${casillaHTML(false, true)}<span>Mensaje de texto<small>No está contratado.</small></span></label>`;
+  const env = ENVIADOS.map(([hoy, dia, n, filas]) => `<h3 class="separador-dia${hoy ? ' hoy' : ''}"><span class="sd-texto">${dia}</span><span class="sd-total"><b>${n}</b>&nbsp;avisos</span></h3>` +
+    filas.map(([ini, nom, av, h]) => `<div class="env"><span class="av-e">${ini}</span><span>${nom}<small>${av}</small></span><span class="h">${h}</span></div>`).join('')).join('');
+  $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Avisos', frase: 'Lo que el club les manda a tus clientes, y cuándo.' })}
+    <div class="dos-a">
+      <section class="placa-a"><div class="titulo-seccion"><h2 class="ts-texto">Avisos automáticos<span class="titulo-cuenta">4</span></h2>
+        <a href="#" class="enlace-ver">Ver plantillas ${svA('M5 12h14M13 6l6 6-6 6')}</a></div>${grupos}${canales}</section>
+      <section class="placa-a"><div class="titulo-seccion"><h2 class="ts-texto">Lo enviado</h2><span class="sd-total">esta semana <b>71</b></span></div>
+        <div class="enviados" tabindex="0" aria-label="Avisos enviados">${env}</div></section>
+    </div>`;
+  $$('.casilla-input[data-medio]').forEach((i) => (i.indeterminate = true));
+}
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest('.cont a')) ev.preventDefault();
+  const s = ev.target.closest('.inter'); if (s) s.setAttribute('aria-checked', s.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+});
+Marco.iniciar({ estado: { ci: 'pozo', sd: 'gota', en: 'luz' }, alPintar: () => { $('#cont').scrollTop = 0; pintarAvisos(); } });
+</script>
+</body>
+</html>
