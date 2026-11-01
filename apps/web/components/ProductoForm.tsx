@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { NombreDelProveedor } from "@/components/ficha-producto/NombreDelProveedor";
 import { avisosDeReferencia, otrosTipos, tiposDeCategoria } from "@/lib/nombre-de-prenda";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -1505,9 +1506,7 @@ export function ProductoForm({
       onSubmit={revisar}
       // Revisar es un acto explícito: Enter dentro de un campo —cerrar un precio, corregir el nombre— no abre la hoja de
       // guardado (con correcciones de color en juego, un Enter de costumbre la abriría a mitad de camino).
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
-      }}
+      onKeyDown={enterNoGuarda}
       className="pb-28 sm:pb-24"
     >
       {/* El panel del taller va a la derecha solo si a la ficha le quedan ~430 px al lado: lo decide el ancho del formulario

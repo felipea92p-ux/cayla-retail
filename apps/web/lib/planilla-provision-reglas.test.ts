@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, leerProvision, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const fila = (p: Partial<FilaER>): FilaER => ({
   ubicacionId: null, unidad: "tienda", nombre: "Tienda", orden: 1,
   ventas: 0, costo: 0, fletes: 0, mermas: 0, margen: 0, planilla: 0, depreciacion: 0, gastos: 0, resultado: 0, igvVentas: 0,
   detalleGastos: [], detalleMermas: [], sinCosto: 0, mermasSinCosto: 0, descuadres: 0, planillaVisible: true, planillaNota: null,
-  planillaEstimada: 0, planillaAlCierre: 0, planillaPersonas: 0,
+  planillaEstimada: 0, planillaAlCierre: 0, planillaPersonas: 0, planillaPorSede: [],
   ...p,
 });
 const prov = (p: Partial<FilaProvision>): FilaProvision => ({
@@ -76,6 +76,33 @@ describe("aplicarProvision", () => {
     ]);
     expect(emp).toMatchObject({ planilla: 400, planillaEstimada: 400, planillaAlCierre: 600, planillaPersonas: 9, gastos: 450, resultado: -450 });
     expect(tal).toMatchObject({ planilla: 80, planillaEstimada: 80, planillaAlCierre: 120, planillaPersonas: 3, resultado: -110 });
+  });
+
+  it("«De la empresa» dice cuánto aporta cada sede de Dynamic: la central y la Oficina Trujillo no se confunden con la tienda de Trujillo (octubre 2026, medido en producción)", () => {
+    const out = aplicarProvision(todas, [
+      prov({ ubicacionId: "u-tru", sedeCodigo: "TRU", devengado: 20538.88, personas: 12 }),
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "CCO", devengado: 8138.25, personas: 5 }),
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "OTRU", devengado: 5584.48, personas: 5 }),
+    ]);
+    const emp = out.find((f) => f.unidad === "empresa")!;
+    expect(emp.planillaPorSede).toEqual([
+      { sedeCodigo: "CCO", nombre: "Central", personas: 5, devengado: 8138.25 },
+      { sedeCodigo: "OTRU", nombre: "Oficina Trujillo", personas: 5, devengado: 5584.48 },
+    ]);
+    // El desglose suma exactamente la cifra de la columna, y la tienda de Trujillo no lleva nada de la oficina.
+    expect(emp.planillaPorSede.reduce((s, x) => s + x.devengado, 0)).toBeCloseTo(emp.planillaEstimada, 2);
+    expect(out.find((f) => f.ubicacionId === "u-tru")!.planillaPorSede).toEqual([]);
+    expect(out.find((f) => f.unidad === "consolidado")!.planillaPorSede).toEqual([]);
+  });
+
+  it("un código de Dynamic que no conocemos se muestra tal cual, y dos períodos de la misma sede se suman", () => {
+    expect(nombreSedeDynamic("OTRU")).toBe("Oficina Trujillo");
+    expect(nombreSedeDynamic("ZZ9")).toBe("ZZ9");
+    const [, , , emp] = aplicarProvision(todas, [
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "OTRU", periodoId: "p1", devengado: 100, personas: 4 }),
+      prov({ ubicacionId: null, unidad: "empresa", sedeCodigo: "OTRU", periodoId: "p2", devengado: 50, personas: 5 }),
+    ]);
+    expect(emp!.planillaPorSede).toEqual([{ sedeCodigo: "OTRU", nombre: "Oficina Trujillo", personas: 5, devengado: 150 }]);
   });
 
   it("el consolidado lleva la suma exacta de todas las estimaciones, y sigue siendo la suma de las filas", () => {
