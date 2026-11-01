@@ -1,7 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useState, type RefObject } from "react";
-import { airePara } from "@/lib/posicion-lista-reglas";
+// Ruta relativa a propósito: `lib/perdidas-vista.test.ts` carga este archivo sin el alias `@/`.
+import { airePara } from "../../lib/posicion-lista-reglas";
 
 export type PosicionAnclada = { top: number; left: number };
 
