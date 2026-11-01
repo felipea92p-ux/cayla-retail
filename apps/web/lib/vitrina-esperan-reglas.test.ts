@@ -11,6 +11,7 @@ import {
   personasQueEsperan,
   pildorasDeTienda,
   prendaDicha,
+  quienDicho,
   tiendaDicha,
 } from "./vitrina-esperan-reglas";
 
@@ -121,5 +122,42 @@ describe("cifras y filtros", () => {
   it("la cifra de la Vitrina: las personas de la base, o null si no se pudo leer", () => {
     expect(personasQueEsperan(CRUDO)).toBe(3);
     expect(personasQueEsperan(null)).toBeNull();
+  });
+});
+
+describe("quién espera cada talla (Felipe 2026-10-31)", () => {
+  const conGente = leerEsperan({
+    tiendas: [],
+    personas: 2,
+    filas: [
+      fila({
+        quienes: [
+          { ficha_id: "a", nombre: "Ana Prueba", celular: "999111222", pidio_whatsapp: true, desde: "2026-10-30T15:00:00Z" },
+          { ficha_id: null, nombre: null, celular: null, pidio_whatsapp: false, desde: "2026-10-31T15:00:00Z" },
+          "basura",
+        ],
+      }),
+    ],
+  });
+  const f = conGente.filas[0]!;
+
+  it("lee a cada persona y se salta lo mal formado", () => {
+    expect(f.quienes).toHaveLength(2);
+    expect(f.quienes[0]).toMatchObject({ nombre: "Ana Prueba", celular: "999111222", pidioWhatsapp: true });
+    expect(f.quienes[1]).toMatchObject({ celular: null, pidioWhatsapp: false });
+  });
+  it("sin permiso no hay celular: buscar un número que no se le ve a esa persona no la encuentra", () => {
+    const sinPermiso = leerEsperan({ filas: [fila({ quienes: [{ ficha_id: "b", nombre: "Bea", celular: null, pidio_whatsapp: false, desde: "2026-10-30T15:00:00Z" }] })] });
+    expect(filtrarEsperan(sinPermiso.filas, { tienda: "todas", estado: "todos", busqueda: "999111222" })).toHaveLength(0);
+  });
+  it("una ficha sin datos se dice sin inventar un nombre", () => {
+    expect(quienDicho(f.quienes[1]!)).toContain("sin datos");
+  });
+  it("una fila vieja sin `quienes` no se cae", () => {
+    expect(leerEsperan({ filas: [fila()] }).filas[0]!.quienes).toEqual([]);
+  });
+  it("la búsqueda encuentra a la persona por su nombre", () => {
+    expect(filtrarEsperan(conGente.filas, { tienda: "todas", estado: "todos", busqueda: "ana prueba" })).toHaveLength(1);
+    expect(filtrarEsperan(conGente.filas, { tienda: "todas", estado: "todos", busqueda: "zzz" })).toHaveLength(0);
   });
 });

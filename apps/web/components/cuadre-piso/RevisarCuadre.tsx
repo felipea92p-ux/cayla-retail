@@ -23,10 +23,10 @@ export function CifrasCuadre({ resumen, sede }: { resumen: ResumenCuadre; sede: 
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <TarjetaCifra etiqueta="Pasan al piso" valor={resumen.prendasAlPiso.toLocaleString("es-PE")} unidad={resumen.prendasAlPiso === 1 ? "prenda" : "prendas"}>
-          <span className="text-xs text-taupe">{resumen.lineasAlPiso === 1 ? "1 talla" : `${resumen.lineasAlPiso} tallas`}</span>
+          <span className="text-sm text-taupe">{resumen.lineasAlPiso === 1 ? "1 talla" : `${resumen.lineasAlPiso} tallas`}</span>
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Suben al almacén" valor={resumen.prendasAlAlmacen.toLocaleString("es-PE")} unidad={resumen.prendasAlAlmacen === 1 ? "prenda" : "prendas"}>
-          <span className="text-xs text-taupe">{resumen.lineasAlAlmacen === 1 ? "1 talla" : `${resumen.lineasAlAlmacen} tallas`}</span>
+          <span className="text-sm text-taupe">{resumen.lineasAlAlmacen === 1 ? "1 talla" : `${resumen.lineasAlAlmacen} tallas`}</span>
         </TarjetaCifra>
         <TarjetaCifra
           etiqueta="No cargadas"
@@ -35,7 +35,7 @@ export function CifrasCuadre({ resumen, sede }: { resumen: ResumenCuadre; sede: 
           tono={resumen.prendasNoCargadas > 0 ? "text-ambar-profundo" : undefined}
           className="col-span-2 sm:col-span-1"
         >
-          <span className="text-xs text-taupe">No se aplican</span>
+          <span className="text-sm text-taupe">No se aplican</span>
         </TarjetaCifra>
       </div>
       <p className="text-sm text-tinta/80">
@@ -86,7 +86,7 @@ function Lista({
     <section className="card-cayla overflow-hidden" aria-label={titulo}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 sm:px-5">
         <TituloSeccion cuenta={lineas.length}>{titulo}</TituloSeccion>
-        <p className="text-xs text-taupe">{ayuda}</p>
+        <p className="text-sm text-taupe">{ayuda}</p>
       </header>
       <ul className="divide-y divide-tinta/10">
         {p.filas.map((l) => (
@@ -94,14 +94,14 @@ function Lista({
             <MiniaturaPrenda fotoUrl={fotos.get(l.varianteId) ?? null} tamano="md" />
             <div className="min-w-0 flex-1">
               <p className="text-sm text-tinta">{l.prenda}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">{render(l)}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-taupe">{render(l)}</div>
             </div>
           </li>
         ))}
       </ul>
       {p.totalPaginas > 1 && (
         <footer className="flex items-center justify-between gap-3 border-t border-tinta/10 px-4 py-2 sm:px-5">
-          <span className="text-xs tabular-nums text-taupe">
+          <span className="text-sm tabular-nums text-taupe">
             {p.desde}–{p.hasta} de {lineas.length}
           </span>
           <PaginacionLocal pagina={p.pagina} totalPaginas={p.totalPaginas} onPagina={setPagina} />

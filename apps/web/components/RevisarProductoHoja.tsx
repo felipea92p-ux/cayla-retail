@@ -85,7 +85,7 @@ export function RevisarProductoHoja({
     <Modal variante="hoja" tamano="mediana" bloqueado={guardando} titulo={bloqueo ? `No se puede ${modo === "rechazar" ? "rechazar" : "aprobar"} «${producto.referencia}» todavía` : textos.titulo} subtitulo={bloqueo ? undefined : textos.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
-          <p className="text-[13.5px] leading-normal text-tinta/70">
+          <p className="text-[15px] leading-normal text-tinta/70">
             {textoVariantes(producto)} · {textoPrecio(producto.precioMin, producto.precioMax)}
           </p>
 

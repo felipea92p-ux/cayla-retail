@@ -179,14 +179,21 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.prenda",
       opcional: true,
       titulo: "Cada prenda",
-      texto: "Una tarjeta por prenda: su foto, nombre, precio y sus colores en puntitos. Toca un puntito para ver ese color. Tocar la tarjeta abre todo de ella.",
+      texto: "Una tarjeta por prenda: su foto, nombre y precio, y sus colores en puntitos sobre la foto. Toca un puntito para ver ese color. La rayita roja o ámbar en el borde avisa que la prenda pide algo. Tocar la tarjeta abre todo de ella.",
+    },
+    {
+      id: "mas-colores",
+      ancla: "existencias.mas-colores",
+      opcional: true,
+      titulo: "Los demás colores",
+      texto: "Si la prenda tiene más de cinco colores, en la foto ves tres y un «+N». Tócalo y se abre la prenda con todos sus colores.",
     },
     {
       id: "tallas",
       ancla: "existencias.tallas",
       opcional: true,
       titulo: "Piso y almacén por talla",
-      texto: "Una columna por talla: el número grande es lo colgado en el piso, lo que el cliente puede comprar; debajo, «+2 en almacén» es lo que hay guardado. En ámbar, la talla que falta colgar; en rojo, la que se acabó en la sede.",
+      texto: "Una columna por talla: el número grande es lo colgado en el piso, lo que el cliente puede comprar; debajo, «+2 en almacén» es lo que hay guardado. En ámbar, la talla que falta colgar; en rojo, la que se acabó en la sede; con un visto verde, la que no hace falta colgar.",
     },
     {
       id: "colgar",

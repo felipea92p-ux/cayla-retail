@@ -141,7 +141,7 @@ export function PrepararRecortesHoja({
       <form onSubmit={empezar} className="space-y-5">
         {fase === "antes" ? (
           <>
-            <p className="rounded-xl border border-sand bg-papel px-3.5 py-2.5 text-[13px] text-tinta">
+            <p className="rounded-xl border border-sand bg-papel px-3.5 py-2.5 text-sm text-tinta">
               Solo entran al armador las fotos con fondo transparente (el PNG sin fondo que entrega la IA). Una foto con fondo, o un JPG, se queda sin
               recorte: cámbiala en Editar producto. Deja esta pestaña abierta; si la pausas, lo hecho queda guardado y sigues otro día.
             </p>
@@ -154,7 +154,7 @@ export function PrepararRecortesHoja({
         ) : (
           <div className="space-y-2.5" aria-live="polite">
             <BarraAvance pct={pct} alto="gruesa" etiqueta={`${vistas} de ${total} fotos`} />
-            <p className="text-[13px] text-tinta">
+            <p className="text-sm text-tinta">
               {fase === "terminado"
                 ? "Listo."
                 : actual
@@ -163,7 +163,7 @@ export function PrepararRecortesHoja({
                     ? `Pausado en ${vistas} de ${total}.`
                     : "Empezando…"}
             </p>
-            <p className="text-[12.5px] text-taupe">{resumen}</p>
+            <p className="text-sm text-taupe">{resumen}</p>
           </div>
         )}
 
@@ -182,7 +182,7 @@ export function PrepararRecortesHoja({
           </Aviso>
         )}
         {fallos.length > 0 && (
-          <ul className="max-h-40 space-y-1 overflow-y-auto text-[12.5px] text-taupe" aria-label="Fotos que no se pudieron recortar">
+          <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-taupe" aria-label="Fotos que no se pudieron recortar">
             {fallos.map((f) => (
               <li key={f.foto}>
                 <span className="font-medium text-tinta">{f.nombre}</span> · {f.motivo}

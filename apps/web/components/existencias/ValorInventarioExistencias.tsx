@@ -82,7 +82,7 @@ export function ValorInventarioExistencias({ vista, puedeEditarCatalogo }: { vis
           <b className="font-display text-xl tabular-nums text-tinta">{soles(sede.valor)}</b>
           <span className="text-tinta/60"> · {sede.unidades.toLocaleString("es-PE")} prendas</span>
         </p>
-        <button type="button" className="btn-enlace text-xs" aria-expanded onClick={() => setAbierto(false)}>
+        <button type="button" className="btn-enlace text-sm" aria-expanded onClick={() => setAbierto(false)}>
           Ocultar
         </button>
       </div>
@@ -141,7 +141,7 @@ export function ValorInventarioExistencias({ vista, puedeEditarCatalogo }: { vis
       )}
 
       <div>
-        <button type="button" className="btn-enlace text-xs" aria-expanded={porQue} onClick={() => setPorQue((v) => !v)}>
+        <button type="button" className="btn-enlace text-sm" aria-expanded={porQue} onClick={() => setPorQue((v) => !v)}>
           {porQue ? "Ocultar la explicación" : "¿Por qué no es el de Finanzas?"}
         </button>
         {porQue && <p className="nota-cayla mt-2">{PORQUE_NO_ES_EL_BALANCE}</p>}
@@ -164,7 +164,7 @@ function TallasSinCosto({ lista, puedeEditarCatalogo }: { lista: ListaSinCosto; 
             <span className="flex items-center gap-3 text-tinta/70">
               <span className="tabular-nums">{t.unidades.toLocaleString("es-PE")} {t.unidades === 1 ? "prenda" : "prendas"}</span>
               {puedeEditarCatalogo && (
-                <Link href={`/productos/${t.productoId}/editar`} className="btn-enlace text-xs">
+                <Link href={`/productos/${t.productoId}/editar`} className="btn-enlace text-sm">
                   Poner costo
                 </Link>
               )}

@@ -196,7 +196,7 @@ export function DetalleGasto({ gasto, alTerminar }: { gasto: GastoConFoto; alTer
                   guia="fondos.gasto-papel"
                 />
                 {!opciones.includes("planilla_movilidad") && !gasto.fotoRuta && (
-                  <p className="mt-1.5 text-xs text-taupe">Pídele el papel a {nombre}: no subió foto.</p>
+                  <p className="mt-1.5 text-sm text-taupe">Pídele el papel a {nombre}: no subió foto.</p>
                 )}
               </CampoGuiado>
               {conNumero && (

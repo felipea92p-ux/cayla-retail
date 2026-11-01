@@ -133,7 +133,7 @@ export function CostoPrenda({
           <p className="font-display mt-0.5 text-[44px] leading-none text-tinta tabular-nums">
             {soles(r.hoy)}
           </p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-tinta/75">
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-tinta/75">
             {r.cambio !== 0 && (
               <Chip tono={r.cambio > 0 ? "ambar" : "verde"} versalitas={false}>
                 {r.cambio > 0 ? (
@@ -148,7 +148,7 @@ export function CostoPrenda({
             <span>{fraseDeRespuesta(r)}</span>
           </div>
         </div>
-        <p className="text-right text-[12.5px] text-tinta/65">
+        <p className="text-right text-sm text-tinta/65">
           En stock
           <span className="font-display block text-[28px] leading-tight text-tinta tabular-nums">
             {r.stock}
@@ -164,7 +164,7 @@ export function CostoPrenda({
         >
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <TituloSeccion nivel={3}>Cuánto te costó cada prenda</TituloSeccion>
-            <span className="text-[12.5px] text-tinta/65">
+            <span className="text-sm text-tinta/65">
               Toca un número para ver esa compra
             </span>
           </div>
@@ -259,7 +259,7 @@ export function CostoPrenda({
               <TituloSeccion nivel={3} cuenta={errores.length}>
                 Errores arreglados
               </TituloSeccion>
-              <span className="text-[12.5px] text-tinta/65">
+              <span className="text-sm text-tinta/65">
                 no cambian el costo
               </span>
             </div>
@@ -269,25 +269,25 @@ export function CostoPrenda({
                   key={e.id}
                   data-error={e.id}
                   aria-current={destello === e.id ? "true" : undefined}
-                  className={`grid grid-cols-[24px_52px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-0.5 rounded-lg border-t border-dashed border-sand px-1 py-2 text-[13px] transition-colors duration-300 first:border-t-0 sm:grid-cols-[24px_52px_auto_minmax(0,1fr)] ${destello === e.id ? "bg-hueso" : ""}`}
+                  className={`grid grid-cols-[24px_52px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-0.5 rounded-lg border-t border-dashed border-sand px-1 py-2 text-sm transition-colors duration-300 first:border-t-0 sm:grid-cols-[24px_52px_auto_minmax(0,1fr)] ${destello === e.id ? "bg-hueso" : ""}`}
                 >
                   <span className="grid h-6 w-6 place-items-center rounded-full border border-dashed border-pizarra text-pizarra">
                     <Pencil aria-hidden className="h-3 w-3" /> {/* unificar-fijo: marca de un costo arreglado, no la acción de editar */}
                   </span>
-                  <span className="text-[12.5px] text-tinta/65 tabular-nums">
+                  <span className="text-sm text-tinta/65 tabular-nums">
                     {diaCorto(e.cuando)}
                   </span>
                   <span className="whitespace-nowrap tabular-nums">
                     <s className="text-tinta/55">{soles(e.antes)}</s> →{" "}
                     <b className="font-semibold">{soles(e.despues)}</b>
                   </span>
-                  <span className="col-start-3 text-[12px] text-tinta/65 sm:col-start-auto sm:text-right">
+                  <span className="col-start-3 text-sm text-tinta/65 sm:col-start-auto sm:text-right">
                     {e.compra !== null ? `costo de la compra ${e.compra}` : e.motivo !== null ? "costo de una compra" : "costo declarado"}
                     {e.variantes > 1 ? ` · en ${e.variantes} variantes` : ""}
                     {e.persona ? ` · ${e.persona}` : ""}
                   </span>
                   {e.motivo && (
-                    <span title={e.motivo} className="col-start-3 line-clamp-2 text-[12px] text-tinta/75 sm:col-span-full sm:col-start-2">
+                    <span title={e.motivo} className="col-start-3 line-clamp-2 text-sm text-tinta/75 sm:col-span-full sm:col-start-2">
                       «{e.motivo}»
                     </span>
                   )}
@@ -359,7 +359,7 @@ function HoyPorCompra({
         </span>
       </div>
       {explicado && (
-        <p className="anim-revelar mt-1 text-[12.5px] text-tinta/75">
+        <p className="anim-revelar mt-1 text-sm text-tinta/75">
           Suponemos que se vende primero lo que llegó antes. Por eso las que
           quedan son las de las compras más nuevas. Es una cuenta, no un
           conteo: el sistema no marca de qué compra sale cada venta.
@@ -386,7 +386,7 @@ function HoyPorCompra({
           accion: "Ver esa compra",
         }}
       />
-      <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-[12.5px] tabular-nums">
+      <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-sm tabular-nums">
         {lotes.map((l, i) => {
           const cuerpo = (
             <>
@@ -470,7 +470,7 @@ function FilaCompra({
       <span
         className={celda(
           "izq",
-          `col-start-2 text-[12.5px] text-tinta/65 @min-[560px]:col-auto @min-[560px]:text-[13.5px]`,
+          `col-start-2 text-sm text-tinta/65 @min-[560px]:col-auto @min-[560px]:text-[15px]`,
         )}
         role="cell"
       >
@@ -492,7 +492,7 @@ function FilaCompra({
       <span
         className={celda(
           "izq",
-          `col-start-2 text-[12.5px] tabular-nums text-tinta/75 @min-[560px]:col-auto @min-[560px]:text-[13.5px]`,
+          `col-start-2 text-sm tabular-nums text-tinta/75 @min-[560px]:col-auto @min-[560px]:text-[15px]`,
         )}
         role="cell"
       >
@@ -525,7 +525,7 @@ function FilaCompra({
       <span
         className={celda(
           "der",
-          `col-start-3 text-[12px] text-tinta/65 @min-[560px]:col-auto`,
+          `col-start-3 text-sm text-tinta/65 @min-[560px]:col-auto`,
         )}
         role="cell"
         title={[c.proveedor, c.persona].filter(Boolean).join(" · ")}
@@ -538,7 +538,7 @@ function FilaCompra({
       </span>
       {abierta && (
         <p
-          className={`col-span-full @min-[560px]:col-start-2 text-[12.5px] tabular-nums text-tinta/75 anim-revelar`}
+          className={`col-span-full @min-[560px]:col-start-2 text-sm tabular-nums text-tinta/75 anim-revelar`}
         >
           {cuentaDeCompra(c)}
         </p>

@@ -264,7 +264,7 @@ export function ComprobanteProduccionForm({
               pie={proveedor?.plazoCreditoDias ? `${proveedor.nombre} da ${proveedor.plazoCreditoDias} días` : undefined}
             />
           ) : (
-            <p className="self-end pb-2 text-xs text-tinta/65">Se paga hoy: elige abajo con qué medio o medios.</p>
+            <p className="self-end pb-2 text-sm text-tinta/65">Se paga hoy: elige abajo con qué medio o medios.</p>
           )}
         </div>
 
@@ -298,7 +298,7 @@ export function ComprobanteProduccionForm({
                         className="caja-campo-input"
                       />
                     )}
-                    {subtotalLinea !== null && <p className="text-xs tabular-nums text-tinta/65">Línea: {soles(subtotalLinea)}</p>}
+                    {subtotalLinea !== null && <p className="text-sm tabular-nums text-tinta/65">Línea: {soles(subtotalLinea)}</p>}
                   </div>
                   <input
                     aria-label={`Línea ${i + 1}: cantidad${insumo ? ` en ${UNIDADES_INSUMO[insumo.unidad].corta}` : ""}`}
@@ -338,7 +338,7 @@ export function ComprobanteProduccionForm({
           </button>
         </fieldset>
 
-        <dl data-guia="prod-factura-nueva.totales" className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
+        <dl data-guia="prod-factura-nueva.totales" className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-sm">
           <div className="flex justify-between gap-3 px-3 py-2">
             <dt>Subtotal</dt>
             <dd className="tabular-nums">{soles(totales.subtotal)}</dd>
@@ -372,7 +372,7 @@ export function ComprobanteProduccionForm({
         </div>
 
         <div data-guia="prod-factura-nueva.registrar" className="space-y-1.5">
-          <p className="min-h-4 text-xs text-tinta/65" role="status">
+          <p className="min-h-4 text-sm text-tinta/65" role="status">
             {error && (proveedorId || serie || numero || totales.lineasCompletas > 0) ? error : ""}
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />

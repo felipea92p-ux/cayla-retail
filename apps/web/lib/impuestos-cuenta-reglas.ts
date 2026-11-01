@@ -122,7 +122,7 @@ export function limiteImpuestos(p: PanelImpuestos): LimiteImpuestos {
   const n = parametros.umbralUit?.valor ?? null;
   const proy = proyectarUmbral(umbral.ventasMeses, hoy, umbral.umbralSoles, umbral.primerMes, umbral.ajuste);
   const cruce = umbral.cruzado || proy.yaCruzado
-    ? "Ya pasaste el límite: habla con el contador."
+    ? "Ya pasaste el límite: coordina con el contador las obligaciones nuevas."
     : proy.mesCruce
       ? `A este ritmo lo cruzas en ${nombreMes(proy.mesCruce)}.`
       : "A este ritmo no lo cruzas este año.";

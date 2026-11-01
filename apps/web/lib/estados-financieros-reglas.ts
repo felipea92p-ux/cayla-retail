@@ -17,6 +17,17 @@ export type ClaveEstado = "ganamos" | "plata" | "vale" | "tuyo";
 export const paramsDe = (sp: Readonly<Record<string, string | string[] | undefined>>): [string, string][] =>
   Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string");
 
+/** Cómo se mira cada estado (Felipe 2026-10-31: «que no estén al final, sino opciones visibles en la parte superior»): la respuesta, o el
+ *  formato formal del contador. Va en la URL (`?forma=formal`) para que pasar de un estado a otro siga en la misma forma. */
+export type FormaEstado = "respuesta" | "formal";
+export const formaDe = (v: string | undefined): FormaEstado => (v === "formal" ? "formal" : "respuesta");
+
+/** La URL con su forma: la respuesta es la de fábrica y no se escribe. */
+export function conForma(href: string, forma: FormaEstado): string {
+  if (forma === "respuesta") return href;
+  return `${href}${href.includes("?") ? "&" : "?"}forma=formal`;
+}
+
 /** El mes de la barra del telar (`?mes=AAAA-MM`), nunca uno que todavía no empieza; por defecto, el de hoy. */
 export const mesDeLosEstados = (mes: string | undefined, hoy: string): string => {
   const deHoy = hoy.slice(0, 7);

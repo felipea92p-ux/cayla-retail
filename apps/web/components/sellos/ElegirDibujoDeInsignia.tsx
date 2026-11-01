@@ -164,7 +164,7 @@ export function ElegirDibujoDeInsignia({
           <ImagePlus aria-hidden className="h-4 w-4" />
           {preparando ? "Preparando…" : imagen ? "Cambiar tu imagen" : "Subir tu imagen"}
         </button>
-        <p className="text-xs text-taupe" aria-live="polite">
+        <p className="text-sm text-taupe" aria-live="polite">
           {texto}
         </p>
       </div>
@@ -173,12 +173,12 @@ export function ElegirDibujoDeInsignia({
           <Casilla marcada={imagen.silueta} onCambio={alCambiarSilueta} etiqueta="Pintar con el color del sello" disabled={deshabilitado || preparando} className="mt-0.5" />
           <span>
             Pintar con el color del sello
-            <span className="block text-xs text-taupe">Para un logo de un solo color: se verá bien también en modo oscuro. Pierde sus colores.</span>
+            <span className="block text-sm text-taupe">Para un logo de un solo color: se verá bien también en modo oscuro. Pierde sus colores.</span>
           </span>
         </label>
       )}
-      {!imagen && !error && <p className="text-xs text-taupe">¿No está el que buscas? Sube tu imagen: mejor un PNG con fondo transparente, que se reduce a 256 × 256.</p>}
-      {aviso && <p className="text-xs text-taupe">{aviso}</p>}
+      {!imagen && !error && <p className="text-sm text-taupe">¿No está el que buscas? Sube tu imagen: mejor un PNG con fondo transparente, que se reduce a 256 × 256.</p>}
+      {aviso && <p className="text-sm text-taupe">{aviso}</p>}
       {error && (
         <Aviso tono="error" chico>
           {error}

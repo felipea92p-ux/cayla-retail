@@ -119,15 +119,15 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
             {rotulo.titulo}
             {rotulo.detalle ? ` · ${rotulo.detalle}` : ""}
           </span>
-          <span className="text-xs tabular-nums text-taupe">{m.hora}</span>
+          <span className="text-sm tabular-nums text-taupe">{m.hora}</span>
         </div>
         {/* La foto (en una tienda de ropa, la prenda se reconoce por la foto antes que por el nombre), el nombre y debajo
             talla · color · dónde. El SKU queda en el título (y la búsqueda lo encuentra). */}
         <div className="mt-1.5 flex min-w-0 items-center gap-2.5" title={m.sku}>
           <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} />
           <span className="min-w-0">
-            <span data-guia="movimientos.prenda-nombre" className="block truncate text-[13.5px] font-semibold text-tinta">{m.referencia}</span>
-            <span className="block truncate text-xs tabular-nums text-taupe">{[variante, donde].filter(Boolean).join(" · ")}</span>
+            <span data-guia="movimientos.prenda-nombre" className="block truncate text-[15px] font-semibold text-tinta">{m.referencia}</span>
+            <span className="block truncate text-sm tabular-nums text-taupe">{[variante, donde].filter(Boolean).join(" · ")}</span>
           </span>
         </div>
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5">
@@ -146,7 +146,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
       <div className="flex items-center gap-1 text-right">
         <span className="flex flex-col items-end gap-0.5">
           <span className="mv-cant">{esApartado ? textoApartado(m.cantidad, m.categoria as "apartado" | "liberacion_apartado") : textoDelta(m)}</span>
-          <span className="whitespace-nowrap text-[11px] text-taupe">{esApartado ? "" : (quedan ?? palabraPrendas(m.cantidad))}</span>
+          <span className="whitespace-nowrap text-sm text-taupe">{esApartado ? "" : (quedan ?? palabraPrendas(m.cantidad))}</span>
         </span>
         {/* Que se puede tocar, sin tener que descubrirlo: la misma flecha que las tarjetas clicables. */}
         <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
@@ -190,7 +190,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
             {rotulo.titulo}
             {rotulo.detalle ? ` · ${rotulo.detalle}` : ""}
           </span>
-          <span className="text-xs tabular-nums text-taupe">{op.hora}</span>
+          <span className="text-sm tabular-nums text-taupe">{op.hora}</span>
         </div>
         <div className="mt-1.5 flex min-w-0 items-center gap-2.5">
           <span aria-hidden className="flex shrink-0 -space-x-3">
@@ -201,10 +201,10 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
             ))}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[13.5px] font-semibold text-tinta" title={r.productos.join(", ")}>
+            <span className="block truncate text-[15px] font-semibold text-tinta" title={r.productos.join(", ")}>
               {productos}
             </span>
-            <span className="block truncate text-xs tabular-nums text-taupe">
+            <span className="block truncate text-sm tabular-nums text-taupe">
               {[`${r.variantes} ${r.variantes === 1 ? "prenda distinta" : "prendas distintas"}`, donde].filter(Boolean).join(" · ")}
             </span>
           </span>
@@ -222,7 +222,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
       <div className="flex items-center gap-1 text-right">
         <span className="flex flex-col items-end gap-0.5">
           <span className="mv-cant">{textoCantidadOperacionVisual(r, tipo)}</span>
-          <span className="whitespace-nowrap text-[11px] text-taupe">{esApartado ? "" : palabraPrendas(unidades)}</span>
+          <span className="whitespace-nowrap text-sm text-taupe">{esApartado ? "" : palabraPrendas(unidades)}</span>
         </span>
         <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
       </div>
@@ -262,10 +262,10 @@ export function FilaBajadas({ operaciones, prendas, ctx }: { operaciones: Operac
               ))}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-[13.5px] font-semibold text-tinta">
+              <span className="block truncate text-[15px] font-semibold text-tinta">
                 {r.tallas} {r.tallas === 1 ? "prenda distinta" : "prendas distintas"}
               </span>
-              <span className="block truncate text-xs tabular-nums text-taupe">
+              <span className="block truncate text-sm tabular-nums text-taupe">
                 entre las {r.desde} y las {r.hasta}
                 {quienes.length > 0 ? ` · ${quienes.join(", ")}` : ""}
               </span>
@@ -275,7 +275,7 @@ export function FilaBajadas({ operaciones, prendas, ctx }: { operaciones: Operac
         <div className="flex items-center gap-1 text-right">
           <span className="flex flex-col items-end gap-0.5">
             <span className="mv-cant">{r.unidades}</span>
-            <span className="whitespace-nowrap text-[11px] text-taupe">{palabraPrendas(r.unidades)}</span>
+            <span className="whitespace-nowrap text-sm text-taupe">{palabraPrendas(r.unidades)}</span>
           </span>
           <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/30 transition-transform ${abierto ? "rotate-90" : ""}`} />
         </div>
@@ -303,7 +303,7 @@ function BotonReferencia({ texto, onClick }: { texto: string; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="btn-enlace relative z-10 inline-block max-w-full truncate text-left align-bottom text-[13px]"
+      className="btn-enlace relative z-10 inline-block max-w-full truncate text-left align-bottom text-sm"
     >
       {texto}
     </button>
@@ -319,17 +319,17 @@ export function Referencia({ r, volverA }: { r: ReferenciaMovimiento; volverA: s
         <Link
           href={conVuelta(r.href, volverA)}
           title={`Abrir ${r.texto}`}
-          className="btn-enlace relative z-10 inline-block max-w-full truncate align-bottom text-[13px]"
+          className="btn-enlace relative z-10 inline-block max-w-full truncate align-bottom text-sm"
         >
           {r.texto}
         </Link>
       ) : (
-        <span className="block truncate text-[13px] text-taupe" title={r.texto}>
+        <span className="block truncate text-sm text-taupe" title={r.texto}>
           {r.texto}
         </span>
       )}
       {r.detalle && (
-        <span className="block truncate text-xs text-taupe" title={r.detalle}>
+        <span className="block truncate text-sm text-taupe" title={r.detalle}>
           {r.detalle}
         </span>
       )}

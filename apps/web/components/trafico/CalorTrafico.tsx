@@ -96,7 +96,7 @@ export function CalorTrafico({ calor, ampliado, ahora }: { calor: Calor; ampliad
               </span>
             </div>
           ))}
-          <span className="trafico-calor-dia self-end text-[11px]">Por hora</span>
+          <span className="trafico-calor-dia self-end text-sm">Por hora</span>
           {l.porHora.map((n, h) => (
             <span key={h} className="trafico-calor-barra" title={`${horaRedonda(h)}: ${personas(n)}`}>
               <i
@@ -114,7 +114,7 @@ export function CalorTrafico({ calor, ampliado, ahora }: { calor: Calor; ampliad
           </div>
         )}
       </div>
-      <p className="mt-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[12px] text-tinta/70">
+      <p className="mt-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-sm text-tinta/70">
         <span>Menos gente</span>
         <i aria-hidden className="trafico-calor-escala" />
         <span>Más gente</span>

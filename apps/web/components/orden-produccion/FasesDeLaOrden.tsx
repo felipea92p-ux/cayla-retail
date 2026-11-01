@@ -14,6 +14,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import {
   FASES,
   FIJO_MAXIMO,
+  HINT_TARIFA_A_CONFIRMAR,
   TARIFA_MAXIMA,
   avisoMinimo,
   faseDe,
@@ -23,6 +24,8 @@ import {
   ordenarFases,
   porPrendaDeFijo,
   proveedoresQueSirven,
+  tarifaDesdeTotal,
+  totalDeLaTarifa,
   type FaseBorrador,
   type FaseClave,
   type FaseDelCatalogo,
@@ -59,6 +62,12 @@ const OPCIONES_MODO_FIJO = [
   { clave: "prenda", etiqueta: "Por prenda" },
 ];
 
+// Un servicio de afuera se paga por prenda, pero quien tiene en la mano el TOTAL de la orden lo escribe como está y el sistema lo reparte (ADR-0400 act. de 2026-10-31).
+const OPCIONES_MODO_TARIFA = [
+  { clave: "prenda", etiqueta: "Por prenda" },
+  { clave: "total", etiqueta: "Total" },
+];
+
 const OPCIONES_POSICION = [
   { clave: "pieza", etiqueta: "Sobre pieza" },
   { clave: "prenda", etiqueta: "Sobre prenda" },
@@ -84,6 +93,7 @@ function lugarDe(p: ProblemaFase, s: ServicioLeido | null): Lugar {
     case "fase_proveedor_rubro":
       return "proveedor";
     case "fase_sin_tarifa":
+    case HINT_TARIFA_A_CONFIRMAR:
       return "tarifa";
     case "fase_sin_fijo":
       return "fijo";
@@ -184,7 +194,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
           ))}
           {apagadas.length > 0 && (
             <div role="group" aria-label="Fases que se pueden agregar" className="flex flex-wrap items-center gap-2 px-3.5 py-2.5">
-              <span className="text-[12.5px] text-tinta/70">Si la orden también lleva</span>
+              <span className="text-sm text-tinta/70">Si la orden también lleva</span>
               {apagadas.map((def) => (
                 <ChipOpcion key={def.clave} elegido={false} onClick={() => encender(def.clave)}>
                   {def.nombre}
@@ -194,11 +204,11 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
           )}
         </div>
         {recordar && (
-          <label className="flex items-start gap-2.5 text-[13px] text-tinta" data-guia="prod-orden-nueva.recordar">
+          <label className="flex items-start gap-2.5 text-sm text-tinta" data-guia="prod-orden-nueva.recordar">
             <Casilla marcada={recordar.marcada} onCambio={recordar.onCambio} etiqueta="Recordar en la ficha del modelo" />
             <span>
               Recordar en la ficha del modelo
-              <span className="block text-[12.5px] text-tinta/70">
+              <span className="block text-sm text-tinta/70">
                 {ojalesDelModelo === null ? "Nadie ha dicho todavía qué procesos lleva este modelo. " : ""}
                 Las próximas órdenes nacen con los mismos procesos; en cada una se pueden cambiar.
               </span>
@@ -257,12 +267,21 @@ export function FilaFase({
   // Cómo se escribe el pago único del ploteo: el total o por prenda (el texto por prenda se guarda aparte para que no se «redondee» mientras se escribe).
   const [modoFijo, setModoFijo] = useState<"total" | "prenda">("total");
   const [porPrendaTexto, setPorPrendaTexto] = useState("");
+  // Cómo se escribe lo que cobra un servicio por prenda: por prenda o el total de la orden (el texto del total se guarda aparte para que no se «redondee» mientras se escribe).
+  const [modoTarifa, setModoTarifa] = useState<"prenda" | "total">("prenda");
+  const [totalTexto, setTotalTexto] = useState("");
   const aviso = avisoMinimo(fase, totalPrendas, tarifas, { hoy, proveedores });
 
   // La primera falta de cada campo va en su pie; las que ninguna caja explica, en una línea aparte.
   const pies = new Map<Lugar, { pie: string; tono: "neutro" | "error" }>();
   const sueltos: ProblemaFase[] = [];
+  // La pregunta «¿es por prenda o es el total?» no es una falta de un campo: lleva sus dos botones, aparte.
+  let pregunta: ProblemaFase | null = null;
   for (const p of problemas) {
+    if (p.hint === HINT_TARIFA_A_CONFIRMAR) {
+      pregunta ??= p;
+      continue;
+    }
     const lugar = lugarDe(p, lectura);
     if (lugar === "fila") sueltos.push(p);
     else if (!pies.has(lugar)) pies.set(lugar, { pie: p.texto, tono: esFalta(p, fase) ? "neutro" : "error" });
@@ -300,7 +319,7 @@ export function FilaFase({
   const avisoPendiente = fase.pendiente ? (
     <div className="sm:col-span-2">
       <Aviso tono="info" chico>
-        Aún sin proveedor, lo que escribas aquí ya cuenta como costo de la orden. Si todavía no sabes cuánto, déjalo en blanco: no suma nada hasta que lo registres con «Registrar quién».
+        Aún sin proveedor, esto ya cuenta como costo. Si no sabes cuánto, déjalo en blanco.
       </Aviso>
     </div>
   ) : null;
@@ -318,7 +337,7 @@ export function FilaFase({
             {/* La misma × de una fila de color (A2): apagar una fase opcional no borra lo escrito en ella; si vuelve a encenderse, reaparece. */}
             {!def.siempre && onApagar && <QuitarColor nombre={def.nombre} onQuitar={onApagar} />}
           </p>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-tinta/65">{def.ayuda}</p>
+          <p className="mt-0.5 text-sm leading-snug text-tinta/65">{def.ayuda}</p>
         </div>
         <SegmentoDeslizante
           etiqueta={`Quién hace ${nombreEnFrase}`}
@@ -336,7 +355,7 @@ export function FilaFase({
             onCambio={(v) => onCambiar({ posicion: v === "prenda" ? "prenda" : ("pieza" satisfies Posicion) })}
             opciones={OPCIONES_POSICION}
           />
-          <span className="text-[12.5px] text-tinta/70">{AYUDA_POSICION[fase.posicion ?? "pieza"]}</span>
+          <span className="text-sm text-tinta/70">{AYUDA_POSICION[fase.posicion ?? "pieza"]}</span>
         </div>
       )}
 
@@ -398,15 +417,44 @@ export function FilaFase({
       {servicio && !def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
           {comboProveedor}
-          <CampoMonto
-            id={`${idBase}-tarifa`}
-            etiqueta="Por prenda"
-            inputMode="decimal"
-            placeholder={sugerida ? dosDecimales(sugerida.tarifa) : "0.00"}
-            value={fase.tarifa}
-            onChange={(e) => onCambiar({ tarifa: e.target.value })}
-            {...pieDe("tarifa", pieTarifa)}
-          />
+          <div className="grid content-start gap-1.5">
+            <CampoMonto
+              id={`${idBase}-tarifa`}
+              etiqueta={modoTarifa === "total" ? `Total por las ${totalPrendas} prendas` : "Por prenda"}
+              inputMode="decimal"
+              placeholder={sugerida ? (modoTarifa === "total" ? totalDeLaTarifa(String(sugerida.tarifa), totalPrendas) || "0.00" : dosDecimales(sugerida.tarifa)) : "0.00"}
+              value={modoTarifa === "total" ? totalTexto : fase.tarifa}
+              onChange={(e) => {
+                if (modoTarifa === "total") {
+                  setTotalTexto(e.target.value);
+                  // Escribir el total ES decir que no es por prenda: la tarifa que resulta no vuelve a preguntar.
+                  const t = tarifaDesdeTotal(e.target.value, totalPrendas);
+                  onCambiar({ tarifa: t, tarifaConfirmada: t });
+                } else onCambiar({ tarifa: e.target.value });
+              }}
+              {...pieDe(
+                "tarifa",
+                modoTarifa === "total"
+                  ? fase.tarifa.trim() !== ""
+                    ? `queda S/\u00a0${fase.tarifa.trim()} por prenda${totalDeLaTarifa(fase.tarifa, totalPrendas) !== Number(totalTexto).toFixed(2) ? ` · las ${totalPrendas} prendas suman S/\u00a0${totalDeLaTarifa(fase.tarifa, totalPrendas)}` : ""} · sin IGV`
+                    : `se reparte entre las ${totalPrendas} prendas · sin IGV`
+                  : pieTarifa
+              )}
+            />
+            {totalPrendas >= 2 && (
+              <SegmentoDeslizante
+                etiqueta={`Cómo escribes lo que cobra ${nombreEnFrase}`}
+                valor={modoTarifa}
+                onCambio={(v) => {
+                  if (v === "total") {
+                    setTotalTexto(totalDeLaTarifa(fase.tarifa, totalPrendas));
+                    setModoTarifa("total");
+                  } else setModoTarifa("prenda");
+                }}
+                opciones={OPCIONES_MODO_TARIFA}
+              />
+            )}
+          </div>
           <CampoTexto
             id={`${idBase}-minimo`}
             etiqueta="Cantidad mínima"
@@ -447,6 +495,29 @@ export function FilaFase({
         </div>
       )}
 
+      {pregunta && (
+        <Aviso tono="atencion" chico>
+          {/* Los dos botones van DEBAJO de la frase, no a su lado: en el celular el texto se quedaba en una columna de una palabra. */}
+          <span className="block">{pregunta.texto}</span>
+          <span className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={() => onCambiar({ tarifaConfirmada: fase.tarifa.trim() })} className="btn-cayla btn-sutil btn-chico">
+              Sí, es por prenda
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTotalTexto(fase.tarifa.trim());
+                setModoTarifa("total");
+                const t = tarifaDesdeTotal(fase.tarifa, totalPrendas);
+                onCambiar({ tarifa: t, tarifaConfirmada: t });
+              }}
+              className="btn-cayla btn-sutil btn-chico"
+            >
+              Es el total de la orden
+            </button>
+          </span>
+        </Aviso>
+      )}
       {aviso && (
         <Aviso tono="atencion" chico>
           {aviso}

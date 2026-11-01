@@ -95,7 +95,7 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
     () => (opciones?.datos?.proveedores ?? []).flatMap((p) => p.tarifas.map((t) => ({ proveedorId: p.id, faseClave: t.faseClave as FaseClave, tarifa: t.tarifa, minimo: t.minimo, fijo: t.fijo, vigenteDesde: t.vigenteDesde }))),
     [opciones]
   );
-  const problemas = useMemo(() => problemasFases([borrador], { hoy, proveedores, lista }), [borrador, hoy, proveedores, lista]);
+  const problemas = useMemo(() => problemasFases([borrador], { hoy, proveedores, lista, totalPrendas: datos.orden.cantidadPlan }), [borrador, hoy, proveedores, lista, datos.orden.cantidadPlan]);
   const guia = useGuiaCampos(camposDeCambiarQuien({ faltas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
 
   const fotoActual = fotoFormulario(borrador);

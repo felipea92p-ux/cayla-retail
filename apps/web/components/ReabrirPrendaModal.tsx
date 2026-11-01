@@ -75,15 +75,15 @@ export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar
                     }`}
                   >
                     <span className="block text-sm text-tinta">{m.titulo}</span>
-                    <span className="mt-0.5 block text-xs text-taupe">{m.ayuda}</span>
+                    <span className="mt-0.5 block text-sm text-taupe">{m.ayuda}</span>
                   </button>
                 );
               })}
             </div>
           </CampoGuiado>
 
-          {avisoDelCierre && <p className="rounded-md bg-hueso px-3.5 py-2.5 text-[13px] text-tinta/80">{avisoDelCierre}</p>}
-          <p className="rounded-md bg-hueso px-3.5 py-2.5 text-[13px] text-tinta/80">
+          {avisoDelCierre && <p className="rounded-md bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">{avisoDelCierre}</p>}
+          <p className="rounded-md bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">
             <strong className="font-semibold text-tinta">Ojo con el stock.</strong> Si ya hiciste un conteo que corrigió el stock de esa prenda,
             regularizarla «como ya registrada» la descontaría otra vez. Confírmalo con almacén antes de regularizar.
           </p>

@@ -219,7 +219,7 @@ export function PorRegularizarLista({
             </div>
           </div>
           {avisosUrgentes.length > 0 && (
-            <ul className="space-y-0.5 px-5 pb-3 text-xs text-taupe">
+            <ul className="space-y-0.5 px-5 pb-3 text-sm text-taupe">
               {avisosUrgentes.map((aviso) => (
                 <li key={aviso}>{aviso}</li>
               ))}
@@ -252,7 +252,7 @@ export function PorRegularizarLista({
               }
               pie={
                 paginaActual.totalPaginas > 1 && (
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 pt-3 text-xs text-taupe">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 pt-3 text-sm text-taupe">
                     <span>
                       Mostrando {paginaActual.desde}–{paginaActual.hasta} de {visibles.length}
                     </span>

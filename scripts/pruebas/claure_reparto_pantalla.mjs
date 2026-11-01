@@ -96,8 +96,9 @@ caso("la lista trae todas las categorías activas con su parte (0 si no tiene fi
   igual(ultima(dentro(LISTA(["alquileres", "luz", "limpieza", "bolsas", "transporte", "software"]))), "alquileres:50.00,bolsas:100.00,limpieza:100.00,luz:50.00,software:0.00,transporte:0.00"),
 );
 
-caso("la lista trae las 20 categorías activas, en el orden del catálogo", () =>
-  igual(ultima(dentro(`reset role;\nselect count(*) as n from retail.categorias_gasto where activo \\gset\n${COMO(FELIPE)}\nselect count(*) || '|' || :n from retail.fn_reparto_claure();`)), "20|20"),
+// Sin una cifra escrita a mano: cada categoría de gasto nueva (ADR-0594 sumó «Consumibles del Taller») rompería la prueba por contar mal, no por estar mal.
+caso("la lista trae todas las categorías activas, ni una más ni una menos", () =>
+  igual(ultima(dentro(`reset role;\nselect count(*) as n from retail.categorias_gasto where activo \\gset\n${COMO(FELIPE)}\nselect (count(*) = :n)::text from retail.fn_reparto_claure();`)), "true"),
 );
 
 caso("el líder guarda: la luz pasa a 60 %, queda quién y cuándo, y la historia dice antes 50 y después 60", () =>

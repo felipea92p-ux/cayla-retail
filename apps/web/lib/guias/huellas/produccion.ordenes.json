@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 130,
+  "total": 139,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -20,9 +20,9 @@
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
       "SegmentoDeslizante «Tipo de orden»",
+      "button «{anclaGuia ? \"prod-orden-nueva.talla-nueva-boton\" : undefined}»",
       "Boton «Retomarla»",
       "Boton «Descartarla»",
-      "Link «Editar producto»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
       "Link «Ponle precio en Editar producto»",
@@ -111,6 +111,16 @@
       "button «{`Quitar ${nombre}»",
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
     ],
+    "components/orden-produccion/AgregarColorAlModeloModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
+    "components/orden-produccion/AgregarTallaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
     "components/orden-produccion/ConsejoDeLaRed.tsx": [
       "Boton «{`Usarla: pone las ${curva.total}»",
       "button «prod-orden-nueva.red-abrir»",
@@ -130,11 +140,14 @@
       "CampoMonto «{modoFijo === \"prenda\" ? \"Cobra por prenda\" : \"Cobra por esta orden\"}»",
       "SegmentoDeslizante «Cómo escribes el cobro del ploteo»",
       "CampoFecha «Prometido para»",
-      "CampoMonto «Por prenda»",
+      "CampoMonto «{modoTarifa === \"total\" ? `Total por las ${totalPrendas}»",
+      "SegmentoDeslizante «{`Cómo escribes lo que cobra ${nombreEnFrase}»",
       "CampoTexto «Cantidad mínima»",
       "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
-      "button «+ fijo por orden (ponchado, matriz)»"
+      "button «+ fijo por orden (ponchado, matriz)»",
+      "button «Sí, es por prenda»",
+      "button «Es el total de la orden»"
     ],
     "components/orden-produccion/FichaDeConsumoHoja.tsx": [
       "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",

@@ -126,7 +126,7 @@
     position: absolute;
     inset: auto 0 0 0;
     padding: 22px 9px 8px;
-    font-size: 11.5px;
+    font-size: 14px;
     font-weight: 500;
     line-height: 1.25;
     color: var(--color-crema-fija);
@@ -178,8 +178,8 @@
     animation: tw-asoma 360ms var(--ease-cayla) both;
     animation-delay: calc(var(--d, 0) * 160ms + 1020ms);
   }
-  .tw-camino-verbo { font-size: 11.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.1; text-align: center; }
-  .tw-camino-plazo { display: inline-flex; align-items: flex-start; justify-content: center; gap: 3px; font-size: 11px; color: var(--color-taupe); line-height: 1.2; text-align: center; text-wrap: balance; }
+  .tw-camino-verbo { font-size: 14px; font-weight: 600; color: var(--color-tinta); line-height: 1.1; text-align: center; }
+  .tw-camino-plazo { display: inline-flex; align-items: flex-start; justify-content: center; gap: 3px; font-size: 13px; color: var(--color-taupe); line-height: 1.2; text-align: center; text-wrap: balance; }
   /* Un plazo que solo avisa (pagar, recoger): hilo punteado que aparece, sin dibujarse (la raya no se puede «trazar» punteada). */
   .tw-camino-tramo:not([data-cierra]) .tw-camino-linea { stroke-dasharray: 0.05 0.07; animation-name: tw-funde; }
   /* El que CIERRA el pedido (confirmar a tiempo): el reloj y el plazo en rojo profundo, el hilo entero. */
@@ -238,12 +238,12 @@
   .tw-pendiente-icono svg { width: 20px; height: 20px; }
   .tw-pendiente-titulo { font-size: 14.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.3; }
   .tw-pendiente-titulo b { font-family: var(--font-serif); font-size: 21px; font-weight: 500; margin-right: 5px; font-variant-numeric: lining-nums tabular-nums; }
-  .tw-pendiente-detalle { margin-top: 2px; font-size: 12.5px; color: var(--color-taupe); line-height: 1.35; }
+  .tw-pendiente-detalle { margin-top: 2px; font-size: 14px; color: var(--color-taupe); line-height: 1.35; }
   .tw-pendiente-ir {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-tinta);
     white-space: nowrap;
@@ -273,7 +273,7 @@
   /* ───────── La vista previa de una tienda en Ajustes: «así te ve el cliente» ───────── */
   .tw-previa { display: grid; gap: 10px; padding: 16px; }
   .tw-previa-nombre { font-family: var(--font-serif); font-size: 22px; line-height: 1.1; color: var(--color-tinta); overflow-wrap: anywhere; transition: color 200ms var(--ease-cayla); }
-  .tw-previa-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 12.5px; color: var(--color-tinta); line-height: 1.35; overflow-wrap: anywhere; }
+  .tw-previa-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 14px; color: var(--color-tinta); line-height: 1.35; overflow-wrap: anywhere; }
   .tw-previa-dato svg { width: 14px; height: 14px; margin-top: 1px; color: var(--color-taupe); }
   .tw-previa-dato[data-falta] { color: var(--color-taupe); font-style: italic; }
   .tw-previa-boton {
@@ -325,8 +325,8 @@
     animation-delay: calc(var(--i, 0) * 180ms + 380ms);
   }
   .tw-linea-nodo svg { width: 12px; height: 12px; }
-  .tw-linea-nombre { font-size: 12.5px; font-weight: 600; color: var(--color-tinta); }
-  .tw-linea-plazo { font-size: 11.5px; color: var(--color-taupe); line-height: 1.3; padding: 0 4px; }
+  .tw-linea-nombre { font-size: 14px; font-weight: 600; color: var(--color-tinta); }
+  .tw-linea-plazo { font-size: 14px; color: var(--color-taupe); line-height: 1.3; padding: 0 4px; }
   .tw-linea-plazo b { font-family: var(--font-serif); font-size: 17px; font-weight: 500; color: var(--color-tinta); font-variant-numeric: lining-nums tabular-nums; }
   @container tw (max-width: 520px) { .tw-linea { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; } .tw-linea-paso:nth-child(3)::before { display: none; } }
 
@@ -358,15 +358,15 @@
   .tw-carta-casilla { position: absolute; top: 4px; left: 4px; z-index: 1; display: grid; padding: 6px; border-radius: 10px; cursor: pointer; background: color-mix(in srgb, var(--color-papel) 88%, transparent); }
   .tw-carta-cuerpo { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; min-width: 0; }
   /* El relleno vertical (y su margen negativo) da 25 px de alto al botón del nombre sin mover nada: antes eran 17. */
-  .tw-carta-nombre { font-size: 13.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.25; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-block: 4px; margin-block: -4px; }
+  .tw-carta-nombre { font-size: 15px; font-weight: 600; color: var(--color-tinta); line-height: 1.25; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-block: 4px; margin-block: -4px; }
   @media (hover: hover) {
     .tw-carta-nombre:hover { color: var(--color-rojo-profundo); }
   }
-  .tw-carta-stock { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .tw-carta-stock { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
   .tw-carta-stock-rotulo { color: var(--color-taupe); }
   .tw-carta-stock span[data-cero] { color: var(--color-taupe); }
   .tw-carta-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 4px; border-top: 1px solid var(--color-sand); }
-  .tw-carta-pie > span { font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+  .tw-carta-pie > span { font-size: 14px; font-weight: 600; color: var(--color-taupe); }
 
   /* Zona de toque de 24 px o más sin agrandar el dibujo (ADR-0351): el área que responde pasa de lo que se ve. El interruptor es de 38×22 y la
      casilla de una fila, de 20; con el mouse o el dedo se acierta aunque el clic caiga cerca. */
@@ -399,7 +399,7 @@
   .tw-elegir-tile[data-no-elegible]:disabled { opacity: 1; }
   .tw-elegir-tile[data-no-elegible]:disabled .tw-elegir-foto { opacity: 0.4; }
   .tw-elegir-tile[data-no-elegible]:disabled .tw-elegir-nombre { color: var(--color-taupe); }
-  .tw-elegir-motivo { padding: 0 8px; font-size: 12px; font-weight: 600; line-height: 1.25; color: var(--color-taupe); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tw-elegir-motivo { padding: 0 8px; font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--color-taupe); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .tw-elegir-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--color-hueso); }
   .tw-elegir-foto > :first-child { position: absolute; inset: 0; }
   .tw-elegir-visto {
@@ -420,8 +420,8 @@
   }
   .tw-elegir-visto svg { width: 14px; height: 14px; }
   .tw-elegir-tile[aria-pressed="true"] .tw-elegir-visto { scale: 1; opacity: 1; }
-  .tw-elegir-nombre { padding: 4px 8px 0; font-size: 13px; font-weight: 600; line-height: 1.25; color: var(--color-tinta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tw-elegir-categoria { padding: 0 8px; font-size: 12px; color: var(--color-taupe); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tw-elegir-nombre { padding: 4px 8px 0; font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--color-tinta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tw-elegir-categoria { padding: 0 8px; font-size: 14px; color: var(--color-taupe); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ───────── Looks: la percha con sus prendas ───────── */
   .tw-looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 16px 20px 20px; }
@@ -457,7 +457,7 @@
     border-radius: 4px 14px 14px 14px;
     background: var(--color-hueso);
     color: var(--color-tinta);
-    font-size: 13.5px;
+    font-size: 15px;
     line-height: 1.45;
     white-space: pre-line;
     overflow-wrap: anywhere;
@@ -470,7 +470,7 @@
     border-radius: 14px 4px 14px 14px;
     background: color-mix(in srgb, var(--color-verde) 11%, var(--color-papel));
     color: var(--color-tinta);
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 1.4;
     white-space: pre-line;
     overflow-wrap: anywhere;

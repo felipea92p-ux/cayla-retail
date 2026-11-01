@@ -1,0 +1,5 @@
+# 2026-10-31 · «Mi perfil» de vidrio
+
+- **Hecho:** tres maquetas tocables de «Mi perfil» (`docs/maquetas/mi-perfil-2026-10/`); Felipe eligió la «A · Cristal líquido» y pidió cerrar sesión desde ahí. `PerfilModal.tsx` pasó a `<Modal variante="vidrio">` (nueva, `app/estilos/perfil-vidrio.css`) con la lente de la foto, la gota entre «Tú · Cuenta · Seguridad», la contraseña con guía de foco (pasa a `aplicada`) y un ícono sutil para cerrar sesión. La salida se sacó a `useCerrarSesion` (`LogoutButton.tsx`) para que el lateral y el perfil salgan igual.
+- **Por qué así:** lo que hace el modal no cambió (datos de Dynamic de solo lectura, foto JPEG 3 MB, 8 caracteres); solo su cara y su movimiento, documentados como excepción en ADR-0136 (act. 2026-10-31).
+- **Verificado:** en local (cuenta de Felipe) en claro, oscuro y a 375 px; `tema:auditar` del escenario «Mi perfil abierto» sin hallazgos; el ícono lleva a `/login`; pruebas de tema, unificar, hover, guía de foco, hojas, sugerir, módulos, tsc y knip en verde.

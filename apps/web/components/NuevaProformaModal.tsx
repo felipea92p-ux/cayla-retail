@@ -202,7 +202,7 @@ export function NuevaProformaModal({
                       <Foto prenda={p} />
                       <span className="min-w-0 flex-1">
                         <b className="font-semibold">{p.referencia}</b> · {[p.talla, p.color].filter(Boolean).join(" · ")}
-                        <span className="block text-xs text-tinta/55">{p.codigo ?? p.sku}</span>
+                        <span className="block text-sm text-tinta/55">{p.codigo ?? p.sku}</span>
                       </span>
                       <span className="tabular-nums">{soles(p.precio)}</span>
                     </button>
@@ -228,7 +228,7 @@ export function NuevaProformaModal({
                     <Foto prenda={f.prenda} />
                     <div className="min-w-[9rem] flex-1">
                       <p className="text-sm font-semibold text-tinta">{f.prenda.referencia}</p>
-                      <p className="text-xs text-tinta/60">{[f.prenda.talla, f.prenda.color, f.prenda.codigo].filter(Boolean).join(" · ")}</p>
+                      <p className="text-sm text-tinta/60">{[f.prenda.talla, f.prenda.color, f.prenda.codigo].filter(Boolean).join(" · ")}</p>
                     </div>
                     <PasoCantidad
                       menos={{ onClick: () => (f.cantidad > 1 ? cambiar(id, { cantidad: f.cantidad - 1 }) : quitar(id)), etiqueta: `Una ${f.prenda.referencia} menos` }}
@@ -236,7 +236,7 @@ export function NuevaProformaModal({
                     >
                       <span aria-label="Cantidad">{f.cantidad}</span>
                     </PasoCantidad>
-                    <label className="flex items-center gap-1 text-xs text-tinta/70">
+                    <label className="flex items-center gap-1 text-sm text-tinta/70">
                       Dscto.
                       <input
                         type="number"
@@ -266,7 +266,7 @@ export function NuevaProformaModal({
                       <input value={f.detalle} onChange={(e) => cambiar(id, { detalle: e.target.value })} placeholder="¿Por qué?" aria-label="Detalle del motivo" className="caja-campo-input min-h-8 w-32 px-2 text-xs" />
                     )}
                     <p className="ml-auto w-24 text-right tabular-nums">
-                      {descuento > 0 && <span className="block text-xs text-tinta/55 line-through">{soles(f.prenda.precio * f.cantidad)}</span>}
+                      {descuento > 0 && <span className="block text-sm text-tinta/55 line-through">{soles(f.prenda.precio * f.cantidad)}</span>}
                       <b className="font-semibold">{soles((f.prenda.precio - descuento) * f.cantidad)}</b>
                     </p>
                     <button type="button" aria-label={`Quitar ${f.prenda.referencia}`} onClick={() => quitar(id)} className="grid h-7 w-7 place-items-center rounded-md text-tinta/60 hover:bg-tinta/10 hover:text-tinta">

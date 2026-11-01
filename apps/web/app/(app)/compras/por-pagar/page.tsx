@@ -271,7 +271,7 @@ function TodoPagado() {
   return (
     <div className="card-cayla">
       <Vacio icono={<CircleCheck />} titulo="Todo pagado">
-        No queda nada por pagar. Cuando registres una factura al crédito, aparecerá aquí con la fecha en que vence.
+        No queda nada por pagar. Las facturas al crédito salen aquí con su vencimiento.
       </Vacio>
     </div>
   );

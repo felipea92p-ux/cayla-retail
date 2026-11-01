@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo } from "@/components/ui/campos";
@@ -9,10 +9,16 @@ import { PieAcciones } from "@/components/ui/PieAcciones";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { MAX_MENSAJE_PREDETERMINADO_WEB, MENSAJE_PREDETERMINADO_WEB, mensajePredeterminadoDelPedido } from "@/lib/pedidos-web-reglas";
+import { EMOJIS_DEL_MENSAJE, MAX_MENSAJE_PREDETERMINADO_WEB, MENSAJE_PREDETERMINADO_WEB, mensajePredeterminadoDelPedido } from "@/lib/pedidos-web-reglas";
 
 /** Un pedido de muestra para la vista previa: el mensaje se ve con un nombre, un código y la tienda reales. */
 const PEDIDO_DE_MUESTRA = { codigo: "W-0001", cliente: { nombre: "Valeria Chávez" } } as const;
+/** Las marcas que se llenan solas con cada pedido: se insertan con un toque, sin escribir las llaves. */
+const MARCAS = [
+  { marca: "{nombre}", texto: "Nombre" },
+  { marca: "{tienda}", texto: "Tienda" },
+  { marca: "{codigo}", texto: "Código" },
+] as const;
 const INICIALES_MUESTRA = PEDIDO_DE_MUESTRA.cliente.nombre
   .split(" ")
   .map((parte) => parte[0])
@@ -43,11 +49,31 @@ export function EditarMensajePredeterminadoHoja({
   const [errorBase, setErrorBase] = useState<{ titulo: string; detalle: string } | null>(null);
   // Un doble clic no guarda dos veces: el estado de React llega tarde dentro de un mismo clic.
   const enVuelo = useRef(false);
+  const cajaRef = useRef<HTMLTextAreaElement>(null);
   const largo = texto.trim().length;
   const demasiado = largo > MAX_MENSAJE_PREDETERMINADO_WEB;
   // La hora de la burbuja: la de ahora, como en el celular.
   const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
   const vista = mensajePredeterminadoDelPedido({ ...PEDIDO_DE_MUESTRA, tiendaWeb: { nombre: tienda } }, texto);
+
+  /** Dónde estaba el cursor la última vez que la persona tocó el texto. Al apretar un botón la caja pierde el foco, y el foco
+   *  dejaba de decir dónde insertar: todo caía al final. Sin toque todavía (null), se inserta al final. */
+  const cursor = useRef<{ a: number; b: number } | null>(null);
+  function recordarCursor(caja: HTMLTextAreaElement) {
+    cursor.current = { a: caja.selectionStart, b: caja.selectionEnd };
+  }
+
+  /** Inserta una marca o un emoji donde estaba el cursor (al final si la persona no ha tocado el texto) y deja el cursor tras lo insertado. */
+  function insertar(que: string) {
+    const a = Math.min(cursor.current?.a ?? texto.length, texto.length);
+    const b = Math.min(cursor.current?.b ?? texto.length, texto.length);
+    setTexto(texto.slice(0, a) + que + texto.slice(b));
+    cursor.current = { a: a + que.length, b: a + que.length };
+    requestAnimationFrame(() => {
+      cajaRef.current?.focus();
+      cajaRef.current?.setSelectionRange(a + que.length, a + que.length);
+    });
+  }
 
   async function guardar(cerrar: () => void, nuevo: string) {
     if (enVuelo.current) return;
@@ -84,11 +110,7 @@ export function EditarMensajePredeterminadoHoja({
             if (!demasiado) void guardar(cerrar, texto.trim());
           }}
         >
-          <p className="text-[13px] text-taupe">
-            Es el texto que se abre en WhatsApp con «Enviar mensaje predeterminado» en los pedidos de la tienda web. Escribe{" "}
-            <b className="text-tinta">{"{nombre}"}</b>, <b className="text-tinta">{"{tienda}"}</b> y <b className="text-tinta">{"{codigo}"}</b> donde van
-            el nombre del cliente, la tienda y el código del pedido: se llenan solos.
-          </p>
+          <p className="text-sm text-taupe">Es el texto que se abre en WhatsApp con el botón «Mensaje» de cada pedido.</p>
 
           <Campo
             etiqueta="Mensaje"
@@ -101,19 +123,45 @@ export function EditarMensajePredeterminadoHoja({
                 // El corrector del navegador en español, como en las demás hojas de texto.
                 lang="es"
                 spellCheck
+                ref={cajaRef}
                 className="self-stretch resize-none"
                 rows={5}
                 value={texto}
                 placeholder={MENSAJE_PREDETERMINADO_WEB}
-                onChange={(e) => setTexto(e.target.value)}
+                onChange={(e) => {
+                  setTexto(e.target.value);
+                  recordarCursor(e.target);
+                }}
+                onSelect={(e) => recordarCursor(e.currentTarget)}
+                onBlur={(e) => recordarCursor(e.currentTarget)}
                 aria-label="Mensaje predeterminado"
                 disabled={guardando}
               />
             </div>
           </Campo>
 
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-sm text-taupe">Tocar para insertar:</span>
+              {MARCAS.map((m) => (
+                <button key={m.marca} type="button" className="pildora-cayla" disabled={guardando} onClick={() => insertar(m.marca)}>
+                  <Plus aria-hidden className="h-3 w-3" />
+                  {m.texto}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-sm text-taupe">Emojis:</span>
+              {EMOJIS_DEL_MENSAJE.map((e) => (
+                <button key={e} type="button" className="pildora-cayla" aria-label={`Insertar ${e}`} disabled={guardando} onClick={() => insertar(e)}>
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
-            <span className="mb-2 block text-[12px] text-taupe">Así lo verá el cliente en WhatsApp</span>
+            <span className="mb-2 block text-sm text-taupe">Así lo verá el cliente en WhatsApp</span>
             {/* Una captura del chat del celular: la cabecera verde con el nombre, el fondo de la conversación y la burbuja de salida
                 (la de quien atiende) con la hora y las dos marcas de «leído». Solo es una vista: no envía nada. */}
             <div className="overflow-hidden rounded-xl border border-sand">
@@ -126,7 +174,7 @@ export function EditarMensajePredeterminadoHoja({
               <div className="bg-hueso/50 px-4 py-4">
                 <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-verde/15 px-3 py-2">
                   <p className="whitespace-pre-wrap break-words text-[14px] text-tinta">{vista}</p>
-                  <p className="mt-1 flex items-center justify-end gap-1 text-[11px] text-taupe">
+                  <p className="mt-1 flex items-center justify-end gap-1 text-sm text-taupe">
                     <span className="tabular-nums">{hora}</span>
                     <CheckCheck aria-hidden className="h-3.5 w-3.5 text-verde" />
                   </p>

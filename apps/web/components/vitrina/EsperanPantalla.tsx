@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BellRing, SearchX } from "lucide-react";
+import { BellRing, ChevronDown, SearchX } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -19,6 +19,7 @@ import {
   personasDichas,
   pildorasDeTienda,
   prendaDicha,
+  quienDicho,
   tiendaDicha,
   type EstadoEspera,
   type FiltroEstado,
@@ -35,12 +36,13 @@ const TONO: Record<EstadoEspera, TonoChip> = { falta: "ambar", llego: "verde", f
 /**
  * Tienda web ▸ Vitrina ▸ Esperan una talla (ADR-0408, actividad 12). Lo que los clientes de la tienda online pidieron con
  * «Avísame cuando llegue», por prenda y tienda: cuántas personas, desde cuándo, y si ya llegó o dónde hay para pedirla a otra sede.
- * Solo se lee: no tiene nada que guardar. Sin datos de nadie: a cada persona le avisa su cuenta, nunca la tienda por WhatsApp.
+ * Solo se lee: no tiene nada que guardar. Cada fila se abre y dice quién espera; el celular sale solo de quien pidió que le escribamos por WhatsApp (Felipe 2026-10-31, opción B).
  */
 export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy: string }) {
   const [tienda, setTienda] = useState<FiltroTienda>("todas");
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [texto, setTexto] = useState("");
+  const [abierta, setAbierta] = useState<string | null>(null);
 
   const cifras = cifrasEsperan(lectura);
   const visibles = filtrarEsperan(lectura.filas, { tienda, estado, busqueda: texto });
@@ -92,7 +94,7 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
               onCambio={setTexto}
               atajo
               guia="esperan.buscador"
-              placeholder="Busca un modelo, un color o una talla"
+              placeholder="Busca un modelo, un color, una talla o a quien espera"
               conteo={texto.trim() ? `${visibles.length} ${visibles.length === 1 ? "coincide" : "coinciden"}` : undefined}
             />
           </div>
@@ -111,11 +113,11 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
         {visibles.length === 0 ? (
           lectura.filas.length === 0 ? (
             <Vacio icono={<BellRing />} titulo="Nadie espera una talla todavía">
-              Cuando un cliente de la tienda online toque «Avísame» en una talla que no hay, aparece aquí con cuántas personas la esperan.
+              Cuando un cliente toque «Avísame» en una talla que no hay, sale aquí.
             </Vacio>
           ) : texto.trim() ? (
             <Vacio icono={<SearchX />} titulo={`Nada coincide con «${texto.trim()}»`} acciones={<Boton onClick={() => setTexto("")}>Borrar la búsqueda</Boton>}>
-              Busca por el nombre del modelo, su código, el color o la talla.
+              Busca por el nombre del modelo, su código, el color, la talla o el nombre de quien espera.
             </Vacio>
           ) : (
             <Vacio icono={<BellRing />} tamano="chico">
@@ -130,8 +132,10 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
             />
             {visibles.map((f, i) => {
               const e = estadoFila(f);
+              const abierto = abierta === f.clave;
               return (
-                <div key={f.clave} role="row" className={fila(PLANTILLA, "items-center sm:items-center")}>
+                <div key={f.clave}>
+                <div role="row" className={fila(PLANTILLA, "items-center sm:items-center")}>
                   <span className={celda("izq", "col-span-3 flex items-center gap-3 sm:col-span-1")}>
                     <MiniaturaPrenda
                       fotoUrl={f.producto.foto}
@@ -145,37 +149,70 @@ export function EsperanPantalla({ lectura, hoy }: { lectura: LecturaEsperan; hoy
                       <span className="block truncate font-medium text-tinta" data-guia={i === 0 ? "esperan.modelo" : undefined}>
                         {f.producto.nombre}
                       </span>
-                      <span className="block truncate text-[12px] text-taupe">{prendaDicha(f) || "—"}</span>
+                      <span className="block truncate text-sm text-taupe">{prendaDicha(f) || "—"}</span>
                     </span>
                   </span>
-                  <span className={celda("izq", "text-[13px] text-tinta")}>
+                  <span className={celda("izq", "text-sm text-tinta")}>
                     <span className="text-taupe sm:hidden">En </span>
                     {tiendaDicha(f)}
                   </span>
-                  <span className={celda("der", "text-[13px] font-semibold text-tinta")}>{personasDichas(f.personas)}</span>
-                  <span className={celda("izq", "text-[13px] text-taupe")} title={`La más nueva: ${desdeCuando(f.ultima, hoy)}`}>
+                  <span className={celda("der", "text-sm font-semibold text-tinta")}>
+                    <button
+                      type="button"
+                      className="btn-cayla btn-enlace inline-flex items-center gap-1"
+                      aria-expanded={abierto}
+                      onClick={() => setAbierta(abierto ? null : f.clave)}
+                      data-guia={i === 0 ? "esperan.quienes" : undefined}
+                      title="Ver quién espera"
+                    >
+                      {personasDichas(f.personas)}
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abierto ? "rotate-180" : ""}`} aria-hidden />
+                    </button>
+                  </span>
+                  <span className={celda("izq", "text-sm text-taupe")} title={`La más nueva: ${desdeCuando(f.ultima, hoy)}`}>
                     {desdeCuando(f.desde, hoy)}
                   </span>
                   <span className={celda("izq", "col-span-3 pt-1 sm:col-span-1 sm:pt-0")} data-guia={i === 0 ? "esperan.ahora" : undefined}>
                     <Chip tono={TONO[e]}>{ahoraDicho(f)}</Chip>
                   </span>
                 </div>
+                {abierto && (
+                  <ul className="space-y-2 border-t border-sand bg-hueso px-5 py-3" aria-label={`Quién espera ${f.producto.nombre}`}>
+                    {f.quienes.map((w, k) => (
+                      <li key={w.fichaId ?? `sin-${k}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+                        <span className="min-w-[10rem] font-medium text-tinta">{quienDicho(w)}</span>
+                        {w.pidioWhatsapp ? (
+                          <span className="text-tinta">
+                            {w.celular ?? "Sin celular guardado"}
+                            <span className="ml-2 inline-block" title="Marcó «escríbeme por WhatsApp» al pedir el aviso: escríbele solo para avisarle de esta prenda">
+                              <Chip tono="verde" versalitas={false}>Pidió WhatsApp</Chip>
+                            </span>
+                          </span>
+                        ) : (
+                          w.nombre && <span className="text-taupe">Se le avisa en su cuenta</span>
+                        )}
+                        <span className="text-taupe">Espera {desdeCuando(w.desde, hoy)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                </div>
               );
             })}
           </Tabla>
         )}
         {hayFiltro && visibles.length > 0 && (
-          <p className="border-t border-sand px-5 py-2.5 text-xs text-taupe">
+          <p className="border-t border-sand px-5 py-2.5 text-sm text-taupe">
             {visibles.length} de {lectura.filas.length} {lectura.filas.length === 1 ? "talla" : "tallas"}
           </p>
         )}
       </section>
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="esperan.nota">
+      <div className="nota-cayla space-y-2 text-sm" data-guia="esperan.nota">
         <p>
-          Aquí no salen nombres: solo cuántas personas esperan cada talla. A cada una le avisa su cuenta de la tienda online apenas hay donde
-          la espera (no se le escribe por WhatsApp: el Club no manda mensajes personales). Si una talla falta en una tienda y hay en otra,
-          pídela con un traslado.
+          Toca «personas» para ver quién espera cada talla. A todas les avisa su cuenta de la tienda online apenas hay donde la esperan.
+          Solo quien marcó «Escríbeme por WhatsApp» al pedirlo muestra su celular: escríbele solo para avisarle de esa prenda, no para
+          ofrecerle otras. Si una talla falta en una tienda y hay en otra, pídela con un traslado.
         </p>
       </div>
     </div>

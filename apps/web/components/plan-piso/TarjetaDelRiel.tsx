@@ -239,7 +239,7 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
               {leyenda.resto}
             </>
           ) : (
-            "Pasa el cursor, usa Tab o toca un grupo para ver dónde cuelga."
+            "Toca un grupo para ver dónde cuelga."
           )}
         </span>
         {notaDeColores && <span className="pp-colores">{notaDeColores}</span>}

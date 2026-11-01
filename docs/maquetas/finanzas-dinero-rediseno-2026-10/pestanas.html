@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pestañas de la campana · cuatro formas</title>
+<link rel="stylesheet" href="base.css?v=pest1">
+<style>
+  body{padding:28px 24px 60px}
+  h1{font-family:var(--serif);font-weight:500;font-size:34px;margin:0 0 4px}
+  .sub{color:color-mix(in srgb,var(--tinta) 66%,transparent);margin:0 0 20px;max-width:70ch}
+  .barra{display:flex;gap:10px;align-items:center;margin:0 0 22px;flex-wrap:wrap}
+  .barra button{font:inherit;font-size:13px;padding:8px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer}
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:20px}
+  .op{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+  .op h2{font-family:var(--serif);font-weight:500;font-size:22px;margin:0}
+  .op .tag{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+  .op .por{font-size:13.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent);margin:0}
+  .op .por b{color:var(--tinta)}
+  .rec{border-color:var(--tinta)}
+  .vent{border:1px solid var(--sand);border-radius:12px;padding:16px 18px;background:var(--crema);min-height:150px}
+  .vent .t{font-family:var(--serif);font-size:24px;margin:0 0 2px}
+  .vent .s{font-size:13.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent);margin:0 0 14px}
+  /* contador (Globito del sistema) */
+  .g{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent);font-size:10.5px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+  .g.p{background:color-mix(in srgb,var(--ambar) 15%,transparent);color:var(--ambar)}
+  /* A · el vidrio del sistema */
+  .A{position:relative;display:inline-flex;gap:2px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--papel) 45%,transparent);border:1px solid color-mix(in srgb,var(--tinta) 9%,transparent);max-width:100%;overflow-x:auto}
+  .A button{position:relative;z-index:1;display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 15px;border:0;border-radius:10px;background:none;font:inherit;font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta);cursor:pointer;white-space:nowrap;transition:color .2s}
+  .A .ind{position:absolute;z-index:0;top:4px;bottom:4px;border-radius:10px;background:var(--tinta);transition:left .45s var(--ease-cayla),width .45s var(--ease-cayla)}
+  .A button[aria-selected=true]{color:var(--crema)}
+  .A button[aria-selected=true] .g{background:color-mix(in srgb,var(--crema) 15%,transparent);color:var(--crema)}
+  /* B · subrayado (la maqueta) */
+  .B{display:flex;border-bottom:1px solid var(--sand);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+  .B button{display:inline-flex;align-items:center;gap:10px;margin-bottom:-1px;padding:12px 18px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-size:15px;font-weight:500;color:color-mix(in srgb,var(--tinta) 66%,transparent);cursor:pointer;white-space:nowrap;transition:color .2s,border-color .3s var(--ease-cayla)}
+  .B button[aria-selected=true]{color:var(--tinta);border-bottom-color:var(--tinta);font-weight:600}
+  /* C · vidrio del sistema con la palabra en minúscula y el tamaño de la maqueta */
+  .C{position:relative;display:inline-flex;gap:2px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--papel) 45%,transparent);border:1px solid color-mix(in srgb,var(--tinta) 9%,transparent);max-width:100%;overflow-x:auto}
+  .C button{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 16px;border:0;border-radius:10px;background:none;font:inherit;font-size:14.5px;font-weight:500;color:var(--tinta);cursor:pointer;white-space:nowrap;transition:color .2s}
+  .C .ind{position:absolute;z-index:0;top:4px;bottom:4px;border-radius:10px;background:var(--tinta);transition:left .45s var(--ease-cayla),width .45s var(--ease-cayla)}
+  .C button[aria-selected=true]{color:var(--crema)}
+  .C button[aria-selected=true] .g{background:color-mix(in srgb,var(--crema) 15%,transparent);color:var(--crema)}
+  /* D · subrayado que viaja (el subrayado de B, pero con la regla de movimiento del sistema: una raya que se desliza) */
+  .D{position:relative;display:flex;border-bottom:1px solid var(--sand);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+  .D button{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border:0;background:none;font:inherit;font-size:15px;font-weight:500;color:color-mix(in srgb,var(--tinta) 66%,transparent);cursor:pointer;white-space:nowrap;transition:color .2s}
+  .D button[aria-selected=true]{color:var(--tinta);font-weight:600}
+  .D .ind{position:absolute;bottom:-1px;height:2px;background:var(--tinta);transition:left .45s var(--ease-cayla),width .45s var(--ease-cayla)}
+  /* filtros (la píldora del sistema con su globito) */
+  .fil{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .fil span{display:inline-flex;align-items:center;gap:10px;padding:7px 14px;border-radius:999px;border:1px solid var(--sand);font-size:14px;background:var(--papel)}
+  .fil span.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .fil span.on .g{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+  /* tabla de juguete */
+  .tb{margin-top:14px;border-top:1px solid var(--sand);font-size:13.5px}
+  .tb div{display:grid;grid-template-columns:2fr 1fr 1fr;padding:9px 2px;border-bottom:1px solid color-mix(in srgb,var(--sand) 60%,transparent)}
+  .tb .h{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+  /* otras pantallas con la misma regla */
+  .otras{margin-top:26px}
+  .otras h3{font-family:var(--serif);font-weight:500;font-size:22px;margin:0 0 6px}
+  .otras .fila{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end}
+  .otras .caja{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 16px}
+  .otras small{display:block;margin-bottom:6px;color:var(--taupe);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+  table.cmp{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:22px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+  table.cmp th,table.cmp td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--sand);vertical-align:top}
+  table.cmp th{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+  .si{color:var(--verde);font-weight:600}.no{color:var(--rojo);font-weight:600}
+  @media (max-width:640px){.rejilla{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>Pestañas de «Estado de las cuentas»</h1>
+<p class="sub">Cuatro formas de resolver el choque entre la maqueta aprobada (subrayado) y la pieza única del sistema (vidrio en mayúsculas). Cada una es tocable. Abajo, cómo se vería la elegida en otras pantallas y qué cuesta cada una.</p>
+<div class="barra">
+  <button id="tema">Cambiar a oscuro</button>
+  <span style="font-size:13px;color:var(--taupe)">Toca las pestañas de cada opción para ver cómo se mueven.</span>
+</div>
+
+<div class="rejilla" id="rejilla"></div>
+
+<div class="otras">
+  <h3>Si el subrayado fuera la regla para todo el ERP</h3>
+  <p class="sub" style="margin-bottom:12px">Las mismas pestañas de otras pantallas que hoy son vidrio, con el subrayado: así se vería la opción B/D en todo el sistema.</p>
+  <div class="fila">
+    <div class="caja"><small>Compras</small><div class="B" data-grupo="otras"><button aria-selected="true">Todas <span class="g">24</span></button><button aria-selected="false">Por aprobar <span class="g p">3</span></button><button aria-selected="false">Resueltas <span class="g">19</span></button></div></div>
+    <div class="caja"><small>Movimientos</small><div class="B" data-grupo="otras"><button aria-selected="true">Movimientos</button><button aria-selected="false">Pérdidas <span class="g">2</span></button></div></div>
+    <div class="caja"><small>Qué debes</small><div class="B" data-grupo="otras"><button aria-selected="true">Facturas <span class="g p">2</span></button><button aria-selected="false">Por pagar</button><button aria-selected="false">Pagadas</button></div></div>
+  </div>
+</div>
+
+<table class="cmp">
+  <tr><th>Opción</th><th>Se parece a la maqueta</th><th>Cumple la pieza única</th><th>Qué hay que hacer</th></tr>
+  <tr><td><b>A · Vidrio del sistema</b></td><td class="no">Poco</td><td class="si">Sí, tal cual</td><td>Nada: es lo que había (lo que pediste quitar).</td></tr>
+  <tr><td><b>B · Subrayado solo aquí</b></td><td class="si">Idéntico</td><td class="no">No: excepción declarada</td><td>Ya hecho. «Qué debes» y CLAURE tendrían que copiarlo a mano.</td></tr>
+  <tr><td><b>C · Vidrio con letra normal</b></td><td>Medio: la palabra y el tamaño sí, el subrayado no</td><td>Casi: cambia la pieza (mayúsculas → minúsculas)</td><td>Cambiar <code>Pestanas</code> en todo el ERP; Felipe elige mirando.</td></tr>
+  <tr><td><b>D · Subrayado que viaja, para todo el ERP</b></td><td class="si">Idéntico, y la raya se desliza como la píldora</td><td class="si">Sí, si pasa a ser LA pieza</td><td>Reemplazar <code>Pestanas</code> con <code>/unificar</code>: una sola pieza nueva, migrada pantalla por pantalla.</td></tr>
+</table>
+
+<script>
+const ITEMS=[["Cuentas",6,true],["Cierres con diferencia",1,true],["Por registrar",4,true]];
+const CUERPO={
+  0:{t:"Cuentas",s:"6 piden atención. Toca una fila para ver qué hacer.",f:[["Todas",6,1],["Piden atención",6],["Sin conciliar",3],["Sin abonar",2],["Saldo negativo",1]],h:["Cuenta","Sede","Estado"],r:[["BCP · Soles","TRU","Sin conciliar"],["Izipay · Tarjetas","AQP","Sin abonar"],["Caja fuerte","LIM","Saldo negativo"]]},
+  1:{t:"Cierres con diferencia",s:"1 faltó plata y 9 sobró. Un cierre con faltante pide revisión.",f:[["Todos",10,1],["Faltaron",1],["Sobraron",9],["TRU",8],["LIM",1],["AQP",1]],h:["Día","Sede","Diferencia"],r:[["Mar 13 oct","TRU","− S/ 20"],["Lun 12 oct","LIM","+ S/ 5"],["Vie 9 oct","TRU","+ S/ 10"]]},
+  2:{t:"Por registrar",s:"4 cosas esperan que las registres: depósitos de máquinas y salidas de planilla.",f:[["Todas",4,1],["Máquinas",3],["Planilla",1]],h:["Qué","Sede","Monto"],r:[["Izipay no depositó 12 días","AQP","S/ 8,174.30"],["Niubiz no depositó 3 días","TRU","S/ 1,200.00"],["Salida de planilla","LIM","S/ 640.00"]]}
+};
+const OPS=[
+ {k:"A",tag:"Hoy en el sistema",n:"A · Vidrio del sistema",por:"<b>Cumple la regla</b>, pero la palabra en mayúsculas y la píldora oscura se parecen poco a la maqueta, y compiten con los filtros de abajo (también píldoras oscuras)."},
+ {k:"B",tag:"La maqueta",n:"B · Subrayado, solo en esta ventana",por:"<b>Idéntica a la maqueta</b>. Es una excepción: las demás pantallas siguen con vidrio, y «Qué debes» y CLAURE tendrían que copiarla.",rec:0},
+ {k:"C",tag:"Cambio chico a la pieza",n:"C · Vidrio con letra normal",por:"Mantiene el vidrio y la píldora que se desliza, pero con la palabra en minúscula de 14,5 px. <b>Cambia la pieza única</b> en todo el ERP."},
+ {k:"D",tag:"Mi recomendación",n:"D · Subrayado que viaja, para todo el ERP",por:"El subrayado de la maqueta, con una raya que <b>se desliza</b> entre pestañas (450 ms, sin rebote, como la píldora). Si te gusta, se vuelve LA pieza con <code>/unificar</code> y no hay excepciones.",rec:1}
+];
+const rej=document.getElementById("rejilla");
+OPS.forEach(o=>{
+  const d=document.createElement("section");d.className="op"+(o.rec?" rec":"");
+  d.innerHTML=`<span class="tag">${o.tag}</span><h2>${o.n}</h2><p class="por">${o.por}</p><div class="vent"><div class="tabs ${o.k}" role="tablist" data-k="${o.k}"></div><div class="cuerpo"></div></div>`;
+  rej.appendChild(d);
+  const tabs=d.querySelector(".tabs"),cuerpo=d.querySelector(".cuerpo");
+  const ind=document.createElement("i");ind.className="ind";
+  if("ACD".includes(o.k))tabs.appendChild(ind);
+  ITEMS.forEach((it,i)=>{
+    const b=document.createElement("button");b.type="button";b.setAttribute("role","tab");
+    b.innerHTML=`${it[0]} <span class="g ${i?'p':'p'}">${it[1]}</span>`;
+    b.onclick=()=>pon(i);tabs.appendChild(b);
+  });
+  function pon(i){
+    [...tabs.querySelectorAll("button")].forEach((b,j)=>b.setAttribute("aria-selected",j===i));
+    const b=tabs.querySelectorAll("button")[i];
+    if(ind.isConnected){ind.style.left=b.offsetLeft+"px";ind.style.width=b.offsetWidth+"px";}
+    const c=CUERPO[i];
+    cuerpo.innerHTML=`<div style="margin-top:14px"><p class="t" style="font-family:var(--serif);font-size:22px;margin:0">${c.t}</p><p class="s" style="font-size:13.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent);margin:0">${c.s}</p></div><div class="fil">${c.f.map(f=>`<span class="${f[2]?'on':''}">${f[0]} <span class="g">${f[1]}</span></span>`).join("")}</div><div class="tb"><div class="h">${c.h.map(x=>`<span>${x}</span>`).join("")}</div>${c.r.map(r=>`<div>${r.map(x=>`<span>${x}</span>`).join("")}</div>`).join("")}</div>`;
+  }
+  requestAnimationFrame(()=>pon(0));
+  window.addEventListener("resize",()=>pon([...tabs.querySelectorAll("button")].findIndex(b=>b.getAttribute("aria-selected")==="true")));
+});
+document.querySelectorAll('[data-grupo="otras"]').forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{g.querySelectorAll("button").forEach(x=>x.setAttribute("aria-selected",x===b))}));
+let osc=false;
+document.getElementById("tema").onclick=e=>{osc=!osc;document.documentElement.dataset.theme=osc?"dark":"light";e.target.textContent=osc?"Cambiar a claro":"Cambiar a oscuro"};
+</script>
+</body>
+</html>

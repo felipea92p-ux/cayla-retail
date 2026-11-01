@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller } from "@/lib/produccion";
-import { getInsumosDelTaller } from "@/lib/insumos";
+import { getInsumosDelTaller, getTelasCortadasSinAnotar } from "@/lib/insumos";
+import { avisosDeTelaCortada } from "@/lib/telas-cortadas-sin-anotar-reglas";
 import { getClasesDeAvio, getColoresDeLaCarta, getVocabularioDeTelas } from "@/lib/telas-vocabulario";
 import { hoyLima } from "@/lib/fechas-lima";
 import { InsumosPanel } from "@/components/InsumosPanel";
@@ -29,7 +30,7 @@ export default async function InsumosPage() {
         <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Insumos" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
-            Insumos necesita una ubicación de tipo Taller para saber dónde están la tela y los avíos. Pídele al líder que active el Taller.
+            Falta el Taller. Pídele al líder que lo active.
           </Vacio>
         </div>
       </div>
@@ -37,7 +38,7 @@ export default async function InsumosPage() {
   }
 
   const esLider = persona.rol === "lider";
-  const [datosConCostos, vocabulario, carta, clases] = await Promise.all([
+  const [datosConCostos, vocabulario, carta, clases, telasCortadas] = await Promise.all([
     getInsumosDelTaller(taller.id, { conCostos: true, hoy: hoyLima() }),
     // Dato de apoyo (la ficha de la tela): si no se lee, la lista sigue en pie y la ficha lo dice.
     getVocabularioDeTelas(),
@@ -45,6 +46,8 @@ export default async function InsumosPage() {
     getColoresDeLaCarta(),
     // Las clases de avío (ADR-0580): sin ellas, «Nuevo avío» lo dice en vez de preguntar a ciegas.
     getClasesDeAvio(),
+    // Dato de apoyo: las órdenes que ya cortaron con una tela que hay en el estante y no la anotaron. Si la base no responde, la pantalla sigue sin el aviso.
+    getTelasCortadasSinAnotar(taller.id),
   ]);
   // `veCostos` lo dice la base (si no entregó costo teniendo lotes, no se dibuja «S/ 0.00» como si fuera un dato). El capital total es solo del líder.
   const veCostos = datosConCostos.veCostos;
@@ -64,6 +67,7 @@ export default async function InsumosPage() {
         leyoColores={carta.leyo}
         clases={clases.clases}
         leyoClases={clases.leyo}
+        avisosDeTela={avisosDeTelaCortada(telasCortadas)}
       />
     </div>
   );

@@ -4,7 +4,8 @@ import { getContextoDinero, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { CuentaClaure } from "@/components/finanzas/dinero/CuentaClaure";
 import { getCuentaClaure } from "@/lib/cuenta-claure";
-import { chipsClaure, respuestaClaure, resumenClaure } from "@/lib/cuenta-claure-reglas";
+import { BotonPagarClaure } from "@/components/finanzas/dinero/BotonPagarClaure";
+import { chipsClaure, fraseClaure, montoSugeridoPago, respuestaClaure, resumenClaure } from "@/lib/cuenta-claure-reglas";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { verDeLaVista } from "@/lib/vista-global";
@@ -14,6 +15,8 @@ import { verDeLaVista } from "@/lib/vista-global";
 // solo mira lo que la cuenta ve (el líder, todo; con el módulo Cuentas y dinero, su sede), así que la puerta es la de Cuentas y dinero.
 // La sede de la barra no la cambia: CLAURE solo opera donde lo dice `empresa_sedes` (hoy Tienda LIM), y por eso no lleva orillo.
 // Desde la actividad 2 también muestra lo ya pagado (`fn_claure_pagos`) y el botón «Pagar a CLAURE» (solo el líder: sale de un banco).
+// Rediseño 2026-10-31 («B+C · Fusión»): la cifra grande vive en la ficha oscura de la pantalla, así que la cabecera no repite la respuesta (`panorama`);
+// el botón de la cabecera es «Pagar a CLAURE» y «Registrar movimiento» sigue en el dock.
 export default async function ClaureDineroPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string }> }) {
   const persona = await exigirModulo("cuentas_dinero");
   const sp = await searchParams;
@@ -36,6 +39,9 @@ export default async function ClaureDineroPage({ searchParams }: { searchParams:
         chips: cuenta.falla ? [] : chipsClaure(resumen, cuenta.datos.filas.length > 0 || cuenta.datos.pagos.length > 0 || cuenta.datos.gastos.length > 0),
       }}
       orillo={null}
+      panorama
+      subtitulo={fraseClaure(cuenta.datos.desde)}
+      acciones={ctx.esLider ? <BotonPagarClaure montoSugerido={montoSugeridoPago(resumen.saldo)} /> : null}
       sedes={telar.sedes}
       ver={ctx.ver}
       cuentas={ctx.cuentas.datos}
@@ -43,7 +49,7 @@ export default async function ClaureDineroPage({ searchParams }: { searchParams:
       hoy={hoy}
       fallas={[ctx.cuentas.falla, cuenta.falla].filter((f): f is string => !!f)}
     >
-      {!cuenta.falla && <CuentaClaure filas={cuenta.datos.filas} pagos={cuenta.datos.pagos} gastos={cuenta.datos.gastos} desde={cuenta.datos.desde} esLider={ctx.esLider} />}
+      {!cuenta.falla && <CuentaClaure filas={cuenta.datos.filas} pagos={cuenta.datos.pagos} gastos={cuenta.datos.gastos} esLider={ctx.esLider} hoy={hoy} />}
     </PantallaDinero>
   );
 }

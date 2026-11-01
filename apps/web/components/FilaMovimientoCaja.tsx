@@ -35,26 +35,27 @@ export function FilaMovimientoCaja({ e, nuevo, onAbrir }: { e: EventoCaja; nuevo
       {nuevo && <span aria-hidden className="anim-vivo-fila pointer-events-none absolute -inset-x-2 inset-y-0.5 -z-10 rounded-lg bg-verde/15" />}
       <div
         aria-hidden
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: `color-mix(in srgb, ${e.color} 14%, transparent)`, color: e.color }}
       >
         {e.icono === "venta" ? (
-          <ShoppingBag size={14} />
+          <ShoppingBag size={16} />
         ) : e.esGasto ? (
-          <Receipt size={14} />
+          <Receipt size={16} />
         ) : e.icono === "ingreso" ? (
-          <CirclePlus size={14} />
+          <CirclePlus size={16} />
         ) : (
-          <CircleMinus size={14} />
+          <CircleMinus size={16} />
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13.5px] font-semibold text-tinta">{e.titulo}</p>
-        <p className="truncate text-[11.5px] text-tinta/50">
+        {/* Ronda 19: la fila se lee a 15 px y su detalle a 14 (antes 13,5 y 11,5, gris tenue). */}
+        <p className="truncate text-[15px] font-semibold text-tinta">{e.titulo}</p>
+        <p className="texto-detalle truncate">
           {e.horaTexto} · {e.meta}
         </p>
       </div>
-      <p key={e.monto} className={`anim-asentar shrink-0 text-sm font-bold tabular-nums ${e.monto < 0 ? "text-rojo" : "text-verde-profundo"}`}>
+      <p key={e.monto} className={`anim-asentar shrink-0 text-base font-bold tabular-nums ${e.monto < 0 ? "text-rojo" : "text-verde-profundo"}`}>
         {e.monto < 0 ? "−" : "+"}
         {money(Math.abs(e.monto))}
       </p>

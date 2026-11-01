@@ -67,7 +67,7 @@ export function NombreDePrenda({
   // Así se llamará, siempre a la vista y pegado a la caja: con la caja vacía dice el tipo y un hueco por llenar.
   const asiSeLlamara = (
     <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-      <span className="flex flex-wrap items-baseline gap-x-2 text-[13px] text-taupe" aria-live="polite">
+      <span className="flex flex-wrap items-baseline gap-x-2 text-sm text-taupe" aria-live="polite">
         Así se llamará:
         <strong className="font-serif text-[18px] font-medium text-tinta">
           {nombreFinal && valor.trim() ? (
@@ -87,7 +87,7 @@ export function NombreDePrenda({
     <div className="space-y-2.5">
       {tipos.length > 1 ? (
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Con qué empieza el nombre">
-          <span className="mr-0.5 text-[12px] text-taupe">Empieza con:</span>
+          <span className="mr-0.5 text-sm text-taupe">Empieza con:</span>
           {tipos.map((t) => (
             <ChipOpcion key={t} elegido={tipo === t} onClick={() => onTipo(t)}>
               {t}
@@ -131,7 +131,7 @@ export function NombreDePrenda({
       />
       {!libre && delProveedor && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[12px] text-taupe">Como lo llama el proveedor:</span>
+          <span className="text-sm text-taupe">Como lo llama el proveedor:</span>
           <ChipOpcion elegido={valor.trim().toLocaleLowerCase("es") === delProveedor.toLocaleLowerCase("es")} onClick={() => onValor(delProveedor)} chico>
             {delProveedor}
           </ChipOpcion>
@@ -139,7 +139,7 @@ export function NombreDePrenda({
       )}
       {!libre && sugeridas.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[12px] text-taupe">{delProveedor ? "O una flor libre:" : "Libres en esta categoría:"}</span>
+          <span className="text-sm text-taupe">{delProveedor ? "O una flor libre:" : "Libres en esta categoría:"}</span>
           {sugeridas.map((f) => (
             <ChipOpcion key={f} elegido={valor.trim().toLocaleLowerCase("es") === f.toLocaleLowerCase("es")} onClick={() => onValor(f)} chico>
               {f}
@@ -150,7 +150,7 @@ export function NombreDePrenda({
       {avisos.length > 0 && (
         <ul className="space-y-1" aria-live="polite">
           {avisos.map((a) => (
-            <li key={a.regla} className="flex items-start gap-1.5 text-[13px] text-tinta">
+            <li key={a.regla} className="flex items-start gap-1.5 text-sm text-tinta">
               <Lightbulb aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ambar" />
               {a.texto}
             </li>

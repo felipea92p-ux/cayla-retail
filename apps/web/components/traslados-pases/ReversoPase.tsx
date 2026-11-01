@@ -297,7 +297,7 @@ export function ReversoPase({
                           · {[l.talla, l.color].filter(Boolean).join(" · ")} · {codigoPrenda(l)}
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs text-taupe">+1</span>
+                      <span className="shrink-0 text-sm text-taupe">+1</span>
                     </button>
                   </li>
                 ))}

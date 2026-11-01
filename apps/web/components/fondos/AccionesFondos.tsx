@@ -227,9 +227,9 @@ function EntregarFondoModal({
                       <AvatarPersona personaId={p.id} nombre={p.nombre} tamano={40} />
                       <span className="mt-0.5 w-full truncate text-sm font-medium leading-tight text-tinta">{nombres[p.id]}</span>
                       {soyYo ? (
-                        <span className="text-xs text-taupe">Tú</span>
+                        <span className="text-sm text-taupe">Tú</span>
                       ) : (
-                        suPlata !== undefined && <span className="whitespace-nowrap text-xs text-taupe">Tiene {soles(suPlata)}</span>
+                        suPlata !== undefined && <span className="whitespace-nowrap text-sm text-taupe">Tiene {soles(suPlata)}</span>
                       )}
                     </button>
                   );
@@ -767,7 +767,7 @@ function PagarDeudaFondoModal({
             />
             <button
               type="button"
-              className="btn-enlace mt-1.5 text-xs"
+              className="btn-enlace mt-1.5 text-sm"
               disabled={guardando}
               onClick={() => {
                 setRechazo(null);
@@ -777,7 +777,7 @@ function PagarDeudaFondoModal({
               Pagó todo: {soles(deuda.debe)}
             </button>
             {reparto.length > 0 && (
-              <p className="mt-1.5 text-xs text-taupe">
+              <p className="mt-1.5 text-sm text-taupe">
                 Paga primero la más vieja: {reparto.map((x) => `${soles(x.paga)} de la del ${diaMes(x.desde)}`).join(" y ")}.
               </p>
             )}
