@@ -40,3 +40,20 @@
   sólida), A · La gota de Mi perfil (recomendada: la de las hojas, que fluye de una a otra), B · Vidrio ahumado y C · La gota del menú,
   sobre Compras (conteos que piden y que avisan) y Finanzas (seis con ícono). Medidas 96 combinaciones (320 a 1920 px, claro y oscuro)
   en Chrome sin ventana: sin desbordes y la gota siempre sobre la elegida. Felipe eligió **A · La gota de Mi perfil**.
+- **Lo elegido, a la sesión que implementa** (Felipe: «pásale todo lo que elegí a la otra sesión y que lo implemente en local»): mensaje
+  a la sesión de los modales con las cuatro piezas de pantalla y la técnica de la cabecera pegada; la rama subió a origin.
+- **Inicio del líder, entero:** maqueta `docs/maquetas/inicio-lider-vidrio-2026-10/` con lo ya elegido y un selector por cada pieza que
+  faltaba (títulos, «Te toca», accesos, equipo, barra de avance, interruptor de «Ajustar», barra del celular); medida en 72 + 6
+  combinaciones sin desbordes. Espera a Felipe.
+- **El Observatorio con vidrio** (Felipe: «me refería al observatorio»): sale de «fuera hasta que Felipe diga». Maqueta
+  `docs/maquetas/observatorio-vidrio-2026-10/`: la v3 aprobada tal cual con una capa de vidrio (Aurora, marco elegido, placas, controles
+  en pozo y gota, orbes en lente, barras en tubo) y tres selectores. La del Inicio de una líder de tienda queda aparte. Espera a Felipe.
+- **Observatorio, elegido:** B · El mapa al aire, controles B · Ahumado y orbes A · Lente. Más contraste en los controles (pista con
+  `borde-control`, lo no elegido en tinta al 80 %) y cuatro extras para mirar (orbes con líquido, cinta de vidrio, anillos de tubo, el
+  Perú de vidrio). Corregido: en oscuro, «el mapa al aire» volvía a meter el mapa en su tarjeta.
+- **Observatorio, ronda 3:** Felipe eligió de la lista la línea del día (riel de vidrio que se arrastra para ver cualquier hora), el panel
+  que nace del mapa, los gráficos con área de vidrio y la estela del cometa; hechas en la maqueta y probadas en Chrome sin ventana.
+- **Observatorio, ronda 4:** se quitó la línea del día. «Repetir el día» mostraba la hora en crema sobre vidrio claro (la piel de vidrio le
+  ganaba a `.repetir.va`): mientras corre, ahora es el primario ahumado (14:1 en claro, 13,8:1 en oscuro).
+- **Observatorio, elegido entero** y pasado a la sesión que implementa: sin la línea del día, con los siete extras.
+- **Observatorio, corrección:** Felipe quitó también el panel que nace del mapa; quedan seis extras. Avisado a la sesión que implementa.

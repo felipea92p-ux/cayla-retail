@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-tit="serif" data-tt="placa" data-ac="gotas" data-eq="placa" data-av="tubo" data-it="pozo" data-bm="gota">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inicio del líder con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · el Inicio del líder con el vidrio, entero (ADR-0596; Felipe 2026-10-31: «vamos con todos los componentes que se encuentren
+   en el inicio del líder para que quede ya lista esa vista»). La pantalla: app/(app)/page.tsx para una líder de tienda.
+   Ya elegido (viene de la base): el marco, la cabecera A, las tarjetas de cifra A, los botones gota, la hoja Serena, la nota A · Placa
+   y la barra apilada A · Tubo. Lo que falta, cada uno con su selector + «Como ahora»: los títulos de sección, «Te toca» (la lista de
+   avisos con su punto y su cantidad), los accesos, el equipo de hoy (avatares), la barra de avance de la meta, el interruptor de la
+   hoja «Ajustar» y la barra de abajo del celular. No cambia qué hace nada. Datos inventados (el repo es público).
+   Colores: SOLO tokens. Movimiento: una vez, sin rebote; apagado con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+:root{--t10:color-mix(in srgb,var(--tinta) 10%,transparent);--t09:color-mix(in srgb,var(--tinta) 9%,transparent)}
+/* lo común del vidrio de esta pantalla */
+.placa{border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 20px 44px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 20px 44px -30px var(--sombra)}
+.gota-v{border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 42%,transparent));
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 10px 22px -14px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .gota-v{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 16%,transparent),color-mix(in srgb,var(--tinta) 6%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 10px 22px -14px var(--sombra)}
+.papel-c{border-radius:16px;border:1px solid var(--sand);background:var(--papel)}
+
+/* ---------- la pantalla ---------- */
+.inicio{container:inicio/inline-size;margin-top:28px}
+.inicio-grid{display:grid;gap:28px}
+@container inicio (min-width:860px){.inicio-grid{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start}}
+.col{display:grid;gap:28px;min-width:0}
+section{min-width:0;animation:sube .6s var(--ease) backwards;animation-delay:calc(160ms + var(--s,0) * 80ms)}
+.hoy-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.hoy-g .tc{animation:none}
+@container inicio (max-width:560px){.hoy-g{grid-template-columns:repeat(2,minmax(0,1fr))}.hoy-g>:first-child{grid-column:1/-1}}
+.piso-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.piso-g .tc{animation:none}
+@container inicio (max-width:560px){.piso-g{grid-template-columns:1fr}}
+
+/* ====================================================================
+   TÍTULOS DE SECCIÓN (Hoy · Te toca · Tu piso · Accesos · Equipo de hoy). Hoy, `Etiqueta`: versalitas de 11 px al 65 %.
+   ==================================================================== */
+.tit{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.tit h2{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.tit .cuenta-t{display:none;min-width:22px;height:22px;padding:0 7px;border-radius:99px;place-items:center;font-size:11.5px;font-weight:600;background:var(--t10)}
+.tit .ajustar{margin-left:auto}
+/* A · Título serif: la pieza que ya decidió /unificar para un bloque (`TituloSeccion`): serif de 21 px y la cuenta en su globito */
+[data-tit="serif"] .tit h2{font-family:'EB Garamond',serif;font-size:22px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--tinta)}
+[data-tit="serif"] .tit .cuenta-t{display:inline-grid}
+/* B · Versalitas con hilo: un poco más grandes y firmes, y el hilo taupe de la cabecera que corre hasta el borde */
+[data-tit="hilo"] .tit h2{font-size:12px;color:var(--t80)}
+[data-tit="hilo"] .tit::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--taupe),transparent);opacity:.5;order:2;transform-origin:left;animation:dibuja-x 1s var(--ease) .3s backwards}
+[data-tit="hilo"] .tit .ajustar{order:3}
+[data-tit="hilo"] .tit .cuenta-t{display:inline-grid;height:20px;font-size:11px}
+
+/* ====================================================================
+   BARRA DE AVANCE (la meta del día, `BarraAvance`). Hoy: pista arena de 6 px y relleno de tinta (verde al llegar).
+   ==================================================================== */
+.avance{display:block;height:6px;margin-top:10px;border-radius:99px;background:var(--sand);overflow:hidden}
+.avance i{display:block;height:100%;width:calc(var(--p) * 1%);border-radius:inherit;background:var(--tinta);transform-origin:left;animation:dibuja-x .9s var(--ease) .5s backwards}
+/* A · Tubo de vidrio: la de la barra de pagos que eligió en las hojas: la pista es un pozo y el relleno, vidrio de tinta con su luz */
+[data-av="tubo"] .avance{height:14px;padding:3px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:color-mix(in srgb,var(--tinta) 6%,transparent);
+  box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent);overflow:visible}
+[data-tema="oscuro"][data-av="tubo"] .avance{background:color-mix(in srgb,var(--sombra) 30%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+[data-av="tubo"] .avance i{--col:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--col) 62%,var(--vidrio)),var(--col) 70%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent),0 3px 8px -3px color-mix(in srgb,var(--col) 50%,transparent)}
+[data-tema="oscuro"][data-av="tubo"] .avance i{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 80%,var(--sombra)),var(--col) 70%)}
+/* B · Hilo con gota: una línea fina sin pista y, en la punta, la gota que marca dónde vas */
+[data-av="hilo"] .avance{height:3px;margin-top:14px;background:var(--t10);overflow:visible;position:relative}
+[data-av="hilo"] .avance i{position:relative;background:var(--tinta)}
+[data-av="hilo"] .avance i::after{content:"";position:absolute;right:-6px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;
+  background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:0 0 0 1.5px var(--tinta),0 3px 8px -3px color-mix(in srgb,var(--sombra) 50%,transparent)}
+
+/* la barra apilada del piso: A · Tubo (elegida en las hojas) */
+.apilada{display:flex;gap:3px;height:16px;margin-top:10px;padding:3px;border-radius:99px;background:color-mix(in srgb,var(--tinta) 6%,transparent);
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"] .apilada{background:color-mix(in srgb,var(--sombra) 30%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.apilada i{flex:var(--p);border-radius:99px;background:linear-gradient(180deg,color-mix(in srgb,var(--col) 62%,var(--vidrio)),var(--col) 70%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent);transform-origin:left;animation:dibuja-x .6s var(--ease) backwards;animation-delay:calc(500ms + var(--k) * 140ms)}
+[data-tema="oscuro"] .apilada i{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 80%,var(--sombra)),var(--col) 70%)}
+.chip-p{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:99px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--c);
+  background:color-mix(in srgb,var(--c) 13%,transparent);margin-bottom:6px}
+.chip-p i{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* la nota de Claure: A · Placa (elegida en las hojas) */
+.nota-p{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 16px 12px 12px;border-radius:18px;font-size:13.5px;line-height:1.45;color:var(--t80);
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .nota-p{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+.nota-p svg{box-sizing:content-box;width:14px;height:14px;padding:6px;flex:none;border-radius:50%;color:var(--taupe);stroke-width:2;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 25%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.nota-p b{color:var(--tinta);font-weight:600}
+
+/* ====================================================================
+   TE TOCA (la lista de avisos). Hoy: una tarjeta de papel con filas; el punto del nivel; la cantidad en una píldora de COLOR SÓLIDO
+   (rojo, ámbar, pizarra, verde con letra crema); «Urgente» en rojo; la flecha; «Al día» y los ocultos al pie.
+   ==================================================================== */
+.ajustar{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;font-size:13px;color:var(--taupe);transition:background .2s,color .2s}
+.ajustar svg{width:16px;height:16px;stroke-width:1.8}
+@media (hover:hover){.ajustar:hover{background:var(--t06);color:var(--tinta)}}
+.tt{display:block}
+.aviso-f{position:relative;display:flex;align-items:center;gap:14px;padding:14px 20px;text-decoration:none;color:var(--tinta);transition:background .2s}
+.aviso-f+.aviso-f{border-top:1px solid var(--sand)}
+.aviso-f .pto-n{width:9px;height:9px;flex:none;border-radius:50%;background:var(--c)}
+.aviso-f .tx{flex:1;min-width:0}
+.aviso-f b{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:14px;font-weight:600}
+.aviso-f b em{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--rojo)}
+.aviso-f p{margin-top:2px;font-size:12.5px;color:var(--t65)}
+.aviso-f .cant{min-width:26px;height:24px;padding:0 8px;border-radius:99px;display:grid;place-items:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--crema);background:var(--c)}
+.aviso-f .cant.sinleer{color:var(--t80);background:var(--t10)}
+.aviso-f .chev{width:16px;height:16px;flex:none;color:var(--t25);stroke-width:2;transition:transform .25s var(--ease),color .2s}
+@media (hover:hover){.aviso-f:hover{background:color-mix(in srgb,var(--tinta) 5%,transparent)}.aviso-f:hover b{color:var(--rojo)}.aviso-f:hover .chev{transform:translateX(3px);color:var(--tinta)}}
+.al-dia{display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--sand);font-size:12.5px;color:var(--t65)}
+.al-dia svg{width:16px;height:16px;color:var(--verde);stroke-width:2.2;flex:none}
+.al-dia b{color:var(--verde)}
+.tt .urgentes{display:none}
+:root:not([data-tt]) .tt .lista{border-radius:16px;border:1px solid var(--sand);background:var(--papel);overflow:hidden}
+
+/* A · Placa Serena: la lista es la placa de las tablas (sin rayado, un hilo entre avisos); la cantidad deja de ser una píldora sólida:
+   es su globito teñido (el de las pestañas); el punto es una lente; el urgente lleva la marca roja del menú y su chip; al pasar el
+   mouse, la fila se enciende como gota. */
+:is([data-tt="placa"],[data-tt="lente"]) .tt .lista{overflow:hidden}
+:is([data-tt="placa"],[data-tt="lente"],[data-tt="gotas"]) .aviso-f+.aviso-f{border-top:0}
+:is([data-tt="placa"],[data-tt="lente"]) .aviso-f+.aviso-f::before{content:"";position:absolute;top:0;left:43px;right:20px;height:1px;background:var(--t09)}
+:is([data-tt="placa"],[data-tt="lente"],[data-tt="gotas"]) .aviso-f .pto-n{box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 16%,transparent)}
+:is([data-tt="placa"],[data-tt="lente"],[data-tt="gotas"]) .aviso-f .cant{color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+:is([data-tt="placa"],[data-tt="lente"],[data-tt="gotas"]) .aviso-f .cant.sinleer{color:var(--t80);background:var(--t10)}
+:is([data-tt="placa"],[data-tt="lente"],[data-tt="gotas"]) .aviso-f b em{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;background:color-mix(in srgb,var(--rojo) 12%,transparent)}
+:is([data-tt="placa"],[data-tt="lente"]) .aviso-f[data-nivel="urgente"]::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:16px;margin-top:-8px;border-radius:3px;background:var(--rojo)}
+@media (hover:hover){:is([data-tt="placa"],[data-tt="lente"]) .aviso-f:hover{background:color-mix(in srgb,var(--vidrio) 50%,transparent)}
+  [data-tema="oscuro"]:is([data-tt="placa"],[data-tt="lente"]) .aviso-f:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+  :is([data-tt="placa"],[data-tt="lente"],[data-tt="gotas"]) .aviso-f:hover b{color:var(--tinta)}}
+:is([data-tt="placa"],[data-tt="lente"]) .al-dia{border-top:1px solid var(--t09)}
+/* B · Cada aviso, una gota: sin lista alrededor; cada uno es su propia gota de vidrio, y la cantidad se lee como número grande */
+[data-tt="gotas"] .tt .lista{display:grid;gap:8px;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+[data-tt="gotas"] .aviso-f{border-radius:20px}
+[data-tt="gotas"] .aviso-f .cant{min-width:0;height:auto;padding:0;background:none!important;font-family:'EB Garamond',serif;font-size:26px;font-weight:500}
+[data-tt="gotas"] .aviso-f[data-nivel="urgente"]{border-color:color-mix(in srgb,var(--rojo) 45%,transparent)}
+@media (hover:hover){[data-tt="gotas"] .aviso-f:hover{transform:translateY(-2px)}}
+[data-tt="gotas"] .aviso-f{transition:transform .25s var(--ease),background .2s}
+[data-tt="gotas"] .al-dia{border:0;padding:6px 8px}
+/* C · Lente de urgencia: como A, pero lo urgente sale de la lista y va arriba, en su propia lente (la del aviso que eligió en las hojas) */
+[data-tt="lente"] .tt .urgentes{display:grid;gap:8px;margin-bottom:10px}
+[data-tt="lente"] .tt .lista .aviso-f[data-nivel="urgente"]{display:none}
+.urg{display:flex;align-items:center;gap:14px;padding:14px 18px 14px 14px;border-radius:20px;text-decoration:none;color:var(--tinta);
+  border:1px solid color-mix(in srgb,var(--rojo) 35%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 10%,color-mix(in srgb,var(--vidrio) 60%,transparent)),color-mix(in srgb,var(--rojo) 5%,color-mix(in srgb,var(--vidrio) 30%,transparent)));
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);box-shadow:inset 0 1px 0 var(--vidrio),0 12px 26px -16px color-mix(in srgb,var(--rojo) 45%,transparent)}
+[data-tema="oscuro"] .urg{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 16%,transparent),color-mix(in srgb,var(--rojo) 6%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent)}
+.urg .lente-u{width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--rojo);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--rojo) 30%,transparent)}
+[data-tema="oscuro"] .urg .lente-u{background:color-mix(in srgb,var(--rojo) 14%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--rojo) 35%,transparent)}
+.urg .lente-u svg{width:18px;height:18px;stroke-width:2}
+.urg .tx{flex:1;min-width:0}.urg b{display:block;font-size:14.5px;font-weight:600}.urg p{font-size:13px;color:var(--t80);margin-top:2px}
+.urg .cant{font-family:'EB Garamond',serif;font-size:26px;color:var(--rojo)}
+.urg .chev{width:16px;height:16px;flex:none;stroke-width:2;color:var(--t50)}
+
+/* ====================================================================
+   ACCESOS. Hoy: tarjetas de papel con el ícono del menú (20 px) y su nombre en 12 px; al pasar el mouse, se tiñen y el texto va a rojo.
+   ==================================================================== */
+.accesos{display:grid;gap:8px;grid-template-columns:repeat(4,minmax(0,1fr))}
+@container inicio (min-width:860px){.accesos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* en un teléfono angosto (320 px), cuatro por fila no caben con su nombre: tres */
+@container inicio (max-width:380px){.accesos{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.acc{min-width:0}
+.acc{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 6px;border-radius:16px;text-align:center;text-decoration:none;font-size:12px;color:var(--tinta);
+  transition:background .2s,color .2s,transform .25s var(--ease)}
+:root:not([data-ac]) .acc{border:1px solid var(--sand);background:var(--papel)}
+.acc svg{width:20px;height:20px;stroke-width:1.5}
+@media (hover:hover){:root:not([data-ac]) .acc:hover{background:color-mix(in srgb,var(--tinta) 5%,var(--papel));color:var(--rojo)}}
+/* A · Gotas: cada acceso es un botón, así que sobresale: una gota de vidrio con su ícono en una lente; el nombre más grande */
+[data-ac="gotas"] .acc{border-radius:20px;font-size:13px;font-weight:500;padding:14px 6px 12px}
+[data-ac="gotas"] .acc .lente-a{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-ac="gotas"] .acc .lente-a{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent)}
+@media (hover:hover){[data-ac="gotas"] .acc:hover{transform:translateY(-2px)}}
+/* B · Una placa, como un tablero: todos los accesos en una sola placa de vidrio; cada uno, sin caja propia, se enciende como gota al
+   pasar el mouse */
+[data-ac="dock"] .accesos{padding:8px;gap:4px;border-radius:24px}
+[data-ac="dock"] .acc{border:0;background:none;font-size:12.5px;font-weight:500;border-radius:16px}
+@media (hover:hover){[data-ac="dock"] .acc:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+  [data-tema="oscuro"][data-ac="dock"] .acc:hover{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}}
+
+/* ====================================================================
+   EQUIPO DE HOY (avatares). Hoy: tarjeta de papel; avatar en arena con la inicial y el punto verde de turno; lo último que hizo en una
+   caja hueso; el monto a la derecha.
+   ==================================================================== */
+.equipo{display:block}
+.persona{display:flex;align-items:flex-start;gap:12px;padding:14px 18px}
+.persona+.persona{border-top:1px solid var(--sand)}
+.av-p{position:relative;width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:16px;background:var(--sand)}
+.av-p.turno::after{content:"";position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:var(--verde);border:2px solid var(--papel)}
+.persona .tx{flex:1;min-width:0}.persona b{display:block;font-size:14px;font-weight:600}.persona .est{font-size:12.5px;color:var(--t65)}
+.persona .ult{display:inline-block;margin-top:6px;padding:4px 8px;border-radius:8px;font-size:12px;color:var(--t80);background:var(--hueso)}
+.persona .monto-p{font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+:root:not([data-eq]) .equipo{border-radius:16px;border:1px solid var(--sand);background:var(--papel)}
+/* A · Placa Serena: la placa de las tablas; el avatar en una lente de vidrio (con su punto de turno); lo último que hizo, una línea
+   con su ícono (sin caja hueso: es lo que explica); el monto en la serif, que se lee de lejos */
+[data-eq="placa"] .persona+.persona{border-top:0;position:relative}
+[data-eq="placa"] .persona+.persona::before{content:"";position:absolute;top:0;left:68px;right:18px;height:1px;background:var(--t09)}
+:is([data-eq="placa"],[data-eq="tarjetas"]) .av-p{background:linear-gradient(145deg,color-mix(in srgb,var(--sand) 90%,var(--vidrio)),color-mix(in srgb,var(--sand) 60%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent),0 0 0 3px color-mix(in srgb,var(--vidrio) 55%,transparent),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:is([data-eq="placa"],[data-eq="tarjetas"]) .av-p{background:var(--sand);box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-eq="placa"],[data-eq="tarjetas"]) .av-p.turno::after{border-color:var(--vidrio)}
+[data-tema="oscuro"]:is([data-eq="placa"],[data-eq="tarjetas"]) .av-p.turno::after{border-color:var(--hueso)}
+:is([data-eq="placa"],[data-eq="tarjetas"]) .persona .ult{display:flex;align-items:center;gap:6px;padding:0;background:none;font-size:12.5px;margin-top:4px}
+:is([data-eq="placa"],[data-eq="tarjetas"]) .persona .ult svg{width:13px;height:13px;stroke-width:2;color:var(--taupe);flex:none}
+[data-eq="placa"] .persona .monto-p{font-family:'EB Garamond',serif;font-size:19px}
+/* B · Una tarjeta por persona: dos por fila; arriba el avatar y su monto, debajo el nombre, su estado y lo último que hizo */
+[data-eq="tarjetas"] .equipo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+[data-eq="tarjetas"] .persona{flex-wrap:wrap;border-radius:20px;padding:14px;border-top:0}
+[data-eq="tarjetas"] .persona .tx{flex-basis:100%;order:3}
+[data-eq="tarjetas"] .persona .monto-p{margin-left:auto;font-family:'EB Garamond',serif;font-size:21px}
+
+/* ====================================================================
+   LA HOJA «AJUSTAR TU INICIO» y su INTERRUPTOR. La hoja es la Serena elegida; lo que se elige aquí es el interruptor (`.interruptor`):
+   hoy, una pista que se prende en tinta sólida con la perilla de papel.
+   ==================================================================== */
+.hoja{width:min(520px,100%)!important;max-height:calc(100% - 40px);overflow:auto}
+.hoja .grupo-a{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);margin:16px 0 8px}
+.fila-a{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;margin-bottom:6px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 25%,transparent))}
+[data-tema="oscuro"] .fila-a{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.fila-a .tx{flex:1;min-width:0}.fila-a b{display:block;font-size:14px;font-weight:500}.fila-a small{display:block;font-size:12px;color:var(--rojo-p);margin-top:2px}
+.inter{position:relative;width:44px;height:26px;flex:none;border-radius:99px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 6%,transparent);transition:background .3s var(--ease),border-color .3s}
+.inter::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--papel);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 35%,transparent);transition:transform .35s var(--ease),width .2s var(--ease)}
+.inter[aria-checked="true"]{background:var(--tinta);border-color:var(--tinta)}
+.inter[aria-checked="true"]::after{transform:translateX(18px);background:var(--crema)}
+.inter:active::after{width:24px}
+.inter[aria-checked="true"]:active::after{transform:translateX(14px)}
+.inter:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+/* A · Pozo y gota: apagado, la pista es un pozo hundido (como los campos); la perilla, una gota de vidrio. Encendido, la pista se
+   llena de vidrio ahumado de tinta (el del botón primario): nada sólido. */
+[data-it="pozo"] .inter{border-color:color-mix(in srgb,var(--borde) 70%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-it="pozo"] .inter::after{background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 80%,var(--hueso)));box-shadow:inset 0 -1px 2px color-mix(in srgb,var(--sombra) 10%,transparent),0 2px 6px -1px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-it="pozo"] .inter[aria-checked="true"]{border-color:color-mix(in srgb,var(--tinta) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+[data-tema="oscuro"][data-it="pozo"] .inter{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"][data-it="pozo"] .inter::after{background:linear-gradient(180deg,var(--tinta),color-mix(in srgb,var(--tinta) 80%,var(--sand)))}
+[data-tema="oscuro"][data-it="pozo"] .inter[aria-checked="true"]::after{background:var(--crema)}
+/* B · La gota que se tiñe: la pista es siempre la misma gota de vidrio clara; lo que cambia es la perilla, que al encenderse viaja y se
+   tiñe de tinta ahumada. Se lee por la perilla, no por la pista. */
+[data-it="tinte"] .inter{border-color:color-mix(in srgb,var(--borde) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-it="tinte"] .inter[aria-checked="true"]{border-color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent))}
+[data-it="tinte"] .inter[aria-checked="true"]::after{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 40%,transparent),0 2px 6px -1px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-it="tinte"] .inter{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+[data-tema="oscuro"][data-it="tinte"] .inter[aria-checked="true"]::after{background:var(--crema)}
+.hoja .pie-a{display:flex;justify-content:space-between;gap:8px;margin-top:18px;flex-wrap:wrap}
+
+/* ====================================================================
+   LA BARRA DE ABAJO DEL CELULAR (la Isla, `BarraDeAbajo sola`): con una sola acción, la isla ES el botón. Hoy: el primario sólido.
+   ==================================================================== */
+.isla{display:none;position:absolute;z-index:6;left:12px;right:12px;bottom:12px;animation:sube .5s var(--ease) .6s backwards}
+.isla .btn{width:100%;height:52px;font-size:15px}
+.isla .btn svg{width:18px;height:18px;stroke-width:1.6}
+:root:not([data-bm]) .isla .btn{border-radius:18px;background:var(--tinta);color:var(--crema);border:0;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 14px 30px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+/* A · La gota ahumada: el botón primario «A · Gota» a todo lo ancho, flotando: deja ver un poco lo que pasa detrás */
+[data-bm="gota"] .isla .btn{border-radius:999px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 16px 32px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+/* B · Isla de vidrio: una placa de vidrio que flota y, adentro, el botón; lleva además lo que le dice al botón su contexto */
+[data-bm="isla"] .isla{padding:8px;border-radius:28px;display:none}
+[data-bm="isla"] .isla .btn{border-radius:999px;height:48px}
+[data-bm="isla"] .isla .ctx{display:block;text-align:center;font-size:12px;color:var(--t65);margin:2px 0 6px}
+.isla .ctx{display:none}
+@container disp (max-width:520px){
+  .isla{display:block}
+  [data-bm="isla"] .isla{display:block}
+  .cont{padding-bottom:100px!important}
+  .ep .ep-acc{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">El Inicio del líder con vidrio · todas sus piezas</span>
+  <span class="tag">Títulos</span><div class="seg-m" data-ctl="tit"><button data-v="ahora">Como ahora</button><button data-v="serif">A · Serif</button><button data-v="hilo">B · Con hilo</button></div>
+  <span class="tag">Te toca</span><div class="seg-m" data-ctl="tt"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa</button><button data-v="gotas">B · Gotas</button><button data-v="lente">C · Lente de urgencia</button></div>
+  <span class="tag">Accesos</span><div class="seg-m" data-ctl="ac"><button data-v="ahora">Como ahora</button><button data-v="gotas">A · Gotas</button><button data-v="dock">B · Una placa</button></div>
+  <span class="tag">Equipo</span><div class="seg-m" data-ctl="eq"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa</button><button data-v="tarjetas">B · Tarjetas</button></div>
+  <span class="tag">Barra de avance</span><div class="seg-m" data-ctl="av"><button data-v="ahora">Como ahora</button><button data-v="tubo">A · Tubo</button><button data-v="hilo">B · Hilo con gota</button></div>
+  <span class="tag">Interruptor</span><div class="seg-m" data-ctl="it"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo y gota</button><button data-v="tinte">B · Gota que se tiñe</button></div>
+  <span class="tag">Barra del celular</span><div class="seg-m" data-ctl="bm"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota ahumada</button><button data-v="isla">B · Isla de vidrio</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="m430">430</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <button class="accion" data-acc="hoja">Abrir «Ajustar»</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla" id="isla"></div>
+  <div class="flotante" id="flotante"></div>
+  <div class="capa"><div class="velo" data-acc="hoja"></div><div class="hoja" role="dialog" aria-label="Ajustar tu inicio" id="hoja"></div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy en el Inicio del líder (<code>app/(app)/page.tsx</code>)</h2>
+    <ul>
+      <li><b>Ya elegido</b> (viene de la base y no se toca aquí): la cabecera A con «Vender», las tres cifras de «Hoy» (tarjetas A), la nota de Claure (A · Placa), las cifras del piso (tarjetas A) con su barra apilada (A · Tubo) y la hoja Serena de «Ajustar».</li>
+      <li><b>Lo que faltaba:</b> los <b>títulos de sección</b> (<code>Etiqueta</code>: versalitas de 11 px al 65 %, en Hoy, Te toca, Tu piso, Accesos y Equipo); <b>«Te toca»</b> (la lista de avisos: su punto de nivel, la cantidad en una <b>píldora de color sólido</b> con letra crema, «Urgente» en rojo, la flecha, «Al día» y los ocultos); <b>los accesos</b> (tarjetas de papel con el ícono del menú); <b>el equipo de hoy</b> (avatar en arena con su punto de turno, lo último que hizo en una caja hueso, el monto); <b>la barra de avance</b> de la meta (pista arena, relleno de tinta); <b>el interruptor</b> de la hoja «Ajustar» (se prende en tinta sólida) y <b>la barra de abajo del celular</b> (la Isla: con una sola acción, la isla es el botón primario sólido).</li>
+      <li><b>Qué les pasa sobre el vidrio:</b> «Te toca», los accesos y el equipo son tres tarjetas de papel macizo al lado de cifras que ya son vidrio; las cantidades de «Te toca» y la pista encendida del interruptor son los últimos colores sólidos de la pantalla; y en el celular, el botón de la isla es la única pieza oscura y maciza.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Títulos</b></td><td>A · Serif <span class="ev">Recomendada</span></td><td>Es la pieza que ya decidió /unificar para un bloque (<code>TituloSeccion</code>, serif de 21 px con la cuenta en su globito): «Te toca 4» se lee de lejos. Cada sección se ve como un capítulo.</td><td>Más alto: suma ~14 px por sección.</td></tr>
+      <tr><td>B · Con hilo</td><td>Discreto como hoy pero más firme, con el hilo taupe de la cabecera que ordena la pantalla.</td><td>Sigue siendo letra chica: la colaboradora lo lee poco.</td></tr>
+      <tr><td rowspan="3"><b>Te toca</b></td><td>A · Placa <span class="ev">Recomendada</span></td><td>La placa de las tablas, sin papel: rima con todo lo elegido. La cantidad deja de ser una píldora sólida (su globito teñido, como en las pestañas); lo urgente lleva la marca roja del menú y su chip.</td><td>Lo urgente se distingue por la marca y el chip, no por un bloque rojo: hay que confirmar que una líder no lo pase de largo.</td></tr>
+      <tr><td>B · Gotas</td><td>Cada aviso se toca como un botón: lo que haces sobresale. La cantidad, como número grande, se lee de un vistazo.</td><td>Cinco gotas apiladas ocupan más alto y la pantalla se llena de cajas; «Al día» queda suelto.</td></tr>
+      <tr><td>C · Lente de urgencia</td><td>Lo urgente (lo que tiene plazo legal, como SUNAT) sale de la lista y va arriba, en su propia lente: imposible no verlo.</td><td>Mueve los avisos de lugar según su nivel: una líder que buscaba «Comprobantes» en la lista ya no lo encuentra ahí. Suma un rojo grande a la pantalla.</td></tr>
+      <tr><td rowspan="2"><b>Accesos</b></td><td>A · Gotas <span class="ev">Recomendada</span></td><td>Cada acceso es un botón y sobresale como tal; el ícono en su lente y el nombre en 13 px se leen mejor.</td><td>Ocho gotas son ocho cajas; en la columna derecha se ven como una botonera.</td></tr>
+      <tr><td>B · Una placa</td><td>Más serena: una sola placa con los íconos, como un tablero; cada uno se enciende al pasar el mouse.</td><td>Sin caja propia, en el teléfono (donde no hay mouse) no se nota que cada uno se toca.</td></tr>
+      <tr><td rowspan="2"><b>Equipo</b></td><td>A · Placa <span class="ev">Recomendada</span></td><td>La placa de las tablas; el avatar en su lente; lo último que hizo, una línea con su ícono en vez de una caja hueso; el monto en serif, que se lee de lejos.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Tarjetas</td><td>Cada persona es una tarjeta: se compara de un vistazo quién vendió cuánto.</td><td>Con 6 personas son 3 filas de tarjetas; lo último que hizo se aprieta.</td></tr>
+      <tr><td rowspan="2"><b>Barra de avance</b></td><td>A · Tubo <span class="ev">Recomendada</span></td><td>La barra que eligió para los pagos en las hojas: una sola cara para «cuánto va» en todo el ERP.</td><td>Más gruesa (14 px) dentro de una tarjeta chica.</td></tr>
+      <tr><td>B · Hilo con gota</td><td>Ligera; la gota en la punta dice «aquí vas».</td><td>La pista casi no se ve: cuánto falta se lee peor.</td></tr>
+      <tr><td rowspan="2"><b>Interruptor</b></td><td>A · Pozo y gota <span class="ev">Recomendada</span></td><td>El idioma: apagado, un pozo que espera; encendido, se llena de vidrio ahumado de tinta (como el primario). Sigue prendiéndose en tinta, como decidió /unificar.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Gota que se tiñe</td><td>La pista no cambia; la perilla viaja y se tiñe.</td><td>Encendido y apagado se distinguen solo por la perilla: menos claro de un vistazo.</td></tr>
+      <tr><td rowspan="2"><b>Barra del celular</b></td><td>A · Gota ahumada <span class="ev">Recomendada</span></td><td>Es el botón primario elegido, a todo lo ancho y flotando: nada nuevo que aprender.</td><td>Deja ver un poco lo de atrás: con una prenda muy oscura detrás, el botón pierde un punto de contraste.</td></tr>
+      <tr><td>B · Isla de vidrio</td><td>La isla de vidrio con el botón adentro y una línea de contexto («Caja abierta · Trujillo»).</td><td>Dos capas en 70 px de alto; ocupa más pantalla en el teléfono.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p>La maqueta abre con lo recomendado en cada pieza: <b>títulos A · Serif, Te toca A · Placa, accesos A · Gotas, equipo A · Placa, barra de avance A · Tubo, interruptor A · Pozo y gota y barra del celular A · Gota ahumada</b>. Con eso, el Inicio del líder queda entero en el idioma: nada de papel macizo ni de color sólido, lo que explica plano, lo que se toca sobresale.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Qué hace cada cosa: los avisos que elige cada líder en «Ajustar» (y los urgentes, que salen aunque los apague), el corte del celular («Ver N más»), «Al día», los accesos según sus módulos, el equipo con su turno y sus ventas, la meta y su falta, el botón fijo de abajo en el celular.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); la maqueta no los repite. -->
+<script>
+TRAZOS.vender = T.vender;
+const IC = { chev: 'M9 6l6 6-6 6', ajustar: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0 M16 4v4 M10 10v4 M18 16v4', check: 'M5 12l4 4 10-10', info: 'M12 16v-4M12 8h.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z',
+  alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', reloj: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2', bolsa: T.vender };
+const NIVEL = { urgente: 'var(--rojo)', toca: 'var(--ambar)', info: 'var(--pizarra)', sinleer: 'color-mix(in srgb,var(--tinta) 30%,transparent)' };
+const AVISOS = [
+  { n: 'urgente', t: 'Comprobantes sin llegar a SUNAT', d: '2 boletas de ayer siguen sin enviarse. Hoy es el último día.', c: 2 },
+  { n: 'toca', t: 'Apartados que vencen', d: '3 apartados vencen esta semana; el primero, mañana.', c: 3 },
+  { n: 'toca', t: 'Traslados por atender', d: '2 traslados llegaron de Lima y esperan que los recibas.', c: 2 },
+  { n: 'info', t: 'Pedidos no atendidos', d: 'Clientes que pidieron una talla o un color que no había.', c: 5 },
+  { n: 'sinleer', t: 'Conteo abierto', d: 'No se pudo leer. Vuelve a intentar en un rato.', c: null },
+];
+const ACCESOS = [['Caja', 'caja'], ['Apartados', 'apartados'], ['Stock', 'existencias'], ['Traslados', 'traslados'], ['Cambios', 'cambios'], ['Recibir', 'recibir'], ['Conteo', 'conteo'], ['Buscar', null]];
+const EQUIPO = [['Rosa Quispe', 'R', 'En turno desde las 9:02', 'Vendió una blusa Emma · 4:31 p. m.', 'S/ 1,240', 1], ['Carmen Ríos', 'C', 'En turno desde las 10:15', 'Abrió la caja · 10:18 a. m.', 'S/ 860', 1], ['Ana Torres', 'A', 'Salió a almorzar', 'Cobró un apartado · 1:05 p. m.', 'S/ 420', 0], ['Lucía Ramos', 'L', 'Líder · en turno', 'Recibió un traslado · 3:12 p. m.', '—', 1]];
+const svi = (d, extra = '') => `<svg class="ic${extra}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const titulo = (t, cuenta, extra = '') => `<div class="tit"><h2>${t}</h2>${cuenta != null ? `<span class="cuenta-t">${cuenta}</span>` : ''}${extra}</div>`;
+const tarjeta = (nom, num, ctx, tono = '', mas = '', cls = '') => `<div class="tc ${cls}"><p class="tc-nom">${nom}</p><p class="tc-val"><span class="num">${num}</span></p><div class="tc-ctx ${tono}"><span>${ctx}${mas}</span></div></div>`;
+
+function pintarPantalla() {
+  const tt = AVISOS.map((a) => `<a href="#" class="aviso-f${document.documentElement.dataset.tt === 'gotas' ? ' gota-v' : ''}" data-nivel="${a.n}" style="--c:${NIVEL[a.n]}">
+      <span class="pto-n" aria-hidden="true"></span><span class="tx"><b>${a.t}${a.n === 'urgente' ? '<em>Urgente</em>' : ''}</b><p>${a.d}</p></span>
+      <span class="cant${a.c === null ? ' sinleer' : ''}">${a.c === null ? 'Sin leer' : a.c}</span>${svi(IC.chev, ' chev')}</a>`).join('');
+  const urg = AVISOS.filter((a) => a.n === 'urgente').map((a) => `<a href="#" class="urg"><span class="lente-u">${svi(IC.alerta)}</span><span class="tx"><b>${a.t}</b><p>${a.d}</p></span><span class="cant">${a.c}</span>${svi(IC.chev, ' chev')}</a>`).join('');
+  const conCaja = (cls) => (['placa', 'lente'].includes(document.documentElement.dataset.tt) && cls === 'tt') || (document.documentElement.dataset.eq === 'placa' && cls === 'eq') ? ' placa' : '';
+  $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Buenas tardes, Lucía', frase: 'Líder de equipo · Trujillo', acciones: [['pri', 'Vender', 'vender']] })}
+  <div class="inicio"><div class="inicio-grid">
+    <div class="col">
+      <section style="--s:0">${titulo('Hoy')}
+        <div class="hoy-g">${tarjeta('Ventas', 'S/ 2,520', '▲ 8 % vs. el viernes pasado', 'verde')}${tarjeta('Valor medio', 'S/ 96', '26 ventas')}
+          ${tarjeta('Meta del día', '84 %', 'Faltan S/ 480 de S/ 3,000', '', '<span class="avance" aria-hidden="true"><i style="--p:84"></i></span>')}</div>
+        <p class="nota-p">${svi(IC.info)}<span>Caja cobró además <b>S/ 310 de CLAURE</b>, que no cuentan en estas cifras.</span></p>
+      </section>
+      <section class="tt" style="--s:1">${titulo('Te toca', AVISOS.length, `<button class="ajustar" data-acc="hoja">${svi(IC.ajustar)}Ajustar</button>`)}
+        <div class="urgentes">${urg}</div>
+        <div class="lista${conCaja('tt')}">${tt}<p class="al-dia">${svi(IC.check)}<span><b>Al día:</b> devoluciones por resolver · dañadas sin decidir</span></p></div>
+      </section>
+      <section style="--s:2">${titulo('Tu piso')}
+        <div class="piso-g">
+          <a href="#" class="tc toca" style="text-decoration:none;color:inherit"><p class="tc-nom">Frescura del piso</p><p class="tc-val"><span class="num">74</span><span class="uni">%</span></p>
+            <div class="tc-ctx"><span><span class="chip-p" style="--c:var(--pizarra)"><i></i>Aproximado</span><span class="apilada" aria-hidden="true"><i style="--p:412;--col:var(--verde);--k:0"></i><i style="--p:96;--col:var(--ambar);--k:1"></i><i style="--p:38;--col:var(--rojo);--k:2"></i></span>
+            <span style="display:block;margin-top:6px">412 frescas · 96 por rotar · 38 viejas</span></span></div>
+            <div class="tc-pie"><div class="tc-ctx" style="margin:0"><span style="color:var(--ambar);font-weight:600">6 por decidir</span>${svi(TRAZOS.flecha, ' flecha')}</div></div></a>
+          <a href="#" class="tc toca" style="text-decoration:none;color:inherit"><p class="tc-nom">Plan del piso</p><p class="tc-val"><span class="num">82</span><span class="uni">% del plan</span></p>
+            <div class="tc-ctx"><span>Faltan 34 prendas para cumplir el plan de noviembre.</span>${svi(TRAZOS.flecha, ' flecha')}</div></a>
+        </div>
+      </section>
+    </div>
+    <div class="col">
+      <section style="--s:3">${titulo('Accesos')}
+        <div class="accesos${document.documentElement.dataset.ac === 'dock' ? ' placa' : ''}">${ACCESOS.map(([n, ic]) => `<a href="#" class="acc${document.documentElement.dataset.ac === 'gotas' ? ' gota-v' : ''}"><span class="lente-a">${svi(ic ? T[ic] : L.buscar)}</span>${n}</a>`).join('')}</div>
+      </section>
+      <section style="--s:4">${titulo('Equipo de hoy', EQUIPO.length)}
+        <div class="equipo${conCaja('eq')}">${EQUIPO.map(([n, i, est, ult, m, turno]) => `<div class="persona${document.documentElement.dataset.eq === 'tarjetas' ? ' gota-v' : ''}"><span class="av-p${turno ? ' turno' : ''}">${i}</span>
+          <span class="tx"><b>${n}</b><span class="est">${est}</span><span class="ult">${svi(IC.reloj)}${ult}</span></span><span class="monto-p">${m}</span></div>`).join('')}</div>
+      </section>
+    </div>
+  </div></div>`;
+  $('#isla').innerHTML = `<div class="${document.documentElement.dataset.bm === 'isla' ? 'placa' : ''}" style="${document.documentElement.dataset.bm === 'isla' ? 'padding:8px;border-radius:28px' : ''}"><span class="ctx">Caja abierta · Trujillo</span>${boton(['pri', 'Vender', 'vender'])}</div>`;
+  $('#isla').className = 'isla';
+  pintarHoja();
+}
+const AJUSTES = { Ventas: [['Comprobantes sin llegar a SUNAT', 1, 'Sale aunque lo apagues: si vence hoy'], ['Apartados que vencen', 1], ['Pedidos no atendidos', 1]], Inventario: [['Traslados por atender', 1], ['Conteo abierto', 1], ['Dañadas sin decidir', 0], ['Fotos que faltan', 0]] };
+function pintarHoja() {
+  $('#hoja').innerHTML = `<h2>Ajustar tu inicio</h2><p class="sub">Elige qué avisos ves en «Te toca». Lo urgente sale igual.</p>
+    ${Object.entries(AJUSTES).map(([g, xs]) => `<p class="grupo-a">${g}</p>${xs.map(([t, on, nota]) => `<div class="fila-a"><span class="tx"><b>${t}</b>${nota ? `<small>${nota}</small>` : ''}</span>
+      <button class="inter" role="switch" aria-checked="${!!on}" aria-label="${t}"></button></div>`).join('')}`).join('')}
+    <div class="pie-a"><button class="btn sec" data-acc="hoja">Volver a lo de fábrica</button><button class="btn pri" data-acc="hoja">Listo</button></div>`;
+}
+document.addEventListener('click', (ev) => {
+  const s = ev.target.closest('.inter'); if (s) { s.setAttribute('aria-checked', s.getAttribute('aria-checked') !== 'true'); return; }
+  if (ev.target.closest('.cont a, .isla a')) ev.preventDefault();
+});
+Marco.iniciar({ estado: { tit: 'serif', tt: 'placa', ac: 'gotas', eq: 'placa', av: 'tubo', it: 'pozo', bm: 'gota' }, alPintar: () => { $('#cont').scrollTop = 0; pintarPantalla(); } });
+</script>
+</body>
+</html>

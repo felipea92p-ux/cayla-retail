@@ -59,21 +59,24 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Estados vacíos | `ui/Vacio.tsx` | Por auditar | — | — |
 | Paginación | `ui/Paginas.tsx` | Por auditar | — | — |
 | Globito con número | `ui/Globito.tsx` | Por auditar | — | — |
-| Avatares | `ui/AvatarPersona.tsx` | Por auditar | — | — |
-| Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Por auditar | — | — |
-| Casillas e interruptores | `ui/Casilla`, `Interruptor` | Por auditar | — | — |
+| Avatares | `ui/AvatarPersona.tsx` | En maqueta (el equipo del Inicio) | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
+| Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Barra de avance en maqueta; lo demás, por auditar | — (recomendada: A · Tubo) | `inicio-lider-vidrio-2026-10/` |
+| Casillas e interruptores | `ui/Casilla`, `Interruptor` | Interruptor en maqueta; la casilla, por auditar | — (recomendada: A · Pozo y gota) | `inicio-lider-vidrio-2026-10/` |
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
 | Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
-| Títulos de sección y enlaces | `ui/TituloSeccion`, `btn-enlace`, `EnlaceVer` | Por auditar | — | — |
+| Títulos de sección y enlaces | `ui/TituloSeccion`, `btn-enlace`, `EnlaceVer` | Títulos en maqueta; los enlaces, por auditar | — (recomendada: A · Serif) | `inicio-lider-vidrio-2026-10/` |
 | Avisos de éxito (esquina) | `ui/Avisos` | Por auditar | — | — |
 | Loader a pantalla completa | `ui/Espera.tsx` | Por auditar | — | — |
 | «Hay una versión nueva» | `VersionNueva.tsx` | Por auditar | — | — |
-| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | Por auditar | — | — |
+| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | En maqueta (la del Inicio, con una acción) | — (recomendada: A · Gota ahumada) | `inicio-lider-vidrio-2026-10/` |
+| «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
+| Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |
 | Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar | — | — |
+| **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 
 ## Fuera hasta que Felipe diga
 
-Lo que tiene diseño propio decidido: la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock de Existencias, el Observatorio,
+Lo que tiene diseño propio decidido: la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock de Existencias,
 la persiana de Caja, El telar de Finanzas, el login «El vuelo vivo», las guías interactivas. Y lo que es papel o cámara: ticket, boleta,
 etiqueta, QR y los visores de cámara (ADR-0336, regla 3).
 
