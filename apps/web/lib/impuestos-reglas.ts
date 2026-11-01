@@ -310,8 +310,8 @@ export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): A
     return {
       ...base,
       nivel: "cruzado",
-      titulo: `Pasaste ${elLimite} este año: llevas ${solesRedondo(u.ventasAnio)} vendidos. Habla con tu contador.`,
-      detalle: "Confirma con él desde qué mes cambia el pago a cuenta de renta y qué libros te toca llevar.",
+      titulo: `Pasaste ${elLimite} este año: llevas ${solesRedondo(u.ventasAnio)} vendidos. Hay obligaciones nuevas que coordinar con tu contador.`,
+      detalle: "Cambian el pago a cuenta de renta, desde el mes en que pasaste el límite, y los libros que exige SUNAT. Coordina con él cómo se hacen desde ahora.",
     };
   }
   if (u.avisoAlcanzado) {

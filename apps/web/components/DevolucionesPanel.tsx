@@ -258,12 +258,12 @@ export function DevolucionesPanel({
   }
 
   const TITULOS: Record<Vista, { titulo: string; bajada: string }> = {
-    compras: { titulo: "Actividad reciente", bajada: `Compras de los últimos 15 días en ${sede}: el plazo para cambiar o devolver.` },
+    compras: { titulo: "Actividad reciente", bajada: "Compras de los últimos 15 días: aún se pueden cambiar o devolver." },
     pendientes: {
       titulo: "Por aprobar",
       bajada: "Revisa cada una: al aprobarla se mueve el stock y se emite la nota de crédito.",
     },
-    resueltas: { titulo: "Resueltas", bajada: "Las aprobadas y rechazadas de los últimos 15 días: su nota de crédito y adónde fue cada prenda." },
+    resueltas: { titulo: "Resueltas", bajada: "Aprobadas y rechazadas en 15 días, con su nota de crédito." },
   };
   const PESTANAS: { valor: Vista; texto: string; cuantas: number; alerta?: boolean }[] = [
     { valor: "compras", texto: "Compras", cuantas: new Set(lineas.map((l) => l.ventaId)).size },

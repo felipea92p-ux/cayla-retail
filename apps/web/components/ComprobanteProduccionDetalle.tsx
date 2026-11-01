@@ -84,12 +84,12 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
           <Chip tono={estado.tono}>{estado.texto}</Chip>
-          <span className="text-xs text-tinta/65">
+          <span className="text-sm text-tinta/65">
             Emitida {diaMes(c.fechaEmision)} · {c.condicion === "contado" ? "al contado" : c.fechaVencimiento ? `crédito, vence ${diaMes(c.fechaVencimiento)}` : "a crédito"}
           </span>
         </div>
 
-        {c.estado === "anulada" && c.motivoAnulacion && <p className="rounded-lg bg-sand/60 px-3 py-2.5 text-[13px] text-tinta/80">Anulada: {c.motivoAnulacion}</p>}
+        {c.estado === "anulada" && c.motivoAnulacion && <p className="rounded-lg bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">Anulada: {c.motivoAnulacion}</p>}
 
         <section aria-label="Líneas">
           <TituloGrupo className="mb-2">Qué se compró</TituloGrupo>
@@ -100,14 +100,14 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
           ) : (
             <ul>
               {lineas.map((l) => (
-                <li key={l.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 border-b border-tinta/10 py-2 text-[13px]">
+                <li key={l.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 border-b border-tinta/10 py-2 text-sm">
                   <div className="min-w-0">
                     <p className="truncate text-tinta">{l.insumo?.nombre ?? l.descripcion}</p>
-                    <p className="text-xs text-tinta/65">
+                    <p className="text-sm text-tinta/65">
                       {l.insumo ? cantidadTexto(Number(l.cantidad), l.insumo.unidad_medida as UnidadInsumo) : `${Number(l.cantidad)} u.`} × {soles(Number(l.costo_unitario))}
                     </p>
                     {l.insumo && recepcion[l.id] && (
-                      <p className="text-xs text-tinta/65">
+                      <p className="text-sm text-tinta/65">
                         {recepcion[l.id].pendiente <= 0
                           ? recepcion[l.id].cerrado > 0
                             ? `Recibido ${cantidadTexto(recepcion[l.id].recibido, l.insumo.unidad_medida as UnidadInsumo)} · ${cantidadTexto(recepcion[l.id].cerrado, l.insumo.unidad_medida as UnidadInsumo)} cerrados`
@@ -125,7 +125,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
           )}
         </section>
 
-        <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
+        <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-sm">
           <div className="flex justify-between gap-3 px-3 py-2">
             <dt>Subtotal</dt>
             <dd className="tabular-nums">{soles(c.subtotal)}</dd>
@@ -153,10 +153,10 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
             <TituloGrupo className="mb-2">Pagos</TituloGrupo>
             <ul>
               {pagos.map((p) => (
-                <li key={p.id} className="flex items-baseline justify-between gap-3 border-b border-tinta/10 py-2 text-[13px]">
+                <li key={p.id} className="flex items-baseline justify-between gap-3 border-b border-tinta/10 py-2 text-sm">
                   <span className="text-tinta">
                     {etiquetaMetodo(p.metodo)}
-                    <small className="ml-2 text-xs text-tinta/65">
+                    <small className="ml-2 text-sm text-tinta/65">
                       {diaMes(p.fecha)}
                       {p.referencia ? ` · ${p.referencia}` : ""}
                     </small>
@@ -168,7 +168,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
           </section>
         )}
 
-        {c.nota && <p className="text-[13px] text-tinta/75">Nota: {c.nota}</p>}
+        {c.nota && <p className="text-sm text-tinta/75">Nota: {c.nota}</p>}
 
         {puedeAnular &&
           (anulando ? (
@@ -185,12 +185,12 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setAnulando(true)} className="text-xs text-tinta/70 underline underline-offset-2 outline-none hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60">
+            <button type="button" onClick={() => setAnulando(true)} className="text-sm text-tinta/70 underline underline-offset-2 outline-none hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60">
               Anular este comprobante
             </button>
           ))}
-        {c.estado === "vigente" && pagos && pagos.length > 0 && <p className="text-xs text-tinta/65">Con pagos registrados no se puede anular: dejaría dinero sin respaldo.</p>}
-        {c.estado === "vigente" && hayRecepcion && <p className="text-xs text-tinta/65">Con mercadería recibida no se puede anular: dejaría stock sin respaldo.</p>}
+        {c.estado === "vigente" && pagos && pagos.length > 0 && <p className="text-sm text-tinta/65">Con pagos registrados no se puede anular: dejaría dinero sin respaldo.</p>}
+        {c.estado === "vigente" && hayRecepcion && <p className="text-sm text-tinta/65">Con mercadería recibida no se puede anular: dejaría stock sin respaldo.</p>}
       </div>
     </Modal>
   );

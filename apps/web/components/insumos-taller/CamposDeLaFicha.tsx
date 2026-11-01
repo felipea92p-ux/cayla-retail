@@ -35,7 +35,7 @@ export function CamposDeLaFicha({
 }) {
   if (!leyo) {
     return (
-      <p data-guia={guia} className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">
+      <p data-guia={guia} className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">
         No se pudieron cargar los tejidos y los colores. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.
       </p>
     );

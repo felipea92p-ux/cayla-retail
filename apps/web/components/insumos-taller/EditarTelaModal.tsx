@@ -186,7 +186,7 @@ export function EditarTelaModal({
               <PieGuia guia={guia} listo={soloPonerAlDia ? "Todo listo para poner al día los nombres de los colores." : "Todo listo para guardar los cambios."} conFrase />
             )}
             {!puedeGuardar && guia.puedeConfirmar && (
-              <p role="status" className="pt-1 text-[12.5px] text-tinta/80">
+              <p role="status" className="pt-1 text-sm text-tinta/80">
                 Todavía no cambiaste nada: el botón se enciende cuando corrijas algo.
               </p>
             )}

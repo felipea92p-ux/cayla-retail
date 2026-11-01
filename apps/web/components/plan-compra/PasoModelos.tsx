@@ -210,7 +210,7 @@ function PasoModelosListo({
   if (total <= 0) {
     return (
       <Aviso tono="info" titulo={`No hay nada que repartir en ${fila.c.nombre}`}>
-        Con lo que ya hay, el plan no pide comprar de esta categoría. Si cambias los escenarios en el paso 1 y piden comprar, aquí repartes en modelos.
+        Con lo que ya hay, no hace falta comprar. Si cambias los escenarios del paso 1, aquí repartes en modelos.
       </Aviso>
     );
   }
@@ -234,7 +234,7 @@ function PasoModelosListo({
               </Boton>
             )}
           </div>
-          <p className="text-xs text-taupe">{reparto.hayParaRepetir ? `El sistema propone ${reparto.pctPorDefecto} %` : "Ningún modelo pide repetirse todavía"}</p>
+          <p className="text-sm text-taupe">{reparto.hayParaRepetir ? `El sistema propone ${reparto.pctPorDefecto} %` : "Ningún modelo pide repetirse todavía"}</p>
         </div>
         <TarjetaCifra etiqueta="Quedan para modelos nuevos" valor={enteroES.format(reparto.nuevos)} unidad="prendas" tono={reparto.sePasa > 0 ? "text-ambar-profundo" : undefined}>
           {reparto.sePasa > 0 ? `Te pasaste ${enteroES.format(reparto.sePasa)}` : "Los eliges con tu proveedor o en el Taller"}
@@ -251,7 +251,7 @@ function PasoModelosListo({
 
       {lectura.modelos.length === 0 ? (
         <Vacio tamano="chico" icono={<ChartColumn />} titulo="Ningún modelo vendió todavía">
-          Todo el total va a «modelos nuevos por elegir»: abajo tienes los colores y tallas de la categoría para guiarte.
+          Todo va a «modelos nuevos por elegir»; abajo, los colores y tallas de la categoría.
         </Vacio>
       ) : (
         <Tabla guia="paso2.modelos">
@@ -281,7 +281,7 @@ function PasoModelosListo({
             />
           ))}
           {lectura.modelosTotal > lectura.modelos.length && (
-            <p className="px-5 py-2.5 text-xs text-taupe">Se muestran los {enteroES.format(lectura.modelos.length)} que más vendieron de {enteroES.format(lectura.modelosTotal)}.</p>
+            <p className="px-5 py-2.5 text-sm text-taupe">Se muestran los {enteroES.format(lectura.modelos.length)} que más vendieron de {enteroES.format(lectura.modelosTotal)}.</p>
           )}
         </Tabla>
       )}
@@ -290,7 +290,7 @@ function PasoModelosListo({
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-tinta">Modelos nuevos por elegir</p>
-            <p className="text-xs text-taupe">Aquí no se nombra un modelo: lo eliges con tu proveedor o en el Taller</p>
+            <p className="text-sm text-taupe">Aquí no se nombra un modelo: lo eliges con tu proveedor o en el Taller</p>
           </div>
           <p className="font-serif text-2xl tabular-nums text-tinta">{enteroES.format(reparto.nuevos)}</p>
           <Chip tono="verde" versalitas={false}>
@@ -299,12 +299,12 @@ function PasoModelosListo({
         </div>
         {reparto.guia && (reparto.guia.colores.length > 0 || reparto.guia.tallas.length > 0) && (
           <div className="mt-3 space-y-2 border-t border-sand pt-3 text-sm">
-            <p className="text-xs text-taupe">
+            <p className="text-sm text-taupe">
               <b className="font-semibold text-tinta">Colores y tallas que conviene buscar</b> (de lo que más vende la categoría, restando lo que ya hay):
             </p>
             <div className="flex flex-wrap gap-2">
               {reparto.guia.colores.map((c) => (
-                <span key={c.codigo} className="inline-flex items-center gap-1.5 rounded-full bg-hueso px-2.5 py-0.5 text-xs text-tinta">
+                <span key={c.codigo} className="inline-flex items-center gap-1.5 rounded-full bg-hueso px-2.5 py-0.5 text-sm text-tinta">
                   <span data-color-dato aria-hidden className="p2-punto" style={c.hex ? { backgroundColor: c.hex } : undefined} />
                   {c.nombre} · {enteroES.format(c.unidades)}
                 </span>
@@ -313,7 +313,7 @@ function PasoModelosListo({
             {reparto.guia.tallas.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {reparto.guia.tallas.map((t) => (
-                  <span key={t.id} className="rounded-lg bg-hueso px-2 py-0.5 text-xs font-semibold tabular-nums text-tinta">
+                  <span key={t.id} className="rounded-lg bg-hueso px-2 py-0.5 text-sm font-semibold tabular-nums text-tinta">
                     {t.valor} {enteroES.format(t.unidades)}
                   </span>
                 ))}
@@ -355,7 +355,7 @@ function PasoModelosListo({
             </button>
           </p>
         )}
-        <p className="text-xs text-taupe">
+        <p className="text-sm text-taupe">
           Toca un modelo para ver sus colores y tallas y cámbialas ahí mismo. Lo que no elijas para un modelo queda como «modelos nuevos por elegir»: así el total siempre cuadra con el paso 1.{" "}
           <Ayuda titulo="Cómo lo calcula el sistema">
             <span className="block">
@@ -386,7 +386,7 @@ function PasoModelosListo({
 
       <div className="space-y-3 border-t border-sand pt-4">
         {guardado && (
-          <p className="text-xs text-taupe">
+          <p className="text-sm text-taupe">
             Guardado{guardado.por ? ` por ${guardado.por}` : ""} (versión {guardado.version}): {enteroES.format(guardado.unidades)} prendas en modelos.
           </p>
         )}

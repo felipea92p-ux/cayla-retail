@@ -257,6 +257,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
+      id: "talla-nueva",
+      ancla: "prod-orden-nueva.talla-nueva-boton",
+      opcional: true,
+      titulo: "¿Falta una talla o un color?",
+      texto: "El «+ Talla» de la derecha y el «+ Color» de abajo le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla. Es de quien edita el catálogo; si no, salen apagados y dicen por qué.",
+    },
+    {
       id: "red",
       ancla: "prod-orden-nueva.red",
       opcional: true,
@@ -304,7 +311,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Pegar cierre, Ojales y botones o Lavado o teñido, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha (el ploteo se paga una vez: total o por prenda). ¿Aún no lo tienes? «Pendiente de registrar».",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; los demás pasos, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio (por prenda o el total de la orden; si se ve muy alto, te pregunta) y la fecha. ¿Aún no lo tienes? «Pendiente de registrar».",
     },
     {
       id: "recordar",
@@ -537,7 +544,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
       titulo: "Taller o afuera",
-      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra por prenda, desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
+      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra (por prenda o el total de la orden), desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
     },
     {
       id: "quitar-paso",
@@ -561,7 +568,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.agregar-paso" }],
       titulo: "Quién lo hace",
-      texto: "Igual que al abrir la orden: Taller o Afuera; si sale afuera, a qué servicio (¿aún no lo tienes? «Pendiente de registrar»), cuánto cobra por prenda y para cuándo. Agregarlo no mueve dinero: el costo sale cuando el servicio devuelve prendas. En la demo no guardamos nada.",
+      texto: "Igual que al abrir la orden: Taller o Afuera; si sale afuera, a qué servicio (¿aún no lo tienes? «Pendiente de registrar»), cuánto cobra (por prenda o el total de la orden) y para cuándo. Agregarlo no mueve dinero: el costo sale cuando el servicio devuelve prendas. En la demo no guardamos nada.",
     },
     {
       id: "agregar-paso-tarde",
@@ -1031,7 +1038,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-insumos.nuevo" }],
       titulo: "Qué avío es",
-      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen tres cosas solas: en qué se cuenta, si lleva color y qué medida se le pide. Si es otra cosa, la creas ahí mismo. El código se arma solo con las letras de su clase.",
+      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen solas la unidad, si lleva color y qué medida se le pide. El código se arma solo. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller.",
     },
     {
       id: "avio-unidad",

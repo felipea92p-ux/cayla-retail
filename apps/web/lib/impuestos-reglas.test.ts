@@ -227,8 +227,8 @@ describe("el aviso anticipado del límite (parámetro)", () => {
     const a = avisoUmbral(panel({ ventas_anio_erp: 1_700_000, ventas_anio: 1_700_000, cruzado: true }));
     expect(a.nivel).toBe("cruzado");
     expect(a.faltaSoles).toBe(0);
-    expect(a.titulo).toBe("Pasaste las 300 UIT este año: llevas S/\u00a01,700,000 vendidos. Habla con tu contador.");
-    expect(a.detalle).toContain("desde qué mes cambia el pago a cuenta de renta");
+    expect(a.titulo).toBe("Pasaste las 300 UIT este año: llevas S/\u00a01,700,000 vendidos. Hay obligaciones nuevas que coordinar con tu contador.");
+    expect(a.detalle).toContain("Cambian el pago a cuenta de renta, desde el mes en que pasaste el límite");
   });
 
   it("siempre dice qué cuenta —lo registrado en el sistema— y que puede quedar por debajo, empiece cuando empiece el sistema", () => {

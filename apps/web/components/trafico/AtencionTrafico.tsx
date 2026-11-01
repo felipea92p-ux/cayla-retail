@@ -114,7 +114,7 @@ export function AtencionTrafico({ atencion, hoy }: { atencion: Atencion; hoy: st
               </Vacio>
             ))}
         </ul>
-        <p className="nota-cayla sin-i mt-auto text-[13px]">
+        <p className="nota-cayla sin-i mt-auto text-sm">
           {vista === "reponer" ? (
             <>
               Al ritmo de las últimas 4 semanas, estas se agotan primero. <b className="font-semibold">Pide reponerlas antes</b> de empujarlas en redes.
@@ -146,11 +146,11 @@ function Fila({ marca, titulo, detalle, cifra, pie, urgente = false }: { marca: 
       {marca}
       <span className="min-w-0">
         <b className="block truncate text-[14px] font-semibold">{titulo}</b>
-        <small className="block text-[12.5px] text-tinta/70">{detalle}</small>
+        <small className="block text-sm text-tinta/70">{detalle}</small>
       </span>
       <span className="text-right">
         <b className={`block font-display text-[22px] leading-tight tabular-nums ${urgente ? "text-ambar" : ""}`}>{cifra}</b>
-        <small className="block text-[12px] text-tinta/70">{pie}</small>
+        <small className="block text-sm text-tinta/70">{pie}</small>
       </span>
     </li>
   );

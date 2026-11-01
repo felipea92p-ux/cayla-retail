@@ -15,7 +15,7 @@ import { descuentoDeCampana } from "./vender-reglas";
 export type EmpresaEtiqueta = { nombre: string; conLogo: boolean; web: string };
 
 /** La web que sale en el papel (Felipe, 2026-10-20): la tienda online, no «cayla.pe». */
-export const WEB_DE_LA_ETIQUETA = "tienda.cayla.pe";
+export const WEB_DE_LA_ETIQUETA = "cayla.pe";
 
 /** La empresa de la casa: lo que dice el papel de toda prenda cuya empresa no se conoce (datos viejos, una base sin empresas). */
 export const EMPRESA_CASA: EmpresaEtiqueta = { nombre: "CAYLA", conLogo: true, web: WEB_DE_LA_ETIQUETA };

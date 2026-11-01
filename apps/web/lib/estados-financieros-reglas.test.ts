@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  conForma,
+  formaDe,
   ESTADOS,
   filaDeLaSede,
   leerPatrimonio,
@@ -105,5 +107,18 @@ describe("leerPatrimonio y respuestaTuyo", () => {
   });
   it("sin arranque: lo dice, sin cifra", () => {
     expect(respuestaTuyo(leerPatrimonio({ sin_arranque: true }), null)).toMatchObject({ valor: null, contexto: "Faltan los saldos de arranque." });
+  });
+});
+
+describe("la forma de mirar un estado (respuesta o formal)", () => {
+  it("solo «formal» es formal; lo demás, la respuesta", () => {
+    expect(formaDe("formal")).toBe("formal");
+    expect(formaDe(undefined)).toBe("respuesta");
+    expect(formaDe("otra")).toBe("respuesta");
+  });
+  it("la respuesta no se escribe en la URL; la formal se suma a lo que haya", () => {
+    expect(conForma("/finanzas/reportes", "respuesta")).toBe("/finanzas/reportes");
+    expect(conForma("/finanzas/reportes", "formal")).toBe("/finanzas/reportes?forma=formal");
+    expect(conForma("/finanzas/reportes/flujo?mes=2026-09", "formal")).toBe("/finanzas/reportes/flujo?mes=2026-09&forma=formal");
   });
 });

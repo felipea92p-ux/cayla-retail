@@ -14,8 +14,7 @@ export function SoloLiderFlujo({ pestana }: { pestana: keyof typeof TITULO }) {
       <EncabezadoPagina sede="Finanzas" titulo="Estados financieros" subtitulo={TITULO[pestana]} />
       <Superficie>
         <Vacio icono={<Lock />} titulo="Esto es de CAYLA entera">
-          Mira los bancos, todo lo que CAYLA debe y lo que es del dueño, y eso no se muestra en el aparato de la tienda. Entra con tu cuenta para
-          verlo. Lo de esta tienda está en ¿Ganamos? y en Cuentas y dinero.
+          Entra con tu cuenta para verlo. Lo de esta tienda está en ¿Ganamos? y en Cuentas y dinero.
         </Vacio>
       </Superficie>
     </div>

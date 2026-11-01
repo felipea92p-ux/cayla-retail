@@ -139,7 +139,7 @@ export function PasoAPaso({
         <div className="rounded-2xl border border-sand p-6">
           {cola.length === 0 ? (
             <Aviso tono="info" titulo="Todavía no hay cuáles venden más">
-              No hubo ventas en los últimos 90 días para decir cuáles son las que más venden. Pasa a «Todas con movimiento» o arma la que quieras desde la tabla.
+              Sin ventas en 90 días. Pasa a «Todas con movimiento» o arma la que quieras desde la tabla.
             </Aviso>
           ) : (
             <Aviso tono="exito" titulo={alcance === "top" ? `Ya tienes las ${cola.length === TOP_VENTAS ? TOP_VENTAS : cola.length} que más venden` : "Ya llenaste todas las que se mueven"}>

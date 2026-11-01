@@ -225,7 +225,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
               {faltanColores.length > 0 && (
                 <ul className="flex flex-wrap gap-1.5 pt-1">
                   {faltanColores.map((c) => (
-                    <li key={c.codigo} className="flex items-center gap-1.5 rounded-md border border-tinta/15 px-2 py-1 text-xs text-tinta/80">
+                    <li key={c.codigo} className="flex items-center gap-1.5 rounded-md border border-tinta/15 px-2 py-1 text-sm text-tinta/80">
                       {c.hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/20" style={{ background: c.hex }} />}
                       {c.nombre}
                     </li>
@@ -238,7 +238,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
                 {completas ? "Ver las fotos" : "Agregar fotos"}
               </Link>
             ) : (
-              <p className="text-xs text-taupe">La ficha existe cuando el producto sube: ahí se agregan o cambian fotos.</p>
+              <p className="text-sm text-taupe">La ficha existe cuando el producto sube: ahí se agregan o cambian fotos.</p>
             )}
           </div>
         )}

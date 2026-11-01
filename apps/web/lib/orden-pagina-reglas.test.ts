@@ -327,6 +327,9 @@ describe("la ficha", () => {
     expect(c.entrega).toEqual({ valor: 4, etiqueta: "Para el vie 23 oct", nota: "días", atrasada: false });
     expect(c.costo).toEqual({ valor: 1050, nota: "de S/\u00a01,392.00", etiqueta: "Costo hasta hoy" });
     expect(cifrasDeLaOrden(orden({ costos: null }), HOY).costo).toBeNull();
+    // Tela sin anotar (OP-3, Blusa Hanna): el costo real no la incluye y la etiqueta lo dice.
+    const sinTela = orden({ costos: { tela_estimado: 327.24, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 79.5, servicios_devengado: 79.5, total_estimado: 406.74, total_real_hasta_hoy: 79.5 } });
+    expect(cifrasDeLaOrden(sinTela, HOY).costo).toMatchObject({ valor: 79.5, etiqueta: "Costo hasta hoy · sin la tela" });
     expect(cifrasDeLaOrden(p, "2026-10-25").entrega).toMatchObject({ valor: 2, etiqueta: "Atrasada · era el vie 23 oct", atrasada: true });
     expect(cifrasDeLaOrden(p, "2026-10-23").entrega).toMatchObject({ valor: 0, nota: "hoy" });
     expect(cifrasDeLaOrden(p, "2026-10-22").entrega).toMatchObject({ valor: 1, nota: "día" });

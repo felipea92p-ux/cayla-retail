@@ -57,7 +57,7 @@ export function FilaDeModelo({
             <span className="truncate">{m.nombre}</span>
             <span className="sr-only">: {abierto ? "ocultar" : "ver"} sus colores y tallas</span>
           </button>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 pl-5.5 text-xs text-taupe">
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 pl-5.5 text-sm text-taupe">
             <span>{m.marca ?? "Sin marca"}</span>
             {m.editado && (
               <Chip tono="ambar" versalitas={false}>
@@ -74,7 +74,7 @@ export function FilaDeModelo({
           <span className="sm:hidden text-taupe">Hay hoy </span>
           {enteroES.format(m.hay)}
           {m.alcanza !== null && (
-            <span className={`block text-xs ${m.alcanza < 14 ? "font-semibold text-ambar-profundo" : "text-taupe"}`} title="Para cuántos días alcanza lo que hay al ritmo de lo vendido">
+            <span className={`block text-sm ${m.alcanza < 14 ? "font-semibold text-ambar-profundo" : "text-taupe"}`} title="Para cuántos días alcanza lo que hay al ritmo de lo vendido">
               alcanza {m.alcanza} d
             </span>
           )}
@@ -94,7 +94,7 @@ export function FilaDeModelo({
       </div>
       {abierto && (
         <div className="p2-detalle" data-guia="paso2.detalle">
-          <p className="text-xs text-taupe">
+          <p className="text-sm text-taupe">
             Los colores que más vendió «{m.nombre}». Cambia las prendas de cada talla o de cada color: el color suma sus tallas, el modelo suma sus colores y lo que queda del total del paso 1 se ajusta.
           </p>
           <div className="overflow-x-auto">

@@ -552,3 +552,84 @@ registró con la versión del momento del pegado (`20261020012606`, `20261020012
 archivo, los guardas `fase_es_hito` están en Avance, Salida y Vuelta, la línea de tiempo de `fn_orden_produccion` lee las marcas, `produccion_fase_marcas` existe con RLS y 0 filas, los cuatro CHECK nuevos están y las
 tablas de Producción siguen en 0 filas. **Lección del pegado:** la primera migración se pegó una vez sin los comentarios que viven DENTRO de dos cuerpos (`fn_produccion_fases_normalizar`, `cambiar_quien_fase`); el md5 del
 archivo no coincidió y se repegaron esos dos cuerpos tal cual. Un cuerpo de función se pega con sus comentarios internos, siempre: el candado de md5 de la migración siguiente lo exige.
+
+## Actualización 2026-10-31 (n) · el «Estimado» de la tela ya no cae a 0 cuando el lote se gasta
+
+**El problema.** En el cuadro «Costo» de una orden, la tela decía Estimado 355.20 y Real 761.92 cuando la orden había usado 87.50 m de los 87.98 m del plan. El estimado de `fn_orden_produccion` medía cada
+tela contra el lote más antiguo que todavía tiene saldo en el Taller (PEPS); al consumirse el último metro de un lote, esa tela valía 0 y desaparecía de la cuenta (el Forro, 315.12, y el Arena, 94.72). En cadena
+fallaban el Total estimado (2,466.66; debía ser 2,876.50), el costo por prenda (43.27; debía ser 50.46) y el encabezado «Costo hasta hoy 2,846.02 de 2,466.66», que hacía parecer pasada de presupuesto a una orden que no
+lo estaba. Crecía con cada tela consumida, justo cuando más sirve comparar el plan contra lo gastado.
+
+**Lo que cambia** (`20261031194000_produccion_estimado_de_tela_consumida.sql`, dos reemplazos anclados, sin tablas ni columnas): lo que cuesta cada unidad de un insumo en el estimado es, en este orden, (1) lo que ya le
+costó a esta orden (su costo medio: consumo menos devolución, al costo del lote de cada movimiento), (2) si no ha consumido de ese insumo, el lote más antiguo con saldo, como hasta hoy, (3) sin ninguno, 0 («sin lote
+recibido»). Con una sola tela a un solo precio el resultado es el de antes. El «Real» no se toca.
+
+**DESCARTÉ** guardar el estimado al abrir la orden (una columna nueva en `produccion_insumos`): es lo más fiel, pero las órdenes ya abiertas no lo tienen y habría que inventarlo. Y estimar lo ya consumido con el
+último precio de compra: si el precio subió, la orden se vería más cara de lo que le costó.
+**SE ROMPE SI** una orden consume la misma tela de dos lotes con precios distintos: lo que queda por consumir se estima con el promedio de lo ya consumido, no con el precio del siguiente lote; se corrige solo al
+terminar de consumirla.
+
+**Cómo se verificó.** `pnpm pruebas:produccion-estimado-de-tela` (15 casos: antes de consumir, el lote agotado de la captura, avíos, devolución, la misma tela en dos colores, dos lotes, el real intacto, quien no ve
+costos, pegarla dos veces, el ancla perdida y el camino de vuelta); las siete pruebas vecinas de Producción siguen en verde. En una base privada construida con las migraciones de `main`: la huella de la función era
+`0f27ca2f00bd0c4ad1448a1b4a3eeca1` (21 546 caracteres), **la misma que producción** (leída el 2026-10-31); con la migración queda `1375b6a3746b880c412c6edb19ac7a82` (22 456) y el camino de vuelta la devuelve a
+`0f27ca2f…`, adelante y atrás, dos veces cada uno.
+
+**Pendiente (no es de esta migración).** Los S/ 34.80 «por prenda» de «Ojales y botones» (agregado el 30-oct a la orden ya abierta, sin proveedor, con mínimo 57; 57 × 34.80 = 1,983.60, el 70 % del costo real) parecen
+un total escrito en la caja «Por prenda»: en un servicio solo esa caja está a la vista, y el «Total de la orden» del ploteo no existe para los demás. La base exige tarifa por prenda mayor que cero en todo servicio que no
+sea hito, así que un total exacto no se puede guardar sin otra migración. Decisión de Felipe.
+
+**Camino de vuelta** (generado desde la propia migración y probado: la función vuelve a `0f27ca2f00bd0c4ad1448a1b4a3eeca1`; es lo que corre el caso S5 de la prueba). Se pega solo si hace falta deshacer:
+
+```sql
+-- CAMINO DE VUELTA de 20261031194000: deja fn_orden_produccion como estaba (huella 0f27ca2f00bd0c4ad1448a1b4a3eeca1).
+set lock_timeout = '3s';
+
+-- Reemplaza `p_viejo` por `p_nuevo` en la función viva; `p_viejo` tiene que aparecer exactamente una vez. Si `p_nuevo` ya está, no hace nada.
+create or replace function pg_temp.reemplazar_anclado(p_firma text, p_viejo text, p_nuevo text)
+returns void
+language plpgsql
+as $f$
+declare
+  v_def text;
+  v_n integer;
+begin
+  v_def := pg_get_functiondef(p_firma::regprocedure);
+  if position(p_nuevo in v_def) > 0 then
+    return;
+  end if;
+  v_n := (length(v_def) - length(replace(v_def, p_viejo, ''))) / length(p_viejo);
+  if v_n <> 1 then
+    raise exception '% cambió desde que se escribió esta migración: el ancla aparece % veces (se esperaba 1). Regenera el reemplazo desde su definición real.',
+      p_firma, v_n;
+  end if;
+  execute replace(v_def, p_viejo, p_nuevo);
+end;
+$f$;
+
+select pg_temp.reemplazar_anclado('retail.fn_orden_produccion(uuid)',
+  $v$    -- Estimado: el plan de cada tela o avío × lo que cuesta cada unidad. Si la orden ya consumió de ese insumo, cuesta lo que le costó (su costo medio: consumo menos devolución); si todavía
+    -- no, el del lote más antiguo con saldo en ese Taller (PEPS, como `registrar_consumo_insumo`); sin ninguno de los dos, 0 (la pantalla dice «sin lote recibido», no inventa un precio).
+    -- Antes se medía SIEMPRE contra el lote con saldo: al gastarse el último lote de una tela su estimado caía a 0 justo cuando ya se había consumido (ADR-0400, act. 2026-10-31).
+    select coalesce(sum(case when i.tipo = 'tela' then pi.cantidad_plan * coalesce(case when cons.cantidad > 0 then cons.monto / cons.cantidad end, peps.costo, 0) end), 0),
+           coalesce(sum(case when i.tipo <> 'tela' then pi.cantidad_plan * coalesce(case when cons.cantidad > 0 then cons.monto / cons.cantidad end, peps.costo, 0) end), 0)$v$,
+  $v$    -- Estimado: el plan de cada tela o avío × el costo del lote más antiguo con saldo en ese Taller (PEPS, como `registrar_consumo_insumo`);
+    -- sin lote con saldo, 0 (la pantalla dice «sin tela recibida», no inventa un precio).
+    select coalesce(sum(case when i.tipo = 'tela' then pi.cantidad_plan * coalesce(peps.costo, 0) end), 0),
+           coalesce(sum(case when i.tipo <> 'tela' then pi.cantidad_plan * coalesce(peps.costo, 0) end), 0)$v$
+);
+
+select pg_temp.reemplazar_anclado('retail.fn_orden_produccion(uuid)',
+  $v$      ) peps on true
+      left join lateral (
+        select sum(case when mi.tipo = 'consumo' then mi.cantidad else -mi.cantidad end) as cantidad,
+               sum(case when mi.tipo = 'consumo' then mi.cantidad * mi.costo_unitario else -mi.cantidad * mi.costo_unitario end) as monto
+          from retail.movimientos_insumo mi
+         where mi.produccion_id = p_produccion_id and mi.insumo_id = pi.insumo_id and mi.tipo in ('consumo', 'devolucion')
+      ) cons on true
+     where pi.produccion_id = p_produccion_id;$v$,
+  $v$      ) peps on true
+     where pi.produccion_id = p_produccion_id;$v$
+);
+
+reset lock_timeout;
+```

@@ -9,7 +9,7 @@
 import { soles } from "./flujo-caja-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 import type { Recomendacion } from "./ganamos-reglas";
-import type { TramoCascada } from "./pulso-reglas";
+import type { FilaCascada } from "./cascada-estados-reglas";
 
 type ConExtremos = PatrimonioCambios & { inicio: NonNullable<PatrimonioCambios["inicio"]>; fin: NonNullable<PatrimonioCambios["fin"]> };
 
@@ -22,23 +22,18 @@ const pesa = (n: number) => Math.round(n) !== 0;
 /** Cuánto cambió lo tuyo en el mes (al cerrar − al empezar). */
 export const cambioDelMes = (p: ConExtremos) => r2(p.fin.total - p.inicio.total);
 
-/** El puente del mes: al empezar, cada cosa que lo movió (sin las que son cero) y al cerrar. Sumar los tramos da siempre «al cerrar». */
-export function puenteTuyo(p: ConExtremos, enCurso: boolean): TramoCascada[] {
-  const tramos: TramoCascada[] = [
-    { clave: "inicio", nombre: "Al empezar el mes", monto: Math.abs(p.inicio.total), tipo: "entra", ...(p.inicio.total < 0 ? { negativo: true } : {}) },
-  ];
+/** «Qué lo movió», como la cascada de la maqueta: lo que ganaste (o perdiste), lo que pusiste, lo que retiraste y lo que la base no
+ *  explica, cada uno con su signo y sin los que son cero; al final, cuánto creció (o bajó). Las filas suman el final. */
+export function filasTuyo(p: ConExtremos): FilaCascada[] {
+  const filas: FilaCascada[] = [];
   if (pesa(p.ganancia))
-    tramos.push(
-      p.ganancia >= 0
-        ? { clave: "ganancia", nombre: "Lo que ganaste", monto: p.ganancia, tipo: "entra", detalle: "La ganancia del mes, de ¿Ganamos?." }
-        : { clave: "ganancia", nombre: "Lo que perdiste", monto: -p.ganancia, tipo: "sale", detalle: "La pérdida del mes, de ¿Ganamos?." },
-    );
-  if (pesa(p.aportes)) tramos.push({ clave: "aportes", nombre: "Lo que pusiste", monto: Math.abs(p.aportes), tipo: p.aportes >= 0 ? "entra" : "sale", detalle: "Plata tuya que entró a CAYLA." });
-  if (pesa(p.retiros)) tramos.push({ clave: "retiros", nombre: "Lo que retiraste", monto: Math.abs(p.retiros), tipo: p.retiros >= 0 ? "sale" : "entra", detalle: "Utilidades que sacaste para ti." });
-  if (pesa(p.otros))
-    tramos.push({ clave: "otros", nombre: "Sin explicar", monto: Math.abs(p.otros), tipo: p.otros >= 0 ? "entra" : "sale", detalle: "Un ajuste a mano de lo tuyo: el Balance dice de dónde sale." });
-  tramos.push({ clave: "fin", nombre: enCurso ? "Hoy" : "Al cerrar el mes", monto: Math.abs(p.fin.total), tipo: "queda", ...(p.fin.total < 0 ? { negativo: true } : {}) });
-  return tramos;
+    filas.push({ clave: "ganancia", nombre: p.ganancia >= 0 ? "Lo que ganaste" : "Lo que perdiste", detalle: "Viene de ¿Ganamos?", valor: r2(p.ganancia), tipo: "paso" });
+  if (pesa(p.aportes)) filas.push({ clave: "aportes", nombre: "Lo que pusiste", detalle: "Aportes", valor: r2(p.aportes), tipo: "paso" });
+  if (pesa(p.retiros)) filas.push({ clave: "retiros", nombre: "Lo que retiraste", detalle: "Utilidades que sacaste para ti", valor: r2(-p.retiros), tipo: "paso" });
+  if (pesa(p.otros)) filas.push({ clave: "otros", nombre: "Sin explicar", detalle: "Un ajuste a mano: el Balance dice de dónde sale", valor: r2(p.otros), tipo: "paso" });
+  const cambio = cambioDelMes(p);
+  filas.push({ clave: "cambio", nombre: Math.round(cambio) >= 0 ? "Creció" : "Bajó", valor: cambio, tipo: "final" });
+  return filas;
 }
 
 /** La frase bajo la respuesta: qué parte de lo ganado retiraste, o por qué bajó. */

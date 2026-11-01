@@ -20,7 +20,7 @@ export function AvisoStock({ confianza, puedeContar, frasePlazo = null }: { conf
   if (confianza.estado === "sin-dato") {
     return (
       <Aviso guia="plan.stock" tono="atencion" titulo="No se pudo verificar el stock">
-        No se pudo comprobar si el «Hay hoy» de las tiendas está completo. Antes de comprar, revisa que el piso y el almacén de cada tienda estén al día.
+        Antes de comprar, revisa que el piso y el almacén de cada tienda estén al día.
       </Aviso>
     );
   }

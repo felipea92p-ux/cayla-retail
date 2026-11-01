@@ -55,7 +55,7 @@ export function EditarConteo({ conteoId, puedeEditar, variantesCorregidas = [] }
       <BotonEditar onClick={editar} cargando={abriendo} textoCargando="Abriendo…" disabled={!puedeEditar} className="self-start">
         Corregir conteo
       </BotonEditar>
-      {!puedeEditar && <p className="text-xs text-taupe">Solo quien ajusta inventario puede corregir un conteo cerrado.</p>}
+      {!puedeEditar && <p className="text-sm text-taupe">Solo quien ajusta inventario puede corregir un conteo cerrado.</p>}
       {fallo && (
         <Aviso tono="error">{fallo}</Aviso>
       )}

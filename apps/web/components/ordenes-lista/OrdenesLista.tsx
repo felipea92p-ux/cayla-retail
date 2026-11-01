@@ -261,7 +261,7 @@ export function OrdenesLista({
     cuerpo = nuevaAbierta ? null : (
       <div className="card-cayla">
         <Vacio icono={<Factory />} titulo="Todavía no se abrió ninguna orden" acciones={modelos.length > 0 ? nuevaOrden : null}>
-          Una orden es un lote de un modelo: cuántas prendas por talla y color, quién hace cada fase y la tela que lleva. Ábrela aquí y la verás avanzar fase por fase.
+          Una orden es un lote de un modelo: cuántas prendas por talla y color, quién hace cada fase y su tela.
         </Vacio>
       </div>
     );

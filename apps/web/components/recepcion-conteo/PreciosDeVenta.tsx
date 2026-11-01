@@ -39,7 +39,7 @@ export function PreciosDeVenta({
   return (
     <section className="space-y-2.5" aria-label={conCosto ? "Costo y precio de venta" : "Precio de venta"} data-precios-de-venta>
       <TituloGrupo nota="opcional">{conCosto ? "Costo y precio de venta" : "Precio de venta"}</TituloGrupo>
-      <p className="text-xs text-taupe">
+      <p className="text-sm text-taupe">
         {conCosto
           ? `Si el costo o el precio son otros, cámbialos aquí. El costo es el de lo que entra ahora; el precio ${donde} y rige desde ahora (lo ya vendido no cambia).`
           : `Si ya sabes a cuánto se vende, cámbialo aquí: ${donde}. Rige desde ahora; lo ya vendido no cambia.`}

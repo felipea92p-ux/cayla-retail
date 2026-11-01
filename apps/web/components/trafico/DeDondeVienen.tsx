@@ -68,7 +68,7 @@ function PorCamino({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
   const separaronTodos = Object.values<number>(r.caminosSeparan).reduce((a, b) => a + b, 0);
   const caminos = (Object.keys(CAMINOS) as Camino[]).filter((c) => r.caminos[c] > 0 || filtros.camino === c).sort((a, b) => r.caminos[b] - r.caminos[a]);
   const max = Math.max(1, ...caminos.map((c) => r.caminos[c]));
-  if (!caminos.length) return <p className="mt-3 text-[13.5px] text-tinta/70">Todavía nadie llegó por ningún camino en estos días.</p>;
+  if (!caminos.length) return <p className="mt-3 text-[15px] text-tinta/70">Todavía nadie llegó por ningún camino en estos días.</p>;
   return (
     <ul className="mt-2">
       {caminos.map((c) => {
@@ -141,7 +141,7 @@ function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
   return (
     <div className="mt-3">
       {sinTienda && (
-        <p className="text-[13.5px] text-tinta/70">
+        <p className="text-[15px] text-tinta/70">
           Desde <b className="font-semibold text-tinta">{CIUDADES[sinTienda].nombre}</b> miran {personas(r.ciudades[sinTienda])} y todavía no hay tienda ahí.
         </p>
       )}
@@ -179,7 +179,7 @@ function PorCiudad({ r, filtros }: { r: ResumenTrafico; filtros: FiltrosTrafico 
           </div>
         )}
       </div>
-      <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[12px] text-tinta/70">
+      <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-sm text-tinta/70">
         <span>Menos gente</span>
         <i aria-hidden className="trafico-calor-escala" />
         <span>Más gente</span>
