@@ -32,3 +32,16 @@ export function sinBlancosDeMiles(texto: string): string | null {
   // Si quedó alguno, lo escrito no era UNA cifra: «12 8 5» no se adivina.
   return /\s/.test(juntado) ? null : juntado;
 }
+
+/**
+ * Lo que se deja escribir en un campo de CIFRA ENTERA (días, horas): solo cifras —y el signo, si el campo lo admite—,
+ * **conservando los blancos**.
+ *
+ * Un entero no tiene separador de miles, así que un blanco aquí no significa nada… salvo una cosa: que se pegaron
+ * varias celdas. Conservarlo es justamente lo que permite que el validador de abajo lo diga («Escribe cuántos días…»,
+ * el campo en rojo) en vez de que el filtro junte las celdas en un número plausible: pegar «12», «8» y «5» dejaba
+ * escrito «1285» —mil doscientos ochenta y cinco días— sin una palabra (/chaos 2026-10-31).
+ */
+export function soloCifrasEscritas(texto: string, { signo = false } = {}): string {
+  return texto.replace(signo ? /[^\d\s-]/g : /[^\d\s]/g, "");
+}

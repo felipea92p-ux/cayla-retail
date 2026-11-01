@@ -128,7 +128,7 @@ export function rubrosSinGastos(rubros: readonly string[]): string[] {
 /** Lo escrito en el buscador de proveedor, como punto de partida del alta: 11 dígitos son un RUC (el combo busca «nombre, marca o RUC»); lo demás, el nombre. */
 export function borradorDeLoBuscado(texto: string): { nombre: string; ruc: string } {
   const limpio = texto.trim().replace(/\s+/g, " ");
-  const digitos = limpio.replace(/[\s.-]/g, "");
+  const digitos = limpio.replace(/[\s.-]/g, ""); // blanco-fijo: los dígitos de un RUC, no una cifra que se sume
   return /^\d{11}$/.test(digitos) ? { nombre: "", ruc: digitos } : { nombre: limpio, ruc: "" };
 }
 
