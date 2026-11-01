@@ -57,7 +57,7 @@ export function ParaMandar({
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-tinta">{t.tienda}</span>
-                  <span className="block text-xs text-taupe">{detalleEnvio(t)}</span>
+                  <span className="block text-sm text-taupe">{detalleEnvio(t)}</span>
                 </span>
               </li>
             ))}
@@ -73,13 +73,13 @@ export function ParaMandar({
       {avance && (
         <div className="flex flex-col gap-1.5">
           <BarraAvance pct={avance.pct} etiqueta="Prendas de la ronda que ya mandaste" texto={avance.texto} />
-          <p className="text-xs tabular-nums text-taupe">{avance.texto}</p>
+          <p className="text-sm tabular-nums text-taupe">{avance.texto}</p>
         </div>
       )}
       {envios !== null && (
         <div className="flex flex-col gap-1 border-t border-dashed border-borde-control pt-3" data-guia="mi-plata.envios">
           {sinEnvios ? (
-            <p className="flex items-start gap-2.5 text-xs text-taupe">
+            <p className="flex items-start gap-2.5 text-sm text-taupe">
               <PackageCheck className="mt-px h-4 w-4 shrink-0" aria-hidden />
               <span>
                 Aún no mandas nada{texto ? <> en la ronda <span className="whitespace-nowrap">{texto}</span></> : ""}. Cuando mandes un envío, aparece aquí con su código.

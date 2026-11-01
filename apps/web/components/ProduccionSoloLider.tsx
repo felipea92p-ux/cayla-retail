@@ -17,7 +17,7 @@ export function ProduccionSoloLider({ titulo }: { titulo: string }) {
             <BotonVer href="/produccion/ordenes">Ir a Órdenes</BotonVer>
           }
         >
-          Aquí se ven los montos, lo que se le debe a cada proveedor y sus datos. Tu trabajo —las órdenes, la tela y lo que cada una necesita— está en Órdenes.
+          Tu trabajo —las órdenes y su tela— está en Órdenes.
         </Vacio>
       </div>
     </div>

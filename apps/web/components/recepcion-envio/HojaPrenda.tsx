@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
@@ -196,9 +197,7 @@ export function HojaPrenda({
             e.preventDefault();
             void crear(false);
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
-          }}
+          onKeyDown={enterNoGuarda}
           className="space-y-4"
         >
           {!categoria && (
@@ -218,7 +217,7 @@ export function HojaPrenda({
                 autoFocus
               />
               {nombreDeLaOrden && borrador.nombre.trim() === "" && (
-                <p className="-mt-1 text-xs text-taupe">
+                <p className="-mt-1 text-sm text-taupe">
                   En la orden dice «{nombreDeLaOrden}».{" "}
                   <button type="button" onClick={() => cambiar({ nombre: nombreDeLaOrden.slice(0, TOPES_PRENDA.nombre) })} className="btn-cayla btn-enlace text-xs">
                     Usar ese nombre
@@ -247,7 +246,7 @@ export function HojaPrenda({
               </div>
             </CampoGuiado>
           ) : (
-            categoria && <p className="text-xs text-taupe">{categoria.nombre} no tiene tallas: la prenda va en talla única.</p>
+            categoria && <p className="text-sm text-taupe">{categoria.nombre} no tiene tallas: la prenda va en talla única.</p>
           )}
 
           <CampoGuiado id="prenda-colores" guia={guia} retiene="fila" titulo="Colores" ayuda={borrador.colorCodigos.length > 0 ? `${borrador.colorCodigos.length} elegido${borrador.colorCodigos.length === 1 ? "" : "s"}` : "si no tiene color, déjalo vacío"}>
@@ -321,7 +320,7 @@ export function HojaPrenda({
 
           {!nueva && (
             <CampoGuiado id="prenda-nuevas" guia={guia}>
-              <p className="text-[13px] text-tinta">{queSeCrea ?? "Elige una talla o un color que la prenda todavía no tenga."}</p>
+              <p className="text-sm text-tinta">{queSeCrea ?? "Elige una talla o un color que la prenda todavía no tenga."}</p>
             </CampoGuiado>
           )}
           {nueva && queSeCrea && <p className="nota-cayla">{queSeCrea} Fotos, etiquetas y lo demás se completan después en Productos.</p>}

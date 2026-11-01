@@ -743,6 +743,25 @@ const clicGuia = (guia) => async (pagina) => {
   await pagina.locator(`[data-guia="${guia}"]`).first().click({ timeout: 8000 });
   await esperar(pagina, 1100);
 };
+/** Abre la hoja de un gasto de la lista y, dentro, el botón `nombre`; si ese gasto no lo ofrece, prueba el siguiente (hasta 12). */
+const abrirDesdeUnGasto = (nombre) => async (pagina) => {
+  const filas = pagina.locator('[data-guia="fin-gastos.fila"]');
+  const n = Math.min(await filas.count(), 12);
+  for (let i = 0; i < n; i++) {
+    const fila = filas.nth(i);
+    await fila.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await fila.click({ timeout: 8000 });
+    await esperar(pagina, 700);
+    const boton = pagina.getByRole("button", { name: nombre }).first();
+    if (await boton.count()) {
+      await boton.click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+      return;
+    }
+    await pagina.keyboard.press("Escape");
+    await esperar(pagina, 500);
+  }
+};
 const clicRol = (rol, nombre, opts = {}) => async (pagina) => {
   await pagina.getByRole(rol, { name: nombre, ...opts }).first().click({ timeout: 8000 });
   await esperar(pagina, 1100);
@@ -1494,7 +1513,8 @@ ESCENARIOS.push(
   { id: "produccion.orden-stock", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Pasar al stock» con lo terminado precargado y el costo por prenda", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenLista()}`)(pagina), clicRol("button", /^Pasar al stock$/, { exact: true })) },
   { id: "produccion.orden-anular-orden", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Anular orden»", preparar: secuencia(irALaOrden, clicRol("button", /^Anular orden$/, { exact: true })) },
   { id: "produccion.orden-marcar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Ploteo hecho» (una fase que se marca, sin contar prendas)", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPloteoSinMarcar()}`)(pagina), clicRol("button", /^Ploteo hecho$/)) },
-  { id: "produccion.orden-desmarcar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Deshacer la marca» de Ploteo", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPloteoMarcado()}`)(pagina), clicRol("button", /^Deshacer$/, { exact: true })) },
+  // ADR-0586 act. 2: quitar la marca es de un líder (admin-taller lo es) y abre la hoja con motivo. Con Ploteo marcado el paso abierto es Corte: primero se abre Ploteo en la ruta.
+  { id: "produccion.orden-desmarcar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-guia="prod-orden-cambio.porque"]', nombre: "Producción · una orden: la hoja «¿Quitamos la marca de ploteo?» desde el paso, con su porqué (solo un líder)", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPloteoMarcado()}`)(pagina), async (pagina) => { await pagina.locator('[data-guia="prod-orden.fases"] button', { hasText: /^Ploteo/ }).first().click({ timeout: 8000 }); await esperar(pagina, 600); }, clicRol("button", /^Quitar la marca$/, { exact: true })) },
   { id: "produccion.orden-quitar-paso", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «¿Quitar …?» de un paso opcional que nadie empezó", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPasoOpcional()}`)(pagina), clicRol("button", /^Quitar este paso$/, { exact: true })) },
   { id: "produccion.orden-cambiar-quien", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="fase"]', nombre: "Producción · una orden: la hoja «Cambiar quién» de una fase que no empezó", preparar: secuencia(irALaOrden, clicRol("button", /^Cambiar quién$/, { exact: true })) },
 );
@@ -1716,6 +1736,14 @@ ESCENARIOS.push(
       if (await antes.count()) await antes.click({ timeout: 8000 });
       await esperar(pagina, 600);
     } },
+  // ADR-0588: las tres hojas que se abren en el lugar de la hoja de un gasto. Se prueba fila por fila hasta dar con una que ofrezca el botón (depende
+  // de los gastos que haya: uno sin comprobante, uno grande sin comprobante).
+  { id: "gastos.corregir", ruta: "/finanzas/gastos", cuentas: FIN, abre: "text=Corregir gasto", nombre: "Gastos · «Corregir gasto» (la categoría y qué fue)",
+    preparar: abrirDesdeUnGasto(/^Corregir$/) },
+  { id: "gastos.comprobante", ruta: "/finanzas/gastos", cuentas: FIN, abre: "text=Lo que pasa al guardar", nombre: "Gastos · «Llegó el comprobante» (con el QR)",
+    preparar: abrirDesdeUnGasto(/Llegó el comprobante/) },
+  { id: "gastos.no-emite", ruta: "/finanzas/gastos", cuentas: FIN, abre: "text=No tendrá comprobante", nombre: "Gastos · «No tendrá comprobante» (el motivo)",
+    preparar: abrirDesdeUnGasto(/No tendrá comprobante/) },
   { id: "gastos.fijos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Fijos del mes»", preparar: clicRol("tab", /Fijos del mes/i) },
   { id: "gastos.activos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Activos fijos»", preparar: clicRol("tab", /Activos fijos/i) },
   { id: "gastos.egresos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Egresos de caja por clasificar»", preparar: clicRol("tab", /Egresos de caja por clasificar/i) },

@@ -122,7 +122,7 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Cada cambio queda en la historia.</p>
+        <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al salir de ella y queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>

@@ -1,0 +1,63 @@
+/* Ronda 18 de /unificar: la cabecera sin la frase, con un «?» que la abre. Solo tokens del ERP (ADR-0169, ADR-0336). */
+
+/* El «?»: 32 px (el objetivo con mouse, ADR-0350), borde de control (lo que se toca, 3:1), junto al título. */
+.prop-q {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 32px; height: 32px; margin-left: 14px; padding: 0;
+  position: relative; top: -6px; vertical-align: middle;
+  border-radius: 999px; border: 1px solid var(--color-borde-control); background: transparent;
+  color: var(--color-tinta); font: 600 16px/1 var(--font-dm-sans), system-ui, sans-serif; letter-spacing: 0;
+  cursor: pointer;
+  transition: background-color .2s var(--ease-cayla), color .2s var(--ease-cayla), border-color .2s var(--ease-cayla), transform .15s var(--ease-cayla);
+}
+@media (hover: hover) {
+  .prop-q:hover { background: var(--color-hueso); border-color: var(--color-tinta); }
+  .prop-q[aria-expanded="true"]:hover { background: var(--color-rojo-profundo); border-color: var(--color-rojo-profundo); }
+}
+.prop-q:active { transform: scale(.92); }
+.prop-q:focus-visible { outline: 2px solid var(--color-pizarra); outline-offset: 2px; }
+.prop-q[aria-expanded="true"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
+@media (max-width: 639px) { .prop-q { width: 36px; height: 36px; top: -3px; } }
+
+/* P3: el mismo botón, con palabra. */
+.prop-q.prop-q-palabra { width: auto; height: 32px; padding: 0 14px 0 6px; gap: 8px; font: 500 14px/1 var(--font-dm-sans), system-ui, sans-serif; top: -8px; }
+.prop-q-palabra .prop-q-signo { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; border: 1px solid currentColor; font-weight: 600; font-size: 12px; }
+
+/* P1 y P3: la explicación baja en su lugar, en letra de lectura (16 px), con el hilo taupe de la cabecera a su izquierda. */
+.prop-explica {
+  margin-top: 14px; max-width: 36rem; padding: 2px 0 2px 14px;
+  border-left: 2px solid var(--color-taupe);
+  font: 400 16px/1.55 var(--font-dm-sans), system-ui, sans-serif; color: var(--color-tinta);
+  text-transform: none; letter-spacing: 0;
+}
+.prop-explica[hidden] { display: none; }
+.prop-explica.prop-entra { animation: prop-sube .26s var(--ease-cayla) both; }
+
+/* P2: un globo que flota bajo el «?», sin mover la página. */
+.prop-ancla { position: relative; display: inline-block; vertical-align: middle; }
+.prop-globo {
+  position: absolute; left: 0; top: calc(100% + 2px); z-index: 30; width: min(340px, calc(100vw - 32px));
+  padding: 14px 16px; border-radius: 12px; border: 1px solid var(--color-sand); background: var(--color-papel);
+  box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+  font: 400 16px/1.55 var(--font-dm-sans), system-ui, sans-serif; color: var(--color-tinta); text-transform: none; letter-spacing: 0;
+  white-space: normal; text-align: left;
+}
+.prop-globo[hidden] { display: none; }
+/* En el celular el globo se cuelga del título entero (de borde a borde), no del «?»: si no, se sale por la derecha. */
+@media (max-width: 639px) {
+  .prop-ancla { position: static; }
+  h1:has(.prop-ancla) { position: relative; }
+  .prop-globo { top: calc(100% + 10px); width: 100%; }
+}
+.prop-globo.prop-entra { animation: prop-sube .24s var(--ease-cayla) both; }
+
+@keyframes prop-sube { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .prop-explica.prop-entra, .prop-globo.prop-entra { animation: none; } .prop-q { transition: none; } }
+
+/* La demo viva: una cabecera de ejemplo sobre crema, como en la pantalla. */
+.prop-demo { background: var(--color-crema); padding: 20px 20px 24px; border-radius: 12px; min-height: 230px; width: 100%; box-sizing: border-box; }
+.prop-demo .prop-sede { display: flex; align-items: center; gap: 12px; font: 600 11px/1.4 var(--font-dm-sans), system-ui, sans-serif; text-transform: uppercase; letter-spacing: .18em; color: var(--color-taupe-profundo); margin: 0; }
+.prop-demo .prop-sede i { display: block; width: 32px; height: 1px; background: var(--color-taupe); }
+.prop-demo h1 { font-family: var(--font-eb-garamond), Georgia, serif; font-weight: 400; font-size: 46px; line-height: 1; letter-spacing: -.01em; color: var(--color-tinta); margin: 12px 0 0; }
+.prop-demo .prop-frase-hoy { margin: 10px 0 0; max-width: 28rem; font: 400 15px/1.5 var(--font-dm-sans), system-ui, sans-serif; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+.prop-demo .prop-dato { margin: 10px 0 0; font: 400 15px/1.5 var(--font-dm-sans), system-ui, sans-serif; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }

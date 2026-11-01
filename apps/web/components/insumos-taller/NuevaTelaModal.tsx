@@ -41,6 +41,7 @@ import {
 } from "@/lib/tela-nueva-reglas";
 import { sugerirInsumo } from "@/lib/sugerencias-insumos";
 import { useResponsable } from "@/lib/useResponsable";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 // «Nueva tela» (ADR-0554, actividad 2; Felipe 2026-10-28: «la parte de insumos es demasiado tediosa de completar»): UNA hoja para la tela y todos sus colores. Antes, una tela en cinco colores eran cinco altas de diez campos
 // y otras cinco hojas para ingresar el lote. Aquí se dice qué tela es, cómo se compra (metro, kilo con su ancho y gramaje, o rollo con sus metros) y se eligen los colores de la MISMA carta de Catálogo; cada color trae su código
@@ -216,7 +217,7 @@ export function NuevaTelaModal({
       antesDeCerrar={avisoSalida.pedirAccion}
     >
       <IdentidadAltaProveedor control={responsable}>
-        <form onSubmit={guardar} className="mt-3.5 space-y-6">
+        <form onSubmit={guardar} onKeyDown={enterNoGuarda} className="mt-3.5 space-y-6">
           {!agregarA && (
             <>
               <section data-guia="prod-tela-nueva.que-es" className="space-y-3">
@@ -287,11 +288,11 @@ export function NuevaTelaModal({
               {leyoColores ? (
                 <ElegirColores colores={disponibles} grupos={grupos} elegidos={filas.map((f) => f.color)} onAlternar={alternarColor} onCreado={(c) => { setColoresCarta((cs) => [...cs, c]); alternarColor(c.codigo); }} cartaAbierta={false} sinElegidos enfocarBuscador={eligioColor} />
               ) : (
-                <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
+                <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">No se pudo cargar la carta de colores. Cierra esta ventana y vuelve a abrirla.</p>
               )}
             </CampoGuiado>
             {n === 0 ? (
-              <p className="text-[12.5px] text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
+              <p className="text-sm text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
             ) : (
               <div className="overflow-x-auto">
                 <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
@@ -318,7 +319,7 @@ export function NuevaTelaModal({
                         {puedeSaldo && (
                           <CampoTexto caja sinPie etiqueta={`Cuánto hay de ${nombreColor} (${unidadDeCompra})`} inputMode="decimal" className="text-right tabular-nums" placeholder="0" value={f.ya} onChange={(ev) => cambiarFila(f.color, { ya: ev.target.value })} tono={numeroMalEscrito(f.ya) ? "error" : undefined} />
                         )}
-                        {puedeSaldo && e.compra !== "metro" && <span className="text-right text-[13px] tabular-nums text-tinta/70">{metros === null ? "—" : `≈ ${metros.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m`}</span>}
+                        {puedeSaldo && e.compra !== "metro" && <span className="text-right text-sm tabular-nums text-tinta/70">{metros === null ? "—" : `≈ ${metros.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m`}</span>}
                         {puedeSaldo && (
                           <CampoTexto caja sinPie etiqueta={`Costo de ${nombreColor}`} inputMode="decimal" className="text-right tabular-nums" placeholder="0.00" value={f.costo} onChange={(ev) => cambiarFila(f.color, { costo: ev.target.value })} tono={montoIlegible(f.costo) ? "error" : undefined} />
                         )}
@@ -342,7 +343,7 @@ export function NuevaTelaModal({
                 {MONTO_ILEGIBLE}
               </Aviso>
             )}
-            {n > 0 && puedeSaldo && <p className="nota-cayla">«¿Ya tienes?» déjalo vacío si todavía no llegó nada: el color se crea en cero. Si lo llenas, se abre su lote de saldo inicial con ese costo.</p>}
+            {n > 0 && puedeSaldo && <p className="nota-cayla">Si todavía no llegó nada, deja «¿Ya tienes?» vacío: el color se crea en cero.</p>}
             {n > 0 && !puedeSaldo && <p className="nota-cayla">Los colores se crean en cero. Lo que ya hay de cada uno, con su costo, lo anota el líder.</p>}
           </section>
 

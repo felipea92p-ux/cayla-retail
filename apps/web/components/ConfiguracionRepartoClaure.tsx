@@ -68,8 +68,8 @@ export function ConfiguracionRepartoClaure({ filas }: { filas: FilaReparto[] | n
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-xl text-[13px] text-taupe">
-          Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable, y queda en la historia. Cambiar un porcentaje vale también para los gastos de antes: la parte de CLAURE se calcula con el de hoy.
+        <p className="max-w-xl text-sm text-taupe">
+          Cada casilla se guarda sola al salir de ella y queda en la historia. Un porcentaje nuevo vale también para los gastos de antes.
         </p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />

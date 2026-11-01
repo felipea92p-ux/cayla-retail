@@ -169,7 +169,7 @@ export function DetalleCategoriaResultados({
             <ol className="mt-2 divide-y divide-sand">
               {prendas.map((p, i) => (
                 <li key={p.clave} className="grid grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,8rem)_3rem_6rem] items-center gap-3 py-2 text-sm">
-                  <span className="text-xs tabular-nums text-taupe">{i + 1}</span>
+                  <span className="text-sm tabular-nums text-taupe">{i + 1}</span>
                   <span className="flex min-w-0 items-center gap-2">
                     {/* El color de la prenda es dato: no cambia con el tema (ADR-0336, regla 3). */}
                     <span data-color-dato aria-hidden className="h-3.5 w-3.5 flex-none rounded-full border border-sand" style={p.hex ? { backgroundColor: p.hex } : undefined} />
@@ -206,7 +206,7 @@ export function DetalleCategoriaResultados({
         )}
 
         <p className="nota-cayla">
-          Aquí está lo que se vendió. Lo que casi no se movió (prendas con stock y pocas ventas) está en Inventario ▸ Análisis, en «No se vende».
+          Lo que casi no se vendió está en Inventario ▸ Análisis ▸ «No se vende».
         </p>
       </div>
     </Modal>

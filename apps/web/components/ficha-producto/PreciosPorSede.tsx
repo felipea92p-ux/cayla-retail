@@ -147,19 +147,19 @@ export function PreciosPorSede({
           aria-hidden
           className="h-4 w-4 shrink-0 text-taupe"
         />
-        <p className="text-[13px] font-semibold text-tinta">
+        <p className="text-sm font-semibold text-tinta">
           Precio por tienda
         </p>
         {!hayPrecios ? (
-          <p className="text-[12.5px] text-tinta/65">
+          <p className="text-sm text-tinta/65">
             Se vende {dePrenda} en todas las tiendas.
           </p>
         ) : otrasTallas.length > 0 ? (
-          <p className="text-[12.5px] text-tinta/65">
+          <p className="text-sm text-tinta/65">
             Algunas tallas tienen otro precio en una tienda: se dice abajo.
           </p>
         ) : (
-          <p className="text-[12.5px] text-tinta/65">
+          <p className="text-sm text-tinta/65">
             Cada tienda vende todas las tallas a su precio.
           </p>
         )}
@@ -197,7 +197,7 @@ export function PreciosPorSede({
               {f.propio ? (
                 <Chip tono="ambar">Precio propio</Chip>
               ) : tallas.length === 0 ? (
-                <span className="text-[12.5px] text-tinta/60">El de la prenda</span>
+                <span className="text-sm text-tinta/60">El de la prenda</span>
               ) : null}
               {f.propio && quedaBajoElCosto(f.propio.precio, costoMaximo) && <Chip tono="rojo">Bajo el costo</Chip>}
               {f.propio && puedeTocar(f.ubicacionId) && (
@@ -236,15 +236,15 @@ export function PreciosPorSede({
                 </Boton>
               )}
               {f.propio && (
-                <span className="basis-full text-[12.5px] text-tinta/70">
+                <span className="basis-full text-sm text-tinta/70">
                   {desdeHace(f.propio.desde)} · «{f.propio.motivo}»{f.propio.creadoPor ? ` · ${f.propio.creadoPor}` : ""}
                 </span>
               )}
               {tallas.length > 0 && (
                 <ul className="basis-full space-y-1" aria-label={`Tallas con otro precio en ${f.sede}`}>
-                  {f.precio !== null && <li className="text-[12.5px] text-tinta/70">Las demás tallas se venden a {soles(f.precio)}.</li>}
+                  {f.precio !== null && <li className="text-sm text-tinta/70">Las demás tallas se venden a {soles(f.precio)}.</li>}
                   {tallas.map((t) => (
-                    <li key={t.varianteId} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12.5px] text-tinta">
+                    <li key={t.varianteId} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-tinta">
                       <span className="min-w-[7.5rem] font-medium">{etiquetaDeVariante(t.varianteId)}</span>
                       <span className="font-mono font-semibold">{soles(t.precio)}</span>
                       <span className="text-tinta/70">
@@ -267,7 +267,7 @@ export function PreciosPorSede({
                 </ul>
               )}
               {f.propio && quedaBajoElCosto(f.propio.precio, costoMaximo) && (
-                <span className="basis-full text-[12.5px] text-rojo-profundo">
+                <span className="basis-full text-sm text-rojo-profundo">
                   Hoy queda por debajo de lo que cuesta la prenda.{puedeTocar(f.ubicacionId) ? " Súbelo o quítalo." : ""}
                 </span>
               )}

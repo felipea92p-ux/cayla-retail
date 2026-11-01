@@ -5,6 +5,8 @@
 // las mismas reglas que la base: `v_insumo_saldos` y `registrar_consumo_insumo`
 // (supabase/migrations/20260917145000_insumos_taller_reconstruido.sql, 20260917141500_registrar_consumo_insumo.sql).
 
+import { sinBlancosDeMiles } from "./numero-escrito";
+
 export type TipoInsumo = "tela" | "avio";
 export type UnidadInsumo = "metro" | "unidad" | "kilo" | "cono" | "par" | "docena";
 export type TipoMovInsumo = "compra" | "consumo" | "devolucion" | "merma" | "ajuste";
@@ -18,19 +20,43 @@ export const TIPOS_INSUMO: { valor: TipoInsumo; etiqueta: string; plural: string
  *  Son DOS resoluciones y no se mezclan: `decimales` es con la que se PIDE al proveedor (`cantidadAPedir`: metros de 10 en 10 cm, hacia arriba) y `vista` es con la que se MUESTRA,
  *  siempre fija. Un lote de 12.25 m se escribe con dos decimales (`leerCantidad`), así que verlo «12.3 m» o, peor, un saldo de 0.70 m como «1 m» es mostrar menos de lo que hay
  *  (Felipe 2026-10-30). */
-export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; decimales: number; vista: number }> = {
-  metro: { corta: "m", larga: "Metros", decimales: 1, vista: 2 },
-  kilo: { corta: "kg", larga: "Kilos", decimales: 2, vista: 2 },
-  unidad: { corta: "unid.", larga: "Unidades", decimales: 0, vista: 0 },
-  cono: { corta: "conos", larga: "Conos", decimales: 0, vista: 0 },
-  par: { corta: "pares", larga: "Pares", decimales: 0, vista: 0 },
-  docena: { corta: "doc.", larga: "Docenas", decimales: 0, vista: 0 },
+export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; articulo: "los" | "las"; decimales: number; vista: number }> = {
+  metro: { corta: "m", larga: "Metros", articulo: "los", decimales: 1, vista: 2 },
+  kilo: { corta: "kg", larga: "Kilos", articulo: "los", decimales: 2, vista: 2 },
+  unidad: { corta: "unid.", larga: "Unidades", articulo: "las", decimales: 0, vista: 0 },
+  cono: { corta: "conos", larga: "Conos", articulo: "los", decimales: 0, vista: 0 },
+  par: { corta: "pares", larga: "Pares", articulo: "los", decimales: 0, vista: 0 },
+  docena: { corta: "doc.", larga: "Docenas", articulo: "las", decimales: 0, vista: 0 },
 };
 
-/** `12.50 m`, `40 unid.`: los decimales de `vista` de la unidad, siempre los mismos (nunca «12.5» en una fila y «12.50» en la de al lado). */
+/** Lo que se cuenta de uno en uno y no admite partes: medio botón, medio cono o medio par no existen. Es la MISMA tabla de arriba, no una
+ *  lista aparte: una unidad que no admite decimales al pedirla tampoco los admite al contarla. Lo que se MIDE (metros, kilos) sí: medio
+ *  metro de tela es medio metro. */
+export function seCuentaEntera(unidad: UnidadInsumo): boolean {
+  return UNIDADES_INSUMO[unidad].decimales === 0;
+}
+
+/** Lo que la hoja dice si la cantidad escrita no puede existir; `null` si está bien. Vacío y cero no son asunto suyo: eso lo dice quien
+ *  llama (en una hoja, «¿Ya tienes?» vacío es «todavía no llegó nada»).
+ *
+ *  Nació de `/chaos` (2026-10-31): «0,5» en «¿Ya tienes?» de un botón entraba sin aviso, la base guardaba `0.500` y la pantalla mostraba
+ *  «1 unid.». La base lo rechaza desde `20261031211000`, pero quien escribe tiene que enterarse ANTES de guardar, y con el nombre de lo
+ *  que está contando. */
+export function problemaDeCantidad(n: number | null, unidad: UnidadInsumo): string | null {
+  if (n === null || Number.isInteger(n)) return null;
+  if (!seCuentaEntera(unidad)) return null;
+  const u = UNIDADES_INSUMO[unidad];
+  // El artículo va en la tabla y no escrito aquí: «Los unidades» fue lo primero que salió en la pantalla (2026-10-31).
+  return `${u.articulo === "las" ? "Las" : "Los"} ${u.larga.toLowerCase()} se cuentan de uno en uno: escribe un número entero.`;
+}
+
+/** `12.50 m`, `40 unid.`: los decimales de `vista` de la unidad, siempre los mismos (nunca «12.5» en una fila y «12.50» en la de al lado).
+ *  Con UNA excepción, y es a propósito: si lo que se cuenta de uno en uno trae partes (un dato de antes del candado de la base), se MUESTRAN.
+ *  Redondear media unidad a «1 unid.» es decir que hay una cosa que no está — el mismo criterio por el que un saldo de 0.70 m no se ve «1 m». */
 export function cantidadTexto(n: number, unidad: UnidadInsumo): string {
   const u = UNIDADES_INSUMO[unidad];
-  return `${n.toLocaleString("es-PE", { minimumFractionDigits: u.vista, maximumFractionDigits: u.vista })} ${u.corta}`;
+  const maximo = seCuentaEntera(unidad) ? 3 : u.vista;
+  return `${n.toLocaleString("es-PE", { minimumFractionDigits: u.vista, maximumFractionDigits: maximo })} ${u.corta}`;
 }
 
 /** En qué unidades se puede llevar el libro de cada tipo (ADR-0554). Una TELA va siempre en metros: el kilo y el rollo son unidades de COMPRA que se convierten al recibir, porque lo que el
@@ -52,8 +78,10 @@ export const CANTIDAD_ILEGIBLE = "No se entiende la cantidad: escríbela así, 4
  * «1.200» ¿son mil doscientos o uno con dos? No se adivina, igual que `leerMontoPlata`. Vacío es `null` (quien llama decide si «vacío» es 0 o falta).
  */
 export function leerCantidad(texto: string): number | null {
-  const t = texto.replace(/\s/g, "");
-  if (!/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
+  // Los blancos se quitan con la regla única: un espacio adentro solo separa miles, así que una columna de tres celdas
+  // de Excel pegada aquí («12 8 5») ya no entra como 1 285 (/chaos de «Nuevo avío», 2026-10-31).
+  const t = sinBlancosDeMiles(texto);
+  if (t === null || !/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
   return Number(t.replace(",", "."));
 }
 

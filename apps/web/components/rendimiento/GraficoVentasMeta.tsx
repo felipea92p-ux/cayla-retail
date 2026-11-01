@@ -136,12 +136,12 @@ export function GraficoVentasMeta({
           <b className="font-display text-xl font-normal tabular-nums">{SOLES.format(total)}</b>{" "}
           <span className="text-taupe">{esMes ? "en el mes" : "en 7 días"}</span>
         </p>
-        <p className="mt-0.5 text-xs text-taupe">
+        <p className="mt-0.5 text-sm text-taupe">
           {meta !== null && pct !== null ? `${pct} % de ${etiquetas.deMeta} ${SOLES.format(meta)}` : "Sin meta cargada: solo se ven las ventas"}
         </p>
-        {nota && <p className="mt-0.5 text-xs text-taupe">{nota}</p>}
+        {nota && <p className="mt-0.5 text-sm text-taupe">{nota}</p>}
 
-        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-taupe" aria-label="Leyenda">
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe" aria-label="Leyenda">
           {acum ? (
             <>
               <li className="flex items-center gap-1.5">
@@ -176,7 +176,7 @@ export function GraficoVentasMeta({
           {acum ? <Acumulado dias={mes} alto={alto} etiquetas={etiquetas} hayMeta={hayMeta} /> : <Barras dias={dias} alto={alto} etiquetas={etiquetas} esMes={esMes} />}
         </div>
 
-        <details className="mt-3 text-xs text-taupe">
+        <details className="mt-3 text-sm text-taupe">
           <summary className="cursor-pointer select-none underline underline-offset-2 hover:no-underline">Ver como tabla</summary>
           {/* La tabla del sistema (ADR-0358, ronda 7). */}
           <Tabla className="mt-2 max-h-64 overflow-y-auto">

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { solesRedondo } from "./gastos-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, avisoCajon, chipsDondeEsta, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
 import { tienesPulso } from "./dinero-pulso-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
@@ -290,19 +290,26 @@ describe("la respuesta de cada cara", () => {
       ["El cajón abierto lo ve quien cierra la caja", "apagado"],
     ]);
   });
-  it("Qué debes: cuántas, lo vencido en rojo, lo de esta semana en ámbar; nada, en verde", () => {
-    const chips = chipsQueDebes([{ vence: "2026-10-10", saldo: 5133.6 }, { vence: "2026-10-19", saldo: 6800 }, { vence: "2026-11-30", saldo: 3200 }], HOY);
-    expect(chips.map((c) => [plano(c.texto), c.tono])).toEqual([
-      ["3 facturas", "pizarra"],
-      ["S/ 5,134 ya vencido", "rojo"],
-      ["S/ 6,800 vence esta semana", "ambar"],
-    ]);
-    expect(chipsQueDebes([], HOY)).toEqual([{ texto: "Nada por pagar", tono: "verde" }]);
-  });
   it("Cuadrar: lo que suman los bancos y lo que falta revisar; sin bancos, no hay cifra", () => {
     const c = (tipo: "banco" | "por_abonar", saldoHoy: number, pendientes: number) => ({ tipo, saldoHoy, pendientes });
     expect(respuestaCuadrar([c("banco", 18300, 1), c("banco", 9830, 4), c("por_abonar", 2140, 2)])).toEqual({ valor: 28130, chips: [{ texto: "7 líneas por revisar", tono: "ambar" }] });
     expect(respuestaCuadrar([c("banco", 100, 0)]).chips).toEqual([{ texto: "Todo revisado", tono: "verde" }]);
     expect(respuestaCuadrar([c("por_abonar", 50, 0)])).toEqual({ valor: null, chips: [] });
+  });
+});
+
+describe("avisoCajon: el estado del cajón en su fila", () => {
+  const efectivo = [
+    { ubicacionId: "tru", abierta: true },
+    { ubicacionId: "aqp", abierta: false },
+  ];
+  it("abierta ahora o cerrada, según la caja de su tienda", () => {
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "tru" }, efectivo, false)).toEqual({ texto: "Abierta ahora", tono: "verde" });
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "aqp" }, efectivo, false)).toEqual({ texto: "Cerrada", tono: "pizarra" });
+  });
+  it("no inventa nada: el Taller, una tienda sin efectivo leído o una cuenta que no es cajón no dicen estado", () => {
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "tal" }, efectivo, true)).toBeNull();
+    expect(avisoCajon({ tipo: "cajon", ubicacionId: "lim" }, efectivo, false)).toBeNull();
+    expect(avisoCajon({ tipo: "banco", ubicacionId: null }, efectivo, false)).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { NombreDelProveedor } from "@/components/ficha-producto/NombreDelProveedor";
 import { avisosDeReferencia, otrosTipos, tiposDeCategoria } from "@/lib/nombre-de-prenda";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -1340,7 +1341,7 @@ export function ProductoForm({
     return (
       <span className="inline-flex flex-wrap items-center gap-x-2 text-ambar">
         antes: {c.antes}
-        <BotonDeshacer onClick={() => deshacerCampo(campo)} className="text-[12px]" />
+        <BotonDeshacer onClick={() => deshacerCampo(campo)} className="text-sm" />
       </span>
     );
   }
@@ -1505,9 +1506,7 @@ export function ProductoForm({
       onSubmit={revisar}
       // Revisar es un acto explícito: Enter dentro de un campo —cerrar un precio, corregir el nombre— no abre la hoja de
       // guardado (con correcciones de color en juego, un Enter de costumbre la abriría a mitad de camino).
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
-      }}
+      onKeyDown={enterNoGuarda}
       className="pb-28 sm:pb-24"
     >
       {/* El panel del taller va a la derecha solo si a la ficha le quedan ~430 px al lado: lo decide el ancho del formulario
@@ -1546,14 +1545,14 @@ export function ProductoForm({
             {nombreCambio && (
               <div className="@lg:col-span-2">
                 {nombreNuevo && nombreNuevo !== referencia.trim() && (
-                  <p className="mb-2 text-xs text-tinta/60">
+                  <p className="mb-2 text-sm text-tinta/60">
                     Se guardará como <strong className="text-tinta">{nombreNuevo}</strong>
                   </p>
                 )}
                 {avisosNombre.length > 0 && (
                   <ul className="mb-2 space-y-1" aria-live="polite">
                     {avisosNombre.map((a) => (
-                      <li key={a.regla} className="flex items-start gap-1.5 text-[13px] text-tinta">
+                      <li key={a.regla} className="flex items-start gap-1.5 text-sm text-tinta">
                         <Lightbulb aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ambar" />
                         {a.texto}
                       </li>
@@ -1637,12 +1636,12 @@ export function ProductoForm({
                 marcador={categoriaId ? "Sin tejido" : "Elige una categoría primero"}
               />
               {exigeTejido && opcionesTejido.length === 0 && (
-                <p className="mt-1 text-xs text-ambar-profundo">
+                <p className="mt-1 text-sm text-ambar-profundo">
                   Esta prenda ya tenía tejido y {categoriaActual?.nombre} no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
                 </p>
               )}
               {familiaExigente && !exigeTejido && !tejidoId && opcionesTejido.length > 0 && (
-                <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
+                <p className="mt-1 text-sm text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
               {tejidoId && (
                 <MuestraTejido
@@ -1667,12 +1666,12 @@ export function ProductoForm({
                 marcador={categoriaId ? "Sin patrón" : "Elige una categoría primero"}
               />
               {exigePatron && opcionesPatron.length === 0 && (
-                <p className="mt-1 text-xs text-ambar-profundo">
+                <p className="mt-1 text-sm text-ambar-profundo">
                   Esta prenda ya tenía patrón y {categoriaActual?.nombre} no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
                 </p>
               )}
               {familiaExigente && !exigePatron && !patronId && opcionesPatron.length > 0 && (
-                <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva patrón (si no tiene diseño, elige Liso). Complétalo cuando puedas; no hace falta para guardar.</p>
+                <p className="mt-1 text-sm text-tinta/55">Indumentaria lleva patrón (si no tiene diseño, elige Liso). Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
               {patronId && (
                 <MuestraPatron
@@ -1690,7 +1689,7 @@ export function ProductoForm({
                 <div className="space-y-1">
                   <p className="label-cayla text-[11px] text-tinta/70">Estado</p>
                   <p className="text-sm text-tinta">Descontinuado</p>
-                  <p className="text-xs text-tinta/60">
+                  <p className="text-sm text-tinta/60">
                     Se rechazó al revisar un alta al vuelo y no se reactiva. Si fue un error, créala de nuevo con Nuevo producto.
                   </p>
                 </div>
@@ -1731,7 +1730,7 @@ export function ProductoForm({
               <div>
                 <p className="label-cayla text-[11px] text-tinta/65">Temporada</p>
                 <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{producto?.temporada ?? "Sin temporada"}</p>
-                <p className="mt-1 text-xs text-tinta/55">
+                <p className="mt-1 text-sm text-tinta/55">
                   La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Guardar no cambia la temporada.
                 </p>
               </div>
@@ -1760,14 +1759,14 @@ export function ProductoForm({
                 </button>
                 {verTemporadaColor && (
                   <div id="producto-temporada-por-color" className="mt-2">
-                    <p className="text-xs text-tinta/55">
+                    <p className="text-sm text-tinta/55">
                       Solo si un color es de otra temporada que el modelo (un color de invierno en un modelo de verano). Si no, déjalo igual que
                       su prenda. Se guarda junto con el resto al pulsar &ldquo;Revisar y guardar&rdquo;.
                       {coloresFicha.length < MIN_COLORES_PARA_TEMPORADA_POR_COLOR &&
                         " Con un solo color, lo normal es ponerle la temporada a la prenda (arriba) y dejar el color igual que su prenda."}
                     </p>
                     {coloresInciertos.length > 0 && (
-                      <p className="nota-cayla mt-2 text-xs">
+                      <p className="nota-cayla mt-2 text-sm">
                         {coloresInciertos.map((c) => nombres.color(c)).join(", ")}{" "}
                         {coloresInciertos.length === 1 ? "estaba apagado" : "estaban apagados"} al abrir esta ficha: si{" "}
                         {coloresInciertos.length === 1 ? "tenía su propia temporada, la conserva" : "tenían su propia temporada, la conservan"}. Guarda
@@ -1818,12 +1817,12 @@ export function ProductoForm({
             retraso={140}
           >
             <div data-campo="fotos" data-estado={marcaDe("fotos") ?? undefined} className="hilo-tarjeta space-y-3 rounded-xl">
-              <p className="text-[11.5px] text-tinta/45">
+              <p className="text-sm text-tinta/45">
                 La vista grande y el selector de color viven en el panel del taller, a la derecha: usa «Cambiar foto» (o «+ Agregar foto» si al color le falta)
                 sobre la imagen grande, ahí mismo. Aquí abajo ves, ordenas o quitas todas.
               </p>
               {marcaDe("fotos") && (
-                <p className="flex items-center gap-2 text-[12px] text-taupe">
+                <p className="flex items-center gap-2 text-sm text-taupe">
                   <MarcaCampo estado={marcaDe("fotos")!} />
                   {marcaDe("fotos") === "ahora" ? <EtiquetaAhora /> : marcaDe("fotos") === "hecho" ? "Listo" : "Falta"}
                 </p>
@@ -1941,11 +1940,11 @@ export function ProductoForm({
             {correcciones.length > 0 && (
               <ul className="mt-2.5 space-y-1.5" aria-label="Correcciones de color o talla que se guardan">
                 {correcciones.map((c) => (
-                  <li key={c.clave} className="flex gap-2 text-[12.5px] text-ambar-profundo">
+                  <li key={c.clave} className="flex gap-2 text-sm text-ambar-profundo">
                     <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
                     <span className="min-w-0">
                       Se corrige al guardar: <b className="font-semibold">{c.texto}</b>. Conserva su stock y su historia.{" "}
-                      <BotonDeshacer disabled={loading} onClick={() => deshacerCorreccion(c.claves, c.destino)} className="text-[12px]" />
+                      <BotonDeshacer disabled={loading} onClick={() => deshacerCorreccion(c.claves, c.destino)} className="text-sm" />
                     </span>
                   </li>
                 ))}
@@ -1956,14 +1955,14 @@ export function ProductoForm({
                 {seQuitan.map((c) => {
                   const u = unidadesDe(c);
                   return (
-                    <li key={c ?? "sin-color"} className="flex gap-2 text-[12.5px] text-ambar-profundo">
+                    <li key={c ?? "sin-color"} className="flex gap-2 text-sm text-ambar-profundo">
                       <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
                       <span className="min-w-0">
                         <b className="font-semibold">{nombres.color(c)}</b> deja de venderse al guardar: sus variantes se desactivan y conservan su historia
                         {u > 0
                           ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
-                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="text-[12px]" />
+                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="text-sm" />
                       </span>
                     </li>
                   );
@@ -1975,7 +1974,7 @@ export function ProductoForm({
                 {tallasSeQuitan.map((t) => {
                   const u = unidadesDeTalla(t);
                   return (
-                    <li key={t ?? "sin-talla"} className="flex gap-2 text-[12.5px] text-ambar-profundo">
+                    <li key={t ?? "sin-talla"} className="flex gap-2 text-sm text-ambar-profundo">
                       <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
                       <span className="min-w-0">
                         La talla <b className="font-semibold">{nombres.talla(t) || "Única"}</b> deja de venderse en todos los colores al guardar: sus
@@ -1983,7 +1982,7 @@ export function ProductoForm({
                         {u > 0
                           ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
-                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="text-[12px]" />
+                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="text-sm" />
                       </span>
                     </li>
                   );
@@ -1991,7 +1990,7 @@ export function ProductoForm({
               </ul>
             )}
             {yaDesactivados.length > 0 && (
-              <p className="mt-2 text-[12px] text-taupe">
+              <p className="mt-2 text-sm text-taupe">
                 Ya no se venden: {yaDesactivados.map((c) => nombres.color(c)).join(", ")}. Para volver a venderlos, «+ Agregar color» los reactiva con su
                 historia.
               </p>

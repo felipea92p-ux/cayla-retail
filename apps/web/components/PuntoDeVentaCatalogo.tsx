@@ -277,7 +277,7 @@ export function PuntoDeVentaCatalogo({
                         )}
                         <span className={`min-w-0 flex-1 ${apagada ? "opacity-80" : ""}`}>
                           <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
-                          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-tinta/65">
+                          <span className="mt-0.5 flex items-center gap-1.5 text-sm text-tinta/65">
                             {v.talla && <span className="shrink-0 rounded-md border border-sand bg-crema px-1.5 py-px font-semibold text-tinta">{v.talla}</span>}
                             {v.color && (
                               <span className="flex min-w-0 items-center gap-1.5">
@@ -292,17 +292,17 @@ export function PuntoDeVentaCatalogo({
                               {textoStockDeFila(v)}
                             </Chip>
                             {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
-                            {otras && <span className="text-[11px] text-tinta/55">{otras}</span>}
+                            {otras && <span className="text-sm text-tinta/55">{otras}</span>}
                             {/* Lista angosta (celular): el precio sube a esta línea en vez de abrir otra. */}
                             <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">
                               {money(v.precio)}
-                              {v.precioDeSede && <span className="ml-1 text-[10.5px] text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                              {v.precioDeSede && <span className="ml-1 text-sm text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
                             </span>
                           </span>
                         </span>
                         <span className="hidden shrink-0 text-right @[26rem]:block">
                           <span className="block text-sm font-semibold tabular-nums text-tinta">{money(v.precio)}</span>
-                          {v.precioDeSede && <span className="block whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                          {v.precioDeSede && <span className="block whitespace-nowrap text-sm font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
                         </span>
                       </button>
                     </li>
@@ -398,7 +398,7 @@ export function PuntoDeVentaCatalogo({
               // (D-40): se dice cuántos, para que se sepa que apagando el filtro aparecen. Cuenta COLORES (los puntos de
               // las tarjetas, ADR-0323), no unidades. `leading-tight`: en dos líneas cabe en el alto del interruptor, y la
               // fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
-              <span className="anim-asentar text-right text-[11px] leading-tight text-tinta/60">
+              <span className="anim-asentar text-right text-sm leading-tight text-tinta/60">
                 {ocultasEnAlmacen > 0
                   ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "color oculto" : "colores ocultos"} (${ocultasEnAlmacen} con stock en el almacén)`
                   : `${ocultasSinStock} ${ocultasSinStock === 1 ? "color agotado oculto" : "colores agotados ocultos"}`}

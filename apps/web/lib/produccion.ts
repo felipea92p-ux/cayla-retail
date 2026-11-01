@@ -163,6 +163,8 @@ export type ModeloProducible = {
   tejidoId?: string | null;
   tejidoNombre?: string | null;
   variantes: VarianteDeModelo[];
+  /** Las variantes DESACTIVADAS del modelo (no salen en la tabla): «+ Talla» y «+ Color» de Nueva orden no ofrecen lo que ellas ocupan (/chaos 2026-10-31). Falta en un modelo virtual. */
+  desactivadas?: { talla: string | null; color: string | null; colorCodigo: string | null }[];
   /** Solo el líder (`conPreciosMasBajosDeModelos`): el precio propio más bajo de una tienda, si queda bajo la grilla (ADR-0370). */
   precioMasBajo?: PrecioMasBajo;
 };
@@ -214,6 +216,12 @@ export async function getModelosProducibles(opciones: { soloProducibles?: boolea
           precio: Number(v.precio),
         }))
         .sort(compararLineas),
+      desactivadas: (p.variantes ?? [])
+        .filter((v) => !v.activo)
+        .map((v) => {
+          const { talla, color, colorCodigo } = datosDeVariante(v);
+          return { talla, color, colorCodigo };
+        }),
     }))
     .filter((m) => m.variantes.length > 0);
 }

@@ -33,12 +33,14 @@ import { Boton } from "@/components/ui/campos";
 // Configuración ▸ Impuestos (ADR-0195 F8), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgImpuestos`): la
 // tasa de IGV con sus vigencias, la UIT de cada año y —lo que el spike dejaba para cuando el contador confirme— el
 // régimen, el límite de ventas y el pago a cuenta de cada año. Como Tiendas y caja, CADA CASILLA SE GUARDA SOLA al salir de
-// ella si cambió, firmada con el responsable. En la base solo se agregan filas: una corrección es una fila nueva.
+// ella si cambió, firmada con el responsable — salvo la tabla del régimen, que lleva su botón «Guardar» por fila
+// (Felipe 2026-10-31). En la base solo se agregan filas: una corrección es una fila nueva.
 //
 // El tope diario de la planilla de movilidad (ADR-0362, fase 6 · actividad 6, decisión 68) vive aquí, con vigencias como la tasa de IGV:
 // lo fija el contador y, mientras no haya, ninguna planilla se marca «no deducible».
 
-type Guardar = (nombre: NombreParametro, vigenteDesde: string, valor: number | null, texto: string | null, listo: string) => Promise<boolean>;
+type Guardar = (nombre: NombreParametro, vigenteDesde: string, valor: number | null, texto: string | null, listo: string | null) => Promise<boolean>;
+// `listo: null` guarda sin aviso ni refresco: lo usa la fila del régimen, que guarda varios valores de una vez y avisa una sola vez al final.
 
 /**
  * Una casilla que se guarda al salir si su texto cambió; si el guardado falla, vuelve a lo de antes. Mientras guarda no se edita
@@ -83,7 +85,7 @@ function Quien({ p, onConfirmar }: { p: ParametroFila; onConfirmar: () => void }
     return (
       <small>
         por confirmar con el contador ·{" "}
-        <button type="button" className="btn-enlace text-[11.5px]" onClick={onConfirmar}>
+        <button type="button" className="btn-enlace text-sm" onClick={onConfirmar}>
           ya lo confirmó
         </button>
       </small>
@@ -122,8 +124,10 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
       avisar.error(traducirError(error as never, "guardar el parámetro"));
       return false;
     }
-    avisar.exito(listo);
-    router.refresh();
+    if (listo !== null) {
+      avisar.exito(listo);
+      router.refresh();
+    }
     return true;
   };
 
@@ -161,7 +165,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Nada se borra: una corrección también queda en la historia.</p>
+        <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al salir de ella y queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
@@ -215,8 +219,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
         <Superficie pad className="anim-sube" guia="config.impuestos-tope">
           <CabeceraBloque titulo="Tope diario de la planilla de movilidad" bajada="Por persona y por día. Lo que pase se deja registrar y queda «no deducible»." />
           {topes.length === 0 ? (
-            <p className="fin-tenue text-[13px]">
-              Sin tope: lo fija el contador (SUNAT lo limita al 4 % de la remuneración mínima vital). Mientras no haya, ningún taxi ni cargador se marca.
+            <p className="fin-tenue text-sm">
+              Sin tope: lo fija el contador. Mientras no haya, ningún taxi ni cargador se marca.
             </p>
           ) : (
             <ul className="fin-vigencias">
@@ -250,8 +254,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
             bajada="El crédito fiscal con que CAYLA arrancó, de la última declaración. El IGV de cada mes parte de aquí en vez de cero."
           />
           {saldos.length === 0 ? (
-            <p className="fin-tenue text-[13px]">
-              Todavía no hay uno: tu contador lo ve en la última declaración («saldo a favor del periodo anterior»). Mientras no esté, el IGV de Impuestos y de la proyección se calcula desde cero y puede salir de más.
+            <p className="fin-tenue text-sm">
+              Todavía no hay uno: tu contador lo ve en la última declaración. Sin él, el IGV se calcula desde cero y puede salir de más.
             </p>
           ) : (
             <ul className="fin-vigencias">
@@ -311,8 +315,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
               );
             })}
           </ul>
-          <p className="fin-tenue mt-3 text-[13px]">
-            Si ese monto ya está registrado en el sistema, déjalo en 0: se contaría dos veces. Cada año va aparte: el de uno no pasa al siguiente.
+          <p className="fin-tenue mt-3 text-sm">
+            Si ya está registrado en el sistema, déjalo en 0: se contaría dos veces. Cada año va aparte.
           </p>
         </Superficie>
       </section>
@@ -324,7 +328,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
           </button>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
-          <table className="fin-tabla fin-tabla-apretada" style={{ minWidth: 800 }}>
+          <table className="fin-tabla fin-tabla-apretada" style={{ minWidth: 900 }}>
             <thead>
               <tr>
                 <th>Año</th>
@@ -334,11 +338,12 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
                 <th className="fin-num">Límite en soles</th>
                 <th className="fin-num">Pago a cuenta</th>
                 <th>Estado</th>
+                <th aria-label="Guardar" />
               </tr>
             </thead>
             <tbody>
               {anios.map((anio) => (
-                <FilaAnio key={anio} anio={anio} parametros={parametros} guardar={guardar} guardarCasilla={guardarCasilla} />
+                <FilaAnio key={anio} anio={anio} parametros={parametros} guardar={guardar} />
               ))}
             </tbody>
           </table>
@@ -355,35 +360,110 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   );
 }
 
-function FilaAnio({
-  anio,
-  parametros,
-  guardar,
-  guardarCasilla,
-}: {
-  anio: number;
-  parametros: ParametroFila[];
-  guardar: Guardar;
-  guardarCasilla: (nombre: Exclude<NombreParametro, "regimen">, vigenteDesde: string, que: string) => (t: string) => Promise<boolean>;
-}) {
+type CampoAnio = "regimen" | "umbral" | "aviso" | "renta";
+const CAMPOS_ANIO: readonly CampoAnio[] = ["regimen", "umbral", "aviso", "renta"];
+const PARAMETRO_DE: Record<Exclude<CampoAnio, "regimen">, Exclude<NombreParametro, "regimen">> = { umbral: "umbral_uit", aviso: "aviso_umbral_uit", renta: "renta_pago_cuenta" };
+const NOMBRE_DE: Record<CampoAnio, string> = { regimen: "Régimen", umbral: "Límite", aviso: "Aviso", renta: "Pago a cuenta" };
+
+/** Una casilla que NO se guarda sola: lo tipeado vive en la fila hasta que se aprieta «Guardar». Enter guarda; Escape devuelve lo guardado. */
+function CasillaLibre({ valor, guardado, onValor, onEnter, etiqueta, ancho, placeholder = "—", bloqueada }: { valor: string; guardado: string; onValor: (nuevo: string) => void; onEnter: () => void; etiqueta: string; ancho: string; placeholder?: string; bloqueada: boolean }) {
+  return (
+    <input
+      aria-label={etiqueta}
+      inputMode="decimal"
+      value={valor}
+      placeholder={placeholder}
+      readOnly={bloqueada}
+      aria-busy={bloqueada || undefined}
+      onChange={(e) => onValor(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onEnter();
+        if (e.key === "Escape" && !bloqueada) onValor(guardado);
+      }}
+      className={`fin-control fin-num inline-block ${ancho}`}
+    />
+  );
+}
+
+function FilaAnio({ anio, parametros, guardar }: { anio: number; parametros: ParametroFila[]; guardar: Guardar }) {
+  const router = useRouter();
   const desde = `${anio}-01-01`;
-  const regimen = delAnio(parametros, "regimen", anio);
-  const umbral = delAnio(parametros, "umbral_uit", anio);
-  const renta = delAnio(parametros, "renta_pago_cuenta", anio);
-  const aviso = delAnio(parametros, "aviso_umbral_uit", anio);
+  const filas = {
+    regimen: delAnio(parametros, "regimen", anio),
+    umbral: delAnio(parametros, "umbral_uit", anio),
+    renta: delAnio(parametros, "renta_pago_cuenta", anio),
+    aviso: delAnio(parametros, "aviso_umbral_uit", anio),
+  };
   const avisoVigente = vigenteEnAnio(parametros, "aviso_umbral_uit", anio);
   const regimenVigente = vigenteEnAnio(parametros, "regimen", anio);
   const umbralVigente = vigenteEnAnio(parametros, "umbral_uit", anio);
   const rentaVigente = vigenteEnAnio(parametros, "renta_pago_cuenta", anio);
   const uitVigente = vigenteEnAnio(parametros, "uit", anio);
-  const propios = [regimen, umbral, renta, aviso].filter((p): p is ParametroFila => !!p);
+  const propios = CAMPOS_ANIO.map((c) => filas[c]).filter((p): p is ParametroFila => !!p);
+
+  // Lo guardado y el borrador: nada se escribe en la base hasta apretar «Guardar» (Felipe 2026-10-31). Si lo guardado cambia
+  // (se guardó, o se refrescó la pantalla), el borrador vuelve a lo que dice la base.
+  const guardado: Record<CampoAnio, string> = {
+    regimen: filas.regimen?.texto ?? "",
+    umbral: filas.umbral ? valorEnCasilla(filas.umbral) : "",
+    aviso: filas.aviso ? valorEnCasilla(filas.aviso) : "",
+    renta: filas.renta ? valorEnCasilla(filas.renta) : "",
+  };
+  const [borrador, setBorrador] = useState(guardado);
+  const [guardandoFila, setGuardandoFila] = useState(false);
+  const huella = CAMPOS_ANIO.map((c) => guardado[c]).join("|");
+  const [huellaVista, setHuellaVista] = useState(huella);
+  if (huella !== huellaVista) {
+    setHuellaVista(huella);
+    setBorrador(guardado);
+  }
+
+  const cambiados = CAMPOS_ANIO.filter((c) => borrador[c].trim() !== guardado[c].trim());
+  // Lo que arrancó provisional se confirma con el mismo valor: la base solo lo deja de marcar al volver a escribirlo.
+  const aGuardar = CAMPOS_ANIO.filter((c) => cambiados.includes(c) || filas[c]?.provisional);
+
   const enSoles = uitVigente?.valor && umbralVigente?.valor ? uitVigente.valor * umbralVigente.valor : null;
   const avisoEnSoles = uitVigente?.valor && avisoVigente?.valor ? uitVigente.valor * avisoVigente.valor : null;
-  const estado = !propios.length
-    ? { tono: "neutro" as const, texto: regimenVigente || umbralVigente ? "sigue el año anterior" : "sin configurar" }
-    : propios.some((p) => p.provisional)
-      ? { tono: "ambar" as const, texto: "por confirmar" }
-      : { tono: "verde" as const, texto: "confirmado" };
+  const estado = cambiados.length
+    ? { tono: "ambar" as const, texto: "sin guardar" }
+    : !propios.length
+      ? { tono: "neutro" as const, texto: regimenVigente || umbralVigente ? "sigue el año anterior" : "sin configurar" }
+      : propios.some((p) => p.provisional)
+        ? { tono: "ambar" as const, texto: "por confirmar" }
+        : { tono: "verde" as const, texto: "confirmado" };
+
+  async function guardarFila() {
+    if (guardandoFila || !aGuardar.length) return;
+    // Primero se valida todo: un error de tipeo no deja la fila a medio guardar.
+    const listos: { nombre: NombreParametro; valor: number | null; texto: string | null }[] = [];
+    for (const c of aGuardar) {
+      if (c === "regimen") {
+        if (!borrador.regimen) {
+          avisar.error(`${NOMBRE_DE.regimen} de ${anio}: elige un régimen.`);
+          return;
+        }
+        listos.push({ nombre: "regimen", valor: null, texto: borrador.regimen });
+        continue;
+      }
+      const v = parsearParametro(PARAMETRO_DE[c], borrador[c]);
+      if (!v.ok) {
+        avisar.error(`${NOMBRE_DE[c]} de ${anio}: ${v.error}`);
+        return;
+      }
+      listos.push({ nombre: PARAMETRO_DE[c], valor: v.valor, texto: null });
+    }
+    setGuardandoFila(true);
+    let hechos = 0;
+    for (const l of listos) {
+      if (!(await guardar(l.nombre, desde, l.valor, l.texto, null))) break;
+      hechos++;
+    }
+    setGuardandoFila(false);
+    if (hechos) router.refresh();
+    if (hechos === listos.length) avisar.exito(cambiados.length ? `Impuestos de ${anio}: guardado.` : `Impuestos de ${anio}: confirmado.`);
+  }
+
+  const poner = (c: CampoAnio) => (nuevo: string) => setBorrador((b) => ({ ...b, [c]: nuevo }));
 
   return (
     <tr>
@@ -395,28 +475,34 @@ function FilaAnio({
         <SelectFin
           etiqueta={`Régimen de renta de ${anio}`}
           className="w-fit min-w-[15rem] fin-compacto"
-          valor={regimen?.texto ?? ""}
-          onValor={(v) => void guardar("regimen", desde, null, v as Regimen, `Régimen de ${anio}: ${TEXTO_REGIMEN[v as Regimen]}.`)}
+          valor={borrador.regimen}
+          onValor={(v) => poner("regimen")(v)}
           marcador={regimenVigente ? `Como antes: ${TEXTO_REGIMEN[regimenVigente.texto as Regimen] ?? regimenVigente.texto}` : "Elige…"}
           opciones={REGIMENES.map((r) => ({ valor: r, texto: TEXTO_REGIMEN[r] }))}
         />
       </td>
       <td className="fin-num" data-l="Límite (UIT)">
-        <Casilla
-          valor={umbral ? valorEnCasilla(umbral) : ""}
+        <CasillaLibre
+          valor={borrador.umbral}
+          guardado={guardado.umbral}
+          onValor={poner("umbral")}
+          onEnter={guardarFila}
+          bloqueada={guardandoFila}
           placeholder={umbralVigente ? valorEnCasilla(umbralVigente) : "—"}
           etiqueta={`Límite de ventas de ${anio}, en UIT`}
           ancho="w-20"
-          alGuardar={guardarCasilla("umbral_uit", desde, `Límite de ${anio}`)}
         />
       </td>
       <td className="fin-num" data-l="Aviso (UIT)">
-        <Casilla
-          valor={aviso ? valorEnCasilla(aviso) : ""}
+        <CasillaLibre
+          valor={borrador.aviso}
+          guardado={guardado.aviso}
+          onValor={poner("aviso")}
+          onEnter={guardarFila}
+          bloqueada={guardandoFila}
           placeholder={avisoVigente ? valorEnCasilla(avisoVigente) : "—"}
           etiqueta={`Aviso anticipado de ${anio}, en UIT de ventas del año`}
           ancho="w-20"
-          alGuardar={guardarCasilla("aviso_umbral_uit", desde, `Aviso de ${anio}`)}
         />
         {avisoEnSoles !== null && <span className="fin-sub">{solesRedondo(avisoEnSoles)}</span>}
       </td>
@@ -426,18 +512,33 @@ function FilaAnio({
       </td>
       <td className="fin-num" data-l="Pago a cuenta">
         <span className="fin-con-unidad">
-          <Casilla
-            valor={renta ? valorEnCasilla(renta) : ""}
+          <CasillaLibre
+            valor={borrador.renta}
+            guardado={guardado.renta}
+            onValor={poner("renta")}
+            onEnter={guardarFila}
+            bloqueada={guardandoFila}
             placeholder={rentaVigente ? valorEnCasilla(rentaVigente) : "—"}
             etiqueta={`Pago a cuenta de renta de ${anio}, en %`}
             ancho="w-16"
-            alGuardar={guardarCasilla("renta_pago_cuenta", desde, `Pago a cuenta de ${anio}`)}
           />
           %
         </span>
       </td>
       <td data-l="Estado">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
+      </td>
+      <td data-l="Guardar">
+        <Boton
+          peso={cambiados.length ? "primario" : "fantasma"}
+          className="btn-chico"
+          cargando={guardandoFila}
+          disabled={!aGuardar.length}
+          onClick={() => void guardarFila()}
+          title={cambiados.length ? "Guarda los cambios de esta fila" : aGuardar.length ? "Confirma con el valor que ya tiene: deja de decir «por confirmar»" : "No hay nada que guardar"}
+        >
+          {cambiados.length || !aGuardar.length ? "Guardar" : "Confirmar"}
+        </Boton>
       </td>
     </tr>
   );

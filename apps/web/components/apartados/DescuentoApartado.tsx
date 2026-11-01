@@ -137,7 +137,7 @@ export function DescuentoApartado({
                 })}
               </div>
               <label className="caja-cayla caja-campo h-11 gap-2">
-                <span className="text-[12px] text-taupe">Otro</span>
+                <span className="text-sm text-taupe">Otro</span>
                 {porMonto ? (
                   <>
                     <span className="ml-auto text-sm text-tinta/60">S/</span>
@@ -179,7 +179,7 @@ export function DescuentoApartado({
                   type="button"
                   aria-pressed={razon === r.valor}
                   onClick={() => setRazon(r.valor)}
-                  className={`${OPCION} h-10 px-2 text-xs ${razon === r.valor ? OPCION_ACTIVA : OPCION_INACTIVA}`}
+                  className={`${OPCION} h-10 px-2 text-sm ${razon === r.valor ? OPCION_ACTIVA : OPCION_INACTIVA}`}
                 >
                   {r.etiqueta}
                 </button>
@@ -229,7 +229,7 @@ export function DescuentoApartado({
                 <label key={l.varianteId} className="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 text-sm">
                   <Casilla marcada={elegidas.includes(l.varianteId)} onCambio={() => alternar(l.varianteId)} etiqueta={nombreDe(l.varianteId)} />
                   <span className="min-w-0 flex-1 truncate text-tinta">{nombreDe(l.varianteId)}</span>
-                  <span className="shrink-0 text-xs tabular-nums text-taupe">
+                  <span className="shrink-0 text-sm tabular-nums text-taupe">
                     {l.cantidad > 1 ? `${l.cantidad} × ` : ""}
                     {money(l.precioUnitario)}
                   </span>
@@ -244,9 +244,9 @@ export function DescuentoApartado({
                 <span>El apartado quedaría en</span>
                 <span className="font-display text-2xl text-tinta">{money(totalAparte + totalDeLineas(quedan))}</span>
               </p>
-              {!porMonto && <p className="text-xs text-taupe">Cada prenda baja a un precio sin céntimos sueltos.</p>}
+              {!porMonto && <p className="text-sm text-taupe">Cada prenda baja a un precio sin céntimos sueltos.</p>}
               {ganaLaCampana.length > 0 && (
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   {ganaLaCampana.map((l) => nombreDe(l.varianteId)).join(", ")}: su campaña ya da igual o más, se queda con la campaña.
                 </p>
               )}

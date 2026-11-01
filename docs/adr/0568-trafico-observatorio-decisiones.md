@@ -102,3 +102,42 @@ antes sigue funcionando (los otros tres tienen valor de fábrica).
   caído), pero el 30 quedaba vacío sin explicación y Felipe preguntó por qué. Ahora `graficoDe` lo devuelve aparte (`enCurso`) y `<Linea>`
   lo dibuja con un tramo punteado hasta un punto hueco con su cifra y «hasta ahora» (prop `enCurso`, nueva en la pieza única). Lo mismo con
   la hora en curso en Hoy. En «Acumulado» no cambia nada: ahí ya entraba.
+
+## Actualización 2026-10-31 — que se note dónde se pierde la gente: «B · Zona marcada» (Felipe)
+
+- **Qué pasó:** Felipe miró «Hasta dónde llega la gente» con una captura real (146 · 51 · 9 · 4 · 2 · 1) y dijo que «no se nota mucho dónde se pierde la
+  gente». Se le mostraron tres formas nuevas (columnas a escala, una fila por paso, un río que se angosta) y dijo que **lo de hoy está bien, solo que el
+  tramo naranja se note más**. Se le mostraron entonces tres intensidades sobre la misma línea y eligió **B · Zona marcada**
+  (`docs/maquetas/trafico-perdida-2026-10/realce-del-tramo.html`).
+- **Qué cambió:** la línea conserva su forma. El tramo donde se atora lleva un **recuadro ámbar suave** con su rótulo (de la mitad de la estación de antes a
+  la mitad de la que se atora; angosta, abraza a las dos estaciones apiladas), el **riel de ese tramo se engruesa** (5 px), el círculo del paso se llena de
+  ámbar y el «42 se fueron…» sube a 18 px. El rótulo dice lo mismo que el veredicto: «Aquí se atora» si va peor que de costumbre, «Una pista» con pocas
+  personas, «Como de costumbre» si no. Entra una vez, sin rebote ni bucle (`trafico-zona-entra`), y se apaga con `prefers-reduced-motion`.
+- **Cómo está hecho (sin script):** la estación de ANTES del paso que se atora (`data-hacia-atora`) dibuja el recuadro con su `::after`, translúcido para que
+  el riel vecino se vea, detrás del contenido (`isolation: isolate`); el rótulo es un `<span aria-hidden>` (el chip ya lo dice con letras). Solo tokens
+  (`--color-ambar`, `--color-papel`); en oscuro el ámbar es el claro de la paleta y el rótulo pasa a texto oscuro. `RecorridoTrafico.tsx`, `trafico.css`.
+- **DESCARTÉ:** (1) bajar de tono lo demás, como en la maqueta (`opacity .72`): el texto de las salidas ya va al 70 % y quedaría bajo el piso de contraste.
+  (2) Las tres formas nuevas (A/B/C de `index.html`): Felipe prefirió conservar la línea de hoy.
+- **No cambió, y es de Felipe:** *qué* se marca. La regla sigue siendo la de siempre (el paso que deja pasar a menos gente de la que le llega, comparado con lo de
+  costumbre): con esos datos marca «al elegir talla» (42 de 51, 82 %), aunque donde más PERSONAS se van es apenas entran (95 de 146, 65 %). Cambiar a
+  «más personas» es una línea en `dondeSeAtora`; la maqueta (`index.html`, «Qué marca en ámbar») deja compararlas.
+- **Verificación:** el componente real renderizado a HTML con el CSS real (la base local no tiene visitas ni estaba levantada), en claro y oscuro, a ancho de
+  escritorio y a 375 px, con los datos de la captura, un caso donde se atora el primer paso y otro de poca gente. Falta mirarlo con visitas de producción.
+
+## Actualización 2026-10-31 (b) — «C · La cifra manda» reemplaza a «B · Zona marcada», con el naranja de la maqueta
+
+- **Qué pasó:** al mirar «B» ya aplicada en el ERP, se vio que no era lo que se eligió en la maqueta: el naranja había pasado a café (`--color-ambar`,
+  #74501a) y el rótulo cambiaba de texto («Como de costumbre» dentro de una zona resaltada: dos mensajes opuestos). Se volvió a mirar la ronda
+  (`docs/maquetas/trafico-perdida-2026-10/realce-del-tramo.html`) y se prefirió **«C · La cifra manda»**, con el naranja más claro del diseño.
+- **Qué cambió:** el recuadro y su rótulo se fueron. El tramo donde se atora es un riel **punteado grueso (6 px) y naranja**, la estación que se atora se llena de
+  naranja y lo que se fue sale como un **«−42» grande en serif** (40 px; 46 en tarjeta ancha) con «82 % se fue sin elegir talla» en ámbar, colgando de una raya
+  punteada naranja. Para un lector de pantalla, el texto es el de siempre («42 se fueron sin elegir talla»); el «−42» es visual (`aria-hidden`). El chip de arriba
+  sigue diciendo «Aquí se atora» o «Como de costumbre». Entra una vez (el riel que se dibuja), sin rebote ni bucle; sin la animación `trafico-zona-entra`.
+- **El naranja es un token nuevo, `--color-naranja`** (`globals.css`, `tema.css` en oscuro y en `.papel-fijo`): #bf8029 en claro, #dba04a en oscuro. Es de GRÁFICO
+  —línea y relleno—, nunca texto (el texto va en `ambar`). El de la maqueta (#c98a2b) daba 2.77:1 sobre papel y no llegaba al 3:1 que se exige a un gráfico; #bf8029
+  es el más claro de su misma familia que sí llega (3.13:1). `lib/tema-tokens.test.ts` lo mide en claro y en oscuro.
+- **DESCARTÉ:** (1) usar `--color-grafico-baja` (#a8741f, 3.8:1): ya existe, pero es más oscuro y sale más café que el naranja que se pidió. (2) Bajar de tono lo demás
+  (`opacity .72` de la maqueta), por el piso de contraste del texto. (3) Dejar un rótulo sobre el tramo: ya lo dice el chip.
+- **Sigue siendo de Felipe:** *qué* se marca (`dondeSeAtora`), como en la actualización anterior; y que la paleta del ERP gane un naranja.
+- **Verificación:** el componente real, con datos inventados en una página temporal (ya borrada), en claro, oscuro y a 375 px; pruebas de tokens, colores, movimiento,
+  guías y unificar, `tsc` y `eslint` en verde. Falta mirarlo con visitas de producción.

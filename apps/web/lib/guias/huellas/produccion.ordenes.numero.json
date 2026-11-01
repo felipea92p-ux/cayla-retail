@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 196,
+  "total": 201,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -199,13 +199,15 @@
     "components/orden-pagina/RutaViva.tsx": [
       "Boton «prod-orden.agregar-paso»",
       "button «{estado === \"hecha\" && <Check />}»",
+      "LapizEditar «{que}»",
       "Boton «prod-orden.marcar»",
-      "BotonDeshacer «→() => alAbrirHoja(\"desmarcar\")»",
+      "button «prod-orden.quitar-marca-paso»",
       "Boton «prod-orden.terminar»",
       "Boton «prod-orden.vuelta»",
       "Boton «prod-orden.salida»",
       "button «prod-orden.cambiar-quien»",
-      "button «prod-orden.quitar-paso»"
+      "button «prod-orden.quitar-paso»",
+      "BotonVerMas «{`Ver ${anotado.length - ANOTADO_A_LA_VISTA}»"
     ],
     "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
       "Boton «prod-orden.ficha-modelo»",
@@ -238,11 +240,14 @@
       "CampoMonto «{modoFijo === \"prenda\" ? \"Cobra por prenda\" : \"Cobra por esta orden\"}»",
       "SegmentoDeslizante «Cómo escribes el cobro del ploteo»",
       "CampoFecha «Prometido para»",
-      "CampoMonto «Por prenda»",
+      "CampoMonto «{modoTarifa === \"total\" ? `Total por las ${totalPrendas}»",
+      "SegmentoDeslizante «{`Cómo escribes lo que cobra ${nombreEnFrase}»",
       "CampoTexto «Cantidad mínima»",
       "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
-      "button «+ fijo por orden (ponchado, matriz)»"
+      "button «+ fijo por orden (ponchado, matriz)»",
+      "button «Sí, es por prenda»",
+      "button «Es el total de la orden»"
     ],
     "components/orden-produccion/FichaDeConsumoHoja.tsx": [
       "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",

@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -969,8 +970,8 @@ export function NuevoProductoForm({
     if (n === 1) {
       return (
         <div className="space-y-3">
-          <p className="text-[13px] text-taupe">
-            Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.
+          <p className="text-sm text-taupe">
+            La categoría trae el código, las tallas y los tejidos. Al tocarla, pasas al siguiente paso.
           </p>
           {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. La pregunta vive en su propia tarjeta, sobre este paso. */}
           <div inert={faltaEmpresa} className={faltaEmpresa ? "opacity-50 transition-opacity" : "transition-opacity"}>
@@ -1149,7 +1150,7 @@ export function NuevoProductoForm({
               {contexto.temporadas ? (
                 <ElegirTemporada temporadas={listaTemporadas} clave={temporada} onElegir={setTemporada} />
               ) : (
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Podrás ponerla después, desde la ficha del
                   producto.
                 </p>
@@ -1272,7 +1273,7 @@ export function NuevoProductoForm({
               >
                 {margen === null ? "—" : `${margen.toFixed(0)} %`}
               </p>
-              <p className="mt-1 text-xs text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+              <p className="mt-1 text-sm text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
             </div>
           </div>
           {nivel === "negativo" && (
@@ -1316,7 +1317,7 @@ export function NuevoProductoForm({
             {cargaCerrada && stock.total > 0 ? (
               // Una llegada entra a nombre de su proveedor (`lotes.proveedor_id`): sin él, se dice aquí mismo y se lleva a elegirlo.
               proveedorId ? (
-                <p className="text-[12px] leading-snug text-taupe">
+                <p className="text-sm leading-snug text-taupe">
                   Entran {destino.separaPiso ? `al almacén de ${destino.etiqueta}` : `a ${destino.etiqueta}`} como una llegada de{" "}
                   {proveedorNombre || "su proveedor"}, con fecha de hoy.{destino.separaPiso ? " Para venderlas, primero hay que bajarlas al piso." : ""}
                 </p>
@@ -1340,7 +1341,7 @@ export function NuevoProductoForm({
             ) : !cargaCerrada && stock.total > 0 ? (
               destino.separaPiso && (
                 <div className="space-y-2">
-                  <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están hoy?</p>
+                  <p className="text-sm font-semibold text-tinta">¿Dónde están hoy?</p>
                   <div className="flex flex-wrap gap-1.5">
                     <ChipOpcion elegido={lugarCarga === "piso"} onClick={() => setLugarCarga("piso")}>
                       Colgadas en el piso de venta
@@ -1350,7 +1351,7 @@ export function NuevoProductoForm({
                     </ChipOpcion>
                   </div>
                   {/* Lo que cambia cada respuesta, en palabras de tienda: es lo que la persona necesita para no elegir a ciegas. */}
-                  <p className="text-[12px] leading-snug text-taupe">
+                  <p className="text-sm leading-snug text-taupe">
                     {lugarCarga === "piso"
                       ? "La caja las puede cobrar desde ya."
                       : lugarCarga === "almacen"
@@ -1366,12 +1367,12 @@ export function NuevoProductoForm({
             )}
 
             {cargaCerrada ? (
-              <p className="nota-cayla text-[12.5px]">
+              <p className="nota-cayla text-sm">
                 La carga inicial de {destino.etiqueta} ya se cerró: lo que escribas aquí entra como una <strong>llegada de mercadería</strong>{" "}
                 del proveedor y queda en Movimientos como «Recepción», igual que en «Llegó mercadería».
               </p>
             ) : (
-              <p className="nota-cayla text-[12.5px]">
+              <p className="nota-cayla text-sm">
                 Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
                 inicial». Lo que llegue después se registra al recibirlo.
                 {avisoCarga && <span className="mt-1 block font-medium text-tinta">{avisoCarga}</span>}
@@ -1428,9 +1429,7 @@ export function NuevoProductoForm({
           onSubmit={onSubmit}
           // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
           // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
-          }}
+          onKeyDown={enterNoGuarda}
           className="space-y-4"
         >
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">

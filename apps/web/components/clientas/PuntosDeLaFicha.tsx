@@ -60,7 +60,7 @@ export function PuntosDeLaFicha({ estado }: { estado: EstadoPuntos }) {
           <b className="font-semibold tabular-nums">{p.destacado}</b>
           <span className="text-tinta/70"> · {p.resto}</span>
         </p>
-        <span className="text-xs text-tinta/55">{p.bajada}</span>
+        <span className="text-sm text-tinta/55">{p.bajada}</span>
       </Fila>
 
       {p.regalo && (
@@ -84,7 +84,7 @@ export function PuntosDeLaFicha({ estado }: { estado: EstadoPuntos }) {
             ))}
           </ul>
         )}
-        <span className={p.cupones.length > 0 ? "text-xs text-tinta/55" : "text-sm text-tinta/70"}>{p.notaCupones}</span>
+        <span className={p.cupones.length > 0 ? "text-sm text-tinta/55" : "text-sm text-tinta/70"}>{p.notaCupones}</span>
       </Fila>
     </div>
   );

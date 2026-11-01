@@ -80,7 +80,7 @@ export const FilaConteo = memo(function FilaConteo({
       <th
         scope="row"
         // «Estándar» (8 letras) mide ~56 px y la columna angosta le deja 44: en una tarjeta angosta baja a 11 px para leerse entera.
-        className={`py-[6px] pl-[18px] pr-1 text-left align-middle font-semibold text-tinta ${talla.length > 5 ? "text-[11px] @[26rem]:text-sm" : "text-sm"}`}
+        className={`py-[6px] pl-[18px] pr-1 text-left align-middle font-semibold text-tinta ${talla.length > 5 ? "text-sm @[26rem]:text-sm" : "text-sm"}`}
       >
         <span className="block truncate" title={talla}>
           {talla}
@@ -89,14 +89,14 @@ export const FilaConteo = memo(function FilaConteo({
       <td className="px-1 py-[6px] text-center align-middle text-sm tabular-nums text-tinta/65">
         {linea.debeHaber}
         {/* Al corregir un conteo cerrado el «debe haber» salta al contar de nuevo (3 → 2): esta marca fija dice con cuánto se empezó. */}
-        {habiaAntes && <span className="block text-[10px] leading-[12px] text-taupe">{habiaAntes}</span>}
+        {habiaAntes && <span className="block text-sm leading-[12px] text-taupe">{habiaAntes}</span>}
       </td>
       <td className="px-1 py-[6px] align-middle">
         <CampoContaste varianteId={id} contada={linea.contada} sugerida={linea.contada === null ? linea.anterior : null} etiqueta={etiqueta} alConfirmar={alConfirmar} alInvalido={alInvalido} alEnter={alEnter} />
       </td>
       <td className="py-[6px] pl-2 pr-3 align-middle">
         <EstadoLinea sinReserva antes={linea.anterior} sinContar={linea.aplicadaSinContar} estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
-        {nota && <p className="mt-0.5 text-[11px] leading-[15px] text-taupe">{nota}</p>}
+        {nota && <p className="mt-0.5 text-sm leading-[15px] text-taupe">{nota}</p>}
       </td>
     </tr>
   );

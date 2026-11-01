@@ -116,7 +116,7 @@ export function EstadoResultadosPanel({
               <input type="checkbox" checked={comparar} onChange={(e) => ir({ comparar: e.target.checked ? "1" : null })} />
               Comparar con {mesNombre(mesPrevio)}
             </label>
-            <span className="ml-auto text-[12.5px] text-taupe">Toca una cifra para ver de qué filas sale.</span>
+            <span className="ml-auto text-sm text-taupe">Toca una cifra para ver de qué filas sale.</span>
           </Herramientas>
 
           {columnas.length ? (
@@ -197,19 +197,15 @@ export function EstadoResultadosPanel({
       {veTodo ? (
         <div {...entra(2, "fin-dos-col")} data-guia="fin-resultados.notas">
           <div className="nota-cayla">
-            <b>El Taller no le vende a las tiendas</b> (D-31): lo que cuesta la tela, los avíos y la maquila de cada prenda entra en el
-            «costo de lo vendido» de la tienda que la vende. Su columna muestra lo que el Taller gasta para producir (su planilla, su local,
-            sus máquinas): Producción ▸ Eficiencia dice cuánto de eso le toca a cada prenda.
+            <b>El Taller no le vende a las tiendas</b>: el costo de cada prenda entra en la tienda que la vende. Su columna es lo que gasta para producir (planilla, local, máquinas).
           </div>
           <div className="nota-cayla">
-            <b>«De la empresa»</b> son los gastos que no son de ninguna tienda (contador, publicidad, software, sueldo de oficina, D-32).
-            Aparecen solo ahí y en CAYLA. No se reparten entre tiendas: repartirlos sería inventar un número.
+            <b>«De la empresa»</b>: lo que no es de ninguna tienda. Incluye a quienes trabajan en la central y en la Oficina Trujillo (con sus practicantes), más contador, publicidad, software y oficina. No se reparten entre tiendas.
           </div>
         </div>
       ) : (
         <div {...entra(2, "nota-cayla")} data-guia="fin-resultados.notas">
-          Estos son los números de <b>tu tienda</b>. Los gastos que no son de ninguna tienda (contador, publicidad, oficina) y los del
-          Taller no se reparten entre las tiendas: los ve el líder, en CAYLA.
+          Son los números de <b>tu tienda</b>. Los gastos de la empresa y del Taller los ve el líder, en CAYLA.
         </div>
       )}
 
@@ -308,7 +304,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       onClose={onCerrar}
       tamano="mediana"
     >
-      <p className="text-[13px] leading-relaxed text-taupe" data-guia="fin-resultados.origen">
+      <p className="text-sm leading-relaxed text-taupe" data-guia="fin-resultados.origen">
         <b className="font-semibold text-tinta">Sale de</b> {fuentes.join("; ")}.
       </p>
       {k.clave === "g62" && c.planillaEstimada > 0 && (
@@ -317,6 +313,17 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
           {c.planillaPersonas === 1 ? "persona" : "personas"}). Las horas de hoy son un cálculo con lo que lleva cada persona y se corrigen cuando cierra su jornada.
           Todavía no está en el diario, por eso estas líneas no lo suman; cuando Dynamic pague el período, entra lo pagado de verdad.
         </Aviso>
+      )}
+      {k.clave === "g62" && c.unidad === "empresa" && c.planillaPorSede.length > 0 && (
+        <>
+          <p className="label-cayla mb-1 mt-4 text-[11px] text-taupe">De lo provisionado, por sede</p>
+          <ListaDatos
+            filas={c.planillaPorSede.map((s) => ({
+              dato: `${s.nombre} · ${s.personas} ${s.personas === 1 ? "persona" : "personas"}`,
+              valor: solesER(s.devengado),
+            }))}
+          />
+        </>
       )}
       {o && o.porRegla.length > 0 && (
         <ListaDatos
@@ -352,8 +359,8 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
           />
         </>
       )}
-      <p className="mt-3 text-[12.5px] text-taupe">
-        Cada cifra es la suma de líneas del diario, y cada línea sabe de qué fila salió. Nada se tipea aquí.
+      <p className="mt-3 text-sm text-taupe">
+        Cada cifra suma líneas del diario; nada se tipea aquí.
       </p>
     </Modal>
   );

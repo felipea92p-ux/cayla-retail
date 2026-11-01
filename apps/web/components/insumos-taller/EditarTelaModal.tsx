@@ -22,6 +22,7 @@ import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
 import type { DatosDeLaTela } from "@/lib/tela-nueva-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 // «Editar tela» (ADR-0554, actividad 3; revisión del 28-oct: «una tela ya creada no se podía corregir»): la MISMA hoja con que se creó, con lo que la tela ya dice, para corregir su nombre, su tejido, su composición, su
 // merma o cómo se compra. Los colores no se editan aquí: siguen a su tela en la misma transacción (`editar_material`), así que un nombre mal escrito o un tejido que faltaba se arreglan una vez y valen para todos.
@@ -137,7 +138,7 @@ export function EditarTelaModal({
       antesDeCerrar={avisoSalida.pedirAccion}
     >
       <IdentidadAltaProveedor control={responsable}>
-        <form onSubmit={guardar} className="mt-3.5 space-y-6">
+        <form onSubmit={guardar} onKeyDown={enterNoGuarda} className="mt-3.5 space-y-6">
           <section data-guia="prod-tela-editar.campos" className="space-y-3">
             <TituloGrupo>Qué tela es</TituloGrupo>
             <CampoGuiado id="nombre" guia={guia}>
@@ -186,7 +187,7 @@ export function EditarTelaModal({
               <PieGuia guia={guia} listo={soloPonerAlDia ? "Todo listo para poner al día los nombres de los colores." : "Todo listo para guardar los cambios."} conFrase />
             )}
             {!puedeGuardar && guia.puedeConfirmar && (
-              <p role="status" className="pt-1 text-[12.5px] text-tinta/80">
+              <p role="status" className="pt-1 text-sm text-tinta/80">
                 Todavía no cambiaste nada: el botón se enciende cuando corrijas algo.
               </p>
             )}

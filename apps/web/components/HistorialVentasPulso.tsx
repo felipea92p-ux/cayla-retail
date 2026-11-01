@@ -44,10 +44,10 @@ export type EnlacePulso = { href: string; texto: string; detalle: string };
 function Dato({ etiqueta, valor, nota }: { etiqueta: string; valor: ReactNode; nota?: string }) {
   return (
     <div>
-      <dt className="text-xs text-tinta/60">{etiqueta}</dt>
+      <dt className="text-sm text-tinta/60">{etiqueta}</dt>
       <dd className="font-display text-xl tabular-nums text-tinta">
         {valor}
-        {nota && <span className="ml-1.5 font-sans text-xs text-tinta/50">{nota}</span>}
+        {nota && <span className="ml-1.5 font-sans text-sm text-tinta/50">{nota}</span>}
       </dd>
     </div>
   );
@@ -73,20 +73,20 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
   return (
     <section aria-label="Ventas por día" className="anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]" style={{ "--i": 3 } as CSSProperties}>
       <TituloSeccion>{porSemana ? "Ventas por semana" : "Ventas por día"}</TituloSeccion>
-      <p className="mt-0.5 text-xs text-tinta/60">{periodo}</p>
+      <p className="mt-0.5 text-sm text-tinta/60">{periodo}</p>
 
       {parcial ? (
-        <p className="mt-4 rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-xs leading-relaxed text-tinta/65">
+        <p className="mt-4 rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-sm leading-relaxed text-tinta/65">
           Hay 1,000 ventas o más en este rango: acótalo (una tienda, menos días) para ver el pulso y los totales.
         </p>
       ) : hayDibujo && enfocado ? (
         <>
-          <p className="mt-4 min-h-[3.25rem] text-xs text-tinta/60" aria-hidden>
+          <p className="mt-4 min-h-[3.25rem] text-sm text-tinta/60" aria-hidden>
             {activo === null ? "Mejor día · " : ""}
             {nombreDia(enfocado.fecha)}
             <span className="font-display block text-[26px] leading-tight tabular-nums text-tinta">
               {soles(enfocado.total)}
-              <span className="ml-2 font-sans text-xs text-tinta/55">{enfocado.ventas === 1 ? "1 venta" : `${enfocado.ventas} ventas`}</span>
+              <span className="ml-2 font-sans text-sm text-tinta/55">{enfocado.ventas === 1 ? "1 venta" : `${enfocado.ventas} ventas`}</span>
             </span>
           </p>
 
@@ -102,7 +102,7 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
             respuesta={{ onApuntar: (clave) => setActivo(clave === null ? null : dias.findIndex((d) => d.fecha === clave)) }}
             etiqueta={`Ventas ${porSemana ? "por semana" : "por día"}, ${periodo}. Mejor ${porSemana ? "semana" : "día"}: ${nombreDia(dias[pico].fecha)}, ${soles(dias[pico].total)}.`}
           />
-          <div className="mt-1 flex justify-between text-[11px] text-tinta/50">
+          <div className="mt-1 flex justify-between text-sm text-tinta/50">
             <span>{sinSemana(dias[0].fecha)}</span>
             <span>{sinSemana(dias[dias.length - 1].fecha)}</span>
           </div>
@@ -124,7 +124,7 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
 
       {!parcial && porMetodo.length > 0 && (
         <div className="mt-5 border-t border-dashed border-tinta/10 pt-4">
-          <p className="text-xs font-semibold text-tinta">Cómo se pagó</p>
+          <p className="text-sm font-semibold text-tinta">Cómo se pagó</p>
           {/* La barra es `<BarraApilada>` (ADR-0358): un tramo por método, con el token de color de cada uno. La barra entera espera su turno
               (`retraso`) como las demás piezas de este panel. */}
           <BarraApilada
@@ -135,7 +135,7 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
             etiqueta={`Cómo se pagó: ${porMetodo.map((m) => `${nombreMetodo(m.metodo)} ${Math.round((m.monto / cobrado) * 100)} %`).join(", ")}`}
             segmentos={porMetodo.map((m) => ({ clave: m.metodo, nombre: nombreMetodo(m.metodo), valor: m.monto, color: colorMetodo(m.metodo) }))}
           />
-          <ul className="mt-3 space-y-1.5 text-xs">
+          <ul className="mt-3 space-y-1.5 text-sm">
             {porMetodo.map((m) => (
               <li key={m.metodo} className="flex items-center gap-2 text-tinta/70">
                 <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorMetodo(m.metodo) }} />
@@ -153,8 +153,8 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
           {enlaces.map((e) => (
             <Link key={e.href} href={e.href} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-hueso">
               <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-medium text-tinta">{e.texto}</span>
-                <span className="block text-xs text-tinta/55">{e.detalle}</span>
+                <span className="block text-sm font-medium text-tinta">{e.texto}</span>
+                <span className="block text-sm text-tinta/55">{e.detalle}</span>
               </span>
               <ChevronRight className="h-3.5 w-3.5 shrink-0 text-tinta/40" aria-hidden />
             </Link>

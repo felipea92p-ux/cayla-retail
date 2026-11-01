@@ -83,7 +83,7 @@ export function ParecidasBajoNombre({ p }: { p: ParecidasBajoNombreProps }) {
               {accion.etiqueta}
             </button>
           ) : null}
-          {aviso.subtexto && <span className="mt-1 block text-[13px]">{aviso.subtexto}</span>}
+          {aviso.subtexto && <span className="mt-1 block text-sm">{aviso.subtexto}</span>}
         </Aviso>
       )}
 
@@ -95,7 +95,7 @@ export function ParecidasBajoNombre({ p }: { p: ParecidasBajoNombreProps }) {
 /** «Revisa: 2 parecidas · Ver». No es un campo ni una falta: es lo que conviene mirar antes de seguir, y «Seguir» sigue encendido. */
 export function RevisaParecidasDelPaso({ texto, onVer }: { texto: string; onVer: () => void }) {
   return (
-    <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-[12.5px] text-taupe">
+    <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-taupe">
       <span>{texto} ·</span>
       <button type="button" className="btn-cayla btn-enlace text-[12.5px]" aria-label={TEXTO.verParecidasAria} onClick={onVer}>
         Ver

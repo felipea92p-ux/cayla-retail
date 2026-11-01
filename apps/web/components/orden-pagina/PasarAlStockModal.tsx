@@ -243,7 +243,7 @@ export function PasarAlStockModal({
                 return [l?.codigo, puede > 0 ? `se terminaron ${puede}` : "no se terminó ninguna"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Solo las buenas entran al stock.</p>
+            <p className="text-sm text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Solo las buenas entran al stock.</p>
           </CampoGuiado>
         </div>
 
@@ -255,7 +255,7 @@ export function PasarAlStockModal({
             {resumen.costoPorPrenda !== null && !orden.esMuestra && <span className="font-display text-lg tabular-nums text-tinta">{soles(resumen.costoPorPrenda)} / prenda</span>}
           </p>
           {(resumen.segundas > 0 || resumen.faltantes > 0) && (
-            <p className="text-xs text-tinta/70">
+            <p className="text-sm text-tinta/70">
               {[resumen.segundas > 0 ? `${resumen.segundas} ${resumen.segundas === 1 ? "segunda" : "segundas"}` : null, resumen.faltantes > 0 ? `${resumen.faltantes} ${resumen.faltantes === 1 ? "faltante" : "faltantes"}` : null]
                 .filter(Boolean)
                 .join(" y ")}{" "}
@@ -264,7 +264,7 @@ export function PasarAlStockModal({
             </p>
           )}
           {resumen.costoTotal !== null && !orden.esMuestra && total > 0 && (
-            <p className="text-xs text-tinta/65">
+            <p className="text-sm text-tinta/65">
               Costo real hasta hoy: {soles(resumen.costoTotal)} (tela, avíos y servicios, tal como están en la orden).
             </p>
           )}
@@ -350,7 +350,7 @@ export function PasarAlStockModal({
                   />
                 </div>
               ) : (
-                <p className="text-xs text-tinta/70">Si de verdad pasa sin tela, un líder puede dejarla pasar desde esta misma hoja, con su porqué.</p>
+                <p className="text-sm text-tinta/70">Si de verdad pasa sin tela, un líder puede dejarla pasar desde esta misma hoja, con su porqué.</p>
               )}
             </CampoGuiado>
           </div>

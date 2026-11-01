@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -330,9 +331,7 @@ export function FormularioRecepcion({
           void recibir();
         }}
         noValidate
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
-        }}
+        onKeyDown={enterNoGuarda}
         className="space-y-5"
       >
         {!catalogo && (
@@ -387,15 +386,15 @@ export function FormularioRecepcion({
           ))}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <BotonAgregarExtra onAgregar={agregarExtra} deshabilitado={!catalogo} />
-            <p className="text-xs text-taupe">¿Llegó algo que no está en ninguna línea? Agrégalo con su categoría y su marca.</p>
+            <p className="text-sm text-taupe">¿Llegó algo que no está en ninguna línea? Agrégalo con su categoría y su marca.</p>
           </div>
         </section>
 
         <section data-guia="recepcion.pie" className="space-y-3 border-t border-sand pt-5" aria-label="Recibir">
           <CampoGuiado id="nota" guia={guia} className="max-w-2xl">
-            <p className="mb-1.5 flex items-center gap-x-2 text-[13px] font-semibold text-tinta">
+            <p className="mb-1.5 flex items-center gap-x-2 text-sm font-semibold text-tinta">
               {etiqueta("nota", "Nota")}
-              <span className="text-[12px] font-normal text-taupe">opcional</span>
+              <span className="text-sm font-normal text-taupe">opcional</span>
             </p>
             <CampoTexto id="recepcion-nota" caja etiqueta="Nota de la recepción" maxLength={TOPES_RECEPCION.nota} value={borrador.nota} onChange={(e) => cambiar((b) => ({ ...b, nota: e.target.value }))} />
           </CampoGuiado>
@@ -437,7 +436,7 @@ export function FormularioRecepcion({
             data-pegada
             className="barra-abajo z-20 justify-end gap-2.5 px-4 py-3 sm:static sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:animate-none"
           >
-            <span className="mr-auto text-[13px] tabular-nums text-taupe" aria-live="polite">
+            <span className="mr-auto text-sm tabular-nums text-taupe" aria-live="polite">
               {totales.contado.toLocaleString("es-PE")} de {totales.enviado.toLocaleString("es-PE")} contadas
             </span>
             {/* En el celular la vuelta es la flecha de arriba: la barra fija deja lugar al botón principal. */}

@@ -502,7 +502,7 @@ export const GUIA_BUSCAR: Guia = {
       id: "ayuda",
       ancla: "buscar.ayuda",
       titulo: "La ayuda",
-      texto: "Si tienes dudas, el círculo con «!» explica la pantalla en dos líneas.",
+      texto: "Si tienes dudas, el «?» junto al título explica la pantalla en dos líneas.",
     },
     {
       id: "campo",
@@ -1216,7 +1216,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.impuestos-regimen",
       opcional: true,
       titulo: "El régimen de renta",
-      texto: "En qué régimen tributa CAYLA cada año, su límite de ventas y el aviso que salta antes del límite, para hablar con el contador a tiempo. Rige desde el 1 de enero; vacío sigue lo del año anterior.",
+      texto: "En qué régimen tributa CAYLA cada año, su límite de ventas y el aviso antes del límite. Rige desde el 1 de enero; vacío sigue lo del año anterior. Nada se guarda solo: cada fila tiene su botón «Guardar», o «Confirmar» si solo falta el visto bueno del contador.",
     },
     {
       id: "claure-reparto",

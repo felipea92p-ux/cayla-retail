@@ -139,7 +139,7 @@ export function OrdenCierre({
           }}
         />
       </div>
-      <p className="mt-2 text-xs text-tinta/75">
+      <p className="mt-2 text-sm text-tinta/75">
         {total} buenas de {orden.cantidadPlan}
         {perdidas > 0 && (
           <>
@@ -165,12 +165,12 @@ export function OrdenCierre({
             </span>
             <span className="font-display text-lg tabular-nums text-tinta">{soles(unitario)} / prenda</span>
           </div>
-          <p className="mt-2 text-xs text-tinta/65">El costo se reparte entre las buenas, no entre las planeadas: una segunda sube el costo de las demás.</p>
+          <p className="mt-2 text-sm text-tinta/65">El costo se reparte entre las buenas, no entre las planeadas: una segunda sube el costo de las demás.</p>
         </>
       )}
 
       {!orden.esMuestra && (
-        <p className="mt-3 text-xs text-tinta/65">
+        <p className="mt-3 text-sm text-tinta/65">
           Al confirmar, cada talla entra al stock del Taller y queda registrada en Movimientos.{" "}
           {esLider
             ? "Revertir la orden devuelve el stock, pero no deshace el costo de la prenda: revisa el costo antes de confirmar."

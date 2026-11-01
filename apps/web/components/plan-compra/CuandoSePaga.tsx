@@ -209,7 +209,7 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
             <div className="card-cayla space-y-4 p-5" data-guia="pagos.tandas">
               {sinNadaPorComprar ? (
                 <Aviso tono="info" chico titulo="No hay nada por pedir">
-                  Con lo que ya hay y lo que viene en camino, el plan no pide comprar nada de esta campaña. Cuando lo pida, aquí armas cuándo se pide y cómo se paga.
+                  Con lo que hay y lo que viene en camino, no hace falta comprar para esta campaña.
                 </Aviso>
               ) : (
                 <>
@@ -291,7 +291,7 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
                 </Aviso>
               )}
               {guardado && (
-                <p className="text-xs text-taupe">
+                <p className="text-sm text-taupe">
                   Guardado{guardado.por ? ` por ${guardado.por}` : ""}
                   {guardado.en ? ` el ${diaYHoraLima(guardado.en).dia}` : ""} (versión {guardado.version}): {guardado.pagos.length === 1 ? "1 pago" : `${guardado.pagos.length} pagos`}.
                 </p>

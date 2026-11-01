@@ -10,6 +10,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
+import { soloCifrasEscritas } from "@/lib/numero-escrito";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -89,13 +90,13 @@ export function PlazoModal({
             <div data-guia="plazo-modal.dias" className="flex flex-wrap items-start gap-x-4 gap-y-1">
               <div className="flex w-32 items-center gap-2">
                 <div className="min-w-0 flex-1">
-                  <CampoTexto etiqueta="Días para llegar a las tiendas" caja inputMode="numeric" value={texto} onChange={(e) => setTexto(e.target.value.replace(/[^\d]/g, ""))} />
+                  <CampoTexto etiqueta="Días para llegar a las tiendas" caja inputMode="numeric" value={texto} onChange={(e) => setTexto(soloCifrasEscritas(e.target.value))} />
                 </div>
                 <span aria-hidden className="pb-4 text-sm text-tinta/70">
                   días
                 </span>
               </div>
-              <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80" aria-live="polite">
+              <p className="min-w-0 flex-1 basis-60 pt-2.5 text-sm leading-snug text-tinta/80" aria-live="polite">
                 {resultado ? resultado.detalle : `Escribe un número de días: sin historia de recepciones, el supuesto es de ${DIAS_PARA_LLEGAR_DE_FABRICA}.`}
               </p>
             </div>

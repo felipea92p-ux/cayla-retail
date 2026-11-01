@@ -250,10 +250,17 @@ export function etiquetaBotonAvisame(talla: string, sedeNombre: string | null): 
 }
 
 /** El aviso de abajo después de pedirlo (maqueta, `agregarAviso`). */
-export function textoAvisoAnotado(talla: string, sedeNombre: string | null): string {
+export function textoAvisoAnotado(talla: string, sedeNombre: string | null, whatsapp = false): string {
   const que = sinNombre(talla) ? "cuando llegue" : `cuando llegue la talla ${talla.trim()}`;
-  return `Te avisaremos en tu cuenta ${que}${sedeNombre ? ` a ${sedeNombre}` : ""}.`;
+  return `Te avisaremos en tu cuenta ${que}${sedeNombre ? ` a ${sedeNombre}` : ""}${whatsapp ? " y también por WhatsApp" : ""}.`;
 }
+
+/** Lo que dice la casilla de «Avísame» (2026-10-31): el permiso de WhatsApp se pide aquí, apagado de fábrica, y solo vale para ESE aviso. */
+export const TEXTO_CASILLA_WHATSAPP = {
+  titulo: "Escríbeme por WhatsApp cuando llegue",
+  ayuda: "Solo para avisarte de esta prenda. Si quitas el aviso, dejamos de escribirte.",
+  sinCelular: "Anotado en tu cuenta. No tenemos tu celular, así que no podemos escribirte por WhatsApp.",
+} as const;
 
 /**
  * «Te avisaremos cuando llegue» ya pedido se puede quitar desde la misma ficha (antes, solo desde «Mi cuenta»). Lo que oye el lector de
@@ -334,11 +341,11 @@ export function leerRespuestaFavorito(dato: unknown): EstadoFavorito {
 }
 
 /** La respuesta de `tienda_avisame`: el estado y, si se anotó, su id. */
-export function leerRespuestaAviso(dato: unknown): { estado: EstadoAviso; esperaId: string | null } {
-  const r = z.object({ estado: z.string(), id: z.string().uuid().optional() }).safeParse(dato);
-  if (!r.success || !(ESTADOS_AVISO as readonly string[]).includes(r.data.estado)) return { estado: "sin_respuesta", esperaId: null };
-  if (r.data.estado === "anotada" && !r.data.id) return { estado: "sin_respuesta", esperaId: null };
-  return { estado: r.data.estado as EstadoAviso, esperaId: r.data.id ?? null };
+export function leerRespuestaAviso(dato: unknown): { estado: EstadoAviso; esperaId: string | null; whatsapp: boolean } {
+  const r = z.object({ estado: z.string(), id: z.string().uuid().optional(), whatsapp: z.boolean().optional() }).safeParse(dato);
+  if (!r.success || !(ESTADOS_AVISO as readonly string[]).includes(r.data.estado)) return { estado: "sin_respuesta", esperaId: null, whatsapp: false };
+  if (r.data.estado === "anotada" && !r.data.id) return { estado: "sin_respuesta", esperaId: null, whatsapp: false };
+  return { estado: r.data.estado as EstadoAviso, esperaId: r.data.id ?? null, whatsapp: r.data.whatsapp === true };
 }
 
 /** La respuesta de `tienda_quitar_avisame`. */

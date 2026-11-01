@@ -75,7 +75,7 @@ Se analizó con 4 agentes: Insumos, la página de la orden, el modelo de pasos c
 6. Insumos como «Estante en tabla», con corregir y eliminar ingresos.
 7. «Llegó una compra», con su pago.
 8. Avíos simples y detallados en la ficha del modelo.
-9. Consumibles con monto fijo por prenda.
+9. ~~Consumibles con monto fijo por prenda.~~ **Descartada el 2026-10-31 (ADR-0594):** el consumible es un gasto de la sede Taller y no entra al costo de la prenda; el monto fijo contaba el mismo dinero dos veces.
 10. Cierre: `/chaos`, `/formidable`, guías y documentos.
 
 La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566): «+ Agregar un paso» deja usar Ojal y botón desde el primer día. **Sus dos SQL van antes que los de esta obra.**
@@ -138,7 +138,7 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
 - **Corregir = deshacer lo viejo + anotar lo nuevo, en un solo paso.** Nada se edita ni se borra. El cambio guarda qué filas quitó y cuáles puso (`quita_ids`, `pone_ids`). Un Deshacer ya sabe qué deshace (`deshace_id`), así que no hace falta otra columna en lo anotado.
 - **La regla de «Terminé» sale a una sola función, `fn_produccion_escribir_termine`.** La usan «Terminé», corregir y restaurar. Una corrección valida exactamente lo mismo: nunca más buenas + segundas + perdidas que lo que entró.
 - **Ningún cambio deja a la fase siguiente con más prendas de las que le llegaron** (`fn_produccion_exigir_cadena`, la regla de `deshacer_avance` llevada a cualquier anotación, no solo a la última). Si la siguiente ya las usó, la base dice qué corregir primero.
-- Se corrige y se elimina un «Terminé» de cualquier día: sus buenas, sus fallas y su día. Si el día no cambia, se queda el momento de antes. La marca de Ploteo se quita y se restaura. Las salidas y vueltas siguen con su «Anular» de siempre, que ya pedía motivo.
+- Se corrige y se elimina un «Terminé» de cualquier día: sus buenas, sus fallas y su día. Si el día no cambia, se queda el momento de antes. La marca de Ploteo se quita y se restaura (desde ADR-0586 act. 2, `20261031160000`: las dos, solo un líder). Las salidas y vueltas siguen con su «Anular» de siempre, que ya pedía motivo.
 - Restaurar vuelve a anotar lo eliminado tal como era y con su día, con la misma regla. Si mientras tanto la fase se llenó, la base lo dice. Se restaura una sola vez (`restaura_id` único).
 - Las notas del equipo van en la misma tabla, valen en cualquier estado de la orden y no se borran: si algo cambió, se escribe otra.
 - **En la pantalla:** cada anotación viva lleva su lápiz (`<LapizEditar>`, la pieza de «editar» en una fila). El lápiz abre la hoja; «Eliminar» va dentro, a la izquierda del pie. Así el rojo no se repite en cada fila (antes había un «Anular» rojo por salida). Lo que un cambio quitó sale de la vista y en su lugar va el cambio: «Corrigió lo terminado en Habilitado 98 → 97 · Beige S: 8 → 7 · Por qué: Cantidad equivocada». Lo rehecho dice «corrigió el …» o «restauró el …», nunca «anotó». Las filas de falla son una sola pieza (`FilasDeFalla`) para «Terminé» y «Corregir».
@@ -259,3 +259,20 @@ La rama parte de `claude/multiple-garment-materials-9d1c52` (ADR-0563 y ADR-0566
 - «Deshacer» ya no está en la historia: lo reemplaza el lápiz, que corrige o elimina cualquier anotación con su porqué. Sigue en el aviso de éxito, para el error de recién. `DeshacerAvanceModal.tsx` se borró.
 - `fn_orden_produccion` devuelve dos claves más, `cambios` y `deshechos`. La huella de la guía se aceptó tras ponerla al día (168 controles).
 - **No se corrió todavía:** `tema:auditar`, `guias:recorrer`, `/chaos` y `/formidable`. Quedan para la actividad 10.
+
+## Actualización 2026-10-31 (a): la tela que entra DESPUÉS del corte (aviso en Insumos)
+
+**El problema (medido en producción, OP-3 Blusa Hanna).** El Corte se anotó el 30-oct, cuando el estante del Taller no tenía esa tela; los seis lotes (`saldo_inicial`, 5.5 m a S/ 10) se
+cargaron el 31-oct a las 11:55. Cada sistema hizo lo correcto por separado y la orden quedó con la tela «por anotar»: «Costo hasta hoy» S/ 79.50 de S/ 406.74 y «Pasar al stock» trabado.
+El hueco está entre los dos: quien carga la tela no sabe que una orden ya cortó con ella.
+
+**DECIDÍ:** un aviso por **estado**, no por evento. `fn_telas_cortadas_sin_anotar(taller)` (solo lectura, migración `20261031173000`) devuelve las telas de órdenes abiertas, no muestras,
+cuyo Corte tiene prendas y cuyo libro no descontó nada; Insumos dibuja un `<Aviso>` por orden con el enlace a la orden (`lib/telas-cortadas-sin-anotar-reglas.ts`). Anotar sigue siendo medir
+«cuánto quedó»: la hoja nace con el plan y se confirma con un clic.
+**DESCARTÉ:** (1) descontar sola la tela al entrar un lote o al cortar por plan: es lo que esta ADR ya había descartado (un número que nadie midió; si el corte salió de otro rollo, el estante
+queda mal en silencio); (2) colgar un aviso de cada puerta de ingreso (saldo inicial, compra, «Encontré tela», Recibir): cuatro puertas y una quinta mañana; el estado sirve por cualquiera.
+**SE ROMPE SI:** «Corte» deja de ser la clave `corte` de `produccion_fases` (la función no devolvería nada y el aviso callaría; lo vigila el caso B1/A1 de
+`pnpm pruebas:produccion-telas-cortadas-sin-anotar`), o si la base aún no tiene la función (la web lo tolera: sin aviso, sin error).
+
+Además, la cabecera de la orden dice «Costo hasta hoy · sin la tela» mientras la tela estimada es mayor que cero y la real es cero (`cifrasDeLaOrden`), para que S/ 79.50 no parezca el costo completo.
+Verificado: 10/10 casos en una base desechable con las 1000 migraciones, 4 mutaciones detectadas, y la misma consulta de solo lectura contra producción devuelve solo la OP-3.

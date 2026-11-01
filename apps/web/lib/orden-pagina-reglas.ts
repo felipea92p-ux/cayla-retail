@@ -33,7 +33,6 @@ export const RPC_AGREGAR_PASO = "agregar_paso_orden";
 /** ADR-0586: un líder suma un paso que se olvidó, cuando uno de después ya avanzó; entra ya hecho con todas las prendas que le llegaron. */
 export const RPC_AGREGAR_PASO_TARDE = "agregar_paso_tarde";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
-export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 /** La Salida a un servicio y la tela que sale con ella, en una transacción y con token (ADR-0587). */
 export const RPC_REGISTRAR_SALIDA_CON_TELA = "registrar_salida_con_tela";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
@@ -689,7 +688,16 @@ export function cifrasDeLaOrden(p: OrdenPagina, hoy: string): CifrasDeLaOrden {
   return {
     prendas: { valor: o.estado === "terminada" && o.cantidadBuenas !== null ? o.cantidadBuenas : o.cantidadPlan, etiqueta: o.estado === "terminada" ? "Prendas buenas" : "Prendas", aparte },
     entrega,
-    costo: p.permisos.veCostos && p.costos ? { valor: p.costos.totalRealHastaHoy, nota: `de ${soles(p.costos.totalEstimado)}`, etiqueta: "Costo hasta hoy" } : null,
+    // El costo real sale del libro de insumos (lo descontado del estante): mientras nadie anote lo que se usó, la tela cuenta 0 y la cifra queda corta frente al estimado.
+    // La etiqueta lo dice para que no parezca un error de cálculo.
+    costo:
+      p.permisos.veCostos && p.costos
+        ? {
+            valor: p.costos.totalRealHastaHoy,
+            nota: `de ${soles(p.costos.totalEstimado)}`,
+            etiqueta: p.costos.telaEstimado > 0 && p.costos.telaReal <= 0 ? "Costo hasta hoy · sin la tela" : "Costo hasta hoy",
+          }
+        : null,
   };
 }
 
@@ -767,17 +775,32 @@ export type AccionFase = "terminar" | "salida" | "vuelta" | "marcar" | "desmarca
 
 /**
  * Las acciones que ofrece una fase: «Terminé N» en el Taller; «Salida» si queda algo por mandar y «Vuelta» si hay prendas afuera, en un servicio; en una fase que se marca
- * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar». Ninguna si no se puede operar.
+ * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar» (quitar la marca, con motivo): esa SOLO a un líder (ADR-0586 act. 2; la base repite: `marca_solo_lider`). Ninguna si no
+ * se puede operar.
  */
-export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): AccionFase[] {
+export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">, { esLider = false }: { esLider?: boolean } = {}): AccionFase[] {
   if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return [];
-  if (f.hito) return f.marcada ? ["desmarcar"] : ["marcar"];
+  if (f.hito) return f.marcada ? (esLider ? ["desmarcar"] : []) : ["marcar"];
   if (f.estado === "hecha") return [];
   if (f.quien === "taller") return faltaTerminar(f, p.fases) > 0 ? ["terminar"] : [];
   const acciones: AccionFase[] = [];
   if (porMandar(f) > 0) acciones.push("salida");
   if (f.afuera > 0) acciones.push("vuelta");
   return acciones;
+}
+
+/** ADR-0586 act. 2: la marca viva de una fase que se marca (Ploteo), para quitarla desde el paso: la más reciente que nadie deshizo (la misma que la historia deja con su lápiz). */
+export function marcaVivaDeFase(f: FasePagina, p: Pick<OrdenPagina, "lineaDeTiempo" | "deshechos">): string | null {
+  if (!f.hito || !f.marcada) return null;
+  const deshechos = new Set(p.deshechos);
+  const vivas = p.lineaDeTiempo.filter((e) => e.tipo === "marca" && e.faseClave === f.clave && !deshechos.has(e.id));
+  return vivas.sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando))[0]?.id ?? null;
+}
+
+/** ADR-0586 act. 2: a quien opera pero no es líder, el paso marcado le dice cómo se arregla una marca equivocada (no busca un botón que no está). `null`: no hace falta decirlo. */
+export function avisoMarcaSoloLider(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">, { esLider = false }: { esLider?: boolean } = {}): string | null {
+  if (esLider || !f.hito || !f.marcada || !p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return null;
+  return "Si se marcó por error, un líder puede quitar la marca.";
 }
 
 export type Siguiente = { fase: FasePagina | null; accion: AccionFase | "pasar_al_stock" | "nada" };
@@ -1250,6 +1273,8 @@ export type EntradaDeTiempo = {
   hora: string;
   quien: string | null;
   tipo: TipoEntrada;
+  /** El paso donde pasó (`null` en un cambio y en lo que no es de un paso): así el paso abierto encuentra lo suyo (ADR-0586 act. 3). */
+  faseClave: FaseClave | null;
   titulo: string;
   detalle: string | null;
   cuanto: string | null;
@@ -1263,8 +1288,8 @@ export type EntradaDeTiempo = {
   corregible: AnotacionCorregible | null;
   /** La marca de una fase que no cuenta prendas (Ploteo), viva: se quita. */
   marcaViva: { id: string; faseClave: FaseClave | null; faseNombre: string } | null;
-  /** Una eliminación que todavía no se restauró: su «Restaurar». */
-  restaurable: { cambioId: string } | null;
+  /** Una eliminación que todavía no se restauró: su «Restaurar». `marca`: lo quitado era la marca de Ploteo, y restaurarla es de un líder (ADR-0586 act. 2). */
+  restaurable: { cambioId: string; marca: boolean } | null;
   /** Una eliminación ya restaurada. */
   restaurado: boolean;
   /** Lo anotado que salió de una corrección. */
@@ -1382,6 +1407,7 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       hora: horaLima(rehecha ? e.cuando : (e.registradoEn ?? e.cuando)),
       quien: e.quienNombre,
       tipo: e.tipo,
+      faseClave: e.faseClave,
       titulo,
       detalle,
       cuanto,
@@ -1679,6 +1705,7 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     hora: horaLima(c.cuando),
     quien: c.quienNombre,
     tipo: c.accion,
+    faseClave: null,
     titulo,
     detalle,
     cuanto,
@@ -1687,7 +1714,7 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     anotado: null,
     corregible: null,
     marcaViva: null,
-    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id } : null,
+    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id, marca: c.objeto === "marca" } : null,
     restaurado: c.accion === "eliminar" && c.restaurado,
     corregida: false,
   };
@@ -1746,6 +1773,36 @@ export function problemaDeNota(texto: string): string | null {
   if (texto.trim() === "") return "Escribe la nota.";
   if (texto.trim().length > MAX_NOTA_ORDEN) return `La nota es muy larga: hasta ${MAX_NOTA_ORDEN} letras.`;
   return null;
+}
+
+// ---------- «Lo anotado aquí»: corregir desde el paso (ADR-0586, actividad 3; Felipe 2026-10-31) ----------
+// Lo mismo que el lápiz de la historia, a un toque desde el paso abierto: sus «Terminé» y sus prendas con falla, que se corrigen, y sus Salidas y Vueltas, que se anulan. No hay regla
+// nueva: el lápiz aparece solo si la historia ya se lo pone (`corregible` o `anulable`, que vienen de la base). Lo hace quien opera el Taller, no solo el líder (Felipe lo eligió al verlo):
+// la colaboradora que se equivocó arregla su propio dato, siempre con motivo y con «Restaurar». Un hito (Ploteo) no entra: su marca tiene su propio botón (ADR-0586 act. 2).
+// Una Salida o una Vuelta viva que ya no se anula SIGUE en la lista, sin lápiz y con su porqué (revisión del 2026-11-01): si desapareciera, la colaboradora creería que se borró. La base
+// tiene un solo motivo para cada una cuando sigue viva (`fn_produccion_salida_anulable` → `anular_ya_volvio`; `fn_produccion_vuelta_anulable` → `anular_ya_avanzo`); la prueba lo lee.
+
+/** Lo anotado en un paso que sigue vivo, de lo más reciente a lo más viejo: lo que se corrige o se anula, y las Salidas y Vueltas que ya no. */
+export function anotadoDelPaso(fase: FasePagina, p: OrdenPagina, hoy: string): EntradaDeTiempo[] {
+  if (fase.hito) return [];
+  return lineaDeTiempoAgrupada(p, hoy)
+    .flatMap((d) => d.entradas)
+    .filter((e) => e.faseClave === fase.clave && (e.corregible !== null || e.anulable !== null || ((e.tipo === "salida" || e.tipo === "vuelta") && !e.anulada)));
+}
+
+/** Una fila de «Lo anotado aquí»: qué fue, cuándo pasó y quién (el paso ya se nombra arriba, así que no se repite), y debajo lo de la historia que las distingue
+ *  («2 de Beige · S»): dos «Terminó» del mismo día por la misma persona se verían iguales sin eso. `fija`: por qué ya no se cambia (sin lápiz). */
+export function filaDelPaso(e: EntradaDeTiempo): { que: string; cuando: string; quien: string | null; cuanto: string | null; detalle: string | null; fija: string | null } {
+  const que = e.tipo === "salida" ? "Salida" : e.tipo === "vuelta" ? "Vuelta" : e.tipo === "falla" ? "Prendas con falla" : "Terminó";
+  const fija =
+    e.corregible || e.anulable
+      ? null
+      : e.tipo === "salida"
+        ? "Ya no se anula: sus prendas ya volvieron. Si la vuelta estaba mal, anula primero la vuelta."
+        : e.tipo === "vuelta"
+          ? "Ya no se anula: el paso siguiente ya usó estas prendas."
+          : null;
+  return { que, cuando: `${diaCorto(fechaLimaDe(e.cuando))}, ${e.hora}`, quien: e.quien, cuanto: e.cuanto, detalle: e.detalle, fija };
 }
 
 /** La fase de una anotación de la historia, para abrir su hoja. */

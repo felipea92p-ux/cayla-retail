@@ -395,6 +395,11 @@ export const PRUEBAS = [
   // revisión «¿se puede mostrar?» está en PL/pgSQL y el catálogo devuelve EXACTAMENTE el JSON de su versión de antes. ROLLBACK.
   "pruebas:tienda-rapida",
 
+  // La regla del precio por lotes (2026-10-31): `fn_precios_en_sedes` da el precio de antes en toda talla y sede, `fn_precio_en_sede` le
+  // pregunta a ella, el catálogo, los looks y el precio de la tienda son idénticos a los de antes, y una carga del catálogo no pregunta
+  // fila por fila (si Postgres deja de meter la regla en la consulta, la prueba lo ve). ROLLBACK.
+  "pruebas:tienda-precio-por-lotes",
+
   // La base se cae sin llevarse al ERP (ADR-0450): `fn_salud()` («¿responde la base?», solo true y solo para anon/authenticated/service_role)
   // y los topes de conexión/tiempo del usuario de la tienda (20 conexiones, 5 s, 10 s en transacción quieta) que no tocan a nadie más
   // —ni a `postgres`, que queda como miembro de `tienda_web` por haberlo creado—, son idempotentes y no fallan sin usuario. ROLLBACK.
@@ -858,7 +863,11 @@ export const PRUEBAS = [
   // La tela con sus colores (ADR-0554, actividad 1): `crear_material` y `agregar_colores_a_material` arman la tela y sus colores todo o nada, con el código
   // que pone la base y el saldo inicial solo del líder; un reintento con el mismo token no duplica nada; una tela repetida AVISA y dice cuál; el nombre, el
   // código, el tejido y la merma de un color son los de su tela; y los estados imposibles (un color dos veces, kilo sin medidas, NaN, unidad cambiada) no caben. ROLLBACK.
+  // Un invisible pegado de la web (ancho cero, BOM, guion suave) no crea dos veces la misma cosa en ningún vocabulario.
+  "pruebas:clave-texto-invisibles",
   "pruebas:materiales",
+  // Medio botón no existe: lo que se cuenta de uno en uno (unidad, cono, par, docena) no admite partes.
+  "pruebas:medio-boton-no-existe",
 
   // Corregir y eliminar un ingreso de insumo (ADR-0570, actividad 6a; migración 20261030134000): el lote se corrige o queda en cero con su marca, el libro deja el ingreso y el par «deshago + anoto»,
   // el saldo y el valor del color cuadran, un lote que ya se usó no se toca, es del líder, la historia no se edita ni se borra, y la migración se pega dos veces. ROLLBACK.
@@ -1706,6 +1715,17 @@ export const PRUEBAS = [
   // cuándo y cómo; la tarjeta lo resta en el mes del PAGO y se mueve igual que el crédito de gastos de Impuestos; misma visibilidad que
   // la lista; todo origen de fn_igv_perdido llega a un gasto o está fuera a propósito. ROLLBACK siempre.
   "pruebas:gastos-igv-perdido",
+  // Corregir un gasto de Finanzas sin anularlo (ADR-0588): la categoría y el «qué fue» cambian con rastro inmutable; el monto, el pago y el
+  // comprobante no; todo o nada, el mismo guardado dos veces, anulado, viaje, mes cerrado (solo la categoría), el disparador con su marca y los
+  // permisos por tienda. ROLLBACK siempre.
+  "pruebas:gastos-corregir",
+  // «Llegó el comprobante» (ADR-0588): un gasto pagado sin comprobante recibe su papel y queda IGUAL a uno registrado con él al contado
+  // (transferencia y efectivo del cajón: el mismo egreso), sin mover el saldo de ninguna cuenta ni la caja; fecha del papel e IGV; dos toques;
+  // todo o nada; anulado, viaje, fondo y mes cerrado; las marcas de los disparadores y los permisos por tienda. ROLLBACK siempre.
+  "pruebas:gastos-comprobante-tardio",
+  // «No tendrá comprobante» (ADR-0588): la marca con su motivo y su rastro, «otro» con nota, idempotente; no en anulado, con comprobante ni
+  // del viaje (sí en mes cerrado); al llegar el papel deja de contar; inmutable; la lectura con la visibilidad de la lista. ROLLBACK siempre.
+  "pruebas:gastos-no-emite",
   // Lo que la base del fondo no acepta (ADR-0362, fase 6; /chaos 2026-10-14): un monto que no es un número (en las funciones y en las
   // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
   // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.
@@ -1796,12 +1816,21 @@ export const PRUEBAS = [
   // El corte con su tela, todo o nada (ADR-0587): «Terminé» y la tela que quedó (y la Salida con la tela que sale) en una transacción con token —un reintento
   // no anota dos veces—; «Deshacer» devuelve prendas, fallas y tela a su lote una sola vez; el candado del estante (tela, sede) antes de leer cuánto había. ROLLBACK.
   "pruebas:produccion-corte-con-su-tela",
+  // El estimado de la tela y los avíos de una orden (ADR-0400, act. 2026-10-31): al gastarse el último lote de una tela su estimado ya no cae a 0 (en la orden real, Estimado 355.20 contra Real 761.92 con casi
+  // toda la tela usada): si la orden ya consumió de ese insumo, cuesta lo que le costó; si no, el lote con saldo; sin ninguno, 0. No cambia el costo real. Pegar dos veces, ancla perdida y camino de vuelta. ROLLBACK.
+  "pruebas:produccion-estimado-de-tela",
+  // Las telas cortadas sin anotar (ADR-0570, actividad 4): Insumos avisa «la OP-3 ya cortó con esta tela y no tiene nada anotado» solo cuando el Corte tiene prendas y el libro no descontó
+  // la tela; calla sin Corte, con la tela anotada, en una muestra o una orden anulada; quien no lee Producción en ese Taller recibe []. ROLLBACK.
+  "pruebas:produccion-telas-cortadas-sin-anotar",
   // Cambiar el tipo de una orden abierta (ADR-0581): de muestra a lote y al revés, con su rastro (historia y Actividad); pedir el mismo tipo no hace nada; sin precio no pasa a lote; una orden
   // cerrada no cambia; una muestra que pasa a lote entra al stock al cerrar y una que sigue muestra no. ROLLBACK.
   "pruebas:produccion-cambiar-tipo",
   // El catálogo de procesos (ADR-0570, actividad 5): los doce de siempre con su mismo lugar en la ruta, Pegar cierre y Lavado o teñido, la llave foránea en fases y tarifas;
   // solo un líder da de alta o apaga (el nuevo cae entre sus vecinos; la espina no se apaga; lo apagado no entra a una orden ni a una tarifa); lo que lleva cada modelo. ROLLBACK.
   "pruebas:produccion-catalogo-de-procesos",
+  // Agregar una talla o un color a un modelo desde Nueva orden (migración 20261031172000): una variante por color o por talla con el precio y el costo de su hermana y sin stock;
+  // no duplica, no reclama una desactivada, talla habilitada y color activo, sin mezclar «Sin color» ni «Única»; solo quien opera el Taller y edita el catálogo. ROLLBACK.
+  "pruebas:produccion-agregar-variantes",
   // «Lleva ojales y botones», un dato del MODELO (ADR-0551, migración 20261028053000): sin fila = nadie lo ha preguntado; guardar lo mismo no escribe ni anota; solo quien opera ese Taller guarda;
   // la tabla no se lee ni se escribe directo; la fila se va con el modelo. ROLLBACK.
   "pruebas:producto-taller",

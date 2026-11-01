@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, X } from "lucide-react";
@@ -279,6 +280,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
             e.preventDefault();
             void confirmar();
           }}
+          onKeyDown={enterNoGuarda}
           className="@container space-y-5"
         >
           <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
@@ -356,7 +358,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
               />
             </div>
             {/* Con una factura, cuánto IGV se descuenta (o por qué no): fase 6 · actividad 8. */}
-            <p className="mt-1.5 text-xs text-taupe">{pistaDelPapel({ papel, ruc }, montoLeido, avisoNoDeducible !== null)}</p>
+            <p className="mt-1.5 text-sm text-taupe">{pistaDelPapel({ papel, ruc }, montoLeido, avisoNoDeducible !== null)}</p>
           </CampoGuiado>
 
           {conPapel && (
@@ -461,7 +463,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
                   {vistas.length > 0 ? "+ Agregar otra orden" : "+ Agregar una orden"}
                 </Boton>
               ) : null}
-              <p className="text-xs text-taupe">
+              <p className="text-sm text-taupe">
                 {reparto.length > 1
                   ? `Se reparte según el total de cada orden: ${reparto.map((r) => `${ordenes.find((o) => o.id === r.id)?.numero ?? "OC"} ${soles(r.monto)}`).join(" · ")}.`
                   : "Con varias órdenes, el monto se reparte según el total de cada una."}

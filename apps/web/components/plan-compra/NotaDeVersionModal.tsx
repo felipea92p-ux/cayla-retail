@@ -69,7 +69,7 @@ export function NotaDeVersionModal({ accion, planNombre, onClose }: { accion: Ac
           className="space-y-5"
         >
           <CampoTexto etiqueta="¿Qué cambiaste? (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={MAX_NOTA_DE_VERSION} autoFocus />
-          <p className="text-[13px] text-tinta-60">{accion.aclaracion}</p>
+          <p className="text-sm text-tinta-60">{accion.aclaracion}</p>
           <ComboResponsable control={responsable} deshabilitado={trabajando} />
           <div className="pie-hoja-fijo">
             <div className="pie-acciones pt-2">

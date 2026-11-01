@@ -11,7 +11,7 @@ import {
   type ClaseDeAvio,
   type UnidadMedidaAvio,
 } from "./avio-clases-reglas";
-import { CANTIDAD_ILEGIBLE, leerCantidad, UNIDADES_INSUMO, type MaterialVista, type UnidadInsumo } from "./insumos-reglas";
+import { CANTIDAD_ILEGIBLE, leerCantidad, problemaDeCantidad, UNIDADES_INSUMO, type MaterialVista, type UnidadInsumo } from "./insumos-reglas";
 import { MONTO_ILEGIBLE, numeroDeMonto } from "./monto-plata-reglas";
 import { claveTexto, nombresParecidos } from "./nombres-parecidos";
 // Las filas de colores son las MISMAS que las de una tela: una fila, su saldo, su costo y su mínimo, todo como se escribe. Lo único que cambia es que un avío no convierte nada
@@ -102,6 +102,12 @@ export function costoTotalDeFilaAvio(f: FilaDeColor): number | null {
 function problemasDeFila(e: EntradaAvioNuevo, f: FilaDeColor): string[] {
   const p: string[] = [];
   if (numeroMalEscrito(f.ya) || numeroMalEscrito(f.minimo)) p.push(CANTIDAD_ILEGIBLE);
+  // Medio botón no existe. La base también lo rechaza (20261031211000), pero quien escribe se entera aquí, antes de guardar,
+  // y con el nombre de lo que está contando (/chaos 2026-10-31).
+  for (const texto of [f.ya, f.minimo]) {
+    const problema = problemaDeCantidad(texto.trim() === "" ? null : leerCantidad(texto), e.unidad);
+    if (problema && !p.includes(problema)) p.push(problema);
+  }
   if (f.costo.trim() !== "" && !Number.isFinite(numeroDeMonto(f.costo))) p.push(MONTO_ILEGIBLE);
   if (tieneSaldo(f)) {
     if (!e.puedeSaldo) p.push(MENSAJE_SALDO_DEL_LIDER);
@@ -113,7 +119,10 @@ function problemasDeFila(e: EntradaAvioNuevo, f: FilaDeColor): string[] {
 /** Lo que la hoja rechaza de la MEDIDA, según lo que pide la clase. Es lo mismo que `fn_material_leer` dice en castellano. */
 export function problemasDeLaMedida(e: EntradaAvioNuevo, clase: ClaseDeAvio | null): string[] {
   if (!clase) return [];
-  const escrita = e.medida.trim() !== "" || e.medidaUnidad !== "";
+  // Solo la CAJA cuenta como medida escrita. La unidad la rellena la clase al elegirla, así que mirarla aquí hacía
+  // que un botón sin medida —que el diseño y la base aceptan— no se pudiera registrar, y quien no sabía la línea
+  // inventaba un número que se quedaba en el nombre de la ficha para siempre (/chaos 2026-10-31).
+  const escrita = e.medida.trim() !== "";
   if (medidaProhibida(clase.comportamiento)) {
     return escrita ? [`«${clase.nombre}» no lleva medida: lo que lo distingue es su nombre.`] : [];
   }

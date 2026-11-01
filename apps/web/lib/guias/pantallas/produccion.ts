@@ -257,6 +257,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
+      id: "talla-nueva",
+      ancla: "prod-orden-nueva.talla-nueva-boton",
+      opcional: true,
+      titulo: "¿Falta una talla o un color?",
+      texto: "El «+ Talla» de la derecha y el «+ Color» de abajo le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla. Es de quien edita el catálogo; si no, salen apagados y dicen por qué.",
+    },
+    {
       id: "red",
       ancla: "prod-orden-nueva.red",
       opcional: true,
@@ -304,7 +311,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Pegar cierre, Ojales y botones o Lavado o teñido, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha (el ploteo se paga una vez: total o por prenda). ¿Aún no lo tienes? «Pendiente de registrar».",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; los demás pasos, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio (por prenda o el total de la orden; si se ve muy alto, te pregunta) y la fecha. ¿Aún no lo tienes? «Pendiente de registrar».",
     },
     {
       id: "recordar",
@@ -408,7 +415,14 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.marcar",
       opcional: true,
       titulo: "Marcar una fase que no cuenta prendas",
-      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si te equivocas, el lápiz de la historia quita la marca, con su porqué. En la demo no se marca nada.",
+      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si se marcó por error, un líder quita la marca, con su porqué. En la demo no se marca nada.",
+    },
+    {
+      id: "quitar-marca-paso",
+      ancla: "prod-orden.quitar-marca-paso",
+      opcional: true,
+      titulo: "Quitar la marca (un líder)",
+      texto: "Si Ploteo se marcó antes de tiempo o por error, un líder le quita la marca desde aquí: pide por qué y queda en la historia, con «Restaurar». Quien no es líder ve a quién pedírselo. En la demo no se quita nada.",
     },
     {
       id: "terminar",
@@ -530,7 +544,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
       titulo: "Taller o afuera",
-      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra por prenda, desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
+      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra (por prenda o el total de la orden), desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
     },
     {
       id: "quitar-paso",
@@ -539,6 +553,21 @@ export const GUIA_PROD_ORDEN: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Quitar un paso que no se hace",
       texto: "Si la orden trae un paso opcional que ya no se hace (por ejemplo, Limpiar hilos y revisar), lo quitas mientras nadie lo haya empezado. Pide confirmar, y se puede volver a agregar con «+ Agregar un paso». En la demo no lo quitamos.",
+    },
+    {
+      id: "anotado-paso",
+      ancla: "prod-orden.anotado-paso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo anotado en este paso",
+      texto: "Debajo de los botones ves lo que se anotó en este paso: cada «Terminé», prendas con falla, Salida o Vuelta, con su día, su hora y quién. Si algo quedó mal, lo arreglas desde aquí, sin buscarlo en la historia. Lo que ya no se puede cambiar dice por qué.",
+    },
+    {
+      id: "corregir-paso",
+      ancla: "prod-orden.corregir-paso",
+      opcional: true,
+      titulo: "Corregir desde el paso",
+      texto: "Su lápiz abre la misma hoja que el de la historia: un «Terminé» o unas prendas con falla se corrigen o se eliminan, y una Salida o una Vuelta se anula. Siempre pide por qué y queda en la historia. En la demo no se cambia nada.",
     },
     {
       id: "agregar-paso",
@@ -554,7 +583,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.agregar-paso" }],
       titulo: "Quién lo hace",
-      texto: "Igual que al abrir la orden: Taller o Afuera; si sale afuera, a qué servicio (¿aún no lo tienes? «Pendiente de registrar»), cuánto cobra por prenda y para cuándo. Agregarlo no mueve dinero: el costo sale cuando el servicio devuelve prendas. En la demo no guardamos nada.",
+      texto: "Igual que al abrir la orden: Taller o Afuera; si sale afuera, a qué servicio (¿aún no lo tienes? «Pendiente de registrar»), cuánto cobra (por prenda o el total de la orden) y para cuándo. Agregarlo no mueve dinero: el costo sale cuando el servicio devuelve prendas. En la demo no guardamos nada.",
     },
     {
       id: "agregar-paso-tarde",
@@ -790,7 +819,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Quitar una marca",
-      texto: "El lápiz de una marca de Ploteo la quita, si se marcó antes de tiempo o por error. Te abrimos la hoja; no se quita nada.",
+      texto: "Un líder también quita la marca de Ploteo desde su lápiz en la historia, si se marcó antes de tiempo o por error. Te abrimos la hoja; no se quita nada.",
     },
     {
       id: "cambio-porque",
@@ -813,7 +842,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Restaurar lo eliminado",
-      texto: "Lo eliminado sale de la vista pero queda en la historia: «Restaurar» lo vuelve a anotar tal como era y con su día, con su porqué. Si mientras tanto la fase se llenó, la base te lo dice. En la demo no se restaura nada.",
+      texto: "Lo eliminado sale de la vista pero queda en la historia: «Restaurar» lo vuelve a anotar tal como era y con su día, con su porqué. Una marca quitada la restaura un líder. Si mientras tanto la fase se llenó, la base te lo dice. En la demo no se restaura nada.",
     },
     {
       id: "anular",
@@ -1031,7 +1060,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-insumos.nuevo" }],
       titulo: "Qué avío es",
-      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen tres cosas solas: en qué se cuenta, si lleva color y qué medida se le pide. Si es otra cosa, la creas ahí mismo. El código se arma solo con las letras de su clase.",
+      texto: "Lo primero es la clase: botón, cierre, hilo, etiqueta, elástico o pretina. De ahí salen solas la unidad, si lleva color y qué medida se le pide. El código se arma solo. Agujas, hilo general y aceite no son avíos: se anotan como gasto del Taller.",
     },
     {
       id: "avio-unidad",

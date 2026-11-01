@@ -14,6 +14,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Aviso } from "@/components/ui/Aviso";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 /* ====================================================================
    AltaAlVuelo · dar de alta una prenda que la etiqueta trae y el catálogo no conoce
@@ -157,7 +158,7 @@ export function AltaAlVuelo({
       onClose={onCancelar}
     >
       {(cerrar) => (
-        <form onSubmit={(e) => void crear(e, cerrar)} className="space-y-3">
+        <form onSubmit={(e) => void crear(e, cerrar)} onKeyDown={enterNoGuarda} className="space-y-3">
           <CampoTexto etiqueta="Nombre de la prenda" value={referencia} onChange={(e) => setReferencia(e.target.value)} autoFocus />
           <div className="grid gap-3 sm:grid-cols-2">
             <CampoSelect
@@ -210,7 +211,7 @@ export function AltaAlVuelo({
             onValor={setColorCodigo}
             opciones={[{ valor: "", texto: "Sin color" }, ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre }))]}
           />
-          <p className="text-xs text-taupe">Un líder revisa la prenda después y completa su costo y su precio.</p>
+          <p className="text-sm text-taupe">Un líder revisa la prenda después y completa su costo y su precio.</p>
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={guardando} />}
           {error && (
             <Aviso tono="error">{error}</Aviso>

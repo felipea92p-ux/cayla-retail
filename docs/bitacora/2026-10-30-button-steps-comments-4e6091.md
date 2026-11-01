@@ -17,3 +17,14 @@ Felipe se lleva: falta pegar solo `20261031031000` (una parte; si se pega dos ve
 Qué hice: Felipe pegó `20261031031000`. Lo verifiqué en solo lectura: «Agregar un paso» en producción tiene la misma huella que en local, mantiene el candado del catálogo, cuenta las fallas y conserva sus permisos. Con eso, las dos migraciones del PR #1508 están en producción.
 Por qué así: se comprueba el efecto en la base viva, no el nombre de la migración (el historial de migraciones de producción no registra lo pegado a mano).
 Felipe se lleva: ya se puede fusionar el PR #1508 para publicar la web; la base no tiene nada pendiente.
+
+## 2026-10-31 (Quitar la marca de Ploteo: solo el líder y con motivo — ADR-0586 act. 2)
+Qué hice: la marca de Ploteo ya no la quita cualquiera. Desde el paso o desde la historia, solo un líder, y siempre pidiendo por qué; restaurarla también es del líder. Quien no es líder ve que un líder puede quitarla. Se borró el «Deshacer» viejo, que no pedía motivo ni quedaba en la historia de cambios. Migración `20261031160000` (en producción desde el 2026-10-31, verificada); probado en la pantalla con Felipe (líder) y con Micaela como integrante del Taller.
+Por qué así: quitar la marca cambia la orden de verdad (Ploteo vuelve a «por hacer» y, si lo hacía un servicio, su costo sale de la orden). Con dos caminos, uno sin motivo, la decisión no quedaba explicada. La regla vive en la base, porque esconder un botón no impide llamar a la función.
+Felipe se lleva: `20261031160000` ya está pegada y verificada; la web se publica al fusionar el PR #1521. La «tablet del Taller» que eligió no existe hoy (una terminal solo se crea en una tienda): su regla quedó escrita en el ADR para cuando se habilite. Y volver a marcar Ploteo sigue abierto a quien opera, como decidió: una integrante puede dejarlo «hecho» otra vez después de que el líder lo quitó.
+
+## 2026-11-01 (Corregir desde el paso: «Lo anotado aquí» — ADR-0586 act. 3)
+Qué hice: el paso abierto de una orden muestra lo que se anotó en él —cada «Terminé», Salida o Vuelta, con su día, quién y sus tallas— y su lápiz abre la misma hoja que el de la historia para corregir o anular, con motivo. Lo usa quien opera el Taller, como en la historia. Solo pantalla. Probado en el navegador con Felipe y con Micaela como integrante del Taller (una corrección real de 12 a 11 prendas), en claro, oscuro y a 375 px.
+Por qué así: quien se equivocó lo arregla desde donde lo anotó, sin buscar su fila entre todos los pasos y días de la historia. Las entradas y las hojas son las de la historia: una sola regla de qué se puede corregir.
+Felipe se lleva: no hay SQL que pegar; se publica al fusionar el PR. Una Salida o Vuelta que ya no se puede anular sigue en la lista, sin lápiz y con su porqué (lo pidió la revisión independiente, que confirmó 7 hallazgos de pantalla y prueba, todos corregidos).
+

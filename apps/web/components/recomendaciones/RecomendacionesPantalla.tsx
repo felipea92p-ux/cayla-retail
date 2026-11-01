@@ -280,7 +280,7 @@ export function RecomendacionesPantalla({
                       >
                         {deQuien(r)}
                       </button>
-                      <span className="block truncate text-[12px] text-taupe">
+                      <span className="block truncate text-sm text-taupe">
                         {sobreQue(r)} · {haceCuanto(r.creadaEn, ahora)}
                       </span>
                     </span>
@@ -310,7 +310,7 @@ export function RecomendacionesPantalla({
               );
             })}
             {paginas > 1 && (
-              <div className="flex items-center justify-between gap-3 px-5 py-2.5 text-xs text-taupe">
+              <div className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm text-taupe">
                 <span>
                   {visibles.length} {visibles.length === 1 ? "recomendación" : "recomendaciones"}
                 </span>
@@ -321,7 +321,7 @@ export function RecomendacionesPantalla({
         )}
       </Tabla>
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="recomendaciones.nota">
+      <div className="nota-cayla space-y-2 text-sm" data-guia="recomendaciones.nota">
         <p>
           Cada recomendación llega con el nombre de quien la escribió, desde su cuenta de la tienda online: sobre una tienda o sobre CAYLA en
           general. Tu respuesta la lee en su cuenta, en «Recomendaciones», y se escribe una sola vez. Si no hace falta responder,

@@ -8,6 +8,7 @@ import { Visita } from "@/components/Visita";
 import { RevelaAlBajar } from "@/components/RevelaAlBajar";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
+import { RecomendacionFlotante } from "@/components/recomendaciones/RecomendacionFlotante";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
 import { SCRIPT_DEL_TEMA } from "@/lib/tema";
 import "./globals.css";
@@ -57,6 +58,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <ProveedorInstalar>{children}</ProveedorInstalar>
+        {/* «Recomendaciones» a un toque desde cualquier pantalla: el botón flotante y su ventana (components/recomendaciones/RecomendacionFlotante.tsx). No lee la sesión. */}
+        <Suspense fallback={null}>
+          <RecomendacionFlotante />
+        </Suspense>
         {/* Al tocar una prenda, guarda lo que su tarjeta ya mostraba: la ficha llega con eso (lib/prenda-tocada.ts). */}
         <RecordarPrendaTocada />
         {/* De una lista a otra desde la cabecera, la grilla que brilla con el título de la que viene, al instante (components/EnCamino.tsx). */}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { avisoDelPrecio, montoParaVolver, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { soloCifrasEscritas } from "@/lib/numero-escrito";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -59,9 +60,12 @@ import {
 // se escribe; los tres diciembres son UNA pregunta con tres cajas (antes parecían tres opciones para elegir); «Lo que sobre» dice, junto a
 // su caja, lo que produce ese porcentaje (es el número que más mueve la compra); y cada caja tiene su nombre para el lector de pantalla.
 
-const soloDigitos = (s: string) => s.replace(/[^\d]/g, "");
+// Los blancos se conservan (`soloCifrasEscritas`): son cantidades enteras, y un blanco adentro solo puede venir de pegar
+// varias celdas. `entero()` de plan-compra-reglas lo rechaza solo; borrarlo aquí dejaba «1285» prendas sin una palabra.
+const soloDigitos = (s: string) => soloCifrasEscritas(s);
 const soloMonto = (s: string) => s.replace(/[^\d.,\s]/g, "");
-const soloDescuento = (s: string) => s.replace(/[^\d.,]/g, "");
+// Los blancos se conservan (como en `soloMonto`): si se borran aquí, `leerDescuento` ya no puede ver un pegado de varias celdas.
+const soloDescuento = (s: string) => s.replace(/[^\d.,\s]/g, "");
 
 function EfectoEnElTope({ efecto, tope }: { efecto: ReturnType<typeof efectoEnElTope>; tope: number }) {
   return (
@@ -278,13 +282,13 @@ export function FormularioCategoria({
         )}
         {sugerida !== undefined ? (
           sugerida === null ? (
-            <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en {ultimosDeVentas(fila.diasDeVentas)}: no hay de dónde proponer. Escribe tus escenarios.</span>
+            <span className="basis-full text-sm text-tinta/65">Esta categoría no vendió en {ultimosDeVentas(fila.diasDeVentas)}: no hay de dónde proponer. Escribe tus escenarios.</span>
           ) : (
             // C4 (Felipe 2026-10-12): la propuesta a la vista —las tres cifras grandes, cada una con su «!» que dice de dónde salió, como en
             // Productos— y un botón principal que las pone en las cajas. Una cifra ya puesta lleva su ✓.
             <div data-guia="plan-modal.propuesta" className="basis-full rounded-xl border border-sand bg-papel p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[13px] font-semibold text-tinta">Lo que propone el sistema</p>
+                <p className="text-sm font-semibold text-tinta">Lo que propone el sistema</p>
                 <Boton
                   type="button"
                   peso="primario"
@@ -309,7 +313,7 @@ export function FormularioCategoria({
                   const puesto = valor !== null && b[clave] === String(valor);
                   return (
                     <div key={clave} className={`rounded-lg px-3 py-2 transition-colors duration-300 ease-cayla ${puesto ? "bg-verde/10" : "bg-hueso"}`}>
-                      <p className="flex items-center gap-1.5 text-xs text-taupe">
+                      <p className="flex items-center gap-1.5 text-sm text-taupe">
                         {nombre}
                         <Ayuda titulo={`${nombre}: de dónde sale`}>{explica}</Ayuda>
                       </p>
@@ -319,7 +323,7 @@ export function FormularioCategoria({
                           <Check aria-label="Ya está en el plan" className="h-4 w-4 text-verde" />
                         )}
                       </p>
-                      {valor === null && <p className="text-[11.5px] text-tinta/65">escríbelo tú</p>}
+                      {valor === null && <p className="text-sm text-tinta/65">escríbelo tú</p>}
                     </div>
                   );
                 })}
@@ -331,7 +335,7 @@ export function FormularioCategoria({
             <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
               Proponer el normal desde lo vendido
             </Boton>
-            <span className="basis-full text-xs text-tinta/65">
+            <span className="basis-full text-sm text-tinta/65">
               {propuesta === null
                 ? `Esta categoría no vendió en ${ultimosDeVentas(fila.diasDeVentas)}: no hay de dónde proponer. Escribe tus escenarios.`
                 : `Lo que vendió por día en ${periodoDeVentas(fila.diasDeVentas)}, llevado a los ${campana.dias} días de la campaña: un normal de ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
@@ -347,8 +351,8 @@ export function FormularioCategoria({
       )}
 
       <fieldset data-guia="plan-modal.escenarios">
-        <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en {campana.nombre}?</legend>
-        <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si la campaña va floja, normal o buena.</p>
+        <legend className="text-sm font-semibold text-tinta">¿Cuántas venderías en {campana.nombre}?</legend>
+        <p className="mt-0.5 text-sm text-tinta/70">Llena las tres cajas: si la campaña va floja, normal o buena.</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
           <CampoGuiado id="flojo" guia={guia} titulo="Flojo">
             <CampoTexto etiqueta="Flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
@@ -411,10 +415,10 @@ export function FormularioCategoria({
               %
             </span>
           </div>
-          <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
+          <p className="min-w-0 flex-1 basis-60 pt-2.5 text-sm leading-snug text-tinta/80">
             {loQueSobra ?? "Lo que quede sin vender al terminar la campaña: a cuánto lo venderías después, en la liquidación. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
             {!linea && fila.recuperoDefecto != null && b.recupero === String(fila.recuperoDefecto) && (
-              <span className="mt-1 block text-xs text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
+              <span className="mt-1 block text-sm text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
             )}
           </p>
         </div>
@@ -432,7 +436,7 @@ export function FormularioCategoria({
                   %
                 </span>
               </div>
-              <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
+              <p className="min-w-0 flex-1 basis-60 pt-2.5 text-sm leading-snug text-tinta/80">
                 {sugeridoDeCampana ? (
                   <>
                     {fraseDelSugerido(sugeridoDeCampana)}{" "}
@@ -449,7 +453,7 @@ export function FormularioCategoria({
             </div>
             {sugeridoDeCampana && sugeridoParcial(sugeridoDeCampana) && (
               <Aviso tono="atencion" chico>
-                Rige solo en parte de las tiendas o de los días: el plan es de toda CAYLA, así que revisa si este % le toca a toda la venta.
+                Rige solo en parte de las tiendas o de los días: revisa si este % vale para toda CAYLA.
               </Aviso>
             )}
             {frase && (
@@ -469,7 +473,7 @@ export function FormularioCategoria({
           <div className="space-y-2">
             <div className="flex flex-wrap gap-3">
               {tallas.map((t) => (
-                <div key={t.id} className="flex w-20 flex-col gap-1 text-xs text-tinta/70">
+                <div key={t.id} className="flex w-20 flex-col gap-1 text-sm text-tinta/70">
                   <span aria-hidden className="font-semibold text-tinta">
                     {t.valor}
                   </span>
@@ -491,7 +495,7 @@ export function FormularioCategoria({
             >
               Volver a la que propone el sistema
             </button>
-            <p className="text-xs text-tinta/65">
+            <p className="text-sm text-tinta/65">
               La propone el sistema con lo vendido en {periodoDeVentas(fila.diasDeVentas)}, en tienda o anotado sin registrar, apoyado en un reparto parejo cuando
               hay pocas ventas.
             </p>
@@ -514,13 +518,13 @@ export function FormularioCategoria({
               . {porQue(calculo)}
             </p>
             {precioDeLaPlata !== 0 && (
-              <p className="mt-1 text-[13px] text-tinta/80">
+              <p className="mt-1 text-sm text-tinta/80">
                 Tu campaña usa el plan con tope: {precioDeLaPlata > 0 ? "baja" : "sube"} cuánta seguridad se quiere de cada categoría para que la compra{" "}
                 {precioDeLaPlata > 0 ? "quepa en" : "aproveche"} el tope. Se cambia en Presupuesto.
               </p>
             )}
             {sinDescuento && (
-              <p className="mt-1 text-[13px] text-tinta/80">
+              <p className="mt-1 text-sm text-tinta/80">
                 {sinDescuento.comprar > calculo.comprar
                   ? `Con el descuento compras ${enteroES.format(sinDescuento.comprar - calculo.comprar)} menos que a precio de lista (${enteroES.format(sinDescuento.comprar)}): quedarte corto te cuesta menos.`
                   : "Con este descuento la compra es la misma que a precio de lista."}
@@ -560,7 +564,7 @@ export function FormularioCategoria({
                 Comprar {enteroES.format(calculo.comprar)} · {solesES(calculo.inversion)}
               </span>
               {porTalla && calculo.comprar > 0 && (
-                <span className="text-xs text-tinta/65">{[...porTalla].filter(([, n]) => n > 0).map(([id, n]) => `${tallas.find((t) => t.id === id)?.valor ?? ""} ${n}`).join(" · ")}</span>
+                <span className="text-sm text-tinta/65">{[...porTalla].filter(([, n]) => n > 0).map(([id, n]) => `${tallas.find((t) => t.id === id)?.valor ?? ""} ${n}`).join(" · ")}</span>
               )}
             </>
           ) : (

@@ -32,7 +32,7 @@ function FilaFirme({ f, primera, presentaciones, hojas }: { f: FilaPrimero; prim
           <span className="min-w-0">
             {primera && <Chip tono="ambar">Empieza por aquí</Chip>}
             <span className="line-clamp-2 break-words text-[15px] font-medium leading-snug text-tinta">{f.referencia}</span>
-            <span className="block text-[13px] text-tinta/70">{f.frase}</span>
+            <span className="block text-sm text-tinta/70">{f.frase}</span>
           </span>
         </FilaQueAbreLaHoja>
         {/* Bajo el nombre, no bajo la foto: 56 px de foto + 14 de hueco. */}
@@ -41,9 +41,9 @@ function FilaFirme({ f, primera, presentaciones, hojas }: { f: FilaPrimero; prim
         </div>
       </div>
       <div className="text-right">
-        <span className="block text-xs text-tinta/65">Fabricar</span>
+        <span className="block text-sm text-tinta/65">Fabricar</span>
         <span className="block font-serif text-[26px] leading-none tabular-nums text-tinta">{f.cantidad === null ? "—" : `unas ${f.cantidad}`}</span>
-        <span className="block text-xs text-tinta/65">prendas</span>
+        <span className="block text-sm text-tinta/65">prendas</span>
       </div>
       <BotonEnlace href={hrefNuevaOrden(f.productoId, true)} peso={primera ? "primario" : "fantasma"} className="col-span-2 sm:col-span-1">
         Preparar orden
@@ -58,7 +58,7 @@ function FilaVigilar({ f, presentaciones, hojas }: { f: FilaPrimero } & Comunes)
       <FilaQueAbreLaHoja hoja={hojas[f.productoId]} presentacion={presentaciones[f.productoId]} className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2">
         <FotoModelo productoId={f.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
         <span className="min-w-0 flex-1 truncate text-[14px] text-tinta">{f.referencia}</span>
-        <span className="hidden text-xs text-tinta/65 sm:block">{f.frase}</span>
+        <span className="hidden text-sm text-tinta/65 sm:block">{f.frase}</span>
       </FilaQueAbreLaHoja>
     </li>
   );
@@ -71,7 +71,7 @@ export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones,
     return (
       <section data-guia="prod-resumen.que-producir" aria-label="Qué fabricar primero" className="space-y-3">
         <TituloSeccion>¿Qué fabrico primero?</TituloSeccion>
-        <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{falloRed}</p>
+        <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">{falloRed}</p>
       </section>
     );
   const visibles = firmes.slice(0, PRIMEROS_QUE_SE_VEN).map((f, i) => <FilaFirme key={f.productoId} f={f} primera={i === 0} presentaciones={presentaciones} hojas={hojas} />);
@@ -80,7 +80,7 @@ export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones,
   return (
     <section data-guia="prod-resumen.que-producir" id="primero" aria-label="Qué fabricar primero" className="space-y-3">
       <TituloSeccion cuenta={firmes.length > 0 ? firmes.length : undefined}>¿Qué fabrico primero?</TituloSeccion>
-      {firmes.length + vigilar.length > 0 && <p className="-mt-1 px-1 text-[13px] text-tinta/70">{presentacion} {AYUDA_PREPARAR_ORDEN}</p>}
+      {firmes.length + vigilar.length > 0 && <p className="-mt-1 px-1 text-sm text-tinta/70">{presentacion} {AYUDA_PREPARAR_ORDEN}</p>}
       {/* La edad de los datos: mientras el sistema lleva pocas semanas de ventas, las cantidades son una guía (se apaga sola, `notaDeHistoria`). */}
       {nota && firmes.length + vigilar.length > 0 && <p className="nota-cayla">{nota}</p>}
       {firmes.length === 0 ? (
@@ -101,7 +101,7 @@ export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones,
             cabecera={
               <div className="px-4 py-3.5">
                 <p className="text-[15px] font-medium text-tinta">{vigilar.length === 1 ? "1 modelo para vigilar" : `${vigilar.length} modelos para vigilar`}</p>
-                <p className="mt-0.5 text-[13px] text-tinta/70">{TEXTO_PARA_VIGILAR}</p>
+                <p className="mt-0.5 text-sm text-tinta/70">{TEXTO_PARA_VIGILAR}</p>
               </div>
             }
             resto={vigilar.map((f) => (

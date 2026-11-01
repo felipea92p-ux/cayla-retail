@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ReceiptText, X } from "lucide-react";
@@ -105,7 +106,7 @@ import { registrarComprobanteOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 // «Responsable». Un doble clic no registra dos veces: el token del envío se genera una vez y la base devuelve el mismo papel si el envío se
 // repite igual (también tras un corte de señal).
 
-const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1 text-sm font-semibold text-tinta";
 // El título de un campo de la cabecera: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier estado de la guía.
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // Un renglón del papel con lugar (sección de 52 rem o más): marca de la guía y número · insumo · cantidad con su unidad · costo · subtotal
@@ -365,9 +366,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
       <form
         onSubmit={registrar}
         noValidate
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
-        }}
+        onKeyDown={enterNoGuarda}
         className="space-y-6"
       >
         <section data-guia="oi-comprobante.papel" className="@container card-cayla p-4 sm:p-5" aria-label="El papel">
@@ -429,7 +428,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
             ) : (
               // Sin comprobante (decisión 50): no hay serie ni número que copiar; la base le pone su número interno al guardar.
               <p data-guia="oi-comprobante.sin-papel" className="nota-cayla self-end @min-[28rem]:col-span-2">
-                Sin serie ni número: se guarda con un número interno (SC-…) para que el contador sepa que esta compra no tiene comprobante.
+                Sin serie ni número: se guarda con un número interno (SC-…).
               </p>
             )}
             <CampoGuiado id="emision" guia={guia}>
@@ -462,7 +461,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
                   { clave: "contado", etiqueta: "Contado" },
                 ]}
               />
-              <p className="mt-1.5 text-xs text-taupe">
+              <p className="mt-1.5 text-sm text-taupe">
                 {condicion === "contado"
                   ? "Se registra con su pago por el total: desde una cuenta de la empresa o desde tu fondo."
                   : condicion === "credito"
@@ -484,7 +483,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
                   disabled={condicion !== "credito"}
                 />
               </fieldset>
-              <p className="mt-1.5 text-xs text-taupe">
+              <p className="mt-1.5 text-sm text-taupe">
                 {condicion === "contado" ? (
                   "Al contado no hay vencimiento."
                 ) : condicion === "" ? (
@@ -533,13 +532,13 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
           )}
 
           {lineas.length > 0 && (
-            <div aria-hidden className={`hidden items-end gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[52rem]:grid ${FILA_ANCHA}`}>
+            <div aria-hidden className={`hidden items-end gap-x-2.5 px-3 text-sm font-semibold text-tinta @min-[52rem]:grid ${FILA_ANCHA}`}>
               <span />
               <span>Insumo</span>
               <span>Cantidad</span>
               <span>
                 Costo u.
-                {discriminaIgv(tipo) && <span className="block text-[12px] font-normal text-taupe">sin IGV</span>}
+                {discriminaIgv(tipo) && <span className="block text-sm font-normal text-taupe">sin IGV</span>}
               </span>
               <span className="text-right">Subtotal</span>
               <span />
@@ -582,7 +581,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
                         {pendienteMilesimas(p) === 0 ? " (llegó completa)" : ""}
                       </span>
                     </span>
-                    <Boton type="button" className="px-3 py-1.5 text-[11px]" onClick={() => ponerPedida(p)}>
+                    <Boton type="button" className="px-3 py-1.5 text-sm" onClick={() => ponerPedida(p)}>
                       {palabras.poner}
                     </Boton>
                   </li>
@@ -614,7 +613,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
               <CampoGuiado id="total-papel" guia={guia} className="pt-2">
                 <p className={TITULO}>
                   {etiqueta("total-papel", "Si el papel dice otro total")}
-                  <span className="ml-2 text-[12px] font-normal text-taupe">opcional</span>
+                  <span className="ml-2 text-sm font-normal text-taupe">opcional</span>
                 </p>
                 <CampoTexto
                   id="oi-total-papel"
@@ -626,7 +625,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
                   value={totalDelPapel}
                   onChange={(e) => setTotalDelPapel(e.target.value)}
                 />
-                <p className="mt-1.5 text-xs text-taupe">Solo si difiere por centavos: ese total manda y el IGV se ajusta.</p>
+                <p className="mt-1.5 text-sm text-taupe">Solo si difiere por centavos: ese total manda y el IGV se ajusta.</p>
               </CampoGuiado>
             )}
           </div>
@@ -652,7 +651,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
           <CampoGuiado id="nota" guia={guia} className="max-w-2xl">
             <p className={TITULO_FIJO}>
               {etiqueta("nota", "Nota")}
-              <span className="text-[12px] font-normal text-taupe">opcional</span>
+              <span className="text-sm font-normal text-taupe">opcional</span>
             </p>
             <CampoTexto id="oi-nota-comprobante" caja etiqueta="Nota" maxLength={TOPES_PAPEL_INSUMO.nota} value={nota} onChange={(e) => setNota(e.target.value)} />
           </CampoGuiado>
@@ -739,13 +738,13 @@ function RenglonDelPapel({
   const insumo = pedida ? (
     <div className="min-w-0">
       <p className="text-tinta">{pedida.insumo}</p>
-      {(pedida.codigo || pedida.descripcion) && <p className="text-xs text-taupe">{[pedida.codigo, pedida.descripcion].filter(Boolean).join(" · ")}</p>}
-      <p className="mt-0.5 text-xs text-taupe">
+      {(pedida.codigo || pedida.descripcion) && <p className="text-sm text-taupe">{[pedida.codigo, pedida.descripcion].filter(Boolean).join(" · ")}</p>}
+      <p className="mt-0.5 text-sm text-taupe">
         Pediste {cantidadConUnidad(pedida.cantidad, pedida.unidadMedida)}
         {pedida.facturado > 0 ? ` · ya en papel ${cantidadConUnidad(pedida.facturado, pedida.unidadMedida)}` : ""}
       </p>
       {deMas && (
-        <p className="mt-0.5 text-xs text-ambar">
+        <p className="mt-0.5 text-sm text-ambar">
           Pasa lo pedido por {cantidadConUnidad(deMas.deMas, deMas.unidad)}. Se acepta y queda avisado.
         </p>
       )}
@@ -761,7 +760,7 @@ function RenglonDelPapel({
         onValor={(insumoId) => onCambio({ insumoId })}
         opciones={opcionesInsumo}
       />
-      {nombreFuera && unidad && <p className="text-xs text-taupe">Se escribe en {nombreUnidad(unidad)}.</p>}
+      {nombreFuera && unidad && <p className="text-sm text-taupe">Se escribe en {nombreUnidad(unidad)}.</p>}
     </div>
   );
 
@@ -769,8 +768,8 @@ function RenglonDelPapel({
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[52rem]:rounded-lg @min-[52rem]:py-2">
       <div data-guia="oi-comprobante.renglon" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[52rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[52rem]:col-span-1 @min-[52rem]:justify-start">
-          <p className="text-[13px] font-semibold text-tinta @min-[52rem]:hidden">{etiqueta(id, `Renglón ${numero}`)}</p>
-          <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[52rem]:inline-flex" title={`Renglón ${numero}`}>
+          <p className="text-sm font-semibold text-tinta @min-[52rem]:hidden">{etiqueta(id, `Renglón ${numero}`)}</p>
+          <span className="hidden items-center gap-1 text-sm tabular-nums text-taupe @min-[52rem]:inline-flex" title={`Renglón ${numero}`}>
             {/* Sin marca (llegó completo), un hueco del mismo ancho: el número no se corre. */}
             {estado(id) ? <MarcaCampo estado={estado(id)!} /> : <span aria-hidden className="inline-block h-[18px] w-[18px]" />}
             {numero}
@@ -795,7 +794,7 @@ function RenglonDelPapel({
               />
             </div>
             {unidadALaVista && (
-              <span aria-hidden className="shrink-0 text-[13px] text-taupe-profundo">
+              <span aria-hidden className="shrink-0 text-sm text-taupe-profundo">
                 {unidadALaVista}
               </span>
             )}
