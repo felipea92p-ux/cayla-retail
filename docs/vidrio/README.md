@@ -44,29 +44,32 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 
 ## 3. Las pantallas (por cuántas veces se ven)
 
-| Pieza | Dónde vive | Estado |
-|---|---|---|
-| Cabecera de pantalla | `ui/EncabezadoPagina.tsx` | Por auditar |
-| Tarjetas de cifra | `ui/TarjetaCifra.tsx` | Por auditar |
-| Tablas | `ui/Tabla` + `.fila-cayla` | Por auditar |
-| Pestañas de sección | `ui/Pestanas` | Por auditar |
-| Buscador | `ui/Buscador.tsx` | Por auditar |
-| Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | Por auditar |
-| Insignias de estado | `ui/Chip.tsx` | Por auditar |
-| Estados vacíos | `ui/Vacio.tsx` | Por auditar |
-| Paginación | `ui/Paginas.tsx` | Por auditar |
-| Globito con número | `ui/Globito.tsx` | Por auditar |
-| Avatares | `ui/AvatarPersona.tsx` | Por auditar |
-| Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Por auditar |
-| Casillas e interruptores | `ui/Casilla`, `Interruptor` | Por auditar |
-| Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar |
-| Selector de mes | `ui/SelectorMes.tsx` | Por auditar |
-| Títulos de sección y enlaces | `ui/TituloSeccion`, `btn-enlace`, `EnlaceVer` | Por auditar |
-| Avisos de éxito (esquina) | `ui/Avisos` | Por auditar |
-| Loader a pantalla completa | `ui/Espera.tsx` | Por auditar |
-| «Hay una versión nueva» | `VersionNueva.tsx` | Por auditar |
-| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | Por auditar |
-| Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar |
+Cada maqueta de esta sección va montada sobre el marco ya elegido, que vive aparte en `docs/maquetas/vidrio-base-2026-10/` junto con
+las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabecera A y las tarjetas de cifra A).
+
+| Pieza | Dónde vive | Estado | Cara | Maqueta |
+|---|---|---|---|---|
+| Cabecera de pantalla | `ui/EncabezadoPagina.tsx` (115 archivos), `ResumenSede` | Elegido | A · Plana con gotas | `cabecera-vidrio-2026-10/` |
+| Tarjetas de cifra | `ui/TarjetaCifra.tsx` (238 usos, 68 archivos) | Elegido | A · Placa Serena | `cifras-vidrio-2026-10/` |
+| Tablas | `ui/Tabla` (75 archivos) + `.fila-cayla` (20 más) | Elegido | B · Placa Serena, con superpoderes: A · Globo desde la cabecera, responsive de 320 a 1920 px | `tablas-vidrio-2026-10/`, `tabla-superpoderes-2026-10/` |
+| Pestañas de sección | `ui/Pestanas` (35 archivos) | Elegido | A · La gota de Mi perfil | `pestanas-vidrio-2026-10/` |
+| Buscador | `ui/Buscador.tsx` | Por auditar | — | — |
+| Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx` | Por auditar | — | — |
+| Insignias de estado | `ui/Chip.tsx` | Por auditar | — | — |
+| Estados vacíos | `ui/Vacio.tsx` | Por auditar | — | — |
+| Paginación | `ui/Paginas.tsx` | Por auditar | — | — |
+| Globito con número | `ui/Globito.tsx` | Por auditar | — | — |
+| Avatares | `ui/AvatarPersona.tsx` | Por auditar | — | — |
+| Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Por auditar | — | — |
+| Casillas e interruptores | `ui/Casilla`, `Interruptor` | Por auditar | — | — |
+| Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
+| Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
+| Títulos de sección y enlaces | `ui/TituloSeccion`, `btn-enlace`, `EnlaceVer` | Por auditar | — | — |
+| Avisos de éxito (esquina) | `ui/Avisos` | Por auditar | — | — |
+| Loader a pantalla completa | `ui/Espera.tsx` | Por auditar | — | — |
+| «Hay una versión nueva» | `VersionNueva.tsx` | Por auditar | — | — |
+| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | Por auditar | — | — |
+| Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar | — | — |
 
 ## Fuera hasta que Felipe diga
 
