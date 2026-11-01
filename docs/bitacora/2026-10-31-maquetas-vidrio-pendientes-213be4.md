@@ -56,3 +56,4 @@
 - **Observatorio, ronda 4:** se quitó la línea del día. «Repetir el día» mostraba la hora en crema sobre vidrio claro (la piel de vidrio le
   ganaba a `.repetir.va`): mientras corre, ahora es el primario ahumado (14:1 en claro, 13,8:1 en oscuro).
 - **Observatorio, elegido entero** y pasado a la sesión que implementa: sin la línea del día, con los siete extras.
+- **Observatorio, corrección:** Felipe quitó también el panel que nace del mapa; quedan seis extras. Avisado a la sesión que implementa.

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-vd="aire" data-ctl="humo" data-orbe="lente" data-ex-liq data-ex-cinta data-ex-anillo data-ex-peru data-ex-nace data-ex-area data-ex-estela>
+<html lang="es" data-vd="aire" data-ctl="humo" data-orbe="lente" data-ex-liq data-ex-cinta data-ex-anillo data-ex-peru data-ex-area data-ex-estela>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -668,12 +668,6 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 [data-ex-estela] .a-mapa-in .cometa.cola{display:inline;opacity:var(--o)}
 [data-ex-estela] .a-mapa-in .cometa{filter:drop-shadow(0 0 3px color-mix(in srgb,var(--info) 60%,transparent))}
 
-/* 6 · El panel nace del mapa: al elegir una tienda, una gota de vidrio sale de su punto en el mapa y se estira hasta ser el panel; ahí
-   se desvanece y deja el panel con su cascada. Una vez, sin rebote. */
-.gota-nace{position:absolute;z-index:40;pointer-events:none;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
-  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));
-  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);box-shadow:inset 0 1px 0 var(--vidrio),0 24px 50px -24px color-mix(in srgb,var(--sombra) 45%,transparent)}
-.marco.oscuro .gota-nace{background:color-mix(in srgb,var(--vidrio) 80%,transparent);border-color:color-mix(in srgb,var(--tx) 14%,transparent)}
 
 </style>
 </head>
@@ -719,7 +713,7 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 /* =====================================================================
    ESTADO
    ===================================================================== */
-const S={vd:'aire',ctl:'humo',orbe:'lente',exLiq:true,exCinta:true,exAnillo:true,exPeru:true,exNace:true,exArea:true,exEstela:true,tema:'claro',vista:'escritorio',momento:'tarde',periodo:'hoy',foco:'TODAS',tab:'ritmo',comparar:'TODAS',cat:'todas',vivo:true,bucle:true,rm:false,falla:false,now:1060,sim:0,alerta:null,idea:false,replay:false,rapido:false,vistos:new Set(),focoPintado:null,tabDir:'',tabNuevo:false};
+const S={vd:'aire',ctl:'humo',orbe:'lente',exLiq:true,exCinta:true,exAnillo:true,exPeru:true,exArea:true,exEstela:true,tema:'claro',vista:'escritorio',momento:'tarde',periodo:'hoy',foco:'TODAS',tab:'ritmo',comparar:'TODAS',cat:'todas',vivo:true,bucle:true,rm:false,falla:false,now:1060,sim:0,alerta:null,idea:false,replay:false,rapido:false,vistos:new Set(),focoPintado:null,tabDir:'',tabNuevo:false};
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const ic=(n,c='')=>`<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
 const reducido=()=>S.rm||matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1225,7 +1219,7 @@ function barra(){
   $('#spk').innerHTML=`<span class="tag">Observatorio con vidrio</span>
   <span class="tag">Vidrio</span>${seg('vd',[['ahora','Como ahora'],['serena','A · Serena'],['aire','B · El mapa al aire ✓']])}
   <span class="tag">Controles</span>${seg('ctl',[['ahora','Como ahora'],['pozo','A · Pozo y gota'],['humo','B · Ahumado ✓']])}
-  <span class="tag">Extras</span>${chk('exLiq','Orbes con líquido')}${chk('exCinta','Cinta de vidrio')}${chk('exAnillo','Anillos de tubo')}${chk('exPeru','El Perú de vidrio')}${chk('exNace','El panel nace del mapa')}${chk('exArea','Gráficos de vidrio')}${chk('exEstela','Estela del cometa')}
+  <span class="tag">Extras</span>${chk('exLiq','Orbes con líquido')}${chk('exCinta','Cinta de vidrio')}${chk('exAnillo','Anillos de tubo')}${chk('exPeru','El Perú de vidrio')}${chk('exArea','Gráficos de vidrio')}${chk('exEstela','Estela del cometa')}
   <span class="tag">Por revisar</span>${seg('orbe',[['ahora','Como ahora'],['lente','A · Lente ✓'],['pozo','B · Pozo']])}
   ${seg('tema',[['claro','Claro · hoy'],['oscuro','Oscuro · cuando exista']])}
   ${seg('vista',[['escritorio','Todo el ancho'],['tablet','Tablet 834'],['celular','Celular 375']])}
@@ -1246,7 +1240,7 @@ function cambia(k,v){
   if(k==='vista'){montar();return}
   pintar(true)}
 function alternar(k,v){S[k]=v;
-  const EX={exLiq:1,exCinta:1,exAnillo:1,exPeru:1,exNace:1,exArea:1,exEstela:1};if(EX[k]){document.documentElement.toggleAttribute('data-ex-'+k.slice(2).toLowerCase(),v);return}if(k==='vivo')programarVivo();if(k==='bucle'||k==='rm'){const a=$('#app');a.classList.toggle('bucle',S.bucle);a.classList.toggle('rm',S.rm);pintar(true)}if(k==='falla')pintar(false)}
+  const EX={exLiq:1,exCinta:1,exAnillo:1,exPeru:1,exArea:1,exEstela:1};if(EX[k]){document.documentElement.toggleAttribute('data-ex-'+k.slice(2).toLowerCase(),v);return}if(k==='vivo')programarVivo();if(k==='bucle'||k==='rm'){const a=$('#app');a.classList.toggle('bucle',S.bucle);a.classList.toggle('rm',S.rm);pintar(true)}if(k==='falla')pintar(false)}
 function verIdea(){S.idea=!S.idea;ideaHTML();$('#idea').classList.toggle('abierta',S.idea)}
 function ideaHTML(){$('#idea').innerHTML=`<button class="cerrar" onclick="verIdea()" aria-label="Cerrar">${ic('x','s')}</button>
   <span class="lbl" style="color:var(--taupe)">El vidrio (ADR-0596)</span><h2>El Observatorio con vidrio</h2>
@@ -1258,7 +1252,7 @@ function ideaHTML(){$('#idea').innerHTML=`<button class="cerrar" onclick="verIde
     <li><b>El Perú de vidrio:</b> el país es una lámina que flota sobre la Aurora y proyecta su sombra.</li></ul>
   <h3>Ronda 3 (eligió las ideas 5, 6, 7 y 10)</h3><ul>
     <li><s>La línea del día</s>: se quitó (Felipe: «quita la barra de abajo del día»).</li>
-    <li><b>El panel nace del mapa:</b> al elegir una tienda, una gota de vidrio sale de su punto y se estira hasta ser el panel (820 ms, una vez).</li>
+    <li><s>El panel nace del mapa</s>: se quitó (Felipe: «el panel que nace del mapa, ese también quítalo»).</li>
     <li><b>Gráficos de vidrio:</b> el área bajo la línea de la tienda en «Ritmo» y la de los mini gráficos es vidrio esmerilado que vela la retícula.</li>
     <li><b>Estela del cometa:</b> el traslado en camino deja una cola de gotas que se desvanecen (sigue siendo el mismo bucle-señal de ADR-0322).</li></ul>
   <p style="margin-top:8px">Es la v3 aprobada tal cual: el mapa, el panel de la tienda, las pestañas, los orbes, el odómetro y los tres bucles que son señal. Encima va la piel del vidrio: la Aurora detrás, el riel y las dos islas del marco, y lo ya elegido en cada pieza. No cambia qué hace nada.</p>
@@ -1317,26 +1311,6 @@ document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA/.test(e.target.tagNam
 window.addEventListener('resize',()=>{medir();const antes=S.ancho;anchoHeroe();if(antes!==undefined&&antes!==S.ancho)pintar(false)});
 barra();montar();programarVivo();
 </script>
-<script>
-/* ===== RONDA 3: el panel que nace del mapa (6). La línea del día (5) se quitó: Felipe 2026-10-31, «quita la barra de abajo del día». ===== */
-(function(){
-  // 6 · el panel nace del mapa
-  const enfocarOriginal=enfocar;
-  enfocar=function(s){
-    const app=$('#app'), desde=s!=='TODAS'&&document.documentElement.hasAttribute('data-ex-nace')&&!reducido()?$(`[data-pulso="${s}"] .nodo`):null;
-    const r0=desde&&desde.getBoundingClientRect();
-    enfocarOriginal(s);
-    if(!r0||!app)return;
-    requestAnimationFrame(()=>{const panel=$('.h-panel',app);if(!panel)return;
-      const a=app.getBoundingClientRect(),r1=panel.getBoundingClientRect(),g=document.createElement('div');g.className='gota-nace';app.appendChild(g);
-      const c0={x:r0.left+r0.width/2-a.left,y:r0.top+r0.height/2-a.top};
-      g.animate([{left:c0.x-14+'px',top:c0.y-14+'px',width:'28px',height:'28px',borderRadius:'50%',opacity:1},
-        {left:(c0.x+r1.left-a.left)/2+'px',top:Math.min(c0.y,r1.top-a.top)+'px',width:r1.width*.45+'px',height:r1.height*.5+'px',borderRadius:'40%',opacity:1,offset:.45},
-        {left:r1.left-a.left+'px',top:r1.top-a.top+'px',width:r1.width+'px',height:r1.height+'px',borderRadius:'24px',opacity:1,offset:.85},
-        {left:r1.left-a.left+'px',top:r1.top-a.top+'px',width:r1.width+'px',height:r1.height+'px',borderRadius:'24px',opacity:0}],
-        {duration:820,easing:'cubic-bezier(.32,.72,.24,1)'}).onfinish=()=>g.remove();});
-  };
-})();
-</script>
+<!-- Ronda 3: la línea del día (5) y el panel que nace del mapa (6) se quitaron (Felipe 2026-10-31). -->
 </body>
 </html>

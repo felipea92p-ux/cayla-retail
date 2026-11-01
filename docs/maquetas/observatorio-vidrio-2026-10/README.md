@@ -37,16 +37,15 @@ y «Repetir el día» llevan el mismo borde. Medido: el texto de un control no e
 
 Y pidió «más cosas para mejorar e integrar al liquid glass». Encendidos en la maqueta (casillas «Extras», se apagan una por una):
 orbes con líquido, cinta de vidrio para la venta en vivo, anillos de tubo y el Perú de vidrio. De la lista de ideas eligió además la 5, la
-6, la 7 y la 10, ya hechas (casillas «El panel nace del mapa», «Gráficos de vidrio», «Estela del cometa»):
+6, la 7 y la 10, ya hechas (casillas «Gráficos de vidrio» y «Estela del cometa»):
 
 - ~~**La línea del día**~~: se quitó (Felipe 2026-10-31: «quita la barra de abajo del día»).
-- **El panel nace del mapa:** al elegir una tienda, una gota de vidrio sale de su punto y se estira hasta ser el panel (820 ms, una vez,
-  sin rebote; apagado con movimiento reducido).
+- ~~**El panel nace del mapa**~~: se quitó (Felipe 2026-10-31: «el panel que nace del mapa, ese también quítalo»).
 - **Gráficos de vidrio:** el área bajo la línea de la tienda en «Ritmo» y la de los mini gráficos es vidrio esmerilado (en el SVG, un
   degradado del vidrio que vela la retícula).
 - **Estela del cometa:** el traslado en camino deja una cola de cuatro gotas que se desvanecen; es el mismo bucle-señal de ADR-0322.
 
-Probado en Chrome sin ventana: la gota del panel aparece y se va, los degradados y la estela se pintan, en claro, oscuro y celular, sin errores de JS.
+Probado en Chrome sin ventana: los degradados y la estela se pintan, en claro, oscuro y celular, sin errores de JS.
 
 **«Repetir el día» con su hora legible** (Felipe: «que las horas se noten bien en repetir el día, el fondo es blanco y las letras
 también»): la piel de vidrio le ganaba al botón mientras corre y dejaba la hora en crema sobre vidrio claro. Mientras corre, el botón es el
@@ -54,4 +53,6 @@ primario ahumado (oscuro, hora en crema, 14:1) y su ícono una gota clara; en os
 porque ahí la piel de vidrio todavía no existe: **al implementarla, la regla de `.o-repetir.va` tiene que ir después de la del vidrio**.
 
 **Elegido entero (2026-10-31)**, sin la línea del día («no me gustó la 5, también quítalo y pásaselo»): B · El mapa al aire, controles
-B · Ahumado con contraste, orbes A · Lente y los siete extras que quedan encendidos en la maqueta. Pasado a la sesión que implementa.
+B · Ahumado con contraste, orbes A · Lente y los extras que quedan encendidos en la maqueta. Pasado a la sesión que implementa.
+Después quitó también el panel que nace del mapa: quedan seis extras (orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de
+vidrio, gráficos de vidrio, estela del cometa). Corrección avisada a la sesión que implementa.
