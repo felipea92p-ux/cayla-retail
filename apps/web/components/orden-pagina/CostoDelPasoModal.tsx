@@ -8,6 +8,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto } from "@/components/ui/campos";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
@@ -105,7 +106,7 @@ export function CostoDelPasoModal({ datos, fase, onClose }: { datos: OrdenPagina
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
-      <form onSubmit={onSubmit} className="mt-3.5 space-y-5">
+      <form onSubmit={onSubmit} onKeyDown={enterNoGuarda} className="mt-3.5 space-y-5">
         <div data-guia="prod-orden-costo.montos">
           {/* `retiene="fila"`: son dos cajas de un mismo dato; la luz espera mientras la persona escribe en una y pasa a la otra. */}
           <CampoGuiado id="costo" guia={guia} retiene="fila" className="space-y-2">
