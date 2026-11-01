@@ -257,6 +257,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
+      id: "talla-nueva",
+      ancla: "prod-orden-nueva.talla-nueva-boton",
+      opcional: true,
+      titulo: "¿Falta una talla o un color?",
+      texto: "El «+ Talla» de la derecha y el «+ Color» de abajo le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla. Es de quien edita el catálogo; si no, salen apagados y dicen por qué.",
+    },
+    {
       id: "red",
       ancla: "prod-orden-nueva.red",
       opcional: true,
@@ -408,7 +415,14 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.marcar",
       opcional: true,
       titulo: "Marcar una fase que no cuenta prendas",
-      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si te equivocas, el lápiz de la historia quita la marca, con su porqué. En la demo no se marca nada.",
+      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si se marcó por error, un líder quita la marca, con su porqué. En la demo no se marca nada.",
+    },
+    {
+      id: "quitar-marca-paso",
+      ancla: "prod-orden.quitar-marca-paso",
+      opcional: true,
+      titulo: "Quitar la marca (un líder)",
+      texto: "Si Ploteo se marcó antes de tiempo o por error, un líder le quita la marca desde aquí: pide por qué y queda en la historia, con «Restaurar». Quien no es líder ve a quién pedírselo. En la demo no se quita nada.",
     },
     {
       id: "terminar",
@@ -790,7 +804,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Quitar una marca",
-      texto: "El lápiz de una marca de Ploteo la quita, si se marcó antes de tiempo o por error. Te abrimos la hoja; no se quita nada.",
+      texto: "Un líder también quita la marca de Ploteo desde su lápiz en la historia, si se marcó antes de tiempo o por error. Te abrimos la hoja; no se quita nada.",
     },
     {
       id: "cambio-porque",
@@ -813,7 +827,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Restaurar lo eliminado",
-      texto: "Lo eliminado sale de la vista pero queda en la historia: «Restaurar» lo vuelve a anotar tal como era y con su día, con su porqué. Si mientras tanto la fase se llenó, la base te lo dice. En la demo no se restaura nada.",
+      texto: "Lo eliminado sale de la vista pero queda en la historia: «Restaurar» lo vuelve a anotar tal como era y con su día, con su porqué. Una marca quitada la restaura un líder. Si mientras tanto la fase se llenó, la base te lo dice. En la demo no se restaura nada.",
     },
     {
       id: "anular",

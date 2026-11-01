@@ -72,6 +72,10 @@ type Comunes = {
   teclado?: boolean;
   /** Algo junto al nombre de un color (el «×» que lo quita). Solo en las filas con color. De fábrica, nada. */
   accionFila?: (color: { codigo: string; nombre: string }) => ReactNode;
+  /** Lo que va en una columna extra a la DERECHA de la última talla (el «+ Talla» de «Nueva orden»). Solo cantidades; de fábrica, nada. */
+  alFinalDeTallas?: ReactNode;
+  /** Lo que va en una fila extra DEBAJO del último color (el «+ Color» de «Nueva orden»). De fábrica, nada. */
+  alFinalDeColores?: ReactNode;
 };
 
 /** Nuevo producto (paso 4): cantidades, precios y costos por celda. */
@@ -95,7 +99,7 @@ type ConPrecios = Comunes & {
 type SoloCantidades = Comunes & { soloCantidades: true };
 
 export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
-  const { celdas, tallas, colores, excluidas, cantidades, onCantidad, preguntaCelda: preguntaPropia, fantasma, tituloDe, teclado = false, accionFila } = props;
+  const { celdas, tallas, colores, excluidas, cantidades, onCantidad, preguntaCelda: preguntaPropia, fantasma, tituloDe, teclado = false, accionFila, alFinalDeTallas, alFinalDeColores } = props;
   const solo = props.soloCantidades === true;
   const precioBase = props.soloCantidades ? "" : props.precioBase;
   const precios = props.soloCantidades ? {} : props.precios;
@@ -222,6 +226,11 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                   {textoTalla(t)}
                 </th>
               ))}
+              {alFinalDeTallas && (
+                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-1.5 py-1 text-center">
+                  {alFinalDeTallas}
+                </th>
+              )}
               {conColumnaTotal && (
                 <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe sm:px-3">
                   Total
@@ -349,12 +358,21 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                       </td>
                     );
                   })}
+                  {alFinalDeTallas && <td className={`border-l border-t border-sand ${fondoFila}`} />}
                   {conColumnaTotal && (
                     <td className={`border-l border-t border-sand px-2 text-center tabular-nums text-taupe sm:px-3 ${fondoFila}`}>{totalFila || ""}</td>
                   )}
                 </tr>
               );
             })}
+            {alFinalDeColores && (
+              <tr>
+                <th scope="row" className="sticky left-0 z-[1] border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left sm:pl-3.5">
+                  {alFinalDeColores}
+                </th>
+                <td colSpan={columnas.length + (alFinalDeTallas ? 1 : 0) + (conColumnaTotal ? 1 : 0)} className="border-t border-sand bg-papel" />
+              </tr>
+            )}
           </tbody>
           {conFilaTotal && (
             <tfoot>
@@ -367,6 +385,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                     {totales.porColumna[claveEje(talla)] || ""}
                   </td>
                 ))}
+                {alFinalDeTallas && <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso" />}
                 {conColumnaTotal && (
                   <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-2 py-2 text-center font-semibold tabular-nums text-tinta sm:px-3">{totales.total}</td>
                 )}

@@ -175,7 +175,7 @@ export function precioDelBorrador(b: BorradorModelo): number {
   const l = leerDinero(b.precio);
   if (l.tipo === "vacio") return 0;
   if (l.tipo === "ok") return l.valor;
-  if (l.tipo === "negativo") return Number(b.precio.replace(/\s+/g, ""));
+  if (l.tipo === "negativo") return Number(b.precio.replace(/\s+/g, "")); // blanco-fijo: `leerDinero` ya rechazó todo lo que no sea «-» y cifras
   return Number.NaN;
 }
 

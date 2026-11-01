@@ -20,7 +20,6 @@ import {
   resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
-  textoOpcionMes,
   tituloPantalla,
   tituloUnidad,
   unidadInicial,
@@ -135,12 +134,6 @@ describe("palabras", () => {
       cierre: { ...unidad("Tienda Trujillo").cierre!, reabiertoEn: "2026-09-26T15:00:00Z", reabiertoPor: "Felipe Alvarez", motivoReapertura: "llegó una factura tarde" },
     };
     expect(bajadaUnidad(reabierta)).toBe("Reabierto el 26 sep por Felipe Alvarez: «llegó una factura tarde». Lo que el sistema revisa antes de dejarte cerrar.");
-  });
-  it("el selector de mes dice cuántas unidades cerraron o si CAYLA entera ya cerró", () => {
-    expect(textoOpcionMes({ mes: "2026-07", cerradas: 0, consolidado: false })).toBe("Julio 2026");
-    expect(textoOpcionMes({ mes: "2026-08", cerradas: 1, consolidado: false })).toBe("Agosto 2026 · 1 cerrada");
-    expect(textoOpcionMes({ mes: "2026-08", cerradas: 3, consolidado: false })).toBe("Agosto 2026 · 3 cerradas");
-    expect(textoOpcionMes({ mes: "2026-06", cerradas: 5, consolidado: true })).toBe("Junio 2026 · cerrado");
   });
 });
 

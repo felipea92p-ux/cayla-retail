@@ -9,8 +9,8 @@ import { AgregarPasoModal } from "@/components/orden-pagina/AgregarPasoModal";
 import { CambiarQuienModal } from "@/components/orden-pagina/CambiarQuienModal";
 import { QuitarPasoModal } from "@/components/orden-pagina/QuitarPasoModal";
 import { MarcarFaseModal } from "@/components/orden-pagina/MarcarFaseModal";
+import { CambioConMotivoModal } from "@/components/orden-pagina/CambioConMotivoModal";
 import { Aviso } from "@/components/ui/Aviso";
-import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -19,11 +19,13 @@ import type { OpcionesNuevaOrden } from "@/lib/produccion";
 import type { Tolerado } from "@/lib/resultado";
 import {
   accionesDeFase,
+  avisoMarcaSoloLider,
   avisoMinimoDeFase,
   cuandoTerminoLaFase,
   estadoEnRuta,
   faltaTerminar,
   faseAbiertaDeLaRuta,
+  marcaVivaDeFase,
   previaQueCuenta,
   pasoAgregadoTarde,
   pasosAgregables,
@@ -76,6 +78,7 @@ export function RutaViva({
   const { ofrecidos: pasosPorAgregar, bloqueados: pasosBloqueados } = pasosAgregables(datos, { esLider });
   const sePuedeAgregar = pasosPorAgregar.length > 0 || (esLider && datos.permisos.puedeOperar && orden.estado === "en_proceso" && fases.length > 0);
   const faseDeLaHoja = hoja ? (fases.find((f) => f.id === hoja.faseId) ?? null) : null;
+  const marcaDeLaHoja = faseDeLaHoja ? marcaVivaDeFase(faseDeLaHoja, datos) : null;
   const dato =
     fases.length === 0
       ? undefined
@@ -115,7 +118,7 @@ export function RutaViva({
             {fases.map((fase, i) => {
               const estado = estadoEnRuta(fase);
               const esAbierta = fase.id === abierta?.id;
-              const hayAlgo = accionesDeFase(fase, datos).some((a) => a !== "desmarcar");
+              const hayAlgo = accionesDeFase(fase, datos, { esLider }).some((a) => a !== "desmarcar");
               return (
                 <li key={fase.id} className="op-nodo-li" data-estado={estado} data-previa={i === 0 ? undefined : fases[i - 1].estado === "hecha" ? "hecha" : "no"}>
                   <button
@@ -148,13 +151,17 @@ export function RutaViva({
 
       <div className="op-bloques">
         <div className="op-columna">
-          {abierta && <PasoAbierto fase={abierta} datos={datos} alAbrirHoja={(tipo) => setHoja({ tipo, faseId: abierta.id })} />}
+          {abierta && <PasoAbierto fase={abierta} datos={datos} esLider={esLider} alAbrirHoja={(tipo) => setHoja({ tipo, faseId: abierta.id })} />}
           {izquierda}
         </div>
         <div className="op-columna">{derecha}</div>
       </div>
 
-      {(hoja?.tipo === "marcar" || hoja?.tipo === "desmarcar") && faseDeLaHoja && <MarcarFaseModal datos={datos} fase={faseDeLaHoja} modo={hoja.tipo === "marcar" ? "marcar" : "deshacer"} onClose={() => setHoja(null)} />}
+      {hoja?.tipo === "marcar" && faseDeLaHoja && <MarcarFaseModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
+      {/* ADR-0586 act. 2: quitar la marca es UN camino, el de la historia: con motivo, con «Restaurar», y solo de un líder. */}
+      {hoja?.tipo === "desmarcar" && faseDeLaHoja && marcaDeLaHoja && (
+        <CambioConMotivoModal datos={datos} cambio={{ que: "quitar-marca", marcaId: marcaDeLaHoja, faseNombre: faseDeLaHoja.nombre }} onClose={() => setHoja(null)} />
+      )}
       {hoja?.tipo === "terminar" && faseDeLaHoja && <AnotarAvanceModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "salida" && faseDeLaHoja && <AnotarSalidaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
@@ -166,12 +173,13 @@ export function RutaViva({
 }
 
 /** El paso abierto bajo la ruta: su estado, quién lo hace, la cifra y lo que dice, y sus botones (los mismos que tenía su tarjeta). */
-function PasoAbierto({ fase, datos, alAbrirHoja }: { fase: FasePagina; datos: OrdenPagina; alAbrirHoja: (tipo: Hoja["tipo"]) => void }) {
+function PasoAbierto({ fase, datos, esLider, alAbrirHoja }: { fase: FasePagina; datos: OrdenPagina; esLider: boolean; alAbrirHoja: (tipo: Hoja["tipo"]) => void }) {
   const { fases, orden, lineaDeTiempo } = datos;
   const previa = previaQueCuenta(fases, fases.findIndex((f) => f.id === fase.id));
   const t = textoDeFase(fase, { previa, terminoEl: fase.estado === "hecha" ? cuandoTerminoLaFase(fase.clave, lineaDeTiempo) : null, totalPlan: orden.cantidadPlan });
-  const acciones = accionesDeFase(fase, datos);
+  const acciones = accionesDeFase(fase, datos, { esLider });
   const aviso = avisoMinimoDeFase(fase, orden.cantidadPlan);
+  const soloLider = avisoMarcaSoloLider(fase, datos, { esLider });
   const registrar = puedeRegistrarQuien(fase, datos);
   const cambiar = registrar || puedeCambiarQuien(fase, datos);
   const quitar = puedeQuitarPaso(fase, datos);
@@ -179,7 +187,7 @@ function PasoAbierto({ fase, datos, alAbrirHoja }: { fase: FasePagina; datos: Or
   const estado = estadoEnRuta(fase);
   // ADR-0586: un paso que se olvidó y entró ya hecho lo dice, con su motivo al pasar el mouse (y completo en la historia).
   const tarde = pasoAgregadoTarde(fase, datos.cambios);
-  // El botón principal es el que avanza el paso; en un paso ya hecho, lo que queda (Deshacer) es secundario.
+  // El botón principal es el que avanza el paso; en un paso ya hecho, lo que queda es secundario.
   const peso = estado === "hecha" ? "fantasma" : "primario";
   return (
     <section
@@ -220,6 +228,7 @@ function PasoAbierto({ fase, datos, alAbrirHoja }: { fase: FasePagina; datos: Or
           {aviso}
         </Aviso>
       )}
+      {soloLider && <p className="op-paso-detalle">{soloLider}</p>}
       {(acciones.length > 0 || cambiar || quitar) && (
         <div className="op-paso-acciones">
           {acciones.includes("marcar") && (
@@ -227,7 +236,11 @@ function PasoAbierto({ fase, datos, alAbrirHoja }: { fase: FasePagina; datos: Or
               {fase.nombre} hecho
             </Boton>
           )}
-          {acciones.includes("desmarcar") && <BotonDeshacer onClick={() => alAbrirHoja("desmarcar")} />}
+          {acciones.includes("desmarcar") && (
+            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.quitar-marca-paso" onClick={() => alAbrirHoja("desmarcar")} className="btn-cayla btn-enlace text-[12.5px]">
+              Quitar la marca
+            </button>
+          )}
           {acciones.includes("terminar") && (
             <Boton type="button" peso={peso} aria-haspopup="dialog" data-guia="prod-orden.terminar" onClick={() => alAbrirHoja("terminar")}>
               Terminé {faltaTerminar(fase, fases)}
