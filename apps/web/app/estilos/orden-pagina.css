@@ -118,6 +118,15 @@
   .op-paso-detalle { font-size: 15px; line-height: 1.5; color: var(--op-tenue); }
   .op-paso-aviso { margin-top: 8px; }
   .op-paso-acciones { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  /* «Lo anotado aquí» (ADR-0586 act. 3): lo que se anotó en el paso, con su lápiz, bajo los botones */
+  .op-anotado { margin-top: 16px; display: grid; gap: 4px; }
+  .op-anotado-lista { margin: 0; padding: 0; list-style: none; }
+  .op-anotado-fila { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 0; border-top: 1px solid var(--color-sand); font-size: 14px; }
+  .op-anotado > .op-anotado-lista > .op-anotado-fila:first-child { border-top: 0; }
+  /* El texto pasa a la línea siguiente, como en la historia: el detalle es lo que separa dos filas del mismo día y no se corta */
+  .op-anotado-texto { flex: 1 1 auto; min-width: 0; display: grid; color: var(--op-tenue); overflow-wrap: anywhere; }
+  .op-anotado-detalle { font-size: 13px; }
+  .op-anotado-texto b { font-weight: 500; color: var(--color-tinta); }
 
   /* ---- Dos columnas: el paso abierto, la tela y el costo a la izquierda; la ficha y la historia a la derecha ---- */
   .op-bloques {
