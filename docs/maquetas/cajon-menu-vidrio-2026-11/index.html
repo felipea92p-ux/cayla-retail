@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cj="hoja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cajón del menú con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · el cajón del menú en el celular con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 1 «El marco»)
+   Hoy (components/AppShell.tsx `cajon-lateral`, globals.css, useLateralConElDedo.ts): bajo 640 px el lateral es un cajón de CREMA MACIZA
+   de 18 rem (máx. 85 %) con su sombra, que entra desde la izquierda (420 ms; se va en 260), su contenido en cascada (45 ms) y un velo de
+   sombra al 25 % con 2 px de desenfoque; se cierra tocando el velo, con la ✕ o deslizándolo con el dedo (el velo se aclara a la par).
+   En escritorio el lateral ya es el Riel con gota elegido; en el celular falta decidir qué cara tiene el cajón. Solo tokens. Sin rebote.
+   ==================================================================== */
+@keyframes pieza-cj{from{opacity:0;transform:translate3d(-14px,0,0)}}
+@container disp (max-width:520px){
+  .disp{--velo:1}
+  .disp::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .26s var(--ease)}
+  .disp[data-cajon]::after{opacity:var(--velo);transition:opacity .28s var(--ease)}
+  .lat{transition:transform .26s cubic-bezier(.4,0,1,1)}
+  .disp[data-cajon] .lat{transition:transform .42s var(--ease)}
+  .disp[data-cajon] .lat .pz{animation:pieza-cj .46s var(--ease) backwards;animation-delay:calc(var(--k,0) * 45ms + 90ms)}
+
+  /* COMO AHORA: crema maciza, sombra grande, velo al 25 % con 2 px */
+  :root:not([data-cj]) .lat{width:min(288px,85%)!important;border-radius:0!important;background:var(--crema)!important;border:0!important;border-right:1px solid var(--t12)!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:0 20px 25px -5px color-mix(in srgb,var(--sombra) 18%,transparent),0 8px 10px -6px color-mix(in srgb,var(--sombra) 18%,transparent)!important}
+  :root:not([data-cj]) .disp::after{background:color-mix(in srgb,var(--sombra) 25%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  [data-tema="oscuro"]:not([data-cj]) .disp::after{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+
+  /* A · HOJA DE VIDRIO CON PROFUNDIDAD: el Riel elegido hecho hoja: llega desde el borde con su asa, esmerila la pantalla y la ALEJA
+     (como las hojas del celular, ADR-0479 «Hoja viva con profundidad»); se va con el dedo */
+  /* el cajón tapa casi toda la pantalla: su vidrio es más denso que el del riel de escritorio, para que el menú se lea sobre cualquier prenda */
+  :is([data-cj="hoja"],[data-cj="panel"]) .lat{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 80%,transparent))!important;
+    -webkit-backdrop-filter:blur(30px) saturate(1.5)!important;backdrop-filter:blur(30px) saturate(1.5)!important}
+  [data-tema="oscuro"]:is([data-cj="hoja"],[data-cj="panel"]) .lat{background:color-mix(in srgb,var(--vidrio) 92%,transparent)!important}
+  [data-cj="hoja"] .lat{width:min(300px,86%)!important;border-radius:0 28px 28px 0!important}
+  [data-cj="hoja"] .lat::after{content:"";position:absolute;right:7px;top:50%;width:4px;height:44px;margin-top:-22px;border-radius:4px;background:color-mix(in srgb,var(--tinta) 22%,transparent)}
+  [data-cj="hoja"] .disp::after{background:color-mix(in srgb,var(--sombra) 16%,transparent);-webkit-backdrop-filter:blur(8px) saturate(1.2);backdrop-filter:blur(8px) saturate(1.2)}
+  [data-tema="oscuro"][data-cj="hoja"] .disp::after{background:color-mix(in srgb,var(--sombra) 45%,transparent)}
+  [data-cj="hoja"] :is(.cab,.cont){transform-origin:0 50%;transition:transform .26s cubic-bezier(.4,0,1,1),border-radius .26s,filter .26s}
+  [data-cj="hoja"] .disp[data-cajon] :is(.cab,.cont){transform:translateX(calc(var(--velo) * 34px)) scale(calc(1 - var(--velo) * .06));transition:transform .42s var(--ease),border-radius .42s,filter .42s}
+  [data-cj="hoja"] .disp[data-cajon] .cont{border-radius:22px}
+
+  /* B · PANEL QUE FLOTA: una placa de vidrio a 10 px de los bordes, como una isla; lo de atrás no se mueve y el velo es apenas un tinte */
+  [data-cj="panel"] .lat{left:10px!important;top:10px!important;bottom:10px!important;width:min(290px,calc(86% - 10px))!important;border-radius:28px!important;
+    border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent)!important;box-shadow:inset 0 1px 0 var(--vidrio),0 30px 60px -20px color-mix(in srgb,var(--sombra) 45%,transparent)!important}
+  [data-cj="panel"] .disp:not([data-cajon]) .lat{transform:translateX(calc(-100% - 20px))}
+  [data-cj="panel"] .disp::after{background:color-mix(in srgb,var(--sombra) 10%,transparent)}
+  [data-tema="oscuro"][data-cj="panel"] .disp::after{background:color-mix(in srgb,var(--sombra) 35%,transparent)}
+  [data-tema="oscuro"][data-cj="panel"] .lat{border-color:color-mix(in srgb,var(--tinta) 12%,transparent)!important}
+}
+@media (prefers-reduced-motion:reduce){.disp[data-cajon] .lat .pz{animation:none}:is(.cab,.cont,.lat){transition:none!important}}
+.aviso-ancho{margin:14px auto 0;max-width:620px;font-size:13.5px;color:var(--t65);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">El cajón del menú en el celular, con vidrio</span>
+  <span class="tag">Cajón</span><div class="seg-m" data-ctl="cj"><button data-v="ahora">Como ahora</button><button data-v="hoja">A · Hoja con profundidad</button><button data-v="panel">B · Panel que flota</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="m430">430</button></div>
+  <button class="accion" data-acc="cajon">Abrir o cerrar el menú</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="movil">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+<p class="aviso-ancho">Toca ≡ para abrirlo; ciérralo tocando lo de atrás, con la ✕ o <b>arrastrándolo con el mouse hacia la izquierda</b> (como el dedo).</p>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li>Bajo 640 px el lateral es un <b>cajón de crema maciza</b> de 18 rem con una sombra grande. Entra desde la izquierda en 420 ms y se va en 260; su contenido entra en cascada.</li>
+      <li>Detrás, un <b>velo de sombra al 25 %</b> con 2 px de desenfoque. Se cierra tocando el velo, con la ✕ o deslizándolo con el dedo, y el velo se aclara a la par.</li>
+      <li>En escritorio el lateral ya es el <b>Riel con gota</b> elegido; en el celular nadie decidió todavía qué cara tiene. Las hojas del celular ya llegan desde el borde, con asa, y alejan lo de atrás (ADR-0479).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Cajón</b></td><td>A · Hoja con profundidad <span class="ev">Recomendada</span></td><td>El Riel elegido hecho hoja: llega con su asa, esmerila la pantalla y la aleja un poco, igual que toda hoja del celular. El menú se siente de la misma familia que las hojas, y se va con el dedo.</td><td>Mover la pantalla de atrás cuesta algo más en un teléfono lento (se apaga con «menos movimiento»).</td></tr>
+      <tr><td>B · Panel que flota</td><td>Una isla de vidrio a 10 px de los bordes: liviana, lo de atrás se queda quieto y apenas se tiñe.</td><td>Pierde 20 px de ancho en un teléfono de 320; y una isla flotante se parece más a un menú que se abre que a un cajón que se desliza.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>A · Hoja con profundidad.</b> Prueba arrastrarlo hacia la izquierda: la pantalla vuelve a su lugar a la par.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Lo que lleva adentro (el logo, la ✕, el menú con la gota que viaja, la firma y tu nombre con «Salir»), la cascada de 45 ms, los tiempos de entrada y salida, y las tres formas de cerrarlo.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, fila, buscar…); la maqueta no los repite. -->
+<script>
+const svC = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const PERCHA = 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6';
+function pintarCajon() {
+  $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Existencias', frase: 'Lo que hay en el piso y en el almacén.' })}
+    <div class="prendas" style="margin-top:20px">${PRENDAS.slice(0, 10).map(([c, n, , st, cl]) => `<div class="prenda"><div class="foto${cl ? ' claro' : ''}" data-color-dato style="background:${c}">${svC(PERCHA)}</div><div class="pie"><b>${n}</b><span>${st} en tienda</span></div></div>`).join('')}</div>`;
+  // la cascada: cada pieza del cajón con su orden
+  let k = 0; $$('#lat .logo-fila, #lat .nav > .fila-m, #lat .nav > .hijos, #lat .firma, #lat .yo').forEach((el) => { el.classList.add('pz'); el.style.setProperty('--k', k++); });
+}
+// arrastrar el cajón hacia la izquierda, como el dedo: el menú sigue al puntero y la pantalla vuelve a la par
+(() => {
+  let g = null; const d = $('#disp'), lat = $('#lat');
+  lat.addEventListener('pointerdown', (ev) => { if (!d.hasAttribute('data-cajon')) return; g = { x0: ev.clientX, t0: performance.now(), dx: 0, id: ev.pointerId, arrastra: false }; });
+  lat.addEventListener('pointermove', (ev) => {
+    if (!g) return; const z = zoomDisp(); g.dx = Math.min(0, (ev.clientX - g.x0) / z); const w = lat.offsetWidth;
+    // recién pasado 6 px es un arrastre: antes, un toque en una fila sigue siendo un toque
+    if (!g.arrastra) { if (g.dx > -6) return; g.arrastra = true; lat.setPointerCapture(g.id); }
+    lat.style.transition = 'none'; lat.style.transform = `translateX(${g.dx}px)`; d.style.setProperty('--velo', Math.max(0, 1 + g.dx / w).toFixed(3));
+    $$('.cab, .cont').forEach((e) => (e.style.transition = 'none'));
+  });
+  const soltar = () => {
+    if (!g) return; if (!g.arrastra) { g = null; return; } const w = lat.offsetWidth, rapido = g.dx / (performance.now() - g.t0) < -0.6;
+    lat.style.transition = ''; lat.style.transform = ''; $$('.cab, .cont').forEach((e) => (e.style.transition = ''));
+    if (g.dx < -w / 3 || (rapido && g.dx < -30)) d.removeAttribute('data-cajon');
+    d.style.removeProperty('--velo'); g = null;
+  };
+  lat.addEventListener('pointerup', soltar); lat.addEventListener('pointercancel', soltar);
+})();
+Marco.iniciar({ estado: { cj: 'hoja', ancho: 'movil' }, alPintar: () => { pintarCajon(); } });
+$('#disp').setAttribute('data-cajon', '');
+</script>
+</body>
+</html>

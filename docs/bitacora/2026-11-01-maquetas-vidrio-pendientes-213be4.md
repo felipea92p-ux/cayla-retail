@@ -19,3 +19,5 @@
   Placa, barra de avance A · Tubo, interruptor A · Pozo y gota y barra del celular A · Gota ahumada. Abierto: la barra de avance quedó A ·
   Tubo aquí y en las hojas, pero B · Tinta sobre vidrio en la maqueta de gráficos; falta saber cuál vale para todo el ERP.
 - **Barra de avance: Tubo en todo el ERP** (Felipe). Lo demás de gráficos sigue en B · Tinta sobre vidrio.
+- **Cajón del menú en el celular, en maqueta** (`docs/maquetas/cajon-menu-vidrio-2026-11/`): A · Hoja con profundidad (recomendada) y
+  B · Panel que flota, con el arrastre para cerrar. 18 combinaciones sin desborde. Los íconos del marco y del contenido pasaron a la otra sesión.
