@@ -1,0 +1,191 @@
+/* ====================================================================
+   El vidrio en la PANTALLA (ADR-0596, Felipe 2026-10-31): las piezas que se ven sobre la Aurora, fuera de las hojas.
+   Lo que eligió mirando cada maqueta (docs/maquetas/<pieza>-vidrio-2026-10/), armado SOLO con las recetas de recetas.css:
+
+   · La cabecera, «A · Plana con gotas» (cabecera-vidrio-2026-10): lo que explica (sede, título, frase) queda plano sobre la Aurora;
+     la flecha de Volver y las acciones son gotas (los botones ya lo son, campos-y-botones.css); las cifras de la sede, la placa Serena.
+   · Las tarjetas de cifra, «A · Placa Serena» (cifras-vidrio-2026-10): la misma placa; la que lleva se alza 2 px y su flecha avanza;
+     la que filtra, puesta, se HUNDE; la que no tiene dato, el borde punteado sin vidrio.
+   · Las pestañas de sección, «A · La gota de Mi perfil» (pestanas-vidrio-2026-10): la fila es un pozo y la elegida una gota de vidrio
+     claro que FLUYE (IndicadorDeslizante «gota»: se estira 220 ms y se recoge 300 ms).
+   · Las tablas, «B · Placa Serena» (tablas-vidrio-2026-10): la placa, sin rayado, con un hilo entre filas y el encabezado suelto.
+
+   Sin capa, como las demás piezas de vidrio: le gana a `components` (card-cayla, encabezado-tabla-cayla, el rayado de .fila-cayla) y a
+   las utilidades. Dentro de una hoja o un cajón la hoja ya es el vidrio: ahí nada lleva su propio desenfoque.
+   ==================================================================== */
+
+/* ---------- La cabecera: la flecha de Volver es una gota ---------- */
+[data-pieza="volver"] {
+  border-color: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+  transition: transform 250ms var(--ease-cayla), background 200ms var(--ease-cayla), border-color 200ms;
+}
+@media (hover: hover) {
+  [data-pieza="volver"]:not(:disabled):hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+    background: var(--gota-marca);
+  }
+}
+
+/* ---------- Las cifras de la sede (ResumenSede): la placa Serena ---------- */
+.resumen-sede {
+  border-radius: 24px;
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* ---------- La tarjeta de cifra: la misma placa ---------- */
+.tarjeta-cifra:not([data-sin-dato]) {
+  border-radius: 20px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+  transition: transform 250ms var(--ease-cayla), background 200ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla), border-color 200ms;
+}
+/* Sin dato: el borde punteado de siempre, sin vidrio (no hay nada que mirar a través). */
+.tarjeta-cifra[data-sin-dato] {
+  border-radius: 20px;
+  border-color: var(--color-borde-control);
+  background: transparent;
+}
+@media (hover: hover) {
+  .tarjeta-cifra:is([data-conducta="lleva"], [data-conducta="filtra"]):not([data-puesta], [data-sin-dato]):hover {
+    transform: translateY(-2px);
+    background: var(--serena-fondo-encima);
+    box-shadow: var(--serena-sombra-encima);
+  }
+  .tarjeta-cifra[data-conducta="lleva"]:hover .lucide-arrow-right {
+    transform: translateX(4px);
+  }
+}
+.tarjeta-cifra[data-conducta="lleva"] .lucide-arrow-right {
+  transition: transform 250ms var(--ease-cayla);
+}
+/* La que filtra, puesta: hundida, como un campo que ya tiene tu dato. */
+.tarjeta-cifra[data-puesta] {
+  transform: none;
+  border-color: var(--hundido-borde);
+  background: var(--hundido-fondo);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: var(--hundido-sombra);
+}
+.tarjeta-cifra[data-puesta] .label-cayla {
+  color: var(--color-tinta);
+}
+
+/* ---------- Las pestañas de sección: el pozo y la gota que fluye ---------- */
+.pestanas-cayla {
+  border-radius: 999px;
+  border: 0;
+  background: var(--pozo-fondo);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: var(--pozo-sombra);
+}
+.pestana-cayla {
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent); /* contraste: texto sobre el pozo de las pestañas (crema, papel) */
+}
+.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) {
+  color: var(--color-tinta);
+  background: var(--gota-marca);
+}
+[data-indicador] > .pestana-cayla:is([aria-selected="true"], [aria-current="page"]) {
+  background: transparent;
+}
+@media (hover: hover) {
+  .pestana-cayla:not([aria-selected="true"], [aria-current="page"]):hover {
+    color: var(--color-tinta);
+    background: none;
+  }
+}
+.pestana-cayla:is([aria-selected="true"], [aria-current="page"]):focus-visible {
+  outline-color: var(--foco-color);
+}
+/* El conteo de la elegida ya no va sobre tinta: vuelve a su globito de siempre. */
+.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta:not([data-pide], [data-tono]) {
+  color: var(--color-tinta);
+  background: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es el fondo del globito, no un texto */
+}
+.pestanas-cayla > .cmp-ind-gota {
+  border-radius: 999px;
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+/* Los dos tramos del flujo (el JavaScript solo dice cuándo pasa al segundo). */
+.cmp-ind-gota[data-fluye="estira"] {
+  transition-duration: 220ms;
+}
+.cmp-ind-gota[data-fluye="recoge"] {
+  transition-duration: 300ms;
+}
+
+/* ---------- Las tablas: la placa Serena, sin rayado, un hilo entre filas ---------- */
+.tabla-cayla {
+  border-radius: 22px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+/* El hilo entre filas (y bajo el encabezado): el `divide-y` de siempre, en apenas tinta. */
+.tabla-cayla > * + * {
+  border-color: var(--hilo-fila);
+}
+.tabla-cayla > .encabezado-tabla-cayla {
+  background: none;
+}
+.tabla-cayla > .encabezado-tabla-cayla + * {
+  border-color: var(--hilo-cabeza);
+}
+.tabla-cayla .fila-cayla:nth-child(even of .fila-cayla) {
+  background-color: transparent;
+}
+@media (hover: hover) {
+  .tabla-cayla .fila-cayla:hover {
+    background-color: color-mix(in srgb, var(--color-vidrio) 45%, transparent);
+  }
+}
+/* La fila abierta (su cajón a la vista): sobresale como la gota, con el hilo rojo de siempre en su canto. */
+.tabla-cayla .fila-cayla:is([aria-current="true"], [aria-current="page"]) {
+  background-color: color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  box-shadow: var(--gota-luz);
+}
+
+/* En oscuro el vidrio es casi tinta: el encima y la abierta se aclaran con tinta, no con vidrio. */
+@media screen {
+  :root[data-tema="oscuro"] .pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta:not([data-pide], [data-tono]) {
+    background: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es el fondo del globito, no un texto */
+  }
+  @media (hover: hover) {
+    :root[data-tema="oscuro"] .tabla-cayla .fila-cayla:hover {
+      background-color: color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    }
+  }
+  :root[data-tema="oscuro"] .tabla-cayla .fila-cayla:is([aria-current="true"], [aria-current="page"]) {
+    background-color: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}
+
+/* ---------- Dentro de una hoja o un cajón la hoja ya es el vidrio: sin un segundo desenfoque ---------- */
+:is(.hoja-serena, .cajon-serena) :is(.resumen-sede, .tarjeta-cifra, .tabla-cayla) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-pieza="volver"],
+  .tarjeta-cifra,
+  .tarjeta-cifra .lucide-arrow-right {
+    transition: none;
+  }
+}

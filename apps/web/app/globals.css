@@ -108,6 +108,8 @@
 /* El vidrio «Serena» (ADR-0596): las recetas (placa, gota, pozo, ahumado) y las piezas que se arman con ellas. Va después de todo:
    sin capa, le gana a las utilidades y a `components`, así que una pieza cambia aquí y cambia en todo el ERP. */
 @import "./estilos/vidrio/recetas.css";
+/* La pantalla (cabecera, tarjetas de cifra, pestañas, tablas) antes que la hoja: dentro de una hoja manda la lámina de la hoja. */
+@import "./estilos/vidrio/pantalla.css";
 @import "./estilos/vidrio/hoja.css";
 @import "./estilos/vidrio/campos-y-botones.css";
 @import "./estilos/vidrio/notas-avisos-combos.css";

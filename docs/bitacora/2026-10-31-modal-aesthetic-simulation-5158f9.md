@@ -106,3 +106,11 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   `vidrio/marco.css`): el avatar en su lente, el nombre y «Líder · Tienda Lima» en letra normal, y «Salir» como una gota redonda con el ícono
   (`LogoutButton forma="icono"`, que pasa a rojo profundo al apuntar). Plegado queda solo el avatar, centrado. Verificado a 1440 claro y
   oscuro, plegado y a 375 px; las pruebas de menú, guías, tema, hover, unificar y ancho, tsc y Knip en verde.
+
+- **Las piezas de pantalla al vidrio (Felipe 2026-10-31, lo que eligió en la sesión de maquetas):** nuevo `vidrio/pantalla.css` y la
+  receta `--serena-*` (más `--hundido-*` y los hilos) en `recetas.css`. Cabecera «A · Plana con gotas» (Volver es una gota; `ResumenSede`
+  en placa Serena, clase `resumen-sede`), tarjetas de cifra «A · Placa Serena» (`tarjeta-cifra` + `data-conducta`/`data-puesta`/
+  `data-sin-dato`: la que lleva se alza 2 px, la puesta se hunde, sin dato punteada sin vidrio), pestañas «A · La gota de Mi perfil»
+  (pozo + `IndicadorDeslizante` variante `gota` que se estira 220 ms y se recoge 300 ms, también al cambiar de ruta) y tablas
+  «B · Placa Serena» (`tabla-cayla` en `TABLA.contenedor`: sin rayado, hilo entre filas, encabezado suelto). Dentro de una hoja manda la
+  lámina de la hoja (pantalla.css se importa antes que hoja.css). Verificado en Compras, Por pagar e Inventario, claro y oscuro.

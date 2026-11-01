@@ -76,6 +76,24 @@
   --vidrio-flota-filtro: blur(24px) saturate(1.6);
   --vidrio-flota-sombra: inset 0 1px 0 var(--color-vidrio), 0 26px 54px -24px color-mix(in srgb, var(--color-sombra) 55%, transparent);
 
+  /* ---------- la placa Serena: las cifras de la cabecera, las tarjetas de cifra y las tablas de una pantalla (ADR-0596, 2026-10-31) ---------- */
+  /* Más firme que la placa de una nota: sobre la Aurora se lee un monto. Con su propio desenfoque (no vive dentro de una hoja). */
+  --serena-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 64%, transparent), color-mix(in srgb, var(--color-vidrio) 44%, transparent));
+  --serena-fondo-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 82%, transparent), color-mix(in srgb, var(--color-vidrio) 56%, transparent));
+  --serena-borde: color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+  --serena-filtro: blur(24px) saturate(1.6);
+  --serena-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent),
+    0 20px 44px -30px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+  --serena-sombra-encima: inset 0 1px 0 var(--color-vidrio), 0 22px 40px -24px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  /* Lo puesto (un filtro que ya elegiste) se HUNDE: estás adentro, como un campo con tu dato. */
+  --hundido-fondo: color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --hundido-borde: color-mix(in srgb, var(--color-borde-control) 70%, transparent);
+  --hundido-sombra: inset 0 2px 5px color-mix(in srgb, var(--color-sombra) 16%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  /* El hilo entre filas de una tabla o entre cifras: apenas tinta. */
+  --hilo-fila: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --hilo-cabeza: color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+
   /* ---------- el marco: el riel del menú y las islas de la cabecera (marco-vidrio-2026-10; piezas en vidrio/marco.css) ---------- */
   /* Más transparente que una hoja: el marco está siempre a la vista y no debe tapar la aurora ni lo que pasa por debajo. El
      desenfoque es el de lo que flota (`--vidrio-flota-filtro`). */
@@ -131,6 +149,13 @@
     --vidrio-flota-fondo: color-mix(in srgb, var(--color-vidrio) 88%, transparent);
     --vidrio-flota-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 26px 54px -24px var(--color-sombra);
 
+    --serena-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-vidrio) 60%, transparent));
+    --serena-fondo-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 14%, var(--color-vidrio)), color-mix(in srgb, var(--color-tinta) 6%, var(--color-vidrio)));
+    --serena-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --serena-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 20px 44px -30px var(--color-sombra);
+    --serena-sombra-encima: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 16%, transparent), 0 22px 40px -24px var(--color-sombra);
+    --hundido-fondo: color-mix(in srgb, var(--color-sombra) 34%, transparent);
+    --hundido-sombra: inset 0 2px 5px color-mix(in srgb, var(--color-sombra) 50%, transparent);
     --marco-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-vidrio) 60%, transparent));
     --marco-vidrio-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --marco-vidrio-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 24px 50px -30px var(--color-sombra);
@@ -153,5 +178,7 @@
     --vidrio-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);
     --placa-fondo: var(--color-papel);
     --lamina-fondo: var(--color-papel);
+    --serena-fondo: var(--color-papel);
+    --serena-fondo-encima: var(--color-papel);
   }
 }
