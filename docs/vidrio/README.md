@@ -63,9 +63,9 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
 | Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
 | Títulos de sección y enlaces | `ui/TituloSeccion`, `btn-enlace`, `EnlaceVer` | Títulos en maqueta; los enlaces, por auditar | — (recomendada: A · Serif) | `inicio-lider-vidrio-2026-10/` |
-| Avisos de éxito (esquina) | `ui/Avisos` | Por auditar | — | — |
-| Loader a pantalla completa | `ui/Espera.tsx` | Por auditar | — | — |
-| «Hay una versión nueva» | `VersionNueva.tsx` | Por auditar | — | — |
+| Avisos de la esquina (éxito, error, advertencia, proceso) | `ui/Avisos.tsx`, `estilos/avisos.css` | En maqueta | — (recomendada: B · Lente del tono) | `avisos-espera-vidrio-2026-10/` |
+| Loader a pantalla completa | `ui/Espera.tsx` | En maqueta | — (recomendada: A · Hoja Serena) | `avisos-espera-vidrio-2026-10/` |
+| «Hay una versión nueva» | `VersionNueva.tsx` | En maqueta (el movimiento no cambia: solo el material) | — (recomendada: A · Gota ahumada) | `avisos-espera-vidrio-2026-10/` |
 | Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | En maqueta (la del Inicio, con una acción) | — (recomendada: A · Gota ahumada) | `inicio-lider-vidrio-2026-10/` |
 | «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |
