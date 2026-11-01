@@ -38,3 +38,7 @@ desliza (320 ms, sin rebote) y la vuelta al inicio de la tabla.
 
 En Chrome sin ventana: 90 combinaciones (320 a 1440 px, claro y oscuro, las tres listas, las tres caras de páginas), nada se desborda;
 sin errores de JS. La marca de la página viaja (112 → 134 px, a medio camino a los 80 ms).
+
+## Lo que decidió Felipe
+
+**Vacío B · Pozo y páginas A · Gota en su pozo** (2026-11-01).
