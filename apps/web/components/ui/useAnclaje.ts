@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useState, type RefObject } from "react";
+import { airePara } from "@/lib/posicion-lista-reglas";
 
 export type PosicionAnclada = { top: number; left: number };
 
@@ -141,7 +142,9 @@ export function useDestinoFlotante(control: RefObject<HTMLElement | null>, abier
  * Se busca desde la hoja (`[role="dialog"]`) hacia arriba porque la lista vive en la hoja (`useDestinoFlotante`), no junto al
  * control: las piezas de la cascada que envuelven al control también llevan `transform`, pero no son ancestros de la lista.
  */
-function marcoDelFijo(control: HTMLElement): { x: (vx: number) => number; y: (vy: number) => number; escala: number; alto: number } | null {
+function marcoDelFijo(
+  control: HTMLElement,
+): { x: (vx: number) => number; y: (vy: number) => number; escala: number; alto: number; top: number; bottom: number } | null {
   let el = control.closest<HTMLElement>('[role="dialog"]');
   while (el && el !== document.body && el !== document.documentElement) {
     const cs = getComputedStyle(el);
@@ -160,7 +163,7 @@ function marcoDelFijo(control: HTMLElement): { x: (vx: number) => number; y: (vy
       const y0 = caja.top + el.clientTop * escala;
       const sl = el.scrollLeft;
       const st = el.scrollTop;
-      return { x: (vx) => (vx - x0) / escala + sl, y: (vy) => (vy - y0) / escala + st, escala, alto: el.clientHeight };
+      return { x: (vx) => (vx - x0) / escala + sl, y: (vy) => (vy - y0) / escala + st, escala, alto: el.clientHeight, top: caja.top, bottom: caja.bottom };
     }
     el = el.parentElement;
   }
@@ -187,21 +190,22 @@ export function usePosicionLista(
     function calcular() {
       if (!control.current) return;
       const r = control.current.getBoundingClientRect();
-      const margen = 8;
       // El aire se mide contra lo que SE VE, no contra la ventana entera (2026-10-08, Prenda sin registrar en el celular): con el
       // teclado abierto, `innerHeight` sigue contando la parte tapada, la lista creía tener 256 px abajo y se abría detrás del
       // teclado, con una opción y media a la vista. `fixed` y `getBoundingClientRect` hablan en el marco de la página; el trozo
       // visible va de `offsetTop` a `offsetTop + height`. Con zoom de pellizco se queda como antes (ahí lo chico no es el teclado).
       const vv = window.visualViewport;
       const conVisible = vv && vv.scale <= 1.01;
-      const techo = conVisible ? vv.offsetTop : 0;
-      const piso = conVisible ? vv.offsetTop + vv.height : window.innerHeight;
-      const abajo = piso - r.bottom - separacion - margen;
-      const arriba = r.top - techo - separacion - margen;
-      // Abajo es lo esperado; arriba solo si abajo no alcanza y arriba hay más aire.
-      const haciaAbajo = abajo >= (entero ? alto : Math.min(alto, 160)) || abajo >= arriba;
-      const maxHeight = haciaAbajo ? Math.min(alto, Math.max(abajo, 120)) : Math.min(alto, arriba);
       const marco = marcoDelFijo(control.current);
+      // La lista vive DENTRO de la hoja (`useDestinoFlotante`) y en el celular la hoja la recorta: con la hoja atrapando a los `fixed`
+      // (transform) en cualquier navegador y, en el iPhone, también sin eso. Lo que se ve de la lista es lo que cabe entre el teclado y
+      // el borde de la hoja; calculada contra la ventana, abría hacia arriba más alta que su lugar y el buscador y las primeras
+      // opciones quedaban bajo el borde (Felipe, 2026-11-01, filtros de Productos con el teclado abierto). En escritorio no se acota.
+      const hoja = control.current.closest<HTMLElement>('[role="dialog"]');
+      const caja = marco ?? (hoja && window.matchMedia("(max-width: 639.98px)").matches ? hoja.getBoundingClientRect() : null);
+      const techo = Math.max(conVisible ? vv.offsetTop : 0, caja?.top ?? -Infinity);
+      const piso = Math.min(conVisible ? vv.offsetTop + vv.height : window.innerHeight, caja?.bottom ?? Infinity);
+      const { haciaAbajo, maxHeight } = airePara({ controlTop: r.top, controlBottom: r.bottom, techo, piso, alto, separacion, entero, recortada: !!caja });
       // En reposo: coordenadas de la ventana, tal cual se midieron.
       const nueva: PosicionLista = !marco
         ? haciaAbajo
