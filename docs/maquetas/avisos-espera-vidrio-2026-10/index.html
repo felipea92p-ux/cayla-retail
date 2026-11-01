@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-av="lente" data-es="hoja" data-vn="ahumada">
+<html lang="es" data-tema="claro" data-av="lente" data-es="lente" data-vn="ahumada">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -139,7 +139,9 @@
 /* B · Lente sola: sin tarjeta. Toda la pantalla se vuelve vidrio esmerilado (el velo desenfoca 8 px) y en el centro queda una lente con el
    colibrí y su arco; las palabras van sueltas debajo, sobre el esmerilado. Lo más liviano, y lo más «se está pensando». */
 [data-es="lente"] .espera{background:color-mix(in srgb,var(--crema) 46%,transparent);-webkit-backdrop-filter:blur(8px) saturate(1.3);backdrop-filter:blur(8px) saturate(1.3)}
-[data-es="lente"] .es-hoja{background:none;box-shadow:none;padding:0;overflow:visible}
+[data-es="lente"] .es-hoja{background:none;box-shadow:none;padding:0;overflow:visible;isolation:isolate}
+/* Las palabras van sueltas: un halo de crema detrás (sin borde, sin forma) asegura su contraste aunque detrás pase una pieza oscura. */
+[data-es="lente"] .es-hoja::before{content:"";position:absolute;z-index:-1;inset:-48px -72px;background:radial-gradient(closest-side,color-mix(in srgb,var(--crema) 78%,transparent) 55%,transparent)}
 [data-es="lente"] .es-marca{width:96px;height:96px;margin-bottom:18px;border-radius:50%;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
   background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent) 62%,color-mix(in srgb,var(--vidrio) 30%,transparent));
   -webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
@@ -258,9 +260,9 @@
 
 <div class="spk">
   <span class="titulo">El sistema que habla, con vidrio: avisos de la esquina, el loader y «Hay una versión nueva»</span>
-  <span class="tag">Avisos</span><div class="seg-m" data-ctl="av"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa Serena</button><button data-v="lente">B · Lente del tono</button><button data-v="isla">C · Isla ahumada</button></div>
-  <span class="tag">Loader</span><div class="seg-m" data-ctl="es"><button data-v="ahora">Como ahora</button><button data-v="hoja">A · Hoja Serena</button><button data-v="lente">B · Lente sola</button></div>
-  <span class="tag">Versión nueva</span><div class="seg-m" data-ctl="vn"><button data-v="ahora">Como ahora</button><button data-v="ahumada">A · Gota ahumada</button><button data-v="claro">B · Gota de vidrio claro</button></div>
+  <span class="tag">Avisos</span><div class="seg-m" data-ctl="av"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa Serena</button><button data-v="lente">B · Lente del tono ✓</button><button data-v="isla">C · Isla ahumada</button></div>
+  <span class="tag">Loader</span><div class="seg-m" data-ctl="es"><button data-v="ahora">Como ahora</button><button data-v="hoja">A · Hoja Serena</button><button data-v="lente">B · Lente sola ✓</button></div>
+  <span class="tag">Versión nueva</span><div class="seg-m" data-ctl="vn"><button data-v="ahora">Como ahora</button><button data-v="ahumada">A · Gota ahumada ✓</button><button data-v="claro">B · Gota de vidrio claro</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
   <span class="tag">Probar</span>
@@ -312,13 +314,15 @@
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
       <tr><td rowspan="3"><b>Avisos</b></td><td>A · Placa Serena</td><td>La misma placa de las hojas y las tarjetas: se ve lo de atrás, nada sólido. El tono vive en el anillo, como hoy.</td><td>Un éxito y un error se distinguen solo por el anillo: hay que mirar el ícono para saber qué pasó.</td></tr>
-      <tr><td>B · Lente del tono <span class="ev">Recomendada</span></td><td>La placa teñida apenas de lo que dice, con un filo del tono: la misma lente del aviso de las hojas y de la insignia que ya elegiste. Un error se reconoce de reojo, antes de leerlo.</td><td>Cuatro tintes que cuidar en claro y oscuro (ya existen en la insignia).</td></tr>
+      <tr><td>B · Lente del tono <span class="ev">Elegida</span></td><td>La placa teñida apenas de lo que dice, con un filo del tono: la misma lente del aviso de las hojas y de la insignia que ya elegiste. Un error se reconoce de reojo, antes de leerlo.</td><td>Cuatro tintes que cuidar en claro y oscuro (ya existen en la insignia).</td></tr>
       <tr><td>C · Isla ahumada</td><td>La notificación del celular: oscura, se ve sobre cualquier pantalla, también sobre una tabla blanca.</td><td>Es la pieza más pesada de la pantalla y compite con el botón primario; el verde y el ámbar sobre lo oscuro hay que aclararlos y pierden su tono de siempre.</td></tr>
-      <tr><td rowspan="2"><b>Loader</b></td><td>A · Hoja Serena <span class="ev">Recomendada</span></td><td>El loader es una hoja más: el velo y la placa de las hojas. «Una función, una pieza»: quien ve una hoja ya sabe que espere.</td><td>Casi nada; el velo oscurece apenas en vez de lavar la pantalla con crema.</td></tr>
-      <tr><td>B · Lente sola</td><td>Lo más liviano y lo más vidrio: la pantalla entera se esmerila y queda una lente con el colibrí.</td><td>Las palabras quedan sueltas sobre lo esmerilado: sobre una pantalla muy cargada se leen peor que en una tarjeta; y es otra forma más (ninguna hoja se ve así).</td></tr>
-      <tr><td rowspan="2"><b>Versión nueva</b></td><td>A · Gota ahumada <span class="ev">Recomendada</span></td><td>La misma gota y la misma píldora oscura que ya conoces, ahora de vidrio ahumado: al llenarse se desenfoca lo de atrás y le llega su luz arriba. Sigue destacando sobre todo.</td><td>Casi nada: el cambio se nota de cerca.</td></tr>
+      <tr><td rowspan="2"><b>Loader</b></td><td>A · Hoja Serena</td><td>El loader es una hoja más: el velo y la placa de las hojas. «Una función, una pieza»: quien ve una hoja ya sabe que espere.</td><td>Casi nada; el velo oscurece apenas en vez de lavar la pantalla con crema.</td></tr>
+      <tr><td>B · Lente sola <span class="ev">Elegida</span></td><td>Lo más liviano y lo más vidrio: la pantalla entera se esmerila y queda una lente con el colibrí.</td><td>Las palabras quedan sueltas sobre lo esmerilado: sobre una pantalla muy cargada se leen peor que en una tarjeta; y es otra forma más (ninguna hoja se ve así).</td></tr>
+      <tr><td rowspan="2"><b>Versión nueva</b></td><td>A · Gota ahumada <span class="ev">Elegida</span></td><td>La misma gota y la misma píldora oscura que ya conoces, ahora de vidrio ahumado: al llenarse se desenfoca lo de atrás y le llega su luz arriba. Sigue destacando sobre todo.</td><td>Casi nada: el cambio se nota de cerca.</td></tr>
       <tr><td>B · Gota de vidrio claro</td><td>Se integra a la pantalla como una hoja; «Actualizar» pasa a ser el botón primario.</td><td>Una gota clara sobre la crema casi no se ve caer (por eso lleva un filo), y un aviso que se confunde con el resto se ignora.</td></tr>
     </table>
+    <h3>Lo que decidió Felipe (2026-11-01): B, B y A</h3>
+    <p><b>Avisos B · Lente del tono, loader B · Lente sola y versión nueva A · Gota ahumada.</b> El aviso se tiñe de lo que dice, como la insignia y el aviso de las hojas; mientras espera, toda la pantalla se esmerila y solo queda la lente con el colibrí; la gota de la versión nueva no cambia, solo pasa a vidrio ahumado.</p>
     <h3>Lo que no cambia</h3>
     <p>Dónde sale cada uno, sus tiempos y su orden (los avisos esperan al loader; lo visto no vuelve; un aviso con «Deshacer» dura 7 s como mínimo; el loader sale a los 200 ms y dura al menos 400), la coreografía de los avisos, el arco y el hilo del loader, la gota con su único rebote, el texto para lector y que con <i>reducir movimiento</i> todo llega ya hecho (menos el reloj del aviso, que es función).</p>
   </section>
@@ -431,7 +435,7 @@
   };
 
   Marco.iniciar({
-    estado: { av: 'lente', es: 'hoja', vn: 'ahumada' },
+    estado: { av: 'lente', es: 'lente', vn: 'ahumada' },
     alPintar: () => { $('#cont').scrollTop = 0; pantalla(); requestAnimationFrame(colocarVersion); },
     alAccion: (a, btn) => ACCIONES[a]?.(btn),
   });
