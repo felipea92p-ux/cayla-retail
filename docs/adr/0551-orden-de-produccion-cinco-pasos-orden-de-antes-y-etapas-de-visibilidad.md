@@ -216,5 +216,7 @@ su texto sería falso); (4) «Revertir» deja la orden en `movimiento`: hay que 
 **Pendiente (dinero, de Felipe):** `variantes.costo` del Chaleco sigue en el valor que traía (30.00 en producción); el costo real queda solo en la orden. Si se quiere que el promedio ponderado
 lo tome, es otra decisión: las prendas ya se vendieron con el costo anterior.
 
+**Una columna nueva de `producciones` nace sin lectura** (candado de dinero, 20260923193700): hace falta su `grant select (columna)`, en una migración propia si la anterior ya se pegó. Lo atrapó `pruebas:candado-dinero-produccion`, no la suite del cierre (que corre como dueño): `20261101210000`.
+
 **Prueba:** `pruebas:produccion-ya-estaba` (19 casos con mutación comprobada), y el cierre normal intacto (`produccion-cierre` 20/20, `costo-atipico` 20/20, `tela-al-cortar` 16/16).
 Las 7 anclas de los reemplazos aparecen exactamente una vez en las funciones vivas de producción (verificado en solo lectura el 2026-10-31).
