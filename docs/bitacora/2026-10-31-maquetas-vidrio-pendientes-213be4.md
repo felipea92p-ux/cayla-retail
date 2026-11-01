@@ -53,3 +53,5 @@
   Perú de vidrio). Corregido: en oscuro, «el mapa al aire» volvía a meter el mapa en su tarjeta.
 - **Observatorio, ronda 3:** Felipe eligió de la lista la línea del día (riel de vidrio que se arrastra para ver cualquier hora), el panel
   que nace del mapa, los gráficos con área de vidrio y la estela del cometa; hechas en la maqueta y probadas en Chrome sin ventana.
+- **Observatorio, ronda 4:** se quitó la línea del día. «Repetir el día» mostraba la hora en crema sobre vidrio claro (la piel de vidrio le
+  ganaba a `.repetir.va`): mientras corre, ahora es el primario ahumado (14:1 en claro, 13,8:1 en oscuro).

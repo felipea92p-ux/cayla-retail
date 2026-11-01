@@ -70,7 +70,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |
 | Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar | — | — |
-| **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido; los extras, en maqueta | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente; ideas elegidas: línea del día, el panel nace del mapa, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
+| **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido; los extras, en maqueta | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente; ideas elegidas: el panel nace del mapa, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 
 ## Fuera hasta que Felipe diga
 
