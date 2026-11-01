@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -42,6 +43,9 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
 import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
 import { AgregarColor, QuitarColor } from "@/components/orden-produccion/AgregarColor";
+import { AgregarTallaModal } from "@/components/orden-produccion/AgregarTallaModal";
+import { AgregarColorAlModeloModal } from "@/components/orden-produccion/AgregarColorAlModeloModal";
+import { puedeAgregarColor, puedeAgregarTalla } from "@/lib/agregar-variantes-orden-reglas";
 import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
@@ -301,6 +305,21 @@ export function NuevaOrdenProduccionForm({
   );
   const vocab = vocabulario?.datos ?? null;
   const categoriaNueva = useMemo(() => vocab?.categorias.find((cat) => cat.id === categoriaNuevaId) ?? null, [vocab, categoriaNuevaId]);
+  // «+ Talla» de un modelo que ya existe (2026-10-31): las tallas que le faltan son las de SU categoría, y la base decide de verdad (`agregar_variantes_a_modelo`).
+  const [tallaAbierta, setTallaAbierta] = useState(false);
+  const [colorAbierto, setColorAbierto] = useState(false);
+  // Al cerrar una de las dos hojas el foco vuelve al botón que la abrió (sin `Dialog.Trigger`, Radix no sabe cuál era: /chaos 2026-10-31).
+  const botonTallaRef = useRef<HTMLButtonElement>(null);
+  const botonColorRef = useRef<HTMLButtonElement>(null);
+  const categoriaDelModelo = useMemo(() => vocab?.categorias.find((cat) => cat.id === modeloExistente?.categoriaId) ?? null, [vocab, modeloExistente]);
+  const puedeTalla = useMemo(
+    () => (modeloExistente ? puedeAgregarTalla({ puedeEditarCatalogo, categoria: categoriaDelModelo, variantes: modeloExistente.variantes, desactivadas: modeloExistente.desactivadas }) : null),
+    [modeloExistente, puedeEditarCatalogo, categoriaDelModelo]
+  );
+  const puedeColor = useMemo(
+    () => (modeloExistente ? puedeAgregarColor({ puedeEditarCatalogo, hayColores: (vocab?.colores.length ?? 0) > 0, variantes: modeloExistente.variantes }) : null),
+    [modeloExistente, puedeEditarCatalogo, vocab]
+  );
   const coloresDisponibles = useMemo<ColorAlta[]>(() => {
     const vistos = new Set<string>();
     return [...(vocab?.colores ?? []), ...coloresCreados].filter((col) => !vistos.has(col.codigo) && vistos.add(col.codigo));
@@ -828,6 +847,26 @@ export function NuevaOrdenProduccionForm({
     </div>
   );
 
+  // «+ Talla» y «+ Color» van PEGADOS a la tabla (2026-10-31, Felipe): un «+» a la derecha de la última talla y otro debajo del último color, donde la persona los busca. Apagados
+  // dicen por qué debajo de la tabla (en el celular no hay «title»).
+  const botonDeLaTabla = (que: "Talla" | "Color", puede: boolean, abrir: () => void, anclaGuia?: boolean) => (
+    <button
+      ref={que === "Talla" ? botonTallaRef : botonColorRef}
+      type="button"
+      className="btn-cayla btn-secundario btn-chico"
+      disabled={!puede || cargando}
+      onClick={abrir}
+      aria-label={que === "Talla" ? "Agregar una talla" : "Agregar un color"}
+      data-guia={anclaGuia ? "prod-orden-nueva.talla-nueva-boton" : undefined}
+    >
+      <Plus className="h-3.5 w-3.5" aria-hidden />
+      {que}
+    </button>
+  );
+  const botonTalla = !esNuevo && modeloExistente && puedeTalla ? botonDeLaTabla("Talla", puedeTalla.puede, () => setTallaAbierta(true)) : undefined;
+  const botonColor = !esNuevo && modeloExistente && puedeColor ? botonDeLaTabla("Color", puedeColor.puede, () => setColorAbierto(true), true) : undefined;
+  const motivosSinAgregar = !esNuevo && puedeTalla && puedeColor ? [...new Set([puedeTalla, puedeColor].flatMap((p) => (p.puede ? [] : [p.motivo])))] : [];
+
   const Marco = marco;
   return (
     <Marco onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
@@ -921,6 +960,8 @@ export function NuevaOrdenProduccionForm({
                   preguntaCelda="Cuántas prendas de"
                   fantasma={(clave) => String(curva.porVariante.get(clave)?.sugerido || 0)}
                   tituloDe={(clave) => [variantePorId.get(clave)?.sku, curva.porVariante.get(clave)?.motivo].filter(Boolean).join(" · ") || undefined}
+                  alFinalDeTallas={botonTalla}
+                  alFinalDeColores={botonColor}
                   accionFila={esNuevo ? (color) => <QuitarColor nombre={color.nombre} onQuitar={(conTeclado) => quitarColor(color.codigo, conTeclado)} /> : undefined}
                 />
               </>
@@ -929,22 +970,34 @@ export function NuevaOrdenProduccionForm({
                 Elige la categoría y las tallas, y aquí aparece la matriz: una fila por color y una columna por talla.
               </Aviso>
             )}
-            {!esNuevo && (
-              <p className="text-sm text-tinta/65">
-                {tabla.excluidas.size > 0 && "Una raya (—) es una combinación que este modelo no tiene. "}
-                ¿Falta una talla o un color? Se agrega en{" "}
-                {puedeEditarCatalogo ? (
-                  <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
-                    Editar producto
-                  </Link>
-                ) : (
-                  "Productos (pídeselo a quien edita el catálogo)"
-                )}
-                , no desde la orden.
-              </p>
-            )}
+            {!esNuevo && tabla.excluidas.size > 0 && <p className="text-sm text-tinta/65">Una raya (—) es una combinación que este modelo no tiene.</p>}
+            {motivosSinAgregar.length > 0 && <p className="text-sm text-tinta/65">{motivosSinAgregar.join(" ")}</p>}
           </CampoGuiado>
           </div>
+        )}
+        {colorAbierto && modeloExistente && (
+          <AgregarColorAlModeloModal
+            tallerId={tallerId}
+            productoId={modeloExistente.productoId}
+            referencia={modeloExistente.referencia}
+            colores={coloresDisponibles}
+            variantes={modeloExistente.variantes}
+            desactivadas={modeloExistente.desactivadas}
+            alCerrarEnfocar={botonColorRef}
+            onClose={() => setColorAbierto(false)}
+          />
+        )}
+        {tallaAbierta && modeloExistente && (
+          <AgregarTallaModal
+            tallerId={tallerId}
+            productoId={modeloExistente.productoId}
+            referencia={modeloExistente.referencia}
+            categoria={categoriaDelModelo}
+            variantes={modeloExistente.variantes}
+            desactivadas={modeloExistente.desactivadas}
+            alCerrarEnfocar={botonTallaRef}
+            onClose={() => setTallaAbierta(false)}
+          />
         )}
 
         {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-sm text-tinta/75">{decision.fallo}</p>}
