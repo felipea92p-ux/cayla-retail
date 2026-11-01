@@ -87,8 +87,9 @@ export function vaciarCantidades(orden: { lineas: readonly LineaParaEnviar[] }):
 /** Lee lo que se escribió en la caja de una línea: un entero de 0 a lo que le queda por enviar. Vacío vale cero. Con un problema, la
  *  cantidad que cuenta es cero (nada de lo mal escrito viaja a la base). */
 export function leerCantidad(texto: string, porEnviar: number): { cantidad: number; problema: string | null } {
-  const t = texto.replace(/\s+/g, "");
-  const n = leerNumero(t, 0);
+  // Sin borrar los blancos: eso lo decide `leerNumero` con la regla única, que distingue «1 200» de un pegado de varias celdas.
+  const t = texto.trim();
+  const n = leerNumero(texto, 0);
   if (n.tipo === "vacio") return { cantidad: 0, problema: null };
   if (n.tipo === "mal") {
     // «1.500» y parecidos: en el Perú así se escribe también «mil quinientos». No se adivina (misma costumbre que la orden).

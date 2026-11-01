@@ -207,7 +207,7 @@
       "Boton «prod-orden.agregar-paso»",
       "button «{estado === \"hecha\" && <Check />}»",
       "Boton «prod-orden.marcar»",
-      "BotonDeshacer «→() => alAbrirHoja(\"desmarcar\")»",
+      "button «prod-orden.quitar-marca-paso»",
       "Boton «prod-orden.terminar»",
       "Boton «prod-orden.vuelta»",
       "Boton «prod-orden.salida»",
