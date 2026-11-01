@@ -19,3 +19,7 @@
 - **Lo que eligió Felipe en las acciones chicas y el mes:** íconos de fila A · Gota al pasar, menú «Más» A · La lista del combo y selector
   de mes B · Gota entera. Primero dijo «B, A y B» y después mandó su selección de la barra con los íconos en A; quedó la última. En el mes no
   tomó la recomendada.
+- **Íconos del marco y del contenido** (la otra sesión me los pasó; ella hace el cajón del celular): maqueta `docs/maquetas/iconos-vidrio-2026-11/`,
+  sobre Configuración ▸ «Cómo cobra la sede». En el marco: A · Se llena al elegir (recomendada) y B · Duotono siempre. En el contenido:
+  «Como ahora» (recomendada), A · Duotono en los de 20 y B · Lente para los de 20. Los de 12, 14 y 16 px no cambian en ninguna cara. Medida
+  de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en `apps/web`.

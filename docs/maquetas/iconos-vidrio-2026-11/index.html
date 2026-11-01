@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-im="relleno" data-icc="ahora">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Íconos con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · los íconos con el vidrio (ADR-0596, tablero docs/vidrio/README.md, secciones 1 y 3)
+   · Los del MARCO (`lib/menu-iconos.ts`, 85 trazos propios, 24×24, solo línea a 1,5): el lateral (20 · 18 · 16 px según el nivel) y la
+     cabecera (18 px). Hoy todos en línea, en tinta al 65 % y la fila elegida en tinta.
+   · Los del CONTENIDO (lucide, 477 archivos; la regla vive en `lib/iconos.ts`, ADR-0358 ronda 15): grosor de fábrica (2) y el tamaño lo
+     pone el lugar: 12 en una insignia, 14 junto a un texto, 16 en un botón o un campo, 20 junto a un título o en una tarjeta de opción;
+     un dibujo grande (24 px o más) a 1,5; la marca sobre un punto lleno, a 3.
+   El vidrio no cambia QUÉ dibujo lleva cada pantalla (el refresco retail del 2026-10-13 sigue): solo cómo se asienta el trazo sobre el
+   vidrio. Los íconos chicos (12, 14, 16) no cambian en ninguna cara: rellenar un dibujo de 14 px lo vuelve una mancha.
+   Montada sobre el marco y las piezas elegidas (../vidrio-base-2026-10/). Solo tokens, claro y oscuro. Sin movimiento nuevo: el
+   relleno entra con la misma transición de color de la fila (200 ms); con prefers-reduced-motion, sin transición.
+   ==================================================================== */
+
+/* ============ 1 · LOS ÍCONOS DEL MARCO ============ */
+.lat .fila-m svg path,.cab .ib svg path{transition:fill .2s var(--ease)}
+/* A · Se llena al elegir: como la barra de un iPhone. En reposo, línea; la pantalla en que estás (y el grupo que la contiene, cerrado)
+   lleva su dibujo LLENO de un vidrio tintado, además de la gota y la marca roja que ya tiene. «Dónde estás» se ve también con el menú
+   plegado, donde solo queda el ícono. */
+[data-im="relleno"] .lat .fila-m.on svg:not(.chev) path{fill:color-mix(in srgb,currentColor 34%,transparent)}
+[data-im="relleno"] .lat .fila-m.on svg:not(.chev){color:var(--tinta)}
+/* B · Duotono siempre: todos los dibujos llevan un velo de vidrio adentro (8 %), la elegida más (18 %). El menú se ve más «objeto», menos
+   dibujo de línea. */
+[data-im="duotono"] .lat .fila-m svg:not(.chev) path,[data-im="duotono"] .cab .ib svg path{fill:color-mix(in srgb,currentColor 15%,transparent)}
+[data-im="duotono"] .lat .fila-m.on svg:not(.chev) path{fill:color-mix(in srgb,currentColor 34%,transparent)}
+[data-im="duotono"] .lat .fila-m.on svg:not(.chev){color:var(--tinta)}
+
+/* ============ 2 · LOS ÍCONOS DEL CONTENIDO ============ */
+svg.lc{flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.t12{width:12px;height:12px}.t14{width:14px;height:14px}.t16{width:16px;height:16px}.t20{width:20px;height:20px}.t40{width:40px;height:40px;stroke-width:1.5}
+/* A · Duotono en los de 20: solo el ícono que acompaña un título o una tarjeta de opción lleva el velo de vidrio adentro; los chicos,
+   línea como hoy. */
+[data-icc="duotono"] svg.t20 path,[data-icc="duotono"] svg.t40 path{fill:color-mix(in srgb,currentColor 12%,transparent)}
+/* B · Lente para los de 20: el ícono de 20 px vive en una lente redonda de vidrio de 40 px (como la de los avisos y el loader elegidos);
+   los chicos, línea como hoy. */
+.lente-i{display:contents}
+[data-icc="lente"] .lente-i{display:inline-grid;place-items:center;width:40px;height:40px;flex:none;border-radius:50%;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent) 70%);
+  box-shadow:inset 0 1px 1px var(--vidrio),inset 0 -6px 12px -8px color-mix(in srgb,var(--sombra) 30%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-icc="lente"] .lente-i{background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--tinta) 20%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent) 70%);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+[data-icc="lente"] .lente-i.grande{width:80px;height:80px}
+
+/* ---------- la pantalla: Configuración ▸ Cómo cobra la sede ---------- */
+.placa{border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.tit-b{display:flex;align-items:center;gap:12px;margin:30px 0 14px;animation:sube .5s var(--ease) .08s backwards}
+.tit-b h2{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.tit-b p{font-size:13.5px;color:var(--t65)}
+.opciones{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;animation:sube .5s var(--ease) .12s backwards}
+.op{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:20px;text-align:left;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent))}
+[data-tema="oscuro"] .op{background:color-mix(in srgb,var(--tinta) 6%,transparent);border-color:color-mix(in srgb,var(--tinta) 28%,transparent)}
+.op[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.op b{font-size:15px;font-weight:600}.op small{font-size:13px;color:var(--t65)}
+.op .marca{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--tinta);color:var(--crema);opacity:0;transform:scale(.6);transition:opacity .2s,transform .25s var(--ease)}
+.op .marca svg{width:12px;height:12px;stroke-width:3}
+.op[aria-pressed="true"] .marca{opacity:1;transform:none}
+.dos{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;margin-top:22px;animation:sube .5s var(--ease) .18s backwards}
+.lista{padding:6px 18px}
+.fl{display:flex;align-items:center;gap:12px;min-height:58px;font-size:15px}
+.fl+.fl{border-top:1px solid color-mix(in srgb,var(--tinta) 9%,transparent)}
+.fl .meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:2px;font-size:13px;color:var(--t65)}
+.fl .meta span{display:inline-flex;align-items:center;gap:5px}
+.fl .der{margin-left:auto;display:flex;align-items:center;gap:10px}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip.ambar{--c:var(--ambar)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent))}
+.vacio{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px 20px;text-align:center}
+.vacio .ico{color:var(--t65)}
+.vacio h3{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.vacio p{font-size:13.5px;color:var(--t65);max-width:32ch}
+.campo{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:999px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:14px}
+[data-tema="oscuro"] .campo{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.botones{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.escala{margin-top:22px;padding:16px 20px;border-radius:22px;border:1px dashed var(--borde);display:flex;flex-wrap:wrap;align-items:center;gap:14px 26px;animation:sube .5s var(--ease) .24s backwards}
+.escala .vs{width:100%}
+.escala span{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--t65)}
+.escala svg{color:var(--tinta)}
+@container disp (max-width:1100px){.opciones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container disp (max-width:820px){.dos{grid-template-columns:minmax(0,1fr)}}
+@container disp (max-width:420px){.opciones{grid-template-columns:minmax(0,1fr)}.op{flex-direction:row;align-items:center}.op .txt{min-width:0}.fl .der .chip{display:none}}
+@media (prefers-reduced-motion:reduce){.lat .fila-m svg path,.cab .ib svg path,.op .marca{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Los íconos del marco y del contenido, con vidrio</span>
+  <span class="tag">Íconos del marco</span><div class="seg-m" data-ctl="im"><button data-v="ahora">Como ahora</button><button data-v="relleno">A · Se llena al elegir</button><button data-v="duotono">B · Duotono siempre</button></div>
+  <span class="tag">Íconos del contenido</span><div class="seg-m" data-ctl="icc"><button data-v="ahora">Como ahora</button><button data-v="duotono">A · Duotono en los de 20</button><button data-v="lente">B · Lente para los de 20</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Menú</span><button class="accion" data-acc="plegar">Plegar o abrir el menú</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>Íconos del marco</b> (<code>lib/menu-iconos.ts</code>): 85 dibujos propios, en línea a 1,5, uno por pantalla («una prenda por ícono»: polera, percha, etiqueta, caja registradora…), el mismo en el lateral, en Roles y accesos y en el Inicio. En el lateral van a 20, 18 y 16 px según el nivel, en tinta al 65 % y la fila elegida en tinta; en la cabecera, a 18 px.</li>
+      <li><b>Íconos del contenido</b> (lucide, 477 archivos; la regla, en <code>lib/iconos.ts</code>): grosor de fábrica y cuatro tamaños según el lugar (12 · 14 · 16 · 20), un dibujo grande a 1,5 y la marca sobre un punto a 3.</li>
+      <li>Todos son <b>solo línea</b>: no hay nada sólido que pasar a vidrio. La pregunta es otra: si el trazo se queda igual sobre el vidrio o gana un poco de cuerpo.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Marco</b></td><td>A · Se llena al elegir <span class="ev">Recomendada</span></td><td>Como la barra de un iPhone: la pantalla en que estás lleva su dibujo lleno de vidrio tintado; las demás, línea. Con el menú plegado, donde solo queda el ícono, «dónde estás» se ve igual.</td><td>Algunos dibujos abiertos (flechas, el reloj del historial) se llenan con una forma rara: hay que revisar los 85 uno por uno al implementar.</td></tr>
+      <tr><td>B · Duotono siempre</td><td>El menú entero se ve más «objeto de vidrio», menos dibujo de línea.</td><td>Veinte íconos con relleno es ruido; y la elegida se distingue menos de las demás (solo por un velo más fuerte).</td></tr>
+      <tr><td rowspan="3"><b>Contenido</b></td><td>Como ahora <span class="ev">Recomendada</span></td><td>El ícono es contenido, no superficie: la línea se lee nítida sobre cualquier vidrio, y la regla de tamaños sigue igual en 477 archivos.</td><td>Nada.</td></tr>
+      <tr><td>A · Duotono en los de 20</td><td>Los íconos de los títulos y de las tarjetas de opción ganan cuerpo, a juego con el marco.</td><td>Dos estilos de ícono según el tamaño; y un 20 px junto a un título compite con el título.</td></tr>
+      <tr><td>B · Lente para los de 20</td><td>Las tarjetas de opción y los títulos se ven como las lentes de los avisos y del loader.</td><td>Una lente de 40 px en cada título es mucho adorno; y en una fila de tarjetas, cuatro lentes repiten lo mismo.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Qué dibujo lleva cada pantalla, los 85 trazos del marco y sus tres tamaños, los cuatro tamaños del contenido, el grosor de 1,5 del marco y de los dibujos grandes, la marca a 3 sobre un punto lleno, y que los íconos de 12, 14 y 16 px son línea en todas las caras.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, T…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  // Trazos de lucide (24×24), copiados para la maqueta
+  const LC = {
+    efectivo: 'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z M10 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0 M6 12h.01M18 12h.01',
+    tarjeta: 'M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z M2 10h20',
+    celular: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01',
+    banco: 'M3 22h18 M6 18v-7 M10 18v-7 M14 18v-7 M18 18v-7 M12 2l8 5H4z',
+    reloj: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M12 6v6l4 2',
+    persona: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8a4 4 0 1 0 0-8z',
+    calendario: 'M8 2v4M16 2v4 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M3 10h18',
+    ok: 'M20 6 9 17l-5-5', lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', mas: 'M5 12h14M12 5v14',
+    recibo: T.facturacion, caja: T.caja, vacio: T.recibirInsumos, alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  };
+  const ic = (k, t, extra = '') => `<svg class="lc t${t}" viewBox="0 0 24 24" aria-hidden="true"${extra}><path d="${LC[k]}"/></svg>`;
+  const lente = (k, t, cls = '') => `<span class="lente-i ${cls}">${ic(k, t)}</span>`;
+  const OPS = [['efectivo', 'Efectivo', 'Cuenta el vuelto'], ['tarjeta', 'Tarjeta', 'Con el POS de la sede'], ['celular', 'Yape o Plin', 'Al número de la sede'], ['banco', 'Transferencia', 'Solo para mayoristas']];
+  const elegidas = new Set(['efectivo', 'tarjeta', 'celular']);
+  const COBROS = [['Mariela Quispe', '10:42', 'Yape', 'verde', 'Recibido'], ['Jorge Salinas', '11:05', 'Tarjeta', 'verde', 'Recibido'], ['Rosa Chávez', '11:31', 'Transferencia', 'ambar', 'Por confirmar']];
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Cómo cobra la sede', frase: 'Los medios de pago que acepta la caja y los cobros de hoy.' })}
+      <div class="tit-b">${lente('caja', 20)}<div><h2>Medios de pago</h2><p>Lo que eliges aquí sale en Vender al cobrar.</p></div></div>
+      <div class="opciones">${OPS.map(([k, t, d]) => `<button class="op" data-op="${k}" aria-pressed="${elegidas.has(k)}">${lente(k, 20)}<span class="txt"><b>${t}</b><br><small>${d}</small></span><span class="marca" aria-hidden="true"><svg class="lc" viewBox="0 0 24 24"><path d="${LC.ok}"/></svg></span></button>`).join('')}</div>
+      <div class="dos">
+        <div class="placa lista"><div class="tit-b" style="margin:12px 0 4px">${lente('recibo', 20)}<div><h2>Cobros de hoy</h2></div></div>
+          ${COBROS.map(([n, h, m, tono, e]) => `<div class="fl"><div><div>${n}</div><div class="meta"><span>${ic('reloj', 14)}${h}</span><span>${ic('tarjeta', 14)}${m}</span></div></div>
+            <div class="der"><span class="chip ${tono}">${ic(tono === 'verde' ? 'ok' : 'alerta', 12)}${e}</span></div></div>`).join('')}
+          <div class="botones" style="margin-bottom:14px"><button class="btn sec">${ic('calendario', 16)}Ver otros días</button><button class="btn pri">${ic('mas', 16)}Registrar cobro</button></div>
+        </div>
+        <div class="placa"><div class="vacio">${lente('vacio', 40, 'grande').replace('lc t40', 'lc t40 ico')}<h3>Sin transferencias por confirmar</h3><p>Cuando un mayorista transfiera, aparece aquí hasta que veas el abono.</p>
+          <div class="campo" style="width:100%;max-width:300px">${ic('lupa', 16)}Buscar un cobro</div></div></div>
+      </div>
+      <div class="escala"><span class="vs">La escala de hoy, en su lugar (ADR-0358, ronda 15)</span>
+        <span>${ic('ok', 12)}12 · insignia</span><span>${ic('reloj', 14)}14 · junto a un texto</span><span>${ic('lupa', 16)}16 · botón o campo</span><span>${ic('caja', 20)}20 · título u opción</span><span>${ic('vacio', 40)}40 · dibujo grande, a 1,5</span></div>`;
+  }
+  document.addEventListener('click', (e) => { const op = e.target.closest('[data-op]'); if (!op) return; const k = op.dataset.op; elegidas.has(k) ? elegidas.delete(k) : elegidas.add(k); op.setAttribute('aria-pressed', elegidas.has(k)); });
+  Marco.iniciar({ estado: { im: 'relleno', icc: 'ahora' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

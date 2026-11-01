@@ -21,7 +21,7 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 | Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | Elegido | B · Riel de vidrio con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en bandeja (A); plegar con un botón que flota en el borde, a la altura del logo; plegado con nombre corto bajo cada ícono (A, 84 px) | `marco-vidrio-2026-10/` |
 | Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | Elegido | C · Dos islas; el buscador se encoge con la cabecera hasta quedar en una lupa | `marco-vidrio-2026-10/` |
 | El combo: la sede y todos los demás | `ui/campos.tsx` (`Desplegable`, 7 formas), `UbicacionSwitcher.tsx` | Elegido | A · Gota viajera | `marco-vidrio-2026-10/` |
-| Íconos del marco | `lib/menu-iconos.ts` (trazo 1,5) | Por auditar (hoy se usan todos tal cual, también en submódulos) | — | — |
+| Íconos del marco | `lib/menu-iconos.ts` (trazo 1,5) | En maqueta | — (recomendada: A · Se llena al elegir) | `iconos-vidrio-2026-11/` |
 | Cajón del menú en el celular | `AppShell.tsx` (`cajon-lateral`), `useLateralConElDedo.ts` | En maqueta | — (recomendada: A · Hoja con profundidad) | `cajon-menu-vidrio-2026-11/` |
 
 ## 2. Las hojas
@@ -69,7 +69,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | Elegido (la del Inicio, con una acción) | A · Gota ahumada | `inicio-lider-vidrio-2026-10/` |
 | «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | Elegido | A · Placa | `inicio-lider-vidrio-2026-10/` |
 | Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | Elegido | A · Gotas | `inicio-lider-vidrio-2026-10/` |
-| Íconos del contenido (lucide) | `lib/iconos.ts` | Por auditar | — | — |
+| Íconos del contenido (lucide) | `lib/iconos.ts` (477 archivos) | En maqueta | — (recomendada: como ahora, solo línea) | `iconos-vidrio-2026-11/` |
 | **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 
 ## Fuera hasta que Felipe diga
