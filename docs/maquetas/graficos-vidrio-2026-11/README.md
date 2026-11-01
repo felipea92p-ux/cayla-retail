@@ -41,3 +41,7 @@ bajo 1180 px), y la cifra de la última barra se salía de la tarjeta (ahora se 
 barras); solo lo que no es dato pasa a vidrio: la pista es un pozo fino, la rejilla una ranura y el área bajo la línea, esmerilada. El
 globito que lee el dato es el vidrio ahumado de tinta con letra crema. Los anillos de tubo y el área de vidrio del Observatorio siguen
 siendo de él (su diseño propio).
+
+**Actualización (2026-11-01): la barra de avance es A · Tubo en todo el ERP**, no la B de esta maqueta. Felipe la eligió en las hojas
+(`../modales-vidrio-2026-10/`) y en el Inicio (`../inicio-lider-vidrio-2026-10/`), y es la misma pieza: pista hundida de 14 px (8 la fina,
+20 la gruesa) con el relleno de vidrio teñido de su tono. La apilada, el anillo, la línea y las barras por tiempo siguen en B.

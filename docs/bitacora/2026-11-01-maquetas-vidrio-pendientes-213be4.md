@@ -18,3 +18,4 @@
 - **Inicio de la líder, elegido** (con «Copiar mi selección»): títulos B · Con hilo, «Te toca» A · Placa, accesos A · Gotas, equipo A ·
   Placa, barra de avance A · Tubo, interruptor A · Pozo y gota y barra del celular A · Gota ahumada. Abierto: la barra de avance quedó A ·
   Tubo aquí y en las hojas, pero B · Tinta sobre vidrio en la maqueta de gráficos; falta saber cuál vale para todo el ERP.
+- **Barra de avance: Tubo en todo el ERP** (Felipe). Lo demás de gráficos sigue en B · Tinta sobre vidrio.
