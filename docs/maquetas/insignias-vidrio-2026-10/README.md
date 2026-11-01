@@ -33,4 +33,4 @@ En Chrome sin ventana: 32 combinaciones (320 a 1440 px, claro y oscuro, todas la
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**Insignia A · Lente de color y globito A · Gota** (2026-11-01).
