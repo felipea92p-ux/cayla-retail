@@ -16,3 +16,5 @@
   al pasar, recomendada; B · Gota siempre), menú «Más» (A · La lista del combo, recomendada; B · Placa con hundido) y selector de mes
   (A · Gota en su pozo, recomendada, como la paginación; B · Gota entera). Medida de 320 a 1920 px sin desbordes, en claro y oscuro, sin
   errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en las acciones chicas y el mes:** íconos de fila B · Gota siempre, menú «Más» A · La lista del combo y selector de
+  mes B · Gota entera (en íconos y en el mes no tomó la recomendada).
