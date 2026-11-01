@@ -866,6 +866,8 @@ export const PRUEBAS = [
   // Un invisible pegado de la web (ancho cero, BOM, guion suave) no crea dos veces la misma cosa en ningún vocabulario.
   "pruebas:clave-texto-invisibles",
   "pruebas:materiales",
+  // Medio botón no existe: lo que se cuenta de uno en uno (unidad, cono, par, docena) no admite partes.
+  "pruebas:medio-boton-no-existe",
 
   // Corregir y eliminar un ingreso de insumo (ADR-0570, actividad 6a; migración 20261030134000): el lote se corrige o queda en cero con su marca, el libro deja el ingreso y el par «deshago + anoto»,
   // el saldo y el valor del color cuadran, un lote que ya se usó no se toca, es del líder, la historia no se edita ni se borra, y la migración se pega dos veces. ROLLBACK.
