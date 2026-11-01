@@ -11,3 +11,8 @@
 - **Lo que eligió Felipe:** avisos B · Lente del tono, loader B · Lente sola y versión nueva A · Gota ahumada. En el loader no tomó la
   recomendada (la hoja Serena). Como las palabras del loader van sueltas, se les puso detrás un halo de crema sin borde, para que se lean
   aunque detrás pase algo oscuro; se miró en claro a 1440 px y en oscuro a 375 px.
+- **Acciones chicas y selector de mes:** maqueta `docs/maquetas/acciones-mes-vidrio-2026-11/`, sobre Ventas ▸ Comprobantes ▸ Emitidos. Los
+  botones con palabra (copiar, descargar, imprimir, editar, ver) ya son la gota elegida y no llevan caras. Las caras: íconos de fila (A · Gota
+  al pasar, recomendada; B · Gota siempre), menú «Más» (A · La lista del combo, recomendada; B · Placa con hundido) y selector de mes
+  (A · Gota en su pozo, recomendada, como la paginación; B · Gota entera). Medida de 320 a 1920 px sin desbordes, en claro y oscuro, sin
+  errores. Sin cambios en `apps/web`.

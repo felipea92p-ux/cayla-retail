@@ -60,10 +60,10 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Paginación | `ui/Paginas.tsx` (31 archivos con sus usuarios) | En código | A · Gota en su pozo | `vacio-paginas-vidrio-2026-10/` |
 | Globito con número | `ui/Globito.tsx` (15 archivos) | En código | A · Gota | `insignias-vidrio-2026-10/` |
 | Avatares | `ui/AvatarPersona.tsx` | En maqueta (el equipo del Inicio) | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
-| Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Barra de avance en maqueta; lo demás, por auditar | — (recomendada: A · Tubo) | `inicio-lider-vidrio-2026-10/` |
+| Barra de avance, apilada, anillo, línea, barras por tiempo | `ui/BarraAvance` (61), `BarraApilada` (39), `Anillo` (16), `Linea` (17) + `Sparkline` (6), `BarrasTiempo` (12) | En código | B · Tinta sobre vidrio y globito B · Ahumado | `graficos-vidrio-2026-11/` (la barra de avance también en `inicio-lider-vidrio-2026-10/`) |
 | Casillas e interruptores | `ui/Casilla` (38 archivos), `Interruptor` (19) | En código | A · Pozo y gota (casilla e interruptor) | `casilla-enlaces-vidrio-2026-11/` (el interruptor también en `inicio-lider-vidrio-2026-10/`) |
-| Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
-| Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
+| Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar`, `LapizEditar` | En maqueta (los botones con palabra ya son la gota elegida) | — (recomendadas: íconos A · Gota al pasar, menú A · La lista del combo) | `acciones-mes-vidrio-2026-11/` |
+| Selector de mes | `ui/SelectorMes.tsx` (4 archivos) | En maqueta | — (recomendada: A · Gota en su pozo) | `acciones-mes-vidrio-2026-11/` |
 | Títulos de sección y enlaces | `ui/TituloSeccion` (140), `TituloGrupo` (60), `SeparadorDia` (6), `btn-enlace` (181), `EnlaceVer` (45) | En código | B · «Ver» en gota (con la raya de luz) y separador B · Gotas que flotan | `casilla-enlaces-vidrio-2026-11/` (los títulos del Inicio, en `inicio-lider-vidrio-2026-10/`) |
 | Avisos de la esquina (éxito, error, advertencia, proceso) | `ui/Avisos.tsx`, `estilos/avisos.css` | En código | B · Lente del tono | `avisos-espera-vidrio-2026-10/` |
 | Loader a pantalla completa | `ui/Espera.tsx` | En código | B · Lente sola: la pantalla se esmerila y queda la lente con el colibrí | `avisos-espera-vidrio-2026-10/` |
