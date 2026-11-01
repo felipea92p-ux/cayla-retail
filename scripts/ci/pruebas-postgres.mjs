@@ -1824,6 +1824,10 @@ export const PRUEBAS = [
   // modelo, las órdenes de antes de las fases como siempre y quién ve los costos del Taller. ROLLBACK.
   "pruebas:produccion-cierre",
 
+  // El cierre «ya estaban registradas» (ADR-0551 C, actividad 3): cerrar la orden SIN tocar el stock ni variantes.costo, solo un líder la marca, nunca una muestra, el tope
+  // de cordura (`ya_estaba_sin_registro`), desmarcar vuelve al cierre de siempre y «Revertir» no descuenta un stock que nunca entró. ROLLBACK.
+  "pruebas:produccion-ya-estaba",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 

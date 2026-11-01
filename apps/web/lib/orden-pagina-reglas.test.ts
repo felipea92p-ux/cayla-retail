@@ -78,6 +78,9 @@ import {
   textoDeFase,
   textoMandaste,
   textoPasasteAlStock,
+  textoQuePasaConElStock,
+  TEXTO_YA_ESTABA,
+  RPC_MARCAR_YA_EN_STOCK,
   textoPrendasAfuera,
   textoQuePasaAlRevertir,
   totalDeCierre,
@@ -264,6 +267,15 @@ describe("leerOrdenPagina — lee lo que manda fn_orden_produccion", () => {
     const p = leerOrdenPagina(c)!;
     expect(p.fases).toHaveLength(3);
     expect(p.lineaDeTiempo).toHaveLength(8);
+  });
+
+  it("ADR-0551 C: cómo entra al stock la orden se lee de la base; sin el dato (una base atrasada) o con uno raro, es lo de siempre: movimiento", () => {
+    const con = (v: unknown) => leerOrdenPagina({ ...crudo(), orden: { ...crudo().orden, ingreso_al_stock: v } })!.orden.ingresoAlStock;
+    expect(con("ya_estaba")).toBe("ya_estaba");
+    expect(con("movimiento")).toBe("movimiento");
+    expect(con(undefined)).toBe("movimiento");
+    expect(con(null)).toBe("movimiento");
+    expect(con("en_camino")).toBe("movimiento");
   });
 
   it("los números que llegan como texto (numeric) se leen igual", () => {
@@ -1020,6 +1032,25 @@ describe("pasar la orden al stock, anularla y revertirla", () => {
     expect(textoPasasteAlStock(1, "Pantalón Lía", false)).toBe("1 prenda de Pantalón Lía entró al stock del Taller");
     expect(textoPasasteAlStock(3, "Pantalón Lía", true)).toBe("Muestra Pantalón Lía terminada");
     expect(textoAnulasteLaOrden("Pantalón Lía")).toBe("Orden de Pantalón Lía anulada");
+  });
+
+  it("ADR-0551 C · «ya estaban registradas»: el aviso y la hoja dicen que NO se sumó stock, nunca «entraron»; sin la marca, las frases de siempre", () => {
+    expect(textoPasasteAlStock(57, "Chaleco Cayla", false, true)).toBe("Orden de Chaleco Cayla cerrada: 57 prendas ya estaban registradas, no se sumó stock");
+    expect(textoPasasteAlStock(1, "Chaleco Cayla", false, true)).toBe("Orden de Chaleco Cayla cerrada: 1 prenda ya estaba registrada, no se sumó stock");
+    expect(textoPasasteAlStock(3, "Chaleco Cayla", true, true)).toBe("Muestra Chaleco Cayla terminada");
+    expect(textoPasasteAlStock(48, "Pantalón Lía", false, false)).toBe("48 prendas de Pantalón Lía entraron al stock del Taller");
+    expect(textoQuePasaConElStock(48, false, false)).toBe("Entran 48 prendas al stock del Taller y cada talla queda en Movimientos");
+    expect(textoQuePasaConElStock(1, false, false)).toBe("Entran 1 prenda al stock del Taller y cada talla queda en Movimientos");
+    expect(textoQuePasaConElStock(57, false, true)).toBe("Las 57 prendas ya estaban registradas: no entra stock, la orden solo se cierra con su costo");
+    expect(textoQuePasaConElStock(57, true, true)).toBe("La muestra se da por terminada");
+    expect(textoQuePasaAlRevertir({ inventariadoEn: null, cantidadBuenas: 57, ingresoAlStock: "ya_estaba" })).toContain("no hay stock que devolver");
+    expect(textoQuePasaAlRevertir({ inventariadoEn: null, cantidadBuenas: 57, ingresoAlStock: "ya_estaba" })).not.toContain("muestra");
+    expect(TEXTO_YA_ESTABA.ayuda).toContain("no suma al stock");
+  });
+
+  it("ADR-0551 C: la web llama a la función de la marca con el nombre y los argumentos que la migración declara", () => {
+    const SQL = readFileSync(join(RAIZ, "supabase", "migrations", "20261031171000_produccion_cierre_ya_estaba_en_stock.sql"), "utf8");
+    expect(SQL).toContain(`create or replace function retail.${RPC_MARCAR_YA_EN_STOCK}(p_produccion_id uuid, p_ya_estaba boolean)`);
   });
 
   it("al anular, la tela y los avíos que ya se usaron vuelven al estante: una vez por insumo, y solo los usados", () => {

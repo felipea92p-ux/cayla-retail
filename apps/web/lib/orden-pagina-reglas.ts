@@ -40,6 +40,8 @@ export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
 export const RPC_ANULAR_VUELTA = "anular_vuelta";
 export const RPC_CERRAR_PRODUCCION = "cerrar_produccion";
+/** Un líder declara que las prendas ya estaban registradas en una sede: al cerrar la orden no suman al stock (ADR-0551 C). */
+export const RPC_MARCAR_YA_EN_STOCK = "marcar_orden_ya_en_stock";
 export const RPC_ANULAR_PRODUCCION = "anular_produccion";
 export const RPC_REVERTIR_PRODUCCION = "revertir_produccion";
 export const RPC_GUARDAR_INSUMOS_ORDEN = "guardar_insumos_orden";
@@ -50,6 +52,9 @@ export const DIAS_SIN_MOVERSE = 4;
 // ---------- Lo que la página lee ----------
 
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
+
+/** Cómo entra al stock lo que salió bueno (ADR-0551 C): `movimiento` = una entrada al Taller por talla y color al cerrar; `ya_estaba` = ya estaba registrado en una sede, el cierre no toca el stock. */
+export type IngresoAlStock = "movimiento" | "ya_estaba";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
 export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
 /** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0581; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela, el cambio de tipo (muestra ↔ lote) y un paso
@@ -271,6 +276,8 @@ export type OrdenPagina = {
     creadoEn: string;
     creadoPorNombre: string | null;
     inventariadoEn: string | null;
+    /** `ya_estaba`: las prendas ya estaban registradas en una sede; cerrar la orden no las suma al stock ni toca el costo de la prenda. */
+    ingresoAlStock: IngresoAlStock;
     cantidadPlan: number;
     cantidadBuenas: number | null;
     ubicacionId: string;
@@ -491,6 +498,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       creadoEn: texto(o.created_at) ?? "",
       creadoPorNombre: texto(o.creado_por_nombre),
       inventariadoEn: texto(o.inventariado_at),
+      ingresoAlStock: o.ingreso_al_stock === "ya_estaba" ? "ya_estaba" : "movimiento",
       cantidadPlan: entero(o.cantidad_plan),
       cantidadBuenas: numero(o.cantidad_buenas),
       ubicacionId: texto(o.ubicacion_id) ?? "",
@@ -1977,8 +1985,23 @@ export function resumenDeCierre(p: Pick<OrdenPagina, "fases" | "costos" | "permi
   return { buenas, segundas, faltantes, costoTotal, costoPorPrenda: costoTotal !== null && buenas > 0 ? Math.round((costoTotal / buenas) * 100) / 100 : null };
 }
 
+/** Lo que dice la hoja «Pasar al stock» sobre qué pasa con el stock al confirmar (la misma frase de siempre salvo que las prendas ya estuvieran registradas). */
+export function textoQuePasaConElStock(total: number, esMuestra: boolean, yaEstaba: boolean): string {
+  if (esMuestra) return "La muestra se da por terminada";
+  if (yaEstaba) return `${total === 1 ? "La prenda ya estaba registrada" : `Las ${total} prendas ya estaban registradas`}: no entra stock, la orden solo se cierra con su costo`;
+  return `Entran ${total} ${total === 1 ? "prenda" : "prendas"} al stock del Taller y cada talla queda en Movimientos`;
+}
+
+/** La casilla de la hoja «Pasar al stock» (solo un líder la cambia): para el caso de una orden que se abre después de que las prendas ya se cargaron en una sede. */
+export const TEXTO_YA_ESTABA = {
+  etiqueta: "Estas prendas ya estaban registradas en una sede",
+  ayuda: "Márcala si ya las cargaste en una tienda (por ejemplo, como «Encontré prendas»). La orden se cierra con su costo, pero no suma al stock: así no se duplican. Solo un líder.",
+  avisoParaOtros: "Un líder marcó que estas prendas ya estaban registradas en una sede: al pasar la orden no se suma stock.",
+} as const;
+
 /** El aviso de éxito: «48 prendas de Pantalón Lía entraron al stock del Taller» (una muestra solo se da por terminada). */
-export function textoPasasteAlStock(total: number, referencia: string, esMuestra: boolean): string {
+export function textoPasasteAlStock(total: number, referencia: string, esMuestra: boolean, yaEstaba = false): string {
+  if (!esMuestra && yaEstaba) return `Orden de ${referencia} cerrada: ${cuantas(total, "prenda", "prendas")} ya estaba${total === 1 ? "" : "n"} registrada${total === 1 ? "" : "s"}, no se sumó stock`;
   return esMuestra ? `Muestra ${referencia} terminada` : `${cuantas(total, "prenda", "prendas")} de ${referencia} ${total === 1 ? "entró" : "entraron"} al stock del Taller`;
 }
 
@@ -1995,7 +2018,8 @@ export function textoAnulasteLaOrden(referencia: string): string {
 }
 
 /** Lo que dice la hoja de revertir: qué pasa con el stock según lo que se cerró (una muestra no tocó el stock). */
-export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null }): string {
+export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null; ingresoAlStock?: IngresoAlStock }): string {
+  if (o.ingresoAlStock === "ya_estaba") return "La orden vuelve a estar en proceso. Esas prendas ya estaban registradas en una sede: no entraron al stock al cerrar, así que no hay stock que devolver. La marca «ya estaban registradas» se quita y hay que decidirla otra vez al volver a cerrar.";
   return o.inventariadoEn
     ? `Las ${o.cantidadBuenas ?? 0} prendas salen del stock del Taller (queda un movimiento de reversión: la entrada original no se borra) y la orden vuelve a estar en proceso, para corregir las buenas o los costos.`
     : "La muestra vuelve a estar en proceso. No había stock que devolver.";

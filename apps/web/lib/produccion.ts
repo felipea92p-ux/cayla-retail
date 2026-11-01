@@ -17,6 +17,7 @@ import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type 
 import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
 import { FASES, RPC_PROCESOS, leerProcesos, leerProcesosDeModelos, type FaseClave, type FaseDelCatalogo } from "@/lib/orden-fases-reglas";
 import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
+import type { IngresoAlStock } from "@/lib/orden-pagina-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -55,6 +56,8 @@ export type OrdenProduccion = {
   fechaEntrega: string | null;
   nota: string | null;
   inventariadoEn: string | null;
+  /** `ya_estaba`: las prendas ya estaban registradas en una sede y el cierre no las sumó al stock (ADR-0551 C). */
+  ingresoAlStock: IngresoAlStock;
   creadoEn: string;
   lineas: LineaOrden[];
 };
@@ -90,7 +93,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
       .from("producciones")
       .select(
         `id, producto_id, estado, es_muestra, etapas,
-         cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, created_at,
+         cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, ingreso_al_stock, created_at,
          producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( id, precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
@@ -122,6 +125,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
     fechaEntrega: p.fecha_entrega,
     nota: p.nota,
     inventariadoEn: p.inventariado_at,
+    ingresoAlStock: p.ingreso_al_stock === "ya_estaba" ? "ya_estaba" : "movimiento",
     creadoEn: p.created_at,
     lineas: (p.lineas ?? [])
       .map((l) => ({

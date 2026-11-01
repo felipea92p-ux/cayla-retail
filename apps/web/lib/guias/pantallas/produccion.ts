@@ -892,6 +892,13 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Si falta anotar la tela, la orden no pasa al stock: el costo de la prenda saldría sin tela. «Anotar cuánto quedó» te lleva a hacerlo. Si de verdad pasa sin tela, un líder la deja pasar aquí mismo con su porqué, y queda en la historia.",
     },
     {
+      id: "stock-ya-estaba",
+      ancla: "prod-orden-stock.ya-estaba",
+      opcional: true,
+      titulo: "Si ya estaban en una tienda",
+      texto: "Solo un líder la ve. Márcala cuando las prendas ya se cargaron en una sede, por ejemplo como «Encontré prendas»: la orden se cierra con su costo pero no suma al stock, así no se duplican. En la demo no se marca nada.",
+    },
+    {
       id: "stock-cierre",
       ancla: "prod-orden-stock.cierre",
       opcional: true,
@@ -911,7 +918,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.revertir",
       opcional: true,
       titulo: "Revertir el cierre",
-      texto: "En una orden que ya pasó al stock: las prendas salen del stock con un movimiento de reversión (la entrada original no se borra) y la orden vuelve a estar en proceso.",
+      texto: "En una orden que ya pasó al stock: las prendas salen del stock con un movimiento de reversión (la entrada original no se borra) y la orden vuelve a estar en proceso. Si ya estaban registradas, no hay stock que devolver.",
     },
     {
       id: "fin",
