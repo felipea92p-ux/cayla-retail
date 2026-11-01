@@ -605,5 +605,6 @@ $('#chkRm').addEventListener('change',e=>{S.rm=e.target.checked;$('#tienda').cla
 $('#btnRepetir').addEventListener('click',async()=>{if(S.ocupado||!S.ultimo)return;const u=S.ultimo;if(u.tipo==='sede'){S.sede=u.de;montar();await espera(60);cambiarSede(u.a,true)}else{S.seccion=u.de;montar();await espera(60);const b=$('#nav').querySelector(`[data-sec="${u.a}"]`);const r=S.pantalla==='cel'?{left:$('#tienda').getBoundingClientRect().left+40,width:120}:null;cambiarPestana(u.a,S.pantalla==='cel'?null:b,r,true)}});
 segPrueba();leyenda();ajustarZoom();montar();
 </script>
+<script src="../vidrio-base-2026-10/copiar-seleccion.js"></script>
 </body>
 </html>

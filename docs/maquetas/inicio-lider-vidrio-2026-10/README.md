@@ -43,3 +43,9 @@ desborda (a 320 px los accesos pasan a tres por fila).
 ## Lo que decidió Felipe
 
 Pendiente.
+
+## Lo que decidió Felipe
+
+**Títulos B · Con hilo, «Te toca» A · Placa, accesos A · Gotas, equipo A · Placa, barra de avance A · Tubo, interruptor A · Pozo y gota y
+barra del celular A · Gota ahumada** (2026-11-01, copiado con «Copiar mi selección»). En los títulos se recomendaba la A (serif): quedan
+en versalitas con su hilo, como `TituloGrupo`. El interruptor es el mismo que se eligió en `../casilla-enlaces-vidrio-2026-11/`.

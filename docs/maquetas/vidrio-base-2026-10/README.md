@@ -14,3 +14,11 @@ barra (`.seg-m[data-ctl="x"]`) cambia `estado.x`, que llega al `<html>` como `da
 `docs/maquetas/cabecera-vidrio-2026-10/`.
 
 Si Felipe cambia el marco, se cambia en su maqueta y se vuelve a copiar aquí.
+
+## «Copiar mi selección» (Felipe 2026-11-01)
+
+Toda maqueta lleva al final de su barra el botón **Copiar mi selección**: copia lo que está marcado, listo para pegarlo en el chat
+(«Mi selección · <título> (docs/maquetas/<carpeta>/)», un renglón por grupo y «Visto en: <tema> · <ancho>»). Vive en
+`copiar-seleccion.js` y `marco.js` lo carga solo; una maqueta que no usa la base lo suma con
+`<script src="../vidrio-base-2026-10/copiar-seleccion.js"></script>`. Lee la barra tal como está: el nombre de cada grupo es la `.tag`
+que lo antecede (una maqueta nueva pone una `.tag` antes de cada grupo para que se lea bien).
