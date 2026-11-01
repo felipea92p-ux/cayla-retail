@@ -63,9 +63,9 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
 | Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
 | Títulos de sección y enlaces | `ui/TituloSeccion` (140), `TituloGrupo` (60), `SeparadorDia` (6), `btn-enlace` (181), `EnlaceVer` (45) | Elegido | B · «Ver» en gota (con la raya de luz) y separador B · Gotas que flotan | `casilla-enlaces-vidrio-2026-11/` (los títulos del Inicio, en `inicio-lider-vidrio-2026-10/`) |
-| Avisos de la esquina (éxito, error, advertencia, proceso) | `ui/Avisos.tsx`, `estilos/avisos.css` | En maqueta | — (recomendada: B · Lente del tono) | `avisos-espera-vidrio-2026-10/` |
-| Loader a pantalla completa | `ui/Espera.tsx` | En maqueta | — (recomendada: A · Hoja Serena) | `avisos-espera-vidrio-2026-10/` |
-| «Hay una versión nueva» | `VersionNueva.tsx` | En maqueta (el movimiento no cambia: solo el material) | — (recomendada: A · Gota ahumada) | `avisos-espera-vidrio-2026-10/` |
+| Avisos de la esquina (éxito, error, advertencia, proceso) | `ui/Avisos.tsx`, `estilos/avisos.css` | Elegido | B · Lente del tono | `avisos-espera-vidrio-2026-10/` |
+| Loader a pantalla completa | `ui/Espera.tsx` | Elegido | B · Lente sola: la pantalla se esmerila y queda la lente con el colibrí | `avisos-espera-vidrio-2026-10/` |
+| «Hay una versión nueva» | `VersionNueva.tsx` | Elegido (el movimiento no cambia: solo el material) | A · Gota ahumada; con «Dos islas», en el hueco entre las islas o bajo la cabecera | `avisos-espera-vidrio-2026-10/` |
 | Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | En maqueta (la del Inicio, con una acción) | — (recomendada: A · Gota ahumada) | `inicio-lider-vidrio-2026-10/` |
 | «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |

@@ -28,13 +28,13 @@ cuatro juntos, el loader quieto (a los 4 s dice «Está tardando más de lo norm
 |---|---|---|
 | Avisos | Como ahora | Tarjeta de papel. |
 | | A · Placa Serena | La placa de vidrio de las hojas; el tono, solo en el anillo. |
-| | **B · Lente del tono** (recomendada) | La placa teñida apenas del tono, con un filo del tono: la lente del aviso de las hojas y de la insignia. |
+| | **B · Lente del tono** (elegida) | La placa teñida apenas del tono, con un filo del tono: la lente del aviso de las hojas y de la insignia. |
 | | C · Isla ahumada | Vidrio ahumado de tinta, letra crema, como una notificación del celular. |
 | Loader | Como ahora | Velo crema y tarjeta de papel. |
-| | **A · Hoja Serena** (recomendada) | El velo y la hoja Serena de todas las hojas; arco e hilo como hoy. |
-| | B · Lente sola | Sin tarjeta: la pantalla se esmerila y queda una lente con el colibrí; las palabras sueltas debajo. |
+| | A · Hoja Serena | El velo y la hoja Serena de todas las hojas; arco e hilo como hoy. |
+| | **B · Lente sola** (elegida) | Sin tarjeta: la pantalla se esmerila y queda una lente con el colibrí; las palabras sueltas debajo. |
 | Versión nueva | Como ahora | Píldora de tinta sólida. |
-| | **A · Gota ahumada** (recomendada) | El mismo líquido de tinta al 88 %, con lo de atrás desenfocado, la luz arriba y un filo. |
+| | **A · Gota ahumada** (elegida) | El mismo líquido de tinta al 88 %, con lo de atrás desenfocado, la luz arriba y un filo. |
 | | B · Gota de vidrio claro | Líquido de vidrio claro con un filo, letra tinta, «Actualizar» como botón primario. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -59,4 +59,6 @@ el mismo fundido del contenido. El círculo rojo es el lugar del colibrí del lo
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-01: avisos B · Lente del tono, loader B · Lente sola y versión nueva A · Gota ahumada** (en el loader no tomó la recomendada, la
+hoja Serena). Al implementar: el texto del loader va suelto sobre el esmerilado, así que hay que medir su contraste sobre las pantallas más
+cargadas (tablas, Observatorio) en los dos temas; la regla de la píldora, que va en el hueco entre las islas o bajo la cabecera, está arriba.
