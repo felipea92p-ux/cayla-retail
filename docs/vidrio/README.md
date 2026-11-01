@@ -59,14 +59,13 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Globito con número | `ui/Globito.tsx` (15 archivos) | Elegido | A · Gota | `insignias-vidrio-2026-10/` |
 | Avatares | `ui/AvatarPersona.tsx` | En maqueta (el equipo del Inicio) | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Barra de avance en maqueta; lo demás, por auditar | — (recomendada: A · Tubo) | `inicio-lider-vidrio-2026-10/` |
-| Casillas e interruptores | `ui/Casilla` (38 archivos), `Interruptor` (19) | En maqueta | — (recomendada: A · Pozo y gota) | `casilla-enlaces-vidrio-2026-11/` (el interruptor también en `inicio-lider-vidrio-2026-10/`) |
+| Casillas e interruptores | `ui/Casilla` (38 archivos), `Interruptor` (19) | Elegido | A · Pozo y gota (casilla e interruptor) | `casilla-enlaces-vidrio-2026-11/` (el interruptor también en `inicio-lider-vidrio-2026-10/`) |
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar` | Por auditar | — | — |
 | Selector de mes | `ui/SelectorMes.tsx` | Por auditar | — | — |
-| Títulos de sección y enlaces | `ui/TituloSeccion` (140), `TituloGrupo` (60), `SeparadorDia` (6), `btn-enlace` (181), `EnlaceVer` (45) | En maqueta | — (recomendadas: A · Raya de luz y separador B · Gotas que flotan) | `casilla-enlaces-vidrio-2026-11/` (los títulos del Inicio, en `inicio-lider-vidrio-2026-10/`) |
+| Títulos de sección y enlaces | `ui/TituloSeccion` (140), `TituloGrupo` (60), `SeparadorDia` (6), `btn-enlace` (181), `EnlaceVer` (45) | Elegido | B · «Ver» en gota (con la raya de luz) y separador B · Gotas que flotan | `casilla-enlaces-vidrio-2026-11/` (los títulos del Inicio, en `inicio-lider-vidrio-2026-10/`) |
 | Avisos de la esquina (éxito, error, advertencia, proceso) | `ui/Avisos.tsx`, `estilos/avisos.css` | En maqueta | — (recomendada: B · Lente del tono) | `avisos-espera-vidrio-2026-10/` |
 | Loader a pantalla completa | `ui/Espera.tsx` | En maqueta | — (recomendada: A · Hoja Serena) | `avisos-espera-vidrio-2026-10/` |
 | «Hay una versión nueva» | `VersionNueva.tsx` | En maqueta (el movimiento no cambia: solo el material) | — (recomendada: A · Gota ahumada) | `avisos-espera-vidrio-2026-10/` |
->>>>>>> 2ca566ea45e54324a5cea8e8646f8a7c6839f926
 | Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | En maqueta (la del Inicio, con una acción) | — (recomendada: A · Gota ahumada) | `inicio-lider-vidrio-2026-10/` |
 | «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En maqueta | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En maqueta | — (recomendada: A · Gotas) | `inicio-lider-vidrio-2026-10/` |

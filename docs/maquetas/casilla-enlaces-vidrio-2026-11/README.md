@@ -35,3 +35,9 @@ la raya que se dibuja una vez; el separador pegado arriba con «Hoy» y su punto
 En Chrome sin ventana: 270 combinaciones (320 a 1440 px, claro y oscuro, todas las caras), nada se desborda; sin errores de JS. Al
 mirarlas apareció un error que venía de la maqueta del Inicio: en oscuro, el interruptor encendido con la cara A se pintaba con el fondo
 del apagado (las dos reglas pesaban igual y ganaba la del tema). Quedó corregido en las dos maquetas: la regla del oscuro solo toca al apagado.
+
+## Lo que decidió Felipe
+
+**Casilla e interruptor A · Pozo y gota, separador de día B · Gotas que flotan, títulos y enlaces B · «Ver» en gota** (2026-11-01). La B
+de títulos y enlaces lleva la raya de luz y la gota del número; además, `EnlaceVer` pasa a una gota chica con borde rojo al 30 %.
+El interruptor elegido vale también para el Inicio de una líder.
