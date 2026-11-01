@@ -132,3 +132,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   la elegida, 6–9:1 lo demás), orbes en lente con líquido, cinta de la venta en vivo, anillos y ranking en tubo, el Perú de vidrio, área de
   vidrio bajo las curvas (`AreaVidrio` con `useId`) y la estela del cometa (el mismo bucle-señal). Sin la línea del día ni el panel que nace
   del mapa (Felipe los quitó). `.o-repetir.va` va después de la piel: la hora se lee mientras repite el día.
+
+- **Insignia y globito al vidrio (Felipe 2026-11-01):** `<Chip>` en «A · Lente de color» (`chip-cayla` + `data-tono`: vidrio teñido de su
+  tono al 10→18 %, luz arriba y filo del tono al 26 %, 24 px; neutro sin arena maciza; apagado y tinta, vidrio claro con su contorno) y
+  `<Globito>` en «A · Gota» (gota de vidrio teñida: ámbar si pide, rojo si es error; el de la esquina, gota ahumada con anillo de vidrio),
+  en `vidrio/pantalla.css`. Visto en Compras, claro y oscuro.

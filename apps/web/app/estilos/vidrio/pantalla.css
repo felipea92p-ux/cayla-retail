@@ -189,3 +189,78 @@
     transition: none;
   }
 }
+
+/* ---------- La insignia de estado (<Chip>): «A · Lente de color» (Felipe 2026-10-31, docs/maquetas/insignias-vidrio-2026-10/) ----------
+   Una lente de vidrio teñida de su tono: más clara arriba, con su luz y un filo del tono; el punto brilla apenas. Se sigue leyendo de un
+   vistazo en una tabla, pero ya no es una mancha plana; el neutro deja de ser arena maciza. «apagado» y «tinta» son vidrio claro con su
+   contorno. La letra, el punto, el latido de «Vencida», el tachado de «Anulado» y la variante con ícono no cambian. */
+.chip-cayla { --tono-chip: var(--color-taupe); }
+.chip-cayla[data-tono="ambar"] { --tono-chip: var(--color-ambar); }
+.chip-cayla[data-tono="verde"] { --tono-chip: var(--color-verde); }
+.chip-cayla[data-tono="rojo"] { --tono-chip: var(--color-rojo); }
+.chip-cayla[data-tono="pizarra"] { --tono-chip: var(--color-pizarra); }
+.chip-cayla:not([data-tono="apagado"], [data-tono="tinta"]) {
+  min-height: 24px;
+  border: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tono-chip) 10%, color-mix(in srgb, var(--color-vidrio) 75%, transparent)), color-mix(in srgb, var(--tono-chip) 18%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 85%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--tono-chip) 26%, transparent);
+}
+.chip-cayla::before {
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent);
+}
+.chip-cayla[data-tono="apagado"] {
+  min-height: 24px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 50%, transparent), color-mix(in srgb, var(--color-vidrio) 20%, transparent));
+}
+.chip-cayla[data-tono="tinta"] {
+  min-height: 24px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 70%, transparent), color-mix(in srgb, var(--color-vidrio) 35%, transparent));
+}
+
+/* ---------- El globito con número (<Globito>): «A · Gota» ----------
+   Una gota de vidrio con su luz arriba, teñida de lo que dice (ámbar si pide algo, rojo si es un error). El de la esquina, la gota
+   AHUMADA (como el botón primario) con un anillo de vidrio en vez del anillo sólido. Dentro de un botón negro (`data-oscuro`) no cambia. */
+.globito:not([data-esquina], [data-oscuro]) {
+  min-width: 22px;
+  height: 22px;
+  background: var(--gota-marca);
+  box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent), 0 2px 5px -2px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+}
+.globito[data-pide]:not([data-esquina]) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-ambar) 10%, color-mix(in srgb, var(--color-vidrio) 80%, transparent)), color-mix(in srgb, var(--color-ambar) 20%, transparent));
+  box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 28%, transparent);
+}
+.globito[data-error]:not([data-esquina]) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 8%, color-mix(in srgb, var(--color-vidrio) 80%, transparent)), color-mix(in srgb, var(--color-rojo) 16%, transparent));
+  box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 26%, transparent);
+}
+.globito[data-esquina]:not([data-oscuro]) {
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 60%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 80%, transparent), color-mix(in srgb, var(--color-tinta) 96%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 35%, transparent), 0 0 0 2px color-mix(in srgb, var(--color-vidrio) 75%, transparent), 0 3px 8px -3px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+}
+.globito[data-esquina][data-pide]:not([data-oscuro]) {
+  border-color: color-mix(in srgb, var(--color-ambar) 70%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-ambar) 80%, transparent), color-mix(in srgb, var(--color-ambar) 96%, transparent));
+}
+.globito[data-esquina][data-error]:not([data-oscuro]) {
+  border-color: color-mix(in srgb, var(--color-rojo) 70%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 80%, transparent), color-mix(in srgb, var(--color-rojo) 96%, transparent));
+}
+
+/* En oscuro el vidrio es casi tinta: la lente y la gota se tiñen sobre tinta tenue. */
+@media screen {
+  :root[data-tema="oscuro"] .chip-cayla:not([data-tono="apagado"], [data-tono="tinta"]) {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--tono-chip) 22%, transparent), color-mix(in srgb, var(--tono-chip) 12%, transparent));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--tono-chip) 34%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+  :root[data-tema="oscuro"] .globito:not([data-esquina], [data-oscuro]) {
+    background: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+  :root[data-tema="oscuro"] .globito[data-pide]:not([data-esquina]) { background: color-mix(in srgb, var(--color-ambar) 20%, transparent); }
+  :root[data-tema="oscuro"] .globito[data-error]:not([data-esquina]) { background: color-mix(in srgb, var(--color-rojo) 20%, transparent); }
+  :root[data-tema="oscuro"] .globito[data-esquina]:not([data-oscuro]) {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-sombra) 70%, transparent);
+  }
+}
