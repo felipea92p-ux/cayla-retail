@@ -30,6 +30,9 @@ const BASE = arg("--base", "postgres");
 const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").replace(/^reset lock_timeout;$/gm, "");
 const MIGRACION = sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", "20261031171000_produccion_cierre_ya_estaba_en_stock.sql"), "utf8"));
 
+// La que da lectura de la columna a la cuenta (candado de dinero de `producciones`): sin ella la lista de órdenes de la web nueva se caería.
+const MIGRACION_LEGIBLE = sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", "20261101210000_produccion_ingreso_al_stock_legible.sql"), "utf8"));
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
 
@@ -140,6 +143,8 @@ begin;
 set local search_path = retail, public, extensions;
 ${MIGRACION}
 set local search_path = retail, public, extensions;
+${MIGRACION_LEGIBLE}
+set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
 select p.id as felipe_p from public.personas p where p.auth_user_id = '${FELIPE}' \\gset
 select id as taller from retail.ubicaciones where tipo = 'taller' and activo order by nombre limit 1 \\gset
@@ -217,6 +222,17 @@ caso(
      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname in ('marcar_orden_ya_en_stock', 'fn_produccion_exigir_ya_registrada')),
      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'cerrar_produccion'));`,
   "1,1,2,1"
+);
+
+caso(
+  "M2 la cuenta LEE la columna directo (la lista de órdenes la pide así) pero no la escribe: sin política de escritura, un update directo toca 0 filas y solo cambia por marcar_orden_ya_en_stock",
+  `${ORDEN_LISTA}
+   set local role authenticated;
+   select ingreso_al_stock as leida from retail.producciones where id = :'oid' \\gset
+   with u as (update retail.producciones set ingreso_al_stock = 'ya_estaba' where id = :'oid' returning 1) select count(*) as tocadas from u \\gset
+   reset role;
+   select concat_ws(',', :'leida', :'tocadas', ${INGRESO});`,
+  "movimiento,0,movimiento"
 );
 
 // Y. LA MARCA ------------------------------------------------------------------------------------------------------------------
