@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useId, useMemo, useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
@@ -42,6 +43,7 @@ export function NuevoRolModal({
       {(cerrar) => (
         <form
           className="mt-5 space-y-4"
+          onKeyDown={enterNoGuarda}
           onSubmit={async (e) => {
             e.preventDefault();
             if (!valido || enviando || !responsable.listo) return;
@@ -90,6 +92,7 @@ export function RenombrarRolModal({
       {(cerrar) => (
         <form
           className="mt-5 space-y-4"
+          onKeyDown={enterNoGuarda}
           onSubmit={async (e) => {
             e.preventDefault();
             if (!valido || enviando || !responsable.listo) return;
@@ -231,6 +234,7 @@ export function AsignarRolModal({
       {(cerrar) => (
         <form
           className="mt-5 space-y-4"
+          onKeyDown={enterNoGuarda}
           onSubmit={async (e) => {
             e.preventDefault();
             if (!listo || !cuenta || enviando || !responsable.listo) return;

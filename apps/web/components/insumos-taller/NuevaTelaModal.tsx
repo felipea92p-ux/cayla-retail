@@ -41,6 +41,7 @@ import {
 } from "@/lib/tela-nueva-reglas";
 import { sugerirInsumo } from "@/lib/sugerencias-insumos";
 import { useResponsable } from "@/lib/useResponsable";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 // «Nueva tela» (ADR-0554, actividad 2; Felipe 2026-10-28: «la parte de insumos es demasiado tediosa de completar»): UNA hoja para la tela y todos sus colores. Antes, una tela en cinco colores eran cinco altas de diez campos
 // y otras cinco hojas para ingresar el lote. Aquí se dice qué tela es, cómo se compra (metro, kilo con su ancho y gramaje, o rollo con sus metros) y se eligen los colores de la MISMA carta de Catálogo; cada color trae su código
@@ -216,7 +217,7 @@ export function NuevaTelaModal({
       antesDeCerrar={avisoSalida.pedirAccion}
     >
       <IdentidadAltaProveedor control={responsable}>
-        <form onSubmit={guardar} className="mt-3.5 space-y-6">
+        <form onSubmit={guardar} onKeyDown={enterNoGuarda} className="mt-3.5 space-y-6">
           {!agregarA && (
             <>
               <section data-guia="prod-tela-nueva.que-es" className="space-y-3">
