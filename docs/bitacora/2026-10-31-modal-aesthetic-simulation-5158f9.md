@@ -149,3 +149,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   el pozo va con `:not([aria-checked="true"])`), en `campos-y-botones.css`. El separador de día «B · Gotas que flotan» (sin franja: el día
   y su total son gotas de 28 px con desenfoque, el contenedor sin clics), la ranura del título de grupo, el globito de los títulos en gota
   y `<EnlaceVer>` como gota chica con borde rojo al 30 % («B · "Ver" en gota»), en `pantalla.css`. Visto en Ingresos y en Caja ▸ Historial.
+
+- **Los gráficos al vidrio (Felipe 2026-11-01):** «B · Tinta sobre vidrio»: el dato sigue en su color pleno; la pista de `BarraAvance` y de
+  `BarraApilada` es un pozo fino (tinta al 7 % con sombra interior), el anillo pierde el hueso, la rejilla y el piso son tinta tenue y el área
+  bajo `<Linea>` es un degradado de vidrio (nuevo `<linearGradient>` con `useId`, colores por tema en CSS). El globito que lee el dato es
+  ahumado con letra crema («B · Ahumado»). El tubo de la barra apilada («A · Tubo», la barra de pagos) queda solo dentro de hojas y cajones;
+  el `Sparkline` conserva su área de tinta al 7 %. Todo en `vidrio/graficos-y-pasos.css`.

@@ -73,3 +73,56 @@
 @media (hover: none) {
   .paso-cantidad:is([data-tam="celda"], [data-tam="planilla"]) .paso-cantidad-b { opacity: 1; }
 }
+
+/* ---------- Los gráficos: «B · Tinta sobre vidrio» y el globito del dato «B · Ahumado» (Felipe 2026-11-01, graficos-vidrio-2026-11/) ----------
+   Lo que es DATO no cambia: rellenos, arcos, trazos y barras siguen en su color pleno. Solo lo que no es dato pasa a vidrio: la pista es un
+   pozo fino, la rejilla una ranura de tinta tenue y el área bajo la línea, esmerilada (el degradado lo dibuja <Linea>). El globito que lee
+   el dato es el vidrio ahumado de tinta con letra crema. El tubo de la barra apilada de arriba queda para las HOJAS (la barra de pagos,
+   «A · Tubo de vidrio»); en la pantalla manda esto. Los anillos de tubo y el área de vidrio del Observatorio son su diseño propio. */
+.barra-avance:not([data-sobre-tinta]),
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *):not([data-alto="4"]),
+.barra-apilada[data-alto="4"] {
+  background: color-mix(in srgb, var(--color-tinta) 7%, transparent); /* contraste: no aplica — es la pista, no un texto */
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 18%, transparent);
+}
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *):not([data-alto="4"]) {
+  height: 12px;
+  padding: 0;
+  gap: 2px;
+  border: 0;
+}
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *)[data-alto="8"] { height: 8px; padding: 0; }
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *):not([data-alto="4"]) .barra-tramo-color {
+  border-radius: inherit;
+  background-image: none;
+  box-shadow: none;
+}
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *):not([data-alto="4"]) .barra-tramo { border-radius: 0; }
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *) .barra-tramo:first-child { border-radius: 999px 0 0 999px; }
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *) .barra-tramo:last-child { border-radius: 0 999px 999px 0; }
+.barra-apilada:not(:is(.hoja-serena, .cajon-serena) *) .barra-tramo:only-child { border-radius: 999px; }
+.barra-tramo { background: transparent; }
+.anillo-pista { stroke: color-mix(in srgb, var(--color-tinta) 7%, transparent); } /* contraste: no aplica — es la pista del anillo */
+.linea-rejilla { stroke: color-mix(in srgb, var(--color-tinta) 10%, transparent); } /* contraste: no aplica — es la rejilla, no un texto */
+.barras-tiempo-cero { border-top-color: color-mix(in srgb, var(--color-tinta) 12%, transparent); } /* contraste: no aplica — es el piso, no un texto */
+.linea-area-alto { stop-color: var(--color-vidrio); stop-opacity: 0.95; }
+.linea-area-medio { stop-color: var(--color-vidrio); stop-opacity: 0.55; }
+.linea-area-bajo { stop-color: var(--color-vidrio); stop-opacity: 0.05; }
+.linea-globo,
+.barra-t-globo {
+  border-radius: 12px;
+  color: var(--color-crema);
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: no aplica — es el filo del globito */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 82%, transparent), color-mix(in srgb, var(--color-tinta) 95%, transparent));
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 32%, transparent), 0 10px 24px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+}
+@media screen {
+  :root[data-tema="oscuro"] :is(.barra-avance:not([data-sobre-tinta]), .barra-apilada) {
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+  }
+  :root[data-tema="oscuro"] .linea-area-alto { stop-color: var(--color-tinta); stop-opacity: 0.16; }
+  :root[data-tema="oscuro"] .linea-area-medio { stop-color: var(--color-tinta); stop-opacity: 0.07; }
+  :root[data-tema="oscuro"] .linea-area-bajo { stop-color: var(--color-tinta); stop-opacity: 0; }
+}
