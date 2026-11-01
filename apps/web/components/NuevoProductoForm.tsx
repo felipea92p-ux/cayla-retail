@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -1428,9 +1429,7 @@ export function NuevoProductoForm({
           onSubmit={onSubmit}
           // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
           // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
-          }}
+          onKeyDown={enterNoGuarda}
           className="space-y-4"
         >
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">

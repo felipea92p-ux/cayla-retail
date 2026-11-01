@@ -913,6 +913,7 @@ export function CampoSelect<T extends string>({
   caja = false,
   id,
   deshabilitado,
+  sinPie = false,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -928,10 +929,12 @@ export function CampoSelect<T extends string>({
   id?: string;
   /** No se puede abrir (p. ej. «Sale de» sin cuentas para ese medio): el marcador dice por qué. */
   deshabilitado?: boolean;
+  /** Sin el renglón del pie reservado (ver `Campo`): para filas apiladas donde un error igual aparece, pero el espacio vacío sobra. */
+  sinPie?: boolean;
 }) {
   const idEtiqueta = useId();
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja} sinPie={sinPie}>
       <Desplegable
         valor={valor}
         onValor={onValor}
