@@ -36,4 +36,17 @@ lo no elegido pasa de tinta al 65 % a tinta al 80 % y la elegida es un ahumado m
 y «Repetir el día» llevan el mismo borde. Medido: el texto de un control no elegido contra su pista, 16,5:1 en su trazo más oscuro.
 
 Y pidió «más cosas para mejorar e integrar al liquid glass». Encendidos en la maqueta (casillas «Extras», se apagan una por una):
-orbes con líquido, cinta de vidrio para la venta en vivo, anillos de tubo y el Perú de vidrio. Esperan su visto.
+orbes con líquido, cinta de vidrio para la venta en vivo, anillos de tubo y el Perú de vidrio. De la lista de ideas eligió además la 5, la
+6, la 7 y la 10, ya hechas (casillas «Línea del día», «El panel nace del mapa», «Gráficos de vidrio», «Estela del cometa»):
+
+- **La línea del día:** un riel de vidrio flota abajo, de 9:30 a. m. a 9 p. m. Arrastrar la gota (o ← →) muestra todo el Observatorio a
+  esa hora; «Volver a ahora» regresa; lo que aún no pasó va rayado; «Repetir el día» la hace correr. Agrega algo que no estaba: ver
+  cualquier hora del día (hoy solo se repite entero). En el teléfono quedan tres horas marcadas.
+- **El panel nace del mapa:** al elegir una tienda, una gota de vidrio sale de su punto y se estira hasta ser el panel (820 ms, una vez,
+  sin rebote; apagado con movimiento reducido).
+- **Gráficos de vidrio:** el área bajo la línea de la tienda en «Ritmo» y la de los mini gráficos es vidrio esmerilado (en el SVG, un
+  degradado del vidrio que vela la retícula).
+- **Estela del cometa:** el traslado en camino deja una cola de cuatro gotas que se desvanecen; es el mismo bucle-señal de ADR-0322.
+
+Probado en Chrome sin ventana: arrastrar lleva a la hora (1:32 p. m. al soltar en el 35 %), «Volver a ahora» regresa, la gota del panel
+aparece y se va, los degradados y la estela se pintan, en claro, oscuro y celular, sin errores de JS.

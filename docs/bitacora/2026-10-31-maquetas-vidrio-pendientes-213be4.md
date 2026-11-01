@@ -51,3 +51,5 @@
 - **Observatorio, elegido:** B · El mapa al aire, controles B · Ahumado y orbes A · Lente. Más contraste en los controles (pista con
   `borde-control`, lo no elegido en tinta al 80 %) y cuatro extras para mirar (orbes con líquido, cinta de vidrio, anillos de tubo, el
   Perú de vidrio). Corregido: en oscuro, «el mapa al aire» volvía a meter el mapa en su tarjeta.
+- **Observatorio, ronda 3:** Felipe eligió de la lista la línea del día (riel de vidrio que se arrastra para ver cualquier hora), el panel
+  que nace del mapa, los gráficos con área de vidrio y la estela del cometa; hechas en la maqueta y probadas en Chrome sin ventana.
