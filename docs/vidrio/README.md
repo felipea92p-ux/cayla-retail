@@ -53,10 +53,10 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Pestañas de sección | `ui/Pestanas` (35 archivos) | Elegido | A · La gota de Mi perfil | `pestanas-vidrio-2026-10/` |
 | Buscador | `ui/Buscador.tsx` (67 archivos) | Elegido | A · Pozo | `buscador-filtros-vidrio-2026-10/` |
 | Filtros (píldora, «Filtros», limpiar) | `ui/FiltrosPildora.tsx`, `ui/FiltrosPuestos.tsx`, `pildora-cayla` | Elegido | A · Gotas, la puesta ahumada | `buscador-filtros-vidrio-2026-10/` |
-| Insignias de estado | `ui/Chip.tsx` | Por auditar | — | — |
+| Insignias de estado | `ui/Chip.tsx` (288 archivos) | En maqueta | — (recomendada: A · Lente de color) | `insignias-vidrio-2026-10/` |
 | Estados vacíos | `ui/Vacio.tsx` | Por auditar | — | — |
 | Paginación | `ui/Paginas.tsx` | Por auditar | — | — |
-| Globito con número | `ui/Globito.tsx` | Por auditar | — | — |
+| Globito con número | `ui/Globito.tsx` (15 archivos) | En maqueta | — (recomendada: A · Gota) | `insignias-vidrio-2026-10/` |
 | Avatares | `ui/AvatarPersona.tsx` | En maqueta (el equipo del Inicio) | — (recomendada: A · Placa) | `inicio-lider-vidrio-2026-10/` |
 | Barra de avance, anillo, línea, barras por tiempo | `ui/BarraAvance`, `Anillo`, `Linea`, `BarrasTiempo` | Barra de avance en maqueta; lo demás, por auditar | — (recomendada: A · Tubo) | `inicio-lider-vidrio-2026-10/` |
 | Casillas e interruptores | `ui/Casilla`, `Interruptor` | Interruptor en maqueta; la casilla, por auditar | — (recomendada: A · Pozo y gota) | `inicio-lider-vidrio-2026-10/` |

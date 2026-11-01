@@ -60,3 +60,5 @@
 - **Buscador y filtros:** maqueta `docs/maquetas/buscador-filtros-vidrio-2026-10/` (Productos), con buscador A · Pozo / B · Lente y filtros
   A · Gotas con la puesta ahumada / B · Chips con ✓; funciona entera y medida en 30 combinaciones. La base avisa la elección de un combo
   (`window.alElegirCombo`). Felipe eligió las dos A; pasadas a la sesión que implementa.
+- **Insignias y globitos:** maqueta `docs/maquetas/insignias-vidrio-2026-10/` (Comprobantes, con los siete tonos y las variantes), insignia
+  A · Lente de color / B · Plana con punto / C · Filo del tono y globito A · Gota / B · Hundido; 32 combinaciones sin desbordes. Espera a Felipe.

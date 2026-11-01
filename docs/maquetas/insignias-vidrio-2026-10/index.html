@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-ch="lente" data-gl="gota">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Insignias y globitos con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · las insignias de estado y el globito con número, con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   · `<Chip>` (components/ui/Chip.tsx), 288 archivos: la insignia con su punto; siete tonos (ámbar 143 · pizarra 78 · neutro 74 · verde 70 ·
+     apagado 24 · rojo 21 · tinta 2); `vivo` (el punto que late, solo «Vencida»), `tachado` (Anulado), `versalitas={false}` (con ícono).
+     Hoy: el tono al 15 % de fondo y la letra del tono; el neutro, ARENA MACIZA.
+   · `<Globito>` (components/ui/Globito.tsx, estilos/globito-vermas.css), 15 archivos: el número de las pestañas y los títulos; `pide`
+     (ámbar), `error` (rojo), `esquina` (lleno, TINTA SÓLIDA, con anillo), `sobreOscuro` (dentro de un botón oscuro).
+   Montada sobre el marco y las piezas elegidas (../vidrio-base-2026-10/). Solo tokens. Movimiento: una vez, sin rebote; el único bucle
+   es el punto de «Vencida», que ya era señal (ADR-0136).
+   ==================================================================== */
+:root{--c-neutro:var(--taupe);--c-ambar:var(--ambar);--c-verde:var(--verde);--c-rojo:var(--rojo);--c-pizarra:var(--pizarra)}
+
+/* ---------- el chip (como hoy) ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:999px;font-size:12px;line-height:20px;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+.chip::before{content:"";width:6px;height:6px;flex:none;border-radius:50%;background:currentColor}
+.chip.neutro{background:var(--sand);color:var(--taupe)}
+.chip.apagado{background:transparent;color:var(--t65);box-shadow:inset 0 0 0 1px var(--t10)}
+.chip.apagado::before{display:none}
+.chip.tachado{text-decoration:line-through}
+.chip.tinta{background:transparent;color:var(--tinta);font-weight:600;box-shadow:inset 0 0 0 1.5px var(--tinta)}
+.chip.icono::before{display:none}
+.chip.icono svg{width:12px;height:12px;stroke-width:2}
+.chip.vivo::before{animation:late 2.4s var(--ease) infinite;box-shadow:0 0 0 0 currentColor}
+@keyframes late{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 50%,transparent)}70%,100%{box-shadow:0 0 0 6px transparent}}
+
+/* A · Lente de color: la insignia es una lente de vidrio teñida de su tono (más clara arriba, con su luz y un filo del tono); el punto
+   brilla un poco. Se sigue leyendo de un vistazo en una tabla, pero ya no es una mancha plana. El neutro deja de ser arena maciza. */
+[data-ch="lente"] .chip:not(.apagado):not(.tinta){height:24px;padding:0 11px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+[data-tema="oscuro"][data-ch="lente"] .chip:not(.apagado):not(.tinta){background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+[data-ch="lente"] .chip.neutro{color:var(--taupe)}
+[data-ch="lente"] .chip::before{box-shadow:0 0 0 2px color-mix(in srgb,currentColor 18%,transparent)}
+[data-ch="lente"] .chip.apagado{height:24px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 0 0 1px var(--t10)}
+[data-ch="lente"] .chip.tinta{height:24px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent))}
+/* B · Plana con punto: lo que explica es plano. Sin fondo: el punto (con su halo del tono) y la palabra en el tono. Menos ruido en una
+   tabla; la forma de píldora queda solo para lo que se toca. */
+[data-ch="plana"] .chip{background:none;padding:0;height:20px;box-shadow:none;font-weight:600}
+[data-ch="plana"] .chip::before{width:8px;height:8px;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 16%,transparent)}
+[data-ch="plana"] .chip.apagado{color:var(--t65);font-weight:500}
+[data-ch="plana"] .chip.apagado::before{display:block;background:transparent;box-shadow:inset 0 0 0 1.5px var(--t25)}
+[data-ch="plana"] .chip.tinta{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+[data-ch="plana"] .chip.tinta::before{display:block}
+[data-ch="plana"] .chip.icono{gap:5px}
+/* C · Filo del tono: un contorno del color, sin relleno (como «Crítica» hoy): la píldora se ve en una tabla, pero liviana */
+[data-ch="filo"] .chip:not(.tinta){height:24px;background:color-mix(in srgb,var(--vidrio) 30%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 55%,transparent)}
+[data-ch="filo"] .chip.neutro{color:var(--taupe)}
+[data-tema="oscuro"][data-ch="filo"] .chip:not(.tinta){background:transparent}
+
+/* ---------- el globito (como hoy) ---------- */
+.globito{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tinta);background:var(--t10)}
+.globito.pide{background:color-mix(in srgb,var(--ambar) 15%,transparent);color:var(--ambar)}
+.globito.error{background:color-mix(in srgb,var(--rojo) 15%,transparent);color:var(--rojo-p)}
+.globito.oscuro{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+.globito.esquina{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;font-size:10px;background:var(--tinta);color:var(--crema);box-shadow:0 0 0 2px var(--papel)}
+.globito.esquina.pide{background:var(--ambar);color:var(--crema)}
+/* A · Gota: el número es una gota de vidrio (su luz arriba) teñida de lo que dice; el de la esquina, la gota ahumada (como el botón
+   primario) con su anillo de vidrio en vez de un anillo sólido */
+[data-gl="gota"] .globito:not(.esquina):not(.oscuro){min-width:22px;height:22px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px var(--t10),0 2px 5px -2px color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-gl="gota"] .globito.pide:not(.esquina){background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--ambar) 20%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--ambar) 28%,transparent)}
+[data-gl="gota"] .globito.error:not(.esquina){background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 8%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--rojo) 16%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--rojo) 26%,transparent)}
+[data-tema="oscuro"][data-gl="gota"] .globito:not(.esquina):not(.oscuro){background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent)}
+[data-tema="oscuro"][data-gl="gota"] .globito.pide:not(.esquina){background:color-mix(in srgb,var(--ambar) 20%,transparent)}
+[data-tema="oscuro"][data-gl="gota"] .globito.error:not(.esquina){background:color-mix(in srgb,var(--rojo) 20%,transparent)}
+[data-gl="gota"] .globito.esquina{border:1px solid color-mix(in srgb,var(--tinta) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 80%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 0 0 2px color-mix(in srgb,var(--vidrio) 75%,transparent),0 3px 8px -3px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-gl="gota"] .globito.esquina.pide{border-color:color-mix(in srgb,var(--ambar) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 80%,transparent),color-mix(in srgb,var(--ambar) 96%,transparent))}
+[data-tema="oscuro"][data-gl="gota"] .globito.esquina{box-shadow:0 0 0 2px color-mix(in srgb,var(--sombra) 70%,transparent)}
+/* B · Hundido: el número vive en un hueco del vidrio (como un campo), tenue; el de la esquina sigue lleno, porque ahí un hueco no se ve */
+[data-gl="hundido"] .globito:not(.esquina):not(.oscuro){background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 18%,transparent)}
+[data-gl="hundido"] .globito.pide:not(.esquina){background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+[data-gl="hundido"] .globito.error:not(.esquina){background:color-mix(in srgb,var(--rojo) 12%,transparent)}
+[data-tema="oscuro"][data-gl="hundido"] .globito:not(.esquina):not(.oscuro){background:color-mix(in srgb,var(--sombra) 35%,transparent)}
+
+/* ---------- la pantalla de muestra ---------- */
+.fila-m2{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:26px;animation:sube .6s var(--ease) .2s backwards}
+.pozo-ps{display:inline-flex;gap:2px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-ps{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-ps button{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65)}
+.pozo-ps button.on{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pozo-ps button.on{background:color-mix(in srgb,var(--tinta) 16%,transparent)}
+.icono-b{position:relative;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent))}
+.icono-b svg{width:20px;height:20px;stroke-width:1.6}
+.tit-s{display:flex;align-items:center;gap:10px;margin:30px 0 12px}
+.tit-s h2{font-family:'EB Garamond',serif;font-weight:500;font-size:22px}
+.lista-c{border-radius:22px;overflow:hidden;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .lista-c{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.fc{position:relative;display:grid;grid-template-columns:110px minmax(0,1fr) 170px 110px;gap:14px;align-items:center;min-height:58px;padding:0 20px;font-size:15px;text-align:center}
+.fc+.fc::before{content:"";position:absolute;top:0;left:20px;right:20px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.fc small{display:block;font-size:13px;color:var(--t65)}
+.mostrar{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:16px 20px;border-radius:22px;border:1px dashed var(--borde)}
+.mostrar .vs{margin-right:6px}
+@container disp (max-width:900px){
+  .fc{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px;text-align:left}
+  .fc>:nth-child(1),.fc>:nth-child(4){display:none}
+  .pozo-ps{overflow-x:auto;max-width:100%;scrollbar-width:none}
+}
+@media (prefers-reduced-motion:reduce){.chip.vivo::before{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Las insignias de estado y el globito con número, con vidrio</span>
+  <span class="tag">Insignia</span><div class="seg-m" data-ctl="ch"><button data-v="ahora">Como ahora</button><button data-v="lente">A · Lente de color</button><button data-v="plana">B · Plana con punto</button><button data-v="filo">C · Filo del tono</button></div>
+  <span class="tag">Globito</span><div class="seg-m" data-ctl="gl"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota</button><button data-v="hundido">B · Hundido</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La insignia</b> (<code>Chip</code>, 288 archivos): el punto y la palabra en el tono, con el tono al 15 % de fondo. Siete tonos: ámbar (a medias, 143), pizarra (informa, 78), neutro (74), verde (hecho, 70), apagado (anulado, 24), rojo (hay que actuar, 21) y tinta (lo más serio sin ser rojo, 2). «Vencida» lleva el punto que late. Ya casi no es sólida: <b>solo el neutro es arena maciza</b>.</li>
+      <li><b>El globito</b> (<code>Globito</code>, 15 archivos): el número de las pestañas y los títulos en tinta al 10 %, ámbar si pide algo, rojo si es un error, crema dentro de un botón oscuro y, en la esquina de un ícono, <b>lleno en tinta sólida</b> con un anillo del fondo.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="3"><b>Insignia</b></td><td>A · Lente de color <span class="ev">Recomendada</span></td><td>Sigue siendo una píldora de color que se encuentra de un vistazo en una tabla, pero hecha vidrio (su luz arriba, un filo del tono); el neutro deja la arena maciza.</td><td>Un poco más alta (24 px en vez de 22).</td></tr>
+      <tr><td>B · Plana con punto</td><td>Lo que explica, plano: sin fondo, el punto con su halo y la palabra en el tono. La tabla respira.</td><td>En una tabla de 30 filas, sin la píldora se encuentra peor «la que está a medias»; y lo tachado (Anulado) se pierde.</td></tr>
+      <tr><td>C · Filo del tono</td><td>Liviana y legible: un contorno del color.</td><td>Un contorno se parece a un botón secundario; «Crítica» (tinta) deja de distinguirse de las demás.</td></tr>
+      <tr><td rowspan="2"><b>Globito</b></td><td>A · Gota <span class="ev">Recomendada</span></td><td>El número es una gota de vidrio teñida de lo que dice; el de la esquina, la gota ahumada (como el botón primario) con un anillo de vidrio: nada sólido.</td><td>Casi nada; 2 px más grande.</td></tr>
+      <tr><td>B · Hundido</td><td>Tenue: el número en un hueco del vidrio.</td><td>Un hueco dice «falta tu dato», no «hay tantos»; y en la esquina no se puede hundir (queda lleno, como hoy).</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Insignia A · Lente de color y globito A · Gota.</b> Conservan lo que hace útil a cada uno (la píldora de color que se busca con la vista; el número que se ve sobre un ícono) y los pasan a vidrio sin nada sólido.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Los siete tonos y lo que significa cada uno, el punto, el que late (solo «Vencida»), el tachado de «Anulado», la variante con ícono; el globito con 0 que no se dibuja si pide, el que late una vez al cambiar, y su texto para lector.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); la maqueta no los repite. -->
+<script>
+const ICI = { bell: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0', bolsa: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0', cambio: 'M21 16l-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16' };
+const chip = (tono, t, extra = '') => `<span class="chip ${tono} ${extra}" style="--c:var(--c-${['apagado', 'tinta'].includes(tono) ? 'neutro' : tono})">${t}</span>`;
+const svi = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const FILAS = [['F001-3381', 'Hilados del Sur', 'verde', 'Pagado'], ['F002-0144', 'Botones Lumbre', 'ambar', 'Pago parcial'], ['B001-7810', 'Telas Mistral', 'ambar', 'Vencida', 'vivo'],
+  ['F001-3382', 'Avíos Quillay', 'pizarra', 'Por registrar'], ['—', 'Cierres Puna', 'neutro', 'Borrador'], ['F001-3301', 'Etiquetas Cóndor', 'apagado', 'Anulado', 'tachado'],
+  ['B001-7799', 'Telas Mistral', 'rojo', 'SUNAT rechazó'], ['F002-0139', 'Hilados del Sur', 'tinta', 'Crítica']];
+function pintarPantalla() {
+  $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Comprobantes', frase: 'Las facturas y boletas de tus proveedores, y cuánto les debes.' })}
+    <div class="fila-m2"><div class="pozo-ps"><button class="on">Por pagar <span class="globito">12</span></button><button>Por registrar <span class="globito pide">3</span></button><button>SUNAT <span class="globito error">1</span></button><button>Pagados <span class="globito">148</span></button></div>
+      <span class="icono-b" title="Actividad">${svi(ICI.bell)}<span class="globito esquina">4</span></span>
+      <span class="icono-b" title="Traslados">${svi(ICI.cambio)}<span class="globito esquina pide">2</span></span>
+      <button class="btn pri">${svi(ICI.bolsa)}Registrar pago <span class="globito oscuro">3</span></button></div>
+    <div class="tit-s"><h2>Por pagar</h2><span class="globito">12</span></div>
+    <div class="lista-c">${FILAS.map(([d, p, t, e, x], i) => `<div class="fc"><span>${d}</span><span>${p}<small>${2 + i} nov</small></span><span>${chip(t, e, x || '')}</span><span>S/ ${(1240 + i * 315).toLocaleString('es-PE')}.00</span></div>`).join('')}</div>
+    <div class="mostrar"><span class="vs">Todos los tonos</span>${['verde:Hecho', 'ambar:A medias', 'pizarra:Informa', 'neutro:Borrador', 'rojo:Hay que actuar'].map((x) => chip(...x.split(':'))).join('')}${chip('apagado', 'Anulado', 'tachado')}${chip('tinta', 'Crítica')}
+      <span class="chip verde icono" style="--c:var(--c-verde)">${svi('M20 6 9 17l-5-5')}Cambio aceptado</span><span class="chip ambar vivo" style="--c:var(--c-ambar)">Vencida</span></div>`;
+}
+Marco.iniciar({ estado: { ch: 'lente', gl: 'gota' }, alPintar: () => { $('#cont').scrollTop = 0; pintarPantalla(); } });
+</script>
+</body>
+</html>
