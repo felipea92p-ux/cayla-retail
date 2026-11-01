@@ -30,4 +30,10 @@ En Chrome sin ventana, a 1600 px, en tableta y en celular, en claro y oscuro, co
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**B · El mapa al aire, controles B · Ahumado y orbes A · Lente** (2026-10-31). Pidió «más contraste porque no se distinguen bien los
+controles»: la pista del ahumado lleva ahora el borde de lo que se toca (`borde-control`, 3:1), una sombra que la separa de la placa,
+lo no elegido pasa de tinta al 65 % a tinta al 80 % y la elegida es un ahumado más denso (al 84–97 %); «Toda CAYLA», las flechas, la ✕
+y «Repetir el día» llevan el mismo borde. Medido: el texto de un control no elegido contra su pista, 16,5:1 en su trazo más oscuro.
+
+Y pidió «más cosas para mejorar e integrar al liquid glass». Encendidos en la maqueta (casillas «Extras», se apagan una por una):
+orbes con líquido, cinta de vidrio para la venta en vivo, anillos de tubo y el Perú de vidrio. Esperan su visto.

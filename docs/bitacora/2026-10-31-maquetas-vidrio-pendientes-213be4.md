@@ -48,3 +48,6 @@
 - **El Observatorio con vidrio** (Felipe: «me refería al observatorio»): sale de «fuera hasta que Felipe diga». Maqueta
   `docs/maquetas/observatorio-vidrio-2026-10/`: la v3 aprobada tal cual con una capa de vidrio (Aurora, marco elegido, placas, controles
   en pozo y gota, orbes en lente, barras en tubo) y tres selectores. La del Inicio de una líder de tienda queda aparte. Espera a Felipe.
+- **Observatorio, elegido:** B · El mapa al aire, controles B · Ahumado y orbes A · Lente. Más contraste en los controles (pista con
+  `borde-control`, lo no elegido en tinta al 80 %) y cuatro extras para mirar (orbes con líquido, cinta de vidrio, anillos de tubo, el
+  Perú de vidrio). Corregido: en oscuro, «el mapa al aire» volvía a meter el mapa en su tarjeta.

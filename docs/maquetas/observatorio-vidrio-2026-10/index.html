@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-vd="serena" data-ctl="pozo" data-orbe="lente">
+<html lang="es" data-vd="aire" data-ctl="humo" data-orbe="lente" data-ex-liq data-ex-cinta data-ex-anillo data-ex-peru>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -539,7 +539,7 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
   border-color:color-mix(in srgb,var(--tx) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tx) 12%,transparent),0 24px 50px -30px var(--sombra)}
 /* B · El mapa al aire: la tarjeta grande deja de ser tarjeta; el Perú se dibuja directo sobre la Aurora (es lo que explica: plano), y
    solo el panel de la derecha (lo que se toca y se lee de cerca) es una placa */
-[data-vd="aire"] .heroe{background:none;border-color:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible}
+[data-vd="aire"] .marco .tj.heroe,[data-vd="aire"] .marco.oscuro .tj.heroe{background:none;border-color:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible}
 [data-vd="aire"] .h-panel{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent)!important;border-radius:24px;
   background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
   -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
@@ -592,6 +592,56 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 /* B · Pozo: cada orbe es un hueco en el vidrio que espera (el aro se llena adentro); el urgente sigue respirando */
 [data-orbe="pozo"] .orbe .c{border:1px solid color-mix(in srgb,var(--tinta) 6%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 3px 8px color-mix(in srgb,var(--sombra) 18%,transparent)}
 [data-orbe="pozo"] .marco.oscuro .orbe .c{background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 3px 8px color-mix(in srgb,var(--sombra) 50%,transparent)}
+
+/* ====================================================================
+   RONDA 2 (Felipe 2026-10-31): eligió B · El mapa al aire, controles B · Ahumado y orbes A · Lente, y pidió «más contraste porque
+   no se distinguen bien los controles» y «más cosas para mejorar e integrar al liquid glass».
+   ==================================================================== */
+/* el ahumado con contraste: la pista lleva el borde que se toca (borde-control, 3:1 sobre el fondo, como todo lo que se toca en el
+   ERP) y una sombra hundida que la separa de la placa; lo no elegido pasa de tinta al 65 % a tinta al 80 %; la elegida, ahumado más denso */
+[data-ctl="humo"] .sd{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 10px 24px -16px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-ctl="humo"] .sd button{color:color-mix(in srgb,var(--tx) 80%,transparent)}
+[data-ctl="humo"] .sd button.on{color:var(--fondo)}
+@media (hover:hover){[data-ctl="humo"] .sd button:not(.on):hover{color:var(--tx);background:color-mix(in srgb,var(--tx) 7%,transparent)}}
+[data-ctl="humo"] .sd-ind{border:1px solid color-mix(in srgb,var(--foco) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--foco) 84%,transparent),color-mix(in srgb,var(--foco) 97%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 8px 18px -8px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-ctl="humo"] .marco.oscuro .sd{border-color:color-mix(in srgb,var(--tx) 30%,transparent);background:color-mix(in srgb,var(--vidrio) 85%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tx) 10%,transparent)}
+/* y lo demás que se toca, con su borde de 3:1 */
+[data-vd] :is(.det-cab .cerrar,.t-nav button,.volver,.repetir){border:1px solid var(--borde)!important}
+[data-vd] .volver{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-vd] .marco.oscuro :is(.det-cab .cerrar,.t-nav button,.volver,.repetir){border-color:color-mix(in srgb,var(--tx) 30%,transparent)!important}
+[data-vd] .marco.oscuro .volver{background:color-mix(in srgb,var(--tx) 10%,transparent)}
+
+/* EXTRA 1 · Orbes con líquido: la lente se llena de su color hasta el nivel de los días que lleva esperando el aviso más viejo (lo mismo
+   que dice el aro), con una línea de luz arriba; sube una vez al llegar. Al día, vacía. Nada se mueve en bucle (el halo del urgente sigue). */
+[data-ex-liq] .orbe .c>:not(svg.ring){position:relative;z-index:1}
+[data-ex-liq] .orbe .c::before{content:"";position:absolute;inset:3px;border-radius:50%;pointer-events:none;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent) 0 2px,color-mix(in srgb,var(--col) 22%,transparent) 2px,color-mix(in srgb,var(--col) 34%,transparent));
+  clip-path:inset(calc((1 - var(--nivel,0)) * 100%) 0 0 0);animation:llenar 1.3s var(--ease) .6s backwards}
+@keyframes llenar{from{clip-path:inset(100% 0 0 0)}}
+[data-ex-liq] .orbe.ok .c::before{display:none}
+
+/* EXTRA 2 · Cinta de vidrio: la última venta en vivo deja de ser texto suelto sobre el mapa: es una cinta de vidrio que flota en su
+   esquina; cada venta nueva entra por ella */
+[data-ex-cinta] .a-tk{padding:7px 14px 7px 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);color:var(--tx);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 58%,transparent));
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);box-shadow:inset 0 1px 0 var(--vidrio),0 10px 24px -14px color-mix(in srgb,var(--sombra) 45%,transparent);z-index:3}
+[data-ex-cinta] .marco.oscuro .a-tk{border-color:color-mix(in srgb,var(--tx) 12%,transparent);background:color-mix(in srgb,var(--vidrio) 85%,transparent);box-shadow:none}
+
+/* EXTRA 3 · Anillos de tubo: el anillo de la meta (panel de la tienda y Taller) es el Tubo de vidrio en redondo: la pista hundida y el
+   arco con su brillo */
+[data-ex-anillo] .anillo .an-f{stroke:color-mix(in srgb,var(--tinta) 8%,transparent);filter:drop-shadow(0 1px 1px color-mix(in srgb,var(--sombra) 12%,transparent))}
+[data-ex-anillo] .marco.oscuro .anillo .an-f{stroke:color-mix(in srgb,var(--tx) 10%,transparent)}
+[data-ex-anillo] .anillo .an-v{filter:drop-shadow(0 2px 4px color-mix(in srgb,var(--foco) 35%,transparent))}
+[data-ex-anillo] .anillo .an-v.ok{filter:drop-shadow(0 2px 5px color-mix(in srgb,var(--ok) 45%,transparent))}
+
+/* EXTRA 4 · El Perú de vidrio: con el mapa al aire, el país es una lámina de vidrio que flota sobre la Aurora y proyecta su sombra; la
+   costa queda como el filo de la lámina */
+[data-ex-peru] .a-mapa-in .forma{fill:color-mix(in srgb,var(--vidrio) 58%,transparent);filter:drop-shadow(0 22px 26px color-mix(in srgb,var(--sombra) 18%,transparent))}
+[data-ex-peru] .marco.oscuro .a-mapa-in .forma{fill:color-mix(in srgb,var(--tx) 7%,transparent);filter:drop-shadow(0 22px 26px color-mix(in srgb,var(--sombra) 60%,transparent))}
+@media (prefers-reduced-motion:reduce){[data-ex-liq] .orbe .c::before{animation:none}}
 </style>
 </head>
 <body>
@@ -634,7 +684,7 @@ svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
 /* =====================================================================
    ESTADO
    ===================================================================== */
-const S={vd:'serena',ctl:'pozo',orbe:'lente',tema:'claro',vista:'escritorio',momento:'tarde',periodo:'hoy',foco:'TODAS',tab:'ritmo',comparar:'TODAS',cat:'todas',vivo:true,bucle:true,rm:false,falla:false,now:1060,sim:0,alerta:null,idea:false,replay:false,rapido:false,vistos:new Set(),focoPintado:null,tabDir:'',tabNuevo:false};
+const S={vd:'aire',ctl:'humo',orbe:'lente',exLiq:true,exCinta:true,exAnillo:true,exPeru:true,tema:'claro',vista:'escritorio',momento:'tarde',periodo:'hoy',foco:'TODAS',tab:'ritmo',comparar:'TODAS',cat:'todas',vivo:true,bucle:true,rm:false,falla:false,now:1060,sim:0,alerta:null,idea:false,replay:false,rapido:false,vistos:new Set(),focoPintado:null,tabDir:'',tabNuevo:false};
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const ic=(n,c='')=>`<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
 const reducido=()=>S.rm||matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1057,7 +1107,7 @@ function panelTienda(s){
    ===================================================================== */
 function orbesHTML(){const ab=S.alerta,F=S.foco;
   return `<div class="orbes">${ALERTAS.map(a=>{const r=a.niv==='ok'?0:Math.min(1,(a.edad||1)/7),tenue=F!=='TODAS'&&a.niv!=='ok'&&a.por&&!a.por[F];
-    return `<button class="orbe ${a.niv} ${ab===a.k?'abierto':''} ${tenue?'tenue':''}" onclick="abrirAlerta('${a.k}')" style="${ab===a.k?'':vt(a.k)}" data-tip="AL:${a.k}"><span class="c"><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" stroke="var(--linea)"/>${a.niv!=='ok'?`<circle cx="50" cy="50" r="48" pathLength="100" stroke="${NIVEL_COLOR[a.niv]}" ${A('or-'+a.k,{'stroke-dasharray':`${(r*100).toFixed(1)} 100`},{'stroke-dasharray':'0 100'},500)}/>`:''}</svg>${ic(a.ic)}${a.niv==='ok'?'':`<b>${K('on-'+a.k,F!=='TODAS'&&a.por?(a.por[F]||0):a.n,'n')}</b>`}</span><span class="t">${a.t}</span></button>`}).join('')}</div>
+    return `<button class="orbe ${a.niv} ${ab===a.k?'abierto':''} ${tenue?'tenue':''}" onclick="abrirAlerta('${a.k}')" style="${ab===a.k?'':vt(a.k)}" data-tip="AL:${a.k}"><span class="c" style="--nivel:${r};--col:${NIVEL_COLOR[a.niv]||'var(--ok)'}"><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" stroke="var(--linea)"/>${a.niv!=='ok'?`<circle cx="50" cy="50" r="48" pathLength="100" stroke="${NIVEL_COLOR[a.niv]}" ${A('or-'+a.k,{'stroke-dasharray':`${(r*100).toFixed(1)} 100`},{'stroke-dasharray':'0 100'},500)}/>`:''}</svg>${ic(a.ic)}${a.niv==='ok'?'':`<b>${K('on-'+a.k,F!=='TODAS'&&a.por?(a.por[F]||0):a.n,'n')}</b>`}</span><span class="t">${a.t}</span></button>`}).join('')}</div>
   ${ab?`<div class="tj a-det" style="${vt(ab)}">${detalleHTML(ALERTAS.find(x=>x.k===ab))}</div>`:''}`}
 // El reparto de columnas del mapa y el panel se anima en línea solo cuando hay ancho para dos columnas.
 function anchoHeroe(){const c=$('#cont');if(!c)return true;const cs=getComputedStyle(c);return (S.ancho=c.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)>=1000)}
@@ -1137,9 +1187,10 @@ function barra(){
   const seg=(k,o)=>`<div class="seg">${o.map(([v,t])=>`<button class="${S[k]===v?'on':''}" onclick="cambia('${k}','${v}')">${t}</button>`).join('')}</div>`;
   const chk=(k,t)=>`<label><input type="checkbox" ${S[k]?'checked':''} onchange="alternar('${k}',this.checked)" style="accent-color:var(--rojo)"> ${t}</label>`;
   $('#spk').innerHTML=`<span class="tag">Observatorio con vidrio</span>
-  <span class="tag">Vidrio</span>${seg('vd',[['ahora','Como ahora'],['serena','A · Serena'],['aire','B · El mapa al aire']])}
-  <span class="tag">Controles</span>${seg('ctl',[['ahora','Como ahora'],['pozo','A · Pozo y gota'],['humo','B · Ahumado']])}
-  <span class="tag">Por revisar</span>${seg('orbe',[['ahora','Como ahora'],['lente','A · Lente'],['pozo','B · Pozo']])}
+  <span class="tag">Vidrio</span>${seg('vd',[['ahora','Como ahora'],['serena','A · Serena'],['aire','B · El mapa al aire ✓']])}
+  <span class="tag">Controles</span>${seg('ctl',[['ahora','Como ahora'],['pozo','A · Pozo y gota'],['humo','B · Ahumado ✓']])}
+  <span class="tag">Extras</span>${chk('exLiq','Orbes con líquido')}${chk('exCinta','Cinta de vidrio')}${chk('exAnillo','Anillos de tubo')}${chk('exPeru','El Perú de vidrio')}
+  <span class="tag">Por revisar</span>${seg('orbe',[['ahora','Como ahora'],['lente','A · Lente ✓'],['pozo','B · Pozo']])}
   ${seg('tema',[['claro','Claro · hoy'],['oscuro','Oscuro · cuando exista']])}
   ${seg('vista',[['escritorio','Todo el ancho'],['tablet','Tablet 834'],['celular','Celular 375']])}
   ${seg('momento',[['manana','9:40 a. m.'],['tarde','5:40 p. m.']])}
@@ -1158,10 +1209,17 @@ function cambia(k,v){
   if(k==='tema'){$('#app').classList.toggle('oscuro',v==='oscuro');return}
   if(k==='vista'){montar();return}
   pintar(true)}
-function alternar(k,v){S[k]=v;if(k==='vivo')programarVivo();if(k==='bucle'||k==='rm'){const a=$('#app');a.classList.toggle('bucle',S.bucle);a.classList.toggle('rm',S.rm);pintar(true)}if(k==='falla')pintar(false)}
+function alternar(k,v){S[k]=v;
+  const EX={exLiq:'exLiq',exCinta:'exCinta',exAnillo:'exAnillo',exPeru:'exPeru'};if(EX[k]){document.documentElement.toggleAttribute('data-ex-'+k.slice(2).toLowerCase(),v);return}if(k==='vivo')programarVivo();if(k==='bucle'||k==='rm'){const a=$('#app');a.classList.toggle('bucle',S.bucle);a.classList.toggle('rm',S.rm);pintar(true)}if(k==='falla')pintar(false)}
 function verIdea(){S.idea=!S.idea;ideaHTML();$('#idea').classList.toggle('abierta',S.idea)}
 function ideaHTML(){$('#idea').innerHTML=`<button class="cerrar" onclick="verIdea()" aria-label="Cerrar">${ic('x','s')}</button>
   <span class="lbl" style="color:var(--taupe)">El vidrio (ADR-0596)</span><h2>El Observatorio con vidrio</h2>
+  <p style="margin-top:8px"><b>Lo que eligió Felipe (2026-10-31):</b> B · El mapa al aire, controles B · Ahumado (con más contraste: la pista lleva el borde de 3:1 y lo no elegido va en tinta al 80 %) y orbes A · Lente. Encendidos, para mirar: los cuatro extras de la barra.</p>
+  <h3>Extras (ronda 2: «más cosas para integrar al liquid glass»)</h3><ul>
+    <li><b>Orbes con líquido:</b> la lente se llena de su color hasta los días que lleva esperando el aviso más viejo; sube una vez.</li>
+    <li><b>Cinta de vidrio:</b> la última venta en vivo flota en una cinta de vidrio en la esquina del mapa.</li>
+    <li><b>Anillos de tubo:</b> el anillo de la meta con su pista hundida y el arco con brillo, como el Tubo.</li>
+    <li><b>El Perú de vidrio:</b> el país es una lámina que flota sobre la Aurora y proyecta su sombra.</li></ul>
   <p style="margin-top:8px">Es la v3 aprobada tal cual: el mapa, el panel de la tienda, las pestañas, los orbes, el odómetro y los tres bucles que son señal. Encima va la piel del vidrio: la Aurora detrás, el riel y las dos islas del marco, y lo ya elegido en cada pieza. No cambia qué hace nada.</p>
   <h3>Vidrio</h3><ul>
     <li><b>A · Serena (recomendada):</b> cada tarjeta es la placa de las cifras y las tablas elegidas; la grande (mapa + panel) también. Gana: el Observatorio habla igual que el resto del ERP. Cuesta: el mapa queda dentro de una caja, como hoy.</li>
