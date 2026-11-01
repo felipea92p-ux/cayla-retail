@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 198,
+  "total": 205,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -132,6 +132,14 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
+    "components/orden-pagina/CostoDelPasoModal.tsx": [
+      "CampoMonto «Por prenda»",
+      "CampoMonto «Por toda la orden»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
     "components/orden-pagina/EditarTelaModal.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
@@ -204,6 +212,7 @@
       "Boton «prod-orden.vuelta»",
       "Boton «prod-orden.salida»",
       "button «prod-orden.cambiar-quien»",
+      "button «prod-orden.poner-costo»",
       "button «prod-orden.quitar-paso»"
     ],
     "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
