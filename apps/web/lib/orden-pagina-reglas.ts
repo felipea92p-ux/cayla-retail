@@ -1265,6 +1265,8 @@ export type EntradaDeTiempo = {
   hora: string;
   quien: string | null;
   tipo: TipoEntrada;
+  /** El paso donde pasó (`null` en un cambio y en lo que no es de un paso): así el paso abierto encuentra lo suyo (ADR-0586 act. 3). */
+  faseClave: FaseClave | null;
   titulo: string;
   detalle: string | null;
   cuanto: string | null;
@@ -1397,6 +1399,7 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       hora: horaLima(rehecha ? e.cuando : (e.registradoEn ?? e.cuando)),
       quien: e.quienNombre,
       tipo: e.tipo,
+      faseClave: e.faseClave,
       titulo,
       detalle,
       cuanto,
@@ -1694,6 +1697,7 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     hora: horaLima(c.cuando),
     quien: c.quienNombre,
     tipo: c.accion,
+    faseClave: null,
     titulo,
     detalle,
     cuanto,
@@ -1761,6 +1765,36 @@ export function problemaDeNota(texto: string): string | null {
   if (texto.trim() === "") return "Escribe la nota.";
   if (texto.trim().length > MAX_NOTA_ORDEN) return `La nota es muy larga: hasta ${MAX_NOTA_ORDEN} letras.`;
   return null;
+}
+
+// ---------- «Lo anotado aquí»: corregir desde el paso (ADR-0586, actividad 3; Felipe 2026-10-31) ----------
+// Lo mismo que el lápiz de la historia, a un toque desde el paso abierto: sus «Terminé» y sus prendas con falla, que se corrigen, y sus Salidas y Vueltas, que se anulan. No hay regla
+// nueva: el lápiz aparece solo si la historia ya se lo pone (`corregible` o `anulable`, que vienen de la base). Lo hace quien opera el Taller, no solo el líder (Felipe lo eligió al verlo):
+// la colaboradora que se equivocó arregla su propio dato, siempre con motivo y con «Restaurar». Un hito (Ploteo) no entra: su marca tiene su propio botón (ADR-0586 act. 2).
+// Una Salida o una Vuelta viva que ya no se anula SIGUE en la lista, sin lápiz y con su porqué (revisión del 2026-11-01): si desapareciera, la colaboradora creería que se borró. La base
+// tiene un solo motivo para cada una cuando sigue viva (`fn_produccion_salida_anulable` → `anular_ya_volvio`; `fn_produccion_vuelta_anulable` → `anular_ya_avanzo`); la prueba lo lee.
+
+/** Lo anotado en un paso que sigue vivo, de lo más reciente a lo más viejo: lo que se corrige o se anula, y las Salidas y Vueltas que ya no. */
+export function anotadoDelPaso(fase: FasePagina, p: OrdenPagina, hoy: string): EntradaDeTiempo[] {
+  if (fase.hito) return [];
+  return lineaDeTiempoAgrupada(p, hoy)
+    .flatMap((d) => d.entradas)
+    .filter((e) => e.faseClave === fase.clave && (e.corregible !== null || e.anulable !== null || ((e.tipo === "salida" || e.tipo === "vuelta") && !e.anulada)));
+}
+
+/** Una fila de «Lo anotado aquí»: qué fue, cuándo pasó y quién (el paso ya se nombra arriba, así que no se repite), y debajo lo de la historia que las distingue
+ *  («2 de Beige · S»): dos «Terminó» del mismo día por la misma persona se verían iguales sin eso. `fija`: por qué ya no se cambia (sin lápiz). */
+export function filaDelPaso(e: EntradaDeTiempo): { que: string; cuando: string; quien: string | null; cuanto: string | null; detalle: string | null; fija: string | null } {
+  const que = e.tipo === "salida" ? "Salida" : e.tipo === "vuelta" ? "Vuelta" : e.tipo === "falla" ? "Prendas con falla" : "Terminó";
+  const fija =
+    e.corregible || e.anulable
+      ? null
+      : e.tipo === "salida"
+        ? "Ya no se anula: sus prendas ya volvieron. Si la vuelta estaba mal, anula primero la vuelta."
+        : e.tipo === "vuelta"
+          ? "Ya no se anula: el paso siguiente ya usó estas prendas."
+          : null;
+  return { que, cuando: `${diaCorto(fechaLimaDe(e.cuando))}, ${e.hora}`, quien: e.quien, cuanto: e.cuanto, detalle: e.detalle, fija };
 }
 
 /** La fase de una anotación de la historia, para abrir su hoja. */
