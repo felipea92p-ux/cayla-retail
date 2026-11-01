@@ -386,3 +386,11 @@
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent), 0 6px 14px -8px color-mix(in srgb, var(--color-sombra) 70%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   }
 }
+
+/* ---------- Los íconos del contenido: «A · Duotono en los de 20» (Felipe 2026-11-01, docs/maquetas/iconos-vidrio-2026-11/) ----------
+   El ícono de 20 px (`h-5 w-5`: el de un título o una tarjeta de opción, lib/iconos.ts) y un dibujo grande (24 px o más) llevan un velo de
+   vidrio adentro, a juego con el marco; los de 12, 14 y 16 px siguen solo en línea. Los dibujos ABIERTOS de lucide (un ✓, una flecha, un
+   +, un arco) no se rellenan: el relleno cerraría su trazo y dibujaría un triángulo o una cuña que no existe. */
+svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):not([class*="lucide-check"], [class*="lucide-arrow"], [class*="lucide-chevron"], [class*="lucide-corner"], .lucide-plus, .lucide-minus, .lucide-x, [class*="lucide-loader"], [class*="lucide-refresh"], [class*="lucide-rotate"], [class*="lucide-undo"], [class*="lucide-redo"], [class*="lucide-trending"], [class*="lucide-move"], [class*="lucide-more"], .lucide-menu) path {
+  fill: color-mix(in srgb, currentColor 12%, transparent);
+}

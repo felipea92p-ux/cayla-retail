@@ -176,3 +176,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   20; relleno de vidrio teñido de su tono) y la barra de abajo del celular «A · Gota ahumada» (`sola` = el primario ahumado; clara con varias
   acciones = vidrio de lo que flota; `tinta` = ahumado denso con su principal en gota crema; se corrigió de paso que el primario ahumado le
   ganaba al principal crema de la isla oscura). Por mirar con datos reales: las 34 barras `alto="fina"` que pasan de 3 a 8 px en sus filas.
+
+- **Los íconos al vidrio (Felipe 2026-11-01):** el marco «A · Se llena al elegir» (el dibujo de la fila marcada, `data-fila-activa`, lleno
+  de su tinta al 34 %; la flecha del grupo no; en `marco.css`) y el contenido «A · Duotono en los de 20» (lucide de 20 px o más con un velo
+  del 12 % adentro; los de 12, 14 y 16, solo línea; los dibujos abiertos —✓, flechas, +, −, ×, arcos— quedan en línea porque el relleno
+  cerraría su trazo; en `pantalla.css`). Visto el marco en Compras; el duotono, solo por la regla (Compras no tiene íconos de 20 px).

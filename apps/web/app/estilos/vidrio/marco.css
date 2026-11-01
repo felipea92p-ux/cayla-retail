@@ -447,3 +447,14 @@
 .marco-riel[data-compacto] .marco-yo { justify-content: center; margin: 8px 10px 14px; padding: 8px 0; border-color: transparent; background: none; box-shadow: none; }
 .marco-riel[data-compacto] :is(.marco-yo-texto, .marco-yo-salida) { display: none; }
 .marco-riel[data-compacto] .marco-yo-quien { flex: none; }
+
+/* ---------- Los íconos del marco: «A · Se llena al elegir» (Felipe 2026-11-01, docs/maquetas/iconos-vidrio-2026-11/) ----------
+   Como la barra de un iPhone: en reposo, línea; la pantalla en que estás (y su grupo, si está cerrado: es la fila que lleva la marca) va
+   con su dibujo LLENO de un vidrio tintado, además de la gota y la marca roja. Se ve también con el menú plegado, donde solo queda el ícono.
+   La flecha del grupo no se llena. */
+.marco-fila svg:not([class*="chevron"]) path { transition: fill 200ms var(--ease-cayla); }
+.marco-fila[data-fila-activa] svg:not([class*="chevron"]) { color: var(--color-tinta); }
+.marco-fila[data-fila-activa] svg:not([class*="chevron"]) path { fill: color-mix(in srgb, currentColor 34%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .marco-fila svg path { transition: none; }
+}
