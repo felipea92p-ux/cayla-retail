@@ -27,14 +27,14 @@ es la gota elegida** (botones A · Gota). Se ven en su lugar y no llevan caras.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | Íconos de fila | Como ahora | Cuadrado de hueso al pasar el mouse. |
-| | **A · Gota al pasar** (recomendada) | En reposo, solo el ícono; al pasar el mouse, con el foco o con su menú abierto, la gota redonda de los botones. |
-| | B · Gota siempre | Cada ícono en su gota chica con el filo que se toca. |
+| | A · Gota al pasar | En reposo, solo el ícono; al pasar el mouse, con el foco o con su menú abierto, la gota redonda de los botones. |
+| | **B · Gota siempre** (elegida) | Cada ícono en su gota chica con el filo que se toca. |
 | Menú «Más» | Como ahora | Papel macizo. |
-| | **A · La lista del combo** (recomendada) | La lista de vidrio de los combos, con la gota que viaja a lo que apuntas; sobre «Anular», teñida de rojo. |
+| | **A · La lista del combo** (elegida) | La lista de vidrio de los combos, con la gota que viaja a lo que apuntas; sobre «Anular», teñida de rojo. |
 | | B · Placa con hundido | La misma placa; lo que apuntas se hunde. |
 | Selector de mes | Como ahora | Píldora de papel; el elegido, tinta sólida. |
-| | **A · Gota en su pozo** (recomendada) | Como la paginación elegida: la fila es un pozo, el mes en que estás es la gota clara; los doce meses en la lista de vidrio, el elegido, la gota clara. |
-| | B · Gota entera | Todo el selector es una gota (botón secundario); el elegido de la grilla, ahumado. |
+| | A · Gota en su pozo | Como la paginación elegida: la fila es un pozo, el mes en que estás es la gota clara; los doce meses en la lista de vidrio, el elegido, la gota clara. |
+| | **B · Gota entera** (elegida) | Todo el selector es una gota (botón secundario); el elegido de la grilla, ahumado. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
 
@@ -51,4 +51,7 @@ apaga con `prefers-reduced-motion`. Datos inventados. Medida de 320 a 1920 px si
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-01: íconos de fila B · Gota siempre, menú «Más» A · La lista del combo y selector de mes B · Gota entera** (en íconos y mes no
+tomó la recomendada). Al implementar: el lápiz, el copiar y el «⋯» de una fila llevan siempre su gota chica de 32 px con el filo de
+`borde-control` (pasan el 3:1 de lo que se toca); el menú «Más» usa la misma lista y la misma gota viajera de `Desplegable`, nunca otra; el
+selector de mes es la gota del botón secundario y el mes elegido de la grilla, la gota ahumada del filtro puesto.
