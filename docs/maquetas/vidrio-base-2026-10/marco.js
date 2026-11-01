@@ -270,3 +270,6 @@ function encabezado({ sede, fecha = 'viernes, 31 de octubre · 16:42', detalle, 
         <p class="ep-sede"><span class="hilo" aria-hidden="true"></span><span>${sede} · ${fecha}${detalle ? ` · ${detalle}` : ''}</span></p></div>
       <h1 class="ep-titulo">${titulo}</h1>${frase ? `<p class="ep-frase">${frase}</p>` : ''}${bajo}</div>${derecha}</header>`;
 }
+
+// «Copiar mi selección»: el botón al final de la barra de la maqueta (copiar-seleccion.js, al lado de este archivo)
+(() => { const s = document.createElement('script'); s.src = new URL('copiar-seleccion.js', document.currentScript.src).href; document.head.appendChild(s); })();
