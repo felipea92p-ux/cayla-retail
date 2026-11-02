@@ -185,7 +185,9 @@ select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_paga
 select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_tasa_resto', '2027-01-01', 0.3, null)$q$);
 select valor from retail.fn_parametro_tributario('renta_utilidad_previa', '2026-12-31');
 select count(*) from retail.fn_parametro_tributario('renta_utilidad_previa', '2027-06-01') where vigente_desde = '2026-01-01';`);
-XX, /de 0 a 100 millones/.test(negativo ?? ""), r);
+  const [neg, sinPapel, pagada, negativo, marzo, ley, guardada] = lineas(r);
+  esperar("se guardan los tres de antes del sistema (la utilidad, aunque sea pérdida)", [neg, sinPapel, pagada].every((x) => x === "SIN_ERROR"), r);
+  esperar("lo comprado sin factura no puede ser negativo", /de 0 a 100 millones/.test(negativo ?? ""), r);
   esperar("rige desde el 1 de enero", /rigen por año/.test(marzo ?? ""), r);
   esperar("la escala de la ley no se cambia desde la pantalla", /no existe/.test(ley ?? ""), r);
   esperar("la utilidad guardada es la pérdida tal cual", guardada === "-12500.5000", r);
