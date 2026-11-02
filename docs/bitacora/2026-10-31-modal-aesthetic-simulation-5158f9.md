@@ -211,3 +211,7 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   `<SeparadorDia>` con sus gotas que flotan bajo la cabecera, la de hoy con su punto rojo; la tarjeta del día en placa Serena) y la pila
   «A · Lentes apiladas» (cada prenda en una lente redonda con su luz y su aro de vidrio, el «×N» en el `<Globito esquina>` ahumado y el
   «+N» en gota clara). En `vidrio/historial.css` + dos recetas. Visto con la única venta local; foto real, anuladas y varios días, sin ver.
+
+- **El selector de modo al vidrio (Felipe 2026-11-02):** «Grilla / Tabla» y todo `SegmentoDeslizante forma="modo"` / `SegmentoEnlaces`
+  pasan a «A · Pozo y gota»: el pozo con la gota de las pestañas que fluye (el mismo `IndicadorDeslizante variante="gota"`), también entre
+  enlaces que cambian `?vista=`. Alto de 36 px como siempre. La tarjeta de `ProductosGrilla` queda como estaba: Felipe elige su reparto.

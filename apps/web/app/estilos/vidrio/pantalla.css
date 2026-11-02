@@ -444,3 +444,52 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 3px 8px -4px color-mix(in srgb, var(--color-sombra) 60%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   }
 }
+
+/* ---------- El segmento de modo («Grilla / Tabla»): «A · Pozo y gota» (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/) ----------
+   `SegmentoDeslizante forma="modo"` y `SegmentoEnlaces`, en todo el ERP: la caja arena pasa al pozo de las pestañas, en chico (36 px,
+   el alto de siempre, para no mover las barras donde vive; 44 con el dedo), con su ícono delante de la palabra. La elegida es la gota
+   clara que FLUYE hasta ella (`IndicadorDeslizante` «gota»: se estira 220 ms y se recoge 300 ms, las reglas de `.cmp-ind-gota` de las
+   pestañas, más arriba). Antes de hidratar, la elegida lleva su gota estática; cuando la que viaja se coloca (`data-indicador`), se apaga.
+   Una vez, sin rebote; con «reducir movimiento», la gota va directo (lo decide el componente y `.cmp-ind` se colapsa a 1 ms). */
+.segmento-cayla {
+  position: relative; /* la gota se mide contra el pozo (`offsetLeft`) */
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 45%, transparent);
+  border-radius: 999px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.segmento-cayla__opcion {
+  position: relative;
+  z-index: 1;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent); /* contraste: texto sobre el pozo del segmento (crema, papel) */
+  transition: color 200ms var(--ease-cayla), background 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .segmento-cayla__opcion:not([aria-checked="true"], [aria-current="true"], [aria-current="page"]):not(:disabled):hover {
+    color: var(--color-tinta);
+  }
+}
+.segmento-cayla__opcion:is([aria-checked="true"], [aria-current="true"], [aria-current="page"], [aria-pressed="true"]) {
+  color: var(--color-tinta);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+[data-indicador] > .segmento-cayla__opcion:is([aria-checked="true"], [aria-current="true"], [aria-current="page"]) {
+  background: transparent;
+  box-shadow: none;
+}
+.segmento-cayla__opcion:focus-visible {
+  outline: var(--foco-ancho) solid var(--foco-color);
+  outline-offset: calc(var(--foco-ancho) * -1);
+}
+.segmento-cayla > .cmp-ind-gota {
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 999px;
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}

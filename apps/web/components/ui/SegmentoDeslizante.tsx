@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { IndicadorDeslizante } from "./IndicadorDeslizante";
 
 export type OpcionSegmento = {
   clave: string;
@@ -28,8 +29,9 @@ export type OpcionSegmento = {
  *
  * Dos formas (ADR-0358, «Pestañas y segmentos», Felipe 2026-10-06):
  * · `forma="modo"`: el segmento de MODO DE VISTA y de ORDEN con estado (Por prenda / Por talla, Acumulado / Por día),
- *   gemelo de `SegmentoEnlaces`: 36 px con piel de caja, la elegida en papel con contorno de tinta, 13,5 px en 500 y las
- *   flechas ← → para pasar de una a otra. Sin pulgar: el contorno marca la elegida. CSS: `.segmento-cayla`.
+ *   gemelo de `SegmentoEnlaces`, con las flechas ← → para pasar de una a otra. Desde el vidrio (Felipe 2026-11-02, «A · Pozo y
+ *   gota», docs/maquetas/productos-vidrio-2026-11/) es el pozo de las pestañas en chico, con la gota que FLUYE hasta la elegida
+ *   (`IndicadorDeslizante` «gota», el mismo de `Pestanas`). CSS: `.segmento-cayla` (pestanas-y-segmentos.css y vidrio/pantalla.css).
  * · `forma="campo"` (por defecto): la cara de siempre, para cuando elegir GUARDA un valor de un formulario. Esa cara
  *   no cambia hasta que Felipe decida la familia «campo». Un filtro (deja menos filas) no es ninguna de las dos: es
  *   `pildora-cayla`; y una pestaña (cambia de sección) es `Pestanas`.
@@ -102,6 +104,7 @@ function SegmentoModo({ opciones, valor, onCambio, etiqueta, className = "" }: P
           </button>
         );
       })}
+      <IndicadorDeslizante activa={valor} id={`modo:${etiqueta}`} variante="gota" selector='[aria-checked="true"]' />
     </div>
   );
 }
