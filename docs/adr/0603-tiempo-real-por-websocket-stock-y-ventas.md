@@ -5,11 +5,25 @@ real», y autorizó activar Realtime en producción **solo en `retail.stock` y `
 WebSocket. Levanta la precondición pendiente del ADR-0018 («Realtime hoy no está activo sobre ninguna tabla … para y confirma con
 Felipe»), que se había dejado como un sondeo «mientras tanto» en Caja (ADR-0116), Vender, Apartados y Cambios (nota del 2026-09-25).
 
+## El incidente del 2026-11-02 (leer antes de publicar otra tabla)
+
+La primera versión de la migración publicó `retail.stock` **sin identidad de réplica**. `stock` no tiene llave primaria (su fila es única por
+variante + ubicación + sububicación, y la sububicación puede ser nula), y Postgres rechaza todo `UPDATE`/`DELETE` sobre una tabla publicada que
+no tiene identidad de réplica: `cannot update table "stock" because it does not have a replica identity and publishes updates`. Como
+`registrar_venta` actualiza `stock` (vía `fn_aplicar_movimiento`), **toda venta fallaba en producción** desde que se pegó la migración hasta que
+se sacó `stock` de la publicación a mano (`alter publication supabase_realtime drop table retail.stock`), con el OK de Felipe. Una venta que falla
+se deshace entera, así que no quedó ningún dato a medias. Lo cazaron las pruebas de Postgres del CI del PR (tandas 2, 3 y 6), **no** mi ensayo
+local, que solo comprobó que la publicación se creaba y nunca hizo un `UPDATE`.
+
+**Regla desde hoy:** antes de publicar una tabla en Realtime, comprobar que tiene llave primaria o `replica identity full`, y el ensayo local
+incluye un `UPDATE` sobre ella. La migración corregida lo hace sola (`replica identity full` si no hay llave primaria) y es idempotente.
+**Estado de producción hoy:** solo `retail.ventas` está publicada (tiene llave primaria); `stock` espera que se pegue la migración corregida.
+
 ## Qué hace hoy
 
-- **Base:** `20261102212000_realtime_stock_y_ventas.sql` agrega `retail.stock` y `retail.ventas` a la publicación `supabase_realtime`.
-  **En producción desde el 2026-11-02** (versión `20261102210741`, verificado: la publicación pasó de 0 a esas 2 tablas). Para
-  deshacerlo: `alter publication supabase_realtime drop table retail.stock, retail.ventas;` — las pantallas vuelven solas al sondeo.
+- **Base:** `20261102212000_realtime_stock_y_ventas.sql` pone `replica identity full` en `stock` y agrega `retail.stock` y `retail.ventas` a la
+  publicación `supabase_realtime`. En producción hoy solo está `ventas` (ver el incidente); `stock` entra al pegar la versión corregida.
+  Para deshacerlo: `alter publication supabase_realtime drop table retail.stock, retail.ventas;` — las pantallas vuelven solas al sondeo.
 - **Web:** `lib/useCambiosEnVivo.ts` abre un canal por pantalla y tabla, filtrado por `ubicacion_id`, y avisa. `lib/cambios-en-vivo-reglas.ts`
   tiene la lógica pura (junta una ráfaga en un aviso, valida el filtro, decide qué hacer con el aviso), con su prueba.
 - **Vender, Apartados y Cambios** (`useStockEnVivo`): un cambio en `stock` de la sede dispara la lectura de siempre (la huella y, si cambió, las

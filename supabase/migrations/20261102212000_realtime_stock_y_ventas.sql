@@ -15,7 +15,11 @@
 --   alter publication supabase_realtime drop table retail.stock, retail.ventas;
 -- (quita el aviso; las pantallas vuelven solas al sondeo de antes).
 --
--- Una sola parte: no crea políticas ni hace `alter table` (ADR-0195), solo agrega a la publicación.
+-- Una sola parte, sin políticas (ADR-0195). Hace un `alter table … replica identity full` en `stock` (metadato, sin
+-- reescribir la tabla) con `lock_timeout` de 3 s: si la tienda la está usando justo entonces falla rápido y se repite.
+-- OJO: la primera versión de esta migración NO lo hacía y quedó aplicada en producción el 2026-11-02 con `stock`
+-- publicada; rompió las ventas unos minutos y se sacó `stock` de la publicación a mano (ADR-0603, «El incidente»).
+-- Esta versión es idempotente y sirve tanto para una base limpia como para producción tal como quedó.
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -31,6 +35,15 @@ begin
   end if;
 
   foreach v_tabla in array array['stock', 'ventas'] loop
+    -- Una tabla publicada rechaza todo UPDATE/DELETE si no tiene identidad de réplica. `stock` no tiene llave primaria
+    -- (su fila es única por variante + ubicación + sububicación, y la sububicación puede ser nula): sin esto, publicarla
+    -- rompía `registrar_venta` (2026-11-02, lo cazó el CI: «cannot update table "stock" because it does not have a replica
+    -- identity»). FULL manda la fila completa en cada cambio; `stock` es chica (~2.300 filas por tienda).
+    if not exists (
+      select 1 from pg_index i where i.indrelid = format('retail.%I', v_tabla)::regclass and i.indisprimary
+    ) then
+      execute format('alter table retail.%I replica identity full', v_tabla);
+    end if;
     if not exists (
       select 1 from pg_publication_tables
        where pubname = 'supabase_realtime' and schemaname = 'retail' and tablename = v_tabla
