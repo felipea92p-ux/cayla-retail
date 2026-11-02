@@ -22,3 +22,7 @@
 - **Cajón del menú en el celular, en maqueta** (`docs/maquetas/cajon-menu-vidrio-2026-11/`): A · Hoja con profundidad (recomendada) y
   B · Panel que flota, con el arrastre para cerrar. 18 combinaciones sin desborde. Los íconos del marco y del contenido pasaron a la otra sesión.
 - **Cajón del menú, elegido:** A · Hoja con profundidad; pasado a la sesión que implementa. Fusionados los íconos de la otra sesión (marco A, contenido A · Duotono).
+- **Página Punto de Venta, en maqueta** (`docs/maquetas/vender-vidrio-2026-11/`): la mesa A · Catálogo al aire, ticket en placa / B ·
+  Ticket ahumado y la tarjeta de prenda A · Placa / B · Foto al aire, sobre las piezas ya elegidas. 90 combinaciones sin desborde; corregido
+  el «Cobrar» sin letra sobre el ahumado en oscuro.
+- **Punto de Venta, elegido** (2026-11-02): la mesa A · Catálogo al aire, ticket en placa y la tarjeta B · Foto al aire; pasado a la sesión que implementa. Fusionada la maqueta de Caja de la otra sesión (`d051579e5`), sin elegir.
