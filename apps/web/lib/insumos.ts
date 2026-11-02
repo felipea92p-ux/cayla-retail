@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, opcional } from "@/lib/resultado";
+import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
 import { leerTelasCortadasSinAnotar, type TelaCortadaSinAnotar } from "@/lib/telas-cortadas-sin-anotar-reglas";
 import { RPC_INGRESOS_ELIMINADOS, motivoParaNoTocarIngreso } from "@/lib/ingreso-insumo-reglas";
 import {
@@ -157,6 +158,8 @@ type FilaLote = {
   cantidad_ingresada: number | string;
   documento: string | null;
   origen: string;
+  proveedor_id: string | null;
+  nota: string | null;
   anulado_at?: string | null;
 };
 
@@ -211,7 +214,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
   const primera = await leerInsumos(supabase, `${COLUMNAS_INSUMO}, material_id`);
   const sinMaterialId = !!primera.error && (primera.error.code === "42703" || /material_id/.test(primera.error.message));
   const insumos = sinMaterialId ? await leerInsumos(supabase, COLUMNAS_INSUMO) : primera;
-  const COLUMNAS_LOTE = "id, insumo_id, codigo_lote, fecha_ingreso, created_at, cantidad_ingresada, documento, origen";
+  const COLUMNAS_LOTE = "id, insumo_id, codigo_lote, fecha_ingreso, created_at, cantidad_ingresada, documento, origen, proveedor_id, nota";
   // Si la base todavía no tiene la migración de corregir ingresos, la pantalla no ofrece el lápiz (tocarlo fallaría).
   let baseSinIngresosEditables = false;
   const [lotes, movs, costos, materialesRes, eliminadosRes] = await Promise.all([
@@ -238,6 +241,8 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
   const materialesLeidos = sinClase ? await leerMateriales(supabase, `${COLUMNAS_MATERIAL}, updated_at`) : materialesRes;
   const costoDeLote = new Map(exigir(costos, "los costos de los lotes").map((c) => [c.lote_id, Number(c.costo_unitario)]));
 
+  // A quién se le compró cada lote: solo lo lee quien ve los proveedores del Taller (el líder: `fn_proveedores_produccion` le responde vacío a los demás). Es un dato de apoyo: si no se lee, el lote dice «compra» y nada se cae.
+  const proveedorDe = new Map((opciones.conCostos ? ((await opcional(getProveedoresProduccion(), "los proveedores de los lotes")) ?? []) : []).map((p) => [p.id, p.nombre] as const));
   const filasInsumos = exigir(insumos, "los insumos");
   const filasLotes = exigir(lotes, "los lotes de insumos");
   const filasMovs = exigir(movs, "los movimientos de insumos");
@@ -265,6 +270,8 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     costoUnitario: veCostos ? (costoDeLote.get(l.id) ?? 0) : null,
     documento: l.documento,
     origen: l.origen as "compra" | "saldo_inicial",
+    proveedor: l.proveedor_id ? (proveedorDe.get(l.proveedor_id) ?? null) : null,
+    nota: l.nota?.trim() || null,
   }));
 
   // Sin las telas (la base todavía no las tiene) la lista queda vacía y la pantalla se ve como antes; se avisa en el registro, no a la persona.
