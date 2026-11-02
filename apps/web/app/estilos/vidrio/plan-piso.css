@@ -111,3 +111,43 @@
   background: var(--lamina-vidrio-fondo);
   box-shadow: var(--vidrio-claro-filo);
 }
+
+/* ---------- Lo que la maqueta no mostraba, en el mismo vidrio claro (Felipe 2026-11-02: «Sí, pásalas») ----------
+   Sobre la página al aire, tres piezas seguían de papel y se notaban: las celdas de «Color de la tienda», las fichas de «Fuera del riel» y
+   la Mancuerna («Dónde está cada grupo»). Pasan al vidrio claro de las placas de la leyenda, sin desenfoque. Sus clases son solo de esta
+   pantalla (la celda, la ficha y `.mc` viven en plan-piso.css), así que no hace falta `.pp-raiz`: la franja de color y la Mancuerna se
+   dibujan fuera de él. La lectura flotante de la Mancuerna (`.mc-pop`) sigue de papel: pasa por encima de las filas y tiene que tapar. */
+.pp-ficha,
+.pp-col-celda {
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-filo);
+}
+@media (hover: hover) {
+  .pp-col-celda:hover {
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
+  }
+}
+/* La familia abierta: hundida, la misma cara que el «¿Por qué?» abierto. */
+.pp-col-celda[aria-expanded="true"] {
+  border-color: var(--hundido-borde);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+.card-cayla.mc {
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
+}
+/* La marca que se resalta: al pasar, la gota chica de las listas; puesta, hundida. */
+@media (hover: hover) {
+  .mc-leg:hover {
+    background: var(--gota-chica-fondo);
+  }
+}
+.mc-leg[aria-pressed="true"] {
+  border-color: var(--hundido-borde);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}

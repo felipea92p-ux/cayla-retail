@@ -312,3 +312,5 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   con un tubo de vidrio arriba (`::before`, sin tocar el componente) del que suben los postes; la leyenda y el «¿Por qué?» en placas chicas
   de vidrio claro y su panel en lámina (`--lamina-vidrio-fondo`). El riel «La percha» y su movimiento, igual. Quedan en papel las celdas de
   «Color de la tienda», las fichas de «Fuera del riel» y la Mancuerna (la maqueta no las muestra). Visto a 1440, 1920 y 375 px.
+  Después (Felipe: «Sí, pásalas»): las celdas de «Color de la tienda», las fichas de «Fuera del riel» y la Mancuerna también van en vidrio
+  claro; la celda abierta y la marca puesta de la Mancuerna se hunden. La lectura flotante de la Mancuerna sigue de papel (tapa las filas).
