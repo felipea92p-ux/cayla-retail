@@ -78,3 +78,6 @@
   propio: la barra de rango (A · Banda esmerilada, recomendada; B · Banda punteada) y el centro de avisos (A · Lista de vidrio con filas,
   recomendada; B · Lentes del tono). La hoja «Configuración» (ADR-0488) queda fuera. Medida de 320 a 1920 px sin desbordes ni errores. Sin
   cambios en `apps/web`.
+- **Proveedores, página entera (2026-11-02)**: maqueta `docs/maquetas/proveedores-vidrio-2026-11/`, armada con lo ya elegido. Caras de lo
+  propio: «Qué hacer» (A · Placa con filas, recomendada; B · Tareas en gotas) y «Comparar» (A · Placa con columnas, recomendada; B · Columnas
+  hundidas). Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
