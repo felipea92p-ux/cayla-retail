@@ -64,3 +64,9 @@ export function montoSugerido(medios: MedioForm[], esperado: number): string {
   const { falta } = repartoDeMedios(medios, esperado, true);
   return falta > 0 ? falta.toFixed(2) : "";
 }
+
+/** Lo que dice la caja de referencia de un medio. Con banco o app (transferencia, depósito, Yape, Plin) el N.° de operación es lo que después
+ *  permite cuadrar el pago contra el estado de cuenta: «conviene», nunca obligatorio (la base lo guarda vacío; un pago no se frena por esto). */
+export function textoReferencia(metodo: MetodoPago): string {
+  return metodo === "efectivo" || metodo === "otro" ? "Referencia · opcional" : "N.° de operación · conviene";
+}
