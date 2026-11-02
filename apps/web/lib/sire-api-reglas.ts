@@ -5,6 +5,7 @@
 // Aceptar, reemplazar o generar el registro NO se hace desde aquí (manuales API SIRE Ventas v31 y Compras v28; generar ni siquiera está
 // en la API: es del portal). Las credenciales viven en variables de entorno del servidor, nunca en la base ni en el navegador.
 
+import { limpiarDatosPersonales } from "./errores-reglas";
 import type { RegistroSire } from "./sire-propuesta-reglas";
 
 export const API_SEGURIDAD = "https://api-seguridad.sunat.gob.pe";
@@ -126,6 +127,39 @@ export function urlDescargarArchivo(registro: RegistroSire, mes: string, ticket:
   });
   if (codProceso) q.set("codProceso", codProceso);
   return `${API_SIRE}/v1/contribuyente/migeigv/libros/rvierce/gestionprocesosmasivos/web/masivo/archivoreporte?${q}`;
+}
+
+/**
+ * Lo que SUNAT dice dentro de un error («cod» y «msg»), para que el log diga más que «HTTP 401» y no haya que adivinar la causa. Solo
+ * lee esos campos (SUNAT los manda sueltos o en `errors[0]`), en una línea, sin números largos ni correos (`limpiarDatosPersonales`) y con
+ * tope. Un cuerpo que no es JSON (el HTML de la pasarela) o que no trae esos campos devuelve «»: nunca se vuelca el cuerpo entero.
+ */
+function resumenErrorSunat(cuerpo: string): string {
+  let data: unknown;
+  try {
+    data = JSON.parse(cuerpo);
+  } catch {
+    return "";
+  }
+  const texto = (o: unknown, claves: string[]): string => {
+    if (typeof o !== "object" || o === null) return "";
+    for (const k of claves) {
+      const v = (o as Record<string, unknown>)[k];
+      if ((typeof v === "string" || typeof v === "number") && String(v).trim() !== "") return String(v).trim();
+    }
+    return "";
+  };
+  const primero = (data as { errors?: unknown } | null)?.errors;
+  const interno = Array.isArray(primero) ? primero[0] : undefined;
+  const codigo = texto(data, ["cod", "codigo", "code", "error"]) || texto(interno, ["cod", "codigo", "code"]);
+  const mensaje = texto(data, ["msg", "message", "mensaje", "error_description", "desError"]) || texto(interno, ["msg", "message", "mensaje"]);
+  return limpiarDatosPersonales([codigo, mensaje].filter(Boolean).join(" · ").replace(/\s+/g, " ")).slice(0, 160);
+}
+
+/** El motivo de una respuesta que no fue «ok»: el código HTTP y, si SUNAT lo explica, su mensaje. */
+export function motivoHttp(status: number, cuerpo: string): string {
+  const detalle = resumenErrorSunat(cuerpo);
+  return detalle ? `HTTP ${status}: ${detalle}` : `HTTP ${status}`;
 }
 
 /** El mes que el proceso automático trae: el anterior al de hoy (la propuesta de un mes en curso todavía cambia). */
