@@ -390,7 +390,7 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       solo: "escritorio",
       titulo: "Cobrar el saldo y entregar",
-      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si el cliente ya no la quiere, desde aquí se libera y se le devuelve el adelanto, sin gastar ningún comprobante.",
+      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si se apartó por error o el cliente ya no la quiere, «Liberar apartado» deja la prenda disponible y el adelanto queda por devolver. En la demo no se toca.",
     },
     {
       id: "todos",

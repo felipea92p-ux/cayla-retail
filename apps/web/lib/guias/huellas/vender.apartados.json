@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 170,
+  "total": 171,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -108,6 +108,7 @@
     "components/apartados/EntregarVista.tsx": [
       "button «Otro cliente»",
       "BotonEditar «Editar prendas»",
+      "Boton «Liberar apartado»",
       "Boton «Borrar la búsqueda»",
       "button «{x.nombres}»",
       "button «{`${m}»",
