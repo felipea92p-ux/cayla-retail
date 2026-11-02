@@ -5,32 +5,28 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeftRight, ArrowUp, Banknote, Clock, DollarSign, EqualNot, Landmark, OctagonAlert, type LucideIcon } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
-import { BarraApilada } from "@/components/ui/BarraApilada";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Volver } from "@/components/ui/Volver";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { useAbrirMovimiento } from "@/components/finanzas/CuentasDinero";
 import { HistorialModal } from "@/components/finanzas/dinero/HistorialDinero";
+import { CirculoDinero } from "@/components/finanzas/dinero/CirculoDinero";
+import { colorDeEtapa, repartoPorCuenta } from "@/lib/dinero-reparto-reglas";
 import { montoConSigno } from "@/lib/dinero-telar-reglas";
 import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
 import { TEXTO_MOVIMIENTO, type CuentaDinero, type MovimientoDinero } from "@/lib/cuentas-dinero-reglas";
 import { AYUDA_ETAPA, ETAPAS_EN_ORDEN, TEXTO_ETAPA, fraseDeEtapas, totalesPorEtapa, type EtapaDinero, type FilaEstado, type ItemAtencion, type TipoAtencion } from "@/lib/dinero-estados-reglas";
 
 // Cuentas y dinero ▸ Dónde está (rediseño «Fusión», Felipe 2026-10-31): la COMPOSICIÓN es la de la maqueta aprobada
-// (docs/maquetas/finanzas-dinero-rediseno-2026-10/index.html#d): la tarjeta «Tienes en total» con su barra partida por etapa, las cuatro
-// etapas a su lado, «Mis cuentas» (por etapa o por sede) con su insignia redonda, el detalle de una cuenta y «Pide tu atención». Donde la
-// maqueta pedía una pieza que el ERP ya tiene decidida (ADR-0358, «una función, una pieza»), se usa esa pieza: `TarjetaCifra` para las etapas,
-// `BarraApilada` para la barra partida, `Aviso` para cada aviso, `TituloSeccion`/`TituloGrupo` para los títulos. Estilos de la composición:
-// `app/estilos/finanzas-dinero.css`. Todo sale de lo que la pantalla ya lee (`lib/dinero-estados-reglas.ts`); cada acción abre la hoja de
-// siempre. Sin la curva de 14 días de la maqueta: no hay una serie de saldos en la base.
+// (docs/maquetas/finanzas-dinero-rediseno-2026-10/index.html#d): la tarjeta «Tienes en total» con las cuatro etapas a su lado, «Mis cuentas»
+// (por etapa o por sede) con su insignia redonda, el detalle de una cuenta y «Pide tu atención». La barra partida de la maqueta se cambió por el
+// círculo del 28-oct (`CirculoDinero`, Felipe 2026-10-31), con el total al centro. Donde la maqueta pedía una pieza que el ERP ya tiene decidida
+// (ADR-0358, «una función, una pieza»), se usa esa pieza: `Aviso` para cada aviso, `TituloSeccion`/`TituloGrupo` para los títulos. Estilos de la
+// composición: `app/estilos/finanzas-dinero.css`. Todo sale de lo que la pantalla ya lee (`lib/dinero-estados-reglas.ts`); cada acción abre la
+// hoja de siempre. Sin la curva de 14 días de la maqueta: no hay una serie de saldos en la base.
 
-/** El color de cada etapa (un token, nunca un hex): el filete de la tarjeta, el tramo de la barra y la insignia de sus cuentas. */
-const COLOR_ETAPA: Record<EtapaDinero, string> = {
-  banco: "var(--color-pizarra)",
-  camino: "color-mix(in srgb, var(--color-pizarra) 55%, var(--color-verde))",
-  deposito: "var(--color-verde)",
-  caja: "var(--color-taupe)",
-};
+/** El color de cada etapa (un token, nunca un hex): el filete de su celda, sus porciones del círculo y la insignia de sus cuentas. */
+const COLOR_ETAPA = Object.fromEntries(ETAPAS_EN_ORDEN.map((e) => [e, colorDeEtapa(e)])) as Record<EtapaDinero, string>;
 
 /** El ícono de cada aviso, en su círculo (los de la maqueta eran signos: «$», «↑», «≠», «S/»). */
 const ICONO_ATENCION: Record<TipoAtencion, LucideIcon> = {
@@ -123,15 +119,7 @@ export function PanoramaDinero({
       <div className="card-cayla dp-franja" data-guia="fin-dinero.total">
         <div className="dp-franja-fila">
           <div className="dp-franja-total">
-            <span className="dp-versalita">{titulo}</span>
-            {total === null ? (
-              <span className="dp-tenue">No se pudo leer</span>
-            ) : (
-              <div className="dp-franja-cifra">
-                <small>S/</small>
-                {Math.round(total).toLocaleString("en-US")}
-              </div>
-            )}
+            <CirculoDinero reparto={repartoPorCuenta(filas)} titulo={titulo} total={total} etapa={etapa} elegida={elegida} />
           </div>
           <div className="dp-franja-etapas" role="group" aria-label="Las etapas de la plata: toca una para ver solo sus cuentas" data-guia="fin-dinero.etapas">
             {totales.map((t) => (
@@ -154,14 +142,6 @@ export function PanoramaDinero({
           </div>
         </div>
         <div className="dp-franja-pie">
-          <div className="dp-franja-barra">
-            <BarraApilada
-              decorativa
-              unidad="soles"
-              formato={(v) => montoConSigno(v)}
-              segmentos={totales.filter((t) => t.total > 0).map((t) => ({ clave: t.etapa, nombre: TEXTO_ETAPA[t.etapa], valor: t.total, color: COLOR_ETAPA[t.etapa] }))}
-            />
-          </div>
           <p>
             {fraseDeEtapas(totales)}
             {tarjeta > 0 && <> Además debes {solesRedondo(tarjeta)} en la tarjeta de crédito.</>}
