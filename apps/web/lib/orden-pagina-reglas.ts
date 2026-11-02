@@ -1157,7 +1157,8 @@ const lugarEnLaTabla = (f: Pick<FilaDeTela, "tipo" | "complemento">): number => 
 // ---------- El costo ----------
 
 export type FilaDeCosto = { clave: string; concepto: string; detalle: string | null; estimado: string; real: string; realPendiente: boolean };
-export type TablaDeCosto = { filas: FilaDeCosto[]; total: { estimado: string; real: string }; porPrenda: { estimado: string; real: string; realPendiente: boolean } };
+/** `sinCosto`: no hay tela, avíos ni servicios con costo (la orden no declaró nada): el total y el costo por prenda no son cero, son «—» (se desconocen). */
+export type TablaDeCosto = { filas: FilaDeCosto[]; sinCosto: boolean; total: { estimado: string; real: string }; porPrenda: { estimado: string; real: string; realPendiente: boolean } };
 
 /**
  * Estimado contra real por concepto (tela, avíos y cada servicio de afuera), el total y el costo por prenda. Donde todavía no hay real lo dice con su momento («al volver», «al
@@ -1204,11 +1205,14 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
     });
   }
   const cerrada = p.orden.estado === "terminada" && (p.orden.cantidadBuenas ?? 0) > 0;
+  // Sin una sola fila con costo, un «0.00» diría que la orden sale gratis; el Resumen ya dice «—» con su motivo, y acá también (P13 del análisis del Taller, 2-nov-2026).
+  const sinCosto = filas.length === 0 && c.totalEstimado === 0 && c.totalRealHastaHoy === 0;
   return {
     filas,
-    total: { estimado: monto(c.totalEstimado), real: monto(c.totalRealHastaHoy) },
+    sinCosto,
+    total: sinCosto ? { estimado: "—", real: "—" } : { estimado: monto(c.totalEstimado), real: monto(c.totalRealHastaHoy) },
     porPrenda: {
-      estimado: plan > 0 ? monto(c.totalEstimado / plan) : "—",
+      estimado: plan > 0 && !sinCosto ? monto(c.totalEstimado / plan) : "—",
       real: cerrada ? monto(c.totalRealHastaHoy / (p.orden.cantidadBuenas ?? 1)) : "al cerrar",
       realPendiente: !cerrada,
     },
