@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, enfocaBuscadorAlAbrir, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
@@ -617,11 +617,13 @@ export function Desplegable<T extends string>({
     cerrar();
   }
 
+  // Con buscador, el foco va al campo de texto (para que tipear filtre ya mismo) salvo en una pantalla táctil, donde enfocarlo sube el
+  // teclado, que se come la hoja y deja la lista sin lugar: ahí el foco va a la lista y el teclado sale solo si se toca el campo.
+  const enfocaBuscador = mostrarBuscador && enfocaBuscadorAlAbrir();
   useEffect(() => {
     if (!listaVisible) return;
-    // Con buscador, el foco va al campo de texto (para que tipear filtre ya mismo); sin buscador, a la lista
-    // (patrón de siempre: las flechas mueven `activo` con la lista enfocada).
-    if (mostrarBuscador) buscador.current?.focus();
+    // Sin buscador (o en táctil), el foco va a la lista (patrón de siempre: las flechas mueven `activo` con la lista enfocada).
+    if (enfocaBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
       // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
@@ -633,7 +635,7 @@ export function Desplegable<T extends string>({
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
-  }, [listaVisible, mostrarBuscador]);
+  }, [listaVisible, enfocaBuscador]);
 
   // Al reabrir con una opción elegida más abajo (`mostrarDesde` ya la incluyó en `mostradas`), la lista arranca
   // scrolleada arriba del todo: sin esto quedaba resaltada pero fuera de la vista.
@@ -851,9 +853,9 @@ export function Desplegable<T extends string>({
             role="listbox"
             aria-labelledby={idEtiqueta}
             aria-label={idEtiqueta ? undefined : etiquetaAccesible}
-            tabIndex={mostrarBuscador ? undefined : -1}
-            aria-activedescendant={mostrarBuscador ? undefined : `${id}-op-${activo}`}
-            onKeyDown={mostrarBuscador ? undefined : alTeclado}
+            tabIndex={enfocaBuscador ? undefined : -1}
+            aria-activedescendant={enfocaBuscador ? undefined : `${id}-op-${activo}`}
+            onKeyDown={enfocaBuscador ? undefined : alTeclado}
             onScroll={alHacerScroll}
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
           >
