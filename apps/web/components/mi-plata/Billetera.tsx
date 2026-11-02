@@ -7,7 +7,8 @@ import { cuentaDeLaBilletera, detalleTienes, textoPorConfirmar, usoDeLaPlata, ty
 // La billetera de Mis compras (maqueta docs/maquetas/mis-compras-rediseno-2026-10/, Felipe 2026-10-24): una cifra grande —lo que tienes para
 // comprar— y debajo la cuenta de la ronda en tres columnas: te dieron, compraste, gastaste. Sin ronda abierta no hay nada que contar y
 // queda solo la cifra. Si la cifra es negativa, una nota dice qué hacer; si Compras todavía revisa plata anotada, otra dice que ya se puede
-// usar. Tinta sobre crema: en modo oscuro se invierte sola, como todo token. Sin JavaScript propio: la dibuja el servidor.
+// usar. Tinta sobre crema: en modo oscuro se invierte sola, como todo token. Sin JavaScript propio: la dibuja el servidor. Su cara de vidrio,
+// «A · Ahumada» (Felipe 2026-11-02, docs/maquetas/mis-compras-vidrio-2026-11/), vive en estilos/vidrio/pantalla.css (`.mc-billetera`).
 function Menos({ monto }: { monto: number }) {
   // Lo que baja de la plata lleva su «−» delante del «S/», salvo cuando no hay nada.
   return <>{monto > 0.004 ? "− " : ""}{soles(monto)}</>;
@@ -20,7 +21,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
   const antes = cuenta && Math.abs(cuenta.antes) >= 0.005 ? cuenta.antes : null;
   const uso = usoDeLaPlata(cuenta);
   return (
-    <section aria-label="Tu plata para compras" data-guia="mi-plata.tienes" className="flex flex-col gap-2.5 rounded-[22px] bg-tinta px-5 pb-4 pt-[18px] text-crema">
+    <section aria-label="Tu plata para compras" data-guia="mi-plata.tienes" className="mc-billetera flex flex-col gap-2.5 px-5 pb-4 pt-[18px] text-crema">
       <span className="flex items-baseline justify-between gap-3">
         <span className="label-cayla text-[11px] text-crema/75">Tienes para comprar</span>
         <span className="text-sm tabular-nums text-crema/75" data-guia="mi-plata.ronda" title="Lo comprado y gastado es de esta ronda">
@@ -40,7 +41,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
           <p className="text-sm text-crema/75">{uso.texto}</p>
         </div>
       )}
-      {negativa && <p className="rounded-[10px] bg-crema/10 px-2.5 py-2 text-sm">{negativa}</p>}
+      {negativa && <p className="mc-billetera-nota rounded-[10px] px-2.5 py-2 text-sm">{negativa}</p>}
       {cuenta && (
         <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-sm">
           {[
@@ -62,7 +63,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
         </p>
       )}
       {revisando && (
-        <p className="flex items-center gap-2 rounded-[10px] bg-crema/10 px-2.5 py-2 text-sm" data-guia="mi-plata.revisando">
+        <p className="flex items-center gap-2 mc-billetera-nota rounded-[10px] px-2.5 py-2 text-sm" data-guia="mi-plata.revisando">
           <HandCoins className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {revisando}
         </p>

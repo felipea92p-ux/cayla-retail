@@ -15,7 +15,9 @@ import type { ColorDisponible } from "@/lib/productos-vista";
 /** Grupo de swatches — vista previa al pasar el mouse o enfocar, se fija con
  *  clic/Enter. `activo` es el nombre del color que se está mostrando ahora
  *  (hover, o si no hay hover, el fijado, o si no hay ninguno, el primero).
- *  `max`: en una fila de la Tabla caben cuatro; el resto se cuenta («+2»). */
+ *  `max`: en una fila de la Tabla caben cuatro; el resto se cuenta («+2»).
+ *  `forma="punto"` (la tarjeta «A · Catálogo de moda» de la Grilla, Felipe 2026-11-02): el punto de color de Vender (`.vg-punto`),
+ *  con el punto de 12 px y lo que se toca de 24 (los tamaños los pone `.prod-info` en vidrio/pantalla.css); el anillo dice cuál se ve. */
 export function SwatchesColor({
   colores,
   activo,
@@ -24,6 +26,7 @@ export function SwatchesColor({
   tamano = "h-4 w-4",
   max,
   onMas,
+  forma = "anillo",
 }: {
   colores: ColorDisponible[];
   activo: string | null;
@@ -33,6 +36,7 @@ export function SwatchesColor({
   max?: number;
   /** Si viene, el «+N» es un botón que lo llama (ej. abrir la vista rápida con todos los colores). */
   onMas?: () => void;
+  forma?: "anillo" | "punto";
 }) {
   if (colores.length === 0) return null;
   const visibles = max ? colores.slice(0, max) : colores;
@@ -49,7 +53,7 @@ export function SwatchesColor({
     <div
       role="radiogroup"
       aria-label="Color"
-      className="flex shrink-0 items-center gap-1.5"
+      className={`flex shrink-0 items-center ${forma === "punto" ? "-ml-1.5 gap-px" : "gap-1.5"}`}
       onMouseLeave={() => onHover(null)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) onHover(null);
@@ -69,11 +73,17 @@ export function SwatchesColor({
             e.stopPropagation();
             onFijar(c.nombre);
           }}
-          className={`${tamano} shrink-0 rounded-full transition-transform duration-150 hover:scale-110 ${
-            c.nombre === activo ? "ring-2 ring-tinta ring-offset-1 ring-offset-papel" : "ring-1 ring-tinta/20"
-          }`}
-          style={{ background: c.hex }}
-        />
+          className={
+            forma === "punto"
+              ? "vg-punto"
+              : `${tamano} shrink-0 rounded-full transition-transform duration-150 hover:scale-110 ${
+                  c.nombre === activo ? "ring-2 ring-tinta ring-offset-1 ring-offset-papel" : "ring-1 ring-tinta/20"
+                }`
+          }
+          style={forma === "punto" ? undefined : { background: c.hex }}
+        >
+          {forma === "punto" && <i data-color-dato style={{ background: c.hex }} />}
+        </button>
       ))}
       {resto > 0 &&
         (onMas ? (

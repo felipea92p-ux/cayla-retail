@@ -75,7 +75,7 @@ export function Chip({
     ? `inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 ${vivo || tono === "apagado" ? "" : PUNTO}`
     : "inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium leading-5";
   return (
-    <span title={title} className={`${forma} whitespace-nowrap rounded-full ${TONO[tono]} ${tono === "apagado" && tachado ? "line-through" : ""} ${className}`}>
+    <span title={title} data-tono={tono} className={`chip-cayla ${forma} whitespace-nowrap rounded-full ${TONO[tono]} ${tono === "apagado" && tachado ? "line-through" : ""} ${className}`}>
       {vivo && versalitas && <span aria-hidden className="cmp-punto-vivo" />}
       {children}
     </span>

@@ -200,9 +200,6 @@ function Accion({
   );
 }
 
-/** El filete gris a la izquierda de lo que está «Por decidir». */
-const FILETE = "before:pointer-events-none before:absolute before:bottom-3 before:left-0 before:top-3 before:w-0.5 before:rounded-sm before:bg-tinta/35";
-
 export function FrescuraFila({
   fila,
   onAbrir,
@@ -243,7 +240,9 @@ export function FrescuraFila({
       tabIndex={-1}
       data-prenda={fila.clave}
       data-guia="frescura.fila"
-      className={`fila-cayla relative cursor-pointer border-t border-sand ${fila.porDecidir ? FILETE : ""}`}
+      // Lo que está «Por decidir» queda hundido en un pozo (`estilos/vidrio/frescura.css`, «B · Fila hundida»).
+      data-por-decidir={fila.porDecidir ? "" : undefined}
+      className="fila-cayla relative cursor-pointer border-t border-sand"
     >
       {/* Computadora: una fila de la tabla. */}
       <div className={`hidden items-center gap-x-4 px-5 py-3.5 md:grid ${PLANTILLA_FRESCURA}`}>

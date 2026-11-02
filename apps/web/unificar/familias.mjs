@@ -725,7 +725,8 @@ export const DECISIONES = {
     "registro": "docs/unificar/tabla.md",
     "elegida": "P1 · <Tabla> de hoy con movimiento: banda arena, títulos taupe, zebra hueso; las filas entran en cascada, la que lleva a su detalle muestra el hilo rojo de canto y la «›» al pasar el mouse, la abierta se queda marcada, la recién guardada respira en verde; elegida tocándola el 2026-10-13",
     "pieza": "components/ui/Tabla.tsx",
-    "tambien": ["app/globals.css"],
+    // La tabla con superpoderes (ADR-0596, «A · Globo desde la cabecera», Felipe 2026-10-31): la otra pieza elegida, para las tablas cuyas filas ya están en el navegador.
+    "tambien": ["app/globals.css", "components/ui/TablaViva.tsx"],
     "firmas": [
       // Una tabla de registros dibujada a mano con <table> (la pieza es <Tabla> + `fila()` + `celda()`).
       "<table\\b",
@@ -934,7 +935,8 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · el combo es la misma caja que se enciende (el chevron gira y se pone rojo, el valor elegido entra subiendo); P1 · una lista para todo combo: la elegida con el hilo rojo de canto y su ✓ que se dibuja, cascada hasta 8, buscador fijo con su lupa; elegidas tocándolas el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/FiltrosFlotantes.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx"],
+    // MenuAcciones y SelectorMes usan la lista de los combos por decisión (vidrio, Felipe 2026-11-01): no la dibujan a mano.
+    "tambien": ["app/estilos/vidrio/notas-avisos-combos.css", "app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/FiltrosFlotantes.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx", "components/ui/MenuAcciones.tsx", "components/ui/SelectorMes.tsx", "app/estilos/vidrio/campos-y-botones.css"],
     "firmas": [
       // Un combo o una lista desplegable hecha a mano (la regla de combos ya era una, ADR-0209; ahora también su cara).
       "role=\"combobox\"",

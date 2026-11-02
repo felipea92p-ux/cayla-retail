@@ -9,7 +9,7 @@ import { estadoVisible, TOPE_SEPARACIONES, type Apartado, type AvisoApartado, ty
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
-import { ALTO_PESTANAS_MOVIL, EnCuerpo } from "@/components/apartados/piezas";
+import { EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
@@ -98,12 +98,12 @@ export function ApartadosPanel(props: Props) {
     <>
       {/* Entre 1024 y 1280 px la columna de trabajo mide ~290 px (el ticket, 380): la etiqueta se oculta (la sede ya está en la barra de
           arriba y Apartados, en el menú) y «Opciones» queda en su ícono. En Todos, a todo el ancho, siempre caben. */}
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-sand px-5 py-3 sm:min-h-16 sm:gap-x-6 sm:px-6 sm:py-0 lg:max-xl:gap-x-4 lg:max-xl:px-4">
+      <header className="ap-cab flex flex-wrap items-center gap-x-4 gap-y-2 sm:min-h-16 sm:gap-x-6 lg:max-xl:gap-x-4">
         <p className={`label-cayla text-[11px] text-tinta/80 ${vista === "todos" ? "" : "lg:max-xl:hidden"}`}>Apartados · {props.ubicacionEtiqueta}</p>
-        <span aria-hidden className={`h-[22px] w-px bg-sand max-lg:hidden ${vista === "todos" ? "" : "lg:max-xl:hidden"}`} />
+        <span aria-hidden className={`ap-cab-sep h-[22px] w-px max-lg:hidden ${vista === "todos" ? "" : "lg:max-xl:hidden"}`} />
         <div className="flex items-center gap-6 lg:max-xl:gap-4">
         {/* La pestaña de vista del ERP (ADR-0358): «Apartar / Entregar / Todos» cambia de sección. Solo en escritorio; el celular lleva las
-            suyas abajo (`ALTO_PESTANAS_MOVIL`). El conteo de «Todos» es el que pide algo (Felipe 2026-10-07). */}
+            suyas abajo (la isla de pestañas). El conteo de «Todos» es el que pide algo (Felipe 2026-10-07). */}
         <Pestanas
           className="max-lg:hidden"
           etiquetaAccesible="Apartados"
@@ -120,7 +120,7 @@ export function ApartadosPanel(props: Props) {
             data-guia="apartados.opciones"
             title="Qué funciones usa Apartados en esta tienda"
             aria-label="Opciones"
-            className="label-cayla flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[10.5px] text-tinta/80 hover:border-taupe"
+            className="ap-opciones label-cayla flex h-9 items-center gap-1.5 px-3 text-[10.5px] text-tinta/80"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
             <span className={vista === "todos" ? "" : "lg:max-xl:hidden"}>Opciones</span>
@@ -130,7 +130,7 @@ export function ApartadosPanel(props: Props) {
       </header>
 
       {(props.liberadosAhora > 0 || !props.cajaAbierta || props.hayMas) && (
-        <div className="space-y-1 border-b border-sand bg-crema px-6 py-2.5 text-sm">
+        <div className="ap-avisos space-y-1 text-sm">
           {props.liberadosAhora > 0 && (
             <p className="text-rojo-profundo">
               {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
@@ -151,7 +151,9 @@ export function ApartadosPanel(props: Props) {
   return (
     // Celular (Felipe, 2026-09-26, spike `docs/maquetas/apartados-v2-2026-09/`): las pestañas bajan a la altura del
     // pulgar y la barra de cada paso se apoya encima; el margen de abajo deja ver lo último que queda bajo las dos.
-    <section id="hoja-apartados" className="anim-sube flex min-h-[calc(100vh-9rem)] scroll-mt-20 flex-col overflow-hidden rounded-[22px] border border-sand bg-papel max-lg:mb-40">
+    // «A · Al aire» (apartados-vidrio-2026-11, Felipe 2026-11-02): sin la hoja de papel; como la mesa de Vender, la cabecera es una fila
+    // plana sobre el fondo y lo de adentro son placas (`ap-mesa`, vidrio/vender.css).
+    <section id="hoja-apartados" className="ap-mesa anim-sube flex min-h-[calc(100vh-9rem)] scroll-mt-20 flex-col max-lg:mb-40">
       {vista === "todos" && cabecera}
 
       {vista === "apartar" && (
@@ -186,12 +188,12 @@ export function ApartadosPanel(props: Props) {
         <OpcionesApartadosModal ubicacion={{ ubicacionId: props.ubicacionId, etiqueta: props.ubicacionEtiqueta }} apagadas={apagadas} onClose={() => setOpciones(false)} />
       )}
 
-      {/* Las mismas pestañas, abajo y solo en el celular. No es un segundo menú: el ☰ sigue siendo el del ERP (ADR-0206). */}
+      {/* Las mismas pestañas, abajo y solo en el celular. No es un segundo menú: el ☰ sigue siendo el del ERP (ADR-0206).
+          «A · Isla de pestañas» (Felipe 2026-11-02): una isla de vidrio que flota a 12 px de los bordes, con la gota clara que viaja a la
+          elegida (`ap-pestanas-isla`, vidrio/vender.css). */}
       <EnCuerpo>
-      <nav
-        aria-label="Apartados"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:pr-[env(safe-area-inset-right)] lg:hidden"
-      >
+      <nav aria-label="Apartados" className="ap-pestanas-isla grid grid-cols-3 lg:hidden">
+        <span aria-hidden className="ap-pestanas-gota" style={{ ["--k" as string]: pestañas.findIndex((p) => p.id === vista) }} />
         {pestañas.map((p) => (
           <button
             key={p.id}
@@ -200,7 +202,6 @@ export function ApartadosPanel(props: Props) {
             // «false» (válido en ARIA) y no ausente: así la guía interactiva reconoce la pestaña también cuando no es la elegida.
             aria-current={vista === p.id ? "page" : "false"}
             data-guia={`apartados.pestana-${p.id}`}
-            style={{ height: ALTO_PESTANAS_MOVIL }}
             className={`relative flex flex-col items-center justify-center gap-1 text-sm transition-colors ${vista === p.id ? "text-tinta" : "text-tinta/50"}`}
           >
             {p.icono}

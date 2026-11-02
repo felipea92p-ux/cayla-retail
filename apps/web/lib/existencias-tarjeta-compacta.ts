@@ -60,6 +60,9 @@ export function lineaGuardadas(c: Pick<CeldaTarjeta, "estado" | "almacen">, tall
   const apretada = tallasEnTarjeta >= 2;
   if (c.estado === "agotada") return { texto: apretada ? "acabó" : "se acabó", cero: false };
   if (c.almacen === 0) return { texto: apretada ? "0" : "0 en almacén", cero: true };
+  // La que falta colgar (0 en el piso, algo en el almacén): «↑ 3», la flecha que sube y las del almacén (Felipe 2026-11-02, vidrio
+  // «A · Lente que pide»): «+3» no decía que esas 3 esperan guardadas para subir al piso.
+  if (c.estado === "falta") return { texto: apretada ? `↑ ${c.almacen}` : `↑ ${c.almacen} en almacén`, cero: false };
   return { texto: apretada ? `+${c.almacen}` : `+${c.almacen} en almacén`, cero: false };
 }
 

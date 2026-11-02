@@ -233,13 +233,14 @@ export function TodosVista({
   ];
 
   return (
-    <div className="space-y-5 p-5 sm:p-6">
-      <div data-guia="apartados.cifras" className="grid overflow-hidden rounded-2xl border border-sand sm:grid-cols-2 lg:grid-cols-4">
+    <div className="ap-cuerpo space-y-5 p-5 sm:p-6">
+      <div data-guia="apartados.cifras" className="ap-cifras grid overflow-hidden rounded-2xl border border-sand sm:grid-cols-2 lg:grid-cols-4">
         {cifras.map((c, i) => (
           <div
             key={c.etiqueta}
             style={{ ["--i" as string]: i }}
-            className={`anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
+            data-custodia={c.custodia || undefined}
+            className={`ap-cifra anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
           >
             <p className={`label-cayla text-[11px] ${c.alerta ? "text-rojo-profundo" : "text-tinta/60"}`}>{c.etiqueta}</p>
             <p className={`font-display mt-1 text-3xl leading-tight tabular-nums ${c.alerta ? "text-rojo-profundo" : "text-tinta"}`}>{c.valor}</p>
@@ -269,7 +270,7 @@ export function TodosVista({
       )}
 
       {conOtraSede && pedidos.length > 0 && (
-        <section data-guia="apartados.pedidos" className="rounded-2xl border border-sand">
+        <section data-guia="apartados.pedidos" className="ap-placa rounded-2xl border border-sand">
           <TituloSeccion nivel={3} cuenta={pedidos.length} className="border-b border-sand px-5 py-3">
             Pedidos entre tiendas
           </TituloSeccion>
@@ -469,7 +470,7 @@ export function TodosVista({
               <TituloSeccion nivel={3} cuenta={filas.length} className="mb-2.5">
                 {g.titulo}
               </TituloSeccion>
-              <ul className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
+              <ul className="ap-placa divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
                 {filas.map(({ a, e }, i) => (
                   <li
                     key={a.id}

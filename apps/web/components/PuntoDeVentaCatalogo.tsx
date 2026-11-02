@@ -191,11 +191,11 @@ export function PuntoDeVentaCatalogo({
     // campo de escaneo nunca sale de la vista, por larga que sea la categoría.
     <section
       aria-label="Escanear o buscar prendas"
-      className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:flex-1 lg:border-b-0"
+      className="flex min-w-0 flex-col lg:min-h-0 lg:flex-1"
     >
       {/* `@container`: la fila de captura decide por el ancho del PANEL, no de la ventana. En una laptop con el lateral
           abierto el panel mide ~290 px aunque la ventana sea de escritorio. */}
-      <div className="anim-sube @container px-4 pt-3 sm:px-6 sm:pt-4">
+      <div className="pv-cat-aire anim-sube @container px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
             del campo y no entre los chips, donde le robaba ancho a las categorías.
@@ -425,7 +425,7 @@ export function PuntoDeVentaCatalogo({
         </div>
       </div>
 
-      <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
+      <div className="pv-cat-aire pv-cat-scroll scroll-cayla min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
         {/* Solo la grilla se colapsa con el botón de arriba. «Ventas de hoy» ya no vive aquí abajo: es la píldora
             «Hoy» de la cabecera (spike 2026-09-26). `@container`: las columnas dependen del ancho del catálogo, no de
             la pantalla — con el lateral abierto o cerrado, cada tarjeta mide lo mismo. */}
@@ -433,7 +433,7 @@ export function PuntoDeVentaCatalogo({
         <TooltipProvider delayDuration={250}>
           {/* Una tarjeta por prenda (ADR-0323), foto cuadrada y de 2 a 5 columnas según el ancho del catálogo, no de la
               ventana: con el lateral abierto o cerrado, en una laptop o a 320 px, cada tarjeta mide parecido. */}
-          <div className="grid grid-cols-2 gap-2.5 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
+          <div className="pv-grilla grid grid-cols-2 gap-2.5 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
             {prendas.length === 0 && (
               <p className="col-span-full py-10 text-center text-sm text-tinta/60">
                 {soloConStock ? `Nada con stock en ${ubicacionEtiqueta}` : "No hay prendas"}

@@ -18,7 +18,7 @@
     ],
     "components/BarraCierreCaja.tsx": [
       "button «Cerrar caja»",
-      "button «Cerrar caja» #2"
+      "button «{estado.bajada || undefined}»"
     ],
     "components/CajaAbiertaPanel.tsx": [
       "Boton «caja.gasto»",

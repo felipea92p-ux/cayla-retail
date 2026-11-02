@@ -260,3 +260,113 @@
 }
 
 /* fin del centro de avisos */
+
+/* ====================================================================
+   EL CENTRO DE AVISOS CON EL VIDRIO «SERENA»: «B · Lentes del tono» (ADR-0596; Felipe lo eligió mirando el 2026-11-02,
+   docs/maquetas/plan-campana-vidrio-2026-11/). Sin capa, como todo el vidrio, y al final para ganarle a la cara de papel de arriba.
+   · La campana es una gota clara, la de las píldoras de filtro (vidrio/campos-y-botones.css); abierta, la gota ahumada (el ahumado denso
+     de lo puesto). Su número, una gota de su tono: ámbar si hay algo por atender, roja si algo urge (lo que significa cada color no cambia).
+   · Lo urgente que asoma es una lente roja: vidrio teñido de rojo, más abajo que arriba, con su filo. La letra sigue en rojo profundo
+     en los dos temas (la maqueta la pasaba a rojo en oscuro: 4,6:1; el rojo profundo da 5,7:1).
+   · La lista flota en el vidrio claro de los combos y el menú «Más» (`--vidrio-flota-*`), con esquinas de 20 px.
+   · Cada aviso es una LENTE DEL TONO DE SU NIVEL (`--lente-tono-*`, la del aviso de la esquina) sin la franja de 5 px: el ícono y la
+     etiqueta conservan su color. En oscuro, la lente chica (`--lente-chica-*`): el tono directo, sin la base de vidrio, que aclaraba la
+     lente y bajaba el texto tenue.
+   · Sus botones, gotas (los secundarios del sistema); «Ya lo vi» sigue siendo texto.
+   Solo recetas de vidrio/recetas.css; sin movimiento nuevo (el punto que late de lo urgente es el de arriba). Qué dice y qué hace cada
+   aviso no cambia: eso vive en CentroDeAvisos.tsx y lib/plan-compra-avisos.ts.
+   ==================================================================== */
+.ca-boton {
+  border-color: var(--color-borde-control);
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .ca-boton:hover {
+    background: var(--gota-marca);
+  }
+}
+.ca-boton[aria-expanded="true"] {
+  color: var(--color-crema);
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+/* El número: una gota del tono, casi llena (96 % → 100 %) con su luz arriba: la letra es de 14 px y la gota de la maqueta (80 → 96 %)
+   la dejaba en 3,4:1 arriba. La letra es la crema del TEMA: en claro, crema sobre el tono oscuro; en oscuro (el tono se aclara solo), el
+   negro cálido, como la gota roja de Caja (con la crema fija, la de la maqueta, bajaba a 2,5:1 sobre el rojo y a 1,7:1 sobre el ámbar).
+   Medido el 2026-11-02, en el punto más claro de la gota: claro 4,5:1 (rojo) y 5,8:1 (ámbar); oscuro 6,0:1 y 8,9:1; abierta, sobre el
+   ahumado, 5,0:1 o más. */
+.ca-n,
+.ca-boton[aria-expanded="true"] .ca-n {
+  --c: var(--color-ambar);
+  color: var(--color-crema);
+  border: 1px solid color-mix(in srgb, var(--c) 70%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 96%, transparent), var(--c));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 35%, transparent);
+}
+.ca-boton[data-urgente] .ca-n {
+  --c: var(--color-rojo);
+}
+.ca-asoma {
+  border-color: color-mix(in srgb, var(--color-rojo) 30%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-rojo) 8%, color-mix(in srgb, var(--color-vidrio) 80%, transparent)),
+    color-mix(in srgb, var(--color-rojo) 14%, transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 85%, transparent);
+}
+.ca-panel {
+  border-radius: 20px;
+  border-color: var(--placa-borde);
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--vidrio-flota-sombra);
+}
+.ca-aviso {
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--c) var(--lente-tono-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--lente-tono-tinte-arriba), var(--lente-tono-base-arriba)),
+    color-mix(in srgb, var(--c) var(--lente-tono-tinte-abajo), var(--lente-tono-base-abajo))
+  );
+  box-shadow: var(--placa-luz);
+}
+.ca-btn:not(.ca-btn-texto) {
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .ca-btn:not(.ca-btn-texto):hover {
+    background: var(--gota-fondo-encima);
+  }
+  .ca-btn-texto:hover {
+    background: var(--gota-fondo);
+  }
+}
+@media screen {
+  /* En oscuro, la campana como las píldoras: la crema a poca opacidad, su borde y sin luz. */
+  :root[data-tema="oscuro"] .ca-boton:not([aria-expanded="true"]) {
+    border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    background: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    box-shadow: none;
+  }
+  /* La etiqueta «Urgente» en oscuro: el rojo sobre su lente quedaba en 4,2:1 (12 px); el rojo profundo, que en oscuro es el más claro,
+     da 5,3:1. El ícono sigue en rojo (es un gráfico: 4,2:1 pasa el 3:1). */
+  :root[data-tema="oscuro"] .ca-aviso[data-nivel="urgente"] .ca-etiqueta {
+    color: var(--color-rojo-profundo);
+  }
+  :root[data-tema="oscuro"] .ca-aviso {
+    border-color: color-mix(in srgb, var(--c) var(--lente-chica-filo), transparent);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--c) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+      color-mix(in srgb, var(--c) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+    );
+  }
+}
+
+/* fin del centro de avisos con vidrio */

@@ -1,0 +1,293 @@
+/* =====================================================================
+   CAMBIOS Y DEVOLUCIONES CON EL VIDRIO «SERENA» (ADR-0596; Felipe lo eligió mirando el 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/).
+
+   Lo propio de Ventas ▸ Posventa, con las dos caras que eligió:
+   · El paso a paso (`Pasos` de components/FlujoGuiado.tsx, el hilo de Atelier), «A · Hilo de vidrio»: la línea punteada pasa a una ranura
+     tallada (el tubo hundido de las barras); lo cosido sigue corriendo en tinta por dentro, con su chispa. El nudo hecho es la gota
+     AHUMADA (como el filtro puesto); el de ahora, la gota CLARA con su halo de luz (como la pestaña elegida); el que falta, una gota
+     suelta. Lo usan Cambios y Devoluciones (los dos flujos que arman su cabecera con `EncabezadoFlujo`).
+   · Lo que trae y lo que lleva (`ComparacionPrendas` de components/CambioResumen.tsx), «A · Balanza»: sin fichas de papel; las dos
+     prendas son sus fotos al aire (la «B · Foto al aire» del Punto de Venta, vidrio/vender.css), una frente a la otra, con una lente ⇄ al
+     medio. La que trae se ve un poco apagada: es la que se va. La que todavía no se eligió es el hueco punteado. La diferencia es una
+     gota: AHUMADA si se cobra, CLARA si se devuelve (o si no hay nada que mover). En el celular siguen lado a lado, más chicas.
+
+   Los ganchos (`posv-*`, `data-estado`, `data-lado`, `data-sentido`) los ponen FlujoGuiado.tsx y CambioResumen.tsx; nada cambia qué hace
+   la pantalla: los pasos, los montos, quién cobra o devuelve y lo que se confirma son los de siempre. Solo recetas de recetas.css; la única
+   propia es el halo del nudo de ahora (`--posventa-halo`), que en claro es luz y en oscuro un filo de crema. Sin capa: le gana a las
+   utilidades. Movimiento de ADR-0136: el de siempre (el hilo que se cose al avanzar, el nudo que asoma), más el cambio de tono de la gota
+   de la diferencia; sin rebote ni bucle nuevo; todo se apaga con `prefers-reduced-motion`.
+   ===================================================================== */
+
+:root {
+  /* El halo del nudo de ahora: un anillo de luz de 8 px alrededor de la gota clara. */
+  --posventa-halo: 0 0 0 8px color-mix(in srgb, var(--color-vidrio) 45%, transparent);
+}
+@media screen {
+  :root[data-tema="oscuro"] {
+    /* En oscuro el vidrio es negro cálido: el halo es un filo de crema a poca opacidad (como en la maqueta). */
+    --posventa-halo: 0 0 0 8px color-mix(in srgb, var(--color-tinta) 8%, transparent);
+  }
+}
+
+/* ---------- 1 · El paso a paso: A · Hilo de vidrio ---------- */
+/* La ranura: 6 px de tubo hundido, centrada en el hilo (el cosido va a 17 px con 2 px de alto: su centro, a 18). */
+.posv-pasos-ranura {
+  top: 15px;
+  height: 6px;
+  background: var(--tubo-fondo);
+  box-shadow: var(--tubo-sombra);
+}
+
+/* Cada gota lleva debajo el papel: es vidrio, pero la ranura y el hilo cosido no deben verse pasar por detrás del número. */
+.posv-nudo {
+  border-color: color-mix(in srgb, var(--color-borde-control) 60%, transparent);
+  background: var(--gota-fondo-encima), var(--color-papel);
+  box-shadow: var(--gota-luz);
+  transition:
+    background 200ms var(--ease-cayla),
+    border-color 200ms var(--ease-cayla),
+    box-shadow 200ms var(--ease-cayla);
+}
+/* Hecho: la gota ahumada (el ✓ en crema lo pone la letra del nudo). */
+.posv-nudo[data-estado="hecho"] {
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo), var(--color-papel);
+  box-shadow: var(--ahumado-denso-luz);
+}
+/* El de ahora: la gota clara, más llena, con su halo y su sombra. */
+.posv-nudo[data-estado="actual"] {
+  border-color: color-mix(in srgb, var(--color-tinta) 55%, transparent);
+  background: var(--gota-marca), var(--color-papel);
+  box-shadow: var(--gota-luz), var(--posventa-halo);
+}
+/* Un paso hecho es un botón (se puede volver): como todo botón negro, pasa a rojo profundo al pasar el mouse. */
+@media (hover: hover) {
+  button:hover:not(:disabled) > .posv-nudo[data-estado="hecho"] {
+    border-color: color-mix(in srgb, var(--color-rojo-profundo) 70%, transparent);
+    background: var(--ahumado-hover), var(--color-papel);
+  }
+}
+
+/* ---------- 2 · Lo que trae y lo que lleva: A · Balanza ---------- */
+/* Escritorio: dos platillos de hasta 180 px frente a frente, centrados, con la lente al medio. */
+.posv-balanza {
+  grid-template-columns: minmax(0, 180px) auto minmax(0, 180px);
+  justify-content: center;
+  column-gap: 20px;
+}
+/* La foto al aire: las esquinas y la sombra de la tarjeta de prenda de Vender. */
+.posv-foto {
+  isolation: isolate; /* Safari: que la foto respete las esquinas */
+  border-radius: var(--foto-al-aire-radio);
+  box-shadow: var(--foto-al-aire-sombra);
+}
+/* La que trae se va: un poco apagada (el color de la prenda es dato; solo baja su presencia). */
+.posv-ficha[data-lado="trae"] .posv-foto {
+  filter: saturate(0.8);
+  opacity: 0.86;
+}
+/* La que todavía no se eligió: el hueco punteado (lo mismo que una talla agotada en Vender, en grande). */
+.posv-hueco {
+  border: 1.5px dashed var(--hueco-borde);
+  border-radius: var(--foto-al-aire-radio);
+  background: var(--hueco-fondo);
+  box-shadow: var(--hueco-sombra);
+}
+.posv-ficha-nombre {
+  font-size: 19px;
+}
+
+/* La lente ⇄: la lente grande del vidrio (los orbes de «Por revisar»), de 52 px. */
+.posv-lente {
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--lente-grande-borde);
+  background: var(--lente-grande-fondo);
+  box-shadow: var(--lente-grande-sombra);
+}
+
+/* La diferencia: una gota centrada bajo la balanza. Clara de partida (se devuelve, o no hay nada que mover)… */
+.posv-diferencia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 14px;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 10px 20px;
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  border-radius: 999px;
+  color: var(--color-tinta);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+  transition:
+    background 300ms var(--ease-cayla),
+    border-color 300ms var(--ease-cayla),
+    color 300ms var(--ease-cayla),
+    box-shadow 300ms var(--ease-cayla);
+}
+.posv-diferencia-texto {
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+}
+.posv-diferencia-monto {
+  font-size: 26px;
+}
+/* …y ahumada si se cobra: lo que hay que hacer, como el botón principal. */
+.posv-diferencia[data-sentido="cobra"] {
+  border-color: var(--ahumado-denso-borde);
+  color: var(--color-crema);
+  background: var(--ahumado-denso-fondo);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  box-shadow: var(--ahumado-denso-luz);
+}
+.posv-diferencia[data-sentido="cobra"] .posv-diferencia-texto {
+  color: color-mix(in srgb, var(--color-crema) 78%, transparent);
+}
+
+/* El celular (PL-105): los platillos siguen lado a lado, más chicos; la lente baja a 40 px y el monto a 22. */
+@media (max-width: 639px) {
+  .posv-balanza {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    column-gap: 10px;
+  }
+  .posv-lente {
+    width: 40px;
+    height: 40px;
+  }
+  .posv-ficha-nombre {
+    font-size: 16px;
+  }
+  .posv-diferencia-monto {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posv-nudo,
+  .posv-diferencia {
+    transition: none;
+  }
+}
+
+/* =====================================================================
+   3 · LO QUE QUEDABA SÓLIDO EN LOS DOS FLUJOS (Felipe 2026-11-02, la misma maqueta, «Está armada solo con lo ya elegido»).
+   Nada propio: cada pieza se viste con la cara que ya eligió en otra pantalla, con las recetas de recetas.css.
+   · Las tarjetas del flujo (`posv-placa`: cada paso de CambiosFlujo y DevolucionesFlujo, «Lo que revisa el sistema» e «Impacto» de
+     `PanelValidaciones`) son la placa Serena de las tablas y las cifras. Al confirmar un cambio los datos y el impacto van cada uno en su
+     placa y la balanza queda al aire entre ellos (antes vivía dentro de una tarjeta de papel). Una franja que solo explica
+     (`posv-placa-plana`: «¿Le sirve otra talla o color?», cada prenda que devuelve) es la placa plana de las notas.
+   · La fila de una prenda vendida (`posv-fila`): al pasar el mouse asoma la gota; la elegida (`data-elegida`) es la gota marcada con su
+     filo de tinta, como la opción elegida de una lista.
+   · Las opciones (`OPCION*` de FlujoGuiado.tsx: motivo, talla, destino): la gota suelta con el borde de lo que se toca; la elegida, la gota
+     ahumada de la píldora puesta; la talla que no hay aquí, el hueco punteado de Vender. Las tarjetas de opción (`posv-tarjeta-opcion`:
+     «Impecable» / «Con defecto o uso») son la gota grande y la elegida lleva el filo de tinta (la `.opcion` de la maqueta). Si una trae su
+     ícono de 20 px, el duotono le llega solo (vidrio/pantalla.css).
+   · El botón principal es `btn-primario` (el ahumado, vidrio/campos-y-botones.css), en píldora. El rojo del paso final (`posv-boton-rojo`)
+     es la gota roja de «Cerrar caja» (`--gota-roja-*`, recetas.css), con la letra en crema (el negro cálido en oscuro).
+   Sin movimiento nuevo: el de siempre (`mov-boton`, el que sube 1 px de una opción), y lo que cambia de tono lo hace en 200 ms.
+   ===================================================================== */
+
+/* ---------- las tarjetas: la placa Serena ---------- */
+.posv-placa {
+  border-radius: 22px;
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.posv-placa-plana {
+  border: 1px solid var(--placa-borde);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+}
+
+/* ---------- la fila de una prenda vendida ---------- */
+.posv-fila {
+  border: 1px solid transparent;
+  transition: background 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .posv-fila[data-tocable]:not([data-elegida]):hover {
+    background: var(--gota-fondo);
+    box-shadow: var(--gota-luz);
+  }
+}
+.posv-fila[data-elegida] {
+  border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — es el filo de la fila elegida, no un texto */
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+
+/* ---------- las opciones: la gota, la puesta ahumada, el hueco ---------- */
+.posv-opcion {
+  border-color: var(--color-borde-control);
+  color: color-mix(in srgb, var(--color-tinta) 82%, transparent); /* contraste: texto sobre la gota de una opción (crema, papel, placa Serena) */
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .posv-opcion:not(.posv-opcion-puesta, .posv-opcion-hueco, :disabled):hover {
+    color: var(--color-tinta);
+    background: var(--gota-marca);
+  }
+}
+.posv-opcion.posv-opcion-puesta {
+  color: var(--color-crema);
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+.posv-opcion.posv-opcion-hueco {
+  border-style: dashed;
+  border-color: var(--hueco-borde);
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto de la talla que no hay aquí, sobre el hueco (placa Serena, crema) */
+  background: var(--hueco-fondo);
+  box-shadow: var(--hueco-sombra);
+}
+@media (hover: hover) {
+  .posv-opcion.posv-opcion-hueco:not(:disabled):hover {
+    border-color: var(--color-borde-control);
+  }
+}
+
+/* La tarjeta de opción: la gota grande; la elegida, más llena y con el filo de tinta (sin volverse sólida). */
+.posv-tarjeta-opcion {
+  border-color: var(--color-borde-control);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .posv-tarjeta-opcion:not([aria-pressed="true"], :disabled):hover {
+    background: var(--gota-fondo-encima);
+  }
+}
+.posv-tarjeta-opcion[aria-pressed="true"] {
+  border-color: var(--color-tinta);
+  background: var(--gota-marca);
+  box-shadow: inset 0 0 0 1px var(--color-tinta), var(--gota-luz);
+}
+
+/* ---------- el botón rojo del paso final: la gota roja ---------- */
+.posv-boton-rojo {
+  border: 1px solid var(--gota-roja-borde);
+  color: var(--color-crema);
+  background: var(--gota-roja-fondo);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gota-roja-luz);
+}
+@media (hover: hover) {
+  .posv-boton-rojo:hover:not(:disabled) {
+    background: var(--gota-roja-hover);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posv-fila {
+    transition: none;
+  }
+}

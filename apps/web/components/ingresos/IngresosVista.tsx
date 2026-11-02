@@ -10,7 +10,7 @@ import { SelectorRangoIngresos } from "./SelectorRangoIngresos";
 // Es la pregunta de la persona de compras cuando llega un fardo; el libro de Movimientos la responde fila por fila, color por
 // talla, y no suma por modelo. Solo lectura: cuenta lo que ENTRÓ (stock inicial y mercadería recibida).
 
-export function IngresosVista({ ingresos, rango, sede }: { ingresos: IngresosDeLaSede | null; rango: RangoIngresos; sede: string }) {
+export function IngresosVista({ ingresos, rango, sede, hoy }: { ingresos: IngresosDeLaSede | null; rango: RangoIngresos; sede: string; /** El día de Lima. */ hoy: string }) {
   return (
     <div className="space-y-4">
       <SelectorRangoIngresos periodo={rango.periodo} desde={rango.desde} hasta={rango.hasta} />
@@ -33,6 +33,7 @@ export function IngresosVista({ ingresos, rango, sede }: { ingresos: IngresosDeL
           sede={sede}
           desde={rango.desde}
           hasta={rango.hasta}
+          hoy={hoy}
         />
       )}
       <p data-guia="movimientos.ingresos-nota" className="nota-cayla">

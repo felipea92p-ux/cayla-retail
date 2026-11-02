@@ -231,7 +231,7 @@ export function ConfiguracionMetasMes({ metas, guardar }: { metas: Configuracion
           bajada="La semana tipo vale todo el año; aquí cada mes puede tener la suya (diciembre vende casi el doble que octubre). Una casilla vacía usa la semana tipo, que se ve en gris."
         />
         {metas.tiendas.map((t) => (
-          <div key={t.id} className="fin-tabla-wrap">
+          <div key={t.id} className="fin-tabla-wrap cfg-planilla">
             <table className="fin-tabla fin-tabla-apretada">
               <thead>
                 <tr>

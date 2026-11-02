@@ -82,13 +82,13 @@ export function TarjetaMarca({
 
   return (
     <li
-      className={`marca-entra rounded-2xl border border-sand bg-crema p-3.5 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px hover:border-tinta/30 hover:bg-papel motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${destello ? "marca-destello" : ""} ${saliendo ? "marca-sale" : ""}`}
+      className={`tarjeta-marca marca-entra rounded-2xl border border-sand bg-crema p-3.5 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px hover:border-tinta/30 hover:bg-papel motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${destello ? "marca-destello" : ""} ${saliendo ? "marca-sale" : ""}`}
       style={{ "--i": Math.min(indice, 11) } as CSSProperties}
       data-marca={m.id}
       data-guia="marcas.tarjeta"
     >
       <div className="flex items-start gap-3">
-        <span aria-hidden className={`font-display grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-lg font-semibold ${CLASE_MONOGRAMA[estado]}`}>
+        <span aria-hidden data-estado={estado} className={`marca-monograma font-display grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-lg font-semibold ${CLASE_MONOGRAMA[estado]}`}>
           {monogramaDeMarca(m.nombre)}
         </span>
         <div className="min-w-0 flex-1">
