@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Pruebas de la propuesta del SIRE (ADR-0601, actividades 1 y 2) — migraciones `20261102202000_sire_propuestas.sql` y
- * `20261102203000_sire_resoluciones.sql`. CAYLA V2.
+ * Pruebas de la propuesta del SIRE (ADR-0601, actividades 1, 2 y 5) — migraciones `20261102202000_sire_propuestas.sql`,
+ * `20261102203000_sire_resoluciones.sql` y `20261102204000_sire_propuesta_api.sql`. CAYLA V2.
  *
  * LO QUE VIGILA. Que la propuesta de SUNAT que se sube para compararla con el ERP se guarde entera o nada, que subirla otra vez el mismo mes
  * agregue una versión sin borrar la anterior (la vigente es la última), que solo quien ve Impuestos la suba o la lea, y que la base frene un mes
  * futuro, un registro desconocido o una línea mal formada. Y que una diferencia se resuelva una sola vez (dos a la vez: una gana), que
- * deshacer no borre, y que la resolución viva por la llave del comprobante y sobreviva a subir otra versión.
+ * deshacer no borre, y que la resolución viva por la llave del comprobante y sobreviva a subir otra versión. Y que lo que trae la API solo
+ * lo guarde la llave de servicio, sin repetir una versión igual a la vigente.
  *
  * Cada caso corre en su propia transacción con ROLLBACK, y la migración se carga dentro de cada caso (así se prueba que se puede pegar otra vez).
  *
@@ -31,7 +32,7 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").replace(/^reset lock_timeout;$/gm, "");
-const MIGRACION = ["20261102202000_sire_propuestas.sql", "20261102203000_sire_resoluciones.sql"]
+const MIGRACION = ["20261102202000_sire_propuestas.sql", "20261102203000_sire_resoluciones.sql", "20261102204000_sire_propuesta_api.sql"]
   .map((f) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")))
   .join("\n");
 
@@ -184,6 +185,27 @@ caso(
      split_part(pg_temp.intento($$select retail.resolver_diferencia_sire('compras', '2021-03-01', 'cualquier cosa', 'revisada', null)$$), '|', 1));
    ${como(SIN_CUENTA)}
    select split_part(pg_temp.intento($$select retail.resolver_diferencia_sire('compras', '2021-03-01', '01|E001|8|20100000003', 'revisada', null)$$), '|', 1);`,
+  "42501"
+);
+
+// A. LO QUE TRAE LA API ------------------------------------------------------------------------------------------------------------
+caso(
+  "A1 la llave de servicio guarda la propuesta como «api», sin firma; lo mismo otra vez no crea versión; algo distinto sí",
+  `set local role service_role;
+   select retail.guardar_propuesta_sire_api('compras', '2021-03-01', ${LINEAS}) is not null as uno \\gset
+   select retail.guardar_propuesta_sire_api('compras', '2021-03-01', ${LINEAS}) is null as repetida \\gset
+   select retail.guardar_propuesta_sire_api('compras', '2021-03-01', ${UNA}) is not null as otra \\gset
+   reset role;
+   select concat_ws(',', :'uno', :'repetida', :'otra',
+     (select count(*) from retail.sire_propuestas where periodo = '2021-03-01'),
+     (select string_agg(distinct origen || ':' || coalesce(subida_por::text, 'sin firma'), ' ') from retail.sire_propuestas where periodo = '2021-03-01'));`,
+  "t,t,t,2,api:sin firma"
+);
+
+caso(
+  "A2 una cuenta con sesión no puede usar la función del proceso automático",
+  `set local role authenticated;
+   select split_part(pg_temp.intento($$select retail.guardar_propuesta_sire_api('compras', '2021-03-01', '[]'::jsonb)$$), '|', 1);`,
   "42501"
 );
 

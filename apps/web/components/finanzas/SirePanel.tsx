@@ -121,7 +121,7 @@ function Fila({ l, mes, registro, onPedido }: { l: LineaConResolucion; mes: stri
   );
 }
 
-export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSire; mes: string; comparacion: ComparacionSire }) {
+export function SirePanel({ registro, mes, comparacion, automatica }: { registro: RegistroSire; mes: string; comparacion: ComparacionSire; automatica: boolean }) {
   const [subiendo, setSubiendo] = useState(false);
   const [filtro, setFiltro] = useState<EstadoCruce | null>(null);
   const [pedido, setPedido] = useState<PedidoResolver | null>(null);
@@ -180,6 +180,7 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
             </Boton>
           }
         >
+          {automatica && `El ERP la trae sola de SUNAT cada mañana del 2 al 10 del mes siguiente; si todavía no llegó, puedes subirla tú. `}
           Entra al portal SIRE de SUNAT con la Clave SOL, abre el Registro de {registro === "compras" ? "Compras" : "Ventas"} de {delMes} y pulsa «Descargar propuesta» en txt. Súbela aquí y el ERP te dice qué cuadra y qué no.
         </Vacio>
       )}
@@ -187,7 +188,7 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
       {propuesta && r && (
         <>
           <p className="text-sm text-taupe" data-guia="fin-sire.version">
-            Propuesta subida{propuesta.subidaPor ? ` por ${propuesta.subidaPor}` : ""} el {diaMes(diaLima(propuesta.subidaAt))}
+            {propuesta.origen === "api" ? "Propuesta traída de SUNAT" : `Propuesta subida${propuesta.subidaPor ? ` por ${propuesta.subidaPor}` : ""}`} el {diaMes(diaLima(propuesta.subidaAt))}
             {horaLima(propuesta.subidaAt) ? ` a las ${horaLima(propuesta.subidaAt)}` : ""}
             {propuesta.versiones > 1 ? ` · versión ${propuesta.versiones}` : ""} · {plural(propuesta.lineas.length, "comprobante", "comprobantes")} en SUNAT
             {cruce && cruce.resueltas > 0 ? ` · ${plural(cruce.resueltas, "diferencia resuelta", "diferencias resueltas")}` : ""}

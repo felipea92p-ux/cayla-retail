@@ -2129,6 +2129,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     (`components/finanzas/ResolverDiferenciaSireModal.tsx`; tabla `sire_resoluciones`, migración `20261102203000`: deshacer no borra).
     El mismo cruce, resumido (`getEstadoSire`, `lib/sire-estado-reglas.ts`), suma líneas a «Antes de declarar» de `/finanzas/impuestos` y
     un aviso que no bloquea a la unidad «empresa» de `/finanzas/cierre` (`conChequeoSire`).
+    `GET /api/sire/propuesta` (cron de Vercel, del 2 al 10 a las 8:30 de Lima) trae las dos propuestas del mes anterior de la API del
+    SIRE (`lib/sire-api.ts`, solo lectura; credenciales `SIRE_*` en variables de entorno) y las guarda con `guardar_propuesta_sire_api`
+    (solo `service_role`, migración `20261102204000`; no repite una versión igual). Sin credenciales responde «omitido».
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.

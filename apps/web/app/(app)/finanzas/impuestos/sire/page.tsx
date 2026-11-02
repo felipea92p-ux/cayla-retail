@@ -2,6 +2,7 @@ import { esMes, mesDe } from "@/lib/gastos-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getComparacionSire } from "@/lib/sire";
 import { SirePanel } from "@/components/finanzas/SirePanel";
+import { credencialesDe } from "@/lib/sire-api-reglas";
 
 // Finanzas ▸ Impuestos ▸ Comparar con SUNAT (ADR-0601). La puerta del módulo es el layout de Impuestos; la base vuelve a pedirlo en cada
 // función (`fn_puede_ver_impuestos`). El mes viene de la mesa de mando (`?mes=2026-10`); sin él, el mes anterior al de hoy, que es el que
@@ -15,5 +16,7 @@ export default async function SirePage({ searchParams }: { searchParams: Promise
   // `?registro=ventas` compara la propuesta del RVIE (actividad 3); sin él, la de compras, que es la que esconde IGV perdido.
   const registro = sp.registro === "ventas" ? "ventas" : "compras";
   const comparacion = await getComparacionSire(registro, mes);
-  return <SirePanel registro={registro} mes={mes} comparacion={comparacion} />;
+  // Si el servidor tiene las credenciales del SIRE (actividad 5), la propuesta llega sola: el vacío lo dice. Solo se pregunta si están, nunca
+  // viaja un valor al navegador.
+  return <SirePanel registro={registro} mes={mes} comparacion={comparacion} automatica={credencialesDe(process.env).ok} />;
 }

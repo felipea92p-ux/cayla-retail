@@ -1830,7 +1830,7 @@ export const PRUEBAS = [
   "pruebas:produccion-catalogo-de-procesos",
   // La propuesta del SIRE (ADR-0601, actividades 1 y 2): se guarda entera o nada, otra subida del mismo mes agrega una versión sin borrar (la vigente es la última),
   // solo quien ve Impuestos la sube o la lee, la base frena un mes futuro, un registro desconocido o una línea mal formada; una diferencia se resuelve una vez
-  // (deshacer no borra) y la resolución sobrevive a otra versión. ROLLBACK.
+  // (deshacer no borra) y la resolución sobrevive a otra versión; lo que trae la API (actividad 5) solo lo guarda la llave de servicio y sin repetir versión. ROLLBACK.
   "pruebas:sire-propuestas",
   // Agregar una talla o un color a un modelo desde Nueva orden (migración 20261031172000): una variante por color o por talla con el precio y el costo de su hermana y sin stock;
   // no duplica, no reclama una desactivada, talla habilitada y color activo, sin mezclar «Sin color» ni «Única»; solo quien opera el Taller y edita el catálogo. ROLLBACK.
