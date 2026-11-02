@@ -17,10 +17,10 @@ A · Pozo con su ícono de barras, filtros A · Gotas con su cuenta, insignia A,
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | La etiqueta en la hoja (`.liq-previa`) | Como ahora | El papel con su sombra, apoyado sobre la hoja. |
-| | **A · En su bandeja** (recomendada) | El papel descansa en un pozo de la hoja, como en la bandeja de la impresora; sombra corta. |
+| | **A · En su bandeja** (elegida) | El papel descansa en un pozo de la hoja, como en la bandeja de la impresora; sombra corta. |
 | | B · Colgada | Con su ojal y el hilo que la sostiene; sombra larga. |
 | Las cifras chicas del celular (`.liq-cifra-chica`) | Como ahora | Tres botones de papel; el puesto, en arena. |
-| | **A · Placas chicas** (recomendada) | Tres placas Serena; la puesta, hundida, como la tarjeta de cifra que filtra en escritorio. |
+| | **A · Placas chicas** (elegida) | Tres placas Serena; la puesta, hundida, como la tarjeta de cifra que filtra en escritorio. |
 | | B · Ranura de tres | Las tres en un pozo; la puesta, gota clara. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -37,4 +37,9 @@ Solo tokens (la etiqueta, papel fijo: `--crema-fija` y `--tinta-fija`). Claro y 
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: las recomendadas, la etiqueta A · En su bandeja y las cifras chicas A · Placas chicas.** Al implementar
+(`app/estilos/liquidacion.css`):
+- `.liq-previa`: un pozo (tinta al 5 % con su sombra adentro, esquinas de 20 px; en oscuro, sombra al 30 %); la sombra del papel pasa de
+  `0 6px 18px` al 22 % a una corta (`0 3px 8px -2px` al 30 %). La etiqueta y su `liq-entra` no cambian.
+- `.liq-cifra-chica`: la placa Serena (vidrio 64→44 %, desenfoque 24 y saturación 1,6, su luz arriba); la puesta (`aria-pressed`), hundida
+  (tinta al 5 % con su sombra adentro), como la `TarjetaCifra` que filtra.
