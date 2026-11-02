@@ -1,0 +1,5 @@
+# 2026-11-02 — Tienda web con vidrio
+
+- **Qué:** Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico y Conf. Tienda pasan del papel al vidrio con las piezas ya elegidas, sin maqueta (`docs/vidrio/README.md`, 4.3). Vive en `apps/web/app/estilos/vidrio/tienda-web.css`; el layout del grupo pone `.tienda-web-vidrio`, y en las hojas las cajas pasan a `card-cayla`. Solo cambia el material. De paso: el conteo de una pestaña elegida que «pide» algo no se leía en todo el ERP (crema sobre la gota clara, 1,09:1) y el pie pegado del editor de campaña se salía 8 px a 375 px; quedaron arreglados.
+- **Verificado:** `tema:auditar` con 0 hallazgos solo en oscuro en las rutas reales y en vistas temporales con datos inventados (no se commitean); sin desborde a 1440 y 375 px; combo y opciones probados en el navegador; tipos, Vitest completo y Knip en verde.
+- **Falta:** verlo con pedidos, campañas y tráfico reales; las hojas de Vitrina y Looks no se abrieron con datos; `/formidable` no se corrió. Siguen en 4.3: Producción, Clientes, Gestión ▸ Análisis, Configuración y Administración.

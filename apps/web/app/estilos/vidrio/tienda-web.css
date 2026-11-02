@@ -1,0 +1,353 @@
+/* ====================================================================
+   Tienda web con vidrio (ADR-0596, tablero docs/vidrio/README.md, «4.3»: sin maqueta, con las piezas ya elegidas de «4.1»).
+   Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico y Conf. Tienda: un bloque de la pantalla es la placa Serena; lo que se repite
+   muchas veces, el vidrio claro sin desenfoque; lo que espera o está puesto, el pozo o el hundido; lo que se toca, la gota; lo elegido en una
+   fila, el ahumado.
+
+   Solo cambia el MATERIAL: el movimiento de ADR-0430 y de Tráfico (la ventana que se asienta, las teselas, el camino, las estaciones) sigue en
+   estilos/tienda-web.css y estilos/trafico.css, sin duraciones ni keyframes nuevos.
+
+   Se queda como está, porque muestra lo que ve el cliente y la tienda no es de vidrio: la vista previa de una campaña (PreviewCampana, ya
+   `papel-fijo`), el teléfono de Conf. Tienda (`twc-cel`) y la captura del chat de «Editar mensaje». Y lo que es dato: el color de los caminos,
+   el rojo del mapa y del calendario, la fachada de una tienda.
+
+   `.tienda-web-vidrio` lo pone el layout del grupo (`display: contents`, no ocupa lugar). Una hoja se cuelga fuera de él y ya es de vidrio por
+   hoja.css: adentro usa `card-cayla`, la lámina. Sin capa: le gana a `components` y a las utilidades.
+   ==================================================================== */
+
+/* ---------- Un bloque de la pantalla: la placa Serena, con el hilo de las tablas por dentro ---------- */
+.tienda-web-vidrio .card-cayla {
+  border-radius: 22px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.tienda-web-vidrio .border-sand:not(.papel-fijo, .papel-fijo *),
+.tienda-web-vidrio .divide-sand:not(.papel-fijo, .papel-fijo *) > * {
+  border-color: var(--hilo-fila);
+}
+/* El pie pegado del editor de una campaña vive en la página, no en una hoja: vidrio que desenfoca lo que pasa por detrás, alineado con la pantalla
+   (los -1.5rem de `pie-hoja-fijo` son los del relleno de una hoja: aquí se salían 8 px a 375 px). */
+.tienda-web-vidrio {
+  --fondo-hoja: var(--vidrio-pie-fondo);
+}
+.tienda-web-vidrio .pie-hoja-fijo {
+  margin-inline: 0;
+  padding-inline: 0;
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+/* Lo que era hueso dentro de la pantalla (la pista de una línea de tiempo, las personas que esperan una talla, un ícono sobre su fondo): el pozo. */
+.tienda-web-vidrio .bg-hueso:not(.papel-fijo, .papel-fijo *, [data-color-dato], [data-color-dato] *) {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+
+/* ---------- La ventana del navegador: la placa, con la dirección en su pozo ---------- */
+.tw-marco {
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.tw-marco-barra {
+  border-bottom-color: var(--hilo-fila);
+  background: var(--placa-fondo);
+}
+.tw-marco-direccion {
+  border-color: transparent;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.tw-tesela {
+  background: var(--pozo-fondo);
+}
+
+/* ---------- Lo que se repite (la bandeja, las cartas de la Vitrina, las puertas de las tiendas): vidrio claro, sin desenfoque por costo ---------- */
+.tw-pendiente,
+.tw-carta,
+.twc-puerta {
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
+}
+@media (hover: hover) {
+  .tw-pendiente:hover,
+  .tw-carta:hover,
+  .twc-puerta:hover {
+    border-color: var(--serena-borde);
+    background: var(--serena-fondo-encima);
+    box-shadow: var(--serena-sombra-encima);
+  }
+}
+/* Elegida o activa conserva su filo de tinta: es lo que dice «esta». */
+.tw-carta[data-elegida],
+.twc-puerta[data-activa] {
+  border-color: var(--color-tinta);
+  box-shadow: var(--vidrio-claro-filo), 0 0 0 1px var(--color-tinta);
+}
+.twc-puerta[data-encima] {
+  border-color: var(--color-tinta);
+}
+.tw-carta-foto,
+.tw-look-collage {
+  background: var(--pozo-fondo);
+}
+.tw-carta-casilla {
+  background: var(--gota-marca);
+  box-shadow: var(--gota-chica-luz);
+}
+.tw-carta-pie,
+.tw-sede,
+.twc-escala-bloque {
+  border-color: var(--hilo-fila);
+}
+/* Las prendas de un look, en su hoja: la placa de la hoja, y la elegida con su filo. */
+.tw-elegir-tile {
+  border-color: var(--placa-borde);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+}
+@media (hover: hover) {
+  .tw-elegir-tile:hover:not(:disabled) {
+    border-color: var(--color-taupe);
+  }
+}
+.tw-elegir-tile[aria-pressed="true"] {
+  border-color: var(--color-tinta);
+  box-shadow: var(--placa-luz), 0 0 0 1px var(--color-tinta);
+}
+.tw-elegir-foto {
+  background: var(--pozo-fondo);
+}
+
+/* ---------- Una opción que se elige (Campañas): gota al esperar; puesta, se hunde con su filo de tinta. La de un ícono solo, ahumada. ---------- */
+.tw-opcion {
+  border-color: var(--gota-chica-borde);
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz);
+  transition: background 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .tw-opcion:hover:not(:disabled) {
+    background: var(--gota-fondo-encima);
+  }
+}
+.tw-opcion[aria-pressed="true"] {
+  border-color: var(--color-tinta);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra), 0 0 0 1px var(--color-tinta);
+}
+.tw-opcion-icono[aria-pressed="true"] {
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+  color: var(--color-crema);
+}
+/* El ícono de una campaña con diseño, en la lista: la gota ahumada. */
+.tw-marca-ahumada {
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+  color: var(--color-crema);
+}
+/* Elegir en una fila de píldoras dentro de una hoja (Pedido): gota al esperar, ahumada al elegirse. */
+.tw-pildora {
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz);
+}
+.tw-pildora[aria-pressed="true"] {
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+/* El código de seis casillas de un pedido: cada casilla es un pozo que se enciende al escribir. */
+.tw-casilla-codigo {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.tw-casilla-codigo:focus {
+  background: var(--pozo-encendido-fondo);
+  box-shadow: var(--pozo-encendido-sombra);
+}
+/* El recorte del Probador, al pasar el mouse: la gota clara de las listas (la foto sigue en papel: es un recorte sobre blanco). */
+@media (hover: hover) {
+  .tw-recorte:hover {
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
+  }
+}
+
+/* ---------- Dentro de una hoja: lo que no es una lámina entera ---------- */
+/* Lo que escribió el cliente, con su esquina de mensaje (por eso no es `card-cayla`, que redondea parejo). */
+.tw-cita {
+  border-color: var(--placa-borde);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+}
+/* Una línea del pedido que falta traer, o que se quitó (van sobre la lámina y le ganan a hoja.css). */
+:is(.hoja-serena, .cajon-serena) .card-cayla.tw-lamina-ambar {
+  border-color: color-mix(in srgb, var(--color-ambar) 40%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+:is(.hoja-serena, .cajon-serena) .card-cayla.tw-lamina-quitada {
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+
+/* ---------- Recomendaciones: cada una como un mensaje, sin papel detrás ---------- */
+.tw-globo {
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+}
+.tw-globo[data-sin-leer] {
+  background: color-mix(in srgb, var(--color-ambar) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+.tw-globo-respuesta {
+  background: color-mix(in srgb, var(--color-verde) 13%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+
+/* ---------- Conf. Tienda: los plazos, la escala, los cierres y el horario ---------- */
+/* Se arma con el kit de Finanzas (`Superficie`, `InputFin`), que sigue en papel en Finanzas (El telar queda fuera): aquí es la placa y el pozo. */
+.tienda-web-vidrio .fin-superficie {
+  border-radius: 22px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.tienda-web-vidrio .fin-control,
+.twc-mapita-tile {
+  border-color: transparent;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.tienda-web-vidrio .fin-control:focus {
+  border-color: var(--color-borde-control);
+  background: var(--pozo-encendido-fondo);
+  box-shadow: var(--pozo-encendido-sombra);
+}
+.tw-linea-paso::before {
+  background: var(--hilo-cabeza);
+}
+/* El nodo tapa el hilo que le pasa por detrás: lleva el vidrio entero, no un velo. */
+.tw-linea-nodo {
+  background: var(--color-vidrio);
+}
+.twc-foto {
+  border-color: var(--color-borde-control);
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+@media (hover: hover) {
+  .twc-foto:hover {
+    border-color: var(--color-tinta);
+    background: var(--pozo-encendido-fondo);
+  }
+}
+.twc-foto[data-sobre] {
+  border-color: var(--color-tinta);
+  background: var(--pozo-encendido-fondo);
+}
+.twc-mover button {
+  border-color: var(--gota-chica-borde);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-chica-luz);
+}
+.twc-celda b {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.twc-celda[data-tope] b {
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+.twc-celda-fija b {
+  background: none;
+  border-color: var(--color-borde-control);
+  box-shadow: none;
+}
+.twc-cierre {
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz);
+}
+.twc-cierre[data-hoy] {
+  background: color-mix(in srgb, var(--color-ambar) 15%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  box-shadow: none;
+}
+@media (hover: hover) {
+  .twc-cierre button:hover {
+    background: var(--gota-fondo-encima);
+  }
+  .twc-dia:not(:disabled):hover {
+    background: var(--gota-chica-fondo);
+  }
+}
+/* La pista de un día: un pozo con el hilo de cada hora; el tramo abierto, la gota ahumada que se arrastra. */
+.twc-pista {
+  background-color: var(--pozo-fondo);
+  background-image: repeating-linear-gradient(90deg, transparent 0 calc(100% / 16 - 1px), var(--hilo-fila) calc(100% / 16 - 1px) calc(100% / 16));
+  box-shadow: var(--pozo-sombra);
+}
+.twc-pista[data-cierre] {
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--hilo-cabeza) 6px 12px);
+}
+.twc-tramo {
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+
+/* ---------- Tráfico: la lectura, los caminos, las tallas y el calendario ---------- */
+.trafico-franja,
+.trafico-franja-cifra,
+.trafico-lectura,
+.trafico-camino {
+  border-color: var(--hilo-fila);
+}
+.trafico-lectura {
+  background: var(--placa-fondo);
+}
+@media (hover: hover) {
+  a.trafico-fila:hover,
+  .trafico-camino:hover {
+    background: var(--gota-chica-fondo);
+  }
+}
+.trafico-fila[aria-current="true"],
+.trafico-camino[aria-current="true"] {
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+.trafico-talla,
+.trafico-talla-celda {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.trafico-talla[data-mas] {
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+.trafico-talla-celda > i {
+  background: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+.trafico-talla-celda[data-falta],
+.trafico-talla-muestra {
+  background: color-mix(in srgb, var(--color-ambar) 20%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+/* El relleno se suma al de la celda: a más de 30 % el número en oscuro baja de 4.5:1 (medido con tema:auditar). */
+.trafico-talla-celda[data-falta] > i {
+  background: color-mix(in srgb, var(--color-ambar) 30%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+.trafico-cal-dia[data-futuro] {
+  border-color: var(--color-borde-control);
+}
+/* El nodo de cada estación tapa el riel que le pasa por detrás: lleva el vidrio entero, no un velo. La que atora y la última conservan su color. */
+.trafico-estacion:not([data-atora], [data-fin]) .trafico-estacion-nodo {
+  background: var(--color-vidrio);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-opcion { transition: none; }
+}

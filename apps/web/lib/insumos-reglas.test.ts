@@ -9,6 +9,7 @@ import {
   estadoInsumo,
   leerCantidad,
   loteMasAntiguoConSaldo,
+  origenDeLote,
   previsualizarConsumo,
   previsualizarDevolucion,
   saldoDeInsumo,
@@ -272,5 +273,14 @@ describe("texto", () => {
   it("los movimientos se leen sin jerga", () => {
     expect(textoDeMovimiento({ tipo: "consumo", motivo: null })).toBe("Sale al cortar");
     expect(textoDeMovimiento({ tipo: "ajuste", motivo: "conteo" })).toBe("Ajuste · conteo");
+  });
+});
+
+describe("origenDeLote (P11 del análisis del Taller)", () => {
+  it("dice de dónde vino: saldo inicial, compra a alguien o, sin saberlo, compra", () => {
+    expect(origenDeLote({ origen: "saldo_inicial", proveedor: "Textiles Gamarra" })).toBe("saldo inicial");
+    expect(origenDeLote({ origen: "compra", proveedor: "Textiles Gamarra" })).toBe("compra a Textiles Gamarra");
+    expect(origenDeLote({ origen: "compra", proveedor: "  " })).toBe("compra");
+    expect(origenDeLote({ origen: "compra" })).toBe("compra");
   });
 });

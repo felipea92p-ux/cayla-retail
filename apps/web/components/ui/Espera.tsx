@@ -124,7 +124,8 @@ const sinEspera = new Map<string, number>();
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
  * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Las otras excepciones: el refresco que sigue a bajar al piso o subir
  * al almacén desde el panel de Existencias (`PanelTalla`, Felipe 2026-10-08), que ya confirma con el aviso destacado y no debe tapar la
- * lista, y los dos refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`) y el que sigue a un guardado sin respuesta
+ * lista, y los tres refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`), el de Existencias cuando el stock de la sede
+ * cambia por el WebSocket (`useRefrescoEnVivo`, ADR-0603) y el que sigue a un guardado sin respuesta
  * (`RefrescoTrasCorte`, ADR-0411), que no deben dejar `inert` la pantalla bajo quien escribe.
  */
 export function navegacionSinEspera(href: string) {
