@@ -5,6 +5,8 @@
    · La mesa, «A · Catálogo al aire, ticket en placa»: se va la tarjeta grande de crema que encerraba todo (la pantalla más usada del ERP era
      la única que tapaba la Aurora). El catálogo vive directo sobre el fondo y el ticket es la placa Serena de su columna (radio 24 px, vidrio
      del 72 al 52 % con 26 px de desenfoque), pegada arriba. Dentro del ticket, las líneas de la cabecera y del pie son el hilo del vidrio.
+   · (Cambiado a las pocas horas, mismo día: la tarjeta de prenda vuelve a ser «A · Placa»; ver «La tarjeta de prenda» más abajo. Con fotos
+     reales la foto al aire no funcionaba. Lo que sigue describe la elección original.)
    · La tarjeta de prenda, «B · Foto al aire»: sin borde ni fondo de tarjeta. La foto (o el `MosaicoPrenda` de la prenda sin foto, ADR-0333)
      lleva esquinas de 18 px y su sombra, y sube 3 px al pasar el mouse con la sombra que crece. Nombre, tallas y precio van planos debajo.
      Las tallas son gotas, como las píldoras de filtro (vidrio/campos-y-botones.css); la agotada es un hueco punteado; la que está en el
@@ -31,12 +33,12 @@
   padding-inline: 10px;
   padding-top: 6px;
 }
-/* Sin tarjeta alrededor, cada prenda necesita su aire: entre filas, el que deja leer el precio de arriba sin pegarse a la foto de abajo. */
+/* Cada prenda vive en su placa (abajo): el aire entre tarjetas es el de una grilla de tarjetas, no el que pedía una foto suelta. */
 .pv-mesa .pv-grilla {
-  gap: 22px 14px;
+  gap: 16px 14px;
 }
 @media (max-width: 639px) {
-  .pv-mesa .pv-grilla { gap: 18px 10px; }
+  .pv-mesa .pv-grilla { gap: 12px 10px; }
 }
 
 /* ---------- La mesa: el ticket en placa (solo en su columna; en la hoja del celular la cara la pone la hoja) ---------- */
@@ -58,25 +60,50 @@
   background: transparent;
 }
 
-/* ---------- La tarjeta de prenda: «B · Foto al aire» ---------- */
-.pv-prenda-foto {
-  isolation: isolate; /* Safari: que la foto que se agranda adentro respete las esquinas */
-  border-radius: var(--foto-al-aire-radio);
-  box-shadow: var(--foto-al-aire-sombra);
+/* ---------- La tarjeta de prenda: «A · Placa» (Felipe 2026-11-02, a las pocas horas de elegir «B · Foto al aire») ----------
+   Con fotos reales, la foto al aire no funcionaba: cada foto trae su fondo (blanco, beige, celeste), así que unas se perdían contra el fondo
+   de la pantalla y otras parecían un hueco blanco, y el nombre, las tallas y el precio quedaban «en el aire». Cada prenda vive ahora en su
+   placa de vidrio claro (la de las tarjetas que se repiten, sin desenfoque por costo); la foto va dentro con su filo, para que todas
+   tengan el mismo borde sea cual sea su fondo, y el texto se apoya en la placa. */
+.pv-prenda {
+  padding: 8px 8px 12px;
+  border: 1px solid var(--vidrio-claro-borde);
+  border-radius: var(--pv-placa-radio, 22px);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
   transition:
     transform 350ms var(--ease-cayla),
     box-shadow 350ms var(--ease-cayla);
 }
+/* El texto, los colores y las tallas se sangran un poco respecto a la foto: la foto llena la placa, lo demás respira dentro. */
+.pv-prenda > :not(.pv-prenda-foto):not(.pv-prenda-abrir):not(.pv-prenda-tope) {
+  margin-inline: 4px;
+}
+.pv-prenda-foto {
+  isolation: isolate; /* Safari: que la foto que se agranda adentro respete las esquinas */
+  border-radius: calc(var(--pv-placa-radio, 22px) - 8px);
+}
+/* El filo de la foto: un hilo encima de ella (un `box-shadow` inset quedaría debajo de la imagen). Es lo que hace iguales a las fotos de fondo
+   blanco, beige o celeste. */
+.pv-prenda-foto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 9%, transparent);
+  pointer-events: none;
+}
 @media (hover: hover) {
-  .pv-prenda:hover .pv-prenda-foto {
+  .pv-prenda:hover {
     transform: translateY(-3px);
-    box-shadow: var(--foto-al-aire-sombra-encima);
+    box-shadow: var(--vidrio-claro-filo), 0 18px 34px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
   }
 }
-/* El botón que abre «Todo de la prenda» y el velo del tope siguen la forma de la foto. */
+/* El botón que abre «Todo de la prenda» y el velo del tope cubren la placa entera y siguen su forma. */
 .pv-prenda-abrir,
 .pv-prenda-tope {
-  border-radius: var(--foto-al-aire-radio);
+  border-radius: var(--pv-placa-radio, 22px);
 }
 
 /* Las tallas (y el «+N» de los colores): gotas sueltas con el borde de lo que se toca (3:1), como las píldoras de filtro. */
@@ -162,13 +189,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pv-prenda-foto,
+  .pv-prenda,
   .pv-talla {
     transition: none;
   }
 }
 @media (hover: hover) and (prefers-reduced-motion: reduce) {
-  .pv-prenda:hover .pv-prenda-foto {
+  .pv-prenda:hover {
     transform: none;
   }
 }

@@ -26,7 +26,7 @@ import { AccionesDeLaOrden } from "@/components/orden-pagina/AccionesDeLaOrden";
 export default async function OrdenProduccionPage({ params }: { params: Promise<{ numero: string }> }) {
   const persona = await requirePersonaActualV2();
   const volver = <Volver href="/produccion/ordenes" a="Órdenes" />;
-  if (!puedeVerProduccion(persona)) return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+  if (!puedeVerProduccion(persona)) return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   const { numero } = await params;
   const { orden: datos, falla } = await getOrdenProduccionPagina(numero);
 

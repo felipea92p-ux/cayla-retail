@@ -557,6 +557,16 @@ describe("el costo", () => {
     const p = orden({ insumos: [], fases: [faseCruda({ clave: "corte", secuencia: 10, quien: "taller" }), faseCruda({ clave: "costura", secuencia: 30, quien: "taller" }), faseCruda({ clave: "acabado", secuencia: 60, quien: "taller" })], costos: { tela_estimado: 0, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 0, servicios_devengado: 0, total_estimado: 0, total_real_hasta_hoy: 0 } });
     expect(textoCosto(p)!.filas).toEqual([]);
   });
+  it("sin tela, avíos ni servicios el costo no se conoce: «—», no un cero que parezca dato (P13 del análisis del Taller)", () => {
+    const p = orden({ insumos: [], fases: [faseCruda({ clave: "corte", secuencia: 10, quien: "taller" })], costos: { tela_estimado: 0, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 0, servicios_devengado: 0, total_estimado: 0, total_real_hasta_hoy: 0 } });
+    const t = textoCosto(p)!;
+    expect(t.sinCosto).toBe(true);
+    expect(t.total).toEqual({ estimado: "—", real: "—" });
+    expect(t.porPrenda).toMatchObject({ estimado: "—" });
+  });
+  it("con algún costo conocido ya no es «sin costo»", () => {
+    expect(textoCosto(orden())!.sinCosto).toBe(false);
+  });
 });
 
 describe("rojoDeLaOrden — las tres causas, cada una con su porqué", () => {
