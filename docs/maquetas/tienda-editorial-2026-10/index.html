@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B · Editorial cálido — Tienda CAYLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Hanken+Grotesk:wght@400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+/* ── B · EDITORIAL CÁLIDO (Felipe la eligió el 2026-10-31 tras ver «Vitrinas Shopify para CAYLA»).
+   Referentes: Dôen (papel, fotos enmarcadas, una palabra en letra de mano), Christy Dawn (bloques que alternan foto y texto, cifras
+   del origen) y Johanna Ortiz (sobriedad latinoamericana). El color sale de las fotos de campaña de CAYLA: el fondo beige del estudio,
+   el cacao del cuero, el vino del satén. El rojo del colibrí es solo del logo. Maqueta: nombres y precios de prendas son de EJEMPLO. ── */
+:root {
+  --papel: #f3ede4;      /* el fondo: el beige del estudio de las fotos */
+  --papel-2: #e9e0d2;    /* las bandas */
+  --marfil: #fbf8f2;     /* el marco de cada foto y las hojas */
+  --tinta: #2b211b;      /* cacao, el texto */
+  --taupe: #6f6152;      /* texto tenue (5,4 : 1 sobre papel) */
+  --filo: #d6c9b8;       /* líneas */
+  --vino: #7a2430;       /* el acento: oferta, «quedan pocas», enlaces vivos */
+  --verde: #3d6b4a;      /* «abierta», «hay» */
+  --logo: #d13730;       /* el rojo del colibrí, solo del logo */
+  --sombra: rgba(43, 33, 27, .14);
+  --display: "Cormorant", "Cormorant Garamond", Garamond, Georgia, serif;
+  --mano: "Pinyon Script", "Snell Roundhand", cursive;
+  --texto: "Hanken Grotesk", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ancho: 1360px;
+  --g: clamp(16px, 3.2vw, 48px);
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+html[data-tema="oscuro"] {
+  --papel: #1b1612; --papel-2: #241d18; --marfil: #2a221c; --tinta: #f1e8dc; --taupe: #b9a996; --filo: #3d332b;
+  --vino: #e08c94; --verde: #8cc49d; --sombra: rgba(0, 0, 0, .45); color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: auto; }
+body {
+  margin: 0; background: var(--papel); color: var(--tinta);
+  font: 400 15px/1.6 var(--texto);
+  /* grano de papel, muy suave */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+img { display: block; max-width: 100%; }
+a { color: inherit; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--vino); outline-offset: 3px; }
+.ancho { max-width: var(--ancho); margin: 0 auto; padding-inline: var(--g); }
+.oculto-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* tipografía */
+.serif { font-family: var(--display); font-weight: 500; letter-spacing: -.005em; line-height: 1.02; }
+.mano { font-family: var(--mano); font-weight: 400; letter-spacing: 0; line-height: 1; }
+.rotulo { font: 600 11.5px/1.3 var(--texto); letter-spacing: .2em; text-transform: uppercase; }
+.tenue { color: var(--taupe); }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+
+/* ── barra de la maqueta (no es parte de la tienda) ── */
+.barra-maqueta {
+  position: fixed; z-index: 90; left: 50%; bottom: 16px; transform: translateX(-50%);
+  display: flex; gap: 4px; align-items: center; padding: 5px; border-radius: 999px;
+  background: #111; color: #eee; font: 500 12px/1 var(--texto); box-shadow: 0 8px 30px rgba(0,0,0,.3);
+}
+.barra-maqueta a, .barra-maqueta button { padding: 9px 13px; border-radius: 999px; text-decoration: none; color: #bbb; }
+.barra-maqueta a[aria-current="page"] { background: #f3ede4; color: #111; }
+.barra-maqueta .sep { width: 1px; height: 18px; background: #444; margin: 0 4px; }
+@media (max-width: 640px) { .barra-maqueta { bottom: 84px; } .barra-maqueta .no-movil { display: none; } }
+
+/* ── botones ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 28px;
+  font: 600 12px/1 var(--texto); letter-spacing: .18em; text-transform: uppercase; text-decoration: none;
+  border: 1px solid var(--tinta); transition: background-color .35s var(--ease), color .35s var(--ease); }
+.btn-lleno { background: var(--tinta); color: var(--papel); }
+.btn-borde { color: var(--tinta); }
+.btn-claro { border-color: #fbf8f2; color: #fbf8f2; }
+@media (hover: hover) {
+  .btn-lleno:hover { background: var(--vino); border-color: var(--vino); }
+  .btn-borde:hover { background: var(--tinta); color: var(--papel); }
+  .btn-claro:hover { background: #fbf8f2; color: #2b211b; }
+}
+.enlace { font: 600 12px/1 var(--texto); letter-spacing: .18em; text-transform: uppercase; text-decoration: none;
+  border-bottom: 1px solid currentColor; padding-bottom: 4px; }
+.enlace-fino { text-decoration: underline; text-decoration-color: var(--filo); text-underline-offset: 4px; }
+@media (hover: hover) { .enlace:hover, .enlace-fino:hover { color: var(--vino); } }
+
+/* ── el marco de foto (la pieza que define la dirección) ── */
+.marco { background: var(--marfil); padding: 10px; border: 1px solid var(--filo); box-shadow: 0 1px 0 var(--filo), 0 14px 30px -18px var(--sombra); }
+.marco img { width: 100%; height: 100%; object-fit: cover; }
+.boleto { /* la etiqueta tipo boleto que nombra cada foto */
+  display: inline-flex; align-items: center; gap: 10px; background: var(--marfil); color: var(--tinta);
+  padding: 9px 16px; border: 1px solid var(--filo); font: 600 11px/1 var(--texto); letter-spacing: .2em; text-transform: uppercase;
+}
+.boleto::before, .boleto::after { content: "✦"; font-size: 8px; color: var(--vino); letter-spacing: 0; }
+.adorno { display: block; width: 120px; height: 10px; margin: 10px auto 0; color: var(--taupe); }
+
+/* ── franja y cabecera ── */
+.franja { background: var(--tinta); color: var(--papel); text-align: center; padding: 9px var(--g); font: 500 12px/1.3 var(--texto); letter-spacing: .06em; }
+.franja em { font-family: var(--display); font-style: italic; font-size: 15px; letter-spacing: 0; }
+.cab { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--papel) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--filo); }
+.cab-fila { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; height: 76px; }
+.cab nav { display: flex; gap: 28px; }
+.cab nav a, .cab-der a, .cab-der button { font: 500 12.5px/1 var(--texto); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; padding: 8px 0; }
+.cab nav a[aria-current="page"] { border-bottom: 1px solid var(--tinta); }
+.cab-logo img { height: 34px; width: auto; }
+.cab-der { display: flex; justify-content: flex-end; align-items: center; gap: 24px; }
+.sede { display: inline-flex; align-items: center; gap: 6px; }
+.sede::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--verde); }
+.bolsa-num { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 4px; padding: 0 5px; border-radius: 10px; background: var(--tinta); color: var(--papel); font-size: 11px; letter-spacing: 0; }
+.solo-movil { display: none; }
+@media (max-width: 900px) {
+  .cab nav, .cab-der .no-movil { display: none; }
+  .solo-movil { display: inline-flex; }
+  .cab-fila { grid-template-columns: auto 1fr auto; height: 62px; gap: 12px; }
+  .cab-logo { justify-self: start; } .cab-logo img { height: 26px; }
+  .cab-der { gap: 16px; }
+}
+
+/* ── vistas ── */
+.vista { display: none; }
+.vista.activa { display: block; }
+
+/* ── INICIO ── */
+/* la portada en dos columnas (como la cápsula de Johanna Ortiz): el texto sobre el papel, la foto de campaña a sangre a la derecha */
+.portada { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); height: min(84vh, 800px); min-height: 540px; }
+.portada picture { display: block; overflow: hidden; height: 100%; order: 2; }
+.portada img { width: 100%; height: 100%; object-fit: cover; object-position: 68% 40%; animation: acercar 1.8s var(--ease) both; }
+.portada-texto { align-self: center; padding: 40px clamp(24px, 4vw, 64px) 40px var(--g); display: grid; justify-items: start; gap: 16px; animation: subir 1.2s .3s var(--ease) both; }
+.portada-texto .mano { font-size: clamp(52px, 5.6vw, 84px); margin-bottom: -.3em; margin-left: .1em; color: var(--vino); }
+.portada-texto h1 { font-family: var(--display); font-weight: 500; font-size: clamp(44px, 5.4vw, 84px); letter-spacing: .01em; text-transform: uppercase; line-height: .95; }
+.portada-texto p { font-size: 16px; max-width: 34ch; color: var(--taupe); }
+.portada-texto .botones { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.portada-sello { display: flex; gap: 18px; align-items: center; margin-top: 18px; font-size: 12.5px; color: var(--taupe); }
+.portada-sello span + span::before { content: "·"; margin-right: 18px; }
+@media (max-width: 700px) {
+  .portada { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .portada picture { order: 0; height: 60vh; }
+  .portada img { object-position: 50% 30%; }
+  .portada-texto { padding: 28px var(--g) 8px; justify-items: center; text-align: center; }
+  .portada-texto .botones { justify-content: center; }
+  .portada-sello { display: none; }
+}
+@keyframes acercar { from { transform: scale(1.07); } to { transform: none; } }
+@keyframes subir { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+.seccion { padding-block: clamp(56px, 9vw, 112px); }
+.titulo-seccion { text-align: center; display: grid; justify-items: center; gap: 6px; margin-bottom: clamp(28px, 4vw, 48px); }
+.titulo-seccion .mano { font-size: clamp(46px, 5.4vw, 72px); }
+.titulo-seccion h2.serif { font-size: clamp(30px, 3.6vw, 46px); }
+.titulo-seccion p { max-width: 52ch; }
+
+/* categorías: cinco fotos enmarcadas con su boleto */
+.categorias { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(12px, 1.6vw, 24px); }
+.cat { display: grid; justify-items: center; text-decoration: none; }
+.cat .marco { width: 100%; aspect-ratio: 3 / 4; transition: transform .6s var(--ease); }
+.cat .boleto { margin-top: -18px; position: relative; }
+@media (hover: hover) { .cat:hover .marco { transform: translateY(-6px); } }
+@media (max-width: 900px) {
+  .categorias { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 62%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; margin-inline: calc(var(--g) * -1); padding-inline: var(--g); }
+  .cat { scroll-snap-align: start; }
+}
+
+/* «Explora»: el collage de looks */
+.explora { background: var(--papel-2); position: relative; overflow: hidden; }
+.collage { position: relative; height: 760px; }
+.collage .pieza { position: absolute; display: grid; justify-items: center; text-decoration: none; transition: transform .7s var(--ease); }
+.collage .pieza .marco { width: 100%; height: 100%; }
+.collage .pieza .boleto { margin-top: -18px; position: relative; }
+.collage .pieza.oscura .marco { background: #2b211b; border-color: #2b211b; }
+@media (hover: hover) { .collage .pieza:hover { transform: rotate(0deg) translateY(-8px) !important; z-index: 5; } }
+.p1 { left: 2%; top: 60px; width: 25%; height: 400px; transform: rotate(-2.2deg); }
+.p2 { left: 31%; top: 0; width: 21%; height: 300px; transform: rotate(1.5deg); }
+.p3 { left: 56%; top: 30px; width: 19%; height: 280px; transform: rotate(-1deg); }
+.p4 { left: 79%; top: 90px; width: 19%; height: 340px; transform: rotate(2.4deg); }
+.p5 { left: 29%; top: 400px; width: 26%; height: 320px; transform: rotate(1.2deg); }
+.p6 { left: 59%; top: 360px; width: 20%; height: 360px; transform: rotate(-2deg); }
+.collage .nota-mano { position: absolute; left: 4%; bottom: 40px; width: 16%; font-family: var(--display); font-style: italic; font-size: 22px; line-height: 1.25; color: var(--taupe); }
+@media (max-width: 900px) {
+  .collage { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 28px 14px; }
+  .collage .pieza { position: static; width: auto; height: 300px; transform: none !important; }
+  .collage .pieza.p5 { grid-column: span 2; height: 260px; }
+  .collage .nota-mano { position: static; width: auto; grid-column: span 2; text-align: center; }
+}
+
+/* carril «Lo nuevo» */
+.carril-cab { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+.carril-cab h2 { font-size: clamp(34px, 4vw, 52px); }
+.carril { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 3 * 20px) / 4); gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.carril::-webkit-scrollbar { display: none; }
+.carril > * { scroll-snap-align: start; }
+@media (max-width: 900px) { .carril { grid-auto-columns: 70%; margin-inline: calc(var(--g) * -1); padding-inline: var(--g); } }
+
+/* tarjeta de prenda */
+.prenda { display: grid; gap: 12px; text-decoration: none; position: relative; }
+.prenda-foto { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: var(--papel-2); }
+.prenda-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .6s var(--ease), transform 1.2s var(--ease); }
+.prenda-foto img + img { opacity: 0; }
+@media (hover: hover) { .prenda:hover .prenda-foto img + img { opacity: 1; } .prenda:hover .prenda-foto img:only-child { transform: scale(1.04); } }
+.prenda-etq { position: absolute; z-index: 1; top: 12px; left: 12px; background: var(--marfil); color: var(--tinta); padding: 6px 9px; font: 600 10.5px/1 var(--texto); letter-spacing: .16em; text-transform: uppercase; }
+.prenda-fav { position: absolute; z-index: 1; top: 8px; right: 8px; width: 36px; height: 36px; display: grid; place-items: center; color: #2b211b; }
+.prenda-fav svg { width: 18px; height: 18px; }
+.prenda-fav[aria-pressed="true"] svg { fill: var(--vino); color: var(--vino); }
+.prenda-info { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline; }
+.prenda-nombre { font-family: var(--display); font-size: 21px; font-weight: 500; line-height: 1.15; }
+.prenda-precio { font-variant-numeric: tabular-nums; font-size: 14px; }
+.prenda-sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+.puntos { display: inline-flex; gap: 4px; }
+.puntos i { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); }
+.hay { color: var(--verde); } .pocas { color: var(--vino); }
+
+/* bloque foto + texto (Christy Dawn) */
+.alterna { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(28px, 6vw, 96px); align-items: center; }
+.alterna.al-reves > :first-child { order: 2; }
+.alterna .marco { aspect-ratio: 4 / 5; }
+.alterna-texto { display: grid; gap: 18px; max-width: 46ch; }
+.alterna-texto .mano { font-size: 56px; color: var(--vino); margin-bottom: -10px; }
+.alterna-texto h2 { font-size: clamp(36px, 4.4vw, 60px); }
+.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; border-top: 1px solid var(--filo); padding-top: 22px; margin-top: 8px; }
+.cifras b { display: block; font-family: var(--display); font-weight: 500; font-size: 46px; line-height: 1; font-variant-numeric: lining-nums; }
+.cifras span { font-size: 13px; color: var(--taupe); }
+.por-confirmar { color: var(--taupe); border-bottom: 1px dashed var(--taupe); }
+@media (max-width: 900px) { .alterna { grid-template-columns: 1fr; } .alterna.al-reves > :first-child { order: 0; } }
+
+/* así se separa */
+.pasos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--tinta); }
+.paso { padding: 26px 24px 0 0; display: grid; gap: 10px; align-content: start; }
+.paso + .paso { padding-left: 24px; border-left: 1px solid var(--filo); }
+.paso b { font-family: var(--display); font-style: italic; font-weight: 400; font-size: 44px; line-height: 1; color: var(--vino); }
+.paso h3 { font: 600 15px/1.3 var(--texto); }
+@media (max-width: 900px) { .pasos { grid-template-columns: 1fr 1fr; } .paso:nth-child(3) { padding-left: 0; border-left: 0; } }
+
+/* club */
+.club { background: var(--tinta); color: var(--papel); }
+html[data-tema="oscuro"] .club { background: #0f0c0a; color: #f1e8dc; }
+.club .alterna-texto .mano { color: #e8b9a8; }
+.club .beneficios { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+.club .beneficios li { padding: 12px 0; border-bottom: 1px solid rgba(243, 237, 228, .2); font-size: 14px; }
+.club .marco { background: #f3ede4; border-color: #f3ede4; transform: rotate(-1.5deg); }
+
+/* tiendas */
+.tiendas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 36px); }
+.tienda { display: grid; gap: 8px; align-content: start; border-top: 1px solid var(--tinta); padding-top: 22px; }
+.tienda h3 { font-family: var(--display); font-weight: 500; font-size: 34px; line-height: 1; }
+.tienda .estado { font-size: 12.5px; display: inline-flex; align-items: center; gap: 7px; }
+.tienda .estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.tienda .botones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.tienda .btn { min-height: 42px; padding: 0 18px; font-size: 11px; }
+@media (max-width: 900px) { .tiendas { grid-template-columns: 1fr; } }
+
+.pie { border-top: 1px solid var(--filo); padding-block: 56px 120px; }
+.pie-fila { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; }
+.pie h4 { margin: 0 0 12px; }
+.pie ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.pie ul a { text-decoration: none; }
+.pie-firma { margin-top: 48px; text-align: center; }
+.pie-firma img { height: 54px; width: auto; margin: 0 auto; opacity: .95; }
+@media (max-width: 900px) { .pie-fila { grid-template-columns: 1fr 1fr; } }
+
+/* ── CATÁLOGO ── */
+.cat-cab { padding-block: 40px 20px; display: grid; gap: 8px; }
+.migas { font-size: 12.5px; color: var(--taupe); }
+.migas a { text-decoration: none; }
+.cat-cab-fila { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.cat-cab h1 { font-size: clamp(44px, 5vw, 68px); }
+.cat-cab h1 .mano { font-size: .8em; color: var(--vino); }
+.chips-fila { position: sticky; top: 76px; z-index: 20; background: color-mix(in srgb, var(--papel) 94%, transparent); backdrop-filter: blur(8px); border-block: 1px solid var(--filo); }
+.chips-fila .ancho { display: flex; align-items: center; gap: 16px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 12px; flex: 1; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; padding: 9px 16px; border: 1px solid var(--filo); border-radius: 999px; font-size: 13px; white-space: nowrap; transition: background-color .35s, color .35s, border-color .3s; }
+.chip[aria-pressed="true"] { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.chip small { opacity: .6; margin-left: 4px; }
+@media (hover: hover) { .chip:hover { border-color: var(--tinta); } }
+.boton-filtros { flex: none; display: inline-flex; gap: 8px; align-items: center; font: 600 12px/1 var(--texto); letter-spacing: .16em; text-transform: uppercase; padding: 10px 0; }
+@media (max-width: 900px) { .chips-fila { top: 62px; } }
+.grilla { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 20px; padding-block: 32px 40px; }
+.grilla .editorial { grid-column: span 2; position: relative; display: block; text-decoration: none; color: #fbf8f2; min-height: 100%; overflow: hidden; }
+.grilla .editorial img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; transition: transform 1.2s var(--ease); }
+.grilla .editorial::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(30, 20, 14, .6)); }
+.grilla .editorial div { position: absolute; z-index: 1; left: 28px; bottom: 26px; right: 28px; display: grid; gap: 6px; }
+.grilla .editorial .mano { font-size: 52px; margin-bottom: -10px; }
+.grilla .editorial .serif { font-size: 34px; }
+@media (hover: hover) { .grilla .editorial:hover img { transform: scale(1.03); } }
+.grilla .prenda.fuera { display: none; }
+.grilla .prenda { animation: subir .6s var(--ease) both; }
+@media (max-width: 900px) { .grilla { grid-template-columns: 1fr 1fr; gap: 28px 12px; } .grilla .editorial { aspect-ratio: 4 / 3; } .prenda-nombre { font-size: 18px; } }
+.ver-mas { display: grid; justify-items: center; gap: 12px; padding-bottom: 72px; }
+
+/* cajón de filtros */
+.velo { position: fixed; inset: 0; z-index: 80; background: rgba(30, 20, 14, .35); backdrop-filter: blur(3px); opacity: 0; pointer-events: none; transition: opacity .35s var(--ease); }
+.velo.abierto { opacity: 1; pointer-events: auto; }
+.cajon { position: fixed; z-index: 81; top: 0; right: 0; bottom: 0; width: min(420px, 100%); background: var(--marfil); padding: 28px; display: grid; grid-template-rows: auto 1fr auto; gap: 20px; transform: translateX(100%); transition: transform .5s var(--ease); }
+.cajon.abierto { transform: none; }
+.cajon-cab { display: flex; justify-content: space-between; align-items: center; }
+.cajon-cab h2 { font-size: 34px; }
+.cerrar { width: 40px; height: 40px; display: grid; place-items: center; font-size: 22px; }
+.cajon-cuerpo { overflow: auto; display: grid; gap: 26px; align-content: start; }
+.grupo-filtro { display: grid; gap: 12px; }
+.muestras { display: flex; flex-wrap: wrap; gap: 10px; }
+.muestra { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border: 1px solid var(--filo); border-radius: 999px; font-size: 13px; }
+.muestra i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); }
+.muestra[aria-pressed="true"], .talla[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.tallas { display: flex; flex-wrap: wrap; gap: 8px; }
+.talla { min-width: 52px; height: 44px; padding: 0 14px; border: 1px solid var(--filo); font-size: 14px; transition: background-color .35s, color .35s, border-color .3s; }
+.talla:disabled { color: var(--taupe); text-decoration: line-through; cursor: not-allowed; opacity: .7; }
+.cajon-pie { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+
+/* ── FICHA ── */
+.ficha { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: clamp(28px, 4vw, 64px); padding-block: 28px 72px; }
+.galeria { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.galeria figure { margin: 0; aspect-ratio: 2 / 3; overflow: hidden; background: var(--papel-2); }
+.galeria img { width: 100%; height: 100%; object-fit: cover; }
+.galeria .nota-modelo { position: relative; }
+.galeria .nota-modelo span { position: absolute; left: 12px; bottom: 12px; background: var(--marfil); padding: 6px 10px; font-size: 12px; }
+.puntos-galeria { display: none; }
+.ficha-panel { position: sticky; top: 100px; align-self: start; display: grid; gap: 22px; }
+.ficha-panel .etq-nuevo { justify-self: start; }
+.ficha-panel h1 { font-size: clamp(38px, 3.6vw, 54px); }
+.precio-fila { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.precio { font-size: 20px; font-variant-numeric: tabular-nums; }
+.linea-campo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.linea-campo .rotulo b { font-weight: 500; letter-spacing: .04em; text-transform: none; font-size: 14px; color: var(--tinta); margin-left: 6px; }
+.calce { display: grid; gap: 8px; }
+.calce-barra { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.calce-barra i { height: 3px; background: var(--filo); }
+.calce-barra i.esta { background: var(--tinta); }
+.calce-ejes { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--taupe); letter-spacing: .12em; text-transform: uppercase; }
+.acciones { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.acciones .btn-borde.ancho-total { grid-column: 1 / -1; }
+.fav-grande { width: 48px; border: 1px solid var(--tinta); display: grid; place-items: center; }
+.fav-grande svg { width: 20px; height: 20px; }
+.fav-grande[aria-pressed="true"] svg { fill: var(--vino); color: var(--vino); }
+.recoge { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 16px; background: var(--marfil); border: 1px solid var(--filo); font-size: 14px; }
+.recoge svg { width: 20px; height: 20px; grid-row: span 2; margin-top: 2px; }
+.pestanas { display: flex; gap: 24px; border-bottom: 1px solid var(--filo); }
+.pestanas button { padding: 0 0 12px; font: 600 12px/1 var(--texto); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); border-bottom: 1px solid transparent; margin-bottom: -1px; transition: color .35s, border-color .35s; }
+.pestanas button[aria-selected="true"] { color: var(--tinta); border-color: var(--tinta); }
+.pestana-cuerpo { font-size: 14.5px; color: var(--taupe); padding-top: 14px; min-height: 96px; }
+.pestana-cuerpo ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.combina { display: grid; gap: 14px; border-top: 1px solid var(--filo); padding-top: 20px; }
+.combina-fila { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mini { display: grid; gap: 8px; text-decoration: none; font-size: 13px; }
+.mini .foto { aspect-ratio: 3 / 4; overflow: hidden; position: relative; background: var(--papel-2); }
+.mini img { width: 100%; height: 100%; object-fit: cover; }
+.mini .mas { position: absolute; right: 6px; bottom: 6px; width: 32px; height: 32px; display: grid; place-items: center; background: var(--marfil); border: 1px solid var(--filo); font-size: 18px; transition: background-color .35s, color .35s; }
+.mini .mas[aria-pressed="true"] { background: var(--tinta); color: var(--papel); }
+.mini b { font-family: var(--display); font-weight: 500; font-size: 17px; line-height: 1.1; display: block; }
+.cambios-linea { font-size: 13px; color: var(--taupe); display: flex; gap: 8px; align-items: center; }
+.barra-compra { display: none; }
+@media (max-width: 900px) {
+  .ficha { grid-template-columns: 1fr; padding-top: 0; }
+  .galeria { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 0; margin-inline: calc(var(--g) * -1); scrollbar-width: none; }
+  .galeria::-webkit-scrollbar { display: none; }
+  .galeria figure { flex: none; width: 100%; scroll-snap-align: start; aspect-ratio: 4 / 5; }
+  .puntos-galeria { display: flex; gap: 6px; justify-content: center; margin-top: -32px; position: relative; z-index: 1; }
+  .puntos-galeria i { width: 6px; height: 6px; border-radius: 50%; background: rgba(251, 248, 242, .6); }
+  .puntos-galeria i:first-child { background: #fbf8f2; width: 18px; border-radius: 3px; }
+  .galeria .nota-modelo span { bottom: 44px; }
+  .ficha-panel { position: static; gap: 18px; }
+  .ficha-panel h1 { font-size: 36px; }
+  .migas-ficha { display: none; }
+  .barra-compra { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; position: fixed; z-index: 60; left: 12px; right: 12px; bottom: 12px; padding: 10px 10px 10px 18px; background: var(--tinta); color: var(--papel); border-radius: 18px; box-shadow: 0 12px 30px var(--sombra); }
+  .barra-compra .btn { min-height: 44px; background: var(--papel); color: var(--tinta); border-color: var(--papel); padding: 0 18px; }
+  .barra-compra small { display: block; opacity: .75; font-size: 12px; }
+}
+
+/* hojas (guía de tallas, en qué tienda está) */
+.hoja { position: fixed; z-index: 81; left: 50%; top: 50%; width: min(520px, calc(100% - 24px)); max-height: calc(100% - 48px); overflow: auto; background: var(--marfil); padding: 28px; transform: translate(-50%, calc(-50% + 18px)) scale(.98); opacity: 0; pointer-events: none; transition: transform .5s var(--ease), opacity .35s var(--ease); display: grid; gap: 16px; }
+.hoja.abierta { transform: translate(-50%, -50%); opacity: 1; pointer-events: auto; }
+.hoja h2 { font-size: 34px; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabla th, .tabla td { text-align: left; padding: 12px 8px 12px 0; border-bottom: 1px solid var(--filo); }
+.tabla th { font: 600 11px/1.3 var(--texto); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.tabla td:not(:first-child), .tabla th:not(:first-child) { text-align: center; }
+.aviso-dato { font-size: 13px; padding: 12px 14px; border-left: 2px solid var(--vino); background: var(--papel); }
+
+/* aviso al agregar */
+.aviso { position: fixed; z-index: 85; right: 20px; top: 92px; display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: center; width: min(360px, calc(100% - 24px)); background: var(--marfil); border: 1px solid var(--filo); padding: 10px; box-shadow: 0 18px 40px -16px var(--sombra); transform: translateY(-10px); opacity: 0; pointer-events: none; transition: transform .45s var(--ease), opacity .35s var(--ease); }
+.aviso.visible { transform: none; opacity: 1; pointer-events: auto; }
+.aviso img { width: 56px; height: 72px; object-fit: cover; }
+.aviso b { font-family: var(--display); font-size: 19px; font-weight: 500; display: block; line-height: 1.1; }
+
+/* revelado al bajar: una sola vez, sin rebote */
+.js .revela { opacity: 0; transform: translateY(22px); transition: opacity 1s var(--ease), transform 1.1s var(--ease); transition-delay: calc(var(--i, 0) * 90ms); }
+.js .revela.visto { opacity: 1; transform: none; }
+.nota-maqueta { font-size: 12px; color: var(--taupe); text-align: center; padding: 10px var(--g); border-top: 1px dashed var(--filo); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .js .revela { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-corazon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M12 20s-7.5-4.6-9.2-9.4C1.6 7.2 3.8 4 7.1 4c2 0 3.6 1.1 4.9 2.8C13.3 5.1 14.9 4 16.9 4c3.3 0 5.5 3.2 4.3 6.6C19.5 15.4 12 20 12 20z"/></symbol>
+  <symbol id="i-tienda" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M3 9l1.5-5h15L21 9M3 9h18M3 9v11h18V9M9 20v-6h6v6"/></symbol>
+  <symbol id="i-cambio" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+  <symbol id="i-adorno" viewBox="0 0 120 10"><path fill="none" stroke="currentColor" stroke-width="1" d="M0 5h48M72 5h48"/><path fill="currentColor" d="M60 0l3 5-3 5-3-5z"/><circle cx="52" cy="5" r="1.4" fill="currentColor"/><circle cx="68" cy="5" r="1.4" fill="currentColor"/></symbol>
+</svg>
+
+<div class="franja">Separa en la web y recoge en tu tienda · <em>Trujillo, Arequipa y Lima</em> · sin pagar en línea</div>
+
+<header class="cab">
+  <div class="ancho cab-fila">
+    <nav aria-label="Principal">
+      <a href="#inicio" data-ir="inicio">Lo nuevo</a>
+      <a href="#catalogo" data-ir="catalogo">Ropa</a>
+      <a href="#inicio-explora" data-ir="inicio">Looks</a>
+      <a href="#catalogo" data-ir="catalogo">Ofertas</a>
+    </nav>
+    <button class="solo-movil" aria-label="Abrir el menú"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" d="M3 7h18M3 12h18M3 17h12"/></svg></button>
+    <a class="cab-logo" href="#inicio" data-ir="inicio" aria-label="CAYLA, ir al inicio"><img src="logo.svg" alt="" width="117" height="34"></a>
+    <div class="cab-der">
+      <button class="sede" title="Cambiar de tienda">Arequipa ▾</button>
+      <a class="no-movil" href="#catalogo" data-ir="catalogo">Buscar</a>
+      <a class="no-movil" href="#inicio-club" data-ir="inicio">Cuenta</a>
+      <a href="#ficha" data-ir="ficha" aria-label="Bolsa">Bolsa<span class="bolsa-num" id="bolsa-num">0</span></a>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════ INICIO ════════════════════════ -->
+<main id="vista-inicio" class="vista" data-vista="inicio">
+
+  <section class="portada" aria-label="Campaña">
+    <picture>
+      <source media="(max-width: 700px)" srcset="fotos/f56.jpg">
+      <img src="fotos/f37.jpg" alt="Modelo recostada con una casaca crema de CAYLA" fetchpriority="high">
+    </picture>
+    <div class="portada-texto">
+      <span class="mano">Llegó la</span>
+      <h1>nueva temporada</h1>
+      <p>Tejidos suaves, denim y cuero para empezar el verano. Ya está en nuestras tres tiendas.</p>
+      <div class="botones">
+        <a class="btn btn-lleno" href="#catalogo" data-ir="catalogo">Ver lo nuevo</a>
+        <a class="btn btn-borde" href="#inicio-explora">Arma tu look</a>
+      </div>
+      <div class="portada-sello"><span>Hecho en nuestro taller de Lima</span><span>Separa sin pagar</span></div>
+    </div>
+  </section>
+
+  <section class="seccion ancho" aria-labelledby="t-categorias">
+    <div class="titulo-seccion revela">
+      <span class="rotulo tenue">Compra por categoría</span>
+      <h2 class="serif" id="t-categorias">¿Qué buscas hoy?</h2>
+      <svg class="adorno"><use href="#i-adorno"/></svg>
+    </div>
+    <div class="categorias">
+      <a class="cat revela" style="--i:0" href="#catalogo" data-ir="catalogo" data-cat="tops"><span class="marco"><img src="fotos/f25.jpg" alt="" loading="lazy"></span><span class="boleto">Blusas / Tops</span></a>
+      <a class="cat revela" style="--i:1" href="#catalogo" data-ir="catalogo" data-cat="vestidos"><span class="marco"><img src="fotos/f18.jpg" alt="" loading="lazy"></span><span class="boleto">Vestidos</span></a>
+      <a class="cat revela" style="--i:2" href="#catalogo" data-ir="catalogo" data-cat="pantalones"><span class="marco"><img src="fotos/f09.jpg" alt="" loading="lazy"></span><span class="boleto">Pantalones</span></a>
+      <a class="cat revela" style="--i:3" href="#catalogo" data-ir="catalogo" data-cat="casacas"><span class="marco"><img src="fotos/f31.jpg" alt="" loading="lazy"></span><span class="boleto">Casacas</span></a>
+      <a class="cat revela" style="--i:4" href="#catalogo" data-ir="catalogo" data-cat="accesorios"><span class="marco"><img src="fotos/f00.jpg" alt="" loading="lazy" style="object-position:30% 50%"></span><span class="boleto">Accesorios</span></a>
+    </div>
+  </section>
+
+  <section class="explora seccion" id="inicio-explora" aria-labelledby="t-explora">
+    <div class="ancho">
+      <div class="titulo-seccion revela">
+        <h2 class="mano" id="t-explora">Explora</h2>
+        <p class="tenue">Looks armados en nuestras tiendas. Toca uno para ver sus prendas y separarlo completo.</p>
+      </div>
+      <div class="collage">
+        <a class="pieza p1 revela" style="--i:0" href="#ficha" data-ir="ficha"><span class="marco"><img src="fotos/f07.jpg" alt="" loading="lazy"></span><span class="boleto">Casual y cómodo</span></a>
+        <a class="pieza p2 revela oscura" style="--i:1" href="#ficha" data-ir="ficha"><span class="marco"><img src="fotos/f12.jpg" alt="" loading="lazy"></span><span class="boleto">Para salir</span></a>
+        <a class="pieza p3 revela" style="--i:2" href="#ficha" data-ir="ficha"><span class="marco"><img src="fotos/f23.jpg" alt="" loading="lazy"></span><span class="boleto">Detalles</span></a>
+        <a class="pieza p4 revela" style="--i:3" href="#ficha" data-ir="ficha"><span class="marco"><img src="fotos/f21.jpg" alt="" loading="lazy"></span><span class="boleto">De la oficina a la noche</span></a>
+        <a class="pieza p5 revela" style="--i:4" href="#ficha" data-ir="ficha"><span class="marco"><img src="fotos/f40.jpg" alt="" loading="lazy" style="object-position:50% 30%"></span><span class="boleto">Entre amigas</span></a>
+        <a class="pieza p6 revela oscura" style="--i:5" href="#ficha" data-ir="ficha"><span class="marco"><img src="fotos/f34.jpg" alt="" loading="lazy"></span><span class="boleto">Todo denim</span></a>
+        <p class="nota-mano revela" style="--i:6">«Prendas que se llevan bien»: así arman los looks nuestras chicas de tienda.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion ancho" aria-labelledby="t-nuevo">
+    <div class="carril-cab revela">
+      <div><span class="rotulo tenue">Llegó esta semana a Arequipa</span><h2 class="serif" id="t-nuevo">Lo nuevo</h2></div>
+      <a class="enlace" href="#catalogo" data-ir="catalogo">Ver todo</a>
+    </div>
+    <div class="carril" id="carril-nuevo"></div>
+  </section>
+
+  <section class="seccion" style="background:var(--papel-2)" aria-labelledby="t-taller">
+    <div class="ancho alterna">
+      <div class="marco revela"><img src="fotos/f17.jpg" alt="Detalle de una prenda de satén vino con anillos" loading="lazy"></div>
+      <div class="alterna-texto revela" style="--i:1">
+        <span class="mano">Hecho aquí</span>
+        <h2 class="serif" id="t-taller">Desde nuestro taller en Lima</h2>
+        <p class="tenue">Cortamos y cosemos en nuestro propio taller y lo llevamos a tres ciudades del Perú. Por eso una prenda que se agota puede volver, y por eso en cada tienda te dicen de dónde salió.</p>
+        <div class="cifras">
+          <div><b class="por-confirmar" title="Cifra por confirmar con Felipe">— —</b><span>prendas hechas en el taller este año</span></div>
+          <div><b>3</b><span>tiendas: Trujillo, Arequipa y Lima</span></div>
+          <div><b class="por-confirmar" title="Cifra por confirmar con Felipe">— —</b><span>años cosiendo</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion ancho" aria-labelledby="t-separa">
+    <div class="titulo-seccion revela">
+      <span class="rotulo tenue">Sin pagar en la web</span>
+      <h2 class="serif" id="t-separa">Así se separa</h2>
+    </div>
+    <div class="pasos">
+      <div class="paso revela" style="--i:0"><b>1</b><h3>Elige tus prendas y tu tienda</h3><p class="tenue">En cada prenda ves cuántas hay en Arequipa, Lima y Trujillo.</p></div>
+      <div class="paso revela" style="--i:1"><b>2</b><h3>Entra o crea tu cuenta</h3><p class="tenue">Con tu correo, en un minuto.</p></div>
+      <div class="paso revela" style="--i:2"><b>3</b><h3>Toca «Separar» y mándalo por WhatsApp</h3><p class="tenue">El mensaje ya va escrito. No pagas nada en la web.</p></div>
+      <div class="paso revela" style="--i:3"><b>4</b><h3>Paga y recógelo</h3><p class="tenue">Coordinas el pago con la tienda y lo recoges con tu código.</p></div>
+    </div>
+  </section>
+
+  <section class="club seccion" id="inicio-club" aria-labelledby="t-club">
+    <div class="ancho alterna al-reves">
+      <div class="marco revela"><img src="fotos/f45.jpg" alt="Dos amigas con polos de CAYLA" loading="lazy"></div>
+      <div class="alterna-texto revela" style="--i:1">
+        <span class="mano">Club CAYLA</span>
+        <h2 class="serif" id="t-club">Tu cuenta es tu invitación</h2>
+        <ul class="beneficios">
+          <li>Puntos en cada compra</li><li>Regalo en tu cumpleaños</li>
+          <li>Lo nuevo, primero</li><li>Tus pedidos en un lugar</li>
+        </ul>
+        <div><a class="btn btn-claro" href="#inicio-club">Crear mi cuenta</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion ancho" aria-labelledby="t-tiendas">
+    <div class="titulo-seccion revela">
+      <span class="mano" style="color:var(--vino)">Visítanos</span>
+      <h2 class="serif" id="t-tiendas">Nuestras tiendas</h2>
+    </div>
+    <div class="tiendas">
+      <div class="tienda revela" style="--i:0"><h3>Arequipa</h3><span class="estado" style="color:#9a6a12">Cerrada · abre 2 p. m.</span><p>Calle Bolívar 400-A</p><p class="tenue">Lun–Dom 2 p. m.–10 p. m.</p><div class="botones"><a class="btn btn-lleno" href="#">WhatsApp</a><a class="btn btn-borde" href="#">Cómo llegar</a></div></div>
+      <div class="tienda revela" style="--i:1"><h3>Lima</h3><span class="estado hay">Abierta · cierra 7:30 p. m.</span><p>Galería San Pedro, Jr. Gamarra 1160, Piso 5, Tienda 534, La Victoria</p><p class="tenue">Lun–Sáb 11 a. m.–7:30 p. m.</p><div class="botones"><a class="btn btn-lleno" href="#">WhatsApp</a><a class="btn btn-borde" href="#">Cómo llegar</a></div></div>
+      <div class="tienda revela" style="--i:2"><h3>Trujillo</h3><span class="estado hay">Abierta · cierra 8:15 p. m.</span><p>Sinchi Roca 1043</p><p class="tenue">Lun–Sáb 8:30 a. m.–8:15 p. m. · Dom 8:30 a. m.–6:15 p. m.</p><div class="botones"><a class="btn btn-lleno" href="#">WhatsApp</a><a class="btn btn-borde" href="#">Cómo llegar</a></div></div>
+    </div>
+  </section>
+</main>
+
+<!-- ════════════════════════ CATÁLOGO ════════════════════════ -->
+<main id="vista-catalogo" class="vista" data-vista="catalogo">
+  <div class="ancho cat-cab">
+    <nav class="migas" aria-label="Estás en"><a href="#inicio" data-ir="inicio">Inicio</a> / Ropa</nav>
+    <div class="cat-cab-fila">
+      <h1 class="serif"><span id="cat-titulo">Toda la ropa</span></h1>
+      <p class="tenue"><span id="cat-cuenta">14</span> prendas en Arequipa · <a class="enlace-fino" href="#">ver las de otras tiendas</a></p>
+    </div>
+  </div>
+  <div class="chips-fila">
+    <div class="ancho">
+      <div class="chips" role="group" aria-label="Categoría" id="chips"></div>
+      <button class="boton-filtros" id="abrir-filtros">Filtrar y ordenar <span aria-hidden="true">+</span></button>
+    </div>
+  </div>
+  <div class="ancho">
+    <div class="grilla" id="grilla"></div>
+    <div class="ver-mas"><p class="tenue">Viste 14 de 167</p><button class="btn btn-borde">Ver más prendas</button></div>
+  </div>
+</main>
+
+<!-- ════════════════════════ FICHA ════════════════════════ -->
+<main id="vista-ficha" class="vista" data-vista="ficha">
+  <div class="ancho">
+    <nav class="migas migas-ficha" aria-label="Estás en" style="padding-top:24px"><a href="#inicio" data-ir="inicio">Inicio</a> / <a href="#catalogo" data-ir="catalogo" data-cat="casacas">Casacas</a> / Casaca Denim Oversize</nav>
+    <div class="ficha">
+      <div>
+        <div class="galeria" id="galeria">
+          <figure class="nota-modelo"><img src="fotos/f34.jpg" alt="Casaca denim oversize, de frente"><span>La modelo mide 1,60 m y usa talla S <em class="por-confirmar">(dato de ejemplo)</em></span></figure>
+          <figure><img src="fotos/f33.jpg" alt="Casaca denim oversize, detalle de los botones" loading="lazy"></figure>
+          <figure><img src="fotos/f32.jpg" alt="Casaca denim oversize, de espalda" loading="lazy"></figure>
+          <figure><img src="fotos/f35.jpg" alt="Casaca denim oversize, cuerpo entero de espalda" loading="lazy"></figure>
+        </div>
+        <div class="puntos-galeria" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="ficha-panel">
+        <span class="boleto etq-nuevo">Nuevo · llegó hace 3 días</span>
+        <div style="display:grid;gap:10px">
+          <h1 class="serif">Casaca Denim Oversize</h1>
+          <div class="precio-fila"><span class="precio">S/ 129.90</span><span class="tenue" style="font-size:13px">Precio de Arequipa</span></div>
+        </div>
+
+        <div>
+          <div class="linea-campo"><span class="rotulo tenue">Color <b id="color-nombre">Azul denim</b></span></div>
+          <div class="muestras" role="group" aria-label="Color">
+            <button class="muestra" aria-pressed="true" data-color="Azul denim"><i style="background:#5b7aa3"></i>Azul denim</button>
+            <button class="muestra" aria-pressed="false" data-color="Negro"><i style="background:#1d1b1a"></i>Negro</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="linea-campo"><span class="rotulo tenue">Talla <b id="talla-nombre">elige una</b></span><button class="enlace-fino" id="abrir-guia" style="font-size:13px">Guía de tallas</button></div>
+          <div class="tallas" role="group" aria-label="Talla">
+            <button class="talla" aria-pressed="false" data-talla="S">S</button>
+            <button class="talla" aria-pressed="false" data-talla="M">M</button>
+            <button class="talla" aria-pressed="false" data-talla="L">L</button>
+            <button class="talla" disabled aria-label="XL, agotada en Arequipa">XL</button>
+          </div>
+        </div>
+
+        <div class="calce">
+          <div class="calce-barra" aria-hidden="true"><i></i><i></i><i></i><i class="esta"></i><i></i></div>
+          <div class="calce-ejes"><span>Ajustado</span><span>Normal</span><span>Holgado</span></div>
+          <p class="tenue" style="font-size:13.5px">Corte holgado: si te gusta al cuerpo, pide una talla menos. <em class="por-confirmar">(dato de ejemplo)</em></p>
+        </div>
+
+        <div class="acciones">
+          <button class="btn btn-lleno" id="agregar">Agregar a la bolsa</button>
+          <button class="fav-grande" aria-pressed="false" aria-label="Guardar en favoritos"><svg><use href="#i-corazon"/></svg></button>
+          <button class="btn btn-borde ancho-total" id="abrir-stock">Ver en qué tienda está</button>
+        </div>
+
+        <div class="recoge">
+          <svg aria-hidden="true"><use href="#i-tienda"/></svg>
+          <b class="pocas">Quedan 2 en Arequipa</b>
+          <span class="tenue">Sepárala hoy y recógela en Calle Bolívar 400-A.</span>
+        </div>
+
+        <div>
+          <div class="pestanas" role="tablist">
+            <button role="tab" aria-selected="true" data-pestana="0">Descripción</button>
+            <button role="tab" aria-selected="false" data-pestana="1">Detalles</button>
+            <button role="tab" aria-selected="false" data-pestana="2">Talla y calce</button>
+          </div>
+          <div class="pestana-cuerpo" id="pestana-cuerpo"></div>
+        </div>
+
+        <div class="combina">
+          <div class="linea-campo"><h2 class="serif" style="font-size:28px">Combínala con</h2><span class="tenue" style="font-size:13px">del look «Todo denim»</span></div>
+          <div class="combina-fila">
+            <div class="mini"><div class="foto"><img src="fotos/f50.jpg" alt="" loading="lazy"><button class="mas" aria-pressed="false" aria-label="Agregar Pantalón Wide Negro">+</button></div><span><b>Pantalón Wide Negro</b>S/ 89.90</span></div>
+            <div class="mini"><div class="foto"><img src="fotos/f00.jpg" alt="" loading="lazy" style="object-position:35% 50%"><button class="mas" aria-pressed="false" aria-label="Agregar Lentes Ojo de Gato">+</button></div><span><b>Lentes Ojo de Gato</b>S/ 39.90</span></div>
+            <div class="mini"><div class="foto"><img src="fotos/f13.jpg" alt="" loading="lazy" style="object-position:20% 60%"><button class="mas" aria-pressed="false" aria-label="Agregar Bolso Charol Negro">+</button></div><span><b>Bolso Charol Negro</b>S/ 79.90</span></div>
+          </div>
+        </div>
+
+        <p class="cambios-linea"><svg width="18" height="18" aria-hidden="true"><use href="#i-cambio"/></svg>Se cambia en cualquier tienda CAYLA, con el plazo que dice tu boleta.</p>
+      </div>
+    </div>
+  </div>
+  <div class="barra-compra"><div><b>S/ 129.90</b><small id="barra-talla">Elige tu talla</small></div><button class="btn" id="agregar-movil">Agregar</button></div>
+</main>
+
+<footer class="pie">
+  <div class="ancho">
+    <div class="pie-fila">
+      <div style="display:grid;gap:12px;align-content:start"><span class="mano" style="font-size:44px">Únete</span><p class="tenue" style="max-width:34ch">Lo nuevo y las ofertas del club, primero. Sin llenarte el correo.</p></div>
+      <div><h4 class="rotulo">Comprar</h4><ul><li><a href="#">Lo nuevo</a></li><li><a href="#">Ofertas</a></li><li><a href="#">Arma tu look</a></li><li><a href="#">Toda la tienda</a></li></ul></div>
+      <div><h4 class="rotulo">Ayuda</h4><ul><li><a href="#">Cómo separar</a></li><li><a href="#">Cambios y devoluciones</a></li><li><a href="#">Nuestras tiendas</a></li></ul></div>
+      <div><h4 class="rotulo">CAYLA</h4><ul><li><a href="#">Club CAYLA</a></li><li><a href="#">Crear mi cuenta</a></li><li><a href="#">Privacidad</a></li></ul></div>
+    </div>
+    <div class="pie-firma"><img src="logo.svg" alt="CAYLA" width="186" height="54"></div>
+  </div>
+</footer>
+<p class="nota-maqueta">Maqueta B · Editorial cálido · fotos de la carpeta «Editadas» · los nombres, precios y datos marcados «de ejemplo» son de prueba.</p>
+
+<!-- cajón de filtros, hojas y aviso -->
+<div class="velo" id="velo"></div>
+<aside class="cajon" id="cajon" aria-label="Filtrar y ordenar">
+  <div class="cajon-cab"><h2 class="serif">Filtrar</h2><button class="cerrar" data-cerrar aria-label="Cerrar">×</button></div>
+  <div class="cajon-cuerpo">
+    <div class="grupo-filtro"><span class="rotulo tenue">Color</span><div class="muestras">
+      <button class="muestra" aria-pressed="false"><i style="background:#1d1b1a"></i>Negro</button>
+      <button class="muestra" aria-pressed="false"><i style="background:#f6f2ea"></i>Blanco</button>
+      <button class="muestra" aria-pressed="false"><i style="background:#5b7aa3"></i>Denim</button>
+      <button class="muestra" aria-pressed="false"><i style="background:#7a2430"></i>Vino</button>
+      <button class="muestra" aria-pressed="false"><i style="background:#c9b39a"></i>Arena</button>
+      <button class="muestra" aria-pressed="false"><i style="background:#6b4a33"></i>Chocolate</button>
+    </div></div>
+    <div class="grupo-filtro"><span class="rotulo tenue">Talla</span><div class="tallas">
+      <button class="talla" aria-pressed="false">S</button><button class="talla" aria-pressed="false">M</button><button class="talla" aria-pressed="false">L</button><button class="talla" aria-pressed="false">Estándar</button>
+    </div></div>
+    <div class="grupo-filtro"><span class="rotulo tenue">Ordenar</span><div class="chips" style="flex-wrap:wrap;padding:0">
+      <button class="chip" aria-pressed="true">Lo más nuevo</button><button class="chip" aria-pressed="false">Menor precio</button><button class="chip" aria-pressed="false">Mayor precio</button><button class="chip" aria-pressed="false">Más vendido</button>
+    </div></div>
+  </div>
+  <div class="cajon-pie"><button class="btn btn-borde" data-cerrar>Limpiar</button><button class="btn btn-lleno" data-cerrar>Ver 14 prendas</button></div>
+</aside>
+
+<div class="hoja" id="hoja-guia" role="dialog" aria-modal="true" aria-labelledby="t-guia">
+  <div class="cajon-cab"><h2 class="serif" id="t-guia">Guía de tallas</h2><button class="cerrar" data-cerrar aria-label="Cerrar">×</button></div>
+  <p class="tenue">Casacas · medidas de la prenda en centímetros.</p>
+  <table class="tabla"><thead><tr><th>Talla</th><th>Busto</th><th>Largo</th><th>Manga</th></tr></thead>
+    <tbody><tr><td>S</td><td>—</td><td>—</td><td>—</td></tr><tr><td>M</td><td>—</td><td>—</td><td>—</td></tr><tr><td>L</td><td>—</td><td>—</td><td>—</td></tr><tr><td>XL</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+  <p class="aviso-dato">Las medidas no existen todavía en la base: hay que tomarlas por categoría en el taller. La maqueta muestra dónde irían.</p>
+</div>
+
+<div class="hoja" id="hoja-stock" role="dialog" aria-modal="true" aria-labelledby="t-stock">
+  <div class="cajon-cab"><h2 class="serif" id="t-stock">¿En qué tienda está?</h2><button class="cerrar" data-cerrar aria-label="Cerrar">×</button></div>
+  <p class="tenue">Casaca Denim Oversize · Azul denim</p>
+  <table class="tabla"><thead><tr><th>Tienda</th><th>S</th><th>M</th><th>L</th><th>XL</th></tr></thead>
+    <tbody>
+      <tr><td><b>Arequipa</b> <span class="tenue">· la tuya</span></td><td>1</td><td class="pocas">Última</td><td>—</td><td>—</td></tr>
+      <tr><td>Lima</td><td>2</td><td>3</td><td>1</td><td class="pocas">Última</td></tr>
+      <tr><td>Trujillo</td><td>—</td><td>2</td><td>2</td><td>—</td></tr>
+    </tbody></table>
+  <p class="tenue" style="font-size:13px">Tu bolsa es de una sola tienda: para separar en Lima, cambia de tienda arriba.</p>
+</div>
+
+<div class="aviso" id="aviso" role="status" aria-live="polite"><img src="fotos/f34.jpg" alt=""><div><span class="rotulo tenue">Agregado a tu bolsa</span><b id="aviso-nombre">Casaca Denim Oversize</b><span class="tenue" id="aviso-detalle" style="font-size:13px">Talla S · Arequipa</span></div></div>
+
+<div class="barra-maqueta" role="navigation" aria-label="Pantallas de la maqueta">
+  <a href="#inicio" data-ir="inicio">Inicio</a>
+  <a href="#catalogo" data-ir="catalogo">Catálogo</a>
+  <a href="#ficha" data-ir="ficha">Ficha</a>
+  <span class="sep no-movil"></span>
+  <button id="tema" class="no-movil">Oscuro</button>
+</div>
+
+<script>
+// ── Datos de ejemplo de la maqueta (nombres y precios de prueba; las fotos son de la carpeta «Editadas») ──
+const PRENDAS = [
+  { n: "Casaca Denim Oversize", p: 129.9, cat: "casacas", f: ["f34", "f32"], c: ["#5b7aa3"], s: "pocas", t: "Quedan 2 en Arequipa", e: "Nuevo" },
+  { n: "Chaleco Sastre Gris", p: 79.9, cat: "tops", f: ["f19", "f20"], c: ["#8d9097", "#1d1b1a", "#f6f2ea"], s: "hay", t: "Hay en Arequipa", e: "Nuevo" },
+  { n: "Vestido Midi Vino", p: 99.9, cat: "vestidos", f: ["f12"], c: ["#5a1d27", "#1d1b1a"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Top Halter Crochet", p: 59.9, cat: "tops", f: ["f36"], c: ["#b8c7dd", "#f6f2ea"], s: "pocas", t: "Última en Arequipa", e: "Nuevo" },
+  { editorial: true },
+  { n: "Casaca Cuero Camel", p: 149.9, cat: "casacas", f: ["f31"], c: ["#7b4a2a", "#1d1b1a"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Vestido Drapeado Arena", p: 89.9, cat: "vestidos", f: ["f18"], c: ["#d9bfa0"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Top Strapless Cuero", p: 69.9, cat: "tops", f: ["f28"], c: ["#3b2418", "#1d1b1a"], s: "pocas", t: "Quedan 3 en Arequipa" },
+  { n: "Pantalón Wide Negro", p: 89.9, cat: "pantalones", f: ["f29", "f30"], c: ["#1d1b1a", "#f6f2ea"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Polo Cuello Camisero", p: 49.9, cat: "tops", f: ["f04", "f05"], c: ["#f6f2ea", "#1d1b1a"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Jean Flare Clásico", p: 99.9, cat: "pantalones", f: ["f06"], c: ["#6c86ab"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Vestido Largo Negro", p: 109.9, cat: "vestidos", f: ["f54", "f55"], c: ["#1d1b1a", "#f6f2ea"], s: "pocas", t: "Quedan 2 en Arequipa" },
+  { n: "Chaleco Tejido Rayas", p: 69.9, cat: "tops", f: ["f25", "f16"], c: ["#d8c6aa", "#7a2430"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Top Fruncido Celeste", p: 49.9, cat: "tops", f: ["f49", "f48"], c: ["#9fb4cf"], s: "hay", t: "Hay en Arequipa" },
+  { n: "Lentes Ojo de Gato", p: 39.9, cat: "accesorios", f: ["f00"], c: ["#1d1b1a"], s: "hay", t: "Hay en Arequipa" },
+];
+const CATS = [["todo", "Toda la ropa"], ["tops", "Blusas / Tops"], ["vestidos", "Vestidos"], ["pantalones", "Pantalones"], ["casacas", "Casacas"], ["accesorios", "Accesorios"]];
+const sol = (p) => "S/ " + p.toFixed(2);
+
+function tarjeta(x, i) {
+  const fotos = x.f.map((f) => `<img src="fotos/${f}.jpg" alt="" loading="lazy">`).join("");
+  return `<a class="prenda" href="#ficha" data-ir="ficha" data-cat="${x.cat}" style="animation-delay:${(i % 4) * 70}ms">
+    <div class="prenda-foto">${x.e ? `<span class="prenda-etq">${x.e}</span>` : ""}<button class="prenda-fav" aria-pressed="false" aria-label="Guardar ${x.n}"><svg><use href="#i-corazon"/></svg></button>${fotos}</div>
+    <div class="prenda-info"><span class="prenda-nombre">${x.n}</span><span class="prenda-precio">${sol(x.p)}</span>
+    <span class="prenda-sub"><span class="puntos">${x.c.map((c) => `<i style="background:${c}"></i>`).join("")}</span><span class="${x.s}">${x.t}</span></span></div></a>`;
+}
+document.getElementById("carril-nuevo").innerHTML = PRENDAS.filter((x) => !x.editorial).slice(0, 7).map(tarjeta).join("");
+
+const grilla = document.getElementById("grilla");
+function pintarGrilla(cat) {
+  let i = 0;
+  grilla.innerHTML = PRENDAS.map((x) => {
+    if (x.editorial) return cat === "todo" ? `<a class="editorial" href="#inicio-explora" data-ir="inicio"><img src="fotos/f43.jpg" alt="" loading="lazy" style="object-position:50% 25%"><div><span class="mano">Entre amigas</span><span class="serif">Arma tu look</span><span class="enlace" style="justify-self:start;color:#fbf8f2">Ver los looks</span></div></a>` : "";
+    return cat === "todo" || x.cat === cat ? tarjeta(x, i++) : "";
+  }).join("");
+  const n = PRENDAS.filter((x) => !x.editorial && (cat === "todo" || x.cat === cat)).length;
+  document.getElementById("cat-cuenta").textContent = n;
+  document.getElementById("cat-titulo").textContent = CATS.find((c) => c[0] === cat)[1];
+  document.querySelectorAll("#chips .chip").forEach((b) => b.setAttribute("aria-pressed", b.dataset.cat === cat));
+}
+document.getElementById("chips").innerHTML = CATS.map(([k, v]) => {
+  const n = PRENDAS.filter((x) => !x.editorial && (k === "todo" || x.cat === k)).length;
+  return `<button class="chip" data-cat="${k}" aria-pressed="false">${v}<small>${n}</small></button>`;
+}).join("");
+document.getElementById("chips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) pintarGrilla(b.dataset.cat); });
+pintarGrilla("todo");
+
+// ── vistas por #hash ──
+function mostrar(vista, cat) {
+  if (!["inicio", "catalogo", "ficha"].includes(vista)) vista = "inicio";
+  document.querySelectorAll(".vista").forEach((v) => v.classList.toggle("activa", v.dataset.vista === vista));
+  document.querySelectorAll(".barra-maqueta a, .cab nav a").forEach((a) => a.removeAttribute("aria-current"));
+  document.querySelector(`.barra-maqueta a[data-ir="${vista}"]`)?.setAttribute("aria-current", "page");
+  if (vista === "catalogo") { document.querySelector('.cab nav a[data-ir="catalogo"]').setAttribute("aria-current", "page"); if (cat) pintarGrilla(cat); }
+  if (vista === "inicio") document.querySelector('.cab nav a[data-ir="inicio"]').setAttribute("aria-current", "page");
+  observarRevelado();
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".prenda-fav, .fav-grande")) { e.preventDefault(); const b = e.target.closest("button"); b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); return; }
+  const a = e.target.closest("[data-ir]");
+  if (!a) return;
+  const destino = a.getAttribute("href") || "";
+  if (destino.startsWith("#inicio-")) { e.preventDefault(); mostrar("inicio"); history.replaceState(null, "", "#inicio"); document.querySelector(destino)?.scrollIntoView({ behavior: "smooth" }); return; }
+  e.preventDefault();
+  history.replaceState(null, "", "#" + a.dataset.ir);
+  mostrar(a.dataset.ir, a.dataset.cat || (a.dataset.ir === "catalogo" ? "todo" : null));
+  window.scrollTo({ top: 0, behavior: "instant" });
+});
+window.addEventListener("hashchange", () => mostrar(location.hash.slice(1)));
+
+// ── revelado al bajar (una vez) ──
+let obs;
+function observarRevelado() {
+  if (!("IntersectionObserver" in window)) { document.querySelectorAll(".revela").forEach((el) => el.classList.add("visto")); return; }
+  obs ??= new IntersectionObserver((entradas) => entradas.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("visto"); obs.unobserve(en.target); } }), { rootMargin: "0px 0px -8% 0px", threshold: 0.1 });
+  document.querySelectorAll(".vista.activa .revela:not(.visto)").forEach((el) => obs.observe(el));
+}
+
+// ── ficha: color, talla, pestañas ──
+document.querySelectorAll(".ficha-panel .muestras .muestra").forEach((b) => b.addEventListener("click", () => {
+  b.parentElement.querySelectorAll(".muestra").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  document.getElementById("color-nombre").textContent = b.dataset.color;
+}));
+let talla = null;
+document.querySelectorAll(".ficha-panel .talla:not(:disabled)").forEach((b) => b.addEventListener("click", () => {
+  b.parentElement.querySelectorAll(".talla").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  talla = b.dataset.talla;
+  document.getElementById("talla-nombre").textContent = talla;
+  document.getElementById("barra-talla").textContent = "Talla " + talla + " · Arequipa";
+}));
+const PESTANAS = [
+  "<p>Casaca de denim grueso con corte amplio y hombro caído. Se lleva abierta sobre un top o cerrada como camisa. Cuatro bolsillos y botones metálicos.</p>",
+  "<ul><li>100 % algodón denim <em class='por-confirmar'>(dato de ejemplo)</em></li><li>Hecha en nuestro taller de Lima</li><li>Lavar al revés, en frío</li></ul>",
+  "<p>Corte holgado. La modelo mide 1,60 m y usa talla S. <em class='por-confirmar'>(datos de ejemplo)</em></p><p style='margin-top:8px'><button class='enlace-fino' data-abre='hoja-guia'>Ver la guía de tallas</button></p>",
+];
+const cuerpo = document.getElementById("pestana-cuerpo");
+cuerpo.innerHTML = PESTANAS[0];
+document.querySelectorAll(".pestanas button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".pestanas button").forEach((x) => x.setAttribute("aria-selected", x === b));
+  cuerpo.innerHTML = PESTANAS[b.dataset.pestana];
+}));
+
+// ── bolsa y aviso ──
+let bolsa = 0, reloj;
+function avisar(nombre, detalle, foto) {
+  const av = document.getElementById("aviso");
+  document.getElementById("aviso-nombre").textContent = nombre;
+  document.getElementById("aviso-detalle").textContent = detalle;
+  av.querySelector("img").src = foto;
+  av.classList.add("visible");
+  clearTimeout(reloj); reloj = setTimeout(() => av.classList.remove("visible"), 2800);
+  document.getElementById("bolsa-num").textContent = ++bolsa;
+}
+function agregar() {
+  if (!talla) { document.querySelector(".ficha-panel .tallas").scrollIntoView({ block: "center", behavior: "smooth" }); document.getElementById("talla-nombre").textContent = "elige una para agregar"; return; }
+  avisar("Casaca Denim Oversize", `Talla ${talla} · ${document.getElementById("color-nombre").textContent} · Arequipa`, "fotos/f34.jpg");
+}
+document.getElementById("agregar").addEventListener("click", agregar);
+document.getElementById("agregar-movil").addEventListener("click", agregar);
+document.querySelectorAll(".mini .mas").forEach((b) => b.addEventListener("click", () => {
+  if (b.getAttribute("aria-pressed") === "true") return;
+  b.setAttribute("aria-pressed", "true"); b.textContent = "✓";
+  const tarjeta = b.closest(".mini");
+  avisar(tarjeta.querySelector("b").textContent, "Del look «Todo denim» · Arequipa", tarjeta.querySelector("img").src);
+}));
+
+// ── cajón y hojas ──
+const velo = document.getElementById("velo");
+function abrir(id) { document.getElementById(id).classList.add(id === "cajon" ? "abierto" : "abierta"); velo.classList.add("abierto"); }
+function cerrarTodo() { document.querySelectorAll(".cajon, .hoja").forEach((x) => x.classList.remove("abierto", "abierta")); velo.classList.remove("abierto"); }
+document.getElementById("abrir-filtros").addEventListener("click", () => abrir("cajon"));
+document.getElementById("abrir-guia").addEventListener("click", () => abrir("hoja-guia"));
+document.getElementById("abrir-stock").addEventListener("click", () => abrir("hoja-stock"));
+document.addEventListener("click", (e) => { const a = e.target.closest("[data-abre]"); if (a) abrir(a.dataset.abre); if (e.target.closest("[data-cerrar]") || e.target === velo) cerrarTodo(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarTodo(); });
+document.querySelectorAll(".cajon .muestra, .cajon .talla").forEach((b) => b.addEventListener("click", () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true")));
+document.querySelectorAll(".cajon .chips").forEach((g) => g.addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) g.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", x === b)); }));
+
+// ── tema ──
+const botonTema = document.getElementById("tema");
+botonTema.addEventListener("click", () => {
+  const oscuro = document.documentElement.dataset.tema !== "oscuro";
+  document.documentElement.dataset.tema = oscuro ? "oscuro" : "claro";
+  botonTema.textContent = oscuro ? "Claro" : "Oscuro";
+});
+
+mostrar(location.hash.slice(1) || "inicio");
+</script>
+</body>
+</html>
