@@ -17,11 +17,13 @@ import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
 
 /** Las opciones de un campo de elección (motivo, talla, estado): elegido = tinta, no rojo —
  *  un paso marca varias a la vez y varios rojos juntos pasan el tope de
- *  `MAX_ROJO_POR_PANTALLA` (design-tokens.ts). */
+ *  `MAX_ROJO_POR_PANTALLA` (design-tokens.ts).
+ *  Su cara es vidrio (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): la gota suelta; la elegida, la gota ahumada
+ *  (`posv-opcion-puesta`); la que no hay aquí, el hueco punteado (`posv-opcion-hueco`). La pinta vidrio/posventa.css. */
 export const OPCION =
   "min-h-11 rounded-[14px] border px-[17px] py-2 text-[14.5px] font-medium transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
-export const OPCION_INACTIVA = `${OPCION} border-tinta/15 bg-papel text-tinta/80 hover:border-tinta/40 hover:text-tinta`;
-export const OPCION_ACTIVA = `${OPCION} border-tinta bg-tinta text-crema`;
+export const OPCION_INACTIVA = `${OPCION} posv-opcion`;
+export const OPCION_ACTIVA = `${OPCION} posv-opcion posv-opcion-puesta`;
 
 /** El foco sigue al paso: quien navega con teclado o lector de pantalla oye dónde está. */
 export function useFocoAlCambiarDePaso(ref: RefObject<HTMLElement | null>, paso: unknown) {
@@ -156,7 +158,8 @@ export function PanelValidaciones({ validaciones, impacto, guia }: { validacione
   const plazo = validaciones.find((v) => v.clave === "plazo");
   return (
     <aside data-guia={guia} className="grid gap-4 self-start lg:sticky lg:top-24">
-      <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
+      {/* Las dos tarjetas son la placa Serena (`posv-placa`, vidrio/posventa.css). */}
+      <div className="posv-placa p-6">
         <div className="mb-5 flex items-center gap-4">
           {/* El anillo del sistema (ronda 13): en tinta mientras faltan revisiones y verde cuando están todas. */}
           <Anillo pct={total ? (cumplidas / total) * 100 : 0} tamano="mediano" etiqueta={`${cumplidas} de ${total} revisiones cumplidas`}>
@@ -183,7 +186,7 @@ export function PanelValidaciones({ validaciones, impacto, guia }: { validacione
         <ListaValidaciones validaciones={validaciones} />
       </div>
       {impacto && (
-        <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
+        <div className="posv-placa p-6">
           <TituloSeccion nivel={3} className="mb-4">Impacto</TituloSeccion>
           <ImpactoVista impacto={impacto} compacto />
         </div>
@@ -217,10 +220,11 @@ export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; ch
   );
 }
 
-// Los botones son los de «Cobrar» de Vender (PuntoDeVentaTicket): esquina apenas redondeada,
-// la etiqueta en mayúsculas chicas con aire entre las letras (`label-cayla`) y, si hay un
-// monto, a la derecha y en la serif de la casa — la etiqueta dice qué se hace; el monto,
-// cuánto. Sin monto, la etiqueta va centrada.
+// Los botones son los de «Cobrar» de Vender (PuntoDeVentaTicket): la etiqueta en mayúsculas chicas
+// con aire entre las letras (`label-cayla`) y, si hay un monto, a la derecha y en la serif de la
+// casa — la etiqueta dice qué se hace; el monto, cuánto. Sin monto, la etiqueta va centrada.
+// Su cara es vidrio en píldora (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): el principal, el ahumado de
+// `btn-primario` (vidrio/campos-y-botones.css); el rojo, la gota roja de «Cerrar caja» (`posv-boton-rojo`, vidrio/posventa.css).
 // Mientras espera (ADR-0358, ronda 12): la etiqueta pasa a `textoCargando` sin cambiar el ancho, corre el hilo y el botón se apaga, como en
 // todo botón que guarda (`Boton`); el monto se queda a la vista.
 type Espera = { cargando?: boolean; textoCargando?: string };
@@ -249,7 +253,7 @@ export function BotonPrincipal({ onClick, children, disabled = false, monto, gui
       onClick={onClick}
       disabled={disabled || cargando}
       aria-busy={cargando || undefined}
-      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      className={`btn-primario mov-boton relative flex h-12 items-center gap-8 rounded-full border px-6 text-crema disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
         {children}
@@ -280,7 +284,7 @@ export function BotonRojo({ onClick, children, disabled = false, monto, cargando
       onClick={onClick}
       disabled={disabled || cargando}
       aria-busy={cargando || undefined}
-      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
+      className={`posv-boton-rojo mov-boton relative flex h-12 items-center gap-8 rounded-full px-6 disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
         {children}

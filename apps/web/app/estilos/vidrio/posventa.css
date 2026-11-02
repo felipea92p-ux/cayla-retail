@@ -171,3 +171,123 @@
     transition: none;
   }
 }
+
+/* =====================================================================
+   3 · LO QUE QUEDABA SÓLIDO EN LOS DOS FLUJOS (Felipe 2026-11-02, la misma maqueta, «Está armada solo con lo ya elegido»).
+   Nada propio: cada pieza se viste con la cara que ya eligió en otra pantalla, con las recetas de recetas.css.
+   · Las tarjetas del flujo (`posv-placa`: cada paso de CambiosFlujo y DevolucionesFlujo, «Lo que revisa el sistema» e «Impacto» de
+     `PanelValidaciones`) son la placa Serena de las tablas y las cifras. Al confirmar un cambio los datos y el impacto van cada uno en su
+     placa y la balanza queda al aire entre ellos (antes vivía dentro de una tarjeta de papel). Una franja que solo explica
+     (`posv-placa-plana`: «¿Le sirve otra talla o color?», cada prenda que devuelve) es la placa plana de las notas.
+   · La fila de una prenda vendida (`posv-fila`): al pasar el mouse asoma la gota; la elegida (`data-elegida`) es la gota marcada con su
+     filo de tinta, como la opción elegida de una lista.
+   · Las opciones (`OPCION*` de FlujoGuiado.tsx: motivo, talla, destino): la gota suelta con el borde de lo que se toca; la elegida, la gota
+     ahumada de la píldora puesta; la talla que no hay aquí, el hueco punteado de Vender. Las tarjetas de opción (`posv-tarjeta-opcion`:
+     «Impecable» / «Con defecto o uso») son la gota grande y la elegida lleva el filo de tinta (la `.opcion` de la maqueta). Si una trae su
+     ícono de 20 px, el duotono le llega solo (vidrio/pantalla.css).
+   · El botón principal es `btn-primario` (el ahumado, vidrio/campos-y-botones.css), en píldora. El rojo del paso final (`posv-boton-rojo`)
+     es la gota roja de «Cerrar caja» (`--gota-roja-*`, recetas.css), con la letra en crema (el negro cálido en oscuro).
+   Sin movimiento nuevo: el de siempre (`mov-boton`, el que sube 1 px de una opción), y lo que cambia de tono lo hace en 200 ms.
+   ===================================================================== */
+
+/* ---------- las tarjetas: la placa Serena ---------- */
+.posv-placa {
+  border-radius: 22px;
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.posv-placa-plana {
+  border: 1px solid var(--placa-borde);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+}
+
+/* ---------- la fila de una prenda vendida ---------- */
+.posv-fila {
+  border: 1px solid transparent;
+  transition: background 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .posv-fila[data-tocable]:not([data-elegida]):hover {
+    background: var(--gota-fondo);
+    box-shadow: var(--gota-luz);
+  }
+}
+.posv-fila[data-elegida] {
+  border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — es el filo de la fila elegida, no un texto */
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+
+/* ---------- las opciones: la gota, la puesta ahumada, el hueco ---------- */
+.posv-opcion {
+  border-color: var(--color-borde-control);
+  color: color-mix(in srgb, var(--color-tinta) 82%, transparent); /* contraste: texto sobre la gota de una opción (crema, papel, placa Serena) */
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .posv-opcion:not(.posv-opcion-puesta, .posv-opcion-hueco, :disabled):hover {
+    color: var(--color-tinta);
+    background: var(--gota-marca);
+  }
+}
+.posv-opcion.posv-opcion-puesta {
+  color: var(--color-crema);
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+.posv-opcion.posv-opcion-hueco {
+  border-style: dashed;
+  border-color: var(--hueco-borde);
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto de la talla que no hay aquí, sobre el hueco (placa Serena, crema) */
+  background: var(--hueco-fondo);
+  box-shadow: var(--hueco-sombra);
+}
+@media (hover: hover) {
+  .posv-opcion.posv-opcion-hueco:not(:disabled):hover {
+    border-color: var(--color-borde-control);
+  }
+}
+
+/* La tarjeta de opción: la gota grande; la elegida, más llena y con el filo de tinta (sin volverse sólida). */
+.posv-tarjeta-opcion {
+  border-color: var(--color-borde-control);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .posv-tarjeta-opcion:not([aria-pressed="true"], :disabled):hover {
+    background: var(--gota-fondo-encima);
+  }
+}
+.posv-tarjeta-opcion[aria-pressed="true"] {
+  border-color: var(--color-tinta);
+  background: var(--gota-marca);
+  box-shadow: inset 0 0 0 1px var(--color-tinta), var(--gota-luz);
+}
+
+/* ---------- el botón rojo del paso final: la gota roja ---------- */
+.posv-boton-rojo {
+  border: 1px solid var(--gota-roja-borde);
+  color: var(--color-crema);
+  background: var(--gota-roja-fondo);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gota-roja-luz);
+}
+@media (hover: hover) {
+  .posv-boton-rojo:hover:not(:disabled) {
+    background: var(--gota-roja-hover);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posv-fila {
+    transition: none;
+  }
+}

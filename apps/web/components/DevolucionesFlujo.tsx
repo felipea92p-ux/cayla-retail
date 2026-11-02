@@ -315,7 +315,8 @@ export function DevolucionesFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          {/* Las tarjetas del flujo son la placa Serena (`posv-placa`, vidrio/posventa.css). */}
+          <div className="posv-placa p-5 sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset data-guia="devolucion.prendas" className="mt-4">
               <legend className="sr-only">Prendas que el cliente quiere devolver</legend>
@@ -325,10 +326,11 @@ export function DevolucionesFlujo({
                   const item = elegidas[l.ventaItemId];
                   const disponibles = unidadesDisponibles(l);
                   return (
-                    <div key={l.ventaItemId} className={`rounded-lg transition-colors duration-200 ${item ? "bg-crema ring-1 ring-tinta/30" : ""}`}>
+                    <div key={l.ventaItemId} data-elegida={item ? "" : undefined} className="posv-fila rounded-lg transition-colors duration-200">
                       <label
-                        className={`flex items-center gap-4 rounded-lg p-3 transition-colors duration-200 ${
-                          estado.devolvible ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
+                        data-tocable={estado.devolvible ? "" : undefined}
+                        className={`posv-fila flex items-center gap-4 rounded-lg p-3 transition-colors duration-200 ${
+                          estado.devolvible ? "cursor-pointer" : "cursor-not-allowed"
                         }`}
                       >
                         <Casilla
@@ -373,7 +375,7 @@ export function DevolucionesFlujo({
 
           {/* R-37: primero se intenta un cambio; la devolución es para cuando no hay talla ni
               nada de su agrado. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[22px] bg-papel/60 px-5 py-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 posv-placa-plana rounded-[22px] px-5 py-4 text-sm">
             <p className="max-w-xl text-tinta/80">
               <span className="font-semibold text-tinta">¿Le sirve otra talla o color?</span> Primero prueba un cambio; si no hay lo que busca, sigue con la devolución.
             </p>
@@ -399,7 +401,7 @@ export function DevolucionesFlujo({
       {paso === 3 && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-9 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div className="posv-placa space-y-9 p-5 sm:p-7">
               <fieldset ref={refMotivo} data-guia="devolucion.motivo">
                 <legend className="text-[15px] font-semibold text-tinta">¿Por qué la devuelve?</legend>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -460,7 +462,7 @@ export function DevolucionesFlujo({
       {paso === 4 && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div className="posv-placa space-y-8 p-5 sm:p-7">
               <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
@@ -480,7 +482,7 @@ export function DevolucionesFlujo({
                     const item = elegidas[l.ventaItemId]!;
                     const condicion = condicionDeItem(item);
                     return (
-                      <li key={l.ventaItemId} className="flex flex-wrap items-center gap-3 rounded-xl bg-crema/70 p-3">
+                      <li key={l.ventaItemId} className="posv-placa-plana flex flex-wrap items-center gap-3 rounded-xl p-3">
                         <MiniaturaPrenda fotoUrl={l.fotoUrl} colorHex={l.colorHex} tamano="lg" />
                         <div className="min-w-0 flex-1">
                           <p className="text-[15px] font-semibold text-tinta">
@@ -539,7 +541,7 @@ export function DevolucionesFlujo({
       )}
 
       {paso === "exito" && resultado && (
-        <div className="anim-revelar mx-auto max-w-2xl rounded-[22px] bg-papel p-6 text-center ring-1 ring-tinta/[0.07] sm:p-10">
+        <div className="posv-placa anim-revelar mx-auto max-w-2xl p-6 text-center sm:p-10">
           <CheckCircle2 className="anim-asentar mx-auto h-11 w-11 text-verde-profundo" aria-hidden />
           <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
             {TITULOS.exito}
@@ -591,12 +593,11 @@ function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente
               type="button"
               aria-pressed={activa}
               onClick={() => onCambio({ grupo: o.grupo, destino: o.grupo === "vendible" ? null : item.destino })}
-              className={`rounded-lg border px-4 py-3 text-left transition-colors duration-200 ${
-                activa ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/40"
-              }`}
+              // La tarjeta de opción es una gota; la elegida lleva el filo de tinta (`posv-tarjeta-opcion`, vidrio/posventa.css).
+              className="posv-tarjeta-opcion rounded-lg border px-4 py-3 text-left text-tinta transition-colors duration-200"
             >
               <span className="block text-sm font-semibold">{o.titulo}</span>
-              <span className={`mt-0.5 block text-sm ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
+              <span className="mt-0.5 block text-sm text-tinta/70">{o.detalle}</span>
             </button>
           );
         })}

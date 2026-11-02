@@ -11,20 +11,16 @@
        la gota roja: rojo al 82→96 %, borde de rojo al 70 % y la luz arriba. En las barras de nivel 1 y 2, la gota de crema con la letra en
        tinta o en rojo profundo.
    La persiana de «Caja cerrada» es diseño propio (ADR-0301) y no se toca. Sin capa, como las demás piezas de vidrio: le gana a
-   caja-cierre.css, a caja-comparativa.css y a las utilidades. Las recetas que faltaban en vidrio/recetas.css (el ahumado de Caja, la gota
-   roja de 82→96 %) viven aquí, en `--caja-*`, hasta que se muden allá. Movimiento: el de siempre (la barra cambia de tono en 400 ms, el
-   destello al subir de nivel), sin rebote; todo se apaga con `prefers-reduced-motion` (caja-cierre.css).
+   caja-cierre.css, a caja-comparativa.css y a las utilidades. El ahumado de Caja, que falta en vidrio/recetas.css, vive aquí, en `--caja-*`,
+   hasta que se mude allá; la gota roja de 82→96 % ya se mudó (`--gota-roja-*`, 2026-11-02). Movimiento: el de siempre (la barra cambia
+   de tono en 400 ms, el destello al subir de nivel), sin rebote; todo se apaga con `prefers-reduced-motion` (caja-cierre.css).
    ===================================================================== */
 
 :root {
   /* El ahumado de Caja: un poco más claro abajo que el ahumado denso de recetas.css (84→95 %, no 84→97 %) y con el filo al 60 %. */
   --caja-ahumado-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 84%, transparent), color-mix(in srgb, var(--color-tinta) 95%, transparent));
   --caja-ahumado-rojo-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 84%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 95%, transparent));
-  /* La gota roja de «Cerrar caja»: más llena que la de `btn-peligro` (70→92 %), porque es LA acción del final del turno. */
-  --caja-gota-roja-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 82%, transparent), color-mix(in srgb, var(--color-rojo) 96%, transparent));
-  --caja-gota-roja-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 82%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 96%, transparent));
-  --caja-gota-roja-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 40%, transparent),
-    0 10px 22px -10px color-mix(in srgb, var(--color-rojo) 70%, transparent);
+  /* La gota roja de «Cerrar caja» vive desde el 2026-11-02 en recetas.css (`--gota-roja-*`): la comparte con Cambios y Devoluciones. */
 }
 
 /* ---------- 1 · El titular «hoy contra ayer»: A · Ahumado ---------- */
@@ -55,17 +51,17 @@
 /* ---------- 2 · «Cerrar caja»: la gota roja ---------- */
 .cc-boton,
 .cc-cuadrado-cerrar {
-  border: 1px solid color-mix(in srgb, var(--color-rojo) 70%, transparent);
-  background: var(--caja-gota-roja-fondo);
+  border: 1px solid var(--gota-roja-borde);
+  background: var(--gota-roja-fondo);
   color: var(--color-crema);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  box-shadow: var(--caja-gota-roja-luz);
+  box-shadow: var(--gota-roja-luz);
 }
 .cc-boton { border-radius: 999px; }
 @media (hover: hover) {
   .cc-boton:hover,
-  .cc-cuadrado-cerrar:hover { background: var(--caja-gota-roja-hover); }
+  .cc-cuadrado-cerrar:hover { background: var(--gota-roja-hover); }
 }
 
 /* ---------- 3 · La barra de cierre: B · Isla ---------- */

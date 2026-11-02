@@ -257,3 +257,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   sus notas en gota crema; la barra de lo usado, el tubo en crema) y «¿Qué hiciste?» «A · Gota grande» («Apunte de compras», la gota ahumada
   del primario, con su ícono en gota crema y el detalle en crema plena al pasar el mouse para seguir en 5,5:1; «Me dieron plata» y «Gasté en
   otra cosa», gotas claras). En `vidrio/pantalla.css`. La cuenta local no tiene una ronda abierta: la billetera llena se vio montada.
+
+- **Lo que quedaba sólido en Cambios y Devoluciones, al vidrio (Felipe 2026-11-02):** `BotonRojo` en la gota roja (receta `--gota-roja-*`
+  mudada de `caja.css` a `recetas.css`: «Cerrar caja» usa la misma), `BotonPrincipal` en el ahumado, las opciones en gota con la elegida en
+  ahumado denso y la talla que no hay en hueco punteado, «Impecable / Con defecto» en gota, «Lo que revisa el sistema» y las tarjetas de cada
+  paso en placa Serena (al confirmar, la balanza queda al aire) y las filas de prenda vendida con la gota al pasar. Lo hereda también el
+  «Aprobar» de las devoluciones pendientes. La gota roja da 4,1:1 en claro a media altura (3,6 arriba, 4,5 abajo), bajo el 4,5 de su letra
+  de 11 px: es la receta que Felipe eligió y vale también para Caja.

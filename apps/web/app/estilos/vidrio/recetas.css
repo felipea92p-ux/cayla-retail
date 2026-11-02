@@ -72,6 +72,16 @@
   /* Lo peligroso es vidrio rojo: no se confunde, y tampoco es un bloque sólido. */
   --rojo-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 70%, transparent), color-mix(in srgb, var(--color-rojo) 92%, transparent));
   --rojo-vidrio-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 94%, transparent));
+  /* La GOTA ROJA: la acción que cierra algo y mueve plata o stock de verdad («Cerrar caja», «Confirmar cambio», «Registrar devolución»).
+     Más llena que `btn-peligro` (82→96 %, no 70→92 %): es LA acción de esa pantalla. Nació en vidrio/caja.css (`--caja-gota-roja-*`, Felipe
+     2026-11-02) y se mudó aquí al llegar a Cambios y Devoluciones. En oscuro es la MISMA receta: el rojo se aclara solo (tema.css) y la letra
+     va en `--color-crema`, que allí es el negro cálido. Contraste medido de la letra en crema, a media altura de la gota (≈89 %) sobre el
+     fondo de la pantalla: claro 4.1:1 (3.6:1 arriba, 4.5:1 abajo; el rojo macizo daba 4.8:1); oscuro 5.3:1. */
+  --gota-roja-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 82%, transparent), color-mix(in srgb, var(--color-rojo) 96%, transparent));
+  --gota-roja-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 82%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 96%, transparent));
+  --gota-roja-borde: color-mix(in srgb, var(--color-rojo) 70%, transparent);
+  --gota-roja-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 40%, transparent),
+    0 10px 22px -10px color-mix(in srgb, var(--color-rojo) 70%, transparent);
 
   /* ---------- la lente: el ícono que se mira a través de un vidrio (la «i» de una nota, el ícono de un aviso) ---------- */
   --lente-fondo: linear-gradient(145deg, color-mix(in srgb, var(--color-vidrio) 85%, transparent), color-mix(in srgb, var(--color-vidrio) 25%, transparent));
@@ -176,6 +186,15 @@
   --lente-tono-filo: 28%;
   --lente-tono-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent),
     0 22px 40px -22px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  /* La lente del tono CHICA: una tarjeta que vive dentro de una tarjeta de papel (las de «Lo que mueve la aguja» en Frescura,
+     docs/maquetas/frescura-vidrio-2026-11/). La misma idea que la del aviso, pero sin sombra (va pegada a su sección) y con su propio
+     oscuro: ahí la base es transparente y el tono se pinta directo sobre el papel, porque la base de vidrio del aviso aclaraba la
+     tarjeta y el texto taupe bajaba a 4,1:1 (medido el 2026-11-02). La mezcla la hace la pieza con su `--c`. */
+  --lente-chica-base-arriba: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+  --lente-chica-base-abajo: color-mix(in srgb, var(--color-vidrio) 55%, transparent);
+  --lente-chica-tinte-arriba: 6%;
+  --lente-chica-tinte-abajo: 12%;
+  --lente-chica-filo: 30%;
   /* El loader: la pantalla esmerilada (más desenfoque que el velo de una hoja: no hay hoja que mirar) y el halo de crema detrás de sus
      palabras sueltas. */
   --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 46%, transparent);
@@ -186,15 +205,6 @@
   --version-filo: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 32%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 55%, transparent);
   --version-gota-clara: linear-gradient(180deg, color-mix(in srgb, var(--color-crema) 98%, transparent), color-mix(in srgb, var(--color-crema) 84%, transparent));
-  /* La lente del tono CHICA: una tarjeta que vive dentro de una tarjeta de papel (las de «Lo que mueve la aguja» en Frescura,
-     docs/maquetas/frescura-vidrio-2026-11/). La misma idea que la del aviso, pero sin sombra (va pegada a su sección) y con su propio
-     oscuro: ahí la base es transparente y el tono se pinta directo sobre el papel, porque la base de vidrio del aviso aclaraba la
-     tarjeta y el texto taupe bajaba a 4,1:1 (medido el 2026-11-02). La mezcla la hace la pieza con su `--c`. */
-  --lente-chica-base-arriba: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
-  --lente-chica-base-abajo: color-mix(in srgb, var(--color-vidrio) 55%, transparent);
-  --lente-chica-tinte-arriba: 6%;
-  --lente-chica-tinte-abajo: 12%;
-  --lente-chica-filo: 30%;
   --version-gota-clara-luz: inset 0 1px 0 var(--color-crema), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 60%, transparent);
   /* Con «reducir movimiento» no hay líquido: la píldora es el ahumado quieto. */
   --version-ahumado-quieto: color-mix(in srgb, var(--color-tinta) 92%, transparent);
@@ -325,6 +335,13 @@
     --lente-tono-tinte-abajo: 18%;
     --lente-tono-filo: 34%;
     --lente-tono-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent), 0 22px 40px -22px var(--color-sombra);
+    /* La lente chica en oscuro: el tono directo sobre el papel, más arriba que abajo, sin base de vidrio. La maqueta decía 14 % → 8 %;
+       queda en 11 % → 7 % porque con 14 % la insignia de arriba (su texto del mismo tono sobre su propio tinte) bajaba a 4,4:1. Con 11 %,
+       medido el 2026-11-02: la insignia 4,7:1, el texto taupe 5,5:1 y el de tinta 10,9:1 (ámbar y verde). */
+    --lente-chica-base-arriba: transparent;
+    --lente-chica-base-abajo: transparent;
+    --lente-chica-tinte-arriba: 11%;
+    --lente-chica-tinte-abajo: 7%;
     --version-filo: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 40%, transparent),
       inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 55%, transparent);
     /* La isla y el tubo en oscuro: la luz de arriba toma la crema a poca opacidad (el vidrio es oscuro) y el relleno se apaga hacia la sombra. */
@@ -335,13 +352,6 @@
     --tubo-relleno-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent);
     /* El Punto de Venta: en oscuro el ticket es vidrio parejo y casi lleno (sobre el negro cálido el degradado no se ve) y las sombras, negras. */
     --ticket-placa-fondo: color-mix(in srgb, var(--color-vidrio) 78%, transparent);
-    /* La lente chica en oscuro: el tono directo sobre el papel, más arriba que abajo, sin base de vidrio. La maqueta decía 14 % → 8 %;
-       queda en 11 % → 7 % porque con 14 % la insignia de arriba (su texto del mismo tono sobre su propio tinte) bajaba a 4,4:1. Con 11 %,
-       medido el 2026-11-02: la insignia 4,7:1, el texto taupe 5,5:1 y el de tinta 10,9:1 (ámbar y verde). */
-    --lente-chica-base-arriba: transparent;
-    --lente-chica-base-abajo: transparent;
-    --lente-chica-tinte-arriba: 11%;
-    --lente-chica-tinte-abajo: 7%;
     --ticket-placa-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 30px 60px -34px var(--color-sombra);
     --foto-al-aire-sombra: 0 18px 30px -20px var(--color-sombra);
     --foto-al-aire-sombra-encima: 0 24px 36px -20px var(--color-sombra);
@@ -373,11 +383,11 @@
     --globo-fondo: var(--color-tinta);
     --lente-tono-base-arriba: var(--color-papel);
     --lente-tono-base-abajo: var(--color-papel);
+    --lente-chica-base-arriba: var(--color-papel);
+    --lente-chica-base-abajo: var(--color-papel);
     --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 90%, transparent);
     --espera-halo: var(--color-crema);
     --version-agua-opacidad: 1;
     --ticket-placa-fondo: var(--color-papel);
   }
 }
-    --lente-chica-base-arriba: var(--color-papel);
-    --lente-chica-base-abajo: var(--color-papel);
