@@ -19,7 +19,7 @@ import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas
 import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
+import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal, LiberarModal } from "@/components/apartados/ModalesApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -89,6 +89,7 @@ export function EntregarVista({
   const [revisando, setRevisando] = useState(false);
   const [abonar, setAbonar] = useState(false);
   const [editar, setEditar] = useState(false);
+  const [liberar, setLiberar] = useState(false);
   const conAbonos = encendida(apagadas, "abonos");
   const conEditar = encendida(apagadas, "editar");
   const conEstante = encendida(apagadas, "estante");
@@ -241,6 +242,14 @@ export function EntregarVista({
                 <span className="text-sm text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
               </div>
             )}
+            {/* ADR-0599: liberar no espera al vencimiento ni a una líder: quien ve Apartados lo hace (un apartado hecho por error, o que el
+                cliente desistió). Las prendas vuelven a venderse y el adelanto queda por devolver. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Boton peso="peligro" className="btn-chico" onClick={() => setLiberar(true)}>
+                Liberar apartado
+              </Boton>
+              <span className="text-sm text-tinta/55">Si se apartó por error o el cliente desistió: las prendas vuelven a estar disponibles.</span>
+            </div>
             <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-sm text-tinta/80">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>
@@ -466,6 +475,7 @@ export function EntregarVista({
 
       {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
+      {liberar && a && <LiberarModal apartado={a} ubicacion={ubicacion} onClose={() => setLiberar(false)} />}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
       </fieldset>
