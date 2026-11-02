@@ -143,11 +143,13 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
       <Aviso tono="atencion" className={className} titulo={nadie ? `Nadie de turno en ${sede}` : "No se pudo leer quién está de turno"}>
         {nadie ? (
           <>
-            <p>
+            {/* En el teléfono el título y los dos pasos bastan: este párrafo le quitaba al ticket la mitad del alto y dejaba ver
+                una sola prenda a la vez (verificado a 375 px, 2026-11-02). */}
+            <p className="max-sm:hidden">
               Para guardar, quien atiende tiene que haber marcado su <b className="font-semibold">entrada</b> hoy en esta tienda. Nadie lo
               ha hecho todavía (la regla es la misma para los líderes).
             </p>
-            <ol className="ml-[18px] mt-2 list-decimal">
+            <ol className="ml-[18px] list-decimal sm:mt-2">
               <li>Marca tu entrada en el kiosco de asistencia de la tienda.</li>
               <li>Vuelve aquí y toca «Actualizar lista».</li>
             </ol>
