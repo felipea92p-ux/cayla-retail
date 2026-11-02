@@ -629,3 +629,110 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
 @media (prefers-reduced-motion: reduce) {
   .prod-foto { transition: none; }
 }
+
+/* ====================================================================
+   COMPRAS ▸ MIS COMPRAS CON VIDRIO (ADR-0596; Felipe lo eligió mirando el 2026-11-02, docs/maquetas/mis-compras-vidrio-2026-11/,
+   «Lo que decidió Felipe»). Lo propio de la pantalla (components/mi-plata/MesaDeLaRonda.tsx, ADR-0559):
+     · La billetera «Tienes para comprar» (`Billetera`, `.mc-billetera`), «A · Ahumada»: la misma decisión que el titular de Caja
+       (`.cmp-heroe`, vidrio/caja.css): sigue siendo el bloque oscuro que se lee primero («cuánto tengo»), ahora de vidrio ahumado con el
+       ahumado de Caja (`--caja-ahumado-fondo`), su luz arriba, un filo y esquinas de 26 px; deja ver el lienzo desenfocado. Sus notas
+       («esperan que Compras confirme», la cifra negativa) pasan a gotas de crema, como las píldoras del titular de Caja, y la barra de lo
+       usado toma el tubo de todo el ERP (vidrio/barras.css) en crema.
+     · «¿Qué hiciste?» (`AccionDelDia`, `.mc-accion`), «A · Gota grande»: «Apunte de compras» es la gota ahumada del botón primario
+       (`--ahumado-*`; pasa a rojo profundo al pasar el mouse, como todo botón negro) con su ícono en una gota de crema; «Me dieron plata» y
+       «Gasté en otra cosa», gotas claras con el filo de lo que se toca (`borde-control`) y el ícono en una gota.
+   Solo recetas (recetas.css y las de Caja). Sin movimiento nuevo: el de `mov-boton` (sube 2 px, la luz que cruza, la flecha que avanza) y
+   la barra que se llena una vez; todo se apaga con `prefers-reduced-motion` (globals.css, avance-anillo-copiar.css).
+   ==================================================================== */
+
+/* ---------- 1 · La billetera: A · Ahumada ---------- */
+.mc-billetera {
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 60%, transparent);
+  border-radius: 26px;
+  background: var(--caja-ahumado-fondo);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 30%, transparent),
+    0 30px 60px -30px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+}
+/* Las notas de adentro: gotas de crema sobre el ahumado (las píldoras del titular de Caja). */
+.mc-billetera-nota {
+  border: 1px solid color-mix(in srgb, var(--color-crema) 14%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-crema) 14%, transparent), color-mix(in srgb, var(--color-crema) 5%, transparent));
+}
+/* La barra de lo usado: el tubo de todo el ERP, en crema (la pista hundida con su filo; el relleno de crema con la luz arriba). */
+.mc-billetera .barra-avance[data-sobre-tinta] {
+  height: 14px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--color-crema) 18%, transparent);
+  background: color-mix(in srgb, var(--color-crema) 14%, transparent);
+  box-shadow: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+}
+.mc-billetera .barra-avance[data-sobre-tinta] .barra-avance-lleno {
+  position: relative;
+  inset: auto;
+  height: 100%;
+  max-width: 100%;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-crema) var(--tubo-relleno-mezcla), var(--tubo-relleno-arriba)), var(--color-crema) 70%);
+  box-shadow: var(--tubo-relleno-luz);
+}
+@media screen {
+  /* En oscuro la billetera es clara (tinta y crema se cambian): la luz de arriba es de crema y la sombra, negra, como el titular de Caja. */
+  :root[data-tema="oscuro"] .mc-billetera {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 40%, transparent), 0 30px 60px -30px var(--color-sombra);
+  }
+  /* El relleno de crema (oscura) no lleva la luz de vidrio arriba: sobre la billetera clara se vería como una raya. */
+  :root[data-tema="oscuro"] .mc-billetera .barra-avance[data-sobre-tinta] .barra-avance-lleno {
+    background: var(--color-crema);
+    box-shadow: none;
+  }
+}
+
+/* ---------- 2 · «¿Qué hiciste?»: A · Gota grande ---------- */
+/* Las dos chicas: gotas claras con el filo de lo que se toca. */
+.mc-accion {
+  border-radius: 24px;
+  border-color: var(--color-borde-control);
+  background: var(--gota-fondo-encima);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: var(--gota-luz);
+}
+.mc-accion .mc-accion-icono {
+  background: var(--gota-marca);
+  box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 12%, transparent);
+}
+/* «Apunte de compras»: la gota ahumada del botón primario (btn-primario, vidrio/campos-y-botones.css), redonda en sus puntas. */
+.mc-accion[data-grande] {
+  border-radius: 999px;
+  border-color: var(--ahumado-borde);
+  background: var(--ahumado-fondo);
+  box-shadow: var(--ahumado-luz);
+}
+.mc-accion[data-grande] .mc-accion-icono {
+  background: var(--gota-crema-fondo);
+  box-shadow: var(--gota-crema-luz);
+}
+@media (hover: hover) {
+  .mc-accion:not([data-grande]):hover { background: var(--gota-marca); }
+  .mc-accion[data-grande]:hover {
+    border-color: color-mix(in srgb, var(--color-rojo-profundo) 70%, transparent);
+    background: var(--ahumado-hover);
+  }
+  /* Sobre el rojo profundo ahumado el ejemplo al 75 % bajaba a 3.6:1 (en claro, a media altura de la gota): sube a la crema plena (5.4:1
+     en claro, 6.3:1 en oscuro). Sobre la tinta maciza de antes pasaba 4.9:1. */
+  .mc-accion[data-grande]:hover .mc-accion-detalle { color: var(--color-crema); }
+}
+@media screen {
+  /* En oscuro el ícono de las chicas es la gota oscura de siempre (el vidrio pleno sería un botón claro dentro de otro). */
+  :root[data-tema="oscuro"] .mc-accion:not([data-grande]) .mc-accion-icono {
+    background: color-mix(in srgb, var(--color-tinta) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 12%, transparent);
+  }
+}
+
+/* Quien pidió menos transparencia ve la billetera y la gota grande macizas, en los mismos tonos. */
+@media (prefers-reduced-transparency: reduce) {
+  .mc-billetera, .mc-accion[data-grande] { background: var(--color-tinta); }
+  .mc-accion:not([data-grande]) { background: var(--color-papel); }
+}

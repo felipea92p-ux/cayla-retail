@@ -252,3 +252,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   su insignia con su filo; receta nueva `--lente-chica-*`, en oscuro más suave para que la insignia pase 4,5:1) y «por decidir» B · Fila
   hundida (la fila en un pozo de 16 px de esquina, sin su raya ni la de abajo; el hilo rojo del mouse se conserva). En `vidrio/frescura.css`.
   Todo pasa 4,5:1 en los dos temas. Visto con un montaje: la base local no tiene tarjetas de la aguja ni filas por decidir.
+
+- **Mis compras al vidrio (Felipe 2026-11-02):** la billetera «A · Ahumada» (el ahumado del titular de Caja con su luz, su filo y 26 px;
+  sus notas en gota crema; la barra de lo usado, el tubo en crema) y «¿Qué hiciste?» «A · Gota grande» («Apunte de compras», la gota ahumada
+  del primario, con su ícono en gota crema y el detalle en crema plena al pasar el mouse para seguir en 5,5:1; «Me dieron plata» y «Gasté en
+  otra cosa», gotas claras). En `vidrio/pantalla.css`. La cuenta local no tiene una ronda abierta: la billetera llena se vio montada.
