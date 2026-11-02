@@ -275,3 +275,133 @@
 @media (prefers-reduced-motion: reduce) and (hover: hover) {
   .selector-mes.selector-mes > [data-flecha]:not(:disabled):hover svg { translate: none; }
 }
+
+/* ---------- La planilla de Configuración ▸ Tiendas: casilla «A · Pozo en la celda» y al guardarse «A · Visto en la celda» ----------
+   (Felipe 2026-11-02, docs/maquetas/configuracion-vidrio-2026-11/; en la casilla se recomendaba la B y eligió la A). Cada número de la
+   planilla se guarda solo al salir de él (ConfiguracionCasilla.tsx). Es el `fin-control` del kit de Finanzas, pero SOLO dentro de
+   `.cfg-casilla` (el marco que le pone esa pestaña): el resto de Finanzas sigue con su caja hueso.
+   · La casilla es el pozo de los campos de las hojas, en chico y en píldora: espera tu número; con el cursor adentro sube a vidrio y su
+     hilo rojo se dibuja desde el centro. El borde es el de lo que se toca (3:1, ADR-0516).
+   · Si la base dijo que sí, un ✓ verde se dibuja sobre la esquina del número y se va solo en 1,6 s (la duración la comparte con `VISTO_MS`,
+     lib/configuracion-casilla.ts, y la prueba exige que coincidan). Una vez, sin rebote.
+   · Bajo 560 px de ancho de la tarjeta (no del aparato), la planilla pasa a una tarjeta por tienda (o por mes): cada casilla con su
+     nombre al lado y los siete días de a dos. */
+.cfg-casilla {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+.cfg-casilla > .fin-control {
+  border-radius: 999px;
+  padding-inline: 11px;
+  border-color: var(--color-borde-control);
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+  transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
+}
+.cfg-casilla > .fin-control:focus {
+  background: var(--pozo-encendido-fondo);
+  box-shadow: var(--pozo-encendido-sombra);
+}
+.cfg-casilla-hilo {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-rojo);
+  transform: scaleX(0);
+  transform-origin: center;
+  pointer-events: none;
+  transition: transform 320ms var(--ease-cayla);
+}
+.cfg-casilla:focus-within .cfg-casilla-hilo { transform: scaleX(1); }
+
+/* El ✓: un punto verde sobre la esquina de arriba a la derecha de la casilla, pegado al número (que va a la derecha). La maqueta lo
+   ponía a la derecha, a media altura; en la planilla real los siete días van tan juntos (unos 15 px entre casilla y casilla a 1440 px)
+   que ahí tapaba 5 px de la casilla de al lado. En la esquina cae en el aire de la celda y nunca tapa otro número ni el «%». */
+.cfg-casilla-visto {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--color-crema);
+  background: var(--color-verde);
+  pointer-events: none;
+  animation: cfg-visto 1600ms var(--ease-cayla) both;
+}
+.cfg-casilla-visto svg {
+  width: 12px; /* la escala de íconos (lib/iconos.ts): 12 px, como en una insignia */
+  height: 12px;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: cfg-visto-trazo 320ms var(--ease-cayla) 80ms forwards;
+}
+@keyframes cfg-visto {
+  0% { opacity: 0; scale: 0.6; }
+  14% { opacity: 1; scale: 1; }
+  78% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: 1; }
+}
+@keyframes cfg-visto-trazo { to { stroke-dashoffset: 0; } }
+
+/* La tarjeta por tienda: mira el ancho de su placa (como la maqueta), no el del aparato. */
+.cfg-planilla { container: cfg-planilla / inline-size; }
+@container cfg-planilla (max-width: 560px) {
+  .cfg-planilla .fin-tabla { min-width: 0; }
+  .cfg-planilla .fin-tabla thead { display: none; }
+  .cfg-planilla .fin-tabla,
+  .cfg-planilla .fin-tabla tbody { display: block; }
+  .cfg-planilla .fin-tabla tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0; /* la ficha de Finanzas le pone 14 px entre columnas: con eso los días no entraban de a dos */
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .cfg-planilla .fin-tabla tbody tr:first-child { border-top: 0; }
+  .cfg-planilla .fin-tabla td,
+  .cfg-planilla .fin-tabla td.fin-num {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 8px 4px 0;
+    border: 0;
+    text-align: right;
+  }
+  /* Los siete días, de a dos. */
+  .cfg-planilla .fin-tabla td:nth-child(n + 2):nth-child(-n + 8) { width: 50%; gap: 8px; padding-right: 16px; }
+  .cfg-planilla .fin-tabla td:nth-child(n + 2):nth-child(-n + 8) .fin-control { width: 4rem; }
+  .cfg-planilla .fin-tabla td[data-l]::before {
+    content: attr(data-l);
+    display: inline;
+    margin: 0;
+    font-size: 14px;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    color: var(--color-taupe);
+  }
+  /* El nombre de la tienda (o del mes) es el título de su tarjeta: sin etiqueta. */
+  .cfg-planilla .fin-tabla td.fin-ancha { display: block; padding: 0 0 6px; text-align: left; }
+  .cfg-planilla .fin-tabla td.fin-ancha::before { content: none; }
+  /* La meta del mes: su nombre a la izquierda y, a la derecha, la cifra con su «sin IGV» debajo. */
+  .cfg-planilla .fin-tabla td:last-child { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; }
+  .cfg-planilla .fin-tabla td:last-child::before { grid-row: 1 / span 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-casilla > .fin-control,
+  .cfg-casilla-hilo { transition: none; }
+  /* Aparece y se va sin animar: React lo saca a los 1,6 s. */
+  .cfg-casilla-visto { animation: none; }
+  .cfg-casilla-visto svg { animation: none; stroke-dashoffset: 0; }
+}

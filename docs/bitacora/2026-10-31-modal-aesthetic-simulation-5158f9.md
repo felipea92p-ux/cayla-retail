@@ -286,3 +286,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   campana en gota, el número en gota de su tono, cada aviso en lente de su tono, la lista en el vidrio de los combos, sus botones en gota). La
   hoja «Configuración» de la campaña (ADR-0488) no se tocó. Sin planes en la base local: la barra se vio montada. Ya estaba y sigue: a 375 px
   la lista de avisos se sale 38 px por la izquierda (posición en línea de `CentroDeAvisos.tsx`).
+
+- **Configuración ▸ Tiendas al vidrio (Felipe 2026-11-02):** la casilla «A · Pozo en la celda» (el `fin-control` dentro de `.cfg-casilla`
+  es un pozo que se enciende con su hilo; Finanzas no cambia) y «A · Visto en la celda» (`useVistoGuardado` + `<MarcoCasilla>`: el ✓ verde
+  sale solo si la base dijo que sí y se va a los 1,6 s; `VISTO_MS` en `lib/configuracion-casilla.ts`, con su prueba). La planilla
+  (`cfg-planilla`) pasa a una tarjeta por tienda bajo 560 px de tarjeta. Distinto de la maqueta: el ✓ va en la esquina de arriba (a media
+  altura tapaba la casilla de al lado), el borde es `borde-control` pleno (3:1) y el aviso de la esquina sigue (dice lo que el ✓ no dice).
+  Se vio con `fetch` simulado, sin escribir en la base.
