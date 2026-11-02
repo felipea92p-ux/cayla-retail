@@ -42,3 +42,17 @@ desparramada» y siga las normas de los grandes catálogos (proporciones y peso 
 4. En una tarjeta angosta (celular), el precio baja bajo el nombre y el stock baja bajo los puntos si no caben.
 
 Medido otra vez: 162 combinaciones sin desborde.
+
+## La distribución, con las reglas de proximidad (pedida el 2026-11-02)
+
+Con una ficha de Peloton de ejemplo, Felipe pidió aplicar las reglas de proximidad y ver varias formas de repartir la información. Las
+tres siguen las mismas reglas: dentro de un grupo, 2 a 4 px; entre grupos, 12 a 18 px (el doble o el triple); un solo margen para todo;
+un peso por grupo (lo principal en tinta y 15–19 px, lo secundario tenue y 12,5–13,5 px); y la acción, sola en su esquina.
+
+| Distribución | Cómo | Alto a 1440 |
+|---|---|---|
+| A · Catálogo de moda | La foto y tres renglones apretados debajo (la de la ronda anterior) | 414 px |
+| **B · Ficha con marco** (recomendada) | La de Peloton: placa con tres grupos al mismo aire que su borde (16 px): nombre y qué es · la foto · precio con stock y los colores en su esquina | 433 px |
+| C · Leyenda sobre la foto | La foto ocupa todo; nombre, precio, colores y stock en una banda de vidrio pegada a su borde de abajo | 326 px |
+
+Medido: 36 combinaciones (320 a 1920, claro y oscuro, las tres), nada se desborda; cambiar de color desde los puntos sigue andando en las tres.
