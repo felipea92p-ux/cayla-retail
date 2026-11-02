@@ -518,8 +518,8 @@
 }
 .pv-desc-der > section:nth-child(1) { animation-delay: 70ms; }
 .pv-desc-der > section:nth-child(2) { animation-delay: 130ms; }
-/* El paso que sigue (guía de foco) se marca con su número en rojo, la pastilla «Sigue aquí» y un halo suave en el control — SIN el recuadro
-   de fondo del cobro: dentro de esta hoja, con tres pasos casi seguidos, un recuadro rosado alrededor de un paso sobre el vidrio se veía
+/* El paso que sigue (guía de foco) se marca con su número en rojo y la pastilla «Sigue aquí» — SIN recuadro de fondo ni halo alrededor del
+   control: dentro de esta hoja, con tres pasos casi seguidos, un recuadro rosado alrededor de un paso sobre el vidrio se veía
    como una mancha (Felipe 2026-11-02). Sin tinte tampoco hace falta el margen negativo que se lo daba. */
 .pv-desc-cuerpo .hoja-cobro-paso,
 .pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui {
@@ -527,11 +527,6 @@
   padding: 0;
   border-color: transparent;
   background: transparent;
-}
-.pv-desc-cuerpo .sigue-aqui :is(.pv-desc-lista, .pv-desc-opciones, .pv-desc-fichas, textarea, input[type="text"]) {
-  outline: 2px solid color-mix(in srgb, var(--color-rojo) 26%, transparent);
-  outline-offset: 3px;
-  border-radius: 1.1rem;
 }
 /* El segmento «Porcentaje | Monto en S/» a lo ancho de su paso, con cada opción a media caja: un blanco cómodo de tocar. */
 .segmento-cayla.pv-desc-modo {
