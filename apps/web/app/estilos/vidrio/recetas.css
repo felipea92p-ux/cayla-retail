@@ -582,3 +582,41 @@
     --gota-clara-encima: var(--color-papel);
   }
 }
+
+/* ---------- Producción ▸ Insumos (docs/maquetas/insumos-vidrio-2026-11/; piezas en vidrio/insumos.css) ----------
+   Bloque propio, con su oscuro y su respaldo, para no tocar los de las demás pantallas. Lo eligió Felipe el 2026-11-02:
+   · La fila de un insumo, «A · Una placa por tela»: los colores de una tela en UNA placa Serena (sin receta propia), con una raya de
+     tinta al 8 % entre filas y tinta al 3 % al pasar el mouse. La fila ABIERTA se hunde: tinta al 4 % con su sombra adentro (en oscuro,
+     la sombra al 26 %, como en la maqueta). Más suave que el pozo de un campo (5 %, 16 %): aquí no se escribe, solo se leen los lotes.
+   · El libro de movimientos, «A · Placa con filas»: la placa Serena con la misma raya; lo que entra, una lente verde (el tono que pone
+     la pieza con su `--c`, al 6 % sobre vidrio arriba y al 14 % abajo, filo al 28 %); lo que sale, una píldora de tinta al 6 %. */
+:root {
+  --insumo-raya: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --insumo-fila-encima: color-mix(in srgb, var(--color-tinta) 3%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --insumo-abierta-fondo: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --insumo-abierta-sombra: inset 0 1.5px 4px color-mix(in srgb, var(--color-sombra) 14%, transparent);
+  --insumo-entra-base-arriba: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+  --insumo-entra-base-abajo: transparent;
+  --insumo-entra-tinte-arriba: 6%;
+  --insumo-entra-tinte-abajo: 14%;
+  --insumo-entra-filo: 28%;
+  --insumo-sale-fondo: color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+@media screen {
+  /* En oscuro: la fila abierta, la sombra al 26 % (la tinta al 4 % sería crema y aclararía el pozo); la lente, el verde directo sobre la
+     placa, sin base de vidrio (la base oscura lo apagaba, como en la lente chica). */
+  :root[data-tema="oscuro"] {
+    --insumo-abierta-fondo: color-mix(in srgb, var(--color-sombra) 26%, transparent);
+    --insumo-entra-base-arriba: transparent;
+    --insumo-entra-tinte-arriba: 10%;
+    --insumo-entra-tinte-abajo: 16%;
+    --insumo-entra-filo: 34%;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-tema="oscuro"] {
+    --insumo-entra-base-arriba: var(--color-papel);
+    --insumo-entra-base-abajo: var(--color-papel);
+  }
+}

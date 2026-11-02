@@ -340,3 +340,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   pozo de vidrio/pantalla.css ya la vestía). Las tarjetas son la placa Serena teñida de su tono con la lente chica, el ícono en una gota de su
   tono; «Ver PDF» y «WhatsApp», gotas chicas de 26 px; XML y CDR, tenues tras un punto; «Tiene …» / «Corrige …», lente pizarra. Nada de SUNAT ni
   de Lucode cambió. La base local no tiene comprobantes con PDF: los documentos se vieron con su marcado en el navegador.
+
+- **Producción ▸ Insumos al vidrio (Felipe 2026-11-02):** la fila A · Una placa por tela y el libro A · Placa con filas (`vidrio/insumos.css`,
+  recetas `--insumo-*`). Las filas de una tela (o de un avío) viven en una placa Serena de 22 px bajo su título; cada fila deja de ser tarjeta
+  (raya de tinta al 8 %, tinta al 3 % al pasar) y la abierta se hunde; el libro es otra placa, con lo que entra en lente verde y lo que sale en
+  píldora de tinta al 6 %. El acordeón, el saldo, los lotes y «Nueva tela» no cambian. La base local no tiene insumos en el Taller: se vio con
+  el marcado del componente en el navegador, sin escribir en la base.

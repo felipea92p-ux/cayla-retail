@@ -135,6 +135,7 @@
 @import "./estilos/vidrio/plan-piso.css"; /* Gestión ▸ Plan del piso con vidrio: tarjeta B · Al aire y banda B · Estante de vidrio; el riel «La percha» no cambia (docs/maquetas/plan-piso-vidrio-2026-11/) */
 @import "./estilos/vidrio/catalogo.css"; /* Catálogo ▸ Categorías, Marcas y Atributos con vidrio: la tarjeta A · Muestra al aire y el índice de letras A · Ranura con gotas (docs/maquetas/catalogo-vocabulario-vidrio-2026-11/) */
 @import "./estilos/vidrio/ordenes.css"; /* Producción ▸ Órdenes con vidrio: la ruta B · Lentes al aire y el paso abierto A · Placa con su pico; la lista no cambia (docs/maquetas/ordenes-vidrio-2026-11/) */
+@import "./estilos/vidrio/insumos.css"; /* Producción ▸ Insumos con vidrio: la fila A · Una placa por tela y el libro A · Placa con filas (docs/maquetas/insumos-vidrio-2026-11/) */
 
 /* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
    pone el botón del tema. Sin esto, un Windows o un iPhone en oscuro activaría las clases `dark:` de los componentes shadcn
