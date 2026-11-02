@@ -18,11 +18,11 @@ el material.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | La barra de rango (`BarraRango`) | Como ahora | Arriba una banda taupe del flojo al bueno con la marca del normal; abajo la barra apilada sobre arena; el rombo pizarra, lo vendido. |
-| | **A · Banda esmerilada** (recomendada) | La banda es una franja de vidrio esmerilado con su filo sobre una pista; el normal, una marca de tinta; la barra apilada sobre un pozo fino; el rombo con aro de vidrio. |
+| | **A · Banda esmerilada** (elegida) | La banda es una franja de vidrio esmerilado con su filo sobre una pista; el normal, una marca de tinta; la barra apilada sobre un pozo fino; el rombo con aro de vidrio. |
 | | B · Banda punteada | La banda es solo su contorno punteado. |
 | El centro de avisos (`CentroDeAvisos`, `estilos/centro-avisos.css`) | Como ahora | Campana de papel con número rojo; lo urgente en una píldora roja; lista de papel con tarjetas de franja. |
-| | **A · Lista de vidrio con filas** (recomendada) | Campana en gota (ahumada al abrir), número en gota roja, lo urgente en lente roja; la lista de vidrio de los combos y el menú «Más»; cada aviso una fila con su nivel en una gota al canto. |
-| | B · Lentes del tono | Lo mismo, y cada aviso una lente teñida de su nivel, como los avisos de la esquina. |
+| | A · Lista de vidrio con filas | Campana en gota (ahumada al abrir), número en gota roja, lo urgente en lente roja; la lista de vidrio de los combos y el menú «Más»; cada aviso una fila con su nivel en una gota al canto. |
+| | **B · Lentes del tono** (elegida) | Lo mismo, y cada aviso una lente teñida de su nivel, como los avisos de la esquina. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
 
@@ -38,4 +38,14 @@ que nada se salga. En la maqueta, `marco.css` ya usa `.num` y `.der`, así que a
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: la barra de rango A · Banda esmerilada y el centro de avisos B · Lentes del tono** (en los avisos no tomó la recomendada). Al
+implementar:
+- `BarraRango`: la banda de arriba (`bg-taupe/30`, de flojo a bueno) pasa a una franja de vidrio esmerilado de 12 px (vidrio 85 % → taupe 22 %,
+  filo de vidrio al 70 %, su luz arriba) sobre una pista de tinta al 4 %; en oscuro, taupe al 32 % sin luz. La marca del normal, de `bg-taupe` a
+  `bg-tinta`. La barra apilada de abajo, sobre un pozo (tinta al 7 % con su sombra adentro) en vez de arena. El rombo de lo vendido conserva su
+  pizarra, con un aro de vidrio en vez de `ring-papel`. Los colores de los tramos y la leyenda no cambian.
+- `CentroDeAvisos` (`estilos/centro-avisos.css`): `.ca-boton` pasa a gota clara (abierta, gota ahumada); `.ca-n`, gota roja con texto
+  `crema-fija` en los dos temas; `.ca-asoma`, lente roja (rojo 8→14 % sobre vidrio, filo al 30 %); `.ca-panel`, vidrio claro (vidrio al 76 %,
+  desenfoque 24 y saturación 1,6, esquinas de 20 px). Cada `.ca-aviso` es una **lente del tono de su nivel** (`--c` al 5→10 % sobre vidrio,
+  filo del tono al 28 %, esquinas de 16 px), sin la franja de 5 px a la izquierda: el ícono y la etiqueta conservan su color. La hoja
+  «Configuración» de la campaña (ADR-0488) no se toca.

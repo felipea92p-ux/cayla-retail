@@ -81,3 +81,5 @@
 - **Proveedores, página entera (2026-11-02)**: maqueta `docs/maquetas/proveedores-vidrio-2026-11/`, armada con lo ya elegido. Caras de lo
   propio: «Qué hacer» (A · Placa con filas, recomendada; B · Tareas en gotas) y «Comparar» (A · Placa con columnas, recomendada; B · Columnas
   hundidas). Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en Plan de campaña (2026-11-02):** la barra de rango A · Banda esmerilada (la recomendada) y el centro de avisos
+  B · Lentes del tono (no la recomendada).
