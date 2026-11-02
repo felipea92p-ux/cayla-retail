@@ -14,12 +14,12 @@ ahumada. La barra negra elige la cara de lo propio de Caja, la hora (para ver lo
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | El titular «hoy contra ayer» (`VeredictoCaja`) | Como ahora | Bloque de tinta sólida con el halo del efectivo y el anillo grande sobre la tinta. |
-| | **A · Ahumado** (recomendada) | El mismo bloque oscuro, de vidrio ahumado como el botón primario, con su luz y su filo; el halo sigue. |
+| | **A · Ahumado** (elegida) | El mismo bloque oscuro, de vidrio ahumado como el botón primario, con su luz y su filo; el halo sigue. |
 | | B · Placa clara | Una placa Serena más; lo que falta, en el dorado oscuro del efectivo. |
 | | C · Al aire | Sin caja: la frase grande sobre el lienzo, como el mapa del Observatorio. |
 | La barra de cierre (`BarraCierreCaja`, ADR-0318) | Como ahora | Papel → tinta sólida → rojo profundo; «Cerrar caja» rojo sólido. |
-| | **A · Placa que se tiñe** (recomendada) | Placa de vidrio → ahumada de tinta → ahumada de rojo profundo; «Cerrar caja», la gota roja. |
-| | B · Isla | Se encoge a una píldora al centro, con los mismos tonos; pierde la frase de abajo. |
+| | A · Placa que se tiñe | Placa de vidrio → ahumada de tinta → ahumada de rojo profundo; «Cerrar caja», la gota roja. |
+| | **B · Isla** (elegida) | Se encoge a una píldora al centro, con los mismos tonos; pierde la frase de abajo. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`. El «Cerrar caja» de la cabecera y el del celular también pasan a la gota roja.
 
@@ -40,4 +40,13 @@ inventados. Medida de 320 a 1920 px sin que nada se salga.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: titular A · Ahumado y barra de cierre B · Isla** (en la barra no tomó la recomendada). Al implementar:
+- `.cmp-heroe` pasa de `background: var(--color-tinta)` al vidrio ahumado: degradado de tinta al 84→95 %, `backdrop-filter: blur(20px)
+  saturate(1.4)`, la luz arriba, un filo de tinta al 60 % y esquinas de 28 px. Las píldoras de abajo pasan a gotas de crema. El halo del
+  efectivo y el anillo sobre la tinta no cambian.
+- `.cc-barra` se vuelve una píldora que flota centrada (máx. 640 px), con el padding 8/8/8/22 y los tres tonos por `data-nivel`: vidrio
+  claro, ahumado de tinta y ahumado de rojo profundo. **Pierde la bajada** (`.cc-bajada`): el título de cada nivel tiene que decir solo lo
+  necesario. El nivel 2 ya lo dice («pasó la hora de cierre hace 1 h 20 min»). Si alguna bajada lleva algo que la persona necesita (la hora
+  de cierre), va en el `title` del botón o se pregunta a Felipe.
+- `.cc-boton` (también el de la cabecera, `BotonCerrarCaja`, y el «Cerrar» de `BarraCajaMovil`) pasa a la gota roja: degradado de rojo al
+  82→96 %, borde de rojo al 70 % y la luz arriba. En las barras de nivel 1 y 2, la gota crema con la letra en tinta o en rojo profundo.

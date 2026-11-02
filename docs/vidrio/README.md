@@ -73,7 +73,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Página · Punto de Venta (`/vender`) | `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx`, `PuntoDeVentaTicket.tsx`, `punto-de-venta/TarjetaPrenda.tsx` | Elegido | La mesa A · Catálogo al aire, ticket en placa; tarjeta de prenda B · Foto al aire | `vender-vidrio-2026-11/` |
 | Página · Existencias (Inventario) | `ExistenciasTarjetas.tsx`, `existencias/ParaHoy.tsx`, `FiltrosRapidos.tsx`, `PieTarjeta.tsx` | En maqueta | — (recomendadas: Vitrina A · Translúcida, sin desenfoque y tira A · Pozo de vidrio) | `existencias-vidrio-2026-11/` |
 | **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
-| **Caja** (página entera: `app/(app)/caja`, vista «hoy contra ayer») | `CajaAbiertaPanel`, `CajaComparativa`, `BarraCierreCaja` | En maqueta (armada con las piezas elegidas) | — (recomendadas: titular A · Ahumado, barra de cierre A · Placa que se tiñe) | `caja-vidrio-2026-11/` |
+| **Caja** (página entera: `app/(app)/caja`, vista «hoy contra ayer») | `CajaAbiertaPanel`, `CajaComparativa`, `BarraCierreCaja` | Elegido (armada con las piezas elegidas) | Titular A · Ahumado; barra de cierre B · Isla (píldora al centro, sin la bajada); «Cerrar caja» en gota roja | `caja-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
