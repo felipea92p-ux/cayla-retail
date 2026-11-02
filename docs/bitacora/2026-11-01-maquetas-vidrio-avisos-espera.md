@@ -73,3 +73,4 @@
   sellos de ADR-0353 conservan su movimiento, copiado tal cual de `movimientos-sellos.css`; solo cambia el material. Caras de lo propio: el
   sello y su fila (A · Lente del tono, recomendada; B · Pozo del tono) y las tarjetas de los tipos (A · Placas con su tono, recomendada;
   B · Lentes del tono). Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en Movimientos (2026-11-02):** las recomendadas, el sello A · Lente del tono y los tipos A · Placas con su tono.

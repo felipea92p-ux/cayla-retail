@@ -17,10 +17,10 @@ Lo ya elegido que usa: cabecera A, pestañas A · La gota de Mi perfil, buscador
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | El sello y su fila | Como ahora | Sello: cuadrado de papel teñido del tipo, con su aro. Lugares: píldoras de hueso. Riel: una raya arena. |
-| | **A · Lente del tono** (recomendada) | El sello, una lente teñida del tipo con su luz (como la insignia elegida); los lugares, gotas claras; el riel, una ranura. |
+| | **A · Lente del tono** (elegida) | El sello, una lente teñida del tipo con su luz (como la insignia elegida); los lugares, gotas claras; el riel, una ranura. |
 | | B · Pozo del tono | El sello, tallado en el vidrio: un pozo teñido del tipo. |
 | Las tarjetas de los tipos | Como ahora | Papel con borde arena; la elegida se tiñe del tipo. |
-| | **A · Placas con su tono** (recomendada) | Placas claras; la elegida, teñida de su tipo con su filo. |
+| | **A · Placas con su tono** (elegida) | Placas claras; la elegida, teñida de su tipo con su filo. |
 | | B · Lentes del tono | Todas teñidas de su tipo, como un muestrario. |
 
 El día pasa en las dos caras de una franja hueso a una ranura fina, con su franja de colores igual. Lo que gana y lo que cuesta cada cara, al
@@ -38,4 +38,11 @@ sin que nada se salga. En la maqueta, `marco.css` ya usa `.uni`, así que aquí 
 
 ## Lo que decidió Felipe
 
-**2026-11-02: tocar Movimientos con el mismo movimiento de los sellos.** Las caras, pendientes.
+**2026-11-02: tocar Movimientos con el mismo movimiento de los sellos**, con **el sello A · Lente del tono y los tipos A · Placas con su
+tono** (las recomendadas). Al implementar en `movimientos-sellos.css` (ningún `@keyframes` ni ningún `[data-go]` cambia):
+- `.mv-sello`: vidrio teñido del tipo (`--mv-c` al 10→20 % sobre vidrio, la luz arriba, un filo del tono al 30 % y una sombra del tono); el
+  punteado (ajuste, conteo) queda casi transparente con su borde punteado.
+- `.mv-punto`: gota clara con el filo de `borde` al 45 %; el de afuera, punteado sin fondo. `.mv-riel`: una ranura de 6 px con el relleno
+  adentro. `.mv-fila:hover`: el tono al 7 % sobre transparente (no sobre papel). Las rayas entre filas, tinta al 8 %.
+- `.mv-tipo`: placa de vidrio clara; `[aria-current]`, teñida del tipo con el filo al 55 %; la barra de abajo, un pozo de 6 px.
+- `.mv-dia`: de hueso a una ranura fina (tinta al 4 % con su sombra adentro).
