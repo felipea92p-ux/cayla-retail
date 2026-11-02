@@ -284,6 +284,19 @@
   --vidrio-claro-borde: color-mix(in srgb, var(--color-vidrio) 70%, transparent);
   --vidrio-claro-filo: inset 0 1px 0 var(--color-vidrio);
   --vidrio-claro-sombra: var(--vidrio-claro-filo), 0 12px 28px -18px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+
+  /* ---------- el Plan del piso con vidrio (docs/maquetas/plan-piso-vidrio-2026-11/; piezas en vidrio/plan-piso.css) ---------- */
+  /* «B · Estante de vidrio» (Felipe 2026-11-02): la banda del riel es una vitrina translúcida, más llena arriba (70 → 38 %), con su filo
+     y una sombra corta; SIN desenfoque (las perchas se repintan al pasar por un grupo y detrás solo está la Aurora). El borde es el del
+     vidrio claro. El tubo que la cruza arriba, del que cuelgan los tramos, es vidrio que se oscurece hacia abajo (la luz al 98 % → la tinta
+     al 18 %), con su luz arriba y su sombra. */
+  --estante-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 70%, transparent), color-mix(in srgb, var(--color-vidrio) 38%, transparent));
+  --estante-sombra: inset 0 1px 0 var(--color-vidrio), 0 18px 34px -24px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  --estante-tubo-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 98%, transparent), color-mix(in srgb, var(--color-tinta) 18%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --estante-tubo-sombra: inset 0 1px 0 var(--color-vidrio), 0 3px 6px -2px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+  /* «B · Al aire»: sin tarjeta, lo que se lee abajo del riel (el «¿Por qué?») es una lámina de vidrio (80 → 58 %) con el borde de la
+     Serena y el filo del vidrio claro. */
+  --lamina-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 80%, transparent), color-mix(in srgb, var(--color-vidrio) 58%, transparent));
 }
 
 @media screen {
@@ -425,6 +438,13 @@
     --vidrio-claro-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --vidrio-claro-filo: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent);
     --vidrio-claro-sombra: var(--vidrio-claro-filo);
+    /* El estante en oscuro: la vitrina es la crema al 5 % (el degradado no se ve sobre el negro cálido) y solo lleva su filo; el tubo, la
+       crema que se apaga hacia abajo, sin sombra; la lámina, vidrio parejo y casi lleno. */
+    --estante-fondo: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --estante-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --estante-tubo-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 35%, transparent), color-mix(in srgb, var(--color-tinta) 12%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --estante-tubo-sombra: none;
+    --lamina-vidrio-fondo: color-mix(in srgb, var(--color-vidrio) 82%, transparent);
   }
 }
 
@@ -457,5 +477,7 @@
     --version-agua-opacidad: 1;
     --ticket-placa-fondo: var(--color-papel);
     --vidrio-claro-fondo: var(--color-papel);
+    --estante-fondo: var(--color-papel);
+    --lamina-vidrio-fondo: var(--color-papel);
   }
 }

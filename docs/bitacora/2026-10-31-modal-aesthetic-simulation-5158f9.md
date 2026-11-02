@@ -306,3 +306,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   número del Dial al pozo; el «+» en gota ahumada y el «−» en gota clara; la pista del Dial, la vía del Trayecto y las barras del Podio en
   tubo (el Dial suma `rc-dial-luz`, un brillo quieto que sigue al arco). Los rojos de la etiqueta y del lacre, igual. La base local no tiene
   envíos: se vio con los componentes reales en una página temporal (ya borrada), sin escribir en la base. Falta mirarla con un envío real.
+
+- **Gestión ▸ Plan del piso al vidrio (Felipe 2026-11-02):** tarjeta B · Al aire y banda B · Estante de vidrio (`vidrio/plan-piso.css`,
+  bajo `.pp-raiz` para no tocar la `.pp-leyenda` del Plan de compra). `.pp-card` sin fondo ni borde; la banda es una vitrina (`--estante-*`)
+  con un tubo de vidrio arriba (`::before`, sin tocar el componente) del que suben los postes; la leyenda y el «¿Por qué?» en placas chicas
+  de vidrio claro y su panel en lámina (`--lamina-vidrio-fondo`). El riel «La percha» y su movimiento, igual. Quedan en papel las celdas de
+  «Color de la tienda», las fichas de «Fuera del riel» y la Mancuerna (la maqueta no las muestra). Visto a 1440, 1920 y 375 px.

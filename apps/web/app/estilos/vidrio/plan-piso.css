@@ -1,0 +1,113 @@
+/* =====================================================================
+   GESTIÓN ▸ PLAN DEL PISO CON EL VIDRIO «SERENA» (ADR-0596; maqueta docs/maquetas/plan-piso-vidrio-2026-11/, tablero docs/vidrio/README.md).
+
+   Felipe eligió mirando (2026-11-02) las dos recomendadas:
+   · La tarjeta, «B · Al aire»: `.pp-card` ya no es tarjeta de papel (sin fondo, sin borde, sin relleno a los lados), como el mapa del
+     Observatorio: el estado, los rieles y la leyenda viven sobre la Aurora. Lo que estaba en fichas de papel pasa a placas chicas de vidrio
+     claro (las fichas de «Hoy», la leyenda de «Cómo quedaría» y el botón «¿Por qué?», cuyo «?» es una gota chica); el panel «cómo se
+     calcula» (y el desglose de un color, que es el mismo `pp-panel`) es una lámina de vidrio.
+   · La banda del riel, «B · Estante de vidrio»: `.pp-banda` deja la franja hueso y es una vitrina translúcida (`--estante-*`) con un tubo
+     de vidrio que la cruza arriba (`::before`, decorativo); el poste de color de cada tramo sube a colgar de él.
+
+   Solo cambia el MATERIAL. El riel «La percha» (ADR-0352: el pictograma, el color de cada grupo, que es dato, y las perchas que cuelgan una
+   vez), el resaltado al pasar por un grupo y el aviso de «por revisar» no se tocan: aquí no hay duraciones ni keyframes nuevos.
+
+   Sin capa, después de plan-piso.css (que vive en `components`): le gana con la misma especificidad. Las piezas van bajo `.pp-raiz` porque
+   `.pp-leyenda` también es una clase del Plan de compra (presupuesto-plan.css). Solo recetas de recetas.css; el tinte de un grupo
+   (`--pp-c`) se mezcla aquí, como el tono de un dato en barras.css.
+   ===================================================================== */
+
+/* ---------- La tarjeta: al aire ---------- */
+/* Sin relleno a los lados, el ancho de una percha se calcula contra el ancho entero (`--pp-pad` entra en `--paso`, plan-piso.css). */
+.pp-raiz .pp-card {
+  --pp-pad: 0px;
+  padding: 4px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+/* ---------- La banda del riel: el estante de vidrio ---------- */
+.pp-raiz .pp-banda {
+  padding-top: 24px;
+  border: 1px solid var(--vidrio-claro-borde);
+  background: var(--estante-fondo);
+  box-shadow: var(--estante-sombra);
+}
+/* El tubo que cruza arriba (10 px de los bordes, 8 de grueso): quieto, no se toca. */
+.pp-raiz .pp-banda::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--estante-tubo-fondo);
+  box-shadow: var(--estante-tubo-sombra);
+  pointer-events: none;
+}
+/* El poste de cada tramo sube 6 px y engorda a 4: cuelga del tubo (su color, el del grupo, no cambia). */
+.pp-raiz .pp-banda .pp-blq::before {
+  top: -6px;
+  height: 4px;
+}
+
+/* ---------- La leyenda: placas chicas de vidrio claro ---------- */
+.pp-raiz :is(.pp-chip, .pp-lg) {
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-filo);
+}
+/* Señalada (o con el mouse encima), la placa se tiñe del color de su grupo y toma su borde, como en papel. */
+.pp-raiz .pp-chip.pp-on {
+  border-color: var(--pp-c);
+  background: linear-gradient(color-mix(in srgb, var(--pp-c) 12%, transparent), color-mix(in srgb, var(--pp-c) 12%, transparent)), var(--vidrio-claro-fondo);
+}
+.pp-raiz .pp-lg.pp-on {
+  border-color: var(--pp-c);
+  background: linear-gradient(color-mix(in srgb, var(--pp-c) 10%, transparent), color-mix(in srgb, var(--pp-c) 10%, transparent)), var(--vidrio-claro-fondo);
+}
+@media (hover: hover) {
+  .pp-raiz .pp-chip:hover {
+    border-color: var(--pp-c);
+    background: linear-gradient(color-mix(in srgb, var(--pp-c) 12%, transparent), color-mix(in srgb, var(--pp-c) 12%, transparent)), var(--vidrio-claro-fondo);
+  }
+  .pp-raiz .pp-lg:hover {
+    border-color: var(--pp-c);
+    background: linear-gradient(color-mix(in srgb, var(--pp-c) 10%, transparent), color-mix(in srgb, var(--pp-c) 10%, transparent)), var(--vidrio-claro-fondo);
+  }
+}
+/* Un grupo FIJADO conserva su filo doble (el anillo de su color), ahora junto a la luz del vidrio. */
+.pp-raiz :is(.pp-chip, .pp-lg)[aria-pressed="true"] {
+  border-color: var(--pp-c);
+  box-shadow: var(--vidrio-claro-filo), inset 0 0 0 1px var(--pp-c);
+}
+
+/* ---------- «¿Por qué?»: el botón en placa chica, su «?» en gota y el panel en lámina ---------- */
+.pp-raiz .pp-porque {
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-filo);
+}
+@media (hover: hover) {
+  .pp-raiz .pp-porque:hover {
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
+  }
+}
+/* Abierto, el botón se hunde (lo puesto se hunde, como un filtro elegido). */
+.pp-raiz .pp-porque[aria-expanded="true"] {
+  border-color: var(--hundido-borde);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+.pp-raiz .pp-q {
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz), inset 0 0 0 1px var(--gota-chica-borde);
+}
+.pp-raiz .pp-panel {
+  border: 1px solid var(--serena-borde);
+  background: var(--lamina-vidrio-fondo);
+  box-shadow: var(--vidrio-claro-filo);
+}
