@@ -199,3 +199,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   «A · Pozo de vidrio». La talla en cero «A · Lente que pide»: la que tiene 0 en el piso y algo en el almacén sale del pozo como una lente
   ámbar (la agotada, en rojo), su línea dice «↑ 3» (`lineaGuardadas`, con su prueba) y su title «0 en el piso · 3 en el almacén: puedes
   colgarlas». En `vidrio/pantalla.css`; `ExistenciasTarjetas` da `vitrina-talla` + `data-estado`.
+
+- **Caja al vidrio (Felipe 2026-11-02):** el titular «A · Ahumado» (`.cmp-heroe` en vidrio ahumado de tinta 84→95 % con su luz, filo y 28 px;
+  sus píldoras en gota crema; en oscuro `.cmp-sobre` sube al 70 % para pasar 5,2:1) y la barra de cierre «B · Isla» (píldora centrada de
+  hasta 640 px con los tres tonos por nivel; `.cc-boton` y el «Cerrar» del celular en gota roja; en los niveles 1 y 2, gota crema). La
+  bajada de cada nivel ya no se ve: queda para el lector y en el `title` del botón (la hora de cierre del nivel 0 y el «se mezclan» del
+  nivel 2 solo se ven al pasar el mouse: lo decide Felipe). La gota roja da 3,6–4,5:1 en claro (bajo 4,5 donde va la letra), como el
+  `btn-peligro` de vidrio de todo el ERP. En `vidrio/caja.css`; la persiana de «Caja cerrada» no se tocó.
