@@ -187,7 +187,7 @@ export function CajaAbiertaPanel({
 
   // En vivo: sondea la caja cada pocos segundos y, si entró algo, Next vuelve a leer la pantalla y llegan props
   // nuevas. Lo que sigue solo detecta QUÉ es nuevo para que cada pieza lo muestre; nada de esto pide datos.
-  useCajaEnVivo(caja.id);
+  useCajaEnVivo(caja.id, caja.ubicacionId);
   // El botón «Cerrar caja» cambia de nivel con la hora de cierre de la tienda (ADR-0318); se mira cada minuto.
   const ahoraCierre = useAhora(60_000);
   const estadoCierre = ahoraCierre ? estadoBotonCierre({ ahora: ahoraCierre, abiertaEn: caja.abiertaEn, horaCierre, puedeCerrar }) : null;
