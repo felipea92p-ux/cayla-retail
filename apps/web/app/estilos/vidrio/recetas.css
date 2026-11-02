@@ -217,6 +217,16 @@
   --hueco-fondo: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --hueco-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
   --hueco-sombra: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 12%, transparent);
+
+  /* ---------- la lente de una prenda (docs/maquetas/historial-ventas-vidrio-2026-11/; piezas en vidrio/historial.css) ---------- */
+  /* «A · Lentes apiladas»: la miniatura redonda de una prenda vista a través de un vidrio. La luz de adentro (arriba un brillo, abajo
+     una sombra y un filete fino para que un beige o un blanco no se pierdan) toma los colores FIJOS: lo que hay detrás es el color o la
+     foto de la prenda, que es dato y no cambia con el tema. El aro es de vidrio (no de papel, que sobre el vidrio se ve como un recorte). */
+  --lente-prenda-luz: inset 0 1px 1px color-mix(in srgb, var(--color-crema-fija) 55%, transparent),
+    inset 0 -6px 10px -6px color-mix(in srgb, var(--color-tinta-fija) 35%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 12%, transparent);
+  --lente-prenda-aro: 0 0 0 2px color-mix(in srgb, var(--color-vidrio) 80%, transparent),
+    0 4px 10px -4px color-mix(in srgb, var(--color-sombra) 45%, transparent);
 }
 
 @media screen {
@@ -320,6 +330,12 @@
     --foto-al-aire-sombra: 0 18px 30px -20px var(--color-sombra);
     --foto-al-aire-sombra-encima: 0 24px 36px -20px var(--color-sombra);
     --hueco-sombra: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    /* La lente de una prenda: la luz de adentro, un poco más tenue sobre el negro cálido; el aro, de crema a poca opacidad (el vidrio
+       oscuro al 80 % no se distingue del fondo) y la sombra, negra. */
+    --lente-prenda-luz: inset 0 1px 1px color-mix(in srgb, var(--color-crema-fija) 40%, transparent),
+      inset 0 -6px 10px -6px color-mix(in srgb, var(--color-tinta-fija) 40%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 12%, transparent);
+    --lente-prenda-aro: 0 0 0 2px color-mix(in srgb, var(--color-tinta) 18%, transparent), 0 4px 10px -4px var(--color-sombra); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   }
 }
 

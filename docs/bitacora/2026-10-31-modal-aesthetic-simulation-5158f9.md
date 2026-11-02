@@ -206,3 +206,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   bajada de cada nivel ya no se ve: queda para el lector y en el `title` del botón (la hora de cierre del nivel 0 y el «se mezclan» del
   nivel 2 solo se ven al pasar el mouse: lo decide Felipe). La gota roja da 3,6–4,5:1 en claro (bajo 4,5 donde va la letra), como el
   `btn-peligro` de vidrio de todo el ERP. En `vidrio/caja.css`; la persiana de «Caja cerrada» no se tocó.
+
+- **Historial de ventas al vidrio (Felipe 2026-11-02):** la línea del tiempo «B · Solo los días en gota» (sin el hilo vertical; cada día es
+  `<SeparadorDia>` con sus gotas que flotan bajo la cabecera, la de hoy con su punto rojo; la tarjeta del día en placa Serena) y la pila
+  «A · Lentes apiladas» (cada prenda en una lente redonda con su luz y su aro de vidrio, el «×N» en el `<Globito esquina>` ahumado y el
+  «+N» en gota clara). En `vidrio/historial.css` + dos recetas. Visto con la única venta local; foto real, anuladas y varios días, sin ver.
