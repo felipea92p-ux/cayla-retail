@@ -1,0 +1,128 @@
+/* ====================================================================
+   Catálogo ▸ Categorías, Marcas y Atributos con vidrio (ADR-0596; docs/maquetas/catalogo-vocabulario-vidrio-2026-11/, Felipe 2026-11-02).
+   Lo que eligió mirando, armado SOLO con las recetas de recetas.css (bloque «Catálogo»):
+
+   · La tarjeta de un valor, «A · Muestra al aire» (`TarjetaAtributo` en components/atributos/kit.tsx, que es también la de Categorías):
+     de papel a la placa Serena; la muestra (el ícono sobre el tono de su familia, el color, la talla, la foto del tejido) llega al borde
+     de arriba, sin marco ni esquinas propias, 100 px de alto, y un filo de vidrio la separa del texto. El dibujo y su movimiento al pasar
+     el mouse (`group/etq`) y el subir 2 px no cambian; el color de la muestra es dato y tampoco.
+   · La tarjeta de una marca (`marcas/TarjetaMarca`): la misma placa; el monograma, una lente de su estado (verde, taupe o ámbar); la
+     desactivada sigue punteada. «Más ▾» ya es gota (`btn-secundario`, campos-y-botones.css).
+   · El índice de letras (`marcas/IndiceLetras`), «A · Ranura con gotas»: las letras en una ranura, como la paginación; la de esta página, la
+     gota clara; las que no tienen marcas, tenues como siempre.
+
+   Sin capa, como las demás piezas de vidrio: le gana a `card-cayla` (components) y a las utilidades. Sin movimiento nuevo. Los ganchos
+   (`tarjeta-valor`, `tarjeta-valor-muestra`, `tarjeta-marca`, `marca-monograma`, `indice-ranura`, `data-aqui`) los ponen los componentes.
+   ==================================================================== */
+
+/* ---------- La tarjeta de un valor: la placa Serena con la muestra al aire ---------- */
+.tarjeta-valor {
+  padding-top: 0;
+  overflow: hidden; /* recorta la muestra en las esquinas de arriba */
+  border-radius: 16px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+  transition:
+    transform 260ms var(--ease-cayla),
+    background 200ms var(--ease-cayla),
+    box-shadow 260ms var(--ease-cayla);
+}
+/* Al pasar el mouse sube 2 px como siempre (la utilidad de la tarjeta) y el vidrio se aclara, en vez del borde que se marcaba. */
+@media (hover: hover) {
+  .tarjeta-valor:hover {
+    background: var(--serena-fondo-encima);
+    box-shadow: var(--serena-sombra-encima);
+  }
+}
+/* La muestra: de borde a borde de la placa (la tarjeta lleva 16 px de aire a los lados, `p-4`). */
+.tarjeta-valor-muestra {
+  position: relative;
+  flex: none;
+  height: 100px;
+  margin-inline: -1rem;
+}
+/* La muestra misma (cualquiera: MuestraIcono, la de un color, la de una talla, la foto de un tejido o un patrón) deja su recuadro: sin
+   esquinas, sin borde y sin su proporción 3:1; llena los 100 px. */
+.tarjeta-valor-muestra > * {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+  border-width: 0;
+  border-radius: 0;
+}
+/* El filo de vidrio al pie de la muestra: la separa del nombre (con un color muy claro, es lo que las distingue). */
+.tarjeta-valor-muestra::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: var(--muestra-al-aire-filo);
+  pointer-events: none;
+}
+/* El botón que abre el detalle llega al borde de arriba: su anillo de foco va hacia adentro para que la placa no lo recorte. */
+.tarjeta-valor > button:focus-visible {
+  outline-offset: -3px;
+}
+
+/* ---------- La tarjeta de una marca: la misma placa ---------- */
+.tarjeta-marca {
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+@media (hover: hover) {
+  .tarjeta-marca:hover {
+    border-color: var(--serena-borde);
+    background: var(--serena-fondo-encima);
+    box-shadow: var(--serena-sombra-encima);
+  }
+}
+/* El monograma: una lente de su estado. La desactivada no entra (sigue punteada, sin vidrio). La letra conserva el tono de su estado. */
+.marca-monograma:not([data-estado="desactivada"]) {
+  --c: var(--color-verde);
+  border: 1px solid color-mix(in srgb, var(--c) var(--lente-estado-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--lente-estado-tinte-arriba), var(--lente-estado-base-arriba)),
+    color-mix(in srgb, var(--c) var(--lente-estado-tinte-abajo), var(--lente-estado-base-abajo))
+  );
+  box-shadow: var(--lente-estado-luz);
+}
+.marca-monograma[data-estado="sin"] {
+  --c: var(--color-taupe);
+}
+.marca-monograma[data-estado="sin-proveedor"] {
+  --c: var(--color-ambar);
+}
+
+/* ---------- El índice de letras: «A · Ranura con gotas» ---------- */
+.indice-ranura {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--ranura-fondo);
+  box-shadow: var(--ranura-sombra);
+}
+.indice-ranura > button {
+  height: 28px;
+  min-width: 28px;
+  border-radius: 999px;
+}
+.indice-ranura > button[data-aqui] {
+  background: var(--gota-clara-fondo);
+  box-shadow: var(--gota-clara-luz);
+}
+@media (hover: hover) {
+  .indice-ranura > button:not([data-aqui], :disabled):hover {
+    background: var(--gota-clara-encima);
+  }
+}

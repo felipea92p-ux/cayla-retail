@@ -326,3 +326,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   `--papel-en-bandeja-sombra`) y las cifras chicas del celular A · Placas chicas (la placa Serena; la puesta, hundida como la tarjeta de cifra
   que filtra). Todo en `estilos/liquidacion.css`. La etiqueta de papel, su entrada y la impresión no cambian. La sede local no tiene piezas: la
   etiqueta se vio con su marcado dentro de la hoja real, sin guardar.
+
+- **Catálogo ▸ Categorías, Marcas y Atributos al vidrio (Felipe 2026-11-02):** la tarjeta A · Muestra al aire y el índice A · Ranura con gotas
+  (`vidrio/catalogo.css`). La tarjeta de un valor (`TarjetaAtributo`, y con ella la de categoría) y la de marca son la placa Serena; la
+  muestra llega al borde de arriba (100 px, filo de vidrio al pie); el monograma de una marca, una lente de su estado (la desactivada sigue
+  punteada); las letras de Marcas, en la ranura de la paginación con la de esta página en gota clara. Al pasar el mouse la placa se aclara
+  (el borde que se marcaba ya no se ve). El buscador con sombra (ADR-0373) y «Existe también» no cambian. **Ojo:** la placa lleva desenfoque y
+  Colores dibuja ~89 tarjetas; si se nota lento, va sin él (como la Vitrina, 31 de octubre). Las píldoras «La trae» siguen en papel.

@@ -524,3 +524,52 @@
 :root {
   --papel-en-bandeja-sombra: 0 3px 8px -2px color-mix(in srgb, var(--color-sombra) 30%, transparent);
 }
+
+/* ---------- Catálogo ▸ Categorías, Marcas y Atributos (docs/maquetas/catalogo-vocabulario-vidrio-2026-11/; piezas en vidrio/catalogo.css) ----------
+   Bloque propio, con su oscuro y su respaldo, para no tocar los de las demás pantallas. Lo eligió Felipe el 2026-11-02:
+   · «A · Muestra al aire»: la muestra de una tarjeta de valor llega al borde de arriba de la placa Serena; la separa del texto un filo de
+     vidrio al 70 %.
+   · El monograma de una marca es una LENTE DE SU ESTADO: el tono (que pone la pieza con su `--c`) al 8 % sobre vidrio arriba y al 18 % abajo,
+     con su filo al 28 % y la luz arriba. La mezcla la hace la pieza.
+   · «A · Ranura con gotas» (el índice de letras de Marcas): la ranura es el pozo de la paginación; la letra de esta página, la gota clara
+     (vidrio 96 → 70 %); al pasar el mouse, vidrio al 60 %. */
+:root {
+  --muestra-al-aire-filo: color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  --lente-estado-base-arriba: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+  --lente-estado-base-abajo: transparent;
+  --lente-estado-tinte-arriba: 8%;
+  --lente-estado-tinte-abajo: 18%;
+  --lente-estado-filo: 28%;
+  --lente-estado-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+  --ranura-fondo: var(--pozo-fondo);
+  --ranura-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 14%, transparent);
+  --gota-clara-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 96%, transparent), color-mix(in srgb, var(--color-vidrio) 70%, transparent));
+  --gota-clara-luz: inset 0 1px 0 var(--color-vidrio), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+  --gota-clara-encima: color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+}
+@media screen {
+  /* En oscuro el vidrio es oscuro: el filo y la luz toman la crema a poca opacidad; la lente es el tono directo, sin base de vidrio (la base
+     oscura lo apagaba, como en la lente del sello); la ranura, la de la paginación en oscuro; la gota, la crema al 16 % sin sombra. */
+  :root[data-tema="oscuro"] {
+    --muestra-al-aire-filo: color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --lente-estado-base-arriba: transparent;
+    --lente-estado-tinte-arriba: 14%;
+    --lente-estado-tinte-abajo: 22%;
+    --lente-estado-filo: 34%;
+    --lente-estado-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --ranura-fondo: color-mix(in srgb, var(--color-sombra) 30%, transparent);
+    --ranura-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    --gota-clara-fondo: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --gota-clara-luz: none;
+    --gota-clara-encima: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-tema="oscuro"] {
+    --lente-estado-base-arriba: var(--color-papel);
+    --lente-estado-base-abajo: var(--color-papel);
+    --gota-clara-fondo: var(--color-papel);
+    --gota-clara-encima: var(--color-papel);
+  }
+}
