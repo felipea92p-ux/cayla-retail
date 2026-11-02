@@ -166,7 +166,7 @@ export function RegistrarPagoHoja({
         <div className="space-y-4">
           {/* En duda, nada se toca: otro monto reenviado podría anotar el pago dos veces. */}
           <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
-            <dl className="grid grid-cols-3 gap-3 rounded-xl border border-sand px-4 py-3 text-center">
+            <dl className="card-cayla grid grid-cols-3 gap-3 px-4 py-3 text-center">
               <div>
                 <dt className="text-sm text-taupe">Total</dt>
                 <dd className="font-display text-lg tabular-nums text-tinta">{soles(p.total)}</dd>

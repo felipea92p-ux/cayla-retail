@@ -82,7 +82,7 @@ type Modo = "revisar" | "no_confirmar" | "anular" | "reservar";
 // Una opción que se elige entre pocas (qué hacer con una prenda que no hay, para qué fecha): la píldora de la maqueta del rediseño, con borde de
 // control, texto en tinta y, elegida, rellena de tinta.
 const PILDORA_ELIGE =
-  "inline-flex min-h-[34px] items-center rounded-full border border-borde-control bg-papel px-3.5 text-sm font-medium text-tinta transition-colors hover:border-tinta aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:opacity-50";
+  "inline-flex min-h-[34px] items-center tw-pildora rounded-full border border-borde-control px-3.5 text-sm font-medium text-tinta transition-colors hover:border-tinta aria-pressed:text-crema disabled:opacity-50";
 
 // En el celular, el botón de un aviso baja bajo su texto: en la hoja angosta, a su derecha dejaba el texto a una palabra por línea.
 const AVISO_CON_BOTON =
@@ -545,7 +545,7 @@ export function PedidoWebHoja({
 
           {(p.estado === "confirmado" || p.estado === "pagado") && modo === "reservar" && reservando && (
             <>
-              <div className="flex items-start gap-3 rounded-xl border border-sand px-4 py-3">
+              <div className="card-cayla flex items-start gap-3 px-4 py-3">
                 <MiniPrenda prenda={reservando.linea} tamano="lg" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium text-tinta">{[reservando.linea.referencia, reservando.linea.color, reservando.linea.talla].filter(Boolean).join(" · ")}</span>
@@ -661,7 +661,7 @@ export function PedidoWebHoja({
                     ) : (
                       <>
                         {/* Lo que le toca a quien atiende, en orden: avisar, decirle dónde está su código, y recién ahí pedirlo. */}
-                        <ol className="list-decimal space-y-1 rounded-xl border border-sand px-4 py-3 pl-9 text-sm text-tinta" data-guia="pedido-web.pasos-entrega">
+                        <ol className="card-cayla list-decimal space-y-1 px-4 py-3 pl-9 text-sm text-tinta" data-guia="pedido-web.pasos-entrega">
                           <li>{p.sinRecoger ? "Recuérdale que lo recoja" : "Avísale que ya puede recoger"}, con el botón de WhatsApp.</li>
                           <li>
                             <b>Dile que su código está en «Mis pedidos»</b>, en su cuenta de la tienda web.
@@ -781,7 +781,7 @@ function Columnas({ izq, der }: { izq: ReactNode; der: ReactNode }) {
 /** Quién separó el pedido y cómo escribirle: lo necesario para coordinar por WhatsApp (decisión de Felipe, ADR-0408 act. c). */
 function BloqueCliente({ pedido: p, whatsapp, boton }: { pedido: PedidoDetalle; whatsapp: string; boton: string }) {
   return (
-    <div className="space-y-3 rounded-xl border border-sand px-4 py-3" data-guia="pedido-web.cliente">
+    <div className="card-cayla space-y-3 px-4 py-3" data-guia="pedido-web.cliente">
       <div className="flex items-center gap-3">
         <AvatarPersona personaId={null} nombre={p.cliente.nombre} tamano={40} />
         <span className="min-w-0 flex-1">
@@ -922,7 +922,7 @@ function LineaPorConfirmar({
   const elegida = decision?.tipo === "reservar" && decision.ubicacionId !== tiendaId ? `otra:${decision.ubicacionId}` : decision?.tipo === "por_conseguir" ? decision.via : "";
 
   return (
-    <div className={`space-y-2.5 rounded-xl border px-4 py-3 ${quitada ? "border-sand bg-hueso/40" : aqui ? "border-sand" : "border-ambar/40"}`}>
+    <div className={`card-cayla space-y-2.5 px-4 py-3 ${quitada ? "tw-lamina-quitada" : aqui ? "" : "tw-lamina-ambar"}`}>
       <div className="flex items-start gap-3">
         <MiniPrenda prenda={l} tamano="lg" />
         <span className="min-w-0 flex-1">
@@ -1045,7 +1045,7 @@ function LineasDelPedido({
   return (
     <div className="space-y-2" data-guia="pedido-web.prendas">
       <TituloGrupo cuenta={p.lineas.filter((l) => l.estado !== "quitada").length}>Sus prendas</TituloGrupo>
-      <ul className="divide-y divide-sand rounded-xl border border-sand">
+      <ul className="card-cayla divide-y divide-sand">
         {p.lineas.map((l) => {
           const e = estadoDeLinea(l, p.ubicacionId);
           return (
@@ -1111,7 +1111,7 @@ function BloqueDinero({
   // Anulado sin nada por devolver y con algo ya devuelto (un pedido pagado que se anuló): dice lo que se le devolvió.
   const devuelto = anulado && devolver === 0 ? devueltoAlCliente(p) : 0;
   return (
-    <div className="space-y-2 rounded-xl border border-sand px-4 py-3" data-guia="pedido-web.dinero">
+    <div className="card-cayla space-y-2 px-4 py-3" data-guia="pedido-web.dinero">
       <dl className="grid grid-cols-3 gap-3 text-center">
         <div>
           <dt className="text-sm text-taupe">Total</dt>

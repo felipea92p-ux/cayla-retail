@@ -454,8 +454,8 @@ function CeldaRecorte({ foto: f, i, onAbrir }: { foto: FotoDelProbador; i: numbe
         data-guia={i === 0 ? "probador.recorte" : undefined}
         // El relleno (`p-2`) es lo que deja el texto lejos de la esquina: `.mov-boton` recorta lo que sobresale (overflow: hidden) y,
         // pegado al borde, la esquina redondeada se comía la primera letra del color (2026-10-26). En escritorio, al pasar el mouse,
-        // la tarjeta sube y se vuelve una hoja de papel con su sombra.
-        className="mov-boton group flex w-full flex-col gap-1.5 rounded-xl p-2 text-left hover:bg-papel disabled:cursor-default"
+        // la tarjeta sube y se ilumina con la gota clara (vidrio/tienda-web.css).
+        className="tw-recorte mov-boton group flex w-full flex-col gap-1.5 rounded-xl p-2 text-left disabled:cursor-default"
         aria-label={`${f.nombre} · ${color}${r ? ` · ${r.estado === "listo" ? "recortada" : r.estado === "por_revisar" ? "por revisar" : "descartada"}` : " · sin recorte"}`}
       >
         <div className="papel-fijo relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-sand bg-hueso">
