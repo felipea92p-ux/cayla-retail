@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-rt="ranura" data-pa="pico" data-mo="orden">
+<html lang="es" data-tema="claro" data-rt="aire" data-pa="pico" data-mo="orden">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -118,8 +118,8 @@
 <div class="spk">
   <span class="titulo">Producción ▸ Órdenes, con vidrio</span>
   <span class="tag">Pantalla</span><div class="seg-m" data-ctl="mo"><button data-v="lista">La lista</button><button data-v="orden">Una orden</button></div>
-  <span class="tag">La ruta</span><div class="seg-m" data-ctl="rt"><button data-v="ahora">Como ahora</button><button data-v="ranura">A · Ranura con gotas</button><button data-v="aire">B · Lentes al aire</button></div>
-  <span class="tag">El paso abierto</span><div class="seg-m" data-ctl="pa"><button data-v="ahora">Como ahora</button><button data-v="pico">A · Placa con su pico</button><button data-v="aire">B · Al aire</button></div>
+  <span class="tag">La ruta</span><div class="seg-m" data-ctl="rt"><button data-v="ahora">Como ahora</button><button data-v="ranura">A · Ranura con gotas</button><button data-v="aire">B · Lentes al aire ✓</button></div>
+  <span class="tag">El paso abierto</span><div class="seg-m" data-ctl="pa"><button data-v="ahora">Como ahora</button><button data-v="pico">A · Placa con su pico ✓</button><button data-v="aire">B · Al aire</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
@@ -146,13 +146,13 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>La ruta</b></td><td>A · Ranura con gotas <span class="ev">Recomendada</span></td><td>La misma de los pasos de Conteo y Recibir (ya elegida): los pasos en una ranura, lo hecho en lente verde, lo que toca en lente ámbar, el elegido en la gota clara. Unos pasos se ven igual en todo el ERP.</td><td>Casi nada.</td></tr>
-      <tr><td>B · Lentes al aire</td><td>Sin caja: la ruta corre libre por la página.</td><td>El paso elegido se marca solo con su nombre subrayado: se distingue menos.</td></tr>
-      <tr><td rowspan="2"><b>El paso abierto</b></td><td>A · Placa con su pico <span class="ev">Recomendada</span></td><td>La placa Serena con un pico que apunta al paso que estás viendo (y se mueve al cambiar de paso): se sabe de qué paso habla. En el celular, donde la ruta va en columna, el pico no hace falta y no se dibuja.</td><td>Un detalle más que mantener.</td></tr>
+      <tr><td rowspan="2"><b>La ruta</b></td><td>A · Ranura con gotas</td><td>La misma de los pasos de Conteo y Recibir (ya elegida): los pasos en una ranura, lo hecho en lente verde, lo que toca en lente ámbar, el elegido en la gota clara. Unos pasos se ven igual en todo el ERP.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Lentes al aire <span class="ev">Elegida</span></td><td>Sin caja: la ruta corre libre por la página.</td><td>El paso elegido se marca solo con su nombre subrayado: se distingue menos.</td></tr>
+      <tr><td rowspan="2"><b>El paso abierto</b></td><td>A · Placa con su pico <span class="ev">Elegida</span></td><td>La placa Serena con un pico que apunta al paso que estás viendo (y se mueve al cambiar de paso): se sabe de qué paso habla. En el celular, donde la ruta va en columna, el pico no hace falta y no se dibuja.</td><td>Un detalle más que mantener.</td></tr>
       <tr><td>B · Al aire</td><td>Sin tarjeta: más liviano.</td><td>El paso abierto y la ficha de al lado quedan sueltos; su título los separa.</td></tr>
     </table>
-    <h3>Recomendación</h3>
-    <p><b>Ruta A · Ranura con gotas y paso abierto A · Placa con su pico.</b> Toca otro paso de la ruta: el pico lo sigue.</p>
+    <h3>Lo que eligió Felipe (2026-11-02)</h3>
+    <p><b>Ruta B · Lentes al aire y paso abierto A · Placa con su pico</b> (en la ruta se recomendaba la A). Toca otro paso de la ruta: el pico lo sigue.</p>
     <h3>Lo que no cambia</h3>
     <p>La lista y su «¿Por qué?» bajo la fila, «Hoy en el Taller» que filtra por fase, la ruta en fila (en columna si no cabe), el paso abierto con su cifra y sus botones, la tela y el costo, la ficha y la historia al costado; y la regla de color de Producción.</p>
   </section>
@@ -187,7 +187,7 @@ function pintarPasoO() {
 }
 document.addEventListener('click', (ev) => { const n = ev.target.closest('.nodo'); if (n) { pasoO = +n.dataset.paso; $$('.nodo').forEach((x) => x.setAttribute('aria-pressed', x === n)); pintarPasoO(); } });
 addEventListener('resize', () => pintarPasoO());
-Marco.iniciar({ estado: { rt: 'ranura', pa: 'pico', mo: 'orden' }, alPintar: () => pintarO() });
+Marco.iniciar({ estado: { rt: 'aire', pa: 'pico', mo: 'orden' }, alPintar: () => pintarO() });
 </script>
 </body>
 </html>
