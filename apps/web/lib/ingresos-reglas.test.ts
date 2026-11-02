@@ -8,7 +8,6 @@ import {
   cuentaNovedad,
   diaLargo,
   esFechaIso,
-  filtrarPorNovedad,
   hrefIngresos,
   leerResumenIngresos,
   matrizDeVariantes,
@@ -18,7 +17,6 @@ import {
   prendasTexto,
   rangoIngresos,
   rangoSolesTexto,
-  siguienteOrdenIngresos,
   solesTexto,
 } from "./ingresos-reglas";
 
@@ -224,11 +222,8 @@ describe("precio, costo y novedad", () => {
     expect(r?.modelos[0]).toMatchObject({ precioMin: 59, precioMax: 59, costoMin: null, costoMax: null, esNuevo: false });
   });
 
-  it("filtra por Nuevo o Reingreso y cuenta cada clase", () => {
+  it("cuenta cada clase, Nuevo y Reingreso", () => {
     const modelos = [{ esNuevo: true }, { esNuevo: false }, { esNuevo: false }];
-    expect(filtrarPorNovedad(modelos, "todos")).toHaveLength(3);
-    expect(filtrarPorNovedad(modelos, "nuevo")).toEqual([{ esNuevo: true }]);
-    expect(filtrarPorNovedad(modelos, "reingreso")).toHaveLength(2);
     expect(cuentaNovedad(modelos)).toEqual({ nuevos: 1, reingresos: 2, hayDeLasDos: true });
   });
 
@@ -319,12 +314,6 @@ describe("ordenar y buscar", () => {
     const empate = [m("Zeta", 5, 10, 1), m("Alfa", 5, 10, 1)];
     expect(ordenarModelosIngresos(empate, { campo: "prendas", dir: "desc" }).map((x) => x.referencia)).toEqual(["Alfa", "Zeta"]);
     expect(empate.map((x) => x.referencia)).toEqual(["Zeta", "Alfa"]);
-  });
-
-  it("tocar otra columna empieza donde se espera; tocar la misma, invierte", () => {
-    expect(siguienteOrdenIngresos(ORDEN_INICIAL_INGRESOS, "modelo")).toEqual({ campo: "modelo", dir: "asc" });
-    expect(siguienteOrdenIngresos(ORDEN_INICIAL_INGRESOS, "precio")).toEqual({ campo: "precio", dir: "desc" });
-    expect(siguienteOrdenIngresos({ campo: "precio", dir: "desc" }, "precio")).toEqual({ campo: "precio", dir: "asc" });
   });
 
   it("busca sin tildes ni mayúsculas en el nombre, el código y la categoría", () => {

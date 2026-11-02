@@ -672,7 +672,7 @@ export function ApartarVista({
   const hermanas = p ? prendas.filter((x) => x.referencia === p.referencia && x.color === p.color) : [];
 
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
         <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={confirmar} reintentando={enviando} />
@@ -682,9 +682,9 @@ export function ApartarVista({
       <fieldset disabled={envio.incierto} className="contents">
       {/* Izquierda: la cabecera de la hoja y, debajo, solo lo escaneado, nunca el catálogo entero. En el celular, en los
           pasos de la clienta y el adelanto se esconde lo escaneado, no la cabecera. */}
-      <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
+      <div className="flex min-w-0 flex-col">
       {cabecera}
-      <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
+      <div className={`ap-cuerpo flex min-w-0 flex-col gap-4 p-5 sm:p-6 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">
             {/* El buscador del mostrador (ADR-0358, ronda 5): el código de barras que se enciende, filtra mientras se escribe. */}
@@ -747,7 +747,7 @@ export function ApartarVista({
           // `@container`: foto y datos lado a lado solo si la TARJETA tiene ancho (≥ 32rem), no la ventana. Con el lateral
           // abierto o en un celular, se apilan: la foto más chica y centrada, y el encabezado y las tallas centrados con ella.
           <div className="@container">
-          <article className="anim-revelar grid gap-4 rounded-2xl border border-sand bg-papel p-4 @lg:grid-cols-[200px_minmax(0,1fr)] @lg:gap-5">
+          <article className="ap-placa anim-revelar grid gap-4 rounded-2xl border border-sand bg-papel p-4 @lg:grid-cols-[200px_minmax(0,1fr)] @lg:gap-5">
             <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={200} className="mx-auto w-full max-w-[150px] @lg:mx-0 @lg:max-w-[200px]" />
             <div className="flex min-w-0 flex-col">
               <div className="text-center @lg:text-left">
@@ -810,7 +810,7 @@ export function ApartarVista({
               {recientes.map((id) => {
                 const r = porId.get(id)!;
                 return (
-                  <button key={id} type="button" onClick={() => agregar(id)} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
+                  <button key={id} type="button" onClick={() => agregar(id)} className="ap-placa flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
                     <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} colorHex={r.colorHex} categoria={r.categoria} categoriaPrefijo={r.categoriaPrefijo} categoriaFamilia={r.categoriaFamilia} ancho={44} className="w-11" />
                     <span className="min-w-0 text-sm">
                       <b className="block truncate text-sm font-semibold">{r.referencia}</b>
@@ -827,10 +827,10 @@ export function ApartarVista({
 
       {/* Derecha: el ticket y, al tocar «Apartar», el formulario — como el cobro del Punto de venta. Va de arriba abajo
           de la hoja; su cabecera mide lo mismo que la fila de pestañas (64 px más su raya: 65) y queda en la misma raya. */}
-      <aside data-guia="apartados.ticket" className="flex min-h-0 flex-col">
+      <aside data-guia="apartados.ticket" className="ap-ticket flex min-h-0 flex-col">
         {paso === "ticket" ? (
           <>
-            <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
+            <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
               <TituloSeccion>
                 <span className="inline-flex items-center gap-2.5">
                   <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Por apartar
@@ -916,7 +916,7 @@ export function ApartarVista({
                 </>
               )}
             </div>
-            <div className="space-y-3 border-t border-sand px-5 py-5 max-lg:hidden">
+            <div className="ap-ticket-hilo space-y-3 border-t border-sand px-5 py-5 max-lg:hidden">
               <div className="flex items-end justify-between gap-3">
                 <p className="text-sm text-tinta/60">
                   Precio congelado
@@ -936,7 +936,7 @@ export function ApartarVista({
           </>
         ) : (
           <>
-            <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
+            <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
               <Volver
                 onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")}
                 a={apilado && paso === "adelanto" ? "Volver a los datos del cliente" : "Volver al ticket"}
@@ -1106,7 +1106,7 @@ export function ApartarVista({
                 </label>
               </div>
             </div>
-            <div className={`space-y-3 border-t border-sand px-5 py-5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
+            <div className={`ap-ticket-hilo space-y-3 border-t border-sand px-5 py-5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
               <div className="flex items-end justify-between gap-3 max-lg:hidden">
                 <dl className="grid grid-cols-[auto_auto] gap-x-3 text-sm text-tinta/60 tabular-nums">
                   <dt>Total prendas</dt><dd className="text-tinta">{money(total)}</dd>

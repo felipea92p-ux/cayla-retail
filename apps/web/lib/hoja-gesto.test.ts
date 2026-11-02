@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   FONDO_ALEJADO,
+  FONDO_DE_LADO,
   FRACCION_PARA_PASAR,
   MOVIMIENTO_MINIMO,
   TOPE_GOMA,
@@ -9,6 +10,7 @@ import {
   decidirLado,
   destinoAlSoltar,
   duracionHacia,
+  fondoDeLadoSegun,
   fondoSegun,
   goma,
   pasoDeLado,
@@ -169,6 +171,25 @@ describe("fondoSegun (lo de atrás se aleja y vuelve con el dedo)", () => {
     expect(medio.bajada).toBeCloseTo(FONDO_ALEJADO.bajada / 2, 5);
     expect(fondoSegun(-0.4)).toEqual(fondoSegun(0));
     expect(fondoSegun(1.7)).toEqual(fondoSegun(1));
+  });
+});
+
+describe("fondoDeLadoSegun (el menú del celular aleja lo de atrás y lo devuelve con el dedo)", () => {
+  it("con el menú abierto, lo de atrás está corrido y alejado del todo", () => {
+    expect(fondoDeLadoSegun(0)).toEqual({ escala: FONDO_DE_LADO.escala, corrida: FONDO_DE_LADO.corrida, radio: FONDO_DE_LADO.radio });
+  });
+
+  it("con el menú cerrado, lo de atrás vuelve a su lugar exacto", () => {
+    expect(fondoDeLadoSegun(1)).toEqual({ escala: 1, corrida: 0, radio: 0 });
+  });
+
+  it("sigue la misma proporción que el dedo (y que el velo): al 60 % cerrado, alejado al 40 %", () => {
+    const p = fondoDeLadoSegun(0.6);
+    expect(p.corrida).toBeCloseTo(FONDO_DE_LADO.corrida * 0.4, 5);
+    expect(1 - p.escala).toBeCloseTo((1 - FONDO_DE_LADO.escala) * 0.4, 5);
+    expect(p.radio).toBeCloseTo(FONDO_DE_LADO.radio * 0.4, 5);
+    expect(fondoDeLadoSegun(-0.4)).toEqual(fondoDeLadoSegun(0));
+    expect(fondoDeLadoSegun(1.7)).toEqual(fondoDeLadoSegun(1));
   });
 });
 

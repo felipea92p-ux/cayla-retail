@@ -171,7 +171,7 @@ export function EntregarVista({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
         <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={entregar} reintentando={enviando} />
@@ -179,9 +179,9 @@ export function EntregarVista({
       )}
       {/* En duda, nada se toca: otro apartado u otros pagos podrían entregar dos veces. */}
       <fieldset disabled={envio.incierto} className="contents">
-      <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
+      <div className="flex min-w-0 flex-col">
       {cabecera}
-      <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
+      <div className="ap-cuerpo flex min-w-0 flex-col gap-4 p-5 sm:p-6">
         {/* El buscador del mostrador (ADR-0358, ronda 5): filtra mientras se escribe. */}
         <Buscador guia="apartados.entregar-buscador"
           tamano="mostrador"
@@ -197,7 +197,7 @@ export function EntregarVista({
         />
 
         {a ? (
-          <article className="anim-revelar space-y-4 rounded-2xl border border-sand p-5">
+          <article className="ap-placa anim-revelar space-y-4 rounded-2xl border border-sand p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3.5">
                 <AvatarPersona personaId={null} nombre={nombreParaIniciales(a)} />
@@ -275,7 +275,7 @@ export function EntregarVista({
               <ul className="space-y-2">
                 {encontrados.map((x) => (
                   <li key={x.id}>
-                    <button type="button" onClick={() => elegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe">
+                    <button type="button" onClick={() => elegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe ap-placa">
                       <AvatarPersona personaId={null} nombre={nombreParaIniciales(x)} tamano={32} />
                       <span className="min-w-0">
                         <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-[11px] text-tinta/55">{x.codigo}</span>
@@ -296,8 +296,8 @@ export function EntregarVista({
       </div>
 
       {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
-      <aside data-guia="apartados.entregar-detalle" className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
-        <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
+      <aside data-guia="apartados.entregar-detalle" className={`ap-ticket flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
+        <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
           <TituloSeccion>
             <span className="inline-flex items-center gap-2.5">
               <Wallet className="h-5 w-5 text-tinta/70" aria-hidden /> Saldo
@@ -424,7 +424,7 @@ export function EntregarVista({
                 </p>
               </div>
             </div>
-            <div className="space-y-3 border-t border-sand px-5 py-5">
+            <div className="ap-ticket-hilo space-y-3 border-t border-sand px-5 py-5">
               <div className="flex items-end justify-between gap-3 max-lg:hidden">
                 <dl className="grid grid-cols-[auto_auto] gap-x-3 text-sm text-tinta/60 tabular-nums">
                   <dt>Total</dt><dd className="text-tinta">{money(a.total)}</dd>

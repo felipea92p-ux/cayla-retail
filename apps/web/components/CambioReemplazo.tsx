@@ -16,8 +16,9 @@ import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { unidadesDisponibles, metodosDiferencia, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
 import { MAX_PRENDAS_EXTRA, extrasDe, textoPagoConDescuento, type PrendaExtra, type Reemplazo, type Seleccion, type TotalesDelCambio } from "@/lib/cambio-reemplazo-reglas";
 
-/** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. */
-const OPCION_SIN_STOCK = `${OPCION} border-dashed border-tinta/35 bg-transparent text-tinta/65 hover:border-tinta/55`;
+/** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. Es el hueco punteado del vidrio
+ *  (`posv-opcion-hueco`, vidrio/posventa.css), lo mismo que una talla agotada en Vender. */
+const OPCION_SIN_STOCK = `${OPCION} posv-opcion posv-opcion-hueco`;
 
 function Pregunta({ children, id }: { children: ReactNode; id?: string }) {
   return (
@@ -304,12 +305,11 @@ export function CambioReemplazo({
                 aria-pressed={activa}
                 disabled={r.condicionFija !== null && o.valor !== r.condicionFija}
                 onClick={() => onCambio({ condicionElegida: o.valor })}
-                className={`rounded-2xl border px-[18px] py-4 text-left transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
-                  activa ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/40"
-                }`}
+                // La tarjeta de opción es una gota; la elegida lleva el filo de tinta (`posv-tarjeta-opcion`, vidrio/posventa.css).
+                className="posv-tarjeta-opcion rounded-2xl border px-[18px] py-4 text-left text-tinta transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <span className="block text-sm font-semibold">{o.titulo}</span>
-                <span className={`mt-0.5 block text-sm ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
+                <span className="mt-0.5 block text-sm text-tinta/70">{o.detalle}</span>
               </button>
             );
           })}

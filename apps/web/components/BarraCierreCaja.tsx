@@ -43,7 +43,9 @@ export function BarraCierreCaja({ estado, onCerrar }: { estado: EstadoBotonCierr
           {estado.bajada && <span className="cc-bajada">{estado.bajada}</span>}
         </div>
         {onCerrar && (
-          <button ref={botonRef} type="button" onClick={onCerrar} className="cc-boton">
+          // La barra es una isla (vidrio/caja.css) y su bajada no se ve: lo que decía (la hora de cierre, qué pasa si no se cierra) va
+          // en el `title` del botón para quien pasa el mouse; un lector de pantalla la sigue leyendo en la barra.
+          <button ref={botonRef} type="button" onClick={onCerrar} className="cc-boton" title={estado.bajada || undefined}>
             <Lock size={16} aria-hidden /> Cerrar caja
           </button>
         )}

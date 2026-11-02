@@ -203,7 +203,7 @@ export function ClientasPanel({
                 {vacio}
               </Vacio>
             ) : (
-              <ul className="grid gap-2.5 p-4">
+              <ul className="clientas-filas">
                 {filas.map((c, i) => (
                   <li key={c.id}>
                     <FilaClienta c={c} hoy={hoy} verCompleto={verCompleto} onAbrir={() => setFichaAbiertaId(c.id)} guiaPrimera={i === 0} />
@@ -264,10 +264,12 @@ function FilaClienta({ c, hoy, verCompleto, onAbrir, guiaPrimera }: { c: Clienta
     <button
       type="button"
       onClick={onAbrir}
-      className={`card-cayla grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 px-4 py-3 text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-taupe motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${c.archivadaEn ? "opacity-60" : ""}`}
+      // Una fila en la placa de la tabla (vidrio, «A · Filas en la placa», Felipe 2026-11-02): sin tarjeta propia; al pasar el mouse, la gota
+      // clara (vidrio/clientes.css). Lo que dice la fila no cambia (el plan de Clientas es de Dany).
+      className={`clientas-fila grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 px-4 py-3 text-left sm:grid-cols-[auto_minmax(0,1fr)_auto] ${c.archivadaEn ? "opacity-60" : ""}`}
       data-guia={guiaPrimera ? "clientas.fila" : undefined}
     >
-      <AvatarPersona personaId={null} nombre={c.nombre ?? ""} tamano={40} />
+      <AvatarPersona personaId={null} nombre={c.nombre ?? ""} tamano={40} className="clientas-avatar" />
       <span className="min-w-0">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-display text-[19px] leading-tight text-tinta" data-guia={guiaPrimera && nombreDeEjemplo ? "clientas.nombre" : undefined}>

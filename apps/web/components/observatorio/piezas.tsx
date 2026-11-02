@@ -8,7 +8,7 @@
 // Todo lee el contexto de la pantalla: `entrando` (la primera llegada: las cifras arrancan en cero), `rapido` («Repetir el
 // día»: todo en 110 ms, lineal) y `reducido` (`prefers-reduced-motion`: salta al valor).
 
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { formatoVariacionObs } from "@/lib/observatorio-reglas";
 
@@ -351,7 +351,7 @@ function trazoDe(pts: readonly PuntoGraf[], tipo: "l" | "a"): string {
 
 /** Una línea (`l`) o un área (`a`) de un gráfico 100×100. Si cambian los datos con la misma cantidad de puntos, se
  *  transforma punto por punto (800 ms); si no, se redibuja (el `Revela` de afuera lo vuelve a trazar). */
-export function Trazo({ pts, tipo, className }: { pts: readonly PuntoGraf[]; tipo: "l" | "a"; className: string }) {
+export function Trazo({ pts, tipo, className, style }: { pts: readonly PuntoGraf[]; tipo: "l" | "a"; className: string; style?: CSSProperties }) {
   const { rapido, reducido } = useObs();
   const ref = useRef<SVGPathElement>(null);
   const pintado = useRef<readonly PuntoGraf[]>(pts);
@@ -384,7 +384,26 @@ export function Trazo({ pts, tipo, className }: { pts: readonly PuntoGraf[]; tip
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firma, tipo]);
 
-  return <path ref={ref} className={className} d={inicial} />;
+  return <path ref={ref} className={className} d={inicial} style={style} />;
+}
+
+/** El área bajo una curva hecha vidrio esmerilado (ADR-0596, maqueta observatorio-vidrio-2026-10): un degradado del vidrio, claro
+ *  arriba y que se desvanece hacia abajo, que vela la retícula que pasa por detrás. El color y las opacidades son recetas
+ *  (`--grafico-vidrio*`, recetas.css) y se invierten solas en oscuro; el id del degradado es propio de cada gráfico. */
+export function AreaVidrio({ pts }: { pts: readonly PuntoGraf[] }) {
+  const id = `o-ga-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  return (
+    <>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" className="o-ga1" />
+          <stop offset="0.55" className="o-ga2" />
+          <stop offset="1" className="o-ga3" />
+        </linearGradient>
+      </defs>
+      <Trazo pts={pts} tipo="a" className="ar" style={{ fill: `url(#${id})` }} />
+    </>
+  );
 }
 
 /** El lienzo 100×100 de un gráfico que se dibuja de izquierda a derecha al aparecer (y al volver a montarse). */
@@ -416,7 +435,7 @@ export function Spark({ valores }: { valores: readonly number[] }) {
   return (
     <div className="o-graf o-spark">
       <Revela key={n}>
-        <Trazo pts={pts} tipo="a" className="ar" />
+        <AreaVidrio pts={pts} />
         <Trazo pts={pts} tipo="l" className="ln f" />
       </Revela>
     </div>

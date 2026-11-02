@@ -458,11 +458,13 @@ export function PuntoDeVentaTicket({
   return (
     // En escritorio el aside llena toda la fila del POS (la raíz fija la altura al
     // viewport): cabecera y pie quedan fijos y solo el medio scrollea.
-    <aside data-guia="vender.ticket" className="flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
+    // En su columna (escritorio) el ticket es la placa Serena, pegada arriba (`pv-ticket`, vidrio/vender.css); en la hoja del celular
+    // (`data-en-hoja`) la cara la pone la hoja.
+    <aside data-guia="vender.ticket" data-en-hoja={enHoja || undefined} className="pv-ticket flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
       {/* Un solo título grande por momento: la sede ya está en la barra de arriba
           («Venta en tienda · sede»), repetirla acá no decía nada. Fuera de «armar», la
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
-      <div className="@container flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-sand px-5 py-3">
+      <div className="@container flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-sand px-5 py-3 pv-ticket-hilo">
         {momentoMostrado === "armar" ? (
           <>
             <TituloSeccion>
@@ -924,7 +926,7 @@ export function PuntoDeVentaTicket({
           )}
         </div>
 
-        <div data-guia="vender.ticket-pie" className="@container border-t border-sand bg-papel px-5 pt-4 pb-5">
+        <div data-guia="vender.ticket-pie" className="@container border-t border-sand bg-papel px-5 pt-4 pb-5 pv-ticket-hilo pv-ticket-pie">
           {/* El cupón del Club (programa de puntos): UNA línea de toda la compra, en cualquier momento del ticket mientras esté puesto,
               porque el Total de abajo ya lo descuenta; el reparto por prenda queda en la base y el comprobante. Se puede quitar mientras
               se arma la venta. `key` en el monto: se asienta cuando cambia, como el Total. */}

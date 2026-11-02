@@ -144,7 +144,7 @@ const TarjetaPercha = memo(function TarjetaPercha({
 }) {
   const ids = useMemo(() => g.tallas.map((t) => t.varianteId), [g.tallas]);
   return (
-    <article hidden={!visible} className="card-cayla @container overflow-hidden">
+    <article hidden={!visible} className="card-cayla planilla-conteo @container overflow-hidden">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 py-1 pl-[18px] pr-3">
         <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="xl" {...categoriaDe(g)} />
         <div className="min-w-[8rem] flex-1">
@@ -164,8 +164,9 @@ const TarjetaPercha = memo(function TarjetaPercha({
         </div>
         <BotonCompletarTodo control={control} ids={ids} nombre={`${g.referencia} ${g.color ?? ""}`.trim()} alCompletar={alCompletar} />
       </header>
-      {/* La cara de la tabla del sistema (ADR-0358, ronda 9): cabecera en arena, rayado en hueso, cascada al abrir y la talla recién
-          contada que respira en verde. Sigue siendo una tabla HTML: con 800 tallas, cada fila (`FilaConteo`) se vuelve a dibujar sola. */}
+      {/* La cara de la tabla del sistema (ADR-0358, ronda 9): cascada al abrir y la talla recién contada que respira en verde. Sigue
+          siendo una tabla HTML: con 800 tallas, cada fila (`FilaConteo`) se vuelve a dibujar sola. El material es la placa Serena
+          (`planilla-conteo`, «A · Placa Serena», Felipe 2026-11-02): la cabecera, una franja hundida; las filas, un hilo de tinta. */}
       <table className="w-full table-fixed text-sm">{/* unificar-fijo: la planilla de Contar con la cara de <Tabla> (encabezado-tabla-cayla, fila-cayla); <table> para que cada talla se redibuje sola */}
         <caption className="sr-only">
           Tallas de {g.referencia} {g.color ?? ""}
