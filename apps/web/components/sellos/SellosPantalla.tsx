@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Award, CalendarHeart, HandHeart, RefreshCw, Shirt } from "lucide-react";
 import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
@@ -186,7 +187,18 @@ export function SellosPantalla({
     window.history.replaceState(window.history.state, "", url);
   }
   const editando = editandoId ? (etiquetas.find((x) => x.id === editandoId) ?? null) : null;
-  const abrir = (id: string) => setAbiertoPorVista((a) => ({ ...a, [vista]: id }));
+  // Con una sola columna (el celular), el pase en grande se abre debajo del pase tocado y el que estaba abierto se cierra: la página se acorta
+  // y quien tocaba quedaba a media altura del detalle, sin ver el pase (2026-11-02). Es un cambio de vista, no un bloque que se encogió:
+  // se suelta <PaginaEstable> y el pase tocado sube hasta quedar bajo la cabecera (`scroll-margin-top` en `.sl-pase`).
+  const abrir = (id: string, desde?: HTMLElement | null) => {
+    const yaAbierto = id === abiertoId;
+    setAbiertoPorVista((a) => ({ ...a, [vista]: id }));
+    if (!enLinea || yaAbierto || !desde) return;
+    soltarPaginaEstable();
+    const pase = desde.closest("article");
+    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.setTimeout(() => pase?.scrollIntoView({ block: "start", behavior: sinMovimiento ? "auto" : "smooth" }), 80);
+  };
 
   // ---- Lo que guarda: lo mismo que la lista de antes, por las mismas puertas --------------------------------------------------
 
@@ -487,7 +499,7 @@ export function SellosPantalla({
         data-guia={esAbierto ? "sellos.pase" : undefined}
         style={{ "--i": indice } as CSSProperties}
       >
-        <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={() => abrir(e.id)}>
+        <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={(ev) => abrir(e.id, ev.currentTarget)}>
           <SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} imagenSilueta={e.imagenSilueta} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
           <span className="min-w-0">
             <span className="sl-cab-nombre block truncate">{e.nombre}</span>
