@@ -24,3 +24,7 @@ En negrita, la recomendada. Lo que gana y lo que cuesta cada una, al pie de `ind
 
 En Chrome sin ventana: 162 combinaciones (320 a 1920 px, claro y oscuro, todas las caras), nada se desborda; sin errores de JS. A 320 px
 las pestañas se salían 10 px: ahora corren de lado, como las de Configuración.
+
+## Lo que decidió Felipe
+
+**Tarjeta B · Al aire y banda B · Estante de vidrio** (2026-11-02), las recomendadas.
