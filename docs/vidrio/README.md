@@ -74,6 +74,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Página · Existencias (Inventario) | `ExistenciasTarjetas.tsx`, `existencias/ParaHoy.tsx`, `FiltrosRapidos.tsx`, `PieTarjeta.tsx` | Elegido (falta la talla en cero) | Vitrina A · Translúcida, sin desenfoque; tira A · Pozo de vidrio; talla en cero: A · Lente que pide o B · Hueco por llenar, por elegir | `existencias-vidrio-2026-11/` |
 | **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 | **Caja** (página entera: `app/(app)/caja`, vista «hoy contra ayer») | `CajaAbiertaPanel`, `CajaComparativa`, `BarraCierreCaja` | Elegido (armada con las piezas elegidas) | Titular A · Ahumado; barra de cierre B · Isla (píldora al centro, sin la bajada); «Cerrar caja» en gota roja | `caja-vidrio-2026-11/` |
+| **Historial de ventas** (página entera: `app/(app)/vender/historial`) | `HistorialVentasLista`, `HistorialVentasPulso`, `FiltrosHistorialVentas`, `AvisosHistorial` | En maqueta (armada con las piezas elegidas) | — (recomendadas: línea del tiempo A · Hilo de vidrio, pila de prendas A · Lentes apiladas) | `historial-ventas-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
