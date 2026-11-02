@@ -24,7 +24,7 @@
 --   blanco. Viven en las variables de entorno de Vercel y solo las lee el servidor.
 -- SE ROMPE SI: alguien llama esta función con la llave de servicio desde otro lugar: queda una versión sin firma, marcada `api`.
 --
--- PRODUCCIÓN. NO está aplicada. Una sola parte, re-ejecutable, `lock_timeout = 3s`: una función nueva. Va DESPUÉS de 20261102202000.
+-- PRODUCCIÓN. APLICADA el 2026-11-02 (versión `20261102205948`, con el OK de Felipe). Una sola parte, re-ejecutable, `lock_timeout = 3s`: una función nueva. Va DESPUÉS de 20261102202000.
 -- Prueba: `pnpm pruebas:sire-propuestas`.
 -- ============================================================================
 set lock_timeout = '3s';

@@ -26,7 +26,7 @@
 -- SE ROMPE SI: la llave cambia de forma en la web (`claveComprobante`, lib/sire-cruce-reglas.ts): las resoluciones viejas dejarían de
 --   encontrar su línea. Está cubierto por su prueba.
 --
--- PRODUCCIÓN. NO está aplicada. Una sola parte, re-ejecutable, `lock_timeout = 3s`: una tabla nueva sin políticas (RLS encendido), dos
+-- PRODUCCIÓN. APLICADA el 2026-11-02 (versión `20261102205931`, con el OK de Felipe). Una sola parte, re-ejecutable, `lock_timeout = 3s`: una tabla nueva sin políticas (RLS encendido), dos
 -- funciones nuevas y `fn_sire_propuesta` reescrita entera (es de 20261102202000, de esta misma rama). Sin `drop trigger`, sin políticas,
 -- sin `select … into`. Va DESPUÉS de 20261102202000. Prueba: `pnpm pruebas:sire-propuestas`.
 -- ============================================================================

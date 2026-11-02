@@ -1,7 +1,8 @@
 # ADR-0601 · Comparar con SUNAT: la propuesta del SIRE contra el ERP
 
-- **Fecha:** 2026-11-02 · **Estado:** construido y probado en local con datos inventados (5 actividades, un commit cada una). Tres migraciones
-  **sin pegar en producción** (`20261102202000`, `…203000`, `…204000`). La API del SIRE probada con un SUNAT falso, **no contra el real**.
+- **Fecha:** 2026-11-02 · **Estado:** construido y probado en local con datos inventados (5 actividades, un commit cada una). Las tres
+  migraciones **aplicadas en producción el 2026-11-02** con el OK de Felipe (`20261102202000` → `20261102205907`, `…203000` → `…205931`,
+  `…204000` → `…205948`; las cinco funciones con la misma huella md5 que en local). La API del SIRE probada con un SUNAT falso, **no contra el real**.
 - **Decide:** Felipe, 2026-11-02: «hay que implementarlo para ahorrar el proceso de comparación y dejar todo a un solo clic»; aprobó las 5
   actividades (con la API) y que el cierre solo avise.
 - **Toca:** ADR-0195 F8 (Impuestos), ADR-0573 (la pantalla de Impuestos), ADR-0560 (CLAURE con el RUC de CAYLA), ADR-0005 (la Clave SOL).
@@ -55,6 +56,6 @@ descuenta: se paga de más sin saberlo), pasaban sin que nadie lo viera.
 - `pnpm pruebas:sire-propuestas` (13 casos, ROLLBACK) y las pruebas de `lib/sire-*.test.ts` y `lib/zip-leer.test.ts`.
 - En local: subir una propuesta de ejemplo en `/finanzas/impuestos/sire?mes=2026-10` (compras y ventas), resolver y deshacer una
   diferencia, ver la línea en «Antes de declarar» y el aviso en `/finanzas/cierre?mes=2026-10&sede=empresa`.
-- **Falta, y es de Felipe:** pegar las tres migraciones en producción (en orden, cada una sola); crear el usuario secundario de SOL y sus
+- **Falta, y es de Felipe:** crear el usuario secundario de SOL y sus
   credenciales de API, cargarlas en Vercel (Production) y mirar la primera corrida del cron; subir **una propuesta real** para confirmar
   los títulos de las columnas (el lector se escribió con los del anexo de la RS 112-2021).

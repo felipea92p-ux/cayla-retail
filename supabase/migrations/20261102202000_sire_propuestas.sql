@@ -29,7 +29,8 @@
 --   es no borrar. El costo es espacio: unas decenas de facturas de compras al mes y ~2 000 comprobantes de ventas, unos cientos de KB por mes.
 -- SE ROMPE SI: alguien sube un archivo de otro RUC o de otro mes: lo frena la web (`leerPropuestaSire`), no la base. La base sí frena un mes futuro.
 --
--- PRODUCCIÓN. NO está aplicada. Una sola parte, re-ejecutable, `lock_timeout = 3s`: dos tablas nuevas sin políticas (RLS encendido; solo las leen
+-- PRODUCCIÓN. APLICADA el 2026-11-02 (versión `20261102205907`, con el OK de Felipe; huellas md5 de las funciones iguales a las de este
+-- archivo). Una sola parte, re-ejecutable, `lock_timeout = 3s`: dos tablas nuevas sin políticas (RLS encendido; solo las leen
 -- y escriben funciones `security definer`), y dos funciones. Sin `alter` de tablas en uso, sin `drop trigger`, sin políticas, sin `select … into`.
 -- Prueba: `pnpm pruebas:sire-propuestas`.
 -- ============================================================================
