@@ -120,21 +120,18 @@
   /* El riel va pegado al borde: su luz es el filo de la derecha y su sombra cae hacia el contenido. */
   --marco-riel-sombra: inset -1px 0 0 color-mix(in srgb, var(--color-vidrio) 80%, transparent),
     12px 0 40px -30px color-mix(in srgb, var(--color-sombra) 45%, transparent);
-  /* «Escarcha» (Felipe 2026-11-02, maqueta lateral-glass-2026-11/): la bandeja de los submódulos de un módulo abierto ya no se hunde, es una
-     placa clara y plana con su filo; la fila activa del menú, una ficha mate sin degradado ni brillo (la gota con brillo, `--gota-marca`, sigue
-     en el resto del sistema). Sin desenfoque propio: el del riel basta. El vidrio solo se lee si detrás hay color: por eso el riel lleva su
-     «luz» (marco.css, `.marco-aurora::before`). Con el riel blanco, el blanco translúcido «se veía igual» y el papel opaco «se veía todo blanco». */
-  --bandeja-fondo: color-mix(in srgb, var(--color-vidrio) 38%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-  --bandeja-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 75%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--color-sombra) 5%, transparent);
-  /* La elegida se tiñe del rojo de CAYLA (Felipe 2026-11-02: «no se nota cuando se selecciona una opción»; blanco sobre blanco no se veía): una
-     ficha de papel con un 10 % de rojo, su filo rojo al 32 % y un resplandor interior. Todo por DENTRO: por fuera sobraba y el `overflow`
-     de la bandeja (4 px) y del <nav> (12 px) lo cortaba en seco. */
-  --menu-activa-fondo: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel));
-  --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 32%, transparent),
-    0 1px 2px color-mix(in srgb, var(--color-sombra) 10%, transparent),
-    0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 18%, transparent),
-    inset 0 0 14px 0 color-mix(in srgb, var(--color-rojo) 20%, transparent);
+  /* El riel de escritorio ya no es vidrio (Felipe 2026-11-02: «el degradado de la unión se ve raro»): es una columna lisa que sigue el tema
+     —papel en claro, un negro cálido bajo la página en oscuro— con UNA línea fina como límite. Sin degradado, sin aro de luz y sin la sombra
+     larga que se escurría hacia el contenido. El vidrio queda para lo que flota (cabecera, hojas, tarjetas) y para el cajón del celular. */
+  --riel-fondo: var(--color-papel);
+  --riel-borde: var(--color-sand);
+  /* La bandeja de los submódulos: una placa apenas hundida, sin línea ni borde (Felipe 2026-10-31: «las líneas que salen a cada submódulo no
+     me agradan»), y la elegida, una ficha teñida del rojo de CAYLA con su filo (Felipe 2026-11-02: «no se nota cuando se selecciona»), sin
+     resplandor ni sombra: plana, como la columna. Todo por DENTRO: lo de afuera lo cortaba el `overflow` de la bandeja y del <nav>. */
+  --bandeja-fondo: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --bandeja-sombra: none;
+  --menu-activa-fondo: color-mix(in srgb, var(--color-rojo) 9%, var(--riel-fondo));
+  --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 30%, transparent);
   /* El botón de plegar: una gota redonda que flota sobre el borde del riel, mitad sobre el menú y mitad sobre el contenido. */
   --plegar-fondo: var(--gota-marca);
   --plegar-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
@@ -386,14 +383,13 @@
     --marco-vidrio-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --marco-vidrio-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 24px 50px -30px var(--color-sombra);
     --marco-riel-sombra: inset -1px 0 0 color-mix(in srgb, var(--color-tinta) 10%, transparent), 12px 0 40px -30px var(--color-sombra);
-    --bandeja-fondo: color-mix(in srgb, var(--color-tinta) 7%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-    --bandeja-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 12%, transparent),
-      0 0 0 1px color-mix(in srgb, var(--color-sombra) 30%, transparent);
-    --menu-activa-fondo: color-mix(in srgb, var(--color-rojo) 16%, var(--color-papel));
-    --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 40%, transparent),
-      0 1px 2px color-mix(in srgb, var(--color-sombra) 50%, transparent),
-      0 4px 10px -6px var(--color-sombra),
-      inset 0 0 14px 0 color-mix(in srgb, var(--color-rojo) 22%, transparent);
+    /* El riel en oscuro: un negro cálido más hondo que la página (62 % de la crema, el resto sombra), con un hilo de luz de límite. */
+    --riel-fondo: color-mix(in srgb, var(--color-crema) 62%, var(--color-sombra));
+    --riel-borde: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --bandeja-fondo: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --bandeja-sombra: none;
+    --menu-activa-fondo: color-mix(in srgb, var(--color-rojo) 16%, var(--riel-fondo));
+    --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 40%, transparent);
     /* En oscuro la gota es casi transparente: sobre el borde del riel se perdería. El botón va en hueso, como en la maqueta. */
     --plegar-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 95%, transparent), color-mix(in srgb, var(--color-hueso) 80%, transparent));
     --plegar-borde: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */

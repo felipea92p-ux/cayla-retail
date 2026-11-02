@@ -5,7 +5,7 @@
    Lo que eligió Felipe mirando:
      · Fondo B · Aurora: tres nubes muy tenues quietas detrás de todo. El vidrio necesita algo detrás: sobre un fondo plano,
        una placa de vidrio es una placa crema.
-     · Lateral B · Riel de vidrio, con la gota de la fila activa (y su marca roja) que viaja a la fila que tocas.
+     · Lateral: columna LISA que sigue el tema (desde el 2026-11-02, antes riel de vidrio), con la gota de la fila activa (y su marca roja) que viaja a la fila que tocas.
      · Submódulos A · Bandeja: hundidos bajo su módulo, sin líneas ni ramas; se despliegan en cascada.
      · Botón de plegar flotante sobre el borde del riel, a la altura del logo.
      · Plegado A · Con nombre: 84 px, cada fila un cuadrado con el ícono al centro y su nombre corto debajo.
@@ -36,16 +36,15 @@
   opacity: var(--aurora-o);
   animation: marco-aurora-entra 1.4s var(--ease-cayla) both;
 }
-.marco-aurora i:nth-child(1) { width: 620px; height: 520px; left: -160px; top: -180px; background: var(--color-rojo); --aurora-o: 0.16; }
-.marco-aurora i:nth-child(2) { width: 700px; height: 560px; right: -220px; top: 120px; background: var(--color-pizarra); --aurora-o: 0.14; }
-.marco-aurora i:nth-child(3) { width: 560px; height: 460px; left: 30%; bottom: -260px; background: var(--color-ambar); --aurora-o: 0.12; }
+/* Las nubes se apartan del menú (Felipe 2026-11-02): la roja ya no nace bajo el riel y se mezcla con él, sino arriba a la derecha del contenido. */
+.marco-aurora i:nth-child(1) { width: 620px; height: 520px; right: 12%; top: -260px; background: var(--color-rojo); --aurora-o: 0.12; }
+.marco-aurora i:nth-child(2) { width: 700px; height: 560px; right: -220px; top: 120px; background: var(--color-pizarra); --aurora-o: 0.12; }
+.marco-aurora i:nth-child(3) { width: 560px; height: 460px; left: 30%; bottom: -260px; background: var(--color-ambar); --aurora-o: 0.10; }
 @keyframes marco-aurora-entra {
   from { opacity: 0; }
 }
 @media screen {
   :root[data-tema="oscuro"] .marco-aurora i { --aurora-o: 0.1; }
-  /* En oscuro el hilo no es blanco sino crema (tinta) y el rojo baja: el rojo claro del tema pesa más sobre el fondo oscuro. */
-  :root[data-tema="oscuro"] .marco-riel { --riel-aro-luz: color-mix(in srgb, var(--color-tinta) 38%, transparent); /* contraste: no aplica — es un hilo de luz, no un texto */ --riel-aro-rojo: 60%; }
 }
 @media print {
   .marco-aurora { display: none; }
@@ -55,32 +54,19 @@
    El vidrio va en un `::before` y no en el <aside>: un `backdrop-filter` en el <aside> lo volvería el contenedor de todo lo
    `fixed` de adentro (la salida del colibrí de «Salir», un aviso) y lo recortaría a su ancho. La sombra de afuera va en el
    <aside> (su `overflow: hidden` recortaría la del `::before`); el filo de luz de la derecha, en el `::before`. */
-/* El filo especular con rojo (Felipe 2026-11-02, elegido entre cinco tras investigar cómo define su borde el vidrio de Apple, Linear y
-   Vercel): un hilo de luz de 1 px alrededor del riel que se enciende en el rojo de CAYLA arriba y abajo y casi desaparece en el medio, como la
-   luz de un cristal. Es un degradado recortado con máscara a solo el borde. Va en el `::after` del riel, solo en escritorio: en el celular
-   ese `::after` es el asa del cajón. */
+/* En escritorio el riel es una columna LISA (Felipe 2026-11-02: «el degradado en la unión del menú y el contenido se ve raro»; maqueta
+   «E», elegida entre cuatro): el fondo y su línea de límite siguen el tema (`--riel-fondo`, `--riel-borde`, vidrio/recetas.css), sin
+   vidrio, sin aro de luz y sin la sombra larga que se escurría hacia el contenido. Bajo 640 px sigue siendo el cajón de vidrio de abajo. */
 .marco-riel {
   box-shadow: var(--marco-riel-sombra);
-  --riel-aro-luz: color-mix(in srgb, var(--color-vidrio) 95%, transparent);
-  --riel-aro-rojo: 90%;
 }
 @media (min-width: 640px) {
-  .marco-riel::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    padding: 1px;
-    pointer-events: none;
-    background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-rojo) var(--riel-aro-rojo), transparent) 0%,
-      var(--riel-aro-luz) 30%,
-      color-mix(in srgb, var(--riel-aro-luz) 16%, transparent) 60%,
-      color-mix(in srgb, var(--color-rojo) calc(var(--riel-aro-rojo) * 0.6), transparent) 100%);
-    -webkit-mask: linear-gradient(var(--color-tinta) 0 0) content-box, linear-gradient(var(--color-tinta) 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(var(--color-tinta) 0 0) content-box exclude, linear-gradient(var(--color-tinta) 0 0);
+  .marco-riel {
+    background: var(--riel-fondo);
+    border-right: 1px solid var(--riel-borde);
+    box-shadow: none;
   }
+  .marco-riel::before { display: none; }
 }
 .marco-riel::before {
   content: "";
