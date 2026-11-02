@@ -3,6 +3,7 @@
 - **Fecha:** 2026-10-13 · **Estado:** ACEPTADO por Felipe el 2026-10-13 (las tres preguntas, con la opción recomendada) — es el contrato
   con la sesión de Órdenes de compra (ADR-0362), que todavía tiene que leer «La frontera» antes de que se toquen sus tablas. Sin
   construir. Número reservado con `pnpm reservar adr` (ADR-0381).
+- **Actualización 2026-11-02 (ADR-0604):** se cuenta modelo por modelo y la categoría suma sola; un número por categoría queda solo para lo que no tiene modelo anotado. Contar sigue siendo primero y la base no cambió.
 - **Rama:** `claude/recibir-fardo-2026-10-b45438` (trae la maqueta de `claude/receiving-merchandise-design-8a44ec`, que no tiene PR).
 - **Especificación:** `docs/maquetas/recibir-fardo-2026-10/a-camino.html` (cara A, versión 2) y «Las 10 decisiones de Felipe» del README
   de esa carpeta (2026-10-13).
