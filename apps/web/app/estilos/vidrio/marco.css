@@ -458,3 +458,47 @@
 @media (prefers-reduced-motion: reduce) {
   .marco-fila svg path { transition: none; }
 }
+
+/* ---------- El cajón del menú en el celular: «A · Hoja con profundidad» (Felipe 2026-11-01) ----------
+   Maqueta en docs/maquetas/cajon-menu-vidrio-2026-11/. Bajo 640 px el riel se vuelve una HOJA de costado, como las hojas del celular
+   (ADR-0479): más ancha que el cajón de antes (hasta 300 px, sin pasar del 86 % de la pantalla), redondeada a la derecha, con un vidrio
+   más denso que el del riel de escritorio y un asa vertical junto a su borde. El velo esmerila lo de atrás y, además, lo de atrás se ALEJA
+   (se corre 34 px y baja a 0,94, con su contenido redondeado 22 px): eso lo pone `alejarFondo(…, "lado")` desde
+   `useLateralConElDedo`, y mientras el dedo lleva el menú, el velo y el alejamiento siguen su misma proporción.
+   Lo de adentro, la cascada y los tiempos (420 ms al llegar, 260 al irse, globals.css) no cambian. Con «reducir movimiento» no se mueve
+   nada: ni el cajón, ni el velo, ni lo de atrás (el hook no lo aleja). */
+@media (max-width: 639.98px) {
+  .marco-riel {
+    width: min(300px, 86%);
+    max-width: none;
+  }
+  .marco-riel::before {
+    background: var(--cajon-movil-fondo);
+    -webkit-backdrop-filter: var(--cajon-movil-filtro);
+    backdrop-filter: var(--cajon-movil-filtro);
+  }
+  /* El asa: dice que la hoja se lleva con el dedo hacia la izquierda. No recibe toques: el dedo lo escucha el cajón entero. */
+  .marco-riel::after {
+    content: "";
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    width: 4px;
+    height: 44px;
+    margin-top: -22px;
+    border-radius: 4px;
+    background: var(--cajon-movil-asa);
+    pointer-events: none;
+  }
+  .velo-cajon {
+    background: var(--cajon-movil-velo);
+    -webkit-backdrop-filter: var(--cajon-movil-velo-filtro);
+    backdrop-filter: var(--cajon-movil-velo-filtro);
+  }
+}
+@media (max-width: 639.98px) and (prefers-reduced-motion: reduce) {
+  .cajon-lateral,
+  .cajon-lateral[data-cajon="abierto"],
+  .velo-cajon,
+  .velo-cajon[data-abierto="true"] { transition: none; }
+}

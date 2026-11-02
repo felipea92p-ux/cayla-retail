@@ -181,3 +181,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   de su tinta al 34 %; la flecha del grupo no; en `marco.css`) y el contenido «A · Duotono en los de 20» (lucide de 20 px o más con un velo
   del 12 % adentro; los de 12, 14 y 16, solo línea; los dibujos abiertos —✓, flechas, +, −, ×, arcos— quedan en línea porque el relleno
   cerraría su trazo; en `pantalla.css`). Visto el marco en Compras; el duotono, solo por la regla (Compras no tiene íconos de 20 px).
+
+- **El cajón del menú en el celular al vidrio (Felipe 2026-11-02):** «A · Hoja con profundidad»: bajo 640 px el riel es una hoja de
+  `min(300px, 86%)` con vidrio denso (90→80 %, 30 px), su asa de 4×44 px y un velo de sombra al 16 % (45 % en oscuro); la cabecera y el
+  contenido se alejan de costado (34 px, 0,94, recorte de 22 px) con el mismo mecanismo de las hojas (`alejarFondo(ms, "lado")` en
+  `fondoDeLaHoja.ts`) y siguen al dedo en la misma proporción (`fondoDeLadoSegun`, probado en `lib/hoja-gesto.test.ts`). Con «reducir
+  movimiento» ya no se desliza. El escritorio no cambia.

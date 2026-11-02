@@ -117,6 +117,14 @@
   --plegar-fondo: var(--gota-marca);
   --plegar-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
   --plegar-sombra: inset 0 1px 0 var(--color-vidrio), 0 6px 16px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  /* El cajón del menú en el celular, «A · Hoja con profundidad» (cajon-menu-vidrio-2026-11): tapa casi toda la pantalla, así que su
+     vidrio es más denso que el del riel de escritorio (el menú tiene que leerse sobre cualquier prenda); su asa, y el velo que esmerila
+     lo de atrás (más liviano que el de una hoja: lo de atrás además se aleja). */
+  --cajon-movil-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 90%, transparent), color-mix(in srgb, var(--color-vidrio) 80%, transparent));
+  --cajon-movil-filtro: blur(30px) saturate(1.5);
+  --cajon-movil-asa: color-mix(in srgb, var(--color-tinta) 22%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --cajon-movil-velo: color-mix(in srgb, var(--color-sombra) 16%, transparent);
+  --cajon-movil-velo-filtro: blur(8px) saturate(1.2);
 
   /* ---------- el Observatorio con vidrio (docs/maquetas/observatorio-vidrio-2026-10/; piezas en vidrio/observatorio.css) ---------- */
   /* La pista de un control segmentado sobre la Aurora («B · Ahumado con contraste»): una placa casi llena que se separa de lo de atrás
@@ -248,6 +256,9 @@
     --plegar-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 95%, transparent), color-mix(in srgb, var(--color-hueso) 80%, transparent));
     --plegar-borde: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --plegar-sombra: 0 6px 16px -8px var(--color-sombra);
+    /* El cajón del menú en el celular: en oscuro el vidrio es parejo y casi lleno, y el velo más hondo. */
+    --cajon-movil-fondo: color-mix(in srgb, var(--color-vidrio) 92%, transparent);
+    --cajon-movil-velo: color-mix(in srgb, var(--color-sombra) 45%, transparent);
     /* El Observatorio con vidrio: en oscuro la luz es crema a poca opacidad y las sombras, negras. */
     --pista-control-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 10%, transparent), 0 10px 24px -16px var(--color-sombra);
     --tubo-fondo: color-mix(in srgb, var(--color-sombra) 30%, transparent);
@@ -296,6 +307,8 @@
     --vidrio-hoja-fondo: var(--color-papel);
     --vidrio-pie-fondo: var(--color-papel);
     --vidrio-flota-fondo: var(--color-papel);
+    --cajon-movil-fondo: var(--color-papel);
+    --cajon-movil-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);
     --vidrio-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);
     --placa-fondo: var(--color-papel);
     --lamina-fondo: var(--color-papel);
