@@ -39,11 +39,32 @@
 .marco-aurora i:nth-child(1) { width: 620px; height: 520px; left: -160px; top: -180px; background: var(--color-rojo); --aurora-o: 0.16; }
 .marco-aurora i:nth-child(2) { width: 700px; height: 560px; right: -220px; top: 120px; background: var(--color-pizarra); --aurora-o: 0.14; }
 .marco-aurora i:nth-child(3) { width: 560px; height: 460px; left: 30%; bottom: -260px; background: var(--color-ambar); --aurora-o: 0.12; }
+/* La luz del riel (Felipe 2026-11-02: «se ve todo blanco»): el vidrio del menú solo luce si detrás hay color que esmerilar, y la aurora de
+   arriba es tan tenue que el riel quedaba blanco. Tres manchas de marca (rojo, pizarra, ámbar) pegadas a la franja del riel, del ancho del
+   menú abierto o plegado (`--spacing-lateral`), cada una en su altura. Quietas; entran con el mismo fundido que la aurora. */
+.marco-aurora::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--spacing-lateral) + 24px);
+  background:
+    radial-gradient(ellipse 95% 26% at 30% 9%, color-mix(in srgb, var(--color-rojo) var(--luz-riel-rojo), transparent), transparent),
+    radial-gradient(ellipse 90% 24% at 72% 50%, color-mix(in srgb, var(--color-pizarra) var(--luz-riel-pizarra), transparent), transparent),
+    radial-gradient(ellipse 95% 26% at 38% 94%, color-mix(in srgb, var(--color-ambar) var(--luz-riel-ambar), transparent), transparent);
+  filter: blur(10px);
+  animation: marco-aurora-entra 1.4s var(--ease-cayla) both;
+  --luz-riel-rojo: 90%;
+  --luz-riel-pizarra: 70%;
+  --luz-riel-ambar: 85%;
+}
 @keyframes marco-aurora-entra {
   from { opacity: 0; }
 }
 @media screen {
   :root[data-tema="oscuro"] .marco-aurora i { --aurora-o: 0.1; }
+  :root[data-tema="oscuro"] .marco-aurora::before { --luz-riel-rojo: 44%; --luz-riel-pizarra: 36%; --luz-riel-ambar: 38%; }
 }
 @media print {
   .marco-aurora { display: none; }
@@ -90,7 +111,8 @@
   font-size: 13.5px;
   --fila-x: 12px;
 }
-/* El primer nivel reparte el alto del menú (`useMenuHolgado`: entre 40 y 56 px, y lo que sobra es aire entre filas; Felipe
+/* (Desde el 2026-11-02, con el menú abierto el primer nivel queda fijo en 40 px y sin aire: `useMenuHolgado` ya no lo reparte; plegado sigue
+   repartiendo.) El primer nivel reparte el alto del menú (`useMenuHolgado`: entre 40 y 56 px, y lo que sobra es aire entre filas; Felipe
    2026-10-31). Las hijas conservan su alto: lo que crece es el índice, no la bandeja. */
 .marco-fila[data-prof="0"] { height: var(--fila-alto, 40px); }
 .marco-riel nav [data-pieza-cajon] + [data-pieza-cajon] { margin-top: var(--fila-aire, 0px); }
@@ -117,8 +139,8 @@
   border-radius: 14px;
   pointer-events: none;
   opacity: 0;
-  background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  background: var(--menu-activa-fondo);
+  box-shadow: var(--menu-activa-sombra);
   transition: top 380ms var(--ease-cayla), height 380ms var(--ease-cayla), left 380ms var(--ease-cayla), width 380ms var(--ease-cayla), opacity 250ms var(--ease-cayla);
 }
 .marco-gota[data-lista] { opacity: 1; }
@@ -135,8 +157,8 @@
   background: var(--color-rojo);
 }
 
-/* La bandeja: los submódulos de un módulo de primer nivel abierto viven hundidos bajo él, sin líneas ni ramas (Felipe
-   2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Un subgrupo (Abastecimiento) no lleva otra bandeja:
+/* La bandeja: los submódulos de un módulo de primer nivel abierto viven en una placa esmerilada bajo él (antes hundida; «Escarcha»,
+   Felipe 2026-11-02), sin líneas ni ramas (Felipe 2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Un subgrupo (Abastecimiento) no lleva otra bandeja:
    ya está dentro de una. */
 .lateral-hijos[data-bandeja] > div {
   border-radius: 16px;
@@ -363,8 +385,8 @@
 .marco-cajon-fila { border-radius: 12px; }
 .marco-cajon-fila[aria-current="page"] {
   padding-left: 20px;
-  background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  background: var(--menu-activa-fondo);
+  box-shadow: var(--menu-activa-sombra);
 }
 .marco-cajon-fila[aria-current="page"]::before {
   content: "";

@@ -120,9 +120,17 @@
   /* El riel va pegado al borde: su luz es el filo de la derecha y su sombra cae hacia el contenido. */
   --marco-riel-sombra: inset -1px 0 0 color-mix(in srgb, var(--color-vidrio) 80%, transparent),
     12px 0 40px -30px color-mix(in srgb, var(--color-sombra) 45%, transparent);
-  /* La bandeja: los submódulos de un módulo abierto, hundidos bajo él. Un pozo más suave que el de un campo: guarda filas, no espera un dato. */
-  --bandeja-fondo: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-  --bandeja-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 10%, transparent);
+  /* «Escarcha» (Felipe 2026-11-02, maqueta lateral-glass-2026-11/): la bandeja de los submódulos de un módulo abierto ya no se hunde, es una
+     placa clara y plana con su filo; la fila activa del menú, una ficha mate sin degradado ni brillo (la gota con brillo, `--gota-marca`, sigue
+     en el resto del sistema). Sin desenfoque propio: el del riel basta. El vidrio solo se lee si detrás hay color: por eso el riel lleva su
+     «luz» (marco.css, `.marco-aurora::before`). Con el riel blanco, el blanco translúcido «se veía igual» y el papel opaco «se veía todo blanco». */
+  --bandeja-fondo: color-mix(in srgb, var(--color-vidrio) 38%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --bandeja-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 75%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-sombra) 5%, transparent);
+  --menu-activa-fondo: color-mix(in srgb, var(--color-vidrio) 70%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 85%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-sombra) 10%, transparent),
+    0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 18%, transparent);
   /* El botón de plegar: una gota redonda que flota sobre el borde del riel, mitad sobre el menú y mitad sobre el contenido. */
   --plegar-fondo: var(--gota-marca);
   --plegar-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
@@ -374,8 +382,13 @@
     --marco-vidrio-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --marco-vidrio-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 24px 50px -30px var(--color-sombra);
     --marco-riel-sombra: inset -1px 0 0 color-mix(in srgb, var(--color-tinta) 10%, transparent), 12px 0 40px -30px var(--color-sombra);
-    --bandeja-fondo: color-mix(in srgb, var(--color-sombra) 26%, transparent);
-    --bandeja-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    --bandeja-fondo: color-mix(in srgb, var(--color-tinta) 7%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --bandeja-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 12%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+    --menu-activa-fondo: color-mix(in srgb, var(--color-tinta) 13%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 16%, transparent),
+      0 1px 2px color-mix(in srgb, var(--color-sombra) 50%, transparent),
+      0 4px 10px -6px var(--color-sombra);
     /* En oscuro la gota es casi transparente: sobre el borde del riel se perdería. El botón va en hueso, como en la maqueta. */
     --plegar-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 95%, transparent), color-mix(in srgb, var(--color-hueso) 80%, transparent));
     --plegar-borde: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fondo="aurora">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Submenú del lateral · efectos de vidrio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · el submenú del lateral con 6 efectos de vidrio + «Como ahora» (2026-11-02)
+   Felipe: «no me agrada mucho el efecto glass de las opciones del lateral… investiga los mejores efectos glass».
+   Compara SOLO el submenú de «Tienda web» (la bandeja y la fila activa); el riel de afuera cambia lo justo para que cada efecto se luzca.
+   Colores: los tokens de apps/web/app/globals.css y estilos/tema.css. Datos inventados. Sin movimiento salvo el hover y el clic.
+   El «Liquid Glass» (refracción) usa un filtro SVG en backdrop-filter: solo Chromium (Chrome, Edge, Arc); en Safari y Firefox se vería como escarcha.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--taupe:#805c4c;--pizarra:#4c5d6e;--ambar:#74501a;
+--L:255,255,255;--k:1;--S:26,26,24;--lienzo:#ddd5c6;--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--pizarra:#a2b8cd;--ambar:#e4b968;
+--L:245,240,232;--k:.2;--S:0,0,0;--lienzo:#0f0e0c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--lienzo);color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+
+/* ---------- barra de la maqueta ---------- */
+.spk{position:sticky;top:0;z-index:50;background:#171614;color:#f5f0e8;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 16px;font-size:13px} /* tema-fijo: barra de la maqueta */
+.spk .titulo{font-family:'EB Garamond',serif;font-size:19px;margin-right:8px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)} /* tema-fijo: barra de la maqueta */
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg button{height:26px;padding:0 10px;font-size:12px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+
+/* ---------- el tablero ---------- */
+.tablero{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:22px 18px;padding:22px 16px 10px;max-width:1900px;margin:0 auto}
+.cara{display:flex;flex-direction:column;gap:8px}
+.cara h3{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;line-height:1.15}
+.cara h3 b{font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);margin-right:8px;font-weight:600}
+.cara p{font-size:13px;color:color-mix(in srgb,var(--tinta) 70%,transparent);min-height:58px}
+.cara .rec{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--rojo-p);margin-left:6px}
+
+/* ---------- el escenario: fondo + riel ---------- */
+.fondo{position:relative;height:640px;border-radius:20px;overflow:hidden;isolation:isolate;border:1px solid color-mix(in srgb,var(--tinta) 14%,transparent);background:var(--crema)}
+.bk{position:absolute;inset:0;z-index:-2;overflow:hidden}
+/* aurora: nubes + piezas nítidas, para que el vidrio tenga algo que desenfocar y refractar */
+.bk i{position:absolute;display:block}
+[data-fondo="aurora"] .bk{background:var(--crema)}
+[data-fondo="aurora"] .bk .n1{width:420px;height:380px;left:-120px;top:-60px;border-radius:50%;background:var(--rojo);filter:blur(70px);opacity:.34}
+[data-fondo="aurora"] .bk .n2{width:380px;height:380px;right:-140px;top:220px;border-radius:50%;background:var(--pizarra);filter:blur(70px);opacity:.34}
+[data-fondo="aurora"] .bk .n3{width:360px;height:300px;left:30px;bottom:-110px;border-radius:50%;background:var(--ambar);filter:blur(70px);opacity:.3}
+/* prendas: bloques de color sin desenfocar, como las fotos de la tienda */
+[data-fondo="prendas"] .bk{background:var(--crema)}
+[data-fondo="prendas"] .bk .p1{left:-20px;top:-10px;width:190px;height:230px;background:#b8412d;border-radius:0 0 90px 0} /* tema-fijo: color de prenda de la maqueta */
+[data-fondo="prendas"] .bk .p2{left:150px;top:90px;width:180px;height:210px;background:#4c5d6e;border-radius:100px 0 0 0} /* tema-fijo: color de prenda de la maqueta */
+[data-fondo="prendas"] .bk .p3{left:-30px;top:300px;width:210px;height:170px;background:#c79a2f;border-radius:0 90px 0 0} /* tema-fijo: color de prenda de la maqueta */
+[data-fondo="prendas"] .bk .p4{left:140px;top:380px;width:200px;height:290px;background:#48603f;border-radius:0 0 0 110px} /* tema-fijo: color de prenda de la maqueta */
+[data-fondo="prendas"] .bk .p5{left:20px;top:500px;width:130px;height:150px;background:#7a2d4a;border-radius:70px 70px 0 0} /* tema-fijo: color de prenda de la maqueta */
+/* en oscuro la aurora baja (como en el ERP, .1) y las prendas se oscurecen: si no, el texto crema pierde contraste sobre el vidrio */
+[data-tema="oscuro"][data-fondo="aurora"] .bk .n1,[data-tema="oscuro"][data-fondo="aurora"] .bk .n2,[data-tema="oscuro"][data-fondo="aurora"] .bk .n3{opacity:.16}
+[data-tema="oscuro"][data-fondo="prendas"] .bk::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.5)} /* tema-fijo: oscurece las prendas de la maqueta */
+/* plano: sin nada detrás, el peor caso para un vidrio */
+[data-fondo="plano"] .bk{background:var(--crema)}
+/* líneas nítidas encima de todo, para ver la refracción en los bordes */
+.bk .tr{inset:0;background:repeating-linear-gradient(0deg,transparent 0 38px,color-mix(in srgb,var(--tinta) 14%,transparent) 38px 39px)}
+[data-fondo="plano"] .bk .tr{display:none}
+
+.riel{position:absolute;left:14px;top:14px;bottom:14px;width:calc(100% - 28px);max-width:300px;border-radius:26px;padding:12px 10px}
+.riel::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:var(--sb-bg);-webkit-backdrop-filter:var(--sb-f);backdrop-filter:var(--sb-f);border:1px solid var(--sb-bd);box-shadow:var(--sb-sh)}
+
+.fila{position:relative;z-index:1;display:flex;align-items:center;gap:12px;height:40px;padding:0 14px;border-radius:13px;font-size:14px;color:var(--tinta);text-align:left;width:100%;transition:background-color 200ms var(--ease),color 200ms var(--ease)}
+.fila .ch{margin-left:auto;width:15px;height:15px;opacity:.6}
+.fila.padre{margin-top:0}
+.bandeja{position:relative;z-index:0;margin:3px 0 7px;padding:5px;border-radius:19px}
+.bandeja::before,.bandeja::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+.bandeja::before{z-index:-1;background:var(--tr-bg);-webkit-backdrop-filter:var(--tr-f);backdrop-filter:var(--tr-f);box-shadow:var(--tr-sh);border:var(--tr-bd,0)}
+.bandeja .fila{height:36px;font-size:13px;gap:11px;border-radius:12px}
+.bandeja .fila svg.ic{width:17px;height:17px}
+.fila.on::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:var(--ac-bg);-webkit-backdrop-filter:var(--ac-f);backdrop-filter:var(--ac-f);box-shadow:var(--ac-sh);border:var(--ac-bd,0)}
+.fila.on{color:var(--ac-c,var(--tinta));font-weight:500}
+.fila.on.marca::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
+.fila.on.marca{padding-left:22px}
+@media (hover:hover){.bandeja .fila:not(.on):hover{background:rgba(var(--L),calc(var(--k)*.30))}}
+
+/* ====================================================================
+   LAS CARAS
+   ==================================================================== */
+/* 0 · Como ahora */
+[data-v="ahora"]{
+  --sb-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.64)),rgba(var(--L),calc(var(--k)*.48)));--sb-f:blur(24px) saturate(1.6);--sb-bd:rgba(var(--L),calc(var(--k)*.6));--sb-sh:inset 0 1px 0 rgba(var(--L),calc(var(--k)*.9)),0 24px 50px -30px rgba(var(--S),.4);
+  --tr-bg:color-mix(in srgb,var(--tinta) 4%,transparent);--tr-f:none;--tr-sh:inset 0 1.5px 3px rgba(var(--S),.1);
+  --ac-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.92)),rgba(var(--L),calc(var(--k)*.6)));--ac-f:none;--ac-sh:inset 0 1px 0 rgba(var(--L),calc(var(--k)*.95)),inset 0 -1px 2px rgba(var(--S),.06),0 6px 14px -8px rgba(var(--S),.3)}
+
+/* Aplicada · el riel de hoy + la bandeja y la ficha «Escarcha» tal como quedaron en recetas.css (sin grano, sin desenfoque propio) */
+[data-v="aplicada"]{
+  --sb-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.64)),rgba(var(--L),calc(var(--k)*.48)));--sb-f:blur(24px) saturate(1.6);--sb-bd:rgba(var(--L),calc(var(--k)*.6));--sb-sh:inset 0 1px 0 rgba(var(--L),calc(var(--k)*.9)),0 24px 50px -30px rgba(var(--S),.4);
+  --tr-bg:color-mix(in srgb,var(--papel) 62%,transparent);--tr-f:none;--tr-sh:inset 0 0 0 1px color-mix(in srgb,var(--sand) 90%,transparent),0 1px 0 rgba(var(--L),calc(var(--k)*.8));
+  --ac-bg:var(--papel);--ac-f:none;--ac-sh:inset 0 0 0 1px var(--sand),0 1px 2px rgba(var(--S),.08)}
+
+/* A · Escarcha: vidrio esmerilado de verdad. Desenfoque alto + grano fino + borde interior; la activa es una ficha mate sin brillo */
+[data-v="escarcha"]{
+  --sb-bg:rgba(var(--L),calc(var(--k)*.42));--sb-f:blur(34px) saturate(1.25);--sb-bd:rgba(var(--L),calc(var(--k)*.55));--sb-sh:inset 0 0 0 1px rgba(var(--L),calc(var(--k)*.18)),0 24px 50px -30px rgba(var(--S),.35);
+  --tr-bg:rgba(var(--L),calc(var(--k)*.34));--tr-f:blur(30px) saturate(1.2);--tr-sh:0 0 0 1px rgba(var(--S),.04),0 1px 0 rgba(var(--S),.03);--tr-bd:1px solid rgba(var(--L),calc(var(--k)*.6));
+  --ac-bg:rgba(var(--L),calc(var(--k)*.66));--ac-f:none;--ac-sh:0 1px 2px rgba(var(--S),.1),0 4px 10px -6px rgba(var(--S),.18);--ac-bd:1px solid rgba(var(--L),calc(var(--k)*.8))}
+[data-v="escarcha"] .bandeja::after,[data-v="escarcha"] .riel::after{
+  z-index:-1;opacity:.55;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* B · Liquid Glass: casi transparente, dobla lo de atrás en los bordes (filtro SVG) y lleva el brillo especular de una lente */
+[data-v="liquid"]{
+  --sb-bg:rgba(var(--L),calc(var(--k)*.26));--sb-f:blur(5px) saturate(1.5);--sb-bd:rgba(var(--L),calc(var(--k)*.55));--sb-sh:inset 1.5px 1.5px 1px -.5px rgba(var(--L),calc(var(--k)*.9)),inset -1.5px -1.5px 1px -1px rgba(var(--L),calc(var(--k)*.55)),0 24px 50px -30px rgba(var(--S),.4);
+  --tr-bg:rgba(var(--L),calc(var(--k)*.08));--tr-f:url(#refrac) blur(1.2px) saturate(1.45) brightness(1.04);
+  --tr-sh:inset 2px 2px 1px -1px rgba(var(--L),calc(var(--k)*.95)),inset -2px -2px 1px -1.5px rgba(var(--L),calc(var(--k)*.6)),inset 0 0 22px 2px rgba(var(--L),calc(var(--k)*.22)),0 10px 24px -14px rgba(var(--S),.35);
+  --ac-bg:rgba(var(--L),calc(var(--k)*.2));--ac-f:url(#refrac-chica) saturate(1.6) brightness(1.1);
+  --ac-sh:inset 2px 2px 1px -1px rgba(var(--L),1),inset -2px -2px 1px -1.5px rgba(var(--L),calc(var(--k)*.7)),inset 0 0 14px 1px rgba(var(--L),calc(var(--k)*.4)),0 8px 16px -8px rgba(var(--S),.4)}
+
+/* C · Ahumado: la bandeja es un cristal oscuro (tinta al 78 %), la activa se aclara. Las dos claras de arriba y abajo no pelean */
+[data-v="ahumado"]{
+  --sb-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.64)),rgba(var(--L),calc(var(--k)*.48)));--sb-f:blur(24px) saturate(1.6);--sb-bd:rgba(var(--L),calc(var(--k)*.6));--sb-sh:inset 0 1px 0 rgba(var(--L),calc(var(--k)*.9)),0 24px 50px -30px rgba(var(--S),.4);
+  --tr-bg:linear-gradient(180deg,rgba(26,26,24,.8),rgba(26,26,24,.7));--tr-f:blur(22px) saturate(1.4);--tr-sh:inset 0 1px 0 rgba(255,255,255,.14),0 14px 26px -16px rgba(0,0,0,.5);--tr-bd:1px solid rgba(255,255,255,.08); /* tema-fijo: el cristal ahumado es oscuro en los dos temas */
+  --ac-bg:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1));--ac-f:none;--ac-sh:inset 0 1px 0 rgba(255,255,255,.3),0 4px 10px -6px rgba(0,0,0,.5);--ac-c:#f5f0e8} /* tema-fijo: texto crema sobre el cristal ahumado */
+[data-v="ahumado"] .bandeja .fila{color:rgba(245,240,232,.78)} /* tema-fijo: texto crema sobre el cristal ahumado */
+[data-v="ahumado"] .bandeja .fila.on{color:#f5f0e8} /* tema-fijo: texto crema sobre el cristal ahumado */
+[data-v="ahumado"] .fila.on.marca::after{background:#e8806a} /* tema-fijo: el rojo claro del oscuro, legible sobre ahumado */
+@media (hover:hover){[data-v="ahumado"] .bandeja .fila:not(.on):hover{background:rgba(255,255,255,.08)}} /* tema-fijo: hover sobre ahumado */
+
+/* D · Borde de luz: vidrio casi invisible; lo que lo dibuja es un hilo de 1 px con una esquina iluminada. La activa solo cambia el hilo */
+[data-v="luz"]{
+  --sb-bg:rgba(var(--L),calc(var(--k)*.36));--sb-f:blur(26px) saturate(1.4);--sb-bd:rgba(var(--L),calc(var(--k)*.5));--sb-sh:0 24px 50px -30px rgba(var(--S),.35);
+  --tr-bg:rgba(var(--L),calc(var(--k)*.1));--tr-f:blur(12px) saturate(1.3);--tr-sh:inset 0 0 18px rgba(var(--L),calc(var(--k)*.18)),0 0 0 .5px rgba(var(--S),.08);
+  --ac-bg:rgba(var(--L),calc(var(--k)*.3));--ac-f:none;--ac-sh:inset 0 0 14px rgba(var(--L),calc(var(--k)*.4)),0 0 0 .5px rgba(var(--S),.1),0 6px 14px -9px rgba(var(--S),.28)}
+[data-v="luz"] .bandeja::after,[data-v="luz"] .fila.on::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:1;
+  background:linear-gradient(135deg,rgba(var(--L),1) 0%,rgba(var(--L),.08) 34%,rgba(var(--L),.08) 62%,rgba(var(--L),.85) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+[data-v="luz"] .fila.on.marca::after{left:7px;top:50%;width:3px;height:14px;margin-top:-7px;inset:auto auto auto 7px;padding:0;border-radius:3px;background:var(--rojo);-webkit-mask:none;mask:none}
+[data-v="luz"] .fila.on.marca{--ac-bd:1px solid rgba(var(--L),calc(var(--k)*.9))}
+
+/* E · Cristal teñido: el vidrio lleva el color de la marca (rojo CAYLA muy bajo) y satura lo que tiene detrás; la activa es blanca con filo rojo */
+[data-v="tenido"]{
+  --sb-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.5)),rgba(var(--L),calc(var(--k)*.36)));--sb-f:blur(28px) saturate(1.7);--sb-bd:rgba(var(--L),calc(var(--k)*.55));--sb-sh:inset 0 1px 0 rgba(var(--L),calc(var(--k)*.8)),0 24px 50px -30px rgba(var(--S),.38);
+  --tr-bg:linear-gradient(160deg,rgba(184,65,45,.12),rgba(232,224,208,.28) 55%,rgba(184,65,45,.07));--tr-f:blur(22px) saturate(1.9);--tr-sh:inset 0 1px 0 rgba(var(--L),calc(var(--k)*.7)),0 10px 22px -16px rgba(184,65,45,.5);--tr-bd:1px solid rgba(184,65,45,.2); /* tema-fijo: el tinte del cristal es el rojo de marca en los dos temas */
+  --ac-bg:rgba(var(--L),calc(var(--k)*.72));--ac-f:none;--ac-sh:inset 0 1px 0 rgba(var(--L),calc(var(--k)*.95)),0 5px 12px -7px rgba(184,65,45,.55);--ac-bd:1px solid rgba(184,65,45,.38);--ac-c:var(--rojo-p)} /* tema-fijo: el filo de la activa es el rojo de marca */
+
+/* F · Bisel de cristal: más cuerpo. Bandeja y fila son piezas gruesas con luz arriba y sombra abajo; la activa sale un poco de la bandeja */
+[data-v="bisel"]{
+  --sb-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.6)),rgba(var(--L),calc(var(--k)*.42)));--sb-f:blur(22px) saturate(1.5);--sb-bd:rgba(var(--L),calc(var(--k)*.65));--sb-sh:inset 0 1.5px 0 rgba(var(--L),calc(var(--k)*.95)),0 24px 50px -30px rgba(var(--S),.4);
+  --tr-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.52)),rgba(var(--L),calc(var(--k)*.26)));--tr-f:blur(18px) saturate(1.4);
+  --tr-sh:inset 0 2px 0 rgba(var(--L),calc(var(--k)*.95)),inset 0 -2px 0 rgba(var(--S),.07),inset 0 0 0 1px rgba(var(--L),calc(var(--k)*.4)),0 12px 22px -14px rgba(var(--S),.4);
+  --ac-bg:linear-gradient(180deg,rgba(var(--L),calc(var(--k)*.96)),rgba(var(--L),calc(var(--k)*.7)));--ac-f:none;
+  --ac-sh:inset 0 1.5px 0 rgba(var(--L),1),inset 0 -1.5px 0 rgba(var(--S),.07),0 0 0 1px rgba(var(--L),calc(var(--k)*.85)),0 9px 16px -8px rgba(var(--S),.42)}
+[data-v="bisel"] .fila.on{transform:translateY(-1px)}
+
+/* ---------- notas al pie ---------- */
+.notas{max-width:1100px;margin:34px auto 60px;padding:0 20px;font-size:14px;color:color-mix(in srgb,var(--tinta) 80%,transparent)}
+.notas h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;margin:0 0 10px;color:var(--tinta)}
+.notas ul{margin:0 0 20px 18px}.notas li{margin:4px 0}
+.notas code{font-size:12.5px;background:color-mix(in srgb,var(--tinta) 7%,transparent);padding:1px 5px;border-radius:5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- Mapa de desplazamiento: rojo = empuje en X, verde = empuje en Y. Neutro (128) al centro; los bordes empujan hacia adentro como el borde de una lente. -->
+    <filter id="refrac" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='300' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='x'%3E%3Cstop offset='0' stop-color='%2300ffff'/%3E%3Cstop offset='.1' stop-color='%23808080'/%3E%3Cstop offset='.9' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23ffffff'/%3E%3C/linearGradient%3E%3ClinearGradient id='y' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ff00ff'/%3E%3Cstop offset='.06' stop-color='%23808080'/%3E%3Cstop offset='.94' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23ffffff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='300' fill='%23808080'/%3E%3Crect width='260' height='300' fill='url(%23x)' style='mix-blend-mode:normal' opacity='1'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="mapa"/>
+      <feDisplacementMap in="SourceGraphic" in2="mapa" scale="46" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="refrac-chica" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='36' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='x'%3E%3Cstop offset='0' stop-color='%2300ffff'/%3E%3Cstop offset='.12' stop-color='%23808080'/%3E%3Cstop offset='.88' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23ffffff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='36' fill='%23808080'/%3E%3Crect width='260' height='36' fill='url(%23x)'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="mapa"/>
+      <feDisplacementMap in="SourceGraphic" in2="mapa" scale="30" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="spk">
+  <span class="titulo">Submenú del lateral · efectos de vidrio</span>
+  <span class="tag">Fondo</span>
+  <span class="seg" data-grupo="fondo"><button data-v="aurora" class="on">Aurora</button><button data-v="prendas">Prendas</button><button data-v="plano">Plano</button></span>
+  <span class="tag">Tema</span>
+  <span class="seg" data-grupo="tema"><button data-v="claro" class="on">Claro</button><button data-v="oscuro">Oscuro</button></span>
+  <span class="tag">Toca las filas del submenú</span>
+</div>
+
+<main class="tablero" id="tablero"></main>
+
+<section class="notas">
+  <h2>Lo que se investigó</h2>
+  <ul>
+    <li><b>Liquid Glass (Apple):</b> no es solo desenfoque: dobla lo que hay detrás en los bordes (<code>backdrop-filter: url(#filtro)</code> con <code>feDisplacementMap</code>) y le suma un brillo especular con <code>inset box-shadow</code>. La refracción solo corre en Chromium; los brillos funcionan en todos.</li>
+    <li><b>Escarcha:</b> desenfoque alto (28–34 px) + un grano fino (<code>feTurbulence</code> al 6 % o menos) evita el «plástico liso» y las bandas de color bajo el desenfoque.</li>
+    <li><b>Borde de luz:</b> un hilo de 1 px en degradado (esquina iluminada, centro casi invisible) hecho con máscara; define el borde sin rellenar el interior.</li>
+    <li><b>Contraste:</b> el texto sobre vidrio es el problema número uno (WCAG 4,5:1). Mientras más transparente el vidrio, más depende del fondo. Por eso el ahumado y el bisel suben el relleno detrás del texto, y la prueba «Prendas» es la más dura.</li>
+    <li><b>Con moderación:</b> las guías coinciden en que el vidrio va en superficies secundarias y que lo que se toca debe distinguirse sin depender de la transparencia (borde o relleno propio).</li>
+  </ul>
+  <h2>Lo que no cambia</h2>
+  <ul>
+    <li>Qué hace cada fila, los íconos, la marca roja de la activa y la cascada con que se abre el grupo.</li>
+    <li>Solo tokens de <code>globals.css</code>; claro y oscuro. Aquí los valores van copiados porque es una maqueta suelta.</li>
+  </ul>
+</section>
+
+<script>
+const IC={
+ inicio:'<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M10 20v-5h4v5"/>',
+ gestion:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+ ventas:'<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+ tienda:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/>',
+ resumen:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 17h6"/>',
+ pedidos:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="m9 13 2 2 4-4"/><path d="M9 4V3h6v1"/>',
+ vitrina:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+ campanas:'<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2-.6-1.2.2-2.5 1.5-2.5H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="11" r="1"/>',
+ reco:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
+ trafico:'<path d="M5 15c0-3 1.5-6 3-6s2 2 2 4-1 5-3 5-2-1-2-3z"/><path d="M14 11c0-3 1.5-7 3-7s2 2 2 5-1 6-3 6-2-1-2-4z"/>',
+ conf:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+ inv:'<path d="M12 3 4 7.5v9L12 21l8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>',
+ cat:'<path d="M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"/>',
+ compras:'<circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M3 4h2l2.5 11h11l2-8H6.5"/>',
+ chev:'<path d="m6 9 6 6 6-6"/>', chevd:'<path d="m9 6 6 6-6 6"/>'
+};
+const ic=(k,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+const CARAS=[
+ ['aplicada','✓','Aplicada en el ERP','El riel de hoy con la bandeja y la ficha de la A, sin grano ni desenfoque propio. Es lo que quedó en recetas.css y marco.css.','aplicada'],
+ ['ahora','0','Como ahora','Bandeja hundida y píldora de vidrio con brillo. Es lo que no te gusta: el hundido y el brillo compiten.',''],
+ ['escarcha','A','Escarcha','Vidrio esmerilado: desenfoque alto y grano fino, sin brillo. La activa es una ficha mate. Es el más calmado.','recomendada'],
+ ['liquid','B','Liquid Glass','Lo de Apple: casi transparente, dobla el fondo en los bordes y brilla como una lente. Solo se ve en Chrome.',''],
+ ['ahumado','C','Ahumado','La bandeja es un cristal oscuro y la activa se aclara. Más contraste, más peso; hace eco al botón negro del ERP.',''],
+ ['luz','D','Borde de luz','Casi sin relleno: lo dibuja un hilo de luz de 1 px con una esquina iluminada. Muy ligero, depende del fondo.',''],
+ ['tenido','E','Cristal teñido','El vidrio toma el rojo de la marca muy suave; la activa es blanca con filo rojo. Más identidad CAYLA.',''],
+ ['bisel','F','Bisel de cristal','Piezas con cuerpo: luz arriba, sombra abajo. La activa sale de la bandeja. El más táctil.','']
+];
+const PAD=[['inicio','Inicio'],['gestion','Gestión','>'],['ventas','Ventas','>']];
+const SUB=[['resumen','Resumen'],['pedidos','Pedidos'],['vitrina','Vitrina'],['campanas','Campañas'],['reco','Recomendaciones'],['trafico','Tráfico'],['conf','Conf. Tienda']];
+const POST=[['inv','Inventario','>'],['cat','Catálogo','>'],['compras','Compras','>']];
+const fila=(f)=>`<button class="fila" data-pad>${ic(f[0])}<span>${f[1]}</span>${f[2]?ic('chevd','ch'):''}</button>`;
+document.getElementById('tablero').innerHTML=CARAS.map(c=>`
+<article class="cara"><h3><b>${c[1]}</b>${c[2]}${c[4]?`<span class="rec">${c[4]}</span>`:''}</h3><p>${c[3]}</p>
+<div class="fondo" data-v="${c[0]}"><div class="bk"><i class="n1"></i><i class="n2"></i><i class="n3"></i><i class="p1"></i><i class="p2"></i><i class="p3"></i><i class="p4"></i><i class="p5"></i><i class="tr"></i></div>
+<nav class="riel">${PAD.map(fila).join('')}
+<button class="fila padre">${ic('tienda')}<span>Tienda web</span>${ic('chev','ch')}</button>
+<div class="bandeja">${SUB.map(s=>`<button class="fila sub${s[0]==='trafico'?' on marca':''}">${ic(s[0])}<span>${s[1]}</span></button>`).join('')}</div>
+${POST.map(fila).join('')}</nav></div></article>`).join('');
+document.getElementById('tablero').addEventListener('click',e=>{
+  const f=e.target.closest('.bandeja .fila');if(!f)return;
+  f.closest('.bandeja').querySelectorAll('.fila').forEach(x=>x.classList.remove('on','marca'));f.classList.add('on','marca');
+});
+document.querySelectorAll('.seg').forEach(g=>g.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  g.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  document.documentElement.setAttribute(g.dataset.grupo==='tema'?'data-tema':'data-fondo',b.dataset.v);
+}));
+</script>
+</body>
+</html>
