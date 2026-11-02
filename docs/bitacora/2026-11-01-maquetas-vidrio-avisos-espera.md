@@ -42,3 +42,4 @@
   Felipe y decidió pasarla al vidrio con el mismo movimiento. Maqueta `docs/maquetas/traslados-vidrio-2026-11/`. Caras de lo propio: el pase
   (A · Vidrio claro, recomendada, con los huecos de la perforación recortados de verdad con una máscara; B · Lente del tono) y el escenario
   (A · Al aire, recomendada; B · Pozo). Medida de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en Traslados (2026-11-02):** el pase B · Lente del tono (no tomó la recomendada) y el escenario A · Al aire.

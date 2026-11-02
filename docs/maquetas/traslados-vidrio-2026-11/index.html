@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-pm="claro" data-pe="aire">
+<html lang="es" data-tema="claro" data-pm="tono" data-pe="aire">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -179,8 +179,8 @@
 
 <div class="spk">
   <span class="titulo">Inventario ▸ Traslados, con vidrio: la billetera de pases, mismo movimiento</span>
-  <span class="tag">El pase</span><div class="seg-m" data-ctl="pm"><button data-v="ahora">Como ahora</button><button data-v="claro">A · Vidrio claro</button><button data-v="tono">B · Lente del tono</button></div>
-  <span class="tag">El escenario</span><div class="seg-m" data-ctl="pe"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Al aire</button><button data-v="pozo">B · Pozo</button></div>
+  <span class="tag">El pase</span><div class="seg-m" data-ctl="pm"><button data-v="ahora">Como ahora</button><button data-v="claro">A · Vidrio claro</button><button data-v="tono">B · Lente del tono ✓</button></div>
+  <span class="tag">El escenario</span><div class="seg-m" data-ctl="pe"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Al aire ✓</button><button data-v="pozo">B · Pozo</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
@@ -208,11 +208,13 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>El pase</b></td><td>A · Vidrio claro <span class="ev">Recomendada</span></td><td>El pase es la placa de vidrio, con su luz; la banda, vidrio teñido de lo que te toca. Los huecos de la perforación se recortan de verdad y dejan ver el fondo, sea cual sea.</td><td>Casi nada; el pase se sigue leyendo como un pase por su banda, su perforación y su sello.</td></tr>
-      <tr><td>B · Lente del tono</td><td>Todo el pase se tiñe apenas del color de lo que te toca: en la pila se reconoce cada caja por su color entero.</td><td>Cinco colores de pase en la misma pila; el tinte compite con la banda, que era la que decía el estado.</td></tr>
-      <tr><td rowspan="2"><b>El escenario</b></td><td>A · Al aire <span class="ev">Recomendada</span></td><td>Sin caja: el pase grande flota sobre el lienzo, en el mismo plano que la pila. Más liviano.</td><td>Sin el marco de hueso, el pase grande ya no tiene un «lugar» propio: se sostiene solo por su sombra.</td></tr>
+      <tr><td rowspan="2"><b>El pase</b></td><td>A · Vidrio claro</td><td>El pase es la placa de vidrio, con su luz; la banda, vidrio teñido de lo que te toca. Los huecos de la perforación se recortan de verdad y dejan ver el fondo, sea cual sea.</td><td>Casi nada; el pase se sigue leyendo como un pase por su banda, su perforación y su sello.</td></tr>
+      <tr><td>B · Lente del tono <span class="ev">Elegida</span></td><td>Todo el pase se tiñe apenas del color de lo que te toca: en la pila se reconoce cada caja por su color entero.</td><td>Cinco colores de pase en la misma pila; el tinte compite con la banda, que era la que decía el estado.</td></tr>
+      <tr><td rowspan="2"><b>El escenario</b></td><td>A · Al aire <span class="ev">Elegida</span></td><td>Sin caja: el pase grande flota sobre el lienzo, en el mismo plano que la pila. Más liviano.</td><td>Sin el marco de hueso, el pase grande ya no tiene un «lugar» propio: se sostiene solo por su sombra.</td></tr>
       <tr><td>B · Pozo</td><td>El pase descansa en un pozo hundido, como el lugar de una tarjeta en la billetera del teléfono.</td><td>Un pozo de 640 px es mucho «hundido» en una pantalla donde hundido dice «espera tu dato».</td></tr>
     </table>
+    <h3>Lo que decidió Felipe (2026-11-02): B y A</h3>
+    <p><b>El pase B · Lente del tono y el escenario A · Al aire.</b> Cada pase es de vidrio teñido apenas del color de lo que te toca (en la pila se reconoce por su color entero), con la banda teñida y los huecos de la perforación recortados de verdad; el pase grande flota sobre el lienzo, sin la caja de hueso.</p>
     <h3>Lo que no cambia</h3>
     <p>Todo el movimiento de los pases (ADR-0355): el giro para contar, las letras que giran como en un aeropuerto, el camión que corre hasta su punto, el anillo que se llena y el sello que cae; los colores de lo que te toca; un solo botón negro por pase; la pila con su franja; en el celular, una cosa a la vez.</p>
   </section>
@@ -280,7 +282,7 @@
     const pg = e.target.closest('[data-paso]'); if (pg) { const lista = PASES.filter((x) => x[14] === pest), i = lista.findIndex((x) => x[0] === sel); sel = lista[(i + +pg.dataset.paso + lista.length) % lista.length][0]; pantalla(); }
   });
   addEventListener('resize', medirPerfo);
-  Marco.iniciar({ estado: { pm: 'claro', pe: 'aire' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); }, alAccion: (a) => { if (a === 'cerrar-pase') { abierto = false; pantalla(); } } });
+  Marco.iniciar({ estado: { pm: 'tono', pe: 'aire' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); }, alAccion: (a) => { if (a === 'cerrar-pase') { abierto = false; pantalla(); } } });
 })();
 </script>
 </body>

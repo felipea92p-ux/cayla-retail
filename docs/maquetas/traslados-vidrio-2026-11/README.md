@@ -17,10 +17,10 @@ se ve una cosa a la vez, con la flecha para volver a tus cajas.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | El pase (grande y mini) | Como ahora | Papel macizo; la banda, del color de lo que te toca; los huecos de la perforación, pintados del color del fondo. |
-| | **A · Vidrio claro** (recomendada) | La placa de vidrio, con su luz; la banda, vidrio teñido del tono; los huecos se recortan de verdad (una máscara) y dejan ver el fondo. |
-| | B · Lente del tono | Además, todo el pase se tiñe apenas del color de lo que te toca. |
+| | A · Vidrio claro | La placa de vidrio, con su luz; la banda, vidrio teñido del tono; los huecos se recortan de verdad (una máscara) y dejan ver el fondo. |
+| | **B · Lente del tono** (elegida) | Además, todo el pase se tiñe apenas del color de lo que te toca. |
 | El escenario del pase grande | Como ahora | Caja de hueso de 640 px. |
-| | **A · Al aire** (recomendada) | Sin caja: el pase flota sobre el lienzo. |
+| | **A · Al aire** (elegida) | Sin caja: el pase flota sobre el lienzo. |
 | | B · Pozo | El pase descansa en un pozo hundido. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -38,4 +38,12 @@ Solo tokens: los colores de cada tono son los de `traslados-pases.css`. Claro y 
 
 ## Lo que decidió Felipe
 
-**2026-11-02: pasar la billetera de pases al vidrio con el mismo movimiento.** Las caras, pendientes.
+**2026-11-02: pasar la billetera de pases al vidrio con el mismo movimiento**, con **el pase B · Lente del tono y el escenario A · Al
+aire** (en el pase no tomó la recomendada). Al implementar en `traslados-pases.css`:
+- `.tp-pase` y `.tp-mini`: vidrio teñido del tono (`--tp-c` al 6→12 % sobre vidrio al 82→62 %, `backdrop-filter: blur(26px) saturate(1.6)`),
+  con un filo del tono al 30 %. La banda (`.tp-banda`, `.tp-mini-banda`), vidrio teñido del tono (10→18 %). El sello, el camión y el fin de
+  la línea, gotas claras.
+- La perforación: los huecos se recortan con una máscara (`radial-gradient` en los dos bordes, a la altura de `.tp-perfo`) en vez de
+  pintarse de `hueso`/`crema`; así funcionan sobre cualquier fondo.
+- `.tp-escenario` sin `background` (al aire); `.tp-dia`, la placa de vidrio.
+- Ningún movimiento cambia (ADR-0355).
