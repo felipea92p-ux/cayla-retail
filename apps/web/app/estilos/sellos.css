@@ -102,6 +102,7 @@
   /* ── El pase ── */
   .sl-pase {
     position: relative;
+    scroll-margin-top: 6.5rem; /* el pase que se abre sube hasta quedar bajo la cabecera flotante (celular) */
     border-radius: 20px;
     background: var(--color-papel);
     border: 1px solid var(--color-sand);
