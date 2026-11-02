@@ -14,3 +14,4 @@
 - **Productos, más distribuciones:** la ficha con marco y la leyenda no convencieron; reemplazadas por B · Centrada, C · Foto y pie en una pieza (recomendada), D · Precio que cuelga y E · Vitrina mínima, con sus altos medidos (437, 393, 415 y 376 px a 1440). 60 combinaciones sin desborde.
 - **Productos, distribución elegida:** A · Catálogo de moda (los tres renglones bajo la foto). Se le avisó a la sesión que implementa que ya puede hacer la tarjeta. Fusionadas Apartados y Mis compras de la otra sesión, sin elegir.
 - **Página Clientes ▸ Fichas, en maqueta** (`docs/maquetas/clientes-fichas-vidrio-2026-11/`): solo el material (el plan es de Dany); la fila A · Filas en la placa (recomendada) / B · Gotas sueltas. 54 combinaciones sin desborde.
+- **Clientes ▸ Fichas, elegida:** A · Filas en la placa; pasada a la sesión que implementa. Fusionada la elección de Conteo de la otra sesión (planilla A · Placa Serena, pasos A · Ranura con gotas).
