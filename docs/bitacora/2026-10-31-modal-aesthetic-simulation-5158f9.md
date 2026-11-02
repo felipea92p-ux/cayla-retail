@@ -350,3 +350,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
 - **Se cierran las maquetas de vidrio (Felipe 2026-11-02):** constancia en `docs/vidrio/README.md` §4 (las piezas elegidas para reusar, los
   módulos analizados, lo que falta auditar y cómo), la regla en `CLAUDE.md` («El vidrio Serena»: la estética es obligatoria en todo lo nuevo o
   editado, con las piezas elegidas) y la actualización (b) de ADR-0596. Rendimiento y Preguntas del equipo quedan con su maqueta, sin elegir.
+
+- **Sincronizado con main (2026-11-02, 142 commits):** un choque en `PuntoDeVenta.tsx` (main dejó de recortar la tarjeta del POS mientras se
+  busca; con el vidrio ya no hay tarjeta ni `overflow-hidden`, así que el arreglo queda cubierto y se conserva la mesa al aire). Lo nuevo de main
+  vestido de vidrio: la casilla «ya estaba» de Pasar al stock pasa a la lámina de la hoja (`card-cayla`), y «Lo anotado aquí» del paso abierto
+  de una orden lleva el hilo de las tablas. Las dos hojas nuevas de Producción (agregar color, agregar talla) usan `<Modal>` y salen en vidrio
+  solas; el círculo nuevo de Finanzas queda con El telar (fuera hasta que Felipe diga).

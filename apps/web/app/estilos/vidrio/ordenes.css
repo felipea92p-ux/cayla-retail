@@ -128,3 +128,9 @@
     transition: none;
   }
 }
+
+/* ---------- «Lo anotado aquí» (ADR-0586 act. 3, llegó de main el 2026-11-02) ----------
+   Vive dentro de la placa del paso abierto: entre fila y fila, el hilo de las tablas en vez de la raya arena del papel. */
+.op-paso .op-anotado-fila {
+  border-top-color: var(--hilo-fila);
+}
