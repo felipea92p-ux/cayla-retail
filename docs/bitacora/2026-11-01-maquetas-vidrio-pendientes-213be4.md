@@ -25,3 +25,4 @@
 - **Página Punto de Venta, en maqueta** (`docs/maquetas/vender-vidrio-2026-11/`): la mesa A · Catálogo al aire, ticket en placa / B ·
   Ticket ahumado y la tarjeta de prenda A · Placa / B · Foto al aire, sobre las piezas ya elegidas. 90 combinaciones sin desborde; corregido
   el «Cobrar» sin letra sobre el ahumado en oscuro.
+- **Punto de Venta, elegido** (2026-11-02): la mesa A · Catálogo al aire, ticket en placa y la tarjeta B · Foto al aire; pasado a la sesión que implementa. Fusionada la maqueta de Caja de la otra sesión (`d051579e5`), sin elegir.

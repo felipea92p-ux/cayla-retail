@@ -32,3 +32,9 @@ descuentos, dejar en espera, cobrar; en el celular, la barra con su hoja). La pe
 En Chrome sin ventana: 90 combinaciones (320 a 1440 px, claro y oscuro, todas las caras), nada se desborda; sin errores de JS; tocar una
 talla suma una línea. Al mirar apareció que en oscuro el «Cobrar» que vive sobre el ahumado (la isla del celular y el ticket B) quedaba
 sin letra: el ahumado se invierte y la gota clara también tenía que invertirse; corregido (crema con letra tinta).
+
+## Lo que decidió Felipe
+
+**La mesa A · Catálogo al aire, ticket en placa y la tarjeta de prenda B · Foto al aire** (2026-11-02). Sin la tarjeta grande de crema:
+el catálogo vive sobre el fondo y el ticket es la placa Serena pegada arriba a la derecha. Cada prenda es su foto (esquinas de 18 px, sombra
+que crece al pasar el mouse), con el nombre, las tallas en gota y el precio planos debajo.

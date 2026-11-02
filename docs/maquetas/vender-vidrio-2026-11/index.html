@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-pv="aire" data-tp="placa">
+<html lang="es" data-tema="claro" data-pv="aire" data-tp="aire">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -171,8 +171,8 @@
 
 <div class="spk">
   <span class="titulo">Punto de Venta, con vidrio</span>
-  <span class="tag">La mesa</span><div class="seg-m" data-ctl="pv"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Catálogo al aire, ticket en placa</button><button data-v="humo">B · Ticket ahumado</button></div>
-  <span class="tag">Tarjeta de prenda</span><div class="seg-m" data-ctl="tp"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa</button><button data-v="aire">B · Foto al aire</button></div>
+  <span class="tag">La mesa</span><div class="seg-m" data-ctl="pv"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Catálogo al aire, ticket en placa ✓</button><button data-v="humo">B · Ticket ahumado</button></div>
+  <span class="tag">Tarjeta de prenda</span><div class="seg-m" data-ctl="tp"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa</button><button data-v="aire">B · Foto al aire ✓</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
   <button class="accion" data-acc="vaciar">Vaciar el ticket</button>
@@ -201,13 +201,13 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>La mesa</b></td><td>A · Catálogo al aire, ticket en placa <span class="ev">Recomendada</span></td><td>Sin la tarjeta grande, el catálogo respira sobre el fondo y el ticket es UNA placa que flota a la derecha y te acompaña al bajar: se ve dónde se arma la venta.</td><td>El ticket claro se parece a cualquier otra placa; lo distingue su lugar fijo y «Cobrar».</td></tr>
+      <tr><td rowspan="2"><b>La mesa</b></td><td>A · Catálogo al aire, ticket en placa <span class="ev">Elegida</span></td><td>Sin la tarjeta grande, el catálogo respira sobre el fondo y el ticket es UNA placa que flota a la derecha y te acompaña al bajar: se ve dónde se arma la venta.</td><td>El ticket claro se parece a cualquier otra placa; lo distingue su lugar fijo y «Cobrar».</td></tr>
       <tr><td>B · Ticket ahumado</td><td>Lo que llevas elegido es oscuro, igual que la barra del celular: el ticket se encuentra al instante y «Cobrar» brilla en gota clara.</td><td>Un bloque oscuro de 400 px pesa mucho en una pantalla clara de todo el día; en oscuro casi no cambia.</td></tr>
-      <tr><td rowspan="2"><b>Tarjeta de prenda</b></td><td>A · Placa <span class="ev">Recomendada</span></td><td>La misma placa de las cifras: la prenda, su precio y sus tallas son una unidad que se alza al pasar el mouse. Tallas en gota; agotada, un hueco punteado.</td><td>Con 16 prendas en pantalla son 16 placas: hay más bordes que en B.</td></tr>
-      <tr><td>B · Foto al aire</td><td>La foto manda (es como la clienta reconoce la prenda) y la grilla queda más limpia, como una vitrina.</td><td>Sin tarjeta, el nombre y las tallas quedan sueltos sobre el fondo; con fotos claras se pierde el borde.</td></tr>
+      <tr><td rowspan="2"><b>Tarjeta de prenda</b></td><td>A · Placa</td><td>La misma placa de las cifras: la prenda, su precio y sus tallas son una unidad que se alza al pasar el mouse. Tallas en gota; agotada, un hueco punteado.</td><td>Con 16 prendas en pantalla son 16 placas: hay más bordes que en B.</td></tr>
+      <tr><td>B · Foto al aire <span class="ev">Elegida</span></td><td>La foto manda (es como la clienta reconoce la prenda) y la grilla queda más limpia, como una vitrina.</td><td>Sin tarjeta, el nombre y las tallas quedan sueltos sobre el fondo; con fotos claras se pierde el borde.</td></tr>
     </table>
-    <h3>Recomendación</h3>
-    <p><b>La mesa A · Catálogo al aire, ticket en placa y la tarjeta A · Placa.</b> Toca una talla para sumarla al ticket; en el celular, mira la isla de abajo.</p>
+    <h3>Lo que eligió Felipe (2026-11-02)</h3>
+    <p><b>La mesa A · Catálogo al aire, ticket en placa y la tarjeta B · Foto al aire</b> (se recomendaba la A en la tarjeta). Toca una talla para sumarla al ticket; en el celular, mira la isla de abajo.</p>
     <h3>Lo que no cambia</h3>
     <p>Todo lo que hace: buscar o escanear, elegir color y talla, «solo en el almacén», el máximo alcanzado, quién atendió (sin eso no se cobra), el cliente, la bolsa, los descuentos, dejar en espera, cobrar; y en el celular, la barra de abajo con su hoja. También la persiana de «Caja cerrada», que es diseño propio y no entra aquí.</p>
   </section>
@@ -277,7 +277,7 @@ document.addEventListener('click', (ev) => {
   if (m) { const k = +(m.dataset.mas ?? m.dataset.menos ?? m.dataset.quitar); if (m.dataset.mas != null) ticketPv[k].n++; else if (m.dataset.menos != null && ticketPv[k].n > 1) ticketPv[k].n--; else ticketPv.splice(k, 1); pintarPv(); return; }
   if (ev.target.closest('.cont a')) ev.preventDefault();
 });
-Marco.iniciar({ estado: { pv: 'aire', tp: 'placa' }, alPintar: () => pintarPv(), alAccion: (a) => { if (a === 'vaciar') { ticketPv = []; pintarPv(); } } });
+Marco.iniciar({ estado: { pv: 'aire', tp: 'aire' }, alPintar: () => pintarPv(), alAccion: (a) => { if (a === 'vaciar') { ticketPv = []; pintarPv(); } } });
 </script>
 </body>
 </html>
