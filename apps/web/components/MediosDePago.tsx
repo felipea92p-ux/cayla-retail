@@ -2,7 +2,7 @@
 
 import { Plus, X } from "lucide-react";
 import { METODOS_PAGO } from "@/lib/comprobantes-produccion-reglas";
-import { medioNuevo, montoSugerido, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
+import { medioNuevo, montoSugerido, repartoDeMedios, notaReferencia, textoReferencia, type MedioForm } from "@/lib/medios-pago-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { Desplegable } from "@/components/ui/campos";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
@@ -47,7 +47,7 @@ export function MediosDePago({
       <legend className="label-cayla text-[11px] text-tinta/65">Medios de pago</legend>
       <ul className="space-y-2">
         {medios.map((m, i) => (
-          <li key={i} className="grid grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 max-sm:grid-cols-[6.5rem_minmax(0,1fr)_auto]">
+          <li key={i} className="grid grid-cols-[8.5rem_minmax(0,1fr)_minmax(0,1.35fr)_auto] items-center gap-2 max-sm:grid-cols-[8rem_minmax(0,1fr)_auto]">
             <Desplegable
               valor={m.metodo}
               onValor={(v) => cambiar(i, { metodo: v })}
@@ -65,7 +65,7 @@ export function MediosDePago({
             />
             <input
               aria-label={`Referencia del medio ${i + 1}`}
-              placeholder="N.° de operación"
+              placeholder={textoReferencia(m.metodo)}
               value={m.referencia}
               onChange={(e) => cambiar(i, { referencia: e.target.value })}
               className="caja-campo-input font-mono max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-2"
@@ -83,6 +83,7 @@ export function MediosDePago({
           </li>
         ))}
       </ul>
+      {medios.some((m) => notaReferencia(m.metodo, m.referencia)) && <p className="text-sm text-tinta/65">{medios.map((m) => notaReferencia(m.metodo, m.referencia)).find(Boolean)}</p>}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <button
           type="button"
@@ -112,7 +113,7 @@ function SaleDeCompacto({ cuentas, medio: m, i, onCuenta }: { cuentas: { lista: 
   const hay = cuentas.listo && hayCuentasPara(cuentas.lista, "pago", m.metodo);
   const valor = hay ? (cuentaEfectiva(cuentas.lista, "pago", m.metodo, m.cuentaId) ?? "") : "";
   return (
-    <div className="col-span-full grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 text-sm max-sm:grid-cols-[6.5rem_minmax(0,1fr)]">
+    <div className="col-span-full grid grid-cols-[8.5rem_minmax(0,1fr)] items-center gap-2 text-sm max-sm:grid-cols-[8rem_minmax(0,1fr)]">
       <span className="text-tinta/65">Sale de</span>
       <span className="grid gap-0.5">
         <Desplegable

@@ -8,6 +8,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { camposDeProveedor } from "@/lib/proveedor-produccion-guia";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { normalizarCci, normalizarCelular } from "@/lib/proveedores-reglas";
@@ -22,7 +25,7 @@ import {
   validarCuentas,
   type Billetera,
 } from "@/lib/proveedores-cuentas-form";
-import { ETIQUETA_FORMA_PAGO, RUBROS_PRODUCCION, type ProveedorProduccion, type RubroProduccion } from "@/lib/proveedores-produccion-reglas";
+import { ETIQUETA_FORMA_PAGO, RUBROS_PRODUCCION, avisoDelRuc, type ProveedorProduccion, type RubroProduccion } from "@/lib/proveedores-produccion-reglas";
 
 // Alta y edición de un proveedor de Producción (ADR-0133, F4a). Un solo formulario para las dos cosas: `guardar_proveedor_produccion`
 // crea si no recibe id y reemplaza si lo recibe. Es solo del líder (lleva datos bancarios de un tercero). Con `<Modal>` del
@@ -80,10 +83,27 @@ export function ProveedorProduccionModal({
   // Responsable (ADR-0161 act. d): crear, editar, archivar y reactivar quedan en `creado_por`/`modificado_por` con quien
   // se elige en el combo. Uno solo para los dos botones del pie.
   const responsable = useResponsable();
+  // La guía de foco (ADR-0284): cada campo dice si es obligatorio u opcional. Lo obligatorio es lo que `guardar` ya exige; nada más (`lib/proveedor-produccion-guia.ts`).
+  const guia = useGuiaCampos(
+    camposDeProveedor({
+      nombre,
+      rubro,
+      ruc,
+      contacto,
+      telefono,
+      plazo,
+      forma,
+      tieneCuentas: [banco, cuenta, cci, celular, titular].some((v) => v.trim() !== "") || billeteras.length > 0,
+      responsableListo: responsable.listo,
+    }),
+    { conGrado: true },
+  );
 
   const errores = validarCuentas({ cci, celularBilletera: celular, billeteras, titularCuenta: titular });
   const rucDigitos = ruc.replace(/\D/g, "");
   const errorRuc = ruc.trim() !== "" && rucDigitos.length !== 11 ? "El RUC tiene 11 dígitos." : null;
+  // P06 del análisis del Taller: un RUC de 11 dígitos que no existe se avisa, no se frena (el RUC es opcional).
+  const avisoRuc = errorRuc ? null : avisoDelRuc(ruc);
   const plazoNum = plazo.trim() === "" ? null : Number(plazo);
   const errorPlazo = plazoNum !== null && (!Number.isInteger(plazoNum) || plazoNum <= 0) ? "Días enteros, mayores a cero." : null;
 
@@ -164,12 +184,15 @@ export function ProveedorProduccionModal({
   return (
     <Modal titulo={esAlta ? "Nuevo proveedor" : proveedor.nombre} subtitulo={esAlta ? "Quien le vende tela, avíos o maquila al Taller" : "Proveedor de Producción"} onClose={onClose} tamano="mediana">
       <form onSubmit={guardar} className="space-y-5">
+        <CampoGuiado id="nombre" guia={guia}>
         <div data-guia="prod-proveedor-modal.nombre">
-        <CampoTexto etiqueta="Nombre o razón social" placeholder="Textiles Gamarra SAC" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus={esAlta} />
+        <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre o razón social")} placeholder="Textiles Gamarra SAC" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus={esAlta} />
         </div>
+        </CampoGuiado>
 
+        <CampoGuiado id="rubro" guia={guia} retiene="fila">
         <fieldset data-guia="prod-proveedor-modal.rubro">
-          <legend className="label-cayla text-[11px] text-tinta/65">¿Qué le vende al Taller?</legend>
+          <legend className="label-cayla text-[11px] text-tinta/65">{guia.etiqueta("rubro", "¿Qué le vende al Taller?")}</legend>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {rubrosOfrecidos.map((r) => (
               <button
@@ -186,15 +209,23 @@ export function ProveedorProduccionModal({
           </div>
           <p className="mt-1 min-h-4 text-sm text-tinta/65">{RUBROS_PRODUCCION.find((r) => r.valor === rubro)?.ayuda ?? ""}</p>
         </fieldset>
+        </CampoGuiado>
 
         <div data-guia="prod-proveedor-modal.ruc" className="grid gap-3 sm:grid-cols-2">
-          <CampoTexto etiqueta="RUC" mono inputMode="numeric" placeholder="Opcional · 11 dígitos" value={ruc} onChange={(e) => setRuc(e.target.value)} tono={errorRuc ? "error" : "neutro"} pie={errorRuc ?? undefined} />
-          <CampoTexto etiqueta="Contacto" placeholder="Persona con quien se habla" value={contacto} onChange={(e) => setContacto(e.target.value)} />
+          <CampoGuiado id="ruc" guia={guia}>
+          <CampoTexto etiqueta={guia.etiqueta("ruc", "RUC")} mono inputMode="numeric" placeholder="11 dígitos" value={ruc} onChange={(e) => setRuc(e.target.value)} tono={errorRuc ? "error" : avisoRuc ? "aviso" : "neutro"} pie={errorRuc ?? (avisoRuc ? `${avisoRuc}. Puedes guardarlo igual; revisa que esté bien escrito.` : undefined)} />
+          </CampoGuiado>
+          <CampoGuiado id="contacto" guia={guia}>
+          <CampoTexto etiqueta={guia.etiqueta("contacto", "Contacto")} placeholder="Persona con quien se habla" value={contacto} onChange={(e) => setContacto(e.target.value)} />
+          </CampoGuiado>
         </div>
         <div data-guia="prod-proveedor-modal.plazo" className="grid gap-3 sm:grid-cols-3">
-          <CampoTexto etiqueta="Teléfono" inputMode="tel" placeholder="Opcional" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+          <CampoGuiado id="telefono" guia={guia}>
+          <CampoTexto etiqueta={guia.etiqueta("telefono", "Teléfono")} inputMode="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+          </CampoGuiado>
+          <CampoGuiado id="plazo" guia={guia}>
           <CampoTexto
-            etiqueta="Plazo de crédito (días)"
+            etiqueta={guia.etiqueta("plazo", "Plazo de crédito (días)")}
             inputMode="numeric"
             placeholder="Contado"
             value={plazo}
@@ -202,16 +233,20 @@ export function ProveedorProduccionModal({
             tono={errorPlazo ? "error" : "neutro"}
             pie={errorPlazo ?? "Vacío = paga al contado"}
           />
+          </CampoGuiado>
+          <CampoGuiado id="forma" guia={guia}>
           <CampoSelect
-            etiqueta="Forma de pago"
+            etiqueta={guia.etiqueta("forma", "Forma de pago")}
             valor={forma}
             onValor={(v) => setForma(v)}
             opciones={[{ valor: "", texto: "Sin preferencia" }, ...Object.entries(ETIQUETA_FORMA_PAGO).map(([k, v]) => ({ valor: k, texto: v }))]}
           />
+          </CampoGuiado>
         </div>
 
+        <CampoGuiado id="pagarle" guia={guia}>
         <div data-guia="prod-proveedor-modal.pagarle" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
-          <p className="label-cayla text-[11px] text-tinta/65">Cómo pagarle · todo opcional</p>
+          <p className="label-cayla text-[11px] text-tinta/65">{guia.etiqueta("pagarle", "Cómo pagarle")}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <CampoTexto etiqueta="Banco" list="bancos-produccion" placeholder="BCP, Interbank…" value={banco} onChange={(e) => setBanco(e.target.value)} />
             <CampoTexto etiqueta="N.° de cuenta" mono inputMode="numeric" placeholder="Depósito o mismo banco" value={cuenta} onChange={(e) => setCuenta(e.target.value)} />
@@ -268,10 +303,14 @@ export function ProveedorProduccionModal({
             pie={errores.titular}
           />
         </div>
+        </CampoGuiado>
 
         <div data-guia="prod-proveedor-modal.guardar" className="space-y-5">
+        <CampoGuiado id="quien" guia={guia}>
         <ComboResponsable control={responsable} deshabilitado={cargando || archivando} />
+        </CampoGuiado>
 
+        <PieGuia guia={guia} listo="Todo listo para guardar." />
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           {proveedor ? (
             <Boton textoCargando={proveedor.activo ? "Archivando…" : "Reactivando…"} peso="discreto" type="button" cargando={archivando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={cambiarEstado}>
@@ -280,7 +319,7 @@ export function ProveedorProduccionModal({
           ) : (
             <span />
           )}
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="sm:min-w-44">
+          <Boton peso="primario" type="submit" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={`sm:min-w-44 ${guia.claseConfirmar}`}>
             {esAlta ? "Agregar al directorio" : "Guardar cambios"}
           </Boton>
         </div>

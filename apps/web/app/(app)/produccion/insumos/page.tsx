@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller } from "@/lib/produccion";
 import { getInsumosDelTaller, getTelasCortadasSinAnotar } from "@/lib/insumos";
@@ -19,8 +18,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 export default async function InsumosPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
 
   const taller = await getTaller();

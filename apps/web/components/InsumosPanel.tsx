@@ -406,8 +406,11 @@ function FilaInsumo({
           </p>
         </div>
         <div className="max-sm:order-3 max-sm:col-span-2">
-          <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo !== null ? marcaMinimo * 100 : null} decorativa indice={indice} title={marcaMinimo !== null ? `Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}` : undefined} />
-          <div className="mt-1.5 flex items-center justify-between text-sm text-tinta/65">
+          {/* Sin mínimo no hay contra qué medir: la barra se llenaba entera con 1 m de tela y mentía (P10 del análisis del Taller, 2026-11-02). */}
+          {marcaMinimo !== null && (
+            <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo * 100} decorativa indice={indice} title={`Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}`} />
+          )}
+          <div className={`${marcaMinimo !== null ? "mt-1.5 " : ""}flex items-center justify-between text-sm text-tinta/65`}>
             <span>{i.minimo === null ? "sin mínimo definido" : `mínimo ${cantidadTexto(i.minimo, i.unidad)}`}</span>
             <Chip tono={TONO_ESTADO[i.estado.tono]}>{i.estado.etiqueta}</Chip>
           </div>
@@ -428,8 +431,8 @@ function FilaInsumo({
             ) : (
               <ul>
                 {lotes.map((l, k) => (
-                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
-                    <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
+                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
+                    <span className="whitespace-nowrap font-mono font-medium text-tinta">{l.codigo ?? <span className="font-sans font-normal text-tinta/65">sin código</span>}</span>
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
                       <p className="mt-1 truncate text-tinta/65">
@@ -438,7 +441,10 @@ function FilaInsumo({
                       </p>
                     </div>
                     <span className="whitespace-nowrap tabular-nums text-tinta">
-                      {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">/ {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
+                      {/* «quedan de entraron»: dos cifras iguales sin nombre no decían cuál era cuál (P11 del análisis del Taller). */}
+                      <span title="Lo que queda de lo que entró">
+                        {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">de {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
+                      </span>
                     </span>
                     <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75">
                       {veCostos && l.costoUnitario !== null && costoUnitarioTexto(l.costoUnitario)}

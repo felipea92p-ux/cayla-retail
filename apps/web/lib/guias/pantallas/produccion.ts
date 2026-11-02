@@ -911,14 +911,14 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden-stock.resumen",
       opcional: true,
       titulo: "Lo que entra y lo que cuesta",
-      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Si la orden nunca declaró su tela, aquí te avisamos y «Declarar la tela» te lleva a hacerlo. Las segundas y faltantes no entran; su costo lo reparten las buenas.",
+      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Si la orden nunca declaró su tela, más abajo se frena el paso al stock hasta que la declares. Las segundas y faltantes no entran; su costo lo reparten las buenas.",
     },
     {
       id: "stock-tela",
       ancla: "prod-orden-stock.tela",
       opcional: true,
       titulo: "Sin tela no pasa",
-      texto: "Si falta anotar la tela, la orden no pasa al stock: el costo de la prenda saldría sin tela. «Anotar cuánto quedó» te lleva a hacerlo. Si de verdad pasa sin tela, un líder la deja pasar aquí mismo con su porqué, y queda en la historia.",
+      texto: "Si la orden nunca declaró su tela, o falta anotar cuánta se usó, no pasa al stock: el costo de la prenda saldría sin tela. «Declarar la tela» o «Anotar cuánto quedó» te llevan a hacerlo. Si de verdad pasa sin tela, un líder la deja pasar aquí mismo con su porqué, y queda en la historia.",
     },
     {
       id: "stock-ya-estaba",
@@ -1325,7 +1325,7 @@ export const GUIA_PROD_PROVEEDORES: Guia = {
       ancla: "prod-proveedor-modal.nombre",
       preparar: [{ tipo: "clic", ancla: "prod-proveedores.nuevo" }],
       titulo: "Nombre o razón social",
-      texto: "Como aparece en su factura, para reconocerlo al registrarla.",
+      texto: "Como aparece en su factura, para reconocerlo al registrarla. Cada campo dice si es obligatorio u opcional, y sobre el botón verás qué falta.",
     },
     {
       id: "modal-rubro",
