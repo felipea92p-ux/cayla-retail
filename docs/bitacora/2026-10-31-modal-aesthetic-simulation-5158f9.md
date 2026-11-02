@@ -241,3 +241,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   el ticket y el panel de Entregar en la placa del ticket; prendas, listas y cifras del Historial en placas) y, en el celular, la «Isla de
   pestañas» (vidrio a 12 px de los bordes con la gota que se corre a la elegida; la barra negra de cada paso se apoya sobre ella). En
   `vidrio/vender.css`. Sin apartados en la base local: filas y Entregar con un apartado elegido, sin ver.
+
+- **Cambios y Devoluciones al vidrio (Felipe 2026-11-02):** el paso a paso «A · Hilo de vidrio» (`FlujoGuiado`: ranura de 6 px hundida,
+  nudo hecho en ahumado, el de ahora en gota clara con halo, el que falta en gota suelta) y la «A · Balanza» de lo que trae y lo que lleva
+  (`CambioResumen`: las dos prendas como fotos al aire con la lente ⇄ al medio; la diferencia, gota ahumada si cobras y clara si devuelves:
+  5,0:1 o más en los dos temas). En `vidrio/posventa.css`. Se fueron los dos bucles de la pieza vieja (el hilo que corría y el botón que
+  giraba). Siguen sólidos, por fuera de lo pedido: los botones del flujo, las opciones y las tarjetas de papel de cada paso.

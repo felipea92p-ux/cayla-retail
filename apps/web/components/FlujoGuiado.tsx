@@ -87,9 +87,11 @@ export function EncabezadoFlujo({
   );
 }
 
-/** Los pasos son un hilo (Atelier, 2026-09-19): una línea punteada de nudo a nudo, y encima
+/** Los pasos son un hilo (Atelier, 2026-09-19): una ranura de nudo a nudo, y encima
  *  el tramo ya cosido, en tinta, que se dibuja al entrar y avanza al cambiar de paso; una
- *  chispa de luz lo recorre de vez en cuando. Los nudos hechos son botones: se puede volver. */
+ *  chispa de luz lo recorre de vez en cuando. Los nudos hechos son botones: se puede volver.
+ *  Su cara es «A · Hilo de vidrio» (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): la ranura tallada, el nudo hecho
+ *  en la gota ahumada y el de ahora en la gota clara con su halo. La pintan `posv-pasos-ranura` y `posv-nudo` (vidrio/posventa.css). */
 function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: number; onIr: (n: number) => void }) {
   const total = pasos.length;
   // Cada nudo está al centro de su columna: el hilo va del primero al último.
@@ -98,11 +100,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   const avance = ((actual - 1) / (total - 1)) * largo;
   return (
     <ol data-guia="posventa.pasos" className="relative grid pt-0.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label="Pasos">
-      <span
-        aria-hidden
-        className="absolute top-[17px] h-0.5 rounded-full"
-        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-taupe) 50%, transparent) 0 6px, transparent 6px 11px)" }}
-      />
+      <span aria-hidden className="posv-pasos-ranura absolute rounded-full" style={{ left: `${inicio}%`, width: `${largo}%` }} />
       <span
         aria-hidden
         className="hilo-dibuja absolute top-[17px] h-0.5 rounded-full bg-tinta transition-[width] duration-700 ease-[var(--ease-cayla)]"
@@ -127,12 +125,10 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
             >
               <span
                 style={hecho ? { animationDelay: `${i * 260 + 500}ms` } : undefined}
-                className={`flex h-[34px] w-[34px] items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ${
-                  hecho
-                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80" // unificar-fijo: el círculo de un paso hecho, no un botón principal
-                    : esActual
-                      ? "bg-papel text-tinta shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-tinta)_6%,transparent)] ring-2 ring-tinta"
-                      : "bg-crema text-tinta/65 ring-[1.5px] ring-taupe/60"
+                // El vidrio del nudo (fondo, filo, halo) lo pone `posv-nudo` según `data-estado` (vidrio/posventa.css); aquí, la letra.
+                data-estado={hecho ? "hecho" : esActual ? "actual" : "pendiente"}
+                className={`posv-nudo flex h-[34px] w-[34px] items-center justify-center rounded-full border text-sm font-semibold ${
+                  hecho ? "anim-pop text-crema" : esActual ? "text-tinta" : "text-tinta/65"
                 }`}
               >
                 {hecho ? <Check className="h-4 w-4" aria-hidden /> : n}
