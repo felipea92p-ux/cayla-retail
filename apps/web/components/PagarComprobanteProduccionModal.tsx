@@ -8,6 +8,8 @@ import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
+import type { AvisoFaltante } from "@/lib/faltante-por-pagar-reglas";
 import { Modal } from "@/components/ui/Modal";
 import { MediosDePago } from "@/components/MediosDePago";
 import { etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
@@ -20,7 +22,7 @@ import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/co
 // Pagar un saldo desde Por pagar (ADR-0133, F4c). Entero o en partes, con uno o varios medios: `registrar_pago_comprobante_produccion` bloquea
 // el comprobante, no deja pasarse del saldo y con el mismo token no repite el pago (un reintento no cobra dos veces). Con `<Modal>` del sistema.
 
-export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }: { comprobante: ComprobanteProduccion; hoy: string; onClose: () => void }) {
+export function PagarComprobanteProduccionModal({ comprobante: c, hoy, faltante = null, onClose }: { comprobante: ComprobanteProduccion; hoy: string; faltante?: AvisoFaltante | null; onClose: () => void }) {
   const router = useRouter();
   const [token] = useState(() => crypto.randomUUID());
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo("transferencia", c.saldo.toFixed(2))]);
@@ -80,6 +82,13 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
             <dd className="font-display text-lg tabular-nums">{soles(c.saldo)}</dd>
           </div>
         </dl>
+
+        {/* P02, opción B: solo avisa que el pedido cerró con mercadería que no llegó; no cambia el saldo ni frena el pago. */}
+        {faltante && (
+          <Aviso tono="atencion" titulo={faltante.titulo} chico>
+            {faltante.detalle}
+          </Aviso>
+        )}
 
         <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} totalComprobante={c.total} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 

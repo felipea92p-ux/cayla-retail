@@ -150,12 +150,15 @@ insignias, vacíos, hojas): lo que les falta es revisar **sus piezas propias**, 
 - **Producción:** Resumen (`/produccion`) · Abastecimiento: Órdenes de insumos (`/ordenes-insumos`), Proveedores (`/produccion/proveedores`),
   Facturas de insumos (`/produccion/comprobantes`), Recibir (`/produccion/recibir`), Por pagar (`/produccion/por-pagar`).
 - **Gestión:** Análisis (`/gestion/analisis`, ADR-0357, con su movimiento propio).
-- **Tienda web** (ADR-0430, con su movimiento propio): Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico, Conf. Tienda.
 - **Compras:** Historial de compras (`/compras`) y las pantallas de una compra o factura.
 - **Clientes:** Avisos (`/clientas/avisos`) y Beneficios (`/clientas/beneficios`).
 - **Configuración:** Ubicaciones y accesos, Empresa y facturación, Apartados, Comercial.
 - **Administración:** Colaboradores ▸ Roles y accesos, Actividad.
 - **Las pantallas internas** (una factura, editar un producto, una compra, una orden de insumos): heredan las piezas; se revisan con su módulo.
+
+**Auditadas y en código** (sin maqueta, con las piezas de 4.1):
+
+- **Tienda web** (ADR-0430; `app/estilos/vidrio/tienda-web.css`, 2026-11-02): Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico y Conf. Tienda. Cada bloque es la placa Serena; las cartas, la bandeja y las puertas, vidrio claro; lo hueso, el pozo; las opciones de Campañas, gota que se hunde al elegirse; y dentro de una hoja, la lámina (`card-cayla`). El layout del grupo pone `.tienda-web-vidrio` (`display: contents`). El movimiento no cambia. Se quedan como están, porque muestran lo que ve el cliente: la vista previa de una campaña, el teléfono de Conf. Tienda y la captura del chat de «Editar mensaje». Medida con `tema:auditar` en claro y oscuro, y a 1440 y 375 px, también con datos inventados (la base local no trae pedidos, campañas ni tráfico). Sin probar con datos reales de producción.
 
 **Fuera, hasta que Felipe diga** (diseño propio decidido, ver más abajo): la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock,
 la persiana de Caja, Finanzas (El telar, ADR-0493), el login, las guías interactivas, y lo que es papel o cámara.

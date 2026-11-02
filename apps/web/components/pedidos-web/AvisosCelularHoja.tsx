@@ -190,7 +190,7 @@ export function AvisosCelularHoja({
           <p className="text-sm text-taupe">Cuando un cliente separa en la web, este celular suena y muestra el pedido.</p>
 
           {/* El aviso tal como llega (el texto «A · Directo» que eligió Felipe): número, sede, cuántas prendas y total. */}
-          <div aria-hidden className="flex items-start gap-3 rounded-2xl border border-sand bg-hueso/60 px-3.5 py-3">
+          <div aria-hidden className="card-cayla flex items-start gap-3 px-3.5 py-3">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] bg-rojo text-crema">
               <BellRing className="h-4 w-4" />
             </span>
