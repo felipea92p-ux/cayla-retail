@@ -183,3 +183,72 @@ export function cruzarCompras(sunat: readonly LineaSire[], erp: readonly Comprob
   lineas.sort((a, b) => orden[a.estado] - orden[b.estado] || a.fecha.localeCompare(b.fecha) || a.clave.localeCompare(b.clave));
   return { lineas, resumen };
 }
+
+// ---- Resolver una diferencia (ADR-0601, actividad 2) ----------------------------------------------------------------------------
+// Una diferencia no siempre es un error que se arregla registrando algo: lo de CLAURE sale con el RUC de CAYLA, una factura tardía se
+// anota en otro mes. Lo que se decide queda en `sire_resoluciones` por la llave del comprobante; aquí solo se aplica a la lista.
+
+export type DecisionSire = "es_de_claure" | "no_es_nuestra" | "otro_mes" | "pedida_al_proveedor" | "revisada";
+
+export type ResolucionSire = { id: string; clave: string; decision: DecisionSire; nota: string | null; resueltaAt: string; resueltaPor: string | null };
+
+/** Cómo se dice cada decisión en la lista, ya tomada. */
+export const TEXTO_DECISION: Record<DecisionSire, string> = {
+  es_de_claure: "Es de CLAURE",
+  no_es_nuestra: "Nadie la reconoce",
+  otro_mes: "Va en otro mes",
+  pedida_al_proveedor: "Pedida al proveedor",
+  revisada: "El ERP está bien",
+};
+
+export type OpcionDecision = { decision: DecisionSire; texto: string; ayuda: string };
+
+/** Lo que se puede decidir según el caso. Lo que cuadra o es de papel no se resuelve: no hay nada que decidir. */
+export function decisionesPara(estado: EstadoCruce): OpcionDecision[] {
+  switch (estado) {
+    case "solo_sunat":
+      return [
+        { decision: "es_de_claure", texto: "Es de CLAURE", ayuda: "Una compra de CLAURE que salió con el RUC de CAYLA: no va al ERP de CAYLA." },
+        { decision: "otro_mes", texto: "Va en otro mes", ayuda: "Está registrada en el ERP con otra fecha, o el contador la anota en otro mes." },
+        { decision: "no_es_nuestra", texto: "Nadie la reconoce", ayuda: "Nadie en CAYLA la pidió. Avísale al contador: alguien está usando el RUC." },
+      ];
+    case "solo_erp":
+      return [
+        { decision: "pedida_al_proveedor", texto: "Se la pedí al proveedor", ayuda: "El proveedor todavía no la envía a SUNAT. Su IGV se descuenta cuando la envíe." },
+        { decision: "otro_mes", texto: "SUNAT la tiene en otro mes", ayuda: "La fecha del ERP y la de SUNAT no son del mismo mes." },
+      ];
+    case "montos":
+      return [
+        { decision: "pedida_al_proveedor", texto: "Le pedí la corrección al proveedor", ayuda: "El monto de SUNAT está mal: el proveedor emite una nota que lo corrige." },
+        { decision: "revisada", texto: "El monto del ERP está bien", ayuda: "Lo revisaste con la factura en la mano: el contador usa el del comprobante." },
+      ];
+    default:
+      return [];
+  }
+}
+
+export type LineaConResolucion = LineaCruce & { resolucion: ResolucionSire | null };
+export type CruceResuelto = { lineas: LineaConResolucion[]; resumen: ResumenCruce; resueltas: number };
+
+/**
+ * Pone a cada línea su resolución vigente y cuenta solo lo que queda por mirar: una diferencia resuelta sale de las cifras de arriba
+ * (no se olvida: va al final de la lista con su decisión). Una resolución de una llave que ya no está en el cruce se ignora.
+ */
+export function aplicarResoluciones(r: ResultadoCruce, resoluciones: readonly ResolucionSire[]): CruceResuelto {
+  const porClave = new Map(resoluciones.map((x) => [x.clave, x]));
+  const resumen = vacio();
+  let resueltas = 0;
+  const lineas: LineaConResolucion[] = r.lineas.map((l) => {
+    const resolucion = decisionesPara(l.estado).length > 0 ? (porClave.get(l.clave) ?? null) : null;
+    if (resolucion) resueltas += 1;
+    else {
+      resumen[l.estado].n += 1;
+      resumen[l.estado].igv = redondear(resumen[l.estado].igv + Math.abs(l.erp?.igv ?? l.sunat?.igv ?? 0));
+    }
+    return { ...l, resolucion };
+  });
+  // Lo resuelto baja al final, antes de lo que cuadra: lo que falta mirar sigue arriba.
+  const peso = (l: LineaConResolucion) => (l.estado === "coincide" ? 2 : l.resolucion ? 1 : 0);
+  lineas.sort((a, b) => peso(a) - peso(b));
+  return { lineas, resumen, resueltas };
+}

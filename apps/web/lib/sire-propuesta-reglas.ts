@@ -9,6 +9,7 @@
 // cada resolución, y un lector por posición se rompería en silencio. Si falta una columna que se necesita, lo dice con su nombre.
 
 import { textoMes as textoDeMes } from "./gastos-reglas";
+import type { DecisionSire, ResolucionSire } from "./sire-cruce-reglas";
 
 export type RegistroSire = "compras" | "ventas";
 
@@ -217,6 +218,8 @@ export type PropuestaGuardada = {
   /** Cuántas veces se subió la de ese mes (la vigente es la última). */
   versiones: number;
   lineas: LineaSire[];
+  /** Lo decidido sobre las diferencias del mes (actividad 2), por la llave del comprobante. */
+  resoluciones: ResolucionSire[];
 };
 
 type Fila = Record<string, unknown>;
@@ -257,6 +260,14 @@ export function leerPropuestaGuardada(data: unknown): PropuestaGuardada | null {
       refTipo: txt(l.ref_tipo),
       refSerie: txt(l.ref_serie),
       refNumero: txt(l.ref_numero),
+    })),
+    resoluciones: (Array.isArray(d.resoluciones) ? (d.resoluciones as Fila[]) : []).map((r) => ({
+      id: String(r.id),
+      clave: String(r.clave),
+      decision: String(r.decision) as DecisionSire,
+      nota: txt(r.nota),
+      resueltaAt: String(r.resuelta_at ?? ""),
+      resueltaPor: txt(r.resuelta_por),
     })),
   };
 }

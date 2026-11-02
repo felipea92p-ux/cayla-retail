@@ -111,7 +111,8 @@ describe("leerPropuestaGuardada y lineasParaGuardar", () => {
     if (!r.ok) throw new Error(r.error);
     // La base devuelve los montos como texto (numeric) y la fecha como «AAAA-MM-DD».
     const comoTexto = lineasParaGuardar(r.propuesta.lineas).map((l) => Object.fromEntries(Object.entries(l).map(([k, v]) => [k, typeof v === "number" ? v.toFixed(2) : v])));
-    const guardada = leerPropuestaGuardada({ id: "x", registro: "compras", mes: "2026-10", origen: "archivo", archivo: "p.txt", subida_at: "2026-11-02T10:00:00Z", subida_por: "Ana", versiones: 2, lineas: comoTexto });
+    const guardada = leerPropuestaGuardada({ id: "x", registro: "compras", mes: "2026-10", origen: "archivo", archivo: "p.txt", subida_at: "2026-11-02T10:00:00Z", subida_por: "Ana", versiones: 2, lineas: comoTexto, resoluciones: [{ id: "r", clave: "01|F001|12|20100000001", decision: "otro_mes", nota: null, resuelta_at: "2026-11-02T11:00:00Z", resuelta_por: null }] });
+    expect(guardada?.resoluciones).toEqual([{ id: "r", clave: "01|F001|12|20100000001", decision: "otro_mes", nota: null, resueltaAt: "2026-11-02T11:00:00Z", resueltaPor: null }]);
     expect(guardada?.lineas).toEqual(r.propuesta.lineas);
     expect(guardada).toMatchObject({ versiones: 2, subidaPor: "Ana", archivo: "p.txt" });
   });

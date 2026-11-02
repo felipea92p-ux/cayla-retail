@@ -17,3 +17,8 @@ export function camposDeLaPropuesta(lectura: LecturaSire | null, responsable: { 
     { id: "responsable", nombre: "Quién lo sube", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién sube la propuesta." },
   ];
 }
+
+/** La guía de «Resolver una diferencia» (actividad 2): la decisión ya viene elegida del menú; la nota es opcional; falta quién lo decide. */
+export function camposDeResolver(responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  return [{ id: "responsable", nombre: "Quién lo decide", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién toma la decisión." }];
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { camposDeLaPropuesta } from "./sire-guia";
+import { camposDeLaPropuesta, camposDeResolver } from "./sire-guia";
 import { sePuedeConfirmar } from "./guia-campos";
 import type { LecturaSire } from "./sire-propuesta-reglas";
 
@@ -19,5 +19,12 @@ describe("camposDeLaPropuesta", () => {
   it("se guarda solo con el archivo leído y el responsable listo: la misma regla que el botón", () => {
     expect(sePuedeConfirmar(camposDeLaPropuesta(leida, listo))).toBe(true);
     expect(sePuedeConfirmar(camposDeLaPropuesta(leida, { listo: false, motivo: "Marca tu asistencia." }))).toBe(false);
+  });
+});
+
+describe("camposDeResolver", () => {
+  it("solo falta quién lo decide", () => {
+    expect(sePuedeConfirmar(camposDeResolver(listo))).toBe(true);
+    expect(camposDeResolver({ listo: false, motivo: null })[0]!.pendiente).toBe("Elige quién toma la decisión.");
   });
 });

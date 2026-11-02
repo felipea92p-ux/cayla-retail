@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FileUp } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -11,12 +12,15 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { SubirPropuestaSireModal } from "@/components/finanzas/SubirPropuestaSireModal";
+import { ResolverDiferenciaSireModal, type PedidoResolver } from "@/components/finanzas/ResolverDiferenciaSireModal";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { textoMes } from "@/lib/gastos-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaLima, diaMes, horaLima } from "@/lib/fechas-lima";
 import type { ComparacionSire } from "@/lib/sire";
 import type { RegistroSire } from "@/lib/sire-propuesta-reglas";
-import type { EstadoCruce, LineaCruce } from "@/lib/sire-cruce-reglas";
+import { TEXTO_DECISION, decisionesPara, type EstadoCruce, type LineaConResolucion } from "@/lib/sire-cruce-reglas";
 
 // Finanzas ▸ Impuestos ▸ Comparar con SUNAT (ADR-0601). Arriba, cuántos comprobantes hay en cada caso (cada cifra filtra la lista);
 // debajo, la lista con lo que hay que mirar primero. Antes de subir nada, un vacío que dice de dónde se baja la propuesta.
@@ -35,8 +39,10 @@ const ESTADO: Record<EstadoCruce, { texto: string; tono: TonoChip }> = {
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_7rem_7rem_minmax(0,1.6fr)]";
 
-function Fila({ l }: { l: LineaCruce }) {
+function Fila({ l, mes, onPedido }: { l: LineaConResolucion; mes: string; onPedido: (p: PedidoResolver) => void }) {
+  const router = useRouter();
   const e = ESTADO[l.estado];
+  const opciones = decisionesPara(l.estado);
   return (
     <div className={fila(PLANTILLA)} role="row">
       <div className={celda()} role="cell">
@@ -58,9 +64,37 @@ function Fila({ l }: { l: LineaCruce }) {
         {l.erp ? soles(Math.abs(l.erp.total)) : "—"}
       </div>
       {/* Sin `celda()`: su `truncate` cortaría la explicación, que es lo que hay que leer. */}
-      <div className="min-w-0" role="cell">
-        <Chip tono={e.tono}>{e.texto}</Chip>
-        {l.estado !== "coincide" && <p className="texto-detalle mt-1">{l.motivo}</p>}
+      <div className="flex min-w-0 items-start gap-2" role="cell">
+        <div className="min-w-0 flex-1">
+          {l.resolucion ? (
+            <>
+              <Chip tono="pizarra" title={`Era: ${e.texto}`}>
+                {TEXTO_DECISION[l.resolucion.decision]}
+              </Chip>
+              <p className="texto-detalle mt-1">
+                Resuelta{l.resolucion.resueltaPor ? ` por ${l.resolucion.resueltaPor}` : ""}
+                {l.resolucion.nota ? `: «${l.resolucion.nota}»` : "."}{" "}
+                <BotonDeshacer onClick={() => onPedido({ linea: l, deshacer: true })} />
+              </p>
+            </>
+          ) : (
+            <>
+              <Chip tono={e.tono}>{e.texto}</Chip>
+              {l.estado !== "coincide" && <p className="texto-detalle mt-1">{l.motivo}</p>}
+            </>
+          )}
+        </div>
+        {!l.resolucion && opciones.length > 0 && (
+          <MenuAcciones
+            etiqueta={`Resolver ${l.serie}-${l.numero}`}
+            items={[
+              ...(l.estado === "solo_sunat"
+                ? [{ clave: "registrar", etiqueta: "Registrarla en Gastos", onSelect: () => router.push(`/finanzas/gastos?registrar=1&mes=${mes}`) }]
+                : []),
+              ...opciones.map((o) => ({ clave: o.decision, etiqueta: o.texto, onSelect: () => onPedido({ linea: l, opcion: o }) })),
+            ]}
+          />
+        )}
       </div>
     </div>
   );
@@ -69,10 +103,12 @@ function Fila({ l }: { l: LineaCruce }) {
 export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSire; mes: string; comparacion: ComparacionSire }) {
   const [subiendo, setSubiendo] = useState(false);
   const [filtro, setFiltro] = useState<EstadoCruce | null>(null);
+  const [pedido, setPedido] = useState<PedidoResolver | null>(null);
   const { propuesta, cruce, falla } = comparacion;
   const delMes = textoMes(mes);
   const r = cruce?.resumen;
-  const lineas = cruce ? cruce.lineas.filter((l) => filtro === null || l.estado === filtro) : [];
+  // Una cifra filtra lo que queda por mirar; lo resuelto se ve con «Todos».
+  const lineas = cruce ? cruce.lineas.filter((l) => filtro === null || (l.estado === filtro && !l.resolucion)) : [];
   const porMirar = r ? r.solo_erp.n + r.solo_sunat.n + r.montos.n : 0;
   const alternar = (e: EstadoCruce) => setFiltro((f) => (f === e ? null : e));
 
@@ -121,6 +157,7 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
             Propuesta subida{propuesta.subidaPor ? ` por ${propuesta.subidaPor}` : ""} el {diaMes(diaLima(propuesta.subidaAt))}
             {horaLima(propuesta.subidaAt) ? ` a las ${horaLima(propuesta.subidaAt)}` : ""}
             {propuesta.versiones > 1 ? ` · versión ${propuesta.versiones}` : ""} · {plural(propuesta.lineas.length, "comprobante", "comprobantes")} en SUNAT
+            {cruce && cruce.resueltas > 0 ? ` · ${plural(cruce.resueltas, "diferencia resuelta", "diferencias resueltas")}` : ""}
           </p>
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-guia="fin-sire.cifras">
@@ -139,7 +176,7 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
           </section>
 
           {porMirar === 0 && (
-            <Aviso tono="exito" titulo="Todo cuadra con SUNAT">
+            <Aviso tono="exito" titulo={cruce && cruce.resueltas > 0 ? "No queda nada por mirar" : "Todo cuadra con SUNAT"}>
               {r.papel.n > 0
                 ? `El contador puede aceptar la propuesta y agregar ${plural(r.papel.n, "la factura en papel", "las facturas en papel")} antes de generar.`
                 : "El contador puede aceptar la propuesta tal cual y generar el registro."}
@@ -157,13 +194,14 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
                 columnas={[{ titulo: "Comprobante" }, { titulo: "Proveedor" }, { titulo: "En SUNAT", alinear: "der" }, { titulo: "En el ERP", alinear: "der" }, { titulo: "Qué pasa" }]}
               />
               {lineas.map((l, i) => (
-                <Fila key={`${l.clave}-${i}`} l={l} />
+                <Fila key={`${l.clave}-${i}`} l={l} mes={mes} onPedido={setPedido} />
               ))}
             </Tabla>
           )}
         </>
       )}
 
+      {pedido && <ResolverDiferenciaSireModal registro={registro} mes={mes} pedido={pedido} onClose={() => setPedido(null)} />}
       {subiendo && <SubirPropuestaSireModal registro={registro} mes={mes} onClose={() => setSubiendo(false)} />}
     </div>
   );

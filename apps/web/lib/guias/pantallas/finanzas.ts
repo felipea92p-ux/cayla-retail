@@ -1827,7 +1827,7 @@ export const GUIA_FIN_SIRE: Guia = {
       ancla: "fin-sire.lista",
       opcional: true,
       titulo: "Cada comprobante",
-      texto: "Lo que hay que mirar va primero. Cada fila dice cuánto tiene SUNAT, cuánto el ERP y qué hacer. Una factura en papel no es un error: el contador la agrega al completar la propuesta.",
+      texto: "Lo que hay que mirar va primero, con cuánto tiene SUNAT, cuánto el ERP y qué hacer. El «⋯» de cada fila la resuelve: «Es de CLAURE», «Va en otro mes», «Se la pedí al proveedor»… Lo resuelto baja al final y se puede deshacer.",
     },
     {
       id: "fin",

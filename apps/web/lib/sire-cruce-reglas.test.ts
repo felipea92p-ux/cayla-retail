@@ -120,3 +120,40 @@ describe("comprobantesDeCompras", () => {
     expect(r.map((c) => [c.tipo, c.serie, c.numero])).toEqual([["01", "F001", "7"], ["07", "F001", "7"]]);
   });
 });
+
+describe("resolver una diferencia", async () => {
+  const { aplicarResoluciones, decisionesPara } = await import("./sire-cruce-reglas");
+  const base = cruzarCompras(
+    [sunat({ serie: "E001", numero: "9", docNumero: "20100000002", total: 59 }), sunat({ serie: "F001", numero: "1", docNumero: "20100000001", total: 118 })],
+    [erp({ serie: "F001", numero: "1", ruc: "20100000001", total: 118 }), erp({ serie: "F003", numero: "44", ruc: "20100000003", total: 590 })],
+  );
+  const res = (clave: string) => ({ id: "r1", clave, decision: "es_de_claure" as const, nota: null, resueltaAt: "2026-11-02T10:00:00Z", resueltaPor: "Ana" });
+
+  it("lo resuelto sale de las cifras, baja en la lista y conserva su decisión", () => {
+    const clave = claveComprobante("01", "E001", "9", "20100000002");
+    const r = aplicarResoluciones(base, [res(clave)]);
+    expect(r.resumen.solo_sunat.n).toBe(0);
+    expect(r.resumen.solo_erp.n).toBe(1);
+    expect(r.resueltas).toBe(1);
+    expect(r.lineas.map((l) => [l.estado, l.resolucion?.decision ?? null])).toEqual([["solo_erp", null], ["solo_sunat", "es_de_claure"], ["coincide", null]]);
+  });
+
+  it("una resolución de un comprobante que ya no aparece, o de uno que cuadra, no cuenta", () => {
+    const r = aplicarResoluciones(base, [res("01|X001|1|20100000009"), res(claveComprobante("01", "F001", "1", "20100000001"))]);
+    expect(r.resueltas).toBe(0);
+    expect(r.resumen.solo_sunat.n + r.resumen.solo_erp.n).toBe(2);
+  });
+
+  it("solo hay algo que decidir donde no cuadra", () => {
+    expect(decisionesPara("coincide")).toEqual([]);
+    expect(decisionesPara("papel")).toEqual([]);
+    expect(decisionesPara("solo_sunat").map((d) => d.decision)).toEqual(["es_de_claure", "otro_mes", "no_es_nuestra"]);
+  });
+
+  it("la llave tiene la forma que exige la base (sire_resoluciones.clave)", () => {
+    // La misma expresión que el CHECK de 20261102203000_sire_resoluciones.sql: si una cambia, las resoluciones dejan de encontrar su línea.
+    const forma = /^[0-9A-Z]{2}\|[^|]{1,20}\|[0-9]{1,20}\|[0-9A-Z]{0,20}$/;
+    for (const l of base.lineas) expect(l.clave).toMatch(forma);
+    expect(claveComprobante("1", "f001", "000", null)).toMatch(forma);
+  });
+});

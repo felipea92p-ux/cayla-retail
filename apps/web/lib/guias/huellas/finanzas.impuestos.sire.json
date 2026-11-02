@@ -2,9 +2,16 @@
   "guia": "finanzas.impuestos.sire",
   "ruta": "/finanzas/impuestos/sire",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 18,
   "controles": {
+    "components/finanzas/ResolverDiferenciaSireModal.tsx": [
+      "CampoTexto «Nota para el contador · opcional»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/finanzas/SirePanel.tsx": [
+      "BotonDeshacer «→() => onPedido({ linea: l, deshacer: true»",
       "Volver «{`/finanzas/impuestos?mes=${mes}»",
       "Boton «{propuesta ? \"Subir otra versión\" : \"Subir la propuesta\"}»",
       "Boton «Subir la propuesta»"
