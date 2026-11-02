@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Archive, ArrowRight, UserX } from "lucide-react";
 import { Cajon } from "@/components/ui/Cajon";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { Boton, Campo } from "@/components/ui/campos";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
@@ -288,13 +289,18 @@ export function RecomendacionHoja({
   const ocupado = guardando !== null;
   // La respuesta de ESTA recomendación que espera para salir (la de otra, si la hay, sigue su reloj aunque no se vea).
   const pendiente = envio?.id === r.id ? envio : null;
+  // Una respuesta escrita que todavía no se envió (de esta o de otra que se pasó a mirar): cerrar la hoja la perdería.
+  const sinEnviar = Object.entries(borradores).some(([id, t]) => textoLimpio(t) !== "" && envio?.id !== id && confirmados[id]?.tipo !== "respondida");
+  const avisoSalida = useSalidaSinGuardar(sinEnviar, "Escribiste una respuesta que todavía no enviaste. Si cierras ahora, se pierde.");
   const cerrarHoja = () => {
     sacarLoQueEspera();
     onClose();
   };
   return (
+    <>
     <Cajon
       onCerrar={cerrarHoja}
+      antesDeCerrar={avisoSalida.pedirAccion}
       velo={false}
       ancho="ancho"
       clave={r.id}
@@ -543,5 +549,7 @@ export function RecomendacionHoja({
 
       {puedeResponder && !pendiente && <VistaDelCliente recomendacion={r} respuesta={respuesta} ahoraIso={new Date(ahora).toISOString()} />}
     </Cajon>
+    {avisoSalida.aviso}
+    </>
   );
 }

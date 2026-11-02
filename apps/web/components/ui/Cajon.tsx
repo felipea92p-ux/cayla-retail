@@ -179,6 +179,9 @@ type Props = {
   guiaCabecera?: string;
   guiaCuerpo?: string;
   guiaPie?: string;
+  /** Escape, el velo, la ✕, «atrás» y el dedo que lo baja pasan por aquí antes de cerrar; quien tiene algo sin guardar pregunta y
+   *  llama a `cerrar` si la persona confirma (como `antesDeCerrar` de `Modal`). Sin esto, cierra directo. */
+  antesDeCerrar?: (cerrar: () => void) => void;
 };
 
 export function Cajon({
@@ -202,6 +205,7 @@ export function Cajon({
   guiaCabecera,
   guiaCuerpo,
   guiaPie,
+  antesDeCerrar,
 }: Props) {
   const enCelular = useEnCelular();
   // En el celular la hoja tapa la lista de atrás: siempre con velo (y modal).
@@ -224,10 +228,20 @@ export function Cajon({
     const t = setTimeout(onCerrar, reducido ? 0 : ms);
     return () => clearTimeout(t);
   }, [cerrando, onCerrar]);
-  const alEscape = useEscapeLibre(cerrar);
+  // De una ref, como en `Modal`: suele llegar como flecha nueva en cada dibujo.
+  const antesDeCerrarActual = useRef(antesDeCerrar);
+  useEffect(() => {
+    antesDeCerrarActual.current = antesDeCerrar;
+  }, [antesDeCerrar]);
+  const pedirCerrar = useCallback(() => {
+    const decidir = antesDeCerrarActual.current;
+    if (decidir) decidir(cerrar);
+    else cerrar();
+  }, [cerrar]);
+  const alEscape = useEscapeLibre(pedirCerrar);
   // En el teléfono «atrás» cierra el cajón, no la pantalla (ADR-0528); sale de la pila apenas empieza a cerrarse.
   const [conAtras] = useState(() => typeof window !== "undefined" && window.matchMedia?.(CELULAR).matches === true);
-  useAtrasCierraLaHoja(conAtras && !cerrando, cerrar);
+  useAtrasCierraLaHoja(conAtras && !cerrando, pedirCerrar);
   const sinNavegar = useCallback(() => {}, []);
   const alFlecha = useFlechasDelCajon(navegacion?.onNavegar ?? sinNavegar);
 
@@ -245,7 +259,11 @@ export function Cajon({
     activo: true,
     bloqueado: false,
     velo: veloRef,
-    alSoltarParaCerrar: (salir) => salir(),
+    alSoltarParaCerrar: (salir) => {
+      const decidir = antesDeCerrarActual.current;
+      if (decidir) decidir(salir);
+      else salir();
+    },
     alSalir: (ms) => {
       msSalidaPropia.current = ms;
       setSalidaPropia(true);
@@ -275,7 +293,7 @@ export function Cajon({
   const n = navegacion;
 
   return (
-    <Dialog.Root open modal={conVelo} onOpenChange={(abierto) => !abierto && cerrar()}>
+    <Dialog.Root open modal={conVelo} onOpenChange={(abierto) => !abierto && pedirCerrar()}>
       <Dialog.Portal>
         {conVelo && (
           <Dialog.Overlay
@@ -320,7 +338,7 @@ export function Cajon({
               </div>
               <button
                 type="button"
-                onClick={cerrar}
+                onClick={pedirCerrar}
                 aria-label={etiquetaCerrar}
                 className="-mr-1 shrink-0 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
               >
