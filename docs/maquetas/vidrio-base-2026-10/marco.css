@@ -538,6 +538,10 @@ svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .resumen span{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
 .resumen span svg{width:14px;height:14px;color:var(--taupe);stroke-width:2}
 .resumen .alerta b,.resumen .alerta span{color:var(--ambar)}.resumen .alerta span{font-weight:600}.resumen .alerta span svg{color:currentColor}
+/* las cifras miran el ancho de la CABECERA, no el del aparato: a 768 px con el lateral abierto quedan 480 px y tres cifras de 9,5 rem se
+   salían 14 px (medido en la maqueta de Existencias) */
+.ep{container:ep/inline-size}
+@container ep (max-width:640px){.ep-izq{width:100%}.resumen{width:100%}.resumen li{min-width:0;flex:1;padding:14px 6px}.resumen b{font-size:30px}}
 @container disp (max-width:520px){
   .ep{gap:16px}.ep-titulo{font-size:36px}.ep-izq{width:100%}
   .resumen{width:100%}.resumen li{min-width:0;flex:1;padding:14px 4px}.resumen b{font-size:20px}.resumen span{font-size:11px;margin-top:6px}.resumen span svg{display:none}
