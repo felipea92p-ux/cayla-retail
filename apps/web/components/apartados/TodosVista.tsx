@@ -557,12 +557,13 @@ export function TodosVista({
                           );
                         })()}
                       {e.clave === "vencida" && puedeGestionar && (
-                        <>
-                          <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX} veces` : "Aplazar el vencimiento"} onClick={() => setDetalle({ id: a.id, modo: "aplazar" })} className={BOTON_CHICO}>
-                            Aplazar
-                          </button>
-                          <button type="button" onClick={() => setLiberar(a)} className={BOTON_CHICO}>Liberar</button>
-                        </>
+                        <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX} veces` : "Aplazar el vencimiento"} onClick={() => setDetalle({ id: a.id, modo: "aplazar" })} className={BOTON_CHICO}>
+                          Aplazar
+                        </button>
+                      )}
+                      {/* ADR-0599: liberar lo hace quien ve Apartados (no solo quien gestiona la caja). */}
+                      {e.clave === "vencida" && (
+                        <button type="button" onClick={() => setLiberar(a)} className={BOTON_CHICO}>Liberar</button>
                       )}
                       {a.estado === "abierta" && (
                         <button type="button" onClick={() => irAEntregar(a.id)} className={BOTON_CHICO_NEGRO}>Entregar</button>
