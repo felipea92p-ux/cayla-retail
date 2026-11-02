@@ -256,6 +256,24 @@
     inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 12%, transparent);
   --lente-prenda-aro: 0 0 0 2px color-mix(in srgb, var(--color-vidrio) 80%, transparent),
     0 4px 10px -4px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+
+  /* ---------- la gota chica (docs/maquetas/colaboradores-vidrio-2026-11/; piezas en vidrio/colaboradores.css) ---------- */
+  /* «A · Gotas»: un rótulo que no se toca (el rol de una persona) o una línea dentro de una lente (cada alta de «Esperan tu ok») es una
+     gota chica y clara con su filo; el rótulo que distingue (el Líder), la gota AHUMADA: el mismo ahumado denso del filtro puesto pero sin
+     sombra (va en cada fila: treinta sombras ensucian la lista). */
+  --gota-chica-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 88%, transparent), color-mix(in srgb, var(--color-vidrio) 55%, transparent));
+  --gota-chica-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  --gota-chica-luz: inset 0 1px 0 var(--color-vidrio);
+  --gota-chica-ahumada-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 30%, transparent);
+  /* La lente del tono GRANDE: la del aviso de la esquina con su misma base y su sombra, pero tendida a lo ancho de una pantalla
+     («Esperan tu ok», «A · Lente ámbar»). Con los 5 % → 10 % del aviso, a ese tamaño se leía como una placa gris; la maqueta elegida va
+     a 10 % → 18 % con el filo al 40 %. En oscuro va sin base de vidrio, como la lente chica: con la base del aviso la lente se aclaraba y,
+     con la gota encima, el texto tenue de cada alta bajaba a 4,1:1 (medido el 2026-11-02). La mezcla la hace la pieza con su `--c`. */
+  --lente-tono-grande-base-arriba: var(--lente-tono-base-arriba);
+  --lente-tono-grande-base-abajo: var(--lente-tono-base-abajo);
+  --lente-tono-grande-tinte-arriba: 10%;
+  --lente-tono-grande-tinte-abajo: 18%;
+  --lente-tono-grande-filo: 40%;
 }
 
 @media screen {
@@ -380,6 +398,17 @@
       inset 0 -6px 10px -6px color-mix(in srgb, var(--color-tinta-fija) 40%, transparent),
       inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 12%, transparent);
     --lente-prenda-aro: 0 0 0 2px color-mix(in srgb, var(--color-tinta) 18%, transparent), 0 4px 10px -4px var(--color-sombra); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    /* La gota chica en oscuro: la crema a poca opacidad, sin luz (sobre el negro cálido el blanco del vidrio no existe); la ahumada
+       en oscuro ya es clara (el ahumado denso es tinta, que aquí es crema) y su luz se apaga. */
+    --gota-chica-fondo: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --gota-chica-borde: color-mix(in srgb, var(--color-tinta) 22%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --gota-chica-luz: none;
+    --gota-chica-ahumada-luz: none;
+    --lente-tono-grande-base-arriba: transparent;
+    --lente-tono-grande-base-abajo: transparent;
+    --lente-tono-grande-tinte-arriba: 14%;
+    --lente-tono-grande-tinte-abajo: 14%;
+    --lente-tono-grande-filo: 34%;
   }
 }
 
@@ -405,6 +434,8 @@
     --lente-chica-base-abajo: var(--color-papel);
     --lente-sello-base-arriba: var(--color-papel);
     --lente-sello-base-abajo: var(--color-papel);
+    --lente-tono-grande-base-arriba: var(--color-papel);
+    --lente-tono-grande-base-abajo: var(--color-papel);
     --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 90%, transparent);
     --espera-halo: var(--color-crema);
     --version-agua-opacidad: 1;

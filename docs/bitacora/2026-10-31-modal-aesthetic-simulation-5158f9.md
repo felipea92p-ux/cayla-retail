@@ -274,3 +274,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   su tono con su filo; su texto tenue sube a tinta al 78 %). El riel y el día pasan a ranura; las filas se tiñen sobre el vidrio. El
   movimiento de los sellos (ADR-0353) no cambió. `tema:auditar` sin hallazgos nuevos en oscuro; el ícono rojo del tipo elegido es el más
   justo (3,07–3,19:1, pasa el 3:1 de un gráfico). Lo hereda el sello del cajón de un movimiento y el de Caja.
+
+- **Colaboradores ▸ Equipo al vidrio (Felipe 2026-11-02):** el rol «A · Gotas» (`PildoraRol`: gota clara; el Líder, gota ahumada; lo
+  heredan la ficha del colaborador y de la terminal), «Esperan tu ok» «A · Lente ámbar» (lente del tono, receta nueva
+  `--lente-tono-grande-*`; cada alta en gota chica `--gota-chica-*`; en el celular en columna; los botones quedan ✕ Rechazar y luego ✓ Aprobar,
+  el que guarda a la derecha) y las filas como las de Fichas (en la placa, hilo tras la cara, la elegida en gota). En `vidrio/colaboradores.css`.
+  No cambió ningún permiso. Sin altas en la base local: la franja se vio montada.
