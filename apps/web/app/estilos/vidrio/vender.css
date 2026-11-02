@@ -396,19 +396,22 @@
 /* =====================================================================
    LA HOJA DEL DESCUENTO (Felipe 2026-11-02, «A · Hoja lateral»; maqueta docs/maquetas/descuento-hoja-2026-11/;
    `components/punto-de-venta/HojaDeDescuento.tsx` y `PanelDescuento.tsx`).
-   Como el cobro, el descuento entra como una hoja sobre el catálogo con el ticket quieto a la vista. Es la hoja Serena (vidrio al 70 %; el
-   desenfoque lo pone el velo, no la hoja: ADR-0596) y se arma con las piezas elegidas: la gota (fichas de valor, «Todo el ticket»), la
+   Como el cobro, el descuento entra como una hoja sobre el catálogo con el ticket quieto a la vista. Es la hoja Serena (vidrio al 70 %; su desenfoque
+   lo pone ella misma, sin velo que pinte: ver abajo) y se arma con las piezas elegidas: la gota (fichas de valor, «Todo el ticket»), la
    placa (listas de prendas y de motivos), el pozo (el campo «Otro»), el ahumado (la opción puesta y «Aplicar descuento») y el segmento
    «Pozo y gota» de `SegmentoDeslizante`. Los tres pasos son los del cobro (`CabezaPaso`, `.hoja-cobro-paso`). En el celular el mismo
    cuerpo vive dentro de la hoja del ticket, en una columna. Movimiento de ADR-0136: sube y se enfoca una vez, sin rebote ni bucle.
    ===================================================================== */
+/* El velo NO pinta nada: solo recoge el toque que cierra la hoja. Con tinte y desenfoque dibujaba un rectángulo —el de la columna del catálogo—
+   y, como la hoja deja un margen de 12 px, su borde se veía como un marco oscuro en los cuatro lados (Felipe 2026-11-02). */
 .hoja-descuento-velo {
-  background: var(--vidrio-velo);
-  -webkit-backdrop-filter: blur(10px) saturate(1.3);
-  backdrop-filter: blur(10px) saturate(1.3);
-  animation: hoja-cobro-velo 320ms var(--ease-cayla) both;
+  background: transparent;
 }
 .hoja-descuento.hoja-serena {
+  /* El desenfoque de lo que tiene detrás lo pone la propia hoja (solo dentro de su forma, sin bordes sueltos). La regla de ADR-0596 manda
+     el desenfoque al velo porque un `backdrop-filter` en la hoja encierra las listas `fixed` de sus combos; esta hoja no tiene ningún combo. */
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
   /* Contenedor con nombre: con la hoja ancha (≥ 38 rem) el cuerpo pasa a dos columnas; si queda angosta (catálogo estrecho a 1024–1100 px), una. */
   container: descuento / inline-size;
   padding: 0;
@@ -658,7 +661,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hoja-descuento-velo,
   .hoja-descuento.hoja-serena,
   .pv-desc-cuerpo > section,
   .pv-desc-der > section {
