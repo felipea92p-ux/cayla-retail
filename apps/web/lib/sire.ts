@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { ORDEN_REGISTRO_COMPRAS, ORDEN_REGISTRO_VENTAS, leerFilaCompras, leerFilaVentas } from "@/lib/impuestos-reglas";
 import { leerPropuestaGuardada, type PropuestaGuardada, type RegistroSire } from "@/lib/sire-propuesta-reglas";
+import { estadoDeRegistro, type EstadoSire } from "@/lib/sire-estado-reglas";
 import { aplicarResoluciones, comprobantesDeCompras, comprobantesDeVentas, cruzarCompras, cruzarVentas, type CruceResuelto, type ResultadoCruce } from "@/lib/sire-cruce-reglas";
 
 // Finanzas ▸ Impuestos ▸ Comparar con SUNAT (ADR-0601). Lee la propuesta vigente del mes y el registro del ERP (el MISMO que baja el
@@ -34,4 +35,11 @@ export async function getComparacionSire(registro: RegistroSire, mes: string): P
       ? cruzarCompras(propuesta.lineas, comprobantesDeCompras(filas.map(leerFilaCompras)))
       : cruzarVentas(propuesta.lineas, comprobantesDeVentas(filas.map(leerFilaVentas)));
   return { propuesta, cruce: aplicarResoluciones(cruce, propuesta.resoluciones), falla: null };
+}
+
+/** El estado de la comparación de un mes, para «Antes de declarar» y el Cierre (actividad 4): el mismo cruce, resumido. Las ventas solo
+ *  leen su registro (más de 1.000 filas) si alguien subió su propuesta. */
+export async function getEstadoSire(mes: string): Promise<EstadoSire> {
+  const [compras, ventas] = await Promise.all([getComparacionSire("compras", mes), getComparacionSire("ventas", mes)]);
+  return { mes, compras: estadoDeRegistro(compras), ventas: estadoDeRegistro(ventas) };
 }

@@ -13,6 +13,7 @@ import { PagasImpuestos, CuentaLineas } from "@/components/finanzas/ImpuestosCue
 import { LimiteAnio, MesesImpuestos, PendientesImpuestos } from "@/components/finanzas/ImpuestosFila";
 import { mesADeclarar, sobresIgv } from "@/lib/impuestos-sobres-reglas";
 import { pendientesCompactos } from "@/lib/impuestos-antes-reglas";
+import { lineasSireImpuestos, type EstadoSire } from "@/lib/sire-estado-reglas";
 import { barrasMeses, cuentaImpuestos, limiteImpuestos } from "@/lib/impuestos-cuenta-reglas";
 import { sedeDeLaCabecera } from "@/lib/impuestos-telar-reglas";
 import { lineaImpuestosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
@@ -46,9 +47,9 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 
 type Descarga = "ventas" | "compras" | "resumen" | "paquete";
 
-type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null };
+type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null; sire: EstadoSire | null };
 
-export function ImpuestosPanel({ panel, falla, sede, sedes, claure }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
+export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
   if (!panel) {
     return (
       <div className="space-y-6">
@@ -58,10 +59,10 @@ export function ImpuestosPanel({ panel, falla, sede, sedes, claure }: { panel: P
       </div>
     );
   }
-  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} />;
+  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} sire={sire} />;
 }
 
-function Pantalla({ panel, falla, sede, sedes, claure }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
+function Pantalla({ panel, falla, sede, sedes, claure, sire }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
   const router = useRouter();
   const sp = useSearchParams();
   const [bajando, setBajando] = useState<Descarga | null>(null);
@@ -116,7 +117,7 @@ function Pantalla({ panel, falla, sede, sedes, claure }: { panel: PanelImpuestos
     setBajando(null);
   }
 
-  const pendientes = pendientesCompactos(panel);
+  const pendientes = [...pendientesCompactos(panel), ...lineasSireImpuestos(sire, mesActual)];
   const cuenta = cuentaImpuestos(panel, { enCurso: mes === mesActual, pendientes: pendientes.length });
   const limite = limiteImpuestos(panel);
   const { barras, destacada } = barrasMeses(sobres);

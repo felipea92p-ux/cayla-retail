@@ -42,6 +42,8 @@ describe("cruzarCompras", () => {
     expect(r.resumen.solo_erp).toEqual({ n: 1, igv: 90 });
     const distinta = r.lineas.find((l) => l.estado === "montos")!;
     expect(distinta.diferencia?.total).toBe(36);
+    // En «montos distintos» lo que está en juego es la diferencia de IGV, no el IGV entero de la factura.
+    expect(r.resumen.montos.igv).toBe(Math.abs(distinta.diferencia!.igv));
     expect(distinta.motivo).toContain("SUNAT dice S/\u00a0236.00 y el ERP S/\u00a0200.00");
   });
 

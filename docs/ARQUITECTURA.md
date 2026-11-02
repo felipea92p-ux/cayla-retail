@@ -2127,6 +2127,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `lib/sire-propuesta-reglas.ts` en el navegador. Tablas `sire_propuestas` y `sire_lineas` (migración `20261102202000`; nunca se borra:
     otra subida del mes es otra versión). Cada diferencia se resuelve con `resolver_diferencia_sire` / `deshacer_resolucion_sire`
     (`components/finanzas/ResolverDiferenciaSireModal.tsx`; tabla `sire_resoluciones`, migración `20261102203000`: deshacer no borra).
+    El mismo cruce, resumido (`getEstadoSire`, `lib/sire-estado-reglas.ts`), suma líneas a «Antes de declarar» de `/finanzas/impuestos` y
+    un aviso que no bloquea a la unidad «empresa» de `/finanzas/cierre` (`conChequeoSire`).
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.

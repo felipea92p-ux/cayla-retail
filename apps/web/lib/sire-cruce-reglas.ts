@@ -114,6 +114,12 @@ function totalEnSoles(l: LineaSire): number | null {
   return l.tipoCambio ? redondear(l.total * l.tipoCambio) : null;
 }
 
+/** El IGV que está en juego en una línea: en «montos distintos», solo la diferencia; en lo demás, el IGV entero del comprobante. */
+function igvEnJuego(l: LineaCruce): number {
+  if (l.estado === "montos") return Math.abs(l.diferencia?.igv ?? 0);
+  return Math.abs(l.erp?.igv ?? l.sunat?.igv ?? 0);
+}
+
 function vacio(): ResumenCruce {
   return { coincide: { n: 0, igv: 0 }, solo_sunat: { n: 0, igv: 0 }, solo_erp: { n: 0, igv: 0 }, montos: { n: 0, igv: 0 }, papel: { n: 0, igv: 0 } };
 }
@@ -237,7 +243,7 @@ function cruzar(registro: RegistroSire, sunat: readonly LineaSire[], erp: readon
   const resumen = vacio();
   for (const l of lineas) {
     resumen[l.estado].n += 1;
-    resumen[l.estado].igv = redondear(resumen[l.estado].igv + Math.abs(l.erp?.igv ?? l.sunat?.igv ?? 0));
+    resumen[l.estado].igv = redondear(resumen[l.estado].igv + igvEnJuego(l));
   }
   const orden: Record<EstadoCruce, number> = { solo_erp: 0, solo_sunat: 1, montos: 2, papel: 3, coincide: 4 };
   lineas.sort((a, b) => orden[a.estado] - orden[b.estado] || a.fecha.localeCompare(b.fecha) || a.clave.localeCompare(b.clave));
@@ -319,7 +325,7 @@ export function aplicarResoluciones(r: ResultadoCruce, resoluciones: readonly Re
     if (resolucion) resueltas += 1;
     else {
       resumen[l.estado].n += 1;
-      resumen[l.estado].igv = redondear(resumen[l.estado].igv + Math.abs(l.erp?.igv ?? l.sunat?.igv ?? 0));
+      resumen[l.estado].igv = redondear(resumen[l.estado].igv + igvEnJuego(l));
     }
     return { ...l, resolucion };
   });

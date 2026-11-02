@@ -1746,7 +1746,7 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.por-hacer",
       opcional: true,
       titulo: "Pendientes",
-      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe, con su monto: rechazados, ventas sin comprobante, compras con boleta, IGV que no se descuenta y honorarios. Cada línea lleva a donde se arregla.",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe, con su monto: rechazados, ventas sin comprobante, compras con boleta, IGV que no se descuenta, honorarios y lo que no cuadra con la propuesta de SUNAT. Cada línea lleva a donde se arregla.",
     },
     {
       id: "paquete",

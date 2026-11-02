@@ -5,6 +5,9 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { mesDeLaRuta, mesDelDia, RUTA_CIERRE, sedesDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { CierreMes } from "@/components/finanzas/CierreMes";
+import { getEstadoSire } from "@/lib/sire";
+import { chequeoSire } from "@/lib/sire-estado-reglas";
+import { conChequeoSire } from "@/lib/cierre-reglas";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198). Lee en el servidor, en una sola función (`fn_cierre_panel`), y deja a
 // una pieza cliente cerrar y reabrir. El mes y la sede los elige la barra común de Finanzas (`MesaDeMando`), igual que en los
@@ -25,7 +28,9 @@ export default async function CierrePage({ searchParams }: { searchParams: Promi
   }
   const sedes = sedesDeLaUrl({ sede: sp.sede });
   const unidadPedida = sp.u ?? (sedes.length === 1 ? sedes[0]! : null);
-  const panel = await getPanelCierre(mes);
+  // El aviso de la comparación con SUNAT (ADR-0601) lo arma la web con el mismo cruce de «Comparar con SUNAT»: solo avisa. Sin el módulo
+  // Impuestos no se lee y el cierre se ve como siempre.
+  const [panel, sire] = await Promise.all([getPanelCierre(mes), getEstadoSire(mes)]);
   // La `key` vuelve a abrir la unidad pedida cuando la barra cambia de mes o de sede (la tarjeta elegida vive en la pieza cliente).
-  return <CierreMes key={`${mes}|${unidadPedida ?? ""}`} panel={panel.datos} falla={panel.falla} unidadPedida={unidadPedida} />;
+  return <CierreMes key={`${mes}|${unidadPedida ?? ""}`} panel={panel.datos ? conChequeoSire(panel.datos, chequeoSire(sire)) : null} falla={panel.falla} unidadPedida={unidadPedida} />;
 }
