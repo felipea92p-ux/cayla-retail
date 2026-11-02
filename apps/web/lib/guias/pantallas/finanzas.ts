@@ -683,7 +683,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "total",
       ancla: "fin-dinero.total",
       titulo: "Cuánta plata tienes",
-      texto: "La cifra grande es lo que tiene la sede que elegiste arriba (o toda CAYLA con «Todas»). La barra de abajo la parte por etapa: del banco a la caja. Si debes en la tarjeta de crédito, lo dice aparte: es deuda, no plata.",
+      texto: "La cifra grande es lo que tiene la sede que elegiste arriba (o toda CAYLA con «Todas»). El círculo la parte por cuenta, con el color de su etapa: pasa el mouse por una porción y el centro te dice cuál es. Si debes en la tarjeta de crédito, lo dice aparte: es deuda, no plata.",
     },
     {
       id: "etapas",
