@@ -96,3 +96,10 @@
   `apps/web`.
 - **Lo que eligió Felipe en Comprobantes y en Catálogo (2026-11-02):** las recomendadas. Comprobantes: tarjetas A · Lente del tono y
   documentos A · Gotas chicas. Catálogo: tarjeta A · Muestra al aire e índice A · Ranura con gotas.
+- **Producción ▸ Insumos (2026-11-02)**: maqueta `docs/maquetas/insumos-vidrio-2026-11/`. Caras de lo propio: la fila de un insumo (A · Una placa
+  por tela, recomendada; B · Placas sueltas) y el libro de movimientos (A · Placa con filas, recomendada; B · Libro hundido). En «Nueva tela»,
+  «Existe también» pregunta antes de crear el tejido, con el aviso lente ya elegido. Medida de 320 a 1920 px sin desbordes ni errores. Sin
+  cambios en `apps/web`.
+- **Catálogo ▸ Liquidación (2026-11-02)**: maqueta `docs/maquetas/liquidacion-vidrio-2026-11/`. La etiqueta es papel térmico y no cambia.
+  Caras de lo propio: la etiqueta en la hoja (A · En su bandeja, recomendada; B · Colgada) y las cifras chicas del celular (A · Placas chicas,
+  recomendada; B · Ranura de tres). Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
