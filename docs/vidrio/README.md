@@ -77,6 +77,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | **Caja** (página entera: `app/(app)/caja`, vista «hoy contra ayer») | `CajaAbiertaPanel`, `CajaComparativa`, `BarraCierreCaja` | Elegido (armada con las piezas elegidas) | Titular A · Ahumado; barra de cierre B · Isla (píldora al centro, sin la bajada); «Cerrar caja» en gota roja | `caja-vidrio-2026-11/` |
 | **Historial de ventas** (página entera: `app/(app)/vender/historial`) | `HistorialVentasLista`, `HistorialVentasPulso`, `FiltrosHistorialVentas`, `AvisosHistorial` | Elegido (armada con las piezas elegidas) | Línea del tiempo B · Solo los días en gota (sin hilo; el día con `SeparadorDia` B); pila de prendas A · Lentes apiladas | `historial-ventas-vidrio-2026-11/` |
 | **Traslados** (página entera: la billetera de pases, ADR-0355) | `components/traslados-pases/`, `estilos/traslados-pases.css` | Elegido (al vidrio con el mismo movimiento) | Pase B · Lente del tono (perforación recortada de verdad); escenario A · Al aire | `traslados-vidrio-2026-11/` |
+| **Cambios y Devoluciones** (páginas enteras: `app/(app)/cambios`, `app/(app)/devoluciones`; una sola maqueta) | `CambiosPanel`, `CambiosFlujo`, `DevolucionesPanel`, `DevolucionesFlujo`, `FlujoGuiado`, `CambioResumen` | En maqueta (armada con las piezas elegidas; medida a 375 px, PL-105) | — (recomendadas: paso a paso A · Hilo de vidrio, trae y lleva A · Balanza) | `posventa-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-ps="hilo" data-tl="balanza">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cambios y Devoluciones con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · las páginas de Ventas ▸ Posventa ▸ Cambios y Devoluciones con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Una sola maqueta: las dos pantallas comparten piezas (app/(app)/cambios → CambiosPanel + CambiosFlujo; app/(app)/devoluciones →
+   DevolucionesPanel + DevolucionesFlujo; el paso a paso de components/FlujoGuiado.tsx; «lo que trae y lo que lleva» de CambioResumen.tsx).
+   Armadas SOLO con lo ya elegido: cabecera A con las cifras de la placa, el buscador del mostrador A · Pozo, filtros A · Gotas, insignia A,
+   placas Serena, la tarjeta de prenda B · Foto al aire del Punto de Venta, casilla A · Pozo y gota, tarjetas de opción con el ícono en
+   duotono, la vuelta en gota, la barra de abajo del celular A · Gota ahumada (con «Cobrar» que se invierte a crema en oscuro), y el botón
+   rojo del paso final en la gota roja (la de «Cerrar caja»).
+   Lo PROPIO, con sus caras:
+     1. El paso a paso (`Pasos`, el «hilo» de Atelier): hoy una línea punteada con nudos; el nudo hecho en TINTA SÓLIDA.
+     2. «Lo que trae y lo que lleva» (`ComparacionPrendas` + la diferencia): hoy dos fichas de PAPEL con el hilo del cambio entre ellas.
+   PL-105: el celular es obligatorio (375 px). Solo tokens; los colores de las prendas son dato. Movimiento: el de hoy (el hilo que se cose
+   al avanzar), sin rebote ni bucle; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido que estas pantallas usan ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.bus{display:flex;align-items:center;gap:10px;height:50px;padding:0 8px 0 18px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .bus{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.bus svg{width:19px;height:19px;flex:none;color:var(--t65)}
+.bus span{flex:1;min-width:0;font-size:15px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bus .btn{height:38px;padding:0 14px;font-size:13px}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent)}
+.fp small{font-size:11px;opacity:.8}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.foto{position:relative;display:block;aspect-ratio:1;border-radius:18px;background:var(--col);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 40%,transparent),0 18px 30px -20px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.mini{display:inline-block;width:44px;height:44px;border-radius:12px;background:var(--col);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 40%,transparent),0 6px 12px -8px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.talla{min-width:34px;height:30px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--borde);color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .talla{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.talla[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.talla:disabled{border-style:dashed;color:var(--t50);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.casilla{width:22px;height:22px;flex:none;border-radius:7px;display:grid;place-items:center;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 18%,transparent);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent)}
+.casilla[aria-checked="true"]{border-color:color-mix(in srgb,var(--tinta) 70%,transparent);color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+.casilla svg{width:13px;height:13px;stroke-width:3}
+.opcion{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;text-align:left;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent))}
+[data-tema="oscuro"] .opcion{background:color-mix(in srgb,var(--tinta) 6%,transparent);border-color:color-mix(in srgb,var(--tinta) 28%,transparent)}
+.opcion[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.opcion svg{width:20px;height:20px;flex:none}.opcion svg path{fill:color-mix(in srgb,currentColor 12%,transparent)}
+.opcion b{display:block;font-size:14.5px}.opcion small{font-size:12.5px;color:var(--t65)}
+.rojo-g{color:var(--crema-fija);border:1px solid color-mix(in srgb,var(--rojo) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 82%,transparent),color-mix(in srgb,var(--rojo) 96%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 40%,transparent),0 10px 22px -10px color-mix(in srgb,var(--rojo) 70%,transparent)}
+[data-tema="oscuro"] .rojo-g{color:var(--tinta-fija)}
+
+/* ---------- la pantalla ---------- */
+.seccion{margin-top:30px;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.seccion h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.1}
+.seccion .baj{font-size:14px;color:var(--t65);margin-top:2px}
+.fila-t{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.filtros{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.caja-e{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t65)}
+.compras{padding:6px}
+.compra{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:6px 16px;align-items:center;padding:14px;border-radius:16px}
+.compra+.compra{border-top:1px dashed color-mix(in srgb,var(--tinta) 10%,transparent)}
+.compra .pila{display:flex}.compra .pila .mini+.mini{margin-left:-12px}
+.compra .pr{font-family:'EB Garamond',serif;font-size:19px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compra .mt{font-size:12.5px;color:var(--t65);margin-top:2px}
+.compra .ch{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.compra .btn{height:40px}
+@container disp (max-width:760px){.compra{grid-template-columns:auto minmax(0,1fr)}.compra .ch{grid-column:1/-1;justify-content:flex-start}.compra .btn{grid-column:1/-1;width:100%}}
+/* el flujo */
+.flujo{display:grid;gap:18px;margin-top:22px;grid-template-columns:minmax(0,1fr)}
+.flujo-top{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;color:var(--t65)}
+.flujo-top b{color:var(--tinta)}
+.flujo h2{font-family:'EB Garamond',serif;font-weight:400;font-size:26px}
+.dos{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+@container disp (min-width:1100px){.dos{grid-template-columns:minmax(0,1fr) 21rem;align-items:start}}
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:18px}
+.tp{display:flex;flex-direction:column;gap:9px}
+.tp .nom{font-size:14px;font-weight:600}.tp .res{font-size:12px;color:var(--t65)}
+.tp .tallas{display:flex;flex-wrap:wrap;gap:5px}
+.tp .precio{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.tp.elegida .foto{box-shadow:0 0 0 3px var(--tinta),0 18px 30px -20px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.trae-mini{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.trae-mini small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.valid{padding:18px 20px;display:grid;gap:14px}
+.valid h3{font-size:14px;font-weight:700}
+.valid li{list-style:none;display:flex;gap:10px;font-size:13.5px}
+.valid li svg{width:18px;height:18px;flex:none;color:var(--verde)}
+.valid li.ojo svg{color:var(--ambar)}
+.datos{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;font-size:14px}
+.datos dt{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.datos dd{margin-top:3px}
+.pie-paso{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:6px}
+.pie-paso .btn{height:50px;padding:0 22px;font-size:14.5px}
+.lineas{display:grid}
+.linea-d{display:flex;align-items:center;gap:14px;padding:12px 4px}
+.linea-d+.linea-d{border-top:1px dashed color-mix(in srgb,var(--tinta) 10%,transparent)}
+.linea-d .tx{flex:1;min-width:0}.linea-d b{font-family:'EB Garamond',serif;font-weight:400;font-size:18px}
+.linea-d small{display:block;font-size:12.5px;color:var(--t65)}
+.linea-d .m{font-variant-numeric:tabular-nums;font-weight:600}
+.opciones{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+
+/* ============ 1 · EL PASO A PASO ============ */
+.pasos{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-top:2px}
+.pasos .base{position:absolute;top:17px;left:16.66%;width:66.66%;height:2px;border-radius:2px;background-image:repeating-linear-gradient(90deg,color-mix(in srgb,var(--taupe) 50%,transparent) 0 6px,transparent 6px 11px)}
+.pasos .cosido{position:absolute;top:17px;left:16.66%;height:2px;border-radius:2px;width:calc(var(--av) * 66.66%);background:var(--tinta);transition:width .7s var(--ease)}
+.pasos li{position:relative;list-style:none;display:flex;flex-direction:column;align-items:center;gap:10px}
+.pasos .nudo{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--papel);color:var(--t50);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--taupe) 50%,transparent)}
+.pasos .hecho .nudo{background:var(--tinta);color:var(--crema);box-shadow:none}
+.pasos .hecho .nudo svg{width:15px;height:15px;stroke-width:3}
+.pasos .actual .nudo{color:var(--tinta);box-shadow:0 0 0 8px color-mix(in srgb,var(--tinta) 6%,transparent),inset 0 0 0 2px var(--tinta)}
+.pasos .et{font-size:12.5px;color:var(--t65);text-align:center}.pasos .actual .et{color:var(--tinta);font-weight:600}
+/* A · Hilo de vidrio: la línea es una ranura tallada; lo cosido corre en tinta por dentro; el nudo hecho es la gota AHUMADA (como el filtro
+   puesto) y el de ahora, la gota CLARA con su halo de luz (como la pestaña elegida). */
+[data-ps="hilo"] .pasos .base{height:6px;top:15px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"][data-ps="hilo"] .pasos .base{background:color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-ps="hilo"] .pasos .cosido{top:17px;height:2px}
+[data-ps="hilo"] .pasos .nudo{border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-ps="hilo"] .pasos .nudo{background:color-mix(in srgb,var(--tinta) 8%,transparent);border-color:color-mix(in srgb,var(--tinta) 22%,transparent)}
+[data-ps="hilo"] .pasos .hecho .nudo{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+[data-ps="hilo"] .pasos .actual .nudo{color:var(--tinta);border-color:color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 98%,transparent),color-mix(in srgb,var(--vidrio) 76%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 8px color-mix(in srgb,var(--vidrio) 45%,transparent),0 8px 18px -8px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-ps="hilo"] .pasos .actual .nudo{background:color-mix(in srgb,var(--tinta) 20%,transparent);box-shadow:0 0 0 8px color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* B · Pozo con gota: los tres pasos viven en un pozo, como las pestañas; el de ahora es la gota clara que viaja de uno a otro; los hechos
+   llevan su ✓. Sin hilo. */
+[data-ps="pozo"] .pasos{padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-ps="pozo"] .pasos{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-ps="pozo"] .pasos .base{display:none}
+[data-ps="pozo"] .pasos .cosido{top:4px;bottom:4px;height:auto;left:4px;width:calc((100% - 8px) / 3);transform:translateX(calc(var(--av) * 200%));border-radius:999px;transition:transform .45s var(--ease);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-ps="pozo"] .pasos .cosido{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+[data-ps="pozo"] .pasos li{flex-direction:row;justify-content:center;gap:8px;height:42px;z-index:1}
+[data-ps="pozo"] .pasos .nudo{width:24px;height:24px;font-size:12px;background:none;box-shadow:inset 0 0 0 1.5px var(--t25)}
+[data-ps="pozo"] .pasos .hecho .nudo{background:none;color:var(--verde);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--verde) 60%,transparent)}
+[data-ps="pozo"] .pasos .actual .nudo{box-shadow:inset 0 0 0 1.5px var(--tinta)}
+[data-ps="pozo"] .pasos .et{font-size:13px}
+
+/* ============ 2 · LO QUE TRAE Y LO QUE LLEVA ============ */
+.tl{display:grid;gap:14px}
+.tl-par{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:center}
+.ficha{display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:var(--papel);box-shadow:0 0 0 1px var(--sand)}
+.ficha .mini{width:64px;height:64px;border-radius:14px}
+.ficha small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.ficha>div{min-width:0}
+.ficha b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:19px;line-height:1.2}
+.ficha span{display:block;font-size:13px;color:var(--t65)}
+.ficha em{display:block;font-style:normal;font-size:14px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.hilo-c{width:46px;height:2px;background:repeating-linear-gradient(90deg,var(--taupe) 0 5px,transparent 5px 9px);position:relative}
+.hilo-c::after{content:"";position:absolute;right:-2px;top:-4px;border:5px solid transparent;border-left-color:var(--taupe)}
+.dif{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:0 4px}
+.dif span{font-size:14px;color:var(--t65)}.dif b{font-family:'EB Garamond',serif;font-weight:400;font-size:26px;font-variant-numeric:tabular-nums}
+/* A · Balanza: las dos prendas son sus fotos al aire (la tarjeta B del Punto de Venta), una frente a otra; entre ellas, una lente con ⇄; la
+   diferencia es la gota del medio: AHUMADA si se cobra, CLARA si se devuelve, y dice qué toca («Cobras S/ 40.00»). */
+[data-tl="balanza"] .ficha{flex-direction:column;align-items:stretch;gap:10px;padding:0;background:none;box-shadow:none}
+[data-tl="balanza"] .ficha .mini{width:100%;height:auto;aspect-ratio:1;border-radius:18px;box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 40%,transparent),0 18px 30px -20px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-tl="balanza"] .ficha.trae .mini{filter:saturate(.8);opacity:.86}
+[data-tl="balanza"] .tl-par{grid-template-columns:minmax(0,180px) auto minmax(0,180px);justify-content:center}
+[data-tl="balanza"] .hilo-c{width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent) 70%);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);box-shadow:inset 0 1px 1px var(--vidrio),0 8px 18px -8px color-mix(in srgb,var(--sombra) 40%,transparent);display:grid;place-items:center}
+[data-tema="oscuro"][data-tl="balanza"] .hilo-c{background:color-mix(in srgb,var(--tinta) 14%,transparent);border-color:color-mix(in srgb,var(--tinta) 16%,transparent)}
+[data-tl="balanza"] .hilo-c::after{display:none}
+[data-tl="balanza"] .hilo-c svg{width:20px;height:20px;color:var(--tinta)}
+.hilo-c svg{display:none}[data-tl="balanza"] .hilo-c svg{display:block}
+[data-tl="balanza"] .dif{justify-self:center;padding:10px 12px 10px 20px;border-radius:999px;gap:14px;color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-tl="balanza"] .dif span{color:color-mix(in srgb,var(--crema) 75%,transparent)}
+[data-tl="balanza"] .dif.devuelve{color:var(--tinta);border-color:color-mix(in srgb,var(--borde) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 72%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tl="balanza"] .dif.devuelve span{color:var(--t65)}
+/* B · Talón: una sola placa partida por una perforación, como un talón: arriba lo que trae, abajo lo que lleva, y la diferencia en el pie. */
+[data-tl="talon"] .tl{gap:0;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 var(--vidrio),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-tl="talon"] .tl{background:color-mix(in srgb,var(--vidrio) 76%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-tl="talon"] .tl-par{grid-template-columns:minmax(0,1fr);gap:0}
+[data-tl="talon"] .ficha{background:none;box-shadow:none;padding:18px 20px}
+[data-tl="talon"] .hilo-c{width:auto;height:0;margin:0 20px;background:none;border-top:2px dashed color-mix(in srgb,var(--tinta) 16%,transparent)}
+[data-tl="talon"] .hilo-c::after{display:none}
+[data-tl="talon"] .dif{padding:16px 20px;border-top:1px solid color-mix(in srgb,var(--tinta) 10%,transparent)}
+
+/* ---------- el celular (PL-105): la isla ahumada abajo ---------- */
+.isla-m{display:none}
+@container disp (max-width:640px){
+  .cont{padding-bottom:104px!important}
+  .isla-m{display:flex;position:absolute;z-index:6;left:12px;right:12px;bottom:12px;align-items:center;gap:12px;animation:sube .4s var(--ease) backwards}
+  .isla-m .btn.pri{flex:1;height:52px;border-radius:999px;font-size:15px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 16px 32px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+  .isla-m.ticket{padding:8px 8px 8px 18px;border-radius:18px;color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 18px 36px -16px color-mix(in srgb,var(--sombra) 70%,transparent)}
+  .isla-m .cifra-i{flex:1;min-width:0}.isla-m .cifra-i b{display:block;font-family:'EB Garamond',serif;font-size:22px;font-weight:400;line-height:1.1}
+  .isla-m .cifra-i span{font-size:12px;color:color-mix(in srgb,var(--crema) 70%,transparent)}
+  .isla-m.ticket .btn{height:44px;padding:0 18px;color:var(--tinta);border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 82%,var(--hueso)))}
+  .pie-paso .btn:not(.volver){display:none}
+  .bus .btn{width:38px;padding:0;font-size:0;gap:0}
+  .tl-par{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;gap:10px!important}
+  [data-tl="talon"] .tl-par{grid-template-columns:minmax(0,1fr)!important;gap:0!important}
+  [data-tl="balanza"] .hilo-c{width:40px;height:40px}
+  .datos{grid-template-columns:1fr}
+  .grilla{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .pasos .et{font-size:11.5px}
+  [data-ps="pozo"] .pasos .et{display:none}[data-ps="pozo"] .pasos .actual .et{display:inline}
+}
+[data-tema="oscuro"] .isla-m.ticket .btn{color:var(--tinta)!important;border-color:color-mix(in srgb,var(--crema) 70%,transparent)!important;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 92%,transparent),var(--crema))!important}
+@container disp (max-width:420px){.ficha .mini{width:52px;height:52px}.ficha{padding:12px;gap:10px}.ficha b{font-size:16px}}
+@media (prefers-reduced-motion:reduce){.pasos .cosido{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Cambios y Devoluciones, con vidrio: las dos pantallas con las piezas elegidas</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pg"><button data-v="cambios">Cambios</button><button data-v="devoluciones">Devoluciones</button></div>
+  <span class="tag">Momento</span><div class="seg-m" data-ctl="mo"><button data-v="buscar">Buscar la venta</button><button data-v="elegir">Elegir</button><button data-v="confirmar">Confirmar</button></div>
+  <span class="tag">Paso a paso</span><div class="seg-m" data-ctl="ps"><button data-v="ahora">Como ahora</button><button data-v="hilo">A · Hilo de vidrio</button><button data-v="pozo">B · Pozo con gota</button></div>
+  <span class="tag">Trae y lleva</span><div class="seg-m" data-ctl="tl"><button data-v="ahora">Como ahora</button><button data-v="balanza">A · Balanza</button><button data-v="talon">B · Talón</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla-m" id="isla-m"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>Cambios</b> (<code>CambiosPanel</code>): la cabecera con los cambios de hoy, «Iniciar un cambio» con el buscador del mostrador (boleta, DNI, nombre o escanear) y si la caja está abierta; «Actividad reciente» con las compras de los últimos 15 días y sus filtros. Al elegir una compra, el paso a paso (<code>CambiosFlujo</code>): la prenda que trae, el reemplazo (el catálogo, con lo que revisa el sistema al costado) y confirmar (los datos, lo que trae y lo que lleva, la diferencia, quién lo registra y el botón rojo).</li>
+      <li><b>Devoluciones</b> (<code>DevolucionesPanel</code>): igual, con lo que espera (devoluciones por resolver), y el paso a paso: qué devuelve, cómo se le devuelve el dinero y confirmar.</li>
+      <li>En el celular (obligatorio, PL-105) la barra de abajo trae «Escanear prenda o boleta» y, al confirmar, la diferencia con su botón.</li>
+      <li><b>El paso a paso</b> es el hilo de Atelier: una línea punteada con nudos; lo cosido en tinta; el nudo hecho en <b>tinta sólida</b>. <b>Lo que trae y lo que lleva</b> son dos fichas de <b>papel</b> con el hilo del cambio entre ellas y la diferencia debajo.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Paso a paso</b></td><td>A · Hilo de vidrio <span class="ev">Recomendada</span></td><td>Conserva el hilo que se cose (es de la casa): la línea es una ranura, el nudo hecho es la gota ahumada y el de ahora, la gota clara con su halo.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Pozo con gota</td><td>Los tres pasos se leen como las pestañas, con la gota que viaja; más compacto en el celular.</td><td>Se pierde el hilo que se cose; un paso a paso se confunde con unas pestañas que se pueden tocar en cualquier orden.</td></tr>
+      <tr><td rowspan="2"><b>Trae y lleva</b></td><td>A · Balanza <span class="ev">Recomendada</span></td><td>Las dos prendas son sus fotos, como en Vender, una frente a la otra con ⇄; la diferencia es una gota que dice qué toca: ahumada si cobras, clara si devuelves.</td><td>Ocupa más alto que dos fichas en fila.</td></tr>
+      <tr><td>B · Talón</td><td>Una sola placa partida como un talón: arriba lo que trae, abajo lo que lleva, la diferencia al pie.</td><td>Las prendas quedan chicas y lo que trae y lo que lleva ya no se ven lado a lado.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Qué hace cada paso y su orden, lo que revisa el sistema al costado, la diferencia que se cobra o se devuelve, quién lo registra, el botón rojo del final (ahora la gota roja, como «Cerrar caja»), el escáner, los filtros de la actividad reciente, «solo cambios sin diferencia en efectivo» con la caja cerrada y, en el celular, la barra de abajo.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, PRENDAS…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', scan: 'M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 12h10',
+    flecha: 'M5 12h14M13 6l6 6-6 6', volver: 'M19 12H5M11 6l-6 6 6 6', ok: 'M20 6 9 17l-5-5', ojo: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+    cambio: 'M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4', efectivo: 'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z M10 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
+    celular: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01', nota: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M9 13h6 M9 17h4', check: 'M20 6 9 17l-5-5' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const P = (i) => PRENDAS[i];
+  const soles = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const COMPRAS = [
+    [[0, 3, 3], 'Blusa Emma, Polo Nube ×2', 'Mariela Quispe · B001-12907 · hace 2 días', [['verde', 'Boleta']]],
+    [[2], 'Vestido Ara', 'Jorge Salinas · F001-4820 · hace 3 días', [['verde', 'Factura'], ['pizarra', 'Ya tuvo un cambio']]],
+    [[5, 6], 'Falda Inti, Top Brisa', 'Sin cliente · hace 6 días', [['ambar', 'Sin comprobante']]],
+  ];
+  const PASOS = { cambios: ['La prenda que trae', 'Con qué la cambia', 'Confirmar'], devoluciones: ['Qué devuelve', 'Cómo le devuelves', 'Confirmar'] };
+  let elegida = 2;
+  function pasos(pg, n) {
+    return `<ol class="pasos" style="--av:${(n - 1) / 2}" aria-label="Pasos"><span class="base"></span><span class="cosido"></span>
+      ${PASOS[pg].map((t, i) => `<li class="${i + 1 < n ? 'hecho' : i + 1 === n ? 'actual' : ''}" ${i + 1 === n ? 'aria-current="step"' : ''}><span class="nudo">${i + 1 < n ? s(D.check) : i + 1}</span><span class="et">${t}</span></li>`).join('')}</ol>`;
+  }
+  function trae(pg) {
+    const dev = pg === 'devoluciones';
+    const a = `<div class="ficha trae"><span class="mini" data-color-dato style="--col:${P(0)[0]}"></span><div><small>${dev ? 'Devuelve' : 'Prenda que devuelve'}</small><b>Blusa Emma</b><span>Vino · talla S</span><em>${soles(129.9)}</em></div></div>`;
+    const b = dev ? `<div class="ficha"><span class="mini" style="--col:color-mix(in srgb,var(--verde) 70%,var(--vidrio))"></span><div><small>Le devuelves</small><b>En efectivo</b><span>de la caja de hoy</span><em>${soles(129.9)}</em></div></div>`
+      : `<div class="ficha"><span class="mini" data-color-dato style="--col:${P(2)[0]}"></span><div><small>Nueva prenda</small><b>Vestido Ara</b><span>Bosque · talla M</span><em>${soles(169.9)}</em></div></div>`;
+    const dif = dev ? `<div class="dif devuelve"><span>Le devuelves</span><b>${soles(129.9)}</b></div>` : `<div class="dif"><span>Diferencia a cobrar</span><b>${soles(40)}</b></div>`;
+    return `<div class="tl"><div class="tl-par">${a}<span class="hilo-c" aria-hidden="true">${s(D.cambio)}</span>${b}</div>${dif}</div>`;
+  }
+  function pantalla() {
+    const pg = estado.pg || 'cambios', mo = estado.mo || 'buscar', dev = pg === 'devoluciones';
+    const cab = encabezado({ sede: 'Trujillo', titulo: dev ? 'Devoluciones' : 'Cambios', frase: dev ? 'Una prenda que vuelve y el dinero que regresa.' : 'Una prenda por otra, con la diferencia que toque.', cifras: dev ? [['1', 'devoluciones hoy', 'caja'], ['1', 'por resolver', 'alerta', 1]] : [['3', 'cambios hoy', 'percha'], ['S/ 120', 'diferencia cobrada', 'caja']] });
+    let cuerpo = '';
+    if (mo === 'buscar') {
+      cuerpo = `${dev ? `<section class="seccion"><div><h2>Por resolver</h2><p class="baj">Devoluciones que esperan algo de ti.</p></div>
+          <div class="placa compras"><div class="compra"><span class="pila"><span class="mini" data-color-dato style="--col:${P(7)[0]}"></span></span><div style="min-width:0"><p class="pr">Saco Malva</p><p class="mt">Rosa Chávez · ayer</p></div><div class="ch"><span class="chip ambar">Falta devolver el dinero</span></div><button class="btn pri">Resolver ${s(D.flecha)}</button></div></div></section>` : ''}
+        <section class="seccion"><h2>${dev ? 'Iniciar una devolución' : 'Iniciar un cambio'}</h2>
+          <div class="bus">${s(D.lupa)}<span>Boleta, DNI, nombre del cliente o prenda</span><button class="btn sec">${s(D.scan)}Escanear</button></div>
+          <div class="caja-e"><span class="chip">Caja abierta</span>una diferencia en efectivo entra a la caja de hoy</div></section>
+        <section class="seccion"><div class="fila-t"><div><h2>Actividad reciente</h2><p class="baj">Compras de los últimos 15 días en Trujillo: las que todavía se pueden ${dev ? 'devolver' : 'cambiar'}.</p></div>
+          <div class="filtros"><button class="fp" aria-pressed="true">Todas <small>12</small></button><button class="fp">Con cambio <small>2</small></button><button class="fp">Sin comprobante <small>3</small></button></div></div>
+          <div class="placa compras">${COMPRAS.map(([cols, pr, mt, chips]) => `<div class="compra"><span class="pila">${cols.slice(0, 2).map((i) => `<span class="mini" data-color-dato style="--col:${P(i)[0]}"></span>`).join('')}</span>
+            <div style="min-width:0"><p class="pr">${pr}</p><p class="mt">${mt}</p></div><div class="ch">${chips.map(([t, x]) => `<span class="chip ${t}">${x}</span>`).join('')}</div><button class="btn sec" data-ir="elegir">${dev ? 'Devolver' : 'Cambiar'} ${s(D.flecha)}</button></div>`).join('')}</div></section>`;
+    } else {
+      const n = mo === 'elegir' ? 2 : 3;
+      let paso = '';
+      if (mo === 'elegir' && !dev) {
+        const OPC = [[2, 'Vestido Ara', 'Bosque', 169.9, ['S', 'M', 'L']], [13, 'Vestido Rubí', 'Rubí', 189.9, ['S', 'M']], [0, 'Blusa Emma', 'Vino', 129.9, ['M', 'L']], [10, 'Blusa Coral', 'Coral', 139.9, ['S', 'M', 'L']]];
+        paso = `<div class="dos"><div style="display:grid;gap:16px">
+            <div class="placa trae-mini"><span class="mini" data-color-dato style="--col:${P(0)[0]}"></span><div><small>Trae</small>Blusa Emma · Vino · talla S · ${soles(129.9)}</div></div>
+            <div class="bus">${s(D.lupa)}<span>Busca la prenda que se lleva</span></div>
+            <div class="grilla">${OPC.map(([i, nom, col, pr, tallas], k) => `<div class="tp${k === 0 ? ' elegida' : ''}"><span class="foto" data-color-dato style="--col:${P(i)[0]}"></span><div><p class="nom">${nom}</p><p class="res">${col}</p></div>
+              <div class="tallas">${tallas.map((t) => `<button class="talla" ${k === 0 && t === 'M' ? 'aria-pressed="true"' : ''}>${t}</button>`).join('')}<button class="talla" disabled>XL</button></div><p class="precio">${soles(pr)}</p></div>`).join('')}</div></div>
+          <aside class="placa valid"><h3>Lo que revisa el sistema</h3><ul style="display:grid;gap:12px">
+            <li>${s(D.ok)}<span>La compra tiene 2 días: se puede cambiar (hasta 15).</span></li><li>${s(D.ok)}<span>Vestido Ara talla M: hay 3 en el piso.</span></li>
+            <li class="ojo">${s(D.ojo)}<span>Cuesta ${soles(40)} más: se cobra la diferencia.</span></li></ul></aside></div>`;
+      } else if (mo === 'elegir') {
+        paso = `<div class="dos"><div class="placa" style="padding:8px 16px"><div class="lineas">${[[0, 'Blusa Emma', 'Vino · talla S', 129.9, 1], [3, 'Polo Nube', 'Arena · talla M', 59.9, 0], [3, 'Polo Nube', 'Arena · talla M', 59.9, 0]].map(([i, nom, det, pr, on]) => `<div class="linea-d"><span class="casilla" role="checkbox" aria-checked="${!!on}">${on ? s(D.check) : ''}</span><span class="mini" data-color-dato style="--col:${P(i)[0]}"></span><span class="tx"><b>${nom}</b><small>${det}</small></span><span class="m">${soles(pr)}</span></div>`).join('')}</div></div>
+          <aside style="display:grid;gap:10px"><h3 style="font-size:14px;font-weight:700">Cómo le devuelves el dinero</h3><div class="opciones">
+            ${[['efectivo', 'En efectivo', 'De la caja de hoy', 1], ['celular', 'Por Yape', 'Al mismo número', 0], ['nota', 'Nota de crédito', 'Para una próxima compra', 0]].map(([ic, t, d, on]) => `<button class="opcion" aria-pressed="${!!on}">${s(D[ic])}<span><b>${t}</b><small>${d}</small></span></button>`).join('')}</div></aside></div>`;
+      } else {
+        paso = `<div class="dos"><div style="display:grid;gap:18px"><dl class="datos placa" style="padding:18px 20px"><div><dt>Venta</dt><dd>B001-12907 · 29 de octubre</dd></div><div><dt>Cliente</dt><dd>Mariela Quispe</dd></div>
+            <div><dt>Se registra en</dt><dd>Trujillo</dd></div><div><dt>Lo registra</dt><dd>Lucía Ramos</dd></div><div><dt>Motivo</dt><dd>${dev ? 'No le gustó' : 'Talla'}</dd></div><div><dt>La prenda que trae</dt><dd>Impecable: vuelve al piso</dd></div></dl>
+            ${trae(pg)}</div>
+          <aside class="placa valid"><h3>Lo que revisa el sistema</h3><ul style="display:grid;gap:12px"><li>${s(D.ok)}<span>${dev ? 'La compra tiene 2 días: se puede devolver.' : 'Todo listo para registrar.'}</span></li><li>${s(D.ok)}<span>La caja está abierta: ${dev ? 'el efectivo sale' : 'la diferencia entra'} a la de hoy.</span></li></ul></aside></div>`;
+      }
+      cuerpo = `<div class="flujo"><div class="flujo-top"><button class="volver" data-ir="${mo === 'confirmar' ? 'elegir' : 'buscar'}" aria-label="Volver" title="Volver">${s(D.volver)}</button><span>Paso ${n} de 3 · <b>${PASOS[pg][n - 1]}</b></span></div>
+        ${pasos(pg, n)}<h2>${mo === 'confirmar' ? (dev ? 'Revisa y registra la devolución' : 'Revisa y registra el cambio') : dev ? 'Lo que devuelve y cómo le devuelves el dinero' : 'Elige con qué la cambia'}</h2>${paso}
+        <div class="pie-paso"><span></span>${mo === 'confirmar' ? `<button class="btn rojo-g">${s(D.check)}${dev ? `Registrar y devolver ${soles(129.9)}` : `Registrar y cobrar ${soles(40)}`}</button>` : `<button class="btn pri" data-ir="confirmar">Seguir ${s(D.flecha)}</button>`}</div></div>`;
+    }
+    $('#cont').innerHTML = cab + cuerpo;
+    const isla = $('#isla-m');
+    if (mo === 'buscar') { isla.className = 'isla-m'; isla.innerHTML = `<button class="btn pri">${s(D.scan)}Escanear prenda o boleta</button>`; }
+    else if (mo === 'elegir') { isla.className = 'isla-m'; isla.innerHTML = `<button class="btn pri" data-ir="confirmar">Seguir ${s(D.flecha)}</button>`; }
+    else { isla.className = 'isla-m ticket'; isla.innerHTML = `<span class="cifra-i"><b>${dev ? soles(129.9) : soles(40)}</b><span>${dev ? 'le devuelves en efectivo' : 'diferencia a cobrar'}</span></span><button class="btn">${dev ? 'Devolver' : 'Cobrar'}</button>`; }
+  }
+  document.addEventListener('click', (e) => {
+    const ir = e.target.closest('[data-ir]'); if (ir) { estado.mo = ir.dataset.ir; pintar(); return; }
+    const t = e.target.closest('.talla:not(:disabled)'); if (t) { const tp = t.closest('.tp'); $$('.tp').forEach((x) => x.classList.remove('elegida')); $$('.talla').forEach((x) => x.removeAttribute('aria-pressed')); tp.classList.add('elegida'); t.setAttribute('aria-pressed', 'true'); return; }
+    const c = e.target.closest('.linea-d'); if (c) { const k = $('.casilla', c), on = k.getAttribute('aria-checked') !== 'true'; k.setAttribute('aria-checked', on); k.innerHTML = on ? s(D.check) : ''; return; }
+    const o = e.target.closest('.opcion'); if (o) { $$('.opcion').forEach((x) => x.setAttribute('aria-pressed', x === o)); }
+  });
+  Marco.iniciar({ estado: { pg: 'cambios', mo: 'buscar', ps: 'hilo', tl: 'balanza' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>
