@@ -6,6 +6,8 @@ import { useEffect, type RefObject } from "react";
  * El menú lateral usa el alto que tiene (Felipe 2026-10-31, ADR-0596: «hay mucho espacio debajo que se puede aprovechar para que estén
  * más holgados los módulos, y que se acomoden siempre cada vez que se desplieguen los submódulos»).
  *
+ * (Desde el 2026-11-02, con el menú abierto las filas quedan fijas en 40 px y sin aire; el reparto de abajo solo sigue vivo plegado.)
+ *
  * Las filas de primer nivel no tienen un alto fijo: se reparten el alto del `<nav>`. Con el menú cerrado crecen hasta 56 px (plegado,
  * hasta 66) y lo que sobra se vuelve aire entre ellas (hasta 14 px; plegado, 8); al abrir un módulo, su bandeja toma lo que necesita y las demás filas
  * se comprimen hasta su mínimo (40 px; plegado, 54), y recién ahí el menú corre. Se recalcula CUADRO A CUADRO mientras una bandeja crece
@@ -28,7 +30,9 @@ export function useMenuHolgado(navRef: RefObject<HTMLElement | null>, alAcomodar
       const n = filas.length;
       if (!n || !grupos.length) return;
       const compacto = nav.closest("[data-compacto]") !== null;
-      const [minimo, maximo, aireMaximo] = compacto ? [54, 66, 8] : [40, 56, 14];
+      // Menú abierto: las filas ya no crecen (Felipe 2026-11-02: «deben estar de ese tamaño por defecto sin desplegar para que, cuando se
+      // expanda, no se haga pequeño»): mínimo = máximo = 40 px y sin aire, el mismo alto antes y después de abrir un módulo.
+      const [minimo, maximo, aireMaximo] = compacto ? [54, 66, 8] : [40, 40, 0];
       const estilo = getComputedStyle(nav);
       const disponible = nav.clientHeight - parseFloat(estilo.paddingTop) - parseFloat(estilo.paddingBottom);
       // Lo que NO son filas de primer nivel (bandejas abiertas, títulos de grupo, el espacio entre grupos): se mide lo que hay y se le
