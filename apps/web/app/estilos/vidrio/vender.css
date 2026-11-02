@@ -533,22 +533,6 @@
   outline-offset: 3px;
   border-radius: 1.1rem;
 }
-/* Los campos de texto sueltos de la hoja («Detalle del motivo», «Argumento») son `caja-campo-input`, que todavía lleva el hueso SÓLIDO de antes del
-   vidrio (la receta del pozo se escribió para la `caja-cayla`, no para el <input> suelto). Aquí toman el pozo, como «Otro»: hundido y
-   translúcido, y al escribir sube sin volverse sólido (Felipe 2026-11-02). El resto del ERP no se toca: ese pozo para todo `caja-campo-input`
-   es decisión de /unificar. */
-.pv-desc-cuerpo .caja-campo-input {
-  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
-  border-radius: 14px;
-  background-color: var(--pozo-fondo);
-  box-shadow: var(--pozo-sombra);
-  transition: background-color 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
-}
-.pv-desc-cuerpo .caja-campo-input:focus {
-  border-color: var(--color-borde-control);
-  background-color: color-mix(in srgb, var(--color-vidrio) 38%, transparent);
-  box-shadow: var(--pozo-encendido-sombra);
-}
 /* El segmento «Porcentaje | Monto en S/» a lo ancho de su paso, con cada opción a media caja: un blanco cómodo de tocar. */
 .segmento-cayla.pv-desc-modo {
   display: flex;
