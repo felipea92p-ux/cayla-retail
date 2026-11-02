@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-cl="hunde" data-gd="visto">
+<html lang="es" data-tema="claro" data-cl="pozo" data-gd="visto">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -98,8 +98,8 @@
 
 <div class="spk">
   <span class="titulo">Configuración, con vidrio</span>
-  <span class="tag">La casilla</span><div class="seg-m" data-ctl="cl"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo en la celda</button><button data-v="hunde">B · Se hunde al tocar</button></div>
-  <span class="tag">Al guardarse</span><div class="seg-m" data-ctl="gd"><button data-v="ahora">Como ahora (aviso en la esquina)</button><button data-v="visto">A · Visto en la celda</button><button data-v="hilo">B · Hilo verde</button></div>
+  <span class="tag">La casilla</span><div class="seg-m" data-ctl="cl"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo en la celda ✓</button><button data-v="hunde">B · Se hunde al tocar</button></div>
+  <span class="tag">Al guardarse</span><div class="seg-m" data-ctl="gd"><button data-v="ahora">Como ahora (aviso en la esquina)</button><button data-v="visto">A · Visto en la celda ✓</button><button data-v="hilo">B · Hilo verde</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
@@ -126,13 +126,13 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>La casilla</b></td><td>A · Pozo en la celda</td><td>El campo de las hojas, en chico: siempre se ve qué se puede tocar; al tocarla sube a vidrio con su hilo rojo.</td><td>Siguen siendo 40 cajas (hundidas) en la pantalla.</td></tr>
-      <tr><td>B · Se hunde al tocar <span class="ev">Recomendada</span></td><td>Como una planilla de cálculo: en reposo el número es texto con un subrayado punteado («se puede cambiar»); al pasar el mouse aparece el pozo y al tocarlo se enciende. La planilla se lee como una tabla, no como un formulario. En el celular (sin mouse) el pozo queda siempre a la vista.</td><td>Hay que acercar el mouse para ver la caja; lo dice el subrayado.</td></tr>
-      <tr><td rowspan="2"><b>Al guardarse</b></td><td>A · Visto en la celda <span class="ev">Recomendada</span></td><td>Un ✓ verde se dibuja junto al número que cambiaste y se va solo: dice qué se guardó, ahí mismo. El aviso de la esquina deja de hacer falta para esto.</td><td>Un movimiento por cada casilla que guardas (corto: 1,6 s).</td></tr>
+      <tr><td rowspan="2"><b>La casilla</b></td><td>A · Pozo en la celda <span class="ev">Elegida</span></td><td>El campo de las hojas, en chico: siempre se ve qué se puede tocar; al tocarla sube a vidrio con su hilo rojo.</td><td>Siguen siendo 40 cajas (hundidas) en la pantalla.</td></tr>
+      <tr><td>B · Se hunde al tocar</td><td>Como una planilla de cálculo: en reposo el número es texto con un subrayado punteado («se puede cambiar»); al pasar el mouse aparece el pozo y al tocarlo se enciende. La planilla se lee como una tabla, no como un formulario. En el celular (sin mouse) el pozo queda siempre a la vista.</td><td>Hay que acercar el mouse para ver la caja; lo dice el subrayado.</td></tr>
+      <tr><td rowspan="2"><b>Al guardarse</b></td><td>A · Visto en la celda <span class="ev">Elegida</span></td><td>Un ✓ verde se dibuja junto al número que cambiaste y se va solo: dice qué se guardó, ahí mismo. El aviso de la esquina deja de hacer falta para esto.</td><td>Un movimiento por cada casilla que guardas (corto: 1,6 s).</td></tr>
       <tr><td>B · Hilo verde</td><td>El hilo rojo de la casilla pasa a verde y se recoge, como en los campos de las hojas: nada nuevo.</td><td>Más discreto: si no miras la casilla al salir, no lo ves.</td></tr>
     </table>
-    <h3>Recomendación</h3>
-    <p><b>Casilla B · Se hunde al tocar y al guardarse A · Visto en la celda.</b> Cambia un número y sal de la casilla (con Tab o tocando afuera).</p>
+    <h3>Lo que eligió Felipe (2026-11-02)</h3>
+    <p><b>Casilla A · Pozo en la celda y al guardarse A · Visto en la celda</b> (en la casilla se recomendaba la B). Cambia un número y sal de la casilla (con Tab o tocando afuera).</p>
     <h3>Lo que no cambia</h3>
     <p>Que cada casilla se guarde sola al salir, a nombre del responsable, y quede en la historia; lo que vuelve a su valor si la base dice que no; las pestañas y quién ve cada una; Impuestos, Caja y avisos y el reparto con Claure.</p>
   </section>
@@ -166,7 +166,7 @@ document.addEventListener('focusout', (ev) => {
   if (!document.documentElement.dataset.gd) { $$('.av-esq').forEach((a) => a.remove()); $('#disp').insertAdjacentHTML('beforeend', `<div class="av-esq" role="status"><i></i>Se guardó: ${i.getAttribute('aria-label')}</div>`); setTimeout(() => $$('.av-esq').forEach((a) => a.remove()), 2600); }
 });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && ev.target.closest('.cas input')) ev.target.blur(); });
-Marco.iniciar({ estado: { cl: 'hunde', gd: 'visto' }, alPintar: () => pintarG() });
+Marco.iniciar({ estado: { cl: 'pozo', gd: 'visto' }, alPintar: () => pintarG() });
 </script>
 </body>
 </html>

@@ -27,3 +27,7 @@ En Chrome sin ventana: 54 combinaciones (320 a 1920 px, claro y oscuro, las tres
 dibuja su ✓. La planilla mira el ancho de su placa (`@container cfg`), no el del aparato: al angostarse se van primero WhatsApp y la hora de
 cierre, después las metas por día, y bajo 560 px pasa a una tarjeta por tienda con cada casilla nombrada (las metas, de a dos). En Chrome
 el subrayado de texto no se dibuja dentro de un `<input>`: la línea de puntos de B es un fondo.
+
+## Lo que decidió Felipe
+
+**Casilla A · Pozo en la celda y al guardarse A · Visto en la celda** (2026-11-02). En la casilla se recomendaba la B.
