@@ -32,3 +32,9 @@
   `apps/web`.
 - **Lo que eligió Felipe en Caja (2026-11-02):** titular A · Ahumado y barra de cierre B · Isla (en la barra no tomó la recomendada). La isla
   pierde la bajada de cada nivel: queda anotado en el README para quien implemente.
+- **Historial de ventas, página entera (2026-11-02)** (me la pasó la otra sesión): maqueta `docs/maquetas/historial-ventas-vidrio-2026-11/`,
+  armada solo con las piezas elegidas (también el separador de día B · Gotas que flotan). Caras de lo propio: la línea del tiempo
+  (A · Hilo de vidrio, recomendada; B · Solo los días en gota) y la pila de prendas (A · Lentes apiladas, recomendada; B · Bandeja). Medida
+  de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en Historial (2026-11-02):** línea del tiempo B · Solo los días en gota (no tomó la recomendada) y pila de prendas
+  A · Lentes apiladas. Lo mandó con el botón «Copiar mi selección», mirando en claro.

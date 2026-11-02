@@ -74,8 +74,10 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Íconos del contenido (lucide) | `lib/iconos.ts` (477 archivos) | En código | A · Duotono en los de 20 (y los dibujos grandes); 12, 14 y 16 px, solo línea | `iconos-vidrio-2026-11/` |
 | Página · Punto de Venta (`/vender`) | `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx`, `PuntoDeVentaTicket.tsx`, `punto-de-venta/TarjetaPrenda.tsx` | En código | La mesa A · Catálogo al aire, ticket en placa; tarjeta de prenda B · Foto al aire | `vender-vidrio-2026-11/` |
 | Página · Existencias (Inventario) | `ExistenciasTarjetas.tsx`, `existencias/ParaHoy.tsx`, `FiltrosRapidos.tsx`, `PieTarjeta.tsx` | En código (falta la talla en cero) | Vitrina A · Translúcida, sin desenfoque; tira A · Pozo de vidrio; talla en cero: A · Lente que pide o B · Hueco por llenar, por elegir | `existencias-vidrio-2026-11/` |
+| Página · Catálogo ▸ Productos | `ProductosGrilla.tsx`, `ProductosTabla.tsx`, `FiltrosProductos.tsx` | En maqueta | — (recomendadas: tarjeta A · Foto al aire y modo A · Pozo y gota) | `productos-vidrio-2026-11/` |
 | **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | En código | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 | **Caja** (página entera: `app/(app)/caja`, vista «hoy contra ayer») | `CajaAbiertaPanel`, `CajaComparativa`, `BarraCierreCaja` | En código (armada con las piezas elegidas) | Titular A · Ahumado; barra de cierre B · Isla (píldora al centro, sin la bajada); «Cerrar caja» en gota roja | `caja-vidrio-2026-11/` |
+| **Historial de ventas** (página entera: `app/(app)/vender/historial`) | `HistorialVentasLista`, `HistorialVentasPulso`, `FiltrosHistorialVentas`, `AvisosHistorial` | Elegido (armada con las piezas elegidas) | Línea del tiempo B · Solo los días en gota (sin hilo; el día con `SeparadorDia` B); pila de prendas A · Lentes apiladas | `historial-ventas-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
