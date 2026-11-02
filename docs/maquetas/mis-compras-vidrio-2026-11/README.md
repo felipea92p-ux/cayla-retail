@@ -35,4 +35,4 @@ que nada se salga.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**La billetera A · Ahumada y «¿Qué hiciste?» A · Gota grande** (2026-11-02), las recomendadas.
