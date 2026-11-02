@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-lt="hilo" data-pp="lentes">
+<html lang="es" data-tema="claro" data-lt="gotas" data-pp="lentes">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -191,8 +191,8 @@
 
 <div class="spk">
   <span class="titulo">Ventas ▸ Historial, con vidrio: la página entera con las piezas elegidas</span>
-  <span class="tag">Línea del tiempo</span><div class="seg-m" data-ctl="lt"><button data-v="ahora">Como ahora</button><button data-v="hilo">A · Hilo de vidrio</button><button data-v="gotas">B · Solo los días en gota</button></div>
-  <span class="tag">Pila de prendas</span><div class="seg-m" data-ctl="pp"><button data-v="ahora">Como ahora</button><button data-v="lentes">A · Lentes apiladas</button><button data-v="bandeja">B · Bandeja</button></div>
+  <span class="tag">Línea del tiempo</span><div class="seg-m" data-ctl="lt"><button data-v="ahora">Como ahora</button><button data-v="hilo">A · Hilo de vidrio</button><button data-v="gotas">B · Solo los días en gota ✓</button></div>
+  <span class="tag">Pila de prendas</span><div class="seg-m" data-ctl="pp"><button data-v="ahora">Como ahora</button><button data-v="lentes">A · Lentes apiladas ✓</button><button data-v="bandeja">B · Bandeja</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
@@ -220,11 +220,13 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>Línea del tiempo</b></td><td>A · Hilo de vidrio <span class="ev">Recomendada</span></td><td>Se conserva lo que hace única esta pantalla (los días como paradas de un recorrido), ahora como una ranura tallada con una gota por día, y la de hoy con su punto rojo. El día y su total son las gotas del separador elegido y se quedan arriba al bajar.</td><td>44 px de la izquierda siguen ocupados por el hilo (en el celular no se dibuja, como hoy).</td></tr>
-      <tr><td>B · Solo los días en gota</td><td>Sin hilo: la lista gana el ancho y el día se lee igual por su gota, como el separador de Mensajes.</td><td>Se pierde la idea de recorrido; el Historial se parece a cualquier otra lista con días.</td></tr>
-      <tr><td rowspan="2"><b>Pila de prendas</b></td><td>A · Lentes apiladas <span class="ev">Recomendada</span></td><td>Cada prenda es una lente redonda con su luz y un aro de vidrio (no un recorte de papel); el «×2» es el globito de la esquina ya elegido y el «+3», una gota clara.</td><td>Lo redondo recorta las esquinas de una foto de prenda: se ve un poco menos de la prenda.</td></tr>
+      <tr><td rowspan="2"><b>Línea del tiempo</b></td><td>A · Hilo de vidrio</td><td>Se conserva lo que hace única esta pantalla (los días como paradas de un recorrido), ahora como una ranura tallada con una gota por día, y la de hoy con su punto rojo. El día y su total son las gotas del separador elegido y se quedan arriba al bajar.</td><td>44 px de la izquierda siguen ocupados por el hilo (en el celular no se dibuja, como hoy).</td></tr>
+      <tr><td>B · Solo los días en gota <span class="ev">Elegida</span></td><td>Sin hilo: la lista gana el ancho y el día se lee igual por su gota, como el separador de Mensajes.</td><td>Se pierde la idea de recorrido; el Historial se parece a cualquier otra lista con días.</td></tr>
+      <tr><td rowspan="2"><b>Pila de prendas</b></td><td>A · Lentes apiladas <span class="ev">Elegida</span></td><td>Cada prenda es una lente redonda con su luz y un aro de vidrio (no un recorte de papel); el «×2» es el globito de la esquina ya elegido y el «+3», una gota clara.</td><td>Lo redondo recorta las esquinas de una foto de prenda: se ve un poco menos de la prenda.</td></tr>
       <tr><td>B · Bandeja</td><td>Las prendas no se tapan entre sí: van de a una en una bandeja hundida.</td><td>Ocupa más ancho (en el celular baja a su propia línea) y «hundido» dice «espera tu dato» en el resto del ERP.</td></tr>
     </table>
+    <h3>Lo que decidió Felipe (2026-11-02): B y A</h3>
+    <p><b>Línea del tiempo B · Solo los días en gota y pila de prendas A · Lentes apiladas.</b> Sin hilo: el día y su total son las gotas del separador elegido, que se quedan arriba al bajar, y la lista gana el ancho; cada prenda es una lente con su aro de vidrio y el «×2», el globito de la esquina.</p>
     <h3>Lo que no cambia</h3>
     <p>Qué dice cada venta (las prendas, el cliente, la hora, la sede, quién vendió, el comprobante y su estado, los pagos), la venta anulada tachada y apagada, los totales por día, el buscador que mira todas las fechas, los filtros y su orden, que los avisos no se cierran mientras el problema siga, el pulso al costado desde 1280 px (debajo en pantallas más chicas) y el buscador fijo en el celular.</p>
   </section>
@@ -303,7 +305,7 @@
       </aside></div>`;
   }
   document.addEventListener('click', (e) => { if (e.target.closest('#cont a')) e.preventDefault(); });
-  Marco.iniciar({ estado: { lt: 'hilo', pp: 'lentes' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+  Marco.iniciar({ estado: { lt: 'gotas', pp: 'lentes' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
 })();
 </script>
 </body>

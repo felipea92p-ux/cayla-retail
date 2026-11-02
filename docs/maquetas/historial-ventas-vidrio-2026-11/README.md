@@ -13,10 +13,10 @@ gráficos B · Tinta sobre vidrio, separador de día B · Gotas que flotan, «Ve
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | La línea del tiempo (`HistorialVentasLista`) | Como ahora | Hilo taupe a la izquierda, un punto por día, el día y su total sobre una tarjeta de papel. |
-| | **A · Hilo de vidrio** (recomendada) | El hilo es una ranura tallada con una gota por día (la de hoy, con su punto rojo); el día y su total, las gotas del separador elegido, que se quedan arriba al bajar; la tarjeta, la placa Serena. |
-| | B · Solo los días en gota | Sin hilo: las gotas del día y la placa a todo lo ancho. |
+| | A · Hilo de vidrio | El hilo es una ranura tallada con una gota por día (la de hoy, con su punto rojo); el día y su total, las gotas del separador elegido, que se quedan arriba al bajar; la tarjeta, la placa Serena. |
+| | **B · Solo los días en gota** (elegida) | Sin hilo: las gotas del día y la placa a todo lo ancho. |
 | La pila de prendas | Como ahora | Miniaturas de 40 px encimadas, «×2» en tinta sólida, «+3» en arena. |
-| | **A · Lentes apiladas** (recomendada) | Cada prenda, una lente redonda con su luz y un aro de vidrio; «×2», el globito de la esquina elegido; «+3», una gota clara. |
+| | **A · Lentes apiladas** (elegida) | Cada prenda, una lente redonda con su luz y un aro de vidrio; «×2», el globito de la esquina elegido; «+3», una gota clara. |
 | | B · Bandeja | Las prendas de a una, cuadradas, en una bandeja hundida. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -35,4 +35,11 @@ Medida de 320 a 1920 px sin que nada se salga.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: línea del tiempo B · Solo los días en gota y pila de prendas A · Lentes apiladas** (en la línea del tiempo no tomó la
+recomendada). Al implementar en `HistorialVentasLista`:
+- Se quita el hilo vertical (`hilo-vertical`) con su punto por día y el `sm:pl-11` que le hacía lugar: la lista va a todo el ancho.
+- El encabezado de cada día pasa a `<SeparadorDia>` con su cara elegida (B · Gotas que flotan): el día y su total son dos gotas que se quedan
+  arriba al bajar, bajo la cabecera de la app; la de hoy, con su punto rojo.
+- La tarjeta de cada día (`bg-papel ring-1`) pasa a la placa Serena.
+- La pila (`PilaDePrendas`): cada miniatura es redonda, con su luz arriba y un aro de vidrio en vez del `ring-2 ring-papel`; el «×N», el
+  `<Globito esquina>` elegido (la gota ahumada); el «+N», una gota clara. El color o la foto de la prenda es dato y no cambia con el tema.
