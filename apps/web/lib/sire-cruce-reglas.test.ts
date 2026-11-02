@@ -63,7 +63,7 @@ describe("cruzarCompras", () => {
 
   it("una factura en papel no es un error: va aparte", () => {
     const r = cruzarCompras([], [erp({ serie: "0001", numero: "15", ruc: "20100000001", total: 118 })]);
-    expect(r.lineas[0]).toMatchObject({ estado: "papel", motivo: expect.stringContaining("Factura en papel") });
+    expect(r.lineas[0]).toMatchObject({ estado: "papel", motivo: expect.stringContaining("en papel") });
     expect(r.resumen.solo_erp.n).toBe(0);
   });
 
@@ -155,5 +155,45 @@ describe("resolver una diferencia", async () => {
     const forma = /^[0-9A-Z]{2}\|[^|]{1,20}\|[0-9]{1,20}\|[0-9A-Z]{0,20}$/;
     for (const l of base.lineas) expect(l.clave).toMatch(forma);
     expect(claveComprobante("1", "f001", "000", null)).toMatch(forma);
+  });
+});
+
+describe("cruzarVentas (actividad 3)", async () => {
+  const { cruzarVentas, comprobantesDeVentas, decisionesPara } = await import("./sire-cruce-reglas");
+  type FV = import("./impuestos-reglas").FilaRegistroVentas;
+  const venta = (p: Partial<FV>): FV => ({
+    fecha: "2026-10-05", tipo: "boleta", serie: "B001", numero: 1, clienteTipoDoc: "1", clienteNumDoc: "40000001", clienteNombre: "Cliente Inventado",
+    base: 100, igv: 18, total: 118, estado: "aceptado", anulado: false, refFecha: null, refTipo: null, refSerie: null, refNumero: null, tienda: "Lima", observacion: null, ...p,
+  });
+
+  it("empareja por serie y número aunque SUNAT traiga otro documento del cliente", () => {
+    const r = cruzarVentas([sunat({ tipo: "03", serie: "B001", numero: "00000001", docNumero: "-", total: 118 })], comprobantesDeVentas([venta({})]));
+    expect(r.lineas.map((l) => l.estado)).toEqual(["coincide"]);
+  });
+
+  it("lo que SUNAT tiene y el ERP no se emitió por fuera", () => {
+    const r = cruzarVentas([sunat({ tipo: "01", serie: "F009", numero: "5", docNumero: "20100000001", total: 590 })], []);
+    expect(r.lineas[0]).toMatchObject({ estado: "solo_sunat", motivo: expect.stringContaining("fuera del ERP") });
+  });
+
+  it("lo que SUNAT no tiene dice en qué estado lo dejó Lucode", () => {
+    const r = cruzarVentas([], comprobantesDeVentas([venta({ estado: "pendiente_reintento" }), venta({ numero: 2 })]));
+    expect(r.lineas.map((l) => l.motivo)).toEqual([
+      expect.stringContaining("«pendiente reintento»"),
+      expect.stringContaining("El ERP dice que SUNAT lo aceptó"),
+    ]);
+  });
+
+  it("anulado en el ERP: si SUNAT no lo trae cuadra; si lo trae vigente, la baja no llegó", () => {
+    const anulada = venta({ anulado: true, base: 0, igv: 0, total: 0 });
+    expect(cruzarVentas([], comprobantesDeVentas([anulada])).lineas[0]!.estado).toBe("coincide");
+    const r = cruzarVentas([sunat({ tipo: "03", serie: "B001", numero: "1", docNumero: null, total: 118 })], comprobantesDeVentas([anulada]));
+    expect(r.lineas[0]).toMatchObject({ estado: "montos", motivo: expect.stringContaining("la baja no llegó") });
+  });
+
+  it("las notas de venta internas no se comparan; las decisiones son las de vender", () => {
+    expect(comprobantesDeVentas([venta({ tipo: "nota_venta" })])).toEqual([]);
+    expect(decisionesPara("solo_erp", "ventas").map((d) => d.decision)).toEqual(["otro_mes", "revisada"]);
+    expect(decisionesPara("solo_sunat", "ventas").map((d) => d.decision)).not.toContain("pedida_al_proveedor");
   });
 });

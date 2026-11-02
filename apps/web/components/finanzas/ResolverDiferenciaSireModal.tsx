@@ -61,7 +61,7 @@ export function ResolverDiferenciaSireModal({ registro, mes, pedido, onClose }: 
   return (
     <Modal
       titulo={deshacer ? `Deshacer lo resuelto de ${comprobante}` : pedido.opcion.texto}
-      subtitulo={`${l.nombre} · RUC ${l.ruc ?? "sin RUC"}`}
+      subtitulo={l.ruc ? `${l.nombre} · RUC ${l.ruc}` : l.nombre}
       onClose={onClose}
       variante="hoja"
     >

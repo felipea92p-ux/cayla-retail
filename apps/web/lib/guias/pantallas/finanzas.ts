@@ -1786,7 +1786,7 @@ export const GUIA_FIN_SIRE: Guia = {
   id: "finanzas.impuestos.sire",
   ruta: "/finanzas/impuestos/sire",
   titulo: "Comparar con SUNAT",
-  resumen: "La propuesta de compras que arma SUNAT, contra lo registrado en el ERP: qué cuadra y qué no, antes de que el contador la acepte.",
+  resumen: "Las propuestas de compras y de ventas que arma SUNAT, contra lo registrado en el ERP: qué cuadra y qué no, antes de que el contador las acepte.",
   pasos: [
     {
       id: "bienvenida",
@@ -1795,6 +1795,12 @@ export const GUIA_FIN_SIRE: Guia = {
       texto: "Cada mes SUNAT arma la lista de facturas que los proveedores emitieron a nombre de CAYLA. Aquí la comparas con lo registrado, antes de que el contador la acepte. Es una demo: no se sube ni se guarda nada.",
     },
     ...TELAR,
+    {
+      id: "registros",
+      ancla: "fin-sire.registros",
+      titulo: "Compras o ventas",
+      texto: "Compras compara las facturas que te emitieron los proveedores: ahí se esconde el IGV que no se descuenta. Ventas compara lo que enviaste por Lucode: ahí se ve lo que no llegó a SUNAT o se emitió por fuera.",
+    },
     {
       id: "subir",
       ancla: "fin-sire.subir",
@@ -1820,7 +1826,7 @@ export const GUIA_FIN_SIRE: Guia = {
       ancla: "fin-sire.cifras",
       opcional: true,
       titulo: "Cuántas en cada caso",
-      texto: "Lo que SUNAT no tiene (su IGV no se descuenta), lo que falta en el ERP, los montos distintos y lo que cuadra. Toca una cifra para ver solo esas en la lista.",
+      texto: "Lo que SUNAT no tiene, lo que falta en el ERP, los montos distintos y lo que cuadra. Toca una cifra para ver solo esas en la lista; lo que cuadra no se lista hasta que tocas su cifra.",
     },
     {
       id: "lista",

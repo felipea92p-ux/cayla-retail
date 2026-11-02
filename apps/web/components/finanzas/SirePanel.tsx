@@ -9,6 +9,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { SubirPropuestaSireModal } from "@/components/finanzas/SubirPropuestaSireModal";
@@ -30,19 +31,39 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 const TIPO: Record<string, string> = { "01": "Factura", "03": "Boleta", "07": "Nota de crédito", "08": "Nota de débito" };
 
 const ESTADO: Record<EstadoCruce, { texto: string; tono: TonoChip }> = {
-  solo_erp: { texto: "SUNAT no la tiene", tono: "rojo" },
+  solo_erp: { texto: "SUNAT no lo tiene", tono: "rojo" },
   solo_sunat: { texto: "Falta en el ERP", tono: "ambar" },
   montos: { texto: "Montos distintos", tono: "ambar" },
   papel: { texto: "En papel", tono: "pizarra" },
   coincide: { texto: "Cuadra", tono: "verde" },
 };
 
+/** Lo que cambia entre la comparación de compras y la de ventas (actividad 3). */
+const TEXTOS: Record<RegistroSire, { otraParte: string; ayuda: string; soloErp: (igv: string) => string; soloSunat: (igv: string) => string }> = {
+  compras: {
+    otraParte: "Proveedor",
+    ayuda:
+      "SUNAT arma la propuesta con las facturas electrónicas que los proveedores emitieron a nombre de CAYLA. Lo que esté solo en el ERP no da crédito de IGV hasta que el proveedor lo envíe; lo que esté solo en SUNAT es un gasto que nadie registró.",
+    soloErp: (igv) => `${igv} de IGV que no se descuenta`,
+    soloSunat: (igv) => `${igv} de IGV sin registrar`,
+  },
+  ventas: {
+    otraParte: "Cliente",
+    ayuda:
+      "SUNAT arma la propuesta con los comprobantes que CAYLA le envió por Lucode. Lo que esté solo en el ERP todavía no llegó a SUNAT; lo que esté solo en SUNAT se emitió fuera del ERP. Una anulación que no llegó deja la venta viva en el IGV.",
+    soloErp: (igv) => `${igv} de IGV que SUNAT no ve`,
+    soloSunat: (igv) => `${igv} de IGV emitido por fuera`,
+  },
+};
+
 const PLANTILLA = "sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_7rem_7rem_minmax(0,1.6fr)]";
 
-function Fila({ l, mes, onPedido }: { l: LineaConResolucion; mes: string; onPedido: (p: PedidoResolver) => void }) {
+function Fila({ l, mes, registro, onPedido }: { l: LineaConResolucion; mes: string; registro: RegistroSire; onPedido: (p: PedidoResolver) => void }) {
   const router = useRouter();
   const e = ESTADO[l.estado];
-  const opciones = decisionesPara(l.estado);
+  const opciones = decisionesPara(l.estado, registro);
+  // En ventas la llave no lleva el documento del cliente: se muestra el que trae SUNAT, si lo trae.
+  const documento = registro === "compras" ? `RUC ${l.ruc ?? "sin RUC"}` : (l.sunat?.docNumero && l.sunat.docNumero !== "-" ? `Doc. ${l.sunat.docNumero}` : null);
   return (
     <div className={fila(PLANTILLA)} role="row">
       <div className={celda()} role="cell">
@@ -53,7 +74,7 @@ function Fila({ l, mes, onPedido }: { l: LineaConResolucion; mes: string; onPedi
       </div>
       <div className={celda()} role="cell">
         <p className="truncate text-[15px] text-tinta">{l.nombre}</p>
-        <p className="texto-detalle">RUC {l.ruc ?? "sin RUC"}</p>
+        {documento && <p className="texto-detalle">{documento}</p>}
       </div>
       <div className={celda("der", "tabular-nums")} role="cell">
         <span className="text-taupe sm:hidden">SUNAT: </span>
@@ -88,7 +109,7 @@ function Fila({ l, mes, onPedido }: { l: LineaConResolucion; mes: string; onPedi
           <MenuAcciones
             etiqueta={`Resolver ${l.serie}-${l.numero}`}
             items={[
-              ...(l.estado === "solo_sunat"
+              ...(registro === "compras" && l.estado === "solo_sunat"
                 ? [{ clave: "registrar", etiqueta: "Registrarla en Gastos", onSelect: () => router.push(`/finanzas/gastos?registrar=1&mes=${mes}`) }]
                 : []),
               ...opciones.map((o) => ({ clave: o.decision, etiqueta: o.texto, onSelect: () => onPedido({ linea: l, opcion: o }) })),
@@ -107,8 +128,10 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
   const { propuesta, cruce, falla } = comparacion;
   const delMes = textoMes(mes);
   const r = cruce?.resumen;
-  // Una cifra filtra lo que queda por mirar; lo resuelto se ve con «Todos».
-  const lineas = cruce ? cruce.lineas.filter((l) => filtro === null || (l.estado === filtro && !l.resolucion)) : [];
+  const t = TEXTOS[registro];
+  // Sin filtro, la lista es lo que hay que mirar y lo resuelto; lo que cuadra se ve con su cifra (las ventas de un mes pasan de 1.000).
+  // Una cifra filtra lo que queda por mirar.
+  const lineas = cruce ? cruce.lineas.filter((l) => (filtro === null ? l.estado !== "coincide" : l.estado === filtro && !l.resolucion)) : [];
   const porMirar = r ? r.solo_erp.n + r.solo_sunat.n + r.montos.n : 0;
   const alternar = (e: EstadoCruce) => setFiltro((f) => (f === e ? null : e));
 
@@ -119,7 +142,7 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
         titulo="Comparar con SUNAT"
         detalle={`Impuestos · ${delMes}`}
         subtitulo={`La propuesta de ${registro} que SUNAT armó para ${delMes}, comprobante por comprobante, contra lo registrado en el ERP.`}
-        ayuda="SUNAT arma la propuesta con los comprobantes electrónicos que recibió a nombre de CAYLA. Lo que esté solo en el ERP no da crédito de IGV hasta que el proveedor lo envíe; lo que esté solo en SUNAT es un gasto que nadie registró."
+        ayuda={t.ayuda}
         volver={<Volver href={`/finanzas/impuestos?mes=${mes}`} a="Impuestos" />}
         acciones={
           <span data-guia="fin-sire.subir">
@@ -128,6 +151,16 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
             </Boton>
           </span>
         }
+      />
+
+      <Pestanas
+        items={[
+          { clave: "compras", etiqueta: "Compras", href: `/finanzas/impuestos/sire?mes=${mes}` },
+          { clave: "ventas", etiqueta: "Ventas", href: `/finanzas/impuestos/sire?mes=${mes}&registro=ventas` },
+        ]}
+        activa={registro}
+        etiquetaAccesible="Qué propuesta comparar"
+        guia="fin-sire.registros"
       />
 
       {falla && (
@@ -161,40 +194,42 @@ export function SirePanel({ registro, mes, comparacion }: { registro: RegistroSi
           </p>
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-guia="fin-sire.cifras">
-            <TarjetaCifra etiqueta="SUNAT no la tiene" valor={r.solo_erp.n} punto={r.solo_erp.n > 0 ? "rojo" : "neutro"} onClick={() => alternar("solo_erp")} activa={filtro === "solo_erp"}>
-              {r.solo_erp.n > 0 ? `${soles(r.solo_erp.igv)} de IGV que no se descuenta` : "Todo lo del ERP está en SUNAT"}
+            <TarjetaCifra etiqueta="SUNAT no lo tiene" valor={r.solo_erp.n} punto={r.solo_erp.n > 0 ? "rojo" : "neutro"} onClick={() => alternar("solo_erp")} activa={filtro === "solo_erp"}>
+              {r.solo_erp.n > 0 ? t.soloErp(soles(r.solo_erp.igv)) : "Todo lo del ERP está en SUNAT"}
             </TarjetaCifra>
             <TarjetaCifra etiqueta="Falta en el ERP" valor={r.solo_sunat.n} punto={r.solo_sunat.n > 0 ? "ambar" : "neutro"} onClick={() => alternar("solo_sunat")} activa={filtro === "solo_sunat"}>
-              {r.solo_sunat.n > 0 ? `${soles(r.solo_sunat.igv)} de IGV sin registrar` : "Todo lo de SUNAT está registrado"}
+              {r.solo_sunat.n > 0 ? t.soloSunat(soles(r.solo_sunat.igv)) : "Todo lo de SUNAT está en el ERP"}
             </TarjetaCifra>
             <TarjetaCifra etiqueta="Montos distintos" valor={r.montos.n} punto={r.montos.n > 0 ? "ambar" : "neutro"} onClick={() => alternar("montos")} activa={filtro === "montos"}>
               {r.montos.n > 0 ? "El mismo comprobante, otro monto" : "Ningún monto distinto"}
             </TarjetaCifra>
             <TarjetaCifra etiqueta="Cuadran" valor={r.coincide.n} punto={r.coincide.n > 0 ? "verde" : "neutro"} onClick={() => alternar("coincide")} activa={filtro === "coincide"}>
-              {r.papel.n > 0 ? `y ${plural(r.papel.n, "factura en papel", "facturas en papel")}` : "Iguales en los dos"}
+              {r.papel.n > 0 ? `y ${plural(r.papel.n, "comprobante en papel", "comprobantes en papel")}` : filtro === "coincide" ? "Toca otra vez para ocultarlos" : "Toca para verlos"}
             </TarjetaCifra>
           </section>
 
           {porMirar === 0 && (
             <Aviso tono="exito" titulo={cruce && cruce.resueltas > 0 ? "No queda nada por mirar" : "Todo cuadra con SUNAT"}>
               {r.papel.n > 0
-                ? `El contador puede aceptar la propuesta y agregar ${plural(r.papel.n, "la factura en papel", "las facturas en papel")} antes de generar.`
+                ? `El contador puede aceptar la propuesta y agregar ${plural(r.papel.n, "el comprobante en papel", "los comprobantes en papel")} antes de generar.`
                 : "El contador puede aceptar la propuesta tal cual y generar el registro."}
             </Aviso>
           )}
 
           {lineas.length === 0 ? (
-            <Vacio icono={<FileUp />} tamano="chico" accion={{ texto: "Ver todos", onClick: () => setFiltro(null) }}>
-              No hay comprobantes en «{filtro ? ESTADO[filtro].texto : ""}».
-            </Vacio>
+            filtro !== null && (
+              <Vacio icono={<FileUp />} tamano="chico" accion={{ texto: "Ver lo que hay que mirar", onClick: () => setFiltro(null) }}>
+                No hay comprobantes en «{ESTADO[filtro].texto}».
+              </Vacio>
+            )
           ) : (
             <Tabla guia="fin-sire.lista">
               <Encabezado
                 plantilla={PLANTILLA}
-                columnas={[{ titulo: "Comprobante" }, { titulo: "Proveedor" }, { titulo: "En SUNAT", alinear: "der" }, { titulo: "En el ERP", alinear: "der" }, { titulo: "Qué pasa" }]}
+                columnas={[{ titulo: "Comprobante" }, { titulo: t.otraParte }, { titulo: "En SUNAT", alinear: "der" }, { titulo: "En el ERP", alinear: "der" }, { titulo: "Qué pasa" }]}
               />
               {lineas.map((l, i) => (
-                <Fila key={`${l.clave}-${i}`} l={l} mes={mes} onPedido={setPedido} />
+                <Fila key={`${l.clave}-${i}`} l={l} mes={mes} registro={registro} onPedido={setPedido} />
               ))}
             </Tabla>
           )}

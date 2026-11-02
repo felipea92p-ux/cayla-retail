@@ -121,3 +121,25 @@ describe("leerPropuestaGuardada y lineasParaGuardar", () => {
     expect(leerPropuestaGuardada(null)).toBeNull();
   });
 });
+
+describe("leerPropuestaSire de ventas (RVIE)", () => {
+  // Los títulos de la propuesta del RVIE (anexo de la RS 112-2021/SUNAT); el cliente es inventado.
+  const TITULOS_RVIE = [
+    "Ruc", "Razon Social", "Periodo", "CAR SUNAT", "Fecha de emisión", "Fecha Vcto/Pago", "Tipo CP/Doc.", "Serie del CDP",
+    "Nro CP o Doc. Nro Inicial (Rango)", "Nro Final (Rango)", "Tipo Doc Identidad", "Nro Doc Identidad", "Apellidos Nombres/ Razón Social",
+    "Valor Facturado Exportación", "BI Gravada", "Dscto BI", "IGV / IPM", "Dscto IGV / IPM", "Mto Exonerado", "Mto Inafecto", "ISC",
+    "BI Grav IVAP", "IVAP", "ICBPER", "Otros Tributos", "Total CP", "Moneda", "Tipo Cambio", "Fecha Emisión Doc Modificado",
+    "Tipo CP Modificado", "Serie CP Modificado", "Nro CP Modificado",
+  ].join("|");
+  const fila = ["20605964550", "CAYLA S.A.C.", "202610", "", "07/10/2026", "", "03", "B001", "00000045", "", "1", "40000001", "CLIENTE INVENTADO",
+    "0.00", "110.00", "-10.00", "19.80", "-1.80", "0.00", "0.00", "0.00", "50.00", "5.00", "0.20", "0.00", "118.20", "PEN", "", "", "", "", ""].join("|");
+
+  it("lee la base menos el descuento y el IGV menos su descuento; el IVAP no entra", () => {
+    const r = leerPropuestaSire([TITULOS_RVIE, fila].join("\n"), { registro: "ventas", mes: "2026-10", ruc: RUC });
+    expect(r.ok && r.propuesta.lineas[0]).toMatchObject({ tipo: "03", serie: "B001", numero: "45", base: 100, igv: 18, total: 118.2, docNumero: "40000001" });
+  });
+
+  it("la de ventas no entra donde va la de compras", () => {
+    expect(leerPropuestaSire(TITULOS_RVIE, OCTUBRE)).toEqual({ ok: false, error: "Este archivo es la propuesta de ventas. Aquí va la de compras." });
+  });
+});
