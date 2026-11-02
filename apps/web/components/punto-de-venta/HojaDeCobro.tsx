@@ -428,7 +428,7 @@ export function HojaDeCobro({
             form={formId}
             data-guia="vender.cobro-confirmar"
             disabled={apagado}
-            className="hoja-cobro-confirmar flex w-full items-center rounded-2xl bg-tinta text-crema transition-[background-color,transform] duration-200 hover:-translate-y-px disabled:cursor-not-allowed disabled:bg-hueso disabled:text-tinta/60 disabled:hover:translate-y-0"
+            className="btn-cayla btn-primario hoja-cobro-confirmar flex w-full items-center"
           >
             {!apagado && <Check className="h-5 w-5 shrink-0" aria-hidden />}
             <span className="hoja-cobro-confirmar-rotulo label-cayla flex-1 truncate text-left">
