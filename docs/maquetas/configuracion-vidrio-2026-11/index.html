@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cl="hunde" data-gd="visto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configuración con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página Configuración (/configuracion) con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Hoy (app/(app)/configuracion/page.tsx con el kit de Finanzas: PestanasFin, Superficie, fin-tabla, fin-control; ConfiguracionTiendas.tsx):
+   pestañas (Empresa, Tiendas, Caja y avisos, Impuestos…) y, en Tiendas, una PLANILLA donde cada número es una casilla que se guarda SOLA al
+   salir de ella (`fin-control`: caja HUESO MACIZA con borde arena, siempre a la vista); lo único que dice «se guardó» es el aviso de la
+   esquina. Lo ya elegido entra tal cual (cabecera, pestañas en gota, la placa de las tablas, avisos en lente).
+   Se elige lo PROPIO: cómo se ve la casilla de la planilla y cómo responde al guardarse. Datos inventados. Solo tokens.
+   ==================================================================== */
+.pz-t{position:relative;display:inline-flex;gap:2px;margin-top:20px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);max-width:100%;overflow-x:auto;scrollbar-width:none}
+[data-tema="oscuro"] .pz-t{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pz-t button{flex:none;height:34px;padding:0 16px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pz-t button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pz-t button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.cfg-placa{container:cfg/inline-size;margin-top:18px;border-radius:22px;padding:18px 20px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .cfg-placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.cfg-cab{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;margin-bottom:12px}
+.cfg-cab h2{margin:0;font-family:'EB Garamond',serif;font-size:21px;font-weight:400}
+.cfg-cab p{margin:0;max-width:52ch;font-size:13px;color:var(--taupe)}
+.cfg-tabla{overflow-x:auto;margin:0 -6px}
+.cfg-tabla table{width:100%;border-collapse:collapse;font-size:14px}
+.cfg-tabla th{padding:8px 6px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:center;white-space:nowrap;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+.cfg-tabla th:first-child,.cfg-tabla td:first-child{text-align:left;padding-left:10px}
+.cfg-tabla td{padding:7px 4px;text-align:center;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 7%,transparent);vertical-align:middle}
+.cfg-tabla td b{display:block;font-weight:600}.cfg-tabla td small{display:block;font-size:12px;color:var(--t65)}
+.cfg-pie{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;margin-top:12px;font-size:12.5px;color:var(--taupe)}
+
+/* ---------- la casilla de la planilla (como hoy: fin-control, caja hueso maciza con borde arena) ---------- */
+.cas{position:relative;display:inline-block}
+.cas input{width:5.2rem;height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);background:var(--hueso);font:500 13.5px 'DM Sans';color:var(--tinta);text-align:right;font-variant-numeric:tabular-nums;outline:none;transition:border-color .15s,background .2s,box-shadow .2s}
+.cas.ancha input{width:6.6rem}.cas.chica input{width:4.4rem}
+/* el ✓ de «se guardó» vive a la derecha de la casilla: la última columna le guarda su lugar */
+.cfg-tabla th:last-child,.cfg-tabla td:last-child{padding-right:26px}
+.cas input:focus{border-color:color-mix(in srgb,var(--taupe) 55%,transparent)}
+/* A · POZO EN LA CELDA: el campo elegido para las hojas, en chico: un pozo hundido que espera tu número; al tocarlo sube a vidrio y dibuja
+   su hilo rojo desde el centro. Siempre a la vista: se ve qué se puede tocar. */
+[data-cl="pozo"] .cas input{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cl="pozo"] .cas input{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cl="pozo"] .cas input:focus{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 8px 18px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+/* B · SE HUNDE AL TOCAR (como una planilla de cálculo): en reposo el número es texto, con un subrayado punteado que dice «se puede
+   cambiar»; al pasar el mouse aparece el pozo; al tocarlo, el pozo se enciende. Una planilla de 40 números sin 40 cajas. */
+/* (el subrayado de texto no se dibuja dentro de un <input> en Chrome: la línea de puntos es un fondo que corre bajo el número) */
+[data-cl="hunde"] .cas input{border-color:transparent;box-shadow:none;border-radius:999px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--tinta) 40%,transparent) 50%,transparent 50%) right 10px bottom 7px/4px 1px repeat-x;background-clip:content-box}
+@media (hover:hover){[data-cl="hunde"] .cas input:hover{background-clip:border-box;border-color:color-mix(in srgb,var(--borde) 55%,transparent);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}}
+[data-cl="hunde"] .cas input:focus{background-clip:border-box;border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 8px 18px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+@media (hover:none){[data-cl="hunde"] .cas input{border-color:color-mix(in srgb,var(--borde) 45%,transparent);background:color-mix(in srgb,var(--tinta) 4%,transparent);background-clip:border-box}}
+/* el hilo de la casilla que tiene el cursor (el de los campos elegidos) */
+.cas .hilo{position:absolute;left:14px;right:14px;bottom:1px;height:2px;border-radius:2px;background:var(--rojo);transform:scaleX(0);transition:transform .3s var(--ease),background .3s;pointer-events:none}
+:is([data-cl="pozo"],[data-cl="hunde"]) .cas:focus-within .hilo{transform:scaleX(1)}
+
+/* ---------- cómo responde al guardarse (hoy: solo el aviso de la esquina) ---------- */
+.cas .visto{position:absolute;right:-20px;top:50%;width:16px;height:16px;margin-top:-8px;display:grid;place-items:center;border-radius:50%;color:var(--crema);background:var(--verde);opacity:0;scale:.6;transition:opacity .2s,scale .3s var(--ease);pointer-events:none}
+.cas .visto svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20}
+/* A · VISTO EN LA CELDA: al salir de la casilla, un ✓ verde se dibuja junto al número y se va solo (1,6 s). Dice qué se guardó, ahí mismo. */
+[data-gd="visto"] .cas.ok .visto{opacity:1;scale:1}
+[data-gd="visto"] .cas.ok .visto svg{animation:traza .32s var(--ease) .08s forwards}
+@keyframes traza{to{stroke-dashoffset:0}}
+/* B · HILO VERDE: el hilo de la casilla, que era rojo mientras escribías, se vuelve verde al guardarse y se recoge (como los campos elegidos
+   cuando el dato está bien). Nada nuevo en la planilla. */
+[data-gd="hilo"] .cas.ok .hilo{transform:scaleX(1);background:var(--verde);transition:transform .3s var(--ease) .9s,background .2s}
+[data-gd="hilo"] .cas.ok.sale .hilo{transform:scaleX(0)}
+/* COMO AHORA: el aviso de la esquina */
+.av-esq{position:absolute;z-index:8;top:76px;right:20px;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;font-size:13.5px;color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 10%,color-mix(in srgb,var(--vidrio) 86%,transparent)),color-mix(in srgb,var(--verde) 16%,color-mix(in srgb,var(--vidrio) 70%,transparent)));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--verde) 30%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 50%,transparent);animation:enfoca .25s var(--ease) both}
+.av-esq i{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+[data-tema="oscuro"] .av-esq{background:color-mix(in srgb,var(--verde) 16%,color-mix(in srgb,var(--vidrio) 90%,transparent))}
+/* lo primero que se va al angostarse es lo que menos se toca (WhatsApp y la hora de cierre); después, las metas por día */
+@container cfg (max-width:1180px){.cfg-tabla .ocul{display:none}}
+@container cfg (max-width:860px){.cfg-tabla .dia{display:none}}
+/* angosta (teléfono, o tableta con el menú abierto) la planilla pasa a una tarjeta por tienda: cada casilla con su nombre al lado (data-l),
+   como las tablas de Finanzas. Mira el ancho de la placa, no del aparato. */
+@container cfg (max-width:560px){
+  .cfg-tabla{overflow:visible;margin:0}.cfg-tabla thead{display:none}
+  .cfg-tabla table,.cfg-tabla tbody{display:block}
+  .cfg-tabla tr{display:flex;flex-wrap:wrap;padding:10px 0 12px}.cfg-tabla tr+tr{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+  .cfg-tabla td,.cfg-tabla td.dia,.cfg-tabla td.ocul{display:flex;width:100%;box-sizing:border-box;align-items:center;justify-content:space-between;gap:12px;padding:4px 22px 4px 0;box-shadow:none}
+  .cfg-tabla td:first-child{display:block;padding:0 0 6px}
+  .cfg-tabla td[data-l]::before{content:attr(data-l);font-size:13px;color:var(--t80)}
+  .cfg-tabla td.dia{width:50%;padding-right:20px;gap:8px}.cfg-tabla td.dia .cas input{width:4rem}.cfg-tabla .cas.ancha input{width:6.6rem}
+}
+@container disp (max-width:520px){.cfg-placa{padding:14px;border-radius:18px}.av-esq{left:12px;right:12px;top:70px}}
+@media (prefers-reduced-motion:reduce){.cas .visto,.cas .hilo,.av-esq{transition:none;animation:none}.cas .visto svg{animation:none;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Configuración, con vidrio</span>
+  <span class="tag">La casilla</span><div class="seg-m" data-ctl="cl"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo en la celda</button><button data-v="hunde">B · Se hunde al tocar</button></div>
+  <span class="tag">Al guardarse</span><div class="seg-m" data-ctl="gd"><button data-v="ahora">Como ahora (aviso en la esquina)</button><button data-v="visto">A · Visto en la celda</button><button data-v="hilo">B · Hilo verde</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li>Configuración se arma con el kit de Finanzas (<code>PestanasFin</code>, <code>Superficie</code>, <code>fin-tabla</code>). En Tiendas, cada número de la planilla es una <b>casilla que se guarda sola</b> al salir de ella: una <b>caja hueso maciza</b> con borde arena, siempre a la vista. Son unas 40 cajas en una pantalla.</li>
+      <li>Lo único que dice «se guardó» es el <b>aviso de la esquina</b>: lejos de la casilla que cambiaste.</li>
+      <li>Pestañas, placas, la tabla y el aviso entran con lo ya elegido.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La casilla</b></td><td>A · Pozo en la celda</td><td>El campo de las hojas, en chico: siempre se ve qué se puede tocar; al tocarla sube a vidrio con su hilo rojo.</td><td>Siguen siendo 40 cajas (hundidas) en la pantalla.</td></tr>
+      <tr><td>B · Se hunde al tocar <span class="ev">Recomendada</span></td><td>Como una planilla de cálculo: en reposo el número es texto con un subrayado punteado («se puede cambiar»); al pasar el mouse aparece el pozo y al tocarlo se enciende. La planilla se lee como una tabla, no como un formulario. En el celular (sin mouse) el pozo queda siempre a la vista.</td><td>Hay que acercar el mouse para ver la caja; lo dice el subrayado.</td></tr>
+      <tr><td rowspan="2"><b>Al guardarse</b></td><td>A · Visto en la celda <span class="ev">Recomendada</span></td><td>Un ✓ verde se dibuja junto al número que cambiaste y se va solo: dice qué se guardó, ahí mismo. El aviso de la esquina deja de hacer falta para esto.</td><td>Un movimiento por cada casilla que guardas (corto: 1,6 s).</td></tr>
+      <tr><td>B · Hilo verde</td><td>El hilo rojo de la casilla pasa a verde y se recoge, como en los campos de las hojas: nada nuevo.</td><td>Más discreto: si no miras la casilla al salir, no lo ves.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Casilla B · Se hunde al tocar y al guardarse A · Visto en la celda.</b> Cambia un número y sal de la casilla (con Tab o tocando afuera).</p>
+    <h3>Lo que no cambia</h3>
+    <p>Que cada casilla se guarde sola al salir, a nombre del responsable, y quede en la historia; lo que vuelve a su valor si la base dice que no; las pestañas y quién ve cada una; Impuestos, Caja y avisos y el reparto con Claure.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js y marco.css usan nombres globales (estado, pintar, boton, encabezado, fila, buscar; .hoja, .cifras, .sede, .av, .tc, .uni, .linea, .sub, .prendas…); la maqueta no los repite. -->
+<script>
+const svG = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const TIENDAS_G = [['Trujillo', 'Av. España 1240', '987 654 321', [3800, 3800, 3800, 3800, 4200, 5200, 4000], 300, '21:00', 90000],
+  ['Arequipa', 'Calle Mercaderes 312', '956 112 480', [3200, 3200, 3200, 3200, 3600, 4800, 3500], 250, '20:30', 76000],
+  ['Lima', 'Jr. de la Unión 880', '—', [4000, 4000, 4000, 4000, 4500, 5600, 4200], 300, '21:30', 98000]];
+const DIAS_G = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const casG = (v, et, cls = '') => `<span class="cas ${cls}"><input value="${v}" aria-label="${et}"><span class="hilo"></span><span class="visto">${svG('M5 12.5l4.5 4.5L19 7.5')}</span></span>`;
+function pintarG() {
+  const filas = TIENDAS_G.map(([n, dir, wa, metas, fondo, cierra, mes]) => `<tr><td><b>${n}</b><small>${dir}</small></td><td class="ocul" data-l="WhatsApp">${casG(wa, `WhatsApp de ${n}`, 'ancha')}</td>
+    ${metas.map((m, i) => `<td class="dia" data-l="${DIAS_G[i]}">${casG(m.toLocaleString('es-PE'), `Meta del ${DIAS_G[i]} en ${n}`, 'chica')}</td>`).join('')}
+    <td data-l="Fondo de caja">${casG(fondo, `Fondo de caja de ${n}`, 'chica')}</td><td class="ocul" data-l="Cierra">${casG(cierra, `Hora de cierre de ${n}`, 'chica')}</td><td data-l="Meta del mes">${casG(mes.toLocaleString('es-PE'), `Meta del mes de ${n}`, 'ancha')}</td></tr>`).join('');
+  $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Configuración', frase: 'Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo.' })}
+    <div class="pz-t" role="tablist" aria-label="Secciones de Configuración">${['Empresa', 'Tiendas', 'Caja y avisos', 'Impuestos', 'Tienda web'].map((t) => `<button role="tab" aria-selected="${t === 'Tiendas'}">${t}</button>`).join('')}</div>
+    <section class="cfg-placa"><div class="cfg-cab"><h2>Tiendas</h2><p>Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable.</p></div>
+      <div class="cfg-tabla"><table><thead><tr><th>Tienda</th><th class="ocul">WhatsApp</th>${DIAS_G.map((d) => `<th class="dia">${d}</th>`).join('')}<th>Fondo</th><th class="ocul">Cierra</th><th>Meta del mes</th></tr></thead><tbody>${filas}</tbody></table></div>
+      <div class="cfg-pie"><span>Las metas por día van con IGV; la del mes, también.</span><span>Responsable: Lucía Ramos</span></div></section>`;
+}
+// al salir de una casilla que cambió: se «guarda» (aquí, de mentira) y responde según la cara elegida
+document.addEventListener('focusin', (ev) => { const i = ev.target.closest('.cas input'); if (i) i.dataset.antes = i.value; });
+document.addEventListener('focusout', (ev) => {
+  const i = ev.target.closest('.cas input'); if (!i || i.value === i.dataset.antes) return;
+  const c = i.closest('.cas'); c.classList.remove('ok', 'sale'); void c.offsetWidth; c.classList.add('ok');
+  setTimeout(() => c.classList.add('sale'), 900); setTimeout(() => c.classList.remove('ok', 'sale'), 1600);
+  if (!document.documentElement.dataset.gd) { $$('.av-esq').forEach((a) => a.remove()); $('#disp').insertAdjacentHTML('beforeend', `<div class="av-esq" role="status"><i></i>Se guardó: ${i.getAttribute('aria-label')}</div>`); setTimeout(() => $$('.av-esq').forEach((a) => a.remove()), 2600); }
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && ev.target.closest('.cas input')) ev.target.blur(); });
+Marco.iniciar({ estado: { cl: 'hunde', gd: 'visto' }, alPintar: () => pintarG() });
+</script>
+</body>
+</html>
