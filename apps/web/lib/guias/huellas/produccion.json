@@ -2,8 +2,11 @@
   "guia": "produccion",
   "ruta": "/produccion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 21,
+  "total": 22,
   "controles": {
+    "components/ProduccionSoloEnTaller.tsx": [
+      "BotonVer «Volver al inicio»"
+    ],
     "components/ProduccionSoloLider.tsx": [
       "BotonVer «Ir a Órdenes»"
     ],

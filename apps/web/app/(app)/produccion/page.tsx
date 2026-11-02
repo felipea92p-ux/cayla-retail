@@ -27,8 +27,7 @@ import { notaDeHistoria } from "@/lib/produccion-cifras-textos";
 export default async function ProduccionPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
   if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Resumen" />;
 

@@ -72,3 +72,15 @@ export function fraseDeLoQueFalta(campos: readonly CampoDeGuia[]): string | null
   const lista = new Intl.ListFormat("es", { type: "conjunction" }).format(faltan.map((c) => c.nombre.toLocaleLowerCase("es")));
   return `${faltan.length === 1 ? "Falta" : "Faltan"}: ${lista}`;
 }
+
+/** El grado de un campo por hacer en una palabra, para escribirla junto a su título: «obligatorio» (sin él no se confirma), «conviene» (casi siempre se llena, no bloquea)
+ *  u «opcional». Un campo hecho no dice nada: ya lleva su ✓. Solo lo usan las hojas que lo piden (`useGuiaCampos` con `conGrado`). */
+export function palabraDeGrado(c: CampoDeGuia): "obligatorio" | "conviene" | "opcional" | null {
+  if (c.hecho) return null;
+  return c.requerido ? "obligatorio" : c.sugerido ? "conviene" : "opcional";
+}
+
+/** Lo que falta partido en dos: lo que hay que hacer para confirmar (`obligatorios`) y lo que solo conviene (`convienen`). Recibe `faltanDe(campos)`, que ya deja fuera lo opcional. */
+export function separarFaltan<T extends CampoDeGuia>(faltan: readonly T[]): { obligatorios: T[]; convienen: T[] } {
+  return { obligatorios: faltan.filter((c) => c.requerido), convienen: faltan.filter((c) => !c.requerido) };
+}

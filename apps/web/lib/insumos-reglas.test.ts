@@ -104,6 +104,11 @@ describe("estadoInsumo", () => {
   it("sin mínimo definido no puede estar «bajo»: se dice", () => {
     expect(estadoInsumo(10, null)).toEqual({ tono: "sin_minimo", etiqueta: "Sin mínimo" });
   });
+  it("el veredicto va en palabras de tienda (P10 del análisis del Taller): se acabó, bajo el mínimo, alcanza", () => {
+    expect(estadoInsumo(0, 60).etiqueta).toBe("Se acabó");
+    expect(estadoInsumo(59.9, 60).etiqueta).toBe("Bajo el mínimo");
+    expect(estadoInsumo(4438, 1).etiqueta).toBe("Alcanza");
+  });
 });
 
 describe("previsualizarConsumo (lo que hará registrar_consumo_insumo)", () => {

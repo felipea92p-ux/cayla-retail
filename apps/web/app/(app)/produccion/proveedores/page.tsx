@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -17,8 +16,7 @@ export default async function ProveedoresProduccionPage({ searchParams }: { sear
   const persona = await requirePersonaActualV2();
   // Misma puerta que Órdenes e Insumos (`puedeVerProduccion`, 2026-09-20): solo parado en el Taller. Además, solo líder.
   if (!puedeVerProduccion(persona)) {
-    if (!persona.puedeCambiarUbicacion) redirect("/");
-    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} puedeCambiarUbicacion={persona.puedeCambiarUbicacion} />;
   }
   if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Proveedores" />;
 

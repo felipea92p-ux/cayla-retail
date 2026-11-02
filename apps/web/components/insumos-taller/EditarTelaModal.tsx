@@ -66,7 +66,7 @@ export function EditarTelaModal({
   const soloPonerAlDia = !hayCambios && coloresDesfasados > 0;
   const puedeGuardar = hayCambios || soloPonerAlDia;
   const avisos = avisosDeEditarTela(inicial, datos);
-  const guia = useGuiaCampos(camposDeEditarTela({ ...conPregunta, responsableListo: responsable.listo }));
+  const guia = useGuiaCampos(camposDeEditarTela({ ...conPregunta, responsableListo: responsable.listo }), { conGrado: true });
 
   // «¿Salir sin guardar?» (ADR-0136): solo cuenta lo que la persona cambió.
   const fotoActual = fotoFormulario({ ...datos });

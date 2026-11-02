@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe, type CampoDeGuia } from "./guia-campos";
+import { estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -126,5 +126,27 @@ describe("campos de varias opciones (tallas, colores) con el foco retenido", () 
     expect(estadosDe(campos).colores).toBe("ahora");
     expect(estadosDe(campos, "tallas")).toEqual({ tallas: "ahora", colores: "falta" });
     expect(estadosDe(campos, null)).toEqual({ tallas: "hecho", colores: "ahora" });
+  });
+});
+
+describe("el grado de cada campo en palabras (P09 del análisis del Taller: «Sigue aquí» en un campo que no es obligatorio)", () => {
+  it("un campo por hacer dice si es obligatorio, si conviene o si es opcional; uno hecho no dice nada (ya lleva su ✓)", () => {
+    expect(palabraDeGrado(campo("nombre"))).toBe("obligatorio");
+    expect(palabraDeGrado(campo("composicion", { requerido: false, sugerido: true }))).toBe("conviene");
+    expect(palabraDeGrado(campo("merma", { requerido: false }))).toBe("opcional");
+    expect(palabraDeGrado(campo("nombre", { hecho: true }))).toBeNull();
+    expect(palabraDeGrado(campo("merma", { requerido: false, hecho: true }))).toBeNull();
+  });
+
+  it("separarFaltan: lo obligatorio va aparte de lo que solo conviene; lo opcional no se lista", () => {
+    const campos = [campo("nombre"), campo("composicion", { requerido: false, sugerido: true }), campo("merma", { requerido: false }), campo("quien", { hecho: true })];
+    const { obligatorios, convienen } = separarFaltan(faltanDe(campos));
+    expect(obligatorios.map((c) => c.id)).toEqual(["nombre"]);
+    expect(convienen.map((c) => c.id)).toEqual(["composicion"]);
+  });
+
+  it("lo obligatorio nunca se mezcla con lo que conviene: «Faltan:» no lista nada que se pueda dejar vacío", () => {
+    const { obligatorios } = separarFaltan(faltanDe([campo("composicion", { requerido: false, sugerido: true })]));
+    expect(obligatorios).toEqual([]);
   });
 });

@@ -2,12 +2,15 @@
   "guia": "produccion.eficiencia",
   "ruta": "/produccion/eficiencia",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 4,
+  "total": 5,
   "controles": {
     "components/EficienciaTallerPanel.tsx": [
       "Pestanas «(sin nombre)»",
       "button «{p.ventana.etiqueta}»",
       "Link «el Resumen»"
+    ],
+    "components/ProduccionSoloEnTaller.tsx": [
+      "BotonVer «Volver al inicio»"
     ],
     "components/ProduccionSoloLider.tsx": [
       "BotonVer «Ir a Órdenes»"
