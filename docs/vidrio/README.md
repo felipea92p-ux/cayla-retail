@@ -80,6 +80,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | **Cambios y Devoluciones** (páginas enteras: `app/(app)/cambios`, `app/(app)/devoluciones`; una sola maqueta) | `CambiosPanel`, `CambiosFlujo`, `DevolucionesPanel`, `DevolucionesFlujo`, `FlujoGuiado`, `CambioResumen` | En maqueta (armada con las piezas elegidas; medida a 375 px, PL-105) | — (recomendadas: paso a paso A · Hilo de vidrio, trae y lleva A · Balanza) | `posventa-vidrio-2026-11/` |
 | **Apartados** (página entera: `app/(app)/vender/apartados`) | `components/apartados/` (`ApartadosPanel`, `TodosVista`, `EntregarVista`, `ApartarVista`) | En maqueta (armada con las piezas elegidas; medida a 375 px, PL-105) | — (recomendadas: la hoja A · Al aire, pestañas del celular A · Isla de pestañas) | `apartados-vidrio-2026-11/` |
 | **Mis compras** (página entera: `app/(app)/compras/mi-plata`, ADR-0559) | `components/mi-plata/` (`MesaDeLaRonda`, `Billetera`, `AccionDelDia`) | En maqueta (armada con las piezas elegidas) | — (recomendadas: billetera A · Ahumada, «¿Qué hiciste?» A · Gota grande) | `mis-compras-vidrio-2026-11/` |
+| **Conteo** (página entera: `app/(app)/inventario/conteo` y `conteo/[id]`) | `ConteoVista`, `components/conteo/` (`ContarConteo`, `ListaConteo`, `FilaConteo`, `PasosConteo`) | En maqueta (la planilla conserva su cara de tabla, ADR-0358) | — (recomendadas: planilla A · Placa Serena, pasos A · Ranura con gotas) | `conteo-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
