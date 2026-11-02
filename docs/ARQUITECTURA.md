@@ -2012,6 +2012,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     SUNAT queda entero) y el Estado de resultados la nota «No incluye lo vendido de CLAURE» (`notaResultadosClaure`, `EstadoResultadosPanel`). `fn_flujo_lineas` cuenta el pago a CLAURE como salida
     (`pago_claure`, `TEXTO_CATEGORIA`). La 479 acumula la parte sin IGV de TODO lo vendido de CLAURE (también el efectivo, que tiene Claudia): es provisional hasta el contador. Prueba:
     `pnpm pruebas:claure-fuera-de-las-cifras`.
+    **La renta del año (ADR-0598, 20261102055000 y 20261102060000):** `/finanzas/impuestos` lee además `getRentaDelAno(hoy)` (`lib/renta-anual.ts`):
+    `fn_sustento_costos(desde, hasta)` (solo el líder; lo gastado por origen, proveedor y papel), el Estado de resultados (`getEstadoResultados`, consolidado),
+    `fn_impuestos_igv_meses` (lo vendido sin IGV, para el 1 % a cuenta), `fn_parametros_tributarios_lista` (la escala `renta_*`/`boletas_*` y lo de antes del
+    sistema `renta_utilidad_previa`/`renta_sin_papel_previo`/`renta_pagada_previa`) y el inicio de Finanzas. La regla vive en `lib/renta-anual-reglas.ts`
+    (`clasePapel`, `proyectarRenta`, `armarRentaDelAno`, `proveedoresSinFactura`) y se dibuja en `components/finanzas/ImpuestosRenta.tsx` (tarjeta «Renta de
+    2026») e `ImpuestosProveedores.tsx` (cajón «A quién pedirle factura»). Lo de antes del sistema se escribe en Configuración ▸ Impuestos
+    (`ConfiguracionImpuestos`, `guardar_parametro_tributario`). Prueba: `pnpm pruebas:sustento-costos`.
     **CLAURE fuera del Inicio y del Observatorio (actividad 6a, 20261029023000):** `fn_item_es_de_claure(línea, sede, fecha)` (interna) es la regla de «esta línea de venta es de CLAURE» —la misma de
     `fn_claure_ventas`: sede donde opera CLAURE, venta desde `empresas.cuenta_corriente_desde`, dueño real de la línea (`fn_dueno_de_la_linea`)— y la reusan 6b, 6c y 6d. `fn_observatorio` (todas las tiendas) y
     `fn_observatorio_tienda` (una tienda) suman solo lo de CAYLA (reemplazos anclados: una venta solo de CLAURE no cuenta ni como ticket, la mixta cuenta por sus líneas de CAYLA, y las prendas «quietas» miden solo
