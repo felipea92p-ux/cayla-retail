@@ -1,0 +1,130 @@
+/* =====================================================================
+   PRODUCCIÓN ▸ ÓRDENES CON EL VIDRIO «SERENA» (ADR-0596; maqueta docs/maquetas/ordenes-vidrio-2026-11/, tablero docs/vidrio/README.md).
+
+   La lista de órdenes no tiene nada propio: se arma con piezas que ya tienen su vidrio. Lo propio es la página de una orden, la «Ruta
+   viva» de ADR-0570 (orden-pagina.css), y Felipe eligió mirando (2026-11-02):
+   · La ruta, «B · Lentes al aire»: `.op-camino` deja la tarjeta de papel y corre sobre la Aurora. Los glifos son lentes: el paso hecho,
+     verde; el que toca, ámbar con su aro; los que faltan, una gota clara. El hilo hecho, verde; el que falta, apenas tinta. El paso
+     elegido no lleva fondo: su nombre va subrayado.
+   · El paso abierto, «A · Placa con su pico»: `.op-paso` es la placa Serena con un pico arriba que apunta al paso elegido. RutaViva mide
+     dónde está ese paso y lo deja en `--op-pico` (y `data-pico="si"`); si el paso elegido no queda encima de la placa (la placa vive en
+     la columna de la izquierda y el paso está sobre la de la derecha), `data-pico="fuera"` y no se dibuja: un pico que apunta a otro paso
+     miente. Con la ruta en columna (la página bajo 600 px) tampoco: el paso abierto ya está debajo.
+
+   Solo cambia el MATERIAL: qué dice cada paso, su color (verde lo hecho, ámbar lo que toca, rojo solo un problema) y qué abre no se tocan.
+   Movimiento (ADR-0136): el pico se desliza al paso nuevo (300 ms, `--ease-cayla`, sin rebote ni bucle); nada más se mueve, y con
+   `prefers-reduced-motion` salta.
+
+   Sin capa, después de orden-pagina.css (que vive en `components`): le gana sin subir la especificidad. Solo recetas de recetas.css; el
+   tono de cada lente (verde o ámbar) se mezcla aquí, como el tono de un aviso en avisos-espera.css.
+   ===================================================================== */
+
+/* ---------- La ruta: al aire ---------- */
+.op-camino.card-cayla {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* El paso elegido no se rellena: su nombre se subraya. Al pasar el mouse por otro, la placa clara de una nota. */
+.op-nodo[aria-pressed="true"] {
+  background: none;
+}
+.op-nodo[aria-pressed="true"] .op-nodo-nombre {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — es la raya del subrayado, no texto */
+}
+@media (hover: hover) {
+  .op-nodo[aria-pressed="false"]:hover {
+    background: var(--placa-fondo);
+  }
+}
+
+/* ---------- Los glifos: lentes ---------- */
+/* Lo que falta: la gota clara. */
+.op-glifo {
+  border: 1px solid var(--gota-chica-borde);
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--lente-luz);
+}
+/* Lo hecho: la lente verde, con su ✓ en verde. */
+.op-nodo-li[data-estado="hecha"] .op-glifo {
+  color: var(--lente-paso-hecha-tinta);
+  border-color: color-mix(in srgb, var(--color-verde) var(--lente-paso-hecha-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-verde) var(--lente-paso-hecha-tinte-arriba), var(--lente-paso-base)),
+    color-mix(in srgb, var(--color-verde) var(--lente-paso-hecha-tinte-abajo), var(--lente-paso-base))
+  );
+  box-shadow: var(--vidrio-claro-filo), var(--lente-paso-hecha-sombra);
+}
+/* Lo que toca: la lente ámbar con su aro (el punto ámbar de adentro no cambia). */
+.op-nodo-li[data-estado="toca"] .op-glifo {
+  border-color: color-mix(in srgb, var(--color-ambar) var(--lente-paso-toca-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-ambar) var(--lente-paso-toca-tinte-arriba), var(--lente-paso-base)),
+    color-mix(in srgb, var(--color-ambar) var(--lente-paso-toca-tinte-abajo), var(--lente-paso-base))
+  );
+  box-shadow: var(--lente-paso-toca-aro), var(--vidrio-claro-filo);
+}
+
+/* ---------- El hilo entre pasos ---------- */
+.op-nodo-li:not(:first-child)::before {
+  background: var(--hilo-cabeza);
+}
+.op-nodo-li[data-previa="hecha"]::before {
+  background: var(--lente-paso-hilo-hecho);
+}
+
+/* ---------- El paso abierto: la placa con su pico ---------- */
+/* Su borde vive en `--op-paso-borde` para que el pico lo continúe; el que toca lo tiñe de ámbar, como en papel, y la franja de su
+   estado (ámbar o verde, a la izquierda) sigue junto a la sombra de la placa. */
+.op-paso.card-cayla {
+  --op-paso-borde: var(--serena-borde);
+  position: relative;
+  border-radius: 22px;
+  border-color: var(--op-paso-borde);
+  background: var(--placa-paso-fondo);
+  -webkit-backdrop-filter: var(--vidrio-hoja-filtro);
+  backdrop-filter: var(--vidrio-hoja-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.op-paso.card-cayla[data-estado="toca"] {
+  --op-paso-borde: color-mix(in srgb, var(--color-ambar) 40%, var(--serena-borde));
+  box-shadow: inset 4px 0 0 var(--color-ambar), var(--serena-sombra);
+}
+.op-paso.card-cayla[data-estado="hecha"] {
+  box-shadow: inset 4px 0 0 var(--color-verde), var(--serena-sombra);
+}
+/* El pico: un cuadrado de 14 px girado, con el borde de la placa arriba y a la izquierda, centrado en `--op-pico`. */
+.op-paso::before {
+  content: "";
+  display: none;
+  position: absolute;
+  top: -8px;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  translate: calc(var(--op-pico, 50%) - 7px) 0;
+  rotate: 45deg;
+  border-left: 1px solid var(--op-paso-borde);
+  border-top: 1px solid var(--op-paso-borde);
+  background: var(--placa-paso-pico);
+  pointer-events: none;
+  transition: translate 300ms var(--ease-cayla);
+}
+@container op (min-width: 600px) {
+  .op-paso[data-pico="si"]::before {
+    display: block;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .op-paso::before {
+    transition: none;
+  }
+}

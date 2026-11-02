@@ -314,3 +314,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   «Color de la tienda», las fichas de «Fuera del riel» y la Mancuerna (la maqueta no las muestra). Visto a 1440, 1920 y 375 px.
   Después (Felipe: «Sí, pásalas»): las celdas de «Color de la tienda», las fichas de «Fuera del riel» y la Mancuerna también van en vidrio
   claro; la celda abierta y la marca puesta de la Mancuerna se hunden. La lectura flotante de la Mancuerna sigue de papel (tapa las filas).
+
+- **Producción ▸ Órdenes al vidrio (Felipe 2026-11-02):** la ruta B · Lentes al aire y el paso abierto A · Placa con su pico
+  (`vidrio/ordenes.css`, recetas `--lente-paso-*` y `--placa-paso-*`). La ruta sin caja; el paso hecho, lente verde; el que toca, lente ámbar
+  con su aro; los que faltan, gota clara; el elegido, subrayado. La placa lleva un pico que `RutaViva` coloca midiendo (`--op-pico`) y que se
+  desliza 300 ms; en columna, sin pico. **Distinto de la maqueta:** a más de 960 px la placa vive en la columna izquierda y la ficha a la
+  derecha, así que sobre los pasos de la derecha no hay pico (`data-pico="fuera"`); que la placa vaya a todo el ancho cambiaría el diseño y lo
+  decide Felipe. Se conserva la franja de estado del paso. La base local no tiene órdenes: se vio con el marcado de RutaViva en el navegador.

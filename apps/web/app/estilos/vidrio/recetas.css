@@ -297,6 +297,27 @@
   /* «B · Al aire»: sin tarjeta, lo que se lee abajo del riel (el «¿Por qué?») es una lámina de vidrio (80 → 58 %) con el borde de la
      Serena y el filo del vidrio claro. */
   --lamina-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 80%, transparent), color-mix(in srgb, var(--color-vidrio) 58%, transparent));
+
+  /* ---------- la Ruta viva de una orden (docs/maquetas/ordenes-vidrio-2026-11/; piezas en vidrio/ordenes.css) ---------- */
+  /* «B · Lentes al aire» (Felipe 2026-11-02): el glifo de un paso es una lente. La del paso hecho y la del que toca son vidrio pleno
+     teñido de su tono, más tono abajo (16 → 30 % el verde, 12 → 24 % el ámbar), con su filo del tono, la luz arriba y, el hecho, una
+     sombra verde; el que toca conserva su aro ámbar. La mezcla con el tono la hace la pieza (verde o ámbar: aquí van base y porcentajes).
+     El hilo que sale de un paso hecho, verde al 70 %. */
+  --lente-paso-base: var(--color-vidrio);
+  --lente-paso-hecha-tinte-arriba: 16%;
+  --lente-paso-hecha-tinte-abajo: 30%;
+  --lente-paso-hecha-filo: 50%;
+  --lente-paso-hecha-tinta: color-mix(in srgb, var(--color-verde) 85%, var(--color-tinta));
+  --lente-paso-hecha-sombra: 0 4px 10px -5px color-mix(in srgb, var(--color-verde) 50%, transparent);
+  --lente-paso-toca-tinte-arriba: 12%;
+  --lente-paso-toca-tinte-abajo: 24%;
+  --lente-paso-toca-filo: 55%;
+  --lente-paso-toca-aro: 0 0 0 4px color-mix(in srgb, var(--color-ambar) 14%, transparent);
+  --lente-paso-hilo-hecho: color-mix(in srgb, var(--color-verde) 70%, transparent);
+  /* «A · Placa con su pico»: el paso abierto es la placa más llena del ticket de Vender (72 → 52 %) y su pico, el vidrio de arriba de
+     esa placa (72 %), parejo. */
+  --placa-paso-fondo: var(--ticket-placa-fondo);
+  --placa-paso-pico: color-mix(in srgb, var(--color-vidrio) 72%, transparent);
 }
 
 @media screen {
@@ -445,6 +466,15 @@
     --estante-tubo-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 35%, transparent), color-mix(in srgb, var(--color-tinta) 12%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --estante-tubo-sombra: none;
     --lamina-vidrio-fondo: color-mix(in srgb, var(--color-vidrio) 82%, transparent);
+    /* La Ruta viva en oscuro: la lente es el tono parejo sobre la página, sin base de vidrio (el vidrio oscuro la apagaba), con el
+       verde pleno en el ✓; el pico, el vidrio de la placa (78 %, la del ticket en oscuro). */
+    --lente-paso-base: transparent;
+    --lente-paso-hecha-tinte-arriba: 26%;
+    --lente-paso-hecha-tinte-abajo: 26%;
+    --lente-paso-hecha-tinta: var(--color-verde);
+    --lente-paso-toca-tinte-arriba: 22%;
+    --lente-paso-toca-tinte-abajo: 22%;
+    --placa-paso-pico: color-mix(in srgb, var(--color-vidrio) 78%, transparent);
   }
 }
 
@@ -479,5 +509,7 @@
     --vidrio-claro-fondo: var(--color-papel);
     --estante-fondo: var(--color-papel);
     --lamina-vidrio-fondo: var(--color-papel);
+    --lente-paso-base: var(--color-papel);
+    --placa-paso-pico: var(--color-papel);
   }
 }
