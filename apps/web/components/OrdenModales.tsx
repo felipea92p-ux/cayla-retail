@@ -14,6 +14,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
+import { textoQuePasaAlRevertir } from "@/lib/orden-pagina-reglas";
 
 // Anular y revertir una orden (ADR-0133, F2: se conservan tal cual estaban en `OrdenesProduccionV2.tsx`; solo
 // cambió de archivo). Cada una es una RPC; ninguna escribe en las tablas directo. Si la base dice que no, el aviso
@@ -107,9 +108,11 @@ export function RevertirOrdenModal({ orden, onClose }: { orden: OrdenProduccion;
     <Modal titulo="Revertir cierre" subtitulo={`${orden.referencia} · ${orden.cantidadBuenas} buenas`} onClose={onClose}>
       <div className="space-y-4">
         <p className="text-sm text-tinta/75">
-          {orden.inventariadoEn
-            ? `Las ${orden.cantidadBuenas} prendas salen del stock del Taller (queda un movimiento de reversión, la entrada original no se borra) y la orden vuelve a "en proceso" para corregir buenas o costos.`
-            : "La muestra vuelve a \"en proceso\". No había stock que devolver."}
+          {orden.ingresoAlStock === "ya_estaba"
+            ? textoQuePasaAlRevertir(orden)
+            : orden.inventariadoEn
+              ? `Las ${orden.cantidadBuenas} prendas salen del stock del Taller (queda un movimiento de reversión, la entrada original no se borra) y la orden vuelve a "en proceso" para corregir buenas o costos.`
+              : "La muestra vuelve a \"en proceso\". No había stock que devolver."}
         </p>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="pie-acciones pt-1">

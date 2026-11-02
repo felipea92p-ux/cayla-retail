@@ -191,3 +191,32 @@ DESCARTÉ: una columna `costo_estimado` (otra fuente de verdad del costo de la m
 con un proveedor que no existe).
 SE ROMPE SI: alguien repega `20261028072000` completa DESPUÉS de esta (su CHECK vuelve a forzar el pendiente a cero); o el candado `produccion_fases_quien` se revierte en producción (ya pasó una vez, 28-oct: huella esperada
 a0e071b039cc antes de esta; con esta, la que dé la migración).
+
+## Actualización 2026-10-31 · Actividad 3 construida: el cierre «ya estaban registradas» (migración `20261031171000`, sin pegar en producción)
+
+**Lo que pasó.** El Chaleco Cayla (OP-000001, lote de 57, abierta el 27-oct) ya estaba en Tienda TRU desde el 21-oct (15 ajustes «Encontré prendas» que suman 57). Pasar la orden al stock
+la habría duplicado (114 para 57 que existen) y el botón «Llevarlas a las tiendas» del aviso la habría duplicado otra vez en TRU. Felipe lo preguntó el 2026-10-31 («ya lo registré en
+tienda Trujillo… cómo lo regularizo») y aprobó construir la opción que esta decisión ya describía.
+
+**Qué es.** `producciones.ingreso_al_stock` (`movimiento` de siempre · `ya_estaba`), con su CHECK (nunca en una muestra). Un líder la marca con `marcar_orden_ya_en_stock(orden, bool)`
+—solo en proceso, firma el responsable, queda en Actividad— desde una casilla en «Pasar al stock»; `cerrar_produccion` la respeta: hace todo lo de siempre (buenas, candados de fase,
+tela, costo de la orden, lo medido) y **no escribe en `movimientos`, no llama a `fn_recalcular_costo_variante`** (el costo queda solo en la orden: `variantes.costo` no se mueve, como decidió
+Felipe) y deja `inventariado_at` nulo (no cuenta como llegada del mes ni como origen de la prenda). «Revertir» no descuenta stock que nunca entró y la deja en `movimiento`.
+
+DECIDÍ: la marca la escribe una función propia del líder ANTES del cierre (como `permitir_pasar_sin_tela`) y `cerrar_produccion` la lee; la firma de `cerrar_produccion` no cambia.
+DESCARTÉ: un parámetro nuevo en `cerrar_produccion` (obliga a soltar la firma vieja y reescribir la función entera, que lleva cinco parches vivos encima y que PostgREST resolvería ambigua si
+sobreviven las dos); y cerrar normal + restar a mano con un ajuste «Otro» (un movimiento sin causa y un cierre que miente).
+SE ROMPE SI: se marca una orden de prendas que nunca se registraron. Hay un tope de cordura en la base (`ya_estaba_sin_registro`: por talla y color, lo registrado alguna vez como
+llegada o prenda encontrada ≥ las buenas), pero no prueba que sean las mismas prendas: la lectura final es del líder, el único que puede marcarla.
+
+**Decisiones que tomé sin preguntar (reversibles):** (1) solo un líder marca; (2) `inventariado_at` queda nulo en vez de la fecha del cierre —verdad: no entró nada—, con el costo de que
+Eficiencia (`cerradaEn`) y la «llegada» de Frescura no ven esa orden; (3) el costo atípico NO se pregunta para una orden `ya_estaba` (protege el promedio de la prenda, que aquí no se toca;
+su texto sería falso); (4) «Revertir» deja la orden en `movimiento`: hay que decidirla otra vez.
+
+**Pendiente (dinero, de Felipe):** `variantes.costo` del Chaleco sigue en el valor que traía (30.00 en producción); el costo real queda solo en la orden. Si se quiere que el promedio ponderado
+lo tome, es otra decisión: las prendas ya se vendieron con el costo anterior.
+
+**Una columna nueva de `producciones` nace sin lectura** (candado de dinero, 20260923193700): hace falta su `grant select (columna)`, en una migración propia si la anterior ya se pegó. Lo atrapó `pruebas:candado-dinero-produccion`, no la suite del cierre (que corre como dueño): `20261101210000`.
+
+**Prueba:** `pruebas:produccion-ya-estaba` (19 casos con mutación comprobada), y el cierre normal intacto (`produccion-cierre` 20/20, `costo-atipico` 20/20, `tela-al-cortar` 16/16).
+Las 7 anclas de los reemplazos aparecen exactamente una vez en las funciones vivas de producción (verificado en solo lectura el 2026-10-31).

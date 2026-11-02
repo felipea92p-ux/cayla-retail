@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 200,
+  "total": 201,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -174,6 +174,7 @@
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/PasarAlStockModal.tsx": [
+      "Casilla «{TEXTO_YA_ESTABA.etiqueta}»",
       "Boton «Declarar la tela»",
       "button «Anotar cuánto quedó»",
       "button «{m}»",

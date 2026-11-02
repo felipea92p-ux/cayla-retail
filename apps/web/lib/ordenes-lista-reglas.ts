@@ -115,6 +115,7 @@ function textoDeCierre(p: OrdenPagina): string | null {
   const o = p.orden;
   if (o.estado === "terminada") {
     const buenas = `${o.cantidadBuenas ?? 0} buenas de ${o.cantidadPlan}`;
+    if (o.ingresoAlStock === "ya_estaba") return `${buenas} · ya estaban registradas, no sumó al stock`;
     if (o.inventariadoEn) return `${buenas} · en el stock desde el ${diaCorto(fechaLimaDe(o.inventariadoEn))}`;
     return o.esMuestra ? `${buenas} · muestra, no entra al stock` : buenas;
   }

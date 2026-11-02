@@ -9,6 +9,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
+import { Casilla } from "@/components/ui/Casilla";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
@@ -19,6 +20,7 @@ import { camposDeCierre } from "@/lib/orden-pagina-guia";
 import {
   MAX_MOTIVO_CAMBIO,
   RPC_CERRAR_PRODUCCION,
+  RPC_MARCAR_YA_EN_STOCK,
   RPC_PERMITIR_SIN_TELA,
   cantidadesTerminadas,
   fasesSinRegistrar,
@@ -27,7 +29,9 @@ import {
   problemaDeMotivoCambio,
   problemasDeCierre,
   resumenDeCierre,
+  TEXTO_YA_ESTABA,
   textoPasasteAlStock,
+  textoQuePasaConElStock,
   totalDeCierre,
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
@@ -74,6 +78,12 @@ export function PasarAlStockModal({
   // Lo que contestó la base cuando el costo por prenda salió atípico; mientras haya algo aquí, la pregunta está abierta.
   const [atipico, setAtipico] = useState<CostoAtipico | null>(null);
   const enVuelo = useRef(false);
+  // «Ya estaban registradas» (ADR-0551 C): la orden puede venir marcada por un líder; solo un líder la cambia aquí. Una muestra no toca el stock: no se pregunta.
+  const marcadaEnLaOrden = orden.ingresoAlStock === "ya_estaba";
+  const [yaEstaba, setYaEstaba] = useState(marcadaEnLaOrden);
+  // Lo que la base tiene ahora: si el cierre falla después de marcar (p. ej. `ya_estaba_sin_registro`) y la persona cambia de idea, la hoja sigue abierta con datos viejos.
+  const marcaEnBase = useRef(marcadaEnLaOrden);
+  const yaEstabaEfectivo = !orden.esMuestra && (esLider ? yaEstaba : marcadaEnLaOrden);
 
   const ultima = [...fases].sort((a, b) => a.secuencia - b.secuencia).at(-1) ?? null;
   const tabla = useMemo(() => tablaDeModeloExistente(lineasOrden.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [lineasOrden]);
@@ -109,7 +119,7 @@ export function PasarAlStockModal({
   );
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
-  const fotoActual = fotoFormulario({ cantidades, porqueSinTela });
+  const fotoActual = fotoFormulario({ cantidades, porqueSinTela, yaEstaba });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Cambiaste cuántas salieron buenas y todavía no se pasó nada al stock. Si cierras ahora, se pierde lo que cambiaste.");
   function cerrarTrasGuardar() {
@@ -147,6 +157,17 @@ export function PasarAlStockModal({
           return;
         }
       }
+      // La marca «ya estaban registradas» se escribe ANTES del cierre, como el permiso sin tela: la base la lee al cerrar y la vuelve a comprobar (`ya_estaba_sin_registro`). Si cambió de lo que dice la orden, se firma aparte.
+      if (esLider && !orden.esMuestra && yaEstaba !== marcaEnBase.current) {
+        const { error: errorMarca } = await firmar(createClient().rpc(RPC_MARCAR_YA_EN_STOCK as never, { p_produccion_id: orden.id, p_ya_estaba: yaEstaba } as never), responsable.firma());
+        if (errorMarca) {
+          responsable.despues(errorMarca);
+          setCargando(false);
+          avisar.error(traducirError(errorMarca, "marcar que las prendas ya estaban registradas"));
+          return;
+        }
+        marcaEnBase.current = yaEstaba;
+      }
       // Los montos van en `null` a propósito: la base toma la tela y los avíos del libro de insumos y los servicios de lo devengado.
       resultado = await firmar(
         createClient().rpc(
@@ -173,9 +194,9 @@ export function PasarAlStockModal({
     }
     setAtipico(null);
     // «Siguiente paso: llevarlas a las tiendas»: el aviso trae el botón directo al traslado con el origen y las líneas ya puestas (solo un lote, no una muestra).
-    const llevar = orden.esMuestra ? null : urlLlevarATiendas(orden.ubicacionId, lineasDeCierre(lineasOrden, cantidades).map((l) => ({ varianteId: l.variante_id, cantidadBuenas: l.cantidad })));
-    avisar.exito(textoPasasteAlStock(total, orden.producto.referencia, orden.esMuestra), {
-      detalle: resumen.costoPorPrenda !== null && !orden.esMuestra ? `Costo real ${soles(resumen.costoPorPrenda)} por prenda` : "Siguiente paso: llevarlas a las tiendas",
+    const llevar = orden.esMuestra || yaEstabaEfectivo ? null : urlLlevarATiendas(orden.ubicacionId, lineasDeCierre(lineasOrden, cantidades).map((l) => ({ varianteId: l.variante_id, cantidadBuenas: l.cantidad })));
+    avisar.exito(textoPasasteAlStock(total, orden.producto.referencia, orden.esMuestra, yaEstabaEfectivo), {
+      detalle: resumen.costoPorPrenda !== null && !orden.esMuestra ? `Costo real ${soles(resumen.costoPorPrenda)} por prenda` : yaEstabaEfectivo ? "El stock queda como estaba" : "Siguiente paso: llevarlas a las tiendas",
       duracion: 9000,
       ...(llevar ? { accion: { texto: "Llevarlas a las tiendas", onClick: () => router.push(llevar) } } : {}),
     });
@@ -229,8 +250,7 @@ export function PasarAlStockModal({
         <div data-guia="prod-orden-stock.resumen" className="space-y-2 rounded-xl bg-hueso px-4 py-3 text-sm">
           <p className="flex items-baseline justify-between gap-3">
             <span className="text-tinta/75">
-              {orden.esMuestra ? "La muestra se da por terminada" : `Entran ${total} ${total === 1 ? "prenda" : "prendas"} al stock del Taller`}
-              {orden.esMuestra ? "" : " y cada talla queda en Movimientos"}
+              {textoQuePasaConElStock(total, orden.esMuestra, yaEstabaEfectivo)}
             </span>
             {resumen.costoPorPrenda !== null && !orden.esMuestra && <span className="font-display text-lg tabular-nums text-tinta">{soles(resumen.costoPorPrenda)} / prenda</span>}
           </p>
@@ -249,6 +269,23 @@ export function PasarAlStockModal({
             </p>
           )}
         </div>
+
+        {!orden.esMuestra && esLider && (
+          <div data-guia="prod-orden-stock.ya-estaba" className="rounded-xl border border-sand px-4 py-3">
+            <label className="flex cursor-pointer items-start gap-3">
+              <Casilla marcada={yaEstaba} onCambio={() => setYaEstaba((v) => !v)} etiqueta={TEXTO_YA_ESTABA.etiqueta} disabled={cargando} className="mt-0.5" />
+              <span className="space-y-0.5">
+                <span className="block text-sm text-tinta">{TEXTO_YA_ESTABA.etiqueta}</span>
+                <span className="block text-xs text-tinta/70">{TEXTO_YA_ESTABA.ayuda}</span>
+              </span>
+            </label>
+          </div>
+        )}
+        {!orden.esMuestra && !esLider && marcadaEnLaOrden && (
+          <Aviso tono="info" chico>
+            {TEXTO_YA_ESTABA.avisoParaOtros}
+          </Aviso>
+        )}
 
         {sinTela && (
           <Aviso
@@ -329,7 +366,7 @@ export function PasarAlStockModal({
           <CampoGuiado id="quien" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
           </CampoGuiado>
-          {!atipico && <PieGuia guia={guia} listo={orden.esMuestra ? "Todo listo para terminar la muestra." : "Todo listo para pasar al stock."} conFrase />}
+          {!atipico && <PieGuia guia={guia} listo={orden.esMuestra ? "Todo listo para terminar la muestra." : yaEstabaEfectivo ? "Todo listo para cerrar la orden." : "Todo listo para pasar al stock."} conFrase />}
           {atipico && (
             <AvisoCostoAtipico
               costos={[atipico]}
@@ -358,8 +395,8 @@ export function PasarAlStockModal({
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Pasando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-                {orden.esMuestra ? "Terminar muestra" : total > 0 ? `Pasar ${total} al stock` : "Pasar al stock"}
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando={yaEstabaEfectivo ? "Cerrando…" : "Pasando…"} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+                {orden.esMuestra ? "Terminar muestra" : yaEstabaEfectivo ? "Cerrar la orden" : total > 0 ? `Pasar ${total} al stock` : "Pasar al stock"}
               </Boton>
             </div>
           </div>
