@@ -65,8 +65,14 @@ export function montoSugerido(medios: MedioForm[], esperado: number): string {
   return falta > 0 ? falta.toFixed(2) : "";
 }
 
-/** Lo que dice la caja de referencia de un medio. Con banco o app (transferencia, depósito, Yape, Plin) el N.° de operación es lo que después
- *  permite cuadrar el pago contra el estado de cuenta: «conviene», nunca obligatorio (la base lo guarda vacío; un pago no se frena por esto). */
+const POR_BANCO_O_APP: readonly MetodoPago[] = ["transferencia", "deposito", "yape", "plin"];
+
+/** Lo que dice la caja de referencia de un medio: con banco o app pide el N.° de operación (lo que después permite cuadrar el pago contra el estado de cuenta); con efectivo u otro, una referencia opcional. */
 export function textoReferencia(metodo: MetodoPago): string {
-  return metodo === "efectivo" || metodo === "otro" ? "Referencia · opcional" : "N.° de operación · conviene";
+  return POR_BANCO_O_APP.includes(metodo) ? "N.° de operación" : "Referencia · opcional";
+}
+
+/** «Conviene», nunca obligatorio: con banco o app y sin número de operación, una línea lo dice. No frena el pago (la base lo guarda vacío). `null` si no hace falta decir nada. */
+export function notaReferencia(metodo: MetodoPago, referencia: string): string | null {
+  return POR_BANCO_O_APP.includes(metodo) && referencia.trim() === "" ? "Conviene anotar el N.° de operación: ayuda a cuadrar con el banco." : null;
 }
