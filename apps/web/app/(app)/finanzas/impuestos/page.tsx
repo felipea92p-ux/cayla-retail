@@ -2,6 +2,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getPanelImpuestos } from "@/lib/impuestos";
+import { getRentaDelAno } from "@/lib/renta-anual";
 import { getVentasClaure } from "@/lib/cuenta-claure";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { sedeDeLaUrl, sedeElegida } from "@/lib/finanzas-telar-reglas";
@@ -17,7 +18,8 @@ export default async function ImpuestosPage({ searchParams }: { searchParams: Pr
   const mes = esMes(sp.mes) ? sp.mes : mesDe(hoyLima());
   const { desde, hasta } = rangoMes(mes);
   // «De ese IGV, S/ X es de ventas de CLAURE»: apoyo, no cifra (sin permiso o sin CLAURE llega `null` y la pantalla se ve como siempre).
-  const [panel, telar, claure] = await Promise.all([getPanelImpuestos(mes), getSedesDelTelar(), getVentasClaure(desde, hasta)]);
+  // La renta de marzo (ADR-0598) es del año, no del mes elegido: se lee con hoy.
+  const [panel, telar, claure, renta] = await Promise.all([getPanelImpuestos(mes), getSedesDelTelar(), getVentasClaure(desde, hasta), getRentaDelAno(hoyLima())]);
   const sede = sedeElegida(sedeDeLaUrl(sp), telar.sedes, telar.veTodo, telar.propia);
-  return <ImpuestosPanel panel={panel.datos} falla={panel.falla} sede={sede} sedes={telar.sedes} claure={claure} />;
+  return <ImpuestosPanel panel={panel.datos} falla={panel.falla} sede={sede} sedes={telar.sedes} claure={claure} renta={renta} />;
 }

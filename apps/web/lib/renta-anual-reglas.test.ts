@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { clasePapel, impuestoRenta, leerFilaSustento, proyectarRenta, resumirSustento, tasaMarginal, type FilaSustento, type TasasRenta } from "./renta-anual-reglas";
+import { leerParametro } from "./impuestos-reglas";
+import {
+  armarRentaDelAno,
+  clasePapel,
+  desdeDelSistema,
+  impuestoRenta,
+  leerFilaSustento,
+  mesesEntre,
+  proyectarRenta,
+  resumirSustento,
+  tasaMarginal,
+  type FilaSustento,
+  type TasasRenta,
+} from "./renta-anual-reglas";
 
 // Régimen MYPE Tributario con la UIT de 2026 (en la pantalla salen de los parámetros tributarios, no de aquí).
 const RMT: TasasRenta = { uit: 5500, tramoUit: 15, tasaTramo: 0.1, tasaResto: 0.295, topeBoletasPct: 0.06, topeBoletasUit: 200 };
@@ -134,8 +147,85 @@ describe("la renta de marzo", () => {
     expect(r.renta).toBe(5_000);
   });
 
+  it("con lo de antes del sistema: 9 meses del contador y 1,5 del sistema proyectado a los 3 que faltan (× 2)", () => {
+    const r = proyectarRenta(
+      {
+        utilidad: 20_000,
+        costoVentas: 30_000,
+        filas: [fila("mercaderia", "sin_comprobante", 15_000), fila("mercaderia", "factura", 15_000)],
+        meses: 1.5,
+        pagosACuenta: 900,
+        previo: { meses: 9, utilidad: 150_000, sinPapel: 40_000, pagado: 4_000 },
+      },
+      RMT
+    );
+    expect(r.factor).toBe(2);
+    expect(r.mesesPrevio).toBe(9);
+    expect(r.utilidad).toBe(190_000); // 150 000 del contador + 20 000 × 2
+    expect(r.costoNoDeducible).toBe(30_000); // la mitad del costo del sistema (× 2): la del contador ya no lo restó
+    expect(r.baseRenta).toBe(220_000);
+    expect(r.renta).toBe(impuestoRenta(220_000, RMT));
+    expect(r.rentaConFactura).toBe(impuestoRenta(150_000, RMT)); // 190 000 − 40 000 que el contador habría restado
+    expect(r.pagosACuenta).toBe(5_800);
+  });
+
+  it("si el contador ya cubre casi todo el año, el sistema no se proyecta más allá de lo que falta", () => {
+    const r = proyectarRenta({ ...ano, meses: 2, previo: { meses: 11, utilidad: 0, sinPapel: 0, pagado: 0 } }, RMT);
+    expect(r.factor).toBe(1);
+  });
+
   it("los meses fuera de rango se acotan a 1–12", () => {
     expect(proyectarRenta({ ...ano, meses: 0 }, RMT).factor).toBe(12);
     expect(proyectarRenta({ ...ano, meses: 15 }, RMT).factor).toBe(1);
+  });
+});
+
+describe("la tarjeta de Impuestos", () => {
+  const p = (nombre: string, vigente_desde: string, valor: number) => leerParametro({ nombre, vigente_desde, valor, texto: null, provisional: false, correcciones: 0 });
+  const ESCALA = [
+    p("uit", "2026-01-01", 5500),
+    p("renta_tramo_uit", "2017-01-01", 15),
+    p("renta_tasa_tramo", "2017-01-01", 0.1),
+    p("renta_tasa_resto", "2017-01-01", 0.295),
+    p("boletas_tope_pct", "2017-01-01", 0.06),
+    p("boletas_tope_uit", "2017-01-01", 200),
+    p("renta_pago_cuenta", "2026-01-01", 0.01),
+  ];
+  const base = { hoy: "2026-11-02", inicioFinanzas: "2026-10-01", filas: [fila("mercaderia", "factura", 10_000)], utilidad: 5_000, costoVentas: 8_000, ventasSinIgv: 100_000 };
+
+  it("el sistema cuenta desde el inicio de Finanzas si fue este año; si no, desde enero", () => {
+    expect(desdeDelSistema(2026, "2026-10-01")).toBe("2026-10-01");
+    expect(desdeDelSistema(2027, "2026-10-01")).toBe("2027-01-01");
+    expect(desdeDelSistema(2026, null)).toBe("2026-01-01");
+  });
+
+  it("los meses llevan fracción: del 1 de octubre al 2 de noviembre son 1,07", () => {
+    expect(mesesEntre("2026-10-01", "2026-11-02")).toBeCloseTo(33 / (365.25 / 12), 6);
+    expect(mesesEntre("2026-10-01", "2026-10-01")).toBeCloseTo(1 / (365.25 / 12), 6);
+  });
+
+  it("sin la escala de la renta no hay tarjeta", () => {
+    expect(armarRentaDelAno({ ...base, parametros: ESCALA.filter((x) => x.nombre !== "renta_tasa_resto") })).toBeNull();
+  });
+
+  it("sin lo del contador, el año entero sale del ritmo del sistema y lo dice", () => {
+    const r = armarRentaDelAno({ ...base, parametros: ESCALA })!;
+    expect(r.mesesAntes).toBe(9);
+    expect(r.previoCargado).toBe(false);
+    expect(r.proyeccion.mesesPrevio).toBe(0);
+    expect(r.proyeccion.pagosACuenta).toBeCloseTo(1_000 * r.proyeccion.factor, 2); // 1 % de lo vendido, al mismo ritmo
+  });
+
+  it("con la utilidad del contador, cubre enero a septiembre y el sistema los tres meses que faltan", () => {
+    const r = armarRentaDelAno({ ...base, parametros: [...ESCALA, p("renta_utilidad_previa", "2026-01-01", 60_000), p("renta_pagada_previa", "2026-01-01", 2_500)] })!;
+    expect(r.previoCargado).toBe(true);
+    expect(r.proyeccion.mesesPrevio).toBe(9);
+    expect(r.proyeccion.factor).toBeCloseTo(3 / mesesEntre("2026-10-01", "2026-11-02"), 6);
+    expect(r.proyeccion.utilidad).toBeCloseTo(60_000 + 5_000 * r.proyeccion.factor, 1);
+  });
+
+  it("lo del contador de OTRO año no cuenta", () => {
+    const r = armarRentaDelAno({ ...base, parametros: [...ESCALA, p("renta_utilidad_previa", "2025-01-01", 60_000)] })!;
+    expect(r.previoCargado).toBe(false);
   });
 });

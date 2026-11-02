@@ -1767,6 +1767,12 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Una barra por mes con su IGV a pagar (en verde, el que quedó a favor). La del mes que miras va en oscuro. Al tocar una barra, la pantalla pasa a ese mes.",
     },
     {
+      id: "renta",
+      ancla: "fin-impuestos.renta",
+      titulo: "La renta del año, que se paga en marzo",
+      texto: "Cuánto faltaría pagar en marzo por todo el año, después de lo pagado a cuenta. Lo que compraste sin factura no se resta en la renta: la barra dice cuánto es y el aviso, cuánta renta te cuesta. Es una estimación que confirma tu contador.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",

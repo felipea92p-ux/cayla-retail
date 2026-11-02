@@ -3,6 +3,8 @@
 // Impuesto a la Renta): para SUNAT esa prenda costó cero. Lógica pura, sin React ni Supabase; las tasas y la UIT llegan de los
 // parámetros tributarios, nunca escritas aquí.
 
+import { delAnio, vigenteEnAnio, type NombreParametro, type ParametroFila } from "./impuestos-reglas";
+
 type Fila = Record<string, unknown>;
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
 const texto = (v: unknown) => (v === null || v === undefined ? null : String(v));
@@ -130,6 +132,12 @@ const redondearBolsa = (b: Bolsa): Bolsa => ({ total: r2(b.total), sustenta: r2(
 
 // ---- La renta de marzo ---------------------------------------------------------------------------------------------------
 
+/**
+ * Lo del año ANTES de que Finanzas tuviera datos, según el contador (Configuración ▸ Impuestos). Su contador anota solo lo que tiene comprobante
+ * (Felipe, 2026-11-02): su utilidad YA trae como cero lo comprado sin factura, así que entra a la base tal cual; `sinPapel` solo dice cuánto costó.
+ */
+export type PrevioRenta = { meses: number; utilidad: number; sinPapel: number; pagado: number };
+
 export type EntradaRenta = {
   /** Utilidad antes de impuestos del Estado de resultados (consolidado) en los meses con datos. */
   utilidad: number;
@@ -137,15 +145,19 @@ export type EntradaRenta = {
   costoVentas: number;
   /** Lo gastado por proveedor y papel en esos meses (`fn_sustento_costos`). */
   filas: readonly FilaSustento[];
-  /** Cuántos meses cubren esas cifras (1 a 12). Con menos de 12 se proyecta el año a ese ritmo. */
+  /** Cuántos meses cubren esas cifras (puede ser fracción: un mes y dos días es 1.07). Lo que falta del año se proyecta a ese ritmo. */
   meses: number;
   /** Renta pagada a cuenta en esos meses (el 1 % mensual). */
   pagosACuenta: number;
+  /** Lo de antes del sistema, si el contador ya lo dio; sin él, todo el año sale del ritmo del sistema. */
+  previo?: PrevioRenta | null;
 };
 
 export type RentaDelAno = {
-  /** Por cuánto se multiplicó lo medido para llegar a un año (12 / meses; 1 si ya es un año). */
+  /** Por cuánto se multiplicó lo medido por el sistema para cubrir lo que el contador no cubre (sin «lo de antes», 12 / meses). */
   factor: number;
+  /** Meses que vienen del contador (0 si no se cargó «lo de antes»). */
+  mesesPrevio: number;
   sustento: Sustento;
   utilidad: number;
   costoNoDeducible: number;
@@ -155,7 +167,7 @@ export type RentaDelAno = {
   renta: number;
   /** La renta si todo el costo tuviera factura. */
   rentaConFactura: number;
-  /** Lo que la falta de papel suma a la renta. */
+  /** Lo que la falta de papel suma a la renta (incluye lo comprado sin factura antes del sistema). */
   cuestaSinFactura: number;
   pagosACuenta: number;
   /** Lo que quedaría por pagar en marzo, después de los pagos a cuenta. */
@@ -163,21 +175,29 @@ export type RentaDelAno = {
   tasaMarginal: number;
 };
 
-/** La renta del año, proyectada a 12 meses al ritmo de lo medido. */
+/**
+ * La renta del año: lo de antes del sistema (si está) más lo del sistema proyectado a los meses que faltan, al ritmo medido.
+ * Solo la parte del sistema suma de vuelta el costo sin papel: la del contador ya no lo restó.
+ */
 export function proyectarRenta(e: EntradaRenta, t: TasasRenta): RentaDelAno {
-  const meses = Math.min(12, Math.max(1, Math.round(e.meses)));
-  const factor = 12 / meses;
+  const previo = e.previo ?? null;
+  const mesesPrevio = previo ? Math.min(11, Math.max(0, Math.round(previo.meses))) : 0;
+  const restante = 12 - mesesPrevio;
+  const meses = Math.min(restante, Math.max(1, e.meses));
+  const factor = restante / meses;
   const anual = e.filas.map((f) => ({ ...f, monto: f.monto * factor }));
   const sustento = resumirSustento(anual, t);
-  const utilidad = r2(e.utilidad * factor);
+  const utilidad = r2(e.utilidad * factor + (previo?.utilidad ?? 0));
   const costoNoDeducible = r2(Math.max(0, e.costoVentas * factor) * sustento.pctInventarioSinSustento);
   const gastoNoDeducible = sustento.gastoNoDeducible;
   const baseRenta = r2(utilidad + costoNoDeducible + gastoNoDeducible);
   const renta = impuestoRenta(baseRenta, t);
-  const rentaConFactura = impuestoRenta(utilidad, t);
-  const pagosACuenta = r2(e.pagosACuenta * factor);
+  // Si todo hubiera tenido factura: lo del sistema ya trae su costo; lo del contador habría restado lo que compró sin papel.
+  const rentaConFactura = impuestoRenta(utilidad - (previo?.sinPapel ?? 0), t);
+  const pagosACuenta = r2(e.pagosACuenta * factor + (previo?.pagado ?? 0));
   return {
     factor,
+    mesesPrevio,
     sustento,
     utilidad,
     costoNoDeducible,
@@ -190,4 +210,83 @@ export function proyectarRenta(e: EntradaRenta, t: TasasRenta): RentaDelAno {
     faltaEnMarzo: r2(Math.max(0, renta - pagosACuenta)),
     tasaMarginal: tasaMarginal(baseRenta, t),
   };
+}
+
+// ---- Lo que la tarjeta de Impuestos necesita, armado desde lo que lee el servidor --------------------------------------------
+
+/** La escala de la renta del año, de los parámetros tributarios. `null` si falta alguno (la base no tiene la migración o la UIT del año). */
+export function tasasDelAno(parametros: readonly ParametroFila[], anio: number): TasasRenta | null {
+  const v = (n: NombreParametro) => vigenteEnAnio(parametros, n, anio)?.valor ?? null;
+  const t = {
+    uit: v("uit"),
+    tramoUit: v("renta_tramo_uit"),
+    tasaTramo: v("renta_tasa_tramo"),
+    tasaResto: v("renta_tasa_resto"),
+    topeBoletasPct: v("boletas_tope_pct"),
+    topeBoletasUit: v("boletas_tope_uit"),
+  };
+  return Object.values(t).some((x) => x === null) ? null : (t as TasasRenta);
+}
+
+/** «Lo de antes del sistema» del año, si se cargó al menos la utilidad del contador. Cubre de enero al mes antes de que Finanzas empezara. */
+export function previoDelAno(parametros: readonly ParametroFila[], anio: number, mesesPrevio: number): PrevioRenta | null {
+  if (mesesPrevio <= 0) return null;
+  const utilidad = delAnio(parametros, "renta_utilidad_previa", anio)?.valor ?? null;
+  if (utilidad === null) return null;
+  return {
+    meses: mesesPrevio,
+    utilidad,
+    sinPapel: delAnio(parametros, "renta_sin_papel_previo", anio)?.valor ?? 0,
+    pagado: delAnio(parametros, "renta_pagada_previa", anio)?.valor ?? 0,
+  };
+}
+
+/** Desde cuándo cuenta el sistema en el año: el 1 de enero, o el inicio de Finanzas si fue después. */
+export function desdeDelSistema(anio: number, inicioFinanzas: string | null): string {
+  const enero = `${anio}-01-01`;
+  return inicioFinanzas && inicioFinanzas > enero ? inicioFinanzas : enero;
+}
+
+/** Cuántos meses (con fracción) hay de `desde` a `hasta`, los dos incluidos: del 1 de octubre al 2 de noviembre, 1.07. */
+export function mesesEntre(desde: string, hasta: string): number {
+  const dias = (Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86_400_000 + 1;
+  return Math.max(0, dias / (365.25 / 12));
+}
+
+export type RentaPantalla = {
+  anio: number;
+  desdeSistema: string;
+  hasta: string;
+  mesesSistema: number;
+  /** Meses de enero que el sistema no cubre (de enero al inicio de Finanzas). */
+  mesesAntes: number;
+  /** ¿El contador ya dio lo de esos meses? Si no, el año entero sale del ritmo del sistema. */
+  previoCargado: boolean;
+  proyeccion: RentaDelAno;
+  filas: FilaSustento[];
+};
+
+/** Arma la tarjeta; `null` si falta la escala (sin ella no hay renta que estimar: la tarjeta lo dice). */
+export function armarRentaDelAno(e: {
+  hoy: string;
+  inicioFinanzas: string | null;
+  parametros: readonly ParametroFila[];
+  filas: readonly FilaSustento[];
+  utilidad: number;
+  costoVentas: number;
+  ventasSinIgv: number;
+}): RentaPantalla | null {
+  const anio = Number(e.hoy.slice(0, 4));
+  const tasas = tasasDelAno(e.parametros, anio);
+  if (!tasas) return null;
+  const desdeSistema = desdeDelSistema(anio, e.inicioFinanzas);
+  const mesesAntes = Number(desdeSistema.slice(5, 7)) - 1;
+  const previo = previoDelAno(e.parametros, anio, mesesAntes);
+  const tasaPagoCuenta = vigenteEnAnio(e.parametros, "renta_pago_cuenta", anio)?.valor ?? 0;
+  const mesesSistema = mesesEntre(desdeSistema, e.hoy);
+  const proyeccion = proyectarRenta(
+    { utilidad: e.utilidad, costoVentas: e.costoVentas, filas: e.filas, meses: mesesSistema, pagosACuenta: e.ventasSinIgv * tasaPagoCuenta, previo },
+    tasas
+  );
+  return { anio, desdeSistema, hasta: e.hoy, mesesSistema, mesesAntes, previoCargado: previo !== null, proyeccion, filas: [...e.filas] };
 }
