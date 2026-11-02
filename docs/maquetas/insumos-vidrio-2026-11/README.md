@@ -19,10 +19,10 @@ elegido (B · Lente, en ámbar): no tiene caras propias.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | La fila de un insumo (`FilaInsumo`) | Como ahora | Cada color, una tarjeta de papel suelta bajo el título de su tela; se abre con sus lotes. |
-| | **A · Una placa por tela** (recomendada) | Los colores de una tela en UNA placa Serena, una fila por color; la que abres se hunde en un pozo con sus lotes. |
+| | **A · Una placa por tela** (elegida) | Los colores de una tela en UNA placa Serena, una fila por color; la que abres se hunde en un pozo con sus lotes. |
 | | B · Placas sueltas | Cada color, su placa; los lotes, en un pozo dentro. |
 | El libro de movimientos | Como ahora | Tarjeta de papel, una línea por movimiento, lo que entra en verde. |
-| | **A · Placa con filas** (recomendada) | La placa Serena, una fila por movimiento; lo que entra, en una lente verde. |
+| | **A · Placa con filas** (elegida) | La placa Serena, una fila por movimiento; lo que entra, en una lente verde. |
 | | B · Libro hundido | Un pozo con un riel que une los movimientos. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -41,4 +41,12 @@ Solo tokens (el color de una tela es dato, `data-color-dato`). Claro y oscuro. S
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: las recomendadas, la fila A · Una placa por tela y el libro A · Placa con filas.** Al implementar:
+- `InsumosPanel`: los `FilaInsumo` de una misma tela (y de un mismo avío) van dentro de UNA placa Serena (esquinas de 22 px, `overflow-hidden`)
+  bajo su `TituloGrupo`, que queda afuera como hoy. Cada `FilaInsumo` deja de ser `card-cayla`: es una fila, con una raya de tinta al 8 % entre
+  filas y, al pasar el mouse, tinta al 3 %. La fila **abierta** se hunde: margen de 6 px, esquinas de 16 px, tinta al 4 % con su sombra adentro
+  (en oscuro, sombra al 26 %); la raya sobre sus lotes, tinta al 8 % (no `border-sand`). El acordeón por `grid-template-rows`, la barra del
+  saldo, el estado, el saldo que cuenta y los lotes con «1º» no cambian.
+- El libro de movimientos: de `card-cayla` a la placa Serena; las rayas entre movimientos, tinta al 8 %; la cantidad de lo que entra, una lente
+  verde (el verde al 6→14 % sobre vidrio, filo al 28 %, píldora); la de lo que sale, una píldora de tinta al 6 %.
+- «Nueva tela» con «Existe también» no cambia (ya usa el aviso lente elegido).

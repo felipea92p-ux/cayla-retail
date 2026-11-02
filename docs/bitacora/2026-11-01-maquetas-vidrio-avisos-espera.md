@@ -103,3 +103,5 @@
 - **Catálogo ▸ Liquidación (2026-11-02)**: maqueta `docs/maquetas/liquidacion-vidrio-2026-11/`. La etiqueta es papel térmico y no cambia.
   Caras de lo propio: la etiqueta en la hoja (A · En su bandeja, recomendada; B · Colgada) y las cifras chicas del celular (A · Placas chicas,
   recomendada; B · Ranura de tres). Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en Insumos y en Liquidación (2026-11-02):** las recomendadas. Insumos: la fila A · Una placa por tela y el libro
+  A · Placa con filas. Liquidación: la etiqueta A · En su bandeja y las cifras chicas A · Placas chicas.
