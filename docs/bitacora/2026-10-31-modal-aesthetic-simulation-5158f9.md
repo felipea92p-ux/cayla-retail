@@ -236,3 +236,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   ranura de 6 px, el paso hecho en gota verde, el actual en ahumado denso con halo, el pendiente en gota clara). Recibir mercadería hereda
   los pasos. Contar, Revisar y Confirmar pasan de los pasos en «línea» al riel (`forma="riel"`, con sus subtítulos), como en la maqueta; el
   cuadre del piso sigue en línea. Visto con una maqueta montada sobre la página: la base local no tiene un conteo en curso.
+
+- **Apartados al vidrio (Felipe 2026-11-02):** la hoja «A · Al aire» (la hoja grande se va como la mesa de Vender; la cabecera queda plana;
+  el ticket y el panel de Entregar en la placa del ticket; prendas, listas y cifras del Historial en placas) y, en el celular, la «Isla de
+  pestañas» (vidrio a 12 px de los bordes con la gota que se corre a la elegida; la barra negra de cada paso se apoya sobre ella). En
+  `vidrio/vender.css`. Sin apartados en la base local: filas y Entregar con un apartado elegido, sin ver.

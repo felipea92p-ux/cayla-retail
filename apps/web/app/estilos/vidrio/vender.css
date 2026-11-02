@@ -172,3 +172,196 @@
     transform: none;
   }
 }
+
+/* =====================================================================
+   APARTADOS (`/vender/apartados`) CON EL VIDRIO «SERENA» (ADR-0596; Felipe 2026-11-02, docs/maquetas/apartados-vidrio-2026-11/).
+
+   Lo que eligió Felipe mirando:
+   · La hoja, «A · Al aire»: como la mesa de Vender, se va la hoja de papel macizo que encerraba las tres vistas. La cabecera de
+     Apartados («Apartados · sede», las pestañas y «Opciones») es una fila plana sobre el fondo, sin raya ni margen propio, y lo de adentro
+     son placas sobre el lienzo: el ticket y el panel de entrega, la placa Serena de su columna (la misma del ticket de Vender); la prenda
+     escaneada, los apartados para elegir, las cifras y las listas del Historial, la placa Serena de la pantalla.
+   · Las pestañas del celular, «A · Isla de pestañas»: ya no la franja de papel pegada abajo de borde a borde, sino una isla de vidrio que
+     flota a 12 px de los bordes, como la barra de abajo (barra-abajo.css), con la gota clara que viaja a la pestaña elegida. La barra negra
+     de cada paso se apoya 10 px encima (`SOBRE_ISLA_PESTANAS`, components/apartados/piezas.tsx: si cambia el alto de aquí, cambia allá).
+
+   Los ganchos los ponen components/apartados/ApartadosPanel.tsx (`ap-mesa`, `ap-cab`, `ap-cab-sep`, `ap-opciones`, `ap-avisos`,
+   `ap-pestanas-isla`, `ap-pestanas-gota` con su `--k`), ApartarVista.tsx y EntregarVista.tsx (`ap-dos`, `ap-cuerpo`, `ap-ticket`,
+   `ap-ticket-hilo`, `ap-placa`) y TodosVista.tsx (`ap-cuerpo`, `ap-cifras`, `ap-cifra` con `data-custodia`, `ap-placa`). Nada cambia qué
+   hace la pantalla. Solo recetas de recetas.css. Movimiento de ADR-0136, sin nada nuevo: la gota de las pestañas viaja como la de Mi
+   perfil (450 ms, sin rebote); con «reducir movimiento», salta.
+   ===================================================================== */
+
+/* ---------- La cabecera: una fila plana ---------- */
+/* La raya entre «Apartados · sede» y las pestañas: el hilo del vidrio, no la arena de la hoja. */
+.ap-mesa .ap-cab-sep {
+  background: var(--hilo-cabeza);
+}
+/* «Opciones» (solo el líder): una gota, como todo lo que se toca sobre el vidrio. */
+.ap-mesa .ap-opciones {
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  border-radius: 999px;
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+  transition:
+    background 200ms var(--ease-cayla),
+    border-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .ap-mesa .ap-opciones:hover {
+    border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+    background: var(--gota-marca);
+  }
+}
+/* Lo que la tienda tiene que saber (se liberaron solos, la lista llegó al tope, no hay caja): ya no una franja de crema bajo la
+   cabecera, sino una placa que explica (lo que explica es plano). */
+.ap-mesa .ap-avisos {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border: 1px solid var(--placa-borde);
+  border-radius: 18px;
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+}
+
+/* ---------- Lo de adentro, al aire ---------- */
+/* Apartar y Entregar: el trabajo a la izquierda y el ticket a la derecha, con aire entre los dos en vez de la raya de la hoja. */
+.ap-mesa .ap-dos {
+  gap: 20px;
+}
+/* Sin hoja, lo de adentro se alinea con la cabecera de la pantalla: sin el margen interior que tenía dentro del papel. */
+.ap-mesa .ap-cuerpo {
+  padding-inline: 0;
+  padding-top: 20px;
+  padding-bottom: 0;
+}
+
+/* El ticket de Apartar y el panel de Entregar: la placa del ticket de Vender. Las rayas de su cabecera y su pie son el hilo del vidrio. */
+.ap-mesa .ap-ticket {
+  overflow: hidden;
+  border: 1px solid var(--serena-borde);
+  border-radius: var(--ticket-placa-radio);
+  background: var(--ticket-placa-fondo);
+  -webkit-backdrop-filter: var(--ticket-placa-filtro);
+  backdrop-filter: var(--ticket-placa-filtro);
+  box-shadow: var(--ticket-placa-sombra);
+}
+.ap-mesa .ap-ticket .ap-ticket-hilo {
+  border-color: var(--hilo-cabeza);
+}
+
+/* La prenda escaneada, los apartados para elegir, los pedidos y las listas del Historial: la placa Serena de la pantalla. Lo que va
+   dentro de la placa se separa con el hilo de fila, no con arena. */
+.ap-mesa .ap-placa {
+  border: 1px solid var(--serena-borde);
+  border-radius: 22px;
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.ap-mesa button.ap-placa {
+  border-radius: 18px;
+  transition:
+    background 200ms var(--ease-cayla),
+    box-shadow 250ms var(--ease-cayla);
+}
+.ap-mesa .ap-placa:is(.divide-sand) > *,
+.ap-mesa .ap-placa :is(.border-sand, .divide-sand > *) {
+  border-color: var(--hilo-fila);
+}
+@media (hover: hover) {
+  /* El que se toca entero (elegir un apartado, volver a una prenda escaneada) se aclara al pasar el mouse, como la cifra que lleva. */
+  .ap-mesa button.ap-placa:not(:disabled):hover {
+    background: var(--serena-fondo-encima);
+    box-shadow: var(--serena-sombra-encima);
+  }
+  /* La fila del Historial que abre su detalle: la gota, no la crema maciza. */
+  .ap-mesa ul.ap-placa > li:hover {
+    background: var(--gota-fondo);
+  }
+}
+
+/* Las cifras del Historial: ya no una tarjeta partida en cuatro, sino cuatro placas sueltas (la tarjeta de cifra «A · Placa»). La de
+   «En custodia» conserva su rayado (el dinero que se guarda y todavía no es venta), sobre la placa. */
+.ap-mesa .ap-cifras {
+  gap: 12px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+}
+.ap-mesa .ap-cifra {
+  border: 1px solid var(--serena-borde);
+  border-radius: 20px;
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.ap-mesa .ap-cifra[data-custodia] {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--color-sand) 35%, transparent) 9px 10px),
+    var(--serena-fondo);
+}
+/* En el celular, de a dos (como la maqueta): una columna de cuatro placas empujaba la lista fuera de la vista. */
+@media (max-width: 639px) {
+  .ap-mesa .ap-cifras {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .ap-mesa .ap-cifra {
+    padding: 12px;
+  }
+}
+
+/* ---------- El celular: la isla de pestañas ---------- */
+.ap-pestanas-isla {
+  position: fixed;
+  z-index: 20;
+  left: max(0.75rem, env(safe-area-inset-left));
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  height: 62px;
+  padding: 5px;
+  border: 1px solid var(--serena-borde);
+  border-radius: 999px;
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--vidrio-flota-sombra);
+}
+/* Con el lateral a la vista (tablet), la isla empieza después de él, como la barra negra de cada paso. */
+@media (min-width: 640px) {
+  .ap-pestanas-isla {
+    left: calc(var(--spacing-lateral) + 0.75rem);
+  }
+}
+.ap-pestanas-isla > button {
+  z-index: 1;
+  border-radius: 999px;
+}
+.ap-pestanas-isla > button[aria-current="page"] {
+  font-weight: 600;
+}
+/* La gota clara bajo la pestaña elegida: un tercio de la isla, que se corre `--k` tercios (0 Apartar, 1 Entregar, 2 Historial). */
+.ap-pestanas-gota {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / 3);
+  border-radius: 999px;
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+  transform: translateX(calc(var(--k, 0) * 100%));
+  transition: transform 450ms var(--ease-cayla);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-pestanas-gota,
+  .ap-mesa .ap-opciones,
+  .ap-mesa button.ap-placa {
+    transition: none;
+  }
+}
