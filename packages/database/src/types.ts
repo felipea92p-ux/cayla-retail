@@ -3303,6 +3303,7 @@ export type Database = {
           fecha_entrega: string | null
           id: string
           inventariado_at: string | null
+          ingreso_al_stock: string
           nota: string | null
           producto_id: string
           token_cliente: string | null
@@ -3323,6 +3324,7 @@ export type Database = {
           fecha_entrega?: string | null
           id?: string
           inventariado_at?: string | null
+          ingreso_al_stock?: string
           nota?: string | null
           producto_id: string
           token_cliente?: string | null
@@ -3343,6 +3345,7 @@ export type Database = {
           fecha_entrega?: string | null
           id?: string
           inventariado_at?: string | null
+          ingreso_al_stock?: string
           nota?: string | null
           producto_id?: string
           token_cliente?: string | null

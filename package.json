@@ -308,6 +308,7 @@
     "pruebas:produccion-anulaciones": "node scripts/pruebas/produccion_anulaciones.mjs",
     "pruebas:produccion-lista": "node scripts/pruebas/produccion_lista.mjs",
     "pruebas:produccion-cierre": "node scripts/pruebas/produccion_cierre.mjs",
+    "pruebas:produccion-ya-estaba": "node scripts/pruebas/produccion_ya_estaba.mjs",
     "pruebas:produccion-tela": "node scripts/pruebas/produccion_tela.mjs",
     "pruebas:produccion-tarifas": "node scripts/pruebas/produccion_tarifas.mjs",
     "pruebas:produccion-tela-del-taller": "node scripts/pruebas/produccion_tela_del_taller.mjs",

@@ -1,0 +1,9 @@
+## 📦 Cierre «ya estaban registradas» (2026-10-31, ADR-0551 actividad 3) — rama `claude/regularizar-stock-trujillo-369714`, PR #1560 (borrador)
+
+- [x] Migración `20261031171000_produccion_cierre_ya_estaba_en_stock.sql` + `pruebas:produccion-ya-estaba` (19 casos) + casilla en `PasarAlStockModal` + guía interactiva + huella.
+- [x] **`20261031171000` PEGADA en producción** el 2026-11-01 (una sola parte); verificada por efectos: columna 1, CHECK 1, funciones nuevas 2, cerrar/revertir/lectura parchadas.
+- [x] **PEGADA** (2026-11-01, verificada: `has_column_privilege` = true), una línea: `20261101210000_produccion_ingreso_al_stock_legible.sql` = `grant select (ingreso_al_stock) on retail.producciones to authenticated;`. Sin ella la lista de órdenes del Taller de la web nueva cae con «permission denied»: `producciones` tiene el candado de dinero y una columna nueva nace sin lectura. La detectó `pruebas:candado-dinero-produccion` en el CI (tanda 2), no mi suite. Se comprueba con `select has_column_privilege('authenticated','retail.producciones','ingreso_al_stock','select');` → true.
+- [ ] Después de fusionar y publicar la web (la casilla aún no existe en producción): cerrar OP-000001 (Chaleco Cayla) con la casilla marcada. **Antes de eso NO usar «Pasar al stock» normal ni «Llevarlas a las tiendas»**: duplican las 57 prendas que ya están en Tienda TRU.
+- [ ] Decisión de Felipe (dinero): ¿el costo real del Chaleco entra al promedio de `variantes.costo` (hoy 30.00 en producción) o se queda solo en la orden? Hoy: solo en la orden.
+- [ ] Diccionario de datos: `producciones.ingreso_al_stock` entra cuando se aplique en producción y se refresque el volcado (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] Ronda de modo oscuro del estado nuevo de la hoja (`tema:auditar`, escenario de «Pasar al stock» con la casilla marcada): no corrida.
