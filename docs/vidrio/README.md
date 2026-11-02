@@ -76,6 +76,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
 | **Caja** (página entera: `app/(app)/caja`, vista «hoy contra ayer») | `CajaAbiertaPanel`, `CajaComparativa`, `BarraCierreCaja` | Elegido (armada con las piezas elegidas) | Titular A · Ahumado; barra de cierre B · Isla (píldora al centro, sin la bajada); «Cerrar caja» en gota roja | `caja-vidrio-2026-11/` |
 | **Historial de ventas** (página entera: `app/(app)/vender/historial`) | `HistorialVentasLista`, `HistorialVentasPulso`, `FiltrosHistorialVentas`, `AvisosHistorial` | Elegido (armada con las piezas elegidas) | Línea del tiempo B · Solo los días en gota (sin hilo; el día con `SeparadorDia` B); pila de prendas A · Lentes apiladas | `historial-ventas-vidrio-2026-11/` |
+| **Traslados** (página entera: la billetera de pases, ADR-0355) | `components/traslados-pases/`, `estilos/traslados-pases.css` | En maqueta (Felipe 2026-11-02: al vidrio con el mismo movimiento) | — (recomendadas: pase A · Vidrio claro, escenario A · Al aire) | `traslados-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
