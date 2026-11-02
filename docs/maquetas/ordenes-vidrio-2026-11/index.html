@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-rt="ranura" data-pa="pico" data-mo="orden">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Órdenes del Taller con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Producción ▸ Órdenes con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   · La LISTA (components/ordenes-lista/OrdenesLista.tsx, «A · Lista» de ADR-0400) se arma solo con piezas del sistema que ya tienen su cara
+     elegida (cabecera, tarjetas de cifra que filtran, pestañas, píldoras, buscador, tabla, insignias): aquí se ve como queda, sin nada que elegir.
+   · La PÁGINA DE UNA ORDEN (app/estilos/orden-pagina.css, la «Ruta viva» de ADR-0570 que eligió Felipe el 2026-10-29) tiene lo propio: la RUTA
+     de pasos cosidos por su hilo (glifos de PAPEL con borde arena; el hecho, VERDE SÓLIDO; el que toca, aro ámbar; el paso elegido, fondo HUESO)
+     y el PASO ABIERTO debajo (una tarjeta de papel). Su regla de color no cambia: verde solo lo hecho, ámbar lo que toca, rojo solo un problema.
+   Datos inventados. Solo tokens. Movimiento: un paso cambia de fondo al tocarlo; sin rebote ni bucle.
+   ==================================================================== */
+.pz-o{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;gap:2px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pz-o{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pz-o button{flex:none;height:32px;padding:0 14px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pz-o button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pz-o button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.placa-o{border-radius:22px;padding:16px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .placa-o{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip-l{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c);white-space:nowrap;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip-l i{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* ---------- la lista (todo con piezas ya elegidas) ---------- */
+.fila-c{margin-top:20px}
+.lst{margin-top:18px}
+.lst-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px}
+.bus-o{flex:1 1 220px;display:flex;align-items:center;gap:8px;height:42px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:13.5px;color:var(--t65)}
+[data-tema="oscuro"] .bus-o{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.bus-o svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.ol{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.2fr) 90px 100px;gap:12px;align-items:center;padding:12px 12px;border-radius:14px;font-size:14px;position:relative}
+.ol+.ol::before{content:"";position:absolute;top:0;left:12px;right:12px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+@media (hover:hover){.ol:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}.ol:hover::before,.ol:hover+.ol::before{opacity:0}}
+.ol b{display:block;font-weight:600}.ol small{display:block;font-size:12.5px;color:var(--t65)}
+.ol .causa{color:var(--rojo-p);font-size:12.5px}
+.ol .ent{text-align:center;font-variant-numeric:tabular-nums;color:var(--t80)}
+
+/* ---------- la orden: la ruta (como hoy) ---------- */
+.op{container:op/inline-size;margin-top:20px;display:grid;gap:16px}
+.camino{margin:0;padding:14px 10px 12px;list-style:none;display:grid;grid-template-columns:minmax(0,1fr);border-radius:22px;border:1px solid var(--sand);background:var(--papel)}
+@container op (min-width:600px){.camino{grid-template-columns:repeat(var(--n),minmax(0,1fr))}}
+.nli{position:relative;min-width:0}
+.nodo{position:relative;width:100%;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:10px;padding:8px 10px;border-radius:14px;text-align:left;transition:background-color .2s var(--ease)}
+@container op (min-width:600px){.nodo{grid-template-columns:minmax(0,1fr);justify-items:center;gap:6px;padding:6px 4px 10px;text-align:center}}
+.nodo[aria-pressed="true"]{background:color-mix(in srgb,var(--hueso) 75%,transparent)}
+@media (hover:hover){.nodo[aria-pressed="false"]:hover{background:color-mix(in srgb,var(--hueso) 45%,transparent)}}
+.glifo{position:relative;z-index:1;display:grid;place-items:center;width:28px;height:28px;border-radius:999px;border:2px solid var(--sand);background:var(--papel);color:var(--t65)}
+.glifo svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.nli[data-e="hecha"] .glifo{border-color:var(--verde);background:var(--verde);color:var(--papel)}
+.nli[data-e="toca"] .glifo{border-color:var(--ambar);box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 16%,transparent)}
+.nli[data-e="toca"] .glifo::after{content:"";width:10px;height:10px;border-radius:999px;background:var(--ambar)}
+.n-nom{display:block;font-size:13.5px;font-weight:600;line-height:1.3}.nli[data-e="pendiente"] .n-nom{color:var(--t65)}
+.n-sub{display:block;font-size:12px;line-height:1.35;color:var(--t65)}.nli[data-e="toca"] .n-sub{color:color-mix(in srgb,var(--ambar) 82%,var(--tinta));font-weight:600}
+.nli:not(:first-child)::before{content:"";position:absolute;z-index:0;left:23px;top:-11px;width:2px;height:22px;background:var(--sand)}
+@container op (min-width:600px){.nli:not(:first-child)::before{left:-50%;top:20px;width:100%;height:2px}}
+.nli[data-previa="hecha"]::before{background:var(--verde)}
+/* ---------- el paso abierto (como hoy: una tarjeta de papel) ---------- */
+.paso{position:relative;display:grid;gap:4px;padding:18px 20px;border-radius:22px;border:1px solid var(--sand);background:var(--papel)}
+.paso .quien{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--t65)}
+.paso .quien .av-o{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:12px;color:var(--tinta);background:color-mix(in srgb,var(--sand) 85%,transparent)}
+.paso h3{margin:8px 0 0;font:500 26px/1.15 'EB Garamond',serif}.paso .pos{font-size:15px;color:var(--t65)}
+.paso .cifra{margin-top:2px;font:600 26px/1.1 'EB Garamond',serif;font-variant-numeric:tabular-nums}
+.paso p{margin:4px 0 0;font-size:13.5px;line-height:1.5;color:var(--t80)}
+.paso .acc{margin-top:12px;display:flex;flex-wrap:wrap;gap:10px}
+
+/* ====================================================================
+   LA RUTA · A · RANURA CON GOTAS (la de los pasos de Conteo y Recibir, ya elegida): los pasos viven en una ranura hundida; el glifo hecho es una
+   lente VERDE, el que toca una lente ÁMBAR con su aro, el pendiente una gota clara; el hilo hecho, verde; el paso elegido, la gota clara.
+   B · LENTES AL AIRE: sin caja alrededor; los glifos son las mismas lentes, el hilo corre libre y el paso elegido solo sube su nombre.
+   ==================================================================== */
+:is([data-rt="ranura"],[data-rt="aire"]) .glifo{border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"]:is([data-rt="ranura"],[data-rt="aire"]) .glifo{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+:is([data-rt="ranura"],[data-rt="aire"]) .nli[data-e="hecha"] .glifo{color:color-mix(in srgb,var(--verde) 85%,var(--tinta));border-color:color-mix(in srgb,var(--verde) 50%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 16%,var(--vidrio)),color-mix(in srgb,var(--verde) 30%,var(--vidrio)));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -5px color-mix(in srgb,var(--verde) 50%,transparent)}
+[data-tema="oscuro"]:is([data-rt="ranura"],[data-rt="aire"]) .nli[data-e="hecha"] .glifo{background:color-mix(in srgb,var(--verde) 26%,transparent);color:var(--verde)}
+:is([data-rt="ranura"],[data-rt="aire"]) .nli[data-e="toca"] .glifo{border-color:color-mix(in srgb,var(--ambar) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 12%,var(--vidrio)),color-mix(in srgb,var(--ambar) 24%,var(--vidrio)));box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 14%,transparent),inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-rt="ranura"],[data-rt="aire"]) .nli[data-e="toca"] .glifo{background:color-mix(in srgb,var(--ambar) 22%,transparent)}
+[data-rt="ranura"] .camino{border:1px solid color-mix(in srgb,var(--borde) 40%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-rt="ranura"] .camino{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-rt="ranura"] .nodo[aria-pressed="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 94%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 8px 18px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-rt="ranura"] .nodo[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:none}
+@media (hover:hover){:is([data-rt="ranura"],[data-rt="aire"]) .nodo[aria-pressed="false"]:hover{background:color-mix(in srgb,var(--vidrio) 45%,transparent)}}
+:is([data-rt="ranura"],[data-rt="aire"]) .nli:not(:first-child)::before{background:color-mix(in srgb,var(--tinta) 12%,transparent)}
+:is([data-rt="ranura"],[data-rt="aire"]) .nli[data-previa="hecha"]::before{background:color-mix(in srgb,var(--verde) 70%,transparent)}
+[data-rt="aire"] .camino{border:0;background:none;padding-left:0;padding-right:0}
+[data-rt="aire"] .nodo[aria-pressed="true"]{background:none}
+[data-rt="aire"] .nodo[aria-pressed="true"] .n-nom{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px;text-decoration-color:color-mix(in srgb,var(--tinta) 45%,transparent)}
+
+/* ====================================================================
+   EL PASO ABIERTO · A · PLACA CON SU PICO: la placa Serena con un pico que apunta al paso elegido (se sabe de qué paso habla);
+   B · AL AIRE: sin tarjeta; el paso abierto vive sobre el fondo, como el resto de la orden.
+   ==================================================================== */
+:is([data-pa="pico"]) .paso{border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);box-shadow:inset 0 1px 0 var(--vidrio),0 20px 40px -26px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-pa="pico"] .paso{background:color-mix(in srgb,var(--vidrio) 78%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-pa="pico"] .paso::before{content:"";position:absolute;top:-8px;left:var(--pico,50%);width:14px;height:14px;margin-left:-7px;rotate:45deg;border-left:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);border-top:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 72%,transparent);transition:left .3s var(--ease)}
+[data-tema="oscuro"][data-pa="pico"] .paso::before{background:color-mix(in srgb,var(--vidrio) 78%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+@container op (max-width:599px){[data-pa="pico"] .paso::before{display:none}}
+[data-pa="aire"] .paso{border:0;background:none;padding-left:4px;padding-right:4px}
+
+[data-mo="lista"] .solo-orden,[data-mo="orden"] .solo-lista{display:none}
+@container disp (max-width:900px){.ol{grid-template-columns:minmax(0,1fr) auto}.ol>:nth-child(2){grid-column:1 / -1;order:3}.ol>:nth-child(3){display:none}}
+@container disp (max-width:520px){.placa-o{padding:12px;border-radius:18px}.paso{padding:16px}}
+@media (prefers-reduced-motion:reduce){.nodo,.paso::before{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Producción ▸ Órdenes, con vidrio</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="mo"><button data-v="lista">La lista</button><button data-v="orden">Una orden</button></div>
+  <span class="tag">La ruta</span><div class="seg-m" data-ctl="rt"><button data-v="ahora">Como ahora</button><button data-v="ranura">A · Ranura con gotas</button><button data-v="aire">B · Lentes al aire</button></div>
+  <span class="tag">El paso abierto</span><div class="seg-m" data-ctl="pa"><button data-v="ahora">Como ahora</button><button data-v="pico">A · Placa con su pico</button><button data-v="aire">B · Al aire</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La lista de órdenes</b> («A · Lista», ADR-0400) se arma solo con piezas del sistema que ya tienen su cara elegida: aquí se ve cómo queda, sin nada que elegir.</li>
+      <li><b>La página de una orden</b> («Ruta viva», ADR-0570, elegida el 2026-10-29): la ruta de pasos cosidos por su hilo, con glifos de <b>papel</b> y borde arena, el hecho en <b>verde sólido</b>, el que toca con su aro ámbar y el paso elegido en <b>hueso</b>; debajo, el paso abierto en una <b>tarjeta de papel</b>.</li>
+      <li>Su regla de color no cambia: verde solo lo hecho, ámbar lo que toca, rojo solo un problema.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La ruta</b></td><td>A · Ranura con gotas <span class="ev">Recomendada</span></td><td>La misma de los pasos de Conteo y Recibir (ya elegida): los pasos en una ranura, lo hecho en lente verde, lo que toca en lente ámbar, el elegido en la gota clara. Unos pasos se ven igual en todo el ERP.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Lentes al aire</td><td>Sin caja: la ruta corre libre por la página.</td><td>El paso elegido se marca solo con su nombre subrayado: se distingue menos.</td></tr>
+      <tr><td rowspan="2"><b>El paso abierto</b></td><td>A · Placa con su pico <span class="ev">Recomendada</span></td><td>La placa Serena con un pico que apunta al paso que estás viendo (y se mueve al cambiar de paso): se sabe de qué paso habla. En el celular, donde la ruta va en columna, el pico no hace falta y no se dibuja.</td><td>Un detalle más que mantener.</td></tr>
+      <tr><td>B · Al aire</td><td>Sin tarjeta: más liviano.</td><td>El paso abierto y la ficha de al lado quedan sueltos; su título los separa.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Ruta A · Ranura con gotas y paso abierto A · Placa con su pico.</b> Toca otro paso de la ruta: el pico lo sigue.</p>
+    <h3>Lo que no cambia</h3>
+    <p>La lista y su «¿Por qué?» bajo la fila, «Hoy en el Taller» que filtra por fase, la ruta en fila (en columna si no cabe), el paso abierto con su cifra y sus botones, la tela y el costo, la ficha y la historia al costado; y la regla de color de Producción.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js y marco.css usan nombres globales (estado, pintar, boton, encabezado, fila, buscar; .hoja, .cifras, .sede, .av, .tc, .uni, .linea, .sub, .prendas…); la maqueta no los repite. -->
+<script>
+const svO = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const PASOS_O = [['Corte', 'Hecho · 120 piezas', 'hecha'], ['Costura', 'Hecho · Rosa M.', 'hecha'], ['Acabado', 'Faltan 18 · Javier', 'toca'], ['Control', 'Después', 'pendiente'], ['Al almacén', 'Después', 'pendiente']];
+let pasoO = 2;
+const tcO = (nom, num, ctx, pto) => `<div class="tc"><span class="tc-nom">${pto ? `<span class="pto" style="background:${pto}"></span>` : ''}${nom}</span><div class="tc-val"><span class="num">${num}</span></div><div class="tc-ctx"><span>${ctx}</span></div></div>`;
+function pintarO() {
+  const lista = `<div class="solo-lista">
+    <div class="fila-c">${tcO('En corte', '3', 'lotes')}${tcO('En costura', '5', 'lotes')}${tcO('En acabado', '2', 'lotes', 'var(--ambar)')}${tcO('Muestras', '1', 'en prueba')}</div>
+    <section class="placa-o lst"><div class="lst-barra"><div class="pz-o" role="tablist"><button role="tab" aria-selected="true">En curso</button><button role="tab">Muestras</button><button role="tab">Terminadas</button></div><span class="bus-o">${svO('M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8')}Buscar por modelo, color u orden</span></div>
+      ${[['OP-0231', 'Blusa Emma · Vino', 'Acabado', 'Javier', 'var(--ambar)', '4 nov', 'Faltan 18 piezas: ¿por qué?'], ['OP-0230', 'Vestido Ara · Bosque', 'Costura', 'Rosa M.', 'var(--pizarra)', '6 nov'], ['OP-0228', 'Casaca Lía · Arena', 'Corte', 'Claudia', 'var(--pizarra)', '8 nov'], ['OP-0226', 'Jean Río · Marino', 'Costura', 'Rosa M.', 'var(--pizarra)', '10 nov']].map(([n, m, f, q, c, e, causa]) => `<div class="ol"><span><b>${m}</b><small>${n}</small>${causa ? `<span class="causa">${causa}</span>` : ''}</span><span><span class="chip-l" style="--c:${c}"><i></i>${f} · ${q}</span></span><span class="ent">${e}</span><span>${boton(['sec', 'Abrir'])}</span></div>`).join('')}</section></div>`;
+  const orden = `<div class="solo-orden op"><ol class="camino" style="--n:${PASOS_O.length}">${PASOS_O.map(([n, s, e], i) => `<li class="nli" data-e="${e}" ${i > 0 ? `data-previa="${PASOS_O[i - 1][2]}"` : ''}><button class="nodo" data-paso="${i}" aria-pressed="${i === pasoO}"><span class="glifo">${e === 'hecha' ? svO('M5 12.5l4.5 4.5L19 7.5') : ''}</span><span><span class="n-nom">${n}</span><span class="n-sub">${s}</span></span></button></li>`).join('')}</ol>
+    <section class="paso" id="paso-o"></section></div>`;
+  $('#cont').innerHTML = `${encabezado({ sede: 'Taller Lima', titulo: estado.mo === 'orden' ? 'Blusa Emma · Vino' : 'Órdenes', frase: estado.mo === 'orden' ? 'OP-0231 · 120 prendas en 4 tallas · entrega el 4 de noviembre.' : 'Cada lote, en qué fase está y quién lo tiene. Toca uno para ver y anotar lo que terminaste.', volver: estado.mo === 'orden' ? 'Órdenes' : undefined, acciones: estado.mo === 'orden' ? undefined : [['pri', 'Nueva orden', 'mas']] })}${lista}${orden}`;
+  pintarPasoO();
+}
+function pintarPasoO() {
+  const [n, s, e] = PASOS_O[pasoO], el = $('#paso-o'); if (!el) return;
+  el.innerHTML = `<span class="quien"><span class="av-o">${e === 'pendiente' ? '—' : 'JM'}</span>${e === 'pendiente' ? 'Sin asignar' : e === 'hecha' ? 'Lo hizo Rosa M.' : 'Lo tiene Javier Morales'}</span>
+    <h3>${n} <span class="pos">· paso ${pasoO + 1} de ${PASOS_O.length}</span></h3>
+    <span class="cifra">${e === 'toca' ? '102 de 120' : e === 'hecha' ? '120 de 120' : '0 de 120'}</span>
+    <p>${e === 'toca' ? 'Faltan 18 piezas por acabar. Anota las que termines hoy; el resto queda para mañana.' : e === 'hecha' ? 'Este paso ya está cerrado.' : 'Empieza cuando termine el paso anterior.'}</p>
+    ${e === 'toca' ? `<div class="acc">${boton(['pri', 'Anotar lo que terminé'])}${boton(['sec', 'Cambiar quién lo tiene'])}</div>` : ''}`;
+  const b = $(`.nodo[data-paso="${pasoO}"]`), cam = $('.camino');
+  if (b && cam) { const r = b.getBoundingClientRect(), rc = cam.getBoundingClientRect(); el.style.setProperty('--pico', `${(r.left + r.width / 2 - rc.left) / zoomDisp()}px`); }
+}
+document.addEventListener('click', (ev) => { const n = ev.target.closest('.nodo'); if (n) { pasoO = +n.dataset.paso; $$('.nodo').forEach((x) => x.setAttribute('aria-pressed', x === n)); pintarPasoO(); } });
+addEventListener('resize', () => pintarPasoO());
+Marco.iniciar({ estado: { rt: 'ranura', pa: 'pico', mo: 'orden' }, alPintar: () => pintarO() });
+</script>
+</body>
+</html>
