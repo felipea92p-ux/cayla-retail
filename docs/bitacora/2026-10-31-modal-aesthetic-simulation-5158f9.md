@@ -293,3 +293,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   (`cfg-planilla`) pasa a una tarjeta por tienda bajo 560 px de tarjeta. Distinto de la maqueta: el ✓ va en la esquina de arriba (a media
   altura tapaba la casilla de al lado), el borde es `borde-control` pleno (3:1) y el aviso de la esquina sigue (dice lo que el ✓ no dice).
   Se vio con `fetch` simulado, sin escribir en la base.
+
+- **Compras ▸ Proveedores al vidrio (Felipe 2026-11-02):** «Qué hacer» A · Placa con filas y «Comparar» A · Placa con columnas
+  (`vidrio/proveedores.css`). La columna derecha (`CLASE_LADO` y «Qué hacer») es la placa Serena de la tabla; entre filas, el hilo de las
+  tablas (`--hilo-fila`, 9 %: la maqueta dice 8 %, se usó la receta); cada tarea se aclara al pasar con la gota chica de las listas y la urgente
+  lleva su ícono en la gota roja de 28 px; la × de «Comparar» es una gota chica con su filo. Qué tareas salen y qué compara no cambia. Visto a
+  1440 px (claro y oscuro) y a 375 px (nada se sale; la isla oscura de los marcados, igual).
