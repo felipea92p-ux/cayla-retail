@@ -221,12 +221,12 @@ export function loteMasAntiguoConSaldo(lotes: LoteConSaldo[]): LoteConSaldo | nu
 
 export type EstadoInsumo = { tono: "sin_saldo" | "bajo" | "bien" | "sin_minimo"; etiqueta: string };
 
-/** Sin saldo, bajo el mínimo o bien. Un insumo sin mínimo definido no puede estar «bajo»: se dice, no se inventa. */
+/** Se acabó, bajo el mínimo o alcanza (palabras de tienda: «Bien» no decía nada con 4,438 m y un mínimo de 1 m). Un insumo sin mínimo definido no puede estar «bajo»: se dice, no se inventa. */
 export function estadoInsumo(saldo: number, minimo: number | null): EstadoInsumo {
-  if (saldo <= 0) return { tono: "sin_saldo", etiqueta: "Sin saldo" };
+  if (saldo <= 0) return { tono: "sin_saldo", etiqueta: "Se acabó" };
   if (minimo === null) return { tono: "sin_minimo", etiqueta: "Sin mínimo" };
-  if (saldo < minimo) return { tono: "bajo", etiqueta: "Bajo mínimo" };
-  return { tono: "bien", etiqueta: "Bien" };
+  if (saldo < minimo) return { tono: "bajo", etiqueta: "Bajo el mínimo" };
+  return { tono: "bien", etiqueta: "Alcanza" };
 }
 
 export type PrevisionConsumo =
