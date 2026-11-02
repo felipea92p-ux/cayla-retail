@@ -35,6 +35,7 @@ import {
 import { Aviso } from "@/components/ui/Aviso";
 import { Download, FileText, Receipt } from "lucide-react";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Impuestos «E · B++» (ADR-0573, Felipe 2026-10-28) sobre El telar (ADR-0493): arriba, UNA respuesta («Pagas») y la cuenta en líneas;
 // debajo, en una fila, los pendientes con su monto, el límite del año y el IGV de cada mes. Es de CAYLA entera («Ver» fijo): la ve quien tiene el
@@ -128,7 +129,12 @@ function Pantalla({ panel, falla, sede, sedes, claure }: { panel: PanelImpuestos
         sede={sedeDeLaCabecera(sede, sedes)}
         titulo="Impuestos"
         acciones={
-          // Un menú en vez de bajarlo todo: el paquete completo o un solo archivo (Felipe 2026-10-28).
+          <span className="flex flex-wrap items-center gap-2">
+          {/* La propuesta del SIRE contra lo registrado, antes de que el contador la acepte (ADR-0601). */}
+          <BotonVer href={`/finanzas/impuestos/sire?mes=${mes}`} guia="fin-impuestos.sire">
+            Comparar con SUNAT
+          </BotonVer>
+          {/* Un menú en vez de bajarlo todo: el paquete completo o un solo archivo (Felipe 2026-10-28). */}
           <span data-guia="fin-impuestos.paquete">
             <MenuAcciones
               texto="Descargar"
@@ -141,6 +147,7 @@ function Pantalla({ panel, falla, sede, sedes, claure }: { panel: PanelImpuestos
                 { clave: "resumen", etiqueta: "Resumen del IGV", onSelect: () => bajar("resumen") },
               ]}
             />
+          </span>
           </span>
         }
       />

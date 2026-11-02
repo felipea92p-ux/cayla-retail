@@ -1755,6 +1755,12 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Abre un menú: todo el paquete en un ZIP, o un solo archivo: registro de ventas, de compras o resumen del IGV. En la demo no descargamos nada.",
     },
     {
+      id: "sire",
+      ancla: "fin-impuestos.sire",
+      titulo: "Comparar con SUNAT",
+      texto: "Lleva a la propuesta de compras que SUNAT armó para el mes, comprobante por comprobante, contra lo registrado aquí. Así el contador la acepta sabiendo que cuadra.",
+    },
+    {
       id: "limite",
       ancla: "fin-impuestos.limite",
       titulo: "El límite del año",
@@ -1774,6 +1780,62 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
+};
+
+export const GUIA_FIN_SIRE: Guia = {
+  id: "finanzas.impuestos.sire",
+  ruta: "/finanzas/impuestos/sire",
+  titulo: "Comparar con SUNAT",
+  resumen: "La propuesta de compras que arma SUNAT, contra lo registrado en el ERP: qué cuadra y qué no, antes de que el contador la acepte.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "La propuesta de SUNAT, revisada",
+      texto: "Cada mes SUNAT arma la lista de facturas que los proveedores emitieron a nombre de CAYLA. Aquí la comparas con lo registrado, antes de que el contador la acepte. Es una demo: no se sube ni se guarda nada.",
+    },
+    ...TELAR,
+    {
+      id: "subir",
+      ancla: "fin-sire.subir",
+      titulo: "Subir la propuesta",
+      texto: "Bájala del portal SIRE con la Clave SOL («Descargar propuesta», en txt) y súbela aquí. Si ya subiste una, puedes subir otra versión: la anterior no se borra.",
+    },
+    {
+      id: "vacio",
+      ancla: "fin-sire.vacio",
+      opcional: true,
+      titulo: "Todavía no hay propuesta",
+      texto: "Mientras nadie suba la de este mes, aquí se explica de dónde se baja. La de un mes recién cerrado ya está completa en SUNAT.",
+    },
+    {
+      id: "version",
+      ancla: "fin-sire.version",
+      opcional: true,
+      titulo: "Qué se comparó",
+      texto: "Quién subió la propuesta, cuándo y cuántos comprobantes trae. Si se subió más de una vez, dice qué versión es.",
+    },
+    {
+      id: "cifras",
+      ancla: "fin-sire.cifras",
+      opcional: true,
+      titulo: "Cuántas en cada caso",
+      texto: "Lo que SUNAT no tiene (su IGV no se descuenta), lo que falta en el ERP, los montos distintos y lo que cuadra. Toca una cifra para ver solo esas en la lista.",
+    },
+    {
+      id: "lista",
+      ancla: "fin-sire.lista",
+      opcional: true,
+      titulo: "Cada comprobante",
+      texto: "Lo que hay que mirar va primero. Cada fila dice cuánto tiene SUNAT, cuánto el ERP y qué hacer. Una factura en papel no es un error: el contador la agrega al completar la propuesta.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Cuando todo cuadra, el contador solo acepta la propuesta y la genera en el portal. Para repasarlo: Mi perfil ▸ Demo ▸ Comparar con SUNAT.",
+    },
+  ],
 };
 
 export const GUIA_FIN_CIERRE: Guia = {

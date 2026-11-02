@@ -1828,6 +1828,9 @@ export const PRUEBAS = [
   // El catálogo de procesos (ADR-0570, actividad 5): los doce de siempre con su mismo lugar en la ruta, Pegar cierre y Lavado o teñido, la llave foránea en fases y tarifas;
   // solo un líder da de alta o apaga (el nuevo cae entre sus vecinos; la espina no se apaga; lo apagado no entra a una orden ni a una tarifa); lo que lleva cada modelo. ROLLBACK.
   "pruebas:produccion-catalogo-de-procesos",
+  // La propuesta del SIRE (ADR-0601, actividad 1): se guarda entera o nada, otra subida del mismo mes agrega una versión sin borrar (la vigente es la última),
+  // solo quien ve Impuestos la sube o la lee, y la base frena un mes futuro, un registro desconocido o una línea mal formada. ROLLBACK.
+  "pruebas:sire-propuestas",
   // Agregar una talla o un color a un modelo desde Nueva orden (migración 20261031172000): una variante por color o por talla con el precio y el costo de su hermana y sin stock;
   // no duplica, no reclama una desactivada, talla habilitada y color activo, sin mezclar «Sin color» ni «Única»; solo quien opera el Taller y edita el catálogo. ROLLBACK.
   "pruebas:produccion-agregar-variantes",

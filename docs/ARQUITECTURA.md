@@ -2120,6 +2120,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
       (`DescargarCuadro`, `components/finanzas/estados/DescargarContador.tsx`).
   - `/finanzas/impuestos` → `lib/impuestos.ts` → lecturas de IGV y registros (`parametros_tributarios` con vigencia y
     correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo).
+  - `/finanzas/impuestos/sire` (ADR-0601, «Comparar con SUNAT») → `lib/sire.ts` → `fn_sire_propuesta` (la propuesta vigente del SIRE, jsonb)
+    y `fn_impuestos_registro_compras` (el mismo registro del contador), cruzados por `lib/sire-cruce-reglas.ts`. Se sube con
+    `guardar_propuesta_sire` desde `components/finanzas/SubirPropuestaSireModal.tsx`: el txt (o el .zip, `lib/zip-leer.ts`) lo lee
+    `lib/sire-propuesta-reglas.ts` en el navegador. Tablas `sire_propuestas` y `sire_lineas` (migración `20261102202000`; nunca se borra:
+    otra subida del mes es otra versión).
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.

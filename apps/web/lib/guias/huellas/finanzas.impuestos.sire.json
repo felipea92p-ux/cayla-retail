@@ -1,0 +1,29 @@
+{
+  "guia": "finanzas.impuestos.sire",
+  "ruta": "/finanzas/impuestos/sire",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 13,
+  "controles": {
+    "components/finanzas/SirePanel.tsx": [
+      "Volver «{`/finanzas/impuestos?mes=${mes}»",
+      "Boton «{propuesta ? \"Subir otra versión\" : \"Subir la propuesta\"}»",
+      "Boton «Subir la propuesta»"
+    ],
+    "components/finanzas/SubirPropuestaSireModal.tsx": [
+      "input «(sin nombre)»",
+      "Boton «{archivo ? \"Elegir otro archivo\" : \"Elegir el archivo\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "button «Todas»",
+      "button «{marcada && <Check className=\"h-3 w-3\" />}»",
+      "BotonEnlace «telar.registrar»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
+    ]
+  }
+}
