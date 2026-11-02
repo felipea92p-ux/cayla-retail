@@ -489,12 +489,12 @@
 /* ---------- el cuerpo: tres pasos, uno bajo otro; en una hoja ancha, prendas a la izquierda y cuánto/por qué a la derecha ---------- */
 .pv-desc-cuerpo {
   display: grid;
-  gap: 0.5rem 1.5rem;
+  gap: 1.5rem;
   align-content: start;
 }
 .pv-desc-der {
   display: grid;
-  gap: 0.5rem;
+  gap: 1.5rem;
   align-content: start;
   min-width: 0;
 }
@@ -518,6 +518,21 @@
 }
 .pv-desc-der > section:nth-child(1) { animation-delay: 70ms; }
 .pv-desc-der > section:nth-child(2) { animation-delay: 130ms; }
+/* El paso que sigue (guía de foco) se marca con su número en rojo, la pastilla «Sigue aquí» y un halo suave en el control — SIN el recuadro
+   de fondo del cobro: dentro de esta hoja, con tres pasos casi seguidos, un recuadro rosado alrededor de un paso sobre el vidrio se veía
+   como una mancha (Felipe 2026-11-02). Sin tinte tampoco hace falta el margen negativo que se lo daba. */
+.pv-desc-cuerpo .hoja-cobro-paso,
+.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui {
+  margin-inline: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+.pv-desc-cuerpo .sigue-aqui :is(.pv-desc-lista, .pv-desc-opciones, .pv-desc-fichas, textarea, input[type="text"]) {
+  outline: 2px solid color-mix(in srgb, var(--color-rojo) 26%, transparent);
+  outline-offset: 3px;
+  border-radius: 1.1rem;
+}
 /* El segmento «Porcentaje | Monto en S/» a lo ancho de su paso, con cada opción a media caja: un blanco cómodo de tocar. */
 .segmento-cayla.pv-desc-modo {
   display: flex;
@@ -572,7 +587,7 @@
 /* Las fichas de valor: gotas grandes (la puesta, ahumada, con la misma luz que toda `pildora-cayla`); «Otro» es el pozo que se escribe. */
 .pv-desc-fichas {
   display: grid;
-  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)) minmax(0, 1.3fr);
+  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)) minmax(0, 1.5fr);
   gap: 0.5rem;
 }
 .pv-desc-ficha.pildora-cayla {

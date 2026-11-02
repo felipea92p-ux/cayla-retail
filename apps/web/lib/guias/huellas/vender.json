@@ -234,8 +234,8 @@
       "Casilla «{it.referencia}»",
       "SegmentoDeslizante «Cómo escribir el descuento»",
       "button «{porMonto ? `S/${a}»",
-      "input «Monto de descuento»",
-      "input «Porcentaje de descuento»",
+      "input «Otro monto de descuento»",
+      "input «Otro porcentaje de descuento»",
       "button «{r.etiqueta}»",
       "input «Detalle del motivo»",
       "textarea «Argumento del descuento»"

@@ -53,7 +53,7 @@ export function PanelDescuento({
   conQuedaria?: boolean;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
-  const { porMonto, valorValido, todoElTicket, elegidas, alcanza, elegidasCuenta, hecho, pasoDescuento, mostrarArgumento } = cuenta;
+  const { porMonto, valorValido, todasLasPrendas, elegidas, alcanza, elegidasCuenta, hecho, pasoDescuento, mostrarArgumento } = cuenta;
   const luz = (p: PasoDescuento) => pasoDescuento === p;
   // El paso que se enciende: el que toca llenar ahora (los de motivo y argumento comparten su tarjeta de «¿Por qué?» / «Argumento»).
   const sigue = {
@@ -93,7 +93,7 @@ export function PanelDescuento({
       <section className={`${clasePaso(hecho.prendas, sigue.prendas)} pv-desc-prendas`}>
         <CabezaPaso numero={1} titulo="¿A qué prendas?" hecho={hecho.prendas} pista={sigue.prendas ? "Sigue aquí" : null} estado={null} />
         <label className="pv-desc-fila pv-desc-todo">
-          <Casilla marcada={todoElTicket} onCambio={() => onDescuento({ elegidas: todoElTicket ? [] : null })} etiqueta="Todo el ticket" disabled={bloqueado} />
+          <Casilla marcada={todasLasPrendas} onCambio={() => onDescuento({ elegidas: todasLasPrendas ? [] : null })} etiqueta="Todo el ticket" disabled={bloqueado} />
           <span className="min-w-0 flex-1 font-semibold">Todo el ticket</span>
         </label>
         <div data-paso-descuento="prendas" className="pv-desc-lista">
@@ -139,25 +139,25 @@ export function PanelDescuento({
               </button>
             ))}
             <label className="caja-cayla caja-campo pv-desc-otro gap-1.5">
-              <span className="text-sm text-tinta/60">Otro</span>
+              {/* «Otro» vive como marcador del propio campo (no como una palabra aparte): así el número entero —100, 12.50— tiene todo el ancho. */}
               {porMonto ? (
                 <>
-                  <span className="ml-auto text-sm text-tinta/60">S/</span>
+                  <span className="text-sm text-tinta/60">S/</span>
                   <input
-                    aria-label="Monto de descuento"
+                    aria-label="Otro monto de descuento"
                     {...atributosMontoTexto(descuento.monto)}
                     value={descuento.monto}
                     onChange={(e) => onDescuento({ monto: e.target.value })}
                     onKeyDown={siguienteConEnter}
-                    placeholder="0.00"
+                    placeholder="Otro"
                     disabled={bloqueado}
-                    className={`w-20 self-stretch py-0 text-right text-lg font-semibold ${CLASE_MONTO_ILEGIBLE}`}
+                    className={`min-w-0 flex-1 self-stretch py-0 text-center text-lg font-semibold ${CLASE_MONTO_ILEGIBLE}`}
                   />
                 </>
               ) : (
                 <>
                   <input
-                    aria-label="Porcentaje de descuento"
+                    aria-label="Otro porcentaje de descuento"
                     type="number"
                     inputMode="numeric"
                     min={1}
@@ -165,9 +165,9 @@ export function PanelDescuento({
                     value={descuento.pct}
                     onChange={(e) => onDescuento({ pct: e.target.value })}
                     onKeyDown={siguienteConEnter}
-                    placeholder="0"
+                    placeholder="Otro"
                     disabled={bloqueado}
-                    className={`min-w-0 flex-1 self-stretch py-0 text-right text-lg font-semibold ${SIN_FLECHAS}`}
+                    className={`min-w-0 flex-1 self-stretch py-0 text-center text-lg font-semibold ${SIN_FLECHAS}`}
                   />
                   <span className="text-sm text-tinta/60">%</span>
                 </>
@@ -207,7 +207,7 @@ export function PanelDescuento({
               onKeyDown={siguienteConEnter}
               placeholder="¿Por qué se descuenta?"
               disabled={bloqueado}
-              className="caja-campo-input anim-revelar h-11 w-full text-sm"
+              className="caja-campo-input anim-revelar box-border h-11 w-full min-w-0 text-sm"
             />
           )}
         </section>
@@ -216,7 +216,8 @@ export function PanelDescuento({
             de descuento). El candado real vive en la base; acá se pide antes de que llegue a rechazarlo. */}
         {mostrarArgumento && (
           <section className={`${clasePaso(descuento.argumento.trim() !== "", sigue.argumento)} anim-revelar`}>
-            <CabezaPaso numero={4} titulo="Argumento — pasa el 15 %" hecho={descuento.argumento.trim() !== ""} pista={sigue.argumento ? "Sigue aquí" : null} estado={null} />
+            <CabezaPaso numero={4} titulo="Argumento" hecho={descuento.argumento.trim() !== ""} pista={sigue.argumento ? "Sigue aquí" : null} estado={null} />
+            <p className="pv-desc-ayuda">Pasa el 15 %: cuenta por qué se autoriza.</p>
             <textarea
               aria-label="Argumento del descuento"
               data-paso-descuento="argumento"
@@ -225,7 +226,7 @@ export function PanelDescuento({
               placeholder="Por qué se autoriza este descuento"
               disabled={bloqueado}
               rows={2}
-              className="caja-campo-input w-full resize-none text-sm"
+              className="caja-campo-input box-border w-full min-w-0 resize-none text-sm"
             />
           </section>
         )}

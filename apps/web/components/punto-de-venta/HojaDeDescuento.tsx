@@ -41,7 +41,7 @@ export function HojaDeDescuento({
   onVolver: () => void;
 }) {
   const cuenta = cuentaDelDescuento(descuento, carrito, vale);
-  const { porMonto, pct, monto, valorValido, elegidasCuenta, todoElTicket, motivoDescuento, hayDescuentoEnAlcance } = cuenta;
+  const { porMonto, pct, monto, valorValido, elegidasCuenta, todasLasPrendas, motivoDescuento, hayDescuentoEnAlcance } = cuenta;
   const verQuedaria = valorValido && elegidasCuenta > 0;
   const texto = !valorValido ? "—" : porMonto ? `−${money(monto)}` : `−${pct}%`;
   return (
@@ -55,7 +55,7 @@ export function HojaDeDescuento({
               Descuento
             </span>
           </TituloSeccion>
-          <p className="mt-1 text-sm text-tinta/60">{todoElTicket ? "Todo el ticket" : `${elegidasCuenta} de ${carrito.length} prendas`}</p>
+          <p className="mt-1 text-sm text-tinta/60">{todasLasPrendas ? "Todo el ticket" : `${elegidasCuenta} de ${carrito.length} ${carrito.length === 1 ? "prenda" : "prendas"}`}</p>
         </div>
       </div>
 
