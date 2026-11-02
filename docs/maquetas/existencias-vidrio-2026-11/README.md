@@ -42,4 +42,4 @@ desbordes que ya traían las maquetas de cifras, del Inicio y de tablas.
 cero** (0 en el piso, algunas en el almacén): en el pozo, la celda teñida de ámbar al 12 % quedaba como una mancha parda y «+3» no decía
 que esas 3 esperan en el almacén. La maqueta suma el control «Talla en cero»: **A · Lente que pide** (recomendada: sale del pozo como una
 lente teñida de ámbar, la agotada en rojo; contraste medido 6,5:1 en claro y 6,7:1 en oscuro) y B · Hueco por llenar (contorno punteado).
-En las dos, la bajada pasa a «↑ 3» (flecha que sube y las del almacén). Falta que elija.
+En las dos, la bajada pasa a «↑ 3» (flecha que sube y las del almacén). **Eligió A · Lente que pide** (2026-11-02).
