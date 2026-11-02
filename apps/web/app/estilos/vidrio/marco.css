@@ -40,8 +40,9 @@
 .marco-aurora i:nth-child(2) { width: 700px; height: 560px; right: -220px; top: 120px; background: var(--color-pizarra); --aurora-o: 0.14; }
 .marco-aurora i:nth-child(3) { width: 560px; height: 460px; left: 30%; bottom: -260px; background: var(--color-ambar); --aurora-o: 0.12; }
 /* La luz del riel (Felipe 2026-11-02: «se ve todo blanco»): el vidrio del menú solo luce si detrás hay color que esmerilar, y la aurora de
-   arriba es tan tenue que el riel quedaba blanco. Tres manchas de marca (rojo, pizarra, ámbar) pegadas a la franja del riel, del ancho del
-   menú abierto o plegado (`--spacing-lateral`), cada una en su altura. Quietas; entran con el mismo fundido que la aurora. */
+   arriba es tan tenue que el riel quedaba blanco. Tres manchas pegadas a la franja del riel, del ancho del menú abierto o plegado
+   (`--spacing-lateral`), cada una en su altura y TODAS del rojo de CAYLA, con intensidad distinta (Felipe: «solo el rojo de CAYLA, sin ser
+   brusco»: el pizarra y el ámbar de la primera versión se leían como gris y beige, no como la marca). Quietas; entran con el fundido de la aurora. */
 .marco-aurora::before {
   content: "";
   position: absolute;
@@ -51,20 +52,20 @@
   width: calc(var(--spacing-lateral) + 24px);
   background:
     radial-gradient(ellipse 95% 26% at 30% 9%, color-mix(in srgb, var(--color-rojo) var(--luz-riel-rojo), transparent), transparent),
-    radial-gradient(ellipse 90% 24% at 72% 50%, color-mix(in srgb, var(--color-pizarra) var(--luz-riel-pizarra), transparent), transparent),
-    radial-gradient(ellipse 95% 26% at 38% 94%, color-mix(in srgb, var(--color-ambar) var(--luz-riel-ambar), transparent), transparent);
+    radial-gradient(ellipse 90% 24% at 72% 50%, color-mix(in srgb, var(--color-rojo) var(--luz-riel-medio), transparent), transparent),
+    radial-gradient(ellipse 95% 26% at 38% 94%, color-mix(in srgb, var(--color-rojo) var(--luz-riel-pie), transparent), transparent);
   filter: blur(10px);
   animation: marco-aurora-entra 1.4s var(--ease-cayla) both;
-  --luz-riel-rojo: 90%;
-  --luz-riel-pizarra: 70%;
-  --luz-riel-ambar: 85%;
+  --luz-riel-rojo: 78%;
+  --luz-riel-medio: 44%;
+  --luz-riel-pie: 58%;
 }
 @keyframes marco-aurora-entra {
   from { opacity: 0; }
 }
 @media screen {
   :root[data-tema="oscuro"] .marco-aurora i { --aurora-o: 0.1; }
-  :root[data-tema="oscuro"] .marco-aurora::before { --luz-riel-rojo: 44%; --luz-riel-pizarra: 36%; --luz-riel-ambar: 38%; }
+  :root[data-tema="oscuro"] .marco-aurora::before { --luz-riel-rojo: 44%; --luz-riel-medio: 26%; --luz-riel-pie: 34%; }
 }
 @media print {
   .marco-aurora { display: none; }
