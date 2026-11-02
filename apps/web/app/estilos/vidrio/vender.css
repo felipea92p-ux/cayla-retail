@@ -404,11 +404,14 @@
    ===================================================================== */
 .hoja-descuento-velo {
   background: var(--vidrio-velo);
-  -webkit-backdrop-filter: blur(10px) saturate(1.3);
-  backdrop-filter: blur(10px) saturate(1.3);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3);
+  backdrop-filter: blur(22px) saturate(1.3);
   animation: hoja-cobro-velo 320ms var(--ease-cayla) both;
 }
 .hoja-descuento.hoja-serena {
+  /* Es una hoja de TRABAJO con mucho texto y listas: la lámina casi papel (la que el sistema usa donde se lee en serio) en vez del vidrio al
+     70 %, que dejaba ver las tarjetas del catálogo de atrás como cuadros grises. El velo, además, desenfoca más. */
+  background: var(--lamina-fondo);
   /* Contenedor con nombre: con la hoja ancha (≥ 38 rem) el cuerpo pasa a dos columnas; si queda angosta (catálogo estrecho a 1024–1100 px), una. */
   container: descuento / inline-size;
   padding: 0;
