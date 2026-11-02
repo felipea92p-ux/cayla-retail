@@ -63,3 +63,7 @@
   Posventa y de Recibir. Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
 - **Lo que eligió Felipe en Conteo (2026-11-02):** la planilla A · Placa Serena y los pasos A · Ranura con gotas (el riel lo comparte con
   Recibir, que lo hereda).
+- **Frescura del piso, página entera (2026-11-02)** (me la pasó la otra sesión): maqueta `docs/maquetas/frescura-vidrio-2026-11/`, armada
+  solo con lo elegido; los colores de los tramos no cambian. Caras de lo propio: «Lo que mueve la aguja» (A · Placas chicas, recomendada;
+  B · Lentes del tono) y la marca de «por decidir» (A · Gota al canto, recomendada; B · Fila hundida). Medida de 320 a 1920 px sin desbordes
+  ni errores. Sin cambios en `apps/web`. La otra sesión pidió que, después de esta, no empiece otra hasta que Felipe se ponga al día.

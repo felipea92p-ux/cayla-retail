@@ -82,6 +82,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | **Apartados** (página entera: `app/(app)/vender/apartados`) | `components/apartados/` (`ApartadosPanel`, `TodosVista`, `EntregarVista`, `ApartarVista`) | En maqueta (armada con las piezas elegidas; medida a 375 px, PL-105) | — (recomendadas: la hoja A · Al aire, pestañas del celular A · Isla de pestañas) | `apartados-vidrio-2026-11/` |
 | **Mis compras** (página entera: `app/(app)/compras/mi-plata`, ADR-0559) | `components/mi-plata/` (`MesaDeLaRonda`, `Billetera`, `AccionDelDia`) | En maqueta (armada con las piezas elegidas) | — (recomendadas: billetera A · Ahumada, «¿Qué hiciste?» A · Gota grande) | `mis-compras-vidrio-2026-11/` |
 | **Conteo** (página entera: `app/(app)/inventario/conteo` y `conteo/[id]`) | `ConteoVista`, `components/conteo/` (`ContarConteo`, `ListaConteo`, `FilaConteo`, `PasosConteo`) | Elegido (la planilla conserva su cara de tabla, ADR-0358) | Planilla A · Placa Serena; pasos A · Ranura con gotas (el riel compartido con Recibir) | `conteo-vidrio-2026-11/` |
+| **Frescura del piso** (página entera: `app/(app)/gestion/frescura`, ADR-0208; el piloto de /formidable) | `components/frescura/` (`FrescuraPanel`, `FrescuraPiso`, `FrescuraAguja`, `FrescuraFila`) | En maqueta (armada con las piezas elegidas; los colores de los tramos no cambian) | — (recomendadas: la aguja A · Placas chicas, por decidir A · Gota al canto) | `frescura-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
