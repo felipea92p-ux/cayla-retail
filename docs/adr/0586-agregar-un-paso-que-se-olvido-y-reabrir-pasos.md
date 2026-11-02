@@ -1,7 +1,7 @@
 # ADR-0586 — Agregar un paso que se olvidó (ya hecho) y reabrir pasos de una orden
 
 **Estado:** aceptada; **actividad 1 construida y probada en local** (base con `pnpm pruebas:produccion-paso-tarde` 22/22 y la web con sus pruebas); **migración `20261031002000` YA en producción** (comprobado el 2026-10-31 en solo lectura: `agregar_paso_tarde` tiene la misma huella que en local y los dos CHECK de `produccion_cambios` ya aceptan `paso_tarde`)
-(va antes de publicar la web). Actividades 2 a 5: decididas, sin construir · **Fecha:** 2026-10-30 · **Decidió:** Felipe (preguntas del 2026-10-30) · **Sigue a:** ADR-0566 (agregar un paso) y
+(va antes de publicar la web). **Actividad 2 construida y probada en local** (migración `20261031160000` YA en producción desde el 2026-10-31; ver «Actualización 2026-10-31»). **Actividad 3 construida** (solo pantalla, sin migración; ver «Actualización 2026-11-01»). Actividades 4 y 5: decididas, sin construir · **Fecha:** 2026-10-30 · **Decidió:** Felipe (preguntas del 2026-10-30) · **Sigue a:** ADR-0566 (agregar un paso) y
 ADR-0570 (correcciones con historia)
 
 ## Contexto
@@ -76,11 +76,79 @@ decidir si un paso de después empezó; la pantalla ya manda ese caso al camino 
 
 ## Lo que sigue (decidido, sin construir)
 
-- **Actividad 2 — Desmarcar Ploteo, solo el líder y con motivo.** Hoy `deshacer_marca_fase` lo hace cualquiera, sin motivo; pasa al camino de «Quitar la marca» (`eliminar_anotacion_orden`,
-  con historia) y exige `fn_es_lider()`.
-- **Actividad 3 — «Corregir lo anotado» a un toque desde el paso.** Abre la corrección que ya existe (ADR-0570, con motivo). Queda para quien opera el Taller, no solo el líder: la objeción
-  de 2026-10-30 (que la colaboradora que se equivocó no tenga que esperar al líder para arreglar su propio dato) va con esta actividad, para que Felipe la confirme al verla.
+- **Actividad 2 — Desmarcar Ploteo, solo el líder y con motivo.** Construida el 2026-10-31: ver «Actualización 2026-10-31 — actividad 2».
+- **Actividad 3 — «Corregir lo anotado» a un toque desde el paso.** Construida el 2026-11-01: ver «Actualización 2026-11-01 — actividad 3».
 - **Actividad 4 — Prendas que vuelven a arreglo.** El líder elige el paso, las tallas y cuántas; bajan en ese paso y en todos los de después (filas contrarias, nada se borra), que las vuelven a
   esperar. Si un paso de después era un servicio ya cobrado, al anotar su vuelta la hoja pregunta «¿cobra este arreglo?».
 - **Actividad 5 — Anotar más de lo planeado.** Solo en el primer paso que cuenta prendas (donde nacen): el líder pasa el tope de plan + 10 %, sin otro tope y con motivo; la tela y el costo por
   prenda se recalculan con las prendas reales.
+
+## Actualización 2026-10-31 — actividad 2: quitar la marca de Ploteo, solo un líder y con motivo (`20261031160000`)
+
+Hasta hoy había dos caminos para quitar la marca de Ploteo, y los dos los usaba cualquiera que opera el Taller: «Deshacer» en el paso (`deshacer_marca_fase`, sin motivo y sin entrada en la
+historia de cambios) y el lápiz de la historia (`eliminar_anotacion_orden`, con motivo y «Restaurar»). Quitar la marca cambia la orden de verdad: Ploteo vuelve a «por hacer» y, si lo hacía un
+servicio, su fijo sale del costo de la orden.
+
+**Decisiones de Felipe (preguntas del 2026-10-31):**
+1. Quitar la marca: solo un líder, con motivo, por un solo camino (el de la historia).
+2. **Restaurar** una marca quitada: también solo el líder (deshace su decisión). **Volver a marcar** sigue abierto a quien opera: el día que el plano sí se hace, lo marca quien lo hizo. Eso
+   significa que una integrante puede dejar Ploteo «hecho» otra vez después de que un líder lo quitó; entra como una marca nueva, con su nombre y su hora, y lo que el líder decidió queda
+   en la historia con su motivo. Si Felipe quiere que eso también sea del líder, es otra decisión.
+3. Se puede quitar **aunque Corte ya haya empezado**: el Taller ya puede cortar sin Ploteo marcado (ADR-0400, tensión abierta), así que no queda nada imposible, y un ploteo marcado por error
+   no tiene que quedarse para siempre con su costo.
+4. Quien no es líder ve en el paso de Ploteo marcado «Si se marcó por error, un líder puede quitar la marca.» y, en la historia, «Restaurarla es de un líder.» bajo una marca quitada.
+5. **Tablet del Taller:** Felipe eligió que, desde una tablet del Taller, valga elegir a un líder de turno en «Responsable». **Esa tablet no existe ni puede existir hoy:** una terminal solo se
+   crea en una tienda (`20260923040000`, `23514`) y en producción las 6 terminales están en tiendas y ninguna ve Producción (consultado el 2026-10-31). No se escribió ese camino (sería
+   código que no corre y una prueba que tendría que saltarse el candado de las terminales). **Regla para el día que se habilite una tablet en el Taller:** el candado de quitar y restaurar
+   la marca acepta, además de una cuenta de líder, una terminal SIN firma de respaldo cuyo responsable elegido en el combo sea un líder activo de turno en esa sede (la firma de respaldo de
+   ADR-0454 no cuenta: firma siempre a nombre de la misma persona sin elegir a nadie). Mientras no se sume, falla cerrado: el líder entra con su cuenta.
+
+**Lo que se construyó:**
+- **Base (`20261031160000`):** en la rama de la marca de `eliminar_anotacion_orden` y de `restaurar_anotacion_orden`, `fn_es_lider()` o `42501 marca_solo_lider` (reemplazos anclados sobre la
+  función viva; quitar o restaurar un «Terminé» no cambia). `deshacer_marca_fase` se borra: esconder su botón no alcanzaba, estaba abierta a `authenticated`.
+- **Web:** el paso de Ploteo marcado ofrece «Quitar la marca» solo al líder (abre la misma hoja con motivo que el lápiz de la historia, `CambioConMotivoModal`); la marca viva sale de
+  `marcaVivaDeFase`. En la historia, el lápiz y el «Restaurar» de una marca son solo del líder. `MarcarFaseModal` queda solo para marcar.
+- **Pruebas:** `produccion_ploteo.mjs` pasa al camino con motivo y suma L1–L4 (la integrante marca pero no quita ni restaura; sí corrige su «Terminé»; el líder quita con Corte avanzado y el fijo
+  sale de la orden); `produccion_correcciones.mjs` carga también `20261031160000` y su S4 vigila que el candado siga una sola vez.
+
+- **DECIDÍ:** el candado en la rama de la marca de las dos funciones que ya dejan historia, y borrar el camino viejo.
+- **DESCARTÉ:** (a) quitarle el permiso a `deshacer_marca_fase` y dejarla: un segundo camino esperando que alguien le devuelva el `grant`; (b) el candado al inicio de
+  `eliminar_anotacion_orden`: frenaría también corregir un «Terminé», que la actividad 3 deja para quien opera; (c) escribir ya el camino «tablet + líder en el combo»: no puede correr hoy;
+  (d) frenar si Corte ya empezó: un ploteo marcado por error quedaría para siempre, con su costo.
+- **SE ROMPE SI:** alguien vuelve a pegar `20261029173000` entera en producción: le quita el candado a las dos funciones (lo vigila S4 de `produccion_correcciones`, que carga las dos), o se
+  habilita una tablet en el Taller sin sumar la regla de arriba.
+- **Producción:** `20261031160000` APLICADA el 2026-10-31 (la pegó Felipe; su consulta de verificación dio las dos funciones con `marca_solo_lider`, `deshacer_marca_fase` borrada
+  y el permiso de `authenticated` intacto en las dos). Una parte, re-ejecutable; iba ANTES de publicar la web (la web nueva ya no llama a `deshacer_marca_fase`; la vieja sí, y entre el pegado y la
+  publicación su «Deshacer» responde con un error unos minutos). Las dos anclas se comprobaron contra la función viva de producción el 2026-10-31 (una sola vez cada una).
+
+## Actualización 2026-11-01 — actividad 3: «Lo anotado aquí», corregir desde el paso
+
+Corregir lo anotado ya existía (ADR-0570): el lápiz de cada entrada de la historia abre «Corregir» (un «Terminé») o «Anular» (una Salida o una Vuelta), con motivo y con «Restaurar». Lo que
+faltaba era llegar desde donde se anotó: quien se equivocó en Corte tenía que bajar a la historia, que mezcla todos los pasos y todos los días, y encontrar su fila.
+
+**Decisiones de Felipe (preguntas del 2026-11-01, mirando dos maquetas):**
+1. **La forma:** una lista dentro del paso abierto, «Lo anotado aquí», con cada anotación de ese paso y su lápiz (descartó «un botón y elegir»).
+2. **Quién:** quien opera el Taller, como en la historia; no solo el líder. Confirma la objeción del 2026-10-30: la colaboradora arregla su propio dato sin esperar al líder, siempre con
+   motivo y con su rastro.
+
+**Lo que se construyó (solo pantalla; la base no cambia):**
+- `anotadoDelPaso(fase, orden, hoy)` y `filaDelPaso(entrada)` en `lib/orden-pagina-reglas.ts`: son las mismas entradas de la historia (`lineaDeTiempoAgrupada`), filtradas por el paso
+  (`EntradaDeTiempo.faseClave`, nuevo). El lápiz sale solo si la historia ya se lo pone (`corregible` o `anulable`, que vienen de la base): no hay regla nueva que pueda contradecirla.
+  Una Salida o una Vuelta viva que ya no se anula se queda en la lista, sin lápiz y con su porqué («sus prendas ya volvieron»; «el paso siguiente ya usó estas prendas»): la base tiene un
+  solo motivo para cada una cuando sigue viva (`anular_ya_volvio`, `anular_ya_avanzo`), y una prueba lee la migración para que no se aparten. Si desapareciera, la colaboradora creería que
+  se borró (revisión independiente del 2026-11-01).
+  Un hito (Ploteo) no trae lista: su marca tiene su propio botón (actividad 2). Un cambio de la historia (una corrección, una eliminación) no es de ningún paso: su «Restaurar» sigue en la historia.
+- `PasoAbierto` (`components/orden-pagina/RutaViva.tsx`): bajo los botones, `<TituloGrupo cuenta>` «Lo anotado aquí» y una fila por anotación —qué fue («Terminó», «Prendas con falla»,
+  «Salida», «Vuelta»), día y hora, quién, cuánto y, debajo, las tallas («2 de Beige · S»), porque dos del mismo día por la misma persona se veían iguales; el texto pasa a la línea siguiente
+  en vez de cortarse— con `<LapizEditar>` (su nombre para el lector lleva el día, la hora y las tallas). Se ven 3; las
+  demás, con «Ver N más» (`<BotonVerMas>` + `<FilasDeMas>`). El lápiz abre las mismas hojas que el de la historia. El permiso es el mismo: `permisos.puedeOperar` y la orden en proceso.
+- Guía interactiva: pasos `anotado-paso` y `corregir-paso` (opcionales; explican, no tocan); huella aceptada tras recorrerla.
+
+- **DECIDÍ:** reusar las entradas y las hojas de la historia, filtradas por el paso, en vez de una vista o una regla propia.
+- **DESCARTÉ:** (a) «Corregir lo anotado» como un botón que abre una hoja para elegir cuál: un toque más y una hoja más que mantener, y Felipe eligió ver la lista; (b) una regla propia de
+  «qué se puede corregir desde el paso»: dos reglas para lo mismo terminan diciendo cosas distintas (Brooks); (c) pasar corregir a solo el líder: la colaboradora esperaría al líder para
+  arreglar un número que ella misma anotó mal, y pedía una migración sin ganar nada que la historia (motivo, quién, «Restaurar») no dé ya.
+- **SE ROMPE SI:** la base suma otro motivo para no anular una salida o una vuelta viva (la prueba de `orden-pagina-reglas.test.ts` que lee `20261015160000` falla y avisa: el porqué
+  de la fila diría algo falso). O una ruta trae dos veces la misma clave de paso: la lista —como el lápiz de la historia, que abre la fase por su clave (`faseDeLaAnotacion`)— no
+  distinguiría a cuál pertenece cada anotación.
+

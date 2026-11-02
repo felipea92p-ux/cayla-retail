@@ -21,7 +21,7 @@
       "Boton «Reabrir»"
     ],
     "components/finanzas/CierrePulso.tsx": [
-      "Link «Resolver»"
+      "Link «{c.enlace}»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "button «Todas»",

@@ -11,15 +11,16 @@ import {
   alternarSede,
   claveDeSedes,
   dichoDeLaSede,
-  esMesTelar,
   hilosDeLaRuta,
   hrefTelar,
+  mesDeLaRuta,
   mesTelar,
   sedesDeLaUrl,
   sedesElegidas,
   SEDE_TODAS,
   type ClaveSede,
   type SedeTelar,
+  ultimoMesDeLaRuta,
 } from "@/lib/finanzas-telar-reglas";
 
 const conRegistrar = (href: string) => `${href}${href.includes("?") ? "&" : "?"}registrar=1`;
@@ -63,10 +64,10 @@ export function MesaDeMando({
   const router = useRouter();
   const actuales = [...sp.entries()];
   const elegidas = sedesElegidas(sedesDeLaUrl({ sede: sp.get("sede"), ver: sp.get("ver") }), sedes, veTodo, sedePropia);
-  const mesUrl = sp.get("mes");
-  const mes = esMesTelar(mesUrl) ? mesUrl : mesDeHoy;
+  // En Cierre de mes el mes en curso no se ofrece (nunca se cierra): la barra parte del anterior, como la página.
+  const mes = mesDeLaRuta(pathname, sp.get("mes"), mesDeHoy);
   const [anio, m] = mes.split("-").map(Number) as [number, number];
-  const [anioHoy, mHoy] = mesDeHoy.split("-").map(Number) as [number, number];
+  const [anioHoy, mHoy] = ultimoMesDeLaRuta(pathname, mesDeHoy).split("-").map(Number) as [number, number];
 
   const aqui = (cambios: { sede?: ClaveSede; mes?: string }) => hrefTelar(pathname, actuales, cambios, { mismaPantalla: true, mesDeHoy });
   // Esta pantalla todavía mira de a una sede: tocar una la deja sola, y si en la URL vienen varias (de otra pantalla) se dice.

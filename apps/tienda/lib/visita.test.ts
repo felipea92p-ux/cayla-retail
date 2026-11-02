@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { caminoDe, esRobot, esVisitaNueva, leerPasos, regionDe, TOPE_DE_PASOS } from "./visita";
 
-const DOMINIO = "tienda.cayla.pe";
+const DOMINIO = "cayla.pe";
 const camino = (referente: string, busqueda = "") => caminoDe({ referente, busqueda, dominio: DOMINIO });
 
 describe("caminoDe: por dónde llegó la persona", () => {
@@ -26,7 +26,7 @@ describe("caminoDe: por dónde llegó la persona", () => {
   it("sin página de origen, o desde la misma tienda, es «Directo»", () => {
     expect(camino("")).toBe("directo");
     expect(camino("no es una dirección")).toBe("directo");
-    expect(camino("https://tienda.cayla.pe/catalogo")).toBe("directo");
+    expect(camino("https://cayla.pe/catalogo")).toBe("directo");
   });
 
   it("un dominio que solo se parece no engaña", () => {

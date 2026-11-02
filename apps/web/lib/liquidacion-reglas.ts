@@ -88,7 +88,7 @@ const PATRON_CODIGO = /^LQ[2-9A-HJ-NP-Z]{6}$/;
  * lee una O como 0 y una I como 1… que el alfabeto no tiene, así que esas no pasan: mejor «no lo encontramos» que la pieza de otro.
  */
 export function codigoDeLiquidacion(leido: string): string | null {
-  const limpio = leido.toUpperCase().replace(/[\s-]/g, "");
+  const limpio = leido.toUpperCase().replace(/[\s-]/g, ""); // blanco-fijo: un código leído del escáner, no una cifra
   return PATRON_CODIGO.test(limpio) ? limpio : null;
 }
 

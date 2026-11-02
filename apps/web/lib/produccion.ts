@@ -17,6 +17,7 @@ import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type 
 import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
 import { FASES, RPC_PROCESOS, leerProcesos, leerProcesosDeModelos, type FaseClave, type FaseDelCatalogo } from "@/lib/orden-fases-reglas";
 import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
+import type { IngresoAlStock } from "@/lib/orden-pagina-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -55,6 +56,8 @@ export type OrdenProduccion = {
   fechaEntrega: string | null;
   nota: string | null;
   inventariadoEn: string | null;
+  /** `ya_estaba`: las prendas ya estaban registradas en una sede y el cierre no las sumó al stock (ADR-0551 C). */
+  ingresoAlStock: IngresoAlStock;
   creadoEn: string;
   lineas: LineaOrden[];
 };
@@ -90,7 +93,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
       .from("producciones")
       .select(
         `id, producto_id, estado, es_muestra, etapas,
-         cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, created_at,
+         cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, ingreso_al_stock, created_at,
          producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( id, precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
@@ -122,6 +125,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
     fechaEntrega: p.fecha_entrega,
     nota: p.nota,
     inventariadoEn: p.inventariado_at,
+    ingresoAlStock: p.ingreso_al_stock === "ya_estaba" ? "ya_estaba" : "movimiento",
     creadoEn: p.created_at,
     lineas: (p.lineas ?? [])
       .map((l) => ({
@@ -159,6 +163,8 @@ export type ModeloProducible = {
   tejidoId?: string | null;
   tejidoNombre?: string | null;
   variantes: VarianteDeModelo[];
+  /** Las variantes DESACTIVADAS del modelo (no salen en la tabla): «+ Talla» y «+ Color» de Nueva orden no ofrecen lo que ellas ocupan (/chaos 2026-10-31). Falta en un modelo virtual. */
+  desactivadas?: { talla: string | null; color: string | null; colorCodigo: string | null }[];
   /** Solo el líder (`conPreciosMasBajosDeModelos`): el precio propio más bajo de una tienda, si queda bajo la grilla (ADR-0370). */
   precioMasBajo?: PrecioMasBajo;
 };
@@ -210,6 +216,12 @@ export async function getModelosProducibles(opciones: { soloProducibles?: boolea
           precio: Number(v.precio),
         }))
         .sort(compararLineas),
+      desactivadas: (p.variantes ?? [])
+        .filter((v) => !v.activo)
+        .map((v) => {
+          const { talla, color, colorCodigo } = datosDeVariante(v);
+          return { talla, color, colorCodigo };
+        }),
     }))
     .filter((m) => m.variantes.length > 0);
 }

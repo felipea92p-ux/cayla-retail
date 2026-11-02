@@ -200,7 +200,7 @@ export function EstadoResultadosPanel({
             <b>El Taller no le vende a las tiendas</b>: el costo de cada prenda entra en la tienda que la vende. Su columna es lo que gasta para producir (planilla, local, máquinas).
           </div>
           <div className="nota-cayla">
-            <b>«De la empresa»</b>: gastos de ninguna tienda (contador, publicidad, software, oficina). No se reparten entre tiendas.
+            <b>«De la empresa»</b>: lo que no es de ninguna tienda. Incluye a quienes trabajan en la central y en la Oficina Trujillo (con sus practicantes), más contador, publicidad, software y oficina. No se reparten entre tiendas.
           </div>
         </div>
       ) : (
@@ -313,6 +313,17 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
           {c.planillaPersonas === 1 ? "persona" : "personas"}). Las horas de hoy son un cálculo con lo que lleva cada persona y se corrigen cuando cierra su jornada.
           Todavía no está en el diario, por eso estas líneas no lo suman; cuando Dynamic pague el período, entra lo pagado de verdad.
         </Aviso>
+      )}
+      {k.clave === "g62" && c.unidad === "empresa" && c.planillaPorSede.length > 0 && (
+        <>
+          <p className="label-cayla mb-1 mt-4 text-[11px] text-taupe">De lo provisionado, por sede</p>
+          <ListaDatos
+            filas={c.planillaPorSede.map((s) => ({
+              dato: `${s.nombre} · ${s.personas} ${s.personas === 1 ? "persona" : "personas"}`,
+              valor: solesER(s.devengado),
+            }))}
+          />
+        </>
       )}
       {o && o.porRegla.length > 0 && (
         <ListaDatos

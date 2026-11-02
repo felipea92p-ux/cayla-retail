@@ -42,7 +42,15 @@ export type FilaER = {
   planillaAlCierre: number;
   /** Personas en las boletas de esa estimación (suma de las sedes de la columna). */
   planillaPersonas: number;
+  /**
+   * De esa estimación, lo que aporta cada sede de Dynamic a la columna. Solo se llena en «De la empresa», que junta la central (CCO) y la
+   * Oficina Trujillo (OTRU): sin esto, quien no ve a OTRU en ninguna columna supone que está dentro de la tienda de Trujillo. Vacío si no hay estimación.
+   */
+  planillaPorSede: PlanillaDeSede[];
 };
+
+/** Lo que una sede de Dynamic aporta a la planilla provisionada de una columna. Nunca una persona: solo cuántas y cuánto. */
+export type PlanillaDeSede = { sedeCodigo: string; nombre: string; personas: number; devengado: number };
 
 type Fila = Record<string, unknown>;
 const n = (v: unknown): number => (v == null ? 0 : Number(v));
@@ -84,6 +92,7 @@ export function leerFilaER(r: Fila): FilaER {
     planillaEstimada: 0,
     planillaAlCierre: 0,
     planillaPersonas: 0,
+    planillaPorSede: [],
   };
 }
 

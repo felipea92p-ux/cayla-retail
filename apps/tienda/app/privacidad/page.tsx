@@ -117,6 +117,8 @@ export default function Privacidad() {
                 <p>
                   Sin publicidad por WhatsApp: las novedades las ves en tu cuenta. La tienda te escribe por WhatsApp solo por tus pedidos.
                   Los mensajes de promociones solo con tu autorización expresa, que puedes retirar cuando quieras.
+                  Si al pedir un «Avísame cuando llegue» marcas «Escríbeme por WhatsApp», la tienda ve tu celular y te escribe solo para
+                  avisarte de esa prenda; si quitas el aviso, dejamos de escribirte.
                 </p>
               </SeccionLegal>
 

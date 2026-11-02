@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { avisoDelPrecio, montoParaVolver, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { soloCifrasEscritas } from "@/lib/numero-escrito";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -59,9 +60,12 @@ import {
 // se escribe; los tres diciembres son UNA pregunta con tres cajas (antes parecían tres opciones para elegir); «Lo que sobre» dice, junto a
 // su caja, lo que produce ese porcentaje (es el número que más mueve la compra); y cada caja tiene su nombre para el lector de pantalla.
 
-const soloDigitos = (s: string) => s.replace(/[^\d]/g, "");
+// Los blancos se conservan (`soloCifrasEscritas`): son cantidades enteras, y un blanco adentro solo puede venir de pegar
+// varias celdas. `entero()` de plan-compra-reglas lo rechaza solo; borrarlo aquí dejaba «1285» prendas sin una palabra.
+const soloDigitos = (s: string) => soloCifrasEscritas(s);
 const soloMonto = (s: string) => s.replace(/[^\d.,\s]/g, "");
-const soloDescuento = (s: string) => s.replace(/[^\d.,]/g, "");
+// Los blancos se conservan (como en `soloMonto`): si se borran aquí, `leerDescuento` ya no puede ver un pegado de varias celdas.
+const soloDescuento = (s: string) => s.replace(/[^\d.,\s]/g, "");
 
 function EfectoEnElTope({ efecto, tope }: { efecto: ReturnType<typeof efectoEnElTope>; tope: number }) {
   return (

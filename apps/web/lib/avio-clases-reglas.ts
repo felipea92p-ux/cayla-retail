@@ -52,6 +52,24 @@ type ReglaDeComportamiento = {
   porQue: string;
 };
 
+/** Hasta dónde llega el nombre de una clase de avío: lo que acepta la columna de la base. */
+export const MAX_NOMBRE_CLASE = 60;
+
+/**
+ * Lo que la hoja dice si el nombre de una clase nueva no se puede crear; `null` si está bien.
+ *
+ * Antes el API lo CORTABA en silencio (`nombre.trim().slice(0, 60)`): se pidió crear una clase de 106 letras y se
+ * creó con 60, partida a media palabra, y el aviso de éxito mostró el nombre mutilado como si fuera el que se pidió.
+ * De esa clase sale el prefijo del código de todos sus avíos, así que el recorte se queda para siempre (/chaos
+ * 2026-10-31). Cortar lo que alguien escribió sin decírselo es peor que no dejarlo crear.
+ */
+export function problemaDelNombreDeClase(nombre: string): string | null {
+  const t = nombre.trim();
+  if (!t) return "Escribe cómo se llama la clase de avío.";
+  if (t.length > MAX_NOMBRE_CLASE) return `El nombre de la clase llega hasta ${MAX_NOMBRE_CLASE} letras y este tiene ${t.length}: acórtalo.`;
+  return null;
+}
+
 /** La tabla de verdad. Es la MISMA que `retail.fn_medida_cuadra` y los `raise` de `fn_material_leer`; `avio-clases-reglas.test.ts` lo comprueba comportamiento por comportamiento. */
 export const COMPORTAMIENTOS: Record<ComportamientoClase, ReglaDeComportamiento> = {
   pieza: { medidas: ["linea"], requerida: false, comoSeLlama: "Medida", ejemplo: "18", porQue: "Un botón de 18 L y uno de 24 L son dos avíos distintos." },

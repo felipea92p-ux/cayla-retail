@@ -19,7 +19,8 @@ export function VitrinaPestanas({ activa, derecha }: { activa: "modelos" | "look
       items={[
         { clave: "modelos", etiqueta: "Modelos", href: "/tienda-web/vitrina", ayuda: "Qué modelos se ven en la tienda online" },
         { clave: "looks", etiqueta: "Looks", href: "/tienda-web/vitrina/looks", ayuda: "Las combinaciones de «Arma tu look»" },
-        { clave: "probador", etiqueta: "Probador", href: "/tienda-web/vitrina/probador", ayuda: "Las prendas recortadas para «Arma el tuyo»" },
+        // Probador oculto (Felipe, 2026-10-31): la pantalla y su guía siguen en el código, solo no se llega desde la Vitrina.
+        // Para volver a mostrarla basta devolver esta entrada.
       ]}
     />
   );

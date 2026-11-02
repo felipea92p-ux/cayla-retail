@@ -26,7 +26,7 @@ export function enlaceParaCompartir(origen: string, codigo: string): string {
 }
 
 /** La dirección de la tienda, como se ve en las imágenes. */
-export const DOMINIO_A_LA_VISTA = "tienda.cayla.pe";
+export const DOMINIO_A_LA_VISTA = "cayla.pe";
 
 /** Lo que acompaña al enlace cuando se comparte: el enlace va dentro, porque al compartir una imagen algunas aplicaciones lo pierden. */
 export const textoAlCompartir = (url: string): string => `Mira mi look en CAYLA: ${url}`;

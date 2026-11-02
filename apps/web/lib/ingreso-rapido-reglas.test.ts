@@ -88,6 +88,10 @@ describe("el monto", () => {
     expect(limpiarMontoIngreso("0,50")).toBe("0.50");
     expect(limpiarMontoIngreso("S/ 100.555")).toBe("100.55");
     expect(limpiarMontoIngreso("1.2.3")).toBe("1.23");
+    // Lo mismo que en el gasto rápido: los blancos de adentro se conservan para que el lector pueda rechazar un pegado
+    // de varias celdas, en vez de juntarlas en «1285» sin decir nada (/chaos 2026-10-31).
+    expect(limpiarMontoIngreso("12 8 5")).toBe("12 8 5");
+    expect(limpiarMontoIngreso("1 200")).toBe("1 200");
   });
 });
 

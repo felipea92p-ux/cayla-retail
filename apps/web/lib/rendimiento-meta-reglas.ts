@@ -14,6 +14,7 @@
  */
 
 import { diasEntreFechas, sumarDias } from "./fechas-lima";
+import { sinBlancosDeMiles } from "./numero-escrito";
 
 export type Vista = "hoy" | "semana" | "mes";
 
@@ -406,7 +407,11 @@ export type ResultadoCambio =
 
 /** Lo que tipeó la persona en el campo de soles: «12,500», «12500.5» o «S/ 12 500». `NaN` si no se entiende. */
 export function leerSoles(texto: string): number {
-  const limpio = texto.replace(/[^\d.,]/g, "").replace(/,(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  // Los blancos se miran ANTES de borrar lo que no es cifra: «S/ 12 500» son doce mil quinientos (el espacio separa miles), pero
+  // «12 8 5» es un pegado de tres celdas y no se adivina (`sinBlancosDeMiles`). Sin esto, el borrado ancho los juntaba en 1285.
+  const sinBlancos = sinBlancosDeMiles(texto.replace(/[^\d.,\s]/g, ""));
+  if (sinBlancos === null) return Number.NaN;
+  const limpio = sinBlancos.replace(/,(?=\d{3}(\D|$))/g, "").replace(",", ".");
   if (limpio === "") return Number.NaN;
   // El signo no se pierde: «-5» tiene que rechazarse como negativo, no leerse como 5.
   return /^\s*-/.test(texto) ? -Number(limpio) : Number(limpio);

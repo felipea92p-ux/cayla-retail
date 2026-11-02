@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validarGasto } from "./gastos-reglas";
+import { parsearMonto, validarGasto } from "./gastos-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import {
   CLAVE_OTRO,
@@ -147,6 +147,15 @@ describe("limpiarMonto", () => {
     expect(limpiarMonto("S/ 12.505")).toBe("12.50");
     expect(limpiarMonto("1.2.3")).toBe("1.23");
     expect(limpiarMonto("abc")).toBe("");
+    // Pegar varias celdas de una hoja de cálculo: el filtro CONSERVA los blancos de adentro para que `parsearMonto` pueda
+    // ver que no es un monto y decirlo. Antes los borraba y «12 8 5» quedaba escrito «1285» en el campo, sin una palabra
+    // (/chaos 2026-10-31, Felipe: «sí, ciérralos»). El «S/» sí se quita con su espacio, como siempre.
+    expect(limpiarMonto("12 8 5")).toBe("12 8 5");
+    expect(limpiarMonto("12\t8\t5")).toBe("12\t8\t5");
+    expect(parsearMonto(limpiarMonto("12 8 5")).ok).toBe(false);
+    // Y el separador de miles sigue llegando entero hasta el lector, que sí lo entiende.
+    expect(limpiarMonto("1 200")).toBe("1 200");
+    expect(parsearMonto(limpiarMonto("1 200"))).toEqual({ ok: true, valor: 1200 });
   });
 });
 

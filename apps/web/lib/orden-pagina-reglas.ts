@@ -33,13 +33,14 @@ export const RPC_AGREGAR_PASO = "agregar_paso_orden";
 /** ADR-0586: un líder suma un paso que se olvidó, cuando uno de después ya avanzó; entra ya hecho con todas las prendas que le llegaron. */
 export const RPC_AGREGAR_PASO_TARDE = "agregar_paso_tarde";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
-export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 /** La Salida a un servicio y la tela que sale con ella, en una transacción y con token (ADR-0587). */
 export const RPC_REGISTRAR_SALIDA_CON_TELA = "registrar_salida_con_tela";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
 export const RPC_ANULAR_VUELTA = "anular_vuelta";
 export const RPC_CERRAR_PRODUCCION = "cerrar_produccion";
+/** Un líder declara que las prendas ya estaban registradas en una sede: al cerrar la orden no suman al stock (ADR-0551 C). */
+export const RPC_MARCAR_YA_EN_STOCK = "marcar_orden_ya_en_stock";
 export const RPC_ANULAR_PRODUCCION = "anular_produccion";
 export const RPC_REVERTIR_PRODUCCION = "revertir_produccion";
 export const RPC_GUARDAR_INSUMOS_ORDEN = "guardar_insumos_orden";
@@ -50,6 +51,9 @@ export const DIAS_SIN_MOVERSE = 4;
 // ---------- Lo que la página lee ----------
 
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
+
+/** Cómo entra al stock lo que salió bueno (ADR-0551 C): `movimiento` = una entrada al Taller por talla y color al cerrar; `ya_estaba` = ya estaba registrado en una sede, el cierre no toca el stock. */
+export type IngresoAlStock = "movimiento" | "ya_estaba";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
 export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
 /** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0581; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela, el cambio de tipo (muestra ↔ lote) y un paso
@@ -271,6 +275,8 @@ export type OrdenPagina = {
     creadoEn: string;
     creadoPorNombre: string | null;
     inventariadoEn: string | null;
+    /** `ya_estaba`: las prendas ya estaban registradas en una sede; cerrar la orden no las suma al stock ni toca el costo de la prenda. */
+    ingresoAlStock: IngresoAlStock;
     cantidadPlan: number;
     cantidadBuenas: number | null;
     ubicacionId: string;
@@ -491,6 +497,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       creadoEn: texto(o.created_at) ?? "",
       creadoPorNombre: texto(o.creado_por_nombre),
       inventariadoEn: texto(o.inventariado_at),
+      ingresoAlStock: o.ingreso_al_stock === "ya_estaba" ? "ya_estaba" : "movimiento",
       cantidadPlan: entero(o.cantidad_plan),
       cantidadBuenas: numero(o.cantidad_buenas),
       ubicacionId: texto(o.ubicacion_id) ?? "",
@@ -768,17 +775,32 @@ export type AccionFase = "terminar" | "salida" | "vuelta" | "marcar" | "desmarca
 
 /**
  * Las acciones que ofrece una fase: «Terminé N» en el Taller; «Salida» si queda algo por mandar y «Vuelta» si hay prendas afuera, en un servicio; en una fase que se marca
- * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar». Ninguna si no se puede operar.
+ * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar» (quitar la marca, con motivo): esa SOLO a un líder (ADR-0586 act. 2; la base repite: `marca_solo_lider`). Ninguna si no
+ * se puede operar.
  */
-export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): AccionFase[] {
+export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">, { esLider = false }: { esLider?: boolean } = {}): AccionFase[] {
   if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return [];
-  if (f.hito) return f.marcada ? ["desmarcar"] : ["marcar"];
+  if (f.hito) return f.marcada ? (esLider ? ["desmarcar"] : []) : ["marcar"];
   if (f.estado === "hecha") return [];
   if (f.quien === "taller") return faltaTerminar(f, p.fases) > 0 ? ["terminar"] : [];
   const acciones: AccionFase[] = [];
   if (porMandar(f) > 0) acciones.push("salida");
   if (f.afuera > 0) acciones.push("vuelta");
   return acciones;
+}
+
+/** ADR-0586 act. 2: la marca viva de una fase que se marca (Ploteo), para quitarla desde el paso: la más reciente que nadie deshizo (la misma que la historia deja con su lápiz). */
+export function marcaVivaDeFase(f: FasePagina, p: Pick<OrdenPagina, "lineaDeTiempo" | "deshechos">): string | null {
+  if (!f.hito || !f.marcada) return null;
+  const deshechos = new Set(p.deshechos);
+  const vivas = p.lineaDeTiempo.filter((e) => e.tipo === "marca" && e.faseClave === f.clave && !deshechos.has(e.id));
+  return vivas.sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando))[0]?.id ?? null;
+}
+
+/** ADR-0586 act. 2: a quien opera pero no es líder, el paso marcado le dice cómo se arregla una marca equivocada (no busca un botón que no está). `null`: no hace falta decirlo. */
+export function avisoMarcaSoloLider(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">, { esLider = false }: { esLider?: boolean } = {}): string | null {
+  if (esLider || !f.hito || !f.marcada || !p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return null;
+  return "Si se marcó por error, un líder puede quitar la marca.";
 }
 
 export type Siguiente = { fase: FasePagina | null; accion: AccionFase | "pasar_al_stock" | "nada" };
@@ -1251,6 +1273,8 @@ export type EntradaDeTiempo = {
   hora: string;
   quien: string | null;
   tipo: TipoEntrada;
+  /** El paso donde pasó (`null` en un cambio y en lo que no es de un paso): así el paso abierto encuentra lo suyo (ADR-0586 act. 3). */
+  faseClave: FaseClave | null;
   titulo: string;
   detalle: string | null;
   cuanto: string | null;
@@ -1264,8 +1288,8 @@ export type EntradaDeTiempo = {
   corregible: AnotacionCorregible | null;
   /** La marca de una fase que no cuenta prendas (Ploteo), viva: se quita. */
   marcaViva: { id: string; faseClave: FaseClave | null; faseNombre: string } | null;
-  /** Una eliminación que todavía no se restauró: su «Restaurar». */
-  restaurable: { cambioId: string } | null;
+  /** Una eliminación que todavía no se restauró: su «Restaurar». `marca`: lo quitado era la marca de Ploteo, y restaurarla es de un líder (ADR-0586 act. 2). */
+  restaurable: { cambioId: string; marca: boolean } | null;
   /** Una eliminación ya restaurada. */
   restaurado: boolean;
   /** Lo anotado que salió de una corrección. */
@@ -1383,6 +1407,7 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       hora: horaLima(rehecha ? e.cuando : (e.registradoEn ?? e.cuando)),
       quien: e.quienNombre,
       tipo: e.tipo,
+      faseClave: e.faseClave,
       titulo,
       detalle,
       cuanto,
@@ -1680,6 +1705,7 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     hora: horaLima(c.cuando),
     quien: c.quienNombre,
     tipo: c.accion,
+    faseClave: null,
     titulo,
     detalle,
     cuanto,
@@ -1688,7 +1714,7 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     anotado: null,
     corregible: null,
     marcaViva: null,
-    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id } : null,
+    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id, marca: c.objeto === "marca" } : null,
     restaurado: c.accion === "eliminar" && c.restaurado,
     corregida: false,
   };
@@ -1747,6 +1773,36 @@ export function problemaDeNota(texto: string): string | null {
   if (texto.trim() === "") return "Escribe la nota.";
   if (texto.trim().length > MAX_NOTA_ORDEN) return `La nota es muy larga: hasta ${MAX_NOTA_ORDEN} letras.`;
   return null;
+}
+
+// ---------- «Lo anotado aquí»: corregir desde el paso (ADR-0586, actividad 3; Felipe 2026-10-31) ----------
+// Lo mismo que el lápiz de la historia, a un toque desde el paso abierto: sus «Terminé» y sus prendas con falla, que se corrigen, y sus Salidas y Vueltas, que se anulan. No hay regla
+// nueva: el lápiz aparece solo si la historia ya se lo pone (`corregible` o `anulable`, que vienen de la base). Lo hace quien opera el Taller, no solo el líder (Felipe lo eligió al verlo):
+// la colaboradora que se equivocó arregla su propio dato, siempre con motivo y con «Restaurar». Un hito (Ploteo) no entra: su marca tiene su propio botón (ADR-0586 act. 2).
+// Una Salida o una Vuelta viva que ya no se anula SIGUE en la lista, sin lápiz y con su porqué (revisión del 2026-11-01): si desapareciera, la colaboradora creería que se borró. La base
+// tiene un solo motivo para cada una cuando sigue viva (`fn_produccion_salida_anulable` → `anular_ya_volvio`; `fn_produccion_vuelta_anulable` → `anular_ya_avanzo`); la prueba lo lee.
+
+/** Lo anotado en un paso que sigue vivo, de lo más reciente a lo más viejo: lo que se corrige o se anula, y las Salidas y Vueltas que ya no. */
+export function anotadoDelPaso(fase: FasePagina, p: OrdenPagina, hoy: string): EntradaDeTiempo[] {
+  if (fase.hito) return [];
+  return lineaDeTiempoAgrupada(p, hoy)
+    .flatMap((d) => d.entradas)
+    .filter((e) => e.faseClave === fase.clave && (e.corregible !== null || e.anulable !== null || ((e.tipo === "salida" || e.tipo === "vuelta") && !e.anulada)));
+}
+
+/** Una fila de «Lo anotado aquí»: qué fue, cuándo pasó y quién (el paso ya se nombra arriba, así que no se repite), y debajo lo de la historia que las distingue
+ *  («2 de Beige · S»): dos «Terminó» del mismo día por la misma persona se verían iguales sin eso. `fija`: por qué ya no se cambia (sin lápiz). */
+export function filaDelPaso(e: EntradaDeTiempo): { que: string; cuando: string; quien: string | null; cuanto: string | null; detalle: string | null; fija: string | null } {
+  const que = e.tipo === "salida" ? "Salida" : e.tipo === "vuelta" ? "Vuelta" : e.tipo === "falla" ? "Prendas con falla" : "Terminó";
+  const fija =
+    e.corregible || e.anulable
+      ? null
+      : e.tipo === "salida"
+        ? "Ya no se anula: sus prendas ya volvieron. Si la vuelta estaba mal, anula primero la vuelta."
+        : e.tipo === "vuelta"
+          ? "Ya no se anula: el paso siguiente ya usó estas prendas."
+          : null;
+  return { que, cuando: `${diaCorto(fechaLimaDe(e.cuando))}, ${e.hora}`, quien: e.quien, cuanto: e.cuanto, detalle: e.detalle, fija };
 }
 
 /** La fase de una anotación de la historia, para abrir su hoja. */
@@ -1986,8 +2042,23 @@ export function resumenDeCierre(p: Pick<OrdenPagina, "fases" | "costos" | "permi
   return { buenas, segundas, faltantes, costoTotal, costoPorPrenda: costoTotal !== null && buenas > 0 ? Math.round((costoTotal / buenas) * 100) / 100 : null };
 }
 
+/** Lo que dice la hoja «Pasar al stock» sobre qué pasa con el stock al confirmar (la misma frase de siempre salvo que las prendas ya estuvieran registradas). */
+export function textoQuePasaConElStock(total: number, esMuestra: boolean, yaEstaba: boolean): string {
+  if (esMuestra) return "La muestra se da por terminada";
+  if (yaEstaba) return `${total === 1 ? "La prenda ya estaba registrada" : `Las ${total} prendas ya estaban registradas`}: no entra stock, la orden solo se cierra con su costo`;
+  return `Entran ${total} ${total === 1 ? "prenda" : "prendas"} al stock del Taller y cada talla queda en Movimientos`;
+}
+
+/** La casilla de la hoja «Pasar al stock» (solo un líder la cambia): para el caso de una orden que se abre después de que las prendas ya se cargaron en una sede. */
+export const TEXTO_YA_ESTABA = {
+  etiqueta: "Estas prendas ya estaban registradas en una sede",
+  ayuda: "Márcala si ya las cargaste en una tienda (por ejemplo, como «Encontré prendas»). La orden se cierra con su costo, pero no suma al stock: así no se duplican. Solo un líder.",
+  avisoParaOtros: "Un líder marcó que estas prendas ya estaban registradas en una sede: al pasar la orden no se suma stock.",
+} as const;
+
 /** El aviso de éxito: «48 prendas de Pantalón Lía entraron al stock del Taller» (una muestra solo se da por terminada). */
-export function textoPasasteAlStock(total: number, referencia: string, esMuestra: boolean): string {
+export function textoPasasteAlStock(total: number, referencia: string, esMuestra: boolean, yaEstaba = false): string {
+  if (!esMuestra && yaEstaba) return `Orden de ${referencia} cerrada: ${cuantas(total, "prenda", "prendas")} ya estaba${total === 1 ? "" : "n"} registrada${total === 1 ? "" : "s"}, no se sumó stock`;
   return esMuestra ? `Muestra ${referencia} terminada` : `${cuantas(total, "prenda", "prendas")} de ${referencia} ${total === 1 ? "entró" : "entraron"} al stock del Taller`;
 }
 
@@ -2004,7 +2075,8 @@ export function textoAnulasteLaOrden(referencia: string): string {
 }
 
 /** Lo que dice la hoja de revertir: qué pasa con el stock según lo que se cerró (una muestra no tocó el stock). */
-export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null }): string {
+export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null; ingresoAlStock?: IngresoAlStock }): string {
+  if (o.ingresoAlStock === "ya_estaba") return "La orden vuelve a estar en proceso. Esas prendas ya estaban registradas en una sede: no entraron al stock al cerrar, así que no hay stock que devolver. La marca «ya estaban registradas» se quita y hay que decidirla otra vez al volver a cerrar.";
   return o.inventariadoEn
     ? `Las ${o.cantidadBuenas ?? 0} prendas salen del stock del Taller (queda un movimiento de reversión: la entrada original no se borra) y la orden vuelve a estar en proceso, para corregir las buenas o los costos.`
     : "La muestra vuelve a estar en proceso. No había stock que devolver.";

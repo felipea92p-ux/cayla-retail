@@ -8,7 +8,7 @@
 // resultados. Qué NO hace: calcular plata (la cifra sale de Dynamic) ni tocar el libro (el diario, el Balance y el cierre siguen con lo
 // pagado de verdad: la provisión vive solo en lo que se ve, y desaparece sola cuando Dynamic paga ese período).
 
-import { solesER, type DetalleGastoER, type FilaER } from "./resultados-reglas";
+import { solesER, type DetalleGastoER, type FilaER, type PlanillaDeSede } from "./resultados-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v !== "" && Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -79,6 +79,25 @@ export const delMes = (prov: readonly FilaProvision[], mes: string): FilaProvisi
 /** La clave con la que una fila de provisión cae en una fila del Estado de resultados: la ubicación, o «empresa». */
 const claveDe = (p: FilaProvision): string => p.ubicacionId ?? "empresa";
 
+/** Cómo se llama en pantalla una sede de Dynamic que no es una tienda. Un código nuevo se muestra tal cual, nunca se inventa un nombre. */
+const NOMBRE_SEDE_DYNAMIC: Record<string, string> = { CCO: "Central", OTRU: "Oficina Trujillo" };
+export const nombreSedeDynamic = (codigo: string): string => NOMBRE_SEDE_DYNAMIC[codigo] ?? codigo;
+
+/** Lo que cada sede de Dynamic aporta a una columna, de la mayor a la menor. Dos filas de la misma sede (dos períodos) se suman. */
+function porSedeDe(prov: readonly FilaProvision[]): PlanillaDeSede[] {
+  const m = new Map<string, PlanillaDeSede>();
+  for (const p of prov) {
+    const antes = m.get(p.sedeCodigo);
+    m.set(p.sedeCodigo, {
+      sedeCodigo: p.sedeCodigo,
+      nombre: nombreSedeDynamic(p.sedeCodigo),
+      personas: antes ? Math.max(antes.personas, p.personas) : p.personas,
+      devengado: r2((antes?.devengado ?? 0) + p.devengado),
+    });
+  }
+  return [...m.values()].sort((a, b) => b.devengado - a.devengado || a.sedeCodigo.localeCompare(b.sedeCodigo));
+}
+
 type Suma = { devengado: number; alCierre: number; personas: number; deHoy: number };
 const vacia = (): Suma => ({ devengado: 0, alCierre: 0, personas: 0, deHoy: 0 });
 function sumar(s: Suma, p: FilaProvision): Suma {
@@ -121,6 +140,7 @@ export function aplicarProvision(filas: readonly FilaER[], prov: readonly FilaPr
   const util = prov.filter((p) => p.devengado > 0);
   if (!util.length) return [...filas];
   const porClave = new Map<string, Suma>();
+  const sedesDeEmpresa = porSedeDe(util.filter((p) => claveDe(p) === "empresa"));
   let total = vacia();
   for (const p of util) {
     porClave.set(claveDe(p), sumar(porClave.get(claveDe(p)) ?? vacia(), p));
@@ -138,6 +158,7 @@ export function aplicarProvision(filas: readonly FilaER[], prov: readonly FilaPr
       planillaEstimada: s.devengado,
       planillaAlCierre: s.alCierre,
       planillaPersonas: s.personas,
+      planillaPorSede: f.unidad === "empresa" ? sedesDeEmpresa : [],
       planillaNota: notaProvisionado(s.personas, s.deHoy, f.planillaNota),
     };
   });

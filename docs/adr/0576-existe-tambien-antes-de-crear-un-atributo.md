@@ -57,3 +57,35 @@ SE ROMPE SI: dos personas crean «Verde olivo» y «Verde oliva» en el mismo mi
 ## Archivos
 
 `lib/atributo-parecido.ts` (+ prueba) · `lib/nombres-parecidos.ts` (tres opciones) · `lib/color-alta-reglas.ts` · `components/ui/ExisteTambien.tsx` · `components/{ColoresLista,TallasLista,TejidosLista,PatronesLista,FamiliasLista,CategoriasLista}.tsx` · `components/alta-producto/{NuevoColorAlta,ProponerValor}.tsx` · `components/insumos-taller/{PiezasDeLaTela,NuevaTelaModal,EditarTelaModal}.tsx` · `lib/sugerencias-alta-producto.ts` · guías de Atributos, Categorías y Familias (`lib/guias/pantallas/catalogo.ts`), la de «Nueva tela» (`lib/guias/pantallas/produccion.ts`) y la huella de diez pantallas.
+
+---
+
+## Actualización 2026-10-31 — el candado de la base ya no lo burla un carácter invisible
+
+Este ADR dice que el nombre **igual** lo frena la base y que el «casi igual» solo pregunta. `/chaos` encontró que lo
+primero no era cierto: **un carácter que no se ve bastaba para colar un duplicado por delante del candado.**
+
+`retail.fn_clave_texto` —la clave sobre la que cuelgan los **16 índices únicos** de todo el vocabulario del catálogo—
+bajaba a minúsculas, quitaba tildes y juntaba espacios, pero no quitaba los caracteres invisibles que viajan en
+cualquier copiar y pegar: el espacio de ancho cero (U+200B, el que más llega, de la web y de WhatsApp), sus parientes,
+el unidor de palabras, el BOM y el guion suave que mete un PDF al cortar una palabra. Así, «Botón ZW» y
+«Botón<U+200B> ZW» eran dos claves distintas: dos fichas del mismo botón, con el stock partido. Medido también en
+`colores`. La pregunta de este ADR sí salía, pero **no bloquea**: quien va con prisa pasa por encima.
+
+Lo encontró dos veces, en dos pantallas, con una sola causa: Catálogo ▸ Atributos (30-oct) y «Nuevo avío» (31-oct).
+
+**Decidido (Felipe, 31-oct):** se arregla en la causa, no pantalla por pantalla. La clave quita esos invisibles —en la
+base (`20261031200000`) y en el `claveTexto` de la web, que es su espejo—, y los invisibles se quitan **antes** de
+juntar los espacios: uno metido entre dos dejaría un espacio doble si se quitara después.
+
+**Lo que costó, y conviene que quede escrito.** Cambiar una función `IMMUTABLE` obliga a rehacer los índices que
+cuelgan de ella: Postgres guarda en el índice el valor que la función devolvía al escribir cada fila. El primer
+intento usó `reindex`, y por poco sale mal: **dentro de una misma transacción —que es como corre todo lo que se pega
+en el SQL Editor y como aplica cada migración el CI— `reindex` reconstruye con la función CACHEADA, o sea la vieja, y
+encima no avisa si quedan dos claves iguales: pasa en verde sin hacer nada.** En una sesión aparte sí usa la nueva.
+La migración usa `drop index` + `create index`, que se planifica desde cero y evalúa la función de verdad en los dos
+casos; los 16 son índices sueltos, ninguno respalda una constraint.
+
+**Lo que sigue sin cubrir** (además de lo de arriba): el «casi igual» sigue sin candado en la base, a propósito —
+Blanco y Crudo son dos colores—, y esto **no corrige lo que ya existe**. Si hoy hubiera dos filas que solo se
+diferencian por un invisible, la migración se niega y lo dice: cuál de las dos se queda es una decisión del negocio.

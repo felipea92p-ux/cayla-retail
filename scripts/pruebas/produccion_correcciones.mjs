@@ -42,7 +42,9 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda 
 const SIN_CANDADO = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "");
 const leer = (nombre) => SIN_CANDADO(readFileSync(fileURLToPath(new URL(`../../supabase/migrations/${nombre}`, import.meta.url)), "utf8"));
 // La de la actividad 2 (las fallas y el día) y la de esta (los cambios), en el orden en que se pegan.
-const MIGRACION = `${leer("20261029164000_produccion_termine_con_falla_y_fecha.sql")}\n${leer("20261029173000_produccion_corregir_y_eliminar_con_historia.sql")}`;
+// Y encima 20261031160000 (ADR-0586 act. 2): recargar 20261029173000 sola le quitaría a `eliminar_anotacion_orden` y `restaurar_anotacion_orden` el candado de «la marca es del
+// líder»; S4 vigila que, cargadas las dos, el candado siga una sola vez (volver a pegar 173000 sin 160000 en producción lo borraría).
+const MIGRACION = `${leer("20261029164000_produccion_termine_con_falla_y_fecha.sql")}\n${leer("20261029173000_produccion_corregir_y_eliminar_con_historia.sql")}\n${leer("20261031160000_produccion_quitar_marca_solo_lider.sql")}`;
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function psql(sql) {
@@ -472,13 +474,15 @@ caso(
   "4"
 );
 caso(
-  "S4 la migración se vuelve a cargar encima sin error (idempotente) y no duplica nada",
+  "S4 la migración se vuelve a cargar encima sin error (idempotente) y no duplica nada; el candado de la marca (20261031160000) sigue una sola vez en eliminar y en restaurar",
   `${MIGRACION}
    select concat_ws(',', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail'
         and p.proname in ('corregir_anotacion_orden', 'eliminar_anotacion_orden', 'restaurar_anotacion_orden', 'comentar_orden', 'anotar_termine', 'fn_produccion_escribir_termine')),
      (select count(*) from pg_trigger where tgrelid = 'retail.produccion_cambios'::regclass and not tgisinternal),
-     (select count(*) from regexp_matches(pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure), '''cambios''', 'g')));`,
-  "6,1,1"
+     (select count(*) from regexp_matches(pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure), '''cambios''', 'g')),
+     (select count(*) from regexp_matches(pg_get_functiondef('retail.eliminar_anotacion_orden(uuid[],text)'::regprocedure), 'marca_solo_lider', 'g')),
+     (select count(*) from regexp_matches(pg_get_functiondef('retail.restaurar_anotacion_orden(uuid,text)'::regprocedure), 'marca_solo_lider', 'g')));`,
+  "6,1,1,1,1"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien (contenedor: ${CONTENEDOR})`);

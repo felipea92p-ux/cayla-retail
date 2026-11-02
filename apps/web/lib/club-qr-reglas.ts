@@ -3,7 +3,7 @@
 // 2026-10-01, ADR-0288 act. j).
 //
 // Desde el 2026-10-16 el Club empieza al crear la cuenta en la tienda online (Felipe: «al escanear el cartel lleva al link
-// tienda.cayla.pe»; 20261016154000): el QR abre la tienda, la misma para todas las tiendas. Los carteles impresos antes llevan a
+// cayla.pe»; 20261016154000): el QR abre la tienda, la misma para todas las tiendas. Los carteles impresos antes llevan a
 // `/club/<uuid>` del ERP, que ahora redirige ahí (`app/club/[tienda]/page.tsx`), así no hay que reimprimirlos.
 //
 // Lógica pura: la usan el cartel (`components/clientas/CartelClub.tsx`) y esa página vieja del cartel. El WhatsApp de cada tienda
@@ -12,7 +12,7 @@
 import { celularValido } from "./club-reglas";
 
 /** La tienda online, donde se crea la cuenta y se entra al Club: la abren el QR del cartel y la página vieja del cartel. */
-export const DIRECCION_TIENDA_ONLINE = "https://tienda.cayla.pe";
+export const DIRECCION_TIENDA_ONLINE = "https://cayla.pe";
 
 /**
  * Lo que abre el QR del cartel (y la página vieja del cartel): la tienda online con su marca de camino (ADR-0495). Sin ella, quien escanea

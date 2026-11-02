@@ -96,9 +96,11 @@ export const MAX_NOTA_INGRESO = 200;
 
 const lleno = (s: string) => s.trim().length >= MIN_TEXTO;
 
-/** Lo que se teclea en el monto: dígitos y UN punto, dos decimales; la coma es decimal («0,50» son cincuenta céntimos). */
+/** Lo que se teclea en el monto: dígitos y UN punto, dos decimales; la coma es decimal («0,50» son cincuenta céntimos).
+ *  Los blancos de adentro se conservan (el «S/» no), para que `parsearMonto` pueda rechazar un pegado de varias celdas en
+ *  vez de juntarlas en un número; «1 200» sigue siendo mil doscientos. Lo mismo que `limpiarMonto` del gasto rápido. */
 export function limpiarMontoIngreso(texto: string): string {
-  const s = texto.replace(/,/g, ".").replace(/[^\d.]/g, "");
+  const s = texto.replace(/^\s*s\s*\/\s*\.?\s*/i, "").replace(/,/g, ".").replace(/[^\d.\s]/g, "");
   const [entero, ...resto] = s.split(".");
   return resto.length ? `${entero}.${resto.join("").slice(0, 2)}` : entero;
 }

@@ -465,7 +465,9 @@ export function cuadreArranque(lineas: readonly { cuenta: string; tipo: string; 
 
 /** Un monto escrito por el líder («1,250.50», «648,50», «−300», vacío = 0), con la regla única de `leerMontoPlata`. `null` si no se entiende. */
 export function leerMontoArranque(texto: string): number | null {
-  const limpio = texto.replace(/\s/g, "").replace(/−/g, "-");
+  // El menos tipográfico (U+2212) se normaliza aquí; los blancos NO se tocan: los decide `leerMontoPlata` con la regla única.
+  // Borrarlos antes la dejaba ciega, y un pegado de varias celdas entraba como el saldo de arranque de todo el Balance.
+  const limpio = texto.trim().replace(/−/g, "-");
   if (limpio === "" || limpio === "-") return 0;
   return leerMontoPlata(limpio);
 }

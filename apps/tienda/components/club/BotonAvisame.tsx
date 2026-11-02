@@ -11,6 +11,7 @@ import {
   textoAvisoAnotado,
   textoAvisoQuitado,
   textoBotonAvisame,
+  TEXTO_CASILLA_WHATSAPP,
 } from "@/lib/club";
 import { Icono } from "../Icono";
 import { useAvisoBreve } from "./useAvisoBreve";
@@ -23,6 +24,10 @@ import "@/app/estilos/club.css";
  * (nunca por WhatsApp: el Club no manda mensajes personales, ADR-0288 G-5), y la tienda lo ve en Vitrina web ▸ Esperan una talla. Si
  * mientras tanto llegó, la base no lo anota (`hay`): el aviso lo dice y la página se vuelve a leer, para que la ficha ofrezca
  * agregarla a la bolsa.
+ *
+ * El permiso de WhatsApp (2026-10-31, maqueta `docs/maquetas/tienda-avisame-2026-10`, opción B): al tocar «Avísame» se abre una casilla
+ * APAGADA de fábrica, «Escríbeme por WhatsApp cuando llegue». Solo si la marca, la tienda ve su celular en Vitrina web ▸ Esperan una talla.
+ * Nunca se pre-marca ni se esconde: un permiso que no se pidió a la vista no vale (Ley 29733). Quitar el aviso lo retira.
  *
  * Quitarlo desde aquí (2026-10-15; antes, solo desde «Mi cuenta»): «Te avisaremos cuando llegue ×» es un botón que lo quita, como el
  * corazón quita un favorito, cuando se sabe CUÁL espera es: la que se acaba de pedir con este botón, o la que diga la ficha
@@ -66,6 +71,8 @@ export function BotonAvisame({
     setDeServidor(pedido);
     setAnotado(pedido);
   }
+  const [eligiendo, setEligiendo] = useState(false);
+  const [whatsapp, setWhatsapp] = useState(false);
   const [pendiente, iniciar] = useTransition();
   const { aviso, mostrar } = useAvisoBreve();
   const nombreSede = sedeId ? sedeNombre : null;
@@ -74,12 +81,15 @@ export function BotonAvisame({
   function tocar() {
     if (pendiente || anotado) return;
     iniciar(async () => {
-      const r = await pedirAviso(varianteId, sedeId);
+      const r = await pedirAviso(varianteId, sedeId, whatsapp);
       if (r.estado === "anotada") {
         setAnotado(true);
+        setEligiendo(false);
         setIdPropio(r.esperaId);
         alAnotar?.();
-        mostrar(textoAvisoAnotado(talla, nombreSede), true);
+        // Pidió WhatsApp y la base no lo registró: no tenemos su celular. Se le dice, no se calla.
+        mostrar(whatsapp && !r.whatsapp ? TEXTO_CASILLA_WHATSAPP.sinCelular : textoAvisoAnotado(talla, nombreSede, r.whatsapp), true);
+        setWhatsapp(false);
         return;
       }
       mostrar(mensajeAviso(r.estado), false);
@@ -133,13 +143,36 @@ export function BotonAvisame({
           <Icono nombre="check" />
           Te avisaremos cuando llegue
         </button>
+      ) : eligiendo ? (
+        <div className="c-avisame-elige">
+          <label className="c-avisame-casilla">
+            <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} disabled={pendiente} />
+            <span>
+              <b>{TEXTO_CASILLA_WHATSAPP.titulo}</b>
+              <span className="c-avisame-ayuda">{TEXTO_CASILLA_WHATSAPP.ayuda}</span>
+            </span>
+          </label>
+          <button
+            type="button"
+            className="t-btn t-btn-ancho c-avisame"
+            onClick={tocar}
+            disabled={pendiente}
+            aria-busy={pendiente || undefined}
+            aria-label={etiquetaBotonAvisame(talla, nombreSede)}
+          >
+            <Icono nombre="campana" />
+            {textoBotonAvisame(talla)}
+          </button>
+          <button type="button" className="c-avisame-cancelar" onClick={() => setEligiendo(false)} disabled={pendiente}>
+            Ahora no
+          </button>
+        </div>
       ) : (
         <button
           type="button"
           className="t-btn t-btn-ancho t-btn-sec c-avisame"
-          onClick={tocar}
+          onClick={() => setEligiendo(true)}
           disabled={pendiente}
-          aria-busy={pendiente || undefined}
           aria-label={etiquetaBotonAvisame(talla, nombreSede)}
         >
           <Icono nombre="campana" />

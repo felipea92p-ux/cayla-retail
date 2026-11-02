@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ReceiptText, X } from "lucide-react";
@@ -365,9 +366,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
       <form
         onSubmit={registrar}
         noValidate
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
-        }}
+        onKeyDown={enterNoGuarda}
         className="space-y-6"
       >
         <section data-guia="oi-comprobante.papel" className="@container card-cayla p-4 sm:p-5" aria-label="El papel">

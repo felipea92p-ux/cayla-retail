@@ -150,7 +150,9 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         {!resumen && <p className="nota-cayla text-sm">Las cifras no se pudieron leer ahora; la lista está completa.</p>}
       </aside>
       <div className="order-2 min-w-0 space-y-6 lg:order-1">
-      <section aria-label="Movimientos de la sede" className="card-cayla overflow-hidden">
+      {/* `overflow-clip`, no `hidden`: `hidden` vuelve a la tarjeta el contenedor de scroll de la búsqueda fija (`sticky top-…` de
+          FiltrosMovimientos) y la dejaba 58 px más abajo, con un hueco vacío arriba (2026-11-02). */}
+      <section aria-label="Movimientos de la sede" className="card-cayla overflow-clip">
         <FiltrosMovimientos
           sububicaciones={sububicaciones}
           sub={sub}

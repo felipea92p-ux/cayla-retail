@@ -92,7 +92,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
         derecha={
           <>
             <FichaDeLaOrden datos={datos} hoy={hoy} />
-            <LineaDeTiempo datos={datos} hoy={hoy} />
+            <LineaDeTiempo datos={datos} hoy={hoy} esLider={persona.rol === "lider"} />
           </>
         }
       />

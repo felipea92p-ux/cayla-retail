@@ -289,9 +289,14 @@ export function borradorDeGastoRapido(e: EstadoGastoRapido, caja: { id: string; 
 /**
  * Lo que se teclea en el monto: solo dígitos y UN punto, con dos decimales a lo más. La coma se vuelve punto: en la tienda
  * «0,80» son ochenta céntimos, y `parsearMonto` (que lee la coma como separador de miles) lo tomaría por S/ 80.
+ *
+ * Los blancos de ADENTRO se conservan a propósito (el «S/» sí se quita con el suyo). Antes se borraban todos, así que pegar
+ * tres celdas de una hoja de cálculo dejaba escrito «1285» en el campo, sin una palabra. Ahora queda «12 8 5» a la vista y
+ * `parsearMonto` —que lee con la regla única— dice que no lo entiende, mientras «1 200» sigue llegando entero como mil
+ * doscientos (/chaos 2026-10-31).
  */
 export function limpiarMonto(texto: string): string {
-  const s = texto.replace(/,/g, ".").replace(/[^\d.]/g, "");
+  const s = texto.replace(/^\s*s\s*\/\s*\.?\s*/i, "").replace(/,/g, ".").replace(/[^\d.\s]/g, "");
   const [entero, ...resto] = s.split(".");
   return resto.length ? `${entero}.${resto.join("").slice(0, 2)}` : entero;
 }

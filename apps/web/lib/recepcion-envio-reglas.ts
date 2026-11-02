@@ -817,8 +817,9 @@ const PRECIO_MAXIMO_CENTIMOS = 9_999_999;
 
 /** El costo por unidad escrito: en céntimos, o el problema (con 2 decimales, nunca negativo y hasta S/ 99 999.99, como la base). */
 export function leerCosto(t: string): { centimos: number | null; problema: string | null } {
-  const limpio = t.replace(/\s+/g, "");
-  const n = leerNumero(limpio, 2);
+  // Sin borrar los blancos: eso lo decide `leerNumero` con la regla única, que distingue «1 200» de un pegado de varias celdas.
+  const limpio = t.trim();
+  const n = leerNumero(t, 2);
   if (n.tipo === "vacio") return { centimos: null, problema: "Escribe el costo por unidad." };
   if (n.tipo === "ok") return n.escalado > COSTO_MAXIMO_CENTIMOS ? { centimos: null, problema: "El costo va hasta S/\u00a099,999.99." } : { centimos: n.escalado, problema: null };
   switch (n.motivo) {
@@ -1523,8 +1524,9 @@ export function combinacionesDeLaHoja(b: BorradorPrenda, ctx: ContextoPrenda): {
 
 /** El precio de venta escrito: en céntimos, o el problema. En «nueva» va siempre y mayor que 0 (como Nuevo producto); en «agregar» es opcional. */
 export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: number | null; problema: string | null } {
-  const limpio = t.replace(/\s+/g, "");
-  const n = leerNumero(limpio, 2);
+  // Sin borrar los blancos: eso lo decide `leerNumero` con la regla única, que distingue «1 200» de un pegado de varias celdas.
+  const limpio = t.trim();
+  const n = leerNumero(t, 2);
   if (n.tipo === "vacio") return { centimos: null, problema: obligatorio ? "Escribe el precio de venta." : null };
   if (n.tipo === "mal") {
     if (n.motivo === "negativo") return { centimos: null, problema: "El precio no puede ser negativo." };

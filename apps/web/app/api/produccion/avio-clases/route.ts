@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 // ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla viaja a la base en cada consulta de este cliente.
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
-import { COMPORTAMIENTOS, prefijoLibre, type ComportamientoClase } from "@/lib/avio-clases-reglas";
+import { COMPORTAMIENTOS, prefijoLibre, problemaDelNombreDeClase, type ComportamientoClase } from "@/lib/avio-clases-reglas";
 
 // POST/PATCH /api/produccion/avio-clases → las clases de avío (ADR-0580), con el mismo mecanismo y la misma forma que /api/productos/tejidos: cualquiera con sesión crea una y nace activa
 // (ADR-0534, «lo cree quien lo cree»); corregirla o apagarla es del líder, y quien de verdad lo hace cumplir es la política `avio_clases_update_lider`.
@@ -32,9 +32,12 @@ export async function POST(request: Request) {
   await requirePersonaActualV2();
 
   const cuerpo = await request.json().catch(() => null);
-  const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim().slice(0, 60) : "";
-  if (!nombre) {
-    return Response.json({ error: "Falta el nombre de la clase de avío." }, { status: 400 });
+  // No se corta lo que alguien escribió: se dice que no cabe. Cortar en silencio dejaba el nombre partido a media
+  // palabra, y de la clase sale el prefijo del código de todos sus avíos (/chaos 2026-10-31).
+  const nombre = typeof cuerpo?.nombre === "string" ? cuerpo.nombre.trim() : "";
+  const problema = problemaDelNombreDeClase(nombre);
+  if (problema) {
+    return Response.json({ error: problema }, { status: 400 });
   }
 
   const supabase = (await createClient({ firma: firmaDeEncabezados(request.headers) })) as unknown as ClienteSinTipos;

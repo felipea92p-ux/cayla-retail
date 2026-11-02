@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Banknote, Check, FileText, ImageOff, Package, TriangleAlert, Wallet, ZoomIn } from "lucide-react";
@@ -497,6 +498,7 @@ export function DetallePapel({
             e.preventDefault();
             void confirmar();
           }}
+          onKeyDown={enterNoGuarda}
           className="flex min-w-0 flex-col gap-5"
         >
           {cuerpo}

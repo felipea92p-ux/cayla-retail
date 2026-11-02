@@ -21,8 +21,9 @@ import { faseDeLaAnotacion, lineaDeTiempoAgrupada, tonoDeEntrada, type Anotacion
 // «editar» en una fila de una lista, ADR-0358). Un «Terminé» abre «Corregir» (cantidades, fallas y día, con «Eliminar» a la izquierda del pie); la marca de Ploteo abre «Quitar la
 // marca»; una Salida o una Vuelta abre «Anular». Así el rojo queda dentro de su hoja y no se repite en cada fila. Lo que un cambio quitó sale de la vista y en su lugar va el cambio,
 // con su motivo; una eliminación trae «Restaurar» (`<BotonDeshacer>`, la pieza de deshacer). Arriba, «Escribir una nota». Nada se borra: la historia cuenta todo.
+// La marca de Ploteo la quita y la restaura SOLO un líder (ADR-0586 act. 2; la base repite: `marca_solo_lider`): a los demás no se les ofrece ni su lápiz ni su «Restaurar».
 
-export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string }) {
+export function LineaDeTiempo({ datos, hoy, esLider = false }: { datos: OrdenPagina; hoy: string; esLider?: boolean }) {
   const [corrigiendo, setCorrigiendo] = useState<AnotacionCorregible | null>(null);
   const [anulando, setAnulando] = useState<EntradaDeTiempo | null>(null);
   const [cambio, setCambio] = useState<CambioConMotivo | null>(null);
@@ -34,8 +35,9 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
   const primera = (f: (e: EntradaDeTiempo) => boolean) => (puedeCambiar ? (entradas.find(f) ?? null) : null);
   const primeraCorregible = primera((e) => e.corregible !== null);
   const primeraAnulable = primera((e) => e.anulable !== null);
-  const primeraMarca = primera((e) => e.marcaViva !== null);
-  const primeraRestaurable = primera((e) => e.restaurable !== null);
+  const restaurable = (e: EntradaDeTiempo) => e.restaurable !== null && (esLider || !e.restaurable.marca);
+  const primeraMarca = esLider ? primera((e) => e.marcaViva !== null) : null;
+  const primeraRestaurable = primera(restaurable);
   const faseCorregida = corrigiendo ? faseDeLaAnotacion(datos.fases, corrigiendo.faseClave) : null;
 
   return (
@@ -93,7 +95,7 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
                           {e.cuanto && <span className="op-tiempo-cuanto">{e.cuanto}</span>}
                         </div>
                         {e.detalle && <div className="op-tiempo-detalle">{e.detalle}</div>}
-                        {puedeCambiar && e.restaurable && (
+                        {puedeCambiar && restaurable(e) && (
                           <span data-guia={primeraRestaurable === e ? "prod-orden.restaurar" : undefined}>
                             <BotonDeshacer
                               className="op-tiempo-deshacer"
@@ -103,6 +105,8 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
                             </BotonDeshacer>
                           </span>
                         )}
+                        {/* A quien no es líder, la marca quitada le dice por qué no trae «Restaurar» (y las demás eliminaciones sí). */}
+                        {puedeCambiar && !esLider && e.restaurable?.marca && <div className="op-tiempo-detalle">Restaurarla es de un líder.</div>}
                       </div>
                       {puedeCambiar && e.corregible && (
                         <LapizEditar
@@ -111,7 +115,7 @@ export function LineaDeTiempo({ datos, hoy }: { datos: OrdenPagina; hoy: string 
                           onClick={() => setCorrigiendo(e.corregible)}
                         />
                       )}
-                      {puedeCambiar && e.marcaViva && (
+                      {puedeCambiar && esLider && e.marcaViva && (
                         <LapizEditar
                           que={`la marca de ${e.marcaViva.faseNombre.toLocaleLowerCase("es")}`}
                           guia={primeraMarca === e ? "prod-orden.quitar-marca" : undefined}

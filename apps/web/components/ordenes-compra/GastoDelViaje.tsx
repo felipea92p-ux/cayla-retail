@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, X } from "lucide-react";
@@ -279,6 +280,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
             e.preventDefault();
             void confirmar();
           }}
+          onKeyDown={enterNoGuarda}
           className="@container space-y-5"
         >
           <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">

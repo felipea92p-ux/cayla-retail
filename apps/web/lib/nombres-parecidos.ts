@@ -20,12 +20,20 @@
  *  nombre entero cabe en el otro, palabra por palabra («Divas» en «Divas Now»). */
 export type MotivoParecido = "raiz" | "letras" | "contenida";
 
-/** Lo que la base compara (`retail.fn_clave_texto` sobre el nombre ya limpiado por la RPC): espacios juntados,
- *  minúsculas, y sin las tildes y la ñ que la base traduce (solo esas: «ç» sigue siendo «ç», como en la base).
- *  Ojo: la base NO quita puntos, así que para ella «S.A.C.» y «SAC» son nombres distintos. */
+/** Los caracteres que no se ven y que viajan en cualquier copiar y pegar: el espacio de ancho cero (web, WhatsApp), sus
+ *  parientes, el unidor de palabras, el BOM y el guion suave que mete un PDF al cortar una palabra. No son parte del
+ *  nombre, y tomarlos por tal creaba dos veces la misma cosa: «Botón ZW» y «Botón\u200B ZW» entraban como dos fichas con
+ *  el stock partido, y el índice único no decía nada porque para él eran dos claves (/chaos, 30 y 31-oct). */
+const INVISIBLES = /[\u00AD\u200B-\u200F\u2060\uFEFF]/g;
+
+/** Lo que la base compara (`retail.fn_clave_texto` sobre el nombre ya limpiado por la RPC): sin los invisibles, espacios
+ *  juntados, minúsculas, y sin las tildes y la ñ que la base traduce (solo esas: «ç» sigue siendo «ç», como en la base).
+ *  Ojo: la base NO quita puntos, así que para ella «S.A.C.» y «SAC» son nombres distintos.
+ *  Los invisibles se quitan ANTES de juntar los espacios: uno metido entre dos dejaría un espacio doble si fuera después. */
 export function claveTexto(nombre: string): string {
   const traduce: Record<string, string> = { á: "a", é: "e", í: "i", ó: "o", ú: "u", ü: "u", ñ: "n" };
   return nombre
+    .replace(INVISIBLES, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase()

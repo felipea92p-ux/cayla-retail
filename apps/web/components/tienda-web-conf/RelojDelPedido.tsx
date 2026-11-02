@@ -4,6 +4,7 @@ import { CheckCircle2, ShoppingBag, Store, Wallet } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { soloCifrasEscritas } from "@/lib/numero-escrito";
 import { RANGOS_PARAMETROS, moverParametro, parametroFueraDeRango, queVeElCliente, type BorradorParametros, type ParametrosTiendaWeb } from "@/lib/tienda-web-reglas";
 
 type PlazoEditable = Exclude<keyof ParametrosTiendaWeb, "quedanPocasDesde">;
@@ -75,7 +76,7 @@ export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: Borrad
                 inputMode: "numeric",
                 "aria-label": `${p.nombre}: ${p.unidad === "d" ? "días" : "horas"}. ${p.ayuda ?? ""}`.trim(),
                 style: { width: `${Math.max(2, valor[p.plazo].length)}ch` },
-                onChange: (e) => onCambiar(p.plazo!, e.target.value.replace(/[^\d-]/g, "")),
+                onChange: (e) => onCambiar(p.plazo!, soloCifrasEscritas(e.target.value, { signo: true })),
                 onKeyDown: (e) => {
                   if (e.key === "Escape") onRevertir(p.plazo!);
                 },

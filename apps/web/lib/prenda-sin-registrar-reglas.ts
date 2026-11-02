@@ -3,6 +3,7 @@
 import { ordenarColores, type ColorAlta } from "./alta-producto";
 import { ordenTalla } from "./catalogo-grupos";
 import { FAMILIAS_COLOR } from "./colores-familias";
+import { sinBlancosDeMiles } from "./numero-escrito";
 
 export type DatosPrendaSinRegistrar = {
   descripcion: string;
@@ -146,7 +147,12 @@ export function sugerirDescripcion(categoria: string | null, color: string | nul
 /** Deja solo un precio que se pueda escribir en «Precio cobrado»: dígitos y un punto (la coma del teclado del celular
  *  cuenta como punto), con hasta dos decimales. Reemplaza al teclado de pantalla (spike del Punto de venta, 2026-09-26). */
 export function precioEscribible(texto: string): string {
-  const limpio = texto.replace(",", ".").replace(/[^0-9.]/g, "");
+  // Los miles se juntan con la regla única y el pegado de varias celdas se deja A LA VISTA: el modal hace `Number(precio)`,
+  // así que «12 8 5» queda en NaN y `pasoSiguiente` vuelve a pedir el precio, en vez de cobrar S/ 1,285 por una prenda de
+  // S/ 59 (/chaos 2026-10-31). Borrar el blanco juntaría «1 200», sí, pero también el pegado: por eso no se borra.
+  const base = texto.replace(",", ".");
+  // `.trim()` quita el blanco que deja el «S/» en los extremos; los de ADENTRO, que son la huella del pegado, se quedan.
+  const limpio = (sinBlancosDeMiles(base) ?? base).replace(/[^0-9.\s]/g, "").trim();
   const [entero, ...resto] = limpio.split(".");
   return resto.length === 0 ? entero : `${entero}.${resto.join("").slice(0, 2)}`;
 }

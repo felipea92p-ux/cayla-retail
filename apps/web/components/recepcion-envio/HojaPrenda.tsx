@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
@@ -196,9 +197,7 @@ export function HojaPrenda({
             e.preventDefault();
             void crear(false);
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
-          }}
+          onKeyDown={enterNoGuarda}
           className="space-y-4"
         >
           {!categoria && (

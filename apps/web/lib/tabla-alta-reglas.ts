@@ -12,6 +12,7 @@
 import { leerCantidad, limpiarCantidad, type CeldaAlta } from "./alta-producto";
 import { precioValido } from "./variantes-ficha-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
+import { sinBlancosDeMiles } from "./numero-escrito";
 
 /** Tope de una celda de cantidad (`leerCantidad`/`crear_producto_con_stock_inicial`): un entero de 4 dígitos. */
 const CANTIDAD_MAXIMA = 9999;
@@ -94,7 +95,9 @@ export function limpiarPrecio(texto: string): string {
     const leido = leerMontoPlata(texto);
     if (leido !== null && leido >= 0) return limpiarPrecio(String(Math.round(leido * 100) / 100));
   }
-  const t = texto.replace(",", ".").replace(/[^0-9.]/g, "");
+  // Igual que en Vender: los miles se juntan y el pegado se deja a la vista, para que quede en NaN y la fila no se guarde.
+  const base = texto.replace(",", ".");
+  const t = (sinBlancosDeMiles(base) ?? base).replace(/[^0-9.\s]/g, "").trim(); // el `.trim()` quita el blanco del «S/», no los de adentro
   const i = t.indexOf(".");
   if (i === -1) return t.slice(0, 7);
   return t.slice(0, Math.min(i, 7)) + "." + t.slice(i + 1).replace(/\./g, "").slice(0, 2);

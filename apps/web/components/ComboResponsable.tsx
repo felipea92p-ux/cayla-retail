@@ -9,7 +9,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, enfocaBuscadorAlAbrir, filtrarCombo } from "@/lib/combo-reglas";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
@@ -93,7 +93,8 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   // abrir (usePosicionLista mide el botón antes de poder posicionarlo) — enfocar solo con `abierto` intentaba
   // enfocar un <input> que todavía no existía en el DOM, y se perdía el foco para siempre en esa apertura.
   useEffect(() => {
-    if (abierto && posLista && mostrarBuscador) buscador.current?.focus();
+    // En una pantalla táctil no: enfocarlo sube el teclado y se come la hoja (ver `Desplegable`). Las teclas ya las oye la raíz.
+    if (abierto && posLista && mostrarBuscador && enfocaBuscadorAlAbrir()) buscador.current?.focus();
   }, [abierto, posLista, mostrarBuscador]);
 
   // ADR-0454 (temporal, hasta integrar Lima con Dynamic): una terminal con firma de respaldo (Caja y Almacén de Lima) no pide nada, la base firma
@@ -142,11 +143,13 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
       <Aviso tono="atencion" className={className} titulo={nadie ? `Nadie de turno en ${sede}` : "No se pudo leer quién está de turno"}>
         {nadie ? (
           <>
-            <p>
+            {/* En el teléfono el título y los dos pasos bastan: este párrafo le quitaba al ticket la mitad del alto y dejaba ver
+                una sola prenda a la vez (verificado a 375 px, 2026-11-02). */}
+            <p className="max-sm:hidden">
               Para guardar, quien atiende tiene que haber marcado su <b className="font-semibold">entrada</b> hoy en esta tienda. Nadie lo
               ha hecho todavía (la regla es la misma para los líderes).
             </p>
-            <ol className="ml-[18px] mt-2 list-decimal">
+            <ol className="ml-[18px] list-decimal sm:mt-2">
               <li>Marca tu entrada en el kiosco de asistencia de la tienda.</li>
               <li>Vuelve aquí y toca «Actualizar lista».</li>
             </ol>

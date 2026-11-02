@@ -73,7 +73,7 @@ describe("volver a la página pedida después de entrar", () => {
     expect(PARAMETRO_VOLVER_DEL_PROXY).toBe(PARAMETRO_VOLVER);
     const destino = redireccionDelProxy("/cuenta/pedidos", "GET", "no", "?pagina=2");
     expect(destino).toBe("/entrar?volver=%2Fcuenta%2Fpedidos%3Fpagina%3D2");
-    const volver = new URL(destino!, "https://tienda.cayla.pe").searchParams.get(PARAMETRO_VOLVER);
+    const volver = new URL(destino!, "https://cayla.pe").searchParams.get(PARAMETRO_VOLVER);
     expect(rutaParaVolver(volver)).toBe("/cuenta/pedidos?pagina=2");
     expect(redireccionDelProxy("/cuenta/pedidos/W-0001", "GET", "no", "")).toBe("/entrar?volver=%2Fcuenta%2Fpedidos%2FW-0001");
     // Con sesión, nada cambia.

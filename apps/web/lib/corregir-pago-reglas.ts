@@ -6,6 +6,7 @@
 // Cómo se reparte: la persona marca los medios con que de verdad pagó. El ÚLTIMO marcado se lleva «lo que falta»; los demás llevan el
 // monto que se escribe. Con un solo medio no se escribe nada: se lleva todo. Así la suma nunca puede quedar distinta del total.
 
+import { sinBlancosDeMiles } from "./numero-escrito";
 import { METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
 import type { CampoDeGuia } from "./guia-campos";
 import { NOMBRE_METODO, type PagoRecibo } from "./recibo-reglas";
@@ -53,7 +54,10 @@ export function alternarMedio(r: Reparto, medio: MetodoPagoVenta): Reparto {
 
 /** Un monto escrito como lo escribe una persona («40», «40.5», «40,50», «S/ 40»), en céntimos; null si no es un monto. */
 export function leerMonto(texto: string | undefined): number | null {
-  const limpio = (texto ?? "").replace(/s\/|\s/gi, "").replace(",", ".");
+  // Los blancos los decide la regla única: «1 200» son mil doscientos, pero un pegado de varias celdas no es un monto.
+  const sinBlancos = sinBlancosDeMiles((texto ?? "").replace(/s\/\.?/gi, "")); // «S/.» es el símbolo del sol, no un punto decimal
+  if (sinBlancos === null) return null;
+  const limpio = sinBlancos.replace(",", ".");
   if (!/^\d+(\.\d{1,2})?$/.test(limpio)) return null;
   return aCentimos(Number(limpio));
 }

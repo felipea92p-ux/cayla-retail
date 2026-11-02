@@ -9,6 +9,7 @@ import {
   hrefConSedeYMes,
   hrefTelar,
   hilosDeLaRuta,
+  mesDeLaRuta,
   mesTelar,
   porSedeDe,
   RUTAS_CON_VARIAS_SEDES,
@@ -18,6 +19,7 @@ import {
   sedesDelTelar,
   sedesElegidas,
   tramosDelOrillo,
+  ultimoMesDeLaRuta,
 } from "./finanzas-telar-reglas";
 
 const UBIC = [
@@ -230,5 +232,27 @@ describe("hilosDeLaRuta (ADR-0585)", () => {
   });
   it("sin el módulo (o si ya ve todo Finanzas), nada cambia", () => {
     expect(hilosDeLaRuta("/finanzas/reportes", base, null)).toBe(base);
+  });
+});
+
+describe("el mes de Cierre de mes", () => {
+  const HOY = "2026-10";
+  it("la barra y la página parten del mes anterior: el mes en curso nunca se cierra", () => {
+    expect(ultimoMesDeLaRuta("/finanzas/cierre", HOY)).toBe("2026-09");
+    expect(mesDeLaRuta("/finanzas/cierre", null, HOY)).toBe("2026-09");
+    expect(mesDeLaRuta("/finanzas/cierre", "2026-08", HOY)).toBe("2026-08");
+  });
+  it("un ?mes= que todavía no terminó (traído de otra pantalla) se lee como el anterior, en la barra y en la página", () => {
+    expect(mesDeLaRuta("/finanzas/cierre", "2026-10", HOY)).toBe("2026-09");
+    expect(mesDeLaRuta("/finanzas/cierre", "2026-12", HOY)).toBe("2026-09");
+  });
+  it("en enero, el anterior es diciembre del año pasado", () => {
+    expect(ultimoMesDeLaRuta("/finanzas/cierre", "2027-01")).toBe("2026-12");
+  });
+  it("las demás pantallas siguen como siempre", () => {
+    expect(ultimoMesDeLaRuta("/finanzas/gastos", HOY)).toBe(HOY);
+    expect(mesDeLaRuta("/finanzas/gastos", null, HOY)).toBe(HOY);
+    expect(mesDeLaRuta("/finanzas/gastos", "2026-08", HOY)).toBe("2026-08");
+    expect(mesDeLaRuta("/finanzas/cierres-viejos", null, HOY)).toBe(HOY);
   });
 });

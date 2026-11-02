@@ -257,6 +257,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
+      id: "talla-nueva",
+      ancla: "prod-orden-nueva.talla-nueva-boton",
+      opcional: true,
+      titulo: "¿Falta una talla o un color?",
+      texto: "El «+ Talla» de la derecha y el «+ Color» de abajo le agregan al modelo lo que le falta sin salir de la orden: eliges una o varias y se crea una prenda por combinación, con el precio y el costo del modelo y sin stock. Lo nuevo aparece en la tabla. Es de quien edita el catálogo; si no, salen apagados y dicen por qué.",
+    },
+    {
       id: "red",
       ancla: "prod-orden-nueva.red",
       opcional: true,
@@ -408,7 +415,14 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.marcar",
       opcional: true,
       titulo: "Marcar una fase que no cuenta prendas",
-      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si te equivocas, el lápiz de la historia quita la marca, con su porqué. En la demo no se marca nada.",
+      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si se marcó por error, un líder quita la marca, con su porqué. En la demo no se marca nada.",
+    },
+    {
+      id: "quitar-marca-paso",
+      ancla: "prod-orden.quitar-marca-paso",
+      opcional: true,
+      titulo: "Quitar la marca (un líder)",
+      texto: "Si Ploteo se marcó antes de tiempo o por error, un líder le quita la marca desde aquí: pide por qué y queda en la historia, con «Restaurar». Quien no es líder ve a quién pedírselo. En la demo no se quita nada.",
     },
     {
       id: "terminar",
@@ -539,6 +553,21 @@ export const GUIA_PROD_ORDEN: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Quitar un paso que no se hace",
       texto: "Si la orden trae un paso opcional que ya no se hace (por ejemplo, Limpiar hilos y revisar), lo quitas mientras nadie lo haya empezado. Pide confirmar, y se puede volver a agregar con «+ Agregar un paso». En la demo no lo quitamos.",
+    },
+    {
+      id: "anotado-paso",
+      ancla: "prod-orden.anotado-paso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo anotado en este paso",
+      texto: "Debajo de los botones ves lo que se anotó en este paso: cada «Terminé», prendas con falla, Salida o Vuelta, con su día, su hora y quién. Si algo quedó mal, lo arreglas desde aquí, sin buscarlo en la historia. Lo que ya no se puede cambiar dice por qué.",
+    },
+    {
+      id: "corregir-paso",
+      ancla: "prod-orden.corregir-paso",
+      opcional: true,
+      titulo: "Corregir desde el paso",
+      texto: "Su lápiz abre la misma hoja que el de la historia: un «Terminé» o unas prendas con falla se corrigen o se eliminan, y una Salida o una Vuelta se anula. Siempre pide por qué y queda en la historia. En la demo no se cambia nada.",
     },
     {
       id: "agregar-paso",
@@ -790,7 +819,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Quitar una marca",
-      texto: "El lápiz de una marca de Ploteo la quita, si se marcó antes de tiempo o por error. Te abrimos la hoja; no se quita nada.",
+      texto: "Un líder también quita la marca de Ploteo desde su lápiz en la historia, si se marcó antes de tiempo o por error. Te abrimos la hoja; no se quita nada.",
     },
     {
       id: "cambio-porque",
@@ -813,7 +842,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Restaurar lo eliminado",
-      texto: "Lo eliminado sale de la vista pero queda en la historia: «Restaurar» lo vuelve a anotar tal como era y con su día, con su porqué. Si mientras tanto la fase se llenó, la base te lo dice. En la demo no se restaura nada.",
+      texto: "Lo eliminado sale de la vista pero queda en la historia: «Restaurar» lo vuelve a anotar tal como era y con su día, con su porqué. Una marca quitada la restaura un líder. Si mientras tanto la fase se llenó, la base te lo dice. En la demo no se restaura nada.",
     },
     {
       id: "anular",
@@ -892,6 +921,13 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Si falta anotar la tela, la orden no pasa al stock: el costo de la prenda saldría sin tela. «Anotar cuánto quedó» te lleva a hacerlo. Si de verdad pasa sin tela, un líder la deja pasar aquí mismo con su porqué, y queda en la historia.",
     },
     {
+      id: "stock-ya-estaba",
+      ancla: "prod-orden-stock.ya-estaba",
+      opcional: true,
+      titulo: "Si ya estaban en una tienda",
+      texto: "Solo un líder la ve. Márcala cuando las prendas ya se cargaron en una sede, por ejemplo como «Encontré prendas»: la orden se cierra con su costo pero no suma al stock, así no se duplican. En la demo no se marca nada.",
+    },
+    {
       id: "stock-cierre",
       ancla: "prod-orden-stock.cierre",
       opcional: true,
@@ -911,7 +947,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.revertir",
       opcional: true,
       titulo: "Revertir el cierre",
-      texto: "En una orden que ya pasó al stock: las prendas salen del stock con un movimiento de reversión (la entrada original no se borra) y la orden vuelve a estar en proceso.",
+      texto: "En una orden que ya pasó al stock: las prendas salen del stock con un movimiento de reversión (la entrada original no se borra) y la orden vuelve a estar en proceso. Si ya estaban registradas, no hay stock que devolver.",
     },
     {
       id: "fin",

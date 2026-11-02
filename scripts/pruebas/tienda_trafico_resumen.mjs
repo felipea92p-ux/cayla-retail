@@ -42,6 +42,7 @@ const MIGRACION_REGIONES = readFileSync("supabase/migrations/20261029050000_traf
 const MIGRACION_TALLAS = readFileSync("supabase/migrations/20261029120000_trafico_web_tallas_y_quienes.sql", "utf8");
 const MIGRACION_ATENCION = readFileSync("supabase/migrations/20261029123000_trafico_web_atencion.sql", "utf8");
 const MIGRACION_CALENDARIO = readFileSync("supabase/migrations/20261029132000_trafico_web_calendario.sql", "utf8");
+const MIGRACION_SIN_AJUSTES = readFileSync("supabase/migrations/20261101004000_trafico_web_funciones_sin_ajustes.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin «trafico»
 
@@ -415,6 +416,22 @@ esperarValor("cada día del mes con su gente, aunque el período sea un solo dí
 esperarValor("con un camino puesto, solo ese camino", escenario(`${resumen("'whatsapp'")} -> 'calendario' -> 'dias';`), "[[9, 1]]");
 esperarValor("un período que cruza de mes mira el mes de su último día", escenario(`${resumen("null", "null", "2024-12-28", "2025-01-03")} -> 'calendario' ->> 'mes';`), "2025-01-01");
 esperar("la migración del calendario se puede pegar dos veces", correr(`begin;\n${MIGRACION_CALENDARIO}\n${MIGRACION_CALENDARIO}\nrollback;`).ok, "falló al pegar dos veces");
+
+// ---- 18. Las dos funciones de apoyo van sin ajustes (20261101004000) ----
+// Con `security definer` o `set search_path` cada llamada costaba ~1,2 s en producción (10,6 ms sin ellos) y `resumen_trafico_web` pasaba de los 8 s
+// que Supabase deja a quien tiene sesión. Solo las llama `resumen_trafico_web`, que sí los lleva y se los pasa.
+esperarValor(
+  "las funciones de apoyo no son security definer ni fijan search_path (cada ajuste las vuelve ~100 veces más lentas)",
+  escenario(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
+    and p.proname in ('fn_trafico_web_personas', 'fn_trafico_web_prendas') and (p.prosecdef or p.proconfig is not null);`),
+  "0",
+);
+esperarValor(
+  "…y el resumen que las llama sí los lleva",
+  escenario(`select (p.prosecdef and p.proconfig is not null)::text from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'resumen_trafico_web';`),
+  "true",
+);
+esperar("la migración de funciones sin ajustes se puede pegar dos veces", correr(`begin;\n${MIGRACION_SIN_AJUSTES}\n${MIGRACION_SIN_AJUSTES}\nrollback;`).ok, "falló al pegar dos veces");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 if (fallos) process.exit(1);

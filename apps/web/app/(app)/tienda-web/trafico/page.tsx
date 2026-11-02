@@ -46,7 +46,10 @@ export default async function TraficoPage({ searchParams }: { searchParams: Prom
     ...(filtros.camino ? { p_camino: filtros.camino } : {}),
     ...(filtros.ciudad ? { p_ciudad: filtros.ciudad } : {}),
   });
+  // Sin esto el aviso de abajo no dice por qué: un tiempo de espera, un corte de la base o una respuesta con otra forma se ven igual.
+  if (error) console.error(`Tráfico de la tienda web (${periodo.clave}): ${error.code ?? "sin código"} ${error.message}`);
   const r = error ? null : leerResumen(data);
+  if (!error && r === null) console.error(`Tráfico de la tienda web (${periodo.clave}): la base respondió con una forma que la pantalla no entiende`);
   const callada = r ? sinNoticias(r.ultimoDato, new Date()) : null;
   const total = r?.pasos[0] ?? 0;
   const conFiltro = !!(filtros.camino || filtros.ciudad);

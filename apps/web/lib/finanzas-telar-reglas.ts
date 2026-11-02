@@ -166,6 +166,27 @@ export function mesTelar(anio: number, mes: number): string {
   return `${anio}-${String(mes).padStart(2, "0")}`;
 }
 
+/** Cierre de mes: su pantalla elige el mes que se CIERRA con la barra común, y el mes en curso nunca se cierra. */
+export const RUTA_CIERRE = "/finanzas/cierre";
+const esRutaCierre = (ruta: string) => ruta === RUTA_CIERRE || ruta.startsWith(`${RUTA_CIERRE}/`);
+
+/** El último mes que la barra deja elegir en esta pantalla: en Cierre, el anterior al de hoy; en las demás, el de hoy. */
+export function ultimoMesDeLaRuta(ruta: string, mesDeHoy: string): string {
+  if (!esRutaCierre(ruta)) return mesDeHoy;
+  const [a, m] = mesDeHoy.split("-").map(Number) as [number, number];
+  return m === 1 ? mesTelar(a - 1, 12) : mesTelar(a, m - 1);
+}
+
+/**
+ * El mes que mira esta pantalla, el MISMO para la barra y para la página. En Cierre, sin `?mes=` o con uno que todavía no
+ * terminó, es el anterior al de hoy (antes la barra decía octubre y la página, septiembre). Las demás pantallas, como siempre.
+ */
+export function mesDeLaRuta(ruta: string, mesUrl: string | null | undefined, mesDeHoy: string): string {
+  const tope = ultimoMesDeLaRuta(ruta, mesDeHoy);
+  if (!esMesTelar(mesUrl)) return tope;
+  return esRutaCierre(ruta) && mesUrl > tope ? tope : mesUrl;
+}
+
 type Params = Iterable<[string, string]>;
 
 /**

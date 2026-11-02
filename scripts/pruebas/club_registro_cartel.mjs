@@ -646,7 +646,7 @@ select retail.fn_club_pagina(:'taller') is null, retail.fn_club_pagina(gen_rando
   "Tienda Lima|966000111|10.00|1=20.00,2=30.00,3=40.00,4=50.00,5=60.00|6|600.00|60|casilla_publicidad,privacidad,saludo,terminos|t|t|t|t|t\nt|t|t"
 );
 caso(
-  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cinco plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k; cumpleaños tiene v3 y nace «Puntos por vencer», aviso_puntos v1: programa de puntos, 20261019222000; los cuatro con su versión nueva, con el cierre de la tienda web: 20261020144000, cuyo `aviso_cierre` no es un mensaje y no entra), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
+  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cinco plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k; cumpleaños tiene v3 y nace «Puntos por vencer», aviso_puntos v1: programa de puntos, 20261019222000; los cuatro con su versión nueva, con el cierre de la tienda web: 20261020144000, cuyo `aviso_cierre` no es un mensaje y no entra; y la versión siguiente de los cuatro, con cayla.pe en lugar de tienda.cayla.pe: 20261031205000), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
   comoAnon +
     `select (select string_agg(k, ',' order by k) from jsonb_object_keys(p) k), (select string_agg(k, ',' order by k) from jsonb_object_keys(p -> 'textos') k),
        p -> 'textos' -> 'terminos' ->> 'texto' = $t$${TEXTO_TERMINOS}$t$, p -> 'textos' -> 'privacidad' ->> 'version'
@@ -655,7 +655,7 @@ reset role;
 select string_agg(tipo || ' v' || version || ':' || (texto like '%Si no quieres recibir más mensajes, responde BAJA.' and texto like '%{nombre}%'), ',' order by tipo, version)
   from retail.club_textos where tipo like 'aviso\\_%' and tipo <> 'aviso_cierre';
 ` + intento(`insert into retail.club_textos (tipo, version, texto) values ('aviso_rebaja', 9, 'Hola {nombre}, sin baja.')`),
-  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_cumpleanos v3:true,aviso_cumpleanos v4:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_novedades v3:true,aviso_puntos v1:true,aviso_puntos v2:true,aviso_rebaja v1:true,aviso_rebaja v2:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
+  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_cumpleanos v3:true,aviso_cumpleanos v4:true,aviso_cumpleanos v5:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_novedades v3:true,aviso_novedades v4:true,aviso_puntos v1:true,aviso_puntos v2:true,aviso_puntos v3:true,aviso_rebaja v1:true,aviso_rebaja v2:true,aviso_rebaja v3:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
 );
 
 // =====================================================================================================================
