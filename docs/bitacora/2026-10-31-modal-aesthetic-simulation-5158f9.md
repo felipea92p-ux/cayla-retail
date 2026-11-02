@@ -280,3 +280,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   `--lente-tono-grande-*`; cada alta en gota chica `--gota-chica-*`; en el celular en columna; los botones quedan ✕ Rechazar y luego ✓ Aprobar,
   el que guarda a la derecha) y las filas como las de Fichas (en la placa, hilo tras la cara, la elegida en gota). En `vidrio/colaboradores.css`.
   No cambió ningún permiso. Sin altas en la base local: la franja se vio montada.
+
+- **Plan de campaña al vidrio (Felipe 2026-11-02):** la barra de rango «A · Banda esmerilada» (`BarraRango`: la franja de vidrio sobre una
+  pista tenue, la marca del normal en tinta, el rombo con aro de vidrio; la leyenda igual) y el centro de avisos «B · Lentes del tono» (la
+  campana en gota, el número en gota de su tono, cada aviso en lente de su tono, la lista en el vidrio de los combos, sus botones en gota). La
+  hoja «Configuración» de la campaña (ADR-0488) no se tocó. Sin planes en la base local: la barra se vio montada. Ya estaba y sigue: a 375 px
+  la lista de avisos se sale 38 px por la izquierda (posición en línea de `CentroDeAvisos.tsx`).

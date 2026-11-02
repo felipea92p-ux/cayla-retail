@@ -5,7 +5,8 @@ import { enteroES, escalaDeRango, posicionEnEscala, type Calculo, type LineaPlan
 // «flojo · normal · bueno» en texto por algo que se lee de un vistazo, todo sobre UNA misma escala:
 //   · abajo, la barra apilada del sistema (`BarraApilada`): verde = lo que YA HAY, verde claro = lo que VIENE en órdenes de compra y todavía
 //     no llega (Felipe 2026-10-13: ya se descuenta de «Comprar»), negro = lo que HAY QUE COMPRAR;
-//   · arriba, una banda clara del diciembre flojo al bueno y una marca en el normal: lo que se supone que se venderá;
+//   · arriba, una banda clara del diciembre flojo al bueno y una marca en el normal: lo que se supone que se venderá (con el vidrio,
+//     «A · Banda esmerilada», Felipe 2026-11-02: la cara vive en vidrio/pantalla.css, clases `plan-rango-*`);
 //   · en la campaña y después, un rombo con lo que se vendió de verdad, sobre la misma escala.
 // Debajo van los tres números, porque una barra sola no se lee: lo que dice el dibujo se dice también en texto (y para el lector de
 // pantalla, en una sola frase). Entra creciendo de izquierda a derecha una vez (ADR-0136); sin JavaScript propio.
@@ -42,12 +43,12 @@ export function BarraRango({
     (vendido > 0 ? ` Se vendieron ${vendido}.` : "");
   return (
     <span role="img" aria-label={dice} className="block min-w-0">
-      <span aria-hidden className="relative block h-2">
+      <span aria-hidden className="plan-rango-banda relative block">
         <span
-          className={`absolute inset-y-0.5 rounded-full bg-taupe/30 transition-[left,width] duration-500 ease-cayla motion-reduce:transition-none ${viva ? "" : "anim-crece-x"}`}
+          className={`plan-rango-franja absolute rounded-full transition-[left,width] duration-500 ease-cayla motion-reduce:transition-none ${viva ? "" : "anim-crece-x"}`}
           style={{ left: `${pos(linea.flojo)}%`, width: `${pos(linea.bueno) - pos(linea.flojo)}%`, ["--i" as string]: retraso }}
         />
-        <span className="absolute -inset-y-px w-0.5 -translate-x-1/2 rounded-full bg-taupe transition-[left] duration-500 ease-cayla motion-reduce:transition-none" style={{ left: `${pos(linea.normal)}%` }} />
+        <span className="plan-rango-normal absolute w-0.5 -translate-x-1/2 rounded-full transition-[left] duration-500 ease-cayla motion-reduce:transition-none" style={{ left: `${pos(linea.normal)}%` }} />
       </span>
       <span aria-hidden className="relative mt-1.5 block">
         <BarraApilada
@@ -64,7 +65,7 @@ export function BarraRango({
         />
         {vendido > 0 && (
           <span
-            className="absolute top-1/2 block h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-pizarra ring-2 ring-papel"
+            className="plan-rango-vendido absolute top-1/2 block h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-pizarra"
             style={{ left: `${pos(vendido)}%` }}
           />
         )}
@@ -97,16 +98,16 @@ export function LeyendaRango({ conVendido, conEnCamino = false }: { conVendido: 
         Comprar
       </span>
       <span className={item}>
-        <i aria-hidden className="inline-block h-1.5 w-4 rounded-full bg-taupe/30" />
+        <i aria-hidden className="plan-rango-franja inline-block h-2 w-4 rounded-full" />
         Del flojo al bueno
       </span>
       <span className={item}>
-        <i aria-hidden className="inline-block h-3 w-0.5 rounded-full bg-taupe" />
+        <i aria-hidden className="plan-rango-normal inline-block h-3 w-0.5 rounded-full" />
         Normal
       </span>
       {conVendido && (
         <span className={item}>
-          <i aria-hidden className="inline-block h-2.5 w-2.5 rotate-45 rounded-[2px] bg-pizarra" />
+          <i aria-hidden className="plan-rango-vendido inline-block h-2.5 w-2.5 rotate-45 rounded-[2px] bg-pizarra" />
           Lo que se vendió
         </span>
       )}

@@ -736,3 +736,49 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
   .mc-billetera, .mc-accion[data-grande] { background: var(--color-tinta); }
   .mc-accion:not([data-grande]) { background: var(--color-papel); }
 }
+
+/* ---------- Compras ▸ Plan de campaña: la barra de rango «A · Banda esmerilada» (Felipe 2026-11-02, docs/maquetas/plan-campana-vidrio-2026-11/) ----------
+   La banda de arriba de cada categoría (`BarraRango`: lo que se espera vender, del diciembre flojo al bueno) deja la franja taupe plana y
+   pasa a una franja de VIDRIO ESMERILADO de 12 px —el vidrio arriba, el taupe abajo, su filo y su luz— sobre una pista de tinta apenas; la
+   marca del normal pasa de taupe a tinta; el rombo de lo vendido conserva su pizarra con un aro de vidrio en vez del de papel. La barra
+   apilada de abajo ya es el pozo fino de la pantalla (graficos-y-pasos.css, «B · Tinta sobre vidrio»); dentro de la hoja de una
+   categoría, el tubo de las hojas. Lo que dice la barra, los colores de los tramos y su entrada (`anim-crece-x`) no cambian. Los ganchos
+   (`plan-rango-*`) los pone BarraRango.tsx, y la leyenda (`LeyendaRango`) usa los mismos para que su muestra sea lo que se dibuja. */
+.plan-rango-banda {
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es la pista, no un texto */
+}
+.plan-rango-banda .plan-rango-franja {
+  top: 0;
+  bottom: 0;
+}
+.plan-rango-franja {
+  border: 1px solid color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 85%, transparent), color-mix(in srgb, var(--color-taupe) 22%, transparent));
+  box-shadow: inset 0 1px 0 var(--color-vidrio);
+}
+/* En la leyenda no hay pista detrás: la muestra la lleva debajo, para verse igual que en la fila. */
+.plan-rango-franja:not(.plan-rango-banda *) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 85%, transparent), color-mix(in srgb, var(--color-taupe) 22%, transparent)),
+    color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es la pista, no un texto */
+}
+.plan-rango-normal {
+  background: var(--color-tinta);
+}
+.plan-rango-banda .plan-rango-normal {
+  top: -2px;
+  bottom: -2px;
+}
+.plan-rango-vendido {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-vidrio) 85%, transparent), inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 40%, transparent);
+}
+/* En oscuro el blanco del vidrio no existe: la franja es taupe al 32 %, con el filo de la crema y sin luz. */
+@media screen {
+  :root[data-tema="oscuro"] .plan-rango-franja {
+    border-color: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    background: color-mix(in srgb, var(--color-taupe) 32%, transparent);
+    box-shadow: none;
+  }
+}
