@@ -225,3 +225,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
 - **Clientes ▸ Fichas al vidrio (Felipe 2026-11-02):** «A · Filas en la placa»: `FilaClienta` deja de ser una `card-cayla` por persona; las
   filas viven en la placa de la tabla, con un hilo de tinta al 9 % que nace después del avatar (bajo 640 px, a 14 px del borde), la gota
   clara al pasar el mouse y el avatar en su lente. En `vidrio/clientes.css`. Solo cambia el material: el plan de Clientas es de Dany.
+
+- **La tarjeta de Productos «A · Catálogo de moda» (Felipe 2026-11-02):** la foto al aire como en Vender (sobre ella solo insignias en gota)
+  y tres renglones: nombre y precio sin «.00» (`lib/precio-de-catalogo.ts`, con su prueba), «Categoría · color que se ve» y los puntos de
+  color de 12 px (24 de toque) con el stock tenue (`stockDeTarjeta`). En tarjeta angosta el precio baja. Felipe aceptó las tres reglas que
+  cambia (stock de la empresa en la tarjeta, «Sin stock» en rojo, sin el chip de marca/proveedor): escritas en ADR-0596 act. 2026-11-02.

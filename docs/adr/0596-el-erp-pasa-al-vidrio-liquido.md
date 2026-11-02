@@ -62,3 +62,17 @@ mouse y a las flechas), pintada como gota con un fundido corto; así la tienen t
 
 SE ROMPE SI: alguien le pone `backdrop-filter` (o `transform`/`filter` permanentes) a `.hoja-serena` o a `.cajon-serena`; o si una pieza
 nueva escribe su propio vidrio en vez de una receta.
+
+## Actualización 2026-11-02 — la tarjeta de producto cambia tres reglas
+
+Al llevar Catálogo ▸ Productos a «A · Catálogo de moda» (la foto al aire y tres renglones: nombre y precio, categoría y color, colores y
+stock), Felipe aceptó tres cambios de regla que deshacen decisiones anteriores:
+
+- **El stock de la tarjeta es el de toda la empresa** («34 en stock»); lo que hay para vender en la sede pasa al `title` del stock. Deshace
+  la decisión 1 de ADR-0270 (lo de la sede en grande).
+- **«Sin stock» va en rojo** (y «Quedan N», bajo su mínimo, en ámbar). Deshace la decisión 3 de `lib/productos-stock.ts` (2026-09-22: sin
+  rojo para no llenar la grilla).
+- **La tarjeta ya no muestra el chip ámbar de «falta la marca o el proveedor»** (ADR-0283): lo dice el `title` del stock y la vista rápida.
+
+SE ROMPE SI: alguien vuelve a poner lo de la sede en grande en la tarjeta sin leer esto, o usa el rojo de «Sin stock» para algo que no sea
+que no queda ninguna en toda la empresa.
