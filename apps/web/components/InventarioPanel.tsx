@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, Eye, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
+import { useRefrescoEnVivo } from "@/lib/useRefrescoEnVivo";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -304,6 +305,8 @@ export function InventarioPanel({
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
   const { filtros, busqueda, aplicar, limpiar, teclear, fijarBusqueda, soltarBusqueda } = useFiltrosExistencias(resumen.separaPisoAlmacen);
   const router = useRouter();
+  // Existencias en vivo por WebSocket (ADR-0603): si otra caja vende o repone en esta sede, la pantalla se vuelve a leer sola.
+  useRefrescoEnVivo(ubicacionId);
   const setBusqueda = fijarBusqueda;
   const setCategoria = (v: string) => aplicar({ cat: v === TODAS ? null : v });
   const setMarca = (v: string) => aplicar({ marca: v === TODAS ? null : v });

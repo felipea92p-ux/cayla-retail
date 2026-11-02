@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { selloDeCaja, hayNovedad } from "@/lib/caja-en-vivo";
+import { useCambiosEnVivo } from "@/lib/useCambiosEnVivo";
 
 /**
  * Mantiene el tablero de Caja al día sin que nadie recargue. Cada `cadaMs` le pide a la base el sello de la
@@ -12,16 +13,19 @@ import { selloDeCaja, hayNovedad } from "@/lib/caja-en-vivo";
  * a Next que vuelva a leer la pantalla (`router.refresh()`). Lo demás (los conteos, las gráficas, el aviso de "nueva venta") lo hacen los
  * componentes al recibir los datos nuevos.
  *
- * Por qué sondeo y no Supabase Realtime: Realtime hoy no está activo sobre ninguna tabla (ADR-0018) y
- * habilitarlo es un `alter publication` en el proyecto compartido con Dynamic, que se confirma con
- * Felipe antes de correrlo. El sondeo no toca la base y llega en pocos segundos; cuando se autorice
- * Realtime, esto se cambia por una suscripción sin tocar a quienes consumen los datos.
+ * Sondeo + WebSocket (ADR-0603): `ventas` está en la publicación de Realtime desde `20261102212000`, así que una venta
+ * nueva de la sede adelanta el sondeo al instante. Las demás tablas del sello (movimientos de caja, devoluciones,
+ * cambios) no emiten, por eso el sondeo cada `cadaMs` se queda: es el respaldo de siempre (ADR-0018).
  *
  * No sondea con la pestaña oculta ni sin red (al volver a verla sondea de inmediato). Un sondeo que
  * falla no rompe el tablero: el siguiente reintenta.
  */
-export function useCajaEnVivo(cajaId: string, cadaMs = 5000) {
+export function useCajaEnVivo(cajaId: string, ubicacionId: string, cadaMs = 5000) {
   const router = useRouter();
+  // Una venta nueva de esta sede llega por WebSocket (ADR-0603) y adelanta el sondeo; el sello también cuenta movimientos,
+  // devoluciones y cambios, que no emiten, así que el sondeo de `cadaMs` sigue igual.
+  const sondearRef = useRef<(() => Promise<void>) | null>(null);
+  useCambiosEnVivo({ tabla: "ventas", ubicacionId, alCambiar: () => void sondearRef.current?.() });
   useEffect(() => {
     const supabase = createClient();
     let previa: string | null = null;
@@ -61,6 +65,7 @@ export function useCajaEnVivo(cajaId: string, cadaMs = 5000) {
       }
     }
 
+    sondearRef.current = sondear;
     void sondear();
     const id = window.setInterval(sondear, cadaMs);
     const alVolver = () => {
@@ -69,6 +74,7 @@ export function useCajaEnVivo(cajaId: string, cadaMs = 5000) {
     document.addEventListener("visibilitychange", alVolver);
     return () => {
       vivo = false;
+      sondearRef.current = null;
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", alVolver);
     };
