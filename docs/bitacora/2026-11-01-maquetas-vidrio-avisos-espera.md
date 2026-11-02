@@ -57,3 +57,9 @@
   con lo elegido. Caras de lo propio: la billetera (A · Ahumada, recomendada, la misma decisión que el titular de Caja; B · Placa clara) y
   «¿Qué hiciste?» (A · Gota grande, recomendada; B · Tarjetas de opción). Medida de 320 a 1920 px, en claro y oscuro, sin desbordes ni
   errores. Sin cambios en `apps/web`.
+- **Conteo, página entera (2026-11-02)** (me la pasó la otra sesión): maqueta `docs/maquetas/conteo-vidrio-2026-11/`, con el inicio y la
+  pantalla de contar. La planilla conserva su cara de tabla, como pide ADR-0358, y solo cambia el material: A · Placa Serena (recomendada)
+  o B · Lámina casi papel. Los pasos: A · Ranura con gotas (recomendada) o B · Pozo con gota; es la misma pieza que el paso a paso de
+  Posventa y de Recibir. Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en Conteo (2026-11-02):** la planilla A · Placa Serena y los pasos A · Ranura con gotas (el riel lo comparte con
+  Recibir, que lo hereda).

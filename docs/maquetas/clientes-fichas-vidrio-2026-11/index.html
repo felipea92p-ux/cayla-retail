@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fl="placa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fichas de clientes con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página Clientes ▸ Fichas (/clientas) con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Hoy (components/ClientasPanel.tsx, FilaClienta): la cabecera con «Descargar lista», «Cartel del club» y «Nueva ficha»; cuatro cifras;
+   y una tarjeta con el buscador, las píldoras «Para revisar» y la lista: UNA TARJETA DE PAPEL POR PERSONA (diseño B) con su avatar en
+   arena, el nombre en serif, la frase que dice quién es y, a la derecha, su última compra y su sede · celular; el pie y la nota.
+   OJO: el plan de Clientes es de Dany (docs/datos/DECISIONES-2026-09-26-clientas.md, D-92 a D-111). Esta maqueta SOLO cambia el material:
+   no toca qué se muestra, el orden, las reglas, el permiso ni los avisos. Lo ya elegido entra tal cual (cabecera, cifras en placa, buscador
+   pozo, filtros en gota, avatar en lente, insignias en lente). Se elige lo propio: la fila de cada persona. Datos inventados. Solo tokens.
+   ==================================================================== */
+.fila-c{margin-top:22px}
+.cf-caja{margin-top:20px;border-radius:22px;padding:16px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .cf-caja{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.cf-bus{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:14px;color:var(--t65)}
+[data-tema="oscuro"] .cf-bus{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.cf-bus svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.cf-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.cf-filtros .et{font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin-right:4px}
+.fp{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:color-mix(in srgb,var(--tinta) 82%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp .n{font-weight:500;font-variant-numeric:tabular-nums}
+.cf-pie{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-top:12px;padding-top:12px;font-size:12.5px;color:var(--taupe);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.cf-nota{margin-top:18px;max-width:72ch;font-size:13.5px;line-height:1.55;color:var(--taupe)}
+
+/* ---------- la fila de cada persona (como hoy: una tarjeta de papel por persona) ---------- */
+.cf-lista{display:grid;gap:10px;margin-top:14px}
+.cf-fila{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px 16px;width:100%;padding:12px 16px;text-align:left;border-radius:14px;border:1px solid var(--sand);background:var(--papel);
+  transition:transform .2s var(--ease),border-color .2s,background .2s;animation:sube .4s var(--ease) backwards;animation-delay:calc(var(--i,0) * 40ms + 120ms)}
+@media (hover:hover){.cf-fila:hover{transform:translateY(-2px);border-color:var(--taupe)}}
+.cf-fila.fuera{opacity:.6}
+.cf-av{position:relative;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:16px;background:color-mix(in srgb,var(--sand) 85%,transparent);color:var(--tinta)}
+.cf-nom{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.cf-nom b{font-family:'EB Garamond',serif;font-size:19px;font-weight:400;line-height:1.2}
+.cf-frase{display:block;font-size:13px;color:var(--t80);margin-top:2px}
+.cf-der{display:grid;gap:2px;justify-items:end;text-align:right;font-size:12.5px;color:var(--t65)}
+.cf-der b{font-weight:500;color:var(--tinta)}
+.chip-l{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip-l i{width:6px;height:6px;border-radius:50%;background:currentColor}
+/* el avatar ya elegido (Inicio · Equipo A · Placa): la inicial en una lente de vidrio */
+:is([data-fl="placa"],[data-fl="gotas"]) .cf-av{background:radial-gradient(120% 90% at 30% 15%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--sand) 70%,transparent) 75%);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--vidrio) 60%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"]:is([data-fl="placa"],[data-fl="gotas"]) .cf-av{background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+/* A · FILAS EN LA PLACA: la lista es la placa de la tabla elegida; cada persona, una fila sin tarjeta propia separada por una línea fina
+   (que arranca después del avatar, como en el menú); al pasar el mouse, la fila se ilumina con la gota clara. Un borde menos por persona. */
+[data-fl="placa"] .cf-lista{gap:0;margin-top:10px}
+[data-fl="placa"] .cf-fila{position:relative;border:0;background:none;border-radius:14px;padding:12px 14px}
+[data-fl="placa"] .cf-fila+.cf-fila::before{content:"";position:absolute;top:0;left:70px;right:14px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+@media (hover:hover){[data-fl="placa"] .cf-fila:hover{transform:none;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+  [data-tema="oscuro"][data-fl="placa"] .cf-fila:hover{background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:none}
+  [data-fl="placa"] .cf-fila:hover::before,[data-fl="placa"] .cf-fila:hover+.cf-fila::before{opacity:0}}
+/* B · GOTAS SUELTAS: cada persona sigue siendo una tarjeta, pero de vidrio claro sin desenfoque (como la Vitrina elegida), con su luz y su
+   filo; se alza al pasar el mouse. */
+[data-fl="gotas"] .cf-fila{border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);border-radius:18px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 8px 20px -14px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-fl="gotas"] .cf-fila{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+@media (hover:hover){[data-fl="gotas"] .cf-fila:hover{border-color:color-mix(in srgb,var(--vidrio) 90%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),0 16px 28px -16px color-mix(in srgb,var(--sombra) 45%,transparent)}}
+
+@container disp (max-width:640px){.cf-fila{grid-template-columns:auto minmax(0,1fr)}.cf-der{grid-column:2;justify-items:start;text-align:left}[data-fl="placa"] .cf-fila+.cf-fila::before{left:14px}}
+@container disp (max-width:520px){.cf-caja{padding:12px;border-radius:18px}.cf-fila{padding:11px 10px;gap:6px 12px}.cf-nom b{font-size:17px}}
+@media (prefers-reduced-motion:reduce){.cf-fila{animation:none;transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Clientes ▸ Fichas, con vidrio</span>
+  <span class="tag">La fila de cada persona</span><div class="seg-m" data-ctl="fl"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Filas en la placa</button><button data-v="gotas">B · Gotas sueltas</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li>La lista de Fichas es <b>una tarjeta de papel por persona</b> (diseño B de su rediseño) dentro de la tarjeta grande: avatar en arena, nombre en serif, la frase que dice quién es y, a la derecha, su última compra y su sede · celular.</li>
+      <li>Sobre el vidrio son decenas de tarjetas macizas, una dentro de otra: el borde de la caja y el de cada fila se pisan.</li>
+      <li><b>El plan de Clientes es de Dany</b> (D-92 a D-111): esta maqueta solo cambia el material; no toca qué se muestra, el orden, las reglas, el permiso ni los avisos. La ficha que se abre es una hoja: ya tiene su cara elegida.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La fila de cada persona</b></td><td>A · Filas en la placa <span class="ev">Recomendada</span></td><td>La lista es la placa de las tablas: las personas son filas separadas por una línea fina que nace después del avatar, y la que apuntas se ilumina con la gota. Un borde menos por persona; se lee como una lista, que es lo que es.</td><td>Pierde el «alzarse» de cada tarjeta: la fila se ilumina en su lugar.</td></tr>
+      <tr><td>B · Gotas sueltas</td><td>Conserva el diseño B (una tarjeta por persona) hecho vidrio, sin desenfoque.</td><td>Una tarjeta dentro de otra: sobre el vidrio son dos bordes que se pisan en cada fila.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>A · Filas en la placa.</b> Pasa el mouse por las filas.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Todo lo que decide el plan de Dany: qué dice cada fila, el DNI y el celular a medias para quien no es líder, «Para revisar», las fichas archivadas, unidas o anonimizadas en tenue con su insignia, «Descargar lista» solo para un Admin, el cartel del club y la ficha que se abre.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js y marco.css usan nombres globales (estado, pintar, boton, encabezado, fila, buscar; .hoja, .cifras, .sede, .av, .tx…); la maqueta no los repite. -->
+<script>
+const svF = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const PERSONAS_F = [
+  ['Rosa Mendívil', 'Miembro desde mar 2025 · compra seguido', 'hace 3 días', 'Trujillo · 9•• ••• 412'],
+  ['Jorge Cárdenas', 'Miembro desde ago 2025', 'hace 2 semanas', 'Trujillo · 9•• ••• 088'],
+  ['Lucía Paredes', 'Solo tiene ficha, no está en el club', 'ayer', 'Arequipa · Sin celular'],
+  ['Ana Torres', 'Miembro desde ene 2026 · compra seguido · acepta novedades', 'hoy', 'Trujillo · 9•• ••• 731'],
+  ['Marco Valdivia', 'Miembro desde jun 2025 · pidió BAJA', 'hace 2 meses', 'Lima · 9•• ••• 205'],
+  ['Sara Quispe', 'Ficha unida a otra', null, 'Trujillo · 9•• ••• 640', ['var(--pizarra)', 'Unida']],
+  ['Diana Ríos', 'Miembro desde oct 2025', 'hace 5 días', 'Trujillo · 9•• ••• 117'],
+  ['Carla Flores', 'Miembro desde feb 2025 · compra seguido', 'hace 1 semana', 'Arequipa · 9•• ••• 952'],
+];
+const iniciales = (n) => n.split(' ').map((p) => p[0]).slice(0, 2).join('');
+function tarjetaCifraF(nom, num, ctx, pto) { return `<div class="tc"><span class="tc-nom">${pto ? `<span class="pto" style="background:${pto}"></span>` : ''}${nom}</span><div class="tc-val"><span class="num">${num}</span></div><div class="tc-ctx"><span>${ctx}</span></div></div>`; }
+function pintarF() {
+  $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Clientes', frase: 'Quiénes te compran, cómo los encuentras y quiénes están en el club.', acciones: [['sec', 'Descargar lista', 'descargar'], ['sec', 'Cartel del club'], ['pri', 'Nueva ficha', 'mas']] })}
+    <div class="fila-c">${tarjetaCifraF('En el club', '1 284', '+38 este mes')}${tarjetaCifraF('Compran seguido', '312', 'una vez al mes o más')}${tarjetaCifraF('Por revisar', '9', 'datos que faltan', 'var(--ambar)')}${tarjetaCifraF('Pidieron baja', '4', 'este mes')}</div>
+    <section class="cf-caja"><label class="cf-bus">${svF('M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8')}Busca por nombre, DNI o celular</label>
+      <div class="cf-filtros"><span class="et">Para revisar</span><button class="fp" aria-pressed="true">Todos <span class="n">1 306</span></button><button class="fp">Sin celular <span class="n">6</span></button><button class="fp">Sin DNI <span class="n">3</span></button><button class="fp">Pidieron baja <span class="n">4</span></button></div>
+      <div class="cf-lista">${PERSONAS_F.map(([n, fr, ult, dc, ch], i) => `<button class="cf-fila${ch ? ' fuera' : ''}" style="--i:${i}"><span class="cf-av">${iniciales(n)}</span>
+        <span><span class="cf-nom"><b>${n}</b>${ch ? `<span class="chip-l" style="--c:${ch[0]}"><i></i>${ch[1]}</span>` : ''}</span><span class="cf-frase">${fr}</span></span>
+        <span class="cf-der">${ult ? `<span>Última compra <b>${ult}</b></span>` : '<span>Sin compras todavía</span>'}<span>${dc}</span></span></button>`).join('')}</div>
+      <div class="cf-pie"><span>8 de 1 306 clientes</span><span>Todas las cuentas con el módulo ven a todos</span></div></section>
+    <p class="cf-nota">Un cliente entra al club cuando deja su celular y dice que sí; el permiso para escribirle por WhatsApp cuenta recién cuando responde «SÍ».</p>`;
+}
+document.addEventListener('click', (ev) => { const f = ev.target.closest('.fp'); if (f) $$('.fp').forEach((x) => x.setAttribute('aria-pressed', x === f)); });
+Marco.iniciar({ estado: { fl: 'placa' }, alPintar: () => pintarF() });
+</script>
+</body>
+</html>
