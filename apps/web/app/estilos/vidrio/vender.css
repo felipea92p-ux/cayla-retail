@@ -419,6 +419,11 @@
 .hoja-cobro.hoja-serena {
   padding: 0;
   background: transparent;
+  /* `backwards` y NO `both`: con `both` la animación terminada sigue «aplicada» (fill-mode forwards) y, mientras haya una animación de
+     opacidad/transformación sobre la hoja, el navegador no deja que su `::before` desenfoque lo que tiene detrás: la hoja quedaba como un
+     vidrio liso donde el catálogo se veía NÍTIDO (Felipe 2026-11-02: «no tiene el efecto glass»). Sin fill hacia adelante, al terminar
+     de entrar la hoja vuelve a sus estilos normales (opacidad 1, sin transformación), que es lo mismo que decía el último cuadro. */
+  animation: hoja-cobro-entra 520ms var(--ease-cayla) backwards;
 }
 .hoja-descuento.hoja-serena::before,
 .hoja-cobro.hoja-serena::before {
@@ -435,7 +440,6 @@
 .hoja-descuento.hoja-serena {
   /* Contenedor con nombre: con la hoja ancha (≥ 38 rem) el cuerpo pasa a dos columnas; si queda angosta (catálogo estrecho a 1024–1100 px), una. */
   container: descuento / inline-size;
-  animation: hoja-cobro-entra 520ms var(--ease-cayla) both;
 }
 .pv-desc-raiz {
   display: flex;
