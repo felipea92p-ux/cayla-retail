@@ -48,3 +48,12 @@
   Caras de lo propio: el paso a paso (A · Hilo de vidrio, recomendada; B · Pozo con gota) y lo que trae y lo que lleva (A · Balanza,
   recomendada; B · Talón). Medida a 375 px en los dos temas, en las dos pantallas y los tres momentos (PL-105), con tres capturas en la carpeta.
   También de 320 a 1920 px sin desbordes y sin errores. Sin cambios en `apps/web`.
+- **Apartados, página entera (2026-11-02)** (me la pasó la otra sesión): maqueta `docs/maquetas/apartados-vidrio-2026-11/`, con las tres
+  vistas (Todos, Entregar y Apartar), armada solo con lo elegido; la prenda va en su miniatura de hoy porque la tarjeta de Productos sigue
+  sin elegirse. Caras de lo propio: la hoja (A · Al aire, recomendada; B · Placa) y las pestañas del celular (A · Isla de pestañas,
+  recomendada; B · Franja de vidrio). En la maqueta, `marco.css` ya usa `.hoja` y `.cifras`, así que aquí se llaman `.ap-hoja` y
+  `.ap-cifras`. Medida a 375 px (PL-105) con dos capturas, y de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
+- **Mis compras, página entera (2026-11-02)** (me la pasó la otra sesión): maqueta `docs/maquetas/mis-compras-vidrio-2026-11/`, armada solo
+  con lo elegido. Caras de lo propio: la billetera (A · Ahumada, recomendada, la misma decisión que el titular de Caja; B · Placa clara) y
+  «¿Qué hiciste?» (A · Gota grande, recomendada; B · Tarjetas de opción). Medida de 320 a 1920 px, en claro y oscuro, sin desbordes ni
+  errores. Sin cambios en `apps/web`.

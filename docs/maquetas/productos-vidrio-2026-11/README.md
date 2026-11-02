@@ -49,10 +49,18 @@ Con una ficha de Peloton de ejemplo, Felipe pidió aplicar las reglas de proximi
 tres siguen las mismas reglas: dentro de un grupo, 2 a 4 px; entre grupos, 12 a 18 px (el doble o el triple); un solo margen para todo;
 un peso por grupo (lo principal en tinta y 15–19 px, lo secundario tenue y 12,5–13,5 px); y la acción, sola en su esquina.
 
+La ficha con marco (Peloton) y la leyenda sobre la foto **no lo convencieron**; se reemplazaron por cuatro formas nuevas:
+
 | Distribución | Cómo | Alto a 1440 |
 |---|---|---|
-| A · Catálogo de moda | La foto y tres renglones apretados debajo (la de la ronda anterior) | 414 px |
-| **B · Ficha con marco** (recomendada) | La de Peloton: placa con tres grupos al mismo aire que su borde (16 px): nombre y qué es · la foto · precio con stock y los colores en su esquina | 433 px |
-| C · Leyenda sobre la foto | La foto ocupa todo; nombre, precio, colores y stock en una banda de vidrio pegada a su borde de abajo | 326 px |
+| A · Catálogo de moda | La foto y tres renglones apretados debajo | 414 px |
+| B · Centrada | Uniqlo, Muji: colores, nombre, precio y stock en el eje de la foto | 437 px |
+| **C · Foto y pie en una pieza** (recomendada) | Dawn de Shopify: la foto a los bordes y un pie de vidrio pegado del mismo ancho; colores en la chapa sobre la foto | 393 px |
+| D · Precio que cuelga | El precio es una gota que cuelga del borde de la foto | 415 px |
+| E · Vitrina mínima | Zara, COS: solo nombre y precio; el stock en la foto si es poco, los colores al pasar el mouse | 376 px |
 
-Medido: 36 combinaciones (320 a 1920, claro y oscuro, las tres), nada se desborda; cambiar de color desde los puntos sigue andando en las tres.
+Medido: 60 combinaciones (320 a 1920, claro y oscuro, las cinco), nada se desborda; los colores siguen cambiando la foto. Lo que va sobre
+la foto toma la tinta (en una prenda oscura heredaba el crema y quedaba blanco sobre blanco: corregido).
+
+**Eligió A · Catálogo de moda** (2026-11-02): la foto al aire y los tres renglones apretados debajo (nombre | precio · tipo · color ·
+colores | stock), como quedó en la ronda de los catálogos. Se recomendaba la C.
