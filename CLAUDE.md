@@ -239,8 +239,16 @@ El idioma: **lo hundido espera tu dato** (el pozo: campos, combos, buscador) · 
 botones, la opción activa de una lista, la fila del menú) · **lo que explica es plano** (la placa: notas, filas, tarjetas dentro de una hoja).
 Nada sólido sobre el vidrio. Dos cosas que no se tocan sin leer el ADR: **la hoja no lleva `backdrop-filter`** (la volvería el bloque
 contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque lo pone el velo), y **una pieza nueva no inventa su vidrio**:
-usa una receta o agrega una a `recetas.css`. Lo que falta decidir y lo que ya se eligió vive en el tablero `docs/vidrio/README.md`; cada
-pieza se elige mirando una maqueta tocable antes de entrar al código.
+usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
+
+**Desde el 2026-11-02 esta es LA estética del ERP, y es obligatoria (Felipe):** toda pantalla, modal o pieza nueva o editada sigue esta línea y
+se arma con las piezas ya elegidas (la tabla «4.1 Las piezas elegidas» del tablero: hoja Serena, pozo, gota, ahumado, placa Serena, vidrio
+claro, lentes, tubo, hundido…), que llegan solas al usar el componente del sistema (`<Modal>`, `<Tabla>`, `<TarjetaCifra>`, `<Chip>`,
+`<Buscador>`, `btn-cayla`…). Una pantalla nueva no nace en papel sólido: nada de una tarjeta propia en `card-cayla`/`bg-papel`/`bg-hueso`
+con `border-sand` donde una pieza elegida ya responde (un bloque de la pantalla es la placa Serena; muchas tarjetas iguales, el vidrio
+claro, sin desenfoque por costo). **Ya no se dibujan maquetas de vidrio:** Felipe cerró esa etapa; lo que falta se **audita** con las piezas
+elegidas (tablero, «4.3» y «4.4»), y solo una pieza que no calza con ninguna se le muestra a Felipe con la más cercana. Lo de diseño propio
+(«Fuera hasta que Felipe diga» en el tablero) no se toca sin él.
 
 ## Toda pantalla ocupa todo el ancho (regla — ADR-0462, Felipe 2026-10-20)
 

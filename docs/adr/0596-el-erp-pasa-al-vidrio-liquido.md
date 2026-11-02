@@ -76,3 +76,17 @@ stock), Felipe aceptó tres cambios de regla que deshacen decisiones anteriores:
 
 SE ROMPE SI: alguien vuelve a poner lo de la sede en grande en la tarjeta sin leer esto, o usa el rojo de «Sin stock» para algo que no sea
 que no queda ninguna en toda la empresa.
+
+## Actualización 2026-11-02 (b) — se cierran las maquetas; la estética es obligatoria
+
+Felipe paró la creación de maquetas de vidrio y pidió dejar la regla escrita: **desde hoy todo lo nuevo o editado sigue esta estética**,
+usando las piezas ya elegidas. La constancia de lo elegido, de los módulos analizados y de lo que falta auditar quedó en
+`docs/vidrio/README.md` (sección 4); la regla, en `CLAUDE.md` («El vidrio Serena»). Rendimiento y Preguntas del equipo quedaron con su
+maqueta y sin elegir. Lo que falta se audita módulo por módulo con las piezas de 4.1, sin maquetas nuevas.
+
+DESCARTÉ seguir con una maqueta por pantalla: con 30 módulos elegidos, las piezas ya cubren casi todo, y cada maqueta nueva repetía lo
+mismo con datos distintos. Una pieza que no calce sigue pasando por Felipe, pero mirando la más cercana, no una maqueta nueva.
+
+SE ROMPE SI: una pantalla nueva nace con tarjetas de papel sólido o con su propio vidrio en vez de las recetas; o si alguien vuelve a
+abrir maquetas de vidrio sin que Felipe lo pida.
+

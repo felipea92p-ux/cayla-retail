@@ -59,7 +59,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Estados vacíos | `ui/Vacio.tsx` (217 archivos) | En código | B · Pozo | `vacio-paginas-vidrio-2026-10/` |
 | Paginación | `ui/Paginas.tsx` (31 archivos con sus usuarios) | En código | A · Gota en su pozo | `vacio-paginas-vidrio-2026-10/` |
 | Globito con número | `ui/Globito.tsx` (15 archivos) | En código | A · Gota | `insignias-vidrio-2026-10/` |
-| Avatares | `ui/AvatarPersona.tsx` | Elegido (el equipo del Inicio) | A · Placa (avatar en lente) | `inicio-lider-vidrio-2026-10/` |
+| Avatares | `ui/AvatarPersona.tsx` | En código (el equipo del Inicio) | A · Placa (avatar en lente) | `inicio-lider-vidrio-2026-10/` |
 | Barra de avance, apilada, anillo, línea, barras por tiempo | `ui/BarraAvance` (61), `BarraApilada` (39), `Anillo` (16), `Linea` (17) + `Sparkline` (6), `BarrasTiempo` (12) | En código | B · Tinta sobre vidrio y globito B · Ahumado | `graficos-vidrio-2026-11/` (la barra de avance también en `inicio-lider-vidrio-2026-10/`) |
 | Casillas e interruptores | `ui/Casilla` (38 archivos), `Interruptor` (19) | En código | A · Pozo y gota (casilla e interruptor) | `casilla-enlaces-vidrio-2026-11/` (el interruptor también en `inicio-lider-vidrio-2026-10/`) |
 | Menú «Más», copiar, descargar, imprimir, editar | `ui/MenuAcciones`, `BotonCopiar`, `BotonDescargar`, `BotonImprimir`, `BotonEditar`, `LapizEditar` | En código (los botones con palabra ya eran la gota elegida) | Íconos de fila B · Gota siempre; menú «Más» A · La lista del combo | `acciones-mes-vidrio-2026-11/` |
@@ -68,9 +68,9 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Avisos de la esquina (éxito, error, advertencia, proceso) | `ui/Avisos.tsx`, `estilos/avisos.css` | En código | B · Lente del tono | `avisos-espera-vidrio-2026-10/` |
 | Loader a pantalla completa | `ui/Espera.tsx` | En código | B · Lente sola: la pantalla se esmerila y queda la lente con el colibrí | `avisos-espera-vidrio-2026-10/` |
 | «Hay una versión nueva» | `VersionNueva.tsx` | En código (el movimiento no cambia: solo el material) | A · Gota ahumada; con «Dos islas», en el hueco entre las islas o bajo la cabecera | `avisos-espera-vidrio-2026-10/` |
-| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | Elegido (la del Inicio, con una acción) | A · Gota ahumada | `inicio-lider-vidrio-2026-10/` |
-| «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | Elegido | A · Placa | `inicio-lider-vidrio-2026-10/` |
-| Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | Elegido | A · Gotas | `inicio-lider-vidrio-2026-10/` |
+| Barra de abajo del celular (la Isla) | `ui/BarraDeAbajo.tsx` | En código (la del Inicio, con una acción) | A · Gota ahumada | `inicio-lider-vidrio-2026-10/` |
+| «Te toca» (los avisos del Inicio) | `app/(app)/page.tsx` (`TeToca`) | En código | A · Placa | `inicio-lider-vidrio-2026-10/` |
+| Accesos del Inicio | `app/(app)/page.tsx` (`Accesos`) | En código | A · Gotas | `inicio-lider-vidrio-2026-10/` |
 | Íconos del contenido (lucide) | `lib/iconos.ts` (477 archivos) | En código | A · Duotono en los de 20 (y los dibujos grandes); 12, 14 y 16 px, solo línea | `iconos-vidrio-2026-11/` |
 | Página · Punto de Venta (`/vender`) | `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx`, `PuntoDeVentaTicket.tsx`, `punto-de-venta/TarjetaPrenda.tsx` | En código | La mesa A · Catálogo al aire, ticket en placa; tarjeta de prenda B · Foto al aire | `vender-vidrio-2026-11/` |
 | Página · Existencias (Inventario) | `ExistenciasTarjetas.tsx`, `existencias/ParaHoy.tsx`, `FiltrosRapidos.tsx`, `PieTarjeta.tsx` | En código (falta la talla en cero) | Vitrina A · Translúcida, sin desenfoque; tira A · Pozo de vidrio; talla en cero: A · Lente que pide o B · Hueco por llenar, por elegir | `existencias-vidrio-2026-11/` |
@@ -97,6 +97,75 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | **Movimientos** (página entera: `app/(app)/inventario/movimientos`, ADR-0353) | `MovimientosLista`, `FilaMovimiento`, `components/movimientos/` (`SelloTipo`, `TiposMovimiento`), `estilos/movimientos-sellos.css` | En código (con el mismo movimiento de los sellos) | El sello A · Lente del tono; los tipos A · Placas con su tono | `movimientos-vidrio-2026-11/` |
 | **Plan de campaña** (página entera: `app/(app)/compras/plan`, ADR-0349) | `PlanCampana`, `BarraRango`, `CentroDeAvisos` (`estilos/centro-avisos.css`), `CifrasPlan`, `ListaCategorias`; fuera la hoja «Configuración» (ADR-0488) | En código | La barra de rango A · Banda esmerilada; el centro de avisos B · Lentes del tono | `plan-campana-vidrio-2026-11/` |
 | **Proveedores** (página entera: `app/(app)/compras/proveedores`, el ranking «C» de 2026-10-26) | `ProveedoresPanel`, `ProveedoresRanking`, `ProveedoresLoQueNoSeVe`, `ProveedoresComparar` | En código | «Qué hacer» A · Placa con filas; «Comparar» A · Placa con columnas | `proveedores-vidrio-2026-11/` |
+
+## 4. Cierre de las maquetas (Felipe 2026-11-02)
+
+Felipe paró aquí la creación de maquetas: **no se dibujan maquetas nuevas de vidrio**. Lo que sigue es la constancia de lo elegido y de
+lo que queda, para seguir después con una **auditoría** módulo por módulo (no con más maquetas): a una pantalla que falta se le ponen
+las piezas ya elegidas, y solo si algo de ella no calza con ninguna se le pregunta a Felipe.
+
+### 4.1 Las piezas elegidas (lo que se usa al construir algo nuevo)
+
+Todas viven en código y se heredan solas al usar el componente del sistema. Las recetas, en `app/estilos/vidrio/recetas.css`; las
+piezas, en `app/estilos/vidrio/*.css`.
+
+| Para… | La pieza (componente o clase) | La receta |
+|---|---|---|
+| El fondo, el menú y la cabecera | `AppShell` (Aurora, riel de vidrio, dos islas) | `--marco-*` |
+| Una hoja o un cajón | `<Modal>` (vidrio Serena; «Mi perfil», `variante="vidrio"`), `<Cajon>` | `--vidrio-hoja-*`, `--cajon-movil-*` |
+| Lo que espera un dato (campo, combo, buscador, paso de cantidad, casilla) | `CampoTexto`, `CampoMonto`, `Desplegable`, `ComboBuscable`, `<Buscador>`, `<PasoCantidad>`, `<Casilla>` | el pozo `--pozo-*` |
+| Lo que haces (botón secundario, opción elegida, fila activa, «Ver») | `btn-cayla btn-secundario`, `<Boton peso="fantasma">`, `opcion-activa`, `<EnlaceVer>` | la gota `--gota-*`, `--gota-chica-*`, `--gota-clara-*` |
+| La acción principal y lo elegido en una fila de píldoras | `btn-primario`, la píldora puesta de un filtro | el ahumado `--ahumado-*`, `--ahumado-denso-*` |
+| Lo peligroso o urgente | `btn-peligro`, la gota roja | `--gota-roja-*` |
+| Lo que explica (nota, fila de datos, lámina) | `nota-cayla`, filas dentro de una hoja | la placa `--placa-*`, `--lamina-*` |
+| Cifras, tablas y bloques de una pantalla | `<TarjetaCifra>`, `<Tabla>`, `ResumenSede`, una tarjeta de la columna | la placa Serena `--serena-*` y el hilo `--hilo-fila` |
+| Tarjetas que se repiten muchas veces (sin desenfoque, por costo) | la Vitrina de Existencias, los grupos de Recibir | el vidrio claro `--vidrio-claro-*` |
+| Un ícono o un estado que se mira a través | `<Chip>` (lente de color), `<Aviso>` (lente), la «i» de una nota | `--lente-*`, `--lente-tono-*`, `--lente-chica-*`, `--lente-estado-*` |
+| Avances y gráficos | `<BarraAvance>`, `<BarraApilada>`, `<Anillo>`, `<Linea>`, `<BarrasTiempo>` (fuera de una hoja: tinta sobre vidrio; dentro: tubo) | `--tubo-*`, `--grafico-vidrio-*` |
+| Una foto o una muestra que llega al borde | la tarjeta de Productos, la de un valor de Catálogo | `--foto-al-aire-*`, `--muestra-al-aire-filo` |
+| Lo puesto o abierto (filtro elegido, fila abierta, panel desplegado) | se hunde | `--hundido-*` |
+| Pestañas, segmento, paginación, índice de letras | `<Pestanas>`, `SegmentoDeslizante`, `<Paginas>` | la gota en su pozo; la ranura `--ranura-*` |
+| El sistema que habla (avisos de la esquina, loader, versión nueva) | `avisar.*`, `<EsperaGlobal>`, `VersionNueva` | `--espera-*`, `--version-*` |
+| La barra de abajo del celular | `<BarraDeAbajo>` | el ahumado en gota |
+| Íconos | lucide (duotono a 20 px; línea a 12, 14 y 16) | — |
+
+### 4.2 Los módulos analizados (con maqueta elegida y en código)
+
+Inicio de la líder · Observatorio (Inicio del Admin) · Ventas: Punto de Venta, Apartados, Caja, Historial, Cambios, Devoluciones,
+Comprobantes · Inventario: Existencias, Movimientos, Traslados, Conteo, Recibir mercadería «B» · Catálogo: Productos, Categorías, Marcas,
+Atributos, Liquidación · Compras: Plan de campaña, Mis compras, Proveedores · Gestión: Frescura del piso, Plan del piso · Producción:
+Órdenes, Insumos · Clientes: Fichas · Colaboradores: Equipo · Configuración: Tiendas. El detalle de cada cara, en las tablas de arriba.
+
+**Con maqueta y sin elegir** (se cerraron así; no se implementan hasta que Felipe elija): Gestión ▸ Rendimiento
+(`docs/maquetas/rendimiento-vidrio-2026-11/`) y Gestión ▸ Preguntas del equipo (`docs/maquetas/preguntas-equipo-vidrio-2026-11/`).
+
+### 4.3 Lo que falta auditar (sin maqueta propia)
+
+Estas pantallas ya llevan el vidrio de todas las piezas del sistema que usan (cabecera, cifras, tablas, pestañas, campos, botones,
+insignias, vacíos, hojas): lo que les falta es revisar **sus piezas propias**, una por una, con lo de 4.1.
+
+- **Salud del negocio** (`/global`).
+- **Producción:** Resumen (`/produccion`) · Abastecimiento: Órdenes de insumos (`/ordenes-insumos`), Proveedores (`/produccion/proveedores`),
+  Facturas de insumos (`/produccion/comprobantes`), Recibir (`/produccion/recibir`), Por pagar (`/produccion/por-pagar`).
+- **Gestión:** Análisis (`/gestion/analisis`, ADR-0357, con su movimiento propio).
+- **Tienda web** (ADR-0430, con su movimiento propio): Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico, Conf. Tienda.
+- **Compras:** Historial de compras (`/compras`) y las pantallas de una compra o factura.
+- **Clientes:** Avisos (`/clientas/avisos`) y Beneficios (`/clientas/beneficios`).
+- **Configuración:** Ubicaciones y accesos, Empresa y facturación, Apartados, Comercial.
+- **Administración:** Colaboradores ▸ Roles y accesos, Actividad.
+- **Las pantallas internas** (una factura, editar un producto, una compra, una orden de insumos): heredan las piezas; se revisan con su módulo.
+
+**Fuera, hasta que Felipe diga** (diseño propio decidido, ver más abajo): la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock,
+la persiana de Caja, Finanzas (El telar, ADR-0493), el login, las guías interactivas, y lo que es papel o cámara.
+
+### 4.4 Cómo se audita lo que falta (sin maquetas)
+
+1. Abrir la pantalla en local, en claro, oscuro, 375 y 1440 px, y buscar lo que todavía es papel sólido, hueso o arena (`card-cayla`,
+   `bg-hueso`, `bg-papel`, `border-sand`) o tinta sólida donde una pieza elegida ya responde.
+2. Ponerle la pieza de 4.1 que corresponde según el idioma (espera tu dato → pozo; lo haces → gota; explica → placa), en un archivo
+   `app/estilos/vidrio/<pantalla>.css` o en la pieza común si es de todo el ERP. Solo recetas; si falta una, se agrega a `recetas.css`.
+3. Si una pieza no calza con ninguna de las elegidas, no se inventa: se le muestra a Felipe con la pieza más cercana.
+4. Se mide (contraste, nada que se salga a 375 px), se anota aquí y en la bitácora, y se marca «En código».
 
 ## Fuera hasta que Felipe diga
 

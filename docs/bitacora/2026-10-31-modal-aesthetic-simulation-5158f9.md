@@ -346,3 +346,7 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   (raya de tinta al 8 %, tinta al 3 % al pasar) y la abierta se hunde; el libro es otra placa, con lo que entra en lente verde y lo que sale en
   píldora de tinta al 6 %. El acordeón, el saldo, los lotes y «Nueva tela» no cambian. La base local no tiene insumos en el Taller: se vio con
   el marcado del componente en el navegador, sin escribir en la base.
+
+- **Se cierran las maquetas de vidrio (Felipe 2026-11-02):** constancia en `docs/vidrio/README.md` §4 (las piezas elegidas para reusar, los
+  módulos analizados, lo que falta auditar y cómo), la regla en `CLAUDE.md` («El vidrio Serena»: la estética es obligatoria en todo lo nuevo o
+  editado, con las piezas elegidas) y la actualización (b) de ADR-0596. Rendimiento y Preguntas del equipo quedan con su maqueta, sin elegir.
