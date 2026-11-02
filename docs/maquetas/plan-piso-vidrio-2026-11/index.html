@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-cd="aire" data-bn="estante">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan del piso con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página Gestión ▸ Plan del piso con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Hoy (app/(app)/gestion/plan-del-piso/page.tsx, components/plan-piso/, app/estilos/plan-piso.css): pestañas Propuesta · Grupos · Historia;
+   en Propuesta, una TARJETA DE PAPEL con el estado («cuántas perchas usa el piso»), el RIEL DE PERCHAS (la maqueta A «La percha» que eligió
+   Felipe el 2026-10-11: cada percha dibujada vale una cantidad de prendas, en tramos por grupo, sobre una BANDA HUESO), la leyenda de grupos
+   en fichas y el «¿Por qué?» en un panel hueso. Las perchas cuelgan una vez al aparecer (no cambia).
+   Lo ya elegido entra tal cual (cabecera, pestañas en gota, botones, chips en lente). Se elige lo propio: la tarjeta y la banda del riel.
+   Los colores de los grupos son dato: no cambian. Datos inventados. Solo tokens.
+   ==================================================================== */
+:root{--g0:var(--taupe);--g1:var(--pizarra);--g2:var(--verde);--g3:color-mix(in srgb,var(--ambar) 72%,var(--sand));--g4:color-mix(in srgb,var(--taupe) 80%,var(--papel))}
+.pz-p{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;gap:2px;margin-top:20px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pz-p{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pz-p button{flex:none;height:34px;padding:0 16px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pz-p button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pz-p button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pz-p .gl{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:6px;padding:0 6px;border-radius:99px;font-size:10.5px;letter-spacing:0;color:color-mix(in srgb,var(--ambar) 82%,var(--tinta));background:color-mix(in srgb,var(--ambar) 16%,transparent)}
+
+/* ---------- la tarjeta (como hoy: papel) ---------- */
+.pp-card{container:pp/inline-size;display:grid;gap:26px;margin-top:18px;padding:24px;border-radius:22px;border:1px solid var(--sand);background:var(--papel)}
+.etq-p{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--t65)}
+.estado-p{display:flex;flex-wrap:wrap;gap:14px 32px;align-items:flex-start}
+.est-n{display:flex;align-items:baseline;gap:10px;margin-top:6px}.est-n b{font-family:'EB Garamond',serif;font-size:46px;font-weight:400;line-height:1}.est-n span{font-size:15px;color:var(--t65)}
+.est-tx{flex:1 1 300px;display:grid;gap:10px;font-size:14px;line-height:1.5;color:var(--t80)}
+.chips-p{display:flex;flex-wrap:wrap;gap:6px 8px}
+.chip-l{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip-l i{width:6px;height:6px;border-radius:50%;background:currentColor}
+/* ---------- el riel ---------- */
+.riel-cab{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
+.riel-cab h2{margin:0;font-family:'EB Garamond',serif;font-size:21px;font-weight:400}.riel-cab span{font-size:13px;color:var(--t65)}
+.banda{position:relative;margin-top:10px;padding:16px 14px 18px;border-radius:16px;background:color-mix(in srgb,var(--hueso) 52%,var(--papel))}
+.rail{--paso:clamp(9px,calc((100cqi - 140px) / var(--total)),30px);--gw:calc(var(--paso) * 1.4);--gh:calc(var(--gw) * 1.5);display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px 9px}
+.blq{position:relative;flex:none;display:flex;padding-top:2px;width:calc(var(--paso) * var(--n))}
+.blq::before{content:"";position:absolute;left:0;top:0;width:100%;height:3px;border-radius:2px;background:var(--pc)}
+.blq .et-p{position:absolute;left:0;bottom:calc(100% + 6px);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@container pp (min-width:760px){.blq{margin-top:20px}}
+@container pp (max-width:759px){.blq .et-p{display:none}}
+.p{flex:none;width:var(--gw);height:var(--gh);margin-right:calc(var(--gw) * -0.286);transform-origin:50% 0;animation:cuelga .3s var(--ease) backwards;animation-delay:calc(min(var(--i,0),20) * 14ms + 150ms)}
+.p svg{display:block;width:100%;height:100%;overflow:visible}
+@keyframes cuelga{from{opacity:0;transform:translateY(-7px)}}
+.sil{fill:var(--pc);stroke:color-mix(in srgb,var(--tinta) 32%,transparent);stroke-width:.7;stroke-linejoin:round}
+.hg{fill:none;stroke:var(--t65);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.libre{flex:1 1 150px;position:relative;min-height:var(--gh);padding-top:10px;display:grid;place-content:center;justify-items:center;text-align:center;gap:1px}
+.libre::before{content:"";position:absolute;left:0;right:0;top:0;border-top:3px dashed color-mix(in srgb,var(--tinta) 30%,transparent)}
+.libre b{font-family:'EB Garamond',serif;font-size:32px;font-weight:400;line-height:1}.libre span{font-size:13.5px;font-weight:500}
+/* ---------- la leyenda y el «¿Por qué?» ---------- */
+.leyenda{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.lg{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--sand);background:var(--papel)}
+.lg i{width:12px;height:26px;border-radius:4px;background:var(--pc);flex:none}
+.lg b{display:block;font-family:'EB Garamond',serif;font-size:24px;font-weight:400;line-height:1}.lg span{font-size:12.5px;color:var(--t65)}
+.porque{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.porque button{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600}
+.porque .q{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--sand);font-family:'EB Garamond',serif;font-size:14px}
+.panel-p{flex:1 1 100%;display:none;padding:16px 18px;border-radius:14px;background:var(--hueso);font-size:13.5px;line-height:1.55;color:var(--t80)}
+.porque[data-abierto] .panel-p{display:block;animation:sube .35s var(--ease)}
+
+/* ====================================================================
+   LA TARJETA · A · PLACA SERENA: la de las cifras; B · AL AIRE: no hay tarjeta; el estado, el riel y la leyenda viven sobre el fondo,
+   como el mapa del Observatorio que eligió (la leyenda queda en placas chicas y el «¿Por qué?» en una lámina de vidrio).
+   ==================================================================== */
+[data-cd="placa"] .pp-card{border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-cd="placa"] .pp-card{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-cd="aire"] .pp-card{padding:4px 0 0;border:0;background:none}
+:is([data-cd="placa"],[data-cd="aire"]) .lg{border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 64%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-cd="placa"],[data-cd="aire"]) .lg{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:none}
+:is([data-cd="placa"],[data-cd="aire"]) .panel-p{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 58%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-cd="placa"],[data-cd="aire"]) .panel-p{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 82%,transparent)}
+:is([data-cd="placa"],[data-cd="aire"]) .porque .q{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--borde) 50%,transparent)}
+
+/* ====================================================================
+   LA BANDA DEL RIEL · A · POZO: la banda hueso pasa al pozo (hundida: el lugar que se llena);
+   B · ESTANTE DE VIDRIO: el riel es un tubo de vidrio que cruza arriba (del que cuelgan los tramos) y la banda, una vitrina translúcida
+   con su luz arriba: se ve el riel de la tienda, no una franja de color.
+   ==================================================================== */
+[data-bn="pozo"] .banda{background:color-mix(in srgb,var(--tinta) 5%,transparent);border:1px solid color-mix(in srgb,var(--borde) 40%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"][data-bn="pozo"] .banda{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-bn="estante"] .banda{padding-top:24px;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 38%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 18px 34px -24px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-bn="estante"] .banda{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-bn="estante"] .banda::before{content:"";position:absolute;left:10px;right:10px;top:10px;height:8px;border-radius:99px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 98%,transparent),color-mix(in srgb,var(--tinta) 18%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 3px 6px -2px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-bn="estante"] .banda::before{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 35%,transparent),color-mix(in srgb,var(--tinta) 12%,transparent));box-shadow:none}
+[data-bn="estante"] .blq::before{top:-6px;height:4px}
+
+@container disp (max-width:520px){.pp-card{padding:16px;gap:20px}[data-cd="aire"] .pp-card{padding:4px 0 0}.est-n b{font-size:38px}.leyenda{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){.p{animation:none}.porque[data-abierto] .panel-p{animation:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="ph" viewBox="0 0 40 60"><g class="hg"><path d="M20 12 V8 C20 5 21.6 3.2 23.7 3.2 C25.7 3.2 27.2 4.6 27.2 6.4"/><path d="M20 12 L4.5 24.5 H35.5 Z"/></g></symbol>
+  <symbol id="ps-blusa" viewBox="0 0 40 60"><path class="sil" d="M14.5 17.5 L4.5 22.5 L8 30 L13 27.5 L13 53.5 Q20 55.5 27 53.5 L27 27.5 L32 30 L35.5 22.5 L25.5 17.5 C24 21.2 16 21.2 14.5 17.5 Z"/></symbol>
+  <symbol id="ps-jean" viewBox="0 0 40 60"><path class="sil" d="M12 17.5 H28 L30.8 55.5 H21.3 L20 31 L18.7 55.5 H9.2 Z"/></symbol>
+  <symbol id="ps-vestido" viewBox="0 0 40 60"><path class="sil" d="M15 17 L25 17 L26 24 L32 55 Q20 58 8 55 L14 24 Z"/></symbol>
+  <symbol id="ps-casaca" viewBox="0 0 40 60"><path class="sil" d="M14 17 L5 21 L6 50 L13 50 L13 54 Q20 55.5 27 54 L27 50 L34 50 L35 21 L26 17 L20 26 Z"/></symbol>
+</defs></svg>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Plan del piso, con vidrio</span>
+  <span class="tag">La tarjeta</span><div class="seg-m" data-ctl="cd"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa Serena</button><button data-v="aire">B · Al aire</button></div>
+  <span class="tag">La banda del riel</span><div class="seg-m" data-ctl="bn"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo</button><button data-v="estante">B · Estante de vidrio</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <button class="accion" data-acc="repetir">Volver a colgar</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li>En Propuesta, todo vive en una <b>tarjeta de papel</b>: el estado, el riel de perchas («La percha», elegida el 2026-10-11) sobre una <b>banda hueso</b>, la leyenda de grupos en <b>fichas de papel</b> y el «¿Por qué?» en un <b>panel hueso</b>.</li>
+      <li>Las perchas cuelgan una vez al aparecer, y sus colores son los de cada grupo: eso es dato y <b>no cambia</b>.</li>
+      <li>Pestañas, botones y chips entran con lo ya elegido.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La tarjeta</b></td><td>A · Placa Serena</td><td>La placa de las cifras: todo el plan en una pieza, como hoy.</td><td>Una placa grande con otra (la banda) adentro.</td></tr>
+      <tr><td>B · Al aire <span class="ev">Recomendada</span></td><td>Sin tarjeta, como el mapa del Observatorio, la mesa de Vender o la hoja de Apartados que eligió: el riel es el protagonista sobre el fondo y la leyenda queda en placas chicas.</td><td>El estado y el riel quedan sueltos; los separa su aire y el título.</td></tr>
+      <tr><td rowspan="2"><b>La banda del riel</b></td><td>A · Pozo</td><td>Hundida: el lugar que se va llenando de perchas.</td><td>Se lee como un campo para escribir.</td></tr>
+      <tr><td>B · Estante de vidrio <span class="ev">Recomendada</span></td><td>El riel de la tienda hecho vidrio: un tubo cruza arriba, los tramos cuelgan de él y detrás hay una vitrina translúcida con su luz. Se ve un riel, no una franja.</td><td>Un tubo más que dibujar; quieto, sin moverse.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Tarjeta B · Al aire y banda B · Estante de vidrio.</b> «¿Por qué?» abre su lámina; «Volver a colgar» repite la entrada de las perchas.</p>
+    <h3>Lo que no cambia</h3>
+    <p>El pictograma (cuántas prendas vale cada percha, los tramos por grupo y su color, el espacio libre rayado), el rótulo de cada tramo cuando hay lugar, el resaltado al pasar por un grupo, las pestañas Grupos e Historia y la Mancuerna.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js y marco.css usan nombres globales (estado, pintar, boton, encabezado, fila, buscar; .hoja, .cifras, .sede, .av, .tc, .uni, .linea, .sub, .prendas…); la maqueta no los repite. -->
+<script>
+const GRUPOS_P = [['Blusas y polos', 'blusa', 'var(--g0)', 18], ['Vestidos', 'vestido', 'var(--g1)', 11], ['Jeans', 'jean', 'var(--g2)', 9], ['Casacas', 'casaca', 'var(--g3)', 6], ['Faldas', 'vestido', 'var(--g4)', 4]];
+function pintarP() {
+  const total = GRUPOS_P.reduce((a, g) => a + g[3], 0) + 8; let k = 0;
+  const rail = GRUPOS_P.map(([n, s, c, num]) => `<div class="blq" style="--n:${num};--pc:${c}"><span class="et-p">${n}</span>${Array.from({ length: num }, () => `<span class="p" style="--i:${k++}"><svg viewBox="0 0 40 60"><use href="#ps-${s}"/><use href="#ph"/></svg></span>`).join('')}</div>`).join('');
+  $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Plan del piso', frase: 'Cuánto lugar tiene cada grupo de prendas en el riel, y a qué grupo pertenece cada categoría.' })}
+    <div class="pz-p" role="tablist"><button role="tab" aria-selected="true">Propuesta</button><button role="tab">Grupos<span class="gl">3</span></button><button role="tab">Historia</button></div>
+    <section class="pp-card"><div class="estado-p"><div><span class="etq-p">Hoy en el piso</span><div class="est-n"><b>48</b><span>de 56 perchas</span></div></div>
+      <div class="est-tx"><span>El riel tiene lugar para 8 perchas más. Los vestidos piden 3 de ese lugar: se venden más de lo que ocupan.</span><div class="chips-p"><span class="chip-l" style="--c:var(--verde)"><i></i>Cabe</span><span class="chip-l" style="--c:var(--ambar)"><i></i>3 categorías por revisar</span></div></div></div>
+      <div><div class="riel-cab"><h2>El riel de Trujillo</h2><span>Cada percha dibujada vale 3 prendas</span></div>
+        <div class="banda"><div class="rail" style="--total:${total}">${rail}<div class="libre"><b>8</b><span>perchas libres</span></div></div></div></div>
+      <div class="leyenda">${GRUPOS_P.map(([n, , c, num]) => `<div class="lg" style="--pc:${c}"><i></i><span><b>${num}</b>${n}</span></div>`).join('')}</div>
+      <div class="porque"><button data-porque><span class="q">?</span>¿Por qué esta propuesta?</button><div class="panel-p">El lugar de cada grupo sale de lo que vendió en las últimas 8 semanas contra lo que ocupa hoy. Los vestidos vendieron el 26 % y ocupan el 20 %: piden más lugar. Las faldas, al revés.</div></div></section>`;
+}
+document.addEventListener('click', (ev) => { const b = ev.target.closest('[data-porque]'); if (b) b.closest('.porque').toggleAttribute('data-abierto'); });
+Marco.iniciar({ estado: { cd: 'aire', bn: 'estante' }, alPintar: () => pintarP(), alAccion: (a) => { if (a === 'repetir') pintarP(); } });
+</script>
+</body>
+</html>
