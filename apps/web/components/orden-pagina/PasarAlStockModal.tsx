@@ -36,7 +36,7 @@ import {
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
-import { MOTIVOS_SIN_TELA, avisoSinTelaDeclarada, avisoTelaSinAnotar, permisoSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
+import { MOTIVOS_SIN_TELA, avisoSinTelaDeclarada, avisoTelaSinAnotar, frenoSinTelaDeclarada, permisoSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
 import { urlLlevarATiendas } from "@/lib/produccion-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
@@ -51,7 +51,8 @@ import { useResponsable } from "@/lib/useResponsable";
 // La tela sin anotar (plan > 0 y nada usado) FRENA el paso al stock desde ADR-0570 (actividad 4; Felipe 2026-10-29: «sin tela anotada no pasa al stock, salvo el Líder o el Admin con
 // motivo»): el costo por prenda saldría sin tela y alimentaría el promedio de la prenda en todas las sedes. «Anotar cuánto quedó» deja esta hoja y abre esa. Un líder puede, en cambio, dejarla
 // pasar sin tela con su porqué: la hoja llama primero a `permitir_pasar_sin_tela` (queda en la historia) y después a `cerrar_produccion`, que lo vuelve a comprobar (`cierre_sin_tela`).
-// Una orden que no declaró ninguna tela sigue con su aviso, sin candado (ver ADR-0570, actividad 4, DESCARTÉ).
+// Una orden que no declaró ninguna tela se frena igual, solo en esta hoja (ADR-0600, Felipe 2026-11-02): la salida es «Declarar la tela» o el permiso de un líder con su porqué. La base no lo exige
+// (ADR-0570, actividad 4, DESCARTÉ: 23 suites de otros módulos cierran órdenes sin tela); si alguien llama `cerrar_produccion` sin pasar por aquí, ese camino sigue abierto.
 
 export function PasarAlStockModal({
   datos,
@@ -96,8 +97,11 @@ export function PasarAlStockModal({
   const problemas = problemasDeCierre(fases, lineasOrden, cantidades, nombreDe);
   const resumen = resumenDeCierre(datos, total);
   const telaSinAnotar = avisoTelaSinAnotar(datos.insumos, orden.esMuestra);
+  // Sin tela declarada (ADR-0600): frena igual que la tela sin anotar, pero la salida es «Declarar la tela» y no «Anotar cuánto quedó». Un freno u otro, nunca los dos.
+  const sinTelaFrena = frenoSinTelaDeclarada(datos.insumos, orden.esMuestra, yaEstabaEfectivo);
+  const bloqueoTela = telaSinAnotar ? { texto: telaSinAnotar.texto, salida: "anotar" as const } : sinTelaFrena ? { texto: sinTelaFrena.texto, salida: "declarar" as const } : null;
   const permiso = permisoSinTela(datos.cambios);
-  const frenaTela = telaSinAnotar !== null && permiso === null;
+  const frenaTela = bloqueoTela !== null && permiso === null;
   const [porqueSinTela, setPorqueSinTela] = useState("");
   const problemaPorque = problemaDeMotivoCambio(porqueSinTela);
   const sinTela = avisoSinTelaDeclarada(datos.insumos, orden.esMuestra);
@@ -112,8 +116,8 @@ export function PasarAlStockModal({
       responsableListo: responsable.listo,
       tela: frenaTela
         ? esLider
-          ? { hecho: problemaPorque === null, pendiente: "Anota cuánto quedó de la tela o, si de verdad pasa sin tela, cuenta por qué." }
-          : { hecho: false, pendiente: "Anota cuánto quedó de la tela, o pide a un líder que la deje pasar sin tela." }
+          ? { hecho: problemaPorque === null, pendiente: bloqueoTela?.salida === "declarar" ? "Declara la tela o, si de verdad pasa sin tela, cuenta por qué." : "Anota cuánto quedó de la tela o, si de verdad pasa sin tela, cuenta por qué." }
+          : { hecho: false, pendiente: bloqueoTela?.salida === "declarar" ? "Declara la tela, o pide a un líder que la deje pasar sin tela." : "Anota cuánto quedó de la tela, o pide a un líder que la deje pasar sin tela." }
         : null,
     })
   );
@@ -135,7 +139,13 @@ export function PasarAlStockModal({
       return;
     }
     if (frenaTela && (!esLider || problemaPorque)) {
-      avisar.error(esLider ? (problemaPorque ?? "") : "Falta anotar la tela: anota cuánto quedó, o pide a un líder que la deje pasar sin tela.");
+      avisar.error(
+        esLider
+          ? (problemaPorque ?? "")
+          : bloqueoTela?.salida === "declarar"
+            ? "Falta declarar la tela: declara cuál lleva, o pide a un líder que la deje pasar sin tela."
+            : "Falta anotar la tela: anota cuánto quedó, o pide a un líder que la deje pasar sin tela."
+      );
       return;
     }
     if (!responsable.listo) {
@@ -288,7 +298,7 @@ export function PasarAlStockModal({
           </Aviso>
         )}
 
-        {sinTela && (
+        {sinTela && !bloqueoTela && (
           <Aviso
             tono="atencion"
             accion={
@@ -316,20 +326,26 @@ export function PasarAlStockModal({
           </Aviso>
         )}
 
-        {telaSinAnotar && frenaTela && (
+        {bloqueoTela && frenaTela && (
           <div data-guia="prod-orden-stock.tela" className="space-y-3">
             <CampoGuiado id="tela" guia={guia} className="space-y-3">
               <Aviso
                 tono="error"
                 accion={
-                  alAnotarTela ? (
+                  bloqueoTela.salida === "declarar" ? (
+                    alDeclararTela ? (
+                      <button type="button" className="btn-cayla btn-enlace" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(alDeclararTela)}>
+                        Declarar la tela
+                      </button>
+                    ) : undefined
+                  ) : alAnotarTela ? (
                     <button type="button" className="btn-cayla btn-enlace" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(alAnotarTela)}>
                       Anotar cuánto quedó
                     </button>
                   ) : undefined
                 }
               >
-                {telaSinAnotar.texto}
+                {bloqueoTela.texto}
               </Aviso>
               {esLider ? (
                 <div className="space-y-2 rounded-xl bg-hueso px-4 py-3">
@@ -357,7 +373,7 @@ export function PasarAlStockModal({
           </div>
         )}
 
-        {telaSinAnotar && permiso && (
+        {bloqueoTela && permiso && (
           <Aviso tono="info" chico>
             {permiso.quienNombre ?? "Un líder"} la dejó pasar sin tela: «{permiso.texto}».
           </Aviso>

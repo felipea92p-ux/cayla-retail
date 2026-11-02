@@ -4,8 +4,9 @@ import { telasDeLaOrden, type TelaDeLaOrden } from "./orden-tela-usada-reglas";
 // «Pasar al stock» cuando la tela del lote todavía no se anotó (ADR-0400, «Tela y costo honestos» parte b; OK de Felipe, 2026-10-16). Sin React ni Supabase.
 //
 // DESDE EL 2026-10-29 ES UN CANDADO (ADR-0570, actividad 4; Felipe: «sin tela anotada no pasa al stock, salvo el Líder o el Admin con motivo»): `cerrar_produccion` lo rechaza
-// (`cierre_sin_tela`) salvo que un líder lo haya permitido (`permitir_pasar_sin_tela`, que queda en la historia). Lo de abajo que dice «aviso, nunca un candado» vale todavía para
-// la orden que NO declaró ninguna tela: esa sigue con su aviso.
+// (`cierre_sin_tela`) salvo que un líder lo haya permitido (`permitir_pasar_sin_tela`, que queda en la historia). La orden que NO declaró ninguna tela se frena desde ADR-0600 (2026-11-02)
+// con `frenoSinTelaDeclarada`, pero SOLO en la pantalla: la base no lo exige. Lo de abajo que dice «aviso, nunca un candado» vale para `avisoSinTelaDeclarada`, que sigue existiendo para
+// quien ya tiene el permiso o marcó «ya estaban registradas».
 //
 // EL PROBLEMA: `cerrar_produccion` toma el costo de la tela del libro de insumos (lo realmente descontado del estante). Si nadie anotó «lo que usaste», el lote entra al stock con un costo por
 // prenda SIN tela (la OP-343 entró a S/ 4.50 en vez de S/ 22.38) y ese costo alimenta el promedio de la prenda en todas las sedes. La base no lo frena (es el primer lote del modelo, o el costo
@@ -59,6 +60,17 @@ export function avisoSinTelaDeclarada(insumos: readonly InsumoPagina[], esMuestr
   if (esMuestra) return null;
   if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela" && !t.complemento)) return null;
   return { texto: "Esta orden no declaró qué tela lleva: el costo por prenda saldría sin tela." };
+}
+
+/**
+ * El FRENO de la hoja «Pasar al stock» para una orden que NO declaró qué tela lleva (ADR-0600; Felipe 2026-11-02: «en la pantalla»). Antes solo avisaba (`avisoSinTelaDeclarada`) y, con un clic, un
+ * líder metía 720 prendas al stock con costo cero. Ahora la hoja trata esta orden como la de tela sin anotar: no pasa hasta que alguien la declare y la anote, o un líder la deje pasar con su motivo
+ * (`permitir_pasar_sin_tela`, que queda en la historia y en Actividad). Es un candado de PANTALLA: la base no lo exige, porque el ADR-0570 lo descartó ahí (23 suites cierran órdenes sin tela para
+ * armar su escena). No frena una muestra (no toca el stock ni el costo) ni una orden «ya estaban registradas» (el costo se queda en la orden y no mueve el de la prenda).
+ */
+export function frenoSinTelaDeclarada(insumos: readonly InsumoPagina[], esMuestra: boolean, yaEstaba: boolean): AvisoSinTelaDeclarada | null {
+  if (yaEstaba || avisoSinTelaDeclarada(insumos, esMuestra) === null) return null;
+  return { texto: "Esta orden no declaró qué tela lleva: sin ella no pasa al stock, porque el costo por prenda saldría sin tela." };
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoCorteSinTela, avisoSinTelaDeclarada, avisoTelaSinAnotar, telasSinAnotar } from "./orden-tela-sin-anotar-reglas";
+import { avisoCorteSinTela, avisoSinTelaDeclarada, avisoTelaSinAnotar, frenoSinTelaDeclarada, telasSinAnotar } from "./orden-tela-sin-anotar-reglas";
 import type { InsumoPagina } from "./orden-pagina-reglas";
 
 const insumo = (parche: Partial<InsumoPagina> = {}): InsumoPagina => ({
@@ -78,6 +78,36 @@ describe("avisoSinTelaDeclarada — la orden que no dijo qué tela lleva", () =>
   it("los dos avisos nunca salen a la vez: sin tela declarada, uno; con tela sin anotar, el otro", () => {
     for (const insumos of [[], [avio()], [insumo()], [insumo({ usado: 5 })], [insumo(), avio()]]) {
       const sinDeclarar = avisoSinTelaDeclarada(insumos, false) !== null;
+      const sinAnotar = avisoTelaSinAnotar(insumos, false) !== null;
+      expect(sinDeclarar && sinAnotar, JSON.stringify(insumos.map((i) => i.tipo))).toBe(false);
+    }
+  });
+});
+
+// ADR-0600 (Felipe 2026-11-02, «en la pantalla»): la orden que no declaró ninguna tela ya no solo avisa: la hoja FRENA el paso al stock hasta que un líder la deje pasar con su motivo.
+// Es un candado de pantalla; la base no lo exige (el ADR-0570 lo descartó en la base: 23 suites cierran órdenes sin tela para armar su escena).
+describe("frenoSinTelaDeclarada — la orden sin tela declarada no pasa al stock sin el permiso de un líder", () => {
+  it("un lote sin ninguna fila de insumos frena, y la frase dice qué le falta y por qué", () => {
+    const f = frenoSinTelaDeclarada([], false, false);
+    expect(f?.texto).toBe("Esta orden no declaró qué tela lleva: sin ella no pasa al stock, porque el costo por prenda saldría sin tela.");
+  });
+  it("un avío solo o un forro solo no son tela: sigue frenando", () => {
+    expect(frenoSinTelaDeclarada([avio()], false, false)).not.toBeNull();
+    expect(frenoSinTelaDeclarada([insumo({ id: "pi-f", insumoId: "i-f", nombre: "Forro", colorCodigo: null, esComplemento: true })], false, false)).not.toBeNull();
+  });
+  it("con una tela declarada no frena por esto: de la que falta anotar se encarga el otro freno", () => {
+    expect(frenoSinTelaDeclarada([insumo()], false, false)).toBeNull();
+    expect(frenoSinTelaDeclarada([insumo({ usado: 10 })], false, false)).toBeNull();
+  });
+  it("una muestra no frena: no entra al stock ni deja costo en ninguna prenda", () => {
+    expect(frenoSinTelaDeclarada([], true, false)).toBeNull();
+  });
+  it("una orden marcada «ya estaban registradas» no frena: no toca el stock ni el costo de la prenda", () => {
+    expect(frenoSinTelaDeclarada([], false, true)).toBeNull();
+  });
+  it("los dos frenos nunca salen a la vez: sin tela declarada, uno; con tela sin anotar, el otro", () => {
+    for (const insumos of [[], [avio()], [insumo()], [insumo({ usado: 5 })], [insumo(), avio()]]) {
+      const sinDeclarar = frenoSinTelaDeclarada(insumos, false, false) !== null;
       const sinAnotar = avisoTelaSinAnotar(insumos, false) !== null;
       expect(sinDeclarar && sinAnotar, JSON.stringify(insumos.map((i) => i.tipo))).toBe(false);
     }
