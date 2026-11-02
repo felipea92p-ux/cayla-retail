@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-pv="aire" data-tp="placa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Punto de Venta con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página Punto de Venta (/vender) con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Hoy (components/PuntoDeVenta.tsx, PuntoDeVentaCatalogo.tsx, PuntoDeVentaTicket.tsx, punto-de-venta/TarjetaPrenda.tsx): UNA tarjeta de
+   CREMA MACIZA con borde arena que encierra el catálogo (la sede, Apartados, Más y lo de hoy; el buscador del mostrador; las categorías;
+   la grilla de prendas en tarjetas de PAPEL con sus tallas) y, a la derecha, el ticket (quién atendió, el cliente, las líneas, la bolsa,
+   el total y «Cobrar»). En el celular el ticket vive en la barra de abajo oscura y su hoja.
+   Lo que ya está elegido entra tal cual: botones gota, buscador pozo, filtros gotas con la puesta ahumada, globito gota, vacío pozo,
+   el paso de cantidad como campo hundido, la barra de abajo ahumada. Lo que se elige aquí es lo PROPIO de la página: la mesa (cómo se
+   reparten catálogo y ticket) y la tarjeta de prenda. Datos inventados. Solo tokens. Sin rebote.
+   ==================================================================== */
+.pos{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,34%,400px);gap:22px;margin-top:20px;align-items:start}
+.cat{min-width:0}
+.cat-fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cat-fila .sede-t{margin-right:6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe)}
+.cat-fila .hoy-t{margin-left:auto;font-size:13px;color:var(--taupe)}.cat-fila .hoy-t b{color:var(--tinta);font-weight:600}
+.cat-fila .btn{height:34px;padding:0 14px;font-size:13px}
+/* el buscador del mostrador (elegido: A · Pozo) */
+.bus{position:relative;display:flex;align-items:center;gap:10px;height:50px;margin-top:14px;padding:0 10px 0 18px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);transition:background .25s,box-shadow .25s}
+[data-tema="oscuro"] .bus{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.bus:focus-within{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 10px 22px -12px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.bus svg{width:19px;height:19px;flex:none;color:var(--t65);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.bus input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:15px;color:var(--tinta)}
+.bus input::placeholder{color:var(--t65)}
+.bus kbd{padding:0 7px;border-radius:99px;border:1px solid var(--t25);font:600 10.5px/18px 'DM Sans';color:var(--t65)}
+/* las categorías (elegido: A · Gotas, la puesta ahumada) */
+.cats-p{display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.cats-p::-webkit-scrollbar{display:none}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:color-mix(in srgb,var(--tinta) 82%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio);transition:transform .25s var(--ease)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 60%,transparent)}
+@media (hover:hover){.fp:not([aria-pressed="true"]):hover{transform:translateY(-1px)}}
+
+/* ---------- la grilla de prendas ---------- */
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:14px;margin-top:14px}
+.tp{position:relative;display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--sand);background:var(--papel);animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 35ms + 120ms);transition:transform .3s var(--ease),box-shadow .3s}
+.tp .foto{position:relative;aspect-ratio:1;border-radius:10px;display:grid;place-items:center;color:var(--crema-fija);overflow:hidden}
+.tp .foto.claro{color:var(--tinta-fija)}
+.tp .foto svg{width:38px;height:38px;fill:none;stroke:currentColor;stroke-width:1.5;opacity:.85}
+.tp .nom{font-size:14px;font-weight:600;line-height:1.3}
+.tp .res{font-size:12px;color:var(--t65);margin-top:1px}
+.tp .tallas{display:flex;flex-wrap:wrap;gap:5px}
+.talla{min-width:34px;height:30px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;border:1px solid var(--sand);background:var(--crema);color:var(--tinta);transition:background .2s,color .2s,transform .2s var(--ease)}
+@media (hover:hover){.talla:not(:disabled):hover{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}}
+.talla:active:not(:disabled){transform:scale(.94)}
+.talla:disabled{border-style:dashed;color:var(--t50);background:transparent;cursor:not-allowed}
+.talla.alm{border-style:dashed;border-color:color-mix(in srgb,var(--ambar) 60%,transparent);color:var(--ambar);background:transparent}
+.tp .pie-t{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:auto}
+.tp .precio{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.tp .stock{font-size:11.5px;color:var(--t65);font-variant-numeric:tabular-nums}
+.tp .stock.poco{color:var(--ambar)}
+.gl-esq{position:absolute;top:16px;right:16px;z-index:2;min-width:22px;height:22px;padding:0 6px;border-radius:99px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 80%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));box-shadow:0 0 0 2px color-mix(in srgb,var(--vidrio) 80%,transparent),0 4px 10px -4px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoca .3s var(--ease) both}
+/* A · PLACA: la tarjeta es la placa de vidrio de las cifras; cada talla, una gota; la agotada, un pozo punteado; la que solo está en el
+   almacén, una gota ámbar punteada. Al pasar el mouse la placa se alza 2 px. */
+[data-tp="placa"] .tp{border-radius:18px;border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 66%,transparent),color-mix(in srgb,var(--vidrio) 42%,transparent));-webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 18px 34px -26px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"][data-tp="placa"] .tp{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 70%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-tp="placa"] .tp .foto{border-radius:12px}
+@media (hover:hover){[data-tp="placa"] .tp:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 var(--vidrio),0 24px 40px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}}
+/* B · FOTO AL AIRE: sin tarjeta. La foto, con sus esquinas y su sombra, es la pieza; el nombre y las tallas viven planos debajo. */
+[data-tp="aire"] .tp{padding:0;border:0;background:none;gap:9px}
+[data-tp="aire"] .tp .foto{border-radius:18px;box-shadow:0 18px 30px -20px color-mix(in srgb,var(--sombra) 60%,transparent);transition:transform .35s var(--ease),box-shadow .35s}
+@media (hover:hover){[data-tp="aire"] .tp:hover .foto{transform:translateY(-3px);box-shadow:0 24px 36px -20px color-mix(in srgb,var(--sombra) 65%,transparent)}}
+[data-tp="aire"] .gl-esq{top:8px;right:8px}
+/* en A y B las tallas son gotas (las de los filtros) */
+:is([data-tp="placa"],[data-tp="aire"]) .talla{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-tp="placa"],[data-tp="aire"]) .talla{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+@media (hover:hover){:is([data-tp="placa"],[data-tp="aire"]) .talla:not(:disabled):not(.alm):hover{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}}
+:is([data-tp="placa"],[data-tp="aire"]) .talla:disabled{border-style:dashed;border-color:color-mix(in srgb,var(--borde) 55%,transparent);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+:is([data-tp="placa"],[data-tp="aire"]) .talla.alm{border-style:dashed;border-color:color-mix(in srgb,var(--ambar) 55%,transparent);background:color-mix(in srgb,var(--ambar) 8%,transparent);box-shadow:none}
+
+/* ---------- el ticket ---------- */
+.ticket{position:sticky;top:0;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:0 18px 18px 0;border-left:1px solid var(--sand);background:var(--crema);color:var(--tinta)}
+.ticket h2{margin:0;font-family:'EB Garamond',serif;font-size:24px;font-weight:400;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.ticket h2 a{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+.et-t{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);margin-bottom:6px}
+.resp{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px 0 6px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:14.5px;width:100%;text-align:left;color:inherit}
+.resp .av-t{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;background:color-mix(in srgb,var(--sand) 80%,transparent);color:var(--tinta)}
+.resp span:nth-child(2){flex:1}.resp svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;opacity:.6}
+.lineas{display:grid;gap:2px}
+.lin{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;animation:enfoca .3s var(--ease) both}
+.lin+.lin{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 9%,transparent)}
+.lin .mini{width:44px;height:52px;border-radius:9px}
+.lin b{display:block;font-size:14px;font-weight:600}.lin small{display:block;font-size:12px;color:var(--t65);margin-top:1px}
+.lin .der{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.lin .mon{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.paso{display:inline-flex;align-items:center;height:30px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.paso button{width:28px;height:28px;display:grid;place-items:center;color:inherit;border-radius:50%}
+.paso button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.paso span{min-width:18px;text-align:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.quitar{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;color:var(--t65)}
+.quitar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+@media (hover:hover){.quitar:hover{color:var(--rojo-p)}}
+.vacio-t{display:flex;flex-direction:column;align-items:center;text-align:center;padding:22px 10px;gap:8px}
+.vacio-t .hueco{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--taupe);background:color-mix(in srgb,var(--tinta) 6%,transparent);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);box-shadow:inset 0 3px 8px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.vacio-t .hueco svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5}
+.vacio-t b{font-family:'EB Garamond',serif;font-size:19px;font-weight:400}.vacio-t span{font-size:13px;color:var(--taupe)}
+.extras-t{display:flex;flex-wrap:wrap;gap:8px}
+.extras-t .btn{height:32px;padding:0 12px;font-size:12.5px}
+.totales{display:grid;gap:6px;padding-top:12px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent);font-size:13.5px}
+.totales div{display:flex;justify-content:space-between;color:var(--taupe)}.totales div b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums}
+.totales .total{align-items:baseline;color:var(--tinta);margin-top:4px}
+.totales .total strong{font-family:'EB Garamond',serif;font-size:34px;font-weight:400;font-variant-numeric:tabular-nums}
+.cobrar{width:100%;height:52px;font-size:15px!important;justify-content:center}
+.cobrar:disabled{opacity:.45;cursor:not-allowed}
+.ayuda-t{font-size:12.5px;color:var(--taupe);text-align:center;margin-top:-6px}
+
+/* COMO AHORA: una tarjeta de crema maciza con todo adentro; el ticket separado por una línea arena */
+:root:not([data-pv]) .pos{gap:0;border:1px solid var(--sand);border-radius:18px;background:var(--crema);overflow:hidden}
+:root:not([data-pv]) .cat{padding:18px 22px 22px}
+/* A · CATÁLOGO AL AIRE, TICKET EN PLACA: no hay tarjeta grande; el catálogo vive sobre el fondo y el ticket es la placa Serena que flota
+   a la derecha, pegada arriba mientras bajas */
+[data-pv="aire"] .ticket{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);border-radius:24px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 30px 60px -34px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-pv="aire"] .ticket{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 78%,transparent)}
+/* B · TICKET AHUMADO: lo que llevas elegido es oscuro (como la barra de abajo del celular): el ticket es vidrio ahumado de tinta con letra
+   crema, y «Cobrar» se invierte a la gota clara */
+[data-pv="humo"] .ticket{border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);border-radius:24px;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 86%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 28%,transparent),0 30px 60px -30px color-mix(in srgb,var(--sombra) 70%,transparent)}
+[data-pv="humo"] .ticket :is(.et-t,.lin small,.totales div,.ayuda-t,.vacio-t span){color:color-mix(in srgb,var(--crema) 70%,transparent)}
+[data-pv="humo"] .ticket :is(.totales div b,.lin .mon,h2 a){color:var(--crema)}
+[data-pv="humo"] .ticket h2 a{text-decoration-color:color-mix(in srgb,var(--crema) 35%,transparent)}
+[data-pv="humo"] .ticket :is(.resp,.paso,.vacio-t .hueco){border-color:color-mix(in srgb,var(--crema) 22%,transparent);background:color-mix(in srgb,var(--sombra) 30%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-pv="humo"] .ticket .resp .av-t{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+[data-pv="humo"] .ticket :is(.lin+.lin,.totales){box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema) 14%,transparent)}
+[data-pv="humo"] .ticket .quitar{color:color-mix(in srgb,var(--crema) 65%,transparent)}
+[data-pv="humo"] .ticket .btn.sec{color:var(--crema);border-color:color-mix(in srgb,var(--crema) 30%,transparent);background:color-mix(in srgb,var(--crema) 8%,transparent);box-shadow:none}
+[data-pv="humo"] .ticket .btn.pri{color:var(--tinta);border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 82%,var(--hueso)));box-shadow:inset 0 -1px 2px color-mix(in srgb,var(--sombra) 12%,transparent),0 10px 22px -10px color-mix(in srgb,var(--sombra) 70%,transparent)}
+[data-tema="oscuro"][data-pv="humo"] .ticket{color:var(--crema)}
+
+/* ---------- el celular: el catálogo a lo ancho y el ticket en la barra de abajo (elegida: la isla ahumada) ---------- */
+.isla-t{display:none}
+@container disp (max-width:900px){
+  .pos{grid-template-columns:minmax(0,1fr)}
+  .ticket{display:none}
+  :root:not([data-pv]) .pos{border:0;background:none}:root:not([data-pv]) .cat{padding:0}
+  .grilla{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .cont{padding-bottom:110px!important}
+  .isla-t{display:flex;position:absolute;z-index:6;left:12px;right:12px;bottom:12px;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:18px;color:var(--crema);
+    border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 96%,transparent));
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 18px 36px -16px color-mix(in srgb,var(--sombra) 70%,transparent);animation:sube .4s var(--ease) backwards}
+  .isla-t .cifra-i{flex:1;min-width:0}.isla-t .cifra-i b{display:block;font-family:'EB Garamond',serif;font-size:22px;font-weight:400;line-height:1.1}
+  .isla-t .cifra-i span{font-size:12px;color:color-mix(in srgb,var(--crema) 70%,transparent)}
+  .isla-t .btn{height:44px;padding:0 18px;color:var(--tinta);border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);background:linear-gradient(180deg,var(--vidrio),color-mix(in srgb,var(--vidrio) 82%,var(--hueso)))}
+}
+@container disp (max-width:420px){.grilla{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tp .talla{min-width:30px;height:30px;padding:0 6px}.cat-fila .hoy-t{width:100%;margin-left:0}}
+/* en oscuro el ahumado se invierte (tinta es clara): la gota de «Cobrar» que vive sobre él pasa a crema con letra tinta */
+[data-tema="oscuro"] :is(.isla-t .btn,[data-pv="humo"] .ticket .btn.pri){color:var(--tinta)!important;border-color:color-mix(in srgb,var(--crema) 70%,transparent)!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 92%,transparent),var(--crema))!important}
+@media (prefers-reduced-motion:reduce){.tp,.lin,.gl-esq,.isla-t{animation:none}.tp,.tp .foto{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Punto de Venta, con vidrio</span>
+  <span class="tag">La mesa</span><div class="seg-m" data-ctl="pv"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Catálogo al aire, ticket en placa</button><button data-v="humo">B · Ticket ahumado</button></div>
+  <span class="tag">Tarjeta de prenda</span><div class="seg-m" data-ctl="tp"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa</button><button data-v="aire">B · Foto al aire</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="escritorio">Tu ventana</button></div>
+  <button class="accion" data-acc="vaciar">Vaciar el ticket</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla-t" id="isla-t" aria-label="Tu ticket"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>Una tarjeta de crema maciza</b> encierra todo el Punto de Venta: el catálogo a la izquierda (sede, Apartados, Más y lo de hoy; el buscador; las categorías; la grilla) y el ticket a la derecha, separado por una línea arena.</li>
+      <li><b>Cada prenda es una tarjeta de papel</b> con su foto, nombre, colores y <b>tallas en píldoras de crema</b> (la agotada, punteada; la que está solo en el almacén, ámbar punteada), el precio y lo que queda; el globito de la esquina dice cuántas van en el ticket.</li>
+      <li>En el celular el ticket vive en <b>la barra de abajo oscura</b> y su hoja. Sobre el vidrio, la tarjeta grande de crema tapa todo el fondo: la pantalla más usada del ERP es la única que no lo deja ver.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La mesa</b></td><td>A · Catálogo al aire, ticket en placa <span class="ev">Recomendada</span></td><td>Sin la tarjeta grande, el catálogo respira sobre el fondo y el ticket es UNA placa que flota a la derecha y te acompaña al bajar: se ve dónde se arma la venta.</td><td>El ticket claro se parece a cualquier otra placa; lo distingue su lugar fijo y «Cobrar».</td></tr>
+      <tr><td>B · Ticket ahumado</td><td>Lo que llevas elegido es oscuro, igual que la barra del celular: el ticket se encuentra al instante y «Cobrar» brilla en gota clara.</td><td>Un bloque oscuro de 400 px pesa mucho en una pantalla clara de todo el día; en oscuro casi no cambia.</td></tr>
+      <tr><td rowspan="2"><b>Tarjeta de prenda</b></td><td>A · Placa <span class="ev">Recomendada</span></td><td>La misma placa de las cifras: la prenda, su precio y sus tallas son una unidad que se alza al pasar el mouse. Tallas en gota; agotada, un hueco punteado.</td><td>Con 16 prendas en pantalla son 16 placas: hay más bordes que en B.</td></tr>
+      <tr><td>B · Foto al aire</td><td>La foto manda (es como la clienta reconoce la prenda) y la grilla queda más limpia, como una vitrina.</td><td>Sin tarjeta, el nombre y las tallas quedan sueltos sobre el fondo; con fotos claras se pierde el borde.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>La mesa A · Catálogo al aire, ticket en placa y la tarjeta A · Placa.</b> Toca una talla para sumarla al ticket; en el celular, mira la isla de abajo.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Todo lo que hace: buscar o escanear, elegir color y talla, «solo en el almacén», el máximo alcanzado, quién atendió (sin eso no se cobra), el cliente, la bolsa, los descuentos, dejar en espera, cobrar; y en el celular, la barra de abajo con su hoja. También la persiana de «Caja cerrada», que es diseño propio y no entra aquí.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, fila, buscar, PRENDAS…); la maqueta no los repite. -->
+<script>
+const svP = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const ICP = { percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6', lupa: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8', menos: 'M5 12h14', mas: 'M12 5v14M5 12h14', x: 'M18 6 6 18M6 6l12 12', abajo: 'm6 9 6 6 6-6', bolsa: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0' };
+const PRECIOS = [89, 159, 189, 49, 129, 99, 59, 169, 69, 119, 89, 79, 139, 199, 109, 89];
+const CAT_DE = ['Blusas', 'Casacas', 'Vestidos', 'Polos', 'Jeans', 'Faldas', 'Tops', 'Sacos', 'Shorts', 'Jeans', 'Blusas', 'Camisas', 'Chalecos', 'Vestidos', 'Jeans', 'Blusas'];
+// por prenda: tallas [talla, estado] — estado: 'ok' | 'no' (agotada) | 'alm' (solo en el almacén)
+const TALLAS_DE = (i) => [['S', i % 5 === 2 ? 'no' : 'ok'], ['M', 'ok'], ['L', i % 4 === 1 ? 'alm' : 'ok'], ['XL', i % 3 === 0 ? 'no' : 'ok']];
+let ticketPv = [{ i: 0, t: 'M', n: 1 }, { i: 2, t: 'S', n: 1 }, { i: 5, t: 'L', n: 1 }];
+let catPv = 'Todas';
+const solesP = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function enTicket(i) { return ticketPv.filter((l) => l.i === i).reduce((a, l) => a + l.n, 0); }
+function tarjetaHTML([c, n, , st, cl], i, k) {
+  const tallas = TALLAS_DE(i).map(([t, e]) => e === 'ok' ? `<button class="talla" data-i="${i}" data-t="${t}" aria-label="Agregar ${n} talla ${t}">${t}</button>`
+    : e === 'alm' ? `<button class="talla alm" disabled title="Está en el almacén: bájala al piso para venderla">${t}</button>` : `<button class="talla" disabled title="Agotada aquí">${t}</button>`).join('');
+  const en = enTicket(i);
+  return `<article class="tp" style="--i:${k}">${en ? `<span class="gl-esq" aria-label="${en} en el ticket">${en}</span>` : ''}
+    <div class="foto${cl ? ' claro' : ''}" data-color-dato style="background:${c}">${svP(ICP.percha)}</div>
+    <div><div class="nom">${n}</div><div class="res">${CAT_DE[i]} · algodón</div></div>
+    <div class="tallas">${tallas}</div>
+    <div class="pie-t"><span class="precio">${solesP(PRECIOS[i]).replace('.00', '')}</span><span class="stock${st < 8 ? ' poco' : ''}">${st} en piso</span></div></article>`;
+}
+function ticketHTML() {
+  const total = ticketPv.reduce((a, l) => a + PRECIOS[l.i] * l.n, 0), uds = ticketPv.reduce((a, l) => a + l.n, 0);
+  const lineas = ticketPv.length ? `<div class="lineas">${ticketPv.map((l, k) => { const [c, n, , , cl] = PRENDAS[l.i]; return `<div class="lin"><span class="mini" data-color-dato style="background:${c}"></span>
+      <span><b>${n}</b><small>Talla ${l.t}</small></span>
+      <span class="der"><span class="mon">${solesP(PRECIOS[l.i] * l.n)}</span><span style="display:flex;align-items:center;gap:4px"><span class="paso"><button data-menos="${k}" aria-label="Uno menos">${svP(ICP.menos)}</button><span>${l.n}</span><button data-mas="${k}" aria-label="Uno más">${svP(ICP.mas)}</button></span><button class="quitar" data-quitar="${k}" aria-label="Quitar ${n}">${svP(ICP.x)}</button></span></span></div>`; }).join('')}</div>`
+    : `<div class="vacio-t"><span class="hueco">${svP(ICP.bolsa)}</span><b>El ticket está vacío</b><span>Toca una talla o escanea una prenda para empezar.</span></div>`;
+  return `<h2>Ticket actual <a href="#">Dejar en espera</a></h2>
+    <div><div class="et-t">Atendió</div><button class="resp"><span class="av-t">LR</span><span>Lucía Ramos</span>${svP(ICP.abajo)}</button></div>
+    ${lineas}
+    <div class="extras-t">${boton(['sec', 'Cliente', 'mas'])}${boton(['sec', 'Bolsa', 'mas'])}${boton(['sec', 'Descuento', 'mas'])}</div>
+    <div class="totales"><div><span>${uds} ${uds === 1 ? 'prenda' : 'prendas'}</span><b>${solesP(total)}</b></div><div><span>Descuento</span><b>${solesP(0)}</b></div>
+      <div class="total"><span>Total</span><strong>${solesP(total)}</strong></div></div>
+    <button class="btn pri cobrar" ${uds ? '' : 'disabled'}>Cobrar ${uds ? solesP(total) : ''}</button>
+    <p class="ayuda-t">${uds ? 'Al cobrar eliges cómo paga: efectivo, tarjeta o Yape.' : 'Agrega al menos una prenda.'}</p>`;
+}
+function pintarPv() {
+  const prendas = PRENDAS.map((p, i) => [p, i]).filter(([, i]) => catPv === 'Todas' || CAT_DE[i] === catPv);
+  $('#cont').innerHTML = `<div class="pos"><section class="cat" aria-label="Catálogo">
+      <div class="cat-fila"><span class="sede-t">Venta en tienda · Trujillo</span>${boton(['sec', 'Apartados'])}${boton(['sec', 'Más'])}<span class="hoy-t">Hoy <b>S/ 2,520</b> · 18 ventas</span></div>
+      <label class="bus">${svP(ICP.lupa)}<input type="search" placeholder="Busca o escanea una prenda"><kbd>/</kbd></label>
+      <div class="cats-p" role="group" aria-label="Categorías">${['Todas', 'Blusas', 'Vestidos', 'Casacas', 'Jeans', 'Polos', 'Faldas', 'Sacos'].map((c) => `<button class="fp" data-cat="${c}" aria-pressed="${c === catPv}">${c}</button>`).join('')}</div>
+      <div class="grilla">${prendas.map(([p, i], k) => tarjetaHTML(p, i, k)).join('')}</div></section>
+    <aside class="ticket" id="ticket-pv" aria-label="Ticket">${ticketHTML()}</aside></div>`;
+  pintarIsla();
+}
+function pintarIsla() {
+  const total = ticketPv.reduce((a, l) => a + PRECIOS[l.i] * l.n, 0), uds = ticketPv.reduce((a, l) => a + l.n, 0);
+  $('#isla-t').innerHTML = uds ? `<span class="cifra-i"><b>${solesP(total)}</b><span>${uds} ${uds === 1 ? 'prenda' : 'prendas'} · Atendió Lucía</span></span><button class="btn pri">Cobrar</button>`
+    : `<span class="cifra-i"><b>Ticket vacío</b><span>Toca una talla para empezar</span></span>`;
+}
+function rehacerTicket() { $('#ticket-pv').innerHTML = ticketHTML(); pintarIsla(); }
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('.talla[data-t]');
+  if (t) { const i = +t.dataset.i, ta = t.dataset.t, l = ticketPv.find((x) => x.i === i && x.t === ta); if (l) l.n++; else ticketPv.push({ i, t: ta, n: 1 });
+    const art = t.closest('.tp'); const n = enTicket(i); let g = $('.gl-esq', art); if (!g) { art.insertAdjacentHTML('afterbegin', `<span class="gl-esq">${n}</span>`); } else { g.textContent = n; g.style.animation = 'none'; g.offsetWidth; g.style.animation = ''; }
+    rehacerTicket(); return; }
+  const c = ev.target.closest('.fp[data-cat]'); if (c) { catPv = c.dataset.cat; pintarPv(); return; }
+  const m = ev.target.closest('[data-mas],[data-menos],[data-quitar]');
+  if (m) { const k = +(m.dataset.mas ?? m.dataset.menos ?? m.dataset.quitar); if (m.dataset.mas != null) ticketPv[k].n++; else if (m.dataset.menos != null && ticketPv[k].n > 1) ticketPv[k].n--; else ticketPv.splice(k, 1); pintarPv(); return; }
+  if (ev.target.closest('.cont a')) ev.preventDefault();
+});
+Marco.iniciar({ estado: { pv: 'aire', tp: 'placa' }, alPintar: () => pintarPv(), alAccion: (a) => { if (a === 'vaciar') { ticketPv = []; pintarPv(); } } });
+</script>
+</body>
+</html>
