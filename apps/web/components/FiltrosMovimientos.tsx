@@ -347,7 +347,7 @@ export function FiltrosMovimientos({
         </button>
         {/* El botón de los filtros del sistema (ADR-0358, ronda 10): una píldora más, con cuántos hay puestos en su globito. */}
         <span className="flex shrink-0 sm:hidden">
-          <BotonFiltros abierto={hoja} activos={cuantosFiltros} onClick={() => setHoja(true)} data-guia="movimientos.filtros-celular" />
+          <BotonFiltros abierto={hoja} activos={cuantosFiltros} soloIcono onClick={() => setHoja(true)} data-guia="movimientos.filtros-celular" />
         </span>
         <div className="hidden sm:block">{periodos}</div>
       </div>
