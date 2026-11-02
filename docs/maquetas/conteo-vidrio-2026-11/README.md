@@ -19,10 +19,10 @@ menos de 26rem.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | La planilla de cada prenda | Como ahora | Tarjeta de papel, cabecera de tabla en arena, filas con raya arena. |
-| | **A · Placa Serena** (recomendada) | La placa elegida para las tablas; la cabecera, una franja hundida; las filas, una raya de tinta al 8 %. |
+| | **A · Placa Serena** (elegida) | La placa elegida para las tablas; la cabecera, una franja hundida; las filas, una raya de tinta al 8 %. |
 | | B · Lámina casi papel | Vidrio casi opaco (la lámina de la lista de prendas de las hojas): los números se leen sobre cualquier fondo. |
 | Los pasos Contar · Revisar · Confirmar (`PasosConteo`, el riel que comparte con Recibir) | Como ahora | Puntos de tinta y verde sólidos en una línea arena. |
-| | **A · Ranura con gotas** (recomendada) | La línea es una ranura; lo hecho, una gota verde; lo de ahora, la gota ahumada. |
+| | **A · Ranura con gotas** (elegida) | La línea es una ranura; lo hecho, una gota verde; lo de ahora, la gota ahumada. |
 | | B · Pozo con gota | Los tres pasos en un pozo, como las pestañas. |
 
 Los pasos son la misma pieza que el paso a paso de Cambios y Devoluciones: lo que elijas aquí conviene que valga para los dos y para Recibir.
@@ -41,4 +41,8 @@ inventados. Medida de 320 a 1920 px sin que nada se salga. En la maqueta, `marco
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: la planilla A · Placa Serena y los pasos A · Ranura con gotas.** Al implementar:
+- La tarjeta de cada prenda (`ListaConteo`) pasa a la placa Serena; la tabla sigue siendo un `<table>`. `encabezado-tabla-cayla` dentro de
+  la planilla pasa a una franja hundida (tinta al 5 % con su sombra adentro) y las rayas de `divide-sand` a tinta al 8 %.
+- El riel (`rc-riel` en `estilos/recepcion-conteo.css`, el mismo de Recibir): la línea, una ranura de 6 px; `.rc-punto` hecho, la gota
+  verde; el de ahora, la gota ahumada con su halo; el que falta, una gota clara. Al ser compartido, Recibir lo hereda.

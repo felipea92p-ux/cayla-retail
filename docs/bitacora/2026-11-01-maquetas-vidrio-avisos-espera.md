@@ -61,3 +61,5 @@
   pantalla de contar. La planilla conserva su cara de tabla, como pide ADR-0358, y solo cambia el material: A · Placa Serena (recomendada)
   o B · Lámina casi papel. Los pasos: A · Ranura con gotas (recomendada) o B · Pozo con gota; es la misma pieza que el paso a paso de
   Posventa y de Recibir. Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
+- **Lo que eligió Felipe en Conteo (2026-11-02):** la planilla A · Placa Serena y los pasos A · Ranura con gotas (el riel lo comparte con
+  Recibir, que lo hereda).
