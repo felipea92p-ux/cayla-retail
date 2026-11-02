@@ -26,3 +26,7 @@ En negrita, la recomendada. Lo que gana y lo que cuesta cada una, al pie de `ind
 
 En Chrome sin ventana: 54 combinaciones (320 a 1920 px, claro y oscuro, las tres caras), nada se desborda; sin errores de JS. Bajo 640 px
 la última compra y la sede bajan bajo la frase, alineadas al nombre.
+
+## Lo que decidió Felipe
+
+**A · Filas en la placa** (2026-11-02).
