@@ -64,8 +64,9 @@ function sinClave<T>(registro: Record<string, T>, clave: string): Record<string,
  * (ADR-0162). Un doble toque no manda dos veces: el botón se apaga mientras la base responde y la base no repite (la
  * misma respuesta otra vez es «ya estaba»; otra encima de una que ya está se rechaza y la lista se relee).
  *
- * Es un cajón lateral SIN velo (Felipe 2026-10-17, maqueta `docs/maquetas/recomendacion-hoja-2026-10/`): la bandeja sigue viva detrás,
- * tocar otra fila o ↑ ↓ cambia la recomendación sin cerrar el cajón, y lo escrito en cada una se guarda mientras el cajón esté abierto.
+ * Es un cajón lateral CON velo (Felipe 2026-11-02, antes sin velo: maqueta `docs/maquetas/recomendacion-hoja-2026-10/`): oscurece la
+ * bandeja y tocar afuera lo cierra, como los demás cajones. ↑ ↓ (o las flechas del pie) cambian la recomendación sin cerrarlo, y lo
+ * escrito en cada una se guarda mientras el cajón esté abierto.
  * Al responder o archivar, la hoja se queda mostrando lo hecho y ofrece «Siguiente por responder». Se lee como una conversación
  * (Felipe 2026-10-16): el mensaje del cliente y la respuesta de CAYLA en dos globos, cada uno con su hora; el estado no lleva insignia
  * porque lo dice la conversación. A un Admin no se le muestra el aviso del responsable cuando no hay nada que hacer.
@@ -295,7 +296,6 @@ export function RecomendacionHoja({
   return (
     <Cajon
       onCerrar={cerrarHoja}
-      velo={false}
       ancho="ancho"
       clave={r.id}
       marca={nombre ? <AvatarPersona personaId={null} nombre={nombre} tamano={40} /> : <UserX aria-hidden className="h-10 w-10 p-2 text-taupe" />}
