@@ -123,7 +123,7 @@ const abrirNuevo = (fecha) => `select retail.abrir_produccion_con_modelo_nuevo(:
 
 // --- 3. Al cerrar, ninguna talla pasa del doble de lo pedido (o de 5 más) ---
 const cerrar = (buenas) =>
-  `select retail.cerrar_produccion(:'orden', jsonb_build_array(jsonb_build_object('variante_id', :'negs', 'cantidad', ${buenas})), 0, 0, 100, true);\nselect 'cerrada|' || estado from retail.producciones where id = :'orden';`;
+  `select retail.cerrar_produccion_con_motivo(:'orden', jsonb_build_array(jsonb_build_object('variante_id', :'negs', 'cantidad', ${buenas})), 0, 0, 100, true, 'motivo de prueba');\nselect 'cerrada|' || estado from retail.producciones where id = :'orden';`;
 {
   const sin = correr(`${preparar({ sinProduccion: true })}${abrir("null")}${cerrar(60)}`);
   esperar("CONTROL sin la migración: una orden de 6 se cerraba con 60 buenas", sin.ok && sin.salida.includes("cerrada|"), sin.error);

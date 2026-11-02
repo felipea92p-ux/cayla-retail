@@ -92,7 +92,7 @@ end;
 $f$;
 create function pg_temp.avanza(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_avance(%L, %L::jsonb, null)', p_fase, p_lineas)) $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb) returns text language sql as $f$
-  select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, null, null, null, true)', p_oid, p_buenas)) $f$;
+  select pg_temp.intento(format('select retail.cerrar_produccion_con_motivo(%L, %L::jsonb, null, null, null, true, ''motivo de prueba'')', p_oid, p_buenas)) $f$;
 -- El cambio de tipo, sin abortar el caso: devuelve «SIN_ERROR» o «<sqlstate>|<hint>|<mensaje>».
 create function pg_temp.cambia(p_oid uuid, p_es_muestra boolean, p_motivo text default null) returns text language sql as $f$
   select pg_temp.intento(format('select retail.cambiar_tipo_orden_produccion(%L, %L, %L)', p_oid, p_es_muestra, p_motivo)) $f$;
