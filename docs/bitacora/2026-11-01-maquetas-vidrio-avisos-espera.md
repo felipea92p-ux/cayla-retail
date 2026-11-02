@@ -105,3 +105,7 @@
   recomendada; B · Ranura de tres). Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
 - **Lo que eligió Felipe en Insumos y en Liquidación (2026-11-02):** las recomendadas. Insumos: la fila A · Una placa por tela y el libro
   A · Placa con filas. Liquidación: la etiqueta A · En su bandeja y las cifras chicas A · Placas chicas.
+- **Gestión ▸ Rendimiento y Preguntas del equipo (2026-11-02)**: maquetas `docs/maquetas/rendimiento-vidrio-2026-11/` (el plan es de Dany: solo
+  el material; caras: las tarjetas de las tiendas A · La elegida se levanta / B · se hunde, y el historial de cambios de meta A · Placa que se
+  abre / B · Línea del tiempo) y `docs/maquetas/preguntas-equipo-vidrio-2026-11/` (caras: lo que conviene mejorar A · Placa con su número en
+  gota / B · Lentes del tono). Medidas de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
