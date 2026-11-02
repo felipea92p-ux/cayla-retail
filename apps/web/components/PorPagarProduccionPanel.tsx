@@ -119,6 +119,11 @@ export function PorPagarProduccionPanel({
                           {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero}
                           {c.pagado > 0 ? ` · pagado ${soles(c.pagado)} de ${soles(c.total)}` : ""}
                         </span>
+                        {c.serie === "S/P" && (
+                          <span className="mt-1 block">
+                            <Chip tono="pizarra" title="La compra se registró sin el papel del proveedor: se reemplaza cuando llegue.">Sin papel todavía</Chip>
+                          </span>
+                        )}
                         {faltante && (
                           <span className="mt-1 block">
                             <Chip tono="ambar" title={faltante.detalle}>

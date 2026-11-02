@@ -1786,6 +1786,7 @@ export const PRUEBAS = [
   // (Corte conserva su tope plan × 1,10); avance, salida y vuelta la rechazan; un servicio de ploteo cobra el fijo por orden y devenga al marcarse;
   // lo marcado solo se agrega; la línea de tiempo y las puertas. ROLLBACK.
   "pruebas:produccion-ploteo",
+  "pruebas:insumo-compra-con-deuda",
 
   // «Pendiente de registrar» (ADR-0551 pendiente de registrar): una fase de servicio sin proveedor que puede llevar su costo (tarifa, fijo, mínimo) y lo devenga igual, y se registra quién después aunque ya haya empezado (conserva el costo; bloquea la orden; deja su rastro en Actividad). El CHECK, la apertura, el devengado, las puertas. ROLLBACK.
   "pruebas:produccion-proveedor-pendiente",
