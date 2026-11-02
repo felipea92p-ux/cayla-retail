@@ -39,11 +39,18 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const SIN_MIGRACION = process.argv.includes("--sin-migracion");
+// P05 (2026-11-02): el Taller también recibe lo suyo si es Admin. Con la migración de P05 en la base, S2 espera que `recibir_orden_insumo` nombre la excepción; sin ella, ninguna.
+const CON_P05 = !process.argv.includes("--sin-p05");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
   : readFileSync(join(RAIZ, "supabase", "migrations", "20261026161000_admin_recibe_lo_que_compro.sql"), "utf8")
       .replace(/^set lock_timeout.*$/m, "")
       .replace(/^reset lock_timeout;$/m, "");
+
+// P05: la migración del Taller (20261102210000) se carga dentro de cada caso, después de la de Compras (la nombra); idempotente.
+const P05 = CON_P05
+  ? readFileSync(join(RAIZ, "supabase", "migrations", "20261102210000_admin_recibe_insumos_que_pidio.sql"), "utf8").replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "")
+  : "";
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -82,6 +89,7 @@ set client_min_messages = warning;
 begin;
 ${MIGRACIONES}
 ${MIGRACIONES}
+${P05}
 set local search_path = retail, public, extensions;
 -- «OK» si respondió, o «sqlstate|hint|mensaje» si falló.
 create function pg_temp.e(p jsonb) returns text language sql as $f$
@@ -345,12 +353,12 @@ caso(
   "fn_despacho_recibido_por_quien_compro:true:false:false,fn_recepcion_mi_persona:true:false:false,fn_recepcion_puede_recibir_lo_propio:true:false:false,fn_recepcion_quien_mira:true:false:false / true:true:O",
 );
 caso(
-  "S2 el Taller (insumos) conserva su bloqueo íntegro: ninguna función de insumos nombra la excepción, y siguen frenando con recibir_quien_compro",
+  "S2 el Taller (insumos): sigue frenando con recibir_quien_compro y, desde P05 (2026-11-02, 20261102210000), solo `recibir_orden_insumo` nombra la excepción del Admin",
   `reset role;
    select concat_ws(' / ',
      (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname like '%insumo%' and p.prosrc like '%recibir_quien_compro%') >= 1,
-     (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname like '%insumo%' and p.prosrc like '%fn_recepcion_puede_recibir_lo_propio%'));`,
-  "t / 0",
+     (select string_agg(p.proname, ',' order by p.proname) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname like '%insumo%' and p.prosrc like '%fn_recepcion_puede_recibir_lo_propio%'));`,
+  CON_P05 ? "t / recibir_orden_insumo" : "t / ",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR})`);
