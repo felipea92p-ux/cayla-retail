@@ -127,6 +127,7 @@
 @import "./estilos/vidrio/historial.css"; /* Ventas ▸ Historial con vidrio: los días en gota y la pila en lentes (docs/maquetas/historial-ventas-vidrio-2026-11/) */
 @import "./estilos/vidrio/clientes.css"; /* Clientes ▸ Fichas con vidrio: las filas en la placa (A · Filas en la placa) */
 @import "./estilos/vidrio/posventa.css"; /* Cambios y Devoluciones con vidrio: el paso a paso «A · Hilo de vidrio» y la balanza «A · Balanza» (docs/maquetas/posventa-vidrio-2026-11/) */
+@import "./estilos/vidrio/frescura.css"; /* Frescura del piso (Gestión) con vidrio: la aguja «B · Lentes del tono» y la prenda por decidir «B · Fila hundida» (docs/maquetas/frescura-vidrio-2026-11/) */
 
 /* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
    pone el botón del tema. Sin esto, un Windows o un iPhone en oscuro activaría las clases `dark:` de los componentes shadcn

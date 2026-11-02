@@ -247,3 +247,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   (`CambioResumen`: las dos prendas como fotos al aire con la lente ⇄ al medio; la diferencia, gota ahumada si cobras y clara si devuelves:
   5,0:1 o más en los dos temas). En `vidrio/posventa.css`. Se fueron los dos bucles de la pieza vieja (el hilo que corría y el botón que
   giraba). Siguen sólidos, por fuera de lo pedido: los botones del flujo, las opciones y las tarjetas de papel de cada paso.
+
+- **Frescura del piso al vidrio (Felipe 2026-11-02):** «Lo que mueve la aguja» B · Lentes del tono (cada tarjeta, vidrio teñido del tono de
+  su insignia con su filo; receta nueva `--lente-chica-*`, en oscuro más suave para que la insignia pase 4,5:1) y «por decidir» B · Fila
+  hundida (la fila en un pozo de 16 px de esquina, sin su raya ni la de abajo; el hilo rojo del mouse se conserva). En `vidrio/frescura.css`.
+  Todo pasa 4,5:1 en los dos temas. Visto con un montaje: la base local no tiene tarjetas de la aguja ni filas por decidir.
