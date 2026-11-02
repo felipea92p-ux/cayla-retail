@@ -207,7 +207,7 @@ export function PanelDescuento({
               onKeyDown={siguienteConEnter}
               placeholder="¿Por qué se descuenta?"
               disabled={bloqueado}
-              className="caja-campo-input anim-revelar box-border h-11 w-full min-w-0 text-sm"
+              className="caja-campo-input box-border h-11 w-full min-w-0 text-sm"
             />
           )}
         </section>
@@ -215,7 +215,7 @@ export function PanelDescuento({
         {/* Argumento escrito: aparece pasado el 15 %, lo aplique quien lo aplique, y es lo único que se pide (Felipe, 2026-10-01: sin código
             de descuento). El candado real vive en la base; acá se pide antes de que llegue a rechazarlo. */}
         {mostrarArgumento && (
-          <section className={`${clasePaso(descuento.argumento.trim() !== "", sigue.argumento)} anim-revelar`}>
+          <section className={clasePaso(descuento.argumento.trim() !== "", sigue.argumento)}>
             <CabezaPaso numero={4} titulo="Argumento" hecho={descuento.argumento.trim() !== ""} pista={sigue.argumento ? "Sigue aquí" : null} estado={null} />
             <p className="pv-desc-ayuda">Pasa el 15 %: cuenta por qué se autoriza.</p>
             <textarea

@@ -47,7 +47,7 @@ export function HojaDeDescuento({
   return (
     <div className="pv-desc-raiz">
       <div className="pv-desc-cab">
-        <div className="anim-sube">
+        <div>
           <TituloSeccion>
             <span className="inline-flex items-center gap-2.5">
               <BadgePercent className="h-5 w-5 text-tinta/70" aria-hidden />

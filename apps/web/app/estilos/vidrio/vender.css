@@ -400,7 +400,7 @@
    propio y sin velo que pinte: ver abajo) y se arma con las piezas elegidas: la gota (fichas de valor, «Todo el ticket»), la
    placa (listas de prendas y de motivos), el pozo (el campo «Otro»), el ahumado (la opción puesta y «Aplicar descuento») y el segmento
    «Pozo y gota» de `SegmentoDeslizante`. Los tres pasos son los del cobro (`CabezaPaso`, `.hoja-cobro-paso`). En el celular el mismo
-   cuerpo vive dentro de la hoja del ticket, en una columna. Movimiento de ADR-0136: sube y se enfoca una vez, sin rebote ni bucle.
+   cuerpo vive dentro de la hoja del ticket, en una columna. Sin movimiento de entrada: se muestra de frente (Felipe 2026-11-02).
    ===================================================================== */
 /* LAS DOS HOJAS DE VENDER SOBRE EL CATÁLOGO (la del descuento y la de cobro) son vidrio, y comparten dos reglas (Felipe 2026-11-02):
    1 · El velo NO pinta nada: solo recoge el toque que cierra la hoja. Con tinte y desenfoque dibujaba un rectángulo —el de la columna del
@@ -419,11 +419,16 @@
 .hoja-cobro.hoja-serena {
   padding: 0;
   background: transparent;
-  /* `backwards` y NO `both`: con `both` la animación terminada sigue «aplicada» (fill-mode forwards) y, mientras haya una animación de
-     opacidad/transformación sobre la hoja, el navegador no deja que su `::before` desenfoque lo que tiene detrás: la hoja quedaba como un
-     vidrio liso donde el catálogo se veía NÍTIDO (Felipe 2026-11-02: «no tiene el efecto glass»). Sin fill hacia adelante, al terminar
-     de entrar la hoja vuelve a sus estilos normales (opacidad 1, sin transformación), que es lo mismo que decía el último cuadro. */
-  animation: hoja-cobro-entra 520ms var(--ease-cayla) backwards;
+  /* SIN movimiento de entrada (Felipe 2026-11-02: «que no exista efecto al mostrar el modal, que de frente lo muestre tal cual»). Además,
+     mientras una animación de opacidad o de posición actúa sobre la hoja, el navegador no deja que su `::before` desenfoque lo de atrás:
+     el vidrio salía liso y el catálogo se veía nítido al abrirla. */
+  animation: none;
+}
+/* Y nada de lo de adentro se anima al aparecer (la pastilla «Sigue aquí», el total que se asienta, el documento que se revela…): la hoja se
+   muestra de frente, tal cual. Quedan fuera los botones (el hilo de «Procesando…» es una señal de espera) y los campos. */
+.hoja-descuento :not(button, button *, input, textarea),
+.hoja-cobro :not(button, button *, input, textarea) {
+  animation: none;
 }
 .hoja-descuento.hoja-serena::before,
 .hoja-cobro.hoja-serena::before {
@@ -546,13 +551,6 @@
   align-content: start;
   min-width: 0;
 }
-/* Cada paso entra una vez, escalonado (sube y se enfoca, sin rebote). */
-.pv-desc-cuerpo > section,
-.pv-desc-der > section {
-  animation: cayla-sube 520ms var(--ease-cayla) backwards;
-}
-.pv-desc-der > section:nth-child(1) { animation-delay: 70ms; }
-.pv-desc-der > section:nth-child(2) { animation-delay: 130ms; }
 /* El paso que sigue (guía de foco) se marca con su número en rojo y la pastilla «Sigue aquí» — SIN recuadro de fondo ni halo alrededor del
    control: dentro de esta hoja, con tres pasos casi seguidos, un recuadro rosado alrededor de un paso sobre el vidrio se veía
    como una mancha (Felipe 2026-11-02). Sin tinte tampoco hace falta el margen negativo que se lo daba. */
@@ -689,20 +687,13 @@
 /* Con la hoja del descuento abierta el ticket se queda con sus prendas, quieto y atenuado (el cobro hace lo mismo con su velo). */
 .pv-ticket[inert] {
   opacity: 0.72;
-  transition: opacity 300ms var(--ease-cayla);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hoja-descuento.hoja-serena,
-  .pv-desc-cuerpo > section,
-  .pv-desc-der > section {
-    animation: none;
-  }
   .pv-desc-fila,
   .pv-desc-opcion,
   .pv-desc-punto,
-  .pv-desc-punto::after,
-  .pv-ticket[inert] {
+  .pv-desc-punto::after {
     transition: none;
   }
 }
