@@ -83,3 +83,5 @@
   hundidas). Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
 - **Lo que eligió Felipe en Plan de campaña (2026-11-02):** la barra de rango A · Banda esmerilada (la recomendada) y el centro de avisos
   B · Lentes del tono (no la recomendada).
+- **Lo que eligió Felipe en Proveedores (2026-11-02):** las recomendadas, «Qué hacer» A · Placa con filas y «Comparar» A · Placa con
+  columnas.
