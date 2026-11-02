@@ -44,4 +44,4 @@ inventados.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**Paso a paso A · Hilo de vidrio y trae y lleva A · Balanza** (2026-11-02), las recomendadas.
