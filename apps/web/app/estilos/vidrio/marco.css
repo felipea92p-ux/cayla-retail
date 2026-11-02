@@ -44,6 +44,8 @@
 }
 @media screen {
   :root[data-tema="oscuro"] .marco-aurora i { --aurora-o: 0.1; }
+  /* En oscuro el hilo no es blanco sino crema (tinta) y el rojo baja: el rojo claro del tema pesa más sobre el fondo oscuro. */
+  :root[data-tema="oscuro"] .marco-riel { --riel-aro-luz: color-mix(in srgb, var(--color-tinta) 38%, transparent); /* contraste: no aplica — es un hilo de luz, no un texto */ --riel-aro-rojo: 60%; }
 }
 @media print {
   .marco-aurora { display: none; }
@@ -53,8 +55,32 @@
    El vidrio va en un `::before` y no en el <aside>: un `backdrop-filter` en el <aside> lo volvería el contenedor de todo lo
    `fixed` de adentro (la salida del colibrí de «Salir», un aviso) y lo recortaría a su ancho. La sombra de afuera va en el
    <aside> (su `overflow: hidden` recortaría la del `::before`); el filo de luz de la derecha, en el `::before`. */
+/* El filo especular con rojo (Felipe 2026-11-02, elegido entre cinco tras investigar cómo define su borde el vidrio de Apple, Linear y
+   Vercel): un hilo de luz de 1 px alrededor del riel que se enciende en el rojo de CAYLA arriba y abajo y casi desaparece en el medio, como la
+   luz de un cristal. Es un degradado recortado con máscara a solo el borde. Va en el `::after` del riel, solo en escritorio: en el celular
+   ese `::after` es el asa del cajón. */
 .marco-riel {
   box-shadow: var(--marco-riel-sombra);
+  --riel-aro-luz: color-mix(in srgb, var(--color-vidrio) 95%, transparent);
+  --riel-aro-rojo: 90%;
+}
+@media (min-width: 640px) {
+  .marco-riel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    padding: 1px;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-rojo) var(--riel-aro-rojo), transparent) 0%,
+      var(--riel-aro-luz) 30%,
+      color-mix(in srgb, var(--riel-aro-luz) 16%, transparent) 60%,
+      color-mix(in srgb, var(--color-rojo) calc(var(--riel-aro-rojo) * 0.6), transparent) 100%);
+    -webkit-mask: linear-gradient(var(--color-tinta) 0 0) content-box, linear-gradient(var(--color-tinta) 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(var(--color-tinta) 0 0) content-box exclude, linear-gradient(var(--color-tinta) 0 0);
+  }
 }
 .marco-riel::before {
   content: "";
@@ -90,7 +116,8 @@
   font-size: 13.5px;
   --fila-x: 12px;
 }
-/* El primer nivel reparte el alto del menú (`useMenuHolgado`: entre 40 y 56 px, y lo que sobra es aire entre filas; Felipe
+/* (Desde el 2026-11-02, con el menú abierto el primer nivel queda fijo en 40 px y sin aire: `useMenuHolgado` ya no lo reparte; plegado sigue
+   repartiendo.) El primer nivel reparte el alto del menú (`useMenuHolgado`: entre 40 y 56 px, y lo que sobra es aire entre filas; Felipe
    2026-10-31). Las hijas conservan su alto: lo que crece es el índice, no la bandeja. */
 .marco-fila[data-prof="0"] { height: var(--fila-alto, 40px); }
 .marco-riel nav [data-pieza-cajon] + [data-pieza-cajon] { margin-top: var(--fila-aire, 0px); }
@@ -117,8 +144,8 @@
   border-radius: 14px;
   pointer-events: none;
   opacity: 0;
-  background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  background: var(--menu-activa-fondo);
+  box-shadow: var(--menu-activa-sombra);
   transition: top 380ms var(--ease-cayla), height 380ms var(--ease-cayla), left 380ms var(--ease-cayla), width 380ms var(--ease-cayla), opacity 250ms var(--ease-cayla);
 }
 .marco-gota[data-lista] { opacity: 1; }
@@ -135,8 +162,8 @@
   background: var(--color-rojo);
 }
 
-/* La bandeja: los submódulos de un módulo de primer nivel abierto viven hundidos bajo él, sin líneas ni ramas (Felipe
-   2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Un subgrupo (Abastecimiento) no lleva otra bandeja:
+/* La bandeja: los submódulos de un módulo de primer nivel abierto viven en una placa esmerilada bajo él (antes hundida; «Escarcha»,
+   Felipe 2026-11-02), sin líneas ni ramas (Felipe 2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Un subgrupo (Abastecimiento) no lleva otra bandeja:
    ya está dentro de una. */
 .lateral-hijos[data-bandeja] > div {
   border-radius: 16px;
@@ -378,8 +405,8 @@
 .marco-cajon-fila { border-radius: 12px; }
 .marco-cajon-fila[aria-current="page"] {
   padding-left: 20px;
-  background: var(--gota-marca);
-  box-shadow: var(--gota-luz);
+  background: var(--menu-activa-fondo);
+  box-shadow: var(--menu-activa-sombra);
 }
 .marco-cajon-fila[aria-current="page"]::before {
   content: "";
