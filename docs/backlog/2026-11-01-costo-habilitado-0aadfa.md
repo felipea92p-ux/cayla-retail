@@ -6,6 +6,8 @@
 - [x] `pnpm pruebas:produccion-costo-del-paso` (23 casos, con mutación y camino de vuelta) y en la lista del CI; `produccion_ploteo.mjs` aprende el inverso de esta migración.
 - [x] Web: `CostoDelPasoModal`, «Poner costo» en `RutaViva`, cuadro «Costo» con el paso del Taller, guía de foco, pasos de la guía interactiva (huella aceptada) y escenario del auditor de tema.
 - [ ] **POR PEGAR (2026-11-01):** `20261101033000` en producción, en este orden: `supabase/migrations/pegar-en-produccion-costo-del-paso-1-antes-2026-11-01.sql` (solo lectura) → la migración tal cual (una parte) → `…-3-despues-2026-11-01.sql` (cuatro `true`). Vuelta probada: `…-vuelta-2026-11-01.sql`. Después, «Poner costo» a Habilitado de OP-000004.
+- [x] Migración pegada en producción (verificación 4 × true, 2026-11-01).
+- [ ] **El check «SQL pegado» sale rojo hasta que se fusione #1560:** producción ya trae sus migraciones (le agregan `ingreso_al_stock` a `fn_orden_produccion`) y main todavía no; las huellas de mis otros 4 objetos coinciden. Al fusionar #1560, volver a correr el check de este PR.
 - [ ] Decidir con Felipe si el sueldo de quien habilita (si está en planilla) se costea aquí o por planilla: poner los dos lo cuenta doble.
 - [ ] Costo desde la apertura de la orden / por defecto por modelo o proceso (hoy se escribe después de abrir).
 - [ ] `/chaos` sobre «Poner costo» (doble clic, dos pestañas): la base bloquea la orden, pero no se atacó a propósito.
