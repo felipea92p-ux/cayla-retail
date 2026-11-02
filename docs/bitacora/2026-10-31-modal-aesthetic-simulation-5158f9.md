@@ -321,3 +321,8 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   desliza 300 ms; en columna, sin pico. **Distinto de la maqueta:** a más de 960 px la placa vive en la columna izquierda y la ficha a la
   derecha, así que sobre los pasos de la derecha no hay pico (`data-pico="fuera"`); que la placa vaya a todo el ancho cambiaría el diseño y lo
   decide Felipe. Se conserva la franja de estado del paso. La base local no tiene órdenes: se vio con el marcado de RutaViva en el navegador.
+
+- **Catálogo ▸ Liquidación al vidrio (Felipe 2026-11-02):** la etiqueta A · En su bandeja (`.liq-previa` es un pozo y el papel se apoya con
+  `--papel-en-bandeja-sombra`) y las cifras chicas del celular A · Placas chicas (la placa Serena; la puesta, hundida como la tarjeta de cifra
+  que filtra). Todo en `estilos/liquidacion.css`. La etiqueta de papel, su entrada y la impresión no cambian. La sede local no tiene piezas: la
+  etiqueta se vio con su marcado dentro de la hoja real, sin guardar.

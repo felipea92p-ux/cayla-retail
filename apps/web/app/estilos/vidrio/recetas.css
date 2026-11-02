@@ -513,3 +513,14 @@
     --placa-paso-pico: var(--color-papel);
   }
 }
+
+/* ---------- Catálogo ▸ Liquidación (docs/maquetas/liquidacion-vidrio-2026-11/; piezas en estilos/liquidacion.css) ----------
+   Bloque propio. Lo eligió Felipe el 2026-11-02:
+   · «A · En su bandeja»: la etiqueta de PAPEL descansa en el pozo de la hoja (`--pozo-fondo` y `--pozo-sombra`, que ya traen su oscuro),
+     como en la bandeja de la impresora, y su sombra se acorta (de `0 6px 18px` al 22 % a esta): apoyada, no flotando. En oscuro es la
+     misma: el token sombra ya es negro, y el papel blanco se separa solo del pozo. Sin respaldo de transparencia: es una sombra.
+   · «A · Placas chicas» (las cifras del celular): la placa Serena y, la puesta, el hundido de la tarjeta de cifra que filtra; sin receta
+     propia. */
+:root {
+  --papel-en-bandeja-sombra: 0 3px 8px -2px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+}
