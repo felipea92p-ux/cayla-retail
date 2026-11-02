@@ -109,7 +109,7 @@ create function pg_temp.perdidas(p_fase uuid, p_variante uuid, p_n int) returns 
 create function pg_temp.sale(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_salida(%L, %L::jsonb, ''001-1'', null)', p_fase, p_lineas)) $f$;
 create function pg_temp.vuelve(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.intento(format('select retail.registrar_vuelta(%L, %L::jsonb, ''001-2'', null)', p_fase, p_lineas)) $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb) returns text language sql as $f$
-  select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, 1400, 200, null, true)', p_oid, p_buenas)) $f$;
+  select pg_temp.intento(format('select retail.cerrar_produccion_con_motivo(%L, %L::jsonb, 1400, 200, null, true, ''motivo de prueba'')', p_oid, p_buenas)) $f$;
 create function pg_temp.anula(p_oid uuid) returns text language sql as $f$ select pg_temp.intento(format('select retail.anular_produccion(%L, ''prueba'')', p_oid)) $f$;
 `;
 

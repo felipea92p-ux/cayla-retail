@@ -89,7 +89,7 @@ create function pg_temp.encuentra(p_insumo uuid, p_ubicacion uuid, p_cantidad nu
   select pg_temp.intento(format('select retail.encontre_tela(%L, %L, %L, %L, %L, %L)', p_insumo, p_ubicacion, p_cantidad, p_costo, 'en el depósito', p_token)) $f$;
 create function pg_temp.permite(p_oid uuid, p_motivo text) returns text language sql as $f$ select pg_temp.intento(format('select retail.permitir_pasar_sin_tela(%L, %L)', p_oid, p_motivo)) $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb) returns text language sql as $f$
-  select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, null, null, null, true)', p_oid, p_buenas)) $f$;
+  select pg_temp.intento(format('select retail.cerrar_produccion_con_motivo(%L, %L::jsonb, null, null, null, true, ''motivo de prueba'')', p_oid, p_buenas)) $f$;
 `;
 
 // Datos propios: dos telas de un color cada una (lino y pima), un forro (tela) y botones (avío), con el modelo del seed y sus dos colores.

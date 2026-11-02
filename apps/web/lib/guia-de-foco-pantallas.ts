@@ -107,6 +107,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
+  "/finanzas/impuestos/sire": { estado: "no-aplica", motivo: "Comparar con SUNAT (ADR-0601) solo mira: las cifras filtran la lista y nada se llena aquí. El archivo y quién lo sube se eligen en la hoja «Propuesta de compras» (SubirPropuestaSireModal), que lleva su registro aparte." },
   "/finanzas/reportes": { estado: "no-aplica", motivo: "¿Ganamos? (Estados financieros, ADR-0585) solo mira: la respuesta, la cascada y lo de cada sede se tocan para ver más, nada se llena. El mes y la sede los elige la barra del telar." },
   "/finanzas/reportes/balance": { estado: "no-aplica", motivo: "¿Cuánto vale CAYLA? (ADR-0585) solo mira: su único control es la fecha del Balance, un filtro. Los saldos de arranque se llenan en su propia hoja (SaldosArranqueModal), que lleva su registro aparte." },
   "/finanzas/reportes/campanas": { estado: "no-aplica", motivo: "La lista de campañas y cómo le fue a cada una (ADR-0585: la puerta desde ¿Ganamos?): solo mira, sin campos ni pasos." },
@@ -368,6 +369,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // en la cabecera de la pantalla, fuera del cajón.
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
+  "components/finanzas/SubirPropuestaSireModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/SubirPropuestaSireModal.tsx"] },
+  "components/finanzas/ResolverDiferenciaSireModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/ResolverDiferenciaSireModal.tsx"] },
   "components/plan-compra/RectificarPedidos.tsx": { estado: "no-aplica", motivo: "UN solo control (la razón de rectificar, con «Cambié de idea» de fábrica) y quién lo hace: no hay campos que completar ni pasos. La base solo se niega si el pedido ya es una orden, y la hoja lo dice antes con su aviso." },
   "components/ordenes-compra/PendientesDeCampana.tsx": { estado: "no-aplica", motivo: "Dos hojas sin nada obligatorio: «Confirmar y pedir» no tiene campos (resume el pedido, avisa si llega tarde y pide quién lo hace) y «Cambiar fecha» arranca con la fecha que ya tenía el pedido, un valor válido; lo que podría salir mal lo dice en el lugar (la fecha que ya pasó, el proveedor que cambió, la orden que la base no acepta)." },
   "components/plan-compra/NotaDeVersionModal.tsx": { estado: "no-aplica", motivo: "Una nota opcional de hasta 120 letras y quién lo hace: no hay nada que falte ni pasos que completar. Sirve a tres caminos (guardar una versión, usar el plan con tope y volver a una) y nunca bloquea: la base solo se niega si el plan no cambió." },

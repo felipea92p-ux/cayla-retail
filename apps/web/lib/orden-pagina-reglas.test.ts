@@ -15,6 +15,7 @@ import {
   RPC_ANULAR_SALIDA,
   RPC_ANULAR_VUELTA,
   RPC_CERRAR_PRODUCCION,
+  RPC_CERRAR_PRODUCCION_CON_MOTIVO,
   RPC_MARCAR_FASE,
   RPC_AGREGAR_PASO,
   RPC_QUITAR_PASO,
@@ -1155,6 +1156,15 @@ describe("pasar la orden al stock, anularla y revertirla", () => {
   it("al revertir, dice qué pasa con el stock: las prendas salen (con un movimiento) o, en una muestra, nada que devolver", () => {
     expect(textoQuePasaAlRevertir({ inventariadoEn: "2026-10-15T12:00:00+00:00", cantidadBuenas: 46 })).toContain("Las 46 prendas salen del stock del Taller");
     expect(textoQuePasaAlRevertir({ inventariadoEn: null, cantidadBuenas: 3 })).toBe("La muestra vuelve a estar en proceso. No había stock que devolver.");
+  });
+
+  describe("paridad con la migración 20261102211000 (P19: el motivo del costo atípico)", () => {
+    const SQL_MOTIVO = readFileSync(join(RAIZ, "supabase", "migrations", "20261102211000_costo_atipico_con_motivo.sql"), "utf8");
+    it("la web llama a cerrar_produccion_con_motivo con los argumentos que la base declara", () => {
+      expect(SQL_MOTIVO).toContain(`create or replace function retail.${RPC_CERRAR_PRODUCCION_CON_MOTIVO}(`);
+      for (const arg of ["p_produccion_id uuid", "p_buenas jsonb", "p_costo_tela numeric", "p_costo_avios numeric", "p_costo_maquila numeric", "p_confirma_costo_atipico boolean default false", "p_motivo text default null"])
+        expect(SQL_MOTIVO, arg).toContain(arg);
+    });
   });
 
   describe("paridad con la migración 20261014160000", () => {

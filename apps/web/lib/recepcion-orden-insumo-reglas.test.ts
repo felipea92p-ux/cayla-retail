@@ -8,6 +8,7 @@ import {
   detalleDeRecepcionOI,
   entradaInicialOI,
   esMiOrden,
+  ordenBloqueadaPorSerMia,
   leerOrdenesPorRecibir,
   leerResultadoRecepcionOI,
   llegoAlgo,
@@ -63,6 +64,14 @@ describe("recibir contra la orden de insumos: lo que queda", () => {
     ]);
     expect(leerOrdenesPorRecibir(null)).toEqual([]);
     expect([llegoAlgo(os[0]!), esMiOrden(os[0]!, "p-micaela"), esMiOrden(os[0]!, "p-felipe"), esMiOrden(os[0]!, null)]).toEqual([true, true, false, false]);
+  });
+
+  it("P05 del análisis del Taller: quien hizo la orden no la recibe, salvo que su cuenta sea de un Admin (la misma excepción que Compras)", () => {
+    const o = leerOrdenesPorRecibir(CRUDO)[0]!; // la hizo p-micaela
+    expect(ordenBloqueadaPorSerMia(o, "p-micaela", false)).toBe(true);
+    expect(ordenBloqueadaPorSerMia(o, "p-micaela", true)).toBe(false);
+    expect(ordenBloqueadaPorSerMia(o, "p-felipe", false)).toBe(false);
+    expect(ordenBloqueadaPorSerMia(o, null, false)).toBe(false);
   });
 
   it("el costo viene puesto con el sugerido, como se lee en su caja", () => {
