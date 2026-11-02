@@ -394,3 +394,53 @@
 svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):not([class*="lucide-check"], [class*="lucide-arrow"], [class*="lucide-chevron"], [class*="lucide-corner"], .lucide-plus, .lucide-minus, .lucide-x, [class*="lucide-loader"], [class*="lucide-refresh"], [class*="lucide-rotate"], [class*="lucide-undo"], [class*="lucide-redo"], [class*="lucide-trending"], [class*="lucide-move"], [class*="lucide-more"], .lucide-menu) path {
   fill: color-mix(in srgb, currentColor 12%, transparent);
 }
+
+/* ---------- Existencias: la Vitrina «A · Translúcida, sin desenfoque» y la tira «A · Pozo de vidrio» (Felipe 2026-11-02,
+   docs/maquetas/existencias-vidrio-2026-11/) ----------
+   La tarjeta Vitrina (ADR-0589) conserva su forma, su sombra de reposo y la alzada; el papel pasa a vidrio claro (86→66 %) con su luz y
+   su filo. SIN `backdrop-filter`: el 31 de octubre se descartó el desenfoque por costo con cientos de tarjetas. La chapa de colores es
+   una gota de vidrio; la tira de tallas, el pozo del ERP. La celda de una talla en cero queda como estaba hasta que Felipe la elija. */
+.tarjeta-vitrina {
+  --vitrina-filo: inset 0 1px 0 var(--color-vidrio);
+  border-color: color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 86%, transparent), color-mix(in srgb, var(--color-vidrio) 66%, transparent));
+}
+.vitrina-chapa {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 88%, transparent), color-mix(in srgb, var(--color-vidrio) 70%, transparent));
+  box-shadow: inset 0 1px 0 var(--color-vidrio), 0 4px 10px -5px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+}
+.vitrina-tira {
+  background: var(--pozo-fondo);
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 45%, transparent);
+  box-shadow: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent);
+}
+@media screen {
+  :root[data-tema="oscuro"] .tarjeta-vitrina {
+    --vitrina-filo: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    border-color: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    background: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+  }
+  :root[data-tema="oscuro"] .vitrina-tira {
+    background: color-mix(in srgb, var(--color-sombra) 32%, transparent);
+    box-shadow: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  }
+}
+
+/* La talla en cero: «A · Lente que pide» (Felipe 2026-11-02). La que tiene 0 en el piso y algo en el almacén SALE del pozo como una
+   lente ámbar (pide que la cuelgues); la agotada, igual en rojo. La letra va en su tono mezclado con tinta: 6,5:1 en claro y 6,7:1 en
+   oscuro (medido en la maqueta). Su línea chica dice «↑ 3» (`lineaGuardadas`) y su title, qué puedes hacer. */
+.vitrina-talla:is([data-estado="falta"], [data-estado="agotada"]) { --tono-celda: var(--color-ambar); }
+.vitrina-talla[data-estado="agotada"] { --tono-celda: var(--color-rojo); }
+.vitrina-talla:is([data-estado="falta"], [data-estado="agotada"]) {
+  color: color-mix(in srgb, var(--tono-celda) 82%, var(--color-tinta));
+  border-color: color-mix(in srgb, var(--tono-celda) 55%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tono-celda) 14%, color-mix(in srgb, var(--color-vidrio) 80%, transparent)), color-mix(in srgb, var(--tono-celda) 26%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 80%, transparent), 0 3px 8px -4px color-mix(in srgb, var(--tono-celda) 45%, transparent);
+}
+.vitrina-talla[data-estado="agotada"] { color: color-mix(in srgb, var(--tono-celda) 78%, var(--color-tinta)); }
+@media screen {
+  :root[data-tema="oscuro"] .vitrina-talla:is([data-estado="falta"], [data-estado="agotada"]) {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--tono-celda) 22%, transparent), color-mix(in srgb, var(--tono-celda) 30%, transparent));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 3px 8px -4px color-mix(in srgb, var(--color-sombra) 60%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}

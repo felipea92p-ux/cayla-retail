@@ -193,3 +193,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   18 px y su sombra, sube 3 px al pasar el mouse; nombre, tallas y precio planos debajo; tallas en gota: agotada hueco punteado, almacén
   ámbar punteada, apartada pizarra punteada; el globito dentro de la foto). En el celular, «Ver ticket» de la isla es la gota crema (15:1 en
   los dos temas). En `vidrio/vender.css` + recetas. El ticket sigue ocupando el alto de su columna (la página no corre en escritorio).
+
+- **Existencias al vidrio (Felipe 2026-11-02):** la Vitrina «A · Translúcida, sin desenfoque» (papel → vidrio claro 86→66 % con su filo;
+  sin `backdrop-filter` por costo con cientos de tarjetas; la sombra y la alzada siguen), la chapa de colores en gota y la tira de tallas
+  «A · Pozo de vidrio». La talla en cero «A · Lente que pide»: la que tiene 0 en el piso y algo en el almacén sale del pozo como una lente
+  ámbar (la agotada, en rojo), su línea dice «↑ 3» (`lineaGuardadas`, con su prueba) y su title «0 en el piso · 3 en el almacén: puedes
+  colgarlas». En `vidrio/pantalla.css`; `ExistenciasTarjetas` da `vitrina-talla` + `data-estado`.
