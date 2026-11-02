@@ -85,3 +85,7 @@
   B · Lentes del tono (no la recomendada).
 - **Lo que eligió Felipe en Proveedores (2026-11-02):** las recomendadas, «Qué hacer» A · Placa con filas y «Comparar» A · Placa con
   columnas.
+- **Comprobantes, página entera (2026-11-02)**: maqueta `docs/maquetas/comprobantes-vidrio-2026-11/`, solo el material (nada de SUNAT ni de
+  Lucode). Caras de lo propio: las tarjetas de indicador (A · Lente del tono, recomendada; B · Placa con su canto; la luz que sigue al mouse se
+  queda) y los documentos de SUNAT de cada fila (A · Gotas chicas, recomendada; B · Ranura). La isla `.tema-vidrio` de ADR-0124 se va. Medida
+  de 320 a 1920 px sin desbordes ni errores. Sin cambios en `apps/web`.
