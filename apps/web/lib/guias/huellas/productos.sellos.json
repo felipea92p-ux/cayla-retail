@@ -153,7 +153,7 @@
       "button «Registrar otra en vez de editar»"
     ],
     "components/sellos/SellosPantalla.tsx": [
-      "button «→() => abrir(e.id)»",
+      "button «→(ev) => abrir(e.id, ev.currentTarget)»",
       "BotonEditar «→() => setEditandoId(e.id)»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
