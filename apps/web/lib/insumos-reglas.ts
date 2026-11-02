@@ -193,9 +193,20 @@ export type LoteInsumo = {
   costoUnitario: number | null;
   documento: string | null;
   origen: "compra" | "saldo_inicial";
+  /** A quién se le compró (solo lo lee quien ve los proveedores del Taller: el líder); `null` o ausente si no se sabe. */
+  proveedor?: string | null;
+  /** La nota del ingreso: «1041 kg × 3.21 m/kg (ancho 133 cm, gramaje 234 g/m²)» cuando se compró por kilo, o «Encontré tela». */
+  nota?: string | null;
   /** Por qué este ingreso no se corrige ni se elimina desde la pantalla (de él ya salió material); `null` o ausente si se puede (ADR-0570, `motivoParaNoTocarIngreso`). */
   noSeToca?: string | null;
 };
+
+/** De dónde vino un lote, en una frase de tienda: «saldo inicial», «compra a Textiles Gamarra» o, sin saber a quién, «compra» (P11 del análisis del Taller: «s/c» y «compra» solos no decían nada). */
+export function origenDeLote(l: Pick<LoteInsumo, "origen" | "proveedor">): string {
+  if (l.origen === "saldo_inicial") return "saldo inicial";
+  const quien = l.proveedor?.trim();
+  return quien ? `compra a ${quien}` : "compra";
+}
 
 /** Lo que queda de un lote, como lo recalcula `registrar_consumo_insumo`: lo ingresado, menos consumo y merma,
  *  más devoluciones. (El movimiento `compra` que abre el lote no se vuelve a sumar: ya es `cantidadIngresada`.) */
