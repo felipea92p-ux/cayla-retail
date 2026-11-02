@@ -19,3 +19,4 @@
 - **Apartados, elegida** (maqueta de la otra sesión): la hoja A · Al aire y las pestañas del celular A · Isla de pestañas; pasada a la sesión que implementa. Fusionada la maqueta de Frescura del piso, sin elegir.
 - **Mis compras, elegida** (maqueta de la otra sesión): billetera A · Ahumada y «¿Qué hiciste?» A · Gota grande; pasada a la sesión que implementa. Con esto, todas las maquetas de páginas hechas hasta hoy quedan elegidas. Fusionada la elección de Frescura (aguja B, por decidir B).
 - **Página Colaboradores ▸ Equipo, en maqueta** (`docs/maquetas/colaboradores-vidrio-2026-11/`): la píldora del rol A · Gotas / B · Solo texto y «Esperan tu ok» A · Lente ámbar / B · Placa con filo. 162 combinaciones sin desborde. A la otra sesión: Plan de campaña y Proveedores.
+- **Colaboradores, elegida:** rol A · Gotas y «Esperan tu ok» A · Lente ámbar; pasada a la sesión que implementa.

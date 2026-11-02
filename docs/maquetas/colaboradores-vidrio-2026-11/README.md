@@ -25,3 +25,7 @@ En negrita, la recomendada. Lo que gana y lo que cuesta cada una, al pie de `ind
 
 En Chrome sin ventana: 162 combinaciones (320 a 1920 px, claro y oscuro, todas las caras), nada se desborda; sin errores de JS. En el
 teléfono cada alta ocupa su renglón con sus dos botones debajo (a 320 px se salían 18 px), y «Esperan tu ok» va arriba.
+
+## Lo que decidió Felipe
+
+**Rol A · Gotas y «Esperan tu ok» A · Lente ámbar** (2026-11-02).
