@@ -265,8 +265,9 @@ export function BarraCajaMovil({
         Ingreso
       </button>
       {onCerrar && (
-        // ADR-0318: «Cerrar» es el único cuadrado en rojo de acento: lo que hay que hacer al terminar el turno.
-        <button type="button" onClick={onCerrar} className={`${cuadrado} !border-rojo !bg-rojo !text-crema`} aria-label="Cerrar caja">
+        // ADR-0318: «Cerrar» es el único cuadrado en rojo de acento: lo que hay que hacer al terminar el turno (la gota roja de
+        // «Cerrar caja», `cc-cuadrado-cerrar`: estilos/caja-cierre.css y vidrio/caja.css).
+        <button type="button" onClick={onCerrar} className={`${cuadrado} cc-cuadrado-cerrar`} aria-label="Cerrar caja">
           <Lock size={16} aria-hidden />
           Cerrar
         </button>

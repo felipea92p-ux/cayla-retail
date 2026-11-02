@@ -219,14 +219,6 @@ export function costoDelModelo(m: Pick<ModeloIngresado, "costoMin" | "costoMax">
   return rangoSolesTexto(m.costoMin, m.costoMax) ?? "Sin costo";
 }
 
-export type FiltroNovedad = "todos" | "nuevo" | "reingreso";
-
-export function filtrarPorNovedad<T extends Pick<ModeloIngresado, "esNuevo">>(modelos: readonly T[], filtro: FiltroNovedad): T[] {
-  if (filtro === "nuevo") return modelos.filter((m) => m.esNuevo);
-  if (filtro === "reingreso") return modelos.filter((m) => !m.esNuevo);
-  return [...modelos];
-}
-
 /** Cuántos hay de cada clase; el filtro solo se ofrece si hay de las dos (con una sola, no filtra nada). */
 export function cuentaNovedad(modelos: readonly Pick<ModeloIngresado, "esNuevo">[]): { nuevos: number; reingresos: number; hayDeLasDos: boolean } {
   const nuevos = modelos.filter((m) => m.esNuevo).length;
@@ -280,13 +272,6 @@ export const ORDEN_INICIAL_INGRESOS: OrdenIngresos = { campo: "prendas", dir: "d
 
 export function esCampoOrdenIngresos(campo: string): campo is CampoOrdenIngresos {
   return campo === "modelo" || campo === "prendas" || campo === "precio" || campo === "costo";
-}
-
-/** Lo que pasa al tocar el título de una columna: la misma invierte; otra empieza donde se espera (el nombre de A a Z, las
- *  cifras de mayor a menor). */
-export function siguienteOrdenIngresos(actual: OrdenIngresos, campo: CampoOrdenIngresos): OrdenIngresos {
-  if (actual.campo === campo) return { campo, dir: actual.dir === "asc" ? "desc" : "asc" };
-  return { campo, dir: campo === "modelo" ? "asc" : "desc" };
 }
 
 type Ordenable = Pick<ModeloIngresado, "referencia" | "unidades" | "precioMin" | "precioMax" | "costoMin" | "costoMax">;

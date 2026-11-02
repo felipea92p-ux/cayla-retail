@@ -108,7 +108,7 @@ describe("colorDeEntrada", () => {
 describe("lineaGuardadas (ADR-0391: lo colgado grande, lo guardado debajo con su palabra)", () => {
   it("con 1 talla dice las palabras del modal: «+2 en almacén», «+1 en almacén», «0 en almacén» tenue", () => {
     expect(lineaGuardadas({ estado: "normal", almacen: 2 }, 1)).toEqual({ texto: "+2 en almacén", cero: false });
-    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 1)).toEqual({ texto: "+1 en almacén", cero: false });
+    expect(lineaGuardadas({ estado: "falta", almacen: 1 }, 1)).toEqual({ texto: "↑ 1 en almacén", cero: false });
     expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 1)).toEqual({ texto: "0 en almacén", cero: true });
   });
   it("con 2 tallas o más no cabe la palabra junto a la foto a 12 px (ADR-0589): solo el número (la leyenda del pie la pone)", () => {
@@ -116,6 +116,10 @@ describe("lineaGuardadas (ADR-0391: lo colgado grande, lo guardado debajo con su
     expect(lineaGuardadas({ estado: "normal", almacen: 3 }, 3)).toEqual({ texto: "+3", cero: false });
     expect(lineaGuardadas({ estado: "normal", almacen: 3 }, 4)).toEqual({ texto: "+3", cero: false });
     expect(lineaGuardadas({ estado: "normal", almacen: 0 }, 6)).toEqual({ texto: "0", cero: true });
+  });
+  it("la que falta colgar dice «↑ 3»: la flecha que sube y las del almacén (vidrio, «A · Lente que pide»)", () => {
+    expect(lineaGuardadas({ estado: "falta", almacen: 3 }, 4)).toEqual({ texto: "↑ 3", cero: false });
+    expect(lineaGuardadas({ estado: "falta", almacen: 3 }, 1)).toEqual({ texto: "↑ 3 en almacén", cero: false });
   });
   it("agotada: «se acabó», apretado «acabó»; nunca tenue (es un aviso, no un cero)", () => {
     expect(lineaGuardadas({ estado: "agotada", almacen: 0 }, 1)).toEqual({ texto: "se acabó", cero: false });

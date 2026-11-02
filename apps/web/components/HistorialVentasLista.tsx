@@ -4,6 +4,8 @@ import { useState, type CSSProperties } from "react";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Globito } from "@/components/ui/Globito";
+import { SeparadorDia } from "@/components/ui/TituloSeccion";
 import type { EmpresasAqui } from "@/lib/empresas-de-sede-reglas";
 import { marcaDeEmpresa, type LineaConEmpresa } from "@/lib/vendido-por-empresa-reglas";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
@@ -15,13 +17,13 @@ import { agruparPorDia, subtituloDePrendas, titulosDePrendas, type FilaHistorial
 import { comprobanteAccionable, textoMarcaPosventa } from "@/lib/historial-acciones-reglas";
 import { AccionesVenta, RecorridoVenta, type ContextoAccionesSerializable } from "@/components/AccionesVentaHistorial";
 
-// La lista de Ventas ▸ Historial (ADR-0147), con la misma línea que Cambios y Devoluciones (Atelier): un
-// hilo taupe baja por la izquierda, cada día es un nudo sobre él y sus ventas cuelgan a la derecha en una
-// hoja de papel. La unidad es la venta —no la prenda—: su título son los nombres de las prendas (serif, lo
+// La lista de Ventas ▸ Historial (ADR-0147). Con vidrio (ADR-0596, Felipe 2026-11-02, «B · Solo los días en gota»): sin el hilo
+// de la izquierda, la lista va a todo el ancho; el día y su total son las dos gotas del separador de día (`<SeparadorDia>`), que se
+// quedan arriba al bajar, y las ventas del día van en la placa Serena (vidrio/historial.css). La unidad es la venta —no la prenda—: su título son los nombres de las prendas (serif, lo
 // más grande), y debajo van la talla y el color, y una sola línea chica con hora, tienda, quién compró y
 // quién vendió. A la derecha, el comprobante con su estado y el total con la forma de pago.
 //
-// Cada venta lleva por delante un racimo de miniaturas: la foto de la prenda si la hay (hoy solo el 30 % de
+// Cada venta lleva por delante un racimo de miniaturas («A · Lentes apiladas»: lentes redondas con su aro de vidrio): la foto de la prenda si la hay (hoy solo el 30 % de
 // lo vendido la tiene) y, si no, un mosaico del COLOR vendido — el color siempre existe. Se lee de un vistazo
 // de qué colores fue la venta. Al tocar la fila se abre el detalle de siempre (`DetalleVentaModal`), que se
 // lee de la base al abrir.
@@ -39,8 +41,7 @@ import { AccionesVenta, RecorridoVenta, type ContextoAccionesSerializable } from
 // de la fila (el chip «Pendiente de enviar →», una marca de posventa) va encima con `relative z-10`.
 //
 // Conectada (ADR-0230): cada venta dice lo que le pasó después —«Tuvo cambio», «Devuelta», «Desde apartado»—, el chip de un
-// comprobante que espera a SUNAT lleva a resolverlo, y el detalle suma el recorrido y «Qué hacer con esta venta». En el
-// celular el hilo de la izquierda no se dibuja: esos 44 px son de la venta.
+// comprobante que espera a SUNAT lleva a resolverlo, y el detalle suma el recorrido y «Qué hacer con esta venta».
 
 const TONO_COMPROBANTE: Record<EstadoComprobante, TonoChip> = {
   aceptado: "verde",
@@ -79,42 +80,36 @@ export function HistorialVentasLista({
 
   return (
     <>
-      <div className="@container relative sm:pl-11">
-        <span aria-hidden className="hilo-vertical absolute bottom-0 left-[11px] top-1.5 hidden w-[1.5px] bg-gradient-to-b from-taupe to-taupe/15 sm:block" />
-        <div className="space-y-8">
-          {dias.map((dia, d) => {
-            const etiqueta = etiquetaDia(dia.fecha, hoyLima);
-            const delDia = totalesPorDia[dia.fecha];
-            return (
-              <section key={dia.fecha} aria-label={etiqueta} className="anim-sube space-y-3.5" style={{ "--i": Math.min(d + 3, 12) } as CSSProperties}>
-                <h3 className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
-                  <span className="relative text-[11.5px] font-semibold uppercase tracking-[0.16em] text-taupe-profundo">
-                    <span aria-hidden className="absolute -left-10 -top-px hidden h-3.5 w-3.5 items-center justify-center rounded-full bg-crema ring-[1.5px] ring-taupe sm:flex">
-                      <span className="h-1.5 w-1.5 rounded-full bg-taupe" />
-                    </span>
-                    {etiqueta}
-                  </span>
-                  <span className="text-sm text-tinta/60">
-                    {delDia && delDia.total > 0 ? (
-                      <>
-                        <span className="font-display text-lg tabular-nums text-tinta">{soles(delDia.total)}</span> · {ventas(delDia.ventas)}
-                      </>
-                    ) : (
-                      ventas(dia.filas.length)
-                    )}
-                  </span>
-                </h3>
-                <div className="rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
-                  <ul className="p-1.5">
-                    {dia.filas.map((v) => (
-                      <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} puedeFacturar={contexto.puedeFacturar} empresas={empresas} lineas={porVenta[v.id] ?? []} />
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            );
-          })}
-        </div>
+      <div className="historial-dias @container space-y-8">
+        {dias.map((dia, d) => {
+          const etiqueta = etiquetaDia(dia.fecha, hoyLima);
+          const delDia = totalesPorDia[dia.fecha];
+          return (
+            <section key={dia.fecha} aria-label={etiqueta} className="anim-sube space-y-2" style={{ "--i": Math.min(d + 3, 12) } as CSSProperties}>
+              <SeparadorDia
+                hoy={dia.fecha === hoyLima}
+                total={
+                  delDia && delDia.total > 0 ? (
+                    <>
+                      <b className="font-display text-[15px] font-medium tabular-nums">{soles(delDia.total)}</b> · {ventas(delDia.ventas)}
+                    </>
+                  ) : (
+                    ventas(dia.filas.length)
+                  )
+                }
+              >
+                {etiqueta}
+              </SeparadorDia>
+              <div className="historial-placa rounded-[20px]">
+                <ul className="p-1.5">
+                  {dia.filas.map((v) => (
+                    <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} puedeFacturar={contexto.puedeFacturar} empresas={empresas} lineas={porVenta[v.id] ?? []} />
+                  ))}
+                </ul>
+              </div>
+            </section>
+          );
+        })}
       </div>
 
       {abierta && (
@@ -229,35 +224,33 @@ function FilaVenta({
   );
 }
 
-/** Hasta tres miniaturas encimadas —la primera arriba— y un «+N» si hay más: una paleta de la venta. */
+/** Hasta tres lentes encimadas —la primera arriba— y un «+N» si hay más: una paleta de la venta. */
 function Racimo({ piezas, anulada }: { piezas: PrendaDeVenta[]; anulada: boolean }) {
   const visibles = piezas.slice(0, 3);
   const resto = piezas.length - visibles.length;
   return (
     <span
       aria-hidden
-      className={`flex shrink-0 items-center transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-105 ${anulada ? "opacity-45 saturate-50" : ""}`}
+      className={`historial-pila flex shrink-0 items-center transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-105 ${anulada ? "opacity-45 saturate-50" : ""}`}
     >
       {visibles.map((p, i) => (
-        <span key={i} className={`relative ${i > 0 ? "-ml-3.5" : ""}`} style={{ zIndex: visibles.length - i }}>
+        <span key={i} className={`relative ${i > 0 ? "-ml-3" : ""}`} style={{ zIndex: visibles.length - i }}>
           <Miniatura p={p} />
-          {/* La misma prenda, talla y color más de una vez: un solo mosaico con ×N (`piezasDeVenta` las junta). */}
-          {p.cantidad > 1 && (
-            <span className="absolute -bottom-1.5 -right-1.5 rounded-full bg-tinta px-1.5 text-sm font-semibold leading-4 text-crema ring-2 ring-papel">×{p.cantidad}</span>
-          )}
+          {/* La misma prenda, talla y color más de una vez: una sola lente con el globito de la esquina, «×N» (`piezasDeVenta` las junta). */}
+          {p.cantidad > 1 && <Globito n={p.cantidad} esquina className="absolute -bottom-1.5 -right-1.5" />}
         </span>
       ))}
-      {resto > 0 && (
-        <span className="ml-1.5 flex h-10 w-10 items-center justify-center rounded-lg bg-sand text-sm font-semibold text-tinta/70 ring-2 ring-papel">+{resto}</span>
-      )}
+      {resto > 0 && <span className="historial-resto ml-1.5 text-sm font-semibold">+{resto}</span>}
     </span>
   );
 }
 
-/** La foto de la prenda o, sin ella, un mosaico de su color (con un filete interior para que un beige o un blanco no desaparezcan sobre el papel). */
+/** La lente de la prenda: su foto o, sin ella, su COLOR (dato: no cambia con el tema). La luz y el aro los pone `historial-lente`. */
 function Miniatura({ p }: { p: PrendaDeVenta }) {
-  const base = "block h-10 w-10 rounded-lg ring-2 ring-papel";
-  const mosaico = <span className={`${base} shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
-  if (p.fotoUrl) return <ImagenDePrenda src={p.fotoUrl} alt="" width={40} height={40} className={`${base} object-cover`} fallback={mosaico} />;
-  return mosaico;
+  const color = <span className="block h-full w-full" style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
+  return (
+    <span className="historial-lente" data-color-dato>
+      {p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" width={40} height={40} className="block h-full w-full object-cover" fallback={color} /> : color}
+    </span>
+  );
 }

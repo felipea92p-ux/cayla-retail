@@ -170,7 +170,8 @@ export function TarjetaAtributo({
 }) {
   const arriba = (
     <>
-      {muestra}
+      {/* La muestra al aire (vidrio/catalogo.css): llega al borde de arriba de la placa, sin su recuadro. */}
+      <div className="tarjeta-valor-muestra">{muestra}</div>
       <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <span className="text-[15px] font-medium leading-snug text-tinta">
@@ -187,7 +188,7 @@ export function TarjetaAtributo({
   return (
     <div
       data-guia="vocabulario.tarjeta"
-      className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
+      className={`tarjeta-valor group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
         apagada ? "opacity-60" : ""
       }`}
     >

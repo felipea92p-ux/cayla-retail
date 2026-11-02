@@ -281,7 +281,8 @@ export function PasarAlStockModal({
         </div>
 
         {!orden.esMuestra && esLider && (
-          <div data-guia="prod-orden-stock.ya-estaba" className="rounded-xl border border-sand px-4 py-3">
+          // La lámina de vidrio de toda tarjeta dentro de una hoja (vidrio/hoja.css), no un recuadro de papel con borde arena.
+          <div data-guia="prod-orden-stock.ya-estaba" className="card-cayla px-4 py-3">
             <label className="flex cursor-pointer items-start gap-3">
               <Casilla marcada={yaEstaba} onCambio={() => setYaEstaba((v) => !v)} etiqueta={TEXTO_YA_ESTABA.etiqueta} disabled={cargando} className="mt-0.5" />
               <span className="space-y-0.5">

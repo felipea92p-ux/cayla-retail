@@ -17,12 +17,14 @@ const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 function Tarjeta({ s, puedeBajar, onVerCategoria }: { s: SenalCategoria; puedeBajar: boolean; onVerCategoria: (categoriaId: string) => void }) {
   const a = s.acogida;
   const accion = s.accion;
+  // El tono de la insignia tiñe también la tarjeta (la lente del tono, `estilos/vidrio/frescura.css`).
+  const tono = s.tipo === "se_queda" ? "ambar" : "verde";
   return (
-    <li className="flex min-w-0 flex-col gap-2 rounded-xl border border-sand bg-papel px-4 py-3.5">
+    <li data-tono={tono} className="frescura-aguja-tarjeta flex min-w-0 flex-col gap-2 px-4 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[16px] font-semibold leading-tight">{s.nombre}</span>
         {/* Dos causas, dos nombres (Felipe, Formidable 2026-10-10 (c)): lo colgado es viejo para su categoría, o ocupa más de lo que vende. */}
-        <Chip tono={s.tipo === "se_queda" ? "ambar" : "verde"}>{s.tipo === "se_lleva" ? "Se lleva más" : s.motivo === "edad" ? "Envejeciendo" : "Le sobra piso"}</Chip>
+        <Chip tono={tono}>{s.tipo === "se_lleva" ? "Se lleva más" : s.motivo === "edad" ? "Envejeciendo" : "Le sobra piso"}</Chip>
       </div>
       {a && (
         <p className="text-[15px] leading-snug">

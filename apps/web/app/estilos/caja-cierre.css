@@ -16,6 +16,8 @@
 }
 .cc-boton:active { transform: scale(0.98); }
 .cc-boton:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
+/* El cuadrado «Cerrar» de la barra del celular (BarraCajaMovil): el único en rojo de acento. Sin capa, le gana al `bg-papel` del cuadrado. */
+.cc-cuadrado-cerrar { border-color: var(--color-rojo); background: var(--color-rojo); color: var(--color-crema); }
 
 /* La barra fija de escritorio: se pega al borde de abajo mientras se recorre la pantalla. */
 .cc-barra-pie { position: sticky; bottom: 0; z-index: 20; padding: 10px 0 14px; background: linear-gradient(to top, var(--color-crema) 60%, transparent); }

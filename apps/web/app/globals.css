@@ -105,6 +105,37 @@
 @import "./estilos/cifra-rueda.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
+/* El vidrio «Serena» (ADR-0596): las recetas (placa, gota, pozo, ahumado) y las piezas que se arman con ellas. Va después de todo:
+   sin capa, le gana a las utilidades y a `components`, así que una pieza cambia aquí y cambia en todo el ERP. */
+@import "./estilos/vidrio/recetas.css";
+/* La pantalla (cabecera, tarjetas de cifra, pestañas, tablas) antes que la hoja: dentro de una hoja manda la lámina de la hoja. */
+@import "./estilos/vidrio/pantalla.css";
+@import "./estilos/vidrio/tabla-viva.css"; /* La tabla con superpoderes (TablaViva) */
+@import "./estilos/vidrio/hoja.css";
+@import "./estilos/vidrio/campos-y-botones.css";
+@import "./estilos/vidrio/notas-avisos-combos.css";
+@import "./estilos/vidrio/graficos-y-pasos.css";
+@import "./estilos/vidrio/barras.css"; /* La barra de avance «A · Tubo» y los botones de la barra de abajo «A · Gota ahumada» (inicio-lider-vidrio-2026-10) */
+@import "./estilos/vidrio/avisos-espera.css"; /* Los avisos de la esquina, el loader y «Hay una versión nueva» (avisos-espera-vidrio-2026-10) */
+/* El marco con vidrio (ADR-0596): la aurora del fondo, el riel del menú con su gota, la bandeja de submódulos y las dos islas
+   de la cabecera. La estructura vive en components/AppShell.tsx. */
+@import "./estilos/vidrio/marco.css";
+@import "./estilos/vidrio/observatorio.css"; /* El Observatorio con vidrio (el Inicio del Admin, ADR-0322 / ADR-0596) */
+@import "./estilos/vidrio/inicio.css"; /* El Inicio de una líder con vidrio (inicio-lider-vidrio-2026-10) */
+@import "./estilos/vidrio/vender.css"; /* El Punto de Venta con vidrio: la mesa al aire, el ticket en placa y la prenda «Foto al aire» (docs/maquetas/vender-vidrio-2026-11/) */
+@import "./estilos/vidrio/caja.css"; /* La Caja con vidrio: titular A · Ahumado, barra de cierre B · Isla */
+@import "./estilos/vidrio/historial.css"; /* Ventas ▸ Historial con vidrio: los días en gota y la pila en lentes (docs/maquetas/historial-ventas-vidrio-2026-11/) */
+@import "./estilos/vidrio/clientes.css"; /* Clientes ▸ Fichas con vidrio: las filas en la placa (A · Filas en la placa) */
+@import "./estilos/vidrio/posventa.css"; /* Cambios y Devoluciones con vidrio: el paso a paso «A · Hilo de vidrio» y la balanza «A · Balanza» (docs/maquetas/posventa-vidrio-2026-11/) */
+@import "./estilos/vidrio/frescura.css"; /* Frescura del piso (Gestión) con vidrio: la aguja «B · Lentes del tono» y la prenda por decidir «B · Fila hundida» (docs/maquetas/frescura-vidrio-2026-11/) */
+@import "./estilos/vidrio/colaboradores.css"; /* Colaboradores ▸ Equipo con vidrio: el rol «A · Gotas» y «Esperan tu ok» «A · Lente ámbar» (docs/maquetas/colaboradores-vidrio-2026-11/) */
+@import "./estilos/vidrio/proveedores.css"; /* Compras ▸ Proveedores con vidrio: «Qué hacer» A · Placa con filas y «Comparar» A · Placa con columnas (docs/maquetas/proveedores-vidrio-2026-11/) */
+@import "./estilos/vidrio/recibir.css"; /* Recibir mercadería «B» con vidrio: superficies A · Vidrio claro y avances B · Tubo; el movimiento de ADR-0575 no cambia (docs/maquetas/recibir-vidrio-2026-11/) */
+@import "./estilos/vidrio/comprobantes.css"; /* Ventas ▸ Comprobantes con vidrio: las tarjetas de indicador A · Lente del tono y los documentos de SUNAT A · Gotas chicas; se fue la isla de ADR-0124 (docs/maquetas/comprobantes-vidrio-2026-11/) */
+@import "./estilos/vidrio/plan-piso.css"; /* Gestión ▸ Plan del piso con vidrio: tarjeta B · Al aire y banda B · Estante de vidrio; el riel «La percha» no cambia (docs/maquetas/plan-piso-vidrio-2026-11/) */
+@import "./estilos/vidrio/catalogo.css"; /* Catálogo ▸ Categorías, Marcas y Atributos con vidrio: la tarjeta A · Muestra al aire y el índice de letras A · Ranura con gotas (docs/maquetas/catalogo-vocabulario-vidrio-2026-11/) */
+@import "./estilos/vidrio/ordenes.css"; /* Producción ▸ Órdenes con vidrio: la ruta B · Lentes al aire y el paso abierto A · Placa con su pico; la lista no cambia (docs/maquetas/ordenes-vidrio-2026-11/) */
+@import "./estilos/vidrio/insumos.css"; /* Producción ▸ Insumos con vidrio: la fila A · Una placa por tela y el libro A · Placa con filas (docs/maquetas/insumos-vidrio-2026-11/) */
 
 /* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
    pone el botón del tema. Sin esto, un Windows o un iPhone en oscuro activaría las clases `dark:` de los componentes shadcn
@@ -326,11 +357,12 @@
 
 /* Lateral plegado (2026-09-19). UNA sola fuente de verdad, la misma de `--spacing-lateral`: el
    <aside>, la cabecera, el <main> y las barras fijas (`BarraFija`, el pie del Punto de Venta) leen
-   ese token, así que plegar el menú es redefinirlo aquí y ninguno se entera. 4.75rem = 76 px =
-   12 (aire) + 16 (relleno de fila) + 20 (ícono) + 16 + 12: el ícono queda EXACTO donde estaba, solo
-   se apagan las etiquetas. `AppShell` pone `data-lateral="plegado"` en su contenedor. */
+   ese token, así que plegar el menú es redefinirlo aquí y ninguno se entera. 5.25rem = 84 px =
+   10 (aire) + 64 (el cuadrado de la fila, con el ícono al centro y su nombre corto debajo) + 10: «Plegado A · Con nombre»,
+   del marco con vidrio (ADR-0596, Felipe 2026-10-31; antes 4.75rem, solo íconos). `AppShell` pone `data-lateral="plegado"`
+   en su contenedor. */
 [data-lateral="plegado"] {
-  --spacing-lateral: calc(4.75rem + env(safe-area-inset-left, 0px));
+  --spacing-lateral: calc(5.25rem + env(safe-area-inset-left, 0px));
 }
 
 /* ==================================================================
@@ -1739,28 +1771,8 @@ html[data-buscando] [data-resultados] {
 }
 
 @layer components {
-  /* Hijas de un grupo del lateral: se despliegan por `grid-template-rows: 0fr → 1fr` (sin medir
-     alturas — una medición tardía es un salto) y cada fila aparece con 30 ms de escalón, el mismo
-     de `MenuNuevo` y del desplegable de campos.tsx. Cerradas siguen montadas, con alto 0 y `inert`. */
-  .lateral-hijos {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 300ms var(--ease-cayla);
-  }
-  .lateral-hijos[data-abierto="true"] { grid-template-rows: 1fr; }
-  .lateral-hijos > div { min-height: 0; overflow: hidden; }
-  .lateral-hijo { opacity: 0; transition: opacity 200ms var(--ease-cayla); }
-  /* `> div >`, no un descendiente cualquiera (D-84): un subgrupo (Abastecimiento) mete OTRO `.lateral-hijos` dentro
-     de una `.lateral-hijo` — sin acotar el selector a SU hija directa, abrir Producción encendía de una la opacidad
-     de las pantallas de Abastecimiento aunque el subgrupo siguiera cerrado (sin cascada propia al abrirlo después,
-     porque ya estaban en opacity:1 desde antes). Acotado así, cada `.lateral-hijos` gobierna solo a SUS hijas. */
-  .lateral-hijos[data-abierto="true"] > div > .lateral-hijo {
-    opacity: 1;
-    transition-delay: calc(var(--i, 0) * 30ms + 60ms);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .lateral-hijos[data-abierto="true"] > div > .lateral-hijo { transition-delay: 0ms; }
-  }
+  /* Las hijas de un grupo del lateral (`.lateral-hijos` / `.lateral-hijo`) se despliegan desde el 2026-10-31 con el despliegue
+     en cascada del marco con vidrio: viven en `estilos/vidrio/marco.css` (ADR-0596), junto a la bandeja que las guarda. */
 
   /* Cajón del lateral en celular (2026-09-25, AppShell v4). La misma gramática de ADR-0136, puesta de
      costado porque el cajón entra desde el borde izquierdo y no desde abajo:
@@ -1987,6 +1999,18 @@ html[data-buscando] [data-resultados] {
       background: color-mix(in srgb, var(--color-tinta) 20%, transparent);
       transition: width 260ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
     }
+    /* En una hoja que scrollea el asa no corre con el contenido: va pegada arriba (sticky) y tapa lo que pasa por debajo con el
+       fondo de la hoja. Su margen negativo la ubica en el relleno de la hoja (p-6) sin mover nada del contenido. */
+    .asa-hoja.asa-hoja-fija {
+      position: sticky;
+      top: 0;
+      left: auto;
+      right: auto;
+      z-index: 20;
+      margin: -1.5rem -1.5rem 0;
+      background: var(--fondo-hoja, var(--color-papel));
+    }
+    .hoja-vidrio > .asa-hoja.asa-hoja-fija { background: none; }
     /* Mientras el dedo la lleva, el asa se estira un poco y se oscurece: la hoja «se agarró». */
     [data-arrastrando] > .asa-hoja::before {
       width: 2.75rem;
@@ -2118,109 +2142,15 @@ html[data-buscando] [data-resultados] {
   .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
 }
 
-/* ==================================================================
-   La «isla» de vidrio de Facturación (ADR-0124).
-
-   Vidrio = superficie translúcida con desenfoque. No agrega ningún color: solo blanco
-   translúcido y tinta sobre el crema de siempre. Vive bajo `.tema-vidrio` (la raíz del
-   layout de /vender/facturacion) y NO en `:root`: llevarlo a otras pantallas sería mover
-   variables del sistema, y esa es otra decisión.
-
-   Rendimiento: el desenfoque cuesta en las tablets de las tiendas. Se limita a las
-   tarjetas de arriba (R2), al contenedor de pestañas y a los botones «vidrio». Si se
-   nota, se baja `--vidrio-blur` acá (`.tema-vidrio`, para tarjetas y botones); el contenedor
-   de pestañas fija el suyo (22 px, en `.pestanas-vidrio`) y se baja allá.
-
-   Movimiento: la transición de la píldora es de `transform`/`width`, y la regla global de
-   movimiento reducido (`transition-duration: 1ms !important`, al final del archivo) ya la
-   apaga sola.
-   ================================================================== */
-@layer components {
-  .tema-vidrio {
-    --vidrio-blur: 18px;
-  }
-
-  .vidrio-cayla {
-    background: color-mix(in srgb, var(--color-vidrio) calc(var(--vidrio-alfa, 0.58) * 100%), transparent);
-    border: 1px solid color-mix(in srgb, var(--color-tinta) calc(var(--vidrio-borde, 0.12) * 100%), transparent);
-    -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px));
-    backdrop-filter: blur(var(--vidrio-blur, 18px));
-  }
-
-  /* Pestañas: un contenedor de vidrio con una píldora negra que se desliza bajo la
-     etiqueta activa. La píldora la coloca `FacturacionPestanas` midiendo el DOM y
-     escribiendo `--pildora-x` y `--pildora-w` sobre este mismo elemento (sin estado de
-     React, como `Ayuda.tsx`: el primer cuadro ya sale bien puesto). */
-  .pestanas-vidrio {
-    --vidrio-alfa: 0.45;
-    --vidrio-borde: 0.09;
-    --vidrio-blur: 22px;
-    position: relative;
-    display: inline-flex;
-    max-width: 100%;
-    gap: 2px;
-    padding: 4px;
-    border-radius: 14px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  /* Con pantalla ancha las cuatro pestañas caben siempre: sin recorte, la sombra de la
-     píldora (que se derrama bajo el contenedor, como en la maqueta aprobada) y el anillo de
-     foco de las pestañas de los extremos se ven completos. El umbral es de 1024 px y no de
-     celular a tablet: desde 640 px el menú lateral (17rem) y el margen de la página se comen
-     352 px, y a 768 el contenedor mide ~400 px para unas pestañas que suman ~545 (con
-     `visible` la última se saldría del vidrio y de la pantalla). Por debajo de 1024 px sigue
-     desplazándose en horizontal, y ahí sí recorta la sombra (el mal menor). */
-  @media (min-width: 64rem) {
-    .pestanas-vidrio {
-      overflow: visible;
-    }
-  }
-
-  .pestanas-vidrio__pildora {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: var(--pildora-w, 0px);
-    transform: translateX(var(--pildora-x, 0px));
-    border-radius: 10px;
-    background: var(--color-tinta);
-    box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  /* Hasta que la píldora está medida (el primer cuadro, antes de hidratar), la pestaña
-     activa se pinta a sí misma: así nunca hay un cuadro con la etiqueta en crema sobre
-     el vidrio, ilegible. */
-  .pestanas-vidrio:not([data-medido]) [aria-current="page"] {
-    background: var(--color-tinta);
-  }
-
-  .pestanas-vidrio[data-medido] .pestanas-vidrio__pildora {
-    opacity: 1;
-  }
-
-  /* La transición se habilita recién después de la primera pintura: la píldora nace en su
-     lugar y solo se desliza cuando cambia la pestaña. */
-  .pestanas-vidrio[data-listo] .pestanas-vidrio__pildora {
-    transition:
-      transform 450ms var(--ease-cayla),
-      width 450ms var(--ease-cayla);
-  }
-}
-
 /* ------------------------------------------------------------------
-   Tarjetas de indicador de la isla (R2, ADR-0124): borde izquierdo de 3 px en el color del
-   estado, un tinte que se difumina hacia la derecha («Sutil») y una luz que sigue al cursor
-   (`TarjetaKpiVidrio` escribe `--mx`/`--my`). Valores de la maqueta v8 aprobada por Felipe.
+   Tarjetas de indicador de Comprobantes (R2, ADR-0124): aquí queda la forma, la luz que sigue al
+   cursor (`TarjetaKpiVidrio` escribe `--mx`/`--my`) y el subir 2 px al pasar el mouse. El MATERIAL
+   (la placa Serena teñida del tono, «A · Lente del tono», Felipe 2026-11-02) vive en
+   `estilos/vidrio/comprobantes.css`: la isla de vidrio propia de ADR-0124 se fue con el vidrio del ERP.
 
    `@property --kc` va fuera de capa (no es una regla de clase) para que el color de la tarjeta se
    DESLICE cuando cambia el estado (ámbar → verde al quedar sin pendientes). Sin soporte cambia de
-   golpe y no se rompe nada. Sin sombra en reposo (ADR-0012); al pasar el mouse sube 2 px y toma
-   `--shadow-md`.
+   golpe y no se rompe nada.
    ------------------------------------------------------------------ */
 @property --kc {
   syntax: "<color>";
@@ -2251,22 +2181,6 @@ html[data-buscando] [data-resultados] {
     overflow: hidden;
     padding: 18px 18px 16px;
     border-radius: 16px;
-    border: 1px solid var(--color-sand);
-    border-left: 3px solid var(--kc);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-papel) 42%, transparent));
-    box-shadow: inset 0 1px 0 var(--brillo-superior);
-    -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
-    backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
-    transition: box-shadow 260ms var(--ease-cayla);
-  }
-  /* El tinte: el color del estado al 14 % que se difumina hacia la derecha hasta el 62 %. */
-  .kpi-vidrio::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--kc) 14%, transparent) 0%, transparent 62%);
   }
   /* La luz especular: un resplandor blanco que sigue al cursor y solo aparece al pasar el mouse. */
   .kpi-vidrio::after {
@@ -2279,7 +2193,7 @@ html[data-buscando] [data-resultados] {
     transition: opacity 350ms;
     background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), var(--luz-especular), transparent 68%);
   }
-  /* El contenido por encima del tinte y de la luz. Sin `z-index` la luz (`::after`, la última en el
+  /* El contenido por encima de la luz. Sin `z-index` la luz (`::after`, la última en el
      árbol) se pintaba ENCIMA del texto y lo lavaba justo cuando el cursor pasaba por la tarjeta. */
   .kpi-vidrio > * {
     position: relative;
@@ -2293,9 +2207,6 @@ html[data-buscando] [data-resultados] {
   @media (hover: hover) {
     .kpi-vidrio-envoltura:hover {
       transform: translateY(-2px);
-    }
-    .kpi-vidrio-envoltura:hover .kpi-vidrio {
-      box-shadow: inset 0 1px 0 var(--brillo-superior), var(--shadow-md);
     }
     .kpi-vidrio:hover::after {
       opacity: 1;

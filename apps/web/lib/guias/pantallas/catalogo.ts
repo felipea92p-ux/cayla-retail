@@ -99,14 +99,14 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.tarjeta",
       opcional: true,
       titulo: "Cada prenda",
-      texto: "La foto del color elegido (o su dibujo si aún no tiene foto), el nombre, el código, la categoría y de qué marca es. Toca la foto y se abre la vista rápida (te la abrimos en un momento).",
+      texto: "La foto del color elegido (o su dibujo si aún no tiene foto) y, debajo, el nombre con su precio, qué es y de qué color. Toca la foto y se abre la vista rápida, con el código y la marca (te la abrimos en un momento).",
     },
     {
       id: "precio-stock",
       ancla: "productos.precio-stock",
       opcional: true,
-      titulo: "Precio y cuántas hay aquí",
-      texto: "A la izquierda, lo que cobra la caja en la tienda elegida arriba (si una campaña la rebaja hoy, con el de lista tachado y su «−20 %»); «2 precios» si otra tienda la vende a otro. A la derecha, cuántas puedes vender aquí y, debajo, en otras sedes, el taller o en camino. «Sin stock»: no queda en ninguna.",
+      titulo: "Precio y cuántas hay",
+      texto: "Junto al nombre, lo que cobra la caja en la tienda elegida arriba (si una campaña la rebaja hoy, con el de lista tachado y su «−20 %» sobre la foto). Abajo a la derecha, cuántas hay en la empresa: «Quedan 8» si son pocas, «Sin stock» si no queda en ninguna. Deja el mouse encima y te dice la marca y cuántas hay aquí.",
     },
     {
       id: "colores",

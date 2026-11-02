@@ -125,3 +125,106 @@ button.rc-parada:disabled { cursor: default; }
   .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-agregar, .rc-anotada-chip, .rc-rapidos button { transition: none; }
   .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo { animation: none; }
 }
+
+/* ====================================================================
+   EL VIDRIO «SERENA» EN CONTEO Y EN EL RIEL (ADR-0596; maqueta `docs/maquetas/conteo-vidrio-2026-11/`, Felipe 2026-11-02)
+
+   Felipe eligió mirando la maqueta de Inventario ▸ Conteo:
+   · La planilla de cada prenda, «A · Placa Serena»: la tarjeta (`ListaConteo`, clase `planilla-conteo`) es la placa elegida para las
+     tablas; la cabecera de la tabla, una franja hundida (el pozo); las filas, un hilo de tinta en vez de arena, sin rayado. SIGUE siendo
+     una tabla HTML con la cara de <Tabla> (ADR-0358: con 800 tallas cada fila se redibuja sola): solo cambia el material. El tinte de
+     cada talla (verde si cuadra, ámbar en reconteo) y la talla recién contada que respira son dato y no cambian.
+   · Los pasos, «A · Ranura con gotas»: la línea del riel es una ranura tallada; lo hecho, una gota verde; lo de ahora, la gota ahumada
+     con su halo; lo que falta, una gota clara. Es el MISMO riel de Recibir mercadería: Recibir lo hereda.
+
+   Sin capa (le gana a `card-cayla` y a `encabezado-tabla-cayla`, que viven en `components`), salvo el rayado y el paso del mouse de las
+   filas: van en `components` a propósito, para que el tinte de la talla (una utilidad) les siga ganando. Solo recetas de
+   `vidrio/recetas.css`; la gota verde no tiene receta y se mezcla aquí sobre el token. Sin movimiento nuevo.
+   ==================================================================== */
+
+/* ---- La planilla: la placa Serena ---- */
+.planilla-conteo {
+  border-radius: 20px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+/* La cabecera de la tabla: una franja hundida (el pozo fino), no arena. */
+.planilla-conteo .encabezado-tabla-cayla {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+/* El hilo entre tallas: apenas tinta (el `divide-sand` de siempre era una raya de arena sobre papel). */
+.planilla-conteo tbody > tr {
+  border-color: var(--hilo-fila);
+}
+@layer components {
+  /* Sin rayado sobre el vidrio (como las tablas, «B · Placa Serena»): el hueso se vería como una banda maciza. */
+  .planilla-conteo .fila-cayla:nth-child(even of .fila-cayla) {
+    background-color: transparent;
+  }
+  @media (hover: hover) {
+    .planilla-conteo .fila-cayla:hover {
+      background-color: color-mix(in srgb, var(--color-vidrio) 45%, transparent);
+    }
+  }
+}
+@media screen {
+  @layer components {
+    @media (hover: hover) {
+      :root[data-tema="oscuro"] .planilla-conteo .fila-cayla:hover {
+        background-color: color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+      }
+    }
+  }
+}
+
+/* ---- El riel: la ranura con gotas ---- */
+:root {
+  /* La gota verde de un paso hecho: vidrio del verde, más lleno abajo (no hay receta de una gota de color). */
+  --rc-gota-verde-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 80%, transparent), color-mix(in srgb, var(--color-verde) 95%, transparent));
+  --rc-gota-verde-borde: color-mix(in srgb, var(--color-verde) 70%, transparent);
+  /* El halo de la gota de ahora: un anillo de tinta apenas, que la separa de la ranura. */
+  --rc-gota-halo: 0 0 0 6px color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+/* La ranura: 6 px tallados (el pozo), con el avance de tinta corriendo por adentro. Mismo centro que la línea de antes. */
+.rc-riel-linea {
+  top: 22px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.rc-riel-linea > i {
+  height: 2px;
+  margin-top: 2px;
+  border-radius: 2px;
+}
+/* Lo que falta: una gota clara. */
+.rc-punto {
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 60%, transparent);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+/* Lo hecho: la gota verde, con el visto en crema. */
+.rc-parada[data-estado="hecho"] .rc-punto {
+  border-color: var(--rc-gota-verde-borde);
+  background: var(--rc-gota-verde-fondo);
+  box-shadow: var(--gota-luz);
+  color: var(--color-crema-fija);
+}
+/* Lo de ahora: la gota ahumada (densa) con su halo. */
+.rc-parada[data-estado="ahora"] .rc-punto {
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz), var(--rc-gota-halo);
+  color: var(--color-crema);
+}
+/* En oscuro el verde es claro: el visto pasa a tinta fija, que se lee sobre él. */
+@media screen {
+  :root[data-tema="oscuro"] .rc-parada[data-estado="hecho"] .rc-punto {
+    color: var(--color-tinta-fija);
+  }
+}

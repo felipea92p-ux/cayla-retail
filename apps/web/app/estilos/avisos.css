@@ -21,6 +21,8 @@
    ==================================================================== */
 
 @layer components {
+  /* El papel, el borde y la sombra de aquí son el respaldo: la cara de la tarjeta es la lente de su tono, del vidrio «Serena»
+     (`estilos/vidrio/avisos-espera.css`, sin capa, le gana a esta). */
   .aviso-tarjeta {
     --c: var(--color-verde);
     --aviso-anillo: 106.81;
@@ -299,8 +301,11 @@
    «Hay una versión nueva de CAYLA» — la píldora flotante con su gota (ADR-0422, act. 2026-10-28; Felipe eligió la B de
    docs/maquetas/version-nueva-2026-10/ y después la gota: docs/maquetas/version-nueva-2026-10/gota.html).
    Va FUERA del contenido: antes era una franja dentro de la página, y la barra fija de Finanzas (`.mesa-telar`, opaca y con margen
-   negativo) la tapaba a medias. En escritorio ancho se centra sobre el contenido, en la banda de la cabecera (el centro está libre); bajo
-   1024 px, justo debajo de ella.
+   negativo) la tapaba a medias. Con la cabecera «Dos islas» (ADR-0596) el centro de la banda lo ocupa a veces el buscador: la píldora va en
+   el HUECO entre las dos islas si cabe con 12 px de aire por lado (lo mide `VersionNueva.tsx`, que pone `data-colocada="hueco"`) y, si no
+   cabe, justo bajo la cabecera, centrada sobre el contenido (lo de abajo; `data-colocada="bajo"` solo baja más si el recordatorio de
+   cierre de caja ya cuelga ahí). Regla de docs/maquetas/avisos-espera-vidrio-2026-10/README.md. El material (la gota ahumada, su luz y su
+   filo) vive en `estilos/vidrio/avisos-espera.css`.
 
    LA GOTA (excepción de ADR-0136, decidida por Felipe: es la única pieza con un rebote, y solo uno; una sola vez, sin bucle, ~2,2 s):
        0 –  480 ms  cae suave hasta lo más bajo de la sección del aviso (su borde de abajo)
@@ -323,6 +328,7 @@
     z-index: 40;
     left: 50%;
     translate: -50% 0;
+    /* Bajo la cabecera: en el celular la cabecera va de 8 a 60 px; desde 640 px, de 12 a 64. */
     top: calc(env(safe-area-inset-top) + 4.25rem);
     display: flex;
     align-items: center;
@@ -340,15 +346,18 @@
       cayla-version-cae 1000ms linear both,
       cayla-version-sombra 400ms var(--ease-cayla) 2050ms both;
   }
-  @media (min-width: 1024px) {
+  @media (min-width: 640px) {
     .version-nueva {
-      top: calc(env(safe-area-inset-top) + 0.8125rem);
+      top: calc(env(safe-area-inset-top) + 4.5rem);
       /* El centro del contenido: el lateral ocupa `--spacing-lateral` a la izquierda. */
       left: calc(var(--spacing-lateral) + (100vw - var(--spacing-lateral)) / 2);
     }
   }
+  /* Lo que midió `VersionNueva.tsx` (en px de la ventana): el alto siempre, y el centro del hueco solo si va entre las islas. */
+  .version-nueva[data-colocada] { top: var(--vn-y); }
+  .version-nueva[data-colocada="hueco"] { left: var(--vn-x); }
   /* El contenido va sobre el líquido (`position: relative`) y aparece cuando este llega. */
-  .version-nueva > :not(.version-nueva-agua) {
+  .version-nueva > :not(.version-nueva-agua):not(.version-nueva-luz) {
     position: relative;
     flex: none;
     /* Solo `backwards`: al terminar no se queda con un `transform`/`opacity` fijos que taparían el movimiento al pasar el mouse del botón. */
@@ -358,15 +367,9 @@
   .version-nueva-texto { margin: 0; font-weight: 500; white-space: nowrap; }
   .version-nueva-texto span { display: none; font-weight: 400; color: color-mix(in srgb, var(--color-crema) 78%, transparent); }
   @media (min-width: 640px) { .version-nueva-texto span { display: inline; } }
-  /* El botón sigue siendo `btn-cayla btn-secundario`: aquí solo se le baja el alto para caber en la píldora. */
-  .version-nueva .btn-cayla.btn-secundario {
-    min-height: 2rem; padding: 0 0.875rem; border-radius: 999px;
-    /* Sobre la píldora de tinta el botón se invierte: crema con letra de tinta (en oscuro, al revés, porque los dos tokens se intercambian). */
-    background: var(--color-crema); border-color: var(--color-crema); color: var(--color-tinta);
-  }
-  @media (hover: hover) {
-    .version-nueva .btn-cayla.btn-secundario:hover:not(:disabled) { background: var(--color-hueso); border-color: var(--color-hueso); color: var(--color-tinta); }
-  }
+  /* El botón sigue siendo `btn-cayla btn-secundario`; sobre la píldora es la gota clara, a la medida de la píldora (crema con letra de tinta;
+     en oscuro, al revés, porque los dos tokens se intercambian). Va en `estilos/vidrio/avisos-espera.css`, sin capa: la gota de todo botón
+     secundario también va sin capa y le ganaría a esta. */
   .version-nueva-x {
     display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%;
     color: color-mix(in srgb, var(--color-crema) 78%, transparent);
@@ -416,7 +419,7 @@
       cayla-version-sombra-off 200ms var(--ease-cayla) both,
       cayla-version-cae-sale 500ms cubic-bezier(.55, .05, .9, .5) 950ms both;
   }
-  .version-nueva.version-nueva-sale > :not(.version-nueva-agua) { animation: cayla-version-apaga 200ms var(--ease-cayla) both; pointer-events: none; }
+  .version-nueva.version-nueva-sale > :not(.version-nueva-agua):not(.version-nueva-luz) { animation: cayla-version-apaga 200ms var(--ease-cayla) both; pointer-events: none; }
   .version-nueva-sale .vn-piso { animation: cayla-version-piso-sale 600ms cubic-bezier(.6, 0, .3, 1) 200ms both; }
   .version-nueva-sale .vn-cab-l, .version-nueva-sale .vn-cab-r { animation: cayla-version-cabeza-sale 600ms cubic-bezier(.6, 0, .3, 1) 200ms both; }
   .version-nueva-sale .vn-col { animation: cayla-version-nivel-sale 450ms cubic-bezier(.5, 0, .5, 1) var(--ds) both; }
@@ -427,7 +430,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .version-nueva { animation: none; background: var(--color-tinta); box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--color-sombra) 45%, transparent); }
-    .version-nueva > :not(.version-nueva-agua) { animation: none; }
+    .version-nueva > :not(.version-nueva-agua):not(.version-nueva-luz) { animation: none; }
     .version-nueva-agua { display: none; }
     .version-nueva.version-nueva-sale { animation: none; }
   }

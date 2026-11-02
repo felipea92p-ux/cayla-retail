@@ -69,6 +69,16 @@
   .paginas-grande .paginas-pista { border-radius: 10px; }
   /* La paginación por cursor (sin números): las mismas flechas, con su texto. */
   .paginas-texto { padding: 0 10px; }
+  /* En el celular (Felipe 2026-11-02, Productos y Existencias): al final de una lista larga la paginación es lo que más se toca con el
+     pulgar. Va CENTRADA en su propia fila (ocupa el ancho de la tarjeta, el rango y los botones de al lado bajan) y con objetivos de 44 px
+     y flechas de 24: antes eran cuadrados de 32 px con flechas de 16, pegados a la izquierda con el espacio sobrante vacío. */
+  @media (max-width: 639px) {
+    .paginas { display: flex; width: 100%; justify-content: center; gap: 4px; }
+    .paginas .paginas-n { min-width: 44px; height: 44px; border-radius: 12px; font-size: 15px; }
+    .paginas .paginas-pista { border-radius: 12px; }
+    .paginas .paginas-n svg { width: 24px; height: 24px; }
+    .paginas .paginas-corte { width: 24px; }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

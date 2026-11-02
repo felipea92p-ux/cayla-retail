@@ -60,7 +60,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
     <section
       data-guia="resumen-sede.cifras"
       aria-label={`Resumen de ${sede}`}
-      className="anim-sube w-full rounded-[20px] bg-papel/70 shadow-[0_22px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 ring-tinta/[0.07] backdrop-blur-sm lg:w-auto"
+      className="resumen-sede anim-sube w-full lg:w-auto"
       style={{ "--i": 1 } as CSSProperties}
     >
       <ul className="flex">

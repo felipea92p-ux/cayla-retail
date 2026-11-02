@@ -47,14 +47,19 @@
     flex-shrink: 1;
   }
 
-  /* --- La pantalla: la vista previa de la etiqueta en la hoja, a escala de pantalla, con su sombra de papel. --- */
+  /* --- La pantalla: la vista previa de la etiqueta en la hoja, a escala de pantalla. Vidrio «A · En su bandeja» (ADR-0596, Felipe
+     2026-11-02, docs/maquetas/liquidacion-vidrio-2026-11/): el papel descansa en un pozo de la hoja, como en la bandeja de la impresora,
+     con una sombra corta. Solo cambia dónde se apoya: la etiqueta (papel, `data-papel`) y su entrada no cambian. --- */
   .liq-previa {
     display: flex;
     justify-content: center;
     padding: 12px;
+    border-radius: 20px;
+    background: var(--pozo-fondo);
+    box-shadow: var(--pozo-sombra);
   }
   .liq-previa .etiqueta-precio {
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-sombra) 22%, transparent);
+    box-shadow: var(--papel-en-bandeja-sombra);
     animation: liq-entra 360ms var(--ease-cayla) both;
   }
   @keyframes liq-entra {
@@ -63,19 +68,27 @@
       transform: translateY(8px) scale(0.98);
     }
   }
-  /* La cifra chica del celular (/formidable, H8): las tres en una fila, cada una filtra. La elegida se rellena de arena, como
-     `TarjetaCifra activa`. */
+  /* La cifra chica del celular (/formidable, H8): las tres en una fila, cada una filtra. Vidrio «A · Placas chicas» (Felipe 2026-11-02):
+     cada una es la placa Serena, como la tarjeta de cifra de escritorio; la puesta se HUNDE, igual que `TarjetaCifra` que filtra
+     (vidrio/pantalla.css). Una sola forma en los dos tamaños. */
   .liq-cifra-chica {
     display: block;
     min-height: 64px;
     padding: 10px 10px 9px;
     border-radius: 14px;
-    border: 1px solid var(--color-sand);
-    background: var(--color-papel);
+    border: 1px solid var(--serena-borde);
+    background: var(--serena-fondo);
+    -webkit-backdrop-filter: var(--serena-filtro);
+    backdrop-filter: var(--serena-filtro);
+    box-shadow: var(--serena-sombra);
     text-align: left;
   }
   .liq-cifra-chica[aria-pressed="true"] {
-    background: var(--color-sand);
+    border-color: var(--hundido-borde);
+    background: var(--hundido-fondo);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: var(--hundido-sombra);
   }
   /* El precio viejo tachado, cuando una pieza se rebajó: la cifra cuenta y la línea se dibuja una vez. */
   .liq-tachado {

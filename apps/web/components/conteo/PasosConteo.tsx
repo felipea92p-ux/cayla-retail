@@ -9,6 +9,8 @@ import { Check } from "lucide-react";
    no se toca (cada pantalla trae sus botones «Volver a contar» / «Volver a revisar») y no lleva animación ni hilo.
    Los pasos hechos van rellenos de tinta con su tilde, el de hoy con borde de tinta y letra gruesa, los que faltan
    en sand. Ni verde ni rojo: verde es «correcto» en la lista y rojo es «diferencia»; un paso no es ninguna de las dos.
+   (Eso vale para la línea, que queda en el cuadre del piso. Desde el 2026-11-02 el conteo usa el riel de Recibir, como en la maqueta
+   que eligió Felipe —`docs/maquetas/conteo-vidrio-2026-11/`—: una ranura con una gota por paso, verde lo hecho y ahumada la de hoy.)
 
    El resultado («Conteo terminado») y el conteo cancelado NO llevan este indicador: ya no hay a dónde ir.
 
@@ -28,6 +30,14 @@ const PASOS: readonly PasoOperacion[] = [
   { clave: "revisar", nombre: "Revisar" },
   { clave: "confirmar", nombre: "Confirmar" },
 ];
+
+// En el riel, la línea chica bajo cada paso del conteo: qué se hace en él (maqueta `docs/maquetas/conteo-vidrio-2026-11/`, que Felipe
+// eligió el 2026-11-02 mirando el conteo con el riel de Recibir). Otra operación pasa los suyos por `subtitulos`.
+const SUBTITULOS_CONTEO: Readonly<Record<string, string>> = {
+  contar: "Escanea o cuenta cada talla",
+  revisar: "Las que no cuadran",
+  confirmar: "Se ajusta el stock",
+};
 
 type EstadoPaso = "hecho" | "actual" | "falta";
 
@@ -52,7 +62,7 @@ export function PasosConteo({
   etiqueta = "Pasos del conteo",
   className = "",
   forma = "linea",
-  subtitulos,
+  subtitulos = pasos === PASOS ? SUBTITULOS_CONTEO : undefined,
   onIr,
 }: {
   /** La clave del paso de hoy (en el conteo, un `PasoConteo`). */
@@ -63,7 +73,8 @@ export function PasosConteo({
   etiqueta?: string;
   className?: string;
   /**
-   * «linea» (la de siempre, de Inventario) o «riel» (Recibir mercadería, ADR-0393: la maqueta A que eligió Felipe el 2026-10-13). El
+   * «linea» (el cuadre del piso) o «riel» (Recibir mercadería, ADR-0393: la maqueta A que eligió Felipe el 2026-10-13; y el conteo desde
+   * el 2026-11-02, con la «Ranura con gotas» de `docs/maquetas/conteo-vidrio-2026-11/`). El
    * riel es la MISMA pieza más grande: tres paradas repartidas a lo ancho, una línea que se llena, el paso hecho en verde con su visto
    * y, bajo cada nombre, lo que ya pasó en él («ENV-000118 · 40 prendas», «121 contadas · 6 para después»).
    */

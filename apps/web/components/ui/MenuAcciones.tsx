@@ -43,14 +43,19 @@ function colocar(r: DOMRect, alto: number): Posicion {
  * foco al botón. Flechas arriba y abajo recorren las opciones. La lista entra como la de un combo (`anim-revelar`, 240 ms): es
  * un menú, no un modal.
  *
+ * Con el vidrio (ADR-0596, «A · La lista del combo», Felipe 2026-11-01) la lista ES la de un combo: la misma `lista-flotante` y la misma
+ * gota (`opcion-activa`) en la opción donde estás, con el mouse o con las flechas (el mouse también le da el foco, así las flechas siguen
+ * desde ahí). Sobre lo peligroso («Anular»), la gota se tiñe de rojo; lo que no se puede no la recibe. Las piezas, en
+ * app/estilos/vidrio/notas-avisos-combos.css.
+ *
  * El menú «Más» es una sola pieza (ADR-0358, ronda 13, Felipe eligió P1 el 2026-10-15; registro: docs/unificar/accion.menu.md):
  * donde cabe la palabra —la cabecera, una tarjeta, una barra—, `texto="Más"`: el secundario «Más ▾» (Clientes, 2026-09-30). En una
  * fila de una lista (muchas iguales: los roles, los comprobantes), sin `texto`: el «⋯» solo de 32 px, sin borde, como el lápiz de
  * Editar, con `etiqueta` («Más acciones de Vendedora») al pasar el mouse y para el lector.
  */
-/** La cara del «⋯» de una fila: 32 px, sin borde, como el lápiz de Editar; se rellena de hueso al pasar el mouse y mientras está abierto. */
-const CLASE_PUNTOS =
-  "grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta aria-expanded:bg-hueso aria-expanded:text-tinta disabled:cursor-not-allowed disabled:opacity-45";
+/** La cara del «⋯» de una fila: el ícono solo de 32 px, como el lápiz de Editar; su gota redonda con el filo de lo que se toca aparece
+ *  al pasar el mouse, con el foco y mientras su menú está abierto (`icono-fila`, «A · Gota al pasar», ADR-0596). */
+const CLASE_PUNTOS = "icono-fila grid h-8 w-8 shrink-0 place-items-center disabled:cursor-not-allowed disabled:opacity-45";
 
 /** El mismo «⋯» cuando abre una hoja en vez de una lista (las opciones de un comprobante): `que` va en «Más acciones de <que>». */
 export function BotonPuntos({ que, onClick, className = "", guia }: { que: string; onClick: () => void; className?: string; guia?: string }) {
@@ -76,11 +81,14 @@ export function MenuAcciones({
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pos, setPos] = useState<Posicion | null>(null);
+  // La opción donde está la gota: la que tiene el foco (el mouse también se lo da). -1: ninguna.
+  const [activo, setActivo] = useState(-1);
   const boton = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
 
   const cerrar = useCallback((devolverFoco: boolean) => {
     setAbierto(false);
+    setActivo(-1);
     if (devolverFoco) boton.current?.focus();
   }, []);
 
@@ -177,21 +185,28 @@ export function MenuAcciones({
             aria-label={etiqueta}
             onKeyDown={alTeclear}
             style={{ top: pos.top, left: pos.left, width: ANCHO, maxHeight: pos.maxHeight }}
-            className={`card-cayla anim-revelar fixed z-[60] py-1.5 text-sm ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
+            className={`lista-flotante lista-menu anim-revelar fixed z-[60] py-1.5 text-sm ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
           >
-            {items.map((it) => (
+            {items.map((it, i) => (
               <button
                 key={it.clave}
                 type="button"
                 role="menuitem"
                 aria-disabled={it.motivo ? true : undefined}
+                data-peligro={it.peligro || undefined}
+                onMouseEnter={(e) => e.currentTarget.focus({ preventScroll: true })}
+                onFocus={() => setActivo(i)}
                 onClick={() => {
                   if (it.motivo) return;
                   cerrar(false);
                   it.onSelect();
                 }}
-                className={`block w-full px-4 py-2.5 text-left transition-colors focus:outline-none ${
-                  it.motivo ? "cursor-not-allowed text-tinta/45 focus:bg-tinta/[0.03]" : `hover:bg-tinta/[0.05] focus:bg-tinta/[0.05] ${it.peligro ? "text-rojo-profundo" : "text-tinta"}`
+                // Como las filas de la lista de un combo (`Desplegable`): entran en cascada, 30 ms una de otra.
+                style={{ animationDelay: `${i * 30}ms` }}
+                className={`anim-revelar mx-1.5 block w-[calc(100%-0.75rem)] px-2.5 py-2 text-left focus:outline-none ${
+                  it.motivo
+                    ? "cursor-not-allowed text-tinta/45 focus-visible:bg-tinta/[0.03]"
+                    : `${i === activo ? "opcion-activa" : ""} ${it.peligro ? "text-rojo-profundo" : "text-tinta"}`
                 }`}
               >
                 {it.etiqueta}
