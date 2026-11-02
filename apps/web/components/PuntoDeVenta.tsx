@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Globito } from "@/components/ui/Globito";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -170,6 +170,7 @@ import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
@@ -1069,6 +1070,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  repetiría lo mismo tapándole la ✕.
    *  `confirmar`: lo que entra por el campo de escaneo (lector o teclado) dice «Agregada al ticket», como la cámara del
    *  teléfono; una tarjeta o una fila tocadas no lo piden: ahí la prenda se ve entrar donde se tocó. */
+  /** Tras agregar una prenda desde la lista de resultados, la persona vuelve al campo de búsqueda. En celular y tablet la lista flotante
+   *  alargaba la página y, al cerrarse, <PaginaEstable> reservaba ese alto como aire: la vista quedaba sobre un vacío («en el aire»,
+   *  2026-11-02). Es un cambio de vista, no un bloque que se encogió: se suelta la reserva y se sube al inicio ANTES de pintar
+   *  (`useLayoutEffect`, igual que el ticket al pasar a «Cobro»). En escritorio la pantalla es fija y no hay nada que subir. */
+  const [vueltaAlCampo, setVueltaAlCampo] = useState(0);
+  useLayoutEffect(() => {
+    if (vueltaAlCampo === 0 || !window.matchMedia("(max-width: 1023.98px)").matches) return;
+    soltarPaginaEstable();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [vueltaAlCampo]);
+  function volverAlCampo() {
+    buscador.current?.focus({ preventScroll: true });
+    setVueltaAlCampo((n) => n + 1);
+  }
+
   function agregar(
     v: VarianteBusqueda,
     { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
@@ -1085,7 +1101,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAviso(null);
       setQ("");
       setActivo(0);
-      buscador.current?.focus();
+      volverAlCampo();
       return "sin_precio";
     }
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
@@ -1106,7 +1122,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAviso(null);
       setQ("");
       setActivo(0);
-      buscador.current?.focus();
+      volverAlCampo();
       return motivo;
     }
     const existente = carrito.find((it) => it.claveLinea === v.varianteId);
@@ -1162,7 +1178,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setAviso(null);
     setQ("");
     setActivo(0);
-    buscador.current?.focus();
+    volverAlCampo();
     return tope ? "tope" : "agregada";
   }
 
@@ -2393,7 +2409,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // bajo la cabecera fija de AppShell: `100dvh` menos el `pt-24 + pb-12` de su
     // `<main>` (9rem). En celular/tablet (apilado) se mantiene el scroll de página:
     // dos scrolls internos uno debajo del otro serían peores que uno solo.
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
+    // Mientras se busca, en celular/tablet la tarjeta NO recorta: con el catálogo recogido mide solo la fila del campo, y la lista de
+    // resultados (flotante) quedaba cortada a media prenda (verificado a 375 px, 2026-11-02). En escritorio la tarjeta es alta y no se corta.
+    <div className={`flex flex-col rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)] ${q ? "max-lg:overflow-visible lg:overflow-hidden" : "overflow-hidden"}`}>
       {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
           izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
           «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.

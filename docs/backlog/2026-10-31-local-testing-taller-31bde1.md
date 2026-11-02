@@ -2,7 +2,8 @@
 
 - [x] `agregar_variantes_a_modelo(taller, modelo, tallas[], colores[])`: crea tallas o colores de un modelo que ya existe, todo o nada, con el precio y el costo de la hermana y sin stock; opera el Taller y edita el catálogo; sube la versión del producto. Prueba `pnpm pruebas:produccion-agregar-variantes` (17 casos) en una tanda del CI. ADR-0591.
 - [x] «+ Talla» (a la derecha de la última talla) y «+ Color» (debajo del último color) pegados a la tabla de Nueva orden (hojas `AgregarTallaModal` y `AgregarColorAlModeloModal`, gancho `useAgregarVariantes`); probado a 375 px, en oscuro y en el navegador contra la base local.
-- [ ] **Pegar `20261031172000` en producción** (con el OK de Felipe; sola, sin partes) y refrescar el volcado del diccionario. Mientras no esté, «+ Talla» y «+ Color» fallan en producción con «function … does not exist».
+- [x] **`20261031172000` PEGADA en producción** (verificado el 2026-11-02: existe `retail.agregar_variantes_a_modelo`), así que «+ Talla» y «+ Color» ya no fallan con «function … does not exist».
+- [ ] Refrescar el volcado del diccionario con `agregar_variantes_a_modelo`.
 - [ ] Las dos hojas son `no-aplica` en la guía de foco. Si se quiere el halo del campo que sigue, es un cambio de las hojas.
 - [ ] Reactivar una variante **desactivada** desde la orden: hoy avisa y manda a Editar producto (decisión de catálogo).
 - [ ] **El salto de la página al elegir en un combo** (Felipe, 2026-10-31): al elegir una tela como forro, la guía de foco (`useGuiaCampos` → `asegurarVisible`) lleva la página al COMIENZO del bloque «Tela de la orden», que es un solo campo guiado y muy alto. Es de antes de esta rama y toca la guía compartida: regla propuesta, no hacer scroll si el cursor ya está dentro del campo que la guía quiere mostrar. Esperando el OK de Felipe.
