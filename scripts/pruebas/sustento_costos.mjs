@@ -11,6 +11,9 @@
  *     llegó en un envío (su plata vive en las compras de la orden).
  *   · solo el líder: una colaboradora recibe 42501; un rango al revés, 22023.
  *   · la migración se puede pegar dos veces.
+ *   · actividad 3 (`20261102060000_renta_del_ano_parametros.sql`): la escala del Régimen MYPE y el tope de las boletas vienen sembrados desde 2017 y se
+ *     heredan; «lo de antes del sistema» se guarda por año (la utilidad puede ser una pérdida; los otros tres, de 0 en adelante), desde el 1 de enero;
+ *     la escala no se cambia desde la pantalla; y las dos partes se pegan dos veces.
  *
  * CÓMO. Como `impuestos.mjs`: todo en una transacción con ROLLBACK (la base local es compartida), sesión simulada con
  * `request.jwt.claim.sub`, y meses de 2024, donde no hay datos reales.
@@ -26,6 +29,7 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261102055000_sustento_del_costo.sql"), "utf8");
+const MIGRACION_PARAMETROS = readFileSync(join(RAIZ, "supabase", "migrations", "20261102060000_renta_del_ano_parametros.sql"), "utf8");
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -151,6 +155,48 @@ console.log("Sustento del costo (ADR-0598, actividad 1)");
 {
   const r = correr(`begin;\n${MIGRACION}\n${MIGRACION}\nselect count(*) from pg_proc where proname = 'fn_sustento_costos';`);
   esperar("la migración se pega dos veces y deja una sola función", r.ok && r.salida.split("\n").pop() === "1", r);
+}
+
+{
+  const r = correr(`begin;\n${cambiaA(FELIPE)}
+select 'resto', valor from retail.fn_parametro_tributario('renta_tasa_resto', '2026-11-02')
+union all select 'tramo', valor from retail.fn_parametro_tributario('renta_tramo_uit', '2026-11-02')
+union all select 'boletas', valor from retail.fn_parametro_tributario('boletas_tope_pct', '2030-06-01');`);
+  esperar("la escala (29,5 % sobre 15 UIT) y el 6 % de las boletas vienen sembrados y se heredan a años futuros", r.ok && lineas(r).map((l) => l.split("|").pop()).join(",") === "0.2950,15.0000,0.0600", r);
+}
+
+{
+  const r = correr(`begin;\n${cambiaA(FELIPE)}
+create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
+declare v_msg text;
+begin
+  execute p_sql;
+  return 'SIN_ERROR';
+exception when others then
+  get stacked diagnostics v_msg = message_text;
+  return v_msg;
+end;
+$f$;
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_utilidad_previa', '2026-01-01', -12500.5, null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_costo_previo', '2026-01-01', 180000, null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_sin_papel_previo', '2026-01-01', 95000, null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_pagada_previa', '2026-01-01', 3800, null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_costo_previo', '2026-01-01', -1, null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_pagada_previa', '2026-03-01', 10, null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_tasa_resto', '2027-01-01', 0.3, null)$q$);
+select valor from retail.fn_parametro_tributario('renta_utilidad_previa', '2026-12-31');
+select count(*) from retail.fn_parametro_tributario('renta_utilidad_previa', '2027-06-01') where vigente_desde = '2026-01-01';`);
+  const [neg, costo, sinPapel, pagada, negativo, marzo, ley, guardada] = lineas(r);
+  esperar("se guardan los cuatro de antes del sistema (la utilidad, aunque sea pérdida)", [neg, costo, sinPapel, pagada].every((x) => x === "SIN_ERROR"), r);
+  esperar("un costo negativo se rechaza", /de 0 a 100 millones/.test(negativo ?? ""), r);
+  esperar("rige desde el 1 de enero", /rigen por año/.test(marzo ?? ""), r);
+  esperar("la escala de la ley no se cambia desde la pantalla", /no existe/.test(ley ?? ""), r);
+  esperar("la utilidad guardada es la pérdida tal cual", guardada === "-12500.5000", r);
+}
+
+{
+  const r = correr(`begin;\n${MIGRACION_PARAMETROS}\n${MIGRACION_PARAMETROS}\nselect count(*) from retail.parametros_tributarios where nombre = 'renta_tasa_resto';`);
+  esperar("la migración de parámetros se pega dos veces sin duplicar la escala", r.ok && r.salida.split("\n").pop() === "1", r);
 }
 
 if (fallas > 0) {
