@@ -221,3 +221,7 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   el movimiento no cambia. Para que se lea sobre el vidrio, la letra tenue del pase sube a tinta al 78 %, el nombre de la banda lleva algo
   de tinta y la banda en oscuro va más clara que en la maqueta (12→6 %): peor caso medido 4,5:1. Se corrigió de paso que el frente se veía
   a través del reverso al girar. Solo se vio el tono «contando» (la base local no tiene otros).
+
+- **Clientes ▸ Fichas al vidrio (Felipe 2026-11-02):** «A · Filas en la placa»: `FilaClienta` deja de ser una `card-cayla` por persona; las
+  filas viven en la placa de la tabla, con un hilo de tinta al 9 % que nace después del avatar (bajo 640 px, a 14 px del borde), la gota
+  clara al pasar el mouse y el avatar en su lente. En `vidrio/clientes.css`. Solo cambia el material: el plan de Clientas es de Dany.
