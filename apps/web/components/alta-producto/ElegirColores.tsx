@@ -62,7 +62,8 @@ export function ElegirColores({
   enfocarBuscador?: boolean;
 }) {
   const [carta, setCarta] = useState(cartaAbierta);
-  // El buscador vuelve a vacío después de cada elección: se remonta con otra `key`.
+  // Crear un color nuevo sí remonta el buscador (queda vacío mientras la hoja de «Nuevo color» está abierta); elegir uno de la lista NO: el buscador se vacía solo (`varios`) y la lista
+  // sigue donde estaba, sin cerrarse ni volver al inicio (Felipe, 2026-11-02: «busco y selecciono un color y se recarga el apartado de colores y me regresa al inicio»).
   const [vuelta, setVuelta] = useState(0);
   // El color bajo el mouse o con el foco: su nombre se lee al pie de la carta.
   const [senalado, setSenalado] = useState<ColorAlta | null>(null);
@@ -125,9 +126,9 @@ export function ElegirColores({
           autoFocus={enfocarBuscador}
           marcador={`Busca entre los ${colores.length} colores: petróleo, coral…`}
           valor=""
+          varios
           onValor={(cod) => {
             if (!elegidos.includes(cod)) onAlternar(cod);
-            setVuelta((v) => v + 1);
           }}
           opciones={colores.map((c) => ({
             valor: c.codigo,

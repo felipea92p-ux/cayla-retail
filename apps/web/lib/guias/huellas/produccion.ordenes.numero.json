@@ -2,15 +2,16 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 202,
+  "total": 204,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
       "BotonVer «Ver las órdenes»"
     ],
     "components/AvisoCostoAtipico.tsx": [
+      "CampoTexto «Por qué es correcto este costo · obligatorio»",
       "Boton «{textoCorregir}»",
-      "Boton «{motivoNoListo ?? undefined}»"
+      "Boton «{problemaMotivo ?? motivoNoListo ?? undefined}»"
     ],
     "components/ProduccionSoloEnTaller.tsx": [
       "BotonVer «Volver al inicio»"

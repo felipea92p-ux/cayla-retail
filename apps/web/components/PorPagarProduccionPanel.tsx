@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { PagarComprobanteProduccionModal } from "@/components/PagarComprobanteProduccionModal";
+import { avisoDeFaltante, type FaltanteDePedido } from "@/lib/faltante-por-pagar-reglas";
 import { diasHasta, etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
 import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes } from "@/lib/por-pagar-produccion-reglas";
 import { CircleCheck } from "lucide-react";
@@ -26,12 +27,15 @@ export function PorPagarProduccionPanel({
   comprobantes,
   deuda,
   igv,
+  faltantes = {},
   hoy,
   sede,
 }: {
   comprobantes: ComprobanteProduccion[];
   deuda: DeudaFila[];
   igv: IgvMes | null;
+  /** Lo que cerró como «no va a llegar» el pedido de cada factura, por id de factura (P02, opción B): solo un aviso, la deuda no cambia. */
+  faltantes?: Record<string, FaltanteDePedido>;
   hoy: string;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
@@ -106,6 +110,7 @@ export function PorPagarProduccionPanel({
               <ul className="card-cayla overflow-hidden">
                 {t.comprobantes.map((c) => {
                   const d = c.fechaVencimiento ? diasHasta(c.fechaVencimiento, hoy) : null;
+                  const faltante = avisoDeFaltante(faltantes[c.id], c);
                   return (
                     <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.5fr)_9rem_7rem_auto]">
                       <span className="min-w-0">
@@ -114,6 +119,13 @@ export function PorPagarProduccionPanel({
                           {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero}
                           {c.pagado > 0 ? ` · pagado ${soles(c.pagado)} de ${soles(c.total)}` : ""}
                         </span>
+                        {faltante && (
+                          <span className="mt-1 block">
+                            <Chip tono="ambar" title={faltante.detalle}>
+                              {faltante.chip}
+                            </Chip>
+                          </span>
+                        )}
                       </span>
                       <span className="hidden sm:block">
                         {c.fechaVencimiento && d !== null && (
@@ -222,7 +234,7 @@ export function PorPagarProduccionPanel({
         )}
       </section>
 
-      {pagando && <PagarComprobanteProduccionModal comprobante={pagando} hoy={hoy} onClose={() => setPagando(null)} />}
+      {pagando && <PagarComprobanteProduccionModal comprobante={pagando} hoy={hoy} faltante={avisoDeFaltante(faltantes[pagando.id], pagando)} onClose={() => setPagando(null)} />}
     </div>
   );
 }

@@ -89,7 +89,7 @@ create function pg_temp.termina(p_fase uuid, p_lineas jsonb, p_dia date default 
 create function pg_temp.marca(p_fase uuid) returns text language sql as $f$ select pg_temp.intento(format('select retail.marcar_fase_hecha(%L)', p_fase)) $f$;
 create function pg_temp.deshace_falla(p_falla uuid) returns text language sql as $f$ select pg_temp.intento(format('select retail.deshacer_falla(%L)', p_falla)) $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb) returns text language sql as $f$
-  select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, 1400, 200, null, true)', p_oid, p_buenas)) $f$;
+  select pg_temp.intento(format('select retail.cerrar_produccion_con_motivo(%L, %L::jsonb, 1400, 200, null, true, ''motivo de prueba'')', p_oid, p_buenas)) $f$;
 `;
 
 const PRELUDIO = `

@@ -143,7 +143,7 @@ $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb, p_tela numeric default null, p_avios numeric default null, p_maquila numeric default null, p_confirma boolean default false) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
 begin
-  perform retail.cerrar_produccion(p_oid, p_buenas, p_tela, p_avios, p_maquila, p_confirma);
+  perform retail.cerrar_produccion_con_motivo(p_oid, p_buenas, p_tela, p_avios, p_maquila, p_confirma, 'motivo de prueba');
   return 'OK';
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_hint = pg_exception_hint, v_msg = message_text;

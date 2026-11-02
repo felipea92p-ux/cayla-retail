@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 92,
+  "total": 93,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -14,8 +14,9 @@
       "Link «Completar»"
     ],
     "components/AvisoCostoAtipico.tsx": [
+      "CampoTexto «Por qué es correcto este costo · obligatorio»",
       "Boton «{textoCorregir}»",
-      "Boton «{motivoNoListo ?? undefined}»"
+      "Boton «{problemaMotivo ?? motivoNoListo ?? undefined}»"
     ],
     "components/CambiarEstadoProductosHoja.tsx": [
       "ComboResponsable «{responsable}»",

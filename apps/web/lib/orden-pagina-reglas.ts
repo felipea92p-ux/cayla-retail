@@ -39,6 +39,8 @@ export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
 export const RPC_ANULAR_VUELTA = "anular_vuelta";
 export const RPC_CERRAR_PRODUCCION = "cerrar_produccion";
+/** Lo mismo, más el motivo con el que un líder confirma un costo atípico (P19, 2-nov-2026; migración 20261102211000). Sin confirmar un costo atípico se sigue llamando a `cerrar_produccion`. */
+export const RPC_CERRAR_PRODUCCION_CON_MOTIVO = "cerrar_produccion_con_motivo";
 /** Un líder declara que las prendas ya estaban registradas en una sede: al cerrar la orden no suman al stock (ADR-0551 C). */
 export const RPC_MARCAR_YA_EN_STOCK = "marcar_orden_ya_en_stock";
 export const RPC_ANULAR_PRODUCCION = "anular_produccion";

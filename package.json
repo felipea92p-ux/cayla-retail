@@ -405,6 +405,7 @@
     "pruebas:costo-hasta-primera-compra": "node scripts/pruebas/costo_hasta_primera_compra.mjs",
     "pruebas:costo-fuera-de-banda": "node scripts/pruebas/costo_fuera_de_banda.mjs",
     "pruebas:produccion-costo-atipico": "node scripts/pruebas/produccion_costo_atipico.mjs",
+    "pruebas:produccion-costo-atipico-motivo": "node scripts/pruebas/produccion_costo_atipico_motivo.mjs",
     "pruebas:lote-costo-atipico": "node scripts/pruebas/lote_costo_atipico.mjs",
     "pruebas:factura-costo-atipico": "node scripts/pruebas/factura_costo_atipico.mjs",
     "pruebas:registrar-compra-emision-lima": "node scripts/pruebas/registrar_compra_emision_lima.mjs",

@@ -75,7 +75,7 @@ function PrecioEnLaWeb({ productoId }: { productoId: string }) {
         </Vacio>
       ) : (
         <>
-          <ul className="divide-y divide-sand rounded-xl border border-sand bg-papel text-[13px]">
+          <ul className="card-cayla divide-y divide-sand text-[13px]">
             {estado.precios.sedes.map((t) => {
               const d = textoDePrecio(t);
               return (

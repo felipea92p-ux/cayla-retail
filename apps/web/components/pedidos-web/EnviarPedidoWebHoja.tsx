@@ -72,7 +72,7 @@ export function EnviarPedidoWebHoja({ envio, onClose, onEnviado }: { envio: Envi
     <Modal titulo={`Enviar a ${envio.tiendaPedido}`} subtitulo={`Pedido web ${envio.codigo} · sale de ${envio.desde}`} onClose={onClose} tamano="angosta" bloqueado={enviando}>
       {(cerrar) => (
         <div className="space-y-4">
-          <ul className="divide-y divide-sand rounded-xl border border-sand" data-guia="enviar-pedido-web.prendas">
+          <ul className="card-cayla divide-y divide-sand" data-guia="enviar-pedido-web.prendas">
             {envio.lineas.map((l) => (
               <li key={l.lineaId} className="flex items-center gap-3 px-4 py-2.5">
                 <MiniPrenda prenda={l} tamano="md" />

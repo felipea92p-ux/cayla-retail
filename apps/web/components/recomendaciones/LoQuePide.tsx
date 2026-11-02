@@ -57,7 +57,7 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
 
   if (tema.id === "colores") {
     return (
-      <div className="space-y-2 rounded-2xl border border-sand bg-crema px-4 py-3">
+      <div className="card-cayla space-y-2 px-4 py-3">
         <p className="text-sm font-semibold text-tinta">
           {datos.colores.total} {datos.colores.total === 1 ? "color" : "colores"} en el catálogo hoy
         </p>
@@ -83,7 +83,7 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
   const tallas = tallasParaMostrar(tema, datos);
   const mayor = Math.max(1, ...tallas.map((t) => datos.modelosPorTalla[t] ?? 0));
   return (
-    <div className="space-y-2 rounded-2xl border border-sand bg-crema px-4 py-3">
+    <div className="card-cayla space-y-2 px-4 py-3">
       <p className="text-sm font-semibold text-tinta">Modelos del catálogo en esas tallas</p>
       <div className="space-y-1.5">
         {tallas.map((t) => {
@@ -105,5 +105,5 @@ function DatoDelTema({ tema, lectura, tienda }: { tema: Tema; lectura: LecturaCa
 }
 
 const Nota = ({ children }: { children: ReactNode }) => (
-  <p className="rounded-2xl border border-sand bg-crema px-4 py-3 text-sm leading-snug text-tinta">{children}</p>
+  <p className="card-cayla px-4 py-3 text-sm leading-snug text-tinta">{children}</p>
 );

@@ -167,7 +167,7 @@ export function AnularPedidoPagadoHoja({
 
             <div className="space-y-2" data-guia="anular-pedido.prendas">
               <TituloGrupo cuenta={prendas.length}>Sus prendas</TituloGrupo>
-              <ul className="divide-y divide-sand rounded-xl border border-sand">
+              <ul className="card-cayla divide-y divide-sand">
                 {prendas.map(({ linea: l, texto }) => (
                   <li key={l.lineaId} className="flex items-start gap-3 px-4 py-2.5">
                     <MiniPrenda prenda={l} tamano="md" />
@@ -182,7 +182,7 @@ export function AnularPedidoPagadoHoja({
 
             <div className="space-y-2" data-guia="anular-pedido.plata">
               <TituloGrupo nota={`se le devuelven ${soles(total)}`}>Su plata</TituloGrupo>
-              <ul className="divide-y divide-sand rounded-xl border border-sand text-sm">
+              <ul className="card-cayla divide-y divide-sand text-sm">
                 {pagos.map((g) => (
                   <li key={g.id} className="px-4 py-2.5">
                     <span className="block tabular-nums text-tinta">{textoDelPago(g)}</span>
@@ -225,7 +225,7 @@ export function AnularPedidoPagadoHoja({
               <div className="space-y-2" data-guia="anular-pedido.boleta">
                 <TituloGrupo>Su boleta</TituloGrupo>
                 {camino ? (
-                  <div className="space-y-2 rounded-xl border border-sand px-4 py-3">
+                  <div className="card-cayla space-y-2 px-4 py-3">
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta">
                       <ReceiptText aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
                       {camino.texto && (

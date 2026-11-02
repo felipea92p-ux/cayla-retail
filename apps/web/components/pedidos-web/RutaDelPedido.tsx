@@ -13,7 +13,7 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
   const paso = pasoDeLaRuta(p.estado);
   if (paso === null) {
     return (
-      <p className="flex items-center gap-2.5 rounded-xl bg-hueso px-4 py-3 text-[15px] text-tinta" data-guia="pedido-web.ruta">
+      <p className="card-cayla flex items-center gap-2.5 px-4 py-3 text-[15px] text-tinta" data-guia="pedido-web.ruta">
         {p.estado === "entregado" ? <CircleCheck aria-hidden className="h-5 w-5 shrink-0 text-verde" /> : <Info aria-hidden className="h-5 w-5 shrink-0 text-taupe" />}
         {textoDeCierreDelPedido(p, ahora)}
       </p>
@@ -28,7 +28,7 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
   const correPlazo = p.estado === "por_confirmar" || (p.estado === "confirmado" && p.pagado === 0) || p.sinRecoger;
   const tono = reloj.tono === "rojo" ? "rojo" : reloj.tono === "ambar" ? "ambar" : "neutro";
   return (
-    <ol aria-label="Dónde va el pedido" className="flex flex-wrap items-center gap-x-0 gap-y-2 rounded-xl bg-hueso px-4 py-3" data-guia="pedido-web.ruta">
+    <ol aria-label="Dónde va el pedido" className="card-cayla flex flex-wrap items-center gap-x-0 gap-y-2 px-4 py-3" data-guia="pedido-web.ruta">
       {PASOS.map((nombre, i) => {
         const hecho = i < paso;
         const ahoraEs = i === paso;
@@ -38,7 +38,7 @@ export function RutaDelPedido({ pedido: p, ahora }: { pedido: PedidoDetalle; aho
               <span
                 aria-hidden
                 className={`grid h-6 w-6 place-items-center rounded-full border text-[11px] font-semibold ${
-                  hecho ? "border-verde bg-verde text-crema" : ahoraEs ? "border-tinta bg-tinta text-crema" : "border-borde-control bg-papel text-taupe"
+                  hecho ? "border-verde bg-verde text-crema" : ahoraEs ? "border-tinta bg-tinta text-crema" : "border-borde-control text-taupe"
                 }`}
               >
                 {hecho ? <Check className="h-3 w-3" /> : i + 1}

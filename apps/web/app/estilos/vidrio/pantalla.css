@@ -115,6 +115,15 @@
   color: var(--color-tinta);
   background: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es el fondo del globito, no un texto */
 }
+/* El que pide algo también: la regla de la pestaña elegida lo pintaba crema, y sobre la gota clara no se leía (1,09:1, medido en Tráfico ▸ Reponer). */
+.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta[data-pide] {
+  color: var(--color-ambar-profundo);
+  background: color-mix(in srgb, var(--color-ambar) 15%, transparent); /* contraste: no aplica — es el fondo del globito, no un texto */
+}
+.pestana-cayla:is([aria-selected="true"], [aria-current="page"]) .pestana-cayla__cuenta[data-tono="rojo"] {
+  color: var(--color-rojo-profundo);
+  background: color-mix(in srgb, var(--color-rojo) 15%, transparent); /* contraste: no aplica — es el fondo del globito, no un texto */
+}
 .pestanas-cayla > .cmp-ind-gota {
   border-radius: 999px;
   background: var(--gota-marca);
