@@ -132,7 +132,8 @@ as $$
 declare
   v_antes text;
   v_despues text;
-  v_orden record;
+  v_numero integer;
+  v_sede uuid;
 begin
   v_antes := (select pr.nota from retail.producciones pr where pr.id = p_produccion_id);
   -- El motivo vive solo en esta transacción (`true`): no se queda pegado a la conexión.
@@ -144,13 +145,14 @@ begin
   v_despues := (select pr.nota from retail.producciones pr where pr.id = p_produccion_id);
   if v_despues is distinct from v_antes and v_despues like '%Costo atípico confirmado por%' then
     begin
-      select pr.numero, pr.ubicacion_id into v_orden from retail.producciones pr where pr.id = p_produccion_id;
+      v_numero := (select pr.numero from retail.producciones pr where pr.id = p_produccion_id);
+      v_sede := (select pr.ubicacion_id from retail.producciones pr where pr.id = p_produccion_id);
       perform retail.fn_actividad_anotar(
         'produccion', 'costo_atipico_confirmado',
-        retail.fn_produccion_numero_texto(v_orden.numero) || ': costo atípico confirmado — «' || btrim(p_motivo) || '»',
-        retail.fn_actor_persona_id(true), retail.fn_actividad_terminal_ahora(), v_orden.ubicacion_id, null,
+        retail.fn_produccion_numero_texto(v_numero) || ': costo atípico confirmado — «' || btrim(p_motivo) || '»',
+        retail.fn_actor_persona_id(true), retail.fn_actividad_terminal_ahora(), v_sede, null,
         'producciones', p_produccion_id::text, now(),
-        jsonb_build_object('produccion_id', p_produccion_id, 'orden', retail.fn_produccion_numero_texto(v_orden.numero), 'motivo', btrim(p_motivo)), 'vivo');
+        jsonb_build_object('produccion_id', p_produccion_id, 'orden', retail.fn_produccion_numero_texto(v_numero), 'motivo', btrim(p_motivo)), 'vivo');
     exception when others then
       raise warning 'actividad: no se anotó el costo atípico confirmado de la orden % (%)', p_produccion_id, sqlerrm;
     end;
