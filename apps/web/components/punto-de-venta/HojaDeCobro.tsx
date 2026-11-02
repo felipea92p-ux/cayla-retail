@@ -9,7 +9,7 @@ import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas
 import { CLASE_MONTO_ILEGIBLE, CampoMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
-import { Volver } from "@/components/ui/Volver";
+import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
 import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
@@ -205,9 +205,9 @@ export function HojaDeCobro({
               {money(total)}
             </span>
           </p>
-          {/* El «Volver» del cobro es la flecha redonda de todo el ERP (ADR-0358, Felipe 2026-10-07: «volver solo es una flecha»).
-              Con el dedo, su zona llega a 44 px sin que el círculo crezca. */}
-          <Volver onClick={onVolver} a="Volver al ticket" />
+          {/* Una hoja sobre el catálogo se cierra con la ×, no con una flecha de «Volver» (que se leía como el «atrás» del navegador;
+              Felipe 2026-11-02). Vuelve al ticket tal cual estaba: no cobra nada. */}
+          <CerrarHoja onCerrar={onVolver} />
         </div>
       )}
 

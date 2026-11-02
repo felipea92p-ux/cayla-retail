@@ -5,7 +5,7 @@ import { type DescuentoForm, type ItemCarrito, money } from "@/components/PuntoD
 import { PanelDescuento } from "@/components/punto-de-venta/PanelDescuento";
 import { Boton } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { Volver } from "@/components/ui/Volver";
+import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
 import { cuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
 
 const ID_MOTIVO = "descuento-motivo-bloqueo";
@@ -15,9 +15,9 @@ const ID_MOTIVO = "descuento-motivo-bloqueo";
  * como una hoja de vidrio sobre el catálogo, igual que el cobro (`HojaDeCobro`), y el ticket queda quieto a la vista. Antes reemplazaba a las
  * prendas dentro de la columna de 400 px: el «%» salía tres veces, los motivos se partían y «Aplicar a» quedaba bajo el pliegue.
  *
- * Cabecera con la flecha de siempre, el cuerpo de tres pasos (`PanelDescuento`) y un pie FIJO con lo que quedaría y «Aplicar descuento»
+ * Cabecera con el título y la × que la cierra, el cuerpo de tres pasos (`PanelDescuento`) y un pie FIJO con lo que quedaría y «Aplicar descuento»
  * (apagado dice qué falta, debajo). Sin estado propio: el formulario y el carrito son de `PuntoDeVenta`; aplicar y quitar también. Se cierra con
- * la flecha, con Esc y tocando el velo (los dos últimos los pone `PuntoDeVenta`, como en el cobro). En el celular no se usa: ahí el mismo cuerpo
+ * la ×, con Esc y tocando el velo (los dos últimos los pone `PuntoDeVenta`, como en el cobro). En el celular no se usa: ahí el mismo cuerpo
  * vive dentro de la hoja del ticket.
  */
 export function HojaDeDescuento({
@@ -47,9 +47,8 @@ export function HojaDeDescuento({
   return (
     <div className="pv-desc-raiz">
       <div className="pv-desc-cab">
-        <Volver onClick={onVolver} a="Volver al ticket" deshabilitado={bloqueado} />
-        <div className="anim-sube text-right">
-          <TituloSeccion className="justify-end">
+        <div className="anim-sube">
+          <TituloSeccion>
             <span className="inline-flex items-center gap-2.5">
               <BadgePercent className="h-5 w-5 text-tinta/70" aria-hidden />
               Descuento
@@ -57,6 +56,7 @@ export function HojaDeDescuento({
           </TituloSeccion>
           <p className="mt-1 text-sm text-tinta/60">{todasLasPrendas ? "Todo el ticket" : `${elegidasCuenta} de ${carrito.length} ${carrito.length === 1 ? "prenda" : "prendas"}`}</p>
         </div>
+        <CerrarHoja onCerrar={onVolver} deshabilitado={bloqueado} />
       </div>
 
       <div className="pv-desc-scroll scroll-cayla">
