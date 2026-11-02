@@ -67,3 +67,5 @@
   solo con lo elegido; los colores de los tramos no cambian. Caras de lo propio: «Lo que mueve la aguja» (A · Placas chicas, recomendada;
   B · Lentes del tono) y la marca de «por decidir» (A · Gota al canto, recomendada; B · Fila hundida). Medida de 320 a 1920 px sin desbordes
   ni errores. Sin cambios en `apps/web`. La otra sesión pidió que, después de esta, no empiece otra hasta que Felipe se ponga al día.
+- **Lo que eligió Felipe en Frescura (2026-11-02):** «Lo que mueve la aguja» B · Lentes del tono y «por decidir» B · Fila hundida (no tomó
+  las recomendadas).

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-ag="placa" data-pd="gota">
+<html lang="es" data-tema="claro" data-ag="lente" data-pd="pozo">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -120,8 +120,8 @@
 
 <div class="spk">
   <span class="titulo">Gestión ▸ Frescura del piso, con vidrio: la página entera con las piezas elegidas</span>
-  <span class="tag">Lo que mueve la aguja</span><div class="seg-m" data-ctl="ag"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placas chicas</button><button data-v="lente">B · Lentes del tono</button></div>
-  <span class="tag">Por decidir</span><div class="seg-m" data-ctl="pd"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota al canto</button><button data-v="pozo">B · Fila hundida</button></div>
+  <span class="tag">Lo que mueve la aguja</span><div class="seg-m" data-ctl="ag"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placas chicas</button><button data-v="lente">B · Lentes del tono ✓</button></div>
+  <span class="tag">Por decidir</span><div class="seg-m" data-ctl="pd"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota al canto</button><button data-v="pozo">B · Fila hundida ✓</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
@@ -149,11 +149,13 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>Lo que mueve la aguja</b></td><td>A · Placas chicas <span class="ev">Recomendada</span></td><td>Tres placas claras, iguales: lo que dicen manda, y la insignia ya da el tono.</td><td>Casi nada.</td></tr>
-      <tr><td>B · Lentes del tono</td><td>Cada tarjeta se tiñe de lo que dice: se reconoce de reojo cuál se queda y cuál se lleva más.</td><td>Tres tintes juntos sobre la barra de colores del piso: mucho color en la misma vista.</td></tr>
-      <tr><td rowspan="2"><b>Por decidir</b></td><td>A · Gota al canto <span class="ev">Recomendada</span></td><td>La marca de la fila elegida del menú, más gruesa y con su luz; la fila se aclara apenas: se encuentra al recorrer la lista.</td><td>Casi nada.</td></tr>
-      <tr><td>B · Fila hundida</td><td>La prenda por decidir queda en un pozo: «espera algo de ti».</td><td>Una fila hundida se parece a un campo; y varias seguidas cortan la tabla en pedazos.</td></tr>
+      <tr><td rowspan="2"><b>Lo que mueve la aguja</b></td><td>A · Placas chicas</td><td>Tres placas claras, iguales: lo que dicen manda, y la insignia ya da el tono.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Lentes del tono <span class="ev">Elegida</span></td><td>Cada tarjeta se tiñe de lo que dice: se reconoce de reojo cuál se queda y cuál se lleva más.</td><td>Tres tintes juntos sobre la barra de colores del piso: mucho color en la misma vista.</td></tr>
+      <tr><td rowspan="2"><b>Por decidir</b></td><td>A · Gota al canto</td><td>La marca de la fila elegida del menú, más gruesa y con su luz; la fila se aclara apenas: se encuentra al recorrer la lista.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Fila hundida <span class="ev">Elegida</span></td><td>La prenda por decidir queda en un pozo: «espera algo de ti».</td><td>Una fila hundida se parece a un campo; y varias seguidas cortan la tabla en pedazos.</td></tr>
     </table>
+    <h3>Lo que decidió Felipe (2026-11-02): B y B</h3>
+    <p><b>Lo que mueve la aguja B · Lentes del tono y por decidir B · Fila hundida.</b> Cada tarjeta de la aguja se tiñe apenas del tono de su insignia (se queda en verde, envejece en ámbar); la prenda por decidir queda en un pozo: lo que espera algo de ti.</p>
     <h3>Lo que no cambia</h3>
     <p>Los tramos y sus colores (verde, neutro, ámbar; lo que no se sabe, rayado), las cifras del piso, las familias, lo que dice cada tarjeta de la aguja y su botón, las prendas por categoría con su estado, qué hacer y su botón (el único negro, el de la prenda por decidir), los filtros y «Limpiar filtros».</p>
   </section>
@@ -194,7 +196,7 @@
           <div class="ac">${acc ? `<button class="btn ${acc[0]} chico">${acc[1]}${acc[0] === 'pri' ? ' ' + s(D.flecha) : ''}</button>` : ''}</div></div>`).join('')}`).join('')}
       </section>`;
   }
-  Marco.iniciar({ estado: { ag: 'placa', pd: 'gota' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+  Marco.iniciar({ estado: { ag: 'lente', pd: 'pozo' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
 })();
 </script>
 </body>
