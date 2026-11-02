@@ -268,3 +268,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
 - **Devoluciones a 375 px: la fila de la prenda ya no se sale (2026-11-02):** el `fieldset` de las prendas lleva `min-w-0` y la fila baja de
   línea; el chip («Quedan 9 días») va en su propio renglón en el celular, alineado con el texto, como ya hacía Cambios. Medido: la fila
   termina en 337 px dentro de la tarjeta de 359 y la página no corre de costado.
+
+- **Movimientos al vidrio (Felipe 2026-11-02):** el sello «A · Lente del tono» (receta nueva `--lente-sello-*`: la lente teñida de su tipo
+  con luz, filo y sombra del tono; el punteado conserva su borde) y los tipos «A · Placas con su tono» (placa Serena; el elegido, teñido de
+  su tono con su filo; su texto tenue sube a tinta al 78 %). El riel y el día pasan a ranura; las filas se tiñen sobre el vidrio. El
+  movimiento de los sellos (ADR-0353) no cambió. `tema:auditar` sin hallazgos nuevos en oscuro; el ícono rojo del tipo elegido es el más
+  justo (3,07–3,19:1, pasa el 3:1 de un gráfico). Lo hereda el sello del cajón de un movimiento y el de Caja.

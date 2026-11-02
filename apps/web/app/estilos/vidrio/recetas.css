@@ -195,6 +195,16 @@
   --lente-chica-tinte-arriba: 6%;
   --lente-chica-tinte-abajo: 12%;
   --lente-chica-filo: 30%;
+  /* La lente del SELLO: el ícono de un tipo de Movimientos (docs/maquetas/movimientos-vidrio-2026-11/, «A · Lente del tono», Felipe
+     2026-11-02). Como la insignia elegida: vidrio teñido del tono, MÁS tono abajo que arriba (es un ícono chico: el tinte tiene que leerse),
+     con la luz arriba, un filo del tono y una sombra del tono. La mezcla la hace la pieza con su `--mv-c`. */
+  --lente-sello-base-arriba: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+  --lente-sello-base-abajo: transparent;
+  --lente-sello-tinte-arriba: 10%;
+  --lente-sello-tinte-abajo: 20%;
+  --lente-sello-filo: 30%;
+  --lente-sello-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent);
+  --lente-sello-sombra-tono: 45%;
   /* El loader: la pantalla esmerilada (más desenfoque que el velo de una hoja: no hay hoja que mirar) y el halo de crema detrás de sus
      palabras sueltas. */
   --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 46%, transparent);
@@ -342,6 +352,14 @@
     --lente-chica-base-abajo: transparent;
     --lente-chica-tinte-arriba: 11%;
     --lente-chica-tinte-abajo: 7%;
+    /* La lente del sello en oscuro: el tono directo sobre lo de atrás, más arriba que abajo y sin base de vidrio (la base oscura apagaba
+       el ícono), con la luz de la crema y sin la sombra del tono (sobre el negro cálido no se ve). */
+    --lente-sello-base-arriba: transparent;
+    --lente-sello-tinte-arriba: 24%;
+    --lente-sello-tinte-abajo: 12%;
+    --lente-sello-filo: 36%;
+    --lente-sello-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --lente-sello-sombra-tono: 0%;
     --version-filo: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 40%, transparent),
       inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 55%, transparent);
     /* La isla y el tubo en oscuro: la luz de arriba toma la crema a poca opacidad (el vidrio es oscuro) y el relleno se apaga hacia la sombra. */
@@ -385,6 +403,8 @@
     --lente-tono-base-abajo: var(--color-papel);
     --lente-chica-base-arriba: var(--color-papel);
     --lente-chica-base-abajo: var(--color-papel);
+    --lente-sello-base-arriba: var(--color-papel);
+    --lente-sello-base-abajo: var(--color-papel);
     --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 90%, transparent);
     --espera-halo: var(--color-crema);
     --version-agua-opacidad: 1;
