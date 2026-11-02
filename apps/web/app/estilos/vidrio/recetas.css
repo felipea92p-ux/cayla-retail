@@ -127,10 +127,14 @@
   --bandeja-fondo: color-mix(in srgb, var(--color-vidrio) 38%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --bandeja-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 75%, transparent),
     0 0 0 1px color-mix(in srgb, var(--color-sombra) 5%, transparent);
-  --menu-activa-fondo: color-mix(in srgb, var(--color-vidrio) 70%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-  --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 85%, transparent),
+  /* La elegida se tiñe del rojo de CAYLA (Felipe 2026-11-02: «no se nota cuando se selecciona una opción»; blanco sobre blanco no se veía): una
+     ficha de papel con un 10 % de rojo, su filo rojo al 32 % y un resplandor interior. Todo por DENTRO: por fuera sobraba y el `overflow`
+     de la bandeja (4 px) y del <nav> (12 px) lo cortaba en seco. */
+  --menu-activa-fondo: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel));
+  --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 32%, transparent),
     0 1px 2px color-mix(in srgb, var(--color-sombra) 10%, transparent),
-    0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 18%, transparent);
+    0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 18%, transparent),
+    inset 0 0 14px 0 color-mix(in srgb, var(--color-rojo) 20%, transparent);
   /* El botón de plegar: una gota redonda que flota sobre el borde del riel, mitad sobre el menú y mitad sobre el contenido. */
   --plegar-fondo: var(--gota-marca);
   --plegar-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
@@ -385,10 +389,11 @@
     --bandeja-fondo: color-mix(in srgb, var(--color-tinta) 7%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --bandeja-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 12%, transparent),
       0 0 0 1px color-mix(in srgb, var(--color-sombra) 30%, transparent);
-    --menu-activa-fondo: color-mix(in srgb, var(--color-tinta) 13%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-    --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 16%, transparent),
+    --menu-activa-fondo: color-mix(in srgb, var(--color-rojo) 16%, var(--color-papel));
+    --menu-activa-sombra: inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 40%, transparent),
       0 1px 2px color-mix(in srgb, var(--color-sombra) 50%, transparent),
-      0 4px 10px -6px var(--color-sombra);
+      0 4px 10px -6px var(--color-sombra),
+      inset 0 0 14px 0 color-mix(in srgb, var(--color-rojo) 22%, transparent);
     /* En oscuro la gota es casi transparente: sobre el borde del riel se perdería. El botón va en hueso, como en la maqueta. */
     --plegar-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-hueso) 95%, transparent), color-mix(in srgb, var(--color-hueso) 80%, transparent));
     --plegar-borde: color-mix(in srgb, var(--color-tinta) 16%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
