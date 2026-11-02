@@ -274,6 +274,16 @@
   --lente-tono-grande-tinte-arriba: 10%;
   --lente-tono-grande-tinte-abajo: 18%;
   --lente-tono-grande-filo: 40%;
+
+  /* ---------- el vidrio claro (docs/maquetas/existencias-vidrio-2026-11/ y recibir-vidrio-2026-11/; piezas en vidrio/pantalla.css y vidrio/recibir.css) ---------- */
+  /* «Translúcida, sin desenfoque» / «A · Vidrio claro» (Felipe 2026-11-02): una tarjeta que se repite muchas veces en una pantalla (la
+     Vitrina de Existencias, los grupos del acordeón, el lacre y la Vitrina de Recibir) pasa del papel a vidrio claro, más lleno arriba,
+     con su filo de luz. SIN `backdrop-filter`: con cientos de tarjetas el desenfoque se descartó por costo (31 de octubre); cuesta lo mismo
+     que el papel. El filo va aparte para la pieza que conserva su propia sombra (la Vitrina de Existencias). */
+  --vidrio-claro-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 86%, transparent), color-mix(in srgb, var(--color-vidrio) 66%, transparent));
+  --vidrio-claro-borde: color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  --vidrio-claro-filo: inset 0 1px 0 var(--color-vidrio);
+  --vidrio-claro-sombra: var(--vidrio-claro-filo), 0 12px 28px -18px color-mix(in srgb, var(--color-sombra) 35%, transparent);
 }
 
 @media screen {
@@ -409,6 +419,12 @@
     --lente-tono-grande-tinte-arriba: 14%;
     --lente-tono-grande-tinte-abajo: 14%;
     --lente-tono-grande-filo: 34%;
+    /* El vidrio claro en oscuro: parejo y casi lleno (sobre el negro cálido el degradado no se ve), con el filo de crema a poca opacidad y
+       sin sombra de afuera (no se vería). */
+    --vidrio-claro-fondo: color-mix(in srgb, var(--color-vidrio) 80%, transparent);
+    --vidrio-claro-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --vidrio-claro-filo: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent);
+    --vidrio-claro-sombra: var(--vidrio-claro-filo);
   }
 }
 
@@ -440,5 +456,6 @@
     --espera-halo: var(--color-crema);
     --version-agua-opacidad: 1;
     --ticket-placa-fondo: var(--color-papel);
+    --vidrio-claro-fondo: var(--color-papel);
   }
 }

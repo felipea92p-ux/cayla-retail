@@ -299,3 +299,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   tablas (`--hilo-fila`, 9 %: la maqueta dice 8 %, se usó la receta); cada tarea se aclara al pasar con la gota chica de las listas y la urgente
   lleva su ícono en la gota roja de 28 px; la × de «Comparar» es una gota chica con su filo. Qué tareas salen y qué compara no cambia. Visto a
   1440 px (claro y oscuro) y a 375 px (nada se sale; la isla oscura de los marcados, igual).
+
+- **Recibir mercadería «B» al vidrio (Felipe 2026-11-02):** superficies A · Vidrio claro y avances B · Tubo (`vidrio/recibir.css`; el
+  movimiento de ADR-0575 no cambia). Receta nueva `--vidrio-claro-*` (la Vitrina de Existencias ya la usaba a mano: ahora la toma de ahí,
+  igual a la vista). Grupos del acordeón, lacre, Vitrina y el contador en vidrio claro sin desenfoque; la prenda, las cifras del lacre y el
+  número del Dial al pozo; el «+» en gota ahumada y el «−» en gota clara; la pista del Dial, la vía del Trayecto y las barras del Podio en
+  tubo (el Dial suma `rc-dial-luz`, un brillo quieto que sigue al arco). Los rojos de la etiqueta y del lacre, igual. La base local no tiene
+  envíos: se vio con los componentes reales en una página temporal (ya borrada), sin escribir en la base. Falta mirarla con un envío real.
