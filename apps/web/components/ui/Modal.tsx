@@ -303,6 +303,9 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
               <X aria-hidden className="h-4 w-4" />
             </button>
           )}
+          {/* El asa de una hoja que scrollea (no el ticket) va PRIMERA y pegada arriba (`position: sticky`, globals.css): al bajar
+              por el contenido la barra se queda a la vista (Felipe 2026-11-02). Fuera de la cascada, como el botón de cerrar. */}
+          {conAsa && variante !== "ticket" && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja asa-hoja-fija" />}
           {arriba}
           <Dialog.Title asChild>
             <h2 className={`font-display text-tinta ${deCara && !vidrio ? "text-2xl leading-tight" : "sr-only"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${deCara && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
@@ -337,7 +340,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
           {/* El asa del celular (ADR-0479): dice que la hoja se baja con el dedo. Va al final y fuera de la cascada por lo
               mismo que la capa de abajo, y se dibuja arriba de la hoja con `position: absolute` (globals.css, `.asa-hoja`).
               No es un control: la salida para el teclado y el lector sigue siendo Escape, la ✕ o «Cancelar». */}
-          {conAsa && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja" />}
+          {conAsa && variante === "ticket" && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja" />}
           <div data-capa-flotante data-sin-cascada />
           </Dialog.Content>
         </div>
