@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-ag="placa" data-pd="gota">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frescura con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Gestión ▸ Frescura del piso con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/gestion/frescura → components/frescura/FrescuraPanel.tsx; ADR-0208; el piloto de /formidable): el piso de la
+   tienda (`FrescuraPiso`: la barra apilada de los tramos, sus cifras y una fila por familia), «Lo que mueve la aguja» (`FrescuraAguja`: hasta
+   tres TARJETAS DE PAPEL, cada una con su insignia, lo que dice y UN botón) y las prendas por categoría en una tabla (`FrescuraFila`: la
+   prenda, su estado, qué hacer y el botón), con la que está «por decidir» marcada por un FILETE de tinta al canto.
+   Armada SOLO con lo ya elegido: cabecera A, placas Serena, barra apilada (gráficos B · Tinta sobre vidrio), insignia A, títulos de sección
+   con su globito, buscador A · Pozo, filtros A · Gotas, «Limpiar» punteado, botones gota, la miniatura de prenda de hoy.
+   Lo PROPIO, con sus caras:
+     1. Las tarjetas de «Lo que mueve la aguja».
+     2. La marca de la prenda «por decidir».
+   Los colores de los tramos no cambian (verde · neutro · ámbar, nunca rojo; lo que no se sabe, RAYADO: decisión de Felipe en Formidable,
+   2026-10-10). Solo tokens. Sin movimiento nuevo; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) backwards}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.neutro{--c:var(--taupe)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.tit{display:flex;align-items:center;gap:10px;font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.tit .n{min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:inline-grid;place-items:center;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));box-shadow:inset 0 0 0 1px var(--t12)}
+.apilada{display:flex;gap:2px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.apilada i{display:block;height:100%}
+.t-fresca{background:var(--verde)}.t-vigente{background:color-mix(in srgb,var(--tinta) 25%,transparent)}.t-env{background:var(--ambar)}
+.t-sin{background:repeating-linear-gradient(135deg,var(--taupe) 0 2px,transparent 2px 5px)}.t-clas{background:color-mix(in srgb,var(--pizarra) 60%,transparent)}
+.muestra{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
+.pozo-b{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.limpiar{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;color:var(--t65);border:1px dashed var(--borde)}
+.mini{width:44px;height:44px;flex:none;border-radius:12px;background:var(--col);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 40%,transparent)}
+.btn.chico{height:34px;padding:0 14px;font-size:13px}
+
+/* ---------- el piso ---------- */
+.piso{padding:18px 22px;margin-top:24px}
+.piso .cab-p{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.piso .apilada.grande{height:12px;margin-top:14px}
+.cifras-p{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px;margin-top:14px}
+.cifras-p .e{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--taupe)}
+.cifras-p b{font-family:'EB Garamond',serif;font-weight:400;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.cifras-p small{font-size:12.5px;color:var(--taupe);margin-left:6px}
+.familias{margin-top:16px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.fam{display:grid;grid-template-columns:minmax(140px,1fr) minmax(180px,2fr) minmax(0,2fr);gap:6px 16px;align-items:center;padding:10px 0}
+.fam+.fam{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.fam b{font-size:14px}.fam b small{display:block;font-size:12.5px;font-weight:400;color:var(--taupe)}
+.fam .apilada{height:8px}.fam p{font-size:12.5px;color:var(--taupe)}
+
+/* ============ 1 · LO QUE MUEVE LA AGUJA ============ */
+.aguja{padding:18px 22px;margin-top:18px}
+.aguja .baj{font-size:13.5px;margin-top:2px}.aguja .baj span{color:var(--taupe)}
+.agujas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.ag{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:12px;border:1px solid var(--sand);background:var(--papel)}
+.ag .ti{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}.ag h3{font-size:16px;font-weight:600}
+.ag p{font-size:13.5px;line-height:1.4}.ag p.t{font-size:13px;color:var(--taupe)}
+.ag .btn{margin-top:auto;align-self:flex-start}
+/* A · Placas chicas: cada una es una placa de vidrio clara (la de las cifras, más chica), con su insignia del tono y su botón en gota clara. */
+[data-ag="placa"] .ag{border-radius:18px;border-color:color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 56%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 12px 26px -18px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-ag="placa"] .ag{background:color-mix(in srgb,var(--tinta) 6%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 10%,transparent)}
+/* B · Lentes del tono: la tarjeta se tiñe apenas del tono de su insignia (se queda verde, se lleva más ámbar), como el aviso elegido. */
+[data-ag="lente"] .ag{border-radius:18px;border-color:color-mix(in srgb,var(--c) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 6%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 12%,color-mix(in srgb,var(--vidrio) 55%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"][data-ag="lente"] .ag{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,transparent),color-mix(in srgb,var(--c) 8%,transparent))}
+
+/* ---------- las prendas ---------- */
+.fr-prendas{margin-top:18px;overflow:hidden}
+.fr-prendas .barra-f{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:16px 20px}
+.franja{display:flex;gap:10px;margin:0 20px 6px;padding:10px 14px;border-radius:14px;font-size:13px;color:var(--t80);background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.franja svg{width:16px;height:16px;flex:none;color:var(--taupe)}
+.grupo{padding:14px 20px 4px}
+.fila{position:relative;display:grid;grid-template-columns:minmax(230px,1.5fr) minmax(150px,.85fr) minmax(220px,1.5fr) minmax(170px,auto);gap:10px 16px;align-items:center;padding:14px 20px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.fila .pr{display:flex;align-items:flex-start;gap:12px;min-width:0}.fila .pr b{display:block;font-size:15px}.fila .pr small{display:block;font-size:13px;color:var(--taupe)}
+.fila .pr .chs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.fila .es{display:grid;gap:4px;justify-items:start}.fila .es span:last-child{font-size:13px;color:var(--taupe)}
+.fila .qh{display:flex;gap:6px;font-size:13.5px;line-height:1.4}.fila .qh svg{width:14px;height:14px;flex:none;margin-top:3px;color:var(--taupe)}
+.fila .ac{display:flex;justify-content:flex-end;gap:8px}
+@container disp (max-width:1100px){.fila{grid-template-columns:minmax(0,1fr) auto}.fila .es{grid-column:1}.fila .qh{grid-column:1/-1}.fila .ac{grid-column:2;grid-row:1}}
+@container disp (max-width:640px){.fila{grid-template-columns:minmax(0,1fr);padding:14px 16px}.fila .ac{grid-column:1;grid-row:auto;justify-content:flex-start}.agujas{grid-template-columns:minmax(0,1fr)}.cifras-p{grid-template-columns:1fr 1fr}.fam{grid-template-columns:minmax(0,1fr)}.piso,.aguja{padding:16px}.fr-prendas .barra-f,.grupo{padding-left:16px;padding-right:16px}.franja{margin:0 16px 6px}}
+@container disp (max-width:1100px) and (min-width:641px){.agujas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ============ 2 · LA MARCA DE «POR DECIDIR» ============ */
+.fila.pd::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:color-mix(in srgb,var(--tinta) 35%,transparent)}
+/* A · Gota al canto: la marca es la de la fila elegida del menú (una gota de tinta, más gruesa y con su luz), y la fila se aclara apenas. */
+[data-pd="gota"] .fila.pd{background:linear-gradient(90deg,color-mix(in srgb,var(--vidrio) 55%,transparent),transparent 70%)}
+[data-tema="oscuro"][data-pd="gota"] .fila.pd{background:linear-gradient(90deg,color-mix(in srgb,var(--tinta) 6%,transparent),transparent 70%)}
+[data-pd="gota"] .fila.pd::before{left:6px;width:4px;border-radius:4px;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 70%,transparent),var(--tinta));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 40%,transparent)}
+/* B · Fila hundida: la prenda por decidir queda en un pozo (como un campo que espera tu dato): es lo que espera algo de ti. */
+[data-pd="pozo"] .fila.pd{margin:6px 10px;border-radius:16px;border-top-color:transparent;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-pd="pozo"] .fila.pd{background:color-mix(in srgb,var(--sombra) 28%,transparent)}
+[data-pd="pozo"] .fila.pd::before{display:none}
+[data-pd="pozo"] .fila.pd+.fila{border-top-color:transparent}
+@media (prefers-reduced-motion:reduce){.placa{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Frescura del piso, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">Lo que mueve la aguja</span><div class="seg-m" data-ctl="ag"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placas chicas</button><button data-v="lente">B · Lentes del tono</button></div>
+  <span class="tag">Por decidir</span><div class="seg-m" data-ctl="pd"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota al canto</button><button data-v="pozo">B · Fila hundida</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>components/frescura/FrescuraPanel.tsx</code>, ADR-0208, el piloto de /formidable): el piso de la tienda con su barra de tramos (fresca, vigente, envejeciendo, lo que aún no se sabe —rayado— y los clásicos aparte) y una fila por familia; «Lo que mueve la aguja»; y las prendas por categoría con su estado, qué hacer y un botón. Todo en tarjetas de <b>papel macizo</b>.</li>
+      <li><b>«Lo que mueve la aguja»</b>: hasta tres <b>tarjetas de papel</b> chicas, cada una con su insignia, lo que dice y un botón secundario (el único negro de la pantalla es el de la prenda por decidir).</li>
+      <li><b>La prenda «por decidir»</b>: marcada por un <b>filete de tinta</b> de 2 px al canto de su fila.</li>
+      <li>Los colores de los tramos son decisión de Felipe (verde, neutro, ámbar; nunca rojo; lo que no se sabe, rayado) y no cambian.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Lo que mueve la aguja</b></td><td>A · Placas chicas <span class="ev">Recomendada</span></td><td>Tres placas claras, iguales: lo que dicen manda, y la insignia ya da el tono.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Lentes del tono</td><td>Cada tarjeta se tiñe de lo que dice: se reconoce de reojo cuál se queda y cuál se lleva más.</td><td>Tres tintes juntos sobre la barra de colores del piso: mucho color en la misma vista.</td></tr>
+      <tr><td rowspan="2"><b>Por decidir</b></td><td>A · Gota al canto <span class="ev">Recomendada</span></td><td>La marca de la fila elegida del menú, más gruesa y con su luz; la fila se aclara apenas: se encuentra al recorrer la lista.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Fila hundida</td><td>La prenda por decidir queda en un pozo: «espera algo de ti».</td><td>Una fila hundida se parece a un campo; y varias seguidas cortan la tabla en pedazos.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Los tramos y sus colores (verde, neutro, ámbar; lo que no se sabe, rayado), las cifras del piso, las familias, lo que dice cada tarjeta de la aguja y su botón, las prendas por categoría con su estado, qué hacer y su botón (el único negro, el de la prenda por decidir), los filtros y «Limpiar filtros».</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, PRENDAS…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', camisa: T.productos, abajo: 'M6 9l6 6 6-6', info: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M12 16v-4M12 8h.01',
+    bajar: 'M12 17V3M6 11l6 6 6-6M19 21H5', liquidar: 'M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z M15 9l-6 6',
+    mover: 'M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4', flecha: 'M5 12h14M13 6l6 6-6 6', limpiar: 'M3 6h18M7 6l1 14h8l1-14M10 11v6M14 11v6' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const tramos = (f, v, e, n) => `<i class="t-fresca" style="flex:${f}"></i><i class="t-vigente" style="flex:${v}"></i><i class="t-env" style="flex:${e}"></i><i class="t-sin" style="flex:${n}"></i>`;
+  const FAM = [['Blusas', '86 colgadas', [34, 28, 16, 8], 'Se va bien: 4 de cada 10 son nuevas.'], ['Vestidos', '42 colgadas', [10, 14, 14, 4], '1 de cada 3 envejece: conviene rotar.'], ['Casacas', '25 colgadas', [12, 6, 2, 5], 'Recién llegadas: aún falta saber su ritmo.']];
+  const AGUJA = [['Blusas', 'verde', 'Se queda', 'Se van más rápido que el resto.', 'Completa sus tallas: faltan M y L en 4 modelos.', 'Completar tallas'],
+    ['Vestidos', 'ambar', 'Envejece', '14 llevan más de 60 días colgados.', 'Cambiarlos de lugar suele moverlos.', 'Ver cuáles'],
+    ['Polos', 'verde', 'Se lleva más', 'Lo más vendido de la semana.', 'No queda en el almacén: conviene pedir más.', 'Colgar más']];
+  const FILAS = [['Blusas', [[0, 'Blusa Emma', 'Vino · S M L', [['neutro', '12 colgadas']], 'verde', 'Fresca', 'lleva 9 días', 'bajar', 'Colgar la talla M que está en el almacén.', ['sec', 'Bajar al piso']],
+      [10, 'Blusa Coral', 'Coral · S M', [['neutro', '5 colgadas']], 'ambar', 'Envejeciendo', 'lleva 71 días', 'liquidar', 'Lleva 71 días sin venderse: liquídala o muévela.', ['pri', 'Decidir'], 1]]],
+    ['Vestidos', [[2, 'Vestido Ara', 'Bosque · M L', [['neutro', '4 colgadas']], 'ambar', 'Envejeciendo', 'lleva 64 días', 'mover', 'En Arequipa se vende el doble: llévala allá.', ['pri', 'Decidir'], 1],
+      [13, 'Vestido Rubí', 'Rubí · S', [['neutro', '2 colgadas']], 'neutro', 'Vigente', 'lleva 30 días', 'info', 'Nada que hacer por ahora.', null]]]];
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Frescura del piso', frase: 'Lo que cuelga en la tienda, qué tan nuevo es para tus clientes y qué conviene hacer con lo que envejece.' })}
+      <section class="placa piso"><div class="cab-p"><h2 class="tit">El piso de Trujillo</h2><span class="chip pizarra">153 colgadas</span></div>
+        <div class="apilada grande" role="img" aria-label="Fresca 37 %, vigente 31 %, envejeciendo 21 %, aún no se sabe 11 %">${tramos(56, 48, 32, 17)}</div>
+        <div class="cifras-p">${[['t-fresca', 'Fresca', 56, '37 %'], ['t-vigente', 'Vigente', 48, '31 %'], ['t-env', 'Envejeciendo', 32, '21 %'], ['t-sin', 'Aún no se sabe', 17, '11 %']].map(([c, n, v, p]) => `<div><p class="e"><i class="muestra ${c}"></i>${n}</p><b>${v}</b><small>${p}</small></div>`).join('')}</div>
+        <div class="familias">${FAM.map(([n, c, t, d]) => `<div class="fam"><b>${n}<small>${c}</small></b><div class="apilada">${tramos(...t)}</div><p>${d}</p></div>`).join('')}</div></section>
+      <section class="placa aguja" style="animation-delay:.08s"><h2 class="tit">Lo que mueve la aguja</h2><p class="baj">Tres categorías que hoy cambian la frescura de la tienda. <span>Una a la vez.</span></p>
+        <div class="agujas">${AGUJA.map(([n, t, chip, d, q, b]) => `<div class="ag" style="--c:var(--${t === 'verde' ? 'verde' : 'ambar'})"><div class="ti"><h3>${n}</h3><span class="chip ${t === 'verde' ? '' : 'ambar'}">${chip}</span></div><p>${d}</p><p class="t">${q}</p><button class="btn sec chico">${b}</button></div>`).join('')}</div></section>
+      <section class="placa fr-prendas" style="animation-delay:.16s"><div class="barra-f"><div class="pozo-b">${s(D.lupa)}<span>Busca una prenda o un color</span></div>
+          <button class="fp">${s(D.camisa)}Categoría ${s(D.abajo)}</button><button class="fp" aria-pressed="true">Por decidir 2</button><button class="fp">Envejeciendo</button><button class="limpiar">${s(D.limpiar)}Limpiar filtros</button></div>
+        <p class="franja">${s(D.info)}<span>Las que esperan una decisión van primero. Decidir no cambia el stock: anota qué harás y te lleva a hacerlo.</span></p>
+        ${FILAS.map(([cat, fs]) => `<div class="grupo"><h3 class="tit">${cat} <span class="n">${fs.length}</span></h3></div>${fs.map(([i, n, d, chs, tono, est, dias, ic, q, acc, pd]) => `<div class="fila${pd ? ' pd' : ''}">
+          <div class="pr"><span class="mini" data-color-dato style="--col:${PRENDAS[i][0]}"></span><div style="min-width:0"><b>${n}</b><small>${d}</small><div class="chs">${chs.map(([c, x]) => `<span class="chip ${c}">${x}</span>`).join('')}</div></div></div>
+          <div class="es"><span class="chip ${tono === 'verde' ? '' : tono}">${est}</span><span>${dias}</span></div>
+          <p class="qh">${s(D[ic])}<span>${q}</span></p>
+          <div class="ac">${acc ? `<button class="btn ${acc[0]} chico">${acc[1]}${acc[0] === 'pri' ? ' ' + s(D.flecha) : ''}</button>` : ''}</div></div>`).join('')}`).join('')}
+      </section>`;
+  }
+  Marco.iniciar({ estado: { ag: 'placa', pd: 'gota' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

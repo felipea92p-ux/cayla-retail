@@ -16,3 +16,4 @@
 - **Página Clientes ▸ Fichas, en maqueta** (`docs/maquetas/clientes-fichas-vidrio-2026-11/`): solo el material (el plan es de Dany); la fila A · Filas en la placa (recomendada) / B · Gotas sueltas. 54 combinaciones sin desborde.
 - **Clientes ▸ Fichas, elegida:** A · Filas en la placa; pasada a la sesión que implementa. Fusionada la elección de Conteo de la otra sesión (planilla A · Placa Serena, pasos A · Ranura con gotas).
 - **Cambios y Devoluciones, elegida** (maqueta de la otra sesión): paso a paso A · Hilo de vidrio y trae y lleva A · Balanza; pasada a la sesión que implementa.
+- **Apartados, elegida** (maqueta de la otra sesión): la hoja A · Al aire y las pestañas del celular A · Isla de pestañas; pasada a la sesión que implementa. Fusionada la maqueta de Frescura del piso, sin elegir.

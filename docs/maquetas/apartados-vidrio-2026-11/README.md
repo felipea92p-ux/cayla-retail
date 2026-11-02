@@ -41,4 +41,4 @@ inventados.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**La hoja A · Al aire y las pestañas del celular A · Isla de pestañas** (2026-11-02), las recomendadas.
