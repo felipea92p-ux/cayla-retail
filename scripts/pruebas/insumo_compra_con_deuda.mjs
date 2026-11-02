@@ -100,8 +100,9 @@ end;
 $f$;
 grant execute on function pg_temp.intento(text) to authenticated;
 select id as taller from retail.ubicaciones where tipo = 'taller' and activo limit 1 \\gset
-select id as ins from retail.insumos where archivado_at is null order by codigo limit 1 \\gset
-select id as prov from retail.proveedores_produccion order by nombre limit 1 \\gset
+-- Su propio proveedor e insumo (el CI parte de una base sin proveedores de Producción): nada depende de lo que haya en la base local.
+select retail.guardar_proveedor_produccion(null, 'Proveedor P03 de prueba', 'tela') as prov \\gset
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('T-P03-LINO', 'Lino P03 de prueba', 'tela', 'metro') returning id as ins \\gset
 ${insumo === "archivado" ? `update retail.insumos set archivado_at = now() where id = :'ins';` : ""}
 update retail.colaboradores set ubicacion_asignada_id = :'taller' where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
 select count(*) as n_comp0 from retail.comprobantes_produccion where proveedor_id = :'prov' \\gset
