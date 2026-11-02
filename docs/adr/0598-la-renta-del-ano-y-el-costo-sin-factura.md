@@ -1,6 +1,6 @@
 # ADR-0598 — La renta del año y el costo sin factura
 
-- **Fecha:** 2026-11-02 · **Estado:** construido y probado en local; **las dos migraciones están por pegar en producción** (ver «Cómo se pega»)
+- **Fecha:** 2026-11-02 · **Estado:** construido y probado en local; las dos migraciones están pegadas en producción desde el 2026-11-02 (ver «Cómo se pega»)
 - **Relacionados:** ADR-0195 F8 (Impuestos), ADR-0433 (saldo a favor de IGV al arrancar), ADR-0484 (aviso de 250 UIT), ADR-0573 (Impuestos «E · B++»),
   ADR-0362 (compras sin comprobante, decisión 50), ADR-0111 (recepciones sin comprobante), CLAUDE.md principio 9.
 
