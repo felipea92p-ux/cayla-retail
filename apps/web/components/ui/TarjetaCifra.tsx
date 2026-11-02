@@ -186,17 +186,24 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     tocable ? "w-full cursor-pointer" : "",
     // `viva` no lleva la transición de utilidad: le ganaría a la de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
     esViva ? "alza-cayla cmp-viva" : tocable ? "transition-[background-color,border-color] duration-200 ease-cayla motion-reduce:transition-none" : "",
-    // El encima y la puesta de la B, la tarjeta de Compras que eligió Felipe (2026-10-06): fondo arena al 30 % al pasar el
-    // mouse y al 40 % la que está filtrando.
-    tocable && !puesta ? "hover:bg-sand/30" : "",
-    puesta ? "bg-sand/40" : "",
-    sinDato && !fallo ? "border-dashed bg-transparent" : "",
+    // La cara es la placa Serena (ADR-0596, «A · Placa Serena», Felipe 2026-10-31; CSS en vidrio/pantalla.css): la que lleva se alza y
+    // su flecha avanza, la que filtra puesta se HUNDE (`data-puesta`), la que no tiene dato es el borde punteado sin vidrio
+    // (`data-sin-dato`). Antes, la tarjeta de papel con su arena al pasar el mouse (B de Compras, 2026-10-06).
+    "tarjeta-cifra",
+    sinDato && !fallo ? "border-dashed" : "",
     acento ? "border-l-2 border-l-rojo" : "",
     acentoTrazo ? "relative overflow-hidden" : "",
     className,
   ]
     .filter(Boolean)
     .join(" ");
+
+  // Lo que la placa necesita saber para dibujarse (vidrio/pantalla.css), sin depender de una clase de utilidad.
+  const marcas = {
+    "data-conducta": filtra ? "filtra" : lleva ? "lleva" : "informa",
+    "data-puesta": puesta ? "" : undefined,
+    "data-sin-dato": sinDato && !fallo ? "" : undefined,
+  };
 
   const tonoContexto = fallo ? "text-tinta" : (detalleTono ?? "text-taupe");
   const conAyuda = Boolean(ayuda) && !tocable;
@@ -295,20 +302,20 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
 
   if (href) {
     return (
-      <Link href={href} id={id} data-guia={guia} className={clase} style={style}>
+      <Link href={href} id={id} data-guia={guia} className={clase} {...marcas} style={style}>
         {contenido}
       </Link>
     );
   }
   if (onClick) {
     return (
-      <button type="button" id={id} data-guia={guia} onClick={onClick} className={clase} aria-pressed={filtra ? puesta : undefined} style={style}>
+      <button type="button" id={id} data-guia={guia} onClick={onClick} className={clase} {...marcas} aria-pressed={filtra ? puesta : undefined} style={style}>
         {contenido}
       </button>
     );
   }
   return (
-    <div id={id} data-guia={guia} className={clase} style={style}>
+    <div id={id} data-guia={guia} className={clase} {...marcas} style={style}>
       {contenido}
     </div>
   );

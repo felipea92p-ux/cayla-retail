@@ -228,25 +228,28 @@ export function InsumosPanel({
                           )}
                         </div>
                       )}
-                      {g.insumos.map((i) => (
-                        <FilaInsumo
-                          key={i.id}
-                          insumo={i}
-                          indice={indice++}
-                          esLider={esLider}
-                          veCostos={veCostos}
-                          vocabulario={vocabulario}
-                          abierto={!!abiertos[i.id]}
-                          onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
-                          onIngresar={() => setIngresando({ insumoId: i.id })}
-                          onFicha={() => setFichando(i)}
-                          onRetirar={() => setRetirando(i)}
-                          ingresosEditables={datos.ingresosEditables}
-                          eliminados={eliminados.filter((e) => e.insumoId === i.id)}
-                          onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
-                          onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
-                        />
-                      ))}
+                      {/* «A · Una placa por tela» (vidrio/insumos.css): los colores de una tela, en una sola placa. */}
+                      <div className="insumos-placa">
+                        {g.insumos.map((i) => (
+                          <FilaInsumo
+                            key={i.id}
+                            insumo={i}
+                            indice={indice++}
+                            esLider={esLider}
+                            veCostos={veCostos}
+                            vocabulario={vocabulario}
+                            abierto={!!abiertos[i.id]}
+                            onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
+                            onIngresar={() => setIngresando({ insumoId: i.id })}
+                            onFicha={() => setFichando(i)}
+                            onRetirar={() => setRetirando(i)}
+                            ingresosEditables={datos.ingresosEditables}
+                            eliminados={eliminados.filter((e) => e.insumoId === i.id)}
+                            onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
+                            onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
+                          />
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </section>
@@ -255,13 +258,13 @@ export function InsumosPanel({
           </div>
 
           {/* ==================== libro de movimientos ==================== */}
-          <aside data-guia="prod-insumos.libro" className="card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
+          <aside data-guia="prod-insumos.libro" className="insumos-libro card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
             <TituloSeccion>Libro de movimientos</TituloSeccion>
             <p className="mb-2 text-sm text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
             {libro.length === 0 ? (
               <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ArrowLeftRight />}>Todavía no se movió nada.</Vacio>
             ) : (
-              <ul className="divide-y divide-tinta/10">
+              <ul className="insumos-libro-lista divide-y divide-tinta/10">
                 {libro.map((m) => {
                   const entra = m.tipo === "compra" || m.tipo === "devolucion" || (m.tipo === "ajuste" && m.cantidad > 0);
                   return (
@@ -272,7 +275,7 @@ export function InsumosPanel({
                           {[m.insumo, m.orden, m.lote].filter(Boolean).join(" · ")} · {diaMes(diaLima(m.creadoEn))}
                         </p>
                       </div>
-                      <span className={`self-start font-medium tabular-nums ${entra ? "text-verde-profundo" : "text-tinta"}`}>
+                      <span data-sentido={entra ? "entra" : "sale"} className={`insumos-libro-cantidad self-start whitespace-nowrap font-medium tabular-nums ${entra ? "text-verde-profundo" : "text-tinta"}`}>
                         {entra ? "+" : "−"}
                         {cantidadTexto(Math.abs(m.cantidad), m.unidad)}
                       </span>
@@ -383,13 +386,13 @@ function FilaInsumo({
     .join(" · ");
 
   return (
-    <article data-guia="prod-insumos.fila" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 4 + indice }}>
+    <article data-guia="prod-insumos.fila" data-abierto={abierto ? "" : undefined} className="insumo-fila card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 4 + indice }}>
       <button
         type="button"
         data-guia={indice === 0 ? "prod-insumos.fila-cabecera" : undefined}
         onClick={onAlternar}
         aria-expanded={abierto}
-        className="grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] max-sm:grid-cols-[1fr_auto]"
+        className="insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] max-sm:grid-cols-[1fr_auto]"
       >
         <div className="min-w-0">
           <p className="truncate text-[15px] text-tinta">{i.nombre}</p>
@@ -419,7 +422,7 @@ function FilaInsumo({
       {/* Se abre por `grid-template-rows` (ADR-0128): sin medir alturas, sin salto. */}
       <div className={`grid transition-[grid-template-rows] duration-300 ease-cayla ${abierto ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
         <div className="min-h-0 overflow-hidden">
-          <div className="border-t border-sand px-4 pb-3 pt-1.5">
+          <div className="insumo-lotes border-t border-sand px-4 pb-3 pt-1.5">
             {lotes.length === 0 ? (
               <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Layers />}>Todavía no hay lotes de este insumo.</Vacio>
             ) : (

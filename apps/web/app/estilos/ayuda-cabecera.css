@@ -1,7 +1,7 @@
 /* ==================================================================
    El «?» de la cabecera y su globo de vidrio (ADR-0358, ronda 18 de /unificar; Felipe 2026-10-30 eligió mirando P2 + D2 + V1).
    La frase bajo el título ya no se ve siempre: vive en un globo que abre el «?» junto al título (`AyudaCabecera`, que pone
-   `EncabezadoPagina`). El material es el vidrio del ERP (`.vidrio-cayla`, las pestañas y las tarjetas de cifra): deja pasar el
+   `EncabezadoPagina`). El material es el vidrio del ERP (las pestañas y las tarjetas de cifra): deja pasar el
    color de detrás, difuminado, con el filo claro arriba. La letra sube de 15 px gris a 16 px en tinta: quien lo abre, lo lee bien.
    Movimiento (ADR-0136): el globo crece desde el pico, se enfoca y se aclara una vez (340 ms), el hilo del nombre se dibuja y la
    frase sube un paso después; sin rebote ni bucle, y nada con prefers-reduced-motion.

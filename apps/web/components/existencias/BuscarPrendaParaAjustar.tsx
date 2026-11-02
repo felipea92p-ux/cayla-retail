@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { Bandage, PencilLine, SearchX } from "lucide-react";
+import { Bandage, Camera, PencilLine, SearchX } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Vacio } from "@/components/ui/Vacio";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { detalleDelModelo, detalleSinStock, modelosParaAjustar, TOPE_MODELOS, type DondeHay } from "@/lib/existencias-buscar-ajuste";
 import { sinStockQueCoincide, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { leerExistenciasProductos } from "@/lib/productos-stock";
@@ -49,6 +50,8 @@ export function BuscarPrendaParaAjustar({
 }) {
   const [texto, setTexto] = useState("");
   const [activa, setActiva] = useState(0);
+  // La cámara lee UNA etiqueta y la deja escrita en el buscador: la lista ya sabe encontrar por código (misma búsqueda que al teclear).
+  const [camara, setCamara] = useState(false);
   const idLista = useId();
   const modelos = modelosParaAjustar(indice, texto);
   // Los que la sede nunca movió van después de los que sí, y entre los dos no pasan del tope de la lista.
@@ -99,6 +102,17 @@ export function BuscarPrendaParaAjustar({
               setActiva(0);
             }}
             autoFocus
+            accion={
+              <button
+                type="button"
+                onClick={() => setCamara(true)}
+                aria-label="Escanear etiqueta con la cámara"
+                title="Escanear etiqueta"
+                className="mr-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-tinta/70 transition-colors hover:text-tinta"
+              >
+                <Camera aria-hidden className="h-5 w-5" />
+              </button>
+            }
             etiqueta={modo === "danada" ? "Buscar la prenda dañada" : "Buscar la prenda que vas a ajustar"}
             // sugerir-fijo: dice qué se puede buscar; no depende de nada elegido antes
             placeholder="Nombre, código o color"
@@ -147,6 +161,22 @@ export function BuscarPrendaParaAjustar({
             <Vacio tamano="chico" alinear="izquierda" icono={<SearchX aria-hidden className="h-5 w-5" />}>
               No encuentro «{texto.trim()}» en {sedeNombre}. Prueba con otra palabra o con el código de la etiqueta.
             </Vacio>
+          )}
+          {camara && (
+            <EscanerBusqueda
+              titulo="Escanear prenda"
+              pista="Centra la etiqueta de la prenda en el cuadro"
+              onCodigo={(codigo) => {
+                const leido = codigo.trim();
+                setTexto(leido);
+                setActiva(0);
+                setCamara(false);
+                // El bip dice si la encontró (verde) o no (ámbar: mira la pantalla).
+                return { tono: modelosParaAjustar(indice, leido).length > 0 ? "verde" : "ambar" };
+              }}
+              onEscribir={() => setCamara(false)}
+              onClose={() => setCamara(false)}
+            />
           )}
         </div>
       )}

@@ -458,11 +458,13 @@ export function PuntoDeVentaTicket({
   return (
     // En escritorio el aside llena toda la fila del POS (la raíz fija la altura al
     // viewport): cabecera y pie quedan fijos y solo el medio scrollea.
-    <aside data-guia="vender.ticket" className="flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
+    // En su columna (escritorio) el ticket es la placa Serena, pegada arriba (`pv-ticket`, vidrio/vender.css); en la hoja del celular
+    // (`data-en-hoja`) la cara la pone la hoja.
+    <aside data-guia="vender.ticket" data-en-hoja={enHoja || undefined} className="pv-ticket flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
       {/* Un solo título grande por momento: la sede ya está en la barra de arriba
           («Venta en tienda · sede»), repetirla acá no decía nada. Fuera de «armar», la
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
-      <div className="@container flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-sand px-5 py-3">
+      <div className="@container flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-sand px-5 py-3 pv-ticket-hilo">
         {momentoMostrado === "armar" ? (
           <>
             <TituloSeccion>
@@ -562,7 +564,9 @@ export function PuntoDeVentaTicket({
         }}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
+        {/* `data-sin-reserva`: la lista del ticket se acorta al quitar una prenda y el scroll debe bajar con ella; con la
+            reserva de <PaginaEstable> quedaba un hueco en blanco bajo la última prenda (2026-11-02). */}
+        <div data-sin-reserva className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
           {enLaEspera ? (
             <div className={saliendo ? "anim-revelar-salida space-y-3 px-5 py-4" : "anim-revelar space-y-3 px-5 py-4"}>
               {/* Si el actual tiene líneas, retomar lo intercambia: se dice antes de tocar. */}
@@ -922,7 +926,7 @@ export function PuntoDeVentaTicket({
           )}
         </div>
 
-        <div data-guia="vender.ticket-pie" className="@container border-t border-sand bg-papel px-5 pt-4 pb-5">
+        <div data-guia="vender.ticket-pie" className="@container border-t border-sand bg-papel px-5 pt-4 pb-5 pv-ticket-hilo pv-ticket-pie">
           {/* El cupón del Club (programa de puntos): UNA línea de toda la compra, en cualquier momento del ticket mientras esté puesto,
               porque el Total de abajo ya lo descuenta; el reparto por prenda queda en la base y el comprobante. Se puede quitar mientras
               se arma la venta. `key` en el monto: se asienta cuando cambia, como el Total. */}

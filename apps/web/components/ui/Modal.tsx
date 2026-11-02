@@ -79,14 +79,14 @@ type Props = {
       teléfono (bajo 640 px) en TODA hoja; desde 640 px, no (ADR-0528, `useAtrasCierraLaHoja`). `false` lo apaga: solo `<ModalRuta>`,
       que ya vive en la URL y cierra con el «atrás» de la navegación. Se lee al abrir: girar el teléfono con la hoja abierta no lo cambia. */
   atrasCierra?: boolean;
-  /** La cara de toda hoja es UNA desde el 2026-10-14 (ADR-0358, ronda 12, Felipe eligió P1): el panel en `papel` con borde fino y SIN
-      sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
-      rápido. Antes había tres: crema con sombra y título de 18 px (la de fábrica), «hoja» (esta) y «papel» (esta con la ✕). `hoja` y
-      `papel` quedan como nombres que ya no cambian la cara: «papel» todavía pone la ✕ (como `conCerrar`). */
+  /** La cara de toda hoja es UNA (ADR-0358, ronda 12) y desde el 2026-10-31 es el vidrio «Serena» (ADR-0596, `.hoja-serena` en
+      app/estilos/vidrio/hoja.css): vidrio al 70 % con su borde de luz y su sombra, 32 px de radio, la × en gota y el título serif de
+      27 px; con un botón rojo adentro vuelve a papel. El desenfoque lo pone el velo, no la hoja (un `backdrop-filter` aquí recortaría la
+      lista de cada combo de adentro). `hoja` y `papel` quedan como nombres que no cambian la cara: «papel» todavía pone la ✕. */
   variante?: "papel" | "hoja" | "camara" | "ticket" | "vidrio";
   /* «vidrio» (Mi perfil, Felipe 2026-10-31, maqueta docs/maquetas/mi-perfil-2026-10/, «A · Cristal líquido»): la hoja es vidrio
      esmerilado que deja ver la pantalla de atrás (`.hoja-vidrio`, app/estilos/perfil-vidrio.css). Su contenido dibuja su propia
-     cabecera: el título y la frase quedan para lectores de pantalla. Es la única hoja de vidrio del ERP (excepción de ADR-0136). */
+     cabecera: el título y la frase quedan para lectores de pantalla. Es el vidrio «Completo» (con su desenfoque propio, filo y brillo): el resto de las hojas es «Serena» (ADR-0596). */
   /* «camara» (Vender en el teléfono, 2026-09-25): pantalla completa, sin padding ni borde, fondo tinta; el título queda
      para lectores de pantalla y el contenido dibuja su propia barra (EscanerCamara). Hereda igual el velo, la entrada,
      la cascada de sus piezas y el foco atrapado. */
@@ -266,7 +266,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
                     // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479). Con
                     // `viewport-fit=cover` la hoja llega a la barrita del iPhone: suma ese margen abajo y el pie pegado
                     // (`.pie-hoja-fijo`, que lee `--borde-abajo`) lo absorbe igual que absorbe el `p-6` (ADR-0479, actividad 9).
-                    `${altoFijo ? "scroll-cayla overflow-y-auto sm:flex sm:flex-col sm:overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl ${vidrio ? "hoja-vidrio" : "border border-sand bg-papel"} p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
+                    `${altoFijo ? "scroll-cayla overflow-y-auto sm:flex sm:flex-col sm:overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl ${vidrio ? "hoja-vidrio" : "hoja-serena"} p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
               cerrando ? (salidaPropia ? "" : "anim-modal-sale") : "anim-modal-entra"
             } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}

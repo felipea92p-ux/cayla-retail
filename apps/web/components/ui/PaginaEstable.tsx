@@ -127,6 +127,8 @@ export function PaginaEstable() {
       // DESPUÉS del recorte. El `change` solo abre vigilancia propia si no viene pegado a un clic (un select con teclado).
       if (esChangeInmediatoAlClic(e.type, vigilancia ? performance.now() - vigilancia.inicio : null)) return;
       const contenedor = contenedorDe(e.target instanceof Element ? e.target : null);
+      // Una lista que scrollea por dentro y debe recogerse con su contenido (el ticket de Vender) no quiere aire al fondo.
+      if (contenedor.hasAttribute("data-sin-reserva")) return terminarVigilancia();
       // Ráfaga de tecleo (buscador con filtrado en vivo): no reabrir vigilancia con cada letra —se perdería la
       // foto de «antes de escribir»— solo estirar el plazo. La vigilancia ya abierta (por la primera letra) sigue
       // corriendo su propio ResizeObserver y su propio microtask ya disparado; no hace falta otro por tecla.

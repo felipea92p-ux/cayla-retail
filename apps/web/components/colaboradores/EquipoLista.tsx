@@ -28,14 +28,16 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 // («el equipo de Trujillo»). El estado (suspendido, baja en Dynamic) es una marca sobre la persona, no una pestaña. Arriba,
 // «Esperan tu ok» solo si hay altas por aprobar. Tocar una persona abre su ficha; tocar una terminal, la suya (`FichaTerminal`). Con el atajo «Terminales» la lista es la misma, solo con ellas.
 
-/** El rol: el único rótulo de acceso. El Líder, en tinta. Un nombre largo («Prueba del tema: ventas y stock») no se sale de su
+/** El rol: el único rótulo de acceso. Es una gota clara y el del Líder, la gota ahumada (vidrio «A · Gotas», Felipe 2026-11-02,
+ *  docs/maquetas/colaboradores-vidrio-2026-11/; la cara vive en vidrio/colaboradores.css). Un nombre largo («Prueba del tema: ventas y stock») no se sale de su
  *  columna: se corta con «…» y el nombre completo queda en el `title`. Es `inline-block` y no `inline-flex` porque el texto
  *  solo se corta con puntos suspensivos dentro de un bloque. */
 export function PildoraRol({ nombre, lider }: { nombre: string; lider: boolean }) {
   return (
     <span
       title={nombre}
-      className={`inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-sm font-semibold ${lider ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}
+      data-lider={lider ? "" : undefined}
+      className="rol-gota inline-block max-w-full truncate rounded-full border px-2.5 py-0.5 text-sm font-semibold"
     >
       {nombre}
     </span>
@@ -93,7 +95,7 @@ function CaraMiembro({ m }: { m: MiembroEquipo }) {
   return m.tipo === "persona" ? (
     <CaraPersona p={m} />
   ) : (
-    <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-tinta text-crema">
+    <span className="colab-cara-terminal grid h-9 w-9 place-items-center rounded-[10px] text-tinta">
       <IconoAparato className="h-5 w-5" />
     </span>
   );
@@ -122,9 +124,9 @@ function FilaMiembro({
         onClick={onTocar}
         aria-current={elegido ? "true" : undefined}
         data-guia={guia}
-        className={`${COLUMNAS} min-h-11 w-full rounded-xl px-2.5 py-1 text-left transition-colors duration-150 ease-cayla ${
-          elegido ? "bg-hueso" : "hover:bg-hueso/60"
-        }`}
+        // Una fila en la placa de la tarjeta, como Clientes ▸ Fichas: sin fondo propio; al pasar el mouse y la elegida, la gota clara
+        // (vidrio/colaboradores.css).
+        className={`colab-fila ${COLUMNAS} min-h-11 w-full px-2.5 py-1 text-left`}
       >
         <span className={apagado ? "opacity-60" : ""}>
           <CaraMiembro m={m} />
@@ -162,9 +164,7 @@ function TarjetaMiembro({ m, elegido, onTocar, guia }: { m: MiembroEquipo; elegi
         onClick={onTocar}
         aria-current={elegido ? "true" : undefined}
         data-guia={guia}
-        className={`grid w-full grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-xl border p-2.5 text-left transition-colors duration-150 ease-cayla ${
-          elegido ? "border-tinta bg-hueso" : "border-sand hover:border-borde-control"
-        } ${apagado ? "opacity-70" : ""}`}
+        className={`colab-tarjeta grid w-full grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-xl border p-2.5 text-left ${apagado ? "opacity-70" : ""}`}
       >
         <span className="row-span-2">
           <CaraMiembro m={m} />
@@ -181,7 +181,8 @@ function TarjetaMiembro({ m, elegido, onTocar, guia }: { m: MiembroEquipo; elegi
   );
 }
 
-/** Las altas que esperan el ok de un líder (D-70): una franja, una píldora por persona con ✓ y ✕. «✕» pregunta una vez. */
+/** Las altas que esperan el ok de un líder (D-70): una lente ámbar, una gota por persona con ✕ y ✓ (vidrio «A · Lente ámbar», Felipe
+ *  2026-11-02; en el celular, cada alta en su renglón con sus botones debajo: vidrio/colaboradores.css). «✕» pregunta una vez. */
 function EsperanTuOk({
   pendientes,
   ocupadoId,
@@ -197,19 +198,19 @@ function EsperanTuOk({
 }) {
   const [preguntando, setPreguntando] = useState<string | null>(null);
   return (
-    <section aria-label="Altas que esperan aprobación" className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-ambar/10 px-3.5 py-2" data-guia="colaboradores.esperan-ok">
+    <section aria-label="Altas que esperan aprobación" className="colab-ok flex flex-wrap items-center gap-x-4 gap-y-2 border px-3.5 py-2.5" data-guia="colaboradores.esperan-ok">
       <h2 className="w-full text-[11.5px] font-bold uppercase tracking-[0.1em] text-ambar-profundo sm:w-auto">Esperan tu ok · {pendientes.length}</h2>
-      <ul className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
+      <ul className="colab-ok-lista flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
         {pendientes.map((p) => (
           <li
             key={p.persona_id}
             title={`Lo pidió ${p.propuesto_por ?? "un líder"} · ${fechaLima(p.propuesto_en)}`}
-            className={`flex max-w-full items-center justify-between gap-2 rounded-full bg-papel py-1 pl-3 pr-1 text-sm text-tinta ${ocupadoId === p.persona_id ? "opacity-50" : ""}`}
+            className={`colab-ok-alta flex max-w-full items-center justify-between gap-2 py-1 pl-3 pr-1 text-sm text-tinta ${ocupadoId === p.persona_id ? "opacity-50" : ""}`}
           >
             <strong className="truncate font-semibold">{p.nombre}</strong>
-            <span className="shrink-0 text-tinta/60">→ {p.ubicacion_asignada ?? "retail"}</span>
+            <span className="colab-ok-sede shrink-0">→ {p.ubicacion_asignada ?? "retail"}</span>
             {preguntando === p.persona_id ? (
-              <span className="flex items-center gap-1.5 pr-1.5 text-sm">
+              <span className="colab-ok-botones flex items-center gap-1.5 pr-1.5 text-sm">
                 ¿Rechazar?
                 <button type="button" className="btn-cayla btn-chico btn-peligro" onClick={() => { setPreguntando(null); onRechazar(p); }}>
                   Sí
@@ -219,17 +220,8 @@ function EsperanTuOk({
                 </button>
               </span>
             ) : (
-              <span className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="btn-cayla btn-chico btn-primario"
-                  aria-label={`Aprobar a ${p.nombre}`}
-                  title="Aprobar"
-                  disabled={ocupadoId !== null || !responsable.listo}
-                  onClick={() => onAprobar(p)}
-                >
-                  <Check aria-hidden className="h-4 w-4" />
-                </button>
+              // Rechazar antes que Aprobar: el que guarda, a la derecha (como el pie de una hoja).
+              <span className="colab-ok-botones flex items-center gap-1">
                 <button
                   type="button"
                   className="btn-cayla btn-chico btn-sutil"
@@ -239,6 +231,16 @@ function EsperanTuOk({
                   onClick={() => setPreguntando(p.persona_id)}
                 >
                   <X aria-hidden className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="btn-cayla btn-chico btn-primario"
+                  aria-label={`Aprobar a ${p.nombre}`}
+                  title="Aprobar"
+                  disabled={ocupadoId !== null || !responsable.listo}
+                  onClick={() => onAprobar(p)}
+                >
+                  <Check aria-hidden className="h-4 w-4" />
                 </button>
               </span>
             )}
@@ -391,7 +393,7 @@ export function EquipoLista({
                 >
                   {g.nombre}
                 </TituloSeccion>
-                <ul className={vista === "lista" ? "mt-1.5" : "mt-2 grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-2"}>
+                <ul className={vista === "lista" ? "colab-filas mt-1.5" : "mt-2 grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-2"}>
                   {g.miembros.map((m) => {
                     const alTocar = () => (m.tipo === "persona" ? onAbrir(m.id) : onAbrirTerminal(m.id));
                     return vista === "lista" ? (

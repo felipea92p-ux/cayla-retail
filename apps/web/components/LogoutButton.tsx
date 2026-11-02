@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { borrarCopiasSinConexion } from "@/components/SinConexion";
 import { Modal } from "@/components/ui/Modal";
@@ -81,14 +82,21 @@ export function useCerrarSesion({ nombre, terminal }: { nombre: string; terminal
   return { pedir, dialogo };
 }
 
-/** `nombre` y `terminal`: a quién despide el colibrí («Hasta luego, Camila»; una terminal, por el nombre del aparato). */
-export function LogoutButton({ nombre, terminal }: { nombre: string; terminal: boolean }) {
+/** `nombre` y `terminal`: a quién despide el colibrí («Hasta luego, Camila»; una terminal, por el nombre del aparato).
+    `forma="icono"`: la gota redonda con la puerta, la del pie del menú lateral (ADR-0596), igual que «Cerrar sesión» en Mi perfil. */
+export function LogoutButton({ nombre, terminal, forma = "texto" }: { nombre: string; terminal: boolean; forma?: "texto" | "icono" }) {
   const salida = useCerrarSesion({ nombre, terminal });
   return (
     <>
-      <button onClick={() => salida.pedir()} className="label-cayla text-[11px] text-tinta/70 transition-colors hover:text-rojo">
-        Salir
-      </button>
+      {forma === "icono" ? (
+        <button type="button" onClick={() => salida.pedir()} aria-label="Cerrar sesión" title="Cerrar sesión" className="marco-yo-salir">
+          <LogOut aria-hidden className="h-4 w-4" />
+        </button>
+      ) : (
+        <button onClick={() => salida.pedir()} className="label-cayla text-[11px] text-tinta/70 transition-colors hover:text-rojo">
+          Salir
+        </button>
+      )}
       {salida.dialogo}
     </>
   );

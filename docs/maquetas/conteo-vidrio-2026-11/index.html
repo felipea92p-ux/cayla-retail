@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-pl="placa" data-ri="ranura">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conteo con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Inventario ▸ Conteo con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real: el inicio (app/(app)/inventario/conteo → ConteoVista: el conteo en curso o abrir uno, y los recientes) y contar
+   (conteo/[id] → components/conteo/ContarConteo.tsx: las cifras arriba, los pasos, el escáner, y una tarjeta por prenda con su PLANILLA de
+   tallas: un `<table>` con la cara de <Tabla> por rendimiento, ADR-0358; cada fila se redibuja sola con 800 tallas).
+   Armada SOLO con lo ya elegido: cabecera A con las cifras de la placa, el buscador del mostrador A · Pozo (el escáner), avatar A, insignia
+   A, el paso de cantidad A · Celdas vivas, botones gota, la barra de abajo del celular A · Gota ahumada.
+   Lo PROPIO, con sus caras (la planilla CONSERVA su cara de tabla y no se cambia por la tabla con superpoderes; solo cambia el material):
+     1. La planilla de cada prenda: hoy una tarjeta de PAPEL, cabecera de tabla en ARENA, filas con raya arena.
+     2. Los pasos Contar · Revisar · Confirmar (`PasosConteo`, el riel de estilos/recepcion-conteo.css, el mismo de Recibir): hoy puntos de
+        TINTA y VERDE SÓLIDOS en una línea arena.
+   Solo tokens. Sin movimiento nuevo (la talla recién contada respira en verde una vez, como hoy); todo se apaga con prefers-reduced-motion.
+   Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.rojo{--c:var(--rojo-p)}.chip.pizarra{--c:var(--pizarra)}
+.chip.apagado{color:var(--t65);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));box-shadow:inset 0 0 0 1px var(--t12)}
+.chip.apagado::before{display:none}
+[data-tema="oscuro"] .chip:not(.apagado){background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+[data-tema="oscuro"] .chip.rojo{--c:var(--rojo)}
+.escaner{display:flex;align-items:center;gap:12px;height:50px;padding:0 18px;border-radius:999px;font-size:15px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .escaner{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.escaner svg{width:20px;height:20px;color:var(--rojo-p)}[data-tema="oscuro"] .escaner svg{color:var(--rojo)}
+.escaner span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av-l{width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:13px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--sand) 70%,transparent) 75%)}
+[data-tema="oscuro"] .av-l{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+/* el paso de cantidad elegido: A · Celdas vivas (quieto, una celda tenue; al pasar el mouse o con el foco, el pozo y sus − +) */
+.paso{display:inline-flex;align-items:center;justify-content:space-between;width:100%;max-width:150px;height:34px;border-radius:999px;border:1px solid transparent;background:color-mix(in srgb,var(--tinta) 3%,transparent);transition:background .2s,border-color .2s,box-shadow .2s}
+.paso button{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;opacity:.35;transition:opacity .2s}
+.paso button svg{width:14px;height:14px}
+.paso b{font-size:15px;font-variant-numeric:tabular-nums;min-width:2ch;text-align:center}
+.paso b.vacio{color:var(--t50);font-weight:400}
+@media (hover:hover){td:hover .paso{border-color:var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}td:hover .paso button{opacity:1}}
+@media (hover:none){.paso button{opacity:1}}
+td:focus-within .paso{border-color:var(--borde)}td:focus-within .paso button{opacity:1}
+
+/* ---------- la página ---------- */
+.zona{display:grid;gap:14px;margin-top:22px;grid-template-columns:minmax(0,1fr)}
+.info{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;font-size:13px;color:var(--t65)}
+.info .quien{display:flex;align-items:center;gap:10px}.info .quien b{color:var(--tinta);font-weight:600}
+.info .ult b{color:var(--tinta);font-weight:500}
+.info .btn{height:34px;padding:0 14px;font-size:13px}
+.tarjetas{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))}
+.tc-cab{display:flex;align-items:center;gap:12px;padding:14px 16px 12px}
+.tc-cab .sw{width:40px;height:40px;flex:none;border-radius:11px;background:var(--col);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--crema-fija) 40%,transparent)}
+.tc-cab h3{font-size:15.5px;font-weight:600}.tc-cab p{font-size:13px;color:var(--taupe)}
+.tc-cab .btn{margin-left:auto;height:32px;padding:0 12px;font-size:12px}
+/* como hoy: las columnas se angostan según el ancho de la tarjeta (26rem) */
+.cv-tc{container-type:inline-size}
+.k1{width:4.5rem}.k2{width:6.5rem}.k3{width:10.5rem}
+@container (max-width:26rem){.k1{width:44px}.k2{width:52px}.k3{width:7.75rem}.planilla thead th{font-size:11px}.planilla th:first-child,.planilla td:first-child{padding-left:12px}.paso{max-width:7.5rem}.planilla .chip{padding:0 8px;font-size:11.5px;max-width:100%}.planilla .chip::before{display:none}}
+table.planilla{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:14px}
+.planilla th,.planilla td{padding:6px 4px;vertical-align:middle}
+.planilla thead th{padding-top:8px;padding-bottom:8px;font-size:12px;font-weight:400;color:var(--taupe)}
+.planilla th:first-child,.planilla td:first-child{padding-left:18px;text-align:left}
+.planilla .c{text-align:center}
+.planilla td:last-child{padding-right:14px}
+.planilla tbody th{font-weight:600}
+.planilla .debe{color:var(--t65);font-variant-numeric:tabular-nums}
+.planilla tr.ok td,.planilla tr.ok th{background:color-mix(in srgb,var(--verde) 4.5%,transparent)}
+.planilla tr.recien td,.planilla tr.recien th{animation:respira 1.6s var(--ease) 1}
+@keyframes respira{0%,100%{background:transparent}35%{background:color-mix(in srgb,var(--verde) 16%,transparent)}}
+
+/* ============ 1 · LA PLANILLA ============ */
+.cv-tc{border-radius:20px;overflow:hidden;border:1px solid var(--sand);background:var(--papel);animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i) * 60ms + 120ms)}
+.planilla thead tr{background:color-mix(in srgb,var(--sand) 70%,transparent)}
+.planilla tbody tr+tr th,.planilla tbody tr+tr td{border-top:1px solid var(--sand)}
+/* A · Placa Serena: la tarjeta es la placa elegida para las tablas; la cabecera de la tabla, una franja hundida (un pozo fino) en vez de
+   arena; las filas, separadas por una raya de tinta al 8 % en vez de arena. La cara de tabla no cambia. */
+[data-pl="placa"] .cv-tc{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-pl="placa"] .cv-tc{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-pl="placa"],[data-pl="lamina"]) .planilla thead tr{background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+[data-tema="oscuro"]:is([data-pl="placa"],[data-pl="lamina"]) .planilla thead tr{background:color-mix(in srgb,var(--sombra) 28%,transparent)}
+:is([data-pl="placa"],[data-pl="lamina"]) .planilla tbody tr+tr th,:is([data-pl="placa"],[data-pl="lamina"]) .planilla tbody tr+tr td{border-top-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* B · Lámina casi papel: la misma tarjeta, pero de vidrio casi opaco (la lámina elegida para la lista de prendas de las hojas): el lienzo
+   apenas se nota detrás de los números, como conviene a una planilla que se lee por horas. */
+[data-pl="lamina"] .cv-tc{border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);background:color-mix(in srgb,var(--papel) 86%,transparent);
+  -webkit-backdrop-filter:blur(30px) saturate(1.4);backdrop-filter:blur(30px) saturate(1.4);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 18px 40px -28px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-pl="lamina"] .cv-tc{background:color-mix(in srgb,var(--papel) 84%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+
+/* ============ 2 · LOS PASOS ============ */
+.riel{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:6px 0 2px;margin-top:22px}
+.riel .cv-linea{position:absolute;left:calc(16.66% + 18px);right:calc(16.66% + 18px);top:24px;height:2px;border-radius:2px;background:var(--sand);overflow:hidden}
+.riel .cv-linea i{display:block;height:100%;width:calc(var(--p) * 100%);background:var(--tinta)}
+.riel li{list-style:none;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.riel .punto{position:relative;z-index:1;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:600;border:2px solid var(--sand);background:var(--crema);color:var(--t65)}
+.riel .hecho .punto{border-color:var(--verde);background:var(--verde);color:var(--crema-fija)}
+.riel .ahora .punto{border-color:var(--tinta);background:var(--tinta);color:var(--crema)}
+.riel .punto svg{width:16px;height:16px;stroke-width:3}
+.riel b{display:block;font-size:13.5px}.riel small{display:block;font-size:11.5px;color:var(--t65)}
+/* A · Ranura con gotas: la línea es una ranura tallada; lo hecho, una gota verde; lo de ahora, la gota ahumada; lo que falta, una gota clara.
+   (Es la misma pieza que el paso a paso de Cambios y Devoluciones: lo que elijas en uno vale para los dos, y para Recibir.) */
+[data-ri="ranura"] .riel .cv-linea{height:6px;top:22px;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"][data-ri="ranura"] .riel .cv-linea{background:color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-ri="ranura"] .riel .cv-linea i{height:2px;margin-top:2px;border-radius:2px}
+[data-ri="ranura"] .riel .punto{border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-ri="ranura"] .riel .punto{background:color-mix(in srgb,var(--tinta) 8%,transparent);border-color:color-mix(in srgb,var(--tinta) 22%,transparent)}
+[data-ri="ranura"] .riel .hecho .punto{color:var(--crema-fija);border-color:color-mix(in srgb,var(--verde) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 80%,transparent),color-mix(in srgb,var(--verde) 95%,transparent))}
+[data-tema="oscuro"][data-ri="ranura"] .riel .hecho .punto{color:var(--tinta-fija)}
+[data-ri="ranura"] .riel .ahora .punto{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 0 0 6px color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* B · Pozo con gota: los tres pasos en un pozo, como las pestañas; el de ahora, la gota clara; los hechos, con su ✓ verde. */
+[data-ri="pozo"] .riel{padding:4px;gap:0;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-ri="pozo"] .riel{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-ri="pozo"] .riel .cv-linea{display:none}
+[data-ri="pozo"] .riel li{flex-direction:row;justify-content:center;gap:8px;height:44px;border-radius:999px}
+[data-ri="pozo"] .riel li.ahora{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-ri="pozo"] .riel li.ahora{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+[data-ri="pozo"] .riel .punto{width:24px;height:24px;font-size:12px;border:1.5px solid var(--t25);background:none;color:var(--t65)}
+[data-ri="pozo"] .riel .hecho .punto{border-color:color-mix(in srgb,var(--verde) 60%,transparent);background:none;color:var(--verde)}
+[data-ri="pozo"] .riel .ahora .punto{border-color:var(--tinta);background:none;color:var(--tinta)}
+[data-ri="pozo"] .riel small{display:none}
+[data-ri="pozo"] .riel .punto svg{width:12px;height:12px}
+
+/* ---------- el pie (contar) y el celular ---------- */
+.pie-c{position:sticky;bottom:0;z-index:4;margin-top:20px;padding:10px 0 14px;display:flex;justify-content:center}
+.pie-c .barra{display:flex;align-items:center;gap:16px;padding:8px 8px 8px 22px;border-radius:999px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 64%,transparent));-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);box-shadow:inset 0 1px 0 var(--vidrio),0 18px 36px -18px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .pie-c .barra{background:color-mix(in srgb,var(--vidrio) 86%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.pie-c .barra span{font-size:13.5px;color:var(--t65)}.pie-c .barra b{color:var(--tinta)}
+.pie-c .btn{height:44px}
+.isla-m{display:none}
+@container disp (max-width:640px){
+  .pie-c{display:none}.cont{padding-bottom:96px!important}
+  .isla-m{display:flex;position:absolute;z-index:6;left:12px;right:12px;bottom:12px;gap:8px;animation:sube .4s var(--ease) backwards}
+  .isla-m .btn{height:52px;border-radius:999px;font-size:15px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 16px 32px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+  .isla-m .btn.pri{flex:1}.isla-m .btn.sec{width:52px;padding:0;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+  .riel small{display:none}
+  .info>p:first-child{display:none}
+}
+/* inicio */
+.encurso{padding:20px 22px;display:grid;gap:14px}
+.encurso h2,.recientes h2{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.encurso .cv-sub{font-size:13.5px;color:var(--taupe)}
+.res{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.res div{padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+[data-tema="oscuro"] .res div{background:color-mix(in srgb,var(--sombra) 25%,transparent)}
+.res b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:26px;font-variant-numeric:tabular-nums}.res small{font-size:12px;color:var(--t65)}
+.res .dif b{color:var(--rojo-p)}[data-tema="oscuro"] .res .dif b{color:var(--rojo)}
+.encurso .acc{display:flex;flex-wrap:wrap;gap:10px}
+.recientes{padding:16px 18px;margin-top:20px}
+.rc{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 0}
+.rc+.rc{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.rc b{display:block;font-size:14.5px}.rc small{font-size:12.5px;color:var(--t65)}
+.rc .n{font-family:'EB Garamond',serif;font-size:20px;min-width:44px;color:var(--t65)}
+@container disp (max-width:640px){.res{grid-template-columns:1fr 1fr}.rc{grid-template-columns:minmax(0,1fr) auto}.rc .n{display:none}}
+@media (prefers-reduced-motion:reduce){.cv-tc,.isla-m{animation:none}.planilla tr.recien td,.planilla tr.recien th{animation:none}.paso,.paso button{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Inventario ▸ Conteo, con vidrio: la planilla conserva su cara de tabla</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pa"><button data-v="contar">Contar</button><button data-v="inicio">El inicio</button></div>
+  <span class="tag">La planilla</span><div class="seg-m" data-ctl="pl"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa Serena ✓</button><button data-v="lamina">B · Lámina casi papel</button></div>
+  <span class="tag">Los pasos</span><div class="seg-m" data-ctl="ri"><button data-v="ahora">Como ahora</button><button data-v="ranura">A · Ranura con gotas ✓</button><button data-v="pozo">B · Pozo con gota</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla-m" id="isla-m"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>Contar</b> (<code>components/conteo/ContarConteo.tsx</code>): las cifras arriba (verificadas, pendientes, con diferencia), los pasos Contar · Revisar · Confirmar, el escáner de ancho completo, quién cuenta, la última lectura y, por cada prenda, una tarjeta con su <b>planilla</b> de tallas (Talla · Debe haber · Contaste · Estado). La planilla es un <code>&lt;table&gt;</code> con la cara de la tabla del sistema por rendimiento (ADR-0358): con 800 tallas, cada fila se redibuja sola. Abajo, la barra para pasar a Revisar.</li>
+      <li><b>El inicio</b> (<code>ConteoVista</code>): el conteo en curso con su resumen y sus acciones (o «Abrir un conteo»), y los conteos recientes.</li>
+      <li>La tarjeta de la planilla es <b>papel macizo</b>, su cabecera de tabla en <b>arena</b> y las filas con raya arena. Los pasos son puntos de <b>tinta y verde sólidos</b> en una línea arena (el riel que comparte con Recibir).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La planilla</b></td><td>A · Placa Serena <span class="ev">Elegida</span></td><td>La placa que elegiste para las tablas; la cabecera, una franja hundida; las filas, una raya fina. La cara de tabla (y su rendimiento) no cambia.</td><td>Con muchas tarjetas abiertas, el lienzo se nota detrás de los números.</td></tr>
+      <tr><td>B · Lámina casi papel</td><td>Casi opaca, como la lista de prendas de las hojas: los números se leen igual sobre cualquier fondo, por horas.</td><td>Es otro material de tabla en el ERP (además de la placa).</td></tr>
+      <tr><td rowspan="2"><b>Los pasos</b></td><td>A · Ranura con gotas <span class="ev">Elegida</span></td><td>Conserva el riel: la línea es una ranura; lo hecho, una gota verde; lo de ahora, la gota ahumada. Es la misma pieza que el paso a paso de Cambios y Devoluciones y de Recibir.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Pozo con gota</td><td>Los tres pasos en un pozo, como las pestañas; más compacto.</td><td>Se pierde el riel, y un paso a paso se confunde con pestañas que se tocan en cualquier orden.</td></tr>
+    </table>
+    <h3>Lo que decidió Felipe (2026-11-02): A y A</h3>
+    <p><b>La planilla A · Placa Serena y los pasos A · Ranura con gotas.</b> La planilla sigue siendo la misma tabla, en la placa elegida para las tablas, con la cabecera hundida y las filas con raya fina; el riel de pasos es una ranura con una gota por paso (verde lo hecho, ahumada lo de ahora).</p>
+    <h3>Lo que no cambia</h3>
+    <p>La planilla como tabla (Talla · Debe haber · Contaste · Estado) y su rendimiento; el paso de cantidad (Celdas vivas, ya elegido); el estado de cada talla con su color; la talla recién contada que respira en verde una vez; «Completar todo lo que cuadra»; el escáner que se usa de corrido; quién cuenta; y la barra para pasar a Revisar.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, PRENDAS…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { scan: 'M3 5v4M3 15v4M21 5v4M21 15v4M7 5v14M11 5v14M15 5v14M18 5v14', menos: 'M5 12h14', mas: 'M12 5v14M5 12h14', check: 'M20 6 9 17l-5-5', flecha: 'M5 12h14M13 6l6 6-6 6',
+    camara: 'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z M12 17a4 4 0 1 0 0-8a4 4 0 1 0 0 8z' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  // [índice de prenda, color, tallas: [talla, debe, contaste|null]]
+  const CARTAS = [[0, 'Vino', [['S', 4, 4], ['M', 6, 5], ['L', 3, null], ['XL', 1, null]]], [2, 'Bosque', [['S', 2, 2], ['M', 3, 3], ['L', 2, 2]]],
+    [10, 'Coral', [['S', 5, 6], ['M', 4, null], ['L', 2, null]]], [13, 'Rubí', [['Única', 7, null]]]];
+  let recien = null;
+  const estadoDe = (debe, c) => c == null ? ['apagado', 'Sin contar'] : c === debe ? ['', 'Cuadra'] : c < debe ? ['ambar', `Faltan ${debe - c}`] : ['rojo', `Sobra ${c - debe}`];
+  function riel(n) {
+    const P = [['Contar', 'Escanea o cuenta cada talla'], ['Revisar', 'Las que no cuadran'], ['Confirmar', 'Se ajusta el stock']];
+    return `<ol class="riel" style="--p:${(n - 1) / 2}" aria-label="Pasos del conteo"><li class="cv-linea" aria-hidden="true" style="position:absolute"><i></i></li>
+      ${P.map(([t, d], i) => `<li class="${i + 1 < n ? 'hecho' : i + 1 === n ? 'ahora' : ''}" ${i + 1 === n ? 'aria-current="step"' : ''}><span class="punto">${i + 1 < n ? s(D.check) : i + 1}</span><span><b>${t}</b><small>${d}</small></span></li>`).join('')}</ol>`;
+  }
+  function contar() {
+    const todas = CARTAS.flatMap((c) => c[2]); const ver = todas.filter((t) => t[2] === t[1]).length, pend = todas.filter((t) => t[2] == null).length, dif = todas.filter((t) => t[2] != null && t[2] !== t[1]).length;
+    return `${encabezado({ sede: 'Trujillo', titulo: 'Conteo 14', frase: 'Piso de venta · Blusas y Vestidos', pie: '<span class="chip pizarra">En curso</span>', cifras: [[String(ver), 'verificadas', 'percha'], [String(pend), 'pendientes', 'caja'], [String(dif), 'con diferencia', 'alerta', dif > 0]] })}
+      ${riel(1)}
+      <div class="zona"><div class="escaner">${s(D.scan)}<span>Escanea o escribe producto, color, talla o código</span></div>
+        <div class="info"><p class="quien"><span class="av-l">LR</span><span>Cuenta <b>Lucía Ramos</b> · empezó a las 10:05</span></p>
+          <p class="ult">Última lectura: <b>Blusa Coral S</b> · 6</p><button class="btn sec">${s(D.check)}Completar todo lo que cuadra</button></div>
+        <div class="tarjetas">${CARTAS.map(([i, col, tallas], k) => `<section class="cv-tc" style="--i:${k}"><header class="tc-cab"><span class="sw" data-color-dato style="--col:${PRENDAS[i][0]}"></span><div style="min-width:0"><h3>${PRENDAS[i][1]}</h3><p>${col} · ${tallas.length} ${tallas.length === 1 ? 'talla' : 'tallas'}</p></div><button class="btn sec">Todo completo</button></header>
+          <table class="planilla"><caption class="sr-only" style="position:absolute;left:-9999px">Tallas de ${PRENDAS[i][1]}</caption><colgroup><col class="k1"><col class="k2"><col class="k3"><col></colgroup>
+            <thead><tr><th scope="col">Talla</th><th scope="col" class="c">Debe haber</th><th scope="col" class="c">Contaste</th><th scope="col">Estado</th></tr></thead>
+            <tbody>${tallas.map(([t, debe, c], j) => { const [tono, et] = estadoDe(debe, c); return `<tr class="${c === debe ? 'ok' : ''}${recien === `${k}-${j}` ? ' recien' : ''}"><th scope="row">${t}</th><td class="c debe">${debe}</td>
+              <td class="c"><span class="paso"><button data-paso="${k}-${j}" data-d="-1" aria-label="Uno menos">${s(D.menos)}</button><b class="${c == null ? 'vacio' : ''}">${c ?? '—'}</b><button data-paso="${k}-${j}" data-d="1" aria-label="Uno más">${s(D.mas)}</button></span></td>
+              <td><span class="chip ${tono}">${et}</span></td></tr>`; }).join('')}</tbody></table></section>`).join('')}</div>
+      </div>
+      <div class="pie-c"><div class="barra"><span><b>${ver} de ${todas.length}</b> tallas verificadas · ${dif} con diferencia</span><button class="btn pri">Revisar ${s(D.flecha)}</button></div></div>`;
+  }
+  function inicio() {
+    return `${encabezado({ sede: 'Trujillo', titulo: 'Conteo', frase: 'Compara lo que CAYLA dice que hay con lo que encuentras físicamente en la tienda.' })}
+      <section class="placa encurso" style="margin-top:24px"><div><h2>Conteo 14 en curso</h2><p class="cv-sub">Piso de venta · Blusas y Vestidos</p></div>
+        <div class="res"><div><b>15</b><small>variantes</small></div><div><b>6</b><small>verificadas</small></div><div><b>7</b><small>pendientes</small></div><div class="dif"><b>2</b><small>con diferencia</small></div></div>
+        <div class="acc"><button class="btn pri" data-pa="contar">Seguir contando ${s(D.flecha)}</button><button class="btn sec">Revisar diferencias</button></div></section>
+      <section class="placa recientes"><h2>Conteos recientes</h2>
+        ${[['13', 'Almacén · todo', 'Ayer · contó Mateo Ríos', ['', 'Cuadró']], ['12', 'Piso de venta · Casacas', 'Mié 29 oct · contó Lucía Ramos', ['ambar', '3 diferencias aplicadas']], ['11', 'Vitrina', 'Lun 27 oct · contó Lucía Ramos', ['apagado', 'Cancelado']]].map(([n, l, d, [t, e]]) => `<div class="rc"><span class="n">${n}</span><span style="min-width:0"><b>${l}</b><small>${d}</small></span><span class="chip ${t}">${e}</span></div>`).join('')}</section>`;
+  }
+  function pantalla() {
+    const pa = estado.pa || 'contar';
+    $('#cont').innerHTML = pa === 'contar' ? contar() : inicio();
+    $('#isla-m').innerHTML = pa === 'contar' ? `<button class="btn sec" aria-label="Escanear con la cámara">${s(D.camara)}</button><button class="btn pri">Revisar ${s(D.flecha)}</button>` : `<button class="btn pri" data-pa="contar">Seguir contando ${s(D.flecha)}</button>`;
+  }
+  document.addEventListener('click', (e) => {
+    const p = e.target.closest('[data-paso]'); if (p) { const [k, j] = p.dataset.paso.split('-').map(Number), t = CARTAS[k][2][j]; t[2] = Math.max(0, (t[2] ?? 0) + +p.dataset.d); recien = `${k}-${j}`; const y = $('#cont').scrollTop; pantalla(); $('#cont').scrollTop = y; return; }
+    const pa = e.target.closest('[data-pa]'); if (pa) { estado.pa = pa.dataset.pa; pintar(); }
+  });
+  Marco.iniciar({ estado: { pa: 'contar', pl: 'placa', ri: 'ranura' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

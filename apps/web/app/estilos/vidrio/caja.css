@@ -1,0 +1,137 @@
+/* =====================================================================
+   LA CAJA CON VIDRIO (ADR-0596; Felipe lo eligió mirando el 2026-11-02, docs/maquetas/caja-vidrio-2026-11/, «Lo que decidió Felipe»).
+   Ventas ▸ Caja, en su vista «hoy contra ayer» (CajaAbiertaPanel + CajaComparativa, ADR-0319). Lo propio de Caja:
+     · El titular «hoy contra ayer» (`.cmp-heroe`, estilos/caja-comparativa.css), «A · Ahumado»: el mismo bloque oscuro (es lo primero que
+       se lee), de vidrio ahumado como el botón primario: deja ver el lienzo desenfocado, lleva su luz arriba, un filo y esquinas de 28 px.
+       Sus píldoras de abajo pasan a gotas de crema. El halo del efectivo y el anillo sobre la tinta no cambian.
+     · La barra de cierre (`.cc-barra`, estilos/caja-cierre.css, ADR-0318), «B · Isla»: se encoge a una píldora que flota al centro (hasta
+       640 px), con los mismos tres tonos por `data-nivel` —vidrio claro, ahumado de tinta, ahumado de rojo profundo— y SIN la bajada: lo
+       que decía va en el `title` del botón (BarraCierreCaja.tsx) y se sigue leyendo en voz alta (queda oculta solo a la vista).
+     · «Cerrar caja» (`.cc-boton`: el de la cabecera y el de la barra; y el cuadrado «Cerrar» de la barra del celular, `.cc-cuadrado-cerrar`),
+       la gota roja: rojo al 82→96 %, borde de rojo al 70 % y la luz arriba. En las barras de nivel 1 y 2, la gota de crema con la letra en
+       tinta o en rojo profundo.
+   La persiana de «Caja cerrada» es diseño propio (ADR-0301) y no se toca. Sin capa, como las demás piezas de vidrio: le gana a
+   caja-cierre.css, a caja-comparativa.css y a las utilidades. El ahumado de Caja, que falta en vidrio/recetas.css, vive aquí, en `--caja-*`,
+   hasta que se mude allá; la gota roja de 82→96 % ya se mudó (`--gota-roja-*`, 2026-11-02). Movimiento: el de siempre (la barra cambia
+   de tono en 400 ms, el destello al subir de nivel), sin rebote; todo se apaga con `prefers-reduced-motion` (caja-cierre.css).
+   ===================================================================== */
+
+:root {
+  /* El ahumado de Caja: un poco más claro abajo que el ahumado denso de recetas.css (84→95 %, no 84→97 %) y con el filo al 60 %. */
+  --caja-ahumado-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 84%, transparent), color-mix(in srgb, var(--color-tinta) 95%, transparent));
+  --caja-ahumado-rojo-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 84%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 95%, transparent));
+  /* La gota roja de «Cerrar caja» vive desde el 2026-11-02 en recetas.css (`--gota-roja-*`): la comparte con Cambios y Devoluciones. */
+}
+
+/* ---------- 1 · El titular «hoy contra ayer»: A · Ahumado ---------- */
+.cmp-heroe {
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 60%, transparent);
+  border-radius: 28px;
+  background: var(--caja-ahumado-fondo);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 30%, transparent),
+    0 30px 60px -30px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+}
+/* Las píldoras de abajo (Vendido hoy, Ventas, Venta promedio): gotas de crema sobre el ahumado. */
+.cmp-chips span {
+  border-color: color-mix(in srgb, var(--color-crema) 14%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-crema) 14%, transparent), color-mix(in srgb, var(--color-crema) 5%, transparent));
+}
+@media screen {
+  /* En oscuro el titular es claro (tinta y crema se cambian): la luz de arriba es de crema y la sombra, negra. */
+  :root[data-tema="oscuro"] .cmp-heroe {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 40%, transparent), 0 30px 60px -30px var(--color-sombra);
+  }
+  /* La línea de arriba («Hoy contra ayer») queda en la parte más clara del degradado: en oscuro, al 62 % pasaba 4.2:1 sobre el ahumado
+     (sobre la tinta maciza pasaba 4.6:1). Al 70 % pasa 5.2:1. En claro sigue al 62 % (5.1:1). */
+  :root[data-tema="oscuro"] .cmp-sobre { color: color-mix(in srgb, var(--color-crema) 70%, transparent); }
+}
+
+/* ---------- 2 · «Cerrar caja»: la gota roja ---------- */
+.cc-boton,
+.cc-cuadrado-cerrar {
+  border: 1px solid var(--gota-roja-borde);
+  background: var(--gota-roja-fondo);
+  color: var(--color-crema);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gota-roja-luz);
+}
+.cc-boton { border-radius: 999px; }
+@media (hover: hover) {
+  .cc-boton:hover,
+  .cc-cuadrado-cerrar:hover { background: var(--gota-roja-hover); }
+}
+
+/* ---------- 3 · La barra de cierre: B · Isla ---------- */
+/* El pie ya no pinta su degradado de crema: la isla flota sola, al centro, y deja ver la pantalla a los lados. (Su `display` lo siguen
+   decidiendo `hidden sm:block`: en el celular la hace la barra de abajo.) */
+.cc-barra-pie { background: none; }
+.cc-barra {
+  flex-wrap: nowrap;
+  width: fit-content;
+  max-width: min(640px, 100%);
+  margin-inline: auto;
+  padding: 8px 8px 8px 22px;
+  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 78%, transparent), color-mix(in srgb, var(--color-vidrio) 62%, transparent));
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+}
+.cc-barra > div { min-width: 0; }
+/* La bajada se va de la vista (el título dice lo necesario; lo demás, el `title` del botón), pero la sigue leyendo un lector de pantalla:
+   la barra es `role="status"`. */
+.cc-barra .cc-bajada {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.cc-barra .cc-boton { height: 44px; padding: 0 24px; }
+/* Nivel 1 (pasó la hora de cierre): el ahumado de tinta. */
+.cc-barra[data-nivel="1"] {
+  color: var(--color-crema);
+  border-color: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+  background: var(--caja-ahumado-fondo);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 28%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+}
+/* Nivel 2 (30 min o más tarde): el ahumado de rojo profundo. */
+.cc-barra[data-nivel="2"] {
+  color: var(--color-crema);
+  border-color: color-mix(in srgb, var(--color-rojo-profundo) 70%, transparent);
+  background: var(--caja-ahumado-rojo-fondo);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 28%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--color-rojo-profundo) 60%, transparent);
+}
+/* Sobre el ahumado, «Cerrar caja» es la gota de crema (otra gota roja no se vería): letra de tinta en el nivel 1, de rojo profundo en el 2. */
+.cc-barra:is([data-nivel="1"], [data-nivel="2"]) .cc-boton {
+  border-color: color-mix(in srgb, var(--color-crema) 70%, transparent);
+  background: var(--gota-crema-fondo);
+  color: var(--color-tinta);
+  box-shadow: var(--gota-crema-luz);
+}
+.cc-barra[data-nivel="2"] .cc-boton { color: var(--color-rojo-profundo); }
+@media (hover: hover) {
+  .cc-barra:is([data-nivel="1"], [data-nivel="2"]) .cc-boton:hover { background: var(--gota-crema-hover); }
+}
+@media screen {
+  /* En oscuro la isla clara es el vidrio casi lleno, con su filo de crema apenas. */
+  :root[data-tema="oscuro"] .cc-barra:not([data-nivel="1"], [data-nivel="2"]) {
+    border-color: color-mix(in srgb, var(--color-tinta) 14%, transparent);
+    background: color-mix(in srgb, var(--color-vidrio) 86%, transparent);
+  }
+}
+
+/* Quien pidió menos transparencia ve el titular y la isla macizos: los mismos tonos, sin nada translúcido detrás. */
+@media (prefers-reduced-transparency: reduce) {
+  .cmp-heroe, .cc-barra[data-nivel="1"] { background: var(--color-tinta); }
+  .cc-barra:not([data-nivel="1"], [data-nivel="2"]) { background: var(--color-papel); }
+  .cc-barra[data-nivel="2"] { background: var(--color-rojo-profundo); }
+}
