@@ -21,3 +21,4 @@
 - **Página Colaboradores ▸ Equipo, en maqueta** (`docs/maquetas/colaboradores-vidrio-2026-11/`): la píldora del rol A · Gotas / B · Solo texto y «Esperan tu ok» A · Lente ámbar / B · Placa con filo. 162 combinaciones sin desborde. A la otra sesión: Plan de campaña y Proveedores.
 - **Colaboradores, elegida:** rol A · Gotas y «Esperan tu ok» A · Lente ámbar; pasada a la sesión que implementa.
 - **Página Configuración, en maqueta** (`docs/maquetas/configuracion-vidrio-2026-11/`): la casilla A · Pozo en la celda / B · Se hunde al tocar (recomendada) y al guardarse A · Visto en la celda (recomendada) / B · Hilo verde. 54 combinaciones sin desborde; la planilla pasa a tarjetas por tienda bajo 560 px. Colaboradores elegida A y A.
+- **Configuración, elegida:** casilla A · Pozo en la celda y al guardarse A · Visto en la celda; pasada a la sesión que implementa. Fusionada la elección de Plan de campaña de la otra sesión (rango A, avisos B).
