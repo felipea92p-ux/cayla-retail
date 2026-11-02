@@ -662,3 +662,42 @@
     transition: none;
   }
 }
+
+/* =====================================================================
+   EL PASO QUE SIGUE: «D · FILO DE LUZ» (Felipe 2026-11-02, docs/maquetas/foco-vidrio-2026-11/). El paso numerado del cobro y del
+   descuento (`.hoja-cobro-paso`, `CabezaPaso`) ya no es papel con un tinte rojo: es vidrio claro con un borde de luz del rojo de CAYLA que
+   da UNA pasada al llegar (ADR-0136: una vez, sin rebote ni bucle). El número, el chip «Sigue aquí» y los controles de adentro no cambian.
+   El filo es un borde con máscara (`::after`, sobre el borde de 1,5 px que el paso ya reserva): no mueve ni empuja nada.
+   ===================================================================== */
+.hoja-cobro-paso {
+  position: relative;
+  isolation: isolate;
+}
+.hoja-cobro-paso.sigue-aqui {
+  background: var(--pozo-encendido-fondo);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 95%, transparent);
+}
+.hoja-cobro-paso.sigue-aqui::after {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background:
+    linear-gradient(105deg, transparent 38%, var(--color-vidrio) 50%, transparent 62%) 100% 0 / 260% 100% no-repeat,
+    linear-gradient(115deg, color-mix(in srgb, var(--color-rojo) 85%, transparent), color-mix(in srgb, var(--color-rojo) 45%, transparent));
+  /* la máscara solo usa el alfa: el color es un token opaco cualquiera */
+  mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
+  -webkit-mask-composite: xor;
+  animation: hoja-cobro-filo 1000ms var(--ease-cayla) both;
+}
+@keyframes hoja-cobro-filo {
+  from { background-position: 100% 0, 0 0; }
+  to { background-position: 0 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hoja-cobro-paso.sigue-aqui::after { animation: none; }
+}

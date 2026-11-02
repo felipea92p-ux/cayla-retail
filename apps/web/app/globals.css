@@ -2932,10 +2932,8 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     border-radius: 1.1rem;
     transition: background-color 500ms var(--ease-cayla), border-color 500ms var(--ease-cayla);
   }
-  .hoja-cobro-paso.sigue-aqui {
-    background: color-mix(in srgb, var(--color-rojo) 4%, var(--color-papel));
-    border-color: color-mix(in srgb, var(--color-rojo) 28%, transparent);
-  }
+  /* El paso que sigue ya no lleva un tinte de papel: es vidrio claro con un filo de luz (`estilos/vidrio/vender.css`, «Filo de luz»,
+     docs/maquetas/foco-vidrio-2026-11/). Va allí y no aquí porque esta capa (`components`) pierde frente a lo que no tiene capa. */
 
   /* Un medio: cuadrado, con la franja de su color arriba y el ícono ocupando casi todo el cuadro. */
   .hoja-cobro-medio {
