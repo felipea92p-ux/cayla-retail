@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-rl="gotas" data-ok="lente">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Colaboradores con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página Colaboradores ▸ Equipo con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Hoy (components/ColaboradoresPanel.tsx, colaboradores/EquipoLista.tsx): la cabecera; «Esperan tu ok» (una FRANJA ÁMBAR al 10 % con las
+   altas por aprobar, cada una en una píldora de papel con Aprobar / Rechazar); una tarjeta con los atajos («Todos», «De turno», «Líderes»,
+   «Terminales»…), el buscador y «Lista / Mosaico»; y la lista agrupada por sede: una línea por persona (avatar, nombre, el ROL EN UNA
+   PÍLDORA —el Líder en TINTA SÓLIDA, los demás en HUESO—, último ingreso y estado), la elegida en hueso.
+   Lo ya elegido entra tal cual: filas en la placa (Fichas), avatar en lente, títulos de grupo con su ranura, buscador pozo, filtros en gota,
+   «Lista / Mosaico» en pozo y gota, insignias en lente. Se elige lo propio: la píldora del rol y «Esperan tu ok». Datos inventados.
+   ==================================================================== */
+.ok-b{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:20px;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.ok-b h2{margin:0;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--ambar) 82%,var(--tinta))}
+.ok-b ul{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;flex:1;min-width:0}
+.ok-p{display:flex;align-items:center;gap:8px;max-width:100%;padding:4px 4px 4px 12px;border-radius:999px;background:var(--papel);font-size:13px}
+.ok-p strong{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ok-p span{color:var(--t65);white-space:nowrap}
+.ok-p .btn{height:28px;padding:0 10px;font-size:12px}
+/* A · LENTE ÁMBAR: el aviso es una lente teñida de ámbar (la insignia elegida, en grande): su luz arriba y su filo; cada alta, una gota */
+[data-ok="lente"] .ok-b{border:1px solid color-mix(in srgb,var(--ambar) 40%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 10%,color-mix(in srgb,var(--vidrio) 82%,transparent)),color-mix(in srgb,var(--ambar) 18%,color-mix(in srgb,var(--vidrio) 50%,transparent)));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 12px 26px -18px color-mix(in srgb,var(--ambar) 55%,transparent)}
+[data-tema="oscuro"][data-ok="lente"] .ok-b{background:color-mix(in srgb,var(--ambar) 14%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ambar) 25%,transparent)}
+/* B · PLACA CON FILO: la placa Serena de siempre y un filo ámbar de 3 px en su canto (el de la Vitrina): dice «pide algo» sin teñir todo */
+[data-ok="filo"] .ok-b{position:relative;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-ok="filo"] .ok-b::before{content:"";position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--ambar)}
+[data-tema="oscuro"][data-ok="filo"] .ok-b{background:color-mix(in srgb,var(--vidrio) 78%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-ok="lente"],[data-ok="filo"]) .ok-p{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:is([data-ok="lente"],[data-ok="filo"]) .ok-p{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+
+.eq{margin-top:18px;border-radius:22px;padding:16px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .eq{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.eq-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.eq-atajos{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.fp{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:color-mix(in srgb,var(--tinta) 82%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp .n{font-weight:500;opacity:.75;font-variant-numeric:tabular-nums}.fp .vd{width:6px;height:6px;border-radius:50%;background:var(--verde)}
+.eq-bus{display:flex;align-items:center;gap:8px;height:40px;width:240px;max-width:100%;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:13.5px;color:var(--t65)}
+[data-tema="oscuro"] .eq-bus{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.eq-bus svg,.md-e svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.md-e{position:relative;display:inline-flex;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);border:1px solid color-mix(in srgb,var(--borde) 45%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.md-e button{position:relative;z-index:1;width:34px;height:30px;border-radius:999px;display:grid;place-items:center;color:var(--t65)}
+.md-e button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .md-e button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+
+/* ---------- la lista: grupos por sede y filas en la placa (lo elegido en Fichas) ---------- */
+.gr-t{display:flex;align-items:center;gap:10px;margin:20px 0 6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.gr-t::after{content:"";flex:1;height:2px;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent) 50%,color-mix(in srgb,var(--vidrio) 95%,transparent) 50%)}
+[data-tema="oscuro"] .gr-t::after{background:linear-gradient(180deg,color-mix(in srgb,var(--sombra) 60%,transparent) 50%,color-mix(in srgb,var(--tinta) 12%,transparent) 50%)}
+.gr-t .n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;font-size:10.5px;letter-spacing:0;color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 85%,transparent),color-mix(in srgb,var(--vidrio) 45%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent)}
+.cols-e{display:grid;grid-template-columns:40px minmax(0,1.4fr) minmax(0,1fr) 120px 140px;gap:12px;align-items:center}
+.enc-e{padding:0 12px 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t65)}
+.enc-e span:first-child{grid-column:span 2}
+.fe{position:relative;width:100%;min-height:48px;padding:6px 12px;border-radius:14px;text-align:left;animation:sube .4s var(--ease) backwards;animation-delay:calc(var(--i,0) * 35ms + 120ms)}
+.fe+.fe::before{content:"";position:absolute;top:0;left:64px;right:12px;height:1px;background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+@media (hover:hover){.fe:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 50%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+  [data-tema="oscuro"] .fe:hover{background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:none}.fe:hover::before,.fe:hover+.fe::before{opacity:0}}
+.fe[aria-current="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .fe[aria-current="true"]{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+.fe[aria-current="true"]::before,.fe[aria-current="true"]+.fe::before{opacity:0}
+.fe.apag .nom-e,.fe.apag .av-e{opacity:.6}
+.av-e{position:relative;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;color:var(--tinta);
+  background:radial-gradient(120% 90% at 30% 15%,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--sand) 70%,transparent) 75%);box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--vidrio) 60%,transparent)}
+[data-tema="oscuro"] .av-e{background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+.av-e.turno::after{content:"";position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--verde);box-shadow:0 0 0 2px var(--papel)}
+.av-e.term{border-radius:10px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700}
+.nom-e{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:14.5px;font-weight:600;min-width:0}
+.nom-e small{font-size:12px;font-weight:400;color:var(--t65)}
+.nom-e .adm{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe)}
+.ult{font-size:12.5px;color:var(--t65);font-variant-numeric:tabular-nums}
+.chip-l{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip-l i{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* ---------- la píldora del rol (como hoy: el Líder en tinta sólida, los demás en hueso) ---------- */
+.rol{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--hueso);color:var(--tinta)}
+.rol.lider{background:var(--tinta);color:var(--crema)}
+/* A · GOTAS: cada rol es una gota clara con su filo; el Líder, la gota AHUMADA (como el filtro puesto): sigue siendo el único oscuro */
+[data-rl="gotas"] .rol{border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 88%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-rl="gotas"] .rol{border-color:color-mix(in srgb,var(--tinta) 22%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+[data-rl="gotas"] .rol.lider{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent)}
+/* B · SOLO TEXTO: sin píldora; el rol es texto (13 px, tenue) y el Líder, en tinta, peso 700 y con una barrita roja delante (la del menú).
+   Menos cajas por fila: la columna se lee como una lista de palabras. */
+[data-rl="texto"] .rol{padding:0;border-radius:0;background:none;font-size:13px;font-weight:500;color:var(--t80)}
+[data-rl="texto"] .rol.lider{position:relative;padding-left:10px;color:var(--tinta);font-weight:700}
+[data-rl="texto"] .rol.lider::before{content:"";position:absolute;left:0;top:50%;width:3px;height:12px;margin-top:-6px;border-radius:3px;background:var(--rojo)}
+
+.mosaico{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:8px;margin-top:8px}
+.te{display:grid;grid-template-columns:40px minmax(0,1fr);gap:4px 12px;align-items:center;padding:10px;border-radius:16px;text-align:left;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .te{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:none}
+.te .av-e{grid-row:span 2}.te .nom-e{font-size:14px}
+
+@container disp (max-width:1000px){.cols-e{grid-template-columns:40px minmax(0,1.4fr) minmax(0,1fr) 110px}.cols-e>:nth-child(5){display:none}}
+@container disp (max-width:640px){.cols-e{grid-template-columns:40px minmax(0,1fr) auto}.cols-e>:nth-child(4){display:none}.enc-e{display:none}.fe+.fe::before{left:12px}.eq-bus{width:100%}}
+@container disp (max-width:520px){.eq{padding:12px;border-radius:18px}.rol{max-width:7.5rem}
+  /* en el teléfono cada alta ocupa su renglón: el nombre arriba y sus dos botones debajo */
+  .ok-b{flex-direction:column;align-items:stretch}.ok-b ul{flex-direction:column}.ok-p{flex-wrap:wrap;border-radius:16px;padding:8px 8px 8px 12px}.ok-p strong{flex:1 1 auto}.ok-p .btn{flex:1 1 40%}
+  .nom-e{overflow-wrap:anywhere}}
+@media (prefers-reduced-motion:reduce){.fe{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Colaboradores ▸ Equipo, con vidrio</span>
+  <span class="tag">Píldora del rol</span><div class="seg-m" data-ctl="rl"><button data-v="ahora">Como ahora</button><button data-v="gotas">A · Gotas</button><button data-v="texto">B · Solo texto</button></div>
+  <span class="tag">«Esperan tu ok»</span><div class="seg-m" data-ctl="ok"><button data-v="ahora">Como ahora</button><button data-v="lente">A · Lente ámbar</button><button data-v="filo">B · Placa con filo</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>«Esperan tu ok»</b>: una franja ámbar al 10 % con cada alta por aprobar en una píldora de papel y sus botones Aprobar / Rechazar. Sobre el vidrio es una mancha plana de color.</li>
+      <li><b>La píldora del rol</b>: el Líder en <b>tinta sólida</b> y los demás en <b>hueso</b>. En una lista de 30 personas son 30 píldoras macizas, y la del Líder es el único bloque negro de la pantalla.</li>
+      <li>La lista por sede, el avatar, los títulos de grupo, los atajos, el buscador y «Lista / Mosaico» entran con lo ya elegido (filas en la placa de Fichas, avatar en lente, la ranura del título, pozo, gotas).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Píldora del rol</b></td><td>A · Gotas <span class="ev">Recomendada</span></td><td>Cada rol es una gota clara y el Líder, la gota ahumada: se sigue encontrando de un vistazo y ya es vidrio.</td><td>Sigue habiendo una píldora por fila.</td></tr>
+      <tr><td>B · Solo texto</td><td>Menos cajas: el rol es una palabra tenue y el Líder, en negrita con la barrita roja del menú. La columna se lee más limpia.</td><td>El Líder se distingue menos desde lejos; la barrita roja suma un uso del rojo por cada líder.</td></tr>
+      <tr><td rowspan="2"><b>«Esperan tu ok»</b></td><td>A · Lente ámbar <span class="ev">Recomendada</span></td><td>La insignia elegida en grande: vidrio teñido de ámbar con su luz y su filo; cada alta, una gota. Pide algo, y se nota.</td><td>Un bloque de color en lo alto de la pantalla (solo aparece si hay altas por aprobar).</td></tr>
+      <tr><td>B · Placa con filo</td><td>La placa de siempre con el filo ámbar de 3 px de la Vitrina: más sobria.</td><td>Se distingue menos de cualquier otra placa; el ámbar queda en una línea.</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Rol A · Gotas y «Esperan tu ok» A · Lente ámbar.</b> Toca una persona para marcarla; «Lista / Mosaico» cambia la vista.</p>
+    <h3>Lo que no cambia</h3>
+    <p>La lista agrupada por sede, qué dice cada fila, «(tú)» y «Admin», el punto verde de quien está de turno, las terminales con su ícono, el estado de quien está suspendido o dado de baja en Dynamic, aprobar y rechazar con el responsable, y la ficha que se abre (una hoja: ya tiene su cara).</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js y marco.css usan nombres globales (estado, pintar, boton, encabezado, fila, buscar; .hoja, .cifras, .sede, .av, .tc, .uni, .prendas…); la maqueta no los repite. -->
+<script>
+const svC2 = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const EQUIPO = [
+  ['Trujillo', [['LR', 'Lucía Ramos', 'Líder de tienda', 1, 'hoy, 8:02', 0, 'tu'], ['DC', 'Daniela Chávez', 'Vendedora', 0, 'hoy, 9:15', 1], ['JM', 'Javier Morales', 'Almacén', 0, 'ayer'], ['TV', 'Terminal de ventas', 'Terminal de ventas', 0, 'hoy, 8:00', 0, 'term'], ['RP', 'Rocío Pinedo', 'Vendedora', 0, 'hace 3 semanas', 0, 'susp']]],
+  ['Arequipa', [['MA', 'Mariela Apaza', 'Líder de tienda', 1, 'hoy, 9:40', 1], ['KQ', 'Kevin Quispe', 'Vendedor', 0, 'hoy, 10:02', 1], ['SL', 'Silvia Luna', 'Caja y ventas', 0, 'hace 2 días']]],
+  ['Lima · Taller', [['FA', 'Felipe Álvarez', 'Líder', 1, 'hoy, 7:30', 0, 'adm'], ['CR', 'Claudia Ruiz', 'Costura', 0, 'hoy, 8:10', 1]]],
+];
+let elegidoE = 'Daniela Chávez', vistaE = 'lista', okE = [['Pamela Soto', 'Trujillo'], ['Iván Torres', 'Arequipa']];
+function filaE([ini, n, rol, lid, ult, turno, extra], i) {
+  const apag = extra === 'susp';
+  return `<button class="fe cols-e${apag ? ' apag' : ''}" style="--i:${i}" data-p="${n}" ${n === elegidoE ? 'aria-current="true"' : ''}>
+    <span class="av-e${turno ? ' turno' : ''}${extra === 'term' ? ' term' : ''}">${extra === 'term' ? 'POS' : ini}</span>
+    <span class="nom-e">${n}${extra === 'tu' ? '<small>(tú)</small>' : ''}${extra === 'adm' ? '<span class="adm">Admin</span>' : ''}</span>
+    <span><span class="rol${lid ? ' lider' : ''}" title="${rol}">${rol}</span></span>
+    <span class="ult">${apag ? '—' : ult}</span>
+    <span>${apag ? '<span class="chip-l" style="--c:var(--ambar)"><i></i>Suspendida</span>' : '<span class="chip-l" style="--c:var(--verde)"><i></i>Activa</span>'}</span></button>`;
+}
+function tarjetaE([ini, n, rol, lid, , turno, extra]) {
+  return `<button class="te" data-p="${n}"><span class="av-e${turno ? ' turno' : ''}${extra === 'term' ? ' term' : ''}">${extra === 'term' ? 'POS' : ini}</span><span class="nom-e">${n}</span><span><span class="rol${lid ? ' lider' : ''}">${rol}</span></span></button>`;
+}
+function pintarE() {
+  let k = 0;
+  const grupos = EQUIPO.map(([sede, ps]) => `<h3 class="gr-t">${sede} <span class="n">${ps.length}</span></h3>${vistaE === 'lista' ? ps.map((p) => filaE(p, k++)).join('') : `<div class="mosaico">${ps.map(tarjetaE).join('')}</div>`}`).join('');
+  $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Colaboradores', frase: 'Quién trabaja en cada sede, qué ve y cuándo entró.', acciones: [['pri', 'Dar acceso', 'mas']] })}
+    ${okE.length ? `<section class="ok-b" aria-label="Altas que esperan aprobación"><h2>Esperan tu ok · ${okE.length}</h2><ul>${okE.map(([n, s], i) => `<li class="ok-p"><strong>${n}</strong><span>→ ${s}</span>${boton(['sec', 'Rechazar'])}${boton(['pri', 'Aprobar'])}</li>`).join('')}</ul></section>` : ''}
+    <section class="eq"><div class="eq-barra"><div class="eq-atajos"><button class="fp" aria-pressed="true">Todos <span class="n">10</span></button><button class="fp"><span class="vd"></span>De turno <span class="n">4</span></button><button class="fp">Líderes <span class="n">3</span></button><button class="fp">Terminales <span class="n">1</span></button></div>
+      <span class="eq-bus">${svC2('M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8')}Busca a alguien</span>
+      <div class="md-e" role="group" aria-label="Cómo ver"><button data-vista="lista" aria-pressed="${vistaE === 'lista'}" aria-label="Lista">${svC2('M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01')}</button><button data-vista="mosaico" aria-pressed="${vistaE === 'mosaico'}" aria-label="Mosaico">${svC2('M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z')}</button></div></div>
+      ${vistaE === 'lista' ? '<div class="enc-e cols-e" aria-hidden="true"><span>Persona</span><span>Rol</span><span>Último ingreso</span><span>Estado</span></div>' : ''}
+      ${grupos}</section>`;
+}
+document.addEventListener('click', (ev) => {
+  const f = ev.target.closest('.fe,.te'); if (f) { elegidoE = f.dataset.p; $$('.fe').forEach((x) => x.toggleAttribute('aria-current', x === f)); if (f.matches('.fe')) f.setAttribute('aria-current', 'true'); return; }
+  const v = ev.target.closest('[data-vista]'); if (v) { vistaE = v.dataset.vista; pintarE(); return; }
+  const a = ev.target.closest('.fp'); if (a) $$('.fp').forEach((x) => x.setAttribute('aria-pressed', x === a));
+  const r = ev.target.closest('.ok-p .btn'); if (r) { const n = r.closest('.ok-p').querySelector('strong').textContent; okE = okE.filter(([x]) => x !== n); pintarE(); }
+});
+Marco.iniciar({ estado: { rl: 'gotas', ok: 'lente' }, alPintar: () => pintarE() });
+</script>
+</body>
+</html>
