@@ -28,3 +28,7 @@ en Conteo (A · Ranura con gotas): Recibir los hereda.
 En Chrome sin ventana: 144 combinaciones (320 a 1920 px, claro y oscuro, contar y cerrado, todas las caras), nada se desborda; sin errores
 de JS; − y + mueven el Dial sin repintar la pantalla (antes de corregirlo, cada toque volvía a correr todas las entradas). Dos cosas
 corregidas al mirar: los íconos de − y + heredaban el giro del aro del Dial, y el halo del camión del Trayecto se salía 2 px.
+
+## Lo que decidió Felipe
+
+**Superficies A · Vidrio claro y avances B · Tubo** (2026-11-02), las recomendadas.
