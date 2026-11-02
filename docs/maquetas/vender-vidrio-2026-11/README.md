@@ -38,3 +38,10 @@ sin letra: el ahumado se invierte y la gota clara también tenía que invertirse
 **La mesa A · Catálogo al aire, ticket en placa y la tarjeta de prenda B · Foto al aire** (2026-11-02). Sin la tarjeta grande de crema:
 el catálogo vive sobre el fondo y el ticket es la placa Serena pegada arriba a la derecha. Cada prenda es su foto (esquinas de 18 px, sombra
 que crece al pasar el mouse), con el nombre, las tallas en gota y el precio planos debajo.
+
+## Cambio posterior (2026-11-02, más tarde ese mismo día)
+
+Con fotos reales **B · Foto al aire no funcionó**: cada foto trae su fondo (blanco, beige, celeste), unas se perdían contra el fondo de la
+pantalla y otras parecían un hueco blanco, y el nombre, las tallas y el precio quedaban «en el aire». La tarjeta de prenda pasó a **A · Placa**
+(vidrio claro de las tarjetas que se repiten, sin desenfoque), con la foto dentro y un filo de 1 px encima de ella para que todas tengan el mismo
+borde. La mesa (A · Catálogo al aire, ticket en placa) no cambia. Código: `app/estilos/vidrio/vender.css`.
