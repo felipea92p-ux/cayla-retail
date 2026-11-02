@@ -125,7 +125,7 @@ export function NuevaTelaModal({
   const datosDeLaTela: DatosDeLaTela = { nombre: e.nombre, tejidoId: e.tejidoId, composicion: e.composicion, compra: e.compra, ancho: e.ancho, gramaje: e.gramaje, metrosPorRollo: e.metrosPorRollo, merma: e.merma };
   const problemas = problemasDeTelaNueva(e);
   const campos = camposDeTelaNueva(e);
-  const guia = useGuiaCampos(agregarA ? campos.filter((c) => c.id === "colores" || c.id === "quien") : campos);
+  const guia = useGuiaCampos(agregarA ? campos.filter((c) => c.id === "colores" || c.id === "quien") : campos, { conGrado: true });
   const parecida = agregarA ? null : telaParecida(nombre, materiales);
   // En «Agregar colores» el código de cada color sale de la tela elegida (`MM-01-NEG`), no de una tela nueva (G10 de la revisión).
   const codigo = codigoBaseDeVista(agregarA, e.nombre, materiales);

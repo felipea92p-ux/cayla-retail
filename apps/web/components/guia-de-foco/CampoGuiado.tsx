@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
-import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useRetenerLuz, type ModoRetencion } from "./useRetenerLuz";
+import { separarFaltan } from "@/lib/guia-campos";
 import type { GuiaCampos } from "./useGuiaCampos";
 
 // Las dos piezas de la guía de foco para un modal (CLAUDE.md «Guía de foco», ADR-0284). Sus estilos: `app/estilos/alta-guia.css`
@@ -46,7 +46,7 @@ export function CampoGuiado({
       {titulo && (
         <>
           <p className={`${ayuda && ayudaAbajo ? "" : "mb-1.5 "}flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta`}>
-            <ConMarca estado={estado}>{titulo}</ConMarca>
+            {guia.etiqueta(id, titulo)}
             {ayuda && !ayudaAbajo && <span className="text-[12px] font-normal text-taupe">{ayuda}</span>}
           </p>
           {ayuda && ayudaAbajo && <p className="mb-1.5 mt-0.5 text-[12px] font-normal text-taupe">{ayuda}</p>}
@@ -65,7 +65,11 @@ export function PieGuia({ guia, listo = "Todo listo.", conFrase = false }: { gui
     const siguiente = guia.faltan.find((c) => c.id === guia.ahora) ?? guia.faltan[0];
     return (
       <div className="space-y-1 pt-1">
-        <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
+        {guia.conGrado ? (
+          <PieSeparado guia={guia} />
+        ) : (
+          <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
+        )}
         {conFrase && siguiente?.pendiente && (
           <p role="status" className="text-[12.5px] text-tinta/80">
             {siguiente.pendiente}
@@ -78,5 +82,16 @@ export function PieGuia({ guia, listo = "Todo listo.", conFrase = false }: { gui
     <p role="status" className="pt-1 text-[12.5px] text-verde">
       {listo}
     </p>
+  );
+}
+
+/** Con `conGrado`: «Faltan: …» (lo que bloquea) y, en otra línea, «Conviene: …» (lo que no). Quien solo tiene cosas que convienen no ve ningún «Falta». */
+function PieSeparado({ guia }: { guia: GuiaCampos }) {
+  const { obligatorios, convienen } = separarFaltan(guia.faltan);
+  return (
+    <>
+      {obligatorios.length > 0 && <FaltanDelPaso faltan={obligatorios} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />}
+      {convienen.length > 0 && <FaltanDelPaso faltan={convienen} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} rotulo="Conviene" />}
+    </>
   );
 }

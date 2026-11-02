@@ -1325,7 +1325,7 @@ export const GUIA_PROD_PROVEEDORES: Guia = {
       ancla: "prod-proveedor-modal.nombre",
       preparar: [{ tipo: "clic", ancla: "prod-proveedores.nuevo" }],
       titulo: "Nombre o razón social",
-      texto: "Como aparece en su factura, para reconocerlo al registrarla.",
+      texto: "Como aparece en su factura, para reconocerlo al registrarla. Cada campo dice si es obligatorio u opcional, y sobre el botón verás qué falta.",
     },
     {
       id: "modal-rubro",
