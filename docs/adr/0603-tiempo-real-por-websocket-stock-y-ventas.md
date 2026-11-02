@@ -17,12 +17,12 @@ local, que solo comprobó que la publicación se creaba y nunca hizo un `UPDATE`
 
 **Regla desde hoy:** antes de publicar una tabla en Realtime, comprobar que tiene llave primaria o `replica identity full`, y el ensayo local
 incluye un `UPDATE` sobre ella. La migración corregida lo hace sola (`replica identity full` si no hay llave primaria) y es idempotente.
-**Estado de producción hoy:** solo `retail.ventas` está publicada (tiene llave primaria); `stock` espera que se pegue la migración corregida.
+**Estado de producción:** con el OK de Felipe, la versión corregida se pegó el mismo 2026-11-02 (`realtime_stock_con_identidad_de_replica`) y se verificó: `stock` con identidad `full`, `ventas` con su llave primaria, las dos publicadas, y un `UPDATE` sin filas sobre cada una responde sin error.
 
 ## Qué hace hoy
 
 - **Base:** `20261102212000_realtime_stock_y_ventas.sql` pone `replica identity full` en `stock` y agrega `retail.stock` y `retail.ventas` a la
-  publicación `supabase_realtime`. En producción hoy solo está `ventas` (ver el incidente); `stock` entra al pegar la versión corregida.
+  publicación `supabase_realtime`. Ya está así en producción (ver el incidente).
   Para deshacerlo: `alter publication supabase_realtime drop table retail.stock, retail.ventas;` — las pantallas vuelven solas al sondeo.
 - **Web:** `lib/useCambiosEnVivo.ts` abre un canal por pantalla y tabla, filtrado por `ubicacion_id`, y avisa. `lib/cambios-en-vivo-reglas.ts`
   tiene la lógica pura (junta una ráfaga en un aviso, valida el filtro, decide qué hacer con el aviso), con su prueba.
