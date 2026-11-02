@@ -1999,6 +1999,18 @@ html[data-buscando] [data-resultados] {
       background: color-mix(in srgb, var(--color-tinta) 20%, transparent);
       transition: width 260ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
     }
+    /* En una hoja que scrollea el asa no corre con el contenido: va pegada arriba (sticky) y tapa lo que pasa por debajo con el
+       fondo de la hoja. Su margen negativo la ubica en el relleno de la hoja (p-6) sin mover nada del contenido. */
+    .asa-hoja.asa-hoja-fija {
+      position: sticky;
+      top: 0;
+      left: auto;
+      right: auto;
+      z-index: 20;
+      margin: -1.5rem -1.5rem 0;
+      background: var(--fondo-hoja, var(--color-papel));
+    }
+    .hoja-vidrio > .asa-hoja.asa-hoja-fija { background: none; }
     /* Mientras el dedo la lleva, el asa se estira un poco y se oscurece: la hoja «se agarró». */
     [data-arrastrando] > .asa-hoja::before {
       width: 2.75rem;
